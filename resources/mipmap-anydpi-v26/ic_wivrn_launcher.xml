@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--
+    Copyright (c) 2020-2022, The Khronos Group Inc.
+    Copyright (c) 2020, Google
+    SPDX-License-Identifier: Apache-2.0
+  
+    Based on a Material Icons asset ("emoji-people") with added text
+    in "Miriam Libre" Bold, converted to path, and manually simplified.
+  -->
+  <background android:drawable="@color/ic_wivrn_launcher_background" />
+  <foreground android:drawable="@drawable/ic_wivrn_vk" />
+</adaptive-icon>

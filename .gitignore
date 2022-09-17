@@ -1,0 +1,11 @@
+*~
+.cxx/
+.gradle/
+_deps/
+
+build/
+build-*/
+
+*.so
+a.out
+*.pgm
