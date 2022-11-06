@@ -10,3 +10,6 @@ build-*/
 a.out
 *.pgm
 *.zip
+*.keystore
+gradle.properties
+local.properties
