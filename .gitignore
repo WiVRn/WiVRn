@@ -9,3 +9,4 @@ build-*/
 *.so
 a.out
 *.pgm
+*.zip

@@ -41,7 +41,7 @@ android {
         }
     }
 
-    flavorDimensions "device"
+    flavorDimensions "device", "validation"
 
     productFlavors {
         oculus {
@@ -52,6 +52,20 @@ android {
                     arguments '-DOCULUS_SDK=' + file('OculusSDK').absolutePath
                 }
             }
+        }
+
+        validationlayer {
+            dimension "validation"
+            externalNativeBuild {
+                cmake {
+                    abiFilters 'arm64-v8a'
+                    arguments '-DUSE_ANDROID_VALIDATION_LAYER=ON'
+                }
+            }
+        }
+
+        novalidationlayer {
+            dimension "validation"
         }
     }
 
@@ -68,10 +82,4 @@ android {
             path    'CMakeLists.txt'
         }
     }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.debug
-        }
-}
 }

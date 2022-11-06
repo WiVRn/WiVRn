@@ -3,6 +3,7 @@ project(WiVRn VERSION 1.0 LANGUAGES C CXX)
 
 
 option(USE_SYSTEM_FREETYPE "Use system FreeType" ON)
+option(USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 
 set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
 set(TINYGLTF_BUILD_GL_EXAMPLES OFF)
@@ -60,13 +61,27 @@ else()
     set(fetch_content freetype harfbuzz)
 endif()
 
+if(USE_ANDROID_VALIDATION_LAYER)
+    set(VVL_VERSION "1.3.231.1")
+    set(VVL_ZIPFILE ${CMAKE_CURRENT_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
+
+    if(NOT EXISTS ${VVL_ZIPFILE})
+        file(DOWNLOAD https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases/download/sdk-${VVL_VERSION}/android-binaries-${VVL_VERSION}.zip
+            ${VVL_ZIPFILE})
+    endif()
+
+    file(ARCHIVE_EXTRACT INPUT ${VVL_ZIPFILE} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Vulkan-ValidationLayer)
+
+    add_library(vvl1 SHARED IMPORTED)
+    set_property(TARGET vvl1 PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/Vulkan-ValidationLayer/${CMAKE_ANDROID_ARCH_ABI}/libVkLayer_khronos_validation.so)
+    add_library(vvl2 SHARED IMPORTED)
+    set_property(TARGET vvl2 PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/Vulkan-ValidationLayer/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so)
+    set(deps_vvl vvl1 vvl2) # Hack to get gradle to package the validation layer in the APK
+endif()
+
 FetchContent_MakeAvailable(spdlog boostpfr glm tinygltf ${fetch_content})
 
 FetchContent_GetProperties(tinygltf SOURCE_DIR TinyGLTF_SOURCE_DIR)
-
-#add_subdirectory(${TinyGLTF_SOURCE_DIR})
-#add_library(TinyGLTF INTERFACE)
-#target_include_directories(TinyGLTF INTERFACE ${TinyGLTF_SOURCE_DIR})
 
 find_package(Vulkan REQUIRED)
 
@@ -146,7 +161,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "src/*.glsl")
 
 target_sources(${PROJECT_NAME} PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 
-target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf ${deps_freetype})
+target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf ${deps_freetype} ${deps_vvl})
 target_compile_definitions(${PROJECT_NAME} PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_options(${PROJECT_NAME} PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror
 
