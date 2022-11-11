@@ -141,11 +141,11 @@ void stream_reprojection::init(VkDevice device, VkPhysicalDevice physical_device
 
 	std::array<VkDescriptorPoolSize, 2> pool_size{VkDescriptorPoolSize{
 	                                                      .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	                                                      .descriptorCount = 1,
+	                                                      .descriptorCount = (uint32_t)input_images.size(),
 	                                              },
 	                                              VkDescriptorPoolSize{
 	                                                      .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	                                                      .descriptorCount = 1,
+	                                                      .descriptorCount = (uint32_t)input_images.size(),
 	                                              }};
 
 	VkDescriptorPoolCreateInfo pool_info{
