@@ -786,7 +786,7 @@ void application::haptic_start(XrAction action, XrPath subpath, int64_t duration
 	        .frequency = frequency,
 	        .amplitude = amplitude};
 
-	CHECK_XR(xrApplyHapticFeedback(application::instance_->xr_session, &action_info, (XrHapticBaseHeader *)&vibration));
+	xrApplyHapticFeedback(application::instance_->xr_session, &action_info, (XrHapticBaseHeader *)&vibration);
 }
 
 void application::haptic_stop(XrAction action, XrPath subpath)
@@ -800,7 +800,7 @@ void application::haptic_stop(XrAction action, XrPath subpath)
 	        .subactionPath = subpath,
 	};
 
-	CHECK_XR(xrStopHapticFeedback(application::instance_->xr_session, &action_info));
+	xrStopHapticFeedback(application::instance_->xr_session, &action_info);
 }
 
 void application::session_state_changed(XrSessionState new_state, XrTime timestamp)
