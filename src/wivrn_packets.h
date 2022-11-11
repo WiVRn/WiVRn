@@ -95,20 +95,8 @@ enum video_codec
 
 namespace from_headset
 {
-
-struct client_announce_packet
-{
-	static const constexpr std::array<char, 5> magic_value = {'W', 'i', 'V', 'R', 'n'};
-	// Broadcast on the announce port, not typed
-	std::array<char, 5> magic;
-
-	std::string client_version;
-	uint64_t protocol_hash;
-};
-
 struct headset_info_packet
 {
-	// First packet sent by the HMD on the control socket, not typed
 	uint32_t recommended_eye_width;
 	uint32_t recommended_eye_height;
 	std::vector<float> available_refresh_rates;

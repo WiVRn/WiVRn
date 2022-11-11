@@ -26,29 +26,14 @@
 
 using namespace xrt::drivers::wivrn;
 
-class wivrn_session;
-
-class wivrn_client
-{
-	using broadcast_socket = typed_socket<UDP, void, from_headset::client_announce_packet>;
-
-	std::vector<broadcast_socket> broadcasters;
-	TCPListener listener;
-
-	std::chrono::steady_clock::time_point last_broadcast{};
-
-public:
-	wivrn_client();
-	std::unique_ptr<wivrn_session> poll();
-};
-
 class wivrn_session
 {
 	typed_socket<TCP, to_headset::control_packets, from_headset::control_packets> control;
 	typed_socket<UDP, to_headset::stream_packets, from_headset::stream_packets> stream;
 
 public:
-	wivrn_session(TCP && tcp, in6_addr address);
+	wivrn_session(in6_addr address, int port);
+	wivrn_session(in_addr address, int port);
 	wivrn_session(const wivrn_session &) = delete;
 	wivrn_session & operator=(const wivrn_session &) = delete;
 

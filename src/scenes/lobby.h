@@ -24,6 +24,7 @@
 #include "vk/image.h"
 #include "vk/renderpass.h"
 #include "wivrn_client.h"
+#include "wivrn_discover.h"
 #include <tiny_gltf.h>
 
 #include "render/scene_renderer.h"
@@ -60,7 +61,7 @@ class lobby : public scene
 
 	std::vector<std::vector<image_data>> images_data;
 
-	wivrn_client client;
+	wivrn_discover discover;
 
 	tinygltf::Model model;
 	std::vector<vk::device_memory> model_memory;

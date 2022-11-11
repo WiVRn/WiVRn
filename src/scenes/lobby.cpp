@@ -31,29 +31,10 @@
 #include <string>
 #include <tiny_gltf.h>
 
-namespace
-{
-VkAttachmentReference color_ref{.attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-vk::renderpass::info renderpass_info{.attachments = {VkAttachmentDescription{
-                                             .samples = VK_SAMPLE_COUNT_1_BIT,
-                                             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                             .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                     }},
-                                     .subpasses = {VkSubpassDescription{
-                                             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                             .colorAttachmentCount = 1,
-                                             .pColorAttachments = &color_ref,
-                                     }},
-                                     .dependencies = {}};
-} // namespace
-
 scenes::lobby::~lobby() {}
 
 scenes::lobby::lobby() :
-        status_string_rasterizer(device, physical_device, commandpool, queue), renderer(device, physical_device, queue)
+        status_string_rasterizer(device, physical_device, commandpool, queue), discover("_wivrn._tcp.local."), renderer(device, physical_device, queue)
 {
 	// renderer.load_gltf("Lobby.gltf");
 
@@ -61,7 +42,23 @@ scenes::lobby::lobby() :
 	uint32_t height = swapchains[0].height();
 
 	// Create renderpass
-	renderpass_info.attachments[0].format = swapchains[0].format();
+	VkAttachmentReference color_ref{.attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+	vk::renderpass::info renderpass_info{.attachments = {VkAttachmentDescription{
+						.format = swapchains[0].format(),
+						.samples = VK_SAMPLE_COUNT_1_BIT,
+						.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+						.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+						.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+					}},
+					.subpasses = {VkSubpassDescription{
+						.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+						.colorAttachmentCount = 1,
+						.pColorAttachments = &color_ref,
+					}},
+					.dependencies = {}};
+
 	renderpass = vk::renderpass(device, renderpass_info);
 
 	VkSamplerCreateInfo sampler_info{
@@ -233,17 +230,44 @@ void scenes::lobby::rasterize_status_string()
 	last_status_string = status_string;
 }
 
-void scenes::lobby::render()
+std::unique_ptr<wivrn_session> connect_to_session(const std::vector<wivrn_discover::service>& services)
 {
-	if (auto session = client.poll())
+	// TODO: make it asynchronous
+	for(const wivrn_discover::service& service: services)
 	{
-		next_scene.reset();
-
-		next_scene = stream::create(std::move(session));
+		int port = service.port;
+		for(const auto& address: service.addresses)
+		{
+			try
+			{
+				return std::visit([port](auto& address){
+					return std::make_unique<wivrn_session>(address, port);
+				}, address);
+			}
+			catch(std::exception& e)
+			{
+				spdlog::warn("Cannot connect to {}", service.hostname);
+			}
+		}
 	}
 
+	return {};
+}
+
+void scenes::lobby::render()
+{
 	if (next_scene && !next_scene->alive())
 		next_scene.reset();
+
+	if (!next_scene)
+	{
+		auto services = discover.get_services();
+
+		if (auto session = connect_to_session(services))
+		{
+			next_scene = stream::create(std::move(session));
+		}
+	}
 
 	if (next_scene)
 	{

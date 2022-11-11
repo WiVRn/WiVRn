@@ -83,6 +83,17 @@ void xrt::drivers::wivrn::UDP::connect(in6_addr address, int port)
 		throw std::system_error{errno, std::generic_category()};
 }
 
+void xrt::drivers::wivrn::UDP::connect(in_addr address, int port)
+{
+	sockaddr_in sa;
+	sa.sin_family = AF_INET;
+	sa.sin_addr = address;
+	sa.sin_port = htons(port);
+
+	if (::connect(fd, (sockaddr *)&sa, sizeof(sa)) < 0)
+		throw std::system_error{errno, std::generic_category()};
+}
+
 void xrt::drivers::wivrn::UDP::subscribe_multicast(in6_addr address)
 {
 	assert(IN6_IS_ADDR_MULTICAST(&address));
@@ -115,23 +126,28 @@ void xrt::drivers::wivrn::UDP::set_receive_buffer_size(int size)
 	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
 }
 
-xrt::drivers::wivrn::TCP::TCP(int fd)
+void xrt::drivers::wivrn::TCP::init()
 {
-	this->fd = fd;
-	mutex = std::make_unique<std::mutex>();
-
 	int nodelay = 1;
 	if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)) < 0)
 	{
 		::close(fd);
 		throw std::system_error{errno, std::generic_category()};
 	}
+
+	mutex = std::make_unique<std::mutex>();
+}
+
+xrt::drivers::wivrn::TCP::TCP(int fd)
+{
+	this->fd = fd;
+
+	init();
 }
 
 xrt::drivers::wivrn::TCP::TCP(in6_addr address, int port)
 {
 	fd = socket(AF_INET6, SOCK_STREAM, 0);
-	mutex = std::make_unique<std::mutex>();
 
 	if (fd < 0)
 		throw std::system_error{errno, std::generic_category()};
@@ -147,78 +163,57 @@ xrt::drivers::wivrn::TCP::TCP(in6_addr address, int port)
 		throw std::system_error{errno, std::generic_category()};
 	}
 
-	int nodelay = 1;
-	if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)) < 0)
-	{
-		::close(fd);
-		throw std::system_error{errno, std::generic_category()};
-	}
+	init();
 }
 
-xrt::drivers::wivrn::TCPListener::TCPListener(int port)
+xrt::drivers::wivrn::TCP::TCP(in_addr address, int port)
 {
-	fd = socket(AF_INET6, SOCK_STREAM, 0);
+	fd = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (fd < 0)
 		throw std::system_error{errno, std::generic_category()};
 
-	int reuse_addr = 1;
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr)) < 0)
+	sockaddr_in sa;
+	sa.sin_family = AF_INET;
+	sa.sin_addr = address;
+	sa.sin_port = htons(port);
+
+	if (connect(fd, (sockaddr *)&sa, sizeof(sa)) < 0)
 	{
 		::close(fd);
 		throw std::system_error{errno, std::generic_category()};
 	}
 
-	sockaddr_in6 addr{};
-	addr.sin6_family = AF_INET6;
-	addr.sin6_port = htons(port);
-	addr.sin6_addr = in6addr_any;
-
-	if (bind(fd, (sockaddr *)&addr, sizeof(addr)) < 0)
-	{
-		::close(fd);
-		throw std::system_error{errno, std::generic_category()};
-	}
-
-	int backlog = 1;
-	if (listen(fd, backlog) < 0)
-	{
-		::close(fd);
-		throw std::system_error{errno, std::generic_category()};
-	}
+	init();
 }
 
-std::pair<xrt::drivers::wivrn::TCP, sockaddr_in6> xrt::drivers::wivrn::TCPListener::accept()
-{
-	sockaddr_in6 addr{};
-	socklen_t addrlen = sizeof(addr);
+// std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::drivers::wivrn::UDP::receive_from_raw()
+// {
+// 	std::vector<uint8_t> buffer(2000);
+//
+// 	sockaddr_in6 addr;
+// 	socklen_t addrlen = sizeof(addr);
+//
+// 	ssize_t received = recvfrom(fd, buffer.data(), buffer.size(), 0, (sockaddr *)&addr, &addrlen);
+// 	if (received < 0)
+// 		throw std::system_error{errno, std::generic_category()};
+//
+// 	buffer.resize(received);
+//
+// 	return {deserialization_packet{buffer}, addr};
+// }
 
-	int fd2 = ::accept(fd, (sockaddr *)&addr, &addrlen);
-	if (fd2 < 0)
-		throw std::system_error{errno, std::generic_category()};
-
-	return {TCP{fd2}, addr};
-}
-
-std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::drivers::wivrn::UDP::receive_from_raw()
+xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_raw()
 {
 	std::vector<uint8_t> buffer(2000);
 
-	sockaddr_in6 addr;
-	socklen_t addrlen = sizeof(addr);
-
-	ssize_t received = recvfrom(fd, buffer.data(), buffer.size(), 0, (sockaddr *)&addr, &addrlen);
+	ssize_t received = recv(fd, buffer.data(), buffer.size(), 0);
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
 
 	buffer.resize(received);
 
-	return {deserialization_packet{buffer}, addr};
-}
-
-xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_raw()
-{
-	return receive_from_raw().first;
+	return deserialization_packet{buffer};
 }
 
 void xrt::drivers::wivrn::UDP::send_raw(const std::vector<uint8_t> & data)

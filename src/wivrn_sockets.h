@@ -82,10 +82,10 @@ public:
 	UDP(UDP &&) = default;
 
 	deserialization_packet receive_raw();
-	std::pair<deserialization_packet, sockaddr_in6> receive_from_raw();
 	void send_raw(const std::vector<uint8_t> & data);
 
 	void connect(in6_addr address, int port);
+	void connect(in_addr address, int port);
 	void bind(int port);
 	void subscribe_multicast(in6_addr address);
 	void unsubscribe_multicast(in6_addr address);
@@ -97,24 +97,17 @@ class TCP : public socket_base
 	std::vector<uint8_t> buffer;
 	std::unique_ptr<std::mutex> mutex;
 
+	void init();
+
 public:
 	TCP(in6_addr address, int port);
+	TCP(in_addr address, int port);
 	explicit TCP(int fd);
 	TCP(const TCP &) = delete;
 	TCP(TCP &&) = default;
 
 	deserialization_packet receive_raw();
 	void send_raw(const std::vector<uint8_t> & data);
-};
-
-class TCPListener : public socket_base
-{
-public:
-	TCPListener(int port);
-	TCPListener(const TCPListener &) = delete;
-	TCPListener(TCPListener &&) = default;
-
-	std::pair<TCP, sockaddr_in6> accept();
 };
 
 template <typename Socket, typename ReceivedType, typename SentType>
@@ -133,15 +126,6 @@ public:
 			return {};
 
 		return packet.deserialize<ReceivedType>();
-	}
-
-	std::optional<std::pair<ReceivedType, sockaddr_in6>> receive_from()
-	{
-		auto [buffer, addr] = this->receive_from_raw();
-		if (buffer.empty())
-			return {};
-
-		return {deserialization_packet(std::move(buffer)).deserialize<ReceivedType>(), addr};
 	}
 
 	template <typename T = SentType, typename = std::enable_if_t<std::is_same_v<T, SentType>>>
