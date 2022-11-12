@@ -121,6 +121,7 @@ void xrt::drivers::wivrn::UDP::unsubscribe_multicast(in6_addr address)
 		throw std::system_error{errno, std::generic_category()};
 	}
 }
+
 void xrt::drivers::wivrn::UDP::set_receive_buffer_size(int size)
 {
 	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
@@ -185,6 +186,54 @@ xrt::drivers::wivrn::TCP::TCP(in_addr address, int port)
 	}
 
 	init();
+}
+
+xrt::drivers::wivrn::TCPListener::TCPListener(int port)
+{
+	fd = socket(AF_INET6, SOCK_STREAM, 0);
+
+	if (fd < 0)
+	{
+		throw std::system_error{errno, std::generic_category()};
+	}
+
+	int reuse_addr = 1;
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr)) < 0)
+	{
+		::close(fd);
+		throw std::system_error{errno, std::generic_category()};
+	}
+
+	sockaddr_in6 addr{};
+	addr.sin6_family = AF_INET6;
+	addr.sin6_port = htons(port);
+	addr.sin6_addr = in6addr_any;
+
+	if (bind(fd, (sockaddr *)&addr, sizeof(addr)) < 0)
+	{
+		::close(fd);
+		throw std::system_error{errno, std::generic_category()};
+	}
+
+	int backlog = 1;
+	if (listen(fd, backlog) < 0)
+	{
+		::close(fd);
+		throw std::system_error{errno, std::generic_category()};
+	}
+}
+
+std::pair<xrt::drivers::wivrn::TCP, sockaddr_in6>
+xrt::drivers::wivrn::TCPListener::accept()
+{
+	sockaddr_in6 addr{};
+	socklen_t addrlen = sizeof(addr);
+
+	int fd2 = ::accept(fd, (sockaddr *)&addr, &addrlen);
+	if (fd2 < 0)
+		throw std::system_error{errno, std::generic_category()};
+
+	return {TCP{fd2}, addr};
 }
 
 // std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::drivers::wivrn::UDP::receive_from_raw()

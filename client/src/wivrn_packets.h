@@ -32,22 +32,8 @@
 namespace xrt::drivers::wivrn
 {
 
-static const int announce_port = 9756;
 static const int control_port = 9757;
 static const int stream_port = 9757;
-static const in6_addr announce_address = []() {
-	in6_addr address{};
-
-	address.s6_addr[0] = 0xff; // multicast
-	address.s6_addr[1] = 0x15; // not assigned by IANA, site-local
-
-	address.s6_addr[11] = 'W';
-	address.s6_addr[12] = 'i';
-	address.s6_addr[13] = 'V';
-	address.s6_addr[14] = 'R';
-	address.s6_addr[15] = 'n';
-	return address;
-}();
 
 enum class device_id : uint8_t
 {

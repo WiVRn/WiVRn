@@ -61,7 +61,7 @@
             <!-- Tell NativeActivity the name of the .so -->
             <meta-data
                 android:name="android.app.lib_name"
-                android:value="WiVRn" />
+                android:value="wivrn" />
 
 
             <!-- This filter lets the apk show up as a launchable icon. -->

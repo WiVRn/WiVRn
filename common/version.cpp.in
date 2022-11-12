@@ -17,6 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "version.h"
 
-#cmakedefine GIT_VERSION "@GIT_VERSION@"
+const char git_version[] = "@GIT_VERSION@";

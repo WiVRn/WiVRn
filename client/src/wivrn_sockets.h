@@ -110,6 +110,16 @@ public:
 	void send_raw(const std::vector<uint8_t> & data);
 };
 
+class TCPListener : public socket_base
+{
+public:
+	TCPListener(int port);
+	TCPListener(const TCPListener &) = delete;
+	TCPListener(TCPListener &&) = default;
+
+	std::pair<TCP, sockaddr_in6> accept();
+};
+
 template <typename Socket, typename ReceivedType, typename SentType>
 class typed_socket : public Socket
 {
