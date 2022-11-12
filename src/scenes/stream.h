@@ -65,7 +65,7 @@ class stream : public scene, public std::enable_shared_from_this<stream>
 	std::unique_ptr<wivrn_session> network_session;
 	std::atomic<bool> exiting = false;
 	std::thread network_thread;
-	std::thread tracking_thread;
+	std::optional<std::thread> tracking_thread;
 	std::thread video_thread;
 
 	utils::sync_queue<std::variant<to_headset::video_stream_data_shard, to_headset::video_stream_parity_shard>> shard_queue;

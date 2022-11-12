@@ -52,6 +52,12 @@ void scenes::stream::operator()(to_headset::video_stream_parity_shard && shard)
 void scenes::stream::operator()(to_headset::video_stream_description && desc)
 {
 	setup(desc);
+
+	if (not tracking_thread)
+	{
+		tracking_thread = std::thread(&stream::tracking, this);
+		pthread_setname_np(tracking_thread->native_handle(), "tracking_thread");
+	}
 }
 
 void scenes::stream::operator()(to_headset::timesync_query && query)

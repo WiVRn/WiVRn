@@ -95,9 +95,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	self->network_thread = std::thread(&stream::process_packets, self.get());
 	pthread_setname_np(self->network_thread.native_handle(), "network_thread");
 
-	self->tracking_thread = std::thread(&stream::tracking, self.get());
-	pthread_setname_np(self->tracking_thread.native_handle(), "tracking_thread");
-
 	self->video_thread = std::thread(&stream::video, self.get());
 	pthread_setname_np(self->video_thread.native_handle(), "video_thread");
 
@@ -132,7 +129,8 @@ scenes::stream::~stream()
 	shard_queue.close();
 
 	video_thread.join();
-	tracking_thread.join();
+	if (tracking_thread)
+		tracking_thread->join();
 	network_thread.join();
 }
 
