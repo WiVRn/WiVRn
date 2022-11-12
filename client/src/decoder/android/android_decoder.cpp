@@ -76,10 +76,10 @@ struct wivrn::android::decoder::pipeline_context
 		             magic_enum::enum_name(ahb_format.samplerYcbcrConversionComponents.g),
 		             magic_enum::enum_name(ahb_format.samplerYcbcrConversionComponents.b),
 		             magic_enum::enum_name(ahb_format.samplerYcbcrConversionComponents.a));
-		spdlog::info("  Suggested YCbCr model: {}", ahb_format.suggestedYcbcrModel);
-		spdlog::info("  Suggested YCbCr range: {}", ahb_format.suggestedYcbcrRange);
-		spdlog::info("  Suggested X chroma offset: {}", ahb_format.suggestedXChromaOffset);
-		spdlog::info("  Suggested Y chroma offset: {}", ahb_format.suggestedYChromaOffset);
+		spdlog::info("  Suggested YCbCr model: {}", magic_enum::enum_name(ahb_format.suggestedYcbcrModel));
+		spdlog::info("  Suggested YCbCr range: {}", magic_enum::enum_name(ahb_format.suggestedYcbcrRange));
+		spdlog::info("  Suggested X chroma offset: {}", magic_enum::enum_name(ahb_format.suggestedXChromaOffset));
+		spdlog::info("  Suggested Y chroma offset: {}", magic_enum::enum_name(ahb_format.suggestedYChromaOffset));
 
 		VkFilter yuv_filter;
 		if (ahb_format.formatFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT)

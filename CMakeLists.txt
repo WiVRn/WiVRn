@@ -1,14 +1,22 @@
 cmake_minimum_required(VERSION 3.19)
 project(WiVRn VERSION 1.0 LANGUAGES C CXX)
+
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
+    cmake_policy(SET CMP0135 NEW)
+endif()
 
 include(FetchContent)
 include(ExternalProject)
 
+
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" ON)
-option(WIVRN_BUILD_SERVER "Build WiVRn server" OFF)
+option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
+
+find_package(Vulkan REQUIRED)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -27,3 +35,8 @@ if (WIVRN_BUILD_SERVER)
     add_subdirectory(server)
 endif()
 
+
+get_property(importTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+get_property(buildsystemTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY BUILDSYSTEM_TARGETS)
+message("Imported targets: ${importTargets}")
+message("Build system targets: ${buildsystemTargets}")
