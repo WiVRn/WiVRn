@@ -1,13 +1,11 @@
 
-function(compile_glsl_aux shader_stage glsl_filename output)
-
-    cmake_path(GET glsl_filename STEM shader_name)
+function(compile_glsl_aux shader_stage shader_name glsl_filename output)
 
     string(TOUPPER ${shader_stage} shader_stage_upper)
 
     add_custom_command(
             OUTPUT ${output}
-            COMMAND echo "{ \"${shader_name}.${shader_stage}\", {"                                                        >> ${output}
+            COMMAND echo "{ \"${shader_name}\", {"                                                                        >> ${output}
             COMMAND Vulkan::glslc -mfmt=num -fshader-stage=${shader_stage} -D${shader_stage_upper}_SHADER ${in_file} -o - >> ${output}
             COMMAND echo "}},"                                                                                            >> ${output}
             DEPENDS ${glsl_filename}
@@ -33,10 +31,12 @@ function(compile_glsl target_name)
     foreach(in_file IN LISTS ARGN)
         if (in_file MATCHES "\.\(vert|frag|tesc|tese|geom|comp\)\.glsl$")
             set(shader_stage ${CMAKE_MATCH_1})
-            compile_glsl_aux(${shader_stage} ${in_file} ${target_name}_shaders.cpp)
+            cmake_path(GET in_file STEM LAST_ONLY shader_name)
+            compile_glsl_aux(${shader_stage} ${shader_name} ${in_file} ${target_name}_shaders.cpp)
         else()
-            compile_glsl_aux(vert ${in_file} ${target_name}_shaders.cpp)
-            compile_glsl_aux(frag ${in_file} ${target_name}_shaders.cpp)
+            cmake_path(GET in_file STEM LAST_ONLY shader_name)
+            compile_glsl_aux(vert ${shader_name}.vert ${in_file} ${target_name}_shaders.cpp)
+            compile_glsl_aux(frag ${shader_name}.frag ${in_file} ${target_name}_shaders.cpp)
         endif()
 
 

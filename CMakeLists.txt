@@ -10,13 +10,26 @@ endif()
 include(FetchContent)
 include(ExternalProject)
 
-
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" ON)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
 
+find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
+
+if (WIVRN_BUILD_SERVER)
+    find_package(CUDAToolkit)
+    pkg_check_modules(LIBAV IMPORTED_TARGET libavcodec libavutil libswscale libavfilter)
+    pkg_check_modules(X264  IMPORTED_TARGET x264)
+
+    if (NOT CUDAToolkit_FOUND AND NOT LIBAV_FOUND AND NOT X264_FOUND)
+        message(FATAL_ERROR "No encoder found")
+    endif()
+
+    pkg_check_modules(AVAHI IMPORTED_TARGET avahi-client)
+    find_package(Eigen3 REQUIRED)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 

@@ -1,4 +1,8 @@
 
+FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
+
+FetchContent_MakeAvailable(boostpfr)
+
 execute_process(COMMAND git describe --always OUTPUT_VARIABLE GIT_VERSION)
 string(STRIP ${GIT_VERSION} GIT_VERSION)
 
