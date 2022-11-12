@@ -41,18 +41,22 @@ android {
     }
 
     signingConfigs {
-        release {
-            storeFile file("ks.keystore")
-            keyAlias "default_key"
-            storePassword signingKeyPassword // Set in gradle.properties
-            keyPassword signingKeyPassword
-            enableV2Signing true
+        if (project.hasProperty("signingKeyPassword")) {
+            release {
+                storeFile file("ks.keystore")
+                keyAlias "default_key"
+                storePassword signingKeyPassword // Set in gradle.properties
+                keyPassword signingKeyPassword
+                enableV2Signing true
+            }
         }
     }
 
     buildTypes {
-        release {
-            signingConfig signingConfigs.release
+        if (project.hasProperty("signingKeyPassword")) {
+            release {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
