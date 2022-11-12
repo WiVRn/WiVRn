@@ -45,8 +45,8 @@ else()
         endif()
     endif()
 
-    file(ARCHIVE_EXTRACT INPUT freetype-${FREETYPE_VERSION}.tar.xz DESTINATION ${CMAKE_BINARY_DIR})
-    file(ARCHIVE_EXTRACT INPUT harfbuzz-${HARFBUZZ_VERSION}.tar.xz DESTINATION ${CMAKE_BINARY_DIR})
+    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/freetype-${FREETYPE_VERSION}.tar.xz DESTINATION ${CMAKE_BINARY_DIR})
+    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/harfbuzz-${HARFBUZZ_VERSION}.tar.xz DESTINATION ${CMAKE_BINARY_DIR})
 
     add_library(freetypeharfbuzz STATIC
         ${CMAKE_BINARY_DIR}/harfbuzz-${HARFBUZZ_VERSION}/src/harfbuzz.cc
