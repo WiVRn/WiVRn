@@ -48,7 +48,7 @@ if(NOT monado_POPULATED)
 endif()
 
 
-add_executable(monado-wivrn
+add_executable(wivrn-server
 		main.cpp
 		target_instance_wivrn.cpp
 		hostname.cpp
@@ -69,36 +69,36 @@ add_executable(monado-wivrn
 		driver/yuv_converter.cpp
 	)
 
-target_include_directories(monado-wivrn SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
+target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
 
 if(CUDAToolkit_FOUND)
-        target_sources(monado-wivrn PRIVATE driver/video_encoder_nvenc.cpp)
-        target_link_libraries(monado-wivrn PRIVATE CUDA::cuda_driver nvidia-encode)
+        target_sources(wivrn-server PRIVATE driver/video_encoder_nvenc.cpp)
+        target_link_libraries(wivrn-server PRIVATE CUDA::cuda_driver nvidia-encode)
 endif()
 
 if(LIBAV_FOUND)
         target_sources(
-                monado-wivrn
+                wivrn-server
                 PRIVATE driver/ffmpeg/VideoEncoderFFMPEG.cpp driver/ffmpeg/VideoEncoderVA.cpp
                         driver/ffmpeg/ffmpeg_helper.cpp
                 )
-        target_link_libraries(monado-wivrn PRIVATE PkgConfig::LIBAV)
+        target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV)
 endif()
 
 if(X264_FOUND)
-        target_sources(monado-wivrn PRIVATE driver/video_encoder_x264.cpp)
-        target_link_libraries(monado-wivrn PRIVATE PkgConfig::X264)
+        target_sources(wivrn-server PRIVATE driver/video_encoder_x264.cpp)
+        target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)
 endif()
 
 
 include(CompileGLSL)
 
 file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "driver/shaders/*.glsl")
-target_sources(monado-wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
-compile_glsl(monado-wivrn ${VULKAN_SHADERS})
+target_sources(wivrn-server PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
+compile_glsl(wivrn-server ${VULKAN_SHADERS})
 
 target_link_libraries(
-	monado-wivrn
+	wivrn-server
 	PRIVATE
 		aux_os
 		aux_util
@@ -115,7 +115,7 @@ target_link_libraries(
 		wivrn-common
 	)
 
-install(TARGETS monado-wivrn)
+install(TARGETS wivrn-server)
 
 set_target_properties(${RUNTIME_TARGET} PROPERTIES EXCLUDE_FROM_ALL FALSE)
 install (SCRIPT
