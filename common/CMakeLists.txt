@@ -1,6 +1,4 @@
 
-FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
-
 FetchContent_MakeAvailable(boostpfr)
 
 if (GIT_VERSION)

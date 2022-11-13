@@ -6,10 +6,6 @@ set(TINYGLTF_BUILD_BUILDER_EXAMPLE OFF)
 set(TINYGLTF_HEADER_ONLY OFF)
 set(TINYGLTF_INSTALL OFF)
 
-FetchContent_Declare(spdlog   URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz)
-FetchContent_Declare(glm      URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
-FetchContent_Declare(tinygltf URL https://github.com/syoyo/tinygltf/archive/refs/tags/v2.6.3.tar.gz)
-
 FetchContent_MakeAvailable(spdlog glm tinygltf)
 
 include(FreetypeHarfbuzz)

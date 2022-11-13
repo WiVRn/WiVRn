@@ -62,8 +62,16 @@ if(ANDROID)
     android_ndk_import_module_native_app_glue()
 endif()
 
+FetchContent_Declare(spdlog   URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz)
+FetchContent_Declare(glm      URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
+FetchContent_Declare(tinygltf URL https://github.com/syoyo/tinygltf/archive/refs/tags/v2.6.3.tar.gz)
 FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
-FetchContent_MakeAvailable(boostpfr)
+FetchContent_Declare(monado
+    GIT_REPOSITORY   https://gitlab.freedesktop.org/xytovl/monado
+    GIT_TAG          9044e870696f39ace2293488ad5e663f366031a6
+    )
+
+
 
 add_subdirectory(common)
 
@@ -74,9 +82,3 @@ endif()
 if (WIVRN_BUILD_SERVER)
     add_subdirectory(server)
 endif()
-
-
-get_property(importTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
-get_property(buildsystemTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY BUILDSYSTEM_TARGETS)
-message("Imported targets: ${importTargets}")
-message("Build system targets: ${buildsystemTargets}")

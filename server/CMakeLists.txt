@@ -38,11 +38,6 @@ set(BUILD_TESTING                    OFF)
 set(XRT_IPC_MSG_SOCK_FILENAME "wivrn_comp_ipc")
 set(RUNTIME_BARE_SUFFIX "wivrn")
 
-FetchContent_Declare(monado
-    GIT_REPOSITORY   https://gitlab.freedesktop.org/xytovl/monado
-    GIT_TAG          9044e870696f39ace2293488ad5e663f366031a6
-    )
-
 FetchContent_GetProperties(monado)
 if(NOT monado_POPULATED)
   # Fetch the content using previously declared details
@@ -58,7 +53,6 @@ add_executable(monado-wivrn
 		target_instance_wivrn.cpp
 		hostname.cpp
 		avahi_publisher.cpp
-
 
 		driver/encoder_settings.cpp
 		driver/wivrn_hmd.cpp
