@@ -33,7 +33,8 @@ namespace xrt::drivers::wivrn
 {
 
 static const int control_port = 9757;
-static const int stream_port = 9757;
+static const int stream_client_port = 9757;
+static const int stream_server_port = 9758;
 
 enum class device_id : uint8_t
 {

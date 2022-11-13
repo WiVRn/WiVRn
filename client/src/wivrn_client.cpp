@@ -39,8 +39,8 @@ using namespace std::chrono_literals;
 wivrn_session::wivrn_session(in6_addr address, int port) : control(address, port), stream()
 {
 	// TODO: negociate UDP port
-	stream.bind(stream_port);
-	stream.connect(address, stream_port);
+	stream.bind(stream_client_port);
+	stream.connect(address, stream_server_port);
 	stream.set_receive_buffer_size(1024 * 1024 * 5);
 
 	char buffer[100];
@@ -50,8 +50,8 @@ wivrn_session::wivrn_session(in6_addr address, int port) : control(address, port
 wivrn_session::wivrn_session(in_addr address, int port) : control(address, port), stream()
 {
 	// TODO: negociate UDP port
-	stream.bind(stream_port);
-	stream.connect(address, stream_port);
+	stream.bind(stream_client_port);
+	stream.connect(address, stream_server_port);
 	stream.set_receive_buffer_size(1024 * 1024 * 5);
 
 	char buffer[100];

@@ -25,8 +25,8 @@ using namespace std::chrono_literals;
 wivrn_connection::wivrn_connection(TCP && tcp, in6_addr address) :
         control(std::move(tcp))
 {
-	stream.bind(stream_port);
-	stream.connect(address, stream_port);
+	stream.bind(stream_server_port);
+	stream.connect(address, stream_client_port);
 }
 
 void wivrn_connection::send_control(const to_headset::control_packets & packet)
