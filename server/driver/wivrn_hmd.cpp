@@ -35,7 +35,6 @@
 #include "util/u_time.h"
 #include "util/u_var.h"
 
-#include <stdatomic.h>
 #include <stdio.h>
 #include <openxr/openxr.h>
 

@@ -68,6 +68,7 @@ add_executable(wivrn-server
 		${WIVRN_SHADER_HEADERS}
 		driver/yuv_converter.cpp
 	)
+target_compile_features(wivrn-server PRIVATE cxx_std_20)
 
 target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
 
@@ -108,7 +109,7 @@ target_link_libraries(
 		xrt-external-openxr
 		xrt-interfaces
 
-		systemd
+		PkgConfig::systemd
 		Boost::pfr
 		PkgConfig::AVAHI
 		Eigen3::Eigen

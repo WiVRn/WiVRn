@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.20)
 project(WiVRn VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
@@ -29,6 +29,7 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
+pkg_check_modules(systemd IMPORTED_TARGET systemd)
 
 if (WIVRN_BUILD_SERVER)
     find_package(CUDAToolkit)
