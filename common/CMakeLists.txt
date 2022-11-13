@@ -3,13 +3,17 @@ FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/t
 
 FetchContent_MakeAvailable(boostpfr)
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
-    COMMAND ${CMAKE_COMMAND}
-        -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
-        -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
-        -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.cpp
-        -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
-)
+if (GIT_VERSION)
+    configure_file(version.cpp.in version.cpp)
+else ()
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+        COMMAND ${CMAKE_COMMAND}
+            -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
+            -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
+            -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+            -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
+    )
+endif()
 file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS "*.cpp")
 
 configure_file(wivrn_config.h.in wivrn_config.h)
