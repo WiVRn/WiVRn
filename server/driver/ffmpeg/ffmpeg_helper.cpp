@@ -19,6 +19,7 @@
 
 #include "ffmpeg_helper.h"
 #include <libdrm/drm_fourcc.h>
+#include <vulkan/vulkan.h>
 
 extern "C"
 {
@@ -64,12 +65,6 @@ vk_format_to_av_format(VkFormat vk_fmt)
 			return AV_PIX_FMT_BGRA;
 		default:
 			break;
-	}
-	for (int f = AV_PIX_FMT_NONE; f < AV_PIX_FMT_NB; ++f)
-	{
-		auto current_fmt = av_vkfmt_from_pixfmt(AVPixelFormat(f));
-		if (current_fmt and *current_fmt == (VkFormat)vk_fmt)
-			return AVPixelFormat(f);
 	}
 	throw std::runtime_error("unsupported vulkan pixel format " + std::to_string((VkFormat)vk_fmt));
 }
