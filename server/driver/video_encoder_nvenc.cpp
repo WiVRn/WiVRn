@@ -1,47 +1,67 @@
-// Copyright 2022, Guillaume Meunier
-// Copyright 2022, Patrick Nicolas
-// SPDX-License-Identifier: BSL-1.0
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "video_encoder_nvenc.h"
 #include "external/nvEncodeAPI.h"
 
 #include <stdexcept>
 
-#define NVENC_CHECK_NOENCODER(x)                                                                                       \
-	do {                                                                                                           \
-		NVENCSTATUS status = x;                                                                                \
-		if (status != NV_ENC_SUCCESS) {                                                                        \
-			U_LOG_E("%s:%d: %d", __FILE__, __LINE__, status);                                              \
-			throw std::runtime_error("TODO");                                                              \
-		}                                                                                                      \
+#define NVENC_CHECK_NOENCODER(x)                                          \
+	do                                                                \
+	{                                                                 \
+		NVENCSTATUS status = x;                                   \
+		if (status != NV_ENC_SUCCESS)                             \
+		{                                                         \
+			U_LOG_E("%s:%d: %d", __FILE__, __LINE__, status); \
+			throw std::runtime_error("TODO");                 \
+		}                                                         \
 	} while (0)
 
-#define NVENC_CHECK(x)                                                                                                 \
-	do {                                                                                                           \
-		NVENCSTATUS status = x;                                                                                \
-		if (status != NV_ENC_SUCCESS) {                                                                        \
-			U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status,                                           \
-			        fn.nvEncGetLastErrorString(session_handle));                                           \
-			throw std::runtime_error("TODO");                                                              \
-		}                                                                                                      \
+#define NVENC_CHECK(x)                                                                                                    \
+	do                                                                                                                \
+	{                                                                                                                 \
+		NVENCSTATUS status = x;                                                                                   \
+		if (status != NV_ENC_SUCCESS)                                                                             \
+		{                                                                                                         \
+			U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, fn.nvEncGetLastErrorString(session_handle)); \
+			throw std::runtime_error("TODO");                                                                 \
+		}                                                                                                         \
 	} while (0)
 
-#define CU_CHECK(x)                                                                                                    \
-	do {                                                                                                           \
-		CUresult status = x;                                                                                   \
-		if (status != CUDA_SUCCESS) {                                                                          \
-			const char *error_string;                                                                      \
-			cuGetErrorString(status, &error_string);                                                       \
-			U_LOG_E("%s:%d: %s (%d)", __FILE__, __LINE__, error_string, (int)status);                      \
-			throw std::runtime_error("TODO");                                                              \
-		}                                                                                                      \
+#define CU_CHECK(x)                                                                               \
+	do                                                                                        \
+	{                                                                                         \
+		CUresult status = x;                                                              \
+		if (status != CUDA_SUCCESS)                                                       \
+		{                                                                                 \
+			const char * error_string;                                                \
+			cuGetErrorString(status, &error_string);                                  \
+			U_LOG_E("%s:%d: %s (%d)", __FILE__, __LINE__, error_string, (int)status); \
+			throw std::runtime_error("TODO");                                         \
+		}                                                                                 \
 	} while (0)
 
-namespace xrt::drivers::wivrn {
+namespace xrt::drivers::wivrn
+{
 
-VideoEncoderNvenc::VideoEncoderNvenc(vk_bundle *vk, const encoder_settings &settings, float fps)
-    : vk(vk), offset_x(settings.offset_x), offset_y(settings.offset_y), width(settings.width), height(settings.height),
-      codec(settings.codec), fps(fps), bitrate(settings.bitrate)
+VideoEncoderNvenc::VideoEncoderNvenc(vk_bundle * vk, const encoder_settings & settings, float fps) :
+        vk(vk), offset_x(settings.offset_x), offset_y(settings.offset_y), width(settings.width), height(settings.height), codec(settings.codec), fps(fps), bitrate(settings.bitrate)
 {
 	CU_CHECK(cuInit(0));
 
@@ -49,7 +69,6 @@ VideoEncoderNvenc::VideoEncoderNvenc(vk_bundle *vk, const encoder_settings &sett
 
 	fn.version = NV_ENCODE_API_FUNCTION_LIST_VER;
 	NVENC_CHECK_NOENCODER(NvEncodeAPICreateInstance(&fn));
-
 
 	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params{};
 	params.version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER;
@@ -66,15 +85,20 @@ VideoEncoderNvenc::VideoEncoderNvenc(vk_bundle *vk, const encoder_settings &sett
 	presets.resize(count);
 	NVENC_CHECK(fn.nvEncGetEncodePresetGUIDs(session_handle, encodeGUID, presets.data(), count, &count));
 
-	switch (codec) {
-	case video_codec::h264: printf("%d H264 presets\n", count); break;
+	switch (codec)
+	{
+		case video_codec::h264:
+			printf("%d H264 presets\n", count);
+			break;
 
-	case video_codec::h265: printf("%d HEVC presets\n", count); break;
+		case video_codec::h265:
+			printf("%d HEVC presets\n", count);
+			break;
 	}
 
-	for (GUID &i : presets) {
-		printf("  Preset {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n", i.Data1, i.Data2, i.Data3,
-		       i.Data4[0], i.Data4[1], i.Data4[2], i.Data4[3], i.Data4[4], i.Data4[5], i.Data4[6], i.Data4[7]);
+	for (GUID & i: presets)
+	{
+		printf("  Preset {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n", i.Data1, i.Data2, i.Data3, i.Data4[0], i.Data4[1], i.Data4[2], i.Data4[3], i.Data4[4], i.Data4[5], i.Data4[6], i.Data4[7]);
 	}
 
 	NV_ENC_CAPS_PARAM cap_param{};
@@ -89,14 +113,13 @@ VideoEncoderNvenc::VideoEncoderNvenc(vk_bundle *vk, const encoder_settings &sett
 		printf("Frame invalidation not supported\n");
 }
 
-void
-VideoEncoderNvenc::SetImages(int full_width,
-                             int full_height,
-                             VkFormat format,
-                             int num_images,
-                             VkImage *images,
-                             VkImageView *views,
-                             VkDeviceMemory *memory)
+void VideoEncoderNvenc::SetImages(int full_width,
+                                  int full_height,
+                                  VkFormat format,
+                                  int num_images,
+                                  VkImage * images,
+                                  VkImageView * views,
+                                  VkDeviceMemory * memory)
 {
 	auto encodeGUID = codec == video_codec::h264 ? NV_ENC_CODEC_H264_GUID : NV_ENC_CODEC_HEVC_GUID;
 	// auto presetGUID = codec == video_codec::h264 ? NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID :
@@ -110,7 +133,6 @@ VideoEncoderNvenc::SetImages(int full_width,
 	preset_config.presetCfg.version = NV_ENC_CONFIG_VER;
 	NVENC_CHECK(fn.nvEncGetEncodePresetConfig(session_handle, encodeGUID, presetGUID, &preset_config));
 
-
 	NV_ENC_CONFIG params = preset_config.presetCfg;
 
 	// Bitrate control
@@ -123,17 +145,18 @@ VideoEncoderNvenc::SetImages(int full_width,
 	params.gopLength = NVENC_INFINITE_GOPLENGTH;
 	params.frameIntervalP = 1;
 
-	switch (codec) {
-	case video_codec::h264:
-		params.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
-		params.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
-		params.encodeCodecConfig.h264Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
-		break;
-	case video_codec::h265:
-		params.encodeCodecConfig.hevcConfig.repeatSPSPPS = 1;
-		params.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
-		params.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
-		break;
+	switch (codec)
+	{
+		case video_codec::h264:
+			params.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
+			params.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
+			params.encodeCodecConfig.h264Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+			break;
+		case video_codec::h265:
+			params.encodeCodecConfig.hevcConfig.repeatSPSPPS = 1;
+			params.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
+			params.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+			break;
 	}
 
 	NV_ENC_INITIALIZE_PARAMS params2{};
@@ -168,7 +191,8 @@ VideoEncoderNvenc::SetImages(int full_width,
 	// TODO: cleanup on error
 	this->images.resize(num_images);
 	CU_CHECK(cuCtxPushCurrent(cuda));
-	for (int i = 0; i < num_images; i++) {
+	for (int i = 0; i < num_images; i++)
+	{
 		VkMemoryGetFdInfoKHR getinfo{};
 		getinfo.sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
 		getinfo.pNext = nullptr;
@@ -217,8 +241,7 @@ VideoEncoderNvenc::SetImages(int full_width,
 	CU_CHECK(cuCtxPopCurrent(NULL));
 }
 
-void
-VideoEncoderNvenc::Encode(int index, bool idr, std::chrono::steady_clock::time_point pts)
+void VideoEncoderNvenc::Encode(int index, bool idr, std::chrono::steady_clock::time_point pts)
 {
 	CU_CHECK(cuCtxPushCurrent(cuda));
 	CUDA_MEMCPY2D copy{};
@@ -259,7 +282,7 @@ VideoEncoderNvenc::Encode(int index, bool idr, std::chrono::steady_clock::time_p
 	NVENC_CHECK(fn.nvEncLockBitstream(session_handle, &param2));
 
 	SendData(
-	    {(uint8_t *)param2.bitstreamBufferPtr, (uint8_t *)param2.bitstreamBufferPtr + param2.bitstreamSizeInBytes});
+	        {(uint8_t *)param2.bitstreamBufferPtr, (uint8_t *)param2.bitstreamBufferPtr + param2.bitstreamSizeInBytes});
 
 	NVENC_CHECK(fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer));
 

@@ -61,7 +61,6 @@ add_executable(monado-wivrn
 		driver/view_list.cpp
 		driver/wivrn_session.cpp
 		driver/wivrn_connection.cpp
-		driver/wivrn_sockets.cpp
 		driver/xrt_cast.cpp
 		driver/external/rs.c
 		${WIVRN_SHADER_HEADERS}
@@ -99,16 +98,17 @@ compile_glsl(monado-wivrn ${VULKAN_SHADERS})
 target_link_libraries(
 	monado-wivrn
 	PRIVATE
-                aux_os
+		aux_os
 		aux_util
-                aux_vk
+		aux_vk
 		comp_main
 		ipc_server
-                xrt-external-openxr
-                xrt-interfaces
+		xrt-external-openxr
+		xrt-interfaces
 
 		systemd
-                Boost::pfr
+		Boost::pfr
 		PkgConfig::AVAHI
 		Eigen3::Eigen
+		wivrn-common
 	)

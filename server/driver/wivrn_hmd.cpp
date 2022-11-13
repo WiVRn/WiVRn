@@ -1,14 +1,20 @@
-// Copyright 2022, Guillaume Meunier
-// Copyright 2022, Patrick Nicolas
-// SPDX-License-Identifier: BSL-1.0
-
-// Copyright 2020, Collabora, Ltd.
-// SPDX-License-Identifier: BSL-1.0
-/*!
- * @file
- * @brief  WiVRn HMD device.
- * @author Jakob Bornecrantz <jakob@collabora.com>
- * @ingroup drv_wivrn
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "wivrn_hmd.h"
@@ -21,17 +27,17 @@
 #include "math/m_api.h"
 #include "math/m_mathinclude.h"
 
-#include "util/u_var.h"
-#include "util/u_misc.h"
-#include "util/u_time.h"
 #include "util/u_debug.h"
 #include "util/u_device.h"
-#include "util/u_logging.h"
 #include "util/u_distortion_mesh.h"
+#include "util/u_logging.h"
+#include "util/u_misc.h"
+#include "util/u_time.h"
+#include "util/u_var.h"
 
-#include <openxr/openxr.h>
-#include <stdio.h>
 #include <stdatomic.h>
+#include <stdio.h>
+#include <openxr/openxr.h>
 
 #include "wivrn_comp_target.h"
 
@@ -41,14 +47,11 @@
  *
  */
 
-
-
 /*!
  * A wivrn HMD device.
  *
  * @implements xrt_device
  */
-
 
 /*
  *
@@ -56,39 +59,32 @@
  *
  */
 
+static void wivrn_hmd_destroy(xrt_device * xdev);
 
-static void
-wivrn_hmd_destroy(xrt_device *xdev);
+static void wivrn_hmd_update_inputs(xrt_device * xdev);
 
-static void
-wivrn_hmd_update_inputs(xrt_device *xdev);
+static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
+                                       xrt_input_name name,
+                                       uint64_t at_timestamp_ns,
+                                       xrt_space_relation * out_relation);
 
-static void
-wivrn_hmd_get_tracked_pose(xrt_device *xdev,
-                           xrt_input_name name,
-                           uint64_t at_timestamp_ns,
-                           xrt_space_relation *out_relation);
+static void wivrn_hmd_get_view_poses(xrt_device * xdev,
+                                     const xrt_vec3 * default_eye_relation,
+                                     uint64_t at_timestamp_ns,
+                                     uint32_t view_count,
+                                     xrt_space_relation * out_head_relation,
+                                     xrt_fov * out_fovs,
+                                     xrt_pose * out_poses);
 
-static void
-wivrn_hmd_get_view_poses(xrt_device *xdev,
-                         const xrt_vec3 *default_eye_relation,
-                         uint64_t at_timestamp_ns,
-                         uint32_t view_count,
-                         xrt_space_relation *out_head_relation,
-                         xrt_fov *out_fovs,
-                         xrt_pose *out_poses);
-
-static void
-wivrn_hmd_create_compositor_target(struct xrt_device *xdev,
-                                   struct comp_compositor *comp,
-                                   struct comp_target **out_target);
-
+static void wivrn_hmd_create_compositor_target(struct xrt_device * xdev,
+                                               struct comp_compositor * comp,
+                                               struct comp_target ** out_target);
 
 wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
-                     const from_headset::headset_info_packet &info)
-    : xrt_device{}, cnx(cnx)
+                     const from_headset::headset_info_packet & info) :
+        xrt_device{}, cnx(cnx)
 {
-	xrt_device *base = this;
+	xrt_device * base = this;
 
 	base->hmd = &hmd_parts;
 	base->tracking_origin = &tracking_origin;
@@ -163,17 +159,15 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	u_distortion_mesh_set_none(this);
 }
 
-void
-wivrn_hmd::update_inputs()
+void wivrn_hmd::update_inputs()
 {
 	// Empty
 }
 
-
-xrt_space_relation
-wivrn_hmd::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
+xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
 {
-	if (name != XRT_INPUT_GENERIC_HEAD_POSE) {
+	if (name != XRT_INPUT_GENERIC_HEAD_POSE)
+	{
 		U_LOG_E("Unknown input name");
 		return {};
 	}
@@ -181,19 +175,17 @@ wivrn_hmd::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
 	return views.get_at(at_timestamp_ns).relation;
 }
 
-void
-wivrn_hmd::update_tracking(const from_headset::tracking &tracking, const clock_offset &offset)
+void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	views.update_tracking(tracking, offset);
 }
 
-void
-wivrn_hmd::get_view_poses(const xrt_vec3 *default_eye_relation,
-                          uint64_t at_timestamp_ns,
-                          uint32_t view_count,
-                          xrt_space_relation *out_head_relation,
-                          xrt_fov *out_fovs,
-                          xrt_pose *out_poses)
+void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
+                               uint64_t at_timestamp_ns,
+                               uint32_t view_count,
+                               xrt_space_relation * out_head_relation,
+                               xrt_fov * out_fovs,
+                               xrt_pose * out_poses)
 {
 	auto view = views.get_at(at_timestamp_ns);
 
@@ -215,22 +207,20 @@ wivrn_hmd::get_view_poses(const xrt_vec3 *default_eye_relation,
 	*out_head_relation = view.relation;
 
 	assert(view_count == 2);
-	for (size_t eye = 0; eye < 2; ++eye) {
+	for (size_t eye = 0; eye < 2; ++eye)
+	{
 		out_fovs[eye] = view.fovs[eye];
 		out_poses[eye] = view.poses[eye];
 	}
 }
 
-comp_target *
-wivrn_hmd::create_compositor_target(struct comp_compositor *comp)
+comp_target * wivrn_hmd::create_compositor_target(struct comp_compositor * comp)
 {
-	comp_target *target = comp_target_wivrn_create(cnx, fps);
+	comp_target * target = comp_target_wivrn_create(cnx, fps);
 
 	target->c = comp;
 	return target;
 }
-
-
 
 /*
  *
@@ -238,44 +228,38 @@ wivrn_hmd::create_compositor_target(struct comp_compositor *comp)
  *
  */
 
-static void
-wivrn_hmd_destroy(xrt_device *xdev)
+static void wivrn_hmd_destroy(xrt_device * xdev)
 {
 	static_cast<wivrn_hmd *>(xdev)->unregister();
 }
 
-static void
-wivrn_hmd_update_inputs(xrt_device *xdev)
+static void wivrn_hmd_update_inputs(xrt_device * xdev)
 {
 	static_cast<wivrn_hmd *>(xdev)->update_inputs();
 }
 
-static void
-wivrn_hmd_get_tracked_pose(xrt_device *xdev,
-                           xrt_input_name name,
-                           uint64_t at_timestamp_ns,
-                           xrt_space_relation *out_relation)
+static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
+                                       xrt_input_name name,
+                                       uint64_t at_timestamp_ns,
+                                       xrt_space_relation * out_relation)
 {
 	*out_relation = static_cast<wivrn_hmd *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
 }
 
-static void
-wivrn_hmd_get_view_poses(xrt_device *xdev,
-                         const xrt_vec3 *default_eye_relation,
-                         uint64_t at_timestamp_ns,
-                         uint32_t view_count,
-                         xrt_space_relation *out_head_relation,
-                         xrt_fov *out_fovs,
-                         xrt_pose *out_poses)
+static void wivrn_hmd_get_view_poses(xrt_device * xdev,
+                                     const xrt_vec3 * default_eye_relation,
+                                     uint64_t at_timestamp_ns,
+                                     uint32_t view_count,
+                                     xrt_space_relation * out_head_relation,
+                                     xrt_fov * out_fovs,
+                                     xrt_pose * out_poses)
 {
-	static_cast<wivrn_hmd *>(xdev)->get_view_poses(default_eye_relation, at_timestamp_ns, view_count,
-	                                               out_head_relation, out_fovs, out_poses);
+	static_cast<wivrn_hmd *>(xdev)->get_view_poses(default_eye_relation, at_timestamp_ns, view_count, out_head_relation, out_fovs, out_poses);
 }
 
-static void
-wivrn_hmd_create_compositor_target(struct xrt_device *xdev,
-                                   struct comp_compositor *comp,
-                                   struct comp_target **out_target)
+static void wivrn_hmd_create_compositor_target(struct xrt_device * xdev,
+                                               struct comp_compositor * comp,
+                                               struct comp_target ** out_target)
 {
 	*out_target = static_cast<wivrn_hmd *>(xdev)->create_compositor_target(comp);
 }

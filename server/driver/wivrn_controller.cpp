@@ -1,12 +1,27 @@
-// Copyright 2022, Guillaume Meunier
-// Copyright 2022, Patrick Nicolas
-// SPDX-License-Identifier: BSL-1.0
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "wivrn_controller.h"
 
-#include "util/u_logging.h"
 #include "os/os_threading.h"
 #include "util/u_device.h"
+#include "util/u_logging.h"
 #include <stdio.h>
 
 #include "xrt/xrt_defines.h"
@@ -94,31 +109,23 @@ static const wivrn_to_wivrn_controller_input right_hand_bindings[] = {
 static const size_t left_hand_bindings_count = ARRAY_SIZE(left_hand_bindings);
 static const size_t right_hand_bindings_count = ARRAY_SIZE(right_hand_bindings);
 
+static void wivrn_controller_destroy(xrt_device * xdev);
 
-static void
-wivrn_controller_destroy(xrt_device *xdev);
+static void wivrn_controller_get_tracked_pose(xrt_device * xdev,
+                                              xrt_input_name name,
+                                              uint64_t at_timestamp_ns,
+                                              xrt_space_relation * out_relation);
 
-static void
-wivrn_controller_get_tracked_pose(xrt_device *xdev,
-                                  xrt_input_name name,
-                                  uint64_t at_timestamp_ns,
-                                  xrt_space_relation *out_relation);
+static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_output_name name, const union xrt_output_value * value);
 
-
-static void
-wivrn_controller_set_output(struct xrt_device *xdev, enum xrt_output_name name, const union xrt_output_value *value);
-
-static void
-wivrn_controller_update_inputs(xrt_device *xdev);
-
+static void wivrn_controller_update_inputs(xrt_device * xdev);
 
 wivrn_controller::wivrn_controller(int hand_id,
-                                   xrt_device *hmd,
-                                   std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx)
-    : xrt_device{}, grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
-      aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM), cnx(cnx)
+                                   xrt_device * hmd,
+                                   std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx) :
+        xrt_device{}, grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP), aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM), cnx(cnx)
 {
-	xrt_device *base = this;
+	xrt_device * base = this;
 
 	base->destroy = wivrn_controller_destroy;
 	base->get_tracked_pose = wivrn_controller_get_tracked_pose;
@@ -138,10 +145,11 @@ wivrn_controller::wivrn_controller(int hand_id,
 	input_count = WIVRN_CONTROLLER_INPUT_COUNT;
 
 	// Setup input.
-#define SET_INPUT(NAME)                                                                                                \
-	do {                                                                                                           \
-		inputs[WIVRN_CONTROLLER_##NAME].name = XRT_INPUT_TOUCH_##NAME;                                         \
-		inputs[WIVRN_CONTROLLER_##NAME].active = true;                                                         \
+#define SET_INPUT(NAME)                                                        \
+	do                                                                     \
+	{                                                                      \
+		inputs[WIVRN_CONTROLLER_##NAME].name = XRT_INPUT_TOUCH_##NAME; \
+		inputs[WIVRN_CONTROLLER_##NAME].active = true;                 \
 	} while (0)
 
 	SET_INPUT(AIM_POSE);
@@ -164,108 +172,128 @@ wivrn_controller::wivrn_controller(int hand_id,
 
 	inputs_staging = inputs_array;
 
-	switch (hand_id) {
-	case 0:
-		device_type = XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER;
-		SET_INPUT(MENU_CLICK);
+	switch (hand_id)
+	{
+		case 0:
+			device_type = XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER;
+			SET_INPUT(MENU_CLICK);
 
-		// Print name.
-		strcpy(str, "WiVRn HMD left hand controller");
-		strcpy(serial, "WiVRn HMD left hand controller");
+			// Print name.
+			strcpy(str, "WiVRn HMD left hand controller");
+			strcpy(serial, "WiVRn HMD left hand controller");
 
-		break;
+			break;
 
-	case 1:
-		device_type = XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER;
+		case 1:
+			device_type = XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER;
 
-		// Print name.
-		strcpy(str, "WiVRn HMD right hand controller");
-		strcpy(serial, "WiVRn HMD right hand controller");
+			// Print name.
+			strcpy(str, "WiVRn HMD right hand controller");
+			strcpy(serial, "WiVRn HMD right hand controller");
 
-		break;
+			break;
 
-	default: throw std::runtime_error("Invalid hand ID");
+		default:
+			throw std::runtime_error("Invalid hand ID");
 	}
 }
 
-void
-wivrn_controller::update_inputs()
+void wivrn_controller::update_inputs()
 {
 	std::lock_guard _{mutex};
 	inputs_array = inputs_staging;
 }
-void
-wivrn_controller::set_inputs(const from_headset::inputs &inputs)
+
+void wivrn_controller::set_inputs(const from_headset::inputs & inputs)
 {
 	std::lock_guard lock{mutex};
-	for (const auto &input : inputs.values) {
+	for (const auto & input: inputs.values)
+	{
 		set_inputs(input.id, input.value);
 	}
 }
 
-void
-wivrn_controller::set_inputs(device_id input_id, float value)
+void wivrn_controller::set_inputs(device_id input_id, float value)
 {
-	const struct wivrn_to_wivrn_controller_input *bindings;
+	const struct wivrn_to_wivrn_controller_input * bindings;
 	size_t bindings_count;
-	if (device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER) {
+	if (device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER)
+	{
 		bindings = left_hand_bindings;
 		bindings_count = left_hand_bindings_count;
-	} else {
+	}
+	else
+	{
 		bindings = right_hand_bindings;
 		bindings_count = right_hand_bindings_count;
 	}
 
-	const struct wivrn_to_wivrn_controller_input *binding = NULL;
-	for (size_t i = 0; i < bindings_count; i++) {
-		if (bindings[i].wivrn_id == input_id) {
+	const struct wivrn_to_wivrn_controller_input * binding = NULL;
+	for (size_t i = 0; i < bindings_count; i++)
+	{
+		if (bindings[i].wivrn_id == input_id)
+		{
 			binding = &bindings[i];
 			break;
 		}
 	}
 
-	if (binding) {
-		switch (binding->input_type) {
-		case wivrn_input_type::BOOL: inputs_staging[binding->input_id].value.boolean = (value != 0); break;
-		case wivrn_input_type::FLOAT: inputs_staging[binding->input_id].value.vec1.x = value; break;
-		case wivrn_input_type::VEC2_X: inputs_staging[binding->input_id].value.vec2.x = value; break;
-		case wivrn_input_type::VEC2_Y: inputs_staging[binding->input_id].value.vec2.y = value; break;
+	if (binding)
+	{
+		switch (binding->input_type)
+		{
+			case wivrn_input_type::BOOL:
+				inputs_staging[binding->input_id].value.boolean = (value != 0);
+				break;
+			case wivrn_input_type::FLOAT:
+				inputs_staging[binding->input_id].value.vec1.x = value;
+				break;
+			case wivrn_input_type::VEC2_X:
+				inputs_staging[binding->input_id].value.vec2.x = value;
+				break;
+			case wivrn_input_type::VEC2_Y:
+				inputs_staging[binding->input_id].value.vec2.y = value;
+				break;
 		}
 	}
 }
 
-xrt_space_relation
-wivrn_controller::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
+xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
 {
-	switch (name) {
-	case XRT_INPUT_TOUCH_AIM_POSE: return aim.get_at(at_timestamp_ns);
+	switch (name)
+	{
+		case XRT_INPUT_TOUCH_AIM_POSE:
+			return aim.get_at(at_timestamp_ns);
 
-	case XRT_INPUT_TOUCH_GRIP_POSE: return grip.get_at(at_timestamp_ns);
+		case XRT_INPUT_TOUCH_GRIP_POSE:
+			return grip.get_at(at_timestamp_ns);
 
-	default: U_LOG_W("Unknown input name requested"); return {};
+		default:
+			U_LOG_W("Unknown input name requested");
+			return {};
 	}
 }
 
-void
-wivrn_controller::update_tracking(const from_headset::tracking &tracking, const clock_offset &offset)
+void wivrn_controller::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	aim.update_tracking(tracking, offset);
 	grip.update_tracking(tracking, offset);
 }
 
-void
-wivrn_controller::set_output(xrt_output_name name, const xrt_output_value *value)
+void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)
 {
 	auto id = device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER ? device_id::LEFT_CONTROLLER_HAPTIC
 	                                                              : device_id::RIGHT_CONTROLLER_HAPTIC;
 
-	try {
-		cnx->send_stream(to_headset::haptics{id, std::chrono::nanoseconds(value->vibration.duration_ns),
-						value->vibration.frequency, value->vibration.amplitude
-
-		});
+	try
+	{
+		cnx->send_stream(to_headset::haptics{
+		        .id = id,
+		        .duration = std::chrono::nanoseconds(value->vibration.duration_ns),
+		        .frequency = value->vibration.frequency,
+		        .amplitude = value->vibration.amplitude});
 	}
-	catch(...)
+	catch (...)
 	{
 		// Ignore errors
 	}
@@ -277,29 +305,25 @@ wivrn_controller::set_output(xrt_output_name name, const xrt_output_value *value
  *
  */
 
-static void
-wivrn_controller_destroy(xrt_device *xdev)
+static void wivrn_controller_destroy(xrt_device * xdev)
 {
 	delete (wivrn_controller *)xdev;
 }
 
-static void
-wivrn_controller_update_inputs(xrt_device *xdev)
+static void wivrn_controller_update_inputs(xrt_device * xdev)
 {
 	static_cast<wivrn_controller *>(xdev)->update_inputs();
 }
 
-static void
-wivrn_controller_get_tracked_pose(xrt_device *xdev,
-                                  xrt_input_name name,
-                                  uint64_t at_timestamp_ns,
-                                  xrt_space_relation *out_relation)
+static void wivrn_controller_get_tracked_pose(xrt_device * xdev,
+                                              xrt_input_name name,
+                                              uint64_t at_timestamp_ns,
+                                              xrt_space_relation * out_relation)
 {
 	*out_relation = static_cast<wivrn_controller *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
 }
 
-static void
-wivrn_controller_set_output(struct xrt_device *xdev, enum xrt_output_name name, const union xrt_output_value *value)
+static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_output_name name, const union xrt_output_value * value)
 {
 	static_cast<wivrn_controller *>(xdev)->set_output(name, value);
 }

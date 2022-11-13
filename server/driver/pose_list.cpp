@@ -1,27 +1,40 @@
-// Copyright 2022, Guillaume Meunier
-// Copyright 2022, Patrick Nicolas
-// SPDX-License-Identifier: BSL-1.0
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "pose_list.h"
+#include "math/m_eigen_interop.hpp"
 #include "math/m_space.h"
+#include "math/m_vec3.h"
 #include "xrt/xrt_defines.h"
 #include "xrt_cast.h"
-#include "math/m_vec3.h"
-#include "math/m_eigen_interop.hpp"
 
 using namespace xrt::auxiliary::math;
 
-xrt_space_relation
-interpolate(const xrt_space_relation &a, const xrt_space_relation &b, float t)
+xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)
 {
 	xrt_space_relation result;
 	xrt_space_relation_flags flags = xrt_space_relation_flags(a.relation_flags & b.relation_flags);
-	m_space_relation_interpolate(const_cast<xrt_space_relation*>(&a), const_cast<xrt_space_relation*>(&b), t, flags, &result);
+	m_space_relation_interpolate(const_cast<xrt_space_relation *>(&a), const_cast<xrt_space_relation *>(&b), t, flags, &result);
 	return result;
 }
 
-xrt_space_relation
-extrapolate(const xrt_space_relation &a, const xrt_space_relation &b, uint64_t ta, uint64_t tb, uint64_t t)
+xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, uint64_t ta, uint64_t tb, uint64_t t)
 {
 	if (t < ta)
 		return a;
@@ -38,7 +51,6 @@ extrapolate(const xrt_space_relation &a, const xrt_space_relation &b, uint64_t t
 	// if (dt > 0.2)
 	// dt = 0.2; // saturate dt to 200ms
 
-
 	float dt2_over_2 = dt * dt / 2;
 	res.linear_velocity = b.linear_velocity + lin_acc * dt;
 	res.pose.position = b.pose.position + b.linear_velocity * dt + lin_acc * dt2_over_2;
@@ -53,10 +65,10 @@ extrapolate(const xrt_space_relation &a, const xrt_space_relation &b, uint64_t t
 	return res;
 }
 
-void
-pose_list::update_tracking(const from_headset::tracking &tracking, const clock_offset &offset)
+void pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	for (const auto &pose : tracking.device_poses) {
+	for (const auto & pose: tracking.device_poses)
+	{
 		if (pose.device != device)
 			continue;
 
@@ -65,8 +77,7 @@ pose_list::update_tracking(const from_headset::tracking &tracking, const clock_o
 	}
 }
 
-xrt_space_relation
-pose_list::convert_pose(const from_headset::tracking::pose &pose)
+xrt_space_relation pose_list::convert_pose(const from_headset::tracking::pose & pose)
 {
 	xrt_space_relation res{};
 

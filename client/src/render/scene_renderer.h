@@ -1,21 +1,3 @@
-/*
- * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
 #pragma once
 
 #include <memory>
@@ -23,6 +5,8 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
+#include "glm/vec2.hpp"
+#include "glm/vec3.hpp"
 #include "tiny_gltf.h"
 #include "vk/buffer.h"
 #include "vk/command_pool.h"
@@ -32,18 +16,31 @@
 #include "vk/renderpass.h"
 
 class scene_renderer
+
 {
 public:
 	class shader
 	{
 		friend class scene_renderer;
 
-		VkDescriptorSetLayout descriptor_set_layout{};
+		std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
 		std::vector<VkDescriptorPool> descriptor_pools;
+		VkShaderModule vertex_shader{};
+		VkShaderModule fragment_shader{};
 		VkPipelineLayout pipeline_layout{};
-		VkPipeline pipeline{};
-		VkShaderModule vertex_shader;
-		VkShaderModule fragment_shader;
+
+		struct pipeline_info
+		{
+			VkPrimitiveTopology topology;
+			std::vector<VkVertexInputBindingDescription> vertex_bindings;
+			std::vector<VkVertexInputAttributeDescription> vertex_attributes;
+		};
+
+		std::vector<std::pair<pipeline_info, VkPipeline>> pipelines;
+
+		shader() = default;
+		shader(const shader &) = delete;
+		shader(shader &&) = delete;
 	};
 
 	class image
@@ -52,9 +49,13 @@ public:
 
 		VkDeviceMemory memory{};
 		VkSampler sampler{};
-		VkImage image{};
+		VkImage vk_image{};
 		VkImageView image_view{};
 		VkDescriptorSet descriptor_set{};
+
+		image() = default;
+		image(const image &) = delete;
+		image(image &&) = delete;
 	};
 
 	class buffer
@@ -62,12 +63,32 @@ public:
 		friend class scene_renderer;
 
 		VkDeviceMemory memory{};
-		VkBuffer buffer{};
+		VkBuffer vk_buffer{};
+
+		buffer() = default;
+		buffer(const buffer &) = delete;
+		buffer(buffer &&) = delete;
 	};
 
 	struct mesh_primitive
 	{
-		shader * s;
+		struct vertex
+		{
+			glm::vec3 position;
+			glm::vec3 normal;
+			glm::vec2 texcoord;
+		};
+
+		VkPrimitiveTopology topology;
+
+		VkPipeline pipeline;
+
+		std::weak_ptr<buffer> indices;
+		size_t indices_offset;
+		size_t indices_count;
+
+		std::weak_ptr<buffer> vertices;
+		size_t vertices_offset;
 	};
 
 	class model
@@ -75,8 +96,8 @@ public:
 		friend class scene_renderer;
 
 		tinygltf::Model gltf_model;
-		std::vector<image *> images;
-		std::vector<buffer *> buffers;
+		std::vector<std::weak_ptr<image>> images;
+		std::vector<std::weak_ptr<buffer>> buffers;
 	};
 
 	class model_instance
@@ -115,11 +136,11 @@ private:
 	void load_image(VkImage i, void * data, VkExtent2D size, VkFormat format, uint32_t mipmap_count, VkImageLayout final_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	// Scene data
-	std::vector<std::unique_ptr<shader>> shaders;
-	std::vector<std::unique_ptr<image>> images;
-	std::vector<std::unique_ptr<buffer>> buffers;
-	std::vector<std::unique_ptr<mesh_primitive>> primitives;
-	std::vector<std::unique_ptr<model>> models;
+	std::vector<std::shared_ptr<shader>> shaders;
+	std::vector<std::shared_ptr<image>> images;
+	std::vector<std::shared_ptr<buffer>> buffers;
+	std::vector<std::shared_ptr<mesh_primitive>> primitives;
+	std::vector<std::shared_ptr<model>> models;
 	std::vector<model_instance> instances;
 
 	// Destination images
@@ -134,9 +155,9 @@ private:
 
 	void cleanup();
 	void cleanup_output_images();
-	void cleanup_shader(shader &);
-	void cleanup_buffer(buffer &);
-	void cleanup_image(image &);
+	void cleanup_shader(shader *);
+	void cleanup_buffer(buffer *);
+	void cleanup_image(image *);
 
 public:
 	scene_renderer(VkDevice device, VkPhysicalDevice physical_device, VkQueue queue);
@@ -146,16 +167,18 @@ public:
 
 	void set_output_images(std::vector<VkImage> output_images, VkExtent2D output_size, VkFormat output_format);
 
-	shader * create_shader(std::string name, VkPrimitiveTopology topology, std::vector<VkDescriptorSetLayoutBinding> uniform_bindings, std::vector<VkVertexInputBindingDescription> vertex_bindings, std::vector<VkVertexInputAttributeDescription> vertex_attributes);
+	std::weak_ptr<shader> create_shader(std::string name,
+	                                    std::vector<std::vector<VkDescriptorSetLayoutBinding>> uniform_bindings);
 
-	image * create_image(void * data, VkExtent2D size, VkFormat format);
+	VkPipeline get_shader_pipeline(std::weak_ptr<shader> shader, VkPrimitiveTopology topology, std::span<VkVertexInputBindingDescription> vertex_bindings, std::span<VkVertexInputAttributeDescription> vertex_attributes);
 
-	buffer * create_buffer(const void * data, size_t size, VkBufferUsageFlags usage);
+	std::weak_ptr<image> create_image(void * data, VkExtent2D size, VkFormat format);
+
+	std::weak_ptr<buffer> create_buffer(const void * data, size_t size, VkBufferUsageFlags usage);
 
 	template <typename T>
 	// requires(std::contiguous_iterator<typename T::iterator>)
-	buffer * create_buffer(const T & data,
-	                       VkBufferUsageFlags usage)
+	std::weak_ptr<buffer> create_buffer(const T & data, VkBufferUsageFlags usage)
 	{
 		return create_buffer(data.data(), data.size() * sizeof(T), usage);
 	}

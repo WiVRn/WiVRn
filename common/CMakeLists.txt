@@ -3,18 +3,23 @@ FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/t
 
 FetchContent_MakeAvailable(boostpfr)
 
-execute_process(COMMAND git describe --always OUTPUT_VARIABLE GIT_VERSION)
-string(STRIP ${GIT_VERSION} GIT_VERSION)
-
-add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/version.cpp
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
     COMMAND ${CMAKE_COMMAND}
         -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
-        -D INPUT_FILE=${CMAKE_SOURCE_DIR}/common/version.cpp.in
-        -D OUTPUT_FILE=${CMAKE_BINARY_DIR}/version.cpp
+        -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
+        -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.cpp
         -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
 )
 file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS "*.cpp")
 
-add_library(wivrn-common STATIC ${CMAKE_BINARY_DIR}/version.cpp ${LOCAL_SOURCES})
+configure_file(wivrn_config.h.in wivrn_config.h)
 
-target_include_directories(wivrn-common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(wivrn-common STATIC
+    wivrn_sockets.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+)
+
+target_link_libraries(wivrn-common PUBLIC Boost::pfr)
+target_compile_features(wivrn-common PRIVATE cxx_std_20)
+
+target_include_directories(wivrn-common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})

@@ -1,11 +1,27 @@
-// Copyright 2022, Guillaume Meunier
-// Copyright 2022, Patrick Nicolas
-// SPDX-License-Identifier: BSL-1.0
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "ffmpeg_helper.h"
 #include <libdrm/drm_fourcc.h>
 
-extern "C" {
+extern "C"
+{
 #include <libavcodec/avcodec.h>
 #include <libavfilter/avfilter.h>
 #include <libavutil/hwcontext.h>
@@ -13,7 +29,8 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
-namespace {
+namespace
+{
 struct : public std::error_category
 {
 	const char *
@@ -41,11 +58,15 @@ av_error_category()
 AVPixelFormat
 vk_format_to_av_format(VkFormat vk_fmt)
 {
-	switch (vk_fmt) {
-	case VK_FORMAT_B8G8R8A8_SRGB: return AV_PIX_FMT_BGRA;
-	default: break;
+	switch (vk_fmt)
+	{
+		case VK_FORMAT_B8G8R8A8_SRGB:
+			return AV_PIX_FMT_BGRA;
+		default:
+			break;
 	}
-	for (int f = AV_PIX_FMT_NONE; f < AV_PIX_FMT_NB; ++f) {
+	for (int f = AV_PIX_FMT_NONE; f < AV_PIX_FMT_NB; ++f)
+	{
 		auto current_fmt = av_vkfmt_from_pixfmt(AVPixelFormat(f));
 		if (current_fmt and *current_fmt == (VkFormat)vk_fmt)
 			return AVPixelFormat(f);
@@ -56,40 +77,40 @@ vk_format_to_av_format(VkFormat vk_fmt)
 uint32_t
 vk_format_to_fourcc(VkFormat vk_fmt)
 {
-	switch (vk_fmt) {
-	case VK_FORMAT_B8G8R8A8_SRGB: return DRM_FORMAT_ARGB8888;
-	case VK_FORMAT_B8G8R8A8_UNORM: return DRM_FORMAT_ARGB8888;
-	default: break;
+	switch (vk_fmt)
+	{
+		case VK_FORMAT_B8G8R8A8_SRGB:
+			return DRM_FORMAT_ARGB8888;
+		case VK_FORMAT_B8G8R8A8_UNORM:
+			return DRM_FORMAT_ARGB8888;
+		default:
+			break;
 	}
 	throw std::runtime_error("unsupported vulkan pixel format " + std::to_string((VkFormat)vk_fmt));
 }
 
-void
-AvDeleter::operator()(AVBufferRef *x)
+void AvDeleter::operator()(AVBufferRef * x)
 {
 	av_buffer_unref(&x);
 }
 
-void
-AvDeleter::operator()(AVFrame *x)
+void AvDeleter::operator()(AVFrame * x)
 {
 	av_frame_unref(x);
 }
 
-void
-AvDeleter::operator()(AVCodecContext *x)
+void AvDeleter::operator()(AVCodecContext * x)
 {
 	avcodec_free_context(&x);
 }
 
-void
-AvDeleter::operator()(AVFilterGraph *x)
+void AvDeleter::operator()(AVFilterGraph * x)
 {
 	avfilter_graph_free(&x);
 }
 
 av_frame_ptr
-make_av_frame(AVFrame *frame)
+make_av_frame(AVFrame * frame)
 {
 	return av_frame_ptr(frame);
 }

@@ -39,8 +39,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <assert.h>
 #include "rs.h"
+#include <assert.h>
 
 #ifdef _MSC_VER
 #define alloca(x) _alloca(x)
@@ -52,12 +52,12 @@ typedef unsigned char gf;
 #define GF_PP "101110001"
 #define GF_SIZE ((1 << GF_BITS) - 1)
 
-#define SWAP(a, b, t)                                                                                                  \
-	{                                                                                                              \
-		t tmp;                                                                                                 \
-		tmp = a;                                                                                               \
-		a = b;                                                                                                 \
-		b = tmp;                                                                                               \
+#define SWAP(a, b, t)    \
+	{                \
+		t tmp;   \
+		tmp = a; \
+		a = b;   \
+		b = tmp; \
 	}
 
 /*
@@ -67,7 +67,7 @@ typedef unsigned char gf;
  * A value related to the multiplication is held in a local variable
  * declared with USE_GF_MULC . See usage in addmul1().
  */
-#define USE_GF_MULC gf *__gf_mulc_
+#define USE_GF_MULC gf * __gf_mulc_
 #define GF_MULC0(c) __gf_mulc_ = &gf_mul_table[(c) << 8]
 #define GF_ADDMULC(dst, x) dst ^= __gf_mulc_[x]
 #define GF_MULC(dst, x) dst = __gf_mulc_[x]
@@ -94,7 +94,8 @@ static gf gf_mul_table[(GF_SIZE + 1) * (GF_SIZE + 1)] __attribute__((aligned(256
 static inline gf
 modnn(int x)
 {
-	while (x >= GF_SIZE) {
+	while (x >= GF_SIZE)
+	{
 		x -= GF_SIZE;
 		x = (x >> GF_BITS) + (x & GF_SIZE);
 	}
@@ -102,12 +103,13 @@ modnn(int x)
 }
 
 static void
-addmul(gf *dst1, gf *src1, gf c, int sz)
+addmul(gf * dst1, gf * src1, gf c, int sz)
 {
 	USE_GF_MULC;
-	if (c != 0) {
+	if (c != 0)
+	{
 		gf *dst = dst1, *src = src1;
-		gf *lim = &dst[sz];
+		gf * lim = &dst[sz];
 
 		GF_MULC0(c);
 		for (; dst < lim; dst++, src++)
@@ -116,33 +118,37 @@ addmul(gf *dst1, gf *src1, gf c, int sz)
 }
 
 static void
-mul(gf *dst1, gf *src1, gf c, int sz)
+mul(gf * dst1, gf * src1, gf c, int sz)
 {
 	USE_GF_MULC;
-	if (c != 0) {
+	if (c != 0)
+	{
 		gf *dst = dst1, *src = src1;
-		gf *lim = &dst[sz];
+		gf * lim = &dst[sz];
 		GF_MULC0(c);
 		for (; dst < lim; dst++, src++)
 			GF_MULC(*dst, *src);
-	} else
+	}
+	else
 		memset(dst1, 0, c);
 }
 
 /* y = a.dot(b) */
 static gf *
-multiply1(gf *a, int ar, int ac, gf *b, int br, int bc)
+multiply1(gf * a, int ar, int ac, gf * b, int br, int bc)
 {
 	gf *new_m, tg;
 	int r, c, i, ptr = 0;
 
 	assert(ac == br);
 	new_m = (gf *)calloc(1, ar * bc);
-	if (NULL != new_m) {
-
+	if (NULL != new_m)
+	{
 		/* this multiply is slow */
-		for (r = 0; r < ar; r++) {
-			for (c = 0; c < bc; c++) {
+		for (r = 0; r < ar; r++)
+		{
+			for (c = 0; c < bc; c++)
+			{
 				tg = 0;
 				for (i = 0; i < ac; i++)
 					tg ^= gf_mul(a[r * ac + i], b[i * bc + c]);
@@ -184,7 +190,8 @@ generate_gf(void)
 	 * At the same time build gf_log[gf_exp[i]] = i .
 	 * The first GF_BITS powers are simply bits shifted to the left.
 	 */
-	for (i = 0; i < GF_BITS; i++, mask <<= 1) {
+	for (i = 0; i < GF_BITS; i++, mask <<= 1)
+	{
 		gf_exp[i] = mask;
 		gf_log[gf_exp[i]] = i;
 		/*
@@ -206,7 +213,8 @@ generate_gf(void)
 	 * \alpha ** i is shifted.
 	 */
 	mask = 1 << (GF_BITS - 1);
-	for (i = GF_BITS + 1; i < GF_SIZE; i++) {
+	for (i = GF_BITS + 1; i < GF_SIZE; i++)
+	{
 		if (gf_exp[i - 1] >= mask)
 			gf_exp[i] = gf_exp[GF_BITS] ^ ((gf_exp[i - 1] ^ mask) << 1);
 		else
@@ -240,16 +248,16 @@ generate_gf(void)
  * Return non-zero if singular.
  */
 static int
-invert_mat(gf *src, int k)
+invert_mat(gf * src, int k)
 {
 	gf c, *p;
 	int irow, icol, row, col, i, ix;
 
 	int error = 1;
-	int *indxc = (int *)alloca(k * sizeof(int));
-	int *indxr = (int *)alloca(k * sizeof(int));
-	int *ipiv = (int *)alloca(k * sizeof(int));
-	gf *id_row = (gf *)alloca(k * sizeof(gf));
+	int * indxc = (int *)alloca(k * sizeof(int));
+	int * indxr = (int *)alloca(k * sizeof(int));
+	int * ipiv = (int *)alloca(k * sizeof(int));
+	gf * id_row = (gf *)alloca(k * sizeof(gf));
 
 	memset(id_row, 0, k * sizeof(gf));
 	/*
@@ -258,35 +266,45 @@ invert_mat(gf *src, int k)
 	for (i = 0; i < k; i++)
 		ipiv[i] = 0;
 
-	for (col = 0; col < k; col++) {
-		gf *pivot_row;
+	for (col = 0; col < k; col++)
+	{
+		gf * pivot_row;
 		/*
 		 * Zeroing column 'col', look for a non-zero element.
 		 * First try on the diagonal, if it fails, look elsewhere.
 		 */
 		irow = icol = -1;
-		if (ipiv[col] != 1 && src[col * k + col] != 0) {
+		if (ipiv[col] != 1 && src[col * k + col] != 0)
+		{
 			irow = col;
 			icol = col;
 			goto found_piv;
 		}
-		for (row = 0; row < k; row++) {
-			if (ipiv[row] != 1) {
-				for (ix = 0; ix < k; ix++) {
-					if (ipiv[ix] == 0) {
-						if (src[row * k + ix] != 0) {
+		for (row = 0; row < k; row++)
+		{
+			if (ipiv[row] != 1)
+			{
+				for (ix = 0; ix < k; ix++)
+				{
+					if (ipiv[ix] == 0)
+					{
+						if (src[row * k + ix] != 0)
+						{
 							irow = row;
 							icol = ix;
 							goto found_piv;
 						}
-					} else if (ipiv[ix] > 1) {
+					}
+					else if (ipiv[ix] > 1)
+					{
 						fprintf(stderr, "singular matrix\n");
 						goto fail;
 					}
 				}
 			}
 		}
-		if (icol == -1) {
+		if (icol == -1)
+		{
 			fprintf(stderr, "XXX pivot not found!\n");
 			goto fail;
 		}
@@ -298,8 +316,10 @@ invert_mat(gf *src, int k)
 		 * element will be correct. Rarely done, not worth
 		 * optimizing.
 		 */
-		if (irow != icol) {
-			for (ix = 0; ix < k; ix++) {
+		if (irow != icol)
+		{
+			for (ix = 0; ix < k; ix++)
+			{
 				SWAP(src[irow * k + ix], src[icol * k + ix], gf);
 			}
 		}
@@ -307,10 +327,13 @@ invert_mat(gf *src, int k)
 		indxc[col] = icol;
 		pivot_row = &src[icol * k];
 		c = pivot_row[icol];
-		if (c == 0) {
+		if (c == 0)
+		{
 			fprintf(stderr, "singular matrix 2\n");
 			goto fail;
-		} else if (c != 1) {
+		}
+		else if (c != 1)
+		{
 			/*
 			 * this is done often , but optimizing is not so
 			 * fruitful, at least in the obvious ways (unrolling)
@@ -328,9 +351,12 @@ invert_mat(gf *src, int k)
 		 * we can optimize the addmul).
 		 */
 		id_row[icol] = 1;
-		if (memcmp(pivot_row, id_row, k * sizeof(gf)) != 0) {
-			for (p = src, ix = 0; ix < k; ix++, p += k) {
-				if (ix != icol) {
+		if (memcmp(pivot_row, id_row, k * sizeof(gf)) != 0)
+		{
+			for (p = src, ix = 0; ix < k; ix++, p += k)
+			{
+				if (ix != icol)
+				{
 					c = p[icol];
 					p[icol] = 0;
 					addmul(p, pivot_row, c, k);
@@ -339,12 +365,14 @@ invert_mat(gf *src, int k)
 		}
 		id_row[icol] = 0;
 	}
-	for (col = k - 1; col >= 0; col--) {
+	for (col = k - 1; col >= 0; col--)
+	{
 		if (indxr[col] < 0 || indxr[col] >= k)
 			fprintf(stderr, "AARGH, indxr[col] %d\n", indxr[col]);
 		else if (indxc[col] < 0 || indxc[col] >= k)
 			fprintf(stderr, "AARGH, indxc[col] %d\n", indxc[col]);
-		else if (indxr[col] != indxc[col]) {
+		else if (indxr[col] != indxc[col])
+		{
 			for (row = 0; row < k; row++)
 				SWAP(src[row * k + indxr[col]], src[row * k + indxc[col]], gf);
 		}
@@ -359,14 +387,17 @@ fail:
  * Not check for input params
  * */
 static gf *
-sub_matrix(gf *matrix, int rmin, int cmin, int rmax, int cmax, int nrows, int ncols)
+sub_matrix(gf * matrix, int rmin, int cmin, int rmax, int cmax, int nrows, int ncols)
 {
 	(void)nrows;
 	int i, j, ptr = 0;
-	gf *new_m = (gf *)malloc((rmax - rmin) * (cmax - cmin));
-	if (NULL != new_m) {
-		for (i = rmin; i < rmax; i++) {
-			for (j = cmin; j < cmax; j++) {
+	gf * new_m = (gf *)malloc((rmax - rmin) * (cmax - cmin));
+	if (NULL != new_m)
+	{
+		for (i = rmin; i < rmax; i++)
+		{
+			for (j = cmin; j < cmax; j++)
+			{
 				new_m[ptr++] = matrix[i * ncols + j];
 			}
 		}
@@ -377,13 +408,15 @@ sub_matrix(gf *matrix, int rmin, int cmin, int rmax, int cmax, int nrows, int nc
 
 /* copy from golang rs version */
 static inline int
-code_some_shards(gf *matrixRows, gf **inputs, gf **outputs, int dataShards, int outputCount, int byteCount)
+code_some_shards(gf * matrixRows, gf ** inputs, gf ** outputs, int dataShards, int outputCount, int byteCount)
 {
-	gf *in;
+	gf * in;
 	int iRow, c;
-	for (c = 0; c < dataShards; c++) {
+	for (c = 0; c < dataShards; c++)
+	{
 		in = inputs[c];
-		for (iRow = 0; iRow < outputCount; iRow++) {
+		for (iRow = 0; iRow < outputCount; iRow++)
+		{
 			if (0 == c)
 				mul(outputs[iRow], in, matrixRows[iRow * dataShards + c], byteCount);
 			else
@@ -394,8 +427,7 @@ code_some_shards(gf *matrixRows, gf **inputs, gf **outputs, int dataShards, int 
 	return 0;
 }
 
-void
-reed_solomon_init(void)
+void reed_solomon_init(void)
 {
 	generate_gf();
 	init_mul_table();
@@ -404,12 +436,13 @@ reed_solomon_init(void)
 reed_solomon *
 reed_solomon_new(int data_shards, int parity_shards)
 {
-	gf *vm = NULL;
-	gf *top = NULL;
+	gf * vm = NULL;
+	gf * top = NULL;
 	int err = 0;
-	reed_solomon *rs = NULL;
+	reed_solomon * rs = NULL;
 
-	do {
+	do
+	{
 		rs = (reed_solomon *)malloc(sizeof(reed_solomon));
 		if (NULL == rs)
 			return NULL;
@@ -420,26 +453,30 @@ reed_solomon_new(int data_shards, int parity_shards)
 		rs->m = NULL;
 		rs->parity = NULL;
 
-		if (rs->shards > DATA_SHARDS_MAX || data_shards <= 0 || parity_shards <= 0) {
+		if (rs->shards > DATA_SHARDS_MAX || data_shards <= 0 || parity_shards <= 0)
+		{
 			err = 1;
 			break;
 		}
 
 		vm = (gf *)malloc(data_shards * rs->shards);
 
-		if (NULL == vm) {
+		if (NULL == vm)
+		{
 			err = 2;
 			break;
 		}
 
 		int ptr = 0;
-		for (int row = 0; row < rs->shards; row++) {
+		for (int row = 0; row < rs->shards; row++)
+		{
 			for (int col = 0; col < data_shards; col++)
 				vm[ptr++] = row == col ? 1 : 0;
 		}
 
 		top = sub_matrix(vm, 0, 0, data_shards, data_shards, rs->shards, data_shards);
-		if (NULL == top) {
+		if (NULL == top)
+		{
 			err = 3;
 			break;
 		}
@@ -448,18 +485,21 @@ reed_solomon_new(int data_shards, int parity_shards)
 		assert(0 == err);
 
 		rs->m = multiply1(vm, rs->shards, data_shards, top, data_shards, data_shards);
-		if (NULL == rs->m) {
+		if (NULL == rs->m)
+		{
 			err = 4;
 			break;
 		}
 
-		for (int j = 0; j < parity_shards; j++) {
+		for (int j = 0; j < parity_shards; j++)
+		{
 			for (int i = 0; i < data_shards; i++)
 				rs->m[(data_shards + j) * data_shards + i] = inverse[(parity_shards + i) ^ j];
 		}
 
 		rs->parity = sub_matrix(rs->m, data_shards, 0, rs->shards, data_shards, rs->shards, data_shards);
-		if (NULL == rs->parity) {
+		if (NULL == rs->parity)
+		{
 			err = 5;
 			break;
 		}
@@ -479,7 +519,8 @@ reed_solomon_new(int data_shards, int parity_shards)
 	if (NULL != top)
 		free(top);
 
-	if (NULL != rs) {
+	if (NULL != rs)
+	{
 		if (NULL != rs->m)
 			free(rs->m);
 
@@ -492,10 +533,10 @@ reed_solomon_new(int data_shards, int parity_shards)
 	return NULL;
 }
 
-void
-reed_solomon_release(reed_solomon *rs)
+void reed_solomon_release(reed_solomon * rs)
 {
-	if (NULL != rs) {
+	if (NULL != rs)
+	{
 		if (NULL != rs->m)
 			free(rs->m);
 
@@ -518,28 +559,31 @@ reed_solomon_release(reed_solomon *rs)
  * nr_fec_blocks: the number of erased blocks
  * */
 static int
-reed_solomon_decode(reed_solomon *rs,
-                    gf *dataDecodeMatrix,
-                    unsigned char **data_blocks,
+reed_solomon_decode(reed_solomon * rs,
+                    gf * dataDecodeMatrix,
+                    unsigned char ** data_blocks,
                     int block_size,
-                    unsigned char **dec_fec_blocks,
-                    unsigned int *fec_block_nos,
-                    unsigned int *erased_blocks,
+                    unsigned char ** dec_fec_blocks,
+                    unsigned int * fec_block_nos,
+                    unsigned int * erased_blocks,
                     int nr_fec_blocks)
 {
-	unsigned char *subShards[DATA_SHARDS_MAX];
-	unsigned char *outputs[DATA_SHARDS_MAX];
-	gf *m = rs->m;
+	unsigned char * subShards[DATA_SHARDS_MAX];
+	unsigned char * outputs[DATA_SHARDS_MAX];
+	gf * m = rs->m;
 	int i, j, c, swap, subMatrixRow, dataShards;
 
 	/* the erased_blocks should always sorted
 	 * if sorted, nr_fec_blocks times to check it
 	 * if not, sort it here
 	 * */
-	for (i = 0; i < nr_fec_blocks; i++) {
+	for (i = 0; i < nr_fec_blocks; i++)
+	{
 		swap = 0;
-		for (j = i + 1; j < nr_fec_blocks; j++) {
-			if (erased_blocks[i] > erased_blocks[j]) {
+		for (j = i + 1; j < nr_fec_blocks; j++)
+		{
+			if (erased_blocks[i] > erased_blocks[j])
+			{
 				/* the prefix is bigger than the following, swap */
 				c = erased_blocks[i];
 				erased_blocks[i] = erased_blocks[j];
@@ -555,10 +599,12 @@ reed_solomon_decode(reed_solomon *rs,
 	j = 0;
 	subMatrixRow = 0;
 	dataShards = rs->data_shards;
-	for (i = 0; i < dataShards; i++) {
+	for (i = 0; i < dataShards; i++)
+	{
 		if (j < nr_fec_blocks && i == (int)erased_blocks[j])
 			j++;
-		else {
+		else
+		{
 			/* this row is ok */
 			for (c = 0; c < dataShards; c++)
 				dataDecodeMatrix[subMatrixRow * dataShards + c] = m[i * dataShards + c];
@@ -568,7 +614,8 @@ reed_solomon_decode(reed_solomon *rs,
 		}
 	}
 
-	for (i = 0; i < nr_fec_blocks && subMatrixRow < dataShards; i++) {
+	for (i = 0; i < nr_fec_blocks && subMatrixRow < dataShards; i++)
+	{
 		subShards[subMatrixRow] = dec_fec_blocks[i];
 		j = dataShards + fec_block_nos[i];
 		for (c = 0; c < dataShards; c++)
@@ -582,7 +629,8 @@ reed_solomon_decode(reed_solomon *rs,
 
 	invert_mat(dataDecodeMatrix, dataShards);
 
-	for (i = 0; i < nr_fec_blocks; i++) {
+	for (i = 0; i < nr_fec_blocks; i++)
+	{
 		j = erased_blocks[i];
 		outputs[i] = data_blocks[j];
 		memmove(dataDecodeMatrix + i * dataShards, dataDecodeMatrix + j * dataShards, dataShards);
@@ -598,17 +646,17 @@ reed_solomon_decode(reed_solomon *rs,
  * nr_shards: assert(0 == nr_shards % rs->shards)
  * shards[nr_shards][block_size]
  * */
-int
-reed_solomon_encode(reed_solomon *rs, unsigned char **shards, int nr_shards, int block_size)
+int reed_solomon_encode(reed_solomon * rs, unsigned char ** shards, int nr_shards, int block_size)
 {
-	unsigned char **data_blocks;
-	unsigned char **fec_blocks;
+	unsigned char ** data_blocks;
+	unsigned char ** fec_blocks;
 	int i, ds = rs->data_shards, ps = rs->parity_shards, ss = rs->shards;
 	i = nr_shards / ss;
 	data_blocks = shards;
 	fec_blocks = &shards[(i * ds)];
 
-	for (i = 0; i < nr_shards; i += ss) {
+	for (i = 0; i < nr_shards; i += ss)
+	{
 		code_some_shards(rs->parity, data_blocks, fec_blocks, rs->data_shards, rs->parity_shards, block_size);
 		data_blocks += ds;
 		fec_blocks += ps;
@@ -624,15 +672,14 @@ reed_solomon_encode(reed_solomon *rs, unsigned char **shards, int nr_shards, int
  * shards[nr_shards][block_size]
  * marks[nr_shards] marks as errors
  * */
-int
-reed_solomon_reconstruct(reed_solomon *rs, unsigned char **shards, unsigned char *marks, int nr_shards, int block_size)
+int reed_solomon_reconstruct(reed_solomon * rs, unsigned char ** shards, unsigned char * marks, int nr_shards, int block_size)
 {
-	unsigned char *dec_fec_blocks[DATA_SHARDS_MAX];
+	unsigned char * dec_fec_blocks[DATA_SHARDS_MAX];
 	unsigned int fec_block_nos[DATA_SHARDS_MAX];
 	unsigned int erased_blocks[DATA_SHARDS_MAX];
-	unsigned char *fec_marks;
+	unsigned char * fec_marks;
 	unsigned char **data_blocks, **fec_blocks;
-	gf *dataDecodeMatrix = malloc(DATA_SHARDS_MAX * DATA_SHARDS_MAX * sizeof(gf));
+	gf * dataDecodeMatrix = malloc(DATA_SHARDS_MAX * DATA_SHARDS_MAX * sizeof(gf));
 	int i, j, dn, pn, n;
 	int ds = rs->data_shards;
 	int ps = rs->parity_shards;
@@ -643,16 +690,21 @@ reed_solomon_reconstruct(reed_solomon *rs, unsigned char **shards, unsigned char
 	fec_marks = marks + n * ds; // after all data, is't fec marks
 	fec_blocks = shards + n * ds;
 
-	for (j = 0; j < n; j++) {
+	for (j = 0; j < n; j++)
+	{
 		dn = 0;
-		for (i = 0; i < ds; i++) {
+		for (i = 0; i < ds; i++)
+		{
 			if (marks[i])
 				erased_blocks[dn++] = i;
 		}
-		if (dn > 0) {
+		if (dn > 0)
+		{
 			pn = 0;
-			for (i = 0; i < ps && pn < dn; i++) {
-				if (!fec_marks[i]) {
+			for (i = 0; i < ps && pn < dn; i++)
+			{
+				if (!fec_marks[i])
+				{
 					// got valid fec row
 					fec_block_nos[pn] = i;
 					dec_fec_blocks[pn] = fec_blocks[i];
@@ -660,10 +712,11 @@ reed_solomon_reconstruct(reed_solomon *rs, unsigned char **shards, unsigned char
 				}
 			}
 
-			if (dn == pn) {
-				reed_solomon_decode(rs, dataDecodeMatrix, data_blocks, block_size, dec_fec_blocks,
-				                    fec_block_nos, erased_blocks, dn);
-			} else
+			if (dn == pn)
+			{
+				reed_solomon_decode(rs, dataDecodeMatrix, data_blocks, block_size, dec_fec_blocks, fec_block_nos, erased_blocks, dn);
+			}
+			else
 				err = -1;
 		}
 		data_blocks += ds;

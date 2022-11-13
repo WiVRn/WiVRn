@@ -1,21 +1,3 @@
-/*
- * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
 #include "scene_renderer.h"
 #include "application.h"
 #include "spdlog/spdlog.h"
@@ -34,6 +16,7 @@ VkFormat gltf_to_vkformat(int component, int bits, int pixel_type, bool srgb)
 
 		case TINYGLTF_COMPONENT_TYPE_SHORT:
 		case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+
 			assert(bits == 32);
 			break;
 
@@ -326,7 +309,8 @@ void scene_renderer::reserve(size_t size)
 		buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
 		staging_buffer = vk::buffer(device, buffer_info);
-		staging_memory = vk::device_memory(device, physical_device, staging_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		staging_memory =
+		        vk::device_memory(device, physical_device, staging_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		staging_buffer_size = size;
 		staging_memory.map_memory();
 	}
@@ -346,10 +330,7 @@ void scene_renderer::load_buffer(VkBuffer b, const void * data, size_t size)
 		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		CHECK_VK(vkBeginCommandBuffer(staging_command_buffer, &begin_info));
 
-		VkBufferCopy copy_info{
-		        .srcOffset = 0,
-		        .dstOffset = 0,
-		        .size = size};
+		VkBufferCopy copy_info{.srcOffset = 0, .dstOffset = 0, .size = size};
 		vkCmdCopyBuffer(staging_command_buffer, staging_buffer, b, 1, &copy_info);
 
 		CHECK_VK(vkEndCommandBuffer(staging_command_buffer));
@@ -394,28 +375,29 @@ void scene_renderer::load_image(VkImage i, void * data, VkExtent2D size, VkForma
 		        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		        .image = i,
-		        .subresourceRange = {
-		                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		                .baseMipLevel = 0,
-		                .levelCount = mipmap_count,
-		                .baseArrayLayer = 0,
-		                .layerCount = 1,
-		        },
+		        .subresourceRange =
+		                {
+		                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		                        .baseMipLevel = 0,
+		                        .levelCount = mipmap_count,
+		                        .baseArrayLayer = 0,
+		                        .layerCount = 1,
+		                },
 		};
 		vkCmdPipelineBarrier(staging_command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-		VkBufferImageCopy copy_info{
-		        .bufferOffset = 0,
-		        .bufferRowLength = 0,
-		        .bufferImageHeight = 0,
-		        .imageSubresource = VkImageSubresourceLayers{
-		                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		                .mipLevel = 0,
-		                .baseArrayLayer = 0,
-		                .layerCount = 1,
-		        },
-		        .imageOffset = {0, 0, 0},
-		        .imageExtent = {size.width, size.height, 1}};
+		VkBufferImageCopy copy_info{.bufferOffset = 0,
+		                            .bufferRowLength = 0,
+		                            .bufferImageHeight = 0,
+		                            .imageSubresource =
+		                                    VkImageSubresourceLayers{
+		                                            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		                                            .mipLevel = 0,
+		                                            .baseArrayLayer = 0,
+		                                            .layerCount = 1,
+		                                    },
+		                            .imageOffset = {0, 0, 0},
+		                            .imageExtent = {size.width, size.height, 1}};
 		vkCmdCopyBufferToImage(staging_command_buffer, staging_buffer, i, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
 
 		VkOffset3D size_src = {(int32_t)size.width, (int32_t)size.height, 1};
@@ -431,19 +413,21 @@ void scene_renderer::load_image(VkImage i, void * data, VkExtent2D size, VkForma
 
 			VkOffset3D size_dst = {std::max(1, size_src.x / 2), std::max(1, size_src.y / 2), 1};
 			VkImageBlit blit_info{
-			        .srcSubresource = {
-			                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-			                .mipLevel = mipmap - 1,
-			                .baseArrayLayer = 0,
-			                .layerCount = 1,
-			        },
+			        .srcSubresource =
+			                {
+			                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			                        .mipLevel = mipmap - 1,
+			                        .baseArrayLayer = 0,
+			                        .layerCount = 1,
+			                },
 			        .srcOffsets = {{0, 0, 0}, size_src},
-			        .dstSubresource = {
-			                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-			                .mipLevel = mipmap,
-			                .baseArrayLayer = 0,
-			                .layerCount = 1,
-			        },
+			        .dstSubresource =
+			                {
+			                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			                        .mipLevel = mipmap,
+			                        .baseArrayLayer = 0,
+			                        .layerCount = 1,
+			                },
 			        .dstOffsets = {{0, 0, 0}, size_dst},
 			};
 			vkCmdBlitImage(staging_command_buffer, i, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, i, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_info, VK_FILTER_LINEAR);
@@ -487,16 +471,8 @@ void scene_renderer::load_image(VkImage i, void * data, VkExtent2D size, VkForma
 
 void scene_renderer::cleanup()
 {
-	for (auto & i: shaders)
-		cleanup_shader(*i);
 	shaders.clear();
-
-	for (auto & i: images)
-		cleanup_image(*i);
 	images.clear();
-
-	for (auto & i: buffers)
-		cleanup_buffer(*i);
 	buffers.clear();
 
 	cleanup_output_images();
@@ -578,175 +554,204 @@ void scene_renderer::set_output_images(std::vector<VkImage> output_images_, VkEx
 	}
 }
 
-void scene_renderer::cleanup_shader(shader & s)
+void scene_renderer::cleanup_shader(shader * s)
 {
-	for (auto & i: s.descriptor_pools)
+	for (auto & i: s->descriptor_set_layouts)
+		vkDestroyDescriptorSetLayout(device, i, nullptr);
+	for (auto & i: s->descriptor_pools)
 		vkDestroyDescriptorPool(device, i, nullptr);
+	for (auto & i: s->pipelines)
+		vkDestroyPipeline(device, i.second, nullptr);
 
-	if (s.pipeline)
-		vkDestroyPipeline(device, s.pipeline, nullptr);
-	if (s.pipeline_layout)
-		vkDestroyPipelineLayout(device, s.pipeline_layout, nullptr);
-	if (s.descriptor_set_layout)
-		vkDestroyDescriptorSetLayout(device, s.descriptor_set_layout, nullptr);
-
-	s.descriptor_pools.clear();
-	s.pipeline = VK_NULL_HANDLE;
-	s.pipeline_layout = VK_NULL_HANDLE;
-	s.descriptor_set_layout = VK_NULL_HANDLE;
+	if (s->pipeline_layout)
+		vkDestroyPipelineLayout(device, s->pipeline_layout, nullptr);
+	if (s->fragment_shader)
+		vkDestroyShaderModule(device, s->fragment_shader, nullptr);
+	if (s->vertex_shader)
+		vkDestroyShaderModule(device, s->vertex_shader, nullptr);
 }
 
-scene_renderer::shader * scene_renderer::create_shader(std::string name, VkPrimitiveTopology topology, std::vector<VkDescriptorSetLayoutBinding> uniform_bindings, std::vector<VkVertexInputBindingDescription> vertex_bindings, std::vector<VkVertexInputAttributeDescription> vertex_attributes)
+std::weak_ptr<scene_renderer::shader>
+scene_renderer::create_shader(std::string name, std::vector<std::vector<VkDescriptorSetLayoutBinding>> uniform_bindings)
 {
-	auto s = std::make_unique<shader>();
+	auto s = std::shared_ptr<shader>(new shader, [&](shader * s) { cleanup_shader(s); });
 
-	try
+	// Create graphics pipeline
+	s->vertex_shader = vk::shader(device, name + ".vert").release();
+	s->fragment_shader = vk::shader(device, name + ".frag").release();
+
+	s->descriptor_set_layouts.reserve(uniform_bindings.size());
+	for (std::vector<VkDescriptorSetLayoutBinding> & bindings: uniform_bindings)
 	{
-		// Create graphics pipeline
-		s->vertex_shader = vk::shader(device, name + ".vert").release();
-		s->fragment_shader = vk::shader(device, name + ".frag").release();
-
 		VkDescriptorSetLayoutCreateInfo layout_info{
 		        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 		        .bindingCount = (uint32_t)uniform_bindings.size(),
-		        .pBindings = uniform_bindings.data(),
+		        .pBindings = bindings.data(),
 		};
 
-		CHECK_VK(vkCreateDescriptorSetLayout(device, &layout_info, nullptr, &s->descriptor_set_layout));
-
-		VkPipelineLayoutCreateInfo pipeline_layout_create_info{
-		        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-		        .setLayoutCount = 1,
-		        .pSetLayouts = &s->descriptor_set_layout,
-		};
-
-		CHECK_VK(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &s->pipeline_layout));
-
-		VkPipelineColorBlendAttachmentState pcbas{.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-		                                                            VK_COLOR_COMPONENT_G_BIT |
-		                                                            VK_COLOR_COMPONENT_B_BIT};
-
-		vk::pipeline::graphics_info pipeline_info{
-		        .shader_stages =
-		                {{.stage = VK_SHADER_STAGE_VERTEX_BIT, .module = s->vertex_shader, .pName = "main"},
-		                 {.stage = VK_SHADER_STAGE_FRAGMENT_BIT, .module = s->fragment_shader, .pName = "main"}},
-		        .vertex_input_bindings = vertex_bindings,
-		        .vertex_input_attributes = vertex_attributes,
-		        .InputAssemblyState = {.topology = topology},
-		        .viewports = {VkViewport{.x = 0,
-		                                 .y = 0,
-		                                 .width = (float)output_size.width,
-		                                 .height = (float)output_size.height,
-		                                 .minDepth = 0,
-		                                 .maxDepth = 1}},
-		        .scissors = {VkRect2D{
-		                .offset = {0, 0},
-		                .extent = output_size,
-		        }},
-		        .RasterizationState = {.polygonMode = VK_POLYGON_MODE_FILL, .lineWidth = 1},
-		        .MultisampleState = {.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT},
-		        .ColorBlendState = {.attachmentCount = 1, .pAttachments = &pcbas},
-		        .dynamic_states = {},
-		        .renderPass = renderpass,
-		        .subpass = 0,
-		};
-
-		s->pipeline = vk::pipeline(device, pipeline_info, s->pipeline_layout).release();
-	}
-	catch (...)
-	{
-		cleanup_shader(*s);
-		throw;
+		VkDescriptorSetLayout descriptor_set_layout;
+		CHECK_VK(vkCreateDescriptorSetLayout(device, &layout_info, nullptr, &descriptor_set_layout));
+		s->descriptor_set_layouts.push_back(descriptor_set_layout);
 	}
 
-	return shaders.emplace_back(std::move(s)).get();
+	VkPipelineLayoutCreateInfo pipeline_layout_create_info{
+	        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+	        .setLayoutCount = (uint32_t)s->descriptor_set_layouts.size(),
+	        .pSetLayouts = s->descriptor_set_layouts.data(),
+	};
+
+	CHECK_VK(vkCreatePipelineLayout(device, &pipeline_layout_create_info, nullptr, &s->pipeline_layout));
+
+	return shaders.emplace_back(s);
 }
 
-void scene_renderer::cleanup_image(scene_renderer::image & i)
+VkPipeline scene_renderer::get_shader_pipeline(std::weak_ptr<shader> weak_shader, VkPrimitiveTopology topology, std::span<VkVertexInputBindingDescription> vertex_bindings, std::span<VkVertexInputAttributeDescription> vertex_attributes)
 {
-	if (i.image)
-		vkDestroyImage(device, i.image, nullptr);
+	auto shader = weak_shader.lock();
+	if (!shader)
+		return VK_NULL_HANDLE;
 
-	if (i.memory)
-		vkFreeMemory(device, i.memory, nullptr);
+	for (auto & i: shader->pipelines)
+	{
+		if (topology != i.first.topology)
+			continue;
 
-	i.image = VK_NULL_HANDLE;
-	i.memory = VK_NULL_HANDLE;
+		if (vertex_bindings.size() != i.first.vertex_bindings.size())
+			continue;
+
+		if (memcmp(vertex_bindings.data(), i.first.vertex_bindings.data(), vertex_bindings.size() * sizeof(VkVertexInputBindingDescription)))
+			continue;
+
+		if (vertex_attributes.size() != i.first.vertex_attributes.size())
+			continue;
+
+		if (memcmp(vertex_attributes.data(), i.first.vertex_attributes.data(), vertex_attributes.size() * sizeof(VkVertexInputAttributeDescription)))
+			continue;
+
+		return i.second;
+	}
+
+	shader::pipeline_info info{
+	        .topology = topology,
+	        .vertex_bindings = {vertex_bindings.begin(), vertex_bindings.end()},
+	        .vertex_attributes = {vertex_attributes.begin(), vertex_attributes.end()},
+	};
+
+	VkPipelineColorBlendAttachmentState pcbas{
+	        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT};
+
+	vk::pipeline::graphics_info pipeline_info{
+	        .shader_stages =
+	                {{.stage = VK_SHADER_STAGE_VERTEX_BIT, .module = shader->vertex_shader, .pName = "main"},
+	                 {.stage = VK_SHADER_STAGE_FRAGMENT_BIT, .module = shader->fragment_shader, .pName = "main"}},
+	        .vertex_input_bindings = info.vertex_bindings,
+	        .vertex_input_attributes = info.vertex_attributes,
+	        .InputAssemblyState = {.topology = topology},
+	        .viewports = {VkViewport{.x = 0,
+	                                 .y = 0,
+	                                 .width = (float)output_size.width,
+	                                 .height = (float)output_size.height,
+	                                 .minDepth = 0,
+	                                 .maxDepth = 1}},
+	        .scissors = {VkRect2D{
+	                .offset = {0, 0},
+	                .extent = output_size,
+	        }},
+	        .RasterizationState = {.polygonMode = VK_POLYGON_MODE_FILL, .lineWidth = 1},
+	        .MultisampleState = {.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT},
+	        .ColorBlendState = {.attachmentCount = 1, .pAttachments = &pcbas},
+	        .dynamic_states = {},
+	        .renderPass = renderpass,
+	        .subpass = 0,
+	};
+
+	vk::pipeline pipeline(device, pipeline_info, shader->pipeline_layout);
+
+	return shader->pipelines.emplace_back(info, pipeline.release()).second;
 }
 
-scene_renderer::image * scene_renderer::create_image(void * data, VkExtent2D size, VkFormat format)
+void scene_renderer::cleanup_image(scene_renderer::image * i)
 {
-	auto i = std::make_unique<image>();
+	if (i->image_view)
+		vkDestroyImageView(device, i->image_view, nullptr);
 
-	try
-	{
-		uint32_t mipmaps = std::log2(std::max(size.width, size.height)) + 1;
+	if (i->vk_image)
+		vkDestroyImage(device, i->vk_image, nullptr);
 
-		VkImageCreateInfo image_info{
-		        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-		        .flags = 0,
-		        .imageType = VK_IMAGE_TYPE_2D,
-		        .format = format,
-		        .extent = {size.width, size.height, 1},
-		        .mipLevels = mipmaps,
-		        .arrayLayers = 1,
-		        .samples = VK_SAMPLE_COUNT_1_BIT,
-		        .tiling = VK_IMAGE_TILING_OPTIMAL,
-		        .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-		        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		};
-
-		i->image = vk::image(device, image_info).release();
-		i->memory = vk::device_memory(device, physical_device, i->image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT).release();
-
-		load_image(i->image, data, size, format, mipmaps);
-	}
-	catch (...)
-	{
-		cleanup_image(*i);
-		throw;
-	}
-
-	return images.emplace_back(std::move(i)).get();
+	if (i->memory)
+		vkFreeMemory(device, i->memory, nullptr);
 }
 
-void scene_renderer::cleanup_buffer(scene_renderer::buffer & b)
+std::weak_ptr<scene_renderer::image> scene_renderer::create_image(void * data, VkExtent2D size, VkFormat format)
 {
-	if (b.buffer)
-		vkDestroyBuffer(device, b.buffer, nullptr);
-	if (b.memory)
-		vkFreeMemory(device, b.memory, nullptr);
+	auto i = std::shared_ptr<image>(new image, [&](image * i) { cleanup_image(i); });
 
-	b.buffer = VK_NULL_HANDLE;
-	b.memory = VK_NULL_HANDLE;
+	uint32_t mipmaps = std::log2(std::max(size.width, size.height)) + 1;
+
+	VkImageCreateInfo image_info{
+	        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+	        .flags = 0,
+	        .imageType = VK_IMAGE_TYPE_2D,
+	        .format = format,
+	        .extent = {size.width, size.height, 1},
+	        .mipLevels = mipmaps,
+	        .arrayLayers = 1,
+	        .samples = VK_SAMPLE_COUNT_1_BIT,
+	        .tiling = VK_IMAGE_TILING_OPTIMAL,
+	        .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+	        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+	        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+	};
+
+	i->vk_image = vk::image(device, image_info).release();
+	i->memory =
+	        vk::device_memory(device, physical_device, i->vk_image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT).release();
+
+	load_image(i->vk_image, data, size, format, mipmaps);
+
+	VkImageViewCreateInfo image_view_info{
+	        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+	        .flags = 0,
+	        .image = i->vk_image,
+	        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+	        .format = format,
+	        .components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+	        .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	                             .baseMipLevel = 0,
+	                             .levelCount = mipmaps,
+	                             .baseArrayLayer = 0,
+	                             .layerCount = 1}};
+	CHECK_VK(vkCreateImageView(device, &image_view_info, nullptr, &i->image_view));
+
+	return images.emplace_back(i);
 }
 
-scene_renderer::buffer * scene_renderer::create_buffer(const void * data, size_t size, VkBufferUsageFlags usage)
+void scene_renderer::cleanup_buffer(scene_renderer::buffer * b)
 {
-	auto b = std::make_unique<buffer>();
+	if (b->vk_buffer)
+		vkDestroyBuffer(device, b->vk_buffer, nullptr);
+	if (b->memory)
+		vkFreeMemory(device, b->memory, nullptr);
+}
 
-	try
-	{
-		VkBufferCreateInfo buffer_info{
-		        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-		        .size = size,
-		        .usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-		        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-		};
+std::weak_ptr<scene_renderer::buffer> scene_renderer::create_buffer(const void * data, size_t size, VkBufferUsageFlags usage)
+{
+	auto b = std::shared_ptr<buffer>(new buffer, [&](buffer * b) { cleanup_buffer(b); });
 
-		b->buffer = vk::buffer(device, buffer_info).release();
-		b->memory = vk::device_memory(device, physical_device, b->buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT).release();
+	VkBufferCreateInfo buffer_info{
+	        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+	        .size = size,
+	        .usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+	        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+	};
 
-		load_buffer(b->buffer, data, size);
-	}
-	catch (...)
-	{
-		cleanup_buffer(*b);
-		throw;
-	}
+	b->vk_buffer = vk::buffer(device, buffer_info).release();
+	b->memory =
+	        vk::device_memory(device, physical_device, b->vk_buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT).release();
 
-	return buffers.emplace_back(std::move(b)).get();
+	load_buffer(b->vk_buffer, data, size);
+
+	return buffers.emplace_back(b);
 }
 
 scene_renderer::model * scene_renderer::load_gltf(const std::string & filename)
@@ -775,7 +780,8 @@ scene_renderer::model * scene_renderer::load_gltf(const std::string & filename)
 
 	for (tinygltf::Buffer & i: m->gltf_model.buffers)
 	{
-		m->buffers.push_back(create_buffer(i.data, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT));
+		m->buffers.push_back(
+		        create_buffer(i.data, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT));
 	}
 
 	std::vector<bool> srgb(m->gltf_model.images.size(), false);
@@ -784,7 +790,8 @@ scene_renderer::model * scene_renderer::load_gltf(const std::string & filename)
 		if (i.emissiveTexture.index >= 0 && i.emissiveTexture.index < (int)srgb.size())
 			srgb[i.emissiveTexture.index] = true;
 
-		if (i.pbrMetallicRoughness.baseColorTexture.index >= 0 && i.pbrMetallicRoughness.baseColorTexture.index < (int)srgb.size())
+		if (i.pbrMetallicRoughness.baseColorTexture.index >= 0 &&
+		    i.pbrMetallicRoughness.baseColorTexture.index < (int)srgb.size())
 			srgb[i.pbrMetallicRoughness.baseColorTexture.index] = true;
 	}
 

@@ -10,12 +10,12 @@
 
 #include "util/u_trace_marker.h"
 
-#include "driver/wivrn_sockets.h"
-#include "driver/wivrn_packets.h"
-#include <memory>
-#include <unistd.h>
-#include <sys/wait.h>
+#include "wivrn_packets.h"
+#include "wivrn_sockets.h"
 #include <iostream>
+#include <memory>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "avahi_publisher.h"
 #include "hostname.h"
@@ -23,53 +23,53 @@
 // Insert the on load constructor to init trace marker.
 U_TRACE_TARGET_SETUP(U_TRACE_WHICH_SERVICE)
 
-extern "C" {
-int
-ipc_server_main(int argc, char *argv[]);
-
-int
-oxr_sdl2_hack_create(void **out_hack)
+extern "C"
 {
-	return 0;
-}
+	int
+	ipc_server_main(int argc, char * argv[]);
 
-int
-oxr_sdl2_hack_start(void *hack, struct xrt_instance *xinst, struct xrt_system_devices *xsysd)
-{
-	return 0;
-}
+	int
+	oxr_sdl2_hack_create(void ** out_hack)
+	{
+		return 0;
+	}
 
-int
-oxr_sdl2_hack_stop(void **hack_ptr)
-{
-	return 0;
-}
+	int
+	oxr_sdl2_hack_start(void * hack, struct xrt_instance * xinst, struct xrt_system_devices * xsysd)
+	{
+		return 0;
+	}
+
+	int
+	oxr_sdl2_hack_stop(void ** hack_ptr)
+	{
+		return 0;
+	}
 }
 
 using namespace xrt::drivers::wivrn;
 
 std::unique_ptr<TCP> tcp;
 
-void
-avahi_callback(AvahiWatch *w, int fd, AvahiWatchEvent event, void *userdata)
+void avahi_callback(AvahiWatch * w, int fd, AvahiWatchEvent event, void * userdata)
 {
-	bool *client_connected = (bool*)userdata;
+	bool * client_connected = (bool *)userdata;
 	*client_connected = true;
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char * argv[])
 {
 	u_trace_marker_init();
 
-	while (true) {
+	while (true)
+	{
 		{
 			avahi_publisher publisher(hostname().c_str(), "_wivrn._tcp", control_port);
 
 			TCPListener listener(control_port);
 			bool client_connected = false;
 
-			AvahiWatch *watch = publisher.watch_new(listener.get_fd(), AVAHI_WATCH_IN, &avahi_callback, &client_connected);
+			AvahiWatch * watch = publisher.watch_new(listener.get_fd(), AVAHI_WATCH_IN, &avahi_callback, &client_connected);
 
 			while (publisher.iterate() && !client_connected)
 				;
@@ -81,13 +81,17 @@ main(int argc, char *argv[])
 
 		pid_t child = fork();
 
-		if (child < 0) {
+		if (child < 0)
+		{
 			perror("fork");
 			return 1;
 		}
-		if (child == 0) {
+		if (child == 0)
+		{
 			return ipc_server_main(argc, argv);
-		} else {
+		}
+		else
+		{
 			std::cerr << "Server started, PID " << child << std::endl;
 
 			int wstatus = 0;

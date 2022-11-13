@@ -24,15 +24,14 @@ if(ANDROID)
     target_link_libraries(wivrn ${ANDROID_LIBRARY} ${MEDIA_LIBRARY})
 
     if(OCULUS)
-        if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/OculusSDK)
+        set(OCULUS_SDK_PATH ${CMAKE_CURRENT_BINARY_DIR}/OculusSDK)
 
+        if(NOT EXISTS ${OCULUS_SDK_PATH})
             file(GLOB OCULUS_SDK_ZIP ${CMAKE_SOURCE_DIR}/ovr_sdk_mobile_*.zip)
 
             if("${OCULUS_SDK_ZIP}" STREQUAL "")
                 message(FATAL_ERROR "Download the Oculus SDK from https://developer.oculus.com/downloads/package/oculus-mobile-sdk/ in ${CMAKE_SOURCE_DIR}/ovr_sdk_mobile_*.zip")
             endif()
-
-            set(OCULUS_SDK_PATH ${CMAKE_CURRENT_BINARY_DIR}/OculusSDK)
 
             file(ARCHIVE_EXTRACT INPUT ${OCULUS_SDK_ZIP} DESTINATION ${OCULUS_SDK_PATH})
         endif()
@@ -52,7 +51,7 @@ if(ANDROID)
         message(FATAL_ERROR "TODO: implement non-oculus android headsets")
     endif()
 
-    target_link_libraries(wivrn native_app_glue OpenXR Boost::pfr)
+    target_link_libraries(wivrn native_app_glue OpenXR)
     target_compile_definitions(wivrn PRIVATE -DXR_USE_PLATFORM_ANDROID -DVK_USE_PLATFORM_ANDROID_KHR)
     target_link_options(wivrn PRIVATE -Wl,--undefined=ANativeActivity_onCreate)
 
@@ -115,19 +114,24 @@ endif()
 
 if(USE_ANDROID_VALIDATION_LAYER)
     set(VVL_VERSION "1.3.231.1")
-    set(VVL_ZIPFILE ${CMAKE_CURRENT_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
 
-    if(NOT EXISTS ${VVL_ZIPFILE})
-        file(DOWNLOAD https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases/download/sdk-${VVL_VERSION}/android-binaries-${VVL_VERSION}.zip
-            ${VVL_ZIPFILE})
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
+        if (EXISTS ${CMAKE_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
+            file(CREATE_LINK ${CMAKE_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip SYMBOLIC)
+        else()
+            file(DOWNLOAD https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases/download/sdk-${VVL_VERSION}/android-binaries-${VVL_VERSION}.zip ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip
+                EXPECTED_HASH SHA256=eec3a54222d6d33d4f787a13a45c60ac5b9e8d7bf795fc41e4242354a02e34ba)
+        endif()
     endif()
 
-    file(ARCHIVE_EXTRACT INPUT ${VVL_ZIPFILE} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Vulkan-ValidationLayer)
+    set(VVL_ZIPFILE ${CMAKE_CURRENT_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
+
+    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip DESTINATION ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayer)
 
     add_library(vvl1 SHARED IMPORTED)
-    set_property(TARGET vvl1 PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/Vulkan-ValidationLayer/${CMAKE_ANDROID_ARCH_ABI}/libVkLayer_khronos_validation.so)
+    set_property(TARGET vvl1 PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayer/${CMAKE_ANDROID_ARCH_ABI}/libVkLayer_khronos_validation.so)
     add_library(vvl2 SHARED IMPORTED)
-    set_property(TARGET vvl2 PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/Vulkan-ValidationLayer/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so)
+    set_property(TARGET vvl2 PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayer/${CMAKE_ANDROID_ARCH_ABI}/libc++_shared.so)
 
-    target_link_libraries(wivrn PRIVATE vvl1 vvl2) # Hack to get gradle to package the validation layer in the APK
+    target_link_libraries(wivrn vvl1 vvl2) # Hack to get gradle to package the validation layer in the APK
 endif()

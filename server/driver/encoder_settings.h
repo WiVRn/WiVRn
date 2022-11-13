@@ -1,6 +1,21 @@
-// Copyright 2022, Guillaume Meunier
-// Copyright 2022, Patrick Nicolas
-// SPDX-License-Identifier: BSL-1.0
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #pragma once
 
@@ -10,7 +25,8 @@
 #include <map>
 #include <string>
 
-namespace xrt::drivers::wivrn {
+namespace xrt::drivers::wivrn
+{
 
 struct encoder_settings : public to_headset::video_stream_description::item
 {
@@ -22,12 +38,8 @@ struct encoder_settings : public to_headset::video_stream_description::item
 	int group = 0;
 };
 
+std::vector<encoder_settings> get_encoder_settings(vk_bundle * vk, uint16_t width, uint16_t height);
 
-std::vector<encoder_settings>
-get_encoder_settings(vk_bundle *vk, uint16_t width, uint16_t height);
-
-
-VkImageTiling
-get_required_tiling(vk_bundle *vk, const std::vector<encoder_settings> &settings);
+VkImageTiling get_required_tiling(vk_bundle * vk, const std::vector<encoder_settings> & settings);
 
 } // namespace xrt::drivers::wivrn

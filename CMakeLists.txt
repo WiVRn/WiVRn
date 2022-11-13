@@ -23,6 +23,18 @@ if (WIVRN_BUILD_SERVER)
     pkg_check_modules(LIBAV IMPORTED_TARGET libavcodec libavutil libswscale libavfilter)
     pkg_check_modules(X264  IMPORTED_TARGET x264)
 
+    if(CUDAToolkit_FOUND)
+        set(WIVRN_HAVE_CUDA ON)
+    endif()
+
+    if(LIBAV_FOUND)
+        set(WIVRN_HAVE_FFMPEG ON)
+    endif()
+
+    if(X264_FOUND)
+        set(WIVRN_HAVE_X264 ON)
+    endif()
+
     if (NOT CUDAToolkit_FOUND AND NOT LIBAV_FOUND AND NOT X264_FOUND)
         message(FATAL_ERROR "No encoder found")
     endif()
@@ -37,6 +49,9 @@ if(ANDROID)
     include(AndroidNdkModules)
     android_ndk_import_module_native_app_glue()
 endif()
+
+FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
+FetchContent_MakeAvailable(boostpfr)
 
 add_subdirectory(common)
 

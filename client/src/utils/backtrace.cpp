@@ -81,21 +81,21 @@ static int iterate_phdr_callback(dl_phdr_info * info, size_t size, void * arg)
 	return 0;
 }
 
-static std::string unmangle(const char * function)
-{
-	if (!function)
-		return "(null)";
-
-	int status;
-	char * demangled = abi::__cxa_demangle(function, nullptr, nullptr, &status);
-
-	if (status != 0)
-		return function;
-
-	std::string s = demangled;
-	free(demangled);
-	return s;
-}
+// static std::string unmangle(const char * function)
+// {
+// 	if (!function)
+// 		return "(null)";
+//
+// 	int status;
+// 	char * demangled = abi::__cxa_demangle(function, nullptr, nullptr, &status);
+//
+// 	if (status != 0)
+// 		return function;
+//
+// 	std::string s = demangled;
+// 	free(demangled);
+// 	return s;
+// }
 
 std::vector<utils::backtrace_entry> utils::backtrace(size_t max)
 {

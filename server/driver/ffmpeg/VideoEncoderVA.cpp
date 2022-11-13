@@ -1,15 +1,31 @@
-// Copyright 2022, Guillaume Meunier
-// Copyright 2022, Patrick Nicolas
-// SPDX-License-Identifier: BSL-1.0
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "VideoEncoderVA.h"
 #include "ffmpeg_helper.h"
 #include "vk/vk_helpers.h"
 #include <cassert>
-#include <stdexcept>
 #include <chrono>
+#include <stdexcept>
 
-extern "C" {
+extern "C"
+{
 #include <libavcodec/avcodec.h>
 #include <libavfilter/avfilter.h>
 #include <libavfilter/buffersink.h>
@@ -20,25 +36,29 @@ extern "C" {
 #include <libavutil/opt.h>
 }
 
-namespace {
+namespace
+{
 
 const char *
 encoder(VideoEncoderFFMPEG::Codec codec)
 {
-	switch (codec) {
-	case VideoEncoderFFMPEG::Codec::h264: return "h264_vaapi";
-	case VideoEncoderFFMPEG::Codec::h265: return "hevc_vaapi";
+	switch (codec)
+	{
+		case VideoEncoderFFMPEG::Codec::h264:
+			return "h264_vaapi";
+		case VideoEncoderFFMPEG::Codec::h265:
+			return "hevc_vaapi";
 	}
 	throw std::runtime_error("invalid codec " + std::to_string(int(codec)));
 }
 
-void
-set_hwframe_ctx(AVCodecContext *ctx, AVBufferRef *hw_device_ctx)
+void set_hwframe_ctx(AVCodecContext * ctx, AVBufferRef * hw_device_ctx)
 {
 	av_buffer_ptr hw_frames_ref(av_hwframe_ctx_alloc(hw_device_ctx));
 	int err = 0;
 
-	if (not hw_frames_ref) {
+	if (not hw_frames_ref)
+	{
 		throw std::runtime_error("Failed to create VAAPI frame context.");
 	}
 	auto frames_ctx = (AVHWFramesContext *)(hw_frames_ref->data);
@@ -47,7 +67,8 @@ set_hwframe_ctx(AVCodecContext *ctx, AVBufferRef *hw_device_ctx)
 	frames_ctx->width = ctx->width;
 	frames_ctx->height = ctx->height;
 	frames_ctx->initial_pool_size = 3;
-	if ((err = av_hwframe_ctx_init(hw_frames_ref.get())) < 0) {
+	if ((err = av_hwframe_ctx_init(hw_frames_ref.get())) < 0)
+	{
 		throw std::system_error(err, av_error_category(), "Failed to initialize VAAPI frame context");
 	}
 	ctx->hw_frames_ctx = av_buffer_ref(hw_frames_ref.get());
@@ -56,7 +77,7 @@ set_hwframe_ctx(AVCodecContext *ctx, AVBufferRef *hw_device_ctx)
 }
 
 std::string
-get_render_device(vk_bundle *vk)
+get_render_device(vk_bundle * vk)
 {
 	VkPhysicalDeviceDrmPropertiesEXT drmProps{};
 	drmProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT;
@@ -67,7 +88,8 @@ get_render_device(vk_bundle *vk)
 
 	vk->vkGetPhysicalDeviceProperties2(vk->physical_device, &props);
 
-	if (!drmProps.hasRender) {
+	if (!drmProps.hasRender)
+	{
 		U_LOG_E("Failed to find render DRM device");
 		throw std::runtime_error("Failed to find render DRM device");
 	}
@@ -76,8 +98,8 @@ get_render_device(vk_bundle *vk)
 
 } // namespace
 
-VideoEncoderVA::VideoEncoderVA(vk_bundle *vk, const encoder_settings &settings, float fps)
-    : vk(vk), width(settings.width), height(settings.height), offset_x(settings.offset_x), offset_y(settings.offset_y)
+VideoEncoderVA::VideoEncoderVA(vk_bundle * vk, const encoder_settings & settings, float fps) :
+        vk(vk), width(settings.width), height(settings.height), offset_x(settings.offset_x), offset_y(settings.offset_y)
 {
 	codec = settings.codec;
 	/* VAAPI Encoding pipeline
@@ -91,32 +113,41 @@ VideoEncoderVA::VideoEncoderVA(vk_bundle *vk, const encoder_settings &settings, 
 	 * and the encoder that takes the converted frame and produces packets.
 	 */
 
-	AVBufferRef *tmp;
+	AVBufferRef * tmp;
 	const std::string device = get_render_device(vk);
 	int err = av_hwdevice_ctx_create(&tmp, AV_HWDEVICE_TYPE_VAAPI, device.c_str(), NULL, 0);
-	if (err < 0) {
+	if (err < 0)
+	{
 		throw std::system_error(err, av_error_category(), "Failed create a VAAPI device");
 	}
 	hw_ctx_vaapi.reset(tmp);
 
-	const char *encoder_name = encoder(codec);
-	const AVCodec *codec = avcodec_find_encoder_by_name(encoder_name);
-	if (codec == nullptr) {
+	const char * encoder_name = encoder(codec);
+	const AVCodec * codec = avcodec_find_encoder_by_name(encoder_name);
+	if (codec == nullptr)
+	{
 		throw std::runtime_error(std::string("Failed to find encoder ") + encoder_name);
 	}
 
 	encoder_ctx.reset(avcodec_alloc_context3(codec));
-	if (not encoder_ctx) {
+	if (not encoder_ctx)
+	{
 		throw std::runtime_error("failed to allocate VAAPI encoder");
 	}
 
-	AVDictionary *opts = nullptr;
-	for (auto option : settings.options) {
+	AVDictionary * opts = nullptr;
+	for (auto option: settings.options)
+	{
 		av_dict_set(&opts, option.first.c_str(), option.second.c_str(), 0);
 	}
-	switch (this->codec) {
-	case Codec::h264: encoder_ctx->profile = FF_PROFILE_H264_MAIN; break;
-	case Codec::h265: encoder_ctx->profile = FF_PROFILE_HEVC_MAIN; break;
+	switch (this->codec)
+	{
+		case Codec::h264:
+			encoder_ctx->profile = FF_PROFILE_H264_MAIN;
+			break;
+		case Codec::h265:
+			encoder_ctx->profile = FF_PROFILE_HEVC_MAIN;
+			break;
 	}
 
 	encoder_ctx->width = width;
@@ -133,56 +164,66 @@ VideoEncoderVA::VideoEncoderVA(vk_bundle *vk, const encoder_settings &settings, 
 
 	err = avcodec_open2(encoder_ctx.get(), codec, &opts);
 	av_dict_free(&opts);
-	if (err < 0) {
+	if (err < 0)
+	{
 		throw std::system_error(err, av_error_category(), "Cannot open video encoder codec");
 	}
 }
 
-void
-VideoEncoderVA::PushFrame(uint32_t frame_index, bool idr, std::chrono::steady_clock::time_point pts)
+void VideoEncoderVA::PushFrame(uint32_t frame_index, bool idr, std::chrono::steady_clock::time_point pts)
 {
 	assert(frame_index < mapped_frames.size());
 	av_frame_ptr encoder_frame = make_av_frame();
-	int err = av_buffersrc_add_frame_flags(filter_in, mapped_frames[frame_index].get(),
-	                                       AV_BUFFERSRC_FLAG_PUSH | AV_BUFFERSRC_FLAG_KEEP_REF);
-	if (err != 0) {
+	int err = av_buffersrc_add_frame_flags(filter_in, mapped_frames[frame_index].get(), AV_BUFFERSRC_FLAG_PUSH | AV_BUFFERSRC_FLAG_KEEP_REF);
+	if (err != 0)
+	{
 		throw std::system_error(err, av_error_category(), "av_buffersrc_add_frame failed");
 	}
 	err = av_buffersink_get_frame(filter_out, encoder_frame.get());
-	if (err != 0) {
+	if (err != 0)
+	{
 		throw std::system_error(err, av_error_category(), "av_buffersink_get_frame failed");
 	}
 
 	encoder_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
 	encoder_frame->pts = pts.time_since_epoch().count();
 	err = avcodec_send_frame(encoder_ctx.get(), encoder_frame.get());
-	if (err) {
+	if (err)
+	{
 		throw std::system_error(err, av_error_category(), "avcodec_send_frame failed");
 	}
 }
 
-void
-VideoEncoderVA::SetImages(
-    int width, int height, VkFormat format, int num_images, VkImage *images, VkImageView *views, VkDeviceMemory *memory)
+void VideoEncoderVA::SetImages(
+        int width,
+        int height,
+        VkFormat format,
+        int num_images,
+        VkImage * images,
+        VkImageView * views,
+        VkDeviceMemory * memory)
 {
 	mapped_frames.clear();
 	av_buffer_ptr va_ctx(av_hwframe_ctx_alloc(hw_ctx_vaapi.get()));
-	if (!va_ctx) {
+	if (!va_ctx)
+	{
 		throw std::runtime_error("Failed to create VAAPI frame context.");
 	}
-	AVHWFramesContext *va_frames_ctx = (AVHWFramesContext *)(va_ctx->data);
+	AVHWFramesContext * va_frames_ctx = (AVHWFramesContext *)(va_ctx->data);
 	va_frames_ctx->format = AV_PIX_FMT_VAAPI;
 	va_frames_ctx->sw_format = vk_format_to_av_format(format);
 	va_frames_ctx->width = width;
 	va_frames_ctx->height = height;
 	va_frames_ctx->initial_pool_size = num_images;
 	int err = av_hwframe_ctx_init(va_ctx.get());
-	if (err) {
+	if (err)
+	{
 		throw std::system_error(err, av_error_category(), "Failed to create VAAPI frame context");
 	}
 
 	mapped_frames.reserve(num_images);
-	for (int i = 0; i < num_images; ++i) {
+	for (int i = 0; i < num_images; ++i)
+	{
 		VkMemoryRequirements req;
 		vk->vkGetImageMemoryRequirements(vk->device, images[i], &req);
 
@@ -199,7 +240,7 @@ VideoEncoderVA::SetImages(
 		drm_frame->height = height;
 		drm_frame->buf[0] = av_buffer_alloc(sizeof(AVDRMFrameDescriptor));
 		drm_frame->data[0] = drm_frame->buf[0]->data;
-		auto &drm_frame_desc = *(AVDRMFrameDescriptor *)drm_frame->data[0];
+		auto & drm_frame_desc = *(AVDRMFrameDescriptor *)drm_frame->data[0];
 		drm_frame_desc.nb_objects = 1;
 		drm_frame_desc.objects[0].fd = fd;
 		drm_frame_desc.objects[0].size = req.size;
@@ -210,7 +251,8 @@ VideoEncoderVA::SetImages(
 
 		// DRM format modifiers seem to be broken on ffmpeg or radeon, or both
 		bool drm_tiling = use_drm_format_modifiers and vk->has_EXT_image_drm_format_modifier;
-		if (drm_tiling) {
+		if (drm_tiling)
+		{
 			VkImageDrmFormatModifierPropertiesEXT modifiers{};
 			modifiers.sType = VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT;
 			vk->vkGetImageDrmFormatModifierPropertiesEXT(vk->device, images[i], &modifiers);
@@ -218,9 +260,10 @@ VideoEncoderVA::SetImages(
 		}
 		// if we don't have modifiers, we did linear tiling
 		VkImageSubresource subresource{(use_drm_format_modifiers and vk->has_EXT_image_drm_format_modifier)
-		                                   ? VK_IMAGE_ASPECT_MEMORY_PLANE_0_BIT_EXT
-		                                   : VK_IMAGE_ASPECT_COLOR_BIT,
-		                               0, 0};
+		                                       ? VK_IMAGE_ASPECT_MEMORY_PLANE_0_BIT_EXT
+		                                       : VK_IMAGE_ASPECT_COLOR_BIT,
+		                               0,
+		                               0};
 		VkSubresourceLayout layout;
 		vk->vkGetImageSubresourceLayout(vk->device, images[i], &subresource, &layout);
 		drm_frame_desc.layers[0].planes[0].offset = layout.offset;
@@ -243,19 +286,18 @@ VideoEncoderVA::SetImages(
 	InitFilterGraph();
 }
 
-void
-VideoEncoderVA::InitFilterGraph()
+void VideoEncoderVA::InitFilterGraph()
 {
 	assert(not mapped_frames.empty());
 
 	filter_graph.reset(avfilter_graph_alloc());
 
-	AVFilterInOut *outputs = avfilter_inout_alloc();
-	AVFilterInOut *inputs = avfilter_inout_alloc();
+	AVFilterInOut * outputs = avfilter_inout_alloc();
+	AVFilterInOut * inputs = avfilter_inout_alloc();
 
 	filter_in = avfilter_graph_alloc_filter(filter_graph.get(), avfilter_get_by_name("buffer"), "in");
 
-	AVBufferSrcParameters *par = av_buffersrc_parameters_alloc();
+	AVBufferSrcParameters * par = av_buffersrc_parameters_alloc();
 	memset(par, 0, sizeof(*par));
 	par->width = mapped_frames[0]->width;
 	par->height = mapped_frames[0]->height;
@@ -266,8 +308,8 @@ VideoEncoderVA::InitFilterGraph()
 	av_free(par);
 
 	int err;
-	if ((err = avfilter_graph_create_filter(&filter_out, avfilter_get_by_name("buffersink"), "out", NULL, NULL,
-	                                        filter_graph.get()))) {
+	if ((err = avfilter_graph_create_filter(&filter_out, avfilter_get_by_name("buffersink"), "out", NULL, NULL, filter_graph.get())))
+	{
 		throw std::system_error(err, av_error_category(), "filter_out creation failed");
 	}
 
@@ -286,11 +328,13 @@ VideoEncoderVA::InitFilterGraph()
 	err = avfilter_graph_parse_ptr(filter_graph.get(), scale_param.c_str(), &inputs, &outputs, NULL);
 	avfilter_inout_free(&outputs);
 	avfilter_inout_free(&inputs);
-	if (err < 0) {
+	if (err < 0)
+	{
 		throw std::system_error(err, av_error_category(), "avfilter_graph_parse_ptr failed");
 	}
 
-	if ((err = avfilter_graph_config(filter_graph.get(), NULL))) {
+	if ((err = avfilter_graph_config(filter_graph.get(), NULL)))
+	{
 		throw std::system_error(err, av_error_category(), "avfilter_graph_config failed");
 	}
 }

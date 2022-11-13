@@ -2,14 +2,13 @@
 
 #include <systemd/sd-bus.h>
 
-std::string
-hostname()
+std::string hostname()
 {
 	sd_bus * bus;
 	if (sd_bus_default_system(&bus) < 0)
 		return "";
 
-	for(auto property: {"PrettyHostname", "StaticHostname", "Hostname"})
+	for (auto property: {"PrettyHostname", "StaticHostname", "Hostname"})
 	{
 		char * hostname = nullptr;
 		sd_bus_error error = SD_BUS_ERROR_NULL;

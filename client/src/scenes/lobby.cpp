@@ -357,7 +357,6 @@ void scenes::lobby::render()
 void scenes::lobby::render_view(XrViewStateFlags flags, XrTime display_time, XrView & view, int swapchain_index, int image_index)
 {
 	xr::swapchain & swapchain = swapchains[swapchain_index];
-	xr::swapchain::image & swapchain_image = swapchain.images()[image_index];
 	image_data & data = images_data[swapchain_index][image_index];
 
 	VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};

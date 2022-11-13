@@ -1,12 +1,27 @@
-// Copyright 2022, Guillaume Meunier
-// Copyright 2022, Patrick Nicolas
-// SPDX-License-Identifier: BSL-1.0
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include "yuv_converter.h"
 #include <iterator>
+#include <map>
 #include <memory>
 #include <stdexcept>
-#include <map>
 #include <string>
 #include <vector>
 
@@ -15,37 +30,35 @@ extern const std::map<std::string, std::vector<uint32_t>> shaders;
 static const VkFormat y_format = VK_FORMAT_R8_UNORM;
 static const VkFormat uv_format = VK_FORMAT_R8G8_UNORM;
 
-static int
-bytes_per_pixel(VkFormat format)
+static int bytes_per_pixel(VkFormat format)
 {
-	switch (format) {
-	case VK_FORMAT_R8_SRGB:
-	case VK_FORMAT_R8_UNORM: return 1;
-	case VK_FORMAT_R8G8_UNORM: return 2;
-	default: assert(false); return 0;
+	switch (format)
+	{
+		case VK_FORMAT_R8_SRGB:
+		case VK_FORMAT_R8_UNORM:
+			return 1;
+		case VK_FORMAT_R8G8_UNORM:
+			return 2;
+		default:
+			assert(false);
+			return 0;
 	}
 }
 
-static VkResult
-create_image(vk_bundle &vk, VkExtent2D extent, VkFormat format, YuvConverter::image_bundle &bundle)
+static VkResult create_image(vk_bundle & vk, VkExtent2D extent, VkFormat format, YuvConverter::image_bundle & bundle)
 {
-	VkResult res = vk_create_image_simple(&vk, extent, format,
-	                                      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-	                                      &bundle.image_memory, &bundle.image);
+	VkResult res = vk_create_image_simple(&vk, extent, format, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &bundle.image_memory, &bundle.image);
 	vk_check_error("vk_create_image_simple", res, res);
 
 	bundle.stride = extent.width * bytes_per_pixel(format);
 
-	if (!vk_buffer_init(&vk, extent.height * bundle.stride, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-	                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-	                        VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-	                    &bundle.buffer, &bundle.buffer_memory)) {
+	if (!vk_buffer_init(&vk, extent.height * bundle.stride, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, &bundle.buffer, &bundle.buffer_memory))
+	{
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
 
 	res = vk.vkMapMemory(vk.device, bundle.buffer_memory, 0, VK_WHOLE_SIZE, 0, &bundle.mapped_memory);
 	vk_check_error("vkMapMemory", res, res);
-
 
 	VkImageSubresourceRange subresource_range{};
 	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -59,8 +72,7 @@ create_image(vk_bundle &vk, VkExtent2D extent, VkFormat format, YuvConverter::im
 	return VK_SUCCESS;
 }
 
-static VkResult
-shader_load(struct vk_bundle *vk, const std::vector<uint32_t> &code, VkShaderModule *out_module)
+static VkResult shader_load(struct vk_bundle * vk, const std::vector<uint32_t> & code, VkShaderModule * out_module)
 {
 	VkResult ret;
 
@@ -74,7 +86,8 @@ shader_load(struct vk_bundle *vk, const std::vector<uint32_t> &code, VkShaderMod
 	                               &info,      //
 	                               NULL,       //
 	                               &module);   //
-	if (ret != VK_SUCCESS) {
+	if (ret != VK_SUCCESS)
+	{
 		VK_ERROR(vk, "vkCreateShaderModule failed: %s", vk_result_string(ret));
 		return ret;
 	}
@@ -84,14 +97,13 @@ shader_load(struct vk_bundle *vk, const std::vector<uint32_t> &code, VkShaderMod
 	return VK_SUCCESS;
 }
 
-
-static void
-destroy_all(YuvConverter *ptr)
+static void destroy_all(YuvConverter * ptr)
 {
-	auto &vk = ptr->vk;
+	auto & vk = ptr->vk;
 	vk.vkDestroyDescriptorPool(vk.device, ptr->descriptor_pool, nullptr);
 	vk.vkDestroyDescriptorSetLayout(vk.device, ptr->descriptor_set_layout, nullptr);
-	for (auto &comp : {ptr->y, ptr->uv}) {
+	for (auto & comp: {ptr->y, ptr->uv})
+	{
 		vk.vkDestroyPipeline(vk.device, comp.pipeline, nullptr);
 		vk.vkDestroyFramebuffer(vk.device, comp.frame_buffer, nullptr);
 		vk.vkDestroyRenderPass(vk.device, comp.render_pass, nullptr);
@@ -109,15 +121,15 @@ destroy_all(YuvConverter *ptr)
 	vk.vkDestroyShaderModule(vk.device, ptr->vert, nullptr);
 }
 
-#define vk_check_throw(fun, res)                                                                                       \
-	do {                                                                                                           \
-		if (vk_has_error(res, fun, __FILE__, __LINE__))                                                        \
-			throw std::runtime_error(fun "failed");                                                        \
+#define vk_check_throw(fun, res)                                \
+	do                                                      \
+	{                                                       \
+		if (vk_has_error(res, fun, __FILE__, __LINE__)) \
+			throw std::runtime_error(fun "failed"); \
 	} while (0)
 
-YuvConverter::YuvConverter(
-    vk_bundle *vk, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height)
-    : vk(*vk)
+YuvConverter::YuvConverter(vk_bundle * vk, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height) :
+        vk(*vk)
 {
 	std::unique_ptr<YuvConverter, decltype(&destroy_all)> deleter(this, destroy_all);
 
@@ -161,13 +173,14 @@ YuvConverter::YuvConverter(
 	res = shader_load(vk, shaders.at("yuv_converter.y.frag"), &y.frag);
 	vk_check_throw("shader_load", res);
 	res =
-	    shader_load(vk, shaders.at("yuv_converter.uv.frag"), &uv.frag);
+	        shader_load(vk, shaders.at("yuv_converter.uv.frag"), &uv.frag);
 	vk_check_throw("shader_load", res);
 
-	for (int i = 0; i < 2; ++i) {
+	for (int i = 0; i < 2; ++i)
+	{
 		VkAttachmentDescription colorAttachment{};
 		VkAttachmentReference colorAttachmentRef{};
-		auto &comp = (i == 0) ? y : uv;
+		auto & comp = (i == 0) ? y : uv;
 		double scale = (i == 0) ? 1.0 : 0.5;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -285,8 +298,7 @@ YuvConverter::YuvConverter(
 		pipelineInfo.renderPass = comp.render_pass;
 		pipelineInfo.subpass = 0;
 
-		res = vk->vkCreateGraphicsPipelines(vk->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-		                                    &comp.pipeline);
+		res = vk->vkCreateGraphicsPipelines(vk->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &comp.pipeline);
 		vk_check_throw("vkCreateGraphicsPipelines", res);
 	}
 
@@ -306,8 +318,7 @@ YuvConverter::~YuvConverter()
 	destroy_all(this);
 }
 
-void
-YuvConverter::SetImages(int num_images, VkImage *images, VkImageView *views)
+void YuvConverter::SetImages(int num_images, VkImage * images, VkImageView * views)
 {
 	// os_mutex_lock(&vk.cmd_pool_mutex);
 	assert(command_buffers.empty());
@@ -324,9 +335,10 @@ YuvConverter::SetImages(int num_images, VkImage *images, VkImageView *views)
 	poolInfo.maxSets = num_images;
 	VkResult res = vk.vkCreateDescriptorPool(vk.device, &poolInfo, nullptr, &descriptor_pool);
 	vk_check_throw("vkCreateDescriptorPool", res);
-	for (int i = 0; i < num_images; ++i) {
-		const auto &view = views[i];
-		auto &descriptor_set = descriptor_sets[i];
+	for (int i = 0; i < num_images; ++i)
+	{
+		const auto & view = views[i];
+		auto & descriptor_set = descriptor_sets[i];
 
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -356,7 +368,8 @@ YuvConverter::SetImages(int num_images, VkImage *images, VkImageView *views)
 		res = vk_cmd_buffer_create_and_begin(&vk, &cmdBuffer);
 		vk_check_throw("vk_cmd_buffer_create_and_begin", res);
 
-		for (auto &comp : {y, uv}) {
+		for (auto & comp: {y, uv})
+		{
 			VkRenderPassBeginInfo render_pass_info{};
 			render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			render_pass_info.renderPass = comp.render_pass;
@@ -365,12 +378,12 @@ YuvConverter::SetImages(int num_images, VkImage *images, VkImageView *views)
 
 			vk.vkCmdBeginRenderPass(cmdBuffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 			vk.vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, comp.pipeline);
-			vk.vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1,
-			                           &descriptor_set, 0, nullptr);
+			vk.vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
 			vk.vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 			vk.vkCmdEndRenderPass(cmdBuffer);
 
-			if (comp.buffer != VK_NULL_HANDLE) {
+			if (comp.buffer != VK_NULL_HANDLE)
+			{
 				VkBufferImageCopy copy{};
 				copy.bufferOffset = 0;
 				copy.bufferRowLength = 0;
@@ -382,8 +395,7 @@ YuvConverter::SetImages(int num_images, VkImage *images, VkImageView *views)
 				copy.imageOffset = {0, 0, 0};
 				copy.imageExtent = {comp.extent.width, comp.extent.height, 1};
 				// TODO synchronisation?
-				vk.vkCmdCopyImageToBuffer(cmdBuffer, comp.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				                          comp.buffer, 1, &copy);
+				vk.vkCmdCopyImageToBuffer(cmdBuffer, comp.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, comp.buffer, 1, &copy);
 			}
 		}
 
