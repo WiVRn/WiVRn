@@ -78,7 +78,7 @@ static VkResult shader_load(struct vk_bundle * vk, const std::vector<uint32_t> &
 
 	VkShaderModuleCreateInfo info{};
 	info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	info.codeSize = code.size();
+	info.codeSize = code.size() * sizeof(uint32_t);
 	info.pCode = code.data();
 
 	VkShaderModule module;

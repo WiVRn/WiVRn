@@ -44,7 +44,7 @@ xrt_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::dri
 	try
 	{
 		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp), address.sin6_addr));
-		control = self->connection.poll_control(-1);
+		while (not (control = self->connection.poll_control(-1))) {}
 	}
 	catch (std::exception & e)
 	{
@@ -52,17 +52,10 @@ xrt_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::dri
 		return nullptr;
 	}
 
-	if (control)
-	{
-		const auto & info = std::get<from_headset::headset_info_packet>(*control);
-		self->hmd = std::make_unique<wivrn_hmd>(self, info);
-		self->left_hand = std::make_unique<wivrn_controller>(0, self->hmd.get(), self);
-		self->right_hand = std::make_unique<wivrn_controller>(1, self->hmd.get(), self);
-	}
-	else
-	{
-		throw std::runtime_error("no packet received from headset, failed to initialise");
-	}
+	const auto & info = std::get<from_headset::headset_info_packet>(*control);
+	self->hmd = std::make_unique<wivrn_hmd>(self, info);
+	self->left_hand = std::make_unique<wivrn_controller>(0, self->hmd.get(), self);
+	self->right_hand = std::make_unique<wivrn_controller>(1, self->hmd.get(), self);
 
 	xrt_system_devices * devices = new xrt_system_devices{};
 
