@@ -34,9 +34,9 @@ set(XRT_HAVE_SDL2                    OFF)
 set(BUILD_DOC                        OFF)
 set(BUILD_TESTING                    OFF)
 
-# TODO: monado overwrites values
-set(XRT_IPC_MSG_SOCK_FILENAME "wivrn_comp_ipc")
-set(RUNTIME_BARE_SUFFIX "wivrn")
+set(XRT_IPC_MSG_SOCK_FILENAME "wivrn_comp_ipc" CACHE STRING "Service socket filename")
+set(XRT_PID_FILE_NAME         "wivrn.pid"      CACHE STRING "Service pidfile filename")
+set(XRT_RUNTIME_SUFFIX        "wivrn"          CACHE STRING "OpenXR client library suffix")
 
 FetchContent_GetProperties(monado)
 if(NOT monado_POPULATED)
