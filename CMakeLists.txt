@@ -7,6 +7,8 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
     cmake_policy(SET CMP0135 NEW)
 endif()
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include(FetchContent)
 include(ExternalProject)
 
@@ -14,6 +16,16 @@ option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" ON)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
+
+option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
+
+if(ENABLE_COLOURED_OUTPUT)
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+		add_compile_options(-fdiagnostics-color=always)
+	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		add_compile_options(-fcolor-diagnostics)
+	endif()
+endif()
 
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
