@@ -73,10 +73,16 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build with Gradle
-      run: ./gradlew build
+      run: |
+        ./gradlew build
+        mkdir apk
+        mv build/outputs/apk/oculusNovalidationlayer/release/WiVRn-oculus-novalidationlayer-release.apk apk/WiVRn-oculus.apk
+        mv build/outputs/apk/oculusNovalidationlayer/debug/WiVRn-oculus-novalidationlayer-debug.apk     apk/WiVRn-oculus-debug.apk
+        mv build/outputs/apk/oculusValidationlayer/release/WiVRn-oculus-validationlayer-release.apk     apk/WiVRn-oculus-validationlayer.apk
+        mv build/outputs/apk/oculusValidationlayer/debug/WiVRn-oculus-validationlayer-debug.apk         apk/WiVRn-oculus-validationlayer-debug.apk
 
     - name: Archive artifacts
       uses: actions/upload-artifact@v3
       with:
         name: APK
-        path: build/outputs/apk/**/*.apk
+        path: apk/*.apk
