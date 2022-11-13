@@ -56,6 +56,10 @@ if (WIVRN_BUILD_SERVER)
     find_package(Eigen3 REQUIRED)
 endif()
 
+if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
+    pkg_check_modules(LIBAV IMPORTED_TARGET libavcodec libavutil libswscale libavfilter)
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 if(ANDROID)
