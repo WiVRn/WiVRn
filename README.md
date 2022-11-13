@@ -40,4 +40,16 @@ Now on your computer you can run an OpenXR application, and it will show on your
 * Application launcher
 * Support more headsets
 
+# Credits
+WiVRn uses the following software:
+- [Monado](https://monado.freedesktop.org/)
+- [glm](http://glm.g-truc.net/)
+- [Boost.PFR](https://github.com/boostorg/pfr)
+- [spdlog](https://github.com/gabime/spdlog)
+- [FreeType](https://freetype.org/)
+- [HarfBuzz](https://harfbuzz.github.io/)
+- [x264](https://www.videolan.org/developers/x264.html), [ffmpeg](https://ffmpeg.org/) and/or [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) depending on the compilation options
+- [Avahi](https://www.avahi.org/)
+- [sd-bus](https://www.freedesktop.org/software/systemd/man/sd-bus.html)
+
 ![GitLicense](https://gitlicense.com/badge/Meumeu/WiVRn) ![CI](https://github.com/Meumeu/WiVRn/workflows/Build/badge.svg)
