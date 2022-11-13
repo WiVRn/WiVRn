@@ -39,3 +39,5 @@ Now on your computer you can run an OpenXR application, and it will show on your
 * Latency improvement
 * Application launcher
 * Support more headsets
+
+![GitLicense](https://gitlicense.com/badge/Meumeu/WiVRn) ![CI](https://github.com/Meumeu/WiVRn/workflows/Build/badge.svg)
