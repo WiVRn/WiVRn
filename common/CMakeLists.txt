@@ -1,7 +1,7 @@
 
 FetchContent_MakeAvailable(boostpfr)
 
-if (GIT_VERSION)
+if (GIT_DESC)
     configure_file(version.cpp.in version.cpp)
 else ()
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/version.cpp

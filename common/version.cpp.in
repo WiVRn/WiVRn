@@ -19,4 +19,4 @@
 
 #include "version.h"
 
-const char git_version[] = "@GIT_VERSION@";
+const char git_version[] = "@GIT_DESC@";
