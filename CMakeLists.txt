@@ -85,5 +85,6 @@ if (WIVRN_BUILD_CLIENT)
 endif()
 
 if (WIVRN_BUILD_SERVER)
+    find_package(nlohmann_json REQUIRED)
     add_subdirectory(server)
 endif()

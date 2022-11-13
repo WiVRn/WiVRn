@@ -18,10 +18,12 @@
  */
 
 #include "encoder_settings.h"
-#include "util/u_config_json.h"
 #include "video_encoder.h"
 #include "vk/vk_helpers.h"
 
+#define JSON_DISABLE_ENUM_SERIALIZATION 1
+#define JSON_DIAGNOSTICS 1
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vulkan/vulkan.h>
 
@@ -81,110 +83,94 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	return {settings};
 }
 
+static std::filesystem::path get_config_base_dir()
+{
+	const char * xdg_config_home = std::getenv("XDG_CONFIG_HOME");
+	if (xdg_config_home)
+		return xdg_config_home;
+	const char * home = std::getenv("HOME");
+	if (home)
+		return std::filesystem::path(home) / ".config";
+	return ".";
+}
+
+static std::filesystem::path get_config_file()
+{
+	return get_config_base_dir() / "wivrn" / "config.json";
+}
+
+static nlohmann::json get_configuration()
+{
+	auto config_file_path = get_config_file();
+	if (std::filesystem::exists(config_file_path))
+	{
+		std::ifstream file(config_file_path);
+		return nlohmann::json::parse(file);
+	}
+	return nlohmann::json{};
+}
+
+namespace xrt::drivers::wivrn {
+
+NLOHMANN_JSON_SERIALIZE_ENUM(video_codec, {
+	{video_codec(-1), ""},
+	{h264, "h264"}, {h264, "avc"},
+	{h265, "h265"}, {h265, "hevc"},
+})
+}
+
 std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk_bundle * vk, uint16_t width, uint16_t height)
 {
-	u_config_json config_json{};
-	std::unique_ptr<u_config_json, void (*)(u_config_json *)> raii(&config_json, u_config_json_close);
-
-	u_config_json_open_or_create_main_file(&config_json);
-	if (!config_json.file_loaded)
+	try
 	{
-		U_LOG_D("no config file, using default");
-		return get_encoder_default_settings(vk, width, height);
-	}
-
-	const cJSON * config_wivrn = u_json_get(config_json.root, "config_wivrn");
-	if (config_wivrn == NULL)
-	{
-		U_LOG_D("no config_wivrn entry, using default");
-		return get_encoder_default_settings(vk, width, height);
-	}
-
-	const cJSON * config_encoder = u_json_get(config_wivrn, "encoders");
-	if (config_encoder == NULL)
-	{
-		U_LOG_D("no config_wivrn.encoders entry, using default");
-		return get_encoder_default_settings(vk, width, height);
-	}
-	std::vector<xrt::drivers::wivrn::encoder_settings> res;
-	int num_encoders = cJSON_GetArraySize(config_encoder);
-
-	int next_group = 0;
-
-	for (int i = 0; i < num_encoders; ++i)
-	{
-		cJSON * encoder = cJSON_GetArrayItem(config_encoder, i);
-		xrt::drivers::wivrn::encoder_settings settings{};
-
-		auto name = u_json_get(encoder, "encoder");
-		if (name && cJSON_IsString(name))
-			settings.encoder_name = name->valuestring;
-		else
+		const auto & config = get_configuration();
+		if (not config.contains("encoders"))
+			return get_encoder_default_settings(vk, width, height);
+		std::vector<xrt::drivers::wivrn::encoder_settings> res;
+		int next_group = 0;
+		for (const auto& encoder: config["encoders"])
 		{
-			U_LOG_E("missing \"encoder\" key in config_wivrn");
-			continue;
+			xrt::drivers::wivrn::encoder_settings settings{};
+			settings.encoder_name = encoder.at("encoder");
+			settings.width = width;
+			settings.height = height;
+			settings.bitrate = default_bitrate;
+			settings.codec = xrt::drivers::wivrn::h264;
+			settings.group = next_group;
+
+			if (encoder.contains("width"))
+				settings.width = std::ceil(encoder["width"].get<double>() * width);
+			if (encoder.contains("height"))
+				settings.height = std::ceil(encoder["height"].get<double>() * height);
+			if (encoder.contains("offset_x"))
+				settings.offset_x = std::ceil(encoder["offset_x"].get<double>() * width);
+			if (encoder.contains("offset_y"))
+				settings.offset_y = std::ceil(encoder["offset_y"].get<double>() * height);
+
+			if (encoder.contains("bitrate"))
+				settings.bitrate = encoder["bitrate"];
+
+			if (encoder.contains("group"))
+				settings.group = encoder["group"];
+
+			if (encoder.contains("codec"))
+				settings.codec = encoder["codec"];
+			if (settings.codec == video_codec(-1))
+				throw std::runtime_error("invalid codec value " + encoder["codec"].get<std::string>());
+
+			if (encoder.contains("options"))
+				settings.options = encoder["options"];
+
+			next_group = std::max(next_group, settings.group + 1);
+			res.push_back(settings);
 		}
-
-		settings.width = width;
-		settings.height = height;
-		settings.bitrate = default_bitrate;
-		settings.codec = xrt::drivers::wivrn::h264;
-		settings.group = next_group;
-
-		auto js_width = u_json_get(encoder, "width");
-		if (js_width && cJSON_IsNumber(js_width))
-			settings.width = std::ceil(js_width->valuedouble * width);
-
-		auto js_height = u_json_get(encoder, "height");
-		if (js_height && cJSON_IsNumber(js_height))
-			settings.height = std::ceil(js_height->valuedouble * height);
-
-		auto offset_x = u_json_get(encoder, "offset_x");
-		if (offset_x && cJSON_IsNumber(offset_x))
-			settings.offset_x = std::floor(offset_x->valuedouble * width);
-		auto offset_y = u_json_get(encoder, "offset_y");
-		if (offset_y && cJSON_IsNumber(offset_y))
-			settings.offset_y = std::floor(offset_y->valuedouble * height);
-
-		auto bitrate = u_json_get(encoder, "bitrate");
-		if (bitrate && cJSON_IsNumber(bitrate))
-			settings.bitrate = bitrate->valueint;
-
-		auto group = u_json_get(encoder, "group");
-		if (group && cJSON_IsNumber(group))
-			settings.group = group->valueint;
-
-		auto codec = u_json_get(encoder, "codec");
-		if (codec && cJSON_IsString(codec))
-		{
-			if (codec->valuestring == std::string("h264"))
-				settings.codec = xrt::drivers::wivrn::h264;
-			else if (codec->valuestring == std::string("h265"))
-				settings.codec = xrt::drivers::wivrn::h265;
-			else
-			{
-				U_LOG_E("invalid video codec %s", codec->valuestring);
-				continue;
-			}
-		}
-		auto options = u_json_get(encoder, "options");
-		if (options && cJSON_IsObject(options))
-		{
-			for (auto child = options->child; child; child = child->next)
-			{
-				if (cJSON_IsString(child))
-				{
-					settings.options[child->string] = child->valuestring;
-				}
-			}
-		}
-
-		next_group = std::max(next_group, settings.group + 1);
-
-		res.push_back(settings);
+		return res;
 	}
-
-	return res;
+	catch (const std::exception & e)
+	{
+		U_LOG_E("Failed to read encoder configuration: %s", e.what());
+	}
+	return get_encoder_default_settings(vk, width, height);
 }
 
 VkImageTiling xrt::drivers::wivrn::get_required_tiling(vk_bundle * vk,

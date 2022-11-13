@@ -114,6 +114,7 @@ target_link_libraries(
 		PkgConfig::AVAHI
 		Eigen3::Eigen
 		wivrn-common
+		nlohmann_json::nlohmann_json
 	)
 
 install(TARGETS wivrn-server)
