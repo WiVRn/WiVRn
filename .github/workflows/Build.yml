@@ -12,6 +12,7 @@ env:
 
 jobs:
   build-server:
+    name: Build the WiVRn server
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -33,17 +34,38 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-    #- name: Test
-    #  working-directory: ${{github.workspace}}/build
-    #  # Execute tests defined by the CMake configuration.
-    #  # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-    #  run: ctest -C ${{env.BUILD_TYPE}}
-
-  build-android:
+  build-test-client:
+    name: Build the WiVRn test client (for testing on PC)
     runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: >
+        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=/usr -DWIVRN_BUILD_SERVER=OFF -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+  build-android:
+    name: Build the WiVRn client for Oculus Quest
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Cache Oculus SDK
+      id: cache-oculus-sdk
+      uses: actions/cache@v3
+      with:
+        path: |
+          ovr_openxr_mobile_sdk_46.0.zip
+        key: oculus-sdk-46
+
     - name: set up JDK 11
       uses: actions/setup-java@v3
       with:
@@ -67,6 +89,7 @@ jobs:
         echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
 
     - name: Download Oculus SDK
+      if: steps.cache-oculus-sdk.outputs.cache-hit != 'true'
       run: sftp -i id_ed25519 -o StrictHostKeyChecking=no wivrn-bot@meumeu.org:data/ovr_openxr_mobile_sdk_46.0.zip .
 
     - name: Grant execute permission for gradlew
