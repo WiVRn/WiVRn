@@ -39,19 +39,44 @@ jobs:
     #  # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
     #  run: ctest -C ${{env.BUILD_TYPE}}
 
-  # build-android:
-  #   runs-on: ubuntu-latest
-  #
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - name: set up JDK 11
-  #     uses: actions/setup-java@v3
-  #     with:
-  #       java-version: '11'
-  #       distribution: 'temurin'
-  #       cache: gradle
-  #
-  #   - name: Grant execute permission for gradlew
-  #     run: chmod +x gradlew
-  #   - name: Build with Gradle
-  #     run: ./gradlew build
+  build-android:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Install dependencies
+      run: >
+        sudo apt-get update && sudo apt-get install glslang-tools
+
+    - name: Secrets
+      env:
+        WIVRNBOTKEY: ${{ secrets.WIVRNBOTKEY }}
+        APK_SIGNINGKEYPASSWORD: ${{ secrets.APK_SIGNINGKEYPASSWORD }}
+        APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+      run: |
+        echo "$WIVRNBOTKEY" > id_ed25519
+        chmod 600 id_ed25519
+        echo signingKeyPassword="$APK_SIGNINGKEYPASSWORD" > gradle.properties
+        echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
+
+    - name: Download Oculus SDK
+      run: sftp -i id_ed25519 -o StrictHostKeyChecking=no wivrn-bot@meumeu.org:data/ovr_openxr_mobile_sdk_46.0.zip .
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew build
+
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: APK
+        path: build/outputs/apk/**/*.apk
