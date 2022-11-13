@@ -23,10 +23,10 @@ if(ANDROID)
         set(OCULUS_SDK_PATH ${CMAKE_CURRENT_BINARY_DIR}/OculusSDK)
 
         if(NOT EXISTS ${OCULUS_SDK_PATH})
-            file(GLOB OCULUS_SDK_ZIP ${CMAKE_SOURCE_DIR}/ovr_sdk_mobile_*.zip)
+            file(GLOB OCULUS_SDK_ZIP ${CMAKE_SOURCE_DIR}/ovr_openxr_mobile_sdk_*.zip)
 
             if("${OCULUS_SDK_ZIP}" STREQUAL "")
-                message(FATAL_ERROR "Download the Oculus SDK from https://developer.oculus.com/downloads/package/oculus-mobile-sdk/ in ${CMAKE_SOURCE_DIR}/ovr_sdk_mobile_*.zip")
+                message(FATAL_ERROR "Download the Oculus SDK from https://developer.oculus.com/downloads/package/oculus-openxr-mobile-sdk in ${CMAKE_SOURCE_DIR}/ovr_openxr_mobile_sdk_*.zip")
             endif()
 
             file(ARCHIVE_EXTRACT INPUT ${OCULUS_SDK_ZIP} DESTINATION ${OCULUS_SDK_PATH})
