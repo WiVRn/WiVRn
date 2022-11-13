@@ -34,15 +34,23 @@ set(XRT_HAVE_SDL2                    OFF)
 set(BUILD_DOC                        OFF)
 set(BUILD_TESTING                    OFF)
 
+# TODO: monado overwrites values
 set(XRT_IPC_MSG_SOCK_FILENAME "wivrn_comp_ipc")
+set(RUNTIME_BARE_SUFFIX "wivrn")
 
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/xytovl/monado
     GIT_TAG          9044e870696f39ace2293488ad5e663f366031a6
     )
 
-FetchContent_MakeAvailable(monado)
 FetchContent_GetProperties(monado)
+if(NOT monado_POPULATED)
+  # Fetch the content using previously declared details
+  FetchContent_Populate(monado)
+
+  # Bring the populated content into the build
+  add_subdirectory(${monado_SOURCE_DIR} ${monado_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 
 add_executable(monado-wivrn
@@ -112,3 +120,17 @@ target_link_libraries(
 		Eigen3::Eigen
 		wivrn-common
 	)
+
+install(TARGETS monado-wivrn)
+
+set_target_properties(${RUNTIME_TARGET} PROPERTIES EXCLUDE_FROM_ALL FALSE)
+install (SCRIPT
+	${monado_BINARY_DIR}/src/xrt/targets/openxr/active_runtime.cmake)
+generate_openxr_runtime_manifest_at_install(
+	RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${CMAKE_INSTALL_LIBDIR}
+	RUNTIME_TARGET ${RUNTIME_TARGET}
+	DESTINATION share/openxr/1
+	RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}
+	)
+install(TARGETS ${RUNTIME_TARGET}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime)
