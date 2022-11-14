@@ -20,7 +20,7 @@ if(ANDROID)
     target_link_libraries(wivrn ${ANDROID_LIBRARY} ${MEDIA_LIBRARY})
 
     if(OCULUS)
-        set(OCULUS_SDK_PATH ${CMAKE_CURRENT_BINARY_DIR}/OculusSDK)
+        set(OCULUS_SDK_PATH ${CMAKE_SOURCE_DIR}/external/oculus)
 
         if(NOT EXISTS ${OCULUS_SDK_PATH})
             file(GLOB OCULUS_SDK_ZIP ${CMAKE_SOURCE_DIR}/ovr_openxr_mobile_sdk_*.zip)
@@ -29,11 +29,17 @@ if(ANDROID)
                 message(FATAL_ERROR "Download the Oculus SDK from https://developer.oculus.com/downloads/package/oculus-openxr-mobile-sdk in ${CMAKE_SOURCE_DIR}/ovr_openxr_mobile_sdk_*.zip")
             endif()
 
-            file(ARCHIVE_EXTRACT INPUT ${OCULUS_SDK_ZIP} DESTINATION ${OCULUS_SDK_PATH})
+            file(ARCHIVE_EXTRACT
+                INPUT ${OCULUS_SDK_ZIP}
+                DESTINATION ${OCULUS_SDK_PATH}
+                PATTERNS 3rdParty/khronos/openxr/OpenXR-SDK/include/openxr OpenXR/Include OpenXR/Libs/Android
+                VERBOSE)
         endif()
 
         add_library(OpenXR SHARED IMPORTED)
-        target_include_directories(OpenXR INTERFACE ${OCULUS_SDK_PATH}/3rdParty/khronos/openxr/OpenXR-SDK/include)
+        target_include_directories(OpenXR INTERFACE
+            ${OCULUS_SDK_PATH}/3rdParty/khronos/openxr/OpenXR-SDK/include
+            ${OCULUS_SDK_PATH}/OpenXR/Include)
 
         if(CMAKE_BUILD_TYPE STREQUAL Debug)
             set_property(TARGET OpenXR
