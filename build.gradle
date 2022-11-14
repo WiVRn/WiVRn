@@ -58,9 +58,18 @@ android {
                 signingConfig signingConfigs.release
             }
         }
+
+        debugWithValidationLayer {
+            initWith debug
+            externalNativeBuild {
+                cmake {
+                    arguments '-DUSE_ANDROID_VALIDATION_LAYER=ON'
+                }
+            }
+        }
     }
 
-    flavorDimensions "device", "validation"
+    flavorDimensions "device"
 
     productFlavors {
         oculus {
@@ -71,20 +80,6 @@ android {
                     arguments '-DOCULUS=ON'
                 }
             }
-        }
-
-        validationlayer {
-            dimension "validation"
-            externalNativeBuild {
-                cmake {
-                    abiFilters 'arm64-v8a'
-                    arguments '-DUSE_ANDROID_VALIDATION_LAYER=ON'
-                }
-            }
-        }
-
-        novalidationlayer {
-            dimension "validation"
         }
     }
 
