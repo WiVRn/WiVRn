@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <openxr/openxr.h>
 
+#include "configuration.h"
 #include "wivrn_comp_target.h"
 
 /*
@@ -112,8 +113,10 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	inputs = &pose_input;
 	input_count = 1;
 
-	auto eye_width = info.recommended_eye_width;
-	auto eye_height = info.recommended_eye_height;
+	const auto config = configuration::read_user_configuration();
+
+	auto eye_width = info.recommended_eye_width * config.scale.value_or(1);
+	auto eye_height = info.recommended_eye_height * config.scale.value_or(1);
 	fps = info.preferred_refresh_rate;
 
 	// Setup info.
@@ -121,7 +124,7 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	hmd->blend_mode_count = 1;
 	hmd->distortion.models = XRT_DISTORTION_MODEL_NONE;
 	hmd->distortion.preferred = XRT_DISTORTION_MODEL_NONE;
-	hmd->screens[0].w_pixels = info.recommended_eye_width * 2;
+	hmd->screens[0].w_pixels = eye_width * 2;
 	hmd->screens[0].h_pixels = eye_height;
 	hmd->screens[0].nominal_frame_interval_ns = 1000000000 / fps;
 

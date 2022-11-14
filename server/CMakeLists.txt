@@ -54,6 +54,7 @@ add_executable(wivrn-server
 		hostname.cpp
 		avahi_publisher.cpp
 
+		driver/configuration.cpp
 		driver/encoder_settings.cpp
 		driver/wivrn_hmd.cpp
 		driver/wivrn_comp_target.cpp

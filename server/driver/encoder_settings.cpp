@@ -20,10 +20,8 @@
 #include "encoder_settings.h"
 #include "video_encoder.h"
 #include "vk/vk_helpers.h"
+#include "configuration.h"
 
-#define JSON_DISABLE_ENUM_SERIALIZATION 1
-#define JSON_DIAGNOSTICS 1
-#include <nlohmann/json.hpp>
 #include <string>
 #include <vulkan/vulkan.h>
 
@@ -83,83 +81,27 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	return {settings};
 }
 
-static std::filesystem::path get_config_base_dir()
-{
-	const char * xdg_config_home = std::getenv("XDG_CONFIG_HOME");
-	if (xdg_config_home)
-		return xdg_config_home;
-	const char * home = std::getenv("HOME");
-	if (home)
-		return std::filesystem::path(home) / ".config";
-	return ".";
-}
-
-static std::filesystem::path get_config_file()
-{
-	return get_config_base_dir() / "wivrn" / "config.json";
-}
-
-static nlohmann::json get_configuration()
-{
-	auto config_file_path = get_config_file();
-	if (std::filesystem::exists(config_file_path))
-	{
-		std::ifstream file(config_file_path);
-		return nlohmann::json::parse(file);
-	}
-	return nlohmann::json{};
-}
-
-namespace xrt::drivers::wivrn {
-
-NLOHMANN_JSON_SERIALIZE_ENUM(video_codec, {
-	{video_codec(-1), ""},
-	{h264, "h264"}, {h264, "avc"},
-	{h265, "h265"}, {h265, "hevc"},
-})
-}
-
 std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk_bundle * vk, uint16_t width, uint16_t height)
 {
 	try
 	{
-		const auto & config = get_configuration();
-		if (not config.contains("encoders"))
+		const auto & config = configuration::read_user_configuration();
+		if (config.encoders.empty())
 			return get_encoder_default_settings(vk, width, height);
 		std::vector<xrt::drivers::wivrn::encoder_settings> res;
 		int next_group = 0;
-		for (const auto& encoder: config["encoders"])
+		for (const auto& encoder: config.encoders)
 		{
 			xrt::drivers::wivrn::encoder_settings settings{};
-			settings.encoder_name = encoder.at("encoder");
-			settings.width = width;
-			settings.height = height;
-			settings.bitrate = default_bitrate;
-			settings.codec = xrt::drivers::wivrn::h264;
-			settings.group = next_group;
-
-			if (encoder.contains("width"))
-				settings.width = std::ceil(encoder["width"].get<double>() * width);
-			if (encoder.contains("height"))
-				settings.height = std::ceil(encoder["height"].get<double>() * height);
-			if (encoder.contains("offset_x"))
-				settings.offset_x = std::ceil(encoder["offset_x"].get<double>() * width);
-			if (encoder.contains("offset_y"))
-				settings.offset_y = std::ceil(encoder["offset_y"].get<double>() * height);
-
-			if (encoder.contains("bitrate"))
-				settings.bitrate = encoder["bitrate"];
-
-			if (encoder.contains("group"))
-				settings.group = encoder["group"];
-
-			if (encoder.contains("codec"))
-				settings.codec = encoder["codec"];
-			if (settings.codec == video_codec(-1))
-				throw std::runtime_error("invalid codec value " + encoder["codec"].get<std::string>());
-
-			if (encoder.contains("options"))
-				settings.options = encoder["options"];
+			settings.encoder_name = encoder.name;
+			settings.width = std::ceil(encoder.width.value_or(1) * width);
+			settings.height = std::ceil(encoder.height.value_or(1) * height);
+			settings.offset_x = std::ceil(encoder.offset_x.value_or(0) * width);
+			settings.offset_y = std::ceil(encoder.offset_y.value_or(0) * height);
+			settings.bitrate = encoder.bitrate.value_or(default_bitrate);
+			settings.codec = encoder.codec.value_or(xrt::drivers::wivrn::h264);
+			settings.group = encoder.group.value_or(next_group);
+			settings.options = encoder.options;
 
 			next_group = std::max(next_group, settings.group + 1);
 			res.push_back(settings);
