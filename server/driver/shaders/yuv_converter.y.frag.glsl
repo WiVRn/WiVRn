@@ -38,12 +38,7 @@ vec4 gamma4(vec4 x)
 	return vec4(gamma(x.r), gamma(x.g), gamma(x.b), gamma(x.a));
 }
 
-float reduce_range(float x)
-{
-	return (16 + x * 219) / 256;
-}
-
 void main() {
 	vec4 rgba = gamma4(texture(image, pos));
-	y = reduce_range(rgba.r * 0.2126 + rgba.g * 0.7152 + rgba.b *  0.0722);
+	y = rgba.r * 0.2126 + rgba.g * 0.7152 + rgba.b *  0.0722;
 }

@@ -63,7 +63,7 @@ struct wivrn::android::decoder::pipeline_context
 		vkDestroySamplerYcbcrConversion(device, ycbcr_conversion, nullptr);
 	}
 
-	pipeline_context(VkDevice device, VkAndroidHardwareBufferFormatPropertiesANDROID & ahb_format, VkRenderPass renderpass) :
+	pipeline_context(VkDevice device, VkAndroidHardwareBufferFormatPropertiesANDROID & ahb_format, VkRenderPass renderpass, const to_headset::video_stream_description::item& description) :
 	        device(device), ahb_format(ahb_format)
 	{
 		assert(ahb_format.externalFormat != 0);
@@ -102,6 +102,11 @@ struct wivrn::android::decoder::pipeline_context
 		        .yChromaOffset = ahb_format.suggestedYChromaOffset,
 		        .chromaFilter = yuv_filter,
 		};
+		// suggested values from decoder don't actually read the metadata, so it's garbage
+		if (description.range)
+			ycbcr_create_info.ycbcrRange = VkSamplerYcbcrRange(*description.range);
+		if (description.color_model)
+			ycbcr_create_info.ycbcrModel = VkSamplerYcbcrModelConversion(*description.color_model);
 
 		CHECK_VK(vkCreateSamplerYcbcrConversion(device, &ycbcr_create_info, nullptr, &ycbcr_conversion));
 
@@ -615,7 +620,7 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 	if (!pipeline || memcmp(&pipeline->ahb_format, &format_properties, sizeof(format_properties)))
 	{
 		pipeline.reset();
-		pipeline = std::make_shared<pipeline_context>(device, format_properties, renderpass);
+		pipeline = std::make_shared<pipeline_context>(device, format_properties, renderpass, description);
 		hardware_buffer_map.clear();
 	}
 

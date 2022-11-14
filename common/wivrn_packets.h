@@ -181,6 +181,8 @@ struct video_stream_description
 		uint16_t offset_x;
 		uint16_t offset_y;
 		video_codec codec;
+		std::optional<uint32_t> range; // VkSamplerYcbcrRange
+		std::optional<uint32_t> color_model; // VkSamplerYcbcrModelConversion
 	};
 	uint16_t width;
 	uint16_t height;

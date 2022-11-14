@@ -46,8 +46,25 @@ layout(location = 0) in vec2 inUV;
 
 layout(location = 0) out vec4 outColor;
 
+float sRGB_to_linear(float x)
+{
+    if (x <= 0.04045)
+        return x / 12.92;
+    return pow((x + 0.055) / 1.055, 2.4);
+}
+
+vec4 sRGB_to_linear_rgba(vec4 x)
+{
+	return vec4(
+		sRGB_to_linear(x.r),
+		sRGB_to_linear(x.g),
+		sRGB_to_linear(x.b),
+		x.a
+	);
+}
+
 void main()
 {
-	outColor = texture(texSampler, inUV);
+	outColor = sRGB_to_linear_rgba(texture(texSampler, inUV));
 }
 #endif
