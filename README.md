@@ -8,7 +8,7 @@ WiVRn lets you run OpenXR applications on a computer and display them on a stand
 From your checkout directory
 ```bash
 cmake -B build-server . -GNinja -DWIVRN_BUILD_CLIENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build -B build-server
+cmake --build build-server
 
 # Set WiVRn as the active OpenXR runtime, delete ~/.config/openxr/1/active_runtime.json after you are done using WiVRn
 mkdir -p ~/.config/openxr/1/
