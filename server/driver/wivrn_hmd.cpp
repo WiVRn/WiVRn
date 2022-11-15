@@ -88,7 +88,7 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 
 	base->hmd = &hmd_parts;
 	base->tracking_origin = &tracking_origin;
-	tracking_origin.type = XRT_TRACKING_TYPE_NONE;
+	tracking_origin.type = XRT_TRACKING_TYPE_OTHER;
 	tracking_origin.offset.orientation = xrt_quat{0, 0, 0, 1};
 	strcpy(tracking_origin.name, "No tracking");
 
