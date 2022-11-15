@@ -22,6 +22,8 @@
 #include "vk/vk_helpers.h"
 #include <cassert>
 #include <chrono>
+#include <filesystem>
+#include <optional>
 #include <stdexcept>
 
 extern "C"
@@ -76,7 +78,7 @@ void set_hwframe_ctx(AVCodecContext * ctx, AVBufferRef * hw_device_ctx)
 		err = AVERROR(ENOMEM);
 }
 
-std::string
+std::optional<std::filesystem::path>
 get_render_device(vk_bundle * vk)
 {
 	VkPhysicalDeviceDrmPropertiesEXT drmProps{};
@@ -93,7 +95,13 @@ get_render_device(vk_bundle * vk)
 		U_LOG_E("Failed to find render DRM device");
 		throw std::runtime_error("Failed to find render DRM device");
 	}
-	return "/dev/dri/renderD" + std::to_string(drmProps.renderMinor);
+	std::filesystem::path path = "/dev/dri/renderD" + std::to_string(drmProps.renderMinor);
+	if (not std::filesystem::exists(path))
+	{
+		U_LOG_W("DRI device %s does not exist, reverting to default", path.c_str());
+		return std::nullopt;
+	}
+	return path;
 }
 
 } // namespace
@@ -114,11 +122,12 @@ VideoEncoderVA::VideoEncoderVA(vk_bundle * vk, const encoder_settings & settings
 	 */
 
 	AVBufferRef * tmp;
-	const std::string device = get_render_device(vk);
-	int err = av_hwdevice_ctx_create(&tmp, AV_HWDEVICE_TYPE_VAAPI, device.c_str(), NULL, 0);
+	const auto device = get_render_device(vk);
+	int err = av_hwdevice_ctx_create(&tmp, AV_HWDEVICE_TYPE_VAAPI, device ? device->c_str() : NULL, NULL, 0);
 	if (err < 0)
 	{
-		throw std::system_error(err, av_error_category(), "Failed create a VAAPI device");
+		throw std::system_error(err, av_error_category(), "Failed create VAAPI device" +
+				(device ? (" " + device->string()) : std::string()));
 	}
 	hw_ctx_vaapi.reset(tmp);
 
