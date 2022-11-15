@@ -92,6 +92,7 @@ public:
 
 private:
 	xrt::drivers::wivrn::to_headset::video_stream_description::item description;
+	float fps;
 
 	VkDevice device;
 
@@ -128,7 +129,13 @@ private:
 	std::shared_ptr<mapped_hardware_buffer> map_hardware_buffer(AImage *);
 
 public:
-	decoder(VkDevice device, VkPhysicalDevice physical_device, const xrt::drivers::wivrn::to_headset::video_stream_description::item & description, std::weak_ptr<scenes::stream> scene, shard_accumulator * accumulator);
+	decoder(
+	        VkDevice device,
+	        VkPhysicalDevice physical_device,
+	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+		float fps,
+	        std::weak_ptr<scenes::stream> scene,
+	        shard_accumulator * accumulator);
 
 	decoder(const decoder &) = delete;
 	decoder(decoder &&) = delete;

@@ -82,9 +82,10 @@ public:
 	        VkDevice device,
 	        VkPhysicalDevice physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+		float fps,
 	        std::weak_ptr<scenes::stream> scene,
 	        uint8_t stream_index) :
-	        decoder(std::make_shared<decoder_impl>(device, physical_device, description, scene, this)),
+	        decoder(std::make_shared<decoder_impl>(device, physical_device, description, fps, scene, this)),
 	        current(stream_index),
 	        next(stream_index),
 	        weak_scene(scene)

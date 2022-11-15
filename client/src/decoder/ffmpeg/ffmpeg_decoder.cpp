@@ -68,7 +68,13 @@ decoder::blit_handle::~blit_handle()
 	self->free_images.push_back(image_index);
 }
 
-decoder::decoder(VkDevice device, VkPhysicalDevice physical_device, const xrt::drivers::wivrn::to_headset::video_stream_description::item & description, std::weak_ptr<scenes::stream> scene, shard_accumulator * accumulator) :
+decoder::decoder(
+        VkDevice device,
+        VkPhysicalDevice physical_device,
+        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+        float fps,
+        std::weak_ptr<scenes::stream> scene,
+        shard_accumulator * accumulator) :
         device(device), description(description), codec(nullptr, free_codec_context), sws(nullptr, sws_freeContext), weak_scene(scene), accumulator(accumulator)
 {
 	free_images.resize(image_count);

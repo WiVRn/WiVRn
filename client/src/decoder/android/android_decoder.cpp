@@ -388,8 +388,14 @@ void decoder::push_nals(std::span<uint8_t> data, int64_t timestamp, uint32_t fla
 	}
 }
 
-decoder::decoder(VkDevice device, VkPhysicalDevice physical_device, const xrt::drivers::wivrn::to_headset::video_stream_description::item & description, std::weak_ptr<scenes::stream> weak_scene, shard_accumulator * accumulator) :
-        description(description), device(device), weak_scene(weak_scene), accumulator(accumulator)
+decoder::decoder(
+        VkDevice device,
+        VkPhysicalDevice physical_device,
+        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+        float fps,
+        std::weak_ptr<scenes::stream> weak_scene,
+        shard_accumulator * accumulator) :
+        description(description), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
 {
 	AImageReader * ir;
 	check(AImageReader_newWithUsage(description.width, description.height, AIMAGE_FORMAT_PRIVATE, AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE, 5 /* maxImages */, &ir),
@@ -496,7 +502,7 @@ void decoder::push_data(std::span<uint8_t> data, uint64_t frame_index, bool part
 		// latency mode
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_WIDTH, description.width);
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, description.height);
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, 72);
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(fps));
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_PRIORITY, 0);
 		//  AMediaFormat_setBuffer(format.get(), AMEDIAFORMAT_KEY_CSD_0, csd.data(), csd.size());
 

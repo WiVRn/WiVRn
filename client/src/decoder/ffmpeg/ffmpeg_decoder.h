@@ -84,7 +84,13 @@ private:
 	std::mutex mutex;
 
 public:
-	decoder(VkDevice device, VkPhysicalDevice physical_device, const xrt::drivers::wivrn::to_headset::video_stream_description::item & description, std::weak_ptr<scenes::stream> scene, shard_accumulator * accumulator);
+	decoder(
+	        VkDevice device,
+	        VkPhysicalDevice physical_device,
+	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+		float fps,
+	        std::weak_ptr<scenes::stream> scene,
+	        shard_accumulator * accumulator);
 
 	void push_data(std::span<uint8_t> data, uint64_t frame_index, bool partial);
 

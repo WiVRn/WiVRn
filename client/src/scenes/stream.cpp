@@ -507,7 +507,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		spdlog::info("Creating decoder size {}x{} offset {},{}", item.width, item.height, item.offset_x, item.offset_y);
 
 		accumulator_images dec;
-		dec.decoder = std::make_unique<shard_accumulator>(device, physical_device, item, shared_from_this(), stream_index);
+		dec.decoder = std::make_unique<shard_accumulator>(device, physical_device, item, description.fps, shared_from_this(), stream_index);
 		dec.decoder->set_blit_targets(blit_targets, VK_FORMAT_A8B8G8R8_SRGB_PACK32);
 
 		decoders.push_back(std::move(dec));
