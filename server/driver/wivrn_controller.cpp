@@ -80,6 +80,7 @@ static const wivrn_to_wivrn_controller_input left_hand_bindings[] = {
 	{WIVRN_CONTROLLER_X_TOUCH,          device_id::X_TOUCH, wivrn_input_type::BOOL},              // /user/hand/left/input/x/touch
 	{WIVRN_CONTROLLER_Y_CLICK,          device_id::Y_CLICK, wivrn_input_type::BOOL},              // /user/hand/left/input/y/click
 	{WIVRN_CONTROLLER_Y_TOUCH,          device_id::Y_TOUCH, wivrn_input_type::BOOL},              // /user/hand/left/input/y/touch
+	{WIVRN_CONTROLLER_MENU_CLICK,       device_id::MENU_CLICK, wivrn_input_type::BOOL},           // /user/hand/left/input/menu/click
 	{WIVRN_CONTROLLER_SQUEEZE_VALUE,    device_id::LEFT_SQUEEZE_VALUE, wivrn_input_type::FLOAT},  // /user/hand/left/input/squeeze/value
 	{WIVRN_CONTROLLER_TRIGGER_VALUE,    device_id::LEFT_TRIGGER_VALUE, wivrn_input_type::FLOAT},  // /user/hand/left/input/trigger/value
 	{WIVRN_CONTROLLER_TRIGGER_TOUCH,    device_id::LEFT_TRIGGER_TOUCH, wivrn_input_type::BOOL},   // /user/hand/left/input/trigger/touch
@@ -154,10 +155,21 @@ wivrn_controller::wivrn_controller(int hand_id,
 
 	SET_INPUT(AIM_POSE);
 	SET_INPUT(GRIP_POSE);
-	SET_INPUT(A_CLICK);
-	SET_INPUT(B_CLICK);
-	SET_INPUT(A_TOUCH);
-	SET_INPUT(B_TOUCH);
+	if (hand_id == 0)
+	{
+		SET_INPUT(X_CLICK);
+		SET_INPUT(Y_CLICK);
+		SET_INPUT(X_TOUCH);
+		SET_INPUT(Y_TOUCH);
+		SET_INPUT(MENU_CLICK);
+	}
+	else
+	{
+		SET_INPUT(A_CLICK);
+		SET_INPUT(B_CLICK);
+		SET_INPUT(A_TOUCH);
+		SET_INPUT(B_TOUCH);
+	}
 	SET_INPUT(SQUEEZE_VALUE);
 	SET_INPUT(TRIGGER_VALUE);
 	SET_INPUT(TRIGGER_TOUCH);
