@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [ "master" ]
+    tags: "*"
   pull_request:
     branches: [ "master" ]
 
@@ -100,3 +101,13 @@ jobs:
       with:
         name: APK
         path: apk/*.apk
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        tag_name: ${{ inputs.ref }}
+        generate_release_notes: true
+        draft: true
+        files: |
+          apk/WiVRn-oculus-release.apk
