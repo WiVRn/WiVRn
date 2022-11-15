@@ -86,4 +86,5 @@ else()
         ${CMAKE_BINARY_DIR}/harfbuzz-${HARFBUZZ_VERSION}/src)
 
     target_compile_definitions(FreetypeHarfbuzz PRIVATE -DFT2_BUILD_LIBRARY=1 -DHAVE_FREETYPE=1 -DHAVE_UNISTD_H=1 -DHAVE_FCNTL_H=1)
+    set_target_properties(FreetypeHarfbuzz PROPERTIES CXX_VISIBILITY_PRESET hidden C_VISIBILITY_PRESET hidden)
 endif()
