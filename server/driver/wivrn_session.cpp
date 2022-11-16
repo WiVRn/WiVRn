@@ -24,6 +24,8 @@
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
 
+#include <cmath>
+
 xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, in6_addr & address) :
         connection(std::move(tcp), address)
 {
@@ -108,10 +110,22 @@ void wivrn_session::operator()(from_headset::inputs && inputs)
 	right_hand->set_inputs(inputs);
 }
 
+template <typename Rep, typename Period>
+static auto lerp(std::chrono::duration<Rep, Period> a, std::chrono::duration<Rep, Period> b, double t)
+{
+	return std::chrono::duration<Rep, Period>(Rep(std::lerp(a.count(), b.count(), t)));
+}
+
 void wivrn_session::operator()(from_headset::timesync_response && timesync)
 {
 	std::lock_guard lock(mutex);
-	offset.epoch_offset = std::chrono::nanoseconds(timesync.response) - timesync.query;
+	auto now = std::chrono::nanoseconds(os_monotonic_get_ns());
+	auto new_offset = std::chrono::nanoseconds(timesync.response) - lerp(timesync.query, now, 0.5);
+	if (not offset.epoch_offset.count())
+		offset.epoch_offset = new_offset;
+	else
+		offset.epoch_offset = lerp(offset.epoch_offset, new_offset, 0.2);
+
 	offset_age = std::chrono::steady_clock::now();
 }
 
