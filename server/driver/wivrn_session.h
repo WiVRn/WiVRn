@@ -59,6 +59,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	clock_offset offset;
 	std::chrono::steady_clock::time_point offset_age{};
 
+	std::mutex csv_mutex;
 	std::ofstream feedback_csv;
 
 	wivrn_session(TCP && tcp, in6_addr & address);
@@ -87,6 +88,8 @@ public:
 	{
 		connection.send_control(packet);
 	}
+
+	void dump_time(const std::string& event, uint64_t frame, uint64_t time, uint8_t stream = -1);
 
 private:
 	static void run(std::weak_ptr<wivrn_session>);

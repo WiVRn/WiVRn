@@ -72,10 +72,11 @@ xrt_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::dri
 		// TODO
 	};
 
-#if 0
-	// For debugging purposes
-	self->feedback_csv.open("feedback.csv");
-#endif
+	auto dump_file = std::getenv("WIVRN_DUMP_TIMINGS");
+	if (dump_file)
+	{
+		self->feedback_csv.open(dump_file);
+	}
 
 	self->thread = std::thread(&wivrn_session::run, self);
 	return devices;
@@ -116,36 +117,27 @@ void wivrn_session::operator()(from_headset::timesync_response && timesync)
 
 void wivrn_session::operator()(from_headset::feedback && feedback)
 {
-	if (feedback_csv)
+
+	clock_offset o;
 	{
-		feedback_csv << feedback.frame_index << "," << feedback.received_first_packet << ","
-		             << feedback.received_last_packet << "," << feedback.reconstructed << ","
-		             << feedback.sent_to_decoder << "," << feedback.received_from_decoder << ","
-		             << feedback.blitted << "," << feedback.displayed << ",";
-
-		XrQuaternionf q;
-		XrVector3f x;
-
-		q = feedback.received_pose[0].orientation;
-		feedback_csv << q.x << "," << q.y << "," << q.z << "," << q.w << ",";
-		x = feedback.received_pose[0].position;
-		feedback_csv << x.x << "," << x.y << "," << x.z << ",";
-
-		q = feedback.received_pose[1].orientation;
-		feedback_csv << q.x << "," << q.y << "," << q.z << "," << q.w << ",";
-		x = feedback.received_pose[1].position;
-		feedback_csv << x.x << "," << x.y << "," << x.z << ",";
-
-		q = feedback.real_pose[0].orientation;
-		feedback_csv << q.x << "," << q.y << "," << q.z << "," << q.w << ",";
-		x = feedback.real_pose[0].position;
-		feedback_csv << x.x << "," << x.y << "," << x.z << ",";
-
-		q = feedback.real_pose[1].orientation;
-		feedback_csv << q.x << "," << q.y << "," << q.z << "," << q.w << ",";
-		x = feedback.real_pose[1].position;
-		feedback_csv << x.x << "," << x.y << "," << x.z << std::endl;
+		std::lock_guard lock(mutex);
+		o = offset;
 	}
+
+	if (feedback.received_first_packet)
+		dump_time("receive_start", feedback.frame_index, o.from_headset(feedback.received_first_packet), feedback.stream_index);
+	if (feedback.received_last_packet)
+		dump_time("receive_end", feedback.frame_index, o.from_headset(feedback.received_last_packet), feedback.stream_index);
+	if (feedback.reconstructed)
+		dump_time("reconstructed", feedback.frame_index, o.from_headset(feedback.reconstructed), feedback.stream_index);
+	if (feedback.sent_to_decoder)
+		dump_time("decode_start", feedback.frame_index, o.from_headset(feedback.sent_to_decoder), feedback.stream_index);
+	if (feedback.received_from_decoder)
+		dump_time("decode_end", feedback.frame_index, o.from_headset(feedback.received_from_decoder), feedback.stream_index);
+	if (feedback.blitted)
+		dump_time("blit", feedback.frame_index, o.from_headset(feedback.blitted), feedback.stream_index);
+	if (feedback.displayed)
+		dump_time("display", feedback.frame_index, o.from_headset(feedback.displayed), feedback.stream_index);
 }
 
 uint64_t clock_offset::from_headset(uint64_t ts) const
@@ -193,5 +185,14 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			}
 			return;
 		}
+	}
+}
+
+void wivrn_session::dump_time(const std::string &event, uint64_t frame, uint64_t time, uint8_t stream)
+{
+	if (feedback_csv)
+	{
+		std::lock_guard lock(csv_mutex);
+		feedback_csv << std::quoted(event) << "," << frame << "," << time << "," << (int)stream << std::endl;
 	}
 }

@@ -679,12 +679,15 @@ static void comp_wivrn_mark_timing_point(struct comp_target * ct,
 	switch (point)
 	{
 		case COMP_TARGET_TIMING_POINT_WAKE_UP:
+			cn->cnx->dump_time("wake_up", cn->frame_index + 1, when_ns);
 			u_pc_mark_point(cn->upc, U_TIMING_POINT_WAKE_UP, cn->current_frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_BEGIN:
+			cn->cnx->dump_time("begin", cn->frame_index + 1, when_ns);
 			u_pc_mark_point(cn->upc, U_TIMING_POINT_BEGIN, cn->current_frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_SUBMIT:
+			cn->cnx->dump_time("submit", cn->frame_index + 1, when_ns);
 			u_pc_mark_point(cn->upc, U_TIMING_POINT_SUBMIT, cn->current_frame_id, when_ns);
 			break;
 		default:

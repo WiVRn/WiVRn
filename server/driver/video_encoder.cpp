@@ -86,9 +86,11 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	this->cnx = &cnx;
 	this->frame_idx = frame_index;
 	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
+	cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx);
 
 	shards.clear();
 	Encode(index, idr, target_timestamp);
+	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx);
 	if (shards.empty())
 		return;
 	const size_t view_info_size = sizeof(to_headset::video_stream_data_shard::view_info_t);
@@ -154,6 +156,7 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	{
 		U_LOG_W("failed to setup reed_solomon encoder with %ld data shards", data_shards.size());
 	}
+	cnx.dump_time("rs_end", frame_index, os_monotonic_get_ns(), stream_idx);
 }
 
 void VideoEncoder::SendData(std::vector<uint8_t> && data)
@@ -185,6 +188,8 @@ void VideoEncoder::PushShard(std::vector<uint8_t> && payload, uint8_t flags)
 	if (not shards.empty())
 	{
 		cnx->send_stream(shards.back());
+	} else {
+		cnx->dump_time("send_start", frame_idx, os_monotonic_get_ns(), stream_idx);
 	}
 	to_headset::video_stream_data_shard shard;
 	shard.stream_item_idx = stream_idx;
