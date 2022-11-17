@@ -333,8 +333,8 @@ void stream_reprojection::reproject(VkCommandBuffer command_buffer, int source, 
 
 	// clang-format off
 	glm::mat4 hmd_proj{
-		{ 2*zn/(r-l),  0,            0,    0 },
-		{ 0,           2*zn/(b-t),   0,    0 },
+		{ 2/(r-l),     0,            0,    0 },
+		{ 0,           2/(b-t),      0,    0 },
 		{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
 		{ 0,           0,           -2*zn, 0 }
 	};
@@ -351,8 +351,8 @@ void stream_reprojection::reproject(VkCommandBuffer command_buffer, int source, 
 	b = tan(source_fov.angleDown);
 
 	glm::mat4 video_proj{
-		{ 2*zn/(r-l),  0,            0,    0 },
-		{ 0,           2*zn/(b-t),   0,    0 },
+		{ 2/(r-l),     0,            0,    0 },
+		{ 0,           2/(b-t),      0,    0 },
 		{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
 		{ 0,           0,           -2*zn, 0 }
 	};
