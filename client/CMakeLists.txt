@@ -58,7 +58,7 @@ if(ANDROID)
     target_link_options(wivrn PRIVATE -Wl,--undefined=ANativeActivity_onCreate)
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
-        "src/decoder/android/*.cpp")
+        "decoder/android/*.cpp")
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 else()
     add_executable(wivrn)
@@ -69,7 +69,7 @@ else()
 
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
-        "src/decoder/ffmpeg/*.cpp")
+        "decoder/ffmpeg/*.cpp")
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 endif()
 
@@ -78,20 +78,19 @@ target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
 set_target_properties(wivrn PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
-    "src/*.cpp"
-    "src/decoder/*.cpp"
-    "src/external/*.c"
-    "src/scenes/*.cpp"
-    "src/utils/*.cpp"
-    "src/vk/*.cpp"
-    "src/xr/*.cpp"
-    "src/render/*.cpp")
+    "*.cpp"
+    "decoder/*.cpp"
+    "scenes/*.cpp"
+    "utils/*.cpp"
+    "vk/*.cpp"
+    "xr/*.cpp"
+    "render/*.cpp")
 
-file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "src/*.glsl")
+file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz reed-solomon)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror
 
@@ -100,7 +99,7 @@ target_compile_options(wivrn PRIVATE -Wno-missing-field-initializers -Wno-unused
     $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-deprecated-volatile>
 )
 
-target_include_directories(wivrn PRIVATE src)
+target_include_directories(wivrn PRIVATE .)
 
 target_link_libraries(wivrn wivrn-common)
 

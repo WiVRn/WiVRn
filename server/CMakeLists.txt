@@ -65,7 +65,6 @@ add_executable(wivrn-server
 		driver/wivrn_session.cpp
 		driver/wivrn_connection.cpp
 		driver/xrt_cast.cpp
-		driver/external/rs.c
 		${WIVRN_SHADER_HEADERS}
 		driver/yuv_converter.cpp
 	)
@@ -116,6 +115,7 @@ target_link_libraries(
 		Eigen3::Eigen
 		wivrn-common
 		nlohmann_json::nlohmann_json
+		reed-solomon
 	)
 
 install(TARGETS wivrn-server)

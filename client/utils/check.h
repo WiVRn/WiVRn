@@ -24,13 +24,6 @@
 #include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
 
-#if __has_include(<vulkan/vk_enum_string_helper.h>)
-#include <vulkan/vk_enum_string_helper.h>
-#else
-#include "external/magic_enum.hpp"
-#define string_VkResult(x) std::string(magic_enum::enum_name((VkResult)(x)))
-#endif
-
 namespace xr
 {
 const std::error_category & error_category();

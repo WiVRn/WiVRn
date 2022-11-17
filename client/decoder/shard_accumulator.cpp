@@ -19,7 +19,7 @@
 
 #include "shard_accumulator.h"
 #include "application.h"
-#include "external/rs.h"
+#include "rs.h"
 #include "scenes/stream.h"
 #include "spdlog/spdlog.h"
 #include "utils/typename.h"

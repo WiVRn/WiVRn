@@ -18,7 +18,6 @@
  */
 
 #include "video_encoder_nvenc.h"
-#include "external/nvEncodeAPI.h"
 
 #include <stdexcept>
 

@@ -23,7 +23,7 @@
 
 #include "application.h"
 #include "decoder/shard_accumulator.h"
-#include "external/magic_enum.hpp"
+#include "magic_enum.hpp"
 #include "glm/fwd.hpp"
 #include "spdlog/spdlog.h"
 #include "utils/check.h"

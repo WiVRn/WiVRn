@@ -18,7 +18,7 @@
  */
 
 #include "application.h"
-#include "external/magic_enum.hpp"
+#include "magic_enum.hpp"
 #include "scene.h"
 #include "spdlog/common.h"
 #include "spdlog/spdlog.h"

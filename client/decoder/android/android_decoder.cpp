@@ -36,7 +36,7 @@
 #include <vulkan/vulkan_android.h>
 #include <vulkan/vulkan_core.h>
 
-#include "external/magic_enum.hpp"
+#include "magic_enum.hpp"
 
 DEUGLIFY(AMediaFormat)
 

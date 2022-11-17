@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "external/magic_enum.hpp"
+#include "magic_enum.hpp"
 #include "utils/check.h"
 #include "vk/buffer.h"
 #include "vk/buffer_view.h"
@@ -32,11 +32,8 @@
 #include <string>
 #include <vulkan/vulkan.h>
 
-#if __has_include(<vulkan/vk_enum_string_helper.h>)
-#include <vulkan/vk_enum_string_helper.h>
-#else
 #define string_VkFormat(x) std::string(magic_enum::enum_name((VkFormat)(x)))
-#endif
+#define string_VkResult(x) std::string(magic_enum::enum_name((VkResult)(x)))
 
 template <>
 struct magic_enum::customize::enum_range<VkFormat>

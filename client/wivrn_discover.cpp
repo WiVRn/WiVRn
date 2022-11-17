@@ -1,5 +1,5 @@
 #include "wivrn_discover.h"
-#include "external/mdns.h"
+#include "mdns.h"
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <net/if.h>

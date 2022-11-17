@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "external/nvEncodeAPI.h"
+#include "nvEncodeAPI.h"
 #include "video_encoder.h"
 #include <cuda.h>
 

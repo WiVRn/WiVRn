@@ -18,7 +18,7 @@
  */
 
 #include "video_encoder.h"
-#include "external/rs.h"
+#include "rs.h"
 #include "util/u_logging.h"
 
 #include <string>
