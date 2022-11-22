@@ -707,5 +707,7 @@ int reed_solomon_reconstruct(reed_solomon * rs, unsigned char ** shards, unsigne
 		fec_marks += ps;
 	}
 
+	free(dataDecodeMatrix);
+
 	return err;
 }
