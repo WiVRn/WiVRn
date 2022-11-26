@@ -117,7 +117,7 @@ private:
 	static void on_media_input_available(AMediaCodec *, void * userdata, int32_t index);
 	static void on_media_output_available(AMediaCodec *, void * userdata, int32_t index, AMediaCodecBufferInfo * bufferInfo);
 
-	void push_nals(std::span<uint8_t> data, int64_t timestamp, uint32_t flags);
+	void push_nals(std::span<std::span<const uint8_t>> data, int64_t timestamp, uint32_t flags);
 
 	std::vector<blit_target> blit_targets;
 
@@ -141,7 +141,7 @@ public:
 	decoder(decoder &&) = delete;
 	~decoder();
 
-	void push_data(std::span<uint8_t> data, uint64_t frame_index, bool partial);
+	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
 	void frame_completed(xrt::drivers::wivrn::from_headset::feedback &, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 

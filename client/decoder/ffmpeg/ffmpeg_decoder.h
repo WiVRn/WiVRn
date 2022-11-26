@@ -92,7 +92,7 @@ public:
 	        std::weak_ptr<scenes::stream> scene,
 	        shard_accumulator * accumulator);
 
-	void push_data(std::span<uint8_t> data, uint64_t frame_index, bool partial);
+	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
 	void frame_completed(const xrt::drivers::wivrn::from_headset::feedback &, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 

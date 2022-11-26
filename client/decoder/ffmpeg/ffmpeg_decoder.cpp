@@ -183,9 +183,10 @@ void decoder::blit(VkCommandBuffer command_buffer, blit_handle & handle, std::sp
 	}
 }
 
-void decoder::push_data(std::span<uint8_t> data, uint64_t frame_index, bool partial)
+void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
-	packet.insert(packet.end(), data.begin(), data.end());
+	for (const auto& d: data)
+		packet.insert(packet.end(), d.begin(), d.end());
 	this->frame_index = frame_index;
 }
 

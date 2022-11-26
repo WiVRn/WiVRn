@@ -312,24 +312,13 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 		return;
 
 	uint64_t frame_index = data_shards[0]->frame_idx;
-	if (data_shards.size() == 1)
-		decoder->push_data(data_shards[shard_idx]->payload, frame_index, false);
-	else
+	std::vector<std::span<const uint8_t>> payload;
+	payload.reserve(data_shards.size());
+	for (const auto & shard: data_shards)
 	{
-		// Slice is over multiple shards, concatenate them
-		std::vector<uint8_t> payload;
-		size_t size = 0;
-		for (const auto & shard: data_shards)
-		{
-			size += shard->payload.size();
-		}
-		payload.reserve(size);
-		for (const auto & shard: data_shards)
-		{
-			payload.insert(payload.end(), shard->payload.begin(), shard->payload.end());
-		}
-		decoder->push_data(payload, frame_index, false);
+		payload.emplace_back(shard->payload);
 	}
+	decoder->push_data(payload, frame_index, false);
 
 	auto feedback = current.feedback;
 	assert(data_shards.back()->view_info);

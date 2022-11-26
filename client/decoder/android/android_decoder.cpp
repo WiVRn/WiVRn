@@ -354,38 +354,42 @@ std::pair<std::vector<uint8_t>, std::vector<uint8_t>> filter_csd(std::span<uint8
 namespace wivrn::android
 {
 
-void decoder::push_nals(std::span<uint8_t> data, int64_t timestamp, uint32_t flags)
+void decoder::push_nals(std::span<std::span<const uint8_t>> data, int64_t timestamp, uint32_t flags)
 {
-	while (!data.empty())
+	auto t1 = application::now();
+	auto input_buffer = input_buffers.pop();
+	auto t2 = application::now();
+	assert(input_buffer >= 0);
+
+	if (t2 - t1 > 1'000'000)
+		spdlog::warn("input_buffers.pop() took {}µs", (t2 - t1) / 1000);
+
+	size_t size;
+	t1 = application::now();
+	uint8_t * buffer = AMediaCodec_getInputBuffer(media_codec.get(), input_buffer, &size);
+	t2 = application::now();
+	if (t2 - t1 > 1'000'000)
+		spdlog::warn("AMediaCodec_getInputBuffer() took {}µs", (t2 - t1) / 1000);
+	size_t data_size = 0;
+
+	for (const auto & sub_data: data)
 	{
-		auto t1 = application::now();
-		auto input_buffer = input_buffers.pop();
-		auto t2 = application::now();
-		assert(input_buffer >= 0);
+		if (sub_data.size() > size)
+		{
+			spdlog::error("data to decode is larger than decoder buffer, skipping frame");
+			return;
+		}
 
-		if (t2 - t1 > 1'000'000)
-			spdlog::warn("input_buffers.pop() took {}µs", (t2 - t1) / 1000);
-
-		size_t size;
-		t1 = application::now();
-		uint8_t * buffer = AMediaCodec_getInputBuffer(media_codec.get(), input_buffer, &size);
-		t2 = application::now();
-		if (t2 - t1 > 1'000'000)
-			spdlog::warn("AMediaCodec_getInputBuffer() took {}µs", (t2 - t1) / 1000);
-
-		size = std::min(data.size(), size);
-
-		memcpy(buffer, data.data(), size);
-
-		data = data.subspan(size);
-
-		t1 = application::now();
-		check(AMediaCodec_queueInputBuffer(media_codec.get(), input_buffer, 0 /* offset */, size, timestamp, flags),
-		      "AMediaCodec_queueInputBuffer");
-		t2 = application::now();
-		if (t2 - t1 > 1'000'000)
-			spdlog::warn("AMediaCodec_queueInputBuffer() took {}µs", (t2 - t1) / 1000);
+		memcpy(buffer + data_size, sub_data.data(), sub_data.size());
+		data_size += sub_data.size();
 	}
+
+	t1 = application::now();
+	check(AMediaCodec_queueInputBuffer(media_codec.get(), input_buffer, 0 /* offset */, data_size, timestamp, flags),
+	      "AMediaCodec_queueInputBuffer");
+	t2 = application::now();
+	if (t2 - t1 > 1'000'000)
+		spdlog::warn("AMediaCodec_queueInputBuffer() took {}µs", (t2 - t1) / 1000);
 }
 
 decoder::decoder(
@@ -484,12 +488,14 @@ void decoder::set_blit_targets(std::vector<decoder::blit_target> targets, VkForm
 	}
 }
 
-void decoder::push_data(std::span<uint8_t> data, uint64_t frame_index, bool partial)
+void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
-	auto [csd, not_csd] = filter_csd(data, description.codec);
-
 	if (!media_codec)
 	{
+		std::vector<uint8_t> contiguous_data;
+		for (const auto& d: data)
+			contiguous_data.insert(contiguous_data.end(), d.begin(), d.end());
+		auto [csd, not_csd] = filter_csd(contiguous_data, description.codec);
 		if (csd.empty())
 		{
 			// TODO request I frame
@@ -532,11 +538,8 @@ void decoder::push_data(std::span<uint8_t> data, uint64_t frame_index, bool part
 		check(AMediaCodec_start(media_codec.get()), "AMediaCodec_start");
 	}
 
-	if (!csd.empty())
-		push_nals(csd, 0, AMEDIACODEC_BUFFER_FLAG_CODEC_CONFIG);
-
 	uint64_t fake_timestamp_us = frame_index * 10'000;
-	push_nals(not_csd, fake_timestamp_us, partial ? AMEDIACODEC_BUFFER_FLAG_PARTIAL_FRAME : 0);
+	push_nals(data, fake_timestamp_us, partial ? AMEDIACODEC_BUFFER_FLAG_PARTIAL_FRAME : 0);
 }
 
 void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
