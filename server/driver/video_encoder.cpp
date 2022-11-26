@@ -196,7 +196,7 @@ void VideoEncoder::PushShard(std::vector<uint8_t> && payload, uint8_t flags)
 	shard.frame_idx = frame_idx;
 	shard.shard_idx = shards.size();
 	shard.flags = flags;
-	shard.payload = std::move(payload);
+	shard.set_payload(std::move(payload));
 	shards.emplace_back(std::move(shard));
 }
 

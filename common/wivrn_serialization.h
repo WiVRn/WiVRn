@@ -170,6 +170,17 @@ public:
 	{
 		return serialization_traits<T>::deserialize(*this);
 	}
+
+	template <typename T>
+	void deserialize(T& v)
+	{
+		v = deserialize<T>();
+	}
+
+	std::pair<size_t, std::vector<uint8_t>> steal_buffer()
+	{
+		return {read_index, std::move(buffer)};
+	}
 };
 
 template <typename T>
