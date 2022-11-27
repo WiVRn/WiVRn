@@ -326,23 +326,37 @@ struct serialization_traits<std::vector<T>>
 
 	static void serialize(const std::vector<T> & value, serialization_packet & packet)
 	{
-		packet.serialize<uint64_t>(value.size());
+		packet.serialize<uint16_t>(value.size());
 
-		for (const T & i: value)
-			packet.serialize<T>(i);
+		if constexpr (std::is_arithmetic_v<T>)
+		{
+			packet.write(value.data(), value.size() * sizeof(T));
+		}
+		else
+		{
+			for (const T & i: value)
+				packet.serialize<T>(i);
+		}
 	}
 
 	static std::vector<T> deserialize(deserialization_packet & packet)
 	{
 		std::vector<T> value;
-		size_t size = packet.deserialize<uint64_t>();
+		size_t size = packet.deserialize<uint16_t>();
 
-		packet.check_remaining_size(size);
-
-		value.reserve(size);
-		for (size_t i = 0; i < size; i++)
+		if constexpr (std::is_arithmetic_v<T>)
 		{
-			value.emplace_back(packet.deserialize<T>());
+			packet.check_remaining_size(size * sizeof(T));
+			value.resize(size);
+			packet.read(value.data(), size * sizeof(T));
+		}
+		else
+		{
+			value.reserve(size);
+			for (size_t i = 0; i < size; i++)
+			{
+				value.emplace_back(packet.deserialize<T>());
+			}
 		}
 
 		return value;
