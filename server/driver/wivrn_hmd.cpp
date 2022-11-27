@@ -35,6 +35,7 @@
 #include "util/u_time.h"
 #include "util/u_var.h"
 
+#include <algorithm>
 #include <stdio.h>
 #include <openxr/openxr.h>
 
@@ -80,6 +81,147 @@ static void wivrn_hmd_create_compositor_target(struct xrt_device * xdev,
                                                struct comp_compositor * comp,
                                                struct comp_target ** out_target);
 
+static double foveate(double a, double b, double scale, double c, double x)
+{
+	// In order to save encoding, transmit and decoding time, only a portion of the image is encoded in full resolution.
+	// on each axis, foveated coordinates are defined by the following formula.
+	return a * tan(scale / a * (x - c)) + b;
+	// a and b are defined such as:
+	// edges of the image are not moved
+	// f(-1) = -1
+	// f( 1) =  1
+	// the function also enforces pixel ratio 1:1 at fovea
+	// df(x)/dx = scale for x = c
+}
+
+static std::tuple<float, float> solve_foveation(float scale, float c)
+{
+	// Compute a and b for the foveation function such that:
+	//   foveate(a, b, scale, c, -1) = -1   (eq. 1)
+	//   foveate(a, b, scale, c,  1) =  1   (eq. 2)
+	//
+	// The first step is to solve for a by subtracting equation 1 and 2:
+	//   foveate(a, b, scale, c, 1) - foveate(a, b, scale, c, -1) = 2  (eq. 3)
+	//
+	// Where b is cancelled by the subtraction, so the equation to solve becomes:
+	// f(a) = 0 where:
+	auto f = [scale, c](double a) { return foveate(a, 0, scale, c, 1) - foveate(a, 0, scale, c, -1) - 2; };
+
+	// b is computed rewriting equation 2 as:
+	//   foveate(a, 0, scale, c,  1) + b = 1
+	// Therefore:
+	//   b = 1 - foveate(a, 0, scale, c,  1)
+	//
+	// Note that there are infinitely many solutions to equation 3, but we want
+	// to have a value of a such that:
+	//   ∀ x ∈ [-1, 1], abs(scale / a * (x - c)) < π / 2  (eq. 4)
+	// So that foveate(x) is defined over [-1, 1]
+	//
+	// Equation 4 can be rewritten as:
+	//   a > 2 * scale / π * abs(x - c)
+	//
+	// The minimum value of abs(x - c) for x ∈ [-1, 1] is 1 + abs(c)
+	// so a must be larger than a0 with:
+	double a0 = 2 * scale / M_PI * (1 + std::abs(c));
+
+	// f is monotonically decreasing over (a0, +∞) with:
+	//   lim   f(a) = +∞
+	//   a→a0+
+	//
+	//   lim   f(a) = 2 * scale - 2
+	//   a→∞
+	//
+	// Therefore there is one solution iff scale < 1
+	//
+	// a0 is the lowermost value for a, f(a0) is undefined and f(a0 + ε) > 0
+	// We want an upper bound a1 for a, f(a1) < 0:
+	//
+	// Find the value by computing f(a0*2^n) until negative
+	double a1 = a0 * 2;
+	while (f(a1) > 0)
+		a1 *= 2;
+
+	// Solve f(a) = 0
+
+	// last computed values for f(a0) and f(a1)
+	std::optional<double> f_a0;
+	double f_a1 = f(a1);
+
+	int n = 0;
+	double a;
+	while (std::abs(a1 - a0) > 0.0000001 && n++ < 100)
+	{
+		if (not f_a0)
+		{
+			// use binary search
+			a = 0.5 * (a0 + a1);
+			double val = f(a);
+			if (val > 0)
+			{
+				a0 = a;
+				f_a0 = val;
+			}
+			else
+			{
+				a1 = a;
+				f_a1 = val;
+			}
+		}
+		else
+		{
+			// f(a1) is always defined
+			// when f(a0) is defined, use secant method
+			a = a1 - f_a1 * (a1 - a0) / (f_a1 - *f_a0);
+			a0 = a1;
+			a1 = a;
+			f_a0 = f_a1;
+			f_a1 = f(a);
+		}
+	}
+
+	double b = 1 - foveate(a, 0, scale, c, 1);
+
+	return {a, b};
+}
+
+bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, int view_index, float u, float v, xrt_uv_triplet * result)
+{
+	// u,v are in the output coordinates (sent to the encoder)
+	// result is in the input coordinates (from the application)
+	const auto & param = ((wivrn_hmd *)xdev)->foveation_parameters[view_index];
+	xrt_vec2 out;
+
+	if (param.x.scale < 1)
+	{
+		u = 2 * u - 1;
+
+		out.x = param.x.a * tan(param.x.scale / param.x.a * (u - param.x.center)) + param.x.b;
+		out.x = std::clamp<float>((1 + out.x) / 2, 0, 1);
+	}
+	else
+	{
+		out.x = u;
+	}
+
+	if (param.y.scale < 1)
+	{
+		v = 2 * v - 1;
+
+		out.y = param.y.a * tan(param.y.scale / param.y.a * (v - param.y.center)) + param.y.b;
+		out.y = std::clamp<float>((1 + out.y) / 2, 0, 1);
+	}
+	else
+	{
+		out.y = v;
+	}
+
+	result->r = out;
+	result->g = out;
+	result->b = out;
+
+	return true;
+}
+
 wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
                      const from_headset::headset_info_packet & info) :
         xrt_device{}, cnx(cnx)
@@ -115,17 +257,20 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 
 	const auto config = configuration::read_user_configuration();
 
-	auto eye_width = info.recommended_eye_width * config.scale.value_or(1);
-	auto eye_height = info.recommended_eye_height * config.scale.value_or(1);
+	auto eye_width = info.recommended_eye_width;   // * config.scale.value_or(1);
+	auto eye_height = info.recommended_eye_height; // * config.scale.value_or(1);
+	auto scale = config.scale.value_or(std::array<double, 2>{1., 1.});
+	auto foveated_eye_width = info.recommended_eye_width * scale[0];
+	auto foveated_eye_height = info.recommended_eye_height * scale[1];
 	fps = info.preferred_refresh_rate;
 
 	// Setup info.
 	hmd->blend_modes[0] = XRT_BLEND_MODE_OPAQUE;
 	hmd->blend_mode_count = 1;
-	hmd->distortion.models = XRT_DISTORTION_MODEL_NONE;
-	hmd->distortion.preferred = XRT_DISTORTION_MODEL_NONE;
-	hmd->screens[0].w_pixels = eye_width * 2;
-	hmd->screens[0].h_pixels = eye_height;
+	hmd->distortion.models = XRT_DISTORTION_MODEL_COMPUTE;
+	hmd->distortion.preferred = XRT_DISTORTION_MODEL_COMPUTE;
+	hmd->screens[0].w_pixels = foveated_eye_width * 2;
+	hmd->screens[0].h_pixels = foveated_eye_height;
 	hmd->screens[0].nominal_frame_interval_ns = 1000000000 / fps;
 
 	// Left
@@ -133,17 +278,17 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	hmd->views[0].display.h_pixels = eye_height;
 	hmd->views[0].viewport.x_pixels = 0;
 	hmd->views[0].viewport.y_pixels = 0;
-	hmd->views[0].viewport.w_pixels = eye_width;
-	hmd->views[0].viewport.h_pixels = eye_height;
+	hmd->views[0].viewport.w_pixels = foveated_eye_width;
+	hmd->views[0].viewport.h_pixels = foveated_eye_height;
 	hmd->views[0].rot = u_device_rotation_ident;
 
 	// Right
 	hmd->views[1].display.w_pixels = eye_width;
 	hmd->views[1].display.h_pixels = eye_height;
-	hmd->views[1].viewport.x_pixels = eye_width;
+	hmd->views[1].viewport.x_pixels = foveated_eye_width;
 	hmd->views[1].viewport.y_pixels = 0;
-	hmd->views[1].viewport.w_pixels = eye_width;
-	hmd->views[1].viewport.h_pixels = eye_height;
+	hmd->views[1].viewport.w_pixels = foveated_eye_width;
+	hmd->views[1].viewport.h_pixels = foveated_eye_height;
 	hmd->views[1].rot = u_device_rotation_ident;
 
 	// Default FOV from Oculus Quest
@@ -157,8 +302,36 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	hmd->distortion.fov[1].angle_up = 47 * M_PI / 180;
 	hmd->distortion.fov[1].angle_down = -53 * M_PI / 180;
 
-	// Distortion information, fills in xdev->compute_distortion().
-	u_distortion_mesh_set_none(this);
+	for (int i = 0; i < 2; ++i)
+	{
+		foveation_parameters[i].x.scale = scale[0];
+		foveation_parameters[i].y.scale = scale[1];
+		const auto & view = hmd->views[i];
+		const auto & fov = hmd->distortion.fov[i];
+		float l = tan(fov.angle_left);
+		float r = tan(fov.angle_right);
+		float t = tan(fov.angle_up);
+		float b = tan(fov.angle_down);
+		if (scale[0] < 1)
+		{
+			float cu = (r + l) / (l - r);
+			foveation_parameters[i].x.center = cu;
+
+			std::tie(foveation_parameters[i].x.a, foveation_parameters[i].x.b) = solve_foveation(scale[0], cu);
+		}
+
+		if (scale[1] < 1)
+		{
+			float cv = (t + b) / (t - b);
+			foveation_parameters[i].y.center = cv;
+
+			std::tie(foveation_parameters[i].y.a, foveation_parameters[i].y.b) = solve_foveation(scale[1], cv);
+		}
+	}
+
+	// Distortion information
+	compute_distortion = wivrn_hmd_compute_distortion;
+	u_distortion_mesh_fill_in_compute(this);
 }
 
 void wivrn_hmd::update_inputs()

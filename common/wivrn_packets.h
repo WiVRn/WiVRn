@@ -190,9 +190,22 @@ struct video_stream_description
 		std::optional<uint32_t> range; // VkSamplerYcbcrRange
 		std::optional<uint32_t> color_model; // VkSamplerYcbcrModelConversion
 	};
+	struct foveation_parameter_item
+	{
+		double center;
+		double scale;
+		double a;
+		double b;
+	};
+	struct foveation_parameter
+	{
+		foveation_parameter_item x;
+		foveation_parameter_item y;
+	};
 	uint16_t width;
 	uint16_t height;
 	float fps;
+	std::array<foveation_parameter, 2> foveation;
 	std::vector<item> items;
 };
 

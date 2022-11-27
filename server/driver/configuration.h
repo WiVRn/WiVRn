@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <array>
 #include <map>
 #include <optional>
 #include <string>
@@ -41,8 +42,7 @@ struct configuration
 	};
 
 	std::vector<encoder> encoders;
-	std::optional<double> scale;
+	std::optional<std::array<double, 2>> scale;
 
 	static configuration read_user_configuration();
-
 };

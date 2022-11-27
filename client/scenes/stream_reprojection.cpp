@@ -28,6 +28,12 @@
 struct stream_reprojection::uniform
 {
 	alignas(16) glm::mat4 reprojection;
+
+	// Foveation parameters
+	alignas(8) glm::vec2 a;
+	alignas(8) glm::vec2 b;
+	alignas(8) glm::vec2 lambda;
+	alignas(8) glm::vec2 xc;
 };
 
 stream_reprojection::~stream_reprojection()
@@ -67,7 +73,7 @@ void stream_reprojection::cleanup()
 	}
 }
 
-void stream_reprojection::init(VkDevice device, VkPhysicalDevice physical_device, std::vector<VkImage> input_images_, std::vector<VkImage> output_images_, VkExtent2D extent, VkFormat format)
+void stream_reprojection::init(VkDevice device, VkPhysicalDevice physical_device, std::vector<VkImage> input_images_, std::vector<VkImage> output_images_, VkExtent2D extent, VkFormat format, const xrt::drivers::wivrn::to_headset::video_stream_description & description)
 {
 	cleanup();
 	this->device = device;
@@ -76,6 +82,7 @@ void stream_reprojection::init(VkDevice device, VkPhysicalDevice physical_device
 	this->output_images = std::move(output_images_);
 	this->extent = extent;
 	this->format = format;
+	foveation_parameters = description.foveation;
 
 	VkPhysicalDeviceProperties properties;
 	vkGetPhysicalDeviceProperties(physical_device, &properties);
@@ -253,10 +260,26 @@ void stream_reprojection::init(VkDevice device, VkPhysicalDevice physical_device
 
 	layout = vk::pipeline_layout(device, {.descriptor_set_layouts = {descriptor_set_layout}});
 
+	VkBool32 use_foveation[] = {
+		foveation_parameters[0].x.scale < 1,
+		foveation_parameters[0].y.scale < 1
+	};
+
+	std::vector<VkSpecializationMapEntry> specialization_constants_desc = {
+		{.constantID = 0, .offset = 0, .size = sizeof(VkBool32)},
+		{.constantID = 1, .offset = sizeof(VkBool32), .size = sizeof(VkBool32)}
+	};
+
+	VkSpecializationInfo specialization_info{
+	        .mapEntryCount = (uint32_t)specialization_constants_desc.size(),
+	        .pMapEntries = specialization_constants_desc.data(),
+	        .dataSize = sizeof(use_foveation),
+	        .pData = use_foveation};
+
 	vk::pipeline::graphics_info pipeline_info{
 	        .shader_stages =
 	                {{.stage = VK_SHADER_STAGE_VERTEX_BIT, .module = vertex_shader, .pName = "main"},
-	                 {.stage = VK_SHADER_STAGE_FRAGMENT_BIT, .module = fragment_shader, .pName = "main"}},
+	                 {.stage = VK_SHADER_STAGE_FRAGMENT_BIT, .module = fragment_shader, .pName = "main", .pSpecializationInfo = &specialization_info}},
 	        .vertex_input_bindings = {},
 	        .vertex_input_attributes = {},
 	        .InputAssemblyState = {.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP},
@@ -365,6 +388,16 @@ void stream_reprojection::reproject(VkCommandBuffer command_buffer, int source, 
 	// clang-format on
 
 	ubo[source]->reprojection = video_proj * video_view * hmd_unview * glm::inverse(hmd_proj);
+
+	ubo[source]->a.x = foveation_parameters[source].x.a;
+	ubo[source]->b.x = foveation_parameters[source].x.b;
+	ubo[source]->lambda.x = foveation_parameters[source].x.a / foveation_parameters[source].x.scale;
+	ubo[source]->xc.x = foveation_parameters[source].x.center;
+
+	ubo[source]->a.y = foveation_parameters[source].y.a;
+	ubo[source]->b.y = foveation_parameters[source].y.b;
+	ubo[source]->lambda.y = foveation_parameters[source].y.a / foveation_parameters[source].y.scale;
+	ubo[source]->xc.y = foveation_parameters[source].y.center;
 
 	VkClearValue clear_color{};
 

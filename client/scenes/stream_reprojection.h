@@ -25,6 +25,7 @@
 #include "vk/pipeline_layout.h"
 #include "vk/renderpass.h"
 #include "vk/shader.h"
+#include "wivrn_packets.h"
 #include <vulkan/vulkan_core.h>
 #include <openxr/openxr.h>
 
@@ -60,12 +61,15 @@ class stream_reprojection
 	vk::pipeline pipeline;
 	vk::renderpass renderpass;
 
+	// Foveation
+	std::array<xrt::drivers::wivrn::to_headset::video_stream_description::foveation_parameter, 2> foveation_parameters;
+
 	void cleanup();
 
 public:
 	stream_reprojection() = default;
 	stream_reprojection(const stream_reprojection &) = delete;
-	void init(VkDevice device, VkPhysicalDevice physical_device, std::vector<VkImage> input_images, std::vector<VkImage> output_images, VkExtent2D extent, VkFormat format);
+	void init(VkDevice device, VkPhysicalDevice physical_device, std::vector<VkImage> input_images, std::vector<VkImage> output_images, VkExtent2D extent, VkFormat format, const xrt::drivers::wivrn::to_headset::video_stream_description & description);
 
 	~stream_reprojection();
 

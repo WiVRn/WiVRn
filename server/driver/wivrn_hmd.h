@@ -39,8 +39,11 @@ class wivrn_hmd : public xrt_device
 	xrt_tracking_origin tracking_origin;
 
 	view_list views;
+	std::array<to_headset::video_stream_description::foveation_parameter, 2> foveation_parameters{};
 
 	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
+
+	static bool wivrn_hmd_compute_distortion(xrt_device * xdev, int view_index, float u, float v, xrt_uv_triplet * result);
 
 public:
 	wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
@@ -61,4 +64,9 @@ public:
 	                    xrt_pose * out_poses);
 
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
+
+	const auto & get_foveation_parameters()
+	{
+		return foveation_parameters;
+	}
 };

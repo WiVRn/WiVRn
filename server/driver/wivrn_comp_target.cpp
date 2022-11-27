@@ -144,6 +144,7 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 	desc.width = cn->width;
 	desc.height = cn->height;
 	desc.fps = cn->fps;
+	desc.foveation = cn->cnx->get_foveation_parameters();
 
 	std::map<int, encoder_thread_param> thread_params;
 

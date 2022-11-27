@@ -36,7 +36,6 @@ ubo;
 
 void main()
 {
-	//     outUV = vec2(ubo.reprojection * vec4(positions[gl_VertexIndex], 1.0, 1.0));
 	outUV = positions[gl_VertexIndex];
 	gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
 }
@@ -48,8 +47,16 @@ layout(set = 0, binding = 0) uniform sampler2D texSampler;
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
 	mat4 reprojection;
+
+	vec2 a;
+	vec2 b;
+	vec2 lambda;
+	vec2 xc;
 }
 ubo;
+
+layout (constant_id = 0) const bool use_foveation_x = false;
+layout (constant_id = 1) const bool use_foveation_y = false;
 
 layout(location = 0) in vec2 inUV;
 
@@ -58,7 +65,24 @@ layout(location = 0) out vec4 outColor;
 void main()
 {
 	vec4 tmp = ubo.reprojection * vec4(inUV, 1.0, 1.0);
+	vec2 uv = vec2(tmp) / tmp.z; // between -1 and 1
 
-	outColor = texture(texSampler, vec2(tmp) / tmp.z * 0.5 + vec2(0.5, 0.5));
+	if (use_foveation_x && use_foveation_y)
+	{
+		uv = ubo.xc + ubo.lambda * atan((uv - ubo.b) / ubo.a);
+	}
+	else
+	{
+		if (use_foveation_x)
+		{
+			uv.x = (ubo.xc + ubo.lambda * atan((uv - ubo.b) / ubo.a)).x;
+		}
+		if (use_foveation_y)
+		{
+			uv.y = (ubo.xc + ubo.lambda * atan((uv - ubo.b) / ubo.a)).y;
+		}
+	}
+
+	outColor = texture(texSampler, uv * 0.5 + vec2(0.5, 0.5));
 }
 #endif

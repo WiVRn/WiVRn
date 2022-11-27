@@ -68,7 +68,12 @@ configuration configuration::read_user_configuration()
 		auto json = nlohmann::json::parse(file);
 
 		if (json.contains("scale"))
-			result.scale = json["scale"];
+		{
+			if (json["scale"].is_number())
+				result.scale = std::array<double, 2>{json["scale"], json["scale"]};
+			else
+				result.scale = json["scale"];
+		}
 
 		if (json.contains("encoders"))
 		{

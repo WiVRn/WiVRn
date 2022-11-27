@@ -211,7 +211,6 @@ void scenes::stream::render()
 		application::pop_scene();
 
 	XrFrameState framestate = session.wait_frame();
-	// auto t0 = application::now();
 
 	if (decoders.empty())
 		framestate.shouldRender = false;
@@ -233,7 +232,6 @@ void scenes::stream::render()
 	}
 
 	session.begin_frame();
-	// auto dt2 = application::now() - t0;
 
 	auto [flags, views] = session.locate_views(viewconfig, framestate.predictedDisplayTime, world_space);
 	assert(views.size() == swapchains.size());
@@ -354,7 +352,6 @@ void scenes::stream::render()
 	        .pCommandBuffers = &command_buffer,
 	};
 	CHECK_VK(vkQueueSubmit(queue, 1, &submit_info, fence));
-	// auto dt4 = application::now() - t0;
 
 	std::vector<XrCompositionLayerBaseHeader *> layers_base;
 	std::vector<XrCompositionLayerProjectionView> layer_view;
@@ -396,17 +393,13 @@ void scenes::stream::render()
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 	session.end_frame(/*timestamp*/ framestate.predictedDisplayTime, layers_base);
 
-	// auto dt5 = application::now() - t0;
 	CHECK_VK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
 	CHECK_VK(vkResetFences(device, 1, &fence));
 
 	// We don't need those after vkWaitForFences
 	current_blit_handles.clear();
 
-	// auto dt6 = application::now() - t0;
 	read_actions();
-
-	// spdlog::info("Render timing: begin frame {:.3f}ms, submit commands {:.3f}ms, end frame {:.3f}ms, wait fence {:.3f}ms, predicted display time {:.3f}ms", dt2/1.e6, dt4/1.e6, dt5/1.e6, dt6/1.e6, (framestate.predictedDisplayTime - t0) / 1.e6);
 }
 
 void scenes::stream::cleanup()
@@ -528,7 +521,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		images.push_back(i.image);
 	}
 
-	reprojector.init(device, physical_device, images, swapchain_images, extent, swapchains[0].format());
+	reprojector.init(device, physical_device, images, swapchain_images, extent, swapchains[0].format(), description);
 }
 
 void scenes::stream::video()
