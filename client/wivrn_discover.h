@@ -25,6 +25,7 @@ public:
 
 	static inline const std::chrono::milliseconds poll_min_time{500};
 	static inline const std::chrono::milliseconds poll_max_time{10000};
+	static inline const std::chrono::milliseconds discover_period{5000};
 
 private:
 	std::unique_ptr<dnssd_cache> cache;
