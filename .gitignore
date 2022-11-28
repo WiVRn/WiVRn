@@ -13,3 +13,4 @@ a.out
 *.keystore
 gradle.properties
 local.properties
+!libopenxr_loader.so
