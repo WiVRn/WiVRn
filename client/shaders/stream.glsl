@@ -20,6 +20,10 @@
 #version 450
 
 #ifdef VERT_SHADER
+
+layout (constant_id = 0) const float useful_size_x = 1.0;
+layout (constant_id = 1) const float useful_size_y = 1.0;
+
 vec2 positions[3] = vec2[](
         vec2(-1.0, -1.0),
         vec2(3.0, -1.0),
@@ -27,8 +31,8 @@ vec2 positions[3] = vec2[](
 
 vec2 uvs[3] = vec2[](
         vec2(0.0, 0.0),
-        vec2(2.0, 0.0),
-        vec2(0.0, 2.0));
+        vec2(2.0 * useful_size_x, 0.0),
+        vec2(0.0, 2.0 * useful_size_y));
 
 layout(location = 0) out vec2 outUV;
 

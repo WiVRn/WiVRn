@@ -150,10 +150,10 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 
 	for (auto & settings: _settings)
 	{
+		desc.items.push_back(settings);
 		uint8_t stream_index = cn->encoders.size();
 		auto & encoder = cn->encoders.emplace_back(
 		        VideoEncoder::Create(vk, settings, stream_index, desc.width, desc.height, desc.fps));
-		desc.items.push_back(settings);
 
 		std::vector<VkImage> images(cn->image_count);
 		std::vector<VkDeviceMemory> memory(cn->image_count);

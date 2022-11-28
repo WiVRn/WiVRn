@@ -63,7 +63,7 @@ struct wivrn::android::decoder::pipeline_context
 		vkDestroySamplerYcbcrConversion(device, ycbcr_conversion, nullptr);
 	}
 
-	pipeline_context(VkDevice device, VkAndroidHardwareBufferFormatPropertiesANDROID & ahb_format, VkRenderPass renderpass, const to_headset::video_stream_description::item& description) :
+	pipeline_context(VkDevice device, const AHardwareBuffer_Desc& buffer_desc, VkAndroidHardwareBufferFormatPropertiesANDROID & ahb_format, VkRenderPass renderpass, const to_headset::video_stream_description::item& description) :
 	        device(device), ahb_format(ahb_format)
 	{
 		assert(ahb_format.externalFormat != 0);
@@ -168,6 +168,22 @@ struct wivrn::android::decoder::pipeline_context
 		poolInfo.maxSets = poolSize.descriptorCount;
 		CHECK_VK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptor_pool));
 
+		float useful_size[] =
+		{
+			float(description.width) / buffer_desc.width,
+			float(description.height) / buffer_desc.height
+		};
+
+		std::vector<VkSpecializationMapEntry> specialization_constants_desc{
+			{.constantID = 0, .offset = 0, .size = sizeof(float)},
+			{.constantID = 1, .offset = sizeof(float), .size = sizeof(float)}};
+
+		VkSpecializationInfo specialization_info{
+			.mapEntryCount = (uint32_t)specialization_constants_desc.size(),
+				.pMapEntries = specialization_constants_desc.data(),
+				.dataSize = sizeof(useful_size),
+				.pData = &useful_size};
+
 		// Create graphics pipeline
 		vk::shader vertex_shader(device, "stream.vert");
 		vk::shader fragment_shader(device, "stream.frag");
@@ -180,7 +196,7 @@ struct wivrn::android::decoder::pipeline_context
 
 		vk::pipeline::graphics_info pipeline_info{
 		        .shader_stages =
-		                {{.stage = VK_SHADER_STAGE_VERTEX_BIT, .module = vertex_shader, .pName = "main"},
+		                {{.stage = VK_SHADER_STAGE_VERTEX_BIT, .module = vertex_shader, .pName = "main", .pSpecializationInfo = &specialization_info},
 		                 {.stage = VK_SHADER_STAGE_FRAGMENT_BIT, .module = fragment_shader, .pName = "main"}},
 		        .vertex_input_bindings = {},
 		        .vertex_input_attributes = {},
@@ -629,7 +645,7 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 	if (!pipeline || memcmp(&pipeline->ahb_format, &format_properties, sizeof(format_properties)))
 	{
 		pipeline.reset();
-		pipeline = std::make_shared<pipeline_context>(device, format_properties, renderpass, description);
+		pipeline = std::make_shared<pipeline_context>(device, buffer_desc, format_properties, renderpass, description);
 		hardware_buffer_map.clear();
 	}
 
