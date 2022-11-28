@@ -126,8 +126,7 @@ VideoEncoderVA::VideoEncoderVA(vk_bundle * vk, const encoder_settings & settings
 	int err = av_hwdevice_ctx_create(&tmp, AV_HWDEVICE_TYPE_VAAPI, device ? device->c_str() : NULL, NULL, 0);
 	if (err < 0)
 	{
-		throw std::system_error(err, av_error_category(), "Failed create VAAPI device" +
-				(device ? (" " + device->string()) : std::string()));
+		throw std::system_error(err, av_error_category(), "Failed create VAAPI device" + (device ? (" " + device->string()) : std::string()));
 	}
 	hw_ctx_vaapi.reset(tmp);
 

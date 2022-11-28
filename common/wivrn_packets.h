@@ -187,7 +187,7 @@ struct video_stream_description
 		uint16_t offset_x;
 		uint16_t offset_y;
 		video_codec codec;
-		std::optional<uint32_t> range; // VkSamplerYcbcrRange
+		std::optional<uint32_t> range;       // VkSamplerYcbcrRange
 		std::optional<uint32_t> color_model; // VkSamplerYcbcrModelConversion
 	};
 	struct foveation_parameter_item
@@ -213,8 +213,8 @@ class video_stream_data_shard
 {
 	std::shared_ptr<std::vector<uint8_t>> data;
 	friend serialization_traits<video_stream_data_shard, void>;
-public:
 
+public:
 	inline static const size_t max_payload_size = 1400;
 	enum flags : uint8_t
 	{
@@ -289,7 +289,7 @@ struct serialization_traits<to_headset::video_stream_data_shard, void>
 	}
 
 	template <typename T>
-	static void serialize(const to_headset::video_stream_data_shard& shard, T& packet)
+	static void serialize(const to_headset::video_stream_data_shard & shard, T & packet)
 	{
 		packet.serialize(shard.stream_item_idx);
 		packet.serialize(shard.frame_idx);
@@ -302,7 +302,7 @@ struct serialization_traits<to_headset::video_stream_data_shard, void>
 	}
 
 	template <typename T>
-	static to_headset::video_stream_data_shard deserialize(T& packet)
+	static to_headset::video_stream_data_shard deserialize(T & packet)
 	{
 		to_headset::video_stream_data_shard shard;
 		packet.deserialize(shard.stream_item_idx);

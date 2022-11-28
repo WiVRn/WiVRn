@@ -345,7 +345,7 @@ public:
 
 		log_query(record, service_name);
 		std::array<uint8_t, 2048> buffer;
-		for(size_t i = 1; i < pollfds.size(); i++)
+		for (size_t i = 1; i < pollfds.size(); i++)
 		{
 			if (mdns_query_send(pollfds[i].fd, record, service_name.data(), service_name.size(), buffer.data(), buffer.size(), 0))
 			{
@@ -368,7 +368,7 @@ public:
 			::read(pollfds[0].fd, buffer.data(), buffer.size());
 		}
 
-		for(size_t i = 1; i < pollfds.size(); i++)
+		for (size_t i = 1; i < pollfds.size(); i++)
 		{
 			if (pollfds[i].revents & POLLIN)
 			{
@@ -504,7 +504,8 @@ void wivrn_discover::discover(std::string service_name)
 	}
 }
 
-wivrn_discover::wivrn_discover(std::string service_name) : cache(std::make_unique<dnssd_cache>()), dnssd_thread(&wivrn_discover::discover, this, service_name)
+wivrn_discover::wivrn_discover(std::string service_name) :
+        cache(std::make_unique<dnssd_cache>()), dnssd_thread(&wivrn_discover::discover, this, service_name)
 {
 }
 
@@ -534,20 +535,21 @@ int main()
 {
 	wivrn_discover wd("_wivrn._tcp.local.");
 
-	while(true)
+	while (true)
 	{
 		auto now = steady_clock::now();
 		auto services = wd.get_services();
 
 		spdlog::info("{} service(s) found", services.size());
-		for(auto& i: services)
+		for (auto & i: services)
 		{
 			spdlog::info("    {} at {}:{}, expires in {} s", i.name, i.hostname, i.port, duration_cast<seconds>(i.ttl - now).count());
-			for(auto& j: i.addresses)
+			for (auto & j: i.addresses)
 			{
-				std::visit([](const auto& addr){
+				std::visit([](const auto & addr) {
 					spdlog::info("        {}", ip_address_to_string(addr));
-				}, j);
+				},
+				           j);
 			}
 		}
 

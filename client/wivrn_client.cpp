@@ -36,7 +36,8 @@
 
 using namespace std::chrono_literals;
 
-wivrn_session::wivrn_session(in6_addr address, int port) : control(address, port), stream()
+wivrn_session::wivrn_session(in6_addr address, int port) :
+        control(address, port), stream()
 {
 	// TODO: negociate UDP port
 	stream.bind(stream_client_port);
@@ -47,7 +48,8 @@ wivrn_session::wivrn_session(in6_addr address, int port) : control(address, port
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET6, &address, buffer, sizeof(buffer)), port);
 }
 
-wivrn_session::wivrn_session(in_addr address, int port) : control(address, port), stream()
+wivrn_session::wivrn_session(in_addr address, int port) :
+        control(address, port), stream()
 {
 	// TODO: negociate UDP port
 	stream.bind(stream_client_port);

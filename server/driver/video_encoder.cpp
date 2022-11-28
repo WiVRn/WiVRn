@@ -192,7 +192,9 @@ void VideoEncoder::PushShard(std::vector<uint8_t> && payload, uint8_t flags)
 	if (not shards.empty())
 	{
 		cnx->send_stream(shards.back());
-	} else {
+	}
+	else
+	{
 		cnx->dump_time("send_start", frame_idx, os_monotonic_get_ns(), stream_idx);
 	}
 	to_headset::video_stream_data_shard shard;

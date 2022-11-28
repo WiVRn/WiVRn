@@ -18,9 +18,9 @@
  */
 
 #include "encoder_settings.h"
+#include "configuration.h"
 #include "video_encoder.h"
 #include "vk/vk_helpers.h"
-#include "configuration.h"
 
 #include <string>
 #include <vulkan/vulkan.h>
@@ -90,7 +90,7 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk_bundl
 			return get_encoder_default_settings(vk, width, height);
 		std::vector<xrt::drivers::wivrn::encoder_settings> res;
 		int next_group = 0;
-		for (const auto& encoder: config.encoders)
+		for (const auto & encoder: config.encoders)
 		{
 			xrt::drivers::wivrn::encoder_settings settings{};
 			settings.encoder_name = encoder.name;

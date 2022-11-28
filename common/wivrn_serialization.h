@@ -172,7 +172,7 @@ public:
 	}
 
 	template <typename T>
-	void deserialize(T& v)
+	void deserialize(T & v)
 	{
 		v = deserialize<T>();
 	}

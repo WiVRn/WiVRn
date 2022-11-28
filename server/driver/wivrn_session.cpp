@@ -46,7 +46,8 @@ xrt_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::dri
 	try
 	{
 		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp), address.sin6_addr));
-		while (not (control = self->connection.poll_control(-1))) {}
+		while (not(control = self->connection.poll_control(-1)))
+		{}
 	}
 	catch (std::exception & e)
 	{
@@ -131,7 +132,6 @@ void wivrn_session::operator()(from_headset::timesync_response && timesync)
 
 void wivrn_session::operator()(from_headset::feedback && feedback)
 {
-
 	clock_offset o;
 	{
 		std::lock_guard lock(mutex);
@@ -207,7 +207,7 @@ std::array<to_headset::video_stream_description::foveation_parameter, 2> wivrn_s
 	return hmd->get_foveation_parameters();
 }
 
-void wivrn_session::dump_time(const std::string &event, uint64_t frame, uint64_t time, uint8_t stream)
+void wivrn_session::dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream)
 {
 	if (feedback_csv)
 	{
