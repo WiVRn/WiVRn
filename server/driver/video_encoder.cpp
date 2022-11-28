@@ -163,6 +163,10 @@ void VideoEncoder::SendData(std::vector<uint8_t> && data)
 {
 	auto & max_payload_size = to_headset::video_stream_data_shard::max_payload_size;
 	std::lock_guard lock(mutex);
+#if 0
+	std::ofstream debug("/tmp/video_dump-" + std::to_string(stream_idx), std::ios::app);
+	debug.write((char*)data.data(), data.size());
+#endif
 	uint8_t flags = to_headset::video_stream_data_shard::start_of_slice;
 	if (data.size() <= max_payload_size)
 	{
