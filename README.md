@@ -34,7 +34,8 @@ You will briefly have a "Waiting for connection" screen, followed by "Waiting fo
 Now on your computer you can run an OpenXR application, and it will show on your headset, enjoy!
 
 # TODO
-* Sound support (playback and recording)
+* Sound support (recording)
+* Improve sound playback latency
 * SteamVR support with [OpenComposite](https://gitlab.com/znixian/OpenOVR)
 * Latency improvement
 * Application launcher

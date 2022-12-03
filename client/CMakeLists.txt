@@ -17,7 +17,8 @@ if(ANDROID)
 
     find_library(ANDROID_LIBRARY NAMES android REQUIRED)
     find_library(MEDIA_LIBRARY NAMES mediandk REQUIRED)
-    target_link_libraries(wivrn ${ANDROID_LIBRARY} ${MEDIA_LIBRARY})
+    find_library(AAUDIO_LIBRARY NAMES aaudio REQUIRED)
+    target_link_libraries(wivrn ${ANDROID_LIBRARY} ${MEDIA_LIBRARY} ${AAUDIO_LIBRARY})
 
     if(OCULUS)
         set(OCULUS_SDK_PATH ${CMAKE_SOURCE_DIR}/external/oculus)
@@ -58,7 +59,9 @@ if(ANDROID)
     target_link_options(wivrn PRIVATE -Wl,--undefined=ANativeActivity_onCreate)
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
-        "decoder/android/*.cpp")
+        "audio/android/*.cpp"
+        "decoder/android/*.cpp"
+        )
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 else()
     add_executable(wivrn)

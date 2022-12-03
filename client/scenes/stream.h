@@ -33,6 +33,7 @@
 #include <mutex>
 #include <thread>
 #include <vulkan/vulkan_core.h>
+#include "audio/audio.h"
 
 namespace scenes
 {
@@ -88,6 +89,8 @@ class stream : public scene, public std::enable_shared_from_this<stream>
 	XrTime first_frame_time{};
 	const float dbrightness = 2;
 
+	std::optional<audio> audio_handle;
+
 	stream() = default;
 
 public:
@@ -101,6 +104,7 @@ public:
 	void operator()(to_headset::video_stream_parity_shard &&);
 	void operator()(to_headset::haptics &&);
 	void operator()(to_headset::timesync_query &&);
+	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
 
 	VkFormat swapchain_format()

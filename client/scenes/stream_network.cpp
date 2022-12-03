@@ -49,6 +49,13 @@ void scenes::stream::operator()(to_headset::video_stream_parity_shard && shard)
 	shard_queue.push(std::move(shard));
 }
 
+void scenes::stream::operator()(to_headset::audio_stream_description && desc)
+{
+	std::visit([&](auto & address){
+		audio_handle.emplace(desc, address);
+	}, network_session->address);
+}
+
 void scenes::stream::operator()(to_headset::video_stream_description && desc)
 {
 	setup(desc);

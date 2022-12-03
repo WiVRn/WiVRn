@@ -32,6 +32,8 @@ class wivrn_session
 	typed_socket<UDP, to_headset::stream_packets, from_headset::stream_packets> stream;
 
 public:
+	std::variant<in_addr, in6_addr> address;
+
 	wivrn_session(in6_addr address, int port);
 	wivrn_session(in_addr address, int port);
 	wivrn_session(const wivrn_session &) = delete;

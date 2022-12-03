@@ -54,6 +54,7 @@ add_executable(wivrn-server
 		hostname.cpp
 		avahi_publisher.cpp
 
+		driver/audio_setup.cpp
 		driver/configuration.cpp
 		driver/encoder_settings.cpp
 		driver/wivrn_hmd.cpp
@@ -112,6 +113,7 @@ target_link_libraries(
 		PkgConfig::systemd
 		Boost::pfr
 		PkgConfig::AVAHI
+		PkgConfig::libpulse
 		Eigen3::Eigen
 		wivrn-common
 		nlohmann_json::nlohmann_json

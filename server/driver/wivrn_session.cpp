@@ -18,6 +18,7 @@
  */
 
 #include "wivrn_session.h"
+#include "audio_setup.h"
 #include "os/os_time.h"
 #include "util/u_logging.h"
 
@@ -56,6 +57,22 @@ xrt_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::dri
 	}
 
 	const auto & info = std::get<from_headset::headset_info_packet>(*control);
+
+	try
+	{
+		self->audio_handle = audio_publish_handle::create(
+		        "wivrn.source",
+		        "WiVRn microphone",
+		        "wivrn.sink",
+		        "WiVRn",
+		        xrt::drivers::wivrn::audio_server_port,
+		        info);
+		self->send_control(self->audio_handle->description());
+	}
+	catch (const std::exception & e)
+	{
+		U_LOG_E("Failed to register audio device: %s", e.what());
+	}
 	self->hmd = std::make_unique<wivrn_hmd>(self, info);
 	self->left_hand = std::make_unique<wivrn_controller>(0, self->hmd.get(), self);
 	self->right_hand = std::make_unique<wivrn_controller>(1, self->hmd.get(), self);

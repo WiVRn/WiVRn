@@ -53,6 +53,7 @@ if (WIVRN_BUILD_SERVER)
     endif()
 
     pkg_check_modules(AVAHI IMPORTED_TARGET avahi-client)
+    pkg_check_modules(libpulse IMPORTED_TARGET libpulse)
     find_package(Eigen3 REQUIRED)
 endif()
 

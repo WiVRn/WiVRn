@@ -38,6 +38,7 @@
 #include <mutex>
 #include <thread>
 #include <vulkan/vulkan_core.h>
+#include "audio/audio.h"
 
 using namespace xrt::drivers::wivrn;
 
@@ -89,6 +90,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	if (info.available_refresh_rates.empty())
 		spdlog::warn("Unable to detect refresh rates");
+
+	audio::get_audio_description(info);
 
 	self->network_session->send_control(info);
 
