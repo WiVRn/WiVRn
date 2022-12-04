@@ -1,4 +1,7 @@
 # WiVRn
+
+[![License: GPL v3](images/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![CI](https://github.com/Meumeu/WiVRn/workflows/Build/badge.svg)
+
 OpenXR streaming application
 
 WiVRn lets you run OpenXR applications on a computer and display them on a standalone headset.
@@ -52,5 +55,3 @@ WiVRn uses the following software:
 - [x264](https://www.videolan.org/developers/x264.html), [ffmpeg](https://ffmpeg.org/) and/or [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) depending on the compilation options
 - [Avahi](https://www.avahi.org/)
 - [sd-bus](https://www.freedesktop.org/software/systemd/man/sd-bus.html)
-
-![GitLicense](https://gitlicense.com/badge/Meumeu/WiVRn) ![CI](https://github.com/Meumeu/WiVRn/workflows/Build/badge.svg)
