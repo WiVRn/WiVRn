@@ -2,6 +2,7 @@
 
 #include "util/u_logging.h"
 
+#include "../wivrn_ipc.h"
 #include "wivrn_sockets.h"
 #include <fcntl.h>
 #include <netinet/tcp.h>
@@ -85,6 +86,8 @@ public:
 	}
 };
 
+void unload_module(uintptr_t id);
+
 void unload_module(pa_context * ctx, uint32_t id)
 {
 	std::promise<void> p;
@@ -100,6 +103,8 @@ void unload_module(pa_context * ctx, uint32_t id)
 	auto op = pa_context_unload_module(ctx, id, cb, cb);
 	pa_operation_unref(op);
 	p.get_future().get();
+
+	remove_cleanup_function(unload_module, id);
 }
 
 std::optional<module_entry> get_sink(pa_context * ctx, const char * name)
@@ -179,6 +184,9 @@ module_entry ensure_sink(pa_context * ctx, const char * name, const std::string 
 	if (not sink)
 		std::runtime_error("failed to create audio sink " + std::string(name));
 	sink->socket = fifo;
+
+	add_cleanup_function(unload_module, sink->module);
+
 	return *sink;
 }
 
@@ -443,4 +451,10 @@ std::shared_ptr<audio_publish_handle> audio_publish_handle::create(
         const xrt::drivers::wivrn::from_headset::headset_info_packet & info)
 {
 	return pulse_publish_handle::create(source_name, source_description, sink_name, sink_description, listen_port, info);
+}
+
+void unload_module(uintptr_t id)
+{
+	pa_connection cnx("WiVRn");
+	unload_module(cnx, id);
 }

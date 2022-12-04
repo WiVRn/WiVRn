@@ -53,6 +53,7 @@ add_executable(wivrn-server
 		target_instance_wivrn.cpp
 		hostname.cpp
 		avahi_publisher.cpp
+		wivrn_ipc.cpp
 
 		driver/audio_setup.cpp
 		driver/configuration.cpp
