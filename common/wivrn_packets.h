@@ -202,8 +202,12 @@ struct video_stream_description
 {
 	struct item
 	{
+		// useful dimensions of the video stream
 		uint16_t width;
 		uint16_t height;
+		// dimensions of the video, may include padding at the end
+		uint16_t video_width;
+		uint16_t video_height;
 		uint16_t offset_x;
 		uint16_t offset_y;
 		video_codec codec;

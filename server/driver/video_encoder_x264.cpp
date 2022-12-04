@@ -95,18 +95,23 @@ VideoEncoderX264::VideoEncoderX264(
 	}
 
 	// encoder requires width and height to be even
-	settings.width += settings.width % 2;
-	settings.height += settings.height % 2;
+	settings.video_width += settings.video_width % 2;
+	settings.video_height += settings.video_height % 2;
 
-	converter =
-	        std::make_unique<YuvConverter>(vk, VkExtent3D{uint32_t(settings.width), uint32_t(settings.height), 1}, settings.offset_x, settings.offset_y, input_width, input_height);
+	converter = std::make_unique<YuvConverter>(
+	        vk,
+	        VkExtent3D{uint32_t(settings.video_width), uint32_t(settings.video_height), 1},
+	        settings.offset_x,
+	        settings.offset_y,
+	        input_width,
+	        input_height);
 
 	x264_param_default_preset(&param, "ultrafast", "zerolatency");
 	param.nalu_process = &ProcessCb;
 	// param.i_slice_max_size = 1300;
 	param.i_slice_count = 32;
-	param.i_width = settings.width;
-	param.i_height = settings.height;
+	param.i_width = settings.video_width;
+	param.i_height = settings.video_height;
 	param.i_log_level = X264_LOG_WARNING;
 	param.i_fps_num = fps * 1'000'000;
 	param.i_fps_den = 1'000'000;

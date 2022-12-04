@@ -96,6 +96,8 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk_bundl
 			settings.encoder_name = encoder.name;
 			settings.width = std::ceil(encoder.width.value_or(1) * width);
 			settings.height = std::ceil(encoder.height.value_or(1) * height);
+			settings.video_width = settings.width;
+			settings.video_height = settings.height;
 			settings.offset_x = std::ceil(encoder.offset_x.value_or(0) * width);
 			settings.offset_y = std::ceil(encoder.offset_y.value_or(0) * height);
 			settings.bitrate = encoder.bitrate.value_or(default_bitrate);
