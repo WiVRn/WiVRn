@@ -41,13 +41,19 @@ const char * xrt::drivers::wivrn::socket_shutdown::what() const noexcept
 	return "Socket shutdown";
 }
 
-xrt::drivers::wivrn::socket_base::socket_base(xrt::drivers::wivrn::socket_base && other) :
+xrt::drivers::wivrn::fd_base::fd_base(xrt::drivers::wivrn::fd_base && other) :
         fd(other.fd)
 {
 	other.fd = -1;
 }
 
-xrt::drivers::wivrn::socket_base::~socket_base()
+xrt::drivers::wivrn::fd_base& xrt::drivers::wivrn::fd_base::operator=(xrt::drivers::wivrn::fd_base && other)
+{
+	std::swap(fd, other.fd);
+	return *this;
+}
+
+xrt::drivers::wivrn::fd_base::~fd_base()
 {
 	if (fd >= 0)
 		::close(fd);
@@ -188,6 +194,10 @@ xrt::drivers::wivrn::TCP::TCP(in_addr address, int port)
 	init();
 }
 
+xrt::drivers::wivrn::TCPListener::TCPListener()
+{
+}
+
 xrt::drivers::wivrn::TCPListener::TCPListener(int port)
 {
 	fd = socket(AF_INET6, SOCK_STREAM, 0);
@@ -221,19 +231,6 @@ xrt::drivers::wivrn::TCPListener::TCPListener(int port)
 		::close(fd);
 		throw std::system_error{errno, std::generic_category()};
 	}
-}
-
-std::pair<xrt::drivers::wivrn::TCP, sockaddr_in6>
-xrt::drivers::wivrn::TCPListener::accept()
-{
-	sockaddr_in6 addr{};
-	socklen_t addrlen = sizeof(addr);
-
-	int fd2 = ::accept(fd, (sockaddr *)&addr, &addrlen);
-	if (fd2 < 0)
-		throw std::system_error{errno, std::generic_category()};
-
-	return {TCP{fd2}, addr};
 }
 
 // std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::drivers::wivrn::UDP::receive_from_raw()

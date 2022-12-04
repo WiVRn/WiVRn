@@ -1,5 +1,10 @@
 #include "audio_setup.h"
 
+#include "util/u_logging.h"
+
+#include "wivrn_sockets.h"
+#include <fcntl.h>
+#include <netinet/tcp.h>
 #include <pulse/context.h>
 #include <pulse/ext-device-manager.h>
 #include <pulse/introspect.h>
@@ -7,20 +12,25 @@
 #include <pulse/thread-mainloop.h>
 
 #include <atomic>
+#include <filesystem>
 #include <future>
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <sys/poll.h>
+#include <thread>
 #include <vector>
 
 static const char * source_name = "WiVRn-mic";
 static const char * sink_name = "WiVRn";
+static const char * source_pipe = "wivrn-source";
+static const char * sink_pipe = "wivrn-sink";
 
 struct module_entry
 {
 	uint32_t module;
 	uint32_t device;
-	uint32_t monitor;
+	std::filesystem::path socket;
 };
 
 void wait_connected(std::atomic<pa_context_state> & state)
@@ -103,12 +113,42 @@ std::optional<module_entry> get_sink(pa_context * ctx, const char * name)
 			        p.set_value();
 			        return;
 		        }
-		        result = {.module = i->owner_module, .device = i->index, .monitor = i->monitor_source};
+		        result = {.module = i->owner_module, .device = i->index};
 	        });
 	auto op = pa_context_get_sink_info_by_name(ctx, name, cb, cb);
 	pa_operation_unref(op);
 	p.get_future().wait();
 	return result;
+}
+
+std::optional<module_entry> get_source(pa_context * ctx, const char * name)
+{
+	std::optional<module_entry> result;
+	std::promise<void> p;
+	wrap_lambda cb(
+	        [&result, &p](pa_context *, const pa_source_info * i, int eol) {
+		        if (eol)
+		        {
+			        p.set_value();
+			        return;
+		        }
+		        result = {.module = i->owner_module, .device = i->index};
+	        });
+	auto op = pa_context_get_source_info_by_name(ctx, name, cb, cb);
+	pa_operation_unref(op);
+	p.get_future().wait();
+	return result;
+}
+
+std::filesystem::path get_socket_path()
+{
+	const char * path = std::getenv("XDG_RUNTIME_DIR");
+	if (path)
+		return path;
+	path = "/tmp/wivrn";
+	std::filesystem::create_directories(path);
+	U_LOG_W("XDG_RUNTIME_DIR is not set, using %s instead", path);
+	return path;
 }
 
 module_entry ensure_sink(pa_context * ctx, const char * name, const std::string & description, int channels, int sample_rate)
@@ -121,83 +161,56 @@ module_entry ensure_sink(pa_context * ctx, const char * name, const std::string 
 	wrap_lambda cb = [&module_index](pa_context *, uint32_t index) {
 		module_index.set_value(index);
 	};
+	std::filesystem::path fifo = get_socket_path() / sink_pipe;
 	std::stringstream params;
 	params << "sink_name=" << std::quoted(name)
+	       << " file=" << std::quoted(fifo.string())
 	       << " channels=" << channels
 	       << " rate=" << sample_rate
+	       << " use_system_clock_for_timing=yes"
 	       << " sink_properties=" << PA_PROP_DEVICE_DESCRIPTION << "=" << std::quoted(description)
 	       << PA_PROP_DEVICE_ICON_NAME << "=network-wireless";
 	;
-	auto op = pa_context_load_module(ctx, "module-null-sink", params.str().c_str(), cb, cb);
+	auto op = pa_context_load_module(ctx, "module-pipe-sink", params.str().c_str(), cb, cb);
 	pa_operation_unref(op);
 	module_index.get_future().wait();
 
 	sink = get_sink(ctx, name);
 	if (not sink)
-		std::runtime_error("failed to create audio sink " +
-		                   std::string(name));
+		std::runtime_error("failed to create audio sink " + std::string(name));
+	sink->socket = fifo;
 	return *sink;
 }
 
-std::optional<uint32_t> get_simple_tcp(pa_context * ctx,
-                                       int port)
+module_entry ensure_source(pa_context * ctx, const char * name, const std::string & description, int channels, int sample_rate)
 {
-	std::optional<uint32_t> result;
-	std::promise<void> p;
-
-	wrap_lambda cb([&result, &p, port_str = "port=" + std::to_string(port)](
-	                       pa_context *, const pa_module_info * i, int eol) {
-		if (eol)
-		{
-			p.set_value();
-			return;
-		}
-
-		if (i->name == std::string("module-simple-protocol-tcp") and
-		    i->argument and std::string_view(i->argument).find(port_str) != std::string_view::npos)
-			result = i->index;
-	});
-	auto op = pa_context_get_module_info_list(ctx, cb, cb);
-	pa_operation_unref(op);
-	p.get_future().wait();
-	return result;
-}
-
-uint32_t load_module_simple(pa_context * ctx, uint16_t port, std::optional<module_entry> microphone, std::optional<module_entry> speaker)
-{
-	std::stringstream params;
-	params << "port=" << port;
-
-	if (microphone)
-		params << " playback=true sink=" << microphone->device;
-	else
-		params << " playback=false";
-
-	if (speaker)
-		params << " record=true source=" << speaker->monitor;
-	else
-		params << " record=false";
-
-	std::string params_str = params.str();
-	auto simple_tcp = get_simple_tcp(ctx, port);
-	if (simple_tcp)
-		unload_module(ctx, *simple_tcp);
+	auto source = get_source(ctx, name);
+	if (source)
+		unload_module(ctx, source->module);
 
 	std::promise<uint32_t> module_index;
-	wrap_lambda cb = [&module_index, &params_str](pa_context *,
-	                                              uint32_t index) {
-		if (index == uint32_t(-1))
-			module_index.set_exception(
-			        std::make_exception_ptr(std::runtime_error(
-			                "failed to load module-simple-protocol-tcp "
-			                "with parameters " +
-			                params_str)));
-		else
-			module_index.set_value(index);
+	wrap_lambda cb = [&module_index](pa_context *, uint32_t index) {
+		module_index.set_value(index);
 	};
-	auto op = pa_context_load_module(ctx, "module-simple-protocol-tcp", params_str.c_str(), cb, cb);
+	std::filesystem::path fifo = get_socket_path() / source_pipe;
+	std::stringstream params;
+	params << "source_name=" << std::quoted(name)
+	       << " file=" << std::quoted(fifo.string())
+	       << " channels=" << channels
+	       << " rate=" << sample_rate
+	       << " use_system_clock_for_timing=yes"
+	       << " source_properties=" << PA_PROP_DEVICE_DESCRIPTION << "=" << std::quoted(description)
+	       << PA_PROP_DEVICE_ICON_NAME << "=network-wireless";
+	;
+	auto op = pa_context_load_module(ctx, "module-pipe-source", params.str().c_str(), cb, cb);
 	pa_operation_unref(op);
-	return module_index.get_future().get();
+	module_index.get_future().wait();
+
+	source = get_source(ctx, name);
+	if (not source)
+		std::runtime_error("failed to create audio source " + std::string(name));
+	source->socket = fifo;
+	return *source;
 }
 
 struct pa_deleter
@@ -254,25 +267,35 @@ public:
 
 struct pulse_publish_handle : public audio_publish_handle
 {
-	std::vector<uint32_t> modules;
 	xrt::drivers::wivrn::to_headset::audio_stream_description desc;
+
+	std::thread net_thread;
+	std::atomic<bool> quit;
+	xrt::drivers::wivrn::TCPListener listener;
+
+	std::optional<module_entry> speaker;
+	std::optional<module_entry> microphone;
 
 	~pulse_publish_handle()
 	{
-		if (modules.empty())
-			return;
-		try
+		quit = true;
+		if (net_thread.joinable())
+			net_thread.join();
+		if (speaker or microphone)
 		{
-			pa_connection cnx("WiVRn");
-			for (const auto id: modules)
+			try
 			{
-				unload_module(cnx, id);
+				pa_connection cnx("WiVRn");
+				if (speaker)
+					unload_module(cnx, speaker->module);
+				if (microphone)
+					unload_module(cnx, microphone->module);
 			}
-		}
-		catch (const std::exception & e)
-		{
-			std::cout << "failed to depublish pulseaudio modules: "
-			          << e.what() << std::endl;
+			catch (const std::exception & e)
+			{
+				std::cout << "failed to depublish pulseaudio modules: "
+				          << e.what() << std::endl;
+			}
 		}
 	}
 
@@ -280,6 +303,106 @@ struct pulse_publish_handle : public audio_publish_handle
 	{
 		return desc;
 	};
+
+	void serve_client(xrt::drivers::wivrn::fd_base & client)
+	{
+		int nodelay = 1;
+		if (setsockopt(client.get_fd(), IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)) < 0)
+			U_LOG_W("failed to set TCP_NODELAY opeion on audio socket: %s", strerror(errno));
+		try
+		{
+			// file descriptors:
+			// in pairs (read, write)
+			// negative if already available
+			std::vector<pollfd> pfd;
+			xrt::drivers::wivrn::fd_base speaker_pipe;
+			xrt::drivers::wivrn::fd_base mic_pipe;
+			if (speaker)
+			{
+				speaker_pipe = open(speaker->socket.c_str(), O_RDONLY | O_NONBLOCK);
+				if (speaker_pipe.get_fd() < 0)
+					throw std::system_error(errno, std::system_category(), "failed to open speaker pipe " + speaker->socket.string());
+				pfd.push_back({.fd = speaker_pipe.get_fd(), .events = POLLIN});
+				pfd.push_back({.fd = client.get_fd(), .events = POLLOUT});
+				// flush pipe, so we don't have old samples
+				char sewer[1024];
+				while (read(speaker_pipe.get_fd(), sewer, sizeof(sewer)) > 0)
+				{}
+			}
+			if (microphone)
+			{
+				mic_pipe = open(microphone->socket.c_str(), O_WRONLY);
+				if (mic_pipe.get_fd() < 0)
+					throw std::system_error(errno, std::system_category(), "failed to open microphone pipe " + microphone->socket.string());
+				pfd.push_back({.fd = client.get_fd(), .events = POLLIN});
+				pfd.push_back({.fd = mic_pipe.get_fd(), .events = POLLOUT});
+			}
+			while (not quit)
+			{
+				int r = ::poll(pfd.data(), pfd.size(), 100);
+				if (r < 0)
+					throw std::system_error(errno, std::system_category());
+
+				for (size_t i = 0; i < pfd.size(); ++i)
+				{
+					if (pfd[i].revents & (POLLHUP | POLLERR))
+						throw std::runtime_error("Error on audio socket");
+
+					if (pfd[i].revents & (POLLIN | POLLOUT))
+					{
+						// mark fd as ready
+						pfd[i].fd = -pfd[i].fd;
+						size_t base = i - i % 2;
+
+						// if both in and out fd are ready, do something
+						if (pfd[base].fd < 0 and pfd[base + 1].fd < 0)
+						{
+							pfd[base].fd = -pfd[base].fd;
+							pfd[base + 1].fd = -pfd[base + 1].fd;
+
+							ssize_t written = splice(pfd[base].fd, nullptr, pfd[base + 1].fd, nullptr, 1024, SPLICE_F_MOVE);
+							if (written < 0)
+								throw std::system_error(errno, std::system_category(), "failed to transfer audio data");
+						}
+					}
+				}
+			}
+		}
+		catch (const std::exception & e)
+		{
+			U_LOG_E("Error while serving audio: %s", e.what());
+		}
+	}
+
+	void run()
+	{
+		pthread_setname_np(pthread_self(), "audio_thread");
+
+		try
+		{
+			while (not quit)
+			{
+				pollfd pfd{};
+				pfd.fd = listener.get_fd();
+				pfd.events = POLL_IN;
+
+				int r = poll(&pfd, 1, 100);
+				if (r < 0)
+					throw std::system_error(errno, std::system_category());
+				if (pfd.revents & (POLLHUP | POLLERR))
+					throw std::runtime_error("Error on audio socket");
+				if (pfd.revents & POLLIN)
+				{
+					auto client = listener.accept<xrt::drivers::wivrn::fd_base>().first;
+					serve_client(client);
+				}
+			}
+		}
+		catch (const std::exception & e)
+		{
+			U_LOG_E("Error in audio thread: %s", e.what());
+		}
+	}
 
 	static std::shared_ptr<pulse_publish_handle> create(
 	        const std::string & source_name,
@@ -292,24 +415,20 @@ struct pulse_publish_handle : public audio_publish_handle
 		pa_connection cnx("WiVRn");
 		auto result = std::make_shared<pulse_publish_handle>();
 
-		std::optional<module_entry> source, sink;
-
 		if (info.microphone)
 		{
-			source = ensure_sink(cnx, source_name.c_str(), source_description, info.microphone->num_channels, info.microphone->sample_rate);
-			result->modules.push_back(source->module);
+			result->microphone = ensure_source(cnx, source_name.c_str(), source_description, info.microphone->num_channels, info.microphone->sample_rate);
 			result->desc.microphone = {.num_channels = info.microphone->num_channels, .sample_rate = info.microphone->sample_rate};
 		}
 		if (info.speaker)
 		{
-			sink = ensure_sink(cnx, sink_name.c_str(), sink_description, info.speaker->num_channels, info.speaker->sample_rate);
-			result->modules.push_back(sink->module);
+			result->speaker = ensure_sink(cnx, sink_name.c_str(), sink_description, info.speaker->num_channels, info.speaker->sample_rate);
 			result->desc.speaker = {.num_channels = info.speaker->num_channels, .sample_rate = info.speaker->sample_rate};
 		}
-		uint32_t simple_tcp =
-		        load_module_simple(cnx, listen_port, source, sink);
-		result->modules.push_back(simple_tcp);
+
+		result->listener = xrt::drivers::wivrn::TCPListener(listen_port);
 		result->desc.port = listen_port;
+		result->net_thread = std::thread(&pulse_publish_handle::run, result.get());
 
 		return result;
 	}
