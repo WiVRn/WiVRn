@@ -413,6 +413,7 @@ decoder::decoder(
         VkPhysicalDevice physical_device,
         const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
         float fps,
+        uint8_t stream_index,
         std::weak_ptr<scenes::stream> weak_scene,
         shard_accumulator * accumulator) :
         description(description), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
@@ -451,6 +452,7 @@ decoder::decoder(
 			}
 		}
 	});
+	pthread_setname_np(output_releaser.native_handle(), ("decoder-" + std::to_string(stream_index)).c_str());
 }
 
 decoder::~decoder()

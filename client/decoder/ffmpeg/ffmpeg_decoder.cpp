@@ -73,6 +73,7 @@ decoder::decoder(
         VkPhysicalDevice physical_device,
         const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
         float fps,
+        uint8_t stream_index,
         std::weak_ptr<scenes::stream> scene,
         shard_accumulator * accumulator) :
         device(device), description(description), codec(nullptr, free_codec_context), sws(nullptr, sws_freeContext), weak_scene(scene), accumulator(accumulator)

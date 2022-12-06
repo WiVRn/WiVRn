@@ -88,7 +88,8 @@ public:
 	        VkDevice device,
 	        VkPhysicalDevice physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
-		float fps,
+	        float fps,
+	        uint8_t stream_index,
 	        std::weak_ptr<scenes::stream> scene,
 	        shard_accumulator * accumulator);
 
