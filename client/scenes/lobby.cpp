@@ -265,7 +265,14 @@ void scenes::lobby::render()
 
 		if (auto session = connect_to_session(services))
 		{
-			next_scene = stream::create(std::move(session));
+			try
+			{
+				next_scene = stream::create(std::move(session));
+			}
+			catch (const std::exception & e)
+			{
+				spdlog::error("Failed to create stream session: {}", e.what());
+			}
 		}
 	}
 
