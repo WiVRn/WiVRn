@@ -22,17 +22,51 @@
 #include "os/os_time.h"
 #include "util/u_logging.h"
 
+#include "wivrn_comp_target.h"
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
 
 #include <cmath>
+
+struct wivrn_comp_target_factory : public comp_target_factory
+{
+	std::shared_ptr<wivrn_session> session;
+	float fps;
+
+	wivrn_comp_target_factory(std::shared_ptr<wivrn_session> session, float fps) :
+	        comp_target_factory{
+	                .name = "WiVRn",
+	                .identifier = "wivrn",
+	                .requires_vulkan_for_create = false,
+	                .is_deferred = false,
+	                .required_instance_extensions = {},
+	                .required_instance_extension_count = 0,
+	                .detect = wivrn_comp_target_factory::detect,
+	                .create_target = wivrn_comp_target_factory::create_target},
+	        session(session),
+	        fps(fps)
+	{}
+
+	static bool detect(struct comp_target_factory * ctf, struct comp_compositor * c)
+	{
+		return true;
+	        }
+
+		static bool create_target(struct comp_target_factory *ctf, struct comp_compositor *c, struct comp_target **out_ct)
+		{
+			auto self = (wivrn_comp_target_factory*)ctf;
+			*out_ct = comp_target_wivrn_create(self->session, c, self->fps);
+			return true;
+		}
+};
+
 
 xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, in6_addr & address) :
         connection(std::move(tcp), address)
 {
 }
 
-xrt_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp)
+wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp)
 {
 	sockaddr_in6 address;
 	socklen_t address_len = sizeof(address);
@@ -77,7 +111,7 @@ xrt_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::dri
 	self->left_hand = std::make_unique<wivrn_controller>(0, self->hmd.get(), self);
 	self->right_hand = std::make_unique<wivrn_controller>(1, self->hmd.get(), self);
 
-	xrt_system_devices * devices = new xrt_system_devices{};
+	wivrn_system_devices * devices = new wivrn_system_devices{};
 
 	int n = 0;
 	if (self->hmd)
@@ -88,6 +122,8 @@ xrt_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::dri
 		devices->roles.right = devices->xdevs[n++] = self->right_hand.get();
 
 	devices->xdev_count = n;
+
+	devices->ctf = new wivrn_comp_target_factory(self, info.preferred_refresh_rate);
 	devices->destroy = [](xrt_system_devices * xsd) {
 		// TODO
 	};

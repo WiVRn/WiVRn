@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "clock_offset.h"
+#include "main/comp_target.h"
 #include "wivrn_connection.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_system.h"
@@ -35,15 +37,10 @@ struct audio_publish_handle;
 namespace xrt::drivers::wivrn
 {
 
-struct clock_offset
-{
-	std::chrono::nanoseconds epoch_offset{};
-
-	uint64_t from_headset(uint64_t) const;
-
-	std::chrono::nanoseconds
-	to_headset(uint64_t timestamp_ns) const;
-};
+	struct wivrn_system_devices : public xrt_system_devices
+	{
+		comp_target_factory *ctf;
+	};
 
 class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 {
@@ -68,7 +65,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	wivrn_session(TCP && tcp, in6_addr & address);
 
 public:
-	static xrt_system_devices *
+	static wivrn_system_devices *
 	create_session(TCP && tcp);
 
 	clock_offset

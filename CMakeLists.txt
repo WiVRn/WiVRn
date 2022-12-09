@@ -74,7 +74,7 @@ FetchContent_Declare(tinygltf URL https://github.com/syoyo/tinygltf/archive/refs
 FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/xytovl/monado
-    GIT_TAG          3046a5eee4105c4d1c07bc466d6e3a0bb749df42
+    GIT_TAG          7fff0982b2ffbf5426e5de8085e1ce369cda8b6d
     )
 
 

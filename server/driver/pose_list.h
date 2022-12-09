@@ -19,7 +19,9 @@
 
 #pragma once
 
-#include "wivrn_session.h"
+#include "wivrn_packets.h"
+#include "clock_offset.h"
+#include "xrt/xrt_defines.h"
 #include <algorithm>
 #include <mutex>
 #include <vector>
@@ -38,7 +40,7 @@ class history
 	std::vector<TimedData> data;
 
 protected:
-	void add_sample(uint64_t timestamp, const Data & sample, const clock_offset & offset)
+	void add_sample(uint64_t timestamp, const Data & sample, const xrt::drivers::wivrn::clock_offset & offset)
 	{
 		std::lock_guard lock(mutex);
 
@@ -99,13 +101,13 @@ xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_rel
 
 class pose_list : public history<xrt_space_relation>
 {
-	device_id device;
+	xrt::drivers::wivrn::device_id device;
 
 public:
-	pose_list(device_id id) :
+	pose_list(xrt::drivers::wivrn::device_id id) :
 	        device(id) {}
 
-	void update_tracking(const from_headset::tracking &, const clock_offset & offset);
+	void update_tracking(const xrt::drivers::wivrn::from_headset::tracking &, const xrt::drivers::wivrn::clock_offset & offset);
 
-	static xrt_space_relation convert_pose(const from_headset::tracking::pose &);
+	static xrt_space_relation convert_pose(const xrt::drivers::wivrn::from_headset::tracking::pose &);
 };

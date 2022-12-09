@@ -40,7 +40,6 @@
 #include <openxr/openxr.h>
 
 #include "configuration.h"
-#include "wivrn_comp_target.h"
 
 /*
  *
@@ -76,10 +75,6 @@ static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      xrt_space_relation * out_head_relation,
                                      xrt_fov * out_fovs,
                                      xrt_pose * out_poses);
-
-static void wivrn_hmd_create_compositor_target(struct xrt_device * xdev,
-                                               struct comp_compositor * comp,
-                                               struct comp_target ** out_target);
 
 static double foveate(double a, double b, double scale, double c, double x)
 {
@@ -237,7 +232,6 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	base->update_inputs = wivrn_hmd_update_inputs;
 	base->get_tracked_pose = wivrn_hmd_get_tracked_pose;
 	base->get_view_poses = wivrn_hmd_get_view_poses;
-	base->create_compositor_target = wivrn_hmd_create_compositor_target;
 	base->destroy = wivrn_hmd_destroy;
 	name = XRT_DEVICE_GENERIC_HMD;
 	device_type = XRT_DEVICE_TYPE_HMD;
@@ -389,14 +383,6 @@ void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
 	}
 }
 
-comp_target * wivrn_hmd::create_compositor_target(struct comp_compositor * comp)
-{
-	comp_target * target = comp_target_wivrn_create(cnx, fps);
-
-	target->c = comp;
-	return target;
-}
-
 /*
  *
  * Functions
@@ -430,11 +416,4 @@ static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      xrt_pose * out_poses)
 {
 	static_cast<wivrn_hmd *>(xdev)->get_view_poses(default_eye_relation, at_timestamp_ns, view_count, out_head_relation, out_fovs, out_poses);
-}
-
-static void wivrn_hmd_create_compositor_target(struct xrt_device * xdev,
-                                               struct comp_compositor * comp,
-                                               struct comp_target ** out_target)
-{
-	*out_target = static_cast<wivrn_hmd *>(xdev)->create_compositor_target(comp);
 }

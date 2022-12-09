@@ -7,8 +7,8 @@
  */
 
 #include "xrt/xrt_config_build.h"
-#include "xrt/xrt_gfx_native.h"
 #include "xrt/xrt_system.h"
+#include "main/comp_main_interface.h"
 
 #include "os/os_time.h"
 
@@ -38,7 +38,7 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	assert(out_xsysc == NULL || *out_xsysc == NULL);
 
 	struct xrt_system_compositor * xsysc = NULL;
-	struct xrt_system_devices * xsysd = xrt::drivers::wivrn::wivrn_session::create_session(std::move(*tcp));
+	auto * xsysd = xrt::drivers::wivrn::wivrn_session::create_session(std::move(*tcp));
 	tcp.reset();
 
 	if (!xsysd)
@@ -50,12 +50,13 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 
 	if (xret == XRT_SUCCESS && xsysc == NULL)
 	{
-		xret = xrt_gfx_provider_create_system(head, &xsysc);
+		xret = comp_main_create_system_compositor(head, xsysd->ctf, &xsysc);
 	}
 
 	if (xret != XRT_SUCCESS)
 	{
-		xrt_system_devices_destroy(&xsysd);
+		if (xsysd)
+			xsysd->destroy(xsysd);
 		return xret;
 	}
 

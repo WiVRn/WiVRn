@@ -19,7 +19,19 @@
 
 #pragma once
 
-#include "main/comp_target.h"
-#include "wivrn_session.h"
+#include <chrono>
+#include <cstdint>
 
-comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor *c, float fps);
+namespace xrt::drivers::wivrn
+{
+struct clock_offset
+{
+	std::chrono::nanoseconds epoch_offset{};
+
+	uint64_t from_headset(uint64_t) const;
+
+	std::chrono::nanoseconds
+	to_headset(uint64_t timestamp_ns) const;
+};
+
+}

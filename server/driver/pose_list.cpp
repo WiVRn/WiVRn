@@ -25,6 +25,7 @@
 #include "xrt_cast.h"
 
 using namespace xrt::auxiliary::math;
+using namespace xrt::drivers::wivrn;
 
 xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)
 {

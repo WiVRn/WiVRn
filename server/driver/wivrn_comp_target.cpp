@@ -613,7 +613,6 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		xrt_relation_chain xrc{};
 		xrt_space_relation result{};
 		m_relation_chain_push_pose_if_not_identity(&xrc, &cn->c->base.slot.poses[eye]);
-		m_relation_chain_push_relation(&xrc, &cn->c->base.slot.head_relation);
 		m_relation_chain_resolve(&xrc, &result);
 		view_info.fov[eye] = xrt_cast(cn->c->base.slot.fovs[eye]);
 		view_info.pose[eye] = xrt_cast(result.pose);
@@ -731,7 +730,7 @@ static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, uint6
  *
  */
 
-comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, float fps)
+comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor* c, float fps)
 {
 	wivrn_comp_target * cn = new wivrn_comp_target{};
 
@@ -751,6 +750,7 @@ comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivr
 	cn->set_title = comp_wivrn_set_title;
 	cn->flush = comp_wivrn_flush;
 	cn->fps = fps;
+	cn->c = c;
 
 	return cn;
 }
