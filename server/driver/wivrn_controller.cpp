@@ -110,6 +110,27 @@ static const wivrn_to_wivrn_controller_input right_hand_bindings[] = {
 static const size_t left_hand_bindings_count = ARRAY_SIZE(left_hand_bindings);
 static const size_t right_hand_bindings_count = ARRAY_SIZE(right_hand_bindings);
 
+static xrt_binding_input_pair simple_input_binding[] = {
+    {XRT_INPUT_SIMPLE_SELECT_CLICK, XRT_INPUT_TOUCH_TRIGGER_VALUE},
+    {XRT_INPUT_SIMPLE_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
+    {XRT_INPUT_SIMPLE_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+    {XRT_INPUT_SIMPLE_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+};
+
+static xrt_binding_output_pair simple_output_binding[] = {
+    {XRT_OUTPUT_NAME_SIMPLE_VIBRATION, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
+};
+
+static xrt_binding_profile wivrn_binding_profiles[] = {
+    {
+        .name = XRT_DEVICE_SIMPLE_CONTROLLER,
+        .inputs = simple_input_binding,
+        .input_count = std::size(simple_input_binding),
+        .outputs = simple_output_binding,
+        .output_count = std::size(simple_output_binding),
+    },
+};
+
 static void wivrn_controller_destroy(xrt_device * xdev);
 
 static void wivrn_controller_get_tracked_pose(xrt_device * xdev,
@@ -208,6 +229,9 @@ wivrn_controller::wivrn_controller(int hand_id,
 		default:
 			throw std::runtime_error("Invalid hand ID");
 	}
+
+	binding_profile_count = std::size(wivrn_binding_profiles);
+	binding_profiles = wivrn_binding_profiles;
 }
 
 void wivrn_controller::update_inputs()
