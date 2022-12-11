@@ -16,6 +16,7 @@
 #include <iostream>
 #include <memory>
 #include <sys/signalfd.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -26,6 +27,9 @@ extern "C"
 
 #include "avahi_publisher.h"
 #include "hostname.h"
+#include <shared/ipc_protocol.h>
+#include <systemd/sd-daemon.h>
+#include <util/u_file.h>
 
 // Insert the on load constructor to init trace marker.
 U_TRACE_TARGET_SETUP(U_TRACE_WHICH_SERVICE)
@@ -64,8 +68,72 @@ void avahi_set_bool_callback(AvahiWatch * w, int fd, AvahiWatchEvent event, void
 	*flag = true;
 }
 
+std::string socket_path()
+{
+	char sock_file[PATH_MAX];
+	size_t size = u_file_get_path_in_runtime_dir(XRT_IPC_MSG_SOCK_FILENAME, sock_file, PATH_MAX);
+
+	return {sock_file, size};
+}
+
+int create_listen_socket()
+{
+	sockaddr_un addr{};
+
+	auto sock_file = socket_path();
+
+	addr.sun_family = AF_UNIX;
+	strcpy(addr.sun_path, sock_file.c_str());
+
+	int fd = socket(PF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+	int ret = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+
+#ifdef XRT_HAVE_LIBBSD
+	// no other instance is running, or we would have never arrived here
+	if (ret < 0 && errno == EADDRINUSE)
+	{
+		std::cerr << "Removing stale socket file " << sock_file << std::endl;
+
+		ret = unlink(sock_file.c_str());
+		if (ret < 0)
+		{
+			std::cerr << "Failed to remove stale socket file " << sock_file << ": " << strerror(errno) << std::endl;
+			throw std::system_error(errno, std::system_category());
+		}
+		ret = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+	}
+#endif
+
+	if (ret < 0)
+	{
+		std::cerr << "Could not bind socket to path " << sock_file << ": " << strerror(errno) << ". Is the service running already?" << std::endl;
+		if (errno == EADDRINUSE)
+		{
+			std::cerr << "If wivrn is not running, delete " << sock_file << " before starting a new instance" << std::endl;
+		}
+		close(fd);
+		throw std::system_error(errno, std::system_category());
+	}
+
+	ret = listen(fd, IPC_MAX_CLIENTS);
+	if (ret < 0)
+	{
+		close(fd);
+		throw std::system_error(errno, std::system_category());
+	}
+
+
+	assert(fd == SD_LISTEN_FDS_START);
+
+	setenv("LISTEN_FDS", "1", true);
+
+	return fd;
+}
+
 int main(int argc, char * argv[])
 {
+	create_listen_socket();
+
 	u_trace_marker_init();
 
 	sigset_t sigint_mask;
@@ -117,6 +185,8 @@ int main(int argc, char * argv[])
 		{
 			sigprocmask(SIG_UNBLOCK, &sigint_mask, nullptr);
 			close(sigint_fd);
+
+			setenv("LISTEN_PID", std::to_string(getpid()).c_str(), true);
 
 			return ipc_server_main(argc, argv);
 		}
