@@ -199,6 +199,16 @@ int main(int argc, char * argv[])
 	sigprocmask(SIG_BLOCK, &sigint_mask, nullptr);
 	int sigint_fd = signalfd(-1, &sigint_mask, 0);
 
+	// Create a pipe to quit monado properly
+	int pipe_fds[2];
+	if (pipe(pipe_fds) < 0)
+	{
+		perror("pipe");
+		return EXIT_FAILURE;
+	}
+	fcntl(pipe_fds[0], F_SETFD, FD_CLOEXEC);
+	fcntl(pipe_fds[1], F_SETFD, FD_CLOEXEC);
+
 	bool quit = false;
 	while (!quit)
 	{
@@ -229,6 +239,8 @@ int main(int argc, char * argv[])
 				break;
 		}
 
+
+
 		pid_t client_pid = start_application();
 
 		pid_t server_pid = fork();
@@ -240,8 +252,17 @@ int main(int argc, char * argv[])
 		}
 		if (server_pid == 0)
 		{
+			// Unmask SIGTERM, keep SIGINT masked
+			sigset_t sigint_mask;
+			sigemptyset(&sigint_mask);
+			sigaddset(&sigint_mask, SIGTERM);
 			sigprocmask(SIG_UNBLOCK, &sigint_mask, nullptr);
 			close(sigint_fd);
+
+			// Redirect stdin
+			dup2(pipe_fds[0], 0);
+			close(pipe_fds[0]);
+			close(pipe_fds[1]);
 
 			setenv("LISTEN_PID", std::to_string(getpid()).c_str(), true);
 
@@ -296,17 +317,59 @@ int main(int argc, char * argv[])
 				}
 			}
 
+			// Quit the server and the client
 			if (server_running)
-				kill(server_pid, SIGTERM);
+			{
+				// Write to the server's stdin to make it quit
+				char buffer[] = "\n";
+				write(pipe_fds[1], &buffer, strlen(buffer));
+			}
 
 			if (client_running)
 				kill(-client_pid, SIGTERM);
 
-			if (server_running)
-				waitpid_verbose(server_pid, "Server");
+			// Wait until both the server and the client exit
+			auto now = std::chrono::steady_clock::now();
+			while(server_running && client_running)
+			{
+				poll(fds, std::size(fds), 100);
 
-			// if (client_running)
-			// 	waitpid_verbose(client_pid, "Client");
+				if (fds[1].revents & POLLIN)
+				{
+					// Server exited
+					waitpid_verbose(server_pid, "Server");
+
+					server_running = false;
+					fds[1].fd = -1;
+				}
+
+				if (fds[2].revents & POLLIN)
+				{
+					// Client application exited
+					waitpid_verbose(server_pid, "Client");
+
+					client_running = false;
+					fds[2].fd = -1;
+				}
+
+				if (std::chrono::steady_clock::now() - now > std::chrono::seconds(1))
+				{
+					// Send SIGTERM if the server takes more than 1s to quit
+					if (server_running)
+					{
+						poll(&fds[1], 1, 1000);
+
+						if (!(fds[1].revents & POLLIN))
+							kill(server_pid, SIGTERM);
+					}
+
+					// Send SIGKILL if the client takes more than 1s to quit
+					if (client_running)
+					{
+						kill(-client_pid, SIGKILL);
+					}
+				}
+			}
 
 			close(server_fd);
 			if (client_fd > 0)
