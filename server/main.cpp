@@ -13,6 +13,7 @@
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include "wivrn_sockets.h"
+#include "driver/configuration.h"
 #include <iostream>
 #include <memory>
 #include <sys/signalfd.h>
@@ -130,6 +131,60 @@ int create_listen_socket()
 	return fd;
 }
 
+pid_t start_application()
+{
+	auto config = configuration::read_user_configuration();
+
+	if (!config.application.empty())
+	{
+		pid_t application_pid = fork();
+		if (application_pid < 0)
+		{
+			throw std::system_error(errno, std::system_category(), "fork");
+		}
+
+		if (application_pid == 0)
+		{
+			// Start a new process group so that all processes started by the
+			// application can be signaled
+			setpgrp();
+
+			std::vector<char *> argv;
+			argv.reserve(config.application.size() + 1);
+			for(auto& arg: config.application)
+				argv.push_back(arg.data());
+			argv.push_back(nullptr);
+
+			execvp(config.application.front().c_str(), argv.data());
+
+			perror("Cannot start application");
+			exit(EXIT_FAILURE);
+		}
+
+		return application_pid;
+	}
+
+	return 0;
+}
+
+void waitpid_verbose(pid_t pid, const std::string& name)
+{
+	int wstatus = 0;
+	waitpid(pid, &wstatus, 0);
+
+	std::cerr << name << " exited, exit status " << WEXITSTATUS(wstatus);
+	if (WIFSIGNALED(wstatus))
+	{
+		std::cerr << ", received signal " << sigabbrev_np(WTERMSIG(wstatus)) << " ("
+			<< strsignal(WTERMSIG(wstatus)) << ")"
+			<< (WCOREDUMP(wstatus) ? ", core dumped" : "") << std::endl;
+	}
+	else
+	{
+		std::cerr << std::endl;
+	}
+}
+
 int main(int argc, char * argv[])
 {
 	create_listen_socket();
@@ -174,14 +229,16 @@ int main(int argc, char * argv[])
 				break;
 		}
 
-		pid_t child = fork();
+		pid_t client_pid = start_application();
 
-		if (child < 0)
+		pid_t server_pid = fork();
+
+		if (server_pid < 0)
 		{
 			perror("fork");
-			return 1;
+			return EXIT_FAILURE;
 		}
-		if (child == 0)
+		if (server_pid == 0)
 		{
 			sigprocmask(SIG_UNBLOCK, &sigint_mask, nullptr);
 			close(sigint_fd);
@@ -192,45 +249,68 @@ int main(int argc, char * argv[])
 		}
 		else
 		{
-			std::cerr << "Server started, PID " << child << std::endl;
+			std::cerr << "Server started, PID " << server_pid << std::endl;
 
 			tcp.reset();
 
-			int child_fd = pidfd_open(child, 0);
+			int server_fd = pidfd_open(server_pid, 0);
+			int client_fd = client_pid > 0 ? pidfd_open(client_pid, 0) : -1;
 
-			pollfd fds[2]{};
-			fds[0].fd = child_fd;
+			pollfd fds[3]{};
+			fds[0].fd = sigint_fd;
 			fds[0].events = POLLIN;
-			fds[1].fd = sigint_fd;
+			fds[1].fd = server_fd;
 			fds[1].events = POLLIN;
+			fds[2].fd = client_fd;
+			fds[2].events = POLLIN;
 
-			while (true)
+			bool server_running = true;
+			bool client_running = client_pid > 0;
+
+			while (!quit && server_running)
 			{
 				poll(fds, std::size(fds), -1);
 
-				if (fds[1].revents & POLLIN)
+				if (fds[0].revents & POLLIN)
 				{
 					// SIGINT/SIGTERM received
 					quit = true;
 				}
 
-				if (fds[0].revents & POLLIN)
+				if (fds[1].revents & POLLIN)
 				{
-					// Child exited
-					int wstatus = 0;
-					waitpid(child, &wstatus, 0);
+					// Server exited
+					waitpid_verbose(server_pid, "Server");
 
-					std::cerr << "Server exited, exit status " << WEXITSTATUS(wstatus) << std::endl;
-					if (WIFSIGNALED(wstatus))
-						std::cerr << "Received signal " << sigabbrev_np(WTERMSIG(wstatus)) << " ("
-						          << strsignal(WTERMSIG(wstatus)) << ")"
-						          << (WCOREDUMP(wstatus) ? ", core dumped" : "") << std::endl;
+					server_running = false;
+					fds[1].fd = -1;
+				}
 
-					break;
+				if (fds[2].revents & POLLIN)
+				{
+					// Client application exited
+					waitpid_verbose(server_pid, "Client");
+
+					client_running = false;
+					fds[2].fd = -1;
 				}
 			}
 
-			close(child_fd);
+			if (server_running)
+				kill(server_pid, SIGTERM);
+
+			if (client_running)
+				kill(-client_pid, SIGTERM);
+
+			if (server_running)
+				waitpid_verbose(server_pid, "Server");
+
+			// if (client_running)
+			// 	waitpid_verbose(client_pid, "Client");
+
+			close(server_fd);
+			if (client_fd > 0)
+				close(client_fd);
 
 			run_cleanup_functions();
 		}

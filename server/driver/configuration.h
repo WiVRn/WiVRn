@@ -43,6 +43,7 @@ struct configuration
 
 	std::vector<encoder> encoders;
 	std::optional<std::array<double, 2>> scale;
+	std::vector<std::string> application;
 
 	static configuration read_user_configuration();
 };

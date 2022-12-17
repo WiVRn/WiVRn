@@ -99,6 +99,14 @@ configuration configuration::read_user_configuration()
 				result.encoders.push_back(e);
 			}
 		}
+
+		if (json.contains("application"))
+		{
+			if (json["application"].is_string())
+				result.application.push_back(json["application"]);
+			else
+				result.application = json["application"];
+		}
 	}
 	catch (const std::exception & e)
 	{
