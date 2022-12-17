@@ -39,6 +39,7 @@ struct pseudo_swapchain
 	{
 		VkFence fence;
 		VkDeviceMemory memory;
+		VkCommandBuffer present_cmd;
 		uint8_t status; // bitmask of consumer status, index 0 for acquired, the rest for each encoder
 		uint64_t frame_index;
 		to_headset::video_stream_data_shard::view_info_t view_info{};
@@ -115,6 +116,7 @@ static void destroy_images(struct wivrn_comp_target * cn)
 		vk->vkDestroyImageView(vk->device, cn->images[i].view, NULL);
 		vk->vkDestroyImage(vk->device, cn->images[i].handle, NULL);
 		vk->vkFreeMemory(vk->device, cn->psc.images[i].memory, NULL);
+		vk->vkFreeCommandBuffers(vk->device, vk->cmd_pool, 1, &cn->psc.images[i].present_cmd);
 	}
 
 	free(cn->images);
@@ -304,6 +306,21 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 		res = vk->vkCreateFence(vk->device, &createinfo, NULL, &cn->psc.images[i].fence);
 
 		vk_check_error("vkCreateFence", res, res);
+
+		res = vk_cmd_buffer_create_and_begin(vk, &cn->psc.images[i].present_cmd);
+		vk_check_error("vk_cmd_buffer_create_and_begin", res, res);
+
+		VkImageSubresourceRange first_color_level_subresource_range{
+		        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		        .baseMipLevel = 0,
+		        .levelCount = 1,
+		        .baseArrayLayer = 0,
+		        .layerCount = 1,
+		};
+		vk_cmd_image_barrier_gpu_locked(vk, cn->psc.images[i].present_cmd, image, 0, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL, first_color_level_subresource_range);
+
+		res = vk->vkEndCommandBuffer(cn->psc.images[i].present_cmd);
+		vk_check_error("vkEndCommandBuffer", res, res);
 	}
 
 	return VK_SUCCESS;
@@ -556,23 +573,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	assert(index < ct->image_count);
 	assert(ct->images != NULL);
 
-	std::vector<VkCommandBuffer> cmdBuffers;
-
-	VkCommandBuffer cmdBuffer;
-	VkResult res = vk_cmd_buffer_create_and_begin(vk, &cmdBuffer);
-	vk_check_error("vk_cmd_buffer_create_and_begin", res, res);
-
-	VkImageSubresourceRange first_color_level_subresource_range{};
-	first_color_level_subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	first_color_level_subresource_range.baseMipLevel = 0;
-	first_color_level_subresource_range.levelCount = 1;
-	first_color_level_subresource_range.baseArrayLayer = 0;
-	first_color_level_subresource_range.layerCount = 1;
-	vk_cmd_image_barrier_gpu_locked(vk, cmdBuffer, ct->images[index].handle, 0, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL, first_color_level_subresource_range);
-
-	res = vk->vkEndCommandBuffer(cmdBuffer);
-	vk_check_error("vkEndCommandBuffer", res, res);
-	cmdBuffers.push_back(cmdBuffer);
+	std::vector<VkCommandBuffer> cmdBuffers{cn->psc.images[index].present_cmd};
 
 	for (auto & encoder: cn->encoders)
 	{
@@ -595,7 +596,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	submit.pSignalSemaphores = NULL;
 
 	std::lock_guard lock(cn->psc.mutex);
-	res = vk->vkResetFences(vk->device, 1, &cn->psc.images[index].fence);
+	VkResult res = vk->vkResetFences(vk->device, 1, &cn->psc.images[index].fence);
 	vk_check_error("vkResetFences", res, res);
 	res = vk_locked_submit(vk, vk->queue, 1, &submit, cn->psc.images[index].fence);
 	vk_check_error("vk_locked_submit", res, res);
