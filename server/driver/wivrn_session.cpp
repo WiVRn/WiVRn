@@ -47,19 +47,18 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	        fps(fps)
 	{}
 
-	static bool detect(struct comp_target_factory * ctf, struct comp_compositor * c)
+	static bool detect(const struct comp_target_factory * ctf, struct comp_compositor * c)
 	{
 		return true;
-	        }
+	}
 
-		static bool create_target(struct comp_target_factory *ctf, struct comp_compositor *c, struct comp_target **out_ct)
-		{
-			auto self = (wivrn_comp_target_factory*)ctf;
-			*out_ct = comp_target_wivrn_create(self->session, c, self->fps);
-			return true;
-		}
+	static bool create_target(const struct comp_target_factory * ctf, struct comp_compositor * c, struct comp_target ** out_ct)
+	{
+		auto self = (wivrn_comp_target_factory *)ctf;
+		*out_ct = comp_target_wivrn_create(self->session, c, self->fps);
+		return true;
+	}
 };
-
 
 xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, in6_addr & address) :
         connection(std::move(tcp), address)
