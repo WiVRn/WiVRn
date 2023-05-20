@@ -32,7 +32,7 @@ xr::swapchain::swapchain(xr::session & s, VkDevice device, VkFormat format, uint
 	XrSwapchainCreateInfo create_info{};
 	create_info.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
 	create_info.createFlags = 0;
-	create_info.usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT;
+	create_info.usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
 	create_info.format = format;
 	create_info.sampleCount = sample_count;
 	create_info.width = width;
