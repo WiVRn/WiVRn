@@ -3,8 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="org.meumeu.wivrn"
     android:installLocation="auto">
-    <!--  Tell the system this app requires OpenGL ES 3.2.  -->
-    <uses-feature android:glEsVersion="0x00030002" android:required="true"/>
 
     <!-- Tell the system this app works in either 3dof or 6dof mode -->
     <uses-feature android:name="android.hardware.vr.headtracking" android:required="true" android:version="1" />

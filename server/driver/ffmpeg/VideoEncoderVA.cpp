@@ -303,19 +303,22 @@ void VideoEncoderVA::InitFilterGraph()
 	AVFilterInOut * outputs = avfilter_inout_alloc();
 	AVFilterInOut * inputs = avfilter_inout_alloc();
 
-	filter_in = avfilter_graph_alloc_filter(filter_graph.get(), avfilter_get_by_name("buffer"), "in");
+    std::stringstream buffer_filter_args;
+    buffer_filter_args << "video_size=" << mapped_frames[0]->width << "x" << mapped_frames[0]->height;
+    buffer_filter_args << ":pix_fmt=" << mapped_frames[0]->format;
+    buffer_filter_args << ":time_base=" << encoder_ctx->time_base.num << "/" << encoder_ctx->time_base.den;
+    int err;
+    if ((err = avfilter_graph_create_filter(&filter_in, avfilter_get_by_name("buffer"), "in", buffer_filter_args.str().c_str(), NULL, filter_graph.get())))
+    {
+        throw std::system_error(err, av_error_category(), "filter_in creation failed");
+    }
+    AVBufferSrcParameters *par = av_buffersrc_parameters_alloc();
+    memset(par, 0, sizeof(*par));
+    par->format = AV_PIX_FMT_NONE;
+    par->hw_frames_ctx = av_buffer_ref(mapped_frames[0]->hw_frames_ctx);
+    av_buffersrc_parameters_set(filter_in, par);
+    av_free(par);
 
-	AVBufferSrcParameters * par = av_buffersrc_parameters_alloc();
-	memset(par, 0, sizeof(*par));
-	par->width = mapped_frames[0]->width;
-	par->height = mapped_frames[0]->height;
-	par->time_base = encoder_ctx->time_base;
-	par->format = mapped_frames[0]->format;
-	par->hw_frames_ctx = av_buffer_ref(mapped_frames[0]->hw_frames_ctx);
-	av_buffersrc_parameters_set(filter_in, par);
-	av_free(par);
-
-	int err;
 	if ((err = avfilter_graph_create_filter(&filter_out, avfilter_get_by_name("buffersink"), "out", NULL, NULL, filter_graph.get())))
 	{
 		throw std::system_error(err, av_error_category(), "filter_out creation failed");
@@ -338,7 +341,7 @@ void VideoEncoderVA::InitFilterGraph()
 	avfilter_inout_free(&inputs);
 	if (err < 0)
 	{
-		throw std::system_error(err, av_error_category(), "avfilter_graph_parse_ptr failed");
+		throw std::system_error(err, av_error_category(), "code "+ std::to_string(err) + "avfilter_graph_parse_ptr failed");
 	}
 
 	if ((err = avfilter_graph_config(filter_graph.get(), NULL)))
