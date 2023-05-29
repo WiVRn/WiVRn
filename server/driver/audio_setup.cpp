@@ -4,6 +4,10 @@
 
 #include "../wivrn_ipc.h"
 #include "wivrn_sockets.h"
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
 #include <fcntl.h>
 #include <netinet/tcp.h>
 #include <pulse/context.h>
@@ -18,7 +22,9 @@
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <sys/ioctl.h>
 #include <sys/poll.h>
+#include <sys/types.h>
 #include <thread>
 #include <vector>
 
@@ -26,6 +32,12 @@ static const char * source_name = "WiVRn-mic";
 static const char * sink_name = "WiVRn";
 static const char * source_pipe = "wivrn-source";
 static const char * sink_pipe = "wivrn-sink";
+
+static unsigned int buffer_size_ms = 10;
+
+// max allowed bytes in the output pipe before we start discarding data
+// total buffer size = buffer_size_ms + buffer_size_ms * buffer_size_mult
+static unsigned int buffer_size_mult = 4;
 
 struct module_entry
 {
@@ -284,6 +296,9 @@ struct pulse_publish_handle : public audio_publish_handle
 	std::optional<module_entry> speaker;
 	std::optional<module_entry> microphone;
 
+	int mic_buf_size;
+	int spk_buf_size;
+
 	~pulse_publish_handle()
 	{
 		quit = true;
@@ -323,27 +338,42 @@ struct pulse_publish_handle : public audio_publish_handle
 			// in pairs (read, write)
 			// negative if already available
 			std::vector<pollfd> pfd;
+			size_t num_pairs;
+
 			xrt::drivers::wivrn::fd_base speaker_pipe;
 			xrt::drivers::wivrn::fd_base mic_pipe;
+
+			ssize_t bufsize[] = {0, 0};
+			ssize_t max_bytes_in_pipe[] = {0, 0};
+			char * buf = new char[std::max(spk_buf_size, mic_buf_size)];
+
 			if (speaker)
 			{
+				bufsize[num_pairs] = spk_buf_size;
 				speaker_pipe = open(speaker->socket.c_str(), O_RDONLY | O_NONBLOCK);
 				if (speaker_pipe.get_fd() < 0)
 					throw std::system_error(errno, std::system_category(), "failed to open speaker pipe " + speaker->socket.string());
 				pfd.push_back({.fd = speaker_pipe.get_fd(), .events = POLLIN});
 				pfd.push_back({.fd = client.get_fd(), .events = POLLOUT});
+
+				num_pairs++;
+
 				// flush pipe, so we don't have old samples
-				char sewer[1024];
-				while (read(speaker_pipe.get_fd(), sewer, sizeof(sewer)) > 0)
+				while (read(speaker_pipe.get_fd(), buf, spk_buf_size) > 0)
 				{}
 			}
 			if (microphone)
 			{
+				bufsize[num_pairs] = mic_buf_size;
+				max_bytes_in_pipe[num_pairs] = mic_buf_size * buffer_size_mult;
+
 				mic_pipe = open(microphone->socket.c_str(), O_WRONLY);
 				if (mic_pipe.get_fd() < 0)
 					throw std::system_error(errno, std::system_category(), "failed to open microphone pipe " + microphone->socket.string());
 				pfd.push_back({.fd = client.get_fd(), .events = POLLIN});
 				pfd.push_back({.fd = mic_pipe.get_fd(), .events = POLLOUT});
+
+				num_pairs++;
 			}
 			while (not quit)
 			{
@@ -351,27 +381,32 @@ struct pulse_publish_handle : public audio_publish_handle
 				if (r < 0)
 					throw std::system_error(errno, std::system_category());
 
-				for (size_t i = 0; i < pfd.size(); ++i)
+				for (size_t p = 0; p < num_pairs; p++)
 				{
-					if (pfd[i].revents & (POLLHUP | POLLERR))
+					int i = p * 2;
+					int o = i + 1;
+					if ((pfd[i].revents | pfd[o].revents) & (POLLHUP | POLLERR))
 						throw std::runtime_error("Error on audio socket");
 
-					if (pfd[i].revents & (POLLIN | POLLOUT))
+					if ((pfd[i].revents) & POLLIN)
 					{
-						// mark fd as ready
-						pfd[i].fd = -pfd[i].fd;
-						size_t base = i - i % 2;
+						ssize_t bytes_read = read(pfd[i].fd, buf, bufsize[p]);
+						ssize_t bytes_to_write;
 
-						// if both in and out fd are ready, do something
-						if (pfd[base].fd < 0 and pfd[base + 1].fd < 0)
+						if (max_bytes_in_pipe[p] != 0)
 						{
-							pfd[base].fd = -pfd[base].fd;
-							pfd[base + 1].fd = -pfd[base + 1].fd;
-
-							ssize_t written = splice(pfd[base].fd, nullptr, pfd[base + 1].fd, nullptr, 1024, SPLICE_F_MOVE);
-							if (written < 0)
-								throw std::system_error(errno, std::system_category(), "failed to transfer audio data");
+							ssize_t bytes_in_pipe;
+							if (ioctl(pfd[o].fd, FIONREAD, &bytes_in_pipe) == 0)
+								bytes_to_write = std::min((int)max_bytes_in_pipe[p] - (int)bytes_in_pipe, (int)bytes_read);
+							else
+								bytes_to_write = bytes_read;
 						}
+						else
+							bytes_to_write = bytes_read;
+
+						ssize_t written = write(pfd[o].fd, buf, bytes_to_write);
+						if (written < 0)
+							throw std::system_error(errno, std::system_category(), "failed to transfer audio data");
 					}
 				}
 			}
@@ -426,11 +461,13 @@ struct pulse_publish_handle : public audio_publish_handle
 		if (info.microphone)
 		{
 			result->microphone = ensure_source(cnx, source_name.c_str(), source_description, info.microphone->num_channels, info.microphone->sample_rate);
+			result->mic_buf_size = 2 * info.microphone->num_channels * (info.microphone->sample_rate / 1000 * buffer_size_ms);
 			result->desc.microphone = {.num_channels = info.microphone->num_channels, .sample_rate = info.microphone->sample_rate};
 		}
 		if (info.speaker)
 		{
 			result->speaker = ensure_sink(cnx, sink_name.c_str(), sink_description, info.speaker->num_channels, info.speaker->sample_rate);
+			result->spk_buf_size = 2 * info.speaker->num_channels * (info.speaker->sample_rate / 1000 * buffer_size_ms);
 			result->desc.speaker = {.num_channels = info.speaker->num_channels, .sample_rate = info.speaker->sample_rate};
 		}
 
