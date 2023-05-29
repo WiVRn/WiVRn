@@ -70,23 +70,20 @@ void scenes::stream::read_actions()
 void scenes::stream::operator()(to_headset::haptics && haptics)
 {
 	XrAction action;
-	XrPath subpath;
 
 	if (haptics.id == device_id::LEFT_CONTROLLER_HAPTIC)
 	{
 		action = haptics_actions[0].first;
-		subpath = haptics_actions[0].second;
 	}
 	else if (haptics.id == device_id::RIGHT_CONTROLLER_HAPTIC)
 	{
 		action = haptics_actions[1].first;
-		subpath = haptics_actions[1].second;
 	}
 	else
 		return;
 
 	if (haptics.amplitude > 0)
-		application::haptic_start(action, subpath, haptics.duration.count(), haptics.frequency, haptics.amplitude);
+		application::haptic_start(action, XR_NULL_PATH, haptics.duration.count(), haptics.frequency, haptics.amplitude);
 	else
-		application::haptic_stop(action, subpath);
+		application::haptic_stop(action, XR_NULL_PATH);
 }
