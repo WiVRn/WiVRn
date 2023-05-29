@@ -341,7 +341,7 @@ void VideoEncoderVA::InitFilterGraph()
 	avfilter_inout_free(&inputs);
 	if (err < 0)
 	{
-		throw std::system_error(err, av_error_category(), "code "+ std::to_string(err) + "avfilter_graph_parse_ptr failed");
+		throw std::system_error(err, av_error_category(), "avfilter_graph_parse_ptr failed");
 	}
 
 	if ((err = avfilter_graph_config(filter_graph.get(), NULL)))
