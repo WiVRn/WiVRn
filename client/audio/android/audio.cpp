@@ -72,7 +72,7 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 			if (pfd.revents & POLLIN)
 			{
 				ssize_t bytes_available;
-				while (ioctl(fd, FIONREAD, &bytes_available) == 0 && bytes_available > max_bytes_available)
+				while (ioctl(fd, FIONREAD, &bytes_available) == 0 && bytes_available > (ssize_t)max_bytes_available)
 					recv(fd, sewer, bufsize, 0);
 
 				ssize_t size = recv(fd, buffer + offset, bufsize - offset, 0);
