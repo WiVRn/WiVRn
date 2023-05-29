@@ -29,7 +29,6 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
-pkg_check_modules(systemd IMPORTED_TARGET systemd)
 
 if (WIVRN_BUILD_SERVER)
     find_package(CUDAToolkit)

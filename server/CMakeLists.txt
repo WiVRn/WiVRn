@@ -111,7 +111,6 @@ target_link_libraries(
 		xrt-external-openxr
 		xrt-interfaces
 
-		PkgConfig::systemd
 		Boost::pfr
 		PkgConfig::AVAHI
 		PkgConfig::libpulse
