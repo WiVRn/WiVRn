@@ -27,17 +27,9 @@ extern "C" {
 #error "This extension depends XR_FB_spatial_entity which has not been defined"
 #endif
 
-#define XR_FBX2_spatial_entity_storage_SPEC_VERSION 2
-#define XR_FBX2_SPATIAL_ENTITY_STORAGE_EXTENSION_NAME "XR_FBX2_spatial_entity_storage"
-
 #ifndef XR_FB_spatial_entity_storage_EXPERIMENTAL_VERSION
 #define XR_FB_spatial_entity_storage_SPEC_VERSION 1
 #define XR_FB_SPATIAL_ENTITY_STORAGE_EXTENSION_NAME "XR_FB_spatial_entity_storage"
-#elif XR_FB_spatial_entity_storage_EXPERIMENTAL_VERSION == 2
-#define XR_FB_spatial_entity_storage_SPEC_VERSION XR_FBX2_spatial_entity_storage_SPEC_VERSION
-#define XR_FB_SPATIAL_ENTITY_STORAGE_EXTENSION_NAME XR_FBX2_SPATIAL_ENTITY_STORAGE_EXTENSION_NAME
-#else
-#error "unknown experimental version for XR_FB_spatial_entity_storage"
 #endif
 
 // In order to persist XrSpaces between application uses the XR_SPACE_COMPONENT_TYPE_STORABLE_FB
@@ -152,6 +144,15 @@ xrEraseSpaceFB(XrSession session, const XrSpaceEraseInfoFB* info, XrAsyncRequest
 #endif
 
 #ifdef XR_FB_spatial_entity_storage_EXPERIMENTAL_VERSION
+
+#if XR_FB_spatial_entity_storage_EXPERIMENTAL_VERSION == 2
+#undef XR_FB_spatial_entity_storage_SPEC_VERSION
+#define XR_FB_spatial_entity_storage_SPEC_VERSION XR_FBX2_spatial_entity_storage_SPEC_VERSION
+#undef XR_FB_SPATIAL_ENTITY_STORAGE_EXTENSION_NAME
+#define XR_FB_SPATIAL_ENTITY_STORAGE_EXTENSION_NAME XR_FBX2_SPATIAL_ENTITY_STORAGE_EXTENSION_NAME
+#else
+#error "unknown experimental version for XR_FB_spatial_entity_storage"
+#endif
 
 #if XR_FB_spatial_entity_storage_EXPERIMENTAL_VERSION >= 2
 

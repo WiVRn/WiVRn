@@ -22,13 +22,8 @@ extern "C" {
 #ifndef XR_FB_scene
 #define XR_FB_scene 1
 
-
-#ifndef XR_FB_scene_EXPERIMENTAL_VERSION
 #define XR_FB_scene_SPEC_VERSION 1
 #define XR_FB_SCENE_EXTENSION_NAME "XR_FB_scene"
-#else
-#error "unknown experimental version number for XR_FB_scene_EXPERIMENTAL_VERSION"
-#endif
 
 static const XrSpaceComponentTypeFB XR_SPACE_COMPONENT_TYPE_BOUNDED_2D_FB =
     (XrSpaceComponentTypeFB)3;
@@ -187,6 +182,38 @@ xrGetSpaceRoomLayoutFB(XrSession session, XrSpace space, XrRoomLayoutFB* roomLay
 #endif // XR_EXTENSION_PROTOTYPES
 #endif // !XR_NO_PROTOTYPES
 #endif // XR_FB_scene
+
+// Planned additions for spec version 2
+#if XR_FB_scene_SPEC_VERSION == 1
+#undef XR_FB_scene_SPEC_VERSION
+#define XR_FB_scene_SPEC_VERSION 2
+
+typedef XrFlags64 XrSemanticLabelsSupportFlagsFB;
+
+// When this flag is set, the system may return multiple semantic labels separated by comma (,) in
+// XrSemanticLabelsFB. Otherwise, the system returns a single semantic label.
+static const XrSemanticLabelsSupportFlagsFB XR_SCENE_SUPPORT_MULTIPLE_SEMANTIC_LABELS_FB =
+    0x00000001;
+
+// Struct used to tell the system what semantic labels and format in the return are supported by the
+// caller. This struct may be provided as the next of XrSemanticLabelsFB. When the next of
+// XrSemanticLabelsFB is nullptr, the system assumes the behavior used in spec version 1, i.e.:
+// (1) None of the flags are set. Specifically, the system returns a single semantic label.
+// (2) recognizedLabels include a set of labels supported in spec version 1. Specifically, they are
+// "DESK,COUCH,FLOOR,CEILING,WALL_FACE,WINDOW_FRAME,DOOR_FRAME,OTHER".
+static const XrStructureType XR_TYPE_SEMANTIC_LABELS_SUPPORT_INFO_FB = (XrStructureType)1000175010;
+typedef struct XrSemanticLabelsSupportInfoFB {
+    XrStructureType type;
+    const void* XR_MAY_ALIAS next;
+
+    XrSemanticLabelsSupportFlagsFB flags;
+
+    // Set of semantic labels recognized by the caller. Each semantic label is separated by comma
+    // (,). It must be a zero-terminated string.
+    const char* recognizedLabels;
+} XrSemanticLabelsSupportInfoFB;
+
+#endif // XR_FB_scene_SPEC_VERSION == 1
 
 
 #ifdef __cplusplus

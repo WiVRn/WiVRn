@@ -32,17 +32,9 @@ extern "C" {
 #error "This extension depends XR_FB_spatial_entity_storage which has not been defined"
 #endif
 
-#define XR_FBX2_spatial_entity_query_SPEC_VERSION 2
-#define XR_FBX2_SPATIAL_ENTITY_QUERY_EXTENSION_NAME "XR_FBX2_spatial_entity_query"
-
 #ifndef XR_FB_spatial_entity_query_EXPERIMENTAL_VERSION
 #define XR_FB_spatial_entity_query_SPEC_VERSION 1
 #define XR_FB_SPATIAL_ENTITY_QUERY_EXTENSION_NAME "XR_FB_spatial_entity_query"
-#elif XR_FB_spatial_entity_query_EXPERIMENTAL_VERSION == 2
-#define XR_FB_spatial_entity_query_SPEC_VERSION XR_FBX2_spatial_entity_query_SPEC_VERSION
-#define XR_FB_SPATIAL_ENTITY_QUERY_EXTENSION_NAME XR_FBX2_SPATIAL_ENTITY_QUERY_EXTENSION_NAME
-#else
-#error "unknown experimental version for XR_FB_spatial_entity_query"
 #endif
 
 // This extension allows an application to query the spaces that have been previously shared
@@ -206,6 +198,15 @@ XRAPI_ATTR XrResult XRAPI_CALL xrRetrieveSpaceQueryResultsFB(
 #endif
 
 #ifdef XR_FB_spatial_entity_query_EXPERIMENTAL_VERSION
+
+#if XR_FB_spatial_entity_query_EXPERIMENTAL_VERSION == 2
+#undef XR_FB_spatial_entity_query_SPEC_VERSION
+#define XR_FB_spatial_entity_query_SPEC_VERSION XR_FBX2_spatial_entity_query_SPEC_VERSION
+#undef XR_FB_SPATIAL_ENTITY_QUERY_EXTENSION_NAME
+#define XR_FB_SPATIAL_ENTITY_QUERY_EXTENSION_NAME XR_FBX2_SPATIAL_ENTITY_QUERY_EXTENSION_NAME
+#else
+#error "unknown experimental version for XR_FB_spatial_entity_query"
+#endif
 
 #if XR_FB_spatial_entity_query_EXPERIMENTAL_VERSION >= 2
 

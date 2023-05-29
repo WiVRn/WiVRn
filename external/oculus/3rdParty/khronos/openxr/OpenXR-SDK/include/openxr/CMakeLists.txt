@@ -21,12 +21,9 @@
 configure_file(openxr_platform_defines.h ${CMAKE_CURRENT_BINARY_DIR}/openxr_platform_defines.h COPYONLY)
 
 # Generate OpenXR header files.
+# Get the list of generated headers from the common single-point-of-truth
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/../generated_header_list.txt HEADERS LENGTH_MINIMUM 8)
 
-
-set(HEADERS
-    openxr.h
-    openxr_platform.h
-    openxr_reflection.h)
 set(HAVE_PREGENERATED TRUE)
 set(SOURCE_HEADERS)
 foreach(output ${HEADERS})
@@ -54,7 +51,13 @@ else()
         COPYONLY)
 
     # Generate the header files and place it in the binary (build) directory.
+    file(GLOB _templates LIST_DIRECTORIES false CONFIGURE_DEPENDS ${XR_ROOT}/specification/scripts/template_*)
     foreach(output ${HEADERS})
+        if("${output}" MATCHES "reflection")
+            set(_extra_deps ${XR_ROOT}/specification/scripts/jinja_helpers.py ${_templates})
+        else()
+            unset(_extra_deps)
+        endif()
         add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${output}
             COMMAND ${PYTHON_EXECUTABLE} ${XR_ROOT}/specification/scripts/genxr.py
                 -registry ${XR_ROOT}/specification/registry/xr.xml
@@ -66,6 +69,7 @@ else()
                 ${XR_ROOT}/specification/scripts/generator.py
                 ${XR_ROOT}/specification/scripts/reg.py
                 ${XR_ROOT}/specification/registry/xr.xml
+                ${_extra_deps}
             COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/${output}"
         )
         list(APPEND GENERATED_HEADERS "${CMAKE_CURRENT_BINARY_DIR}/${output}")
@@ -91,11 +95,11 @@ else()
     )
 endif()
 set_target_properties(generate_openxr_header PROPERTIES FOLDER ${CODEGEN_FOLDER})
-if(NOT CMAKE_INSTALL_INCDIR)
-    set(CMAKE_INSTALL_INCDIR include)
-endif()
+
+# make cache variables for install destinations
+include(GNUInstallDirs)
 
 INSTALL(FILES ${INSTALL_HEADERS}
-    DESTINATION ${CMAKE_INSTALL_INCDIR}/openxr
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openxr
     COMPONENT Headers
 )
