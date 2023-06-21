@@ -1,5 +1,4 @@
 #include "hostname.h"
-
 #include <string>
 #include <unistd.h>
 
@@ -11,3 +10,4 @@ std::string hostname()
     return std::string(buf);
   return "unknown";
 }
+

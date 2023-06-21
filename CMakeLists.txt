@@ -51,6 +51,7 @@ if (WIVRN_BUILD_SERVER)
         message(FATAL_ERROR "No encoder found")
     endif()
 
+    pkg_check_modules(SYSTEMD IMPORTED_TARGET systemd)
     pkg_check_modules(AVAHI IMPORTED_TARGET avahi-client)
     pkg_check_modules(libpulse IMPORTED_TARGET libpulse)
     find_package(Eigen3 REQUIRED)
