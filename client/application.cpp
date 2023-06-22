@@ -414,7 +414,7 @@ void application::initialize()
 #ifdef XR_USE_PLATFORM_ANDROID
 	char property_chararr[PROP_VALUE_MAX + 1];
 	__system_property_get("ro.product.manufacturer", property_chararr);
-#elif
+#else
 	char property_chararr[93];
 #endif
 	std::string manufacturer_string(property_chararr);
