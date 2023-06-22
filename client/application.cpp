@@ -31,7 +31,6 @@
 #include "xr/xr.h"
 #include <algorithm>
 #include <chrono>
-#include <sys/system_properties.h>
 #include <thread>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -43,6 +42,7 @@
 #endif
 
 #ifdef XR_USE_PLATFORM_ANDROID
+#include <sys/system_properties.h>
 #include <android/native_activity.h>
 #endif
 
