@@ -15,6 +15,7 @@
 #include "util/u_debug.h"
 #include "util/u_system_helpers.h"
 #include "util/u_trace_marker.h"
+#include "util/u_builders.h"
 
 #include <assert.h>
 
@@ -31,6 +32,7 @@ extern std::unique_ptr<TCP> tcp;
 static xrt_result_t
 wivrn_instance_create_system(struct xrt_instance * xinst,
                              struct xrt_system_devices ** out_xsysd,
+							 struct xrt_space_overseer ** out_xspovrs,
                              struct xrt_system_compositor ** out_xsysc)
 {
 	assert(out_xsysd != NULL);
@@ -62,6 +64,10 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 
 	*out_xsysd = xsysd;
 	*out_xsysc = xsysc;
+
+	struct xrt_space_overseer * xspovrs = NULL;
+	u_builder_create_space_overseer(xsysd, &xspovrs);
+	*out_xspovrs = xspovrs;
 
 	return xret;
 }

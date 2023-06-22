@@ -25,6 +25,7 @@
 #include "view_list.h"
 #include "wivrn_session.h"
 
+#include <cstdint>
 #include <memory>
 #include <mutex>
 
@@ -43,7 +44,7 @@ class wivrn_hmd : public xrt_device
 
 	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
 
-	static bool wivrn_hmd_compute_distortion(xrt_device * xdev, int view_index, float u, float v, xrt_uv_triplet * result);
+	static bool wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_index, float u, float v, xrt_uv_triplet * result);
 
 public:
 	wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
