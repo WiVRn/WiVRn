@@ -51,7 +51,6 @@ endif()
 add_executable(wivrn-server
 		main.cpp
 		target_instance_wivrn.cpp
-		hostname.cpp
 		avahi_publisher.cpp
 		wivrn_ipc.cpp
 
