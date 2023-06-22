@@ -411,8 +411,12 @@ void application::initialize()
 	xr_actionset = xr::actionset(xr_instance, "actions", "Actions");
 
 	// TODO better way to handle bindings for different vendors/flavors of vendor
+#ifdef XR_USE_PLATFORM_ANDROID
 	char property_chararr[PROP_VALUE_MAX + 1];
 	__system_property_get("ro.product.manufacturer", property_chararr);
+#elif
+	char property_chararr[93];
+#endif
 	std::string manufacturer_string(property_chararr);
 
 	if (manufacturer_string == "Oculus" || manufacturer_string == "Meta")
@@ -427,7 +431,9 @@ void application::initialize()
 	}
 	else if (manufacturer_string == "Pico")
 	{
-		__system_property_get("ro.product.manufacturer", property_chararr);
+#ifdef XR_USE_PLATFORM_ANDROID
+		__system_property_get("ro.product.model", property_chararr);
+#endif
 		std::string model_string(property_chararr);
 
 		if (model_string == "Pico Neo 3")
