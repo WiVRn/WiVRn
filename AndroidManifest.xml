@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="org.meumeu.wivrn"
+    package="org.meumeu.wivrn" 
     android:installLocation="auto">
 
     <!-- Tell the system this app works in either 3dof or 6dof mode -->
