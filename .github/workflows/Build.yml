@@ -93,7 +93,7 @@ jobs:
       if: ${{ github.event_name != 'pull_request' }}
       run: |
         chmod +x gradlew
-        ./gradlew oculusRelease
+        ./gradlew assembleOculus
 
     - name: Prepare before archiving artifacts
       run: |
@@ -156,7 +156,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         run: |
           chmod +x gradlew
-          ./gradlew picoRelease
+          ./gradlew assemblePico
 
       - name: Prepare before archiving artifacts
         run: |
