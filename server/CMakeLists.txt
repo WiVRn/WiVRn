@@ -51,7 +51,6 @@ endif()
 add_executable(wivrn-server
 		main.cpp
 		target_instance_wivrn.cpp
-		hostname.cpp
 		avahi_publisher.cpp
 		wivrn_ipc.cpp
 
@@ -93,6 +92,12 @@ if(X264_FOUND)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)
 endif()
 
+if(SYSTEMD_FOUND)
+        target_sources(wivrn-server PRIVATE hostname-sd.cpp)
+        target_link_libraries(wivrn-server PRIVATE PkgConfig::SYSTEMD)
+else()
+        target_sources(wivrn-server PRIVATE hostname.cpp)
+endif()
 
 include(CompileGLSL)
 
@@ -111,7 +116,6 @@ target_link_libraries(
 		xrt-external-openxr
 		xrt-interfaces
 
-		PkgConfig::systemd
 		Boost::pfr
 		PkgConfig::AVAHI
 		PkgConfig::libpulse

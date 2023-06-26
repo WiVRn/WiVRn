@@ -29,7 +29,6 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
-pkg_check_modules(systemd IMPORTED_TARGET systemd)
 
 if (WIVRN_BUILD_SERVER)
     find_package(CUDAToolkit)
@@ -52,6 +51,7 @@ if (WIVRN_BUILD_SERVER)
         message(FATAL_ERROR "No encoder found")
     endif()
 
+    pkg_check_modules(SYSTEMD IMPORTED_TARGET systemd)
     pkg_check_modules(AVAHI IMPORTED_TARGET avahi-client)
     pkg_check_modules(libpulse IMPORTED_TARGET libpulse)
     find_package(Eigen3 REQUIRED)
@@ -74,7 +74,7 @@ FetchContent_Declare(tinygltf URL https://github.com/syoyo/tinygltf/archive/refs
 FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
-    GIT_TAG          3c1880448e7d23c9ecebbd08a31394c5f3ee4713
+    GIT_TAG          e9475b13137db2cca8571576b5381a70fb8180a5
     )
 
 

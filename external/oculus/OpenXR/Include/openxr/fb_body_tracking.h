@@ -1,57 +1,32 @@
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
+#ifndef FB_BODY_TRACKING_H_
+#define FB_BODY_TRACKING_H_ 1
 
-/************************************************************************************
-Filename    :   fb_body_tracking.h
-Content     :
+/**********************
+This file is @generated from the OpenXR XML API registry.
 Language    :   C99
-*************************************************************************************/
-
-#pragma once
+Copyright   :   (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
+***********************/
 
 #include <openxr/openxr.h>
-#include <openxr/openxr_extension_helpers.h>
-#include <cstdint>
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
 #endif
 
-// Extension 77
 
 #ifndef XR_FB_body_tracking
 
 #define XR_FB_body_tracking 1
 XR_DEFINE_HANDLE(XrBodyTrackerFB)
-
-#define XR_FB_body_tracking_SPEC_VERSION 1
+#define XR_FB_body_tracking_SPEC_VERSION  1
 #define XR_FB_BODY_TRACKING_EXTENSION_NAME "XR_FB_body_tracking"
-
-#define XR_FBX1_body_tracking_SPEC_VERSION 1
-#define XR_FBX1_BODY_TRACKING_EXTENSION_NAME "XR_FBX1_body_tracking"
-#define XR_FBX2_body_tracking_SPEC_VERSION 2
-#define XR_FBX2_BODY_TRACKING_EXTENSION_NAME "XR_FBX2_body_tracking"
-
-// While experimental, the experimental version must be set to get extension definitions
-#if defined(XR_FB_body_tracking_EXPERIMENTAL_VERSION)
-#if XR_FB_body_tracking_EXPERIMENTAL_VERSION == 2
-#undef XR_FB_body_tracking_SPEC_VERSION
-#undef XR_FB_BODY_TRACKING_EXTENSION_NAME
-#define XR_FB_body_tracking_SPEC_VERSION XR_FBX2_body_tracking_SPEC_VERSION
-#define XR_FB_BODY_TRACKING_EXTENSION_NAME XR_FBX2_BODY_TRACKING_EXTENSION_NAME
-#elif defined(XR_FB_body_tracking_EXPERIMENTAL_VERSION)
-// Error if the chosen experimental version is different than the available in this header
-#error "unknown experimental version number for XR_FB_body_tracking_EXPERIMENTAL_VERSION"
-#endif // switch by XR_FB_body_tracking_EXPERIMENTAL_VERSION
-#endif // defined(XR_FB_body_tracking_EXPERIMENTAL_VERSION)
-
-XR_STRUCT_ENUM(XR_TYPE_BODY_TRACKER_CREATE_INFO_FB, 1000076001);
-XR_STRUCT_ENUM(XR_TYPE_BODY_JOINTS_LOCATE_INFO_FB, 1000076002);
-XR_STRUCT_ENUM(XR_TYPE_BODY_JOINT_LOCATIONS_V1_FB, 1000076003);
-XR_STRUCT_ENUM(XR_TYPE_BODY_JOINT_LOCATIONS_FB, 1000076005);
-#define XR_TYPE_BODY_JOINT_LOCATIONS_V2_FB XR_TYPE_BODY_JOINT_LOCATIONS_FB
-XR_STRUCT_ENUM(XR_TYPE_BODY_SKELETON_FB, 1000076006);
-
-XR_STRUCT_ENUM(XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_FB, 1000076004);
+// XrBodyTrackerFB
+#define XR_OBJECT_TYPE_BODY_TRACKER_FB    ((XrObjectType) 1000076000U)
+#define XR_TYPE_BODY_TRACKER_CREATE_INFO_FB ((XrStructureType) 1000076001U)
+#define XR_TYPE_BODY_JOINTS_LOCATE_INFO_FB ((XrStructureType) 1000076002U)
+#define XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_FB ((XrStructureType) 1000076004U)
+#define XR_TYPE_BODY_JOINT_LOCATIONS_FB   ((XrStructureType) 1000076005U)
+#define XR_TYPE_BODY_SKELETON_FB          ((XrStructureType) 1000076006U)
 
 typedef enum XrBodyJointFB {
     XR_BODY_JOINT_ROOT_FB = 0,
@@ -129,124 +104,89 @@ typedef enum XrBodyJointFB {
     XR_BODY_JOINT_MAX_ENUM_FB = 0x7FFFFFFF
 } XrBodyJointFB;
 
+// Describes the set of body joints to track when creating an slink:XrBodyTrackerFB.
 typedef enum XrBodyJointSetFB {
+    // Indicates that the created slink:XrBodyTrackerFB tracks the set of body joints described by elink:XrBodyJointFB enum, i.e. the flink:xrLocateBodyJointsFB function returns an array of joint locations with the count of ename:XR_BODY_JOINT_COUNT_FB and can be indexed using elink:XrBodyJointFB.
     XR_BODY_JOINT_SET_DEFAULT_FB = 0,
     XR_BODY_JOINT_SET_MAX_ENUM_FB = 0x7FFFFFFF
 } XrBodyJointSetFB;
+typedef struct XrBodyJointLocationFB {
+    XrSpaceLocationFlags    locationFlags;
+    XrPosef                 pose;
+} XrBodyJointLocationFB;
 
 typedef struct XrSystemBodyTrackingPropertiesFB {
-    XrStructureType type;
-    void* XR_MAY_ALIAS next;
-    XrBool32 supportsBodyTracking;
+    XrStructureType       type;
+    void* XR_MAY_ALIAS    next;
+    XrBool32              supportsBodyTracking;
 } XrSystemBodyTrackingPropertiesFB;
 
 typedef struct XrBodyTrackerCreateInfoFB {
-    XrStructureType type;
-    const void* XR_MAY_ALIAS next;
-    XrBodyJointSetFB bodyJointSet;
+    XrStructureType             type;
+    const void* XR_MAY_ALIAS    next;
+    XrBodyJointSetFB            bodyJointSet;
 } XrBodyTrackerCreateInfoFB;
 
-typedef struct XrBodyJointsLocateInfoFB {
-    XrStructureType type;
-    const void* XR_MAY_ALIAS next;
-    XrSpace baseSpace;
-    XrTime time;
-} XrBodyJointsLocateInfoFB;
-
-typedef struct XrBodyJointLocationFB {
-    XrSpaceLocationFlags locationFlags;
-    XrPosef pose;
-} XrBodyJointLocationFB;
-
-typedef struct XrBodyJointLocationsFB {
-    XrStructureType type;
-    void* XR_MAY_ALIAS next;
-    XrBool32 isActive;
-    float confidence;
-    uint32_t jointCount;
-    XrBodyJointLocationFB* jointLocations;
-    uint32_t skeletonChangedCount;
-    XrTime time;
-} XrBodyJointLocationsFB;
-#define XrBodyJointLocationsV2FB XrBodyJointLocationsFB
-
-typedef struct XrBodyJointLocationsV1FB {
-    XrStructureType type;
-    void* XR_MAY_ALIAS next;
-    XrBool32 isActive;
-    float confidence;
-    uint32_t jointCount;
-    XrBodyJointLocationFB* jointLocations;
-} XrBodyJointLocationsV1FB;
-
 typedef struct XrBodySkeletonJointFB {
-    int32_t joint;
-    int32_t parentJoint;
-    XrPosef pose;
+    int32_t    joint;
+    int32_t    parentJoint;
+    XrPosef    pose;
 } XrBodySkeletonJointFB;
 
 typedef struct XrBodySkeletonFB {
-    XrStructureType type;
-    void* XR_MAY_ALIAS next;
-    uint32_t jointCount;
-    XrBodySkeletonJointFB* joints;
+    XrStructureType           type;
+    void* XR_MAY_ALIAS        next;
+    uint32_t                  jointCount;
+    XrBodySkeletonJointFB*    joints;
 } XrBodySkeletonFB;
 
-typedef XrResult(XRAPI_PTR* PFN_xrCreateBodyTrackerFB)(
-    XrSession session,
-    const XrBodyTrackerCreateInfoFB* createInfo,
-    XrBodyTrackerFB* bodyTracker);
-typedef XrResult(XRAPI_PTR* PFN_xrDestroyBodyTrackerFB)(XrBodyTrackerFB bodyTracker);
+typedef struct XrBodyJointsLocateInfoFB {
+    XrStructureType             type;
+    const void* XR_MAY_ALIAS    next;
+    XrSpace                     baseSpace;
+    XrTime                      time;
+} XrBodyJointsLocateInfoFB;
 
-typedef XrResult(XRAPI_PTR* PFN_xrLocateBodyJointsFB)(
-    XrBodyTrackerFB bodyTracker,
-    const XrBodyJointsLocateInfoFB* locateInfo,
-    XrBodyJointLocationsFB* locations);
+typedef struct XrBodyJointLocationsFB {
+    XrStructureType           type;
+    void* XR_MAY_ALIAS        next;
+    XrBool32                  isActive;
+    float                     confidence;
+    uint32_t                  jointCount;
+    XrBodyJointLocationFB*    jointLocations;
+    uint32_t                  skeletonChangedCount;
+    XrTime                    time;
+} XrBodyJointLocationsFB;
 
-typedef XrResult(
-    XRAPI_PTR* PFN_xrGetBodySkeletonFB)(XrBodyTrackerFB bodyTracker, XrBodySkeletonFB* skeleton);
-
-#if defined(XR_FB_body_tracking_EXPERIMENTAL_VERSION) && \
-    (XR_FB_body_tracking_EXPERIMENTAL_VERSION == 2)
-typedef XrResult(
-    XRAPI_PTR* PFN_xrGetSkeletonFB)(XrBodyTrackerFB bodyTracker, XrBodySkeletonFB* skeleton);
-#endif
+typedef XrResult (XRAPI_PTR *PFN_xrCreateBodyTrackerFB)(XrSession session, const XrBodyTrackerCreateInfoFB* createInfo, XrBodyTrackerFB* bodyTracker);
+typedef XrResult (XRAPI_PTR *PFN_xrDestroyBodyTrackerFB)(XrBodyTrackerFB bodyTracker);
+typedef XrResult (XRAPI_PTR *PFN_xrLocateBodyJointsFB)(XrBodyTrackerFB bodyTracker, const XrBodyJointsLocateInfoFB* locateInfo, XrBodyJointLocationsFB* locations);
+typedef XrResult (XRAPI_PTR *PFN_xrGetBodySkeletonFB)(XrBodyTrackerFB bodyTracker, XrBodySkeletonFB* skeleton);
 
 #ifndef XR_NO_PROTOTYPES
 #ifdef XR_EXTENSION_PROTOTYPES
 XRAPI_ATTR XrResult XRAPI_CALL xrCreateBodyTrackerFB(
-    XrSession session,
-    const XrBodyTrackerCreateInfoFB* createInfo,
-    XrBodyTrackerFB* bodyTracker);
+    XrSession                                   session,
+    const XrBodyTrackerCreateInfoFB*            createInfo,
+    XrBodyTrackerFB*                            bodyTracker);
 
-XRAPI_ATTR XrResult XRAPI_CALL xrCreateBodyTrackerV1FB(
-    XrSession session,
-    const XrBodyTrackerCreateInfoFB* createInfo,
-    XrBodyTrackerFB* bodyTracker);
-
-XRAPI_ATTR XrResult XRAPI_CALL xrDestroyBodyTrackerFB(XrBodyTrackerFB bodyTracker);
+XRAPI_ATTR XrResult XRAPI_CALL xrDestroyBodyTrackerFB(
+    XrBodyTrackerFB                             bodyTracker);
 
 XRAPI_ATTR XrResult XRAPI_CALL xrLocateBodyJointsFB(
-    XrBodyTrackerFB bodyTracker,
-    const XrBodyJointsLocateInfoFB* locateInfo,
-    XrBodyJointLocationsFB* locations);
+    XrBodyTrackerFB                             bodyTracker,
+    const XrBodyJointsLocateInfoFB*             locateInfo,
+    XrBodyJointLocationsFB*                     locations);
 
-XRAPI_ATTR XrResult XRAPI_CALL xrLocateBodyJointsV1FB(
-    XrBodyTrackerFB bodyTracker,
-    const XrBodyJointsLocateInfoFB* locateInfo,
-    XrBodyJointLocationsV1FB* locations);
-
-XRAPI_ATTR XrResult XRAPI_CALL
-xrGetBodySkeletonFB(XrBodyTrackerFB bodyTracker, XrBodySkeletonFB* skeleton);
-
-XRAPI_ATTR XrResult XRAPI_CALL
-xrGetSkeletonFB(XrBodyTrackerFB bodyTracker, XrBodySkeletonFB* skeleton);
-
+XRAPI_ATTR XrResult XRAPI_CALL xrGetBodySkeletonFB(
+    XrBodyTrackerFB                             bodyTracker,
+    XrBodySkeletonFB*                           skeleton);
 #endif /* XR_EXTENSION_PROTOTYPES */
 #endif /* !XR_NO_PROTOTYPES */
+#endif /* XR_FB_body_tracking */
 
-#endif // XR_FB_body_tracking
-
-#if defined(__cplusplus)
+#ifdef __cplusplus
 }
+#endif
+
 #endif

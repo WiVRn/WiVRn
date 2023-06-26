@@ -19,19 +19,26 @@
 
 #include "audio.h"
 #include "spdlog/spdlog.h"
-#include <poll.h>
-#include <cassert>
 #include <aaudio/AAudio.h>
-#include <pthread.h>
-#include <unistd.h>
+#include <cassert>
 #include <netinet/tcp.h>
+#include <poll.h>
+#include <pthread.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
+static unsigned int buffer_size_ms = 10;
+static unsigned int buffer_size_mult = 4;
 
-void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device& format)
+void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format)
 {
 	pthread_setname_np(pthread_self(), "audio_out_thread");
 
 	spdlog::info("audio_out_thread started");
+	char * buffer;
+	char * sewer;
 
 	try
 	{
@@ -42,10 +49,14 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 			throw std::runtime_error(std::string("Cannot start output stream: ") + AAudio_convertResultToText(result));
 
 		size_t offset = 0;
-		char buffer[2000];
-		const int frame_size = format.num_channels * sizeof(int16_t);
+		const size_t frame_size = format.num_channels * sizeof(int16_t);
 
-		while(!quit)
+		size_t bufsize = frame_size * format.sample_rate / 1000 * buffer_size_ms;
+		size_t max_bytes_available = bufsize * buffer_size_mult;
+		buffer = new char[bufsize];
+		sewer = new char[bufsize];
+
+		while (!quit)
 		{
 			pollfd pfd{};
 			pfd.fd = fd;
@@ -55,13 +66,16 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 			if (r < 0)
 				throw std::system_error(errno, std::system_category());
 
-
 			if (pfd.revents & (POLLHUP | POLLERR))
 				throw std::runtime_error("Error on audio socket");
 
 			if (pfd.revents & POLLIN)
 			{
-				ssize_t size = recv(fd, buffer + offset, sizeof(buffer) - offset, 0);
+				ssize_t bytes_available;
+				while (ioctl(fd, FIONREAD, &bytes_available) == 0 && bytes_available > (ssize_t)max_bytes_available)
+					recv(fd, sewer, bufsize, 0);
+
+				ssize_t size = recv(fd, buffer + offset, bufsize - offset, 0);
 				int num_frames = (size + offset) / frame_size;
 
 				num_frames = AAudioStream_write(stream, buffer, num_frames, 1'000'000'000);
@@ -72,33 +86,46 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 				memmove(buffer, buffer + consumed_bytes, size + offset - consumed_bytes);
 				offset = size + offset - consumed_bytes;
 
-				assert(offset >= 0);
-				assert(offset < sizeof(buffer));
+				assert(offset < bufsize);
 			}
 		}
 	}
-	catch(std::exception& e)
+	catch (std::exception & e)
 	{
 		spdlog::error("Error in audio output thread: {}", e.what());
 		quit = true;
 	}
-
+	delete buffer;
+	delete sewer;
 	AAudioStream_close(stream);
 }
 
-void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device& format)
+void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format)
 {
 	pthread_setname_np(pthread_self(), "audio_in_thread");
 
 	try
 	{
-		// while(!quit)
-		// {
-  //
-		// }
+		AAudioStream_requestStart(stream);
+		aaudio_stream_state_t state;
+		aaudio_result_t result = AAudioStream_waitForStateChange(stream, AAUDIO_STREAM_STATE_STARTING, &state, 1'000'000'000);
+		if (result != AAUDIO_OK)
+			throw std::runtime_error(std::string("Cannot start input stream: ") + AAudio_convertResultToText(result));
+
+		char buffer[2000];
+		const int frame_size = format.num_channels * sizeof(int16_t);
+		const int max_frames = 2000 / frame_size;
+
+		while (!quit)
+		{
+			result = AAudioStream_read(stream, buffer, max_frames, 1'000'000'000);
+			if (result > 0)
+				send(fd, buffer, frame_size * result, 0);
+		}
 	}
-	catch(...)
+	catch (std::exception & e)
 	{
+		spdlog::error("Error in audio input thread: {}", e.what());
 		quit = true;
 	}
 
@@ -223,9 +250,8 @@ void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_head
 	if (result == AAUDIO_OK)
 	{
 		info.speaker = {
-			.num_channels = (uint8_t)AAudioStream_getChannelCount(stream),
-			.sample_rate = (uint32_t)AAudioStream_getSampleRate(stream)
-		};
+		        .num_channels = (uint8_t)AAudioStream_getChannelCount(stream),
+		        .sample_rate = (uint32_t)AAudioStream_getSampleRate(stream)};
 
 		AAudioStream_close(stream);
 		stream = nullptr;
@@ -237,9 +263,8 @@ void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_head
 	if (result == AAUDIO_OK)
 	{
 		info.microphone = {
-			.num_channels = (uint8_t)AAudioStream_getChannelCount(stream),
-			.sample_rate = (uint32_t)AAudioStream_getSampleRate(stream)
-		};
+		        .num_channels = (uint8_t)AAudioStream_getChannelCount(stream),
+		        .sample_rate = (uint32_t)AAudioStream_getSampleRate(stream)};
 
 		AAudioStream_close(stream);
 		stream = nullptr;
@@ -247,4 +272,3 @@ void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_head
 
 	AAudioStreamBuilder_delete(builder);
 }
-

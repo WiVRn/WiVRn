@@ -29,7 +29,6 @@ extern "C"
 #include "avahi_publisher.h"
 #include "hostname.h"
 #include <shared/ipc_protocol.h>
-#include <systemd/sd-daemon.h>
 #include <util/u_file.h>
 
 // Insert the on load constructor to init trace marker.

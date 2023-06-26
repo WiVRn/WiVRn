@@ -1,8 +1,8 @@
 // (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 /************************************************************************************
-Filename    :   fb_touch_controller_extras.h
-Content     :   Touch Controller Extras interaction profile extensions.
+Filename    :   fb_touch_controller_proximity.h
+Content     :   Touch Controller Proximity interaction profile extension.
 Language    :   C99
 *************************************************************************************/
 
@@ -11,23 +11,18 @@ Language    :   C99
 #include <openxr/openxr_extension_helpers.h>
 
 /*
-  207  XR_FB_touch_controller_extras
+  207  XR_FB_touch_controller_proximity
 */
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#ifndef XR_FB_touch_controller_extras
+#ifndef XR_FB_touch_controller_proximity
 
-#if defined(XR_FB_touch_controller_extras_EXPERIMENTAL_VERSION)
-#if XR_FB_touch_controller_extras_EXPERIMENTAL_VERSION != 1
-#error "unknown experimental version number for XR_FB_touch_controller_extras_EXPERIMENTAL_VERSION"
-#endif
-
-#define XR_FB_touch_controller_extras 1
-#define XR_FB_touch_controller_extras_SPEC_VERSION 1
-#define XR_FB_TOUCH_CONTROLLER_EXTRAS_EXTENSION_NAME "XR_FBX1_touch_controller_extras"
+#define XR_FB_touch_controller_proximity 1
+#define XR_FB_touch_controller_proximity_SPEC_VERSION 1
+#define XR_FB_TOUCH_CONTROLLER_PROXIMITY_EXTENSION_NAME "XR_FB_touch_controller_proximity"
 
 // Oculus Touch Controller Profile with additional paths
 //  Path: /interaction_profiles/oculus/touch_controller
@@ -75,9 +70,8 @@ extern "C" {
 //    …/input/trigger/proximity_fb
 //    …/input/thumb_fb/proximity_fb
 
-#endif // defined(XR_FB_touch_controller_extras_EXPERIMENTAL_VERSION)
+#endif // ifndef XR_FB_touch_controller_proximity
 
-#endif // XR_FB_touch_controller_extras
 
 #ifdef __cplusplus
 }

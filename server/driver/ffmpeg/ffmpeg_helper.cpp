@@ -56,6 +56,7 @@ av_error_category()
 };
 
 // it seems that ffmpeg does not provide this mapping
+// todo: for monado async reprojection, VK_FORMAT_B8G8R8A8_UNORM has to be supported
 AVPixelFormat
 vk_format_to_av_format(VkFormat vk_fmt)
 {

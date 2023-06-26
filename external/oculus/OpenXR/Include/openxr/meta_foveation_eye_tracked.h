@@ -21,7 +21,6 @@ extern "C" {
 
 #ifndef XR_META_foveation_eye_tracked
 
-
 #define XR_META_foveation_eye_tracked 1
 #define XR_FOVEATION_CENTER_SIZE_META 2
 #define XR_META_foveation_eye_tracked_SPEC_VERSION 1

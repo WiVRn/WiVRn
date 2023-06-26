@@ -42,6 +42,7 @@
 #endif
 
 #ifdef XR_USE_PLATFORM_ANDROID
+#include <sys/system_properties.h>
 #include <android/native_activity.h>
 #endif
 
@@ -408,34 +409,85 @@ void application::initialize()
 
 	// TODO get it from application info
 	xr_actionset = xr::actionset(xr_instance, "actions", "Actions");
-	std::vector<XrActionSuggestedBinding> bindings;
 
-	for (const auto & [name, type]: oculus_touch)
+	// TODO better way to handle bindings for different vendors/flavors of vendor
+#ifdef XR_USE_PLATFORM_ANDROID
+	char property_chararr[PROP_VALUE_MAX + 1];
+	__system_property_get("ro.product.manufacturer", property_chararr);
+#else
+	char property_chararr[93];
+#endif
+	std::string manufacturer_string(property_chararr);
+
+	if (manufacturer_string == "Oculus" || manufacturer_string == "Meta")
 	{
-		std::string name_without_slashes = std::string(name).substr(1);
-
-		for (char & i: name_without_slashes)
+		spdlog::info("Suggesting Oculus Quest 2 bindings");
+		std::vector<XrActionSuggestedBinding> touch_controller_bindings;
+		for (const auto & [name, type]: oculus_touch)
 		{
-			if (i == '/')
-				i = '_';
+			process_binding_action(touch_controller_bindings, name, type);
 		}
-
-		auto a = xr_actionset.create_action(type, name_without_slashes);
-		actions.emplace_back(a, type, name);
-
-		if (type == XR_ACTION_TYPE_POSE_INPUT)
-		{
-			action_spaces.push_back(xr_session.create_action_space(a));
-		}
-
-		bindings.push_back({a, xr_instance.string_to_path(name)});
+		xr_instance.suggest_bindings("/interaction_profiles/oculus/touch_controller", touch_controller_bindings);
 	}
+	else if (manufacturer_string == "Pico")
+	{
+#ifdef XR_USE_PLATFORM_ANDROID
+		__system_property_get("ro.product.model", property_chararr);
+#endif
+		std::string model_string(property_chararr);
 
-	xr_instance.suggest_bindings("/interaction_profiles/oculus/touch_controller", bindings);
+		if (model_string == "Pico Neo 3")
+		{
+			spdlog::info("Suggesting Pico Neo 3 bindings");
+			std::vector<XrActionSuggestedBinding> pico_neo_3_bindings;
+			for (const auto & [name, type]: pico_neo_3)
+			{
+				process_binding_action(pico_neo_3_bindings, name, type);
+			}
+			xr_instance.suggest_bindings("/interaction_profiles/bytedance/pico_neo3_controller", pico_neo_3_bindings);
+		}
+		else
+		{
+			spdlog::info("Suggesting Pico 4 bindings");
+			std::vector<XrActionSuggestedBinding> pico_4_bindings;
+			for (const auto & [name, type]: pico_4)
+			{
+				process_binding_action(pico_4_bindings, name, type);
+			}
+			xr_instance.suggest_bindings("/interaction_profiles/bytedance/pico4_controller", pico_4_bindings);
+		}
+	}
+	else
+	{
+		spdlog::error("Couldn't find any compatible suggested bindings");
+	}
 
 	xr_session.attach_actionsets({xr_actionset});
 
 	interaction_profile_changed();
+}
+
+void application::process_binding_action(std::vector<XrActionSuggestedBinding> & bindings,
+                                         const char * name,
+                                         const XrActionType & type)
+{
+	std::string name_without_slashes = std::string(name).substr(1);
+
+	for (char & i: name_without_slashes)
+	{
+		if (i == '/')
+			i = '_';
+	}
+
+	auto a = xr_actionset.create_action(type, name_without_slashes);
+	actions.emplace_back(a, type, name);
+
+	if (type == XR_ACTION_TYPE_POSE_INPUT)
+	{
+		action_spaces.push_back(xr_session.create_action_space(a));
+	}
+
+	bindings.push_back({a, xr_instance.string_to_path(name)});
 }
 
 std::pair<XrAction, XrActionType> application::get_action(const std::string & requested_name)

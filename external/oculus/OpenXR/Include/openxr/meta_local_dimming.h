@@ -19,7 +19,6 @@ Language      : C99
 extern "C" {
 #endif
 
-
 #ifndef XR_META_local_dimming
 #define XR_META_local_dimming 1
 #define XR_META_local_dimming_SPEC_VERSION 1
@@ -31,7 +30,8 @@ typedef enum XrLocalDimmingModeMETA {
     XR_LOCAL_DIMMING_MODE_MAX_ENUM_META = 0x7FFFFFFF
 } XrLocalDimmingModeMETA;
 
-XR_STRUCT_ENUM(XR_TYPE_FRAME_END_INFO_LOCAL_DIMMING_META, 1000216000);
+XR_STRUCT_ENUM(XR_TYPE_FRAME_END_INFO_LOCAL_DIMMING_META, 1000216000); // legacy enum name
+XR_STRUCT_ENUM(XR_TYPE_LOCAL_DIMMING_FRAME_END_INFO_META, 1000216000);
 struct XrLocalDimmingFrameEndInfoMETA {
     XrStructureType type;
     const void* XR_MAY_ALIAS next;
@@ -39,6 +39,7 @@ struct XrLocalDimmingFrameEndInfoMETA {
 };
 
 #endif // XR_META_local_dimming
+
 
 #ifdef __cplusplus
 }

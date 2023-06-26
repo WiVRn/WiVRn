@@ -36,6 +36,7 @@
 #include "util/u_var.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <stdio.h>
 #include <openxr/openxr.h>
 
@@ -179,7 +180,7 @@ static std::tuple<float, float> solve_foveation(float scale, float c)
 	return {a, b};
 }
 
-bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, int view_index, float u, float v, xrt_uv_triplet * result)
+bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_index, float u, float v, xrt_uv_triplet * result)
 {
 	// u,v are in the output coordinates (sent to the encoder)
 	// result is in the input coordinates (from the application)

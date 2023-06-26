@@ -21,28 +21,8 @@ extern "C" {
 #ifndef XR_FB_touch_controller_pro
 #define XR_FB_touch_controller_pro 1
 
-#define XR_FBX1_touch_controller_pro_SPEC_VERSION 1
-#define XR_FBX1_TOUCH_CONTROLLER_PRO_EXTENSION_NAME "XR_FBX1_touch_controller_pro"
-#define XR_FBX2_touch_controller_pro_SPEC_VERSION 2
-#define XR_FBX2_TOUCH_CONTROLLER_PRO_EXTENSION_NAME "XR_FBX2_touch_controller_pro"
-#define XR_FBX3_touch_controller_pro_SPEC_VERSION 3
-#define XR_FBX3_TOUCH_CONTROLLER_PRO_EXTENSION_NAME "XR_FBX3_touch_controller_pro"
-
-#ifndef XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION
 #define XR_FB_touch_controller_pro_SPEC_VERSION 1
 #define XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME "XR_FB_touch_controller_pro"
-#elif XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION == 1
-#define XR_FB_touch_controller_pro_SPEC_VERSION XR_FBX1_touch_controller_pro_SPEC_VERSION
-#define XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME XR_FBX1_TOUCH_CONTROLLER_PRO_EXTENSION_NAME
-#elif XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION == 2
-#define XR_FB_touch_controller_pro_SPEC_VERSION XR_FBX2_touch_controller_pro_SPEC_VERSION
-#define XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME XR_FBX2_TOUCH_CONTROLLER_PRO_EXTENSION_NAME
-#elif XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION == 3
-#define XR_FB_touch_controller_pro_SPEC_VERSION XR_FBX3_touch_controller_pro_SPEC_VERSION
-#define XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME XR_FBX3_TOUCH_CONTROLLER_PRO_EXTENSION_NAME
-#else
-#error "unknown experimental version number for XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION"
-#endif // XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION
 
 // Facebook Touch Controller PRO Profile
 //  Path: /interaction_profiles/facebook/touch_controller_pro
@@ -95,6 +75,34 @@ extern "C" {
 //    …/input/thumb_fb/proximity_fb
 //    …/output/trigger_haptic_fb
 //    …/output/thumb_haptic_fb
+
+#endif // XR_FB_touch_controller_pro
+
+#ifndef XR_FBX_touch_controller_pro
+#define XR_FBX_touch_controller_pro 1
+#define XR_FBX1_touch_controller_pro_SPEC_VERSION 1
+#define XR_FBX1_TOUCH_CONTROLLER_PRO_EXTENSION_NAME "XR_FBX1_touch_controller_pro"
+#define XR_FBX2_touch_controller_pro_SPEC_VERSION 2
+#define XR_FBX2_TOUCH_CONTROLLER_PRO_EXTENSION_NAME "XR_FBX2_touch_controller_pro"
+#define XR_FBX3_touch_controller_pro_SPEC_VERSION 3
+#define XR_FBX3_TOUCH_CONTROLLER_PRO_EXTENSION_NAME "XR_FBX3_touch_controller_pro"
+
+#ifdef XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION
+#undef XR_FB_touch_controller_pro_SPEC_VERSION
+#undef XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME
+#if XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION == 1
+#define XR_FB_touch_controller_pro_SPEC_VERSION XR_FBX1_touch_controller_pro_SPEC_VERSION
+#define XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME XR_FBX1_TOUCH_CONTROLLER_PRO_EXTENSION_NAME
+#elif XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION == 2
+#define XR_FB_touch_controller_pro_SPEC_VERSION XR_FBX2_touch_controller_pro_SPEC_VERSION
+#define XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME XR_FBX2_TOUCH_CONTROLLER_PRO_EXTENSION_NAME
+#elif XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION == 3
+#define XR_FB_touch_controller_pro_SPEC_VERSION XR_FBX3_touch_controller_pro_SPEC_VERSION
+#define XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME XR_FBX3_TOUCH_CONTROLLER_PRO_EXTENSION_NAME
+#else
+#error "unknown experimental version number for XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION"
+#endif // XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION
+#endif
 
 #ifdef XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION
 #if XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION == 3
@@ -304,7 +312,7 @@ typedef struct XrTouchControllerProPropertiesFB {
 
 #endif // defined(XR_FB_touch_controller_pro_EXPERIMENTAL_VERSION)
 
-#endif // XR_FB_touch_controller_pro
+#endif // XR_FBX_touch_controller_pro
 
 #ifdef __cplusplus
 }

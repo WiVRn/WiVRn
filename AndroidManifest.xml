@@ -21,8 +21,11 @@
     <uses-permission android:name="org.khronos.openxr.permission.OPENXR" />
     <uses-permission android:name="org.khronos.openxr.permission.OPENXR_SYSTEM" />
 
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- Allow network access -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -34,13 +37,14 @@
 
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:hasCode="false"
         android:icon="@mipmap/ic_wivrn_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_wivrn_launcher">
 
     <profileable android:shell="true" />
+        <meta-data android:name="pvr.app.type" android:value="vr" />
         <meta-data android:name="com.oculus.intent.category.VR" android:value="vr_only"/>
         <meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2|cambria"/>
 

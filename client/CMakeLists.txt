@@ -49,10 +49,32 @@ if(ANDROID)
             set_property(TARGET OpenXR
                 PROPERTY IMPORTED_LOCATION ${OCULUS_SDK_PATH}/OpenXR/Libs/Android/${ANDROID_ABI}/Release/libopenxr_loader.so)
         endif()
+    elseif (PICO)
+        set(PICO_SDK_PATH ${CMAKE_SOURCE_DIR}/external/pico)
+        if(NOT EXISTS ${PICO_SDK_PATH})
+            file(GLOB PICO_SDK_PATH ${CMAKE_SOURCE_DIR}/PICO_OpenXR_SDK_*.zip)
 
+            if("${PICO_SDK_ZIP}" STREQUAL "")
+                message(FATAL_ERROR "Download the PICO OpenXR SDK from https://developer-global.pico-interactive.com/sdk in ${CMAKE_SOURCE_DIR}/PICO_OpenXR_SDK_*.zip")
+            endif()
+
+            file(ARCHIVE_EXTRACT
+                    INPUT ${PICO_SDK_ZIP}
+                    DESTINATION ${PICO_SDK_PATH}
+                    PATTERNS include/openxr libs/android
+                    VERBOSE)
+        endif()
+
+        add_library(OpenXR SHARED IMPORTED)
+        target_include_directories(OpenXR INTERFACE
+                ${PICO_SDK_PATH}/include)
+
+        set_property(TARGET OpenXR
+                PROPERTY IMPORTED_LOCATION ${PICO_SDK_PATH}/libs/android.${ANDROID_ABI}/libopenxr_loader.so)
     else()
-        message(FATAL_ERROR "TODO: implement non-oculus android headsets")
+        message(FATAL_ERROR "TODO: implement other android headsets")
     endif()
+
 
     target_link_libraries(wivrn native_app_glue OpenXR)
     target_compile_definitions(wivrn PRIVATE -DXR_USE_PLATFORM_ANDROID -DVK_USE_PLATFORM_ANDROID_KHR)

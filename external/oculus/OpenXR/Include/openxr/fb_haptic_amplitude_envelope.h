@@ -21,20 +21,8 @@ extern "C" {
 #ifndef XR_FB_haptic_amplitude_envelope
 #define XR_FB_haptic_amplitude_envelope 1
 
-#define XR_FBX1_haptic_amplitude_envelope_SPEC_VERSION 1
-#define XR_FBX1_HAPTIC_AMPLITUDE_ENVELOPE_EXTENSION_NAME "XR_FBX1_haptic_amplitude_envelope"
-
-#ifndef XR_FB_haptic_amplitude_envelope_EXPERIMENTAL_VERSION
 #define XR_FB_haptic_amplitude_envelope_SPEC_VERSION 1
 #define XR_FB_HAPTIC_AMPLITUDE_ENVELOPE_EXTENSION_NAME "XR_FB_haptic_amplitude_envelope"
-#elif XR_FB_haptic_amplitude_envelope_EXPERIMENTAL_VERSION == 1
-#define XR_FB_haptic_amplitude_envelope_SPEC_VERSION XR_FBX1_haptic_amplitude_envelope_SPEC_VERSION
-#define XR_FB_HAPTIC_AMPLITUDE_ENVELOPE_EXTENSION_NAME \
-    XR_FBX1_HAPTIC_AMPLITUDE_ENVELOPE_EXTENSION_NAME
-#else
-#error \
-    "unknown experimental version number for XR_FB_haptic_amplitude_envelope_EXPERIMENTAL_VERSION"
-#endif // XR_FB_haptic_amplitude_envelope_EXPERIMENTAL_VERSION
 
 #define XR_MAX_HAPTIC_AMPLITUDE_ENVELOPE_SAMPLES_FB 4000u
 
@@ -53,6 +41,7 @@ typedef struct XrHapticAmplitudeEnvelopeVibrationFB {
 } XrHapticAmplitudeEnvelopeVibrationFB;
 
 #endif // XR_FB_haptic_amplitude_envelope
+
 
 #ifdef __cplusplus
 }
