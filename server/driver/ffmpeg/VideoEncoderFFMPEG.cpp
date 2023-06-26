@@ -92,6 +92,7 @@ void VideoEncoderFFMPEG::Encode(int index, bool idr, std::chrono::steady_clock::
 	}
 	if (err == AVERROR(EAGAIN))
 	{
+		U_LOG_W("EAGAIN in encoder %d", stream_idx);
 		return;
 	}
 	if (err)

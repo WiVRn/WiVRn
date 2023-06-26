@@ -40,7 +40,9 @@ inline const char * encoder_x264 = "x264";
 class VideoEncoder
 {
 	std::mutex mutex;
+protected:
 	uint8_t stream_idx;
+private:
 	uint64_t frame_idx;
 
 	// temporary data
