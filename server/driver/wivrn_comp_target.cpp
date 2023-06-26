@@ -523,6 +523,9 @@ static void * comp_wivrn_present_thread(void * void_param)
 		}
 
 		VkResult res = vk->vkWaitForFences(vk->device, nb_fences, fences.data(), VK_TRUE, UINT64_MAX);
+		if (nb_fences > 1) {
+			U_LOG_I("Encoder group %d dropped %d frames", param->thread->index, nb_fences - 1);
+		}
 		vk_check_error("vkWaitForFences", res, NULL);
 
 		const auto & psc_image = cn->psc.images[presenting_index];
