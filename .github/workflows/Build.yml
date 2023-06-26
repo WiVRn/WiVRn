@@ -17,7 +17,7 @@ jobs:
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-23.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v3
@@ -54,10 +54,14 @@ jobs:
 
   build-android-quest:
     name: Build the WiVRn client for Oculus Quest
-    runs-on: ubuntu-23.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        lfs: true
+    - name: Checkout LFS objects
+      run: git lfs checkout
 
     - name: set up JDK 11
       uses: actions/setup-java@v3
@@ -89,7 +93,7 @@ jobs:
       if: ${{ github.event_name != 'pull_request' }}
       run: |
         chmod +x gradlew
-        ./gradlew build
+        ./gradlew assembleOculus
 
     - name: Prepare before archiving artifacts
       run: |
@@ -113,10 +117,14 @@ jobs:
           apk/WiVRn-oculus-release.apk
   build-android-pico:
     name: Build the WiVRn client for Pico >5.4
-    runs-on: ubuntu-23.04
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          lfs: true
+      - name: Checkout LFS objects
+        run: git lfs checkout
 
       - name: set up JDK 11
         uses: actions/setup-java@v3
@@ -148,7 +156,7 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         run: |
           chmod +x gradlew
-          ./gradlew build
+          ./gradlew assemblePico
 
       - name: Prepare before archiving artifacts
         run: |
