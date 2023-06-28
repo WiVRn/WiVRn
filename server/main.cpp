@@ -123,7 +123,9 @@ int create_listen_socket()
 	}
 
 
-	assert(fd == SD_LISTEN_FDS_START);
+	// we use "socket activation" mode of monado,
+	// it requires fd to be SD_LISTEN_FDS_START, which is 3
+	assert(fd == 3);
 
 	setenv("LISTEN_FDS", "1", true);
 
