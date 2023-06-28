@@ -21,10 +21,12 @@
 #include <algorithm>
 #include <array>
 #include <stdexcept>
+#include <string.h>
 
 extern "C"
 {
 #include <libavcodec/avcodec.h>
+#include <libavutil/log.h>
 }
 
 namespace
@@ -78,7 +80,38 @@ void filter_NAL(const uint8_t * input, size_t input_size, std::vector<uint8_t> &
 	}
 }
 
+bool set_log_level()
+{
+	const char * level = getenv("FFMPEG_LOG_LEVEL");
+	if (level)
+	{
+		if (strcasecmp(level, "TRACE") == 0)
+			av_log_set_level(AV_LOG_TRACE);
+		else if (strcasecmp(level, "DEBUG") == 0)
+			av_log_set_level(AV_LOG_DEBUG);
+		else if (strcasecmp(level, "VERBOSE") == 0)
+			av_log_set_level(AV_LOG_VERBOSE);
+		else if (strcasecmp(level, "INFO") == 0)
+			av_log_set_level(AV_LOG_INFO);
+		else if (strcasecmp(level, "WARNING") == 0)
+			av_log_set_level(AV_LOG_WARNING);
+		else if (strcasecmp(level, "ERROR") == 0)
+			av_log_set_level(AV_LOG_ERROR);
+		else if (strcasecmp(level, "FATAL") == 0)
+			av_log_set_level(AV_LOG_FATAL);
+		else if (strcasecmp(level, "PANIC") == 0)
+			av_log_set_level(AV_LOG_PANIC);
+		else if (strcasecmp(level, "QUIET") == 0)
+			av_log_set_level(AV_LOG_QUIET);
+		else
+			U_LOG_W("log level %s not recognized for FFMPEG_LOG_LEVEL", level);
+	}
+	return true;
+}
+
 } // namespace
+
+bool VideoEncoderFFMPEG::once = set_log_level();
 
 void VideoEncoderFFMPEG::Encode(int index, bool idr, std::chrono::steady_clock::time_point target_timestamp)
 {

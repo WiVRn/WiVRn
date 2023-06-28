@@ -39,4 +39,7 @@ protected:
 
 	av_codec_context_ptr encoder_ctx;
 	Codec codec;
+
+private:
+	static bool once;
 };
