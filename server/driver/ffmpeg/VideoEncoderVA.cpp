@@ -144,6 +144,7 @@ VideoEncoderVA::VideoEncoderVA(vk_bundle * vk, const encoder_settings & settings
 	}
 
 	AVDictionary * opts = nullptr;
+	av_dict_set(&opts, "async_depth", "1", 0);
 	for (auto option: settings.options)
 	{
 		av_dict_set(&opts, option.first.c_str(), option.second.c_str(), 0);
@@ -175,6 +176,11 @@ VideoEncoderVA::VideoEncoderVA(vk_bundle * vk, const encoder_settings & settings
 	if (err < 0)
 	{
 		throw std::system_error(err, av_error_category(), "Cannot open video encoder codec");
+	}
+
+	if (encoder_ctx->delay != 0)
+	{
+		U_LOG_W("Encoder %d reports a %d frame delay, reprojection will fail", stream_idx, encoder_ctx->delay);
 	}
 }
 
@@ -303,21 +309,21 @@ void VideoEncoderVA::InitFilterGraph()
 	AVFilterInOut * outputs = avfilter_inout_alloc();
 	AVFilterInOut * inputs = avfilter_inout_alloc();
 
-    std::stringstream buffer_filter_args;
-    buffer_filter_args << "video_size=" << mapped_frames[0]->width << "x" << mapped_frames[0]->height;
-    buffer_filter_args << ":pix_fmt=" << mapped_frames[0]->format;
-    buffer_filter_args << ":time_base=" << encoder_ctx->time_base.num << "/" << encoder_ctx->time_base.den;
-    int err;
-    if ((err = avfilter_graph_create_filter(&filter_in, avfilter_get_by_name("buffer"), "in", buffer_filter_args.str().c_str(), NULL, filter_graph.get())))
-    {
-        throw std::system_error(err, av_error_category(), "filter_in creation failed");
-    }
-    AVBufferSrcParameters *par = av_buffersrc_parameters_alloc();
-    memset(par, 0, sizeof(*par));
-    par->format = AV_PIX_FMT_NONE;
-    par->hw_frames_ctx = av_buffer_ref(mapped_frames[0]->hw_frames_ctx);
-    av_buffersrc_parameters_set(filter_in, par);
-    av_free(par);
+	std::stringstream buffer_filter_args;
+	buffer_filter_args << "video_size=" << mapped_frames[0]->width << "x" << mapped_frames[0]->height;
+	buffer_filter_args << ":pix_fmt=" << mapped_frames[0]->format;
+	buffer_filter_args << ":time_base=" << encoder_ctx->time_base.num << "/" << encoder_ctx->time_base.den;
+	int err;
+	if ((err = avfilter_graph_create_filter(&filter_in, avfilter_get_by_name("buffer"), "in", buffer_filter_args.str().c_str(), NULL, filter_graph.get())))
+	{
+		throw std::system_error(err, av_error_category(), "filter_in creation failed");
+	}
+	AVBufferSrcParameters * par = av_buffersrc_parameters_alloc();
+	memset(par, 0, sizeof(*par));
+	par->format = AV_PIX_FMT_NONE;
+	par->hw_frames_ctx = av_buffer_ref(mapped_frames[0]->hw_frames_ctx);
+	av_buffersrc_parameters_set(filter_in, par);
+	av_free(par);
 
 	if ((err = avfilter_graph_create_filter(&filter_out, avfilter_get_by_name("buffersink"), "out", NULL, NULL, filter_graph.get())))
 	{
