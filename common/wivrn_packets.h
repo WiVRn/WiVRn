@@ -41,7 +41,6 @@ struct serialization_traits;
 static const int control_port = 9757;
 static const int stream_client_port = 9757;
 static const int stream_server_port = 9758;
-static const int audio_server_port = 9759;
 
 enum class device_id : uint8_t
 {
@@ -85,6 +84,12 @@ enum video_codec
 	h264,
 	h265,
 	hevc = h265,
+};
+
+struct audio_data
+{
+	uint64_t timestamp;
+	std::vector<uint8_t> payload;
 };
 
 namespace from_headset
@@ -179,7 +184,7 @@ struct feedback
 	uint8_t received_parity_packets;
 };
 
-using control_packets = std::variant<headset_info_packet, feedback>;
+using control_packets = std::variant<headset_info_packet, feedback, audio_data>;
 using stream_packets = std::variant<tracking, inputs, timesync_response>;
 } // namespace from_headset
 
@@ -188,7 +193,6 @@ namespace to_headset
 
 struct audio_stream_description
 {
-	uint16_t port;
 	struct device
 	{
 		uint8_t num_channels;
@@ -299,7 +303,7 @@ struct timesync_query
 };
 
 using stream_packets = std::variant<video_stream_data_shard, video_stream_parity_shard, haptics, timesync_query>;
-using control_packets = std::variant<audio_stream_description, video_stream_description>;
+using control_packets = std::variant<audio_stream_description, video_stream_description, audio_data>;
 
 } // namespace to_headset
 

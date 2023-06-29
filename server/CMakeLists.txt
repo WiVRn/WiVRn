@@ -54,6 +54,7 @@ add_executable(wivrn-server
 		avahi_publisher.cpp
 		wivrn_ipc.cpp
 
+		driver/audio_pulse.cpp
 		driver/audio_setup.cpp
 		driver/configuration.cpp
 		driver/encoder_settings.cpp

@@ -32,7 +32,7 @@
 
 class wivrn_hmd;
 class wivrn_controller;
-struct audio_publish_handle;
+struct audio_device;
 
 namespace xrt::drivers::wivrn
 {
@@ -60,7 +60,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	std::mutex csv_mutex;
 	std::ofstream feedback_csv;
 
-	std::shared_ptr<audio_publish_handle> audio_handle;
+	std::shared_ptr<audio_device> audio_handle;
 
 	wivrn_session(TCP && tcp, in6_addr & address);
 
@@ -76,6 +76,7 @@ public:
 	void operator()(from_headset::inputs &&);
 	void operator()(from_headset::timesync_response &&);
 	void operator()(from_headset::feedback &&);
+	void operator()(audio_data &&);
 
 	template <typename T>
 	void send_stream(const T & packet)

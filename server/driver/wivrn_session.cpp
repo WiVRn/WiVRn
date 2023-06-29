@@ -93,13 +93,14 @@ wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::d
 
 	try
 	{
-		self->audio_handle = audio_publish_handle::create(
+		self->audio_handle = audio_device::create(
 		        "wivrn.source",
 		        "WiVRn microphone",
 		        "wivrn.sink",
 		        "WiVRn",
-		        xrt::drivers::wivrn::audio_server_port,
-		        info);
+		        info,
+			*self
+			);
 		self->send_control(self->audio_handle->description());
 	}
 	catch (const std::exception & e)
@@ -204,6 +205,12 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 		dump_time("blit", feedback.frame_index, o.from_headset(feedback.blitted), feedback.stream_index);
 	if (feedback.displayed)
 		dump_time("display", feedback.frame_index, o.from_headset(feedback.displayed), feedback.stream_index);
+}
+
+void wivrn_session::operator()(audio_data&& data)
+{
+	if (audio_handle)
+		audio_handle->process_mic_data(data);
 }
 
 uint64_t clock_offset::from_headset(uint64_t ts) const

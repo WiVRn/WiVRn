@@ -18,6 +18,9 @@
  */
 
 #include "audio.h"
+#include "wivrn_client.h"
+#include "xr/instance.h"
+
 #include "spdlog/spdlog.h"
 #include <aaudio/AAudio.h>
 #include <cassert>
@@ -29,16 +32,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static unsigned int buffer_size_ms = 10;
-static unsigned int buffer_size_mult = 4;
-
 void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format)
 {
 	pthread_setname_np(pthread_self(), "audio_out_thread");
 
 	spdlog::info("audio_out_thread started");
-	char * buffer;
-	char * sewer;
 
 	try
 	{
@@ -48,46 +46,38 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 		if (result != AAUDIO_OK)
 			throw std::runtime_error(std::string("Cannot start output stream: ") + AAudio_convertResultToText(result));
 
-		size_t offset = 0;
 		const size_t frame_size = format.num_channels * sizeof(int16_t);
 
-		size_t bufsize = frame_size * format.sample_rate / 1000 * buffer_size_ms;
-		size_t max_bytes_available = bufsize * buffer_size_mult;
-		buffer = new char[bufsize];
-		sewer = new char[bufsize];
+		int32_t underruns = 0;
+		int32_t frames = AAudioStream_getFramesPerBurst(stream);
+		std::vector<uint8_t> silence(frame_size * frames, 0);
+
+		// Tune buffer size to minimize latency
+		{
+			auto tuning_end = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+			while (std::chrono::steady_clock::now() < tuning_end)
+			{
+				AAudioStream_write(stream, silence.data(), frames, 0);
+				int32_t underrunCount = AAudioStream_getXRunCount(stream);
+				if (underrunCount != underruns)
+				{
+					AAudioStream_setBufferSizeInFrames(stream, AAudioStream_getBufferSizeInFrames(stream) + frames);
+					underruns = underrunCount;
+				}
+			}
+		}
 
 		while (!quit)
 		{
-			pollfd pfd{};
-			pfd.fd = fd;
-			pfd.events = POLLIN;
+			auto packet = output_buffer.pop();
+			auto &buffer = packet.payload;
+			int num_frames = buffer.size() / frame_size;
 
-			int r = ::poll(&pfd, 1, 100);
-			if (r < 0)
-				throw std::system_error(errno, std::system_category());
+			num_frames = AAudioStream_write(stream, buffer.data(), num_frames, 0);
+			if (num_frames < 0)
+				throw std::runtime_error(std::string("Cannot play output stream: ") + AAudio_convertResultToText(result));
 
-			if (pfd.revents & (POLLHUP | POLLERR))
-				throw std::runtime_error("Error on audio socket");
-
-			if (pfd.revents & POLLIN)
-			{
-				ssize_t bytes_available;
-				while (ioctl(fd, FIONREAD, &bytes_available) == 0 && bytes_available > (ssize_t)max_bytes_available)
-					recv(fd, sewer, bufsize, 0);
-
-				ssize_t size = recv(fd, buffer + offset, bufsize - offset, 0);
-				int num_frames = (size + offset) / frame_size;
-
-				num_frames = AAudioStream_write(stream, buffer, num_frames, 1'000'000'000);
-				if (num_frames < 0)
-					throw std::runtime_error(std::string("Cannot play output stream: ") + AAudio_convertResultToText(result));
-
-				size_t consumed_bytes = num_frames * frame_size;
-				memmove(buffer, buffer + consumed_bytes, size + offset - consumed_bytes);
-				offset = size + offset - consumed_bytes;
-
-				assert(offset < bufsize);
-			}
+			// Any remaining data that doesn't fit the buffer is discarded
 		}
 	}
 	catch (std::exception & e)
@@ -95,8 +85,6 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 		spdlog::error("Error in audio output thread: {}", e.what());
 		quit = true;
 	}
-	delete buffer;
-	delete sewer;
 	AAudioStream_close(stream);
 }
 
@@ -112,15 +100,20 @@ void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wiv
 		if (result != AAUDIO_OK)
 			throw std::runtime_error(std::string("Cannot start input stream: ") + AAudio_convertResultToText(result));
 
-		char buffer[2000];
+		xrt::drivers::wivrn::audio_data packet;
 		const int frame_size = format.num_channels * sizeof(int16_t);
-		const int max_frames = 2000 / frame_size;
+		const int max_frames = (format.sample_rate * 10) / 1000; // 10ms
 
 		while (!quit)
 		{
-			result = AAudioStream_read(stream, buffer, max_frames, 1'000'000'000);
+			packet.payload.resize(frame_size * max_frames);
+			result = AAudioStream_read(stream, packet.payload.data(), max_frames, 1'000'000'000);
 			if (result > 0)
-				send(fd, buffer, frame_size * result, 0);
+			{
+				packet.timestamp = instance.now();
+				packet.payload.resize(frame_size * result);
+				session.send_control(packet);
+			}
 		}
 	}
 	catch (std::exception & e)
@@ -132,21 +125,8 @@ void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wiv
 	AAudioStream_close(stream);
 }
 
-void wivrn::android::audio::init(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, sockaddr * address, socklen_t address_size)
+wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, wivrn_session& session, xr::instance& instance): session(session), instance(instance)
 {
-	if (connect(fd, address, address_size) < 0)
-	{
-		::close(fd);
-		throw std::system_error{errno, std::generic_category()};
-	}
-
-	int nodelay = 1;
-	if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay)) < 0)
-	{
-		::close(fd);
-		throw std::system_error{errno, std::generic_category()};
-	}
-
 	AAudioStreamBuilder * builder;
 
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
@@ -191,36 +171,6 @@ void wivrn::android::audio::init(const xrt::drivers::wivrn::to_headset::audio_st
 	AAudioStreamBuilder_delete(builder);
 }
 
-wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, const in_addr & address)
-{
-	fd = socket(AF_INET, SOCK_STREAM, 0);
-
-	if (fd < 0)
-		throw std::system_error{errno, std::generic_category()};
-
-	sockaddr_in sa;
-	sa.sin_family = AF_INET;
-	sa.sin_addr = address;
-	sa.sin_port = htons(desc.port);
-
-	init(desc, (sockaddr *)&sa, sizeof(sa));
-}
-
-wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, const in6_addr & address)
-{
-	fd = socket(AF_INET6, SOCK_STREAM, 0);
-
-	if (fd < 0)
-		throw std::system_error{errno, std::generic_category()};
-
-	sockaddr_in6 sa;
-	sa.sin6_family = AF_INET6;
-	sa.sin6_addr = address;
-	sa.sin6_port = htons(desc.port);
-
-	init(desc, (sockaddr *)&sa, sizeof(sa));
-}
-
 wivrn::android::audio::~audio()
 {
 	quit = true;
@@ -233,6 +183,11 @@ wivrn::android::audio::~audio()
 
 	if (fd >= 0)
 		::close(fd);
+}
+
+void wivrn::android::audio::operator()(xrt::drivers::wivrn::audio_data && data)
+{
+	output_buffer.push(std::move(data));
 }
 
 void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info)

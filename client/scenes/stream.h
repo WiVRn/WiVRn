@@ -106,6 +106,7 @@ public:
 	void operator()(to_headset::timesync_query &&);
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
+	void operator()(audio_data&&);
 
 	VkFormat swapchain_format()
 	{

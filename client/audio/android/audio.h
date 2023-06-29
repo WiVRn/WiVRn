@@ -19,35 +19,45 @@
 
 #pragma once
 
+#include "utils/sync_queue.h"
 #include "wivrn_packets.h"
-#include <thread>
 #include <atomic>
+#include <thread>
 
 struct AAudioStreamStruct;
+class wivrn_session;
+
+namespace xr
+{
+class instance;
+}
 
 namespace wivrn::android
 {
 class audio
 {
-	void output(AAudioStreamStruct * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device& format);
-	void input(AAudioStreamStruct * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device& format);
+	void output(AAudioStreamStruct * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format);
+	void input(AAudioStreamStruct * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format);
 
 	std::thread output_thread;
 	std::thread input_thread;
 
+	utils::sync_queue<xrt::drivers::wivrn::audio_data> output_buffer;
+
+	wivrn_session & session;
+	xr::instance & instance;
 
 	std::atomic<bool> quit = false;
 	int fd = -1;
 
-	void init(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, sockaddr * address, socklen_t address_size);
-
 public:
-	audio(const audio&) = delete;
-	audio& operator=(const audio&) = delete;
-	audio(const xrt::drivers::wivrn::to_headset::audio_stream_description&, const in_addr& );
-	audio(const xrt::drivers::wivrn::to_headset::audio_stream_description&, const in6_addr& );
+	audio(const audio &) = delete;
+	audio & operator=(const audio &) = delete;
+	audio(const xrt::drivers::wivrn::to_headset::audio_stream_description &, wivrn_session &, xr::instance &);
 	~audio();
 
-	static void get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet& info);
+	void operator()(xrt::drivers::wivrn::audio_data &&);
+
+	static void get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info);
 };
-}
+} // namespace wivrn::android

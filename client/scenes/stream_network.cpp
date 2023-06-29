@@ -51,9 +51,7 @@ void scenes::stream::operator()(to_headset::video_stream_parity_shard && shard)
 
 void scenes::stream::operator()(to_headset::audio_stream_description && desc)
 {
-	std::visit([&](auto & address){
-		audio_handle.emplace(desc, address);
-	}, network_session->address);
+	audio_handle.emplace(desc, *network_session, instance);
 }
 
 void scenes::stream::operator()(to_headset::video_stream_description && desc)
@@ -73,6 +71,12 @@ void scenes::stream::operator()(to_headset::timesync_query && query)
 	response.query = query.query;
 	response.response = instance.now();
 	network_session->send_stream(response);
+}
+
+void scenes::stream::operator()(audio_data&& data)
+{
+	if (audio_handle)
+		(*audio_handle)(std::move(data));
 }
 
 void scenes::stream::send_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback)
