@@ -319,19 +319,22 @@ int main(int argc, char * argv[])
 			}
 
 			// Quit the server and the client
-			if (server_running)
-			{
-				// Write to the server's stdin to make it quit
-				char buffer[] = "\n";
-				write(pipe_fds[1], &buffer, strlen(buffer));
-			}
 
 			if (client_running)
 				kill(-client_pid, SIGTERM);
 
+			if (server_running)
+			{
+				// FIXME: server doesn't listen on stdin when used in socket activation mode
+				// Write to the server's stdin to make it quit
+				char buffer[] = "\n";
+				write(pipe_fds[1], &buffer, strlen(buffer));
+
+			}
+
 			// Wait until both the server and the client exit
 			auto now = std::chrono::steady_clock::now();
-			while(server_running && client_running)
+			while(server_running or client_running)
 			{
 				poll(fds, std::size(fds), 100);
 
@@ -358,10 +361,7 @@ int main(int argc, char * argv[])
 					// Send SIGTERM if the server takes more than 1s to quit
 					if (server_running)
 					{
-						poll(&fds[1], 1, 1000);
-
-						if (!(fds[1].revents & POLLIN))
-							kill(server_pid, SIGTERM);
+						pidfd_send_signal(server_fd, SIGTERM, nullptr, 0);
 					}
 
 					// Send SIGKILL if the client takes more than 1s to quit
