@@ -67,7 +67,7 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 			}
 		}
 
-		while (!quit)
+		while (!exiting)
 		{
 			auto packet = output_buffer.pop();
 			auto &buffer = packet.payload;
@@ -83,7 +83,7 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 	catch (std::exception & e)
 	{
 		spdlog::error("Error in audio output thread: {}", e.what());
-		quit = true;
+		exit();
 	}
 	AAudioStream_close(stream);
 }
@@ -104,7 +104,7 @@ void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wiv
 		const int frame_size = format.num_channels * sizeof(int16_t);
 		const int max_frames = (format.sample_rate * 10) / 1000; // 10ms
 
-		while (!quit)
+		while (!exiting)
 		{
 			packet.payload.resize(frame_size * max_frames);
 			result = AAudioStream_read(stream, packet.payload.data(), max_frames, 1'000'000'000);
@@ -119,10 +119,16 @@ void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wiv
 	catch (std::exception & e)
 	{
 		spdlog::error("Error in audio input thread: {}", e.what());
-		quit = true;
+		exit();
 	}
 
 	AAudioStream_close(stream);
+}
+
+void wivrn::android::audio::exit()
+{
+	exiting = true;
+	output_buffer.close();
 }
 
 wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, wivrn_session& session, xr::instance& instance): session(session), instance(instance)
@@ -173,7 +179,7 @@ wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream
 
 wivrn::android::audio::~audio()
 {
-	quit = true;
+	exit();
 
 	if (input_thread.joinable())
 		input_thread.join();

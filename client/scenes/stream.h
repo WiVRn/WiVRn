@@ -134,6 +134,7 @@ private:
 	void read_actions();
 
 	void setup(const to_headset::video_stream_description &);
+	void exit();
 	void cleanup();
 };
 } // namespace scenes

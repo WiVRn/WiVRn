@@ -47,8 +47,10 @@ class audio
 	wivrn_session & session;
 	xr::instance & instance;
 
-	std::atomic<bool> quit = false;
+	std::atomic<bool> exiting = false;
 	int fd = -1;
+
+	void exit();
 
 public:
 	audio(const audio &) = delete;

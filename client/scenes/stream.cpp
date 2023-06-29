@@ -128,8 +128,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 scenes::stream::~stream()
 {
 	cleanup();
-	exiting = true;
-	shard_queue.close();
+	exit();
 
 	video_thread.join();
 	if (tracking_thread)
@@ -405,6 +404,13 @@ void scenes::stream::render()
 	read_actions();
 }
 
+void scenes::stream::exit()
+{
+	exiting = true;
+	audio_handle.reset();
+	shard_queue.close();
+}
+
 void scenes::stream::cleanup()
 {
 	// Assumes decoder_mutex is locked
@@ -556,7 +562,7 @@ void scenes::stream::video()
 		catch (std::exception & e)
 		{
 			spdlog::error("Exception in video thread: {}", e.what());
-			exiting = true;
+			exit();
 		}
 	}
 }

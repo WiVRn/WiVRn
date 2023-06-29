@@ -124,7 +124,7 @@ void scenes::stream::tracking()
 		catch (std::exception & e)
 		{
 			spdlog::info("Exception in tracking thread, exiting: {}", e.what());
-			exiting = true;
+			exit();
 		}
 	}
 }

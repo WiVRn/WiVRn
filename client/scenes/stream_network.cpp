@@ -32,7 +32,7 @@ void scenes::stream::process_packets()
 		catch (std::exception & e)
 		{
 			spdlog::info("Exception in network thread, exiting: {}", e.what());
-			exiting = true;
+			exit();
 		}
 	}
 }
