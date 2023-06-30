@@ -209,7 +209,6 @@ wivrn_controller::wivrn_controller(int hand_id,
 	{
 		case 0:
 			device_type = XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER;
-			SET_INPUT(MENU_CLICK);
 
 			// Print name.
 			strcpy(str, "WiVRn HMD left hand controller");
@@ -240,16 +239,16 @@ void wivrn_controller::update_inputs()
 	inputs_array = inputs_staging;
 }
 
-void wivrn_controller::set_inputs(const from_headset::inputs & inputs)
+void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clock_offset& clock_offset)
 {
 	std::lock_guard lock{mutex};
 	for (const auto & input: inputs.values)
 	{
-		set_inputs(input.id, input.value);
+		set_inputs(input.id, input.value, clock_offset.from_headset(input.last_change_time));
 	}
 }
 
-void wivrn_controller::set_inputs(device_id input_id, float value)
+void wivrn_controller::set_inputs(device_id input_id, float value, uint64_t last_change_time)
 {
 	const struct wivrn_to_wivrn_controller_input * bindings;
 	size_t bindings_count;
@@ -276,6 +275,7 @@ void wivrn_controller::set_inputs(device_id input_id, float value)
 
 	if (binding)
 	{
+		inputs_staging[binding->input_id].timestamp = last_change_time;
 		switch (binding->input_type)
 		{
 			case wivrn_input_type::BOOL:

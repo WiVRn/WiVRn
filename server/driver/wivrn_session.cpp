@@ -160,8 +160,9 @@ void wivrn_session::operator()(from_headset::tracking && tracking)
 
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
-	left_hand->set_inputs(inputs);
-	right_hand->set_inputs(inputs);
+	auto offset = get_offset();
+	left_hand->set_inputs(inputs, offset);
+	right_hand->set_inputs(inputs, offset);
 }
 
 template <typename Rep, typename Period>

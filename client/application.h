@@ -300,9 +300,9 @@ public:
 	};
 
 	static void poll_actions();
-	static bool read_action(XrAction action, float & value);
-	static bool read_action(XrAction action, bool & value);
-	static bool read_action(XrAction action, XrVector2f & value);
+	static bool read_action(XrAction action, float & value, XrTime& last_change_time);
+	static bool read_action(XrAction action, bool & value, XrTime& last_change_time);
+	static bool read_action(XrAction action, XrVector2f & value, XrTime& last_change_time);
 	static void haptic_start(XrAction action, XrPath subpath, int64_t duration, float frequency, float amplitude);
 	static void haptic_stop(XrAction action, XrPath subpath);
 

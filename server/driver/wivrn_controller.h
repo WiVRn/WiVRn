@@ -54,11 +54,11 @@ public:
 
 	void set_output(xrt_output_name name, const xrt_output_value * value);
 
-	void set_inputs(const from_headset::inputs &);
+	void set_inputs(const from_headset::inputs &, const clock_offset &);
 
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 
 private:
 	void
-	set_inputs(device_id input_id, float value);
+	set_inputs(device_id input_id, float value, uint64_t last_change_time);
 };

@@ -151,6 +151,7 @@ struct inputs
 	{
 		device_id id;
 		float value;
+		uint64_t last_change_time;
 	};
 	std::vector<input_value> values;
 };

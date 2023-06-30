@@ -761,7 +761,7 @@ void application::poll_actions()
 	instance_->xr_session.sync_actions(instance_->xr_actionset);
 }
 
-bool application::read_action(XrAction action, bool & value)
+bool application::read_action(XrAction action, bool & value, XrTime& last_change_time)
 {
 	if (!is_focused())
 		return false;
@@ -778,10 +778,11 @@ bool application::read_action(XrAction action, bool & value)
 		return false;
 
 	value = state.currentState;
+	last_change_time = state.lastChangeTime;
 	return true;
 }
 
-bool application::read_action(XrAction action, float & value)
+bool application::read_action(XrAction action, float & value, XrTime& last_change_time)
 {
 	if (!is_focused())
 		return false;
@@ -798,10 +799,11 @@ bool application::read_action(XrAction action, float & value)
 		return false;
 
 	value = state.currentState;
+	last_change_time = state.lastChangeTime;
 	return true;
 }
 
-bool application::read_action(XrAction action, XrVector2f & value)
+bool application::read_action(XrAction action, XrVector2f & value, XrTime& last_change_time)
 {
 	if (!is_focused())
 		return false;
@@ -818,6 +820,7 @@ bool application::read_action(XrAction action, XrVector2f & value)
 		return false;
 
 	value = state.currentState;
+	last_change_time = state.lastChangeTime;
 	return true;
 }
 
