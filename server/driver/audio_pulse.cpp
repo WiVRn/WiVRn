@@ -274,7 +274,8 @@ struct pulse_device : public audio_device
 {
 	xrt::drivers::wivrn::to_headset::audio_stream_description desc;
 
-	std::thread net_thread;
+	std::thread mic_thread;
+	std::thread speaker_thread;
 	std::atomic<bool> quit;
 
 	std::optional<module_entry> speaker;
@@ -290,8 +291,11 @@ struct pulse_device : public audio_device
 	~pulse_device()
 	{
 		quit = true;
-		if (net_thread.joinable())
-			net_thread.join();
+		mic_buffer.close();
+		if (mic_thread.joinable())
+			mic_thread.join();
+		if (speaker_thread.joinable())
+			speaker_thread.join();
 		if (speaker or microphone)
 		{
 			try
@@ -385,7 +389,7 @@ struct pulse_device : public audio_device
 		assert(desc.microphone);
 		pthread_setname_np(pthread_self(), "mic_thread");
 
-		const size_t sample_size = desc.speaker->num_channels * sizeof(int16_t);
+		const size_t sample_size = desc.microphone->num_channels * sizeof(int16_t);
 		try
 		{
 			while (not quit)
@@ -444,7 +448,7 @@ struct pulse_device : public audio_device
 			mic_pipe = open(microphone->socket.c_str(), O_WRONLY | O_NONBLOCK);
 			if (not mic_pipe)
 				throw std::system_error(errno, std::system_category(), "failed to open mic pipe " + microphone->socket.string());
-			net_thread = std::thread([this]() { run_mic(); });
+			mic_thread = std::thread([this]() { run_mic(); });
 		}
 
 		if (info.speaker)
@@ -458,7 +462,7 @@ struct pulse_device : public audio_device
 			if (not speaker_pipe)
 				throw std::system_error(errno, std::system_category(), "failed to open speaker pipe " + speaker->socket.string());
 
-			net_thread = std::thread([this]() { run_speaker(); });
+			speaker_thread = std::thread([this]() { run_speaker(); });
 		}
 	}
 };
