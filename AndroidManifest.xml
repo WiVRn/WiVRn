@@ -4,22 +4,23 @@
     package="org.meumeu.wivrn"
     android:installLocation="auto">
 
+    <uses-sdk android:minSdkVersion="29" />
+
     <!-- Tell the system this app works in either 3dof or 6dof mode -->
     <uses-feature android:name="android.hardware.vr.headtracking" android:required="true" android:version="1" />
-
-    <!-- Allow starting the application even without controllers -->
-    <uses-feature android:name="oculus.software.handtracking" android:required="false" />
-    <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
-
-    <!-- Required for XR_FB_render_model -->
-    <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="false" />
-    <uses-permission android:name="com.oculus.permission.RENDER_MODEL" />
-
-    <uses-sdk android:minSdkVersion="29" />
 
     <!-- If building externally with the OpenXR AAR, this would be merged in automatically. -->
     <uses-permission android:name="org.khronos.openxr.permission.OPENXR" />
     <uses-permission android:name="org.khronos.openxr.permission.OPENXR_SYSTEM" />
+
+    <queries tools:ignore="ExportedContentProvider">
+        <intent>
+            <action android:name="org.khronos.openxr.OpenXRRuntimeService"/>
+        </intent>
+        <provider android:authorities="org.khronos.openxr.runtime_broker;org.khronos.openxr.system_runtime_broker" />
+        <package android:name="com.ultraleap.tracking.service"/>
+        <package android:name="com.ultraleap.openxr.api_layer"/>
+    </queries>
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
@@ -31,10 +32,14 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <queries tools:ignore="ExportedContentProvider">
-        <provider android:authorities="org.khronos.openxr.runtime_broker;org.khronos.openxr.system_runtime_broker" />
-    </queries>
+    <!-- Allow starting the application even without controllers -->
+    <uses-feature android:name="oculus.software.handtracking" android:required="false" />
+    <uses-permission android:name="com.magicleap.permission.HAND_TRACKING" />
+    <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
 
+    <!-- Required for XR_FB_render_model -->
+    <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="false" />
+    <uses-permission android:name="com.oculus.permission.RENDER_MODEL" />
 
     <application
         android:allowBackup="false"
@@ -47,6 +52,7 @@
         <meta-data android:name="pvr.app.type" android:value="vr" />
         <meta-data android:name="com.oculus.intent.category.VR" android:value="vr_only"/>
         <meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2|cambria"/>
+        <meta-data android:name="handtracking" android:value="1" />
 
         <!-- The activity is the built-in NativeActivity framework class. -->
         <!-- launchMode is set to singleTask because there should never be multiple copies of the app running. -->

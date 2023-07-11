@@ -72,15 +72,6 @@ android {
     flavorDimensions "device"
 
     productFlavors {
-        oculus {
-            dimension "device"
-            externalNativeBuild {
-                cmake {
-                    abiFilters 'arm64-v8a'
-                    arguments '-DOCULUS=ON'
-                }
-            }
-        }
         pico {
             dimension "device"
             externalNativeBuild {
@@ -89,6 +80,9 @@ android {
                     arguments '-DPICO=ON'
                 }
             }
+        }
+        standard {
+            dimension "device"
         }
     }
 

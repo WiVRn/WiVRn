@@ -19,11 +19,11 @@ ln --relative --symbolic --force build-server/openxr_wivrn-dev.json ~/.config/op
 ```
 
 ## Client (headset)
-At this early stage of development, we do not have stable releases. Only Oculus Quest is supported.
+At this early stage of development, we do not have stable releases.
 Download apk from [Releases](https://github.com/Meumeu/WiVRn/releases).
 Install with adb (headset connected to PC), developer mode must be activated on Quest.
 ```bash
-adb install WiVRn-oculus.apk
+adb install WiVRn.apk
 ```
 
 # Usage

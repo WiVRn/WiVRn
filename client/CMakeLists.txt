@@ -14,42 +14,13 @@ include(CompileGLSL)
 
 if(ANDROID)
     add_library(wivrn MODULE)
-
+    
     find_library(ANDROID_LIBRARY NAMES android REQUIRED)
     find_library(MEDIA_LIBRARY NAMES mediandk REQUIRED)
     find_library(AAUDIO_LIBRARY NAMES aaudio REQUIRED)
     target_link_libraries(wivrn ${ANDROID_LIBRARY} ${MEDIA_LIBRARY} ${AAUDIO_LIBRARY})
 
-    if(OCULUS)
-        set(OCULUS_SDK_PATH ${CMAKE_SOURCE_DIR}/external/oculus)
-
-        if(NOT EXISTS ${OCULUS_SDK_PATH})
-            file(GLOB OCULUS_SDK_ZIP ${CMAKE_SOURCE_DIR}/ovr_openxr_mobile_sdk_*.zip)
-
-            if("${OCULUS_SDK_ZIP}" STREQUAL "")
-                message(FATAL_ERROR "Download the Oculus SDK from https://developer.oculus.com/downloads/package/oculus-openxr-mobile-sdk in ${CMAKE_SOURCE_DIR}/ovr_openxr_mobile_sdk_*.zip")
-            endif()
-
-            file(ARCHIVE_EXTRACT
-                INPUT ${OCULUS_SDK_ZIP}
-                DESTINATION ${OCULUS_SDK_PATH}
-                PATTERNS 3rdParty/khronos/openxr/OpenXR-SDK/include/openxr OpenXR/Include OpenXR/Libs/Android
-                VERBOSE)
-        endif()
-
-        add_library(OpenXR SHARED IMPORTED)
-        target_include_directories(OpenXR INTERFACE
-            ${OCULUS_SDK_PATH}/3rdParty/khronos/openxr/OpenXR-SDK/include
-            ${OCULUS_SDK_PATH}/OpenXR/Include)
-
-        if(CMAKE_BUILD_TYPE STREQUAL Debug)
-            set_property(TARGET OpenXR
-                PROPERTY IMPORTED_LOCATION ${OCULUS_SDK_PATH}/OpenXR/Libs/Android/${ANDROID_ABI}/Debug/libopenxr_loader.so)
-        else()
-            set_property(TARGET OpenXR
-                PROPERTY IMPORTED_LOCATION ${OCULUS_SDK_PATH}/OpenXR/Libs/Android/${ANDROID_ABI}/Release/libopenxr_loader.so)
-        endif()
-    elseif (PICO)
+    if (PICO)
         set(PICO_SDK_PATH ${CMAKE_SOURCE_DIR}/external/pico)
         if(NOT EXISTS ${PICO_SDK_PATH})
             file(GLOB PICO_SDK_PATH ${CMAKE_SOURCE_DIR}/PICO_OpenXR_SDK_*.zip)
@@ -72,7 +43,15 @@ if(ANDROID)
         set_property(TARGET OpenXR
                 PROPERTY IMPORTED_LOCATION ${PICO_SDK_PATH}/libs/android.${ANDROID_ABI}/libopenxr_loader.so)
     else()
-        message(FATAL_ERROR "TODO: implement other android headsets")
+        CPMAddPackage( # We're scraping the comment after the NAME for some other scripts
+            NAME openxr_loader # 1.0.28
+            VERSION 1.0.27
+            GITHUB_REPOSITORY KhronosGroup/OpenXR-SDK
+            GIT_TAG "release-1.0.28"
+            OPTIONS
+            "BUILD_WITH_SYSTEM_JSONCPP OFF"
+            "DYNAMIC_LOADER ON"
+        )
     endif()
 
 
