@@ -249,6 +249,32 @@ class application
 
             {"/user/hand/left/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	};
+	static inline const std::pair<const char *, XrActionType> simple_controller[] = {
+	        {"/user/hand/left/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
+	        {"/user/hand/right/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
+
+	        {"/user/hand/left/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	        {"/user/hand/right/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
+
+	        {"/user/hand/left/input/select/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	        {"/user/hand/right/input/select/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
+
+	        {"/user/hand/left/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
+	        {"/user/hand/right/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
+
+	        {"/user/hand/left/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
+	        {"/user/hand/right/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
+
+	        {"/user/hand/left/input/palm_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
+	        {"/user/hand/right/input/palm_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
+			
+	        {"/user/hand/left/input/pinch_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
+	        {"/user/hand/right/input/pinch_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
+
+	        {"/user/hand/left/input/poke_ext_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
+	        {"/user/hand/right/input/poke_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
+
+	};
 
 	bool session_running = false;
 	bool session_focused = false;

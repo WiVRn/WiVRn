@@ -459,7 +459,13 @@ void application::initialize()
 	}
 	else
 	{
-		spdlog::error("Couldn't find any compatible suggested bindings");
+			spdlog::info("Suggesting Khronos simple controller bindings");
+			std::vector<XrActionSuggestedBinding> simple_controller_bindings;
+			for (const auto & [name, type]: simple_controller)
+			{
+				process_binding_action(simple_controller_bindings, name, type);
+			}
+			xr_instance.suggest_bindings("/interaction_profiles/khr/simple_controller", simple_controller_bindings);
 	}
 
 	xr_session.attach_actionsets({xr_actionset});
