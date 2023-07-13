@@ -14,7 +14,7 @@ include(CompileGLSL)
 
 if(ANDROID)
     add_library(wivrn MODULE)
-    
+
     find_library(ANDROID_LIBRARY NAMES android REQUIRED)
     find_library(MEDIA_LIBRARY NAMES mediandk REQUIRED)
     find_library(AAUDIO_LIBRARY NAMES aaudio REQUIRED)
@@ -42,6 +42,7 @@ if(ANDROID)
 
         set_property(TARGET OpenXR
                 PROPERTY IMPORTED_LOCATION ${PICO_SDK_PATH}/libs/android.${ANDROID_ABI}/libopenxr_loader.so)
+        target_link_libraries(wivrn OpenXR)
     else()
         CPMAddPackage( # We're scraping the comment after the NAME for some other scripts
             NAME openxr_loader # 1.0.28
@@ -52,10 +53,11 @@ if(ANDROID)
             "BUILD_WITH_SYSTEM_JSONCPP OFF"
             "DYNAMIC_LOADER ON"
         )
+        target_link_libraries(wivrn openxr_loader)
     endif()
 
 
-    target_link_libraries(wivrn native_app_glue OpenXR)
+    target_link_libraries(wivrn native_app_glue)
     target_compile_definitions(wivrn PRIVATE -DXR_USE_PLATFORM_ANDROID -DVK_USE_PLATFORM_ANDROID_KHR)
     target_link_options(wivrn PRIVATE -Wl,--undefined=ANativeActivity_onCreate)
 
@@ -92,7 +94,7 @@ file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
 
 file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
-compile_glsl(wivrn ${VULKAN_SHADERS})
+wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
 target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz reed-solomon)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)

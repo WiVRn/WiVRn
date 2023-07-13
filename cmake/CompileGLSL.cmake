@@ -19,7 +19,7 @@ endfunction()
 
 
 
-function(compile_glsl target_name)
+function(wivrn_compile_glsl target_name)
 
     add_custom_command(
                 OUTPUT ${target_name}_shaders.cpp

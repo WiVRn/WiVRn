@@ -104,7 +104,7 @@ include(CompileGLSL)
 
 file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "driver/shaders/*.glsl")
 target_sources(wivrn-server PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
-compile_glsl(wivrn-server ${VULKAN_SHADERS})
+wivrn_compile_glsl(wivrn-server ${VULKAN_SHADERS})
 
 target_link_libraries(
 	wivrn-server
