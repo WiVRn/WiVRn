@@ -22,6 +22,8 @@
 #include "utils/handle.h"
 #include <vulkan/vulkan.h>
 
+static_assert(not std::is_same_v<VkImage, VkBuffer>, "vulkan handles need to be different types");
+
 namespace vk
 {
 class device_memory : public utils::handle<VkDeviceMemory>
