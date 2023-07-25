@@ -321,7 +321,11 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	decoder->push_data(payload, frame_index, false);
 
 	auto feedback = current.feedback;
-	assert(data_shards.back()->view_info);
+	if (not data_shards.back()->view_info)
+	{
+		spdlog::warn("shard with end_of_frame flag has no view_info");
+		return;
+	}
 	feedback.received_pose = data_shards.back()->view_info->pose;
 
 	// Try to extract a frame
