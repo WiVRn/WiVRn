@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "vk/vk_cmd_pool.h"
 #include "vk/vk_helpers.h"
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -42,6 +43,7 @@ public:
 		int stride;
 	};
 	vk_bundle & vk;
+	vk_cmd_pool & pool;
 	image_bundle y;
 	image_bundle uv;
 	VkSampler sampler = VK_NULL_HANDLE;
@@ -55,7 +57,7 @@ public:
 	std::vector<VkCommandBuffer> command_buffers;
 	std::vector<VkDescriptorSet> descriptor_sets;
 
-	YuvConverter(vk_bundle * vk, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height);
+	YuvConverter(vk_bundle * vk, vk_cmd_pool & pool, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height);
 	~YuvConverter();
 
 	void SetImages(int num_images, VkImage * images, VkImageView * views);

@@ -40,6 +40,7 @@ namespace xrt::drivers::wivrn
 
 std::unique_ptr<VideoEncoder> VideoEncoder::Create(
         vk_bundle * vk,
+        vk_cmd_pool & pool,
         encoder_settings & settings,
         uint8_t stream_idx,
         int input_width,
@@ -51,7 +52,7 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 #ifdef WIVRN_HAVE_X264
 	if (settings.encoder_name == encoder_x264)
 	{
-		res = std::make_unique<VideoEncoderX264>(vk, settings, input_width, input_height, fps);
+		res = std::make_unique<VideoEncoderX264>(vk, pool, settings, input_width, input_height, fps);
 	}
 #endif
 #ifdef WIVRN_HAVE_CUDA

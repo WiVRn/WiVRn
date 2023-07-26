@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "vk/vk_cmd_pool.h"
 #include "vk/vk_helpers.h"
 #include <chrono>
 #include <memory>
@@ -40,8 +41,10 @@ inline const char * encoder_x264 = "x264";
 class VideoEncoder
 {
 	std::mutex mutex;
+
 protected:
 	uint8_t stream_idx;
+
 private:
 	uint64_t frame_idx;
 
@@ -52,6 +55,7 @@ private:
 
 public:
 	static std::unique_ptr<VideoEncoder> Create(vk_bundle * vk,
+	                                            vk_cmd_pool & pool,
 	                                            encoder_settings & settings,
 	                                            uint8_t stream_idx,
 	                                            int input_width,

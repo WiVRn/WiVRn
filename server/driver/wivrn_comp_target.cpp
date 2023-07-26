@@ -22,6 +22,8 @@
 #include "math/m_space.h"
 #include "util/u_pacing.h"
 #include "video_encoder.h"
+#include "vk/vk_cmd.h"
+#include "vk/vk_cmd_pool.h"
 #include "xrt/xrt_config_have.h"
 #include "xrt_cast.h"
 #include <atomic>
@@ -52,6 +54,8 @@ struct wivrn_comp_target : public comp_target
 {
 	//! Compositor frame pacing helper
 	struct u_pacing_compositor * upc{};
+
+	vk_cmd_pool pool;
 
 	float fps;
 
@@ -116,7 +120,7 @@ static void destroy_images(struct wivrn_comp_target * cn)
 		vk->vkDestroyImageView(vk->device, cn->images[i].view, NULL);
 		vk->vkDestroyImage(vk->device, cn->images[i].handle, NULL);
 		vk->vkFreeMemory(vk->device, cn->psc.images[i].memory, NULL);
-		vk->vkFreeCommandBuffers(vk->device, vk->cmd_pool, 1, &cn->psc.images[i].present_cmd);
+		vk->vkFreeCommandBuffers(vk->device, cn->pool.pool, 1, &cn->psc.images[i].present_cmd);
 	}
 
 	free(cn->images);
@@ -154,7 +158,7 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 	{
 		uint8_t stream_index = cn->encoders.size();
 		auto & encoder = cn->encoders.emplace_back(
-		        VideoEncoder::Create(vk, settings, stream_index, desc.width, desc.height, desc.fps));
+		        VideoEncoder::Create(vk, cn->pool, settings, stream_index, desc.width, desc.height, desc.fps));
 		desc.items.push_back(settings);
 
 		std::vector<VkImage> images(cn->image_count);
@@ -304,11 +308,10 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 		createinfo.flags = 0;
 
 		res = vk->vkCreateFence(vk->device, &createinfo, NULL, &cn->psc.images[i].fence);
-
 		vk_check_error("vkCreateFence", res, res);
 
-		res = vk_cmd_buffer_create_and_begin(vk, &cn->psc.images[i].present_cmd);
-		vk_check_error("vk_cmd_buffer_create_and_begin", res, res);
+		res = vk_cmd_pool_create_and_begin_cmd_buffer(vk, &cn->pool, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, &cn->psc.images[i].present_cmd);
+		vk_check_error("vk_cmd_pool_create_and_begin_cmd_buffer", res, res);
 
 		VkImageSubresourceRange first_color_level_subresource_range{
 		        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -333,7 +336,10 @@ static bool comp_wivrn_init_pre_vulkan(struct comp_target * ct)
 
 static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t preferred_width, uint32_t preferred_height)
 {
-	return true;
+	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+
+	auto res = vk_cmd_pool_init(get_vk(cn), &cn->pool, 0);
+	return not vk_has_error(res, "vk_cmd_pool_init", __FILE__, __LINE__);
 }
 
 static bool comp_wivrn_check_ready(struct comp_target * ct)
@@ -456,7 +462,7 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 	submit.signalSemaphoreCount = 1;
 	submit.pSignalSemaphores = &cn->semaphores.present_complete;
 
-	VkResult res = vk_locked_submit(vk, vk->queue, 1, &submit, VK_NULL_HANDLE);
+	VkResult res = vk_cmd_pool_submit(vk, &cn->pool, 1, &submit, VK_NULL_HANDLE);
 	vk_check_error("vk_locked_submit", res, res);
 
 	res = VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -523,7 +529,8 @@ static void * comp_wivrn_present_thread(void * void_param)
 		}
 
 		VkResult res = vk->vkWaitForFences(vk->device, nb_fences, fences.data(), VK_TRUE, UINT64_MAX);
-		if (nb_fences > 1) {
+		if (nb_fences > 1)
+		{
 			U_LOG_I("Encoder group %d dropped %d frames", param->thread->index, nb_fences - 1);
 		}
 		vk_check_error("vkWaitForFences", res, NULL);
@@ -601,7 +608,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	std::lock_guard lock(cn->psc.mutex);
 	VkResult res = vk->vkResetFences(vk->device, 1, &cn->psc.images[index].fence);
 	vk_check_error("vkResetFences", res, res);
-	res = vk_locked_submit(vk, vk->queue, 1, &submit, cn->psc.images[index].fence);
+	res = vk_cmd_pool_submit(vk, &cn->pool, 1, &submit, cn->psc.images[index].fence);
 	vk_check_error("vk_locked_submit", res, res);
 
 	assert(cn->psc.images[index].status == image_acquired);
@@ -734,7 +741,7 @@ static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, uint6
  *
  */
 
-comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor* c, float fps)
+comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps)
 {
 	wivrn_comp_target * cn = new wivrn_comp_target{};
 

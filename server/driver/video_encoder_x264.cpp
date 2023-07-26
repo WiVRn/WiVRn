@@ -82,6 +82,7 @@ void VideoEncoderX264::InsertInPendingNal(pending_nal && nal)
 
 VideoEncoderX264::VideoEncoderX264(
         vk_bundle * vk,
+        vk_cmd_pool & pool,
         encoder_settings & settings,
         int input_width,
         int input_height,
@@ -100,6 +101,7 @@ VideoEncoderX264::VideoEncoderX264(
 
 	converter = std::make_unique<YuvConverter>(
 	        vk,
+	        pool,
 	        VkExtent3D{uint32_t(settings.video_width), uint32_t(settings.video_height), 1},
 	        settings.offset_x,
 	        settings.offset_y,
