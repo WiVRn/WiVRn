@@ -177,4 +177,4 @@ jobs:
         generate_release_notes: true
         draft: true
         files: |
-          apk/WiVRn-release.apk
+          apk/WiVRn-standard-release.apk
