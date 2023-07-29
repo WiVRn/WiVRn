@@ -9,6 +9,7 @@ else ()
             -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
             -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
             -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+            -D CMAKE_PROJECT_VERSION=${CMAKE_PROJECT_VERSION}
             -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
     )
 endif()

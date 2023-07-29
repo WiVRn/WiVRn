@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "pidfd.h"
+#include "version.h"
 
 #include "avahi_publisher.h"
 #include "hostname.h"
@@ -106,7 +107,7 @@ int create_listen_socket()
 		std::cerr << "Could not bind socket to path " << sock_file << ": " << strerror(errno) << ". Is the service running already?" << std::endl;
 		if (errno == EADDRINUSE)
 		{
-			std::cerr << "If wivrn is not running, delete " << sock_file << " before starting a new instance" << std::endl;
+			std::cerr << "If WiVRn is not running, delete " << sock_file << " before starting a new instance" << std::endl;
 		}
 		close(fd);
 		throw std::system_error(errno, std::system_category());
@@ -185,6 +186,7 @@ void waitpid_verbose(pid_t pid, const std::string& name)
 
 int main(int argc, char * argv[])
 {
+	std::cerr << "WiVRn " << git_version << " starting" << std::endl;
 	create_listen_socket();
 
 	u_trace_marker_init();
