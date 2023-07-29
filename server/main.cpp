@@ -21,10 +21,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-extern "C"
-{
-#include <sys/pidfd.h>
-}
+#include "pidfd.h"
 
 #include "avahi_publisher.h"
 #include "hostname.h"
