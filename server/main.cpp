@@ -325,7 +325,7 @@ int main(int argc, char * argv[])
 				// FIXME: server doesn't listen on stdin when used in socket activation mode
 				// Write to the server's stdin to make it quit
 				char buffer[] = "\n";
-				write(pipe_fds[1], &buffer, strlen(buffer));
+				(void)write(pipe_fds[1], &buffer, strlen(buffer));
 
 			}
 
