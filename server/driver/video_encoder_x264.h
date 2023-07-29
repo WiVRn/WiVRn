@@ -51,7 +51,7 @@ class VideoEncoderX264 : public VideoEncoder
 	std::list<pending_nal> pending_nals;
 
 public:
-	VideoEncoderX264(vk_bundle * vk, encoder_settings & settings, int input_width, int input_height, float fps);
+	VideoEncoderX264(vk_bundle * vk, vk_cmd_pool & pool, encoder_settings & settings, int input_width, int input_height, float fps);
 
 	void SetImages(int width,
 	               int height,

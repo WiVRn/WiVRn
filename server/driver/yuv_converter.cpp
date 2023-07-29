@@ -128,8 +128,8 @@ static void destroy_all(YuvConverter * ptr)
 			throw std::runtime_error(fun "failed"); \
 	} while (0)
 
-YuvConverter::YuvConverter(vk_bundle * vk, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height) :
-        vk(*vk)
+YuvConverter::YuvConverter(vk_bundle * vk, vk_cmd_pool & pool, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height) :
+        vk(*vk), pool(pool)
 {
 	std::unique_ptr<YuvConverter, decltype(&destroy_all)> deleter(this, destroy_all);
 
@@ -365,8 +365,8 @@ void YuvConverter::SetImages(int num_images, VkImage * images, VkImageView * vie
 		vk.vkUpdateDescriptorSets(vk.device, 1, &descriptorWrite, 0, nullptr);
 
 		VkCommandBuffer cmdBuffer;
-		res = vk_cmd_buffer_create_and_begin(&vk, &cmdBuffer);
-		vk_check_throw("vk_cmd_buffer_create_and_begin", res);
+		res = vk_cmd_pool_create_and_begin_cmd_buffer(&vk, &pool, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, &cmdBuffer);
+		vk_check_throw("vk_cmd_pool_create_and_begin_cmd_buffer", res);
 
 		for (auto & comp: {y, uv})
 		{

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(WiVRn VERSION 1.0 LANGUAGES C CXX)
+project(WiVRn VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
@@ -78,7 +78,7 @@ FetchContent_Declare(tinygltf URL https://github.com/syoyo/tinygltf/archive/refs
 FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
-    GIT_TAG          e9475b13137db2cca8571576b5381a70fb8180a5
+    GIT_TAG          e39e0ee5ffc6b961dd51a556c83fe5e7f76822d8
     )
 
 
