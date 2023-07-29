@@ -20,6 +20,9 @@
 #include <filesystem>
 #include <fstream>
 #define JSON_DISABLE_ENUM_SERIALIZATION 1
+#ifdef JSON_DIAGNOSTICS
+#undef JSON_DIAGNOSTICS
+#endif
 #define JSON_DIAGNOSTICS 1
 #include <nlohmann/json.hpp>
 #include <stdlib.h>
@@ -105,7 +108,12 @@ configuration configuration::read_user_configuration()
 			if (json["application"].is_string())
 				result.application.push_back(json["application"]);
 			else
-				result.application = json["application"];
+			{
+				for(const auto& i: json["application"])
+				{
+					result.application.push_back(i);
+				}
+			}
 		}
 	}
 	catch (const std::exception & e)
