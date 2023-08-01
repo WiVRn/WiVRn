@@ -131,8 +131,6 @@ target_link_libraries(
 install(TARGETS wivrn-server)
 
 set_target_properties(${RUNTIME_TARGET} PROPERTIES EXCLUDE_FROM_ALL FALSE)
-install (SCRIPT
-	${monado_BINARY_DIR}/src/xrt/targets/openxr/active_runtime.cmake)
 generate_openxr_runtime_manifest_at_install(
 	RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${CMAKE_INSTALL_LIBDIR}
 	RUNTIME_TARGET ${RUNTIME_TARGET}
