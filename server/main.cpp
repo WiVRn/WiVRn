@@ -36,24 +36,6 @@ extern "C"
 {
 	int
 	ipc_server_main(int argc, char * argv[]);
-
-	int
-	oxr_sdl2_hack_create(void ** out_hack)
-	{
-		return 0;
-	}
-
-	int
-	oxr_sdl2_hack_start(void * hack, struct xrt_instance * xinst, struct xrt_system_devices * xsysd)
-	{
-		return 0;
-	}
-
-	int
-	oxr_sdl2_hack_stop(void ** hack_ptr)
-	{
-		return 0;
-	}
 }
 
 using namespace xrt::drivers::wivrn;
