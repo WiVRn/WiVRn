@@ -45,20 +45,21 @@ static int bytes_per_pixel(VkFormat format)
 	}
 }
 
-static VkResult create_image(vk_bundle & vk, VkExtent2D extent, VkFormat format, YuvConverter::image_bundle & bundle)
+static VkResult create_image(vk_bundle & vk_, VkExtent2D extent, VkFormat format, YuvConverter::image_bundle & bundle)
 {
-	VkResult res = vk_create_image_simple(&vk, extent, format, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &bundle.image_memory, &bundle.image);
-	vk_check_error("vk_create_image_simple", res, res);
+	auto vk = &vk_;
+	VkResult res = vk_create_image_simple(vk, extent, format, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &bundle.image_memory, &bundle.image);
+	VK_CHK_AND_RET(res, "vk_create_image_simple");
 
 	bundle.stride = extent.width * bytes_per_pixel(format);
 
-	if (!vk_buffer_init(&vk, extent.height * bundle.stride, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, &bundle.buffer, &bundle.buffer_memory))
+	if (!vk_buffer_init(vk, extent.height * bundle.stride, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, &bundle.buffer, &bundle.buffer_memory))
 	{
 		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 	}
 
-	res = vk.vkMapMemory(vk.device, bundle.buffer_memory, 0, VK_WHOLE_SIZE, 0, &bundle.mapped_memory);
-	vk_check_error("vkMapMemory", res, res);
+	res = vk->vkMapMemory(vk->device, bundle.buffer_memory, 0, VK_WHOLE_SIZE, 0, &bundle.mapped_memory);
+	VK_CHK_AND_RET(res, "vkMapMemory");
 
 	VkImageSubresourceRange subresource_range{};
 	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -67,8 +68,8 @@ static VkResult create_image(vk_bundle & vk, VkExtent2D extent, VkFormat format,
 	subresource_range.baseArrayLayer = 0;
 	subresource_range.layerCount = 1;
 
-	res = vk_create_view(&vk, bundle.image, VK_IMAGE_VIEW_TYPE_2D, format, subresource_range, &bundle.view);
-	vk_check_error("vk_create_view", res, res);
+	res = vk_create_view(vk, bundle.image, VK_IMAGE_VIEW_TYPE_2D, format, subresource_range, &bundle.view);
+	VK_CHK_AND_RET(res, "vk_create_view");
 	return VK_SUCCESS;
 }
 
@@ -99,33 +100,36 @@ static VkResult shader_load(struct vk_bundle * vk, const std::vector<uint32_t> &
 
 static void destroy_all(YuvConverter * ptr)
 {
-	auto & vk = ptr->vk;
-	vk.vkDestroyDescriptorPool(vk.device, ptr->descriptor_pool, nullptr);
-	vk.vkDestroyDescriptorSetLayout(vk.device, ptr->descriptor_set_layout, nullptr);
+	auto vk = &ptr->vk;
+	vk->vkDestroyDescriptorPool(vk->device, ptr->descriptor_pool, nullptr);
+	vk->vkDestroyDescriptorSetLayout(vk->device, ptr->descriptor_set_layout, nullptr);
 	for (auto & comp: {ptr->y, ptr->uv})
 	{
-		vk.vkDestroyPipeline(vk.device, comp.pipeline, nullptr);
-		vk.vkDestroyFramebuffer(vk.device, comp.frame_buffer, nullptr);
-		vk.vkDestroyRenderPass(vk.device, comp.render_pass, nullptr);
-		vk.vkDestroyShaderModule(vk.device, comp.frag, nullptr);
+		vk->vkDestroyPipeline(vk->device, comp.pipeline, nullptr);
+		vk->vkDestroyFramebuffer(vk->device, comp.frame_buffer, nullptr);
+		vk->vkDestroyRenderPass(vk->device, comp.render_pass, nullptr);
+		vk->vkDestroyShaderModule(vk->device, comp.frag, nullptr);
 
-		vk.vkUnmapMemory(vk.device, comp.buffer_memory);
-		vk.vkDestroyBuffer(vk.device, comp.buffer, nullptr);
-		vk.vkFreeMemory(vk.device, comp.buffer_memory, nullptr);
-		vk.vkDestroyImageView(vk.device, comp.view, nullptr);
-		vk.vkDestroyImage(vk.device, comp.image, nullptr);
-		vk.vkFreeMemory(vk.device, comp.image_memory, nullptr);
+		vk->vkUnmapMemory(vk->device, comp.buffer_memory);
+		vk->vkDestroyBuffer(vk->device, comp.buffer, nullptr);
+		vk->vkFreeMemory(vk->device, comp.buffer_memory, nullptr);
+		vk->vkDestroyImageView(vk->device, comp.view, nullptr);
+		vk->vkDestroyImage(vk->device, comp.image, nullptr);
+		vk->vkFreeMemory(vk->device, comp.image_memory, nullptr);
 	}
-	vk.vkDestroyPipelineLayout(vk.device, ptr->pipeline_layout, nullptr);
+	vk->vkDestroyPipelineLayout(vk->device, ptr->pipeline_layout, nullptr);
 
-	vk.vkDestroyShaderModule(vk.device, ptr->vert, nullptr);
+	vk->vkDestroyShaderModule(vk->device, ptr->vert, nullptr);
 }
 
-#define vk_check_throw(fun, res)                                \
-	do                                                      \
-	{                                                       \
-		if (vk_has_error(res, fun, __FILE__, __LINE__)) \
-			throw std::runtime_error(fun "failed"); \
+#define vk_check_throw(fun, res)                                                  \
+	do                                                                        \
+	{                                                                         \
+		if (res != VK_SUCCESS)                                            \
+		{                                                                 \
+			vk_print_result(&this->vk, res, fun, __FILE__, __LINE__); \
+			throw std::runtime_error(fun "failed");                   \
+		}                                                                 \
 	} while (0)
 
 YuvConverter::YuvConverter(vk_bundle * vk, vk_cmd_pool & pool, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height) :

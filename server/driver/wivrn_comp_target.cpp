@@ -283,7 +283,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 		image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 		VkResult res = vk->vkCreateImage(vk->device, &image_info, NULL, &image);
-		vk_check_error("vkCreateImage", res, res);
+		VK_CHK_AND_RET(res, "vkCreateImage");
 
 		VkMemoryDedicatedAllocateInfoKHR dedicated_allocate_info{};
 		dedicated_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO;
@@ -291,7 +291,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 
 		VkDeviceSize size;
 		res = vk_alloc_and_bind_image_memory(vk, image, -1, &dedicated_allocate_info, "wivrn_comp_target", &memory, &size);
-		vk_check_error("vk_alloc_and_bind_image_memory", res, res);
+		VK_CHK_AND_RET(res, "vk_alloc_and_bind_image_memory");
 
 		res = vk_create_view(          //
 		        vk,                    // vk_bundle
@@ -300,7 +300,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 		        cn->format,            // format
 		        subresource_range,     // subresource_range
 		        &image_view);          // out_view
-		vk_check_error("vk_create_view", res, res);
+		VK_CHK_AND_RET(res, "vk_create_view");
 
 		VkFenceCreateInfo createinfo{};
 		createinfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -308,10 +308,10 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 		createinfo.flags = 0;
 
 		res = vk->vkCreateFence(vk->device, &createinfo, NULL, &cn->psc.images[i].fence);
-		vk_check_error("vkCreateFence", res, res);
+		VK_CHK_AND_RET(res, "vkCreateFence");
 
 		res = vk_cmd_pool_create_and_begin_cmd_buffer(vk, &cn->pool, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, &cn->psc.images[i].present_cmd);
-		vk_check_error("vk_cmd_pool_create_and_begin_cmd_buffer", res, res);
+		VK_CHK_AND_RET(res, "vk_cmd_pool_create_and_begin_cmd_buffer");
 
 		VkImageSubresourceRange first_color_level_subresource_range{
 		        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -323,7 +323,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 		vk_cmd_image_barrier_gpu_locked(vk, cn->psc.images[i].present_cmd, image, 0, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL, first_color_level_subresource_range);
 
 		res = vk->vkEndCommandBuffer(cn->psc.images[i].present_cmd);
-		vk_check_error("vkEndCommandBuffer", res, res);
+		VK_CHK_AND_RET(res, "vkEndCommandBuffer");
 	}
 
 	return VK_SUCCESS;
@@ -337,9 +337,11 @@ static bool comp_wivrn_init_pre_vulkan(struct comp_target * ct)
 static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t preferred_width, uint32_t preferred_height)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+	auto vk = get_vk(cn);
 
-	auto res = vk_cmd_pool_init(get_vk(cn), &cn->pool, 0);
-	return not vk_has_error(res, "vk_cmd_pool_init", __FILE__, __LINE__);
+	auto res = vk_cmd_pool_init(vk, &cn->pool, 0);
+	VK_CHK_WITH_RET(res, "vk_cmd_pool_init", false);
+	return true;
 }
 
 static bool comp_wivrn_check_ready(struct comp_target * ct)
@@ -424,8 +426,9 @@ static void comp_wivrn_create_images(struct comp_target * ct,
 	auto settings = get_encoder_settings(get_vk(cn), cn->width, cn->height);
 
 	VkResult res = create_images(cn, image_usage, get_required_tiling(get_vk(cn), settings));
-	if (vk_has_error(res, "create_images", __FILE__, __LINE__))
+	if (res != VK_SUCCESS)
 	{
+		vk_print_result(get_vk(cn), res, "create_images", __FILE__, __LINE__);
 		// TODO
 		abort();
 	}
@@ -463,7 +466,7 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 	submit.pSignalSemaphores = &cn->semaphores.present_complete;
 
 	VkResult res = vk_cmd_pool_submit(vk, &cn->pool, 1, &submit, VK_NULL_HANDLE);
-	vk_check_error("vk_locked_submit", res, res);
+	VK_CHK_AND_RET(res, "vk_locked_submit");
 
 	res = VK_ERROR_OUT_OF_HOST_MEMORY;
 
@@ -533,7 +536,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 		{
 			U_LOG_I("Encoder group %d dropped %d frames", param->thread->index, nb_fences - 1);
 		}
-		vk_check_error("vkWaitForFences", res, NULL);
+		VK_CHK_WITH_RET(res, "vkWaitForFences", NULL);
 
 		const auto & psc_image = cn->psc.images[presenting_index];
 		try
@@ -607,9 +610,9 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 
 	std::lock_guard lock(cn->psc.mutex);
 	VkResult res = vk->vkResetFences(vk->device, 1, &cn->psc.images[index].fence);
-	vk_check_error("vkResetFences", res, res);
+	VK_CHK_AND_RET(res, "vkResetFences");
 	res = vk_cmd_pool_submit(vk, &cn->pool, 1, &submit, cn->psc.images[index].fence);
-	vk_check_error("vk_locked_submit", res, res);
+	VK_CHK_AND_RET(res, "vk_locked_submit");
 
 	assert(cn->psc.images[index].status == image_acquired);
 	cn->frame_index++;
