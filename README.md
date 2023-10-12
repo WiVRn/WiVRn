@@ -8,6 +8,19 @@ WiVRn lets you run OpenXR applications on a computer and display them on a stand
 
 # Installation
 ## Server (PC)
+
+### Dependencies
+
+WiVRn requires ffmpeg (for AMD/Intel), cuda (Nvidia), x264 (software) for video encoding.
+Other dependencies include avahi-client, eigen3, libpulse, nlohmann_json.
+
+Note that some distributions don't ship h264/h265 support in their mesa builds.
+On Fedora this can be solved by replacing mesa:
+```bash
+dnf swap mesa-va-drivers mesa-va-drivers-freeworld
+```
+
+### Compilation
 From your checkout directory
 ```bash
 cmake -B build-server . -GNinja -DWIVRN_BUILD_CLIENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo
