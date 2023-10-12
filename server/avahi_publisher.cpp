@@ -21,6 +21,12 @@ void avahi_publisher::create_service(AvahiClient * client)
 	if (!entry_group)
 	{
 		entry_group = avahi_entry_group_new(client, avahi_entry_group_callback, nullptr);
+		if (!entry_group)
+		{
+			std::cerr << "Cannot create entry group, you may need to remove disable-user-service-publishing from your avahi daemon config: "
+					  << avahi_strerror(avahi_client_errno(client)) << std::endl;
+			abort();
+		}
 	}
 	avahi_entry_group_reset(entry_group);
 
