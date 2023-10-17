@@ -23,7 +23,6 @@
 #include "ffmpeg_helper.h"
 #include <chrono>
 #include <cstdint>
-#include <vector>
 
 class VideoEncoderFFMPEG : public VideoEncoder
 {

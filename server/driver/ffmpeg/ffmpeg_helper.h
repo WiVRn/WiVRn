@@ -19,11 +19,9 @@
 
 #pragma once
 
-#include "vk/vk_helpers.h"
 #include <memory>
-#include <stdexcept>
 #include <system_error>
-#include <vector>
+#include <vulkan/vulkan_core.h>
 
 struct AVBufferRef;
 struct AVFilterGraph;
