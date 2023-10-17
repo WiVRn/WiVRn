@@ -10,10 +10,10 @@
 
 #include "util/u_trace_marker.h"
 
+#include "driver/configuration.h"
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include "wivrn_sockets.h"
-#include "driver/configuration.h"
 #include <iostream>
 #include <memory>
 #include <sys/signalfd.h>
@@ -102,7 +102,6 @@ int create_listen_socket()
 		throw std::system_error(errno, std::system_category());
 	}
 
-
 	// we use "socket activation" mode of monado,
 	// it requires fd to be SD_LISTEN_FDS_START, which is 3
 	assert(fd == 3);
@@ -132,7 +131,7 @@ pid_t start_application()
 
 			std::vector<char *> argv;
 			argv.reserve(config.application.size() + 1);
-			for(auto& arg: config.application)
+			for (auto & arg: config.application)
 				argv.push_back(arg.data());
 			argv.push_back(nullptr);
 
@@ -148,7 +147,7 @@ pid_t start_application()
 	return 0;
 }
 
-void waitpid_verbose(pid_t pid, const std::string& name)
+void waitpid_verbose(pid_t pid, const std::string & name)
 {
 	int wstatus = 0;
 	waitpid(pid, &wstatus, 0);
@@ -157,8 +156,8 @@ void waitpid_verbose(pid_t pid, const std::string& name)
 	if (WIFSIGNALED(wstatus))
 	{
 		std::cerr << ", received signal " << sigabbrev_np(WTERMSIG(wstatus)) << " ("
-			<< strsignal(WTERMSIG(wstatus)) << ")"
-			<< (WCOREDUMP(wstatus) ? ", core dumped" : "") << std::endl;
+		          << strsignal(WTERMSIG(wstatus)) << ")"
+		          << (WCOREDUMP(wstatus) ? ", core dumped" : "") << std::endl;
 	}
 	else
 	{
@@ -221,12 +220,11 @@ int inner_main(int argc, char * argv[])
 			if (sigint_received)
 				break;
 		}
-		catch (std::exception& e)
+		catch (std::exception & e)
 		{
 			std::cerr << e.what() << std::endl;
 			return EXIT_FAILURE;
 		}
-
 
 		pid_t client_pid = start_application();
 
@@ -257,7 +255,7 @@ int inner_main(int argc, char * argv[])
 			{
 				return ipc_server_main(argc, argv);
 			}
-			catch (std::exception& e)
+			catch (std::exception & e)
 			{
 				std::cerr << e.what() << std::endl;
 				return EXIT_FAILURE;
@@ -323,12 +321,11 @@ int inner_main(int argc, char * argv[])
 				// Write to the server's stdin to make it quit
 				char buffer[] = "\n";
 				(void)write(pipe_fds[1], &buffer, strlen(buffer));
-
 			}
 
 			// Wait until both the server and the client exit
 			auto now = std::chrono::steady_clock::now();
-			while(server_running or client_running)
+			while (server_running or client_running)
 			{
 				poll(fds, std::size(fds), 100);
 
