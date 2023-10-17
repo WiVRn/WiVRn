@@ -194,6 +194,7 @@ int inner_main(int argc, char * argv[])
 	bool quit = false;
 	while (!quit)
 	{
+		try
 		{
 			avahi_publisher publisher(hostname().c_str(), "_wivrn._tcp", control_port);
 
@@ -219,6 +220,11 @@ int inner_main(int argc, char * argv[])
 
 			if (sigint_received)
 				break;
+		}
+		catch (std::exception& e)
+		{
+			std::cerr << e.what() << std::endl;
+			return EXIT_FAILURE;
 		}
 
 
