@@ -166,7 +166,7 @@ void waitpid_verbose(pid_t pid, const std::string& name)
 	}
 }
 
-int main(int argc, char * argv[])
+int inner_main(int argc, char * argv[])
 {
 	std::cerr << "WiVRn " << git_version << " starting" << std::endl;
 	create_listen_socket();
@@ -222,7 +222,6 @@ int main(int argc, char * argv[])
 		}
 
 
-
 		pid_t client_pid = start_application();
 
 		pid_t server_pid = fork();
@@ -248,7 +247,15 @@ int main(int argc, char * argv[])
 
 			setenv("LISTEN_PID", std::to_string(getpid()).c_str(), true);
 
-			return ipc_server_main(argc, argv);
+			try
+			{
+				return ipc_server_main(argc, argv);
+			}
+			catch (std::exception& e)
+			{
+				std::cerr << e.what() << std::endl;
+				return EXIT_FAILURE;
+			}
 		}
 		else
 		{
@@ -359,5 +366,19 @@ int main(int argc, char * argv[])
 
 			run_cleanup_functions();
 		}
+	}
+	return EXIT_SUCCESS;
+}
+
+int main(int argc, char * argv[])
+{
+	try
+	{
+		return inner_main(argc, argv);
+	}
+	catch (std::exception & e)
+	{
+		std::cerr << e.what() << std::endl;
+		return EXIT_FAILURE;
 	}
 }
