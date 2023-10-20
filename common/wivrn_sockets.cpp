@@ -133,6 +133,15 @@ void xrt::drivers::wivrn::UDP::set_receive_buffer_size(int size)
 	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
 }
 
+void xrt::drivers::wivrn::UDP::set_tos(int tos)
+{
+	int err = setsockopt(fd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+	if (err == -1)
+	{
+		throw std::system_error{errno, std::generic_category()};
+	}
+}
+
 void xrt::drivers::wivrn::TCP::init()
 {
 	int nodelay = 1;

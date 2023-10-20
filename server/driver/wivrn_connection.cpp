@@ -18,6 +18,7 @@
  */
 
 #include "wivrn_connection.h"
+#include "util/u_logging.h"
 #include <poll.h>
 
 using namespace std::chrono_literals;
@@ -27,6 +28,15 @@ wivrn_connection::wivrn_connection(TCP && tcp, in6_addr address) :
 {
 	stream.bind(stream_server_port);
 	stream.connect(address, stream_client_port);
+	try
+	{
+		// Set Expedited forwarding https://datatracker.ietf.org/doc/html/rfc3246
+		stream.set_tos(0b101110);
+	}
+	catch (std::exception& e)
+	{
+		U_LOG_I("Failed to set IP ToS to Expedited Forwarding: %s", e.what());
+	}
 }
 
 void wivrn_connection::send_control(const to_headset::control_packets & packet)
