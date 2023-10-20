@@ -55,7 +55,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	std::unique_ptr<wivrn_controller> right_hand;
 
 	clock_offset offset;
-	std::chrono::steady_clock::time_point offset_age{};
+	std::chrono::steady_clock::time_point offset_expiration{};
 
 	std::mutex csv_mutex;
 	std::ofstream feedback_csv;

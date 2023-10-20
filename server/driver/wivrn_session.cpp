@@ -173,15 +173,13 @@ static auto lerp(std::chrono::duration<Rep, Period> a, std::chrono::duration<Rep
 
 void wivrn_session::operator()(from_headset::timesync_response && timesync)
 {
-	std::lock_guard lock(mutex);
 	auto now = std::chrono::nanoseconds(os_monotonic_get_ns());
 	auto new_offset = std::chrono::nanoseconds(timesync.response) - lerp(timesync.query, now, 0.5);
+	std::lock_guard lock(mutex);
 	if (not offset.epoch_offset.count())
 		offset.epoch_offset = new_offset;
 	else
 		offset.epoch_offset = lerp(offset.epoch_offset, new_offset, 0.2);
-
-	offset_age = std::chrono::steady_clock::now();
 }
 
 void wivrn_session::operator()(from_headset::feedback && feedback)
@@ -233,15 +231,12 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			auto self = weak_self.lock();
 			if (self and not self->quit)
 			{
+				if (std::chrono::steady_clock::now() > self->offset_expiration)
 				{
-					std::lock_guard lock(self->mutex);
-					if (std::chrono::steady_clock::now() - self->offset_age >
-					    std::chrono::seconds(5))
-					{
-						to_headset::timesync_query timesync{};
-						timesync.query = std::chrono::nanoseconds(os_monotonic_get_ns());
-						self->connection.send_stream(timesync);
-					}
+					self->offset_expiration = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+					to_headset::timesync_query timesync{};
+					timesync.query = std::chrono::nanoseconds(os_monotonic_get_ns());
+					self->connection.send_stream(timesync);
 				}
 				self->connection.poll(*self, 20);
 			}
