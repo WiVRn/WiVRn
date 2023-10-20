@@ -22,11 +22,8 @@
 #include "math/m_space.h"
 #include "util/u_pacing.h"
 #include "video_encoder.h"
-#include "vk/vk_cmd.h"
 #include "vk/vk_cmd_pool.h"
-#include "xrt/xrt_config_have.h"
 #include "xrt_cast.h"
-#include <atomic>
 #include <condition_variable>
 #include <list>
 #include <vector>

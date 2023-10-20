@@ -29,10 +29,11 @@
 
 #include "encoder_settings.h"
 #include "wivrn_packets.h"
-#include "wivrn_session.h"
 
 namespace xrt::drivers::wivrn
 {
+
+class wivrn_session;
 
 inline const char * encoder_nvenc = "nvenc";
 inline const char * encoder_vaapi = "vaapi";

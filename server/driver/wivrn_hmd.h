@@ -29,6 +29,8 @@
 #include <memory>
 #include <mutex>
 
+struct comp_target;
+
 class wivrn_hmd : public xrt_device
 {
 	std::mutex mutex;

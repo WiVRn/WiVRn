@@ -20,7 +20,7 @@
 #pragma once
 
 #include "clock_offset.h"
-#include "main/comp_target.h"
+#include "offset_estimator.h"
 #include "wivrn_connection.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_system.h"
@@ -33,6 +33,7 @@
 class wivrn_hmd;
 class wivrn_controller;
 struct audio_device;
+struct comp_target_factory;
 
 namespace xrt::drivers::wivrn
 {
@@ -55,6 +56,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	std::unique_ptr<wivrn_controller> right_hand;
 
 	clock_offset offset;
+	offset_estimator offset_est;
 	std::chrono::steady_clock::time_point offset_expiration{};
 
 	std::mutex csv_mutex;

@@ -1,6 +1,7 @@
 #include "audio_pulse.h"
 
 #include "../wivrn_ipc.h"
+#include "os/os_time.h"
 #include "util/u_logging.h"
 #include "utils/sync_queue.h"
 #include "wivrn_session.h"

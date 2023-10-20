@@ -19,6 +19,7 @@
 
 #include "wivrn_session.h"
 #include "audio_setup.h"
+#include "main/comp_target.h"
 #include "os/os_time.h"
 #include "util/u_logging.h"
 
@@ -173,13 +174,9 @@ static auto lerp(std::chrono::duration<Rep, Period> a, std::chrono::duration<Rep
 
 void wivrn_session::operator()(from_headset::timesync_response && timesync)
 {
-	auto now = std::chrono::nanoseconds(os_monotonic_get_ns());
-	auto new_offset = std::chrono::nanoseconds(timesync.response) - lerp(timesync.query, now, 0.5);
+	auto now = os_monotonic_get_ns();
 	std::lock_guard lock(mutex);
-	if (not offset.epoch_offset.count())
-		offset.epoch_offset = new_offset;
-	else
-		offset.epoch_offset = lerp(offset.epoch_offset, new_offset, 0.2);
+	offset = offset_est.get_offset(timesync, now, offset);
 }
 
 void wivrn_session::operator()(from_headset::feedback && feedback)

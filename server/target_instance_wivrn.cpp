@@ -7,13 +7,13 @@
  */
 
 #include "xrt/xrt_config_build.h"
+#include "xrt/xrt_instance.h"
 #include "xrt/xrt_system.h"
 #include "main/comp_main_interface.h"
 
 #include "os/os_time.h"
 
-#include "util/u_debug.h"
-#include "util/u_system_helpers.h"
+#include "util/u_misc.h"
 #include "util/u_trace_marker.h"
 #include "util/u_builders.h"
 
@@ -32,7 +32,7 @@ extern std::unique_ptr<TCP> tcp;
 static xrt_result_t
 wivrn_instance_create_system(struct xrt_instance * xinst,
                              struct xrt_system_devices ** out_xsysd,
-							 struct xrt_space_overseer ** out_xspovrs,
+                             struct xrt_space_overseer ** out_xspovrs,
                              struct xrt_system_compositor ** out_xsysc)
 {
 	assert(out_xsysd != NULL);

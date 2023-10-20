@@ -24,6 +24,7 @@
 
 namespace xrt::drivers::wivrn
 {
+
 struct clock_offset
 {
 	std::chrono::nanoseconds epoch_offset{};
@@ -34,4 +35,4 @@ struct clock_offset
 	to_headset(uint64_t timestamp_ns) const;
 };
 
-}
+} // namespace xrt::drivers::wivrn

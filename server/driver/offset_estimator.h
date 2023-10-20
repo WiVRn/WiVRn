@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2023  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2023  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +19,28 @@
 
 #pragma once
 
-#include "wivrn_session.h"
+#include <cstdint>
 
-#include "main/comp_target.h"
+#include <Eigen/Core>
 
-comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor *c, float fps);
+namespace xrt::drivers::wivrn
+{
+
+struct clock_offset;
+
+namespace from_headset
+{
+struct timesync_response;
+}
+
+class offset_estimator
+{
+	Eigen::Vector3d filtered_U = Eigen::Vector3d::Zero();
+	Eigen::Matrix3d A = Eigen::Matrix3d::Zero();
+
+public:
+	clock_offset get_offset(const from_headset::timesync_response & packet, int64_t now, clock_offset old_offset);
+};
+
+} // namespace xrt::drivers::wivrn
+

@@ -17,6 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// Include first because of incompatibility between Eigen and X includes
+#include "wivrn_session.h"
+
 #include "video_encoder.h"
 #include "rs.h"
 #include "util/u_logging.h"

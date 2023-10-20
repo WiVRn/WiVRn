@@ -106,7 +106,7 @@ get_render_device(vk_bundle * vk)
 
 } // namespace
 
-VideoEncoderVA::VideoEncoderVA(vk_bundle * vk, const encoder_settings & settings, float fps) :
+VideoEncoderVA::VideoEncoderVA(vk_bundle * vk, const xrt::drivers::wivrn::encoder_settings & settings, float fps) :
         vk(vk), width(settings.width), height(settings.height), offset_x(settings.offset_x), offset_y(settings.offset_y)
 {
 	codec = settings.codec;

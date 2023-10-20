@@ -24,7 +24,7 @@
 #include <chrono>
 #include <cstdint>
 
-class VideoEncoderFFMPEG : public VideoEncoder
+class VideoEncoderFFMPEG : public xrt::drivers::wivrn::VideoEncoder
 {
 public:
 	using Codec = xrt::drivers::wivrn::video_codec;

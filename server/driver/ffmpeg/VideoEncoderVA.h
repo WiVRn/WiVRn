@@ -36,7 +36,7 @@ struct AVFilterContext;
 class VideoEncoderVA : public VideoEncoderFFMPEG
 {
 public:
-	VideoEncoderVA(vk_bundle * vk, const encoder_settings & settings, float fps);
+	VideoEncoderVA(vk_bundle * vk, const xrt::drivers::wivrn::encoder_settings & settings, float fps);
 
 	void
 	SetImages(int width,

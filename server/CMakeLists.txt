@@ -64,6 +64,7 @@ add_executable(wivrn-server
 		driver/audio_setup.cpp
 		driver/configuration.cpp
 		driver/encoder_settings.cpp
+		driver/offset_estimator.cpp
 		driver/wivrn_hmd.cpp
 		driver/wivrn_comp_target.cpp
 		driver/wivrn_controller.cpp
