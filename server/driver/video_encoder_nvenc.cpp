@@ -19,6 +19,7 @@
 
 #include "video_encoder_nvenc.h"
 
+#include "vk/vk_helpers.h"
 #include <stdexcept>
 
 #define NVENC_CHECK_NOENCODER(x)                                          \
@@ -200,7 +201,7 @@ void VideoEncoderNvenc::SetImages(int full_width,
 
 		int fd;
 		VkResult res = vk->vkGetMemoryFdKHR(vk->device, &getinfo, &fd);
-		vk_check_error("vkGetMemoryFdKHR", res, );
+		VK_CHK_WITH_RET(res, "vkGetMemoryFdKHR", );
 
 		VkMemoryRequirements memoryreq;
 		vk->vkGetImageMemoryRequirements(vk->device, images[i], &memoryreq);
