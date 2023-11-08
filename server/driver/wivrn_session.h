@@ -64,7 +64,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 
 	std::shared_ptr<audio_device> audio_handle;
 
-	wivrn_session(TCP && tcp, in6_addr & address);
+	wivrn_session(TCP && tcp);
 
 public:
 	static wivrn_system_devices *
@@ -73,6 +73,7 @@ public:
 	clock_offset
 	get_offset();
 
+	void operator()(from_headset::handshake&&) {}
 	void operator()(from_headset::headset_info_packet &&);
 	void operator()(from_headset::tracking &&);
 	void operator()(from_headset::inputs &&);

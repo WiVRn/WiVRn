@@ -36,28 +36,61 @@
 
 using namespace std::chrono_literals;
 
+void wivrn_session::handshake()
+{
+	//Wait for handshake on control socket, then send ours on stream socket
+	pollfd fds{};
+	fds.events = POLLIN;
+	fds.fd = control.get_fd();
+
+	auto timeout = std::chrono::steady_clock::now() + 5s;
+
+	// Loop because TCP socket may return partial data
+	while (std::chrono::steady_clock::now() < timeout)
+	{
+		int r = ::poll(&fds, 1, 5000);
+		if (r < 0)
+			throw std::system_error(errno, std::system_category());
+
+		if (r > 0 && (fds.revents & POLLIN))
+		{
+			auto packet = control.receive();
+			if (not packet)
+				continue;
+			if (std::holds_alternative<to_headset::handshake>(*packet))
+			{
+				// If this packet is lost, a tracking packet will do the job to establish the connection
+				send_stream(from_headset::stream_packets(from_headset::handshake{}));
+				return;
+			}
+
+			throw std::runtime_error("invalid handshale received");
+		}
+	}
+
+	throw std::runtime_error("no handshake received");
+}
+
 wivrn_session::wivrn_session(in6_addr address, int port) :
         control(address, port), stream(), address(address)
 {
-	// TODO: negociate UDP port
-	stream.bind(stream_client_port);
-	stream.connect(address, stream_server_port);
+	stream.connect(address, port);
 	stream.set_receive_buffer_size(1024 * 1024 * 5);
 
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET6, &address, buffer, sizeof(buffer)), port);
+	handshake();
 }
 
 wivrn_session::wivrn_session(in_addr address, int port) :
         control(address, port), stream(), address(address)
 {
-	// TODO: negociate UDP port
-	stream.bind(stream_client_port);
-	stream.connect(address, stream_server_port);
+	stream.connect(address, port);
 	stream.set_receive_buffer_size(1024 * 1024 * 5);
 
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET, &address, buffer, sizeof(buffer)), port);
+	handshake();
 }
 
 // std::unique_ptr<wivrn_session> wivrn_client::poll()

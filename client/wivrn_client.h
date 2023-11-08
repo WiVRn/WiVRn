@@ -31,6 +31,8 @@ class wivrn_session
 	typed_socket<TCP, to_headset::control_packets, from_headset::control_packets> control;
 	typed_socket<UDP, to_headset::stream_packets, from_headset::stream_packets> stream;
 
+	void handshake();
+
 public:
 	std::variant<in_addr, in6_addr> address;
 

@@ -26,8 +26,6 @@
 #include <netinet/in.h>
 #include <optional>
 #include <span>
-#include <string>
-#include <tuple>
 #include <variant>
 #include <vector>
 #include <openxr/openxr.h>
@@ -38,9 +36,8 @@ namespace xrt::drivers::wivrn
 template <typename T, typename Enable>
 struct serialization_traits;
 
-static const int control_port = 9757;
-static const int stream_client_port = 9757;
-static const int stream_server_port = 9758;
+// Default port for server to listen, both TCP and UDP
+static const int default_port = 9757;
 
 enum class device_id : uint8_t
 {
@@ -108,6 +105,10 @@ struct headset_info_packet
 	};
 	std::optional<audio_description> speaker;
 	std::optional<audio_description> microphone;
+};
+
+struct handshake
+{
 };
 
 struct tracking
@@ -186,11 +187,15 @@ struct feedback
 };
 
 using control_packets = std::variant<headset_info_packet, feedback, audio_data>;
-using stream_packets = std::variant<tracking, inputs, timesync_response>;
+using stream_packets = std::variant<handshake, tracking, inputs, timesync_response>;
 } // namespace from_headset
 
 namespace to_headset
 {
+
+struct handshake
+{
+};
 
 struct audio_stream_description
 {
@@ -303,8 +308,8 @@ struct timesync_query
 	std::chrono::nanoseconds query;
 };
 
+using control_packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data>;
 using stream_packets = std::variant<video_stream_data_shard, video_stream_parity_shard, haptics, timesync_query>;
-using control_packets = std::variant<audio_stream_description, video_stream_description, audio_data>;
 
 } // namespace to_headset
 

@@ -32,14 +32,13 @@ class wivrn_connection
 	typed_socket<UDP, from_headset::stream_packets, to_headset::stream_packets> stream;
 
 public:
-	wivrn_connection(TCP && tcp, in6_addr address);
+	wivrn_connection(TCP && tcp);
 	wivrn_connection(const wivrn_connection &) = delete;
 	wivrn_connection & operator=(const wivrn_connection &) = delete;
 
 	void send_control(const to_headset::control_packets & packet);
 	void send_stream(const to_headset::stream_packets & packet);
 
-	std::optional<from_headset::stream_packets> poll_stream(int timeout);
 	std::optional<from_headset::control_packets> poll_control(int timeout);
 
 	template <typename T>

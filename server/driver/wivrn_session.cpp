@@ -61,26 +61,18 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	}
 };
 
-xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, in6_addr & address) :
-        connection(std::move(tcp), address)
+xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp) :
+        connection(std::move(tcp))
 {
 }
 
 wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp)
 {
-	sockaddr_in6 address;
-	socklen_t address_len = sizeof(address);
-	if (getpeername(tcp.get_fd(), (sockaddr *)&address, &address_len) < 0)
-	{
-		U_LOG_E("Cannot get peer address: %s", strerror(errno));
-		return nullptr;
-	}
-
 	std::shared_ptr<wivrn_session> self;
 	std::optional<xrt::drivers::wivrn::from_headset::control_packets> control;
 	try
 	{
-		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp), address.sin6_addr));
+		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp)));
 		while (not(control = self->connection.poll_control(-1)))
 		{}
 	}

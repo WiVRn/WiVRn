@@ -195,9 +195,9 @@ int inner_main(int argc, char * argv[])
 	{
 		try
 		{
-			avahi_publisher publisher(hostname().c_str(), "_wivrn._tcp", control_port);
+			avahi_publisher publisher(hostname().c_str(), "_wivrn._tcp", default_port);
 
-			TCPListener listener(control_port);
+			TCPListener listener(default_port);
 			bool client_connected = false;
 			bool sigint_received = false;
 

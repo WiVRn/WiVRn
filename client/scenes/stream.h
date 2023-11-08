@@ -100,6 +100,7 @@ public:
 
 	virtual void render() override;
 
+	void operator()(to_headset::handshake&&) {};
 	void operator()(to_headset::video_stream_data_shard &&);
 	void operator()(to_headset::video_stream_parity_shard &&);
 	void operator()(to_headset::haptics &&);

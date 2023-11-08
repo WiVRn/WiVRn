@@ -25,7 +25,7 @@
 #include <memory>
 #include <mutex>
 #include <netinet/ip.h>
-#include <stdexcept>
+#include <exception>
 #include <utility>
 #include <vector>
 
@@ -88,6 +88,7 @@ public:
 	UDP();
 
 	deserialization_packet receive_raw();
+	std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();
 	void send_raw(const std::vector<uint8_t> & data);
 
 	void connect(in6_addr address, int port);

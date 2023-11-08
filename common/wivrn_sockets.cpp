@@ -242,21 +242,21 @@ xrt::drivers::wivrn::TCPListener::TCPListener(int port)
 	}
 }
 
-// std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::drivers::wivrn::UDP::receive_from_raw()
-// {
-// 	std::vector<uint8_t> buffer(2000);
-//
-// 	sockaddr_in6 addr;
-// 	socklen_t addrlen = sizeof(addr);
-//
-// 	ssize_t received = recvfrom(fd, buffer.data(), buffer.size(), 0, (sockaddr *)&addr, &addrlen);
-// 	if (received < 0)
-// 		throw std::system_error{errno, std::generic_category()};
-//
-// 	buffer.resize(received);
-//
-// 	return {deserialization_packet{buffer}, addr};
-// }
+std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::drivers::wivrn::UDP::receive_from_raw()
+{
+	std::vector<uint8_t> buffer(2000);
+
+	sockaddr_in6 addr;
+	socklen_t addrlen = sizeof(addr);
+
+	ssize_t received = recvfrom(fd, buffer.data(), buffer.size(), 0, (sockaddr *)&addr, &addrlen);
+	if (received < 0)
+		throw std::system_error{errno, std::generic_category()};
+
+	buffer.resize(received);
+
+	return {deserialization_packet{buffer}, addr};
+}
 
 xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_raw()
 {

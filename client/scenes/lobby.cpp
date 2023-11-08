@@ -246,7 +246,7 @@ std::unique_ptr<wivrn_session> connect_to_session(const std::vector<wivrn_discov
 			}
 			catch(std::exception& e)
 			{
-				spdlog::warn("Cannot connect to {}", service.hostname);
+				spdlog::warn("Cannot connect to {}: {}", service.hostname, e.what());
 			}
 		}
 	}
