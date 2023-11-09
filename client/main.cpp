@@ -19,7 +19,13 @@
 
 #include "application.h"
 #include "scenes/lobby.h"
+#include "scenes/stream.h"
 #include "spdlog/spdlog.h"
+
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #ifdef XR_USE_PLATFORM_ANDROID
 #include "spdlog/sinks/android_sink.h"
@@ -45,7 +51,60 @@ void real_main()
 		info.version = VK_MAKE_VERSION(1, 0, 0);
 		application app(info);
 
-		app.push_scene<scenes::lobby>();
+		std::string server_address = app.get_server_address();
+		if (server_address.empty())
+			app.push_scene<scenes::lobby>();
+		else
+		{
+			std::unique_ptr<wivrn_session> session;
+
+			auto colon = server_address.rfind(":");
+			int port;
+			if (colon == std::string::npos)
+			{
+				port = xrt::drivers::wivrn::default_port;
+			} else {
+				port = std::stoi(server_address.substr(colon + 1));
+				server_address = server_address.substr(0, colon);
+			}
+			struct addrinfo hint{
+				.ai_flags = AI_ADDRCONFIG,
+				.ai_family = AF_UNSPEC,
+				.ai_socktype = SOCK_STREAM,
+			};
+			struct addrinfo * addresses;
+			if (int err = getaddrinfo(server_address.c_str(), NULL, &hint, &addresses))
+			{
+				throw std::runtime_error("Unable to resolve address for " + server_address);
+			}
+			for (addrinfo *addr = addresses ; addr and not session; addr = addr->ai_next)
+			{
+				try {
+					char buf[100];
+					switch (addr->ai_family)
+					{
+						case AF_INET:
+							inet_ntop(addr->ai_family, &((sockaddr_in*)addr->ai_addr)->sin_addr, buf, sizeof(buf));
+							spdlog::info("Trying to connect to {} port {}", buf, port);
+							session = std::make_unique<wivrn_session>(((sockaddr_in*)addr->ai_addr)->sin_addr, port);
+							break;
+						case AF_INET6:
+							inet_ntop(addr->ai_family, &((sockaddr_in6*)addr->ai_addr)->sin6_addr, buf, sizeof(buf));
+							spdlog::info("Trying to connect to {} port {}", buf, port);
+							session = std::make_unique<wivrn_session>(((sockaddr_in6*)addr->ai_addr)->sin6_addr, port);
+							break;
+					}
+				}
+				catch(std::exception& e)
+				{
+					spdlog::warn("Cannot connect to {}: {}", server_address, e.what());
+				}
+			}
+			freeaddrinfo(addresses);
+			if (not session)
+				throw std::runtime_error("Unable to connect to " + server_address + ":" + std::to_string(port));
+			app.push_scene(scenes::stream::create(std::move(session)));
+		}
 
 		app.run();
 	}

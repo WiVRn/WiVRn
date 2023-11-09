@@ -521,10 +521,10 @@ application::application(application_info info) :
 	jclass jNativeClass = Env->GetObjectClass(activity->clazz);
 	jtmID = Env->GetMethodID(jNativeClass, "getApplication", "()Landroid/app/Application;");
 
-	jobject jNativeApplication = (jobject)Env->CallObjectMethod(activity->clazz, jtmID);
+	jobject jNativeApplication = Env->CallObjectMethod(activity->clazz, jtmID);
 	jtmID = Env->GetMethodID(Env->GetObjectClass(jNativeApplication), "getApplicationContext", "()Landroid/content/Context;");
 
-	jobject jNativeContext = (jobject)Env->CallObjectMethod(jNativeApplication, jtmID);
+	jobject jNativeContext = Env->CallObjectMethod(jNativeApplication, jtmID);
 	jfieldID jNativeWIFI_SERVICE_fid = Env->GetStaticFieldID(Env->GetObjectClass(jNativeContext), "WIFI_SERVICE", "Ljava/lang/String;");
 	jstring jNativeSFID_jstr = (jstring)Env->GetStaticObjectField(Env->FindClass("android/content/Context"), jNativeWIFI_SERVICE_fid);
 	jstring wifiLockjStr = Env->NewStringUTF("WIVRn");
@@ -575,6 +575,26 @@ application::application(application_info info) :
 	}
 
 	Env->DeleteLocalRef(wifiLockjStr);
+
+	// Get the intent, to handle wivrn://uri
+	jtmID = Env->GetMethodID(jNativeClass, "getIntent", "()Landroid/content/Intent;");
+	jobject intent = Env->CallObjectMethod(activity->clazz, jtmID);
+
+	jtmID = Env->GetMethodID(Env->GetObjectClass(intent), "getDataString", "()Ljava/lang/String;");
+	jstring dataString_jni = (jstring)Env->CallObjectMethod(intent, jtmID); 
+	std::string dataString;
+	if (dataString_jni)
+	{
+		const char * dataString_c = Env->GetStringUTFChars(dataString_jni, NULL);
+		dataString = dataString_c;
+		Env->ReleaseStringUTFChars(dataString_jni, dataString_c);
+	}
+
+	spdlog::info("dataString = {}", dataString);
+	if (dataString.starts_with("wivrn://"))
+	{
+		server_address = dataString.substr(strlen("wivrn://"));
+	}
 
 	app_info.native_app->userData = this;
 	app_info.native_app->onAppCmd = [](android_app * app, int32_t cmd) {

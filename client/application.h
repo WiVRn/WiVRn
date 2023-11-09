@@ -282,6 +282,8 @@ class application
 	bool debug_extensions_found = false;
 	std::atomic<bool> exit_requested = false;
 
+	std::string server_address;
+
 	std::mutex scene_stack_lock;
 	std::vector<std::shared_ptr<scene>> scene_stack;
 	std::shared_ptr<scene> last_scene;
@@ -433,5 +435,10 @@ public:
 	static uint32_t queue_family_index()
 	{
 		return instance_->vk_queue_family_index;
+	}
+
+	const std::string& get_server_address() const
+	{
+		return server_address;
 	}
 };
