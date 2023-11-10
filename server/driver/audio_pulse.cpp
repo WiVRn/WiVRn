@@ -180,7 +180,7 @@ module_entry ensure_sink(pa_context * ctx, const char * name, const std::string 
 
 	sink = get_sink(ctx, name);
 	if (not sink)
-		std::runtime_error("failed to create audio sink " + std::string(name));
+		throw std::runtime_error("failed to create audio sink " + std::string(name));
 	sink->socket = fifo;
 
 	add_cleanup_function(unload_module, sink->module);
@@ -214,7 +214,7 @@ module_entry ensure_source(pa_context * ctx, const char * name, const std::strin
 
 	source = get_source(ctx, name);
 	if (not source)
-		std::runtime_error("failed to create audio source " + std::string(name));
+		throw std::runtime_error("failed to create audio source " + std::string(name));
 	source->socket = fifo;
 	return *source;
 }
