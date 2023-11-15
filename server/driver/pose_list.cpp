@@ -40,24 +40,23 @@ xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_rel
 	if (t < ta)
 		return a;
 
+	if (t > tb)
+		return b;
+
 	float h = (tb - ta) / 1.e9;
 
 	xrt_space_relation res;
 	res.relation_flags = b.relation_flags;
 
-	xrt_vec3 lin_acc = (b.linear_velocity - a.linear_velocity) / h;
-	xrt_vec3 ang_acc = (b.angular_velocity - a.angular_velocity) / h;
-
 	float dt = (t - tb) / 1.e9;
 	// if (dt > 0.2)
 	// dt = 0.2; // saturate dt to 200ms
 
-	float dt2_over_2 = dt * dt / 2;
-	res.linear_velocity = b.linear_velocity + lin_acc * dt;
-	res.pose.position = b.pose.position + b.linear_velocity * dt + lin_acc * dt2_over_2;
+	res.linear_velocity = b.linear_velocity;
+	res.pose.position = b.pose.position + b.linear_velocity * dt;
 
-	res.angular_velocity = b.angular_velocity + ang_acc * dt;
-	xrt_vec3 dtheta = b.angular_velocity * dt + ang_acc * dt2_over_2;
+	res.angular_velocity = b.angular_velocity;
+	xrt_vec3 dtheta = b.angular_velocity * dt;
 	xrt_quat dq;
 	math_quat_exp(&dtheta, &dq);
 
