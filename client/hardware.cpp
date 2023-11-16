@@ -50,6 +50,8 @@ model guess_model()
 		return model::oculus_quest;
 	if (device == "hollywood")
 		return model::oculus_quest_2;
+	if (device == "seacliff")
+		return model::meta_quest_pro;
 
 	const auto manufacturer = get_property("ro.product.manufacturer");
 	const auto model = get_property("ro.product.model");
@@ -82,6 +84,11 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 		case model::oculus_quest_2:
 			spdlog::info("Using panel resolution 1832x1920 for Quest 2");
 			view.recommendedImageRectWidth = 1832;
+			view.recommendedImageRectHeight = 1920;
+			return view;
+		case model::meta_quest_pro:
+			spdlog::info("Using panel resolution 1800x1920 for Quest pro");
+			view.recommendedImageRectWidth = 1800;
 			view.recommendedImageRectHeight = 1920;
 			return view;
 		case model::meta_quest_3:

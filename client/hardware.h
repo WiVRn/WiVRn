@@ -24,6 +24,7 @@ enum class model
 {
 	oculus_quest,
 	oculus_quest_2,
+	meta_quest_pro,
 	meta_quest_3,
 	pico_neo_3,
 	pico_4,

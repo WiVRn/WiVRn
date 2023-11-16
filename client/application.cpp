@@ -413,6 +413,7 @@ void application::initialize()
 	{
 		case model::oculus_quest:
 		case model::oculus_quest_2:
+		case model::meta_quest_pro:
 		case model::meta_quest_3: {
 			spdlog::info("Suggesting oculus/touch_controller bindings");
 			std::vector<XrActionSuggestedBinding> touch_controller_bindings;
