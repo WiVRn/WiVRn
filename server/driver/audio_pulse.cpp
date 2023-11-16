@@ -4,6 +4,7 @@
 #include "os/os_time.h"
 #include "util/u_logging.h"
 #include "utils/sync_queue.h"
+#include "utils/wrap_lambda.h"
 #include "wivrn_session.h"
 
 #include <pulse/context.h>
@@ -15,7 +16,6 @@
 #include <atomic>
 #include <fcntl.h>
 #include <filesystem>
-#include <functional>
 #include <future>
 #include <iostream>
 #include <sys/poll.h>
@@ -48,41 +48,6 @@ void wait_connected(std::atomic<pa_context_state> & state)
 		}
 	}
 }
-
-template <typename... Args>
-struct add_void;
-
-template <typename T, typename... Args>
-struct add_void<std::function<T(Args...)>>
-{
-	template <typename L>
-	static T fn(Args... a, void * userdata)
-	{
-		L * f = (L *)userdata;
-		return (*f)(a...);
-	}
-};
-
-template <typename T>
-class wrap_lambda
-{
-	T impl;
-
-public:
-	wrap_lambda(T && l) :
-	        impl(l) {}
-
-	operator auto()
-	{
-		using F = decltype(std::function(impl));
-		return add_void<F>::template fn<T>;
-	}
-
-	operator void *()
-	{
-		return this;
-	}
-};
 
 void unload_module(uintptr_t id);
 

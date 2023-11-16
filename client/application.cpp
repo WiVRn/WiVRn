@@ -18,15 +18,13 @@
  */
 
 #include "application.h"
+#include "hardware.h"
 #include "magic_enum.hpp"
 #include "scene.h"
 #include "spdlog/common.h"
 #include "spdlog/spdlog.h"
 #include "utils/ranges.h"
-#include "utils/strings.h"
 #include "vk/details/enumerate.h"
-#include "vk/pipeline.h"
-#include "vk/shader.h"
 #include "vk/vk.h"
 #include "xr/xr.h"
 #include <algorithm>
@@ -42,8 +40,8 @@
 #endif
 
 #ifdef XR_USE_PLATFORM_ANDROID
-#include <sys/system_properties.h>
 #include <android/native_activity.h>
+#include <sys/system_properties.h>
 #endif
 
 using namespace std::chrono_literals;
@@ -398,8 +396,9 @@ void application::initialize()
 	auto views = xr_system_id.view_configuration_views(app_info.viewconfig);
 
 	xr_swapchains.reserve(views.size());
-	for (auto & view: views)
+	for (auto view: views)
 	{
+		view = override_view(view, guess_model());
 		xr_swapchains.emplace_back(xr_session, vk_device, swapchain_format, view.recommendedImageRectWidth, view.recommendedImageRectHeight);
 
 		spdlog::info("Created swapchain {}: {}x{}", xr_swapchains.size(), xr_swapchains.back().width(), xr_swapchains.back().height());
@@ -410,34 +409,22 @@ void application::initialize()
 	// TODO get it from application info
 	xr_actionset = xr::actionset(xr_instance, "actions", "Actions");
 
-	// TODO better way to handle bindings for different vendors/flavors of vendor
-#ifdef XR_USE_PLATFORM_ANDROID
-	char property_chararr[PROP_VALUE_MAX + 1];
-	__system_property_get("ro.product.manufacturer", property_chararr);
-#else
-	char property_chararr[93];
-#endif
-	std::string manufacturer_string(property_chararr);
-
-	if (manufacturer_string == "Oculus" || manufacturer_string == "Meta")
+	switch (guess_model())
 	{
-		spdlog::info("Suggesting Oculus Quest 2 bindings");
-		std::vector<XrActionSuggestedBinding> touch_controller_bindings;
-		for (const auto & [name, type]: oculus_touch)
-		{
-			process_binding_action(touch_controller_bindings, name, type);
+		case model::oculus_quest:
+		case model::oculus_quest_2:
+		case model::meta_quest_3: {
+			spdlog::info("Suggesting oculus/touch_controller bindings");
+			std::vector<XrActionSuggestedBinding> touch_controller_bindings;
+			for (const auto & [name, type]: oculus_touch)
+			{
+				process_binding_action(touch_controller_bindings, name, type);
+			}
+			xr_instance.suggest_bindings("/interaction_profiles/oculus/touch_controller", touch_controller_bindings);
 		}
-		xr_instance.suggest_bindings("/interaction_profiles/oculus/touch_controller", touch_controller_bindings);
-	}
-	else if (manufacturer_string == "Pico")
-	{
-#ifdef XR_USE_PLATFORM_ANDROID
-		__system_property_get("ro.product.model", property_chararr);
-#endif
-		std::string model_string(property_chararr);
+		break;
 
-		if (model_string == "Pico Neo 3")
-		{
+		case model::pico_neo_3: {
 			spdlog::info("Suggesting Pico Neo 3 bindings");
 			std::vector<XrActionSuggestedBinding> pico_neo_3_bindings;
 			for (const auto & [name, type]: pico_neo_3)
@@ -446,8 +433,9 @@ void application::initialize()
 			}
 			xr_instance.suggest_bindings("/interaction_profiles/bytedance/pico_neo3_controller", pico_neo_3_bindings);
 		}
-		else
-		{
+		break;
+
+		case model::pico_4: {
 			spdlog::info("Suggesting Pico 4 bindings");
 			std::vector<XrActionSuggestedBinding> pico_4_bindings;
 			for (const auto & [name, type]: pico_4)
@@ -456,9 +444,8 @@ void application::initialize()
 			}
 			xr_instance.suggest_bindings("/interaction_profiles/bytedance/pico4_controller", pico_4_bindings);
 		}
-	}
-	else
-	{
+
+		case model::unknown: {
 			spdlog::info("Suggesting Khronos simple controller bindings");
 			std::vector<XrActionSuggestedBinding> simple_controller_bindings;
 			for (const auto & [name, type]: simple_controller)
@@ -466,6 +453,8 @@ void application::initialize()
 				process_binding_action(simple_controller_bindings, name, type);
 			}
 			xr_instance.suggest_bindings("/interaction_profiles/khr/simple_controller", simple_controller_bindings);
+		}
+		break;
 	}
 
 	xr_session.attach_actionsets({xr_actionset});
@@ -581,7 +570,7 @@ application::application(application_info info) :
 	jobject intent = Env->CallObjectMethod(activity->clazz, jtmID);
 
 	jtmID = Env->GetMethodID(Env->GetObjectClass(intent), "getDataString", "()Ljava/lang/String;");
-	jstring dataString_jni = (jstring)Env->CallObjectMethod(intent, jtmID); 
+	jstring dataString_jni = (jstring)Env->CallObjectMethod(intent, jtmID);
 	std::string dataString;
 	if (dataString_jni)
 	{
@@ -787,7 +776,7 @@ void application::poll_actions()
 	instance_->xr_session.sync_actions(instance_->xr_actionset);
 }
 
-bool application::read_action(XrAction action, bool & value, XrTime& last_change_time)
+bool application::read_action(XrAction action, bool & value, XrTime & last_change_time)
 {
 	if (!is_focused())
 		return false;
@@ -808,7 +797,7 @@ bool application::read_action(XrAction action, bool & value, XrTime& last_change
 	return true;
 }
 
-bool application::read_action(XrAction action, float & value, XrTime& last_change_time)
+bool application::read_action(XrAction action, float & value, XrTime & last_change_time)
 {
 	if (!is_focused())
 		return false;
@@ -829,7 +818,7 @@ bool application::read_action(XrAction action, float & value, XrTime& last_chang
 	return true;
 }
 
-bool application::read_action(XrAction action, XrVector2f & value, XrTime& last_change_time)
+bool application::read_action(XrAction action, XrVector2f & value, XrTime & last_change_time)
 {
 	if (!is_focused())
 		return false;
