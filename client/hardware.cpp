@@ -97,6 +97,9 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 			view.recommendedImageRectHeight = 2208;
 			return view;
 		case model::pico_neo_3:
+			spdlog::info("Using panel resolution 1832x1920 for Pico Neo 3");
+			view.recommendedImageRectWidth = 1832;
+			view.recommendedImageRectHeight = 1920;
 			return view;
 		case model::pico_4:
 			spdlog::info("Using panel resolution 2160x2160 for Pico 4");
