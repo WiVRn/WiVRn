@@ -47,12 +47,11 @@ protected:
 	uint8_t stream_idx;
 
 private:
-	uint64_t frame_idx;
-
 	// temporary data
 	wivrn_session * cnx;
 
-	std::vector<to_headset::video_stream_data_shard> shards;
+	// shard waiting to be sent
+	to_headset::video_stream_data_shard shard;
 
 public:
 	static std::unique_ptr<VideoEncoder> Create(vk_bundle * vk,
@@ -92,7 +91,7 @@ protected:
 	void SendData(std::vector<uint8_t> && data);
 
 private:
-	void PushShard(std::vector<uint8_t> && payload, uint8_t flags);
+	void PushShard(const std::span<uint8_t>& payload, uint8_t flags);
 };
 
 } // namespace xrt::drivers::wivrn

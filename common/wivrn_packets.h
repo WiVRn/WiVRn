@@ -244,9 +244,6 @@ struct video_stream_description
 
 class video_stream_data_shard
 {
-	std::vector<uint8_t> data;
-	friend serialization_traits<video_stream_data_shard, void>;
-
 public:
 	inline static const size_t max_payload_size = 1400;
 	enum flags : uint8_t
@@ -274,13 +271,10 @@ public:
 	};
 	std::optional<view_info_t> view_info;
 
+	// Container for the data, read payload instead
+	std::vector<uint8_t> data;
 	// Actual video data, may contain multiple NAL units
 	std::span<uint8_t> payload;
-	void set_payload(std::vector<uint8_t> && data)
-	{
-		this->data = std::move(data);
-		payload = this->data;
-	}
 };
 
 struct video_stream_parity_shard
@@ -324,6 +318,7 @@ struct serialization_traits<to_headset::video_stream_data_shard, void>
 	template <typename T>
 	static void serialize(const to_headset::video_stream_data_shard & shard, T & packet)
 	{
+		packet.reserve(to_headset::video_stream_data_shard::max_payload_size + 20);
 		packet.serialize(shard.stream_item_idx);
 		packet.serialize(shard.frame_idx);
 		packet.serialize(shard.shard_idx);

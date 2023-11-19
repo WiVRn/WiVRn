@@ -21,7 +21,6 @@
 #include "wivrn_session.h"
 
 #include "video_encoder.h"
-#include "rs.h"
 #include "util/u_logging.h"
 
 #include <string>
@@ -88,81 +87,29 @@ void VideoEncoder::Encode(wivrn_session & cnx,
                           bool idr)
 {
 	this->cnx = &cnx;
-	this->frame_idx = frame_index;
 	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
 	cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx);
 
-	shards.clear();
+	// Prepare the video shard template
+	shard.stream_item_idx = stream_idx;
+	shard.frame_idx = frame_index;
+	shard.shard_idx = -1;
+	shard.view_info.reset();
+
 	Encode(index, idr, target_timestamp);
 	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx);
-	if (shards.empty())
+	if (shard.payload.empty())
 		return;
 	const size_t view_info_size = sizeof(to_headset::video_stream_data_shard::view_info_t);
-	if (shards.back().payload.size() + view_info_size > to_headset::video_stream_data_shard::max_payload_size)
+	if (shard.payload.size() + view_info_size > to_headset::video_stream_data_shard::max_payload_size)
 	{
 		// Push empty data so previous shard is sent and counters are set
 		PushShard({}, to_headset::video_stream_data_shard::start_of_slice | to_headset::video_stream_data_shard::end_of_slice);
 	}
-	shards.back().view_info = view_info;
-	shards.back().flags |= to_headset::video_stream_data_shard::end_of_frame;
-	cnx.send_stream(shards.back());
+	shard.view_info = view_info;
+	shard.flags |= to_headset::video_stream_data_shard::end_of_frame;
+	cnx.send_stream(shard);
 
-#if WITH_FEC
-	// forward error correction
-	std::vector<std::vector<uint8_t>> data_shards;
-	data_shards.reserve(shards.size());
-	size_t max_size = 0;
-	for (const auto & shard: shards)
-	{
-		serialization_packet packet;
-		packet.serialize(shard);
-		const auto & serialized = data_shards.emplace_back(std::move(packet));
-		max_size = std::max(max_size, serialized.size());
-	}
-
-	size_t parity = std::max<size_t>(1, shards.size() * 0.05);
-	std::vector<std::vector<uint8_t>> parity_shards(parity);
-
-	std::vector<unsigned char *> shard_pointers;
-
-	for (auto & shard: data_shards)
-	{
-		shard.resize(max_size, 0);
-		shard_pointers.push_back(shard.data());
-	}
-
-	for (auto & shard: parity_shards)
-	{
-		shard.resize(max_size, 0);
-		shard_pointers.push_back(shard.data());
-	}
-
-	static std::once_flag once;
-	std::call_once(once, reed_solomon_init);
-
-	std::unique_ptr<reed_solomon, void (*)(reed_solomon *)> rs(reed_solomon_new(shards.size(), parity),
-	                                                           reed_solomon_release);
-	if (rs)
-	{
-		reed_solomon_encode(rs.get(), shard_pointers.data(), shard_pointers.size(), max_size);
-
-		for (auto & shard: parity_shards)
-		{
-			to_headset::video_stream_parity_shard packet{};
-			packet.stream_item_idx = stream_idx;
-			packet.frame_idx = frame_idx;
-			packet.data_shard_count = data_shards.size();
-			packet.num_parity_elements = parity;
-			packet.payload = std::move(shard);
-			cnx.send_stream(packet);
-		}
-	}
-	else
-	{
-		U_LOG_W("failed to setup reed_solomon encoder with %ld data shards", data_shards.size());
-	}
-	cnx.dump_time("rs_end", frame_index, os_monotonic_get_ns(), stream_idx);
-#endif
 }
 
 void VideoEncoder::SendData(std::vector<uint8_t> && data)
@@ -176,7 +123,7 @@ void VideoEncoder::SendData(std::vector<uint8_t> && data)
 	uint8_t flags = to_headset::video_stream_data_shard::start_of_slice;
 	if (data.size() <= max_payload_size)
 	{
-		PushShard(std::move(data), flags | to_headset::video_stream_data_shard::end_of_slice);
+		PushShard(data, flags | to_headset::video_stream_data_shard::end_of_slice);
 	}
 	auto begin = data.begin();
 	auto end = data.end();
@@ -191,25 +138,22 @@ void VideoEncoder::SendData(std::vector<uint8_t> && data)
 		begin = next;
 		flags = 0;
 	}
+	shard.data = std::move(data);
 }
 
-void VideoEncoder::PushShard(std::vector<uint8_t> && payload, uint8_t flags)
+void VideoEncoder::PushShard(const std::span<uint8_t> & payload, uint8_t flags)
 {
-	if (not shards.empty())
+	if (shard.shard_idx != decltype(shard.shard_idx)(-1))
 	{
-		cnx->send_stream(shards.back());
+		cnx->send_stream(shard);
 	}
 	else
 	{
-		cnx->dump_time("send_start", frame_idx, os_monotonic_get_ns(), stream_idx);
+		cnx->dump_time("send_start", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
 	}
-	to_headset::video_stream_data_shard shard;
-	shard.stream_item_idx = stream_idx;
-	shard.frame_idx = frame_idx;
-	shard.shard_idx = shards.size();
+	++shard.shard_idx;
 	shard.flags = flags;
-	shard.set_payload(std::move(payload));
-	shards.emplace_back(std::move(shard));
+	shard.payload = payload;
 }
 
 } // namespace xrt::drivers::wivrn

@@ -101,6 +101,11 @@ class serialization_packet
 public:
 	serialization_packet() = default;
 
+	void reserve(size_t n)
+	{
+		buffer.reserve(n);
+	}
+
 	void write(const void * data, size_t size)
 	{
 		size_t index = buffer.size();
