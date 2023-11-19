@@ -22,7 +22,6 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <memory>
 #include <netinet/in.h>
 #include <optional>
 #include <span>
@@ -245,7 +244,7 @@ struct video_stream_description
 
 class video_stream_data_shard
 {
-	std::shared_ptr<std::vector<uint8_t>> data;
+	std::vector<uint8_t> data;
 	friend serialization_traits<video_stream_data_shard, void>;
 
 public:
@@ -279,8 +278,8 @@ public:
 	std::span<uint8_t> payload;
 	void set_payload(std::vector<uint8_t> && data)
 	{
-		this->data = std::make_shared<std::vector<uint8_t>>(std::move(data));
-		payload = *this->data;
+		this->data = std::move(data);
+		payload = this->data;
 	}
 };
 
@@ -346,9 +345,9 @@ struct serialization_traits<to_headset::video_stream_data_shard, void>
 		packet.deserialize(shard.view_info);
 		uint16_t size;
 		packet.deserialize(size);
-		auto [read_index, data] = packet.steal_buffer();
-		shard.data = std::make_shared<std::vector<uint8_t>>(std::move(data));
-		shard.payload = std::span<uint8_t>(shard.data->data() + read_index, shard.data->size() - read_index);
+		size_t read_index;
+		std::tie(read_index, shard.data) = packet.steal_buffer();
+		shard.payload = std::span<uint8_t>(shard.data.data() + read_index, shard.data.size() - read_index);
 		return shard;
 	}
 };
