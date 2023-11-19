@@ -52,6 +52,8 @@ model guess_model()
 		return model::oculus_quest_2;
 	if (device == "seacliff")
 		return model::meta_quest_pro;
+	if (device == "eureka")
+		return model::meta_quest_3;
 
 	const auto manufacturer = get_property("ro.product.manufacturer");
 	const auto model = get_property("ro.product.model");
