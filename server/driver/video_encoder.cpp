@@ -107,6 +107,7 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	shards.back().flags |= to_headset::video_stream_data_shard::end_of_frame;
 	cnx.send_stream(shards.back());
 
+#if WITH_FEC
 	// forward error correction
 	std::vector<std::vector<uint8_t>> data_shards;
 	data_shards.reserve(shards.size());
@@ -161,6 +162,7 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 		U_LOG_W("failed to setup reed_solomon encoder with %ld data shards", data_shards.size());
 	}
 	cnx.dump_time("rs_end", frame_index, os_monotonic_get_ns(), stream_idx);
+#endif
 }
 
 void VideoEncoder::SendData(std::vector<uint8_t> && data)
