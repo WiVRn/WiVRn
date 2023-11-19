@@ -27,6 +27,8 @@
 #include "wivrn_discover.h"
 #include <tiny_gltf.h>
 
+#include <optional>
+
 #include "render/scene_renderer.h"
 #include "render/text_rasterizer.h"
 
@@ -61,7 +63,7 @@ class lobby : public scene
 
 	std::vector<std::vector<image_data>> images_data;
 
-	wivrn_discover discover;
+	std::optional<wivrn_discover> discover;
 
 	tinygltf::Model model;
 	std::vector<vk::device_memory> model_memory;
@@ -82,5 +84,8 @@ public:
 
 	virtual void render() override;
 	virtual void render_view(XrViewStateFlags flags, XrTime display_time, XrView & view, int swapchain_index, int image_index) override;
+
+	void on_unfocused() override;
+	void on_focused() override;
 };
 } // namespace scenes

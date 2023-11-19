@@ -31,10 +31,12 @@
 #include <string>
 #include <tiny_gltf.h>
 
+static const std::string discover_service = "_wivrn._tcp.local.";
+
 scenes::lobby::~lobby() {}
 
 scenes::lobby::lobby() :
-        status_string_rasterizer(device, physical_device, commandpool, queue), discover("_wivrn._tcp.local."), renderer(device, physical_device, queue)
+        status_string_rasterizer(device, physical_device, commandpool, queue), renderer(device, physical_device, queue)
 {
 	// renderer.load_gltf("Lobby.gltf");
 
@@ -261,7 +263,7 @@ void scenes::lobby::render()
 
 	if (!next_scene)
 	{
-		auto services = discover.get_services();
+		auto services = discover->get_services();
 
 		if (auto session = connect_to_session(services))
 		{
@@ -281,6 +283,7 @@ void scenes::lobby::render()
 		if (next_scene->ready())
 		{
 			application::push_scene(next_scene);
+			discover.reset();
 			next_scene.reset();
 		}
 		else
@@ -417,4 +420,14 @@ void scenes::lobby::render_view(XrViewStateFlags flags, XrTime display_time, XrV
 	vkCmdDraw(command_buffer, 6, 1, 0, 0);
 
 	vkCmdEndRenderPass(command_buffer);
+}
+
+void scenes::lobby::on_focused()
+{
+	discover.emplace(discover_service);
+}
+
+void scenes::lobby::on_unfocused()
+{
+	discover.reset();
 }
