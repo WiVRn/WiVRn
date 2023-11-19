@@ -22,6 +22,24 @@ class Frame:
                 self.streams[stream] = dict()
             self.streams[stream][event] = timestamp
 
+    def duration(self, begin="wake_up", end="display", stream=None):
+        try:
+            if stream is None:
+                streams = list(self.streams.values())
+            else:
+                streams = [self.streams[stream]]
+            if begin in self.events:
+                t0 = self.events[begin]
+            else:
+                t0 = min([s[begin] for s in streams])
+            if end in self.events:
+                t1 = self.events[end]
+            else:
+                t1 = max([s[end] for s in streams])
+            return (t1 - t0)/1_000_000
+        except KeyError:
+            return None
+
 
     def draw(self, out):
         out.write("<!-- frame {} -->\n".format(self.num))
@@ -115,24 +133,15 @@ class Frame:
                     stroke = COLOURS[1]
                     ))
 
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser("Parser for WiVRn timing dumps")
-    parser.add_argument("CSV", type=argparse.FileType("r"))
-    parser.add_argument("--out", type=argparse.FileType("w"), default="-")
-    parser.add_argument("--skip", type=int, default=0)
-    parser.add_argument("--duration_ms", type=int, default=100)
-
-    args = parser.parse_args()
-
-    timings = csv.reader(args.CSV)
+def read(file, skip=0, duration_ms=-1):
+    timings = csv.reader(file)
 
     origin = None
     frames = []
     for event, frame, timestamp, stream in timings:
-        frame = int(frame)
+        frame = int(frame) - skip
 
-        if frame < args.skip:
+        if frame < 0:
             continue
         timestamp = int(timestamp)
         stream = int(stream)
@@ -145,13 +154,29 @@ if __name__ == "__main__":
 
         timestamp -= origin
 
-        if timestamp > args.duration_ms * 1_000_000:
+        if duration_ms > 0 and timestamp > duration_ms * 1_000_000:
             continue
 
         while len(frames) < frame + 1:
             frames.append(Frame(len(frames)))
 
         frames[frame].set(event, timestamp, stream)
+    return frames
+
+def durations(frames, begin="wake_up", end="display", stream=None):
+    res = [frame.duration(begin, end, stream) for frame in frames]
+    return [d for d in res if d is not None]
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser("Parser for WiVRn timing dumps")
+    parser.add_argument("CSV", type=argparse.FileType("r"))
+    parser.add_argument("--out", type=argparse.FileType("w"), default="-")
+    parser.add_argument("--skip", type=int, default=0)
+    parser.add_argument("--duration_ms", type=int, default=-1)
+
+    args = parser.parse_args()
+
+    frames = read(args.CSV, args.skip, args.duration_ms)
 
     out = args.out
     out.write('''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
