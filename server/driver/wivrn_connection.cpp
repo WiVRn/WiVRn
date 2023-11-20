@@ -75,6 +75,7 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 				int client_port = htons(peer_addr.sin6_port);
 				stream.connect(peer_addr.sin6_addr, client_port);
 				U_LOG_D("Stream socket connected, client port %d", client_port);
+				stream.set_send_buffer_size(1024 * 1024 * 5);
 				break;
 			}
 
