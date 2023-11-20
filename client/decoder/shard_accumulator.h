@@ -30,9 +30,6 @@ using decoder_impl = ::ffmpeg::decoder;
 #endif
 
 #include "wivrn_packets.h"
-#include <array>
-#include <atomic>
-#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -42,21 +39,15 @@ class shard_accumulator
 
 public:
 	using data_shard = xrt::drivers::wivrn::to_headset::video_stream_data_shard;
-	using parity_shard = xrt::drivers::wivrn::to_headset::video_stream_parity_shard;
 	struct shard_set
 	{
 		size_t num_shards = 0;
 		size_t min_for_reconstruction = -1;
 		std::vector<std::optional<data_shard>> data;
-		std::vector<std::optional<parity_shard>> parity;
 		void reset(uint64_t frame_index);
 		bool empty() const;
 
 		uint16_t insert(data_shard &&);
-		std::optional<uint16_t> insert(parity_shard &&);
-
-		parity_shard & get_parity();
-		std::optional<uint16_t> try_reconstruct();
 
 		xrt::drivers::wivrn::from_headset::feedback feedback{};
 
@@ -93,8 +84,7 @@ public:
 		next.reset(1);
 	}
 
-	template <typename Shard>
-	void push_shard(Shard &&);
+	void push_shard(xrt::drivers::wivrn::to_headset::video_stream_data_shard&&);
 
 	auto & desc() const
 	{

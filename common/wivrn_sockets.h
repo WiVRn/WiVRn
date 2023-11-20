@@ -26,6 +26,7 @@
 #include <mutex>
 #include <netinet/ip.h>
 #include <exception>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -90,6 +91,7 @@ public:
 	deserialization_packet receive_raw();
 	std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();
 	void send_raw(const std::vector<uint8_t> & data);
+	void send_raw(const std::vector<std::span<uint8_t>> & data);
 
 	void connect(in6_addr address, int port);
 	void connect(in_addr address, int port);
@@ -114,7 +116,7 @@ public:
 	explicit TCP(int fd);
 
 	deserialization_packet receive_raw();
-	void send_raw(const std::vector<uint8_t> & data);
+	void send_raw(const std::vector<std::span<uint8_t>> & data);
 };
 
 class TCPListener : public fd_base
@@ -137,9 +139,27 @@ public:
 		return {T{fd2}, addr};
 	}
 };
-
 template <typename Socket, typename ReceivedType, typename SentType>
-class typed_socket : public Socket
+class typed_socket;
+
+namespace details
+{
+template <class T, class Tuple>
+struct Index;
+
+template <class T, class... Types>
+struct Index<T, std::tuple<T, Types...>> {
+    static const std::size_t value = 0;
+};
+
+template <class T, class U, class... Types>
+struct Index<T, std::tuple<U, Types...>> {
+    static const std::size_t value = 1 + Index<T, std::tuple<Types...>>::value;
+};
+}
+
+template <typename Socket, typename ReceivedType, typename ...VariantTypes>
+class typed_socket<Socket, ReceivedType, std::variant<VariantTypes...>> : public Socket
 {
 public:
 	template <typename... Args>
@@ -156,12 +176,14 @@ public:
 		return packet.deserialize<ReceivedType>();
 	}
 
-	template <typename T = SentType, typename = std::enable_if_t<std::is_same_v<T, SentType>>>
-	void send(const T & data)
+	template <typename T>
+	void send(T && data)
 	{
 		serialization_packet p;
-		p.serialize(data);
-		this->send_raw(std::move(p));
+		uint8_t index = details::Index<std::decay_t<T>, std::tuple<VariantTypes...>>::value;
+		p.serialize(index);
+		p.serialize(std::forward<T>(data));
+		this->send_raw(p);
 	}
 };
 

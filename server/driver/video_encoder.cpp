@@ -112,10 +112,11 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 
 }
 
-void VideoEncoder::SendData(std::vector<uint8_t> && data)
+void VideoEncoder::SendData(std::vector<uint8_t> && data_)
 {
 	auto & max_payload_size = to_headset::video_stream_data_shard::max_payload_size;
 	std::lock_guard lock(mutex);
+	data = std::move(data_);
 #if 0
 	std::ofstream debug("/tmp/video_dump-" + std::to_string(stream_idx), std::ios::app);
 	debug.write((char*)data.data(), data.size());
@@ -138,7 +139,6 @@ void VideoEncoder::SendData(std::vector<uint8_t> && data)
 		begin = next;
 		flags = 0;
 	}
-	shard.data = std::move(data);
 }
 
 void VideoEncoder::PushShard(const std::span<uint8_t> & payload, uint8_t flags)

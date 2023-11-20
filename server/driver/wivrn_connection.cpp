@@ -47,7 +47,7 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 
 	stream.bind(port);
 
-	control.send(to_headset::control_packets(to_headset::handshake{}));
+	control.send(to_headset::handshake{});
 
 	while (true)
 	{
@@ -96,16 +96,6 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 	{
 		U_LOG_I("Failed to set IP ToS to Expedited Forwarding: %s", e.what());
 	}
-}
-
-void wivrn_connection::send_control(const to_headset::control_packets & packet)
-{
-	control.send(packet);
-}
-
-void wivrn_connection::send_stream(const to_headset::stream_packets & packet)
-{
-	stream.send(packet);
 }
 
 std::optional<from_headset::control_packets> wivrn_connection::poll_control(int timeout)

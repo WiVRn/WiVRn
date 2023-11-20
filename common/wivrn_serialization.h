@@ -28,12 +28,15 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <variant>
 #include <vector>
+
+#include "wivrn_serialization_types.h"
 
 namespace xrt::drivers::wivrn
 {
@@ -99,12 +102,9 @@ class serialization_packet
 	std::vector<uint8_t> buffer;
 
 public:
-	serialization_packet() = default;
+	std::span<uint8_t> span; // Will be sent at the end, untouched
 
-	void reserve(size_t n)
-	{
-		buffer.reserve(n);
-	}
+	serialization_packet() = default;
 
 	void write(const void * data, size_t size)
 	{
@@ -113,24 +113,17 @@ public:
 		memcpy(&buffer[index], data, size);
 	}
 
-	const uint8_t * data() const
-	{
-		return buffer.data();
-	}
-	size_t size() const
-	{
-		return buffer.size();
-	}
-
 	template <typename T>
 	void serialize(const T & value)
 	{
 		serialization_traits<T>::serialize(value, *this);
 	}
 
-	operator std::vector<uint8_t> &&() &&
+	operator std::vector<std::span<uint8_t>> ()
 	{
-		return std::move(buffer);
+		if (span.empty())
+			return {buffer};
+		return {buffer, span};
 	}
 };
 
@@ -152,6 +145,14 @@ public:
 
 		memcpy(data, &buffer[read_index], size);
 		read_index += size;
+	}
+
+	std::span<uint8_t> read_span(size_t size)
+	{
+		check_remaining_size(size);
+		std::span<uint8_t> res(&buffer[read_index], size);
+		read_index += size;
+		return res;
 	}
 
 	size_t remaining() const
@@ -455,7 +456,7 @@ struct serialization_traits<std::variant<T...>>
 
 	static void serialize(const std::variant<T...> & value, serialization_packet & packet)
 	{
-		packet.serialize<uint32_t>(value.index());
+		packet.serialize<uint8_t>(value.index());
 		std::visit([&](const auto & x) { packet.serialize(x); }, value);
 	}
 
@@ -472,7 +473,7 @@ struct serialization_traits<std::variant<T...>>
 
 	static std::variant<T...> deserialize(deserialization_packet & packet)
 	{
-		uint32_t type_index = packet.deserialize<uint32_t>();
+		uint8_t type_index = packet.deserialize<uint8_t>();
 		if (type_index >= sizeof...(T))
 			throw deserialization_error();
 
@@ -503,6 +504,48 @@ struct serialization_traits<std::chrono::duration<Rep, Period>>
 	{
 		Rep nsec = packet.deserialize<Rep>();
 		return std::chrono::duration<Rep, Period>{nsec};
+	}
+};
+
+template <>
+struct serialization_traits<std::span<uint8_t>>
+{
+	static constexpr void type_hash(details::hash_context & h)
+	{
+		h.feed("span<uint8_t>");
+	}
+
+	static void serialize(const std::span<uint8_t>& value, serialization_packet & packet)
+	{
+		packet.serialize<uint16_t>(value.size());
+		//FIXME: nocopy
+		packet.write(value.data(), value.size_bytes());
+	}
+
+	static std::span<uint8_t> deserialize(deserialization_packet & packet)
+	{
+		size_t size = packet.deserialize<uint16_t>();
+		return packet.read_span(size);
+	}
+};
+
+template <>
+struct serialization_traits<data_holder>
+{
+	static constexpr void type_hash(details::hash_context & h)
+	{
+	}
+
+	static void serialize(const data_holder&, serialization_packet &)
+	{
+	}
+
+	static data_holder deserialize(deserialization_packet & packet)
+	{
+		data_holder value;
+		size_t size;
+		std::tie(size, value.c) = packet.steal_buffer();
+		return value;
 	}
 };
 

@@ -52,6 +52,8 @@ private:
 
 	// shard waiting to be sent
 	to_headset::video_stream_data_shard shard;
+	// and its data
+	std::vector<uint8_t> data;
 
 public:
 	static std::unique_ptr<VideoEncoder> Create(vk_bundle * vk,

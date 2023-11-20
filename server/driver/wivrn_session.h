@@ -82,15 +82,15 @@ public:
 	void operator()(audio_data &&);
 
 	template <typename T>
-	void send_stream(const T & packet)
+	void send_stream(T && packet)
 	{
-		connection.send_stream(packet);
+		connection.send_stream(std::forward<T>(packet));
 	}
 
 	template <typename T>
-	void send_control(const T & packet)
+	void send_control(T && packet)
 	{
-		connection.send_control(packet);
+		connection.send_control(std::forward<T>(packet));
 	}
 
 	std::array<to_headset::video_stream_description::foveation_parameter, 2> get_foveation_parameters();

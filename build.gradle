@@ -19,8 +19,8 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 29
-    buildToolsVersion "30.0.3"
-    ndkVersion "25.1.8937393"
+    buildToolsVersion '33.0.0'
+    ndkVersion "26.1.10909125"
 
     defaultConfig {
         applicationId "org.meumeu.wivrn"

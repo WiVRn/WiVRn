@@ -29,11 +29,10 @@
 #include <vector>
 #include <openxr/openxr.h>
 
+#include "wivrn_serialization_types.h"
+
 namespace xrt::drivers::wivrn
 {
-
-template <typename T, typename Enable>
-struct serialization_traits;
 
 // Default port for server to listen, both TCP and UDP
 static const int default_port = 9757;
@@ -180,9 +179,7 @@ struct feedback
 	std::array<XrPosef, 2> real_pose;
 
 	uint8_t data_packets;
-	uint8_t parity_packets;
 	uint8_t received_data_packets;
-	uint8_t received_parity_packets;
 };
 
 using control_packets = std::variant<headset_info_packet, feedback, audio_data>;
@@ -270,22 +267,11 @@ public:
 		std::array<XrFovf, 2> fov;
 	};
 	std::optional<view_info_t> view_info;
-
-	// Container for the data, read payload instead
-	std::vector<uint8_t> data;
 	// Actual video data, may contain multiple NAL units
 	std::span<uint8_t> payload;
-};
 
-struct video_stream_parity_shard
-{
-	uint8_t stream_item_idx;
-	uint64_t frame_idx;
-	uint16_t data_shard_count;
-	uint8_t num_parity_elements;
-	uint8_t parity_element;
-	// Parity data
-	std::vector<uint8_t> payload;
+	// Container for the data, read payload instead
+	data_holder data;
 };
 
 struct haptics
@@ -302,49 +288,8 @@ struct timesync_query
 };
 
 using control_packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data>;
-using stream_packets = std::variant<video_stream_data_shard, video_stream_parity_shard, haptics, timesync_query>;
+using stream_packets = std::variant<video_stream_data_shard, haptics, timesync_query>;
 
 } // namespace to_headset
-
-template <>
-struct serialization_traits<to_headset::video_stream_data_shard, void>
-{
-	template <typename T>
-	static constexpr void type_hash(T & h)
-	{
-		h.feed("video_v0");
-	}
-
-	template <typename T>
-	static void serialize(const to_headset::video_stream_data_shard & shard, T & packet)
-	{
-		packet.reserve(to_headset::video_stream_data_shard::max_payload_size + 20);
-		packet.serialize(shard.stream_item_idx);
-		packet.serialize(shard.frame_idx);
-		packet.serialize(shard.shard_idx);
-		packet.serialize(shard.flags);
-		packet.serialize(shard.view_info);
-		uint16_t size = shard.payload.size();
-		packet.serialize(size);
-		packet.write(shard.payload.data(), shard.payload.size_bytes());
-	}
-
-	template <typename T>
-	static to_headset::video_stream_data_shard deserialize(T & packet)
-	{
-		to_headset::video_stream_data_shard shard;
-		packet.deserialize(shard.stream_item_idx);
-		packet.deserialize(shard.frame_idx);
-		packet.deserialize(shard.shard_idx);
-		packet.deserialize(shard.flags);
-		packet.deserialize(shard.view_info);
-		uint16_t size;
-		packet.deserialize(size);
-		size_t read_index;
-		std::tie(read_index, shard.data) = packet.steal_buffer();
-		shard.payload = std::span<uint8_t>(shard.data.data() + read_index, shard.data.size() - read_index);
-		return shard;
-	}
-};
 
 } // namespace xrt::drivers::wivrn

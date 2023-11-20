@@ -69,7 +69,7 @@ class stream : public scene, public std::enable_shared_from_this<stream>
 	std::optional<std::thread> tracking_thread;
 	std::thread video_thread;
 
-	utils::sync_queue<std::variant<to_headset::video_stream_data_shard, to_headset::video_stream_parity_shard>> shard_queue;
+	utils::sync_queue<to_headset::video_stream_data_shard> shard_queue;
 
 	std::mutex decoder_mutex;
 	std::vector<accumulator_images> decoders; // Locked by decoder_mutex
@@ -102,7 +102,6 @@ public:
 
 	void operator()(to_headset::handshake&&) {};
 	void operator()(to_headset::video_stream_data_shard &&);
-	void operator()(to_headset::video_stream_parity_shard &&);
 	void operator()(to_headset::haptics &&);
 	void operator()(to_headset::timesync_query &&);
 	void operator()(to_headset::audio_stream_description &&);

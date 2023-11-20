@@ -36,8 +36,16 @@ public:
 	wivrn_connection(const wivrn_connection &) = delete;
 	wivrn_connection & operator=(const wivrn_connection &) = delete;
 
-	void send_control(const to_headset::control_packets & packet);
-	void send_stream(const to_headset::stream_packets & packet);
+	template <typename T>
+	void send_control(T && packet)
+	{
+		control.send(std::forward<T>(packet));
+	}
+	template <typename T>
+	void send_stream(T && packet)
+	{
+		stream.send(std::forward<T>(packet));
+	}
 
 	std::optional<from_headset::control_packets> poll_control(int timeout);
 

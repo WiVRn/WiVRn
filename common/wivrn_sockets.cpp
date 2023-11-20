@@ -28,6 +28,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <system_error>
 #include <unistd.h>
 
@@ -282,6 +283,16 @@ void xrt::drivers::wivrn::UDP::send_raw(const std::vector<uint8_t> & data)
 		throw std::system_error{errno, std::generic_category()};
 }
 
+void xrt::drivers::wivrn::UDP::send_raw(const std::vector<std::span<uint8_t>> & data)
+{
+	std::vector<iovec> spans;
+	for (const auto& span: data)
+		spans.emplace_back((void*)span.data(), span.size());
+
+	if (::writev(fd, spans.data(), spans.size()) < 0)
+		throw std::system_error{errno, std::generic_category()};
+}
+
 xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_raw()
 {
 	size_t expected_size;
@@ -323,10 +334,12 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 	return deserialization_packet{std::move(new_buffer), 4};
 }
 
-void xrt::drivers::wivrn::TCP::send_raw(const std::vector<uint8_t> & data)
+void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & spans)
 {
 	std::lock_guard lock(*mutex);
 
+	assert(spans.size() == 1);
+	const auto& data = spans[0];
 	uint32_t size = data.size();
 	ssize_t sent = ::send(fd, &size, sizeof(size), MSG_NOSIGNAL);
 

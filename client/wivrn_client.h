@@ -21,7 +21,6 @@
 
 #include "wivrn_packets.h"
 #include "wivrn_sockets.h"
-#include <memory>
 #include <poll.h>
 
 using namespace xrt::drivers::wivrn;
@@ -41,8 +40,16 @@ public:
 	wivrn_session(const wivrn_session &) = delete;
 	wivrn_session & operator=(const wivrn_session &) = delete;
 
-	void send_control(const from_headset::control_packets & packet);
-	void send_stream(const from_headset::stream_packets & packet);
+	template <typename T>
+	void send_control(T && packet)
+	{
+		control.send(std::forward<T>(packet));
+	}
+	template <typename T>
+	void send_stream(T && packet)
+	{
+		stream.send(std::forward<T>(packet));
+	}
 
 	template <typename T>
 	int poll(T && visitor, std::chrono::milliseconds timeout)

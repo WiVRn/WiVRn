@@ -8,6 +8,7 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_STANDARD 20)
 
 # See: https://github.com/cpm-cmake/CPM.cmake
 include("cmake/CPM.cmake")

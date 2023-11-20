@@ -31,7 +31,7 @@ namespace vk::details
 template <typename T>
 struct structure_traits_base
 {
-	static constexpr inline VkStructureType type = static_cast<VkStructureType>(-1);
+	static constexpr inline VkStructureType type = VK_STRUCTURE_TYPE_MAX_ENUM;
 	using base = T;
 };
 
@@ -53,7 +53,7 @@ auto enumerate(F f, Args &&... args) -> auto
 
 	if (result >= 0)
 	{
-		if constexpr (structure_type<T> == static_cast<VkStructureType>(-1))
+		if constexpr (structure_type<T> == VK_STRUCTURE_TYPE_MAX_ENUM)
 		{
 			array.resize(count);
 		}

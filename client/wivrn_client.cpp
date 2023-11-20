@@ -19,10 +19,7 @@
 
 #include "wivrn_client.h"
 #include "spdlog/common.h"
-#include "version.h"
 #include "wivrn_packets.h"
-#include "wivrn_serialization.h"
-#include <algorithm>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <linux/ipv6.h>
@@ -60,7 +57,7 @@ void wivrn_session::handshake()
 			if (std::holds_alternative<to_headset::handshake>(*packet))
 			{
 				// If this packet is lost, a tracking packet will do the job to establish the connection
-				send_stream(from_headset::stream_packets(from_headset::handshake{}));
+				send_stream(from_headset::handshake{});
 				return;
 			}
 
@@ -137,13 +134,3 @@ wivrn_session::wivrn_session(in_addr address, int port) :
 //
 // 	return {};
 // }
-
-void wivrn_session::send_control(const from_headset::control_packets & packet)
-{
-	control.send(packet);
-}
-
-void wivrn_session::send_stream(const from_headset::stream_packets & packet)
-{
-	stream.send(packet);
-}

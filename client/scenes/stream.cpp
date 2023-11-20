@@ -543,17 +543,13 @@ void scenes::stream::video()
 		{
 			auto shard = shard_queue.pop();
 
-			std::visit(
-			        [this](auto & shard) {
-				        if (shard.stream_item_idx >= decoders.size())
-				        {
-					        // We don't know (yet?) about this stream, ignore packet
-					        return;
-				        }
-				        auto idx = shard.stream_item_idx;
-				        decoders[idx].decoder->push_shard(std::move(shard));
-			        },
-			        shard);
+			if (shard.stream_item_idx >= decoders.size())
+			{
+				// We don't know (yet?) about this stream, ignore packet
+				return;
+			}
+			auto idx = shard.stream_item_idx;
+			decoders[idx].decoder->push_shard(std::move(shard));
 		}
 		catch (utils::sync_queue_closed &)
 		{
