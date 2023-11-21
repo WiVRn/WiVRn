@@ -116,12 +116,11 @@ bool VideoEncoderFFMPEG::once = set_log_level();
 void VideoEncoderFFMPEG::Encode(int index, bool idr, std::chrono::steady_clock::time_point target_timestamp)
 {
 	PushFrame(index, idr, target_timestamp);
-	AVPacket * enc_pkt = av_packet_alloc();
-	int err = avcodec_receive_packet(encoder_ctx.get(), enc_pkt);
+	av_packet_ptr enc_pkt(av_packet_alloc());
+	int err = avcodec_receive_packet(encoder_ctx.get(), enc_pkt.get());
 	if (err == 0)
 	{
-		SendData({enc_pkt->data, enc_pkt->data + enc_pkt->size});
-		av_packet_free(&enc_pkt);
+		SendData(std::span<uint8_t>(enc_pkt->data, enc_pkt->size), true);
 	}
 	if (err == AVERROR(EAGAIN))
 	{

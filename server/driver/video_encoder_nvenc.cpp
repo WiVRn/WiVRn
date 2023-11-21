@@ -282,7 +282,7 @@ void VideoEncoderNvenc::Encode(int index, bool idr, std::chrono::steady_clock::t
 	NVENC_CHECK(fn.nvEncLockBitstream(session_handle, &param2));
 
 	SendData(
-	        {(uint8_t *)param2.bitstreamBufferPtr, (uint8_t *)param2.bitstreamBufferPtr + param2.bitstreamSizeInBytes});
+	        {(uint8_t *)param2.bitstreamBufferPtr, (uint8_t *)param2.bitstreamBufferPtr + param2.bitstreamSizeInBytes}, true);
 
 	NVENC_CHECK(fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer));
 

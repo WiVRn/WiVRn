@@ -93,67 +93,44 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	// Prepare the video shard template
 	shard.stream_item_idx = stream_idx;
 	shard.frame_idx = frame_index;
-	shard.shard_idx = -1;
-	shard.view_info.reset();
+	shard.shard_idx = 0;
+	shard.view_info = view_info;
 
 	Encode(index, idr, target_timestamp);
 	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx);
-	if (shard.payload.empty())
-		return;
-	const size_t view_info_size = sizeof(to_headset::video_stream_data_shard::view_info_t);
-	if (shard.payload.size() + view_info_size > to_headset::video_stream_data_shard::max_payload_size)
-	{
-		// Push empty data so previous shard is sent and counters are set
-		PushShard({}, to_headset::video_stream_data_shard::start_of_slice | to_headset::video_stream_data_shard::end_of_slice);
-	}
-	shard.view_info = view_info;
-	shard.flags |= to_headset::video_stream_data_shard::end_of_frame;
-	cnx.send_stream(shard);
-
 }
 
-void VideoEncoder::SendData(std::vector<uint8_t> && data_)
+void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 {
-	auto & max_payload_size = to_headset::video_stream_data_shard::max_payload_size;
 	std::lock_guard lock(mutex);
-	data = std::move(data_);
 #if 0
 	std::ofstream debug("/tmp/video_dump-" + std::to_string(stream_idx), std::ios::app);
 	debug.write((char*)data.data(), data.size());
 #endif
-	uint8_t flags = to_headset::video_stream_data_shard::start_of_slice;
-	if (data.size() <= max_payload_size)
-	{
-		PushShard(data, flags | to_headset::video_stream_data_shard::end_of_slice);
-	}
+	if (shard.shard_idx == 0)
+		cnx->dump_time("send_start", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
+
+	shard.flags = to_headset::video_stream_data_shard::start_of_slice;
 	auto begin = data.begin();
 	auto end = data.end();
 	while (begin != end)
 	{
+		const size_t view_info_size = sizeof(to_headset::video_stream_data_shard::view_info_t);
+		const size_t max_payload_size = to_headset::video_stream_data_shard::max_payload_size - (shard.view_info ? view_info_size : 0);
 		auto next = std::min(end, begin + max_payload_size);
 		if (next == end)
 		{
-			flags |= to_headset::video_stream_data_shard::end_of_slice;
+			shard.flags |= to_headset::video_stream_data_shard::end_of_slice;
+			if (end_of_frame)
+				shard.flags |= to_headset::video_stream_data_shard::end_of_frame;
 		}
-		PushShard({begin, next}, flags);
-		begin = next;
-		flags = 0;
-	}
-}
-
-void VideoEncoder::PushShard(const std::span<uint8_t> & payload, uint8_t flags)
-{
-	if (shard.shard_idx != decltype(shard.shard_idx)(-1))
-	{
+		shard.payload = {begin, next};
 		cnx->send_stream(shard);
+		++shard.shard_idx;
+		shard.flags = 0;
+		shard.view_info.reset();
+		begin = next;
 	}
-	else
-	{
-		cnx->dump_time("send_start", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
-	}
-	++shard.shard_idx;
-	shard.flags = flags;
-	shard.payload = payload;
 }
 
 } // namespace xrt::drivers::wivrn

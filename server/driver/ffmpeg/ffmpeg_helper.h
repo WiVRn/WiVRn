@@ -27,6 +27,7 @@ struct AVBufferRef;
 struct AVFilterGraph;
 struct AVFrame;
 struct AVCodecContext;
+struct AVPacket;
 
 extern "C"
 {
@@ -52,12 +53,15 @@ struct AvDeleter
 	operator()(AVCodecContext *);
 	void
 	operator()(AVFilterGraph *);
+	void
+	operator()(AVPacket *);
 };
 
 using av_buffer_ptr = std::unique_ptr<AVBufferRef, AvDeleter>;
 using av_frame_ptr = std::unique_ptr<AVFrame, AvDeleter>;
 using av_codec_context_ptr = std::unique_ptr<AVCodecContext, AvDeleter>;
 using av_filter_graph_ptr = std::unique_ptr<AVFilterGraph, AvDeleter>;
+using av_packet_ptr = std::unique_ptr<AVPacket, AvDeleter>;
 
 av_buffer_ptr
 make_av_buffer(AVBufferRef *);

@@ -48,6 +48,7 @@ class VideoEncoderX264 : public VideoEncoder
 
 	std::mutex mutex;
 	int next_mb;
+	int num_mb; // Number of macroblocks in a frame
 	std::list<pending_nal> pending_nals;
 
 public:

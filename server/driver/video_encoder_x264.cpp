@@ -33,9 +33,10 @@ void VideoEncoderX264::ProcessCb(x264_t * h, x264_nal_t * nal, void * opaque)
 	switch (nal->i_type)
 	{
 		case NAL_SPS:
-		case NAL_PPS:
-			self->SendData(std::move(data));
+		case NAL_PPS: {
+			self->SendData(data, false);
 			break;
+		}
 		case NAL_SLICE:
 		case NAL_SLICE_DPA:
 		case NAL_SLICE_DPB:
@@ -51,7 +52,7 @@ void VideoEncoderX264::ProcessNal(pending_nal && nal)
 	if (nal.first_mb == next_mb)
 	{
 		next_mb = nal.last_mb + 1;
-		SendData(std::move(nal.data));
+		SendData(nal.data, next_mb == num_mb);
 	}
 	else
 	{
@@ -59,8 +60,8 @@ void VideoEncoderX264::ProcessNal(pending_nal && nal)
 	}
 	while ((not pending_nals.empty()) and pending_nals.front().first_mb == next_mb)
 	{
-		SendData(std::move(pending_nals.front().data));
 		next_mb = pending_nals.front().last_mb + 1;
+		SendData(pending_nals.front().data, next_mb == num_mb);
 		pending_nals.pop_front();
 	}
 }
@@ -98,6 +99,9 @@ VideoEncoderX264::VideoEncoderX264(
 	// encoder requires width and height to be even
 	settings.video_width += settings.video_width % 2;
 	settings.video_height += settings.video_height % 2;
+
+	num_mb = ((settings.video_width + 15) / 16)
+		* ((settings.video_height + 15) / 16);
 
 	converter = std::make_unique<YuvConverter>(
 	        vk,
@@ -171,6 +175,10 @@ void VideoEncoderX264::Encode(int index, bool idr, std::chrono::steady_clock::ti
 	next_mb = 0;
 	assert(pending_nals.empty());
 	int size = x264_encoder_encode(enc, &nal, &num_nal, &pic_in, &pic_out);
+	if (next_mb != num_mb)
+	{
+		U_LOG_W("unexpected macroblock count: %d", next_mb);
+	}
 	if (size < 0)
 	{
 		U_LOG_W("x264_encoder_encode failed: %d", size);

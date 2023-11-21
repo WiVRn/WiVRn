@@ -105,6 +105,11 @@ void AvDeleter::operator()(AVFilterGraph * x)
 	avfilter_graph_free(&x);
 }
 
+void AvDeleter::operator()(AVPacket * x)
+{
+	av_packet_free(&x);
+}
+
 av_frame_ptr
 make_av_frame(AVFrame * frame)
 {

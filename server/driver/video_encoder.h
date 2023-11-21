@@ -24,7 +24,6 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
-#include <vector>
 #include <vulkan/vulkan.h>
 
 #include "encoder_settings.h"
@@ -50,10 +49,8 @@ private:
 	// temporary data
 	wivrn_session * cnx;
 
-	// shard waiting to be sent
+	// shard to send
 	to_headset::video_stream_data_shard shard;
-	// and its data
-	std::vector<uint8_t> data;
 
 public:
 	static std::unique_ptr<VideoEncoder> Create(vk_bundle * vk,
@@ -90,10 +87,7 @@ protected:
 	// encode the image at provided index.
 	virtual void Encode(int index, bool idr, std::chrono::steady_clock::time_point target_timestamp) = 0;
 
-	void SendData(std::vector<uint8_t> && data);
-
-private:
-	void PushShard(const std::span<uint8_t>& payload, uint8_t flags);
+	void SendData(std::span<uint8_t> data, bool end_of_frame);
 };
 
 } // namespace xrt::drivers::wivrn
