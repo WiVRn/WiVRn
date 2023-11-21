@@ -445,6 +445,7 @@ void application::initialize()
 			}
 			xr_instance.suggest_bindings("/interaction_profiles/bytedance/pico4_controller", pico_4_bindings);
 		}
+		break;
 
 		case model::unknown: {
 			spdlog::info("Suggesting Khronos simple controller bindings");
