@@ -70,7 +70,7 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 		while (!exiting)
 		{
 			auto packet = output_buffer.pop();
-			auto &buffer = packet.payload;
+			auto & buffer = packet.payload;
 			int num_frames = buffer.size() / frame_size;
 
 			num_frames = AAudioStream_write(stream, buffer.data(), num_frames, 0);
@@ -103,15 +103,16 @@ void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wiv
 		xrt::drivers::wivrn::audio_data packet;
 		const int frame_size = format.num_channels * sizeof(int16_t);
 		const int max_frames = (format.sample_rate * 10) / 1000; // 10ms
+		auto & buffer = packet.data.c;
+		buffer.resize(frame_size * max_frames);
 
 		while (!exiting)
 		{
-			packet.payload.resize(frame_size * max_frames);
-			result = AAudioStream_read(stream, packet.payload.data(), max_frames, 1'000'000'000);
+			result = AAudioStream_read(stream, buffer.data(), max_frames, 1'000'000'000);
 			if (result > 0)
 			{
 				packet.timestamp = instance.now();
-				packet.payload.resize(frame_size * result);
+				packet.payload = std::span<uint8_t>(buffer.data(), frame_size * result);
 				session.send_control(packet);
 			}
 		}
@@ -131,7 +132,8 @@ void wivrn::android::audio::exit()
 	output_buffer.close();
 }
 
-wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, wivrn_session& session, xr::instance& instance): session(session), instance(instance)
+wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, wivrn_session & session, xr::instance & instance) :
+        session(session), instance(instance)
 {
 	AAudioStreamBuilder * builder;
 

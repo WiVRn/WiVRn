@@ -100,10 +100,11 @@ public:
 class serialization_packet
 {
 	std::vector<uint8_t> buffer;
+	// Either the size to read from the buffer, or an actual span
+	// Last element is always an integer
+	std::vector<std::variant<size_t, std::span<uint8_t>>> spans = {size_t(0)};
 
 public:
-	std::span<uint8_t> span; // Will be sent at the end, untouched
-
 	serialization_packet() = default;
 
 	void write(const void * data, size_t size)
@@ -111,6 +112,13 @@ public:
 		size_t index = buffer.size();
 		buffer.resize(index + size);
 		memcpy(&buffer[index], data, size);
+		std::get<size_t>(spans.back()) += size;
+	}
+
+	void write(std::span<uint8_t> span)
+	{
+		spans.push_back(span);
+		spans.push_back(size_t(0));
 	}
 
 	template <typename T>
@@ -119,11 +127,29 @@ public:
 		serialization_traits<T>::serialize(value, *this);
 	}
 
-	operator std::vector<std::span<uint8_t>> ()
+	operator std::vector<std::span<uint8_t>>()
 	{
-		if (span.empty())
-			return {buffer};
-		return {buffer, span};
+		struct visitor
+		{
+			std::vector<uint8_t>::iterator it;
+			std::vector<std::span<uint8_t>> res;
+			void operator()(size_t s)
+			{
+				if (s > 0)
+					res.emplace_back(it, it + s);
+				it += s;
+			}
+			void operator()(const std::span<uint8_t> & span)
+			{
+				res.push_back(span);
+			}
+		};
+		visitor v{.it = buffer.begin()};
+		for (const auto & span_variant: spans)
+		{
+			std::visit(v, span_variant);
+		}
+		return v.res;
 	}
 };
 
@@ -515,11 +541,10 @@ struct serialization_traits<std::span<uint8_t>>
 		h.feed("span<uint8_t>");
 	}
 
-	static void serialize(const std::span<uint8_t>& value, serialization_packet & packet)
+	static void serialize(const std::span<uint8_t> & value, serialization_packet & packet)
 	{
 		packet.serialize<uint16_t>(value.size());
-		//FIXME: nocopy
-		packet.write(value.data(), value.size_bytes());
+		packet.write(value);
 	}
 
 	static std::span<uint8_t> deserialize(deserialization_packet & packet)
@@ -536,7 +561,7 @@ struct serialization_traits<data_holder>
 	{
 	}
 
-	static void serialize(const data_holder&, serialization_packet &)
+	static void serialize(const data_holder &, serialization_packet &)
 	{
 	}
 

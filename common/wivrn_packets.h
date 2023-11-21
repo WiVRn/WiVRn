@@ -84,7 +84,8 @@ enum video_codec
 struct audio_data
 {
 	uint64_t timestamp;
-	std::vector<uint8_t> payload;
+	std::span<uint8_t> payload;
+	data_holder data;
 };
 
 namespace from_headset

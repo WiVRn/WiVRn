@@ -74,7 +74,8 @@ wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::d
 	{
 		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp)));
 		while (not(control = self->connection.poll_control(-1)))
-		{}
+		{
+		}
 	}
 	catch (std::exception & e)
 	{
@@ -92,8 +93,7 @@ wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::d
 		        "wivrn.sink",
 		        "WiVRn",
 		        info,
-			*self
-			);
+		        *self);
 		self->send_control(self->audio_handle->description());
 	}
 	catch (const std::exception & e)
@@ -195,10 +195,10 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 		dump_time("display", feedback.frame_index, o.from_headset(feedback.displayed), feedback.stream_index);
 }
 
-void wivrn_session::operator()(audio_data&& data)
+void wivrn_session::operator()(audio_data && data)
 {
 	if (audio_handle)
-		audio_handle->process_mic_data(data);
+		audio_handle->process_mic_data(std::move(data));
 }
 
 uint64_t clock_offset::from_headset(uint64_t ts) const

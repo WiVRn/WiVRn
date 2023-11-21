@@ -36,7 +36,7 @@ struct audio_device
 
 	virtual xrt::drivers::wivrn::to_headset::audio_stream_description description() const = 0;
 
-	virtual void process_mic_data(const xrt::drivers::wivrn::audio_data &) = 0;
+	virtual void process_mic_data(xrt::drivers::wivrn::audio_data &&) = 0;
 
 	static std::shared_ptr<audio_device> create(
 	        const std::string & source_name,
@@ -44,6 +44,5 @@ struct audio_device
 	        const std::string & sink_name,
 	        const std::string & sink_description,
 	        const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
-	        xrt::drivers::wivrn::wivrn_session& session);
+	        xrt::drivers::wivrn::wivrn_session & session);
 };
-

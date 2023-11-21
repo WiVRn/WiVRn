@@ -297,21 +297,19 @@ struct pulse_device : public audio_device
 		// read buffers must be smaller than buffer size on client or we will discard chunks often
 		const size_t buffer_size = (desc.speaker->sample_rate * sample_size * 2) / 1000;
 		xrt::drivers::wivrn::audio_data packet;
-		// only send complete samples, keep remainder here
-		std::vector<uint8_t> remainder;
+		std::vector<uint8_t> buffer(buffer_size, 0);
+		size_t remainder = 0;
 
 		// Flush existing data, but keep alignment
 		{
-			int alignment = 0;
 			char sewer[1024];
 			while (true)
 			{
 				int size = read(speaker_pipe.get_fd(), sewer, sizeof(sewer));
 				if (size <= 0)
 					break;
-				alignment = (alignment + size) % sample_size;
+				remainder = (remainder + size) % sample_size;
 			}
-			packet.payload.resize(alignment, 0);
 		}
 
 		try
@@ -329,18 +327,18 @@ struct pulse_device : public audio_device
 					throw std::runtime_error("Error on speaker pipe");
 				if (pfd.revents & POLLIN)
 				{
-					size_t excess = packet.payload.size();
-					packet.payload.resize(buffer_size);
-					int size = read(pfd.fd, packet.payload.data() + excess, buffer_size - excess);
+					int size = read(pfd.fd, buffer.data() + remainder, buffer_size - remainder);
 					if (size < 0)
 						throw std::system_error(errno, std::system_category());
-					packet.payload.resize(size + excess);
-					excess = (excess + size) % sample_size;
-					remainder.assign(packet.payload.end() - excess, packet.payload.end());
-					packet.payload.resize(packet.payload.size() - excess);
+					size += remainder;              // full size of available data
+					remainder = size % sample_size; // data to keep for next iteration
+					size -= remainder;              // size of data to send
+					packet.payload = std::span<uint8_t>(buffer.begin(), size);
 					packet.timestamp = session.get_offset().to_headset(os_monotonic_get_ns()).count();
 					session.send_control(packet);
-					std::swap(packet.payload, remainder);
+					U_LOG_I("sendo audio: %zu bytes", packet.payload.size_bytes());
+					// put the remaining data at the beginning of the buffer
+					memmove(buffer.data(), buffer.data() + size, remainder);
 				}
 			}
 		}
@@ -372,9 +370,9 @@ struct pulse_device : public audio_device
 				if (pfd.revents & POLLOUT)
 				{
 					auto packet = mic_buffer.pop();
-					auto &buffer = packet.payload;
+					auto & buffer = packet.payload;
 
-					int written = write(mic_pipe.get_fd(), buffer.data() , buffer.size());
+					int written = write(mic_pipe.get_fd(), buffer.data(), buffer.size());
 					if (written < 0)
 						throw std::system_error(errno, std::system_category());
 
@@ -388,7 +386,7 @@ struct pulse_device : public audio_device
 		}
 	}
 
-	void process_mic_data(const xrt::drivers::wivrn::audio_data & mic_data) override
+	void process_mic_data(xrt::drivers::wivrn::audio_data && mic_data) override
 	{
 		mic_buffer.push(std::move(mic_data));
 	}

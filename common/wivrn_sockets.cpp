@@ -48,7 +48,7 @@ xrt::drivers::wivrn::fd_base::fd_base(xrt::drivers::wivrn::fd_base && other) :
 	other.fd = -1;
 }
 
-xrt::drivers::wivrn::fd_base& xrt::drivers::wivrn::fd_base::operator=(xrt::drivers::wivrn::fd_base && other)
+xrt::drivers::wivrn::fd_base & xrt::drivers::wivrn::fd_base::operator=(xrt::drivers::wivrn::fd_base && other)
 {
 	std::swap(fd, other.fd);
 	return *this;
@@ -286,8 +286,8 @@ void xrt::drivers::wivrn::UDP::send_raw(const std::vector<uint8_t> & data)
 void xrt::drivers::wivrn::UDP::send_raw(const std::vector<std::span<uint8_t>> & data)
 {
 	std::vector<iovec> spans;
-	for (const auto& span: data)
-		spans.emplace_back((void*)span.data(), span.size());
+	for (const auto & span: data)
+		spans.emplace_back((void *)span.data(), span.size());
 
 	if (::writev(fd, spans.data(), spans.size()) < 0)
 		throw std::system_error{errno, std::generic_category()};
@@ -338,23 +338,30 @@ void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & 
 {
 	std::lock_guard lock(*mutex);
 
-	assert(spans.size() == 1);
-	const auto& data = spans[0];
-	uint32_t size = data.size();
-	ssize_t sent = ::send(fd, &size, sizeof(size), MSG_NOSIGNAL);
+	std::vector<iovec> iovecs;
 
-	if (sent == 0)
-		throw socket_shutdown{};
-
-	if (sent < 0)
-		throw std::system_error{errno, std::generic_category()};
-
-	assert(sent == sizeof(size));
-
-	size_t index = 0;
-	while (index < data.size())
+	uint32_t size = 0;
+	iovecs.emplace_back(&size, sizeof(size));
+	for (const auto & span: spans)
 	{
-		sent = ::send(fd, data.data() + index, data.size() - index, MSG_NOSIGNAL);
+		size += span.size_bytes();
+		iovecs.emplace_back(span.data(), span.size_bytes());
+	}
+
+	msghdr hdr{
+	        .msg_name = nullptr,
+	        .msg_namelen = 0,
+	        .msg_iov = iovecs.data(),
+	        .msg_iovlen = iovecs.size(),
+	        .msg_control = nullptr,
+	        .msg_controllen = 0,
+	        .msg_flags = 0,
+	};
+
+	while (true)
+	{
+		const auto & data = spans[0];
+		ssize_t sent = ::sendmsg(fd, &hdr, MSG_NOSIGNAL);
 
 		if (sent == 0)
 			throw socket_shutdown{};
@@ -362,6 +369,16 @@ void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & 
 		if (sent < 0)
 			throw std::system_error{errno, std::generic_category()};
 
-		index += sent;
+		// iov fully consumed
+		while (hdr.msg_iovlen > 0 and sent >= hdr.msg_iov[0].iov_len)
+		{
+			sent -= hdr.msg_iov[0].iov_len;
+			++hdr.msg_iov;
+			--hdr.msg_iovlen;
+		}
+		if (hdr.msg_iovlen == 0)
+			return;
+		*(uintptr_t *)&hdr.msg_iov[0].iov_base += sent;
+		hdr.msg_iov[0].iov_len -= sent;
 	}
 }
