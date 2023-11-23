@@ -95,7 +95,8 @@ void avahi_publisher::client_callback(AvahiClient * s,
 
 		case AVAHI_CLIENT_S_COLLISION:
 		case AVAHI_CLIENT_S_REGISTERING:
-			avahi_entry_group_reset(self->entry_group);
+			if (self->entry_group)
+				avahi_entry_group_reset(self->entry_group);
 			break;
 
 		case AVAHI_CLIENT_S_RUNNING:
