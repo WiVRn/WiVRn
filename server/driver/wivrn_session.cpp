@@ -76,7 +76,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
                                                                 xrt_system_compositor ** out_xsysc)
 {
 	std::shared_ptr<wivrn_session> self;
-	std::optional<xrt::drivers::wivrn::from_headset::control_packets> control;
+	std::optional<xrt::drivers::wivrn::from_headset::packets> control;
 	try
 	{
 		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp)));

@@ -98,7 +98,7 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 	}
 }
 
-std::optional<from_headset::control_packets> wivrn_connection::poll_control(int timeout)
+std::optional<from_headset::packets> wivrn_connection::poll_control(int timeout)
 {
 	pollfd fds{};
 	fds.events = POLLIN;

@@ -183,8 +183,7 @@ struct feedback
 	uint8_t received_data_packets;
 };
 
-using control_packets = std::variant<headset_info_packet, feedback, audio_data>;
-using stream_packets = std::variant<handshake, tracking, inputs, timesync_response>;
+using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, inputs, timesync_response>;
 } // namespace from_headset
 
 namespace to_headset
@@ -288,8 +287,7 @@ struct timesync_query
 	std::chrono::nanoseconds query;
 };
 
-using control_packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data>;
-using stream_packets = std::variant<video_stream_data_shard, haptics, timesync_query>;
+using packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query>;
 
 } // namespace to_headset
 

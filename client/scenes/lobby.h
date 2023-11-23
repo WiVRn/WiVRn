@@ -23,7 +23,6 @@
 #include "vk/buffer.h"
 #include "vk/image.h"
 #include "vk/renderpass.h"
-#include "wivrn_client.h"
 #include "wivrn_discover.h"
 #include <tiny_gltf.h>
 
