@@ -1,13 +1,13 @@
 #include "hostname.h"
 #include <string>
 #include <unistd.h>
+#include <limits.h>
 
 std::string hostname()
 {
-  char buf[256];
-  int code = gethostname(buf, 256);
-  if (code == 0)
-    return std::string(buf);
-  return "unknown";
+	char buf[HOST_NAME_MAX];
+	int code = gethostname(buf, HOST_NAME_MAX);
+	if (code == 0)
+		return buf;
+	return "unknown";
 }
-

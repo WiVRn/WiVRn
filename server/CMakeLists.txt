@@ -100,7 +100,7 @@ if(X264_FOUND)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)
 endif()
 
-if(SYSTEMD_FOUND)
+if(WIVRN_USE_SYSTEMD)
         target_sources(wivrn-server PRIVATE hostname-sd.cpp)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::SYSTEMD)
 else()
