@@ -23,13 +23,8 @@
 #include "scene.h"
 #include "stream_reprojection.h"
 #include "utils/sync_queue.h"
-#include "vk/device_memory.h"
-#include "vk/renderpass.h"
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
-#include <condition_variable>
-#include <deque>
-#include <functional>
 #include <mutex>
 #include <thread>
 #include <vulkan/vulkan_core.h>

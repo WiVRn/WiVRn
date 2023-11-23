@@ -18,16 +18,11 @@
  */
 
 #include "lobby.h"
-#include "glm/glm.hpp"
 #include "render/text_rasterizer.h"
 #include "stream.h"
-#include "utils/ranges.h"
-#include "utils/strings.h"
-#include "vk/vk.h"
 
 #include <cstdint>
 #include <glm/gtc/quaternion.hpp>
-#include <map>
 #include <string>
 #include <tiny_gltf.h>
 

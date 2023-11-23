@@ -69,7 +69,7 @@ xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tc
 wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp)
 {
 	std::shared_ptr<wivrn_session> self;
-	std::optional<xrt::drivers::wivrn::from_headset::control_packets> control;
+	std::optional<xrt::drivers::wivrn::from_headset::packets> control;
 	try
 	{
 		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp)));

@@ -28,8 +28,8 @@ using namespace xrt::drivers::wivrn;
 
 class wivrn_connection
 {
-	typed_socket<TCP, from_headset::control_packets, to_headset::control_packets> control;
-	typed_socket<UDP, from_headset::stream_packets, to_headset::stream_packets> stream;
+	typed_socket<TCP, from_headset::packets, to_headset::packets> control;
+	typed_socket<UDP, from_headset::packets, to_headset::packets> stream;
 
 public:
 	wivrn_connection(TCP && tcp);
@@ -47,7 +47,7 @@ public:
 		stream.send(std::forward<T>(packet));
 	}
 
-	std::optional<from_headset::control_packets> poll_control(int timeout);
+	std::optional<from_headset::packets> poll_control(int timeout);
 
 	template <typename T>
 	int poll(T && visitor, int timeout)
