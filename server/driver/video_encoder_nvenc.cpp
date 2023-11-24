@@ -266,7 +266,7 @@ void VideoEncoderNvenc::Encode(int index, bool idr, std::chrono::steady_clock::t
 	param.inputWidth = width;
 	param.inputHeight = height;
 	param.inputPitch = width;
-	param.encodePicFlags = idr ? (uint32_t)NV_ENC_PIC_TYPE_IDR : 0;
+	param.encodePicFlags = idr ? (uint32_t)(NV_ENC_PIC_TYPE_IDR : NV_ENC_PIC_TYPE_P);
 	param.frameIdx = 0;
 	param.inputTimeStamp = 0;
 	param.inputBuffer = param4.mappedResource;

@@ -170,7 +170,6 @@ struct feedback
 	// Timestamps
 	uint64_t received_first_packet;
 	uint64_t received_last_packet;
-	uint64_t reconstructed;
 	uint64_t sent_to_decoder;
 	uint64_t received_from_decoder;
 	uint64_t blitted;

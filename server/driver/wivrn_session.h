@@ -34,17 +34,20 @@ class wivrn_hmd;
 class wivrn_controller;
 struct audio_device;
 struct comp_target_factory;
+struct wivrn_comp_target_factory;
 
 namespace xrt::drivers::wivrn
 {
+struct wivrn_comp_target;
 
-	struct wivrn_system_devices : public xrt_system_devices
-	{
-		comp_target_factory *ctf;
-	};
+struct wivrn_system_devices : public xrt_system_devices
+{
+	comp_target_factory * ctf;
+};
 
 class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 {
+	friend wivrn_comp_target_factory;
 	wivrn_connection connection;
 
 	std::atomic<bool> quit = false;
@@ -54,6 +57,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	std::unique_ptr<wivrn_hmd> hmd;
 	std::unique_ptr<wivrn_controller> left_hand;
 	std::unique_ptr<wivrn_controller> right_hand;
+	wivrn_comp_target * comp_target;
 
 	clock_offset offset;
 	offset_estimator offset_est;

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "wivrn_packets.h"
 #include "wivrn_session.h"
 
 #include "main/comp_target.h"
@@ -90,6 +91,8 @@ struct wivrn_comp_target : public comp_target
 	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
 
 	wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps);
+
+	void on_feedback(const from_headset::feedback &, const clock_offset &);
 };
 
 } // namespace xrt::drivers::wivrn
