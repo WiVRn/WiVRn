@@ -44,6 +44,7 @@ static_assert(serialization_type_hash<std::vector<int>>() == hash("vector<int32>
 static_assert(serialization_type_hash<std::array<int, 42>>() == hash("array<int32,42>"));
 static_assert(serialization_type_hash<std::string>() == hash("string"));
 static_assert(serialization_type_hash<std::variant<int, float>>() == hash("variant<int32,float32>"));
+static_assert(serialization_type_hash<std::pair<int, float>>() == hash("pair<int32,float32>"));
 
 struct test
 {

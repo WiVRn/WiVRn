@@ -574,6 +574,33 @@ struct serialization_traits<data_holder>
 	}
 };
 
+template <typename T1, typename T2>
+struct serialization_traits<std::pair<T1, T2>>
+{
+	static constexpr void type_hash(details::hash_context & h)
+	{
+		h.feed("pair<");
+		serialization_traits<T1>::type_hash(h);
+		h.feed(",");
+		serialization_traits<T2>::type_hash(h);
+		h.feed(">");
+	}
+
+	static void serialize(const std::pair<T1, T2> & value, serialization_packet & packet)
+	{
+		packet.serialize<T1>(value.first);
+		packet.serialize<T2>(value.second);
+	}
+
+	static std::pair<T1, T2> deserialize(deserialization_packet & packet)
+	{
+		T1 first = packet.deserialize<T1>();
+		T2 second = packet.deserialize<T2>();
+
+		return {first, second};
+	}
+};
+
 template <typename T>
 constexpr uint64_t serialization_type_hash()
 {
