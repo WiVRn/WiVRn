@@ -20,6 +20,7 @@
 #include "lobby.h"
 #include "render/text_rasterizer.h"
 #include "stream.h"
+#include "../common/version.h"
 
 #include <cstdint>
 #include <glm/gtc/quaternion.hpp>
@@ -229,9 +230,18 @@ void scenes::lobby::rasterize_status_string()
 
 std::unique_ptr<wivrn_session> connect_to_session(const std::vector<wivrn_discover::service>& services)
 {
-	// TODO: make it asynchronous
+	char protocol_string[17];
+	sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
+
 	for(const wivrn_discover::service& service: services)
 	{
+		auto protocol = service.txt.find("protocol");
+		if (protocol == service.txt.end())
+			continue;
+
+		if (protocol->second != protocol_string)
+			continue;
+
 		int port = service.port;
 		for(const auto& address: service.addresses)
 		{
