@@ -61,11 +61,11 @@ void wivrn_session::handshake()
 				return;
 			}
 
-			throw std::runtime_error("invalid handshale received");
+			throw std::runtime_error("Invalid handshake received");
 		}
 	}
 
-	throw std::runtime_error("no handshake received");
+	throw std::runtime_error("No handshake received");
 }
 
 wivrn_session::wivrn_session(in6_addr address, int port) :
@@ -89,48 +89,3 @@ wivrn_session::wivrn_session(in_addr address, int port) :
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET, &address, buffer, sizeof(buffer)), port);
 	handshake();
 }
-
-// std::unique_ptr<wivrn_session> wivrn_client::poll()
-// {
-// 	auto now = std::chrono::steady_clock::now();
-//
-// 	auto time_since_last_broadcast = now - last_broadcast;
-//
-// 	if (time_since_last_broadcast >= 1s)
-// 	{
-// 		last_broadcast = now;
-//
-// 		details::hash_context h;
-// 		serialization_traits<from_headset::control_packets>::type_hash(h);
-// 		serialization_traits<to_headset::control_packets>::type_hash(h);
-// 		serialization_traits<from_headset::stream_packets>::type_hash(h);
-// 		serialization_traits<to_headset::stream_packets>::type_hash(h);
-//
-// 		from_headset::client_announce_packet packet{
-// 		        .magic = from_headset::client_announce_packet::magic_value,
-// 		        .client_version = "WiVRn " GIT_VERSION,
-// 		        .protocol_hash = h.hash,
-// 		};
-//
-// 		for (auto & i: broadcasters)
-// 			i.send(packet);
-// 	}
-//
-// 	pollfd fds{};
-// 	fds.events = POLLIN;
-// 	fds.fd = listener.get_fd();
-//
-// 	int r = ::poll(&fds, 1, 0);
-// 	if (r < 0)
-// 		throw std::system_error(errno, std::system_category());
-//
-// 	if (r > 0 && (fds.revents & POLLIN))
-// 	{
-// 		auto [tcp, addr] = listener.accept();
-// 		char buffer[100];
-// 		spdlog::info("Connection from {}", inet_ntop(AF_INET6, &addr.sin6_addr, buffer, sizeof(buffer)));
-// 		return std::make_unique<wivrn_session>(std::move(tcp), addr.sin6_addr);
-// 	}
-//
-// 	return {};
-// }
