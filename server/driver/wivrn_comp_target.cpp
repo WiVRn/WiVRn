@@ -503,9 +503,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 		{
 			for (auto & encoder: param->encoders)
 			{
-				bool idr_requested = false;
-
-				encoder->Encode(*cn->cnx, psc_image.view_info, psc_image.frame_index, presenting_index, idr_requested);
+				encoder->Encode(*cn->cnx, psc_image.view_info, psc_image.frame_index, presenting_index);
 			}
 		}
 		catch (...)
@@ -696,6 +694,16 @@ static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, uint6
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
 	u_pc_info_gpu(cn->upc, frame_id, gpu_start_ns, gpu_end_ns, when_ns);
+}
+
+void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, const clock_offset & o)
+{
+	if (not feedback.sent_to_decoder)
+	{
+		if (encoders.size() < feedback.stream_index)
+			return;
+		encoders[feedback.stream_index]->SyncNeeded();
+	}
 }
 
 wivrn_comp_target::wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps) :

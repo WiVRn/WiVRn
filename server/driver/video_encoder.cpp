@@ -80,11 +80,15 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 	return res;
 }
 
+void VideoEncoder::SyncNeeded()
+{
+	sync_needed = true;
+}
+
 void VideoEncoder::Encode(wivrn_session & cnx,
                           const to_headset::video_stream_data_shard::view_info_t & view_info,
                           uint64_t frame_index,
-                          int index,
-                          bool idr)
+                          int index)
 {
 	this->cnx = &cnx;
 	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
@@ -96,7 +100,7 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	shard.shard_idx = 0;
 	shard.view_info = view_info;
 
-	Encode(index, idr, target_timestamp);
+	Encode(index, sync_needed.exchange(false), target_timestamp);
 	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx);
 }
 

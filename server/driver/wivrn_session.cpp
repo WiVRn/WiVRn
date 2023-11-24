@@ -59,7 +59,8 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	static bool create_target(const struct comp_target_factory * ctf, struct comp_compositor * c, struct comp_target ** out_ct)
 	{
 		auto self = (wivrn_comp_target_factory *)ctf;
-		*out_ct = new wivrn_comp_target(self->session, c, self->fps);
+		self->session->comp_target = new wivrn_comp_target(self->session, c, self->fps);;
+		*out_ct = self->session->comp_target;
 		return true;
 	}
 };
@@ -198,18 +199,18 @@ void wivrn_session::operator()(from_headset::timesync_response && timesync)
 
 void wivrn_session::operator()(from_headset::feedback && feedback)
 {
+	assert(comp_target);
 	clock_offset o;
 	{
 		std::lock_guard lock(mutex);
 		o = offset;
 	}
+	comp_target->on_feedback(feedback, o);
 
 	if (feedback.received_first_packet)
 		dump_time("receive_start", feedback.frame_index, o.from_headset(feedback.received_first_packet), feedback.stream_index);
 	if (feedback.received_last_packet)
 		dump_time("receive_end", feedback.frame_index, o.from_headset(feedback.received_last_packet), feedback.stream_index);
-	if (feedback.reconstructed)
-		dump_time("reconstructed", feedback.frame_index, o.from_headset(feedback.reconstructed), feedback.stream_index);
 	if (feedback.sent_to_decoder)
 		dump_time("decode_start", feedback.frame_index, o.from_headset(feedback.sent_to_decoder), feedback.stream_index);
 	if (feedback.received_from_decoder)

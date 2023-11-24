@@ -123,6 +123,7 @@ VideoEncoderX264::VideoEncoderX264(
 	param.i_fps_den = 1'000'000;
 	param.b_repeat_headers = 1;
 	param.b_aud = 0;
+	param.i_keyint_max = X264_KEYINT_MAX_INFINITE;
 
 	// colour definitions, actually ignored by decoder
 	param.vui.b_fullrange = 1;
@@ -170,7 +171,7 @@ void VideoEncoderX264::Encode(int index, bool idr, std::chrono::steady_clock::ti
 {
 	int num_nal;
 	x264_nal_t * nal;
-	pic_in.i_type = idr ? X264_TYPE_IDR : X264_TYPE_AUTO;
+	pic_in.i_type = idr ? X264_TYPE_IDR : X264_TYPE_P;
 	pic_in.i_pts = pts.time_since_epoch().count();
 	next_mb = 0;
 	assert(pending_nals.empty());

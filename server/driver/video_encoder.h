@@ -21,6 +21,7 @@
 
 #include "vk/vk_cmd_pool.h"
 #include "vk/vk_helpers.h"
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <mutex>
@@ -52,6 +53,8 @@ private:
 	// shard to send
 	to_headset::video_stream_data_shard shard;
 
+	std::atomic_bool sync_needed = true;
+
 public:
 	static std::unique_ptr<VideoEncoder> Create(vk_bundle * vk,
 	                                            vk_cmd_pool & pool,
@@ -77,11 +80,13 @@ public:
 	virtual void PresentImage(int index, VkCommandBuffer * out_buffer)
 	{}
 
+	// The other end lost a frame and needs to resynchronize
+	void SyncNeeded();
+
 	void Encode(wivrn_session & cnx,
 	            const to_headset::video_stream_data_shard::view_info_t & view_info,
 	            uint64_t frame_index,
-	            int index,
-	            bool idr);
+	            int index);
 
 protected:
 	// encode the image at provided index.

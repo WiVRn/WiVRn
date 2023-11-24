@@ -23,6 +23,7 @@
 #include <cassert>
 #include <chrono>
 #include <filesystem>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 
@@ -168,6 +169,7 @@ VideoEncoderVA::VideoEncoderVA(vk_bundle * vk, const xrt::drivers::wivrn::encode
 	encoder_ctx->pix_fmt = AV_PIX_FMT_VAAPI;
 	encoder_ctx->max_b_frames = 0;
 	encoder_ctx->bit_rate = settings.bitrate;
+	encoder_ctx->gop_size = std::numeric_limits<decltype(encoder_ctx->gop_size)>::max();
 
 	set_hwframe_ctx(encoder_ctx.get(), hw_ctx_vaapi.get());
 
@@ -199,7 +201,7 @@ void VideoEncoderVA::PushFrame(uint32_t frame_index, bool idr, std::chrono::stea
 		throw std::system_error(err, av_error_category(), "av_buffersink_get_frame failed");
 	}
 
-	encoder_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
+	encoder_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
 	encoder_frame->pts = pts.time_since_epoch().count();
 	err = avcodec_send_frame(encoder_ctx.get(), encoder_frame.get());
 	if (err)
