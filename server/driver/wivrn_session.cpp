@@ -56,7 +56,7 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	static bool create_target(const struct comp_target_factory * ctf, struct comp_compositor * c, struct comp_target ** out_ct)
 	{
 		auto self = (wivrn_comp_target_factory *)ctf;
-		*out_ct = comp_target_wivrn_create(self->session, c, self->fps);
+		*out_ct = new wivrn_comp_target(self->session, c, self->fps);
 		return true;
 	}
 };

@@ -22,5 +22,74 @@
 #include "wivrn_session.h"
 
 #include "main/comp_target.h"
+#include "vk/vk_cmd_pool.h"
 
-comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor *c, float fps);
+#include <condition_variable>
+#include <list>
+#include <memory>
+#include <vector>
+
+struct u_pacing_compositor;
+
+namespace xrt::drivers::wivrn
+{
+
+class VideoEncoder;
+
+struct pseudo_swapchain
+{
+	struct pseudo_swapchain_memory
+	{
+		VkFence fence;
+		VkDeviceMemory memory;
+		VkCommandBuffer present_cmd;
+		uint8_t status; // bitmask of consumer status, index 0 for acquired, the rest for each encoder
+		uint64_t frame_index;
+		to_headset::video_stream_data_shard::view_info_t view_info{};
+	} * images{};
+	std::mutex mutex;
+	std::condition_variable cv;
+};
+
+struct wivrn_comp_target : public comp_target
+{
+	//! Compositor frame pacing helper
+	u_pacing_compositor * upc{};
+
+	vk_cmd_pool pool;
+
+	float fps;
+
+	int64_t current_frame_id;
+
+	// Monotonic counter, for video stream
+	uint64_t frame_index = 0;
+
+	pseudo_swapchain psc;
+
+	VkColorSpaceKHR color_space;
+
+	struct encoder_thread
+	{
+		int index;
+		os_thread_helper thread;
+
+		encoder_thread()
+		{
+			os_thread_helper_init(&thread);
+		}
+		~encoder_thread()
+		{
+			os_thread_helper_stop_and_wait(&thread);
+			os_thread_helper_destroy(&thread);
+		}
+	};
+	std::list<encoder_thread> encoder_threads;
+	std::vector<std::shared_ptr<VideoEncoder>> encoders;
+
+	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
+
+	wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps);
+};
+
+} // namespace xrt::drivers::wivrn

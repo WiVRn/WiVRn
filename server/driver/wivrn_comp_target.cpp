@@ -32,59 +32,6 @@
 static const uint8_t image_free = 0;
 static const uint8_t image_acquired = 1;
 
-struct pseudo_swapchain
-{
-	struct pseudo_swapchain_memory
-	{
-		VkFence fence;
-		VkDeviceMemory memory;
-		VkCommandBuffer present_cmd;
-		uint8_t status; // bitmask of consumer status, index 0 for acquired, the rest for each encoder
-		uint64_t frame_index;
-		to_headset::video_stream_data_shard::view_info_t view_info{};
-	} * images{};
-	std::mutex mutex;
-	std::condition_variable cv;
-};
-
-struct wivrn_comp_target : public comp_target
-{
-	//! Compositor frame pacing helper
-	struct u_pacing_compositor * upc{};
-
-	vk_cmd_pool pool;
-
-	float fps;
-
-	int64_t current_frame_id;
-
-	// Monotonic counter, for video stream
-	uint64_t frame_index = 0;
-
-	struct pseudo_swapchain psc;
-
-	VkColorSpaceKHR color_space;
-
-	struct encoder_thread
-	{
-		int index;
-		os_thread_helper thread;
-
-		encoder_thread()
-		{
-			os_thread_helper_init(&thread);
-		}
-		~encoder_thread()
-		{
-			os_thread_helper_stop_and_wait(&thread);
-			os_thread_helper_destroy(&thread);
-		}
-	};
-	std::list<encoder_thread> encoder_threads;
-	std::vector<std::shared_ptr<VideoEncoder>> encoders;
-
-	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
-};
 
 static void target_init_semaphores(struct wivrn_comp_target * cn);
 
@@ -735,33 +682,24 @@ static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, uint6
 	u_pc_info_gpu(cn->upc, frame_id, gpu_start_ns, gpu_end_ns, when_ns);
 }
 
-/*
- *
- * 'Exported' functions.
- *
- */
-
-comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps)
+wivrn_comp_target::wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps) :
+        comp_target{},
+        cnx(cnx)
 {
-	wivrn_comp_target * cn = new wivrn_comp_target{};
-
-	cn->cnx = cnx;
-	cn->check_ready = comp_wivrn_check_ready;
-	cn->create_images = comp_wivrn_create_images;
-	cn->has_images = comp_wivrn_has_images;
-	cn->acquire = comp_wivrn_acquire;
-	cn->present = comp_wivrn_present;
-	cn->calc_frame_pacing = comp_wivrn_calc_frame_pacing;
-	cn->mark_timing_point = comp_wivrn_mark_timing_point;
-	cn->update_timings = comp_wivrn_update_timings;
-	cn->info_gpu = comp_wivrn_info_gpu;
-	cn->destroy = comp_wivrn_destroy;
-	cn->init_pre_vulkan = comp_wivrn_init_pre_vulkan;
-	cn->init_post_vulkan = comp_wivrn_init_post_vulkan;
-	cn->set_title = comp_wivrn_set_title;
-	cn->flush = comp_wivrn_flush;
-	cn->fps = fps;
-	cn->c = c;
-
-	return cn;
+	check_ready = comp_wivrn_check_ready;
+	create_images = comp_wivrn_create_images;
+	has_images = comp_wivrn_has_images;
+	acquire = comp_wivrn_acquire;
+	present = comp_wivrn_present;
+	calc_frame_pacing = comp_wivrn_calc_frame_pacing;
+	mark_timing_point = comp_wivrn_mark_timing_point;
+	update_timings = comp_wivrn_update_timings;
+	info_gpu = comp_wivrn_info_gpu;
+	destroy = comp_wivrn_destroy;
+	init_pre_vulkan = comp_wivrn_init_pre_vulkan;
+	init_post_vulkan = comp_wivrn_init_post_vulkan;
+	set_title = comp_wivrn_set_title;
+	flush = comp_wivrn_flush;
+	this->fps = fps;
+	this->c = c;
 }
