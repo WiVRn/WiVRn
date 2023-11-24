@@ -71,8 +71,8 @@ jobs:
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-  build-android-pico:
-    name: Build the WiVRn client for Pico >5.4
+  build-android:
+    name: Build the android WiVRn clients
     runs-on: ubuntu-22.04
 
     steps:
@@ -106,13 +106,13 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           chmod +x gradlew
-          ./gradlew assemblePicoDebug assemblePicoDebugWithValidationLayer
+          ./gradlew assemblePicoDebug assemblePicoDebugWithValidationLayer assembleStandardDebug assembleStandardDebugWithValidationLayer
 
       - name: Build
         if: ${{ github.event_name != 'pull_request' }}
         run: |
           chmod +x gradlew
-          ./gradlew assemblePico
+          ./gradlew assemblePico assembleStandard
 
       - name: Prepare before archiving artifacts
         run: |
@@ -134,66 +134,4 @@ jobs:
           draft: true
           files: |
             apk/WiVRn-pico-release.apk
-  build-android-standard:
-    name: Build the WiVRn client for the standard OpenXR loader
-    runs-on: ubuntu-22.04
-
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        lfs: true
-    - name: Checkout LFS objects
-      run: git lfs checkout
-
-    - name: set up JDK
-      uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
-
-    - name: Install dependencies
-      run: >
-        sudo apt-get update && sudo apt-get install glslang-tools
-
-    - name: Secrets
-      if: ${{ github.event_name != 'pull_request' }}
-      env:
-        APK_SIGNINGKEYPASSWORD: ${{ secrets.APK_SIGNINGKEYPASSWORD }}
-        APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
-      run: |
-        echo signingKeyPassword="$APK_SIGNINGKEYPASSWORD" > gradle.properties
-        echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
-
-    - name: Build (debug only)
-      if: ${{ github.event_name == 'pull_request' }}
-      run: |
-        chmod +x gradlew
-        ./gradlew assembleStandardDebug assembleStandardDebugWithValidationLayer
-
-    - name: Build
-      if: ${{ github.event_name != 'pull_request' }}
-      run: |
-        chmod +x gradlew
-        ./gradlew assembleStandard
-
-    - name: Prepare before archiving artifacts
-      run: |
-        mkdir apk
-        mv $(find build/outputs/apk/ -name "*.apk") apk/
-
-    - name: Archive artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: APK
-        path: apk/*.apk
-
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        tag_name: ${{ inputs.ref }}
-        generate_release_notes: true
-        draft: true
-        files: |
-          apk/WiVRn-standard-release.apk
+            apk/WiVRn-standard-release.apk
