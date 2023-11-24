@@ -118,9 +118,14 @@ void avahi_publisher::client_callback(AvahiClient * s,
 	}
 }
 
-avahi_publisher::avahi_publisher(const char * name, std::string type, int port, std::vector<std::string> txt) :
-        name(avahi_strdup(name)), type(std::move(type)), port(port), txt(txt)
+avahi_publisher::avahi_publisher(const char * name, std::string type, int port, const std::map<std::string, std::string>& txt) :
+        name(avahi_strdup(name)), type(std::move(type)), port(port)
 {
+	for(const auto& [key, value]: txt)
+	{
+		this->txt.push_back(key + "=" + value);
+	}
+
 	avahi_poll = avahi_simple_poll_new();
 
 	int error;

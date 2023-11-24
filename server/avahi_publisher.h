@@ -3,6 +3,7 @@
 #include <avahi-client/publish.h>
 #include <avahi-common/simple-watch.h>
 #include <avahi-common/watch.h>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -31,7 +32,7 @@ class avahi_publisher
 	                            void * userdata /**< The user data that was passed to avahi_client_new() */);
 
 public:
-	avahi_publisher(const char * name, std::string type, int port, std::vector<std::string> txt = {});
+	avahi_publisher(const char * name, std::string type, int port, const std::map<std::string, std::string>& txt = {});
 
 	~avahi_publisher();
 

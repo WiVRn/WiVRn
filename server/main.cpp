@@ -190,10 +190,12 @@ int inner_main(int argc, char * argv[])
 	fcntl(pipe_fds[0], F_SETFD, FD_CLOEXEC);
 	fcntl(pipe_fds[1], F_SETFD, FD_CLOEXEC);
 
-	std::vector<std::string> TXT;
-	TXT.push_back(std::format("protocol={:16x}", xrt::drivers::wivrn::protocol_version));
-	TXT.push_back(std::format("version={}", (const char*)xrt::drivers::wivrn::git_version));
+	char protocol_string[17];
+	sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
 
+	std::map<std::string, std::string> TXT;
+	TXT["protocol"] = protocol_string;
+	TXT["version"] = xrt::drivers::wivrn::git_version;
 
 	bool quit = false;
 	while (!quit)
