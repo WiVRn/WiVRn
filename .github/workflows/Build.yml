@@ -82,10 +82,10 @@ jobs:
       - name: Checkout LFS objects
         run: git lfs checkout
 
-      - name: set up JDK 11
+      - name: set up JDK
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
           cache: gradle
 
@@ -145,10 +145,10 @@ jobs:
     - name: Checkout LFS objects
       run: git lfs checkout
 
-    - name: set up JDK 11
+    - name: set up JDK
       uses: actions/setup-java@v3
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'temurin'
         cache: gradle
 

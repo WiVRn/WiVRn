@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.2.2'
+        classpath 'com.android.tools.build:gradle:8.1.4'
     }
 }
 
@@ -18,8 +18,7 @@ allprojects {
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion '33.0.0'
+    namespace "org.meumeu.wivrn"
     ndkVersion "26.1.10909125"
 
     defaultConfig {
