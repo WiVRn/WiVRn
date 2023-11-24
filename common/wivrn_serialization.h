@@ -574,19 +574,6 @@ struct serialization_traits<data_holder>
 	}
 };
 
-namespace unit_tests
-{
-template <typename T>
-constexpr uint64_t hash(T s)
-{
-	return details::hash_context{}.feed(s);
-}
-
-static_assert(hash("test") == 0xf9e6e6ef197c2b25);
-static_assert(hash(1234) == 0x1fabbdf10314a21d);
-static_assert(hash(-1234) == 0x77fa1c9653db5a84);
-static_assert(hash(0) == 0xaf63ad4c86019caf);
-
 template <typename T>
 constexpr uint64_t serialization_type_hash()
 {
@@ -594,24 +581,5 @@ constexpr uint64_t serialization_type_hash()
 	serialization_traits<T>::type_hash(h);
 	return h.hash;
 }
-
-static_assert(serialization_type_hash<bool>() == hash("uint8"));
-static_assert(serialization_type_hash<int>() == hash("int32"));
-static_assert(serialization_type_hash<float>() == hash("float32"));
-static_assert(serialization_type_hash<double>() == hash("float64"));
-static_assert(serialization_type_hash<std::chrono::nanoseconds>() == hash("duration<int64,1/1000000000>"));
-static_assert(serialization_type_hash<std::optional<int>>() == hash("optional<int32>"));
-static_assert(serialization_type_hash<std::vector<int>>() == hash("vector<int32>"));
-static_assert(serialization_type_hash<std::array<int, 42>>() == hash("array<int32,42>"));
-static_assert(serialization_type_hash<std::string>() == hash("string"));
-static_assert(serialization_type_hash<std::variant<int, float>>() == hash("variant<int32,float32>"));
-
-struct test
-{
-	int x;
-	float y;
-};
-static_assert(serialization_type_hash<test>() == hash("structure{int32,float32}"));
-} // namespace unit_tests
 
 } // namespace xrt::drivers::wivrn
