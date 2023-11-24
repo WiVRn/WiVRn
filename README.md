@@ -32,12 +32,39 @@ ln --relative --symbolic --force build-server/openxr_wivrn-dev.json ~/.config/op
 ```
 
 ## Client (headset)
-At this early stage of development, we do not have stable releases.
+### Prebuilt apk
 Download apk from [Releases](https://github.com/Meumeu/WiVRn/releases).
-Install with adb (headset connected to PC), developer mode must be activated on Quest.
+Install with adb (headset connected to PC), developer mode must be enabled.
 ```bash
 adb install WiVRn.apk
 ```
+
+### Compilation
+#### Build dependencies
+As Arch package names: git git-lfs pkgconf glslang cmake jre17-openjdk
+
+#### Android environment
+Download [sdkmanager](https://developer.android.com/tools/sdkmanager) commandline tool and extract it to any directory.
+Create your `ANDROID_HOME` directory, for instance `~/Android`.
+
+Review and accept the licenses with
+```bash
+sdkmanager --sdk_root="${HOME}/Android" --licenses
+```
+
+#### Client build
+For Pico only: setup git lfs
+
+From the main directory.
+```bash
+export ANDROID_HOME=~/Android
+export JAVA_HOME=/usr/lib/jvm/openjdk-bin-17/
+
+./gradlew assembleStandardRelease
+# Or for Pico assemblePico
+```
+
+Outputs will be in `build/outputs/apk/standard/release/WiVRn-standard-release-unsigned.apk`
 
 # Usage
 On the computer, run `wivrn-server`, from checkout directory
