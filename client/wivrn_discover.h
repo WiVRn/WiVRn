@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <map>
 #include <memory>
 #include <netinet/in.h>
 #include <string>
@@ -20,6 +21,7 @@ public:
 		int port;
 
 		std::vector<std::variant<in_addr, in6_addr>> addresses;
+		std::map<std::string, std::string> txt;
 		std::chrono::steady_clock::time_point ttl;
 	};
 

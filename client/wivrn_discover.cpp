@@ -69,13 +69,19 @@ public:
 	};
 	using a = in_addr;
 	using aaaa = in6_addr;
+	struct txt
+	{
+		std::string key;
+		std::string value;
+		bool operator==(const txt &) const noexcept = default;
+	};
 
 private:
 	struct cache_entry
 	{
 		steady_clock::time_point timeout;
 		std::string name;
-		std::variant<ptr, srv, a, aaaa> record;
+		std::variant<ptr, srv, a, aaaa, txt> record;
 
 		bool operator==(const cache_entry & other) const noexcept
 		{
@@ -225,6 +231,12 @@ private:
 			auto addr = std::get<aaaa>(entry.record);
 			record = ip_address_to_string(addr);
 		}
+		else if (std::holds_alternative<txt>(entry.record))
+		{
+			type = "TXT";
+			auto txt_record = std::get<txt>(entry.record);
+			record = txt_record.key + "=" + txt_record.value;
+		}
 
 		auto ttl = entry.timeout - steady_clock::now();
 		spdlog::info("{:40} {:4} {:40} TTL {}", entry.name, type, record, duration_cast<seconds>(ttl).count());
@@ -256,7 +268,7 @@ private:
 		spdlog::info("Sending query for {}, type {}", service_name, record_type_name(record_type));
 	}
 
-	void update(mdns_string_t entry, std::variant<ptr, srv, a, aaaa> record, int ttl)
+	void update(mdns_string_t entry, std::variant<ptr, srv, a, aaaa, txt> record, int ttl)
 	{
 		auto now = steady_clock::now();
 
@@ -289,34 +301,50 @@ private:
 	{
 		dnssd_cache * self = (dnssd_cache *)user_data;
 
-		char namebuffer[256];
 		char entrybuffer[256];
-		sockaddr_in ipv4_buffer;
-		sockaddr_in6 ipv6_buffer;
 
 		mdns_string_t entrystr = mdns_string_extract(data, size, &name_offset, entrybuffer, sizeof(entrybuffer));
 
 		switch (rtype)
 		{
 			case MDNS_RECORDTYPE_PTR: {
+				char namebuffer[256];
 				auto ptr_record = mdns_record_parse_ptr(data, size, record_offset, record_length, namebuffer, sizeof(namebuffer));
 				self->update(entrystr, std::string{ptr_record.str, ptr_record.length}, ttl);
 				break;
 			}
 
 			case MDNS_RECORDTYPE_SRV: {
+				char namebuffer[256];
 				auto srv_record = mdns_record_parse_srv(data, size, record_offset, record_length, namebuffer, sizeof(namebuffer));
 				self->update(entrystr, srv{{srv_record.name.str, srv_record.name.length}, srv_record.port}, ttl);
 				break;
 			}
 
-			case MDNS_RECORDTYPE_A:
+			case MDNS_RECORDTYPE_A: {
+				sockaddr_in ipv4_buffer;
 				self->update(entrystr, mdns_record_parse_a(data, size, record_offset, record_length, &ipv4_buffer)->sin_addr, ttl);
 				break;
+			}
 
-			case MDNS_RECORDTYPE_AAAA:
+			case MDNS_RECORDTYPE_AAAA: {
+				sockaddr_in6 ipv6_buffer;
 				self->update(entrystr, mdns_record_parse_aaaa(data, size, record_offset, record_length, &ipv6_buffer)->sin6_addr, ttl);
 				break;
+			}
+
+			case MDNS_RECORDTYPE_TXT: {
+				std::array<mdns_record_txt_t, 32> txt_buffer;
+				size_t nb_records = mdns_record_parse_txt(data, size, record_offset, record_length, txt_buffer.data(), txt_buffer.size());
+
+				for(size_t i = 0; i < nb_records; ++i)
+				{
+					std::string key{txt_buffer[i].key.str, txt_buffer[i].key.length};
+					std::string value{txt_buffer[i].value.str, txt_buffer[i].value.length};
+					self->update(entrystr, txt{key, value}, ttl);
+				}
+				break;
+			}
 
 			default:
 				break;
@@ -338,7 +366,6 @@ public:
 		{
 			if (j == record && k == service_name)
 			{
-				// spdlog::info("Query for {} {} already sent {}ms ago, skipping", service_name, record_type_name(record), duration_cast<milliseconds>(now - i).count());
 				return;
 			}
 		}
@@ -473,7 +500,6 @@ void wivrn_discover::discover(std::string service_name)
 				{
 					address_found = true;
 					address_min_ttl = std::min(duration_cast<milliseconds>(ttl - now), address_min_ttl);
-					// spdlog::info("PTR={}, SRV={}:{}, A={}, TTL={}ms", ptr, srv.hostname, srv.port, ip_address_to_string(a), ttl.count());
 					s.addresses.push_back(a);
 				}
 
@@ -481,8 +507,12 @@ void wivrn_discover::discover(std::string service_name)
 				{
 					address_found = true;
 					address_min_ttl = std::min(duration_cast<milliseconds>(ttl - now), address_min_ttl);
-					// spdlog::info("PTR={}, SRV={}:{}, AAAA={}, TTL={}ms", ptr, srv.hostname, srv.port, ip_address_to_string(aaaa), ttl.count());
 					s.addresses.push_back(aaaa);
+				}
+
+				for (auto [txt_record, ttl]: cache->read<dnssd_cache::txt>(ptr))
+				{
+					s.txt[txt_record.key] = txt_record.value;
 				}
 
 				if (!address_found || address_min_ttl < 5s)
@@ -538,7 +568,7 @@ std::vector<wivrn_discover::service> wivrn_discover::get_services()
 	return services;
 }
 
-// g++ wivrn_discover.cpp -I .. -g $(pkg-config spdlog --cflags --libs) -std=c++20 -DTEST && ./a.out
+// g++ wivrn_discover.cpp -I .. -I ../external -g $(pkg-config spdlog --cflags --libs) -std=c++20 -DTEST && ./a.out
 #ifdef TEST
 int main()
 {
@@ -559,6 +589,11 @@ int main()
 					spdlog::info("        {}", ip_address_to_string(addr));
 				},
 				           j);
+			}
+
+			for (auto& [key, value]: i.txt)
+			{
+				spdlog::info("        {} = {}", key, value);
 			}
 		}
 
