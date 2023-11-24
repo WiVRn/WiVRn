@@ -6,6 +6,7 @@
 #include <avahi-common/error.h>
 #include <avahi-common/malloc.h>
 #include <avahi-common/simple-watch.h>
+#include <avahi-common/strlst.h>
 #include <iostream>
 #include <string.h>
 
@@ -34,15 +35,27 @@ void avahi_publisher::create_service(AvahiClient * client)
 	if (!name)
 		name = avahi_strdup("WiVRn");
 
+	std::vector<const char *> txt_array;
+	for(const auto& i: txt)
+	{
+		txt_array.push_back(i.c_str());
+	}
+
+	AvahiStringList* txt_list = txt_array.empty() ? nullptr : avahi_string_list_new_from_array(txt_array.data(), txt_array.size());
+
 	int ret;
 	do
 	{
-		ret = avahi_entry_group_add_service(entry_group, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, (AvahiPublishFlags)0, name, type.c_str(), nullptr, nullptr, port, nullptr);
+
+		ret = avahi_entry_group_add_service_strlst(entry_group, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, (AvahiPublishFlags)0, name, type.c_str(), nullptr, nullptr, port, txt_list);
+
 		if (ret == AVAHI_ERR_COLLISION)
 		{
 			alt_name();
 		}
 	} while (ret == AVAHI_ERR_COLLISION);
+
+	avahi_string_list_free(txt_list);
 
 	if (ret < 0)
 	{
@@ -105,8 +118,8 @@ void avahi_publisher::client_callback(AvahiClient * s,
 	}
 }
 
-avahi_publisher::avahi_publisher(const char * name, std::string type, int port) :
-        name(avahi_strdup(name)), type(std::move(type)), port(port)
+avahi_publisher::avahi_publisher(const char * name, std::string type, int port, std::vector<std::string> txt) :
+        name(avahi_strdup(name)), type(std::move(type)), port(port), txt(txt)
 {
 	avahi_poll = avahi_simple_poll_new();
 
