@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "version.h"
-
-const char git_version[] = "@GIT_DESC@";
+namespace xrt::drivers::wivrn
+{
+	const char git_version[] = "@GIT_DESC@";
+}

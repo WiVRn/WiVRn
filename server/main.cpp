@@ -165,7 +165,7 @@ void waitpid_verbose(pid_t pid, const std::string & name)
 
 int inner_main(int argc, char * argv[])
 {
-	std::cerr << "WiVRn " << git_version << " starting" << std::endl;
+	std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
 	create_listen_socket();
 
 	u_trace_marker_init();
@@ -188,12 +188,17 @@ int inner_main(int argc, char * argv[])
 	fcntl(pipe_fds[0], F_SETFD, FD_CLOEXEC);
 	fcntl(pipe_fds[1], F_SETFD, FD_CLOEXEC);
 
+	std::vector<std::string> TXT;
+	TXT.push_back(std::format("protocol={:16x}", xrt::drivers::wivrn::protocol_version));
+	TXT.push_back(std::format("version={}", (const char*)xrt::drivers::wivrn::git_version));
+
+
 	bool quit = false;
 	while (!quit)
 	{
 		try
 		{
-			avahi_publisher publisher(hostname().c_str(), "_wivrn._tcp", default_port);
+			avahi_publisher publisher(hostname().c_str(), "_wivrn._tcp", default_port, TXT);
 
 			TCPListener listener(default_port);
 			bool client_connected = false;
