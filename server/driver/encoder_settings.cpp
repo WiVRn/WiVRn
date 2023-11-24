@@ -51,6 +51,9 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	settings.codec = xrt::drivers::wivrn::h265;
 	settings.bitrate = default_bitrate;
 
+	settings.video_height = settings.height;
+	settings.video_width = settings.width;
+
 	if (is_nvidia(vk))
 	{
 #ifdef WIVRN_HAVE_CUDA
