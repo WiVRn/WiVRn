@@ -19,5 +19,6 @@
 
 namespace xrt::drivers::wivrn
 {
+	extern const char git_version[];
 	const char git_version[] = "@GIT_DESC@";
 }
