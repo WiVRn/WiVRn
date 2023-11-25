@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2022-2023  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022-2023  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -243,6 +243,19 @@ static XrActionType guess_action_type(const std::string & name)
 
 	return XR_ACTION_TYPE_FLOAT_INPUT;
 }
+
+#ifndef XR_USE_PLATFORM_ANDROID
+static std::filesystem::path get_config_base_dir()
+{
+	const char * xdg_config_home = std::getenv("XDG_CONFIG_HOME");
+	if (xdg_config_home)
+		return xdg_config_home;
+	const char * home = std::getenv("HOME");
+	if (home)
+		return std::filesystem::path(home) / ".config";
+	return ".";
+}
+#endif
 
 VkBool32 application::vulkan_debug_report_callback(
         VkDebugReportFlagsEXT flags,
@@ -710,6 +723,7 @@ application::application(application_info info) :
 	setup_jni();
 	jni::object<""> act(app_info.native_app->activity->clazz);
 	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
+	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
 
 	// Get the intent, to handle wivrn://uri
 	auto intent = act.call<jni::object<"android/content/Intent">>("getIntent");
@@ -723,6 +737,12 @@ application::application(application_info info) :
 	if (data_string.starts_with("wivrn://"))
 	{
 		server_address = data_string.substr(strlen("wivrn://"));
+	}
+
+	auto files_dir = ctx.call<jni::object<"java/io/File">>("getFilesDir");
+	if (auto files_dir_path = files_dir.call<jni::string>("getAbsolutePath"))
+	{
+		config_path = files_dir_path;
 	}
 
 	app_info.native_app->userData = this;
@@ -766,7 +786,12 @@ application::application(application_info info) :
 		};
 		initializeLoader((const XrLoaderInitInfoBaseHeaderKHR *)&loaderInitInfoAndroid);
 	}
+#else
+	config_path = get_config_base_dir() / "wivrn";
 #endif
+
+	std::filesystem::create_directories(config_path);
+	spdlog::info("Config path: {}", config_path.native());
 
 	try
 	{

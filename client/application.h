@@ -27,6 +27,7 @@
 #include "vk/vk.h"
 #include "xr/xr.h"
 #include <array>
+#include <filesystem>
 #include <mutex>
 #include <unordered_set>
 #include <vulkan/vulkan_raii.hpp>
@@ -117,6 +118,7 @@ class application : public singleton<application>
 	bool debug_extensions_found = false;
 	std::vector<std::string> xr_extensions;
 	std::atomic<bool> exit_requested = false;
+	std::filesystem::path config_path;
 
 	std::string server_address;
 
