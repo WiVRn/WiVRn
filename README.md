@@ -235,6 +235,7 @@ Launch No Man's Sky in VR mode on Steam when connection with headset is establis
 WiVRn uses the following software:
 - [Avahi](https://www.avahi.org/)
 - [Boost.PFR](https://github.com/boostorg/pfr)
+- [Dear ImGui](https://github.com/ocornut/imgui)
 - [ffmpeg](https://ffmpeg.org/) optional, for hardware encoding on AMD/Intel
 - [FreeType](https://freetype.org/)
 - [glm](http://glm.g-truc.net/)

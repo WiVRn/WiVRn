@@ -5,11 +5,21 @@ set(TINYGLTF_BUILD_BUILDER_EXAMPLE OFF)
 set(TINYGLTF_HEADER_ONLY OFF)
 set(TINYGLTF_INSTALL OFF)
 
-FetchContent_MakeAvailable(spdlog glm tinygltf)
+FetchContent_MakeAvailable(spdlog glm tinygltf imgui)
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
 include(VulkanVersion)
+
+add_library(imgui OBJECT
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+)
+
+target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
 
 if(ANDROID)
     add_library(wivrn MODULE)
@@ -107,7 +117,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz imgui)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror

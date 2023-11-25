@@ -129,6 +129,11 @@ FetchContent_Declare(monado
     GIT_TAG          79bf8eb8fa168f65f4e5505e0525ee74aa88783e
     )
 
+# Use the docking branch of imgui to use multi-viewport
+FetchContent_Declare(imgui
+    GIT_REPOSITORY   https://github.com/ocornut/imgui.git
+    GIT_TAG          ce0d0ac8298ce164b5d862577e8b087d92f6e90e
+    )
 
 add_subdirectory(external)
 add_subdirectory(common)
