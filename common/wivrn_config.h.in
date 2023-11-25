@@ -19,6 +19,6 @@
 
 #pragma once
 
-#cmakedefine WIVRN_HAVE_X264
-#cmakedefine WIVRN_HAVE_CUDA
-#cmakedefine WIVRN_HAVE_FFMPEG
+#cmakedefine WIVRN_USE_NVENC
+#cmakedefine WIVRN_USE_VAAPI
+#cmakedefine WIVRN_USE_X264

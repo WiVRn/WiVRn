@@ -23,7 +23,7 @@ dnf swap mesa-va-drivers mesa-va-drivers-freeworld
 ### Compilation
 From your checkout directory
 ```bash
-cmake -B build-server . -GNinja -DWIVRN_BUILD_CLIENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake -B build-server . -GNinja -DWIVRN_BUILD_CLIENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWIVRN_USE_VAAPI=ON -DWIVRN_USE_X264=ON -DWIVRN_USE_NVENC=ON
 cmake --build build-server
 
 # Set WiVRn as the active OpenXR runtime, delete ~/.config/openxr/1/active_runtime.json after you are done using WiVRn

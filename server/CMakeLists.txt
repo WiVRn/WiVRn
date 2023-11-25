@@ -81,12 +81,12 @@ target_compile_features(wivrn-server PRIVATE cxx_std_20)
 
 target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
 
-if(CUDAToolkit_FOUND)
+if(WIVRN_USE_NVENC)
         target_sources(wivrn-server PRIVATE driver/video_encoder_nvenc.cpp)
         target_link_libraries(wivrn-server PRIVATE CUDA::cuda_driver nvidia-encode)
 endif()
 
-if(LIBAV_FOUND)
+if(WIVRN_USE_VAAPI)
         target_sources(
                 wivrn-server
                 PRIVATE driver/ffmpeg/VideoEncoderFFMPEG.cpp driver/ffmpeg/VideoEncoderVA.cpp
@@ -95,7 +95,7 @@ if(LIBAV_FOUND)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV)
 endif()
 
-if(X264_FOUND)
+if(WIVRN_USE_X264)
         target_sources(wivrn-server PRIVATE driver/video_encoder_x264.cpp)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)
 endif()
