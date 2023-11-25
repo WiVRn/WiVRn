@@ -277,11 +277,11 @@ std::array<to_headset::video_stream_description::foveation_parameter, 2> wivrn_s
 	return hmd->get_foveation_parameters();
 }
 
-void wivrn_session::dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream)
+void wivrn_session::dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream, const char* extra)
 {
 	if (feedback_csv)
 	{
 		std::lock_guard lock(csv_mutex);
-		feedback_csv << std::quoted(event) << "," << frame << "," << time << "," << (int)stream << std::endl;
+		feedback_csv << std::quoted(event) << "," << frame << "," << time << "," << (int)stream << extra << std::endl;
 	}
 }

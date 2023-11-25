@@ -13,6 +13,7 @@ class Frame:
         self.num = num
         self.events = dict()
         self.streams = dict()
+        self.flags = dict()
 
     def set(self, event, timestamp, stream):
         if stream == 255:
@@ -22,7 +23,10 @@ class Frame:
                 self.streams[stream] = dict()
             self.streams[stream][event] = timestamp
 
-    def duration(self, begin="wake_up", end="display", stream=None):
+    def flag(self, stream, flag):
+        self.flags[stream if stream != 255 else None] = flag
+
+    def duration(self, begin="wake_up", end="display", stream=None, begin_selector=min, end_selector=max):
         try:
             if stream is None:
                 streams = list(self.streams.values())
@@ -31,13 +35,13 @@ class Frame:
             if begin in self.events:
                 t0 = self.events[begin]
             else:
-                t0 = min([s[begin] for s in streams])
+                t0 = begin_selector([s[begin] for s in streams])
             if end in self.events:
                 t1 = self.events[end]
             else:
-                t1 = max([s[end] for s in streams])
+                t1 = end_selector([s[end] for s in streams])
             return (t1 - t0)/1_000_000
-        except KeyError:
+        except (KeyError, ValueError):
             return None
 
 
@@ -138,7 +142,7 @@ def read(file, skip=0, duration_ms=-1):
 
     origin = None
     frames = []
-    for event, frame, timestamp, stream in timings:
+    for event, frame, timestamp, stream, *extra in timings:
         frame = int(frame) - skip
 
         if frame < 0:
@@ -161,10 +165,16 @@ def read(file, skip=0, duration_ms=-1):
             frames.append(Frame(len(frames)))
 
         frames[frame].set(event, timestamp, stream)
+        for x in extra:
+            frames[frame].flag(stream, x)
     return frames
 
-def durations(frames, begin="wake_up", end="display", stream=None):
-    res = [frame.duration(begin, end, stream) for frame in frames]
+def durations(frames, stream=None, flag=None, *args, **kwargs):
+    def filter(frame):
+        if flag is None:
+            return True
+        return flag in frame.flags.get(stream, ())
+    res = [frame.duration(*args, **kwargs) for frame in frames if filter(frame)]
     return [d for d in res if d is not None]
 
 if __name__ == "__main__":
