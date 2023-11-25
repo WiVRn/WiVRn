@@ -20,7 +20,7 @@ function load_timings(filename)
 				for(let i in lines)
 				{
 					items = lines[i].split(',');
-					if (items.length != 4)
+					if (items.length < 4)
 						continue;
 
 					event_name = items[0].replaceAll('"', '');
@@ -64,13 +64,13 @@ function load_timings(filename)
 
 				for(let i in timing_data)
 				{
-					var frame_start = Number.MAX_VALUE;
+					var frame_begin = Number.MAX_VALUE;
 					var frame_end = -Number.MAX_VALUE;
 					for(let j in timing_data[i])
 					{
 						for(let k in timing_data[i][j])
 						{
-							frame_start = Math.min(frame_start, timing_data[i][j][k]);
+							frame_begin = Math.min(frame_begin, timing_data[i][j][k]);
 							frame_end = Math.max(frame_end, timing_data[i][j][k]);
 						}
 					}
@@ -79,11 +79,11 @@ function load_timings(filename)
 					{
 						for(let k in timing_data[i][j])
 						{
-							timing_data[i][j][k] = (timing_data[i][j][k] - frame_start) / 1000000; // nanoseconds to milliseconds
+							timing_data[i][j][k] = (timing_data[i][j][k] - frame_begin) / 1000000; // nanoseconds to milliseconds
 						}
 					}
 
-					timing_data[i].global.frame_start = (frame_start - min_timestamp) / 1000000;
+					timing_data[i].global.frame_begin = (frame_begin - min_timestamp) / 1000000;
 					timing_data[i].global.frame_end = (frame_end - min_timestamp) / 1000000;
 				}
 
@@ -131,8 +131,8 @@ function draw_frame(svg, frame_id, frame_data, t_offset, t_scale, line_height, l
 	if (!("wake_up" in frame_data["global"]) || !("submit" in frame_data["global"]))
 		return;
 
-	const t0 = frame_data.global.frame_start;
-	g.frame_start = frame_data.global.frame_start;
+	const t0 = frame_data.global.frame_begin;
+	g.frame_begin = frame_data.global.frame_begin;
 	g.setAttribute("transform", "translate(" + ((t0-t_offset) * t_scale) + " 0)");
 	g.setAttribute("id", frame_id);
 	g.setAttribute("class", 'frame');
@@ -170,54 +170,54 @@ function draw_frame(svg, frame_id, frame_data, t_offset, t_scale, line_height, l
 
 		const events = frame_data[stream];
 
-		var encode_start = 0;
+		var encode_begin = 0;
 		var encode_end = 0;
-		var send_start = 0;
+		var send_begin = 0;
 		var send_end = 0;
-		var receive_start = 0;
+		var receive_begin = 0;
 		var receive_end = 0;
 		var reconstructed = 0;
-		var decode_start = 0;
+		var decode_begin = 0;
 		var decode_end = 0;
 		var blit = 0;
 		var display = 0;
 
-		if (("encode_begin" in events) && ("rs_end" in events))
+		if (("encode_begin" in events) && ("send_end" in events))
 		{
-			encode_start = events["encode_begin"];
+			encode_begin = events["encode_begin"];
 			encode_end   = events["encode_end"];
-			send_start   = events["send_start"];
-			send_end     = events["rs_end"];
+			send_begin   = events["send_begin"];
+			send_end     = events["send_end"];
 
 			var encode = document.createElementNS("http://www.w3.org/2000/svg", 'rect');
-			encode.setAttribute('x', encode_start * t_scale);
+			encode.setAttribute('x', encode_begin * t_scale);
 			encode.setAttribute('y', y0);
-			encode.setAttribute('width', (encode_end - encode_start) * t_scale);
+			encode.setAttribute('width', (encode_end - encode_begin) * t_scale);
 			encode.setAttribute('height', line_height);
 			encode.setAttribute('fill', colours[1]);
 			encode.setAttribute('class', 'encode');
 
 			var text1 = document.createElementNS("http://www.w3.org/2000/svg", 'text');
-			text1.setAttribute('x', encode_start * t_scale);
+			text1.setAttribute('x', encode_begin * t_scale);
 			text1.setAttribute('y', y0 + line_height / 2);
 			text1.setAttribute('dominant-baseline', 'middle');
 			text1.setAttribute('text-anchor', 'left');
-			text1.innerHTML = '+' + encode_start.toFixed(2) + ' ms';
+			text1.innerHTML = '+' + encode_begin.toFixed(2) + ' ms';
 
 			var send = document.createElementNS("http://www.w3.org/2000/svg", 'rect');
-			send.setAttribute('x', send_start * t_scale);
+			send.setAttribute('x', send_begin * t_scale);
 			send.setAttribute('y', y0 + line_height * 0.2);
-			send.setAttribute('width', (send_end - send_start) * t_scale);
+			send.setAttribute('width', (send_end - send_begin) * t_scale);
 			send.setAttribute('height', line_height * 0.6);
 			send.setAttribute('fill', colours[2]);
 			send.setAttribute('class', 'send');
 
 			var text2 = document.createElementNS("http://www.w3.org/2000/svg", 'text');
-			text2.setAttribute('x', send_start * t_scale);
+			text2.setAttribute('x', send_begin * t_scale);
 			text2.setAttribute('y', y0 + line_height / 2);
 			text2.setAttribute('dominant-baseline', 'middle');
 			text2.setAttribute('text-anchor', 'left');
-			text2.innerHTML = '+' + send_start.toFixed(2) + ' ms';
+			text2.innerHTML = '+' + send_begin.toFixed(2) + ' ms';
 
 			y0 = y0 + dy;
 
@@ -231,23 +231,23 @@ function draw_frame(svg, frame_id, frame_data, t_offset, t_scale, line_height, l
 			continue;
 		}
 
-		if (("receive_start" in events) && ("receive_end" in events))
+		if (("receive_begin" in events) && ("receive_end" in events))
 		{
-			receive_start = events["receive_start"];
+			receive_begin = events["receive_begin"];
 			receive_end   = events["receive_end"];
 
 			var receive = document.createElementNS("http://www.w3.org/2000/svg", 'rect');
-			receive.setAttribute('x', receive_start * t_scale);
+			receive.setAttribute('x', receive_begin * t_scale);
 			receive.setAttribute('y', y0);
-			receive.setAttribute('width', Math.max(1, (receive_end - receive_start) * t_scale));
+			receive.setAttribute('width', Math.max(1, (receive_end - receive_begin) * t_scale));
 			receive.setAttribute('height', line_height);
 			receive.setAttribute('fill', colours[3]);
 			receive.setAttribute('class', 'receive');
 
 			var path = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-			const x1 = send_start * t_scale + 0.5;
+			const x1 = send_begin * t_scale + 0.5;
 			const y1 = y0 - dy + line_height;
-			const x2 = receive_start * t_scale + 0.5;
+			const x2 = receive_begin * t_scale + 0.5;
 			const y2 = y0;
 			path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + y2 + ',' + x2 + ' ' + y1 + ',' + x2 + ' ' + y2);
 			path.setAttribute('stroke', '#000000');
@@ -261,30 +261,25 @@ function draw_frame(svg, frame_id, frame_data, t_offset, t_scale, line_height, l
 			continue;
 		}
 
-		if ("reconstructed" in events)
+		if (("decode_begin" in events) && ("decode_end" in events))
 		{
-			// TODO
-		}
-
-		if (("decode_start" in events) && ("decode_end" in events))
-		{
-			decode_start = events["decode_start"];
+			decode_begin = events["decode_begin"];
 			decode_end   = events["decode_end"];
 
 			var decode = document.createElementNS("http://www.w3.org/2000/svg", 'rect');
-			decode.setAttribute('x', decode_start * t_scale);
+			decode.setAttribute('x', decode_begin * t_scale);
 			decode.setAttribute('y', y0);
-			decode.setAttribute('width', (decode_end - decode_start)* t_scale);
+			decode.setAttribute('width', (decode_end - decode_begin)* t_scale);
 			decode.setAttribute('height', line_height);
 			decode.setAttribute('fill', colours[5]);
 			decode.setAttribute('class', 'decode');
 
 			var text = document.createElementNS("http://www.w3.org/2000/svg", 'text');
-			text.setAttribute('x', receive_start * t_scale);
+			text.setAttribute('x', receive_begin * t_scale);
 			text.setAttribute('y', y0 + line_height / 2);
 			text.setAttribute('dominant-baseline', 'middle');
 			text.setAttribute('text-anchor', 'left');
-			text.innerHTML = '+' + receive_start.toFixed(2) + ' ms';
+			text.innerHTML = '+' + receive_begin.toFixed(2) + ' ms';
 
 			y0 = y0 + dy;
 
@@ -410,17 +405,16 @@ function draw_everything(svg, timing_data)
 	}
 
 	svg.t0 = 0;
-	svg.frames = document.getElementsByClassName('frame');
 
 	svg.addEventListener('wheel', (event) => {
 		event.preventDefault();
+		frames = svg.getElementsByClassName('frame');
 
 		svg.t0 = Math.max(0, svg.t0 + event.deltaY * 0.1);
 		const t_offset = svg.t0;
-		for(let i in svg.frames)
-		{
-			const t0 = svg.frames[i].frame_start;
-			svg.frames[i].setAttribute("transform", "translate(" + ((t0-t_offset) * t_scale) + " 0)");
-		}
+		Array.from(frames).forEach((frame) => {
+			const t0 = frame.frame_begin;
+			frame.setAttribute("transform", "translate(" + ((t0-t_offset) * t_scale) + " 0)");
+		});
 	});
 }
