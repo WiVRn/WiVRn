@@ -114,7 +114,7 @@ void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 	debug.write((char*)data.data(), data.size());
 #endif
 	if (shard.shard_idx == 0)
-		cnx->dump_time("send_start", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
+		cnx->dump_time("send_begin", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
 
 	shard.flags = to_headset::video_stream_data_shard::start_of_slice;
 	auto begin = data.begin();
@@ -137,6 +137,8 @@ void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 		shard.view_info.reset();
 		begin = next;
 	}
+	if (end_of_frame)
+		cnx->dump_time("send_end", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
 }
 
 } // namespace xrt::drivers::wivrn

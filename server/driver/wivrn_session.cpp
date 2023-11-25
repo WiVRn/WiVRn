@@ -183,11 +183,11 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 	comp_target->on_feedback(feedback, o);
 
 	if (feedback.received_first_packet)
-		dump_time("receive_start", feedback.frame_index, o.from_headset(feedback.received_first_packet), feedback.stream_index);
+		dump_time("receive_begin", feedback.frame_index, o.from_headset(feedback.received_first_packet), feedback.stream_index);
 	if (feedback.received_last_packet)
 		dump_time("receive_end", feedback.frame_index, o.from_headset(feedback.received_last_packet), feedback.stream_index);
 	if (feedback.sent_to_decoder)
-		dump_time("decode_start", feedback.frame_index, o.from_headset(feedback.sent_to_decoder), feedback.stream_index);
+		dump_time("decode_begin", feedback.frame_index, o.from_headset(feedback.sent_to_decoder), feedback.stream_index);
 	if (feedback.received_from_decoder)
 		dump_time("decode_end", feedback.frame_index, o.from_headset(feedback.received_from_decoder), feedback.stream_index);
 	if (feedback.blitted)
