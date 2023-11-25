@@ -92,7 +92,9 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 {
 	this->cnx = &cnx;
 	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
-	cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx);
+	bool idr = sync_needed.exchange(false);
+	const char* extra = idr ? ",idr" : ",p";
+	cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 
 	// Prepare the video shard template
 	shard.stream_item_idx = stream_idx;
@@ -100,8 +102,8 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	shard.shard_idx = 0;
 	shard.view_info = view_info;
 
-	Encode(index, sync_needed.exchange(false), target_timestamp);
-	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx);
+	Encode(index, idr, target_timestamp);
+	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 }
 
 void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
