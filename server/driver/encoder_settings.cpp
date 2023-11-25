@@ -22,12 +22,13 @@
 #include "video_encoder.h"
 #include "vk/vk_helpers.h"
 
+#include <cmath>
 #include <string>
 #include <vulkan/vulkan.h>
 
 #include "wivrn_config.h"
 
-#ifdef WIVRN_HAVE_FFMPEG
+#ifdef WIVRN_USE_FFMPEG
 #include "ffmpeg/VideoEncoderVA.h"
 #endif
 
@@ -56,9 +57,9 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 
 	if (is_nvidia(vk))
 	{
-#ifdef WIVRN_HAVE_CUDA
+#ifdef WIVRN_USE_NVENC
 		settings.encoder_name = encoder_nvenc;
-#elif defined(WIVRN_HAVE_X264)
+#elif defined(WIVRN_USE_X264)
 		settings.encoder_name = encoder_x264;
 		settings.codec = xrt::drivers::wivrn::h264;
 		U_LOG_W("nvidia GPU detected, but cuda support not compiled");
@@ -69,9 +70,9 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	}
 	else
 	{
-#ifdef WIVRN_HAVE_FFMPEG
+#ifdef WIVRN_USE_FFMPEG
 		settings.encoder_name = encoder_vaapi;
-#elif defined(WIVRN_HAVE_X264)
+#elif defined(WIVRN_USE_X264)
 		settings.encoder_name = encoder_x264;
 		settings.codec = xrt::drivers::wivrn::h264;
 		U_LOG_W("ffmpeg support not compiled, vaapi encoder not available");
@@ -127,7 +128,7 @@ VkImageTiling xrt::drivers::wivrn::get_required_tiling(vk_bundle * vk,
 	bool can_drm = vk->has_EXT_image_drm_format_modifier;
 	for (const auto & item: settings)
 	{
-#ifdef WIVRN_HAVE_FFMPEG
+#ifdef WIVRN_USE_FFMPEG
 		if (item.encoder_name == encoder_vaapi)
 		{
 			can_optimal = false;

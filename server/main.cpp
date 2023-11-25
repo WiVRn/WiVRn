@@ -68,7 +68,6 @@ int create_listen_socket()
 	int fd = socket(PF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 	int ret = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
 
-#ifdef XRT_HAVE_LIBBSD
 	// no other instance is running, or we would have never arrived here
 	if (ret < 0 && errno == EADDRINUSE)
 	{
@@ -82,7 +81,6 @@ int create_listen_socket()
 		}
 		ret = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
 	}
-#endif
 
 	if (ret < 0)
 	{

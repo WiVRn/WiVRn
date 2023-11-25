@@ -27,13 +27,13 @@
 
 #include "wivrn_config.h"
 
-#ifdef WIVRN_HAVE_CUDA
+#ifdef WIVRN_USE_NVENC
 #include "video_encoder_nvenc.h"
 #endif
-#ifdef WIVRN_HAVE_FFMPEG
+#ifdef WIVRN_USE_FFMPEG
 #include "ffmpeg/VideoEncoderVA.h"
 #endif
-#ifdef WIVRN_HAVE_X264
+#ifdef WIVRN_USE_X264
 #include "video_encoder_x264.h"
 #endif
 
@@ -51,19 +51,19 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 {
 	using namespace std::string_literals;
 	std::unique_ptr<VideoEncoder> res;
-#ifdef WIVRN_HAVE_X264
+#ifdef WIVRN_USE_X264
 	if (settings.encoder_name == encoder_x264)
 	{
 		res = std::make_unique<VideoEncoderX264>(vk, pool, settings, input_width, input_height, fps);
 	}
 #endif
-#ifdef WIVRN_HAVE_CUDA
+#ifdef WIVRN_USE_NVENC
 	if (settings.encoder_name == encoder_nvenc)
 	{
 		res = std::make_unique<VideoEncoderNvenc>(vk, settings, fps);
 	}
 #endif
-#ifdef WIVRN_HAVE_FFMPEG
+#ifdef WIVRN_USE_FFMPEG
 	if (settings.encoder_name == encoder_vaapi)
 	{
 		res = std::make_unique<VideoEncoderVA>(vk, settings, fps);
