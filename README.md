@@ -243,4 +243,5 @@ WiVRn uses the following software:
 - [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on Nvidia
 - [sd-bus](https://www.freedesktop.org/software/systemd/man/sd-bus.html)
 - [spdlog](https://github.com/gabime/spdlog)
+- [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [x264](https://www.videolan.org/developers/x264.html) optional, for software encoding

@@ -107,6 +107,7 @@ wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
 target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
+target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror
 
 target_compile_options(wivrn PRIVATE -Wno-missing-field-initializers -Wno-unused-parameter
