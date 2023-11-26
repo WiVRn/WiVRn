@@ -28,7 +28,6 @@
 #include "vk/vk.h"
 #include "xr/xr.h"
 #include <algorithm>
-#include <chrono>
 #include <thread>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -490,36 +489,7 @@ application::application(application_info info) :
 
 	setup_jni();
 	jni::object<""> act(app_info.native_app->activity->clazz);
-
-	jni::string lock_name("WiVRn");
-
 	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
-	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
-	auto wifi_service_id = ctx.klass().field<jni::string>("WIFI_SERVICE");
-	auto system_service = ctx.call<jni::object<"java/lang/Object">>("getSystemService", wifi_service_id);
-	auto lock = system_service.call<jni::object<"android/net/wifi/WifiManager$MulticastLock">>("createMulticastLock", lock_name);
-	lock.call<void>("setReferenceCounted", jni::Bool(false));
-	lock.call<void>("acquire");
-	if (lock.call<jni::Bool>("isHeld"))
-	{
-		spdlog::info("MulticastLock acquired");
-	}
-	else
-	{
-		spdlog::info("MulticastLock is not acquired");
-	}
-
-	auto wifi_lock = system_service.call<jni::object<"android/net/wifi/WifiManager$WifiLock">>("createWifiLock", jni::Int(3) /*WIFI_MODE_FULL_HIGH_PERF*/, lock_name);
-	wifi_lock.call<void>("setReferenceCounted", jni::Bool(false));
-	wifi_lock.call<void>("acquire");
-	if (wifi_lock.call<jni::Bool>("isHeld"))
-	{
-		spdlog::info("WifiLock low latency acquired");
-	}
-	else
-	{
-		spdlog::info("WifiLock low latency is not acquired");
-	}
 
 	// Get the intent, to handle wivrn://uri
 	auto intent = act.call<jni::object<"android/content/Intent">>("getIntent");
@@ -595,6 +565,41 @@ application::application(application_info info) :
 void application::setup_jni()
 {
 	jni::jni_thread::setup_thread(app_info.native_app->activity->vm);
+}
+
+void application::set_wifi_locks(bool enabled)
+{
+	jni::object<""> act(app_info.native_app->activity->clazz);
+
+	jni::string lock_name("WiVRn");
+
+	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
+	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
+	auto wifi_service_id = ctx.klass().field<jni::string>("WIFI_SERVICE");
+	auto system_service = ctx.call<jni::object<"java/lang/Object">>("getSystemService", wifi_service_id);
+	auto lock = system_service.call<jni::object<"android/net/wifi/WifiManager$MulticastLock">>("createMulticastLock", lock_name);
+	lock.call<void>("setReferenceCounted", jni::Bool(false));
+	lock.call<void>(enabled ? "acquire" : "release");
+	if (lock.call<jni::Bool>("isHeld"))
+	{
+		spdlog::info("MulticastLock acquired");
+	}
+	else
+	{
+		spdlog::info("MulticastLock is not acquired");
+	}
+
+	auto wifi_lock = system_service.call<jni::object<"android/net/wifi/WifiManager$WifiLock">>("createWifiLock", jni::Int(3) /*WIFI_MODE_FULL_HIGH_PERF*/, lock_name);
+	wifi_lock.call<void>("setReferenceCounted", jni::Bool(false));
+	wifi_lock.call<void>(enabled ? "acquire" : "release");
+	if (wifi_lock.call<jni::Bool>("isHeld"))
+	{
+		spdlog::info("WifiLock low latency acquired");
+	}
+	else
+	{
+		spdlog::info("WifiLock low latency is not acquired");
+	}
 }
 #endif
 
@@ -856,6 +861,9 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 		case XR_SESSION_STATE_FOCUSED:
 			session_visible = true;
 			session_focused = true;
+#ifdef XR_USE_PLATFORM_ANDROID
+			set_wifi_locks(true);
+#endif
 			break;
 
 		case XR_SESSION_STATE_STOPPING:
@@ -863,6 +871,9 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 			session_focused = false;
 			xr_session.end_session();
 			session_running = false;
+#ifdef XR_USE_PLATFORM_ANDROID
+			set_wifi_locks(false);
+#endif
 			break;
 
 		case XR_SESSION_STATE_EXITING:

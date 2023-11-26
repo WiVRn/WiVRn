@@ -277,6 +277,8 @@ public:
 	~application();
 #ifdef XR_USE_PLATFORM_ANDROID
 	void setup_jni();
+
+	void set_wifi_locks(bool enabled);
 #endif
 
 	static bool is_session_running()
