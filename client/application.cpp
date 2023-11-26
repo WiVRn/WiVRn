@@ -42,29 +42,13 @@
 #ifdef XR_USE_PLATFORM_ANDROID
 #include <android/native_activity.h>
 #include <sys/system_properties.h>
+
+#include "jnipp.h"
 #endif
 
 using namespace std::chrono_literals;
 
 application * application::instance_ = nullptr;
-
-#ifdef XR_USE_PLATFORM_ANDROID
-jni_thread::jni_thread(application & app) :
-        vm(app.app_info.native_app->activity->vm)
-{
-	vm->AttachCurrentThread(&env, nullptr);
-}
-
-jni_thread::jni_thread() :
-        jni_thread(application::instance())
-{
-}
-
-jni_thread::~jni_thread()
-{
-	vm->DetachCurrentThread();
-}
-#endif
 
 VkBool32 application::vulkan_debug_report_callback(
         VkDebugReportFlagsEXT flags,
@@ -139,7 +123,7 @@ void application::initialize_vulkan()
 	std::vector<const char *> layers;
 
 	spdlog::info("Available Vulkan layers:");
-	bool validation_layer_found = false;
+	[[maybe_unused]] bool validation_layer_found = false;
 	for (VkLayerProperties & i: vk::details::enumerate<VkLayerProperties>(vkEnumerateInstanceLayerProperties))
 	{
 		spdlog::info("    {}", i.layerName);
@@ -499,43 +483,24 @@ std::pair<XrAction, XrActionType> application::get_action(const std::string & re
 }
 
 application::application(application_info info) :
-        app_info(std::move(info)), jni(*this)
+        app_info(std::move(info))
 {
 #ifdef XR_USE_PLATFORM_ANDROID
 	// https://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html
 
-	JNIEnv * Env = jni.get_JNIEnv();
-	ANativeActivity * activity = app_info.native_app->activity;
+	setup_jni();
+	jni::object<""> act(app_info.native_app->activity->clazz);
 
-	jmethodID jtmID;
+	jni::string lock_name("WiVRn");
 
-	jclass jNativeClass = Env->GetObjectClass(activity->clazz);
-	jtmID = Env->GetMethodID(jNativeClass, "getApplication", "()Landroid/app/Application;");
-
-	jobject jNativeApplication = Env->CallObjectMethod(activity->clazz, jtmID);
-	jtmID = Env->GetMethodID(Env->GetObjectClass(jNativeApplication), "getApplicationContext", "()Landroid/content/Context;");
-
-	jobject jNativeContext = Env->CallObjectMethod(jNativeApplication, jtmID);
-	jfieldID jNativeWIFI_SERVICE_fid = Env->GetStaticFieldID(Env->GetObjectClass(jNativeContext), "WIFI_SERVICE", "Ljava/lang/String;");
-	jstring jNativeSFID_jstr = (jstring)Env->GetStaticObjectField(Env->FindClass("android/content/Context"), jNativeWIFI_SERVICE_fid);
-	jstring wifiLockjStr = Env->NewStringUTF("WIVRn");
-
-	jtmID = Env->GetMethodID(Env->FindClass("android/content/Context"), "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
-	jobject jSystemService = Env->CallObjectMethod(jNativeContext, jtmID, jNativeSFID_jstr);
-
-	jclass jWMClass = Env->FindClass("android/net/wifi/WifiManager");
-	jclass jWMMLClass = Env->FindClass("android/net/wifi/WifiManager$MulticastLock");
-	jtmID = Env->GetMethodID(jWMClass, "createMulticastLock", "(Ljava/lang/String;)Landroid/net/wifi/WifiManager$MulticastLock;");
-	jobject jMCObj = Env->CallObjectMethod(jSystemService, jtmID, wifiLockjStr);
-
-	jtmID = Env->GetMethodID(jWMMLClass, "setReferenceCounted", "(Z)V");
-	Env->CallVoidMethod(jMCObj, jtmID, 0);
-
-	jtmID = Env->GetMethodID(jWMMLClass, "acquire", "()V");
-	Env->CallVoidMethod(jMCObj, jtmID);
-	jtmID = Env->GetMethodID(jWMMLClass, "isHeld", "()Z");
-	jboolean isheld = Env->CallBooleanMethod(jMCObj, jtmID);
-	if (isheld)
+	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
+	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
+	auto wifi_service_id = ctx.klass().field<jni::string>("WIFI_SERVICE");
+	auto system_service = ctx.call<jni::object<"java/lang/Object">>("getSystemService", wifi_service_id);
+	auto lock = system_service.call<jni::object<"android/net/wifi/WifiManager$MulticastLock">>("createMulticastLock", lock_name);
+	lock.call<void>("setReferenceCounted", jni::Bool(false));
+	lock.call<void>("acquire");
+	if (lock.call<jni::Bool>("isHeld"))
 	{
 		spdlog::info("MulticastLock acquired");
 	}
@@ -544,19 +509,10 @@ application::application(application_info info) :
 		spdlog::info("MulticastLock is not acquired");
 	}
 
-	jclass jWMWLClass = Env->FindClass("android/net/wifi/WifiManager$WifiLock");
-	jtmID = Env->GetMethodID(jWMClass, "createWifiLock", "(ILjava/lang/String;)Landroid/net/wifi/WifiManager$WifiLock;");
-	// jobject jMCObj2 = Env->CallObjectMethod(jSystemService, jtmID, 4 /* WIFI_MODE_FULL_LOW_LATENCY */, wifiLockjStr);
-	jobject jMCObj2 = Env->CallObjectMethod(jSystemService, jtmID, 3 /* WIFI_MODE_FULL_HIGH_PERF */, wifiLockjStr);
-
-	jtmID = Env->GetMethodID(jWMWLClass, "setReferenceCounted", "(Z)V");
-	Env->CallVoidMethod(jMCObj2, jtmID, 0);
-
-	jtmID = Env->GetMethodID(jWMWLClass, "acquire", "()V");
-	Env->CallVoidMethod(jMCObj2, jtmID);
-	jtmID = Env->GetMethodID(jWMWLClass, "isHeld", "()Z");
-	isheld = Env->CallBooleanMethod(jMCObj2, jtmID);
-	if (isheld)
+	auto wifi_lock = system_service.call<jni::object<"android/net/wifi/WifiManager$WifiLock">>("createWifiLock", jni::Int(3) /*WIFI_MODE_FULL_HIGH_PERF*/, lock_name);
+	wifi_lock.call<void>("setReferenceCounted", jni::Bool(false));
+	wifi_lock.call<void>("acquire");
+	if (wifi_lock.call<jni::Bool>("isHeld"))
 	{
 		spdlog::info("WifiLock low latency acquired");
 	}
@@ -565,26 +521,18 @@ application::application(application_info info) :
 		spdlog::info("WifiLock low latency is not acquired");
 	}
 
-	Env->DeleteLocalRef(wifiLockjStr);
-
 	// Get the intent, to handle wivrn://uri
-	jtmID = Env->GetMethodID(jNativeClass, "getIntent", "()Landroid/content/Intent;");
-	jobject intent = Env->CallObjectMethod(activity->clazz, jtmID);
-
-	jtmID = Env->GetMethodID(Env->GetObjectClass(intent), "getDataString", "()Ljava/lang/String;");
-	jstring dataString_jni = (jstring)Env->CallObjectMethod(intent, jtmID);
-	std::string dataString;
-	if (dataString_jni)
+	auto intent = act.call<jni::object<"android/content/Intent">>("getIntent");
+	std::string data_string;
+	if (auto data_string_jni = intent.call<jni::string>("getDataString"))
 	{
-		const char * dataString_c = Env->GetStringUTFChars(dataString_jni, NULL);
-		dataString = dataString_c;
-		Env->ReleaseStringUTFChars(dataString_jni, dataString_c);
+		data_string = data_string_jni;
 	}
 
-	spdlog::info("dataString = {}", dataString);
-	if (dataString.starts_with("wivrn://"))
+	spdlog::info("dataString = {}", data_string);
+	if (data_string.starts_with("wivrn://"))
 	{
-		server_address = dataString.substr(strlen("wivrn://"));
+		server_address = data_string.substr(strlen("wivrn://"));
 	}
 
 	app_info.native_app->userData = this;
@@ -643,12 +591,19 @@ application::application(application_info info) :
 	}
 }
 
+#ifdef XR_USE_PLATFORM_ANDROID
+void application::setup_jni()
+{
+	jni::jni_thread::setup_thread(app_info.native_app->activity->vm);
+}
+#endif
+
 void application::cleanup()
 {
 	// The Vulkan device and instance are destroyed by the OpenXR runtime
 
 #ifdef XR_USE_PLATFORM_ANDROID
-	app_info.native_app->activity->vm->DetachCurrentThread();
+	jni::jni_thread::detach();
 #endif
 	assert(instance_ == this);
 	instance_ = nullptr;
@@ -698,7 +653,7 @@ void application::loop()
 void application::run()
 {
 	std::thread application_thread{[&]() {
-		jni_thread jni;
+		setup_jni();
 
 		while (!is_exit_requested())
 		{

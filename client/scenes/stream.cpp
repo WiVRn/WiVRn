@@ -535,7 +535,9 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 void scenes::stream::video()
 {
-	jni_thread jni;
+#ifdef XR_USE_PLATFORM_ANDROID
+	application::instance().setup_jni();
+#endif
 
 	while (not exiting)
 	{

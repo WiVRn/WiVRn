@@ -49,38 +49,9 @@ struct application_info
 #endif
 };
 
-class application;
-
-#ifdef XR_USE_PLATFORM_ANDROID
-class jni_thread
-{
-	JNIEnv * env = nullptr;
-	JavaVM * vm = nullptr;
-
-public:
-	explicit jni_thread(application & app);
-	jni_thread();
-	~jni_thread();
-
-	JNIEnv * get_JNIEnv()
-	{
-		return env;
-	}
-};
-#else
-class [[maybe_unused]] jni_thread
-{
-public:
-	explicit jni_thread(application & app) {}
-	jni_thread() = default;
-	~jni_thread() = default;
-};
-#endif
-
 class application
 {
 	friend class scene;
-	friend class jni_thread;
 
 	application_info app_info;
 #ifdef XR_USE_PLATFORM_ANDROID
@@ -107,8 +78,6 @@ class application
 	void interaction_profile_changed();
 
 	static application * instance_;
-
-	jni_thread jni;
 
 	// OpenXR stuff
 	xr::instance xr_instance;
@@ -306,6 +275,9 @@ public:
 
 	application(const application &) = delete;
 	~application();
+#ifdef XR_USE_PLATFORM_ANDROID
+	void setup_jni();
+#endif
 
 	static bool is_session_running()
 	{
