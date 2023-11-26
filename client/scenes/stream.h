@@ -92,7 +92,7 @@ public:
 
 	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session);
 
-	virtual void render() override;
+	void render() override;
 
 	void operator()(to_headset::handshake&&) {};
 	void operator()(to_headset::video_stream_data_shard &&);

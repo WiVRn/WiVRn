@@ -46,10 +46,8 @@ public:
 	scene();
 
 	virtual ~scene();
-	virtual void before_render_view(XrViewStateFlags flags, XrTime predicted_display_time);
-	virtual void render_view(XrViewStateFlags flags, XrTime display_time, XrView & view, int swapchain_index, int image_index);
 
-	virtual void render();
+	virtual void render() = 0;
 	virtual void on_unfocused();
 	virtual void on_focused();
 };

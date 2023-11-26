@@ -77,8 +77,8 @@ public:
 	virtual ~lobby();
 	lobby();
 
-	virtual void render() override;
-	virtual void render_view(XrViewStateFlags flags, XrTime display_time, XrView & view, int swapchain_index, int image_index) override;
+	void render() override;
+	void render_view(XrViewStateFlags flags, XrTime display_time, XrView & view, int swapchain_index, int image_index);
 
 	void on_unfocused() override;
 	void on_focused() override;
