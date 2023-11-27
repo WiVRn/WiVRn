@@ -96,7 +96,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz reed-solomon)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror
 
@@ -107,7 +107,7 @@ target_compile_options(wivrn PRIVATE -Wno-missing-field-initializers -Wno-unused
 
 target_include_directories(wivrn PRIVATE .)
 
-target_link_libraries(wivrn wivrn-common)
+target_link_libraries(wivrn wivrn-common wivrn-external)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/vk_layer_settings.txt

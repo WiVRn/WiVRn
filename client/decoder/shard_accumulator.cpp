@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2022-2023  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022-2023  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 
 #include "shard_accumulator.h"
 #include "application.h"
-#include "rs.h"
 #include "scenes/stream.h"
 #include "spdlog/spdlog.h"
 #include "wivrn_serialization.h"

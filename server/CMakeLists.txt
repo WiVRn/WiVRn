@@ -129,8 +129,8 @@ target_link_libraries(
 		PkgConfig::libpulse
 		Eigen3::Eigen
 		wivrn-common
+		wivrn-external
 		nlohmann_json::nlohmann_json
-		reed-solomon
 	)
 
 install(TARGETS wivrn-server)
