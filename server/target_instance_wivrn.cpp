@@ -66,7 +66,13 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	*out_xsysc = xsysc;
 
 	struct xrt_space_overseer * xspovrs = NULL;
-	u_builder_create_space_overseer(xsysd, &xspovrs);
+	u_builder_create_space_overseer_legacy(
+	        xsysd->roles.head,
+	        xsysd->roles.left,
+	        xsysd->roles.right,
+	        xsysd->xdevs,
+	        xsysd->xdev_count,
+	        &xspovrs);
 	*out_xspovrs = xspovrs;
 
 	return xret;
