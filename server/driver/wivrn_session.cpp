@@ -21,8 +21,11 @@
 #include "audio_setup.h"
 #include "main/comp_target.h"
 #include "os/os_time.h"
+#include "util/u_builders.h"
 #include "util/u_logging.h"
 
+#include "main/comp_main_interface.h"
+#include "util/u_system_helpers.h"
 #include "wivrn_comp_target.h"
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
@@ -66,7 +69,10 @@ xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tc
 {
 }
 
-wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp)
+xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp,
+                                                                xrt_system_devices ** out_xsysd,
+                                                                xrt_space_overseer ** out_xspovrs,
+                                                                xrt_system_compositor ** out_xsysc)
 {
 	std::shared_ptr<wivrn_session> self;
 	std::optional<xrt::drivers::wivrn::from_headset::control_packets> control;
@@ -75,12 +81,13 @@ wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::d
 		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp)));
 		while (not(control = self->connection.poll_control(-1)))
 		{
+			// FIXME: timeout
 		}
 	}
 	catch (std::exception & e)
 	{
 		U_LOG_E("Error creating WiVRn session: %s", e.what());
-		return nullptr;
+		return XRT_ERROR_DEVICE_CREATION_FAILED;
 	}
 
 	const auto & info = std::get<from_headset::headset_info_packet>(*control);
@@ -99,24 +106,42 @@ wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::d
 	catch (const std::exception & e)
 	{
 		U_LOG_E("Failed to register audio device: %s", e.what());
+		return XRT_ERROR_DEVICE_CREATION_FAILED;
 	}
 	self->hmd = std::make_unique<wivrn_hmd>(self, info);
 	self->left_hand = std::make_unique<wivrn_controller>(0, self->hmd.get(), self);
 	self->right_hand = std::make_unique<wivrn_controller>(1, self->hmd.get(), self);
 
-	wivrn_system_devices * devices = new wivrn_system_devices{};
-
+	auto * usysds = u_system_devices_static_allocate();
+	*out_xsysd = &usysds->base.base;
+	auto & devices = *out_xsysd;
 	int n = 0;
 	if (self->hmd)
-		devices->roles.head = devices->xdevs[n++] = self->hmd.get();
+		usysds->base.base.static_roles.head = devices->xdevs[n++] = self->hmd.get();
 	if (self->left_hand)
-		devices->roles.left = devices->xdevs[n++] = self->left_hand.get();
+		devices->xdevs[n++] = self->left_hand.get();
 	if (self->right_hand)
-		devices->roles.right = devices->xdevs[n++] = self->right_hand.get();
-
+		devices->xdevs[n++] = self->right_hand.get();
 	devices->xdev_count = n;
 
-	devices->ctf = new wivrn_comp_target_factory(self, info.preferred_refresh_rate);
+	u_system_devices_static_finalize(usysds, self->left_hand.get(), self->right_hand.get());
+
+	wivrn_comp_target_factory ctf(self, info.preferred_refresh_rate);
+	auto xret = comp_main_create_system_compositor(self->hmd.get(), &ctf, out_xsysc);
+	if (xret != XRT_SUCCESS)
+	{
+		U_LOG_E("Failed to create system compositor");
+		return xret;
+	}
+
+	u_builder_create_space_overseer_legacy(
+	        self->hmd.get(),
+	        self->left_hand.get(),
+	        self->right_hand.get(),
+	        devices->xdevs,
+	        devices->xdev_count,
+	        out_xspovrs);
+
 	devices->destroy = [](xrt_system_devices * xsd) {
 		// TODO
 	};
@@ -128,7 +153,7 @@ wivrn_system_devices * xrt::drivers::wivrn::wivrn_session::create_session(xrt::d
 	}
 
 	self->thread = std::thread(&wivrn_session::run, self);
-	return devices;
+	return XRT_SUCCESS;
 }
 
 clock_offset wivrn_session::get_offset()

@@ -33,15 +33,13 @@
 class wivrn_hmd;
 class wivrn_controller;
 struct audio_device;
-struct comp_target_factory;
+
+struct xrt_system_devices;
+struct xrt_space_overseer;
+struct xrt_system_compositor;
 
 namespace xrt::drivers::wivrn
 {
-
-	struct wivrn_system_devices : public xrt_system_devices
-	{
-		comp_target_factory *ctf;
-	};
 
 class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 {
@@ -67,8 +65,10 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	wivrn_session(TCP && tcp);
 
 public:
-	static wivrn_system_devices *
-	create_session(TCP && tcp);
+	static xrt_result_t create_session(TCP && tcp,
+	                                   xrt_system_devices ** out_xsysd,
+	                                   xrt_space_overseer ** out_xspovrs,
+	                                   xrt_system_compositor ** out_xsysc);
 
 	clock_offset
 	get_offset();

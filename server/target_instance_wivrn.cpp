@@ -9,13 +9,11 @@
 #include "xrt/xrt_config_build.h"
 #include "xrt/xrt_instance.h"
 #include "xrt/xrt_system.h"
-#include "main/comp_main_interface.h"
 
 #include "os/os_time.h"
 
 #include "util/u_misc.h"
 #include "util/u_trace_marker.h"
-#include "util/u_builders.h"
 
 #include <assert.h>
 
@@ -40,42 +38,9 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	assert(out_xsysc == NULL || *out_xsysc == NULL);
 
 	struct xrt_system_compositor * xsysc = NULL;
-	auto * xsysd = xrt::drivers::wivrn::wivrn_session::create_session(std::move(*tcp));
+	auto res = xrt::drivers::wivrn::wivrn_session::create_session(std::move(*tcp), out_xsysd, out_xspovrs, out_xsysc);
 	tcp.reset();
-
-	if (!xsysd)
-		return XRT_ERROR_DEVICE_CREATION_FAILED;
-
-	xrt_result_t xret = XRT_SUCCESS;
-
-	struct xrt_device * head = xsysd->roles.head;
-
-	if (xret == XRT_SUCCESS && xsysc == NULL)
-	{
-		xret = comp_main_create_system_compositor(head, xsysd->ctf, &xsysc);
-	}
-
-	if (xret != XRT_SUCCESS)
-	{
-		if (xsysd)
-			xsysd->destroy(xsysd);
-		return xret;
-	}
-
-	*out_xsysd = xsysd;
-	*out_xsysc = xsysc;
-
-	struct xrt_space_overseer * xspovrs = NULL;
-	u_builder_create_space_overseer_legacy(
-	        xsysd->roles.head,
-	        xsysd->roles.left,
-	        xsysd->roles.right,
-	        xsysd->xdevs,
-	        xsysd->xdev_count,
-	        &xspovrs);
-	*out_xspovrs = xspovrs;
-
-	return xret;
+	return res;
 }
 
 static void
