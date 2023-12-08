@@ -42,4 +42,6 @@ std::vector<encoder_settings> get_encoder_settings(vk_bundle * vk, uint16_t widt
 
 VkImageTiling get_required_tiling(vk_bundle * vk, const std::vector<encoder_settings> & settings);
 
+VkExternalMemoryHandleTypeFlags get_handle_types(const std::vector<encoder_settings> & settings);
+
 } // namespace xrt::drivers::wivrn

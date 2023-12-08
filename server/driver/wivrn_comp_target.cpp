@@ -232,7 +232,7 @@ public:
 	}
 };
 
-static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags flags, VkImageTiling tiling)
+static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags flags, const std::vector<xrt::drivers::wivrn::encoder_settings> & settings)
 {
 	struct vk_bundle * vk = get_vk(cn);
 
@@ -253,7 +253,21 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 
 	flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
+	VkImageTiling tiling = get_required_tiling(vk, settings);
 	drm_image_modifier_helper drm_list(vk, cn->format, tiling);
+
+	VkExternalMemoryHandleTypeFlags handle_types = get_handle_types(settings);
+
+	VkExternalMemoryImageCreateInfo image_export_info{
+		.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
+		.pNext = drm_list.pNext,
+		.handleTypes = handle_types,
+	};
+
+	VkExportMemoryAllocateInfo export_info{
+	        .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
+	        .handleTypes = handle_types,
+	};
 
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
@@ -265,7 +279,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 
 		VkImageCreateInfo image_info{};
 		image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		image_info.pNext = drm_list.pNext;
+		image_info.pNext = &image_export_info;
 		image_info.imageType = VK_IMAGE_TYPE_2D;
 		image_info.format = cn->format;
 		image_info.extent = extent;
@@ -282,9 +296,11 @@ static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags f
 		VkResult res = vk->vkCreateImage(vk->device, &image_info, NULL, &image);
 		VK_CHK_AND_RET(res, "vkCreateImage");
 
-		VkMemoryDedicatedAllocateInfoKHR dedicated_allocate_info{};
-		dedicated_allocate_info.sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO;
-		dedicated_allocate_info.image = image;
+		VkMemoryDedicatedAllocateInfoKHR dedicated_allocate_info{
+		        .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+		        .pNext = &export_info,
+		        .image = image,
+		};
 
 		VkDeviceSize size;
 		res = vk_alloc_and_bind_image_memory(vk, image, -1, &dedicated_allocate_info, "wivrn_comp_target", &memory, &size);
@@ -422,7 +438,7 @@ static void comp_wivrn_create_images(struct comp_target * ct,
 
 	auto settings = get_encoder_settings(get_vk(cn), cn->width, cn->height);
 
-	VkResult res = create_images(cn, image_usage, get_required_tiling(get_vk(cn), settings));
+	VkResult res = create_images(cn, image_usage, settings);
 	if (res != VK_SUCCESS)
 	{
 		vk_print_result(get_vk(cn), res, "create_images", __FILE__, __LINE__);

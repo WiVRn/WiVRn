@@ -143,3 +143,20 @@ VkImageTiling xrt::drivers::wivrn::get_required_tiling(vk_bundle * vk,
 		return VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT;
 	return VK_IMAGE_TILING_LINEAR;
 }
+
+VkExternalMemoryHandleTypeFlags xrt::drivers::wivrn::get_handle_types(const std::vector<encoder_settings> & settings)
+{
+	VkExternalMemoryHandleTypeFlags result = 0;
+	for (const auto & item: settings)
+	{
+#ifdef WIVRN_USE_VAAPI
+		if (item.encoder_name == encoder_vaapi)
+			result |= VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
+#endif
+#ifdef WIVRN_USE_NVENC
+		if (item.encoder_name == encoder_nvenc)
+			result |= VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+#endif
+	}
+	return result;
+}
