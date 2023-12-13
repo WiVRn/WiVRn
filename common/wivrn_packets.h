@@ -104,6 +104,7 @@ struct headset_info_packet
 	};
 	std::optional<audio_description> speaker;
 	std::optional<audio_description> microphone;
+	std::array<XrFovf, 2> fov;
 };
 
 struct handshake

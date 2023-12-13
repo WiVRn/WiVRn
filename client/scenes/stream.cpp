@@ -82,6 +82,16 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	info.recommended_eye_width = self->swapchains[0].width();
 	info.recommended_eye_height = self->swapchains[0].height();
 
+	auto [flags, views] = self->session.locate_views(
+	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
+	        self->instance.now(),
+	        application::view());
+	assert(views.size() == info.fov.size());
+	for (auto [i, j]: utils::zip(views, info.fov))
+	{
+		j = i.fov;
+	}
+
 	if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 	{
 		info.available_refresh_rates = self->session.get_refresh_rates();

@@ -35,6 +35,7 @@
 #include "util/u_time.h"
 #include "util/u_var.h"
 
+#include "xrt_cast.h"
 #include <algorithm>
 #include <cstdint>
 #include <stdio.h>
@@ -286,16 +287,9 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	hmd->views[1].viewport.h_pixels = foveated_eye_height;
 	hmd->views[1].rot = u_device_rotation_ident;
 
-	// Default FOV from Oculus Quest
-	hmd->distortion.fov[0].angle_left = -52 * M_PI / 180;
-	hmd->distortion.fov[0].angle_right = 42 * M_PI / 180;
-	hmd->distortion.fov[0].angle_up = 47 * M_PI / 180;
-	hmd->distortion.fov[0].angle_down = -53 * M_PI / 180;
-
-	hmd->distortion.fov[1].angle_left = -42 * M_PI / 180;
-	hmd->distortion.fov[1].angle_right = 52 * M_PI / 180;
-	hmd->distortion.fov[1].angle_up = 47 * M_PI / 180;
-	hmd->distortion.fov[1].angle_down = -53 * M_PI / 180;
+	// FOV from headset info packet
+	hmd->distortion.fov[0] = xrt_cast(info.fov[0]);
+	hmd->distortion.fov[1] = xrt_cast(info.fov[1]);
 
 	for (int i = 0; i < 2; ++i)
 	{
