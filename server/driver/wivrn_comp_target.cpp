@@ -761,6 +761,9 @@ comp_target * comp_target_wivrn_create(std::shared_ptr<xrt::drivers::wivrn::wivr
 {
 	wivrn_comp_target * cn = new wivrn_comp_target{};
 
+	// FIXME: monado may need a fix to set the correct pose when timewarping
+	c->debug.atw_off = true;
+
 	cn->cnx = cnx;
 	cn->check_ready = comp_wivrn_check_ready;
 	cn->create_images = comp_wivrn_create_images;
