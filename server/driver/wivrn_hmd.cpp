@@ -78,71 +78,40 @@ static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      xrt_fov * out_fovs,
                                      xrt_pose * out_poses);
 
-static double foveate(double a, double b, double scale, double c, double x)
+static double foveate(double a, double b, double λ, double c, double x)
 {
 	// In order to save encoding, transmit and decoding time, only a portion of the image is encoded in full resolution.
 	// on each axis, foveated coordinates are defined by the following formula.
-	return a * tan(scale / a * (x - c)) + b;
+	return λ / a * tan(a * x + b) + c;
 	// a and b are defined such as:
 	// edges of the image are not moved
 	// f(-1) = -1
 	// f( 1) =  1
 	// the function also enforces pixel ratio 1:1 at fovea
-	// df(x)/dx = scale for x = c
+	// df⁻¹(x)/dx = 1/scale for x = c
 }
 
-static std::tuple<float, float> solve_foveation(float scale, float c)
+static std::tuple<float, float> solve_foveation(float λ, float c)
 {
 	// Compute a and b for the foveation function such that:
 	//   foveate(a, b, scale, c, -1) = -1   (eq. 1)
 	//   foveate(a, b, scale, c,  1) =  1   (eq. 2)
 	//
-	// The first step is to solve for a by subtracting equation 1 and 2:
-	//   foveate(a, b, scale, c, 1) - foveate(a, b, scale, c, -1) = 2  (eq. 3)
-	//
-	// Where b is cancelled by the subtraction, so the equation to solve becomes:
-	// f(a) = 0 where:
-	auto f = [scale, c](double a) { return foveate(a, 0, scale, c, 1) - foveate(a, 0, scale, c, -1) - 2; };
+	// Use eq. 2 to express a as function of b, then replace in eq. 1
+	// equation that needs to be null is:
+	auto b = [λ, c](double a) { return atan(a * (1 - c) / λ) - a;};
+	auto eq = [λ, c](double a) { return atan(a * (1 - c) / λ) + atan(a * (1 + c) / λ) - 2 * a; }; // (eq. 3)
 
-	// b is computed rewriting equation 2 as:
-	//   foveate(a, 0, scale, c,  1) + b = 1
-	// Therefore:
-	//   b = 1 - foveate(a, 0, scale, c,  1)
-	//
-	// Note that there are infinitely many solutions to equation 3, but we want
-	// to have a value of a such that:
-	//   ∀ x ∈ [-1, 1], abs(scale / a * (x - c)) < π / 2  (eq. 4)
-	// So that foveate(x) is defined over [-1, 1]
-	//
-	// Equation 4 can be rewritten as:
-	//   a > 2 * scale / π * abs(x - c)
-	//
-	// The minimum value of abs(x - c) for x ∈ [-1, 1] is 1 + abs(c)
-	// so a must be larger than a0 with:
-	double a0 = 2 * scale / M_PI * (1 + std::abs(c));
-
-	// f is monotonically decreasing over (a0, +∞) with:
-	//   lim   f(a) = +∞
-	//   a→a0+
-	//
-	//   lim   f(a) = 2 * scale - 2
-	//   a→∞
-	//
-	// Therefore there is one solution iff scale < 1
-	//
-	// a0 is the lowermost value for a, f(a0) is undefined and f(a0 + ε) > 0
-	// We want an upper bound a1 for a, f(a1) < 0:
-	//
-	// Find the value by computing f(a0*2^n) until negative
-	double a1 = a0 * 2;
-	while (f(a1) > 0)
+	// function starts positive, reaches a maximum then decreases to -∞
+	double a0 = 0;
+	// Find a negative value by computing eq(2^n)
+	double a1 = 1;
+	while (eq(a1) > 0)
 		a1 *= 2;
-
-	// Solve f(a) = 0
 
 	// last computed values for f(a0) and f(a1)
 	std::optional<double> f_a0;
-	double f_a1 = f(a1);
+	double f_a1 = eq(a1);
 
 	int n = 0;
 	double a;
@@ -152,7 +121,7 @@ static std::tuple<float, float> solve_foveation(float scale, float c)
 		{
 			// use binary search
 			a = 0.5 * (a0 + a1);
-			double val = f(a);
+			double val = eq(a);
 			if (val > 0)
 			{
 				a0 = a;
@@ -172,13 +141,11 @@ static std::tuple<float, float> solve_foveation(float scale, float c)
 			a0 = a1;
 			a1 = a;
 			f_a0 = f_a1;
-			f_a1 = f(a);
+			f_a1 = eq(a);
 		}
 	}
 
-	double b = 1 - foveate(a, 0, scale, c, 1);
-
-	return {a, b};
+	return {a, b(a)};
 }
 
 bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_index, float u, float v, xrt_uv_triplet * result)
@@ -192,7 +159,7 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 	{
 		u = 2 * u - 1;
 
-		out.x = param.x.a * tan(param.x.scale / param.x.a * (u - param.x.center)) + param.x.b;
+		out.x = foveate(param.x.a, param.x.b, param.x.scale, param.x.center, u);
 		out.x = std::clamp<float>((1 + out.x) / 2, 0, 1);
 	}
 	else
@@ -204,7 +171,7 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 	{
 		v = 2 * v - 1;
 
-		out.y = param.y.a * tan(param.y.scale / param.y.a * (v - param.y.center)) + param.y.b;
+		out.y = foveate(param.y.a, param.y.b, param.y.scale, param.y.center, v);
 		out.y = std::clamp<float>((1 + out.y) / 2, 0, 1);
 	}
 	else

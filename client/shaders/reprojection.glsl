@@ -69,17 +69,17 @@ void main()
 
 	if (use_foveation_x && use_foveation_y)
 	{
-		uv = ubo.xc + ubo.lambda * atan((uv - ubo.b) / ubo.a);
+		uv = atan(ubo.lambda * (uv - ubo.xc)) / ubo.a - ubo.b;
 	}
 	else
 	{
 		if (use_foveation_x)
 		{
-			uv.x = (ubo.xc + ubo.lambda * atan((uv - ubo.b) / ubo.a)).x;
+			uv.x = (atan(ubo.lambda * (uv - ubo.xc)) / ubo.a - ubo.b).x;
 		}
 		if (use_foveation_y)
 		{
-			uv.y = (ubo.xc + ubo.lambda * atan((uv - ubo.b) / ubo.a)).y;
+			uv.y = (atan(ubo.lambda * (uv - ubo.xc)) / ubo.a - ubo.b).y;
 		}
 	}
 
