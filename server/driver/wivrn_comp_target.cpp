@@ -388,7 +388,7 @@ static void comp_wivrn_create_images(struct comp_target * ct,
 	VkResult res = create_images(cn, image_usage, settings);
 	if (res != VK_SUCCESS)
 	{
-		vk_print_result(get_vk(cn), res, "create_images", __FILE__, __LINE__);
+		vk_print_result(get_vk(cn),  __FILE__, __LINE__, __func__, res, "create_images");
 		// TODO
 		abort();
 	}

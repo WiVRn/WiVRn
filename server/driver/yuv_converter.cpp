@@ -122,14 +122,14 @@ static void destroy_all(YuvConverter * ptr)
 	vk->vkDestroyShaderModule(vk->device, ptr->vert, nullptr);
 }
 
-#define vk_check_throw(fun, res)                                                  \
-	do                                                                        \
-	{                                                                         \
-		if (res != VK_SUCCESS)                                            \
-		{                                                                 \
-			vk_print_result(&this->vk, res, fun, __FILE__, __LINE__); \
-			throw std::runtime_error(fun "failed");                   \
-		}                                                                 \
+#define vk_check_throw(fun, res)                                                            \
+	do                                                                                  \
+	{                                                                                   \
+		if (res != VK_SUCCESS)                                                      \
+		{                                                                           \
+			vk_print_result(&this->vk, __FILE__, __LINE__, __func__, res, fun); \
+			throw std::runtime_error(fun "failed");                             \
+		}                                                                           \
 	} while (0)
 
 YuvConverter::YuvConverter(vk_bundle * vk, vk_cmd_pool & pool, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height) :
