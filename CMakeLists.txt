@@ -112,7 +112,7 @@ FetchContent_Declare(tinygltf      URL https://github.com/syoyo/tinygltf/archive
 # Server dependencies
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
-    GIT_TAG          c5f4f0ab7addd4631c295b2ca6e0c7458cd29788
+    GIT_TAG          3dcd555a6f2071e951010e080916a93353f5dab5
     )
 
 
