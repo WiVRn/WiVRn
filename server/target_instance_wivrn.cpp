@@ -6,7 +6,6 @@
  * @author Jakob Bornecrantz <jakob@collabora.com>
  */
 
-#include "xrt/xrt_config_build.h"
 #include "xrt/xrt_instance.h"
 #include "xrt/xrt_system.h"
 
@@ -42,7 +41,12 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	*out_xsys = &u_sys->base;
 
 	struct xrt_system_compositor * xsysc = NULL;
-	auto res = xrt::drivers::wivrn::wivrn_session::create_session(std::move(*tcp), out_xsysd, out_xspovrs, out_xsysc);
+	auto res = xrt::drivers::wivrn::wivrn_session::create_session(
+	        std::move(*tcp),
+	        u_sys->broadcast,
+	        out_xsysd,
+	        out_xspovrs,
+	        out_xsysc);
 	u_system_set_system_compositor(u_sys, *out_xsysc);
 	tcp.reset();
 	return res;

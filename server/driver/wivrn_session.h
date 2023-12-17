@@ -34,6 +34,7 @@ class wivrn_hmd;
 class wivrn_controller;
 struct audio_device;
 
+struct xrt_session_event_sink;
 struct xrt_system_devices;
 struct xrt_space_overseer;
 struct xrt_system_compositor;
@@ -70,6 +71,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 
 public:
 	static xrt_result_t create_session(TCP && tcp,
+	                                   xrt_session_event_sink & event_synk,
 	                                   xrt_system_devices ** out_xsysd,
 	                                   xrt_space_overseer ** out_xspovrs,
 	                                   xrt_system_compositor ** out_xsysc);

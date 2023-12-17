@@ -71,6 +71,7 @@ xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tc
 }
 
 xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp,
+                                                                xrt_session_event_sink & event_sink,
                                                                 xrt_system_devices ** out_xsysd,
                                                                 xrt_space_overseer ** out_xspovrs,
                                                                 xrt_system_compositor ** out_xsysc)
@@ -136,6 +137,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	}
 
 	u_builder_create_space_overseer_legacy(
+	        &event_sink,
 	        self->hmd.get(),
 	        self->left_hand.get(),
 	        self->right_hand.get(),
