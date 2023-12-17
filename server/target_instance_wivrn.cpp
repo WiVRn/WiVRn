@@ -13,6 +13,7 @@
 #include "os/os_time.h"
 
 #include "util/u_misc.h"
+#include "util/u_system.h"
 #include "util/u_trace_marker.h"
 
 #include <assert.h>
@@ -29,6 +30,7 @@ extern std::unique_ptr<TCP> tcp;
 
 static xrt_result_t
 wivrn_instance_create_system(struct xrt_instance * xinst,
+                             struct xrt_system ** out_xsys,
                              struct xrt_system_devices ** out_xsysd,
                              struct xrt_space_overseer ** out_xspovrs,
                              struct xrt_system_compositor ** out_xsysc)
@@ -36,9 +38,12 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	assert(out_xsysd != NULL);
 	assert(*out_xsysd == NULL);
 	assert(out_xsysc == NULL || *out_xsysc == NULL);
+	auto u_sys = u_system_create();
+	*out_xsys = &u_sys->base;
 
 	struct xrt_system_compositor * xsysc = NULL;
 	auto res = xrt::drivers::wivrn::wivrn_session::create_session(std::move(*tcp), out_xsysd, out_xspovrs, out_xsysc);
+	u_system_set_system_compositor(u_sys, *out_xsysc);
 	tcp.reset();
 	return res;
 }
