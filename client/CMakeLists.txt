@@ -44,15 +44,7 @@ if(ANDROID)
                 PROPERTY IMPORTED_LOCATION ${PICO_SDK_PATH}/libs/android.${ANDROID_ABI}/libopenxr_loader.so)
         target_link_libraries(wivrn OpenXR)
     else()
-        CPMAddPackage( # We're scraping the comment after the NAME for some other scripts
-            NAME openxr_loader # 1.0.28
-            VERSION 1.0.27
-            GITHUB_REPOSITORY KhronosGroup/OpenXR-SDK
-            GIT_TAG "release-1.0.28"
-            OPTIONS
-            "BUILD_WITH_SYSTEM_JSONCPP OFF"
-            "DYNAMIC_LOADER ON"
-        )
+        FetchContent_MakeAvailable(openxr_loader)
         target_link_libraries(wivrn openxr_loader)
     endif()
 

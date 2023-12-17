@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
-project(WiVRn VERSION 0.7.1 LANGUAGES C CXX)
+project(WiVRn VERSION 0.0.0 LANGUAGES C CXX)
 
+# Set default for FetchContent projects
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
@@ -10,8 +12,6 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 
-# See: https://github.com/cpm-cmake/CPM.cmake
-include("cmake/CPM.cmake")
 include(FetchContent)
 include(ExternalProject)
 include("cmake/AutoOption.cmake")
@@ -100,10 +100,16 @@ if(ANDROID)
     android_ndk_import_module_native_app_glue()
 endif()
 
-FetchContent_Declare(spdlog   URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz)
-FetchContent_Declare(glm      URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
-FetchContent_Declare(tinygltf URL https://github.com/syoyo/tinygltf/archive/refs/tags/v2.6.3.tar.gz)
-FetchContent_Declare(boostpfr URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
+# Common dependencies
+FetchContent_Declare(boostpfr      URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
+
+# Client dependencies
+FetchContent_Declare(glm           URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
+FetchContent_Declare(openxr_loader URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.0.32.tar.gz)
+FetchContent_Declare(spdlog        URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz)
+FetchContent_Declare(tinygltf      URL https://github.com/syoyo/tinygltf/archive/refs/tags/v2.6.3.tar.gz)
+
+# Server dependencies
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
     GIT_TAG          c5f4f0ab7addd4631c295b2ca6e0c7458cd29788
