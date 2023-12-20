@@ -56,8 +56,6 @@ void wivrn_session::handshake()
 				continue;
 			if (std::holds_alternative<to_headset::handshake>(*packet))
 			{
-				// If this packet is lost, a tracking packet will do the job to establish the connection
-				send_stream(from_headset::handshake{});
 				return;
 			}
 
@@ -71,21 +69,25 @@ void wivrn_session::handshake()
 wivrn_session::wivrn_session(in6_addr address, int port) :
         control(address, port), stream(), address(address)
 {
-	stream.connect(address, port);
-	stream.set_receive_buffer_size(1024 * 1024 * 5);
 
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET6, &address, buffer, sizeof(buffer)), port);
 	handshake();
+	stream.connect(address, port);
+	stream.set_receive_buffer_size(1024 * 1024 * 5);
+	// If this packet is lost, a tracking packet will do the job to establish the connection
+	send_stream(from_headset::handshake{});
 }
 
 wivrn_session::wivrn_session(in_addr address, int port) :
         control(address, port), stream(), address(address)
 {
-	stream.connect(address, port);
-	stream.set_receive_buffer_size(1024 * 1024 * 5);
 
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET, &address, buffer, sizeof(buffer)), port);
 	handshake();
+	stream.connect(address, port);
+	stream.set_receive_buffer_size(1024 * 1024 * 5);
+	// If this packet is lost, a tracking packet will do the job to establish the connection
+	send_stream(from_headset::handshake{});
 }
