@@ -21,7 +21,6 @@
 
 #include <cstdint>
 
-#include "application.h"
 #include "xr/session.h"
 #include "xr/swapchain.h"
 
@@ -34,14 +33,14 @@ protected:
 	XrViewConfigurationType viewconfig;
 	std::vector<xr::swapchain> & swapchains;
 
-	VkInstance vk_instance;
-	VkDevice device;
-	VkPhysicalDevice physical_device;
-	VkQueue queue;
-	vk::command_pool & commandpool;
+	vk::raii::Instance& vk_instance;
+	vk::raii::Device& device;
+	vk::raii::PhysicalDevice& physical_device;
+	vk::raii::Queue& queue;
+	vk::raii::CommandPool& commandpool;
 
-	VkFence create_fence(bool signaled = true);
-	VkSemaphore create_semaphore();
+	vk::raii::Fence create_fence(bool signaled = true);
+	vk::raii::Semaphore create_semaphore();
 
 public:
 	scene();

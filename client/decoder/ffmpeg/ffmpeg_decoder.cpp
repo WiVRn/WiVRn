@@ -23,6 +23,7 @@
 #include "spdlog/spdlog.h"
 #include "utils/check.h"
 #include <cassert>
+#include <vulkan/vulkan.hpp>
 
 extern "C"
 {
@@ -69,8 +70,8 @@ decoder::blit_handle::~blit_handle()
 }
 
 decoder::decoder(
-        VkDevice device,
-        VkPhysicalDevice physical_device,
+        vk::raii::Device& device,
+        vk::raii::PhysicalDevice& physical_device,
         const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
         float fps,
         uint8_t stream_index,
@@ -84,32 +85,33 @@ decoder::decoder(
 	{
 		free_images[i] = i;
 
-		VkImageCreateInfo image_info{};
-		image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		image_info.imageType = VK_IMAGE_TYPE_2D;
-		image_info.format = VK_FORMAT_A8B8G8R8_SRGB_PACK32;
+		vk::ImageCreateInfo image_info;
+		image_info.imageType = vk::ImageType::e2D;
+		image_info.format = vk::Format::eA8B8G8R8SrgbPack32;
 		image_info.extent.width = description.width;
 		image_info.extent.height = description.height;
 		image_info.extent.depth = 1;
 		image_info.mipLevels = 1;
 		image_info.arrayLayers = 1;
-		image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-		image_info.tiling = VK_IMAGE_TILING_LINEAR;
-		image_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		image_info.samples = vk::SampleCountFlagBits::e1;
+		image_info.tiling = vk::ImageTiling::eLinear;
+		image_info.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc;
+		image_info.sharingMode = vk::SharingMode::eExclusive;
 		image_info.queueFamilyIndexCount = 0;
-		image_info.pQueueFamilyIndices = NULL;
-		image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		image_info.pQueueFamilyIndices = nullptr;
+		image_info.initialLayout = vk::ImageLayout::eUndefined;
 
-		decoded_images[i].image = vk::image(device, image_info);
-		decoded_images[i].memory = vk::device_memory(device, physical_device, decoded_images[i].image, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		VmaAllocationCreateInfo alloc_info{};
+		alloc_info.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-		decoded_images[i].memory.map_memory();
+		decoded_images[i].image = image_allocation(image_info, alloc_info);
 
-		VkImageSubresource resource{};
-		resource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		decoded_images[i].image.map();
 
-		vkGetImageSubresourceLayout(device, decoded_images[i].image, &resource, &decoded_images[i].layout);
+		vk::ImageSubresource resource;
+		resource.aspectMask = vk::ImageAspectFlagBits::eColor;
+
+		decoded_images[i].layout = decoded_images[i].image->getSubresourceLayout(resource);
 	}
 
 	auto avcodec = avcodec_find_decoder(codec_id(description.codec));
@@ -125,31 +127,30 @@ decoder::decoder(
 		throw std::runtime_error{"avcodec_open2 failed"};
 }
 
-void decoder::set_blit_targets(std::vector<blit_target> targets, VkFormat format)
+void decoder::set_blit_targets(std::vector<blit_target> targets, vk::Format format)
 {
 	blit_targets = std::move(targets);
 }
 
-void decoder::blit(VkCommandBuffer command_buffer, blit_handle & handle, std::span<int> blit_indices)
+void decoder::blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> blit_indices)
 {
 	std::unique_lock lock(mutex);
 
 	// Transition layout to VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
 	// TODO: transition only if needed
-	VkImageMemoryBarrier barrier{};
-	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	vk::ImageMemoryBarrier barrier;
 	barrier.image = handle.image;
-	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 	barrier.subresourceRange.levelCount = 1;
 	barrier.subresourceRange.layerCount = 1;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+	barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+	barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+	barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+	barrier.oldLayout = vk::ImageLayout::eUndefined;
+	barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
 
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags{}, {}, {}, barrier);
 
 	for (int blit_index: blit_indices)
 	{
@@ -163,9 +164,9 @@ void decoder::blit(VkCommandBuffer command_buffer, blit_handle & handle, std::sp
 		if (description.offset_x >= right or description.offset_x + description.width <= left)
 			continue;
 
-		VkImageBlit blit{};
+		vk::ImageBlit blit;
 
-		blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
 		blit.srcSubresource.layerCount = 1;
 		blit.srcOffsets[0].x = std::max<int32_t>(0, left - description.offset_x);
 		blit.srcOffsets[0].y = 0;
@@ -173,14 +174,14 @@ void decoder::blit(VkCommandBuffer command_buffer, blit_handle & handle, std::sp
 		blit.srcOffsets[1].y = std::min<int32_t>(description.height, height - description.offset_y);
 		blit.srcOffsets[1].z = 1;
 
-		blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
 		blit.dstSubresource.layerCount = 1;
 		blit.dstOffsets[0].x = std::max<int32_t>(0, description.offset_x - left);
 		blit.dstOffsets[0].y = description.offset_y;
 		blit.dstOffsets[1].x = std::min<int32_t>(width, description.offset_x + description.width - left);
 		blit.dstOffsets[1].y = std::min<int32_t>(height, description.offset_y + description.height);
 		blit.dstOffsets[1].z = 1;
-		vkCmdBlitImage(command_buffer, handle.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, blit_targets[blit_index].image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+		command_buffer.blitImage(handle.image, vk::ImageLayout::eTransferSrcOptimal, blit_targets[blit_index].image, vk::ImageLayout::eTransferDstOptimal, blit, vk::Filter::eLinear);
 	}
 }
 
@@ -241,7 +242,7 @@ void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback 
 
 	decoded_images[index].frame_index = frame_index;
 	int dstStride = decoded_images[index].layout.rowPitch;
-	uint8_t * out = (uint8_t *)decoded_images[index].memory.data();
+	uint8_t * out = (uint8_t *)decoded_images[index].image.map();
 	res = sws_scale(sws.get(), frame->data, frame->linesize, 0, frame->height, &out, &dstStride);
 	if (res == 0)
 		throw std::runtime_error{"sws_scale failed"};

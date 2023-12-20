@@ -19,59 +19,45 @@
 
 #pragma once
 
-#include "vk/buffer.h"
-#include "vk/device_memory.h"
-#include "vk/pipeline.h"
-#include "vk/pipeline_layout.h"
-#include "vk/renderpass.h"
-#include "vk/shader.h"
+#include "vk/allocation.h"
 #include "wivrn_packets.h"
 #include <vulkan/vulkan_core.h>
 #include <openxr/openxr.h>
+#include <vulkan/vulkan_raii.hpp>
 
 class stream_reprojection
 {
 	struct uniform;
 
-	VkDevice device;
-	VkPhysicalDevice physical_device;
-
 	// Uniform buffer
-	vk::buffer buffer;
-	vk::device_memory memory;
-	std::vector<uniform *> ubo{};
-
-	// Source images
-	VkSampler sampler{};
-	std::vector<VkImage> input_images;
-	std::vector<VkImageView> input_image_views;
-	std::vector<VkDescriptorSet> descriptor_sets;
-
-	// Destination images
-	std::vector<VkImage> output_images;
-	std::vector<VkImageView> output_image_views;
-	std::vector<VkFramebuffer> framebuffers;
-	VkExtent2D extent{};
-	VkFormat format{};
+	buffer_allocation buffer;
+	std::vector<uniform *> ubo;
 
 	// Graphic pipeline
-	VkDescriptorSetLayout descriptor_set_layout{};
-	VkDescriptorPool descriptor_pool{};
-	vk::pipeline_layout layout;
-	vk::pipeline pipeline;
-	vk::renderpass renderpass;
+	vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
+	vk::raii::DescriptorPool descriptor_pool = nullptr;
+	vk::raii::PipelineLayout layout = nullptr;
+	vk::raii::RenderPass renderpass = nullptr;
+	vk::raii::Pipeline pipeline = nullptr;
+
+	// Source images
+	vk::raii::Sampler sampler = nullptr;
+	std::vector<vk::Image> input_images;
+	std::vector<vk::raii::ImageView> input_image_views;
+	std::vector<vk::DescriptorSet> descriptor_sets;
+
+	// Destination images
+	std::vector<vk::Image> output_images;
+	std::vector<vk::raii::ImageView> output_image_views;
+	std::vector<vk::raii::Framebuffer> framebuffers;
+	vk::Extent2D extent;
 
 	// Foveation
 	std::array<xrt::drivers::wivrn::to_headset::video_stream_description::foveation_parameter, 2> foveation_parameters;
 
-	void cleanup();
-
 public:
-	stream_reprojection() = default;
+	stream_reprojection(vk::raii::Device& device, vk::raii::PhysicalDevice& physical_device, std::vector<vk::Image> input_images, std::vector<vk::Image> output_images, vk::Extent2D extent, vk::Format format, const xrt::drivers::wivrn::to_headset::video_stream_description & description);
 	stream_reprojection(const stream_reprojection &) = delete;
-	void init(VkDevice device, VkPhysicalDevice physical_device, std::vector<VkImage> input_images, std::vector<VkImage> output_images, VkExtent2D extent, VkFormat format, const xrt::drivers::wivrn::to_headset::video_stream_description & description);
 
-	~stream_reprojection();
-
-	void reproject(VkCommandBuffer command_buffer, int source, int destination, XrQuaternionf source_pose, XrFovf source_fov, XrQuaternionf destination_pose, XrFovf destination_fov);
+	void reproject(vk::raii::CommandBuffer& command_buffer, int source, int destination, XrQuaternionf source_pose, XrFovf source_fov, XrQuaternionf destination_pose, XrFovf destination_fov);
 };

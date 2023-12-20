@@ -21,11 +21,9 @@
 #include "details/enumerate.h"
 #include "error.h"
 #include "session.h"
-#include "vk/vk.h"
 #include "xr.h"
 
-xr::swapchain::swapchain(xr::session & s, VkDevice device, VkFormat format, uint32_t width, uint32_t height, int sample_count) :
-        device(device)
+xr::swapchain::swapchain(xr::session & s, vk::raii::Device& device, vk::Format format, uint32_t width, uint32_t height, int sample_count)
 {
 	assert(sample_count == 1);
 
@@ -33,7 +31,7 @@ xr::swapchain::swapchain(xr::session & s, VkDevice device, VkFormat format, uint
 	create_info.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
 	create_info.createFlags = 0;
 	create_info.usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
-	create_info.format = format;
+	create_info.format = static_cast<VkFormat>(format);
 	create_info.sampleCount = sample_count;
 	create_info.width = width;
 	create_info.height = height;
@@ -56,32 +54,26 @@ xr::swapchain::swapchain(xr::session & s, VkDevice device, VkFormat format, uint
 	{
 		images_[i].image = array[i].image;
 
-		VkImageViewCreateInfo iv_create_info{};
-		iv_create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		vk::ImageViewCreateInfo iv_create_info;
 		iv_create_info.image = array[i].image;
-		iv_create_info.viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D;
+		iv_create_info.viewType = vk::ImageViewType::e2D;
 		iv_create_info.format = format;
-		iv_create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		iv_create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		iv_create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		iv_create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		iv_create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		iv_create_info.components.r = vk::ComponentSwizzle::eIdentity;
+		iv_create_info.components.g = vk::ComponentSwizzle::eIdentity;
+		iv_create_info.components.b = vk::ComponentSwizzle::eIdentity;
+		iv_create_info.components.a = vk::ComponentSwizzle::eIdentity;
+		iv_create_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 		iv_create_info.subresourceRange.baseMipLevel = 0;
 		iv_create_info.subresourceRange.levelCount = 1;
 		iv_create_info.subresourceRange.baseArrayLayer = 0;
 		iv_create_info.subresourceRange.layerCount = 1;
-		CHECK_VK(vkCreateImageView(device, &iv_create_info, nullptr, &images_[i].view));
+
+		images_[i].view = vk::raii::ImageView(device, iv_create_info);
 	}
 }
 
 xr::swapchain::~swapchain()
 {
-	for (auto & i: images_)
-	{
-		if (i.view)
-			vkDestroyImageView(device, i.view, nullptr);
-	}
-
 	if (id != XR_NULL_HANDLE)
 		xrDestroySwapchain(id);
 }

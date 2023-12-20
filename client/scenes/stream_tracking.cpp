@@ -19,6 +19,7 @@
 
 #include "stream.h"
 #include "utils/ranges.h"
+#include "application.h"
 #include <thread>
 
 static from_headset::tracking::pose locate_space(device_id device, XrSpace space, XrSpace reference, XrTime time)

@@ -21,14 +21,6 @@
 
 #include "magic_enum.hpp"
 #include "utils/check.h"
-#include "vk/buffer.h"
-#include "vk/buffer_view.h"
-#include "vk/command_pool.h"
-#include "vk/device_memory.h"
-#include "vk/image.h"
-#include "vk/pipeline.h"
-#include "vk/renderpass.h"
-#include "vk/shader.h"
 #include <string>
 #include <vulkan/vulkan.h>
 

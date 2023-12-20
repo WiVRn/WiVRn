@@ -19,41 +19,37 @@
 
 #pragma once
 
-#ifndef TEST
-#include "vk/device_memory.h"
-#include "vk/image.h"
-#endif
-
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 
 #include <freetype/freetype.h>
 #include <ft2build.h>
 #include <hb.h>
 #include <string_view>
 #include <vector>
+#include "vk/allocation.h"
 
 struct text
 {
+	vk::Extent2D size;
+
 #ifndef TEST
-	static inline const VkFormat format = VK_FORMAT_R8_UNORM;
-	static inline const VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	static inline const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
-	vk::image image;
-	vk::device_memory memory;
+	static inline const vk::Format format = vk::Format::eR8Unorm;
+	static inline const vk::ImageLayout layout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	static inline const vk::ImageTiling tiling = vk::ImageTiling::eOptimal;
+	image_allocation image;
+
 #else
 	std::vector<uint8_t> bitmap;
 #endif
-
-	VkExtent2D size;
 };
 
 class text_rasterizer
 {
-	VkDevice device{};
-	VkPhysicalDevice physical_device{};
-	VkCommandPool command_pool{};
-	VkQueue queue{};
-	VkFence fence{};
+	vk::raii::Device& device;
+	vk::raii::PhysicalDevice& physical_device;
+	vk::raii::CommandPool& command_pool;
+	vk::raii::Queue& queue;
+	vk::raii::Fence fence;
 
 	FT_Library freetype{};
 	FT_Face face{};
@@ -61,8 +57,12 @@ class text_rasterizer
 	hb_font_t * font{};
 	hb_buffer_t * buffer{};
 
+	image_allocation create_image(vk::Extent2D size, VmaMemoryUsage usage);
+	buffer_allocation create_buffer(size_t size, VmaMemoryUsage usage);
+	vk::raii::DeviceMemory allocate_memory(vk::Buffer buffer, vk::MemoryPropertyFlags flags);
+
 public:
-	text_rasterizer(VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue);
+	text_rasterizer(vk::raii::Device& device, vk::raii::PhysicalDevice& physical_device, vk::raii::CommandPool& command_pool, vk::raii::Queue& queue);
 	~text_rasterizer();
 
 	text render(std::string_view s);

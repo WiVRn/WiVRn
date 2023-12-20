@@ -20,8 +20,8 @@
 #include "android_decoder.h"
 #include "application.h"
 #include "scenes/stream.h"
-#include "utils/check.h"
-#include "vk/device_memory.h"
+#include "vk/shader.h"
+#include "vk/pipeline.h"
 #include <algorithm>
 #include <android/hardware_buffer.h>
 #include <cassert>
@@ -33,140 +33,133 @@
 #include <mutex>
 #include <spdlog/spdlog.h>
 #include <thread>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_android.h>
-#include <vulkan/vulkan_core.h>
-
-#include "magic_enum.hpp"
+#include <vulkan/vulkan_raii.hpp>
 
 DEUGLIFY(AMediaFormat)
 
 struct wivrn::android::decoder::pipeline_context
 {
-	VkDevice device;
-	VkAndroidHardwareBufferFormatPropertiesANDROID ahb_format;
+	vk::raii::Device& device;
+	vk::AndroidHardwareBufferFormatPropertiesANDROID ahb_format;
 
-	VkSamplerYcbcrConversion ycbcr_conversion;
-	VkSampler sampler;
+	vk::raii::SamplerYcbcrConversion ycbcr_conversion = nullptr;
+	vk::raii::Sampler sampler = nullptr;
 
-	std::vector<VkFramebuffer> framebuffers;
-	VkDescriptorSetLayout descriptor_set_layout;
-	VkDescriptorPool descriptor_pool;
+	vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
+	vk::raii::DescriptorPool descriptor_pool = nullptr;
 	std::mutex descriptor_pool_mutex;
-	vk::pipeline_layout layout;
-	vk::pipeline pipeline;
+	vk::raii::PipelineLayout layout = nullptr;
+	vk::raii::Pipeline pipeline = nullptr;
 
-	~pipeline_context()
-	{
-		vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
-		vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
-		vkDestroySampler(device, sampler, nullptr);
-		vkDestroySamplerYcbcrConversion(device, ycbcr_conversion, nullptr);
-	}
-
-	pipeline_context(VkDevice device, const AHardwareBuffer_Desc& buffer_desc, VkAndroidHardwareBufferFormatPropertiesANDROID & ahb_format, VkRenderPass renderpass, const to_headset::video_stream_description::item& description) :
+	pipeline_context(vk::raii::Device& device, const AHardwareBuffer_Desc& buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format, vk::raii::RenderPass& renderpass, const to_headset::video_stream_description::item& description) :
 	        device(device), ahb_format(ahb_format)
 	{
 		assert(ahb_format.externalFormat != 0);
 		spdlog::info("AndroidHardwareBufferProperties");
-		spdlog::info("  Vulkan format: {}", magic_enum::enum_name(ahb_format.format));
+		spdlog::info("  Vulkan format: {}", vk::to_string(ahb_format.format));
 		spdlog::info("  External format: {:#x}", ahb_format.externalFormat);
-		spdlog::info("  Format features: {:#x}", ahb_format.formatFeatures);
+		spdlog::info("  Format features: {}", vk::to_string(ahb_format.formatFeatures));
 		spdlog::info("  samplerYcbcrConversionComponents: ({}, {}, {}, {})",
-		             magic_enum::enum_name(ahb_format.samplerYcbcrConversionComponents.r),
-		             magic_enum::enum_name(ahb_format.samplerYcbcrConversionComponents.g),
-		             magic_enum::enum_name(ahb_format.samplerYcbcrConversionComponents.b),
-		             magic_enum::enum_name(ahb_format.samplerYcbcrConversionComponents.a));
-		spdlog::info("  Suggested YCbCr model: {}", magic_enum::enum_name(ahb_format.suggestedYcbcrModel));
-		spdlog::info("  Suggested YCbCr range: {}", magic_enum::enum_name(ahb_format.suggestedYcbcrRange));
-		spdlog::info("  Suggested X chroma offset: {}", magic_enum::enum_name(ahb_format.suggestedXChromaOffset));
-		spdlog::info("  Suggested Y chroma offset: {}", magic_enum::enum_name(ahb_format.suggestedYChromaOffset));
+		             vk::to_string(ahb_format.samplerYcbcrConversionComponents.r),
+		             vk::to_string(ahb_format.samplerYcbcrConversionComponents.g),
+		             vk::to_string(ahb_format.samplerYcbcrConversionComponents.b),
+		             vk::to_string(ahb_format.samplerYcbcrConversionComponents.a));
+		spdlog::info("  Suggested YCbCr model: {}", vk::to_string(ahb_format.suggestedYcbcrModel));
+		spdlog::info("  Suggested YCbCr range: {}", vk::to_string(ahb_format.suggestedYcbcrRange));
+		spdlog::info("  Suggested X chroma offset: {}", vk::to_string(ahb_format.suggestedXChromaOffset));
+		spdlog::info("  Suggested Y chroma offset: {}", vk::to_string(ahb_format.suggestedYChromaOffset));
 
-		VkFilter yuv_filter;
-		if (ahb_format.formatFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT)
-			yuv_filter = VK_FILTER_LINEAR;
+		vk::Filter yuv_filter;
+		if (ahb_format.formatFeatures & vk::FormatFeatureFlagBits::eSampledImageYcbcrConversionLinearFilter)
+			yuv_filter = vk::Filter::eLinear;
 		else
-			yuv_filter = VK_FILTER_NEAREST;
+			yuv_filter = vk::Filter::eNearest;
 
 		// Create VkSamplerYcbcrConversion
-		VkExternalFormatANDROID ycbcr_create_info2{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID,
-		                                           .externalFormat = ahb_format.externalFormat};
-
-		VkSamplerYcbcrConversionCreateInfo ycbcr_create_info{
-		        .sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO,
-		        .pNext = &ycbcr_create_info2,
-		        .format = VK_FORMAT_UNDEFINED,
-		        .ycbcrModel = ahb_format.suggestedYcbcrModel,
-		        .ycbcrRange = ahb_format.suggestedYcbcrRange,
-		        .components = ahb_format.samplerYcbcrConversionComponents,
-		        .xChromaOffset = ahb_format.suggestedXChromaOffset,
-		        .yChromaOffset = ahb_format.suggestedYChromaOffset,
-		        .chromaFilter = yuv_filter,
+		vk::StructureChain ycbcr_create_info
+		{
+			vk::SamplerYcbcrConversionCreateInfo{
+				.format = vk::Format::eUndefined,
+				.ycbcrModel = ahb_format.suggestedYcbcrModel,
+				.ycbcrRange = ahb_format.suggestedYcbcrRange,
+				.components = ahb_format.samplerYcbcrConversionComponents,
+				.xChromaOffset = ahb_format.suggestedXChromaOffset,
+				.yChromaOffset = ahb_format.suggestedYChromaOffset,
+				.chromaFilter = yuv_filter,
+			},
+			vk::ExternalFormatANDROID{
+				.externalFormat = ahb_format.externalFormat,
+			},
 		};
+
+
+
 		// suggested values from decoder don't actually read the metadata, so it's garbage
 		if (description.range)
-			ycbcr_create_info.ycbcrRange = VkSamplerYcbcrRange(*description.range);
-		if (description.color_model)
-			ycbcr_create_info.ycbcrModel = VkSamplerYcbcrModelConversion(*description.color_model);
+			ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrRange = vk::SamplerYcbcrRange(*description.range);
 
-		CHECK_VK(vkCreateSamplerYcbcrConversion(device, &ycbcr_create_info, nullptr, &ycbcr_conversion));
+		if (description.color_model)
+			ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrModel = vk::SamplerYcbcrModelConversion(*description.color_model);
+
+		ycbcr_conversion = vk::raii::SamplerYcbcrConversion(device, ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>());
 
 		// Create VkSampler
-		VkSamplerYcbcrConversionInfo sampler_info2{
-		        .sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO,
-		        .conversion = ycbcr_conversion,
+		vk::StructureChain sampler_info{
+			vk::SamplerCreateInfo{
+				.magFilter = yuv_filter,
+				.minFilter = yuv_filter,
+				.mipmapMode = vk::SamplerMipmapMode::eNearest,
+				.addressModeU = vk::SamplerAddressMode::eClampToEdge,
+				.addressModeV = vk::SamplerAddressMode::eClampToEdge,
+				.addressModeW = vk::SamplerAddressMode::eClampToEdge,
+				.mipLodBias = 0.0f,
+				.anisotropyEnable = VK_FALSE,
+				.maxAnisotropy = 1,
+				.compareEnable = VK_FALSE,
+				.compareOp = vk::CompareOp::eNever,
+				.minLod = 0.0f,
+				.maxLod = 0.0f,
+				.borderColor = vk::BorderColor::eFloatOpaqueWhite, // TODO TBC
+				.unnormalizedCoordinates = VK_FALSE,
+			},
+			vk::SamplerYcbcrConversionInfo{
+				.conversion = *ycbcr_conversion,
+			}
 		};
 
-		VkSamplerCreateInfo sampler_info{
-		        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-		        .pNext = &sampler_info2,
-		        .magFilter = yuv_filter,
-		        .minFilter = yuv_filter,
-		        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
-		        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-		        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-		        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-		        .mipLodBias = 0.0f,
-		        .anisotropyEnable = VK_FALSE,
-		        .maxAnisotropy = 1,
-		        .compareEnable = VK_FALSE,
-		        .compareOp = VK_COMPARE_OP_NEVER,
-		        .minLod = 0.0f,
-		        .maxLod = 0.0f,
-		        .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE, // TODO TBC
-		        .unnormalizedCoordinates = VK_FALSE,
 
-		};
+		sampler = vk::raii::Sampler(device, sampler_info.get<vk::SamplerCreateInfo>());
 
-		CHECK_VK(vkCreateSampler(device, &sampler_info, nullptr, &sampler));
 
 		// Create VkDescriptorSetLayout with an immutable sampler
-		VkDescriptorSetLayoutBinding samplerLayoutBinding{
-		        .binding = 0,
-		        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		        .descriptorCount = 1,
-		        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-		        .pImmutableSamplers = &sampler,
+		vk::DescriptorSetLayoutBinding sampler_layout_binding{
+			.binding = 0,
+			.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			.descriptorCount = 1,
+			.stageFlags = vk::ShaderStageFlagBits::eFragment,
+		};
+		sampler_layout_binding.setImmutableSamplers(*sampler);
+
+		vk::DescriptorSetLayoutCreateInfo layout_info;
+		layout_info.setBindings(sampler_layout_binding);
+
+		descriptor_set_layout = vk::raii::DescriptorSetLayout(device, layout_info);
+
+
+		vk::DescriptorPoolSize pool_size{
+			.type = vk::DescriptorType::eCombinedImageSampler,
+			.descriptorCount = 100,
 		};
 
-		VkDescriptorSetLayoutCreateInfo layoutInfo{
-		        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-		        .bindingCount = 1,
-		        .pBindings = &samplerLayoutBinding,
+		vk::DescriptorPoolCreateInfo pool_info{
+			.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+			.maxSets = pool_size.descriptorCount,
 		};
+		pool_info.setPoolSizes(pool_size);
 
-		CHECK_VK(vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptor_set_layout));
-
-		VkDescriptorPoolSize poolSize{};
-		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSize.descriptorCount = 100;
-
-		VkDescriptorPoolCreateInfo poolInfo{};
-		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-		poolInfo.poolSizeCount = 1;
-		poolInfo.pPoolSizes = &poolSize;
-		poolInfo.maxSets = poolSize.descriptorCount;
-		CHECK_VK(vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptor_pool));
+		descriptor_pool = vk::raii::DescriptorPool(device, pool_info);
 
 		float useful_size[] =
 		{
@@ -174,67 +167,91 @@ struct wivrn::android::decoder::pipeline_context
 			float(description.height) / buffer_desc.height
 		};
 
-		std::vector<VkSpecializationMapEntry> specialization_constants_desc{
-			{.constantID = 0, .offset = 0, .size = sizeof(float)},
-			{.constantID = 1, .offset = sizeof(float), .size = sizeof(float)}};
-
-		VkSpecializationInfo specialization_info{
-			.mapEntryCount = (uint32_t)specialization_constants_desc.size(),
-				.pMapEntries = specialization_constants_desc.data(),
-				.dataSize = sizeof(useful_size),
-				.pData = &useful_size};
-
-		// Create graphics pipeline
-		vk::shader vertex_shader(device, "stream.vert");
-		vk::shader fragment_shader(device, "stream.frag");
-
-		VkPipelineColorBlendAttachmentState pcbas{};
-		pcbas.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT;
-
-		layout = vk::pipeline_layout(
-		        device, {.descriptor_set_layouts = {descriptor_set_layout}});
-
-		vk::pipeline::graphics_info pipeline_info{
-		        .shader_stages =
-		                {{.stage = VK_SHADER_STAGE_VERTEX_BIT, .module = vertex_shader, .pName = "main", .pSpecializationInfo = &specialization_info},
-		                 {.stage = VK_SHADER_STAGE_FRAGMENT_BIT, .module = fragment_shader, .pName = "main"}},
-		        .vertex_input_bindings = {},
-		        .vertex_input_attributes = {},
-		        .InputAssemblyState = {.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP},
-		        .viewports = {{}},
-		        .scissors = {{}},
-		        .RasterizationState = {.polygonMode = VK_POLYGON_MODE_FILL, .lineWidth = 1},
-		        .MultisampleState = {.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT},
-		        .ColorBlendState = {.attachmentCount = 1, .pAttachments = &pcbas},
-		        .dynamic_states = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR},
-		        .renderPass = renderpass,
-		        .subpass = 0,
+		std::array specialization_constants_desc{
+			vk::SpecializationMapEntry{
+				.constantID = 0,
+				.offset = 0,
+				.size = sizeof(float),
+			},
+			vk::SpecializationMapEntry{
+				.constantID = 1,
+				.offset = sizeof(float),
+				.size = sizeof(float),
+			}
 		};
 
-		pipeline = vk::pipeline(device, pipeline_info, layout);
+		vk::SpecializationInfo specialization_info;
+		specialization_info.setMapEntries(specialization_constants_desc);
+		specialization_info.setData<float>(useful_size);
+
+		// Create graphics pipeline
+		vk::raii::ShaderModule vertex_shader = load_shader(device, "stream.vert");
+		vk::raii::ShaderModule fragment_shader = load_shader(device, "stream.frag");
+
+
+		vk::PipelineLayoutCreateInfo pipeline_layout_info;
+		pipeline_layout_info.setSetLayouts(*descriptor_set_layout);
+
+		layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
+
+		vk::pipeline_builder pipeline_info
+		{
+			.flags = {},
+			.Stages = {{
+				.stage = vk::ShaderStageFlagBits::eVertex,
+				.module = *vertex_shader,
+				.pName = "main",
+			},{
+				.stage = vk::ShaderStageFlagBits::eFragment,
+				.module = *fragment_shader,
+				.pName = "main",
+				.pSpecializationInfo = &specialization_info,
+			}},
+			.VertexInputState = {.flags = {}},
+			.VertexBindingDescriptions = {},
+			.VertexAttributeDescriptions = {},
+			.InputAssemblyState = {{
+				.topology = vk::PrimitiveTopology::eTriangleStrip,
+			}},
+			.ViewportState = {.flags = {}},
+			.RasterizationState = {{
+				.polygonMode = vk::PolygonMode::eFill,
+				.lineWidth = 1,
+			}},
+			.MultisampleState = {{
+				.rasterizationSamples = vk::SampleCountFlagBits::e1,
+			}},
+			.ColorBlendState = {.flags = {}},
+			.ColorBlendAttachments = {{
+				.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB
+			}},
+			.DynamicState = {.flags={}},
+			.DynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor},
+			.layout = *layout,
+			.renderPass = *renderpass,
+			.subpass = 0,
+		};
+
+		pipeline = vk::raii::Pipeline(device, nullptr, pipeline_info);
 	}
 };
 
 struct wivrn::android::decoder::mapped_hardware_buffer
 {
 	std::shared_ptr<pipeline_context> pipeline;
-	VkImageView image_view{};
-	VkImage vimage{};
-	VkDeviceMemory memory{};
-	VkDescriptorSet descriptor_set{};
-	VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	vk::raii::DeviceMemory memory = nullptr;
+	vk::raii::Image vimage = nullptr;
+	vk::raii::ImageView image_view = nullptr;
+	vk::raii::DescriptorSet descriptor_set = nullptr;
+	vk::ImageLayout layout = vk::ImageLayout::eUndefined;
 
 	~mapped_hardware_buffer()
 	{
 		assert(pipeline);
-		auto device = pipeline->device;
 		{
 			std::unique_lock lock(pipeline->descriptor_pool_mutex);
-			vkFreeDescriptorSets(device, pipeline->descriptor_pool, 1, &descriptor_set);
+			descriptor_set = nullptr;
 		}
-		vkDestroyImageView(device, image_view, nullptr);
-		vkFreeMemory(device, memory, nullptr);
-		vkDestroyImage(device, vimage, nullptr);
 	}
 };
 
@@ -409,8 +426,8 @@ void decoder::push_nals(std::span<std::span<const uint8_t>> data, int64_t timest
 }
 
 decoder::decoder(
-        VkDevice device,
-        VkPhysicalDevice physical_device,
+        vk::raii::Device& device,
+        vk::raii::PhysicalDevice& physical_device,
         const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
         float fps,
         uint8_t stream_index,
@@ -460,49 +477,53 @@ decoder::~decoder()
 	input_buffers.close();
 	output_buffers.close();
 	output_releaser.join();
-	for (auto & i: blit_targets)
-		vkDestroyFramebuffer(device, i.framebuffer, nullptr);
 }
 
-void decoder::set_blit_targets(std::vector<decoder::blit_target> targets, VkFormat format)
+void decoder::set_blit_targets(std::vector<decoder::blit_target> targets, vk::Format format)
 {
 	// Create renderpass
-	VkAttachmentReference color_ref{.attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+	vk::AttachmentDescription color_desc{
+		.format = format,
+		.samples = vk::SampleCountFlagBits::e1,
+		.loadOp = vk::AttachmentLoadOp::eLoad,
+		.storeOp = vk::AttachmentStoreOp::eStore,
+		.initialLayout = vk::ImageLayout::eColorAttachmentOptimal,
+		.finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
+	};
 
-	vk::renderpass::info renderpass_info{.attachments = {VkAttachmentDescription{
-	                                             .format = format,
-	                                             .samples = VK_SAMPLE_COUNT_1_BIT,
-	                                             .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-	                                             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-	                                             .initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-	                                             .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-	                                     }},
-	                                     .subpasses = {VkSubpassDescription{
-	                                             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-	                                             .colorAttachmentCount = 1,
-	                                             .pColorAttachments = &color_ref,
-	                                     }},
-	                                     .dependencies = {}};
+	vk::AttachmentReference color_ref{
+		.attachment = 0,
+		.layout = vk::ImageLayout::eColorAttachmentOptimal,
+	};
 
-	renderpass = vk::renderpass(device, renderpass_info);
+	vk::SubpassDescription subpass{
+		.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
+	};
+	subpass.setColorAttachments(color_ref);
 
-	// Remove old blit targets first
-	for (auto & i: blit_targets)
-		vkDestroyFramebuffer(device, i.framebuffer, nullptr);
+	vk::RenderPassCreateInfo renderpass_info{
+		.flags = {},
+
+	};
+	renderpass_info.setAttachments(color_desc);
+	renderpass_info.setSubpasses(subpass);
+
+	renderpass = vk::raii::RenderPass(device, renderpass_info);
 
 	blit_targets = std::move(targets);
 
 	for (auto & i: blit_targets)
 	{
-		VkFramebufferCreateInfo fb_create_info{};
-		fb_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		fb_create_info.renderPass = renderpass;
-		fb_create_info.attachmentCount = 1;
-		fb_create_info.pAttachments = &i.image_view;
-		fb_create_info.width = i.extent.width;
-		fb_create_info.height = i.extent.height;
-		fb_create_info.layers = 1;
-		CHECK_VK(vkCreateFramebuffer(device, &fb_create_info, nullptr, &i.framebuffer));
+		vk::FramebufferCreateInfo fb_create_info{
+			.renderPass = *renderpass,
+			.attachmentCount = 1,
+			.pAttachments = &i.image_view,
+			.width = i.extent.width,
+			.height = i.extent.height,
+			.layers = 1
+		};
+
+		i.framebuffer = std::make_shared<vk::raii::Framebuffer>(device, fb_create_info);
 	}
 }
 
@@ -636,13 +657,7 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 	AHardwareBuffer_Desc buffer_desc{};
 	AHardwareBuffer_describe(hardware_buffer, &buffer_desc);
 
-	VkAndroidHardwareBufferFormatPropertiesANDROID format_properties{};
-	format_properties.sType = VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID;
-
-	VkAndroidHardwareBufferPropertiesANDROID properties{};
-	properties.sType = VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID;
-	properties.pNext = &format_properties;
-	CHECK_VK(vkGetAndroidHardwareBufferPropertiesANDROID(device, hardware_buffer, &properties));
+	auto [properties, format_properties] = device.getAndroidHardwareBufferPropertiesANDROID<vk::AndroidHardwareBufferPropertiesANDROID, vk::AndroidHardwareBufferFormatPropertiesANDROID>(*hardware_buffer);
 
 	if (!pipeline || memcmp(&pipeline->ahb_format, &format_properties, sizeof(format_properties)))
 	{
@@ -655,106 +670,107 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 	if (it != hardware_buffer_map.end())
 		return it->second;
 
-	VkExternalFormatANDROID img_info3{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID,
-	                                  .externalFormat = format_properties.externalFormat};
+	vk::StructureChain img_info{
+		vk::ImageCreateInfo{
+			.flags = {},
+			.imageType = vk::ImageType::e2D,
+			.format = vk::Format::eUndefined,
+			.extent = {buffer_desc.width, buffer_desc.height, 1},
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = vk::SampleCountFlagBits::e1,
+			.tiling = vk::ImageTiling::eOptimal,
+			.usage = vk::ImageUsageFlagBits::eSampled,
+			.sharingMode = vk::SharingMode::eExclusive,
+			.initialLayout = vk::ImageLayout::eUndefined
+		},
+		vk::ExternalMemoryImageCreateInfo{
+			.handleTypes = vk::ExternalMemoryHandleTypeFlagBits::eAndroidHardwareBufferANDROID
+		},
+		vk::ExternalFormatANDROID{
+			.externalFormat = format_properties.externalFormat
+		}
+	};
 
-	VkExternalMemoryImageCreateInfo img_info2{
-	        .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
-	        .pNext = &img_info3,
-	        .handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID};
-
-	VkImageCreateInfo img_info{.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-	                           .pNext = &img_info2,
-	                           .flags = 0,
-	                           .imageType = VK_IMAGE_TYPE_2D,
-	                           .format = VK_FORMAT_UNDEFINED,
-	                           .extent = {buffer_desc.width, buffer_desc.height, 1},
-	                           .mipLevels = 1,
-	                           .arrayLayers = 1,
-	                           .samples = VK_SAMPLE_COUNT_1_BIT,
-	                           .tiling = VK_IMAGE_TILING_OPTIMAL,
-	                           .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
-	                           .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-	                           .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
-
-	vk::image vimage(device, img_info);
-
-	VkImportAndroidHardwareBufferInfoANDROID mem_info3{
-	        .sType = VK_STRUCTURE_TYPE_IMPORT_ANDROID_HARDWARE_BUFFER_INFO_ANDROID,
-	        .buffer = hardware_buffer};
-
-	VkMemoryDedicatedAllocateInfo mem_info2{.sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
-	                                        .pNext = &mem_info3,
-	                                        .image = vimage};
+	vk::raii::Image vimage(device, img_info.get());
 
 	assert(properties.memoryTypeBits != 0);
-	VkMemoryAllocateInfo mem_info{.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-	                              .pNext = &mem_info2,
-	                              .allocationSize = properties.allocationSize,
-	                              .memoryTypeIndex = (uint32_t)(ffs(properties.memoryTypeBits) - 1)};
-
-	vk::device_memory memory(device, mem_info);
-	CHECK_VK(vkBindImageMemory(device, vimage, memory, 0));
-
-	VkSamplerYcbcrConversionInfo ycbcr_info{.sType = VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO,
-	                                        .conversion = pipeline->ycbcr_conversion};
-
-	VkImageViewCreateInfo iv_info{
-	        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-	        .pNext = &ycbcr_info,
-	        .image = vimage,
-	        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-	        .format = VK_FORMAT_UNDEFINED,
-	        .components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-	        .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                             .baseMipLevel = 0,
-	                             .levelCount = 1,
-	                             .baseArrayLayer = 0,
-	                             .layerCount = 1}};
-
-	// TODO: vk::image_view
-	VkImageView image_view;
-	application::ignore_debug_reports_for(vimage);
-	CHECK_VK(vkCreateImageView(device, &iv_info, nullptr, &image_view));
-	application::unignore_debug_reports_for(vimage);
-
-	// TODO: vk::descriptor_set
-	VkDescriptorSet descriptor_set;
-	VkDescriptorSetAllocateInfo descriptor_info{
-	        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-	        .descriptorPool = pipeline->descriptor_pool,
-	        .descriptorSetCount = 1,
-	        .pSetLayouts = &pipeline->descriptor_set_layout,
+	vk::StructureChain mem_info{
+		vk::MemoryAllocateInfo{
+			.allocationSize = properties.allocationSize,
+			.memoryTypeIndex = (uint32_t)(ffs(properties.memoryTypeBits) - 1)
+		},
+		vk::MemoryDedicatedAllocateInfo{
+			.image = *vimage
+		},
+		vk::ImportAndroidHardwareBufferInfoANDROID{
+			.buffer = hardware_buffer
+		}
 	};
 
-	{
+
+	vk::raii::DeviceMemory memory(device, mem_info.get());
+
+	vimage.bindMemory(*memory, 0);
+
+
+	vk::StructureChain iv_info{
+		vk::ImageViewCreateInfo{
+			.image = *vimage,
+			.viewType = vk::ImageViewType::e2D,
+			.format = vk::Format::eUndefined,
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			}
+		},
+		vk::SamplerYcbcrConversionInfo{
+			.conversion = *pipeline->ycbcr_conversion
+		}
+	};
+
+
+	application::ignore_debug_reports_for(*vimage);
+	vk::raii::ImageView image_view(device, iv_info.get());
+	application::unignore_debug_reports_for(*vimage);
+
+	vk::raii::DescriptorSet descriptor_set = [&]{
 		std::unique_lock lock(pipeline->descriptor_pool_mutex);
-		CHECK_VK(vkAllocateDescriptorSets(device, &descriptor_info, &descriptor_set));
-	}
 
-	VkDescriptorImageInfo image_info{
-	        .imageView = image_view,
-	        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		vk::raii::DescriptorSets descriptor_sets(device, {
+			.descriptorPool = *pipeline->descriptor_pool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &*pipeline->descriptor_set_layout,
+		});
+
+		return std::move(descriptor_sets[0]);
+	}();
+
+	vk::DescriptorImageInfo image_info{
+	        .imageView = *image_view,
+	        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 	};
 
-	VkWriteDescriptorSet descriptor_write{
-	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-	        .dstSet = descriptor_set,
+	vk::WriteDescriptorSet descriptor_write{
+	        .dstSet = *descriptor_set,
 	        .dstBinding = 0,
 	        .dstArrayElement = 0,
 	        .descriptorCount = 1,
-	        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
 	        .pImageInfo = &image_info,
 	};
 
-	vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, nullptr);
+	device.updateDescriptorSets(descriptor_write, {});
 
 	auto handle = std::make_shared<mapped_hardware_buffer>();
 	handle->pipeline = pipeline;
-	handle->vimage = vimage.release();
-	handle->image_view = image_view;
-	handle->memory = memory.release();
-	handle->descriptor_set = descriptor_set;
+	handle->vimage = std::move(vimage);
+	handle->image_view = std::move(image_view);
+	handle->memory = std::move(memory);
+	handle->descriptor_set = std::move(descriptor_set);
 
 	hardware_buffer_map[hardware_buffer] = handle;
 	return handle;
@@ -780,29 +796,30 @@ void decoder::on_media_output_available(AMediaCodec * media_codec, void * userda
 	// will be consumed by dedicated thread
 }
 
-void decoder::blit(VkCommandBuffer command_buffer, blit_handle & handle, std::span<int> target_indices)
+void decoder::blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> target_indices)
 {
-	if (handle.vk_data->layout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	if (handle.vk_data->layout != vk::ImageLayout::eShaderReadOnlyOptimal)
 	{
-		VkImageMemoryBarrier memory_barrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		                                    .srcAccessMask = 0,
-		                                    .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-		                                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		                                    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		                                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		                                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		                                    .image = handle.vk_data->vimage,
-		                                    .subresourceRange = {
-		                                            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		                                            .baseMipLevel = 0,
-		                                            .levelCount = 1,
-		                                            .baseArrayLayer = 0,
-		                                            .layerCount = 1,
-		                                    }};
+		vk::ImageMemoryBarrier memory_barrier{
+			.srcAccessMask = {},
+			.dstAccessMask = vk::AccessFlagBits::eShaderRead,
+			.oldLayout = vk::ImageLayout::eUndefined,
+			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+			.image = *handle.vk_data->vimage,
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			}
+		};
 
-		vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &memory_barrier);
+		command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {}, memory_barrier);
 
-		handle.vk_data->layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		handle.vk_data->layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 	}
 
 	for (size_t target_index: target_indices)
@@ -820,45 +837,45 @@ void decoder::blit(VkCommandBuffer command_buffer, blit_handle & handle, std::sp
 		int x1 = x0 + description.width;
 		int y1 = y0 + description.height;
 
-		VkRenderPassBeginInfo begin_info{
-		        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-		        .renderPass = renderpass,
-		        .framebuffer = target.framebuffer,
-		        .renderArea =
-		                {
+		vk::RenderPassBeginInfo begin_info{
+		        .renderPass = *renderpass,
+		        .framebuffer = **target.framebuffer,
+		        .renderArea = {
 		                        .offset = {0, 0},
 		                        .extent = target.extent,
 		                },
 		        .clearValueCount = 0,
 		};
 
-		vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-		vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, handle.vk_data->pipeline->pipeline);
+		command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
+		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *handle.vk_data->pipeline->pipeline);
 
-		VkViewport viewport{.x = (float)x0,
-		                    .y = (float)y0,
-		                    .width = (float)description.width,
-		                    .height = (float)description.height,
-		                    .minDepth = 0,
-		                    .maxDepth = 1};
+		vk::Viewport viewport{
+			.x = (float)x0,
+			.y = (float)y0,
+			.width = (float)description.width,
+			.height = (float)description.height,
+			.minDepth = 0,
+			.maxDepth = 1
+		};
 
 		x0 = std::clamp<int>(x0, 0, target.extent.width);
 		x1 = std::clamp<int>(x1, 0, target.extent.width);
 		y0 = std::clamp<int>(y0, 0, target.extent.height);
 		y1 = std::clamp<int>(y1, 0, target.extent.height);
 
-		VkRect2D scissor{
+		vk::Rect2D scissor{
 		        .offset = {.x = x0, .y = y0},
 		        .extent = {.width = (uint32_t)(x1 - x0), .height = (uint32_t)(y1 - y0)},
 		};
 
-		vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-		vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+		command_buffer.setViewport(0, viewport);
+		command_buffer.setScissor(0, scissor);
 
-		vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, handle.vk_data->pipeline->layout, 0, 1, &handle.vk_data->descriptor_set, 0, nullptr);
-		vkCmdDraw(command_buffer, 3, 1, 0, 0);
+		command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *handle.vk_data->pipeline->layout, 0, *handle.vk_data->descriptor_set, {});
+		command_buffer.draw(3, 1, 0, 0);
 
-		vkCmdEndRenderPass(command_buffer);
+		command_buffer.endRenderPass();
 	}
 }
 

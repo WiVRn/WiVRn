@@ -18,6 +18,7 @@
  */
 
 #include "stream.h"
+#include "application.h"
 
 void scenes::stream::read_actions()
 {

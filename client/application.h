@@ -29,10 +29,12 @@
 #include <array>
 #include <mutex>
 #include <unordered_set>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <openxr/openxr_reflection.h>
+#include "vk_mem_alloc.h"
+#include "singleton.h"
 
 class scene;
 
@@ -49,7 +51,7 @@ struct application_info
 #endif
 };
 
-class application
+class application : public singleton<application>
 {
 	friend class scene;
 
@@ -62,8 +64,8 @@ class application
 	static inline const char engine_name[] = "No engine";
 	static inline const int engine_version = VK_MAKE_VERSION(1, 0, 0);
 
-	static inline const std::array<VkFormat, 2> supported_formats = {VK_FORMAT_R8G8B8A8_SRGB,
-	                                                                 VK_FORMAT_B8G8R8A8_SRGB};
+	static inline const std::array<vk::Format, 2> supported_formats = {vk::Format::eR8G8B8A8Srgb,
+	                                                                   vk::Format::eB8G8R8A8Srgb};
 
 	void initialize_vulkan();
 
@@ -76,8 +78,6 @@ class application
 
 	void session_state_changed(XrSessionState new_state, XrTime timestamp);
 	void interaction_profile_changed();
-
-	static application * instance_;
 
 	// OpenXR stuff
 	xr::instance xr_instance;
@@ -93,17 +93,19 @@ class application
 	std::vector<xr::space> action_spaces;
 
 	// Vulkan stuff
-	VkInstance vk_instance{};
-	VkPhysicalDevice vk_physical_device{};
-	VkDevice vk_device{};
+	vk::raii::Context vk_context;
+	vk::raii::Instance vk_instance = nullptr;
+	vk::raii::PhysicalDevice vk_physical_device = nullptr;
+	vk::raii::Device vk_device = nullptr;
 	uint32_t vk_queue_family_index;
-	VkQueue vk_queue{};
+	vk::raii::Queue vk_queue = nullptr;
 
-	vk::renderpass vk_renderpass;
-	vk::pipeline vk_pipeline;
-	vk::command_pool vk_cmdpool;
+	vk::raii::CommandPool vk_cmdpool = nullptr;
 
-	VkFormat swapchain_format;
+	vk::Format swapchain_format;
+
+	// Vulkan memory allocator stuff
+	VmaAllocator allocator;
 
 	static inline const std::pair<const char *, XrActionType> oculus_touch[] = {
 	        {"/user/hand/left/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
@@ -233,7 +235,6 @@ class application
 
 	        {"/user/hand/left/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
 	        {"/user/hand/right/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-
 	};
 
 	bool session_running = false;
@@ -261,7 +262,13 @@ class application
 	std::unordered_set<uint64_t> debug_report_ignored_objects;
 	std::unordered_map<uint64_t, std::string> debug_report_object_name;
 
+
+#ifndef NDEBUG
+	vk::raii::DebugReportCallbackEXT debug_report_callback = nullptr;
+#endif
+
 public:
+	using singleton<application>::instance;
 	application(application_info info);
 
 	application(const application &) = delete;
@@ -274,22 +281,22 @@ public:
 
 	static bool is_session_running()
 	{
-		return instance_->session_running;
+		return instance().session_running;
 	}
 
 	static bool is_focused()
 	{
-		return instance_->session_focused;
+		return instance().session_focused;
 	}
 
 	static bool is_visible()
 	{
-		return instance_->session_visible;
+		return instance().session_visible;
 	}
 
 	static bool is_exit_requested()
 	{
-		return instance_->exit_requested;
+		return instance().exit_requested;
 	};
 
 	static void poll_actions();
@@ -301,18 +308,18 @@ public:
 
 	static const std::vector<std::tuple<XrAction, XrActionType, std::string>> & inputs()
 	{
-		return instance_->actions;
+		return instance().actions;
 	}
 	static std::pair<XrAction, XrActionType> get_action(const std::string & name);
 
 	static XrPath string_to_path(const std::string & s)
 	{
-		return instance_->xr_instance.string_to_path(s);
+		return instance().xr_instance.string_to_path(s);
 	}
 
 	static std::string path_to_string(XrPath p)
 	{
-		return instance_->xr_instance.path_to_string(p);
+		return instance().xr_instance.path_to_string(p);
 	}
 
 	void run();
@@ -326,25 +333,19 @@ public:
 	template <typename T, typename... Args>
 	static void push_scene(Args &&... args)
 	{
-		std::unique_lock _{instance_->scene_stack_lock};
+		std::unique_lock _{instance().scene_stack_lock};
 
-		instance_->scene_stack.push_back(std::make_shared<T>(std::forward<Args>(args)...));
+		instance().scene_stack.push_back(std::make_shared<T>(std::forward<Args>(args)...));
 	}
 
 	static void pop_scene();
 
 	static std::shared_ptr<scene> current_scene();
 
-	static application & instance()
-	{
-		assert(instance_ != nullptr);
-		return *instance_;
-	}
-
 	template <typename T>
 	static T get_vulkan_proc(const char * proc_name)
 	{
-		auto proc = vkGetInstanceProcAddr(instance_->vk_instance, proc_name);
+		auto proc = instance().vk_instance.getProcAddr(proc_name);
 		if (!proc)
 			throw std::runtime_error(std::string("Cannot find Vulkan function ") + proc_name);
 		return (T)proc;
@@ -352,58 +353,69 @@ public:
 
 	static XrSpace view()
 	{
-		return instance_->view_space;
+		return instance().view_space;
 	};
 	static XrSpace left_grip()
 	{
-		return instance_->action_spaces[0];
+		return instance().action_spaces[0];
 	};
 	static XrSpace left_aim()
 	{
-		return instance_->action_spaces[1];
+		return instance().action_spaces[1];
 	};
 	static XrSpace right_grip()
 	{
-		return instance_->action_spaces[2];
+		return instance().action_spaces[2];
 	};
 	static XrSpace right_aim()
 	{
-		return instance_->action_spaces[3];
+		return instance().action_spaces[3];
 	};
 
 	static void ignore_debug_reports_for(void * object)
 	{
 #ifndef NDEBUG
-		instance_->debug_report_ignored_objects.emplace((uint64_t)object);
+		instance().debug_report_ignored_objects.emplace((uint64_t)object);
 #endif
 	}
 
 	static void unignore_debug_reports_for(void * object)
 	{
 #ifndef NDEBUG
-		instance_->debug_report_ignored_objects.erase((uint64_t)object);
+		instance().debug_report_ignored_objects.erase((uint64_t)object);
 #endif
 	}
 
 	static void set_debug_reports_name(void * object, std::string name)
 	{
 #ifndef NDEBUG
-		instance_->debug_report_object_name[(uint64_t)object] = std::move(name);
+		printf("set_debug_reports_name %p, %s\n", object, name.c_str());
+		instance().debug_report_object_name[(uint64_t)object] = std::move(name);
 #endif
 	}
 
 	static XrTime now()
 	{
-		return instance_->xr_instance.now();
+		return instance().xr_instance.now();
 	}
 
 	static uint32_t queue_family_index()
 	{
-		return instance_->vk_queue_family_index;
+		return instance().vk_queue_family_index;
 	}
 
 	const std::string& get_server_address() const
 	{
 		return server_address;
+	}
+
+	static VmaAllocator get_allocator()
+	{
+		return instance().allocator;
+	}
+
+	static vk::raii::Device& get_device()
+	{
+		return instance().vk_device;
 	}
 };

@@ -25,7 +25,7 @@
 
 #include "utils/handle.h"
 #include <vector>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
@@ -38,22 +38,21 @@ class swapchain : public utils::handle<XrSwapchain>
 public:
 	struct image
 	{
-		VkImage image{};
-		VkImageView view{};
+		vk::Image image{};
+		vk::raii::ImageView view = nullptr;
 	};
 
 private:
-	VkDevice device;
 	uint32_t width_;
 	uint32_t height_;
 	int sample_count_;
-	VkFormat format_;
+	vk::Format format_;
 
 	std::vector<image> images_;
 
 public:
 	swapchain() = default;
-	swapchain(session &, VkDevice device, VkFormat format, uint32_t width, uint32_t height, int sample_count = 1);
+	swapchain(session &, vk::raii::Device& device, vk::Format format, uint32_t width, uint32_t height, int sample_count = 1);
 	swapchain(swapchain &&) = default;
 	swapchain(const swapchain &) = delete;
 	swapchain & operator=(swapchain &&) = default;
@@ -80,7 +79,7 @@ public:
 	{
 		return images_;
 	}
-	VkFormat format() const
+	vk::Format format() const
 	{
 		return format_;
 	}

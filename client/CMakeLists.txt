@@ -90,6 +90,7 @@ endif()
 
 target_compile_features(wivrn PRIVATE cxx_std_20)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
+target_compile_definitions(wivrn PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS VMA_VULKAN_VERSION=1001000)
 set_target_properties(wivrn PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS

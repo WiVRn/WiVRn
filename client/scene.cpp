@@ -21,22 +21,23 @@
 #include "application.h"
 #include <cassert>
 #include <spdlog/spdlog.h>
+#include <vulkan/vulkan_raii.hpp>
 
 scene::~scene() {}
 
 scene::scene() :
-        instance(application::instance_->xr_instance),
-        session(application::instance_->xr_session),
-        world_space(application::instance_->world_space),
-        viewconfig(application::instance_->app_info.viewconfig),
-        swapchains(application::instance_->xr_swapchains),
+	instance(application::instance().xr_instance),
+	session(application::instance().xr_session),
+	world_space(application::instance().world_space),
+	viewconfig(application::instance().app_info.viewconfig),
+	swapchains(application::instance().xr_swapchains),
 
-        commandpool(application::instance_->vk_cmdpool)
+	vk_instance(application::instance().vk_instance),
+	device(application::instance().vk_device),
+	physical_device(application::instance().vk_physical_device),
+	queue(application::instance().vk_queue),
+	commandpool(application::instance().vk_cmdpool)
 {
-	vk_instance = application::instance_->vk_instance;
-	device = application::instance_->vk_device;
-	physical_device = application::instance_->vk_physical_device;
-	queue = application::instance_->vk_queue;
 }
 
 void scene::render()
@@ -95,27 +96,17 @@ void scene::render_view(XrViewStateFlags flags, XrTime display_time, XrView & vi
 void scene::on_unfocused() {}
 void scene::on_focused() {}
 
-VkFence scene::create_fence(bool signaled)
+vk::raii::Fence scene::create_fence(bool signaled)
 {
-	// TODO: RAII
-	VkFenceCreateInfo fence_info{};
-	fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fence_info.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+	vk::FenceCreateFlags flags{0};
 
-	VkFence fence;
-	CHECK_VK(vkCreateFence(device, &fence_info, nullptr, &fence));
+	if (signaled)
+		flags = vk::FenceCreateFlagBits::eSignaled;
 
-	return fence;
+	return vk::raii::Fence(device, vk::FenceCreateInfo{.flags = flags});
 }
 
-VkSemaphore scene::create_semaphore()
+vk::raii::Semaphore scene::create_semaphore()
 {
-	// TODO: RAII
-	VkSemaphoreCreateInfo sem_info{};
-	sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-	VkSemaphore semaphore;
-	CHECK_VK(vkCreateSemaphore(device, &sem_info, nullptr, &semaphore));
-
-	return semaphore;
+	return vk::raii::Semaphore(device, {});
 }

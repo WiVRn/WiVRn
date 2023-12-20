@@ -19,42 +19,78 @@
 
 #pragma once
 
-#include "pipeline_layout.h"
-#include "utils/handle.h"
+#include <optional>
 #include <vector>
-#include <vulkan/vulkan.h>
+
+#include <vulkan/vulkan.hpp>
 
 namespace vk
 {
-class pipeline : public utils::handle<VkPipeline>
+class pipeline_builder
 {
-	VkDevice device{};
-
 public:
-	struct graphics_info
-	{
-		std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
-		std::vector<VkVertexInputBindingDescription> vertex_input_bindings;
-		std::vector<VkVertexInputAttributeDescription> vertex_input_attributes;
-		VkPipelineInputAssemblyStateCreateInfo InputAssemblyState{};
-		// VkPipelineTessellationStateCreateInfo TessellationState;
-		std::vector<VkViewport> viewports;
-		std::vector<VkRect2D> scissors;
-		VkPipelineRasterizationStateCreateInfo RasterizationState{};
-		VkPipelineMultisampleStateCreateInfo MultisampleState{};
-		VkPipelineDepthStencilStateCreateInfo DepthStencilState{};
-		VkPipelineColorBlendStateCreateInfo ColorBlendState{};
-		std::vector<VkDynamicState> dynamic_states;
-		VkRenderPass renderPass{};
-		uint32_t subpass{};
-	};
+	vk::PipelineCreateFlags flags = {};
 
-	pipeline() = default;
-	pipeline(VkDevice device, graphics_info & create_info, VkPipelineLayout layout);
-	pipeline(const pipeline &) = delete;
-	pipeline(pipeline &&) = default;
-	pipeline & operator=(const pipeline &) = delete;
-	pipeline & operator=(pipeline &&) = default;
-	~pipeline();
+	std::vector<vk::PipelineShaderStageCreateInfo> Stages;
+
+	vk::PipelineVertexInputStateCreateInfo VertexInputState;
+	std::vector<vk::VertexInputBindingDescription> VertexBindingDescriptions;
+	std::vector<vk::VertexInputAttributeDescription> VertexAttributeDescriptions;
+
+	std::optional<vk::PipelineInputAssemblyStateCreateInfo> InputAssemblyState;
+	std::optional<vk::PipelineTessellationStateCreateInfo> TessellationState;
+
+	vk::PipelineViewportStateCreateInfo ViewportState;
+	std::vector<vk::Viewport> Viewports = {};
+	std::vector<vk::Rect2D> Scissors = {};
+
+	std::optional<vk::PipelineRasterizationStateCreateInfo> RasterizationState;
+	std::optional<vk::PipelineMultisampleStateCreateInfo> MultisampleState;
+	std::optional<vk::PipelineDepthStencilStateCreateInfo> DepthStencilState;
+
+	vk::PipelineColorBlendStateCreateInfo ColorBlendState;
+	std::vector<vk::PipelineColorBlendAttachmentState> ColorBlendAttachments;
+
+	vk::PipelineDynamicStateCreateInfo DynamicState;
+	std::vector<vk::DynamicState> DynamicStates;
+
+	vk::PipelineLayout layout;
+	vk::RenderPass renderPass = {};
+	uint32_t subpass = {};
+	vk::Pipeline basePipelineHandle;
+	int32_t basePipelineIndex = {};
+
+	operator vk::GraphicsPipelineCreateInfo()
+	{
+		VertexInputState.setVertexBindingDescriptions(VertexBindingDescriptions);
+		VertexInputState.setVertexAttributeDescriptions(VertexAttributeDescriptions);
+
+		ViewportState.setViewports(Viewports);
+		ViewportState.setScissors(Scissors);
+
+		ColorBlendState.setAttachments(ColorBlendAttachments);
+
+		DynamicState.setDynamicStates(DynamicStates);
+
+		return GraphicsPipelineCreateInfo{
+			.flags = flags,
+			.stageCount          = (uint32_t)Stages.size(),
+			.pStages             = Stages.data(),
+			.pVertexInputState   = &VertexInputState,
+			.pInputAssemblyState = InputAssemblyState ? &*InputAssemblyState : nullptr,
+			.pTessellationState  = TessellationState ? &*TessellationState : nullptr,
+			.pViewportState      = &ViewportState,
+			.pRasterizationState = RasterizationState ? &*RasterizationState : nullptr,
+			.pMultisampleState   = MultisampleState ? &*MultisampleState : nullptr,
+			.pDepthStencilState  = DepthStencilState ? &*DepthStencilState : nullptr,
+			.pColorBlendState    = &ColorBlendState,
+			.pDynamicState       = &DynamicState,
+			.layout              = layout,
+			.renderPass          = renderPass,
+			.subpass             = subpass,
+			.basePipelineHandle  = basePipelineHandle,
+			.basePipelineIndex   = basePipelineIndex
+		};
+	}
 };
 } // namespace vk

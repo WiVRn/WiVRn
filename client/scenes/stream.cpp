@@ -17,6 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_raii.hpp>
 #define GLM_FORCE_RADIANS
 
 #include "stream.h"
@@ -30,7 +33,6 @@
 #include "utils/ranges.h"
 #include "utils/sync_queue.h"
 #include "vk/device_memory.h"
-#include "vk/image.h"
 #include "wivrn_packets.h"
 #include "xr/details/enumerate.h"
 #include <algorithm>
@@ -111,7 +113,10 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	self->video_thread = std::thread(&stream::video, self.get());
 	pthread_setname_np(self->video_thread.native_handle(), "video_thread");
 
-	self->command_buffer = self->commandpool.allocate_command_buffer();
+	self->command_buffer = std::move(self->device.allocateCommandBuffers({
+		.commandPool = *self->commandpool,
+		.level = vk::CommandBufferLevel::ePrimary,
+		.commandBufferCount = 1})[0]);
 	self->fence = self->create_fence(false);
 
 	// Look up the XrActions for haptics
@@ -258,38 +263,33 @@ void scenes::stream::render()
 		image_indices[swapchain_index] = image_index;
 	}
 
-	CHECK_VK(vkResetCommandBuffer(command_buffer, 0));
+	command_buffer.reset();
 
-	VkCommandBufferBeginInfo begin_info{
-	        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-	        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-	};
-	CHECK_VK(vkBeginCommandBuffer(command_buffer, &begin_info));
+	vk::CommandBufferBeginInfo begin_info;
+	begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+	command_buffer.begin(begin_info);
 
 	// Transition the layout of the decoder framebuffer to the one the decoders expect
-	std::vector<VkImageMemoryBarrier> image_barriers;
+	std::vector<vk::ImageMemoryBarrier> image_barriers;
 	for (size_t i = 0; i < decoder_output.size(); i++)
 	{
-		image_barriers.push_back(VkImageMemoryBarrier{
-		        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		        .srcAccessMask = 0,
-		        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-		        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		        .newLayout = shard_accumulator::framebuffer_expected_layout,
-		        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		        .image = decoder_output[i].image,
-		        .subresourceRange = {
-		                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		                .baseMipLevel = 0,
-		                .levelCount = 1,
-		                .baseArrayLayer = 0,
-		                .layerCount = 1,
-		        },
-		});
-	}
+		vk::ImageMemoryBarrier barrier;
+		barrier.srcAccessMask = vk::AccessFlagBits::eNone;
+		barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+		barrier.oldLayout = vk::ImageLayout::eUndefined;
+		barrier.newLayout = shard_accumulator::framebuffer_expected_layout;
+		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.image = (vk::Image)decoder_output[i].image;
+		barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
 
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, image_barriers.size(), image_barriers.data());
+		image_barriers.push_back(barrier);
+	}
+	command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags{}, {}, {}, image_barriers);
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> current_blit_handles;
@@ -330,40 +330,35 @@ void scenes::stream::render()
 	image_barriers.clear();
 	for (size_t i = 0; i < decoder_output.size(); i++)
 	{
-		image_barriers.push_back(VkImageMemoryBarrier{
-		        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		        .srcAccessMask = 0,
-		        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-		        .oldLayout = shard_accumulator::framebuffer_expected_layout,
-		        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		        .image = decoder_output[i].image,
-		        .subresourceRange = {
-		                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		                .baseMipLevel = 0,
-		                .levelCount = 1,
-		                .baseArrayLayer = 0,
-		                .layerCount = 1,
-		        },
-		});
+		vk::ImageMemoryBarrier barrier;
+		barrier.srcAccessMask = vk::AccessFlagBits::eNone;
+		barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+		barrier.oldLayout = shard_accumulator::framebuffer_expected_layout;
+		barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
+		barrier.image = (vk::Image)decoder_output[i].image;
+		barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		image_barriers.push_back(barrier);
 	}
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, image_barriers.size(), image_barriers.data());
+	command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {}, image_barriers);
 
 	// Reproject the image to the real pose
 	for (size_t view = 0; view < view_count; view++)
 	{
 		size_t destination_index = view * swapchains[0].images().size() + image_indices[view];
-		reprojector.reproject(command_buffer, view, destination_index, pose[view].orientation, fov[view], views[view].pose.orientation, views[view].fov);
+		reprojector->reproject(command_buffer, view, destination_index, pose[view].orientation, fov[view], views[view].pose.orientation, views[view].fov);
 	}
 
-	CHECK_VK(vkEndCommandBuffer(command_buffer));
-	VkSubmitInfo submit_info{
-	        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-	        .commandBufferCount = 1,
-	        .pCommandBuffers = &command_buffer,
-	};
-	CHECK_VK(vkQueueSubmit(queue, 1, &submit_info, fence));
+	command_buffer.end();
+	vk::SubmitInfo submit_info;
+	submit_info.setCommandBuffers(*command_buffer);
+	queue.submit(submit_info, *fence);
 
 	std::vector<XrCompositionLayerBaseHeader *> layers_base;
 	std::vector<XrCompositionLayerProjectionView> layer_view;
@@ -405,8 +400,8 @@ void scenes::stream::render()
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 	session.end_frame(/*timestamp*/ framestate.predictedDisplayTime, layers_base);
 
-	CHECK_VK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-	CHECK_VK(vkResetFences(device, 1, &fence));
+	device.waitForFences(*fence, VK_TRUE, UINT64_MAX);
+	device.resetFences(*fence);
 
 	// We don't need those after vkWaitForFences
 	current_blit_handles.clear();
@@ -426,22 +421,6 @@ void scenes::stream::cleanup()
 	// Assumes decoder_mutex is locked
 	ready_ = false;
 	decoders.clear();
-
-	for (auto & output: decoder_output)
-	{
-		if (output.image)
-			vkDestroyImage(device, output.image, nullptr);
-
-		if (output.image_view)
-			vkDestroyImageView(device, output.image_view, nullptr);
-
-		if (output.memory)
-			vkFreeMemory(device, output.memory, nullptr);
-
-		output.image = VK_NULL_HANDLE;
-		output.image_view = VK_NULL_HANDLE;
-		output.memory = VK_NULL_HANDLE;
-	}
 }
 
 void scenes::stream::setup(const to_headset::video_stream_description & description)
@@ -463,44 +442,44 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	VkExtent3D decoder_out_size{width, height, 1};
 	for (size_t i = 0; i < view_count; i++)
 	{
-		decoder_output[i].format = VK_FORMAT_A8B8G8R8_SRGB_PACK32;
-		decoder_output[i].size = {
-		        .width = width,
-		        .height = height};
+		decoder_output[i].format = vk::Format::eA8B8G8R8SrgbPack32;
+		decoder_output[i].size.width = width;
+		decoder_output[i].size.height = height;
 
-		VkImageCreateInfo image_info{
-		        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-		        .flags = 0,
-		        .imageType = VK_IMAGE_TYPE_2D,
-		        .format = VK_FORMAT_A8B8G8R8_SRGB_PACK32,
-		        .extent = decoder_out_size,
-		        .mipLevels = 1,
-		        .arrayLayers = 1,
-		        .samples = VK_SAMPLE_COUNT_1_BIT,
-		        .tiling = VK_IMAGE_TILING_OPTIMAL,
-		        .usage = VK_IMAGE_USAGE_SAMPLED_BIT | shard_accumulator::framebuffer_usage,
-		        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-		        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		};
+		vk::ImageCreateInfo image_info;
+		image_info.flags = vk::ImageCreateFlags{};
+		image_info.imageType = vk::ImageType::e2D;
+		image_info.format = vk::Format::eA8B8G8R8SrgbPack32;
+		image_info.extent = decoder_out_size;
+		image_info.mipLevels = 1;
+		image_info.arrayLayers = 1;
+		image_info.samples = vk::SampleCountFlagBits::e1;
+		image_info.tiling = vk::ImageTiling::eOptimal;
+		image_info.usage = vk::ImageUsageFlagBits::eSampled | shard_accumulator::framebuffer_usage;
+		image_info.sharingMode = vk::SharingMode::eExclusive;
+		image_info.initialLayout = vk::ImageLayout::eUndefined;
 
-		decoder_output[i].image = vk::image{device, image_info}.release();
+		VmaAllocationCreateInfo alloc_info{};
+		alloc_info.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-		decoder_output[i].memory = vk::device_memory{device, physical_device, decoder_output[i].image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT}.release();
+		decoder_output[i].image = image_allocation{image_info, alloc_info};
 
-		VkImageViewCreateInfo image_view_info{
-		        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		        .image = decoder_output[i].image,
-		        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-		        .format = VK_FORMAT_A8B8G8R8_SRGB_PACK32,
-		        .components = {}, // IDENTITY by default
-		        .subresourceRange = {
-		                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		                .baseMipLevel = 0,
-		                .levelCount = 1,
-		                .baseArrayLayer = 0,
-		                .layerCount = 1}};
+		vk::ImageViewCreateInfo image_view_info;
 
-		CHECK_VK(vkCreateImageView(device, &image_view_info, nullptr, &decoder_output[i].image_view));
+		image_view_info.image = (VkImage)decoder_output[i].image;
+		image_view_info.viewType = vk::ImageViewType::e2D;
+		image_view_info.format = vk::Format::eA8B8G8R8SrgbPack32;
+		image_view_info.components.r = vk::ComponentSwizzle::eIdentity;
+		image_view_info.components.g = vk::ComponentSwizzle::eIdentity;
+		image_view_info.components.b = vk::ComponentSwizzle::eIdentity;
+		image_view_info.components.a = vk::ComponentSwizzle::eIdentity;
+		image_view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+		image_view_info.subresourceRange.baseMipLevel = 0;
+		image_view_info.subresourceRange.levelCount = 1;
+		image_view_info.subresourceRange.baseArrayLayer = 0;
+		image_view_info.subresourceRange.layerCount = 1;
+
+		decoder_output[i].image_view = vk::raii::ImageView(device, image_view_info);
 	}
 
 	std::vector<shard_accumulator::blit_target> blit_targets;
@@ -508,10 +487,12 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 	for (size_t i = 0; i < view_count; i++)
 	{
-		blit_targets[i].image = decoder_output[i].image;
-		blit_targets[i].image_view = decoder_output[i].image_view;
-		blit_targets[i].extent = {width, height};
-		blit_targets[i].offset = {static_cast<int>(width * i), 0};
+		blit_targets[i].image = (VkImage)decoder_output[i].image;
+		blit_targets[i].image_view = *decoder_output[i].image_view;
+		blit_targets[i].extent.width = width;
+		blit_targets[i].extent.height = height;
+		blit_targets[i].offset.x = width * i;
+		blit_targets[i].offset.y = 0;
 	}
 
 	for (const auto & [stream_index, item]: utils::enumerate(description.items))
@@ -520,27 +501,27 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 		accumulator_images dec;
 		dec.decoder = std::make_unique<shard_accumulator>(device, physical_device, item, description.fps, shared_from_this(), stream_index);
-		dec.decoder->set_blit_targets(blit_targets, VK_FORMAT_A8B8G8R8_SRGB_PACK32);
+		dec.decoder->set_blit_targets(blit_targets, vk::Format::eA8B8G8R8SrgbPack32);
 
 		decoders.push_back(std::move(dec));
 	}
 
 	spdlog::info("Initializing reprojector");
-	VkExtent2D extent = {swapchains[0].width(), swapchains[0].height()};
-	std::vector<VkImage> swapchain_images;
+	vk::Extent2D extent = {swapchains[0].width(), swapchains[0].height()};
+	std::vector<vk::Image> swapchain_images;
 	for (auto & swapchain: swapchains)
 	{
 		for (auto & image: swapchain.images())
 			swapchain_images.push_back(image.image);
 	}
 
-	std::vector<VkImage> images;
+	std::vector<vk::Image> images;
 	for (renderpass_output & i: decoder_output)
 	{
-		images.push_back(i.image);
+		images.push_back((vk::Image)i.image);
 	}
 
-	reprojector.init(device, physical_device, images, swapchain_images, extent, swapchains[0].format(), description);
+	reprojector.emplace(device, physical_device, images, swapchain_images, extent, swapchains[0].format(), description);
 }
 
 void scenes::stream::video()

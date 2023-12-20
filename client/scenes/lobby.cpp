@@ -21,209 +21,248 @@
 #include "render/text_rasterizer.h"
 #include "stream.h"
 #include "../common/version.h"
+#include "application.h"
+
+#include "vk/pipeline_layout.h"
+#include "vk/shader.h"
+#include "vk/pipeline.h"
 
 #include <cstdint>
 #include <glm/gtc/quaternion.hpp>
 #include <string>
 #include <tiny_gltf.h>
+#include <spdlog/spdlog.h>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 static const std::string discover_service = "_wivrn._tcp.local.";
 
 scenes::lobby::~lobby() {}
 
 scenes::lobby::lobby() :
-        status_string_rasterizer(device, physical_device, commandpool, queue), renderer(device, physical_device, queue)
+        status_string_rasterizer(device, physical_device, commandpool, queue)//, renderer(device, physical_device, queue)
 {
-	// renderer.load_gltf("Lobby.gltf");
-
 	uint32_t width = swapchains[0].width();
 	uint32_t height = swapchains[0].height();
 
 	// Create renderpass
-	VkAttachmentReference color_ref{.attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+	vk::RenderPassCreateInfo renderpass_info;
 
-	vk::renderpass::info renderpass_info{.attachments = {VkAttachmentDescription{
-						.format = swapchains[0].format(),
-						.samples = VK_SAMPLE_COUNT_1_BIT,
-						.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-						.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-						.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-						.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-					}},
-					.subpasses = {VkSubpassDescription{
-						.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-						.colorAttachmentCount = 1,
-						.pColorAttachments = &color_ref,
-					}},
-					.dependencies = {}};
+	vk::AttachmentDescription attachment_desc{
+		.format = swapchains[0].format(),
+		.samples = vk::SampleCountFlagBits::e1,
+		.loadOp = vk::AttachmentLoadOp::eClear,
+		.storeOp = vk::AttachmentStoreOp::eStore,
+		.initialLayout = vk::ImageLayout::eUndefined,
+		.finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
+	};
+	renderpass_info.setAttachments(attachment_desc);
 
-	renderpass = vk::renderpass(device, renderpass_info);
+	vk::SubpassDescription subpass_desc{
+		.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
+	};
+	vk::AttachmentReference color_ref{
+		.attachment = 0,
+		.layout = vk::ImageLayout::eColorAttachmentOptimal,
+	};
+	subpass_desc.setColorAttachments(color_ref);
+	renderpass_info.setSubpasses(subpass_desc);
 
-	VkSamplerCreateInfo sampler_info{
-	        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-	        .magFilter = VK_FILTER_LINEAR,
-	        .minFilter = VK_FILTER_LINEAR,
-	        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
-	        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-	        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-	        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-	        .mipLodBias = 0.0f,
-	        .anisotropyEnable = VK_FALSE,
-	        .maxAnisotropy = 1,
-	        .compareEnable = VK_FALSE,
-	        .compareOp = VK_COMPARE_OP_NEVER,
-	        .minLod = 0.0f,
-	        .maxLod = 0.0f,
-	        .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
-	        .unnormalizedCoordinates = VK_FALSE,
+	renderpass = vk::raii::RenderPass(device, renderpass_info);
+
+	vk::SamplerCreateInfo sampler_info{
+		.magFilter = vk::Filter::eLinear,
+		.minFilter = vk::Filter::eLinear,
+		.mipmapMode = vk::SamplerMipmapMode::eNearest,
+		.addressModeU = vk::SamplerAddressMode::eClampToBorder,
+		.addressModeV = vk::SamplerAddressMode::eClampToBorder,
+		.addressModeW = vk::SamplerAddressMode::eClampToBorder,
+		.mipLodBias = 0.0f,
+		.anisotropyEnable = VK_FALSE,
+		.maxAnisotropy = 1,
+		.compareEnable = VK_FALSE,
+		.compareOp = vk::CompareOp::eNever,
+		.minLod = 0.0f,
+		.maxLod = 0.0f,
+		.borderColor = vk::BorderColor::eFloatOpaqueBlack,
+		.unnormalizedCoordinates = VK_FALSE,
 	};
 
-	CHECK_VK(vkCreateSampler(device, &sampler_info, nullptr, &status_string_sampler));
+	status_string_sampler = vk::raii::Sampler(device, sampler_info);
 
-	// Create VkDescriptorSetLayout
-	VkDescriptorSetLayoutBinding layout_binding{
-	        .binding = 0,
-	        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	        .descriptorCount = 1,
-	        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+	// Create descriptor set layout
+	vk::DescriptorSetLayoutBinding layout_binding{
+		.binding = 0,
+		.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		.descriptorCount = 1,
+		.stageFlags = vk::ShaderStageFlagBits::eFragment,
 	};
 
-	VkDescriptorSetLayoutCreateInfo layout_info{
-	        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-	        .bindingCount = 1,
-	        .pBindings = &layout_binding,
+	vk::DescriptorSetLayoutCreateInfo layout_info;
+	layout_info.setBindings(layout_binding);
+
+	status_string_image_descriptor_set_layout = vk::raii::DescriptorSetLayout(device, layout_info);
+
+	vk::DescriptorPoolSize status_string_image_descriptor_set_pool_size{
+		.type = vk::DescriptorType::eCombinedImageSampler,
+		.descriptorCount = 1,
 	};
 
-	CHECK_VK(
-	        vkCreateDescriptorSetLayout(device, &layout_info, nullptr, &status_string_image_descriptor_set_layout));
-
-	VkDescriptorPoolSize status_string_image_descriptor_set_pool_size{
-	        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	        .descriptorCount = 1,
+	vk::DescriptorPoolCreateInfo pool_info{
+		.maxSets = 1,
 	};
+	pool_info.setPoolSizes(status_string_image_descriptor_set_pool_size);
 
-	VkDescriptorPoolCreateInfo pool_info{
-	        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-	        .flags = 0,
-	        .maxSets = 1,
-	        .poolSizeCount = 1,
-	        .pPoolSizes = &status_string_image_descriptor_set_pool_size,
-	};
-	CHECK_VK(vkCreateDescriptorPool(device, &pool_info, nullptr, &status_string_descriptor_pool));
+	status_string_descriptor_pool = vk::raii::DescriptorPool(device, pool_info);
 
-	VkDescriptorSetAllocateInfo ds_info{
-	        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-	        .descriptorPool = status_string_descriptor_pool,
-	        .descriptorSetCount = 1,
-	        .pSetLayouts = &status_string_image_descriptor_set_layout,
+	vk::DescriptorSetAllocateInfo ds_info{
+		.descriptorPool = *status_string_descriptor_pool,
+		.descriptorSetCount = 1,
 	};
-	CHECK_VK(vkAllocateDescriptorSets(device, &ds_info, &status_string_image_descriptor_set));
+	ds_info.setSetLayouts(*status_string_image_descriptor_set_layout);
+
+	status_string_image_descriptor_set = device.allocateDescriptorSets(ds_info)[0].release();
+
+	vk::PipelineLayoutCreateInfo pipeline_layout_info;
+	pipeline_layout_info.setSetLayouts(*status_string_image_descriptor_set_layout);
+	vk::PushConstantRange push_constant_range{
+		.stageFlags = vk::ShaderStageFlagBits::eVertex,
+		.offset = 0,
+		.size = sizeof(glm::mat4),
+	};
+	pipeline_layout_info.setPushConstantRanges(push_constant_range);
+
+	layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
 
 	// Create graphics pipeline
-	vk::shader vertex_shader(device, "text.vert");
-	vk::shader fragment_shader(device, "text.frag");
+	vk::raii::ShaderModule vertex_shader = load_shader(device, "text.vert");
+	vk::raii::ShaderModule fragment_shader = load_shader(device, "text.frag");
 
-	vk::pipeline::graphics_info pipeline_info;
+	vk::pipeline_builder pipeline_info
+	{
+		.flags = {},
+		.Stages = {{
+			.stage = vk::ShaderStageFlagBits::eVertex,
+			.module = *vertex_shader,
+			.pName = "main",
+		},{
+			.stage = vk::ShaderStageFlagBits::eFragment,
+			.module = *fragment_shader,
+			.pName = "main",
+		}},
+		.VertexInputState = {.flags = {}},
+		.VertexBindingDescriptions = {},
+		.VertexAttributeDescriptions = {},
+		.InputAssemblyState = {{
+			.topology = vk::PrimitiveTopology::eTriangleList,
+		}},
+		.ViewportState = {.flags = {}},
+		.Viewports = {{
+			.x = 0,
+			.y = 0,
+			.width = (float)width,
+			.height = (float)height,
+			.minDepth = 0,
+			.maxDepth = 1,
+		}},
+		.Scissors = {{
+			.offset = { .x = 0, .y = 0 },
+			.extent= { .width = width, .height = height },
+		}},
+		.RasterizationState = {{
+			.polygonMode = vk::PolygonMode::eFill,
+			.lineWidth = 1,
+		}},
+		.MultisampleState = {{
+			.rasterizationSamples = vk::SampleCountFlagBits::e1,
+		}},
+		.ColorBlendState = {.flags = {}},
+		.ColorBlendAttachments = {{
+			.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB
+		}},
+		.layout = *layout,
+		.renderPass = *renderpass,
+		.subpass = 0,
+	};
 
-	pipeline_info.shader_stages.resize(2);
-
-	pipeline_info.shader_stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-	pipeline_info.shader_stages[0].module = vertex_shader;
-	pipeline_info.shader_stages[0].pName = "main";
-
-	pipeline_info.shader_stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	pipeline_info.shader_stages[1].module = fragment_shader;
-	pipeline_info.shader_stages[1].pName = "main";
-
-	pipeline_info.InputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-	pipeline_info.viewports.push_back(VkViewport{0, 0, (float)width, (float)height, 0.0f, 1.0f});
-
-	pipeline_info.scissors.push_back(VkRect2D{{0, 0}, {width, height}});
-
-	pipeline_info.RasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
-	pipeline_info.RasterizationState.lineWidth = 1;
-
-	pipeline_info.MultisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-	VkPipelineColorBlendAttachmentState pcbas{};
-	pcbas.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT;
-
-	pipeline_info.ColorBlendState.attachmentCount = 1;
-	pipeline_info.ColorBlendState.pAttachments = &pcbas;
-
-	pipeline_info.renderPass = renderpass;
-	pipeline_info.subpass = 0;
-	layout = vk::pipeline_layout(
-	        device, {.descriptor_set_layouts = {status_string_image_descriptor_set_layout}, .push_constant_ranges = {VkPushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .offset = 0, .size = sizeof(glm::mat4)}}});
-	pipeline = vk::pipeline(device, pipeline_info, layout);
+	pipeline = vk::raii::Pipeline(device, nullptr, pipeline_info);
 
 	images_data.resize(swapchains.size());
 	for (size_t i = 0; i < swapchains.size(); i++)
 	{
 		auto & images = swapchains[i].images();
-		images_data[i].resize(images.size());
+		images_data[i].reserve(images.size());
 
 		for (size_t j = 0; j < images.size(); j++)
 		{
-			VkFramebufferCreateInfo fb_create_info{};
-			fb_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			fb_create_info.renderPass = renderpass;
-			fb_create_info.attachmentCount = 1;
-			fb_create_info.pAttachments = &images[j].view;
-			fb_create_info.width = swapchains[i].width();
-			fb_create_info.height = swapchains[i].height();
-			fb_create_info.layers = 1;
-			CHECK_VK(vkCreateFramebuffer(device, &fb_create_info, nullptr, &images_data[i][j].framebuffer));
+			vk::FramebufferCreateInfo fb_create_info{
+				.renderPass = *renderpass,
+				.attachmentCount = 1,
+				.pAttachments = &*images[j].view,
+				.width = swapchains[i].width(),
+				.height = swapchains[i].height(),
+				.layers = 1,
+			};
 
-			images_data[i][j].render_finished = create_semaphore();
+			images_data[i].emplace_back(image_data{
+				.framebuffer = vk::raii::Framebuffer(device, fb_create_info),
+				.render_finished = create_semaphore()
+			});
 		}
 	}
 
-	command_buffer = commandpool.allocate_command_buffer();
+	vk::CommandBufferAllocateInfo alloc_info;
+	alloc_info.commandBufferCount = 1;
+	alloc_info.level = vk::CommandBufferLevel::ePrimary;
+	alloc_info.commandPool = *commandpool;
+
+	command_buffer = std::move(device.allocateCommandBuffers(alloc_info)[0]);
+
+	application::set_debug_reports_name((VkCommandBuffer)*command_buffer, "lobby command buffer");
 	fence = create_fence(false);
 }
 
 void scenes::lobby::rasterize_status_string()
 {
-	if (status_string_image_view)
-		vkDestroyImageView(device, status_string_image_view, nullptr);
-
 	status_string_rasterized_text = status_string_rasterizer.render(status_string);
 
-	assert(status_string_rasterized_text.image != VK_NULL_HANDLE);
-	assert(status_string_rasterized_text.memory != VK_NULL_HANDLE);
-
-	VkImageViewCreateInfo iv_info{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-	                              .image = status_string_rasterized_text.image,
-	                              .viewType = VK_IMAGE_VIEW_TYPE_2D,
-	                              .format = status_string_rasterized_text.format,
-	                              .components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-	                              .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                                                   .baseMipLevel = 0,
-	                                                   .levelCount = 1,
-	                                                   .baseArrayLayer = 0,
-	                                                   .layerCount = 1}};
-
-	CHECK_VK(vkCreateImageView(device, &iv_info, nullptr, &status_string_image_view));
-
-	VkDescriptorImageInfo image_info{
-	        .sampler = status_string_sampler,
-	        .imageView = status_string_image_view,
-	        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	vk::ImageViewCreateInfo iv_info{
+		.image = (VkImage)status_string_rasterized_text.image,
+		.viewType = vk::ImageViewType::e2D,
+		.format = status_string_rasterized_text.format,
+		.components = {
+			.r = vk::ComponentSwizzle::eIdentity,
+			.g = vk::ComponentSwizzle::eIdentity,
+			.b = vk::ComponentSwizzle::eIdentity,
+			.a = vk::ComponentSwizzle::eIdentity,
+		},
+		.subresourceRange = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		},
 	};
 
-	VkWriteDescriptorSet descriptor_write{
-	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-	        .dstSet = status_string_image_descriptor_set,
-	        .dstBinding = 0,
-	        .dstArrayElement = 0,
-	        .descriptorCount = 1,
-	        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	        .pImageInfo = &image_info,
+	status_string_image_view = vk::raii::ImageView(device, iv_info);
+
+	vk::DescriptorImageInfo image_info{
+		.sampler = *status_string_sampler,
+		.imageView = *status_string_image_view,
+		.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 	};
 
-	vkUpdateDescriptorSets(device, 1, &descriptor_write, 0, nullptr);
+	vk::WriteDescriptorSet descriptor_write{
+		.dstSet = status_string_image_descriptor_set,
+		.dstBinding = 0,
+		.dstArrayElement = 0,
+		.descriptorCount = 1,
+		.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		.pImageInfo = &image_info,
+	};
+
+	device.updateDescriptorSets(descriptor_write, {});
 
 	last_status_string = status_string;
 }
@@ -315,11 +354,9 @@ void scenes::lobby::render()
 
 	session.begin_frame();
 
-	CHECK_VK(vkResetCommandBuffer(command_buffer, 0));
+	command_buffer.reset();
 
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	CHECK_VK(vkBeginCommandBuffer(command_buffer, &beginInfo));
+	command_buffer.begin(vk::CommandBufferBeginInfo{});
 
 	auto [flags, views] = session.locate_views(viewconfig, framestate.predictedDisplayTime, world_space);
 	assert(views.size() == swapchains.size());
@@ -343,14 +380,12 @@ void scenes::lobby::render()
 		layer_view[swapchain_index].subImage.imageRect.extent.height = swapchains[swapchain_index].height();
 	}
 
-	CHECK_VK(vkEndCommandBuffer(command_buffer));
+	command_buffer.end();
 
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &command_buffer;
+	vk::SubmitInfo submit_info;
+	submit_info.setCommandBuffers(*command_buffer);
 
-	CHECK_VK(vkQueueSubmit(queue, 1, &submitInfo, fence));
+	queue.submit(submit_info, *fence);
 
 	XrCompositionLayerProjection layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
@@ -365,8 +400,8 @@ void scenes::lobby::render()
 
 	session.end_frame(framestate.predictedDisplayTime, layers_base);
 
-	CHECK_VK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-	CHECK_VK(vkResetFences(device, 1, &fence));
+	device.waitForFences(*fence, VK_TRUE, UINT64_MAX);
+	device.resetFences(*fence);
 }
 
 void scenes::lobby::render_view(XrViewStateFlags flags, XrTime display_time, XrView & view, int swapchain_index, int image_index)
@@ -374,22 +409,22 @@ void scenes::lobby::render_view(XrViewStateFlags flags, XrTime display_time, XrV
 	xr::swapchain & swapchain = swapchains[swapchain_index];
 	image_data & data = images_data[swapchain_index][image_index];
 
-	VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+	vk::ClearValue clear_color;
+	clear_color.color = {0.0f, 0.0f, 0.0f, 1.0f};
 
-	VkRenderPassBeginInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = renderpass;
-	renderPassInfo.framebuffer = data.framebuffer;
-	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = {swapchain.width(), swapchain.height()};
-	renderPassInfo.clearValueCount = 1;
-	renderPassInfo.pClearValues = &clearColor;
+	vk::RenderPassBeginInfo renderpass_info{
+		.renderPass = *renderpass,
+		.framebuffer = *data.framebuffer,
+		.renderArea = {
+			.offset = {0, 0},
+			.extent = {swapchain.width(), swapchain.height()},
+		}
+	};
+	renderpass_info.setClearValues(clear_color);
 
-	vkCmdBeginRenderPass(command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &status_string_image_descriptor_set, 0, nullptr);
+	command_buffer.beginRenderPass(renderpass_info, vk::SubpassContents::eInline);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+	command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, status_string_image_descriptor_set, {});
 
 	float zn = 0.1;
 	float r = tan(view.fov.angleRight);
@@ -420,11 +455,10 @@ void scenes::lobby::render_view(XrViewStateFlags flags, XrTime display_time, XrV
 	        {-0.5 * aspect_ratio, -0.5, -10, 1}};
 
 	glm::mat4 mvp = proj * glm::inverse(view_matrix) * model_matrix;
-	vkCmdPushConstants(command_buffer, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &mvp);
 
-	vkCmdDraw(command_buffer, 6, 1, 0, 0);
-
-	vkCmdEndRenderPass(command_buffer);
+	command_buffer.pushConstants<glm::mat4>(*layout, vk::ShaderStageFlagBits::eVertex, 0, mvp);
+	command_buffer.draw(6, 1, 0, 0);
+	command_buffer.endRenderPass();
 }
 
 void scenes::lobby::on_focused()

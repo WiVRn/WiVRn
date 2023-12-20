@@ -24,14 +24,17 @@
 #include "spdlog/common.h"
 #include "spdlog/spdlog.h"
 #include "utils/ranges.h"
-#include "vk/details/enumerate.h"
 #include "vk/vk.h"
 #include "xr/xr.h"
 #include <algorithm>
 #include <thread>
 #include <vector>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_structs.hpp>
 #include <openxr/openxr_platform.h>
 
 #ifndef NDEBUG
@@ -47,8 +50,6 @@
 
 using namespace std::chrono_literals;
 
-application * application::instance_ = nullptr;
-
 VkBool32 application::vulkan_debug_report_callback(
         VkDebugReportFlagsEXT flags,
         VkDebugReportObjectTypeEXT objectType,
@@ -59,7 +60,7 @@ VkBool32 application::vulkan_debug_report_callback(
         const char * pMessage,
         void * pUserData)
 {
-	if (instance_->debug_report_ignored_objects.contains(object))
+	if (instance().debug_report_ignored_objects.contains(object))
 		return VK_FALSE;
 
 	spdlog::level::level_enum level = spdlog::level::info;
@@ -85,8 +86,8 @@ VkBool32 application::vulkan_debug_report_callback(
 	// spdlog::log(level, s);
 	spdlog::log(level, pMessage);
 
-	auto it = instance_->debug_report_object_name.find(object);
-	if (it != instance_->debug_report_object_name.end())
+	auto it = instance().debug_report_object_name.find(object);
+	if (it != instance().debug_report_object_name.end())
 	{
 		spdlog::log(level, "{:#016x}: {}", object, it->second);
 	}
@@ -123,7 +124,8 @@ void application::initialize_vulkan()
 
 	spdlog::info("Available Vulkan layers:");
 	[[maybe_unused]] bool validation_layer_found = false;
-	for (VkLayerProperties & i: vk::details::enumerate<VkLayerProperties>(vkEnumerateInstanceLayerProperties))
+
+	for(vk::LayerProperties& i: vk_context.enumerateInstanceLayerProperties())
 	{
 		spdlog::info("    {}", i.layerName);
 		if (!strcmp(i.layerName, "VK_LAYER_KHRONOS_validation"))
@@ -147,7 +149,7 @@ void application::initialize_vulkan()
 	bool debug_utils_found = false;
 #endif
 	spdlog::info("Available Vulkan instance extensions:");
-	for (VkExtensionProperties & i: vk::details::enumerate<VkExtensionProperties>(vkEnumerateInstanceExtensionProperties, nullptr))
+	for(vk::ExtensionProperties& i: vk_context.enumerateInstanceExtensionProperties(nullptr))
 	{
 		spdlog::info("    {}", i.extensionName);
 
@@ -183,78 +185,72 @@ void application::initialize_vulkan()
 	instance_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
 #endif
 
-	VkApplicationInfo applicationInfo{};
-	applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	applicationInfo.apiVersion = VK_MAKE_API_VERSION(0, XR_VERSION_MAJOR(vulkan_version), XR_VERSION_MINOR(vulkan_version), 0);
-	applicationInfo.pApplicationName = app_info.name.c_str();
-	applicationInfo.applicationVersion = app_info.version;
-	applicationInfo.pEngineName = engine_name;
-	applicationInfo.engineVersion = engine_version;
+	vk::ApplicationInfo application_info{
+		.pApplicationName = app_info.name.c_str(),
+		.applicationVersion = (uint32_t)app_info.version,
+		.pEngineName = engine_name,
+		.engineVersion = engine_version,
+		.apiVersion = VK_MAKE_API_VERSION(0, XR_VERSION_MAJOR(vulkan_version), XR_VERSION_MINOR(vulkan_version), 0),
+	};
 
-	VkInstanceCreateInfo instanceCreateInfo{};
-	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	instanceCreateInfo.pApplicationInfo = &applicationInfo;
-	instanceCreateInfo.enabledLayerCount = layers.size();
-	instanceCreateInfo.ppEnabledLayerNames = layers.data();
-	instanceCreateInfo.enabledExtensionCount = instance_extensions.size();
-	instanceCreateInfo.ppEnabledExtensionNames = instance_extensions.data();
+	vk::InstanceCreateInfo instance_create_info{
+		.pApplicationInfo = &application_info,
+	};
+	instance_create_info.setPEnabledLayerNames(layers);
+	instance_create_info.setPEnabledExtensionNames(instance_extensions);
 
-	XrVulkanInstanceCreateInfoKHR create_info{};
-	create_info.type = XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR;
-	create_info.systemId = xr_system_id;
-	create_info.createFlags = 0;
-	create_info.pfnGetInstanceProcAddr = vkGetInstanceProcAddr;
-	create_info.vulkanCreateInfo = &instanceCreateInfo;
-	create_info.vulkanAllocator = nullptr;
+	XrVulkanInstanceCreateInfoKHR create_info{
+		.type = XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR,
+		.systemId = xr_system_id,
+		.createFlags = 0,
+		.pfnGetInstanceProcAddr = vkGetInstanceProcAddr,
+		.vulkanCreateInfo = &(VkInstanceCreateInfo&)instance_create_info,
+		.vulkanAllocator = nullptr,
+	};
 
 	auto xrCreateVulkanInstanceKHR =
 	        xr_instance.get_proc<PFN_xrCreateVulkanInstanceKHR>("xrCreateVulkanInstanceKHR");
 
 	VkResult vresult;
-	XrResult xresult = xrCreateVulkanInstanceKHR(xr_instance, &create_info, &vk_instance, &vresult);
+	VkInstance tmp;
+	XrResult xresult = xrCreateVulkanInstanceKHR(xr_instance, &create_info, &tmp, &vresult);
 	CHECK_VK(vresult, "xrCreateVulkanInstanceKHR");
 	CHECK_XR(xresult, "xrCreateVulkanInstanceKHR");
+	vk_instance = vk::raii::Instance(vk_context, tmp);
 
 #ifndef NDEBUG
 	if (debug_report_found)
 	{
-		VkDebugReportCallbackCreateInfoEXT debug_report_info{
-		        .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-		        .flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT |
-		                 VK_DEBUG_REPORT_WARNING_BIT_EXT |
-		                 VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
-		                 VK_DEBUG_REPORT_ERROR_BIT_EXT |
-		                 VK_DEBUG_REPORT_DEBUG_BIT_EXT,
+		vk::DebugReportCallbackCreateInfoEXT debug_report_info{
+		        .flags = vk::DebugReportFlagBitsEXT::eInformation |
+				vk::DebugReportFlagBitsEXT::eWarning|
+				vk::DebugReportFlagBitsEXT::ePerformanceWarning |
+				vk::DebugReportFlagBitsEXT::eError |
+				vk::DebugReportFlagBitsEXT::eDebug,
 		        .pfnCallback = vulkan_debug_report_callback,
 		};
-		VkDebugReportCallbackEXT debug_report_callback;
-		auto vkCreateDebugReportCallbackEXT = get_vulkan_proc<PFN_vkCreateDebugReportCallbackEXT>("vkCreateDebugReportCallbackEXT");
-		CHECK_VK(vkCreateDebugReportCallbackEXT(vk_instance, &debug_report_info, nullptr, &debug_report_callback));
+		debug_report_callback = vk::raii::DebugReportCallbackEXT(vk_instance, debug_report_info);
 	}
 #endif
 
 	vk_physical_device = xr_system_id.physical_device(vk_instance);
 
 	spdlog::info("Available Vulkan device extensions:");
-	for (VkExtensionProperties & i: vk::details::enumerate<VkExtensionProperties>(vkEnumerateDeviceExtensionProperties, vk_physical_device, nullptr))
+	for(vk::ExtensionProperties & i: vk_physical_device.enumerateDeviceExtensionProperties())
 	{
 		spdlog::info("    {}", i.extensionName);
 	}
 
-	VkPhysicalDeviceProperties prop;
-	vkGetPhysicalDeviceProperties(vk_physical_device, &prop);
+	vk::PhysicalDeviceProperties prop = vk_physical_device.getProperties();
 	spdlog::info("Initializing Vulkan with device {}", prop.deviceName);
 
-	uint32_t count;
-	vkGetPhysicalDeviceQueueFamilyProperties(vk_physical_device, &count, nullptr);
-	std::vector<VkQueueFamilyProperties> queue_properties(count);
-	vkGetPhysicalDeviceQueueFamilyProperties(vk_physical_device, &count, queue_properties.data());
+	std::vector<vk::QueueFamilyProperties> queue_properties = vk_physical_device.getQueueFamilyProperties();
 
 	vk_queue_family_index = -1;
 	[[maybe_unused]] bool vk_queue_found = false;
 	for (size_t i = 0; i < queue_properties.size(); i++)
 	{
-		if (queue_properties[i].queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
+		if (queue_properties[i].queueFlags & vk::QueueFlagBits::eGraphics)
 		{
 			vk_queue_found = true;
 			vk_queue_family_index = i;
@@ -266,30 +262,38 @@ void application::initialize_vulkan()
 
 	float queuePriority = 0.0f;
 
-	VkDeviceQueueCreateInfo queueCreateInfo{};
-	queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queueCreateInfo.queueFamilyIndex = vk_queue_family_index;
-	queueCreateInfo.queueCount = 1;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
+	vk::DeviceQueueCreateInfo queueCreateInfo{
+		.queueFamilyIndex = vk_queue_family_index,
+		.queueCount = 1,
+		.pQueuePriorities = &queuePriority
+	};
 
-	VkPhysicalDeviceSamplerYcbcrConversionFeaturesKHR ycbcr_feature{
-	        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES_KHR,
-	        .samplerYcbcrConversion = VK_TRUE};
+	vk::PhysicalDeviceFeatures device_features;
 
-	VkPhysicalDeviceFeatures deviceFeatures{};
+	vk::StructureChain device_create_info{
+		vk::DeviceCreateInfo{
+			.queueCreateInfoCount = 1,
+			.pQueueCreateInfos = &queueCreateInfo,
+			.enabledExtensionCount = (uint32_t)device_extensions.size(),
+			.ppEnabledExtensionNames = device_extensions.data(),
+			.pEnabledFeatures = &device_features,
+		},
+		vk::PhysicalDeviceSamplerYcbcrConversionFeaturesKHR{
+			.samplerYcbcrConversion = VK_TRUE
+		}
+	};
 
-	VkDeviceCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-	createInfo.pNext = &ycbcr_feature;
-	createInfo.pQueueCreateInfos = &queueCreateInfo;
-	createInfo.queueCreateInfoCount = 1;
-	createInfo.pEnabledFeatures = &deviceFeatures;
-	createInfo.enabledExtensionCount = device_extensions.size();
-	createInfo.ppEnabledExtensionNames = device_extensions.data();
 
-	vk_device = xr_system_id.create_device(vk_physical_device, createInfo);
+	vk_device = xr_system_id.create_device(vk_physical_device, device_create_info.get());
 
-	vkGetDeviceQueue(vk_device, vk_queue_family_index, 0, &vk_queue);
+	vk_queue = vk_device.getQueue(vk_queue_family_index, 0);
+
+	VmaAllocatorCreateInfo info{
+		.physicalDevice = *vk_physical_device,
+		.device = *vk_device,
+		.instance = *vk_instance,
+	};
+	CHECK_VK(vmaCreateAllocator(&info, &allocator));
 }
 
 void application::log_views()
@@ -359,7 +363,7 @@ void application::initialize()
 	view_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
 	world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
-	swapchain_format = VK_FORMAT_UNDEFINED;
+	swapchain_format = vk::Format::eUndefined;
 	for (auto i: xr_session.get_swapchain_formats())
 	{
 		if (std::find(supported_formats.begin(), supported_formats.end(), i) != supported_formats.end())
@@ -369,7 +373,7 @@ void application::initialize()
 		}
 	}
 
-	if (swapchain_format == VK_FORMAT_UNDEFINED)
+	if (swapchain_format == vk::Format::eUndefined)
 		throw std::runtime_error("No supported swapchain format");
 
 	spdlog::info("Using format {}", string_VkFormat(swapchain_format));
@@ -387,7 +391,11 @@ void application::initialize()
 		spdlog::info("Created swapchain {}: {}x{}", xr_swapchains.size(), xr_swapchains.back().width(), xr_swapchains.back().height());
 	}
 
-	vk_cmdpool = vk::command_pool{vk_device, vk_queue_family_index};
+	vk::CommandPoolCreateInfo cmdpool_create_info;
+	cmdpool_create_info.queueFamilyIndex = vk_queue_family_index;
+	cmdpool_create_info.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
+
+	vk_cmdpool = vk::raii::CommandPool{vk_device, cmdpool_create_info};
 
 	// TODO get it from application info
 	xr_actionset = xr::actionset(xr_instance, "actions", "Actions");
@@ -472,7 +480,7 @@ void application::process_binding_action(std::vector<XrActionSuggestedBinding> &
 
 std::pair<XrAction, XrActionType> application::get_action(const std::string & requested_name)
 {
-	for (const auto & [action, type, name]: instance_->actions)
+	for (const auto & [action, type, name]: instance().actions)
 	{
 		if (name == requested_name)
 			return {action, type};
@@ -538,17 +546,15 @@ application::application(application_info info) :
 	PFN_xrInitializeLoaderKHR initializeLoader = nullptr;
 	if (XR_SUCCEEDED(xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction *)(&initializeLoader))))
 	{
-		XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid{};
-		loaderInitInfoAndroid.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR;
-		loaderInitInfoAndroid.next = nullptr;
-		loaderInitInfoAndroid.applicationVM = app_info.native_app->activity->vm;
-		loaderInitInfoAndroid.applicationContext = app_info.native_app->activity->clazz;
+		XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid{
+			.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR,
+			.next = nullptr,
+			.applicationVM = app_info.native_app->activity->vm,
+			.applicationContext = app_info.native_app->activity->clazz,
+		};
 		initializeLoader((const XrLoaderInitInfoBaseHeaderKHR *)&loaderInitInfoAndroid);
 	}
 #endif
-
-	assert(instance_ == nullptr);
-	instance_ = this;
 
 	try
 	{
@@ -610,8 +616,6 @@ void application::cleanup()
 #ifdef XR_USE_PLATFORM_ANDROID
 	jni::jni_thread::detach();
 #endif
-	assert(instance_ == this);
-	instance_ = nullptr;
 }
 
 application::~application()
@@ -713,29 +717,29 @@ void application::run()
 
 std::shared_ptr<scene> application::current_scene()
 {
-	std::unique_lock _{instance_->scene_stack_lock};
-	if (!instance_->scene_stack.empty())
-		return instance_->scene_stack.back();
+	std::unique_lock _{instance().scene_stack_lock};
+	if (!instance().scene_stack.empty())
+		return instance().scene_stack.back();
 	else
 		return {};
 }
 
 void application::pop_scene()
 {
-	std::unique_lock _{instance_->scene_stack_lock};
-	if (!instance_->scene_stack.empty())
-		instance_->scene_stack.pop_back();
+	std::unique_lock _{instance().scene_stack_lock};
+	if (!instance().scene_stack.empty())
+		instance().scene_stack.pop_back();
 }
 
 void application::push_scene(std::shared_ptr<scene> s)
 {
-	std::unique_lock _{instance_->scene_stack_lock};
-	instance_->scene_stack.push_back(std::move(s));
+	std::unique_lock _{instance().scene_stack_lock};
+	instance().scene_stack.push_back(std::move(s));
 }
 
 void application::poll_actions()
 {
-	instance_->xr_session.sync_actions(instance_->xr_actionset);
+	instance().xr_session.sync_actions(instance().xr_actionset);
 }
 
 bool application::read_action(XrAction action, bool & value, XrTime & last_change_time)
@@ -749,7 +753,7 @@ bool application::read_action(XrAction action, bool & value, XrTime & last_chang
 	};
 
 	XrActionStateBoolean state{XR_TYPE_ACTION_STATE_BOOLEAN};
-	CHECK_XR(xrGetActionStateBoolean(instance_->xr_session, &get_info, &state));
+	CHECK_XR(xrGetActionStateBoolean(instance().xr_session, &get_info, &state));
 
 	if (!state.isActive)
 		return false;
@@ -770,7 +774,7 @@ bool application::read_action(XrAction action, float & value, XrTime & last_chan
 	};
 
 	XrActionStateFloat state{XR_TYPE_ACTION_STATE_FLOAT};
-	CHECK_XR(xrGetActionStateFloat(instance_->xr_session, &get_info, &state));
+	CHECK_XR(xrGetActionStateFloat(instance().xr_session, &get_info, &state));
 
 	if (!state.isActive)
 		return false;
@@ -791,7 +795,7 @@ bool application::read_action(XrAction action, XrVector2f & value, XrTime & last
 	};
 
 	XrActionStateVector2f state{XR_TYPE_ACTION_STATE_VECTOR2F};
-	CHECK_XR(xrGetActionStateVector2f(instance_->xr_session, &get_info, &state));
+	CHECK_XR(xrGetActionStateVector2f(instance().xr_session, &get_info, &state));
 
 	if (!state.isActive)
 		return false;
@@ -818,7 +822,7 @@ void application::haptic_start(XrAction action, XrPath subpath, int64_t duration
 	        .frequency = frequency,
 	        .amplitude = amplitude};
 
-	xrApplyHapticFeedback(application::instance_->xr_session, &action_info, (XrHapticBaseHeader *)&vibration);
+	xrApplyHapticFeedback(application::instance().xr_session, &action_info, (XrHapticBaseHeader *)&vibration);
 }
 
 void application::haptic_stop(XrAction action, XrPath subpath)
@@ -832,7 +836,7 @@ void application::haptic_stop(XrAction action, XrPath subpath)
 	        .subactionPath = subpath,
 	};
 
-	xrStopHapticFeedback(application::instance_->xr_session, &action_info);
+	xrStopHapticFeedback(application::instance().xr_session, &action_info);
 }
 
 void application::session_state_changed(XrSessionState new_state, XrTime timestamp)

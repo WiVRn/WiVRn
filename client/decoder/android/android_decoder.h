@@ -20,9 +20,6 @@
 #pragma once
 
 #include "utils/sync_queue.h"
-#include "vk/device_memory.h"
-#include "vk/image.h"
-#include "vk/renderpass.h"
 #include "wivrn_packets.h"
 #include <memory>
 #include <optional>
@@ -36,7 +33,7 @@
 #include <media/NdkImageReader.h>
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_raii.hpp>
 
 #define DEUGLIFY(x)                      \
 	struct x##_deleter               \
@@ -67,12 +64,12 @@ public:
 
 	struct blit_target
 	{
-		VkImage image;
-		VkImageView image_view;
-		VkOffset2D offset;
-		VkExtent2D extent;
+		vk::Image image;
+		vk::ImageView image_view;
+		vk::Offset2D offset;
+		vk::Extent2D extent;
 
-		VkFramebuffer framebuffer;
+		std::shared_ptr<vk::raii::Framebuffer> framebuffer;
 		std::shared_ptr<pipeline_context> pipeline;
 	};
 
@@ -94,7 +91,7 @@ private:
 	xrt::drivers::wivrn::to_headset::video_stream_description::item description;
 	float fps;
 
-	VkDevice device;
+	vk::raii::Device& device;
 
 	AImageReader_ptr image_reader;
 
@@ -124,14 +121,13 @@ private:
 	std::shared_ptr<pipeline_context> pipeline;
 	std::mutex hbm_mutex;
 	std::unordered_map<AHardwareBuffer *, std::shared_ptr<mapped_hardware_buffer>> hardware_buffer_map;
-	vk::renderpass renderpass;
+	vk::raii::RenderPass renderpass = nullptr;
 
 	std::shared_ptr<mapped_hardware_buffer> map_hardware_buffer(AImage *);
 
 public:
-	decoder(
-	        VkDevice device,
-	        VkPhysicalDevice physical_device,
+	decoder(vk::raii::Device& device,
+	        vk::raii::PhysicalDevice& physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,
@@ -151,11 +147,11 @@ public:
 		return description;
 	}
 
-	static const VkImageLayout framebuffer_expected_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	static const VkImageUsageFlagBits framebuffer_usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	static const vk::ImageLayout framebuffer_expected_layout = vk::ImageLayout::eColorAttachmentOptimal;
+	static const vk::ImageUsageFlagBits framebuffer_usage = vk::ImageUsageFlagBits::eColorAttachment;
 
-	void set_blit_targets(std::vector<blit_target> targets, VkFormat format);
-	void blit(VkCommandBuffer command_buffer, blit_handle & handle, std::span<int> target_indices);
+	void set_blit_targets(std::vector<blit_target> targets, vk::Format format);
+	void blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> target_indices);
 	void blit_finished(blit_handle & handle);
 };
 

@@ -18,12 +18,16 @@
  */
 
 #include "stream_reprojection.h"
-#include "spdlog/spdlog.h"
-#include "utils/check.h"
+#include "vk/allocation.h"
+#include "vk/shader.h"
+#include "vk/pipeline.h"
+#include <spdlog/spdlog.h>
 #include <array>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_raii.hpp>
 
 struct stream_reprojection::uniform
 {
@@ -36,311 +40,312 @@ struct stream_reprojection::uniform
 	alignas(8) glm::vec2 xc;
 };
 
-stream_reprojection::~stream_reprojection()
+stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::PhysicalDevice& physical_device, std::vector<vk::Image> input_images_, std::vector<vk::Image> output_images_, vk::Extent2D extent, vk::Format format, const xrt::drivers::wivrn::to_headset::video_stream_description & description) :
+	input_images(std::move(input_images_)),
+	output_images(std::move(output_images_)),
+	extent(extent)
 {
-	cleanup();
-}
-
-void stream_reprojection::cleanup()
-{
-	if (device)
-	{
-		if (descriptor_pool)
-			vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
-
-		if (descriptor_set_layout)
-			vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
-
-		for (VkFramebuffer framebuffer: framebuffers)
-			vkDestroyFramebuffer(device, framebuffer, nullptr);
-
-		for (VkImageView image_view: output_image_views)
-			vkDestroyImageView(device, image_view, nullptr);
-
-		for (VkImageView image_view: input_image_views)
-			vkDestroyImageView(device, image_view, nullptr);
-
-		if (sampler)
-			vkDestroySampler(device, sampler, nullptr);
-
-		descriptor_pool = VK_NULL_HANDLE;
-		descriptor_set_layout = VK_NULL_HANDLE;
-		sampler = VK_NULL_HANDLE;
-		framebuffers.clear();
-		output_image_views.clear();
-		input_image_views.clear();
-		ubo.clear();
-	}
-}
-
-void stream_reprojection::init(VkDevice device, VkPhysicalDevice physical_device, std::vector<VkImage> input_images_, std::vector<VkImage> output_images_, VkExtent2D extent, VkFormat format, const xrt::drivers::wivrn::to_headset::video_stream_description & description)
-{
-	cleanup();
-	this->device = device;
-	this->physical_device = physical_device,
-	this->input_images = std::move(input_images_);
-	this->output_images = std::move(output_images_);
-	this->extent = extent;
-	this->format = format;
 	foveation_parameters = description.foveation;
 
-	VkPhysicalDeviceProperties properties;
-	vkGetPhysicalDeviceProperties(physical_device, &properties);
+	vk::PhysicalDeviceProperties properties = physical_device.getProperties();
 
-	VkSamplerCreateInfo sampler_info{
-	        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-	        .magFilter = VK_FILTER_LINEAR,
-	        .minFilter = VK_FILTER_LINEAR,
-	        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
-	        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-	        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-	        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-	        .mipLodBias = 0.0f,
-	        .anisotropyEnable = VK_FALSE,
-	        .maxAnisotropy = 1,
-	        .compareEnable = VK_FALSE,
-	        .compareOp = VK_COMPARE_OP_NEVER,
-	        .minLod = 0.0f,
-	        .maxLod = 0.0f,
-	        .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
-	        .unnormalizedCoordinates = VK_FALSE,
+	vk::SamplerCreateInfo sampler_info{
+		.magFilter = vk::Filter::eLinear,
+		.minFilter = vk::Filter::eLinear,
+		.mipmapMode = vk::SamplerMipmapMode::eNearest,
+		.addressModeU = vk::SamplerAddressMode::eClampToBorder,
+		.addressModeV = vk::SamplerAddressMode::eClampToBorder,
+		.addressModeW = vk::SamplerAddressMode::eClampToBorder,
+		.mipLodBias = 0.0f,
+		.anisotropyEnable = VK_FALSE,
+		.maxAnisotropy = 1,
+		.compareEnable = VK_FALSE,
+		.compareOp = vk::CompareOp::eNever,
+		.minLod = 0.0f,
+		.maxLod = 0.0f,
+		.borderColor = vk::BorderColor::eFloatOpaqueBlack,
+		.unnormalizedCoordinates = VK_FALSE,
 	};
 
-	CHECK_VK(vkCreateSampler(device, &sampler_info, nullptr, &sampler));
+	sampler = vk::raii::Sampler(device, sampler_info);
 
 	size_t uniform_size = sizeof(uniform) + properties.limits.minUniformBufferOffsetAlignment - 1;
 	uniform_size = uniform_size - uniform_size % properties.limits.minUniformBufferOffsetAlignment;
 
-	VkBufferCreateInfo create_info{
-	        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-	        .size = uniform_size * input_images.size(),
-	        .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-	        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+	vk::BufferCreateInfo create_info{
+		.size = uniform_size * input_images.size(),
+		.usage = vk::BufferUsageFlagBits::eUniformBuffer,
+		.sharingMode = vk::SharingMode::eExclusive,
 	};
-	buffer = vk::buffer(device, create_info);
-	memory = vk::device_memory(device, physical_device, buffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	memory.map_memory();
+
+	VmaAllocationCreateInfo alloc_info{
+		.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	};
+
+	buffer = buffer_allocation(create_info, alloc_info);
+	void * data = buffer.map();
 	for (size_t i = 0; i < input_images.size(); i++)
-		ubo.push_back(reinterpret_cast<uniform *>(reinterpret_cast<uintptr_t>(memory.data()) + i * uniform_size));
+		ubo.push_back(reinterpret_cast<uniform *>(reinterpret_cast<uintptr_t>(data) + i * uniform_size));
 
 	// Create VkDescriptorSetLayout
-	std::array<VkDescriptorSetLayoutBinding, 2> layout_binding{
-	        VkDescriptorSetLayoutBinding{
-	                .binding = 0,
-	                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	                .descriptorCount = 1,
-	                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+	std::array layout_binding{
+		vk::DescriptorSetLayoutBinding{
+			.binding = 0,
+			.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			.descriptorCount = 1,
+			.stageFlags = vk::ShaderStageFlagBits::eFragment,
+		},
+		vk::DescriptorSetLayoutBinding{
+			.binding = 1,
+			.descriptorType = vk::DescriptorType::eUniformBuffer,
+			.descriptorCount = 1,
+			.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
+		}
+	};
+
+	vk::DescriptorSetLayoutCreateInfo layout_info;
+	layout_info.setBindings(layout_binding);
+
+	descriptor_set_layout = vk::raii::DescriptorSetLayout(device, layout_info);
+
+	std::array pool_size{
+	        vk::DescriptorPoolSize{
+	                .type = vk::DescriptorType::eCombinedImageSampler,
+	                .descriptorCount = (uint32_t)input_images.size(),
 	        },
-	        {
-	                .binding = 1,
-	                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	                .descriptorCount = 1,
-	                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-	        }};
-
-	VkDescriptorSetLayoutCreateInfo layout_info{
-	        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-	        .bindingCount = layout_binding.size(),
-	        .pBindings = layout_binding.data(),
+	        vk::DescriptorPoolSize{
+	                .type = vk::DescriptorType::eUniformBuffer,
+	                .descriptorCount = (uint32_t)input_images.size(),
+	        }
 	};
 
-	CHECK_VK(vkCreateDescriptorSetLayout(device, &layout_info, nullptr, &descriptor_set_layout));
+	vk::DescriptorPoolCreateInfo pool_info;
+	pool_info.flags = vk::DescriptorPoolCreateFlags{};
+	pool_info.maxSets = input_images.size();
+	pool_info.setPoolSizes(pool_size);
 
-	std::array<VkDescriptorPoolSize, 2> pool_size{VkDescriptorPoolSize{
-	                                                      .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-	                                                      .descriptorCount = (uint32_t)input_images.size(),
-	                                              },
-	                                              VkDescriptorPoolSize{
-	                                                      .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	                                                      .descriptorCount = (uint32_t)input_images.size(),
-	                                              }};
-
-	VkDescriptorPoolCreateInfo pool_info{
-	        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-	        .flags = 0,
-	        .maxSets = (uint32_t)input_images.size(),
-	        .poolSizeCount = pool_size.size(),
-	        .pPoolSizes = pool_size.data(),
-	};
-
-	CHECK_VK(vkCreateDescriptorPool(device, &pool_info, nullptr, &descriptor_pool));
+	descriptor_pool = vk::raii::DescriptorPool(device, pool_info);
 
 	// Create image views and descriptor sets
 	input_image_views.reserve(input_images.size());
 	descriptor_sets.reserve(input_images.size());
 	VkDeviceSize offset = 0;
-	for (VkImage image: input_images)
+	for (vk::Image image: input_images)
 	{
-		VkImageViewCreateInfo iv_info{
-		        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		        .image = image,
-		        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-		        .format = VK_FORMAT_A8B8G8R8_SRGB_PACK32,
-		        .components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-		        .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		                             .baseMipLevel = 0,
-		                             .levelCount = 1,
-		                             .baseArrayLayer = 0,
-		                             .layerCount = 1}};
-
-		VkImageView image_view;
-		CHECK_VK(vkCreateImageView(device, &iv_info, nullptr, &image_view));
-		input_image_views.push_back(image_view);
-
-		VkDescriptorSetAllocateInfo ds_info{
-		        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		        .descriptorPool = descriptor_pool,
-		        .descriptorSetCount = 1,
-		        .pSetLayouts = &descriptor_set_layout,
-		};
-		VkDescriptorSet ds;
-		CHECK_VK(vkAllocateDescriptorSets(device, &ds_info, &ds));
-		descriptor_sets.push_back(ds);
-
-		VkDescriptorImageInfo image_info{
-		        .sampler = sampler,
-		        .imageView = image_view,
-		        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		vk::ImageViewCreateInfo iv_info{
+			.image = image,
+			.viewType = vk::ImageViewType::e2D,
+			.format = vk::Format::eA8B8G8R8SrgbPack32,
+			.components = {
+				.r = vk::ComponentSwizzle::eIdentity,
+				.g = vk::ComponentSwizzle::eIdentity,
+				.b = vk::ComponentSwizzle::eIdentity,
+				.a = vk::ComponentSwizzle::eIdentity,
+			},
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			}
 		};
 
-		VkDescriptorBufferInfo buffer_info{
-		        .buffer = buffer, .offset = offset, .range = sizeof(uniform)};
+		input_image_views.emplace_back(device, iv_info);
+
+		vk::DescriptorSetAllocateInfo ds_info{
+			.descriptorPool = *descriptor_pool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &*descriptor_set_layout,
+		};
+
+		descriptor_sets.push_back(device.allocateDescriptorSets(ds_info)[0].release());
+
+		vk::DescriptorImageInfo image_info{
+			.sampler = *sampler,
+			.imageView = *input_image_views.back(),
+			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+		};
+
+		vk::DescriptorBufferInfo buffer_info{
+			.buffer = (vk::Buffer)buffer,
+			.offset = offset,
+			.range = sizeof(uniform),
+		};
 		offset += uniform_size;
 
-		std::array<VkWriteDescriptorSet, 2> write{
-		        VkWriteDescriptorSet{
-		                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		                .dstSet = ds,
-		                .dstBinding = 0,
-		                .dstArrayElement = 0,
-		                .descriptorCount = 1,
-		                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-		                .pImageInfo = &image_info,
-		        },
-		        VkWriteDescriptorSet{
-		                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		                .dstSet = ds,
-		                .dstBinding = 1,
-		                .dstArrayElement = 0,
-		                .descriptorCount = 1,
-		                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-		                .pBufferInfo = &buffer_info},
+		std::array write{
+			vk::WriteDescriptorSet{
+				.dstSet = descriptor_sets.back(),
+				.dstBinding = 0,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+				.pImageInfo = &image_info,
+			},
+			vk::WriteDescriptorSet{
+				.dstSet = descriptor_sets.back(),
+				.dstBinding = 1,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = vk::DescriptorType::eUniformBuffer,
+				.pBufferInfo = &buffer_info,
+			}
 		};
 
-		vkUpdateDescriptorSets(device, write.size(), write.data(), 0, nullptr);
+
+		device.updateDescriptorSets(write, {});
 	}
 
 	// Create renderpass
-	VkAttachmentReference color_ref{.attachment = 0, .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+	vk::AttachmentReference color_ref{
+		.attachment = 0,
+		.layout = vk::ImageLayout::eColorAttachmentOptimal,
+	};
 
-	vk::renderpass::info renderpass_info{.attachments = {VkAttachmentDescription{
-	                                             .format = format,
-	                                             .samples = VK_SAMPLE_COUNT_1_BIT,
-	                                             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-	                                             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-	                                             .initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-	                                             .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-	                                     }},
-	                                     .subpasses = {VkSubpassDescription{
-	                                             .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-	                                             .colorAttachmentCount = 1,
-	                                             .pColorAttachments = &color_ref,
-	                                     }},
-	                                     .dependencies = {}};
+	vk::AttachmentDescription attachment{
+		.format = format,
+		.samples = vk::SampleCountFlagBits::e1,
+		.loadOp = vk::AttachmentLoadOp::eClear,
+		.storeOp = vk::AttachmentStoreOp::eStore,
+		.initialLayout = vk::ImageLayout::eColorAttachmentOptimal,
+		.finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
+	};
 
-	renderpass = vk::renderpass(device, renderpass_info);
+	vk::SubpassDescription subpass{
+		.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
+	};
+	subpass.setColorAttachments(color_ref);
+
+	vk::RenderPassCreateInfo renderpass_info;
+	renderpass_info.setAttachments(attachment);
+	renderpass_info.setSubpasses(subpass);
+
+	renderpass = vk::raii::RenderPass(device, renderpass_info);
+
 
 	// Create graphics pipeline
-	vk::shader vertex_shader(device, "reprojection.vert");
-	vk::shader fragment_shader(device, "reprojection.frag");
+	vk::raii::ShaderModule vertex_shader = load_shader(device, "reprojection.vert");
+	vk::raii::ShaderModule fragment_shader = load_shader(device, "reprojection.frag");
 
-	VkPipelineColorBlendAttachmentState pcbas{.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-	                                                            VK_COLOR_COMPONENT_G_BIT |
-	                                                            VK_COLOR_COMPONENT_B_BIT};
 
-	layout = vk::pipeline_layout(device, {.descriptor_set_layouts = {descriptor_set_layout}});
+	vk::PipelineLayoutCreateInfo pipeline_layout_info;
+	pipeline_layout_info.setSetLayouts(*descriptor_set_layout);
+
+	layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
 
 	VkBool32 use_foveation[] = {
 		foveation_parameters[0].x.scale < 1,
 		foveation_parameters[0].y.scale < 1
 	};
 
-	std::vector<VkSpecializationMapEntry> specialization_constants_desc = {
-		{.constantID = 0, .offset = 0, .size = sizeof(VkBool32)},
-		{.constantID = 1, .offset = sizeof(VkBool32), .size = sizeof(VkBool32)}
+	std::array specialization_constants_desc{
+		vk::SpecializationMapEntry{
+			.constantID = 0,
+			.offset = 0,
+			.size = sizeof(VkBool32),
+		},
+		vk::SpecializationMapEntry{
+			.constantID = 1,
+			.offset = sizeof(VkBool32),
+			.size = sizeof(VkBool32),
+		}
 	};
 
-	VkSpecializationInfo specialization_info{
-	        .mapEntryCount = (uint32_t)specialization_constants_desc.size(),
-	        .pMapEntries = specialization_constants_desc.data(),
-	        .dataSize = sizeof(use_foveation),
-	        .pData = use_foveation};
+	vk::SpecializationInfo specialization_info;
 
-	vk::pipeline::graphics_info pipeline_info{
-	        .shader_stages =
-	                {{.stage = VK_SHADER_STAGE_VERTEX_BIT, .module = vertex_shader, .pName = "main"},
-	                 {.stage = VK_SHADER_STAGE_FRAGMENT_BIT, .module = fragment_shader, .pName = "main", .pSpecializationInfo = &specialization_info}},
-	        .vertex_input_bindings = {},
-	        .vertex_input_attributes = {},
-	        .InputAssemblyState = {.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP},
-	        .viewports = {VkViewport{.x = 0,
-	                                 .y = 0,
-	                                 .width = (float)extent.width,
-	                                 .height = (float)extent.height,
-	                                 .minDepth = 0,
-	                                 .maxDepth = 1}},
-	        .scissors = {VkRect2D{
-	                .offset = {0, 0},
-	                .extent = extent,
-	        }},
-	        .RasterizationState = {.polygonMode = VK_POLYGON_MODE_FILL, .lineWidth = 1},
-	        .MultisampleState = {.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT},
-	        .ColorBlendState = {.attachmentCount = 1, .pAttachments = &pcbas},
-	        .dynamic_states = {},
-	        .renderPass = renderpass,
-	        .subpass = 0,
+	specialization_info.setMapEntries(specialization_constants_desc);
+	specialization_info.setData<VkBool32>(use_foveation);
+
+	vk::pipeline_builder pipeline_info
+	{
+		.flags = {},
+		.Stages = {{
+			.stage = vk::ShaderStageFlagBits::eVertex,
+			.module = *vertex_shader,
+			.pName = "main",
+		},{
+			.stage = vk::ShaderStageFlagBits::eFragment,
+			.module = *fragment_shader,
+			.pName = "main",
+			.pSpecializationInfo = &specialization_info,
+		}},
+		.VertexInputState = {.flags = {}},
+		.VertexBindingDescriptions = {},
+		.VertexAttributeDescriptions = {},
+		.InputAssemblyState = {{
+			.topology = vk::PrimitiveTopology::eTriangleStrip,
+		}},
+		.ViewportState = {.flags = {}},
+		.Viewports = {{
+			.x = 0,
+			.y = 0,
+			.width = (float)extent.width,
+			.height = (float)extent.height,
+			.minDepth = 0,
+			.maxDepth = 1,
+		}},
+		.Scissors = {{
+			.offset = { .x = 0, .y = 0 },
+			.extent= extent,
+		}},
+		.RasterizationState = {{
+			.polygonMode = vk::PolygonMode::eFill,
+			.lineWidth = 1,
+		}},
+		.MultisampleState = {{
+			.rasterizationSamples = vk::SampleCountFlagBits::e1,
+		}},
+		.ColorBlendState = {.flags = {}},
+		.ColorBlendAttachments = {{
+			.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB
+		}},
+		.layout = *layout,
+		.renderPass = *renderpass,
+		.subpass = 0,
 	};
 
-	pipeline = vk::pipeline(device, pipeline_info, layout);
+	pipeline = vk::raii::Pipeline(device, nullptr, pipeline_info);
 
 	// Create image views and framebuffers
 	output_image_views.reserve(output_images.size());
 	framebuffers.reserve(output_images.size());
-	for (VkImage image: output_images)
+	for (vk::Image image: output_images)
 	{
-		VkImageViewCreateInfo iv_info{
-		        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-		        .image = image,
-		        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-		        .format = format,
-		        .components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-		        .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		                             .baseMipLevel = 0,
-		                             .levelCount = 1,
-		                             .baseArrayLayer = 0,
-		                             .layerCount = 1}};
-
-		VkImageView image_view;
-		CHECK_VK(vkCreateImageView(device, &iv_info, nullptr, &image_view));
-		output_image_views.push_back(image_view);
-
-		VkFramebufferCreateInfo fb_create_info{
-		        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-		        .renderPass = renderpass,
-		        .attachmentCount = 1,
-		        .pAttachments = &image_view,
-		        .width = extent.width,
-		        .height = extent.height,
-		        .layers = 1,
+		vk::ImageViewCreateInfo iv_info{
+			.image = image,
+			.viewType = vk::ImageViewType::e2D,
+			.format = format,
+			.components = {
+				.r = vk::ComponentSwizzle::eIdentity,
+				.g = vk::ComponentSwizzle::eIdentity,
+				.b = vk::ComponentSwizzle::eIdentity,
+				.a = vk::ComponentSwizzle::eIdentity,
+			},
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
 		};
 
-		VkFramebuffer framebuffer;
-		CHECK_VK(vkCreateFramebuffer(device, &fb_create_info, nullptr, &framebuffer));
-		framebuffers.push_back(framebuffer);
+		output_image_views.emplace_back(device, iv_info);
+
+		vk::FramebufferCreateInfo fb_create_info{
+			.renderPass = *renderpass,
+			.width = extent.width,
+			.height = extent.height,
+			.layers = 1,
+		};
+		fb_create_info.setAttachments(*output_image_views.back());
+
+		framebuffers.emplace_back(device, fb_create_info);
 	}
 }
 
-void stream_reprojection::reproject(VkCommandBuffer command_buffer, int source, int destination, XrQuaternionf source_pose, XrFovf source_fov, XrQuaternionf dest_pose, XrFovf dest_fov)
+void stream_reprojection::reproject(vk::raii::CommandBuffer& command_buffer, int source, int destination, XrQuaternionf source_pose, XrFovf source_fov, XrQuaternionf dest_pose, XrFovf dest_fov)
 {
 	if (source < 0 || source >= (int)input_images.size())
 		throw std::runtime_error("Invalid source image index");
@@ -399,26 +404,21 @@ void stream_reprojection::reproject(VkCommandBuffer command_buffer, int source, 
 	ubo[source]->lambda.y = foveation_parameters[source].y.a / foveation_parameters[source].y.scale;
 	ubo[source]->xc.y = foveation_parameters[source].y.center;
 
-	VkClearValue clear_color{};
+	vk::ClearValue clear_color;
 
-	VkRenderPassBeginInfo begin_info{
-	        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-	        .renderPass = renderpass,
-	        .framebuffer = framebuffers[destination],
-	        .renderArea =
-	                {
-	                        .offset = {0, 0},
-	                        .extent = extent,
-	                },
-	        .clearValueCount = 1,
-	        .pClearValues = &clear_color,
+	vk::RenderPassBeginInfo begin_info{
+		.renderPass = *renderpass,
+		.framebuffer = *framebuffers[destination],
+		.renderArea = {
+			.offset = {0, 0},
+			.extent = extent,
+		},
 	};
+	begin_info.setClearValues(clear_color);
 
-	vkCmdBeginRenderPass(command_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-	vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-	vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &descriptor_sets[source], 0, nullptr);
-	vkCmdDraw(command_buffer, 3, 1, 0, 0);
-
-	vkCmdEndRenderPass(command_buffer);
+	command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+	command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, descriptor_sets[source], {});
+	command_buffer.draw(3, 1, 0, 0);
+	command_buffer.endRenderPass();
 }

@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2023  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2023  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,17 +17,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "image.h"
-#include "utils/check.h"
+#pragma once
 
-vk::image::image(VkDevice device, const VkImageCreateInfo & create_info) :
-        device(device)
-{
-	CHECK_VK(vkCreateImage(device, &create_info, nullptr, &id));
-}
+#include <cassert>
+#include <concepts>
 
-vk::image::~image()
+template<typename T>
+class singleton
 {
-	if (device)
-		vkDestroyImage(device, id, nullptr);
-}
+	// static_assert(std::derived_from<T, singleton<T>>);
+
+	static T * instance_;
+
+protected:
+	singleton()
+	{
+		assert(instance_ == nullptr);
+		instance_ = reinterpret_cast<T*>(this);
+	}
+
+	~singleton()
+	{
+		assert(instance_ == this);
+		instance_ = nullptr;
+	}
+
+public:
+	static T & instance()
+	{
+		assert(instance_ != nullptr);
+		return *reinterpret_cast<T*>(instance_);
+	}
+};
+
+template<typename T> T * singleton<T>::instance_;

@@ -51,11 +51,10 @@ class stream : public scene, public std::enable_shared_from_this<stream>
 
 	struct renderpass_output
 	{
-		VkExtent2D size;
-		VkFormat format;
-		VkImage image;
-		VkDeviceMemory memory;
-		VkImageView image_view;
+		vk::Extent2D size;
+		vk::Format format;
+		image_allocation image;
+		vk::raii::ImageView image_view = nullptr;
 	};
 
 	std::unique_ptr<wivrn_session> network_session;
@@ -71,10 +70,10 @@ class stream : public scene, public std::enable_shared_from_this<stream>
 
 	std::array<renderpass_output, view_count> decoder_output{};
 
-	stream_reprojection reprojector;
+	std::optional<stream_reprojection> reprojector;
 
-	VkFence fence;
-	VkCommandBuffer command_buffer;
+	vk::raii::Fence fence = nullptr;
+	vk::raii::CommandBuffer command_buffer = nullptr;
 
 	std::array<std::pair<XrAction, XrPath>, 2> haptics_actions;
 	std::vector<std::tuple<device_id, XrAction, XrActionType>> input_actions;
@@ -103,7 +102,7 @@ public:
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(audio_data&&);
 
-	VkFormat swapchain_format()
+	vk::Format swapchain_format()
 	{
 		return swapchains[0].format();
 	}

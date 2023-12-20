@@ -18,6 +18,7 @@
  */
 
 #include "stream.h"
+#include <spdlog/spdlog.h>
 
 void scenes::stream::process_packets()
 {

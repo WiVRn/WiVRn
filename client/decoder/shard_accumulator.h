@@ -21,6 +21,8 @@
 
 #include "xr/instance.h"
 #include <memory>
+#include <vulkan/vulkan.hpp>
+
 #ifdef XR_USE_PLATFORM_ANDROID
 #include "decoder/android/android_decoder.h"
 using decoder_impl = ::wivrn::android::decoder;
@@ -70,8 +72,8 @@ private:
 
 public:
 	explicit shard_accumulator(
-	        VkDevice device,
-	        VkPhysicalDevice physical_device,
+	        vk::raii::Device& device,
+	        vk::raii::PhysicalDevice& physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        std::weak_ptr<scenes::stream> scene,
@@ -94,15 +96,17 @@ public:
 	using blit_handle = decoder_impl::blit_handle;
 	using blit_target = decoder_impl::blit_target;
 
-	static const VkImageLayout framebuffer_expected_layout = decoder_impl::framebuffer_expected_layout;
-	static const VkImageUsageFlagBits framebuffer_usage = decoder_impl::framebuffer_usage;
 
-	void set_blit_targets(std::vector<blit_target> targets, VkFormat format)
+	static const vk::ImageLayout framebuffer_expected_layout = decoder_impl::framebuffer_expected_layout;
+	static const vk::ImageUsageFlagBits framebuffer_usage = decoder_impl::framebuffer_usage;
+
+	void set_blit_targets(std::vector<blit_target> targets, vk::Format format)
 	{
+		static_assert(std::copy_constructible<blit_target>);
 		decoder->set_blit_targets(std::move(targets), format);
 	}
 
-	void blit(VkCommandBuffer command_buffer, blit_handle & handle, std::span<int> blit_target_indices)
+	void blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> blit_target_indices)
 	{
 		return decoder->blit(command_buffer, handle, blit_target_indices);
 	}

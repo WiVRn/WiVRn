@@ -18,6 +18,8 @@
  */
 
 #include "text_rasterizer.h"
+#include "application.h"
+#include "vk/allocation.h"
 #include <cassert>
 #include <limits>
 #include <system_error>
@@ -27,7 +29,11 @@
 #include <hb.h>
 
 #include "utils/check.h"
-#include "vk/buffer.h"
+#include <vk_mem_alloc.h>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_handles.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 #ifdef XR_USE_PLATFORM_ANDROID
 #include <android/font.h>
@@ -69,8 +75,13 @@ std::error_category & freetype_error_category()
 //     static hb_feature_t CligOn      = { CligTag, 1, 0, std::numeric_limits<unsigned int>::max() };
 // }
 
-text_rasterizer::text_rasterizer(VkDevice device, VkPhysicalDevice physical_device, VkCommandPool command_pool, VkQueue queue) :
-        device(device), physical_device(physical_device), command_pool(command_pool), queue(queue)
+
+text_rasterizer::text_rasterizer(vk::raii::Device& device, vk::raii::PhysicalDevice& physical_device, vk::raii::CommandPool& command_pool, vk::raii::Queue& queue) :
+        device(device),
+        physical_device(physical_device),
+        command_pool(command_pool),
+        queue(queue),
+        fence(device, vk::FenceCreateInfo{})
 {
 	std::string font_filename;
 
@@ -127,16 +138,45 @@ text_rasterizer::text_rasterizer(VkDevice device, VkPhysicalDevice physical_devi
 
 		throw;
 	}
+}
 
-	VkFenceCreateInfo fence_info{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-	CHECK_VK(vkCreateFence(device, &fence_info, nullptr, &fence));
+image_allocation text_rasterizer::create_image(vk::Extent2D size, VmaMemoryUsage usage)
+{
+	vk::ImageCreateInfo image_info;
+	image_info.imageType = vk::ImageType::e2D;
+	image_info.format = text::format;
+	image_info.extent.width = size.width;
+	image_info.extent.height = size.height;
+	image_info.extent.depth = 1;
+	image_info.mipLevels = 1;
+	image_info.arrayLayers = 1;
+	image_info.samples = vk::SampleCountFlagBits::e1;
+	image_info.tiling = vk::ImageTiling::eOptimal;
+	image_info.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
+	image_info.sharingMode = vk::SharingMode::eExclusive;
+	image_info.initialLayout = vk::ImageLayout::eUndefined;
+
+	VmaAllocationCreateInfo alloc_info{};
+	alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	return image_allocation{image_info, alloc_info};
+}
+
+buffer_allocation text_rasterizer::create_buffer(size_t size, VmaMemoryUsage usage)
+{
+	vk::BufferCreateInfo buffer_info;
+	buffer_info.size = size;
+	buffer_info.usage = vk::BufferUsageFlagBits::eTransferSrc;
+	buffer_info.sharingMode = vk::SharingMode::eExclusive;
+
+	VmaAllocationCreateInfo alloc_info{};
+	alloc_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+	return buffer_allocation{buffer_info, alloc_info};
 }
 
 text_rasterizer::~text_rasterizer()
 {
-	if (device && fence)
-		vkDestroyFence(device, fence, nullptr);
-
 	hb_buffer_destroy(buffer);
 	hb_font_destroy(font);
 	FT_Done_FreeType(freetype);
@@ -241,106 +281,83 @@ text text_rasterizer::render(std::string_view s)
 	        }};
 #else
 
-	VkImageCreateInfo image_info{
-	        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-	        .imageType = VK_IMAGE_TYPE_2D,
-	        .format = text::format,
-	        .extent = {
-	                .width = uint32_t(x_max - x_min),
-	                .height = uint32_t(y_max - y_min),
-	                .depth = 1},
-	        .mipLevels = 1,
-	        .arrayLayers = 1,
-	        .samples = VK_SAMPLE_COUNT_1_BIT,
-	        .tiling = VK_IMAGE_TILING_OPTIMAL,
-	        .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-	        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-	        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
-	vk::image image(device, image_info);
-	vk::device_memory memory(device, physical_device, image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	text return_value;
 
-	VkBufferCreateInfo buffer_info{
-	        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-	        .size = rendered_text.size(),
-	        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+	return_value.size.width = x_max - x_min;
+	return_value.size.height = y_max - y_min;
+	return_value.image = create_image(return_value.size, VMA_MEMORY_USAGE_GPU_ONLY);
+
+	buffer_allocation staging_buffer = create_buffer(rendered_text.size(), VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	void * mapped = staging_buffer.map();
+	memcpy(mapped, rendered_text.data(), rendered_text.size());
+
+	vk::raii::CommandBuffers cmdbufs(device, {
+		.commandPool = *command_pool,
+		.level = vk::CommandBufferLevel::ePrimary,
+		.commandBufferCount = 1,
+	});
+	vk::raii::CommandBuffer& cmdbuf = cmdbufs[0];
+	application::set_debug_reports_name((VkCommandBuffer)*cmdbuf, "text_rasterizer command buffer");
+
+	cmdbuf.begin({});
+
+
+	vk::ImageMemoryBarrier barrier{
+		.srcAccessMask = vk::AccessFlagBits::eNone,
+		.dstAccessMask = vk::AccessFlagBits::eTransferWrite,
+		.oldLayout = vk::ImageLayout::eUndefined,
+		.newLayout = vk::ImageLayout::eTransferDstOptimal,
+		.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+		.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+		.image = vk::Image{return_value.image},
+		.subresourceRange = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		},
 	};
-	vk::buffer staging_buffer(device, buffer_info);
-	vk::device_memory staging_memory(device, physical_device, staging_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-	staging_memory.map_memory();
-	memcpy(staging_memory.data(), rendered_text.data(), rendered_text.size());
+	cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags{}, {}, {}, barrier);
 
-	VkCommandBufferAllocateInfo cmdbufinfo{
-	        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-	        .commandPool = command_pool,
-	        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-	        .commandBufferCount = 1,
+
+	vk::BufferImageCopy copy_info{
+		.bufferOffset = 0,
+		.bufferRowLength = 0,
+		.bufferImageHeight = 0,
+		.imageSubresource = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.mipLevel = 0,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		},
+		.imageOffset = {0, 0, 0},
+		.imageExtent = {
+			.width = uint32_t(x_max - x_min),
+			.height = uint32_t(y_max - y_min),
+			.depth = 1,
+		},
 	};
-	VkCommandBuffer cmdbuf;
-	CHECK_VK(vkAllocateCommandBuffers(device, &cmdbufinfo, &cmdbuf));
+	cmdbuf.copyBufferToImage(staging_buffer, return_value.image, vk::ImageLayout::eTransferDstOptimal, copy_info);
 
-	VkCommandBufferBeginInfo cmdbufbegininfo{
-	        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-	};
-	vkBeginCommandBuffer(cmdbuf, &cmdbufbegininfo);
 
-	VkImageMemoryBarrier barrier{
-	        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-	        .srcAccessMask = 0,
-	        .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-	        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-	        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	        .image = image,
-	        .subresourceRange =
-	                {
-	                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                        .baseMipLevel = 0,
-	                        .levelCount = 1,
-	                        .baseArrayLayer = 0,
-	                        .layerCount = 1,
-	                },
-	};
-	vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-	VkBufferImageCopy copy_info{.bufferOffset = 0,
-	                            .bufferRowLength = 0,
-	                            .bufferImageHeight = 0,
-	                            .imageSubresource =
-	                                    VkImageSubresourceLayers{
-	                                            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                                            .mipLevel = 0,
-	                                            .baseArrayLayer = 0,
-	                                            .layerCount = 1,
-	                                    },
-	                            .imageOffset = {0, 0, 0},
-	                            .imageExtent = image_info.extent};
-
-	vkCmdCopyBufferToImage(cmdbuf, staging_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
-
-	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+	barrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;
+	barrier.oldLayout = vk::ImageLayout::eTransferDstOptimal;
 	barrier.newLayout = text::layout;
 	barrier.subresourceRange.baseMipLevel = 0;
-	vkCmdPipelineBarrier(cmdbuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe, vk::DependencyFlags{}, {}, {}, barrier);
 
-	CHECK_VK(vkEndCommandBuffer(cmdbuf));
+	cmdbuf.end();
 
-	VkSubmitInfo submit_info{};
-	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers = &cmdbuf;
-	CHECK_VK(vkQueueSubmit(queue, 1, &submit_info, fence));
+	vk::SubmitInfo submit_info;
+	submit_info.setCommandBuffers(*cmdbuf);
+	queue.submit(submit_info, *fence);
+	device.waitForFences(*fence, VK_TRUE, UINT64_MAX);
+	device.resetFences(*fence);
 
-	CHECK_VK(vkWaitForFences(device, 1, &fence, VK_TRUE, -1));
-	CHECK_VK(vkResetFences(device, 1, &fence));
-
-	return {
-	        .image = std::move(image),
-	        .memory = std::move(memory),
-	        .size = {image_info.extent.width, image_info.extent.height}};
+	return return_value;
 #endif
 }
 

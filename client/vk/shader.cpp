@@ -19,24 +19,16 @@
 
 #include "shader.h"
 
-#include "vk.h"
-
-vk::shader::shader(VkDevice device, const std::vector<uint32_t> & spirv) :
-        device(device)
+vk::raii::ShaderModule load_shader(vk::raii::Device& device, const std::vector<uint32_t> & spirv)
 {
-	VkShaderModuleCreateInfo create_info{};
-	create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	vk::ShaderModuleCreateInfo create_info{};
 	create_info.pCode = data(spirv);
 	create_info.codeSize = spirv.size() * sizeof(uint32_t);
 
-	CHECK_VK(vkCreateShaderModule(device, &create_info, nullptr, &id));
+	return vk::raii::ShaderModule{device, create_info};
 }
 
-vk::shader::shader(VkDevice device, const std::string & name) :
-        shader(device, shaders.at(name)) {}
-
-vk::shader::~shader()
+vk::raii::ShaderModule load_shader(vk::raii::Device& device, const std::string & name)
 {
-	if (device)
-		vkDestroyShaderModule(device, id, nullptr);
+	return load_shader(device, shaders.at(name));
 }

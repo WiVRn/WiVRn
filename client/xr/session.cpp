@@ -24,15 +24,15 @@
 #include <vulkan/vulkan.h>
 #include <openxr/openxr_platform.h>
 
-xr::session::session(xr::instance & inst, xr::system & sys, VkInstance vk_inst, VkPhysicalDevice pdev, VkDevice dev, int queue_family_index) :
+xr::session::session(xr::instance & inst, xr::system & sys, vk::raii::Instance& vk_inst, vk::raii::PhysicalDevice& pdev, vk::raii::Device& dev, int queue_family_index) :
         inst(&inst)
 {
 	XrGraphicsBindingVulkan2KHR vulkan_binding{};
 	vulkan_binding.type = XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR;
 
-	vulkan_binding.instance = vk_inst;
-	vulkan_binding.physicalDevice = pdev;
-	vulkan_binding.device = dev;
+	vulkan_binding.instance = *vk_inst;
+	vulkan_binding.physicalDevice = *pdev;
+	vulkan_binding.device = *dev;
 	vulkan_binding.queueFamilyIndex = queue_family_index;
 	vulkan_binding.queueIndex = 0;
 
@@ -75,11 +75,11 @@ xr::space xr::session::create_action_space(XrAction action, const XrPosef & pose
 	return s;
 }
 
-std::vector<VkFormat> xr::session::get_swapchain_formats() const
+std::vector<vk::Format> xr::session::get_swapchain_formats() const
 {
-	std::vector<VkFormat> formats;
+	std::vector<vk::Format> formats;
 	for (auto i: details::enumerate<int64_t>(xrEnumerateSwapchainFormats, id))
-		formats.push_back(static_cast<VkFormat>(i));
+		formats.push_back(static_cast<vk::Format>(i));
 	return formats;
 }
 

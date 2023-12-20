@@ -19,27 +19,12 @@
 
 #pragma once
 
-#include "utils/handle.h"
 #include <map>
 #include <string>
 #include <vector>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
-namespace vk
-{
-class shader : public utils::handle<VkShaderModule>
-{
-	VkDevice device;
-
-public:
-	shader(VkDevice device, const std::vector<uint32_t> & spirv);
-	shader(VkDevice device, const std::string & name);
-	shader(shader &&) = default;
-	shader & operator=(shader &&) = default;
-	shader(const shader &) = delete;
-	shader operator=(const shader &) = delete;
-	~shader();
-};
-} // namespace vk
+vk::raii::ShaderModule load_shader(vk::raii::Device& device, const std::vector<uint32_t> & spirv);
+vk::raii::ShaderModule load_shader(vk::raii::Device& device, const std::string & name);

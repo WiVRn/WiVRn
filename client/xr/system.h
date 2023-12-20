@@ -25,7 +25,7 @@
 
 #include "xr.h"
 #include <vector>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
@@ -55,8 +55,8 @@ public:
 
 	XrSystemProperties properties() const;
 	XrGraphicsRequirementsVulkan2KHR graphics_requirements() const;
-	VkPhysicalDevice physical_device(VkInstance vulkan) const;
-	VkDevice create_device(VkPhysicalDevice pdev, VkDeviceCreateInfo & create_info) const;
+	vk::raii::PhysicalDevice physical_device(vk::raii::Instance& vulkan) const;
+	vk::raii::Device create_device(vk::raii::PhysicalDevice& pdev, vk::DeviceCreateInfo & create_info) const;
 
 	std::vector<XrViewConfigurationType> view_configurations() const;
 	XrViewConfigurationProperties view_configuration_properties(XrViewConfigurationType) const;

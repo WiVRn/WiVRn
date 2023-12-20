@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include "vk/device_memory.h"
-#include "vk/image.h"
 #include "wivrn_packets.h"
 #include <deque>
 #include <memory>
@@ -28,7 +26,8 @@
 #include <span>
 #include <string>
 #include <vector>
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_raii.hpp>
+#include "vk/allocation.h"
 
 class shard_accumulator;
 
@@ -51,23 +50,22 @@ class decoder
 public:
 	struct blit_target
 	{
-		VkImage image;
-		VkImageView image_view;
-		VkOffset2D offset;
-		VkExtent2D extent;
+		vk::Image image;
+		vk::ImageView image_view;
+		vk::Offset2D offset;
+		vk::Extent2D extent;
 	};
 
 private:
 	static const int image_count = 3;
 	struct image
 	{
-		vk::image image;
-		vk::device_memory memory;
-		VkSubresourceLayout layout;
+		image_allocation image;
+		vk::SubresourceLayout layout;
 		uint64_t frame_index;
 	};
 
-	VkDevice device;
+	vk::raii::Device& device;
 	std::array<image, image_count> decoded_images;
 	std::vector<int> free_images;
 
@@ -85,8 +83,8 @@ private:
 
 public:
 	decoder(
-	        VkDevice device,
-	        VkPhysicalDevice physical_device,
+	        vk::raii::Device& device,
+	        vk::raii::PhysicalDevice& physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,
@@ -113,10 +111,10 @@ public:
 		~blit_handle();
 	};
 
-	static const VkImageLayout framebuffer_expected_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	static const VkImageUsageFlagBits framebuffer_usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	static const vk::ImageLayout framebuffer_expected_layout = vk::ImageLayout::eTransferDstOptimal;
+	static const vk::ImageUsageFlagBits framebuffer_usage = vk::ImageUsageFlagBits::eTransferDst;
 
-	void set_blit_targets(std::vector<blit_target> targets, VkFormat format);
-	void blit(VkCommandBuffer command_buffer, blit_handle & handle, std::span<int> target_indices);
+	void set_blit_targets(std::vector<blit_target> targets, vk::Format format);
+	void blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> target_indices);
 };
 } // namespace ffmpeg

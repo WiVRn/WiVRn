@@ -20,9 +20,7 @@
 #pragma once
 
 #include "scene.h"
-#include "vk/buffer.h"
-#include "vk/image.h"
-#include "vk/renderpass.h"
+#include <vulkan/vulkan_raii.hpp>
 #include "wivrn_discover.h"
 #include <tiny_gltf.h>
 
@@ -39,25 +37,25 @@ class lobby : public scene
 {
 	std::string status_string;
 	std::string last_status_string;
-	VkSampler status_string_sampler{};
+	vk::raii::Sampler status_string_sampler = nullptr;
 	text status_string_rasterized_text;
-	VkImageView status_string_image_view{};
-	VkDescriptorPool status_string_descriptor_pool{};
-	VkDescriptorSetLayout status_string_image_descriptor_set_layout{};
-	VkDescriptorSet status_string_image_descriptor_set{};
+	vk::raii::ImageView status_string_image_view = nullptr;
+	vk::raii::DescriptorPool status_string_descriptor_pool = nullptr;
+	vk::raii::DescriptorSetLayout status_string_image_descriptor_set_layout = nullptr;
+	vk::DescriptorSet status_string_image_descriptor_set;
 	text_rasterizer status_string_rasterizer;
 
-	vk::renderpass renderpass;
-	vk::pipeline_layout layout;
-	vk::pipeline pipeline;
+	vk::raii::RenderPass renderpass = nullptr;
+	vk::raii::PipelineLayout layout = nullptr;
+	vk::raii::Pipeline pipeline = nullptr;
 
-	VkFence fence{};
-	VkCommandBuffer command_buffer{};
+	vk::raii::Fence fence = nullptr;
+	vk::raii::CommandBuffer command_buffer = nullptr;
 
 	struct image_data
 	{
-		VkFramebuffer framebuffer{};
-		VkSemaphore render_finished{};
+		vk::raii::Framebuffer framebuffer;
+		vk::raii::Semaphore render_finished;
 	};
 
 	std::vector<std::vector<image_data>> images_data;
@@ -65,15 +63,15 @@ class lobby : public scene
 	std::optional<wivrn_discover> discover;
 
 	tinygltf::Model model;
-	std::vector<vk::device_memory> model_memory;
-	std::vector<vk::buffer> model_buffers;
-	std::vector<vk::image> model_images;
+	std::vector<vk::DeviceMemory> model_memory;
+	std::vector<vk::Buffer> model_buffers;
+	std::vector<vk::Image> model_images;
 
 	void load_model(const std::string & filename);
 
 	std::shared_ptr<stream> next_scene;
 
-	scene_renderer renderer;
+	// scene_renderer renderer;
 
 	void rasterize_status_string();
 

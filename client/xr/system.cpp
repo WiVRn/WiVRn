@@ -62,7 +62,7 @@ XrSystemProperties xr::system::properties() const
 	return prop;
 }
 
-VkPhysicalDevice xr::system::physical_device(VkInstance vulkan) const
+vk::raii::PhysicalDevice xr::system::physical_device(vk::raii::Instance& vulkan) const
 {
 	auto xrGetVulkanGraphicsDevice2KHR =
 	        inst->get_proc<PFN_xrGetVulkanGraphicsDevice2KHR>("xrGetVulkanGraphicsDevice2KHR");
@@ -70,23 +70,23 @@ VkPhysicalDevice xr::system::physical_device(VkInstance vulkan) const
 	XrVulkanGraphicsDeviceGetInfoKHR get_info{};
 	get_info.type = XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR;
 	get_info.systemId = id;
-	get_info.vulkanInstance = vulkan;
+	get_info.vulkanInstance = *vulkan;
 
 	VkPhysicalDevice dev;
 	CHECK_XR(xrGetVulkanGraphicsDevice2KHR(*inst, &get_info, &dev));
 
-	return dev;
+	return vk::raii::PhysicalDevice{vulkan, dev};
 }
 
-VkDevice xr::system::create_device(VkPhysicalDevice pdev, VkDeviceCreateInfo & create_info) const
+vk::raii::Device xr::system::create_device(vk::raii::PhysicalDevice& pdev, vk::DeviceCreateInfo & create_info) const
 {
 	XrVulkanDeviceCreateInfoKHR xr_create_info{};
 
 	xr_create_info.type = XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR;
 	xr_create_info.pfnGetInstanceProcAddr = vkGetInstanceProcAddr;
 	xr_create_info.systemId = id;
-	xr_create_info.vulkanPhysicalDevice = pdev;
-	xr_create_info.vulkanCreateInfo = &create_info;
+	xr_create_info.vulkanPhysicalDevice = *pdev;
+	xr_create_info.vulkanCreateInfo = &(VkDeviceCreateInfo&)create_info;
 
 	VkDevice dev;
 	VkResult vresult;
@@ -95,7 +95,7 @@ VkDevice xr::system::create_device(VkPhysicalDevice pdev, VkDeviceCreateInfo & c
 	CHECK_XR(xrCreateVulkanDeviceKHR(*inst, &xr_create_info, &dev, &vresult));
 	CHECK_VK(vresult, "xrCreateVulkanDeviceKHR");
 
-	return dev;
+	return vk::raii::Device{pdev, dev};
 }
 
 std::vector<XrViewConfigurationType> xr::system::view_configurations() const

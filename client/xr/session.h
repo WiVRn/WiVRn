@@ -22,7 +22,7 @@
 #include "utils/handle.h"
 #include <string>
 #include <vector>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 
 #include "space.h"
@@ -38,7 +38,7 @@ class session : public utils::handle<XrSession>
 
 public:
 	session() = default;
-	session(instance &, system &, VkInstance, VkPhysicalDevice, VkDevice, int queue_family_index);
+	session(instance &, system &, vk::raii::Instance&, vk::raii::PhysicalDevice&, vk::raii::Device&, int queue_family_index);
 	session(session &&) = default;
 	session & operator=(session &&) = default;
 
@@ -48,7 +48,7 @@ public:
 	space create_reference_space(XrReferenceSpaceType ref, const XrPosef & pose = {{0, 0, 0, 1}, {0, 0, 0}});
 	space create_action_space(XrAction action, const XrPosef & pose = {{0, 0, 0, 1}, {0, 0, 0}});
 
-	std::vector<VkFormat> get_swapchain_formats() const;
+	std::vector<vk::Format> get_swapchain_formats() const;
 
 	XrFrameState wait_frame();
 	void begin_frame();
