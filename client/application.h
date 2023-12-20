@@ -234,15 +234,6 @@ class application
 	        {"/user/hand/left/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
 	        {"/user/hand/right/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
 
-	        {"/user/hand/left/input/palm_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/right/input/palm_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
-			
-	        {"/user/hand/left/input/pinch_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/right/input/pinch_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
-
-	        {"/user/hand/left/input/poke_ext_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/right/input/poke_ext/pose", XR_ACTION_TYPE_POSE_INPUT},
-
 	};
 
 	bool session_running = false;
