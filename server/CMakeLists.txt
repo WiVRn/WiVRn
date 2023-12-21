@@ -58,6 +58,7 @@ add_executable(wivrn-server
 		main.cpp
 		target_instance_wivrn.cpp
 		avahi_publisher.cpp
+		hostname.cpp
 		wivrn_ipc.cpp
 
 		driver/audio_pulse.cpp
@@ -101,10 +102,7 @@ if(WIVRN_USE_X264)
 endif()
 
 if(WIVRN_USE_SYSTEMD)
-        target_sources(wivrn-server PRIVATE hostname-sd.cpp)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::SYSTEMD)
-else()
-        target_sources(wivrn-server PRIVATE hostname.cpp)
 endif()
 
 include(CompileGLSL)
