@@ -354,7 +354,8 @@ text text_rasterizer::render(std::string_view s)
 	vk::SubmitInfo submit_info;
 	submit_info.setCommandBuffers(*cmdbuf);
 	queue.submit(submit_info, *fence);
-	device.waitForFences(*fence, VK_TRUE, UINT64_MAX);
+	if (device.waitForFences(*fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
+		throw std::runtime_error("Vulkan fence timeout");
 	device.resetFences(*fence);
 
 	return return_value;

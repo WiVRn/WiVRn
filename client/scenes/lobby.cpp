@@ -400,7 +400,8 @@ void scenes::lobby::render()
 
 	session.end_frame(framestate.predictedDisplayTime, layers_base);
 
-	device.waitForFences(*fence, VK_TRUE, UINT64_MAX);
+	if (device.waitForFences(*fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
+		throw std::runtime_error("Vulkan fence timeout");
 	device.resetFences(*fence);
 }
 

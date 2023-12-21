@@ -400,7 +400,8 @@ void scenes::stream::render()
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 	session.end_frame(/*timestamp*/ framestate.predictedDisplayTime, layers_base);
 
-	device.waitForFences(*fence, VK_TRUE, UINT64_MAX);
+	if (device.waitForFences(*fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
+		throw std::runtime_error("Vulkan fence timeout");
 	device.resetFences(*fence);
 
 	// We don't need those after vkWaitForFences
