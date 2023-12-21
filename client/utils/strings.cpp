@@ -33,10 +33,10 @@ std::vector<std::string> utils::split(const std::string & s, const std::string &
 
 	while (true)
 	{
-		std::string::size_type j = s.find_first_not_of(sep, i);
+		std::string::size_type j = s.find_first_of(sep, i);
 		if (j == std::string::npos)
 		{
-			v.push_back(s.substr(i + 1));
+			v.push_back(s.substr(i));
 			return v;
 		}
 
