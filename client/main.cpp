@@ -75,7 +75,7 @@ void real_main()
 			struct addrinfo * addresses;
 			if (int err = getaddrinfo(server_address.c_str(), NULL, &hint, &addresses))
 			{
-				throw std::runtime_error("Unable to resolve address for " + server_address);
+				throw std::runtime_error("Unable to resolve address for " + server_address + ":" + gai_strerror(err));
 			}
 			for (addrinfo *addr = addresses ; addr and not session; addr = addr->ai_next)
 			{
