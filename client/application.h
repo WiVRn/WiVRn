@@ -79,6 +79,16 @@ class application : public singleton<application>
 	void session_state_changed(XrSessionState new_state, XrTime timestamp);
 	void interaction_profile_changed();
 
+	// Vulkan stuff
+	vk::raii::Context vk_context;
+	vk::raii::Instance vk_instance = nullptr;
+	vk::raii::PhysicalDevice vk_physical_device = nullptr;
+	vk::raii::Device vk_device = nullptr;
+	uint32_t vk_queue_family_index;
+	vk::raii::Queue vk_queue = nullptr;
+	vk::raii::CommandPool vk_cmdpool = nullptr;
+	vk::Format swapchain_format;
+
 	// OpenXR stuff
 	xr::instance xr_instance;
 	xr::system xr_system_id;
@@ -91,18 +101,6 @@ class application : public singleton<application>
 	xr::actionset xr_actionset;
 	std::vector<std::tuple<XrAction, XrActionType, std::string>> actions;
 	std::vector<xr::space> action_spaces;
-
-	// Vulkan stuff
-	vk::raii::Context vk_context;
-	vk::raii::Instance vk_instance = nullptr;
-	vk::raii::PhysicalDevice vk_physical_device = nullptr;
-	vk::raii::Device vk_device = nullptr;
-	uint32_t vk_queue_family_index;
-	vk::raii::Queue vk_queue = nullptr;
-
-	vk::raii::CommandPool vk_cmdpool = nullptr;
-
-	vk::Format swapchain_format;
 
 	// Vulkan memory allocator stuff
 	VmaAllocator allocator;
