@@ -23,6 +23,7 @@
 
 #include "pidfd.h"
 #include "version.h"
+#include "wivrn_config.h"
 
 #include "avahi_publisher.h"
 #include "hostname.h"
@@ -48,6 +49,7 @@ void avahi_set_bool_callback(AvahiWatch * w, int fd, AvahiWatchEvent event, void
 	*flag = true;
 }
 
+#ifdef WIVRN_USE_SYSTEMD
 std::string socket_path()
 {
 	char sock_file[PATH_MAX];
@@ -108,6 +110,7 @@ int create_listen_socket()
 
 	return fd;
 }
+#endif
 
 pid_t start_application()
 {
@@ -166,7 +169,9 @@ void waitpid_verbose(pid_t pid, const std::string & name)
 int inner_main(int argc, char * argv[])
 {
 	std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
+#ifdef WIVRN_USE_SYSTEMD
 	create_listen_socket();
+#endif
 
 	u_trace_marker_init();
 

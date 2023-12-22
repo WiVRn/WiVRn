@@ -34,6 +34,8 @@ set(XRT_FEATURE_WINDOW_PEEK          OFF)
 set(XRT_FEATURE_WINDOW_PEEK          OFF)
 
 set(XRT_HAVE_SDL2                    OFF)
+set(XRT_HAVE_SYSTEMD ${WIVRN_USE_SYSTEMD})
+set(XRT_INSTALL_SYSTEMD_UNIT_FILES   OFF)
 
 set(BUILD_DOC                        OFF)
 set(BUILD_TESTING                    OFF)
