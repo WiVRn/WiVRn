@@ -118,10 +118,10 @@ endif()
 FetchContent_Declare(boostpfr      URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
 
 # Client dependencies
+FetchContent_Declare(fastgltf      URL https://github.com/spnda/fastgltf/archive/refs/tags/v0.6.0.tar.gz)
 FetchContent_Declare(glm           URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
 FetchContent_Declare(openxr_loader URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.0.32.tar.gz)
 FetchContent_Declare(spdlog        URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz)
-FetchContent_Declare(tinygltf      URL https://github.com/syoyo/tinygltf/archive/refs/tags/v2.6.3.tar.gz)
 
 # Server dependencies
 FetchContent_Declare(monado

@@ -30,7 +30,6 @@
 #include <cstdint>
 #include <glm/gtc/quaternion.hpp>
 #include <string>
-#include <tiny_gltf.h>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>

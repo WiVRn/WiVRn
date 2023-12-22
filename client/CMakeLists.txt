@@ -1,11 +1,4 @@
-set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
-set(TINYGLTF_BUILD_GL_EXAMPLES OFF)
-set(TINYGLTF_BUILD_VALIDATOR_EXAMPLE OFF)
-set(TINYGLTF_BUILD_BUILDER_EXAMPLE OFF)
-set(TINYGLTF_HEADER_ONLY OFF)
-set(TINYGLTF_INSTALL OFF)
-
-FetchContent_MakeAvailable(spdlog glm tinygltf imgui)
+FetchContent_MakeAvailable(spdlog glm fastgltf imgui)
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
@@ -117,7 +110,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm tinygltf FreetypeHarfbuzz imgui)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz imgui)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror

@@ -22,7 +22,6 @@
 #include "scene.h"
 #include <vulkan/vulkan_raii.hpp>
 #include "wivrn_discover.h"
-#include <tiny_gltf.h>
 
 #include <optional>
 
@@ -62,7 +61,6 @@ class lobby : public scene
 
 	std::optional<wivrn_discover> discover;
 
-	tinygltf::Model model;
 	std::vector<vk::DeviceMemory> model_memory;
 	std::vector<vk::Buffer> model_buffers;
 	std::vector<vk::Image> model_images;
