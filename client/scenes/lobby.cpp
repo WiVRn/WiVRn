@@ -226,7 +226,7 @@ void scenes::lobby::rasterize_status_string()
 	status_string_rasterized_text = status_string_rasterizer.render(status_string);
 
 	vk::ImageViewCreateInfo iv_info{
-		.image = (VkImage)status_string_rasterized_text.image,
+		.image = status_string_rasterized_text.image,
 		.viewType = vk::ImageViewType::e2D,
 		.format = status_string_rasterized_text.format,
 		.components = {

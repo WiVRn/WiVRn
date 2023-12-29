@@ -22,31 +22,73 @@
 #include "vk_mem_alloc.h"
 #include <vulkan/vulkan_raii.hpp>
 
-class buffer_allocation
+template<typename T>
+struct basic_allocation_traits
 {
+};
+
+template<>
+struct basic_allocation_traits<VkBuffer>
+{
+	using CreateInfo = vk::BufferCreateInfo;
+	using NativeCreateInfo = CreateInfo::NativeType;
+	using RaiiType = vk::raii::Buffer;
+
+	static std::pair<RaiiType, VmaAllocation> create(
+		const CreateInfo& buffer_info,
+		const VmaAllocationCreateInfo* alloc_info);
+
+	static void destroy(
+		RaiiType& buffer,
+		VmaAllocation allocation,
+		void * mapped);
+
+	static void * map(VmaAllocation allocation);
+};
+
+template<>
+struct basic_allocation_traits<VkImage>
+{
+	using CreateInfo = vk::ImageCreateInfo;
+	using NativeCreateInfo = CreateInfo::NativeType;
+	using RaiiType = vk::raii::Image;
+
+	static std::pair<RaiiType, VmaAllocation> create(
+		const CreateInfo& image_info,
+		const VmaAllocationCreateInfo* alloc_info);
+
+	static void destroy(
+		RaiiType& image,
+		VmaAllocation allocation,
+		void * mapped);
+
+	static void * map(VmaAllocation allocation);
+};
+
+template<typename T>
+class basic_allocation
+{
+public:
+	using CType = T::CType;
+	using traits = basic_allocation_traits<CType>;
+	using CreateInfo = traits::CreateInfo;
+	using NativeCreateInfo = CreateInfo::NativeType;
+	using RaiiType = traits::RaiiType;
+
+private:
 	VmaAllocation allocation = nullptr;
-	vk::raii::Buffer buffer = nullptr;
-	void * data = nullptr;
+	RaiiType resource = nullptr;
+	void * mapped = nullptr;
 
 public:
-	operator VkBuffer() const
+	operator T()
 	{
-		return *buffer;
+		return *resource;
 	}
 
-	operator vk::Buffer() const
+	operator CType()
 	{
-		return *buffer;
-	}
-
-	operator const vk::raii::Buffer&() const
-	{
-		return buffer;
-	}
-
-	operator vk::raii::Buffer&()
-	{
-		return buffer;
+		return *resource;
 	}
 
 	operator VmaAllocation() const
@@ -54,76 +96,63 @@ public:
 		return allocation;
 	}
 
-	vk::raii::Buffer* operator->()
+	RaiiType* operator->()
 	{
-		return &buffer;
+		return &resource;
 	}
 
-	const vk::raii::Buffer* operator->() const
+	const T* operator->() const
 	{
-		return &buffer;
+		return &resource;
 	}
 
-	buffer_allocation() = default;
-	buffer_allocation(const vk::BufferCreateInfo& buffer_info, const VmaAllocationCreateInfo& alloc_info);
-	buffer_allocation(const buffer_allocation&) = delete;
-	buffer_allocation(buffer_allocation&&);
-	const buffer_allocation& operator=(const buffer_allocation&) = delete;
-	const buffer_allocation& operator=(buffer_allocation&&);
-	~buffer_allocation();
+	basic_allocation() = default;
+	basic_allocation(const CreateInfo& buffer_info, const VmaAllocationCreateInfo& alloc_info)
+	{
+		std::tie(resource, allocation) = traits::create(buffer_info, &alloc_info);
+	}
 
-	void * map();
+	basic_allocation(const basic_allocation&) = delete;
+	basic_allocation(basic_allocation&& other) :
+		allocation(other.allocation),
+		resource(std::move(other.resource)),
+		mapped(other.mapped)
+	{
+		other.allocation = nullptr;
+		other.mapped = nullptr;
+	}
+
+	const basic_allocation& operator=(const basic_allocation&) = delete;
+	const basic_allocation& operator=(basic_allocation&& other)
+	{
+		std::swap(allocation, other.allocation);
+		std::swap(resource, other.resource);
+		std::swap(mapped, other.mapped);
+
+		return *this;
+	}
+
+	~basic_allocation()
+	{
+		traits::destroy(resource, allocation, mapped);
+	}
+
+	void * map()
+	{
+		if (mapped)
+			return mapped;
+
+		mapped = traits::map(allocation);
+		return mapped;
+	}
+
+	template<typename U>
+	U * data()
+	{
+		return reinterpret_cast<U*>(map());
+	}
 };
 
-class image_allocation
-{
-	VmaAllocation allocation = nullptr;
-	vk::raii::Image image = nullptr;
-	void * data = nullptr;
 
-public:
-	operator VkImage() const
-	{
-		return *image;
-	}
-
-	operator vk::Image() const
-	{
-		return *image;
-	}
-
-	operator const vk::raii::Image&() const
-	{
-		return image;
-	}
-
-	operator vk::raii::Image&()
-	{
-		return image;
-	}
-
-	operator VmaAllocation() const
-	{
-		return allocation;
-	}
-
-	vk::raii::Image* operator->()
-	{
-		return &image;
-	}
-
-	const vk::raii::Image* operator->() const
-	{
-		return &image;
-	}
-
-	image_allocation() = default;
-	image_allocation(const vk::ImageCreateInfo& image_info, const VmaAllocationCreateInfo& alloc_info);
-	image_allocation(const image_allocation&) = delete;
-	image_allocation(image_allocation&&);
-	const image_allocation& operator=(const image_allocation&) = delete;
-	const image_allocation& operator=(image_allocation&&);
-	~image_allocation();
-
-	void * map();
-};
+using buffer_allocation = basic_allocation<vk::Buffer>;
+using image_allocation = basic_allocation<vk::Image>;

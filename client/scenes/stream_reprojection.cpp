@@ -168,7 +168,7 @@ stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::Phy
 		};
 
 		vk::DescriptorBufferInfo buffer_info{
-			.buffer = (vk::Buffer)buffer,
+			.buffer = buffer,
 			.offset = offset,
 			.range = sizeof(uniform),
 		};

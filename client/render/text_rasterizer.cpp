@@ -312,7 +312,7 @@ text text_rasterizer::render(std::string_view s)
 		.dstAccessMask = vk::AccessFlagBits::eTransferWrite,
 		.oldLayout = vk::ImageLayout::eUndefined,
 		.newLayout = vk::ImageLayout::eTransferDstOptimal,
-		.image = vk::Image{return_value.image},
+		.image = return_value.image,
 		.subresourceRange = {
 			.aspectMask = vk::ImageAspectFlagBits::eColor,
 			.baseMipLevel = 0,

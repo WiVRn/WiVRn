@@ -20,97 +20,82 @@
 #include "allocation.h"
 #include "application.h"
 
+#include "spdlog/spdlog.h"
 #include "utils/check.h"
 
+#include "vulkan/vulkan_raii.hpp"
 #include <utility>
 #include <vk_mem_alloc.h>
 
-buffer_allocation::buffer_allocation(const vk::BufferCreateInfo & buffer_info, const VmaAllocationCreateInfo & alloc_info)
+std::pair<vk::raii::Buffer, VmaAllocation> basic_allocation_traits<VkBuffer>::create(
+		const CreateInfo& buffer_info,
+		const VmaAllocationCreateInfo* alloc_info)
 {
 	VmaAllocator allocator = application::get_allocator();
+	vk::raii::Device& device = application::get_device();
+
+	VmaAllocation allocation;
 	VkBuffer tmp;
-	CHECK_VK(vmaCreateBuffer(allocator, &static_cast<const VkBufferCreateInfo&>(buffer_info), &alloc_info, &tmp, &allocation, nullptr));
-	buffer = vk::raii::Buffer(application::get_device(), tmp);
+	CHECK_VK(vmaCreateBuffer(allocator, &(NativeCreateInfo&)buffer_info, alloc_info, &tmp, &allocation, nullptr));
+
+	return std::pair<vk::raii::Buffer, VmaAllocation>{vk::raii::Buffer{device, tmp}, allocation};
+
 }
 
-buffer_allocation::~buffer_allocation()
+void basic_allocation_traits<VkBuffer>::destroy(
+	vk::raii::Buffer& buffer,
+	VmaAllocation allocation,
+	void * mapped)
 {
 	VmaAllocator allocator = application::get_allocator();
 
-	if (data)
+	if (mapped)
 		vmaUnmapMemory(allocator, allocation);
 
 	vmaDestroyBuffer(allocator, buffer.release(), allocation);
 }
 
-buffer_allocation::buffer_allocation(buffer_allocation && other) :
-        allocation(other.allocation),
-        buffer(std::move(other.buffer)),
-        data(other.data)
-{
-	other.allocation = nullptr;
-	other.data = nullptr;
-}
-
-void * buffer_allocation::map()
-{
-	if (data)
-		return data;
-
-	VmaAllocator allocator = application::get_allocator();
-	CHECK_VK(vmaMapMemory(allocator, allocation, &data));
-	return data;
-}
-
-const buffer_allocation & buffer_allocation::operator=(buffer_allocation && other)
-{
-	std::swap(allocation, other.allocation);
-	std::swap(buffer, other.buffer);
-
-	return *this;
-}
-
-image_allocation::image_allocation(const vk::ImageCreateInfo & image_info, const VmaAllocationCreateInfo & alloc_info)
+void * basic_allocation_traits<VkBuffer>::map(VmaAllocation allocation)
 {
 	VmaAllocator allocator = application::get_allocator();
+
+	void * mapped;
+	CHECK_VK(vmaMapMemory(allocator, allocation, &mapped));
+	return mapped;
+}
+
+std::pair<vk::raii::Image, VmaAllocation> basic_allocation_traits<VkImage>::create(
+		const CreateInfo& image_info,
+		const VmaAllocationCreateInfo* alloc_info)
+{
+	VmaAllocator allocator = application::get_allocator();
+	vk::raii::Device& device = application::get_device();
+
+	VmaAllocation allocation;
 	VkImage tmp;
-	CHECK_VK(vmaCreateImage(allocator, &static_cast<const VkImageCreateInfo&>(image_info), &alloc_info, &tmp, &allocation, nullptr));
-	image = vk::raii::Image(application::get_device(), tmp);
+	CHECK_VK(vmaCreateImage(allocator, &(NativeCreateInfo&)image_info, alloc_info, &tmp, &allocation, nullptr));
+
+	return std::pair<vk::raii::Image, VmaAllocation>{vk::raii::Image{device, tmp}, allocation};
 }
 
-image_allocation::~image_allocation()
+void basic_allocation_traits<VkImage>::destroy(
+	vk::raii::Image& image,
+	VmaAllocation allocation,
+	void * mapped)
 {
 	VmaAllocator allocator = application::get_allocator();
 
-	if (data)
+	if (mapped)
 		vmaUnmapMemory(allocator, allocation);
 
 	vmaDestroyImage(allocator, image.release(), allocation);
 }
 
-image_allocation::image_allocation(image_allocation && other) :
-        allocation(other.allocation),
-        image(std::move(other.image)),
-        data(other.data)
+void * basic_allocation_traits<VkImage>::map(VmaAllocation allocation)
 {
-	other.allocation = nullptr;
-	other.data = nullptr;
-}
-
-void * image_allocation::map()
-{
-	if (data)
-		return data;
-
 	VmaAllocator allocator = application::get_allocator();
-	CHECK_VK(vmaMapMemory(allocator, allocation, &data));
-	return data;
-}
 
-const image_allocation & image_allocation::operator=(image_allocation && other)
-{
-	std::swap(allocation, other.allocation);
-	std::swap(image, other.image);
-
-	return *this;
+	void * mapped;
+	CHECK_VK(vmaMapMemory(allocator, allocation, &mapped));
+	return mapped;
 }

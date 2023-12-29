@@ -26,15 +26,10 @@
 
 #include "application.h"
 #include "decoder/shard_accumulator.h"
-#include "magic_enum.hpp"
-#include "glm/fwd.hpp"
 #include "spdlog/spdlog.h"
-#include "utils/check.h"
 #include "utils/ranges.h"
 #include "utils/sync_queue.h"
-#include "vk/device_memory.h"
 #include "wivrn_packets.h"
-#include "xr/details/enumerate.h"
 #include <algorithm>
 #include <chrono>
 #include <mutex>
@@ -273,17 +268,21 @@ void scenes::stream::render()
 	std::vector<vk::ImageMemoryBarrier> image_barriers;
 	for (size_t i = 0; i < decoder_output.size(); i++)
 	{
-		vk::ImageMemoryBarrier barrier;
-		barrier.srcAccessMask = vk::AccessFlagBits::eNone;
-		barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-		barrier.oldLayout = vk::ImageLayout::eUndefined;
-		barrier.newLayout = shard_accumulator::framebuffer_expected_layout;
-		barrier.image = (vk::Image)decoder_output[i].image;
-		barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
+		vk::ImageMemoryBarrier barrier
+		{
+			.srcAccessMask = vk::AccessFlagBits::eNone,
+			.dstAccessMask = vk::AccessFlagBits::eShaderRead,
+			.oldLayout = vk::ImageLayout::eUndefined,
+			.newLayout = shard_accumulator::framebuffer_expected_layout,
+			.image = vk::Image{decoder_output[i].image},
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+		};
 
 		image_barriers.push_back(barrier);
 	}
@@ -328,17 +327,20 @@ void scenes::stream::render()
 	image_barriers.clear();
 	for (size_t i = 0; i < decoder_output.size(); i++)
 	{
-		vk::ImageMemoryBarrier barrier;
-		barrier.srcAccessMask = vk::AccessFlagBits::eNone;
-		barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
-		barrier.oldLayout = shard_accumulator::framebuffer_expected_layout;
-		barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-		barrier.image = (vk::Image)decoder_output[i].image;
-		barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
+		vk::ImageMemoryBarrier barrier{
+			.srcAccessMask = vk::AccessFlagBits::eNone,
+			.dstAccessMask = vk::AccessFlagBits::eShaderRead,
+			.oldLayout = shard_accumulator::framebuffer_expected_layout,
+			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			.image = vk::Image{decoder_output[i].image},
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+		};
 
 		image_barriers.push_back(barrier);
 	}
@@ -436,45 +438,45 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	const uint32_t width = description.width / view_count;
 	const uint32_t height = description.height;
 
-	VkExtent3D decoder_out_size{width, height, 1};
+	vk::Extent3D decoder_out_size{width, height, 1};
 	for (size_t i = 0; i < view_count; i++)
 	{
 		decoder_output[i].format = vk::Format::eA8B8G8R8SrgbPack32;
 		decoder_output[i].size.width = width;
 		decoder_output[i].size.height = height;
 
-		vk::ImageCreateInfo image_info;
-		image_info.flags = vk::ImageCreateFlags{};
-		image_info.imageType = vk::ImageType::e2D;
-		image_info.format = vk::Format::eA8B8G8R8SrgbPack32;
-		image_info.extent = decoder_out_size;
-		image_info.mipLevels = 1;
-		image_info.arrayLayers = 1;
-		image_info.samples = vk::SampleCountFlagBits::e1;
-		image_info.tiling = vk::ImageTiling::eOptimal;
-		image_info.usage = vk::ImageUsageFlagBits::eSampled | shard_accumulator::framebuffer_usage;
-		image_info.sharingMode = vk::SharingMode::eExclusive;
-		image_info.initialLayout = vk::ImageLayout::eUndefined;
+		vk::ImageCreateInfo image_info{
+			.flags = vk::ImageCreateFlags{},
+			.imageType = vk::ImageType::e2D,
+			.format = vk::Format::eA8B8G8R8SrgbPack32,
+			.extent = decoder_out_size,
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = vk::SampleCountFlagBits::e1,
+			.tiling = vk::ImageTiling::eOptimal,
+			.usage = vk::ImageUsageFlagBits::eSampled | shard_accumulator::framebuffer_usage,
+			.sharingMode = vk::SharingMode::eExclusive,
+			.initialLayout = vk::ImageLayout::eUndefined,
+		};
 
 		VmaAllocationCreateInfo alloc_info{};
 		alloc_info.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
 		decoder_output[i].image = image_allocation{image_info, alloc_info};
 
-		vk::ImageViewCreateInfo image_view_info;
-
-		image_view_info.image = (VkImage)decoder_output[i].image;
-		image_view_info.viewType = vk::ImageViewType::e2D;
-		image_view_info.format = vk::Format::eA8B8G8R8SrgbPack32;
-		image_view_info.components.r = vk::ComponentSwizzle::eIdentity;
-		image_view_info.components.g = vk::ComponentSwizzle::eIdentity;
-		image_view_info.components.b = vk::ComponentSwizzle::eIdentity;
-		image_view_info.components.a = vk::ComponentSwizzle::eIdentity;
-		image_view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		image_view_info.subresourceRange.baseMipLevel = 0;
-		image_view_info.subresourceRange.levelCount = 1;
-		image_view_info.subresourceRange.baseArrayLayer = 0;
-		image_view_info.subresourceRange.layerCount = 1;
+		vk::ImageViewCreateInfo image_view_info{
+			.image = vk::Image{decoder_output[i].image},
+			.viewType = vk::ImageViewType::e2D,
+			.format = vk::Format::eA8B8G8R8SrgbPack32,
+			.components = {},
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+		};
 
 		decoder_output[i].image_view = vk::raii::ImageView(device, image_view_info);
 	}
@@ -484,7 +486,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 	for (size_t i = 0; i < view_count; i++)
 	{
-		blit_targets[i].image = (VkImage)decoder_output[i].image;
+		blit_targets[i].image = vk::Image{decoder_output[i].image};
 		blit_targets[i].image_view = *decoder_output[i].image_view;
 		blit_targets[i].extent.width = width;
 		blit_targets[i].extent.height = height;
@@ -515,7 +517,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	std::vector<vk::Image> images;
 	for (renderpass_output & i: decoder_output)
 	{
-		images.push_back((vk::Image)i.image);
+		images.push_back(i.image);
 	}
 
 	reprojector.emplace(device, physical_device, images, swapchain_images, extent, swapchains[0].format(), description);
