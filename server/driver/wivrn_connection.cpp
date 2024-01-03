@@ -90,7 +90,7 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 	try
 	{
 		// Set Expedited forwarding https://datatracker.ietf.org/doc/html/rfc3246
-		stream.set_tos(0b101110);
+		stream.set_tos(IPTOS_DSCP_EF);
 	}
 	catch (std::exception& e)
 	{
