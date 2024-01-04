@@ -1,4 +1,3 @@
-
 set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF)
 set(TINYGLTF_BUILD_GL_EXAMPLES OFF)
 set(TINYGLTF_BUILD_VALIDATOR_EXAMPLE OFF)
@@ -10,7 +9,7 @@ FetchContent_MakeAvailable(spdlog glm tinygltf)
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
-
+include(VulkanVersion)
 
 if(ANDROID)
     add_library(wivrn MODULE)
@@ -58,7 +57,20 @@ if(ANDROID)
         "decoder/android/*.cpp"
         )
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
+else()
+    add_executable(wivrn)
+    target_compile_definitions(wivrn PRIVATE -DXR_USE_PLATFORM_XLIB)
 
+    find_package(OpenXR REQUIRED)
+    target_link_libraries(wivrn OpenXR::openxr_loader OpenXR::headers PkgConfig::LIBAV)
+
+
+    file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
+        "decoder/ffmpeg/*.cpp")
+    target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
+endif()
+
+if(ANDROID OR Vulkan_VERSION VERSION_LESS 1.3.268)
     # The Vulkan headers in Android do not include the C++ headers, download them
     # Minimum version is 1.3.256
     set(VULKAN_VERSION "1.3.268.0")
@@ -75,17 +87,6 @@ if(ANDROID)
     file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/vulkan-sdk-${VULKAN_VERSION}.tar.gz DESTINATION ${CMAKE_BINARY_DIR})
 
     target_include_directories(wivrn PRIVATE ${CMAKE_BINARY_DIR}/Vulkan-Headers-vulkan-sdk-${VULKAN_VERSION}/include)
-else()
-    add_executable(wivrn)
-    target_compile_definitions(wivrn PRIVATE -DXR_USE_PLATFORM_XLIB)
-
-    find_package(OpenXR REQUIRED)
-    target_link_libraries(wivrn OpenXR::openxr_loader OpenXR::headers PkgConfig::LIBAV)
-
-
-    file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
-        "decoder/ffmpeg/*.cpp")
-    target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 endif()
 
 target_compile_features(wivrn PRIVATE cxx_std_20)
