@@ -21,7 +21,7 @@
 
 #include "wivrn_packets.h"
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include "android/audio.h"
 using audio = ::wivrn::android::audio;
 #else

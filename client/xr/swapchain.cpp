@@ -19,11 +19,9 @@
 
 #include "swapchain.h"
 #include "details/enumerate.h"
-#include "error.h"
 #include "session.h"
-#include "xr.h"
 
-xr::swapchain::swapchain(xr::session & s, vk::raii::Device& device, vk::Format format, uint32_t width, uint32_t height, int sample_count)
+xr::swapchain::swapchain(xr::session & s, vk::raii::Device& device, vk::Format format, int32_t width, int32_t height, int sample_count)
 {
 	assert(sample_count == 1);
 
@@ -54,19 +52,19 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device& device, vk::Format f
 	{
 		images_[i].image = array[i].image;
 
-		vk::ImageViewCreateInfo iv_create_info;
-		iv_create_info.image = array[i].image;
-		iv_create_info.viewType = vk::ImageViewType::e2D;
-		iv_create_info.format = format;
-		iv_create_info.components.r = vk::ComponentSwizzle::eIdentity;
-		iv_create_info.components.g = vk::ComponentSwizzle::eIdentity;
-		iv_create_info.components.b = vk::ComponentSwizzle::eIdentity;
-		iv_create_info.components.a = vk::ComponentSwizzle::eIdentity;
-		iv_create_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-		iv_create_info.subresourceRange.baseMipLevel = 0;
-		iv_create_info.subresourceRange.levelCount = 1;
-		iv_create_info.subresourceRange.baseArrayLayer = 0;
-		iv_create_info.subresourceRange.layerCount = 1;
+		vk::ImageViewCreateInfo iv_create_info{
+			.image = array[i].image,
+			.viewType = vk::ImageViewType::e2D,
+			.format = format,
+			.components = {},
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			}
+		};
 
 		images_[i].view = vk::raii::ImageView(device, iv_create_info);
 	}

@@ -43,8 +43,8 @@ public:
 	};
 
 private:
-	uint32_t width_;
-	uint32_t height_;
+	int32_t width_;
+	int32_t height_;
 	int sample_count_;
 	vk::Format format_;
 
@@ -52,20 +52,24 @@ private:
 
 public:
 	swapchain() = default;
-	swapchain(session &, vk::raii::Device& device, vk::Format format, uint32_t width, uint32_t height, int sample_count = 1);
+	swapchain(session &, vk::raii::Device& device, vk::Format format, int32_t width, int32_t height, int sample_count = 1);
 	swapchain(swapchain &&) = default;
 	swapchain(const swapchain &) = delete;
 	swapchain & operator=(swapchain &&) = default;
 	swapchain & operator=(const swapchain &) = delete;
 	~swapchain();
 
-	uint32_t width() const
+	int32_t width() const
 	{
 		return width_;
 	}
-	uint32_t height() const
+	int32_t height() const
 	{
 		return height_;
+	}
+	XrExtent2Di extent() const
+	{
+		return { width_, height_ };
 	}
 	int sample_count() const
 	{
@@ -74,7 +78,7 @@ public:
 	const std::vector<image> & images() const
 	{
 		return images_;
-	};
+	}
 	std::vector<image> & images()
 	{
 		return images_;

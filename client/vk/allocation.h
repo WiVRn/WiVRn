@@ -27,8 +27,14 @@ struct basic_allocation_traits
 {
 };
 
+struct basic_allocation_traits_base
+{
+	static void * map(VmaAllocation allocation);
+	static void unmap(VmaAllocation allocation);
+};
+
 template<>
-struct basic_allocation_traits<VkBuffer>
+struct basic_allocation_traits<VkBuffer> : basic_allocation_traits_base
 {
 	using CreateInfo = vk::BufferCreateInfo;
 	using NativeCreateInfo = CreateInfo::NativeType;
@@ -42,12 +48,10 @@ struct basic_allocation_traits<VkBuffer>
 		RaiiType& buffer,
 		VmaAllocation allocation,
 		void * mapped);
-
-	static void * map(VmaAllocation allocation);
 };
 
 template<>
-struct basic_allocation_traits<VkImage>
+struct basic_allocation_traits<VkImage> : basic_allocation_traits_base
 {
 	using CreateInfo = vk::ImageCreateInfo;
 	using NativeCreateInfo = CreateInfo::NativeType;
@@ -61,8 +65,6 @@ struct basic_allocation_traits<VkImage>
 		RaiiType& image,
 		VmaAllocation allocation,
 		void * mapped);
-
-	static void * map(VmaAllocation allocation);
 };
 
 template<typename T>
@@ -79,6 +81,7 @@ private:
 	VmaAllocation allocation = nullptr;
 	RaiiType resource = nullptr;
 	void * mapped = nullptr;
+	CreateInfo create_info{};
 
 public:
 	operator T()
@@ -87,6 +90,11 @@ public:
 	}
 
 	operator CType()
+	{
+		return *resource;
+	}
+
+	operator bool() const
 	{
 		return *resource;
 	}
@@ -107,16 +115,18 @@ public:
 	}
 
 	basic_allocation() = default;
-	basic_allocation(const CreateInfo& buffer_info, const VmaAllocationCreateInfo& alloc_info)
+	basic_allocation(const CreateInfo& create_info, const VmaAllocationCreateInfo& alloc_info) :
+		create_info(create_info)
 	{
-		std::tie(resource, allocation) = traits::create(buffer_info, &alloc_info);
+		std::tie(resource, allocation) = traits::create(create_info, &alloc_info);
 	}
 
 	basic_allocation(const basic_allocation&) = delete;
 	basic_allocation(basic_allocation&& other) :
 		allocation(other.allocation),
 		resource(std::move(other.resource)),
-		mapped(other.mapped)
+		mapped(other.mapped),
+		create_info(other.create_info)
 	{
 		other.allocation = nullptr;
 		other.mapped = nullptr;
@@ -128,6 +138,7 @@ public:
 		std::swap(allocation, other.allocation);
 		std::swap(resource, other.resource);
 		std::swap(mapped, other.mapped);
+		std::swap(create_info, other.create_info);
 
 		return *this;
 	}
@@ -146,10 +157,24 @@ public:
 		return mapped;
 	}
 
+	void unmap()
+	{
+		if (!mapped)
+			return;
+
+		traits::unmap(allocation);
+		mapped = nullptr;
+	}
+
 	template<typename U>
 	U * data()
 	{
 		return reinterpret_cast<U*>(map());
+	}
+
+	const CreateInfo& info() const
+	{
+		return create_info;
 	}
 };
 

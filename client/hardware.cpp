@@ -24,7 +24,7 @@
 
 #include <spdlog/spdlog.h>
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include "utils/wrap_lambda.h"
 
 #include <sys/system_properties.h>
@@ -44,7 +44,7 @@ static std::string get_property(const char * property)
 
 model guess_model()
 {
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	const auto device = get_property("ro.product.device");
 	if (device == "monterey")
 		return model::oculus_quest;

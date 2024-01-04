@@ -55,13 +55,20 @@ void basic_allocation_traits<VkBuffer>::destroy(
 	vmaDestroyBuffer(allocator, buffer.release(), allocation);
 }
 
-void * basic_allocation_traits<VkBuffer>::map(VmaAllocation allocation)
+void * basic_allocation_traits_base::map(VmaAllocation allocation)
 {
 	VmaAllocator allocator = application::get_allocator();
 
 	void * mapped;
 	CHECK_VK(vmaMapMemory(allocator, allocation, &mapped));
 	return mapped;
+}
+
+void basic_allocation_traits_base::unmap(VmaAllocation allocation)
+{
+	VmaAllocator allocator = application::get_allocator();
+
+	vmaUnmapMemory(allocator, allocation);
 }
 
 std::pair<vk::raii::Image, VmaAllocation> basic_allocation_traits<VkImage>::create(
@@ -89,13 +96,4 @@ void basic_allocation_traits<VkImage>::destroy(
 		vmaUnmapMemory(allocator, allocation);
 
 	vmaDestroyImage(allocator, image.release(), allocation);
-}
-
-void * basic_allocation_traits<VkImage>::map(VmaAllocation allocation)
-{
-	VmaAllocator allocator = application::get_allocator();
-
-	void * mapped;
-	CHECK_VK(vmaMapMemory(allocator, allocation, &mapped));
-	return mapped;
 }

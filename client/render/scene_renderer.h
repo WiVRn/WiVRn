@@ -1,187 +1,184 @@
-// #pragma once
-//
-// #include <memory>
-// #include <span>
-// #include <vector>
-// #include <vulkan/vulkan.h>
-//
-// #include "glm/vec2.hpp"
-// #include "glm/vec3.hpp"
-// #include "tiny_gltf.h"
-// #include "vk/buffer.h"
-// #include "vk/command_pool.h"
-// #include "vk/device_memory.h"
-// #include "vk/image.h"
-// #include "vk/pipeline.h"
-// #include "vk/renderpass.h"
-//
-// class scene_renderer
-//
-// {
-// public:
-// 	class shader
-// 	{
-// 		friend class scene_renderer;
-//
-// 		std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
-// 		std::vector<VkDescriptorPool> descriptor_pools;
-// 		VkShaderModule vertex_shader{};
-// 		VkShaderModule fragment_shader{};
-// 		VkPipelineLayout pipeline_layout{};
-//
-// 		struct pipeline_info
-// 		{
-// 			VkPrimitiveTopology topology;
-// 			std::vector<VkVertexInputBindingDescription> vertex_bindings;
-// 			std::vector<VkVertexInputAttributeDescription> vertex_attributes;
-// 		};
-//
-// 		std::vector<std::pair<pipeline_info, VkPipeline>> pipelines;
-//
-// 		shader() = default;
-// 		shader(const shader &) = delete;
-// 		shader(shader &&) = delete;
-// 	};
-//
-// 	class image
-// 	{
-// 		friend class scene_renderer;
-//
-// 		VkDeviceMemory memory{};
-// 		VkSampler sampler{};
-// 		VkImage vk_image{};
-// 		VkImageView image_view{};
-// 		VkDescriptorSet descriptor_set{};
-//
-// 		image() = default;
-// 		image(const image &) = delete;
-// 		image(image &&) = delete;
-// 	};
-//
-// 	class buffer
-// 	{
-// 		friend class scene_renderer;
-//
-// 		VkDeviceMemory memory{};
-// 		VkBuffer vk_buffer{};
-//
-// 		buffer() = default;
-// 		buffer(const buffer &) = delete;
-// 		buffer(buffer &&) = delete;
-// 	};
-//
-// 	struct mesh_primitive
-// 	{
-// 		struct vertex
-// 		{
-// 			glm::vec3 position;
-// 			glm::vec3 normal;
-// 			glm::vec2 texcoord;
-// 		};
-//
-// 		VkPrimitiveTopology topology;
-//
-// 		VkPipeline pipeline;
-//
-// 		std::weak_ptr<buffer> indices;
-// 		size_t indices_offset;
-// 		size_t indices_count;
-//
-// 		std::weak_ptr<buffer> vertices;
-// 		size_t vertices_offset;
-// 	};
-//
-// 	class model
-// 	{
-// 		friend class scene_renderer;
-//
-// 		tinygltf::Model gltf_model;
-// 		std::vector<std::weak_ptr<image>> images;
-// 		std::vector<std::weak_ptr<buffer>> buffers;
-// 	};
-//
-// 	class model_instance
-// 	{
-// 		friend class scene_renderer;
-//
-// 		model * gltf_model;
-//
-// 		void * ubo;
-// 	};
-//
-// private:
-// 	VkDevice device;
-// 	VkPhysicalDevice physical_device;
-// 	VkPhysicalDeviceProperties physical_device_properties;
-// 	VkQueue queue;
-// 	vk::command_pool command_pool;
-//
-// 	tinygltf::TinyGLTF gltf_loader;
-//
-// 	// Staging buffer
-// 	size_t staging_buffer_size = 0;
-// 	vk::buffer staging_buffer;
-// 	vk::device_memory staging_memory;
-// 	VkFence staging_fence{};
-// 	void reserve(size_t size);
-//
-// 	void load_buffer(VkBuffer b, const void * data, size_t size);
-//
-// 	template <typename T>
-// 	void load_buffer(VkBuffer b, std::span<T> data)
-// 	{
-// 		load_buffer(b, data.data(), data.size() * sizeof(T));
-// 	}
-//
-// 	void load_image(VkImage i, void * data, VkExtent2D size, VkFormat format, uint32_t mipmap_count, VkImageLayout final_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-//
-// 	// Scene data
-// 	std::vector<std::shared_ptr<shader>> shaders;
-// 	std::vector<std::shared_ptr<image>> images;
-// 	std::vector<std::shared_ptr<buffer>> buffers;
-// 	std::vector<std::shared_ptr<mesh_primitive>> primitives;
-// 	std::vector<std::shared_ptr<model>> models;
-// 	std::vector<model_instance> instances;
-//
-// 	// Destination images
-// 	std::vector<VkImage> output_images;
-// 	std::vector<VkImageView> output_image_views;
-// 	std::vector<VkFramebuffer> output_framebuffers;
-// 	VkExtent2D output_size{};
-// 	VkFormat output_format{};
-//
-// 	// Render pass
-// 	vk::renderpass renderpass;
-//
-// 	void cleanup();
-// 	void cleanup_output_images();
-// 	void cleanup_shader(shader *);
-// 	void cleanup_buffer(buffer *);
-// 	void cleanup_image(image *);
-//
-// public:
-// 	scene_renderer(VkDevice device, VkPhysicalDevice physical_device, VkQueue queue);
-// 	~scene_renderer();
-// 	scene_renderer(const scene_renderer &) = delete;
-// 	scene_renderer(scene_renderer &&) = delete;
-//
-// 	void set_output_images(std::vector<VkImage> output_images, VkExtent2D output_size, VkFormat output_format);
-//
-// 	std::weak_ptr<shader> create_shader(std::string name,
-// 	                                    std::vector<std::vector<VkDescriptorSetLayoutBinding>> uniform_bindings);
-//
-// 	VkPipeline get_shader_pipeline(std::weak_ptr<shader> shader, VkPrimitiveTopology topology, std::span<VkVertexInputBindingDescription> vertex_bindings, std::span<VkVertexInputAttributeDescription> vertex_attributes);
-//
-// 	std::weak_ptr<image> create_image(void * data, VkExtent2D size, VkFormat format);
-//
-// 	std::weak_ptr<buffer> create_buffer(const void * data, size_t size, VkBufferUsageFlags usage);
-//
-// 	template <typename T>
-// 	// requires(std::contiguous_iterator<typename T::iterator>)
-// 	std::weak_ptr<buffer> create_buffer(const T & data, VkBufferUsageFlags usage)
-// 	{
-// 		return create_buffer(data.data(), data.size() * sizeof(T), usage);
-// 	}
-//
-// 	model * load_gltf(const std::string & filename);
-// };
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2024 Guillaume Meunier <guillaume.meunier@centraliens.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
+#include <array>
+#include <cstdint>
+#include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <span>
+#include <unordered_map>
+#include <vector>
+
+#include "vk/allocation.h"
+
+#include "render/growable_descriptor_pool.h"
+#include "render/scene_data.h"
+
+struct pipeline_info
+{
+	std::string shader_name;
+
+	vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eNone;
+	vk::FrontFace front_face = vk::FrontFace::eClockwise;
+	vk::PrimitiveTopology topology = vk::PrimitiveTopology::eTriangleList;
+
+	bool operator==(const pipeline_info & other) const noexcept = default;
+};
+
+namespace std
+{
+template <>
+struct hash<pipeline_info> : utils::magic_hash<pipeline_info>
+{};
+} // namespace std
+
+class scene_renderer
+{
+public:
+	// vk::raii::Instance& instance;
+	vk::raii::Device & device;
+	// vk::raii::PhysicalDevice physical_device;
+	vk::PhysicalDeviceProperties physical_device_properties;
+	vk::raii::Queue & queue;
+
+	// Scene format
+	const vk::Extent2D output_size;
+	const vk::Format output_format;
+	const vk::Format depth_format;
+
+	// Destination images
+	struct output_image
+	{
+		vk::raii::Framebuffer framebuffer = nullptr;
+		vk::raii::ImageView image_view = nullptr;
+
+		image_allocation depth_buffer;
+		vk::raii::ImageView depth_view = nullptr;
+	};
+
+	// Initialization functions
+	output_image create_output_image_data(vk::Image output);
+	vk::raii::RenderPass create_renderpass();
+	vk::raii::PipelineLayout create_pipeline_layout(std::span<vk::DescriptorSetLayout> layouts);
+	vk::raii::Pipeline create_pipeline(const pipeline_info & info);
+
+	std::shared_ptr<scene_data::texture> create_default_texture(vk::raii::CommandBuffer & cb, std::vector<buffer_allocation>& staging_buffers, std::initializer_list<float> pixel);
+	std::shared_ptr<scene_data::material> create_default_material(vk::raii::CommandPool & cb_pool);
+
+	// Caches
+	std::unordered_map<VkImage, output_image> output_images;
+	std::unordered_map<pipeline_info, vk::raii::Pipeline> pipelines;
+
+	output_image & get_output_image_data(vk::Image output);
+	vk::raii::Pipeline & get_pipeline(const pipeline_info & info);
+
+	// Descriptor set 0: per-frame/view data (uniform buffer) and per-instance data (dynamic uniform buffer)
+	growable_descriptor_pool ds_pool_frame;
+	vk::raii::DescriptorSetLayout descriptor_set_frame = nullptr;
+
+	// Descriptor set 1: per-material data (5 combined image samplers and 1 uniform buffer)
+	growable_descriptor_pool ds_pool_material;
+	vk::raii::DescriptorSetLayout descriptor_set_material = nullptr;
+
+	vk::raii::PipelineLayout pipeline_layout = nullptr;
+
+	// Texture samplers
+	std::unordered_map<sampler_info, std::shared_ptr<vk::raii::Sampler>> samplers;
+	vk::Sampler get_sampler(const sampler_info & info);
+
+	// Render pass
+	vk::raii::RenderPass renderpass = nullptr;
+
+	// Default material and textures
+	// This material has 1x1 textures with the following values:
+	//  base_color           (1.0, 1.0, 1.0, 1.0)
+	//  metallic_roughness   (1.0, 1.0)
+	//  occlusion            (1.0)
+	//  emissive             (0.0, 0.0, 0.0)
+	//  normal               (0.5, 0.5, 1.0)
+	// And:
+	//  base_color_factor    (1.0, 1.0, 1.0, 1.0)
+	//  base_emissive_factor (0.0, 0.0, 0.0)
+	//  metallic_factor      1.0
+	//  roughness_factor     1.0
+	//  occlusion_strength   0.0
+	//  normal_scale         0.0
+	std::shared_ptr<scene_data::material> default_material;
+
+	struct frame_gpu_data
+	{
+		glm::mat4 view;
+		glm::mat4 proj;
+		glm::vec4 light_position;
+		glm::vec4 ambient_color;
+		glm::vec4 light_color;
+	};
+
+	struct instance_gpu_data
+	{
+		glm::mat4 model;
+		glm::mat4 modelview;
+		glm::mat4 modelviewproj;
+	};
+
+	struct per_frame_resources
+	{
+		vk::raii::Fence fence = nullptr;
+		vk::raii::CommandBuffer cb = nullptr;
+		std::vector<std::shared_ptr<void>> resources;
+
+
+                // Uniform buffer for per-view and per-instance data
+	        // host visible, host coherent
+   	        buffer_allocation staging_buffer;
+	        // device local
+	        // buffer_allocation uniform_buffer;
+	};
+
+	std::vector<per_frame_resources> frame_resources;
+	int current_frame;
+
+	per_frame_resources& start_frame();
+
+	void update_material_descriptor_set(scene_data::material& material);
+
+public:
+	scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool, vk::Extent2D output_size, vk::Format output_format, std::span<vk::Format> depth_formats, int frames_in_flight = 3);
+
+	~scene_renderer();
+
+	struct frame_info
+	{
+		vk::Image destination;
+		glm::mat4 projection;
+		glm::mat4 view;
+	};
+
+	void render(scene_data & scene, std::span<frame_info> info);
+
+	std::shared_ptr<scene_data::material> get_default_material()
+	{
+		return default_material;
+	}
+};

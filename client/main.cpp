@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include "spdlog/sinks/android_sink.h"
 #include <android/native_window.h>
 #include <android_native_app_glue.h>
@@ -35,7 +35,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #endif
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 void real_main(android_app * native_app)
 #else
 void real_main()
@@ -44,7 +44,7 @@ void real_main()
 	try
 	{
 		application_info info;
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 		info.native_app = native_app;
 #endif
 		info.name = "WiVRn";
@@ -117,7 +117,7 @@ void real_main()
 		spdlog::error("Caught unknown exception");
 	}
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	ANativeActivity_finish(native_app->activity);
 
 	// Read all pending events.
@@ -136,7 +136,7 @@ void real_main()
 #endif
 }
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 void android_main(android_app * native_app) __attribute__((visibility("default")));
 void android_main(android_app * native_app)
 {

@@ -34,7 +34,7 @@
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include <android/font.h>
 #include <android/font_matcher.h>
 #include <android/system_fonts.h>
@@ -74,8 +74,7 @@ std::error_category & freetype_error_category()
 //     static hb_feature_t CligOn      = { CligTag, 1, 0, std::numeric_limits<unsigned int>::max() };
 // }
 
-
-text_rasterizer::text_rasterizer(vk::raii::Device& device, vk::raii::PhysicalDevice& physical_device, vk::raii::CommandPool& command_pool, vk::raii::Queue& queue) :
+text_rasterizer::text_rasterizer(vk::raii::Device & device, vk::raii::PhysicalDevice & physical_device, vk::raii::CommandPool & command_pool, vk::raii::Queue & queue) :
         device(device),
         physical_device(physical_device),
         command_pool(command_pool),
@@ -84,7 +83,7 @@ text_rasterizer::text_rasterizer(vk::raii::Device& device, vk::raii::PhysicalDev
 {
 	std::string font_filename;
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	{
 		std::u16string ws = u"hello";
 		AFontMatcher * font_matcher = AFontMatcher_create();
@@ -142,39 +141,41 @@ text_rasterizer::text_rasterizer(vk::raii::Device& device, vk::raii::PhysicalDev
 image_allocation text_rasterizer::create_image(vk::Extent2D size)
 {
 	image_allocation alloc{vk::ImageCreateInfo{
-		.imageType = vk::ImageType::e2D,
-		.format = text::format,
-		.extent = {
-			.width = size.width,
-			.height = size.height,
-			.depth = 1,
-		},
-		.mipLevels = 1,
-		.arrayLayers = 1,
-		.samples = vk::SampleCountFlagBits::e1,
-		.tiling = vk::ImageTiling::eOptimal,
-		.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
-		.sharingMode = vk::SharingMode::eExclusive,
-		.initialLayout = vk::ImageLayout::eUndefined,
-	},
-	VmaAllocationCreateInfo{
-		.flags = 0,
-		.usage = VMA_MEMORY_USAGE_AUTO,
-	}};
+	                               .imageType = vk::ImageType::e2D,
+	                               .format = text::format,
+	                               .extent = {
+	                                       .width = size.width,
+	                                       .height = size.height,
+	                                       .depth = 1,
+	                               },
+	                               .mipLevels = 1,
+	                               .arrayLayers = 1,
+	                               .samples = vk::SampleCountFlagBits::e1,
+	                               .tiling = vk::ImageTiling::eOptimal,
+	                               .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+	                               .sharingMode = vk::SharingMode::eExclusive,
+	                               .initialLayout = vk::ImageLayout::eUndefined,
+	                       },
+	                       VmaAllocationCreateInfo{
+	                               .flags = 0,
+	                               .usage = VMA_MEMORY_USAGE_AUTO,
+	                       }};
 
+	application::set_debug_reports_name<vk::Image>(alloc, "text_rasterizer image");
 	return alloc;
 }
 
 buffer_allocation text_rasterizer::create_buffer(size_t size)
 {
 	buffer_allocation alloc{vk::BufferCreateInfo{
-		.size = size,
-		.usage = vk::BufferUsageFlagBits::eTransferSrc,
-	},
-	VmaAllocationCreateInfo {
-		.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-		.usage = VMA_MEMORY_USAGE_AUTO,
-	}};
+	                                .size = size,
+	                                .usage = vk::BufferUsageFlagBits::eTransferSrc,
+	                        },
+	                        VmaAllocationCreateInfo{
+	                                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+	                                .usage = VMA_MEMORY_USAGE_AUTO,
+	                        }};
+	application::set_debug_reports_name<vk::Buffer>(alloc, "text_rasterizer buffer");
 
 	return alloc;
 }
@@ -297,52 +298,49 @@ text text_rasterizer::render(std::string_view s)
 	memcpy(mapped, rendered_text.data(), rendered_text.size());
 
 	vk::raii::CommandBuffers cmdbufs(device, {
-		.commandPool = *command_pool,
-		.level = vk::CommandBufferLevel::ePrimary,
-		.commandBufferCount = 1,
-	});
-	vk::raii::CommandBuffer& cmdbuf = cmdbufs[0];
-	application::set_debug_reports_name((VkCommandBuffer)*cmdbuf, "text_rasterizer command buffer");
+	                                                 .commandPool = *command_pool,
+	                                                 .level = vk::CommandBufferLevel::ePrimary,
+	                                                 .commandBufferCount = 1,
+	                                         });
+	vk::raii::CommandBuffer & cmdbuf = cmdbufs[0];
+	application::set_debug_reports_name(*cmdbuf, "text_rasterizer command buffer");
 
 	cmdbuf.begin({});
 
-
 	vk::ImageMemoryBarrier barrier{
-		.srcAccessMask = vk::AccessFlagBits::eNone,
-		.dstAccessMask = vk::AccessFlagBits::eTransferWrite,
-		.oldLayout = vk::ImageLayout::eUndefined,
-		.newLayout = vk::ImageLayout::eTransferDstOptimal,
-		.image = return_value.image,
-		.subresourceRange = {
-			.aspectMask = vk::ImageAspectFlagBits::eColor,
-			.baseMipLevel = 0,
-			.levelCount = 1,
-			.baseArrayLayer = 0,
-			.layerCount = 1,
-		},
+	        .srcAccessMask = vk::AccessFlagBits::eNone,
+	        .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
+	        .oldLayout = vk::ImageLayout::eUndefined,
+	        .newLayout = vk::ImageLayout::eTransferDstOptimal,
+	        .image = return_value.image,
+	        .subresourceRange = {
+	                .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                .baseMipLevel = 0,
+	                .levelCount = 1,
+	                .baseArrayLayer = 0,
+	                .layerCount = 1,
+	        },
 	};
 	cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags{}, {}, {}, barrier);
 
-
 	vk::BufferImageCopy copy_info{
-		.bufferOffset = 0,
-		.bufferRowLength = 0,
-		.bufferImageHeight = 0,
-		.imageSubresource = {
-			.aspectMask = vk::ImageAspectFlagBits::eColor,
-			.mipLevel = 0,
-			.baseArrayLayer = 0,
-			.layerCount = 1,
-		},
-		.imageOffset = {0, 0, 0},
-		.imageExtent = {
-			.width = uint32_t(x_max - x_min),
-			.height = uint32_t(y_max - y_min),
-			.depth = 1,
-		},
+	        .bufferOffset = 0,
+	        .bufferRowLength = 0,
+	        .bufferImageHeight = 0,
+	        .imageSubresource = {
+	                .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                .mipLevel = 0,
+	                .baseArrayLayer = 0,
+	                .layerCount = 1,
+	        },
+	        .imageOffset = {0, 0, 0},
+	        .imageExtent = {
+	                .width = uint32_t(x_max - x_min),
+	                .height = uint32_t(y_max - y_min),
+	                .depth = 1,
+	        },
 	};
 	cmdbuf.copyBufferToImage(staging_buffer, return_value.image, vk::ImageLayout::eTransferDstOptimal, copy_info);
-
 
 	barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
 	barrier.dstAccessMask = vk::AccessFlagBits::eMemoryRead;

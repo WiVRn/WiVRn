@@ -1,7 +1,6 @@
 /*
  * WiVRn VR streaming
  * Copyright (C) 2022-2024 Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022-2023 Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,12 +20,12 @@
 
 #include <vulkan/vulkan_raii.hpp>
 
+#include "vk/allocation.h"
 #include <freetype/freetype.h>
 #include <ft2build.h>
 #include <hb.h>
 #include <string_view>
 #include <vector>
-#include "vk/allocation.h"
 
 struct text
 {
@@ -45,10 +44,10 @@ struct text
 
 class text_rasterizer
 {
-	vk::raii::Device& device;
-	vk::raii::PhysicalDevice& physical_device;
-	vk::raii::CommandPool& command_pool;
-	vk::raii::Queue& queue;
+	vk::raii::Device & device;
+	vk::raii::PhysicalDevice & physical_device;
+	vk::raii::CommandPool & command_pool;
+	vk::raii::Queue & queue;
 	vk::raii::Fence fence;
 
 	FT_Library freetype{};
@@ -62,7 +61,7 @@ class text_rasterizer
 	vk::raii::DeviceMemory allocate_memory(vk::Buffer buffer, vk::MemoryPropertyFlags flags);
 
 public:
-	text_rasterizer(vk::raii::Device& device, vk::raii::PhysicalDevice& physical_device, vk::raii::CommandPool& command_pool, vk::raii::Queue& queue);
+	text_rasterizer(vk::raii::Device & device, vk::raii::PhysicalDevice & physical_device, vk::raii::CommandPool & command_pool, vk::raii::Queue & queue);
 	~text_rasterizer();
 
 	text render(std::string_view s);

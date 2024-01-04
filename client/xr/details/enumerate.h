@@ -19,7 +19,7 @@
 
 #pragma once
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include <jni.h>
 #endif
 

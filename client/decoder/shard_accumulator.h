@@ -23,7 +23,7 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include "decoder/android/android_decoder.h"
 using decoder_impl = ::wivrn::android::decoder;
 #else

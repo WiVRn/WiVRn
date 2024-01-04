@@ -19,23 +19,14 @@
 
 #pragma once
 
-#include "magic_enum.hpp"
-#include "utils/check.h"
-#include <string>
-#include <vulkan/vulkan.h>
+#include <concepts>
 
-#define string_VkFormat(x) std::string(magic_enum::enum_name((VkFormat)(x)))
-#define string_VkResult(x) std::string(magic_enum::enum_name((VkResult)(x)))
-
-template <>
-struct magic_enum::customize::enum_range<VkFormat>
+namespace utils
 {
-	static constexpr int min = 0;
-	static constexpr int max = 200;
-};
-
-template <typename... Args>
-struct vk_chain
-{
-	std::tuple<Args...> structs;
-};
+	template<typename T>
+	requires std::integral<T>
+	T align_up(T alignment, T value)
+	{
+		return ((value + alignment - 1) / alignment) * alignment;
+	}
+}

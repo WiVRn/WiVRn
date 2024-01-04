@@ -18,8 +18,9 @@
  */
 
 #include "utils/check.h"
-#include "vk.h"
 #include <system_error>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_to_string.hpp>
 
 namespace
 {
@@ -32,7 +33,7 @@ struct : std::error_category
 
 	std::string message(int condition) const override
 	{
-		return string_VkResult(static_cast<VkResult>(condition));
+		return vk::to_string(static_cast<vk::Result>(condition));
 	}
 } vulkan_error_category;
 } // namespace

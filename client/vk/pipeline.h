@@ -40,7 +40,7 @@ public:
 	std::optional<vk::PipelineInputAssemblyStateCreateInfo> InputAssemblyState;
 	std::optional<vk::PipelineTessellationStateCreateInfo> TessellationState;
 
-	vk::PipelineViewportStateCreateInfo ViewportState;
+	vk::PipelineViewportStateCreateInfo ViewportState; // Automatically filled
 	std::vector<vk::Viewport> Viewports = {};
 	std::vector<vk::Rect2D> Scissors = {};
 

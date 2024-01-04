@@ -459,8 +459,9 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 			.initialLayout = vk::ImageLayout::eUndefined,
 		};
 
-		VmaAllocationCreateInfo alloc_info{};
-		alloc_info.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+		VmaAllocationCreateInfo alloc_info{
+			.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		};
 
 		decoder_output[i].image = image_allocation{image_info, alloc_info};
 
@@ -506,7 +507,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	}
 
 	spdlog::info("Initializing reprojector");
-	vk::Extent2D extent = {swapchains[0].width(), swapchains[0].height()};
+	vk::Extent2D extent = {(uint32_t)swapchains[0].width(), (uint32_t)swapchains[0].height()};
 	std::vector<vk::Image> swapchain_images;
 	for (auto & swapchain: swapchains)
 	{
@@ -525,7 +526,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 void scenes::stream::video()
 {
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	application::instance().setup_jni();
 #endif
 

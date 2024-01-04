@@ -25,12 +25,12 @@
 #include "spdlog/common.h"
 #include "spdlog/spdlog.h"
 #include "utils/check.h"
-#include "vk/vk.h"
 #include "xr/xr.h"
 #include <algorithm>
 #include "utils/contains.h"
 #include <algorithm>
 #include <string>
+#include <exception>
 #include <thread>
 #include <vector>
 #include <vk_mem_alloc.h>
@@ -45,7 +45,7 @@
 #include "utils/backtrace.h"
 #endif
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include <android/native_activity.h>
 #include <sys/system_properties.h>
 
@@ -244,7 +244,7 @@ static XrActionType guess_action_type(const std::string & name)
 	return XR_ACTION_TYPE_FLOAT_INPUT;
 }
 
-#ifndef XR_USE_PLATFORM_ANDROID
+#ifndef __ANDROID__
 static std::filesystem::path get_config_base_dir()
 {
 	const char * xdg_config_home = std::getenv("XDG_CONFIG_HOME");
@@ -379,7 +379,7 @@ void application::initialize_vulkan()
 	}
 #endif
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	device_extensions.push_back(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME);
 	device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 	device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
@@ -633,7 +633,7 @@ void application::initialize()
 		extensions.push_back(i.c_str());
 	}
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	xr_instance =
 	        xr::instance(app_info.name, app_info.native_app->activity->vm, app_info.native_app->activity->clazz, extensions);
 #else
@@ -675,7 +675,7 @@ void application::initialize()
 	if (swapchain_format == vk::Format::eUndefined)
 		throw std::runtime_error("No supported swapchain format");
 
-	spdlog::info("Using format {}", string_VkFormat(swapchain_format));
+	spdlog::info("Using format {}", vk::to_string(swapchain_format));
 
 	// XrViewConfigurationProperties view_props = xr_system_id.view_configuration_properties(viewconfig);
 
@@ -717,32 +717,34 @@ std::pair<XrAction, XrActionType> application::get_action(const std::string & re
 application::application(application_info info) :
         app_info(std::move(info))
 {
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	// https://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html
 
 	setup_jni();
-	jni::object<""> act(app_info.native_app->activity->clazz);
-	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
-	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
-
-	// Get the intent, to handle wivrn://uri
-	auto intent = act.call<jni::object<"android/content/Intent">>("getIntent");
-	std::string data_string;
-	if (auto data_string_jni = intent.call<jni::string>("getDataString"))
 	{
-		data_string = data_string_jni;
-	}
+		jni::object<""> act(app_info.native_app->activity->clazz);
+		auto app = act.call<jni::object<"android/app/Application">>("getApplication");
+		auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
 
-	spdlog::info("dataString = {}", data_string);
-	if (data_string.starts_with("wivrn://"))
-	{
-		server_address = data_string.substr(strlen("wivrn://"));
-	}
+		// Get the intent, to handle wivrn://uri
+		auto intent = act.call<jni::object<"android/content/Intent">>("getIntent");
+		std::string data_string;
+		if (auto data_string_jni = intent.call<jni::string>("getDataString"))
+		{
+			data_string = data_string_jni;
+		}
 
-	auto files_dir = ctx.call<jni::object<"java/io/File">>("getFilesDir");
-	if (auto files_dir_path = files_dir.call<jni::string>("getAbsolutePath"))
-	{
-		config_path = files_dir_path;
+		spdlog::info("dataString = {}", data_string);
+		if (data_string.starts_with("wivrn://"))
+		{
+			server_address = data_string.substr(strlen("wivrn://"));
+		}
+
+		auto files_dir = ctx.call<jni::object<"java/io/File">>("getFilesDir");
+		if (auto files_dir_path = files_dir.call<jni::string>("getAbsolutePath"))
+		{
+			config_path = files_dir_path;
+		}
 	}
 
 	app_info.native_app->userData = this;
@@ -786,6 +788,24 @@ application::application(application_info info) :
 		};
 		initializeLoader((const XrLoaderInitInfoBaseHeaderKHR *)&loaderInitInfoAndroid);
 	}
+
+
+	{
+		spdlog::info("trying stuff");
+		AAssetDir * dir = AAssetManager_openDir(asset_manager(), "");
+		const char * filename;
+		while((filename = AAssetDir_getNextFileName(dir)) != nullptr)
+		{
+			spdlog::info("Found asset file: {}", filename);
+		}
+
+		dir = AAssetManager_openDir(asset_manager(), "assets");
+		while((filename = AAssetDir_getNextFileName(dir)) != nullptr)
+		{
+			spdlog::info("Found asset file: assets/{}", filename);
+		}
+	};
+
 #else
 	config_path = get_config_base_dir() / "wivrn";
 #endif
@@ -797,14 +817,15 @@ application::application(application_info info) :
 	{
 		initialize();
 	}
-	catch (...)
+	catch (std::exception& e)
 	{
+		spdlog::error("Error during initialization: {}", e.what());
 		cleanup();
 		throw;
 	}
 }
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 void application::setup_jni()
 {
 	jni::jni_thread::setup_thread(app_info.native_app->activity->vm);
@@ -848,9 +869,15 @@ void application::set_wifi_locks(bool enabled)
 
 void application::cleanup()
 {
-	// The Vulkan device and instance are destroyed by the OpenXR runtime
+	if (allocator)
+	{
+		// vmaDestroyAllocator(allocator);
+		// allocator = nullptr;
+	}
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
+
+
 	jni::jni_thread::detach();
 #endif
 }
@@ -895,7 +922,7 @@ void application::loop()
 	}
 }
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 void application::run()
 {
 	std::thread application_thread{[&]() {
@@ -1096,7 +1123,7 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 		case XR_SESSION_STATE_FOCUSED:
 			session_visible = true;
 			session_focused = true;
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 			set_wifi_locks(true);
 #endif
 			break;
@@ -1106,7 +1133,7 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 			session_focused = false;
 			xr_session.end_session();
 			session_running = false;
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 			set_wifi_locks(false);
 #endif
 			break;

@@ -19,12 +19,11 @@
 
 #pragma once
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 #include <android_native_app_glue.h>
 #endif
 
 #include "spdlog/spdlog.h"
-#include "vk/vk.h"
 #include "xr/xr.h"
 #include <array>
 #include <filesystem>
@@ -47,7 +46,7 @@ struct application_info
 	XrViewConfigurationType viewconfig = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
 	XrVersion min_vulkan_version = XR_MAKE_VERSION(1, 1, 0);
 
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	android_app * native_app;
 #endif
 };
@@ -57,7 +56,7 @@ class application : public singleton<application>
 	friend class scene;
 
 	application_info app_info;
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	ANativeWindow * native_window = nullptr;
 	bool resumed = false;
 #endif
@@ -150,10 +149,15 @@ public:
 
 	application(const application &) = delete;
 	~application();
-#ifdef XR_USE_PLATFORM_ANDROID
+#ifdef __ANDROID__
 	void setup_jni();
 
 	void set_wifi_locks(bool enabled);
+
+	static AAssetManager* asset_manager()
+	{
+		return instance().app_info.native_app->activity->assetManager;
+	}
 #endif
 
 	static bool is_session_running()
@@ -259,12 +263,22 @@ public:
 #endif
 	}
 
-	static void set_debug_reports_name(void * object, std::string name)
+	template<typename T>
+	static void set_debug_reports_name(const T& object, std::string name)
 	{
-#ifndef NDEBUG
-		printf("set_debug_reports_name %p, %s\n", object, name.c_str());
-		instance().debug_report_object_name[(uint64_t)object] = std::move(name);
-#endif
+// #ifndef NDEBUG
+		// if (instance().debug_utils_found)
+			const vk::DebugUtilsObjectNameInfoEXT name_info {
+				.objectType = T::objectType,
+				.objectHandle = (uint64_t)(typename T::NativeType)object,
+				.pObjectName = name.c_str(),
+			};
+
+			instance().vk_device.setDebugUtilsObjectNameEXT(name_info);
+
+		// printf("set_debug_reports_name %p, %s\n", object, name.c_str());
+		// instance().debug_report_object_name[(uint64_t)object] = std::move(name);
+// #endif
 	}
 
 	static XrTime now()

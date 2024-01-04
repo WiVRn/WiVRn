@@ -17,23 +17,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pipeline_layout.h"
-#include "utils/check.h"
+#pragma once
 
-vk::pipeline_layout::pipeline_layout(VkDevice device, const info & create_info) :
-        device(device)
-{
-	VkPipelineLayoutCreateInfo plci{
-	        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-	        .setLayoutCount = (uint32_t)create_info.descriptor_set_layouts.size(),
-	        .pSetLayouts = create_info.descriptor_set_layouts.data(),
-	        .pushConstantRangeCount = (uint32_t)create_info.push_constant_ranges.size(),
-	        .pPushConstantRanges = create_info.push_constant_ranges.data()};
-	CHECK_VK(vkCreatePipelineLayout(device, &plci, nullptr, &id));
-}
+#include <boost/pfr/core.hpp>
+#include <type_traits>
+#include <vulkan/vulkan.hpp>
 
-vk::pipeline_layout::~pipeline_layout()
+namespace utils
 {
-	if (device)
-		vkDestroyPipelineLayout(device, id, nullptr);
+
+template<typename T>
+struct is_vk_flags : std::false_type {};
+
+template<typename T>
+struct is_vk_flags<vk::Flags<T>> : std::true_type {};
+
+
+template<typename T>
+struct magic_hash
+{
+	std::size_t operator()(const T & info) const noexcept
+	{
+		size_t h = 0;
+
+		boost::pfr::for_each_field(info, [&](const auto & member) {
+
+			using U = std::remove_cvref_t<decltype(member)>;
+
+			if constexpr (is_vk_flags<U>::value)
+			{
+				using V = U::MaskType;
+				std::hash<V> hasher;
+				h = std::rotl(h, 5) ^ hasher(static_cast<V>(member));
+			}
+			else
+			{
+				std::hash<U> hasher;
+				h = std::rotl(h, 5) ^ hasher(member);
+			}
+		});
+
+		return h;
+	}
+};
 }

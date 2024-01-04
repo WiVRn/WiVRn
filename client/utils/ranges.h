@@ -25,12 +25,34 @@
 
 namespace utils
 {
+
+	template<typename T>
+	concept has_const_iterator = requires {
+		std::declval<typename T::const_iterator>();
+	};
+
+	template<typename T, bool> struct get_const_iterator_aux;
+
+	template<typename T> struct get_const_iterator_aux<T, true>
+	{
+		using const_iterator = T::const_iterator;
+	};
+
+	template<typename T> struct get_const_iterator_aux<T, false>
+	{
+		using const_iterator = T::iterator;
+	};
+
+	template<typename T>
+	using get_const_iterator = get_const_iterator_aux<T, has_const_iterator<T>>::const_iterator;
+
+
 template <typename T>
 struct enumerate_range
 {
 	struct iterator
 	{
-		using underlying_iterator = std::conditional_t<std::is_const_v<T>, typename T::const_iterator, typename T::iterator>;
+		using underlying_iterator = std::conditional_t<std::is_const_v<T>,  get_const_iterator<T>, typename T::iterator>;
 		using underlying_value_type = std::conditional_t<std::is_const_v<T>, const typename T::value_type, typename T::value_type>;
 
 		size_t index;
@@ -38,7 +60,8 @@ struct enumerate_range
 
 		std::pair<size_t, underlying_value_type &> operator*() const
 		{
-			return {index, *it};
+			underlying_value_type & x = *it;
+			return {index, x};
 		}
 
 		iterator & operator++()
