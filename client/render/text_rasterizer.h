@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2022-2024 Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022-2023 Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,8 +57,8 @@ class text_rasterizer
 	hb_font_t * font{};
 	hb_buffer_t * buffer{};
 
-	image_allocation create_image(vk::Extent2D size, VmaMemoryUsage usage);
-	buffer_allocation create_buffer(size_t size, VmaMemoryUsage usage);
+	image_allocation create_image(vk::Extent2D size);
+	buffer_allocation create_buffer(size_t size);
 	vk::raii::DeviceMemory allocate_memory(vk::Buffer buffer, vk::MemoryPropertyFlags flags);
 
 public:

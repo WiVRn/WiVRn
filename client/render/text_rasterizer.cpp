@@ -1,7 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2022-2024 Guillaume Meunier <guillaume.meunier@centraliens.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -140,39 +139,44 @@ text_rasterizer::text_rasterizer(vk::raii::Device& device, vk::raii::PhysicalDev
 	}
 }
 
-image_allocation text_rasterizer::create_image(vk::Extent2D size, VmaMemoryUsage usage)
+image_allocation text_rasterizer::create_image(vk::Extent2D size)
 {
-	vk::ImageCreateInfo image_info;
-	image_info.imageType = vk::ImageType::e2D;
-	image_info.format = text::format;
-	image_info.extent.width = size.width;
-	image_info.extent.height = size.height;
-	image_info.extent.depth = 1;
-	image_info.mipLevels = 1;
-	image_info.arrayLayers = 1;
-	image_info.samples = vk::SampleCountFlagBits::e1;
-	image_info.tiling = vk::ImageTiling::eOptimal;
-	image_info.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
-	image_info.sharingMode = vk::SharingMode::eExclusive;
-	image_info.initialLayout = vk::ImageLayout::eUndefined;
+	image_allocation alloc{vk::ImageCreateInfo{
+		.imageType = vk::ImageType::e2D,
+		.format = text::format,
+		.extent = {
+			.width = size.width,
+			.height = size.height,
+			.depth = 1,
+		},
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = vk::SampleCountFlagBits::e1,
+		.tiling = vk::ImageTiling::eOptimal,
+		.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+		.sharingMode = vk::SharingMode::eExclusive,
+		.initialLayout = vk::ImageLayout::eUndefined,
+	},
+	VmaAllocationCreateInfo{
+		.flags = 0,
+		.usage = VMA_MEMORY_USAGE_AUTO,
+	}};
 
-	VmaAllocationCreateInfo alloc_info{};
-	alloc_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-	return image_allocation{image_info, alloc_info};
+	return alloc;
 }
 
-buffer_allocation text_rasterizer::create_buffer(size_t size, VmaMemoryUsage usage)
+buffer_allocation text_rasterizer::create_buffer(size_t size)
 {
-	vk::BufferCreateInfo buffer_info;
-	buffer_info.size = size;
-	buffer_info.usage = vk::BufferUsageFlagBits::eTransferSrc;
-	buffer_info.sharingMode = vk::SharingMode::eExclusive;
+	buffer_allocation alloc{vk::BufferCreateInfo{
+		.size = size,
+		.usage = vk::BufferUsageFlagBits::eTransferSrc,
+	},
+	VmaAllocationCreateInfo {
+		.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+		.usage = VMA_MEMORY_USAGE_AUTO,
+	}};
 
-	VmaAllocationCreateInfo alloc_info{};
-	alloc_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-	return buffer_allocation{buffer_info, alloc_info};
+	return alloc;
 }
 
 text_rasterizer::~text_rasterizer()
@@ -285,9 +289,9 @@ text text_rasterizer::render(std::string_view s)
 
 	return_value.size.width = x_max - x_min;
 	return_value.size.height = y_max - y_min;
-	return_value.image = create_image(return_value.size, VMA_MEMORY_USAGE_GPU_ONLY);
+	return_value.image = create_image(return_value.size);
 
-	buffer_allocation staging_buffer = create_buffer(rendered_text.size(), VMA_MEMORY_USAGE_CPU_TO_GPU);
+	buffer_allocation staging_buffer = create_buffer(rendered_text.size());
 
 	void * mapped = staging_buffer.map();
 	memcpy(mapped, rendered_text.data(), rendered_text.size());
@@ -308,8 +312,6 @@ text text_rasterizer::render(std::string_view s)
 		.dstAccessMask = vk::AccessFlagBits::eTransferWrite,
 		.oldLayout = vk::ImageLayout::eUndefined,
 		.newLayout = vk::ImageLayout::eTransferDstOptimal,
-		.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-		.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 		.image = vk::Image{return_value.image},
 		.subresourceRange = {
 			.aspectMask = vk::ImageAspectFlagBits::eColor,

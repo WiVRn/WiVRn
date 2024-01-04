@@ -805,8 +805,6 @@ void decoder::blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle
 			.dstAccessMask = vk::AccessFlagBits::eShaderRead,
 			.oldLayout = vk::ImageLayout::eUndefined,
 			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-			.srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-			.dstQueueFamilyIndex = vk::QueueFamilyIgnored,
 			.image = *handle.vk_data->vimage,
 			.subresourceRange = {
 				.aspectMask = vk::ImageAspectFlagBits::eColor,

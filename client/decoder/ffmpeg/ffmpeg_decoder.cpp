@@ -85,24 +85,25 @@ decoder::decoder(
 	{
 		free_images[i] = i;
 
-		vk::ImageCreateInfo image_info;
-		image_info.imageType = vk::ImageType::e2D;
-		image_info.format = vk::Format::eA8B8G8R8SrgbPack32;
-		image_info.extent.width = description.width;
-		image_info.extent.height = description.height;
-		image_info.extent.depth = 1;
-		image_info.mipLevels = 1;
-		image_info.arrayLayers = 1;
-		image_info.samples = vk::SampleCountFlagBits::e1;
-		image_info.tiling = vk::ImageTiling::eLinear;
-		image_info.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc;
-		image_info.sharingMode = vk::SharingMode::eExclusive;
-		image_info.queueFamilyIndexCount = 0;
-		image_info.pQueueFamilyIndices = nullptr;
-		image_info.initialLayout = vk::ImageLayout::eUndefined;
+		vk::ImageCreateInfo image_info{
+			.imageType = vk::ImageType::e2D,
+			.format = vk::Format::eA8B8G8R8SrgbPack32,
+			.extent = {
+				.width = description.width,
+				.height = description.height,
+				.depth = 1,
+			},
+			.mipLevels = 1,
+			.arrayLayers = 1,
+			.samples = vk::SampleCountFlagBits::e1,
+			.tiling = vk::ImageTiling::eLinear,
+			.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
+			.initialLayout = vk::ImageLayout::eUndefined,
+		};
 
-		VmaAllocationCreateInfo alloc_info{};
-		alloc_info.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		VmaAllocationCreateInfo alloc_info{
+			.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		};
 
 		decoded_images[i].image = image_allocation(image_info, alloc_info);
 
@@ -138,17 +139,18 @@ void decoder::blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle
 
 	// Transition layout to VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
 	// TODO: transition only if needed
-	vk::ImageMemoryBarrier barrier;
-	barrier.image = handle.image;
-	barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-	barrier.subresourceRange.levelCount = 1;
-	barrier.subresourceRange.layerCount = 1;
-	barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-	barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
-	barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
-	barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
-	barrier.oldLayout = vk::ImageLayout::eUndefined;
-	barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+	vk::ImageMemoryBarrier barrier{
+		.srcAccessMask = vk::AccessFlagBits::eTransferWrite,
+		.dstAccessMask = vk::AccessFlagBits::eTransferWrite,
+		.oldLayout = vk::ImageLayout::eUndefined,
+		.newLayout = vk::ImageLayout::eTransferSrcOptimal,
+		.image = handle.image,
+		.subresourceRange = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.levelCount = 1,
+			.layerCount = 1,
+		},
+	};
 
 	command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags{}, {}, {}, barrier);
 

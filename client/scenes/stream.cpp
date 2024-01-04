@@ -278,8 +278,6 @@ void scenes::stream::render()
 		barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
 		barrier.oldLayout = vk::ImageLayout::eUndefined;
 		barrier.newLayout = shard_accumulator::framebuffer_expected_layout;
-		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
 		barrier.image = (vk::Image)decoder_output[i].image;
 		barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 		barrier.subresourceRange.baseMipLevel = 0;
@@ -335,8 +333,6 @@ void scenes::stream::render()
 		barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
 		barrier.oldLayout = shard_accumulator::framebuffer_expected_layout;
 		barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
-		barrier.srcQueueFamilyIndex = vk::QueueFamilyIgnored;
-		barrier.dstQueueFamilyIndex = vk::QueueFamilyIgnored;
 		barrier.image = (vk::Image)decoder_output[i].image;
 		barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
 		barrier.subresourceRange.baseMipLevel = 0;
