@@ -17,6 +17,45 @@ allprojects {
 
 apply plugin: 'com.android.application'
 
+task "generatePngs"() {
+    group = 'Custom'
+
+    mkdir layout.buildDirectory.dir('generated_resources')
+    ["mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi", "mipmap-xxhdpi", "mipmap-xxxhdpi", ].each {
+        mkdir layout.buildDirectory.dir("generated_resources/${it}")
+    }
+
+    exec {
+        executable = 'rsvg-convert'
+        args = [ "wivrn.svg", "-w", "48", "-h", "48", "-o", layout.buildDirectory.file('generated_resources/mipmap-mdpi/ic_wivrn_launcher.png').get().asFile ]
+        workingDir 'images'
+    }
+
+    exec {
+        executable = 'rsvg-convert'
+        args = [ "wivrn.svg", "-w", "72", "-h", "72", "-o", layout.buildDirectory.file('generated_resources/mipmap-hdpi/ic_wivrn_launcher.png').get().asFile ]
+        workingDir 'images'
+    }
+
+    exec {
+        executable = 'rsvg-convert'
+        args = [ "wivrn.svg", "-w", "96", "-h", "96", "-o", layout.buildDirectory.file('generated_resources/mipmap-xhdpi/ic_wivrn_launcher.png').get().asFile ]
+        workingDir 'images'
+    }
+
+    exec {
+        executable = 'rsvg-convert'
+        args = [ "wivrn.svg", "-w", "144", "-h", "144", "-o", layout.buildDirectory.file('generated_resources/mipmap-xxhdpi/ic_wivrn_launcher.png').get().asFile ]
+        workingDir 'images'
+    }
+
+    exec {
+        executable = 'rsvg-convert'
+        args = [ "wivrn.svg", "-w", "192", "-h", "192", "-o", layout.buildDirectory.file('generated_resources/mipmap-xxxhdpi/ic_wivrn_launcher.png').get().asFile ]
+        workingDir 'images'
+    }
+}
+
 android {
     namespace "org.meumeu.wivrn"
     ndkVersion "26.1.10909125"
@@ -93,7 +132,7 @@ android {
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
-            res.srcDir 'resources'
+            res.srcDirs = [ 'resources', layout.buildDirectory.dir('generated_resources') ]
         }
     }
 
@@ -102,5 +141,9 @@ android {
             version '3.22.1'
             path    'CMakeLists.txt'
         }
+    }
+
+    applicationVariants.all { variant ->
+        tasks["assemble${variant.name.capitalize()}"].finalizedBy "generatePngs"
     }
 }

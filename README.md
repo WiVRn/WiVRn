@@ -4,6 +4,8 @@
 
 OpenXR streaming application
 
+<img src="images/wivrn.svg" width="180">
+
 WiVRn lets you run OpenXR applications on a computer and display them on a standalone headset.
 
 # Installation
@@ -41,7 +43,7 @@ adb install WiVRn.apk
 
 ### Compilation
 #### Build dependencies
-As Arch package names: git git-lfs pkgconf glslang cmake jre17-openjdk
+As Arch package names: git git-lfs pkgconf glslang cmake jre17-openjdk librsvg
 
 #### Android environment
 Download [sdkmanager](https://developer.android.com/tools/sdkmanager) commandline tool and extract it to any directory.

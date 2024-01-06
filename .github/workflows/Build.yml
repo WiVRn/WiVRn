@@ -89,7 +89,7 @@ jobs:
 
       - name: Install dependencies
         run: >
-          sudo apt-get update && sudo apt-get install glslang-tools
+          sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin
 
       - name: Secrets
         if: ${{ github.event_name != 'pull_request' }}
