@@ -19,7 +19,6 @@
 
 #include "view_list.h"
 #include "pose_list.h"
-#include "util/u_logging.h"
 #include "xrt_cast.h"
 
 tracked_views interpolate(const tracked_views & a, const tracked_views & b, float t)

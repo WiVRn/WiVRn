@@ -19,8 +19,6 @@
 
 #include "wivrn_controller.h"
 
-#include "os/os_threading.h"
-#include "util/u_device.h"
 #include "util/u_logging.h"
 #include <stdio.h>
 

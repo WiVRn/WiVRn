@@ -26,7 +26,6 @@ extern "C"
 #include <libavcodec/avcodec.h>
 #include <libavfilter/avfilter.h>
 #include <libavutil/hwcontext.h>
-#include <libavutil/hwcontext_vulkan.h>
 #include <libavutil/opt.h>
 }
 
