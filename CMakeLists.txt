@@ -17,6 +17,7 @@ include(ExternalProject)
 include("cmake/AutoOption.cmake")
 
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
+auto_option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" AUTO)
 auto_option(WIVRN_USE_SYSTEMD "Use libsystemd, required to show pretty hostname" AUTO)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" ON)
@@ -38,6 +39,12 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
+
+if (WIVRN_USE_SYSTEM_BOOST STREQUAL "AUTO")
+    find_package(Boost 1.75.0)
+elseif(WIVRN_USE_SYSTEM_BOOST STREQUAL "ON")
+    find_package(Boost 1.75.0 REQUIRED)
+endif()
 
 if (WIVRN_BUILD_SERVER)
     if (NOT WIVRN_USE_NVENC AND NOT WIVRN_USE_VAAPI AND NOT WIVRN_USE_X264)

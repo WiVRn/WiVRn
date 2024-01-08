@@ -1,5 +1,8 @@
-
-FetchContent_MakeAvailable(boostpfr)
+if (BOOST_FOUND)
+    add_library(Boost::pfr ALIAS Boost::headers)
+else()
+    FetchContent_MakeAvailable(boostpfr)
+endif()
 
 if (GIT_DESC)
     configure_file(version.cpp.in version.cpp)
