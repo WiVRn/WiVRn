@@ -124,7 +124,6 @@ target_link_libraries(
 		xrt-external-openxr
 		xrt-interfaces
 
-		Boost::pfr
 		PkgConfig::AVAHI
 		PkgConfig::libpulse
 		Eigen3::Eigen
