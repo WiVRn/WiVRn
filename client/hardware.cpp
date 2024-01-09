@@ -86,53 +86,39 @@ model guess_model()
 	return model::unknown;
 }
 
+static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t width)
+{
+	double ratio = double(width) / view.recommendedImageRectWidth;
+	view.recommendedImageRectWidth = width;
+	view.recommendedImageRectHeight *= ratio;
+	spdlog::info("Using panel size: {}x{}", view.recommendedImageRectWidth, view.recommendedImageRectHeight);
+	return view;
+}
+
 XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 {
 	// Standalone headsets tend to report a lower resolution
 	// as the GPU can't handle full res.
 	// Return the panel resolution instead.
+	spdlog::debug("Recommended image size: {}x{}", view.recommendedImageRectWidth, view.recommendedImageRectHeight);
 	switch (m)
 	{
 		case model::oculus_quest:
-			spdlog::info("Using panel resolution 1440x1600 for Quest");
-			view.recommendedImageRectWidth = 1440;
-			view.recommendedImageRectHeight = 1600;
-			return view;
+			return scale_view(view, 1440);
 		case model::oculus_quest_2:
-			spdlog::info("Using panel resolution 1832x1920 for Quest 2");
-			view.recommendedImageRectWidth = 1832;
-			view.recommendedImageRectHeight = 1920;
-			return view;
+			return scale_view(view, 1832);
 		case model::meta_quest_pro:
-			spdlog::info("Using panel resolution 1800x1920 for Quest pro");
-			view.recommendedImageRectWidth = 1800;
-			view.recommendedImageRectHeight = 1920;
-			return view;
+			return scale_view(view, 1800);
 		case model::meta_quest_3:
-			spdlog::info("Using panel resolution 2064x2208 for Quest 3");
-			view.recommendedImageRectWidth = 2064;
-			view.recommendedImageRectHeight = 2208;
-			return view;
+			return scale_view(view, 2064);
 		case model::pico_neo_3:
-			spdlog::info("Using panel resolution 1832x1920 for Pico Neo 3");
-			view.recommendedImageRectWidth = 1832;
-			view.recommendedImageRectHeight = 1920;
-			return view;
+			return scale_view(view, 1832);
 		case model::pico_4:
-			spdlog::info("Using panel resolution 2160x2160 for Pico 4");
-			view.recommendedImageRectWidth = 2160;
-			view.recommendedImageRectHeight = 2160;
-			return view;
+			return scale_view(view, 2160);
 		case model::htc_vive_focus_3:
-			spdlog::info("Using panel resolution 2448x2448 for HTC Vive Focus 3");
-			view.recommendedImageRectWidth = 2448;
-			view.recommendedImageRectHeight = 2448;
-			return view;
+			return scale_view(view, 2448);
 		case model::htc_vive_xr_elite:
-			spdlog::info("Using panel resolution 1920x1920 for HTC Vive XR Elite");
-			view.recommendedImageRectWidth = 1920;
-			view.recommendedImageRectHeight = 1920;
-			return view;
+			return scale_view(view, 1920);
 		case model::unknown:
 			return view;
 	}
