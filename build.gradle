@@ -133,6 +133,8 @@ android {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             res.srcDirs = [ 'resources', layout.buildDirectory.dir('generated_resources') ]
+
+            assets.srcDir 'assets'
         }
     }
 
