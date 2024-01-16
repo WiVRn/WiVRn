@@ -514,13 +514,14 @@ public:
 			auto & cb = command_buffers[index % num_images_in_flight];
 			auto & fence = fences[index % num_images_in_flight].first;
 
+			// Wait for the previous submit to finish before overwriting fences[...].second
+			device.waitForFences(*fence, true, 1'000'000'000); // TODO check for timeout
+
 			auto [image_data, mime_type] = visit_source(gltf_image.data);
 			auto [image, resources] = do_load_image(device, cb, mime_type, image_data, srgb[index]);
 
-			// Wait for the previous submit to finish before overwriting fences[...].second
-			device.waitForFences(*fence, true, 1'000'000'000); // TODO check for timeout
-			device.resetFences(*fence);
 
+			device.resetFences(*fence);
 			fences[index % num_images_in_flight].second = std::move(resources);
 			images.emplace_back(std::make_shared<scene_data::image>(std::move(image)));
 
@@ -802,7 +803,7 @@ scene_data scene_loader::operator()(const std::filesystem::path & gltf_path)
 {
 	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
 	vk::raii::CommandPool cb_pool{device, vk::CommandPoolCreateInfo{
-	                                              .flags = vk::CommandPoolCreateFlagBits::eTransient,
+	                                              .flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 	                                              .queueFamilyIndex = queue_family_index,
 	                                      }};
 
