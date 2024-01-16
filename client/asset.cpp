@@ -19,13 +19,14 @@
 
 #include "asset.h"
 #include "application.h"
+#include <filesystem>
 #include <fstream>
 #include <spdlog/spdlog.h>
 
 #ifdef __ANDROID__
 #include <android/asset_manager.h>
 
-asset::asset(std::filesystem::path path)
+asset::asset(const std::filesystem::path& path)
 {
 	spdlog::debug("Loading Android asset {}", path.string());
 	android_asset = AAssetManager_open(application::asset_manager(), path.c_str(), AASSET_MODE_BUFFER);
@@ -56,17 +57,34 @@ asset::~asset()
 
 #else
 
-asset::asset(std::filesystem::path path)
+static std::filesystem::path get_asset_root()
 {
+	const char * path = std::getenv("WIVRN_ASSET_ROOT");
+	if (path && strcmp(path, ""))
+		return path;
+
+	// Linux only: see https://stackoverflow.com/a/1024937
+	auto exe = std::filesystem::read_symlink("/proc/self/exe");
+
+	return exe.parent_path().parent_path() / "share" / "wivrn" / "assets";
+}
+
+std::filesystem::path asset::asset_root()
+{
+	static std::filesystem::path root = get_asset_root();
+	return root;
+}
+
+asset::asset(const std::filesystem::path& path)
+{
+	assert(path.is_relative());
+
 	// TODO mmap
-	// TODO: load only once if it is already loaded
+	// TODO load only once if it is already loaded
 
 	spdlog::debug("Loading file asset {}", path.string());
 
-	if (path.is_relative())
-		path = "assets" / path;
-
-	std::ifstream file(path, std::ios::binary | std::ios::ate);
+	std::ifstream file(asset_root() / path, std::ios::binary | std::ios::ate);
 	file.exceptions(std::ios_base::badbit | std::ios_base::failbit);
 
 	size_t size = file.tellg();

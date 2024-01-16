@@ -86,7 +86,7 @@ scenes::lobby::lobby() :
 
 	teapot.import(loader("lobby.gltf"));
 
-	input = input_profile("webxr-profiles/" + choose_webxr_profile() + "/profile.json", loader, teapot);
+	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, teapot);
 
 	spdlog::info("Loaded input profile {}", input->id);
 }

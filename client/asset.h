@@ -31,17 +31,17 @@ struct AAsset;
 
 class asset
 {
-
 #ifdef __ANDROID__
 	AAsset * android_asset = nullptr;
 	std::span<const std::byte> bytes;
 #else
+	static std::filesystem::path asset_root();
 	std::vector<std::byte> bytes;
 #endif
 
 public:
 	asset() = default;
-	asset(std::filesystem::path path);
+	asset(const std::filesystem::path& path);
 
 #ifdef __ANDROID__
 	asset(asset && other);

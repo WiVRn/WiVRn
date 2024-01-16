@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 include(FetchContent)
 include(ExternalProject)
+include(GNUInstallDirs)
 include("cmake/AutoOption.cmake")
 
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)

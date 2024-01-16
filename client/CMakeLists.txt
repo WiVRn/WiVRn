@@ -73,6 +73,11 @@ else()
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
+
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_INSTALL_DATADIR}/wivrn)
+
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/share)
+    file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/share/assets SYMBOLIC)
 endif()
 
 if(ANDROID OR Vulkan_VERSION VERSION_LESS 1.3.268)
@@ -159,3 +164,4 @@ if(USE_ANDROID_VALIDATION_LAYER)
 
     target_link_libraries(wivrn vvl1 vvl2) # Hack to get gradle to package the validation layer in the APK
 endif()
+
