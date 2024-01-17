@@ -20,6 +20,7 @@
 // Include first because of incompatibility between Eigen and X includes
 #include "driver/wivrn_session.h"
 
+#include "os/os_time.h"
 #include "video_encoder.h"
 
 #include <string>
@@ -30,7 +31,7 @@
 #include "video_encoder_nvenc.h"
 #endif
 #ifdef WIVRN_USE_VAAPI
-#include "ffmpeg/VideoEncoderVA.h"
+#include "ffmpeg/video_encoder_va.h"
 #endif
 #ifdef WIVRN_USE_X264
 #include "video_encoder_x264.h"
@@ -40,8 +41,7 @@ namespace xrt::drivers::wivrn
 {
 
 std::unique_ptr<VideoEncoder> VideoEncoder::Create(
-        vk_bundle * vk,
-        vk_cmd_pool & pool,
+        wivrn_vk_bundle & wivrn_vk,
         encoder_settings & settings,
         uint8_t stream_idx,
         int input_width,
@@ -53,19 +53,19 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 #ifdef WIVRN_USE_X264
 	if (settings.encoder_name == encoder_x264)
 	{
-		res = std::make_unique<VideoEncoderX264>(vk, pool, settings, input_width, input_height, fps);
+		res = std::make_unique<VideoEncoderX264>(wivrn_vk, settings, fps);
 	}
 #endif
 #ifdef WIVRN_USE_NVENC
 	if (settings.encoder_name == encoder_nvenc)
 	{
-		res = std::make_unique<VideoEncoderNvenc>(vk, settings, fps);
+		res = std::make_unique<VideoEncoderNvenc>(wivrn_vk, settings, fps);
 	}
 #endif
 #ifdef WIVRN_USE_VAAPI
 	if (settings.encoder_name == encoder_vaapi)
 	{
-		res = std::make_unique<VideoEncoderVA>(vk, settings, fps);
+		res = std::make_unique<video_encoder_va>(wivrn_vk, settings, fps);
 	}
 #endif
 	if (not res)
@@ -98,8 +98,7 @@ void VideoEncoder::SyncNeeded()
 
 void VideoEncoder::Encode(wivrn_session & cnx,
                           const to_headset::video_stream_data_shard::view_info_t & view_info,
-                          uint64_t frame_index,
-                          int index)
+                          uint64_t frame_index)
 {
 	this->cnx = &cnx;
 	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
@@ -115,7 +114,7 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	shard.shard_idx = 0;
 	shard.view_info = view_info;
 
-	Encode(index, idr, target_timestamp);
+	Encode(idr, target_timestamp);
 	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 }
 

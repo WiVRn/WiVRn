@@ -20,11 +20,12 @@
 #pragma once
 
 #include "video_encoder.h"
+#include "vk/allocation.h"
 #include "x264.h"
-#include "yuv_converter.h"
 
 #include <list>
 #include <mutex>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace xrt::drivers::wivrn
 {
@@ -34,10 +35,14 @@ class VideoEncoderX264 : public VideoEncoder
 	x264_param_t param = {};
 	x264_t * enc;
 
-	vk_bundle * vk;
 	x264_picture_t pic_in;
 	x264_picture_t pic_out = {};
-	std::unique_ptr<YuvConverter> converter;
+
+	buffer_allocation luma;
+	buffer_allocation chroma;
+	uint32_t chroma_width;
+
+	vk::Rect2D rect;
 
 	struct pending_nal
 	{
@@ -52,19 +57,11 @@ class VideoEncoderX264 : public VideoEncoder
 	std::list<pending_nal> pending_nals;
 
 public:
-	VideoEncoderX264(vk_bundle * vk, vk_cmd_pool & pool, encoder_settings & settings, int input_width, int input_height, float fps);
+	VideoEncoderX264(wivrn_vk_bundle& vk, encoder_settings & settings, float fps);
 
-	void SetImages(int width,
-	               int height,
-	               VkFormat format,
-	               int num_images,
-	               VkImage * images,
-	               VkImageView * views,
-	               VkDeviceMemory * memory) override;
+	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;
 
-	void PresentImage(int index, VkCommandBuffer * out_buffer) override;
-
-	void Encode(int index, bool idr, std::chrono::steady_clock::time_point pts) override;
+	void Encode(bool idr, std::chrono::steady_clock::time_point pts) override;
 
 	~VideoEncoderX264();
 

@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2022-2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022-2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,395 +18,383 @@
  */
 
 #include "yuv_converter.h"
-#include <iterator>
+
 #include <map>
-#include <memory>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
-static const VkFormat y_format = VK_FORMAT_R8_UNORM;
-static const VkFormat uv_format = VK_FORMAT_R8G8_UNORM;
+// clang-format off
+#define SHADER_BGRA 1
+#if SHADER_BGRA
+const float COLORSPACE_BT709[3][4] = {
+//         B        G        R      A
+/* Y */{ 0.0722,  0.7152,  0.2126, 0.0},
+/* Cb*/{ 0.5   , -0.3854, -0.1146, 0.0},
+/* Cr*/{-0.0458, -0.4542,  0.5   , 0.0},
+//clang-format: on
+};
+#else
+const float COLORSPACE_BT709[3][4] = {
+//         R         G        B      A
+/* Y */ { 0.2126,  0.7152,  0.0722, 0.0},
+/* Cb*/ {-0.1146, -0.3854,  0.5   , 0.0},
+/* Cr*/ { 0.5   , -0.4542, -0.0458, 0.0},
+};
+#endif
 
-static int bytes_per_pixel(VkFormat format)
+static vk::Format view_format(vk::Format image_format)
 {
-	switch (format)
+	switch (image_format)
 	{
-		case VK_FORMAT_R8_SRGB:
-		case VK_FORMAT_R8_UNORM:
-			return 1;
-		case VK_FORMAT_R8G8_UNORM:
-			return 2;
+		case vk::Format::eB8G8R8A8Srgb:
+		case vk::Format::eB8G8R8A8Unorm:
+			// Intel anv appears to get the order wrong
+			// swizzle components in the colorspace
+			return vk::Format::eR8G8B8A8Unorm;
 		default:
-			assert(false);
-			return 0;
-	}
+			throw std::runtime_error("YUV conversion not implemented for " + vk::to_string(image_format));
+	};
 }
 
-static VkResult create_image(vk_bundle & vk_, VkExtent2D extent, VkFormat format, YuvConverter::image_bundle & bundle)
+yuv_converter::yuv_converter() {}
+yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Device & device, vk::Image rgb, vk::Format fmt, vk::Extent2D extent) :
+        extent(extent), rgb(rgb)
 {
-	auto vk = &vk_;
-	VkResult res = vk_create_image_simple(vk, extent, format, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &bundle.image_memory, &bundle.image);
-	VK_CHK_AND_RET(res, "vk_create_image_simple");
+	auto view_fmt = view_format(fmt);
 
-	bundle.stride = extent.width * bytes_per_pixel(format);
-
-	if (!vk_buffer_init(vk, extent.height * bundle.stride, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, &bundle.buffer, &bundle.buffer_memory))
+	struct plane_t
 	{
-		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
-	}
+		vk::Format format;
+		vk::Extent3D extent;
+		image_allocation & image;
+		vk::raii::ImageView & view;
+	};
 
-	res = vk->vkMapMemory(vk->device, bundle.buffer_memory, 0, VK_WHOLE_SIZE, 0, &bundle.mapped_memory);
-	VK_CHK_AND_RET(res, "vkMapMemory");
+	// Description of planes for 4:2:0 subsampling
+	std::array planes = {
+	        plane_t{
+	                .format = vk::Format::eR8Unorm,
+	                .extent = {extent.width, extent.height, 1},
+	                .image = luma,
+	                .view = view_luma,
+	        },
+	        plane_t{
+	                .format = vk::Format::eR8G8Unorm,
+	                .extent = {extent.width / 2, extent.height / 2, 1},
+	                .image = chroma,
+	                .view = view_chroma,
+	        },
+	};
 
-	VkImageSubresourceRange subresource_range{};
-	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresource_range.baseMipLevel = 0;
-	subresource_range.levelCount = 1;
-	subresource_range.baseArrayLayer = 0;
-	subresource_range.layerCount = 1;
-
-	res = vk_create_view(vk, bundle.image, VK_IMAGE_VIEW_TYPE_2D, format, subresource_range, &bundle.view);
-	VK_CHK_AND_RET(res, "vk_create_view");
-	return VK_SUCCESS;
-}
-
-static VkResult shader_load(struct vk_bundle * vk, const std::vector<uint32_t> & code, VkShaderModule * out_module)
-{
-	VkResult ret;
-
-	VkShaderModuleCreateInfo info{};
-	info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	info.codeSize = code.size() * sizeof(uint32_t);
-	info.pCode = code.data();
-
-	VkShaderModule module;
-	ret = vk->vkCreateShaderModule(vk->device, //
-	                               &info,      //
-	                               NULL,       //
-	                               &module);   //
-	if (ret != VK_SUCCESS)
+	// Input image view
 	{
-		VK_ERROR(vk, "vkCreateShaderModule failed: %s", vk_result_string(ret));
-		return ret;
-	}
-
-	*out_module = module;
-
-	return VK_SUCCESS;
-}
-
-static void destroy_all(YuvConverter * ptr)
-{
-	auto vk = &ptr->vk;
-	vk->vkDestroyDescriptorPool(vk->device, ptr->descriptor_pool, nullptr);
-	vk->vkDestroyDescriptorSetLayout(vk->device, ptr->descriptor_set_layout, nullptr);
-	for (auto & comp: {ptr->y, ptr->uv})
-	{
-		vk->vkDestroyPipeline(vk->device, comp.pipeline, nullptr);
-		vk->vkDestroyFramebuffer(vk->device, comp.frame_buffer, nullptr);
-		vk->vkDestroyRenderPass(vk->device, comp.render_pass, nullptr);
-		vk->vkDestroyShaderModule(vk->device, comp.frag, nullptr);
-
-		vk->vkUnmapMemory(vk->device, comp.buffer_memory);
-		vk->vkDestroyBuffer(vk->device, comp.buffer, nullptr);
-		vk->vkFreeMemory(vk->device, comp.buffer_memory, nullptr);
-		vk->vkDestroyImageView(vk->device, comp.view, nullptr);
-		vk->vkDestroyImage(vk->device, comp.image, nullptr);
-		vk->vkFreeMemory(vk->device, comp.image_memory, nullptr);
-	}
-	vk->vkDestroyPipelineLayout(vk->device, ptr->pipeline_layout, nullptr);
-
-	vk->vkDestroyShaderModule(vk->device, ptr->vert, nullptr);
-}
-
-#define vk_check_throw(fun, res)                                                            \
-	do                                                                                  \
-	{                                                                                   \
-		if (res != VK_SUCCESS)                                                      \
-		{                                                                           \
-			vk_print_result(&this->vk, __FILE__, __LINE__, __func__, res, fun); \
-			throw std::runtime_error(fun "failed");                             \
-		}                                                                           \
-	} while (0)
-
-YuvConverter::YuvConverter(vk_bundle * vk, vk_cmd_pool & pool, VkExtent3D extent, int offset_x, int offset_y, int input_width, int input_height) :
-        vk(*vk), pool(pool)
-{
-	std::unique_ptr<YuvConverter, decltype(&destroy_all)> deleter(this, destroy_all);
-
-	y.extent = {extent.width, extent.height};
-	uv.extent = {extent.width / 2, extent.height / 2};
-
-	assert(y_format != VK_FORMAT_UNDEFINED);
-	assert(uv_format != VK_FORMAT_UNDEFINED);
-
-	VkResult res = create_image(*vk, y.extent, y_format, y);
-	vk_check_throw("create_image (y)", res);
-
-	res = create_image(*vk, uv.extent, uv_format, uv);
-	vk_check_throw("create_image (uv)", res);
-
-	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-	samplerLayoutBinding.binding = 0;
-	samplerLayoutBinding.descriptorCount = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo{};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &samplerLayoutBinding;
-
-	res = vk->vkCreateDescriptorSetLayout(vk->device, &layoutInfo, nullptr, &descriptor_set_layout);
-	vk_check_throw("vkCreateDescriptorSetLayout", res);
-
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.pSetLayouts = &descriptor_set_layout;
-	pipelineLayoutInfo.setLayoutCount = 1;
-	res = vk->vkCreatePipelineLayout(vk->device, &pipelineLayoutInfo, nullptr, &pipeline_layout);
-	vk_check_throw("vkCreatePipelineLayout", res);
-
-	res = shader_load(vk, shaders.at("yuv_converter.vert"), &vert);
-	vk_check_throw("shader_load", res);
-
-	res = shader_load(vk, shaders.at("yuv_converter.y.frag"), &y.frag);
-	vk_check_throw("shader_load", res);
-	res =
-	        shader_load(vk, shaders.at("yuv_converter.uv.frag"), &uv.frag);
-	vk_check_throw("shader_load", res);
-
-	for (int i = 0; i < 2; ++i)
-	{
-		VkAttachmentDescription colorAttachment{};
-		VkAttachmentReference colorAttachmentRef{};
-		auto & comp = (i == 0) ? y : uv;
-		double scale = (i == 0) ? 1.0 : 0.5;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-
-		colorAttachmentRef.attachment = 0;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		colorAttachment.format = (i == 0) ? y_format : uv_format;
-
-		VkSubpassDescription subpass{};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &colorAttachmentRef;
-
-		VkRenderPassCreateInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = 1;
-		renderPassInfo.pAttachments = &colorAttachment;
-		renderPassInfo.subpassCount = 1;
-		renderPassInfo.pSubpasses = &subpass;
-
-		res = vk->vkCreateRenderPass(vk->device, &renderPassInfo, nullptr, &comp.render_pass);
-		vk_check_throw("vkCreateRenderPass", res);
-
-		VkFramebufferCreateInfo framebufferInfo{};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = comp.render_pass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = &comp.view;
-		framebufferInfo.width = comp.extent.width;
-		framebufferInfo.height = comp.extent.height;
-		framebufferInfo.layers = 1;
-
-		res = vk->vkCreateFramebuffer(vk->device, &framebufferInfo, nullptr, &comp.frame_buffer);
-		vk_check_throw("vkCreateFramebuffer", res);
-
-		VkPipelineShaderStageCreateInfo shaderStages[2] = {};
-
-		shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-		shaderStages[0].module = vert;
-		shaderStages[0].pName = "main";
-
-		shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		shaderStages[1].module = comp.frag;
-		shaderStages[1].pName = "main";
-
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 0;
-		vertexInputInfo.vertexAttributeDescriptionCount = 0;
-
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-		VkViewport viewport{};
-		viewport.x = -offset_x * scale;
-		viewport.y = -offset_y * scale;
-		viewport.width = input_width * scale;
-		viewport.height = input_height * scale;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		VkRect2D scissor{};
-		scissor.offset = {0, 0};
-		scissor.extent = comp.extent;
-
-		VkPipelineViewportStateCreateInfo viewportState{};
-		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportState.viewportCount = 1;
-		viewportState.pViewports = &viewport;
-		viewportState.scissorCount = 1;
-		viewportState.pScissors = &scissor;
-
-		VkPipelineRasterizationStateCreateInfo rasterizer{};
-		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizer.depthClampEnable = VK_FALSE;
-		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizer.lineWidth = 1.0f;
-
-		VkPipelineMultisampleStateCreateInfo multisampling{};
-		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampling.sampleShadingEnable = VK_FALSE;
-		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;
-
-		VkPipelineColorBlendStateCreateInfo colorBlending{};
-		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlending.logicOpEnable = VK_FALSE;
-		colorBlending.attachmentCount = 1;
-		colorBlending.pAttachments = &colorBlendAttachment;
-
-		VkGraphicsPipelineCreateInfo pipelineInfo{};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = std::size(shaderStages);
-		pipelineInfo.pStages = shaderStages;
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-		pipelineInfo.pInputAssemblyState = &inputAssembly;
-		pipelineInfo.pViewportState = &viewportState;
-		pipelineInfo.pRasterizationState = &rasterizer;
-		pipelineInfo.pMultisampleState = &multisampling;
-		pipelineInfo.pColorBlendState = &colorBlending;
-		pipelineInfo.layout = pipeline_layout;
-		pipelineInfo.renderPass = comp.render_pass;
-		pipelineInfo.subpass = 0;
-
-		res = vk->vkCreateGraphicsPipelines(vk->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &comp.pipeline);
-		vk_check_throw("vkCreateGraphicsPipelines", res);
+		vk::ImageViewUsageCreateInfo usage{
+		        .usage = vk::ImageUsageFlagBits::eStorage,
+		};
+		view_rgb = device.createImageView(
+		        {
+		                .pNext = &usage,
+		                .image = rgb,
+		                .viewType = vk::ImageViewType::e2D,
+		                .format = view_fmt,
+		                .subresourceRange = {
+		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                        .levelCount = 1,
+		                        .layerCount = 1,
+		                },
+		        });
 	}
 
-	VkSamplerCreateInfo samplerInfo{};
-	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	samplerInfo.magFilter = VK_FILTER_LINEAR;
-	samplerInfo.minFilter = VK_FILTER_LINEAR;
-	samplerInfo.anisotropyEnable = VK_FALSE;
-	res = vk->vkCreateSampler(vk->device, &samplerInfo, nullptr, &sampler);
-	vk_check_throw("vkCreateSampler", res);
-
-	(void)deleter.release();
-}
-
-YuvConverter::~YuvConverter()
-{
-	destroy_all(this);
-}
-
-void YuvConverter::SetImages(int num_images, VkImage * images, VkImageView * views)
-{
-	// os_mutex_lock(&vk.cmd_pool_mutex);
-	assert(command_buffers.empty());
-	assert(descriptor_sets.empty());
-	descriptor_sets.resize(num_images);
-	VkDescriptorPoolSize poolSize{};
-	poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSize.descriptorCount = num_images;
-
-	VkDescriptorPoolCreateInfo poolInfo{};
-	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	poolInfo.poolSizeCount = 1;
-	poolInfo.pPoolSizes = &poolSize;
-	poolInfo.maxSets = num_images;
-	VkResult res = vk.vkCreateDescriptorPool(vk.device, &poolInfo, nullptr, &descriptor_pool);
-	vk_check_throw("vkCreateDescriptorPool", res);
-	for (int i = 0; i < num_images; ++i)
+	// Output images
+	for (auto & plane: planes)
 	{
-		const auto & view = views[i];
-		auto & descriptor_set = descriptor_sets[i];
-
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptor_pool;
-		allocInfo.descriptorSetCount = 1;
-		allocInfo.pSetLayouts = &descriptor_set_layout;
-		res = vk.vkAllocateDescriptorSets(vk.device, &allocInfo, &descriptor_set);
-		vk_check_throw("vkAllocateDescriptorSets", res);
-
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		imageInfo.imageView = view;
-		imageInfo.sampler = sampler;
-
-		VkWriteDescriptorSet descriptorWrite{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = descriptor_set;
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pImageInfo = &imageInfo;
-
-		vk.vkUpdateDescriptorSets(vk.device, 1, &descriptorWrite, 0, nullptr);
-
-		VkCommandBuffer cmdBuffer;
-		res = vk_cmd_pool_create_and_begin_cmd_buffer(&vk, &pool, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, &cmdBuffer);
-		vk_check_throw("vk_cmd_pool_create_and_begin_cmd_buffer", res);
-
-		for (auto & comp: {y, uv})
-		{
-			VkRenderPassBeginInfo render_pass_info{};
-			render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			render_pass_info.renderPass = comp.render_pass;
-			render_pass_info.framebuffer = comp.frame_buffer;
-			render_pass_info.renderArea.extent = comp.extent;
-
-			vk.vkCmdBeginRenderPass(cmdBuffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-			vk.vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, comp.pipeline);
-			vk.vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
-			vk.vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
-			vk.vkCmdEndRenderPass(cmdBuffer);
-
-			if (comp.buffer != VK_NULL_HANDLE)
+		plane.image = image_allocation(
+				device,
+		        {
+		                .imageType = vk::ImageType::e2D,
+		                .format = plane.format,
+		                .extent = plane.extent,
+		                .mipLevels = 1,
+		                .arrayLayers = 1,
+		                .samples = vk::SampleCountFlagBits::e1,
+		                .tiling = vk::ImageTiling::eOptimal,
+		                .usage = vk::ImageUsageFlagBits::eStorage |
+		                         vk::ImageUsageFlagBits::eTransferSrc,
+		                .sharingMode = vk::SharingMode::eExclusive,
+		        },
 			{
-				VkBufferImageCopy copy{};
-				copy.bufferOffset = 0;
-				copy.bufferRowLength = 0;
-				copy.bufferImageHeight = 0;
-				copy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				copy.imageSubresource.mipLevel = 0;
-				copy.imageSubresource.baseArrayLayer = 0;
-				copy.imageSubresource.layerCount = 1;
-				copy.imageOffset = {0, 0, 0};
-				copy.imageExtent = {comp.extent.width, comp.extent.height, 1};
-				// TODO synchronisation?
-				vk.vkCmdCopyImageToBuffer(cmdBuffer, comp.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, comp.buffer, 1, &copy);
-			}
-		}
-
-		res = vk.vkEndCommandBuffer(cmdBuffer);
-		vk_check_throw("vkEndCommandBuffer", res);
-
-		command_buffers.push_back(cmdBuffer);
+			.usage = VMA_MEMORY_USAGE_AUTO,
+			});
 	}
-	// os_mutex_unlock(&vk.cmd_pool_mutex);
+
+	// Output image views
+	for (auto & plane: planes)
+	{
+		plane.view = device.createImageView(
+		        {
+		                .image = plane.image,
+		                .viewType = vk::ImageViewType::e2D,
+		                .format = plane.format,
+		                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+		                                     .baseMipLevel = 0,
+		                                     .levelCount = 1,
+		                                     .baseArrayLayer = 0,
+		                                     .layerCount = 1},
+		        });
+	}
+
+	// Descriptor sets
+	{
+		std::array ds_layout_binding{
+		        vk::DescriptorSetLayoutBinding{
+		                .binding = 0,
+		                .descriptorType = vk::DescriptorType::eStorageImage,
+		                .descriptorCount = 1,
+		                .stageFlags = vk::ShaderStageFlagBits::eCompute,
+		        },
+		        vk::DescriptorSetLayoutBinding{
+		                .binding = 1,
+		                .descriptorType = vk::DescriptorType::eStorageImage,
+		                .descriptorCount = 1,
+		                .stageFlags = vk::ShaderStageFlagBits::eCompute,
+		        },
+		        vk::DescriptorSetLayoutBinding{
+		                .binding = 2,
+		                .descriptorType = vk::DescriptorType::eStorageImage,
+		                .descriptorCount = 1,
+		                .stageFlags = vk::ShaderStageFlagBits::eCompute,
+		        },
+		};
+		ds_layout = device.createDescriptorSetLayout({
+		        .bindingCount = ds_layout_binding.size(),
+		        .pBindings = ds_layout_binding.data(),
+		});
+	}
+
+	// Pipeline layout
+	{
+		vk::PushConstantRange push_constant_range{
+		        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+		        .offset = 0,
+		        .size = sizeof(COLORSPACE_BT709),
+		};
+		layout = device.createPipelineLayout({
+		        .setLayoutCount = 1,
+		        .pSetLayouts = &*ds_layout,
+		        .pushConstantRangeCount = 1,
+		        .pPushConstantRanges = &push_constant_range,
+		});
+	}
+
+	// Pipeline
+	{
+		auto & spirv = shaders.at("yuv.comp");
+		vk::raii::ShaderModule shader(device, {
+		                                              .codeSize = spirv.size() * sizeof(uint32_t),
+		                                              .pCode = spirv.data(),
+		                                      });
+
+		pipeline = vk::raii::Pipeline(device, nullptr, vk::ComputePipelineCreateInfo{
+		                                                       .stage = {
+		                                                               .stage = vk::ShaderStageFlagBits::eCompute,
+		                                                               .module = *shader,
+		                                                               .pName = "main",
+		                                                       },
+		                                                       .layout = *layout,
+		                                               });
+	}
+
+	// Descriptor pool
+	{
+		std::array pool_size{
+		        vk::DescriptorPoolSize{
+		                .type = vk::DescriptorType::eSampledImage,
+		                .descriptorCount = 1,
+		        },
+		        vk::DescriptorPoolSize{
+		                .type = vk::DescriptorType::eStorageImage,
+		                .descriptorCount = 2,
+		        }};
+
+		dp = device.createDescriptorPool({
+		        .maxSets = 2,
+		        .poolSizeCount = pool_size.size(),
+		        .pPoolSizes = pool_size.data(),
+		});
+	}
+
+	// Descriptor set
+	ds = std::move(device.allocateDescriptorSets({
+	        .descriptorPool = *dp,
+	        .descriptorSetCount = 1,
+	        .pSetLayouts = &*ds_layout,
+	})[0]);
+
+	vk::DescriptorImageInfo rgb_desc_image_info{
+	        .imageView = *view_rgb,
+	        .imageLayout = vk::ImageLayout::eGeneral,
+	};
+	vk::DescriptorImageInfo luma_desc_img_info_{
+	        .imageView = *view_luma,
+	        .imageLayout = vk::ImageLayout::eGeneral,
+	};
+	vk::DescriptorImageInfo chroma_desc_img_info{
+	        .imageView = *view_chroma,
+	        .imageLayout = vk::ImageLayout::eGeneral,
+	};
+
+	device.updateDescriptorSets(
+	        {
+	                vk::WriteDescriptorSet{
+	                        .dstSet = *ds,
+	                        .dstBinding = 0,
+	                        .descriptorCount = 1,
+	                        .descriptorType = vk::DescriptorType::eStorageImage,
+	                        .pImageInfo = &rgb_desc_image_info,
+	                },
+	                vk::WriteDescriptorSet{
+	                        .dstSet = *ds,
+	                        .dstBinding = 1,
+	                        .descriptorCount = 1,
+	                        .descriptorType = vk::DescriptorType::eStorageImage,
+	                        .pImageInfo = &luma_desc_img_info_,
+	                },
+	                vk::WriteDescriptorSet{
+	                        .dstSet = *ds,
+	                        .dstBinding = 2,
+	                        .descriptorCount = 1,
+	                        .descriptorType = vk::DescriptorType::eStorageImage,
+	                        .pImageInfo = &chroma_desc_img_info,
+	                },
+	        },
+	        nullptr);
+}
+
+void yuv_converter::record_draw_commands(
+        vk::raii::CommandBuffer & cmd_buf)
+{
+	std::array im_barriers = {
+	        vk::ImageMemoryBarrier{
+	                .srcAccessMask = vk::AccessFlagBits::eNone,
+	                .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+	                .oldLayout = vk::ImageLayout::eUndefined,
+	                .newLayout = vk::ImageLayout::eGeneral,
+	                .image = luma,
+	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+	                                     .baseMipLevel = 0,
+	                                     .levelCount = 1,
+	                                     .baseArrayLayer = 0,
+	                                     .layerCount = 1},
+	        },
+	        vk::ImageMemoryBarrier{
+	                .srcAccessMask = vk::AccessFlagBits::eNone,
+	                .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+	                .oldLayout = vk::ImageLayout::eUndefined,
+	                .newLayout = vk::ImageLayout::eGeneral,
+	                .image = chroma,
+	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+	                                     .baseMipLevel = 0,
+	                                     .levelCount = 1,
+	                                     .baseArrayLayer = 0,
+	                                     .layerCount = 1},
+	        },
+	        vk::ImageMemoryBarrier{
+	                .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
+	                .dstAccessMask = vk::AccessFlagBits::eMemoryRead,
+	                .oldLayout = vk::ImageLayout::ePresentSrcKHR,
+	                .newLayout = vk::ImageLayout::eGeneral,
+	                .image = rgb,
+	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+	                                     .baseMipLevel = 0,
+	                                     .levelCount = 1,
+	                                     .baseArrayLayer = 0,
+	                                     .layerCount = 1},
+	        },
+	};
+	cmd_buf.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eAllCommands,
+	        vk::PipelineStageFlagBits::eComputeShader,
+	        {},
+	        nullptr,
+	        nullptr,
+	        im_barriers);
+
+	cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
+	cmd_buf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *layout, 0, *ds, {});
+	cmd_buf.pushConstants<float[3][4]>(*layout, vk::ShaderStageFlagBits::eCompute, 0, COLORSPACE_BT709);
+	cmd_buf.dispatch(extent.width / 16, extent.height / 16, 1);
+
+	for (auto & barrier: im_barriers)
+	{
+		barrier.srcAccessMask = vk::AccessFlagBits::eMemoryWrite;
+		barrier.dstAccessMask = vk::AccessFlagBits::eTransferRead;
+		barrier.oldLayout = vk::ImageLayout::eGeneral;
+		barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+	}
+	cmd_buf.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eComputeShader,
+	        vk::PipelineStageFlagBits::eTransfer,
+	        {},
+	        nullptr,
+	        nullptr,
+	        std::span{im_barriers.begin(), 2});
+}
+
+void yuv_converter::assemble_planes(vk::Rect2D rect, vk::raii::CommandBuffer & cmd_buf, vk::Image target)
+{
+	vk::ImageMemoryBarrier target_barrier{
+	        .srcAccessMask = vk::AccessFlagBits::eNone,
+	        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+	        .oldLayout = vk::ImageLayout::eUndefined,
+	        .newLayout = vk::ImageLayout::eTransferDstOptimal,
+	        .image = target,
+	        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+	                             .baseMipLevel = 0,
+	                             .levelCount = 1,
+	                             .baseArrayLayer = 0,
+	                             .layerCount = 1},
+	};
+	cmd_buf.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eNone,
+	        vk::PipelineStageFlagBits::eTransfer,
+	        {},
+	        nullptr,
+	        nullptr,
+	        target_barrier);
+
+	cmd_buf.copyImage(
+	        luma,
+	        vk::ImageLayout::eTransferSrcOptimal,
+	        target,
+	        vk::ImageLayout::eTransferDstOptimal,
+	        vk::ImageCopy{
+	                .srcSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .layerCount = 1,
+	                },
+	                .srcOffset = {rect.offset.x, rect.offset.y, 0},
+	                .dstSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
+	                        .layerCount = 1,
+	                },
+	                .extent = {extent.width, extent.height, 1},
+	        });
+	cmd_buf.copyImage(
+	        chroma,
+	        vk::ImageLayout::eTransferSrcOptimal,
+	        target,
+	        vk::ImageLayout::eTransferDstOptimal,
+	        vk::ImageCopy{
+	                .srcSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .layerCount = 1,
+	                },
+	                .srcOffset = {rect.offset.x / 2, rect.offset.y / 2, 0},
+	                .dstSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
+	                        .layerCount = 1,
+	                },
+	                .extent = {extent.width / 2, extent.height / 2, 1},
+	        });
 }

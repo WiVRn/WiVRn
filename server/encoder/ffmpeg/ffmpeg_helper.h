@@ -63,9 +63,6 @@ using av_codec_context_ptr = std::unique_ptr<AVCodecContext, AvDeleter>;
 using av_filter_graph_ptr = std::unique_ptr<AVFilterGraph, AvDeleter>;
 using av_packet_ptr = std::unique_ptr<AVPacket, AvDeleter>;
 
-av_buffer_ptr
-make_av_buffer(AVBufferRef *);
-
 av_frame_ptr
 make_av_frame(AVFrame *);
 

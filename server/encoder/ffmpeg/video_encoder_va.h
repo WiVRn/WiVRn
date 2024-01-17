@@ -19,38 +19,31 @@
 
 #pragma once
 
-#include "vk/allocation.h"
-#include <vector>
+#include "video_encoder_ffmpeg.h"
+#include "ffmpeg_helper.h"
+#include "utils/wivrn_vk_bundle.h"
 #include <vulkan/vulkan_raii.hpp>
 
-class yuv_converter
+namespace xrt::drivers::wivrn
 {
-	vk::Extent2D extent;
+struct encoder_settings;
+}
 
-	vk::Image rgb;
-public:
-	image_allocation luma;
-	image_allocation chroma;
-private:
-	vk::raii::ImageView view_rgb = nullptr;
-	vk::raii::ImageView view_luma = nullptr;
-	vk::raii::ImageView view_chroma = nullptr;
-
-	vk::raii::DescriptorSetLayout ds_layout = nullptr;
-	vk::raii::PipelineLayout layout = nullptr;
-	vk::raii::Pipeline pipeline = nullptr;
-	vk::raii::DescriptorPool dp = nullptr;
-	vk::raii::DescriptorSet ds = nullptr;
-
+class video_encoder_va : public VideoEncoderFFMPEG
+{
+	av_buffer_ptr drm_frame_ctx;
+	av_frame_ptr va_frame;
+	av_frame_ptr drm_frame;
+	vk::Rect2D rect;
+	vk::raii::Image luma;
+	vk::raii::Image chroma;
 	std::vector<vk::raii::DeviceMemory> mem;
 
-	public:
-	yuv_converter();
-	yuv_converter(vk::PhysicalDevice, vk::raii::Device& device, vk::Image rgb, vk::Format format, vk::Extent2D extent);
+public:
+	video_encoder_va(wivrn_vk_bundle&, xrt::drivers::wivrn::encoder_settings & settings, float fps);
 
-	// Converts the given image to yuv, stored in luma and chroma images.
-	// The output images will be in transfer src optimal layout
-	void record_draw_commands(vk::raii::CommandBuffer& cmd_buf);
+	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;
 
-	void assemble_planes(vk::Rect2D, vk::raii::CommandBuffer&, vk::Image target);
+protected:
+	void PushFrame(bool idr, std::chrono::steady_clock::time_point pts) override;
 };

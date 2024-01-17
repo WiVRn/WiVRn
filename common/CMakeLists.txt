@@ -48,12 +48,13 @@ if(ANDROID)
     file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/vulkan-sdk-${VULKAN_VERSION}.tar.gz DESTINATION ${CMAKE_BINARY_DIR})
 
     target_include_directories(wivrn-common PUBLIC ${CMAKE_BINARY_DIR}/Vulkan-Headers-vulkan-sdk-${VULKAN_VERSION}/include)
+    target_compile_definitions(wivrn-common PUBLIC VMA_VULKAN_VERSION=1001000)
 else()
     target_link_libraries(wivrn-common PUBLIC Vulkan::Headers)
 endif()
 
 target_link_libraries(wivrn-common PUBLIC Boost::pfr wivrn-external)
 target_compile_features(wivrn-common PRIVATE cxx_std_20)
-target_compile_definitions(wivrn-common PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS VMA_VULKAN_VERSION=1001000)
+target_compile_definitions(wivrn-common PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 
 target_include_directories(wivrn-common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
