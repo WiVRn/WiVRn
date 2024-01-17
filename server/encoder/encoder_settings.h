@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "vk/vk_helpers.h"
 #include "wivrn_packets.h"
 
 #include <map>
 #include <string>
+#include <vulkan/vulkan.hpp>
 
 namespace xrt::drivers::wivrn
 {
@@ -38,10 +38,6 @@ struct encoder_settings : public to_headset::video_stream_description::item
 	int group = 0;
 };
 
-std::vector<encoder_settings> get_encoder_settings(vk_bundle * vk, uint16_t width, uint16_t height);
-
-VkImageTiling get_required_tiling(vk_bundle * vk, const std::vector<encoder_settings> & settings);
-
-VkExternalMemoryHandleTypeFlags get_handle_types(const std::vector<encoder_settings> & settings);
+std::vector<encoder_settings> get_encoder_settings(vk::PhysicalDevice physical_device, uint16_t width, uint16_t height);
 
 } // namespace xrt::drivers::wivrn

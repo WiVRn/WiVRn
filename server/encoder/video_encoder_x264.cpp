@@ -19,6 +19,9 @@
 
 #include "video_encoder_x264.h"
 
+#include "util/u_logging.h"
+#include "utils/wivrn_vk_bundle.h"
+#include "yuv_converter.h"
 #include <stdexcept>
 
 namespace xrt::drivers::wivrn
@@ -82,13 +85,9 @@ void VideoEncoderX264::InsertInPendingNal(pending_nal && nal)
 }
 
 VideoEncoderX264::VideoEncoderX264(
-        vk_bundle * vk,
-        vk_cmd_pool & pool,
+        wivrn_vk_bundle & vk,
         encoder_settings & settings,
-        int input_width,
-        int input_height,
-        float fps) :
-        vk(vk)
+        float fps)
 {
 	if (settings.codec != h264)
 	{
@@ -99,18 +98,41 @@ VideoEncoderX264::VideoEncoderX264(
 	// encoder requires width and height to be even
 	settings.video_width += settings.video_width % 2;
 	settings.video_height += settings.video_height % 2;
+	chroma_width = settings.video_width / 2;
 
-	num_mb = ((settings.video_width + 15) / 16)
-		* ((settings.video_height + 15) / 16);
+	// FIXME: enforce even values
+	rect = vk::Rect2D{
+	        .offset = {
+	                .x = settings.offset_x,
+	                .y = settings.offset_y,
+	        },
+	        .extent = {
+	                .width = settings.width,
+	                .height = settings.height,
+	        },
+	};
 
-	converter = std::make_unique<YuvConverter>(
-	        vk,
-	        pool,
-	        VkExtent3D{uint32_t(settings.video_width), uint32_t(settings.video_height), 1},
-	        settings.offset_x,
-	        settings.offset_y,
-	        input_width,
-	        input_height);
+	num_mb = ((settings.video_width + 15) / 16) * ((settings.video_height + 15) / 16);
+
+	luma = buffer_allocation(
+	        vk.device,
+	        {
+	                .size = vk::DeviceSize(settings.video_width * settings.video_height),
+	                .usage = vk::BufferUsageFlagBits::eTransferDst,
+	        },
+	        {
+	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+	                .usage = VMA_MEMORY_USAGE_AUTO,
+	        });
+	chroma = buffer_allocation(
+	        vk.device, {
+	                           .size = vk::DeviceSize(settings.video_width * settings.video_height / 2),
+	                           .usage = vk::BufferUsageFlagBits::eTransferDst,
+	                   },
+	        {
+	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+	                .usage = VMA_MEMORY_USAGE_AUTO,
+	        });
 
 	x264_param_default_preset(&param, "ultrafast", "zerolatency");
 	param.nalu_process = &ProcessCb;
@@ -151,23 +173,55 @@ VideoEncoderX264::VideoEncoderX264(
 	pic.img.i_csp = X264_CSP_NV12;
 	pic.img.i_plane = 2;
 
-	pic.img.i_stride[0] = converter->y.stride;
-	pic.img.plane[0] = (uint8_t *)converter->y.mapped_memory;
-	pic.img.i_stride[1] = converter->uv.stride;
-	pic.img.plane[1] = (uint8_t *)converter->uv.mapped_memory;
+	pic.img.i_stride[0] = settings.video_width;
+	pic.img.plane[0] = (uint8_t *)luma.map();
+	pic.img.i_stride[1] = settings.video_width;
+	pic.img.plane[1] = (uint8_t *)chroma.map();
 }
 
-void VideoEncoderX264::SetImages(int width, int height, VkFormat format, int num_images, VkImage * images, VkImageView * views, VkDeviceMemory * memory)
+void VideoEncoderX264::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf)
 {
-	converter->SetImages(num_images, images, views);
+	cmd_buf.copyImageToBuffer(
+	        src_yuv.luma,
+	        vk::ImageLayout::eTransferSrcOptimal,
+	        luma,
+	        vk::BufferImageCopy{
+	                .bufferRowLength = chroma_width * 2,
+	                .imageSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .layerCount = 1,
+	                },
+	                .imageOffset = {
+	                        .x = rect.offset.x,
+	                        .y = rect.offset.y,
+	                },
+	                .imageExtent = {
+	                        .width = rect.extent.width,
+	                        .height = rect.extent.height,
+	                        .depth = 1,
+	                }});
+	cmd_buf.copyImageToBuffer(
+	        src_yuv.chroma,
+	        vk::ImageLayout::eTransferSrcOptimal,
+	        chroma,
+	        vk::BufferImageCopy{
+	                .bufferRowLength = chroma_width,
+	                .imageSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .layerCount = 1,
+	                },
+	                .imageOffset = {
+	                        .x = rect.offset.x / 2,
+	                        .y = rect.offset.y / 2,
+	                },
+	                .imageExtent = {
+	                        .width = rect.extent.width / 2,
+	                        .height = rect.extent.height / 2,
+	                        .depth = 1,
+	                }});
 }
 
-void VideoEncoderX264::PresentImage(int index, VkCommandBuffer * out_buffer)
-{
-	*out_buffer = converter->command_buffers[index];
-}
-
-void VideoEncoderX264::Encode(int index, bool idr, std::chrono::steady_clock::time_point pts)
+void VideoEncoderX264::Encode(bool idr, std::chrono::steady_clock::time_point pts)
 {
 	int num_nal;
 	x264_nal_t * nal;

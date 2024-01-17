@@ -19,16 +19,17 @@
 
 #pragma once
 
-#include "vk/vk_cmd_pool.h"
-#include "vk/vk_helpers.h"
 #include <atomic>
 #include <chrono>
 #include <memory>
 #include <mutex>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_raii.hpp>
 
 #include "encoder_settings.h"
 #include "wivrn_packets.h"
+
+class yuv_converter;
+struct wivrn_vk_bundle;
 
 namespace xrt::drivers::wivrn
 {
@@ -56,41 +57,29 @@ private:
 	std::atomic_bool sync_needed = true;
 
 public:
-	static std::unique_ptr<VideoEncoder> Create(vk_bundle * vk,
-	                                            vk_cmd_pool & pool,
-	                                            encoder_settings & settings,
-	                                            uint8_t stream_idx,
-	                                            int input_width,
-	                                            int input_height,
-	                                            float fps);
+	static std::unique_ptr<VideoEncoder> Create(
+	        wivrn_vk_bundle &,
+	        encoder_settings & settings,
+	        uint8_t stream_idx,
+	        int input_width,
+	        int input_height,
+	        float fps);
 
 	virtual ~VideoEncoder() = default;
 
-	// set input images to be encoded.
-	// later referred by index only
-	virtual void SetImages(int width,
-	                       int height,
-	                       VkFormat format,
-	                       int num_images,
-	                       VkImage * images,
-	                       VkImageView * views,
-	                       VkDeviceMemory * memory) = 0;
-
-	// optional entrypoint, called on present to submit command buffers for the image.
-	virtual void PresentImage(int index, VkCommandBuffer * out_buffer)
-	{}
+	// called on present to submit command buffers for the image.
+	virtual void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) = 0;
 
 	// The other end lost a frame and needs to resynchronize
 	void SyncNeeded();
 
 	void Encode(wivrn_session & cnx,
 	            const to_headset::video_stream_data_shard::view_info_t & view_info,
-	            uint64_t frame_index,
-	            int index);
+	            uint64_t frame_index);
 
 protected:
-	// encode the image at provided index.
-	virtual void Encode(int index, bool idr, std::chrono::steady_clock::time_point target_timestamp) = 0;
+	// called when command buffer finished executing
+	virtual void Encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) = 0;
 
 	void SendData(std::span<uint8_t> data, bool end_of_frame);
 };

@@ -19,8 +19,8 @@
 
 #include "encoder_settings.h"
 #include "driver/configuration.h"
+#include "util/u_logging.h"
 #include "video_encoder.h"
-#include "vk/vk_helpers.h"
 
 #include <cmath>
 #include <string>
@@ -29,7 +29,7 @@
 #include "wivrn_config.h"
 
 #ifdef WIVRN_USE_VAAPI
-#include "ffmpeg/VideoEncoderVA.h"
+#include "ffmpeg/video_encoder_va.h"
 #endif
 
 using namespace xrt::drivers::wivrn;
@@ -37,14 +37,13 @@ using namespace xrt::drivers::wivrn;
 // TODO: size independent bitrate
 static const uint64_t default_bitrate = 50'000'000;
 
-static bool is_nvidia(vk_bundle * vk)
+static bool is_nvidia(vk::PhysicalDevice physical_device)
 {
-	VkPhysicalDeviceProperties physical_device_properties;
-	vk->vkGetPhysicalDeviceProperties(vk->physical_device, &physical_device_properties);
-	return physical_device_properties.vendorID == 0x10DE;
+	auto props = physical_device.getProperties();
+	return props.vendorID == 0x10DE;
 }
 
-static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_settings(vk_bundle * vk, uint16_t width, uint16_t height)
+static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_settings(vk::PhysicalDevice physical_device, uint16_t width, uint16_t height)
 {
 	xrt::drivers::wivrn::encoder_settings settings{};
 	settings.width = width;
@@ -55,7 +54,7 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	settings.video_height = settings.height;
 	settings.video_width = settings.width;
 
-	if (is_nvidia(vk))
+	if (is_nvidia(physical_device))
 	{
 #ifdef WIVRN_USE_NVENC
 		settings.encoder_name = encoder_nvenc;
@@ -85,13 +84,13 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	return {settings};
 }
 
-std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk_bundle * vk, uint16_t width, uint16_t height)
+std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::PhysicalDevice physical_device, uint16_t width, uint16_t height)
 {
 	try
 	{
 		const auto & config = configuration::read_user_configuration();
 		if (config.encoders.empty())
-			return get_encoder_default_settings(vk, width, height);
+			return get_encoder_default_settings(physical_device, width, height);
 		std::vector<xrt::drivers::wivrn::encoder_settings> res;
 		int next_group = 0;
 		for (const auto & encoder: config.encoders)
@@ -118,45 +117,5 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk_bundl
 	{
 		U_LOG_E("Failed to read encoder configuration: %s", e.what());
 	}
-	return get_encoder_default_settings(vk, width, height);
-}
-
-VkImageTiling xrt::drivers::wivrn::get_required_tiling(vk_bundle * vk,
-                                                       const std::vector<xrt::drivers::wivrn::encoder_settings> & settings)
-{
-	bool can_optimal = true;
-	bool can_drm = vk->has_EXT_image_drm_format_modifier;
-	for (const auto & item: settings)
-	{
-#ifdef WIVRN_USE_VAAPI
-		if (item.encoder_name == encoder_vaapi)
-		{
-			can_optimal = false;
-			if (not use_drm_format_modifiers)
-				can_drm = false;
-		}
-#endif
-	}
-	if (can_optimal)
-		return VK_IMAGE_TILING_OPTIMAL;
-	if (can_drm)
-		return VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT;
-	return VK_IMAGE_TILING_LINEAR;
-}
-
-VkExternalMemoryHandleTypeFlags xrt::drivers::wivrn::get_handle_types(const std::vector<encoder_settings> & settings)
-{
-	VkExternalMemoryHandleTypeFlags result = 0;
-	for (const auto & item: settings)
-	{
-#ifdef WIVRN_USE_VAAPI
-		if (item.encoder_name == encoder_vaapi)
-			result |= VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
-#endif
-#ifdef WIVRN_USE_NVENC
-		if (item.encoder_name == encoder_nvenc)
-			result |= VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
-#endif
-	}
-	return result;
+	return get_encoder_default_settings(physical_device, width, height);
 }

@@ -17,11 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#version 450
+#pragma once
 
-layout (location = 0) out vec2 outUV;
+#include "encoder/video_encoder.h"
+#include "ffmpeg_helper.h"
+#include <chrono>
 
-void main() {
-    outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2); // [(0, 0), (2, 0), (0, 2)]
-    gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f); // [(-1, -1), (3, -1), (-1, 3)]
-}
+class VideoEncoderFFMPEG : public xrt::drivers::wivrn::VideoEncoder
+{
+public:
+	using Codec = xrt::drivers::wivrn::video_codec;
+
+	void
+	Encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) override;
+
+protected:
+	virtual void
+	PushFrame(bool idr, std::chrono::steady_clock::time_point pts) = 0;
+
+	av_codec_context_ptr encoder_ctx;
+
+private:
+	static bool once;
+};

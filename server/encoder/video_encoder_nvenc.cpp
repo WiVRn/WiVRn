@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2022-2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022-2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,13 @@
  */
 
 #include "video_encoder_nvenc.h"
+#include "encoder/yuv_converter.h"
+#include "util/u_logging.h"
+#include "utils/wivrn_vk_bundle.h"
 
-#include "vk/vk_helpers.h"
 #include <stdexcept>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
 #define NVENC_CHECK_NOENCODER(x)                                          \
 	do                                                                \
@@ -60,9 +64,20 @@
 namespace xrt::drivers::wivrn
 {
 
-VideoEncoderNvenc::VideoEncoderNvenc(vk_bundle * vk, const encoder_settings & settings, float fps) :
-        vk(vk), offset_x(settings.offset_x), offset_y(settings.offset_y), width(settings.width), height(settings.height), codec(settings.codec), fps(fps), bitrate(settings.bitrate)
+VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_settings & settings, float fps) :
+        vk(vk), fps(fps), bitrate(settings.bitrate)
 {
+	rect = vk::Rect2D{
+	        .offset = {
+	                .x = settings.offset_x,
+	                .y = settings.offset_y,
+	        },
+	        .extent = {
+	                .width = settings.width,
+	                .height = settings.height,
+	        },
+	};
+	pitch = settings.video_width;
 	CU_CHECK(cuInit(0));
 
 	CU_CHECK(cuCtxCreate(&cuda, 0, 0));
@@ -70,22 +85,28 @@ VideoEncoderNvenc::VideoEncoderNvenc(vk_bundle * vk, const encoder_settings & se
 	fn.version = NV_ENCODE_API_FUNCTION_LIST_VER;
 	NVENC_CHECK_NOENCODER(NvEncodeAPICreateInstance(&fn));
 
-	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params{};
-	params.version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER;
-	params.deviceType = NV_ENC_DEVICE_TYPE_CUDA;
-	params.device = cuda;
-	params.apiVersion = NVENCAPI_VERSION;
+	{
+		NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params{
+		        .version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
+		        .deviceType = NV_ENC_DEVICE_TYPE_CUDA,
+		        .device = cuda,
+		        .reserved = {},
+		        .apiVersion = NVENCAPI_VERSION,
+		        .reserved1 = {},
+		        .reserved2 = {},
+		};
 
-	NVENC_CHECK_NOENCODER(fn.nvEncOpenEncodeSessionEx(&params, &session_handle));
+		NVENC_CHECK_NOENCODER(fn.nvEncOpenEncodeSessionEx(&params, &session_handle));
+	}
 
 	uint32_t count;
 	std::vector<GUID> presets;
-	auto encodeGUID = codec == video_codec::h264 ? NV_ENC_CODEC_H264_GUID : NV_ENC_CODEC_HEVC_GUID;
+	auto encodeGUID = settings.codec == video_codec::h264 ? NV_ENC_CODEC_H264_GUID : NV_ENC_CODEC_HEVC_GUID;
 	NVENC_CHECK(fn.nvEncGetEncodePresetCount(session_handle, encodeGUID, &count));
 	presets.resize(count);
 	NVENC_CHECK(fn.nvEncGetEncodePresetGUIDs(session_handle, encodeGUID, presets.data(), count, &count));
 
-	switch (codec)
+	switch (settings.codec)
 	{
 		case video_codec::h264:
 			printf("%d H264 presets\n", count);
@@ -106,22 +127,7 @@ VideoEncoderNvenc::VideoEncoderNvenc(vk_bundle * vk, const encoder_settings & se
 	cap_param.capsToQuery = NV_ENC_CAPS_SUPPORT_REF_PIC_INVALIDATION;
 	int cap_value;
 	NVENC_CHECK(fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_param, &cap_value));
-	supports_frame_invalidation = cap_value;
-	if (supports_frame_invalidation)
-		printf("Frame invalidation supported\n");
-	else
-		printf("Frame invalidation not supported\n");
-}
 
-void VideoEncoderNvenc::SetImages(int full_width,
-                                  int full_height,
-                                  VkFormat format,
-                                  int num_images,
-                                  VkImage * images,
-                                  VkImageView * views,
-                                  VkDeviceMemory * memory)
-{
-	auto encodeGUID = codec == video_codec::h264 ? NV_ENC_CODEC_H264_GUID : NV_ENC_CODEC_HEVC_GUID;
 	// auto presetGUID = codec == video_codec::h264 ? NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID :
 	// NV_ENC_PRESET_P7_GUID;
 #pragma GCC diagnostic push
@@ -145,7 +151,7 @@ void VideoEncoderNvenc::SetImages(int full_width,
 	params.gopLength = NVENC_INFINITE_GOPLENGTH;
 	params.frameIntervalP = 1;
 
-	switch (codec)
+	switch (settings.codec)
 	{
 		case video_codec::h264:
 			params.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
@@ -163,10 +169,10 @@ void VideoEncoderNvenc::SetImages(int full_width,
 	params2.version = NV_ENC_INITIALIZE_PARAMS_VER;
 	params2.encodeGUID = encodeGUID;
 	params2.presetGUID = presetGUID;
-	params2.encodeWidth = uint32_t(width);
-	params2.encodeHeight = uint32_t(height);
-	params2.darWidth = uint32_t(width);
-	params2.darHeight = uint32_t(height);
+	params2.encodeWidth = settings.video_width;
+	params2.encodeHeight = settings.video_height;
+	params2.darWidth = settings.video_width;
+	params2.darHeight = settings.video_height;
 	params2.frameRateNum = (uint32_t)fps;
 	params2.frameRateDen = 1;
 	params2.enableEncodeAsync = 0;
@@ -188,73 +194,119 @@ void VideoEncoderNvenc::SetImages(int full_width,
 	NVENC_CHECK(fn.nvEncCreateBitstreamBuffer(session_handle, &params3));
 	bitstreamBuffer = params3.bitstreamBuffer;
 
-	// TODO: cleanup on error
-	this->images.resize(num_images);
-	CU_CHECK(cuCtxPushCurrent(cuda));
-	for (int i = 0; i < num_images; i++)
+	vk::DeviceSize buffer_size = pitch * settings.video_height * 3 / 2;
+
+	vk::StructureChain buffer_create_info{
+	        vk::BufferCreateInfo{
+	                .size = buffer_size,
+	                .usage = vk::BufferUsageFlagBits::eTransferDst,
+	        },
+	        vk::ExternalMemoryBufferCreateInfo{
+	                .handleTypes = vk::ExternalMemoryHandleTypeFlagBitsKHR::eOpaqueFd,
+	        },
+	};
+
+	yuv_buffer = vk::raii::Buffer(vk.device, buffer_create_info.get());
+	auto memory_req = yuv_buffer.getMemoryRequirements();
+
+	vk::StructureChain mem_info{
+	        vk::MemoryAllocateInfo{
+	                .allocationSize = buffer_size,
+	                .memoryTypeIndex = vk.get_memory_type(memory_req.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal),
+	        },
+	        vk::MemoryDedicatedAllocateInfo{
+	                .buffer = *yuv_buffer,
+	        },
+	        vk::ExportMemoryAllocateInfo{
+	                .handleTypes = vk::ExternalMemoryHandleTypeFlagBitsKHR::eOpaqueFd,
+	        },
+	};
+	mem = vk.device.allocateMemory(mem_info.get());
+	yuv_buffer.bindMemory(*mem, 0);
+
+	int fd = vk.device.getMemoryFdKHR({
+	        .memory = *mem,
+	        .handleType = vk::ExternalMemoryHandleTypeFlagBitsKHR::eOpaqueFd,
+	});
+
 	{
-		VkMemoryGetFdInfoKHR getinfo{};
-		getinfo.sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR;
-		getinfo.pNext = nullptr;
-		getinfo.memory = memory[i];
-		getinfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
-
-		int fd;
-		VkResult res = vk->vkGetMemoryFdKHR(vk->device, &getinfo, &fd);
-		VK_CHK_WITH_RET(res, "vkGetMemoryFdKHR", );
-
-		VkMemoryRequirements memoryreq;
-		vk->vkGetImageMemoryRequirements(vk->device, images[i], &memoryreq);
-
-		CUexternalMemory extmem;
-		CUDA_EXTERNAL_MEMORY_HANDLE_DESC param{};
-		param.type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD;
-		param.handle.fd = fd;
-		param.size = memoryreq.size;
-		param.flags = 0;
+		CUDA_EXTERNAL_MEMORY_HANDLE_DESC param{
+		        .type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD,
+		        .handle = {.fd = fd},
+		        .size = memory_req.size,
+		        .flags = 0,
+		};
 		CU_CHECK(cuImportExternalMemory(&extmem, &param));
 
-		CUDA_EXTERNAL_MEMORY_MIPMAPPED_ARRAY_DESC param2{};
-		param2.offset = 0;
-		param2.arrayDesc.Width = (size_t)full_width;
-		param2.arrayDesc.Height = (size_t)full_height, param2.arrayDesc.Depth = 0;
-		param2.arrayDesc.Format = CU_AD_FORMAT_UNSIGNED_INT32, param2.arrayDesc.NumChannels = 1;
-		param2.arrayDesc.Flags = 0; // CUDA_ARRAY3D_SURFACE_LDST,
-		param2.numLevels = 1;
-		CU_CHECK(cuExternalMemoryGetMappedMipmappedArray(&this->images[i].cuda_image, extmem, &param2));
-		CU_CHECK(cuMipmappedArrayGetLevel(&this->images[i].cuda_array, this->images[i].cuda_image, 0));
+		CUDA_EXTERNAL_MEMORY_BUFFER_DESC map_param{
+		        .offset = 0,
+		        .size = buffer_size,
+		        .flags = 0,
+		};
+		CU_CHECK(cuExternalMemoryGetMappedBuffer(&frame, extmem, &map_param));
 	}
-
-	CU_CHECK(cuMemAllocPitch(&frame, &pitch, width * 4, height, 4));
 
 	NV_ENC_REGISTER_RESOURCE param3{};
 	param3.version = NV_ENC_REGISTER_RESOURCE_VER;
 	param3.resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR;
-	param3.width = width;
-	param3.height = height;
+	param3.width = rect.extent.width;
+	param3.height = rect.extent.height;
 	param3.pitch = pitch;
 	param3.resourceToRegister = (void *)frame;
-	param3.bufferFormat = NV_ENC_BUFFER_FORMAT_ARGB;
+	param3.bufferFormat = NV_ENC_BUFFER_FORMAT_NV12;
 	param3.bufferUsage = NV_ENC_INPUT_IMAGE;
 	NVENC_CHECK(fn.nvEncRegisterResource(session_handle, &param3));
 	nvenc_resource = param3.registeredResource;
 	CU_CHECK(cuCtxPopCurrent(NULL));
 }
 
-void VideoEncoderNvenc::Encode(int index, bool idr, std::chrono::steady_clock::time_point pts)
+void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf)
+{
+	cmd_buf.copyImageToBuffer(
+	        src_yuv.luma,
+	        vk::ImageLayout::eTransferSrcOptimal,
+	        *yuv_buffer,
+	        vk::BufferImageCopy{
+	                .bufferRowLength = uint32_t(pitch),
+	                .imageSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .layerCount = 1,
+	                },
+	                .imageOffset = {
+	                        .x = rect.offset.x,
+	                        .y = rect.offset.y,
+	                },
+	                .imageExtent = {
+	                        .width = rect.extent.width,
+	                        .height = rect.extent.height,
+	                        .depth = 1,
+	                }});
+	cmd_buf.copyImageToBuffer(
+	        src_yuv.chroma,
+	        vk::ImageLayout::eTransferSrcOptimal,
+	        *yuv_buffer,
+	        vk::BufferImageCopy{
+	                .bufferOffset = pitch * rect.extent.height,
+	                .bufferRowLength = uint32_t(pitch/2),
+	                .imageSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .layerCount = 1,
+	                },
+	                .imageOffset = {
+	                        .x = rect.offset.x / 2,
+	                        .y = rect.offset.y / 2,
+	                },
+	                .imageExtent = {
+	                        .width = rect.extent.width / 2,
+	                        .height = rect.extent.height / 2,
+	                        .depth = 1,
+	                }});
+	return;
+}
+
+void VideoEncoderNvenc::Encode(bool idr, std::chrono::steady_clock::time_point pts)
 {
 	CU_CHECK(cuCtxPushCurrent(cuda));
-	CUDA_MEMCPY2D copy{};
-	copy.srcXInBytes = offset_x * 4;
-	copy.srcY = offset_y;
-	copy.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-	copy.srcArray = images[index].cuda_array;
-	copy.dstMemoryType = CU_MEMORYTYPE_DEVICE;
-	copy.dstDevice = frame;
-	copy.dstPitch = pitch;
-	copy.WidthInBytes = width * 4;
-	copy.Height = height;
-	CU_CHECK(cuMemcpy2D(&copy));
 
 	NV_ENC_MAP_INPUT_RESOURCE param4{};
 	param4.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
@@ -263,9 +315,9 @@ void VideoEncoderNvenc::Encode(int index, bool idr, std::chrono::steady_clock::t
 
 	NV_ENC_PIC_PARAMS param{};
 	param.version = NV_ENC_PIC_PARAMS_VER;
-	param.inputWidth = width;
-	param.inputHeight = height;
-	param.inputPitch = width;
+	param.inputWidth = rect.extent.width;
+	param.inputHeight = rect.extent.height;
+	param.inputPitch = pitch;
 	param.encodePicFlags = (uint32_t)(idr ? NV_ENC_PIC_TYPE_IDR : NV_ENC_PIC_TYPE_P);
 	param.frameIdx = 0;
 	param.inputTimeStamp = 0;

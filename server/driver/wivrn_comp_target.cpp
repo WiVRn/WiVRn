@@ -18,20 +18,49 @@
  */
 
 #include "wivrn_comp_target.h"
+#include "encoder/video_encoder.h"
 #include "main/comp_compositor.h"
 #include "math/m_space.h"
 #include "util/u_pacing.h"
-#include "encoder/video_encoder.h"
-#include "vk/vk_cmd_pool.h"
 #include "xrt_cast.h"
 #include <condition_variable>
 #include <list>
 #include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
+
+using namespace xrt::drivers::wivrn;
 
 static const uint8_t image_free = 0;
 static const uint8_t image_acquired = 1;
 
+std::vector<const char *> wivrn_comp_target::wanted_instance_extensions = {};
+std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
+// For FFMPEG
+#ifdef VK_KHR_external_memory_fd
+        VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
+#endif
+#ifdef VK_EXT_external_memory_dma_buf
+        VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,
+#endif
+#ifdef VK_EXT_image_drm_format_modifier
+        VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME,
+#endif
+
+// For vulkan video encode
+#ifdef VK_KHR_video_queue
+        VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,
+#endif
+#ifdef VK_KHR_video_encode_queue
+        VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME,
+#endif
+#ifdef VK_KHR_video_encode_h264
+        VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME,
+#endif
+#ifdef VK_KHR_video_encode_h265
+        VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME,
+#endif
+};
 
 static void target_init_semaphores(struct wivrn_comp_target * cn);
 
@@ -52,28 +81,33 @@ static void destroy_images(struct wivrn_comp_target * cn)
 	cn->encoder_threads.clear();
 	cn->encoders.clear();
 
-	struct vk_bundle * vk = get_vk(cn);
-
-	for (uint32_t i = 0; i < cn->image_count; i++)
-	{
-		if (cn->images[i].view == VK_NULL_HANDLE)
-		{
-			continue;
-		}
-
-		vk->vkDestroyImageView(vk->device, cn->images[i].view, NULL);
-		vk->vkDestroyImage(vk->device, cn->images[i].handle, NULL);
-		vk->vkFreeMemory(vk->device, cn->psc.images[i].memory, NULL);
-		vk->vkFreeCommandBuffers(vk->device, cn->pool.pool, 1, &cn->psc.images[i].present_cmd);
-	}
+	cn->psc.images.clear();
 
 	free(cn->images);
-	free(cn->psc.images);
 	cn->images = NULL;
-	cn->psc.images = NULL;
+	cn->psc.images.clear();
 
 	target_fini_semaphores(cn);
 }
+
+namespace
+{
+class scoped_lock
+{
+	os_mutex & mutex;
+
+public:
+	scoped_lock(os_mutex & mutex) :
+	        mutex(mutex)
+	{
+		os_mutex_lock(&mutex);
+	}
+	~scoped_lock()
+	{
+		os_mutex_unlock(&mutex);
+	}
+};
+}; // namespace
 
 struct encoder_thread_param
 {
@@ -89,6 +123,7 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 	auto vk = get_vk(cn);
 	assert(cn->encoders.empty());
 	assert(cn->encoder_threads.empty());
+	assert(cn->wivrn_bundle);
 
 	to_headset::video_stream_description desc{};
 	desc.width = cn->width;
@@ -102,20 +137,8 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 	{
 		uint8_t stream_index = cn->encoders.size();
 		auto & encoder = cn->encoders.emplace_back(
-		        VideoEncoder::Create(vk, cn->pool, settings, stream_index, desc.width, desc.height, desc.fps));
+		        VideoEncoder::Create(*cn->wivrn_bundle, settings, stream_index, desc.width, desc.height, desc.fps));
 		desc.items.push_back(settings);
-
-		std::vector<VkImage> images(cn->image_count);
-		std::vector<VkDeviceMemory> memory(cn->image_count);
-		std::vector<VkImageView> views(cn->image_count);
-
-		for (size_t j = 0; j < cn->image_count; j++)
-		{
-			images[j] = cn->images[j].handle;
-			memory[j] = cn->psc.images[j].memory;
-			views[j] = cn->images[j].view;
-		}
-		encoder->SetImages(cn->width, cn->height, cn->format, cn->image_count, images.data(), views.data(), memory.data());
 
 		thread_params[settings.group].encoders.emplace_back(encoder);
 	}
@@ -134,156 +157,72 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 	cn->cnx->send_control(desc);
 }
 
-class drm_image_modifier_helper
+static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags flags, const std::vector<xrt::drivers::wivrn::encoder_settings> & settings)
 {
-	VkImageDrmFormatModifierListCreateInfoEXT drm_info{};
-	std::vector<uint64_t> modifiers;
-
-public:
-	void * pNext = nullptr;
-	drm_image_modifier_helper(vk_bundle * vk, VkFormat format, VkImageTiling tiling)
-	{
-		if (tiling != VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT)
-			return;
-
-		VkDrmFormatModifierPropertiesListEXT drm_list{};
-		drm_list.sType = VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT;
-
-		VkFormatProperties2 format_prop{};
-		format_prop.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2;
-		format_prop.pNext = &drm_list;
-
-		vk->vkGetPhysicalDeviceFormatProperties2(vk->physical_device, format, &format_prop);
-
-		std::vector<VkDrmFormatModifierPropertiesEXT> properties(drm_list.drmFormatModifierCount);
-		drm_list.pDrmFormatModifierProperties = properties.data();
-
-		vk->vkGetPhysicalDeviceFormatProperties2(vk->physical_device, format, &format_prop);
-
-		VkFormatFeatureFlags required_features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
-		                                         VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-		                                         VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
-		for (const auto & mod: properties)
-		{
-			if ((mod.drmFormatModifierTilingFeatures & required_features) == required_features)
-				modifiers.push_back(mod.drmFormatModifier);
-		}
-
-		assert(not modifiers.empty());
-
-		drm_info.sType = VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT;
-		drm_info.drmFormatModifierCount = modifiers.size();
-		drm_info.pDrmFormatModifiers = modifiers.data();
-
-		pNext = &drm_info;
-	}
-};
-
-static VkResult create_images(struct wivrn_comp_target * cn, VkImageUsageFlags flags, const std::vector<xrt::drivers::wivrn::encoder_settings> & settings)
-{
-	struct vk_bundle * vk = get_vk(cn);
-
+	auto vk = get_vk(cn);
 	assert(cn->image_count > 0);
 	COMP_DEBUG(cn->c, "Creating %d images.", cn->image_count);
+	auto & device = cn->wivrn_bundle->device;
 
 	destroy_images(cn);
 
+	auto format = vk::Format(cn->format);
+
 	cn->images = U_TYPED_ARRAY_CALLOC(struct comp_target_image, cn->image_count);
-	cn->psc.images = U_TYPED_ARRAY_CALLOC(pseudo_swapchain::pseudo_swapchain_memory, cn->image_count);
 
-	VkImageSubresourceRange subresource_range{};
-	subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	subresource_range.baseMipLevel = 0;
-	subresource_range.levelCount = 1;
-	subresource_range.baseArrayLayer = 0;
-	subresource_range.layerCount = 1;
-
-	flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-	VkImageTiling tiling = get_required_tiling(vk, settings);
-	drm_image_modifier_helper drm_list(vk, cn->format, tiling);
-
-	VkExternalMemoryHandleTypeFlags handle_types = get_handle_types(settings);
-
-	VkExternalMemoryImageCreateInfo image_export_info{
-		.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,
-		.pNext = drm_list.pNext,
-		.handleTypes = handle_types,
-	};
-
-	VkExportMemoryAllocateInfo export_info{
-	        .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
-	        .handleTypes = handle_types,
-	};
+	cn->psc.images.resize(cn->image_count);
+	for (uint32_t i = 0; i < cn->image_count; i++)
+	{
+		auto & image = cn->psc.images[i].image;
+		image = image_allocation(
+		        device, {
+		                        .flags = vk::ImageCreateFlagBits::eExtendedUsage | vk::ImageCreateFlagBits::eMutableFormat,
+		                        .imageType = vk::ImageType::e2D,
+		                        .format = format,
+		                        .extent = {
+		                                .width = cn->width,
+		                                .height = cn->height,
+		                                .depth = 1,
+		                        },
+		                        .mipLevels = 1,
+		                        .arrayLayers = 1,
+		                        .samples = vk::SampleCountFlagBits::e1,
+		                        .tiling = vk::ImageTiling::eOptimal,
+		                        .usage = flags | vk::ImageUsageFlagBits::eStorage,
+		                        .sharingMode = vk::SharingMode::eExclusive,
+		                },
+		        {
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		        });
+		cn->images[i].handle = image;
+	}
 
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
-		auto & image = cn->images[i].handle;
-		auto & image_view = cn->images[i].view;
-		auto & memory = cn->psc.images[i].memory;
-
-		VkExtent3D extent{cn->width, cn->height, 1};
-
-		VkImageCreateInfo image_info{};
-		image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		image_info.pNext = &image_export_info;
-		image_info.imageType = VK_IMAGE_TYPE_2D;
-		image_info.format = cn->format;
-		image_info.extent = extent;
-		image_info.mipLevels = 1;
-		image_info.arrayLayers = 1;
-		image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-		image_info.tiling = tiling;
-		image_info.usage = flags;
-		image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		image_info.queueFamilyIndexCount = 0;
-		image_info.pQueueFamilyIndices = NULL;
-		image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-		VkResult res = vk->vkCreateImage(vk->device, &image_info, NULL, &image);
-		VK_CHK_AND_RET(res, "vkCreateImage");
-
-		VkMemoryDedicatedAllocateInfoKHR dedicated_allocate_info{
-		        .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
-		        .pNext = &export_info,
-		        .image = image,
+		auto & item = cn->psc.images[i];
+		vk::ImageViewUsageCreateInfo usage{
+		        .usage = flags,
 		};
+		item.image_view = vk::raii::ImageView(device,
+		                                      {
+		                                              .pNext = &usage,
+		                                              .image = item.image,
+		                                              .viewType = vk::ImageViewType::e2D,
+		                                              .format = format,
+		                                              .subresourceRange = {
+		                                                      .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                                                      .levelCount = 1,
+		                                                      .layerCount = 1,
+		                                              },
+		                                      });
+		cn->images[i].view = *item.image_view;
+		item.yuv = yuv_converter(vk->physical_device, device, item.image, format, vk::Extent2D{cn->width, cn->height});
 
-		VkDeviceSize size;
-		res = vk_alloc_and_bind_image_memory(vk, image, -1, &dedicated_allocate_info, "wivrn_comp_target", &memory, &size);
-		VK_CHK_AND_RET(res, "vk_alloc_and_bind_image_memory");
+		item.fence = vk::raii::Fence(device, vk::FenceCreateInfo());
 
-		res = vk_create_view(          //
-		        vk,                    // vk_bundle
-		        image,                 // image
-		        VK_IMAGE_VIEW_TYPE_2D, // type
-		        cn->format,            // format
-		        subresource_range,     // subresource_range
-		        &image_view);          // out_view
-		VK_CHK_AND_RET(res, "vk_create_view");
-
-		VkFenceCreateInfo createinfo{};
-		createinfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		createinfo.pNext = NULL;
-		createinfo.flags = 0;
-
-		res = vk->vkCreateFence(vk->device, &createinfo, NULL, &cn->psc.images[i].fence);
-		VK_CHK_AND_RET(res, "vkCreateFence");
-
-		res = vk_cmd_pool_create_and_begin_cmd_buffer(vk, &cn->pool, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, &cn->psc.images[i].present_cmd);
-		VK_CHK_AND_RET(res, "vk_cmd_pool_create_and_begin_cmd_buffer");
-
-		VkImageSubresourceRange first_color_level_subresource_range{
-		        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		        .baseMipLevel = 0,
-		        .levelCount = 1,
-		        .baseArrayLayer = 0,
-		        .layerCount = 1,
-		};
-		vk_cmd_image_barrier_gpu_locked(vk, cn->psc.images[i].present_cmd, image, 0, VK_ACCESS_SHADER_READ_BIT, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_GENERAL, first_color_level_subresource_range);
-
-		res = vk->vkEndCommandBuffer(cn->psc.images[i].present_cmd);
-		VK_CHK_AND_RET(res, "vkEndCommandBuffer");
+		item.command_buffer = std::move(device.allocateCommandBuffers(
+		        {.commandPool = *cn->command_pool,
+		         .commandBufferCount = 1})[0]);
 	}
 
 	return VK_SUCCESS;
@@ -298,10 +237,24 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 	auto vk = get_vk(cn);
-
-	auto res = vk_cmd_pool_init(vk, &cn->pool, 0);
-	VK_CHK_WITH_RET(res, "vk_cmd_pool_init", false);
-	return true;
+	try
+	{
+		cn->wivrn_bundle.emplace(*vk,
+		                         wivrn_comp_target::wanted_instance_extensions,
+		                         wivrn_comp_target::wanted_device_extensions);
+		cn->command_pool = vk::raii::CommandPool(
+		        cn->wivrn_bundle->device,
+		        {
+		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+		                .queueFamilyIndex = vk->queue_family_index,
+		        });
+		return true;
+	}
+	catch (std::exception & e)
+	{
+		U_LOG_E("Compositor target init failed: %s", e.what());
+	}
+	return false;
 }
 
 static bool comp_wivrn_check_ready(struct comp_target * ct)
@@ -351,7 +304,7 @@ static void target_init_semaphores(struct wivrn_comp_target * cn)
 	}
 }
 
-static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_target_create_images_info *create_info)
+static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_target_create_images_info * create_info)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
@@ -366,7 +319,7 @@ static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_
 
 	target_init_semaphores(cn);
 
-	//FIXME: select preferred format
+	// FIXME: select preferred format
 	assert(create_info->format_count > 0);
 	ct->format = create_info->formats[0];
 	ct->width = create_info->extent.width;
@@ -379,12 +332,12 @@ static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_
 	cn->height = create_info->extent.height;
 	cn->color_space = create_info->color_space;
 
-	auto settings = get_encoder_settings(get_vk(cn), cn->width, cn->height);
+	auto settings = get_encoder_settings(*cn->wivrn_bundle->physical_device, cn->width, cn->height);
 
-	VkResult res = create_images(cn, create_info->image_usage, settings);
+	VkResult res = create_images(cn, vk::ImageUsageFlags(create_info->image_usage), settings);
 	if (res != VK_SUCCESS)
 	{
-		vk_print_result(get_vk(cn),  __FILE__, __LINE__, __func__, res, "create_images");
+		vk_print_result(get_vk(cn), __FILE__, __LINE__, __func__, res, "create_images");
 		// TODO
 		abort();
 	}
@@ -410,23 +363,19 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 	struct vk_bundle * vk = get_vk(cn);
 
-	VkSubmitInfo submit{};
-	submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit.pNext = NULL;
-	submit.waitSemaphoreCount = 0;
-	submit.pWaitSemaphores = NULL;
-	submit.pWaitDstStageMask = NULL;
-	submit.commandBufferCount = 0;
-	submit.pCommandBuffers = NULL;
-	submit.signalSemaphoreCount = 1;
-	submit.pSignalSemaphores = &cn->semaphores.present_complete;
+	vk::Semaphore sem(cn->semaphores.present_complete);
 
-	VkResult res = vk_cmd_pool_submit(vk, &cn->pool, 1, &submit, VK_NULL_HANDLE);
-	VK_CHK_AND_RET(res, "vk_locked_submit");
+	vk::SubmitInfo submit_info{
+	        .signalSemaphoreCount = 1,
+	        .pSignalSemaphores = &sem,
+	};
 
-	res = VK_ERROR_OUT_OF_HOST_MEMORY;
+	{
+		scoped_lock lock(vk->queue_mutex);
+		cn->wivrn_bundle->queue.submit(submit_info);
+	}
 
-	while (res != VK_SUCCESS)
+	while (true)
 	{
 		std::lock_guard lock(cn->psc.mutex);
 		for (uint32_t i = 0; i < ct->image_count; i++)
@@ -436,13 +385,10 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 				cn->psc.images[i].status = image_acquired;
 
 				*out_index = i;
-				res = VK_SUCCESS;
-				break;
+				return VK_SUCCESS;
 			}
 		}
 	};
-
-	return res;
 }
 
 static void * comp_wivrn_present_thread(void * void_param)
@@ -474,7 +420,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 						presenting_index = i;
 					}
 					indices[nb_fences] = i;
-					fences[nb_fences++] = cn->psc.images[i].fence;
+					fences[nb_fences++] = *cn->psc.images[i].fence;
 				}
 			}
 
@@ -499,7 +445,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 		{
 			for (auto & encoder: param->encoders)
 			{
-				encoder->Encode(*cn->cnx, psc_image.view_info, psc_image.frame_index, presenting_index);
+				encoder->Encode(*cn->cnx, psc_image.view_info, psc_image.frame_index);
 			}
 		}
 		catch (...)
@@ -518,21 +464,39 @@ static void * comp_wivrn_present_thread(void * void_param)
 }
 
 static VkResult comp_wivrn_present(struct comp_target * ct,
-                                   VkQueue queue,
+                                   VkQueue queue_,
                                    uint32_t index,
                                    uint64_t timeline_semaphore_value,
                                    uint64_t desired_present_time_ns,
                                    uint64_t present_slop_ns)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
-	struct vk_bundle * vk = get_vk(cn);
 
 	assert(index < cn->image_count);
+
+	struct vk_bundle * vk = get_vk(cn);
+
+	auto & command_buffer = cn->psc.images[index].command_buffer;
+	command_buffer.reset();
+	command_buffer.begin(vk::CommandBufferBeginInfo{});
+
+	vk::Semaphore wait_semaphore = cn->semaphores.render_complete;
+	vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eAllCommands;
+	vk::SubmitInfo submit_info{
+	        .waitSemaphoreCount = 1,
+	        .pWaitSemaphores = &wait_semaphore,
+	        .pWaitDstStageMask = &wait_stage,
+	        .commandBufferCount = 1,
+	        .pCommandBuffers = &*command_buffer,
+	};
 
 	if (cn->c->base.slot.layer_count == 0)
 	{
 		// TODO: Tell the headset that there is no image to display
 		assert(cn->psc.images[index].status == image_acquired);
+		command_buffer.end();
+		scoped_lock lock(vk->queue_mutex);
+		cn->wivrn_bundle->queue.submit(submit_info);
 		cn->psc.images[index].status = image_free;
 		return VK_SUCCESS;
 	}
@@ -540,33 +504,20 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	assert(index < ct->image_count);
 	assert(ct->images != NULL);
 
-	std::vector<VkCommandBuffer> cmdBuffers{cn->psc.images[index].present_cmd};
-
+	auto & yuv = cn->psc.images[index].yuv;
+	yuv.record_draw_commands(command_buffer);
 	for (auto & encoder: cn->encoders)
 	{
-		VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
-		encoder->PresentImage(index, &cmdBuffer);
-		if (cmdBuffer != VK_NULL_HANDLE)
-			cmdBuffers.push_back(cmdBuffer);
+		encoder->PresentImage(yuv, command_buffer);
 	}
-
-	VkPipelineStageFlags sem_flags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-	VkSubmitInfo submit{};
-	submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit.pNext = NULL;
-	submit.waitSemaphoreCount = 1;
-	submit.pWaitSemaphores = &cn->semaphores.render_complete;
-	submit.pWaitDstStageMask = &sem_flags;
-	submit.commandBufferCount = cmdBuffers.size();
-	submit.pCommandBuffers = cmdBuffers.data();
-	submit.signalSemaphoreCount = 0;
-	submit.pSignalSemaphores = NULL;
+	command_buffer.end();
 
 	std::lock_guard lock(cn->psc.mutex);
-	VkResult res = vk->vkResetFences(vk->device, 1, &cn->psc.images[index].fence);
-	VK_CHK_AND_RET(res, "vkResetFences");
-	res = vk_cmd_pool_submit(vk, &cn->pool, 1, &submit, cn->psc.images[index].fence);
-	VK_CHK_AND_RET(res, "vk_locked_submit");
+	cn->wivrn_bundle->device.resetFences(*cn->psc.images[index].fence);
+	{
+		scoped_lock lock(vk->queue_mutex);
+		cn->wivrn_bundle->queue.submit(submit_info, *cn->psc.images[index].fence);
+	}
 
 	assert(cn->psc.images[index].status == image_acquired);
 	cn->frame_index++;
@@ -675,15 +626,16 @@ static VkResult comp_wivrn_update_timings(struct comp_target * ct)
 static void comp_wivrn_set_title(struct comp_target * ct, const char * title)
 {}
 
+wivrn_comp_target::~wivrn_comp_target()
+{
+	if (wivrn_bundle)
+		wivrn_bundle->device.waitIdle();
+	destroy_images(this);
+}
+
 static void comp_wivrn_destroy(struct comp_target * ct)
 {
-	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
-
-	vk_bundle * vk = get_vk(cn);
-	vk->vkDeviceWaitIdle(vk->device);
-	destroy_images(cn);
-
-	delete cn;
+	delete (struct wivrn_comp_target *)ct;
 }
 
 static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, uint64_t gpu_start_ns, uint64_t gpu_end_ns, uint64_t when_ns)

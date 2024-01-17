@@ -63,12 +63,13 @@ add_executable(wivrn-server
 		hostname.cpp
 		wivrn_ipc.cpp
 
-		driver/audio_pulse.cpp
-		driver/audio_setup.cpp
-		driver/configuration.cpp
 		encoder/encoder_settings.cpp
 		encoder/video_encoder.cpp
 		encoder/yuv_converter.cpp
+
+		driver/audio_pulse.cpp
+		driver/audio_setup.cpp
+		driver/configuration.cpp
 		driver/offset_estimator.cpp
 		driver/wivrn_hmd.cpp
 		driver/wivrn_comp_target.cpp
@@ -78,9 +79,13 @@ add_executable(wivrn-server
 		driver/wivrn_session.cpp
 		driver/wivrn_connection.cpp
 		driver/xrt_cast.cpp
+
+		utils/wivrn_vk_bundle.cpp
+
 		${WIVRN_SHADER_HEADERS}
 	)
 target_compile_features(wivrn-server PRIVATE cxx_std_20)
+target_compile_definitions(wivrn-server PRIVATE VULKAN_HPP_NO_CONSTRUCTORS)
 
 target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
 target_include_directories(wivrn-server PRIVATE .)
@@ -93,11 +98,11 @@ endif()
 if(WIVRN_USE_VAAPI)
         target_sources(
                 wivrn-server
-                PRIVATE encoder/ffmpeg/VideoEncoderFFMPEG.cpp
-                        encoder/ffmpeg/VideoEncoderVA.cpp
+                PRIVATE encoder/ffmpeg/video_encoder_ffmpeg.cpp
+                        encoder/ffmpeg/video_encoder_va.cpp
                         encoder/ffmpeg/ffmpeg_helper.cpp
                 )
-        target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV)
+        target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV PkgConfig::LIBDRM)
 endif()
 
 if(WIVRN_USE_X264)
