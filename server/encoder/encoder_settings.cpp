@@ -18,7 +18,7 @@
  */
 
 #include "encoder_settings.h"
-#include "configuration.h"
+#include "driver/configuration.h"
 #include "video_encoder.h"
 #include "vk/vk_helpers.h"
 

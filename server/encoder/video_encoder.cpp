@@ -18,7 +18,7 @@
  */
 
 // Include first because of incompatibility between Eigen and X includes
-#include "wivrn_session.h"
+#include "driver/wivrn_session.h"
 
 #include "video_encoder.h"
 #include "util/u_logging.h"

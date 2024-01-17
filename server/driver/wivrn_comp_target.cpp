@@ -21,7 +21,7 @@
 #include "main/comp_compositor.h"
 #include "math/m_space.h"
 #include "util/u_pacing.h"
-#include "video_encoder.h"
+#include "encoder/video_encoder.h"
 #include "vk/vk_cmd_pool.h"
 #include "xrt_cast.h"
 #include <condition_variable>

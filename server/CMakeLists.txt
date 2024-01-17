@@ -66,40 +66,42 @@ add_executable(wivrn-server
 		driver/audio_pulse.cpp
 		driver/audio_setup.cpp
 		driver/configuration.cpp
-		driver/encoder_settings.cpp
+		encoder/encoder_settings.cpp
+		encoder/video_encoder.cpp
+		encoder/yuv_converter.cpp
 		driver/offset_estimator.cpp
 		driver/wivrn_hmd.cpp
 		driver/wivrn_comp_target.cpp
 		driver/wivrn_controller.cpp
 		driver/pose_list.cpp
-		driver/video_encoder.cpp
 		driver/view_list.cpp
 		driver/wivrn_session.cpp
 		driver/wivrn_connection.cpp
 		driver/xrt_cast.cpp
 		${WIVRN_SHADER_HEADERS}
-		driver/yuv_converter.cpp
 	)
 target_compile_features(wivrn-server PRIVATE cxx_std_20)
 
 target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
+target_include_directories(wivrn-server PRIVATE .)
 
 if(WIVRN_USE_NVENC)
-        target_sources(wivrn-server PRIVATE driver/video_encoder_nvenc.cpp)
+        target_sources(wivrn-server PRIVATE encoder/video_encoder_nvenc.cpp)
         target_link_libraries(wivrn-server PRIVATE CUDA::cuda_driver nvidia-encode)
 endif()
 
 if(WIVRN_USE_VAAPI)
         target_sources(
                 wivrn-server
-                PRIVATE driver/ffmpeg/VideoEncoderFFMPEG.cpp driver/ffmpeg/VideoEncoderVA.cpp
-                        driver/ffmpeg/ffmpeg_helper.cpp
+                PRIVATE encoder/ffmpeg/VideoEncoderFFMPEG.cpp
+                        encoder/ffmpeg/VideoEncoderVA.cpp
+                        encoder/ffmpeg/ffmpeg_helper.cpp
                 )
         target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV)
 endif()
 
 if(WIVRN_USE_X264)
-        target_sources(wivrn-server PRIVATE driver/video_encoder_x264.cpp)
+        target_sources(wivrn-server PRIVATE encoder/video_encoder_x264.cpp)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)
 endif()
 
@@ -109,7 +111,7 @@ endif()
 
 include(CompileGLSL)
 
-file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "driver/shaders/*.glsl")
+file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "encoder/shaders/*.glsl")
 target_sources(wivrn-server PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn-server ${VULKAN_SHADERS})
 
