@@ -472,7 +472,14 @@ void application::process_binding_action(std::vector<XrActionSuggestedBinding> &
 
 	if (type == XR_ACTION_TYPE_POSE_INPUT)
 	{
-		action_spaces.push_back(xr_session.create_action_space(a));
+		if (!strcmp(name, "/user/hand/left/input/grip/pose"))
+			left_grip_space = xr_session.create_action_space(a);
+		else if (!strcmp(name, "/user/hand/left/input/aim/pose"))
+			left_aim_space = xr_session.create_action_space(a);
+		else if (!strcmp(name, "/user/hand/right/input/grip/pose"))
+			right_grip_space = xr_session.create_action_space(a);
+		else if (!strcmp(name, "/user/hand/right/input/aim/pose"))
+			right_aim_space = xr_session.create_action_space(a);
 	}
 
 	bindings.push_back({a, xr_instance.string_to_path(name)});

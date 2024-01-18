@@ -100,7 +100,10 @@ class application : public singleton<application>
 	xr::space view_space;
 	xr::actionset xr_actionset;
 	std::vector<std::tuple<XrAction, XrActionType, std::string>> actions;
-	std::vector<xr::space> action_spaces;
+	xr::space left_grip_space;
+	xr::space left_aim_space;
+	xr::space right_grip_space;
+	xr::space right_aim_space;
 
 	// Vulkan memory allocator stuff
 	VmaAllocator allocator;
@@ -355,19 +358,19 @@ public:
 	};
 	static XrSpace left_grip()
 	{
-		return instance().action_spaces[0];
+		return instance().left_grip_space;
 	};
 	static XrSpace left_aim()
 	{
-		return instance().action_spaces[1];
+		return instance().left_aim_space;
 	};
 	static XrSpace right_grip()
 	{
-		return instance().action_spaces[2];
+		return instance().right_grip_space;
 	};
 	static XrSpace right_aim()
 	{
-		return instance().action_spaces[3];
+		return instance().right_aim_space;
 	};
 
 	static void ignore_debug_reports_for(void * object)
