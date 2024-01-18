@@ -151,8 +151,10 @@ std::string xr::instance::path_to_string(XrPath path)
 	std::string s;
 
 	CHECK_XR(xrPathToString(id, path, 0, &length, nullptr));
-	s.resize(length);
+	s.resize(length - 1); // length includes the null terminator
 	CHECK_XR(xrPathToString(id, path, length, &length, s.data()));
+
+	assert(s[length - 1] == '\0');
 
 	return s;
 }
