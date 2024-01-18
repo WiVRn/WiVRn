@@ -90,6 +90,8 @@ class application : public singleton<application>
 	vk::Format swapchain_format;
 
 	// OpenXR stuff
+	void initialize_actions();
+
 	xr::instance xr_instance;
 	xr::system xr_system_id;
 	xr::session xr_session;
@@ -108,135 +110,6 @@ class application : public singleton<application>
 	// Vulkan memory allocator stuff
 	VmaAllocator allocator;
 
-	static inline const std::pair<const char *, XrActionType> oculus_touch[] = {
-	        {"/user/hand/left/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-	        {"/user/hand/right/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-
-	        {"/user/hand/left/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/left/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-
-	        {"/user/hand/right/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/right/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-
-	        {"/user/hand/left/input/x/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/x/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/y/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/y/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/squeeze/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/left/input/trigger/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/left/input/trigger/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
-	        {"/user/hand/left/input/thumbstick/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbstick/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbrest/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-
-	        {"/user/hand/right/input/a/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/a/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/b/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/b/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/system/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/squeeze/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/right/input/trigger/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/right/input/trigger/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
-	        {"/user/hand/right/input/thumbstick/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbstick/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbrest/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-    };
-	static inline const std::pair<const char *, XrActionType> pico_neo_3[] = {
-	        {"/user/hand/left/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-	        {"/user/hand/right/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-
-	        {"/user/hand/left/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/left/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-
-	        {"/user/hand/right/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/right/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-
-	        {"/user/hand/left/input/x/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/x/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/y/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/y/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/squeeze/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/left/input/trigger/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/left/input/trigger/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
-	        {"/user/hand/left/input/thumbstick/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbstick/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbrest/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-
-	        {"/user/hand/right/input/a/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/a/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/b/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/b/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/squeeze/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/right/input/trigger/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/right/input/trigger/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
-	        {"/user/hand/right/input/thumbstick/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbstick/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbrest/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-
-            {"/user/hand/left/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-            {"/user/hand/left/input/system/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-            {"/user/hand/right/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-            {"/user/hand/right/input/system/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	};
-	static inline const std::pair<const char *, XrActionType> pico_4[] = {
-	        {"/user/hand/left/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-	        {"/user/hand/right/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-
-	        {"/user/hand/left/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/left/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-
-	        {"/user/hand/right/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/right/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-
-	        {"/user/hand/left/input/x/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/x/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/y/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/y/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-            {"/user/hand/left/input/squeeze/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/squeeze/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/left/input/trigger/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/left/input/trigger/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
-	        {"/user/hand/left/input/thumbstick/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbstick/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/left/input/thumbrest/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-
-	        {"/user/hand/right/input/a/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/a/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/b/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/b/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/squeeze/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/squeeze/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/right/input/trigger/value", XR_ACTION_TYPE_FLOAT_INPUT},
-	        {"/user/hand/right/input/trigger/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
-	        {"/user/hand/right/input/thumbstick/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbstick/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/thumbrest/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-
-            {"/user/hand/left/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	};
-	static inline const std::pair<const char *, XrActionType> simple_controller[] = {
-	        {"/user/hand/left/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-	        {"/user/hand/right/output/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-
-	        {"/user/hand/left/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/menu/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-
-	        {"/user/hand/left/input/select/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-	        {"/user/hand/right/input/select/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-
-	        {"/user/hand/left/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/right/input/grip/pose", XR_ACTION_TYPE_POSE_INPUT},
-
-	        {"/user/hand/left/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-	        {"/user/hand/right/input/aim/pose", XR_ACTION_TYPE_POSE_INPUT},
-	};
 
 	bool session_running = false;
 	bool session_focused = false;
@@ -324,10 +197,6 @@ public:
 	}
 
 	void run();
-
-    void process_binding_action(std::vector<XrActionSuggestedBinding> & bindings,
-								const char * name,
-                                const XrActionType & type);
 
 	static void push_scene(std::shared_ptr<scene>);
 

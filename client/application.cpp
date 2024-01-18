@@ -20,10 +20,11 @@
 #include "application.h"
 #include "hardware.h"
 #include "magic_enum.hpp"
+#include "openxr/openxr.h"
 #include "scene.h"
 #include "spdlog/common.h"
 #include "spdlog/spdlog.h"
-#include "utils/ranges.h"
+#include "utils/check.h"
 #include "vk/vk.h"
 #include "xr/xr.h"
 #include <algorithm>
@@ -49,6 +50,171 @@
 #endif
 
 using namespace std::chrono_literals;
+
+using action_bindings = std::vector<std::string>;
+using suggested_binding = std::pair<std::string, action_bindings>;
+
+static inline const std::vector<suggested_binding> suggested_bindings{
+        suggested_binding{
+                "/interaction_profiles/oculus/touch_controller",
+                {
+                        "/user/hand/left/output/haptic",
+                        "/user/hand/right/output/haptic",
+
+                        "/user/hand/left/input/grip/pose",
+                        "/user/hand/left/input/aim/pose",
+
+                        "/user/hand/right/input/grip/pose",
+                        "/user/hand/right/input/aim/pose",
+
+                        "/user/hand/left/input/x/click",
+                        "/user/hand/left/input/x/touch",
+                        "/user/hand/left/input/y/click",
+                        "/user/hand/left/input/y/touch",
+                        "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/squeeze/value",
+                        "/user/hand/left/input/trigger/value",
+                        "/user/hand/left/input/trigger/touch",
+                        "/user/hand/left/input/thumbrest/touch",
+                        "/user/hand/left/input/thumbstick",
+                        "/user/hand/left/input/thumbstick/click",
+                        "/user/hand/left/input/thumbstick/touch",
+
+                        "/user/hand/right/input/a/click",
+                        "/user/hand/right/input/a/touch",
+                        "/user/hand/right/input/b/click",
+                        "/user/hand/right/input/b/touch",
+                        "/user/hand/right/input/system/click",
+                        "/user/hand/right/input/squeeze/value",
+                        "/user/hand/right/input/trigger/value",
+                        "/user/hand/right/input/trigger/touch",
+                        "/user/hand/right/input/thumbstick",
+                        "/user/hand/right/input/thumbstick/click",
+                        "/user/hand/right/input/thumbstick/touch",
+                        "/user/hand/right/input/thumbrest/touch",
+                }},
+        suggested_binding{
+                "/interaction_profiles/khr/simple_controller",
+                {
+                        "/user/hand/left/output/haptic",
+                        "/user/hand/right/output/haptic",
+
+                        "/user/hand/left/input/grip/pose",
+                        "/user/hand/left/input/aim/pose",
+
+                        "/user/hand/right/input/grip/pose",
+                        "/user/hand/right/input/aim/pose",
+
+                        "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/select/click",
+
+                        "/user/hand/right/input/menu/click",
+                        "/user/hand/right/input/select/click",
+
+                }},
+        suggested_binding{
+                "/interaction_profiles/bytedance/pico_neo3_controller",
+                {
+                        "/user/hand/left/output/haptic",
+                        "/user/hand/right/output/haptic",
+
+                        "/user/hand/left/input/grip/pose",
+                        "/user/hand/left/input/aim/pose",
+
+                        "/user/hand/right/input/grip/pose",
+                        "/user/hand/right/input/aim/pose",
+
+                        "/user/hand/left/input/x/click",
+                        "/user/hand/left/input/x/touch",
+                        "/user/hand/left/input/y/click",
+                        "/user/hand/left/input/y/touch",
+                        "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/system/click",
+                        "/user/hand/left/input/squeeze/value",
+                        "/user/hand/left/input/trigger/value",
+                        "/user/hand/left/input/trigger/touch",
+                        "/user/hand/left/input/thumbstick",
+                        "/user/hand/left/input/thumbstick/click",
+                        "/user/hand/left/input/thumbstick/touch",
+                        "/user/hand/left/input/thumbrest/touch",
+
+                        "/user/hand/right/input/a/click",
+                        "/user/hand/right/input/a/touch",
+                        "/user/hand/right/input/b/click",
+                        "/user/hand/right/input/b/touch",
+                        "/user/hand/right/input/menu/click",
+                        "/user/hand/right/input/system/click",
+                        "/user/hand/right/input/squeeze/value",
+                        "/user/hand/right/input/trigger/value",
+                        "/user/hand/right/input/trigger/touch",
+                        "/user/hand/right/input/thumbstick",
+                        "/user/hand/right/input/thumbstick/click",
+                        "/user/hand/right/input/thumbstick/touch",
+                        "/user/hand/right/input/thumbrest/touch",
+
+                }},
+        suggested_binding{
+                "/interaction_profiles/bytedance/pico4_controller",
+                {
+                        "/user/hand/left/output/haptic",
+                        "/user/hand/right/output/haptic",
+
+                        "/user/hand/left/input/grip/pose",
+                        "/user/hand/left/input/aim/pose",
+
+                        "/user/hand/right/input/grip/pose",
+                        "/user/hand/right/input/aim/pose",
+
+                        "/user/hand/left/input/x/click",
+                        "/user/hand/left/input/x/touch",
+                        "/user/hand/left/input/y/click",
+                        "/user/hand/left/input/y/touch",
+                        "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/squeeze/click",
+                        "/user/hand/left/input/squeeze/value",
+                        "/user/hand/left/input/trigger/value",
+                        "/user/hand/left/input/trigger/touch",
+                        "/user/hand/left/input/thumbstick",
+                        "/user/hand/left/input/thumbstick/click",
+                        "/user/hand/left/input/thumbstick/touch",
+                        "/user/hand/left/input/thumbrest/touch",
+
+                        "/user/hand/right/input/a/click",
+                        "/user/hand/right/input/a/touch",
+                        "/user/hand/right/input/b/click",
+                        "/user/hand/right/input/b/touch",
+                        "/user/hand/right/input/squeeze/click",
+                        "/user/hand/right/input/squeeze/value",
+                        "/user/hand/right/input/trigger/value",
+                        "/user/hand/right/input/trigger/touch",
+                        "/user/hand/right/input/thumbstick",
+                        "/user/hand/right/input/thumbstick/click",
+                        "/user/hand/right/input/thumbstick/touch",
+                        "/user/hand/right/input/thumbrest/touch",
+                }},
+};
+
+static const std::pair<std::string_view, XrActionType> action_suffixes[] =
+        {
+                {"/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
+                {"/pose", XR_ACTION_TYPE_POSE_INPUT},
+                {"/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
+                {"/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
+                {"/value", XR_ACTION_TYPE_FLOAT_INPUT},
+                {"/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
+                {"/trackpad", XR_ACTION_TYPE_VECTOR2F_INPUT},
+};
+
+static XrActionType guess_action_type(const std::string & name)
+{
+	for(const auto & [suffix, type]: action_suffixes)
+	{
+		if (name.ends_with(suffix))
+			return type;
+	}
+
+	return XR_ACTION_TYPE_FLOAT_INPUT;
+}
 
 VkBool32 application::vulkan_debug_report_callback(
         VkDebugReportFlagsEXT flags,
@@ -320,6 +486,76 @@ void application::log_views()
 	}
 }
 
+void application::initialize_actions()
+{
+	xr_actionset = xr::actionset(xr_instance, "actions", "Actions");
+
+	// Build the list of all possible actions, without duplicates
+	std::vector<std::string> actions_path;
+	for(const auto & [profile_name, bindings]: suggested_bindings)
+	{
+		for(const std::string& action_path: bindings)
+		{
+			if (std::find(actions_path.begin(), actions_path.end(), action_path) == actions_path.end())
+				actions_path.push_back(action_path);
+		}
+	}
+
+	// For each possible action, create a XrAction
+	std::unordered_map<std::string, XrAction> actions_by_name;
+
+	for(std::string& name: actions_path)
+	{
+		std::string name_without_slashes = name.substr(1);
+
+		for (char & i: name_without_slashes)
+		{
+			if (i == '/')
+				i = '_';
+		}
+
+		XrActionType type = guess_action_type(name);
+
+		auto a = xr_actionset.create_action(type, name_without_slashes);
+		actions.emplace_back(a, type, name);
+		actions_by_name.emplace(name, a);
+
+		if (name == "/user/hand/left/input/grip/pose")
+			left_grip_space = xr_session.create_action_space(a);
+		else if (name == "/user/hand/left/input/aim/pose")
+			left_aim_space = xr_session.create_action_space(a);
+		else if (name == "/user/hand/right/input/grip/pose")
+			right_grip_space = xr_session.create_action_space(a);
+		else if (name == "/user/hand/right/input/aim/pose")
+			right_aim_space = xr_session.create_action_space(a);
+	}
+
+	// Suggest bindings for all supported controllers
+	for (const auto & [profile_name, bindings]: suggested_bindings)
+	{
+		std::vector<XrActionSuggestedBinding> xr_bindings;
+
+		for (const auto & name: bindings)
+		{
+			xr_bindings.push_back({actions_by_name[name], string_to_path(name)});
+		}
+
+		try
+		{
+			xr_instance.suggest_bindings(profile_name, xr_bindings);
+		}
+		catch(std::system_error& e)
+		{
+			if (e.code().category() == xr::error_category() && e.code().value() == XR_ERROR_PATH_UNSUPPORTED)
+				spdlog::debug("Ignoring unsupported interaction profile: {}", profile_name);
+			else
+				throw;
+		}
+	}
+
+	xr_session.attach_actionsets({xr_actionset});
+}
+
 void application::initialize()
 {
 	// LogLayersAndExtensions
@@ -397,93 +633,12 @@ void application::initialize()
 
 	vk_cmdpool = vk::raii::CommandPool{vk_device, cmdpool_create_info};
 
-	// TODO get it from application info
-	xr_actionset = xr::actionset(xr_instance, "actions", "Actions");
-
-	switch (guess_model())
-	{
-		case model::oculus_quest:
-		case model::oculus_quest_2:
-		case model::meta_quest_pro:
-		case model::meta_quest_3: {
-			spdlog::info("Suggesting oculus/touch_controller bindings");
-			std::vector<XrActionSuggestedBinding> touch_controller_bindings;
-			for (const auto & [name, type]: oculus_touch)
-			{
-				process_binding_action(touch_controller_bindings, name, type);
-			}
-			xr_instance.suggest_bindings("/interaction_profiles/oculus/touch_controller", touch_controller_bindings);
-		}
-		break;
-
-		case model::pico_neo_3: {
-			spdlog::info("Suggesting Pico Neo 3 bindings");
-			std::vector<XrActionSuggestedBinding> pico_neo_3_bindings;
-			for (const auto & [name, type]: pico_neo_3)
-			{
-				process_binding_action(pico_neo_3_bindings, name, type);
-			}
-			xr_instance.suggest_bindings("/interaction_profiles/bytedance/pico_neo3_controller", pico_neo_3_bindings);
-		}
-		break;
-
-		case model::pico_4: {
-			spdlog::info("Suggesting Pico 4 bindings");
-			std::vector<XrActionSuggestedBinding> pico_4_bindings;
-			for (const auto & [name, type]: pico_4)
-			{
-				process_binding_action(pico_4_bindings, name, type);
-			}
-			xr_instance.suggest_bindings("/interaction_profiles/bytedance/pico4_controller", pico_4_bindings);
-		}
-		break;
-
-		case model::unknown: {
-			spdlog::info("Suggesting Khronos simple controller bindings");
-			std::vector<XrActionSuggestedBinding> simple_controller_bindings;
-			for (const auto & [name, type]: simple_controller)
-			{
-				process_binding_action(simple_controller_bindings, name, type);
-			}
-			xr_instance.suggest_bindings("/interaction_profiles/khr/simple_controller", simple_controller_bindings);
-		}
-		break;
-	}
-
-	xr_session.attach_actionsets({xr_actionset});
+	initialize_actions();
 
 	interaction_profile_changed();
 }
 
-void application::process_binding_action(std::vector<XrActionSuggestedBinding> & bindings,
-                                         const char * name,
-                                         const XrActionType & type)
-{
-	std::string name_without_slashes = std::string(name).substr(1);
 
-	for (char & i: name_without_slashes)
-	{
-		if (i == '/')
-			i = '_';
-	}
-
-	auto a = xr_actionset.create_action(type, name_without_slashes);
-	actions.emplace_back(a, type, name);
-
-	if (type == XR_ACTION_TYPE_POSE_INPUT)
-	{
-		if (!strcmp(name, "/user/hand/left/input/grip/pose"))
-			left_grip_space = xr_session.create_action_space(a);
-		else if (!strcmp(name, "/user/hand/left/input/aim/pose"))
-			left_aim_space = xr_session.create_action_space(a);
-		else if (!strcmp(name, "/user/hand/right/input/grip/pose"))
-			right_grip_space = xr_session.create_action_space(a);
-		else if (!strcmp(name, "/user/hand/right/input/aim/pose"))
-			right_aim_space = xr_session.create_action_space(a);
-	}
-
-	bindings.push_back({a, xr_instance.string_to_path(name)});
-}
 
 std::pair<XrAction, XrActionType> application::get_action(const std::string & requested_name)
 {
@@ -903,33 +1058,56 @@ void application::interaction_profile_changed()
 {
 	spdlog::info("Interaction profile changed");
 
-	for (auto i: {"/user/hand/left", "/user/hand/right", "/user/head", "/user/gamepad"})
+	std::unordered_map<std::string, std::string> current_interaction_profile;
+
+	for (auto device: {"/user/hand/left", "/user/hand/right", "/user/head", "/user/gamepad"})
 	{
 		try
 		{
-			spdlog::info("Current interaction profile for {}: {}", i, xr_session.get_current_interaction_profile(i));
+			std::string current_profile = xr_session.get_current_interaction_profile(device);
+
+			spdlog::info("Current interaction profile for {}: {}", device, current_profile);
+
+			for(const auto& [profile, actions_name]: suggested_bindings)
+			{
+				if (profile != current_profile)
+					continue;
+
+				for(const std::string& action_name: actions_name)
+				{
+					if (!action_name.starts_with(device))
+						continue;
+
+					XrAction action = XR_NULL_HANDLE;
+
+					for(const auto&[i,j,k]:actions)
+					{
+						if (action_name == k)
+						{
+							action = i;
+							break;
+						}
+					}
+
+					if (!action)
+						continue;
+
+					auto sources = xr_session.localized_sources_for_action(action);
+					if (!sources.empty())
+					{
+						spdlog::info("    Sources for {}", action_name);
+						for (auto & k: sources)
+							spdlog::info("        {}", k);
+					}
+					else
+						spdlog::warn("    No source for {}", action_name);
+				}
+			}
 		}
 		catch (std::exception & e)
 		{
-			spdlog::warn("Cannot get current interaction profile for {}: {}", i, e.what());
+			spdlog::warn("Cannot get current interaction profile for {}: {}", device, e.what());
 			continue;
-		}
-	}
-
-	for (auto [i, j]: utils::zip(actions, oculus_touch))
-	{
-		auto sources = xr_session.localized_sources_for_action(std::get<XrAction>(i));
-		if (!sources.empty())
-		{
-			spdlog::info("    Sources for {}", j.first);
-			for (auto & k: sources)
-			{
-				spdlog::info("        {}", k);
-			}
-		}
-		else
-		{
-			spdlog::warn("    No source for {}", j.first);
 		}
 	}
 }
