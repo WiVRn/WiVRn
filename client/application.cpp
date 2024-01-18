@@ -904,10 +904,10 @@ void application::poll_actions()
 	instance().xr_session.sync_actions(instance().xr_actionset);
 }
 
-bool application::read_action(XrAction action, bool & value, XrTime & last_change_time)
+std::optional<std::pair<XrTime, bool>> application::read_action_bool(XrAction action)
 {
 	if (!is_focused())
-		return false;
+		return {};
 
 	XrActionStateGetInfo get_info{
 	        .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -918,17 +918,15 @@ bool application::read_action(XrAction action, bool & value, XrTime & last_chang
 	CHECK_XR(xrGetActionStateBoolean(instance().xr_session, &get_info, &state));
 
 	if (!state.isActive)
-		return false;
+		return {};
 
-	value = state.currentState;
-	last_change_time = state.lastChangeTime;
-	return true;
+	return std::make_pair(state.lastChangeTime, state.currentState);
 }
 
-bool application::read_action(XrAction action, float & value, XrTime & last_change_time)
+std::optional<std::pair<XrTime, float>> application::read_action_float(XrAction action)
 {
 	if (!is_focused())
-		return false;
+		return {};
 
 	XrActionStateGetInfo get_info{
 	        .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -939,17 +937,15 @@ bool application::read_action(XrAction action, float & value, XrTime & last_chan
 	CHECK_XR(xrGetActionStateFloat(instance().xr_session, &get_info, &state));
 
 	if (!state.isActive)
-		return false;
+		return {};
 
-	value = state.currentState;
-	last_change_time = state.lastChangeTime;
-	return true;
+	return std::make_pair(state.lastChangeTime, state.currentState);
 }
 
-bool application::read_action(XrAction action, XrVector2f & value, XrTime & last_change_time)
+std::optional<std::pair<XrTime, XrVector2f>> application::read_action_vec2(XrAction action)
 {
 	if (!is_focused())
-		return false;
+		return {};
 
 	XrActionStateGetInfo get_info{
 	        .type = XR_TYPE_ACTION_STATE_GET_INFO,
@@ -960,11 +956,9 @@ bool application::read_action(XrAction action, XrVector2f & value, XrTime & last
 	CHECK_XR(xrGetActionStateVector2f(instance().xr_session, &get_info, &state));
 
 	if (!state.isActive)
-		return false;
+		return {};
 
-	value = state.currentState;
-	last_change_time = state.lastChangeTime;
-	return true;
+	return std::make_pair(state.lastChangeTime, state.currentState);
 }
 
 void application::haptic_start(XrAction action, XrPath subpath, int64_t duration, float frequency, float amplitude)

@@ -174,9 +174,9 @@ public:
 	};
 
 	static void poll_actions();
-	static bool read_action(XrAction action, float & value, XrTime& last_change_time);
-	static bool read_action(XrAction action, bool & value, XrTime& last_change_time);
-	static bool read_action(XrAction action, XrVector2f & value, XrTime& last_change_time);
+	static std::optional<std::pair<XrTime, float>> read_action_float(XrAction action);
+	static std::optional<std::pair<XrTime, bool>> read_action_bool(XrAction action);
+	static std::optional<std::pair<XrTime, XrVector2f>> read_action_vec2(XrAction action);
 	static void haptic_start(XrAction action, XrPath subpath, int64_t duration, float frequency, float amplitude);
 	static void haptic_stop(XrAction action, XrPath subpath);
 

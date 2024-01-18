@@ -29,27 +29,26 @@ void scenes::stream::read_actions()
 	{
 		switch (action_type)
 		{
-			XrTime last_change_time;
 			case XR_ACTION_TYPE_BOOLEAN_INPUT: {
-				bool value;
-				if (application::read_action(action, value, last_change_time))
-					inputs.values.push_back({id, (float)value, (uint64_t)last_change_time});
+				auto value = application::read_action_bool(action);
+				if (value)
+					inputs.values.push_back({id, (float)value->second, (uint64_t)value->first});
 			}
 			break;
 
 			case XR_ACTION_TYPE_FLOAT_INPUT: {
-				float value;
-				if (application::read_action(action, value, last_change_time))
-					inputs.values.push_back({id, value, (uint64_t)last_change_time});
+				auto value = application::read_action_float(action);
+				if (value)
+					inputs.values.push_back({id, value->second, (uint64_t)value->first});
 			}
 			break;
 
 			case XR_ACTION_TYPE_VECTOR2F_INPUT: {
-				XrVector2f value;
-				if (application::read_action(action, value, last_change_time))
+				auto value = application::read_action_vec2(action);
+				if (value)
 				{
-					inputs.values.push_back({id, value.x, (uint64_t)last_change_time});
-					inputs.values.push_back({(device_id)((int)id + 1), value.y, (uint64_t)last_change_time});
+					inputs.values.push_back({id, value->second.x, (uint64_t)value->first});
+					inputs.values.push_back({(device_id)((int)id + 1), value->second.y, (uint64_t)value->first});
 				}
 			}
 			break;
