@@ -57,6 +57,26 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 	extensions.push_back(XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME);
 #endif
 
+#if defined(XR_USE_PLATFORM_ANDROID)
+	// OpenXR spec, XR_KHR_loader_init_android:
+	//     On Android, some loader implementations need the application to provide
+	//     additional information on initialization. This extension defines the
+	//     parameters needed by such implementations. If this is available on a
+	//     given implementation, an application must make use of it.
+
+	// This must be called before the instance is created
+	PFN_xrInitializeLoaderKHR initializeLoader = nullptr;
+	if (XR_SUCCEEDED(xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction*)(&initializeLoader))))
+	{
+		XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid = {
+			.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR,
+			.applicationVM = applicationVM,
+			.applicationContext = applicationActivity,
+		};
+		initializeLoader((const XrLoaderInitInfoBaseHeaderKHR*)&loaderInitInfoAndroid);
+        }
+#endif
+
 	std::vector<const char *> layers;
 	// TODO: runtime switch
 
