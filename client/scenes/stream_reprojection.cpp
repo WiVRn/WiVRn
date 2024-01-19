@@ -18,6 +18,7 @@
  */
 
 #include "stream_reprojection.h"
+#include "application.h"
 #include "vk/allocation.h"
 #include "vk/shader.h"
 #include "vk/pipeline.h"
@@ -305,7 +306,7 @@ stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::Phy
 		.subpass = 0,
 	};
 
-	pipeline = vk::raii::Pipeline(device, nullptr, pipeline_info);
+	pipeline = vk::raii::Pipeline(device, application::get_pipeline_cache(), pipeline_info);
 
 	// Create image views and framebuffers
 	output_image_views.reserve(output_images.size());

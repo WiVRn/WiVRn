@@ -18,6 +18,7 @@
 
 #include "render/scene_renderer.h"
 
+#include "application.h"
 #include "render/growable_descriptor_pool.h"
 #include "render/image_loader.h"
 #include "render/scene_data.h"
@@ -34,6 +35,7 @@
 #include <map>
 #include <memory>
 #include <spdlog/spdlog.h>
+#include "utils/fmt_glm.h"
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
@@ -378,7 +380,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	auto vertex_shader = load_shader(device, info.shader_name + ".vert");
 	auto fragment_shader = load_shader(device, info.shader_name + ".frag");
 
-	return vk::raii::Pipeline{device, nullptr, vk::pipeline_builder{
+	return vk::raii::Pipeline{device, application::get_pipeline_cache(), vk::pipeline_builder{
 	                                                   .Stages{
 	                                                           vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = *vertex_shader, .pName = "main"},
 	                                                           vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = *fragment_shader, .pName = "main"},

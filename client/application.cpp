@@ -25,6 +25,7 @@
 #include "spdlog/common.h"
 #include "spdlog/spdlog.h"
 #include "utils/check.h"
+#include "utils/files.h"
 #include "xr/xr.h"
 #include <algorithm>
 #include "utils/contains.h"
@@ -50,6 +51,8 @@
 #include <sys/system_properties.h>
 
 #include "jnipp.h"
+#else
+#include <signal.h>
 #endif
 
 using namespace std::chrono_literals;
@@ -253,6 +256,17 @@ static std::filesystem::path get_config_base_dir()
 	const char * home = std::getenv("HOME");
 	if (home)
 		return std::filesystem::path(home) / ".config";
+	return ".";
+}
+
+static std::filesystem::path get_cache_base_dir()
+{
+	const char * xdg_cache_home = std::getenv("XDG_CACHE_HOME");
+	if (xdg_cache_home)
+		return xdg_cache_home;
+	const char * home = std::getenv("HOME");
+	if (home)
+		return std::filesystem::path(home) / ".cache";
 	return ".";
 }
 #endif
@@ -490,10 +504,23 @@ void application::initialize_vulkan()
 		}
 	};
 
-
 	vk_device = xr_system_id.create_device(vk_physical_device, device_create_info.get());
 
 	vk_queue = vk_device.getQueue(vk_queue_family_index, 0);
+
+	vk::PipelineCacheCreateInfo pipeline_cache_info;
+	std::vector<std::byte> pipeline_cache_bytes;
+
+	try {
+		// TODO Robust pipeline cache serialization
+		// https://zeux.io/2019/07/17/serializing-pipeline-cache/
+		pipeline_cache_bytes = utils::read_whole_file<std::byte>(cache_path / "pipeline_cache");
+
+		pipeline_cache_info.setInitialData<std::byte>(pipeline_cache_bytes);
+	} catch (...) {
+	}
+
+	pipeline_cache = vk::raii::PipelineCache(vk_device, pipeline_cache_info);
 
 	VmaAllocatorCreateInfo info{
 		.physicalDevice = *vk_physical_device,
@@ -677,8 +704,6 @@ void application::initialize()
 
 	spdlog::info("Using format {}", vk::to_string(swapchain_format));
 
-	// XrViewConfigurationProperties view_props = xr_system_id.view_configuration_properties(viewconfig);
-
 	auto views = xr_system_id.view_configuration_views(app_info.viewconfig);
 
 	xr_swapchains.reserve(views.size());
@@ -744,6 +769,7 @@ application::application(application_info info) :
 		if (auto files_dir_path = files_dir.call<jni::string>("getAbsolutePath"))
 		{
 			config_path = files_dir_path;
+			cache_path = files_dir_path;
 		}
 	}
 
@@ -789,29 +815,15 @@ application::application(application_info info) :
 		initializeLoader((const XrLoaderInitInfoBaseHeaderKHR *)&loaderInitInfoAndroid);
 	}
 
-
-	{
-		spdlog::info("trying stuff");
-		AAssetDir * dir = AAssetManager_openDir(asset_manager(), "");
-		const char * filename;
-		while((filename = AAssetDir_getNextFileName(dir)) != nullptr)
-		{
-			spdlog::info("Found asset file: {}", filename);
-		}
-
-		dir = AAssetManager_openDir(asset_manager(), "assets");
-		while((filename = AAssetDir_getNextFileName(dir)) != nullptr)
-		{
-			spdlog::info("Found asset file: assets/{}", filename);
-		}
-	};
-
 #else
 	config_path = get_config_base_dir() / "wivrn";
+	cache_path = get_cache_base_dir() / "wivrn";
 #endif
 
 	std::filesystem::create_directories(config_path);
+	std::filesystem::create_directories(cache_path);
 	spdlog::info("Config path: {}", config_path.native());
+	spdlog::info("Cache path: {}", cache_path.native());
 
 	try
 	{
@@ -884,6 +896,9 @@ void application::cleanup()
 
 application::~application()
 {
+	auto pipeline_cache_bytes = pipeline_cache.getData();
+	utils::write_whole_file(cache_path / "pipeline_cache", pipeline_cache_bytes);
+
 	cleanup();
 }
 
@@ -972,6 +987,12 @@ void application::run()
 #else
 void application::run()
 {
+	struct sigaction act{};
+	act.sa_handler = [](int){
+		instance().exit_requested = true;
+	};
+	sigaction(SIGINT, &act, nullptr);
+
 	while (!is_exit_requested())
 	{
 		loop();

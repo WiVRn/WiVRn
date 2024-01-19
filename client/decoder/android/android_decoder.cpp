@@ -232,7 +232,7 @@ struct wivrn::android::decoder::pipeline_context
 			.subpass = 0,
 		};
 
-		pipeline = vk::raii::Pipeline(device, nullptr, pipeline_info);
+		pipeline = vk::raii::Pipeline(device, application::get_pipeline_cache(), pipeline_info);
 	}
 };
 

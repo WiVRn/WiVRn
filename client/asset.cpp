@@ -19,6 +19,7 @@
 
 #include "asset.h"
 #include "application.h"
+#include "utils/files.h"
 #include <filesystem>
 #include <fstream>
 #include <spdlog/spdlog.h>
@@ -84,15 +85,7 @@ asset::asset(const std::filesystem::path& path)
 
 	spdlog::debug("Loading file asset {}", path.string());
 
-	std::ifstream file(asset_root() / path, std::ios::binary | std::ios::ate);
-	file.exceptions(std::ios_base::badbit | std::ios_base::failbit);
-
-	size_t size = file.tellg();
-	file.seekg(0);
-
-	bytes.resize(size);
-
-	file.read(reinterpret_cast<char *>(bytes.data()), size);
+	bytes = utils::read_whole_file<std::byte>(asset_root() / path);
 }
 
 #endif

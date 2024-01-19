@@ -88,6 +88,7 @@ class application : public singleton<application>
 	vk::raii::Queue vk_queue = nullptr;
 	vk::raii::CommandPool vk_cmdpool = nullptr;
 	vk::Format swapchain_format;
+	vk::raii::PipelineCache pipeline_cache = nullptr;
 
 	// OpenXR stuff
 	void initialize_actions();
@@ -118,6 +119,7 @@ class application : public singleton<application>
 	std::vector<std::string> xr_extensions;
 	std::atomic<bool> exit_requested = false;
 	std::filesystem::path config_path;
+	std::filesystem::path cache_path;
 
 	std::string server_address;
 
@@ -304,5 +306,10 @@ public:
 	static vk::raii::Device& get_device()
 	{
 		return instance().vk_device;
+	}
+
+	static vk::raii::PipelineCache& get_pipeline_cache()
+	{
+			return instance().pipeline_cache;
 	}
 };
