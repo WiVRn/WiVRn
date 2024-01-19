@@ -36,24 +36,10 @@ scene::scene() :
 	device(application::instance().vk_device),
 	physical_device(application::instance().vk_physical_device),
 	queue(application::instance().vk_queue),
-	commandpool(application::instance().vk_cmdpool)
+	commandpool(application::instance().vk_cmdpool),
+	queue_family_index(application::instance().vk_queue_family_index)
 {
 }
 
 void scene::on_unfocused() {}
 void scene::on_focused() {}
-
-vk::raii::Fence scene::create_fence(bool signaled)
-{
-	vk::FenceCreateFlags flags{0};
-
-	if (signaled)
-		flags = vk::FenceCreateFlagBits::eSignaled;
-
-	return vk::raii::Fence(device, vk::FenceCreateInfo{.flags = flags});
-}
-
-vk::raii::Semaphore scene::create_semaphore()
-{
-	return vk::raii::Semaphore(device, {});
-}

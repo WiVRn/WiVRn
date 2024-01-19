@@ -112,7 +112,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		.commandPool = *self->commandpool,
 		.level = vk::CommandBufferLevel::ePrimary,
 		.commandBufferCount = 1})[0]);
-	self->fence = self->create_fence(false);
+	self->fence = self->device.createFence({});
 
 	// Look up the XrActions for haptics
 	self->haptics_actions[0].first = application::get_action("/user/hand/left/output/haptic").first;

@@ -38,9 +38,7 @@ protected:
 	vk::raii::PhysicalDevice& physical_device;
 	vk::raii::Queue& queue;
 	vk::raii::CommandPool& commandpool;
-
-	vk::raii::Fence create_fence(bool signaled = true);
-	vk::raii::Semaphore create_semaphore();
+	uint32_t queue_family_index;
 
 public:
 	scene();
