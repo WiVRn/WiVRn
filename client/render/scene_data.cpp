@@ -557,7 +557,10 @@ public:
 
 			if (gltf_texture.imageIndex)
 			{
-				texture_ref.image_ = images.at(*gltf_texture.imageIndex);
+				std::shared_ptr<scene_data::image> image = images.at(*gltf_texture.imageIndex);
+
+				// Use the aliasing constructor so that the image_view has the same lifetime as the image
+				texture_ref.image_view = std::shared_ptr<vk::raii::ImageView>(image, &image->image_view);
 			}
 			// else if (gltf_texture.basisuImageIndex)
 			// {

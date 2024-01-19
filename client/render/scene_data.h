@@ -65,7 +65,7 @@ struct scene_data
 
 	struct texture
 	{
-		std::shared_ptr<image> image_{};
+		std::shared_ptr<vk::raii::ImageView> image_view;
 		sampler_info sampler;
 	};
 
@@ -108,6 +108,7 @@ struct scene_data
 		std::shared_ptr<buffer_allocation> buffer;
 		size_t offset;
 
+		// The descriptor set is managed by the scene renderer, it is updated whenever ds_dirty is true
 		// Bindings 0-4: textures
 		// Binding 5: uniform buffer
 		std::shared_ptr<vk::raii::DescriptorSet> ds;

@@ -97,10 +97,12 @@ std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::
 
 	image_loader loader(device, cb, pixel2, vk::Extent3D{1, 1, 1}, format);
 
-	auto base_color_image = std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
+	auto image = std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
+
+	std::shared_ptr<vk::raii::ImageView> image_view(image, &image->image_view);
 
 	staging_buffers.push_back(std::move(loader.staging_buffer));
-	return std::make_shared<scene_data::texture>(base_color_image, sampler_info{});
+	return std::make_shared<scene_data::texture>(image_view, sampler_info{});
 }
 
 std::shared_ptr<scene_data::material> scene_renderer::create_default_material(vk::raii::CommandPool & cb_pool)
@@ -478,7 +480,7 @@ void scene_renderer::update_material_descriptor_set(scene_data::material& materi
 	auto f = [&](std::shared_ptr<scene_data::texture>& texture){
 		return vk::DescriptorImageInfo{
 			.sampler = get_sampler(texture->sampler),
-			.imageView = *texture->image_->image_view,
+			.imageView = **texture->image_view,
 			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 	};
