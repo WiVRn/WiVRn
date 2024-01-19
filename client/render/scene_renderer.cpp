@@ -36,6 +36,7 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include "utils/fmt_glm.h"
+#include <vk_mem_alloc.h>
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
@@ -135,6 +136,19 @@ std::shared_ptr<scene_data::material> scene_renderer::create_default_material(vk
 	queue.submit(info, *fence);
 
 	device.waitForFences(*fence, true, 1'000'000'000); // TODO check for timeout
+
+	default_material->buffer = std::make_shared<buffer_allocation>(
+		vk::BufferCreateInfo{
+			.size = sizeof(default_material->staging),
+			.usage = vk::BufferUsageFlagBits::eUniformBuffer
+		},
+		VmaAllocationCreateInfo{
+			.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+			.usage = VMA_MEMORY_USAGE_AUTO
+		}
+	);
+	memcpy(default_material->buffer->map(), &default_material->staging, sizeof(default_material->staging));
+	default_material->buffer->unmap();
 
 	return default_material;
 }
