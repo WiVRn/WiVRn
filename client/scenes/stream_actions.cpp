@@ -23,7 +23,6 @@
 void scenes::stream::read_actions()
 {
 	from_headset::inputs inputs;
-	application::poll_actions();
 
 	for (const auto & [id, action, action_type]: input_actions)
 	{

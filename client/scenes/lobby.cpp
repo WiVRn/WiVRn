@@ -260,9 +260,6 @@ void scenes::lobby::render()
 	auto [flags, views] = session.locate_views(viewconfig, framestate.predictedDisplayTime, world_space);
 	assert(views.size() == swapchains.size());
 
-
-
-	application::poll_actions();
 	input->apply(world_space, framestate.predictedDisplayTime);
 
 
