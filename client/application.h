@@ -293,6 +293,11 @@ public:
 		return instance().vk_queue_family_index;
 	}
 
+	static vk::raii::Queue& get_queue()
+	{
+			return instance().vk_queue;
+	}
+
 	const std::string& get_server_address() const
 	{
 		return server_address;
@@ -303,9 +308,19 @@ public:
 		return instance().allocator;
 	}
 
+	static vk::raii::PhysicalDevice& get_physical_device()
+	{
+		return instance().vk_physical_device;
+	}
+
 	static vk::raii::Device& get_device()
 	{
 		return instance().vk_device;
+	}
+
+	static vk::raii::Instance& get_vulkan_instance()
+	{
+			return instance().vk_instance;
 	}
 
 	static vk::raii::PipelineCache& get_pipeline_cache()
