@@ -108,6 +108,7 @@ std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::
 std::shared_ptr<scene_data::material> scene_renderer::create_default_material(vk::raii::CommandPool & cb_pool)
 {
 	auto default_material = std::make_shared<scene_data::material>();
+	default_material->name = "default";
 
 	auto cb = std::move(device.allocateCommandBuffers(vk::CommandBufferAllocateInfo{
 	        .commandPool = *cb_pool,

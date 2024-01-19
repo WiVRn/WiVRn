@@ -955,3 +955,17 @@ scene_object_handle scene_data::find_node(scene_object_handle root, std::string_
 	// TODO custom exception
 	throw std::runtime_error("Node " + std::string(name) + " not found");
 }
+
+std::shared_ptr<scene_data::material> scene_data::find_material(std::string_view name)
+{
+	for(auto& mesh:meshes)
+	{
+		for(auto& primitive: mesh.primitives)
+		{
+			if (primitive.material_ && primitive.material_->name == name)
+				return primitive.material_;
+		}
+	}
+
+	return {};
+}

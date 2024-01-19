@@ -115,6 +115,8 @@ struct scene_data
 
 		// Set to true to update the descriptor set at the next frame
 		bool ds_dirty;
+
+		std::string name;
 	};
 
 	struct vertex
@@ -197,6 +199,8 @@ struct scene_data
 	scene_object_handle new_node();
 	scene_object_handle find_node(std::string_view name);
 	scene_object_handle find_node(scene_object_handle parent, std::string_view name);
+
+	std::shared_ptr<material> find_material(std::string_view name);
 };
 
 class scene_loader
