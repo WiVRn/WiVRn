@@ -148,10 +148,10 @@ public:
 		vk::raii::CommandBuffer cb = nullptr;
 		std::vector<std::shared_ptr<void>> resources;
 
-
                 // Uniform buffer for per-view and per-instance data
 	        // host visible, host coherent
    	        buffer_allocation staging_buffer;
+
 	        // device local
 	        // buffer_allocation uniform_buffer;
 	};
@@ -181,4 +181,6 @@ public:
 	{
 		return default_material;
 	}
+
+	void wait_idle();
 };

@@ -125,7 +125,7 @@ class application : public singleton<application>
 
 	std::mutex scene_stack_lock;
 	std::vector<std::shared_ptr<scene>> scene_stack;
-	std::shared_ptr<scene> last_scene;
+	std::weak_ptr<scene> last_scene;
 
 	void loop();
 

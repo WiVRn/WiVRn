@@ -881,15 +881,16 @@ void application::set_wifi_locks(bool enabled)
 
 void application::cleanup()
 {
+	// Remove all scenes before destroying the allocator
+	scene_stack.clear();
+
 	if (allocator)
 	{
-		// vmaDestroyAllocator(allocator);
-		// allocator = nullptr;
+		vmaDestroyAllocator(allocator);
+		allocator = nullptr;
 	}
 
 #ifdef __ANDROID__
-
-
 	jni::jni_thread::detach();
 #endif
 }
@@ -918,10 +919,10 @@ void application::loop()
 		auto scene = current_scene();
 		if (scene)
 		{
-			if (scene != last_scene)
+			if (auto tmp = last_scene.lock(); scene != tmp)
 			{
-				if (last_scene)
-					last_scene->on_unfocused();
+				if (tmp)
+					tmp->on_unfocused();
 
 				scene->on_focused();
 

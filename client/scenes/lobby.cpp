@@ -38,7 +38,11 @@
 
 static const std::string discover_service = "_wivrn._tcp.local.";
 
-scenes::lobby::~lobby() {}
+scenes::lobby::~lobby()
+{
+	if (renderer)
+		renderer->wait_idle();
+}
 
 static std::string choose_webxr_profile()
 {

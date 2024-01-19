@@ -216,12 +216,18 @@ scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevi
 
 scene_renderer::~scene_renderer()
 {
-	std::vector<vk::Fence> fences;
-	for (auto & i: frame_resources)
-		fences.push_back(*i.fence);
+	wait_idle();
+}
+
+void scene_renderer::wait_idle()
+{
+	std::vector<vk::Fence> fences(frame_resources.size());
+	for(auto&& [i, f]: utils::enumerate(frame_resources))
+		fences[i] = *f.fence;
 
 	device.waitForFences(fences, true, 1'000'000'000); // TODO check for timeout
 }
+
 
 vk::raii::RenderPass scene_renderer::create_renderpass()
 {
