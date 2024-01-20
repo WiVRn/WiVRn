@@ -130,7 +130,7 @@ FetchContent_Declare(libktx        URL https://github.com/KhronosGroup/KTX-Softw
 # Server dependencies
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
-    GIT_TAG          79bf8eb8fa168f65f4e5505e0525ee74aa88783e
+    GIT_TAG          428c511924d81854c445544972567507f748f5b8
     )
 
 FetchContent_Declare(imgui

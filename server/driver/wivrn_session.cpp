@@ -59,7 +59,7 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	static bool create_target(const struct comp_target_factory * ctf, struct comp_compositor * c, struct comp_target ** out_ct)
 	{
 		auto self = (wivrn_comp_target_factory *)ctf;
-		self->session->comp_target = new wivrn_comp_target(self->session, c, self->fps);;
+		self->session->comp_target = new wivrn_comp_target(self->session, c, self->fps);
 		*out_ct = self->session->comp_target;
 		return true;
 	}
@@ -143,6 +143,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	        self->right_hand.get(),
 	        devices->xdevs,
 	        devices->xdev_count,
+	        false,
 	        out_xspovrs);
 
 	devices->destroy = [](xrt_system_devices * xsd) {
@@ -279,7 +280,7 @@ std::array<to_headset::video_stream_description::foveation_parameter, 2> wivrn_s
 	return hmd->get_foveation_parameters();
 }
 
-void wivrn_session::dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream, const char* extra)
+void wivrn_session::dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream, const char * extra)
 {
 	if (feedback_csv)
 	{
