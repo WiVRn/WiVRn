@@ -90,9 +90,15 @@ scenes::lobby::lobby() :
 
 	teapot.import(loader("lobby.gltf"));
 
+	teapot.import(loader("imgui.gltf"));
+	imgui_material = teapot.find_material("imgui");
+	assert(imgui_material);
+
 	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, teapot);
 
 	spdlog::info("Loaded input profile {}", input->id);
+
+	imgui_ctx.emplace(device, queue_family_index, queue);
 }
 
 void scenes::lobby::rasterize_status_string()
@@ -262,6 +268,52 @@ void scenes::lobby::render()
 
 	input->apply(world_space, framestate.predictedDisplayTime);
 
+	std::array<imgui_inputs, 2> inputs;
+
+	if (auto location = application::locate_controller(application::left_aim(), world_space, framestate.predictedDisplayTime); location)
+	{
+		inputs[0].active = true;
+		inputs[0].controller_position = location->first;
+		inputs[0].controller_orientation = location->second;
+
+		auto act = application::get_action("/user/hand/left/select/trigger/value").first;
+		if (act)
+			inputs[0].trigger = application::read_action_bool(application::get_action("/user/hand/left/select/trigger/value").first).value_or(std::make_pair(0, 0)).second;
+
+		// inputs[0].trigger = application::read_action_float(application::get_action("/user/hand/left/input/trigger/value").first).value_or(std::make_pair(0, 0)).second;
+		// inputs[0].squeeze = application::read_action_float(application::get_action("/user/hand/left/input/squeeze/value").first).value_or(std::make_pair(0, 0)).second;
+		inputs[0].scroll = glm::vec2(0,0);
+	}
+	else
+	{
+		inputs[0].active = false;
+	}
+
+	if (auto location = application::locate_controller(application::right_aim(), world_space, framestate.predictedDisplayTime); location)
+	{
+		inputs[1].active = true;
+		inputs[1].controller_position = location->first;
+		inputs[1].controller_orientation = location->second;
+
+		auto act = application::get_action("/user/hand/right/select/trigger/value").first;
+		if (act)
+			inputs[1].trigger = application::read_action_bool(act).value_or(std::make_pair(0, 0)).second;
+
+		// inputs[1].trigger = application::read_action_float(application::get_action("/user/hand/right/input/trigger/value").first).value_or(std::make_pair(0, 0)).second;
+		// inputs[1].squeeze = application::read_action_float(application::get_action("/user/hand/right/input/squeeze/value").first).value_or(std::make_pair(0, 0)).second;
+		inputs[1].scroll = glm::vec2(1,1);
+	}
+	else
+	{
+		inputs[1].active = false;
+	}
+
+	imgui_ctx->new_frame(inputs);
+	ImGui::ShowDemoWindow();
+
+	// Render the GUI to the imgui material
+	imgui_material->base_color_texture->image_view = imgui_ctx->render();
+	imgui_material->ds_dirty = true;
 
 	std::vector<XrCompositionLayerProjectionView> layer_view;
 	std::vector<scene_renderer::frame_info> frames;

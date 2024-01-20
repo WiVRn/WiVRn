@@ -603,8 +603,12 @@ public:
 		materials.reserve(gltf.materials.size());
 		for (const fastgltf::Material & gltf_material: gltf.materials)
 		{
-			// Copy the default material
+			// Copy the default material, without references to its buffer or descriptor set
 			auto & material_ref = *materials.emplace_back(std::make_shared<scene_data::material>(default_material));
+			material_ref.name = gltf_material.name;
+			spdlog::info("Loading material \"{}\"", material_ref.name);
+			material_ref.buffer.reset();
+			material_ref.ds.reset();
 
 			scene_data::material::gpu_data & material_data = material_ref.staging;
 

@@ -279,35 +279,6 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 	}
 }
 
-static std::optional<std::pair<glm::vec3, glm::quat>> locate_controller(XrSpace space, XrSpace reference, XrTime time)
-{
-	XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION};
-
-	assert(space != XR_NULL_HANDLE);
-	assert(reference != XR_NULL_HANDLE);
-
-	xrLocateSpace(space, reference, time, &location);
-
-	auto req_flags = XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT;
-	if ((location.locationFlags & req_flags) != req_flags)
-		return {};
-
-	glm::vec3 position{
-	        location.pose.position.x,
-	        location.pose.position.y,
-	        location.pose.position.z,
-	};
-
-	glm::quat orientation{
-	        location.pose.orientation.w,
-	        location.pose.orientation.x,
-	        location.pose.orientation.y,
-	        location.pose.orientation.z,
-	};
-
-	return std::make_pair(position, orientation);
-}
-
 void apply_visual_response(scene_object_handle node, std::pair<input_profile::node_state_transform, input_profile::node_state_transform> transforms, float value)
 {
 	node->translation = glm::mix(transforms.first.position, transforms.second.position, value);
@@ -323,7 +294,7 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time)
 {
 	for (auto && [space, node]: model_handles)
 	{
-		if (auto location = locate_controller(space, world_space, predicted_display_time); location)
+		if (auto location = application::locate_controller(space, world_space, predicted_display_time); location)
 		{
 			node->visible = true;
 			node->translation = location->first;

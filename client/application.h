@@ -35,6 +35,8 @@
 #include <openxr/openxr_reflection.h>
 #include "vk_mem_alloc.h"
 #include "singleton.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 class scene;
 
@@ -194,6 +196,35 @@ public:
 		return instance().actions;
 	}
 	static std::pair<XrAction, XrActionType> get_action(const std::string & name);
+
+	static std::optional<std::pair<glm::vec3, glm::quat>> locate_controller(XrSpace space, XrSpace reference, XrTime time)
+	{
+		XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION};
+
+		assert(space != XR_NULL_HANDLE);
+		assert(reference != XR_NULL_HANDLE);
+
+		xrLocateSpace(space, reference, time, &location);
+
+		auto req_flags = XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT;
+		if ((location.locationFlags & req_flags) != req_flags)
+			return {};
+
+		glm::vec3 position{
+			location.pose.position.x,
+			location.pose.position.y,
+			location.pose.position.z,
+		};
+
+		glm::quat orientation{
+			location.pose.orientation.w,
+			location.pose.orientation.x,
+			location.pose.orientation.y,
+			location.pose.orientation.z,
+		};
+
+		return std::make_pair(position, orientation);
+	}
 
 	static XrPath string_to_path(const std::string & s)
 	{

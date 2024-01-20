@@ -262,4 +262,25 @@ public:
 		assert(id < scene->scene_objects.size());
 		return &scene->scene_objects[id];
 	}
+
+	scene_object_handle parent()
+	{
+		assert(scene != nullptr);
+		assert(id < scene->scene_objects.size());
+
+		return {scene->scene_objects[id].parent_id, scene};
+	}
+
+	const scene_object_handle parent() const
+	{
+		assert(scene != nullptr);
+		assert(id < scene->scene_objects.size());
+
+		return {scene->scene_objects[id].parent_id, scene};
+	}
+
+	operator bool() const
+	{
+		return id != scene_data::scene_object::root_id;
+	}
 };

@@ -9,10 +9,17 @@ add_library(imgui OBJECT
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
 )
 
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+target_compile_definitions(imgui PUBLIC IMGUI_USE_WCHAR32)
+target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
+target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+# target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
+target_link_libraries(imgui PUBLIC FreetypeHarfbuzz)
 
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
@@ -76,8 +83,8 @@ else()
 
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_INSTALL_DATADIR}/wivrn)
 
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/share)
-    file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/share/assets SYMBOLIC)
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/share/wivrn)
+    file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
 endif()
 
 if(ANDROID OR Vulkan_VERSION VERSION_LESS 1.3.268)
@@ -102,6 +109,7 @@ endif()
 target_compile_features(wivrn PRIVATE cxx_std_20)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
 target_compile_definitions(wivrn PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS VMA_VULKAN_VERSION=1001000)
+
 set_target_properties(wivrn PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS

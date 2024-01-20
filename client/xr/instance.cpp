@@ -19,7 +19,6 @@
 
 #include "instance.h"
 
-#include "spdlog/fmt/fmt.h"
 #include "xr.h"
 #include "xr/details/enumerate.h"
 #include <cassert>

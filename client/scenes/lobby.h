@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "render/scene_data.h"
 #include "scene.h"
 #include <vulkan/vulkan_raii.hpp>
 #include "wivrn_discover.h"
@@ -27,6 +28,7 @@
 
 #include "render/scene_renderer.h"
 #include "render/text_rasterizer.h"
+#include "render/imgui_impl.h"
 #include "input_profile.h"
 
 namespace scenes
@@ -45,34 +47,17 @@ class lobby : public scene
 	vk::DescriptorSet status_string_image_descriptor_set;
 	text_rasterizer status_string_rasterizer;
 
-	// vk::raii::RenderPass renderpass = nullptr;
-	// vk::raii::PipelineLayout layout = nullptr;
-	// vk::raii::Pipeline pipeline = nullptr;
-
-	// vk::raii::Fence fence = nullptr;
-	// vk::raii::CommandBuffer command_buffer = nullptr;
-
-	// struct image_data
-	// {
-		// vk::raii::Framebuffer framebuffer;
-		// vk::raii::Semaphore render_finished;
-	// };
-
-	// std::vector<std::vector<image_data>> images_data;
-
 	std::optional<wivrn_discover> discover;
 
-	// std::vector<vk::DeviceMemory> model_memory;
-	// std::vector<vk::Buffer> model_buffers;
-	// std::vector<vk::Image> model_images;
-
-	// void load_model(const std::string & filename);
 
 	std::shared_ptr<stream> next_scene;
 
 	std::optional<scene_renderer> renderer;
-	scene_data teapot;
+	scene_data teapot; // Must be after the renderer so that the descriptor sets are freed before their pools
 	std::optional<input_profile> input;
+
+	std::optional<imgui_context> imgui_ctx;
+	std::shared_ptr<scene_data::material> imgui_material;
 
 	void rasterize_status_string();
 

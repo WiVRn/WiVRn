@@ -82,6 +82,23 @@ struct fmt::formatter<glm::vec<L, T, Q>, Char> //: fmt::formatter<T>
 };
 
 
+template<typename T, glm::qualifier Q, typename Char>
+struct fmt::formatter<glm::qua<T, Q>, Char>
+{
+
+	auto parse(basic_format_parse_context<Char>& ctx) const // -> decltype(ctx.begin())
+	{
+		return ctx.begin();
+	}
+
+	template <typename FormatContext>
+	auto format(const glm::qua<T, Q>& q, FormatContext& ctx) const -> decltype(ctx.out())
+	{
+		return fmt::format_to(ctx.out(), "[ {}, {}, {}, {} ]", q.w, q.x, q.y, q.z);
+	}
+
+};
+
 /*
 template<glm::length_t C, glm::length_t R, typename T, glm::qualifier Q>
 struct fmt::formatter<glm::mat<C, R, T, Q>> : fmt::formatter<std::string>
