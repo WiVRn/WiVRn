@@ -90,7 +90,11 @@ auto enumerate(F f, Args &&... args) -> auto
 
 	if (XR_SUCCEEDED(result))
 	{
-		if constexpr (structure_type<T> == XR_TYPE_UNKNOWN)
+		if constexpr (std::is_same_v<T, char>)
+		{
+			array.resize(count - 1); // count includes the null terminator
+		}
+		else if constexpr (structure_type<T> == XR_TYPE_UNKNOWN)
 		{
 			array.resize(count);
 		}
