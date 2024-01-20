@@ -358,4 +358,15 @@ public:
 	{
 			return instance().pipeline_cache;
 	}
+
+	static const std::filesystem::path& get_config_path()
+	{
+		return instance().config_path;
+	}
+
+
+	static const std::filesystem::path& get_cache_path()
+	{
+		return instance().cache_path;
+	}
 };

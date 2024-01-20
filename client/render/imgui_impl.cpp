@@ -20,6 +20,7 @@
 #include "imgui_impl.h"
 
 #include "application.h"
+#include "openxr/openxr.h"
 #include "utils/ranges.h"
 #include "vulkan/vulkan_enums.hpp"
 #include "vulkan/vulkan_handles.hpp"
@@ -28,6 +29,7 @@
 #include "vk/allocation.h"
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <glm/gtc/matrix_access.hpp>
 
 /* Do not use:
  *
@@ -93,36 +95,46 @@ static void check_vk_result(VkResult result)
 	}
 }
 
-static std::optional<glm::vec2> ray_plane_intersection(glm::vec3 plane_center, glm::quat plane_orientation, std::pair<glm::vec3, glm::vec3> ray)
+static std::optional<ImVec2> ray_plane_intersection(const imgui_context::imgui_viewport& vp, const imgui_context::controller_state& in)
 {
-	auto M = glm::transpose(glm::mat3_cast(plane_orientation)); // world-to-plane transform
+	if (!in.active)
+		return {};
 
-	glm::vec3 ray_start = M * (ray.first - plane_center);
-	glm::vec3 ray_dir = M * ray.second;
+	auto M = glm::transpose(glm::mat3_cast(vp.orientation)); // world-to-plane transform
 
-	// spdlog::debug("ray_start = {}, {}, {}", ray_start.x, ray_start.y, ray_start.z);
-	// spdlog::debug("ray_dir = {}, {}, {}", ray_dir.x, ray_dir.y, ray_dir.z);
+	glm::vec3 controller_direction = glm::column(glm::mat3_cast(in.aim_orientation), 2);
 
-	if (ray_dir.z < 0.0001f)
+	// Compute all vectors in the reference frame of the GUI plane
+	glm::vec3 ray_start = M * (in.aim_position - vp.position);
+	glm::vec3 ray_dir = M * controller_direction;
+
+	if (ray_dir.z > 0.0001f)
 	{
 		glm::vec2 coord;
 
-		coord.x = ray_start.x + ray_dir.x * ray_start.z / ray_dir.z;
-		coord.y = ray_start.y + ray_dir.y * ray_start.z / ray_dir.z;
+		// ray_start + lambda × ray_dir ∈ imgui plane
+		// => ray_start.z + lambda × ray_dir.z = 0
+		float lambda = -ray_start.z / ray_dir.z;
 
-		if (fabs(coord.x) <= 0.5 && fabs(coord.y) <= 0.5)
-			return coord;
+		if (lambda < 0)
+		{
+			coord.x = ray_start.x + lambda * ray_dir.x;
+			coord.y = ray_start.y + lambda * ray_dir.y;
+
+			// Convert from mesh coordinates to imgui coordinates
+			coord = coord / vp.scale;
+
+			if (fabs(coord.x) <= 0.5 && fabs(coord.y) <= 0.5)
+				return ImVec2(
+					(0.5 + coord.x) * vp.size.width,
+					(0.5 - coord.y) * vp.size.height);
+		}
 	}
 
 	return {};
 }
 
-static std::pair<glm::vec3, glm::vec3> compute_ray(glm::vec3 controller_position, glm::quat controller_orientation)
-{
-	return std::make_pair(controller_position, glm::transpose(glm::mat3_cast(controller_orientation)) * glm::vec3(0, 0, -1));
-}
-
-imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii::CommandPool& command_pool, vk::RenderPass renderpass, vk::Extent2D size, vk::Format format) :
+imgui_context::imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii::CommandPool& command_pool, vk::RenderPass renderpass, vk::Extent2D size, vk::Format format) :
 	device(device),
 	size(size)
 {
@@ -182,7 +194,7 @@ imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii::CommandPool& 
 	}
 }
 
-imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue) :
+imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_) :
 	device(device),
 	queue_family_index(queue_family_index),
 	queue(queue),
@@ -199,11 +211,17 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.queueFamilyIndex = queue_family_index,
 	}),
 	context(ImGui::CreateContext()),
-	io(ImGui::GetIO())
+	io(ImGui::GetIO()),
+	world(world)
 {
+	controllers.reserve(controllers_.size());
+	for(const auto& i:controllers_)
+		controllers.emplace_back(i, controller_state{});
+
 	viewport = std::make_shared<imgui_viewport>(device, command_pool, *renderpass, vk::Extent2D{1000, 1000}, vk::Format::eR8G8B8A8Unorm);
 
-	// See example_sdl2_vulkan/main.cpp
+	ini_filename = application::get_config_path() / "imgui.ini";
+	io.IniFilename = ini_filename.c_str();
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -247,52 +265,132 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 
 }
 
-void imgui_context::new_frame(std::span<imgui_inputs> inputs)
+static float read_action_bool_or_float(imgui_context::controller::typed_action action)
 {
-	// Poll and handle events (inputs, window resize, etc.)
-	// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-	// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-	// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-	// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-	// SDL_Event event;
-	// while (SDL_PollEvent(&event))
-	// {
-	// 	ImGui_ImplSDL2_ProcessEvent(&event);
-	// 	if (event.type == SDL_QUIT)
-	// 		done = true;
-	// 	if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
-	// 		done = true;
-	// }
- //
-	// // Resize swap chain?
-	// if (g_SwapChainRebuild)
-	// {
-	// 	int width, height;
-	// 	SDL_GetWindowSize(window, &width, &height);
-	// 	if (width > 0 && height > 0)
-	// 	{
-	// 		ImGui_ImplVulkan_SetMinImageCount(g_MinImageCount);
-	// 		ImGui_ImplVulkanH_CreateOrResizeWindow(g_Instance, g_PhysicalDevice, g_Device, &g_MainWindowData, g_QueueFamily, g_Allocator, width, height, g_MinImageCount);
-	// 		g_MainWindowData.FrameIndex = 0;
-	// 		g_SwapChainRebuild = false;
-	// 	}
-	// }
+	assert(action.second == XR_ACTION_TYPE_BOOLEAN_INPUT || action.second == XR_ACTION_TYPE_FLOAT_INPUT);
 
-	// Compute the intersection of the controllers' ray and the imgui plane
-	std::vector<glm::vec2> ray_pos;
-	for(auto& i: inputs)
+	float value = 0;
+	switch(action.second)
 	{
-		if (!i.active)
-			continue;
+		case XR_ACTION_TYPE_BOOLEAN_INPUT:
+			if (auto act = application::read_action_bool(action.first); act)
+				value = act->second;
+			break;
 
-		auto& vp = *viewport;
+		case XR_ACTION_TYPE_FLOAT_INPUT:
+			if (auto act = application::read_action_float(action.first); act)
+				value = act->second;
+			break;
 
-		std::pair<glm::vec3, glm::vec3> ray = compute_ray(i.controller_position, i.controller_orientation);
-		std::optional<glm::vec2> pos = ray_plane_intersection(vp.position, vp.orientation, ray); // between -0.5 and 0.5
+		default:
+			__builtin_unreachable();
+	}
 
-		if (pos)
-			ray_pos.push_back(*pos + glm::vec2(0.5, 0.5));;
+	return value;
+}
 
+void imgui_context::new_frame(XrTime display_time)
+{
+	size_t new_focused_controller = focused_controller;
+
+	std::vector<controller_state> new_states;
+
+	for(auto&& [index, controller]: utils::enumerate(controllers))
+	{
+		auto& [ctrl, state] = controller;
+
+		controller_state& new_state = new_states.emplace_back();
+
+		if (auto location = application::locate_controller(ctrl.aim, world, display_time); location)
+		{
+			new_state.active = true;
+			new_state.aim_position = location->first;
+			new_state.aim_orientation = location->second;
+		}
+		else
+		{
+			new_state.active = false;
+		}
+
+		if (ctrl.squeeze.first)
+		{
+			new_state.squeeze_value = read_action_bool_or_float(ctrl.squeeze);
+
+			if (new_state.squeeze_value < 0.5)
+				new_state.squeeze_clicked = false;
+			else if (new_state.squeeze_value > 0.8)
+				new_state.squeeze_clicked = true;
+		}
+
+		if (ctrl.trigger.first)
+		{
+			new_state.trigger_value = read_action_bool_or_float(ctrl.trigger);
+
+			if (new_state.trigger_value < 0.5)
+				new_state.trigger_clicked = false;
+			else if (new_state.trigger_value > 0.8)
+				new_state.trigger_clicked = true;
+		}
+
+		if (ctrl.scroll.first)
+		{
+			assert(ctrl.scroll.second == XR_ACTION_TYPE_VECTOR2F_INPUT);
+
+			if (auto act = application::read_action_vec2(ctrl.scroll.first); act)
+				new_state.scroll_value = { act->second.x, act->second.y };
+			else
+				new_state.scroll_value = {0, 0};
+		}
+
+		if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.1f)
+		{
+			new_focused_controller = index;
+		}
+	}
+
+	bool focused_change = new_focused_controller != focused_controller && focused_controller != (size_t)-1;
+
+	// Simulate a pen for the following events
+	io.AddMouseSourceEvent(ImGuiMouseSource_Pen);
+	if (focused_change && controllers[focused_controller].second.trigger_clicked)
+	{
+		// Focused controller changed: end the current click
+		io.AddMouseButtonEvent(0, false);
+	}
+
+	std::optional<ImVec2> position;
+	float trigger;
+
+	if (new_focused_controller != (size_t)-1)
+	{
+		position = ray_plane_intersection(*viewport, new_states[new_focused_controller]);
+		trigger = new_states[new_focused_controller].trigger_value;
+		auto scroll = new_states[new_focused_controller].scroll_value;
+
+		if (position)
+		{
+			io.AddMousePosEvent(position->x, position->y);
+
+			bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
+			bool next_trigger = new_states[new_focused_controller].trigger_clicked;
+
+			if (focused_change || last_trigger != next_trigger)
+				io.AddMouseButtonEvent(0, next_trigger);
+
+			if (glm::length(scroll) > 0.1f)
+				io.AddMouseWheelEvent(scroll.x, scroll.y);
+		}
+	}
+	else
+	{
+		position = {};
+		trigger = 0;
+	}
+
+	focused_controller = new_focused_controller;
+	for(auto&& [controller, next_state]: utils::zip(controllers, new_states))
+	{
+		controller.second = next_state;
 	}
 
 	// Start the Dear ImGui frame
@@ -302,27 +400,21 @@ void imgui_context::new_frame(std::span<imgui_inputs> inputs)
 	io.DisplayFramebufferScale = ImVec2(1, 1);
 
 	// See ImGui_ImplSDL2_ProcessEvent
-	io.DeltaTime = 0.016; // TODO
-	io.AddMousePosEvent(-FLT_MAX, -FLT_MAX); // TODO
-	// io.AddMouseSourceEvent(event->wheel.which == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
+	if (last_display_time)
+		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
+
+	last_display_time = display_time;
+
 	// io.AddMouseWheelEvent(wheel_x, wheel_y);
 
-	// io.AddMouseSourceEvent(event->button.which == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
-	// io.AddMouseButtonEvent(mouse_button, (event->type == SDL_MOUSEBUTTONDOWN));
-	// bd->MouseButtonsDown = (event->type == SDL_MOUSEBUTTONDOWN) ? (bd->MouseButtonsDown | (1 << mouse_button)) : (bd->MouseButtonsDown & ~(1 << mouse_button));
 
 	ImGui::NewFrame();
 
 	ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-	// spdlog::debug("{} intersections", ray_pos.size());
-	for(glm::vec2 i: ray_pos)
-	{
-		ImVec2 j(i.x * 1000, 1000 - i.y * 1000);
-		draw_list->AddCircle(j, 30, ImGui::GetColorU32(ImVec4(1, 0, 0, 0.8)), 20, 10);
+	if (position)
+		draw_list->AddCircle(*position, 30*(1-0.7*trigger), ImGui::GetColorU32(ImVec4(1, 0, 0, 0.8)), 20, 10);
 
-		// spdlog::debug(" - {}, {}", i.x, i.y);
-	}
 }
 
 std::shared_ptr<vk::raii::ImageView> imgui_context::render()

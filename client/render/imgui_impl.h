@@ -22,62 +22,67 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <openxr/openxr.h>
 #include "vk/allocation.h"
-
-struct imgui_frame
-{
-	image_allocation image;
-	vk::raii::ImageView image_view = nullptr;
-	vk::raii::Framebuffer framebuffer = nullptr;
-	vk::raii::CommandBuffer command_buffer = nullptr;
-	vk::raii::Fence fence = nullptr;
-};
-
-struct imgui_viewport
-{
-	static constexpr int frames_in_flight = 2;
-	std::array<imgui_frame, frames_in_flight> frames;
-	int frameindex = 0;
-
-	vk::raii::Device& device;
-
-	vk::Extent2D size;
-	vk::ClearValue clear_value = {vk::ClearColorValue{0,0,0,0}};
-
-	// TODO: sync with 3d scene
-	glm::vec3 position = {0, 1, -1.5};
-	glm::quat orientation = {1, 0, 0, 0};
-	float scale = 1;
-
-	imgui_viewport(vk::raii::Device& device, vk::raii::CommandPool& command_pool, vk::RenderPass renderpass, vk::Extent2D size, vk::Format format);
-};
-
-struct imgui_inputs
-{
-	bool active = false;
-	int id;
-
-	glm::vec3 controller_position;
-	glm::quat controller_orientation;
-	float squeeze;
-	float trigger;
-	glm::vec2 scroll;
-};
-
-struct imgui_controller_state
-{
-	bool active = false;
-	int id;
-
-	float squeeze;
-	float trigger;
-
-	bool squeeze_hysteresis;
-	bool trigger_hysteresis;
-};
 
 class imgui_context
 {
+public:
+	struct imgui_frame
+	{
+		image_allocation image;
+		vk::raii::ImageView image_view = nullptr;
+		vk::raii::Framebuffer framebuffer = nullptr;
+		vk::raii::CommandBuffer command_buffer = nullptr;
+		vk::raii::Fence fence = nullptr;
+	};
+
+	struct imgui_viewport
+	{
+		static constexpr int frames_in_flight = 2;
+		std::array<imgui_frame, frames_in_flight> frames;
+		int frameindex = 0;
+
+		vk::raii::Device& device;
+
+		vk::Extent2D size;
+		vk::ClearValue clear_value = {vk::ClearColorValue{0,0,0,0}};
+
+		// TODO: sync with 3d scene
+		glm::vec3 position = {0, 1, -1.5};
+		glm::quat orientation = {1, 0, 0, 0};
+		glm::vec2 scale = {1, 1};
+
+		imgui_viewport(vk::raii::Device& device, vk::raii::CommandPool& command_pool, vk::RenderPass renderpass, vk::Extent2D size, vk::Format format);
+	};
+
+	struct controller
+	{
+		using typed_action = std::pair<XrAction, XrActionType>;
+		XrSpace aim;
+		typed_action trigger;
+		typed_action squeeze;
+		typed_action scroll;
+
+		// TODO: thresholds?
+	};
+
+	struct controller_state
+	{
+		bool active;
+
+		glm::vec3 aim_position;
+		glm::quat aim_orientation;
+
+		float trigger_value;
+		float squeeze_value;
+		glm::vec2 scroll_value;
+
+		bool squeeze_clicked;
+		bool trigger_clicked;
+	};
+
+private:
 	static inline const std::array pool_sizes =
 	{
 		vk::DescriptorPoolSize{
@@ -95,16 +100,24 @@ class imgui_context
 	vk::raii::RenderPass renderpass;
 	vk::raii::CommandPool command_pool;
 
+	// shared_ptr because it needs to be kept alive until the output textures are not used anymore
 	std::shared_ptr<imgui_viewport> viewport;
 
 	ImGuiContext * context;
 	ImGuiIO& io;
 
+	std::string ini_filename;
+
+	std::vector<std::pair<controller, controller_state>> controllers;
+	XrSpace world;
+	size_t focused_controller = (size_t)-1;
+	XrTime last_display_time = 0;
+
 public:
 	imgui_context(vk::raii::Device& device, uint32_t queue_family_index,
-	vk::raii::Queue& queue);
+	vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers);
 	~imgui_context();
 
-	void new_frame(std::span<imgui_inputs> inputs);
+	void new_frame(XrTime display_time);
 	std::shared_ptr<vk::raii::ImageView> render();
 };
