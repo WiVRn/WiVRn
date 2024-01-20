@@ -351,13 +351,7 @@ static void target_init_semaphores(struct wivrn_comp_target * cn)
 	}
 }
 
-static void comp_wivrn_create_images(struct comp_target * ct,
-                                     uint32_t preferred_width,
-                                     uint32_t preferred_height,
-                                     VkFormat preferred_color_format,
-                                     VkColorSpaceKHR preferred_color_space,
-                                     VkImageUsageFlags image_usage,
-                                     VkPresentModeKHR present_mode)
+static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_target_create_images_info *create_info)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
@@ -372,20 +366,22 @@ static void comp_wivrn_create_images(struct comp_target * ct,
 
 	target_init_semaphores(cn);
 
-	ct->format = preferred_color_format;
-	ct->width = preferred_width;
-	ct->height = preferred_height;
+	//FIXME: select preferred format
+	assert(create_info->format_count > 0);
+	ct->format = create_info->formats[0];
+	ct->width = create_info->extent.width;
+	ct->height = create_info->extent.height;
 	ct->surface_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 
 	cn->image_count = 3;
-	cn->format = preferred_color_format;
-	cn->width = preferred_width;
-	cn->height = preferred_height;
-	cn->color_space = preferred_color_space;
+	cn->format = ct->format;
+	cn->width = create_info->extent.width;
+	cn->height = create_info->extent.height;
+	cn->color_space = create_info->color_space;
 
 	auto settings = get_encoder_settings(get_vk(cn), cn->width, cn->height);
 
-	VkResult res = create_images(cn, image_usage, settings);
+	VkResult res = create_images(cn, create_info->image_usage, settings);
 	if (res != VK_SUCCESS)
 	{
 		vk_print_result(get_vk(cn),  __FILE__, __LINE__, __func__, res, "create_images");
