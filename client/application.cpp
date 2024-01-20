@@ -28,6 +28,9 @@
 #include "vk/vk.h"
 #include "xr/xr.h"
 #include <algorithm>
+#include "utils/contains.h"
+#include <algorithm>
+#include <string>
 #include <thread>
 #include <vector>
 #include <vk_mem_alloc.h>
@@ -51,12 +54,19 @@
 
 using namespace std::chrono_literals;
 
-using action_bindings = std::vector<std::string>;
-using suggested_binding = std::pair<std::string, action_bindings>;
 
-static inline const std::vector<suggested_binding> suggested_bindings{
+struct suggested_binding
+{
+	std::string profile_name;
+	std::vector<std::string> required_extensions;
+	std::vector<std::string> paths;
+	bool available;
+};
+
+static std::vector<suggested_binding> suggested_bindings{
         suggested_binding{
                 "/interaction_profiles/oculus/touch_controller",
+		{},
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -95,6 +105,7 @@ static inline const std::vector<suggested_binding> suggested_bindings{
                 }},
         suggested_binding{
                 "/interaction_profiles/khr/simple_controller",
+		{},
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -114,6 +125,7 @@ static inline const std::vector<suggested_binding> suggested_bindings{
                 }},
         suggested_binding{
                 "/interaction_profiles/bytedance/pico_neo3_controller",
+		{ "XR_BD_controller_interaction" },
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -155,6 +167,7 @@ static inline const std::vector<suggested_binding> suggested_bindings{
                 }},
         suggested_binding{
                 "/interaction_profiles/bytedance/pico4_controller",
+		{ "XR_BD_controller_interaction" },
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -196,13 +209,28 @@ static inline const std::vector<suggested_binding> suggested_bindings{
 
 static const std::pair<std::string_view, XrActionType> action_suffixes[] =
         {
-                {"/haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
-                {"/pose", XR_ACTION_TYPE_POSE_INPUT},
-                {"/click", XR_ACTION_TYPE_BOOLEAN_INPUT},
-                {"/touch", XR_ACTION_TYPE_BOOLEAN_INPUT},
-                {"/value", XR_ACTION_TYPE_FLOAT_INPUT},
+		// clang-format off
+		// From OpenXR spec 1.0.33, §6.3.2 Input subpaths
+
+		// Standard components
+		{"/click",      XR_ACTION_TYPE_BOOLEAN_INPUT},
+		{"/touch",      XR_ACTION_TYPE_BOOLEAN_INPUT},
+		{"/force",      XR_ACTION_TYPE_FLOAT_INPUT},
+		{"/value",      XR_ACTION_TYPE_FLOAT_INPUT},
+		{"/x",          XR_ACTION_TYPE_FLOAT_INPUT},
+		{"/y",          XR_ACTION_TYPE_FLOAT_INPUT},
+		{"/twist",      XR_ACTION_TYPE_FLOAT_INPUT},
+		{"/pose",       XR_ACTION_TYPE_POSE_INPUT},
+
+		// Standard 2D identifier, can be used without the /x and /y cmoponents
+                {"/trackpad",   XR_ACTION_TYPE_VECTOR2F_INPUT},
                 {"/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
-                {"/trackpad", XR_ACTION_TYPE_VECTOR2F_INPUT},
+                {"/joystick",   XR_ACTION_TYPE_VECTOR2F_INPUT},
+                {"/trackball",  XR_ACTION_TYPE_VECTOR2F_INPUT},
+
+		// Output paths
+                {"/haptic",     XR_ACTION_TYPE_VIBRATION_OUTPUT},
+		// clang-format on
 };
 
 static XrActionType guess_action_type(const std::string & name)
@@ -492,11 +520,16 @@ void application::initialize_actions()
 
 	// Build the list of all possible actions, without duplicates
 	std::vector<std::string> actions_path;
-	for(const auto & [profile_name, bindings]: suggested_bindings)
+	for(auto & suggested_binding: suggested_bindings)
 	{
-		for(const std::string& action_path: bindings)
+		suggested_binding.available = utils::contains_all(xr_extensions, suggested_binding.required_extensions);
+
+		if (!suggested_binding.available)
+			continue;
+
+		for(const std::string& action_path: suggested_binding.paths)
 		{
-			if (std::find(actions_path.begin(), actions_path.end(), action_path) == actions_path.end())
+			if (!utils::contains(actions_path, action_path))
 				actions_path.push_back(action_path);
 		}
 	}
@@ -531,26 +564,23 @@ void application::initialize_actions()
 	}
 
 	// Suggest bindings for all supported controllers
-	for (const auto & [profile_name, bindings]: suggested_bindings)
+	for (const auto & suggested_binding: suggested_bindings)
 	{
+		if (!suggested_binding.available)
+		{
+			spdlog::info("Skipping interaction profile {}", suggested_binding.profile_name);
+			continue;
+		}
+
 		std::vector<XrActionSuggestedBinding> xr_bindings;
 
-		for (const auto & name: bindings)
+		for (const auto & name: suggested_binding.paths)
 		{
 			xr_bindings.push_back({actions_by_name[name], string_to_path(name)});
 		}
 
-		try
-		{
-			xr_instance.suggest_bindings(profile_name, xr_bindings);
-		}
-		catch(std::system_error& e)
-		{
-			if (e.code().category() == xr::error_category() && e.code().value() == XR_ERROR_PATH_UNSUPPORTED)
-				spdlog::debug("Ignoring unsupported interaction profile: {}", profile_name);
-			else
-				throw;
-		}
+		spdlog::info("Suggesting bindings for interaction profile {}", suggested_binding.profile_name);
+		xr_instance.suggest_bindings(suggested_binding.profile_name, xr_bindings);
 	}
 
 	xr_session.attach_actionsets({xr_actionset});
@@ -560,14 +590,34 @@ void application::initialize()
 {
 	// LogLayersAndExtensions
 	assert(!xr_instance);
-	std::vector<const char *> extensions{XR_KHR_CONVERT_TIMESPEC_TIME_EXTENSION_NAME /*, XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME*/};
+	xr_extensions.clear();
 
-	for (XrExtensionProperties & i: xr::instance::extensions())
+	// Required extensions
+	xr_extensions.push_back(XR_KHR_CONVERT_TIMESPEC_TIME_EXTENSION_NAME);
+
+	// Optional extensions
+	std::vector<std::string> opt_extensions;
+	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
+	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
+
+	for(const auto& i:suggested_bindings)
 	{
-		if (!strcmp(i.extensionName, XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME))
-			extensions.push_back(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
-		if (!strcmp(i.extensionName, XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
-			extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
+		for(const auto& j: i.required_extensions)
+		{
+			opt_extensions.push_back(j);
+		}
+	}
+
+	for(const auto& i: xr::instance::extensions())
+	{
+		if (utils::contains(opt_extensions, i.extensionName))
+			xr_extensions.push_back(i.extensionName);
+	}
+
+	std::vector<const char *> extensions;
+	for(const auto& i: xr_extensions)
+	{
+		extensions.push_back(i.c_str());
 	}
 
 #ifdef XR_USE_PLATFORM_ANDROID
@@ -1062,12 +1112,12 @@ void application::interaction_profile_changed()
 
 			spdlog::info("Current interaction profile for {}: {}", device, current_profile);
 
-			for(const auto& [profile, actions_name]: suggested_bindings)
+			for(const auto& binding: suggested_bindings)
 			{
-				if (profile != current_profile)
+				if (binding.profile_name != current_profile)
 					continue;
 
-				for(const std::string& action_name: actions_name)
+				for(const std::string& action_name: binding.paths)
 				{
 					if (!action_name.starts_with(device))
 						continue;

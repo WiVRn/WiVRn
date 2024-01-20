@@ -115,6 +115,7 @@ class application : public singleton<application>
 	bool session_focused = false;
 	bool session_visible = false;
 	bool debug_extensions_found = false;
+	std::vector<std::string> xr_extensions;
 	std::atomic<bool> exit_requested = false;
 
 	std::string server_address;
