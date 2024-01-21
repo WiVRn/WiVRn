@@ -94,12 +94,12 @@ void main()
 {
 	normal = vec3(mesh.modelview * vec4(in_normal, 0.0));
 
-	for(int i = 0; i < 2; i++)
+	for(int i = 0; i < NB_TEXCOORDS; i++)
 		texcoord[i] = in_texcoord[i];
 
 	gl_Position = mesh.modelviewproj * vec4(in_position, 1.0);
 	frag_pos = vec3(mesh.modelview * vec4(in_position, 1.0));
-	light_pos = mesh.modelview * scene.light_position;
+// 	light_pos = mesh.modelview * scene.light_position;
 }
 
 #endif
@@ -107,7 +107,8 @@ void main()
 #ifdef FRAG_SHADER
 void main()
 {
-	vec3 light_dir = normalize(light_pos.xyz - frag_pos * light_pos.w);
+// 	vec3 light_dir = normalize(light_pos.xyz - frag_pos * light_pos.w);
+	vec3 light_dir = normalize(scene.light_position.xyz - frag_pos * scene.light_position.w);
 	vec3 view_dir = normalize(frag_pos);
 	vec3 normal_unit = normalize(normal);
 	vec3 reflect_dir = reflect(-light_dir, normal_unit);
@@ -124,9 +125,8 @@ void main()
 // 	vec3 specular = pow(spec_angle, instance.specular_power) * instance.specular_strength * instance.light_color;
 
 	vec3 light = ambient + diffuse /*+ specular*/;
-// 	out_color = texture(base_color, texcoord[0]) * vec4(light, 1.0);
+	out_color = texture(base_color, texcoord[0]) * vec4(light, 1.0);
 
-// 	out_color = vec4(1.0, 1.0, 1.0, 1.0);
-	out_color = texture(base_color, texcoord[0]);
+// 	out_color = texture(base_color, texcoord[0]);
 }
 #endif

@@ -641,9 +641,9 @@ void scene_renderer::render(scene_data & scene, std::span<frame_info> frames)
 
 		frame_gpu_data& frame_ubo = *reinterpret_cast<frame_gpu_data*>(ubo + *current_ubo_frame_offset);
 
-		frame_ubo.ambient_color = glm::vec4(0,0,0,0); // TODO
-		frame_ubo.light_color = glm::vec4(0,0,0,0); // TODO
-		frame_ubo.light_position = glm::vec4(0,0,0,0); // TODO
+		frame_ubo.ambient_color = glm::vec4(0.5,0.5,0.5,0); // TODO
+		frame_ubo.light_color = glm::vec4(0.5,0.5,0.5,0); // TODO
+		frame_ubo.light_position = glm::vec4(0,1,0,0); // TODO
 		frame_ubo.proj = frame.projection;
 		frame_ubo.view = frame.view;
 
