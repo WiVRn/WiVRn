@@ -20,7 +20,6 @@
 #include "allocation.h"
 #include "application.h"
 
-#include "spdlog/spdlog.h"
 #include "utils/check.h"
 
 #include "vulkan/vulkan_raii.hpp"
@@ -29,14 +28,15 @@
 
 std::pair<vk::raii::Buffer, VmaAllocation> basic_allocation_traits<VkBuffer>::create(
 		const CreateInfo& buffer_info,
-		const VmaAllocationCreateInfo* alloc_info)
+		const VmaAllocationCreateInfo& alloc_info)
 {
 	VmaAllocator allocator = application::get_allocator();
 	vk::raii::Device& device = application::get_device();
 
 	VmaAllocation allocation;
 	VkBuffer tmp;
-	CHECK_VK(vmaCreateBuffer(allocator, &(NativeCreateInfo&)buffer_info, alloc_info, &tmp, &allocation, nullptr));
+
+	CHECK_VK(vmaCreateBuffer(allocator, &(NativeCreateInfo&)buffer_info, &alloc_info, &tmp, &allocation, nullptr));
 
 	return std::pair<vk::raii::Buffer, VmaAllocation>{vk::raii::Buffer{device, tmp}, allocation};
 
@@ -73,14 +73,15 @@ void basic_allocation_traits_base::unmap(VmaAllocation allocation)
 
 std::pair<vk::raii::Image, VmaAllocation> basic_allocation_traits<VkImage>::create(
 		const CreateInfo& image_info,
-		const VmaAllocationCreateInfo* alloc_info)
+		const VmaAllocationCreateInfo& alloc_info)
 {
 	VmaAllocator allocator = application::get_allocator();
 	vk::raii::Device& device = application::get_device();
 
 	VmaAllocation allocation;
 	VkImage tmp;
-	CHECK_VK(vmaCreateImage(allocator, &(NativeCreateInfo&)image_info, alloc_info, &tmp, &allocation, nullptr));
+
+	CHECK_VK(vmaCreateImage(allocator, &(NativeCreateInfo&)image_info, &alloc_info, &tmp, &allocation, nullptr));
 
 	return std::pair<vk::raii::Image, VmaAllocation>{vk::raii::Image{device, tmp}, allocation};
 }

@@ -21,6 +21,7 @@
 
 #include "vk_mem_alloc.h"
 #include <vulkan/vulkan_raii.hpp>
+#include "application.h"
 
 template<typename T>
 struct basic_allocation_traits
@@ -42,7 +43,7 @@ struct basic_allocation_traits<VkBuffer> : basic_allocation_traits_base
 
 	static std::pair<RaiiType, VmaAllocation> create(
 		const CreateInfo& buffer_info,
-		const VmaAllocationCreateInfo* alloc_info);
+		const VmaAllocationCreateInfo& alloc_info);
 
 	static void destroy(
 		RaiiType& buffer,
@@ -59,7 +60,7 @@ struct basic_allocation_traits<VkImage> : basic_allocation_traits_base
 
 	static std::pair<RaiiType, VmaAllocation> create(
 		const CreateInfo& image_info,
-		const VmaAllocationCreateInfo* alloc_info);
+		const VmaAllocationCreateInfo& alloc_info);
 
 	static void destroy(
 		RaiiType& image,
@@ -118,7 +119,15 @@ public:
 	basic_allocation(const CreateInfo& create_info, const VmaAllocationCreateInfo& alloc_info) :
 		create_info(create_info)
 	{
-		std::tie(resource, allocation) = traits::create(create_info, &alloc_info);
+		std::tie(resource, allocation) = traits::create(create_info, alloc_info);
+	}
+
+	basic_allocation(const CreateInfo& create_info, VmaAllocationCreateInfo alloc_info, const std::string& name) :
+		create_info(create_info)
+	{
+		std::tie(resource, allocation) = traits::create(create_info, alloc_info);
+
+		vmaSetAllocationName(application::get_allocator(), allocation, name.c_str());
 	}
 
 	basic_allocation(const basic_allocation&) = delete;
