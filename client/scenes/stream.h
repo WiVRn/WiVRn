@@ -32,7 +32,7 @@
 
 namespace scenes
 {
-class stream : public scene, public std::enable_shared_from_this<stream>
+class stream : public scene_impl<stream>, public std::enable_shared_from_this<stream>
 {
 	static const size_t view_count = 2;
 
@@ -120,6 +120,8 @@ public:
 	{
 		return !exiting;
 	}
+
+	static meta& get_meta_scene();
 
 private:
 	void process_packets();

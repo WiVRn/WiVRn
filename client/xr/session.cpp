@@ -23,6 +23,7 @@
 #include "xr.h"
 #include <vulkan/vulkan.h>
 #include <openxr/openxr_platform.h>
+#include "utils/ranges.h"
 
 xr::session::session(xr::instance & inst, xr::system & sys, vk::raii::Instance& vk_inst, vk::raii::PhysicalDevice& pdev, vk::raii::Device& dev, int queue_family_index) :
         inst(&inst)
@@ -230,6 +231,25 @@ std::vector<float> xr::session::get_refresh_rates()
 		return xr::details::enumerate<float>(xrEnumerateDisplayRefreshRatesFB, id);
 
 	return {};
+}
+
+void xr::session::sync_actions(std::span<XrActionSet> action_sets)
+{
+	std::vector<XrActiveActionSet> active_action_sets(action_sets.size());
+
+	for(auto&& [i, j]: utils::zip(active_action_sets, action_sets))
+	{
+		i.actionSet = j;
+		i.subactionPath = XR_NULL_PATH;
+	}
+
+	XrActionsSyncInfo sync_info{
+	        .type = XR_TYPE_ACTIONS_SYNC_INFO,
+	        .countActiveActionSets = (uint32_t)active_action_sets.size(),
+	        .activeActionSets = active_action_sets.data(),
+	};
+
+	CHECK_XR(xrSyncActions(id, &sync_info));
 }
 
 void xr::session::sync_actions(XrActionSet action_set, XrPath subaction_path)

@@ -26,10 +26,12 @@
 #include "spdlog/spdlog.h"
 #include "utils/check.h"
 #include "utils/files.h"
+#include "xr/actionset.h"
 #include "xr/xr.h"
 #include <algorithm>
 #include "utils/contains.h"
 #include <algorithm>
+#include <ctype.h>
 #include <string>
 #include <exception>
 #include <thread>
@@ -58,16 +60,36 @@
 using namespace std::chrono_literals;
 
 
-struct suggested_binding
+struct interaction_profile
 {
 	std::string profile_name;
 	std::vector<std::string> required_extensions;
-	std::vector<std::string> paths;
+	std::vector<std::string> input_sources;
 	bool available;
 };
 
-static std::vector<suggested_binding> suggested_bindings{
-        suggested_binding{
+static std::vector<interaction_profile> interaction_profiles{
+        interaction_profile{
+                "/interaction_profiles/khr/simple_controller",
+		{},
+                {
+                        "/user/hand/left/output/haptic",
+                        "/user/hand/right/output/haptic",
+
+                        "/user/hand/left/input/grip/pose",
+                        "/user/hand/left/input/aim/pose",
+
+                        "/user/hand/right/input/grip/pose",
+                        "/user/hand/right/input/aim/pose",
+
+                        "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/select/click",
+
+                        "/user/hand/right/input/menu/click",
+                        "/user/hand/right/input/select/click",
+
+                }},
+        interaction_profile{
                 "/interaction_profiles/oculus/touch_controller",
 		{},
                 {
@@ -106,27 +128,7 @@ static std::vector<suggested_binding> suggested_bindings{
                         "/user/hand/right/input/thumbstick/touch",
                         "/user/hand/right/input/thumbrest/touch",
                 }},
-        suggested_binding{
-                "/interaction_profiles/khr/simple_controller",
-		{},
-                {
-                        "/user/hand/left/output/haptic",
-                        "/user/hand/right/output/haptic",
-
-                        "/user/hand/left/input/grip/pose",
-                        "/user/hand/left/input/aim/pose",
-
-                        "/user/hand/right/input/grip/pose",
-                        "/user/hand/right/input/aim/pose",
-
-                        "/user/hand/left/input/menu/click",
-                        "/user/hand/left/input/select/click",
-
-                        "/user/hand/right/input/menu/click",
-                        "/user/hand/right/input/select/click",
-
-                }},
-        suggested_binding{
+        interaction_profile{
                 "/interaction_profiles/bytedance/pico_neo3_controller",
 		{ "XR_BD_controller_interaction" },
                 {
@@ -168,7 +170,7 @@ static std::vector<suggested_binding> suggested_bindings{
                         "/user/hand/right/input/thumbrest/touch",
 
                 }},
-        suggested_binding{
+        interaction_profile{
                 "/interaction_profiles/bytedance/pico4_controller",
 		{ "XR_BD_controller_interaction" },
                 {
@@ -554,38 +556,58 @@ void application::log_views()
 	}
 }
 
+static std::string make_xr_name(std::string name)
+{
+	// Generate a name suitable for a path component (see OpenXR spec §6.2)
+	for(char& c: name)
+	{
+		if (!isalnum(c) && c != '-' && c != '_' && c != '.')
+			c = '_';
+		else
+			c = tolower(c);
+	}
+
+	size_t pos = name.find_first_of("abcdefghijklmnopqrstuvwxyz");
+
+	return name.substr(pos);
+}
+
 void application::initialize_actions()
 {
-	xr_actionset = xr::actionset(xr_instance, "actions", "Actions");
+	spdlog::info("Initializing actions");
 
-	// Build the list of all possible actions, without duplicates
-	std::vector<std::string> actions_path;
-	for(auto & suggested_binding: suggested_bindings)
+	// Build an action set with all possible input sources
+	std::vector<XrActionSet> action_sets;
+	xr_actionset = xr::actionset(xr_instance, "all_actions", "All actions");
+	action_sets.push_back(xr_actionset);
+
+	std::unordered_map<std::string, std::vector<XrActionSuggestedBinding>> suggested_bindings;
+
+	// Build the list of all possible input sources, without duplicates,
+	// checking which profiles are supported by the runtime
+	std::vector<std::string> sources;
+	for(auto & profile: interaction_profiles)
 	{
-		suggested_binding.available = utils::contains_all(xr_extensions, suggested_binding.required_extensions);
+		profile.available = utils::contains_all(xr_extensions, profile.required_extensions);
 
-		if (!suggested_binding.available)
+		if (!profile.available)
 			continue;
 
-		for(const std::string& action_path: suggested_binding.paths)
+		suggested_bindings.emplace(profile.profile_name, std::vector<XrActionSuggestedBinding>{});
+
+		for(const std::string& source: profile.input_sources)
 		{
-			if (!utils::contains(actions_path, action_path))
-				actions_path.push_back(action_path);
+			if (!utils::contains(sources, source))
+				sources.push_back(source);
 		}
 	}
 
-	// For each possible action, create a XrAction
+	// For each possible input source, create a XrAction and add it to the suggested binding
 	std::unordered_map<std::string, XrAction> actions_by_name;
 
-	for(std::string& name: actions_path)
+	for(std::string& name: sources)
 	{
-		std::string name_without_slashes = name.substr(1);
-
-		for (char & i: name_without_slashes)
-		{
-			if (i == '/')
-				i = '_';
-		}
+		std::string name_without_slashes = make_xr_name(name);
 
 		XrActionType type = guess_action_type(name);
 
@@ -603,27 +625,70 @@ void application::initialize_actions()
 			right_aim_space = xr_session.create_action_space(a);
 	}
 
-	// Suggest bindings for all supported controllers
-	for (const auto & suggested_binding: suggested_bindings)
+	// Build an action set for each scene
+	for(scene::meta* i: scene::scene_registry)
 	{
-		if (!suggested_binding.available)
+		spdlog::info("  Scene \"{}\"", i->name);
+
+		std::string actionset_name = make_xr_name(i->name);
+
+		i->actionset = xr::actionset(xr_instance, actionset_name, i->name);
+		action_sets.push_back(i->actionset);
+
+		for(auto& [action_name, action_type] : i->actions)
 		{
-			spdlog::info("Skipping interaction profile {}", suggested_binding.profile_name);
+			spdlog::info("    Creating action {}", action_name);
+			XrAction a = i->actionset.create_action(action_type, action_name);
+			i->actions_by_name[action_name] = std::make_pair(a, action_type);
+
+			if (action_type == XR_ACTION_TYPE_POSE_INPUT)
+				i->spaces_by_name[action_name] = xr_session.create_action_space(a);
+		}
+
+		for(const scene::suggested_binding& j: i->bindings)
+		{
+			// Skip unsupported profiles
+			if (!suggested_bindings.contains(j.profile_name))
+				continue;
+
+			spdlog::info("    Adding suggested bindings for {}", j.profile_name);
+			std::vector<XrActionSuggestedBinding>& xr_bindings = suggested_bindings[j.profile_name];
+
+			for(const scene::action_binding& k: j.paths)
+			{
+				spdlog::info("      {} => {}", k.action_name, k.input_source);
+				XrAction a = i->actions_by_name[k.action_name].first;
+				assert(a != XR_NULL_HANDLE);
+
+				xr_bindings.push_back(XrActionSuggestedBinding{
+					.action = a,
+					.binding = string_to_path(k.input_source)
+				});
+			}
+		}
+	}
+
+	// Suggest bindings for all supported controllers
+	for (const auto & profile: interaction_profiles)
+	{
+		if (!profile.available)
+		{
+			spdlog::info("Skipping interaction profile {}", profile.profile_name);
 			continue;
 		}
 
-		std::vector<XrActionSuggestedBinding> xr_bindings;
+		std::vector<XrActionSuggestedBinding>& xr_bindings = suggested_bindings[profile.profile_name];
 
-		for (const auto & name: suggested_binding.paths)
+		for (const auto & name: profile.input_sources)
 		{
 			xr_bindings.push_back({actions_by_name[name], string_to_path(name)});
 		}
 
-		spdlog::info("Suggesting bindings for interaction profile {}", suggested_binding.profile_name);
-		xr_instance.suggest_bindings(suggested_binding.profile_name, xr_bindings);
+		spdlog::info("Suggesting bindings for interaction profile {}", profile.profile_name);
+		xr_instance.suggest_bindings(profile.profile_name, xr_bindings);
 	}
 
-	xr_session.attach_actionsets({xr_actionset});
+	xr_session.attach_actionsets(action_sets);
 }
 
 void application::initialize()
@@ -640,7 +705,7 @@ void application::initialize()
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
 
-	for(const auto& i:suggested_bindings)
+	for(const auto& i: interaction_profiles)
 	{
 		for(const auto& j: i.required_extensions)
 		{
@@ -884,6 +949,14 @@ void application::cleanup()
 	// Remove all scenes before destroying the allocator
 	scene_stack.clear();
 
+	// Empty the meta objects while the OpenXR instance still exists
+	for(auto i: scene::scene_registry)
+	{
+		xr::actionset tmp = std::move(i->actionset);
+		i->actions_by_name.clear(); // Not strictly necessary
+		i->spaces_by_name.clear();
+	}
+
 	if (allocator)
 	{
 		vmaDestroyAllocator(allocator);
@@ -1025,7 +1098,12 @@ void application::push_scene(std::shared_ptr<scene> s)
 
 void application::poll_actions()
 {
-	instance().xr_session.sync_actions(instance().xr_actionset);
+	std::array<XrActionSet, 2> action_sets{
+		instance().xr_actionset,
+		instance().current_scene()->current_meta.actionset
+	};
+
+	instance().xr_session.sync_actions(action_sets);
 }
 
 std::optional<std::pair<XrTime, bool>> application::read_action_bool(XrAction action)
@@ -1185,47 +1263,45 @@ void application::interaction_profile_changed()
 			std::string current_profile = xr_session.get_current_interaction_profile(device);
 
 			spdlog::info("Current interaction profile for {}: {}", device, current_profile);
-
-			for(const auto& binding: suggested_bindings)
-			{
-				if (binding.profile_name != current_profile)
-					continue;
-
-				for(const std::string& action_name: binding.paths)
-				{
-					if (!action_name.starts_with(device))
-						continue;
-
-					XrAction action = XR_NULL_HANDLE;
-
-					for(const auto&[i,j,k]:actions)
-					{
-						if (action_name == k)
-						{
-							action = i;
-							break;
-						}
-					}
-
-					if (!action)
-						continue;
-
-					auto sources = xr_session.localized_sources_for_action(action);
-					if (!sources.empty())
-					{
-						spdlog::info("    Sources for {}", action_name);
-						for (auto & k: sources)
-							spdlog::info("        {}", k);
-					}
-					else
-						spdlog::warn("    No source for {}", action_name);
-				}
-			}
 		}
 		catch (std::exception & e)
 		{
 			spdlog::warn("Cannot get current interaction profile for {}: {}", device, e.what());
 			continue;
+		}
+	}
+
+	spdlog::info("Global actions:");
+	for(auto& [action, type, name]: actions)
+	{
+		auto sources = xr_session.localized_sources_for_action(action);
+		if (!sources.empty())
+		{
+			spdlog::info("    Sources for {}", name);
+			for (auto & k: sources)
+				spdlog::info("        {}", k);
+		}
+		else
+			spdlog::warn("    No source for {}", name);
+	}
+
+	if (current_scene())
+	{
+		spdlog::info("Actions for current scene ({}):", current_scene()->current_meta.name);
+
+		for(auto& [name, action_and_type]: current_scene()->current_meta.actions_by_name)
+		{
+			auto [action, type] = action_and_type;
+
+			auto sources = xr_session.localized_sources_for_action(action);
+			if (!sources.empty())
+			{
+				spdlog::info("    Sources for {}", name);
+				for (auto & k: sources)
+					spdlog::info("        {}", k);
+			}
+			else
+				spdlog::warn("    No source for {}", name);
 		}
 	}
 }

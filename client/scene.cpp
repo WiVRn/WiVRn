@@ -23,9 +23,11 @@
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_raii.hpp>
 
+std::vector<scene::meta *> scene::scene_registry;
+
 scene::~scene() {}
 
-scene::scene() :
+scene::scene(key, const meta& current_meta) :
 	instance(application::instance().xr_instance),
 	session(application::instance().xr_session),
 	world_space(application::instance().world_space),
@@ -37,7 +39,8 @@ scene::scene() :
 	physical_device(application::instance().vk_physical_device),
 	queue(application::instance().vk_queue),
 	commandpool(application::instance().vk_cmdpool),
-	queue_family_index(application::instance().vk_queue_family_index)
+	queue_family_index(application::instance().vk_queue_family_index),
+	current_meta(current_meta)
 {
 }
 

@@ -19,6 +19,7 @@
 
 #include "stream.h"
 #include "application.h"
+#include <spdlog/spdlog.h>
 
 void scenes::stream::read_actions()
 {

@@ -555,3 +555,13 @@ void scenes::stream::video()
 		}
 	}
 }
+
+scene::meta& scenes::stream::get_meta_scene()
+{
+	static meta m{
+		"Stream",
+		{}
+	};
+
+	return m;
+}

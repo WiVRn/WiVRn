@@ -100,16 +100,16 @@ scenes::lobby::lobby() :
 
 	std::array imgui_inputs{
 		imgui_context::controller{
-			.aim     = application::left_aim(),
-			.trigger = application::get_action("/user/hand/left/input/select/click"),
-			.squeeze = application::get_action("/user/hand/left/input/squeeze/value"),
-			.scroll  = application::get_action("/user/hand/left/input/thumbstick"),
+			.aim     = get_action_space("left_aim"),
+			.trigger = get_action("left_trigger"),
+			.squeeze = get_action("left_squeeze"),
+			.scroll  = get_action("left_scroll"),
 		},
 		imgui_context::controller{
-			.aim     = application::right_aim(),
-			.trigger = application::get_action("/user/hand/right/input/select/click"),
-			.squeeze = application::get_action("/user/hand/right/input/squeeze/value"),
-			.scroll  = application::get_action("/user/hand/right/input/thumbstick"),
+			.aim     = get_action_space("right_aim"),
+			.trigger = get_action("right_trigger"),
+			.squeeze = get_action("right_squeeze"),
+			.scroll  = get_action("right_scroll"),
 		},
 	};
 
@@ -346,4 +346,49 @@ void scenes::lobby::on_focused()
 void scenes::lobby::on_unfocused()
 {
 	discover.reset();
+}
+
+scene::meta& scenes::lobby::get_meta_scene()
+{
+	static meta m{
+		.name = "Lobby",
+		.actions = {
+			{"left_aim",      XR_ACTION_TYPE_POSE_INPUT},
+			{"left_trigger",  XR_ACTION_TYPE_FLOAT_INPUT},
+			{"left_squeeze",  XR_ACTION_TYPE_FLOAT_INPUT},
+			{"left_scroll",   XR_ACTION_TYPE_VECTOR2F_INPUT},
+			{"right_aim",     XR_ACTION_TYPE_POSE_INPUT},
+			{"right_trigger", XR_ACTION_TYPE_FLOAT_INPUT},
+			{"right_squeeze", XR_ACTION_TYPE_FLOAT_INPUT},
+			{"right_scroll",  XR_ACTION_TYPE_VECTOR2F_INPUT},
+		},
+		.bindings = {
+			suggested_binding{
+				"/interaction_profiles/oculus/touch_controller",
+				{
+					{"left_aim",      "/user/hand/left/input/aim/pose"},
+					{"left_trigger",  "/user/hand/left/input/trigger/value"},
+					{"left_squeeze",  "/user/hand/left/input/squeeze/value"},
+					{"left_scroll",   "/user/hand/left/input/thumbstick"},
+					{"right_aim",     "/user/hand/right/input/aim/pose"},
+					{"right_trigger", "/user/hand/right/input/trigger/value"},
+					{"right_squeeze", "/user/hand/right/input/squeeze/value"},
+					{"right_scroll",  "/user/hand/right/input/thumbstick"},
+				}
+			},
+			suggested_binding{
+				"/interaction_profiles/khr/simple_controller",
+				{
+					{"left_aim",      "/user/hand/left/input/aim/pose"},
+					{"left_trigger",  "/user/hand/left/input/select/click"},
+					{"left_squeeze",  "/user/hand/left/input/menu/click"},
+					{"right_aim",     "/user/hand/right/input/aim/pose"},
+					{"right_trigger", "/user/hand/right/input/select/click"},
+					{"right_squeeze", "/user/hand/right/input/menu/click"},
+				}
+			},
+		}
+	};
+
+	return m;
 }

@@ -23,12 +23,13 @@
 #include <android_native_app_glue.h>
 #endif
 
-#include "spdlog/spdlog.h"
 #include "xr/xr.h"
 #include <array>
+#include <atomic>
 #include <filesystem>
 #include <mutex>
 #include <unordered_set>
+#include <unordered_map>
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>

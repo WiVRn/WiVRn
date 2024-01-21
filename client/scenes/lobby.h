@@ -35,7 +35,7 @@ namespace scenes
 {
 class stream;
 
-class lobby : public scene
+class lobby : public scene_impl<lobby>
 {
 	std::string status_string;
 	std::string last_status_string;
@@ -70,5 +70,7 @@ public:
 
 	void on_unfocused() override;
 	void on_focused() override;
+
+	static meta& get_meta_scene();
 };
 } // namespace scenes
