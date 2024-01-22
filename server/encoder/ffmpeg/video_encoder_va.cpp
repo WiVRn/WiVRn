@@ -248,8 +248,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 		        return strcmp(ext, VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME) == 0;
 	        });
 
-	assert(desc->nb_layers == desc->nb_objects);
-
+	// layer == image
 	for (int i = 0; i < desc->nb_layers; ++i)
 	{
 		std::vector<vk::SubresourceLayout> plane_layouts;
@@ -290,16 +289,16 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 		};
 		auto & image = (i == 0 ? luma : chroma);
 		image = vk.device.createImage(image_create_info.get());
-
+	}
+	// objects == memory
+	for (int i = 0; i < desc->nb_objects; ++i)
+	{
 		auto memory_props = vk.device.getMemoryFdPropertiesKHR(vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT, desc->objects[i].fd);
 
 		vk::StructureChain alloc_info{
 		        vk::MemoryAllocateInfo{
 		                .allocationSize = desc->objects[i].size,
 		                .memoryTypeIndex = vk.get_memory_type(memory_props.memoryTypeBits, {}),
-		        },
-		        vk::MemoryDedicatedAllocateInfo{
-		                .image = *image,
 		        },
 		        vk::ImportMemoryFdInfoKHR{
 		                .handleType = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
@@ -308,14 +307,41 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 		};
 		try
 		{
-			mem.push_back(vk.device.allocateMemory(alloc_info.get()));
+			mem.emplace_back(vk.device, alloc_info.get());
 		}
 		catch (...)
 		{
 			close(alloc_info.get<vk::ImportMemoryFdInfoKHR>().fd);
 			throw;
 		}
-		image.bindMemory(*mem.back(), 0);
+	}
+
+	{
+		std::vector<vk::BindImageMemoryInfo> bind_info;
+		std::vector<vk::BindImagePlaneMemoryInfo> plane_info;
+		plane_info.reserve(8); // at most 8 elements in ffmpeg data
+		for (int i = 0; i < desc->nb_layers; i++)
+		{
+			const int planes = desc->layers[i].nb_planes;
+			const int signal_p = has_modifiers && (planes > 1);
+			for (int j = 0; j < planes; j++)
+			{
+				const std::array aspect{
+				        vk::ImageAspectFlagBits::ePlane0,
+				        vk::ImageAspectFlagBits::ePlane1,
+				        vk::ImageAspectFlagBits::ePlane2,
+				};
+				plane_info.push_back({.planeAspect = aspect.at(j)});
+
+				bind_info.push_back(
+				        {
+				                .pNext = signal_p ? &plane_info.back() : nullptr,
+				                .image = *((i == 0) ? luma : chroma),
+				                .memory = *mem[desc->layers[i].planes[j].object_index],
+				        });
+			}
+		}
+		vk.device.bindImageMemory2(bind_info);
 	}
 }
 
