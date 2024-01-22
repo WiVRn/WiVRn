@@ -126,6 +126,14 @@ if(WIVRN_USE_VAAPI)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV PkgConfig::LIBDRM)
 endif()
 
+if(WIVRN_USE_VULKAN_ENCODE)
+        target_sources(wivrn-server PRIVATE
+		encoder/video_encoder_vulkan.cpp
+		encoder/video_encoder_vulkan_h264.cpp
+		#encoder/video_encoder_vulkan_h265.cpp
+		)
+endif()
+
 if(WIVRN_USE_X264)
         target_sources(wivrn-server PRIVATE encoder/video_encoder_x264.cpp)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)

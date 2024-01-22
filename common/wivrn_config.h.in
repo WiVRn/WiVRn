@@ -21,6 +21,7 @@
 
 #cmakedefine01 WIVRN_USE_NVENC
 #cmakedefine01 WIVRN_USE_VAAPI
+#cmakedefine01 WIVRN_USE_VULKAN_ENCODE
 #cmakedefine01 WIVRN_USE_X264
 
 #cmakedefine01 WIVRN_USE_SYSTEMD

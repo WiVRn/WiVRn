@@ -38,6 +38,10 @@
 #if WIVRN_USE_X264
 #include "video_encoder_x264.h"
 #endif
+#if WIVRN_USE_VULKAN_ENCODE
+#include "video_encoder_vulkan_h264.h"
+// #include "video_encoder_vulkan_h265.h"
+#endif
 
 namespace wivrn
 {
@@ -106,6 +110,25 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 {
 	using namespace std::string_literals;
 	std::unique_ptr<VideoEncoder> res;
+	if (settings.encoder_name == encoder_vulkan)
+	{
+#if WIVRN_USE_VULKAN_ENCODE
+		switch (settings.codec)
+		{
+			case video_codec::h264:
+				res = video_encoder_vulkan_h264::create(wivrn_vk, settings, fps);
+				break;
+			case video_codec::h265:
+				throw std::runtime_error("h265 not supported for vulkan video encode");
+				// res = video_encoder_vulkan_h265::create(wivrn_vk, settings, fps);
+				// break;
+			case video_codec::av1:
+				throw std::runtime_error("av1 not supported for vulkan video encode");
+		}
+#else
+		throw std::runtime_error("Vulkan video encode not enabled");
+#endif
+	}
 	if (settings.encoder_name == encoder_x264)
 	{
 #if WIVRN_USE_X264
@@ -155,6 +178,32 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 	}
 	return res;
 }
+
+#if WIVRN_USE_VULKAN_ENCODE
+std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> VideoEncoder::get_create_image_info(const std::vector<encoder_settings> & settings)
+{
+	std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> result;
+	for (const auto & item: settings)
+	{
+		if (item.encoder_name == encoder_vulkan)
+		{
+			result.second |= vk::ImageUsageFlagBits::eVideoEncodeSrcKHR;
+			switch (item.codec)
+			{
+				case h264:
+					result.first.push_back(video_encoder_vulkan_h264::video_profile_info.get());
+					break;
+				case h265:
+					// result.first.push_back(video_encoder_vulkan_h265::video_profile_info.get());
+					break;
+				case av1:
+					throw std::runtime_error("av1 not supported for vulkan video encode");
+			}
+		}
+	}
+	return result;
+}
+#endif
 
 static const uint64_t idr_throttle = 100;
 

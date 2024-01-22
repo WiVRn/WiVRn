@@ -20,6 +20,7 @@
 #pragma once
 
 #include "driver/clock_offset.h"
+#include "wivrn_config.h"
 #include "wivrn_packets.h"
 
 #include <atomic>
@@ -42,6 +43,7 @@ class wivrn_session;
 inline const char * encoder_nvenc = "nvenc";
 inline const char * encoder_vaapi = "vaapi";
 inline const char * encoder_x264 = "x264";
+inline const char * encoder_vulkan = "vulkan";
 
 class VideoEncoder
 {
@@ -103,6 +105,10 @@ public:
 	        int input_width,
 	        int input_height,
 	        float fps);
+
+#if WIVRN_USE_VULKAN_ENCODE
+	static std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> get_create_image_info(const std::vector<encoder_settings> &);
+#endif
 
 	VideoEncoder(bool async_send = false);
 	virtual ~VideoEncoder();

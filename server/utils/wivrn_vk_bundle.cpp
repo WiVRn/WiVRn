@@ -23,6 +23,16 @@
 
 #include <string>
 
+namespace
+{
+[[maybe_unused]] vk::raii::Queue make_queue(vk::raii::Device & device, VkQueue queue, uint32_t family_index, uint32_t index)
+{
+	if (queue == VK_NULL_HANDLE)
+		return nullptr;
+	return vk::raii::Queue(device, family_index, index);
+}
+} // namespace
+
 wivrn::wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> requested_instance_extensions, std::span<const char *> requested_device_extensions) :
         vk(vk),
         instance(vk_ctx, vk.instance),
@@ -35,7 +45,14 @@ wivrn::wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> 
                 .vulkanApiVersion = VK_MAKE_VERSION(1, 3, 0), // FIXME: sync with wivrn_session.cpp
         }),
         queue(device, vk.queue_family_index, vk.queue_index),
-        queue_family_index(vk.queue_family_index)
+        queue_family_index(vk.queue_family_index),
+#ifdef VK_KHR_video_encode_queue
+        encode_queue(make_queue(device, vk.encode_queue, vk.encode_queue_family_index, vk.encode_queue_index)),
+        encode_queue_family_index(vk.encode_queue_family_index)
+#else
+        encode_queue(nullptr),
+        encode_queue_family_index(vk::QueueFamilyIgnored)
+#endif
 {
 	// This is manually synced with monado code
 

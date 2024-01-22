@@ -32,6 +32,7 @@ option(WIVRN_WERROR "Treat warnings as errors" OFF)
 
 option(WIVRN_USE_NVENC "Enable nvenc (Nvidia) hardware encoder" ON)
 auto_option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" AUTO)
+option(WIVRN_USE_VULKAN_ENCODE "Enable vulkan video encoder" ON)
 auto_option(WIVRN_USE_X264 "Enable x264 software encoder" AUTO)
 
 auto_option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" AUTO)

@@ -64,6 +64,9 @@ struct wivrn_vk_bundle
 	vk::raii::Queue queue;
 	uint32_t queue_family_index;
 
+	vk::raii::Queue encode_queue;
+	uint32_t encode_queue_family_index;
+
 	std::vector<const char *> instance_extensions;
 	std::vector<const char *> device_extensions;
 

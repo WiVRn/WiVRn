@@ -49,6 +49,20 @@ std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
 #ifdef VK_EXT_image_drm_format_modifier
         VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME,
 #endif
+
+// For vulkan video encode
+#ifdef VK_KHR_video_queue
+        VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,
+#endif
+#ifdef VK_KHR_video_encode_queue
+        VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME,
+#endif
+#ifdef VK_KHR_video_encode_h264
+        VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME,
+#endif
+#ifdef VK_KHR_video_encode_h265
+        VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME,
+#endif
 };
 
 static void target_init_semaphores(struct wivrn_comp_target * cn);
@@ -151,6 +165,15 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 
 	cn->images = U_TYPED_ARRAY_CALLOC(struct comp_target_image, cn->image_count);
 
+#if WIVRN_USE_VULKAN_ENCODE
+	auto [video_profiles, encoder_flags] = VideoEncoder::get_create_image_info(cn->settings);
+
+	vk::VideoProfileListInfoKHR video_profile_list{
+	        .profileCount = uint32_t(video_profiles.size()),
+	        .pProfiles = video_profiles.data(),
+	};
+#endif
+
 	cn->psc.images.resize(cn->image_count);
 	std::vector<vk::Image> rgb;
 	for (uint32_t i = 0; i < cn->image_count; i++)
@@ -158,11 +181,18 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		std::array formats = {
 		        vk::Format::eR8Unorm,
 		        vk::Format::eR8G8Unorm,
+		        format,
 		};
 		vk::ImageFormatListCreateInfo formats_info{
 		        .viewFormatCount = formats.size(),
 		        .pViewFormats = formats.data(),
 		};
+
+#if WIVRN_USE_VULKAN_ENCODE
+		if (video_profile_list.profileCount)
+			formats_info.pNext = &video_profile_list;
+#endif
+
 		auto & image = cn->psc.images[i].image;
 		image = image_allocation(
 		        device, {
@@ -179,7 +209,11 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                        .arrayLayers = 1,
 		                        .samples = vk::SampleCountFlagBits::e1,
 		                        .tiling = vk::ImageTiling::eOptimal,
-		                        .usage = flags | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
+		                        .usage = flags
+#if WIVRN_USE_VULKAN_ENCODE
+		                                 | encoder_flags
+#endif
+		                                 | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
 		                        .sharingMode = vk::SharingMode::eExclusive,
 		                },
 		        {
