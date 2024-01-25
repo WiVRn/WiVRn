@@ -33,7 +33,7 @@ jobs:
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@286ed76c72de45dbf50c515779cf4ca2f6aa3944
       with:
-        vulkan-query-version: 1.3.275.0
+        vulkan-query-version: 1.3.283.0
         vulkan-components: Vulkan-Headers
         vulkan-use-cache: true
 
