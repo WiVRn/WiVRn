@@ -132,6 +132,10 @@ target_link_libraries(
 		nlohmann_json::nlohmann_json
 	)
 
+configure_file(dist/wivrn.service.in wivrn.service)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn.service
+	DESTINATION lib/systemd/user/)
+
 install(TARGETS wivrn-server)
 
 set_target_properties(${RUNTIME_TARGET} PROPERTIES EXCLUDE_FROM_ALL FALSE)
