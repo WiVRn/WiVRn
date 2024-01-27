@@ -11,7 +11,7 @@ env:
 
 jobs:
   build-server:
-    name: Build the WiVRn server
+    name: Linux server
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
@@ -19,6 +19,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Install dependencies
       run: >
@@ -53,11 +55,13 @@ jobs:
         files: server-build-deps.tar.xz
 
   build-test-client:
-    name: Build the WiVRn client for Linux
+    name: Linux client
     runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Install dependencies
       run: >
@@ -70,66 +74,88 @@ jobs:
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
   build-android:
-    name: Build the android WiVRn clients
+    name: Android
     runs-on: ubuntu-22.04
 
+    strategy:
+      matrix:
+        hmd: ['Standard', 'Pico']
+        buildtype: ['Release', 'Debug', 'DebugWithValidationLayer']
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-      - name: Checkout LFS objects
-        run: git lfs checkout
+    - uses: actions/checkout@v4
+      with:
+        lfs: ${{ matrix.hmd == 'Pico' }}
+        fetch-depth: 0
+    - name: Checkout LFS objects
+      run: git lfs checkout
+      if: ${{ matrix.hmd == 'Pico' }}
 
-      - name: set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
+    - name: set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
 
-      - name: Install dependencies
-        run: >
-          sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin
+    - name: Install dependencies
+      run: >
+        sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin
 
-      - name: Secrets
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          APK_SIGNINGKEYPASSWORD: ${{ secrets.APK_SIGNINGKEYPASSWORD }}
-          APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
-        run: |
-          echo signingKeyPassword="$APK_SIGNINGKEYPASSWORD" > gradle.properties
-          echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
+    - name: Secrets
+      if: ${{ github.event_name != 'pull_request' }}
+      env:
+        APK_SIGNINGKEYPASSWORD: ${{ secrets.APK_SIGNINGKEYPASSWORD }}
+        APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+      run: |
+        echo signingKeyPassword="$APK_SIGNINGKEYPASSWORD" > gradle.properties
+        echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
 
-      - name: Build (debug only)
-        if: ${{ github.event_name == 'pull_request' }}
-        run: |
-          chmod +x gradlew
-          ./gradlew assemblePicoDebug assemblePicoDebugWithValidationLayer assembleStandardDebug assembleStandardDebugWithValidationLayer
+    - name: Build
+      run: |
+        chmod +x gradlew
+        ./gradlew assemble${{ matrix.hmd }}${{ matrix.buildtype }}
 
-      - name: Build
-        if: ${{ github.event_name != 'pull_request' }}
-        run: |
-          chmod +x gradlew
-          ./gradlew assemblePico assembleStandard
+    - name: Prepare before archiving artifacts
+      run: |
+        mkdir apk
+        mv $(find build/outputs/apk/ -name "*.apk") apk/
+        mkdir debug
+        mv build/intermediates/merged_native_libs/*/out/lib/* debug/
+        find debug -name libopenxr_loader.so -delete
 
-      - name: Prepare before archiving artifacts
-        run: |
-          mkdir apk
-          mv $(find build/outputs/apk/ -name "*.apk") apk/
+    - name: Archive APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-${{ matrix.hmd }}-${{ (github.event_name == 'pull_request' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
+        path: apk/*.apk
 
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: APK
-          path: apk/*.apk
+    - name: Archive debug symbols
+      if: ${{ matrix.buildtype != 'Release' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: symbols-${{ matrix.hmd }}-${{ matrix.buildtype }}
+        path: debug/**/*.so
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          tag_name: ${{ inputs.ref }}
-          generate_release_notes: true
-          draft: true
-          files: |
-            apk/WiVRn-pico-release.apk
-            apk/WiVRn-standard-release.apk
+  release:
+    name: Create release
+    runs-on: ubuntu-22.04
+    if: success() && startsWith(github.ref, 'refs/tags/')
+    needs: build-android
+
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: apk
+        pattern: '*-Release'
+        merge-multiple: true
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ inputs.ref }}
+        generate_release_notes: true
+        draft: true
+        files: |
+          apk/*.apk
