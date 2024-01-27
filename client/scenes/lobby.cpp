@@ -570,26 +570,19 @@ void scenes::lobby::gui_server_list()
 			if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
 				selected_item = cookie;
 
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenOverlappedByItem))
-			{
-				std::string tooltip = fmt::format("Autoconnect: {}\nManual: {}\nVisible: {}\nCookie: {}", data.autoconnect, data.manual, data.visible, cookie);
-
-				ImGui::SetTooltip("%s", tooltip.c_str());
-			}
-
 			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
 			ImGui::Text("%s", name.c_str());
 
-			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
-			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0,255,0,255));
-
-			if (ImGui::Checkbox("Autoconnect", &data.autoconnect))
-				save_config();
-
-			if (ImGui::IsItemHovered())
-				hovered_item = "autoconnect " + cookie;
-
-			ImGui::PopStyleColor();
+			if (!data.manual)
+			{
+				ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0,255,0,255));
+				if (ImGui::Checkbox("Autoconnect", &data.autoconnect))
+					save_config();
+				if (ImGui::IsItemHovered())
+					hovered_item = "autoconnect " + cookie;
+				ImGui::PopStyleColor();
+			}
 
 			// TODO
 			// if (ImGui::IsItemHovered())
@@ -617,7 +610,7 @@ void scenes::lobby::gui_server_list()
 			ImGui::EndDisabled();
 
 			button_position.x -= button_size.x + style.WindowPadding.x;
-			// if (data.manual) // TODO save manually added servers
+			// if (data.manual)
 			{
 				ImGui::SetCursorPos(button_position);
 				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
