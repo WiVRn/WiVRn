@@ -29,10 +29,10 @@ scene::~scene() {}
 
 scene::scene(key, const meta& current_meta) :
 	instance(application::instance().xr_instance),
+	system(application::instance().xr_system_id),
 	session(application::instance().xr_session),
 	world_space(application::instance().world_space),
 	viewconfig(application::instance().app_info.viewconfig),
-	swapchains(application::instance().xr_swapchains),
 
 	vk_instance(application::instance().vk_instance),
 	device(application::instance().vk_device),
@@ -46,3 +46,6 @@ scene::scene(key, const meta& current_meta) :
 
 void scene::on_unfocused() {}
 void scene::on_focused() {}
+void scene::on_interaction_profile_changed() {}
+void scene::on_reference_space_changed(XrReferenceSpaceType) {}
+void scene::on_session_state_changed(XrSessionState) {}

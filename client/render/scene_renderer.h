@@ -42,6 +42,7 @@ struct pipeline_info
 	vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eNone;
 	vk::FrontFace front_face = vk::FrontFace::eClockwise;
 	vk::PrimitiveTopology topology = vk::PrimitiveTopology::eTriangleList;
+	bool blend_enable = false;
 
 	bool operator==(const pipeline_info & other) const noexcept = default;
 };
@@ -75,6 +76,9 @@ public:
 
 		image_allocation depth_buffer;
 		vk::raii::ImageView depth_view = nullptr;
+
+		image_allocation multisample_image;
+		vk::raii::ImageView multisample_view = nullptr;
 	};
 
 	// Initialization functions
@@ -164,7 +168,7 @@ public:
 	void update_material_descriptor_set(scene_data::material& material);
 
 public:
-	scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool, vk::Extent2D output_size, vk::Format output_format, std::span<vk::Format> depth_formats, int frames_in_flight = 3);
+	scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool, vk::Extent2D output_size, vk::Format output_format, std::span<vk::Format> depth_formats, int frames_in_flight = 2);
 
 	~scene_renderer();
 

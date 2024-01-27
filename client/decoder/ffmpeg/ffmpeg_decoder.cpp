@@ -62,7 +62,7 @@ static AVCodecID codec_id(xrt::drivers::wivrn::video_codec codec)
 
 decoder::blit_handle::~blit_handle()
 {
-	std::lock_guard lock(self->mutex);
+	std::unique_lock lock(self->mutex);
 	if (image_index < 0)
 		return;
 

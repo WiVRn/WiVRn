@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "utils/named_thread.h"
 #include "decoder/shard_accumulator.h"
 #include "scene.h"
 #include "stream_reprojection.h"
@@ -83,6 +84,9 @@ class stream : public scene_impl<stream>, public std::enable_shared_from_this<st
 	XrTime first_frame_time{};
 	const float dbrightness = 2;
 
+	std::vector<xr::swapchain> swapchains;
+	vk::Format swapchain_format;
+
 	std::optional<audio> audio_handle;
 
 	stream() = default;
@@ -101,11 +105,6 @@ public:
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(audio_data&&);
-
-	vk::Format swapchain_format()
-	{
-		return swapchains[0].format();
-	}
 
 	void push_blit_handle(shard_accumulator * decoder, std::shared_ptr<shard_accumulator::blit_handle> handle);
 

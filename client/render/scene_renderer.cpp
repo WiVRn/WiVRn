@@ -173,7 +173,7 @@ scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevi
                                       .uniform_buffer_dynamic = frames_in_flight,
                               },
                       frames_in_flight),
-        ds_pool_material(device, {.combined_image_sampler = 500, .uniform_buffer = 100}, 100)
+        ds_pool_material(device, {.combined_image_sampler = 500, .uniform_buffer = 100}, 100) // TODO tunable
 {
 	// Create the default material
 	default_material = create_default_material(cb_pool);
@@ -253,7 +253,7 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	std::array attachments = {
 	        vk::AttachmentDescription{
 	                .format = output_format,
-	                .samples = vk::SampleCountFlagBits::e1,
+	                .samples = vk::SampleCountFlagBits::e4,
 	                .loadOp = vk::AttachmentLoadOp::eClear,
 	                .storeOp = vk::AttachmentStoreOp::eStore,
 	                .initialLayout = vk::ImageLayout::eUndefined,
@@ -261,13 +261,24 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	        },
 	        vk::AttachmentDescription{
 	                .format = depth_format,
-	                .samples = vk::SampleCountFlagBits::e1,
+	                .samples = vk::SampleCountFlagBits::e4,
 	                .loadOp = vk::AttachmentLoadOp::eClear,
 	                .storeOp = vk::AttachmentStoreOp::eDontCare,
 	                .stencilLoadOp = vk::AttachmentLoadOp::eClear,
 	                .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
 	                .initialLayout = vk::ImageLayout::eUndefined,
 	                .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+
+	        },
+	        vk::AttachmentDescription{
+	                .format = output_format,
+	                .samples = vk::SampleCountFlagBits::e1,
+	                .loadOp = vk::AttachmentLoadOp::eDontCare,
+	                .storeOp = vk::AttachmentStoreOp::eStore,
+	                .stencilLoadOp = vk::AttachmentLoadOp::eClear,
+	                .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+	                .initialLayout = vk::ImageLayout::eUndefined,
+	                .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
 
 	        }};
 	info.setAttachments(attachments);
@@ -282,11 +293,18 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	        .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
 	};
 
+	vk::AttachmentReference resolve_attachment{
+	        .attachment = 2,
+	        .layout = vk::ImageLayout::eColorAttachmentOptimal,
+	};
+
 	vk::SubpassDescription subpasses{
 	        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
+		.colorAttachmentCount = 1,
+		.pColorAttachments = &color_attachment,
+		.pResolveAttachments = &resolve_attachment,
 	        .pDepthStencilAttachment = &depth_attachment,
 	};
-	subpasses.setColorAttachments(color_attachment);
 	info.setSubpasses(subpasses);
 
 	std::array dependencies{
@@ -343,13 +361,14 @@ scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image 
 	                                            },
 	                                            .mipLevels = 1,
 	                                            .arrayLayers = 1,
-	                                            .samples = vk::SampleCountFlagBits::e1,
+	                                            .samples = vk::SampleCountFlagBits::e4,
 	                                            .tiling = vk::ImageTiling::eOptimal,
-	                                            .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment
+	                                            .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment
 
 	                                    },
 	                                    VmaAllocationCreateInfo{
-	                                            .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, .usage = VMA_MEMORY_USAGE_AUTO,
+	                                            .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+						    .usage = VMA_MEMORY_USAGE_AUTO,
 	                                            .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // TODO: check
 	                                    }};
 
@@ -361,6 +380,35 @@ scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image 
 	                                                     .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eDepth, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1},
 	                                             });
 
+	out.multisample_image = image_allocation{vk::ImageCreateInfo{
+	                                            .imageType = vk::ImageType::e2D,
+	                                            .format = output_format,
+	                                            .extent = {
+	                                                    .width = output_size.width,
+	                                                    .height = output_size.height,
+	                                                    .depth = 1,
+	                                            },
+	                                            .mipLevels = 1,
+	                                            .arrayLayers = 1,
+	                                            .samples = vk::SampleCountFlagBits::e4,
+	                                            .tiling = vk::ImageTiling::eOptimal,
+	                                            .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment
+
+	                                    },
+	                                    VmaAllocationCreateInfo{
+	                                            .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+						    .usage = VMA_MEMORY_USAGE_AUTO,
+	                                            .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // TODO: check
+						    .preferredFlags = VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+	                                    }};
+	out.multisample_view = vk::raii::ImageView(device, vk::ImageViewCreateInfo{
+	                                                     .image = out.multisample_image,
+	                                                     .viewType = vk::ImageViewType::e2D,
+	                                                     .format = output_format,
+	                                                     .components{},
+	                                                     .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1},
+	                                             });
+
 	vk::FramebufferCreateInfo fb_info{
 	        .renderPass = *renderpass,
 	        .width = output_size.width,
@@ -369,8 +417,10 @@ scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image 
 	};
 
 	std::array attachments{
+		vk::ImageView{*out.multisample_view},
+	        vk::ImageView{*out.depth_view},
 	        vk::ImageView{*out.image_view},
-	        vk::ImageView{*out.depth_view}};
+	};
 	fb_info.setAttachments(attachments);
 	out.framebuffer = vk::raii::Framebuffer(device, fb_info);
 
@@ -433,7 +483,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                                                           .lineWidth = 1.0,
 	                                                   }},
 	                                                   .MultisampleState = {vk::PipelineMultisampleStateCreateInfo{
-	                                                           .rasterizationSamples = vk::SampleCountFlagBits::e1,
+	                                                           .rasterizationSamples = vk::SampleCountFlagBits::e4,
 	                                                   }},
 	                                                   .DepthStencilState = {vk::PipelineDepthStencilStateCreateInfo{
 	                                                           .depthTestEnable = true,
@@ -445,6 +495,13 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                                                   }},
 	                                                   .ColorBlendState = {vk::PipelineColorBlendStateCreateInfo{}},
 	                                                   .ColorBlendAttachments = {vk::PipelineColorBlendAttachmentState{
+								   .blendEnable = info.blend_enable,
+								   .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+								   .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+								   .colorBlendOp = vk::BlendOp::eAdd,
+								   .srcAlphaBlendFactor = vk::BlendFactor::eSrcAlpha,
+								   .dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+								   .alphaBlendOp = vk::BlendOp::eAdd,
 								   .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB}},
 	                                                   .DynamicState = {},
 	                                                   .layout = *pipeline_layout,
@@ -465,6 +522,8 @@ vk::Sampler scene_renderer::get_sampler(const sampler_info & info)
 	                                                               .mipmapMode = info.min_filter_mipmap,
 	                                                               .addressModeU = info.wrapS,
 	                                                               .addressModeV = info.wrapT,
+						// .anisotropyEnable = true,
+						// .maxAnisotropy = 4,
 	                                                       });
 
 	samplers.emplace(info, out);
@@ -480,7 +539,6 @@ scene_renderer::per_frame_resources & scene_renderer::start_frame()
 
 	frame_resources[current_frame].resources.clear();
 	frame_resources[current_frame].cb.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-	// frame_resources[current_frame].
 
 	return frame_resources[current_frame];
 }
@@ -534,6 +592,23 @@ void scene_renderer::update_material_descriptor_set(scene_data::material& materi
 	device.updateDescriptorSets(write_ds, {});
 }
 
+static void print_scene_hierarchy(const scene_data& scene, std::span<glm::mat4> model_matrices, size_t root = scene_data::scene_object::root_id, int level = 0)
+{
+	for(const auto&& [index, node]: utils::enumerate(scene.scene_objects))
+	{
+		if (node.parent_id != root)
+			continue;
+
+		// glm::mat4 M = model_matrices[index];
+		// glm::vec4 pos = glm::column(M, 3);
+		// spdlog::info("{:{}} {} pos={}, rot={}, pos to root={}", "", level * 2, node.name, node.translation, node.rotation, glm::vec3(pos));
+
+		spdlog::info("{:{}} {}", "", level * 2, node.name);
+
+		print_scene_hierarchy(scene, model_matrices, index, level + 1);
+	}
+}
+
 void scene_renderer::render(scene_data & scene, std::span<frame_info> frames)
 {
 	size_t ubo_alignment = physical_device_properties.limits.minUniformBufferOffsetAlignment;
@@ -582,7 +657,9 @@ void scene_renderer::render(scene_data & scene, std::span<frame_info> frames)
 		                                                     .usage = vk::BufferUsageFlagBits::eUniformBuffer},
 		                                             VmaAllocationCreateInfo{
 		                                                     .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-		                                                     .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE}};
+		                                                     .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
+			"scene_renderer::render (UBO staging)"
+		};
 	}
 
 	// if (!resources.uniform_buffer || resources.uniform_buffer.info().size < ubo_size)
@@ -610,6 +687,7 @@ void scene_renderer::render(scene_data & scene, std::span<frame_info> frames)
 	std::vector<bool> reverse_side(scene.scene_objects.size());
 	std::vector<bool> visible(scene.scene_objects.size());
 
+
 	for(const auto& [index, object]: utils::enumerate(scene.scene_objects))
 	{
 		glm::mat4 transform_to_parent = glm::translate(glm::mat4(1), object.translation) * (glm::mat4)object.rotation * glm::scale(glm::mat4(1), object.scale);
@@ -634,6 +712,8 @@ void scene_renderer::render(scene_data & scene, std::span<frame_info> frames)
 		}
 	}
 
+	// print_scene_hierarchy(scene, transform_to_root);
+
 	for (const auto && [frame_index, frame]: utils::enumerate(frames))
 	{
 		scene_renderer::output_image & output = get_output_image_data(frame.destination);
@@ -641,9 +721,16 @@ void scene_renderer::render(scene_data & scene, std::span<frame_info> frames)
 
 		frame_gpu_data& frame_ubo = *reinterpret_cast<frame_gpu_data*>(ubo + *current_ubo_frame_offset);
 
-		frame_ubo.ambient_color = glm::vec4(0.5,0.5,0.5,0); // TODO
-		frame_ubo.light_color = glm::vec4(0.5,0.5,0.5,0); // TODO
-		frame_ubo.light_position = glm::vec4(0,1,0,0); // TODO
+		// frame_ubo.ambient_color = glm::vec4(0.5,0.5,0.5,0); // TODO
+		// frame_ubo.light_color = glm::vec4(0.5,0.5,0.5,0); // TODO
+
+		// frame_ubo.ambient_color = glm::vec4(0.2,0.2,0.2,0); // TODO
+		// frame_ubo.light_color = glm::vec4(0.8,0.8,0.8,0); // TODO
+
+		frame_ubo.ambient_color = glm::vec4(0,0,0,0); // TODO
+		frame_ubo.light_color = glm::vec4(0.8,0.8,0.8,0); // TODO
+
+		frame_ubo.light_position = glm::vec4(1,1,1,0); // TODO
 		frame_ubo.proj = frame.projection;
 		frame_ubo.view = frame.view;
 
@@ -712,10 +799,11 @@ void scene_renderer::render(scene_data & scene, std::span<frame_info> frames)
 
 				// Get the pipeline
 				pipeline_info info{
-					.shader_name = "lit",
+					.shader_name = material->shader_name,
 					.cull_mode = primitive.cull_mode,
 					.front_face = primitive.front_face,
-					.topology = primitive.topology
+					.topology = primitive.topology,
+					.blend_enable = material->blend_enable,
 				};
 
 				if (material->double_sided)

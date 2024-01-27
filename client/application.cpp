@@ -26,11 +26,13 @@
 #include "spdlog/spdlog.h"
 #include "utils/check.h"
 #include "utils/files.h"
+#include "utils/named_thread.h"
 #include "xr/actionset.h"
 #include "xr/xr.h"
 #include <algorithm>
 #include "utils/contains.h"
 #include <algorithm>
+#include <chrono>
 #include <ctype.h>
 #include <string>
 #include <exception>
@@ -491,7 +493,9 @@ void application::initialize_vulkan()
 		.pQueuePriorities = &queuePriority
 	};
 
-	vk::PhysicalDeviceFeatures device_features;
+	vk::PhysicalDeviceFeatures device_features{
+		// .samplerAnisotropy = true,
+	};
 
 	vk::StructureChain device_create_info{
 		vk::DeviceCreateInfo{
@@ -753,32 +757,7 @@ void application::initialize()
 
 	view_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
 	world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
-
-	swapchain_format = vk::Format::eUndefined;
-	for (auto i: xr_session.get_swapchain_formats())
-	{
-		if (std::find(supported_formats.begin(), supported_formats.end(), i) != supported_formats.end())
-		{
-			swapchain_format = i;
-			break;
-		}
-	}
-
-	if (swapchain_format == vk::Format::eUndefined)
-		throw std::runtime_error("No supported swapchain format");
-
-	spdlog::info("Using format {}", vk::to_string(swapchain_format));
-
-	auto views = xr_system_id.view_configuration_views(app_info.viewconfig);
-
-	xr_swapchains.reserve(views.size());
-	for (auto view: views)
-	{
-		view = override_view(view, guess_model());
-		xr_swapchains.emplace_back(xr_session, vk_device, swapchain_format, view.recommendedImageRectWidth, view.recommendedImageRectHeight);
-
-		spdlog::info("Created swapchain {}: {}x{}", xr_swapchains.size(), xr_swapchains.back().width(), xr_swapchains.back().height());
-	}
+	// world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_LOCAL);
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;
 	cmdpool_create_info.queueFamilyIndex = vk_queue_family_index;
@@ -987,11 +966,11 @@ void application::loop()
 	}
 	else
 	{
-		poll_actions();
 
 		auto scene = current_scene();
 		if (scene)
 		{
+			poll_actions();
 			if (auto tmp = last_scene.lock(); scene != tmp)
 			{
 				if (tmp)
@@ -1006,6 +985,7 @@ void application::loop()
 		}
 		else
 		{
+			spdlog::info("Last scene popped: exiting");
 			exit_requested = true;
 		}
 	}
@@ -1014,7 +994,7 @@ void application::loop()
 #ifdef __ANDROID__
 void application::run()
 {
-	std::thread application_thread{[&]() {
+	auto application_thread = utils::named_thread("application_thread", [&]() {
 		setup_jni();
 
 		while (!is_exit_requested())
@@ -1034,8 +1014,7 @@ void application::run()
 				exit_requested = true;
 			}
 		}
-	}};
-	pthread_setname_np(application_thread.native_handle(), "application_thread");
+	});
 
 	// Read all pending events.
 	while (!exit_requested)
@@ -1043,7 +1022,8 @@ void application::run()
 		int events;
 		struct android_poll_source * source;
 
-		while (ALooper_pollAll(-1, nullptr, &events, (void **)&source) >= 0)
+		// TODO signal with a file descriptor instead of a 100ms timeout
+		while (ALooper_pollAll(100, nullptr, &events, (void **)&source) >= 0)
 		{
 			// Process this event.
 			if (source != nullptr)

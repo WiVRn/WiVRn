@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "utils/named_thread.h"
 #include "utils/sync_queue.h"
 #include "wivrn_packets.h"
 #include <atomic>

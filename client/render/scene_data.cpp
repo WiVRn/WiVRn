@@ -610,6 +610,8 @@ public:
 			material_ref.buffer.reset();
 			material_ref.ds.reset();
 
+			material_ref.double_sided = gltf_material.doubleSided;
+
 			scene_data::material::gpu_data & material_data = material_ref.staging;
 
 			material_data.base_color_factor = convert(gltf_material.pbrData.baseColorFactor);
@@ -718,7 +720,7 @@ public:
 				primitive_ref.vertex_count = vertices.size();
 
 				primitive_ref.cull_mode = vk::CullModeFlagBits::eBack; // TBC
-				primitive_ref.front_face = vk::FrontFace::eClockwise;  // TBC
+				primitive_ref.front_face = vk::FrontFace::eCounterClockwise;  // TBC
 				primitive_ref.topology = convert(gltf_primitive.type);
 
 				if (gltf_primitive.materialIndex)

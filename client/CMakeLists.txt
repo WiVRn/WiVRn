@@ -15,10 +15,12 @@ add_library(imgui OBJECT
 )
 
 target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+# target_compile_definitions(imgui PUBLIC "IMGUI_USER_CONFIG=\"render/imgui_config.h\"")
 target_compile_definitions(imgui PUBLIC IMGUI_USE_WCHAR32)
 target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
 target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
 # target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
+target_compile_definitions(imgui PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
 target_link_libraries(imgui PUBLIC FreetypeHarfbuzz)
 
 add_library(stb INTERFACE)

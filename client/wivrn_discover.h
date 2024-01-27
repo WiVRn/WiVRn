@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/named_thread.h"
 #include <chrono>
 #include <map>
 #include <memory>

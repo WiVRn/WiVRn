@@ -1,5 +1,6 @@
 #include "wivrn_discover.h"
 #include "mdns.h"
+#include "utils/named_thread.h"
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <net/if.h>
@@ -537,14 +538,14 @@ void wivrn_discover::discover(std::string service_name)
 			}
 		}
 
-		std::lock_guard lock(mutex);
+		std::unique_lock lock(mutex);
 		std::swap(services, services_staging);
 		services_staging.clear();
 	}
 }
 
 wivrn_discover::wivrn_discover(std::string service_name) :
-        cache(std::make_unique<dnssd_cache>()), dnssd_thread(&wivrn_discover::discover, this, service_name)
+        cache(std::make_unique<dnssd_cache>()), dnssd_thread(utils::named_thread("dnssd_thread", &wivrn_discover::discover, this, service_name))
 {
 }
 
@@ -557,7 +558,7 @@ wivrn_discover::~wivrn_discover()
 
 std::vector<wivrn_discover::service> wivrn_discover::get_services()
 {
-	std::lock_guard lock(mutex);
+	std::unique_lock lock(mutex);
 
 	auto now = steady_clock::now();
 

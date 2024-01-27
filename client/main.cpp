@@ -73,7 +73,7 @@ void real_main()
 				.ai_socktype = SOCK_STREAM,
 			};
 			struct addrinfo * addresses;
-			if (int err = getaddrinfo(server_address.c_str(), NULL, &hint, &addresses))
+			if (int err = getaddrinfo(server_address.c_str(), nullptr, &hint, &addresses))
 			{
 				throw std::runtime_error("Unable to resolve address for " + server_address + ":" + gai_strerror(err));
 			}

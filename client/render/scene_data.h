@@ -117,6 +117,8 @@ struct scene_data
 		bool ds_dirty;
 
 		std::string name;
+		std::string shader_name = "lit";
+		bool blend_enable = false;
 	};
 
 	struct vertex

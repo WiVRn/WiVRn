@@ -157,7 +157,7 @@ wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream
 		if (result != AAUDIO_OK)
 			spdlog::error("Cannot create output stream: {}", AAudio_convertResultToText(result));
 		else
-			output_thread = std::thread(&audio::output, this, stream, *desc.speaker);
+			output_thread = utils::named_thread("audio_output_thread", &audio::output, this, stream, *desc.speaker);
 	}
 
 	if (desc.microphone)
@@ -173,7 +173,7 @@ wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream
 		if (result != AAUDIO_OK)
 			spdlog::error("Cannot create input stream: {}", AAudio_convertResultToText(result));
 		else
-			input_thread = std::thread(&audio::input, this, stream, *desc.microphone);
+			input_thread = utils::named_thread("audio_input_thread", &audio::input, this, stream, *desc.microphone);
 	}
 
 	AAudioStreamBuilder_delete(builder);

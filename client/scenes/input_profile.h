@@ -19,6 +19,7 @@
 #pragma once
 
 #include <filesystem>
+#include <variant>
 #include <render/scene_data.h>
 #include <openxr/openxr.h>
 #include <glm/glm.hpp>

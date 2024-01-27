@@ -56,6 +56,8 @@ struct wivrn::android::decoder::pipeline_context
 	pipeline_context(vk::raii::Device& device, const AHardwareBuffer_Desc& buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format, vk::raii::RenderPass& renderpass, const to_headset::video_stream_description::item& description) :
 	        device(device), ahb_format(ahb_format)
 	{
+		spdlog::info("descriptor_pool_mutex.native_handle() = {}", (void*)descriptor_pool_mutex.native_handle());
+
 		assert(ahb_format.externalFormat != 0);
 		spdlog::info("AndroidHardwareBufferProperties");
 		spdlog::info("  Vulkan format: {}", vk::to_string(ahb_format.format));
@@ -435,6 +437,8 @@ decoder::decoder(
         shard_accumulator * accumulator) :
         description(description), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
 {
+	spdlog::info("hbm_mutex.native_handle() = {}", (void*)hbm_mutex.native_handle());
+
 	AImageReader * ir;
 	check(AImageReader_newWithUsage(description.width, description.height, AIMAGE_FORMAT_PRIVATE, AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE, 5 /* maxImages */, &ir),
 	      "AImageReader_newWithUsage");
@@ -447,7 +451,7 @@ decoder::decoder(
 	        application::get_vulkan_proc<PFN_vkGetAndroidHardwareBufferPropertiesANDROID>(
 	                "vkGetAndroidHardwareBufferPropertiesANDROID");
 
-	output_releaser = std::thread([this]() {
+	output_releaser = utils::named_thread("decoder-" + std::to_string(stream_index), [this]() {
 		while (true)
 		{
 			try
@@ -469,14 +473,17 @@ decoder::decoder(
 			}
 		}
 	});
-	pthread_setname_np(output_releaser.native_handle(), ("decoder-" + std::to_string(stream_index)).c_str());
 }
 
 decoder::~decoder()
 {
 	input_buffers.close();
 	output_buffers.close();
-	output_releaser.join();
+
+	if (output_releaser.joinable())
+		output_releaser.join();
+
+	spdlog::info("decoder::~decoder");
 }
 
 void decoder::set_blit_targets(std::vector<decoder::blit_target> targets, vk::Format format)
@@ -652,7 +659,7 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 	AHardwareBuffer * hardware_buffer;
 	check(AImage_getHardwareBuffer(image, &hardware_buffer), "AImage_getHardwareBuffer");
 
-	std::lock_guard lock(hbm_mutex);
+	std::unique_lock lock(hbm_mutex);
 
 	AHardwareBuffer_Desc buffer_desc{};
 	AHardwareBuffer_describe(hardware_buffer, &buffer_desc);

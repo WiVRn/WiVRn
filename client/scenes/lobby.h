@@ -25,9 +25,10 @@
 #include "wivrn_discover.h"
 
 #include <optional>
+#include <vector>
+#include <map>
 
 #include "render/scene_renderer.h"
-#include "render/text_rasterizer.h"
 #include "render/imgui_impl.h"
 #include "input_profile.h"
 
@@ -37,20 +38,25 @@ class stream;
 
 class lobby : public scene_impl<lobby>
 {
-	std::string status_string;
-	std::string last_status_string;
-	vk::raii::Sampler status_string_sampler = nullptr;
-	text status_string_rasterized_text;
-	vk::raii::ImageView status_string_image_view = nullptr;
-	vk::raii::DescriptorPool status_string_descriptor_pool = nullptr;
-	vk::raii::DescriptorSetLayout status_string_image_descriptor_set_layout = nullptr;
-	vk::DescriptorSet status_string_image_descriptor_set;
-	text_rasterizer status_string_rasterizer;
+	struct server_data
+	{
+		bool autoconnect;
+		bool manual;
+		bool visible;
+
+		wivrn_discover::service service;
+	};
 
 	std::optional<wivrn_discover> discover;
+	std::map<std::string, server_data> servers;
 
+	bool show_add_server_window = false;
+	char add_server_window_prettyname[200];
+	char add_server_window_hostname[200];
+	int add_server_window_port;
 
 	std::shared_ptr<stream> next_scene;
+	std::string server_name;
 
 	std::optional<scene_renderer> renderer;
 	scene_data teapot; // Must be after the renderer so that the descriptor sets are freed before their pools
@@ -58,8 +64,31 @@ class lobby : public scene_impl<lobby>
 
 	std::optional<imgui_context> imgui_ctx;
 	std::shared_ptr<scene_data::material> imgui_material;
+	scene_object_handle imgui_node;
+	std::array<XrAction, 2> haptic_output;
 
-	void rasterize_status_string();
+	std::string selected_item;
+	std::string hovered_item;
+
+	std::vector<xr::swapchain> swapchains;
+	vk::Format swapchain_format;
+
+	void save_config();
+
+	void update_server_list();
+
+	void draw_gui(XrTime predicted_display_time);
+
+	bool move_gui_first_time = true;
+
+	void move_gui(glm::vec3 position, glm::quat orientation, XrTime predicted_display_time);
+
+	void gui_connecting();
+	void gui_server_list();
+	void gui_add_server();
+	void gui_keyboard(ImVec2 size);
+
+	void connect(server_data& data, bool manual);
 
 public:
 	virtual ~lobby();

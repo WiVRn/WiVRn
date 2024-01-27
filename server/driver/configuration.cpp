@@ -26,6 +26,7 @@
 #define JSON_DIAGNOSTICS 1
 #include <nlohmann/json.hpp>
 #include <stdlib.h>
+#include <random>
 
 #include "util/u_logging.h"
 
@@ -45,6 +46,11 @@ static std::filesystem::path get_config_base_dir()
 static std::filesystem::path get_config_file()
 {
 	return get_config_base_dir() / "wivrn" / "config.json";
+}
+
+static std::filesystem::path get_cookie_file()
+{
+	return get_config_base_dir() / "wivrn" / "cookie";
 }
 
 namespace xrt::drivers::wivrn
@@ -123,4 +129,45 @@ configuration configuration::read_user_configuration()
 	}
 
 	return result;
+}
+
+std::string server_cookie()
+{
+	auto path = get_cookie_file();
+
+	{
+		std::ifstream cookie(path);
+		char buffer[33];
+		cookie.read(buffer, sizeof(buffer) - 1);
+
+		if (cookie)
+			return {buffer, sizeof(buffer) - 1};
+	}
+
+	{
+		std::random_device r;
+		std::default_random_engine engine(r());
+
+		std::uniform_int_distribution<int> dist(0, 61);
+
+		char buffer[33];
+		for(int i = 0; i < 32; i++)
+		{
+			int c = dist(engine);
+
+			if (c < 10)
+				buffer[i] = '0' + c;
+			else if (c < 36)
+				buffer[i] = 'A' + c - 10;
+			else
+				buffer[i] = 'a' + c - 36;
+		}
+
+		buffer[sizeof(buffer) - 1] = 0;
+
+		std::ofstream cookie(path);
+		cookie.write(buffer, sizeof(buffer) - 1);
+
+		return buffer;
+	}
 }

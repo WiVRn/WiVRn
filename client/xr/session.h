@@ -22,6 +22,7 @@
 #include "utils/handle.h"
 #include <string>
 #include <vector>
+#include <span>
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 

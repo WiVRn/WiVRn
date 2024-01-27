@@ -40,6 +40,8 @@ endif()
 
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
+find_package(Git)
+
 
 if (WIVRN_USE_SYSTEM_BOOST STREQUAL "AUTO")
     find_package(Boost 1.75.0)
@@ -130,10 +132,11 @@ FetchContent_Declare(monado
     GIT_TAG          79bf8eb8fa168f65f4e5505e0525ee74aa88783e
     )
 
-# Use the docking branch of imgui to use multi-viewport
 FetchContent_Declare(imgui
-    GIT_REPOSITORY   https://github.com/ocornut/imgui.git
-    GIT_TAG          ce0d0ac8298ce164b5d862577e8b087d92f6e90e
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.90.1.tar.gz
+# Use the docking branch of imgui to use multi-viewport
+    # GIT_REPOSITORY   https://github.com/ocornut/imgui.git
+    # GIT_TAG          ce0d0ac8298ce164b5d862577e8b087d92f6e90e
     )
 
 add_subdirectory(external)

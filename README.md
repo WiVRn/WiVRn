@@ -147,6 +147,7 @@ Identifier (number) of the encoder group. Encoders with the same identifier are 
 			"codec": "h265"
 		}
 	]
+}
 ```
 Creates a single encoder, using vaapi hardware encoding, h265 video codec (HEVC) and 50Mb/s bitrate.
 
@@ -246,5 +247,6 @@ WiVRn uses the following software:
 - [spdlog](https://github.com/gabime/spdlog)
 - [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [x264](https://www.videolan.org/developers/x264.html) optional, for software encoding
-
-The controller models are from the [WebXR input profiles](https://www.npmjs.com/package/@webxr-input-profiles/motion-controllers)
+- [ambientCG](https://ambientcg.com/)
+- [Roboto](https://fonts.google.com/specimen/Roboto)
+- [WebXR input profiles](https://www.npmjs.com/package/@webxr-input-profiles/motion-controllers)

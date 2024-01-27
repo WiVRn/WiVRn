@@ -199,6 +199,7 @@ int inner_main(int argc, char * argv[])
 	std::map<std::string, std::string> TXT;
 	TXT["protocol"] = protocol_string;
 	TXT["version"] = xrt::drivers::wivrn::git_version;
+	TXT["cookie"] = server_cookie();
 
 	bool quit = false;
 	while (!quit)

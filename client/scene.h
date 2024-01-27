@@ -70,10 +70,10 @@ protected:
 	static std::vector<meta*> scene_registry;
 
 	xr::instance & instance;
+	xr::system & system;
 	xr::session & session;
 	xr::space & world_space;
 	XrViewConfigurationType viewconfig;
-	std::vector<xr::swapchain> & swapchains;
 
 	vk::raii::Instance& vk_instance;
 	vk::raii::Device& device;
@@ -102,6 +102,9 @@ public:
 	virtual void render() = 0;
 	virtual void on_unfocused();
 	virtual void on_focused();
+	virtual void on_interaction_profile_changed();
+	virtual void on_reference_space_changed(XrReferenceSpaceType space);
+	virtual void on_session_state_changed(XrSessionState state);
 };
 
 template<typename T>

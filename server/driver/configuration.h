@@ -47,3 +47,5 @@ struct configuration
 
 	static configuration read_user_configuration();
 };
+
+std::string server_cookie();

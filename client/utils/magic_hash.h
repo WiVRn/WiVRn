@@ -22,6 +22,7 @@
 #include <boost/pfr/core.hpp>
 #include <type_traits>
 #include <vulkan/vulkan.hpp>
+#include <bit>
 
 namespace utils
 {

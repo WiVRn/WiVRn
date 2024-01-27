@@ -20,14 +20,14 @@
       "count": 6,
       "type": "VEC3",
       "max": [
-        0.5,
-        0.5,
-        0
+        100,
+        0,
+        100
       ],
       "min": [
-        -0.5,
-        -0.5,
-        0
+        -100,
+        0,
+        -100
       ],
       "name": "POSITION"
     },
@@ -38,12 +38,12 @@
       "count": 6,
       "type": "VEC2",
       "max": [
-        1,
+        100,
         1
       ],
       "min": [
         0,
-        0
+        -99
       ],
       "name": "TEXCOORD_0"
     },
@@ -55,13 +55,13 @@
       "type": "VEC3",
       "max": [
         0,
-        0,
-        1.0000044107437134
+        1.0000044107437134,
+        0
       ],
       "min": [
         0,
-        0,
-        1.0000044107437134
+        1.0000044107437134,
+        0
       ],
       "name": "NORMAL"
     }
@@ -72,13 +72,13 @@
   },
   "buffers": [
     {
-      "uri": "data:application/octet-stream;base64,AAABAAIAAwAEAAUAAAAAAAAAAL8AAAC/AAAAAAAAAAAAAIA/AAAAAAAAAAAlAIA/AAAAPwAAAL8AAAAAAACAPwAAgD8AAAAAAAAAACUAgD8AAAC/AAAAPwAAAAAAAAAAAAAAAAAAAAAAAAAAJQCAPwAAAD8AAAA/AAAAAAAAgD8AAAAAAAAAAAAAAAAlAIA/AAAAvwAAAD8AAAAAAAAAAAAAAAAAAAAAAAAAACUAgD8AAAA/AAAAvwAAAAAAAIA/AACAPwAAAAAAAAAAJQCAPwAAAAA=",
+      "uri": "data:application/octet-stream;base64,AAABAAIAAwAEAAUAAAAAAAAAyMIAAAAAAADIwgAAAAAAAIA/AAAAACUAgD8AAAAAAADIwgAAAAAAAMhCAADIQgAAgD8AAAAAJQCAPwAAAAAAAMhCAAAAAAAAyMIAAAAAAADGwgAAAAAlAIA/AAAAAAAAyEIAAAAAAADIQgAAyEIAAMbCAAAAACUAgD8AAAAAAADIQgAAAAAAAMjCAAAAAAAAxsIAAAAAJQCAPwAAAAAAAMjCAAAAAAAAyEIAAMhCAACAPwAAAAAlAIA/AAAAAAAAAAA=",
       "byteLength": 212
     }
   ],
    "images" : [
     {
-        "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAACYktHRAAB3YoTpAAAAAd0SU1FB+gBExMyDyqgtkcAAAAKSURBVAjXY2gAAACCAIHdQ2r0AAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI0LTAxLTE5VDE5OjUwOjE1KzAwOjAwKF3Y0gAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0wMS0xOVQxOTo1MDoxNSswMDowMFkAYG4AAAAodEVYdGRhdGU6dGltZXN0YW1wADIwMjQtMDEtMTlUMTk6NTA6MTUrMDA6MDAOFUGxAAAAAElFTkSuQmCC"
+        "uri": "WoodFloor051_1K-JPG_Color.jpg"
     }
    ],
   "bufferViews": [
@@ -115,8 +115,8 @@
   ],
    "samplers" : [
       {
-          "wrapS": 33071,
-          "wrapT": 33071,
+          "wrapS": 10497,
+          "wrapT": 10497,
           "minFilter": 9987
       }
    ],
@@ -128,20 +128,18 @@
     ],
    "materials" : [
       {
-         "name": "imgui",
+         "name": "ground",
          "pbrMetallicRoughness": {
             "baseColorTexture": {
                "index": 0
-          }
+            }
          }
       }
    ],
   "nodes": [
     {
       "mesh": 0,
-      "name": "imgui",
-      "translation": [0, 1.5, -1.5],
-      "scale": [1.5, 1, 1]
+      "name": "ground"
     }
   ],
   "scene": 0,

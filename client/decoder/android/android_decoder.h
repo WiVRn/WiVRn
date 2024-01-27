@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "utils/named_thread.h"
 #include "utils/sync_queue.h"
 #include "wivrn_packets.h"
 #include <memory>
@@ -93,6 +94,7 @@ private:
 
 	vk::raii::Device& device;
 
+	std::mutex hbm_mutex;
 	AImageReader_ptr image_reader;
 
 	AMediaCodec_ptr media_codec;
@@ -119,7 +121,6 @@ private:
 	std::vector<blit_target> blit_targets;
 
 	std::shared_ptr<pipeline_context> pipeline;
-	std::mutex hbm_mutex;
 	std::unordered_map<AHardwareBuffer *, std::shared_ptr<mapped_hardware_buffer>> hardware_buffer_map;
 	vk::raii::RenderPass renderpass = nullptr;
 

@@ -20,6 +20,7 @@
 #include "imgui_impl.h"
 
 #include "application.h"
+#include "asset.h"
 #include "openxr/openxr.h"
 #include "utils/ranges.h"
 #include "vulkan/vulkan_enums.hpp"
@@ -43,7 +44,7 @@
  * struct ImGui_ImplVulkanH_Window
  */
 
-static vk::raii::RenderPass create_renderpass(vk::raii::Device& device, vk::Format format, vk::ImageLayout final_layout, bool clear)
+static vk::raii::RenderPass create_renderpass(vk::raii::Device& device, vk::Format format, bool clear)
 {
         vk::AttachmentDescription attachment{
 		.format = format,
@@ -53,7 +54,7 @@ static vk::raii::RenderPass create_renderpass(vk::raii::Device& device, vk::Form
 		.stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
 		.stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
 		.initialLayout = vk::ImageLayout::eUndefined,
-		.finalLayout = final_layout,
+		.finalLayout = vk::ImageLayout::eTransferSrcOptimal,
 	};
 
 	vk::AttachmentReference color_attachment{
@@ -138,7 +139,7 @@ imgui_context::imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii
 	device(device),
 	size(size)
 {
-	uint32_t num_mipmaps = 1;
+	num_mipmaps = std::floor(std::log2(std::max(size.width, size.height))) + 1;
 
 	for(auto& frame:frames)
 	{
@@ -155,7 +156,7 @@ imgui_context::imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii
 				 .arrayLayers = 1,
 				 .samples = vk::SampleCountFlagBits::e1,
 				 .tiling = vk::ImageTiling::eOptimal,
-				 .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
+				 .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst,
 				 .initialLayout = vk::ImageLayout::eUndefined,
 			},
 			VmaAllocationCreateInfo{
@@ -163,7 +164,21 @@ imgui_context::imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii
 			}
 		);
 
-		frame.image_view = vk::raii::ImageView(device, vk::ImageViewCreateInfo{
+		// Only 1 mipmap level for the framebuffer view
+		frame.image_view_framebuffer = vk::raii::ImageView(device, vk::ImageViewCreateInfo{
+			.image = (vk::Image)frame.image,
+			.viewType = vk::ImageViewType::e2D,
+			.format = format,
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			}
+		});
+
+		frame.image_view_texture = vk::raii::ImageView(device, vk::ImageViewCreateInfo{
 			.image = (vk::Image)frame.image,
 			.viewType = vk::ImageViewType::e2D,
 			.format = format,
@@ -179,7 +194,7 @@ imgui_context::imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii
 		frame.framebuffer = vk::raii::Framebuffer(device, vk::FramebufferCreateInfo{
 			.renderPass = renderpass,
 			.attachmentCount = 1,
-			.pAttachments = &*frame.image_view,
+			.pAttachments = &*frame.image_view_framebuffer,
 			.width = size.width,
 			.height = size.height,
 			.layers = 1,
@@ -194,7 +209,7 @@ imgui_context::imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii
 	}
 }
 
-imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_) :
+imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, float resolution, glm::vec2 scale) :
 	device(device),
 	queue_family_index(queue_family_index),
 	queue(queue),
@@ -205,7 +220,7 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.poolSizeCount = pool_sizes.size(),
 		.pPoolSizes = pool_sizes.data(),
 	}),
-	renderpass(create_renderpass(device, vk::Format::eR8G8B8A8Unorm, vk::ImageLayout::eShaderReadOnlyOptimal, true)),
+	renderpass(create_renderpass(device, vk::Format::eR8G8B8A8Unorm, true)),
 	command_pool(device, vk::CommandPoolCreateInfo{
 		.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
 		.queueFamilyIndex = queue_family_index,
@@ -218,15 +233,15 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 	for(const auto& i:controllers_)
 		controllers.emplace_back(i, controller_state{});
 
-	viewport = std::make_shared<imgui_viewport>(device, command_pool, *renderpass, vk::Extent2D{1000, 1000}, vk::Format::eR8G8B8A8Unorm);
+	vk::Extent2D extent{
+		(uint32_t)(resolution * scale.x),
+		(uint32_t)(resolution * scale.y)
+	};
 
-	ini_filename = application::get_config_path() / "imgui.ini";
-	io.IniFilename = ini_filename.c_str();
+	viewport = std::make_shared<imgui_viewport>(device, command_pool, *renderpass, extent, vk::Format::eR8G8B8A8Unorm);
+	viewport->scale = scale;
 
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsClassic();
-	//ImGui::StyleColorsLight();
+	io.IniFilename = nullptr;
 
 	ImGui_ImplVulkan_InitInfo init_info = {
 		.Instance = *application::get_vulkan_instance(),
@@ -246,51 +261,50 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 
 	ImGui_ImplVulkan_Init(&init_info, *renderpass);
 
-
 	// Load Fonts
-	// - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-	// - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-	// - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
-	// - Read 'docs/FONTS.md' for more instructions and details.
-	// - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-	io.Fonts->AddFontDefault();
-	//io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-	//io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-	//ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-	//IM_ASSERT(font != nullptr);
+	ImFontConfig config;
+	asset roboto("Roboto-Regular.ttf");
+	config.FontDataOwnedByAtlas = false;
+	io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(roboto.data()), roboto.size(), 45, &config);
 
+	large_font = io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(roboto.data()), roboto.size(), 90, &config);
+
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsClassic();
+	//ImGui::StyleColorsLight();
+
+	ImGuiStyle& style = ImGui::GetStyle();
+
+	style.ScaleAllSizes(2.5f);
+
+	style.WindowPadding = { 50, 50 };
+	style.WindowBorderSize = 10; // Not scaled by ScaleAllSizes
+	style.WindowRounding = 25;
+	style.ItemSpacing = {50, 50};
+
+	style.FrameRounding = 10;
+	style.FramePadding = ImVec2(15, 10);
+
+
+	// TODO: scroll to drag https://github.com/ocornut/imgui/issues/3379
 }
-
-static float read_action_bool_or_float(imgui_context::controller::typed_action action)
+void imgui_context::set_position(glm::vec3 position, glm::quat orientation)
 {
-	assert(action.second == XR_ACTION_TYPE_BOOLEAN_INPUT || action.second == XR_ACTION_TYPE_FLOAT_INPUT);
-
-	float value = 0;
-	switch(action.second)
-	{
-		case XR_ACTION_TYPE_BOOLEAN_INPUT:
-			if (auto act = application::read_action_bool(action.first); act)
-				value = act->second;
-			break;
-
-		case XR_ACTION_TYPE_FLOAT_INPUT:
-			if (auto act = application::read_action_float(action.first); act)
-				value = act->second;
-			break;
-
-		default:
-			__builtin_unreachable();
-	}
-
-	return value;
+	auto& vp = *viewport;
+	vp.position = position;
+	vp.orientation = orientation;
 }
 
 void imgui_context::new_frame(XrTime display_time)
 {
+	if (last_display_time)
+		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
+	last_display_time = display_time;
+
+	float scroll_scale = io.DeltaTime * 3;
+
 	size_t new_focused_controller = focused_controller;
 
 	std::vector<controller_state> new_states;
@@ -312,37 +326,39 @@ void imgui_context::new_frame(XrTime display_time)
 			new_state.active = false;
 		}
 
-		if (ctrl.squeeze.first)
+		if (ctrl.squeeze)
 		{
-			new_state.squeeze_value = read_action_bool_or_float(ctrl.squeeze);
+			auto squeeze = application::read_action_float(ctrl.squeeze).value_or(std::pair{0,0});
+			new_state.squeeze_value = squeeze.second;
 
+			// TODO tunable
 			if (new_state.squeeze_value < 0.5)
 				new_state.squeeze_clicked = false;
 			else if (new_state.squeeze_value > 0.8)
 				new_state.squeeze_clicked = true;
 		}
 
-		if (ctrl.trigger.first)
+		if (ctrl.trigger)
 		{
-			new_state.trigger_value = read_action_bool_or_float(ctrl.trigger);
+			auto trigger = application::read_action_float(ctrl.trigger).value_or(std::pair{0,0});
+			new_state.trigger_value = trigger.second;
 
+			// TODO tunable
 			if (new_state.trigger_value < 0.5)
 				new_state.trigger_clicked = false;
 			else if (new_state.trigger_value > 0.8)
 				new_state.trigger_clicked = true;
 		}
 
-		if (ctrl.scroll.first)
+		if (ctrl.scroll)
 		{
-			assert(ctrl.scroll.second == XR_ACTION_TYPE_VECTOR2F_INPUT);
-
-			if (auto act = application::read_action_vec2(ctrl.scroll.first); act)
-				new_state.scroll_value = { act->second.x, act->second.y };
+			if (auto act = application::read_action_vec2(ctrl.scroll); act)
+				new_state.scroll_value = { -act->second.x * scroll_scale, act->second.y * scroll_scale };
 			else
 				new_state.scroll_value = {0, 0};
 		}
 
-		if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.1f)
+		if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.01f)
 		{
 			new_focused_controller = index;
 		}
@@ -356,6 +372,7 @@ void imgui_context::new_frame(XrTime display_time)
 	{
 		// Focused controller changed: end the current click
 		io.AddMouseButtonEvent(0, false);
+		button_pressed = false;
 	}
 
 	std::optional<ImVec2> position;
@@ -367,18 +384,28 @@ void imgui_context::new_frame(XrTime display_time)
 		trigger = new_states[new_focused_controller].trigger_value;
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
+		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
+
 		if (position)
 		{
 			io.AddMousePosEvent(position->x, position->y);
 
-			bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
-			bool next_trigger = new_states[new_focused_controller].trigger_clicked;
+			button_pressed = new_states[new_focused_controller].trigger_clicked;
 
-			if (focused_change || last_trigger != next_trigger)
-				io.AddMouseButtonEvent(0, next_trigger);
+			if (focused_change || last_trigger != button_pressed)
+			{
+				io.AddMouseButtonEvent(0, button_pressed);
+			}
 
-			if (glm::length(scroll) > 0.1f)
+			if (glm::length(scroll) > 0.01f)
 				io.AddMouseWheelEvent(scroll.x, scroll.y);
+		}
+		else
+		{
+			if (last_trigger && !button_pressed)
+			{
+				io.AddMouseButtonEvent(0, button_pressed);
+			}
 		}
 	}
 	else
@@ -400,21 +427,19 @@ void imgui_context::new_frame(XrTime display_time)
 	io.DisplayFramebufferScale = ImVec2(1, 1);
 
 	// See ImGui_ImplSDL2_ProcessEvent
-	if (last_display_time)
-		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
-
-	last_display_time = display_time;
-
-	// io.AddMouseWheelEvent(wheel_x, wheel_y);
-
 
 	ImGui::NewFrame();
 
 	ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
 	if (position)
-		draw_list->AddCircle(*position, 30*(1-0.7*trigger), ImGui::GetColorU32(ImVec4(1, 0, 0, 0.8)), 20, 10);
+	{
+		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, 0.8));
+		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, 0.8));
 
+		draw_list->AddCircleFilled(*position, 10, button_pressed ? color_pressed : color_unpressed);
+		draw_list->AddCircle(*position, 12, ImGui::GetColorU32(ImVec4(0,0,0,0.8)), 0, 4);
+	}
 }
 
 std::shared_ptr<vk::raii::ImageView> imgui_context::render()
@@ -453,6 +478,111 @@ std::shared_ptr<vk::raii::ImageView> imgui_context::render()
 	cb.endRenderPass();
 
 	// TODO: create mipmaps
+	// Create mipmaps
+	int width = vp.size.width;
+	int height = vp.size.height;
+	vk::ImageLayout prev_layout = vk::ImageLayout::eTransferSrcOptimal;
+	for(uint32_t level = 1; level < vp.num_mipmaps; level++)
+	{
+		int next_width = width > 1 ? width / 2 : 1;
+		int next_height = height > 1 ? height / 2 : 1;
+
+		// Transition source image layout to eTransferSrcOptimal and destination image layout to eTransferDstOptimal
+		cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {},
+			{
+				vk::ImageMemoryBarrier{
+					.srcAccessMask = vk::AccessFlagBits::eTransferWrite,
+					.dstAccessMask = vk::AccessFlagBits::eShaderRead,
+					.oldLayout = prev_layout,
+					.newLayout = vk::ImageLayout::eTransferSrcOptimal,
+					.image = f.image,
+					.subresourceRange = {
+						.aspectMask = vk::ImageAspectFlagBits::eColor,
+						.baseMipLevel = level - 1,
+						.levelCount = 1,
+						.baseArrayLayer = 0,
+						.layerCount = 1,
+					},
+				},
+				vk::ImageMemoryBarrier{
+					.srcAccessMask = vk::AccessFlagBits::eTransferWrite, // TODO
+					.dstAccessMask = vk::AccessFlagBits::eShaderRead, // TODO
+					.oldLayout = vk::ImageLayout::eUndefined,
+					.newLayout = vk::ImageLayout::eTransferDstOptimal,
+					.image = f.image,
+					.subresourceRange = {
+						.aspectMask = vk::ImageAspectFlagBits::eColor,
+						.baseMipLevel = level,
+						.levelCount = 1,
+						.baseArrayLayer = 0,
+						.layerCount = 1,
+					},
+				},
+
+		});
+		prev_layout = vk::ImageLayout::eTransferDstOptimal;
+
+		// Blit level n-1 to level n
+		cb.blitImage(f.image, vk::ImageLayout::eTransferSrcOptimal, f.image, vk::ImageLayout::eTransferDstOptimal,
+			vk::ImageBlit{
+				.srcSubresource = {
+					.aspectMask = vk::ImageAspectFlagBits::eColor,
+					.mipLevel = level - 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1},
+				.srcOffsets = std::array{
+					vk::Offset3D{0, 0, 0},
+					vk::Offset3D{width, height, 1},
+				},
+				.dstSubresource = {
+					.aspectMask = vk::ImageAspectFlagBits::eColor,
+					.mipLevel = level,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+				},
+				.dstOffsets = std::array{
+					vk::Offset3D{0, 0, 0},
+					vk::Offset3D{next_width, next_height, 1},
+				},
+			},
+			vk::Filter::eLinear);
+
+
+		// Transition source image layout to eShaderReadOnlyOptimal
+		cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
+			.srcAccessMask = vk::AccessFlagBits::eTransferRead,
+			.dstAccessMask = vk::AccessFlagBits::eShaderRead,
+			.oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			.image = f.image,
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = level - 1,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			},
+		});
+
+		width = next_width;
+		height = next_height;
+	}
+
+	// Transition the last level to eShaderReadOnlyOptimal
+	cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
+		.srcAccessMask = vk::AccessFlagBits::eTransferWrite,
+		.dstAccessMask = vk::AccessFlagBits::eShaderRead,
+		.oldLayout = prev_layout,
+		.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+		.image = f.image,
+		.subresourceRange = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel = vp.num_mipmaps - 1,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		},
+	});
 
 	cb.end();
 
@@ -462,7 +592,7 @@ std::shared_ptr<vk::raii::ImageView> imgui_context::render()
 	}, *f.fence);
 
 	// Use the aliasing constructor
-	return std::shared_ptr<vk::raii::ImageView>{viewport, &vp.frames[vp.frameindex].image_view};
+	return std::shared_ptr<vk::raii::ImageView>{viewport, &vp.frames[vp.frameindex].image_view_texture};
 }
 
 imgui_context::~imgui_context()
@@ -481,11 +611,4 @@ imgui_context::~imgui_context()
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui::DestroyContext(context);
-	// ImGui_ImplSDL2_Shutdown();
-	// ImGui::DestroyContext();
-
-	// ImGui_ImplVulkanH_DestroyWindow(g_Instance, g_Device, &g_MainWindowData, g_Allocator);
-
-	// SDL_DestroyWindow(window);
-	// SDL_Quit();
 }

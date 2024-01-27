@@ -36,6 +36,7 @@
 #include <thread>
 #include <vulkan/vulkan_core.h>
 #include "audio/audio.h"
+#include "hardware.h"
 
 using namespace xrt::drivers::wivrn;
 
@@ -71,13 +72,18 @@ static const std::unordered_map<std::string, device_id> device_ids = {
 std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session)
 {
 	std::shared_ptr<stream> self{new stream};
+	spdlog::info("decoder_mutex.native_handle() = {}", (void*)self->decoder_mutex.native_handle());
+
 
 	self->network_session = std::move(network_session);
 
 	from_headset::headset_info_packet info{};
 
-	info.recommended_eye_width = self->swapchains[0].width();
-	info.recommended_eye_height = self->swapchains[0].height();
+	auto view = self->system.view_configuration_views(self->viewconfig)[0];
+	view = override_view(view, guess_model());
+
+	info.recommended_eye_width = view.recommendedImageRectWidth;
+	info.recommended_eye_height = view.recommendedImageRectHeight;
 
 	auto [flags, views] = self->session.locate_views(
 	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
@@ -102,11 +108,9 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	self->network_session->send_control(info);
 
-	self->network_thread = std::thread(&stream::process_packets, self.get());
-	pthread_setname_np(self->network_thread.native_handle(), "network_thread");
+	self->network_thread = utils::named_thread("network_thread", &stream::process_packets, self.get());
 
-	self->video_thread = std::thread(&stream::video, self.get());
-	pthread_setname_np(self->video_thread.native_handle(), "video_thread");
+	self->video_thread = utils::named_thread("video_thread", &stream::video, self.get());
 
 	self->command_buffer = std::move(self->device.allocateCommandBuffers({
 		.commandPool = *self->commandpool,
@@ -140,15 +144,19 @@ scenes::stream::~stream()
 	cleanup();
 	exit();
 
-	video_thread.join();
-	if (tracking_thread)
+	if (video_thread.joinable())
+		video_thread.join();
+
+	if (tracking_thread && tracking_thread->joinable())
 		tracking_thread->join();
-	network_thread.join();
+
+	if (network_thread.joinable())
+		network_thread.join();
 }
 
 void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_ptr<shard_accumulator::blit_handle> handle)
 {
-	std::lock_guard lock(decoder_mutex);
+	std::unique_lock lock(decoder_mutex);
 
 	if (!application::is_visible())
 		return;
@@ -294,7 +302,7 @@ void scenes::stream::render()
 	std::array<XrPosef, 2> pose = {views[0].pose, views[1].pose};
 	std::array<XrFovf, 2> fov = {views[0].fov, views[1].fov};
 	{
-		std::lock_guard lock(decoder_mutex);
+		std::unique_lock lock(decoder_mutex);
 		// Search for the most recent frame available on all decoders.
 		// If no such frame exists, use the most latest frame for each decoder
 		auto common_frame = accumulator_images::common_frame(decoders);
@@ -420,7 +428,14 @@ void scenes::stream::cleanup()
 	// Assumes decoder_mutex is locked
 	ready_ = false;
 	decoders.clear();
+	swapchains.clear();
 }
+
+static const std::array supported_formats =
+{
+	vk::Format::eR8G8B8A8Srgb,
+	vk::Format::eB8G8R8A8Srgb
+};
 
 void scenes::stream::setup(const to_headset::video_stream_description & description)
 {
@@ -434,16 +449,50 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		return;
 	}
 
-	// Create outputs for the decoders
-	const uint32_t width = description.width / view_count;
-	const uint32_t height = description.height;
+	// Create swapchains
+	const uint32_t video_width = description.width / view_count;
+	const uint32_t video_height = description.height;
+	const uint32_t swapchain_width = video_width / description.foveation[0].x.scale;
+	const uint32_t swapchain_height = video_height / description.foveation[0].y.scale;
 
-	vk::Extent3D decoder_out_size{width, height, 1};
+	swapchain_format = vk::Format::eUndefined;
+	spdlog::info("Supported swapchain formats:");
+
+	for (auto format: session.get_swapchain_formats())
+	{
+		spdlog::info("    {}", vk::to_string(format));
+	}
+	for (auto format: session.get_swapchain_formats())
+	{
+		if (std::find(supported_formats.begin(), supported_formats.end(), format) != supported_formats.end())
+		{
+			swapchain_format = format;
+			break;
+		}
+	}
+
+	if (swapchain_format == vk::Format::eUndefined)
+		throw std::runtime_error("No supported swapchain format");
+
+	spdlog::info("Using format {}", vk::to_string(swapchain_format));
+
+	auto views = system.view_configuration_views(viewconfig);
+
+	swapchains.reserve(views.size());
+	for ([[maybe_unused]] auto view: views)
+	{
+		swapchains.emplace_back(session, device, swapchain_format, swapchain_width, swapchain_height);
+
+		spdlog::info("Created stream swapchain {}: {}x{}", swapchains.size(), swapchain_width, swapchain_height);
+	}
+
+	// Create outputs for the decoders
+	vk::Extent3D decoder_out_size{video_width, video_height, 1};
 	for (size_t i = 0; i < view_count; i++)
 	{
 		decoder_output[i].format = vk::Format::eA8B8G8R8SrgbPack32;
-		decoder_output[i].size.width = width;
-		decoder_output[i].size.height = height;
+		decoder_output[i].size.width = video_width;
+		decoder_output[i].size.height = video_height;
 
 		vk::ImageCreateInfo image_info{
 			.flags = vk::ImageCreateFlags{},
@@ -489,9 +538,9 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	{
 		blit_targets[i].image = vk::Image{decoder_output[i].image};
 		blit_targets[i].image_view = *decoder_output[i].image_view;
-		blit_targets[i].extent.width = width;
-		blit_targets[i].extent.height = height;
-		blit_targets[i].offset.x = width * i;
+		blit_targets[i].extent.width = video_width;
+		blit_targets[i].extent.height = video_height;
+		blit_targets[i].offset.x = video_width * i;
 		blit_targets[i].offset.y = 0;
 	}
 

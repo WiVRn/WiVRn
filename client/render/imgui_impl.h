@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "render/scene_data.h"
 #include <imgui.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -31,7 +32,8 @@ public:
 	struct imgui_frame
 	{
 		image_allocation image;
-		vk::raii::ImageView image_view = nullptr;
+		vk::raii::ImageView image_view_framebuffer = nullptr;
+		vk::raii::ImageView image_view_texture = nullptr;
 		vk::raii::Framebuffer framebuffer = nullptr;
 		vk::raii::CommandBuffer command_buffer = nullptr;
 		vk::raii::Fence fence = nullptr;
@@ -40,6 +42,8 @@ public:
 	struct imgui_viewport
 	{
 		static constexpr int frames_in_flight = 2;
+		uint32_t num_mipmaps;
+
 		std::array<imgui_frame, frames_in_flight> frames;
 		int frameindex = 0;
 
@@ -58,11 +62,10 @@ public:
 
 	struct controller
 	{
-		using typed_action = std::pair<XrAction, XrActionType>;
 		XrSpace aim;
-		typed_action trigger;
-		typed_action squeeze;
-		typed_action scroll;
+		XrAction trigger; // XR_ACTION_TYPE_FLOAT_INPUT
+		XrAction squeeze; // XR_ACTION_TYPE_FLOAT_INPUT
+		XrAction scroll;  // XR_ACTION_TYPE_VECTOR2F_INPUT
 
 		// TODO: thresholds?
 	};
@@ -106,18 +109,27 @@ private:
 	ImGuiContext * context;
 	ImGuiIO& io;
 
-	std::string ini_filename;
+	// std::string ini_filename;
 
 	std::vector<std::pair<controller, controller_state>> controllers;
 	XrSpace world;
 	size_t focused_controller = (size_t)-1;
 	XrTime last_display_time = 0;
 
+	bool button_pressed = false;
+
 public:
 	imgui_context(vk::raii::Device& device, uint32_t queue_family_index,
-	vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers);
+	vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, float resolution, glm::vec2 scale);
 	~imgui_context();
 
+	void set_position(glm::vec3 position, glm::quat orientation);
 	void new_frame(XrTime display_time);
 	std::shared_ptr<vk::raii::ImageView> render();
+
+	ImFont * large_font;
+	size_t get_focused_controller() const
+	{
+		return focused_controller;
+	}
 };

@@ -38,6 +38,7 @@
 #include "singleton.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <spdlog/spdlog.h>
 
 class scene;
 
@@ -67,9 +68,6 @@ class application : public singleton<application>
 	static inline const char engine_name[] = "No engine";
 	static inline const int engine_version = VK_MAKE_VERSION(1, 0, 0);
 
-	static inline const std::array<vk::Format, 2> supported_formats = {vk::Format::eR8G8B8A8Srgb,
-	                                                                   vk::Format::eB8G8R8A8Srgb};
-
 	void initialize_vulkan();
 
 	void log_views();
@@ -90,7 +88,6 @@ class application : public singleton<application>
 	uint32_t vk_queue_family_index;
 	vk::raii::Queue vk_queue = nullptr;
 	vk::raii::CommandPool vk_cmdpool = nullptr;
-	vk::Format swapchain_format;
 	vk::raii::PipelineCache pipeline_cache = nullptr;
 
 	// OpenXR stuff
@@ -99,7 +96,6 @@ class application : public singleton<application>
 	xr::instance xr_instance;
 	xr::system xr_system_id;
 	xr::session xr_session;
-	std::vector<xr::swapchain> xr_swapchains;
 	XrSessionState session_state = XR_SESSION_STATE_UNKNOWN;
 
 	xr::space world_space;

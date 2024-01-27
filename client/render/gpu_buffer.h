@@ -23,6 +23,7 @@
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
 #include "vk/allocation.h"
+#include "utils/alignment.h"
 
 class gpu_buffer
 {
@@ -33,7 +34,7 @@ class gpu_buffer
 
 	size_t add(size_t alignment, const void * data_to_add, size_t size)
 	{
-		size_t offset = ((bytes.size() + alignment - 1) / alignment) * alignment;
+		size_t offset = utils::align_up(alignment, bytes.size());
 
 		bytes.resize(offset + size);
 
@@ -121,7 +122,9 @@ public:
 		                .usage = usage},
 		        VmaAllocationCreateInfo{
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-		                .usage = VMA_MEMORY_USAGE_AUTO}};
+		                .usage = VMA_MEMORY_USAGE_AUTO},
+			"gpu_buffer::copy_to_gpu"
+		};
 
 		memcpy(gpu_buffer.map(), bytes.data(), bytes.size());
 		gpu_buffer.unmap();

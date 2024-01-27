@@ -21,6 +21,8 @@
 
 #define NB_TEXCOORDS 2
 
+#define DITHERING
+
 layout(set = 0, binding = 0) uniform scene_ubo
 {
 	mat4 view;
@@ -99,16 +101,25 @@ void main()
 
 	gl_Position = mesh.modelviewproj * vec4(in_position, 1.0);
 	frag_pos = vec3(mesh.modelview * vec4(in_position, 1.0));
-// 	light_pos = mesh.modelview * scene.light_position;
+	light_pos = scene.view * scene.light_position;
 }
 
 #endif
 
 #ifdef FRAG_SHADER
+
+#ifdef DITHERING
+const float dither_pattern[4][4] = {
+	{ 0.0f, 0.5f, 0.125f, 0.625f},
+	{ 0.75f, 0.22f, 0.875f, 0.375f},
+	{ 0.1875f, 0.6875f, 0.0625f, 0.5625},
+	{ 0.9375f, 0.4375f, 0.8125f, 0.3125}
+};
+#endif
+
 void main()
 {
-// 	vec3 light_dir = normalize(light_pos.xyz - frag_pos * light_pos.w);
-	vec3 light_dir = normalize(scene.light_position.xyz - frag_pos * scene.light_position.w);
+	vec3 light_dir = normalize(light_pos.xyz - frag_pos * light_pos.w);
 	vec3 view_dir = normalize(frag_pos);
 	vec3 normal_unit = normalize(normal);
 	vec3 reflect_dir = reflect(-light_dir, normal_unit);
@@ -125,8 +136,22 @@ void main()
 // 	vec3 specular = pow(spec_angle, instance.specular_power) * instance.specular_strength * instance.light_color;
 
 	vec3 light = ambient + diffuse /*+ specular*/;
-	out_color = texture(base_color, texcoord[0]) * vec4(light, 1.0);
 
-// 	out_color = texture(base_color, texcoord[0]);
+	vec4 c = texture(base_color, texcoord[0]);
+
+	if (c.a <= 0.5)
+		discard;
+
+#ifdef DITHERING
+	ivec2 tmp = ivec2(gl_FragCoord.xy) % 4;
+	float dither_thd = dither_pattern[tmp.x][tmp.y];
+
+	vec4 color = c * vec4(light, 1.0) * 255.0f;
+
+	bvec4 tmp2 = greaterThan(fract(color), vec4(dither_thd, dither_thd, dither_thd, dither_thd));
+	out_color = (ceil(color) + vec4(tmp2)) / 255.0;
+#else
+	out_color = c * vec4(light, 1.0);
+#endif
 }
 #endif
