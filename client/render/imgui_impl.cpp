@@ -432,7 +432,7 @@ void imgui_context::new_frame(XrTime display_time)
 
 	ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-	if (position)
+	if (position && io.WantCaptureMouse)
 	{
 		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, 0.8));
 		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, 0.8));
