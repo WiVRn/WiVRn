@@ -57,19 +57,20 @@ See [configuration](docs/configuration.md) for configurable items.
 
 # Credits
 WiVRn uses the following software:
+- [ambientCG](https://ambientcg.com/)
 - [Avahi](https://www.avahi.org/)
 - [Boost.PFR](https://github.com/boostorg/pfr)
 - [Dear ImGui](https://github.com/ocornut/imgui)
+- [fastgltf](https://github.com/spnda/fastgltf)
 - [ffmpeg](https://ffmpeg.org/) optional, for hardware encoding on AMD/Intel
 - [FreeType](https://freetype.org/)
 - [glm](http://glm.g-truc.net/)
 - [HarfBuzz](https://harfbuzz.github.io/)
 - [Monado](https://monado.freedesktop.org/)
 - [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on Nvidia
+- [Roboto](https://fonts.google.com/specimen/Roboto)
 - [sd-bus](https://www.freedesktop.org/software/systemd/man/sd-bus.html)
 - [spdlog](https://github.com/gabime/spdlog)
 - [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
-- [x264](https://www.videolan.org/developers/x264.html) optional, for software encoding
-- [ambientCG](https://ambientcg.com/)
-- [Roboto](https://fonts.google.com/specimen/Roboto)
 - [WebXR input profiles](https://www.npmjs.com/package/@webxr-input-profiles/motion-controllers)
+- [x264](https://www.videolan.org/developers/x264.html) optional, for software encoding
