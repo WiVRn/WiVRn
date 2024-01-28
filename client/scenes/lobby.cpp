@@ -216,25 +216,8 @@ scenes::lobby::lobby()
 		spdlog::info("    {}", i.second.service.name);
 	}
 
-	std::array imgui_inputs{
-		imgui_context::controller{
-			.aim     = get_action_space("left_aim"),
-			.trigger = get_action("left_trigger").first,
-			.squeeze = get_action("left_squeeze").first,
-			.scroll  = get_action("left_scroll").first,
-		},
-		imgui_context::controller{
-			.aim     = get_action_space("right_aim"),
-			.trigger = get_action("right_trigger").first,
-			.squeeze = get_action("right_squeeze").first,
-			.scroll  = get_action("right_scroll").first,
-		},
-	};
-
 	haptic_output[0] = get_action("left_haptic").first;
 	haptic_output[1] = get_action("right_haptic").first;
-
-	// TODO Move everything after this to on_focused
 
 	swapchain_format = vk::Format::eUndefined;
 	spdlog::info("Supported swapchain formats:");
@@ -256,48 +239,6 @@ scenes::lobby::lobby()
 		throw std::runtime_error("No supported swapchain format");
 
 	spdlog::info("Using format {}", vk::to_string(swapchain_format));
-
-	auto views = system.view_configuration_views(viewconfig);
-
-	swapchains.reserve(views.size());
-	for (auto view: views)
-	{
-		swapchains.emplace_back(session, device, swapchain_format, view.recommendedImageRectWidth, view.recommendedImageRectHeight);
-
-		spdlog::info("Created lobby swapchain {}: {}x{}", swapchains.size(), swapchains.back().width(), swapchains.back().height());
-	}
-
-	uint32_t width = swapchains[0].width();
-	uint32_t height = swapchains[0].height();
-	vk::Extent2D output_size{width, height};
-
-	std::array depth_formats{
-	        vk::Format::eD16Unorm,
-	        vk::Format::eX8D24UnormPack32,
-	        vk::Format::eD32Sfloat,
-	};
-
-	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchains[0].format(), depth_formats);
-
-	scene_loader loader(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
-
-	teapot.import(loader("ground.gltf"));
-
-	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, teapot);
-	spdlog::info("Loaded input profile {}", input->id);
-
-	// Put the imgui node last so that alpha blending works correctly
-	teapot.import(loader("imgui.gltf"));
-	imgui_material = teapot.find_material("imgui");
-	assert(imgui_material);
-	imgui_material->shader_name = "unlit";
-	imgui_material->blend_enable = true;
-
-	imgui_node = teapot.find_node("imgui");
-	assert(imgui_node);
-
-	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, 1000, imgui_node->scale);
-	imgui_ctx->set_position(imgui_node->translation, imgui_node->rotation);
 }
 
 void scenes::lobby::save_config()
@@ -350,10 +291,10 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 
 		auto protocol = service.txt.find("protocol");
 		if (protocol == service.txt.end())
-			throw std::runtime_error("Incompatible WiVRn server");
+			throw std::runtime_error("Incompatible WiVRn server: no protocol field in TXT");
 
 		if (protocol->second != protocol_string)
-			throw std::runtime_error("Incompatible WiVRn server");
+			throw std::runtime_error(fmt::format("Incompatible WiVRn server protocol (client: {}, server: {})", protocol_string, protocol->second));
 	}
 
 	// Only the automatically discovered servers already have their IP addresses available
@@ -471,7 +412,8 @@ void scenes::lobby::update_server_list()
 		else
 			cookie = service.txt.at("cookie");
 
-		if (servers.find(cookie) == servers.end())
+		auto server = servers.find(cookie);
+		if (server == servers.end())
 		{
 			// Newly discovered server: add it to the list
 			servers.emplace(cookie, server_data{
@@ -483,7 +425,8 @@ void scenes::lobby::update_server_list()
 		}
 		else
 		{
-			servers.at(cookie).visible = true;
+			server->second.visible = true;
+			server->second.service = service;
 		}
 	}
 }
@@ -598,11 +541,20 @@ void scenes::lobby::gui_server_list()
 			button_position.x -= button_size.x + style.WindowPadding.x;
 			ImGui::SetCursorPos(button_position);
 
-			ImGui::BeginDisabled(!(data.visible || data.manual));
-			ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.8f, 0.3f, 0.40f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.3f, 1.00f));
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 1.0f, 0.2f, 1.00f));
-
+			bool enable_connect_button = data.visible || data.manual;
+			ImGui::BeginDisabled(!enable_connect_button);
+			if (enable_connect_button)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.8f, 0.3f, 0.40f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.3f, 1.00f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 1.0f, 0.2f, 1.00f));
+			}
+			else
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.4f, 0.3f, 0.40f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
+			}
 			if (ImGui::Button("Connect", button_size))
 				connect(data, true);
 
@@ -613,7 +565,7 @@ void scenes::lobby::gui_server_list()
 			ImGui::EndDisabled();
 
 			button_position.x -= button_size.x + style.WindowPadding.x;
-			// if (data.manual)
+			if (data.manual)
 			{
 				ImGui::SetCursorPos(button_position);
 				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
@@ -866,7 +818,7 @@ void scenes::lobby::render()
 	}
 
 	assert(renderer);
-	renderer->render(teapot, frames);
+	renderer->render(*teapot, frames);
 
 	for (auto & swapchain: swapchains)
 		swapchain.release();
@@ -889,11 +841,76 @@ void scenes::lobby::on_focused()
 {
 	discover.emplace(discover_service);
 	move_gui_first_time = true;
+
+	auto views = system.view_configuration_views(viewconfig);
+
+	swapchains.reserve(views.size());
+	for (auto view: views)
+	{
+		swapchains.emplace_back(session, device, swapchain_format, view.recommendedImageRectWidth, view.recommendedImageRectHeight);
+
+		spdlog::info("Created lobby swapchain {}: {}x{}", swapchains.size(), swapchains.back().width(), swapchains.back().height());
+	}
+
+	uint32_t width = swapchains[0].width();
+	uint32_t height = swapchains[0].height();
+	vk::Extent2D output_size{width, height};
+
+	std::array depth_formats{
+	        vk::Format::eD16Unorm,
+	        vk::Format::eX8D24UnormPack32,
+	        vk::Format::eD32Sfloat,
+	};
+
+	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchains[0].format(), depth_formats);
+
+	scene_loader loader(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
+
+	teapot.emplace();
+	teapot->import(loader("ground.gltf"));
+
+	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, *teapot);
+	spdlog::info("Loaded input profile {}", input->id);
+
+	// Put the imgui node last so that alpha blending works correctly
+	teapot->import(loader("imgui.gltf"));
+	imgui_material = teapot->find_material("imgui");
+	assert(imgui_material);
+	imgui_material->shader_name = "unlit";
+	imgui_material->blend_enable = true;
+
+	imgui_node = teapot->find_node("imgui");
+	assert(imgui_node);
+
+	std::array imgui_inputs{
+		imgui_context::controller{
+			.aim     = get_action_space("left_aim"),
+			.trigger = get_action("left_trigger").first,
+			.squeeze = get_action("left_squeeze").first,
+			.scroll  = get_action("left_scroll").first,
+		},
+		imgui_context::controller{
+			.aim     = get_action_space("right_aim"),
+			.trigger = get_action("right_trigger").first,
+			.squeeze = get_action("right_squeeze").first,
+			.scroll  = get_action("right_scroll").first,
+		},
+	};
+	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, 1000, imgui_node->scale);
+	imgui_ctx->set_position(imgui_node->translation, imgui_node->rotation);
 }
 
 void scenes::lobby::on_unfocused()
 {
 	discover.reset();
+
+	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
+
+	imgui_ctx.reset();
+	imgui_material.reset();
+	teapot.reset(); // Must be reset before the renderer so that the descriptor sets are freed before their pools
+	renderer.reset();
+	swapchains.clear();
 }
 
 scene::meta& scenes::lobby::get_meta_scene()

@@ -59,7 +59,7 @@ class lobby : public scene_impl<lobby>
 	std::string server_name;
 
 	std::optional<scene_renderer> renderer;
-	scene_data teapot; // Must be after the renderer so that the descriptor sets are freed before their pools
+	std::optional<scene_data> teapot;
 	std::optional<input_profile> input;
 
 	std::optional<imgui_context> imgui_ctx;

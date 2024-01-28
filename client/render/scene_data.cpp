@@ -768,7 +768,7 @@ public:
 		already_sorted.resize(unsorted_objects.size(), false);
 		new_index.resize(unsorted_objects.size(), scene_data::scene_object::root_id);
 
-		bool loop_detected = true;
+		[[maybe_unused]] bool loop_detected = true;
 
 		while (sorted_objects.size() < unsorted_objects.size())
 		{
