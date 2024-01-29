@@ -63,8 +63,6 @@ model guess_model()
 		return model::meta_quest_pro;
 	if (device == "eureka")
 		return model::meta_quest_3;
-	if (device == "TBD")
-		return model::htc_vive_focus_3;
 
 	if (manufacturer == "Pico")
 	{
@@ -73,6 +71,14 @@ model guess_model()
 
 		spdlog::info("manufacturer={}, model={}, device={} assuming Pico 4", manufacturer, model, device);
 		return model::pico_4;
+	}
+	if (manufacturer == "HTC")
+	{
+		if (model == "VIVE Focus 3")
+			return model::htc_vive_focus_3;
+
+		if (model == "VIVE XR Series")
+			return model::htc_vive_xr_elite;
 	}
 
 	spdlog::info("Unknown model, manufacturer={}, model={}, device={}", manufacturer, model, device);
@@ -121,6 +127,11 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 			spdlog::info("Using panel resolution 2448x2448 for HTC Vive Focus 3");
 			view.recommendedImageRectWidth = 2448;
 			view.recommendedImageRectHeight = 2448;
+			return view;
+		case model::htc_vive_xr_elite:
+			spdlog::info("Using panel resolution 1920x1920 for HTC Vive XR Elite");
+			view.recommendedImageRectWidth = 1920;
+			view.recommendedImageRectHeight = 1920;
 			return view;
 		case model::unknown:
 			return view;

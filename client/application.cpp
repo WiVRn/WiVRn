@@ -226,11 +226,12 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/aim/pose",
 
                         "/user/hand/left/input/x/click",
-                        "/user/hand/left/input/x/touch",
                         "/user/hand/left/input/y/click",
-                        "/user/hand/left/input/y/touch",
                         "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/squeeze/click",
+                        "/user/hand/left/input/squeeze/touch",
                         "/user/hand/left/input/squeeze/value",
+                        "/user/hand/left/input/trigger/click",
                         "/user/hand/left/input/trigger/value",
                         "/user/hand/left/input/trigger/touch",
                         "/user/hand/left/input/thumbrest/touch",
@@ -239,11 +240,12 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/left/input/thumbstick/touch",
 
                         "/user/hand/right/input/a/click",
-                        "/user/hand/right/input/a/touch",
                         "/user/hand/right/input/b/click",
-                        "/user/hand/right/input/b/touch",
                         "/user/hand/right/input/system/click",
+                        "/user/hand/right/input/squeeze/click",
+                        "/user/hand/right/input/squeeze/touch",
                         "/user/hand/right/input/squeeze/value",
+                        "/user/hand/right/input/trigger/click",
                         "/user/hand/right/input/trigger/value",
                         "/user/hand/right/input/trigger/touch",
                         "/user/hand/right/input/thumbstick",
@@ -1313,15 +1315,23 @@ void application::interaction_profile_changed()
 	spdlog::info("Global actions:");
 	for(auto& [action, type, name]: actions)
 	{
-		auto sources = xr_session.localized_sources_for_action(action);
-		if (!sources.empty())
+		try
 		{
-			spdlog::info("    Sources for {}", name);
-			for (auto & k: sources)
-				spdlog::info("        {}", k);
+			auto sources = xr_session.localized_sources_for_action(action);
+			if (!sources.empty())
+			{
+				spdlog::info("    Sources for {}", name);
+				for (auto & k: sources)
+					spdlog::info("        {}", k);
+			}
+			else
+				spdlog::info("    No source for {}", name);
 		}
-		else
-			spdlog::warn("    No source for {}", name);
+		catch(std::exception& e)
+		{
+			spdlog::warn("Error enumerating sources for {}: {}", name, e.what());
+			continue;
+		}
 	}
 
 	if (current_scene())
@@ -1332,15 +1342,23 @@ void application::interaction_profile_changed()
 		{
 			auto [action, type] = action_and_type;
 
-			auto sources = xr_session.localized_sources_for_action(action);
-			if (!sources.empty())
+			try
 			{
-				spdlog::info("    Sources for {}", name);
-				for (auto & k: sources)
-					spdlog::info("        {}", k);
+				auto sources = xr_session.localized_sources_for_action(action);
+				if (!sources.empty())
+				{
+					spdlog::info("    Sources for {}", name);
+					for (auto & k: sources)
+						spdlog::info("        {}", k);
+				}
+				else
+					spdlog::info("    No source for {}", name);
 			}
-			else
-				spdlog::warn("    No source for {}", name);
+			catch(std::exception& e)
+			{
+				spdlog::warn("Error enumerating sources for {}: {}", name, e.what());
+				continue;
+			}
 		}
 	}
 }

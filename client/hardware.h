@@ -29,6 +29,7 @@ enum class model
 	pico_neo_3,
 	pico_4,
 	htc_vive_focus_3,
+	htc_vive_xr_elite,
 	unknown
 };
 
