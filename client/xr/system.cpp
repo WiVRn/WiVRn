@@ -20,7 +20,8 @@
 #include "system.h"
 
 #include "details/enumerate.h"
-#include "xr.h"
+#include "vk/check.h"
+#include "xr/check.h"
 #include <cassert>
 #include <openxr/openxr_platform.h>
 

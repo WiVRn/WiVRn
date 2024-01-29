@@ -23,8 +23,8 @@
 #include <jni.h>
 #endif
 
-#include "utils/check.h"
 #include "utils/typename.h"
+#include "xr/check.h"
 #include <type_traits>
 #include <vulkan/vulkan.h>
 #include <openxr/openxr.h>

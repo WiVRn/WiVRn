@@ -24,8 +24,8 @@
 #endif
 
 #include "error.h"
-#include "utils/check.h"
 #include "utils/handle.h"
+#include "xr/check.h"
 #include <optional>
 #include <string>
 #include <string_view>
@@ -77,11 +77,7 @@ public:
 	F get_proc(const char * name)
 	{
 		F f;
-		XrResult result = xrGetInstanceProcAddr(id, name, (PFN_xrVoidFunction *)&f);
-		if (!XR_SUCCEEDED(result))
-		{
-			throw std::system_error(result, vk::error_category(), std::string("xrGetInstanceProcAddr(") + name + ")");
-		}
+		CHECK_XR(xrGetInstanceProcAddr(id, name, (PFN_xrVoidFunction *)&f), name);
 		return f;
 	}
 

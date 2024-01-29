@@ -77,25 +77,6 @@ else()
     file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
 endif()
 
-if(ANDROID OR Vulkan_VERSION VERSION_LESS 1.3.268)
-    # The Vulkan headers in Android do not include the C++ headers, download them
-    # Minimum version is 1.3.256
-    set(VULKAN_VERSION "1.3.268.0")
-
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/vulkan-sdk-${VULKAN_VERSION}.tar.gz)
-        if (EXISTS ${CMAKE_SOURCE_DIR}/vulkan-sdk-${VULKAN_VERSION}.tar.gz)
-            file(CREATE_LINK ${CMAKE_SOURCE_DIR}/vulkan-sdk-${VULKAN_VERSION}.tar.gz ${CMAKE_BINARY_DIR}/vulkan-sdk-${VULKAN_VERSION}.tar.gz SYMBOLIC)
-        else()
-            file(DOWNLOAD https://github.com/KhronosGroup/Vulkan-Headers/archive/vulkan-sdk-${VULKAN_VERSION}.tar.gz ${CMAKE_BINARY_DIR}/vulkan-sdk-${VULKAN_VERSION}.tar.gz
-                EXPECTED_HASH SHA256=94993cbe2b1a604c0d5d9ea37a767e1aba4d771d2bfd4ddceefd66243095164f)
-        endif()
-    endif()
-
-    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/vulkan-sdk-${VULKAN_VERSION}.tar.gz DESTINATION ${CMAKE_BINARY_DIR})
-
-    target_include_directories(wivrn PRIVATE ${CMAKE_BINARY_DIR}/Vulkan-Headers-vulkan-sdk-${VULKAN_VERSION}/include)
-endif()
-
 target_sources(wivrn PRIVATE
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -116,7 +97,6 @@ target_compile_definitions(wivrn PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
 target_compile_features(wivrn PRIVATE cxx_std_20)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
-target_compile_definitions(wivrn PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS VMA_VULKAN_VERSION=1001000)
 
 set_target_properties(wivrn PROPERTIES CXX_VISIBILITY_PRESET hidden)
 

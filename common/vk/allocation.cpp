@@ -19,7 +19,7 @@
 
 #include "allocation.h"
 
-#include "utils/check.h"
+#include "vk/check.h"
 
 #include "vulkan/vulkan_raii.hpp"
 #include <utility>

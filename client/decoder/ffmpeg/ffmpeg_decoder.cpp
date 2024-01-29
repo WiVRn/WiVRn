@@ -21,7 +21,6 @@
 
 #include "scenes/stream.h"
 #include "spdlog/spdlog.h"
-#include "utils/check.h"
 #include <cassert>
 #include <vulkan/vulkan.hpp>
 

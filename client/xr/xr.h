@@ -25,7 +25,7 @@
 #include "session.h"
 #include "swapchain.h"
 #include "system.h"
-#include "utils/check.h"
+#include "xr/check.h"
 
 #include <cstddef>
 #include <string>

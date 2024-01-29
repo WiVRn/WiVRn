@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,27 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "xr/check.h"
-#include "xr.h"
-#include <system_error>
+#include "vk_allocator.h"
+#include "vk/check.h"
 
-namespace
+vk_allocator::vk_allocator(const VmaAllocatorCreateInfo & info)
 {
-struct : std::error_category
-{
-	const char * name() const noexcept override
-	{
-		return "openxr";
-	}
+	CHECK_VK(vmaCreateAllocator(&info, &handle));
+}
 
-	std::string message(int condition) const override
-	{
-		return xr::to_string(static_cast<XrResult>(condition));
-	}
-} openxr_error_category;
-} // namespace
-
-const std::error_category & xr::error_category()
+vk_allocator::~vk_allocator()
 {
-	return openxr_error_category;
+	if (handle)
+		vmaDestroyAllocator(handle);
 }

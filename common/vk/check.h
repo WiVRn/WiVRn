@@ -19,15 +19,8 @@
 
 #pragma once
 
-#include <stdexcept>
 #include <system_error>
 #include <vulkan/vulkan.h>
-#include <openxr/openxr.h>
-
-namespace xr
-{
-const std::error_category & error_category();
-}
 
 namespace vk
 {
@@ -50,21 +43,4 @@ static inline VkResult check(VkResult result, const char * /*statement*/, const 
 	return result;
 }
 
-static inline XrResult check(XrResult result, const char * statement)
-{
-	if (!XR_SUCCEEDED(result))
-		throw std::system_error(result, xr::error_category(), statement);
-
-	return result;
-}
-
-static inline XrResult check(XrResult result, const char * /*statement*/, const char * message)
-{
-	if (!XR_SUCCEEDED(result))
-		throw std::system_error(result, xr::error_category(), message);
-
-	return result;
-}
-
 #define CHECK_VK(result, ...) check(result, #result __VA_OPT__(, ) __VA_ARGS__)
-#define CHECK_XR(result, ...) check(result, #result __VA_OPT__(, ) __VA_ARGS__)

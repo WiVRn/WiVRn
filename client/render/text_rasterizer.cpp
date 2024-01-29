@@ -27,7 +27,6 @@
 #include <hb-ft.h>
 #include <hb.h>
 
-#include "utils/check.h"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>

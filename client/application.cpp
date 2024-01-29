@@ -24,7 +24,6 @@
 #include "scene.h"
 #include "spdlog/common.h"
 #include "spdlog/spdlog.h"
-#include "utils/check.h"
 #include "utils/files.h"
 #include "utils/named_thread.h"
 #include "xr/actionset.h"
@@ -39,6 +38,8 @@
 #include <thread>
 #include <vector>
 #include <vk_mem_alloc.h>
+#include "vk/check.h"
+#include "xr/check.h"
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_handles.hpp>

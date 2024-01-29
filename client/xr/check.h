@@ -17,28 +17,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "utils/check.h"
+#pragma once
+
+#include <openxr/openxr.h>
 #include <system_error>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_to_string.hpp>
 
-namespace
+namespace xr
 {
-struct : std::error_category
-{
-	const char * name() const noexcept override
-	{
-		return "vulkan";
-	}
-
-	std::string message(int condition) const override
-	{
-		return vk::to_string(static_cast<vk::Result>(condition));
-	}
-} vulkan_error_category;
-} // namespace
-
-const std::error_category & vk::error_category()
-{
-	return vulkan_error_category;
+const std::error_category & error_category();
 }
+
+static inline XrResult check(XrResult result, const char * statement)
+{
+	if (!XR_SUCCEEDED(result))
+		throw std::system_error(result, xr::error_category(), statement);
+
+	return result;
+}
+
+static inline XrResult check(XrResult result, const char * /*statement*/, const char * message)
+{
+	if (!XR_SUCCEEDED(result))
+		throw std::system_error(result, xr::error_category(), message);
+
+	return result;
+}
+
+#define CHECK_XR(result, ...) check(result, #result __VA_OPT__(, ) __VA_ARGS__)
