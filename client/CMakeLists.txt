@@ -4,25 +4,6 @@ include(FreetypeHarfbuzz)
 include(CompileGLSL)
 include(VulkanVersion)
 
-add_library(imgui OBJECT
-    ${imgui_SOURCE_DIR}/imgui.cpp
-    ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp
-    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/imgui_demo.cpp
-    ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
-)
-
-target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
-# target_compile_definitions(imgui PUBLIC "IMGUI_USER_CONFIG=\"render/imgui_config.h\"")
-target_compile_definitions(imgui PUBLIC IMGUI_USE_WCHAR32)
-target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE)
-target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
-# target_compile_definitions(imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
-target_compile_definitions(imgui PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
-target_link_libraries(imgui PUBLIC FreetypeHarfbuzz)
-
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
@@ -108,6 +89,24 @@ if(ANDROID OR Vulkan_VERSION VERSION_LESS 1.3.268)
     target_include_directories(wivrn PRIVATE ${CMAKE_BINARY_DIR}/Vulkan-Headers-vulkan-sdk-${VULKAN_VERSION}/include)
 endif()
 
+target_sources(wivrn PRIVATE
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+)
+
+target_include_directories(wivrn PRIVATE ${imgui_SOURCE_DIR})
+# target_compile_definitions(wivrn PRIVATE "IMGUI_USER_CONFIG=\"render/imgui_config.h\"")
+target_compile_definitions(wivrn PRIVATE IMGUI_USE_WCHAR32)
+target_compile_definitions(wivrn PRIVATE IMGUI_ENABLE_FREETYPE)
+target_compile_definitions(wivrn PRIVATE IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+# target_compile_definitions(wivrn PRIVATE IMGUI_ENABLE_FREETYPE_LUNASVG)
+target_compile_definitions(wivrn PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
+
 target_compile_features(wivrn PRIVATE cxx_std_20)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
 target_compile_definitions(wivrn PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS VMA_VULKAN_VERSION=1001000)
@@ -127,7 +126,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz imgui stb fastgltf_simdjson)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb fastgltf_simdjson)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror
