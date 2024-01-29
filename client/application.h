@@ -35,7 +35,7 @@
 #include <openxr/openxr_platform.h>
 #include <openxr/openxr_reflection.h>
 #include "vk_mem_alloc.h"
-#include "singleton.h"
+#include "utils/singleton.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <spdlog/spdlog.h>
