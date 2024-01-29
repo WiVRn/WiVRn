@@ -28,6 +28,7 @@ enum class model
 	meta_quest_3,
 	pico_neo_3,
 	pico_4,
+	htc_vive_focus_3,
 	unknown
 };
 

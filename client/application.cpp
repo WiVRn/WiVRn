@@ -73,7 +73,7 @@ struct interaction_profile
 static std::vector<interaction_profile> interaction_profiles{
         interaction_profile{
                 "/interaction_profiles/khr/simple_controller",
-		{},
+                {},
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -93,7 +93,7 @@ static std::vector<interaction_profile> interaction_profiles{
                 }},
         interaction_profile{
                 "/interaction_profiles/oculus/touch_controller",
-		{},
+                {},
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -132,7 +132,7 @@ static std::vector<interaction_profile> interaction_profiles{
                 }},
         interaction_profile{
                 "/interaction_profiles/bytedance/pico_neo3_controller",
-		{ "XR_BD_controller_interaction" },
+                { "XR_BD_controller_interaction" },
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -174,7 +174,7 @@ static std::vector<interaction_profile> interaction_profiles{
                 }},
         interaction_profile{
                 "/interaction_profiles/bytedance/pico4_controller",
-		{ "XR_BD_controller_interaction" },
+                { "XR_BD_controller_interaction" },
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -204,6 +204,45 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/b/click",
                         "/user/hand/right/input/b/touch",
                         "/user/hand/right/input/squeeze/click",
+                        "/user/hand/right/input/squeeze/value",
+                        "/user/hand/right/input/trigger/value",
+                        "/user/hand/right/input/trigger/touch",
+                        "/user/hand/right/input/thumbstick",
+                        "/user/hand/right/input/thumbstick/click",
+                        "/user/hand/right/input/thumbstick/touch",
+                        "/user/hand/right/input/thumbrest/touch",
+                }},
+        interaction_profile{
+                "/interaction_profiles/htc/vive_focus3_controller",
+                { "XR_HTC_vive_focus3_controller_interaction" },
+                {
+                        "/user/hand/left/output/haptic",
+                        "/user/hand/right/output/haptic",
+
+                        "/user/hand/left/input/grip/pose",
+                        "/user/hand/left/input/aim/pose",
+
+                        "/user/hand/right/input/grip/pose",
+                        "/user/hand/right/input/aim/pose",
+
+                        "/user/hand/left/input/x/click",
+                        "/user/hand/left/input/x/touch",
+                        "/user/hand/left/input/y/click",
+                        "/user/hand/left/input/y/touch",
+                        "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/squeeze/value",
+                        "/user/hand/left/input/trigger/value",
+                        "/user/hand/left/input/trigger/touch",
+                        "/user/hand/left/input/thumbrest/touch",
+                        "/user/hand/left/input/thumbstick",
+                        "/user/hand/left/input/thumbstick/click",
+                        "/user/hand/left/input/thumbstick/touch",
+
+                        "/user/hand/right/input/a/click",
+                        "/user/hand/right/input/a/touch",
+                        "/user/hand/right/input/b/click",
+                        "/user/hand/right/input/b/touch",
+                        "/user/hand/right/input/system/click",
                         "/user/hand/right/input/squeeze/value",
                         "/user/hand/right/input/trigger/value",
                         "/user/hand/right/input/trigger/touch",
@@ -689,7 +728,14 @@ void application::initialize_actions()
 		}
 
 		spdlog::info("Suggesting bindings for interaction profile {}", profile.profile_name);
-		xr_instance.suggest_bindings(profile.profile_name, xr_bindings);
+		try
+		{
+			xr_instance.suggest_bindings(profile.profile_name, xr_bindings);
+		}
+		catch(std::exception& e)
+		{
+			spdlog::warn("Caught {} while suggesting interaction profile", e.what());
+		}
 	}
 
 	xr_session.attach_actionsets(action_sets);
@@ -740,6 +786,19 @@ void application::initialize()
 
 	xr_system_id = xr::system(xr_instance, app_info.formfactor);
 	spdlog::info("Created OpenXR system for form factor {}", xr::to_string(app_info.formfactor));
+
+	// Log system properties
+	XrSystemProperties properties = xr_system_id.properties();
+	spdlog::info("OpenXR sytem properties:");
+	spdlog::info("    Vendor ID: {:#x}", properties.vendorId);
+	spdlog::info("    System name: {}", properties.systemName);
+	spdlog::info("    Graphics properties:");
+	spdlog::info("        Maximum swapchain image size: {}x{}", properties.graphicsProperties.maxSwapchainImageWidth, properties.graphicsProperties.maxSwapchainImageWidth);
+	spdlog::info("        Maximum layer count: {}", properties.graphicsProperties.maxLayerCount);
+	spdlog::info("    Tracking properties:");
+	spdlog::info("        Orientation tracking: {}", (bool)properties.trackingProperties.orientationTracking);
+	spdlog::info("        Position tracking: {}", (bool)properties.trackingProperties.positionTracking);
+
 
 	// Log view configurations and blend modes
 	log_views();

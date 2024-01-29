@@ -81,6 +81,8 @@ static std::string choose_webxr_profile()
 			return "pico-neo3";
 		case model::pico_4:
 			return "pico-4";
+		case model::htc_vive_focus_3:
+			return "htc-vive-focus-3";
 		case model::unknown:
 			return "generic-trigger-squeeze";
 	}
@@ -942,6 +944,21 @@ scene::meta& scenes::lobby::get_meta_scene()
 			},
 			suggested_binding{
 				"/interaction_profiles/bytedance/pico4_controller",
+				{
+					{"left_aim",      "/user/hand/left/input/aim/pose"},
+					{"left_trigger",  "/user/hand/left/input/trigger/value"},
+					{"left_squeeze",  "/user/hand/left/input/squeeze/value"},
+					{"left_scroll",   "/user/hand/left/input/thumbstick"},
+					{"left_haptic",   "/user/hand/left/output/haptic"},
+					{"right_aim",     "/user/hand/right/input/aim/pose"},
+					{"right_trigger", "/user/hand/right/input/trigger/value"},
+					{"right_squeeze", "/user/hand/right/input/squeeze/value"},
+					{"right_scroll",  "/user/hand/right/input/thumbstick"},
+					{"right_haptic",  "/user/hand/right/output/haptic"},
+				}
+			},
+			suggested_binding{
+				"/interaction_profiles/htc/vive_focus3_controller",
 				{
 					{"left_aim",      "/user/hand/left/input/aim/pose"},
 					{"left_trigger",  "/user/hand/left/input/trigger/value"},

@@ -56,7 +56,7 @@ XrSystemProperties xr::system::properties() const
 	if (!id)
 		throw std::invalid_argument("this");
 
-	XrSystemProperties prop;
+	XrSystemProperties prop{.type = XR_TYPE_SYSTEM_PROPERTIES};
 	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
 
 	return prop;

@@ -46,6 +46,15 @@ model guess_model()
 {
 #ifdef __ANDROID__
 	const auto device = get_property("ro.product.device");
+	const auto manufacturer = get_property("ro.product.manufacturer");
+	const auto model = get_property("ro.product.model");
+
+	spdlog::info("Guessing HMD model from:");
+	spdlog::info("    ro.product.device = \"{}\":", device);
+	spdlog::info("    ro.product.manufacturer = \"{}\":", manufacturer);
+	spdlog::info("    ro.product.model = \"{}\":", model);
+
+
 	if (device == "monterey")
 		return model::oculus_quest;
 	if (device == "hollywood")
@@ -54,9 +63,9 @@ model guess_model()
 		return model::meta_quest_pro;
 	if (device == "eureka")
 		return model::meta_quest_3;
+	if (device == "TBD")
+		return model::htc_vive_focus_3;
 
-	const auto manufacturer = get_property("ro.product.manufacturer");
-	const auto model = get_property("ro.product.model");
 	if (manufacturer == "Pico")
 	{
 		if (model == "Pico Neo 3")
@@ -107,6 +116,11 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 			spdlog::info("Using panel resolution 2160x2160 for Pico 4");
 			view.recommendedImageRectWidth = 2160;
 			view.recommendedImageRectHeight = 2160;
+			return view;
+		case model::htc_vive_focus_3:
+			spdlog::info("Using panel resolution 2448x2448 for HTC Vive Focus 3");
+			view.recommendedImageRectWidth = 2448;
+			view.recommendedImageRectHeight = 2448;
 			return view;
 		case model::unknown:
 			return view;
