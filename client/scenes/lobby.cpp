@@ -287,20 +287,17 @@ static std::string ip_address_to_string(const in6_addr& addr)
 
 std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service service, bool manual_connection)
 {
-	spdlog::info("Connecting to session, manual={}", manual_connection);
-
 	if (!manual_connection)
 	{
-		spdlog::info("Client protocol version: {}", xrt::drivers::wivrn::protocol_version);
-		spdlog::info("Server TXT:");
-		for(auto& [i,j]: service.txt)
-		{
-			spdlog::info("    {}=\"{}\"", i, j);
-		}
-
-
 		char protocol_string[17];
 		sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
+
+		spdlog::debug("Client protocol version: {}", protocol_string);
+		spdlog::debug("Server TXT:");
+		for(auto& [i,j]: service.txt)
+		{
+			spdlog::debug("    {}=\"{}\"", i, j);
+		}
 
 		auto protocol = service.txt.find("protocol");
 		if (protocol == service.txt.end())
@@ -350,7 +347,7 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 
 		try
 		{
-			spdlog::info("Trying address {}", address_string);
+			spdlog::debug("Trying address {}", address_string);
 
 			return std::visit([port = service.port](auto & address) {
 				return std::make_unique<wivrn_session>(address, port);
@@ -463,65 +460,36 @@ void scenes::lobby::update_server_list()
 	}
 }
 
-void scenes::lobby::set_next_scene_status(std::string status_str, connection_status status, int token)
-{
-	std::unique_lock _{next_scene_status_lock};
-	if (token == next_scene_status_token)
-	{
-		next_scene_status_string = std::move(status_str);
-		next_scene_status = status;
-	}
-}
-
-std::pair<std::string, scenes::lobby::connection_status> scenes::lobby::get_next_scene_status()
-{
-	std::unique_lock _{next_scene_status_lock};
-	return {next_scene_status_string, next_scene_status};
-}
-
 void scenes::lobby::connect(server_data& data)
 {
-	int token;
-	{
-		std::unique_lock _{next_scene_status_lock};
-		token = ++next_scene_status_token;
-	}
-
 	server_name = data.service.name;
-	set_next_scene_status("Connecting", connection_status::connecting, token);
+	async_error.reset();
 
-	async_session = std::async(std::launch::async, [service = data.service, manual = data.manual, token, this](){
-		try
-		{
-			return connect_to_session(service, manual);
-		}
-		catch(const std::exception & e)
-		{
-			std::string status = e.what();
-			set_next_scene_status(status, connection_status::error, token);
-			spdlog::error("Failed to create stream session: {}", e.what());
-		}
-		return std::unique_ptr<wivrn_session>{};
-	});
+	async_session = utils::async<std::unique_ptr<wivrn_session>, std::string>([](auto token, wivrn_discover::service service, bool manual)
+	{
+		token.set_progress("Waiting for connection");
+		return connect_to_session(service, manual);
+	}, data.service, data.manual);
 }
 
 void scenes::lobby::gui_connecting()
 {
 	const ImVec2 button_size(220, 80);
-	auto status = get_next_scene_status();
+
+	std::string status;
+	if (next_scene)
+		status = "Waiting for video stream";
+	else if (async_session.valid())
+		status = async_session.get_progress();
+	else if (async_error)
+		status = *async_error;
+
 	std::string button_label;
-	switch(status.second)
-	{
-		case connection_status::idle:
-		case connection_status::error:
-			button_label = "Close";
-			break;
-		case connection_status::connecting:
-			button_label = "Cancel";
-			break;
-		case connection_status::connected:
-			return;
-	}
+
+	if (async_error)
+		button_label = "Close";
+	else
+		button_label = "Cancel";
 
 	ImGui::Dummy({1000, 1});
 
@@ -531,13 +499,13 @@ void scenes::lobby::gui_connecting()
 	ImGui::PopFont();
 
 	// ImGui::TextWrapped("%s", status.first.c_str());
-	ImGui::Text("%s", status.first.c_str());
+	ImGui::Text("%s", status.c_str());
 
 	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
 
 	if (ImGui::Button(button_label.c_str(), button_size))
 	{
-		discarded_futures.emplace_back(std::move(async_session));
+		async_session.cancel();
 
 		next_scene.reset();
 
@@ -610,7 +578,6 @@ void scenes::lobby::gui_add_server()
 
 	ImGui::SameLine(bottom_right.x - button_size.x);
 
-	// ImGui::SetCursorPos(ImVec2(bottom_right.x - button_size.x, bottom_right.y - button_size.y));
 	if (ImGui::Button("Save", button_size))
 	{
 		ImGui::CloseCurrentPopup();
@@ -633,7 +600,7 @@ void scenes::lobby::gui_add_server()
 		hovered_item = "save";
 }
 
-void scenes::lobby::gui_server_list(bool open_connecting_popup)
+void scenes::lobby::gui_server_list()
 {
 	// Build an index of the cookies sorted by server name
 	std::multimap<std::string, std::string> sorted_cookies;
@@ -697,7 +664,7 @@ void scenes::lobby::gui_server_list(bool open_connecting_popup)
 			{
 				ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
 				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
-				if (ImGui::Checkbox("Autoconnect", &data.autoconnect))
+				if (ImGui::Checkbox(("Autoconnect##" + cookie).c_str(), &data.autoconnect))
 					save_config();
 				if (ImGui::IsItemHovered())
 					hovered_item = "autoconnect " + cookie;
@@ -729,10 +696,10 @@ void scenes::lobby::gui_server_list(bool open_connecting_popup)
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
 			}
-			if (ImGui::Button("Connect", button_size))
+			if (ImGui::Button(("Connect##" + cookie).c_str(), button_size))
 			{
 				connect(data);
-				open_connecting_popup = true;
+				ImGui::OpenPopup("connecting");
 			}
 
 			if (ImGui::IsItemHovered())
@@ -749,7 +716,7 @@ void scenes::lobby::gui_server_list(bool open_connecting_popup)
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
 
-				if (ImGui::Button("Remove", button_size))
+				if (ImGui::Button(("Remove##" + cookie).c_str(), button_size))
 					cookie_to_remove = cookie;
 
 				if (ImGui::IsItemHovered())
@@ -807,8 +774,10 @@ void scenes::lobby::gui_server_list(bool open_connecting_popup)
 		ImGui::EndPopup();
 	}
 
-	if (open_connecting_popup)
+	// Check if an automatic connection has started
+	if ((async_session.valid() || next_scene) && !ImGui::IsPopupOpen("connecting"))
 		ImGui::OpenPopup("connecting");
+
 	if (ImGui::BeginPopupModal("connecting", nullptr,
 		ImGuiWindowFlags_NoTitleBar |
 		ImGuiWindowFlags_NoResize |
@@ -837,7 +806,7 @@ void scenes::lobby::draw_gui(XrTime predicted_display_time)
 	auto last_hovered = hovered_item;
 	hovered_item = "";
 
-	gui_server_list(false);
+	gui_server_list();
 
 	if (hovered_item != last_hovered && hovered_item != "")
 	{
@@ -853,28 +822,24 @@ void scenes::lobby::draw_gui(XrTime predicted_display_time)
 
 void scenes::lobby::render()
 {
-	if (async_session.valid() && async_session.wait_for(0s) == std::future_status::ready)
+	if (async_session.valid() && async_session.poll() == utils::future_status::ready)
 	{
-		auto session = async_session.get();
-		if (session)
+		try
 		{
-			next_scene = stream::create(std::move(session));
-			int token;
-			{
-				std::unique_lock _{next_scene_status_lock};
-				token = ++next_scene_status_token;
-			}
-			set_next_scene_status("Waiting for video stream", connection_status::connecting, token);
+			auto session = async_session.get();
+			if (session)
+				next_scene = stream::create(std::move(session));
+
+			async_session.reset();
 		}
-
-		async_session = std::future<std::unique_ptr<wivrn_session>>();
+		catch(std::exception& e)
+		{
+			spdlog::error("Error connecting to server: {}", e.what());
+			async_session.cancel();
+			async_error = e.what();
+		}
 	}
 
-	if (!discarded_futures.empty())
-	{
-		if (!discarded_futures.front().valid() || discarded_futures.front().wait_for(0s) == std::future_status::ready)
-			discarded_futures.pop_front();
-	}
 
 	if (next_scene)
 	{
@@ -886,7 +851,6 @@ void scenes::lobby::render()
 
 	update_server_list();
 
-	// TODO don't try if there is a popup window
 	if (!async_session.valid() && !next_scene && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 	{
 		for(auto&& [cookie, data]: servers)
@@ -902,6 +866,7 @@ void scenes::lobby::render()
 
 	if (!framestate.shouldRender)
 	{
+		spdlog::info("framestate.shouldRender is false");
 		session.begin_frame();
 		session.end_frame(framestate.predictedDisplayTime, {});
 		return;
