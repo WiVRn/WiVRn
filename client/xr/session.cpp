@@ -198,7 +198,7 @@ std::vector<std::string> xr::session::localized_sources_for_action(XrAction acti
 
 	std::vector<std::string> sources_name;
 	sources_name.reserve(sources.size());
-	for (XrPath path: details::enumerate<XrPath>(xrEnumerateBoundSourcesForAction, id, &action_info))
+	for (XrPath path: sources)
 	{
 		XrInputSourceLocalizedNameGetInfo name_info{
 		        .type = XR_TYPE_INPUT_SOURCE_LOCALIZED_NAME_GET_INFO,
