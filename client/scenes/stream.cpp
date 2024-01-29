@@ -517,7 +517,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 			.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		};
 
-		decoder_output[i].image = image_allocation{image_info, alloc_info};
+		decoder_output[i].image = image_allocation{device, image_info, alloc_info};
 
 		vk::ImageViewCreateInfo image_view_info{
 			.image = vk::Image{decoder_output[i].image},

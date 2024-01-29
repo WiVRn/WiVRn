@@ -139,6 +139,7 @@ std::shared_ptr<scene_data::material> scene_renderer::create_default_material(vk
 	device.waitForFences(*fence, true, 1'000'000'000); // TODO check for timeout
 
 	default_material->buffer = std::make_shared<buffer_allocation>(
+		device,
 		vk::BufferCreateInfo{
 			.size = sizeof(default_material->staging),
 			.usage = vk::BufferUsageFlagBits::eUniformBuffer
@@ -371,7 +372,8 @@ scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image 
 	                                                     .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1},
 	                                             });
 
-	out.depth_buffer = image_allocation{vk::ImageCreateInfo{
+	out.depth_buffer = image_allocation{device,
+		                            vk::ImageCreateInfo{
 	                                            .imageType = vk::ImageType::e2D,
 	                                            .format = depth_format,
 	                                            .extent = {
@@ -388,7 +390,7 @@ scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image 
 	                                    },
 	                                    VmaAllocationCreateInfo{
 	                                            .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
-						    .usage = VMA_MEMORY_USAGE_AUTO,
+	                                            .usage = VMA_MEMORY_USAGE_AUTO,
 	                                            .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // TODO: check
 	                                    }};
 
@@ -579,14 +581,14 @@ void scene_renderer::start_frame()
 	f.staging_buffer_offset = 0;
 	if (!f.staging_buffer)
 	{
-		f.staging_buffer = buffer_allocation{vk::BufferCreateInfo{
-		                                                     .size = 1048576,
-		                                                     .usage = vk::BufferUsageFlagBits::eUniformBuffer},
-		                                             VmaAllocationCreateInfo{
-		                                                     .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-		                                                     .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
-			"scene_renderer::render (UBO staging)"
-		};
+		f.staging_buffer = buffer_allocation{device,
+		                                     vk::BufferCreateInfo{
+		                                             .size = 1048576,
+		                                             .usage = vk::BufferUsageFlagBits::eUniformBuffer},
+		                                     VmaAllocationCreateInfo{
+		                                             .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+		                                             .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
+		                                     "scene_renderer::render (UBO staging)"};
 	}
 }
 

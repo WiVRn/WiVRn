@@ -569,12 +569,11 @@ void application::initialize_vulkan()
 
 	pipeline_cache = vk::raii::PipelineCache(vk_device, pipeline_cache_info);
 
-	VmaAllocatorCreateInfo info{
+	allocator.emplace(VmaAllocatorCreateInfo{
 		.physicalDevice = *vk_physical_device,
 		.device = *vk_device,
 		.instance = *vk_instance,
-	};
-	CHECK_VK(vmaCreateAllocator(&info, &allocator));
+	});
 }
 
 void application::log_views()
@@ -995,12 +994,6 @@ void application::cleanup()
 		xr::actionset tmp = std::move(i->actionset);
 		i->actions_by_name.clear(); // Not strictly necessary
 		i->spaces_by_name.clear();
-	}
-
-	if (allocator)
-	{
-		vmaDestroyAllocator(allocator);
-		allocator = nullptr;
 	}
 
 #ifdef __ANDROID__

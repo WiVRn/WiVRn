@@ -17,11 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "application.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "lobby.h"
-#include "wivrn_packets.h"
-#include "../common/version.h"
+#include "version.h"
+#include <spdlog/fmt/fmt.h>
 #include <utils/strings.h>
 
 #include "../external/IconsFontAwesome6.h"

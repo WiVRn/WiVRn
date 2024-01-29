@@ -22,6 +22,7 @@
 #include <vulkan/vulkan.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/tools.hpp>
+#include "application.h"
 #include "vk/allocation.h"
 #include "utils/alignment.h"
 
@@ -117,6 +118,7 @@ public:
 	buffer_allocation copy_to_gpu()
 	{
 		buffer_allocation gpu_buffer{
+		        application::get_device(),
 		        vk::BufferCreateInfo{
 		                .size = bytes.size(),
 		                .usage = usage},

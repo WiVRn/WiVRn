@@ -34,7 +34,7 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <openxr/openxr_reflection.h>
-#include "vk_mem_alloc.h"
+#include "vk/vk_allocator.h"
 #include "utils/singleton.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -90,6 +90,9 @@ class application : public singleton<application>
 	vk::raii::CommandPool vk_cmdpool = nullptr;
 	vk::raii::PipelineCache pipeline_cache = nullptr;
 
+	// Vulkan memory allocator stuff
+	std::optional<vk_allocator> allocator;
+
 	// OpenXR stuff
 	void initialize_actions();
 
@@ -106,10 +109,6 @@ class application : public singleton<application>
 	xr::space left_aim_space;
 	xr::space right_grip_space;
 	xr::space right_aim_space;
-
-	// Vulkan memory allocator stuff
-	VmaAllocator allocator;
-
 
 	bool session_running = false;
 	bool session_focused = false;
@@ -329,11 +328,6 @@ public:
 	const std::string& get_server_address() const
 	{
 		return server_address;
-	}
-
-	static VmaAllocator get_allocator()
-	{
-		return instance().allocator;
 	}
 
 	static vk::raii::PhysicalDevice& get_physical_device()

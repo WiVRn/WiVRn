@@ -83,7 +83,7 @@ stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::Phy
 		.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 	};
 
-	buffer = buffer_allocation(create_info, alloc_info);
+	buffer = buffer_allocation(device, create_info, alloc_info);
 	void * data = buffer.map();
 	for (size_t i = 0; i < input_images.size(); i++)
 		ubo.push_back(reinterpret_cast<uniform *>(reinterpret_cast<uintptr_t>(data) + i * uniform_size));

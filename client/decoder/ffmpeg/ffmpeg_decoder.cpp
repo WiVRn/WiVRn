@@ -105,7 +105,7 @@ decoder::decoder(
 			.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		};
 
-		decoded_images[i].image = image_allocation(image_info, alloc_info);
+		decoded_images[i].image = image_allocation(device, image_info, alloc_info);
 
 		decoded_images[i].image.map();
 

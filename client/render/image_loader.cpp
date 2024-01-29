@@ -154,19 +154,22 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 
 	// Copy to staging buffer
 	staging_buffer = buffer_allocation{
+	        device,
 	        vk::BufferCreateInfo{
 	                .size = byte_size,
 	                .usage = vk::BufferUsageFlagBits::eTransferSrc},
 	        VmaAllocationCreateInfo{
 	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
 	                .usage = VMA_MEMORY_USAGE_AUTO,
-	        }, "image_loader::do_load (staging)"};
+	        },
+	        "image_loader::do_load (staging)"};
 
 	memcpy(staging_buffer.map(), pixels, byte_size);
 	staging_buffer.unmap();
 
 	// Allocate image
 	image = image_allocation{
+	        device,
 	        vk::ImageCreateInfo{
 	                .imageType = vk::ImageType::e2D,
 	                .format = format,

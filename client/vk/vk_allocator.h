@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2023  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2023  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,37 +19,19 @@
 
 #pragma once
 
-#include <cassert>
+#include "utils/singleton.h"
+#include "vk_mem_alloc.h"
 
-template<typename T>
-class singleton
+class vk_allocator : public singleton<vk_allocator>
 {
-	// static_assert(std::derived_from<T, singleton<T>>);
-
-	static T * instance_;
-
-protected:
-	singleton()
-	{
-		assert(instance_ == nullptr);
-		instance_ = reinterpret_cast<T*>(this);
-	}
-
-	~singleton()
-	{
-		assert(instance_ == this);
-		instance_ = nullptr;
-	}
-
-	singleton(const singleton&) = delete;
-	singleton& operator=(const singleton&) = delete;
+	VmaAllocator handle = nullptr;
 
 public:
-	static T & instance()
+	vk_allocator(const VmaAllocatorCreateInfo &);
+	~vk_allocator();
+
+	operator VmaAllocator()
 	{
-		assert(instance_ != nullptr);
-		return *reinterpret_cast<T*>(instance_);
+		return handle;
 	}
 };
-
-template<typename T> T * singleton<T>::instance_;

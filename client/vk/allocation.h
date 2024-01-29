@@ -19,11 +19,11 @@
 
 #pragma once
 
+#include "vk_allocator.h"
 #include "vk_mem_alloc.h"
 #include <vulkan/vulkan_raii.hpp>
-#include "application.h"
 
-template<typename T>
+template <typename T>
 struct basic_allocation_traits
 {
 };
@@ -34,7 +34,7 @@ struct basic_allocation_traits_base
 	static void unmap(VmaAllocation allocation);
 };
 
-template<>
+template <>
 struct basic_allocation_traits<VkBuffer> : basic_allocation_traits_base
 {
 	using CreateInfo = vk::BufferCreateInfo;
@@ -42,16 +42,17 @@ struct basic_allocation_traits<VkBuffer> : basic_allocation_traits_base
 	using RaiiType = vk::raii::Buffer;
 
 	static std::pair<RaiiType, VmaAllocation> create(
-		const CreateInfo& buffer_info,
-		const VmaAllocationCreateInfo& alloc_info);
+	        vk::raii::Device & device,
+	        const CreateInfo & buffer_info,
+	        const VmaAllocationCreateInfo & alloc_info);
 
 	static void destroy(
-		RaiiType& buffer,
-		VmaAllocation allocation,
-		void * mapped);
+	        RaiiType & buffer,
+	        VmaAllocation allocation,
+	        void * mapped);
 };
 
-template<>
+template <>
 struct basic_allocation_traits<VkImage> : basic_allocation_traits_base
 {
 	using CreateInfo = vk::ImageCreateInfo;
@@ -59,16 +60,17 @@ struct basic_allocation_traits<VkImage> : basic_allocation_traits_base
 	using RaiiType = vk::raii::Image;
 
 	static std::pair<RaiiType, VmaAllocation> create(
-		const CreateInfo& image_info,
-		const VmaAllocationCreateInfo& alloc_info);
+	        vk::raii::Device & device,
+	        const CreateInfo & image_info,
+	        const VmaAllocationCreateInfo & alloc_info);
 
 	static void destroy(
-		RaiiType& image,
-		VmaAllocation allocation,
-		void * mapped);
+	        RaiiType & image,
+	        VmaAllocation allocation,
+	        void * mapped);
 };
 
-template<typename T>
+template <typename T>
 class basic_allocation
 {
 public:
@@ -105,44 +107,44 @@ public:
 		return allocation;
 	}
 
-	RaiiType* operator->()
+	RaiiType * operator->()
 	{
 		return &resource;
 	}
 
-	const T* operator->() const
+	const T * operator->() const
 	{
 		return &resource;
 	}
 
 	basic_allocation() = default;
-	basic_allocation(const CreateInfo& create_info, const VmaAllocationCreateInfo& alloc_info) :
-		create_info(create_info)
+	basic_allocation(vk::raii::Device & device, const CreateInfo & create_info, const VmaAllocationCreateInfo & alloc_info) :
+	        create_info(create_info)
 	{
-		std::tie(resource, allocation) = traits::create(create_info, alloc_info);
+		std::tie(resource, allocation) = traits::create(device, create_info, alloc_info);
 	}
 
-	basic_allocation(const CreateInfo& create_info, VmaAllocationCreateInfo alloc_info, const std::string& name) :
-		create_info(create_info)
+	basic_allocation(vk::raii::Device & device, const CreateInfo & create_info, VmaAllocationCreateInfo alloc_info, const std::string & name) :
+	        create_info(create_info)
 	{
-		std::tie(resource, allocation) = traits::create(create_info, alloc_info);
+		std::tie(resource, allocation) = traits::create(device, create_info, alloc_info);
 
-		vmaSetAllocationName(application::get_allocator(), allocation, name.c_str());
+		vmaSetAllocationName(vk_allocator::instance(), allocation, name.c_str());
 	}
 
-	basic_allocation(const basic_allocation&) = delete;
-	basic_allocation(basic_allocation&& other) :
-		allocation(other.allocation),
-		resource(std::move(other.resource)),
-		mapped(other.mapped),
-		create_info(other.create_info)
+	basic_allocation(const basic_allocation &) = delete;
+	basic_allocation(basic_allocation && other) :
+	        allocation(other.allocation),
+	        resource(std::move(other.resource)),
+	        mapped(other.mapped),
+	        create_info(other.create_info)
 	{
 		other.allocation = nullptr;
 		other.mapped = nullptr;
 	}
 
-	const basic_allocation& operator=(const basic_allocation&) = delete;
-	const basic_allocation& operator=(basic_allocation&& other)
+	const basic_allocation & operator=(const basic_allocation &) = delete;
+	const basic_allocation & operator=(basic_allocation && other)
 	{
 		std::swap(allocation, other.allocation);
 		std::swap(resource, other.resource);
@@ -175,18 +177,17 @@ public:
 		mapped = nullptr;
 	}
 
-	template<typename U>
+	template <typename U>
 	U * data()
 	{
-		return reinterpret_cast<U*>(map());
+		return reinterpret_cast<U *>(map());
 	}
 
-	const CreateInfo& info() const
+	const CreateInfo & info() const
 	{
 		return create_info;
 	}
 };
-
 
 using buffer_allocation = basic_allocation<vk::Buffer>;
 using image_allocation = basic_allocation<vk::Image>;

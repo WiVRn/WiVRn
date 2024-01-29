@@ -18,7 +18,6 @@
  */
 
 #include "allocation.h"
-#include "application.h"
 
 #include "utils/check.h"
 
@@ -27,27 +26,26 @@
 #include <vk_mem_alloc.h>
 
 std::pair<vk::raii::Buffer, VmaAllocation> basic_allocation_traits<VkBuffer>::create(
-		const CreateInfo& buffer_info,
-		const VmaAllocationCreateInfo& alloc_info)
+        vk::raii::Device & device,
+        const CreateInfo & buffer_info,
+        const VmaAllocationCreateInfo & alloc_info)
 {
-	VmaAllocator allocator = application::get_allocator();
-	vk::raii::Device& device = application::get_device();
+	VmaAllocator allocator = vk_allocator::instance();
 
 	VmaAllocation allocation;
 	VkBuffer tmp;
 
-	CHECK_VK(vmaCreateBuffer(allocator, &(NativeCreateInfo&)buffer_info, &alloc_info, &tmp, &allocation, nullptr));
+	CHECK_VK(vmaCreateBuffer(allocator, &(NativeCreateInfo &)buffer_info, &alloc_info, &tmp, &allocation, nullptr));
 
 	return std::pair<vk::raii::Buffer, VmaAllocation>{vk::raii::Buffer{device, tmp}, allocation};
-
 }
 
 void basic_allocation_traits<VkBuffer>::destroy(
-	vk::raii::Buffer& buffer,
-	VmaAllocation allocation,
-	void * mapped)
+        vk::raii::Buffer & buffer,
+        VmaAllocation allocation,
+        void * mapped)
 {
-	VmaAllocator allocator = application::get_allocator();
+	VmaAllocator allocator = vk_allocator::instance();
 
 	if (mapped)
 		vmaUnmapMemory(allocator, allocation);
@@ -57,7 +55,7 @@ void basic_allocation_traits<VkBuffer>::destroy(
 
 void * basic_allocation_traits_base::map(VmaAllocation allocation)
 {
-	VmaAllocator allocator = application::get_allocator();
+	VmaAllocator allocator = vk_allocator::instance();
 
 	void * mapped;
 	CHECK_VK(vmaMapMemory(allocator, allocation, &mapped));
@@ -66,32 +64,32 @@ void * basic_allocation_traits_base::map(VmaAllocation allocation)
 
 void basic_allocation_traits_base::unmap(VmaAllocation allocation)
 {
-	VmaAllocator allocator = application::get_allocator();
+	VmaAllocator allocator = vk_allocator::instance();
 
 	vmaUnmapMemory(allocator, allocation);
 }
 
 std::pair<vk::raii::Image, VmaAllocation> basic_allocation_traits<VkImage>::create(
-		const CreateInfo& image_info,
-		const VmaAllocationCreateInfo& alloc_info)
+        vk::raii::Device & device,
+        const CreateInfo & image_info,
+        const VmaAllocationCreateInfo & alloc_info)
 {
-	VmaAllocator allocator = application::get_allocator();
-	vk::raii::Device& device = application::get_device();
+	VmaAllocator allocator = vk_allocator::instance();
 
 	VmaAllocation allocation;
 	VkImage tmp;
 
-	CHECK_VK(vmaCreateImage(allocator, &(NativeCreateInfo&)image_info, &alloc_info, &tmp, &allocation, nullptr));
+	CHECK_VK(vmaCreateImage(allocator, &(NativeCreateInfo &)image_info, &alloc_info, &tmp, &allocation, nullptr));
 
 	return std::pair<vk::raii::Image, VmaAllocation>{vk::raii::Image{device, tmp}, allocation};
 }
 
 void basic_allocation_traits<VkImage>::destroy(
-	vk::raii::Image& image,
-	VmaAllocation allocation,
-	void * mapped)
+        vk::raii::Image & image,
+        VmaAllocation allocation,
+        void * mapped)
 {
-	VmaAllocator allocator = application::get_allocator();
+	VmaAllocator allocator = vk_allocator::instance();
 
 	if (mapped)
 		vmaUnmapMemory(allocator, allocation);

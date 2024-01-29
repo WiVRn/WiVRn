@@ -140,7 +140,8 @@ text_rasterizer::text_rasterizer(vk::raii::Device & device, vk::raii::PhysicalDe
 
 image_allocation text_rasterizer::create_image(vk::Extent2D size)
 {
-	image_allocation alloc{vk::ImageCreateInfo{
+	image_allocation alloc{device,
+	                       vk::ImageCreateInfo{
 	                               .imageType = vk::ImageType::e2D,
 	                               .format = text::format,
 	                               .extent = {
@@ -167,7 +168,8 @@ image_allocation text_rasterizer::create_image(vk::Extent2D size)
 
 buffer_allocation text_rasterizer::create_buffer(size_t size)
 {
-	buffer_allocation alloc{vk::BufferCreateInfo{
+	buffer_allocation alloc{device,
+	                        vk::BufferCreateInfo{
 	                                .size = size,
 	                                .usage = vk::BufferUsageFlagBits::eTransferSrc,
 	                        },
