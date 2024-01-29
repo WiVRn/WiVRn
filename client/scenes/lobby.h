@@ -24,13 +24,17 @@
 #include <vulkan/vulkan_raii.hpp>
 #include "wivrn_discover.h"
 
+#include <deque>
 #include <optional>
 #include <vector>
 #include <map>
+#include <future>
 
 #include "render/scene_renderer.h"
 #include "render/imgui_impl.h"
 #include "input_profile.h"
+
+class wivrn_session;
 
 namespace scenes
 {
@@ -47,16 +51,32 @@ class lobby : public scene_impl<lobby>
 		wivrn_discover::service service;
 	};
 
+	enum class connection_status
+	{
+		idle,
+		connecting,
+		connected,
+		error,
+	};
+
 	std::optional<wivrn_discover> discover;
 	std::map<std::string, server_data> servers;
 
-	bool show_add_server_window = false;
 	char add_server_window_prettyname[200];
 	char add_server_window_hostname[200];
 	int add_server_window_port;
 
+	std::future<std::unique_ptr<wivrn_session>> async_session;
 	std::shared_ptr<stream> next_scene;
 	std::string server_name;
+	std::string next_scene_status_string;
+	connection_status next_scene_status = connection_status::idle;
+	int next_scene_status_token = 0;
+	std::mutex next_scene_status_lock;
+	std::deque<std::future<std::unique_ptr<wivrn_session>>> discarded_futures;
+
+	void set_next_scene_status(std::string status_str, connection_status status, int token);
+	std::pair<std::string, connection_status> get_next_scene_status();
 
 	std::optional<scene_renderer> renderer;
 	std::optional<scene_data> teapot;
@@ -84,11 +104,11 @@ class lobby : public scene_impl<lobby>
 	void move_gui(glm::vec3 position, glm::quat orientation, XrTime predicted_display_time);
 
 	void gui_connecting();
-	void gui_server_list();
+	void gui_server_list(bool open_connecting_popup);
 	void gui_add_server();
 	void gui_keyboard(ImVec2 size);
 
-	void connect(server_data& data, bool manual);
+	void connect(server_data& data);
 
 public:
 	virtual ~lobby();

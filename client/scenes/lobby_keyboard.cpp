@@ -380,4 +380,6 @@ void scenes::lobby::gui_keyboard(ImVec2 size)
 
 		position.y += key_size.y;
 	}
+
+	ImGui::SetCursorPos(position);
 }

@@ -175,7 +175,7 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 	                .initialLayout = vk::ImageLayout::eUndefined},
 	        VmaAllocationCreateInfo{
 	                .flags = 0,
-	                .usage = VMA_MEMORY_USAGE_AUTO,
+	                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
 	        }, "image_loader::do_load"};
 
 	// Transition all mipmap levels layout to eTransferDstOptimal

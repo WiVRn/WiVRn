@@ -27,6 +27,9 @@
 #include "render/scene_data.h"
 #include "stream.h"
 #include "hardware.h"
+#include "wivrn_client.h"
+#include <chrono>
+#include <future>
 #include <glm/gtc/matrix_access.hpp>
 
 #include "wivrn_discover.h"
@@ -40,16 +43,19 @@
 #include <sstream>
 #include <string>
 #include <utils/ranges.h>
+#include <utils/strings.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <simdjson.h>
 #include <fstream>
+#include <thread>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 
+using namespace std::chrono_literals;
 
 static const std::string discover_service = "_wivrn._tcp.local.";
 
@@ -178,7 +184,6 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 		// gui_yaw += gui_yaw_error * std::min(1.0f, dt / tau);
 		// imgui_node->translation += gui_position_error * std::min(1.0f, dt / tau);
 	}
-
 }
 
 scenes::lobby::lobby()
@@ -282,10 +287,18 @@ static std::string ip_address_to_string(const in6_addr& addr)
 
 std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service service, bool manual_connection)
 {
-	// TODO: make it asynchronous
+	spdlog::info("Connecting to session, manual={}", manual_connection);
 
 	if (!manual_connection)
 	{
+		spdlog::info("Client protocol version: {}", xrt::drivers::wivrn::protocol_version);
+		spdlog::info("Server TXT:");
+		for(auto& [i,j]: service.txt)
+		{
+			spdlog::info("    {}=\"{}\"", i, j);
+		}
+
+
 		char protocol_string[17];
 		sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
 
@@ -309,8 +322,8 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 		addrinfo * addresses;
 		if (int err = getaddrinfo(service.hostname.c_str(), nullptr, &hint, &addresses))
 		{
-			spdlog::error("Cannot get address for {}: {}", service.hostname, gai_strerror(err));
-			return {};
+			spdlog::error("Cannot resolve hostname {}: {}", service.hostname, gai_strerror(err));
+			throw std::runtime_error("Cannot resolve hostname: " + std::string(gai_strerror(err)));
 		}
 
 		for(auto i = addresses; i; i = i->ai_next)
@@ -331,8 +344,14 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 
 	for (const auto & address: service.addresses)
 	{
+		std::string address_string = std::visit([](auto & address) {
+			return ip_address_to_string(address);
+		}, address);
+
 		try
 		{
+			spdlog::info("Trying address {}", address_string);
+
 			return std::visit([port = service.port](auto & address) {
 				return std::make_unique<wivrn_session>(address, port);
 			},
@@ -340,9 +359,6 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 		}
 		catch (std::exception & e)
 		{
-			std::string address_string = std::visit([](auto & address) {
-				return ip_address_to_string(address);
-			}, address);
 			spdlog::warn("Cannot connect to {} ({}): {}", service.hostname, address_string, e.what());
 		}
 	}
@@ -379,7 +395,7 @@ static glm::mat4 view_matrix(XrPosef pose)
 	return glm::inverse(inv_view_matrix);
 }
 
-static void CenterText(const std::string& text)
+static void CenterTextH(const std::string& text)
 {
 	float win_width = ImGui::GetWindowSize().x;
 	float text_width = ImGui::CalcTextSize(text.c_str()).x;
@@ -388,10 +404,26 @@ static void CenterText(const std::string& text)
 	ImGui::Text("%s", text.c_str());
 }
 
-static void CenterNextWindow(ImVec2 size)
+static void CenterTextHV(const std::string& text)
 {
-	ImGui::SetNextWindowPos((ImGui::GetMainViewport()->Size - size) * 0.5f);
-	ImGui::SetNextWindowSize(size);
+	ImVec2 size = ImGui::GetWindowSize();
+
+	std::vector<std::string> lines = utils::split(text);
+
+	float text_height = 0;
+	for(const auto& i: lines)
+		text_height += ImGui::CalcTextSize(i.c_str()).y;
+
+	ImGui::SetCursorPosY((size.y - text_height) / 2);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
+	for(const auto& i: lines)
+	{
+		float text_width = ImGui::CalcTextSize(i.c_str()).x;
+		ImGui::SetCursorPosX((size.x - text_width) / 2);
+		ImGui::Text("%s", i.c_str());
+	}
+	ImGui::PopStyleVar();
 }
 
 void scenes::lobby::update_server_list()
@@ -431,212 +463,98 @@ void scenes::lobby::update_server_list()
 	}
 }
 
-void scenes::lobby::connect(server_data& data, bool manual)
+void scenes::lobby::set_next_scene_status(std::string status_str, connection_status status, int token)
 {
-	try
+	std::unique_lock _{next_scene_status_lock};
+	if (token == next_scene_status_token)
 	{
-		if (auto session = connect_to_session(data.service, manual))
+		next_scene_status_string = std::move(status_str);
+		next_scene_status = status;
+	}
+}
+
+std::pair<std::string, scenes::lobby::connection_status> scenes::lobby::get_next_scene_status()
+{
+	std::unique_lock _{next_scene_status_lock};
+	return {next_scene_status_string, next_scene_status};
+}
+
+void scenes::lobby::connect(server_data& data)
+{
+	int token;
+	{
+		std::unique_lock _{next_scene_status_lock};
+		token = ++next_scene_status_token;
+	}
+
+	server_name = data.service.name;
+	set_next_scene_status("Connecting", connection_status::connecting, token);
+
+	async_session = std::async(std::launch::async, [service = data.service, manual = data.manual, token, this](){
+		try
 		{
-			next_scene = stream::create(std::move(session));
-			server_name = data.service.name;
+			return connect_to_session(service, manual);
 		}
-	}
-	catch (const std::exception & e)
-	{
-		// TODO: dialog box
-		spdlog::error("Failed to create stream session: {}", e.what());
-	}
+		catch(const std::exception & e)
+		{
+			std::string status = e.what();
+			set_next_scene_status(status, connection_status::error, token);
+			spdlog::error("Failed to create stream session: {}", e.what());
+		}
+		return std::unique_ptr<wivrn_session>{};
+	});
 }
 
 void scenes::lobby::gui_connecting()
 {
-	CenterNextWindow({1000, 500});
-	ImGui::Begin("Connection", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove);
-
-	ImGui::PushFont(imgui_ctx->large_font);
-	CenterText("Waiting for video stream");
-	ImGui::PopFont();
-
-	CenterText(fmt::format("Connection to {}", server_name));
-
-	ImGui::End();
-}
-
-void scenes::lobby::gui_server_list()
-{
-	// Build an index of the cookies sorted by server name
-	std::multimap<std::string, std::string> sorted_cookies;
-	for(auto&& [cookie, data]: servers)
-	{
-		sorted_cookies.emplace(data.service.name, cookie);
-
-		if (data.visible && data.autoconnect && !next_scene)
-			connect(data, false);
-	}
-
 	const ImVec2 button_size(220, 80);
-	const float list_item_height = 100;
-	auto& style = ImGui::GetStyle();
+	auto status = get_next_scene_status();
+	std::string button_label;
+	switch(status.second)
+	{
+		case connection_status::idle:
+		case connection_status::error:
+			button_label = "Close";
+			break;
+		case connection_status::connecting:
+			button_label = "Cancel";
+			break;
+		case connection_status::connected:
+			return;
+	}
 
-	ImGui::SetNextWindowPos({0, 0});
-	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
-	ImGui::Begin("WiVRn", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove);
+	ImGui::Dummy({1000, 1});
+
 
 	ImGui::PushFont(imgui_ctx->large_font);
-	CenterText(std::string("WiVRn ") + xrt::drivers::wivrn::git_version);
+	CenterTextH(fmt::format("Connection to {}", server_name));
 	ImGui::PopFont();
 
-	std::string cookie_to_remove;
+	// ImGui::TextWrapped("%s", status.first.c_str());
+	ImGui::Text("%s", status.first.c_str());
 
-	float list_box_height = ImGui::GetWindowContentRegionMax().y - button_size.y - style.WindowPadding.y - ImGui::GetCursorPosY();
+	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
 
-	if (ImGui::BeginListBox("##detected servers", ImVec2(-FLT_MIN, list_box_height)))
+	if (ImGui::Button(button_label.c_str(), button_size))
 	{
-		auto pos = ImGui::GetCursorPos();
+		discarded_futures.emplace_back(std::move(async_session));
 
-		ImGui::PushStyleColor(ImGuiCol_Header, 0);
-		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0);
-		ImGui::PushStyleColor(ImGuiCol_HeaderActive, 0);
-		for(const auto& [name, cookie]: sorted_cookies)
-		{
-			server_data& data = servers.at(cookie);
-			bool is_selected = (cookie == selected_item);
+		next_scene.reset();
 
-			ImGui::SetCursorPos(pos);
-
-			ImGui::SetNextItemAllowOverlap();
-
-			// TODO custom widget
-			if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
-				selected_item = cookie;
-
-			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
-			ImGui::Text("%s", name.c_str());
-
-			if (!data.manual)
-			{
-				ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
-				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0,255,0,255));
-				if (ImGui::Checkbox("Autoconnect", &data.autoconnect))
-					save_config();
-				if (ImGui::IsItemHovered())
-					hovered_item = "autoconnect " + cookie;
-				ImGui::PopStyleColor();
-			}
-
-			// TODO
-			// if (ImGui::IsItemHovered())
-			// {
-				// ImGui::SetTooltip("Tooltip");
-			// }
-
-			ImVec2 button_position(ImGui::GetWindowContentRegionMax().x + style.FramePadding.x, pos.y + (list_item_height - button_size.y) / 2);
-
-			button_position.x -= button_size.x + style.WindowPadding.x;
-			ImGui::SetCursorPos(button_position);
-
-			bool enable_connect_button = data.visible || data.manual;
-			ImGui::BeginDisabled(!enable_connect_button);
-			if (enable_connect_button)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.8f, 0.3f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.3f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 1.0f, 0.2f, 1.00f));
-			}
-			else
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.4f, 0.3f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
-			}
-			if (ImGui::Button("Connect", button_size))
-				connect(data, true);
-
-			if (ImGui::IsItemHovered())
-				hovered_item = "connect " + cookie;
-
-			ImGui::PopStyleColor(3);
-			ImGui::EndDisabled();
-
-			button_position.x -= button_size.x + style.WindowPadding.x;
-			if (data.manual)
-			{
-				ImGui::SetCursorPos(button_position);
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-
-				if (ImGui::Button("Remove", button_size))
-					cookie_to_remove = cookie;
-
-				if (ImGui::IsItemHovered())
-					hovered_item = "remove " + cookie;
-
-				ImGui::PopStyleColor(3);
-			}
-
-			pos.y += 120;
-		}
-		ImGui::PopStyleColor(3);
-
-		if (cookie_to_remove != "")
-		{
-			servers.erase(cookie_to_remove);
-			save_config();
-		}
-
-		ImGui::EndListBox();
+		ImGui::CloseCurrentPopup();
 	}
-
-	auto top_left = ImGui::GetWindowContentRegionMin();
-	auto bottom_right = ImGui::GetWindowContentRegionMax();
-
-#ifndef NDEBUG
-	ImGui::SetCursorPos(ImVec2(top_left.x, bottom_right.y - button_size.y));
-	if (ImGui::Button("Add server", button_size))
-	{
-		show_add_server_window = true;
-		strcpy(add_server_window_prettyname, "");
-		strcpy(add_server_window_hostname, "");
-		add_server_window_port = xrt::drivers::wivrn::default_port;
-	}
-
-
 	if (ImGui::IsItemHovered())
-	{
-		hovered_item = "add";
-		ImGui::SetTooltip("TODO");
-	}
-#endif
-
-	ImGui::SetCursorPos(ImVec2(bottom_right.x - button_size.x, bottom_right.y - button_size.y));
-	if (ImGui::Button("Exit", button_size))
-		application::pop_scene();
-
-	if (ImGui::IsItemHovered())
-		hovered_item = "exit";
-
-	ImGui::End();
+		hovered_item = "close";
 }
 
 void scenes::lobby::gui_add_server()
 {
 	const ImVec2 button_size(220, 80);
 
-	CenterNextWindow({1200, 900});
-	ImGui::Begin("Add server", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove);
+	// CenterNextWindow({1200, 900});
 
 	ImGui::PushFont(imgui_ctx->large_font);
-	CenterText("Add server");
+	CenterTextH("Add server");
 	ImGui::PopFont();
 
 	// TODO column widths
@@ -681,23 +599,21 @@ void scenes::lobby::gui_add_server()
 
 	gui_keyboard(ImVec2(1000, 280));
 
-
 	auto top_left = ImGui::GetWindowContentRegionMin();
 	auto bottom_right = ImGui::GetWindowContentRegionMax();
 
-	// ImGui::SetCursorPos(ImVec2(top_left.x + 250, bottom_right.y - button_size.y));
-	// ImGui::Text("ActiveId=%x", ImGui::GetCurrentContext()->ActiveId);
-
-	ImGui::SetCursorPos(ImVec2(top_left.x, bottom_right.y - button_size.y));
+	ImGui::SetCursorPosX(top_left.x);
 	if (ImGui::Button("Cancel", button_size))
-		show_add_server_window = false;
+		ImGui::CloseCurrentPopup();
 	if (ImGui::IsItemHovered())
 		hovered_item = "cancel";
 
-	ImGui::SetCursorPos(ImVec2(bottom_right.x - button_size.x, bottom_right.y - button_size.y));
+	ImGui::SameLine(bottom_right.x - button_size.x);
+
+	// ImGui::SetCursorPos(ImVec2(bottom_right.x - button_size.x, bottom_right.y - button_size.y));
 	if (ImGui::Button("Save", button_size))
 	{
-		show_add_server_window = false;
+		ImGui::CloseCurrentPopup();
 
 		server_data data
 		{
@@ -715,6 +631,192 @@ void scenes::lobby::gui_add_server()
 	}
 	if (ImGui::IsItemHovered())
 		hovered_item = "save";
+}
+
+void scenes::lobby::gui_server_list(bool open_connecting_popup)
+{
+	// Build an index of the cookies sorted by server name
+	std::multimap<std::string, std::string> sorted_cookies;
+	for(auto&& [cookie, data]: servers)
+	{
+		sorted_cookies.emplace(data.service.name, cookie);
+	}
+
+	const ImVec2 button_size(220, 80);
+	const float list_item_height = 100;
+	auto& style = ImGui::GetStyle();
+
+	ImGui::SetNextWindowPos({0, 0});
+	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
+	ImGui::Begin("WiVRn", nullptr,
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove);
+
+	ImGui::PushFont(imgui_ctx->large_font);
+	CenterTextH(std::string("WiVRn ") + xrt::drivers::wivrn::git_version);
+	ImGui::PopFont();
+
+	std::string cookie_to_remove;
+
+	float list_box_height = ImGui::GetWindowContentRegionMax().y - button_size.y - style.WindowPadding.y - ImGui::GetCursorPosY();
+
+	if (ImGui::BeginListBox("##detected servers", ImVec2(-FLT_MIN, list_box_height)))
+	{
+		if (sorted_cookies.empty())
+		{
+			ImGui::PushFont(imgui_ctx->large_font);
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 0.5));
+			CenterTextHV("Start a WiVRn server on your\nlocal network");
+			ImGui::PopStyleColor();
+			ImGui::PopFont();
+		}
+
+		auto pos = ImGui::GetCursorPos();
+
+		ImGui::PushStyleColor(ImGuiCol_Header, 0);
+		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0);
+		ImGui::PushStyleColor(ImGuiCol_HeaderActive, 0);
+		for(const auto& [name, cookie]: sorted_cookies)
+		{
+			server_data& data = servers.at(cookie);
+			bool is_selected = (cookie == selected_item);
+
+			ImGui::SetCursorPos(pos);
+
+			ImGui::SetNextItemAllowOverlap();
+
+			// TODO custom widget
+			if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
+				selected_item = cookie;
+
+			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
+			ImGui::Text("%s", name.c_str());
+
+			if (!data.manual)
+			{
+				ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
+				if (ImGui::Checkbox("Autoconnect", &data.autoconnect))
+					save_config();
+				if (ImGui::IsItemHovered())
+					hovered_item = "autoconnect " + cookie;
+				ImGui::PopStyleColor();
+			}
+
+			// TODO
+			// if (ImGui::IsItemHovered())
+			// {
+				// ImGui::SetTooltip("Tooltip");
+			// }
+
+			ImVec2 button_position(ImGui::GetWindowContentRegionMax().x + style.FramePadding.x, pos.y + (list_item_height - button_size.y) / 2);
+
+			button_position.x -= button_size.x + style.WindowPadding.x;
+			ImGui::SetCursorPos(button_position);
+
+			bool enable_connect_button = data.visible || data.manual;
+			ImGui::BeginDisabled(!enable_connect_button);
+			if (enable_connect_button)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.8f, 0.3f, 0.40f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.3f, 1.00f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 1.0f, 0.2f, 1.00f));
+			}
+			else
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.4f, 0.3f, 0.40f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
+			}
+			if (ImGui::Button("Connect", button_size))
+			{
+				connect(data);
+				open_connecting_popup = true;
+			}
+
+			if (ImGui::IsItemHovered())
+				hovered_item = "connect " + cookie;
+
+			ImGui::PopStyleColor(3);
+			ImGui::EndDisabled();
+
+			button_position.x -= button_size.x + style.WindowPadding.x;
+			if (data.manual)
+			{
+				ImGui::SetCursorPos(button_position);
+				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
+
+				if (ImGui::Button("Remove", button_size))
+					cookie_to_remove = cookie;
+
+				if (ImGui::IsItemHovered())
+					hovered_item = "remove " + cookie;
+
+				ImGui::PopStyleColor(3);
+			}
+
+			pos.y += 120;
+		}
+		ImGui::PopStyleColor(3);
+
+		if (cookie_to_remove != "")
+		{
+			servers.erase(cookie_to_remove);
+			save_config();
+		}
+
+		ImGui::EndListBox();
+	}
+
+	auto top_left = ImGui::GetWindowContentRegionMin();
+	auto bottom_right = ImGui::GetWindowContentRegionMax();
+
+#ifndef NDEBUG
+	ImGui::SetCursorPos(ImVec2(top_left.x, bottom_right.y - button_size.y));
+	if (ImGui::Button("Add server", button_size))
+	{
+		ImGui::OpenPopup("add_server");
+		strcpy(add_server_window_prettyname, "");
+		strcpy(add_server_window_hostname, "");
+		add_server_window_port = xrt::drivers::wivrn::default_port;
+	}
+
+	if (ImGui::IsItemHovered())
+	{
+		hovered_item = "add";
+		ImGui::SetTooltip("TODO");
+	}
+#endif
+
+	ImGui::SetCursorPos(ImVec2(bottom_right.x - button_size.x, bottom_right.y - button_size.y));
+	if (ImGui::Button("Exit", button_size))
+		application::pop_scene();
+
+	if (ImGui::IsItemHovered())
+		hovered_item = "exit";
+
+	if (ImGui::BeginPopupModal("add_server", nullptr,
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove))
+	{
+		gui_add_server();
+		ImGui::EndPopup();
+	}
+
+	if (open_connecting_popup)
+		ImGui::OpenPopup("connecting");
+	if (ImGui::BeginPopupModal("connecting", nullptr,
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove))
+	{
+		gui_connecting();
+		ImGui::EndPopup();
+	}
 
 	ImGui::End();
 }
@@ -735,13 +837,7 @@ void scenes::lobby::draw_gui(XrTime predicted_display_time)
 	auto last_hovered = hovered_item;
 	hovered_item = "";
 
-	if (next_scene)
-		gui_connecting();
-	else if (show_add_server_window)
-		gui_add_server();
-	else
-		gui_server_list();
-
+	gui_server_list(false);
 
 	if (hovered_item != last_hovered && hovered_item != "")
 	{
@@ -752,25 +848,55 @@ void scenes::lobby::draw_gui(XrTime predicted_display_time)
 
 	// Render the GUI to the imgui material
 	imgui_material->base_color_texture->image_view = imgui_ctx->render();
-	// imgui_material->emissive_texture->image_view = imgui_ctx->render();
 	imgui_material->ds_dirty = true;
 }
 
 void scenes::lobby::render()
 {
-	if (next_scene && !next_scene->alive())
-		next_scene.reset();
+	if (async_session.valid() && async_session.wait_for(0s) == std::future_status::ready)
+	{
+		auto session = async_session.get();
+		if (session)
+		{
+			next_scene = stream::create(std::move(session));
+			int token;
+			{
+				std::unique_lock _{next_scene_status_lock};
+				token = ++next_scene_status_token;
+			}
+			set_next_scene_status("Waiting for video stream", connection_status::connecting, token);
+		}
+
+		async_session = std::future<std::unique_ptr<wivrn_session>>();
+	}
+
+	if (!discarded_futures.empty())
+	{
+		if (!discarded_futures.front().valid() || discarded_futures.front().wait_for(0s) == std::future_status::ready)
+			discarded_futures.pop_front();
+	}
 
 	if (next_scene)
 	{
-		if (next_scene->ready())
-		{
-			application::push_scene(next_scene);
+		if (!next_scene->alive())
 			next_scene.reset();
-		}
+		else if (next_scene->ready())
+			application::push_scene(next_scene);
 	}
 
 	update_server_list();
+
+	// TODO don't try if there is a popup window
+	if (!async_session.valid() && !next_scene && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
+	{
+		for(auto&& [cookie, data]: servers)
+		{
+			if (data.visible && data.autoconnect)
+			{
+				connect(data);
+			}
+		}
+	}
 
 	XrFrameState framestate = session.wait_frame();
 

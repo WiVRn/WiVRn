@@ -287,6 +287,8 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 	style.FrameRounding = 10;
 	style.FramePadding = ImVec2(15, 10);
 
+	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0,0,0,0.8);
+
 
 	// TODO: scroll to drag https://github.com/ocornut/imgui/issues/3379
 }
