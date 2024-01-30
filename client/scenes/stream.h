@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "utils/named_thread.h"
 #include "decoder/shard_accumulator.h"
 #include "scene.h"
 #include "stream_reprojection.h"

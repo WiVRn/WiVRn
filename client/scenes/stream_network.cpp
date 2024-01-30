@@ -18,6 +18,7 @@
  */
 
 #include "stream.h"
+#include "utils/named_thread.h"
 #include <spdlog/spdlog.h>
 
 void scenes::stream::process_packets()

@@ -29,6 +29,7 @@
 #include "spdlog/spdlog.h"
 #include "utils/ranges.h"
 #include "utils/sync_queue.h"
+#include "utils/named_thread.h"
 #include "wivrn_packets.h"
 #include <algorithm>
 #include <chrono>
