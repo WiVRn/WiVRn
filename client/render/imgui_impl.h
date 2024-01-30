@@ -25,6 +25,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <openxr/openxr.h>
 #include <optional>
+#include <utility>
 #include <span>
 #include <vector>
 

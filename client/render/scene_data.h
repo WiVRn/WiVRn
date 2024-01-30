@@ -29,6 +29,7 @@
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <memory>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>

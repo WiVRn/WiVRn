@@ -31,6 +31,10 @@
 #include <imgui_internal.h>
 #include <backends/imgui_impl_vulkan.h>
 #include <glm/gtc/matrix_access.hpp>
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <optional>
 
 #include "../external/IconsFontAwesome6.h"
 
