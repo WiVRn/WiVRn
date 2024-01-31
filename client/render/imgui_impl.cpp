@@ -188,7 +188,7 @@ static const std::array pool_sizes =
 	}
 };
 
-imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, vk::Extent2D size, float resolution, vk::Format format) :
+imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, vk::Extent2D size, float resolution, vk::Format format, int image_count) :
 	device(device),
 	queue_family_index(queue_family_index),
 	queue(queue),
@@ -226,9 +226,8 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.PipelineCache = *application::get_pipeline_cache(),
 		.DescriptorPool = *descriptor_pool,
 		.Subpass = 0,
-		// image count is not actually used because we don't use a WSI swapchain
-		.MinImageCount = 2, // imgui_viewport::frames_in_flight,
-		.ImageCount = 2, //imgui_viewport::frames_in_flight,
+		.MinImageCount = 2,
+		.ImageCount = (uint32_t)image_count, // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
 		.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 		.Allocator = nullptr,
 		.CheckVkResultFn = check_vk_result,
@@ -463,7 +462,7 @@ imgui_context::~imgui_context()
 	for(auto& f: frames)
 		f.command_buffer.release();
 
-	// Wait for fences here and not in imgui_viewport::~imgui_viewport so that the command buffers have finished when ImGui_ImplVulkan_Shutdown is called
+	// Wait for fences before ImGui_ImplVulkan_Shutdown is called
 	std::vector<vk::Fence> fences;
 	for(auto& f: frames)
 		fences.push_back(*f.fence);

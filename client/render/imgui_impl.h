@@ -98,7 +98,7 @@ private:
 	std::optional<ImVec2> ray_plane_intersection(const imgui_context::controller_state& in);
 
 public:
-	imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, vk::Extent2D size, float resolution, vk::Format format);
+	imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, vk::Extent2D size, float resolution, vk::Format format, int image_count);
 	~imgui_context();
 
 	void set_position(glm::vec3 position, glm::quat orientation)

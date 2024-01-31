@@ -646,7 +646,7 @@ void scenes::lobby::on_focused()
 
 	vk::Extent2D gui_size(1500, 1000);
 	swapchain_imgui = xr::swapchain(session, device, swapchain_format, gui_size.width, gui_size.height);
-	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, gui_size, 1000, swapchain_format);
+	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, gui_size, 1000, swapchain_format, swapchain_imgui.images().size());
 }
 
 void scenes::lobby::on_unfocused()
