@@ -142,7 +142,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 scenes::stream::~stream()
 {
-	cleanup();
 	exit();
 
 	if (video_thread.joinable())
@@ -433,14 +432,6 @@ void scenes::stream::exit()
 	shard_queue.close();
 }
 
-void scenes::stream::cleanup()
-{
-	// Assumes decoder_mutex is locked
-	ready_ = false;
-	decoders.clear();
-	swapchains.clear();
-}
-
 static const std::array supported_formats =
 {
 	vk::Format::eR8G8B8A8Srgb,
@@ -451,7 +442,9 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 {
 	std::unique_lock lock(decoder_mutex);
 
-	cleanup();
+	// FIXME: stop video thread
+	decoders.clear();
+	swapchains.clear();
 
 	if (description.items.empty())
 	{
