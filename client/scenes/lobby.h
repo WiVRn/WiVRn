@@ -73,18 +73,19 @@ class lobby : public scene_impl<lobby>
 
 
 	std::optional<scene_renderer> renderer;
-	std::optional<scene_data> teapot;
+	std::optional<scene_data> lobby_scene;
+	std::optional<scene_data> controllers_scene;
 	std::optional<input_profile> input;
 
 	std::optional<imgui_context> imgui_ctx;
-	std::shared_ptr<scene_data::material> imgui_material;
-	scene_object_handle imgui_node;
 	std::array<XrAction, 2> haptic_output;
 
 	std::string selected_item;
 	std::string hovered_item;
 
-	std::vector<xr::swapchain> swapchains;
+	std::vector<xr::swapchain> swapchains_lobby;
+	std::vector<xr::swapchain> swapchains_controllers;
+	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
 
 	void save_config();

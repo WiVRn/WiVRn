@@ -66,6 +66,11 @@ public:
 		id = null_value;
 		return r;
 	}
+
+	void reset()
+	{
+		*this = handle{};
+	}
 };
 
 template <typename T>

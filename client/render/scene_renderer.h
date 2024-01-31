@@ -21,6 +21,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -150,20 +151,24 @@ public:
 	{
 		vk::raii::Fence fence = nullptr;
 		vk::raii::CommandBuffer cb = nullptr;
+		vk::raii::QueryPool query_pool = nullptr;
 		std::vector<std::shared_ptr<void>> resources;
 
                 // Uniform buffer for per-view and per-instance data
 	        // host visible, host coherent
+		size_t staging_buffer_offset;
    	        buffer_allocation staging_buffer;
 
 	        // device local
 	        // buffer_allocation uniform_buffer;
+
+		std::chrono::steady_clock::time_point cpu_time_start;
 	};
 
 	std::vector<per_frame_resources> frame_resources;
-	int current_frame;
+	int current_frame_index;
 
-	per_frame_resources& start_frame();
+	per_frame_resources& current_frame();
 
 	void update_material_descriptor_set(scene_data::material& material);
 
@@ -179,7 +184,9 @@ public:
 		glm::mat4 view;
 	};
 
-	void render(scene_data & scene, std::span<frame_info> info);
+	void start_frame();
+	void render(scene_data & scene, const std::array<float, 4>& clear_color, std::span<frame_info> info);
+	void end_frame();
 
 	std::shared_ptr<scene_data::material> get_default_material()
 	{

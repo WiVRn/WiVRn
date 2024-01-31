@@ -25,6 +25,7 @@
 #include "input_profile.h"
 #include "openxr/openxr.h"
 #include "render/scene_data.h"
+#include "render/scene_renderer.h"
 #include "stream.h"
 #include "hardware.h"
 #include "wivrn_client.h"
@@ -33,18 +34,14 @@
 #include <glm/gtc/matrix_access.hpp>
 
 #include "wivrn_discover.h"
-#include "wivrn_packets.h"
 #include <cstdint>
 #include <glm/gtc/quaternion.hpp>
 #include <ios>
-#include <linux/in.h>
 #include <magic_enum.hpp>
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <string>
 #include <utils/ranges.h>
-#include <utils/strings.h>
-#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <simdjson.h>
 #include <fstream>
@@ -157,7 +154,7 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 {
 	const float gui_target_distance = 1.5;
 
-	glm::vec3 gui_direction = glm::column(glm::mat3_cast(imgui_node->rotation), 2);
+	glm::vec3 gui_direction = glm::column(glm::mat3_cast(imgui_ctx->orientation()), 2);
 	float gui_yaw = atan2(gui_direction.x, gui_direction.z);
 
 	glm::vec3 head_direction = -glm::column(glm::mat3_cast(orientation), 2);
@@ -169,20 +166,16 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 
 	glm::vec3 gui_target_position = position + gui_target_distance * head_direction;
 
-	glm::vec3 gui_position_error = gui_target_position - imgui_node->translation;
+	glm::vec3 gui_position_error = gui_target_position - imgui_ctx->position();
 	float gui_yaw_error = remainderf(head_yaw - gui_yaw, 2 * M_PI);
 
 	if (move_gui_first_time)
 	{
 		move_gui_first_time = false;
 		gui_yaw += gui_yaw_error;
-		imgui_node->translation += gui_position_error;
-		imgui_node->rotation = glm::quat{ cos(gui_yaw/2), 0, sin(gui_yaw/2), 0 };
-	}
-	else
-	{
-		// gui_yaw += gui_yaw_error * std::min(1.0f, dt / tau);
-		// imgui_node->translation += gui_position_error * std::min(1.0f, dt / tau);
+
+		imgui_ctx->position() += gui_position_error;
+		imgui_ctx->orientation() = glm::quat{ cos(gui_yaw/2), 0, sin(gui_yaw/2), 0 };
 	}
 }
 
@@ -392,37 +385,6 @@ static glm::mat4 view_matrix(XrPosef pose)
 	return glm::inverse(inv_view_matrix);
 }
 
-static void CenterTextH(const std::string& text)
-{
-	float win_width = ImGui::GetWindowSize().x;
-	float text_width = ImGui::CalcTextSize(text.c_str()).x;
-	ImGui::SetCursorPosX((win_width - text_width) / 2);
-
-	ImGui::Text("%s", text.c_str());
-}
-
-static void CenterTextHV(const std::string& text)
-{
-	ImVec2 size = ImGui::GetWindowSize();
-
-	std::vector<std::string> lines = utils::split(text);
-
-	float text_height = 0;
-	for(const auto& i: lines)
-		text_height += ImGui::CalcTextSize(i.c_str()).y;
-
-	ImGui::SetCursorPosY((size.y - text_height) / 2);
-
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
-	for(const auto& i: lines)
-	{
-		float text_width = ImGui::CalcTextSize(i.c_str()).x;
-		ImGui::SetCursorPosX((size.x - text_width) / 2);
-		ImGui::Text("%s", i.c_str());
-	}
-	ImGui::PopStyleVar();
-}
-
 void scenes::lobby::update_server_list()
 {
 	std::vector<wivrn_discover::service> discovered_services = discover->get_services();
@@ -472,352 +434,38 @@ void scenes::lobby::connect(server_data& data)
 	}, data.service, data.manual);
 }
 
-void scenes::lobby::gui_connecting()
+static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView>& views, std::vector<xr::swapchain>& swapchains, scene_renderer& renderer, scene_data& data, const std::array<float, 4>& clear_color)
 {
-	const ImVec2 button_size(220, 80);
+	std::vector<scene_renderer::frame_info> frames;
+	frames.reserve(views.size());
 
-	std::string status;
-	if (next_scene)
-		status = "Waiting for video stream";
-	else if (async_session.valid())
-		status = async_session.get_progress();
-	else if (async_error)
-		status = *async_error;
+	std::vector<XrCompositionLayerProjectionView> layer_views;
+	layer_views.reserve(views.size());
 
-	std::string button_label;
-
-	if (async_error)
-		button_label = "Close";
-	else
-		button_label = "Cancel";
-
-	ImGui::Dummy({1000, 1});
-
-
-	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH(fmt::format("Connection to {}", server_name));
-	ImGui::PopFont();
-
-	// ImGui::TextWrapped("%s", status.first.c_str());
-	ImGui::Text("%s", status.c_str());
-
-	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
-
-	if (ImGui::Button(button_label.c_str(), button_size))
+	for (auto && [view, swapchain]: utils::zip(views, swapchains))
 	{
-		async_session.cancel();
+		int image_index = swapchain.acquire();
+		swapchain.wait();
 
-		next_scene.reset();
+		frames.push_back({.destination = swapchain.images()[image_index].image,
+				.projection = projection_matrix(view.fov),
+				.view = view_matrix(view.pose)});
 
-		ImGui::CloseCurrentPopup();
-	}
-	if (ImGui::IsItemHovered())
-		hovered_item = "close";
-}
-
-void scenes::lobby::gui_add_server()
-{
-	const ImVec2 button_size(220, 80);
-
-	// CenterNextWindow({1200, 900});
-
-	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH("Add server");
-	ImGui::PopFont();
-
-	// TODO column widths
-	ImGui::BeginTable("table", 2);
-
-	ImGui::TableNextRow();
-	ImGui::TableNextColumn();
-	ImGui::Text("Displayed name");
-
-	static char buf[100];
-	ImGui::TableNextColumn();
-	ImGui::InputText("##Name", buf, sizeof(buf));
-	if (ImGui::IsItemHovered())
-		hovered_item = "name";
-
-	ImGui::TableNextRow();
-	ImGui::TableNextColumn();
-	ImGui::Text("Host name");
-
-	static char buf2[100];
-	ImGui::TableNextColumn();
-	ImGui::InputText("##Hostname", buf2, sizeof(buf2));
-	if (ImGui::IsItemHovered())
-		hovered_item = "hostname";
-
-	ImGui::TableNextRow();
-	ImGui::TableNextColumn();
-	ImGui::Text("Port");
-
-	static int port;
-	ImGui::TableNextColumn();
-	ImGui::InputInt("##Port", &port);
-	if (ImGui::IsItemHovered())
-		hovered_item = "port";
-
-	ImGui::EndTable();
-
-	// TODO virtual keyboard
-	// See https://github.com/qt/qtvirtualkeyboard/tree/dev/src/layouts/fallback
-	//     https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fr_FR/main.qml
-	//     https://doc.qt.io/qt-6/qtvirtualkeyboard-layouts.html
-
-	gui_keyboard(ImVec2(1000, 280));
-
-	auto top_left = ImGui::GetWindowContentRegionMin();
-	auto bottom_right = ImGui::GetWindowContentRegionMax();
-
-	ImGui::SetCursorPosX(top_left.x);
-	if (ImGui::Button("Cancel", button_size))
-		ImGui::CloseCurrentPopup();
-	if (ImGui::IsItemHovered())
-		hovered_item = "cancel";
-
-	ImGui::SameLine(bottom_right.x - button_size.x);
-
-	if (ImGui::Button("Save", button_size))
-	{
-		ImGui::CloseCurrentPopup();
-
-		server_data data
-		{
-			.manual = true,
-			.service = {
-				.name = add_server_window_prettyname,
-				.hostname = add_server_window_hostname,
-				.port = add_server_window_port,
-			},
-		};
-
-		servers.emplace("manual-" + data.service.name, data);
-		save_config();
-
-	}
-	if (ImGui::IsItemHovered())
-		hovered_item = "save";
-}
-
-void scenes::lobby::gui_server_list()
-{
-	// Build an index of the cookies sorted by server name
-	std::multimap<std::string, std::string> sorted_cookies;
-	for(auto&& [cookie, data]: servers)
-	{
-		sorted_cookies.emplace(data.service.name, cookie);
+		layer_views.push_back({
+			.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
+			.pose = view.pose,
+			.fov = view.fov,
+			.subImage = {
+				.swapchain = swapchain,
+				.imageRect = {
+					.offset = {0, 0},
+					.extent = swapchain.extent()}},
+		});
 	}
 
-	const ImVec2 button_size(220, 80);
-	const float list_item_height = 100;
-	auto& style = ImGui::GetStyle();
+	renderer.render(data, clear_color, frames);
 
-	ImGui::SetNextWindowPos({0, 0});
-	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
-	ImGui::Begin("WiVRn", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove);
-
-	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH(std::string("WiVRn ") + xrt::drivers::wivrn::git_version);
-	ImGui::PopFont();
-
-	std::string cookie_to_remove;
-
-	float list_box_height = ImGui::GetWindowContentRegionMax().y - button_size.y - style.WindowPadding.y - ImGui::GetCursorPosY();
-
-	if (ImGui::BeginListBox("##detected servers", ImVec2(-FLT_MIN, list_box_height)))
-	{
-		if (sorted_cookies.empty())
-		{
-			ImGui::PushFont(imgui_ctx->large_font);
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 0.5));
-			CenterTextHV("Start a WiVRn server on your\nlocal network");
-			ImGui::PopStyleColor();
-			ImGui::PopFont();
-		}
-
-		auto pos = ImGui::GetCursorPos();
-
-		ImGui::PushStyleColor(ImGuiCol_Header, 0);
-		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0);
-		ImGui::PushStyleColor(ImGuiCol_HeaderActive, 0);
-		for(const auto& [name, cookie]: sorted_cookies)
-		{
-			server_data& data = servers.at(cookie);
-			bool is_selected = (cookie == selected_item);
-
-			ImGui::SetCursorPos(pos);
-
-			ImGui::SetNextItemAllowOverlap();
-
-			// TODO custom widget
-			if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
-				selected_item = cookie;
-
-			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
-			ImGui::Text("%s", name.c_str());
-
-			if (!data.manual)
-			{
-				ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
-				if (ImGui::Checkbox(("Autoconnect##" + cookie).c_str(), &data.autoconnect))
-					save_config();
-				if (ImGui::IsItemHovered())
-					hovered_item = "autoconnect " + cookie;
-				ImGui::PopStyleColor();
-			}
-
-			// TODO
-			// if (ImGui::IsItemHovered())
-			// {
-				// ImGui::SetTooltip("Tooltip");
-			// }
-
-			ImVec2 button_position(ImGui::GetWindowContentRegionMax().x + style.FramePadding.x, pos.y + (list_item_height - button_size.y) / 2);
-
-			button_position.x -= button_size.x + style.WindowPadding.x;
-			ImGui::SetCursorPos(button_position);
-
-			bool enable_connect_button = data.visible || data.manual;
-			ImGui::BeginDisabled(!enable_connect_button);
-			if (enable_connect_button)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.8f, 0.3f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.3f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 1.0f, 0.2f, 1.00f));
-			}
-			else
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.4f, 0.3f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
-			}
-			if (ImGui::Button(("Connect##" + cookie).c_str(), button_size))
-			{
-				connect(data);
-				ImGui::OpenPopup("connecting");
-			}
-
-			if (ImGui::IsItemHovered())
-				hovered_item = "connect " + cookie;
-
-			ImGui::PopStyleColor(3);
-			ImGui::EndDisabled();
-
-			button_position.x -= button_size.x + style.WindowPadding.x;
-			if (data.manual)
-			{
-				ImGui::SetCursorPos(button_position);
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-
-				if (ImGui::Button(("Remove##" + cookie).c_str(), button_size))
-					cookie_to_remove = cookie;
-
-				if (ImGui::IsItemHovered())
-					hovered_item = "remove " + cookie;
-
-				ImGui::PopStyleColor(3);
-			}
-
-			pos.y += 120;
-		}
-		ImGui::PopStyleColor(3);
-
-		if (cookie_to_remove != "")
-		{
-			servers.erase(cookie_to_remove);
-			save_config();
-		}
-
-		ImGui::EndListBox();
-	}
-
-	auto top_left = ImGui::GetWindowContentRegionMin();
-	auto bottom_right = ImGui::GetWindowContentRegionMax();
-
-#ifndef NDEBUG
-	ImGui::SetCursorPos(ImVec2(top_left.x, bottom_right.y - button_size.y));
-	if (ImGui::Button("Add server", button_size))
-	{
-		ImGui::OpenPopup("add_server");
-		strcpy(add_server_window_prettyname, "");
-		strcpy(add_server_window_hostname, "");
-		add_server_window_port = xrt::drivers::wivrn::default_port;
-	}
-
-	if (ImGui::IsItemHovered())
-	{
-		hovered_item = "add";
-		ImGui::SetTooltip("TODO");
-	}
-#endif
-
-	ImGui::SetCursorPos(ImVec2(bottom_right.x - button_size.x, bottom_right.y - button_size.y));
-	if (ImGui::Button("Exit", button_size))
-		application::pop_scene();
-
-	if (ImGui::IsItemHovered())
-		hovered_item = "exit";
-
-	if (ImGui::BeginPopupModal("add_server", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove))
-	{
-		gui_add_server();
-		ImGui::EndPopup();
-	}
-
-	// Check if an automatic connection has started
-	if ((async_session.valid() || next_scene) && !ImGui::IsPopupOpen("connecting"))
-		ImGui::OpenPopup("connecting");
-
-	if (ImGui::BeginPopupModal("connecting", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove))
-	{
-		gui_connecting();
-		ImGui::EndPopup();
-	}
-
-	ImGui::End();
-}
-
-void scenes::lobby::draw_gui(XrTime predicted_display_time)
-{
-	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::view(), world_space, predicted_display_time);
-
-	if (head_position)
-	{
-		move_gui(head_position->first, head_position->second, predicted_display_time);
-	}
-
-	imgui_ctx->set_position(imgui_node->translation, imgui_node->rotation);
-	imgui_ctx->new_frame(predicted_display_time);
-	// ImGui::ShowDemoWindow();
-
-	auto last_hovered = hovered_item;
-	hovered_item = "";
-
-	gui_server_list();
-
-	if (hovered_item != last_hovered && hovered_item != "")
-	{
-		size_t controller = imgui_ctx->get_focused_controller();
-		if (controller < haptic_output.size())
-			application::haptic_start(haptic_output[controller], XR_NULL_PATH, 10'000'000, 1000, 1);
-	}
-
-	// Render the GUI to the imgui material
-	imgui_material->base_color_texture->image_view = imgui_ctx->render();
-	imgui_material->ds_dirty = true;
+	return layer_views;
 }
 
 void scenes::lobby::render()
@@ -839,7 +487,6 @@ void scenes::lobby::render()
 			async_error = e.what();
 		}
 	}
-
 
 	if (next_scene)
 	{
@@ -866,7 +513,7 @@ void scenes::lobby::render()
 
 	if (!framestate.shouldRender)
 	{
-		spdlog::info("framestate.shouldRender is false");
+		spdlog::debug("framestate.shouldRender is false");
 		session.begin_frame();
 		session.end_frame(framestate.predictedDisplayTime, {});
 		return;
@@ -875,55 +522,64 @@ void scenes::lobby::render()
 	session.begin_frame();
 
 	auto [flags, views] = session.locate_views(viewconfig, framestate.predictedDisplayTime, world_space);
-	assert(views.size() == swapchains.size());
+	assert(views.size() == swapchains_lobby.size());
 
 	input->apply(world_space, framestate.predictedDisplayTime);
 
 	draw_gui(framestate.predictedDisplayTime);
 
-	std::vector<XrCompositionLayerProjectionView> layer_view;
-	std::vector<scene_renderer::frame_info> frames;
-
-	layer_view.reserve(views.size());
-	frames.reserve(views.size());
-
-	for (auto && [view, swapchain]: utils::zip(views, swapchains))
-	{
-		int image_index = swapchain.acquire();
-		swapchain.wait();
-
-		frames.push_back({.destination = swapchain.images()[image_index].image,
-		                  .projection = projection_matrix(view.fov),
-		                  .view = view_matrix(view.pose)});
-
-		layer_view.push_back({
-		        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-		        .pose = view.pose,
-		        .fov = view.fov,
-		        .subImage = {
-		                .swapchain = swapchain,
-		                .imageRect = {
-		                        .offset = {0, 0},
-		                        .extent = swapchain.extent()}},
-		});
-	}
 
 	assert(renderer);
-	renderer->render(*teapot, frames);
+	renderer->start_frame();
+	auto lobby_layer_views = render_layer(views, swapchains_lobby, *renderer, *lobby_scene, {0, 0.25, 0.5, 1});
+	auto controllers_layer_views = render_layer(views, swapchains_controllers, *renderer, *controllers_scene, {0, 0, 0, 0});
+	renderer->end_frame();
 
-	for (auto & swapchain: swapchains)
+
+
+	for (auto & swapchain: swapchains_lobby)
 		swapchain.release();
 
-	XrCompositionLayerProjection layer{
+	for (auto & swapchain: swapchains_controllers)
+		swapchain.release();
+
+	swapchain_imgui.release();
+
+	XrCompositionLayerProjection lobby_layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
 	        .layerFlags = 0,
 	        .space = world_space,
-	        .viewCount = (uint32_t)layer_view.size(),
-	        .views = layer_view.data(),
+	        .viewCount = (uint32_t)lobby_layer_views.size(),
+	        .views = lobby_layer_views.data(),
+	};
+
+	XrCompositionLayerQuad imgui_layer{
+		.type = XR_TYPE_COMPOSITION_LAYER_QUAD,
+	        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+		.space = world_space,
+		.eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
+		.subImage = {
+			.swapchain = swapchain_imgui,
+			.imageRect = {
+				.offset = {0, 0},
+				.extent = swapchain_imgui.extent()},
+		},
+		.pose = imgui_ctx->pose(),
+		.size = {1.5, 1}, // TODO
+	};
+
+	XrCompositionLayerProjection controllers_layer{
+	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
+	        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+	        .space = world_space,
+	        .viewCount = (uint32_t)controllers_layer_views.size(),
+	        .views = controllers_layer_views.data(),
 	};
 
 	std::vector<XrCompositionLayerBaseHeader *> layers_base;
-	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
+	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
+	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
+	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
 
 	session.end_frame(framestate.predictedDisplayTime, layers_base);
 }
@@ -934,17 +590,22 @@ void scenes::lobby::on_focused()
 	move_gui_first_time = true;
 
 	auto views = system.view_configuration_views(viewconfig);
+	uint32_t width = views[0].recommendedImageRectWidth;
+	uint32_t height = views[0].recommendedImageRectHeight;
 
-	swapchains.reserve(views.size());
-	for (auto view: views)
+	swapchains_lobby.reserve(views.size());
+	swapchains_controllers.reserve(views.size());
+	for ([[maybe_unused]] auto view: views)
 	{
-		swapchains.emplace_back(session, device, swapchain_format, view.recommendedImageRectWidth, view.recommendedImageRectHeight);
+		assert(view.recommendedImageRectWidth == width);
+		assert(view.recommendedImageRectHeight == height);
 
-		spdlog::info("Created lobby swapchain {}: {}x{}", swapchains.size(), swapchains.back().width(), swapchains.back().height());
+		swapchains_lobby.emplace_back(session, device, swapchain_format, width, height);
+		swapchains_controllers.emplace_back(session, device, swapchain_format, width, height);
 	}
 
-	uint32_t width = swapchains[0].width();
-	uint32_t height = swapchains[0].height();
+	spdlog::info("Created lobby swapchains: {}x{}", width, height);
+
 	vk::Extent2D output_size{width, height};
 
 	std::array depth_formats{
@@ -953,25 +614,16 @@ void scenes::lobby::on_focused()
 	        vk::Format::eD32Sfloat,
 	};
 
-	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchains[0].format(), depth_formats);
+	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchain_format, depth_formats);
 
 	scene_loader loader(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
 
-	teapot.emplace();
-	teapot->import(loader("ground.gltf"));
+	lobby_scene.emplace();
+	lobby_scene->import(loader("ground.gltf"));
 
-	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, *teapot);
+	controllers_scene.emplace();
+	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, *controllers_scene);
 	spdlog::info("Loaded input profile {}", input->id);
-
-	// Put the imgui node last so that alpha blending works correctly
-	teapot->import(loader("imgui.gltf"));
-	imgui_material = teapot->find_material("imgui");
-	assert(imgui_material);
-	imgui_material->shader_name = "unlit";
-	imgui_material->blend_enable = true;
-
-	imgui_node = teapot->find_node("imgui");
-	assert(imgui_node);
 
 	std::array imgui_inputs{
 		imgui_context::controller{
@@ -987,8 +639,10 @@ void scenes::lobby::on_focused()
 			.scroll  = get_action("right_scroll").first,
 		},
 	};
-	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, 1000, imgui_node->scale);
-	imgui_ctx->set_position(imgui_node->translation, imgui_node->rotation);
+
+	vk::Extent2D gui_size(1500, 1000);
+	swapchain_imgui = xr::swapchain(session, device, swapchain_format, gui_size.width, gui_size.height);
+	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, gui_size, 1000, swapchain_format);
 }
 
 void scenes::lobby::on_unfocused()
@@ -998,10 +652,12 @@ void scenes::lobby::on_unfocused()
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 
 	imgui_ctx.reset();
-	imgui_material.reset();
-	teapot.reset(); // Must be reset before the renderer so that the descriptor sets are freed before their pools
+	lobby_scene.reset(); // Must be reset before the renderer so that the descriptor sets are freed before their pools
+	controllers_scene.reset();
 	renderer.reset();
-	swapchains.clear();
+	swapchains_lobby.clear();
+	swapchains_controllers.clear();
+	swapchain_imgui.reset();
 }
 
 scene::meta& scenes::lobby::get_meta_scene()

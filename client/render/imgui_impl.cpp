@@ -27,8 +27,8 @@
 #include "vulkan/vulkan_handles.hpp"
 #include "vulkan/vulkan_to_string.hpp"
 #include <spdlog/spdlog.h>
-#include "vk/allocation.h"
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <backends/imgui_impl_vulkan.h>
 #include <glm/gtc/matrix_access.hpp>
 
@@ -54,7 +54,7 @@ static vk::raii::RenderPass create_renderpass(vk::raii::Device& device, vk::Form
 		.stencilLoadOp = vk::AttachmentLoadOp::eDontCare,
 		.stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
 		.initialLayout = vk::ImageLayout::eUndefined,
-		.finalLayout = vk::ImageLayout::eTransferSrcOptimal,
+		.finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
 	};
 
 	vk::AttachmentReference color_attachment{
@@ -96,17 +96,17 @@ static void check_vk_result(VkResult result)
 	}
 }
 
-static std::optional<ImVec2> ray_plane_intersection(const imgui_context::imgui_viewport& vp, const imgui_context::controller_state& in)
+std::optional<ImVec2> imgui_context::ray_plane_intersection(const imgui_context::controller_state& in)
 {
 	if (!in.active)
 		return {};
 
-	auto M = glm::transpose(glm::mat3_cast(vp.orientation)); // world-to-plane transform
+	auto M = glm::transpose(glm::mat3_cast(orientation_)); // world-to-plane transform
 
 	glm::vec3 controller_direction = glm::column(glm::mat3_cast(in.aim_orientation), 2);
 
 	// Compute all vectors in the reference frame of the GUI plane
-	glm::vec3 ray_start = M * (in.aim_position - vp.position);
+	glm::vec3 ray_start = M * (in.aim_position - position_);
 	glm::vec3 ray_dir = M * controller_direction;
 
 	if (ray_dir.z > 0.0001f)
@@ -123,93 +123,72 @@ static std::optional<ImVec2> ray_plane_intersection(const imgui_context::imgui_v
 			coord.y = ray_start.y + lambda * ray_dir.y;
 
 			// Convert from mesh coordinates to imgui coordinates
-			coord = coord / vp.scale;
+			coord = coord / scale;
 
 			if (fabs(coord.x) <= 0.5 && fabs(coord.y) <= 0.5)
 				return ImVec2(
-					(0.5 + coord.x) * vp.size.width,
-					(0.5 - coord.y) * vp.size.height);
+					(0.5 + coord.x) * size.width,
+					(0.5 - coord.y) * size.height);
 		}
 	}
 
 	return {};
 }
 
-imgui_context::imgui_viewport::imgui_viewport(vk::raii::Device& device, vk::raii::CommandPool& command_pool, vk::RenderPass renderpass, vk::Extent2D size, vk::Format format) :
-	device(device),
-	size(size)
+imgui_context::imgui_frame& imgui_context::get_frame(vk::Image destination)
 {
-	num_mipmaps = std::floor(std::log2(std::max(size.width, size.height))) + 1;
-
-	for(auto& frame:frames)
+	for(auto& i: frames)
 	{
-		frame.image = image_allocation(
-			vk::ImageCreateInfo{
-				.imageType = vk::ImageType::e2D,
-				 .format = format,
-				 .extent = {
-					size.width,
-					size.height,
-					1
-				 },
-				 .mipLevels = num_mipmaps,
-				 .arrayLayers = 1,
-				 .samples = vk::SampleCountFlagBits::e1,
-				 .tiling = vk::ImageTiling::eOptimal,
-				 .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eTransferDst,
-				 .initialLayout = vk::ImageLayout::eUndefined,
-			},
-			VmaAllocationCreateInfo{
-				.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE
-			}
-		);
-
-		// Only 1 mipmap level for the framebuffer view
-		frame.image_view_framebuffer = vk::raii::ImageView(device, vk::ImageViewCreateInfo{
-			.image = (vk::Image)frame.image,
-			.viewType = vk::ImageViewType::e2D,
-			.format = format,
-			.subresourceRange = {
-				.aspectMask = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-			}
-		});
-
-		frame.image_view_texture = vk::raii::ImageView(device, vk::ImageViewCreateInfo{
-			.image = (vk::Image)frame.image,
-			.viewType = vk::ImageViewType::e2D,
-			.format = format,
-			.subresourceRange = {
-				.aspectMask = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel = 0,
-				.levelCount = num_mipmaps,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-			}
-		});
-
-		frame.framebuffer = vk::raii::Framebuffer(device, vk::FramebufferCreateInfo{
-			.renderPass = renderpass,
-			.attachmentCount = 1,
-			.pAttachments = &*frame.image_view_framebuffer,
-			.width = size.width,
-			.height = size.height,
-			.layers = 1,
-		});
-
-		frame.command_buffer = std::move(device.allocateCommandBuffers({
-			.commandPool = *command_pool,
-			.commandBufferCount = 1,
-		})[0]);
-
-		frame.fence = device.createFence(vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+		if (i.destination == destination)
+			return i;
 	}
+
+	auto& frame = frames.emplace_back();
+
+	frame.destination = destination;
+
+	// Only 1 mipmap level for the framebuffer view
+	frame.image_view_framebuffer = vk::raii::ImageView(device, vk::ImageViewCreateInfo{
+		.image = destination,
+		.viewType = vk::ImageViewType::e2D,
+		.format = format,
+		.subresourceRange = {
+			.aspectMask = vk::ImageAspectFlagBits::eColor,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 1,
+		}
+	});
+
+	frame.framebuffer = vk::raii::Framebuffer(device, vk::FramebufferCreateInfo{
+		.renderPass = *renderpass,
+		.attachmentCount = 1,
+		.pAttachments = &*frame.image_view_framebuffer,
+		.width = size.width,
+		.height = size.height,
+		.layers = 1,
+	});
+
+	frame.command_buffer = std::move(device.allocateCommandBuffers({
+		.commandPool = *command_pool,
+		.commandBufferCount = 1,
+	})[0]);
+
+	frame.fence = device.createFence(vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+
+	return frame;
 }
 
-imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, float resolution, glm::vec2 scale) :
+static const std::array pool_sizes =
+{
+	vk::DescriptorPoolSize{
+		.type = vk::DescriptorType::eCombinedImageSampler,
+		.descriptorCount = 1,
+	}
+};
+
+imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, vk::Extent2D size, float resolution, vk::Format format) :
 	device(device),
 	queue_family_index(queue_family_index),
 	queue(queue),
@@ -220,11 +199,14 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.poolSizeCount = pool_sizes.size(),
 		.pPoolSizes = pool_sizes.data(),
 	}),
-	renderpass(create_renderpass(device, vk::Format::eR8G8B8A8Unorm, true)),
+	renderpass(create_renderpass(device, format, true)),
 	command_pool(device, vk::CommandPoolCreateInfo{
 		.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
 		.queueFamilyIndex = queue_family_index,
 	}),
+	size(size),
+	format(format),
+	scale(size.width / resolution, size.height / resolution),
 	context(ImGui::CreateContext()),
 	io(ImGui::GetIO()),
 	world(world)
@@ -232,14 +214,6 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 	controllers.reserve(controllers_.size());
 	for(const auto& i:controllers_)
 		controllers.emplace_back(i, controller_state{});
-
-	vk::Extent2D extent{
-		(uint32_t)(resolution * scale.x),
-		(uint32_t)(resolution * scale.y)
-	};
-
-	viewport = std::make_shared<imgui_viewport>(device, command_pool, *renderpass, extent, vk::Format::eR8G8B8A8Unorm);
-	viewport->scale = scale;
 
 	io.IniFilename = nullptr;
 
@@ -252,8 +226,9 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.PipelineCache = *application::get_pipeline_cache(),
 		.DescriptorPool = *descriptor_pool,
 		.Subpass = 0,
-		.MinImageCount = imgui_viewport::frames_in_flight,
-		.ImageCount = imgui_viewport::frames_in_flight,
+		// image count is not actually used because we don't use a WSI swapchain
+		.MinImageCount = 2, // imgui_viewport::frames_in_flight,
+		.ImageCount = 2, //imgui_viewport::frames_in_flight,
 		.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 		.Allocator = nullptr,
 		.CheckVkResultFn = check_vk_result,
@@ -272,7 +247,7 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsClassic();
+	// ImGui::StyleColorsClassic();
 	//ImGui::StyleColorsLight();
 
 	ImGuiStyle& style = ImGui::GetStyle();
@@ -289,14 +264,7 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 
 	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0,0,0,0.8);
 
-
 	// TODO: scroll to drag https://github.com/ocornut/imgui/issues/3379
-}
-void imgui_context::set_position(glm::vec3 position, glm::quat orientation)
-{
-	auto& vp = *viewport;
-	vp.position = position;
-	vp.orientation = orientation;
 }
 
 void imgui_context::new_frame(XrTime display_time)
@@ -382,7 +350,7 @@ void imgui_context::new_frame(XrTime display_time)
 
 	if (new_focused_controller != (size_t)-1)
 	{
-		position = ray_plane_intersection(*viewport, new_states[new_focused_controller]);
+		position = ray_plane_intersection(new_states[new_focused_controller]);
 		trigger = new_states[new_focused_controller].trigger_value;
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
@@ -423,9 +391,10 @@ void imgui_context::new_frame(XrTime display_time)
 	}
 
 	// Start the Dear ImGui frame
+	ImGui::SetCurrentContext(context);
 	ImGui_ImplVulkan_NewFrame();
 
-	io.DisplaySize = ImVec2(viewport->size.width, viewport->size.height);
+	io.DisplaySize = ImVec2(size.width, size.height);
 	io.DisplayFramebufferScale = ImVec2(1, 1);
 
 	// See ImGui_ImplSDL2_ProcessEvent
@@ -444,18 +413,16 @@ void imgui_context::new_frame(XrTime display_time)
 	}
 }
 
-std::shared_ptr<vk::raii::ImageView> imgui_context::render()
+void imgui_context::render(vk::Image destination)
 {
 	ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();
         const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
 
 	if (is_minimized)
-		return {};
+		return;
 
-	auto &vp = *viewport;
-	vp.frameindex = (vp.frameindex + 1) % imgui_viewport::frames_in_flight;
-	auto& f = vp.frames[vp.frameindex];
+	auto& f = get_frame(destination);
 	auto& cb = f.command_buffer;
 
 	device.waitForFences(*f.fence, true, 1'000'000'000); // TODO check timeout
@@ -469,7 +436,7 @@ std::shared_ptr<vk::raii::ImageView> imgui_context::render()
 		.renderPass = *renderpass,
 		.framebuffer = *f.framebuffer,
 		.renderArea = {
-			.extent = vp.size,
+			.extent = size,
 		},
 		.clearValueCount = 1,
 		.pClearValues = &clear
@@ -479,113 +446,6 @@ std::shared_ptr<vk::raii::ImageView> imgui_context::render()
 
 	cb.endRenderPass();
 
-	// TODO: create mipmaps
-	// Create mipmaps
-	int width = vp.size.width;
-	int height = vp.size.height;
-	vk::ImageLayout prev_layout = vk::ImageLayout::eTransferSrcOptimal;
-	for(uint32_t level = 1; level < vp.num_mipmaps; level++)
-	{
-		int next_width = width > 1 ? width / 2 : 1;
-		int next_height = height > 1 ? height / 2 : 1;
-
-		// Transition source image layout to eTransferSrcOptimal and destination image layout to eTransferDstOptimal
-		cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {},
-			{
-				vk::ImageMemoryBarrier{
-					.srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-					.dstAccessMask = vk::AccessFlagBits::eShaderRead,
-					.oldLayout = prev_layout,
-					.newLayout = vk::ImageLayout::eTransferSrcOptimal,
-					.image = f.image,
-					.subresourceRange = {
-						.aspectMask = vk::ImageAspectFlagBits::eColor,
-						.baseMipLevel = level - 1,
-						.levelCount = 1,
-						.baseArrayLayer = 0,
-						.layerCount = 1,
-					},
-				},
-				vk::ImageMemoryBarrier{
-					.srcAccessMask = vk::AccessFlagBits::eTransferWrite, // TODO
-					.dstAccessMask = vk::AccessFlagBits::eShaderRead, // TODO
-					.oldLayout = vk::ImageLayout::eUndefined,
-					.newLayout = vk::ImageLayout::eTransferDstOptimal,
-					.image = f.image,
-					.subresourceRange = {
-						.aspectMask = vk::ImageAspectFlagBits::eColor,
-						.baseMipLevel = level,
-						.levelCount = 1,
-						.baseArrayLayer = 0,
-						.layerCount = 1,
-					},
-				},
-
-		});
-		prev_layout = vk::ImageLayout::eTransferDstOptimal;
-
-		// Blit level n-1 to level n
-		cb.blitImage(f.image, vk::ImageLayout::eTransferSrcOptimal, f.image, vk::ImageLayout::eTransferDstOptimal,
-			vk::ImageBlit{
-				.srcSubresource = {
-					.aspectMask = vk::ImageAspectFlagBits::eColor,
-					.mipLevel = level - 1,
-					.baseArrayLayer = 0,
-					.layerCount = 1},
-				.srcOffsets = std::array{
-					vk::Offset3D{0, 0, 0},
-					vk::Offset3D{width, height, 1},
-				},
-				.dstSubresource = {
-					.aspectMask = vk::ImageAspectFlagBits::eColor,
-					.mipLevel = level,
-					.baseArrayLayer = 0,
-					.layerCount = 1
-				},
-				.dstOffsets = std::array{
-					vk::Offset3D{0, 0, 0},
-					vk::Offset3D{next_width, next_height, 1},
-				},
-			},
-			vk::Filter::eLinear);
-
-
-		// Transition source image layout to eShaderReadOnlyOptimal
-		cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
-			.srcAccessMask = vk::AccessFlagBits::eTransferRead,
-			.dstAccessMask = vk::AccessFlagBits::eShaderRead,
-			.oldLayout = vk::ImageLayout::eTransferSrcOptimal,
-			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-			.image = f.image,
-			.subresourceRange = {
-				.aspectMask = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel = level - 1,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-			},
-		});
-
-		width = next_width;
-		height = next_height;
-	}
-
-	// Transition the last level to eShaderReadOnlyOptimal
-	cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
-		.srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-		.dstAccessMask = vk::AccessFlagBits::eShaderRead,
-		.oldLayout = prev_layout,
-		.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		.image = f.image,
-		.subresourceRange = {
-			.aspectMask = vk::ImageAspectFlagBits::eColor,
-			.baseMipLevel = vp.num_mipmaps - 1,
-			.levelCount = 1,
-			.baseArrayLayer = 0,
-			.layerCount = 1,
-		},
-	});
-
 	cb.end();
 
 	queue.submit(vk::SubmitInfo{
@@ -594,19 +454,19 @@ std::shared_ptr<vk::raii::ImageView> imgui_context::render()
 	}, *f.fence);
 
 	// Use the aliasing constructor
-	return std::shared_ptr<vk::raii::ImageView>{viewport, &vp.frames[vp.frameindex].image_view_texture};
+	// return std::shared_ptr<vk::raii::ImageView>{viewport, &vp.frames[vp.frameindex].image_view_texture};
 }
 
 imgui_context::~imgui_context()
 {
 	// Release the command buffers, they will be destroyed with the command pool
-	for(auto& f: viewport->frames)
+	for(auto& f: frames)
 		f.command_buffer.release();
 
 	// Wait for fences here and not in imgui_viewport::~imgui_viewport so that the command buffers have finished when ImGui_ImplVulkan_Shutdown is called
-	std::array<vk::Fence, imgui_viewport::frames_in_flight> fences;
-	for(auto&& [i, f]: utils::enumerate(viewport->frames))
-		fences[i] = *f.fence;
+	std::vector<vk::Fence> fences;
+	for(auto& f: frames)
+		fences.push_back(*f.fence);
 
 	device.waitForFences(fences, true, 1'000'000'000);
 

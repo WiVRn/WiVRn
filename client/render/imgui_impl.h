@@ -18,46 +18,25 @@
 
 #pragma once
 
-#include "render/scene_data.h"
 #include <imgui.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <openxr/openxr.h>
-#include "vk/allocation.h"
+#include <optional>
+#include <span>
+#include <vector>
 
 class imgui_context
 {
 public:
 	struct imgui_frame
 	{
-		image_allocation image;
+		vk::Image destination;
 		vk::raii::ImageView image_view_framebuffer = nullptr;
-		vk::raii::ImageView image_view_texture = nullptr;
 		vk::raii::Framebuffer framebuffer = nullptr;
 		vk::raii::CommandBuffer command_buffer = nullptr;
 		vk::raii::Fence fence = nullptr;
-	};
-
-	struct imgui_viewport
-	{
-		static constexpr int frames_in_flight = 2;
-		uint32_t num_mipmaps;
-
-		std::array<imgui_frame, frames_in_flight> frames;
-		int frameindex = 0;
-
-		vk::raii::Device& device;
-
-		vk::Extent2D size;
-		vk::ClearValue clear_value = {vk::ClearColorValue{0,0,0,0}};
-
-		// TODO: sync with 3d scene
-		glm::vec3 position = {0, 1, -1.5};
-		glm::quat orientation = {1, 0, 0, 0};
-		glm::vec2 scale = {1, 1};
-
-		imgui_viewport(vk::raii::Device& device, vk::raii::CommandPool& command_pool, vk::RenderPass renderpass, vk::Extent2D size, vk::Format format);
 	};
 
 	struct controller
@@ -86,14 +65,6 @@ public:
 	};
 
 private:
-	static inline const std::array pool_sizes =
-	{
-		vk::DescriptorPoolSize{
-			.type = vk::DescriptorType::eCombinedImageSampler,
-			.descriptorCount = 1,
-		}
-	};
-
 	vk::raii::Device& device;
 	uint32_t queue_family_index;
 	vk::raii::Queue& queue;
@@ -103,13 +74,19 @@ private:
 	vk::raii::RenderPass renderpass;
 	vk::raii::CommandPool command_pool;
 
-	// shared_ptr because it needs to be kept alive until the output textures are not used anymore
-	std::shared_ptr<imgui_viewport> viewport;
+	std::vector<imgui_frame> frames;
+	imgui_frame& get_frame(vk::Image destination);
+
+	vk::Extent2D size;
+	vk::Format format;
+	vk::ClearValue clear_value = {vk::ClearColorValue{0,0,0,0}};
+
+	glm::vec3 position_ = {0, 1, -1.5};
+	glm::quat orientation_ = {1, 0, 0, 0};
+	glm::vec2 scale = {1, 1};
 
 	ImGuiContext * context;
 	ImGuiIO& io;
-
-	// std::string ini_filename;
 
 	std::vector<std::pair<controller, controller_state>> controllers;
 	XrSpace world;
@@ -118,14 +95,58 @@ private:
 
 	bool button_pressed = false;
 
+	std::optional<ImVec2> ray_plane_intersection(const imgui_context::controller_state& in);
+
 public:
-	imgui_context(vk::raii::Device& device, uint32_t queue_family_index,
-	vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, float resolution, glm::vec2 scale);
+	imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, vk::Extent2D size, float resolution, vk::Format format);
 	~imgui_context();
 
-	void set_position(glm::vec3 position, glm::quat orientation);
+	void set_position(glm::vec3 position, glm::quat orientation)
+	{
+		position_ = position;
+		orientation_ = orientation;
+	}
+
+	XrPosef pose()
+	{
+		return XrPosef{
+			.orientation = {
+				.x = orientation_.x,
+				.y = orientation_.y,
+				.z = orientation_.z,
+				.w = orientation_.w,
+			},
+			.position = {
+				.x = position_.x,
+				.y = position_.y,
+				.z = position_.z,
+			}
+		};
+	}
+
+	glm::vec3& position()
+	{
+		return position_;
+	}
+
+	glm::quat& orientation()
+	{
+		return orientation_;
+	}
+
+	glm::vec3 position() const
+	{
+		return position_;
+	}
+
+	glm::quat orientation() const
+	{
+		return orientation_;
+	}
+
 	void new_frame(XrTime display_time);
-	std::shared_ptr<vk::raii::ImageView> render();
+
+	void render(vk::Image destination);
 
 	ImFont * large_font;
 	size_t get_focused_controller() const
