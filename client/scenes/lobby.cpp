@@ -55,6 +55,7 @@
 using namespace std::chrono_literals;
 
 static const std::string discover_service = "_wivrn._tcp.local.";
+static bool force_autoconnect = false;
 
 scenes::lobby::~lobby()
 {
@@ -181,6 +182,9 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 
 scenes::lobby::lobby()
 {
+	if (std::getenv("WIVRN_AUTOCONNECT"))
+		force_autoconnect = true;
+
 	try
 	{
 		simdjson::dom::parser parser;
@@ -502,7 +506,7 @@ void scenes::lobby::render()
 	{
 		for(auto&& [cookie, data]: servers)
 		{
-			if (data.visible && data.autoconnect)
+			if (data.visible && (data.autoconnect || force_autoconnect))
 			{
 				connect(data);
 			}
