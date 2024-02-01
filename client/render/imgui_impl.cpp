@@ -170,12 +170,6 @@ imgui_context::imgui_frame& imgui_context::get_frame(vk::Image destination)
 		.layers = 1,
 	});
 
-	frame.command_buffer = std::move(device.allocateCommandBuffers({
-		.commandPool = *command_pool,
-		.commandBufferCount = 1,
-	})[0]);
-
-	frame.fence = device.createFence(vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
 
 	return frame;
 }
@@ -188,7 +182,7 @@ static const std::array pool_sizes =
 	}
 };
 
-imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, vk::Extent2D size, float resolution, vk::Format format, int image_count) :
+imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, vk::Extent2D size, float resolution, vk::Format format, int frames_in_flight) :
 	device(device),
 	queue_family_index(queue_family_index),
 	queue(queue),
@@ -204,6 +198,7 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
 		.queueFamilyIndex = queue_family_index,
 	}),
+	command_buffers(frames_in_flight),
 	size(size),
 	format(format),
 	scale(size.width / resolution, size.height / resolution),
@@ -217,6 +212,16 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 
 	io.IniFilename = nullptr;
 
+	for(command_buffer& cb: command_buffers)
+	{
+		cb.command_buffer = std::move(device.allocateCommandBuffers({
+			.commandPool = *command_pool,
+			.commandBufferCount = 1,
+		})[0]);
+
+		cb.fence = device.createFence(vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+	}
+
 	ImGui_ImplVulkan_InitInfo init_info = {
 		.Instance = *application::get_vulkan_instance(),
 		.PhysicalDevice = *application::get_physical_device(),
@@ -227,7 +232,7 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.DescriptorPool = *descriptor_pool,
 		.Subpass = 0,
 		.MinImageCount = 2,
-		.ImageCount = (uint32_t)image_count, // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
+		.ImageCount = (uint32_t)frames_in_flight, // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
 		.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 		.Allocator = nullptr,
 		.CheckVkResultFn = check_vk_result,
@@ -421,11 +426,14 @@ void imgui_context::render(vk::Image destination)
 	if (is_minimized)
 		return;
 
-	auto& f = get_frame(destination);
-	auto& cb = f.command_buffer;
+	current_command_buffer = (current_command_buffer + 1) % command_buffers.size();
 
-	device.waitForFences(*f.fence, true, 1'000'000'000); // TODO check timeout
-	device.resetFences(*f.fence);
+	auto& f = get_frame(destination);
+	auto& cb = get_command_buffer().command_buffer;
+	auto& fence = get_command_buffer().fence;
+
+	device.waitForFences(*fence, true, 1'000'000'000); // TODO check timeout
+	device.resetFences(*fence);
 
 	cb.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
@@ -450,7 +458,7 @@ void imgui_context::render(vk::Image destination)
 	queue.submit(vk::SubmitInfo{
 		.commandBufferCount = 1,
 		.pCommandBuffers = &*cb,
-	}, *f.fence);
+	}, *fence);
 
 	// Use the aliasing constructor
 	// return std::shared_ptr<vk::raii::ImageView>{viewport, &vp.frames[vp.frameindex].image_view_texture};
@@ -458,17 +466,17 @@ void imgui_context::render(vk::Image destination)
 
 imgui_context::~imgui_context()
 {
-	// Release the command buffers, they will be destroyed with the command pool
-	for(auto& f: frames)
+	std::vector<vk::Fence> fences;
+
+	// Release the command buffers without freing them, they will be destroyed with the command pool
+	for(auto& f: command_buffers)
+	{
 		f.command_buffer.release();
+		fences.push_back(*f.fence);
+	}
 
 	// Wait for fences before ImGui_ImplVulkan_Shutdown is called
-	std::vector<vk::Fence> fences;
-	for(auto& f: frames)
-		fences.push_back(*f.fence);
-
 	device.waitForFences(fences, true, 1'000'000'000);
-
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui::DestroyContext(context);

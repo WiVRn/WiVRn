@@ -29,15 +29,20 @@
 
 class imgui_context
 {
+	struct command_buffer
+	{
+		vk::raii::CommandBuffer command_buffer = nullptr;
+		vk::raii::Fence fence = nullptr;
+	};
+
 public:
 	struct imgui_frame
 	{
 		vk::Image destination;
 		vk::raii::ImageView image_view_framebuffer = nullptr;
 		vk::raii::Framebuffer framebuffer = nullptr;
-		vk::raii::CommandBuffer command_buffer = nullptr;
-		vk::raii::Fence fence = nullptr;
 	};
+
 
 	struct controller
 	{
@@ -77,6 +82,13 @@ private:
 	std::vector<imgui_frame> frames;
 	imgui_frame& get_frame(vk::Image destination);
 
+	std::vector<command_buffer> command_buffers;
+	size_t current_command_buffer = 0;
+	command_buffer& get_command_buffer()
+	{
+		return command_buffers[current_command_buffer];
+	}
+
 	vk::Extent2D size;
 	vk::Format format;
 	vk::ClearValue clear_value = {vk::ClearColorValue{0,0,0,0}};
@@ -98,7 +110,7 @@ private:
 	std::optional<ImVec2> ray_plane_intersection(const imgui_context::controller_state& in);
 
 public:
-	imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, vk::Extent2D size, float resolution, vk::Format format, int image_count);
+	imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, vk::Extent2D size, float resolution, vk::Format format, int frames_in_flight = 3);
 	~imgui_context();
 
 	void set_position(glm::vec3 position, glm::quat orientation)
