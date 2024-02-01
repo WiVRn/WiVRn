@@ -8,7 +8,22 @@
 #include <avahi-common/simple-watch.h>
 #include <avahi-common/strlst.h>
 #include <iostream>
-#include <string.h>
+
+namespace
+{
+struct : std::error_category
+{
+	const char * name() const noexcept override
+	{
+		return "avahi";
+	}
+
+	std::string message(int condition) const override
+	{
+		return avahi_strerror(condition);
+	}
+} avahi_error_category;
+} // namespace
 
 void avahi_publisher::alt_name()
 {
@@ -21,32 +36,29 @@ void avahi_publisher::create_service(AvahiClient * client)
 {
 	if (!entry_group)
 	{
-		entry_group = avahi_entry_group_new(client, avahi_entry_group_callback, nullptr);
+		entry_group = avahi_entry_group_new(client, avahi_entry_group_callback, this);
 		if (!entry_group)
 		{
-			throw std::runtime_error(
-			        std::string(
-			                "Cannot create entry group, you may need to remove disable-user-service-publishing from your avahi daemon config: ") +
-			        avahi_strerror(avahi_client_errno(client)));
+			throw std::system_error(avahi_client_errno(client),
+			                        avahi_error_category,
+			                        "Cannot create entry group, ensure disable-user-service-publishing is unset in avahi daemon config");
 		}
 	}
-	avahi_entry_group_reset(entry_group);
 
 	if (!name)
 		name = avahi_strdup("WiVRn");
 
 	std::vector<const char *> txt_array;
-	for(const auto& i: txt)
+	for (const auto & i: txt)
 	{
 		txt_array.push_back(i.c_str());
 	}
 
-	AvahiStringList* txt_list = txt_array.empty() ? nullptr : avahi_string_list_new_from_array(txt_array.data(), txt_array.size());
+	AvahiStringList * txt_list = txt_array.empty() ? nullptr : avahi_string_list_new_from_array(txt_array.data(), txt_array.size());
 
 	int ret;
 	do
 	{
-
 		ret = avahi_entry_group_add_service_strlst(entry_group, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, (AvahiPublishFlags)0, name, type.c_str(), nullptr, nullptr, port, txt_list);
 
 		if (ret == AVAHI_ERR_COLLISION)
@@ -67,10 +79,6 @@ void avahi_publisher::create_service(AvahiClient * client)
 	{
 		std::cerr << "Cannot commit entry group: " << avahi_strerror(ret) << std::endl;
 	}
-	else
-	{
-		std::cout << "Service published: " << name << std::endl;
-	}
 }
 
 void avahi_publisher::avahi_entry_group_callback(
@@ -79,10 +87,13 @@ void avahi_publisher::avahi_entry_group_callback(
         void * userdata /* The arbitrary user data pointer originally passed to avahi_entry_group_new()*/)
 {
 	avahi_publisher * self = (avahi_publisher *)userdata;
+	// Callback may be called before avahi_entry_group_new returns
+	self->entry_group = g;
 
 	switch (state)
 	{
 		case AVAHI_ENTRY_GROUP_ESTABLISHED:
+			std::cout << "Service published: " << self->name << std::endl;
 		case AVAHI_ENTRY_GROUP_FAILURE:
 		case AVAHI_ENTRY_GROUP_REGISTERING:
 		case AVAHI_ENTRY_GROUP_UNCOMMITED:
@@ -109,7 +120,9 @@ void avahi_publisher::client_callback(AvahiClient * s,
 		case AVAHI_CLIENT_S_COLLISION:
 		case AVAHI_CLIENT_S_REGISTERING:
 			if (self->entry_group)
+			{
 				avahi_entry_group_reset(self->entry_group);
+			}
 			break;
 
 		case AVAHI_CLIENT_S_RUNNING:
@@ -118,10 +131,10 @@ void avahi_publisher::client_callback(AvahiClient * s,
 	}
 }
 
-avahi_publisher::avahi_publisher(const char * name, std::string type, int port, const std::map<std::string, std::string>& txt) :
+avahi_publisher::avahi_publisher(const char * name, std::string type, int port, const std::map<std::string, std::string> & txt) :
         name(avahi_strdup(name)), type(std::move(type)), port(port)
 {
-	for(const auto& [key, value]: txt)
+	for (const auto & [key, value]: txt)
 	{
 		this->txt.push_back(key + "=" + value);
 	}
@@ -129,11 +142,15 @@ avahi_publisher::avahi_publisher(const char * name, std::string type, int port, 
 	avahi_poll = avahi_simple_poll_new();
 
 	int error;
-	avahi_client =
-	        avahi_client_new(avahi_simple_poll_get(avahi_poll), (AvahiClientFlags)0, &client_callback, this, &error);
+	avahi_client = avahi_client_new(
+	        avahi_simple_poll_get(avahi_poll),
+	        (AvahiClientFlags)0,
+	        &client_callback,
+	        this,
+	        &error);
 
 	if (!avahi_client)
-		throw std::runtime_error(std::string("Cannot create avahi client: ") + avahi_strerror(error));
+		throw std::system_error(error, avahi_error_category, "Cannot create avahi client");
 }
 
 avahi_publisher::~avahi_publisher()
@@ -164,7 +181,7 @@ bool avahi_publisher::iterate(int sleep_time)
 	int r = avahi_simple_poll_iterate(avahi_poll, sleep_time);
 
 	if (r < 0 && errno != EINTR)
-		throw std::runtime_error(std::string("avahi_simple_poll_iterate: ") + strerror(errno));
+		throw std::system_error(errno, std::system_category(), "avahi_simple_poll_iterate: ");
 
 	return r == 0;
 }
