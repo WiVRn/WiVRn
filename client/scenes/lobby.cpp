@@ -153,7 +153,9 @@ static const std::array supported_formats =
 
 void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime predicted_display_time)
 {
-	const float gui_target_distance = 1.5;
+	const float gui_target_distance = 0.75;
+	const float gui_target_altitude = 1.;
+	const float gui_target_pitch = -0.5;
 
 	glm::vec3 gui_direction = glm::column(glm::mat3_cast(imgui_ctx->orientation()), 2);
 	float gui_yaw = atan2(gui_direction.x, gui_direction.z);
@@ -163,7 +165,7 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 
 	head_direction.y = 0;
 	head_direction = glm::normalize(head_direction);
-	position.y = 1.5f;
+	position.y = gui_target_altitude;
 
 	glm::vec3 gui_target_position = position + gui_target_distance * head_direction;
 
@@ -176,7 +178,7 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 		gui_yaw += gui_yaw_error;
 
 		imgui_ctx->position() += gui_position_error;
-		imgui_ctx->orientation() = glm::quat{ cos(gui_yaw/2), 0, sin(gui_yaw/2), 0 };
+		imgui_ctx->orientation() = glm::quat(cos(gui_yaw/2), 0, sin(gui_yaw/2), 0) * glm::quat(cos(gui_target_pitch/2), sin(gui_target_pitch/2), 0, 0);
 	}
 }
 
@@ -249,14 +251,17 @@ void scenes::lobby::save_config()
 
 	for (auto& [cookie, server_data]: servers)
 	{
-		ss << "{";
-		ss << "\"autoconnect\":" << std::boolalpha << server_data.autoconnect << ",";
-		ss << "\"manual\":" << std::boolalpha << server_data.manual << ",";
-		ss << "\"pretty_name\":" << json_string(server_data.service.name) << ",";
-		ss << "\"hostname\":" << json_string(server_data.service.hostname) << ",";
-		ss << "\"port\":" << server_data.service.port << ",";
-		ss << "\"cookie\":" << json_string(cookie);
-		ss << "},";
+		if (server_data.autoconnect || server_data.manual)
+		{
+			ss << "{";
+			ss << "\"autoconnect\":" << std::boolalpha << server_data.autoconnect << ",";
+			ss << "\"manual\":" << std::boolalpha << server_data.manual << ",";
+			ss << "\"pretty_name\":" << json_string(server_data.service.name) << ",";
+			ss << "\"hostname\":" << json_string(server_data.service.hostname) << ",";
+			ss << "\"port\":" << server_data.service.port << ",";
+			ss << "\"cookie\":" << json_string(cookie);
+			ss << "},";
+		}
 	}
 
 	std::string servers_str = ss.str();
@@ -401,12 +406,13 @@ void scenes::lobby::update_server_list()
 
 	for(auto& service: discovered_services)
 	{
-		std::string cookie;
 		if (service.txt.find("cookie") == service.txt.end())
-			cookie = service.hostname;
-		else
-			cookie = service.txt.at("cookie");
+		{
+			spdlog::info("Ignored {} because there is no cookie field", service.name);
+			continue;
+		}
 
+		auto cookie = service.txt.at("cookie");
 		auto server = servers.find(cookie);
 		if (server == servers.end())
 		{
@@ -569,7 +575,7 @@ void scenes::lobby::render()
 				.extent = swapchain_imgui.extent()},
 		},
 		.pose = imgui_ctx->pose(),
-		.size = {1.5, 1}, // TODO
+		.size = {0.75, 0.5}, // TODO
 	};
 
 	XrCompositionLayerProjection controllers_layer{
@@ -646,7 +652,7 @@ void scenes::lobby::on_focused()
 
 	vk::Extent2D gui_size(1500, 1000);
 	swapchain_imgui = xr::swapchain(session, device, swapchain_format, gui_size.width, gui_size.height);
-	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, gui_size, 1000, swapchain_format, swapchain_imgui.images().size());
+	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, gui_size, 2000, swapchain_format, swapchain_imgui.images().size());
 }
 
 void scenes::lobby::on_unfocused()
