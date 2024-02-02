@@ -1,4 +1,11 @@
-FetchContent_MakeAvailable(spdlog glm fastgltf imgui stb)
+set(KTX_FEATURE_STATIC_LIBRARY ON)
+set(KTX_FEATURE_TOOLS OFF)
+set(KTX_FEATURE_TESTS OFF)
+set(KTX_FEATURE_VK_UPLOAD ON)
+set(KTX_FEATURE_GL_UPLOAD OFF)
+set(KTX_FEATURE_LOADTEST_APPS OFF)
+
+FetchContent_MakeAvailable(spdlog glm fastgltf imgui stb libktx)
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
@@ -126,7 +133,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb fastgltf_simdjson)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb fastgltf_simdjson ktx_read)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror

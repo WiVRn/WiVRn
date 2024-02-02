@@ -327,60 +327,111 @@ static fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 {
 	const uint8_t png_magic[] = {0xFF, 0xD8, 0xFF};
 	const uint8_t jpeg_magic[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+	const uint8_t ktx1_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+	const uint8_t ktx2_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 
 	if (starts_with(image_data, png_magic))
 		return fastgltf::MimeType::PNG;
 	else if (starts_with(image_data, jpeg_magic))
 		return fastgltf::MimeType::JPEG;
+	else if (starts_with(image_data, ktx1_magic))
+		return fastgltf::MimeType::KTX2;
+	else if (starts_with(image_data, ktx2_magic))
+		return fastgltf::MimeType::KTX2;
 	else
 		return fastgltf::MimeType::None;
 }
 
-static std::pair<scene_data::image, buffer_allocation> do_load_image(
+static std::shared_ptr<scene_data::image> do_load_image(
+	ktxVulkanDeviceInfo* vdi,
         vk::raii::Device & device,
-        vk::raii::CommandBuffer & cb,
+	vk::raii::Queue & queue,
+        vk::raii::CommandPool & cb_pool,
         fastgltf::MimeType image_type,
         std::span<const std::byte> image_data,
         bool srgb)
 {
-	std::pair<scene_data::image, buffer_allocation> output;
-
-	cb.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-
-	if (image_type == fastgltf::MimeType::GltfBuffer || image_type == fastgltf::MimeType::None)
-		image_type = guess_mime_type(image_data);
-
-	switch (image_type)
+	switch (guess_mime_type(image_data))
 	{
 		case fastgltf::MimeType::JPEG:
 		case fastgltf::MimeType::PNG: {
+
+			auto cb = std::move(device.allocateCommandBuffers({
+					.commandPool = *cb_pool,
+					.level = vk::CommandBufferLevel::ePrimary,
+					.commandBufferCount = 1,
+				})[0]);
+
+			auto fence = device.createFence(vk::FenceCreateInfo{});
+
+			cb.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
 			image_loader loader(device, cb, image_data, srgb);
-			output.first.image_view = std::move(loader.image_view);
-			output.first.image_ = std::move(loader.image);
-			output.second = std::move(loader.staging_buffer);
+
+			cb.end();
+
+			vk::SubmitInfo info;
+			info.setCommandBuffers(*cb);
+			queue.submit(info, *fence);
+			device.waitForFences(*fence, true, 1'000'000'000);
 
 			spdlog::debug("Loaded image {}x{}, format {}, {} mipmaps", loader.extent.width, loader.extent.height, vk::to_string(loader.format), loader.num_mipmaps);
+			return std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
 		}
-		break;
 
-		case fastgltf::MimeType::KTX2:
-			// TODO
+		case fastgltf::MimeType::KTX2: {
 
-		case fastgltf::MimeType::DDS:
-			// TODO
+			ktxTexture* texture;
+			ktxVulkanTexture vk_texture;
+
+			ktxResult err = ktxTexture_CreateFromMemory(reinterpret_cast<const uint8_t*>(image_data.data()), image_data.size(), /*KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT*/0, &texture);
+
+			if (err != KTX_SUCCESS)
+			{
+				spdlog::info("ktxTexture_CreateFromMemory: error {}", (int)err);
+				return {};
+			}
+
+			err = ktxTexture_VkUploadEx(texture, vdi, &vk_texture,
+							VK_IMAGE_TILING_OPTIMAL,
+							VK_IMAGE_USAGE_SAMPLED_BIT,
+							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			if (err != KTX_SUCCESS)
+			{
+				ktxTexture_Destroy(texture);
+				spdlog::info("ktxTexture_CreateFromMemory: error {}", (int)err);
+				return {};
+			}
+
+			ktxTexture_Destroy(texture);
+
+			vk::raii::ImageView image_view{device, vk::ImageViewCreateInfo{
+							.image = vk_texture.image,
+							.viewType = (vk::ImageViewType)vk_texture.viewType,
+							.format = (vk::Format)vk_texture.imageFormat,
+							.subresourceRange = {
+								.aspectMask = vk::ImageAspectFlagBits::eColor,
+								.baseMipLevel = 0,
+								.levelCount = vk_texture.levelCount,
+								.baseArrayLayer = 0,
+								.layerCount = 1,
+							},
+						}};
+
+			return std::make_shared<scene_data::image>(std::make_pair(*device, vk_texture), std::move(image_view));
+		}
 
 		default:
-			throw std::runtime_error("Invalid image MIME type: " + std::to_string((int)image_type));
+			spdlog::error("Unsupported image MIME type");
+			return {};
 	}
 
-	cb.end();
-
-	return output;
 }
 
 class loader_context
 {
 	std::filesystem::path base_directory;
+	ktxVulkanDeviceInfo vulkan_device_info;
 	fastgltf::Asset & gltf;
 	vk::raii::Device & device;
 	vk::raii::Queue & queue;
@@ -395,6 +446,7 @@ class loader_context
 public:
 	loader_context(std::filesystem::path base_directory,
 	               fastgltf::Asset & gltf,
+	               vk::raii::PhysicalDevice physical_device,
 	               vk::raii::Device & device,
 	               vk::raii::Queue & queue,
 	               vk::raii::CommandPool & cb_pool) :
@@ -404,6 +456,15 @@ public:
 	        queue(queue),
 	        cb_pool(cb_pool)
 	{
+		KTX_error_code ret = ktxVulkanDeviceInfo_Construct(&vulkan_device_info, *physical_device, *device, *queue, *cb_pool, nullptr);
+
+		if (ret != KTX_SUCCESS)
+			throw std::runtime_error(fmt::format("Cannot initialize libktx: {}", (int)ret));
+	}
+
+	~loader_context()
+	{
+		ktxVulkanDeviceInfo_Destruct(&vulkan_device_info);
 	}
 
 	fastgltf::span<const std::byte> load(const fastgltf::URI& uri)
@@ -478,6 +539,8 @@ public:
 
 	std::vector<std::shared_ptr<scene_data::image>> load_all_images()
 	{
+		// TODO don't load images that are not needed
+
 		// Determine which image is sRGB
 		std::vector<bool> srgb;
 		srgb.resize(gltf.images.size(), false);
@@ -494,49 +557,13 @@ public:
 		std::vector<std::shared_ptr<scene_data::image>> images;
 		images.reserve(gltf.images.size());
 
-		// Create command buffers and fences
-		int num_images_in_flight = 3;
-		std::vector<vk::raii::CommandBuffer> command_buffers = device.allocateCommandBuffers({
-		        .commandPool = *cb_pool,
-		        .level = vk::CommandBufferLevel::ePrimary,
-		        .commandBufferCount = (uint32_t)num_images_in_flight,
-		});
-
-		std::vector<std::pair<vk::raii::Fence, buffer_allocation>> fences;
-		for (int i = 0; i < num_images_in_flight; ++i)
-			fences.emplace_back(
-			        device.createFence(vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled}),
-			        buffer_allocation{});
-
-		// TODO: use a single command buffer?
 		for (const auto [index, gltf_image]: utils::enumerate(gltf.images))
 		{
-			auto & cb = command_buffers[index % num_images_in_flight];
-			auto & fence = fences[index % num_images_in_flight].first;
-
-			// Wait for the previous submit to finish before overwriting fences[...].second
-			device.waitForFences(*fence, true, 1'000'000'000); // TODO check for timeout
-
 			auto [image_data, mime_type] = visit_source(gltf_image.data);
-			auto [image, resources] = do_load_image(device, cb, mime_type, image_data, srgb[index]);
+			auto image = do_load_image(&vulkan_device_info, device, queue, cb_pool, mime_type, image_data, srgb[index]);
 
-
-			device.resetFences(*fence);
-			fences[index % num_images_in_flight].second = std::move(resources);
-			images.emplace_back(std::make_shared<scene_data::image>(std::move(image)));
-
-			vk::SubmitInfo info;
-			info.setCommandBuffers(*cb);
-
-			queue.submit(info, *fence);
+			images.emplace_back(image);
 		}
-
-		std::vector<vk::Fence> fences2;
-		for (auto & i: fences)
-			fences2.push_back(*i.first);
-
-		device.waitForFences(fences2, true, 1'000'000'000); // TODO check for timeout
-		fences.clear();
 
 		return images;
 	}
@@ -555,29 +582,38 @@ public:
 				texture_ref.sampler = convert(sampler);
 			}
 
+			if (gltf_texture.basisuImageIndex)
+			{
+				std::shared_ptr<scene_data::image> image = images.at(*gltf_texture.basisuImageIndex);
+				if (image)
+				{
+					// Use the aliasing constructor so that the image_view has the same lifetime as the image
+					texture_ref.image_view = std::shared_ptr<vk::raii::ImageView>(image, &image->image_view);
+					continue;
+				}
+			}
+
+			// if (gltf_texture.ddsImageIndex)
+			// {
+			// 	// TODO
+			// }
+
+			// if (gltf_texture.webpImageIndex)
+			// {
+			// 	// TODO
+			// }
+
 			if (gltf_texture.imageIndex)
 			{
 				std::shared_ptr<scene_data::image> image = images.at(*gltf_texture.imageIndex);
+				if (image)
+				{
+					texture_ref.image_view = std::shared_ptr<vk::raii::ImageView>(image, &image->image_view);
+					continue;
+				}
+			}
 
-				// Use the aliasing constructor so that the image_view has the same lifetime as the image
-				texture_ref.image_view = std::shared_ptr<vk::raii::ImageView>(image, &image->image_view);
-			}
-			// else if (gltf_texture.basisuImageIndex)
-			// {
-			// 	// TODO
-			// }
-			// else if (gltf_texture.ddsImageIndex)
-			// {
-			// 	// TODO
-			// }
-			// else if (gltf_texture.webpImageIndex)
-			// {
-			// 	// TODO
-			// }
-			else
-			{
-				throw std::runtime_error("Unsupported image type");
-			}
+			throw std::runtime_error("Unsupported image type");
 		}
 
 		return textures;
@@ -808,6 +844,17 @@ public:
 
 } // namespace
 
+
+scene_data::image::~image()
+{
+	if (std::holds_alternative<std::pair<VkDevice, ktxVulkanTexture>>(image_))
+	{
+		auto& texture = std::get<std::pair<VkDevice, ktxVulkanTexture>>(image_);
+
+		ktxVulkanTexture_Destruct(&texture.second, texture.first, nullptr);
+	}
+}
+
 scene_data scene_loader::operator()(const std::filesystem::path & gltf_path)
 {
 	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
@@ -823,7 +870,7 @@ scene_data scene_loader::operator()(const std::filesystem::path & gltf_path)
 	data_buffer.copyBytes(reinterpret_cast<const uint8_t*>(asset_file.data()), asset_file.size());
 
 	fastgltf::Asset asset = load_gltf_asset(data_buffer, gltf_path.parent_path());
-	loader_context ctx(gltf_path.parent_path(), asset, device, queue, cb_pool);
+	loader_context ctx(gltf_path.parent_path(), asset, physical_device, device, queue, cb_pool);
 
 #ifndef NDEBUG
 	if (auto error = fastgltf::validate(asset); error != fastgltf::Error::None)

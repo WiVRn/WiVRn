@@ -30,10 +30,11 @@
 #include <glm/vec4.hpp>
 #include <memory>
 #include <string>
-#include <utils/magic_hash.h>
+#include <variant>
 #include <vector>
 #include <vk/allocation.h>
 #include <vulkan/vulkan_raii.hpp>
+#include <ktxvulkan.h>
 
 struct sampler_info
 {
@@ -59,8 +60,10 @@ struct scene_data
 {
 	struct image
 	{
-		image_allocation image_;
+		std::variant<image_allocation, std::pair<VkDevice, ktxVulkanTexture>> image_;
+
 		vk::raii::ImageView image_view = nullptr;
+		~image();
 	};
 
 	struct texture

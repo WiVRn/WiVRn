@@ -70,17 +70,23 @@
     "generator": "Aspose.3D 23.12.0",
     "version": "2.0"
   },
+  "extensionsUsed": [
+    "KHR_texture_basisu"
+  ],
   "buffers": [
     {
       "uri": "data:application/octet-stream;base64,AAABAAIAAwAEAAUAAAAAAAAAyMIAAAAAAADIwgAAAAAAAIA/AAAAACUAgD8AAAAAAADIwgAAAAAAAMhCAADIQgAAgD8AAAAAJQCAPwAAAAAAAMhCAAAAAAAAyMIAAAAAAADGwgAAAAAlAIA/AAAAAAAAyEIAAAAAAADIQgAAyEIAAMbCAAAAACUAgD8AAAAAAADIQgAAAAAAAMjCAAAAAAAAxsIAAAAAJQCAPwAAAAAAAMjCAAAAAAAAyEIAAMhCAACAPwAAAAAlAIA/AAAAAAAAAAA=",
       "byteLength": 212
     }
   ],
-   "images" : [
+  "images": [
     {
-        "uri": "WoodFloor051_1K-JPG_Color.jpg"
+      "uri": "WoodFloor051_1K-JPG_Color.jpg"
+    },
+    {
+      "uri": "WoodFloor051_1K-JPG_Color.ktx2"
     }
-   ],
+  ],
   "bufferViews": [
     {
       "buffer": 0,
@@ -113,29 +119,34 @@
       "name": ""
     }
   ],
-   "samplers" : [
-      {
-          "wrapS": 10497,
-          "wrapT": 10497,
-          "minFilter": 9987
+  "samplers": [
+    {
+      "wrapS": 10497,
+      "wrapT": 10497,
+      "minFilter": 9987
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0,
+      "extensions": {
+        "KHR_texture_basisu": {
+          "source": 1
+        }
       }
-   ],
-   "textures" : [
-      {
-         "sampler" : 0,
-         "source" : 0
+    }
+  ],
+  "materials": [
+    {
+      "name": "ground",
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        }
       }
-    ],
-   "materials" : [
-      {
-         "name": "ground",
-         "pbrMetallicRoughness": {
-            "baseColorTexture": {
-               "index": 0
-            }
-         }
-      }
-   ],
+    }
+  ],
   "nodes": [
     {
       "mesh": 0,
