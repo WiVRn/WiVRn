@@ -347,7 +347,6 @@ static std::shared_ptr<scene_data::image> do_load_image(
         vk::raii::Device & device,
 	vk::raii::Queue & queue,
         vk::raii::CommandPool & cb_pool,
-        fastgltf::MimeType image_type,
         std::span<const std::byte> image_data,
         bool srgb)
 {
@@ -537,42 +536,38 @@ public:
 		                  source);
 	}
 
-	std::vector<std::shared_ptr<scene_data::image>> load_all_images()
+	std::unordered_map<int, std::shared_ptr<scene_data::image>> images;
+	std::shared_ptr<scene_data::image> load_image(int index, bool srgb)
 	{
-		// TODO don't load images that are not needed
+		auto it = images.find(index);
+		if (it != images.end())
+			return it->second;
 
-		// Determine which image is sRGB
-		std::vector<bool> srgb;
-		srgb.resize(gltf.images.size(), false);
+		auto [image_data, mime_type] = visit_source(gltf.images[index].data);
+		auto image = do_load_image(&vulkan_device_info, device, queue, cb_pool, image_data, srgb);
+
+		images.emplace(index, image);
+		return image;
+	}
+
+	std::vector<std::shared_ptr<scene_data::texture>> load_all_textures()
+	{
+		// Determine which texture is sRGB
+		std::vector<uint8_t> srgb_array;
+		srgb_array.resize(gltf.textures.size(), false);
 		for (const fastgltf::Material & gltf_material: gltf.materials)
 		{
 			if (gltf_material.pbrData.baseColorTexture)
-				srgb.at(gltf_material.pbrData.baseColorTexture->textureIndex) = true;
+				srgb_array.at(gltf_material.pbrData.baseColorTexture->textureIndex) = true;
 
 			if (gltf_material.emissiveTexture)
-				srgb.at(gltf_material.emissiveTexture->textureIndex) = true;
+				srgb_array.at(gltf_material.emissiveTexture->textureIndex) = true;
 		}
 
-		// Load images
-		std::vector<std::shared_ptr<scene_data::image>> images;
-		images.reserve(gltf.images.size());
 
-		for (const auto [index, gltf_image]: utils::enumerate(gltf.images))
-		{
-			auto [image_data, mime_type] = visit_source(gltf_image.data);
-			auto image = do_load_image(&vulkan_device_info, device, queue, cb_pool, mime_type, image_data, srgb[index]);
-
-			images.emplace_back(image);
-		}
-
-		return images;
-	}
-
-	std::vector<std::shared_ptr<scene_data::texture>> load_all_textures(std::vector<std::shared_ptr<scene_data::image>> & images)
-	{
 		std::vector<std::shared_ptr<scene_data::texture>> textures;
 		textures.reserve(gltf.textures.size());
-		for (const fastgltf::Texture & gltf_texture: gltf.textures)
+		for (auto && [srgb, gltf_texture]: utils::zip(srgb_array, gltf.textures))
 		{
 			auto & texture_ref = *textures.emplace_back(std::make_shared<scene_data::texture>());
 
@@ -584,7 +579,7 @@ public:
 
 			if (gltf_texture.basisuImageIndex)
 			{
-				std::shared_ptr<scene_data::image> image = images.at(*gltf_texture.basisuImageIndex);
+				std::shared_ptr<scene_data::image> image = load_image(*gltf_texture.basisuImageIndex, srgb);
 				if (image)
 				{
 					// Use the aliasing constructor so that the image_view has the same lifetime as the image
@@ -605,7 +600,7 @@ public:
 
 			if (gltf_texture.imageIndex)
 			{
-				std::shared_ptr<scene_data::image> image = images.at(*gltf_texture.imageIndex);
+				std::shared_ptr<scene_data::image> image = load_image(*gltf_texture.imageIndex, srgb);
 				if (image)
 				{
 					texture_ref.image_view = std::shared_ptr<vk::raii::ImageView>(image, &image->image_view);
@@ -882,11 +877,8 @@ scene_data scene_loader::operator()(const std::filesystem::path & gltf_path)
 
 	gpu_buffer staging_buffer(physical_device_properties, asset);
 
-	// Load all images
-	auto images = ctx.load_all_images();
-
 	// Load all textures
-	auto textures = ctx.load_all_textures(images);
+	auto textures = ctx.load_all_textures();
 
 	// Load all materials
 	auto materials = ctx.load_all_materials(textures, staging_buffer, *default_material);
