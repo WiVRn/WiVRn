@@ -40,7 +40,7 @@ struct input_profile
 
 	struct node_target
 	{
-		scene_object_handle node;
+		node_handle node;
 		node_state state;
 	};
 
@@ -58,7 +58,7 @@ struct input_profile
 	std::string id;
 
 	std::vector<visual_response> responses;
-	std::vector<std::pair<XrSpace, scene_object_handle>> model_handles;
+	std::vector<std::pair<XrSpace, node_handle>> model_handles;
 
 	input_profile(const std::filesystem::path& json_profile, scene_loader& loader, scene_data& scene);
 

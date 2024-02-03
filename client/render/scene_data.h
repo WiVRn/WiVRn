@@ -54,7 +54,7 @@ struct hash<sampler_info> : utils::magic_hash<sampler_info>
 {};
 } // namespace std
 
-class scene_object_handle;
+class node_handle;
 
 struct scene_data
 {
@@ -169,19 +169,21 @@ struct scene_data
 		std::shared_ptr<buffer_allocation> buffer;
 	};
 
-	struct scene_object
+	struct node
 	{
 		static constexpr size_t root_id = size_t(-1);
 
 		size_t parent_id;
 		std::optional<size_t> mesh_id;
 
-		glm::vec3 translation;
-		glm::quat rotation;
+		glm::vec3 position;
+		glm::quat orientation;
 		glm::vec3 scale;
 
 		std::string name;
 		bool visible;
+
+		uint32_t layer_mask = 1;
 
 		// std::vector<glm::mat4> bones_transform; // TODO: bones
 	};
@@ -190,7 +192,7 @@ struct scene_data
 	// TODO: skybox
 
 	std::vector<scene_data::mesh> meshes;
-	std::vector<scene_data::scene_object> scene_objects;
+	std::vector<scene_data::node> scene_objects;
 
 	scene_data() = default;
 	scene_data(const scene_data &) = delete;
@@ -198,12 +200,13 @@ struct scene_data
 	scene_data & operator=(const scene_data &) = delete;
 	scene_data & operator=(scene_data &&) = default;
 
-	scene_data& import(scene_data && other, scene_object_handle parent);
+	scene_data& import(scene_data && other, node_handle parent);
 	scene_data& import(scene_data && other);
 
-	scene_object_handle new_node();
-	scene_object_handle find_node(std::string_view name);
-	scene_object_handle find_node(scene_object_handle parent, std::string_view name);
+	node_handle new_node();
+	node_handle find_node(std::string_view name);
+	node_handle find_node(node_handle parent, std::string_view name);
+	std::vector<node_handle> find_children(node_handle parent);
 
 	std::shared_ptr<material> find_material(std::string_view name);
 };
@@ -228,47 +231,47 @@ public:
 	scene_data operator()(const std::filesystem::path & gltf_path);
 };
 
-class scene_object_handle
+class node_handle
 {
 	friend struct scene_data;
-	size_t id = scene_data::scene_object::root_id;
+	size_t id = scene_data::node::root_id;
 	scene_data * scene = nullptr;
 
 public:
-	scene_object_handle() = default;
-	scene_object_handle(size_t id, scene_data * scene) : id(id), scene(scene) {}
-	scene_object_handle(const scene_object_handle&) = default;
-	scene_object_handle& operator=(const scene_object_handle&) = default;
+	node_handle() = default;
+	node_handle(size_t id, scene_data * scene) : id(id), scene(scene) {}
+	node_handle(const node_handle&) = default;
+	node_handle& operator=(const node_handle&) = default;
 
-	scene_data::scene_object& operator*()
+	scene_data::node& operator*()
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_objects.size());
 		return scene->scene_objects[id];
 	}
 
-	const scene_data::scene_object& operator*() const
+	const scene_data::node& operator*() const
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_objects.size());
 		return scene->scene_objects[id];
 	}
 
-	scene_data::scene_object* operator->()
+	scene_data::node* operator->()
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_objects.size());
 		return &scene->scene_objects[id];
 	}
 
-	const scene_data::scene_object* operator->() const
+	const scene_data::node* operator->() const
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_objects.size());
 		return &scene->scene_objects[id];
 	}
 
-	scene_object_handle parent()
+	node_handle parent()
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_objects.size());
@@ -276,7 +279,7 @@ public:
 		return {scene->scene_objects[id].parent_id, scene};
 	}
 
-	const scene_object_handle parent() const
+	const node_handle parent() const
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_objects.size());
@@ -286,6 +289,6 @@ public:
 
 	operator bool() const
 	{
-		return id != scene_data::scene_object::root_id;
+		return id != scene_data::node::root_id;
 	}
 };

@@ -762,10 +762,10 @@ public:
 		return meshes;
 	}
 
-	std::vector<scene_data::scene_object> load_all_objects()
+	std::vector<scene_data::node> load_all_objects()
 	{
-		std::vector<scene_data::scene_object> unsorted_objects;
-		unsorted_objects.resize(gltf.nodes.size(), {.parent_id = scene_data::scene_object::root_id });
+		std::vector<scene_data::node> unsorted_objects;
+		unsorted_objects.resize(gltf.nodes.size(), {.parent_id = scene_data::node::root_id });
 
 		for (const auto & [index, gltf_node]: utils::enumerate(gltf.nodes))
 		{
@@ -779,8 +779,8 @@ public:
 
 			auto TRS = std::get<fastgltf::Node::TRS>(gltf_node.transform);
 
-			unsorted_objects[index].translation = glm::make_vec3(TRS.translation.data());
-			unsorted_objects[index].rotation = glm::make_quat(TRS.rotation.data());
+			unsorted_objects[index].position = glm::make_vec3(TRS.translation.data());
+			unsorted_objects[index].orientation = glm::make_quat(TRS.rotation.data());
 			unsorted_objects[index].scale = glm::make_vec3(TRS.scale.data());
 			unsorted_objects[index].visible = true;
 			unsorted_objects[index].name = gltf_node.name;
@@ -789,15 +789,15 @@ public:
 		return unsorted_objects;
 	}
 
-	std::vector<scene_data::scene_object> topological_sort(const std::vector<scene_data::scene_object> & unsorted_objects)
+	std::vector<scene_data::node> topological_sort(const std::vector<scene_data::node> & unsorted_objects)
 	{
-		std::vector<scene_data::scene_object> sorted_objects;
+		std::vector<scene_data::node> sorted_objects;
 		std::vector<size_t> new_index;
 		std::vector<bool> already_sorted;
 
 		sorted_objects.reserve(unsorted_objects.size());
 		already_sorted.resize(unsorted_objects.size(), false);
-		new_index.resize(unsorted_objects.size(), scene_data::scene_object::root_id);
+		new_index.resize(unsorted_objects.size(), scene_data::node::root_id);
 
 		[[maybe_unused]] bool loop_detected = true;
 
@@ -808,7 +808,7 @@ public:
 				if (already_sorted[i])
 					continue;
 
-				if (unsorted_objects[i].parent_id == scene_data::scene_object::root_id)
+				if (unsorted_objects[i].parent_id == scene_data::node::root_id)
 				{
 					sorted_objects.push_back(unsorted_objects[i]);
 					already_sorted[i] = true;
@@ -830,7 +830,7 @@ public:
 		assert(sorted_objects.size() == unsorted_objects.size());
 		for(size_t i = 0; i < sorted_objects.size(); i++)
 		{
-			assert(sorted_objects[i].parent_id == scene_data::scene_object::root_id || sorted_objects[i].parent_id < i);
+			assert(sorted_objects[i].parent_id == scene_data::node::root_id || sorted_objects[i].parent_id < i);
 		}
 
 		return sorted_objects;
@@ -901,9 +901,9 @@ scene_data scene_loader::operator()(const std::filesystem::path & gltf_path)
 	return data;
 }
 
-scene_data & scene_data::import(scene_data && other, scene_object_handle parent)
+scene_data & scene_data::import(scene_data && other, node_handle parent)
 {
-	assert(parent.scene == this || parent.id == scene_object::root_id);
+	assert(parent.scene == this || parent.id == node::root_id);
 
 	size_t mesh_offset = meshes.size();
 	size_t scene_objects_offset = scene_objects.size();
@@ -918,7 +918,7 @@ scene_data & scene_data::import(scene_data && other, scene_object_handle parent)
 		if (i.mesh_id)
 			*i.mesh_id += mesh_offset;
 
-		if (i.parent_id == scene_object::root_id)
+		if (i.parent_id == node::root_id)
 		{
 			i.parent_id = parent.id;
 		}
@@ -943,14 +943,14 @@ scene_data & scene_data::import(scene_data && other)
 	return import(std::move(other), {});
 }
 
-scene_object_handle scene_data::new_node()
+node_handle scene_data::new_node()
 {
 	size_t id = scene_objects.size();
 
-	scene_objects.push_back(scene_object{
-		.parent_id = scene_object::root_id,
-		.translation = {0, 0, 0},
-		.rotation = {1, 0, 0, 0},
+	scene_objects.push_back(node{
+		.parent_id = node::root_id,
+		.position = {0, 0, 0},
+		.orientation = {1, 0, 0, 0},
 		.scale = {1, 1, 1},
 		.visible = true
 	});
@@ -958,7 +958,7 @@ scene_object_handle scene_data::new_node()
 	return {id, this};
 }
 
-scene_object_handle scene_data::find_node(std::string_view name)
+node_handle scene_data::find_node(std::string_view name)
 {
 	for(auto&& [index, node]: utils::enumerate(scene_objects))
 	{
@@ -972,7 +972,7 @@ scene_object_handle scene_data::find_node(std::string_view name)
 	throw std::runtime_error("Node " + std::string(name) + " not found");
 }
 
-scene_object_handle scene_data::find_node(scene_object_handle root, std::string_view name)
+node_handle scene_data::find_node(node_handle root, std::string_view name)
 {
 	assert(root.id < scene_objects.size());
 	assert(root.scene == this);
@@ -985,7 +985,7 @@ scene_object_handle scene_data::find_node(scene_object_handle root, std::string_
 	{
 		size_t parent = scene_objects[index].parent_id;
 
-		if (parent == scene_object::root_id)
+		if (parent == node::root_id)
 			continue;
 
 		if (!flag[parent])

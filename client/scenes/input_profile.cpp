@@ -187,12 +187,12 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 						auto max_node = data.find_node(response.value["maxNodeName"]);
 
 						node_state_transform min{
-						        min_node->translation,
-						        min_node->rotation};
+						        min_node->position,
+						        min_node->orientation};
 
 						node_state_transform max{
-						        max_node->translation,
-						        max_node->rotation};
+						        max_node->position,
+						        max_node->orientation};
 
 						vr.state = std::make_pair(min, max);
 					}
@@ -208,7 +208,7 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 
 	for(auto&& [layout, model]: models)
 	{
-		scene_object_handle root_node = scene.new_node();
+		node_handle root_node = scene.new_node();
 		root_node->name = layout;
 
 		XrSpace space;
@@ -263,7 +263,7 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 				break;
 		}
 
-		scene_object_handle controller_root_node;
+		node_handle controller_root_node;
 		for(auto&& [i, j]: model_handles)
 		{
 			if (j->name == json_response.layout)
@@ -279,13 +279,13 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 	}
 }
 
-void apply_visual_response(scene_object_handle node, std::pair<input_profile::node_state_transform, input_profile::node_state_transform> transforms, float value)
+void apply_visual_response(node_handle node, std::pair<input_profile::node_state_transform, input_profile::node_state_transform> transforms, float value)
 {
-	node->translation = glm::mix(transforms.first.position, transforms.second.position, value);
-	node->rotation = glm::slerp(transforms.first.orientation, transforms.second.orientation, value);
+	node->position = glm::mix(transforms.first.position, transforms.second.position, value);
+	node->orientation = glm::slerp(transforms.first.orientation, transforms.second.orientation, value);
 }
 
-void apply_visual_response(scene_object_handle node, input_profile::node_state_visibility, float value)
+void apply_visual_response(node_handle node, input_profile::node_state_visibility, float value)
 {
 	node->visible = value > 0.5;
 }
@@ -297,8 +297,8 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time)
 		if (auto location = application::locate_controller(space, world_space, predicted_display_time); location)
 		{
 			node->visible = true;
-			node->translation = location->first;
-			node->rotation = location->second;
+			node->position = location->first;
+			node->orientation = location->second;
 		}
 		else
 		{

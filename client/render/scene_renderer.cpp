@@ -664,7 +664,7 @@ void scene_renderer::update_material_descriptor_set(scene_data::material& materi
 	device.updateDescriptorSets(write_ds, {});
 }
 
-static void print_scene_hierarchy(const scene_data& scene, std::span<glm::mat4> model_matrices, size_t root = scene_data::scene_object::root_id, int level = 0)
+static void print_scene_hierarchy(const scene_data& scene, std::span<glm::mat4> model_matrices, size_t root = scene_data::node::root_id, int level = 0)
 {
 	for(const auto&& [index, node]: utils::enumerate(scene.scene_objects))
 	{
@@ -692,7 +692,7 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 
 	size_t nb_frames = frames.size();
 	//size_t nb_objects = scene.scene_objects.size();
-	size_t nb_objects = std::count_if(scene.scene_objects.begin(), scene.scene_objects.end(), [](const scene_data::scene_object& object){
+	size_t nb_objects = std::count_if(scene.scene_objects.begin(), scene.scene_objects.end(), [](const scene_data::node& object){
 		return object.mesh_id;
 	});
 
@@ -741,10 +741,10 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 
 	for(const auto& [index, object]: utils::enumerate(scene.scene_objects))
 	{
-		glm::mat4 transform_to_parent = glm::translate(glm::mat4(1), object.translation) * (glm::mat4)object.rotation * glm::scale(glm::mat4(1), object.scale);
+		glm::mat4 transform_to_parent = glm::translate(glm::mat4(1), object.position) * (glm::mat4)object.orientation * glm::scale(glm::mat4(1), object.scale);
 		float det = object.scale.x * object.scale.y * object.scale.z;
 
-		if (object.parent_id == scene_data::scene_object::root_id)
+		if (object.parent_id == scene_data::node::root_id)
 		{
 			transform_to_root[index] = transform_to_parent;
 			reverse_side[index] = det < 0;
