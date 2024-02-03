@@ -35,8 +35,6 @@ class wivrn_hmd : public xrt_device
 {
 	std::mutex mutex;
 
-	float fps;
-
 	xrt_input pose_input;
 	xrt_hmd_parts hmd_parts;
 	xrt_tracking_origin tracking_origin;

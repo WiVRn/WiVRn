@@ -69,6 +69,7 @@ public:
 
 	float get_current_refresh_rate();
 	std::vector<float> get_refresh_rates();
+	void set_refresh_rate(float);
 
 	void sync_actions(XrActionSet action_set, XrPath subaction_path = XR_NULL_PATH);
 	void sync_actions(XrActionSet action_set, const std::string & subaction_path);

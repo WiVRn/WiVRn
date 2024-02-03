@@ -548,6 +548,15 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	{
 		spdlog::info("Creating decoder size {}x{} offset {},{}", item.width, item.height, item.offset_x, item.offset_y);
 
+		try
+		{
+			session.set_refresh_rate(description.fps);
+		}
+		catch (std::exception & e)
+		{
+			spdlog::warn("Failed to set refresh rate to {}: {}", description.fps, e.what());
+		}
+
 		accumulator_images dec;
 		dec.decoder = std::make_unique<shard_accumulator>(device, physical_device, item, description.fps, shared_from_this(), stream_index);
 		dec.decoder->set_blit_targets(blit_targets, vk::Format::eA8B8G8R8SrgbPack32);

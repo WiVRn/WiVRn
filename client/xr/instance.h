@@ -44,6 +44,7 @@ union event
 	XrEventDataInteractionProfileChanged interaction_profile_changed;
 	XrEventDataReferenceSpaceChangePending space_changed_pending;
 	XrEventDataSessionStateChanged state_changed;
+	XrEventDataDisplayRefreshRateChangedFB refresh_rate_changed;
 };
 class instance : public utils::handle<XrInstance>
 {

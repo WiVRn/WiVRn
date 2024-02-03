@@ -1394,6 +1394,12 @@ void application::poll_events()
 					              "session");
 			}
 			break;
+			case XR_TYPE_EVENT_DATA_DISPLAY_REFRESH_RATE_CHANGED_FB: {
+				spdlog::info("Refresh rate changed from {} to {}",
+				             e.refresh_rate_changed.fromDisplayRefreshRate,
+				             e.refresh_rate_changed.toDisplayRefreshRate);
+			}
+			break;
 			default:
 				spdlog::info("Received event type {}", xr::to_string(e.header.type));
 				break;
