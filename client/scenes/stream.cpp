@@ -156,29 +156,38 @@ scenes::stream::~stream()
 
 void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_ptr<shard_accumulator::blit_handle> handle)
 {
-	std::unique_lock lock(decoder_mutex);
+	std::shared_ptr<shard_accumulator::blit_handle> removed;
 
 	if (!application::is_visible())
 		return;
 
-	for (auto & i: decoders)
 	{
-		if (i.decoder.get() == decoder)
+		std::unique_lock lock(decoder_mutex);
+		for (auto & i: decoders)
 		{
-			static_assert(std::tuple_size_v<decltype(i.latest_frames)> == 2);
-			std::swap(i.latest_frames[0], i.latest_frames[1]);
-			i.latest_frames[1] = handle;
-			break;
+			if (i.decoder.get() == decoder)
+			{
+				static_assert(std::tuple_size_v<decltype(i.latest_frames)> == 2);
+				std::swap(removed, i.latest_frames[0]);
+				std::swap(i.latest_frames[0], i.latest_frames[1]);
+				std::swap(i.latest_frames[1], handle);
+				break;
+			}
+		}
+
+		if (!ready_ && std::all_of(decoders.begin(), decoders.end(), [](accumulator_images & i) {
+			    return i.latest_frames.back();
+		    }))
+		{
+			ready_ = true;
+			first_frame_time = application::now();
+			spdlog::info("Stream scene ready at t={}", first_frame_time);
 		}
 	}
 
-	if (!ready_ && std::all_of(decoders.begin(), decoders.end(), [](accumulator_images & i) {
-		    return i.latest_frames.back();
-	    }))
+	if (removed and not removed->feedback.blitted)
 	{
-		ready_ = true;
-		first_frame_time = application::now();
-		spdlog::info("Stream scene ready at t={}", first_frame_time);
+		send_feedback(removed->feedback);
 	}
 }
 
@@ -304,7 +313,7 @@ void scenes::stream::render()
 	{
 		std::unique_lock lock(decoder_mutex);
 		// Search for the most recent frame available on all decoders.
-		// If no such frame exists, use the most latest frame for each decoder
+		// If no such frame exists, use the latest frame for each decoder
 		auto common_frame = accumulator_images::common_frame(decoders);
 		// Blit images from the decoders
 		// TODO be smarter: group blits per eye, so that the framebuffer can use OP_DONT_CARE instead of OP_LOAD and use the same renderpass if possible
