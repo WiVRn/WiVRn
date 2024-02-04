@@ -163,11 +163,14 @@ struct wivrn::android::decoder::pipeline_context
 
 		descriptor_pool = vk::raii::DescriptorPool(device, pool_info);
 
-		float useful_size[] =
+		std::array useful_size =
 		{
 			float(description.width) / buffer_desc.width,
 			float(description.height) / buffer_desc.height
 		};
+		spdlog::info("useful size: {}x{} with buffer {}x{}",
+				description.width, description.height,
+				buffer_desc.width, buffer_desc.height);
 
 		std::array specialization_constants_desc{
 			vk::SpecializationMapEntry{
@@ -203,11 +206,11 @@ struct wivrn::android::decoder::pipeline_context
 				.stage = vk::ShaderStageFlagBits::eVertex,
 				.module = *vertex_shader,
 				.pName = "main",
+				.pSpecializationInfo = &specialization_info,
 			},{
 				.stage = vk::ShaderStageFlagBits::eFragment,
 				.module = *fragment_shader,
 				.pName = "main",
-				.pSpecializationInfo = &specialization_info,
 			}},
 			.VertexInputState = {.flags = {}},
 			.VertexBindingDescriptions = {},
