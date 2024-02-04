@@ -106,9 +106,6 @@ void scenes::lobby::gui_add_server()
 
 	const ImVec2 button_size(220, 80);
 
-	// CenterNextWindow({1200, 900});
-
-
 	// TODO column widths
 	ImGui::BeginTable("table", 2);
 
@@ -302,7 +299,22 @@ void scenes::lobby::gui_server_list()
 		save_config();
 	}
 
+	// Check if an automatic connection has started
+	if ((async_session.valid() || next_scene) && !ImGui::IsPopupOpen("connecting"))
+		ImGui::OpenPopup("connecting");
 
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20,20));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
+	if (ImGui::BeginPopupModal("connecting", nullptr,
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove))
+	{
+		gui_connecting();
+		ImGui::EndPopup();
+	}
+	ImGui::PopStyleVar(3);
 }
 
 void scenes::lobby::gui_about()
