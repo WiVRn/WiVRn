@@ -74,31 +74,28 @@ static vk::Format find_usable_image_format(
 	return vk::Format::eUndefined;
 }
 
-std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::raii::CommandPool & cb_pool, std::initializer_list<float> pixel)
+std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel)
 {
 	vk::Format format;
 
 	switch (pixel.size())
 	{
 		case 1:
-			format = vk::Format::eR32Sfloat;
+			format = vk::Format::eR8Unorm;
 			break;
 		case 2:
-			format = vk::Format::eR32G32Sfloat;
+			format = vk::Format::eR8G8Unorm;
 			break;
 		case 4:
-			format = vk::Format::eR32G32B32A32Sfloat;
+			format = vk::Format::eR8G8B8A8Unorm;
 			break;
 		default:
 			assert(false);
 			__builtin_unreachable();
 	}
 
-	std::array<float, 4> pixel2;
-	std::copy(pixel.begin(), pixel.end(), pixel2.begin());
-
 	image_loader loader(physical_device, device, queue, cb_pool);
-	loader.load(pixel2, vk::Extent3D{1, 1, 1}, format);
+	loader.load(pixel, vk::Extent3D{1, 1, 1}, format);
 
 	auto image = std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
 
@@ -112,11 +109,11 @@ std::shared_ptr<scene_data::material> scene_renderer::create_default_material(vk
 	auto default_material = std::make_shared<scene_data::material>();
 	default_material->name = "default";
 
-	default_material->base_color_texture = create_default_texture(cb_pool, {1, 1, 1, 1});
-	default_material->metallic_roughness_texture = create_default_texture(cb_pool, {1, 1});
-	default_material->occlusion_texture = create_default_texture(cb_pool, {1});
+	default_material->base_color_texture = create_default_texture(cb_pool, {255, 255, 255, 255});
+	default_material->metallic_roughness_texture = create_default_texture(cb_pool, {255, 255});
+	default_material->occlusion_texture = create_default_texture(cb_pool, {255});
 	default_material->emissive_texture = create_default_texture(cb_pool, {0, 0, 0, 0});
-	default_material->normal_texture = create_default_texture(cb_pool, {0.5, 0.5, 1, 1});
+	default_material->normal_texture = create_default_texture(cb_pool, {128, 128, 255, 255});
 
 	default_material->buffer = std::make_shared<buffer_allocation>(
 		device,

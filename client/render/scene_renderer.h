@@ -88,7 +88,7 @@ public:
 	vk::raii::PipelineLayout create_pipeline_layout(std::span<vk::DescriptorSetLayout> layouts);
 	vk::raii::Pipeline create_pipeline(const pipeline_info & info);
 
-	std::shared_ptr<scene_data::texture> create_default_texture(vk::raii::CommandPool & cb_pool, std::initializer_list<float> pixel);
+	std::shared_ptr<scene_data::texture> create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel);
 	std::shared_ptr<scene_data::material> create_default_material(vk::raii::CommandPool & cb_pool);
 
 	// Caches

@@ -39,7 +39,6 @@ struct image_loader
 
 	vk::Format format;
 	vk::Extent3D extent;
-	// vk::ImageType image_type;
 	vk::ImageViewType image_view_type;
 
 	uint32_t num_mipmaps;
@@ -50,19 +49,25 @@ struct image_loader
 	void load(std::span<const std::byte> bytes, bool srgb);
 
 	// Load raw pixel data
-	void load(const void * pixels, vk::Extent3D extent, vk::Format format);
+	void load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format);
 
 
 	template<typename T>
 	void load(std::span<T> pixels, vk::Extent3D extent, vk::Format format)
 	{
-		load(pixels.data(), extent, format);
+		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
 	}
 
 	template<typename T, size_t N>
 	void load(const std::array<T, N> & pixels, vk::Extent3D extent, vk::Format format)
 	{
-		load(pixels.data(), extent, format);
+		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
+	}
+
+	template<typename T>
+	void load(const std::vector<T> & pixels, vk::Extent3D extent, vk::Format format)
+	{
+		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
 	}
 
 	~image_loader();
