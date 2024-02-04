@@ -28,6 +28,7 @@
 #include <utility>
 #include <span>
 #include <vector>
+#include <unordered_map>
 
 class imgui_context
 {
@@ -37,6 +38,13 @@ class imgui_context
 		vk::raii::Fence fence = nullptr;
 	};
 
+	struct texture_data
+	{
+		vk::raii::Sampler sampler;
+		std::shared_ptr<vk::Image> image;
+		vk::raii::ImageView image_view;
+	};
+
 public:
 	struct imgui_frame
 	{
@@ -44,7 +52,6 @@ public:
 		vk::raii::ImageView image_view_framebuffer = nullptr;
 		vk::raii::Framebuffer framebuffer = nullptr;
 	};
-
 
 	struct controller
 	{
@@ -72,14 +79,18 @@ public:
 	};
 
 private:
+	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device& device;
 	uint32_t queue_family_index;
 	vk::raii::Queue& queue;
 
 	vk::raii::Pipeline pipeline = nullptr;
 	vk::raii::DescriptorPool descriptor_pool;
+	vk::raii::DescriptorSetLayout ds_layout;
 	vk::raii::RenderPass renderpass;
 	vk::raii::CommandPool command_pool;
+
+	std::unordered_map<ImTextureID, texture_data> textures;
 
 	std::vector<imgui_frame> frames;
 	imgui_frame& get_frame(vk::Image destination);
@@ -114,7 +125,7 @@ private:
 	std::optional<ImVec2> ray_plane_intersection(const imgui_context::controller_state& in);
 
 public:
-	imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, xr::swapchain& swapchain, glm::vec2 size);
+	imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, xr::swapchain& swapchain, glm::vec2 size);
 	~imgui_context();
 
 	void set_position(glm::vec3 position, glm::quat orientation)
@@ -192,4 +203,8 @@ public:
 	{
 		return focused_controller;
 	}
+
+	ImTextureID load_texture(const std::string& filename, vk::raii::Sampler&& sampler);
+	ImTextureID load_texture(const std::string& filename);
+	void free_texture(ImTextureID);
 };

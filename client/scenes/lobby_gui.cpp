@@ -241,7 +241,7 @@ void scenes::lobby::gui_server_list()
 			// ImGui::SetTooltip("Tooltip");
 		// }
 
-		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x + style.FramePadding.x, pos.y + (list_item_height - button_size.y) / 2);
+		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x - style.WindowPadding.x - 20, pos.y + (list_item_height - button_size.y) / 2);
 
 		button_position.x -= button_size.x + style.WindowPadding.x;
 		ImGui::SetCursorPos(button_position);
@@ -320,8 +320,15 @@ void scenes::lobby::gui_server_list()
 void scenes::lobby::gui_about()
 {
 	ImGui::PushFont(imgui_ctx->large_font);
-	ImGui::TextWrapped("WiVRn %s", xrt::drivers::wivrn::git_version);
+	CenterTextH(std::string("WiVRn ") + xrt::drivers::wivrn::git_version);
 	ImGui::PopFont();
+
+	ImGui::Dummy(ImVec2(0, 60));
+
+	float win_width = ImGui::GetWindowSize().x;
+	ImGui::SetCursorPosX(win_width / 4);
+
+	ImGui::Image(about_picture, {win_width / 2, win_width / 2});
 }
 
 static bool RadioButtonWithoutCheckBox(const char * label, bool active, ImVec2 size_arg)

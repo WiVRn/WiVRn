@@ -108,6 +108,7 @@ class lobby : public scene_impl<lobby>
 
 	tab current_tab = tab::server_list;
 	tab last_current_tab = tab::server_list;
+	ImTextureID about_picture;
 
 	void gui_connecting();
 	void gui_server_list();

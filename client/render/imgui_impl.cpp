@@ -35,6 +35,7 @@
 #include <cmath>
 #include <cstddef>
 #include <optional>
+#include "image_loader.h"
 
 #include "../external/IconsFontAwesome6.h"
 
@@ -184,20 +185,33 @@ static const std::array pool_sizes =
 {
 	vk::DescriptorPoolSize{
 		.type = vk::DescriptorType::eCombinedImageSampler,
-		.descriptorCount = 1,
+		.descriptorCount = 100,
 	}
 };
 
-imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, xr::swapchain& swapchain, glm::vec2 size) :
+static const vk::DescriptorSetLayoutBinding layout_bindings{
+	.binding = 0,
+	.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+	.descriptorCount = 1,
+	.stageFlags = vk::ShaderStageFlagBits::eFragment
+};
+
+imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, xr::swapchain& swapchain, glm::vec2 size) :
+	physical_device(physical_device),
 	device(device),
 	queue_family_index(queue_family_index),
 	queue(queue),
 	descriptor_pool(device, vk::DescriptorPoolCreateInfo
 	{
 		.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-		.maxSets = 1,
+		.maxSets = pool_sizes[0].descriptorCount,
 		.poolSizeCount = pool_sizes.size(),
 		.pPoolSizes = pool_sizes.data(),
+	}),
+	ds_layout(device, vk::DescriptorSetLayoutCreateInfo
+	{
+		.bindingCount = 1,
+		.pBindings = &layout_bindings
 	}),
 	renderpass(create_renderpass(device, swapchain.format(), true)),
 	command_pool(device, vk::CommandPoolCreateInfo{
@@ -267,7 +281,7 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 	{
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
-		large_font = io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(roboto.data()), roboto.size(), 45, &config);
+		large_font = io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(roboto.data()), roboto.size(), 75, &config);
 
 	}
 
@@ -502,4 +516,59 @@ imgui_context::~imgui_context()
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui::DestroyContext(context);
+}
+
+
+ImTextureID imgui_context::load_texture(const std::string& filename, vk::raii::Sampler&& sampler)
+{
+	bool srgb = true;
+	image_loader loader(physical_device, device, queue, command_pool);
+	loader.load(asset{filename}, srgb);
+
+	vk::raii::DescriptorSet ds = std::move(device.allocateDescriptorSets({
+		.descriptorPool = *descriptor_pool,
+		.descriptorSetCount = 1,
+		.pSetLayouts = &*ds_layout
+	})[0]);
+
+	vk::DescriptorImageInfo image_info{
+		.sampler = *sampler,
+		.imageView = *loader.image_view,
+		.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+	};
+
+	vk::WriteDescriptorSet ds_write{
+		.dstSet = *ds,
+		.descriptorCount = 1,
+		.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		.pImageInfo = &image_info
+	};
+
+	device.updateDescriptorSets(ds_write, nullptr);
+
+	ImTextureID id = ds.release();
+
+	textures.emplace(id, texture_data{
+		.sampler = std::move(sampler),
+		.image = std::move(loader.image),
+		.image_view = std::move(loader.image_view)
+	});
+
+	return id;
+}
+
+ImTextureID imgui_context::load_texture(const std::string& filename)
+{
+	return load_texture(filename, vk::raii::Sampler(device, vk::SamplerCreateInfo{
+		.magFilter = vk::Filter::eLinear,
+		.minFilter = vk::Filter::eLinear,
+		.mipmapMode = vk::SamplerMipmapMode::eLinear,
+		.borderColor = vk::BorderColor::eFloatTransparentBlack,
+	}));
+}
+
+void imgui_context::free_texture(ImTextureID texture)
+{
+	textures.erase(texture);
+	// TODO free descriptor set
 }

@@ -631,7 +631,16 @@ void scenes::lobby::on_focused()
 	};
 
 	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 1500, 1000);
-	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, swapchain_imgui, glm::vec2{1.0, 0.6666});
+	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, world_space, imgui_inputs, swapchain_imgui, glm::vec2{1.0, 0.6666});
+
+	try
+	{
+		about_picture = imgui_ctx->load_texture("wivrn.ktx2");
+	}
+	catch(...)
+	{
+		about_picture = imgui_ctx->load_texture("wivrn.png");
+	}
 }
 
 void scenes::lobby::on_unfocused()
@@ -640,6 +649,7 @@ void scenes::lobby::on_unfocused()
 
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 
+	about_picture = nullptr;
 	imgui_ctx.reset();
 	lobby_scene.reset(); // Must be reset before the renderer so that the descriptor sets are freed before their pools
 	controllers_scene.reset();
