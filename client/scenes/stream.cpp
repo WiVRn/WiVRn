@@ -333,8 +333,6 @@ void scenes::stream::render()
 			pose = blit_handle->view_info.pose;
 			fov = blit_handle->view_info.fov;
 
-			send_feedback(blit_handle->feedback);
-
 			int indices[] = {0, 1};
 			i.decoder->blit(command_buffer, *blit_handle, indices); // TODO blit indices no longer needed here
 		}
@@ -414,6 +412,10 @@ void scenes::stream::render()
 
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 	session.end_frame(/*timestamp*/ framestate.predictedDisplayTime, layers_base);
+
+	// Network operations may be blocking, do them once everything was submitted
+	for (const auto& handle: current_blit_handles)
+		send_feedback(handle->feedback);
 
 	if (device.waitForFences(*fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
 		throw std::runtime_error("Vulkan fence timeout");
