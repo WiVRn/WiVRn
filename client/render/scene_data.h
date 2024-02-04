@@ -61,10 +61,8 @@ struct scene_data
 {
 	struct image
 	{
-		std::variant<image_allocation, std::pair<VkDevice, ktxVulkanTexture>> image_;
-
+		std::shared_ptr<vk::Image> image_;
 		vk::raii::ImageView image_view = nullptr;
-		~image();
 	};
 
 	struct texture

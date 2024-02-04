@@ -19,13 +19,13 @@
 
 #include "image_loader.h"
 
-#include "vulkan/vulkan_enums.hpp"
-#include "vulkan/vulkan_handles.hpp"
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <spdlog/spdlog.h>
 #include <variant>
 #include <vulkan/vulkan_raii.hpp>
+#include <ktxvulkan.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_JPEG
@@ -41,6 +41,27 @@ using stbi_ptr = std::unique_ptr<void, decltype([](void * pixels) { stbi_image_f
 
 namespace
 {
+	struct image_resources
+	{
+		image_allocation allocation;
+		vk::Image image;
+	};
+
+	struct ktx_image_resources
+	{
+		ktxVulkanTexture ktx_texture;
+		VkDevice device;
+		vk::Image image;
+
+		ktx_image_resources() = default;
+		ktx_image_resources(const ktx_image_resources&) = delete;
+		ktx_image_resources& operator=(const ktx_image_resources&) = delete;
+		~ktx_image_resources()
+		{
+			ktxVulkanTexture_Destruct(&ktx_texture, device, nullptr);
+		}
+	};
+
 template <typename T>
 constexpr vk::Format formats[4] = {vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined};
 
@@ -132,22 +153,40 @@ int bytes_per_pixel(vk::Format format)
 }
 } // namespace
 
-void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & cb, const void * pixels, vk::Extent3D extent, vk::Format format)
+image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, vk::raii::Queue& queue, vk::raii::CommandPool & cb_pool) :
+	physical_device(physical_device),
+	device(device),
+	queue(queue),
+	cb_pool(cb_pool)
 {
+	vdi = ktxVulkanDeviceInfo_Create(*physical_device, *device, *queue, *cb_pool, nullptr);
+}
+
+image_loader::~image_loader()
+{
+	if (vdi)
+		ktxVulkanDeviceInfo_Destroy(vdi);
+}
+
+void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format)
+{
+	auto cb = std::move(device.allocateCommandBuffers({
+			.commandPool = *cb_pool,
+			.level = vk::CommandBufferLevel::ePrimary,
+			.commandBufferCount = 1,
+		})[0]);
+
+	cb.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
 	assert(format != vk::Format::eUndefined);
 
 	this->format = format;
 	this->extent = extent;
 	if (extent.depth > 1)
-	{
-		image_type = vk::ImageType::e3D;
 		image_view_type = vk::ImageViewType::e3D;
-	}
 	else
-	{
-		image_type = vk::ImageType::e2D;
 		image_view_type = vk::ImageViewType::e2D;
-	}
+
 	num_mipmaps = std::floor(std::log2(std::max(extent.width, extent.height))) + 1;
 
 	size_t byte_size = extent.width * extent.height * extent.depth * bytes_per_pixel(format);
@@ -168,8 +207,9 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 	staging_buffer.unmap();
 
 	// Allocate image
-	image = image_allocation{
-	        device,
+	auto r = std::make_shared<image_resources>();
+	r->allocation = image_allocation{
+		device,
 	        vk::ImageCreateInfo{
 	                .imageType = vk::ImageType::e2D,
 	                .format = format,
@@ -185,13 +225,15 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 	                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
 	        }, "image_loader::do_load"};
 
+	r->image = (vk::Image)r->allocation;
+
 	// Transition all mipmap levels layout to eTransferDstOptimal
 	cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
 	                                                                                                                                      .srcAccessMask = vk::AccessFlagBits::eNone,
 	                                                                                                                                      .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
 	                                                                                                                                      .oldLayout = vk::ImageLayout::eUndefined,
 	                                                                                                                                      .newLayout = vk::ImageLayout::eTransferDstOptimal,
-	                                                                                                                                      .image = image,
+	                                                                                                                                      .image = r->image,
 	                                                                                                                                      .subresourceRange = {
 	                                                                                                                                              .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                                                                                                                                              .baseMipLevel = 0,
@@ -202,7 +244,7 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 	                                                                                                                              });
 
 	// Copy image data
-	cb.copyBufferToImage(staging_buffer, image, vk::ImageLayout::eTransferDstOptimal, vk::BufferImageCopy{
+	cb.copyBufferToImage(staging_buffer, r->image, vk::ImageLayout::eTransferDstOptimal, vk::BufferImageCopy{
 	                                                                                          .bufferOffset = 0,
 	                                                                                          .bufferRowLength = 0,
 	                                                                                          .bufferImageHeight = 0,
@@ -230,7 +272,7 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 		                                                                                                                                            .dstAccessMask = vk::AccessFlagBits::eShaderRead,
 		                                                                                                                                            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
 		                                                                                                                                            .newLayout = vk::ImageLayout::eTransferSrcOptimal,
-		                                                                                                                                            .image = image,
+		                                                                                                                                            .image = r->image,
 		                                                                                                                                            .subresourceRange = {
 		                                                                                                                                                    .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                                                                                                                                                    .baseMipLevel = level - 1,
@@ -241,7 +283,7 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 		                                                                                                                                    });
 
 		// Blit level n-1 to level n
-		cb.blitImage(image, vk::ImageLayout::eTransferSrcOptimal, image, vk::ImageLayout::eTransferDstOptimal, vk::ImageBlit{
+		cb.blitImage(r->image, vk::ImageLayout::eTransferSrcOptimal, r->image, vk::ImageLayout::eTransferDstOptimal, vk::ImageBlit{
 		                                                                                                               .srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = level - 1, .baseArrayLayer = 0, .layerCount = 1},
 		                                                                                                               .srcOffsets = std::array{
 		                                                                                                                       vk::Offset3D{0, 0, 0},
@@ -261,7 +303,7 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 		                                                                                                                                            .dstAccessMask = vk::AccessFlagBits::eShaderRead,
 		                                                                                                                                            .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
 		                                                                                                                                            .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		                                                                                                                                            .image = image,
+		                                                                                                                                            .image = r->image,
 		                                                                                                                                            .subresourceRange = {
 		                                                                                                                                                    .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                                                                                                                                                    .baseMipLevel = level - 1,
@@ -281,7 +323,7 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 	                                                                                                                                            .dstAccessMask = vk::AccessFlagBits::eShaderRead,
 	                                                                                                                                            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
 	                                                                                                                                            .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-	                                                                                                                                            .image = image,
+	                                                                                                                                            .image = r->image,
 	                                                                                                                                            .subresourceRange = {
 	                                                                                                                                                    .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                                                                                                                                                    .baseMipLevel = num_mipmaps - 1,
@@ -291,61 +333,143 @@ void image_loader::do_load(vk::raii::Device & device, vk::raii::CommandBuffer & 
 	                                                                                                                                            },
 	                                                                                                                                    });
 
-	// Create the image view
-	image_view = vk::raii::ImageView{device, vk::ImageViewCreateInfo{
-	                                                 .image = image,
-	                                                 .viewType = image_view_type,
-	                                                 .format = format,
-	                                                 .subresourceRange = {
-	                                                         .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                                         .baseMipLevel = 0,
-	                                                         .levelCount = num_mipmaps,
-	                                                         .baseArrayLayer = 0,
-	                                                         .layerCount = 1,
-	                                                 },
-	                                         }};
+	cb.end();
+	vk::SubmitInfo info;
+	info.setCommandBuffers(*cb);
+	auto fence = device.createFence(vk::FenceCreateInfo{});
+	queue.submit(info, *fence);
+	device.waitForFences(*fence, true, 1'000'000'000);
+
+	image = std::shared_ptr<vk::Image>(r, &r->image);
 }
 
-image_loader::image_loader(vk::raii::Device & device, vk::raii::CommandBuffer & cb, const void * pixels, vk::Extent3D extent, vk::Format format)
+void image_loader::do_load_ktx(std::span<const std::byte> bytes)
 {
-	do_load(device, cb, pixels, extent, format);
-}
+	ktxTexture* texture;
+	ktxVulkanTexture vk_texture;
 
-image_loader::image_loader(vk::raii::Device & device, vk::raii::CommandBuffer & cb, std::span<const std::byte> bytes, bool srgb)
-{
-	const stbi_uc * image_data = (const stbi_uc *)bytes.data();
-	size_t image_size = bytes.size();
+	ktxResult err = ktxTexture_CreateFromMemory(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size(), /*KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT*/0, &texture);
 
-	int w, h, num_channels, channels_in_file;
-	stbi_ptr pixels;
-
-	if (!stbi_info_from_memory(image_data, image_size, &w, &h, &num_channels))
-		throw std::runtime_error("Unsupported image format");
-
-	assert(num_channels >= 1 && num_channels <= 4);
-
-	if (num_channels == 3)
-		num_channels = 4;
-
-	if (stbi_is_hdr_from_memory(image_data, image_size))
+	if (err != KTX_SUCCESS)
 	{
-		pixels = stbi_ptr(stbi_loadf_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
-		format = get_format<float>(num_channels);
+		spdlog::info("ktxTexture_CreateFromMemory: error {}", (int)err);
+		throw std::runtime_error("ktxTexture_CreateFromMemory");
 	}
-	else if (stbi_is_16_bit_from_memory(image_data, image_size))
+
+	if (ktxTexture_NeedsTranscoding(texture))
 	{
-		pixels = stbi_ptr(stbi_load_16_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
-		format = get_format<uint16_t>(num_channels);
+		// TODO
+	}
+
+	err = ktxTexture_VkUploadEx(texture, vdi, &vk_texture,
+					VK_IMAGE_TILING_OPTIMAL,
+					VK_IMAGE_USAGE_SAMPLED_BIT,
+					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	if (err != KTX_SUCCESS)
+	{
+		// TODO try uncompressing the texture
+		ktxTexture_Destroy(texture);
+		spdlog::info("ktxTexture_CreateFromMemory: error {}", (int)err);
+		throw std::runtime_error("ktxTexture_VkUploadEx");
+	}
+
+	format = vk::Format(vk_texture.imageFormat);
+	extent = vk::Extent3D(texture->baseWidth, texture->baseHeight, texture->baseDepth);
+	image_view_type = vk::ImageViewType(vk_texture.viewType);
+	num_mipmaps = texture->numLevels;
+
+	ktxTexture_Destroy(texture);
+
+	auto r = std::make_shared<ktx_image_resources>();
+
+	r->ktx_texture = vk_texture;
+	r->device = *device;
+	r->image = vk::Image(vk_texture.image);
+
+	image = std::shared_ptr<vk::Image>(r, &r->image);
+}
+
+void image_loader::create_image_view()
+{
+	image_view = vk::raii::ImageView{device, vk::ImageViewCreateInfo{
+							.image = *image,
+							.viewType = image_view_type,
+							.format = format,
+							.subresourceRange = {
+								.aspectMask = vk::ImageAspectFlagBits::eColor,
+								.baseMipLevel = 0,
+								.levelCount = num_mipmaps,
+								.baseArrayLayer = 0,
+								.layerCount = 1,
+							},
+						}};
+}
+
+static constexpr bool starts_with(std::span<const std::byte> data, std::span<const uint8_t> prefix)
+{
+	return data.size() >= prefix.size() && !memcmp(data.data(), prefix.data(), prefix.size());
+}
+
+// Load a PNG/JPEG/KTX2 file
+void image_loader::load(std::span<const std::byte> bytes, bool srgb)
+{
+	const uint8_t ktx1_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+	const uint8_t ktx2_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+
+	if (starts_with(bytes, ktx1_magic) || starts_with(bytes, ktx2_magic))
+	{
+		do_load_ktx(bytes);
 	}
 	else
 	{
-		pixels = stbi_ptr(stbi_load_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
-		format = srgb ? get_format_srgb(num_channels) : get_format<uint8_t>(num_channels);
+		const stbi_uc * image_data = (const stbi_uc *)bytes.data();
+		size_t image_size = bytes.size();
+
+		int w, h, num_channels, channels_in_file;
+		stbi_ptr pixels;
+
+		if (!stbi_info_from_memory(image_data, image_size, &w, &h, &num_channels))
+			throw std::runtime_error("Unsupported image format");
+
+		assert(num_channels >= 1 && num_channels <= 4);
+
+		if (num_channels == 3)
+			num_channels = 4;
+
+		if (stbi_is_hdr_from_memory(image_data, image_size))
+		{
+			pixels = stbi_ptr(stbi_loadf_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
+			format = get_format<float>(num_channels);
+		}
+		else if (stbi_is_16_bit_from_memory(image_data, image_size))
+		{
+			pixels = stbi_ptr(stbi_load_16_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
+			format = get_format<uint16_t>(num_channels);
+		}
+		else
+		{
+			pixels = stbi_ptr(stbi_load_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
+			format = srgb ? get_format_srgb(num_channels) : get_format<uint8_t>(num_channels);
+		}
+
+		extent.width = w;
+		extent.height = h;
+		extent.depth = 1;
+
+		do_load_raw(pixels.get(), extent, format);
 	}
 
-	extent.width = w;
-	extent.height = h;
-	extent.depth = 1;
+	create_image_view();
+}
 
-	do_load(device, cb, pixels.get(), extent, format);
+// Load raw pixel data
+void image_loader::load(const void * pixels, vk::Extent3D extent_, vk::Format format_)
+{
+	extent = extent_;
+	format = format_;
+	image_view_type = vk::ImageViewType::e2D;
+
+	do_load_raw(pixels, extent_, format_);
+
+	create_image_view();
 }

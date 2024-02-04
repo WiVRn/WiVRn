@@ -74,7 +74,7 @@ static vk::Format find_usable_image_format(
 	return vk::Format::eUndefined;
 }
 
-std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::raii::CommandBuffer & cb, std::vector<buffer_allocation>& staging_buffers, std::initializer_list<float> pixel)
+std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::raii::CommandPool & cb_pool, std::initializer_list<float> pixel)
 {
 	vk::Format format;
 
@@ -97,13 +97,13 @@ std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::
 	std::array<float, 4> pixel2;
 	std::copy(pixel.begin(), pixel.end(), pixel2.begin());
 
-	image_loader loader(device, cb, pixel2, vk::Extent3D{1, 1, 1}, format);
+	image_loader loader(physical_device, device, queue, cb_pool);
+	loader.load(pixel2, vk::Extent3D{1, 1, 1}, format);
 
 	auto image = std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
 
 	std::shared_ptr<vk::raii::ImageView> image_view(image, &image->image_view);
 
-	staging_buffers.push_back(std::move(loader.staging_buffer));
 	return std::make_shared<scene_data::texture>(image_view, sampler_info{});
 }
 
@@ -112,31 +112,11 @@ std::shared_ptr<scene_data::material> scene_renderer::create_default_material(vk
 	auto default_material = std::make_shared<scene_data::material>();
 	default_material->name = "default";
 
-	auto cb = std::move(device.allocateCommandBuffers(vk::CommandBufferAllocateInfo{
-	        .commandPool = *cb_pool,
-	        .level = vk::CommandBufferLevel::ePrimary,
-	        .commandBufferCount = 1,
-	})[0]);
-
-	auto fence = device.createFence(vk::FenceCreateInfo{});
-
-	cb.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-
-	std::vector<buffer_allocation> staging_buffers;
-	default_material->base_color_texture = create_default_texture(cb, staging_buffers, {1, 1, 1, 1});
-	default_material->metallic_roughness_texture = create_default_texture(cb, staging_buffers, {1, 1});
-	default_material->occlusion_texture = create_default_texture(cb, staging_buffers, {1});
-	default_material->emissive_texture = create_default_texture(cb, staging_buffers, {0, 0, 0, 0});
-	default_material->normal_texture = create_default_texture(cb, staging_buffers, {0.5, 0.5, 1, 1});
-
-	cb.end();
-
-	vk::SubmitInfo info;
-	info.setCommandBuffers(*cb);
-
-	queue.submit(info, *fence);
-
-	device.waitForFences(*fence, true, 1'000'000'000); // TODO check for timeout
+	default_material->base_color_texture = create_default_texture(cb_pool, {1, 1, 1, 1});
+	default_material->metallic_roughness_texture = create_default_texture(cb_pool, {1, 1});
+	default_material->occlusion_texture = create_default_texture(cb_pool, {1});
+	default_material->emissive_texture = create_default_texture(cb_pool, {0, 0, 0, 0});
+	default_material->normal_texture = create_default_texture(cb_pool, {0.5, 0.5, 1, 1});
 
 	default_material->buffer = std::make_shared<buffer_allocation>(
 		device,
@@ -164,6 +144,7 @@ vk::FrontFace reverse(vk::FrontFace face)
 }
 
 scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool, vk::Extent2D output_size, vk::Format output_format, std::span<vk::Format> depth_formats, int frames_in_flight) :
+        physical_device(physical_device),
         device(device),
         physical_device_properties(physical_device.getProperties()),
         queue(queue),

@@ -343,7 +343,7 @@ static fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 }
 
 static std::shared_ptr<scene_data::image> do_load_image(
-	ktxVulkanDeviceInfo* vdi,
+        vk::raii::PhysicalDevice & physical_device,
         vk::raii::Device & device,
 	vk::raii::Queue & queue,
         vk::raii::CommandPool & cb_pool,
@@ -353,71 +353,22 @@ static std::shared_ptr<scene_data::image> do_load_image(
 	switch (guess_mime_type(image_data))
 	{
 		case fastgltf::MimeType::JPEG:
-		case fastgltf::MimeType::PNG: {
-
-			auto cb = std::move(device.allocateCommandBuffers({
-					.commandPool = *cb_pool,
-					.level = vk::CommandBufferLevel::ePrimary,
-					.commandBufferCount = 1,
-				})[0]);
-
-			auto fence = device.createFence(vk::FenceCreateInfo{});
-
-			cb.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-
-			image_loader loader(device, cb, image_data, srgb);
-
-			cb.end();
-
-			vk::SubmitInfo info;
-			info.setCommandBuffers(*cb);
-			queue.submit(info, *fence);
-			device.waitForFences(*fence, true, 1'000'000'000);
-
-			spdlog::debug("Loaded image {}x{}, format {}, {} mipmaps", loader.extent.width, loader.extent.height, vk::to_string(loader.format), loader.num_mipmaps);
-			return std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
-		}
-
+		case fastgltf::MimeType::PNG:
 		case fastgltf::MimeType::KTX2: {
 
-			ktxTexture* texture;
-			ktxVulkanTexture vk_texture;
-
-			ktxResult err = ktxTexture_CreateFromMemory(reinterpret_cast<const uint8_t*>(image_data.data()), image_data.size(), /*KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT*/0, &texture);
-
-			if (err != KTX_SUCCESS)
+			try
 			{
-				spdlog::info("ktxTexture_CreateFromMemory: error {}", (int)err);
+				image_loader loader(physical_device, device, queue, cb_pool);
+				loader.load(image_data, srgb);
+
+				spdlog::debug("Loaded image {}x{}, format {}, {} mipmaps", loader.extent.width, loader.extent.height, vk::to_string(loader.format), loader.num_mipmaps);
+				return std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
+			}
+			catch(std::exception& e)
+			{
+				spdlog::info("Cannot load image: {}", e.what());
 				return {};
 			}
-
-			err = ktxTexture_VkUploadEx(texture, vdi, &vk_texture,
-							VK_IMAGE_TILING_OPTIMAL,
-							VK_IMAGE_USAGE_SAMPLED_BIT,
-							VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			if (err != KTX_SUCCESS)
-			{
-				ktxTexture_Destroy(texture);
-				spdlog::info("ktxTexture_CreateFromMemory: error {}", (int)err);
-				return {};
-			}
-
-			ktxTexture_Destroy(texture);
-
-			vk::raii::ImageView image_view{device, vk::ImageViewCreateInfo{
-							.image = vk_texture.image,
-							.viewType = (vk::ImageViewType)vk_texture.viewType,
-							.format = (vk::Format)vk_texture.imageFormat,
-							.subresourceRange = {
-								.aspectMask = vk::ImageAspectFlagBits::eColor,
-								.baseMipLevel = 0,
-								.levelCount = vk_texture.levelCount,
-								.baseArrayLayer = 0,
-								.layerCount = 1,
-							},
-						}};
-
-			return std::make_shared<scene_data::image>(std::make_pair(*device, vk_texture), std::move(image_view));
 		}
 
 		default:
@@ -430,8 +381,8 @@ static std::shared_ptr<scene_data::image> do_load_image(
 class loader_context
 {
 	std::filesystem::path base_directory;
-	ktxVulkanDeviceInfo vulkan_device_info;
 	fastgltf::Asset & gltf;
+	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
 	vk::raii::Queue & queue;
 	vk::raii::CommandPool & cb_pool;
@@ -450,20 +401,13 @@ public:
 	               vk::raii::Queue & queue,
 	               vk::raii::CommandPool & cb_pool) :
 	        base_directory(base_directory),
+	        // loader(physical_device, device, queue, cb_pool),
 	        gltf(gltf),
+	        physical_device(physical_device),
 	        device(device),
 	        queue(queue),
 	        cb_pool(cb_pool)
 	{
-		KTX_error_code ret = ktxVulkanDeviceInfo_Construct(&vulkan_device_info, *physical_device, *device, *queue, *cb_pool, nullptr);
-
-		if (ret != KTX_SUCCESS)
-			throw std::runtime_error(fmt::format("Cannot initialize libktx: {}", (int)ret));
-	}
-
-	~loader_context()
-	{
-		ktxVulkanDeviceInfo_Destruct(&vulkan_device_info);
 	}
 
 	fastgltf::span<const std::byte> load(const fastgltf::URI& uri)
@@ -544,7 +488,7 @@ public:
 			return it->second;
 
 		auto [image_data, mime_type] = visit_source(gltf.images[index].data);
-		auto image = do_load_image(&vulkan_device_info, device, queue, cb_pool, image_data, srgb);
+		auto image = do_load_image(physical_device, device, queue, cb_pool, image_data, srgb);
 
 		images.emplace(index, image);
 		return image;
@@ -838,17 +782,6 @@ public:
 };
 
 } // namespace
-
-
-scene_data::image::~image()
-{
-	if (std::holds_alternative<std::pair<VkDevice, ktxVulkanTexture>>(image_))
-	{
-		auto& texture = std::get<std::pair<VkDevice, ktxVulkanTexture>>(image_);
-
-		ktxVulkanTexture_Destruct(&texture.second, texture.first, nullptr);
-	}
-}
 
 scene_data scene_loader::operator()(const std::filesystem::path & gltf_path)
 {

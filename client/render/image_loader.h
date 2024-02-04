@@ -29,36 +29,57 @@
 #include <tuple>
 #include <vulkan/vulkan_raii.hpp>
 
+struct ktxVulkanDeviceInfo;
+struct ktxVulkanTexture;
+
 struct image_loader
 {
-	image_allocation image;
+	std::shared_ptr<vk::Image> image;
 	vk::raii::ImageView image_view = nullptr;
 
 	vk::Format format;
 	vk::Extent3D extent;
-	vk::ImageType image_type;
+	// vk::ImageType image_type;
 	vk::ImageViewType image_view_type;
 
 	uint32_t num_mipmaps;
 
-	buffer_allocation staging_buffer;
+	image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool);
 
-	// Load a PNG/JPEG file
-	image_loader(vk::raii::Device & device, vk::raii::CommandBuffer & cb, std::span<const std::byte> bytes, bool srgb);
+	// Load a PNG/JPEG/KTX2 file
+	void load(std::span<const std::byte> bytes, bool srgb);
 
 	// Load raw pixel data
-	image_loader(vk::raii::Device & device, vk::raii::CommandBuffer & cb, const void * pixels, vk::Extent3D extent, vk::Format format);
+	void load(const void * pixels, vk::Extent3D extent, vk::Format format);
 
-	template <typename T>
-	image_loader(vk::raii::Device & device, vk::raii::CommandBuffer & cb, std::span<T> pixels, vk::Extent3D extent, vk::Format format) :
-	        image_loader(device, cb, pixels.data(), extent, format)
-	{}
 
-	template <typename T, size_t N>
-	image_loader(vk::raii::Device & device, vk::raii::CommandBuffer & cb, const std::array<T, N> & pixels, vk::Extent3D extent, vk::Format format) :
-	        image_loader(device, cb, pixels.data(), extent, format)
-	{}
+	template<typename T>
+	void load(std::span<T> pixels, vk::Extent3D extent, vk::Format format)
+	{
+		load(pixels.data(), extent, format);
+	}
+
+	template<typename T, size_t N>
+	void load(const std::array<T, N> & pixels, vk::Extent3D extent, vk::Format format)
+	{
+		load(pixels.data(), extent, format);
+	}
+
+	~image_loader();
 
 private:
-	void do_load(vk::raii::Device & device, vk::raii::CommandBuffer & cb, const void * pixels, vk::Extent3D extent, vk::Format format);
+	ktxVulkanDeviceInfo * vdi = nullptr;
+
+	vk::raii::PhysicalDevice physical_device;
+	vk::raii::Device & device;
+	vk::raii::Queue & queue;
+	vk::raii::CommandPool & cb_pool;
+
+	buffer_allocation staging_buffer;
+
+	void do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format);
+
+	void do_load_ktx(std::span<const std::byte> bytes);
+
+	void create_image_view();
 };
