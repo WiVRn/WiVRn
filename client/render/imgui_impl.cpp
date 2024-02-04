@@ -32,6 +32,8 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <glm/gtc/matrix_access.hpp>
 
+#include "../external/IconsFontAwesome6.h"
+
 /* Do not use:
  *
  * ImGui_ImplVulkanH_SelectSurfaceFormat
@@ -123,7 +125,7 @@ std::optional<ImVec2> imgui_context::ray_plane_intersection(const imgui_context:
 			coord.y = ray_start.y + lambda * ray_dir.y;
 
 			// Convert from mesh coordinates to imgui coordinates
-			coord = coord / scale;
+			coord = coord / scale_;
 
 			if (fabs(coord.x) <= 0.5 && fabs(coord.y) <= 0.5)
 				return ImVec2(
@@ -182,7 +184,7 @@ static const std::array pool_sizes =
 	}
 };
 
-imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, vk::Extent2D size, float resolution, vk::Format format, int frames_in_flight) :
+imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers_, xr::swapchain& swapchain, glm::vec2 size) :
 	device(device),
 	queue_family_index(queue_family_index),
 	queue(queue),
@@ -193,17 +195,18 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.poolSizeCount = pool_sizes.size(),
 		.pPoolSizes = pool_sizes.data(),
 	}),
-	renderpass(create_renderpass(device, format, true)),
+	renderpass(create_renderpass(device, swapchain.format(), true)),
 	command_pool(device, vk::CommandPoolCreateInfo{
 		.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
 		.queueFamilyIndex = queue_family_index,
 	}),
-	command_buffers(frames_in_flight),
-	size(size),
-	format(format),
-	scale(size.width / resolution, size.height / resolution),
+	command_buffers(swapchain.images().size()),
+	size(swapchain.extent().width, swapchain.extent().height),
+	format(swapchain.format()),
+	scale_(size.x, size.y),
+	swapchain(swapchain),
 	context(ImGui::CreateContext()),
-	io(ImGui::GetIO()),
+	io((ImGui::SetCurrentContext(context), ImGui::GetIO())),
 	world(world)
 {
 	controllers.reserve(controllers_.size());
@@ -232,21 +235,37 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 		.DescriptorPool = *descriptor_pool,
 		.Subpass = 0,
 		.MinImageCount = 2,
-		.ImageCount = (uint32_t)frames_in_flight, // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
+		.ImageCount = (uint32_t)swapchain.images().size(), // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
 		.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 		.Allocator = nullptr,
 		.CheckVkResultFn = check_vk_result,
 	};
 
+	ImGui::SetCurrentContext(context);
 	ImGui_ImplVulkan_Init(&init_info, *renderpass);
 
 	// Load Fonts
-	ImFontConfig config;
 	asset roboto("Roboto-Regular.ttf");
-	config.FontDataOwnedByAtlas = false;
-	io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(roboto.data()), roboto.size(), 45, &config);
+	asset font_awesome_regular("Font Awesome 6 Free-Regular-400.otf");
+	asset font_awesome_solid("Font Awesome 6 Free-Solid-900.otf");
+	{
+		ImFontConfig config;
+		config.FontDataOwnedByAtlas = false;
+		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(roboto.data()), roboto.size(), 30, &config);
 
-	large_font = io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(roboto.data()), roboto.size(), 90, &config);
+		config.MergeMode = true;
+		config.GlyphMinAdvanceX = 40; // Use if you want to make the icon monospaced
+		static const ImWchar icon_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(font_awesome_regular.data()), font_awesome_regular.size(), 30, &config, icon_ranges);
+		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(font_awesome_solid.data()), font_awesome_solid.size(), 30, &config, icon_ranges);
+	}
+
+	{
+		ImFontConfig config;
+		config.FontDataOwnedByAtlas = false;
+		large_font = io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte*>(roboto.data()), roboto.size(), 45, &config);
+
+	}
 
 
 	// Setup Dear ImGui style
@@ -256,23 +275,13 @@ imgui_context::imgui_context(vk::raii::Device& device, uint32_t queue_family_ind
 
 	ImGuiStyle& style = ImGui::GetStyle();
 
-	style.ScaleAllSizes(2.5f);
-
-	style.WindowPadding = { 50, 50 };
-	style.WindowBorderSize = 10; // Not scaled by ScaleAllSizes
-	style.WindowRounding = 25;
-	style.ItemSpacing = {50, 50};
-
-	style.FrameRounding = 10;
-	style.FramePadding = ImVec2(15, 10);
-
-	style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0,0,0,0.8);
-
-	// TODO: scroll to drag https://github.com/ocornut/imgui/issues/3379
+	style.WindowBorderSize = 0;
 }
 
 void imgui_context::new_frame(XrTime display_time)
 {
+	ImGui::SetCurrentContext(context);
+
 	if (last_display_time)
 		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
 	last_display_time = display_time;
@@ -350,21 +359,18 @@ void imgui_context::new_frame(XrTime display_time)
 	}
 
 	std::optional<ImVec2> position;
-	float trigger;
 
 	if (new_focused_controller != (size_t)-1)
 	{
 		position = ray_plane_intersection(new_states[new_focused_controller]);
-		trigger = new_states[new_focused_controller].trigger_value;
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
 		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
+		button_pressed = new_states[new_focused_controller].trigger_clicked;
 
 		if (position)
 		{
 			io.AddMousePosEvent(position->x, position->y);
-
-			button_pressed = new_states[new_focused_controller].trigger_clicked;
 
 			if (focused_change || last_trigger != button_pressed)
 			{
@@ -385,7 +391,6 @@ void imgui_context::new_frame(XrTime display_time)
 	else
 	{
 		position = {};
-		trigger = 0;
 	}
 
 	focused_controller = new_focused_controller;
@@ -395,7 +400,6 @@ void imgui_context::new_frame(XrTime display_time)
 	}
 
 	// Start the Dear ImGui frame
-	ImGui::SetCurrentContext(context);
 	ImGui_ImplVulkan_NewFrame();
 
 	io.DisplaySize = ImVec2(size.width, size.height);
@@ -407,18 +411,30 @@ void imgui_context::new_frame(XrTime display_time)
 
 	ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-	if (position && io.WantCaptureMouse)
+	if (position)
 	{
-		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, 0.8));
-		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, 0.8));
+		float distance_to_border = std::min({
+			position->x,
+			size.width - position->x,
+			position->y,
+			size.height - position->y
+		});
 
-		draw_list->AddCircleFilled(*position, 10, button_pressed ? color_pressed : color_unpressed);
-		draw_list->AddCircle(*position, 12, ImGui::GetColorU32(ImVec4(0,0,0,0.8)), 0, 4);
+		float radius = 10; //std::clamp<float>(distance_to_border / 4, 0, 10);
+		float alpha = std::clamp<float>((distance_to_border - 10) / 50, 0, 0.8);
+
+		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
+		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
+
+		draw_list->AddCircleFilled(*position, radius, button_pressed ? color_pressed : color_unpressed);
+		draw_list->AddCircle(*position, radius*1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
 	}
 }
 
 void imgui_context::render(vk::Image destination)
 {
+	ImGui::SetCurrentContext(context);
+
 	ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();
         const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
@@ -466,6 +482,8 @@ void imgui_context::render(vk::Image destination)
 
 imgui_context::~imgui_context()
 {
+	ImGui::SetCurrentContext(context);
+
 	std::vector<vk::Fence> fences;
 
 	// Release the command buffers without freing them, they will be destroyed with the command pool

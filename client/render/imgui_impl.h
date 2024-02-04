@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "xr/swapchain.h"
 #include <imgui.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -95,7 +96,9 @@ private:
 
 	glm::vec3 position_ = {0, 1, -1.5};
 	glm::quat orientation_ = {1, 0, 0, 0};
-	glm::vec2 scale = {1, 1};
+	glm::vec2 scale_;
+
+	xr::swapchain& swapchain;
 
 	ImGuiContext * context;
 	ImGuiIO& io;
@@ -110,7 +113,7 @@ private:
 	std::optional<ImVec2> ray_plane_intersection(const imgui_context::controller_state& in);
 
 public:
-	imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, vk::Extent2D size, float resolution, vk::Format format, int frames_in_flight = 3);
+	imgui_context(vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, xr::swapchain& swapchain, glm::vec2 size);
 	~imgui_context();
 
 	void set_position(glm::vec3 position, glm::quat orientation)
@@ -119,7 +122,25 @@ public:
 		orientation_ = orientation;
 	}
 
-	XrPosef pose()
+	XrCompositionLayerQuad composition_layer(XrSwapchain swapchain) const
+	{
+		return XrCompositionLayerQuad{
+			.type = XR_TYPE_COMPOSITION_LAYER_QUAD,
+			.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+			.space = world,
+			.eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
+			.subImage = {
+				.swapchain = swapchain,
+				.imageRect = {
+					.offset = {0, 0},
+					.extent = {(int32_t)size.width, (int32_t)size.height}},
+			},
+			.pose = pose(),
+			.size = scale(),
+		};
+	}
+
+	XrPosef pose() const
 	{
 		return XrPosef{
 			.orientation = {
@@ -154,6 +175,11 @@ public:
 	glm::quat orientation() const
 	{
 		return orientation_;
+	}
+
+	XrExtent2Df scale() const
+	{
+		return { scale_.x, scale_.y };
 	}
 
 	void new_frame(XrTime display_time);

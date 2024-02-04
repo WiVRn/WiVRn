@@ -17,11 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "imgui.h"
+#include "imgui_internal.h"
 #include "lobby.h"
 #include "wivrn_packets.h"
 #include "../common/version.h"
 #include <utils/strings.h>
 
+#include "../external/IconsFontAwesome6.h"
 
 static void CenterTextH(const std::string& text)
 {
@@ -99,13 +102,11 @@ void scenes::lobby::gui_connecting()
 
 void scenes::lobby::gui_add_server()
 {
+
 	const ImVec2 button_size(220, 80);
 
 	// CenterNextWindow({1200, 900});
 
-	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH("Add server");
-	ImGui::PopFont();
 
 	// TODO column widths
 	ImGui::BeginTable("table", 2);
@@ -154,7 +155,7 @@ void scenes::lobby::gui_add_server()
 
 	ImGui::SetCursorPosX(top_left.x);
 	if (ImGui::Button("Cancel", button_size))
-		ImGui::CloseCurrentPopup();
+		current_tab = tab::server_list;
 	if (ImGui::IsItemHovered())
 		hovered_item = "cancel";
 
@@ -162,8 +163,7 @@ void scenes::lobby::gui_add_server()
 
 	if (ImGui::Button("Save", button_size))
 	{
-		ImGui::CloseCurrentPopup();
-
+		current_tab = tab::server_list;
 		server_data data
 		{
 			.manual = true,
@@ -195,185 +195,199 @@ void scenes::lobby::gui_server_list()
 	const float list_item_height = 100;
 	auto& style = ImGui::GetStyle();
 
-	ImGui::SetNextWindowPos({0, 0});
-	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
-	ImGui::Begin("WiVRn", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove);
-
-	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH(std::string("WiVRn ") + xrt::drivers::wivrn::git_version);
-	ImGui::PopFont();
-
 	std::string cookie_to_remove;
-
-	float list_box_height = ImGui::GetWindowContentRegionMax().y - button_size.y - style.WindowPadding.y - ImGui::GetCursorPosY();
-
-	if (ImGui::BeginListBox("##detected servers", ImVec2(-FLT_MIN, list_box_height)))
+	if (sorted_cookies.empty())
 	{
-		if (sorted_cookies.empty())
+		ImGui::PushFont(imgui_ctx->large_font);
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 0.5));
+		CenterTextHV("Start a WiVRn server on your\nlocal network");
+		ImGui::PopStyleColor();
+		ImGui::PopFont();
+	}
+
+	auto pos = ImGui::GetCursorPos();
+
+	ImGui::PushStyleColor(ImGuiCol_Header, 0);
+	ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0);
+	ImGui::PushStyleColor(ImGuiCol_HeaderActive, 0);
+	for(const auto& [name, cookie]: sorted_cookies)
+	{
+		server_data& data = servers.at(cookie);
+		bool is_selected = (cookie == selected_item);
+
+		ImGui::SetCursorPos(pos);
+
+		ImGui::SetNextItemAllowOverlap();
+
+		// TODO custom widget
+		if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
+			selected_item = cookie;
+
+		ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
+		ImGui::Text("%s", name.c_str());
+
+		if (!data.manual)
 		{
-			ImGui::PushFont(imgui_ctx->large_font);
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 0.5));
-			CenterTextHV("Start a WiVRn server on your\nlocal network");
+			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
+			if (ImGui::Checkbox(("Autoconnect##" + cookie).c_str(), &data.autoconnect))
+				save_config();
+			if (ImGui::IsItemHovered())
+				hovered_item = "autoconnect " + cookie;
 			ImGui::PopStyleColor();
-			ImGui::PopFont();
 		}
 
-		auto pos = ImGui::GetCursorPos();
+		// TODO
+		// if (ImGui::IsItemHovered())
+		// {
+			// ImGui::SetTooltip("Tooltip");
+		// }
 
-		ImGui::PushStyleColor(ImGuiCol_Header, 0);
-		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, 0);
-		ImGui::PushStyleColor(ImGuiCol_HeaderActive, 0);
-		for(const auto& [name, cookie]: sorted_cookies)
+		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x + style.FramePadding.x, pos.y + (list_item_height - button_size.y) / 2);
+
+		button_position.x -= button_size.x + style.WindowPadding.x;
+		ImGui::SetCursorPos(button_position);
+
+		bool enable_connect_button = data.visible || data.manual;
+		ImGui::BeginDisabled(!enable_connect_button);
+		if (enable_connect_button)
 		{
-			server_data& data = servers.at(cookie);
-			bool is_selected = (cookie == selected_item);
+			ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.8f, 0.3f, 0.40f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.3f, 1.00f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 1.0f, 0.2f, 1.00f));
+		}
+		else
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.4f, 0.3f, 0.40f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
+		}
+		if (ImGui::Button(("Connect##" + cookie).c_str(), button_size))
+		{
+			connect(data);
+			ImGui::OpenPopup("connecting");
+		}
 
-			ImGui::SetCursorPos(pos);
+		if (ImGui::IsItemHovered())
+			hovered_item = "connect " + cookie;
 
-			ImGui::SetNextItemAllowOverlap();
+		ImGui::PopStyleColor(3);
+		ImGui::EndDisabled();
 
-			// TODO custom widget
-			if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
-				selected_item = cookie;
-
-			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
-			ImGui::Text("%s", name.c_str());
-
-			if (!data.manual)
-			{
-				ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
-				if (ImGui::Checkbox(("Autoconnect##" + cookie).c_str(), &data.autoconnect))
-					save_config();
-				if (ImGui::IsItemHovered())
-					hovered_item = "autoconnect " + cookie;
-				ImGui::PopStyleColor();
-			}
-
-			// TODO
-			// if (ImGui::IsItemHovered())
-			// {
-				// ImGui::SetTooltip("Tooltip");
-			// }
-
-			ImVec2 button_position(ImGui::GetWindowContentRegionMax().x + style.FramePadding.x, pos.y + (list_item_height - button_size.y) / 2);
-
-			button_position.x -= button_size.x + style.WindowPadding.x;
+		button_position.x -= button_size.x + style.WindowPadding.x;
+		if (data.manual)
+		{
 			ImGui::SetCursorPos(button_position);
+			ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
 
-			bool enable_connect_button = data.visible || data.manual;
-			ImGui::BeginDisabled(!enable_connect_button);
-			if (enable_connect_button)
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.8f, 0.3f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.3f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 1.0f, 0.2f, 1.00f));
-			}
-			else
-			{
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.4f, 0.3f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
-			}
-			if (ImGui::Button(("Connect##" + cookie).c_str(), button_size))
-			{
-				connect(data);
-				ImGui::OpenPopup("connecting");
-			}
+			if (ImGui::Button(("Remove##" + cookie).c_str(), button_size))
+				cookie_to_remove = cookie;
 
 			if (ImGui::IsItemHovered())
-				hovered_item = "connect " + cookie;
+				hovered_item = "remove " + cookie;
 
 			ImGui::PopStyleColor(3);
-			ImGui::EndDisabled();
-
-			button_position.x -= button_size.x + style.WindowPadding.x;
-			if (data.manual)
-			{
-				ImGui::SetCursorPos(button_position);
-				ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-
-				if (ImGui::Button(("Remove##" + cookie).c_str(), button_size))
-					cookie_to_remove = cookie;
-
-				if (ImGui::IsItemHovered())
-					hovered_item = "remove " + cookie;
-
-				ImGui::PopStyleColor(3);
-			}
-
-			pos.y += 120;
-		}
-		ImGui::PopStyleColor(3);
-
-		if (cookie_to_remove != "")
-		{
-			servers.erase(cookie_to_remove);
-			save_config();
 		}
 
-		ImGui::EndListBox();
+		pos.y += 120;
 	}
+	ImGui::PopStyleColor(3);
 
-	auto top_left = ImGui::GetWindowContentRegionMin();
-	auto bottom_right = ImGui::GetWindowContentRegionMax();
-
-#ifndef NDEBUG
-	ImGui::SetCursorPos(ImVec2(top_left.x, bottom_right.y - button_size.y));
-	if (ImGui::Button("Add server", button_size))
+	if (cookie_to_remove != "")
 	{
-		ImGui::OpenPopup("add_server");
-		strcpy(add_server_window_prettyname, "");
-		strcpy(add_server_window_hostname, "");
-		add_server_window_port = xrt::drivers::wivrn::default_port;
+		servers.erase(cookie_to_remove);
+		save_config();
 	}
 
-	if (ImGui::IsItemHovered())
-	{
-		hovered_item = "add";
-		ImGui::SetTooltip("TODO");
-	}
-#endif
 
-	ImGui::SetCursorPos(ImVec2(bottom_right.x - button_size.x, bottom_right.y - button_size.y));
-	if (ImGui::Button("Exit", button_size))
-		application::pop_scene();
-
-	if (ImGui::IsItemHovered())
-		hovered_item = "exit";
-
-	if (ImGui::BeginPopupModal("add_server", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove))
-	{
-		gui_add_server();
-		ImGui::EndPopup();
-	}
-
-	// Check if an automatic connection has started
-	if ((async_session.valid() || next_scene) && !ImGui::IsPopupOpen("connecting"))
-		ImGui::OpenPopup("connecting");
-
-	if (ImGui::BeginPopupModal("connecting", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove))
-	{
-		gui_connecting();
-		ImGui::EndPopup();
-	}
-
-	ImGui::End();
 }
 
-void scenes::lobby::draw_gui(XrTime predicted_display_time)
+void scenes::lobby::gui_about()
 {
+	ImGui::PushFont(imgui_ctx->large_font);
+	ImGui::TextWrapped("WiVRn %s", xrt::drivers::wivrn::git_version);
+	ImGui::PopFont();
+}
+
+static bool RadioButtonWithoutCheckBox(const char * label, bool active, ImVec2 size_arg)
+{
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
+	if (window->SkipItems)
+		return false;
+
+	ImGuiContext & g = *GImGui;
+	const ImGuiStyle & style = g.Style;
+	const ImGuiID id = window->GetID(label);
+	const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+
+	const ImVec2 pos = window->DC.CursorPos;
+
+	ImVec2 size = ImGui::CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+
+	const ImRect bb(pos, pos + size);
+	ImGui::ItemSize(bb, style.FramePadding.y);
+	if (!ImGui::ItemAdd(bb, id))
+		return false;
+
+	bool hovered, held;
+	bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+
+	ImGuiCol_ col;
+	if ((held && hovered) || active)
+		col = ImGuiCol_ButtonActive;
+	else if (hovered)
+		col = ImGuiCol_ButtonHovered;
+	else
+		col = ImGuiCol_Button;
+
+	ImGui::RenderNavHighlight(bb, id);
+	ImGui::RenderFrame(bb.Min, bb.Max, ImGui::GetColorU32(col), true, style.FrameRounding);
+
+	ImVec2 TextAlign{0, 0.5f};
+	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, TextAlign, &bb);
+
+	IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
+	return pressed;
+}
+
+template<typename T>
+static bool RadioButtonWithoutCheckBox(const char * label, T * v, T v_button, ImVec2 size_arg)
+{
+	const bool pressed = RadioButtonWithoutCheckBox(label, *v == v_button, size_arg);
+	if (pressed)
+		*v = v_button;
+	return pressed;
+}
+
+static void ScrollWhenDraggingOnVoid(ImVec2 delta)
+{
+	// https://github.com/ocornut/imgui/issues/3379#issuecomment-1678718752
+	ImGuiContext& g = *ImGui::GetCurrentContext();
+	ImGuiWindow* window = g.CurrentWindow;
+	bool hovered = false;
+	bool held = false;
+	ImGuiID id = window->GetID("##scrolldraggingoverlay");
+	ImGui::KeepAliveID(id);
+	if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
+		ImGui::ButtonBehavior(window->Rect(), id, &hovered, &held, ImGuiButtonFlags_MouseButtonLeft);
+	if (held && delta.x != 0.0f)
+		ImGui::SetScrollX(window, window->Scroll.x + delta.x);
+	if (held && delta.y != 0.0f)
+		ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+}
+
+XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
+{
+	imgui_ctx->new_frame(predicted_display_time);
+	ImGuiIO & io = ImGui::GetIO();
+	ImGuiStyle & style = ImGui::GetStyle();
+
+	// const float MinTabWidth = 60;
+	const float MinTabWidth = 300;
+	const float MaxTabWidth = 300;
+
 	int image_index = swapchain_imgui.acquire();
 	swapchain_imgui.wait();
 
@@ -384,13 +398,100 @@ void scenes::lobby::draw_gui(XrTime predicted_display_time)
 		move_gui(head_position->first, head_position->second, predicted_display_time);
 	}
 
-	imgui_ctx->new_frame(predicted_display_time);
-	// ImGui::ShowDemoWindow();
-
 	auto last_hovered = hovered_item;
 	hovered_item = "";
 
-	gui_server_list();
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 30);
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
+
+	ImGui::SetNextWindowPos({50, 50});
+	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - ImVec2(100, 100));
+	// ImGui::SetNextWindowPos({0, 0});
+	// ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
+
+	ImGui::Begin("WiVRn", nullptr,
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove);
+
+	ImGui::SetCursorPos({MinTabWidth + 20, 0});
+
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
+		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
+		ImGui::SetCursorPosY(20);
+
+		switch(current_tab)
+		{
+			case tab::server_list:
+				gui_server_list();
+				break;
+
+			case tab::new_server:
+				break;
+
+			case tab::settings:
+				break;
+
+			case tab::about:
+				gui_about();
+				break;
+
+			case tab::exit:
+				application::pop_scene();
+				break;
+		}
+
+		if (current_tab != last_current_tab)
+		{
+			last_current_tab = current_tab;
+			ImGui::SetScrollY(0);
+		}
+
+		ImGui::Dummy(ImVec2(0,20));
+
+		ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
+		ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y));
+		ImGui::EndChild();
+		ImGui::PopStyleVar(); // ImGuiStyleVar_FrameRounding
+	}
+
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(0, 0, 0, 255));
+	ImGui::SetCursorPos(style.WindowPadding);
+
+	{
+		static float TabWidth = MinTabWidth;
+		ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10,10));
+		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER    "  Server list", &current_tab, tab::server_list, {TabWidth, 0});
+		if (ImGui::IsItemHovered())
+			hovered_item = "Server list";
+
+		ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 2*ImGui::GetCurrentContext()->FontSize - 4*style.FramePadding.y - style.ItemSpacing.y - style.WindowPadding.y);
+		RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  About", &current_tab, tab::about, {TabWidth, 0});
+		if (ImGui::IsItemHovered())
+			hovered_item = "about";
+		RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN   "  Exit", &current_tab, tab::exit, {TabWidth, 0});
+		if (ImGui::IsItemHovered())
+			hovered_item = "exit";
+
+		if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
+		{
+			if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+				TabWidth = std::min<float>(TabWidth + 600 * io.DeltaTime, MaxTabWidth);
+			else
+				TabWidth = std::max<float>(TabWidth - 600 * io.DeltaTime, MinTabWidth);
+		}
+
+		ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
+		ImGui::EndChild();
+	}
+	ImGui::PopStyleColor(); // ImGuiCol_ChildBg
+	ImGui::End();
+	ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ScrollbarSize
 
 	if (hovered_item != last_hovered && hovered_item != "")
 	{
@@ -399,9 +500,9 @@ void scenes::lobby::draw_gui(XrTime predicted_display_time)
 			application::haptic_start(haptic_output[controller], XR_NULL_PATH, 10'000'000, 1000, 1);
 	}
 
-	// Render the GUI to the imgui material
-	// imgui_material->base_color_texture->image_view = imgui_ctx->render();
-	// imgui_material->ds_dirty = true;
 
 	imgui_ctx->render(swapchain_imgui.images()[image_index].image);
+	swapchain_imgui.release();
+
+	return imgui_ctx->composition_layer(swapchain_imgui);
 }

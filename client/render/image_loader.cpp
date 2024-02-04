@@ -92,6 +92,8 @@ vk::Format get_format_srgb(int num_components)
 		default:
 			assert(false);
 	}
+
+	__builtin_unreachable();
 }
 
 int bytes_per_pixel(vk::Format format)
@@ -125,6 +127,8 @@ int bytes_per_pixel(vk::Format format)
 		default:
 			assert(false);
 	}
+
+	__builtin_unreachable();
 }
 } // namespace
 

@@ -20,14 +20,14 @@
       "count": 6,
       "type": "VEC3",
       "max": [
-        100,
+        10,
         0,
-        100
+        10
       ],
       "min": [
-        -100,
+        -10,
         0,
-        -100
+        -10
       ],
       "name": "POSITION"
     },
@@ -38,12 +38,12 @@
       "count": 6,
       "type": "VEC2",
       "max": [
-        100,
+        5,
         1
       ],
       "min": [
         0,
-        -99
+        -4
       ],
       "name": "TEXCOORD_0"
     },
@@ -67,7 +67,7 @@
     }
   ],
   "asset": {
-    "generator": "Aspose.3D 23.12.0",
+    "generator": "Aspose.3D 24.1.0",
     "version": "2.0"
   },
   "extensionsUsed": [
@@ -75,7 +75,7 @@
   ],
   "buffers": [
     {
-      "uri": "data:application/octet-stream;base64,AAABAAIAAwAEAAUAAAAAAAAAyMIAAAAAAADIwgAAAAAAAIA/AAAAACUAgD8AAAAAAADIwgAAAAAAAMhCAADIQgAAgD8AAAAAJQCAPwAAAAAAAMhCAAAAAAAAyMIAAAAAAADGwgAAAAAlAIA/AAAAAAAAyEIAAAAAAADIQgAAyEIAAMbCAAAAACUAgD8AAAAAAADIQgAAAAAAAMjCAAAAAAAAxsIAAAAAJQCAPwAAAAAAAMjCAAAAAAAAyEIAAMhCAACAPwAAAAAlAIA/AAAAAAAAAAA=",
+      "uri": "data:application/octet-stream;base64,AAABAAIAAwAEAAUAAAAAAAAAIMEAAAAAAAAgwQAAAAAAAIA/AAAAACUAgD8AAAAAAAAgwQAAAAAAACBBAACgQAAAgD8AAAAAJQCAPwAAAAAAACBBAAAAAAAAIMEAAAAAAACAwAAAAAAlAIA/AAAAAAAAIEEAAAAAAAAgQQAAoEAAAIDAAAAAACUAgD8AAAAAAAAgQQAAAAAAACDBAAAAAAAAgMAAAAAAJQCAPwAAAAAAACDBAAAAAAAAIEEAAKBAAACAPwAAAAAlAIA/AAAAAAAAAAA=",
       "byteLength": 212
     }
   ],
@@ -151,13 +151,45 @@
     {
       "mesh": 0,
       "name": "ground"
+    },
+    {
+      "mesh": 0,
+      "translation": [-20,0,0]
+    },
+    {
+      "mesh": 0,
+      "translation": [20,0,0]
+    },
+    {
+      "mesh": 0,
+      "translation": [0,0,-20]
+    },
+    {
+      "mesh": 0,
+      "translation": [-20,0,-20]
+    },
+    {
+      "mesh": 0,
+      "translation": [20,0,-20]
+    },
+    {
+      "mesh": 0,
+      "translation": [0,0,20]
+    },
+    {
+      "mesh": 0,
+      "translation": [-20,0,20]
+    },
+    {
+      "mesh": 0,
+      "translation": [20,0,20]
     }
   ],
   "scene": 0,
   "scenes": [
     {
       "nodes": [
-        0
+        0,1,2,3,4,5,6,7,8
       ]
     }
   ]

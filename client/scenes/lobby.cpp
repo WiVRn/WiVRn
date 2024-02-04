@@ -536,8 +536,7 @@ void scenes::lobby::render()
 
 	input->apply(world_space, framestate.predictedDisplayTime);
 
-	draw_gui(framestate.predictedDisplayTime);
-
+	XrCompositionLayerQuad imgui_layer = draw_gui(framestate.predictedDisplayTime);
 
 	assert(renderer);
 	renderer->start_frame();
@@ -545,15 +544,12 @@ void scenes::lobby::render()
 	auto controllers_layer_views = render_layer(views, swapchains_controllers, *renderer, *controllers_scene, {0, 0, 0, 0});
 	renderer->end_frame();
 
-
-
+	// After end_frame because the command buffers are submitted in end_frame
 	for (auto & swapchain: swapchains_lobby)
 		swapchain.release();
 
 	for (auto & swapchain: swapchains_controllers)
 		swapchain.release();
-
-	swapchain_imgui.release();
 
 	XrCompositionLayerProjection lobby_layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
@@ -561,21 +557,6 @@ void scenes::lobby::render()
 	        .space = world_space,
 	        .viewCount = (uint32_t)lobby_layer_views.size(),
 	        .views = lobby_layer_views.data(),
-	};
-
-	XrCompositionLayerQuad imgui_layer{
-		.type = XR_TYPE_COMPOSITION_LAYER_QUAD,
-	        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-		.space = world_space,
-		.eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
-		.subImage = {
-			.swapchain = swapchain_imgui,
-			.imageRect = {
-				.offset = {0, 0},
-				.extent = swapchain_imgui.extent()},
-		},
-		.pose = imgui_ctx->pose(),
-		.size = {0.75, 0.5}, // TODO
 	};
 
 	XrCompositionLayerProjection controllers_layer{
@@ -619,7 +600,6 @@ void scenes::lobby::on_focused()
 	vk::Extent2D output_size{width, height};
 
 	std::array depth_formats{
-	        vk::Format::eD16Unorm,
 	        vk::Format::eX8D24UnormPack32,
 	        vk::Format::eD32Sfloat,
 	};
@@ -650,9 +630,8 @@ void scenes::lobby::on_focused()
 		},
 	};
 
-	vk::Extent2D gui_size(1500, 1000);
-	swapchain_imgui = xr::swapchain(session, device, swapchain_format, gui_size.width, gui_size.height);
-	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, gui_size, 2000, swapchain_format, swapchain_imgui.images().size());
+	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 1500, 1000);
+	imgui_ctx.emplace(device, queue_family_index, queue, world_space, imgui_inputs, swapchain_imgui, glm::vec2{1.0, 0.6666});
 }
 
 void scenes::lobby::on_unfocused()

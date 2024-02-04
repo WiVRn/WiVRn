@@ -92,15 +92,28 @@ class lobby : public scene_impl<lobby>
 
 	void update_server_list();
 
-	void draw_gui(XrTime predicted_display_time);
+	XrCompositionLayerQuad draw_gui(XrTime predicted_display_time);
 
 	bool move_gui_first_time = true;
-
 	void move_gui(glm::vec3 position, glm::quat orientation, XrTime predicted_display_time);
+
+	enum class tab
+	{
+		server_list,
+		new_server,
+		settings,
+		about,
+		exit
+	};
+
+	tab current_tab = tab::server_list;
+	tab last_current_tab = tab::server_list;
 
 	void gui_connecting();
 	void gui_server_list();
 	void gui_add_server();
+	void gui_settings();
+	void gui_about();
 	void gui_keyboard(ImVec2 size);
 
 	void connect(server_data& data);
