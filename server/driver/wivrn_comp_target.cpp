@@ -481,7 +481,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	command_buffer.begin(vk::CommandBufferBeginInfo{});
 
 	vk::Semaphore wait_semaphore = cn->semaphores.render_complete;
-	vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eAllCommands;
+	vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eComputeShader;
 	vk::SubmitInfo submit_info{
 	        .waitSemaphoreCount = 1,
 	        .pWaitSemaphores = &wait_semaphore,
