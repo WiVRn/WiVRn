@@ -262,6 +262,9 @@ int inner_main(int argc, char * argv[])
 
 			setenv("LISTEN_PID", std::to_string(getpid()).c_str(), true);
 
+			//FIXME: synchronization fails on gfx pipeline
+			setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
+
 			try
 			{
 				return ipc_server_main(argc, argv);
