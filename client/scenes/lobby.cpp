@@ -207,11 +207,16 @@ scenes::lobby::lobby()
 			};
 			servers.emplace(data.service.txt["cookie"], data);
 		}
+
+		auto json_show_plots = root["show_performance_metrics"];
+		if (json_show_plots.is_bool())
+			show_performance_metrics = json_show_plots.get_bool();
 	}
 	catch(std::exception& e)
 	{
 		spdlog::warn("Cannot read configuration: {}", e.what());
 		servers.clear();
+		show_performance_metrics = false;
 	}
 
 	spdlog::info("{} known server(s):", servers.size());
@@ -270,7 +275,9 @@ void scenes::lobby::save_config()
 
 	std::ofstream json(application::get_config_path() / "client.json");
 
-	json << "{\"servers\":[" << servers_str << "]}";
+	json << "{\"servers\":[" << servers_str << "],"
+	     << "\"show_performance_metrics\":" << std::boolalpha << show_performance_metrics
+	     << "}";
 }
 
 static std::string ip_address_to_string(const in_addr& addr)
@@ -478,7 +485,7 @@ static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<Xr
 	return layer_views;
 }
 
-void scenes::lobby::render()
+void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 {
 	if (async_session.valid() && async_session.poll() == utils::future_status::ready)
 	{
@@ -486,7 +493,7 @@ void scenes::lobby::render()
 		{
 			auto session = async_session.get();
 			if (session)
-				next_scene = stream::create(std::move(session));
+				next_scene = stream::create(std::move(session), show_performance_metrics);
 
 			async_session.reset();
 		}
@@ -508,6 +515,7 @@ void scenes::lobby::render()
 
 	update_server_list();
 
+	imgui_ctx->set_current();
 	if (!async_session.valid() && !next_scene && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 	{
 		for(auto&& [cookie, data]: servers)
@@ -519,24 +527,21 @@ void scenes::lobby::render()
 		}
 	}
 
-	XrFrameState framestate = session.wait_frame();
-
-	if (!framestate.shouldRender)
+	if (!should_render)
 	{
-		spdlog::debug("framestate.shouldRender is false");
 		session.begin_frame();
-		session.end_frame(framestate.predictedDisplayTime, {});
+		session.end_frame(predicted_display_time, {});
 		return;
 	}
 
 	session.begin_frame();
 
-	auto [flags, views] = session.locate_views(viewconfig, framestate.predictedDisplayTime, world_space);
+	auto [flags, views] = session.locate_views(viewconfig, predicted_display_time, world_space);
 	assert(views.size() == swapchains_lobby.size());
 
-	input->apply(world_space, framestate.predictedDisplayTime);
+	input->apply(world_space, predicted_display_time);
 
-	XrCompositionLayerQuad imgui_layer = draw_gui(framestate.predictedDisplayTime);
+	XrCompositionLayerQuad imgui_layer = draw_gui(predicted_display_time);
 
 	assert(renderer);
 	renderer->start_frame();
@@ -572,7 +577,7 @@ void scenes::lobby::render()
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
 
-	session.end_frame(framestate.predictedDisplayTime, layers_base);
+	session.end_frame(predicted_display_time, layers_base);
 }
 
 void scenes::lobby::on_focused()

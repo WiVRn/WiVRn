@@ -259,6 +259,7 @@ std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::driver
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
 
+	bytes_received_ += received;
 	buffer.resize(received);
 
 	return {deserialization_packet{buffer}, addr};
@@ -272,6 +273,7 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_ra
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
 
+	bytes_received_ += received;
 	buffer.resize(received);
 
 	return deserialization_packet{buffer};
@@ -279,8 +281,11 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_ra
 
 void xrt::drivers::wivrn::UDP::send_raw(const std::vector<uint8_t> & data)
 {
-	if (::send(fd, data.data(), data.size(), 0) < 0)
+	ssize_t sent = ::send(fd, data.data(), data.size(), 0);
+	if (sent < 0)
 		throw std::system_error{errno, std::generic_category()};
+
+	bytes_sent_ += sent;
 }
 
 void xrt::drivers::wivrn::UDP::send_raw(const std::vector<std::span<uint8_t>> & data)
@@ -317,6 +322,7 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 	if (received == 0)
 		throw socket_shutdown{};
 
+	bytes_received_ += received;
 	buffer.resize(already_received + received);
 
 	if (buffer.size() < 4)
@@ -368,6 +374,8 @@ void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & 
 
 		if (sent < 0)
 			throw std::system_error{errno, std::generic_category()};
+
+		bytes_sent_ += sent;
 
 		// iov fully consumed
 		while (hdr.msg_iovlen > 0 and sent >= hdr.msg_iov[0].iov_len)

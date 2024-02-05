@@ -29,6 +29,7 @@
 #include <thread>
 #include <vulkan/vulkan_core.h>
 #include "audio/audio.h"
+#include "render/imgui_impl.h"
 
 namespace scenes
 {
@@ -82,20 +83,26 @@ class stream : public scene_impl<stream>, public std::enable_shared_from_this<st
 	bool video_started_ = false;
 	XrTime first_frame_time{};
 	const float dbrightness = 2;
+	bool show_performance_metrics = false;
 
 	std::vector<xr::swapchain> swapchains;
+	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
 
 	std::optional<audio> audio_handle;
+
+	std::optional<imgui_context> imgui_ctx;
 
 	stream() = default;
 
 public:
 	~stream();
 
-	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session);
+	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session, bool show_performance_metrics);
 
-	void render() override;
+	void render(XrTime predicted_display_time, bool should_render) override;
+	void on_focused() override;
+	void on_unfocused() override;
 
 	void operator()(to_headset::handshake&&) {};
 	void operator()(to_headset::video_stream_data_shard &&);
@@ -129,5 +136,24 @@ private:
 
 	void setup(const to_headset::video_stream_description &);
 	void exit();
+
+	uint64_t bytes_sent = 0;
+	uint64_t bytes_received = 0;
+
+	struct metric
+	{
+		float cpu_time = 0;
+		float gpu_time = 0;
+		float bandwidth_rx = 0;
+		float bandwidth_tx = 0;
+	};
+
+	std::vector<metric> metrics{300};
+	std::vector<float> axis_scale;
+	XrTime last_metric_time = 0;
+	int metrics_offset = 0;
+	metric get_metrics(XrTime predicted_display_time);
+
+	XrCompositionLayerQuad plot_performance_metrics(XrTime predicted_display_time);
 };
 } // namespace scenes

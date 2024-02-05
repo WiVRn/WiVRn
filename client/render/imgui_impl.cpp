@@ -18,6 +18,7 @@
 
 
 #include "imgui_impl.h"
+#include "implot.h"
 
 #include "application.h"
 #include "asset.h"
@@ -224,6 +225,7 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 	scale_(size.x, size.y),
 	swapchain(swapchain),
 	context(ImGui::CreateContext()),
+	plot_context(ImPlot::CreateContext()),
 	io((ImGui::SetCurrentContext(context), ImGui::GetIO())),
 	world(world)
 {
@@ -260,6 +262,7 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 	};
 
 	ImGui::SetCurrentContext(context);
+	ImPlot::SetCurrentContext(plot_context);
 	ImGui_ImplVulkan_Init(&init_info, *renderpass);
 
 	// Load Fonts
@@ -299,6 +302,7 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 void imgui_context::new_frame(XrTime display_time)
 {
 	ImGui::SetCurrentContext(context);
+	ImPlot::SetCurrentContext(plot_context);
 
 	if (last_display_time)
 		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
@@ -447,18 +451,20 @@ void imgui_context::new_frame(XrTime display_time)
 		draw_list->AddCircleFilled(*position, radius, button_pressed ? color_pressed : color_unpressed);
 		draw_list->AddCircle(*position, radius*1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
 	}
+
+	image_index = swapchain.acquire();
+	swapchain.wait();
 }
 
-void imgui_context::render(vk::Image destination)
+XrCompositionLayerQuad imgui_context::end_frame()
 {
+	vk::Image destination = swapchain.images()[image_index].image;
+	swapchain.release();
+
 	ImGui::SetCurrentContext(context);
+	ImPlot::SetCurrentContext(plot_context);
 
 	ImGui::Render();
-        ImDrawData* draw_data = ImGui::GetDrawData();
-        const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
-
-	if (is_minimized)
-		return;
 
 	current_command_buffer = (current_command_buffer + 1) % command_buffers.size();
 
@@ -483,7 +489,7 @@ void imgui_context::render(vk::Image destination)
 		.pClearValues = &clear
 	}, vk::SubpassContents::eInline);
 
-	ImGui_ImplVulkan_RenderDrawData(draw_data, *cb);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cb);
 
 	cb.endRenderPass();
 
@@ -494,13 +500,26 @@ void imgui_context::render(vk::Image destination)
 		.pCommandBuffers = &*cb,
 	}, *fence);
 
-	// Use the aliasing constructor
-	// return std::shared_ptr<vk::raii::ImageView>{viewport, &vp.frames[vp.frameindex].image_view_texture};
+	return XrCompositionLayerQuad{
+		.type = XR_TYPE_COMPOSITION_LAYER_QUAD,
+		.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+		.space = world,
+		.eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
+		.subImage = {
+			.swapchain = swapchain,
+			.imageRect = {
+				.offset = {0, 0},
+				.extent = {(int32_t)size.width, (int32_t)size.height}},
+		},
+		.pose = pose(),
+		.size = scale(),
+	};
 }
 
 imgui_context::~imgui_context()
 {
 	ImGui::SetCurrentContext(context);
+	ImPlot::SetCurrentContext(plot_context);
 
 	std::vector<vk::Fence> fences;
 
@@ -515,6 +534,7 @@ imgui_context::~imgui_context()
 	device.waitForFences(fences, true, 1'000'000'000);
 
 	ImGui_ImplVulkan_Shutdown();
+	ImPlot::DestroyContext();
 	ImGui::DestroyContext(context);
 }
 
@@ -546,12 +566,13 @@ ImTextureID imgui_context::load_texture(const std::string& filename, vk::raii::S
 
 	device.updateDescriptorSets(ds_write, nullptr);
 
-	ImTextureID id = ds.release();
+	ImTextureID id = *ds;
 
 	textures.emplace(id, texture_data{
 		.sampler = std::move(sampler),
 		.image = std::move(loader.image),
-		.image_view = std::move(loader.image_view)
+		.image_view = std::move(loader.image_view),
+		.descriptor_set = std::move(ds),
 	});
 
 	return id;
@@ -570,5 +591,10 @@ ImTextureID imgui_context::load_texture(const std::string& filename)
 void imgui_context::free_texture(ImTextureID texture)
 {
 	textures.erase(texture);
-	// TODO free descriptor set
+}
+
+void imgui_context::set_current()
+{
+	ImGui::SetCurrentContext(context);
+	ImPlot::SetCurrentContext(plot_context);
 }

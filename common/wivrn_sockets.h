@@ -21,6 +21,7 @@
 
 #include "wivrn_serialization.h"
 
+#include <atomic>
 #include <cassert>
 #include <memory>
 #include <mutex>
@@ -65,6 +66,9 @@ protected:
 	int fd = -1;
 
 	fd_base(const fd_base &) = delete;
+	std::atomic<uint64_t> bytes_sent_ = 0;
+	std::atomic<uint64_t> bytes_received_ = 0;
+
 public:
 	fd_base() = default;
 	fd_base(int fd): fd{fd} {}
@@ -80,6 +84,16 @@ public:
 	operator bool() const
 	{
 		return fd != -1;
+	}
+
+	uint64_t bytes_sent() const
+	{
+		return bytes_sent_;
+	}
+
+	uint64_t bytes_received() const
+	{
+		return bytes_received_;
 	}
 };
 

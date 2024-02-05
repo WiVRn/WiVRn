@@ -151,7 +151,6 @@ public:
 	{
 		vk::raii::Fence fence = nullptr;
 		vk::raii::CommandBuffer cb = nullptr;
-		vk::raii::QueryPool query_pool = nullptr;
 		std::vector<std::shared_ptr<void>> resources;
 
                 // Uniform buffer for per-view and per-instance data
@@ -161,8 +160,6 @@ public:
 
 	        // device local
 	        // buffer_allocation uniform_buffer;
-
-		std::chrono::steady_clock::time_point cpu_time_start;
 	};
 
 	std::vector<per_frame_resources> frame_resources;

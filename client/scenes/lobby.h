@@ -81,7 +81,7 @@ class lobby : public scene_impl<lobby>
 	std::array<XrAction, 2> haptic_output;
 
 	std::string selected_item;
-	std::string hovered_item;
+	ImGuiID hovered_item;
 
 	std::vector<xr::swapchain> swapchains_lobby;
 	std::vector<xr::swapchain> swapchains_controllers;
@@ -110,6 +110,8 @@ class lobby : public scene_impl<lobby>
 	tab last_current_tab = tab::server_list;
 	ImTextureID about_picture;
 
+	bool show_performance_metrics = false;
+
 	void gui_connecting();
 	void gui_server_list();
 	void gui_add_server();
@@ -117,13 +119,15 @@ class lobby : public scene_impl<lobby>
 	void gui_about();
 	void gui_keyboard(ImVec2 size);
 
+	void vibrate_on_hover();
+
 	void connect(server_data& data);
 
 public:
 	virtual ~lobby();
 	lobby();
 
-	void render() override;
+	void render(XrTime predicted_display_time, bool should_render) override;
 	void render_view(XrViewStateFlags flags, XrTime display_time, XrView & view, int swapchain_index, int image_index);
 
 	void on_unfocused() override;

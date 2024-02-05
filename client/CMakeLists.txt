@@ -5,7 +5,7 @@ set(KTX_FEATURE_VK_UPLOAD ON)
 set(KTX_FEATURE_GL_UPLOAD OFF)
 set(KTX_FEATURE_LOADTEST_APPS OFF)
 
-FetchContent_MakeAvailable(spdlog glm fastgltf imgui stb libktx)
+FetchContent_MakeAvailable(spdlog glm fastgltf imgui stb libktx implot)
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
@@ -85,13 +85,16 @@ target_sources(wivrn PRIVATE
     ${imgui_SOURCE_DIR}/imgui_demo.cpp
     ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+    ${implot_SOURCE_DIR}/implot.cpp
+    ${implot_SOURCE_DIR}/implot_items.cpp
 )
 
 target_include_directories(wivrn PRIVATE ${imgui_SOURCE_DIR})
+target_include_directories(wivrn PRIVATE ${implot_SOURCE_DIR})
 # target_compile_definitions(wivrn PRIVATE "IMGUI_USER_CONFIG=\"render/imgui_config.h\"")
 target_compile_definitions(wivrn PRIVATE IMGUI_USE_WCHAR32)
 target_compile_definitions(wivrn PRIVATE IMGUI_ENABLE_FREETYPE)
-target_compile_definitions(wivrn PRIVATE IMGUI_DISABLE_OBSOLETE_FUNCTIONS)
+# target_compile_definitions(wivrn PRIVATE IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
 # target_compile_definitions(wivrn PRIVATE IMGUI_ENABLE_FREETYPE_LUNASVG)
 target_compile_definitions(wivrn PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 

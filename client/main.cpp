@@ -103,7 +103,7 @@ void real_main()
 			freeaddrinfo(addresses);
 			if (not session)
 				throw std::runtime_error("Unable to connect to " + server_address + ":" + std::to_string(port));
-			app.push_scene(scenes::stream::create(std::move(session)));
+			app.push_scene(scenes::stream::create(std::move(session), false));
 		}
 
 		app.run();

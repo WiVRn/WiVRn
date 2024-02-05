@@ -20,6 +20,7 @@
 
 #include "xr/swapchain.h"
 #include <imgui.h>
+#include <implot.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -43,6 +44,7 @@ class imgui_context
 		vk::raii::Sampler sampler;
 		std::shared_ptr<vk::Image> image;
 		vk::raii::ImageView image_view;
+		vk::raii::DescriptorSet descriptor_set;
 	};
 
 public:
@@ -111,8 +113,10 @@ private:
 	glm::vec2 scale_;
 
 	xr::swapchain& swapchain;
+	int image_index;
 
 	ImGuiContext * context;
+	ImPlotContext * plot_context;
 	ImGuiIO& io;
 
 	std::vector<std::pair<controller, controller_state>> controllers;
@@ -132,24 +136,6 @@ public:
 	{
 		position_ = position;
 		orientation_ = orientation;
-	}
-
-	XrCompositionLayerQuad composition_layer(XrSwapchain swapchain) const
-	{
-		return XrCompositionLayerQuad{
-			.type = XR_TYPE_COMPOSITION_LAYER_QUAD,
-			.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-			.space = world,
-			.eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
-			.subImage = {
-				.swapchain = swapchain,
-				.imageRect = {
-					.offset = {0, 0},
-					.extent = {(int32_t)size.width, (int32_t)size.height}},
-			},
-			.pose = pose(),
-			.size = scale(),
-		};
 	}
 
 	XrPosef pose() const
@@ -195,8 +181,7 @@ public:
 	}
 
 	void new_frame(XrTime display_time);
-
-	void render(vk::Image destination);
+	XrCompositionLayerQuad end_frame();
 
 	ImFont * large_font;
 	size_t get_focused_controller() const
@@ -207,4 +192,5 @@ public:
 	ImTextureID load_texture(const std::string& filename, vk::raii::Sampler&& sampler);
 	ImTextureID load_texture(const std::string& filename);
 	void free_texture(ImTextureID);
+	void set_current();
 };

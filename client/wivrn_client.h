@@ -86,4 +86,14 @@ public:
 
 		return r;
 	}
+
+	uint64_t bytes_received() const
+	{
+		return control.bytes_received() + stream.bytes_received();
+	}
+
+	uint64_t bytes_sent() const
+	{
+		return control.bytes_sent() + stream.bytes_sent();
+	}
 };

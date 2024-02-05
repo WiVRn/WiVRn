@@ -19,13 +19,14 @@
 
 #include "application.h"
 #include "imgui.h"
+#include "implot.h"
 #include "imgui_internal.h"
 #include "lobby.h"
 #include "version.h"
 #include <spdlog/fmt/fmt.h>
 #include <utils/strings.h>
 
-#include "../external/IconsFontAwesome6.h"
+#include "IconsFontAwesome6.h"
 
 static void CenterTextH(const std::string& text)
 {
@@ -56,6 +57,12 @@ static void CenterTextHV(const std::string& text)
 		ImGui::Text("%s", i.c_str());
 	}
 	ImGui::PopStyleVar();
+}
+
+void scenes::lobby::vibrate_on_hover()
+{
+	if (ImGui::IsItemHovered())
+		hovered_item = ImGui::GetItemID();
 }
 
 void scenes::lobby::gui_connecting()
@@ -97,13 +104,11 @@ void scenes::lobby::gui_connecting()
 
 		ImGui::CloseCurrentPopup();
 	}
-	if (ImGui::IsItemHovered())
-		hovered_item = "close";
+	vibrate_on_hover();
 }
 
 void scenes::lobby::gui_add_server()
 {
-
 	const ImVec2 button_size(220, 80);
 
 	// TODO column widths
@@ -116,8 +121,7 @@ void scenes::lobby::gui_add_server()
 	static char buf[100];
 	ImGui::TableNextColumn();
 	ImGui::InputText("##Name", buf, sizeof(buf));
-	if (ImGui::IsItemHovered())
-		hovered_item = "name";
+	vibrate_on_hover();
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
@@ -126,8 +130,7 @@ void scenes::lobby::gui_add_server()
 	static char buf2[100];
 	ImGui::TableNextColumn();
 	ImGui::InputText("##Hostname", buf2, sizeof(buf2));
-	if (ImGui::IsItemHovered())
-		hovered_item = "hostname";
+	vibrate_on_hover();
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
@@ -136,8 +139,7 @@ void scenes::lobby::gui_add_server()
 	static int port;
 	ImGui::TableNextColumn();
 	ImGui::InputInt("##Port", &port);
-	if (ImGui::IsItemHovered())
-		hovered_item = "port";
+	vibrate_on_hover();
 
 	ImGui::EndTable();
 
@@ -154,8 +156,7 @@ void scenes::lobby::gui_add_server()
 	ImGui::SetCursorPosX(top_left.x);
 	if (ImGui::Button("Cancel", button_size))
 		current_tab = tab::server_list;
-	if (ImGui::IsItemHovered())
-		hovered_item = "cancel";
+	vibrate_on_hover();
 
 	ImGui::SameLine(bottom_right.x - button_size.x);
 
@@ -176,8 +177,7 @@ void scenes::lobby::gui_add_server()
 		save_config();
 
 	}
-	if (ImGui::IsItemHovered())
-		hovered_item = "save";
+	vibrate_on_hover();
 }
 
 void scenes::lobby::gui_server_list()
@@ -230,8 +230,7 @@ void scenes::lobby::gui_server_list()
 			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
 			if (ImGui::Checkbox(("Autoconnect##" + cookie).c_str(), &data.autoconnect))
 				save_config();
-			if (ImGui::IsItemHovered())
-				hovered_item = "autoconnect " + cookie;
+			vibrate_on_hover();
 			ImGui::PopStyleColor();
 		}
 
@@ -265,9 +264,7 @@ void scenes::lobby::gui_server_list()
 			connect(data);
 			ImGui::OpenPopup("connecting");
 		}
-
-		if (ImGui::IsItemHovered())
-			hovered_item = "connect " + cookie;
+		vibrate_on_hover();
 
 		ImGui::PopStyleColor(3);
 		ImGui::EndDisabled();
@@ -282,9 +279,7 @@ void scenes::lobby::gui_server_list()
 
 			if (ImGui::Button(("Remove##" + cookie).c_str(), button_size))
 				cookie_to_remove = cookie;
-
-			if (ImGui::IsItemHovered())
-				hovered_item = "remove " + cookie;
+			vibrate_on_hover();
 
 			ImGui::PopStyleColor(3);
 		}
@@ -315,6 +310,72 @@ void scenes::lobby::gui_server_list()
 		ImGui::EndPopup();
 	}
 	ImGui::PopStyleVar(3);
+}
+
+void scenes::lobby::gui_settings()
+{
+	ImGuiStyle & style = ImGui::GetStyle();
+
+	if (ImGui::Checkbox("Show performance metrics", &show_performance_metrics))
+		save_config();
+	vibrate_on_hover();
+
+	if (show_performance_metrics)
+	{
+		float win_width = ImGui::GetWindowSize().x;
+		float win_height = ImGui::GetWindowSize().y;
+
+
+		ImVec2 plot_size{
+			win_width / 2 - style.ItemSpacing.x / 2,
+			win_height / 2
+		};
+
+		static std::array<float, 300> cpu_time;
+		static std::array<float, 300> gpu_time;
+		static int offset = 0;
+
+		float min_v = 0;
+		float max_v = 20;
+
+
+		cpu_time[offset] = application::get_cpu_time().count() * 1.0e-6;
+		gpu_time[offset] = application::get_gpu_time().count() * 1.0e-6;
+		offset = (offset + 1) % cpu_time.size();
+
+		ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
+		ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
+		ImPlot::PushStyleColor(ImPlotCol_AxisBg, IM_COL32(0, 0, 0, 0));
+		ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
+		ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
+
+		if (ImPlot::BeginPlot("CPU time", plot_size, ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild))
+		{
+			auto col = ImPlot::GetColormapColor(0);
+
+			ImPlot::SetupAxes(nullptr, "CPU time", ImPlotAxisFlags_NoDecorations, 0);
+			ImPlot::SetupAxesLimits(0, cpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
+			ImPlot::SetNextLineStyle(col);
+			ImPlot::SetNextFillStyle(col, 0.25);
+			ImPlot::PlotLine("CPU time", cpu_time.data(), cpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+			ImPlot::EndPlot();
+		}
+
+		ImGui::SameLine();
+
+		if (ImPlot::BeginPlot("GPU time", plot_size, ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild))
+		{
+			auto col = ImPlot::GetColormapColor(1);
+
+			ImPlot::SetupAxes(nullptr,"GPU time [ms]", ImPlotAxisFlags_NoDecorations, 0);
+			ImPlot::SetupAxesLimits(0, gpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
+			ImPlot::SetNextLineStyle(col);
+			ImPlot::SetNextFillStyle(col, 0.25);
+			ImPlot::PlotLine("GPU time", gpu_time.data(), gpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+			ImPlot::EndPlot();
+		}
+		ImPlot::PopStyleColor(5);
+	}
 }
 
 void scenes::lobby::gui_about()
@@ -408,9 +469,6 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 	const float MinTabWidth = 300;
 	const float MaxTabWidth = 300;
 
-	int image_index = swapchain_imgui.acquire();
-	swapchain_imgui.wait();
-
 	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::view(), world_space, predicted_display_time);
 
 	if (head_position)
@@ -419,7 +477,7 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 	}
 
 	auto last_hovered = hovered_item;
-	hovered_item = "";
+	hovered_item = 0;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 30);
@@ -452,6 +510,7 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 				break;
 
 			case tab::settings:
+				gui_settings();
 				break;
 
 			case tab::about:
@@ -486,16 +545,18 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10,10));
 		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER    "  Server list", &current_tab, tab::server_list, {TabWidth, 0});
-		if (ImGui::IsItemHovered())
-			hovered_item = "Server list";
+		vibrate_on_hover();
+
+		RadioButtonWithoutCheckBox(ICON_FA_GEARS       "  Settings", &current_tab, tab::settings, {TabWidth, 0});
+		vibrate_on_hover();
 
 		ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 2*ImGui::GetCurrentContext()->FontSize - 4*style.FramePadding.y - style.ItemSpacing.y - style.WindowPadding.y);
 		RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  About", &current_tab, tab::about, {TabWidth, 0});
-		if (ImGui::IsItemHovered())
-			hovered_item = "about";
+		vibrate_on_hover();
+
 		RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN   "  Exit", &current_tab, tab::exit, {TabWidth, 0});
-		if (ImGui::IsItemHovered())
-			hovered_item = "exit";
+		vibrate_on_hover();
+
 
 		if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
 		{
@@ -513,16 +574,12 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 	ImGui::PopStyleColor(); // ImGuiCol_WindowBg
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ScrollbarSize
 
-	if (hovered_item != last_hovered && hovered_item != "")
+	if (hovered_item != last_hovered && hovered_item != 0)
 	{
 		size_t controller = imgui_ctx->get_focused_controller();
 		if (controller < haptic_output.size())
 			application::haptic_start(haptic_output[controller], XR_NULL_PATH, 10'000'000, 1000, 1);
 	}
 
-
-	imgui_ctx->render(swapchain_imgui.images()[image_index].image);
-	swapchain_imgui.release();
-
-	return imgui_ctx->composition_layer(swapchain_imgui);
+	return imgui_ctx->end_frame();
 }

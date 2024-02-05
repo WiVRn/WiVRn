@@ -17,8 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #define GLM_FORCE_RADIANS
 
@@ -38,6 +36,7 @@
 #include <vulkan/vulkan_core.h>
 #include "audio/audio.h"
 #include "hardware.h"
+#include "implot.h"
 
 using namespace xrt::drivers::wivrn;
 
@@ -70,13 +69,19 @@ static const std::unordered_map<std::string, device_id> device_ids = {
 };
 // clang-format on
 
-std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session)
+static const std::array supported_formats =
+{
+	vk::Format::eR8G8B8A8Srgb,
+	vk::Format::eB8G8R8A8Srgb
+};
+
+std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, bool show_performance_metrics)
 {
 	std::shared_ptr<stream> self{new stream};
 	spdlog::info("decoder_mutex.native_handle() = {}", (void*)self->decoder_mutex.native_handle());
 
-
 	self->network_session = std::move(network_session);
+	self->show_performance_metrics = show_performance_metrics;
 
 	from_headset::headset_info_packet info{};
 
@@ -137,7 +142,57 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		self->input_actions.emplace_back(it->second, action, action_type);
 	}
 
+	self->swapchain_format = vk::Format::eUndefined;
+	spdlog::info("Supported swapchain formats:");
+
+	for (auto format: self->session.get_swapchain_formats())
+	{
+		spdlog::info("    {}", vk::to_string(format));
+	}
+	for (auto format: self->session.get_swapchain_formats())
+	{
+		if (std::find(supported_formats.begin(), supported_formats.end(), format) != supported_formats.end())
+		{
+			self->swapchain_format = format;
+			break;
+		}
+	}
+
+	if (self->swapchain_format == vk::Format::eUndefined)
+		throw std::runtime_error("No supported swapchain format");
+
+	spdlog::info("Using format {}", vk::to_string(self->swapchain_format));
+
 	return self;
+}
+
+void scenes::stream::on_focused()
+{
+	if (show_performance_metrics)
+	{
+		swapchain_imgui = xr::swapchain(
+			session,
+			device,
+			swapchain_format,
+			1500, 1000);
+
+		imgui_ctx.emplace(physical_device,
+				device,
+				queue_family_index,
+				queue,
+				view_space,
+				std::span<imgui_context::controller>{},
+				swapchain_imgui,
+				glm::vec2{1.0, 0.6666});
+
+		imgui_ctx->set_position({0,0,-1}, {1,0,0,0});
+	}
+}
+
+void scenes::stream::on_unfocused()
+{
+	imgui_ctx.reset();
+	swapchain_imgui.reset();
 }
 
 scenes::stream::~stream()
@@ -234,21 +289,169 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 	return nullptr;
 }
 
-void scenes::stream::render()
+scenes::stream::metric scenes::stream::get_metrics(XrTime predicted_display_time)
+{
+	uint64_t rx = network_session->bytes_received();
+	uint64_t tx = network_session->bytes_sent();
+
+	float dt = (predicted_display_time - last_metric_time) * 1e-9f;
+	float bandwidth_rx = float(rx - bytes_received) / dt;
+	float bandwidth_tx = float(tx - bytes_sent ) /dt;
+	last_metric_time = predicted_display_time;
+	bytes_received = rx;
+	bytes_sent = tx;
+
+	return metric{
+		.cpu_time = application::get_cpu_time().count() * 1e-9f,
+		.gpu_time = application::get_gpu_time().count() * 1e-9f,
+		.bandwidth_rx = bandwidth_rx * 8,
+		.bandwidth_tx = bandwidth_tx * 8,
+	};
+}
+
+static float compute_plot_max_value(float * data, int count, ptrdiff_t stride)
+{
+	float max = 0;
+	uintptr_t ptr = (uintptr_t)data;
+	for(int i = 0; i < count; i++)
+	{
+		max = std::max(max, *(float*)(ptr + i * stride));
+	}
+
+	// First power of 10 less than the max
+	float x = pow(10, floor(log10(max)));
+	return ceil(max / x) * x;
+}
+
+static std::pair<float, std::string> compute_plot_unit(float max_value)
+{
+	if (max_value > 1e9)
+		return { 1e-9, "G" };
+	if (max_value > 1e6)
+		return { 1e-6, "M" };
+	if (max_value > 1e3)
+		return { 1e-3, "k" };
+	if (max_value > 1)
+		return { 1, "" };
+	if (max_value > 1e-3)
+		return { 1e3, "m" };
+	if (max_value > 1e-6)
+		return { 1e6, "u" };
+	return { 1e9, "n" };
+}
+
+struct getter_data
+{
+	uintptr_t data;
+	int stride;
+	int offset;
+	int count;
+	float multiplier;
+};
+
+static ImPlotPoint getter(int index, void * data_)
+{
+	getter_data& data = *(getter_data*)data_;
+
+	int offset_index = (index + data.offset) % data.count;
+
+	return ImPlotPoint(index, *(float*)(data.data + offset_index * data.stride) * data.multiplier);
+}
+
+XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted_display_time)
+{
+	imgui_ctx->new_frame(predicted_display_time);
+	const ImGuiStyle & style = ImGui::GetStyle();
+
+	ImGui::SetNextWindowPos({0, 0});
+	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
+	ImGui::Begin("Performance metrics", nullptr,
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove);
+
+	ImVec2 window_size = ImGui::GetWindowSize() - ImVec2(2,2) * style.WindowPadding;
+
+	metrics[metrics_offset] = get_metrics(predicted_display_time);
+	metrics_offset = (metrics_offset + 1) % metrics.size();
+
+	static const std::array plots = {
+		std::make_tuple(ImPlot::GetColormapColor(0), "CPU time", "s",   &metric::cpu_time),
+		std::make_tuple(ImPlot::GetColormapColor(1), "GPU time", "s",   &metric::gpu_time),
+		std::make_tuple(ImPlot::GetColormapColor(2), "Download", "bit/s", &metric::bandwidth_rx),
+		std::make_tuple(ImPlot::GetColormapColor(3), "Upload",   "bit/s", &metric::bandwidth_tx),
+	};
+
+	axis_scale.resize(plots.size());
+
+	int n_cols = 2;
+	int n_rows = ceil((float)plots.size() / n_cols);
+
+	ImVec2 plot_size = ImVec2(
+		window_size.x / n_cols - style.ItemSpacing.x * (n_cols-1) / n_cols,
+		window_size.y / n_rows - style.ItemSpacing.y * (n_rows-1) / n_rows);
+
+	ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
+	ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
+	ImPlot::PushStyleColor(ImPlotCol_AxisBg, IM_COL32(0, 0, 0, 0));
+	ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
+	ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
+
+	int n = 0;
+	for(auto [color, title, unit, data]: plots)
+	{
+		if (ImPlot::BeginPlot(title, plot_size, ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild))
+		{
+			float min_v = 0;
+			float max_v = compute_plot_max_value(&(metrics.data()->*data), metrics.size(), sizeof(metric));
+			auto [ multiplier, prefix ] = compute_plot_unit(max_v);
+
+			if (axis_scale[n] == 0)
+				axis_scale[n] = max_v;
+			else
+				axis_scale[n] = 0.99 * axis_scale[n] + 0.01 * max_v;
+
+			getter_data gdata{
+				.data = (uintptr_t)&(metrics.data()->*data),
+				.stride = sizeof(metric),
+				.offset = metrics_offset,
+				.count = (int)metrics.size(),
+				.multiplier = multiplier
+			};
+
+			std::string title_with_units = std::string(title) + " [" + prefix + unit + "]";
+			ImPlot::SetupAxes(nullptr, title_with_units.c_str(), ImPlotAxisFlags_NoDecorations, 0);
+			ImPlot::SetupAxesLimits(0, metrics.size() - 1, min_v * multiplier, axis_scale[n] * multiplier, ImGuiCond_Always);
+			ImPlot::SetNextLineStyle(color);
+			ImPlot::SetNextFillStyle(color, 0.25);
+			ImPlot::PlotLineG(title, getter, &gdata, metrics.size(), ImPlotLineFlags_Shaded);
+			// ImPlot::PlotLine(title, &(metrics.data()->*data), metrics.size(), 1, 0, ImPlotLineFlags_Shaded, metrics_offset, sizeof(metric));
+			ImPlot::EndPlot();
+		}
+
+		if (++n % 2 != 0)
+			ImGui::SameLine();
+	}
+
+	ImPlot::PopStyleColor(5);
+	ImGui::End();
+
+	return imgui_ctx->end_frame();
+}
+
+void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 {
 	if (exiting)
 		application::pop_scene();
 
-	XrFrameState framestate = session.wait_frame();
-
 	if (decoders.empty())
-		framestate.shouldRender = false;
+		should_render = false;
 
-	if (!framestate.shouldRender)
+	if (!should_render)
 	{
 		// TODO: stop/restart video stream
 		session.begin_frame();
-		session.end_frame(framestate.predictedDisplayTime, {});
+		session.end_frame(predicted_display_time, {});
 
 		std::unique_lock lock(decoder_mutex);
 		for (auto & i: decoders)
@@ -262,7 +465,7 @@ void scenes::stream::render()
 
 	session.begin_frame();
 
-	auto [flags, views] = session.locate_views(viewconfig, framestate.predictedDisplayTime, world_space);
+	auto [flags, views] = session.locate_views(viewconfig, predicted_display_time, world_space);
 	assert(views.size() == swapchains.size());
 
 	std::array<int, view_count> image_indices;
@@ -326,7 +529,7 @@ void scenes::stream::render()
 			current_blit_handles.push_back(blit_handle);
 
 			blit_handle->feedback.blitted = application::now();
-			blit_handle->feedback.displayed = framestate.predictedDisplayTime;
+			blit_handle->feedback.displayed = predicted_display_time;
 			blit_handle->feedback.real_pose[0] = views[0].pose;
 			blit_handle->feedback.real_pose[1] = views[1].pose;
 
@@ -392,7 +595,7 @@ void scenes::stream::render()
 		layer_view[swapchain_index].subImage.imageRect.extent.height = swapchains[swapchain_index].height();
 	}
 
-	float brightness = std::clamp<float>(dbrightness * (framestate.predictedDisplayTime - first_frame_time) / 1.e9, 0, 1);
+	float brightness = std::clamp<float>(dbrightness * (predicted_display_time - first_frame_time) / 1.e9, 0, 1);
 
 	XrCompositionLayerColorScaleBiasKHR color_scale_bias{
 	        .type = XR_TYPE_COMPOSITION_LAYER_COLOR_SCALE_BIAS_KHR,
@@ -410,8 +613,16 @@ void scenes::stream::render()
 	if (instance.has_extension(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME))
 		layer.next = &color_scale_bias;
 
+	XrCompositionLayerQuad imgui_layer;
+	if (imgui_ctx)
+		imgui_layer = plot_performance_metrics(predicted_display_time);
+
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
-	session.end_frame(/*timestamp*/ framestate.predictedDisplayTime, layers_base);
+
+	if (imgui_ctx)
+		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
+
+	session.end_frame(/*timestamp*/ predicted_display_time, layers_base);
 
 	// Network operations may be blocking, do them once everything was submitted
 	for (const auto& handle: current_blit_handles)
@@ -433,12 +644,6 @@ void scenes::stream::exit()
 	shard_queue.close();
 }
 
-static const std::array supported_formats =
-{
-	vk::Format::eR8G8B8A8Srgb,
-	vk::Format::eB8G8R8A8Srgb
-};
-
 void scenes::stream::setup(const to_headset::video_stream_description & description)
 {
 	std::unique_lock lock(decoder_mutex);
@@ -458,27 +663,6 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	const uint32_t video_height = description.height;
 	const uint32_t swapchain_width = video_width / description.foveation[0].x.scale;
 	const uint32_t swapchain_height = video_height / description.foveation[0].y.scale;
-
-	swapchain_format = vk::Format::eUndefined;
-	spdlog::info("Supported swapchain formats:");
-
-	for (auto format: session.get_swapchain_formats())
-	{
-		spdlog::info("    {}", vk::to_string(format));
-	}
-	for (auto format: session.get_swapchain_formats())
-	{
-		if (std::find(supported_formats.begin(), supported_formats.end(), format) != supported_formats.end())
-		{
-			swapchain_format = format;
-			break;
-		}
-	}
-
-	if (swapchain_format == vk::Format::eUndefined)
-		throw std::runtime_error("No supported swapchain format");
-
-	spdlog::info("Using format {}", vk::to_string(swapchain_format));
 
 	auto views = system.view_configuration_views(viewconfig);
 

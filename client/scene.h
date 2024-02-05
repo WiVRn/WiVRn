@@ -73,6 +73,7 @@ protected:
 	xr::system & system;
 	xr::session & session;
 	xr::space & world_space;
+	xr::space & view_space;
 	XrViewConfigurationType viewconfig;
 
 	vk::raii::Instance& vk_instance;
@@ -99,7 +100,7 @@ public:
 
 	virtual ~scene();
 
-	virtual void render() = 0;
+	virtual void render(XrTime predicted_display_time, bool should_render) = 0;
 	virtual void on_unfocused();
 	virtual void on_focused();
 	virtual void on_interaction_profile_changed();
