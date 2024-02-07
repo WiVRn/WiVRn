@@ -23,6 +23,7 @@
 #include "vk/vk_helpers.h"
 #include <atomic>
 #include <chrono>
+#include <fstream>
 #include <memory>
 #include <mutex>
 #include <vulkan/vulkan.h>
@@ -54,6 +55,8 @@ private:
 	to_headset::video_stream_data_shard shard;
 
 	std::atomic_bool sync_needed = true;
+
+	std::ofstream video_dump;
 
 public:
 	static std::unique_ptr<VideoEncoder> Create(vk_bundle * vk,
