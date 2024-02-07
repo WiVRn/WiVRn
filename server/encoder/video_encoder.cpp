@@ -71,6 +71,23 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 	if (not res)
 		throw std::runtime_error("Failed to create encoder " + settings.encoder_name);
 	res->stream_idx = stream_idx;
+
+	auto wivrn_dump_video= std::getenv("WIVRN_DUMP_VIDEO");
+	if (wivrn_dump_video)
+	{
+		std::string file(wivrn_dump_video);
+		file += "-" + std::to_string(stream_idx);
+		switch (settings.codec)
+		{
+			case h264:
+				file += ".h264";
+				break;
+			case h265:
+				file += ".h265";
+				break;
+		}
+		res->video_dump.open(file);
+	}
 	return res;
 }
 
@@ -102,10 +119,8 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 {
 	std::lock_guard lock(mutex);
-#if 0
-	std::ofstream debug("/tmp/video_dump-" + std::to_string(stream_idx), std::ios::app);
-	debug.write((char*)data.data(), data.size());
-#endif
+	if (video_dump)
+		video_dump.write((char*)data.data(), data.size());
 	if (shard.shard_idx == 0)
 		cnx->dump_time("send_begin", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
 
