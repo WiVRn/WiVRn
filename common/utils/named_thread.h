@@ -29,12 +29,6 @@ namespace utils
 template<typename... Args>
 std::thread named_thread(const std::string& name, Args&&... args)
 {
-	// return std::thread([name, args...](){
-	// 	pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());
- //
-	// 	std::invoke(std::forward<Args>(args)...);
-	// });
-
 	std::thread t{std::forward<Args>(args)...};
 	pthread_setname_np(t.native_handle(), name.substr(0, 15).c_str());
 	return t;

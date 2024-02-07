@@ -128,8 +128,6 @@ public:
 	lobby();
 
 	void render(XrTime predicted_display_time, bool should_render) override;
-	void render_view(XrViewStateFlags flags, XrTime display_time, XrView & view, int swapchain_index, int image_index);
-
 	void on_unfocused() override;
 	void on_focused() override;
 
