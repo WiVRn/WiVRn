@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>OpenXR streaming service</short>
+  <description>WiVRn server streams virtual reality applications over the network.</description>
+  <port protocol="tcp" port="9757"/>
+  <port protocol="udp" port="9757"/>
+</service>
