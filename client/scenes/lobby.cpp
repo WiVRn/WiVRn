@@ -526,7 +526,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	{
 		if (!next_scene->alive())
 			next_scene.reset();
-		else if (next_scene->ready())
+		else if (next_scene->current_state() == scenes::stream::state::streaming)
 			application::push_scene(next_scene);
 	}
 

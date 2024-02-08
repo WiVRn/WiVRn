@@ -35,6 +35,15 @@ namespace scenes
 {
 class stream : public scene_impl<stream>, public std::enable_shared_from_this<stream>
 {
+public:
+	enum class state
+	{
+		initializing,
+		streaming,
+		stalled
+	};
+
+private:
 	static const size_t view_count = 2;
 
 	using stream_description = xrt::drivers::wivrn::to_headset::video_stream_description::item;
@@ -79,8 +88,7 @@ class stream : public scene_impl<stream>, public std::enable_shared_from_this<st
 	std::array<std::pair<XrAction, XrPath>, 2> haptics_actions;
 	std::vector<std::tuple<device_id, XrAction, XrActionType>> input_actions;
 
-	bool ready_ = false;
-	bool video_started_ = false;
+	state state_ = state::initializing;
 	XrTime first_frame_time{};
 	const float dbrightness = 2;
 	bool show_performance_metrics = false;
@@ -116,9 +124,9 @@ public:
 
 	void send_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback);
 
-	bool ready() const
+	state current_state() const
 	{
-		return ready_;
+		return state_ ;
 	}
 
 	bool alive() const

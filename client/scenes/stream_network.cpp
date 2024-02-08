@@ -27,9 +27,9 @@ void scenes::stream::process_packets()
 	{
 		try
 		{
-			int n = network_session->poll(*this, std::chrono::milliseconds(5000));
-			if (n == 0 && video_started_)
-				throw std::runtime_error("Timeout waiting for network packets");
+			int n = network_session->poll(*this, std::chrono::milliseconds(500));
+			if (n == 0 && state_ == state::streaming)
+				state_ = state::stalled;
 		}
 		catch (std::exception & e)
 		{
@@ -41,7 +41,6 @@ void scenes::stream::process_packets()
 
 void scenes::stream::operator()(to_headset::video_stream_data_shard && shard)
 {
-	video_started_ = true;
 	shard_queue.push(std::move(shard));
 }
 

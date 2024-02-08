@@ -230,11 +230,11 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 			}
 		}
 
-		if (!ready_ && std::all_of(decoders.begin(), decoders.end(), [](accumulator_images & i) {
+		if (state_ != state::streaming && std::all_of(decoders.begin(), decoders.end(), [](accumulator_images & i) {
 			    return i.latest_frames.back();
 		    }))
 		{
-			ready_ = true;
+			state_ = state::streaming;
 			first_frame_time = application::now();
 			spdlog::info("Stream scene ready at t={}", first_frame_time);
 		}
@@ -464,6 +464,9 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 
 		return;
 	}
+
+	if (state_ == state::stalled)
+		application::pop_scene();
 
 	session.begin_frame();
 

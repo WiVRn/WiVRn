@@ -23,6 +23,7 @@
 #include "imgui_internal.h"
 #include "lobby.h"
 #include "version.h"
+#include "stream.h"
 #include <spdlog/fmt/fmt.h>
 #include <utils/strings.h>
 
@@ -71,7 +72,12 @@ void scenes::lobby::gui_connecting()
 
 	std::string status;
 	if (next_scene)
-		status = "Waiting for video stream";
+	{
+		if (next_scene->current_state() == scenes::stream::state::stalled)
+			status = "Video stream interrupted";
+		else
+			status = "Waiting for video stream";
+	}
 	else if (async_session.valid())
 		status = async_session.get_progress();
 	else if (async_error)
