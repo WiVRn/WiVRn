@@ -21,6 +21,7 @@
 #include <atomic>
 #include <chrono>
 #include <exception>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <mutex>
