@@ -197,6 +197,7 @@ scenes::lobby::lobby()
 				.autoconnect = i["autoconnect"].get_bool(),
 				.manual = i["manual"].get_bool(),
 				.visible = false,
+				.compatible = true,
 				.service = {
 					.name = (std::string)i["pretty_name"],
 					.hostname = (std::string)i["hostname"],
@@ -411,15 +412,30 @@ void scenes::lobby::update_server_list()
 		data.visible = false;
 	}
 
+	char protocol_string[17];
+	sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
+
 	for(auto& service: discovered_services)
 	{
-		if (service.txt.find("cookie") == service.txt.end())
-		{
-			spdlog::info("Ignored {} because there is no cookie field", service.name);
-			continue;
-		}
+		std::string cookie;
+		bool compatible = true;
 
-		auto cookie = service.txt.at("cookie");
+		auto it = service.txt.find("cookie");
+		if (it == service.txt.end())
+		{
+			cookie = service.hostname;
+			compatible = false;
+		}
+		else
+			cookie = it->second;
+
+		auto protocol = service.txt.find("protocol");
+		if (protocol == service.txt.end())
+			compatible = false;
+
+		if (protocol->second != protocol_string)
+			compatible = false;
+
 		auto server = servers.find(cookie);
 		if (server == servers.end())
 		{
@@ -428,6 +444,7 @@ void scenes::lobby::update_server_list()
 				.autoconnect = false,
 				.manual = false,
 				.visible = true,
+				.compatible = compatible,
 				.service = service
 			});
 		}

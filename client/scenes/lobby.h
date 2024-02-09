@@ -47,6 +47,7 @@ class lobby : public scene_impl<lobby>
 		bool autoconnect;
 		bool manual;
 		bool visible;
+		bool compatible;
 
 		wivrn_discover::service service;
 	};

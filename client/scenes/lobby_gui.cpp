@@ -245,7 +245,7 @@ void scenes::lobby::gui_server_list()
 		button_position.x -= button_size.x + style.WindowPadding.x;
 		ImGui::SetCursorPos(button_position);
 
-		bool enable_connect_button = data.visible || data.manual;
+		bool enable_connect_button = (data.visible || data.manual) && data.compatible;
 		ImGui::BeginDisabled(!enable_connect_button);
 		if (enable_connect_button)
 		{
@@ -265,6 +265,12 @@ void scenes::lobby::gui_server_list()
 			ImGui::OpenPopup("connecting");
 		}
 		vibrate_on_hover();
+
+		if (ImGui::IsItemHovered())
+		{
+			if (!data.compatible)
+				ImGui::SetTooltip("Incompatible server version");
+		}
 
 		ImGui::PopStyleColor(3);
 		ImGui::EndDisabled();
