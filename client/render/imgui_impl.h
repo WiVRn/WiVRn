@@ -42,8 +42,7 @@ class imgui_context
 	struct texture_data
 	{
 		vk::raii::Sampler sampler;
-		std::shared_ptr<vk::Image> image;
-		vk::raii::ImageView image_view;
+		std::shared_ptr<vk::raii::ImageView> image_view;
 		vk::raii::DescriptorSet descriptor_set;
 	};
 

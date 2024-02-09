@@ -46,6 +46,7 @@ namespace
 	{
 		image_allocation allocation;
 		vk::Image image;
+		vk::raii::ImageView image_view = nullptr;
 	};
 
 	struct ktx_image_resources
@@ -53,6 +54,7 @@ namespace
 		ktxVulkanTexture ktx_texture;
 		VkDevice device;
 		vk::Image image;
+		vk::raii::ImageView image_view = nullptr;
 
 		ktx_image_resources() = default;
 		ktx_image_resources(const ktx_image_resources&) = delete;
@@ -155,7 +157,6 @@ int bytes_per_pixel(vk::Format format)
 } // namespace
 
 image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, vk::raii::Queue& queue, vk::raii::CommandPool & cb_pool) :
-	physical_device(physical_device),
 	device(device),
 	queue(queue),
 	cb_pool(cb_pool)
@@ -341,7 +342,20 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	queue.submit(info, *fence);
 	device.waitForFences(*fence, true, 1'000'000'000);
 
-	image = std::shared_ptr<vk::Image>(r, &r->image);
+	r->image_view = vk::raii::ImageView{device, vk::ImageViewCreateInfo{
+							.image = r->image,
+							.viewType = image_view_type,
+							.format = format,
+							.subresourceRange = {
+								.aspectMask = vk::ImageAspectFlagBits::eColor,
+								.baseMipLevel = 0,
+								.levelCount = num_mipmaps,
+								.baseArrayLayer = 0,
+								.layerCount = 1,
+							},
+						}};
+
+	image_view = std::shared_ptr<vk::raii::ImageView>(r, &r->image_view);
 }
 
 void image_loader::do_load_ktx(std::span<const std::byte> bytes)
@@ -386,14 +400,8 @@ void image_loader::do_load_ktx(std::span<const std::byte> bytes)
 	r->ktx_texture = vk_texture;
 	r->device = *device;
 	r->image = vk::Image(vk_texture.image);
-
-	image = std::shared_ptr<vk::Image>(r, &r->image);
-}
-
-void image_loader::create_image_view()
-{
-	image_view = vk::raii::ImageView{device, vk::ImageViewCreateInfo{
-							.image = *image,
+	r->image_view = vk::raii::ImageView{device, vk::ImageViewCreateInfo{
+							.image = r->image,
 							.viewType = image_view_type,
 							.format = format,
 							.subresourceRange = {
@@ -404,6 +412,8 @@ void image_loader::create_image_view()
 								.layerCount = 1,
 							},
 						}};
+
+	image_view = std::shared_ptr<vk::raii::ImageView>(r, &r->image_view);
 }
 
 static constexpr bool starts_with(std::span<const std::byte> data, std::span<const uint8_t> prefix)
@@ -459,8 +469,6 @@ void image_loader::load(std::span<const std::byte> bytes, bool srgb)
 
 		do_load_raw(pixels.get(), extent, format);
 	}
-
-	create_image_view();
 }
 
 // Load raw pixel data
@@ -474,6 +482,4 @@ void image_loader::load(const void * pixels, size_t size, vk::Extent3D extent_, 
 		throw std::invalid_argument("size");
 
 	do_load_raw(pixels, extent_, format_);
-
-	create_image_view();
 }

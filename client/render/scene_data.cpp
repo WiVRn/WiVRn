@@ -342,7 +342,7 @@ static fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 		return fastgltf::MimeType::None;
 }
 
-static std::shared_ptr<scene_data::image> do_load_image(
+static std::shared_ptr<vk::raii::ImageView> do_load_image(
         vk::raii::PhysicalDevice & physical_device,
         vk::raii::Device & device,
 	vk::raii::Queue & queue,
@@ -362,7 +362,7 @@ static std::shared_ptr<scene_data::image> do_load_image(
 				loader.load(image_data, srgb);
 
 				spdlog::debug("Loaded image {}x{}, format {}, {} mipmaps", loader.extent.width, loader.extent.height, vk::to_string(loader.format), loader.num_mipmaps);
-				return std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
+				return loader.image_view;
 			}
 			catch(std::exception& e)
 			{
@@ -401,7 +401,6 @@ public:
 	               vk::raii::Queue & queue,
 	               vk::raii::CommandPool & cb_pool) :
 	        base_directory(base_directory),
-	        // loader(physical_device, device, queue, cb_pool),
 	        gltf(gltf),
 	        physical_device(physical_device),
 	        device(device),
@@ -480,8 +479,8 @@ public:
 		                  source);
 	}
 
-	std::unordered_map<int, std::shared_ptr<scene_data::image>> images;
-	std::shared_ptr<scene_data::image> load_image(int index, bool srgb)
+	std::unordered_map<int, std::shared_ptr<vk::raii::ImageView>> images;
+	std::shared_ptr<vk::raii::ImageView> load_image(int index, bool srgb)
 	{
 		auto it = images.find(index);
 		if (it != images.end())
@@ -523,13 +522,9 @@ public:
 
 			if (gltf_texture.basisuImageIndex)
 			{
-				std::shared_ptr<scene_data::image> image = load_image(*gltf_texture.basisuImageIndex, srgb);
-				if (image)
-				{
-					// Use the aliasing constructor so that the image_view has the same lifetime as the image
-					texture_ref.image_view = std::shared_ptr<vk::raii::ImageView>(image, &image->image_view);
+				texture_ref.image_view = load_image(*gltf_texture.basisuImageIndex, srgb);
+				if (texture_ref.image_view)
 					continue;
-				}
 			}
 
 			// if (gltf_texture.ddsImageIndex)
@@ -544,12 +539,9 @@ public:
 
 			if (gltf_texture.imageIndex)
 			{
-				std::shared_ptr<scene_data::image> image = load_image(*gltf_texture.imageIndex, srgb);
-				if (image)
-				{
-					texture_ref.image_view = std::shared_ptr<vk::raii::ImageView>(image, &image->image_view);
+				texture_ref.image_view = load_image(*gltf_texture.imageIndex, srgb);
+				if (texture_ref.image_view)
 					continue;
-				}
 			}
 
 			throw std::runtime_error("Unsupported image type");

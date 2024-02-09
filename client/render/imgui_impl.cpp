@@ -553,7 +553,7 @@ ImTextureID imgui_context::load_texture(const std::string& filename, vk::raii::S
 
 	vk::DescriptorImageInfo image_info{
 		.sampler = *sampler,
-		.imageView = *loader.image_view,
+		.imageView = **loader.image_view,
 		.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 	};
 
@@ -570,7 +570,7 @@ ImTextureID imgui_context::load_texture(const std::string& filename, vk::raii::S
 
 	textures.emplace(id, texture_data{
 		.sampler = std::move(sampler),
-		.image = std::move(loader.image),
+		// .image = std::move(loader.image),
 		.image_view = std::move(loader.image_view),
 		.descriptor_set = std::move(ds),
 	});

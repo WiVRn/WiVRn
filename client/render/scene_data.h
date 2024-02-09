@@ -59,12 +59,6 @@ class node_handle;
 
 struct scene_data
 {
-	struct image
-	{
-		std::shared_ptr<vk::Image> image_;
-		vk::raii::ImageView image_view = nullptr;
-	};
-
 	struct texture
 	{
 		std::shared_ptr<vk::raii::ImageView> image_view;

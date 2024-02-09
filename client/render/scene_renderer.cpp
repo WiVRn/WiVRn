@@ -97,9 +97,7 @@ std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::
 	image_loader loader(physical_device, device, queue, cb_pool);
 	loader.load(pixel, vk::Extent3D{1, 1, 1}, format);
 
-	auto image = std::make_shared<scene_data::image>(std::move(loader.image), std::move(loader.image_view));
-
-	std::shared_ptr<vk::raii::ImageView> image_view(image, &image->image_view);
+	std::shared_ptr<vk::raii::ImageView> image_view = loader.image_view;
 
 	return std::make_shared<scene_data::texture>(image_view, sampler_info{});
 }

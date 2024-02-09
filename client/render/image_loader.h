@@ -27,19 +27,19 @@
 #include <memory>
 #include <span>
 #include <tuple>
-#include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan.hpp>
+#include "vk/fwd.h"
 
 struct ktxVulkanDeviceInfo;
-struct ktxVulkanTexture;
 
 struct image_loader
 {
-	std::shared_ptr<vk::Image> image;
-	vk::raii::ImageView image_view = nullptr;
-
+	vk::Image image;
 	vk::Format format;
 	vk::Extent3D extent;
 	vk::ImageViewType image_view_type;
+
+	std::shared_ptr<vk::raii::ImageView> image_view;
 
 	uint32_t num_mipmaps;
 
@@ -75,7 +75,6 @@ struct image_loader
 private:
 	ktxVulkanDeviceInfo * vdi = nullptr;
 
-	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
 	vk::raii::Queue & queue;
 	vk::raii::CommandPool & cb_pool;
