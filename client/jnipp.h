@@ -124,6 +124,11 @@ struct klass
 		self.reset(env.GetObjectClass(instance));
 	}
 
+	klass(const char * name) :
+	        self(jni_thread::env().FindClass(name))
+	{
+	}
+
 	template <typename T>
 	T field(const std::string & name)
 	{
@@ -165,6 +170,8 @@ struct Bool
 
 struct Int
 {
+	constexpr static auto static_field = &_JNIEnv::GetStaticIntField;
+
 	static std::string type()
 	{
 		return "I";

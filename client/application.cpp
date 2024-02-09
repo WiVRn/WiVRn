@@ -954,6 +954,8 @@ void application::set_wifi_locks(bool enabled)
 
 	jni::string lock_name("WiVRn");
 
+	static int api_level = jni::klass("android/os/Build$VERSION").field<jni::Int>("SDK_INT");
+
 	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
 	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
 	auto wifi_service_id = ctx.klass().field<jni::string>("WIFI_SERVICE");
@@ -970,7 +972,10 @@ void application::set_wifi_locks(bool enabled)
 		spdlog::info("MulticastLock is not acquired");
 	}
 
-	auto wifi_lock = system_service.call<jni::object<"android/net/wifi/WifiManager$WifiLock">>("createWifiLock", jni::Int(3) /*WIFI_MODE_FULL_HIGH_PERF*/, lock_name);
+	auto wifi_lock = system_service.call<jni::object<"android/net/wifi/WifiManager$WifiLock">>(
+	        "createWifiLock",
+	        jni::Int(api_level >= 29 ? 4 /*WIFI_MODE_FULL_LOW_LATENCY*/ : 3 /*WIFI_MODE_FULL_HIGH_PERF*/),
+	        lock_name);
 	wifi_lock.call<void>("setReferenceCounted", jni::Bool(false));
 	wifi_lock.call<void>(enabled ? "acquire" : "release");
 	if (wifi_lock.call<jni::Bool>("isHeld"))
