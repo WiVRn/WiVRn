@@ -295,8 +295,10 @@ scenes::stream::metric scenes::stream::get_metrics(XrTime predicted_display_time
 	uint64_t tx = network_session->bytes_sent();
 
 	float dt = (predicted_display_time - last_metric_time) * 1e-9f;
-	float bandwidth_rx = float(rx - bytes_received) / dt;
-	float bandwidth_tx = float(tx - bytes_sent ) /dt;
+
+	bandwidth_rx = 0.8 * bandwidth_rx + 0.2 * float(rx - bytes_received) / dt;
+	bandwidth_tx = 0.8 * bandwidth_tx + 0.2 * float(tx - bytes_sent ) /dt;
+
 	last_metric_time = predicted_display_time;
 	bytes_received = rx;
 	bytes_sent = tx;

@@ -139,6 +139,8 @@ private:
 
 	uint64_t bytes_sent = 0;
 	uint64_t bytes_received = 0;
+	float bandwidth_rx = 0;
+	float bandwidth_tx = 0;
 
 	struct metric
 	{
