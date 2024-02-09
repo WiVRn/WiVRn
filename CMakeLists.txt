@@ -21,7 +21,7 @@ option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 auto_option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" AUTO)
 auto_option(WIVRN_USE_SYSTEMD "Use libsystemd, required to show pretty hostname" AUTO)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
-option(WIVRN_BUILD_CLIENT "Build WiVRn client" ON)
+option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
 
 auto_option(WIVRN_USE_NVENC "Enable nvenc (Nvidia) hardware encoder" AUTO)
