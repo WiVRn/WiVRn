@@ -547,7 +547,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 		auto [csd, not_csd] = filter_csd(contiguous_data, description.codec);
 		if (csd.empty())
 		{
-			// TODO request I frame
+			// We can't initizale the encoder, drop the data
 			return;
 		}
 
@@ -593,8 +593,17 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 
 void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
 {
-	// nothing required for decoder, mediacodec will callback when done
+	if (not media_codec)
+	{
+		// If media_codec is not initialized, frame processing ends here
+		auto scene = weak_scene.lock();
+		if (scene)
+		{
+			scene->send_feedback(feedback);
+		}
+	}
 
+	// nothing required for decoder, mediacodec will callback when done
 	feedback.sent_to_decoder = application::now();
 	frame_infos.push(std::make_pair(feedback, view_info));
 }
