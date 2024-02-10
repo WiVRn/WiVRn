@@ -109,10 +109,15 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 {
 	std::lock_guard lock(mutex);
-#if 0
-	std::ofstream debug("/tmp/video_dump-" + std::to_string(stream_idx), std::ios::app);
-	debug.write((char*)data.data(), data.size());
-#endif
+
+	// Dump video to disk if WIVRN_DUMP_VIDEO
+	auto video_dump = std::getenv("WIVRN_DUMP_VIDEO");
+	if (video_dump)
+	{
+		std::ofstream debug("/tmp/video_dump-" + std::to_string(stream_idx), std::ios::app);
+		debug.write((char*)data.data(), data.size());
+	}
+
 	if (shard.shard_idx == 0)
 		cnx->dump_time("send_begin", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
 
