@@ -20,6 +20,7 @@
 #include "yuv_converter.h"
 
 #include <map>
+#include <span>
 #include <vector>
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
