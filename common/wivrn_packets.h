@@ -257,7 +257,7 @@ public:
 	uint16_t shard_idx;
 	uint8_t flags;
 
-	// Position information, must be present on last video shard
+	// Position information, must be present on first video shard
 	struct view_info_t
 	{
 		// ns in headset time referential
@@ -267,6 +267,15 @@ public:
 		std::array<XrFovf, 2> fov;
 	};
 	std::optional<view_info_t> view_info;
+
+	// Information about timing, on last video shard
+	struct timing_info_t
+	{
+		uint64_t encode_begin;
+		uint64_t send_begin;
+		uint64_t send_end;
+	};
+	std::optional<timing_info_t> timing_info;
 	// Actual video data, may contain multiple NAL units
 	std::span<uint8_t> payload;
 

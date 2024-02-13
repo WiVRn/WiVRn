@@ -21,6 +21,7 @@
 
 #include "vk/vk_cmd_pool.h"
 #include "vk/vk_helpers.h"
+#include "driver/clock_offset.h"
 #include <atomic>
 #include <chrono>
 #include <fstream>
@@ -53,6 +54,9 @@ private:
 
 	// shard to send
 	to_headset::video_stream_data_shard shard;
+
+	to_headset::video_stream_data_shard::timing_info_t timing_info;
+	clock_offset clock;
 
 	std::atomic_bool sync_needed = true;
 
