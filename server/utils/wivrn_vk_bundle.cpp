@@ -55,7 +55,7 @@ wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> request
 	{
 		for (const char * requested: requested_instance_extensions)
 		{
-			if (ext.extensionName == std::string(requested))
+			if (std::string(requested) == ext.extensionName)
 			{
 				instance_extensions.push_back(requested);
 				break;
@@ -137,7 +137,7 @@ wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> request
 	{
 		for (const char * requested: requested_device_extensions)
 		{
-			if (ext.extensionName == std::string(requested))
+			if (std::string(requested) == ext.extensionName)
 			{
 				device_extensions.push_back(requested);
 				break;
