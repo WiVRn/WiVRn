@@ -150,7 +150,7 @@ private:
 	float bandwidth_rx = 0;
 	float bandwidth_tx = 0;
 
-	struct metric
+	struct global_metric
 	{
 		float cpu_time = 0;
 		float gpu_time = 0;
@@ -158,12 +158,26 @@ private:
 		float bandwidth_tx = 0;
 	};
 
-	std::vector<metric> metrics{300};
+	struct decoder_metric
+	{
+		// All times are in seconds relative to encode_begin
+		float send_begin;
+		float send_end;
+		float received_first_packet;
+		float received_last_packet;
+		float sent_to_decoder;
+		float received_from_decoder;
+		float blitted;
+		float displayed;
+	};
+
+	std::vector<global_metric> global_metrics{300};
+	std::vector<std::vector<decoder_metric>> decoder_metrics;
 	std::vector<float> axis_scale;
 	XrTime last_metric_time = 0;
 	int metrics_offset = 0;
-	metric get_metrics(XrTime predicted_display_time);
 
+	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>>& blit_handles);
 	XrCompositionLayerQuad plot_performance_metrics(XrTime predicted_display_time);
 };
 } // namespace scenes

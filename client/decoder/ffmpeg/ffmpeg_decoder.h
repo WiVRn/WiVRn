@@ -93,7 +93,7 @@ public:
 
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
-	void frame_completed(const xrt::drivers::wivrn::from_headset::feedback &, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
+	void frame_completed(const xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 
 	const auto & desc() const
 	{
@@ -103,6 +103,7 @@ public:
 	struct blit_handle
 	{
 		xrt::drivers::wivrn::from_headset::feedback feedback;
+		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 		int image_index;
 		VkImage image;

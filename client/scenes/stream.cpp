@@ -36,7 +36,6 @@
 #include <vulkan/vulkan_core.h>
 #include "audio/audio.h"
 #include "hardware.h"
-#include "implot.h"
 
 using namespace xrt::drivers::wivrn;
 
@@ -289,158 +288,6 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 	return nullptr;
 }
 
-scenes::stream::metric scenes::stream::get_metrics(XrTime predicted_display_time)
-{
-	uint64_t rx = network_session->bytes_received();
-	uint64_t tx = network_session->bytes_sent();
-
-	float dt = (predicted_display_time - last_metric_time) * 1e-9f;
-
-	bandwidth_rx = 0.8 * bandwidth_rx + 0.2 * float(rx - bytes_received) / dt;
-	bandwidth_tx = 0.8 * bandwidth_tx + 0.2 * float(tx - bytes_sent ) /dt;
-
-	last_metric_time = predicted_display_time;
-	bytes_received = rx;
-	bytes_sent = tx;
-
-	return metric{
-		.cpu_time = application::get_cpu_time().count() * 1e-9f,
-		.gpu_time = application::get_gpu_time().count() * 1e-9f,
-		.bandwidth_rx = bandwidth_rx * 8,
-		.bandwidth_tx = bandwidth_tx * 8,
-	};
-}
-
-static float compute_plot_max_value(float * data, int count, ptrdiff_t stride)
-{
-	float max = 0;
-	uintptr_t ptr = (uintptr_t)data;
-	for(int i = 0; i < count; i++)
-	{
-		max = std::max(max, *(float*)(ptr + i * stride));
-	}
-
-	// First power of 10 less than the max
-	float x = pow(10, floor(log10(max)));
-	return ceil(max / x) * x;
-}
-
-static std::pair<float, std::string> compute_plot_unit(float max_value)
-{
-	if (max_value > 1e9)
-		return { 1e-9, "G" };
-	if (max_value > 1e6)
-		return { 1e-6, "M" };
-	if (max_value > 1e3)
-		return { 1e-3, "k" };
-	if (max_value > 1)
-		return { 1, "" };
-	if (max_value > 1e-3)
-		return { 1e3, "m" };
-	if (max_value > 1e-6)
-		return { 1e6, "u" };
-	return { 1e9, "n" };
-}
-
-struct getter_data
-{
-	uintptr_t data;
-	int stride;
-	int offset;
-	int count;
-	float multiplier;
-};
-
-static ImPlotPoint getter(int index, void * data_)
-{
-	getter_data& data = *(getter_data*)data_;
-
-	int offset_index = (index + data.offset) % data.count;
-
-	return ImPlotPoint(index, *(float*)(data.data + offset_index * data.stride) * data.multiplier);
-}
-
-XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted_display_time)
-{
-	imgui_ctx->new_frame(predicted_display_time);
-	const ImGuiStyle & style = ImGui::GetStyle();
-
-	ImGui::SetNextWindowPos({0, 0});
-	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
-	ImGui::Begin("Performance metrics", nullptr,
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove);
-
-	ImVec2 window_size = ImGui::GetWindowSize() - ImVec2(2,2) * style.WindowPadding;
-
-	metrics[metrics_offset] = get_metrics(predicted_display_time);
-	metrics_offset = (metrics_offset + 1) % metrics.size();
-
-	static const std::array plots = {
-		std::make_tuple(ImPlot::GetColormapColor(0), "CPU time", "s",   &metric::cpu_time),
-		std::make_tuple(ImPlot::GetColormapColor(1), "GPU time", "s",   &metric::gpu_time),
-		std::make_tuple(ImPlot::GetColormapColor(2), "Download", "bit/s", &metric::bandwidth_rx),
-		std::make_tuple(ImPlot::GetColormapColor(3), "Upload",   "bit/s", &metric::bandwidth_tx),
-	};
-
-	axis_scale.resize(plots.size());
-
-	int n_cols = 2;
-	int n_rows = ceil((float)plots.size() / n_cols);
-
-	ImVec2 plot_size = ImVec2(
-		window_size.x / n_cols - style.ItemSpacing.x * (n_cols-1) / n_cols,
-		window_size.y / n_rows - style.ItemSpacing.y * (n_rows-1) / n_rows);
-
-	ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
-	ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
-	ImPlot::PushStyleColor(ImPlotCol_AxisBg, IM_COL32(0, 0, 0, 0));
-	ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
-	ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
-
-	int n = 0;
-	for(auto [color, title, unit, data]: plots)
-	{
-		if (ImPlot::BeginPlot(title, plot_size, ImPlotFlags_CanvasOnly|ImPlotFlags_NoChild))
-		{
-			float min_v = 0;
-			float max_v = compute_plot_max_value(&(metrics.data()->*data), metrics.size(), sizeof(metric));
-			auto [ multiplier, prefix ] = compute_plot_unit(max_v);
-
-			if (axis_scale[n] == 0)
-				axis_scale[n] = max_v;
-			else
-				axis_scale[n] = 0.99 * axis_scale[n] + 0.01 * max_v;
-
-			getter_data gdata{
-				.data = (uintptr_t)&(metrics.data()->*data),
-				.stride = sizeof(metric),
-				.offset = metrics_offset,
-				.count = (int)metrics.size(),
-				.multiplier = multiplier
-			};
-
-			std::string title_with_units = std::string(title) + " [" + prefix + unit + "]";
-			ImPlot::SetupAxes(nullptr, title_with_units.c_str(), ImPlotAxisFlags_NoDecorations, 0);
-			ImPlot::SetupAxesLimits(0, metrics.size() - 1, min_v * multiplier, axis_scale[n] * multiplier, ImGuiCond_Always);
-			ImPlot::SetNextLineStyle(color);
-			ImPlot::SetNextFillStyle(color, 0.25);
-			ImPlot::PlotLineG(title, getter, &gdata, metrics.size(), ImPlotLineFlags_Shaded);
-			// ImPlot::PlotLine(title, &(metrics.data()->*data), metrics.size(), 1, 0, ImPlotLineFlags_Shaded, metrics_offset, sizeof(metric));
-			ImPlot::EndPlot();
-		}
-
-		if (++n % 2 != 0)
-			ImGui::SameLine();
-	}
-
-	ImPlot::PopStyleColor(5);
-	ImGui::End();
-
-	return imgui_ctx->end_frame();
-}
-
 void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 {
 	if (exiting)
@@ -620,7 +467,10 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 
 	XrCompositionLayerQuad imgui_layer;
 	if (imgui_ctx)
+	{
+		accumulate_metrics(predicted_display_time, current_blit_handles);
 		imgui_layer = plot_performance_metrics(predicted_display_time);
+	}
 
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 

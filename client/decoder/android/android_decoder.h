@@ -79,6 +79,7 @@ public:
 	struct blit_handle
 	{
 		xrt::drivers::wivrn::from_headset::feedback feedback;
+		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 
 		std::shared_ptr<mapped_hardware_buffer> vk_data;
@@ -108,7 +109,14 @@ private:
 
 	utils::sync_queue<int32_t> input_buffers;
 	utils::sync_queue<int32_t> output_buffers;
-	utils::sync_queue<std::pair<xrt::drivers::wivrn::from_headset::feedback, xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t>> frame_infos;
+
+	struct frame_info
+	{
+		xrt::drivers::wivrn::from_headset::feedback feedback;
+		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
+		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
+	};
+	utils::sync_queue<frame_info> frame_infos;
 
 	std::thread output_releaser;
 	static void on_media_error(AMediaCodec *, void * userdata, media_status_t error, int32_t actionCode, const char * detail);
@@ -141,7 +149,7 @@ public:
 
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
-	void frame_completed(xrt::drivers::wivrn::from_headset::feedback &, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
+	void frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 
 	const auto & desc() const
 	{

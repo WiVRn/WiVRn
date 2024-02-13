@@ -591,7 +591,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 	push_nals(data, fake_timestamp_us, partial ? AMEDIACODEC_BUFFER_FLAG_PARTIAL_FRAME : 0);
 }
 
-void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
+void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
 {
 	if (not media_codec)
 	{
@@ -605,7 +605,11 @@ void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feed
 
 	// nothing required for decoder, mediacodec will callback when done
 	feedback.sent_to_decoder = application::now();
-	frame_infos.push(std::make_pair(feedback, view_info));
+	frame_infos.push(frame_info{
+		.feedback = feedback,
+		.timing_info = timing_info,
+		.view_info = view_info,
+	});
 }
 
 void decoder::on_image_available(void * context, AImageReader * reader)
@@ -634,9 +638,9 @@ void decoder::on_image_available(AImageReader * reader)
 		check(AImage_getTimestamp(image, &fake_timestamp_ns), "AImage_getTimestamp");
 		uint64_t frame_index = (fake_timestamp_ns + 5'000'000) / (10'000'000);
 
-		frame_infos.drop_until([frame_index](auto & x) { return x.first.frame_index >= frame_index; });
+		frame_infos.drop_until([frame_index](auto & x) { return x.feedback.frame_index >= frame_index; });
 
-		auto info = frame_infos.pop_if([frame_index](auto & x) { return x.first.frame_index == frame_index; });
+		auto info = frame_infos.pop_if([frame_index](auto & x) { return x.feedback.frame_index == frame_index; });
 
 		if (!info)
 		{
@@ -645,14 +649,13 @@ void decoder::on_image_available(AImageReader * reader)
 			return;
 		}
 
-		auto [feedback, view_info] = *info;
-
-		feedback.received_from_decoder = application::now();
-		assert(feedback.frame_index == frame_index);
+		info->feedback.received_from_decoder = application::now();
+		assert(info->feedback.frame_index == frame_index);
 
 		auto handle = std::make_shared<decoder::blit_handle>();
-		handle->feedback = feedback;
-		handle->view_info = view_info;
+		handle->feedback = info->feedback;
+		handle->timing_info = info->timing_info;
+		handle->view_info = info->view_info;
 		handle->vk_data = map_hardware_buffer(image);
 		handle->aimage = image;
 

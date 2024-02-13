@@ -193,7 +193,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 	this->frame_index = frame_index;
 }
 
-void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
+void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
 {
 	spdlog::trace("ffmpeg decoder:frame_completed {}", frame_index);
 	AVPacket packet{};
@@ -210,7 +210,7 @@ void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback 
 		if (res == AVERROR(EAGAIN))
 		{
 			spdlog::warn("EAGAIN in avcodec_send_packet");
-			frame_completed(feedback, view_info);
+			frame_completed(feedback, timing_info, view_info);
 		}
 	}
 	if (res < 0)
@@ -250,6 +250,7 @@ void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback 
 
 	auto handle = std::make_shared<decoder::blit_handle>();
 	handle->feedback = feedback;
+	handle->timing_info = timing_info;
 	handle->view_info = view_info;
 	handle->image = decoded_images[index].image;
 	handle->image_index = index;

@@ -176,8 +176,13 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	uint64_t frame_index = data_shards[0]->frame_idx;
 	std::vector<std::span<const uint8_t>> payload;
 	payload.reserve(data_shards.size());
+
+	data_shard::timing_info_t timing_info{};
 	for (const auto & shard: data_shards)
 	{
+		if (shard->timing_info)
+			timing_info = *shard->timing_info;
+
 		payload.emplace_back(shard->payload);
 	}
 	decoder->push_data(payload, frame_index, false);
@@ -191,7 +196,7 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	feedback.received_pose = data_shards.front()->view_info->pose;
 
 	// Try to extract a frame
-	decoder->frame_completed(feedback, *data_shards.front()->view_info);
+	decoder->frame_completed(feedback, timing_info, *data_shards.front()->view_info);
 
 	advance();
 }
