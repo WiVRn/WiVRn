@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "application.h"
 #include "imgui.h"
 #include "implot.h"
@@ -233,11 +235,9 @@ void scenes::lobby::gui_server_list()
 		if (!data.manual)
 		{
 			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
-			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,1,0,1));
 			if (ImGui::Checkbox(("Autoconnect##" + cookie).c_str(), &data.autoconnect))
 				save_config();
 			vibrate_on_hover();
-			ImGui::PopStyleColor();
 		}
 
 		// TODO

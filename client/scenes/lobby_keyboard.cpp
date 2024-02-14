@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "lobby.h"
@@ -311,7 +313,7 @@ static void draw_single_key(const key& k, int key_id, ImVec2 size_arg)
 		return /*false*/;
 
 	bool hovered, held;
-	bool pressed = button_behavior(bb, id, &hovered, &held, flags);
+	[[maybe_unused]] bool pressed = button_behavior(bb, id, &hovered, &held, flags);
 
 	// Render
 	const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);

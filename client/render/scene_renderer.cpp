@@ -220,7 +220,8 @@ void scene_renderer::wait_idle()
 	for(auto&& [i, f]: utils::enumerate(frame_resources))
 		fences[i] = *f.fence;
 
-	device.waitForFences(fences, true, 1'000'000'000); // TODO check for timeout
+	if (auto result = device.waitForFences(fences, true, 1'000'000'000); result != vk::Result::eSuccess)
+		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 }
 
 // #define MSAA_4x
@@ -537,7 +538,8 @@ void scene_renderer::start_frame()
 	current_frame_index = (current_frame_index + 1) % frame_resources.size();
 
 	auto& f = current_frame();
-	device.waitForFences(*f.fence, true, 1'000'000'000);
+	if (auto result = device.waitForFences(*f.fence, true, 1'000'000'000); result != vk::Result::eSuccess)
+		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 	device.resetFences(*f.fence);
 
 	f.resources.clear();

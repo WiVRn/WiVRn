@@ -16,7 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "imgui_impl.h"
 #include "implot.h"
 
@@ -38,7 +37,7 @@
 #include <optional>
 #include "image_loader.h"
 
-#include "../external/IconsFontAwesome6.h"
+#include "IconsFontAwesome6.h"
 
 /* Do not use:
  *
@@ -472,7 +471,8 @@ XrCompositionLayerQuad imgui_context::end_frame()
 	auto& cb = get_command_buffer().command_buffer;
 	auto& fence = get_command_buffer().fence;
 
-	device.waitForFences(*fence, true, 1'000'000'000); // TODO check timeout
+	if (auto result = device.waitForFences(*fence, true, 1'000'000'000); result != vk::Result::eSuccess)
+		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 	device.resetFences(*fence);
 
 	cb.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
@@ -531,7 +531,8 @@ imgui_context::~imgui_context()
 	}
 
 	// Wait for fences before ImGui_ImplVulkan_Shutdown is called
-	device.waitForFences(fences, true, 1'000'000'000);
+	if (auto result = device.waitForFences(fences, true, 1'000'000'000); result != vk::Result::eSuccess)
+		spdlog::error("vkWaitForfences: {}", vk::to_string(result));
 
 	ImGui_ImplVulkan_Shutdown();
 	ImPlot::DestroyContext();

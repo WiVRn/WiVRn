@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "stream.h"
 
 #include "application.h"
@@ -202,7 +204,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 	for(auto&& [index, metrics]: utils::enumerate(decoder_metrics))
 	{
 		std::string title = "Decoder " + std::to_string(index);
-		if (ImPlot::BeginPlot(title.c_str(), plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(title.c_str(), plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText | ImPlotFlags_NoChild))
 		{
 			float min_v = 0;
 			float max_v = compute_plot_max_value(&(metrics.data()->displayed), metrics.size(), sizeof(decoder_metric));

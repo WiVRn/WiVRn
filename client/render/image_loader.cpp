@@ -340,7 +340,8 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	info.setCommandBuffers(*cb);
 	auto fence = device.createFence(vk::FenceCreateInfo{});
 	queue.submit(info, *fence);
-	device.waitForFences(*fence, true, 1'000'000'000);
+	if (auto result = device.waitForFences(*fence, true, 1'000'000'000); result != vk::Result::eSuccess)
+		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 
 	r->image_view = vk::raii::ImageView{device, vk::ImageViewCreateInfo{
 							.image = r->image,

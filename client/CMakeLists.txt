@@ -96,7 +96,6 @@ target_compile_definitions(wivrn PRIVATE IMGUI_USE_WCHAR32)
 target_compile_definitions(wivrn PRIVATE IMGUI_ENABLE_FREETYPE)
 # target_compile_definitions(wivrn PRIVATE IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
 # target_compile_definitions(wivrn PRIVATE IMGUI_ENABLE_FREETYPE_LUNASVG)
-target_compile_definitions(wivrn PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
 
 target_compile_features(wivrn PRIVATE cxx_std_20)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
