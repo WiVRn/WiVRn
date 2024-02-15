@@ -20,7 +20,6 @@
 #include "wivrn_comp_target.h"
 #include "main/comp_compositor.h"
 #include "math/m_space.h"
-#include "util/u_pacing.h"
 #include "encoder/video_encoder.h"
 #include "vk/vk_cmd_pool.h"
 #include "xrt_cast.h"
@@ -131,6 +130,7 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 		std::string name = "encoder " + std::to_string(group);
 		os_thread_helper_name(&thread.thread, name.c_str());
 	}
+	cn->pacer.set_stream_count(cn->encoders.size());
 	cn->cnx->send_control(desc);
 }
 
@@ -356,10 +356,6 @@ static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
 	uint64_t now_ns = os_monotonic_get_ns();
-	if (cn->upc == NULL)
-	{
-		u_pc_fake_create(ct->c->settings.nominal_frame_interval_ns, now_ns, &cn->upc);
-	}
 
 	// Free old images.
 	destroy_images(cn);
@@ -604,36 +600,12 @@ static void comp_wivrn_calc_frame_pacing(struct comp_target * ct,
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
-	int64_t frame_id /*= ++cn->current_frame_id*/; //-1;
-	uint64_t desired_present_time_ns /*= cn->next_frame_timestamp*/;
-	uint64_t wake_up_time_ns /*= desired_present_time_ns - 5 * U_TIME_1MS_IN_NS*/;
-	uint64_t present_slop_ns /*= U_TIME_HALF_MS_IN_NS*/;
-	uint64_t predicted_display_time_ns /*= desired_present_time_ns + 5 * U_TIME_1MS_IN_NS*/;
-
-#if 1
-	uint64_t predicted_display_period_ns = U_TIME_1S_IN_NS / 60;
-	uint64_t min_display_period_ns = predicted_display_period_ns;
-	uint64_t now_ns = os_monotonic_get_ns();
-
-	u_pc_predict(cn->upc,                      //
-	             now_ns,                       //
-	             &frame_id,                    //
-	             &wake_up_time_ns,             //
-	             &desired_present_time_ns,     //
-	             &present_slop_ns,             //
-	             &predicted_display_time_ns,   //
-	             &predicted_display_period_ns, //
-	             &min_display_period_ns);      //
-
-	cn->current_frame_id = frame_id;
-
-#endif
-
-	*out_frame_id = frame_id;
-	*out_wake_up_time_ns = wake_up_time_ns;
-	*out_desired_present_time_ns = desired_present_time_ns;
-	*out_predicted_display_time_ns = predicted_display_time_ns;
-	*out_present_slop_ns = present_slop_ns;
+	cn->pacer.predict(
+	        *out_wake_up_time_ns,
+	        *out_desired_present_time_ns,
+	        *out_present_slop_ns,
+	        *out_predicted_display_time_ns);
+	*out_frame_id = cn->current_frame_id;
 }
 
 static void comp_wivrn_mark_timing_point(struct comp_target * ct,
@@ -644,22 +616,20 @@ static void comp_wivrn_mark_timing_point(struct comp_target * ct,
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 	assert(frame_id == cn->current_frame_id);
 
+	cn->pacer.mark_timing_point(point, frame_id, when_ns);
+
 	switch (point)
 	{
 		case COMP_TARGET_TIMING_POINT_WAKE_UP:
 			cn->cnx->dump_time("wake_up", cn->frame_index + 1, when_ns);
-			u_pc_mark_point(cn->upc, U_TIMING_POINT_WAKE_UP, cn->current_frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_BEGIN:
 			cn->cnx->dump_time("begin", cn->frame_index + 1, when_ns);
-			u_pc_mark_point(cn->upc, U_TIMING_POINT_BEGIN, cn->current_frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_SUBMIT_BEGIN:
-			u_pc_mark_point(cn->upc, U_TIMING_POINT_SUBMIT_BEGIN, cn->current_frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_SUBMIT_END:
 			cn->cnx->dump_time("submit", cn->frame_index + 1, when_ns);
-			u_pc_mark_point(cn->upc, U_TIMING_POINT_SUBMIT_END, cn->current_frame_id, when_ns);
 			break;
 		default:
 			assert(false);
@@ -689,14 +659,11 @@ static void comp_wivrn_destroy(struct comp_target * ct)
 static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, uint64_t gpu_start_ns, uint64_t gpu_end_ns, uint64_t when_ns)
 {
 	COMP_TRACE_MARKER();
-
-	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
-
-	u_pc_info_gpu(cn->upc, frame_id, gpu_start_ns, gpu_end_ns, when_ns);
 }
 
 void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, const clock_offset & o)
 {
+	pacer.on_feedback(feedback, o);
 	if (not feedback.sent_to_decoder)
 	{
 		if (encoders.size() < feedback.stream_index)
@@ -707,6 +674,7 @@ void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, con
 
 wivrn_comp_target::wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps) :
         comp_target{},
+        pacer(U_TIME_1S_IN_NS / fps),
         cnx(cnx)
 {
 	check_ready = comp_wivrn_check_ready;

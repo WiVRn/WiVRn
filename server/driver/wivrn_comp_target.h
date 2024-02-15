@@ -29,8 +29,7 @@
 #include <list>
 #include <memory>
 #include <vector>
-
-struct u_pacing_compositor;
+#include "driver/wivrn_pacer.h"
 
 namespace xrt::drivers::wivrn
 {
@@ -54,8 +53,7 @@ struct pseudo_swapchain
 
 struct wivrn_comp_target : public comp_target
 {
-	//! Compositor frame pacing helper
-	u_pacing_compositor * upc{};
+	wivrn_pacer pacer;
 
 	vk_cmd_pool pool;
 

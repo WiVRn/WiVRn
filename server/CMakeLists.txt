@@ -71,6 +71,7 @@ add_executable(wivrn-server
 		encoder/yuv_converter.cpp
 		driver/clock_offset.cpp
 		driver/wivrn_hmd.cpp
+		driver/wivrn_pacer.cpp
 		driver/wivrn_comp_target.cpp
 		driver/wivrn_controller.cpp
 		driver/pose_list.cpp
