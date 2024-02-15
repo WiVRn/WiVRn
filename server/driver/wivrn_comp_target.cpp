@@ -529,7 +529,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 
 	assert(index < cn->image_count);
 
-	if (cn->c->base.slot.layer_count == 0)
+	if (cn->c->base.slot.layer_count == 0 or not cn->cnx->get_offset())
 	{
 		// TODO: Tell the headset that there is no image to display
 		assert(cn->psc.images[index].status == image_acquired);

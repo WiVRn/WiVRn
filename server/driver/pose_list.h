@@ -40,7 +40,7 @@ class history
 	std::vector<TimedData> data;
 
 protected:
-	void add_sample(uint64_t timestamp, const Data & sample, const xrt::drivers::wivrn::clock_offset & offset)
+	void add_sample(uint64_t timestamp, const Data & sample, const clock_offset & offset)
 	{
 		std::lock_guard lock(mutex);
 
@@ -107,7 +107,7 @@ public:
 	pose_list(xrt::drivers::wivrn::device_id id) :
 	        device(id) {}
 
-	void update_tracking(const xrt::drivers::wivrn::from_headset::tracking &, const xrt::drivers::wivrn::clock_offset & offset);
+	void update_tracking(const xrt::drivers::wivrn::from_headset::tracking &, const clock_offset & offset);
 
 	static xrt_space_relation convert_pose(const xrt::drivers::wivrn::from_headset::tracking::pose &);
 };

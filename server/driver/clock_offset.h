@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2022-2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022-2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,20 +19,47 @@
 
 #pragma once
 
+#include "wivrn_packets.h"
+
 #include <chrono>
 #include <cstdint>
+#include <mutex>
 
-namespace xrt::drivers::wivrn
-{
+class wivrn_connection;
 
 struct clock_offset
 {
-	std::chrono::nanoseconds epoch_offset{};
+	// y: headset time
+	// x: server time
+	// y = ax+b
+	int64_t b = 0;
+	double a = 1;
 
-	uint64_t from_headset(uint64_t) const;
+	operator bool() { return b != 0;}
+
+	int64_t from_headset(uint64_t) const;
 
 	std::chrono::nanoseconds
 	to_headset(uint64_t timestamp_ns) const;
 };
 
-} // namespace xrt::drivers::wivrn
+class clock_offset_estimator
+{
+	struct sample: public xrt::drivers::wivrn::from_headset::timesync_response
+	{
+		std::chrono::nanoseconds received;
+	};
+
+	std::mutex mutex;
+	std::vector<sample> samples;
+	size_t sample_index = 0;
+	clock_offset offset;
+
+	std::chrono::steady_clock::time_point next_sample{};
+
+	public:
+	void request_sample(wivrn_connection& connection);
+	void add_sample(const xrt::drivers::wivrn::from_headset::timesync_response& sample);
+
+	clock_offset get_offset();
+};

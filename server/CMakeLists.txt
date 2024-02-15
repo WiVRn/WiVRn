@@ -69,7 +69,7 @@ add_executable(wivrn-server
 		encoder/encoder_settings.cpp
 		encoder/video_encoder.cpp
 		encoder/yuv_converter.cpp
-		driver/offset_estimator.cpp
+		driver/clock_offset.cpp
 		driver/wivrn_hmd.cpp
 		driver/wivrn_comp_target.cpp
 		driver/wivrn_controller.cpp

@@ -20,7 +20,6 @@
 #include "wivrn_session.h"
 #include "audio_setup.h"
 #include "main/comp_target.h"
-#include "os/os_time.h"
 #include "util/u_builders.h"
 #include "util/u_logging.h"
 
@@ -162,8 +161,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 
 clock_offset wivrn_session::get_offset()
 {
-	std::lock_guard lock(mutex);
-	return offset;
+	return offset_est.get_offset();
 }
 
 void wivrn_session::operator()(from_headset::headset_info_packet &&)
@@ -172,7 +170,8 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 }
 void wivrn_session::operator()(from_headset::tracking && tracking)
 {
-	if (offset.epoch_offset.count() == 0)
+	auto offset = offset_est.get_offset();
+	if (not offset)
 		return;
 
 	hmd->update_tracking(tracking, offset);
@@ -183,6 +182,8 @@ void wivrn_session::operator()(from_headset::tracking && tracking)
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
 	auto offset = get_offset();
+	if (not offset)
+		return;
 	left_hand->set_inputs(inputs, offset);
 	right_hand->set_inputs(inputs, offset);
 }
@@ -195,19 +196,15 @@ static auto lerp(std::chrono::duration<Rep, Period> a, std::chrono::duration<Rep
 
 void wivrn_session::operator()(from_headset::timesync_response && timesync)
 {
-	auto now = os_monotonic_get_ns();
-	std::lock_guard lock(mutex);
-	offset = offset_est.get_offset(timesync, now, offset);
+	offset_est.add_sample(timesync);
 }
 
 void wivrn_session::operator()(from_headset::feedback && feedback)
 {
 	assert(comp_target);
-	clock_offset o;
-	{
-		std::lock_guard lock(mutex);
-		o = offset;
-	}
+	clock_offset o = offset_est.get_offset();
+	if (not o)
+		return;
 	comp_target->on_feedback(feedback, o);
 
 	if (feedback.received_first_packet)
@@ -230,16 +227,6 @@ void wivrn_session::operator()(audio_data && data)
 		audio_handle->process_mic_data(std::move(data));
 }
 
-uint64_t clock_offset::from_headset(uint64_t ts) const
-{
-	return ts - epoch_offset.count();
-}
-
-std::chrono::nanoseconds clock_offset::to_headset(uint64_t timestamp_ns) const
-{
-	return std::chrono::nanoseconds(timestamp_ns) + epoch_offset;
-}
-
 void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 {
 	while (true)
@@ -249,13 +236,7 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			auto self = weak_self.lock();
 			if (self and not self->quit)
 			{
-				if (std::chrono::steady_clock::now() > self->offset_expiration)
-				{
-					self->offset_expiration = std::chrono::steady_clock::now() + std::chrono::seconds(1);
-					to_headset::timesync_query timesync{};
-					timesync.query = std::chrono::nanoseconds(os_monotonic_get_ns());
-					self->connection.send_stream(timesync);
-				}
+				self->offset_est.request_sample(self->connection);
 				self->connection.poll(*self, 20);
 			}
 			else

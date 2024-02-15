@@ -20,7 +20,6 @@
 #pragma once
 
 #include "clock_offset.h"
-#include "offset_estimator.h"
 #include "wivrn_connection.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_system.h"
@@ -51,16 +50,13 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 
 	std::atomic<bool> quit = false;
 	std::thread thread;
-	std::mutex mutex;
 
 	std::unique_ptr<wivrn_hmd> hmd;
 	std::unique_ptr<wivrn_controller> left_hand;
 	std::unique_ptr<wivrn_controller> right_hand;
 	wivrn_comp_target * comp_target;
 
-	clock_offset offset;
-	offset_estimator offset_est;
-	std::chrono::steady_clock::time_point offset_expiration{};
+	clock_offset_estimator offset_est;
 
 	std::mutex csv_mutex;
 	std::ofstream feedback_csv;
@@ -76,8 +72,7 @@ public:
 	                                   xrt_space_overseer ** out_xspovrs,
 	                                   xrt_system_compositor ** out_xsysc);
 
-	clock_offset
-	get_offset();
+	clock_offset get_offset();
 
 	void operator()(from_headset::handshake&&) {}
 	void operator()(from_headset::headset_info_packet &&);

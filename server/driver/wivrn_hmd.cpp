@@ -28,6 +28,7 @@
 
 #include "xrt_cast.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <stdio.h>
 #include <openxr/openxr.h>
