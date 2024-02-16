@@ -272,10 +272,12 @@ void scenes::lobby::gui_server_list()
 		}
 		vibrate_on_hover();
 
-		if (ImGui::IsItemHovered())
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 		{
 			if (!data.compatible)
 				ImGui::SetTooltip("Incompatible server version");
+			else if (!data.visible && !data.manual)
+				ImGui::SetTooltip("Server not available");
 		}
 
 		ImGui::PopStyleColor(3);
