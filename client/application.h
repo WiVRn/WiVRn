@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <chrono>
 #ifdef __ANDROID__
 #include <android_native_app_glue.h>
 #endif
@@ -27,6 +26,7 @@
 #include "xr/xr.h"
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <filesystem>
 #include <mutex>
 #include <unordered_set>

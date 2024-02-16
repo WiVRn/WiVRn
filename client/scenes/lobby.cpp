@@ -404,6 +404,14 @@ static glm::mat4 view_matrix(XrPosef pose)
 
 void scenes::lobby::update_server_list()
 {
+	if (application::is_focused() && !discover)
+		discover.emplace();
+	else if (!application::is_focused() && discover)
+		discover.reset();
+
+	if (!discover)
+		return;
+
 	std::vector<wivrn_discover::service> discovered_services = discover->get_services();
 
 	// TODO: only if discovered_services changed
@@ -599,7 +607,6 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 
 void scenes::lobby::on_focused()
 {
-	discover.emplace(discover_service);
 	move_gui_first_time = true;
 
 	auto views = system.view_configuration_views(viewconfig);
@@ -679,6 +686,12 @@ void scenes::lobby::on_unfocused()
 	swapchains_lobby.clear();
 	swapchains_controllers.clear();
 	swapchain_imgui.reset();
+}
+
+void scenes::lobby::on_session_state_changed(XrSessionState state)
+{
+	if (state == XR_SESSION_STATE_STOPPING)
+		discover.reset();
 }
 
 scene::meta& scenes::lobby::get_meta_scene()

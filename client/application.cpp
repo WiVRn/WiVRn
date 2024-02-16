@@ -1327,6 +1327,9 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 		default:
 			break;
 	}
+
+	if (std::shared_ptr<scene> s = current_scene())
+		s->on_session_state_changed(new_state);
 }
 
 void application::interaction_profile_changed()
@@ -1372,11 +1375,11 @@ void application::interaction_profile_changed()
 		}
 	}
 
-	if (current_scene())
+	if (std::shared_ptr<scene> s = current_scene())
 	{
-		spdlog::info("Actions for current scene ({}):", current_scene()->current_meta.name);
+		s->on_interaction_profile_changed();
 
-		for(auto& [name, action_and_type]: current_scene()->current_meta.actions_by_name)
+		for(auto& [name, action_and_type]: s->current_meta.actions_by_name)
 		{
 			auto [action, type] = action_and_type;
 

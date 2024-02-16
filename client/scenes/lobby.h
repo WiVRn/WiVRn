@@ -131,6 +131,7 @@ public:
 	void render(XrTime predicted_display_time, bool should_render) override;
 	void on_unfocused() override;
 	void on_focused() override;
+	void on_session_state_changed(XrSessionState state) override;
 
 	static meta& get_meta_scene();
 };
