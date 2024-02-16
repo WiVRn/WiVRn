@@ -30,6 +30,7 @@
 #include "wivrn_hmd.h"
 
 #include <cmath>
+#include <vulkan/vulkan.h>
 
 struct wivrn_comp_target_factory : public comp_target_factory
 {
@@ -42,13 +43,17 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	                .identifier = "wivrn",
 	                .requires_vulkan_for_create = false,
 	                .is_deferred = false,
-	                .required_instance_extensions = {},
-	                .required_instance_extension_count = 0,
+	                .required_instance_version = VK_MAKE_VERSION(1, 3, 0),
+	                .required_instance_extensions = wivrn_comp_target::wanted_instance_extensions.data(),
+	                .required_instance_extension_count = wivrn_comp_target::wanted_instance_extensions.size(),
+	                .optional_device_extensions = wivrn_comp_target::wanted_device_extensions.data(),
+	                .optional_device_extension_count = wivrn_comp_target::wanted_device_extensions.size(),
 	                .detect = wivrn_comp_target_factory::detect,
 	                .create_target = wivrn_comp_target_factory::create_target},
 	        session(session),
 	        fps(fps)
-	{}
+	{
+	}
 
 	static bool detect(const struct comp_target_factory * ctf, struct comp_compositor * c)
 	{

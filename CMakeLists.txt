@@ -146,7 +146,7 @@ FetchContent_Declare(implot        URL https://github.com/epezent/implot/archive
 # Server dependencies
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
-    GIT_TAG          57e937383967c7e7b38b5de71297c8f537a2489d
+    GIT_TAG          ffb71af26f8349952f5f820c268ee4774613e200
     )
 
 FetchContent_Declare(imgui

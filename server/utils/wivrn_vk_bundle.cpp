@@ -31,7 +31,7 @@ wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> request
                 .physicalDevice = vk.physical_device,
                 .device = vk.device,
                 .instance = vk.instance,
-                .vulkanApiVersion = VK_MAKE_VERSION(1, 0, 0), // FIXME: sync with wivrn_session.cpp
+                .vulkanApiVersion = VK_MAKE_VERSION(1, 3, 0), // FIXME: sync with wivrn_session.cpp
         }),
         queue(device, vk.queue_family_index, vk.queue_index),
         queue_family_index(vk.queue_family_index)
