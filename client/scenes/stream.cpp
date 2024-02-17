@@ -430,7 +430,6 @@ void scenes::stream::render()
 void scenes::stream::exit()
 {
 	exiting = true;
-	audio_handle.reset();
 	shard_queue.close();
 }
 
