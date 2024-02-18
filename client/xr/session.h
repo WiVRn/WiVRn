@@ -27,6 +27,7 @@
 #include <openxr/openxr.h>
 
 #include "space.h"
+#include "hand_tracker.h"
 
 namespace xr
 {
@@ -48,6 +49,7 @@ public:
 	std::vector<XrReferenceSpaceType> get_reference_spaces() const;
 	space create_reference_space(XrReferenceSpaceType ref, const XrPosef & pose = {{0, 0, 0, 1}, {0, 0, 0}});
 	space create_action_space(XrAction action, const XrPosef & pose = {{0, 0, 0, 1}, {0, 0, 0}});
+	hand_tracker create_hand_tracker(XrHandEXT hand, XrHandJointSetEXT hand_joint_set = XR_HAND_JOINT_SET_DEFAULT_EXT);
 
 	std::vector<vk::Format> get_swapchain_formats() const;
 

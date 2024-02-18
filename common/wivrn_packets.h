@@ -105,6 +105,7 @@ struct headset_info_packet
 	std::optional<audio_description> speaker;
 	std::optional<audio_description> microphone;
 	std::array<XrFovf, 2> fov;
+	bool hand_tracking;
 };
 
 struct handshake
@@ -146,6 +147,32 @@ struct tracking
 	std::vector<pose> device_poses;
 };
 
+struct hand_tracking
+{
+	enum flags : uint8_t
+	{
+		orientation_valid = 1 << 0,
+		position_valid = 1 << 1,
+		linear_velocity_valid = 1 << 2,
+		angular_velocity_valid = 1 << 3,
+		orientation_tracked = 1 << 4,
+		position_tracked = 1 << 5
+	};
+
+	struct pose
+	{
+		XrPosef pose;
+		XrVector3f linear_velocity;
+		XrVector3f angular_velocity;
+		float radius;
+		uint8_t flags;
+	};
+
+	uint64_t timestamp;
+	std::array<pose, XR_HAND_JOINT_COUNT_EXT> left;
+	std::array<pose, XR_HAND_JOINT_COUNT_EXT> right;
+};
+
 struct inputs
 {
 	struct input_value
@@ -183,7 +210,7 @@ struct feedback
 	uint8_t received_data_packets;
 };
 
-using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, inputs, timesync_response>;
+using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, hand_tracking, inputs, timesync_response>;
 } // namespace from_headset
 
 namespace to_headset

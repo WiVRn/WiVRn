@@ -63,6 +63,42 @@ static from_headset::tracking::pose locate_space(device_id device, XrSpace space
 	return res;
 }
 
+static std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> locate_hands(xr::hand_tracker& hand, XrSpace space, XrTime time)
+{
+	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints = hand.locate(space, time);
+
+	std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
+	for(int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+	{
+		poses[i] = {
+			.pose = joints[i].first.pose,
+			.linear_velocity = joints[i].second.linearVelocity,
+			.angular_velocity = joints[i].second.angularVelocity,
+			.radius = joints[i].first.radius,
+		};
+
+		if (joints[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+			poses[i].flags |= from_headset::hand_tracking::orientation_valid;
+
+		if (joints[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+			poses[i].flags |= from_headset::hand_tracking::position_valid;
+
+		if (joints[i].second.velocityFlags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
+			poses[i].flags |= from_headset::hand_tracking::linear_velocity_valid;
+
+		if (joints[i].second.velocityFlags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
+			poses[i].flags |= from_headset::hand_tracking::angular_velocity_valid;
+
+		if (joints[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+			poses[i].flags |= from_headset::hand_tracking::orientation_tracked;
+
+		if (joints[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+			poses[i].flags |= from_headset::hand_tracking::position_tracked;
+	}
+
+	return poses;
+}
+
 void scenes::stream::tracking()
 {
 	std::vector<std::pair<device_id, XrSpace>> spaces = {
@@ -91,7 +127,10 @@ void scenes::stream::tracking()
 			for (XrTime Δt = 0; Δt < extrapolation_horizon; Δt += tracking_period)
 			{
 				from_headset::tracking packet{};
+				from_headset::hand_tracking hands{};
+
 				packet.timestamp = t0 + Δt;
+				hands.timestamp = t0 + Δt;
 
 				try
 				{
@@ -112,6 +151,14 @@ void scenes::stream::tracking()
 					}
 
 					network_session->send_stream(packet);
+
+					if (application::get_hand_tracking_supported())
+					{
+						hands.left = locate_hands(application::get_left_hand(), world_space, hands.timestamp);
+						hands.right = locate_hands(application::get_right_hand(), world_space, hands.timestamp);
+
+						network_session->send_stream(hands);
+					}
 				}
 				catch (const std::system_error & e)
 				{

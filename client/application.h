@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "xr/hand_tracker.h"
 #ifdef __ANDROID__
 #include <android_native_app_glue.h>
 #endif
@@ -117,6 +118,10 @@ class application : public singleton<application>
 	xr::space left_aim_space;
 	xr::space right_grip_space;
 	xr::space right_aim_space;
+
+	bool hand_tracking_supported = false;
+	xr::hand_tracker left_hand;
+	xr::hand_tracker right_hand;
 
 	bool session_running = false;
 	bool session_focused = false;
@@ -378,5 +383,20 @@ public:
 	static std::chrono::nanoseconds get_gpu_time()
 	{
 		return instance().last_scene_gpu_time;
+	}
+
+	static bool get_hand_tracking_supported()
+	{
+		return instance().hand_tracking_supported;
+	}
+
+	static xr::hand_tracker& get_left_hand()
+	{
+		return instance().left_hand;
+	}
+
+	static xr::hand_tracker& get_right_hand()
+	{
+		return instance().right_hand;
 	}
 };

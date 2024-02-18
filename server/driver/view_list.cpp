@@ -21,17 +21,17 @@
 #include "pose_list.h"
 #include "xrt_cast.h"
 
-tracked_views interpolate(const tracked_views & a, const tracked_views & b, float t)
+tracked_views view_list::interpolate(const tracked_views & a, const tracked_views & b, float t)
 {
 	tracked_views result = a;
-	result.relation = interpolate(a.relation, b.relation, t);
+	result.relation = pose_list::interpolate(a.relation, b.relation, t);
 	return result;
 }
 
-tracked_views extrapolate(const tracked_views & a, const tracked_views & b, uint64_t ta, uint64_t tb, uint64_t t)
+tracked_views view_list::extrapolate(const tracked_views & a, const tracked_views & b, uint64_t ta, uint64_t tb, uint64_t t)
 {
 	tracked_views result = a;
-	result.relation = extrapolate(a.relation, b.relation, ta, tb, t);
+	result.relation = pose_list::extrapolate(a.relation, b.relation, ta, tb, t);
 	return result;
 }
 

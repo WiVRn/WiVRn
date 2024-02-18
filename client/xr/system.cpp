@@ -63,6 +63,25 @@ XrSystemProperties xr::system::properties() const
 	return prop;
 }
 
+XrSystemHandTrackingPropertiesEXT xr::system::hand_tracking_properties() const
+{
+	if (!id)
+		throw std::invalid_argument("this");
+
+	XrSystemHandTrackingPropertiesEXT hand_tracking_prop
+	{
+		.type = XR_TYPE_SYSTEM_HAND_TRACKING_PROPERTIES_EXT,
+	};
+
+	XrSystemProperties prop{
+		.type = XR_TYPE_SYSTEM_PROPERTIES,
+		.next = &hand_tracking_prop,
+	};
+	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+	return hand_tracking_prop;
+}
+
 vk::raii::PhysicalDevice xr::system::physical_device(vk::raii::Instance& vulkan) const
 {
 	auto xrGetVulkanGraphicsDevice2KHR =

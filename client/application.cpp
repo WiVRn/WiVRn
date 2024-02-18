@@ -725,6 +725,7 @@ void application::initialize()
 	std::vector<std::string> opt_extensions;
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
+	opt_extensions.push_back(XR_EXT_HAND_TRACKING_EXTENSION_NAME);
 
 	for(const auto& i: interaction_profiles)
 	{
@@ -770,7 +771,6 @@ void application::initialize()
 	spdlog::info("        Orientation tracking: {}", (bool)properties.trackingProperties.orientationTracking);
 	spdlog::info("        Position tracking: {}", (bool)properties.trackingProperties.positionTracking);
 
-
 	// Log view configurations and blend modes
 	log_views();
 
@@ -788,6 +788,20 @@ void application::initialize()
 	view_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
 	world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 	// world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_LOCAL);
+
+	if (utils::contains(xr_extensions, XR_EXT_HAND_TRACKING_EXTENSION_NAME))
+	{
+		XrSystemHandTrackingPropertiesEXT hand_tracking_properties = xr_system_id.hand_tracking_properties();
+		spdlog::info("Hand tracking support: {}", (bool)hand_tracking_properties.supportsHandTracking);
+		hand_tracking_supported = hand_tracking_properties.supportsHandTracking;
+
+		if (hand_tracking_supported)
+		{
+			left_hand = xr_session.create_hand_tracker(XR_HAND_LEFT_EXT);
+			right_hand = xr_session.create_hand_tracker(XR_HAND_RIGHT_EXT);
+		}
+	}
+
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;
 	cmdpool_create_info.queueFamilyIndex = vk_queue_family_index;

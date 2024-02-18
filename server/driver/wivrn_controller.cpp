@@ -34,6 +34,8 @@ enum wivrn_controller_input_index
 {
 	WIVRN_CONTROLLER_AIM_POSE,
 	WIVRN_CONTROLLER_GRIP_POSE,
+	WIVRN_CONTROLLER_HAND_TRACKER,
+
 	WIVRN_CONTROLLER_MENU_CLICK,                         // /user/hand/left/input/menu/click
 	WIVRN_CONTROLLER_A_CLICK,                            // /user/hand/right/input/a/click
 	WIVRN_CONTROLLER_A_TOUCH,                            // /user/hand/right/input/a/touch
@@ -136,6 +138,12 @@ static void wivrn_controller_get_tracked_pose(xrt_device * xdev,
                                               uint64_t at_timestamp_ns,
                                               xrt_space_relation * out_relation);
 
+static void wivrn_controller_get_hand_tracking(xrt_device * xdev,
+	                                       xrt_input_name name,
+	                                       uint64_t desired_timestamp_ns,
+	                                       xrt_hand_joint_set * out_value,
+	                                       uint64_t *out_timestamp_ns);
+
 static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_output_name name, const union xrt_output_value * value);
 
 static void wivrn_controller_update_inputs(xrt_device * xdev);
@@ -143,19 +151,23 @@ static void wivrn_controller_update_inputs(xrt_device * xdev);
 wivrn_controller::wivrn_controller(int hand_id,
                                    xrt_device * hmd,
                                    std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx) :
-        xrt_device{}, grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP), aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM), cnx(cnx)
+        xrt_device{},
+	grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
+	aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM),
+	joints(hand_id),
+	cnx(cnx)
 {
 	xrt_device * base = this;
 
 	base->destroy = wivrn_controller_destroy;
 	base->get_tracked_pose = wivrn_controller_get_tracked_pose;
-	base->get_hand_tracking = NULL; // TODO
+	base->get_hand_tracking = wivrn_controller_get_hand_tracking;
 	base->set_output = wivrn_controller_set_output;
 	base->update_inputs = wivrn_controller_update_inputs;
 
 	base->name = XRT_DEVICE_TOUCH_CONTROLLER;
 	base->orientation_tracking_supported = true;
-	base->hand_tracking_supported = false;
+	base->hand_tracking_supported = true;
 	base->position_tracking_supported = true;
 
 	base->tracking_origin = hmd->tracking_origin;
@@ -196,6 +208,9 @@ wivrn_controller::wivrn_controller(int hand_id,
 	SET_INPUT(THUMBSTICK_CLICK);
 	SET_INPUT(THUMBSTICK_TOUCH);
 	SET_INPUT(THUMBREST_TOUCH);
+
+	inputs[WIVRN_CONTROLLER_HAND_TRACKER].name = hand_id == 0 ? XRT_INPUT_GENERIC_HAND_TRACKING_LEFT : XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT;
+	inputs[WIVRN_CONTROLLER_HAND_TRACKER].active = true;
 
 	output_count = 1;
 	outputs = &haptic_output;
@@ -308,10 +323,29 @@ xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, uint6
 	}
 }
 
+std::pair<xrt_hand_joint_set, uint64_t> wivrn_controller::get_hand_tracking(xrt_input_name name, uint64_t desired_timestamp_ns)
+{
+	switch(name)
+	{
+		case XRT_INPUT_GENERIC_HAND_TRACKING_LEFT:
+		case XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT:
+			return { joints.get_at(desired_timestamp_ns), desired_timestamp_ns };
+
+		default:
+			U_LOG_W("Unknown input name requested");
+			return {};
+	}
+}
+
 void wivrn_controller::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	aim.update_tracking(tracking, offset);
 	grip.update_tracking(tracking, offset);
+}
+
+void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
+{
+	joints.update_tracking(tracking, offset);
 }
 
 void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)
@@ -355,6 +389,15 @@ static void wivrn_controller_get_tracked_pose(xrt_device * xdev,
                                               xrt_space_relation * out_relation)
 {
 	*out_relation = static_cast<wivrn_controller *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
+}
+
+static void wivrn_controller_get_hand_tracking(xrt_device * xdev,
+	                                       xrt_input_name name,
+	                                       uint64_t desired_timestamp_ns,
+	                                       xrt_hand_joint_set * out_value,
+	                                       uint64_t *out_timestamp_ns)
+{
+	std::tie(*out_value, *out_timestamp_ns) = static_cast<wivrn_controller *>(xdev)->get_hand_tracking(name, desired_timestamp_ns);
 }
 
 static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_output_name name, const union xrt_output_value * value)

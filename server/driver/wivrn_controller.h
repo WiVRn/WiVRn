@@ -22,6 +22,7 @@
 #include "xrt/xrt_device.h"
 
 #include "pose_list.h"
+#include "hand_joints_list.h"
 #include "wivrn_session.h"
 
 #include <memory>
@@ -34,6 +35,7 @@ class wivrn_controller : public xrt_device
 
 	pose_list grip;
 	pose_list aim;
+	hand_joints_list joints;
 
 	std::vector<xrt_input> inputs_staging;
 	std::vector<xrt_input> inputs_array;
@@ -51,14 +53,15 @@ public:
 	void update_inputs();
 
 	xrt_space_relation get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns);
+	std::pair<xrt_hand_joint_set, uint64_t> get_hand_tracking(xrt_input_name name, uint64_t desired_timestamp_ns);
 
 	void set_output(xrt_output_name name, const xrt_output_value * value);
 
 	void set_inputs(const from_headset::inputs &, const clock_offset &);
 
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
+	void update_hand_tracking(const from_headset::hand_tracking &, const clock_offset &);
 
 private:
-	void
-	set_inputs(device_id input_id, float value, uint64_t last_change_time);
+	void set_inputs(device_id input_id, float value, uint64_t last_change_time);
 };

@@ -120,9 +120,15 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	if (self->hmd)
 		usysds->base.base.static_roles.head = devices->xdevs[n++] = self->hmd.get();
 	if (self->left_hand)
+	{
 		devices->xdevs[n++] = self->left_hand.get();
+		usysds->base.base.static_roles.hand_tracking.left = self->left_hand.get();
+	}
 	if (self->right_hand)
+	{
 		devices->xdevs[n++] = self->right_hand.get();
+		usysds->base.base.static_roles.hand_tracking.right = self->right_hand.get();
+	}
 	devices->xdev_count = n;
 
 	u_system_devices_static_finalize(usysds, self->left_hand.get(), self->right_hand.get());
@@ -177,6 +183,16 @@ void wivrn_session::operator()(from_headset::tracking && tracking)
 	hmd->update_tracking(tracking, offset);
 	left_hand->update_tracking(tracking, offset);
 	right_hand->update_tracking(tracking, offset);
+}
+
+void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
+{
+	auto offset = offset_est.get_offset();
+	if (not offset)
+		return;
+
+	left_hand->update_hand_tracking(hand_tracking, offset);
+	right_hand->update_hand_tracking(hand_tracking, offset);
 }
 
 void wivrn_session::operator()(from_headset::inputs && inputs)

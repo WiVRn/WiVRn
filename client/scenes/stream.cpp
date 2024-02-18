@@ -35,6 +35,7 @@
 #include <vulkan/vulkan_core.h>
 #include "audio/audio.h"
 #include "hardware.h"
+#include "utils/contains.h"
 
 using namespace xrt::drivers::wivrn;
 
@@ -107,6 +108,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	if (info.available_refresh_rates.empty())
 		spdlog::warn("Unable to detect refresh rates");
+
+	info.hand_tracking = application::get_hand_tracking_supported();
 
 	audio::get_audio_description(info);
 

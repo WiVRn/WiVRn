@@ -78,6 +78,7 @@ add_executable(wivrn-server
 		driver/wivrn_controller.cpp
 		driver/pose_list.cpp
 		driver/view_list.cpp
+		driver/hand_joints_list.cpp
 		driver/wivrn_session.cpp
 		driver/wivrn_connection.cpp
 		driver/xrt_cast.cpp

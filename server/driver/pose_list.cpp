@@ -27,7 +27,7 @@
 using namespace xrt::auxiliary::math;
 using namespace xrt::drivers::wivrn;
 
-xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)
+xrt_space_relation pose_list::interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)
 {
 	xrt_space_relation result;
 	xrt_space_relation_flags flags = xrt_space_relation_flags(a.relation_flags & b.relation_flags);
@@ -35,7 +35,7 @@ xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_rel
 	return result;
 }
 
-xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, uint64_t ta, uint64_t tb, uint64_t t)
+xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, uint64_t ta, uint64_t tb, uint64_t t)
 {
 	if (t < ta)
 		return a;
