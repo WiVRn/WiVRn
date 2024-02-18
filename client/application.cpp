@@ -526,7 +526,6 @@ void application::initialize_vulkan()
 		}
 	}
 	assert(vk_queue_found);
-	spdlog::info("Using queue family {}", vk_queue_family_index);
 
 	float queuePriority = 0.0f;
 
@@ -620,7 +619,7 @@ static std::string make_xr_name(std::string name)
 
 void application::initialize_actions()
 {
-	spdlog::info("Initializing actions");
+	spdlog::debug("Initializing actions");
 
 	// Build an action set with all possible input sources
 	std::vector<XrActionSet> action_sets;
@@ -674,8 +673,6 @@ void application::initialize_actions()
 	// Build an action set for each scene
 	for(scene::meta* i: scene::scene_registry)
 	{
-		spdlog::info("  Scene \"{}\"", i->name);
-
 		std::string actionset_name = make_xr_name(i->name);
 
 		i->actionset = xr::actionset(xr_instance, actionset_name, i->name);
@@ -683,7 +680,6 @@ void application::initialize_actions()
 
 		for(auto& [action_name, action_type] : i->actions)
 		{
-			spdlog::info("    Creating action {}", action_name);
 			XrAction a = i->actionset.create_action(action_type, action_name);
 			i->actions_by_name[action_name] = std::make_pair(a, action_type);
 
@@ -697,12 +693,10 @@ void application::initialize_actions()
 			if (!suggested_bindings.contains(j.profile_name))
 				continue;
 
-			spdlog::info("    Adding suggested bindings for {}", j.profile_name);
 			std::vector<XrActionSuggestedBinding>& xr_bindings = suggested_bindings[j.profile_name];
 
 			for(const scene::action_binding& k: j.paths)
 			{
-				spdlog::info("      {} => {}", k.action_name, k.input_source);
 				XrAction a = i->actions_by_name[k.action_name].first;
 				assert(a != XR_NULL_HANDLE);
 
@@ -717,11 +711,9 @@ void application::initialize_actions()
 	// Suggest bindings for all supported controllers
 	for (const auto & profile: interaction_profiles)
 	{
+		// Skip unavailable interaction profiles
 		if (!profile.available)
-		{
-			spdlog::info("Skipping interaction profile {}", profile.profile_name);
 			continue;
-		}
 
 		std::vector<XrActionSuggestedBinding>& xr_bindings = suggested_bindings[profile.profile_name];
 
@@ -730,14 +722,13 @@ void application::initialize_actions()
 			xr_bindings.push_back({actions_by_name[name], string_to_path(name)});
 		}
 
-		spdlog::info("Suggesting bindings for interaction profile {}", profile.profile_name);
 		try
 		{
 			xr_instance.suggest_bindings(profile.profile_name, xr_bindings);
 		}
-		catch(std::exception& e)
+		catch(...)
 		{
-			spdlog::warn("Caught {} while suggesting interaction profile", e.what());
+			// Ignore errors
 		}
 	}
 
@@ -880,7 +871,6 @@ application::application(application_info info) :
 			data_string = data_string_jni;
 		}
 
-		spdlog::info("dataString = {}", data_string);
 		if (data_string.starts_with("wivrn://"))
 		{
 			server_address = data_string.substr(strlen("wivrn://"));
@@ -943,8 +933,8 @@ application::application(application_info info) :
 
 	std::filesystem::create_directories(config_path);
 	std::filesystem::create_directories(cache_path);
-	spdlog::info("Config path: {}", config_path.native());
-	spdlog::info("Cache path: {}", cache_path.native());
+	spdlog::debug("Config path: {}", config_path.native());
+	spdlog::debug("Cache path: {}", cache_path.native());
 
 	try
 	{
@@ -1084,7 +1074,6 @@ void application::loop()
 		}
 		else
 		{
-			spdlog::info("Last scene popped: exiting");
 			exit_requested = true;
 		}
 	}
@@ -1334,73 +1323,17 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 
 void application::interaction_profile_changed()
 {
-	spdlog::info("Interaction profile changed");
-
-	std::unordered_map<std::string, std::string> current_interaction_profile;
-
-	for (auto device: {"/user/hand/left", "/user/hand/right", "/user/head", "/user/gamepad"})
-	{
-		try
-		{
-			std::string current_profile = xr_session.get_current_interaction_profile(device);
-
-			spdlog::info("Current interaction profile for {}: {}", device, current_profile);
-		}
-		catch (std::exception & e)
-		{
-			spdlog::warn("Cannot get current interaction profile for {}: {}", device, e.what());
-			continue;
-		}
-	}
-
-	spdlog::info("Global actions:");
-	for(auto& [action, type, name]: actions)
-	{
-		try
-		{
-			auto sources = xr_session.localized_sources_for_action(action);
-			if (!sources.empty())
-			{
-				spdlog::info("    Sources for {}", name);
-				for (auto & k: sources)
-					spdlog::info("        {}", k);
-			}
-			else
-				spdlog::info("    No source for {}", name);
-		}
-		catch(std::exception& e)
-		{
-			spdlog::warn("Error enumerating sources for {}: {}", name, e.what());
-			continue;
-		}
-	}
-
 	if (std::shared_ptr<scene> s = current_scene())
 	{
 		s->on_interaction_profile_changed();
+	}
+}
 
-		for(auto& [name, action_and_type]: s->current_meta.actions_by_name)
-		{
-			auto [action, type] = action_and_type;
-
-			try
-			{
-				auto sources = xr_session.localized_sources_for_action(action);
-				if (!sources.empty())
-				{
-					spdlog::info("    Sources for {}", name);
-					for (auto & k: sources)
-						spdlog::info("        {}", k);
-				}
-				else
-					spdlog::info("    No source for {}", name);
-			}
-			catch(std::exception& e)
-			{
-				spdlog::warn("Error enumerating sources for {}: {}", name, e.what());
-				continue;
-			}
-		}
+void application::reference_space_changed(XrReferenceSpaceType referenceSpaceType, XrTime timestamp, std::optional<XrPosef> poseInPreviousSpace)
+{
+	if (std::shared_ptr<scene> s = current_scene())
+	{
+		s->on_reference_space_changed(referenceSpaceType);
 	}
 }
 
@@ -1424,7 +1357,16 @@ void application::poll_events()
 			}
 			break;
 			case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING: {
-				spdlog::warn("XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING in space {} in {:.6}s", magic_enum::enum_name(e.space_changed_pending.referenceSpaceType), (e.space_changed_pending.changeTime - now()) / 1.e9);
+				if (e.space_changed_pending.session == xr_session)
+				{
+					if (e.space_changed_pending.poseValid)
+						reference_space_changed(e.space_changed_pending.referenceSpaceType, e.space_changed_pending.changeTime, e.space_changed_pending.poseInPreviousSpace);
+					else
+						reference_space_changed(e.space_changed_pending.referenceSpaceType, e.space_changed_pending.changeTime);
+				}
+				else
+					spdlog::error("Received XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING for "
+					              "unknown session");
 			}
 			break;
 			case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED: {

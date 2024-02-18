@@ -80,6 +80,7 @@ class application : public singleton<application>
 
 	void session_state_changed(XrSessionState new_state, XrTime timestamp);
 	void interaction_profile_changed();
+	void reference_space_changed(XrReferenceSpaceType referenceSpaceType, XrTime timestamp, std::optional<XrPosef> poseInPreviousSpace = std::nullopt);
 
 	// Vulkan stuff
 	vk::raii::Context vk_context;
