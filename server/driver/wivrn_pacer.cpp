@@ -22,10 +22,17 @@
 #include "os/os_time.h"
 #include <cmath>
 
+// How many samples of wait time to store per decoder
+const size_t num_wait_times = 1000;
+// How many samples of wait time are required to use them
+const size_t min_wait_times = 100;
+
 void wivrn_pacer::set_stream_count(size_t count)
 {
 	std::lock_guard lock(mutex);
-	last_feedback.resize(count);
+	streams.resize(count);
+	for (auto & stream: streams)
+		stream.times.reserve(num_wait_times);
 }
 
 void wivrn_pacer::predict(
@@ -46,13 +53,13 @@ void wivrn_pacer::predict(
 	out_predicted_display_time_ns = out_desired_present_time_ns;
 }
 
-void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback, const clock_offset& offset)
+void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback, const clock_offset & offset)
 {
 	std::lock_guard lock(mutex);
-	if (feedback.stream_index >= last_feedback.size())
+	if (feedback.stream_index >= streams.size())
 		return;
 
-	auto & last = last_feedback[feedback.stream_index];
+	auto & last = streams[feedback.stream_index].last_feedback;
 
 	if (feedback.stream_index == 0 and
 	    last.displayed and
@@ -63,23 +70,40 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 	}
 
 	last = feedback;
-
-	bool same_frame = true;
-	uint64_t decoded_ns = 0;
-	for (const auto & f: last_feedback)
+	if (feedback.blitted)
 	{
-		same_frame = same_frame and (f.frame_index == feedback.frame_index);
-		decoded_ns = std::max(decoded_ns, f.received_from_decoder);
-	}
-	if (same_frame and feedback.blitted)
-	{
-		mean_client_wait_ns = std::lerp(mean_client_wait_ns, feedback.blitted - decoded_ns, 0.1);
-	}
+		auto & stream = streams[feedback.stream_index];
+		if (stream.times.size() < num_wait_times)
+			stream.times.push_back(feedback.blitted - feedback.received_from_decoder);
+		else
+		{
+			stream.times[stream.next_times_index] = feedback.blitted - feedback.received_from_decoder;
+			stream.next_times_index = (stream.next_times_index + 1) % num_wait_times;
+		}
 
-	if (mean_client_wait_ns > frame_duration_ns / 2)
-		next_frame_ns += frame_duration_ns / 1000;
-	if (mean_client_wait_ns < frame_duration_ns / 4)
-		next_frame_ns -= frame_duration_ns / 1000;
+		if (stream.times.size() >= min_wait_times)
+		{
+			double mean_wait_time = 0;
+			double wait_time_variance = 0;
+
+			// https://en.wikipedia.org/wiki/Standard_deviation#Rapid_calculation_methods
+			for (size_t i = 0; i < stream.times.size(); ++i)
+			{
+				uint64_t t = stream.times[i];
+				uint64_t prev_mean = mean_wait_time;
+				mean_wait_time += (t - mean_wait_time) / (i + 1);
+				wait_time_variance += (t - prev_mean) * (t - mean_wait_time);
+			}
+
+			wait_time_variance /= (stream.times.size() - 1);
+			double wait_time_std_dev = std::sqrt(wait_time_variance);
+
+			if (mean_wait_time > 4 * wait_time_std_dev)
+				next_frame_ns += frame_duration_ns / 1000;
+			if (mean_wait_time < wait_time_std_dev)
+				next_frame_ns -= frame_duration_ns / 1000;
+		}
+	}
 }
 void wivrn_pacer::mark_timing_point(
         comp_target_timing_point point,
