@@ -138,6 +138,30 @@ vk::FrontFace reverse(vk::FrontFace face)
 		return vk::FrontFace::eCounterClockwise;
 }
 
+std::array layout_bindings_0{
+	vk::DescriptorSetLayoutBinding{
+		.binding = 0,
+		.descriptorType = vk::DescriptorType::eUniformBuffer,
+		.descriptorCount = 1,
+		.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment},
+	vk::DescriptorSetLayoutBinding{
+		.binding = 1,
+		.descriptorType = vk::DescriptorType::eUniformBufferDynamic,
+		.descriptorCount = 1,
+		.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment}};
+
+std::array layout_bindings_1{
+	vk::DescriptorSetLayoutBinding{
+		.binding = 0,
+		.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		.descriptorCount = 5,
+		.stageFlags = vk::ShaderStageFlagBits::eFragment},
+	vk::DescriptorSetLayoutBinding{
+		.binding = 5,
+		.descriptorType = vk::DescriptorType::eUniformBuffer,
+		.descriptorCount = 1,
+		.stageFlags = vk::ShaderStageFlagBits::eFragment}};
+
 scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool, vk::Extent2D output_size, vk::Format output_format, std::span<vk::Format> depth_formats, int frames_in_flight) :
         physical_device(physical_device),
         device(device),
@@ -146,12 +170,8 @@ scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevi
         output_size(output_size),
         output_format(output_format),
         depth_format(find_usable_image_format(physical_device, depth_formats, {output_size.width, output_size.height, 1}, vk::ImageUsageFlagBits::eDepthStencilAttachment)),
-        ds_pool_frame(device, {
-                                      .uniform_buffer = frames_in_flight,
-                                      .uniform_buffer_dynamic = frames_in_flight,
-                              },
-                      frames_in_flight),
-        ds_pool_material(device, {.combined_image_sampler = 500, .uniform_buffer = 100}, 100) // TODO tunable
+        ds_pool_frame(device, layout_bindings_0, frames_in_flight),
+        ds_pool_material(device, layout_bindings_1, 100) // TODO tunable
 {
 	// Create the default material
 	default_material = create_default_material(cb_pool);
@@ -173,38 +193,7 @@ scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevi
 
 	renderpass = create_renderpass();
 
-	// Create the descriptor set layouts
-	std::array layout_bindings_0{
-	        vk::DescriptorSetLayoutBinding{
-	                .binding = 0,
-	                .descriptorType = vk::DescriptorType::eUniformBuffer,
-	                .descriptorCount = 1,
-	                .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment},
-	        vk::DescriptorSetLayoutBinding{
-	                .binding = 1,
-	                .descriptorType = vk::DescriptorType::eUniformBufferDynamic,
-	                .descriptorCount = 1,
-	                .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment}};
-	vk::DescriptorSetLayoutCreateInfo dsl0_info{};
-	dsl0_info.setBindings(layout_bindings_0);
-	descriptor_set_frame = vk::raii::DescriptorSetLayout{device, dsl0_info};
-
-	std::array layout_bindings_1{
-	        vk::DescriptorSetLayoutBinding{
-	                .binding = 0,
-	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	                .descriptorCount = 5,
-	                .stageFlags = vk::ShaderStageFlagBits::eFragment},
-	        vk::DescriptorSetLayoutBinding{
-	                .binding = 5,
-	                .descriptorType = vk::DescriptorType::eUniformBuffer,
-	                .descriptorCount = 1,
-	                .stageFlags = vk::ShaderStageFlagBits::eFragment}};
-	vk::DescriptorSetLayoutCreateInfo dsl1_info{};
-	dsl1_info.setBindings(layout_bindings_1);
-	descriptor_set_material = vk::raii::DescriptorSetLayout{device, dsl1_info};
-
-	std::array layouts{*descriptor_set_frame, *descriptor_set_material};
+	std::array layouts{*ds_pool_frame.layout(), *ds_pool_material.layout()};
 	pipeline_layout = create_pipeline_layout(layouts);
 
 }
@@ -580,7 +569,7 @@ scene_renderer::per_frame_resources & scene_renderer::current_frame()
 void scene_renderer::update_material_descriptor_set(scene_data::material& material)
 {
 	if (!material.ds || !material.ds.unique())
-		material.ds = ds_pool_material.allocate(descriptor_set_material);
+		material.ds = ds_pool_material.allocate();
 
 	vk::DescriptorSet ds = **material.ds;
 
@@ -759,7 +748,7 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 		                   },
 		                   vk::SubpassContents::eInline);
 
-		auto ds = ds_pool_frame.allocate(descriptor_set_frame);
+		auto ds = ds_pool_frame.allocate();
 		vk::DescriptorBufferInfo buffer_info_1{
 			.buffer = resources.staging_buffer,
 			.offset = (vk::DeviceSize)*current_ubo_frame_offset,

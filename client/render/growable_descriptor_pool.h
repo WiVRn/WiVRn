@@ -19,40 +19,32 @@
 #pragma once
 
 #include <vector>
+#include <span>
 #include <vulkan/vulkan_raii.hpp>
 
 class growable_descriptor_pool
 {
-public:
-	struct sizes
+	friend struct descriptor_set;
+
+	struct pool
 	{
-		int sampler = 0;
-		int combined_image_sampler = 0;
-		int sampled_image = 0;
-		int storage_image = 0;
-		int uniform_texel_buffer = 0;
-		int storage_texel_buffer = 0;
-		int uniform_buffer = 0;
-		int storage_buffer = 0;
-		int uniform_buffer_dynamic = 0;
-		int storage_buffer_dynamic = 0;
-		int input_attachment = 0;
+	    int free_count;
+	    vk::raii::DescriptorPool descriptor_pool;
 	};
 
-private:
 	vk::raii::Device & device;
-	std::vector<vk::DescriptorPoolSize> size;
-	int descriptorsets_per_pool;
+	vk::raii::DescriptorSetLayout layout_;
 
-	std::vector<vk::raii::DescriptorPool> pools;
+	int descriptorsets_per_pool;
+	std::vector<vk::DescriptorPoolSize> size;
+	std::vector<pool> pools;
 
 public:
-	growable_descriptor_pool(vk::raii::Device & device, sizes size, int descriptorsets_per_pool);
+	growable_descriptor_pool(vk::raii::Device & device, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool = 100);
 
-	std::shared_ptr<vk::raii::DescriptorSet> allocate(vk::DescriptorSetLayout layout);
-
-	std::shared_ptr<vk::raii::DescriptorSet> allocate(vk::raii::DescriptorSetLayout& layout)
+	std::shared_ptr<vk::raii::DescriptorSet> allocate();
+	vk::raii::DescriptorSetLayout& layout()
 	{
-		return allocate(*layout);
+		return layout_;
 	}
 };

@@ -100,11 +100,9 @@ public:
 
 	// Descriptor set 0: per-frame/view data (uniform buffer) and per-instance data (dynamic uniform buffer)
 	growable_descriptor_pool ds_pool_frame;
-	vk::raii::DescriptorSetLayout descriptor_set_frame = nullptr;
 
 	// Descriptor set 1: per-material data (5 combined image samplers and 1 uniform buffer)
 	growable_descriptor_pool ds_pool_material;
-	vk::raii::DescriptorSetLayout descriptor_set_material = nullptr;
 
 	vk::raii::PipelineLayout pipeline_layout = nullptr;
 

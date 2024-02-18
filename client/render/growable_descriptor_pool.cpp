@@ -19,56 +19,70 @@
 #include "growable_descriptor_pool.h"
 
 #include <stdexcept>
+#include <algorithm>
 
-growable_descriptor_pool::growable_descriptor_pool(vk::raii::Device & device, sizes size_, int descriptorsets_per_pool) :
-        device(device), descriptorsets_per_pool(descriptorsets_per_pool)
+struct descriptor_set
 {
-	std::vector<vk::DescriptorPoolSize> tmp;
+	growable_descriptor_pool& growable_pool;
+	vk::DescriptorPool pool;
+	vk::raii::DescriptorSet ds;
 
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eSampler, .descriptorCount = (uint32_t)size_.sampler});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eCombinedImageSampler, .descriptorCount = (uint32_t)size_.combined_image_sampler});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eSampledImage, .descriptorCount = (uint32_t)size_.sampled_image});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageImage, .descriptorCount = (uint32_t)size_.storage_image});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformTexelBuffer, .descriptorCount = (uint32_t)size_.uniform_texel_buffer});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageTexelBuffer, .descriptorCount = (uint32_t)size_.storage_texel_buffer});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBuffer, .descriptorCount = (uint32_t)size_.uniform_buffer});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBuffer, .descriptorCount = (uint32_t)size_.storage_buffer});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eUniformBufferDynamic, .descriptorCount = (uint32_t)size_.uniform_buffer_dynamic});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eStorageBufferDynamic, .descriptorCount = (uint32_t)size_.storage_buffer_dynamic});
-	tmp.push_back(vk::DescriptorPoolSize{.type = vk::DescriptorType::eInputAttachment, .descriptorCount = (uint32_t)size_.input_attachment});
-
-	for (auto & i: tmp)
+	~descriptor_set()
 	{
-		// Only use the descriptor types that have a descriptorCount above 0
-		if (i.descriptorCount > 0)
-			size.push_back(i);
+		for(auto& i: growable_pool.pools)
+		{
+			if (*i.descriptor_pool == pool)
+			{
+				i.free_count++;
+				return;
+			}
+		}
 	}
+};
 
-	if (size.empty())
-		throw std::invalid_argument("size");
-
+growable_descriptor_pool::growable_descriptor_pool(vk::raii::Device & device, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool) :
+        device(device), layout_(nullptr), descriptorsets_per_pool(descriptorsets_per_pool)
+{
 	if (descriptorsets_per_pool <= 0)
 		throw std::invalid_argument("descriptorsets_per_pool");
+
+	for(vk::DescriptorSetLayoutBinding binding: bindings)
+	{
+	    if (auto it = std::find_if(size.begin(), size.end(), [&binding](vk::DescriptorPoolSize& x){return x.type == binding.descriptorType;}); it != size.end())
+	    {
+		it->descriptorCount += binding.descriptorCount * descriptorsets_per_pool;
+	    }
+	    else if (binding.descriptorCount > 0)
+	    {
+		size.push_back(vk::DescriptorPoolSize{
+		    .type = binding.descriptorType,
+		    .descriptorCount = binding.descriptorCount * descriptorsets_per_pool,
+		});
+	    }
+	}
+
+	vk::DescriptorSetLayoutCreateInfo dsl_info{};
+	dsl_info.setBindings(bindings);
+	layout_ = vk::raii::DescriptorSetLayout{device, dsl_info};
 }
 
-std::shared_ptr<vk::raii::DescriptorSet> growable_descriptor_pool::allocate(vk::DescriptorSetLayout layout)
+std::shared_ptr<vk::raii::DescriptorSet> growable_descriptor_pool::allocate()
 {
 	vk::DescriptorSetAllocateInfo alloc_info{
 	        .descriptorSetCount = 1,
-	        .pSetLayouts = &layout,
+	        .pSetLayouts = &*layout_,
 	};
 
-	for (vk::raii::DescriptorPool & i: pools)
+	for (pool & i: pools)
 	{
-		// TODO: don't use exceptions as control flow
-		try
+		if (i.free_count)
 		{
-			alloc_info.descriptorPool = *i;
-			return std::make_shared<vk::raii::DescriptorSet>(std::move(device.allocateDescriptorSets(alloc_info)[0]));
-		}
-		catch (vk::OutOfPoolMemoryError &)
-		{
-			continue;
+			i.free_count--;
+			alloc_info.descriptorPool = *i.descriptor_pool;
+
+			auto ds = std::make_shared<descriptor_set>(*this, *i.descriptor_pool, std::move(device.allocateDescriptorSets(alloc_info)[0]));
+
+			return std::shared_ptr<vk::raii::DescriptorSet>(ds, &ds->ds);
 		}
 	}
 
@@ -78,7 +92,14 @@ std::shared_ptr<vk::raii::DescriptorSet> growable_descriptor_pool::allocate(vk::
 
 	pool_info.setPoolSizes(size);
 
-	alloc_info.descriptorPool = *pools.emplace_back(device, pool_info);
+	pools.push_back(pool{
+	    .free_count = descriptorsets_per_pool - 1,
+	    .descriptor_pool = vk::raii::DescriptorPool(device, pool_info),
+	});
 
-	return std::make_shared<vk::raii::DescriptorSet>(std::move(device.allocateDescriptorSets(alloc_info)[0]));
+	alloc_info.descriptorPool = *pools.back().descriptor_pool;
+
+	auto ds = std::make_shared<descriptor_set>(*this, *pools.back().descriptor_pool, std::move(device.allocateDescriptorSets(alloc_info)[0]));
+
+	return std::shared_ptr<vk::raii::DescriptorSet>(ds, &ds->ds);
 }
