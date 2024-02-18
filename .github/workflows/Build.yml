@@ -115,8 +115,18 @@ jobs:
       run: >
         sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin
 
+    - name: Check for Secret availability
+      id: secret-check
+      shell: bash
+      run: |
+        if [[ "${{ secrets.APK_SIGNINGKEYPASSWORD }}" != '' && "${{ secrets.APK_KEYSTORE_BASE64 }}" != '' ]]; then
+          echo "available=true" >> $GITHUB_OUTPUT;
+        else
+          echo "available=false" >> $GITHUB_OUTPUT;
+        fi
+
     - name: Secrets
-      if: ${{ github.event_name != 'pull_request' }}
+      if: ${{ github.event_name != 'pull_request' && steps.secret-check.outputs.available == 'true' }}
       env:
         APK_SIGNINGKEYPASSWORD: ${{ secrets.APK_SIGNINGKEYPASSWORD }}
         APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
