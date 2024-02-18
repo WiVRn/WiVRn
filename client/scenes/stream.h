@@ -54,7 +54,7 @@ private:
 		// latest frames from oldest to most recent
 		std::array<std::shared_ptr<shard_accumulator::blit_handle>, 2> latest_frames;
 
-		static std::optional<uint64_t> common_frame(const std::vector<accumulator_images> &);
+		static std::optional<uint64_t> common_frame(const std::vector<accumulator_images> &, uint64_t preferred_index);
 		std::shared_ptr<shard_accumulator::blit_handle> frame(std::optional<uint64_t> id);
 		std::vector<uint64_t> frames() const;
 	};
@@ -76,6 +76,7 @@ private:
 	utils::sync_queue<to_headset::video_stream_data_shard> shard_queue;
 
 	std::mutex decoder_mutex;
+	uint64_t next_frame; // Preferred index for next frame
 	std::vector<accumulator_images> decoders; // Locked by decoder_mutex
 
 	std::array<renderpass_output, view_count> decoder_output{};

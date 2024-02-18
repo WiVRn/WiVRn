@@ -30,7 +30,6 @@
 #include "utils/named_thread.h"
 #include "wivrn_packets.h"
 #include <algorithm>
-#include <chrono>
 #include <mutex>
 #include <thread>
 #include <vulkan/vulkan_core.h>
@@ -256,7 +255,7 @@ std::vector<uint64_t> scenes::stream::accumulator_images::frames() const
 	return result;
 }
 
-std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const std::vector<accumulator_images> & sets)
+std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const std::vector<accumulator_images> & sets, uint64_t preferred_frame)
 {
 	if (sets.empty())
 		return {};
@@ -272,6 +271,8 @@ std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const s
 			return {};
 	}
 	assert(not common_frames.empty());
+	if (std::ranges::find(common_frames, preferred_frame) != common_frames.end())
+		return preferred_frame;
 	return common_frames.back();
 }
 
@@ -369,7 +370,9 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 		std::unique_lock lock(decoder_mutex);
 		// Search for the most recent frame available on all decoders.
 		// If no such frame exists, use the latest frame for each decoder
-		auto common_frame = accumulator_images::common_frame(decoders);
+		auto common_frame = accumulator_images::common_frame(decoders, next_frame);
+		if (common_frame)
+			next_frame = *common_frame + 1;
 		// Blit images from the decoders
 		// TODO be smarter: group blits per eye, so that the framebuffer can use OP_DONT_CARE instead of OP_LOAD and use the same renderpass if possible
 		for (auto & i: decoders)
