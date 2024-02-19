@@ -107,6 +107,7 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::Phys
 			settings.codec = encoder.codec.value_or(xrt::drivers::wivrn::h264);
 			settings.group = encoder.group.value_or(next_group);
 			settings.options = encoder.options;
+			settings.device = encoder.device;
 
 			next_group = std::max(next_group, settings.group + 1);
 			res.push_back(settings);

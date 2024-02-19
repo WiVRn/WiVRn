@@ -123,7 +123,13 @@ Creates a hardware encoder for left eye, and a software encoder for right eye.
 Creates two hardware encoders, one for left eye and one for right eye, executed sequentially as they have the same `group`.
 This allows the left eye image to be encoded faster than the full image would be, so network transfer starts earlier, and decoding starts earlier. While the total encoding, transfer and decoding time remain the same or are longer, this can reduce the latency.
 
-### `options` (very advanced)
+### `device`, only for vaapi
+Default value: unset
+
+Manually specify the device for encoding, can be used to offload encode to an iGPU. Device shall be in the form "/dev/dri/renderD128".
+
+
+### `options` (very advanced), only for vaapi
 Default value: unset
 
 Json object of additional options to pass directly to ffmpeg `avcodec_open2`'s `option` parameter.

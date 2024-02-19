@@ -39,6 +39,7 @@ struct configuration
 		std::optional<int> group;
 		std::optional<xrt::drivers::wivrn::video_codec> codec;
 		std::map<std::string, std::string> options;
+		std::optional<std::string> device;
 	};
 
 	std::vector<encoder> encoders;

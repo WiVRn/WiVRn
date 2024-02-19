@@ -105,6 +105,7 @@ configuration configuration::read_user_configuration()
 				if (e.codec == xrt::drivers::wivrn::video_codec(-1))
 					throw std::runtime_error("invalid codec value " + encoder["codec"].get<std::string>());
 				SET_IF(options);
+				SET_IF(device);
 				result.encoders.push_back(e);
 			}
 		}

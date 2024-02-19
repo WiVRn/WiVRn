@@ -94,11 +94,11 @@ get_render_device(vk::raii::PhysicalDevice & physical_device)
 	return path;
 }
 
-av_buffer_ptr make_drm_hw_ctx(vk::raii::PhysicalDevice & physical_device)
+av_buffer_ptr make_drm_hw_ctx(vk::raii::PhysicalDevice & physical_device, const std::optional<std::string>& device)
 {
-	const auto device = get_render_device(physical_device);
+	const auto render_device = device ? *device : get_render_device(physical_device);
 	AVBufferRef * hw_ctx;
-	int err = av_hwdevice_ctx_create(&hw_ctx, AV_HWDEVICE_TYPE_DRM, device ? device->c_str() : NULL, NULL, 0);
+	int err = av_hwdevice_ctx_create(&hw_ctx, AV_HWDEVICE_TYPE_DRM, render_device ? render_device->c_str() : NULL, NULL, 0);
 	if (err)
 		throw std::system_error(err, av_error_category(), "FFMPEG drm hardware context creation failed");
 	return av_buffer_ptr(hw_ctx);
@@ -127,7 +127,7 @@ vk::Format drm_to_vulkan_fmt(uint32_t drm_fourcc)
 video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::encoder_settings & settings, float fps) :
         luma(nullptr), chroma(nullptr)
 {
-	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device);
+	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device, settings.device);
 	AVBufferRef * tmp;
 	int err = av_hwdevice_ctx_create_derived(&tmp,
 	                                         AV_HWDEVICE_TYPE_VAAPI,
@@ -296,7 +296,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 		vk::StructureChain alloc_info{
 		        vk::MemoryAllocateInfo{
 		                .allocationSize = desc->objects[i].size,
-		                .memoryTypeIndex = vk.get_memory_type(memory_props.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal),
+		                .memoryTypeIndex = vk.get_memory_type(memory_props.memoryTypeBits, {}),
 		        },
 		        vk::MemoryDedicatedAllocateInfo{
 		                .image = *image,
