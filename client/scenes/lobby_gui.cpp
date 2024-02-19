@@ -348,6 +348,7 @@ void scenes::lobby::gui_settings()
 				}
 				ImGui::EndCombo();
 			}
+			vibrate_on_hover();
 		}
 	}
 
