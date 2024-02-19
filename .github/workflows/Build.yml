@@ -98,11 +98,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        lfs: ${{ matrix.hmd == 'Pico' }}
         fetch-depth: 0
-    - name: Checkout LFS objects
-      run: git lfs checkout
-      if: ${{ matrix.hmd == 'Pico' }}
 
     - name: set up JDK
       uses: actions/setup-java@v4
