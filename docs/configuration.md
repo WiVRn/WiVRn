@@ -1,6 +1,6 @@
 # Configurable items:
 ## `scale`
-Default value: `1`
+Default value: `0.8`
 
 Controls the size of the video stream, either a number between 0 and 1 or a pair of numbers between 0 and 1. If two numbers are provided the first one is horizontal scale and the second vertical.
 Scaling is applied in a foveated fashion: the center has a 1:1 ratio and the rest is scaled so that the total number of pixels matches the desired scale.

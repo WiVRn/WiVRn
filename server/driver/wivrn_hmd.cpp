@@ -214,7 +214,7 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 
 	auto eye_width = info.recommended_eye_width;   // * config.scale.value_or(1);
 	auto eye_height = info.recommended_eye_height; // * config.scale.value_or(1);
-	auto scale = config.scale.value_or(std::array<double, 2>{1., 1.});
+	auto scale = config.scale.value_or(std::array<double, 2>{0.8, 0.8});
 	int foveated_eye_width = info.recommended_eye_width * scale[0];
 	int foveated_eye_height = info.recommended_eye_height * scale[1];
 	foveated_eye_height += foveated_eye_height % 2;
