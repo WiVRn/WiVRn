@@ -58,6 +58,7 @@
 #include "jnipp.h"
 #else
 #include <signal.h>
+#include "utils/xdg_base_directory.h"
 #endif
 
 using namespace std::chrono_literals;
@@ -292,30 +293,6 @@ static XrActionType guess_action_type(const std::string & name)
 
 	return XR_ACTION_TYPE_FLOAT_INPUT;
 }
-
-#ifndef __ANDROID__
-static std::filesystem::path get_config_base_dir()
-{
-	const char * xdg_config_home = std::getenv("XDG_CONFIG_HOME");
-	if (xdg_config_home)
-		return xdg_config_home;
-	const char * home = std::getenv("HOME");
-	if (home)
-		return std::filesystem::path(home) / ".config";
-	return ".";
-}
-
-static std::filesystem::path get_cache_base_dir()
-{
-	const char * xdg_cache_home = std::getenv("XDG_CACHE_HOME");
-	if (xdg_cache_home)
-		return xdg_cache_home;
-	const char * home = std::getenv("HOME");
-	if (home)
-		return std::filesystem::path(home) / ".cache";
-	return ".";
-}
-#endif
 
 VkBool32 application::vulkan_debug_report_callback(
         VkDebugReportFlagsEXT flags,
@@ -927,8 +904,8 @@ application::application(application_info info) :
 	}
 
 #else
-	config_path = get_config_base_dir() / "wivrn";
-	cache_path = get_cache_base_dir() / "wivrn";
+	config_path = xdg_config_home() / "wivrn";
+	cache_path = xdg_cache_home() / "wivrn";
 #endif
 
 	std::filesystem::create_directories(config_path);

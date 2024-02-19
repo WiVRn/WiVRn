@@ -24,6 +24,7 @@ configure_file(wivrn_config.h.in wivrn_config.h)
 
 add_library(wivrn-common STATIC
     wivrn_sockets.cpp
+    utils/xdg_base_directory.cpp
     vk/allocation.cpp
     vk/error_category.cpp
     vk/vk_allocator.cpp

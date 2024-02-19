@@ -57,10 +57,11 @@ endif()
 
 
 add_executable(wivrn-server
-		main.cpp
-		target_instance_wivrn.cpp
+		active_runtime.cpp
 		avahi_publisher.cpp
 		hostname.cpp
+		main.cpp
+		target_instance_wivrn.cpp
 		wivrn_ipc.cpp
 
 		encoder/encoder_settings.cpp

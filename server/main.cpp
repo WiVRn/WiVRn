@@ -29,6 +29,7 @@
 #include "hostname.h"
 #include <shared/ipc_protocol.h>
 #include <util/u_file.h>
+#include "active_runtime.h"
 
 // Insert the on load constructor to init trace marker.
 U_TRACE_TARGET_SETUP(U_TRACE_WHICH_SERVICE)
@@ -236,6 +237,8 @@ int inner_main(int argc, char * argv[])
 			std::cerr << e.what() << std::endl;
 			return EXIT_FAILURE;
 		}
+
+		active_runtime runtime_setter;
 
 		pid_t client_pid = start_application();
 

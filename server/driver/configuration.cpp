@@ -31,26 +31,16 @@
 #include "util/u_logging.h"
 
 #include "configuration.h"
-
-static std::filesystem::path get_config_base_dir()
-{
-	const char * xdg_config_home = std::getenv("XDG_CONFIG_HOME");
-	if (xdg_config_home)
-		return xdg_config_home;
-	const char * home = std::getenv("HOME");
-	if (home)
-		return std::filesystem::path(home) / ".config";
-	return ".";
-}
+#include "utils/xdg_base_directory.h"
 
 static std::filesystem::path get_config_file()
 {
-	return get_config_base_dir() / "wivrn" / "config.json";
+	return xdg_config_home() / "wivrn" / "config.json";
 }
 
 static std::filesystem::path get_cookie_file()
 {
-	return get_config_base_dir() / "wivrn" / "cookie";
+	return xdg_config_home() / "wivrn" / "cookie";
 }
 
 namespace xrt::drivers::wivrn
