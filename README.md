@@ -38,11 +38,21 @@ ln --relative --symbolic --force build-server/openxr_wivrn-dev.json ~/.config/op
 Alternatively, setting the environment `XR_RUNTIME_JSON="${PWD}/build-server/openxr_wivrn-dev.json"` will set it for the current shell only.
 
 ## Running
+
+### Prerequisites
+Avahi must be running:
+```bash
+systemctl enable --now avahi-daemon
+```
+
+If a firewall is installed, open port 5353/UDP for avahi.
+Open ports 9757/UDP+TCP for WiVRn itself.
+
+### Running
 On the computer, run `wivrn-server`, from checkout directory
 ```bash
 build-server/server/wivrn-server
 ```
-Ensure that port 9757 is open for incoming TCP and UDP connections.
 Then, on headset, launch WiVRn from the App Library, in "unknown sources" section.
 
 You should now see your server in the list, click connect, screen will show "waiting for video stream".
