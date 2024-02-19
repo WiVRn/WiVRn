@@ -140,7 +140,9 @@ void real_main()
 void android_main(android_app * native_app) __attribute__((visibility("default")));
 void android_main(android_app * native_app)
 {
-	spdlog::set_default_logger(spdlog::android_logger_mt("WiVRn", "WiVRn"));
+	static auto logger = spdlog::android_logger_mt("WiVRn", "WiVRn");
+
+	spdlog::set_default_logger(logger);
 
 	real_main(native_app);
 }
