@@ -250,11 +250,12 @@ xrt::drivers::wivrn::TCPListener::TCPListener(int port)
 
 std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::drivers::wivrn::UDP::receive_from_raw()
 {
-	std::vector<uint8_t> buffer(2000);
-
 	sockaddr_in6 addr;
 	socklen_t addrlen = sizeof(addr);
 
+	size_t size = recvfrom(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC, (sockaddr *)&addr, &addrlen);
+
+	std::vector<uint8_t> buffer(size);
 	ssize_t received = recvfrom(fd, buffer.data(), buffer.size(), 0, (sockaddr *)&addr, &addrlen);
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
@@ -262,12 +263,13 @@ std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::driver
 	bytes_received_ += received;
 	buffer.resize(received);
 
-	return {deserialization_packet{buffer}, addr};
+	return {deserialization_packet{std::move(buffer)}, addr};
 }
 
 xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_raw()
 {
-	std::vector<uint8_t> buffer(2000);
+	size_t size = recv(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC);
+	std::vector<uint8_t> buffer(size);
 
 	ssize_t received = recv(fd, buffer.data(), buffer.size(), 0);
 	if (received < 0)
@@ -276,7 +278,7 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_ra
 	bytes_received_ += received;
 	buffer.resize(received);
 
-	return deserialization_packet{buffer};
+	return deserialization_packet{std::move(buffer)};
 }
 
 void xrt::drivers::wivrn::UDP::send_raw(const std::vector<uint8_t> & data)
