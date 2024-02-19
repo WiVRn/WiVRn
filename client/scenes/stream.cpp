@@ -525,11 +525,19 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	auto views = system.view_configuration_views(viewconfig);
 
 	swapchains.reserve(views.size());
-	for ([[maybe_unused]] auto view: views)
+	for (auto view: views)
 	{
-		swapchains.emplace_back(session, device, swapchain_format, swapchain_width, swapchain_height);
+		// Create a swapchain larger than video strem so that reprojection and foveation affect image quality less.
+		const double max_oversample = std::min(double(view.maxImageRectWidth) / swapchain_width,
+		                                       double(view.maxImageRectHeight) / swapchain_height);
+		double oversample = std::min(1.4, max_oversample);
+		XrExtent2Di extent{
+		        .width = int32_t(swapchain_width * oversample),
+		        .height = int32_t(swapchain_height * oversample),
+		};
+		swapchains.emplace_back(session, device, swapchain_format, extent.width, extent.height);
 
-		spdlog::info("Created stream swapchain {}: {}x{}", swapchains.size(), swapchain_width, swapchain_height);
+		spdlog::info("Created stream swapchain {}: {}x{}", swapchains.size(), extent.width, extent.height);
 	}
 
 	// Create outputs for the decoders
