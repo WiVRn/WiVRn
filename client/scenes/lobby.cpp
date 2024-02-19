@@ -460,6 +460,7 @@ void scenes::lobby::update_server_list()
 		{
 			server->second.visible = true;
 			server->second.service = service;
+			server->second.compatible = compatible;
 		}
 	}
 }
