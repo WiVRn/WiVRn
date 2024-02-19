@@ -242,7 +242,7 @@ void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clo
 	std::lock_guard lock{mutex};
 	for (const auto & input: inputs.values)
 	{
-		set_inputs(input.id, input.value, clock_offset.from_headset(input.last_change_time));
+		set_inputs(input.id, input.value, input.last_change_time ? clock_offset.from_headset(input.last_change_time) : 0);
 	}
 }
 
