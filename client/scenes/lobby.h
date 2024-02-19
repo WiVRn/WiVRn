@@ -111,6 +111,7 @@ class lobby : public scene_impl<lobby>
 	tab last_current_tab = tab::server_list;
 	ImTextureID about_picture;
 
+	float preferred_refresh_rate = 0;
 	bool show_performance_metrics = false;
 
 	void gui_connecting();

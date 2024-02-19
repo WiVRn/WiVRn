@@ -212,6 +212,13 @@ scenes::lobby::lobby()
 		auto json_show_plots = root["show_performance_metrics"];
 		if (json_show_plots.is_bool())
 			show_performance_metrics = json_show_plots.get_bool();
+
+		auto rate = root["preferred_refresh_rate"];
+		if (rate.is_double())
+		{
+			preferred_refresh_rate = rate.get_double();
+			session.set_refresh_rate(preferred_refresh_rate);
+		}
 	}
 	catch(std::exception& e)
 	{
@@ -277,8 +284,10 @@ void scenes::lobby::save_config()
 	std::ofstream json(application::get_config_path() / "client.json");
 
 	json << "{\"servers\":[" << servers_str << "],"
-	     << "\"show_performance_metrics\":" << std::boolalpha << show_performance_metrics
-	     << "}";
+	     << "\"show_performance_metrics\":" << std::boolalpha << show_performance_metrics;
+	if (preferred_refresh_rate != 0.)
+	     json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate ;
+	json << "}";
 }
 
 static std::string ip_address_to_string(const in_addr& addr)

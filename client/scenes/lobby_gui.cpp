@@ -330,6 +330,27 @@ void scenes::lobby::gui_settings()
 {
 	ImGuiStyle & style = ImGui::GetStyle();
 
+	{
+		const auto & refresh_rates = session.get_refresh_rates();
+		float current = session.get_current_refresh_rate();
+		if (not refresh_rates.empty())
+		{
+			if (ImGui::BeginCombo("Refresh rate", fmt::format("{}", current).c_str()))
+			{
+				for (float rate: refresh_rates)
+				{
+					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == current) and rate != current)
+					{
+						session.set_refresh_rate(rate);
+						preferred_refresh_rate = rate;
+						save_config();
+					}
+				}
+				ImGui::EndCombo();
+			}
+		}
+	}
+
 	if (ImGui::Checkbox("Show performance metrics", &show_performance_metrics))
 		save_config();
 	vibrate_on_hover();
