@@ -809,21 +809,6 @@ void application::initialize()
 
 	vk_cmdpool = vk::raii::CommandPool{vk_device, cmdpool_create_info};
 
-	// Create timestamp queries
-	query_pool = vk::raii::QueryPool(vk_device, vk::QueryPoolCreateInfo{.queryType = vk::QueryType::eTimestamp, .queryCount = 6});
-	query_command_buffers = vk_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo{.commandPool = *vk_cmdpool, .commandBufferCount = 6});
-	for(int i = 0; i < 6; i+=2)
-	{
-		query_command_buffers[i].begin({});
-		query_command_buffers[i].resetQueryPool(*query_pool, i, 2);
-		query_command_buffers[i].writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, i);
-		query_command_buffers[i].end();
-
-		query_command_buffers[i+1].begin({});
-		query_command_buffers[i+1].writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, i+1);
-		query_command_buffers[i+1].end();
-	}
-
 	initialize_actions();
 
 	interaction_profile_changed();
@@ -1041,27 +1026,11 @@ void application::loop()
 
 			auto t1 = std::chrono::steady_clock::now();
 
-			vk_queue.submit(vk::SubmitInfo{
-				.commandBufferCount = 1,
-				.pCommandBuffers = &*query_command_buffers[(current_query%3) * 2],
-			}, nullptr);
-
 			scene->render(framestate.predictedDisplayTime, framestate.shouldRender);
 
 			last_scene_cpu_time = std::chrono::steady_clock::now() - t1;
 
-			vk_queue.submit(vk::SubmitInfo{
-				.commandBufferCount = 1,
-				.pCommandBuffers = &*query_command_buffers[(current_query%3) * 2 + 1],
-			}, nullptr);
 
-			current_query = current_query + 1;
-			if (current_query > 3)
-			{
-				auto [res, timestamps] = query_pool.getResults<uint64_t>((current_query%3)*2, 2, 2 * sizeof(uint64_t), sizeof(uint64_t), vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
-				if (res == vk::Result::eSuccess)
-					last_scene_gpu_time = std::chrono::nanoseconds((int)((timestamps[1] - timestamps[0]) * physical_device_properties.limits.timestampPeriod));
-			}
 		}
 		else
 		{

@@ -96,7 +96,7 @@ decoder::decoder(
 			.arrayLayers = 1,
 			.samples = vk::SampleCountFlagBits::e1,
 			.tiling = vk::ImageTiling::eLinear,
-			.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferSrc,
+			.usage = vk::ImageUsageFlagBits::eSampled,
 			.initialLayout = vk::ImageLayout::eUndefined,
 		};
 
@@ -107,11 +107,27 @@ decoder::decoder(
 		decoded_images[i].image = image_allocation(device, image_info, alloc_info);
 
 		decoded_images[i].image.map();
+		extent = vk::Extent2D{description.width, description.height};
 
 		vk::ImageSubresource resource;
 		resource.aspectMask = vk::ImageAspectFlagBits::eColor;
 
 		decoded_images[i].layout = decoded_images[i].image->getSubresourceLayout(resource);
+
+		decoded_images[i].image_view = vk::raii::ImageView(device, {
+			.image = (vk::Image)decoded_images[i].image,
+			.viewType = vk::ImageViewType::e2D,
+			.format = image_info.format,
+			.subresourceRange = {
+				.aspectMask = vk::ImageAspectFlagBits::eColor,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+			}
+		});
+
+		decoded_images[i].current_layout = vk::ImageLayout::eUndefined;
 	}
 
 	auto avcodec = avcodec_find_decoder(codec_id(description.codec));
@@ -125,65 +141,17 @@ decoder::decoder(
 	int ret = avcodec_open2(codec.get(), avcodec, nullptr);
 	if (ret < 0)
 		throw std::runtime_error{"avcodec_open2 failed"};
-}
 
-void decoder::set_blit_targets(std::vector<blit_target> targets, vk::Format format)
-{
-	blit_targets = std::move(targets);
-}
-
-void decoder::blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> blit_indices)
-{
-	std::unique_lock lock(mutex);
-
-	// Transition layout to VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-	// TODO: transition only if needed
-	vk::ImageMemoryBarrier barrier{
-		.srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-		.dstAccessMask = vk::AccessFlagBits::eTransferWrite,
-		.oldLayout = vk::ImageLayout::eUndefined,
-		.newLayout = vk::ImageLayout::eTransferSrcOptimal,
-		.image = handle.image,
-		.subresourceRange = {
-			.aspectMask = vk::ImageAspectFlagBits::eColor,
-			.levelCount = 1,
-			.layerCount = 1,
-		},
-	};
-
-	command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, vk::DependencyFlags{}, {}, {}, barrier);
-
-	for (int blit_index: blit_indices)
-	{
-		uint32_t left = blit_targets[blit_index].offset.x;
-		uint32_t right = left + blit_targets[blit_index].extent.width;
-
-		uint32_t width = blit_targets[blit_index].extent.width;
-		uint32_t height = blit_targets[blit_index].extent.height;
-
-		// check for intersection
-		if (description.offset_x >= right or description.offset_x + description.width <= left)
-			continue;
-
-		vk::ImageBlit blit;
-
-		blit.srcSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-		blit.srcSubresource.layerCount = 1;
-		blit.srcOffsets[0].x = std::max<int32_t>(0, left - description.offset_x);
-		blit.srcOffsets[0].y = 0;
-		blit.srcOffsets[1].x = std::min<int32_t>(description.width, right - description.offset_x);
-		blit.srcOffsets[1].y = std::min<int32_t>(description.height, height - description.offset_y);
-		blit.srcOffsets[1].z = 1;
-
-		blit.dstSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-		blit.dstSubresource.layerCount = 1;
-		blit.dstOffsets[0].x = std::max<int32_t>(0, description.offset_x - left);
-		blit.dstOffsets[0].y = description.offset_y;
-		blit.dstOffsets[1].x = std::min<int32_t>(width, description.offset_x + description.width - left);
-		blit.dstOffsets[1].y = std::min<int32_t>(height, description.offset_y + description.height);
-		blit.dstOffsets[1].z = 1;
-		command_buffer.blitImage(handle.image, vk::ImageLayout::eTransferSrcOptimal, blit_targets[blit_index].image, vk::ImageLayout::eTransferDstOptimal, blit, vk::Filter::eLinear);
-	}
+	rgb_sampler = vk::raii::Sampler(device, {
+		.flags = {},
+		.magFilter = vk::Filter::eLinear,
+		.minFilter = vk::Filter::eLinear,
+		.mipmapMode = vk::SamplerMipmapMode::eNearest,
+		.addressModeU = vk::SamplerAddressMode::eClampToEdge,
+		.addressModeV = vk::SamplerAddressMode::eClampToEdge,
+		.addressModeW = vk::SamplerAddressMode::eClampToEdge,
+		.unnormalizedCoordinates = false,
+	});
 }
 
 void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
@@ -243,18 +211,21 @@ void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback 
 
 	decoded_images[index].frame_index = frame_index;
 	int dstStride = decoded_images[index].layout.rowPitch;
-	uint8_t * out = (uint8_t *)decoded_images[index].image.map();
+	uint8_t * out = decoded_images[index].image.data<uint8_t>();
 	res = sws_scale(sws.get(), frame->data, frame->linesize, 0, frame->height, &out, &dstStride);
 	if (res == 0)
 		throw std::runtime_error{"sws_scale failed"};
 
-	auto handle = std::make_shared<decoder::blit_handle>();
-	handle->feedback = feedback;
-	handle->timing_info = timing_info;
-	handle->view_info = view_info;
-	handle->image = decoded_images[index].image;
-	handle->image_index = index;
-	handle->self = this;
+	auto handle = std::make_shared<decoder::blit_handle>(
+		feedback,
+		timing_info,
+		view_info,
+		decoded_images[index].image_view,
+		(vk::Image)decoded_images[index].image,
+		&decoded_images[index].current_layout,
+		index,
+		this
+	);
 
 	if (auto scene = weak_scene.lock())
 		scene->push_blit_handle(accumulator, std::move(handle));

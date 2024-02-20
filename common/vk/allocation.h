@@ -22,6 +22,7 @@
 #include "vk_allocator.h"
 #include "vk_mem_alloc.h"
 #include <vulkan/vulkan_raii.hpp>
+#include <cstdint>
 
 template <typename T>
 struct basic_allocation_traits
@@ -177,7 +178,7 @@ public:
 		mapped = nullptr;
 	}
 
-	template <typename U>
+	template <typename U = uint8_t>
 	U * data()
 	{
 		return reinterpret_cast<U *>(map());

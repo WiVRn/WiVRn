@@ -51,6 +51,10 @@ private:
 	struct accumulator_images
 	{
 		std::unique_ptr<shard_accumulator> decoder;
+		vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
+		vk::DescriptorSet descriptor_set = nullptr;
+		vk::raii::PipelineLayout blit_pipeline_layout = nullptr;
+		vk::raii::Pipeline blit_pipeline = nullptr;
 		// latest frames from oldest to most recent
 		std::array<std::shared_ptr<shard_accumulator::blit_handle>, 2> latest_frames;
 
@@ -65,6 +69,7 @@ private:
 		vk::Format format;
 		image_allocation image;
 		vk::raii::ImageView image_view = nullptr;
+		vk::raii::Framebuffer frame_buffer = nullptr;
 	};
 
 	std::unique_ptr<wivrn_session> network_session;
@@ -78,6 +83,8 @@ private:
 	std::mutex decoder_mutex;
 	uint64_t next_frame; // Preferred index for next frame
 	std::vector<accumulator_images> decoders; // Locked by decoder_mutex
+	vk::raii::DescriptorPool blit_descriptor_pool = nullptr;
+	vk::raii::RenderPass blit_render_pass = nullptr;
 
 	std::array<renderpass_output, view_count> decoder_output{};
 
@@ -101,6 +108,9 @@ private:
 	std::optional<audio> audio_handle;
 
 	std::optional<imgui_context> imgui_ctx;
+
+	// Keep a reference to the resources needed to blit the images until vkWaitForFences
+	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> current_blit_handles;
 
 	stream() = default;
 
@@ -146,18 +156,39 @@ private:
 	void setup(const to_headset::video_stream_description &);
 	void exit();
 
+	vk::raii::QueryPool query_pool = nullptr;
+	bool query_pool_filled = false;
+
 	uint64_t bytes_sent = 0;
 	uint64_t bytes_received = 0;
 	float bandwidth_rx = 0;
 	float bandwidth_tx = 0;
 
-	struct global_metric
+	struct gpu_timestamps
 	{
-		float cpu_time = 0;
+		float gpu_barrier = 0;
 		float gpu_time = 0;
+	};
+
+	struct global_metric //: gpu_timestamps
+	{
+		float gpu_barrier;
+		float gpu_time;
+		float cpu_time = 0;
 		float bandwidth_rx = 0;
 		float bandwidth_tx = 0;
+
 	};
+
+	struct plot
+	{
+		int subplot;
+		const char * title;
+		const char * unit;
+		float scenes::stream::global_metric::* data;
+	};
+
+	static const inline int size_gpu_timestamps = 1 + sizeof(gpu_timestamps) / sizeof(float);
 
 	struct decoder_metric
 	{
@@ -178,7 +209,7 @@ private:
 	XrTime last_metric_time = 0;
 	int metrics_offset = 0;
 
-	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>>& blit_handles);
+	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>>& blit_handles, const gpu_timestamps& timestamps);
 	XrCompositionLayerQuad plot_performance_metrics(XrTime predicted_display_time);
 };
 } // namespace scenes

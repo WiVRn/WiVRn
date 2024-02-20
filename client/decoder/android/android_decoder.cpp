@@ -39,225 +39,12 @@
 
 DEUGLIFY(AMediaFormat)
 
-struct wivrn::android::decoder::pipeline_context
-{
-	vk::raii::Device& device;
-	vk::AndroidHardwareBufferFormatPropertiesANDROID ahb_format;
-
-	vk::raii::SamplerYcbcrConversion ycbcr_conversion = nullptr;
-	vk::raii::Sampler sampler = nullptr;
-
-	vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
-	vk::raii::DescriptorPool descriptor_pool = nullptr;
-	std::mutex descriptor_pool_mutex;
-	vk::raii::PipelineLayout layout = nullptr;
-	vk::raii::Pipeline pipeline = nullptr;
-
-	pipeline_context(vk::raii::Device& device, const AHardwareBuffer_Desc& buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format, vk::raii::RenderPass& renderpass, const to_headset::video_stream_description::item& description) :
-	        device(device), ahb_format(ahb_format)
-	{
-		spdlog::info("descriptor_pool_mutex.native_handle() = {}", (void*)descriptor_pool_mutex.native_handle());
-
-		assert(ahb_format.externalFormat != 0);
-		spdlog::info("AndroidHardwareBufferProperties");
-		spdlog::info("  Vulkan format: {}", vk::to_string(ahb_format.format));
-		spdlog::info("  External format: {:#x}", ahb_format.externalFormat);
-		spdlog::info("  Format features: {}", vk::to_string(ahb_format.formatFeatures));
-		spdlog::info("  samplerYcbcrConversionComponents: ({}, {}, {}, {})",
-		             vk::to_string(ahb_format.samplerYcbcrConversionComponents.r),
-		             vk::to_string(ahb_format.samplerYcbcrConversionComponents.g),
-		             vk::to_string(ahb_format.samplerYcbcrConversionComponents.b),
-		             vk::to_string(ahb_format.samplerYcbcrConversionComponents.a));
-		spdlog::info("  Suggested YCbCr model: {}", vk::to_string(ahb_format.suggestedYcbcrModel));
-		spdlog::info("  Suggested YCbCr range: {}", vk::to_string(ahb_format.suggestedYcbcrRange));
-		spdlog::info("  Suggested X chroma offset: {}", vk::to_string(ahb_format.suggestedXChromaOffset));
-		spdlog::info("  Suggested Y chroma offset: {}", vk::to_string(ahb_format.suggestedYChromaOffset));
-
-		vk::Filter yuv_filter;
-		if (ahb_format.formatFeatures & vk::FormatFeatureFlagBits::eSampledImageYcbcrConversionLinearFilter)
-			yuv_filter = vk::Filter::eLinear;
-		else
-			yuv_filter = vk::Filter::eNearest;
-
-		// Create VkSamplerYcbcrConversion
-		vk::StructureChain ycbcr_create_info
-		{
-			vk::SamplerYcbcrConversionCreateInfo{
-				.format = vk::Format::eUndefined,
-				.ycbcrModel = ahb_format.suggestedYcbcrModel,
-				.ycbcrRange = ahb_format.suggestedYcbcrRange,
-				.components = ahb_format.samplerYcbcrConversionComponents,
-				.xChromaOffset = ahb_format.suggestedXChromaOffset,
-				.yChromaOffset = ahb_format.suggestedYChromaOffset,
-				.chromaFilter = yuv_filter,
-			},
-			vk::ExternalFormatANDROID{
-				.externalFormat = ahb_format.externalFormat,
-			},
-		};
-
-
-
-		// suggested values from decoder don't actually read the metadata, so it's garbage
-		if (description.range)
-			ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrRange = vk::SamplerYcbcrRange(*description.range);
-
-		if (description.color_model)
-			ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrModel = vk::SamplerYcbcrModelConversion(*description.color_model);
-
-		ycbcr_conversion = vk::raii::SamplerYcbcrConversion(device, ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>());
-
-		// Create VkSampler
-		vk::StructureChain sampler_info{
-			vk::SamplerCreateInfo{
-				.magFilter = yuv_filter,
-				.minFilter = yuv_filter,
-				.mipmapMode = vk::SamplerMipmapMode::eNearest,
-				.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-				.addressModeV = vk::SamplerAddressMode::eClampToEdge,
-				.addressModeW = vk::SamplerAddressMode::eClampToEdge,
-				.mipLodBias = 0.0f,
-				.anisotropyEnable = VK_FALSE,
-				.maxAnisotropy = 1,
-				.compareEnable = VK_FALSE,
-				.compareOp = vk::CompareOp::eNever,
-				.minLod = 0.0f,
-				.maxLod = 0.0f,
-				.borderColor = vk::BorderColor::eFloatOpaqueWhite, // TODO TBC
-				.unnormalizedCoordinates = VK_FALSE,
-			},
-			vk::SamplerYcbcrConversionInfo{
-				.conversion = *ycbcr_conversion,
-			}
-		};
-
-
-		sampler = vk::raii::Sampler(device, sampler_info.get<vk::SamplerCreateInfo>());
-
-
-		// Create VkDescriptorSetLayout with an immutable sampler
-		vk::DescriptorSetLayoutBinding sampler_layout_binding{
-			.binding = 0,
-			.descriptorType = vk::DescriptorType::eCombinedImageSampler,
-			.descriptorCount = 1,
-			.stageFlags = vk::ShaderStageFlagBits::eFragment,
-		};
-		sampler_layout_binding.setImmutableSamplers(*sampler);
-
-		vk::DescriptorSetLayoutCreateInfo layout_info;
-		layout_info.setBindings(sampler_layout_binding);
-
-		descriptor_set_layout = vk::raii::DescriptorSetLayout(device, layout_info);
-
-
-		vk::DescriptorPoolSize pool_size{
-			.type = vk::DescriptorType::eCombinedImageSampler,
-			.descriptorCount = 100,
-		};
-
-		vk::DescriptorPoolCreateInfo pool_info{
-			.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-			.maxSets = pool_size.descriptorCount,
-		};
-		pool_info.setPoolSizes(pool_size);
-
-		descriptor_pool = vk::raii::DescriptorPool(device, pool_info);
-
-		std::array useful_size =
-		{
-			float(description.width) / buffer_desc.width,
-			float(description.height) / buffer_desc.height
-		};
-		spdlog::info("useful size: {}x{} with buffer {}x{}",
-				description.width, description.height,
-				buffer_desc.width, buffer_desc.height);
-
-		std::array specialization_constants_desc{
-			vk::SpecializationMapEntry{
-				.constantID = 0,
-				.offset = 0,
-				.size = sizeof(float),
-			},
-			vk::SpecializationMapEntry{
-				.constantID = 1,
-				.offset = sizeof(float),
-				.size = sizeof(float),
-			}
-		};
-
-		vk::SpecializationInfo specialization_info;
-		specialization_info.setMapEntries(specialization_constants_desc);
-		specialization_info.setData<float>(useful_size);
-
-		// Create graphics pipeline
-		vk::raii::ShaderModule vertex_shader = load_shader(device, "stream.vert");
-		vk::raii::ShaderModule fragment_shader = load_shader(device, "stream.frag");
-
-
-		vk::PipelineLayoutCreateInfo pipeline_layout_info;
-		pipeline_layout_info.setSetLayouts(*descriptor_set_layout);
-
-		layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
-
-		vk::pipeline_builder pipeline_info
-		{
-			.flags = {},
-			.Stages = {{
-				.stage = vk::ShaderStageFlagBits::eVertex,
-				.module = *vertex_shader,
-				.pName = "main",
-				.pSpecializationInfo = &specialization_info,
-			},{
-				.stage = vk::ShaderStageFlagBits::eFragment,
-				.module = *fragment_shader,
-				.pName = "main",
-			}},
-			.VertexInputState = {.flags = {}},
-			.VertexBindingDescriptions = {},
-			.VertexAttributeDescriptions = {},
-			.InputAssemblyState = {{
-				.topology = vk::PrimitiveTopology::eTriangleStrip,
-			}},
-			.ViewportState = {.flags = {}},
-			.RasterizationState = {{
-				.polygonMode = vk::PolygonMode::eFill,
-				.lineWidth = 1,
-			}},
-			.MultisampleState = {{
-				.rasterizationSamples = vk::SampleCountFlagBits::e1,
-			}},
-			.ColorBlendState = {.flags = {}},
-			.ColorBlendAttachments = {{
-				.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB
-			}},
-			.DynamicState = {.flags={}},
-			.DynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor},
-			.layout = *layout,
-			.renderPass = *renderpass,
-			.subpass = 0,
-		};
-
-		pipeline = vk::raii::Pipeline(device, application::get_pipeline_cache(), pipeline_info);
-	}
-};
-
 struct wivrn::android::decoder::mapped_hardware_buffer
 {
-	std::shared_ptr<pipeline_context> pipeline;
 	vk::raii::DeviceMemory memory = nullptr;
 	vk::raii::Image vimage = nullptr;
 	vk::raii::ImageView image_view = nullptr;
-	vk::raii::DescriptorSet descriptor_set = nullptr;
 	vk::ImageLayout layout = vk::ImageLayout::eUndefined;
-
-	~mapped_hardware_buffer()
-	{
-		assert(pipeline);
-		{
-			std::unique_lock lock(pipeline->descriptor_pool_mutex);
-			descriptor_set = nullptr;
-		}
-	}
 };
 
 namespace
@@ -489,54 +276,6 @@ decoder::~decoder()
 	spdlog::info("decoder::~decoder");
 }
 
-void decoder::set_blit_targets(std::vector<decoder::blit_target> targets, vk::Format format)
-{
-	// Create renderpass
-	vk::AttachmentDescription color_desc{
-		.format = format,
-		.samples = vk::SampleCountFlagBits::e1,
-		.loadOp = vk::AttachmentLoadOp::eLoad,
-		.storeOp = vk::AttachmentStoreOp::eStore,
-		.initialLayout = vk::ImageLayout::eColorAttachmentOptimal,
-		.finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
-	};
-
-	vk::AttachmentReference color_ref{
-		.attachment = 0,
-		.layout = vk::ImageLayout::eColorAttachmentOptimal,
-	};
-
-	vk::SubpassDescription subpass{
-		.pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
-	};
-	subpass.setColorAttachments(color_ref);
-
-	vk::RenderPassCreateInfo renderpass_info{
-		.flags = {},
-
-	};
-	renderpass_info.setAttachments(color_desc);
-	renderpass_info.setSubpasses(subpass);
-
-	renderpass = vk::raii::RenderPass(device, renderpass_info);
-
-	blit_targets = std::move(targets);
-
-	for (auto & i: blit_targets)
-	{
-		vk::FramebufferCreateInfo fb_create_info{
-			.renderPass = *renderpass,
-			.attachmentCount = 1,
-			.pAttachments = &i.image_view,
-			.width = i.extent.width,
-			.height = i.extent.height,
-			.layers = 1
-		};
-
-		i.framebuffer = std::make_shared<vk::raii::Framebuffer>(device, fb_create_info);
-	}
-}
-
 void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
 	if (!media_codec)
@@ -652,12 +391,17 @@ void decoder::on_image_available(AImageReader * reader)
 		info->feedback.received_from_decoder = application::now();
 		assert(info->feedback.frame_index == frame_index);
 
-		auto handle = std::make_shared<decoder::blit_handle>();
-		handle->feedback = info->feedback;
-		handle->timing_info = info->timing_info;
-		handle->view_info = info->view_info;
-		handle->vk_data = map_hardware_buffer(image);
-		handle->aimage = image;
+		auto vk_data = map_hardware_buffer(image);
+
+		auto handle = std::make_shared<decoder::blit_handle>(
+			info->feedback,
+			info->timing_info,
+			info->view_info,
+			vk_data->image_view,
+			*vk_data->vimage,
+			&vk_data->layout,
+			vk_data,
+			image);
 
 		if (auto scene = weak_scene.lock())
 			scene->push_blit_handle(accumulator, std::move(handle));
@@ -667,6 +411,83 @@ void decoder::on_image_available(AImageReader * reader)
 		if (image)
 			AImage_delete(image);
 	}
+}
+
+void decoder::create_sampler(const AHardwareBuffer_Desc& buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format)
+{
+	assert(ahb_format.externalFormat != 0);
+	spdlog::info("AndroidHardwareBufferProperties");
+	spdlog::info("  Vulkan format: {}", vk::to_string(ahb_format.format));
+	spdlog::info("  External format: {:#x}", ahb_format.externalFormat);
+	spdlog::info("  Format features: {}", vk::to_string(ahb_format.formatFeatures));
+	spdlog::info("  samplerYcbcrConversionComponents: ({}, {}, {}, {})",
+			vk::to_string(ahb_format.samplerYcbcrConversionComponents.r),
+			vk::to_string(ahb_format.samplerYcbcrConversionComponents.g),
+			vk::to_string(ahb_format.samplerYcbcrConversionComponents.b),
+			vk::to_string(ahb_format.samplerYcbcrConversionComponents.a));
+	spdlog::info("  Suggested YCbCr model: {}", vk::to_string(ahb_format.suggestedYcbcrModel));
+	spdlog::info("  Suggested YCbCr range: {}", vk::to_string(ahb_format.suggestedYcbcrRange));
+	spdlog::info("  Suggested X chroma offset: {}", vk::to_string(ahb_format.suggestedXChromaOffset));
+	spdlog::info("  Suggested Y chroma offset: {}", vk::to_string(ahb_format.suggestedYChromaOffset));
+
+	vk::Filter yuv_filter;
+	if (ahb_format.formatFeatures & vk::FormatFeatureFlagBits::eSampledImageYcbcrConversionLinearFilter)
+		yuv_filter = vk::Filter::eLinear;
+	else
+		yuv_filter = vk::Filter::eNearest;
+
+	// Create VkSamplerYcbcrConversion
+	vk::StructureChain ycbcr_create_info
+	{
+		vk::SamplerYcbcrConversionCreateInfo{
+			.format = vk::Format::eUndefined,
+			.ycbcrModel = ahb_format.suggestedYcbcrModel,
+			.ycbcrRange = ahb_format.suggestedYcbcrRange,
+			.components = ahb_format.samplerYcbcrConversionComponents,
+			.xChromaOffset = ahb_format.suggestedXChromaOffset,
+			.yChromaOffset = ahb_format.suggestedYChromaOffset,
+			.chromaFilter = yuv_filter,
+		},
+		vk::ExternalFormatANDROID{
+			.externalFormat = ahb_format.externalFormat,
+		},
+	};
+
+	// suggested values from decoder don't actually read the metadata, so it's garbage
+	if (description.range)
+		ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrRange = vk::SamplerYcbcrRange(*description.range);
+
+	if (description.color_model)
+		ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrModel = vk::SamplerYcbcrModelConversion(*description.color_model);
+
+	ycbcr_conversion = vk::raii::SamplerYcbcrConversion(device, ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>());
+
+	// Create VkSampler
+	vk::StructureChain sampler_info{
+		vk::SamplerCreateInfo{
+			.magFilter = yuv_filter,
+			.minFilter = yuv_filter,
+			.mipmapMode = vk::SamplerMipmapMode::eNearest,
+			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
+			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
+			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
+			.mipLodBias = 0.0f,
+			.anisotropyEnable = VK_FALSE,
+			.maxAnisotropy = 1,
+			.compareEnable = VK_FALSE,
+			.compareOp = vk::CompareOp::eNever,
+			.minLod = 0.0f,
+			.maxLod = 0.0f,
+			.borderColor = vk::BorderColor::eFloatOpaqueWhite, // TODO TBC
+			.unnormalizedCoordinates = VK_FALSE,
+		},
+		vk::SamplerYcbcrConversionInfo{
+			.conversion = *ycbcr_conversion,
+		}
+	};
+
+
+	ycbcr_sampler = vk::raii::Sampler(device, sampler_info.get<vk::SamplerCreateInfo>());
 }
 
 std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AImage * image)
@@ -681,11 +502,13 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 
 	auto [properties, format_properties] = device.getAndroidHardwareBufferPropertiesANDROID<vk::AndroidHardwareBufferPropertiesANDROID, vk::AndroidHardwareBufferFormatPropertiesANDROID>(*hardware_buffer);
 
-	if (!pipeline || memcmp(&pipeline->ahb_format, &format_properties, sizeof(format_properties)))
+	if (!*ycbcr_sampler || memcmp(&ahb_format, &format_properties, sizeof(format_properties)))
 	{
-		pipeline.reset();
-		pipeline = std::make_shared<pipeline_context>(device, buffer_desc, format_properties, renderpass, description);
+		memcpy(&ahb_format, &format_properties, sizeof(format_properties));
+		extent = {buffer_desc.width, buffer_desc.height};
+		create_sampler(buffer_desc, ahb_format);
 		hardware_buffer_map.clear();
+		// TODO tell the reprojector to recreate the pipeline
 	}
 
 	auto it = hardware_buffer_map.find(hardware_buffer);
@@ -750,49 +573,18 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 			}
 		},
 		vk::SamplerYcbcrConversionInfo{
-			.conversion = *pipeline->ycbcr_conversion
+			.conversion = *ycbcr_conversion
 		}
 	};
-
 
 	application::ignore_debug_reports_for(*vimage);
 	vk::raii::ImageView image_view(device, iv_info.get());
 	application::unignore_debug_reports_for(*vimage);
 
-	vk::raii::DescriptorSet descriptor_set = [&]{
-		std::unique_lock lock(pipeline->descriptor_pool_mutex);
-
-		vk::raii::DescriptorSets descriptor_sets(device, {
-			.descriptorPool = *pipeline->descriptor_pool,
-			.descriptorSetCount = 1,
-			.pSetLayouts = &*pipeline->descriptor_set_layout,
-		});
-
-		return std::move(descriptor_sets[0]);
-	}();
-
-	vk::DescriptorImageInfo image_info{
-	        .imageView = *image_view,
-	        .imageLayout = vk::ImageLayout::eGeneral,
-	};
-
-	vk::WriteDescriptorSet descriptor_write{
-	        .dstSet = *descriptor_set,
-	        .dstBinding = 0,
-	        .dstArrayElement = 0,
-	        .descriptorCount = 1,
-	        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	        .pImageInfo = &image_info,
-	};
-
-	device.updateDescriptorSets(descriptor_write, {});
-
 	auto handle = std::make_shared<mapped_hardware_buffer>();
-	handle->pipeline = pipeline;
 	handle->vimage = std::move(vimage);
 	handle->image_view = std::move(image_view);
 	handle->memory = std::move(memory);
-	handle->descriptor_set = std::move(descriptor_set);
 
 	hardware_buffer_map[hardware_buffer] = handle;
 	return handle;
@@ -816,87 +608,6 @@ void decoder::on_media_output_available(AMediaCodec * media_codec, void * userda
 	auto self = (decoder *)userdata;
 	self->output_buffers.push(index);
 	// will be consumed by dedicated thread
-}
-
-void decoder::blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> target_indices)
-{
-	if (handle.vk_data->layout != vk::ImageLayout::eGeneral)
-	{
-		vk::ImageMemoryBarrier memory_barrier{
-			.srcAccessMask = {},
-			.dstAccessMask = vk::AccessFlagBits::eShaderRead,
-			.oldLayout = vk::ImageLayout::eUndefined,
-			.newLayout = vk::ImageLayout::eGeneral,
-			.image = *handle.vk_data->vimage,
-			.subresourceRange = {
-				.aspectMask = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-			}
-		};
-
-		command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {}, memory_barrier);
-
-		handle.vk_data->layout = vk::ImageLayout::eGeneral;
-	}
-
-	for (size_t target_index: target_indices)
-	{
-		assert(target_index < blit_targets.size());
-
-		auto & target = blit_targets[target_index];
-		if (description.offset_x > target.offset.x + target.extent.width)
-			continue;
-		if (description.offset_x + description.width < target.offset.x)
-			continue;
-
-		int x0 = description.offset_x - target.offset.x;
-		int y0 = description.offset_y;
-		int x1 = x0 + description.width;
-		int y1 = y0 + description.height;
-
-		vk::RenderPassBeginInfo begin_info{
-		        .renderPass = *renderpass,
-		        .framebuffer = **target.framebuffer,
-		        .renderArea = {
-		                        .offset = {0, 0},
-		                        .extent = target.extent,
-		                },
-		        .clearValueCount = 0,
-		};
-
-		command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *handle.vk_data->pipeline->pipeline);
-
-		vk::Viewport viewport{
-			.x = (float)x0,
-			.y = (float)y0,
-			.width = (float)description.width,
-			.height = (float)description.height,
-			.minDepth = 0,
-			.maxDepth = 1
-		};
-
-		x0 = std::clamp<int>(x0, 0, target.extent.width);
-		x1 = std::clamp<int>(x1, 0, target.extent.width);
-		y0 = std::clamp<int>(y0, 0, target.extent.height);
-		y1 = std::clamp<int>(y1, 0, target.extent.height);
-
-		vk::Rect2D scissor{
-		        .offset = {.x = x0, .y = y0},
-		        .extent = {.width = (uint32_t)(x1 - x0), .height = (uint32_t)(y1 - y0)},
-		};
-
-		command_buffer.setViewport(0, viewport);
-		command_buffer.setScissor(0, scissor);
-
-		command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *handle.vk_data->pipeline->layout, 0, *handle.vk_data->descriptor_set, {});
-		command_buffer.draw(3, 1, 0, 0);
-
-		command_buffer.endRenderPass();
-	}
 }
 
 decoder::blit_handle::~blit_handle()

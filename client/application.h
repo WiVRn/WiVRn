@@ -97,11 +97,6 @@ class application : public singleton<application>
 	// Vulkan memory allocator stuff
 	std::optional<vk_allocator> allocator;
 
-	// Timestamp queries
-	vk::raii::QueryPool query_pool = nullptr;
-	std::vector<vk::raii::CommandBuffer> query_command_buffers;
-	int current_query = 0;
-
 	// OpenXR stuff
 	void initialize_actions();
 
@@ -348,6 +343,11 @@ public:
 	static vk::raii::PhysicalDevice& get_physical_device()
 	{
 		return instance().vk_physical_device;
+	}
+
+	static const vk::PhysicalDeviceProperties& get_physical_device_properties()
+	{
+		return instance().physical_device_properties;
 	}
 
 	static vk::raii::Device& get_device()

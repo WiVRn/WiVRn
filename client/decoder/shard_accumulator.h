@@ -93,23 +93,17 @@ public:
 		return decoder->desc();
 	}
 
+	vk::Sampler sampler()
+	{
+		return decoder->sampler();
+	}
+
+	vk::Extent2D image_size()
+	{
+		return decoder->image_size();
+	}
+
 	using blit_handle = decoder_impl::blit_handle;
-	using blit_target = decoder_impl::blit_target;
-
-
-	static const vk::ImageLayout framebuffer_expected_layout = decoder_impl::framebuffer_expected_layout;
-	static const vk::ImageUsageFlagBits framebuffer_usage = decoder_impl::framebuffer_usage;
-
-	void set_blit_targets(std::vector<blit_target> targets, vk::Format format)
-	{
-		static_assert(std::copy_constructible<blit_target>);
-		decoder->set_blit_targets(std::move(targets), format);
-	}
-
-	void blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> blit_target_indices)
-	{
-		return decoder->blit(command_buffer, handle, blit_target_indices);
-	}
 
 private:
 	void try_submit_frame(std::optional<uint16_t> shard_idx);

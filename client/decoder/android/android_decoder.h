@@ -61,19 +61,6 @@ namespace wivrn::android
 class decoder
 {
 public:
-	struct pipeline_context;
-
-	struct blit_target
-	{
-		vk::Image image;
-		vk::ImageView image_view;
-		vk::Offset2D offset;
-		vk::Extent2D extent;
-
-		std::shared_ptr<vk::raii::Framebuffer> framebuffer;
-		std::shared_ptr<pipeline_context> pipeline;
-	};
-
 	struct mapped_hardware_buffer;
 
 	struct blit_handle
@@ -81,6 +68,9 @@ public:
 		xrt::drivers::wivrn::from_headset::feedback feedback;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
+		vk::raii::ImageView& image_view;
+		vk::Image image = nullptr;
+		vk::ImageLayout * current_layout = nullptr;
 
 		std::shared_ptr<mapped_hardware_buffer> vk_data;
 
@@ -94,6 +84,11 @@ private:
 	float fps;
 
 	vk::raii::Device& device;
+
+	vk::AndroidHardwareBufferFormatPropertiesANDROID ahb_format;
+	vk::raii::SamplerYcbcrConversion ycbcr_conversion = nullptr;
+	vk::raii::Sampler ycbcr_sampler = nullptr;
+	vk::Extent2D extent{};
 
 	std::mutex hbm_mutex;
 	AImageReader_ptr image_reader;
@@ -126,12 +121,10 @@ private:
 
 	void push_nals(std::span<std::span<const uint8_t>> data, int64_t timestamp, uint32_t flags);
 
-	std::vector<blit_target> blit_targets;
-
-	std::shared_ptr<pipeline_context> pipeline;
 	std::unordered_map<AHardwareBuffer *, std::shared_ptr<mapped_hardware_buffer>> hardware_buffer_map;
 	vk::raii::RenderPass renderpass = nullptr;
 
+	void create_sampler(const AHardwareBuffer_Desc& buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format);
 	std::shared_ptr<mapped_hardware_buffer> map_hardware_buffer(AImage *);
 
 public:
@@ -156,12 +149,15 @@ public:
 		return description;
 	}
 
-	static const vk::ImageLayout framebuffer_expected_layout = vk::ImageLayout::eColorAttachmentOptimal;
-	static const vk::ImageUsageFlagBits framebuffer_usage = vk::ImageUsageFlagBits::eColorAttachment;
+	vk::Sampler sampler()
+	{
+		return *ycbcr_sampler;
+	}
 
-	void set_blit_targets(std::vector<blit_target> targets, vk::Format format);
-	void blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> target_indices);
-	void blit_finished(blit_handle & handle);
+	vk::Extent2D image_size()
+	{
+		return extent;
+	}
 };
 
 } // namespace wivrn::android

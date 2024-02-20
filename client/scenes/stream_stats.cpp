@@ -24,6 +24,7 @@
 #include "application.h"
 #include "implot.h"
 #include "utils/ranges.h"
+#include <cmath>
 #include <spdlog/spdlog.h>
 #include <limits>
 
@@ -79,7 +80,7 @@ ImPlotPoint getter(int index, void * data_)
 }
 }
 
-void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>>& blit_handles)
+void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>>& blit_handles, const gpu_timestamps& timestamps)
 {
 	uint64_t rx = network_session->bytes_received();
 	uint64_t tx = network_session->bytes_sent();
@@ -93,12 +94,10 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 	bytes_received = rx;
 	bytes_sent = tx;
 
-	global_metrics[metrics_offset] = global_metric{
-		.cpu_time = application::get_cpu_time().count() * 1e-9f,
-		.gpu_time = application::get_gpu_time().count() * 1e-9f,
-		.bandwidth_rx = bandwidth_rx * 8,
-		.bandwidth_tx = bandwidth_tx * 8,
-	};
+	*(gpu_timestamps*)&global_metrics[metrics_offset] = timestamps;
+	global_metrics[metrics_offset].cpu_time = application::get_cpu_time().count() * 1e-9f;
+	global_metrics[metrics_offset].bandwidth_rx = bandwidth_rx * 8;
+	global_metrics[metrics_offset].bandwidth_tx = bandwidth_tx * 8;
 
 	if (decoder_metrics.size() != blit_handles.size())
 		decoder_metrics.resize(blit_handles.size());
@@ -142,10 +141,11 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 	ImVec2 window_size = ImGui::GetWindowSize() - ImVec2(2,2) * style.WindowPadding;
 
 	static const std::array plots = {
-		std::make_tuple("CPU time", "s",     &global_metric::cpu_time),
-		std::make_tuple("GPU time", "s",     &global_metric::gpu_time),
-		std::make_tuple("Download", "bit/s", &global_metric::bandwidth_rx),
-		std::make_tuple("Upload",   "bit/s", &global_metric::bandwidth_tx),
+		plot(0, "CPU time", "s",     &global_metric::cpu_time),
+		plot(1, "GPU blit", "s",     &global_metric::gpu_barrier),
+		plot(1, "GPU time", "s",     &global_metric::gpu_time),
+		plot(2, "Download", "bit/s", &global_metric::bandwidth_rx),
+		plot(3, "Upload",   "bit/s", &global_metric::bandwidth_tx),
 	};
 
 	int n_plots = plots.size() + decoders.size();
@@ -165,7 +165,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 	ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
 
 	int n = 0;
-	for(auto [title, unit, data]: plots)
+	for(auto [subplot, title, unit, data]: plots)
 	{
 		if (ImPlot::BeginPlot(title, plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
 		{
@@ -173,7 +173,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			float max_v = compute_plot_max_value(&(global_metrics.data()->*data), global_metrics.size(), sizeof(global_metric));
 			auto [ multiplier, prefix ] = compute_plot_unit(max_v);
 
-			if (axis_scale[n] == 0)
+			if (axis_scale[n] == 0 || std::isnan(axis_scale[n]))
 				axis_scale[n] = max_v;
 			else
 				axis_scale[n] = 0.99 * axis_scale[n] + 0.01 * max_v;

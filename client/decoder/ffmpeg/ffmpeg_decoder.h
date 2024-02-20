@@ -48,12 +48,19 @@ namespace ffmpeg
 class decoder
 {
 public:
-	struct blit_target
+	struct blit_handle
 	{
-		vk::Image image;
-		vk::ImageView image_view;
-		vk::Offset2D offset;
-		vk::Extent2D extent;
+		xrt::drivers::wivrn::from_headset::feedback feedback;
+		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
+		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
+		vk::raii::ImageView& image_view;
+		vk::Image image = nullptr;
+		vk::ImageLayout * current_layout = nullptr;
+
+		int image_index;
+		decoder * self;
+
+		~blit_handle();
 	};
 
 private:
@@ -63,10 +70,15 @@ private:
 		image_allocation image;
 		vk::SubresourceLayout layout;
 		uint64_t frame_index;
+		vk::raii::ImageView image_view = nullptr;
+		vk::ImageLayout current_layout = vk::ImageLayout::eUndefined;
 	};
 
 	vk::raii::Device& device;
+	vk::raii::Sampler rgb_sampler = nullptr;
+
 	std::array<image, image_count> decoded_images;
+	vk::Extent2D extent{};
 	std::vector<int> free_images;
 
 	xrt::drivers::wivrn::to_headset::video_stream_description::item description;
@@ -78,18 +90,19 @@ private:
 	std::weak_ptr<scenes::stream> weak_scene;
 	shard_accumulator * accumulator;
 
-	std::vector<blit_target> blit_targets;
 	std::mutex mutex;
 
 public:
-	decoder(
-	        vk::raii::Device& device,
+	decoder(vk::raii::Device& device,
 	        vk::raii::PhysicalDevice& physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,
 	        std::weak_ptr<scenes::stream> scene,
 	        shard_accumulator * accumulator);
+
+	decoder(const decoder &) = delete;
+	decoder(decoder &&) = delete;
 
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
@@ -100,22 +113,14 @@ public:
 		return description;
 	}
 
-	struct blit_handle
+	vk::Sampler sampler()
 	{
-		xrt::drivers::wivrn::from_headset::feedback feedback;
-		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
-		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
-		int image_index;
-		VkImage image;
-		decoder * self;
+		return *rgb_sampler;
+	}
 
-		~blit_handle();
-	};
-
-	static const vk::ImageLayout framebuffer_expected_layout = vk::ImageLayout::eTransferDstOptimal;
-	static const vk::ImageUsageFlagBits framebuffer_usage = vk::ImageUsageFlagBits::eTransferDst;
-
-	void set_blit_targets(std::vector<blit_target> targets, vk::Format format);
-	void blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> target_indices);
+	vk::Extent2D image_size()
+	{
+		return extent;
+	}
 };
 } // namespace ffmpeg
