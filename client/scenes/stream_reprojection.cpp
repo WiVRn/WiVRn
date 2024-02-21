@@ -417,6 +417,25 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer& command_buffer, int
 	};
 	begin_info.setClearValues(clear_color);
 
+	command_buffer.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eTopOfPipe,
+	        vk::PipelineStageFlagBits::eColorAttachmentOutput,
+	        {},
+	        {},
+	        {},
+	        vk::ImageMemoryBarrier{
+	                .srcAccessMask = {},
+	                .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+	                .oldLayout = vk::ImageLayout::eUndefined,
+	                .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+	                .image = output_images[destination],
+	                .subresourceRange = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .levelCount = 1,
+	                        .layerCount = 1,
+	                },
+	        });
+
 	command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 	command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, descriptor_sets[source], {});
