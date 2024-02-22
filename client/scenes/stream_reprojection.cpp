@@ -41,6 +41,8 @@ struct stream_reprojection::uniform
 	alignas(8) glm::vec2 xc;
 };
 
+const int nb_reprojection_vertices = 64;
+
 stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::PhysicalDevice& physical_device, std::vector<vk::Image> input_images_, std::vector<vk::Image> output_images_, vk::Extent2D extent, vk::Format format, const xrt::drivers::wivrn::to_headset::video_stream_description & description) :
 	input_images(std::move(input_images_)),
 	output_images(std::move(output_images_)),
@@ -235,28 +237,40 @@ stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::Phy
 
 	layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
 
-	VkBool32 use_foveation[] = {
+	int use_foveation[] = {
 		foveation_parameters[0].x.scale < 1,
-		foveation_parameters[0].y.scale < 1
+		foveation_parameters[0].y.scale < 1,
+		nb_reprojection_vertices,
+		nb_reprojection_vertices
 	};
 
 	std::array specialization_constants_desc{
 		vk::SpecializationMapEntry{
 			.constantID = 0,
 			.offset = 0,
-			.size = sizeof(VkBool32),
+			.size = sizeof(int),
 		},
 		vk::SpecializationMapEntry{
 			.constantID = 1,
-			.offset = sizeof(VkBool32),
-			.size = sizeof(VkBool32),
+			.offset = sizeof(int),
+			.size = sizeof(int),
+		},
+		vk::SpecializationMapEntry{
+			.constantID = 2,
+			.offset = 2 * sizeof(int),
+			.size = sizeof(int),
+		},
+		vk::SpecializationMapEntry{
+			.constantID = 3,
+			.offset = 3 * sizeof(int),
+			.size = sizeof(int),
 		}
 	};
 
 	vk::SpecializationInfo specialization_info;
 
 	specialization_info.setMapEntries(specialization_constants_desc);
-	specialization_info.setData<VkBool32>(use_foveation);
+	specialization_info.setData<int>(use_foveation);
 
 	vk::pipeline_builder pipeline_info
 	{
@@ -265,6 +279,7 @@ stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::Phy
 			.stage = vk::ShaderStageFlagBits::eVertex,
 			.module = *vertex_shader,
 			.pName = "main",
+			.pSpecializationInfo = &specialization_info,
 		},{
 			.stage = vk::ShaderStageFlagBits::eFragment,
 			.module = *fragment_shader,
@@ -275,7 +290,7 @@ stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::Phy
 		.VertexBindingDescriptions = {},
 		.VertexAttributeDescriptions = {},
 		.InputAssemblyState = {{
-			.topology = vk::PrimitiveTopology::eTriangleStrip,
+			.topology = vk::PrimitiveTopology::eTriangleList,
 		}},
 		.ViewportState = {.flags = {}},
 		.Viewports = {{
@@ -439,6 +454,6 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer& command_buffer, int
 	command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 	command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, descriptor_sets[source], {});
-	command_buffer.draw(3, 1, 0, 0);
+	command_buffer.draw(6 * nb_reprojection_vertices * nb_reprojection_vertices, 1, 0, 0);
 	command_buffer.endRenderPass();
 }
