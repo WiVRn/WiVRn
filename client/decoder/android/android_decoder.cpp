@@ -773,7 +773,7 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 
 	vk::DescriptorImageInfo image_info{
 	        .imageView = *image_view,
-	        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+	        .imageLayout = vk::ImageLayout::eGeneral,
 	};
 
 	vk::WriteDescriptorSet descriptor_write{
@@ -820,13 +820,13 @@ void decoder::on_media_output_available(AMediaCodec * media_codec, void * userda
 
 void decoder::blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle, std::span<int> target_indices)
 {
-	if (handle.vk_data->layout != vk::ImageLayout::eShaderReadOnlyOptimal)
+	if (handle.vk_data->layout != vk::ImageLayout::eGeneral)
 	{
 		vk::ImageMemoryBarrier memory_barrier{
 			.srcAccessMask = {},
 			.dstAccessMask = vk::AccessFlagBits::eShaderRead,
 			.oldLayout = vk::ImageLayout::eUndefined,
-			.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			.newLayout = vk::ImageLayout::eGeneral,
 			.image = *handle.vk_data->vimage,
 			.subresourceRange = {
 				.aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -839,7 +839,7 @@ void decoder::blit(vk::raii::CommandBuffer& command_buffer, blit_handle & handle
 
 		command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {}, memory_barrier);
 
-		handle.vk_data->layout = vk::ImageLayout::eShaderReadOnlyOptimal;
+		handle.vk_data->layout = vk::ImageLayout::eGeneral;
 	}
 
 	for (size_t target_index: target_indices)
