@@ -105,7 +105,7 @@ Creates a hardware encoder for left eye, and a software encoder for right eye.
 			"height": 1,
 			"offset_x": 0,
 			"offset_y": 0,
-			"group": 0,
+			"group": 0
 		},
 		{
 			"encoder": "vaapi",
@@ -115,7 +115,7 @@ Creates a hardware encoder for left eye, and a software encoder for right eye.
 			"height": 1,
 			"offset_x": 0.5,
 			"offset_y": 0,
-			"group": 0,
+			"group": 0
 		}
 	]
 }
