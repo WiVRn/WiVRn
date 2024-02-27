@@ -23,6 +23,7 @@ auto_option(WIVRN_USE_SYSTEMD "Use libsystemd, required to show pretty hostname"
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
+option(WIVRN_BUILD_DISSECTOR "Build Wireshark dissector" OFF)
 
 auto_option(WIVRN_USE_NVENC "Enable nvenc (Nvidia) hardware encoder" AUTO)
 auto_option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" AUTO)
@@ -44,9 +45,17 @@ find_package(Git)
 
 
 if (WIVRN_USE_SYSTEM_BOOST STREQUAL "AUTO")
-    find_package(Boost 1.75.0)
+    if(WIVRN_BUILD_DISSECTOR)
+        find_package(Boost 1.84.0)
+    else()
+        find_package(Boost 1.75.0)
+    endif()
 elseif(WIVRN_USE_SYSTEM_BOOST STREQUAL "ON")
-    find_package(Boost 1.75.0 REQUIRED)
+    if(WIVRN_BUILD_DISSECTOR)
+        find_package(Boost 1.84.0 REQUIRED)
+    else()
+        find_package(Boost 1.75.0 REQUIRED)
+    endif()
 endif()
 
 if (WIVRN_BUILD_SERVER)
@@ -119,8 +128,12 @@ if(ANDROID)
     android_ndk_import_module_native_app_glue()
 endif()
 
+if (WIVRN_BUILD_DISSECTOR)
+    find_package(Wireshark REQUIRED)
+endif()
+
 # Common dependencies
-FetchContent_Declare(boostpfr      URL https://github.com/boostorg/pfr/archive/refs/tags/2.0.3.tar.gz)
+FetchContent_Declare(boostpfr      URL https://github.com/boostorg/pfr/archive/refs/tags/2.2.0.tar.gz)
 # Client dependencies
 FetchContent_Declare(fastgltf      URL https://github.com/spnda/fastgltf/archive/refs/tags/v0.6.1.tar.gz)
 FetchContent_Declare(glm           URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
@@ -161,3 +174,5 @@ if (WIVRN_BUILD_SERVER)
     message("Optional features:")
     message("\tsystemd: ${WIVRN_USE_SYSTEMD}")
 endif()
+
+add_subdirectory(tools)
