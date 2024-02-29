@@ -329,14 +329,14 @@ struct serialization_traits<std::string>
 
 	static void serialize(const std::string & value, serialization_packet & packet)
 	{
-		packet.serialize<uint64_t>(value.size());
+		packet.serialize<uint16_t>(value.size());
 		packet.write(value.data(), value.size());
 	}
 
 	static std::string deserialize(deserialization_packet & packet)
 	{
 		std::string value;
-		size_t size = packet.deserialize<uint64_t>();
+		size_t size = packet.deserialize<uint16_t>();
 
 		packet.check_remaining_size(size);
 
