@@ -458,7 +458,6 @@ void imgui_context::new_frame(XrTime display_time)
 XrCompositionLayerQuad imgui_context::end_frame()
 {
 	vk::Image destination = swapchain.images()[image_index].image;
-	swapchain.release();
 
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
@@ -499,6 +498,8 @@ XrCompositionLayerQuad imgui_context::end_frame()
 		.commandBufferCount = 1,
 		.pCommandBuffers = &*cb,
 	}, *fence);
+
+	swapchain.release();
 
 	return XrCompositionLayerQuad{
 		.type = XR_TYPE_COMPOSITION_LAYER_QUAD,
