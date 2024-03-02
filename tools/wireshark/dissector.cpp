@@ -24,7 +24,6 @@
 #include <epan/packet.h>
 
 #include <boost/pfr.hpp>
-#include <boost/type_index/stl_type_index.hpp>
 #include <epan/tvbuff.h>
 #include <magic_enum.hpp>
 
