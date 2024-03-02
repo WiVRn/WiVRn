@@ -205,9 +205,6 @@ struct feedback
 
 	std::array<XrPosef, 2> received_pose;
 	std::array<XrPosef, 2> real_pose;
-
-	uint8_t data_packets;
-	uint8_t received_data_packets;
 };
 
 using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, hand_tracking, inputs, timesync_response>;
