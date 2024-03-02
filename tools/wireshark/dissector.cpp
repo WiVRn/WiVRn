@@ -1,5 +1,25 @@
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 #include <epan/ftypes/ftypes.h>
 #include <epan/packet.h>
 
@@ -150,7 +170,16 @@ struct tree_traits<abbrev, T, std::enable_if_t<std::is_arithmetic_v<T>>>
 
 	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
 	{
-		proto_tree_add_item(tree, field_handle, tvb, start, sizeof(T), ENC_LITTLE_ENDIAN);
+		std::string s = abbrev.value;
+		auto member = s.substr(s.find_last_of('.') + 1);
+
+		if (std::is_same_v<T, float> && member.starts_with("angle"))
+		{
+			float value = tvb_get_ieee_float(tvb, start, ENC_LITTLE_ENDIAN) * 180 / M_PI;
+			proto_tree_add_float_format_value(tree, field_handle, tvb, start, sizeof(T), value, "%f deg", value);
+		}
+		else
+			proto_tree_add_item(tree, field_handle, tvb, start, sizeof(T), ENC_LITTLE_ENDIAN);
 		start += sizeof(T);
 	}
 
