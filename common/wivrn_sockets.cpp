@@ -305,14 +305,14 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 	size_t expected_size;
 	size_t already_received = buffer.size();
 
-	if (already_received < 4)
+	if (already_received < sizeof(uint16_t))
 	{
-		expected_size = 4 - buffer.size();
+		expected_size = sizeof(uint16_t) - buffer.size();
 	}
 	else
 	{
-		uint32_t payload_size = *reinterpret_cast<uint32_t *>(buffer.data());
-		expected_size = payload_size + 4 - buffer.size();
+		uint32_t payload_size = *reinterpret_cast<uint16_t *>(buffer.data());
+		expected_size = payload_size + sizeof(uint16_t) - buffer.size();
 	}
 
 	buffer.resize(already_received + expected_size);
@@ -327,19 +327,19 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 	bytes_received_ += received;
 	buffer.resize(already_received + received);
 
-	if (buffer.size() < 4)
+	if (buffer.size() < sizeof(uint16_t))
 		return {};
 
-	uint32_t payload_size = *reinterpret_cast<uint32_t *>(buffer.data());
-	if (buffer.size() < 4 + payload_size)
+	uint32_t payload_size = *reinterpret_cast<uint16_t *>(buffer.data());
+	if (buffer.size() < sizeof(uint16_t) + payload_size)
 		return {};
 
-	assert(buffer.size() == 4 + payload_size);
+	assert(buffer.size() == sizeof(uint16_t) + payload_size);
 
 	std::vector<uint8_t> new_buffer;
 	std::swap(buffer, new_buffer);
 
-	return deserialization_packet{std::move(new_buffer), 4};
+	return deserialization_packet{std::move(new_buffer), sizeof(uint16_t)};
 }
 
 void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & spans)
@@ -348,7 +348,7 @@ void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & 
 
 	std::vector<iovec> iovecs;
 
-	uint32_t size = 0;
+	uint16_t size = 0;
 	iovecs.emplace_back(&size, sizeof(size));
 	for (const auto & span: spans)
 	{
