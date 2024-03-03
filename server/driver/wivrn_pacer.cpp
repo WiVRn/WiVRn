@@ -98,7 +98,7 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 			wait_time_variance /= (stream.times.size() - 1);
 			double wait_time_std_dev = std::sqrt(wait_time_variance);
 
-			if (mean_wait_time > 4 * wait_time_std_dev)
+			if (mean_wait_time > 2 * wait_time_std_dev)
 				next_frame_ns += frame_duration_ns / 1000;
 			if (mean_wait_time < wait_time_std_dev)
 				next_frame_ns -= frame_duration_ns / 1000;
