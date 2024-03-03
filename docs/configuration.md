@@ -20,6 +20,11 @@ The x and y resolution of the streamed video are half the size on the headsed, r
 ```
 Scales x by a 0.75 factor, and y by a 0.5 factor.
 
+## `bitrate`
+Default value: `50000000` (50Mb/s)
+
+Bitrate of the video, in bit/s. Split among decoders based on size and codecs.
+
 ## `encoders`
 A list of encoders to use.
 
@@ -36,11 +41,6 @@ Default value: `h265`
 
 One of `h264` or `h265`. If using `x264` encoder, value is ignored and `h264` is used.
 
-### `bitrate`
-Default value: `50000000` (50Mb/s)
-
-Bitrate of the video, in bit/s.
-
 ### `width`, `height`, `offset_x`, `offset_y` (advanced)
 Default values: full image (`width` = 1, `height` = 1, `offset_x` = 0, `offset_y` = 0)
 
@@ -55,10 +55,10 @@ Identifier (number) of the encoder group. Encoders with the same identifier are 
 1. Simple encoder
 ```json
 {
+	"bitrate": 50000000,
 	"encoders": [
 		{
 			"encoder": "vaapi",
-			"bitrate": 50000000,
 			"codec": "h265"
 		}
 	]
@@ -69,10 +69,10 @@ Creates a single encoder, using vaapi hardware encoding, h265 video codec (HEVC)
 2. Hardware + software encoder
 ```json
 {
+	"bitrate": 50000000,
 	"encoders": [
 		{
 			"encoder": "vaapi",
-			"bitrate": 25000000,
 			"codec": "h265",
 			"width": 0.5,
 			"height": 1,
@@ -81,7 +81,6 @@ Creates a single encoder, using vaapi hardware encoding, h265 video codec (HEVC)
 		},
 		{
 			"encoder": "x264",
-			"bitrate": 25000000,
 			"codec": "h264",
 			"width": 0.5,
 			"height": 1,
@@ -96,10 +95,10 @@ Creates a hardware encoder for left eye, and a software encoder for right eye.
 3. 2 Hardware encoders
 ```json
 {
+	"bitrate": 50000000,
 	"encoders": [
 		{
 			"encoder": "vaapi",
-			"bitrate": 25000000,
 			"codec": "h265",
 			"width": 0.5,
 			"height": 1,
@@ -109,7 +108,6 @@ Creates a hardware encoder for left eye, and a software encoder for right eye.
 		},
 		{
 			"encoder": "vaapi",
-			"bitrate": 25000000,
 			"codec": "h264",
 			"width": 0.5,
 			"height": 1,

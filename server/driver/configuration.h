@@ -35,7 +35,6 @@ struct configuration
 		std::optional<double> height;
 		std::optional<double> offset_x;
 		std::optional<double> offset_y;
-		std::optional<int> bitrate;
 		std::optional<int> group;
 		std::optional<xrt::drivers::wivrn::video_codec> codec;
 		std::map<std::string, std::string> options;
@@ -43,6 +42,7 @@ struct configuration
 	};
 
 	std::vector<encoder> encoders;
+	std::optional<int> bitrate;
 	std::optional<std::array<double, 2>> scale;
 	std::vector<std::string> application;
 

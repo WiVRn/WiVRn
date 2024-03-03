@@ -43,6 +43,30 @@ static bool is_nvidia(vk::PhysicalDevice physical_device)
 	return props.vendorID == 0x10DE;
 }
 
+static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> &encoders, uint64_t bitrate)
+{
+	double total_weight = 0;
+	for (auto& encoder: encoders)
+	{
+		double w = encoder.width * encoder.height;
+		switch (encoder.codec)
+		{
+			case xrt::drivers::wivrn::h264:
+				w *= 2;
+				break;
+			case xrt::drivers::wivrn::h265:
+				break;
+		}
+		encoder.bitrate = w;
+		total_weight += w;
+	}
+
+	for (auto& encoder: encoders)
+	{
+		encoder.bitrate = encoder.bitrate * bitrate / total_weight;
+	}
+}
+
 static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_settings(vk::PhysicalDevice physical_device, uint16_t width, uint16_t height)
 {
 	xrt::drivers::wivrn::encoder_settings settings{};
@@ -89,6 +113,7 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::Phys
 	try
 	{
 		const auto & config = configuration::read_user_configuration();
+		uint64_t bitrate = config.bitrate.value_or(default_bitrate);
 		if (config.encoders.empty())
 			return get_encoder_default_settings(physical_device, width, height);
 		std::vector<xrt::drivers::wivrn::encoder_settings> res;
@@ -103,7 +128,6 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::Phys
 			settings.video_height = settings.height;
 			settings.offset_x = std::ceil(encoder.offset_x.value_or(0) * width);
 			settings.offset_y = std::ceil(encoder.offset_y.value_or(0) * height);
-			settings.bitrate = encoder.bitrate.value_or(default_bitrate);
 			settings.codec = encoder.codec.value_or(xrt::drivers::wivrn::h264);
 			settings.group = encoder.group.value_or(next_group);
 			settings.options = encoder.options;
@@ -112,6 +136,7 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::Phys
 			next_group = std::max(next_group, settings.group + 1);
 			res.push_back(settings);
 		}
+		split_bitrate(res, bitrate);
 		return res;
 	}
 	catch (const std::exception & e)

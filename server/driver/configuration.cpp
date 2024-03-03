@@ -74,6 +74,11 @@ configuration configuration::read_user_configuration()
 				result.scale = json["scale"];
 		}
 
+		if (json.contains("bitrate"))
+		{
+			result.bitrate = json["bitrate"];
+		}
+
 		if (json.contains("encoders"))
 		{
 			for (const auto & encoder: json["encoders"])
@@ -89,7 +94,6 @@ configuration configuration::read_user_configuration()
 				SET_IF(height);
 				SET_IF(offset_x);
 				SET_IF(offset_y);
-				SET_IF(bitrate);
 				SET_IF(group);
 				SET_IF(codec);
 				if (e.codec == xrt::drivers::wivrn::video_codec(-1))
