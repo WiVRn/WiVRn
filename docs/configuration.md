@@ -28,6 +28,8 @@ Bitrate of the video, in bit/s. Split among decoders based on size and codecs.
 ## `encoders`
 A list of encoders to use.
 
+Default value: single encoder if using Nvidia or software encoding. Split into 3 sequential parts (1/8th, 3/8th, 4/8th) if using vaapi.
+
 WiVRn has the ability to split the video in blocks that are processed independently, this may use resources more effectively and reduce latency.
 All the provided encoders are put into groups, groups are executed concurrently and items within a group are processed sequentially.
 

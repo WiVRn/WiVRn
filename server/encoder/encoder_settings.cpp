@@ -67,13 +67,13 @@ static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> &en
 	}
 }
 
-static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_settings(vk::PhysicalDevice physical_device, uint16_t width, uint16_t height)
+static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_settings(vk::PhysicalDevice physical_device, uint16_t width, uint16_t height, uint64_t bitrate)
 {
 	xrt::drivers::wivrn::encoder_settings settings{};
 	settings.width = width;
 	settings.height = height;
 	settings.codec = xrt::drivers::wivrn::h265;
-	settings.bitrate = default_bitrate;
+	settings.bitrate = bitrate;
 
 	settings.video_height = settings.height;
 	settings.video_width = settings.width;
@@ -94,7 +94,31 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	else
 	{
 #ifdef WIVRN_USE_VAAPI
+/* Split in 3 parts:
+ *  +--------+--------+
+ *  |        |        |
+ *  |        |        |
+ *  +--------+        |
+ *  |        |        |
+ *  |        |        |
+ *  |        |        |
+ *  |        |        |
+ *  |        |        |
+ *  +--------+--------+
+ * All 3 are encoded sequentially, so that the smallest is ready earlier.
+ * Decoder can start work as fast as possible, reducing idle time.
+ *
+ */
 		settings.encoder_name = encoder_vaapi;
+		settings.width = std::ceil(width * 0.5);
+		std::vector<xrt::drivers::wivrn::encoder_settings> encoders(3, settings);
+
+		encoders[0].height = std::ceil(height * 0.25);
+		encoders[1].height = height - encoders[0].height;
+		encoders[1].offset_y = encoders[0].height;
+		encoders[2].offset_x = settings.width;
+		split_bitrate(encoders, bitrate);
+		return encoders;
 #elif defined(WIVRN_USE_X264)
 		settings.encoder_name = encoder_x264;
 		settings.codec = xrt::drivers::wivrn::h264;
@@ -115,7 +139,7 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::Phys
 		const auto & config = configuration::read_user_configuration();
 		uint64_t bitrate = config.bitrate.value_or(default_bitrate);
 		if (config.encoders.empty())
-			return get_encoder_default_settings(physical_device, width, height);
+			return get_encoder_default_settings(physical_device, width, height, bitrate);
 		std::vector<xrt::drivers::wivrn::encoder_settings> res;
 		int next_group = 0;
 		for (const auto & encoder: config.encoders)
@@ -143,5 +167,5 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::Phys
 	{
 		U_LOG_E("Failed to read encoder configuration: %s", e.what());
 	}
-	return get_encoder_default_settings(physical_device, width, height);
+	return get_encoder_default_settings(physical_device, width, height, default_bitrate);
 }
