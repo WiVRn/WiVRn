@@ -260,6 +260,21 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 
 static bool comp_wivrn_check_ready(struct comp_target * ct)
 {
+	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+	// This function is called before on each frame before reprojection
+	// hijack it so that we can dynamically change ATW
+	cn->c->debug.atw_off = true;
+	for (int eye = 0; eye < 2; ++eye)
+	{
+		const auto & slot = cn->c->base.slot;
+		if (slot.layer_count > 1 or
+		    slot.layers[0].data.type != XRT_LAYER_STEREO_PROJECTION)
+		{
+			// We are not in the trivial single stereo projection layer
+			// reprojection must be done
+			cn->c->debug.atw_off = false;
+		}
+	}
 	return true;
 }
 
@@ -529,19 +544,13 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		const auto &slot = cn->c->base.slot;
 		view_info.fov[eye] = xrt_cast(slot.fovs[eye]);
 		view_info.pose[eye] = xrt_cast(slot.poses[eye]);
-		if (slot.layer_count == 1 && 
-			slot.layers[0].data.type == XRT_LAYER_STEREO_PROJECTION &&
-			slot.layers[0].data.stereo.r.fov.angle_left != 0.0f)
+		if (cn->c->debug.atw_off)
 		{
-			// only stereo projection is visible, may skip ATW
 			const auto &stereo = slot.layers[0].data.stereo;
 			view_info.pose[eye] = xrt_cast(eye ? stereo.r.pose : stereo.l.pose);
-			cn->c->debug.atw_off = true;
 		}
 		else
 		{
-			// enable ATW
-			cn->c->debug.atw_off = false;
 			xrt_relation_chain xrc{};
 			xrt_space_relation result{};
 			m_relation_chain_push_pose_if_not_identity(&xrc, &slot.poses[eye]);
