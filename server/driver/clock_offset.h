@@ -21,6 +21,7 @@
 
 #include "wivrn_packets.h"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <mutex>
@@ -56,6 +57,7 @@ class clock_offset_estimator
 	clock_offset offset;
 
 	std::chrono::steady_clock::time_point next_sample{};
+	std::atomic<std::chrono::milliseconds> sample_interval = std::chrono::milliseconds(10);
 
 	public:
 	void request_sample(wivrn_connection& connection);
