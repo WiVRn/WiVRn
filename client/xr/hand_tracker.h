@@ -30,23 +30,22 @@ namespace xr
 {
 class hand_tracker : public utils::handle<XrHandTrackerEXT>
 {
-	instance * inst;
 	PFN_xrLocateHandJointsEXT xrLocateHandJointsEXT{};
+	PFN_xrDestroyHandTrackerEXT xrDestroyHandTrackerEXT{};
 
 public:
 	hand_tracker() = default;
-	hand_tracker(instance * i, XrHandTrackerEXT h)
+	hand_tracker(instance * inst, XrHandTrackerEXT h)
 	{
-		inst = i;
 		id = h;
+		xrLocateHandJointsEXT = inst->get_proc<PFN_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
+		xrDestroyHandTrackerEXT = inst->get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
 	}
 	hand_tracker(hand_tracker &&) = default;
 	hand_tracker & operator=(hand_tracker &&) = default;
 
 	~hand_tracker()
 	{
-		auto xrDestroyHandTrackerEXT = inst->get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
-
 		if (id != XR_NULL_HANDLE && xrDestroyHandTrackerEXT)
 			xrDestroyHandTrackerEXT(id);
 	}
