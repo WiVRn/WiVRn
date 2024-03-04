@@ -56,7 +56,7 @@ private:
 		vk::raii::PipelineLayout blit_pipeline_layout = nullptr;
 		vk::raii::Pipeline blit_pipeline = nullptr;
 		// latest frames from oldest to most recent
-		std::array<std::shared_ptr<shard_accumulator::blit_handle>, 2> latest_frames;
+		std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> latest_frames;
 
 		static std::optional<uint64_t> common_frame(const std::vector<accumulator_images> &, uint64_t preferred_index);
 		std::shared_ptr<shard_accumulator::blit_handle> frame(std::optional<uint64_t> id);

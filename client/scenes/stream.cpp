@@ -225,10 +225,12 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		{
 			if (i.decoder.get() == decoder)
 			{
-				static_assert(std::tuple_size_v<decltype(i.latest_frames)> == 2);
 				std::swap(removed, i.latest_frames[0]);
-				std::swap(i.latest_frames[0], i.latest_frames[1]);
-				std::swap(i.latest_frames[1], handle);
+				for (size_t j = 1 ; j < i.latest_frames.size() ; ++j)
+				{
+					std::swap(i.latest_frames[j-1], i.latest_frames[j]);
+				}
+				std::swap(i.latest_frames.back(), handle);
 				break;
 			}
 		}
