@@ -28,6 +28,7 @@
 #include <variant>
 #include <vector>
 #include <openxr/openxr.h>
+#include <vulkan/vulkan_core.h>
 
 #include "wivrn_serialization_types.h"
 
@@ -241,8 +242,8 @@ struct video_stream_description
 		uint16_t offset_x;
 		uint16_t offset_y;
 		video_codec codec;
-		std::optional<uint32_t> range;       // VkSamplerYcbcrRange
-		std::optional<uint32_t> color_model; // VkSamplerYcbcrModelConversion
+		std::optional<VkSamplerYcbcrRange> range;
+		std::optional<VkSamplerYcbcrModelConversion> color_model;
 	};
 	struct foveation_parameter_item
 	{
