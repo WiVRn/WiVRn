@@ -18,13 +18,11 @@
  */
 
 #include "pose_list.h"
-#include "math/m_eigen_interop.hpp"
 #include "math/m_space.h"
 #include "math/m_vec3.h"
 #include "xrt/xrt_defines.h"
 #include "xrt_cast.h"
 
-using namespace xrt::auxiliary::math;
 using namespace xrt::drivers::wivrn;
 
 xrt_space_relation pose_list::interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)
@@ -40,27 +38,13 @@ xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xr
 	if (t < ta)
 		return a;
 
-	if (t > tb)
-		return b;
-
-	float h = (tb - ta) / 1.e9;
-
-	xrt_space_relation res;
-	res.relation_flags = b.relation_flags;
+	xrt_space_relation res = b;
 
 	float dt = (t - tb) / 1.e9;
 	// if (dt > 0.2)
 	// dt = 0.2; // saturate dt to 200ms
 
-	res.linear_velocity = b.linear_velocity;
 	res.pose.position = b.pose.position + b.linear_velocity * dt;
-
-	res.angular_velocity = b.angular_velocity;
-	xrt_vec3 dtheta = b.angular_velocity * dt;
-	xrt_quat dq;
-	math_quat_exp(&dtheta, &dq);
-
-	map_quat(res.pose.orientation) = map_quat(b.pose.orientation) * map_quat(dq);
 
 	return res;
 }
