@@ -114,6 +114,7 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 		std::vector<xrt::drivers::wivrn::encoder_settings> encoders(3, settings);
 
 		encoders[0].height = std::ceil(height * 0.25);
+		encoders[0].height += encoders[0].height % 2;
 		encoders[1].height = height - encoders[0].height;
 		encoders[1].offset_y = encoders[0].height;
 		encoders[2].offset_x = settings.width;
