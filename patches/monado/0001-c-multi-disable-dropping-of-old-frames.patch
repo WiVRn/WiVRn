@@ -1,0 +1,30 @@
+From 1aa7a8722d870eb9896e4902e132a43f22914470 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Thu, 7 Mar 2024 18:00:28 +0100
+Subject: [PATCH] c/multi: disable dropping of old frames
+
+---
+ src/xrt/compositor/multi/comp_multi_compositor.c | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/src/xrt/compositor/multi/comp_multi_compositor.c b/src/xrt/compositor/multi/comp_multi_compositor.c
+index 5ddb3da64..4f517cf9c 100644
+--- a/src/xrt/compositor/multi/comp_multi_compositor.c
++++ b/src/xrt/compositor/multi/comp_multi_compositor.c
+@@ -182,13 +182,6 @@ wait_for_scheduled_free(struct multi_compositor *mc)
+ 	while (v_mc->scheduled.active) {
+ 		uint64_t now_ns = os_monotonic_get_ns();
+ 
+-		// This frame is for the next frame, drop the old one no matter what.
+-		if (time_is_within_half_ms(mc->progress.data.display_time_ns, mc->slot_next_frame_display)) {
+-			U_LOG_W("%.3fms: Dropping old missed frame in favour for completed new frame",
+-			        time_ns_to_ms_f(now_ns));
+-			break;
+-		}
+-
+ 		// Replace the scheduled frame if it's in the past.
+ 		if (v_mc->scheduled.data.display_time_ns < now_ns) {
+ 			U_LOG_T("%.3fms: Replacing frame for time in past in favour of completed new frame",
+-- 
+2.44.0
+
