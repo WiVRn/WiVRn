@@ -36,6 +36,7 @@ class wivrn_pacer
 	uint64_t frame_duration_ns;
 
 	uint64_t mean_wake_up_to_present_ns = 0;
+	uint64_t mean_present_to_display_ns = 0;
 
 	uint64_t last_wake_up_ns = 0;
 
@@ -47,6 +48,12 @@ class wivrn_pacer
 		size_t next_times_index = 0;
 	};
 	std::vector<stream_data> streams;
+
+	struct frame_history{
+		uint64_t frame_id;
+		uint64_t present_ns;
+	};
+	std::array<frame_history, 4> in_flight_frames;
 
 public:
 	wivrn_pacer(uint64_t frame_duration) :

@@ -532,10 +532,9 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	}
 
 	assert(cn->psc.images[index].status == image_acquired);
-	cn->frame_index++;
 	// set bits to 1 for index 1..num encoder threads + 1
 	cn->psc.images[index].status = (1 << (cn->encoder_threads.size() + 1)) - 2;
-	cn->psc.images[index].frame_index = cn->frame_index;
+	cn->psc.images[index].frame_index = cn->current_frame_id;
 
 	auto & view_info = cn->psc.images[index].view_info;
 	view_info.display_time = cn->cnx->get_offset().to_headset(desired_present_time_ns).count();
@@ -582,7 +581,7 @@ static void comp_wivrn_calc_frame_pacing(struct comp_target * ct,
 	        *out_desired_present_time_ns,
 	        *out_present_slop_ns,
 	        *out_predicted_display_time_ns);
-	*out_frame_id = cn->current_frame_id;
+	*out_frame_id = cn->current_frame_id++;
 }
 
 static void comp_wivrn_mark_timing_point(struct comp_target * ct,
@@ -591,22 +590,22 @@ static void comp_wivrn_mark_timing_point(struct comp_target * ct,
                                          uint64_t when_ns)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
-	assert(frame_id == cn->current_frame_id);
+	assert(frame_id + 1 == cn->current_frame_id);
 
 	cn->pacer.mark_timing_point(point, frame_id, when_ns);
 
 	switch (point)
 	{
 		case COMP_TARGET_TIMING_POINT_WAKE_UP:
-			cn->cnx->dump_time("wake_up", cn->frame_index + 1, when_ns);
+			cn->cnx->dump_time("wake_up", frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_BEGIN:
-			cn->cnx->dump_time("begin", cn->frame_index + 1, when_ns);
+			cn->cnx->dump_time("begin", frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_SUBMIT_BEGIN:
 			break;
 		case COMP_TARGET_TIMING_POINT_SUBMIT_END:
-			cn->cnx->dump_time("submit", cn->frame_index + 1, when_ns);
+			cn->cnx->dump_time("submit", frame_id, when_ns);
 			break;
 		default:
 			assert(false);

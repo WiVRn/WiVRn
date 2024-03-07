@@ -55,7 +55,7 @@ void wivrn_pacer::predict(
 	out_wake_up_time_ns = next_frame_ns;
 	out_desired_present_time_ns = out_wake_up_time_ns + mean_wake_up_to_present_ns;
 	out_present_slop_ns = 0;
-	out_predicted_display_time_ns = out_desired_present_time_ns;
+	out_predicted_display_time_ns = out_desired_present_time_ns + mean_present_to_display_ns;
 }
 
 void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback, const clock_offset & offset)
@@ -109,6 +109,15 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 				next_frame_ns -= frame_duration_ns / 1000;
 		}
 	}
+	if (feedback.displayed)
+	{
+		auto & when = in_flight_frames[feedback.frame_index % in_flight_frames.size()];
+		if (when.frame_id == feedback.frame_index)
+		{
+			mean_present_to_display_ns = std::lerp(mean_present_to_display_ns, offset.from_headset(feedback.displayed) - when.present_ns, 0.1);
+			when.frame_id = 0;
+		}
+	}
 }
 void wivrn_pacer::mark_timing_point(
         comp_target_timing_point point,
@@ -134,5 +143,6 @@ void wivrn_pacer::mark_timing_point(
 		//! Just after submitting work to the GPU.
 		case COMP_TARGET_TIMING_POINT_SUBMIT_END:
 			mean_wake_up_to_present_ns = std::lerp(mean_wake_up_to_present_ns, when_ns - last_wake_up_ns, 0.1);
+			in_flight_frames[frame_id % in_flight_frames.size()] = {.frame_id = uint64_t(frame_id), .present_ns = when_ns};
 	}
 }

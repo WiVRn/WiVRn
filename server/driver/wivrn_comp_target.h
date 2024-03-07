@@ -51,7 +51,7 @@ struct pseudo_swapchain
 		vk::raii::CommandBuffer command_buffer = nullptr;
 		yuv_converter yuv;
 		uint8_t status; // bitmask of consumer status, index 0 for acquired, the rest for each encoder
-		uint64_t frame_index;
+		int64_t frame_index;
 		to_headset::video_stream_data_shard::view_info_t view_info{};
 	};
 	std::vector<item> images;
@@ -68,10 +68,7 @@ struct wivrn_comp_target : public comp_target
 
 	float fps;
 
-	int64_t current_frame_id;
-
-	// Monotonic counter, for video stream
-	uint64_t frame_index = 0;
+	int64_t current_frame_id = 0;
 
 	pseudo_swapchain psc;
 
