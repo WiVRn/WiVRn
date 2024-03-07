@@ -133,6 +133,12 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	return {settings};
 }
 
+static void make_even(uint16_t& value, uint16_t max)
+{
+	value += value %2;
+	value = std::min(value, max);
+}
+
 std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::PhysicalDevice physical_device, uint16_t width, uint16_t height)
 {
 	try
@@ -153,6 +159,8 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::Phys
 			settings.video_height = settings.height;
 			settings.offset_x = std::ceil(encoder.offset_x.value_or(0) * width);
 			settings.offset_y = std::ceil(encoder.offset_y.value_or(0) * height);
+			make_even(settings.width, width - settings.offset_x);
+			make_even(settings.height, height - settings.offset_y);
 			settings.codec = encoder.codec.value_or(xrt::drivers::wivrn::h264);
 			settings.group = encoder.group.value_or(next_group);
 			settings.options = encoder.options;
