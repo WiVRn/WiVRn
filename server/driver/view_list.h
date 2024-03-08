@@ -31,7 +31,7 @@ struct tracked_views
 };
 
 
-class view_list : public history<view_list, tracked_views>
+class view_list : public history<view_list, tracked_views, true>
 {
 public:
 	static tracked_views interpolate(const tracked_views & a, const tracked_views & b, float t);

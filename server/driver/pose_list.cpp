@@ -18,12 +18,14 @@
  */
 
 #include "pose_list.h"
+#include "math/m_eigen_interop.hpp"
 #include "math/m_space.h"
 #include "math/m_vec3.h"
 #include "xrt/xrt_defines.h"
 #include "xrt_cast.h"
 
 using namespace xrt::drivers::wivrn;
+using namespace xrt::auxiliary::math;
 
 xrt_space_relation pose_list::interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)
 {
@@ -35,16 +37,25 @@ xrt_space_relation pose_list::interpolate(const xrt_space_relation & a, const xr
 
 xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, uint64_t ta, uint64_t tb, uint64_t t)
 {
-	if (t < ta)
-		return a;
+	float h = (tb - ta) / 1.e9;
 
-	xrt_space_relation res = b;
+	xrt_space_relation res = t < ta ? a : b;
+
+	xrt_vec3 lin_vel = res.relation_flags & XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT ? res.linear_velocity : (b.pose.position - a.pose.position ) / h;
 
 	float dt = (t - tb) / 1.e9;
-	// if (dt > 0.2)
-	// dt = 0.2; // saturate dt to 200ms
 
+	float dt2_over_2 = dt * dt / 2;
 	res.pose.position = b.pose.position + b.linear_velocity * dt;
+
+	if (res.relation_flags & XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT)
+	{
+		xrt_vec3 dtheta = b.angular_velocity * dt;
+		xrt_quat dq;
+		math_quat_exp(&dtheta, &dq);
+
+		map_quat(res.pose.orientation) = map_quat(res.pose.orientation) * map_quat(dq);
+	}
 
 	return res;
 }

@@ -26,7 +26,7 @@
 #include <algorithm>
 #include "clock_offset.h"
 
-template <typename Derived, typename Data, size_t MaxSamples = 10>
+template <typename Derived, typename Data, bool extrapolate = false, size_t MaxSamples = 10>
 class history
 {
 	struct TimedData : public Data
@@ -75,7 +75,10 @@ public:
 
 		if (data.front().at_timestamp_ns > at_timestamp_ns)
 		{
-			return Derived::extrapolate(data[0], data[1], data[0].at_timestamp_ns, data[1].at_timestamp_ns, at_timestamp_ns);
+			if (extrapolate)
+				return Derived::extrapolate(data[0], data[1], data[0].at_timestamp_ns, data[1].at_timestamp_ns, at_timestamp_ns);
+			else
+				return data.front();
 		}
 
 		for (size_t i = 1; i < data.size(); ++i)
@@ -88,9 +91,14 @@ public:
 			}
 		}
 
-		const auto & d0 = data[data.size() - 2];
-		const auto & d1 = data.back();
-
-		return Derived::extrapolate(d0, d1, d0.at_timestamp_ns, d1.at_timestamp_ns, at_timestamp_ns);
+		if (extrapolate)
+		{
+			const auto & d0 = data[data.size() - 2];
+			const auto & d1 = data.back();
+			return Derived::extrapolate(d0, d1, d0.at_timestamp_ns, d1.at_timestamp_ns, at_timestamp_ns);
+		}
+		else {
+			return data.back();
+		}
 	}
 };

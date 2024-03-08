@@ -18,6 +18,7 @@
  */
 
 #include "hand_joints_list.h"
+#include "math/m_space.h"
 #include "pose_list.h"
 #include "xrt_cast.h"
 
@@ -34,16 +35,6 @@ namespace
 			.radius = a.radius * (1-t) + b.radius * t
 		};
 	}
-
-	xrt_hand_joint_value extrapolate(const xrt_hand_joint_value & a, const xrt_hand_joint_value & b, uint64_t ta, uint64_t tb, uint64_t t)
-	{
-		float λ = std::clamp((t - ta) / float(tb - ta), 0.f, 1.f);
-
-		return {
-			.relation = pose_list::extrapolate(a.relation, b.relation, ta, tb, t),
-			.radius = a.radius * (1-λ) + b.radius * λ
-		};
-	}
 }
 
 xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t)
@@ -58,12 +49,43 @@ xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, c
 
 xrt_hand_joint_set hand_joints_list::extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, uint64_t ta, uint64_t tb, uint64_t t)
 {
-	xrt_hand_joint_set j = a;
-	for(int i = 0; i < XRT_HAND_JOINT_COUNT; i++)
-	{
-		j.values.hand_joint_set_default[i] = ::extrapolate(a.values.hand_joint_set_default[i], b.values.hand_joint_set_default[i], ta, tb, t);
-	}
+	xrt_hand_joint_set j =  t <= ta ? a : b;
+	// Only extrapolate the hand pose, individual joints are too noisy
+	j.hand_pose = pose_list::extrapolate(a.hand_pose, b.hand_pose, ta, tb, t);
 	return j;
+}
+
+static xrt_space_relation_flags cast_flags(uint8_t in_flags)
+{
+	std::underlying_type_t<xrt_space_relation_flags> flags = 0;
+	if (in_flags & from_headset::hand_tracking::position_valid)
+		flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
+
+	if (in_flags & from_headset::hand_tracking::orientation_valid)
+		flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
+
+	if (in_flags & from_headset::hand_tracking::linear_velocity_valid)
+		flags |= XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT;
+
+	if (in_flags & from_headset::hand_tracking::angular_velocity_valid)
+		flags |= XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT;
+
+	if (in_flags & from_headset::hand_tracking::position_tracked)
+		flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
+
+	if (in_flags & from_headset::hand_tracking::orientation_tracked)
+		flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
+	return xrt_space_relation_flags(flags);
+}
+
+static xrt_space_relation to_relation(const from_headset::hand_tracking::pose& pose)
+{
+	return {
+		.relation_flags = cast_flags(pose.flags),
+		.pose = xrt_cast(pose.pose),
+		.linear_velocity = xrt_cast(pose.linear_velocity),
+		.angular_velocity = xrt_cast(pose.angular_velocity),
+	};
 }
 
 static xrt_hand_joint_set convert_joints(const std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>& input_joints)
@@ -71,45 +93,20 @@ static xrt_hand_joint_set convert_joints(const std::array<from_headset::hand_tra
 	xrt_hand_joint_set output_joints;
 
 	output_joints.is_active = true;
-	output_joints.hand_pose = xrt_space_relation{
-		.relation_flags = XRT_SPACE_RELATION_BITMASK_ALL,
-		.pose = {
-			.orientation = {0, 0, 0, 1},
-			.position = {0, 0, 0}
-		},
-		.linear_velocity = {0, 0, 0},
-		.angular_velocity = {0, 0, 0},
-	}; // TODO
+	output_joints.hand_pose = to_relation(input_joints[XRT_HAND_JOINT_WRIST]);
+
+	xrt_relation_chain rel_chain{};
+	xrt_space_relation * joint_rel = m_relation_chain_reserve(&rel_chain);
+	m_relation_chain_push_inverted_relation(&rel_chain, &output_joints.hand_pose);
 
 	for(int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 	{
 		xrt_hand_joint_value& res = output_joints.values.hand_joint_set_default[i];
 
 		res.radius = input_joints[i].radius;
-		res.relation.pose = xrt_cast(input_joints[i].pose);
-		res.relation.angular_velocity = xrt_cast(input_joints[i].angular_velocity);
-		res.relation.linear_velocity = xrt_cast(input_joints[i].linear_velocity);
+		*joint_rel = to_relation(input_joints[i]);
 
-		int flags = 0;
-		if (input_joints[i].flags & from_headset::hand_tracking::position_valid)
-			flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
-
-		if (input_joints[i].flags & from_headset::hand_tracking::orientation_valid)
-			flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
-
-		if (input_joints[i].flags & from_headset::hand_tracking::linear_velocity_valid)
-			flags |= XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT;
-
-		if (input_joints[i].flags & from_headset::hand_tracking::angular_velocity_valid)
-			flags |= XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT;
-
-		if (input_joints[i].flags & from_headset::hand_tracking::position_tracked)
-			flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
-
-		if (input_joints[i].flags & from_headset::hand_tracking::orientation_tracked)
-			flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
-
-		res.relation.relation_flags = (xrt_space_relation_flags)flags;
+		m_relation_chain_resolve(&rel_chain, &res.relation);
 	}
 	return output_joints;
 }
