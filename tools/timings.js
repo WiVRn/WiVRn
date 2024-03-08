@@ -15,7 +15,7 @@ function load_timings(filename)
 				const text = xhr.responseText;
 				lines = text.split('\n');
 
-				let timing_data = new Object();
+				let timing_data = [];
 
 				for(let i in lines)
 				{
@@ -24,7 +24,7 @@ function load_timings(filename)
 						continue;
 
 					event_name = items[0].replaceAll('"', '');
-					frameindex = "frame-" + items[1];
+					frameindex = parseInt(items[1]);
 					timestamp = parseInt(items[2]);
 
 
@@ -83,8 +83,11 @@ function load_timings(filename)
 						}
 					}
 
-					timing_data[i].global.frame_begin = (frame_begin - min_timestamp) / 1000000;
-					timing_data[i].global.frame_end = (frame_end - min_timestamp) / 1000000;
+					if (timing_data[i].global)
+					{
+						timing_data[i].global.frame_begin = (frame_begin - min_timestamp) / 1000000;
+						timing_data[i].global.frame_end = (frame_end - min_timestamp) / 1000000;
+					}
 				}
 
 				document.getElementById('debug').innerHTML = JSON.stringify(timing_data, null, 4);
