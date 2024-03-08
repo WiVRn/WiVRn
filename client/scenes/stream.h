@@ -182,10 +182,14 @@ private:
 
 	struct plot
 	{
-		int subplot;
 		const char * title;
+		struct subplot
+		{
+			const char * title;
+			float scenes::stream::global_metric::*data;
+		};
+		std::vector<subplot> subplots;
 		const char * unit;
-		float scenes::stream::global_metric::* data;
 	};
 
 	static const inline int size_gpu_timestamps = 1 + sizeof(gpu_timestamps) / sizeof(float);

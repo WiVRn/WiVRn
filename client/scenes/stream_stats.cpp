@@ -141,11 +141,20 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 	ImVec2 window_size = ImGui::GetWindowSize() - ImVec2(2,2) * style.WindowPadding;
 
 	static const std::array plots = {
-		plot(0, "CPU time", "s",     &global_metric::cpu_time),
-		plot(1, "GPU blit", "s",     &global_metric::gpu_barrier),
-		plot(1, "GPU time", "s",     &global_metric::gpu_time),
-		plot(2, "Download", "bit/s", &global_metric::bandwidth_rx),
-		plot(3, "Upload",   "bit/s", &global_metric::bandwidth_tx),
+	        plot("CPU time", {
+	                                 {"", &global_metric::cpu_time},
+	                         },
+	             "s"),
+	        plot("GPU time", {
+	                                 {"Reproject", &global_metric::gpu_time},
+	                                 {"Blit", &global_metric::gpu_barrier},
+	                         },
+	             "s"),
+	        plot("Network", {
+	                                {"Download", &global_metric::bandwidth_rx},
+	                                {"Upload", &global_metric::bandwidth_tx},
+	                        },
+	             "bit/s"),
 	};
 
 	int n_plots = plots.size() + decoders.size();
@@ -165,26 +174,22 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 	ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
 
 	int n = 0;
-	for(auto [subplot, title, unit, data]: plots)
+	for(const auto& [title, subplots, unit]: plots)
 	{
-		if (ImPlot::BeginPlot(title, plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(title, plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText | ImPlotFlags_NoChild))
 		{
 			float min_v = 0;
-			float max_v = compute_plot_max_value(&(global_metrics.data()->*data), global_metrics.size(), sizeof(global_metric));
+			float max_v = 0;
+			for (const auto& [subtitle, data]: subplots)
+			{
+				max_v = std::max(max_v, compute_plot_max_value(&(global_metrics.data()->*data), global_metrics.size(), sizeof(global_metric)));
+			}
 			auto [ multiplier, prefix ] = compute_plot_unit(max_v);
 
 			if (axis_scale[n] == 0 || std::isnan(axis_scale[n]))
 				axis_scale[n] = max_v;
 			else
 				axis_scale[n] = 0.99 * axis_scale[n] + 0.01 * max_v;
-
-			getter_data gdata{
-				.data = (uintptr_t)&(global_metrics.data()->*data),
-				.stride = sizeof(global_metric),
-				.offset = metrics_offset,
-				.count = (int)global_metrics.size(),
-				.multiplier = multiplier
-			};
 
 			auto color = ImPlot::GetColormapColor(n);
 
@@ -193,7 +198,18 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			ImPlot::SetupAxesLimits(0, global_metrics.size() - 1, min_v * multiplier, axis_scale[n] * multiplier, ImGuiCond_Always);
 			ImPlot::SetNextLineStyle(color);
 			ImPlot::SetNextFillStyle(color, 0.25);
-			ImPlot::PlotLineG(title, getter, &gdata, global_metrics.size(), ImPlotLineFlags_Shaded);
+
+			for (const auto& [subtitle, data]: subplots)
+			{
+				getter_data gdata{
+				        .data = (uintptr_t) & (global_metrics.data()->*data),
+				        .stride = sizeof(global_metric),
+				        .offset = metrics_offset,
+				        .count = (int)global_metrics.size(),
+				        .multiplier = multiplier,
+				};
+				ImPlot::PlotLineG(subtitle, getter, &gdata, global_metrics.size(), ImPlotLineFlags_Shaded);
+			}
 			ImPlot::EndPlot();
 		}
 
