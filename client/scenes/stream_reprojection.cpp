@@ -420,7 +420,8 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer& command_buffer, int
 	ubo[source]->lambda.y = foveation_parameters[source].y.a / foveation_parameters[source].y.scale;
 	ubo[source]->xc.y = foveation_parameters[source].y.center;
 
-	vk::ClearValue clear_color;
+	std::array<float, 4> col = {0, 0, 0, 1};
+	vk::ClearValue clear_color(col);
 
 	vk::RenderPassBeginInfo begin_info{
 		.renderPass = *renderpass,
