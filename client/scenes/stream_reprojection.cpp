@@ -209,7 +209,7 @@ stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::Phy
 	vk::AttachmentDescription attachment{
 		.format = format,
 		.samples = vk::SampleCountFlagBits::e1,
-		.loadOp = vk::AttachmentLoadOp::eClear,
+		.loadOp = vk::AttachmentLoadOp::eDontCare,
 		.storeOp = vk::AttachmentStoreOp::eStore,
 		.initialLayout = vk::ImageLayout::eColorAttachmentOptimal,
 		.finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -314,7 +314,7 @@ stream_reprojection::stream_reprojection(vk::raii::Device& device, vk::raii::Phy
 		}},
 		.ColorBlendState = {.flags = {}},
 		.ColorBlendAttachments = {{
-			.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB
+			.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
 		}},
 		.layout = *layout,
 		.renderPass = *renderpass,
@@ -420,9 +420,6 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer& command_buffer, int
 	ubo[source]->lambda.y = foveation_parameters[source].y.a / foveation_parameters[source].y.scale;
 	ubo[source]->xc.y = foveation_parameters[source].y.center;
 
-	std::array<float, 4> col = {0, 0, 0, 1};
-	vk::ClearValue clear_color(col);
-
 	vk::RenderPassBeginInfo begin_info{
 		.renderPass = *renderpass,
 		.framebuffer = *framebuffers[destination],
@@ -431,7 +428,6 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer& command_buffer, int
 			.extent = extent,
 		},
 	};
-	begin_info.setClearValues(clear_color);
 
 	command_buffer.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eTopOfPipe,

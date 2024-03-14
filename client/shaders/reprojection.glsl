@@ -103,7 +103,7 @@ void main()
 	else
 		uv = inUV;
 
-	outColor = texture(texSampler, uv);
+	outColor = vec4(texture(texSampler, uv).rgb, 1);
 
 }
 #endif
