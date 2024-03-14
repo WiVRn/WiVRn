@@ -124,6 +124,9 @@ void scenes::stream::tracking()
 			if (now < t0)
 				std::this_thread::sleep_for(std::chrono::nanoseconds(t0 - now - dt));
 
+			// If thread can't keep up, skip timestamps
+			t0 += tracking_period * ((now - t0) / tracking_period);
+
 			for (XrTime Δt = 0; Δt < extrapolation_horizon; Δt += tracking_period)
 			{
 				from_headset::tracking packet{};
