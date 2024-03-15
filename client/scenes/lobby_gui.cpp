@@ -29,6 +29,10 @@
 #include <spdlog/fmt/fmt.h>
 #include <utils/strings.h>
 
+#ifdef __ANDROID__
+#include "jnipp.h"
+#endif
+
 #include "IconsFontAwesome6.h"
 
 static void CenterTextH(const std::string& text)
@@ -351,6 +355,33 @@ void scenes::lobby::gui_settings()
 			vibrate_on_hover();
 		}
 	}
+
+	if (ImGui::Checkbox("Enable microphone", &microphone))
+	{
+#ifdef __ANDROID__
+		if (microphone)
+		{
+			jni::object<""> act(application::native_app()->activity->clazz);
+			auto app = act.call<jni::object<"android/app/Application">>("getApplication");
+			auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
+
+			jni::string permission("android.permission.RECORD_AUDIO");
+			auto result = ctx.call<jni::Int>("checkSelfPermission", permission);
+			if (result != 0 /*PERMISSION_GRANTED*/)
+			{
+				spdlog::info("RECORD_AUDIO permission not granted, requesting it");
+				jni::array permissions(permission);
+				act.call<void>("requestPermissions", permissions, jni::Int(0));
+			}
+			else
+			{
+				spdlog::info("RECORD_AUDIO permission already granted");
+			}
+		}
+#endif
+		save_config();
+	}
+	vibrate_on_hover();
 
 	if (ImGui::Checkbox("Show performance metrics", &show_performance_metrics))
 		save_config();

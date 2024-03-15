@@ -219,6 +219,10 @@ scenes::lobby::lobby()
 			preferred_refresh_rate = rate.get_double();
 			session.set_refresh_rate(preferred_refresh_rate);
 		}
+
+		auto mic = root["microphone"];
+		if (mic.is_bool())
+			microphone = mic.get_bool();
 	}
 	catch(std::exception& e)
 	{
@@ -287,6 +291,7 @@ void scenes::lobby::save_config()
 	     << "\"show_performance_metrics\":" << std::boolalpha << show_performance_metrics;
 	if (preferred_refresh_rate != 0.)
 	     json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate ;
+	json << ",\"microphone\":" << std::boolalpha << microphone;
 	json << "}";
 }
 
@@ -528,7 +533,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 		{
 			auto session = async_session.get();
 			if (session)
-				next_scene = stream::create(std::move(session), show_performance_metrics);
+				next_scene = stream::create(std::move(session), show_performance_metrics, microphone);
 
 			async_session.reset();
 		}

@@ -74,7 +74,7 @@ static const std::array supported_formats =
 	vk::Format::eB8G8R8A8Srgb
 };
 
-std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, bool show_performance_metrics)
+std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, bool show_performance_metrics, bool enable_microphone)
 {
 	std::shared_ptr<stream> self{new stream};
 	spdlog::info("decoder_mutex.native_handle() = {}", (void*)self->decoder_mutex.native_handle());
@@ -112,6 +112,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	info.hand_tracking = application::get_hand_tracking_supported();
 
 	audio::get_audio_description(info);
+	if (not enable_microphone)
+		info.microphone = {};
 
 	self->network_session->send_control(info);
 

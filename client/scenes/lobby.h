@@ -113,6 +113,7 @@ class lobby : public scene_impl<lobby>
 
 	float preferred_refresh_rate = 0;
 	bool show_performance_metrics = false;
+	bool microphone = false;
 
 	void gui_connecting();
 	void gui_server_list();

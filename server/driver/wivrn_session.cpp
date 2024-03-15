@@ -102,7 +102,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	{
 		self->audio_handle = audio_device::create(
 		        "wivrn.source",
-		        "WiVRn microphone",
+		        "WiVRn(microphone)",
 		        "wivrn.sink",
 		        "WiVRn",
 		        info,

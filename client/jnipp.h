@@ -69,12 +69,25 @@ public:
 	}
 };
 
+struct Void
+{
+	static std::string type()
+	{
+		return "V";
+	}
+	constexpr static const auto call_method = &_JNIEnv::CallVoidMethod;
+};
+
 namespace details
 {
 
 struct deleter
 {
 	void operator()(jobject j)
+	{
+		jni_thread::env().DeleteLocalRef(j);
+	}
+	void operator()(jobjectArray j)
 	{
 		jni_thread::env().DeleteLocalRef(j);
 	}
@@ -106,6 +119,21 @@ auto handle(const T & t, Args &&... args)
 {
 	return std::tuple_cat(std::make_tuple(t.handle()), handle(std::forward<Args>(args)...));
 }
+
+template <typename T>
+struct type_map
+{
+	using type = T;
+};
+
+template <>
+struct type_map<void>
+{
+	using type = jni::Void;
+};
+
+template <typename T>
+using type_map_t = type_map<T>::type;
 } // namespace details
 
 struct klass
@@ -122,11 +150,13 @@ struct klass
 	{
 		auto & env = jni_thread::env();
 		self.reset(env.GetObjectClass(instance));
+		assert(self.get());
 	}
 
 	klass(const char * name) :
 	        self(jni_thread::env().FindClass(name))
 	{
+		assert(self.get());
 	}
 
 	template <typename T>
@@ -136,15 +166,6 @@ struct klass
 		jfieldID id = env.GetStaticFieldID(*this, name.c_str(), T::type().c_str());
 		return T((env.*T::static_field)(*this, id));
 	}
-};
-
-struct Void
-{
-	static std::string type()
-	{
-		return "V";
-	}
-	constexpr static const auto call_method = &_JNIEnv::CallVoidMethod;
 };
 
 struct Bool
@@ -171,6 +192,7 @@ struct Bool
 struct Int
 {
 	constexpr static auto static_field = &_JNIEnv::GetStaticIntField;
+	constexpr static const auto call_method = &_JNIEnv::CallIntMethod;
 
 	static std::string type()
 	{
@@ -189,24 +211,6 @@ struct Int
 		return value;
 	}
 };
-
-namespace details
-{
-template <typename T>
-struct type_map
-{
-	using type = T;
-};
-
-template <>
-struct type_map<void>
-{
-	using type = jni::Void;
-};
-
-template <typename T>
-using type_map_t = type_map<T>::type;
-}; // namespace details
 
 template <details::string_literal Type>
 struct object
@@ -233,6 +237,7 @@ struct object
 		auto & env = jni_thread::env();
 		std::string signature = "(" + details::build_type(args...) + ")" + R1::type();
 		auto method_id = env.GetMethodID(klass(), method, signature.c_str());
+		assert(method_id);
 		auto handles = details::handle(std::forward<Args>(args)...);
 		return R(std::apply([&](auto &... t) {
 			return (env.*R1::call_method)(*this, method_id, t...);
@@ -282,4 +287,27 @@ struct string : public string_t
 		return res;
 	}
 };
+
+template <typename T>
+struct array
+{
+	static std::string type()
+	{
+		return std::string("[") + T::type();
+	}
+
+	std::unique_ptr<std::remove_pointer_t<jobjectArray>, details::deleter> self;
+
+	auto handle() const
+	{
+		return self.get();
+	}
+
+	array(T& element)
+	{
+		auto & env = jni_thread::env();
+		self.reset(env.NewObjectArray(1, element.klass(), element));
+	}
+};
+
 } // namespace jni

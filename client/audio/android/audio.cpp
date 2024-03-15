@@ -102,7 +102,10 @@ void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wiv
 
 		xrt::drivers::wivrn::audio_data packet;
 		const int frame_size = format.num_channels * sizeof(int16_t);
-		const int max_frames = (format.sample_rate * 10) / 1000; // 10ms
+		// Try to make packets fit in a single TCP frame, and at most 10ms data
+		const int max_frames = std::min<int>(
+		        (format.sample_rate * 10) / 1000, // 10ms
+		        1400 / frame_size);
 		auto & buffer = packet.data.c;
 		buffer.resize(frame_size * max_frames);
 

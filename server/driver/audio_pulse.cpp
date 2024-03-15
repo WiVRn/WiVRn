@@ -169,7 +169,6 @@ module_entry ensure_source(pa_context * ctx, const char * name, const std::strin
 	       << " file=" << std::quoted(fifo.string())
 	       << " channels=" << channels
 	       << " rate=" << sample_rate
-	       << " use_system_clock_for_timing=yes"
 	       << " source_properties=" << PA_PROP_DEVICE_DESCRIPTION << "=" << std::quoted(description)
 	       << PA_PROP_DEVICE_ICON_NAME << "=network-wireless";
 	;
@@ -181,6 +180,9 @@ module_entry ensure_source(pa_context * ctx, const char * name, const std::strin
 	if (not source)
 		throw std::runtime_error("failed to create audio source " + std::string(name));
 	source->socket = fifo;
+
+	add_cleanup_function(unload_module, source->module);
+
 	return *source;
 }
 
@@ -360,7 +362,7 @@ struct pulse_device : public audio_device
 			{
 				pollfd pfd{};
 				pfd.fd = mic_pipe.get_fd();
-				pfd.events = POLL_OUT;
+				pfd.events = POLLOUT;
 
 				int r = poll(&pfd, 1, 100);
 				if (r < 0)

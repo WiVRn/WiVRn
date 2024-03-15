@@ -168,6 +168,11 @@ public:
 	{
 		return instance().app_info.native_app->activity->assetManager;
 	}
+
+	static android_app* native_app()
+	{
+		return instance().app_info.native_app;
+	}
 #endif
 
 	static bool is_session_running()
