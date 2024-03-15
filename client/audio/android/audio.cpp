@@ -52,6 +52,9 @@ void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wi
 		int32_t frames = AAudioStream_getFramesPerBurst(stream);
 		std::vector<uint8_t> silence(frame_size * frames, 0);
 
+		// Use at least a 100ms buffer
+		AAudioStream_setBufferSizeInFrames(stream, 100 * format.sample_rate / 1000);
+
 		// Tune buffer size to minimize latency
 		{
 			auto tuning_end = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
