@@ -45,6 +45,7 @@ union event
 	XrEventDataReferenceSpaceChangePending space_changed_pending;
 	XrEventDataSessionStateChanged state_changed;
 	XrEventDataDisplayRefreshRateChangedFB refresh_rate_changed;
+	XrEventDataPassthroughStateChangedFB passthrough_state_changed;
 };
 class instance : public utils::handle<XrInstance>
 {

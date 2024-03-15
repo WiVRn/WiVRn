@@ -404,4 +404,9 @@ public:
 	{
 		return instance().right_hand;
 	}
+
+	static const std::vector<std::string>& get_xr_extensions()
+	{
+		return instance().xr_extensions;
+	}
 };

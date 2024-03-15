@@ -55,6 +55,7 @@ public:
 
 	XrSystemProperties properties() const;
 	XrSystemHandTrackingPropertiesEXT hand_tracking_properties() const;
+	bool passthrough_supported() const;
 
 	XrGraphicsRequirementsVulkan2KHR graphics_requirements() const;
 	vk::raii::PhysicalDevice physical_device(vk::raii::Instance& vulkan) const;

@@ -383,6 +383,14 @@ void scenes::lobby::gui_settings()
 	}
 	vibrate_on_hover();
 
+	ImGui::BeginDisabled(!passthrough_supported);
+	if (ImGui::Checkbox("Enable video passthrough in lobby", &passthrough_enabled))
+	{
+		save_config();
+	}
+	vibrate_on_hover();
+	ImGui::EndDisabled();
+
 	if (ImGui::Checkbox("Show performance metrics", &show_performance_metrics))
 		save_config();
 	vibrate_on_hover();

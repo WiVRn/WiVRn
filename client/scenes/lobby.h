@@ -24,6 +24,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include "wivrn_discover.h"
 
+#include "xr/passthrough.h"
 #include <optional>
 #include <vector>
 #include <map>
@@ -88,6 +89,8 @@ class lobby : public scene_impl<lobby>
 	std::vector<xr::swapchain> swapchains_controllers;
 	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
+	bool passthrough_supported;
+	xr::passthrough passthrough;
 
 	void save_config();
 
@@ -114,6 +117,7 @@ class lobby : public scene_impl<lobby>
 	float preferred_refresh_rate = 0;
 	bool show_performance_metrics = false;
 	bool microphone = false;
+	bool passthrough_enabled = false;
 
 	void gui_connecting();
 	void gui_server_list();

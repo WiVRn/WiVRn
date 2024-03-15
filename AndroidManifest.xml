@@ -38,6 +38,10 @@
     <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="false" />
     <uses-permission android:name="com.oculus.permission.RENDER_MODEL" />
 
+    <!-- Required for passthrough on Quest -->
+    <!-- https://developer.oculus.com/documentation/native/android/mobile-passthrough/ -->
+    <uses-feature android:name="com.oculus.feature.PASSTHROUGH" android:required="false" />
+
     <!-- See https://hub.vive.com/storage/docs/en-us/ConfigureAppCapabilities.html -->
     <uses-feature android:name="wave.feature.handtracking" android:required="false" />
 

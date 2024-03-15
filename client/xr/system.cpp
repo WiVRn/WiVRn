@@ -19,7 +19,9 @@
 
 #include "system.h"
 
+#include "application.h"
 #include "details/enumerate.h"
+#include "utils/contains.h"
 #include "vk/check.h"
 #include "xr/check.h"
 #include <cassert>
@@ -80,6 +82,31 @@ XrSystemHandTrackingPropertiesEXT xr::system::hand_tracking_properties() const
 	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
 
 	return hand_tracking_prop;
+}
+
+bool xr::system::passthrough_supported() const
+{
+	const std::vector<std::string>& xr_extensions = application::get_xr_extensions();
+	if (utils::contains(xr_extensions, XR_HTC_PASSTHROUGH_EXTENSION_NAME))
+		return true;
+
+	if (utils::contains(xr_extensions, XR_FB_PASSTHROUGH_EXTENSION_NAME))
+	{
+		XrSystemPassthroughPropertiesFB passthrough_prop
+		{
+			.type = XR_TYPE_SYSTEM_PASSTHROUGH_PROPERTIES_FB,
+		};
+
+		XrSystemProperties prop{
+			.type = XR_TYPE_SYSTEM_PROPERTIES,
+			.next = &passthrough_prop,
+		};
+		CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+		return passthrough_prop.supportsPassthrough;
+	}
+
+	return false;
 }
 
 vk::raii::PhysicalDevice xr::system::physical_device(vk::raii::Instance& vulkan) const

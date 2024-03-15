@@ -18,7 +18,7 @@
  */
 
 #include "lobby.h"
-#include "../common/version.h"
+#include "version.h"
 #include "application.h"
 #include "glm/geometric.hpp"
 #include "imgui.h"
@@ -28,9 +28,10 @@
 #include "render/scene_renderer.h"
 #include "stream.h"
 #include "hardware.h"
+#include "utils/contains.h"
 #include "wivrn_client.h"
+#include "xr/passthrough.h"
 #include <chrono>
-#include <future>
 #include <glm/gtc/matrix_access.hpp>
 
 #include "wivrn_discover.h"
@@ -45,7 +46,6 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <simdjson.h>
 #include <fstream>
-#include <thread>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -223,6 +223,10 @@ scenes::lobby::lobby()
 		auto mic = root["microphone"];
 		if (mic.is_bool())
 			microphone = mic.get_bool();
+
+		auto passthrough = root["passthrough_enabled"];
+		if (passthrough.is_bool())
+			passthrough_enabled = passthrough.get_bool();
 	}
 	catch(std::exception& e)
 	{
@@ -260,6 +264,22 @@ scenes::lobby::lobby()
 		throw std::runtime_error("No supported swapchain format");
 
 	spdlog::info("Using format {}", vk::to_string(swapchain_format));
+
+	passthrough_supported = system.passthrough_supported();
+
+	if (passthrough_supported)
+	{
+		if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
+		{
+			passthrough = xr::passthrough_fb(instance, session);
+		}
+		else if (utils::contains(application::get_xr_extensions(), XR_HTC_PASSTHROUGH_EXTENSION_NAME))
+		{
+			passthrough = xr::passthrough_htc(instance, session);
+		}
+
+		std::visit([](auto& p) {p.start();}, passthrough);
+	}
 }
 
 void scenes::lobby::save_config()
@@ -292,6 +312,7 @@ void scenes::lobby::save_config()
 	if (preferred_refresh_rate != 0.)
 	     json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate ;
 	json << ",\"microphone\":" << std::boolalpha << microphone;
+	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
 	json << "}";
 }
 
@@ -585,13 +606,19 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 
 	assert(renderer);
 	renderer->start_frame();
-	auto lobby_layer_views = render_layer(views, swapchains_lobby, *renderer, *lobby_scene, {0, 0.25, 0.5, 1});
+	std::vector<XrCompositionLayerProjectionView> lobby_layer_views;
+	if (!passthrough_enabled)
+		lobby_layer_views = render_layer(views, swapchains_lobby, *renderer, *lobby_scene, {0, 0.25, 0.5, 1});
+
 	auto controllers_layer_views = render_layer(views, swapchains_controllers, *renderer, *controllers_scene, {0, 0, 0, 0});
 	renderer->end_frame();
 
 	// After end_frame because the command buffers are submitted in end_frame
-	for (auto & swapchain: swapchains_lobby)
-		swapchain.release();
+	if (!passthrough_enabled)
+	{
+		for (auto & swapchain: swapchains_lobby)
+			swapchain.release();
+	}
 
 	for (auto & swapchain: swapchains_controllers)
 		swapchain.release();
@@ -613,7 +640,17 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	};
 
 	std::vector<XrCompositionLayerBaseHeader *> layers_base;
-	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
+
+	if (passthrough_enabled)
+	{
+		std::visit([&](auto& p){
+			layers_base.push_back(p.layer());
+		}, passthrough);
+	}
+	else
+	{
+		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
+	}
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
 

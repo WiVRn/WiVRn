@@ -35,11 +35,11 @@ class hand_tracker : public utils::handle<XrHandTrackerEXT>
 
 public:
 	hand_tracker() = default;
-	hand_tracker(instance * inst, XrHandTrackerEXT h)
+	hand_tracker(instance & inst, XrHandTrackerEXT h)
 	{
 		id = h;
-		xrLocateHandJointsEXT = inst->get_proc<PFN_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
-		xrDestroyHandTrackerEXT = inst->get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
+		xrLocateHandJointsEXT = inst.get_proc<PFN_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
+		xrDestroyHandTrackerEXT = inst.get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
 	}
 	hand_tracker(hand_tracker &&) = default;
 	hand_tracker & operator=(hand_tracker &&) = default;

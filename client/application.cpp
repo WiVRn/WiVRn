@@ -726,6 +726,8 @@ void application::initialize()
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_HAND_TRACKING_EXTENSION_NAME);
+	opt_extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
+	opt_extensions.push_back(XR_HTC_PASSTHROUGH_EXTENSION_NAME);
 
 	for(const auto& i: interaction_profiles)
 	{
@@ -801,6 +803,8 @@ void application::initialize()
 			right_hand = xr_session.create_hand_tracker(XR_HAND_RIGHT_EXT);
 		}
 	}
+
+	spdlog::info("Passthrough: {}", xr_system_id.passthrough_supported() ? "supported" : "not supported");
 
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;
@@ -1341,6 +1345,18 @@ void application::poll_events()
 				spdlog::info("Refresh rate changed from {} to {}",
 				             e.refresh_rate_changed.fromDisplayRefreshRate,
 				             e.refresh_rate_changed.toDisplayRefreshRate);
+			}
+			break;
+			case XR_TYPE_EVENT_DATA_PASSTHROUGH_STATE_CHANGED_FB: {
+				spdlog::info("Passthrough state changed:");
+				if (e.passthrough_state_changed.flags & XR_PASSTHROUGH_STATE_CHANGED_REINIT_REQUIRED_BIT_FB)
+					spdlog::info("    XR_PASSTHROUGH_STATE_CHANGED_REINIT_REQUIRED_BIT_FB");
+				if (e.passthrough_state_changed.flags & XR_PASSTHROUGH_STATE_CHANGED_NON_RECOVERABLE_ERROR_BIT_FB)
+					spdlog::info("    XR_PASSTHROUGH_STATE_CHANGED_NON_RECOVERABLE_ERROR_BIT_FB");
+				if (e.passthrough_state_changed.flags & XR_PASSTHROUGH_STATE_CHANGED_RECOVERABLE_ERROR_BIT_FB)
+					spdlog::info("    XR_PASSTHROUGH_STATE_CHANGED_RECOVERABLE_ERROR_BIT_FB");
+				if (e.passthrough_state_changed.flags & XR_PASSTHROUGH_STATE_CHANGED_RESTORED_ERROR_BIT_FB)
+					spdlog::info("    XR_PASSTHROUGH_STATE_CHANGED_RESTORED_ERROR_BIT_FB");
 			}
 			break;
 			default:

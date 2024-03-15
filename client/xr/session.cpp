@@ -93,7 +93,7 @@ xr::hand_tracker xr::session::create_hand_tracker(XrHandEXT hand, XrHandJointSet
 	assert(xrCreateHandTrackerEXT);
 
 	CHECK_XR(xrCreateHandTrackerEXT(id, &create_info, &ht));
-	return {inst, ht};
+	return {*inst, ht};
 }
 
 std::vector<vk::Format> xr::session::get_swapchain_formats() const
