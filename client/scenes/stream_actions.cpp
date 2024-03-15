@@ -84,7 +84,7 @@ void scenes::stream::operator()(to_headset::haptics && haptics)
 		return;
 
 	if (haptics.amplitude > 0)
-		application::haptic_start(action, XR_NULL_PATH, haptics.duration.count(), haptics.frequency, haptics.amplitude);
+		application::haptic_start(action, XR_NULL_PATH, haptics.duration.count(), haptics.frequency, std::min(1.0f, haptics.amplitude));
 	else
 		application::haptic_stop(action, XR_NULL_PATH);
 }
