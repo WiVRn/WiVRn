@@ -109,7 +109,6 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 			auto tmp = self->output_buffer.read();
 			if (not tmp)
 			{
-				spdlog::warn("missing {} audio samples", num_frames);
 				memset(audio_data, 0, num_frames * frame_size);
 				return AAUDIO_CALLBACK_RESULT_CONTINUE;
 			}
