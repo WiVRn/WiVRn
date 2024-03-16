@@ -334,6 +334,8 @@ void scenes::lobby::gui_settings()
 {
 	ImGuiStyle & style = ImGui::GetStyle();
 
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
+
 	{
 		const auto & refresh_rates = session.get_refresh_rates();
 		float current = session.get_current_refresh_rate();
@@ -394,6 +396,8 @@ void scenes::lobby::gui_settings()
 	if (ImGui::Checkbox("Show performance metrics", &show_performance_metrics))
 		save_config();
 	vibrate_on_hover();
+
+	ImGui::PopStyleVar();
 
 	if (show_performance_metrics)
 	{
