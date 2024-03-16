@@ -18,6 +18,7 @@
  */
 
 #include "audio.h"
+#include "utils/named_thread.h"
 #include "wivrn_client.h"
 #include "xr/instance.h"
 
@@ -31,65 +32,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-void wivrn::android::audio::output(AAudioStream * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format)
-{
-	pthread_setname_np(pthread_self(), "audio_out_thread");
-
-	spdlog::info("audio_out_thread started");
-
-	try
-	{
-		AAudioStream_requestStart(stream);
-		aaudio_stream_state_t state;
-		aaudio_result_t result = AAudioStream_waitForStateChange(stream, AAUDIO_STREAM_STATE_STARTING, &state, 1'000'000'000);
-		if (result != AAUDIO_OK)
-			throw std::runtime_error(std::string("Cannot start output stream: ") + AAudio_convertResultToText(result));
-
-		const size_t frame_size = format.num_channels * sizeof(int16_t);
-
-		int32_t underruns = 0;
-		int32_t frames = AAudioStream_getFramesPerBurst(stream);
-		std::vector<uint8_t> silence(frame_size * frames, 0);
-
-		// Use at least a 100ms buffer
-		AAudioStream_setBufferSizeInFrames(stream, 100 * format.sample_rate / 1000);
-
-		// Tune buffer size to minimize latency
-		{
-			auto tuning_end = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
-			while (std::chrono::steady_clock::now() < tuning_end)
-			{
-				AAudioStream_write(stream, silence.data(), frames, 0);
-				int32_t underrunCount = AAudioStream_getXRunCount(stream);
-				if (underrunCount != underruns)
-				{
-					AAudioStream_setBufferSizeInFrames(stream, AAudioStream_getBufferSizeInFrames(stream) + frames);
-					underruns = underrunCount;
-				}
-			}
-		}
-
-		while (!exiting)
-		{
-			auto packet = output_buffer.pop();
-			auto & buffer = packet.payload;
-			int num_frames = buffer.size() / frame_size;
-
-			num_frames = AAudioStream_write(stream, buffer.data(), num_frames, 0);
-			if (num_frames < 0)
-				throw std::runtime_error(std::string("Cannot play output stream: ") + AAudio_convertResultToText(result));
-
-			// Any remaining data that doesn't fit the buffer is discarded
-		}
-	}
-	catch (std::exception & e)
-	{
-		spdlog::error("Error in audio output thread: {}", e.what());
-		exit();
-	}
-	AAudioStream_close(stream);
-}
 
 void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format)
 {
@@ -135,7 +77,47 @@ void wivrn::android::audio::input(AAudioStream * stream, const xrt::drivers::wiv
 void wivrn::android::audio::exit()
 {
 	exiting = true;
-	output_buffer.close();
+	if (speaker)
+		AAudioStream_requestStop(speaker);
+}
+
+int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * userdata, void * audio_data_v, int32_t num_frames)
+{
+	auto self = (wivrn::android::audio *)userdata;
+	uint8_t * audio_data = (uint8_t *)audio_data_v;
+
+	if (self->exiting)
+		return AAUDIO_CALLBACK_RESULT_STOP;
+
+	size_t frame_size = AAudioStream_getChannelCount(stream) * sizeof(uint16_t);
+
+	while (num_frames != 0)
+	{
+		// remaining bytes in existing buffer
+		ptrdiff_t tmp_remain = self->speaker_tmp.payload.size_bytes();
+		// limit to requested frames
+		tmp_remain = std::min<ptrdiff_t>(tmp_remain, num_frames * frame_size);
+		if (tmp_remain)
+		{
+			memcpy(audio_data, self->speaker_tmp.payload.data(), tmp_remain);
+			self->speaker_tmp.payload = self->speaker_tmp.payload.subspan(tmp_remain);
+			audio_data += tmp_remain;
+			num_frames -= tmp_remain / frame_size;
+		}
+		else
+		{
+			auto tmp = self->output_buffer.read();
+			if (not tmp)
+			{
+				spdlog::warn("missing {} audio samples", num_frames);
+				memset(audio_data, 0, num_frames * frame_size);
+				return AAUDIO_CALLBACK_RESULT_CONTINUE;
+			}
+			self->speaker_tmp = std::move(*tmp);
+		}
+	}
+
+	return AAUDIO_CALLBACK_RESULT_CONTINUE;
 }
 
 wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, wivrn_session & session, xr::instance & instance) :
@@ -156,14 +138,17 @@ wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream
 		AAudioStreamBuilder_setSampleRate(builder, desc.speaker->sample_rate);
 		AAudioStreamBuilder_setChannelCount(builder, desc.speaker->num_channels);
 		AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+		AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
 		AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+
+		AAudioStreamBuilder_setDataCallback(builder, &speaker_data_cb, this);
 
 		AAudioStream * stream;
 		result = AAudioStreamBuilder_openStream(builder, &stream);
 		if (result != AAUDIO_OK)
 			spdlog::error("Cannot create output stream: {}", AAudio_convertResultToText(result));
-		else
-			output_thread = utils::named_thread("audio_output_thread", &audio::output, this, stream, *desc.speaker);
+
+		AAudioStream_requestStart(stream);
 	}
 
 	if (desc.microphone)
@@ -192,8 +177,15 @@ wivrn::android::audio::~audio()
 	if (input_thread.joinable())
 		input_thread.join();
 
-	if (output_thread.joinable())
-		output_thread.join();
+	if (speaker)
+	{
+		aaudio_stream_state_t state = AAUDIO_STREAM_STATE_UNKNOWN;
+		while (state != AAUDIO_STREAM_STATE_STOPPED)
+		{
+			state = AAudioStream_getState(speaker);
+		}
+		AAudioStream_close(speaker);
+	}
 
 	if (fd >= 0)
 		::close(fd);
@@ -201,7 +193,7 @@ wivrn::android::audio::~audio()
 
 void wivrn::android::audio::operator()(xrt::drivers::wivrn::audio_data && data)
 {
-	output_buffer.push(std::move(data));
+	output_buffer.write(std::move(data));
 }
 
 void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info)

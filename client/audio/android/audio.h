@@ -19,8 +19,7 @@
 
 #pragma once
 
-#include "utils/named_thread.h"
-#include "utils/sync_queue.h"
+#include "utils/ring_buffer.h"
 #include "wivrn_packets.h"
 #include <atomic>
 #include <thread>
@@ -37,13 +36,15 @@ namespace wivrn::android
 {
 class audio
 {
-	void output(AAudioStreamStruct * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format);
+	static int32_t speaker_data_cb(AAudioStreamStruct*, void*, void*, int32_t);
 	void input(AAudioStreamStruct * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format);
 
-	std::thread output_thread;
 	std::thread input_thread;
 
-	utils::sync_queue<xrt::drivers::wivrn::audio_data> output_buffer;
+	utils::ring_buffer<xrt::drivers::wivrn::audio_data, 1000> output_buffer;
+
+	xrt::drivers::wivrn::audio_data speaker_tmp;
+	AAudioStreamStruct * speaker = nullptr;
 
 	wivrn_session & session;
 	xr::instance & instance;
@@ -52,7 +53,6 @@ class audio
 	int fd = -1;
 
 	void exit();
-
 public:
 	audio(const audio &) = delete;
 	audio & operator=(const audio &) = delete;
