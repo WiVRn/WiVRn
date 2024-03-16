@@ -12,6 +12,11 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 
+# Default to PIC code
+include(CheckPIESupported)
+check_pie_supported()
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 include(FetchContent)
 include(ExternalProject)
 include(GNUInstallDirs)
