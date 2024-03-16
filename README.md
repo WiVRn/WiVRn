@@ -58,6 +58,11 @@ Then, on headset, launch WiVRn from the App Library, in "unknown sources" sectio
 You should now see your server in the list, click connect, screen will show "waiting for video stream".
 Now on your computer you can run an OpenXR application, and it will show on your headset, enjoy!
 
+### Audio
+When headset is connected, wivrn-server will create a virtual output device named WiVRn. It is not selected as default and you should either assign the application to the device when it is running, or mark it as default. To do so you can use `pavucontrol` or your desktop environment's configuration panel. Please note that in `pavucontrol` it will appear as a virtual device.
+
+For microphone, you first have to enable it on the settings tabs on the headset (and give permission when prompted). It will then appear as a virtual input device named WiVRn(microphone) and also needs to be assigned like for output device.
+
 # Configuration
 Configuration is done on server side, in `$XDG_CONFIG_HOME/wivrn/config.json` or if `$XDG_CONFIG_HOME` is not set, `$HOME/.config/wivrn/config.json`.
 
