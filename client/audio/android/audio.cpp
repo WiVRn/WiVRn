@@ -131,6 +131,22 @@ wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream
 		throw std::runtime_error(std::string("Cannot create stream builder: ") + AAudio_convertResultToText(result));
 	}
 
+	if (desc.microphone)
+	{
+		AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
+		AAudioStreamBuilder_setSampleRate(builder, desc.microphone->sample_rate);
+		AAudioStreamBuilder_setChannelCount(builder, desc.microphone->num_channels);
+		AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+		AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+
+		AAudioStream * stream;
+		result = AAudioStreamBuilder_openStream(builder, &stream);
+		if (result != AAUDIO_OK)
+			spdlog::error("Cannot create input stream: {}", AAudio_convertResultToText(result));
+		else
+			input_thread = utils::named_thread("audio_input_thread", &audio::input, this, stream, *desc.microphone);
+	}
+
 	if (desc.speaker)
 	{
 		AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
@@ -148,22 +164,6 @@ wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream
 			spdlog::error("Cannot create output stream: {}", AAudio_convertResultToText(result));
 
 		AAudioStream_requestStart(stream);
-	}
-
-	if (desc.microphone)
-	{
-		AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
-		AAudioStreamBuilder_setSampleRate(builder, desc.microphone->sample_rate);
-		AAudioStreamBuilder_setChannelCount(builder, desc.microphone->num_channels);
-		AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-		AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
-
-		AAudioStream * stream;
-		result = AAudioStreamBuilder_openStream(builder, &stream);
-		if (result != AAUDIO_OK)
-			spdlog::error("Cannot create input stream: {}", AAudio_convertResultToText(result));
-		else
-			input_thread = utils::named_thread("audio_input_thread", &audio::input, this, stream, *desc.microphone);
 	}
 
 	AAudioStreamBuilder_delete(builder);
