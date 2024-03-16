@@ -21,6 +21,7 @@
 
 #include "application.h"
 #include "details/enumerate.h"
+#include "openxr/openxr.h"
 #include "utils/contains.h"
 #include "vk/check.h"
 #include "xr/check.h"
@@ -84,17 +85,22 @@ XrSystemHandTrackingPropertiesEXT xr::system::hand_tracking_properties() const
 	return hand_tracking_prop;
 }
 
-bool xr::system::passthrough_supported() const
+xr::system::passthrough_type xr::system::passthrough_supported() const
 {
 	const std::vector<std::string>& xr_extensions = application::get_xr_extensions();
 	if (utils::contains(xr_extensions, XR_HTC_PASSTHROUGH_EXTENSION_NAME))
-		return true;
+		return passthrough_type::color;
 
 	if (utils::contains(xr_extensions, XR_FB_PASSTHROUGH_EXTENSION_NAME))
 	{
+		XrSystemPassthroughProperties2FB passthrough_prop2{
+			.type = XR_TYPE_SYSTEM_PASSTHROUGH_PROPERTIES2_FB,
+		};
+
 		XrSystemPassthroughPropertiesFB passthrough_prop
 		{
 			.type = XR_TYPE_SYSTEM_PASSTHROUGH_PROPERTIES_FB,
+			.next = &passthrough_prop2,
 		};
 
 		XrSystemProperties prop{
@@ -103,10 +109,19 @@ bool xr::system::passthrough_supported() const
 		};
 		CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
 
-		return passthrough_prop.supportsPassthrough;
+		if (passthrough_prop.supportsPassthrough)
+		{
+			if (!(passthrough_prop2.capabilities & XR_PASSTHROUGH_CAPABILITY_BIT_FB))
+				return passthrough_type::no_passthrough;
+
+			if (passthrough_prop2.capabilities & XR_PASSTHROUGH_CAPABILITY_COLOR_BIT_FB)
+				return passthrough_type::color;
+
+			return passthrough_type::bw;
+		}
 	}
 
-	return false;
+	return passthrough_type::no_passthrough;
 }
 
 vk::raii::PhysicalDevice xr::system::physical_device(vk::raii::Instance& vulkan) const

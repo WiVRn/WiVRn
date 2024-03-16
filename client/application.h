@@ -24,23 +24,24 @@
 #include <android_native_app_glue.h>
 #endif
 
+#include "utils/singleton.h"
+#include "vk/vk_allocator.h"
 #include "xr/xr.h"
 #include <array>
 #include <atomic>
 #include <chrono>
 #include <filesystem>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <mutex>
-#include <unordered_set>
+#include <optional>
+#include <spdlog/spdlog.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <openxr/openxr_reflection.h>
-#include "vk/vk_allocator.h"
-#include "utils/singleton.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <spdlog/spdlog.h>
 
 class scene;
 

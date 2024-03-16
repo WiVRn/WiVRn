@@ -23,13 +23,11 @@
 #include <android_native_app_glue.h>
 #endif
 
-#include "error.h"
 #include "utils/handle.h"
 #include "xr/check.h"
-#include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
@@ -51,7 +49,7 @@ class instance : public utils::handle<XrInstance>
 {
 	std::string runtime_version;
 	std::string runtime_name;
-	std::unordered_set<std::string> loaded_extensions;
+	std::unordered_map<std::string, uint32_t> loaded_extensions;
 
 public:
 #if defined(XR_USE_PLATFORM_ANDROID)
@@ -97,6 +95,14 @@ public:
 	bool has_extension(const std::string & extension_name)
 	{
 		return loaded_extensions.find(extension_name) != loaded_extensions.end();
+	}
+
+	uint32_t extension_version(const std::string & extension_name)
+	{
+		auto it = loaded_extensions.find(extension_name);
+		if (it != loaded_extensions.end())
+			return it->second;
+		return 0;
 	}
 };
 } // namespace xr

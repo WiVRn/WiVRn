@@ -18,8 +18,6 @@
  */
 
 #include "application.h"
-#include "hardware.h"
-#include "magic_enum.hpp"
 #include "openxr/openxr.h"
 #include "scene.h"
 #include "spdlog/common.h"
@@ -395,7 +393,7 @@ void application::initialize_vulkan()
 	spdlog::info("Available Vulkan instance extensions:");
 	for(vk::ExtensionProperties& i: vk_context.enumerateInstanceExtensionProperties(nullptr))
 	{
-		spdlog::info("    {}", i.extensionName);
+		spdlog::info("    {} (version {})", i.extensionName, i.specVersion);
 
 #ifndef NDEBUG
 		if (!strcmp(i.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
@@ -804,7 +802,18 @@ void application::initialize()
 		}
 	}
 
-	spdlog::info("Passthrough: {}", xr_system_id.passthrough_supported() ? "supported" : "not supported");
+	switch(xr_system_id.passthrough_supported())
+	{
+		case xr::system::passthrough_type::no_passthrough:
+			spdlog::info("Passthrough: not supported");
+			break;
+		case xr::system::passthrough_type::bw:
+			spdlog::info("Passthrough: black and white");
+			break;
+		case xr::system::passthrough_type::color:
+			spdlog::info("Passthrough: color");
+			break;
+	}
 
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;

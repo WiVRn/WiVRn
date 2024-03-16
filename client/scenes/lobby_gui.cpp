@@ -383,7 +383,7 @@ void scenes::lobby::gui_settings()
 	}
 	vibrate_on_hover();
 
-	ImGui::BeginDisabled(!passthrough_supported);
+	ImGui::BeginDisabled(passthrough_supported == xr::system::passthrough_type::no_passthrough);
 	if (ImGui::Checkbox("Enable video passthrough in lobby", &passthrough_enabled))
 	{
 		save_config();

@@ -187,6 +187,9 @@ scenes::lobby::lobby()
 	if (std::getenv("WIVRN_AUTOCONNECT"))
 		force_autoconnect = true;
 
+	passthrough_supported = system.passthrough_supported();
+	passthrough_enabled = passthrough_supported == xr::system::passthrough_type::color;
+
 	try
 	{
 		simdjson::dom::parser parser;
@@ -265,9 +268,7 @@ scenes::lobby::lobby()
 
 	spdlog::info("Using format {}", vk::to_string(swapchain_format));
 
-	passthrough_supported = system.passthrough_supported();
-
-	if (passthrough_supported)
+	if (passthrough_supported != xr::system::passthrough_type::no_passthrough)
 	{
 		if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
 		{

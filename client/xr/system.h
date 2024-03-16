@@ -39,6 +39,13 @@ class system
 	XrSystemId id = XR_NULL_SYSTEM_ID;
 
 public:
+	enum class passthrough_type
+	{
+		no_passthrough,
+		bw,
+		color
+	};
+
 	system() = default;
 	system(const system &) = default;
 	system & operator=(const system &) = default;
@@ -55,7 +62,7 @@ public:
 
 	XrSystemProperties properties() const;
 	XrSystemHandTrackingPropertiesEXT hand_tracking_properties() const;
-	bool passthrough_supported() const;
+	passthrough_type passthrough_supported() const;
 
 	XrGraphicsRequirementsVulkan2KHR graphics_requirements() const;
 	vk::raii::PhysicalDevice physical_device(vk::raii::Instance& vulkan) const;

@@ -89,7 +89,7 @@ class lobby : public scene_impl<lobby>
 	std::vector<xr::swapchain> swapchains_controllers;
 	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
-	bool passthrough_supported;
+	xr::system::passthrough_type passthrough_supported;
 	xr::passthrough passthrough;
 
 	void save_config();

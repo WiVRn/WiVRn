@@ -74,10 +74,10 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 
 	spdlog::info("Available OpenXR extensions:");
 	bool debug_utils_found = false;
-	for (XrExtensionProperties & i:
-	     xr::details::enumerate<XrExtensionProperties>(xrEnumerateInstanceExtensionProperties, nullptr))
+	auto all_extensions = xr::instance::extensions();
+	for (XrExtensionProperties & i: all_extensions)
 	{
-		spdlog::info("    {}", i.extensionName);
+		spdlog::info("    {} (version {})", i.extensionName, i.extensionVersion);
 #ifndef NDEBUG
 		if (!strcmp(i.extensionName, "XR_EXT_debug_utils"))
 		{
@@ -90,7 +90,14 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 	spdlog::info("Using OpenXR extensions:");
 	for (auto & i: extensions)
 	{
-		loaded_extensions.insert(i);
+		uint32_t version = 0;
+		for(auto & j: all_extensions)
+		{
+			if (!strcmp(j.extensionName, i))
+				version = j.extensionVersion;
+		}
+
+		loaded_extensions.emplace(i, version);
 		spdlog::info("    {}", i);
 	}
 
