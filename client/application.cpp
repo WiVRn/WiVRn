@@ -761,7 +761,7 @@ void application::initialize()
 
 	// Log system properties
 	XrSystemProperties properties = xr_system_id.properties();
-	spdlog::info("OpenXR sytem properties:");
+	spdlog::info("OpenXR system properties:");
 	spdlog::info("    Vendor ID: {:#x}", properties.vendorId);
 	spdlog::info("    System name: {}", properties.systemName);
 	spdlog::info("    Graphics properties:");
@@ -770,6 +770,26 @@ void application::initialize()
 	spdlog::info("    Tracking properties:");
 	spdlog::info("        Orientation tracking: {}", (bool)properties.trackingProperties.orientationTracking);
 	spdlog::info("        Position tracking: {}", (bool)properties.trackingProperties.positionTracking);
+
+	if (utils::contains(xr_extensions, XR_EXT_HAND_TRACKING_EXTENSION_NAME))
+	{
+		XrSystemHandTrackingPropertiesEXT hand_tracking_properties = xr_system_id.hand_tracking_properties();
+		spdlog::info("    Hand tracking support: {}", (bool)hand_tracking_properties.supportsHandTracking);
+		hand_tracking_supported = hand_tracking_properties.supportsHandTracking;
+	}
+
+	switch(xr_system_id.passthrough_supported())
+	{
+		case xr::system::passthrough_type::no_passthrough:
+			spdlog::info("    Passthrough: not supported");
+			break;
+		case xr::system::passthrough_type::bw:
+			spdlog::info("    Passthrough: black and white");
+			break;
+		case xr::system::passthrough_type::color:
+			spdlog::info("    Passthrough: color");
+			break;
+	}
 
 	// Log view configurations and blend modes
 	log_views();
@@ -789,32 +809,11 @@ void application::initialize()
 	world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 	// world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_LOCAL);
 
-	if (utils::contains(xr_extensions, XR_EXT_HAND_TRACKING_EXTENSION_NAME))
+	if (hand_tracking_supported)
 	{
-		XrSystemHandTrackingPropertiesEXT hand_tracking_properties = xr_system_id.hand_tracking_properties();
-		spdlog::info("Hand tracking support: {}", (bool)hand_tracking_properties.supportsHandTracking);
-		hand_tracking_supported = hand_tracking_properties.supportsHandTracking;
-
-		if (hand_tracking_supported)
-		{
-			left_hand = xr_session.create_hand_tracker(XR_HAND_LEFT_EXT);
-			right_hand = xr_session.create_hand_tracker(XR_HAND_RIGHT_EXT);
-		}
+		left_hand = xr_session.create_hand_tracker(XR_HAND_LEFT_EXT);
+		right_hand = xr_session.create_hand_tracker(XR_HAND_RIGHT_EXT);
 	}
-
-	switch(xr_system_id.passthrough_supported())
-	{
-		case xr::system::passthrough_type::no_passthrough:
-			spdlog::info("Passthrough: not supported");
-			break;
-		case xr::system::passthrough_type::bw:
-			spdlog::info("Passthrough: black and white");
-			break;
-		case xr::system::passthrough_type::color:
-			spdlog::info("Passthrough: color");
-			break;
-	}
-
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;
 	cmdpool_create_info.queueFamilyIndex = vk_queue_family_index;
