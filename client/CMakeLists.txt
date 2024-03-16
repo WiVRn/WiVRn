@@ -63,8 +63,14 @@ if(ANDROID)
 else()
     add_executable(wivrn)
 
-    find_package(OpenXR REQUIRED)
-    target_link_libraries(wivrn OpenXR::openxr_loader OpenXR::headers PkgConfig::LIBAV)
+    if (OPENXR_FOUND)
+        target_link_libraries(wivrn OpenXR::openxr_loader OpenXR::headers)
+    else()
+        FetchContent_MakeAvailable(openxr_loader)
+        target_link_libraries(wivrn openxr_loader)
+    endif()
+
+    target_link_libraries(wivrn PkgConfig::LIBAV)
 
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS

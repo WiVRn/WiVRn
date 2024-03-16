@@ -19,6 +19,7 @@ include("cmake/AutoOption.cmake")
 
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 auto_option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" AUTO)
+auto_option(WIVRN_USE_SYSTEM_OPENXR "Use system OpenXR headers" AUTO)
 auto_option(WIVRN_USE_SYSTEMD "Use libsystemd, required to show pretty hostname" AUTO)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
@@ -117,6 +118,12 @@ endif()
 
 if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
     pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavcodec libavutil libswscale libavfilter)
+
+    if (WIVRN_USE_SYSTEM_OPENXR STREQUAL "AUTO")
+        find_package(OpenXR 1.0.26)
+    elseif(WIVRN_USE_SYSTEM_OPENXR STREQUAL "ON")
+        find_package(OpenXR 1.0.26 REQUIRED)
+    endif()
 endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
