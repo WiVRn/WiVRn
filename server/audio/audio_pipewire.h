@@ -1,7 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +16,4 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
 
-#cmakedefine WIVRN_USE_NVENC
-#cmakedefine WIVRN_USE_VAAPI
-#cmakedefine WIVRN_USE_X264
-
-#cmakedefine WIVRN_USE_SYSTEMD
-
-#cmakedefine WIVRN_USE_PIPEWIRE
-#cmakedefine WIVRN_USE_PULSEAUDIO
-
-#define WIVRN_INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@"

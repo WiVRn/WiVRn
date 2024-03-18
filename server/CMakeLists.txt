@@ -64,12 +64,12 @@ add_executable(wivrn-server
 		target_instance_wivrn.cpp
 		wivrn_ipc.cpp
 
+		audio/audio_setup.cpp
+
 		encoder/encoder_settings.cpp
 		encoder/video_encoder.cpp
 		encoder/yuv_converter.cpp
 
-		driver/audio_pulse.cpp
-		driver/audio_setup.cpp
 		driver/clock_offset.cpp
 		driver/configuration.cpp
 		driver/wivrn_hmd.cpp
@@ -117,6 +117,22 @@ if(WIVRN_USE_SYSTEMD)
         target_link_libraries(wivrn-server PRIVATE PkgConfig::SYSTEMD)
 endif()
 
+if(WIVRN_USE_PIPEWIRE)
+	target_sources(
+		wivrn-server
+		PRIVATE audio/audio_pipewire.cpp
+		)
+	target_link_libraries(wivrn-server PRIVATE PkgConfig::libpipewire)
+endif()
+
+if(WIVRN_USE_PULSEAUDIO)
+	target_sources(
+		wivrn-server
+		PRIVATE audio/audio_pulse.cpp
+		)
+	target_link_libraries(wivrn-server PRIVATE PkgConfig::libpulse)
+endif()
+
 include(CompileGLSL)
 
 file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "encoder/shaders/*.glsl")
@@ -135,7 +151,6 @@ target_link_libraries(
 		xrt-interfaces
 
 		PkgConfig::AVAHI
-		PkgConfig::libpulse
 		Eigen3::Eigen
 		wivrn-common
 		wivrn-external

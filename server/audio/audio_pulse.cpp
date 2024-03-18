@@ -5,7 +5,7 @@
 #include "util/u_logging.h"
 #include "utils/sync_queue.h"
 #include "utils/wrap_lambda.h"
-#include "wivrn_session.h"
+#include "driver/wivrn_session.h"
 
 #include <pulse/context.h>
 #include <pulse/ext-device-manager.h>

@@ -18,13 +18,14 @@
  */
 
 #include "wivrn_session.h"
-#include "audio_setup.h"
+
+#include "main/comp_main_interface.h"
 #include "main/comp_target.h"
 #include "util/u_builders.h"
 #include "util/u_logging.h"
-
-#include "main/comp_main_interface.h"
 #include "util/u_system_helpers.h"
+
+#include "audio/audio_setup.h"
 #include "wivrn_comp_target.h"
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
