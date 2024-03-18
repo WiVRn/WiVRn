@@ -36,12 +36,17 @@ std::shared_ptr<audio_device> audio_device::create(
         const std::string & sink_name,
         const std::string & sink_description,
         const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
-        xrt::drivers::wivrn::wivrn_session& session)
+        xrt::drivers::wivrn::wivrn_session & session)
 {
-	// TODO: other backends
-#ifdef WIVRN_USE_PULSEAUDIO
-	return create_pulse_handle(source_name, source_description, sink_name, sink_description, info, session);
+#ifdef WIVRN_USE_PIPEWIRE
+	if (auto res = create_pipewire_handle(source_name, source_description, sink_name, sink_description, info, session))
+		return res;
 #endif
-        U_LOG_W("No audio backend available");
-        return nullptr;
+
+#ifdef WIVRN_USE_PULSEAUDIO
+	if (auto res = create_pulse_handle(source_name, source_description, sink_name, sink_description, info, session))
+                return res;
+#endif
+	U_LOG_W("No audio backend available");
+	return nullptr;
 }

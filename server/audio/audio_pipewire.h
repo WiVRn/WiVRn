@@ -16,4 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#pragma once
 
+#include "audio_setup.h"
+
+std::shared_ptr<audio_device> create_pipewire_handle(
+        const std::string & source_name,
+        const std::string & source_description,
+        const std::string & sink_name,
+        const std::string & sink_description,
+        const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
+        xrt::drivers::wivrn::wivrn_session& session);

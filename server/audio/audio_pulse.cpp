@@ -440,8 +440,16 @@ std::shared_ptr<audio_device> create_pulse_handle(
         const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
         wivrn_session & session)
 {
-	return std::make_shared<pulse_device>(
-	        source_name, source_description, sink_name, sink_description, info, session);
+	try
+	{
+		return std::make_shared<pulse_device>(
+		        source_name, source_description, sink_name, sink_description, info, session);
+	}
+	catch (std::exception & e)
+	{
+		U_LOG_I("Pulseaudio backend creation failed: %s", e.what());
+		return nullptr;
+	}
 }
 
 void unload_module(uintptr_t id)

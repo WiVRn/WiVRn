@@ -108,7 +108,8 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		        "WiVRn",
 		        info,
 		        *self);
-		self->send_control(self->audio_handle->description());
+		if (self->audio_handle)
+			self->send_control(self->audio_handle->description());
 	}
 	catch (const std::exception & e)
 	{
