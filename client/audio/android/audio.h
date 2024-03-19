@@ -22,7 +22,6 @@
 #include "utils/ring_buffer.h"
 #include "wivrn_packets.h"
 #include <atomic>
-#include <thread>
 
 struct AAudioStreamStruct;
 class wivrn_session;
@@ -37,20 +36,20 @@ namespace wivrn::android
 class audio
 {
 	static int32_t speaker_data_cb(AAudioStreamStruct*, void*, void*, int32_t);
-	void input(AAudioStreamStruct * stream, const xrt::drivers::wivrn::to_headset::audio_stream_description::device & format);
-
-	std::thread input_thread;
+	static int32_t microphone_data_cb(AAudioStreamStruct*, void*, void*, int32_t);
 
 	utils::ring_buffer<xrt::drivers::wivrn::audio_data, 1000> output_buffer;
 
 	xrt::drivers::wivrn::audio_data speaker_tmp;
 	AAudioStreamStruct * speaker = nullptr;
+	std::atomic<bool> speaker_stop_ack = false;
+	AAudioStreamStruct * microphone = nullptr;
+	std::atomic<bool> microphone_stop_ack = false;
 
 	wivrn_session & session;
 	xr::instance & instance;
 
 	std::atomic<bool> exiting = false;
-	int fd = -1;
 
 	void exit();
 public:
