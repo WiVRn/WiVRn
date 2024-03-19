@@ -206,7 +206,11 @@ void pipewire_device::mic_process(void * self_v)
 
 	const size_t frame_size = self->desc.microphone->num_channels * sizeof(int16_t);
 
+#if PW_CHECK_VERSION(0,3,49)
 	size_t num_frames = buffer->requested;
+#else
+	size_t num_frames = 0;
+#endif
 	if (num_frames == 0)
 	{
 		num_frames = data.maxsize / frame_size;
