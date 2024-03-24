@@ -138,6 +138,7 @@ class application : public singleton<application>
 
 	void loop();
 
+	std::mutex debug_report_mutex;
 	static VkBool32 vulkan_debug_report_callback(VkDebugReportFlagsEXT flags,
 	                                             VkDebugReportObjectTypeEXT objectType,
 	                                             uint64_t object,
@@ -297,6 +298,7 @@ public:
 	static void ignore_debug_reports_for(void * object)
 	{
 #ifndef NDEBUG
+		std::lock_guard lock(instance().debug_report_mutex);
 		instance().debug_report_ignored_objects.emplace((uint64_t)object);
 #endif
 	}
@@ -304,6 +306,7 @@ public:
 	static void unignore_debug_reports_for(void * object)
 	{
 #ifndef NDEBUG
+		std::lock_guard lock(instance().debug_report_mutex);
 		instance().debug_report_ignored_objects.erase((uint64_t)object);
 #endif
 	}

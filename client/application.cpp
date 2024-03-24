@@ -302,6 +302,7 @@ VkBool32 application::vulkan_debug_report_callback(
         const char * pMessage,
         void * pUserData)
 {
+	std::lock_guard lock(instance().debug_report_mutex);
 	if (instance().debug_report_ignored_objects.contains(object))
 		return VK_FALSE;
 
