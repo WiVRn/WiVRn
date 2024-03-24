@@ -277,13 +277,13 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 	}
 }
 
-void apply_visual_response(node_handle node, std::pair<input_profile::node_state_transform, input_profile::node_state_transform> transforms, float value)
+static void apply_visual_response(node_handle node, std::pair<input_profile::node_state_transform, input_profile::node_state_transform> transforms, float value)
 {
 	node->position = glm::mix(transforms.first.position, transforms.second.position, value);
 	node->orientation = glm::slerp(transforms.first.orientation, transforms.second.orientation, value);
 }
 
-void apply_visual_response(node_handle node, input_profile::node_state_visibility, float value)
+static void apply_visual_response(node_handle node, input_profile::node_state_visibility, float value)
 {
 	node->visible = value > 0.5;
 }
