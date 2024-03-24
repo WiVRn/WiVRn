@@ -211,12 +211,6 @@ void wivrn_session::operator()(from_headset::inputs && inputs)
 	right_hand->set_inputs(inputs, offset);
 }
 
-template <typename Rep, typename Period>
-static auto lerp(std::chrono::duration<Rep, Period> a, std::chrono::duration<Rep, Period> b, double t)
-{
-	return std::chrono::duration<Rep, Period>(Rep(std::lerp(a.count(), b.count(), t)));
-}
-
 void wivrn_session::operator()(from_headset::timesync_response && timesync)
 {
 	offset_est.add_sample(timesync);

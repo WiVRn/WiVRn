@@ -38,17 +38,16 @@ struct clock_offset
 
 	operator bool() { return b != 0;}
 
-	int64_t from_headset(uint64_t) const;
+	XrTime from_headset(XrTime) const;
 
-	std::chrono::nanoseconds
-	to_headset(uint64_t timestamp_ns) const;
+	XrTime to_headset(XrTime timestamp_ns) const;
 };
 
 class clock_offset_estimator
 {
 	struct sample: public xrt::drivers::wivrn::from_headset::timesync_response
 	{
-		std::chrono::nanoseconds received;
+		XrTime received;
 	};
 
 	std::mutex mutex;

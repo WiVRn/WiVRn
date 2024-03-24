@@ -84,7 +84,7 @@ enum video_codec
 
 struct audio_data
 {
-	uint64_t timestamp;
+	XrTime timestamp;
 	std::span<uint8_t> payload;
 	data_holder data;
 };
@@ -141,7 +141,7 @@ struct tracking
 		XrFovf fov;
 	};
 
-	uint64_t timestamp;
+	XrTime timestamp;
 	XrViewStateFlags flags;
 
 	std::array<view, 2> views;
@@ -169,7 +169,7 @@ struct hand_tracking
 		uint8_t flags;
 	};
 
-	uint64_t timestamp;
+	XrTime timestamp;
 	std::array<pose, XR_HAND_JOINT_COUNT_EXT> left;
 	std::array<pose, XR_HAND_JOINT_COUNT_EXT> right;
 };
@@ -180,15 +180,15 @@ struct inputs
 	{
 		device_id id;
 		float value;
-		uint64_t last_change_time;
+		XrTime last_change_time;
 	};
 	std::vector<input_value> values;
 };
 
 struct timesync_response
 {
-	std::chrono::nanoseconds query;
-	uint64_t response;
+	XrTime query;
+	XrTime response;
 };
 
 struct feedback
@@ -197,12 +197,12 @@ struct feedback
 	uint8_t stream_index;
 
 	// Timestamps
-	uint64_t received_first_packet;
-	uint64_t received_last_packet;
-	uint64_t sent_to_decoder;
-	uint64_t received_from_decoder;
-	uint64_t blitted;
-	uint64_t displayed;
+	XrTime received_first_packet;
+	XrTime received_last_packet;
+	XrTime sent_to_decoder;
+	XrTime received_from_decoder;
+	XrTime blitted;
+	XrTime displayed;
 
 	std::array<XrPosef, 2> received_pose;
 	std::array<XrPosef, 2> real_pose;
@@ -286,7 +286,7 @@ public:
 	struct view_info_t
 	{
 		// ns in headset time referential
-		uint64_t display_time;
+		XrTime display_time;
 
 		std::array<XrPosef, 2> pose;
 		std::array<XrFovf, 2> fov;
@@ -296,9 +296,9 @@ public:
 	// Information about timing, on last video shard
 	struct timing_info_t
 	{
-		uint64_t encode_begin;
-		uint64_t send_begin;
-		uint64_t send_end;
+		XrTime encode_begin;
+		XrTime send_begin;
+		XrTime send_end;
 	};
 	std::optional<timing_info_t> timing_info;
 	// Actual video data, may contain multiple NAL units
@@ -318,7 +318,7 @@ struct haptics
 
 struct timesync_query
 {
-	std::chrono::nanoseconds query;
+	XrTime query;
 };
 
 using packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query>;

@@ -32,14 +32,14 @@ void scenes::stream::read_actions()
 			case XR_ACTION_TYPE_BOOLEAN_INPUT: {
 				auto value = application::read_action_bool(action);
 				if (value)
-					inputs.values.push_back({id, (float)value->second, (uint64_t)value->first});
+					inputs.values.push_back({id, (float)value->second, value->first});
 			}
 			break;
 
 			case XR_ACTION_TYPE_FLOAT_INPUT: {
 				auto value = application::read_action_float(action);
 				if (value)
-					inputs.values.push_back({id, value->second, (uint64_t)value->first});
+					inputs.values.push_back({id, value->second, value->first});
 			}
 			break;
 
@@ -47,8 +47,8 @@ void scenes::stream::read_actions()
 				auto value = application::read_action_vec2(action);
 				if (value)
 				{
-					inputs.values.push_back({id, value->second.x, (uint64_t)value->first});
-					inputs.values.push_back({(device_id)((int)id + 1), value->second.y, (uint64_t)value->first});
+					inputs.values.push_back({id, value->second.x, value->first});
+					inputs.values.push_back({(device_id)((int)id + 1), value->second.y, value->first});
 				}
 			}
 			break;

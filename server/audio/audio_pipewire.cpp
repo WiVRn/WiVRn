@@ -260,7 +260,7 @@ void pipewire_device::speaker_process(void * self_v)
 		return;
 
 	audio_data packet{
-	        .timestamp = uint64_t(self->session.get_offset().to_headset(os_monotonic_get_ns()).count()),
+	        .timestamp = self->session.get_offset().to_headset(os_monotonic_get_ns()),
 	        .payload = std::span(
 	                (uint8_t *)data.data + data.chunk->offset,
 	                data.chunk->size),

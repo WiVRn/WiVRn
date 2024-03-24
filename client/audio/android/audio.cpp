@@ -104,7 +104,7 @@ int32_t wivrn::android::audio::microphone_data_cb(AAudioStream * stream, void * 
 	size_t frame_size = AAudioStream_getChannelCount(stream) * sizeof(uint16_t);
 
 	xrt::drivers::wivrn::audio_data packet{
-	        .timestamp = uint64_t(self->instance.now()),
+	        .timestamp = self->instance.now(),
 	        .payload = std::span(audio_data, frame_size * num_frames),
 	};
 

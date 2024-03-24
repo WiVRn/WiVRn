@@ -537,7 +537,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	cn->psc.images[index].frame_index = cn->current_frame_id;
 
 	auto & view_info = cn->psc.images[index].view_info;
-	view_info.display_time = cn->cnx->get_offset().to_headset(desired_present_time_ns).count();
+	view_info.display_time = cn->cnx->get_offset().to_headset(desired_present_time_ns);
 	for (int eye = 0; eye < 2; ++eye)
 	{
 		const auto &slot = cn->c->base.slot;

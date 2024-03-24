@@ -31,14 +31,15 @@ void clock_offset_estimator::request_sample(wivrn_connection & connection)
 		return;
 
 	next_sample = std::chrono::steady_clock::now() + sample_interval.load();
-	xrt::drivers::wivrn::to_headset::timesync_query timesync{};
-	timesync.query = std::chrono::nanoseconds(os_monotonic_get_ns());
-	connection.send_stream(timesync);
+	connection.send_stream(
+	        xrt::drivers::wivrn::to_headset::timesync_query{
+	                .query = XrTime(os_monotonic_get_ns()),
+	        });
 }
 
 void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset::timesync_response & base_sample)
 {
-	auto now = std::chrono::nanoseconds(os_monotonic_get_ns());
+	XrTime now = os_monotonic_get_ns();
 	clock_offset_estimator::sample sample{base_sample, now};
 	std::lock_guard lock(mutex);
 	if (samples.size() < num_samples)
@@ -50,12 +51,12 @@ void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset:
 		sample_interval = std::chrono::seconds(1);
 		int64_t latency = 0;
 		for (const auto& s: samples)
-			latency += (s.received - s.query).count();
+			latency += s.received - s.query;
 		latency /= samples.size();
 		// packets with too high latency are likely to be retransmitted
-		if ((sample.received - sample.query).count() > 3 * latency)
+		if (sample.received - sample.query > 3 * latency)
 		{
-			U_LOG_D("drop packet for latency %ld > %ld", (sample.received - sample.query).count() /1000, latency/1000);
+			U_LOG_D("drop packet for latency %ldµs > %ldµs", (sample.received - sample.query) /1000, latency/1000);
 			return;
 		}
 
@@ -74,7 +75,7 @@ void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset:
 	double y0 = 0;
 	for (const auto & s: samples)
 	{
-		x0 += (s.query + s.received).count() * 0.5;
+		x0 += (s.query + s.received) * 0.5;
 		y0 += s.response;
 	}
 	x0 /= n;
@@ -95,10 +96,10 @@ void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset:
 	{
 #if 1
 		// assume symmetrical latency
-		double x = (s.query + s.received).count() * 0.5 - x0;
+		double x = (s.query + s.received)* 0.5 - x0;
 #else
 		// assume latency is only on server -> headset link
-		double x = (s.received).count() - x0;
+		double x = s.received - x0;
 #endif
 		double y = s.response - y0;
 		sum_x += x;
@@ -126,22 +127,12 @@ clock_offset clock_offset_estimator::get_offset()
 	return offset;
 }
 
-int64_t clock_offset::from_headset(uint64_t ts) const
+XrTime clock_offset::from_headset(XrTime ts) const
 {
-	int64_t res = (int64_t(ts) - b) / a;
-#ifndef NDEBUG
-	if (res < 0)
-		U_LOG_W("negative from_headset: %ld", res);
-#endif
-	return res;
+	return (ts - b) / a;
 }
 
-std::chrono::nanoseconds clock_offset::to_headset(uint64_t timestamp_ns) const
+XrTime clock_offset::to_headset(XrTime timestamp_ns) const
 {
-	int64_t res = int64_t(a * timestamp_ns) + b;
-#ifndef NDEBUG
-	if (res < 0)
-		U_LOG_W("negative to_headset: %ld", res);
-#endif
-	return std::chrono::nanoseconds(res);
+	return a * timestamp_ns + b;
 }
