@@ -63,5 +63,5 @@ struct input_profile
 	input_profile(const std::filesystem::path& json_profile, scene_loader& loader, scene_data& scene);
 
 	// application::poll_actions() must have been called before
-	void apply(XrSpace world_space, XrTime predicted_display_time);
+	void apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right);
 };

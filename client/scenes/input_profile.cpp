@@ -288,10 +288,22 @@ static void apply_visual_response(node_handle node, input_profile::node_state_vi
 	node->visible = value > 0.5;
 }
 
-void input_profile::apply(XrSpace world_space, XrTime predicted_display_time)
+void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right)
 {
 	for (auto && [space, node]: model_handles)
 	{
+		if (space == application::left_grip() && hide_left)
+		{
+			node->visible = false;
+			continue;
+		}
+
+		if (space == application::right_grip() && hide_right)
+		{
+			node->visible = false;
+			continue;
+		}
+
 		if (auto location = application::locate_controller(space, world_space, predicted_display_time); location)
 		{
 			node->visible = true;

@@ -24,12 +24,10 @@
 
 struct hand_model
 {
-	xr::hand_tracker& hand;
-
 	node_handle root_node;
 	std::vector<node_handle> joints;
 
-	hand_model(xr::hand_tracker & hand, const std::filesystem::path & gltf_path, scene_loader& loader, scene_data& scene);
+	hand_model(const std::filesystem::path & gltf_path, scene_loader& loader, scene_data& scene);
 
-	void apply(XrSpace world_space, XrTime predicted_display_time);
+	void apply(const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>>& joints);
 };

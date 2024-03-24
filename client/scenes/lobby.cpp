@@ -584,13 +584,33 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	auto [flags, views] = session.locate_views(viewconfig, predicted_display_time, world_space);
 	assert(views.size() == swapchains_lobby.size());
 
-	input->apply(world_space, predicted_display_time);
+	bool hide_left_controller = false;
+	bool hide_right_controller = false;
 
-	if (left_hand)
-		left_hand->apply(world_space, predicted_display_time);
+	if (application::get_hand_tracking_supported())
+	{
+		if (left_hand)
+		{
+			auto& hand = application::get_left_hand();
+			auto joints = hand.locate(world_space, predicted_display_time);
+			left_hand->apply(joints);
 
-	if (right_hand)
-		right_hand->apply(world_space, predicted_display_time);
+			if (joints)
+				hide_left_controller = true;
+		}
+
+		if (right_hand)
+		{
+			auto& hand = application::get_right_hand();
+			auto joints = hand.locate(world_space, predicted_display_time);
+			right_hand->apply(joints);
+
+			if (joints)
+				hide_right_controller = true;
+		}
+	}
+
+	input->apply(world_space, predicted_display_time, hide_left_controller, hide_right_controller);
 
 	XrCompositionLayerQuad imgui_layer = draw_gui(predicted_display_time);
 
@@ -688,8 +708,8 @@ void scenes::lobby::on_focused()
 
 	if (application::get_hand_tracking_supported())
 	{
-		left_hand.emplace(application::get_left_hand(), "left-hand.glb", loader, *controllers_scene);
-		right_hand.emplace(application::get_right_hand(), "right-hand.glb", loader, *controllers_scene);
+		left_hand.emplace( "left-hand.glb", loader, *controllers_scene);
+		right_hand.emplace("right-hand.glb", loader, *controllers_scene);
 	}
 
 	std::array imgui_inputs{

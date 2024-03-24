@@ -21,8 +21,7 @@
 #include "utils/ranges.h"
 #include <spdlog/spdlog.h>
 
-hand_model::hand_model(xr::hand_tracker & hand, const std::filesystem::path & gltf_path, scene_loader & loader, scene_data & scene) :
-        hand(hand)
+hand_model::hand_model(const std::filesystem::path & gltf_path, scene_loader & loader, scene_data & scene)
 {
 	root_node = scene.new_node();
 	root_node->name = gltf_path.stem();
@@ -60,10 +59,8 @@ hand_model::hand_model(xr::hand_tracker & hand, const std::filesystem::path & gl
 	// clang-format on
 }
 
-void hand_model::apply(XrSpace world_space, XrTime predicted_display_time)
+void hand_model::apply(const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>>& joints_location)
 {
-	auto joints_location = hand.locate(world_space, predicted_display_time);
-
 	if (joints_location)
 	{
 		root_node->visible = true;
