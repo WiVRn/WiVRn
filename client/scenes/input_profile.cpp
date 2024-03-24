@@ -20,14 +20,12 @@
 
 #include "application.h"
 #include "asset.h"
-#include <cstddef>
 #include <magic_enum.hpp>
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <map>
 #include <glm/gtc/quaternion.hpp>
 
 namespace

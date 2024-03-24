@@ -24,14 +24,12 @@
 #include "utils/fmt_glm.h"
 #include "utils/ranges.h"
 #include <boost/pfr/core.hpp>
-#include <concepts>
 #include <fastgltf/base64.hpp>
 #include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/parser.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/util.hpp>
-#include <fstream>
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
@@ -40,7 +38,6 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "application.h"
 #include "asset.h"
 
 template <class T>
@@ -323,7 +320,7 @@ constexpr bool starts_with(std::span<const std::byte> data, std::span<const uint
 	return data.size() >= prefix.size() && !memcmp(data.data(), prefix.data(), prefix.size());
 }
 
-static fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
+fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 {
 	const uint8_t png_magic[] = {0xFF, 0xD8, 0xFF};
 	const uint8_t jpeg_magic[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
@@ -342,7 +339,7 @@ static fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 		return fastgltf::MimeType::None;
 }
 
-static std::shared_ptr<vk::raii::ImageView> do_load_image(
+std::shared_ptr<vk::raii::ImageView> do_load_image(
         vk::raii::PhysicalDevice & physical_device,
         vk::raii::Device & device,
 	vk::raii::Queue & queue,
@@ -698,7 +695,7 @@ public:
 		return meshes;
 	}
 
-	std::vector<scene_data::node> load_all_objects()
+	std::vector<scene_data::node> load_all_nodes()
 	{
 		std::vector<scene_data::node> unsorted_objects;
 		unsorted_objects.resize(gltf.nodes.size(), {.parent_id = scene_data::node::root_id });
@@ -707,6 +704,25 @@ public:
 		{
 			if (gltf_node.meshIndex)
 				unsorted_objects[index].mesh_id = *gltf_node.meshIndex;
+
+			if (gltf_node.skinIndex)
+			{
+				auto& skin = gltf.skins.at(*gltf_node.skinIndex);
+
+				unsorted_objects[index].joints.resize(skin.joints.size());
+
+				for(auto [i, joint_index]: utils::enumerate(skin.joints))
+					unsorted_objects[index].joints.at(i).first = joint_index;
+
+				if (skin.inverseBindMatrices)
+				{
+					const fastgltf::Accessor & accessor = gltf.accessors.at(*skin.inverseBindMatrices);
+
+					fastgltf::iterateAccessorWithIndex<glm::mat4>(gltf, accessor, [&](const glm::mat4& value, std::size_t idx) {
+						unsorted_objects[index].joints.at(idx).second = value;
+					});
+				}
+			}
 
 			for (size_t child: gltf_node.children)
 			{
@@ -725,37 +741,37 @@ public:
 		return unsorted_objects;
 	}
 
-	std::vector<scene_data::node> topological_sort(const std::vector<scene_data::node> & unsorted_objects)
+	std::vector<scene_data::node> topological_sort(const std::vector<scene_data::node> & unsorted_nodes)
 	{
-		std::vector<scene_data::node> sorted_objects;
+		std::vector<scene_data::node> sorted_nodes;
 		std::vector<size_t> new_index;
 		std::vector<bool> already_sorted;
 
-		sorted_objects.reserve(unsorted_objects.size());
-		already_sorted.resize(unsorted_objects.size(), false);
-		new_index.resize(unsorted_objects.size(), scene_data::node::root_id);
+		sorted_nodes.reserve(unsorted_nodes.size());
+		already_sorted.resize(unsorted_nodes.size(), false);
+		new_index.resize(unsorted_nodes.size(), scene_data::node::root_id);
 
 		[[maybe_unused]] bool loop_detected = true;
 
-		while (sorted_objects.size() < unsorted_objects.size())
+		while (sorted_nodes.size() < unsorted_nodes.size())
 		{
-			for (size_t i = 0; i < unsorted_objects.size(); i++)
+			for (size_t i = 0; i < unsorted_nodes.size(); i++)
 			{
 				if (already_sorted[i])
 					continue;
 
-				if (unsorted_objects[i].parent_id == scene_data::node::root_id)
+				if (unsorted_nodes[i].parent_id == scene_data::node::root_id)
 				{
-					sorted_objects.push_back(unsorted_objects[i]);
+					sorted_nodes.push_back(unsorted_nodes[i]);
 					already_sorted[i] = true;
-					new_index[i] = sorted_objects.size() - 1;
+					new_index[i] = sorted_nodes.size() - 1;
 					loop_detected = false;
 				}
-				else if (already_sorted[unsorted_objects[i].parent_id])
+				else if (already_sorted[unsorted_nodes[i].parent_id])
 				{
-					sorted_objects.emplace_back(unsorted_objects[i]).parent_id = new_index[unsorted_objects[i].parent_id];
+					sorted_nodes.emplace_back(unsorted_nodes[i]).parent_id = new_index[unsorted_nodes[i].parent_id];
 					already_sorted[i] = true;
-					new_index[i] = sorted_objects.size() - 1;
+					new_index[i] = sorted_nodes.size() - 1;
 					loop_detected = false;
 				}
 			}
@@ -763,13 +779,22 @@ public:
 			assert(!loop_detected);
 		}
 
-		assert(sorted_objects.size() == unsorted_objects.size());
-		for(size_t i = 0; i < sorted_objects.size(); i++)
+		// renumber joint indices
+		for(auto& node: sorted_nodes)
 		{
-			assert(sorted_objects[i].parent_id == scene_data::node::root_id || sorted_objects[i].parent_id < i);
+			for(auto& joint: node.joints)
+			{
+				joint.first = new_index[joint.first];
+			}
 		}
 
-		return sorted_objects;
+		assert(sorted_nodes.size() == unsorted_nodes.size());
+		for(size_t i = 0; i < sorted_nodes.size(); i++)
+		{
+			assert(sorted_nodes[i].parent_id == scene_data::node::root_id || sorted_nodes[i].parent_id < i);
+		}
+
+		return sorted_nodes;
 	}
 };
 
@@ -811,7 +836,7 @@ scene_data scene_loader::operator()(const std::filesystem::path & gltf_path)
 	// Load all meshes
 	data.meshes = ctx.load_all_meshes(materials, staging_buffer);
 
-	data.scene_objects = ctx.topological_sort(ctx.load_all_objects());
+	data.scene_nodes = ctx.topological_sort(ctx.load_all_nodes());
 
 	// Copy the staging buffer to the GPU
 	spdlog::debug("Uploading scene data ({} bytes) to GPU memory", staging_buffer.size());
@@ -831,33 +856,38 @@ scene_data & scene_data::import(scene_data && other, node_handle parent)
 	assert(parent.scene == this || parent.id == node::root_id);
 
 	size_t mesh_offset = meshes.size();
-	size_t scene_objects_offset = scene_objects.size();
+	size_t nodes_offset = scene_nodes.size();
 
-	for (auto & i: other.meshes)
-		meshes.push_back(std::move(i));
+	for (auto & mesh: other.meshes)
+		meshes.push_back(std::move(mesh));
 
-	for (auto i: other.scene_objects)
+	for (auto node: other.scene_nodes)
 	{
-		assert(!i.mesh_id || *i.mesh_id < other.meshes.size());
+		assert(!node.mesh_id || *node.mesh_id < other.meshes.size());
 
-		if (i.mesh_id)
-			*i.mesh_id += mesh_offset;
+		if (node.mesh_id)
+			*node.mesh_id += mesh_offset;
 
-		if (i.parent_id == node::root_id)
+		for(auto& joint: node.joints)
 		{
-			i.parent_id = parent.id;
+			joint.first += nodes_offset;
+		}
+
+		if (node.parent_id == node::root_id)
+		{
+			node.parent_id = parent.id;
 		}
 		else
 		{
-			assert(i.parent_id < other.scene_objects.size());
-			i.parent_id += scene_objects_offset;
+			assert(node.parent_id < other.scene_nodes.size());
+			node.parent_id += nodes_offset;
 		}
 
-		scene_objects.push_back(i);
+		scene_nodes.push_back(node);
 	}
 
 	other.meshes.clear();
-	other.scene_objects.clear();
+	other.scene_nodes.clear();
 
 	return *this;
 }
@@ -870,9 +900,9 @@ scene_data & scene_data::import(scene_data && other)
 
 node_handle scene_data::new_node()
 {
-	size_t id = scene_objects.size();
+	size_t id = scene_nodes.size();
 
-	scene_objects.push_back(node{
+	scene_nodes.push_back(node{
 		.parent_id = node::root_id,
 		.position = {0, 0, 0},
 		.orientation = {1, 0, 0, 0},
@@ -885,7 +915,7 @@ node_handle scene_data::new_node()
 
 node_handle scene_data::find_node(std::string_view name)
 {
-	for(auto&& [index, node]: utils::enumerate(scene_objects))
+	for(auto&& [index, node]: utils::enumerate(scene_nodes))
 	{
 		if (node.name == name)
 		{
@@ -899,16 +929,16 @@ node_handle scene_data::find_node(std::string_view name)
 
 node_handle scene_data::find_node(node_handle root, std::string_view name)
 {
-	assert(root.id < scene_objects.size());
+	assert(root.id < scene_nodes.size());
 	assert(root.scene == this);
 
-	std::vector<bool> flag(scene_objects.size(), false);
+	std::vector<bool> flag(scene_nodes.size(), false);
 
 	flag[root.id] = true;
 
-	for(size_t index = root.id; index < scene_objects.size(); index++)
+	for(size_t index = root.id; index < scene_nodes.size(); index++)
 	{
-		size_t parent = scene_objects[index].parent_id;
+		size_t parent = scene_nodes[index].parent_id;
 
 		if (parent == node::root_id)
 			continue;
@@ -916,7 +946,7 @@ node_handle scene_data::find_node(node_handle root, std::string_view name)
 		if (!flag[parent])
 			continue;
 
-		if (scene_objects[index].name == name)
+		if (scene_nodes[index].name == name)
 			return {index, this};
 
 		flag[index] = true;

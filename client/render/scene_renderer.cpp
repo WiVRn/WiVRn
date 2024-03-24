@@ -32,7 +32,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_access.hpp>
-#include <initializer_list>
 #include <map>
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -130,7 +129,7 @@ std::shared_ptr<scene_data::material> scene_renderer::create_default_material(vk
 	return default_material;
 }
 
-vk::FrontFace reverse(vk::FrontFace face)
+static vk::FrontFace reverse(vk::FrontFace face)
 {
 	if (face == vk::FrontFace::eCounterClockwise)
 		return vk::FrontFace::eClockwise;
@@ -138,7 +137,8 @@ vk::FrontFace reverse(vk::FrontFace face)
 		return vk::FrontFace::eCounterClockwise;
 }
 
-std::array layout_bindings_0{
+static std::array layout_bindings_0
+{
 	vk::DescriptorSetLayoutBinding{
 		.binding = 0,
 		.descriptorType = vk::DescriptorType::eUniformBuffer,
@@ -146,11 +146,18 @@ std::array layout_bindings_0{
 		.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment},
 	vk::DescriptorSetLayoutBinding{
 		.binding = 1,
-		.descriptorType = vk::DescriptorType::eUniformBufferDynamic,
+		.descriptorType = vk::DescriptorType::eUniformBuffer,
 		.descriptorCount = 1,
-		.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment}};
+		.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment},
+	vk::DescriptorSetLayoutBinding{
+		.binding = 2,
+		.descriptorType = vk::DescriptorType::eUniformBuffer,
+		.descriptorCount = 1,
+		.stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment}
+};
 
-std::array layout_bindings_1{
+static std::array layout_bindings_1
+{
 	vk::DescriptorSetLayoutBinding{
 		.binding = 0,
 		.descriptorType = vk::DescriptorType::eCombinedImageSampler,
@@ -160,7 +167,8 @@ std::array layout_bindings_1{
 		.binding = 5,
 		.descriptorType = vk::DescriptorType::eUniformBuffer,
 		.descriptorCount = 1,
-		.stageFlags = vk::ShaderStageFlagBits::eFragment}};
+		.stageFlags = vk::ShaderStageFlagBits::eFragment}
+};
 
 scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool, vk::Extent2D output_size, vk::Format output_format, std::span<vk::Format> depth_formats, int frames_in_flight) :
         physical_device(physical_device),
@@ -170,8 +178,9 @@ scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevi
         output_size(output_size),
         output_format(output_format),
         depth_format(find_usable_image_format(physical_device, depth_formats, {output_size.width, output_size.height, 1}, vk::ImageUsageFlagBits::eDepthStencilAttachment)),
-        ds_pool_frame(device, layout_bindings_0, frames_in_flight),
-        ds_pool_material(device, layout_bindings_1, 100) // TODO tunable
+        layout_0(create_descriptor_set_layout(layout_bindings_0, vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR)),
+        layout_1(create_descriptor_set_layout(layout_bindings_1)),
+        ds_pool_material(device, layout_1, layout_bindings_1, 100) // TODO tunable
 {
 	// Create the default material
 	default_material = create_default_material(cb_pool);
@@ -199,9 +208,8 @@ scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevi
 
 	renderpass = create_renderpass();
 
-	std::array layouts{*ds_pool_frame.layout(), *ds_pool_material.layout()};
+	std::array layouts{*layout_0, *layout_1};
 	pipeline_layout = create_pipeline_layout(layouts);
-
 }
 
 scene_renderer::~scene_renderer()
@@ -434,6 +442,13 @@ vk::raii::Pipeline & scene_renderer::get_pipeline(const pipeline_info & info)
 	return pipelines.emplace(info, create_pipeline(info)).first->second;
 }
 
+vk::raii::DescriptorSetLayout scene_renderer::create_descriptor_set_layout(std::span<vk::DescriptorSetLayoutBinding> bindings, vk::DescriptorSetLayoutCreateFlags flags)
+{
+	vk::DescriptorSetLayoutCreateInfo dsl_info{.flags  = flags};
+	dsl_info.setBindings(bindings);
+	return vk::raii::DescriptorSetLayout{device, dsl_info};
+}
+
 vk::raii::PipelineLayout scene_renderer::create_pipeline_layout(std::span<vk::DescriptorSetLayout> layouts)
 {
 	vk::PipelineLayoutCreateInfo pipeline_layout_info;
@@ -451,61 +466,117 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	auto vertex_shader = load_shader(device, info.shader_name + ".vert");
 	auto fragment_shader = load_shader(device, info.shader_name + ".frag");
 
-	return vk::raii::Pipeline{device, application::get_pipeline_cache(), vk::pipeline_builder{
-	                                                   .Stages{
-	                                                           vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = *vertex_shader, .pName = "main"},
-	                                                           vk::PipelineShaderStageCreateInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = *fragment_shader, .pName = "main"},
-	                                                   },
-	                                                   .VertexBindingDescriptions = {vertex_description.binding},
-	                                                   .VertexAttributeDescriptions = vertex_description.attributes,
-	                                                   .InputAssemblyState = {{
-	                                                           .topology = info.topology,
-	                                                           .primitiveRestartEnable = false,
-	                                                   }},
-	                                                   .Viewports = {vk::Viewport{
-	                                                           .x = 0,
-	                                                           .y = 0,
-	                                                           .width = (float)output_size.width,
-	                                                           .height = (float)output_size.height,
-	                                                           .minDepth = 0,
-	                                                           .maxDepth = 1,
-	                                                   }},
-	                                                   .Scissors = {vk::Rect2D{
-	                                                           .offset = {0, 0},
-	                                                           .extent = output_size,
-	                                                   }},
-	                                                   .RasterizationState = {vk::PipelineRasterizationStateCreateInfo{
-	                                                           .polygonMode = vk::PolygonMode::eFill,
-	                                                           .cullMode = info.cull_mode,
-	                                                           .frontFace = info.front_face,
-	                                                           .lineWidth = 1.0,
-	                                                   }},
-	                                                   .MultisampleState = {vk::PipelineMultisampleStateCreateInfo{
-	                                                           .rasterizationSamples = MSAA_SAMPLES,
-	                                                   }},
-	                                                   .DepthStencilState = {vk::PipelineDepthStencilStateCreateInfo{
-	                                                           .depthTestEnable = true,
-	                                                           .depthWriteEnable = true,
-	                                                           .depthCompareOp = vk::CompareOp::eLess,
-								   .depthBoundsTestEnable = false,
-								   .minDepthBounds = 0.0f,
-								   .maxDepthBounds = 1.0f,
-	                                                   }},
-	                                                   .ColorBlendState = {vk::PipelineColorBlendStateCreateInfo{}},
-	                                                   .ColorBlendAttachments = {vk::PipelineColorBlendAttachmentState{
-								   .blendEnable = info.blend_enable,
-								   .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
-								   .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
-								   .colorBlendOp = vk::BlendOp::eAdd,
-								   .srcAlphaBlendFactor = vk::BlendFactor::eSrcAlpha,
-								   .dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
-								   .alphaBlendOp = vk::BlendOp::eAdd,
-								   .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA}},
-	                                                   .DynamicState = {},
-	                                                   .layout = *pipeline_layout,
-	                                                   .renderPass = *renderpass,
-	                                                   .subpass = 0,
-	                                           }};
+	std::array specialization_constants_desc{
+		vk::SpecializationMapEntry
+		{
+			.constantID = 0,
+			.offset = offsetof(pipeline_info, nb_texcoords),
+			.size = sizeof(int32_t),
+		},
+		vk::SpecializationMapEntry
+		{
+			.constantID = 1,
+			.offset = offsetof(pipeline_info, nb_clipping),
+			.size = sizeof(int32_t),
+		},
+		vk::SpecializationMapEntry
+		{
+			.constantID = 2,
+			.offset = offsetof(pipeline_info, dithering),
+			.size = sizeof(VkBool32),
+		},
+		vk::SpecializationMapEntry
+		{
+			.constantID = 3,
+			.offset = offsetof(pipeline_info, alpha_cutout),
+			.size = sizeof(VkBool32),
+		},
+		vk::SpecializationMapEntry
+		{
+			.constantID = 4,
+			.offset = offsetof(pipeline_info, skinning),
+			.size = sizeof(VkBool32),
+		}
+	};
+
+	vk::SpecializationInfo specialization{
+		.mapEntryCount = specialization_constants_desc.size(),
+		.pMapEntries = specialization_constants_desc.data(),
+		.dataSize = sizeof(pipeline_info),
+		.pData = &info,
+	};
+
+	return vk::raii::Pipeline{
+		device,
+		application::get_pipeline_cache(),
+		vk::pipeline_builder{
+			.Stages{
+				vk::PipelineShaderStageCreateInfo{
+					.stage = vk::ShaderStageFlagBits::eVertex,
+					.module = *vertex_shader,
+					.pName = "main",
+					.pSpecializationInfo = &specialization,
+
+				},
+				vk::PipelineShaderStageCreateInfo{
+					.stage = vk::ShaderStageFlagBits::eFragment,
+					.module = *fragment_shader,
+					.pName = "main",
+					.pSpecializationInfo = &specialization,
+
+				},
+			},
+			.VertexBindingDescriptions = {vertex_description.binding},
+			.VertexAttributeDescriptions = vertex_description.attributes,
+			.InputAssemblyState = {{
+				.topology = info.topology,
+				.primitiveRestartEnable = false,
+			}},
+			.Viewports = {vk::Viewport{
+				.x = 0,
+				.y = 0,
+				.width = (float)output_size.width,
+				.height = (float)output_size.height,
+				.minDepth = 0,
+				.maxDepth = 1,
+			}},
+			.Scissors = {vk::Rect2D{
+				.offset = {0, 0},
+				.extent = output_size,
+			}},
+			.RasterizationState = {vk::PipelineRasterizationStateCreateInfo{
+				.polygonMode = vk::PolygonMode::eFill,
+				.cullMode = info.cull_mode,
+				.frontFace = info.front_face,
+				.lineWidth = 1.0,
+			}},
+			.MultisampleState = {vk::PipelineMultisampleStateCreateInfo{
+				.rasterizationSamples = MSAA_SAMPLES,
+			}},
+			.DepthStencilState = {vk::PipelineDepthStencilStateCreateInfo{
+				.depthTestEnable = true,
+				.depthWriteEnable = true,
+				.depthCompareOp = vk::CompareOp::eLess,
+				.depthBoundsTestEnable = false,
+				.minDepthBounds = 0.0f,
+				.maxDepthBounds = 1.0f,
+			}},
+			.ColorBlendState = {vk::PipelineColorBlendStateCreateInfo{}},
+			.ColorBlendAttachments = {vk::PipelineColorBlendAttachmentState{
+				.blendEnable = info.blend_enable,
+				.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+				.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+				.colorBlendOp = vk::BlendOp::eAdd,
+				.srcAlphaBlendFactor = vk::BlendFactor::eSrcAlpha,
+				.dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+				.alphaBlendOp = vk::BlendOp::eAdd,
+				.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
+			}},
+			.DynamicState = {},
+			.layout = *pipeline_layout,
+			.renderPass = *renderpass,
+			.subpass = 0,
+		}};
 }
 
 vk::Sampler scene_renderer::get_sampler(const sampler_info & info)
@@ -557,18 +628,21 @@ void scene_renderer::start_frame()
 	f.cb.resetQueryPool(*query_pool, current_frame_index * 2, 2);
 	f.cb.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, current_frame_index * 2);
 
-	// TODO: replace with vector<byte> and write to GPU in end_frame()
-	f.staging_buffer_offset = 0;
-	if (!f.staging_buffer)
+	f.uniform_buffer_offset = 0;
+
+	if (!f.uniform_buffer)
 	{
-		f.staging_buffer = buffer_allocation{device,
-		                                     vk::BufferCreateInfo{
-		                                             .size = 1048576,
-		                                             .usage = vk::BufferUsageFlagBits::eUniformBuffer},
-		                                     VmaAllocationCreateInfo{
-		                                             .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-		                                             .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
-		                                     "scene_renderer::render (UBO staging)"};
+		// TODO multiple UBOs if it does not fit
+		f.uniform_buffer = buffer_allocation{
+			device,
+			vk::BufferCreateInfo{
+				.size = 1048576,
+				.usage = vk::BufferUsageFlagBits::eUniformBuffer},
+			VmaAllocationCreateInfo{
+				.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+				.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE},
+			"scene_renderer::render (UBO)"
+		};
 	}
 }
 
@@ -640,82 +714,46 @@ void scene_renderer::update_material_descriptor_set(scene_data::material& materi
 	device.updateDescriptorSets(write_ds, {});
 }
 
-static void print_scene_hierarchy(const scene_data& scene, std::span<glm::mat4> model_matrices, size_t root = scene_data::node::root_id, int level = 0)
-{
-	for(const auto&& [index, node]: utils::enumerate(scene.scene_objects))
-	{
-		if (node.parent_id != root)
-			continue;
-
-		// glm::mat4 M = model_matrices[index];
-		// glm::vec4 pos = glm::column(M, 3);
-		// spdlog::info("{:{}} {} pos={}, rot={}, pos to root={}", "", level * 2, node.name, node.translation, node.rotation, glm::vec3(pos));
-
-		spdlog::info("{:{}} {}", "", level * 2, node.name);
-
-		print_scene_hierarchy(scene, model_matrices, index, level + 1);
-	}
-}
+// static void print_scene_hierarchy(const scene_data& scene, std::span<glm::mat4> model_matrices, size_t root = scene_data::node::root_id, int level = 0)
+// {
+// 	for(const auto&& [index, node]: utils::enumerate(scene.scene_nodes))
+// 	{
+// 		if (node.parent_id != root)
+// 			continue;
+//
+// 		// glm::mat4 M = model_matrices[index];
+// 		// glm::vec4 pos = glm::column(M, 3);
+// 		// spdlog::info("{:{}} {} pos={}, rot={}, pos to root={}", "", level * 2, node.name, node.translation, node.rotation, glm::vec3(pos));
+//
+// 		spdlog::info("{:{}} {}", "", level * 2, node.name);
+//
+// 		print_scene_hierarchy(scene, model_matrices, index, level + 1);
+// 	}
+// }
 
 void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clear_color, std::span<frame_info> frames)
 {
 	per_frame_resources & resources = current_frame();
 
-	size_t ubo_alignment = physical_device_properties.limits.minUniformBufferOffsetAlignment;
-
-	size_t ubo_frame_size = utils::align_up(ubo_alignment, sizeof(frame_gpu_data));
-	size_t ubo_instance_size = utils::align_up(ubo_alignment, sizeof(instance_gpu_data));
-
-	size_t nb_frames = frames.size();
-	//size_t nb_objects = scene.scene_objects.size();
-	size_t nb_objects = std::count_if(scene.scene_objects.begin(), scene.scene_objects.end(), [](const scene_data::node& object){
-		return object.mesh_id;
-	});
-
-	// Enough room for one frame_gpu_data per view and one instance_gpu_data per instance and per view
-	// size_t ubo_size = nb_frames * (ubo_frame_size + nb_objects * ubo_instance_size);
-
-	// Compute the position of each ubo, taking in account the minimum alignment
-	std::vector<size_t> ubo_frame_offset(nb_frames);
-	for(size_t i = 0; i < nb_frames; i++)
-	{
-		ubo_frame_offset[i] = resources.staging_buffer_offset;
-		resources.staging_buffer_offset += ubo_frame_size;
-	}
-
-	std::vector<size_t> ubo_object_offset(nb_frames * nb_objects);
-	for(size_t i = 0; i < nb_frames; i++)
-	{
-		for(size_t j = 0; j < nb_objects; j++)
-		{
-			ubo_object_offset[i * nb_objects + j] = resources.staging_buffer_offset;
-			resources.staging_buffer_offset += ubo_instance_size;
-		}
-	}
-	assert(resources.staging_buffer_offset <= resources.staging_buffer.info().size);
-
-	auto current_ubo_frame_offset = ubo_frame_offset.begin();
-	auto current_ubo_object_offset = ubo_object_offset.begin();
+	size_t buffer_alignment = std::max<size_t>(sizeof(glm::mat4), physical_device_properties.limits.minUniformBufferOffsetAlignment);
+	// size_t buffer_alignment = std::max<size_t>(sizeof(glm::mat4), physical_device_properties.limits.minStorageBufferOffsetAlignment);
 
 	vk::raii::CommandBuffer & cb = resources.cb;
 
-	uintptr_t ubo = reinterpret_cast<uintptr_t>(resources.staging_buffer.map());
+	uint8_t * ubo = resources.uniform_buffer.data();
 
 	std::array<vk::ClearValue, 2> clear_values{
 	        vk::ClearColorValue{clear_color},
 	        vk::ClearDepthStencilValue{1.0, 0},
 	};
 
-	// cb.copyBuffer(resources.staging_buffer, resources.uniform_buffer, {});
-
 	auto vertex_layout = scene_data::vertex::describe();
 
-	std::vector<glm::mat4> transform_to_root(scene.scene_objects.size());
-	std::vector<bool> reverse_side(scene.scene_objects.size());
-	std::vector<bool> visible(scene.scene_objects.size());
+	std::vector<glm::mat4> transform_to_root(scene.scene_nodes.size());
+	std::vector<bool> reverse_side(scene.scene_nodes.size());
+	std::vector<bool> visible(scene.scene_nodes.size());
 
-
-	for(const auto& [index, object]: utils::enumerate(scene.scene_objects))
+	for(const auto& [index, object]: utils::enumerate(scene.scene_nodes))
 	{
 		glm::mat4 transform_to_parent = glm::translate(glm::mat4(1), object.position) * (glm::mat4)object.orientation * glm::scale(glm::mat4(1), object.scale);
 		float det = object.scale.x * object.scale.y * object.scale.z;
@@ -746,7 +784,9 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 		scene_renderer::output_image & output = get_output_image_data(frame.destination);
 		glm::mat4 viewproj = frame.projection * frame.view;
 
-		frame_gpu_data& frame_ubo = *reinterpret_cast<frame_gpu_data*>(ubo + *current_ubo_frame_offset);
+		vk::DeviceSize frame_ubo_offset = resources.uniform_buffer_offset;
+		frame_gpu_data& frame_ubo = *reinterpret_cast<frame_gpu_data*>(ubo + resources.uniform_buffer_offset);
+		resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(frame_gpu_data));
 
 		// frame_ubo.ambient_color = glm::vec4(0.5,0.5,0.5,0); // TODO
 		// frame_ubo.light_color = glm::vec4(0.5,0.5,0.5,0); // TODO
@@ -773,45 +813,32 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 		                   },
 		                   vk::SubpassContents::eInline);
 
-		auto ds = ds_pool_frame.allocate();
-		vk::DescriptorBufferInfo buffer_info_1{
-			.buffer = resources.staging_buffer,
-			.offset = (vk::DeviceSize)*current_ubo_frame_offset,
-			.range = sizeof(frame_gpu_data)
-		};;
-		vk::DescriptorBufferInfo buffer_info_2{
-			.buffer = resources.staging_buffer,
-			.offset = 0,
-			.range = sizeof(instance_gpu_data)
-		};
-		device.updateDescriptorSets(std::array{
-			vk::WriteDescriptorSet{
-				.dstSet = **ds,
-				.dstBinding = 0,
-				.descriptorCount = 1,
-				.descriptorType = vk::DescriptorType::eUniformBuffer,
-				.pBufferInfo = &buffer_info_1,
-			},
-			vk::WriteDescriptorSet{
-				.dstSet = **ds,
-				.dstBinding = 1,
-				.descriptorCount = 1,
-				.descriptorType = vk::DescriptorType::eUniformBufferDynamic,
-				.pBufferInfo = &buffer_info_2,
-			},
-		}, {});
-		resources.resources.push_back(ds);
-
-		for(const auto& [index, object]: utils::enumerate(scene.scene_objects))
+		for(const auto& [index, node]: utils::enumerate(scene.scene_nodes))
 		{
-			if (!object.mesh_id)
+			if (!node.mesh_id)
 				continue;
 
-			scene_data::mesh& mesh = scene.meshes.at(*object.mesh_id);
-
-			instance_gpu_data& object_ubo = *reinterpret_cast<instance_gpu_data*>(ubo + *current_ubo_object_offset);
-
+			scene_data::mesh& mesh = scene.meshes.at(*node.mesh_id);
 			glm::mat4& transform = transform_to_root[index];
+
+			vk::DeviceSize instance_ubo_offset = resources.uniform_buffer_offset;
+			instance_gpu_data& object_ubo = *reinterpret_cast<instance_gpu_data*>(ubo + resources.uniform_buffer_offset);
+			resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(frame_gpu_data));
+
+			vk::DeviceSize joints_ubo_offset = 0;
+			if (!node.joints.empty())
+			{
+				joints_ubo_offset = resources.uniform_buffer_offset;
+				glm::mat4 * joint_matrices = reinterpret_cast<glm::mat4 *>(ubo + resources.uniform_buffer_offset);
+				resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(glm::mat4) * 32);
+				assert(node.joints.size() <= 32);
+
+				for(auto&& [idx, joint]: utils::enumerate(node.joints))
+				{
+					joint_matrices[idx] = glm::inverse(transform) * transform_to_root[joint.first] * joint.second;
+				}
+			}
+
 			object_ubo.model = transform;
 			object_ubo.modelview = frame.view * transform;
 			object_ubo.modelviewproj = viewproj * transform;
@@ -831,6 +858,9 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 					.front_face = primitive.front_face,
 					.topology = primitive.topology,
 					.blend_enable = material->blend_enable,
+
+					.nb_texcoords = 2, // TODO
+					.skinning = !node.joints.empty()
 				};
 
 				if (material->double_sided)
@@ -846,16 +876,48 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 
 				cb.bindVertexBuffers(0, (vk::Buffer)*mesh.buffer, primitive.vertex_offset);
 
-				std::array<vk::DescriptorSet, 2> descriptor_sets{
-					**ds,          // Set 0: per view and per object instance UBOs
-					**material->ds // Set 1: material
+				vk::DescriptorBufferInfo buffer_info_1{
+					.buffer = resources.uniform_buffer,
+					.offset = frame_ubo_offset,
+					.range = sizeof(frame_gpu_data)
+
+				};
+				vk::DescriptorBufferInfo buffer_info_2{
+					.buffer = resources.uniform_buffer,
+					.offset = instance_ubo_offset,
+					.range = sizeof(instance_gpu_data)
+				};
+				vk::DescriptorBufferInfo buffer_info_3{
+					.buffer = resources.uniform_buffer,
+					.offset = joints_ubo_offset,
+					.range = sizeof(glm::mat4) * 32
 				};
 
-				std::array<uint32_t, 1> dynamic_offsets{
-					(uint32_t)*current_ubo_object_offset // Offset of the object data
+				std::array descriptors{
+					vk::WriteDescriptorSet{
+						.dstBinding = 0,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eUniformBuffer,
+						.pBufferInfo = &buffer_info_1
+					},
+					vk::WriteDescriptorSet{
+						.dstBinding = 1,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eUniformBuffer,
+						.pBufferInfo = &buffer_info_2
+					},
+					vk::WriteDescriptorSet{
+						.dstBinding = 2,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eUniformBuffer,
+						.pBufferInfo = &buffer_info_3
+					},
 				};
 
-				cb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptor_sets, dynamic_offsets);
+				cb.pushDescriptorSetKHR(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptors);
+
+				// Set 1: material
+				cb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 1, **material->ds, {});
 
 				if (primitive.indexed)
 					cb.drawIndexed(primitive.index_count, 1, 0, 0, 0);
@@ -865,10 +927,7 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 				resources.resources.push_back(material->ds);
 			}
 
-			current_ubo_object_offset++;
 		}
 		cb.endRenderPass();
-
-		current_ubo_frame_offset++;
 	}
 }

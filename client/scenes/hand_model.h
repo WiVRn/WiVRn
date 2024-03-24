@@ -1,6 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2024 Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,29 +18,17 @@
 
 #pragma once
 
-#include <vector>
-#include <span>
-#include <vulkan/vulkan_raii.hpp>
+#include "xr/hand_tracker.h"
+#include <render/scene_data.h>
+#include <openxr/openxr.h>
 
-class growable_descriptor_pool
+struct hand_model
 {
-	friend struct descriptor_set;
+	xr::hand_tracker& hand;
 
-	struct pool
-	{
-	    int free_count;
-	    vk::raii::DescriptorPool descriptor_pool;
-	};
+	std::vector<node_handle> joints;
 
-	vk::raii::Device & device;
-	vk::DescriptorSetLayout layout_;
+	hand_model(xr::hand_tracker & hand, const std::filesystem::path & gltf_path, scene_loader& loader, scene_data& scene);
 
-	int descriptorsets_per_pool;
-	std::vector<vk::DescriptorPoolSize> size;
-	std::vector<pool> pools;
-
-public:
-	growable_descriptor_pool(vk::raii::Device & device, vk::raii::DescriptorSetLayout& layout, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool = 100);
-
-	std::shared_ptr<vk::raii::DescriptorSet> allocate();
+	void apply(XrSpace world_space, XrTime predicted_display_time);
 };

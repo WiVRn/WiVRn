@@ -40,7 +40,7 @@ struct descriptor_set
 	}
 };
 
-growable_descriptor_pool::growable_descriptor_pool(vk::raii::Device & device, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool) :
+growable_descriptor_pool::growable_descriptor_pool(vk::raii::Device & device, vk::raii::DescriptorSetLayout& layout, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool) :
         device(device), layout_(nullptr), descriptorsets_per_pool(descriptorsets_per_pool)
 {
 	if (descriptorsets_per_pool <= 0)
@@ -61,16 +61,14 @@ growable_descriptor_pool::growable_descriptor_pool(vk::raii::Device & device, st
 	    }
 	}
 
-	vk::DescriptorSetLayoutCreateInfo dsl_info{};
-	dsl_info.setBindings(bindings);
-	layout_ = vk::raii::DescriptorSetLayout{device, dsl_info};
+	layout_ = *layout;
 }
 
 std::shared_ptr<vk::raii::DescriptorSet> growable_descriptor_pool::allocate()
 {
 	vk::DescriptorSetAllocateInfo alloc_info{
 	        .descriptorSetCount = 1,
-	        .pSetLayouts = &*layout_,
+	        .pSetLayouts = &layout_,
 	};
 
 	for (pool & i: pools)

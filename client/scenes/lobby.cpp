@@ -586,6 +586,12 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 
 	input->apply(world_space, predicted_display_time);
 
+	if (left_hand)
+		left_hand->apply(world_space, predicted_display_time);
+
+	if (right_hand)
+		right_hand->apply(world_space, predicted_display_time);
+
 	XrCompositionLayerQuad imgui_layer = draw_gui(predicted_display_time);
 
 	assert(renderer);
@@ -680,6 +686,12 @@ void scenes::lobby::on_focused()
 	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, *controllers_scene);
 	spdlog::info("Loaded input profile {}", input->id);
 
+	if (application::get_hand_tracking_supported())
+	{
+		left_hand.emplace(application::get_left_hand(), "left-hand.glb", loader, *controllers_scene);
+		right_hand.emplace(application::get_right_hand(), "right-hand.glb", loader, *controllers_scene);
+	}
+
 	std::array imgui_inputs{
 		imgui_context::controller{
 			.aim     = get_action_space("left_aim"),
@@ -732,6 +744,11 @@ void scenes::lobby::on_unfocused()
 	imgui_ctx.reset();
 	lobby_scene.reset(); // Must be reset before the renderer so that the descriptor sets are freed before their pools
 	controllers_scene.reset();
+
+	input.reset();
+	left_hand.reset();
+	right_hand.reset();
+
 	renderer.reset();
 	swapchains_lobby.clear();
 	swapchains_controllers.clear();

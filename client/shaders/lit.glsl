@@ -20,16 +20,16 @@
 #version 450
 
 layout (constant_id = 0) const int nb_texcoords = 2;
-layout (constant_id = 1) const int nb_joints = 1;
-layout (constant_id = 2) const int nb_clipping = 1;
-layout (constant_id = 3) const bool dithering = true;
-layout (constant_id = 4) const bool alpha_cutout = false;
+layout (constant_id = 1) const int nb_clipping = 1;
+layout (constant_id = 2) const bool dithering = true;
+layout (constant_id = 3) const bool alpha_cutout = false;
+layout (constant_id = 4) const bool skinning = false;
 
 const float fog_min_dist = 20.0;
 const float fog_max_dist = 35.0;
 const vec4 fog_color = vec4(0.0, 0.25, 0.5, 1.0);
 
-layout(set = 0, binding = 0) uniform scene_ubo
+layout(set = 0, binding = 0) uniform scene_ssbo
 {
 	mat4 view;
 	mat4 proj;
@@ -39,12 +39,17 @@ layout(set = 0, binding = 0) uniform scene_ubo
 // 	vec4 clipping_plane[8];
 } scene;
 
-layout(set = 0, binding = 1) uniform mesh_ubo
+layout(set = 0, binding = 1) uniform mesh_ssbo
 {
 	mat4 model;
 	mat4 modelview;
 	mat4 modelviewproj;
 } mesh;
+
+layout(set = 0, binding = 2) uniform joints_ssbo
+{
+	mat4 joint_matrices[32];
+} joints;
 
 #ifdef FRAG_SHADER
 layout(set = 1, binding = 0) uniform sampler2D base_color;
@@ -76,8 +81,8 @@ layout(location = 1) in vec3 in_normal;
 layout(location = 2) in vec3 in_tangent;
 layout(location = 3) in vec2 in_texcoord[2];
 layout(location = 5) in vec4 in_color;
-layout(location = 6) in vec4 in_joints[nb_joints];
-layout(location = 7) in vec4 in_weights[nb_joints];
+layout(location = 6) in vec4 in_joints;
+layout(location = 7) in vec4 in_weights;
 #endif
 
 // Vertex-to-fragment
@@ -105,12 +110,26 @@ layout(location = 0) out vec4 out_color;
 
 void main()
 {
-	normal = vec3(mesh.modelview * vec4(in_normal, 0.0));
 
 	for(int i = 0; i < nb_texcoords; i++)
 		texcoord[i] = in_texcoord[i];
 
-	gl_Position = mesh.modelviewproj * vec4(in_position, 1.0);
+	if (skinning)
+	{
+		mat4 skinMatrix =
+			in_weights.x * joints.joint_matrices[int(in_joints.x)] +
+			in_weights.y * joints.joint_matrices[int(in_joints.y)] +
+			in_weights.z * joints.joint_matrices[int(in_joints.z)] +
+			in_weights.w * joints.joint_matrices[int(in_joints.w)];
+
+		normal = vec3(mesh.modelview * skinMatrix * vec4(in_normal, 0.0));
+		gl_Position = mesh.modelviewproj * skinMatrix * vec4(in_position, 1.0);
+	}
+	else
+	{
+		normal = vec3(mesh.modelview * vec4(in_normal, 0.0));
+		gl_Position = mesh.modelviewproj * vec4(in_position, 1.0);
+	}
 	frag_pos = mesh.modelview * vec4(in_position, 1.0);
 	light_pos = scene.view * scene.light_position;
 

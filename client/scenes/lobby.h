@@ -22,6 +22,7 @@
 #include "render/scene_data.h"
 #include "scene.h"
 #include <vulkan/vulkan_raii.hpp>
+#include "scenes/hand_model.h"
 #include "wivrn_discover.h"
 
 #include "xr/passthrough.h"
@@ -77,6 +78,8 @@ class lobby : public scene_impl<lobby>
 	std::optional<scene_data> lobby_scene;
 	std::optional<scene_data> controllers_scene;
 	std::optional<input_profile> input;
+	std::optional<hand_model> left_hand;
+	std::optional<hand_model> right_hand;
 
 	std::optional<imgui_context> imgui_ctx;
 	std::array<XrAction, 2> haptic_output;

@@ -27,7 +27,6 @@
 #include "utils/singleton.h"
 #include "vk/vk_allocator.h"
 #include "xr/xr.h"
-#include <array>
 #include <atomic>
 #include <chrono>
 #include <filesystem>

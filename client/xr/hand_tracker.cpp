@@ -48,6 +48,11 @@ std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> xr::hand_tracker::l
 
 	CHECK_XR(xrLocateHandJointsEXT(id, &info, &locations));
 
+	if (!locations.isActive)
+	{
+		// TODO
+	}
+
 	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints;
 	for(int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 	{

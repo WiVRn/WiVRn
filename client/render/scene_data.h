@@ -178,14 +178,14 @@ struct scene_data
 
 		uint32_t layer_mask = 1;
 
-		// std::vector<glm::mat4> bones_transform; // TODO: bones
+		std::vector<std::pair<size_t, glm::mat4>> joints; // Node index, inverse bind matrix of each joint
 	};
 
 	// TODO: lights
 	// TODO: skybox
 
 	std::vector<scene_data::mesh> meshes;
-	std::vector<scene_data::node> scene_objects;
+	std::vector<scene_data::node> scene_nodes;
 
 	scene_data() = default;
 	scene_data(const scene_data &) = delete;
@@ -239,45 +239,45 @@ public:
 	scene_data::node& operator*()
 	{
 		assert(scene != nullptr);
-		assert(id < scene->scene_objects.size());
-		return scene->scene_objects[id];
+		assert(id < scene->scene_nodes.size());
+		return scene->scene_nodes[id];
 	}
 
 	const scene_data::node& operator*() const
 	{
 		assert(scene != nullptr);
-		assert(id < scene->scene_objects.size());
-		return scene->scene_objects[id];
+		assert(id < scene->scene_nodes.size());
+		return scene->scene_nodes[id];
 	}
 
 	scene_data::node* operator->()
 	{
 		assert(scene != nullptr);
-		assert(id < scene->scene_objects.size());
-		return &scene->scene_objects[id];
+		assert(id < scene->scene_nodes.size());
+		return &scene->scene_nodes[id];
 	}
 
 	const scene_data::node* operator->() const
 	{
 		assert(scene != nullptr);
-		assert(id < scene->scene_objects.size());
-		return &scene->scene_objects[id];
+		assert(id < scene->scene_nodes.size());
+		return &scene->scene_nodes[id];
 	}
 
 	node_handle parent()
 	{
 		assert(scene != nullptr);
-		assert(id < scene->scene_objects.size());
+		assert(id < scene->scene_nodes.size());
 
-		return {scene->scene_objects[id].parent_id, scene};
+		return {scene->scene_nodes[id].parent_id, scene};
 	}
 
 	const node_handle parent() const
 	{
 		assert(scene != nullptr);
-		assert(id < scene->scene_objects.size());
+		assert(id < scene->scene_nodes.size());
 
-		return {scene->scene_objects[id].parent_id, scene};
+		return {scene->scene_nodes[id].parent_id, scene};
 	}
 
 	operator bool() const

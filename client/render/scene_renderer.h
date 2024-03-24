@@ -45,6 +45,13 @@ struct pipeline_info
 	vk::PrimitiveTopology topology = vk::PrimitiveTopology::eTriangleList;
 	bool blend_enable = false;
 
+	// Specialization constants data
+	int32_t nb_texcoords = 2;
+	int32_t nb_clipping = 1;
+	VkBool32 dithering = true;
+	VkBool32 alpha_cutout = false;
+	VkBool32 skinning = false;
+
 	bool operator==(const pipeline_info & other) const noexcept = default;
 };
 
@@ -57,8 +64,6 @@ struct hash<pipeline_info> : utils::magic_hash<pipeline_info>
 
 class scene_renderer
 {
-public:
-	// vk::raii::Instance& instance;
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
 	vk::PhysicalDeviceProperties physical_device_properties;
@@ -90,6 +95,7 @@ public:
 
 	std::shared_ptr<scene_data::texture> create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel);
 	std::shared_ptr<scene_data::material> create_default_material(vk::raii::CommandPool & cb_pool);
+	vk::raii::DescriptorSetLayout create_descriptor_set_layout(std::span<vk::DescriptorSetLayoutBinding> bindings, vk::DescriptorSetLayoutCreateFlags flags = {});
 
 	// Caches
 	std::unordered_map<VkImage, output_image> output_images;
@@ -98,8 +104,8 @@ public:
 	output_image & get_output_image_data(vk::Image output);
 	vk::raii::Pipeline & get_pipeline(const pipeline_info & info);
 
-	// Descriptor set 0: per-frame/view data (uniform buffer) and per-instance data (dynamic uniform buffer)
-	growable_descriptor_pool ds_pool_frame;
+	vk::raii::DescriptorSetLayout layout_0; // Descriptor set 0: per-frame/view data (UBO) and per-instance data (UBO + SSBO)
+	vk::raii::DescriptorSetLayout layout_1; // Descriptor set 1: per-material data (5 combined image samplers and 1 uniform buffer)
 
 	// Descriptor set 1: per-material data (5 combined image samplers and 1 uniform buffer)
 	growable_descriptor_pool ds_pool_material;
@@ -152,13 +158,10 @@ public:
 		std::vector<std::shared_ptr<void>> resources;
 		bool query_pool_filled = false;
 
-		// Uniform buffer for per-view and per-instance data
-		// host visible, host coherent
-		size_t staging_buffer_offset;
-		buffer_allocation staging_buffer;
-
-		// device local
-		// buffer_allocation uniform_buffer;
+                // Buffer for per-view and per-instance data
+	        // device local, host visible, host coherent
+		size_t uniform_buffer_offset;
+	        buffer_allocation uniform_buffer;
 	};
 
 	std::vector<per_frame_resources> frame_resources;
