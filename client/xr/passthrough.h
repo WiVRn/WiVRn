@@ -21,30 +21,41 @@
 
 #include "openxr/openxr.h"
 #include "xr.h"
+#include <optional>
 #include <variant>
 
 namespace xr
 {
 class session;
 
+class passthrough_layer_fb : public utils::handle<XrPassthroughLayerFB>
+{
+	PFN_xrDestroyPassthroughLayerFB xrDestroyPassthroughLayerFB{};
+public:
+	passthrough_layer_fb() = default;
+	passthrough_layer_fb(instance&, session&, const XrPassthroughLayerCreateInfoFB&);
+	passthrough_layer_fb(passthrough_layer_fb&&) = delete;
+	passthrough_layer_fb& operator=(passthrough_layer_fb&&) = delete;
+	~passthrough_layer_fb();
+};
+
 class passthrough_fb : public utils::handle<XrPassthroughFB>
 {
 	PFN_xrDestroyPassthroughFB xrDestroyPassthroughFB{};
-	PFN_xrDestroyPassthroughLayerFB xrDestroyPassthroughLayerFB{};
 	PFN_xrPassthroughStartFB xrPassthroughStartFB{};
 	PFN_xrPassthroughPauseFB xrPassthroughPauseFB{};
 	PFN_xrPassthroughLayerPauseFB xrPassthroughLayerPauseFB{};
 	PFN_xrPassthroughLayerResumeFB xrPassthroughLayerResumeFB{};
 
-	XrPassthroughLayerFB passthrough_layer{};
+	std::optional<passthrough_layer_fb> passthrough_layer;
 	XrCompositionLayerPassthroughFB composition_layer;
 
 public:
 	passthrough_fb() = default;
 	passthrough_fb(instance &, session &);
-	passthrough_fb(passthrough_fb &&) = default;
+	passthrough_fb(passthrough_fb &&) = delete;
 	passthrough_fb(const passthrough_fb &) = delete;
-	passthrough_fb & operator=(passthrough_fb &&) = default;
+	passthrough_fb & operator=(passthrough_fb &&) = delete;
 	passthrough_fb & operator=(const passthrough_fb &) = delete;
 	~passthrough_fb();
 

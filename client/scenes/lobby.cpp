@@ -267,20 +267,6 @@ scenes::lobby::lobby()
 		throw std::runtime_error("No supported swapchain format");
 
 	spdlog::info("Using format {}", vk::to_string(swapchain_format));
-
-	if (passthrough_supported != xr::system::passthrough_type::no_passthrough)
-	{
-		if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
-		{
-			passthrough = xr::passthrough_fb(instance, session);
-		}
-		else if (utils::contains(application::get_xr_extensions(), XR_HTC_PASSTHROUGH_EXTENSION_NAME))
-		{
-			passthrough = xr::passthrough_htc(instance, session);
-		}
-
-		std::visit([](auto& p) {p.start();}, passthrough);
-	}
 }
 
 void scenes::lobby::save_config()
@@ -723,6 +709,20 @@ void scenes::lobby::on_focused()
 	{
 		about_picture = imgui_ctx->load_texture("wivrn.png");
 	}
+
+	if (passthrough_supported != xr::system::passthrough_type::no_passthrough)
+	{
+		if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
+		{
+			passthrough.emplace<xr::passthrough_fb>(instance, session);
+		}
+		else if (utils::contains(application::get_xr_extensions(), XR_HTC_PASSTHROUGH_EXTENSION_NAME))
+		{
+			passthrough.emplace<xr::passthrough_htc>(instance, session);
+		}
+
+		std::visit([](auto& p) {p.start();}, passthrough);
+	}
 }
 
 void scenes::lobby::on_unfocused()
@@ -738,7 +738,8 @@ void scenes::lobby::on_unfocused()
 	renderer.reset();
 	swapchains_lobby.clear();
 	swapchains_controllers.clear();
-	swapchain_imgui.reset();
+	swapchain_imgui = xr::swapchain();
+	passthrough.emplace<xr::passthrough_fb>(); // default constructor does no passthrough
 }
 
 void scenes::lobby::on_session_state_changed(XrSessionState state)

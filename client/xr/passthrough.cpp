@@ -21,10 +21,24 @@
 #include "session.h"
 #include "openxr/openxr.h"
 
+xr::passthrough_layer_fb::passthrough_layer_fb(instance& inst, session& s, const XrPassthroughLayerCreateInfoFB& info)
+{
+	xrDestroyPassthroughLayerFB = inst.get_proc<PFN_xrDestroyPassthroughLayerFB>("xrDestroyPassthroughLayerFB");
+
+	PFN_xrCreatePassthroughLayerFB xrCreatePassthroughLayerFB = inst.get_proc<PFN_xrCreatePassthroughLayerFB>("xrCreatePassthroughLayerFB");
+	CHECK_XR(xrCreatePassthroughLayerFB(s, &info, &id));
+}
+
+xr::passthrough_layer_fb::~passthrough_layer_fb()
+{
+	if (id != XR_NULL_HANDLE and xrDestroyPassthroughLayerFB)
+		xrDestroyPassthroughLayerFB(id);
+}
+
+
 xr::passthrough_fb::passthrough_fb(instance & inst, session & s)
 {
 	PFN_xrCreatePassthroughFB xrCreatePassthroughFB = inst.get_proc<PFN_xrCreatePassthroughFB>("xrCreatePassthroughFB");
-	PFN_xrCreatePassthroughLayerFB xrCreatePassthroughLayerFB = inst.get_proc<PFN_xrCreatePassthroughLayerFB>("xrCreatePassthroughLayerFB");
 
 	xrDestroyPassthroughFB = inst.get_proc<PFN_xrDestroyPassthroughFB>("xrDestroyPassthroughFB");
 	xrPassthroughStartFB = inst.get_proc<PFN_xrPassthroughStartFB>("xrPassthroughStartFB");
@@ -46,21 +60,19 @@ xr::passthrough_fb::passthrough_fb(instance & inst, session & s)
 		.purpose = XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB
 	};
 
-	CHECK_XR(xrCreatePassthroughLayerFB(s, &layer_info, &passthrough_layer));
+	passthrough_layer.emplace(inst, s, layer_info);
 
 	composition_layer = XrCompositionLayerPassthroughFB{
 		.type = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB,
 		.flags = 0,
 		.space = XR_NULL_HANDLE,
-		.layerHandle = passthrough_layer
+		.layerHandle = *passthrough_layer
 	};
 }
 
 xr::passthrough_fb::~passthrough_fb()
 {
-	if (passthrough_layer && xrDestroyPassthroughLayerFB)
-		xrDestroyPassthroughLayerFB(passthrough_layer);
-
+	passthrough_layer.reset();
 	if (id != XR_NULL_HANDLE && xrDestroyPassthroughFB)
 		xrDestroyPassthroughFB(id);
 }
@@ -68,12 +80,12 @@ xr::passthrough_fb::~passthrough_fb()
 void xr::passthrough_fb::start()
 {
 	CHECK_XR(xrPassthroughStartFB(id));
-	CHECK_XR(xrPassthroughLayerResumeFB(passthrough_layer));
+	CHECK_XR(xrPassthroughLayerResumeFB(*passthrough_layer));
 }
 
 void xr::passthrough_fb::pause()
 {
-	CHECK_XR(xrPassthroughLayerPauseFB(passthrough_layer));
+	CHECK_XR(xrPassthroughLayerPauseFB(*passthrough_layer));
 	CHECK_XR(xrPassthroughPauseFB(id));
 }
 

@@ -197,7 +197,7 @@ void scenes::stream::on_focused()
 void scenes::stream::on_unfocused()
 {
 	imgui_ctx.reset();
-	swapchain_imgui.reset();
+	swapchain_imgui = xr::swapchain();
 }
 
 scenes::stream::~stream()
