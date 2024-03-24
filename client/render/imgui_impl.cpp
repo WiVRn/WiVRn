@@ -103,7 +103,7 @@ static void check_vk_result(VkResult result)
 	}
 }
 
-std::optional<ImVec2> imgui_context::ray_plane_intersection(const imgui_context::controller_state& in)
+std::optional<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state& in)
 {
 	if (!in.active)
 		return {};
@@ -124,19 +124,19 @@ std::optional<ImVec2> imgui_context::ray_plane_intersection(const imgui_context:
 		// => ray_start.z + lambda × ray_dir.z = 0
 		float lambda = -ray_start.z / ray_dir.z;
 
-		if (lambda < 0)
-		{
-			coord.x = ray_start.x + lambda * ray_dir.x;
-			coord.y = ray_start.y + lambda * ray_dir.y;
+		coord.x = ray_start.x + lambda * ray_dir.x;
+		coord.y = ray_start.y + lambda * ray_dir.y;
 
-			// Convert from mesh coordinates to imgui coordinates
-			coord = coord / scale_;
+		// Convert from mesh coordinates to imgui coordinates
+		coord = coord / scale_;
 
-			if (fabs(coord.x) <= 0.5 && fabs(coord.y) <= 0.5)
-				return ImVec2(
+		if (fabs(coord.x) <= 0.5 && fabs(coord.y) <= 0.5)
+			return std::make_pair(ImVec2
+				(
 					(0.5 + coord.x) * size.width,
-					(0.5 - coord.y) * size.height);
-		}
+					(0.5 - coord.y) * size.height
+				),
+				-lambda);
 	}
 
 	return {};
@@ -319,15 +319,46 @@ void imgui_context::new_frame(XrTime display_time)
 
 		controller_state& new_state = new_states.emplace_back();
 
-		if (auto location = application::locate_controller(ctrl.aim, world, display_time); location)
+		if (auto joints = ctrl.hand.locate(world, display_time))
+		{
+			XrHandJointLocationEXT& index_tip = (*joints)[XR_HAND_JOINT_INDEX_TIP_EXT].first;
+			if (index_tip.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+			{
+				new_state.aim_position = {
+					index_tip.pose.position.x,
+					index_tip.pose.position.y,
+					index_tip.pose.position.z
+				};
+
+				new_state.aim_orientation = orientation_;
+
+				new_state.active = true;
+				auto position_distance = ray_plane_intersection(new_state);
+
+				if (position_distance)
+				{
+					new_state.hover_distance = std::abs(position_distance->second);
+
+					if (std::abs(position_distance->second) < 0.1f)
+						new_state.fingertip_hovered  = true;
+					else
+						new_state.active = false;
+
+					if (new_state.hover_distance < 0.02)
+						new_state.fingertip_touched = true;
+				}
+				else
+					new_state.hover_distance = 1e10;
+
+				continue;
+			}
+		}
+
+		if (auto location = application::locate_controller(ctrl.aim, world, display_time))
 		{
 			new_state.active = true;
 			new_state.aim_position = location->first;
 			new_state.aim_orientation = location->second;
-		}
-		else
-		{
-			new_state.active = false;
 		}
 
 		if (ctrl.squeeze)
@@ -361,8 +392,17 @@ void imgui_context::new_frame(XrTime display_time)
 			else
 				new_state.scroll_value = {0, 0};
 		}
+	}
 
-		if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.01f)
+	for(auto [new_state, controller]: utils::zip(new_states, controllers))
+	{
+		if (new_state.hover_distance < 0.02 && controller.second.hover_distance >= 0.02)
+			new_state.fingertip_touched = true;
+	}
+
+	for(auto&& [index, new_state]: utils::enumerate(new_states))
+	{
+		if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.01f || new_state.fingertip_hovered)
 		{
 			new_focused_controller = index;
 		}
@@ -379,19 +419,20 @@ void imgui_context::new_frame(XrTime display_time)
 		button_pressed = false;
 	}
 
-	std::optional<ImVec2> position;
+	std::optional<std::pair<ImVec2, float>> position_distance;
 
 	if (new_focused_controller != (size_t)-1)
 	{
-		position = ray_plane_intersection(new_states[new_focused_controller]);
+		position_distance = ray_plane_intersection(new_states[new_focused_controller]);
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
-		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
-		button_pressed = new_states[new_focused_controller].trigger_clicked;
+		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked || controllers[new_focused_controller].second.fingertip_touched;
+		button_pressed = new_states[new_focused_controller].trigger_clicked ||
+			(new_states[new_focused_controller].fingertip_touched && !controllers[new_focused_controller].second.fingertip_touched);
 
-		if (position)
+		if (position_distance)
 		{
-			io.AddMousePosEvent(position->x, position->y);
+			io.AddMousePosEvent(position_distance->first.x, position_distance->first.y);
 
 			if (focused_change || last_trigger != button_pressed)
 			{
@@ -411,7 +452,7 @@ void imgui_context::new_frame(XrTime display_time)
 	}
 	else
 	{
-		position = {};
+		position_distance = {};
 	}
 
 	focused_controller = new_focused_controller;
@@ -432,13 +473,13 @@ void imgui_context::new_frame(XrTime display_time)
 
 	ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 
-	if (position)
+	if (position_distance)
 	{
 		float distance_to_border = std::min({
-			position->x,
-			size.width - position->x,
-			position->y,
-			size.height - position->y
+			position_distance->first.x,
+			size.width - position_distance->first.x,
+			position_distance->first.y,
+			size.height - position_distance->first.y
 		});
 
 		float radius = 10; //std::clamp<float>(distance_to_border / 4, 0, 10);
@@ -447,8 +488,10 @@ void imgui_context::new_frame(XrTime display_time)
 		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
 		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
 
-		draw_list->AddCircleFilled(*position, radius, button_pressed ? color_pressed : color_unpressed);
-		draw_list->AddCircle(*position, radius*1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
+		bool pressed = button_pressed || new_states[new_focused_controller].fingertip_touched;
+
+		draw_list->AddCircleFilled(position_distance->first, radius, pressed ? color_pressed : color_unpressed);
+		draw_list->AddCircle(position_distance->first, radius*1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
 	}
 
 	image_index = swapchain.acquire();

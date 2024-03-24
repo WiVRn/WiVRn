@@ -718,12 +718,14 @@ void scenes::lobby::on_focused()
 			.trigger = get_action("left_trigger").first,
 			.squeeze = get_action("left_squeeze").first,
 			.scroll  = get_action("left_scroll").first,
+			.hand    = application::get_left_hand(),
 		},
 		imgui_context::controller{
 			.aim     = get_action_space("right_aim"),
 			.trigger = get_action("right_trigger").first,
 			.squeeze = get_action("right_squeeze").first,
 			.scroll  = get_action("right_scroll").first,
+			.hand    = application::get_right_hand(),
 		},
 	};
 

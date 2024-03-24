@@ -19,6 +19,7 @@
 #pragma once
 
 #include "xr/swapchain.h"
+#include "xr/hand_tracker.h"
 #include <imgui.h>
 #include <implot.h>
 #include <vulkan/vulkan_raii.hpp>
@@ -60,23 +61,28 @@ public:
 		XrAction trigger; // XR_ACTION_TYPE_FLOAT_INPUT
 		XrAction squeeze; // XR_ACTION_TYPE_FLOAT_INPUT
 		XrAction scroll;  // XR_ACTION_TYPE_VECTOR2F_INPUT
-
 		// TODO: thresholds?
+
+		xr::hand_tracker& hand;
 	};
 
 	struct controller_state
 	{
-		bool active;
+		bool active = false;
 
-		glm::vec3 aim_position;
-		glm::quat aim_orientation;
+		glm::vec3 aim_position = {0, 0, 0};
+		glm::quat aim_orientation = {1, 0, 0, 0};
 
-		float trigger_value;
-		float squeeze_value;
-		glm::vec2 scroll_value;
+		float trigger_value = 0;
+		float squeeze_value = 0;
+		glm::vec2 scroll_value = {0, 0};
 
-		bool squeeze_clicked;
-		bool trigger_clicked;
+		float hover_distance = 1e10;
+
+		bool squeeze_clicked = false;
+		bool trigger_clicked = false;
+		bool fingertip_hovered = false;
+		bool fingertip_touched = false;
 	};
 
 private:
@@ -125,7 +131,7 @@ private:
 
 	bool button_pressed = false;
 
-	std::optional<ImVec2> ray_plane_intersection(const imgui_context::controller_state& in);
+	std::optional<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state& in);
 
 public:
 	imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, xr::swapchain& swapchain, glm::vec2 size);

@@ -22,6 +22,9 @@
 
 std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::hand_tracker::locate(XrSpace space, XrTime time)
 {
+	if (!id || !xrLocateHandJointsEXT)
+		return std::nullopt;
+
 	XrHandJointsLocateInfoEXT info{
 		.type = XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT,
 		.next = nullptr,
