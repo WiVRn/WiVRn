@@ -19,11 +19,12 @@
 #include "hand_model.h"
 #include "openxr/openxr.h"
 #include "utils/ranges.h"
+#include <spdlog/spdlog.h>
 
 hand_model::hand_model(xr::hand_tracker & hand, const std::filesystem::path & gltf_path, scene_loader & loader, scene_data & scene) :
         hand(hand)
 {
-	node_handle root_node = scene.new_node();
+	root_node = scene.new_node();
 	root_node->name = gltf_path.stem();
 
 	scene.import(loader(gltf_path), root_node);
@@ -61,24 +62,33 @@ hand_model::hand_model(xr::hand_tracker & hand, const std::filesystem::path & gl
 
 void hand_model::apply(XrSpace world_space, XrTime predicted_display_time)
 {
-	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints_location = hand.locate(world_space, predicted_display_time);
+	auto joints_location = hand.locate(world_space, predicted_display_time);
 
-	for(auto&& [joint, loc]: utils::zip(joints, joints_location))
+	if (joints_location)
 	{
-		if (!joint)
-			continue;
+		root_node->visible = true;
 
-		joint->position = {
-			loc.first.pose.position.x,
-			loc.first.pose.position.y,
-			loc.first.pose.position.z
-		};
+		for(auto&& [joint, loc]: utils::zip(joints, *joints_location))
+		{
+			if (!joint)
+				continue;
 
-		joint->orientation = {
-			loc.first.pose.orientation.w,
-			loc.first.pose.orientation.x,
-			loc.first.pose.orientation.y,
-			loc.first.pose.orientation.z
-		};
+			joint->position = {
+				loc.first.pose.position.x,
+				loc.first.pose.position.y,
+				loc.first.pose.position.z
+			};
+
+			joint->orientation = {
+				loc.first.pose.orientation.w,
+				loc.first.pose.orientation.x,
+				loc.first.pose.orientation.y,
+				loc.first.pose.orientation.z
+			};
+		}
+	}
+	else
+	{
+		root_node->visible = false;
 	}
 }

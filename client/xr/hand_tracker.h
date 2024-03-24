@@ -23,6 +23,7 @@
 #include <openxr/openxr.h>
 #include <array>
 #include <utility>
+#include <optional>
 
 #include "instance.h"
 
@@ -52,6 +53,6 @@ public:
 
 	using joint = std::pair<XrHandJointLocationEXT, XrHandJointVelocityEXT>;
 
-	std::array<joint, XR_HAND_JOINT_COUNT_EXT> locate(XrSpace space, XrTime time);
+	std::optional<std::array<joint, XR_HAND_JOINT_COUNT_EXT>> locate(XrSpace space, XrTime time);
 };
 } // namespace xr

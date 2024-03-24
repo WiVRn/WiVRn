@@ -26,6 +26,7 @@ struct hand_model
 {
 	xr::hand_tracker& hand;
 
+	node_handle root_node;
 	std::vector<node_handle> joints;
 
 	hand_model(xr::hand_tracker & hand, const std::filesystem::path & gltf_path, scene_loader& loader, scene_data& scene);

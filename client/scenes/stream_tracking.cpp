@@ -63,40 +63,45 @@ static from_headset::tracking::pose locate_space(device_id device, XrSpace space
 	return res;
 }
 
-static std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> locate_hands(xr::hand_tracker& hand, XrSpace space, XrTime time)
+static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> locate_hands(xr::hand_tracker& hand, XrSpace space, XrTime time)
 {
-	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints = hand.locate(space, time);
+	auto joints = hand.locate(space, time);
 
-	std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
-	for(int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+	if (joints)
 	{
-		poses[i] = {
-			.pose = joints[i].first.pose,
-			.linear_velocity = joints[i].second.linearVelocity,
-			.angular_velocity = joints[i].second.angularVelocity,
-			.radius = joints[i].first.radius,
-		};
+		std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
+		for(int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+		{
+			poses[i] = {
+				.pose = (*joints)[i].first.pose,
+				.linear_velocity = (*joints)[i].second.linearVelocity,
+				.angular_velocity = (*joints)[i].second.angularVelocity,
+				.radius = (*joints)[i].first.radius,
+			};
 
-		if (joints[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-			poses[i].flags |= from_headset::hand_tracking::orientation_valid;
+			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+				poses[i].flags |= from_headset::hand_tracking::orientation_valid;
 
-		if (joints[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-			poses[i].flags |= from_headset::hand_tracking::position_valid;
+			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+				poses[i].flags |= from_headset::hand_tracking::position_valid;
 
-		if (joints[i].second.velocityFlags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
-			poses[i].flags |= from_headset::hand_tracking::linear_velocity_valid;
+			if ((*joints)[i].second.velocityFlags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
+				poses[i].flags |= from_headset::hand_tracking::linear_velocity_valid;
 
-		if (joints[i].second.velocityFlags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
-			poses[i].flags |= from_headset::hand_tracking::angular_velocity_valid;
+			if ((*joints)[i].second.velocityFlags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
+				poses[i].flags |= from_headset::hand_tracking::angular_velocity_valid;
 
-		if (joints[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-			poses[i].flags |= from_headset::hand_tracking::orientation_tracked;
+			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+				poses[i].flags |= from_headset::hand_tracking::orientation_tracked;
 
-		if (joints[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-			poses[i].flags |= from_headset::hand_tracking::position_tracked;
+			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+				poses[i].flags |= from_headset::hand_tracking::position_tracked;
+		}
+
+		return poses;
 	}
-
-	return poses;
+	else
+		return std::nullopt;
 }
 
 void scenes::stream::tracking()

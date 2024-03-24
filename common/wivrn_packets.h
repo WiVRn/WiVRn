@@ -170,8 +170,8 @@ struct hand_tracking
 	};
 
 	XrTime timestamp;
-	std::array<pose, XR_HAND_JOINT_COUNT_EXT> left;
-	std::array<pose, XR_HAND_JOINT_COUNT_EXT> right;
+	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> left;
+	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> right;
 };
 
 struct inputs
