@@ -818,6 +818,9 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4>& clea
 			if (!node.mesh_id)
 				continue;
 
+			if (!visible[index])
+				continue;
+
 			scene_data::mesh& mesh = scene.meshes.at(*node.mesh_id);
 			glm::mat4& transform = transform_to_root[index];
 
