@@ -505,6 +505,8 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 			current_blit_handles.push_back(blit_handle);
 
 			blit_handle->feedback.blitted = application::now();
+			if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
+				state_ = stream::state::stalled;
 			blit_handle->feedback.displayed = predicted_display_time;
 			blit_handle->feedback.real_pose[0] = views[0].pose;
 			blit_handle->feedback.real_pose[1] = views[1].pose;

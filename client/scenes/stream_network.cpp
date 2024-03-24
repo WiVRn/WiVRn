@@ -27,9 +27,7 @@ void scenes::stream::process_packets()
 	{
 		try
 		{
-			int n = network_session->poll(*this, std::chrono::milliseconds(500));
-			if (n == 0 && state_ == state::streaming)
-				state_ = state::stalled;
+			network_session->poll(*this, std::chrono::milliseconds(500));
 		}
 		catch (std::exception & e)
 		{
