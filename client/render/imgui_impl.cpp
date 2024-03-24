@@ -400,9 +400,15 @@ void imgui_context::new_frame(XrTime display_time)
 			new_state.fingertip_touched = true;
 	}
 
+	float closest_hover_distance = 1e10;
 	for(auto&& [index, new_state]: utils::enumerate(new_states))
 	{
-		if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.01f || new_state.fingertip_hovered)
+		if (new_state.hover_distance < closest_hover_distance && new_state.fingertip_hovered)
+		{
+			new_focused_controller = index;
+			closest_hover_distance = new_state.hover_distance;
+		}
+		else if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.01f)
 		{
 			new_focused_controller = index;
 		}
