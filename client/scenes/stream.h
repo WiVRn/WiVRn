@@ -81,6 +81,7 @@ private:
 	utils::sync_queue<to_headset::video_stream_data_shard> shard_queue;
 
 	std::mutex decoder_mutex;
+	std::optional<to_headset::video_stream_description> video_stream_description;
 	uint64_t next_frame; // Preferred index for next frame
 	std::vector<accumulator_images> decoders; // Locked by decoder_mutex
 	vk::raii::DescriptorPool blit_descriptor_pool = nullptr;
@@ -154,6 +155,7 @@ private:
 	void read_actions();
 
 	void setup(const to_headset::video_stream_description &);
+	void setup_reprojection_swapchain();
 	void exit();
 
 	vk::raii::QueryPool query_pool = nullptr;

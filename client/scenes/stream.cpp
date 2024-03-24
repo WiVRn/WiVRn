@@ -192,6 +192,9 @@ void scenes::stream::on_focused()
 
 		imgui_ctx->set_position({0,0,-1}, {1,0,0,0});
 	}
+
+	assert(video_stream_description);
+	setup_reprojection_swapchain();
 }
 
 void scenes::stream::on_unfocused()
@@ -325,6 +328,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	if (state_ == state::stalled)
 		application::pop_scene();
 
+	assert(not swapchains.empty());
 	for (auto & i: decoders)
 	{
 		if (auto sampler = i.decoder->sampler(); sampler and not *i.blit_pipeline)
@@ -698,7 +702,6 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 	// FIXME: stop video thread
 	decoders.clear();
-	swapchains.clear();
 
 	if (description.items.empty())
 	{
@@ -706,29 +709,10 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		return;
 	}
 
-	// Create swapchains
+	video_stream_description = description;
+
 	const uint32_t video_width = description.width / view_count;
 	const uint32_t video_height = description.height;
-	const uint32_t swapchain_width = video_width / description.foveation[0].x.scale;
-	const uint32_t swapchain_height = video_height / description.foveation[0].y.scale;
-
-	auto views = system.view_configuration_views(viewconfig);
-
-	swapchains.reserve(views.size());
-	for (auto view: views)
-	{
-		// Create a swapchain larger than video strem so that reprojection and foveation affect image quality less.
-		const double max_oversample = std::min(double(view.maxImageRectWidth) / swapchain_width,
-		                                       double(view.maxImageRectHeight) / swapchain_height);
-		double oversample = std::min(1.4, max_oversample);
-		XrExtent2Di extent{
-		        .width = int32_t(swapchain_width * oversample),
-		        .height = int32_t(swapchain_height * oversample),
-		};
-		swapchains.emplace_back(session, device, swapchain_format, extent.width, extent.height);
-
-		spdlog::info("Created stream swapchain {}: {}x{}", swapchains.size(), extent.width, extent.height);
-	}
 
 	// Create renderpass
 	{
@@ -848,6 +832,35 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 		decoders.push_back(std::move(dec));
 	}
+}
+
+void scenes::stream::setup_reprojection_swapchain()
+{
+	std::unique_lock lock(decoder_mutex);
+
+	swapchains.clear();
+	const uint32_t video_width = video_stream_description->width / view_count;
+	const uint32_t video_height = video_stream_description->height;
+	const uint32_t swapchain_width = video_width / video_stream_description->foveation[0].x.scale;
+	const uint32_t swapchain_height = video_height / video_stream_description->foveation[0].y.scale;
+
+	auto views = system.view_configuration_views(viewconfig);
+
+	swapchains.reserve(views.size());
+	for (auto view: views)
+	{
+		// Create a swapchain larger than video strem so that reprojection and foveation affect image quality less.
+		const double max_oversample = std::min(double(view.maxImageRectWidth) / swapchain_width,
+		                                       double(view.maxImageRectHeight) / swapchain_height);
+		double oversample = std::min(1.4, max_oversample);
+		XrExtent2Di extent{
+		        .width = int32_t(swapchain_width * oversample),
+		        .height = int32_t(swapchain_height * oversample),
+		};
+		swapchains.emplace_back(session, device, swapchain_format, extent.width, extent.height);
+
+		spdlog::info("Created stream swapchain {}: {}x{}", swapchains.size(), extent.width, extent.height);
+	}
 
 	spdlog::info("Initializing reprojector");
 	vk::Extent2D extent = {(uint32_t)swapchains[0].width(), (uint32_t)swapchains[0].height()};
@@ -864,7 +877,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		images.push_back(i.image);
 	}
 
-	reprojector.emplace(device, physical_device, images, swapchain_images, extent, swapchains[0].format(), description);
+	reprojector.emplace(device, physical_device, images, swapchain_images, extent, swapchains[0].format(), *video_stream_description);
 }
 
 void scenes::stream::video()
