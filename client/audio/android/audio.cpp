@@ -220,8 +220,9 @@ void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_head
 	if (result == AAUDIO_OK)
 	{
 		info.microphone = {
-		        .num_channels = (uint8_t)AAudioStream_getChannelCount(stream),
-		        .sample_rate = (uint32_t)AAudioStream_getSampleRate(stream)};
+		        .num_channels = 1, // Some headsets report 2 channels but then fail
+		        .sample_rate = (uint32_t)AAudioStream_getSampleRate(stream),
+		};
 
 		AAudioStream_close(stream);
 	}
