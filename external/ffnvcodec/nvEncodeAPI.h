@@ -24,8 +24,6 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-// SPDX-License-Identifier: MIT
-// clang-format off
 
 /**
  * \file nvEncodeAPI.h
@@ -1496,7 +1494,7 @@ typedef struct _NV_ENC_CONFIG_H264
     uint32_t                            chromaFormatIDC;            /**< [in]: Specifies the chroma format. Should be set to 1 for yuv420 input, 3 for yuv444 input.
                                                                                Check support for YUV444 encoding using ::NV_ENC_CAPS_SUPPORT_YUV444_ENCODE caps.*/
     uint32_t                            maxTemporalLayers;          /**< [in]: Specifies the maximum temporal layer used for temporal SVC / hierarchical coding.
-                                                                               Default value of this field is NV_ENC_CAPS::NV_ENC_CAPS_NUM_MAX_TEMPORAL_LAYERS. Note that the value NV_ENC_CONFIG_H264::maxNumRefFrames should
+                                                                               Defaut value of this field is NV_ENC_CAPS::NV_ENC_CAPS_NUM_MAX_TEMPORAL_LAYERS. Note that the value NV_ENC_CONFIG_H264::maxNumRefFrames should
                                                                                be greater than or equal to (NV_ENC_CONFIG_H264::maxTemporalLayers - 2) * 2, for NV_ENC_CONFIG_H264::maxTemporalLayers >= 2.*/
     NV_ENC_BFRAME_REF_MODE              useBFramesAsRef;            /**< [in]: Specifies the B-Frame as reference mode. Check support for useBFramesAsRef mode using ::NV_ENC_CAPS_SUPPORT_BFRAME_REF_MODE caps.*/
     NV_ENC_NUM_REF_FRAMES               numRefL0;                   /**< [in]: Specifies max number of reference frames in reference picture list L0, that can be used by hardware for prediction of a frame.
@@ -2211,7 +2209,7 @@ typedef struct _NV_ENC_STAT
 
 /**
  * \struct _NV_ENC_SEQUENCE_PARAM_PAYLOAD
- * Sequence and picture parameters payload.
+ * Sequence and picture paramaters payload.
  */
 typedef struct _NV_ENC_SEQUENCE_PARAM_PAYLOAD
 {
@@ -2927,7 +2925,7 @@ NVENCSTATUS NVENCAPI NvEncDestroyBitstreamBuffer                (void* encoder, 
  * If the client has enabled asynchronous mode of encoding by setting
  * NV_ENC_INITIALIZE_PARAMS::enableEncodeAsync to 1 in the ::NvEncInitializeEncoder()
  * API ,then the client must send a valid NV_ENC_PIC_PARAMS::completionEvent.
- * In case of asynchronous mode of operation, client can queue the ::NvEncEncodePicture()
+ * Incase of asynchronous mode of operation, client can queue the ::NvEncEncodePicture()
  * API commands from the main thread and then queue output buffers to be processed
  * to a secondary worker thread. Before the locking the output buffers in the
  * secondary thread , the client must wait on NV_ENC_PIC_PARAMS::completionEvent

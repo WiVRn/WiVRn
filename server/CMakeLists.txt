@@ -95,7 +95,6 @@ target_include_directories(wivrn-server PRIVATE .)
 
 if(WIVRN_USE_NVENC)
         target_sources(wivrn-server PRIVATE encoder/video_encoder_nvenc.cpp)
-        target_link_libraries(wivrn-server PRIVATE CUDA::cuda_driver nvidia-encode)
 endif()
 
 if(WIVRN_USE_VAAPI)

@@ -55,18 +55,39 @@
 		if (status != CUDA_SUCCESS)                                                       \
 		{                                                                                 \
 			const char * error_string;                                                \
-			cuGetErrorString(status, &error_string);                                  \
+			cuda_fn->cuGetErrorString(status, &error_string);                         \
 			U_LOG_E("%s:%d: %s (%d)", __FILE__, __LINE__, error_string, (int)status); \
-			throw std::runtime_error("TODO");                                         \
+			throw std::runtime_error(std::string("CUDA error: ") + error_string);     \
 		}                                                                                 \
 	} while (0)
 
 namespace xrt::drivers::wivrn
 {
 
+void VideoEncoderNvenc::deleter::operator()(CudaFunctions * fn)
+{
+	cuda_free_functions(&fn);
+}
+void VideoEncoderNvenc::deleter::operator()(NvencFunctions * fn)
+{
+	nvenc_free_functions(&fn);
+}
+
 VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_settings & settings, float fps) :
         vk(vk), fps(fps), bitrate(settings.bitrate)
 {
+	{
+		CudaFunctions * tmp = nullptr;
+		if (cuda_load_functions(&tmp, nullptr))
+			throw std::runtime_error("Failed to load CUDA");
+		cuda_fn.reset(tmp);
+	}
+	{
+		NvencFunctions * tmp = nullptr;
+		if (nvenc_load_functions(&tmp, nullptr))
+			throw std::runtime_error("Failed to load nvenc");
+		nvenc_fn.reset(tmp);
+	}
 	rect = vk::Rect2D{
 	        .offset = {
 	                .x = settings.offset_x,
@@ -78,12 +99,12 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_setting
 	        },
 	};
 	pitch = settings.video_width;
-	CU_CHECK(cuInit(0));
+	CU_CHECK(cuda_fn->cuInit(0));
 
-	CU_CHECK(cuCtxCreate(&cuda, 0, 0));
+	CU_CHECK(cuda_fn->cuCtxCreate(&cuda, 0, 0));
 
 	fn.version = NV_ENCODE_API_FUNCTION_LIST_VER;
-	NVENC_CHECK_NOENCODER(NvEncodeAPICreateInstance(&fn));
+	NVENC_CHECK_NOENCODER(nvenc_fn->NvEncodeAPICreateInstance(&fn));
 
 	{
 		NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params{
@@ -236,14 +257,14 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_setting
 		        .size = memory_req.size,
 		        .flags = 0,
 		};
-		CU_CHECK(cuImportExternalMemory(&extmem, &param));
+		CU_CHECK(cuda_fn->cuImportExternalMemory(&extmem, &param));
 
 		CUDA_EXTERNAL_MEMORY_BUFFER_DESC map_param{
 		        .offset = 0,
 		        .size = buffer_size,
 		        .flags = 0,
 		};
-		CU_CHECK(cuExternalMemoryGetMappedBuffer(&frame, extmem, &map_param));
+		CU_CHECK(cuda_fn->cuExternalMemoryGetMappedBuffer(&frame, extmem, &map_param));
 	}
 
 	NV_ENC_REGISTER_RESOURCE param3{};
@@ -257,7 +278,7 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_setting
 	param3.bufferUsage = NV_ENC_INPUT_IMAGE;
 	NVENC_CHECK(fn.nvEncRegisterResource(session_handle, &param3));
 	nvenc_resource = param3.registeredResource;
-	CU_CHECK(cuCtxPopCurrent(NULL));
+	CU_CHECK(cuda_fn->cuCtxPopCurrent(NULL));
 }
 
 void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf)
@@ -306,7 +327,7 @@ void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandB
 
 void VideoEncoderNvenc::Encode(bool idr, std::chrono::steady_clock::time_point pts)
 {
-	CU_CHECK(cuCtxPushCurrent(cuda));
+	CU_CHECK(cuda_fn->cuCtxPushCurrent(cuda));
 
 	NV_ENC_MAP_INPUT_RESOURCE param4{};
 	param4.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
@@ -338,7 +359,7 @@ void VideoEncoderNvenc::Encode(bool idr, std::chrono::steady_clock::time_point p
 
 	NVENC_CHECK(fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer));
 
-	CU_CHECK(cuCtxPopCurrent(NULL));
+	CU_CHECK(cuda_fn->cuCtxPopCurrent(NULL));
 }
 
 } // namespace xrt::drivers::wivrn

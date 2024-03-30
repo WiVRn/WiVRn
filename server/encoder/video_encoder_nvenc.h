@@ -19,9 +19,10 @@
 
 #pragma once
 
-#include "nvEncodeAPI.h"
 #include "video_encoder.h"
-#include <cuda.h>
+#include <ffnvcodec/dynlink_cuda.h>
+#include <ffnvcodec/dynlink_loader.h>
+#include <ffnvcodec/nvEncodeAPI.h>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace xrt::drivers::wivrn
@@ -29,10 +30,17 @@ namespace xrt::drivers::wivrn
 
 class VideoEncoderNvenc : public VideoEncoder
 {
+	struct deleter
+	{
+		void operator()(CudaFunctions * fn);
+		void operator()(NvencFunctions * fn);
+	};
 	wivrn_vk_bundle & vk;
 	// relevant part of the input image to encode
 	vk::Rect2D rect;
 
+	std::unique_ptr<CudaFunctions, deleter> cuda_fn;
+	std::unique_ptr<NvencFunctions, deleter> nvenc_fn;
 	NV_ENCODE_API_FUNCTION_LIST fn;
 	CUcontext cuda;
 	void * session_handle;
