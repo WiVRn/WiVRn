@@ -28,7 +28,6 @@
 #include <optional>
 #include <vector>
 #include <map>
-#include <future>
 
 #include "render/scene_renderer.h"
 #include "render/imgui_impl.h"

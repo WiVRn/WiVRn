@@ -150,18 +150,21 @@ public:
 		vk::raii::Fence fence = nullptr;
 		vk::raii::CommandBuffer cb = nullptr;
 		std::vector<std::shared_ptr<void>> resources;
+		bool query_pool_filled = false;
 
-                // Uniform buffer for per-view and per-instance data
-	        // host visible, host coherent
+		// Uniform buffer for per-view and per-instance data
+		// host visible, host coherent
 		size_t staging_buffer_offset;
-   	        buffer_allocation staging_buffer;
+		buffer_allocation staging_buffer;
 
-	        // device local
-	        // buffer_allocation uniform_buffer;
+		// device local
+		// buffer_allocation uniform_buffer;
 	};
 
 	std::vector<per_frame_resources> frame_resources;
 	int current_frame_index;
+	vk::raii::QueryPool query_pool = nullptr;
+	double gpu_time_s = 0;
 
 	per_frame_resources& current_frame();
 
@@ -182,6 +185,11 @@ public:
 	void start_frame();
 	void render(scene_data & scene, const std::array<float, 4>& clear_color, std::span<frame_info> info);
 	void end_frame();
+
+	double get_gpu_time() const
+	{
+		return gpu_time_s;
+	}
 
 	std::shared_ptr<scene_data::material> get_default_material()
 	{

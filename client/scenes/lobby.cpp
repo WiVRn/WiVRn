@@ -31,7 +31,6 @@
 #include "utils/contains.h"
 #include "wivrn_client.h"
 #include "xr/passthrough.h"
-#include <chrono>
 #include <glm/gtc/matrix_access.hpp>
 
 #include "wivrn_discover.h"
@@ -51,8 +50,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-
-using namespace std::chrono_literals;
 
 static const std::string discover_service = "_wivrn._tcp.local.";
 static bool force_autoconnect = false;

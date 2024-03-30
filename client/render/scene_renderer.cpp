@@ -190,6 +190,12 @@ scene_renderer::scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevi
 		res.fence = device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
 		res.cb = std::move(cb);
 	}
+	query_pool = vk::raii::QueryPool(
+	        device,
+	        vk::QueryPoolCreateInfo{
+	                .queryType = vk::QueryType::eTimestamp,
+	                .queryCount = uint32_t(2 * frames_in_flight),
+	        });
 
 	renderpass = create_renderpass();
 
@@ -531,8 +537,25 @@ void scene_renderer::start_frame()
 		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 	device.resetFences(*f.fence);
 
+	if (f.query_pool_filled)
+	{
+		auto [res, timestamps] = query_pool.getResults<uint64_t>(
+			current_frame_index * 2,
+			2,
+			2 * sizeof(uint64_t),
+			sizeof(uint64_t),
+			vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
+
+		if (res == vk::Result::eSuccess)
+		{
+			gpu_time_s = (timestamps[1] - timestamps[0]) * application::get_physical_device_properties().limits.timestampPeriod / 1e9;
+		}
+	}
+
 	f.resources.clear();
 	f.cb.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+	f.cb.resetQueryPool(*query_pool, current_frame_index * 2, 2);
+	f.cb.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, current_frame_index * 2);
 
 	// TODO: replace with vector<byte> and write to GPU in end_frame()
 	f.staging_buffer_offset = 0;
@@ -553,12 +576,14 @@ void scene_renderer::end_frame()
 {
 	auto& f = current_frame();
 
+	f.cb.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, current_frame_index * 2 + 1);
 	f.cb.end();
 
 	queue.submit(vk::SubmitInfo{
 		.commandBufferCount = 1,
 		.pCommandBuffers = &*f.cb,
 	}, *f.fence);
+	f.query_pool_filled = true;
 }
 
 scene_renderer::per_frame_resources & scene_renderer::current_frame()

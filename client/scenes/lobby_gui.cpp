@@ -419,7 +419,7 @@ void scenes::lobby::gui_settings()
 
 
 		cpu_time[offset] = application::get_cpu_time().count() * 1.0e-6;
-		gpu_time[offset] = application::get_gpu_time().count() * 1.0e-6;
+		gpu_time[offset] = renderer->get_gpu_time() * 1'000;
 		offset = (offset + 1) % cpu_time.size();
 
 		ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));

@@ -134,7 +134,6 @@ class application : public singleton<application>
 	std::vector<std::shared_ptr<scene>> scene_stack;
 	std::weak_ptr<scene> last_scene;
 	std::chrono::nanoseconds last_scene_cpu_time;
-	std::chrono::nanoseconds last_scene_gpu_time;
 
 	void loop();
 
@@ -387,11 +386,6 @@ public:
 	static std::chrono::nanoseconds get_cpu_time()
 	{
 		return instance().last_scene_cpu_time;
-	}
-
-	static std::chrono::nanoseconds get_gpu_time()
-	{
-		return instance().last_scene_gpu_time;
 	}
 
 	static bool get_hand_tracking_supported()
