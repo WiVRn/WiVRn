@@ -20,12 +20,10 @@
 
 #include <fstream>
 #include <vector>
-#include <span>
-#include <concepts>
 
 namespace utils
 {
-template<typename T>
+template <typename T>
 static std::vector<T> read_whole_file(std::filesystem::path filename)
 {
 	std::ifstream file(filename, std::ios::binary | std::ios::ate);
@@ -34,7 +32,7 @@ static std::vector<T> read_whole_file(std::filesystem::path filename)
 	size_t size = file.tellg();
 	file.seekg(0);
 
-	if constexpr(sizeof(T) > 1)
+	if constexpr (sizeof(T) > 1)
 		size = size - size % sizeof(T);
 
 	std::vector<T> bytes(size / sizeof(T));
@@ -44,8 +42,8 @@ static std::vector<T> read_whole_file(std::filesystem::path filename)
 	return bytes;
 }
 
-template<typename T>
-requires std::contiguous_iterator<typename T::iterator>
+template <typename T>
+        requires std::contiguous_iterator<typename T::iterator>
 static void write_whole_file(std::filesystem::path filename, T bytes)
 {
 	std::ofstream file(filename, std::ios::binary);
@@ -53,4 +51,4 @@ static void write_whole_file(std::filesystem::path filename, T bytes)
 
 	file.write(reinterpret_cast<const char *>(bytes.data()), bytes.size() * sizeof(typename T::value_type));
 }
-}
+} // namespace utils

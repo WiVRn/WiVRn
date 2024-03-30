@@ -27,7 +27,7 @@ struct hand_model
 	node_handle root_node;
 	std::vector<node_handle> joints;
 
-	hand_model(const std::filesystem::path & gltf_path, scene_loader& loader, scene_data& scene);
+	hand_model(const std::filesystem::path & gltf_path, scene_loader & loader, scene_data & scene);
 
-	void apply(const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>>& joints);
+	void apply(const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & joints);
 };

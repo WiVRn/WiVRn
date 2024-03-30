@@ -148,7 +148,6 @@ class application : public singleton<application>
 	std::unordered_set<uint64_t> debug_report_ignored_objects;
 	std::unordered_map<uint64_t, std::string> debug_report_object_name;
 
-
 #ifndef NDEBUG
 	vk::raii::DebugReportCallbackEXT debug_report_callback = nullptr;
 #endif
@@ -164,12 +163,12 @@ public:
 
 	void set_wifi_locks(bool enabled);
 
-	static AAssetManager* asset_manager()
+	static AAssetManager * asset_manager()
 	{
 		return instance().app_info.native_app->activity->assetManager;
 	}
 
-	static android_app* native_app()
+	static android_app * native_app()
 	{
 		return instance().app_info.native_app;
 	}
@@ -222,16 +221,16 @@ public:
 			return {};
 
 		glm::vec3 position{
-			location.pose.position.x,
-			location.pose.position.y,
-			location.pose.position.z,
+		        location.pose.position.x,
+		        location.pose.position.y,
+		        location.pose.position.z,
 		};
 
 		glm::quat orientation{
-			location.pose.orientation.w,
-			location.pose.orientation.x,
-			location.pose.orientation.y,
-			location.pose.orientation.z,
+		        location.pose.orientation.w,
+		        location.pose.orientation.x,
+		        location.pose.orientation.y,
+		        location.pose.orientation.z,
 		};
 
 		return std::make_pair(position, orientation);
@@ -309,22 +308,22 @@ public:
 #endif
 	}
 
-	template<typename T>
-	static void set_debug_reports_name(const T& object, std::string name)
+	template <typename T>
+	static void set_debug_reports_name(const T & object, std::string name)
 	{
-// #ifndef NDEBUG
+		// #ifndef NDEBUG
 		// if (instance().debug_utils_found)
-			const vk::DebugUtilsObjectNameInfoEXT name_info {
-				.objectType = T::objectType,
-				.objectHandle = (uint64_t)(typename T::NativeType)object,
-				.pObjectName = name.c_str(),
-			};
+		const vk::DebugUtilsObjectNameInfoEXT name_info{
+		        .objectType = T::objectType,
+		        .objectHandle = (uint64_t)(typename T::NativeType)object,
+		        .pObjectName = name.c_str(),
+		};
 
-			instance().vk_device.setDebugUtilsObjectNameEXT(name_info);
+		instance().vk_device.setDebugUtilsObjectNameEXT(name_info);
 
 		// printf("set_debug_reports_name %p, %s\n", object, name.c_str());
 		// instance().debug_report_object_name[(uint64_t)object] = std::move(name);
-// #endif
+		// #endif
 	}
 
 	static XrTime now()
@@ -337,47 +336,47 @@ public:
 		return instance().vk_queue_family_index;
 	}
 
-	static vk::raii::Queue& get_queue()
+	static vk::raii::Queue & get_queue()
 	{
-			return instance().vk_queue;
+		return instance().vk_queue;
 	}
 
-	const std::string& get_server_address() const
+	const std::string & get_server_address() const
 	{
 		return server_address;
 	}
 
-	static vk::raii::PhysicalDevice& get_physical_device()
+	static vk::raii::PhysicalDevice & get_physical_device()
 	{
 		return instance().vk_physical_device;
 	}
 
-	static const vk::PhysicalDeviceProperties& get_physical_device_properties()
+	static const vk::PhysicalDeviceProperties & get_physical_device_properties()
 	{
 		return instance().physical_device_properties;
 	}
 
-	static vk::raii::Device& get_device()
+	static vk::raii::Device & get_device()
 	{
 		return instance().vk_device;
 	}
 
-	static vk::raii::Instance& get_vulkan_instance()
+	static vk::raii::Instance & get_vulkan_instance()
 	{
-			return instance().vk_instance;
+		return instance().vk_instance;
 	}
 
-	static vk::raii::PipelineCache& get_pipeline_cache()
+	static vk::raii::PipelineCache & get_pipeline_cache()
 	{
-			return instance().pipeline_cache;
+		return instance().pipeline_cache;
 	}
 
-	static const std::filesystem::path& get_config_path()
+	static const std::filesystem::path & get_config_path()
 	{
 		return instance().config_path;
 	}
 
-	static const std::filesystem::path& get_cache_path()
+	static const std::filesystem::path & get_cache_path()
 	{
 		return instance().cache_path;
 	}
@@ -392,17 +391,17 @@ public:
 		return instance().hand_tracking_supported;
 	}
 
-	static xr::hand_tracker& get_left_hand()
+	static xr::hand_tracker & get_left_hand()
 	{
 		return instance().left_hand;
 	}
 
-	static xr::hand_tracker& get_right_hand()
+	static xr::hand_tracker & get_right_hand()
 	{
 		return instance().right_hand;
 	}
 
-	static const std::vector<std::string>& get_xr_extensions()
+	static const std::vector<std::string> & get_xr_extensions()
 	{
 		return instance().xr_extensions;
 	}

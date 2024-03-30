@@ -18,18 +18,18 @@
 
 #include "growable_descriptor_pool.h"
 
-#include <stdexcept>
 #include <algorithm>
+#include <stdexcept>
 
 struct descriptor_set
 {
-	growable_descriptor_pool& growable_pool;
+	growable_descriptor_pool & growable_pool;
 	vk::DescriptorPool pool;
 	vk::raii::DescriptorSet ds;
 
 	~descriptor_set()
 	{
-		for(auto& i: growable_pool.pools)
+		for (auto & i: growable_pool.pools)
 		{
 			if (*i.descriptor_pool == pool)
 			{
@@ -40,25 +40,31 @@ struct descriptor_set
 	}
 };
 
-growable_descriptor_pool::growable_descriptor_pool(vk::raii::Device & device, vk::raii::DescriptorSetLayout& layout, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool) :
-        device(device), layout_(nullptr), descriptorsets_per_pool(descriptorsets_per_pool)
+growable_descriptor_pool::growable_descriptor_pool(
+        vk::raii::Device & device,
+        vk::raii::DescriptorSetLayout & layout,
+        std::span<vk::DescriptorSetLayoutBinding> bindings,
+        int descriptorsets_per_pool) :
+        device(device),
+        layout_(nullptr),
+        descriptorsets_per_pool(descriptorsets_per_pool)
 {
 	if (descriptorsets_per_pool <= 0)
 		throw std::invalid_argument("descriptorsets_per_pool");
 
-	for(vk::DescriptorSetLayoutBinding binding: bindings)
+	for (vk::DescriptorSetLayoutBinding binding: bindings)
 	{
-	    if (auto it = std::find_if(size.begin(), size.end(), [&binding](vk::DescriptorPoolSize& x){return x.type == binding.descriptorType;}); it != size.end())
-	    {
-		it->descriptorCount += binding.descriptorCount * descriptorsets_per_pool;
-	    }
-	    else if (binding.descriptorCount > 0)
-	    {
-		size.push_back(vk::DescriptorPoolSize{
-		    .type = binding.descriptorType,
-		    .descriptorCount = binding.descriptorCount * descriptorsets_per_pool,
-		});
-	    }
+		if (auto it = std::find_if(size.begin(), size.end(), [&binding](vk::DescriptorPoolSize & x) { return x.type == binding.descriptorType; }); it != size.end())
+		{
+			it->descriptorCount += binding.descriptorCount * descriptorsets_per_pool;
+		}
+		else if (binding.descriptorCount > 0)
+		{
+			size.push_back(vk::DescriptorPoolSize{
+			        .type = binding.descriptorType,
+			        .descriptorCount = binding.descriptorCount * descriptorsets_per_pool,
+			});
+		}
 	}
 
 	layout_ = *layout;
@@ -91,8 +97,8 @@ std::shared_ptr<vk::raii::DescriptorSet> growable_descriptor_pool::allocate()
 	pool_info.setPoolSizes(size);
 
 	pools.push_back(pool{
-	    .free_count = descriptorsets_per_pool - 1,
-	    .descriptor_pool = vk::raii::DescriptorPool(device, pool_info),
+	        .free_count = descriptorsets_per_pool - 1,
+	        .descriptor_pool = vk::raii::DescriptorPool(device, pool_info),
 	});
 
 	alloc_info.descriptorPool = *pools.back().descriptor_pool;

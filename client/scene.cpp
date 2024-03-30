@@ -19,7 +19,6 @@
 
 #include "scene.h"
 #include "application.h"
-#include <cassert>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -27,21 +26,21 @@ std::vector<scene::meta *> scene::scene_registry;
 
 scene::~scene() {}
 
-scene::scene(key, const meta& current_meta) :
-	instance(application::instance().xr_instance),
-	system(application::instance().xr_system_id),
-	session(application::instance().xr_session),
-	world_space(application::instance().world_space),
-	view_space(application::instance().view_space),
-	viewconfig(application::instance().app_info.viewconfig),
+scene::scene(key, const meta & current_meta) :
+        instance(application::instance().xr_instance),
+        system(application::instance().xr_system_id),
+        session(application::instance().xr_session),
+        world_space(application::instance().world_space),
+        view_space(application::instance().view_space),
+        viewconfig(application::instance().app_info.viewconfig),
 
-	vk_instance(application::instance().vk_instance),
-	device(application::instance().vk_device),
-	physical_device(application::instance().vk_physical_device),
-	queue(application::instance().vk_queue),
-	commandpool(application::instance().vk_cmdpool),
-	queue_family_index(application::instance().vk_queue_family_index),
-	current_meta(current_meta)
+        vk_instance(application::instance().vk_instance),
+        device(application::instance().vk_device),
+        physical_device(application::instance().vk_physical_device),
+        queue(application::instance().vk_queue),
+        commandpool(application::instance().vk_cmdpool),
+        queue_family_index(application::instance().vk_queue_family_index),
+        current_meta(current_meta)
 {
 }
 

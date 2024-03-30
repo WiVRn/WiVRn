@@ -18,10 +18,10 @@
  */
 
 #include "passthrough.h"
-#include "session.h"
 #include "openxr/openxr.h"
+#include "session.h"
 
-xr::passthrough_layer_fb::passthrough_layer_fb(instance& inst, session& s, const XrPassthroughLayerCreateInfoFB& info)
+xr::passthrough_layer_fb::passthrough_layer_fb(instance & inst, session & s, const XrPassthroughLayerCreateInfoFB & info)
 {
 	xrDestroyPassthroughLayerFB = inst.get_proc<PFN_xrDestroyPassthroughLayerFB>("xrDestroyPassthroughLayerFB");
 
@@ -35,7 +35,6 @@ xr::passthrough_layer_fb::~passthrough_layer_fb()
 		xrDestroyPassthroughLayerFB(id);
 }
 
-
 xr::passthrough_fb::passthrough_fb(instance & inst, session & s)
 {
 	PFN_xrCreatePassthroughFB xrCreatePassthroughFB = inst.get_proc<PFN_xrCreatePassthroughFB>("xrCreatePassthroughFB");
@@ -47,26 +46,26 @@ xr::passthrough_fb::passthrough_fb(instance & inst, session & s)
 	xrPassthroughLayerResumeFB = inst.get_proc<PFN_xrPassthroughLayerResumeFB>("xrPassthroughLayerResumeFB");
 
 	XrPassthroughCreateInfoFB info{
-		.type = XR_TYPE_PASSTHROUGH_CREATE_INFO_FB,
-		.flags = 0
+	        .type = XR_TYPE_PASSTHROUGH_CREATE_INFO_FB,
+	        .flags = 0,
 	};
 
 	CHECK_XR(xrCreatePassthroughFB(s, &info, &id));
 
 	XrPassthroughLayerCreateInfoFB layer_info{
-		.type = XR_TYPE_PASSTHROUGH_LAYER_CREATE_INFO_FB,
-		.passthrough = id,
-		.flags = 0,
-		.purpose = XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB
+	        .type = XR_TYPE_PASSTHROUGH_LAYER_CREATE_INFO_FB,
+	        .passthrough = id,
+	        .flags = 0,
+	        .purpose = XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB,
 	};
 
 	passthrough_layer.emplace(inst, s, layer_info);
 
 	composition_layer = XrCompositionLayerPassthroughFB{
-		.type = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB,
-		.flags = 0,
-		.space = XR_NULL_HANDLE,
-		.layerHandle = *passthrough_layer
+	        .type = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB,
+	        .flags = 0,
+	        .space = XR_NULL_HANDLE,
+	        .layerHandle = *passthrough_layer,
 	};
 }
 
@@ -95,21 +94,21 @@ xr::passthrough_htc::passthrough_htc(instance & inst, session & s)
 	xrDestroyPassthroughHTC = inst.get_proc<PFN_xrDestroyPassthroughHTC>("xrDestroyPassthroughHTC");
 
 	XrPassthroughCreateInfoHTC info{
-		.type = XR_TYPE_PASSTHROUGH_CREATE_INFO_HTC,
-		.form = XR_PASSTHROUGH_FORM_PLANAR_HTC
+	        .type = XR_TYPE_PASSTHROUGH_CREATE_INFO_HTC,
+	        .form = XR_PASSTHROUGH_FORM_PLANAR_HTC,
 	};
 
 	CHECK_XR(xrCreatePassthroughHTC(s, &info, &id));
 
 	composition_layer = XrCompositionLayerPassthroughHTC{
-		.type = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_HTC,
-		.layerFlags = 0,
-		.space = XR_NULL_HANDLE,
-		.passthrough = id,
-		.color = {
-			.type = XR_TYPE_PASSTHROUGH_COLOR_HTC,
-			.alpha = 1
-		}
+	        .type = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_HTC,
+	        .layerFlags = 0,
+	        .space = XR_NULL_HANDLE,
+	        .passthrough = id,
+	        .color = {
+	                .type = XR_TYPE_PASSTHROUGH_COLOR_HTC,
+	                .alpha = 1,
+	        },
 	};
 }
 
@@ -118,4 +117,3 @@ xr::passthrough_htc::~passthrough_htc()
 	if (id != XR_NULL_HANDLE && xrDestroyPassthroughHTC)
 		xrDestroyPassthroughHTC(id);
 }
-

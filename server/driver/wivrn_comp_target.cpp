@@ -21,7 +21,6 @@
 #include "encoder/video_encoder.h"
 #include "main/comp_compositor.h"
 #include "math/m_space.h"
-#include "encoder/video_encoder.h"
 #include "xrt_cast.h"
 #include <condition_variable>
 #include <list>
@@ -540,12 +539,12 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	view_info.display_time = cn->cnx->get_offset().to_headset(desired_present_time_ns);
 	for (int eye = 0; eye < 2; ++eye)
 	{
-		const auto &slot = cn->c->base.slot;
+		const auto & slot = cn->c->base.slot;
 		view_info.fov[eye] = xrt_cast(slot.fovs[eye]);
 		view_info.pose[eye] = xrt_cast(slot.poses[eye]);
 		if (cn->c->debug.atw_off)
 		{
-			const auto &stereo = slot.layers[0].data.stereo;
+			const auto & stereo = slot.layers[0].data.stereo;
 			view_info.pose[eye] = xrt_cast(eye ? stereo.r.pose : stereo.l.pose);
 		}
 		else

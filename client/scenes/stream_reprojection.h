@@ -21,9 +21,8 @@
 
 #include "vk/allocation.h"
 #include "wivrn_packets.h"
-#include <vulkan/vulkan_core.h>
-#include <openxr/openxr.h>
 #include <vulkan/vulkan_raii.hpp>
+#include <openxr/openxr.h>
 
 class stream_reprojection
 {
@@ -56,8 +55,23 @@ class stream_reprojection
 	std::array<xrt::drivers::wivrn::to_headset::video_stream_description::foveation_parameter, 2> foveation_parameters;
 
 public:
-	stream_reprojection(vk::raii::Device& device, vk::raii::PhysicalDevice& physical_device, std::vector<vk::Image> input_images, std::vector<vk::Image> output_images, vk::Extent2D extent, vk::Format format, const xrt::drivers::wivrn::to_headset::video_stream_description & description);
+	stream_reprojection(
+	        vk::raii::Device & device,
+	        vk::raii::PhysicalDevice & physical_device,
+	        std::vector<vk::Image> input_images,
+	        std::vector<vk::Image> output_images,
+	        vk::Extent2D extent,
+	        vk::Format format,
+	        const xrt::drivers::wivrn::to_headset::video_stream_description & description);
+
 	stream_reprojection(const stream_reprojection &) = delete;
 
-	void reproject(vk::raii::CommandBuffer& command_buffer, int source, int destination, XrQuaternionf source_pose, XrFovf source_fov, XrQuaternionf destination_pose, XrFovf destination_fov);
+	void reproject(
+	        vk::raii::CommandBuffer & command_buffer,
+	        int source,
+	        int destination,
+	        XrQuaternionf source_pose,
+	        XrFovf source_fov,
+	        XrQuaternionf destination_pose,
+	        XrFovf destination_fov);
 };

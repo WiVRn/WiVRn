@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "video_encoder_ffmpeg.h"
 #include "ffmpeg_helper.h"
 #include "utils/wivrn_vk_bundle.h"
+#include "video_encoder_ffmpeg.h"
 #include <vulkan/vulkan_raii.hpp>
 
 namespace xrt::drivers::wivrn
@@ -40,7 +40,7 @@ class video_encoder_va : public VideoEncoderFFMPEG
 	std::vector<vk::raii::DeviceMemory> mem;
 
 public:
-	video_encoder_va(wivrn_vk_bundle&, xrt::drivers::wivrn::encoder_settings & settings, float fps);
+	video_encoder_va(wivrn_vk_bundle &, xrt::drivers::wivrn::encoder_settings & settings, float fps);
 
 	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;
 

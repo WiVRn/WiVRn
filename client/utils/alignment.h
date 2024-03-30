@@ -23,10 +23,10 @@
 
 namespace utils
 {
-	template<typename T>
-	requires std::integral<T>
-	T align_up(T alignment, T value)
-	{
-		return ((value + alignment - 1) / alignment) * alignment;
-	}
+template <typename T>
+        requires std::integral<T>
+T align_up(T alignment, T value)
+{
+	return ((value + alignment - 1) / alignment) * alignment;
 }
+} // namespace utils

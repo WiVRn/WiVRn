@@ -23,9 +23,9 @@
 #include "spdlog/spdlog.h"
 
 #include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #ifdef __ANDROID__
 #include "spdlog/sinks/android_sink.h"
@@ -63,11 +63,14 @@ void real_main()
 			if (colon == std::string::npos)
 			{
 				port = xrt::drivers::wivrn::default_port;
-			} else {
+			}
+			else
+			{
 				port = std::stoi(server_address.substr(colon + 1));
 				server_address = server_address.substr(0, colon);
 			}
-			struct addrinfo hint{
+			struct addrinfo hint
+			{
 				.ai_flags = AI_ADDRCONFIG,
 				.ai_family = AF_UNSPEC,
 				.ai_socktype = SOCK_STREAM,
@@ -77,25 +80,26 @@ void real_main()
 			{
 				throw std::runtime_error("Unable to resolve address for " + server_address + ":" + gai_strerror(err));
 			}
-			for (addrinfo *addr = addresses ; addr and not session; addr = addr->ai_next)
+			for (addrinfo * addr = addresses; addr and not session; addr = addr->ai_next)
 			{
-				try {
+				try
+				{
 					char buf[100];
 					switch (addr->ai_family)
 					{
 						case AF_INET:
-							inet_ntop(addr->ai_family, &((sockaddr_in*)addr->ai_addr)->sin_addr, buf, sizeof(buf));
+							inet_ntop(addr->ai_family, &((sockaddr_in *)addr->ai_addr)->sin_addr, buf, sizeof(buf));
 							spdlog::info("Trying to connect to {} port {}", buf, port);
-							session = std::make_unique<wivrn_session>(((sockaddr_in*)addr->ai_addr)->sin_addr, port);
+							session = std::make_unique<wivrn_session>(((sockaddr_in *)addr->ai_addr)->sin_addr, port);
 							break;
 						case AF_INET6:
-							inet_ntop(addr->ai_family, &((sockaddr_in6*)addr->ai_addr)->sin6_addr, buf, sizeof(buf));
+							inet_ntop(addr->ai_family, &((sockaddr_in6 *)addr->ai_addr)->sin6_addr, buf, sizeof(buf));
 							spdlog::info("Trying to connect to {} port {}", buf, port);
-							session = std::make_unique<wivrn_session>(((sockaddr_in6*)addr->ai_addr)->sin6_addr, port);
+							session = std::make_unique<wivrn_session>(((sockaddr_in6 *)addr->ai_addr)->sin6_addr, port);
 							break;
 					}
 				}
-				catch(std::exception& e)
+				catch (std::exception & e)
 				{
 					spdlog::warn("Cannot connect to {}: {}", server_address, e.what());
 				}

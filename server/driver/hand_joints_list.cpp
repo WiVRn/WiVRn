@@ -28,19 +28,18 @@ static_assert(XRT_HAND_JOINT_COUNT == XR_HAND_JOINT_COUNT_EXT);
 
 namespace
 {
-	xrt_hand_joint_value interpolate(const xrt_hand_joint_value & a, const xrt_hand_joint_value & b, float t)
-	{
-		return {
-			.relation = pose_list::interpolate(a.relation, b.relation, t),
-			.radius = a.radius * (1-t) + b.radius * t
-		};
-	}
+xrt_hand_joint_value interpolate(const xrt_hand_joint_value & a, const xrt_hand_joint_value & b, float t)
+{
+	return {
+	        .relation = pose_list::interpolate(a.relation, b.relation, t),
+	        .radius = a.radius * (1 - t) + b.radius * t};
 }
+} // namespace
 
 xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t)
 {
 	xrt_hand_joint_set j = a;
-	for(int i = 0; i < XRT_HAND_JOINT_COUNT; i++)
+	for (int i = 0; i < XRT_HAND_JOINT_COUNT; i++)
 	{
 		j.values.hand_joint_set_default[i] = ::interpolate(a.values.hand_joint_set_default[i], b.values.hand_joint_set_default[i], t);
 	}
@@ -49,7 +48,7 @@ xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, c
 
 xrt_hand_joint_set hand_joints_list::extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, uint64_t ta, uint64_t tb, uint64_t t)
 {
-	xrt_hand_joint_set j =  t <= ta ? a : b;
+	xrt_hand_joint_set j = t <= ta ? a : b;
 	// Only extrapolate the hand pose, individual joints are too noisy
 	j.hand_pose = pose_list::extrapolate(a.hand_pose, b.hand_pose, ta, tb, t);
 	return j;
@@ -78,17 +77,17 @@ static xrt_space_relation_flags cast_flags(uint8_t in_flags)
 	return xrt_space_relation_flags(flags);
 }
 
-static xrt_space_relation to_relation(const from_headset::hand_tracking::pose& pose)
+static xrt_space_relation to_relation(const from_headset::hand_tracking::pose & pose)
 {
 	return {
-		.relation_flags = cast_flags(pose.flags),
-		.pose = xrt_cast(pose.pose),
-		.linear_velocity = xrt_cast(pose.linear_velocity),
-		.angular_velocity = xrt_cast(pose.angular_velocity),
+	        .relation_flags = cast_flags(pose.flags),
+	        .pose = xrt_cast(pose.pose),
+	        .linear_velocity = xrt_cast(pose.linear_velocity),
+	        .angular_velocity = xrt_cast(pose.angular_velocity),
 	};
 }
 
-static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>>& input_joints)
+static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> & input_joints)
 {
 	xrt_hand_joint_set output_joints{};
 
@@ -101,9 +100,9 @@ static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_hea
 		xrt_space_relation * joint_rel = m_relation_chain_reserve(&rel_chain);
 		m_relation_chain_push_inverted_relation(&rel_chain, &output_joints.hand_pose);
 
-		for(int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+		for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 		{
-			xrt_hand_joint_value& res = output_joints.values.hand_joint_set_default[i];
+			xrt_hand_joint_value & res = output_joints.values.hand_joint_set_default[i];
 
 			res.radius = (*input_joints)[i].radius;
 			*joint_rel = to_relation((*input_joints)[i]);

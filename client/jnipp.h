@@ -303,7 +303,7 @@ struct array
 		return self.get();
 	}
 
-	array(T& element)
+	array(T & element)
 	{
 		auto & env = jni_thread::env();
 		self.reset(env.NewObjectArray(1, element.klass(), element));

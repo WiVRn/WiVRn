@@ -20,12 +20,10 @@
 #include "android_decoder.h"
 #include "application.h"
 #include "scenes/stream.h"
-#include "vk/shader.h"
-#include "vk/pipeline.h"
+#include "utils/named_thread.h"
 #include <algorithm>
 #include <android/hardware_buffer.h>
 #include <cassert>
-#include <chrono>
 #include <media/NdkImage.h>
 #include <media/NdkImageReader.h>
 #include <media/NdkMediaCodec.h>
@@ -218,8 +216,8 @@ void decoder::push_nals(std::span<std::span<const uint8_t>> data, int64_t timest
 }
 
 decoder::decoder(
-        vk::raii::Device& device,
-        vk::raii::PhysicalDevice& physical_device,
+        vk::raii::Device & device,
+        vk::raii::PhysicalDevice & physical_device,
         const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
         float fps,
         uint8_t stream_index,
@@ -227,10 +225,16 @@ decoder::decoder(
         shard_accumulator * accumulator) :
         description(description), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
 {
-	spdlog::info("hbm_mutex.native_handle() = {}", (void*)hbm_mutex.native_handle());
+	spdlog::info("hbm_mutex.native_handle() = {}", (void *)hbm_mutex.native_handle());
 
 	AImageReader * ir;
-	check(AImageReader_newWithUsage(description.width, description.height, AIMAGE_FORMAT_PRIVATE, AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE, 5 /* maxImages */, &ir),
+	check(AImageReader_newWithUsage(
+	              description.width,
+	              description.height,
+	              AIMAGE_FORMAT_PRIVATE,
+	              AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE,
+	              5 /* maxImages */,
+	              &ir),
 	      "AImageReader_newWithUsage");
 	image_reader.reset(ir);
 
@@ -241,28 +245,30 @@ decoder::decoder(
 	        application::get_vulkan_proc<PFN_vkGetAndroidHardwareBufferPropertiesANDROID>(
 	                "vkGetAndroidHardwareBufferPropertiesANDROID");
 
-	output_releaser = utils::named_thread("decoder-" + std::to_string(stream_index), [this]() {
-		while (true)
-		{
-			try
-			{
-				auto index = output_buffers.pop();
-				auto status = AMediaCodec_releaseOutputBuffer(media_codec.get(), index, true);
-				// will trigger on_image_available through ImageReader
-				if (status != AMEDIA_OK)
-					spdlog::error("AMediaCodec_releaseOutputBuffer: MediaCodec error {}",
-					              (int)status);
-			}
-			catch (const utils::sync_queue_closed & e)
-			{
-				return;
-			}
-			catch (const std::exception & e)
-			{
-				spdlog::error("error in output releaser thread: {}", e.what());
-			}
-		}
-	});
+	output_releaser = utils::named_thread(
+	        "decoder-" + std::to_string(stream_index),
+	        [this]() {
+		        while (true)
+		        {
+			        try
+			        {
+				        auto index = output_buffers.pop();
+				        auto status = AMediaCodec_releaseOutputBuffer(media_codec.get(), index, true);
+				        // will trigger on_image_available through ImageReader
+				        if (status != AMEDIA_OK)
+					        spdlog::error("AMediaCodec_releaseOutputBuffer: MediaCodec error {}",
+					                      (int)status);
+			        }
+			        catch (const utils::sync_queue_closed & e)
+			        {
+				        return;
+			        }
+			        catch (const std::exception & e)
+			        {
+				        spdlog::error("error in output releaser thread: {}", e.what());
+			        }
+		        }
+	        });
 }
 
 decoder::~decoder()
@@ -281,7 +287,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 	if (!media_codec)
 	{
 		std::vector<uint8_t> contiguous_data;
-		for (const auto& d: data)
+		for (const auto & d: data)
 			contiguous_data.insert(contiguous_data.end(), d.begin(), d.end());
 		auto [csd, not_csd] = filter_csd(contiguous_data, description.codec);
 		if (csd.empty())
@@ -335,19 +341,16 @@ void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feed
 	if (not media_codec)
 	{
 		// If media_codec is not initialized, frame processing ends here
-		auto scene = weak_scene.lock();
-		if (scene)
-		{
+		if (auto scene = weak_scene.lock())
 			scene->send_feedback(feedback);
-		}
 	}
 
 	// nothing required for decoder, mediacodec will callback when done
 	feedback.sent_to_decoder = application::now();
 	frame_infos.push(frame_info{
-		.feedback = feedback,
-		.timing_info = timing_info,
-		.view_info = view_info,
+	        .feedback = feedback,
+	        .timing_info = timing_info,
+	        .view_info = view_info,
 	});
 }
 
@@ -394,14 +397,14 @@ void decoder::on_image_available(AImageReader * reader)
 		auto vk_data = map_hardware_buffer(image);
 
 		auto handle = std::make_shared<decoder::blit_handle>(
-			info->feedback,
-			info->timing_info,
-			info->view_info,
-			vk_data->image_view,
-			*vk_data->vimage,
-			&vk_data->layout,
-			vk_data,
-			image);
+		        info->feedback,
+		        info->timing_info,
+		        info->view_info,
+		        vk_data->image_view,
+		        *vk_data->vimage,
+		        &vk_data->layout,
+		        vk_data,
+		        image);
 
 		if (auto scene = weak_scene.lock())
 			scene->push_blit_handle(accumulator, std::move(handle));
@@ -413,7 +416,7 @@ void decoder::on_image_available(AImageReader * reader)
 	}
 }
 
-void decoder::create_sampler(const AHardwareBuffer_Desc& buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format)
+void decoder::create_sampler(const AHardwareBuffer_Desc & buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format)
 {
 	assert(ahb_format.externalFormat != 0);
 	spdlog::info("AndroidHardwareBufferProperties");
@@ -421,10 +424,10 @@ void decoder::create_sampler(const AHardwareBuffer_Desc& buffer_desc, vk::Androi
 	spdlog::info("  External format: {:#x}", ahb_format.externalFormat);
 	spdlog::info("  Format features: {}", vk::to_string(ahb_format.formatFeatures));
 	spdlog::info("  samplerYcbcrConversionComponents: ({}, {}, {}, {})",
-			vk::to_string(ahb_format.samplerYcbcrConversionComponents.r),
-			vk::to_string(ahb_format.samplerYcbcrConversionComponents.g),
-			vk::to_string(ahb_format.samplerYcbcrConversionComponents.b),
-			vk::to_string(ahb_format.samplerYcbcrConversionComponents.a));
+	             vk::to_string(ahb_format.samplerYcbcrConversionComponents.r),
+	             vk::to_string(ahb_format.samplerYcbcrConversionComponents.g),
+	             vk::to_string(ahb_format.samplerYcbcrConversionComponents.b),
+	             vk::to_string(ahb_format.samplerYcbcrConversionComponents.a));
 	spdlog::info("  Suggested YCbCr model: {}", vk::to_string(ahb_format.suggestedYcbcrModel));
 	spdlog::info("  Suggested YCbCr range: {}", vk::to_string(ahb_format.suggestedYcbcrRange));
 	spdlog::info("  Suggested X chroma offset: {}", vk::to_string(ahb_format.suggestedXChromaOffset));
@@ -437,20 +440,19 @@ void decoder::create_sampler(const AHardwareBuffer_Desc& buffer_desc, vk::Androi
 		yuv_filter = vk::Filter::eNearest;
 
 	// Create VkSamplerYcbcrConversion
-	vk::StructureChain ycbcr_create_info
-	{
-		vk::SamplerYcbcrConversionCreateInfo{
-			.format = vk::Format::eUndefined,
-			.ycbcrModel = ahb_format.suggestedYcbcrModel,
-			.ycbcrRange = ahb_format.suggestedYcbcrRange,
-			.components = ahb_format.samplerYcbcrConversionComponents,
-			.xChromaOffset = ahb_format.suggestedXChromaOffset,
-			.yChromaOffset = ahb_format.suggestedYChromaOffset,
-			.chromaFilter = yuv_filter,
-		},
-		vk::ExternalFormatANDROID{
-			.externalFormat = ahb_format.externalFormat,
-		},
+	vk::StructureChain ycbcr_create_info{
+	        vk::SamplerYcbcrConversionCreateInfo{
+	                .format = vk::Format::eUndefined,
+	                .ycbcrModel = ahb_format.suggestedYcbcrModel,
+	                .ycbcrRange = ahb_format.suggestedYcbcrRange,
+	                .components = ahb_format.samplerYcbcrConversionComponents,
+	                .xChromaOffset = ahb_format.suggestedXChromaOffset,
+	                .yChromaOffset = ahb_format.suggestedYChromaOffset,
+	                .chromaFilter = yuv_filter,
+	        },
+	        vk::ExternalFormatANDROID{
+	                .externalFormat = ahb_format.externalFormat,
+	        },
 	};
 
 	// suggested values from decoder don't actually read the metadata, so it's garbage
@@ -464,28 +466,27 @@ void decoder::create_sampler(const AHardwareBuffer_Desc& buffer_desc, vk::Androi
 
 	// Create VkSampler
 	vk::StructureChain sampler_info{
-		vk::SamplerCreateInfo{
-			.magFilter = yuv_filter,
-			.minFilter = yuv_filter,
-			.mipmapMode = vk::SamplerMipmapMode::eNearest,
-			.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeV = vk::SamplerAddressMode::eClampToEdge,
-			.addressModeW = vk::SamplerAddressMode::eClampToEdge,
-			.mipLodBias = 0.0f,
-			.anisotropyEnable = VK_FALSE,
-			.maxAnisotropy = 1,
-			.compareEnable = VK_FALSE,
-			.compareOp = vk::CompareOp::eNever,
-			.minLod = 0.0f,
-			.maxLod = 0.0f,
-			.borderColor = vk::BorderColor::eFloatOpaqueWhite, // TODO TBC
-			.unnormalizedCoordinates = VK_FALSE,
-		},
-		vk::SamplerYcbcrConversionInfo{
-			.conversion = *ycbcr_conversion,
-		}
+	        vk::SamplerCreateInfo{
+	                .magFilter = yuv_filter,
+	                .minFilter = yuv_filter,
+	                .mipmapMode = vk::SamplerMipmapMode::eNearest,
+	                .addressModeU = vk::SamplerAddressMode::eClampToEdge,
+	                .addressModeV = vk::SamplerAddressMode::eClampToEdge,
+	                .addressModeW = vk::SamplerAddressMode::eClampToEdge,
+	                .mipLodBias = 0.0f,
+	                .anisotropyEnable = VK_FALSE,
+	                .maxAnisotropy = 1,
+	                .compareEnable = VK_FALSE,
+	                .compareOp = vk::CompareOp::eNever,
+	                .minLod = 0.0f,
+	                .maxLod = 0.0f,
+	                .borderColor = vk::BorderColor::eFloatOpaqueWhite, // TODO TBC
+	                .unnormalizedCoordinates = VK_FALSE,
+	        },
+	        vk::SamplerYcbcrConversionInfo{
+	                .conversion = *ycbcr_conversion,
+	        },
 	};
-
 
 	ycbcr_sampler = vk::raii::Sampler(device, sampler_info.get<vk::SamplerCreateInfo>());
 }
@@ -516,65 +517,63 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 		return it->second;
 
 	vk::StructureChain img_info{
-		vk::ImageCreateInfo{
-			.flags = {},
-			.imageType = vk::ImageType::e2D,
-			.format = vk::Format::eUndefined,
-			.extent = {buffer_desc.width, buffer_desc.height, 1},
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = vk::SampleCountFlagBits::e1,
-			.tiling = vk::ImageTiling::eOptimal,
-			.usage = vk::ImageUsageFlagBits::eSampled,
-			.sharingMode = vk::SharingMode::eExclusive,
-			.initialLayout = vk::ImageLayout::eUndefined
-		},
-		vk::ExternalMemoryImageCreateInfo{
-			.handleTypes = vk::ExternalMemoryHandleTypeFlagBits::eAndroidHardwareBufferANDROID
-		},
-		vk::ExternalFormatANDROID{
-			.externalFormat = format_properties.externalFormat
-		}
+	        vk::ImageCreateInfo{
+	                .flags = {},
+	                .imageType = vk::ImageType::e2D,
+	                .format = vk::Format::eUndefined,
+	                .extent = {buffer_desc.width, buffer_desc.height, 1},
+	                .mipLevels = 1,
+	                .arrayLayers = 1,
+	                .samples = vk::SampleCountFlagBits::e1,
+	                .tiling = vk::ImageTiling::eOptimal,
+	                .usage = vk::ImageUsageFlagBits::eSampled,
+	                .sharingMode = vk::SharingMode::eExclusive,
+	                .initialLayout = vk::ImageLayout::eUndefined,
+	        },
+	        vk::ExternalMemoryImageCreateInfo{
+	                .handleTypes = vk::ExternalMemoryHandleTypeFlagBits::eAndroidHardwareBufferANDROID,
+	        },
+	        vk::ExternalFormatANDROID{
+	                .externalFormat = format_properties.externalFormat,
+	        },
 	};
 
 	vk::raii::Image vimage(device, img_info.get());
 
 	assert(properties.memoryTypeBits != 0);
 	vk::StructureChain mem_info{
-		vk::MemoryAllocateInfo{
-			.allocationSize = properties.allocationSize,
-			.memoryTypeIndex = (uint32_t)(ffs(properties.memoryTypeBits) - 1)
-		},
-		vk::MemoryDedicatedAllocateInfo{
-			.image = *vimage
-		},
-		vk::ImportAndroidHardwareBufferInfoANDROID{
-			.buffer = hardware_buffer
-		}
+	        vk::MemoryAllocateInfo{
+	                .allocationSize = properties.allocationSize,
+	                .memoryTypeIndex = (uint32_t)(ffs(properties.memoryTypeBits) - 1),
+	        },
+	        vk::MemoryDedicatedAllocateInfo{
+	                .image = *vimage,
+	        },
+	        vk::ImportAndroidHardwareBufferInfoANDROID{
+	                .buffer = hardware_buffer,
+	        },
 	};
-
 
 	vk::raii::DeviceMemory memory(device, mem_info.get());
 
 	vimage.bindMemory(*memory, 0);
 
-
 	vk::StructureChain iv_info{
-		vk::ImageViewCreateInfo{
-			.image = *vimage,
-			.viewType = vk::ImageViewType::e2D,
-			.format = vk::Format::eUndefined,
-			.subresourceRange = {
-				.aspectMask = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1
-			}
-		},
-		vk::SamplerYcbcrConversionInfo{
-			.conversion = *ycbcr_conversion
-		}
+	        vk::ImageViewCreateInfo{
+	                .image = *vimage,
+	                .viewType = vk::ImageViewType::e2D,
+	                .format = vk::Format::eUndefined,
+	                .subresourceRange = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .baseMipLevel = 0,
+	                        .levelCount = 1,
+	                        .baseArrayLayer = 0,
+	                        .layerCount = 1,
+	                },
+	        },
+	        vk::SamplerYcbcrConversionInfo{
+	                .conversion = *ycbcr_conversion,
+	        },
 	};
 
 	application::ignore_debug_reports_for(*vimage);

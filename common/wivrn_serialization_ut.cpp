@@ -51,4 +51,4 @@ struct test
 	float y;
 };
 static_assert(serialization_type_hash<test>() == hash("structure{int32,float32}"));
-} // namespace unit_tests
+} // namespace

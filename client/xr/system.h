@@ -65,8 +65,8 @@ public:
 	passthrough_type passthrough_supported() const;
 
 	XrGraphicsRequirementsVulkan2KHR graphics_requirements() const;
-	vk::raii::PhysicalDevice physical_device(vk::raii::Instance& vulkan) const;
-	vk::raii::Device create_device(vk::raii::PhysicalDevice& pdev, vk::DeviceCreateInfo & create_info) const;
+	vk::raii::PhysicalDevice physical_device(vk::raii::Instance & vulkan) const;
+	vk::raii::Device create_device(vk::raii::PhysicalDevice & pdev, vk::DeviceCreateInfo & create_info) const;
 
 	std::vector<XrViewConfigurationType> view_configurations() const;
 	XrViewConfigurationProperties view_configuration_properties(XrViewConfigurationType) const;

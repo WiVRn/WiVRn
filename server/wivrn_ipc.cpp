@@ -42,7 +42,7 @@ void init_cleanup_functions()
 
 void add_cleanup_function(void (*callback)(uintptr_t), uintptr_t userdata)
 {
-	for(auto& i: *cleanup_functions)
+	for (auto & i: *cleanup_functions)
 	{
 		if (i.callback == nullptr)
 		{
@@ -54,7 +54,7 @@ void add_cleanup_function(void (*callback)(uintptr_t), uintptr_t userdata)
 
 void remove_cleanup_function(void (*callback)(uintptr_t), uintptr_t userdata)
 {
-	for(auto& i: *cleanup_functions)
+	for (auto & i: *cleanup_functions)
 	{
 		if (i.callback == callback && i.userdata == userdata)
 		{
@@ -67,7 +67,7 @@ void remove_cleanup_function(void (*callback)(uintptr_t), uintptr_t userdata)
 void run_cleanup_functions()
 {
 	// Don't fork if cleanup_functions is empty
-	if (std::ranges::all_of(*cleanup_functions, [](auto& i){ return i.callback == nullptr; }))
+	if (std::ranges::all_of(*cleanup_functions, [](auto & i) { return i.callback == nullptr; }))
 		return;
 
 	// Fork because pulseaudio doesn't like being initialized in the parent and the child
@@ -80,7 +80,7 @@ void run_cleanup_functions()
 	}
 	else if (child == 0)
 	{
-		for(auto& i: *cleanup_functions)
+		for (auto & i: *cleanup_functions)
 		{
 			if (i.callback)
 			{

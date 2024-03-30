@@ -200,13 +200,13 @@ void pipewire_device::mic_process(void * self_v)
 	}
 
 	const auto & data = buffer->buffer->datas[0];
-	uint8_t* data_ptr = (uint8_t*)data.data;
+	uint8_t * data_ptr = (uint8_t *)data.data;
 	if (not data.data)
 		return;
 
 	const size_t frame_size = self->desc.microphone->num_channels * sizeof(int16_t);
 
-#if PW_CHECK_VERSION(0,3,49)
+#if PW_CHECK_VERSION(0, 3, 49)
 	size_t num_frames = buffer->requested;
 #else
 	size_t num_frames = 0;
@@ -222,7 +222,7 @@ void pipewire_device::mic_process(void * self_v)
 	while (num_frames != 0)
 	{
 		// remaining bytes in existing buffer
-		auto& current = self->mic_current;
+		auto & current = self->mic_current;
 		ptrdiff_t tmp_remain = current.payload.size_bytes();
 		// limit to requested frames
 		tmp_remain = std::min<ptrdiff_t>(tmp_remain, num_frames * frame_size);
@@ -265,10 +265,11 @@ void pipewire_device::speaker_process(void * self_v)
 	                (uint8_t *)data.data + data.chunk->offset,
 	                data.chunk->size),
 	};
-	try {
+	try
+	{
 		self->session.send_control(packet);
 	}
-	catch (std::exception& e)
+	catch (std::exception & e)
 	{
 		U_LOG_W("Failed to send audio data: %s", e.what());
 	}

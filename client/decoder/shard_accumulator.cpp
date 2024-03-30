@@ -21,7 +21,6 @@
 #include "application.h"
 #include "scenes/stream.h"
 #include "spdlog/spdlog.h"
-#include "wivrn_serialization.h"
 
 using namespace xrt::drivers::wivrn::to_headset;
 using shard_set = shard_accumulator::shard_set;
@@ -106,7 +105,7 @@ void shard_accumulator::advance()
 	next.reset(current.frame_index() + 1);
 }
 
-void shard_accumulator::push_shard(video_stream_data_shard&& shard)
+void shard_accumulator::push_shard(video_stream_data_shard && shard)
 {
 	assert(current.frame_index() + 1 == next.frame_index());
 

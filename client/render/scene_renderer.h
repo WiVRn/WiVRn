@@ -18,10 +18,7 @@
 
 #pragma once
 
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_raii.hpp>
 #include <array>
-#include <chrono>
 #include <cstdint>
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -30,6 +27,8 @@
 #include <span>
 #include <unordered_map>
 #include <vector>
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 #include "vk/allocation.h"
 
@@ -158,10 +157,10 @@ class scene_renderer
 		std::vector<std::shared_ptr<void>> resources;
 		bool query_pool_filled = false;
 
-                // Buffer for per-view and per-instance data
-	        // device local, host visible, host coherent
+		// Buffer for per-view and per-instance data
+		// device local, host visible, host coherent
 		size_t uniform_buffer_offset;
-	        buffer_allocation uniform_buffer;
+		buffer_allocation uniform_buffer;
 	};
 
 	std::vector<per_frame_resources> frame_resources;
@@ -169,12 +168,20 @@ class scene_renderer
 	vk::raii::QueryPool query_pool = nullptr;
 	double gpu_time_s = 0;
 
-	per_frame_resources& current_frame();
+	per_frame_resources & current_frame();
 
-	void update_material_descriptor_set(scene_data::material& material);
+	void update_material_descriptor_set(scene_data::material & material);
 
 public:
-	scene_renderer(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool, vk::Extent2D output_size, vk::Format output_format, std::span<vk::Format> depth_formats, int frames_in_flight = 2);
+	scene_renderer(
+	        vk::raii::Device & device,
+	        vk::raii::PhysicalDevice physical_device,
+	        vk::raii::Queue & queue,
+	        vk::raii::CommandPool & cb_pool,
+	        vk::Extent2D output_size,
+	        vk::Format output_format,
+	        std::span<vk::Format> depth_formats,
+	        int frames_in_flight = 2);
 
 	~scene_renderer();
 
@@ -186,7 +193,7 @@ public:
 	};
 
 	void start_frame();
-	void render(scene_data & scene, const std::array<float, 4>& clear_color, std::span<frame_info> info);
+	void render(scene_data & scene, const std::array<float, 4> & clear_color, std::span<frame_info> info);
 	void end_frame();
 
 	double get_gpu_time() const

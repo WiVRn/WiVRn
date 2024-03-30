@@ -31,11 +31,12 @@ class session;
 class passthrough_layer_fb : public utils::handle<XrPassthroughLayerFB>
 {
 	PFN_xrDestroyPassthroughLayerFB xrDestroyPassthroughLayerFB{};
+
 public:
 	passthrough_layer_fb() = default;
-	passthrough_layer_fb(instance&, session&, const XrPassthroughLayerCreateInfoFB&);
-	passthrough_layer_fb(passthrough_layer_fb&&) = delete;
-	passthrough_layer_fb& operator=(passthrough_layer_fb&&) = delete;
+	passthrough_layer_fb(instance &, session &, const XrPassthroughLayerCreateInfoFB &);
+	passthrough_layer_fb(passthrough_layer_fb &&) = delete;
+	passthrough_layer_fb & operator=(passthrough_layer_fb &&) = delete;
 	~passthrough_layer_fb();
 };
 
@@ -61,15 +62,18 @@ public:
 
 	void start();
 	void pause();
-	XrCompositionLayerBaseHeader * layer() { return (XrCompositionLayerBaseHeader*)&composition_layer; }
+	XrCompositionLayerBaseHeader * layer()
+	{
+		return (XrCompositionLayerBaseHeader *)&composition_layer;
+	}
 };
-
 
 class passthrough_htc : public utils::handle<XrPassthroughHTC>
 {
 	PFN_xrDestroyPassthroughHTC xrDestroyPassthroughHTC{};
 
 	XrCompositionLayerPassthroughHTC composition_layer;
+
 public:
 	passthrough_htc() = default;
 	passthrough_htc(instance &, session &);
@@ -81,7 +85,10 @@ public:
 
 	void start() {}
 	void pause() {}
-	XrCompositionLayerBaseHeader * layer() { return (XrCompositionLayerBaseHeader*)&composition_layer; }
+	XrCompositionLayerBaseHeader * layer()
+	{
+		return (XrCompositionLayerBaseHeader *)&composition_layer;
+	}
 };
 
 using passthrough = std::variant<passthrough_fb, passthrough_htc>;

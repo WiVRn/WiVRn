@@ -20,15 +20,14 @@
 #pragma once
 
 #include "vk/allocation.h"
+#include "vk/fwd.h"
 #include <cstddef>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <memory>
 #include <span>
-#include <tuple>
 #include <vulkan/vulkan.hpp>
-#include "vk/fwd.h"
 
 struct ktxVulkanDeviceInfo;
 
@@ -51,20 +50,19 @@ struct image_loader
 	// Load raw pixel data
 	void load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format);
 
-
-	template<typename T>
+	template <typename T>
 	void load(std::span<T> pixels, vk::Extent3D extent, vk::Format format)
 	{
 		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
 	}
 
-	template<typename T, size_t N>
+	template <typename T, size_t N>
 	void load(const std::array<T, N> & pixels, vk::Extent3D extent, vk::Format format)
 	{
 		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
 	}
 
-	template<typename T>
+	template <typename T>
 	void load(const std::vector<T> & pixels, vk::Extent3D extent, vk::Format format)
 	{
 		load(pixels.data(), pixels.size() * sizeof(T), extent, format);

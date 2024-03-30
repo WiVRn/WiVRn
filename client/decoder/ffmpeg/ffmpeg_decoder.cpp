@@ -69,8 +69,8 @@ decoder::blit_handle::~blit_handle()
 }
 
 decoder::decoder(
-        vk::raii::Device& device,
-        vk::raii::PhysicalDevice& physical_device,
+        vk::raii::Device & device,
+        vk::raii::PhysicalDevice & physical_device,
         const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
         float fps,
         uint8_t stream_index,
@@ -85,24 +85,23 @@ decoder::decoder(
 		free_images[i] = i;
 
 		vk::ImageCreateInfo image_info{
-			.imageType = vk::ImageType::e2D,
-			.format = vk::Format::eA8B8G8R8SrgbPack32,
-			.extent = {
-				.width = description.width,
-				.height = description.height,
-				.depth = 1,
-			},
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = vk::SampleCountFlagBits::e1,
-			.tiling = vk::ImageTiling::eLinear,
-			.usage = vk::ImageUsageFlagBits::eSampled,
-			.initialLayout = vk::ImageLayout::eUndefined,
+		        .imageType = vk::ImageType::e2D,
+		        .format = vk::Format::eA8B8G8R8SrgbPack32,
+		        .extent = {
+		                .width = description.width,
+		                .height = description.height,
+		                .depth = 1,
+		        },
+		        .mipLevels = 1,
+		        .arrayLayers = 1,
+		        .samples = vk::SampleCountFlagBits::e1,
+		        .tiling = vk::ImageTiling::eLinear,
+		        .usage = vk::ImageUsageFlagBits::eSampled,
+		        .initialLayout = vk::ImageLayout::eUndefined,
 		};
 
 		VmaAllocationCreateInfo alloc_info{
-			.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		};
+		        .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
 
 		decoded_images[i].image = image_allocation(device, image_info, alloc_info);
 
@@ -114,18 +113,20 @@ decoder::decoder(
 
 		decoded_images[i].layout = decoded_images[i].image->getSubresourceLayout(resource);
 
-		decoded_images[i].image_view = vk::raii::ImageView(device, {
-			.image = (vk::Image)decoded_images[i].image,
-			.viewType = vk::ImageViewType::e2D,
-			.format = image_info.format,
-			.subresourceRange = {
-				.aspectMask = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-			}
-		});
+		decoded_images[i].image_view = vk::raii::ImageView(
+		        device,
+		        {
+		                .image = (vk::Image)decoded_images[i].image,
+		                .viewType = vk::ImageViewType::e2D,
+		                .format = image_info.format,
+		                .subresourceRange = {
+		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                        .baseMipLevel = 0,
+		                        .levelCount = 1,
+		                        .baseArrayLayer = 0,
+		                        .layerCount = 1,
+		                },
+		        });
 
 		decoded_images[i].current_layout = vk::ImageLayout::eUndefined;
 	}
@@ -142,21 +143,23 @@ decoder::decoder(
 	if (ret < 0)
 		throw std::runtime_error{"avcodec_open2 failed"};
 
-	rgb_sampler = vk::raii::Sampler(device, {
-		.flags = {},
-		.magFilter = vk::Filter::eLinear,
-		.minFilter = vk::Filter::eLinear,
-		.mipmapMode = vk::SamplerMipmapMode::eNearest,
-		.addressModeU = vk::SamplerAddressMode::eClampToEdge,
-		.addressModeV = vk::SamplerAddressMode::eClampToEdge,
-		.addressModeW = vk::SamplerAddressMode::eClampToEdge,
-		.unnormalizedCoordinates = false,
-	});
+	rgb_sampler = vk::raii::Sampler(
+	        device,
+	        {
+	                .flags = {},
+	                .magFilter = vk::Filter::eLinear,
+	                .minFilter = vk::Filter::eLinear,
+	                .mipmapMode = vk::SamplerMipmapMode::eNearest,
+	                .addressModeU = vk::SamplerAddressMode::eClampToEdge,
+	                .addressModeV = vk::SamplerAddressMode::eClampToEdge,
+	                .addressModeW = vk::SamplerAddressMode::eClampToEdge,
+	                .unnormalizedCoordinates = false,
+	        });
 }
 
 void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
-	for (const auto& d: data)
+	for (const auto & d: data)
 		packet.insert(packet.end(), d.begin(), d.end());
 	this->frame_index = frame_index;
 }
@@ -217,15 +220,14 @@ void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback 
 		throw std::runtime_error{"sws_scale failed"};
 
 	auto handle = std::make_shared<decoder::blit_handle>(
-		feedback,
-		timing_info,
-		view_info,
-		decoded_images[index].image_view,
-		(vk::Image)decoded_images[index].image,
-		&decoded_images[index].current_layout,
-		index,
-		this
-	);
+	        feedback,
+	        timing_info,
+	        view_info,
+	        decoded_images[index].image_view,
+	        (vk::Image)decoded_images[index].image,
+	        &decoded_images[index].current_layout,
+	        index,
+	        this);
 
 	if (auto scene = weak_scene.lock())
 		scene->push_blit_handle(accumulator, std::move(handle));

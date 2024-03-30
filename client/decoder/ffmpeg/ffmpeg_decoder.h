@@ -19,15 +19,13 @@
 
 #pragma once
 
+#include "vk/allocation.h"
 #include "wivrn_packets.h"
-#include <deque>
 #include <memory>
 #include <mutex>
 #include <span>
-#include <string>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
-#include "vk/allocation.h"
 
 class shard_accumulator;
 
@@ -53,7 +51,7 @@ public:
 		xrt::drivers::wivrn::from_headset::feedback feedback;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
-		vk::raii::ImageView& image_view;
+		vk::raii::ImageView & image_view;
 		vk::Image image = nullptr;
 		vk::ImageLayout * current_layout = nullptr;
 
@@ -74,7 +72,7 @@ private:
 		vk::ImageLayout current_layout = vk::ImageLayout::eUndefined;
 	};
 
-	vk::raii::Device& device;
+	vk::raii::Device & device;
 	vk::raii::Sampler rgb_sampler = nullptr;
 
 	std::array<image, image_count> decoded_images;
@@ -93,8 +91,8 @@ private:
 	std::mutex mutex;
 
 public:
-	decoder(vk::raii::Device& device,
-	        vk::raii::PhysicalDevice& physical_device,
+	decoder(vk::raii::Device & device,
+	        vk::raii::PhysicalDevice & physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,
@@ -106,7 +104,10 @@ public:
 
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
-	void frame_completed(const xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
+	void frame_completed(
+	        const xrt::drivers::wivrn::from_headset::feedback & feedback,
+	        const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info,
+	        const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 
 	const auto & desc() const
 	{

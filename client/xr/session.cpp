@@ -20,27 +20,30 @@
 #include "session.h"
 
 #include "details/enumerate.h"
+#include "utils/ranges.h"
 #include "xr.h"
 #include <vulkan/vulkan.h>
 #include <openxr/openxr_platform.h>
-#include "utils/ranges.h"
 
-xr::session::session(xr::instance & inst, xr::system & sys, vk::raii::Instance& vk_inst, vk::raii::PhysicalDevice& pdev, vk::raii::Device& dev, int queue_family_index) :
+xr::session::session(xr::instance & inst, xr::system & sys, vk::raii::Instance & vk_inst, vk::raii::PhysicalDevice & pdev, vk::raii::Device & dev, int queue_family_index) :
         inst(&inst)
 {
-	XrGraphicsBindingVulkan2KHR vulkan_binding{};
-	vulkan_binding.type = XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR;
+	XrGraphicsBindingVulkan2KHR vulkan_binding{
+	        .type = XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR,
 
-	vulkan_binding.instance = *vk_inst;
-	vulkan_binding.physicalDevice = *pdev;
-	vulkan_binding.device = *dev;
-	vulkan_binding.queueFamilyIndex = queue_family_index;
-	vulkan_binding.queueIndex = 0;
+	        .instance = *vk_inst,
+	        .physicalDevice = *pdev,
+	        .device = *dev,
+	        .queueFamilyIndex = (uint32_t)queue_family_index,
+	        .queueIndex = 0,
+	};
 
-	XrSessionCreateInfo session_info{};
-	session_info.type = XR_TYPE_SESSION_CREATE_INFO;
-	session_info.next = &vulkan_binding;
-	session_info.systemId = sys;
+	XrSessionCreateInfo session_info{
+	        .type = XR_TYPE_SESSION_CREATE_INFO,
+	        .next = &vulkan_binding,
+	        .systemId = sys,
+	};
+
 	CHECK_XR(xrCreateSession(inst, &session_info, &id));
 }
 
@@ -51,10 +54,11 @@ std::vector<XrReferenceSpaceType> xr::session::get_reference_spaces() const
 
 xr::space xr::session::create_reference_space(XrReferenceSpaceType ref, const XrPosef & pose)
 {
-	XrReferenceSpaceCreateInfo create_info{};
-	create_info.type = XR_TYPE_REFERENCE_SPACE_CREATE_INFO;
-	create_info.referenceSpaceType = ref;
-	create_info.poseInReferenceSpace = pose;
+	XrReferenceSpaceCreateInfo create_info{
+	        .type = XR_TYPE_REFERENCE_SPACE_CREATE_INFO,
+	        .referenceSpaceType = ref,
+	        .poseInReferenceSpace = pose,
+	};
 
 	XrSpace s;
 	CHECK_XR(xrCreateReferenceSpace(id, &create_info, &s));
@@ -64,11 +68,12 @@ xr::space xr::session::create_reference_space(XrReferenceSpaceType ref, const Xr
 
 xr::space xr::session::create_action_space(XrAction action, const XrPosef & pose)
 {
-	XrActionSpaceCreateInfo create_info{};
-	create_info.type = XR_TYPE_ACTION_SPACE_CREATE_INFO;
-	create_info.action = action;
-	create_info.poseInActionSpace = pose;
-	create_info.subactionPath = XR_NULL_PATH;
+	XrActionSpaceCreateInfo create_info{
+	        .type = XR_TYPE_ACTION_SPACE_CREATE_INFO,
+	        .action = action,
+	        .subactionPath = XR_NULL_PATH,
+	        .poseInActionSpace = pose,
+	};
 
 	XrSpace s;
 	CHECK_XR(xrCreateActionSpace(id, &create_info, &s));
@@ -76,15 +81,13 @@ xr::space xr::session::create_action_space(XrAction action, const XrPosef & pose
 	return s;
 }
 
-
 xr::hand_tracker xr::session::create_hand_tracker(XrHandEXT hand, XrHandJointSetEXT hand_joint_set)
 {
-	XrHandTrackerCreateInfoEXT create_info
-	{
-		.type = XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT,
-		.next = nullptr,
-		.hand = hand,
-		.handJointSet = hand_joint_set,
+	XrHandTrackerCreateInfoEXT create_info{
+	        .type = XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT,
+	        .next = nullptr,
+	        .hand = hand,
+	        .handJointSet = hand_joint_set,
 	};
 
 	XrHandTrackerEXT ht;
@@ -106,11 +109,13 @@ std::vector<vk::Format> xr::session::get_swapchain_formats() const
 
 XrFrameState xr::session::wait_frame()
 {
-	XrFrameWaitInfo wait_info{};
-	wait_info.type = XR_TYPE_FRAME_WAIT_INFO;
+	XrFrameWaitInfo wait_info{
+	        .type = XR_TYPE_FRAME_WAIT_INFO,
+	};
 
-	XrFrameState state{};
-	state.type = XR_TYPE_FRAME_STATE;
+	XrFrameState state{
+	        .type = XR_TYPE_FRAME_STATE,
+	};
 
 	CHECK_XR(xrWaitFrame(id, &wait_info, &state));
 
@@ -119,29 +124,32 @@ XrFrameState xr::session::wait_frame()
 
 void xr::session::begin_frame()
 {
-	XrFrameBeginInfo begin_info{};
-	begin_info.type = XR_TYPE_FRAME_BEGIN_INFO;
+	XrFrameBeginInfo begin_info{
+	        .type = XR_TYPE_FRAME_BEGIN_INFO,
+	};
 
 	CHECK_XR(xrBeginFrame(id, &begin_info));
 }
 
 void xr::session::end_frame(XrTime display_time, const std::vector<XrCompositionLayerBaseHeader *> & layers, XrEnvironmentBlendMode blend_mode)
 {
-	XrFrameEndInfo end_info{};
-	end_info.type = XR_TYPE_FRAME_END_INFO;
-	end_info.displayTime = display_time;
-	end_info.environmentBlendMode = blend_mode;
-	end_info.layerCount = layers.size();
-	end_info.layers = layers.data();
+	XrFrameEndInfo end_info{
+	        .type = XR_TYPE_FRAME_END_INFO,
+	        .displayTime = display_time,
+	        .environmentBlendMode = blend_mode,
+	        .layerCount = (uint32_t)layers.size(),
+	        .layers = layers.data(),
+	};
 
 	CHECK_XR(xrEndFrame(id, &end_info));
 }
 
 void xr::session::begin_session(XrViewConfigurationType view_config)
 {
-	XrSessionBeginInfo begin_info{};
-	begin_info.type = XR_TYPE_SESSION_BEGIN_INFO;
-	begin_info.primaryViewConfigurationType = view_config;
+	XrSessionBeginInfo begin_info{
+	        .type = XR_TYPE_SESSION_BEGIN_INFO,
+	        .primaryViewConfigurationType = view_config,
+	};
 
 	CHECK_XR(xrBeginSession(id, &begin_info));
 }
@@ -155,14 +163,16 @@ std::pair<XrViewStateFlags, std::vector<XrView>> xr::session::locate_views(XrVie
                                                                            XrTime display_time,
                                                                            XrSpace space)
 {
-	XrViewLocateInfo view_locate_info{};
-	view_locate_info.type = XR_TYPE_VIEW_LOCATE_INFO;
-	view_locate_info.viewConfigurationType = view_config_type;
-	view_locate_info.displayTime = display_time;
-	view_locate_info.space = space;
+	XrViewLocateInfo view_locate_info{
+	        .type = XR_TYPE_VIEW_LOCATE_INFO,
+	        .viewConfigurationType = view_config_type,
+	        .displayTime = display_time,
+	        .space = space,
+	};
 
-	XrViewState view_state{};
-	view_state.type = XR_TYPE_VIEW_STATE;
+	XrViewState view_state{
+	        .type = XR_TYPE_VIEW_STATE,
+	};
 
 	auto views = details::enumerate<XrView>(xrLocateViews, id, &view_locate_info, &view_state);
 
@@ -171,8 +181,10 @@ std::pair<XrViewStateFlags, std::vector<XrView>> xr::session::locate_views(XrVie
 
 std::string xr::session::get_current_interaction_profile(const std::string & path)
 {
-	XrInteractionProfileState state{};
-	state.type = XR_TYPE_INTERACTION_PROFILE_STATE;
+	XrInteractionProfileState state{
+	        .type = XR_TYPE_INTERACTION_PROFILE_STATE,
+	};
+
 	CHECK_XR(xrGetCurrentInteractionProfile(id, inst->string_to_path(path), &state));
 
 	return inst->path_to_string(state.interactionProfile);
@@ -180,10 +192,11 @@ std::string xr::session::get_current_interaction_profile(const std::string & pat
 
 void xr::session::attach_actionsets(const std::vector<XrActionSet> & actionsets)
 {
-	XrSessionActionSetsAttachInfo attach_info{};
-	attach_info.type = XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO;
-	attach_info.countActionSets = actionsets.size();
-	attach_info.actionSets = actionsets.data();
+	XrSessionActionSetsAttachInfo attach_info{
+	        .type = XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO,
+	        .countActionSets = (uint32_t)actionsets.size(),
+	        .actionSets = actionsets.data(),
+	};
 
 	CHECK_XR(xrAttachSessionActionSets(id, &attach_info));
 }
@@ -265,7 +278,7 @@ void xr::session::sync_actions(std::span<XrActionSet> action_sets)
 {
 	std::vector<XrActiveActionSet> active_action_sets(action_sets.size());
 
-	for(auto&& [i, j]: utils::zip(active_action_sets, action_sets))
+	for (auto && [i, j]: utils::zip(active_action_sets, action_sets))
 	{
 		i.actionSet = j;
 		i.subactionPath = XR_NULL_PATH;

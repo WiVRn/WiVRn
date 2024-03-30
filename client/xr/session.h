@@ -20,14 +20,14 @@
 #pragma once
 
 #include "utils/handle.h"
+#include <span>
 #include <string>
 #include <vector>
-#include <span>
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 
-#include "space.h"
 #include "hand_tracker.h"
+#include "space.h"
 
 namespace xr
 {
@@ -40,7 +40,7 @@ class session : public utils::handle<XrSession>
 
 public:
 	session() = default;
-	session(instance &, system &, vk::raii::Instance&, vk::raii::PhysicalDevice&, vk::raii::Device&, int queue_family_index);
+	session(instance &, system &, vk::raii::Instance &, vk::raii::PhysicalDevice &, vk::raii::Device &, int queue_family_index);
 	session(session &&) = default;
 	session & operator=(session &&) = default;
 
@@ -67,7 +67,9 @@ public:
 	std::string get_current_interaction_profile(const std::string & path);
 	void attach_actionsets(const std::vector<XrActionSet> & actionsets);
 	std::vector<std::string> sources_for_action(XrAction a);
-	std::vector<std::string> localized_sources_for_action(XrAction action, XrInputSourceLocalizedNameFlags components = XR_INPUT_SOURCE_LOCALIZED_NAME_USER_PATH_BIT | XR_INPUT_SOURCE_LOCALIZED_NAME_INTERACTION_PROFILE_BIT | XR_INPUT_SOURCE_LOCALIZED_NAME_COMPONENT_BIT);
+	std::vector<std::string> localized_sources_for_action(
+	        XrAction action,
+	        XrInputSourceLocalizedNameFlags components = XR_INPUT_SOURCE_LOCALIZED_NAME_USER_PATH_BIT | XR_INPUT_SOURCE_LOCALIZED_NAME_INTERACTION_PROFILE_BIT | XR_INPUT_SOURCE_LOCALIZED_NAME_COMPONENT_BIT);
 
 	float get_current_refresh_rate();
 	std::vector<float> get_refresh_rates();

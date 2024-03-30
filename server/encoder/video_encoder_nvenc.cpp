@@ -287,7 +287,7 @@ void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandB
 	        *yuv_buffer,
 	        vk::BufferImageCopy{
 	                .bufferOffset = pitch * rect.extent.height,
-	                .bufferRowLength = uint32_t(pitch/2),
+	                .bufferRowLength = uint32_t(pitch / 2),
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .layerCount = 1,

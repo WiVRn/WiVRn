@@ -19,18 +19,17 @@
 
 #pragma once
 
-#include <stdexcept>
+#include <pthread.h>
 #include <thread>
 #include <utility>
-#include <pthread.h>
 
 namespace utils
 {
-template<typename... Args>
-std::thread named_thread(const std::string& name, Args&&... args)
+template <typename... Args>
+std::thread named_thread(const std::string & name, Args &&... args)
 {
 	std::thread t{std::forward<Args>(args)...};
 	pthread_setname_np(t.native_handle(), name.substr(0, 15).c_str());
 	return t;
 }
-}
+} // namespace utils

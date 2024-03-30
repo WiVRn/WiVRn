@@ -22,7 +22,8 @@
 #include <filesystem>
 #include <iostream>
 
-active_runtime::active_runtime() : pid(getpid()), active_runtime_json(xdg_config_home() / "openxr" / "1" / "active_runtime.json")
+active_runtime::active_runtime() :
+        pid(getpid()), active_runtime_json(xdg_config_home() / "openxr" / "1" / "active_runtime.json")
 {
 	try
 	{
@@ -40,7 +41,7 @@ active_runtime::active_runtime() : pid(getpid()), active_runtime_json(xdg_config
 
 		to_be_deleted = true;
 	}
-	catch(std::exception& e)
+	catch (std::exception & e)
 	{
 		std::cerr << "Cannot set active OpenXR runtime: " << e.what() << std::endl;
 	}
@@ -55,7 +56,7 @@ active_runtime::~active_runtime()
 			std::filesystem::remove(active_runtime_json);
 		}
 	}
-	catch(std::exception& e)
+	catch (std::exception & e)
 	{
 		std::cerr << "Cannot unset active OpenXR runtime: " << e.what() << std::endl;
 	}

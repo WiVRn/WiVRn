@@ -19,16 +19,12 @@
 
 #pragma once
 
-#include "utils/named_thread.h"
 #include "utils/sync_queue.h"
 #include "wivrn_packets.h"
 #include <memory>
-#include <optional>
 #include <span>
-#include <string>
 #include <thread>
 #include <unordered_map>
-#include <vector>
 
 #include <media/NdkImage.h>
 #include <media/NdkImageReader.h>
@@ -68,7 +64,7 @@ public:
 		xrt::drivers::wivrn::from_headset::feedback feedback;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
-		vk::raii::ImageView& image_view;
+		vk::raii::ImageView & image_view;
 		vk::Image image = nullptr;
 		vk::ImageLayout * current_layout = nullptr;
 
@@ -83,7 +79,7 @@ private:
 	xrt::drivers::wivrn::to_headset::video_stream_description::item description;
 	float fps;
 
-	vk::raii::Device& device;
+	vk::raii::Device & device;
 
 	vk::AndroidHardwareBufferFormatPropertiesANDROID ahb_format;
 	vk::raii::SamplerYcbcrConversion ycbcr_conversion = nullptr;
@@ -124,12 +120,12 @@ private:
 	std::unordered_map<AHardwareBuffer *, std::shared_ptr<mapped_hardware_buffer>> hardware_buffer_map;
 	vk::raii::RenderPass renderpass = nullptr;
 
-	void create_sampler(const AHardwareBuffer_Desc& buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format);
+	void create_sampler(const AHardwareBuffer_Desc & buffer_desc, vk::AndroidHardwareBufferFormatPropertiesANDROID & ahb_format);
 	std::shared_ptr<mapped_hardware_buffer> map_hardware_buffer(AImage *);
 
 public:
-	decoder(vk::raii::Device& device,
-	        vk::raii::PhysicalDevice& physical_device,
+	decoder(vk::raii::Device & device,
+	        vk::raii::PhysicalDevice & physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,
@@ -142,7 +138,10 @@ public:
 
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
-	void frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
+	void frame_completed(
+	        xrt::drivers::wivrn::from_headset::feedback & feedback,
+	        const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info,
+	        const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 
 	const auto & desc() const
 	{

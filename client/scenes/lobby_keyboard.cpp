@@ -38,84 +38,82 @@ struct key
 using keyboard_layout = std::vector<std::vector<key>>;
 
 keyboard_layout azerty = {
-	{
-		{ 1, U"aàâæ" },
-		{ 1, U"z" },
-		{ 1, U"eéèêë" },
-		{ 1, U"r" },
-		{ 1, U"t" },
-		{ 1, U"yÿ" },
-		{ 1, U"uùûü" },
-		{ 1, U"iîï" },
-		{ 1, U"oôœ" },
-		{ 1, U"p" },
-		{ 2, U"", ImGuiKey_Backslash },
-	},
-	{
-		{ 1, U"q" },
-		{ 1, U"s" },
-		{ 1, U"d" },
-		{ 1, U"f" },
-		{ 1, U"g" },
-		{ 1, U"h" },
-		{ 1, U"j" },
-		{ 1, U"k" },
-		{ 1, U"l" },
-		{ 1, U"m" },
-	},
-	{
-		{ 2, U"", ImGuiKey_LeftShift },
-		{ 1, U"w" },
-		{ 1, U"x" },
-		{ 1, U"cç" },
-		{ 1, U"v" },
-		{ 1, U"b" },
-		{ 1, U"n" },
-		{ 1, U",?" },
-		{ 1, U";." },
-		{ 1, U":/" },
-		{ 1, U"!§" },
-	}
-};
+        {
+                {1, U"aàâæ"},
+                {1, U"z"},
+                {1, U"eéèêë"},
+                {1, U"r"},
+                {1, U"t"},
+                {1, U"yÿ"},
+                {1, U"uùûü"},
+                {1, U"iîï"},
+                {1, U"oôœ"},
+                {1, U"p"},
+                {2, U"", ImGuiKey_Backslash},
+        },
+        {
+                {1, U"q"},
+                {1, U"s"},
+                {1, U"d"},
+                {1, U"f"},
+                {1, U"g"},
+                {1, U"h"},
+                {1, U"j"},
+                {1, U"k"},
+                {1, U"l"},
+                {1, U"m"},
+        },
+        {
+                {2, U"", ImGuiKey_LeftShift},
+                {1, U"w"},
+                {1, U"x"},
+                {1, U"cç"},
+                {1, U"v"},
+                {1, U"b"},
+                {1, U"n"},
+                {1, U",?"},
+                {1, U";."},
+                {1, U":/"},
+                {1, U"!§"},
+        }};
 
 keyboard_layout symbols = {
-	{
-		{ 1, U"1" },
-		{ 1, U"2" },
-		{ 1, U"3" },
-		{ 1, U"4" },
-		{ 1, U"5" },
-		{ 1, U"6" },
-		{ 1, U"7" },
-		{ 1, U"8" },
-		{ 1, U"9" },
-		{ 1, U"0" },
-	},
-	{
-		{ 1, U"@" },
-		{ 1, U"#" },
-		{ 1, U"%" },
-		{ 1, U"&" },
-		{ 1, U"*" },
-		{ 1, U"_" },
-		{ 1, U"-" },
-		{ 1, U"+" },
-		{ 1, U"(" },
-		{ 1, U")" },
-	},
-	{
-		{ 1, U"\"" },
-		{ 1, U"<" },
-		{ 1, U">" },
-		{ 1, U"'" },
-		{ 1, U"*" },
-		{ 1, U":" },
-		{ 1, U"/" },
-		{ 1, U"!" },
-		{ 1, U"?" },
-		{ 1, U"" },
-	}
-};
+        {
+                {1, U"1"},
+                {1, U"2"},
+                {1, U"3"},
+                {1, U"4"},
+                {1, U"5"},
+                {1, U"6"},
+                {1, U"7"},
+                {1, U"8"},
+                {1, U"9"},
+                {1, U"0"},
+        },
+        {
+                {1, U"@"},
+                {1, U"#"},
+                {1, U"%"},
+                {1, U"&"},
+                {1, U"*"},
+                {1, U"_"},
+                {1, U"-"},
+                {1, U"+"},
+                {1, U"("},
+                {1, U")"},
+        },
+        {
+                {1, U"\""},
+                {1, U"<"},
+                {1, U">"},
+                {1, U"'"},
+                {1, U"*"},
+                {1, U":"},
+                {1, U"/"},
+                {1, U"!"},
+                {1, U"?"},
+                {1, U""},
+        }};
 
 static std::string to_utf8(char32_t c)
 {
@@ -147,144 +145,152 @@ static std::string to_utf8(char32_t c)
 	return s;
 }
 
-static bool button_behavior(const ImRect& bb, ImGuiID id, bool* out_hovered, bool* out_held, ImGuiButtonFlags flags)
+static bool button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags)
 {
-    ImGuiContext& g = *GImGui;
-    ImGuiWindow* window = ImGui::GetCurrentWindow();
+	ImGuiContext & g = *GImGui;
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
 
-    // Default behavior inherited from item flags
-    // Note that _both_ ButtonFlags and ItemFlags are valid sources, so copy one into the item_flags and only check that.
-    ImGuiItemFlags item_flags = (g.LastItemData.ID == id ? g.LastItemData.InFlags : g.CurrentItemFlags);
-    if (flags & ImGuiButtonFlags_AllowOverlap)
-        item_flags |= ImGuiItemFlags_AllowOverlap;
-    if (flags & ImGuiButtonFlags_Repeat)
-        item_flags |= ImGuiItemFlags_ButtonRepeat;
+	// Default behavior inherited from item flags
+	// Note that _both_ ButtonFlags and ItemFlags are valid sources, so copy one into the item_flags and only check that.
+	ImGuiItemFlags item_flags = (g.LastItemData.ID == id ? g.LastItemData.InFlags : g.CurrentItemFlags);
+	if (flags & ImGuiButtonFlags_AllowOverlap)
+		item_flags |= ImGuiItemFlags_AllowOverlap;
+	if (flags & ImGuiButtonFlags_Repeat)
+		item_flags |= ImGuiItemFlags_ButtonRepeat;
 
-    bool pressed = false;
-    bool hovered = ImGui::ItemHoverable(bb, id, item_flags);
+	bool pressed = false;
+	bool hovered = ImGui::ItemHoverable(bb, id, item_flags);
 
-    // Mouse handling
-    const ImGuiID test_owner_id = (flags & ImGuiButtonFlags_NoTestKeyOwner) ? ImGuiKeyOwner_Any : id;
-    if (hovered)
-    {
-        // Poll mouse buttons
-        // - 'mouse_button_clicked' is generally carried into ActiveIdMouseButton when setting ActiveId.
-        // - Technically we only need some values in one code path, but since this is gated by hovered test this is fine.
-        int mouse_button_clicked = -1;
-        int mouse_button_released = -1;
-        for (int button = 0; button < 3; button++)
-            if (flags & (ImGuiButtonFlags_MouseButtonLeft << button)) // Handle ImGuiButtonFlags_MouseButtonRight and ImGuiButtonFlags_MouseButtonMiddle here.
-            {
-                if (ImGui::IsMouseClicked(button, test_owner_id) && mouse_button_clicked == -1) { mouse_button_clicked = button; }
-                if (ImGui::IsMouseReleased(button, test_owner_id) && mouse_button_released == -1) { mouse_button_released = button; }
-            }
+	// Mouse handling
+	const ImGuiID test_owner_id = (flags & ImGuiButtonFlags_NoTestKeyOwner) ? ImGuiKeyOwner_Any : id;
+	if (hovered)
+	{
+		// Poll mouse buttons
+		// - 'mouse_button_clicked' is generally carried into ActiveIdMouseButton when setting ActiveId.
+		// - Technically we only need some values in one code path, but since this is gated by hovered test this is fine.
+		int mouse_button_clicked = -1;
+		int mouse_button_released = -1;
+		for (int button = 0; button < 3; button++)
+			if (flags & (ImGuiButtonFlags_MouseButtonLeft << button)) // Handle ImGuiButtonFlags_MouseButtonRight and ImGuiButtonFlags_MouseButtonMiddle here.
+			{
+				if (ImGui::IsMouseClicked(button, test_owner_id) && mouse_button_clicked == -1)
+				{
+					mouse_button_clicked = button;
+				}
+				if (ImGui::IsMouseReleased(button, test_owner_id) && mouse_button_released == -1)
+				{
+					mouse_button_released = button;
+				}
+			}
 
-        // Process initial action
-        if (!(flags & ImGuiButtonFlags_NoKeyModifiers) || (!g.IO.KeyCtrl && !g.IO.KeyShift && !g.IO.KeyAlt))
-        {
-            if (mouse_button_clicked != -1 && g.ActiveId != id)
-            {
-                if (!(flags & ImGuiButtonFlags_NoSetKeyOwner))
-                    ImGui::SetKeyOwner(ImGui::MouseButtonToKey(mouse_button_clicked), id);
-                if (flags & (ImGuiButtonFlags_PressedOnClickRelease | ImGuiButtonFlags_PressedOnClickReleaseAnywhere))
-                {
-                    // ImGui::SetActiveID(id, window);
-                    g.ActiveIdMouseButton = mouse_button_clicked;
-                    if (!(flags & ImGuiButtonFlags_NoNavFocus))
-                        ImGui::SetFocusID(id, window);
-                    ImGui::FocusWindow(window);
-                }
-                if ((flags & ImGuiButtonFlags_PressedOnClick) || ((flags & ImGuiButtonFlags_PressedOnDoubleClick) && g.IO.MouseClickedCount[mouse_button_clicked] == 2))
-                {
-                    pressed = true;
-                    // if (flags & ImGuiButtonFlags_NoHoldingActiveId)
-                    //     ImGui::ClearActiveID();
-                    // else
-                    //     ImGui::SetActiveID(id, window); // Hold on ID
-                    if (!(flags & ImGuiButtonFlags_NoNavFocus))
-                        ImGui::SetFocusID(id, window);
-                    g.ActiveIdMouseButton = mouse_button_clicked;
-                    ImGui::FocusWindow(window);
-                }
-            }
-            if (flags & ImGuiButtonFlags_PressedOnRelease)
-            {
-                if (mouse_button_released != -1)
-                {
-                    const bool has_repeated_at_least_once = (item_flags & ImGuiItemFlags_ButtonRepeat) && g.IO.MouseDownDurationPrev[mouse_button_released] >= g.IO.KeyRepeatDelay; // Repeat mode trumps on release behavior
-                    if (!has_repeated_at_least_once)
-                        pressed = true;
-                    if (!(flags & ImGuiButtonFlags_NoNavFocus))
-                        ImGui::SetFocusID(id, window);
-                    // ImGui::ClearActiveID();
-                }
-            }
+		// Process initial action
+		if (!(flags & ImGuiButtonFlags_NoKeyModifiers) || (!g.IO.KeyCtrl && !g.IO.KeyShift && !g.IO.KeyAlt))
+		{
+			if (mouse_button_clicked != -1 && g.ActiveId != id)
+			{
+				if (!(flags & ImGuiButtonFlags_NoSetKeyOwner))
+					ImGui::SetKeyOwner(ImGui::MouseButtonToKey(mouse_button_clicked), id);
+				if (flags & (ImGuiButtonFlags_PressedOnClickRelease | ImGuiButtonFlags_PressedOnClickReleaseAnywhere))
+				{
+					// ImGui::SetActiveID(id, window);
+					g.ActiveIdMouseButton = mouse_button_clicked;
+					if (!(flags & ImGuiButtonFlags_NoNavFocus))
+						ImGui::SetFocusID(id, window);
+					ImGui::FocusWindow(window);
+				}
+				if ((flags & ImGuiButtonFlags_PressedOnClick) || ((flags & ImGuiButtonFlags_PressedOnDoubleClick) && g.IO.MouseClickedCount[mouse_button_clicked] == 2))
+				{
+					pressed = true;
+					// if (flags & ImGuiButtonFlags_NoHoldingActiveId)
+					//     ImGui::ClearActiveID();
+					// else
+					//     ImGui::SetActiveID(id, window); // Hold on ID
+					if (!(flags & ImGuiButtonFlags_NoNavFocus))
+						ImGui::SetFocusID(id, window);
+					g.ActiveIdMouseButton = mouse_button_clicked;
+					ImGui::FocusWindow(window);
+				}
+			}
+			if (flags & ImGuiButtonFlags_PressedOnRelease)
+			{
+				if (mouse_button_released != -1)
+				{
+					const bool has_repeated_at_least_once = (item_flags & ImGuiItemFlags_ButtonRepeat) && g.IO.MouseDownDurationPrev[mouse_button_released] >= g.IO.KeyRepeatDelay; // Repeat mode trumps on release behavior
+					if (!has_repeated_at_least_once)
+						pressed = true;
+					if (!(flags & ImGuiButtonFlags_NoNavFocus))
+						ImGui::SetFocusID(id, window);
+					// ImGui::ClearActiveID();
+				}
+			}
 
-            // 'Repeat' mode acts when held regardless of _PressedOn flags (see table above).
-            // Relies on repeat logic of IsMouseClicked() but we may as well do it ourselves if we end up exposing finer RepeatDelay/RepeatRate settings.
-            if (g.ActiveId == id && (item_flags & ImGuiItemFlags_ButtonRepeat))
-                if (g.IO.MouseDownDuration[g.ActiveIdMouseButton] > 0.0f && ImGui::IsMouseClicked(g.ActiveIdMouseButton, test_owner_id, ImGuiInputFlags_Repeat))
-                    pressed = true;
-        }
+			// 'Repeat' mode acts when held regardless of _PressedOn flags (see table above).
+			// Relies on repeat logic of IsMouseClicked() but we may as well do it ourselves if we end up exposing finer RepeatDelay/RepeatRate settings.
+			if (g.ActiveId == id && (item_flags & ImGuiItemFlags_ButtonRepeat))
+				if (g.IO.MouseDownDuration[g.ActiveIdMouseButton] > 0.0f && ImGui::IsMouseClicked(g.ActiveIdMouseButton, test_owner_id, ImGuiInputFlags_Repeat))
+					pressed = true;
+		}
 
-        if (pressed)
-            g.NavDisableHighlight = true;
-    }
+		if (pressed)
+			g.NavDisableHighlight = true;
+	}
 
-    // Process while held
-    bool held = false;
-    if (g.ActiveId == id)
-    {
-        if (g.ActiveIdSource == ImGuiInputSource_Mouse)
-        {
-            if (g.ActiveIdIsJustActivated)
-                g.ActiveIdClickOffset = g.IO.MousePos - bb.Min;
+	// Process while held
+	bool held = false;
+	if (g.ActiveId == id)
+	{
+		if (g.ActiveIdSource == ImGuiInputSource_Mouse)
+		{
+			if (g.ActiveIdIsJustActivated)
+				g.ActiveIdClickOffset = g.IO.MousePos - bb.Min;
 
-            const int mouse_button = g.ActiveIdMouseButton;
-            if (mouse_button == -1)
-            {
-                // Fallback for the rare situation were g.ActiveId was set programmatically or from another widget (e.g. #6304).
-                // ImGui::ClearActiveID();
-            }
-            else if (ImGui::IsMouseDown(mouse_button, test_owner_id))
-            {
-                held = true;
-            }
-            else
-            {
-                bool release_in = hovered && (flags & ImGuiButtonFlags_PressedOnClickRelease) != 0;
-                bool release_anywhere = (flags & ImGuiButtonFlags_PressedOnClickReleaseAnywhere) != 0;
-                if ((release_in || release_anywhere) && !g.DragDropActive)
-                {
-                    // Report as pressed when releasing the mouse (this is the most common path)
-                    bool is_double_click_release = (flags & ImGuiButtonFlags_PressedOnDoubleClick) && g.IO.MouseReleased[mouse_button] && g.IO.MouseClickedLastCount[mouse_button] == 2;
-                    bool is_repeating_already = (item_flags & ImGuiItemFlags_ButtonRepeat) && g.IO.MouseDownDurationPrev[mouse_button] >= g.IO.KeyRepeatDelay; // Repeat mode trumps <on release>
-                    bool is_button_avail_or_owned = ImGui::TestKeyOwner(ImGui::MouseButtonToKey(mouse_button), test_owner_id);
-                    if (!is_double_click_release && !is_repeating_already && is_button_avail_or_owned)
-                        pressed = true;
-                }
-                // ImGui::ClearActiveID();
-            }
-            if (!(flags & ImGuiButtonFlags_NoNavFocus))
-                g.NavDisableHighlight = true;
-        }
-        else if (g.ActiveIdSource == ImGuiInputSource_Keyboard || g.ActiveIdSource == ImGuiInputSource_Gamepad)
-        {
-            // When activated using Nav, we hold on the ActiveID until activation button is released
-            // if (g.NavActivateDownId != id)
-            //     ImGui::ClearActiveID();
-        }
-        if (pressed)
-            g.ActiveIdHasBeenPressedBefore = true;
-    }
+			const int mouse_button = g.ActiveIdMouseButton;
+			if (mouse_button == -1)
+			{
+				// Fallback for the rare situation were g.ActiveId was set programmatically or from another widget (e.g. #6304).
+				// ImGui::ClearActiveID();
+			}
+			else if (ImGui::IsMouseDown(mouse_button, test_owner_id))
+			{
+				held = true;
+			}
+			else
+			{
+				bool release_in = hovered && (flags & ImGuiButtonFlags_PressedOnClickRelease) != 0;
+				bool release_anywhere = (flags & ImGuiButtonFlags_PressedOnClickReleaseAnywhere) != 0;
+				if ((release_in || release_anywhere) && !g.DragDropActive)
+				{
+					// Report as pressed when releasing the mouse (this is the most common path)
+					bool is_double_click_release = (flags & ImGuiButtonFlags_PressedOnDoubleClick) && g.IO.MouseReleased[mouse_button] && g.IO.MouseClickedLastCount[mouse_button] == 2;
+					bool is_repeating_already = (item_flags & ImGuiItemFlags_ButtonRepeat) && g.IO.MouseDownDurationPrev[mouse_button] >= g.IO.KeyRepeatDelay; // Repeat mode trumps <on release>
+					bool is_button_avail_or_owned = ImGui::TestKeyOwner(ImGui::MouseButtonToKey(mouse_button), test_owner_id);
+					if (!is_double_click_release && !is_repeating_already && is_button_avail_or_owned)
+						pressed = true;
+				}
+				// ImGui::ClearActiveID();
+			}
+			if (!(flags & ImGuiButtonFlags_NoNavFocus))
+				g.NavDisableHighlight = true;
+		}
+		else if (g.ActiveIdSource == ImGuiInputSource_Keyboard || g.ActiveIdSource == ImGuiInputSource_Gamepad)
+		{
+			// When activated using Nav, we hold on the ActiveID until activation button is released
+			// if (g.NavActivateDownId != id)
+			//     ImGui::ClearActiveID();
+		}
+		if (pressed)
+			g.ActiveIdHasBeenPressedBefore = true;
+	}
 
-    if (out_hovered) *out_hovered = hovered;
-    if (out_held) *out_held = held;
+	if (out_hovered)
+		*out_hovered = hovered;
+	if (out_held)
+		*out_held = held;
 
-    return pressed;
+	return pressed;
 }
 
-static void draw_single_key(const key& k, int key_id, ImVec2 size_arg)
+static void draw_single_key(const key & k, int key_id, ImVec2 size_arg)
 {
 	std::string label = k.characters == U"" ? "" : to_utf8(k.characters[0]);
 	label += "##virtual_keyboard_key_" + std::to_string(key_id);
@@ -293,12 +299,12 @@ static void draw_single_key(const key& k, int key_id, ImVec2 size_arg)
 
 	int flags = (int)ImGuiButtonFlags_PressedOnClickRelease | (int)ImGuiButtonFlags_MouseButtonLeft | (int)ImGuiButtonFlags_NoNavFocus;
 
-	ImGuiWindow* window = ImGui::GetCurrentWindow();
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	if (window->SkipItems)
 		return /*false*/;
 
-	ImGuiContext& g = *GImGui;
-	const ImGuiStyle& style = g.Style;
+	ImGuiContext & g = *GImGui;
+	const ImGuiStyle & style = g.Style;
 	const ImGuiID id = window->GetID(label.c_str());
 	const ImVec2 label_size = ImGui::CalcTextSize(label.c_str(), NULL, true);
 
@@ -316,46 +322,40 @@ static void draw_single_key(const key& k, int key_id, ImVec2 size_arg)
 	[[maybe_unused]] bool pressed = button_behavior(bb, id, &hovered, &held, flags);
 
 	// Render
-	const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+	const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered
+	                                                                                         : ImGuiCol_Button);
 	ImGui::RenderNavHighlight(bb, id);
 	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
 
 	// if (g.LogEnabled)
-		// LogSetNextTextDecoration("[", "]");
+	// LogSetNextTextDecoration("[", "]");
 	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label.c_str(), NULL, &label_size, style.ButtonTextAlign, &bb);
 
 	// Automatically close popups
-	//if (pressed && !(flags & ImGuiButtonFlags_DontClosePopups) && (window->Flags & ImGuiWindowFlags_Popup))
+	// if (pressed && !(flags & ImGuiButtonFlags_DontClosePopups) && (window->Flags & ImGuiWindowFlags_Popup))
 	//    CloseCurrentPopup();
 
 	// IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
 	// return pressed;
-
-
-
-
-
-
-
 }
 
 void scenes::lobby::gui_keyboard(ImVec2 size)
 {
-	const keyboard_layout& layout = azerty;
+	const keyboard_layout & layout = azerty;
 
 	int nb_rows = layout.size();
 
 	ImVec2 position = ImGui::GetCursorPos();
-	ImGuiStyle& style = ImGui::GetStyle();
+	ImGuiStyle & style = ImGui::GetStyle();
 
 	std::vector<float> keys_width;
 
 	// Size of a key including margin, scaled by the key width later
 	ImVec2 key_size{FLT_MAX, (size.y + style.FramePadding.y) / nb_rows};
-	for(const auto& row: layout)
+	for (const auto & row: layout)
 	{
 		float total_width = 0;
-		for(auto& key: row)
+		for (auto & key: row)
 			total_width += key.width;
 		keys_width.push_back(total_width);
 
@@ -364,11 +364,11 @@ void scenes::lobby::gui_keyboard(ImVec2 size)
 	}
 
 	int id = 0;
-	for(const auto& [row, width]: utils::zip(layout, keys_width))
+	for (const auto & [row, width]: utils::zip(layout, keys_width))
 	{
 		ImVec2 key_position = position;
 
-		for(const auto& key: row)
+		for (const auto & key: row)
 		{
 			if (key.visible)
 			{

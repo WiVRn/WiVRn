@@ -57,13 +57,13 @@ public:
 	auto userdata_first()
 	{
 		using F = decltype(std::function(impl));
-		return details::add_void<F>::template fn_0<T>;
+		return ::details::add_void<F>::template fn_0<T>;
 	}
 
 	operator auto()
 	{
 		using F = decltype(std::function(impl));
-		return details::add_void<F>::template fn<T>;
+		return ::details::add_void<F>::template fn<T>;
 	}
 
 	operator void *()

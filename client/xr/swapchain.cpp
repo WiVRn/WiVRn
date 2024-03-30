@@ -21,21 +21,22 @@
 #include "details/enumerate.h"
 #include "session.h"
 
-xr::swapchain::swapchain(xr::session & s, vk::raii::Device& device, vk::Format format, int32_t width, int32_t height, int sample_count)
+xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count)
 {
 	assert(sample_count == 1);
 
-	XrSwapchainCreateInfo create_info{};
-	create_info.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
-	create_info.createFlags = 0;
-	create_info.usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
-	create_info.format = static_cast<VkFormat>(format);
-	create_info.sampleCount = sample_count;
-	create_info.width = width;
-	create_info.height = height;
-	create_info.faceCount = 1;
-	create_info.arraySize = 1;
-	create_info.mipCount = 1;
+	XrSwapchainCreateInfo create_info{
+	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
+	        .createFlags = 0,
+	        .usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT,
+	        .format = static_cast<VkFormat>(format),
+	        .sampleCount = (uint32_t)sample_count,
+	        .width = (uint32_t)width,
+	        .height = (uint32_t)height,
+	        .faceCount = 1,
+	        .arraySize = 1,
+	        .mipCount = 1,
+	};
 
 	width_ = width;
 	height_ = height;
@@ -53,18 +54,17 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device& device, vk::Format f
 		images_[i].image = array[i].image;
 
 		vk::ImageViewCreateInfo iv_create_info{
-			.image = array[i].image,
-			.viewType = vk::ImageViewType::e2D,
-			.format = format,
-			.components = {},
-			.subresourceRange = {
-				.aspectMask = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-			}
-		};
+		        .image = array[i].image,
+		        .viewType = vk::ImageViewType::e2D,
+		        .format = format,
+		        .components = {},
+		        .subresourceRange = {
+		                .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                .baseMipLevel = 0,
+		                .levelCount = 1,
+		                .baseArrayLayer = 0,
+		                .layerCount = 1,
+		        }};
 
 		images_[i].view = vk::raii::ImageView(device, iv_create_info);
 	}
@@ -80,8 +80,9 @@ int xr::swapchain::acquire()
 {
 	uint32_t index;
 
-	XrSwapchainImageAcquireInfo acquire_info{};
-	acquire_info.type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO;
+	XrSwapchainImageAcquireInfo acquire_info{
+	        .type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO,
+	};
 
 	CHECK_XR(xrAcquireSwapchainImage(id, &acquire_info, &index));
 
@@ -90,9 +91,10 @@ int xr::swapchain::acquire()
 
 bool xr::swapchain::wait(XrDuration timeout)
 {
-	XrSwapchainImageWaitInfo wait_info{};
-	wait_info.type = XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO;
-	wait_info.timeout = timeout;
+	XrSwapchainImageWaitInfo wait_info{
+	        .type = XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO,
+	        .timeout = timeout,
+	};
 
 	XrResult result = xrWaitSwapchainImage(id, &wait_info);
 	CHECK_XR(result, "xrWaitSwapchainImage");
@@ -101,8 +103,9 @@ bool xr::swapchain::wait(XrDuration timeout)
 
 void xr::swapchain::release()
 {
-	XrSwapchainImageReleaseInfo release_info{};
-	release_info.type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO;
+	XrSwapchainImageReleaseInfo release_info{
+	        .type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO,
+	};
 
 	CHECK_XR(xrReleaseSwapchainImage(id, &release_info));
 }

@@ -19,12 +19,12 @@
 
 #pragma once
 
+#include "clock_offset.h"
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <vector>
-#include <algorithm>
-#include "clock_offset.h"
 
 template <typename Derived, typename Data, bool extrapolate = false, size_t MaxSamples = 10>
 class history
@@ -97,7 +97,8 @@ public:
 			const auto & d1 = data.back();
 			return Derived::extrapolate(d0, d1, d0.at_timestamp_ns, d1.at_timestamp_ns, at_timestamp_ns);
 		}
-		else {
+		else
+		{
 			return data.back();
 		}
 	}

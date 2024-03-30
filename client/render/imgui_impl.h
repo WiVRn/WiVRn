@@ -18,19 +18,19 @@
 
 #pragma once
 
-#include "xr/swapchain.h"
 #include "xr/hand_tracker.h"
-#include <imgui.h>
-#include <implot.h>
-#include <vulkan/vulkan_raii.hpp>
+#include "xr/swapchain.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <openxr/openxr.h>
+#include <imgui.h>
+#include <implot.h>
 #include <optional>
-#include <utility>
 #include <span>
-#include <vector>
 #include <unordered_map>
+#include <utility>
+#include <vector>
+#include <vulkan/vulkan_raii.hpp>
+#include <openxr/openxr.h>
 
 class imgui_context
 {
@@ -63,7 +63,7 @@ public:
 		XrAction scroll;  // XR_ACTION_TYPE_VECTOR2F_INPUT
 		// TODO: thresholds?
 
-		xr::hand_tracker& hand;
+		xr::hand_tracker & hand;
 	};
 
 	struct controller_state
@@ -87,9 +87,9 @@ public:
 
 private:
 	vk::raii::PhysicalDevice physical_device;
-	vk::raii::Device& device;
+	vk::raii::Device & device;
 	uint32_t queue_family_index;
-	vk::raii::Queue& queue;
+	vk::raii::Queue & queue;
 
 	vk::raii::Pipeline pipeline = nullptr;
 	vk::raii::DescriptorPool descriptor_pool;
@@ -100,29 +100,29 @@ private:
 	std::unordered_map<ImTextureID, texture_data> textures;
 
 	std::vector<imgui_frame> frames;
-	imgui_frame& get_frame(vk::Image destination);
+	imgui_frame & get_frame(vk::Image destination);
 
 	std::vector<command_buffer> command_buffers;
 	size_t current_command_buffer = 0;
-	command_buffer& get_command_buffer()
+	command_buffer & get_command_buffer()
 	{
 		return command_buffers[current_command_buffer];
 	}
 
 	vk::Extent2D size;
 	vk::Format format;
-	vk::ClearValue clear_value = {vk::ClearColorValue{0,0,0,0}};
+	vk::ClearValue clear_value = {vk::ClearColorValue{0, 0, 0, 0}};
 
 	glm::vec3 position_ = {0, 1, -1.5};
 	glm::quat orientation_ = {1, 0, 0, 0};
 	glm::vec2 scale_;
 
-	xr::swapchain& swapchain;
+	xr::swapchain & swapchain;
 	int image_index;
 
 	ImGuiContext * context;
 	ImPlotContext * plot_context;
-	ImGuiIO& io;
+	ImGuiIO & io;
 
 	std::vector<std::pair<controller, controller_state>> controllers;
 	XrSpace world;
@@ -131,10 +131,19 @@ private:
 
 	bool button_pressed = false;
 
-	std::optional<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state& in);
+	std::optional<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state & in);
 
 public:
-	imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii::Device& device, uint32_t queue_family_index, vk::raii::Queue& queue, XrSpace world, std::span<controller> controllers, xr::swapchain& swapchain, glm::vec2 size);
+	imgui_context(
+	        vk::raii::PhysicalDevice physical_device,
+	        vk::raii::Device & device,
+	        uint32_t queue_family_index,
+	        vk::raii::Queue & queue,
+	        XrSpace world,
+	        std::span<controller> controllers,
+	        xr::swapchain & swapchain,
+	        glm::vec2 size);
+
 	~imgui_context();
 
 	void set_position(glm::vec3 position, glm::quat orientation)
@@ -146,26 +155,26 @@ public:
 	XrPosef pose() const
 	{
 		return XrPosef{
-			.orientation = {
-				.x = orientation_.x,
-				.y = orientation_.y,
-				.z = orientation_.z,
-				.w = orientation_.w,
-			},
-			.position = {
-				.x = position_.x,
-				.y = position_.y,
-				.z = position_.z,
-			}
+		        .orientation = {
+		                .x = orientation_.x,
+		                .y = orientation_.y,
+		                .z = orientation_.z,
+		                .w = orientation_.w,
+		        },
+		        .position = {
+		                .x = position_.x,
+		                .y = position_.y,
+		                .z = position_.z,
+		        },
 		};
 	}
 
-	glm::vec3& position()
+	glm::vec3 & position()
 	{
 		return position_;
 	}
 
-	glm::quat& orientation()
+	glm::quat & orientation()
 	{
 		return orientation_;
 	}
@@ -182,7 +191,10 @@ public:
 
 	XrExtent2Df scale() const
 	{
-		return { scale_.x, scale_.y };
+		return {
+		        scale_.x,
+		        scale_.y,
+		};
 	}
 
 	void new_frame(XrTime display_time);
@@ -194,8 +206,8 @@ public:
 		return focused_controller;
 	}
 
-	ImTextureID load_texture(const std::string& filename, vk::raii::Sampler&& sampler);
-	ImTextureID load_texture(const std::string& filename);
+	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
+	ImTextureID load_texture(const std::string & filename);
 	void free_texture(ImTextureID);
 	void set_current();
 };

@@ -21,8 +21,8 @@
 
 #include "vk_allocator.h"
 #include "vk_mem_alloc.h"
-#include <vulkan/vulkan_raii.hpp>
 #include <cstdint>
+#include <vulkan/vulkan_raii.hpp>
 
 template <typename T>
 struct basic_allocation_traits

@@ -54,7 +54,6 @@ model guess_model()
 	spdlog::info("    ro.product.manufacturer = \"{}\":", manufacturer);
 	spdlog::info("    ro.product.model = \"{}\":", model);
 
-
 	if (device == "monterey")
 		return model::oculus_quest;
 	if (device == "hollywood")

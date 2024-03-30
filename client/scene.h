@@ -25,8 +25,8 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 // See http://www.nirfriedman.com/2018/04/29/unforgettable-factory/
 // for automatic registration of scenes
@@ -61,13 +61,14 @@ public:
 
 private:
 	// Force derived classes to inherit from scene_impl<T> instead of scene
-	class key {};
-	template<typename T>
+	class key
+	{};
+	template <typename T>
 	friend class scene_impl;
 	friend class application;
 
 protected:
-	static std::vector<meta*> scene_registry;
+	static std::vector<meta *> scene_registry;
 
 	xr::instance & instance;
 	xr::system & system;
@@ -76,14 +77,14 @@ protected:
 	xr::space & view_space;
 	XrViewConfigurationType viewconfig;
 
-	vk::raii::Instance& vk_instance;
-	vk::raii::Device& device;
-	vk::raii::PhysicalDevice& physical_device;
-	vk::raii::Queue& queue;
-	vk::raii::CommandPool& commandpool;
+	vk::raii::Instance & vk_instance;
+	vk::raii::Device & device;
+	vk::raii::PhysicalDevice & physical_device;
+	vk::raii::Queue & queue;
+	vk::raii::CommandPool & commandpool;
 	uint32_t queue_family_index;
 
-	const meta& current_meta;
+	const meta & current_meta;
 
 	std::pair<XrAction, XrActionType> get_action(const std::string & name)
 	{
@@ -96,7 +97,7 @@ protected:
 	}
 
 public:
-	scene(key, const meta&);
+	scene(key, const meta &);
 
 	virtual ~scene();
 
@@ -108,7 +109,7 @@ public:
 	virtual void on_session_state_changed(XrSessionState state);
 };
 
-template<typename T>
+template <typename T>
 class scene_impl : public scene
 {
 	friend T;
@@ -123,7 +124,8 @@ class scene_impl : public scene
 
 	static inline bool registered = scene_impl<T>::register_scene();
 
-	scene_impl() : scene(key{}, T::get_meta_scene())
+	scene_impl() :
+	        scene(key{}, T::get_meta_scene())
 	{
 		(void)registered;
 	}

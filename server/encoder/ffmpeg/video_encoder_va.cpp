@@ -94,7 +94,7 @@ get_render_device(vk::raii::PhysicalDevice & physical_device)
 	return path;
 }
 
-av_buffer_ptr make_drm_hw_ctx(vk::raii::PhysicalDevice & physical_device, const std::optional<std::string>& device)
+av_buffer_ptr make_drm_hw_ctx(vk::raii::PhysicalDevice & physical_device, const std::optional<std::string> & device)
 {
 	const auto render_device = device ? *device : get_render_device(physical_device);
 	AVBufferRef * hw_ctx;

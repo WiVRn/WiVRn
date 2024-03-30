@@ -17,20 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "application.h"
 #include "stream.h"
 #include "utils/ranges.h"
-#include "application.h"
-#include <thread>
 #include <spdlog/spdlog.h>
+#include <thread>
 
 static from_headset::tracking::pose locate_space(device_id device, XrSpace space, XrSpace reference, XrTime time)
 {
 	XrSpaceVelocity velocity{
-	        .type = XR_TYPE_SPACE_VELOCITY};
+	        .type = XR_TYPE_SPACE_VELOCITY,
+	};
 
 	XrSpaceLocation location{
 	        .type = XR_TYPE_SPACE_LOCATION,
-	        .next = &velocity};
+	        .next = &velocity,
+	};
 
 	xrLocateSpace(space, reference, time, &location);
 
@@ -63,20 +65,20 @@ static from_headset::tracking::pose locate_space(device_id device, XrSpace space
 	return res;
 }
 
-static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> locate_hands(xr::hand_tracker& hand, XrSpace space, XrTime time)
+static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> locate_hands(xr::hand_tracker & hand, XrSpace space, XrTime time)
 {
 	auto joints = hand.locate(space, time);
 
 	if (joints)
 	{
 		std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
-		for(int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+		for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 		{
 			poses[i] = {
-				.pose = (*joints)[i].first.pose,
-				.linear_velocity = (*joints)[i].second.linearVelocity,
-				.angular_velocity = (*joints)[i].second.angularVelocity,
-				.radius = (*joints)[i].first.radius,
+			        .pose = (*joints)[i].first.pose,
+			        .linear_velocity = (*joints)[i].second.linearVelocity,
+			        .angular_velocity = (*joints)[i].second.angularVelocity,
+			        .radius = (*joints)[i].first.radius,
 			};
 
 			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
@@ -115,8 +117,8 @@ void scenes::stream::tracking()
 
 	XrSpace view_space = application::view();
 	const XrDuration tracking_period = 1'000'000; // Send tracking data every 1ms
-	const XrDuration dt = 100'000;               // Wake up 0.1ms before measuring the position
-	const XrDuration extrapolation_horizon = 1;    // 50'000'000;
+	const XrDuration dt = 100'000;                // Wake up 0.1ms before measuring the position
+	const XrDuration extrapolation_horizon = 1;   // 50'000'000;
 
 	XrTime t0 = instance.now();
 	t0 = t0 - t0 % tracking_period;

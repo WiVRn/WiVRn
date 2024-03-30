@@ -56,7 +56,6 @@ public:
 		read_index.store(next_read);
 		return std::move(res);
 	}
-
 };
 
 } // namespace utils

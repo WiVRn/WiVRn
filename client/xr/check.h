@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include <openxr/openxr.h>
 #include <system_error>
+#include <openxr/openxr.h>
 
 namespace xr
 {

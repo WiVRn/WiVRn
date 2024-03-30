@@ -41,7 +41,8 @@ class wivrn_pacer
 	uint64_t last_wake_up_ns = 0;
 
 	// Client wait time for each decoder
-	struct stream_data{
+	struct stream_data
+	{
 		// Last feedback for each encoder
 		xrt::drivers::wivrn::from_headset::feedback last_feedback;
 		std::vector<uint64_t> times;
@@ -49,7 +50,8 @@ class wivrn_pacer
 	};
 	std::vector<stream_data> streams;
 
-	struct frame_history{
+	struct frame_history
+	{
 		uint64_t frame_id;
 		uint64_t present_ns;
 	};
@@ -69,7 +71,7 @@ public:
 	        uint64_t & out_present_slop_ns,
 	        uint64_t & out_predicted_display_time_ns);
 
-	void on_feedback(const xrt::drivers::wivrn::from_headset::feedback &, const clock_offset&);
+	void on_feedback(const xrt::drivers::wivrn::from_headset::feedback &, const clock_offset &);
 
 	void mark_timing_point(
 	        comp_target_timing_point point,

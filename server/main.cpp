@@ -25,11 +25,11 @@
 #include "version.h"
 #include "wivrn_config.h"
 
+#include "active_runtime.h"
 #include "avahi_publisher.h"
 #include "hostname.h"
 #include <shared/ipc_protocol.h>
 #include <util/u_file.h>
-#include "active_runtime.h"
 
 // Insert the on load constructor to init trace marker.
 U_TRACE_TARGET_SETUP(U_TRACE_WHICH_SERVICE)
@@ -265,7 +265,7 @@ int inner_main(int argc, char * argv[])
 
 			setenv("LISTEN_PID", std::to_string(getpid()).c_str(), true);
 
-			//FIXME: synchronization fails on gfx pipeline
+			// FIXME: synchronization fails on gfx pipeline
 			setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
 
 			try

@@ -25,8 +25,8 @@
 #endif
 #define JSON_DIAGNOSTICS 1
 #include <nlohmann/json.hpp>
-#include <stdlib.h>
 #include <random>
+#include <stdlib.h>
 
 #include "util/u_logging.h"
 
@@ -45,14 +45,15 @@ static std::filesystem::path get_cookie_file()
 
 namespace xrt::drivers::wivrn
 {
-
-NLOHMANN_JSON_SERIALIZE_ENUM(video_codec, {
-                                                  {video_codec(-1), ""},
-                                                  {h264, "h264"},
-                                                  {h264, "avc"},
-                                                  {h265, "h265"},
-                                                  {h265, "hevc"},
-                                          })
+NLOHMANN_JSON_SERIALIZE_ENUM(
+        video_codec,
+        {
+                {video_codec(-1), ""},
+                {h264, "h264"},
+                {h264, "avc"},
+                {h265, "h265"},
+                {h265, "hevc"},
+        })
 }
 
 configuration configuration::read_user_configuration()
@@ -110,7 +111,7 @@ configuration configuration::read_user_configuration()
 				result.application.push_back(json["application"]);
 			else
 			{
-				for(const auto& i: json["application"])
+				for (const auto & i: json["application"])
 				{
 					result.application.push_back(i);
 				}
@@ -146,7 +147,7 @@ std::string server_cookie()
 		std::uniform_int_distribution<int> dist(0, 61);
 
 		char buffer[33];
-		for(int i = 0; i < 32; i++)
+		for (int i = 0; i < 32; i++)
 		{
 			int c = dist(engine);
 

@@ -26,4 +26,4 @@ std::shared_ptr<audio_device> create_pipewire_handle(
         const std::string & sink_name,
         const std::string & sink_description,
         const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
-        xrt::drivers::wivrn::wivrn_session& session);
+        xrt::drivers::wivrn::wivrn_session & session);

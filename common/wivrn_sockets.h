@@ -23,10 +23,10 @@
 
 #include <atomic>
 #include <cassert>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <netinet/ip.h>
-#include <exception>
 #include <span>
 #include <utility>
 #include <vector>
@@ -71,9 +71,10 @@ protected:
 
 public:
 	fd_base() = default;
-	fd_base(int fd): fd{fd} {}
+	fd_base(int fd) :
+	        fd{fd} {}
 	fd_base(fd_base &&);
-	fd_base& operator=(fd_base &&);
+	fd_base & operator=(fd_base &&);
 	~fd_base();
 
 	int get_fd() const
@@ -162,17 +163,19 @@ template <class T, class Tuple>
 struct Index;
 
 template <class T, class... Types>
-struct Index<T, std::tuple<T, Types...>> {
-    static const std::size_t value = 0;
+struct Index<T, std::tuple<T, Types...>>
+{
+	static const std::size_t value = 0;
 };
 
 template <class T, class U, class... Types>
-struct Index<T, std::tuple<U, Types...>> {
-    static const std::size_t value = 1 + Index<T, std::tuple<Types...>>::value;
+struct Index<T, std::tuple<U, Types...>>
+{
+	static const std::size_t value = 1 + Index<T, std::tuple<Types...>>::value;
 };
-}
+} // namespace details
 
-template <typename Socket, typename ReceivedType, typename ...VariantTypes>
+template <typename Socket, typename ReceivedType, typename... VariantTypes>
 class typed_socket<Socket, ReceivedType, std::variant<VariantTypes...>> : public Socket
 {
 public:

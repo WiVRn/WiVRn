@@ -23,14 +23,6 @@
 
 #include "spdlog/spdlog.h"
 #include <aaudio/AAudio.h>
-#include <cassert>
-#include <netinet/tcp.h>
-#include <poll.h>
-#include <pthread.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 void wivrn::android::audio::exit()
 {
@@ -96,7 +88,7 @@ int32_t wivrn::android::audio::microphone_data_cb(AAudioStream * stream, void * 
 
 	if (self->exiting)
 	{
-		self->microphone_stop_ack= true;
+		self->microphone_stop_ack = true;
 		self->microphone_stop_ack.notify_all();
 		return AAUDIO_CALLBACK_RESULT_STOP;
 	}
@@ -119,9 +111,7 @@ wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream
 	AAudioStreamBuilder * builder;
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
 	if (result != AAUDIO_OK)
-	{
 		throw std::runtime_error(std::string("Cannot create stream builder: ") + AAudio_convertResultToText(result));
-	}
 
 	if (desc.microphone)
 	{
@@ -182,9 +172,7 @@ wivrn::android::audio::~audio()
 	for (auto stream: {speaker, microphone})
 	{
 		if (stream)
-		{
 			AAudioStream_close(stream);
-		}
 	}
 }
 

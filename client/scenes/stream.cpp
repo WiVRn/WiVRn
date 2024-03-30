@@ -21,11 +21,14 @@
 #include "stream.h"
 
 #include "application.h"
+#include "audio/audio.h"
+#include "boost/pfr/core.hpp"
 #include "decoder/shard_accumulator.h"
+#include "hardware.h"
 #include "spdlog/spdlog.h"
+#include "utils/named_thread.h"
 #include "utils/ranges.h"
 #include "utils/sync_queue.h"
-#include "utils/named_thread.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
 #include "wivrn_packets.h"
@@ -33,9 +36,6 @@
 #include <mutex>
 #include <thread>
 #include <vulkan/vulkan_raii.hpp>
-#include "boost/pfr/core.hpp"
-#include "audio/audio.h"
-#include "hardware.h"
 
 using namespace xrt::drivers::wivrn;
 
@@ -69,15 +69,14 @@ static const std::unordered_map<std::string, device_id> device_ids = {
 // clang-format on
 
 static const std::array supported_formats =
-{
-	vk::Format::eR8G8B8A8Srgb,
-	vk::Format::eB8G8R8A8Srgb
-};
+        {
+                vk::Format::eR8G8B8A8Srgb,
+                vk::Format::eB8G8R8A8Srgb};
 
 std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, bool show_performance_metrics, bool enable_microphone)
 {
 	std::shared_ptr<stream> self{new stream};
-	spdlog::info("decoder_mutex.native_handle() = {}", (void*)self->decoder_mutex.native_handle());
+	spdlog::info("decoder_mutex.native_handle() = {}", (void *)self->decoder_mutex.native_handle());
 
 	self->network_session = std::move(network_session);
 	self->show_performance_metrics = show_performance_metrics;
@@ -94,7 +93,9 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
 	        self->instance.now(),
 	        application::view());
+
 	assert(views.size() == info.fov.size());
+
 	for (auto [i, j]: utils::zip(views, info.fov))
 	{
 		j = i.fov;
@@ -122,9 +123,11 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	self->video_thread = utils::named_thread("video_thread", &stream::video, self.get());
 
 	self->command_buffer = std::move(self->device.allocateCommandBuffers({
-		.commandPool = *self->commandpool,
-		.level = vk::CommandBufferLevel::ePrimary,
-		.commandBufferCount = 1})[0]);
+	        .commandPool = *self->commandpool,
+	        .level = vk::CommandBufferLevel::ePrimary,
+	        .commandBufferCount = 1,
+	})[0]);
+
 	self->fence = self->device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
 
 	// Look up the XrActions for haptics
@@ -166,7 +169,12 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	spdlog::info("Using format {}", vk::to_string(self->swapchain_format));
 
-	self->query_pool = vk::raii::QueryPool(self->device, vk::QueryPoolCreateInfo{.queryType = vk::QueryType::eTimestamp, .queryCount = size_gpu_timestamps});
+	self->query_pool = vk::raii::QueryPool(
+	        self->device,
+	        vk::QueryPoolCreateInfo{
+	                .queryType = vk::QueryType::eTimestamp,
+	                .queryCount = size_gpu_timestamps,
+	        });
 
 	return self;
 }
@@ -176,21 +184,22 @@ void scenes::stream::on_focused()
 	if (show_performance_metrics)
 	{
 		swapchain_imgui = xr::swapchain(
-			session,
-			device,
-			swapchain_format,
-			1500, 1000);
+		        session,
+		        device,
+		        swapchain_format,
+		        1500,
+		        1000);
 
 		imgui_ctx.emplace(physical_device,
-				device,
-				queue_family_index,
-				queue,
-				view_space,
-				std::span<imgui_context::controller>{},
-				swapchain_imgui,
-				glm::vec2{1.0, 0.6666});
+		                  device,
+		                  queue_family_index,
+		                  queue,
+		                  view_space,
+		                  std::span<imgui_context::controller>{},
+		                  swapchain_imgui,
+		                  glm::vec2{1.0, 0.6666});
 
-		imgui_ctx->set_position({0,0,-1}, {1,0,0,0});
+		imgui_ctx->set_position({0, 0, -1}, {1, 0, 0, 0});
 	}
 
 	assert(video_stream_description);
@@ -231,9 +240,9 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 			if (i.decoder.get() == decoder)
 			{
 				std::swap(removed, i.latest_frames[0]);
-				for (size_t j = 1 ; j < i.latest_frames.size() ; ++j)
+				for (size_t j = 1; j < i.latest_frames.size(); ++j)
 				{
-					std::swap(i.latest_frames[j-1], i.latest_frames[j]);
+					std::swap(i.latest_frames[j - 1], i.latest_frames[j]);
 				}
 				std::swap(i.latest_frames.back(), handle);
 				break;
@@ -276,8 +285,7 @@ std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const s
 	{
 		std::vector<uint64_t> tmp;
 		auto x = set.frames();
-		std::set_intersection(
-		        x.begin(), x.end(), common_frames.begin(), common_frames.end(), std::back_inserter(tmp));
+		std::ranges::set_intersection(x, common_frames, std::back_inserter(tmp));
 		common_frames = tmp;
 		if (common_frames.empty())
 			return {};
@@ -294,8 +302,10 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 	{
 		if (not *it)
 			continue;
+
 		if (id and (*it)->feedback.frame_index != *id)
 			continue;
+
 		return *it;
 	}
 	return nullptr;
@@ -357,7 +367,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 			                                 })[0]
 			                           .release();
 
-			const auto& description = i.decoder->desc();
+			const auto & description = i.decoder->desc();
 			vk::Extent2D image_size = i.decoder->image_size();
 			std::array useful_size{
 			        float(description.width) / image_size.width,
@@ -416,8 +426,8 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 			                .topology = vk::PrimitiveTopology::eTriangleStrip,
 			        }},
 			        .ViewportState = {.flags = {}},
-				.Viewports = {{}},
-				.Scissors = {{}},
+			        .Viewports = {{}},
+			        .Scissors = {{}},
 			        .RasterizationState = {{
 			                .polygonMode = vk::PolygonMode::eFill,
 			                .lineWidth = 1,
@@ -440,6 +450,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 
 	if (device.waitForFences(*fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
 		throw std::runtime_error("Vulkan fence timeout");
+
 	device.resetFences(*fence);
 
 	// We don't need those after vkWaitForFences
@@ -449,15 +460,15 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	if (query_pool_filled)
 	{
 		auto [res, timestamps2] = query_pool.getResults<uint64_t>(
-			0,
-			size_gpu_timestamps,
-			size_gpu_timestamps * sizeof(uint64_t),
-			sizeof(uint64_t),
-			vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
+		        0,
+		        size_gpu_timestamps,
+		        size_gpu_timestamps * sizeof(uint64_t),
+		        sizeof(uint64_t),
+		        vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
 
 		if (res == vk::Result::eSuccess)
 		{
-			boost::pfr::for_each_field(timestamps, [n = 1, &timestamps2](float& t) mutable {
+			boost::pfr::for_each_field(timestamps, [n = 1, &timestamps2](float & t) mutable {
 				t = (timestamps2[n++] - timestamps2[0]) * application::get_physical_device_properties().limits.timestampPeriod / 1e9;
 			});
 		}
@@ -497,8 +508,10 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 		// Search for the most recent frame available on all decoders.
 		// If no such frame exists, use the latest frame for each decoder
 		auto common_frame = accumulator_images::common_frame(decoders, next_frame);
+
 		if (common_frame)
 			next_frame = *common_frame + 1;
+
 		// Blit images from the decoders
 		for (auto & i: decoders)
 		{
@@ -541,18 +554,18 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 				        .oldLayout = *blit_handle->current_layout,
 				        .newLayout = vk::ImageLayout::eGeneral,
 				        .image = blit_handle->image,
-					.subresourceRange = {
-						.aspectMask = vk::ImageAspectFlagBits::eColor,
-						.levelCount = 1,
-						.layerCount = 1,
-					},
+				        .subresourceRange = {
+				                .aspectMask = vk::ImageAspectFlagBits::eColor,
+				                .levelCount = 1,
+				                .layerCount = 1,
+				        },
 				};
+
 				command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {}, barrier);
 				*blit_handle->current_layout = vk::ImageLayout::eGeneral;
 			}
 		}
 	}
-
 
 	uint16_t x_offset = 0;
 	for (auto & out: decoder_output)
@@ -588,7 +601,8 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 			        .width = (float)description.width,
 			        .height = (float)description.height,
 			        .minDepth = 0,
-			        .maxDepth = 1};
+			        .maxDepth = 1,
+			};
 
 			x0 = std::clamp<int>(x0, 0, out.size.width);
 			x1 = std::clamp<int>(x1, 0, out.size.width);
@@ -639,15 +653,23 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	{
 		swapchains[swapchain_index].release();
 
-		layer_view[swapchain_index].type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
+		layer_view[swapchain_index] =
+		        {
+		                .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
+		                .pose = views[swapchain_index].pose,
+		                .fov = views[swapchain_index].fov,
 
-		layer_view[swapchain_index].pose = views[swapchain_index].pose;
-		layer_view[swapchain_index].fov = views[swapchain_index].fov;
-
-		layer_view[swapchain_index].subImage.swapchain = swapchains[swapchain_index];
-		layer_view[swapchain_index].subImage.imageRect.offset = {0, 0};
-		layer_view[swapchain_index].subImage.imageRect.extent.width = swapchains[swapchain_index].width();
-		layer_view[swapchain_index].subImage.imageRect.extent.height = swapchains[swapchain_index].height();
+		                .subImage = {
+		                        .swapchain = swapchains[swapchain_index],
+		                        .imageRect = {
+		                                .offset = {0, 0},
+		                                .extent = {
+		                                        swapchains[swapchain_index].width(),
+		                                        swapchains[swapchain_index].height(),
+		                                },
+		                        },
+		                },
+		        };
 	}
 
 	float brightness = std::clamp<float>(dbrightness * (predicted_display_time - first_frame_time) / 1.e9, 0, 1);
@@ -655,7 +677,8 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	XrCompositionLayerColorScaleBiasKHR color_scale_bias{
 	        .type = XR_TYPE_COMPOSITION_LAYER_COLOR_SCALE_BIAS_KHR,
 	        .colorScale = {brightness, brightness, brightness, 1},
-	        .colorBias = {}};
+	        .colorBias = {},
+	};
 
 	XrCompositionLayerProjection layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
@@ -683,7 +706,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	session.end_frame(/*timestamp*/ predicted_display_time, layers_base);
 
 	// Network operations may be blocking, do them once everything was submitted
-	for (const auto& handle: current_blit_handles)
+	for (const auto & handle: current_blit_handles)
 		send_feedback(handle->feedback);
 
 	read_actions();
@@ -753,37 +776,37 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		decoder_output[i].size.height = video_height;
 
 		vk::ImageCreateInfo image_info{
-			.flags = vk::ImageCreateFlags{},
-			.imageType = vk::ImageType::e2D,
-			.format = vk::Format::eA8B8G8R8SrgbPack32,
-			.extent = decoder_out_size,
-			.mipLevels = 1,
-			.arrayLayers = 1,
-			.samples = vk::SampleCountFlagBits::e1,
-			.tiling = vk::ImageTiling::eOptimal,
-			.usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment,
-			.sharingMode = vk::SharingMode::eExclusive,
-			.initialLayout = vk::ImageLayout::eUndefined,
+		        .flags = vk::ImageCreateFlags{},
+		        .imageType = vk::ImageType::e2D,
+		        .format = vk::Format::eA8B8G8R8SrgbPack32,
+		        .extent = decoder_out_size,
+		        .mipLevels = 1,
+		        .arrayLayers = 1,
+		        .samples = vk::SampleCountFlagBits::e1,
+		        .tiling = vk::ImageTiling::eOptimal,
+		        .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment,
+		        .sharingMode = vk::SharingMode::eExclusive,
+		        .initialLayout = vk::ImageLayout::eUndefined,
 		};
 
 		VmaAllocationCreateInfo alloc_info{
-			.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		        .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		};
 
 		decoder_output[i].image = image_allocation{device, image_info, alloc_info};
 
 		vk::ImageViewCreateInfo image_view_info{
-			.image = vk::Image{decoder_output[i].image},
-			.viewType = vk::ImageViewType::e2D,
-			.format = vk::Format::eA8B8G8R8SrgbPack32,
-			.components = {},
-			.subresourceRange = {
-				.aspectMask = vk::ImageAspectFlagBits::eColor,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-			},
+		        .image = vk::Image{decoder_output[i].image},
+		        .viewType = vk::ImageViewType::e2D,
+		        .format = vk::Format::eA8B8G8R8SrgbPack32,
+		        .components = {},
+		        .subresourceRange = {
+		                .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                .baseMipLevel = 0,
+		                .levelCount = 1,
+		                .baseArrayLayer = 0,
+		                .layerCount = 1,
+		        },
 		};
 
 		decoder_output[i].image_view = vk::raii::ImageView(device, image_view_info);
@@ -912,12 +935,11 @@ void scenes::stream::video()
 	}
 }
 
-scene::meta& scenes::stream::get_meta_scene()
+scene::meta & scenes::stream::get_meta_scene()
 {
 	static meta m{
-		"Stream",
-		{}
-	};
+	        "Stream",
+	        {}};
 
 	return m;
 }

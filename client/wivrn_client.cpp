@@ -35,7 +35,7 @@ using namespace std::chrono_literals;
 
 void wivrn_session::handshake()
 {
-	//Wait for handshake on control socket, then send ours on stream socket
+	// Wait for handshake on control socket, then send ours on stream socket
 	pollfd fds{};
 	fds.events = POLLIN;
 	fds.fd = control.get_fd();
@@ -69,7 +69,6 @@ void wivrn_session::handshake()
 wivrn_session::wivrn_session(in6_addr address, int port) :
         control(address, port), stream(), address(address)
 {
-
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET6, &address, buffer, sizeof(buffer)), port);
 	handshake();
@@ -82,7 +81,6 @@ wivrn_session::wivrn_session(in6_addr address, int port) :
 wivrn_session::wivrn_session(in_addr address, int port) :
         control(address, port), stream(), address(address)
 {
-
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET, &address, buffer, sizeof(buffer)), port);
 	handshake();

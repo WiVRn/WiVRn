@@ -59,29 +59,27 @@ hand_model::hand_model(const std::filesystem::path & gltf_path, scene_loader & l
 	// clang-format on
 }
 
-void hand_model::apply(const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>>& joints_location)
+void hand_model::apply(const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & joints_location)
 {
 	if (joints_location)
 	{
 		root_node->visible = true;
 
-		for(auto&& [joint, loc]: utils::zip(joints, *joints_location))
+		for (auto && [joint, loc]: utils::zip(joints, *joints_location))
 		{
 			if (!joint)
 				continue;
 
 			joint->position = {
-				loc.first.pose.position.x,
-				loc.first.pose.position.y,
-				loc.first.pose.position.z
-			};
+			        loc.first.pose.position.x,
+			        loc.first.pose.position.y,
+			        loc.first.pose.position.z};
 
 			joint->orientation = {
-				loc.first.pose.orientation.w,
-				loc.first.pose.orientation.x,
-				loc.first.pose.orientation.y,
-				loc.first.pose.orientation.z
-			};
+			        loc.first.pose.orientation.w,
+			        loc.first.pose.orientation.x,
+			        loc.first.pose.orientation.y,
+			        loc.first.pose.orientation.z};
 		}
 	}
 	else

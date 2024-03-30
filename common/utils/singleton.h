@@ -21,7 +21,7 @@
 
 #include <cassert>
 
-template<typename T>
+template <typename T>
 class singleton
 {
 	// static_assert(std::derived_from<T, singleton<T>>);
@@ -32,7 +32,7 @@ protected:
 	singleton()
 	{
 		assert(instance_ == nullptr);
-		instance_ = reinterpret_cast<T*>(this);
+		instance_ = reinterpret_cast<T *>(this);
 	}
 
 	~singleton()
@@ -41,15 +41,16 @@ protected:
 		instance_ = nullptr;
 	}
 
-	singleton(const singleton&) = delete;
-	singleton& operator=(const singleton&) = delete;
+	singleton(const singleton &) = delete;
+	singleton & operator=(const singleton &) = delete;
 
 public:
 	static T & instance()
 	{
 		assert(instance_ != nullptr);
-		return *reinterpret_cast<T*>(instance_);
+		return *reinterpret_cast<T *>(instance_);
 	}
 };
 
-template<typename T> T * singleton<T>::instance_;
+template <typename T>
+T * singleton<T>::instance_;

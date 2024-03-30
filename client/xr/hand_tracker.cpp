@@ -19,34 +19,33 @@
 
 #include "hand_tracker.h"
 
-
 std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::hand_tracker::locate(XrSpace space, XrTime time)
 {
 	if (!id || !xrLocateHandJointsEXT)
 		return std::nullopt;
 
 	XrHandJointsLocateInfoEXT info{
-		.type = XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT,
-		.next = nullptr,
-		.baseSpace = space,
-		.time = time,
+	        .type = XR_TYPE_HAND_JOINTS_LOCATE_INFO_EXT,
+	        .next = nullptr,
+	        .baseSpace = space,
+	        .time = time,
 	};
 
 	std::array<XrHandJointLocationEXT, XR_HAND_JOINT_COUNT_EXT> joints_pos;
 	std::array<XrHandJointVelocityEXT, XR_HAND_JOINT_COUNT_EXT> joints_vel;
 
 	XrHandJointVelocitiesEXT velocities{
-		.type = XR_TYPE_HAND_JOINT_VELOCITIES_EXT,
-		.next = nullptr,
-		.jointCount = joints_vel.size(),
-		.jointVelocities = joints_vel.data(),
+	        .type = XR_TYPE_HAND_JOINT_VELOCITIES_EXT,
+	        .next = nullptr,
+	        .jointCount = joints_vel.size(),
+	        .jointVelocities = joints_vel.data(),
 	};
 
 	XrHandJointLocationsEXT locations{
-		.type = XR_TYPE_HAND_JOINT_LOCATIONS_EXT,
-		.next = &velocities,
-		.jointCount = joints_pos.size(),
-		.jointLocations = joints_pos.data(),
+	        .type = XR_TYPE_HAND_JOINT_LOCATIONS_EXT,
+	        .next = &velocities,
+	        .jointCount = joints_pos.size(),
+	        .jointLocations = joints_pos.data(),
 	};
 
 	CHECK_XR(xrLocateHandJointsEXT(id, &info, &locations));
@@ -55,9 +54,9 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 		return std::nullopt;
 
 	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints;
-	for(int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+	for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 	{
-		joints[i] = { joints_pos[i], joints_vel[i] };
+		joints[i] = {joints_pos[i], joints_vel[i]};
 	}
 
 	return joints;

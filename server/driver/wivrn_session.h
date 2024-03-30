@@ -74,7 +74,7 @@ public:
 
 	clock_offset get_offset();
 
-	void operator()(from_headset::handshake&&) {}
+	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::headset_info_packet &&);
 	void operator()(from_headset::tracking &&);
 	void operator()(from_headset::hand_tracking &&);
@@ -97,7 +97,7 @@ public:
 
 	std::array<to_headset::video_stream_description::foveation_parameter, 2> get_foveation_parameters();
 
-	void dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream = -1, const char* extra = "");
+	void dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream = -1, const char * extra = "");
 
 private:
 	static void run(std::weak_ptr<wivrn_session>);

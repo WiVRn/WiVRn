@@ -36,7 +36,10 @@ struct clock_offset
 	int64_t b = 0;
 	double a = 1;
 
-	operator bool() { return b != 0;}
+	operator bool()
+	{
+		return b != 0;
+	}
 
 	XrTime from_headset(XrTime) const;
 
@@ -45,7 +48,7 @@ struct clock_offset
 
 class clock_offset_estimator
 {
-	struct sample: public xrt::drivers::wivrn::from_headset::timesync_response
+	struct sample : public xrt::drivers::wivrn::from_headset::timesync_response
 	{
 		XrTime received;
 	};
@@ -58,9 +61,9 @@ class clock_offset_estimator
 	std::chrono::steady_clock::time_point next_sample{};
 	std::atomic<std::chrono::milliseconds> sample_interval = std::chrono::milliseconds(10);
 
-	public:
-	void request_sample(wivrn_connection& connection);
-	void add_sample(const xrt::drivers::wivrn::from_headset::timesync_response& sample);
+public:
+	void request_sample(wivrn_connection & connection);
+	void add_sample(const xrt::drivers::wivrn::from_headset::timesync_response & sample);
 
 	clock_offset get_offset();
 };

@@ -23,8 +23,8 @@
 namespace utils
 {
 
-template<typename Rng, typename T>
-bool contains(Rng&& range, const T& value)
+template <typename Rng, typename T>
+bool contains(Rng && range, const T & value)
 {
 	auto it = std::find(range.begin(), range.end(), value);
 
@@ -32,10 +32,10 @@ bool contains(Rng&& range, const T& value)
 }
 
 // Check if all values of range2 are in range1
-template<typename Rng1, typename Rng2>
-bool contains_all(Rng1&& range1, Rng2&& range2)
+template <typename Rng1, typename Rng2>
+bool contains_all(Rng1 && range1, Rng2 && range2)
 {
-	for(const auto& i: range2)
+	for (const auto & i: range2)
 	{
 		if (!contains(range1, i))
 			return false;
@@ -44,4 +44,4 @@ bool contains_all(Rng1&& range1, Rng2&& range2)
 	return true;
 }
 
-}
+} // namespace utils

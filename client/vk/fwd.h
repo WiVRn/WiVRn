@@ -21,9 +21,9 @@
 
 namespace vk::raii
 {
-	class ImageView;
-	class PhysicalDevice;
-	class Device;
-	class Queue;
-	class CommandPool;
-}
+class ImageView;
+class PhysicalDevice;
+class Device;
+class Queue;
+class CommandPool;
+} // namespace vk::raii

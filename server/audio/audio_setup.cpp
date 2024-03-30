@@ -45,7 +45,7 @@ std::shared_ptr<audio_device> audio_device::create(
 
 #ifdef WIVRN_USE_PULSEAUDIO
 	if (auto res = create_pulse_handle(source_name, source_description, sink_name, sink_description, info, session))
-                return res;
+		return res;
 #endif
 	U_LOG_W("No audio backend available");
 	return nullptr;

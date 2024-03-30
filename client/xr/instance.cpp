@@ -24,7 +24,6 @@
 #include <cassert>
 #include <cstring>
 #include <spdlog/spdlog.h>
-#include <utility>
 #include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
@@ -66,15 +65,15 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 
 	// This must be called before the instance is created
 	PFN_xrInitializeLoaderKHR initializeLoader = nullptr;
-	if (XR_SUCCEEDED(xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction*)(&initializeLoader))))
+	if (XR_SUCCEEDED(xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction *)(&initializeLoader))))
 	{
 		XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid = {
-			.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR,
-			.applicationVM = applicationVM,
-			.applicationContext = applicationActivity,
+		        .type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR,
+		        .applicationVM = applicationVM,
+		        .applicationContext = applicationActivity,
 		};
-		initializeLoader((const XrLoaderInitInfoBaseHeaderKHR*)&loaderInitInfoAndroid);
-        }
+		initializeLoader((const XrLoaderInitInfoBaseHeaderKHR *)&loaderInitInfoAndroid);
+	}
 #endif
 
 	std::vector<const char *> layers;
@@ -111,7 +110,7 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 	for (auto & i: extensions)
 	{
 		uint32_t version = 0;
-		for(auto & j: all_extensions)
+		for (auto & j: all_extensions)
 		{
 			if (!strcmp(j.extensionName, i))
 				version = j.extensionVersion;
@@ -205,11 +204,13 @@ bool xr::instance::poll_event(xr::event & buffer)
 void xr::instance::suggest_bindings(const std::string & interaction_profile,
                                     std::vector<XrActionSuggestedBinding> & bindings)
 {
-	XrInteractionProfileSuggestedBinding suggested_binding{};
-	suggested_binding.type = XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING;
-	suggested_binding.interactionProfile = string_to_path(interaction_profile);
-	suggested_binding.countSuggestedBindings = bindings.size();
-	suggested_binding.suggestedBindings = bindings.data();
+	XrInteractionProfileSuggestedBinding suggested_binding{
+	        .type = XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING,
+	        .interactionProfile = string_to_path(interaction_profile),
+	        .countSuggestedBindings = (uint32_t)bindings.size(),
+	        .suggestedBindings = bindings.data(),
+	};
+
 	CHECK_XR(xrSuggestInteractionProfileBindings(id, &suggested_binding));
 }
 

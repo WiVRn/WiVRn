@@ -21,18 +21,18 @@
 
 #include "render/scene_data.h"
 #include "scene.h"
-#include <vulkan/vulkan_raii.hpp>
 #include "scenes/hand_model.h"
 #include "wivrn_discover.h"
+#include <vulkan/vulkan_raii.hpp>
 
 #include "xr/passthrough.h"
+#include <map>
 #include <optional>
 #include <vector>
-#include <map>
 
-#include "render/scene_renderer.h"
-#include "render/imgui_impl.h"
 #include "input_profile.h"
+#include "render/imgui_impl.h"
+#include "render/scene_renderer.h"
 #include "utils/async.h"
 
 class wivrn_session;
@@ -72,7 +72,6 @@ class lobby : public scene_impl<lobby>
 	std::optional<std::string> async_error;
 	std::shared_ptr<stream> next_scene;
 	std::string server_name;
-
 
 	std::optional<scene_renderer> renderer;
 	std::optional<scene_data> lobby_scene;
@@ -130,7 +129,7 @@ class lobby : public scene_impl<lobby>
 
 	void vibrate_on_hover();
 
-	void connect(server_data& data);
+	void connect(server_data & data);
 
 public:
 	virtual ~lobby();
@@ -141,6 +140,6 @@ public:
 	void on_focused() override;
 	void on_session_state_changed(XrSessionState state) override;
 
-	static meta& get_meta_scene();
+	static meta & get_meta_scene();
 };
 } // namespace scenes

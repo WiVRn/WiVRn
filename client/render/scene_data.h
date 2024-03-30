@@ -28,14 +28,13 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+#include <ktxvulkan.h>
 #include <memory>
 #include <optional>
 #include <string>
-#include <variant>
 #include <vector>
 #include <vk/allocation.h>
 #include <vulkan/vulkan_raii.hpp>
-#include <ktxvulkan.h>
 
 struct sampler_info
 {
@@ -193,8 +192,8 @@ struct scene_data
 	scene_data & operator=(const scene_data &) = delete;
 	scene_data & operator=(scene_data &&) = default;
 
-	scene_data& import(scene_data && other, node_handle parent);
-	scene_data& import(scene_data && other);
+	scene_data & import(scene_data && other, node_handle parent);
+	scene_data & import(scene_data && other);
 
 	node_handle new_node();
 	node_handle find_node(std::string_view name);
@@ -214,11 +213,11 @@ class scene_loader
 
 public:
 	scene_loader(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, uint32_t queue_family_index, std::shared_ptr<scene_data::material> default_material) :
-	device(device),
-	physical_device(physical_device),
-	queue(queue),
-	queue_family_index(queue_family_index),
-	default_material(default_material)
+	        device(device),
+	        physical_device(physical_device),
+	        queue(queue),
+	        queue_family_index(queue_family_index),
+	        default_material(default_material)
 	{}
 
 	scene_data operator()(const std::filesystem::path & gltf_path);
@@ -232,32 +231,33 @@ class node_handle
 
 public:
 	node_handle() = default;
-	node_handle(size_t id, scene_data * scene) : id(id), scene(scene) {}
-	node_handle(const node_handle&) = default;
-	node_handle& operator=(const node_handle&) = default;
+	node_handle(size_t id, scene_data * scene) :
+	        id(id), scene(scene) {}
+	node_handle(const node_handle &) = default;
+	node_handle & operator=(const node_handle &) = default;
 
-	scene_data::node& operator*()
+	scene_data::node & operator*()
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_nodes.size());
 		return scene->scene_nodes[id];
 	}
 
-	const scene_data::node& operator*() const
+	const scene_data::node & operator*() const
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_nodes.size());
 		return scene->scene_nodes[id];
 	}
 
-	scene_data::node* operator->()
+	scene_data::node * operator->()
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_nodes.size());
 		return &scene->scene_nodes[id];
 	}
 
-	const scene_data::node* operator->() const
+	const scene_data::node * operator->() const
 	{
 		assert(scene != nullptr);
 		assert(id < scene->scene_nodes.size());

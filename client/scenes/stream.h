@@ -19,7 +19,9 @@
 
 #pragma once
 
+#include "audio/audio.h"
 #include "decoder/shard_accumulator.h"
+#include "render/imgui_impl.h"
 #include "scene.h"
 #include "stream_reprojection.h"
 #include "utils/sync_queue.h"
@@ -28,8 +30,6 @@
 #include <mutex>
 #include <thread>
 #include <vulkan/vulkan_core.h>
-#include "audio/audio.h"
-#include "render/imgui_impl.h"
 
 namespace scenes
 {
@@ -82,7 +82,7 @@ private:
 
 	std::mutex decoder_mutex;
 	std::optional<to_headset::video_stream_description> video_stream_description;
-	uint64_t next_frame; // Preferred index for next frame
+	uint64_t next_frame;                      // Preferred index for next frame
 	std::vector<accumulator_images> decoders; // Locked by decoder_mutex
 	vk::raii::DescriptorPool blit_descriptor_pool = nullptr;
 	vk::raii::RenderPass blit_render_pass = nullptr;
@@ -124,13 +124,13 @@ public:
 	void on_focused() override;
 	void on_unfocused() override;
 
-	void operator()(to_headset::handshake&&) {};
+	void operator()(to_headset::handshake &&){};
 	void operator()(to_headset::video_stream_data_shard &&);
 	void operator()(to_headset::haptics &&);
 	void operator()(to_headset::timesync_query &&);
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
-	void operator()(audio_data&&);
+	void operator()(audio_data &&);
 
 	void push_blit_handle(shard_accumulator * decoder, std::shared_ptr<shard_accumulator::blit_handle> handle);
 
@@ -138,7 +138,7 @@ public:
 
 	state current_state() const
 	{
-		return state_ ;
+		return state_;
 	}
 
 	bool alive() const
@@ -146,7 +146,7 @@ public:
 		return !exiting;
 	}
 
-	static meta& get_meta_scene();
+	static meta & get_meta_scene();
 
 private:
 	void process_packets();
@@ -179,7 +179,6 @@ private:
 		float cpu_time = 0;
 		float bandwidth_rx = 0;
 		float bandwidth_tx = 0;
-
 	};
 
 	struct plot
@@ -215,7 +214,7 @@ private:
 	XrTime last_metric_time = 0;
 	int metrics_offset = 0;
 
-	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>>& blit_handles, const gpu_timestamps& timestamps);
+	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
 	XrCompositionLayerQuad plot_performance_metrics(XrTime predicted_display_time);
 };
 } // namespace scenes

@@ -20,13 +20,13 @@
 
 #include "application.h"
 #include "asset.h"
+#include <glm/gtc/quaternion.hpp>
 #include <magic_enum.hpp>
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <glm/gtc/quaternion.hpp>
 
 namespace
 {
@@ -204,7 +204,7 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 		}
 	}
 
-	for(auto&& [layout, model]: models)
+	for (auto && [layout, model]: models)
 	{
 		node_handle root_node = scene.new_node();
 		root_node->name = layout;
@@ -222,7 +222,7 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 		scene.import(std::move(model), root_node);
 	}
 
-	for(auto& json_response: json_responses)
+	for (auto & json_response: json_responses)
 	{
 		std::string action_path = "/user/hand/" + json_response.layout + json_response.component_subpath;
 
@@ -236,11 +236,11 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 			continue;
 		}
 
-		auto& response = responses.emplace_back();
+		auto & response = responses.emplace_back();
 		response.action = action.first;
 		response.type = action.second;
 
-		switch(json_response.property)
+		switch (json_response.property)
 		{
 			case component_property::button:
 			case component_property::state:
@@ -262,7 +262,7 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 		}
 
 		node_handle controller_root_node;
-		for(auto&& [i, j]: model_handles)
+		for (auto && [i, j]: model_handles)
 		{
 			if (j->name == json_response.layout)
 			{
@@ -366,11 +366,11 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bo
 		{
 			float scaled_value = *value * response.scale + response.bias;
 
-			if ((scaled_value < 0) || (scaled_value  > 1))
+			if ((scaled_value < 0) || (scaled_value > 1))
 			{
 				std::string full_name = response.target.node->name;
 
-				for(auto i = response.target.node; i; i = i.parent())
+				for (auto i = response.target.node; i; i = i.parent())
 				{
 					full_name = i->name + "/" + full_name;
 				}
@@ -378,11 +378,10 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bo
 				spdlog::warn("Out of range value {} (scaled to {}) for node {}", *value, scaled_value, full_name);
 			}
 
-
-			std::visit([&](auto& transform)
-			{
+			std::visit([&](auto & transform) {
 				apply_visual_response(response.target.node, transform, scaled_value);
-			}, response.target.state);
+			},
+			           response.target.state);
 		}
 	}
 }

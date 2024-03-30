@@ -18,13 +18,13 @@
 
 #pragma once
 
+#include "application.h"
+#include "utils/alignment.h"
+#include "vk/allocation.h"
+#include <fastgltf/tools.hpp>
+#include <fastgltf/types.hpp>
 #include <vector>
 #include <vulkan/vulkan.hpp>
-#include <fastgltf/types.hpp>
-#include <fastgltf/tools.hpp>
-#include "application.h"
-#include "vk/allocation.h"
-#include "utils/alignment.h"
 
 class gpu_buffer
 {
@@ -125,8 +125,7 @@ public:
 		        VmaAllocationCreateInfo{
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO},
-			"gpu_buffer::copy_to_gpu"
-		};
+		        "gpu_buffer::copy_to_gpu"};
 
 		memcpy(gpu_buffer.map(), bytes.data(), bytes.size());
 		gpu_buffer.unmap();

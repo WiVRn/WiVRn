@@ -19,10 +19,10 @@
 #pragma once
 
 #include <filesystem>
-#include <variant>
-#include <render/scene_data.h>
-#include <openxr/openxr.h>
 #include <glm/glm.hpp>
+#include <render/scene_data.h>
+#include <variant>
+#include <openxr/openxr.h>
 
 struct input_profile
 {
@@ -60,7 +60,7 @@ struct input_profile
 	std::vector<visual_response> responses;
 	std::vector<std::pair<XrSpace, node_handle>> model_handles;
 
-	input_profile(const std::filesystem::path& json_profile, scene_loader& loader, scene_data& scene);
+	input_profile(const std::filesystem::path & json_profile, scene_loader & loader, scene_data & scene);
 
 	// application::poll_actions() must have been called before
 	void apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right);

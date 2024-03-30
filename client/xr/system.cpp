@@ -48,8 +48,9 @@ XrGraphicsRequirementsVulkan2KHR xr::system::graphics_requirements() const
 	auto xrGetVulkanGraphicsRequirements2KHR =
 	        inst->get_proc<PFN_xrGetVulkanGraphicsRequirements2KHR>("xrGetVulkanGraphicsRequirements2KHR");
 
-	XrGraphicsRequirementsVulkan2KHR requirements{};
-	requirements.type = XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR;
+	XrGraphicsRequirementsVulkan2KHR requirements{
+	        .type = XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR,
+	};
 
 	CHECK_XR(xrGetVulkanGraphicsRequirements2KHR(*inst, id, &requirements));
 	return requirements;
@@ -60,7 +61,9 @@ XrSystemProperties xr::system::properties() const
 	if (!id)
 		throw std::invalid_argument("this");
 
-	XrSystemProperties prop{.type = XR_TYPE_SYSTEM_PROPERTIES};
+	XrSystemProperties prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	};
 	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
 
 	return prop;
@@ -71,14 +74,13 @@ XrSystemHandTrackingPropertiesEXT xr::system::hand_tracking_properties() const
 	if (!id)
 		throw std::invalid_argument("this");
 
-	XrSystemHandTrackingPropertiesEXT hand_tracking_prop
-	{
-		.type = XR_TYPE_SYSTEM_HAND_TRACKING_PROPERTIES_EXT,
+	XrSystemHandTrackingPropertiesEXT hand_tracking_prop{
+	        .type = XR_TYPE_SYSTEM_HAND_TRACKING_PROPERTIES_EXT,
 	};
 
 	XrSystemProperties prop{
-		.type = XR_TYPE_SYSTEM_PROPERTIES,
-		.next = &hand_tracking_prop,
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &hand_tracking_prop,
 	};
 	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
 
@@ -87,25 +89,24 @@ XrSystemHandTrackingPropertiesEXT xr::system::hand_tracking_properties() const
 
 xr::system::passthrough_type xr::system::passthrough_supported() const
 {
-	const std::vector<std::string>& xr_extensions = application::get_xr_extensions();
+	const std::vector<std::string> & xr_extensions = application::get_xr_extensions();
 	if (utils::contains(xr_extensions, XR_HTC_PASSTHROUGH_EXTENSION_NAME))
 		return passthrough_type::color;
 
 	if (utils::contains(xr_extensions, XR_FB_PASSTHROUGH_EXTENSION_NAME))
 	{
 		XrSystemPassthroughProperties2FB passthrough_prop2{
-			.type = XR_TYPE_SYSTEM_PASSTHROUGH_PROPERTIES2_FB,
+		        .type = XR_TYPE_SYSTEM_PASSTHROUGH_PROPERTIES2_FB,
 		};
 
-		XrSystemPassthroughPropertiesFB passthrough_prop
-		{
-			.type = XR_TYPE_SYSTEM_PASSTHROUGH_PROPERTIES_FB,
-			.next = &passthrough_prop2,
+		XrSystemPassthroughPropertiesFB passthrough_prop{
+		        .type = XR_TYPE_SYSTEM_PASSTHROUGH_PROPERTIES_FB,
+		        .next = &passthrough_prop2,
 		};
 
 		XrSystemProperties prop{
-			.type = XR_TYPE_SYSTEM_PROPERTIES,
-			.next = &passthrough_prop,
+		        .type = XR_TYPE_SYSTEM_PROPERTIES,
+		        .next = &passthrough_prop,
 		};
 		CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
 
@@ -124,15 +125,16 @@ xr::system::passthrough_type xr::system::passthrough_supported() const
 	return passthrough_type::no_passthrough;
 }
 
-vk::raii::PhysicalDevice xr::system::physical_device(vk::raii::Instance& vulkan) const
+vk::raii::PhysicalDevice xr::system::physical_device(vk::raii::Instance & vulkan) const
 {
 	auto xrGetVulkanGraphicsDevice2KHR =
 	        inst->get_proc<PFN_xrGetVulkanGraphicsDevice2KHR>("xrGetVulkanGraphicsDevice2KHR");
 
-	XrVulkanGraphicsDeviceGetInfoKHR get_info{};
-	get_info.type = XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR;
-	get_info.systemId = id;
-	get_info.vulkanInstance = *vulkan;
+	XrVulkanGraphicsDeviceGetInfoKHR get_info{
+	        .type = XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR,
+	        .systemId = id,
+	        .vulkanInstance = *vulkan,
+	};
 
 	VkPhysicalDevice dev;
 	CHECK_XR(xrGetVulkanGraphicsDevice2KHR(*inst, &get_info, &dev));
@@ -140,15 +142,15 @@ vk::raii::PhysicalDevice xr::system::physical_device(vk::raii::Instance& vulkan)
 	return vk::raii::PhysicalDevice{vulkan, dev};
 }
 
-vk::raii::Device xr::system::create_device(vk::raii::PhysicalDevice& pdev, vk::DeviceCreateInfo & create_info) const
+vk::raii::Device xr::system::create_device(vk::raii::PhysicalDevice & pdev, vk::DeviceCreateInfo & create_info) const
 {
-	XrVulkanDeviceCreateInfoKHR xr_create_info{};
-
-	xr_create_info.type = XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR;
-	xr_create_info.pfnGetInstanceProcAddr = vkGetInstanceProcAddr;
-	xr_create_info.systemId = id;
-	xr_create_info.vulkanPhysicalDevice = *pdev;
-	xr_create_info.vulkanCreateInfo = &(VkDeviceCreateInfo&)create_info;
+	XrVulkanDeviceCreateInfoKHR xr_create_info{
+	        .type = XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR,
+	        .systemId = id,
+	        .pfnGetInstanceProcAddr = vkGetInstanceProcAddr,
+	        .vulkanPhysicalDevice = *pdev,
+	        .vulkanCreateInfo = &(VkDeviceCreateInfo &)create_info,
+	};
 
 	VkDevice dev;
 	VkResult vresult;
@@ -167,8 +169,9 @@ std::vector<XrViewConfigurationType> xr::system::view_configurations() const
 
 XrViewConfigurationProperties xr::system::view_configuration_properties(XrViewConfigurationType type) const
 {
-	XrViewConfigurationProperties prop{};
-	prop.type = XR_TYPE_VIEW_CONFIGURATION_PROPERTIES;
+	XrViewConfigurationProperties prop{
+	        .type = XR_TYPE_VIEW_CONFIGURATION_PROPERTIES,
+	};
 	CHECK_XR(xrGetViewConfigurationProperties(*inst, id, type, &prop));
 
 	return prop;

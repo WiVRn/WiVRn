@@ -29,7 +29,7 @@ namespace xrt::drivers::wivrn
 
 class VideoEncoderNvenc : public VideoEncoder
 {
-	wivrn_vk_bundle& vk;
+	wivrn_vk_bundle & vk;
 	// relevant part of the input image to encode
 	vk::Rect2D rect;
 
@@ -51,10 +51,10 @@ class VideoEncoderNvenc : public VideoEncoder
 	int bitrate;
 
 public:
-	VideoEncoderNvenc(wivrn_vk_bundle& vk, const encoder_settings & settings, float fps);
+	VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_settings & settings, float fps);
 
 	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;
-	void Encode( bool idr, std::chrono::steady_clock::time_point pts) override;
+	void Encode(bool idr, std::chrono::steady_clock::time_point pts) override;
 };
 
 } // namespace xrt::drivers::wivrn

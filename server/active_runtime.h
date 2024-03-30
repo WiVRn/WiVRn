@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <unistd.h>
 #include <filesystem>
+#include <unistd.h>
 
 class active_runtime
 {
@@ -29,7 +29,7 @@ class active_runtime
 
 public:
 	active_runtime();
-	active_runtime(const active_runtime&) = delete;
-	active_runtime& operator=(const active_runtime&) = delete;
+	active_runtime(const active_runtime &) = delete;
+	active_runtime & operator=(const active_runtime &) = delete;
 	~active_runtime();
 };

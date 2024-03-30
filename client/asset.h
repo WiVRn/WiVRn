@@ -28,7 +28,6 @@
 struct AAsset;
 #endif
 
-
 class asset
 {
 #ifdef __ANDROID__
@@ -41,7 +40,7 @@ class asset
 
 public:
 	asset() = default;
-	asset(const std::filesystem::path& path);
+	asset(const std::filesystem::path & path);
 
 #ifdef __ANDROID__
 	asset(asset && other);
@@ -72,6 +71,6 @@ public:
 
 	operator std::string() const
 	{
-		return std::string(reinterpret_cast<const char*>(data()), size());
+		return std::string(reinterpret_cast<const char *>(data()), size());
 	}
 };

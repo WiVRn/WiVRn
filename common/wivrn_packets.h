@@ -27,8 +27,8 @@
 #include <span>
 #include <variant>
 #include <vector>
-#include <openxr/openxr.h>
 #include <vulkan/vulkan_core.h>
+#include <openxr/openxr.h>
 
 #include "wivrn_serialization_types.h"
 

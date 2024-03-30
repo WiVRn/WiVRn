@@ -18,13 +18,12 @@
 
 #pragma once
 
-#include <spdlog/fmt/fmt.h>
 #include <glm/fwd.hpp>
-
+#include <spdlog/fmt/fmt.h>
 
 // /usr/include/fmt/chrono.h:2017
 
-template<glm::length_t L, typename T, glm::qualifier Q, typename Char>
+template <glm::length_t L, typename T, glm::qualifier Q, typename Char>
 struct fmt::formatter<glm::vec<L, T, Q>, Char> //: fmt::formatter<T>
 {
 	// auto parse(basic_format_parse_context<Char>& ctx) const -> decltype(ctx.begin())
@@ -37,14 +36,13 @@ struct fmt::formatter<glm::vec<L, T, Q>, Char> //: fmt::formatter<T>
 	// 	return begin;
 	// }
 
-	auto parse(basic_format_parse_context<Char>& ctx) const // -> decltype(ctx.begin())
+	auto parse(basic_format_parse_context<Char> & ctx) const // -> decltype(ctx.begin())
 	{
 		return ctx.begin();
 	}
 
-
 	template <typename FormatContext>
-	auto format(const glm::vec<L, T, Q>& v, FormatContext& ctx) const -> decltype(ctx.out())
+	auto format(const glm::vec<L, T, Q> & v, FormatContext & ctx) const -> decltype(ctx.out())
 	{
 		if constexpr (L == 1)
 		{
@@ -66,10 +64,7 @@ struct fmt::formatter<glm::vec<L, T, Q>, Char> //: fmt::formatter<T>
 			return fmt::format_to(ctx.out(), "[ {}, {}, {}, {} ]", v.x, v.y, v.z, v.w);
 		}
 
-
-
 		// return formatter<std::string_view>(
-
 
 		// auto time = std::tm();
 		// time.tm_wday = static_cast<int>(wd.c_encoding());
@@ -78,25 +73,21 @@ struct fmt::formatter<glm::vec<L, T, Q>, Char> //: fmt::formatter<T>
 		// w.on_abbr_weekday();
 		// return w.out();
 	}
-
 };
 
-
-template<typename T, glm::qualifier Q, typename Char>
+template <typename T, glm::qualifier Q, typename Char>
 struct fmt::formatter<glm::qua<T, Q>, Char>
 {
-
-	auto parse(basic_format_parse_context<Char>& ctx) const // -> decltype(ctx.begin())
+	auto parse(basic_format_parse_context<Char> & ctx) const // -> decltype(ctx.begin())
 	{
 		return ctx.begin();
 	}
 
 	template <typename FormatContext>
-	auto format(const glm::qua<T, Q>& q, FormatContext& ctx) const -> decltype(ctx.out())
+	auto format(const glm::qua<T, Q> & q, FormatContext & ctx) const -> decltype(ctx.out())
 	{
 		return fmt::format_to(ctx.out(), "[ {}, {}, {}, {} ]", q.w, q.x, q.y, q.z);
 	}
-
 };
 
 /*

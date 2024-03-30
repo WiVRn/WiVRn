@@ -65,7 +65,7 @@ void scenes::stream::operator()(to_headset::timesync_query && query)
 	network_session->send_stream(response);
 }
 
-void scenes::stream::operator()(audio_data&& data)
+void scenes::stream::operator()(audio_data && data)
 {
 	if (audio_handle)
 		(*audio_handle)(std::move(data));

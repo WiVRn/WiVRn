@@ -31,7 +31,7 @@ struct vk_bundle;
 // however we don't own it, so deactivate the destructor
 struct raii_instance : public vk::raii::Instance
 {
-	raii_instance(vk::raii::Context &ctx, VkInstance i) :
+	raii_instance(vk::raii::Context & ctx, VkInstance i) :
 	        vk::raii::Instance(ctx, i) {}
 	raii_instance & operator=(raii_instance &&) noexcept = default;
 	~raii_instance()
@@ -60,10 +60,10 @@ struct wivrn_vk_bundle
 	vk::raii::Queue queue;
 	uint32_t queue_family_index;
 
-	std::vector<const char*> instance_extensions;
-	std::vector<const char*> device_extensions;
+	std::vector<const char *> instance_extensions;
+	std::vector<const char *> device_extensions;
 
-	wivrn_vk_bundle(vk_bundle& vk, std::span<const char*> requested_instance_extensions, std::span<const char*> requested_device_extensions);
+	wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> requested_instance_extensions, std::span<const char *> requested_device_extensions);
 
 	uint32_t get_memory_type(uint32_t type_bits, vk::MemoryPropertyFlags memory_props);
 };

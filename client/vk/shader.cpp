@@ -19,17 +19,17 @@
 
 #include "shader.h"
 
-vk::raii::ShaderModule load_shader(vk::raii::Device& device, const std::vector<uint32_t> & spirv)
+vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::vector<uint32_t> & spirv)
 {
 	vk::ShaderModuleCreateInfo create_info{
-		.codeSize = spirv.size() * sizeof(uint32_t),
-		.pCode = data(spirv),
+	        .codeSize = spirv.size() * sizeof(uint32_t),
+	        .pCode = data(spirv),
 	};
 
 	return vk::raii::ShaderModule{device, create_info};
 }
 
-vk::raii::ShaderModule load_shader(vk::raii::Device& device, const std::string & name)
+vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::string & name)
 {
 	return load_shader(device, shaders.at(name));
 }

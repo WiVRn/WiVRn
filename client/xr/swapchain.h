@@ -52,7 +52,7 @@ private:
 
 public:
 	swapchain() = default;
-	swapchain(session &, vk::raii::Device& device, vk::Format format, int32_t width, int32_t height, int sample_count = 1);
+	swapchain(session &, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count = 1);
 	swapchain(swapchain &&) = default;
 	swapchain(const swapchain &) = delete;
 	swapchain & operator=(swapchain &&) = default;
@@ -69,7 +69,7 @@ public:
 	}
 	XrExtent2Di extent() const
 	{
-		return { width_, height_ };
+		return {width_, height_};
 	}
 	int sample_count() const
 	{

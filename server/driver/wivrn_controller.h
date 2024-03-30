@@ -21,8 +21,8 @@
 
 #include "xrt/xrt_device.h"
 
-#include "pose_list.h"
 #include "hand_joints_list.h"
+#include "pose_list.h"
 #include "wivrn_session.h"
 
 #include <memory>

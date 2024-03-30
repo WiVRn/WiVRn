@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <vector>
 #include <span>
+#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
 class growable_descriptor_pool
@@ -28,8 +28,8 @@ class growable_descriptor_pool
 
 	struct pool
 	{
-	    int free_count;
-	    vk::raii::DescriptorPool descriptor_pool;
+		int free_count;
+		vk::raii::DescriptorPool descriptor_pool;
 	};
 
 	vk::raii::Device & device;
@@ -40,7 +40,7 @@ class growable_descriptor_pool
 	std::vector<pool> pools;
 
 public:
-	growable_descriptor_pool(vk::raii::Device & device, vk::raii::DescriptorSetLayout& layout, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool = 100);
+	growable_descriptor_pool(vk::raii::Device & device, vk::raii::DescriptorSetLayout & layout, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool = 100);
 
 	std::shared_ptr<vk::raii::DescriptorSet> allocate();
 };

@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "xr/instance.h"
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
@@ -72,8 +71,8 @@ private:
 
 public:
 	explicit shard_accumulator(
-	        vk::raii::Device& device,
-	        vk::raii::PhysicalDevice& physical_device,
+	        vk::raii::Device & device,
+	        vk::raii::PhysicalDevice & physical_device,
 	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        std::weak_ptr<scenes::stream> scene,
@@ -86,7 +85,7 @@ public:
 		next.reset(1);
 	}
 
-	void push_shard(xrt::drivers::wivrn::to_headset::video_stream_data_shard&&);
+	void push_shard(xrt::drivers::wivrn::to_headset::video_stream_data_shard &&);
 
 	auto & desc() const
 	{

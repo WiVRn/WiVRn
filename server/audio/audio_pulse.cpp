@@ -1,11 +1,11 @@
 #include "audio_pulse.h"
 
 #include "../wivrn_ipc.h"
+#include "driver/wivrn_session.h"
 #include "os/os_time.h"
 #include "util/u_logging.h"
 #include "utils/sync_queue.h"
 #include "utils/wrap_lambda.h"
-#include "driver/wivrn_session.h"
 
 #include <pulse/context.h>
 #include <pulse/ext-device-manager.h>

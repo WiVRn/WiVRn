@@ -19,22 +19,23 @@
 
 #pragma once
 
+#include <bit>
 #include <boost/pfr/core.hpp>
 #include <type_traits>
 #include <vulkan/vulkan.hpp>
-#include <bit>
 
 namespace utils
 {
 
-template<typename T>
-struct is_vk_flags : std::false_type {};
+template <typename T>
+struct is_vk_flags : std::false_type
+{};
 
-template<typename T>
-struct is_vk_flags<vk::Flags<T>> : std::true_type {};
+template <typename T>
+struct is_vk_flags<vk::Flags<T>> : std::true_type
+{};
 
-
-template<typename T>
+template <typename T>
 struct magic_hash
 {
 	std::size_t operator()(const T & info) const noexcept
@@ -42,7 +43,6 @@ struct magic_hash
 		size_t h = 0;
 
 		boost::pfr::for_each_field(info, [&](const auto & member) {
-
 			using U = std::remove_cvref_t<decltype(member)>;
 
 			if constexpr (is_vk_flags<U>::value)
@@ -61,4 +61,4 @@ struct magic_hash
 		return h;
 	}
 };
-}
+} // namespace utils

@@ -26,5 +26,5 @@
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
-vk::raii::ShaderModule load_shader(vk::raii::Device& device, const std::vector<uint32_t> & spirv);
-vk::raii::ShaderModule load_shader(vk::raii::Device& device, const std::string & name);
+vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::vector<uint32_t> & spirv);
+vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::string & name);

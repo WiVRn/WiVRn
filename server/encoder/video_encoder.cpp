@@ -72,7 +72,7 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 		throw std::runtime_error("Failed to create encoder " + settings.encoder_name);
 	res->stream_idx = stream_idx;
 
-	auto wivrn_dump_video= std::getenv("WIVRN_DUMP_VIDEO");
+	auto wivrn_dump_video = std::getenv("WIVRN_DUMP_VIDEO");
 	if (wivrn_dump_video)
 	{
 		std::string file(wivrn_dump_video);
@@ -124,7 +124,7 @@ void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 	if (end_of_frame)
 		timing_info.send_end = clock.to_headset(os_monotonic_get_ns());
 	if (video_dump)
-		video_dump.write((char*)data.data(), data.size());
+		video_dump.write((char *)data.data(), data.size());
 	if (shard.shard_idx == 0)
 	{
 		cnx->dump_time("send_begin", shard.frame_idx, os_monotonic_get_ns(), stream_idx);

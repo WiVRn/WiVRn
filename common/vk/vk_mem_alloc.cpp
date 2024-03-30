@@ -7,5 +7,4 @@
 // 		printf("\n"); \
 // 	} while(false)
 
-
 #include "vk_mem_alloc.h"

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "stream.h"
 #include "application.h"
+#include "stream.h"
 #include <spdlog/spdlog.h>
 
 void scenes::stream::read_actions()

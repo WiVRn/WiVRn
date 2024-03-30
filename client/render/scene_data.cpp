@@ -140,8 +140,6 @@ fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::fi
 	        fastgltf::Options::DontRequireValidAssetMember |
 	        fastgltf::Options::AllowDouble |
 	        fastgltf::Options::LoadGLBBuffers |
-	        // fastgltf::Options::LoadExternalBuffers |
-	        // fastgltf::Options::LoadExternalImages |
 	        fastgltf::Options::DecomposeNodeMatrices;
 
 	fastgltf::Expected<fastgltf::Asset> expected_asset{fastgltf::Error::None};
@@ -322,8 +320,8 @@ constexpr bool starts_with(std::span<const std::byte> data, std::span<const uint
 
 fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 {
-	const uint8_t png_magic[] = {0xFF, 0xD8, 0xFF};
-	const uint8_t jpeg_magic[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+	const uint8_t jpeg_magic[] = {0xFF, 0xD8, 0xFF};
+	const uint8_t png_magic[] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
 	const uint8_t ktx1_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 	const uint8_t ktx2_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 
@@ -342,7 +340,7 @@ fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 std::shared_ptr<vk::raii::ImageView> do_load_image(
         vk::raii::PhysicalDevice & physical_device,
         vk::raii::Device & device,
-	vk::raii::Queue & queue,
+        vk::raii::Queue & queue,
         vk::raii::CommandPool & cb_pool,
         std::span<const std::byte> image_data,
         bool srgb)
@@ -352,7 +350,6 @@ std::shared_ptr<vk::raii::ImageView> do_load_image(
 		case fastgltf::MimeType::JPEG:
 		case fastgltf::MimeType::PNG:
 		case fastgltf::MimeType::KTX2: {
-
 			try
 			{
 				image_loader loader(physical_device, device, queue, cb_pool);
@@ -361,7 +358,7 @@ std::shared_ptr<vk::raii::ImageView> do_load_image(
 				spdlog::debug("Loaded image {}x{}, format {}, {} mipmaps", loader.extent.width, loader.extent.height, vk::to_string(loader.format), loader.num_mipmaps);
 				return loader.image_view;
 			}
-			catch(std::exception& e)
+			catch (std::exception & e)
 			{
 				spdlog::info("Cannot load image: {}", e.what());
 				return {};
@@ -372,7 +369,6 @@ std::shared_ptr<vk::raii::ImageView> do_load_image(
 			spdlog::error("Unsupported image MIME type");
 			return {};
 	}
-
 }
 
 class loader_context
@@ -406,7 +402,7 @@ public:
 	{
 	}
 
-	fastgltf::span<const std::byte> load(const fastgltf::URI& uri)
+	fastgltf::span<const std::byte> load(const fastgltf::URI & uri)
 	{
 		auto path = base_directory.empty() ? std::filesystem::path(uri.path()) : base_directory / std::filesystem::path(uri.path());
 		std::span<const std::byte> bytes;
@@ -416,12 +412,12 @@ public:
 		return fastgltf::span<const std::byte>(bytes.data(), bytes.size());
 	}
 
-	fastgltf::span<const std::byte> load(const fastgltf::sources::URI& uri)
+	fastgltf::span<const std::byte> load(const fastgltf::sources::URI & uri)
 	{
 		return load(uri.uri);
 	}
 
-	template<typename T, std::size_t Extent>
+	template <typename T, std::size_t Extent>
 	fastgltf::span<T, fastgltf::dynamic_extent> subspan(fastgltf::span<T, Extent> span, size_t offset, size_t count = fastgltf::dynamic_extent)
 	{
 		assert(offset < span.size());
@@ -449,7 +445,7 @@ public:
 
 			                          fastgltf::Buffer & buffer = gltf.buffers.at(view.bufferIndex);
 
-						  auto buffer2 = visit_source(buffer.data);
+			                          auto buffer2 = visit_source(buffer.data);
 
 			                          return {subspan(buffer2.bytes, view.byteOffset, view.byteLength), buffer_view.mimeType};
 		                          },
@@ -457,7 +453,7 @@ public:
 			                          if (!uri.uri.isLocalPath())
 				                          throw std::runtime_error("Non local paths are not supported"); // TODO ?
 
-						  fastgltf::span<const std::byte> data = load(uri);
+			                          fastgltf::span<const std::byte> data = load(uri);
 
 			                          // Don't use the MIME type from fastgltf, it's not initialized for URIs
 			                          return {subspan(data, uri.fileByteOffset), fastgltf::MimeType::None};
@@ -503,7 +499,6 @@ public:
 			if (gltf_material.emissiveTexture)
 				srgb_array.at(gltf_material.emissiveTexture->textureIndex) = true;
 		}
-
 
 		std::vector<std::shared_ptr<scene_data::texture>> textures;
 		textures.reserve(gltf.textures.size());
@@ -683,8 +678,8 @@ public:
 				primitive_ref.vertex_offset = staging_buffer.add_vertices(vertices);
 				primitive_ref.vertex_count = vertices.size();
 
-				primitive_ref.cull_mode = vk::CullModeFlagBits::eBack; // TBC
-				primitive_ref.front_face = vk::FrontFace::eCounterClockwise;  // TBC
+				primitive_ref.cull_mode = vk::CullModeFlagBits::eBack;       // TBC
+				primitive_ref.front_face = vk::FrontFace::eCounterClockwise; // TBC
 				primitive_ref.topology = convert(gltf_primitive.type);
 
 				if (gltf_primitive.materialIndex)
@@ -698,7 +693,7 @@ public:
 	std::vector<scene_data::node> load_all_nodes()
 	{
 		std::vector<scene_data::node> unsorted_objects;
-		unsorted_objects.resize(gltf.nodes.size(), {.parent_id = scene_data::node::root_id });
+		unsorted_objects.resize(gltf.nodes.size(), {.parent_id = scene_data::node::root_id});
 
 		for (const auto & [index, gltf_node]: utils::enumerate(gltf.nodes))
 		{
@@ -707,18 +702,18 @@ public:
 
 			if (gltf_node.skinIndex)
 			{
-				auto& skin = gltf.skins.at(*gltf_node.skinIndex);
+				auto & skin = gltf.skins.at(*gltf_node.skinIndex);
 
 				unsorted_objects[index].joints.resize(skin.joints.size());
 
-				for(auto [i, joint_index]: utils::enumerate(skin.joints))
+				for (auto [i, joint_index]: utils::enumerate(skin.joints))
 					unsorted_objects[index].joints.at(i).first = joint_index;
 
 				if (skin.inverseBindMatrices)
 				{
 					const fastgltf::Accessor & accessor = gltf.accessors.at(*skin.inverseBindMatrices);
 
-					fastgltf::iterateAccessorWithIndex<glm::mat4>(gltf, accessor, [&](const glm::mat4& value, std::size_t idx) {
+					fastgltf::iterateAccessorWithIndex<glm::mat4>(gltf, accessor, [&](const glm::mat4 & value, std::size_t idx) {
 						unsorted_objects[index].joints.at(idx).second = value;
 					});
 				}
@@ -780,16 +775,16 @@ public:
 		}
 
 		// renumber joint indices
-		for(auto& node: sorted_nodes)
+		for (auto & node: sorted_nodes)
 		{
-			for(auto& joint: node.joints)
+			for (auto & joint: node.joints)
 			{
 				joint.first = new_index[joint.first];
 			}
 		}
 
 		assert(sorted_nodes.size() == unsorted_nodes.size());
-		for(size_t i = 0; i < sorted_nodes.size(); i++)
+		for (size_t i = 0; i < sorted_nodes.size(); i++)
 		{
 			assert(sorted_nodes[i].parent_id == scene_data::node::root_id || sorted_nodes[i].parent_id < i);
 		}
@@ -812,7 +807,7 @@ scene_data scene_loader::operator()(const std::filesystem::path & gltf_path)
 
 	asset asset_file(gltf_path);
 	fastgltf::GltfDataBuffer data_buffer;
-	data_buffer.copyBytes(reinterpret_cast<const uint8_t*>(asset_file.data()), asset_file.size());
+	data_buffer.copyBytes(reinterpret_cast<const uint8_t *>(asset_file.data()), asset_file.size());
 
 	fastgltf::Asset asset = load_gltf_asset(data_buffer, gltf_path.parent_path());
 	loader_context ctx(gltf_path.parent_path(), asset, physical_device, device, queue, cb_pool);
@@ -868,7 +863,7 @@ scene_data & scene_data::import(scene_data && other, node_handle parent)
 		if (node.mesh_id)
 			*node.mesh_id += mesh_offset;
 
-		for(auto& joint: node.joints)
+		for (auto & joint: node.joints)
 		{
 			joint.first += nodes_offset;
 		}
@@ -892,7 +887,6 @@ scene_data & scene_data::import(scene_data && other, node_handle parent)
 	return *this;
 }
 
-
 scene_data & scene_data::import(scene_data && other)
 {
 	return import(std::move(other), {});
@@ -903,19 +897,18 @@ node_handle scene_data::new_node()
 	size_t id = scene_nodes.size();
 
 	scene_nodes.push_back(node{
-		.parent_id = node::root_id,
-		.position = {0, 0, 0},
-		.orientation = {1, 0, 0, 0},
-		.scale = {1, 1, 1},
-		.visible = true
-	});
+	        .parent_id = node::root_id,
+	        .position = {0, 0, 0},
+	        .orientation = {1, 0, 0, 0},
+	        .scale = {1, 1, 1},
+	        .visible = true});
 
 	return {id, this};
 }
 
 node_handle scene_data::find_node(std::string_view name)
 {
-	for(auto&& [index, node]: utils::enumerate(scene_nodes))
+	for (auto && [index, node]: utils::enumerate(scene_nodes))
 	{
 		if (node.name == name)
 		{
@@ -936,7 +929,7 @@ node_handle scene_data::find_node(node_handle root, std::string_view name)
 
 	flag[root.id] = true;
 
-	for(size_t index = root.id; index < scene_nodes.size(); index++)
+	for (size_t index = root.id; index < scene_nodes.size(); index++)
 	{
 		size_t parent = scene_nodes[index].parent_id;
 
@@ -958,9 +951,9 @@ node_handle scene_data::find_node(node_handle root, std::string_view name)
 
 std::shared_ptr<scene_data::material> scene_data::find_material(std::string_view name)
 {
-	for(auto& mesh:meshes)
+	for (auto & mesh: meshes)
 	{
-		for(auto& primitive: mesh.primitives)
+		for (auto & primitive: mesh.primitives)
 		{
 			if (primitive.material_ && primitive.material_->name == name)
 				return primitive.material_;

@@ -28,11 +28,10 @@ extern "C"
 #else
 
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/syscall.h>
 #include <signal.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 #include <unistd.h>
-
 
 #ifndef __NR_pidfd_open
 #define __NR_pidfd_open 434
@@ -45,7 +44,7 @@ static int pidfd_open(pid_t pid, unsigned int flags)
 #ifndef __NR_pidfd_send_signal
 #define __NR_pidfd_send_signal 424
 #endif
-static int pidfd_send_signal(int pidfd, int sig, siginfo_t *info, unsigned int flags)
+static int pidfd_send_signal(int pidfd, int sig, siginfo_t * info, unsigned int flags)
 {
 	return syscall(__NR_pidfd_send_signal, pidfd, sig, info, flags);
 }

@@ -20,13 +20,12 @@
 #include "image_loader.h"
 
 #include <cstdint>
+#include <ktxvulkan.h>
 #include <memory>
 #include <span>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
-#include <variant>
 #include <vulkan/vulkan_raii.hpp>
-#include <ktxvulkan.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_JPEG
@@ -42,28 +41,28 @@ using stbi_ptr = std::unique_ptr<void, decltype([](void * pixels) { stbi_image_f
 
 namespace
 {
-	struct image_resources
-	{
-		image_allocation allocation;
-		vk::Image image;
-		vk::raii::ImageView image_view = nullptr;
-	};
+struct image_resources
+{
+	image_allocation allocation;
+	vk::Image image;
+	vk::raii::ImageView image_view = nullptr;
+};
 
-	struct ktx_image_resources
-	{
-		ktxVulkanTexture ktx_texture;
-		VkDevice device;
-		vk::Image image;
-		vk::raii::ImageView image_view = nullptr;
+struct ktx_image_resources
+{
+	ktxVulkanTexture ktx_texture;
+	VkDevice device;
+	vk::Image image;
+	vk::raii::ImageView image_view = nullptr;
 
-		ktx_image_resources() = default;
-		ktx_image_resources(const ktx_image_resources&) = delete;
-		ktx_image_resources& operator=(const ktx_image_resources&) = delete;
-		~ktx_image_resources()
-		{
-			ktxVulkanTexture_Destruct(&ktx_texture, device, nullptr);
-		}
-	};
+	ktx_image_resources() = default;
+	ktx_image_resources(const ktx_image_resources &) = delete;
+	ktx_image_resources & operator=(const ktx_image_resources &) = delete;
+	~ktx_image_resources()
+	{
+		ktxVulkanTexture_Destruct(&ktx_texture, device, nullptr);
+	}
+};
 
 template <typename T>
 constexpr vk::Format formats[4] = {vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined};
@@ -156,10 +155,10 @@ int bytes_per_pixel(vk::Format format)
 }
 } // namespace
 
-image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, vk::raii::Queue& queue, vk::raii::CommandPool & cb_pool) :
-	device(device),
-	queue(queue),
-	cb_pool(cb_pool)
+image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool) :
+        device(device),
+        queue(queue),
+        cb_pool(cb_pool)
 {
 	vdi = ktxVulkanDeviceInfo_Create(*physical_device, *device, *queue, *cb_pool, nullptr);
 }
@@ -173,10 +172,10 @@ image_loader::~image_loader()
 void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format)
 {
 	auto cb = std::move(device.allocateCommandBuffers({
-			.commandPool = *cb_pool,
-			.level = vk::CommandBufferLevel::ePrimary,
-			.commandBufferCount = 1,
-		})[0]);
+	        .commandPool = *cb_pool,
+	        .level = vk::CommandBufferLevel::ePrimary,
+	        .commandBufferCount = 1,
+	})[0]);
 
 	cb.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
@@ -211,7 +210,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	// Allocate image
 	auto r = std::make_shared<image_resources>();
 	r->allocation = image_allocation{
-		device,
+	        device,
 	        vk::ImageCreateInfo{
 	                .imageType = vk::ImageType::e2D,
 	                .format = format,
@@ -225,40 +224,51 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	        VmaAllocationCreateInfo{
 	                .flags = 0,
 	                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-	        }, "image_loader::do_load"};
+	        },
+	        "image_loader::do_load"};
 
 	r->image = (vk::Image)r->allocation;
 
 	// Transition all mipmap levels layout to eTransferDstOptimal
-	cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
-	                                                                                                                                      .srcAccessMask = vk::AccessFlagBits::eNone,
-	                                                                                                                                      .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
-	                                                                                                                                      .oldLayout = vk::ImageLayout::eUndefined,
-	                                                                                                                                      .newLayout = vk::ImageLayout::eTransferDstOptimal,
-	                                                                                                                                      .image = r->image,
-	                                                                                                                                      .subresourceRange = {
-	                                                                                                                                              .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                                                                                                                              .baseMipLevel = 0,
-	                                                                                                                                              .levelCount = num_mipmaps,
-	                                                                                                                                              .baseArrayLayer = 0,
-	                                                                                                                                              .layerCount = 1,
-	                                                                                                                                      },
-	                                                                                                                              });
+	cb.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eTransfer,
+	        vk::PipelineStageFlagBits::eTransfer,
+	        vk::DependencyFlags{},
+	        {},
+	        {},
+	        vk::ImageMemoryBarrier{
+	                .srcAccessMask = vk::AccessFlagBits::eNone,
+	                .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
+	                .oldLayout = vk::ImageLayout::eUndefined,
+	                .newLayout = vk::ImageLayout::eTransferDstOptimal,
+	                .image = r->image,
+	                .subresourceRange = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .baseMipLevel = 0,
+	                        .levelCount = num_mipmaps,
+	                        .baseArrayLayer = 0,
+	                        .layerCount = 1,
+	                },
+	        });
 
 	// Copy image data
-	cb.copyBufferToImage(staging_buffer, r->image, vk::ImageLayout::eTransferDstOptimal, vk::BufferImageCopy{
-	                                                                                          .bufferOffset = 0,
-	                                                                                          .bufferRowLength = 0,
-	                                                                                          .bufferImageHeight = 0,
-	                                                                                          .imageSubresource = {
-	                                                                                                  .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                                                                                  .mipLevel = 0,
-	                                                                                                  .baseArrayLayer = 0,
-	                                                                                                  .layerCount = 1,
-	                                                                                          },
-	                                                                                          .imageOffset = {0, 0, 0},
-	                                                                                          .imageExtent = extent,
-	                                                                                  });
+	cb.copyBufferToImage(
+	        staging_buffer,
+	        r->image,
+	        vk::ImageLayout::eTransferDstOptimal,
+	        vk::BufferImageCopy{
+	                .bufferOffset = 0,
+	                .bufferRowLength = 0,
+	                .bufferImageHeight = 0,
+	                .imageSubresource = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .mipLevel = 0,
+	                        .baseArrayLayer = 0,
+	                        .layerCount = 1,
+	                },
+	                .imageOffset = {0, 0, 0},
+	                .imageExtent = extent,
+	        });
 
 	// Create mipmaps
 	int width = extent.width;
@@ -269,71 +279,94 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 		int next_height = height > 1 ? height / 2 : 1;
 
 		// Transition source image layout to eTransferSrcOptimal
-		cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
-		                                                                                                                                            .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-		                                                                                                                                            .dstAccessMask = vk::AccessFlagBits::eShaderRead,
-		                                                                                                                                            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-		                                                                                                                                            .newLayout = vk::ImageLayout::eTransferSrcOptimal,
-		                                                                                                                                            .image = r->image,
-		                                                                                                                                            .subresourceRange = {
-		                                                                                                                                                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                                                                                                                                                    .baseMipLevel = level - 1,
-		                                                                                                                                                    .levelCount = 1,
-		                                                                                                                                                    .baseArrayLayer = 0,
-		                                                                                                                                                    .layerCount = 1,
-		                                                                                                                                            },
-		                                                                                                                                    });
+		cb.pipelineBarrier(
+		        vk::PipelineStageFlagBits::eTransfer,
+		        vk::PipelineStageFlagBits::eFragmentShader,
+		        vk::DependencyFlags{},
+		        {},
+		        {},
+		        vk::ImageMemoryBarrier{
+		                .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
+		                .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+		                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+		                .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+		                .image = r->image,
+		                .subresourceRange = {
+		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                        .baseMipLevel = level - 1,
+		                        .levelCount = 1,
+		                        .baseArrayLayer = 0,
+		                        .layerCount = 1,
+		                },
+		        });
 
 		// Blit level n-1 to level n
-		cb.blitImage(r->image, vk::ImageLayout::eTransferSrcOptimal, r->image, vk::ImageLayout::eTransferDstOptimal, vk::ImageBlit{
-		                                                                                                               .srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = level - 1, .baseArrayLayer = 0, .layerCount = 1},
-		                                                                                                               .srcOffsets = std::array{
-		                                                                                                                       vk::Offset3D{0, 0, 0},
-		                                                                                                                       vk::Offset3D{width, height, 1},
-		                                                                                                               },
-		                                                                                                               .dstSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = level, .baseArrayLayer = 0, .layerCount = 1},
-		                                                                                                               .dstOffsets = std::array{
-		                                                                                                                       vk::Offset3D{0, 0, 0},
-		                                                                                                                       vk::Offset3D{next_width, next_height, 1},
-		                                                                                                               },
-		                                                                                                       },
-		             vk::Filter::eLinear);
+		cb.blitImage(
+		        r->image,
+		        vk::ImageLayout::eTransferSrcOptimal,
+		        r->image,
+		        vk::ImageLayout::eTransferDstOptimal,
+		        vk::ImageBlit{
+		                .srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = level - 1, .baseArrayLayer = 0, .layerCount = 1},
+		                .srcOffsets = std::array{
+		                        vk::Offset3D{0, 0, 0},
+		                        vk::Offset3D{width, height, 1},
+		                },
+		                .dstSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = level, .baseArrayLayer = 0, .layerCount = 1},
+		                .dstOffsets = std::array{
+		                        vk::Offset3D{0, 0, 0},
+		                        vk::Offset3D{next_width, next_height, 1},
+		                },
+		        },
+		        vk::Filter::eLinear);
 
 		// Transition source image layout to eShaderReadOnlyOptimal
-		cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
-		                                                                                                                                            .srcAccessMask = vk::AccessFlagBits::eTransferRead,
-		                                                                                                                                            .dstAccessMask = vk::AccessFlagBits::eShaderRead,
-		                                                                                                                                            .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
-		                                                                                                                                            .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		                                                                                                                                            .image = r->image,
-		                                                                                                                                            .subresourceRange = {
-		                                                                                                                                                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                                                                                                                                                    .baseMipLevel = level - 1,
-		                                                                                                                                                    .levelCount = 1,
-		                                                                                                                                                    .baseArrayLayer = 0,
-		                                                                                                                                                    .layerCount = 1,
-		                                                                                                                                            },
-		                                                                                                                                    });
+		cb.pipelineBarrier(
+		        vk::PipelineStageFlagBits::eTransfer,
+		        vk::PipelineStageFlagBits::eFragmentShader,
+		        vk::DependencyFlags{},
+		        {},
+		        {},
+		        vk::ImageMemoryBarrier{
+		                .srcAccessMask = vk::AccessFlagBits::eTransferRead,
+		                .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+		                .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+		                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+		                .image = r->image,
+		                .subresourceRange = {
+		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                        .baseMipLevel = level - 1,
+		                        .levelCount = 1,
+		                        .baseArrayLayer = 0,
+		                        .layerCount = 1,
+		                },
+		        });
 
 		width = next_width;
 		height = next_height;
 	}
 
 	// Transition the last level to eShaderReadOnlyOptimal
-	cb.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader, vk::DependencyFlags{}, {}, {}, vk::ImageMemoryBarrier{
-	                                                                                                                                            .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-	                                                                                                                                            .dstAccessMask = vk::AccessFlagBits::eShaderRead,
-	                                                                                                                                            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-	                                                                                                                                            .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-	                                                                                                                                            .image = r->image,
-	                                                                                                                                            .subresourceRange = {
-	                                                                                                                                                    .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                                                                                                                                    .baseMipLevel = num_mipmaps - 1,
-	                                                                                                                                                    .levelCount = 1,
-	                                                                                                                                                    .baseArrayLayer = 0,
-	                                                                                                                                                    .layerCount = 1,
-	                                                                                                                                            },
-	                                                                                                                                    });
+	cb.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eTransfer,
+	        vk::PipelineStageFlagBits::eFragmentShader,
+	        vk::DependencyFlags{},
+	        {},
+	        {},
+	        vk::ImageMemoryBarrier{
+	                .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
+	                .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+	                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+	                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+	                .image = r->image,
+	                .subresourceRange = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .baseMipLevel = num_mipmaps - 1,
+	                        .levelCount = 1,
+	                        .baseArrayLayer = 0,
+	                        .layerCount = 1,
+	                },
+	        });
 
 	cb.end();
 	vk::SubmitInfo info;
@@ -343,28 +376,31 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	if (auto result = device.waitForFences(*fence, true, 1'000'000'000); result != vk::Result::eSuccess)
 		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 
-	r->image_view = vk::raii::ImageView{device, vk::ImageViewCreateInfo{
-							.image = r->image,
-							.viewType = image_view_type,
-							.format = format,
-							.subresourceRange = {
-								.aspectMask = vk::ImageAspectFlagBits::eColor,
-								.baseMipLevel = 0,
-								.levelCount = num_mipmaps,
-								.baseArrayLayer = 0,
-								.layerCount = 1,
-							},
-						}};
+	r->image_view = vk::raii::ImageView{
+	        device,
+	        vk::ImageViewCreateInfo{
+	                .image = r->image,
+	                .viewType = image_view_type,
+	                .format = format,
+	                .subresourceRange = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .baseMipLevel = 0,
+	                        .levelCount = num_mipmaps,
+	                        .baseArrayLayer = 0,
+	                        .layerCount = 1,
+	                },
+	        },
+	};
 
 	image_view = std::shared_ptr<vk::raii::ImageView>(r, &r->image_view);
 }
 
 void image_loader::do_load_ktx(std::span<const std::byte> bytes)
 {
-	ktxTexture* texture;
+	ktxTexture * texture;
 	ktxVulkanTexture vk_texture;
 
-	ktxResult err = ktxTexture_CreateFromMemory(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size(), /*KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT*/0, &texture);
+	ktxResult err = ktxTexture_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), /*KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT*/ 0, &texture);
 
 	if (err != KTX_SUCCESS)
 	{
@@ -377,10 +413,7 @@ void image_loader::do_load_ktx(std::span<const std::byte> bytes)
 		// TODO
 	}
 
-	err = ktxTexture_VkUploadEx(texture, vdi, &vk_texture,
-					VK_IMAGE_TILING_OPTIMAL,
-					VK_IMAGE_USAGE_SAMPLED_BIT,
-					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	err = ktxTexture_VkUploadEx(texture, vdi, &vk_texture, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	if (err != KTX_SUCCESS)
 	{
 		// TODO try uncompressing the texture
@@ -401,18 +434,21 @@ void image_loader::do_load_ktx(std::span<const std::byte> bytes)
 	r->ktx_texture = vk_texture;
 	r->device = *device;
 	r->image = vk::Image(vk_texture.image);
-	r->image_view = vk::raii::ImageView{device, vk::ImageViewCreateInfo{
-							.image = r->image,
-							.viewType = image_view_type,
-							.format = format,
-							.subresourceRange = {
-								.aspectMask = vk::ImageAspectFlagBits::eColor,
-								.baseMipLevel = 0,
-								.levelCount = num_mipmaps,
-								.baseArrayLayer = 0,
-								.layerCount = 1,
-							},
-						}};
+	r->image_view = vk::raii::ImageView{
+	        device,
+	        vk::ImageViewCreateInfo{
+	                .image = r->image,
+	                .viewType = image_view_type,
+	                .format = format,
+	                .subresourceRange = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .baseMipLevel = 0,
+	                        .levelCount = num_mipmaps,
+	                        .baseArrayLayer = 0,
+	                        .layerCount = 1,
+	                },
+	        },
+	};
 
 	image_view = std::shared_ptr<vk::raii::ImageView>(r, &r->image_view);
 }

@@ -73,23 +73,23 @@ public:
 		DynamicState.setDynamicStates(DynamicStates);
 
 		return GraphicsPipelineCreateInfo{
-			.flags = flags,
-			.stageCount          = (uint32_t)Stages.size(),
-			.pStages             = Stages.data(),
-			.pVertexInputState   = &VertexInputState,
-			.pInputAssemblyState = InputAssemblyState ? &*InputAssemblyState : nullptr,
-			.pTessellationState  = TessellationState ? &*TessellationState : nullptr,
-			.pViewportState      = &ViewportState,
-			.pRasterizationState = RasterizationState ? &*RasterizationState : nullptr,
-			.pMultisampleState   = MultisampleState ? &*MultisampleState : nullptr,
-			.pDepthStencilState  = DepthStencilState ? &*DepthStencilState : nullptr,
-			.pColorBlendState    = &ColorBlendState,
-			.pDynamicState       = &DynamicState,
-			.layout              = layout,
-			.renderPass          = renderPass,
-			.subpass             = subpass,
-			.basePipelineHandle  = basePipelineHandle,
-			.basePipelineIndex   = basePipelineIndex
+		        .flags = flags,
+		        .stageCount = (uint32_t)Stages.size(),
+		        .pStages = Stages.data(),
+		        .pVertexInputState = &VertexInputState,
+		        .pInputAssemblyState = InputAssemblyState ? &*InputAssemblyState : nullptr,
+		        .pTessellationState = TessellationState ? &*TessellationState : nullptr,
+		        .pViewportState = &ViewportState,
+		        .pRasterizationState = RasterizationState ? &*RasterizationState : nullptr,
+		        .pMultisampleState = MultisampleState ? &*MultisampleState : nullptr,
+		        .pDepthStencilState = DepthStencilState ? &*DepthStencilState : nullptr,
+		        .pColorBlendState = &ColorBlendState,
+		        .pDynamicState = &DynamicState,
+		        .layout = layout,
+		        .renderPass = renderPass,
+		        .subpass = subpass,
+		        .basePipelineHandle = basePipelineHandle,
+		        .basePipelineIndex = basePipelineIndex,
 		};
 	}
 };

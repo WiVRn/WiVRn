@@ -298,7 +298,22 @@ private:
 		}
 	}
 
-	static int query_callback(int sock, const sockaddr * from, size_t addrlen, mdns_entry_type_t entry, uint16_t query_id, uint16_t rtype, uint16_t rclass, uint32_t ttl, const void * data, size_t size, size_t name_offset, size_t name_length, size_t record_offset, size_t record_length, void * user_data)
+	static int query_callback(
+	        int sock,
+	        const sockaddr * from,
+	        size_t addrlen,
+	        mdns_entry_type_t entry,
+	        uint16_t query_id,
+	        uint16_t rtype,
+	        uint16_t rclass,
+	        uint32_t ttl,
+	        const void * data,
+	        size_t size,
+	        size_t name_offset,
+	        size_t name_length,
+	        size_t record_offset,
+	        size_t record_length,
+	        void * user_data)
 	{
 		dnssd_cache * self = (dnssd_cache *)user_data;
 
@@ -338,7 +353,7 @@ private:
 				std::array<mdns_record_txt_t, 32> txt_buffer;
 				size_t nb_records = mdns_record_parse_txt(data, size, record_offset, record_length, txt_buffer.data(), txt_buffer.size());
 
-				for(size_t i = 0; i < nb_records; ++i)
+				for (size_t i = 0; i < nb_records; ++i)
 				{
 					std::string key{txt_buffer[i].key.str, txt_buffer[i].key.length};
 					std::string value{txt_buffer[i].value.str, txt_buffer[i].value.length};
@@ -592,7 +607,7 @@ int main()
 				           j);
 			}
 
-			for (auto& [key, value]: i.txt)
+			for (auto & [key, value]: i.txt)
 			{
 				spdlog::info("        {} = {}", key, value);
 			}

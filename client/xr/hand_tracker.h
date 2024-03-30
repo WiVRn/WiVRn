@@ -20,10 +20,10 @@
 #pragma once
 
 #include "utils/handle.h"
-#include <openxr/openxr.h>
 #include <array>
-#include <utility>
 #include <optional>
+#include <utility>
+#include <openxr/openxr.h>
 
 #include "instance.h"
 

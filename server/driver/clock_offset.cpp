@@ -50,13 +50,13 @@ void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset:
 	{
 		sample_interval = std::chrono::seconds(1);
 		int64_t latency = 0;
-		for (const auto& s: samples)
+		for (const auto & s: samples)
 			latency += s.received - s.query;
 		latency /= samples.size();
 		// packets with too high latency are likely to be retransmitted
 		if (sample.received - sample.query > 3 * latency)
 		{
-			U_LOG_D("drop packet for latency %ldµs > %ldµs", (sample.received - sample.query) /1000, latency/1000);
+			U_LOG_D("drop packet for latency %ldµs > %ldµs", (sample.received - sample.query) / 1000, latency / 1000);
 			return;
 		}
 
@@ -96,7 +96,7 @@ void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset:
 	{
 #if 1
 		// assume symmetrical latency
-		double x = (s.query + s.received)* 0.5 - x0;
+		double x = (s.query + s.received) * 0.5 - x0;
 #else
 		// assume latency is only on server -> headset link
 		double x = s.received - x0;

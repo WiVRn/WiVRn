@@ -41,7 +41,7 @@ xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xr
 
 	xrt_space_relation res = t < ta ? a : b;
 
-	xrt_vec3 lin_vel = res.relation_flags & XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT ? res.linear_velocity : (b.pose.position - a.pose.position ) / h;
+	xrt_vec3 lin_vel = res.relation_flags & XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT ? res.linear_velocity : (b.pose.position - a.pose.position) / h;
 
 	float dt = (t - tb) / 1.e9;
 

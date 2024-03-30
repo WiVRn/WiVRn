@@ -91,7 +91,7 @@ static std::tuple<float, float> solve_foveation(float λ, float c)
 	//
 	// Use eq. 2 to express a as function of b, then replace in eq. 1
 	// equation that needs to be null is:
-	auto b = [λ, c](double a) { return atan(a * (1 - c) / λ) - a;};
+	auto b = [λ, c](double a) { return atan(a * (1 - c) / λ) - a; };
 	auto eq = [λ, c](double a) { return atan(a * (1 - c) / λ) + atan(a * (1 + c) / λ) - 2 * a; }; // (eq. 3)
 
 	// function starts positive, reaches a maximum then decreases to -∞

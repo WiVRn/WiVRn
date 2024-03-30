@@ -27,7 +27,7 @@
 #ifdef __ANDROID__
 #include <android/asset_manager.h>
 
-asset::asset(const std::filesystem::path& path)
+asset::asset(const std::filesystem::path & path)
 {
 	spdlog::debug("Loading Android asset {}", path.string());
 	android_asset = AAssetManager_open(application::asset_manager(), path.c_str(), AASSET_MODE_BUFFER);
@@ -39,7 +39,7 @@ asset::asset(const std::filesystem::path& path)
 }
 
 asset::asset(asset && other) :
-	android_asset(other.android_asset)
+        android_asset(other.android_asset)
 {
 	other.android_asset = nullptr;
 }
@@ -76,7 +76,7 @@ std::filesystem::path asset::asset_root()
 	return root;
 }
 
-asset::asset(const std::filesystem::path& path)
+asset::asset(const std::filesystem::path & path)
 {
 	assert(path.is_relative());
 

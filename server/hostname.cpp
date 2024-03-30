@@ -11,7 +11,6 @@
 
 std::string hostname()
 {
-
 #ifdef WIVRN_USE_SYSTEMD
 	sd_bus * bus;
 	if (sd_bus_default_system(&bus) < 0)

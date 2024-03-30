@@ -43,10 +43,10 @@ static bool is_nvidia(vk::PhysicalDevice physical_device)
 	return props.vendorID == 0x10DE;
 }
 
-static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> &encoders, uint64_t bitrate)
+static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> & encoders, uint64_t bitrate)
 {
 	double total_weight = 0;
-	for (auto& encoder: encoders)
+	for (auto & encoder: encoders)
 	{
 		double w = encoder.width * encoder.height;
 		switch (encoder.codec)
@@ -61,7 +61,7 @@ static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> &en
 		total_weight += w;
 	}
 
-	for (auto& encoder: encoders)
+	for (auto & encoder: encoders)
 	{
 		encoder.bitrate = encoder.bitrate * bitrate / total_weight;
 	}
@@ -94,21 +94,21 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	else
 	{
 #ifdef WIVRN_USE_VAAPI
-/* Split in 3 parts:
- *  +--------+--------+
- *  |        |        |
- *  |        |        |
- *  +--------+        |
- *  |        |        |
- *  |        |        |
- *  |        |        |
- *  |        |        |
- *  |        |        |
- *  +--------+--------+
- * All 3 are encoded sequentially, so that the smallest is ready earlier.
- * Decoder can start work as fast as possible, reducing idle time.
- *
- */
+		/* Split in 3 parts:
+		 *  +--------+--------+
+		 *  |        |        |
+		 *  |        |        |
+		 *  +--------+        |
+		 *  |        |        |
+		 *  |        |        |
+		 *  |        |        |
+		 *  |        |        |
+		 *  |        |        |
+		 *  +--------+--------+
+		 * All 3 are encoded sequentially, so that the smallest is ready earlier.
+		 * Decoder can start work as fast as possible, reducing idle time.
+		 *
+		 */
 		settings.encoder_name = encoder_vaapi;
 		settings.width = std::ceil(width * 0.5);
 		std::vector<xrt::drivers::wivrn::encoder_settings> encoders(3, settings);
@@ -133,9 +133,9 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	return {settings};
 }
 
-static void make_even(uint16_t& value, uint16_t max)
+static void make_even(uint16_t & value, uint16_t max)
 {
-	value += value %2;
+	value += value % 2;
 	value = std::min(value, max);
 }
 

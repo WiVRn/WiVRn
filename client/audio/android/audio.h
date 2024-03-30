@@ -35,8 +35,8 @@ namespace wivrn::android
 {
 class audio
 {
-	static int32_t speaker_data_cb(AAudioStreamStruct*, void*, void*, int32_t);
-	static int32_t microphone_data_cb(AAudioStreamStruct*, void*, void*, int32_t);
+	static int32_t speaker_data_cb(AAudioStreamStruct *, void *, void *, int32_t);
+	static int32_t microphone_data_cb(AAudioStreamStruct *, void *, void *, int32_t);
 
 	utils::ring_buffer<xrt::drivers::wivrn::audio_data, 1000> output_buffer;
 
@@ -52,6 +52,7 @@ class audio
 	std::atomic<bool> exiting = false;
 
 	void exit();
+
 public:
 	audio(const audio &) = delete;
 	audio & operator=(const audio &) = delete;

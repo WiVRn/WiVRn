@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "xr/check.h"
 #include "xr.h"
+#include "xr/check.h"
 #include <system_error>
 
 namespace

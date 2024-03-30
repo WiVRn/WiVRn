@@ -29,11 +29,11 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 {
 	sockaddr_in6 server_address;
 	socklen_t len = sizeof(server_address);
-	if (getsockname(control.get_fd(), (sockaddr*)&server_address, &len) < 0)
+	if (getsockname(control.get_fd(), (sockaddr *)&server_address, &len) < 0)
 	{
 		throw std::system_error(errno, std::system_category(), "Cannot get socket port");
 	}
-	int port = ntohs(((struct sockaddr_in6*)&server_address)->sin6_port);
+	int port = ntohs(((struct sockaddr_in6 *)&server_address)->sin6_port);
 
 	sockaddr_in6 client_address;
 	len = sizeof(client_address);
@@ -78,7 +78,6 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 				stream.set_send_buffer_size(1024 * 1024 * 5);
 				break;
 			}
-
 		}
 
 		if (std::chrono::steady_clock::now() > timeout)
@@ -92,7 +91,7 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 		// Set Expedited forwarding https://datatracker.ietf.org/doc/html/rfc3246
 		stream.set_tos(IPTOS_DSCP_EF);
 	}
-	catch (std::exception& e)
+	catch (std::exception & e)
 	{
 		U_LOG_I("Failed to set IP ToS to Expedited Forwarding: %s", e.what());
 	}

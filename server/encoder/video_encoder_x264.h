@@ -57,7 +57,7 @@ class VideoEncoderX264 : public VideoEncoder
 	std::list<pending_nal> pending_nals;
 
 public:
-	VideoEncoderX264(wivrn_vk_bundle& vk, encoder_settings & settings, float fps);
+	VideoEncoderX264(wivrn_vk_bundle & vk, encoder_settings & settings, float fps);
 
 	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;
 

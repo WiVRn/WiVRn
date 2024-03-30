@@ -28,12 +28,12 @@
 #include "utils/wivrn_vk_bundle.h"
 #include "vk/allocation.h"
 
+#include "driver/wivrn_pacer.h"
 #include <condition_variable>
 #include <list>
 #include <memory>
 #include <optional>
 #include <vector>
-#include "driver/wivrn_pacer.h"
 #include <vulkan/vulkan_raii.hpp>
 
 namespace xrt::drivers::wivrn
@@ -74,8 +74,8 @@ struct wivrn_comp_target : public comp_target
 
 	VkColorSpaceKHR color_space;
 
-	static std::vector<const char*> wanted_instance_extensions;
-	static std::vector<const char*> wanted_device_extensions;
+	static std::vector<const char *> wanted_instance_extensions;
+	static std::vector<const char *> wanted_device_extensions;
 
 	struct encoder_thread
 	{

@@ -22,27 +22,22 @@
 #include "scene.h"
 #include "spdlog/common.h"
 #include "spdlog/spdlog.h"
+#include "utils/contains.h"
 #include "utils/files.h"
 #include "utils/named_thread.h"
+#include "vk/check.h"
 #include "xr/actionset.h"
+#include "xr/check.h"
 #include "xr/xr.h"
-#include <algorithm>
-#include "utils/contains.h"
 #include <algorithm>
 #include <chrono>
 #include <ctype.h>
-#include <string>
 #include <exception>
+#include <string>
 #include <thread>
 #include <vector>
 #include <vk_mem_alloc.h>
-#include "vk/check.h"
-#include "xr/check.h"
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_raii.hpp>
-#include <vulkan/vulkan_structs.hpp>
 #include <openxr/openxr_platform.h>
 
 #ifndef NDEBUG
@@ -55,12 +50,11 @@
 
 #include "jnipp.h"
 #else
-#include <signal.h>
 #include "utils/xdg_base_directory.h"
+#include <signal.h>
 #endif
 
 using namespace std::chrono_literals;
-
 
 struct interaction_profile
 {
@@ -132,7 +126,7 @@ static std::vector<interaction_profile> interaction_profiles{
                 }},
         interaction_profile{
                 "/interaction_profiles/bytedance/pico_neo3_controller",
-                { "XR_BD_controller_interaction" },
+                {"XR_BD_controller_interaction"},
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -174,7 +168,7 @@ static std::vector<interaction_profile> interaction_profiles{
                 }},
         interaction_profile{
                 "/interaction_profiles/bytedance/pico4_controller",
-                { "XR_BD_controller_interaction" },
+                {"XR_BD_controller_interaction"},
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -214,7 +208,7 @@ static std::vector<interaction_profile> interaction_profiles{
                 }},
         interaction_profile{
                 "/interaction_profiles/htc/vive_focus3_controller",
-                { "XR_HTC_vive_focus3_controller_interaction" },
+                {"XR_HTC_vive_focus3_controller_interaction"},
                 {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -257,7 +251,7 @@ static std::vector<interaction_profile> interaction_profiles{
 
 static const std::pair<std::string_view, XrActionType> action_suffixes[] =
         {
-		// clang-format off
+                // clang-format off
 		// From OpenXR spec 1.0.33, §6.3.2 Input subpaths
 
 		// Standard components
@@ -278,12 +272,12 @@ static const std::pair<std::string_view, XrActionType> action_suffixes[] =
 
 		// Output paths
                 {"/haptic",     XR_ACTION_TYPE_VIBRATION_OUTPUT},
-		// clang-format on
+                // clang-format on
 };
 
 static XrActionType guess_action_type(const std::string & name)
 {
-	for(const auto & [suffix, type]: action_suffixes)
+	for (const auto & [suffix, type]: action_suffixes)
 	{
 		if (name.ends_with(suffix))
 			return type;
@@ -368,7 +362,7 @@ void application::initialize_vulkan()
 	spdlog::info("Available Vulkan layers:");
 	[[maybe_unused]] bool validation_layer_found = false;
 
-	for(vk::LayerProperties& i: vk_context.enumerateInstanceLayerProperties())
+	for (vk::LayerProperties & i: vk_context.enumerateInstanceLayerProperties())
 	{
 		spdlog::info("    {}", i.layerName);
 		if (!strcmp(i.layerName, "VK_LAYER_KHRONOS_validation"))
@@ -392,7 +386,7 @@ void application::initialize_vulkan()
 	bool debug_utils_found = false;
 #endif
 	spdlog::info("Available Vulkan instance extensions:");
-	for(vk::ExtensionProperties& i: vk_context.enumerateInstanceExtensionProperties(nullptr))
+	for (vk::ExtensionProperties & i: vk_context.enumerateInstanceExtensionProperties(nullptr))
 	{
 		spdlog::info("    {} (version {})", i.extensionName, i.specVersion);
 
@@ -431,26 +425,26 @@ void application::initialize_vulkan()
 #endif
 
 	vk::ApplicationInfo application_info{
-		.pApplicationName = app_info.name.c_str(),
-		.applicationVersion = (uint32_t)app_info.version,
-		.pEngineName = engine_name,
-		.engineVersion = engine_version,
-		.apiVersion = VK_MAKE_API_VERSION(0, XR_VERSION_MAJOR(vulkan_version), XR_VERSION_MINOR(vulkan_version), 0),
+	        .pApplicationName = app_info.name.c_str(),
+	        .applicationVersion = (uint32_t)app_info.version,
+	        .pEngineName = engine_name,
+	        .engineVersion = engine_version,
+	        .apiVersion = VK_MAKE_API_VERSION(0, XR_VERSION_MAJOR(vulkan_version), XR_VERSION_MINOR(vulkan_version), 0),
 	};
 
 	vk::InstanceCreateInfo instance_create_info{
-		.pApplicationInfo = &application_info,
+	        .pApplicationInfo = &application_info,
 	};
 	instance_create_info.setPEnabledLayerNames(layers);
 	instance_create_info.setPEnabledExtensionNames(instance_extensions);
 
 	XrVulkanInstanceCreateInfoKHR create_info{
-		.type = XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR,
-		.systemId = xr_system_id,
-		.createFlags = 0,
-		.pfnGetInstanceProcAddr = vkGetInstanceProcAddr,
-		.vulkanCreateInfo = &(VkInstanceCreateInfo&)instance_create_info,
-		.vulkanAllocator = nullptr,
+	        .type = XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR,
+	        .systemId = xr_system_id,
+	        .createFlags = 0,
+	        .pfnGetInstanceProcAddr = vkGetInstanceProcAddr,
+	        .vulkanCreateInfo = &(VkInstanceCreateInfo &)instance_create_info,
+	        .vulkanAllocator = nullptr,
 	};
 
 	auto xrCreateVulkanInstanceKHR =
@@ -468,10 +462,10 @@ void application::initialize_vulkan()
 	{
 		vk::DebugReportCallbackCreateInfoEXT debug_report_info{
 		        .flags = vk::DebugReportFlagBitsEXT::eInformation |
-				vk::DebugReportFlagBitsEXT::eWarning|
-				vk::DebugReportFlagBitsEXT::ePerformanceWarning |
-				vk::DebugReportFlagBitsEXT::eError |
-				vk::DebugReportFlagBitsEXT::eDebug,
+		                 vk::DebugReportFlagBitsEXT::eWarning |
+		                 vk::DebugReportFlagBitsEXT::ePerformanceWarning |
+		                 vk::DebugReportFlagBitsEXT::eError |
+		                 vk::DebugReportFlagBitsEXT::eDebug,
 		        .pfnCallback = vulkan_debug_report_callback,
 		};
 		debug_report_callback = vk::raii::DebugReportCallbackEXT(vk_instance, debug_report_info);
@@ -482,7 +476,7 @@ void application::initialize_vulkan()
 	physical_device_properties = vk_physical_device.getProperties();
 
 	spdlog::info("Available Vulkan device extensions:");
-	for(vk::ExtensionProperties & i: vk_physical_device.enumerateDeviceExtensionProperties())
+	for (vk::ExtensionProperties & i: vk_physical_device.enumerateDeviceExtensionProperties())
 	{
 		spdlog::info("    {}", i.extensionName);
 	}
@@ -508,26 +502,26 @@ void application::initialize_vulkan()
 	float queuePriority = 0.0f;
 
 	vk::DeviceQueueCreateInfo queueCreateInfo{
-		.queueFamilyIndex = vk_queue_family_index,
-		.queueCount = 1,
-		.pQueuePriorities = &queuePriority
+	        .queueFamilyIndex = vk_queue_family_index,
+	        .queueCount = 1,
+	        .pQueuePriorities = &queuePriority,
 	};
 
 	vk::PhysicalDeviceFeatures device_features{
-		// .samplerAnisotropy = true,
+	        // .samplerAnisotropy = true,
 	};
 
 	vk::StructureChain device_create_info{
-		vk::DeviceCreateInfo{
-			.queueCreateInfoCount = 1,
-			.pQueueCreateInfos = &queueCreateInfo,
-			.enabledExtensionCount = (uint32_t)device_extensions.size(),
-			.ppEnabledExtensionNames = device_extensions.data(),
-			.pEnabledFeatures = &device_features,
-		},
-		vk::PhysicalDeviceSamplerYcbcrConversionFeaturesKHR{
-			.samplerYcbcrConversion = VK_TRUE
-		}
+	        vk::DeviceCreateInfo{
+	                .queueCreateInfoCount = 1,
+	                .pQueueCreateInfos = &queueCreateInfo,
+	                .enabledExtensionCount = (uint32_t)device_extensions.size(),
+	                .ppEnabledExtensionNames = device_extensions.data(),
+	                .pEnabledFeatures = &device_features,
+	        },
+	        vk::PhysicalDeviceSamplerYcbcrConversionFeaturesKHR{
+	                .samplerYcbcrConversion = VK_TRUE,
+	        },
 	};
 
 	vk_device = xr_system_id.create_device(vk_physical_device, device_create_info.get());
@@ -537,21 +531,24 @@ void application::initialize_vulkan()
 	vk::PipelineCacheCreateInfo pipeline_cache_info;
 	std::vector<std::byte> pipeline_cache_bytes;
 
-	try {
+	try
+	{
 		// TODO Robust pipeline cache serialization
 		// https://zeux.io/2019/07/17/serializing-pipeline-cache/
 		pipeline_cache_bytes = utils::read_whole_file<std::byte>(cache_path / "pipeline_cache");
 
 		pipeline_cache_info.setInitialData<std::byte>(pipeline_cache_bytes);
-	} catch (...) {
+	}
+	catch (...)
+	{
 	}
 
 	pipeline_cache = vk::raii::PipelineCache(vk_device, pipeline_cache_info);
 
 	allocator.emplace(VmaAllocatorCreateInfo{
-		.physicalDevice = *vk_physical_device,
-		.device = *vk_device,
-		.instance = *vk_instance,
+	        .physicalDevice = *vk_physical_device,
+	        .device = *vk_device,
+	        .instance = *vk_instance,
 	});
 }
 
@@ -582,7 +579,7 @@ void application::log_views()
 static std::string make_xr_name(std::string name)
 {
 	// Generate a name suitable for a path component (see OpenXR spec §6.2)
-	for(char& c: name)
+	for (char & c: name)
 	{
 		if (!isalnum(c) && c != '-' && c != '_' && c != '.')
 			c = '_';
@@ -609,7 +606,7 @@ void application::initialize_actions()
 	// Build the list of all possible input sources, without duplicates,
 	// checking which profiles are supported by the runtime
 	std::vector<std::string> sources;
-	for(auto & profile: interaction_profiles)
+	for (auto & profile: interaction_profiles)
 	{
 		profile.available = utils::contains_all(xr_extensions, profile.required_extensions);
 
@@ -618,7 +615,7 @@ void application::initialize_actions()
 
 		suggested_bindings.emplace(profile.profile_name, std::vector<XrActionSuggestedBinding>{});
 
-		for(const std::string& source: profile.input_sources)
+		for (const std::string & source: profile.input_sources)
 		{
 			if (!utils::contains(sources, source))
 				sources.push_back(source);
@@ -628,7 +625,7 @@ void application::initialize_actions()
 	// For each possible input source, create a XrAction and add it to the suggested binding
 	std::unordered_map<std::string, XrAction> actions_by_name;
 
-	for(std::string& name: sources)
+	for (std::string & name: sources)
 	{
 		std::string name_without_slashes = make_xr_name(name);
 
@@ -649,14 +646,14 @@ void application::initialize_actions()
 	}
 
 	// Build an action set for each scene
-	for(scene::meta* i: scene::scene_registry)
+	for (scene::meta * i: scene::scene_registry)
 	{
 		std::string actionset_name = make_xr_name(i->name);
 
 		i->actionset = xr::actionset(xr_instance, actionset_name, i->name);
 		action_sets.push_back(i->actionset);
 
-		for(auto& [action_name, action_type] : i->actions)
+		for (auto & [action_name, action_type]: i->actions)
 		{
 			XrAction a = i->actionset.create_action(action_type, action_name);
 			i->actions_by_name[action_name] = std::make_pair(a, action_type);
@@ -665,23 +662,22 @@ void application::initialize_actions()
 				i->spaces_by_name[action_name] = xr_session.create_action_space(a);
 		}
 
-		for(const scene::suggested_binding& j: i->bindings)
+		for (const scene::suggested_binding & j: i->bindings)
 		{
 			// Skip unsupported profiles
 			if (!suggested_bindings.contains(j.profile_name))
 				continue;
 
-			std::vector<XrActionSuggestedBinding>& xr_bindings = suggested_bindings[j.profile_name];
+			std::vector<XrActionSuggestedBinding> & xr_bindings = suggested_bindings[j.profile_name];
 
-			for(const scene::action_binding& k: j.paths)
+			for (const scene::action_binding & k: j.paths)
 			{
 				XrAction a = i->actions_by_name[k.action_name].first;
 				assert(a != XR_NULL_HANDLE);
 
 				xr_bindings.push_back(XrActionSuggestedBinding{
-					.action = a,
-					.binding = string_to_path(k.input_source)
-				});
+				        .action = a,
+				        .binding = string_to_path(k.input_source)});
 			}
 		}
 	}
@@ -693,7 +689,7 @@ void application::initialize_actions()
 		if (!profile.available)
 			continue;
 
-		std::vector<XrActionSuggestedBinding>& xr_bindings = suggested_bindings[profile.profile_name];
+		std::vector<XrActionSuggestedBinding> & xr_bindings = suggested_bindings[profile.profile_name];
 
 		for (const auto & name: profile.input_sources)
 		{
@@ -704,7 +700,7 @@ void application::initialize_actions()
 		{
 			xr_instance.suggest_bindings(profile.profile_name, xr_bindings);
 		}
-		catch(...)
+		catch (...)
 		{
 			// Ignore errors
 		}
@@ -730,22 +726,22 @@ void application::initialize()
 	opt_extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
 	opt_extensions.push_back(XR_HTC_PASSTHROUGH_EXTENSION_NAME);
 
-	for(const auto& i: interaction_profiles)
+	for (const auto & i: interaction_profiles)
 	{
-		for(const auto& j: i.required_extensions)
+		for (const auto & j: i.required_extensions)
 		{
 			opt_extensions.push_back(j);
 		}
 	}
 
-	for(const auto& i: xr::instance::extensions())
+	for (const auto & i: xr::instance::extensions())
 	{
 		if (utils::contains(opt_extensions, i.extensionName))
 			xr_extensions.push_back(i.extensionName);
 	}
 
 	std::vector<const char *> extensions;
-	for(const auto& i: xr_extensions)
+	for (const auto & i: xr_extensions)
 	{
 		extensions.push_back(i.c_str());
 	}
@@ -781,7 +777,7 @@ void application::initialize()
 		hand_tracking_supported = hand_tracking_properties.supportsHandTracking;
 	}
 
-	switch(xr_system_id.passthrough_supported())
+	switch (xr_system_id.passthrough_supported())
 	{
 		case xr::system::passthrough_type::no_passthrough:
 			spdlog::info("    Passthrough: not supported");
@@ -828,8 +824,6 @@ void application::initialize()
 
 	interaction_profile_changed();
 }
-
-
 
 std::pair<XrAction, XrActionType> application::get_action(const std::string & requested_name)
 {
@@ -909,10 +903,10 @@ application::application(application_info info) :
 	if (XR_SUCCEEDED(xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction *)(&initializeLoader))))
 	{
 		XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid{
-			.type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR,
-			.next = nullptr,
-			.applicationVM = app_info.native_app->activity->vm,
-			.applicationContext = app_info.native_app->activity->clazz,
+		        .type = XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR,
+		        .next = nullptr,
+		        .applicationVM = app_info.native_app->activity->vm,
+		        .applicationContext = app_info.native_app->activity->clazz,
 		};
 		initializeLoader((const XrLoaderInitInfoBaseHeaderKHR *)&loaderInitInfoAndroid);
 	}
@@ -931,7 +925,7 @@ application::application(application_info info) :
 	{
 		initialize();
 	}
-	catch (std::exception& e)
+	catch (std::exception & e)
 	{
 		spdlog::error("Error during initialization: {}", e.what());
 		cleanup();
@@ -992,7 +986,7 @@ void application::cleanup()
 	scene_stack.clear();
 
 	// Empty the meta objects while the OpenXR instance still exists
-	for(auto i: scene::scene_registry)
+	for (auto i: scene::scene_registry)
 	{
 		xr::actionset tmp = std::move(i->actionset);
 		i->actions_by_name.clear(); // Not strictly necessary
@@ -1044,8 +1038,6 @@ void application::loop()
 			scene->render(framestate.predictedDisplayTime, framestate.shouldRender);
 
 			last_scene_cpu_time = std::chrono::steady_clock::now() - t1;
-
-
 		}
 		else
 		{
@@ -1104,8 +1096,9 @@ void application::run()
 #else
 void application::run()
 {
-	struct sigaction act{};
-	act.sa_handler = [](int){
+	struct sigaction act
+	{};
+	act.sa_handler = [](int) {
 		instance().exit_requested = true;
 	};
 	sigaction(SIGINT, &act, nullptr);
@@ -1142,9 +1135,8 @@ void application::push_scene(std::shared_ptr<scene> s)
 void application::poll_actions()
 {
 	std::array<XrActionSet, 2> action_sets{
-		instance().xr_actionset,
-		instance().current_scene()->current_meta.actionset
-	};
+	        instance().xr_actionset,
+	        instance().current_scene()->current_meta.actionset};
 
 	instance().xr_session.sync_actions(action_sets);
 }
