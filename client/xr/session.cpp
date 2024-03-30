@@ -174,7 +174,7 @@ std::pair<XrViewStateFlags, std::vector<XrView>> xr::session::locate_views(XrVie
 	        .type = XR_TYPE_VIEW_STATE,
 	};
 
-	auto views = details::enumerate<XrView>(xrLocateViews, id, &view_locate_info, &view_state);
+	auto views = details::enumerate2<XrView>(xrLocateViews, 2, id, &view_locate_info, &view_state);
 
 	return {view_state.viewStateFlags, views};
 }
