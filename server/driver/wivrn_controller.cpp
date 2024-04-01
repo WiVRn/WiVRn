@@ -309,18 +309,22 @@ void wivrn_controller::set_inputs(device_id input_id, float value, uint64_t last
 
 xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
 {
+	std::chrono::nanoseconds extrapolation_time;
+	xrt_space_relation res;
 	switch (name)
 	{
 		case XRT_INPUT_TOUCH_AIM_POSE:
-			return aim.get_at(at_timestamp_ns);
-
+			std::tie(extrapolation_time, res) = aim.get_at(at_timestamp_ns);
+			break;
 		case XRT_INPUT_TOUCH_GRIP_POSE:
-			return grip.get_at(at_timestamp_ns);
-
+			std::tie(extrapolation_time, res) = grip.get_at(at_timestamp_ns);
+			break;
 		default:
 			U_LOG_W("Unknown input name requested");
 			return {};
 	}
+	cnx->add_predict_offset(extrapolation_time);
+	return res;
 }
 
 std::pair<xrt_hand_joint_set, uint64_t> wivrn_controller::get_hand_tracking(xrt_input_name name, uint64_t desired_timestamp_ns)
@@ -328,8 +332,11 @@ std::pair<xrt_hand_joint_set, uint64_t> wivrn_controller::get_hand_tracking(xrt_
 	switch (name)
 	{
 		case XRT_INPUT_GENERIC_HAND_TRACKING_LEFT:
-		case XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT:
-			return {joints.get_at(desired_timestamp_ns), desired_timestamp_ns};
+		case XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT: {
+			auto [extrapolation_time, data] = joints.get_at(desired_timestamp_ns);
+			cnx->add_predict_offset(extrapolation_time);
+			return {data, desired_timestamp_ns};
+		}
 
 		default:
 			U_LOG_W("Unknown input name requested");

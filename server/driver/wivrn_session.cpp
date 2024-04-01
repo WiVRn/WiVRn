@@ -70,6 +70,18 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	}
 };
 
+void xrt::drivers::wivrn::max_accumulator::send(wivrn_connection & connection)
+{
+	if (std::chrono::steady_clock::now() < next_sample)
+		return;
+
+	if (auto offset = max.exchange(0))
+		connection.send_stream(to_headset::prediction_offset{
+		        .offset = std::chrono::nanoseconds(offset),
+		});
+	next_sample += std::chrono::seconds(1);
+}
+
 xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp) :
         connection(std::move(tcp))
 {
@@ -254,6 +266,7 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			if (self and not self->quit)
 			{
 				self->offset_est.request_sample(self->connection);
+				self->predict_offset.send(self->connection);
 				self->connection.poll(*self, 20);
 			}
 			else

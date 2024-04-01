@@ -295,7 +295,9 @@ xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, uint64_t at_
 		return {};
 	}
 
-	return views.get_at(at_timestamp_ns).relation;
+	auto [extrapolation_time, res] = views.get_at(at_timestamp_ns);
+	cnx->add_predict_offset(extrapolation_time);
+	return res.relation;
 }
 
 void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
@@ -310,7 +312,8 @@ void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
                                xrt_fov * out_fovs,
                                xrt_pose * out_poses)
 {
-	auto view = views.get_at(at_timestamp_ns);
+	auto [extrapolation_time, view] = views.get_at(at_timestamp_ns);
+	cnx->add_predict_offset(extrapolation_time);
 
 	int flags = view.relation.relation_flags;
 

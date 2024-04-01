@@ -22,46 +22,51 @@
 #include "clock_offset.h"
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
+#include <list>
 #include <mutex>
-#include <vector>
 
 template <typename Derived, typename Data, bool extrapolate = false, size_t MaxSamples = 10>
 class history
 {
 	struct TimedData : public Data
 	{
-		TimedData(const Data & d, uint64_t t) :
-		        Data(d), at_timestamp_ns(t) {}
-		uint64_t at_timestamp_ns;
+		XrTime produced_timestamp;
+		XrTime at_timestamp_ns;
 	};
 
 	std::mutex mutex;
-	std::vector<TimedData> data;
+	std::list<TimedData> data;
 
 protected:
-	void add_sample(uint64_t timestamp, const Data & sample, const clock_offset & offset)
+	void add_sample(XrTime produced_timestamp, XrTime timestamp, const Data & sample, const clock_offset & offset)
 	{
+		XrTime produced = offset.from_headset(produced_timestamp);
+		XrTime t = offset.from_headset(timestamp);
 		std::lock_guard lock(mutex);
 
-		uint64_t t = offset.from_headset(timestamp);
+		// Only keep one predicted value
+		// It should be the last one
+		if (not data.empty() and t != produced and data.back().at_timestamp_ns != data.back().produced_timestamp)
+			data.pop_back();
+
+		// Insert the new sample
 		auto it = std::lower_bound(data.begin(), data.end(), t, [](TimedData & sample, uint64_t t) { return sample.at_timestamp_ns < t; });
-
 		if (it == data.end())
-			data.emplace_back(sample, t);
+			data.emplace_back(sample, produced, t);
 		else if (it->at_timestamp_ns == t)
-			*it = TimedData(sample, t);
+			*it = TimedData(sample, produced, t);
 		else
-			data.emplace(it, sample, t);
+			data.emplace(it, sample, produced, t);
 
-		if (data.size() > MaxSamples)
-			data.erase(data.begin());
+		while (data.size() > MaxSamples)
+			data.pop_front();
 	}
 
 public:
-	Data get_at(uint64_t at_timestamp_ns)
+	std::pair<std::chrono::nanoseconds, Data> get_at(XrTime at_timestamp_ns)
 	{
 		std::lock_guard lock(mutex);
+		std::chrono::nanoseconds ex(0);
 
 		if (data.empty())
 		{
@@ -70,36 +75,42 @@ public:
 
 		if (data.size() == 1)
 		{
-			return data[0];
+			return {ex, data.front()};
 		}
 
 		if (data.front().at_timestamp_ns > at_timestamp_ns)
 		{
 			if (extrapolate)
-				return Derived::extrapolate(data[0], data[1], data[0].at_timestamp_ns, data[1].at_timestamp_ns, at_timestamp_ns);
+			{
+				auto second = data.begin();
+				auto first = second++;
+				return {ex, Derived::extrapolate(*first, *second, first->at_timestamp_ns, second->at_timestamp_ns, at_timestamp_ns)};
+			}
 			else
-				return data.front();
+				return {ex, data.front()};
 		}
 
-		for (size_t i = 1; i < data.size(); ++i)
+		for (auto after = data.begin(), before = after++; after != data.end(); before = after++)
 		{
-			if (data[i].at_timestamp_ns > at_timestamp_ns)
+			if (after->at_timestamp_ns > at_timestamp_ns)
 			{
-				float t = float(data[i].at_timestamp_ns - at_timestamp_ns) /
-				          (data[i].at_timestamp_ns - data[i - 1].at_timestamp_ns);
-				return Derived::interpolate(data[i - 1], data[i], t);
+				ex = std::chrono::nanoseconds(at_timestamp_ns - std::min(before->produced_timestamp, after->produced_timestamp));
+				float t = float(after->at_timestamp_ns - at_timestamp_ns) /
+				          (after->at_timestamp_ns - before->at_timestamp_ns);
+				return {ex, Derived::interpolate(*before, *after, t)};
 			}
 		}
 
+		ex = std::chrono::nanoseconds(at_timestamp_ns - data.back().produced_timestamp);
 		if (extrapolate)
 		{
-			const auto & d0 = data[data.size() - 2];
-			const auto & d1 = data.back();
-			return Derived::extrapolate(d0, d1, d0.at_timestamp_ns, d1.at_timestamp_ns, at_timestamp_ns);
+			auto prev = data.rbegin();
+			auto last = prev++;
+			return {ex, Derived::extrapolate(*prev, *last, prev->at_timestamp_ns, prev->at_timestamp_ns, at_timestamp_ns)};
 		}
 		else
 		{
-			return data.back();
+			return {ex, data.back()};
 		}
 	}
 };

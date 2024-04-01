@@ -118,10 +118,8 @@ void scenes::stream::tracking()
 	XrSpace view_space = application::view();
 	const XrDuration tracking_period = 1'000'000; // Send tracking data every 1ms
 	const XrDuration dt = 100'000;                // Wake up 0.1ms before measuring the position
-	const XrDuration extrapolation_horizon = 1;   // 50'000'000;
 
 	XrTime t0 = instance.now();
-	t0 = t0 - t0 % tracking_period;
 
 	while (not exiting)
 	{
@@ -134,10 +132,15 @@ void scenes::stream::tracking()
 			// If thread can't keep up, skip timestamps
 			t0 += tracking_period * ((now - t0) / tracking_period);
 
-			for (XrTime Δt = 0; Δt < extrapolation_horizon; Δt += tracking_period)
+			XrDuration prediction = tracking_prediction_offset;
+			// 1 or 2 samples
+			for (XrDuration Δt = 0; Δt <= prediction; Δt += std::max<XrDuration>(1, prediction))
 			{
 				from_headset::tracking packet{};
 				from_headset::hand_tracking hands{};
+
+				packet.production_timestamp = t0;
+				hands.production_timestamp = t0;
 
 				packet.timestamp = t0 + Δt;
 				hands.timestamp = t0 + Δt;
@@ -186,4 +189,10 @@ void scenes::stream::tracking()
 			exit();
 		}
 	}
+}
+
+void scenes::stream::operator()(to_headset::prediction_offset && packet)
+{
+	if (packet.offset.count() >= 0)
+		tracking_prediction_offset = packet.offset.count();
 }

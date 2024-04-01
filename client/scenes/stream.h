@@ -75,6 +75,7 @@ private:
 	std::unique_ptr<wivrn_session> network_session;
 	std::atomic<bool> exiting = false;
 	std::thread network_thread;
+	std::atomic<std::chrono::nanoseconds::rep> tracking_prediction_offset;
 	std::optional<std::thread> tracking_thread;
 	std::thread video_thread;
 
@@ -128,6 +129,7 @@ public:
 	void operator()(to_headset::video_stream_data_shard &&);
 	void operator()(to_headset::haptics &&);
 	void operator()(to_headset::timesync_query &&);
+	void operator()(to_headset::prediction_offset &&);
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(audio_data &&);

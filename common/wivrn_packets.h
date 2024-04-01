@@ -141,6 +141,7 @@ struct tracking
 		XrFovf fov;
 	};
 
+	XrTime production_timestamp;
 	XrTime timestamp;
 	XrViewStateFlags flags;
 
@@ -169,6 +170,7 @@ struct hand_tracking
 		uint8_t flags;
 	};
 
+	XrTime production_timestamp;
 	XrTime timestamp;
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> left;
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> right;
@@ -321,7 +323,12 @@ struct timesync_query
 	XrTime query;
 };
 
-using packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query>;
+struct prediction_offset
+{
+	std::chrono::nanoseconds offset;
+};
+
+using packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query, prediction_offset>;
 
 } // namespace to_headset
 

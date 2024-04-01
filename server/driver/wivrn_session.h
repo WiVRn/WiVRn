@@ -43,6 +43,26 @@ namespace xrt::drivers::wivrn
 {
 struct wivrn_comp_target;
 
+class max_accumulator
+{
+	using T = std::chrono::nanoseconds::rep;
+	std::atomic<T> max;
+	std::chrono::steady_clock::time_point next_sample;
+
+public:
+	max_accumulator() :
+	        next_sample(std::chrono::steady_clock::now()) {}
+	void add(std::chrono::nanoseconds s)
+	{
+		auto sample = s.count();
+		T prev = max;
+		while (prev < sample and max.compare_exchange_weak(prev, sample))
+		{
+		}
+	}
+	void send(wivrn_connection & connection);
+};
+
 class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 {
 	friend wivrn_comp_target_factory;
@@ -57,6 +77,9 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	wivrn_comp_target * comp_target;
 
 	clock_offset_estimator offset_est;
+
+	// offsets in ns of each requested frame from its generation time
+	max_accumulator predict_offset;
 
 	std::mutex csv_mutex;
 	std::ofstream feedback_csv;
@@ -73,6 +96,11 @@ public:
 	                                   xrt_system_compositor ** out_xsysc);
 
 	clock_offset get_offset();
+
+	void add_predict_offset(std::chrono::nanoseconds off)
+	{
+		predict_offset.add(off);
+	}
 
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::headset_info_packet &&);
