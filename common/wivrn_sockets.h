@@ -196,7 +196,8 @@ public:
 	template <typename T>
 	void send(T && data)
 	{
-		serialization_packet p;
+		thread_local serialization_packet p;
+		p.clear();
 		uint8_t index = details::Index<std::decay_t<T>, std::tuple<VariantTypes...>>::value;
 		p.serialize(index);
 		p.serialize(std::forward<T>(data));

@@ -107,6 +107,13 @@ class serialization_packet
 public:
 	serialization_packet() = default;
 
+	void clear()
+	{
+		buffer.clear();
+		spans.clear();
+		spans.push_back({size_t(0)});
+	}
+
 	void write(const void * data, size_t size)
 	{
 		size_t index = buffer.size();
