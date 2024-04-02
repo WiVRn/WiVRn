@@ -172,7 +172,7 @@ FetchContent_Declare(implot        URL https://github.com/epezent/implot/archive
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
     GIT_TAG          ffb71af26f8349952f5f820c268ee4774613e200
-    PATCH_COMMAND    patch --forward -p1 < ${CMAKE_CURRENT_LIST_DIR}/patches/monado/0001-c-multi-disable-dropping-of-old-frames.patch || true
+    PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${CMAKE_CURRENT_LIST_DIR}/patches/monado/
     )
 
 FetchContent_Declare(imgui

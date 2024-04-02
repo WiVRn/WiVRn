@@ -1,0 +1,25 @@
+From 289034b4c0721f348da99be047cf0e842e2dd2c9 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Tue, 2 Apr 2024 17:14:42 +0200
+Subject: [PATCH 2/2] ipc/server: Always listen to stdin
+
+---
+ src/xrt/ipc/server/ipc_server_mainloop_linux.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/xrt/ipc/server/ipc_server_mainloop_linux.c b/src/xrt/ipc/server/ipc_server_mainloop_linux.c
+index 97f1d2ca7..01552a8fe 100644
+--- a/src/xrt/ipc/server/ipc_server_mainloop_linux.c
++++ b/src/xrt/ipc/server/ipc_server_mainloop_linux.c
+@@ -187,7 +187,7 @@ init_epoll(struct ipc_server_mainloop *ml)
+ 
+ 	struct epoll_event ev = {0};
+ 
+-	if (!ml->launched_by_socket && !debug_get_bool_option_skip_stdin()) {
++	if (!debug_get_bool_option_skip_stdin()) {
+ 		// Can't do this when launched by systemd socket activation by
+ 		// default.
+ 		// This polls stdin.
+-- 
+2.44.0
+
