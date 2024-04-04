@@ -34,6 +34,7 @@
 #include "wivrn_packets.h"
 #include <algorithm>
 #include <mutex>
+#include <ranges>
 #include <thread>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -244,6 +245,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 				{
 					std::swap(i.latest_frames[j - 1], i.latest_frames[j]);
 				}
+				handle->feedback.received_from_decoder = application::now();
 				std::swap(i.latest_frames.back(), handle);
 				break;
 			}
@@ -276,24 +278,47 @@ std::vector<uint64_t> scenes::stream::accumulator_images::frames() const
 	return result;
 }
 
-std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const std::vector<accumulator_images> & sets, uint64_t preferred_frame)
+std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const std::vector<accumulator_images> & sets, XrTime display_time)
 {
 	if (sets.empty())
 		return {};
-	auto common_frames = sets[0].frames();
-	for (const auto & set: sets)
+	thread_local std::vector<shard_accumulator::blit_handle *> common_frames;
+	thread_local std::vector<shard_accumulator::blit_handle *> tmp;
+	common_frames.clear();
+	auto proj = [](const shard_accumulator::blit_handle * h) { return h ? h->feedback.frame_index : -1; };
+	for (size_t i = 0; i < sets.size(); ++i)
 	{
-		std::vector<uint64_t> tmp;
-		auto x = set.frames();
-		std::ranges::set_intersection(x, common_frames, std::back_inserter(tmp));
-		common_frames = tmp;
-		if (common_frames.empty())
-			return {};
+		if (i == 0)
+		{
+			for (const auto & h: sets[i].latest_frames)
+				if (h)
+					common_frames.push_back(h.get());
+		}
+		else
+		{
+			tmp.clear();
+			std::ranges::set_intersection(
+			        std::ranges::views::transform(sets[i].latest_frames, [](auto ptr) { return ptr.get(); }),
+			        common_frames,
+			        std::back_inserter(tmp),
+			        std::ranges::less{},
+			        proj,
+			        proj);
+			std::swap(common_frames, tmp);
+		}
 	}
-	assert(not common_frames.empty());
-	if (std::ranges::find(common_frames, preferred_frame) != common_frames.end())
-		return preferred_frame;
-	return common_frames.back();
+	if (common_frames.empty())
+		return {};
+	auto min = std::ranges::min_element(common_frames,
+	                                    std::ranges::less{},
+	                                    [display_time](auto frame) {
+		                                    if (not frame)
+			                                    return std::numeric_limits<XrTime>::max();
+		                                    return std::abs(frame->view_info.display_time - display_time);
+	                                    });
+
+	assert(*min);
+	return (*min)->feedback.frame_index;
 }
 
 std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_images::frame(std::optional<uint64_t> id)
@@ -505,12 +530,9 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	std::array<XrFovf, 2> fov = {views[0].fov, views[1].fov};
 	{
 		std::unique_lock lock(decoder_mutex);
-		// Search for the most recent frame available on all decoders.
+		// Search for frame with desired display time on all decoders
 		// If no such frame exists, use the latest frame for each decoder
-		auto common_frame = accumulator_images::common_frame(decoders, next_frame);
-
-		if (common_frame)
-			next_frame = *common_frame + 1;
+		auto common_frame = accumulator_images::common_frame(decoders, predicted_display_time);
 
 		// Blit images from the decoders
 		for (auto & i: decoders)
@@ -524,6 +546,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 			blit_handle->feedback.blitted = application::now();
 			if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
 				state_ = stream::state::stalled;
+			++blit_handle->feedback.times_displayed;
 			blit_handle->feedback.displayed = predicted_display_time;
 			blit_handle->feedback.real_pose[0] = views[0].pose;
 			blit_handle->feedback.real_pose[1] = views[1].pose;

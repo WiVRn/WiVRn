@@ -206,6 +206,8 @@ struct feedback
 	XrTime blitted;
 	XrTime displayed;
 
+	uint8_t times_displayed;
+
 	std::array<XrPosef, 2> received_pose;
 	std::array<XrPosef, 2> real_pose;
 };

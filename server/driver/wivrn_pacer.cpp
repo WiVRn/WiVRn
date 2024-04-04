@@ -75,7 +75,7 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 	}
 
 	last = feedback;
-	if (feedback.blitted)
+	if (feedback.blitted and feedback.times_displayed == 1)
 	{
 		auto & stream = streams[feedback.stream_index];
 		if (stream.times.size() < num_wait_times)

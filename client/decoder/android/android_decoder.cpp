@@ -391,7 +391,6 @@ void decoder::on_image_available(AImageReader * reader)
 			return;
 		}
 
-		info->feedback.received_from_decoder = application::now();
 		assert(info->feedback.frame_index == frame_index);
 
 		auto vk_data = map_hardware_buffer(image);
