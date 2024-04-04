@@ -76,5 +76,5 @@ def durations(frames, stream=None, flag=None, *args, **kwargs):
         if flag is None:
             return True
         return flag in frame.flags.get(stream, ())
-    res = [frame.duration(*args, **kwargs) for frame in frames if filter(frame)]
+    res = [frame.duration(*args, stream=stream, **kwargs) for frame in frames if filter(frame)]
     return [d for d in res if d is not None]
