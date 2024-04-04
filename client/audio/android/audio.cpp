@@ -100,7 +100,16 @@ int32_t wivrn::android::audio::microphone_data_cb(AAudioStream * stream, void * 
 	        .payload = std::span(audio_data, frame_size * num_frames),
 	};
 
-	self->session.send_control(packet);
+	try
+	{
+		self->session.send_control(packet);
+	}
+	catch (...)
+	{
+		self->microphone_stop_ack = true;
+		self->microphone_stop_ack.notify_all();
+		return AAUDIO_CALLBACK_RESULT_STOP;
+	}
 
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;
 }
