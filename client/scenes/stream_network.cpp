@@ -18,11 +18,16 @@
  */
 
 #include "stream.h"
+
+#include "application.h"
 #include "utils/named_thread.h"
 #include <spdlog/spdlog.h>
 
 void scenes::stream::process_packets()
 {
+#ifdef __ANDROID__
+	application::instance().setup_jni();
+#endif
 	while (not exiting)
 	{
 		try

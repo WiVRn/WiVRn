@@ -108,6 +108,10 @@ static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT
 
 void scenes::stream::tracking()
 {
+#ifdef __ANDROID__
+	// Runtime may use JNI and needs the thread to be attached
+	application::instance().setup_jni();
+#endif
 	std::vector<std::pair<device_id, XrSpace>> spaces = {
 	        {device_id::HEAD, application::view()},
 	        {device_id::LEFT_AIM, application::left_aim()},
