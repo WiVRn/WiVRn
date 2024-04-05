@@ -70,17 +70,19 @@ void scenes::stream::read_actions()
 
 void scenes::stream::operator()(to_headset::haptics && haptics)
 {
-	XrAction action;
-
+	size_t i;
 	if (haptics.id == device_id::LEFT_CONTROLLER_HAPTIC)
-	{
-		action = haptics_actions[0].first;
-	}
+		i = 0;
 	else if (haptics.id == device_id::RIGHT_CONTROLLER_HAPTIC)
-	{
-		action = haptics_actions[1].first;
-	}
+		i = 1;
 	else
+		return;
+
+	XrAction action = haptics_actions[i].action;
+	float old = haptics_actions[i].amplitude.exchange(haptics.amplitude);
+	// Some runtimes may be slow to process actions
+	// Skip it if not necessary
+	if (old == 0 and haptics.amplitude == 0)
 		return;
 
 	if (haptics.amplitude > 0)

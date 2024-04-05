@@ -94,7 +94,13 @@ private:
 	vk::raii::Fence fence = nullptr;
 	vk::raii::CommandBuffer command_buffer = nullptr;
 
-	std::array<std::pair<XrAction, XrPath>, 2> haptics_actions;
+	struct haptics_action
+	{
+		XrAction action;
+		XrPath path;
+		std::atomic<float> amplitude;
+	};
+	std::array<haptics_action, 2> haptics_actions;
 	std::vector<std::tuple<device_id, XrAction, XrActionType>> input_actions;
 
 	state state_ = state::initializing;

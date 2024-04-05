@@ -132,11 +132,11 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	self->fence = self->device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
 
 	// Look up the XrActions for haptics
-	self->haptics_actions[0].first = application::get_action("/user/hand/left/output/haptic").first;
-	self->haptics_actions[0].second = application::string_to_path("/user/hand/left");
+	self->haptics_actions[0].action = application::get_action("/user/hand/left/output/haptic").first;
+	self->haptics_actions[0].path = application::string_to_path("/user/hand/left");
 
-	self->haptics_actions[1].first = application::get_action("/user/hand/right/output/haptic").first;
-	self->haptics_actions[1].second = application::string_to_path("/user/hand/right");
+	self->haptics_actions[1].action = application::get_action("/user/hand/right/output/haptic").first;
+	self->haptics_actions[1].path = application::string_to_path("/user/hand/right");
 
 	// Look up the XrActions for input
 	for (const auto & [action, action_type, name]: application::inputs())
