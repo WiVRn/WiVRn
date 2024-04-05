@@ -52,7 +52,8 @@ struct pipewire_device : public audio_device
 	        .process = &pipewire_device::speaker_process,
 	};
 
-	utils::ring_buffer<audio_data, 1000> mic_samples;
+	utils::ring_buffer<audio_data, 100> mic_samples;
+	std::atomic<size_t> mic_buffer_size_bytes;
 	audio_data mic_current;
 	std::unique_ptr<pw_stream, deleter> microphone;
 	pw_stream_events mic_events{
@@ -243,6 +244,17 @@ void pipewire_device::mic_process(void * self_v)
 		}
 	}
 	pw_stream_queue_buffer(self->microphone.get(), buffer);
+
+	// discard excess data, so we don't accumulate latency
+	size_t target_buffer_size = 20'000'000 * frame_size / self->desc.microphone->sample_rate;
+	while (self->mic_buffer_size_bytes > target_buffer_size and self->mic_samples.size() > 1)
+	{
+		auto tmp = self->mic_samples.read();
+		if (not tmp)
+			break;
+		self->mic_buffer_size_bytes.fetch_sub(tmp->payload.size_bytes());
+		U_LOG_D("Audio sync: discard %ld bytes", tmp->payload.size_bytes());
+	}
 }
 
 void pipewire_device::speaker_process(void * self_v)
