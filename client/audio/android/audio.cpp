@@ -65,6 +65,7 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 			self->speaker_tmp.payload = self->speaker_tmp.payload.subspan(tmp_remain);
 			audio_data += tmp_remain;
 			num_frames -= tmp_remain / frame_size;
+			self->buffer_size_bytes.fetch_sub(tmp_remain);
 		}
 		else
 		{
@@ -76,6 +77,17 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 			}
 			self->speaker_tmp = std::move(*tmp);
 		}
+	}
+
+	// discard excess data, so we don't accumulate latency
+	size_t target_buffer_size = 20'000'000 * frame_size / AAudioStream_getSampleRate(stream);
+	while (self->buffer_size_bytes > target_buffer_size and self->output_buffer.size() > 1)
+	{
+		auto tmp = self->output_buffer.read();
+		if (not tmp)
+			break;
+		self->buffer_size_bytes.fetch_sub(tmp->payload.size_bytes());
+		spdlog::info("Audio sync: discard {} bytes", tmp->payload.size_bytes());
 	}
 
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;
@@ -187,6 +199,7 @@ wivrn::android::audio::~audio()
 
 void wivrn::android::audio::operator()(xrt::drivers::wivrn::audio_data && data)
 {
+	buffer_size_bytes.fetch_add(data.payload.size_bytes());
 	output_buffer.write(std::move(data));
 }
 

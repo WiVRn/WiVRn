@@ -38,7 +38,8 @@ class audio
 	static int32_t speaker_data_cb(AAudioStreamStruct *, void *, void *, int32_t);
 	static int32_t microphone_data_cb(AAudioStreamStruct *, void *, void *, int32_t);
 
-	utils::ring_buffer<xrt::drivers::wivrn::audio_data, 1000> output_buffer;
+	utils::ring_buffer<xrt::drivers::wivrn::audio_data, 100> output_buffer;
+	std::atomic<size_t> buffer_size_bytes;
 
 	xrt::drivers::wivrn::audio_data speaker_tmp;
 	AAudioStreamStruct * speaker = nullptr;

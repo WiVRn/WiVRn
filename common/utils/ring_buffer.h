@@ -27,10 +27,10 @@ namespace utils
 {
 
 // single writer/single reader rung buffer
-template <typename T, size_t size>
+template <typename T, size_t capacity>
 class ring_buffer
 {
-	std::array<T, size> container;
+	std::array<T, capacity> container;
 	// last position read
 	std::atomic<size_t> read_index = 0;
 	// last position written
@@ -39,7 +39,7 @@ class ring_buffer
 public:
 	bool write(T && t)
 	{
-		size_t next_write = (write_index + 1) % size;
+		size_t next_write = (write_index + 1) % capacity;
 		if (next_write == read_index)
 			return false;
 		container[next_write] = std::move(t);
@@ -51,10 +51,17 @@ public:
 	{
 		if (read_index == write_index)
 			return {};
-		size_t next_read = (read_index + 1) % size;
+		size_t next_read = (read_index + 1) % capacity;
 		T res = std::move(container[next_read]);
 		read_index.store(next_read);
 		return std::move(res);
+	}
+
+	size_t size() const
+	{
+		size_t w = write_index;
+		size_t r = read_index;
+		return std::min(w - r, capacity + w - r);
 	}
 };
 
