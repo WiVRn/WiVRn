@@ -120,8 +120,8 @@ void scenes::stream::tracking()
 	        {device_id::RIGHT_GRIP, application::right_grip()}};
 
 	XrSpace view_space = application::view();
-	const XrDuration tracking_period = 1'000'000; // Send tracking data every 1ms
-	const XrDuration dt = 100'000;                // Wake up 0.1ms before measuring the position
+	XrDuration tracking_period = 1'000'000; // Send tracking data every 1ms
+	const XrDuration dt = 100'000;          // Wake up 0.1ms before measuring the position
 
 	XrTime t0 = instance.now();
 
@@ -130,6 +130,8 @@ void scenes::stream::tracking()
 		try
 		{
 			XrTime now = instance.now();
+			// If tracking is slow, throttle so that we remain idle most of the time
+			tracking_period = std::clamp<XrDuration>(5 * (now - t0), 1'000'000, 10'000'000);
 			if (now < t0)
 				std::this_thread::sleep_for(std::chrono::nanoseconds(t0 - now - dt));
 
