@@ -246,7 +246,7 @@ void pipewire_device::mic_process(void * self_v)
 	pw_stream_queue_buffer(self->microphone.get(), buffer);
 
 	// discard excess data, so we don't accumulate latency
-	size_t target_buffer_size = 20'000'000 * frame_size / self->desc.microphone->sample_rate;
+	size_t target_buffer_size = 100'000'000 * frame_size / self->desc.microphone->sample_rate;
 	while (self->mic_buffer_size_bytes > target_buffer_size and self->mic_samples.size() > 1)
 	{
 		auto tmp = self->mic_samples.read();
