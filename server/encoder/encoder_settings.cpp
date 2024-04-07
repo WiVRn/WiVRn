@@ -23,6 +23,7 @@
 #include "video_encoder.h"
 
 #include <cmath>
+#include <magic_enum.hpp>
 #include <string>
 #include <vulkan/vulkan.h>
 
@@ -64,6 +65,27 @@ static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> & e
 	for (auto & encoder: encoders)
 	{
 		encoder.bitrate = encoder.bitrate * bitrate / total_weight;
+	}
+}
+
+void print_encoders(const std::vector<xrt::drivers::wivrn::encoder_settings> & encoders)
+{
+	int group = -1;
+	for (auto & encoder: encoders)
+	{
+		if (encoder.group != group)
+		{
+			group = encoder.group;
+			U_LOG_I("Group %d", group);
+		}
+		std::string codec(magic_enum::enum_name(encoder.codec));
+		U_LOG_I("\t%s (%s)", encoder.encoder_name.c_str(), codec.c_str());
+		U_LOG_I("\tsize:%dx%d offset:%dx%d",
+		        encoder.width,
+		        encoder.height,
+		        encoder.offset_x,
+		        encoder.offset_y);
+		U_LOG_I("\tbitrate: %ldMbit/s", encoder.bitrate / 1'000'000);
 	}
 }
 

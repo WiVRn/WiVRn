@@ -355,6 +355,7 @@ static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_
 
 	try
 	{
+		print_encoders(settings);
 		create_encoders(cn, settings);
 	}
 	catch (const std::exception & e)
