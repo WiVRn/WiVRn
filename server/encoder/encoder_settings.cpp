@@ -140,6 +140,11 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 		encoders[1].height = height - encoders[0].height;
 		encoders[1].offset_y = encoders[0].height;
 		encoders[2].offset_x = settings.width;
+		for (auto & e: encoders)
+		{
+			e.video_width = e.width;
+			e.video_height = e.height;
+		}
 		split_bitrate(encoders, bitrate);
 		return encoders;
 #elif defined(WIVRN_USE_X264)
