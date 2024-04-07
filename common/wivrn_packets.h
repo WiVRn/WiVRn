@@ -160,20 +160,26 @@ struct hand_tracking
 		orientation_tracked = 1 << 4,
 		position_tracked = 1 << 5
 	};
-
+	enum hand_id : uint8_t
+	{
+		left,
+		right,
+	};
 	struct pose
 	{
 		XrPosef pose;
 		XrVector3f linear_velocity;
 		XrVector3f angular_velocity;
-		float radius;
+		// In order to avoid packet fragmentation
+		// use 2 less bytes for radius
+		uint16_t radius; // 10th of mm
 		uint8_t flags;
 	};
 
 	XrTime production_timestamp;
 	XrTime timestamp;
-	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> left;
-	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> right;
+	hand_id hand;
+	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
 };
 
 struct inputs

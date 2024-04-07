@@ -78,7 +78,7 @@ static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT
 			        .pose = (*joints)[i].first.pose,
 			        .linear_velocity = (*joints)[i].second.linearVelocity,
 			        .angular_velocity = (*joints)[i].second.angularVelocity,
-			        .radius = (*joints)[i].first.radius,
+			        .radius = uint16_t((*joints)[i].first.radius * 10'000),
 			};
 
 			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
@@ -173,9 +173,12 @@ void scenes::stream::tracking()
 
 					if (application::get_hand_tracking_supported())
 					{
-						hands.left = locate_hands(application::get_left_hand(), world_space, hands.timestamp);
-						hands.right = locate_hands(application::get_right_hand(), world_space, hands.timestamp);
+						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::left;
+						hands.joints = locate_hands(application::get_left_hand(), world_space, hands.timestamp);
+						network_session->send_stream(hands);
 
+						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::right;
+						hands.joints = locate_hands(application::get_right_hand(), world_space, hands.timestamp);
 						network_session->send_stream(hands);
 					}
 				}

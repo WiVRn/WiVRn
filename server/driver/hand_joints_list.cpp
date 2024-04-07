@@ -104,7 +104,7 @@ static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_hea
 		{
 			xrt_hand_joint_value & res = output_joints.values.hand_joint_set_default[i];
 
-			res.radius = (*input_joints)[i].radius;
+			res.radius = (*input_joints)[i].radius / 10'000.;
 			*joint_rel = to_relation((*input_joints)[i]);
 
 			m_relation_chain_resolve(&rel_chain, &res.relation);
@@ -120,9 +120,10 @@ static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_hea
 
 void hand_joints_list::update_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
-	add_sample(
-	        tracking.production_timestamp,
-	        tracking.timestamp,
-	        convert_joints(hand_id == 0 ? tracking.left : tracking.right),
-	        offset);
+	if (tracking.hand == hand_id)
+		add_sample(
+		        tracking.production_timestamp,
+		        tracking.timestamp,
+		        convert_joints(tracking.joints),
+		        offset);
 }
