@@ -127,6 +127,8 @@ class lobby : public scene_impl<lobby>
 	void gui_about();
 	void gui_keyboard(ImVec2 size);
 
+	void setup_passthrough();
+
 	void vibrate_on_hover();
 
 	void connect(server_data & data);

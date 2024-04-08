@@ -762,7 +762,16 @@ void scenes::lobby::on_focused()
 	{
 		about_picture = imgui_ctx->load_texture("wivrn.png");
 	}
+	setup_passthrough();
+}
 
+void scenes::lobby::setup_passthrough()
+{
+	if (not passthrough_enabled)
+	{
+		passthrough.emplace<xr::passthrough_fb>();
+		return;
+	}
 	if (passthrough_supported != xr::system::passthrough_type::no_passthrough)
 	{
 		if (utils::contains(system.environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))
