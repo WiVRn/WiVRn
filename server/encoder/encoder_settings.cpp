@@ -116,6 +116,9 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 	else
 	{
 #ifdef WIVRN_USE_VAAPI
+		settings.encoder_name = encoder_vaapi;
+// Split encoders have been reported to cause issues, don't use them in default configuration
+#ifdef WIVRN_SPLIT_ENCODERS
 		/* Split in 3 parts:
 		 *  +--------+--------+
 		 *  |        |        |
@@ -131,7 +134,6 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 		 * Decoder can start work as fast as possible, reducing idle time.
 		 *
 		 */
-		settings.encoder_name = encoder_vaapi;
 		settings.width = std::ceil(width * 0.5);
 		std::vector<xrt::drivers::wivrn::encoder_settings> encoders(3, settings);
 
@@ -147,6 +149,7 @@ static std::vector<xrt::drivers::wivrn::encoder_settings> get_encoder_default_se
 		}
 		split_bitrate(encoders, bitrate);
 		return encoders;
+#endif
 #elif defined(WIVRN_USE_X264)
 		settings.encoder_name = encoder_x264;
 		settings.codec = xrt::drivers::wivrn::h264;
