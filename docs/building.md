@@ -29,6 +29,8 @@ It is possible to force specific encoders, by adding options
 -DWIVRN_USE_NVENC=ON
 ```
 
+Additionally, if your environment requires absolute paths inside the OpenXR runtime manifest, you can add `-DWIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH=ON` to the build configuration.
+
 # Client (headset)
 
 #### Build dependencies

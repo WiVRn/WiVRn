@@ -167,8 +167,16 @@ install(FILES dist/firewalld-wivrn.xml
 install(TARGETS wivrn-server)
 
 set_target_properties(${RUNTIME_TARGET} PROPERTIES EXCLUDE_FROM_ALL FALSE)
+
+set(_extra_args)
+if(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH)
+set(_extra_args ABSOLUTE_RUNTIME_PATH)
+else()
+set(_extra_args RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${CMAKE_INSTALL_LIBDIR})
+endif()
+
 generate_openxr_runtime_manifest_at_install(
-	RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${CMAKE_INSTALL_LIBDIR}
+	${_extra_args}
 	RUNTIME_TARGET ${RUNTIME_TARGET}
 	DESTINATION share/openxr/1
 	RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}
