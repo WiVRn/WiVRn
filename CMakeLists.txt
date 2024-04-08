@@ -38,6 +38,8 @@ auto_option(WIVRN_USE_X264 "Enable x264 software encoder" AUTO)
 auto_option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" AUTO)
 auto_option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" AUTO)
 
+option(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH OFF)
+
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
 
 if(ENABLE_COLOURED_OUTPUT)
