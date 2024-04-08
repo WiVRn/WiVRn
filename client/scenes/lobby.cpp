@@ -536,6 +536,17 @@ static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<Xr
 	return layer_views;
 }
 
+namespace
+{
+template <class... Ts>
+struct overloaded : Ts...
+{
+	using Ts::operator()...;
+};
+template <class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+} // namespace
+
 void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 {
 	if (async_session.valid() && async_session.poll() == utils::future_status::ready)
@@ -653,14 +664,19 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	        .views = controllers_layer_views.data(),
 	};
 
+	XrEnvironmentBlendMode blend_mode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
 	std::vector<XrCompositionLayerBaseHeader *> layers_base;
 
 	if (passthrough_enabled)
 	{
 		std::visit(
-		        [&](auto & p) {
-			        layers_base.push_back(p.layer());
-		        },
+		        overloaded{
+		                [&](xr::passthrough_alpha_blend & p) {
+			                blend_mode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
+		                },
+		                [&](auto & p) {
+			                layers_base.push_back(p.layer());
+		                }},
 		        passthrough);
 	}
 	else
@@ -670,7 +686,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
 
-	session.end_frame(predicted_display_time, layers_base);
+	session.end_frame(predicted_display_time, layers_base, blend_mode);
 }
 
 void scenes::lobby::on_focused()
@@ -749,7 +765,11 @@ void scenes::lobby::on_focused()
 
 	if (passthrough_supported != xr::system::passthrough_type::no_passthrough)
 	{
-		if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
+		if (utils::contains(system.environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))
+		{
+			passthrough.emplace<xr::passthrough_alpha_blend>();
+		}
+		else if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
 		{
 			passthrough.emplace<xr::passthrough_fb>(instance, session);
 		}

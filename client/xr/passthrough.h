@@ -91,6 +91,13 @@ public:
 	}
 };
 
-using passthrough = std::variant<passthrough_fb, passthrough_htc>;
+class passthrough_alpha_blend
+{
+public:
+	void start() {}
+	void pause() {}
+};
+
+using passthrough = std::variant<passthrough_fb, passthrough_htc, passthrough_alpha_blend>;
 
 } // namespace xr

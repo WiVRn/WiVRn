@@ -89,6 +89,9 @@ XrSystemHandTrackingPropertiesEXT xr::system::hand_tracking_properties() const
 
 xr::system::passthrough_type xr::system::passthrough_supported() const
 {
+	if (utils::contains(environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))
+		return passthrough_type::color;
+
 	const std::vector<std::string> & xr_extensions = application::get_xr_extensions();
 	if (utils::contains(xr_extensions, XR_HTC_PASSTHROUGH_EXTENSION_NAME))
 		return passthrough_type::color;
