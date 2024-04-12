@@ -63,7 +63,7 @@ public:
 		XrAction scroll;  // XR_ACTION_TYPE_VECTOR2F_INPUT
 		// TODO: thresholds?
 
-		xr::hand_tracker & hand;
+		xr::hand_tracker * hand = nullptr;
 	};
 
 	struct controller_state

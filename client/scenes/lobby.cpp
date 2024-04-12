@@ -735,22 +735,34 @@ void scenes::lobby::on_focused()
 	}
 	recenter_action = get_action("recenter").first;
 
-	std::array imgui_inputs{
+	std::vector imgui_inputs{
 	        imgui_context::controller{
 	                .aim = get_action_space("left_aim"),
 	                .trigger = get_action("left_trigger").first,
 	                .squeeze = get_action("left_squeeze").first,
 	                .scroll = get_action("left_scroll").first,
-	                .hand = application::get_left_hand(),
 	        },
 	        imgui_context::controller{
 	                .aim = get_action_space("right_aim"),
 	                .trigger = get_action("right_trigger").first,
 	                .squeeze = get_action("right_squeeze").first,
 	                .scroll = get_action("right_scroll").first,
-	                .hand = application::get_right_hand(),
 	        },
 	};
+	if (auto & hand = application::get_left_hand())
+	{
+		imgui_inputs.push_back(
+		        {
+		                .hand = &hand,
+		        });
+	}
+	if (auto & hand = application::get_right_hand())
+	{
+		imgui_inputs.push_back(
+		        {
+		                .hand = &hand,
+		        });
+	}
 
 	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 1500, 1000);
 	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, world_space, imgui_inputs, swapchain_imgui, glm::vec2{1.0, 0.6666});

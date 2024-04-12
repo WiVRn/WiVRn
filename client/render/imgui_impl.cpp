@@ -314,38 +314,40 @@ void imgui_context::new_frame(XrTime display_time)
 
 		controller_state & new_state = new_states.emplace_back();
 
-		if (auto joints = ctrl.hand.locate(world, display_time))
+		if (ctrl.hand)
 		{
-			XrHandJointLocationEXT & index_tip = (*joints)[XR_HAND_JOINT_INDEX_TIP_EXT].first;
-			if (index_tip.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+			if (auto joints = ctrl.hand->locate(world, display_time))
 			{
-				new_state.aim_position = {
-				        index_tip.pose.position.x,
-				        index_tip.pose.position.y,
-				        index_tip.pose.position.z};
-
-				new_state.aim_orientation = orientation_;
-
-				new_state.active = true;
-				auto position_distance = ray_plane_intersection(new_state);
-
-				if (position_distance)
+				XrHandJointLocationEXT & index_tip = (*joints)[XR_HAND_JOINT_INDEX_TIP_EXT].first;
+				if (index_tip.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
 				{
-					new_state.hover_distance = std::abs(position_distance->second);
+					new_state.aim_position = {
+					        index_tip.pose.position.x,
+					        index_tip.pose.position.y,
+					        index_tip.pose.position.z};
 
-					if (std::abs(position_distance->second) < 0.1f)
-						new_state.fingertip_hovered = true;
+					new_state.aim_orientation = orientation_;
+
+					new_state.active = true;
+					auto position_distance = ray_plane_intersection(new_state);
+
+					if (position_distance)
+					{
+						new_state.hover_distance = std::abs(position_distance->second);
+
+						if (std::abs(position_distance->second) < 0.1f)
+							new_state.fingertip_hovered = true;
+						else
+							new_state.active = false;
+
+						if (new_state.hover_distance < 0.02)
+							new_state.fingertip_touched = true;
+					}
 					else
-						new_state.active = false;
-
-					if (new_state.hover_distance < 0.02)
-						new_state.fingertip_touched = true;
+						new_state.hover_distance = 1e10;
 				}
-				else
-					new_state.hover_distance = 1e10;
-
-				continue;
 			}
+			continue;
 		}
 
 		if (auto location = application::locate_controller(ctrl.aim, world, display_time))
