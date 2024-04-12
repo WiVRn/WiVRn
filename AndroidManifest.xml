@@ -60,9 +60,8 @@
         <meta-data android:name="com.oculus.vr.focusaware" android:value="true"/>
 
         <!-- See https://hub.vive.com/storage/docs/en-us/ConfigureAppCapabilities.html -->
-        <meta-data android:name="com.htc.vr.content.NumDoFHmd" android:value="3,6DoF"/>
-        <meta-data android:name="com.htc.vr.content.NumDoFController" android:value="3,6DoF"/>
-        <meta-data android:name="com.htc.vr.content.NumController" android:value="1,2"/>
+        <meta-data android:name="com.htc.vr.content.NumDoFHmd" android:value="6DoF"/>
+        <meta-data android:name="com.htc.vr.content.NumDoFController" android:value="6DoF"/>
 
         <meta-data android:name="handtracking" android:value="1" />
 
