@@ -149,9 +149,8 @@ static const std::array supported_formats =
 
 void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime predicted_display_time)
 {
-	const float gui_target_distance = 0.75;
-	const float gui_target_altitude = 1.;
-	const float gui_target_pitch = -0.5;
+	const float gui_target_distance = 0.50;
+	const float gui_target_pitch = -0.2;
 
 	glm::vec3 gui_direction = glm::column(glm::mat3_cast(imgui_ctx->orientation()), 2);
 	float gui_yaw = atan2(gui_direction.x, gui_direction.z);
@@ -161,7 +160,6 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 
 	head_direction.y = 0;
 	head_direction = glm::normalize(head_direction);
-	position.y = gui_target_altitude;
 
 	glm::vec3 gui_target_position = position + gui_target_distance * head_direction;
 
@@ -174,6 +172,7 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 		gui_yaw += gui_yaw_error;
 
 		imgui_ctx->position() += gui_position_error;
+		imgui_ctx->position().y = position.y - 0.1;
 		imgui_ctx->orientation() = glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_target_pitch / 2), sin(gui_target_pitch / 2), 0, 0);
 	}
 }
@@ -765,7 +764,7 @@ void scenes::lobby::on_focused()
 	}
 
 	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 1500, 1000);
-	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, world_space, imgui_inputs, swapchain_imgui, glm::vec2{1.0, 0.6666});
+	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, world_space, imgui_inputs, swapchain_imgui, glm::vec2{0.6, 0.4});
 
 	try
 	{
