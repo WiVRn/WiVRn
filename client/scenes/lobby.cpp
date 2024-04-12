@@ -168,9 +168,9 @@ void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime p
 	glm::vec3 gui_position_error = gui_target_position - imgui_ctx->position();
 	float gui_yaw_error = remainderf(head_yaw - gui_yaw, 2 * M_PI);
 
-	if (move_gui_first_time)
+	if (recenter_gui or application::read_action_bool(recenter_action).value_or(std::pair{0, false}).second)
 	{
-		move_gui_first_time = false;
+		recenter_gui = false;
 		gui_yaw += gui_yaw_error;
 
 		imgui_ctx->position() += gui_position_error;
@@ -691,7 +691,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 
 void scenes::lobby::on_focused()
 {
-	move_gui_first_time = true;
+	recenter_gui = true;
 
 	auto views = system.view_configuration_views(viewconfig);
 	uint32_t width = views[0].recommendedImageRectWidth;
@@ -733,6 +733,7 @@ void scenes::lobby::on_focused()
 		left_hand.emplace("left-hand.glb", loader, *controllers_scene);
 		right_hand.emplace("right-hand.glb", loader, *controllers_scene);
 	}
+	recenter_action = get_action("recenter").first;
 
 	std::array imgui_inputs{
 	        imgui_context::controller{
@@ -834,6 +835,8 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                {"right_squeeze", XR_ACTION_TYPE_FLOAT_INPUT},
 	                {"right_scroll", XR_ACTION_TYPE_VECTOR2F_INPUT},
 	                {"right_haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
+
+	                {"recenter", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	        },
 	        .bindings = {
 	                suggested_binding{
@@ -849,6 +852,9 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
+
+	                                {"recenter", "/user/hand/left/input/x/click"},
+	                                {"recenter", "/user/hand/right/input/a/click"},
 	                        },
 	                },
 	                suggested_binding{
@@ -864,6 +870,9 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
+
+	                                {"recenter", "/user/hand/left/input/x/click"},
+	                                {"recenter", "/user/hand/right/input/a/click"},
 	                        },
 	                },
 	                suggested_binding{
@@ -879,6 +888,9 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
+
+	                                {"recenter", "/user/hand/left/input/x/click"},
+	                                {"recenter", "/user/hand/right/input/a/click"},
 	                        },
 	                },
 	                suggested_binding{
@@ -894,6 +906,9 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
+
+	                                {"recenter", "/user/hand/left/input/x/click"},
+	                                {"recenter", "/user/hand/right/input/a/click"},
 	                        },
 	                },
 	                suggested_binding{

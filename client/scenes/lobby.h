@@ -99,7 +99,8 @@ class lobby : public scene_impl<lobby>
 
 	XrCompositionLayerQuad draw_gui(XrTime predicted_display_time);
 
-	bool move_gui_first_time = true;
+	XrAction recenter_action = nullptr;
+	bool recenter_gui = true;
 	void move_gui(glm::vec3 position, glm::quat orientation, XrTime predicted_display_time);
 
 	enum class tab
