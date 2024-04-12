@@ -134,6 +134,8 @@ class lobby : public scene_impl<lobby>
 
 	void connect(server_data & data);
 
+	void check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>& joints);
+
 public:
 	virtual ~lobby();
 	lobby();

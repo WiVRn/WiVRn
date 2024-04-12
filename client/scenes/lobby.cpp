@@ -497,6 +497,16 @@ void scenes::lobby::connect(server_data & data)
 	        data.manual);
 }
 
+void scenes::lobby::check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & joints)
+{
+	const auto & palm = joints[XR_HAND_JOINT_PALM_EXT].first;
+	const auto & o = palm.pose.orientation;
+	glm::quat q{o.w, o.x, o.y, o.z};
+
+	if (glm::dot(q * glm::vec3(0, 1, 0), glm::vec3(0, -1, 0)) > 0.8)
+		recenter_gui = true;
+}
+
 static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView> & views, std::vector<xr::swapchain> & swapchains, scene_renderer & renderer, scene_data & data, const std::array<float, 4> & clear_color)
 {
 	std::vector<scene_renderer::frame_info> frames;
@@ -610,7 +620,10 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 			left_hand->apply(joints);
 
 			if (joints)
+			{
 				hide_left_controller = true;
+				check_recenter_gesture(*joints);
+			}
 		}
 
 		if (right_hand)
@@ -620,7 +633,10 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 			right_hand->apply(joints);
 
 			if (joints)
+			{
 				hide_right_controller = true;
+				check_recenter_gesture(*joints);
+			}
 		}
 	}
 
