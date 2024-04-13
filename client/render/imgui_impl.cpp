@@ -104,7 +104,7 @@ static void check_vk_result(VkResult result)
 	}
 }
 
-std::optional<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in)
+std::optional<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
 	if (!in.active)
 		return {};

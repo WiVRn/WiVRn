@@ -142,10 +142,10 @@ static std::string json_string(const std::string & in)
 	return out;
 }
 
-static const std::array supported_formats =
-        {
-                vk::Format::eR8G8B8A8Srgb,
-                vk::Format::eB8G8R8A8Srgb};
+static const std::array supported_formats = {
+        vk::Format::eR8G8B8A8Srgb,
+        vk::Format::eB8G8R8A8Srgb,
+};
 
 void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
@@ -510,9 +510,30 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 
 	if (aim)
 	{
+		if (not gui_recenter_distance)
+		{
+			auto intersection = imgui_ctx->ray_plane_intersection({
+			        .active = true,
+			        .aim_position = aim->first,
+			        .aim_orientation = aim->second,
+			});
+			if (intersection)
+			{
+				gui_recenter_distance = std::clamp(intersection->second, 0.05f, 1.f);
+				spdlog::info("recentering at {}m", intersection->second);
+			}
+			else
+			{
+				gui_recenter_distance = 0.3;
+			}
+		}
 		const auto & v = aim->first;
 		const auto & q = aim->second;
-		return v + q * glm::vec3(0, 0, -0.3);
+		return v + q * glm::vec3(0, 0, -*gui_recenter_distance);
+	}
+	else
+	{
+		gui_recenter_distance.reset();
 	}
 
 	return std::nullopt;

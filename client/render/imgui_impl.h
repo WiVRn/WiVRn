@@ -131,8 +131,6 @@ private:
 
 	bool button_pressed = false;
 
-	std::optional<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state & in);
-
 public:
 	imgui_context(
 	        vk::raii::PhysicalDevice physical_device,
@@ -205,6 +203,8 @@ public:
 	{
 		return focused_controller;
 	}
+
+	std::optional<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state & in) const;
 
 	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
 	ImTextureID load_texture(const std::string & filename);
