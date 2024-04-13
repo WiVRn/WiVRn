@@ -533,19 +533,9 @@ static void ScrollWhenDraggingOnVoid(ImVec2 delta)
 XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 {
 	imgui_ctx->new_frame(predicted_display_time);
-	ImGuiIO & io = ImGui::GetIO();
 	ImGuiStyle & style = ImGui::GetStyle();
 
-	// const float MinTabWidth = 60;
-	const float MinTabWidth = 300;
-	const float MaxTabWidth = 300;
-
-	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::view(), world_space, predicted_display_time);
-
-	if (head_position)
-	{
-		move_gui(head_position->first, head_position->second, predicted_display_time);
-	}
+	const float TabWidth = 300;
 
 	auto last_hovered = hovered_item;
 	hovered_item = 0;
@@ -561,7 +551,7 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 
 	ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
-	ImGui::SetCursorPos({MinTabWidth + 20, 0});
+	ImGui::SetCursorPos({TabWidth + 20, 0});
 
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
@@ -608,7 +598,6 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 	ImGui::SetCursorPos(style.WindowPadding);
 
 	{
-		static float TabWidth = MinTabWidth;
 		ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
@@ -624,14 +613,6 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 
 		RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  Exit", &current_tab, tab::exit, {TabWidth, 0});
 		vibrate_on_hover();
-
-		if (!ImGui::IsMouseDown(ImGuiMouseButton_Left))
-		{
-			if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-				TabWidth = std::min<float>(TabWidth + 600 * io.DeltaTime, MaxTabWidth);
-			else
-				TabWidth = std::max<float>(TabWidth - 600 * io.DeltaTime, MinTabWidth);
-		}
 
 		ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
 		ImGui::EndChild();

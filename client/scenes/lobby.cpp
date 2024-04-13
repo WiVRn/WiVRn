@@ -147,34 +147,15 @@ static const std::array supported_formats =
                 vk::Format::eR8G8B8A8Srgb,
                 vk::Format::eB8G8R8A8Srgb};
 
-void scenes::lobby::move_gui(glm::vec3 position, glm::quat orientation, XrTime predicted_display_time)
+void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
-	const float gui_target_distance = 0.50;
-	const float gui_target_pitch = -0.2;
+	const float gui_pitch = -0.2;
+	glm::vec3 gui_direction = new_gui_position - head_position;
 
-	glm::vec3 gui_direction = glm::column(glm::mat3_cast(imgui_ctx->orientation()), 2);
-	float gui_yaw = atan2(gui_direction.x, gui_direction.z);
+	float gui_yaw = atan2(gui_direction.x, gui_direction.z) + M_PI;
 
-	glm::vec3 head_direction = -glm::column(glm::mat3_cast(orientation), 2);
-	float head_yaw = atan2(head_direction.x, head_direction.z) + M_PI;
-
-	head_direction.y = 0;
-	head_direction = glm::normalize(head_direction);
-
-	glm::vec3 gui_target_position = position + gui_target_distance * head_direction;
-
-	glm::vec3 gui_position_error = gui_target_position - imgui_ctx->position();
-	float gui_yaw_error = remainderf(head_yaw - gui_yaw, 2 * M_PI);
-
-	if (recenter_gui or application::read_action_bool(recenter_action).value_or(std::pair{0, false}).second)
-	{
-		recenter_gui = false;
-		gui_yaw += gui_yaw_error;
-
-		imgui_ctx->position() += gui_position_error;
-		imgui_ctx->position().y = position.y - 0.1;
-		imgui_ctx->orientation() = glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_target_pitch / 2), sin(gui_target_pitch / 2), 0, 0);
-	}
+	imgui_ctx->position() = new_gui_position;
+	imgui_ctx->orientation() = glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
 }
 
 scenes::lobby::lobby()
@@ -497,14 +478,61 @@ void scenes::lobby::connect(server_data & data)
 	        data.manual);
 }
 
-void scenes::lobby::check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & joints)
+std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & joints)
 {
 	const auto & palm = joints[XR_HAND_JOINT_PALM_EXT].first;
 	const auto & o = palm.pose.orientation;
+	const auto & p = palm.pose.position;
 	glm::quat q{o.w, o.x, o.y, o.z};
+	glm::vec3 v{p.x, p.y, p.z};
 
 	if (glm::dot(q * glm::vec3(0, 1, 0), glm::vec3(0, -1, 0)) > 0.8)
-		recenter_gui = true;
+	{
+		return v + glm::vec3(0, 0.3, 0) + q * glm::vec3(0, 0, -0.2);
+	}
+
+	return std::nullopt;
+}
+
+std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_display_time)
+{
+	std::optional<std::pair<glm::vec3, glm::quat>> aim;
+
+	if (application::read_action_bool(recenter_left_action).value_or(std::pair{0, false}).second)
+	{
+		aim = application::locate_controller(application::left_aim(), world_space, predicted_display_time);
+	}
+
+	if (application::read_action_bool(recenter_right_action).value_or(std::pair{0, false}).second)
+	{
+		aim = application::locate_controller(application::right_aim(), world_space, predicted_display_time);
+	}
+
+	if (aim)
+	{
+		const auto & v = aim->first;
+		const auto & q = aim->second;
+		return v + q * glm::vec3(0, 0, -0.3);
+	}
+
+	return std::nullopt;
+}
+
+std::optional<glm::vec3> scenes::lobby::check_recenter_gui(glm::vec3 head_position, glm::quat head_orientation)
+{
+	const float gui_distance = 0.50;
+
+	glm::vec3 head_direction = -glm::column(glm::mat3_cast(head_orientation), 2);
+
+	if (recenter_gui)
+	{
+		recenter_gui = false;
+		glm::vec3 new_gui_position = head_position + gui_distance * head_direction;
+		new_gui_position.y = head_position.y - 0.1;
+		return new_gui_position;
+	}
+
+	return std::nullopt;
 }
 
 static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView> & views, std::vector<xr::swapchain> & swapchains, scene_renderer & renderer, scene_data & data, const std::array<float, 4> & clear_color)
@@ -611,6 +639,15 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	bool hide_left_controller = false;
 	bool hide_right_controller = false;
 
+	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::view(), world_space, predicted_display_time);
+	std::optional<glm::vec3> new_gui_position;
+
+	if (head_position)
+		new_gui_position = check_recenter_gui(head_position->first, head_position->second);
+
+	if (!new_gui_position)
+		new_gui_position = check_recenter_action(predicted_display_time);
+
 	if (application::get_hand_tracking_supported())
 	{
 		if (left_hand)
@@ -622,7 +659,8 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 			if (joints)
 			{
 				hide_left_controller = true;
-				check_recenter_gesture(*joints);
+				if (!new_gui_position)
+					new_gui_position = check_recenter_gesture(*joints);
 			}
 		}
 
@@ -635,12 +673,18 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 			if (joints)
 			{
 				hide_right_controller = true;
-				check_recenter_gesture(*joints);
+				if (!new_gui_position)
+					new_gui_position = check_recenter_gesture(*joints);
 			}
 		}
 	}
 
 	input->apply(world_space, predicted_display_time, hide_left_controller, hide_right_controller);
+
+	if (head_position && new_gui_position)
+	{
+		move_gui(head_position->first, *new_gui_position);
+	}
 
 	XrCompositionLayerQuad imgui_layer = draw_gui(predicted_display_time);
 
@@ -748,7 +792,9 @@ void scenes::lobby::on_focused()
 		left_hand.emplace("left-hand.glb", loader, *controllers_scene);
 		right_hand.emplace("right-hand.glb", loader, *controllers_scene);
 	}
-	recenter_action = get_action("recenter").first;
+
+	recenter_left_action = get_action("recenter_left").first;
+	recenter_right_action = get_action("recenter_right").first;
 
 	std::vector imgui_inputs{
 	        imgui_context::controller{
@@ -863,7 +909,8 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                {"right_scroll", XR_ACTION_TYPE_VECTOR2F_INPUT},
 	                {"right_haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
 
-	                {"recenter", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	                {"recenter_left", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	                {"recenter_right", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	        },
 	        .bindings = {
 	                suggested_binding{
@@ -880,8 +927,8 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
 
-	                                {"recenter", "/user/hand/left/input/x/click"},
-	                                {"recenter", "/user/hand/right/input/a/click"},
+	                                {"recenter_left", "/user/hand/left/input/x/click"},
+	                                {"recenter_right", "/user/hand/right/input/a/click"},
 	                        },
 	                },
 	                suggested_binding{
@@ -898,8 +945,8 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
 
-	                                {"recenter", "/user/hand/left/input/x/click"},
-	                                {"recenter", "/user/hand/right/input/a/click"},
+	                                {"recenter_left", "/user/hand/left/input/x/click"},
+	                                {"recenter_right", "/user/hand/right/input/a/click"},
 	                        },
 	                },
 	                suggested_binding{
@@ -916,8 +963,8 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
 
-	                                {"recenter", "/user/hand/left/input/x/click"},
-	                                {"recenter", "/user/hand/right/input/a/click"},
+	                                {"recenter_left", "/user/hand/left/input/x/click"},
+	                                {"recenter_right", "/user/hand/right/input/a/click"},
 	                        },
 	                },
 	                suggested_binding{
@@ -934,8 +981,8 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
 
-	                                {"recenter", "/user/hand/left/input/x/click"},
-	                                {"recenter", "/user/hand/right/input/a/click"},
+	                                {"recenter_left", "/user/hand/left/input/x/click"},
+	                                {"recenter_right", "/user/hand/right/input/a/click"},
 	                        },
 	                },
 	                suggested_binding{

@@ -99,9 +99,10 @@ class lobby : public scene_impl<lobby>
 
 	XrCompositionLayerQuad draw_gui(XrTime predicted_display_time);
 
-	XrAction recenter_action = nullptr;
+	XrAction recenter_left_action = XR_NULL_HANDLE;
+	XrAction recenter_right_action = XR_NULL_HANDLE;
 	bool recenter_gui = true;
-	void move_gui(glm::vec3 position, glm::quat orientation, XrTime predicted_display_time);
+	void move_gui(glm::vec3 head_position, glm::vec3 new_gui_position);
 
 	enum class tab
 	{
@@ -134,7 +135,9 @@ class lobby : public scene_impl<lobby>
 
 	void connect(server_data & data);
 
-	void check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>& joints);
+	std::optional<glm::vec3> check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & joints);
+	std::optional<glm::vec3> check_recenter_action(XrTime predicted_display_time);
+	std::optional<glm::vec3> check_recenter_gui(glm::vec3 head_position, glm::quat head_orientation);
 
 public:
 	virtual ~lobby();
