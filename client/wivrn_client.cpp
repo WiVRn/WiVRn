@@ -24,12 +24,18 @@
 #include <ifaddrs.h>
 #include <linux/ipv6.h>
 #include <net/if.h>
+#include <netinet/ip.h>
 #include <poll.h>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#ifndef IPTOS_DSCP_EF
+// constant is not defined in Android ip.h
+#define IPTOS_DSCP_EF 0xb8
+#endif
 
 using namespace std::chrono_literals;
 
@@ -66,6 +72,25 @@ void wivrn_session::handshake()
 	throw std::runtime_error("No handshake received");
 }
 
+namespace
+{
+template <typename T>
+void init_stream(T & stream)
+{
+	stream.set_receive_buffer_size(1024 * 1024 * 5);
+	try
+	{
+		stream.set_tos(IPTOS_DSCP_EF);
+	}
+	catch (std::exception & e)
+	{
+		spdlog::warn("Failed to set IP ToS to Expedited Forwarding: {}", e.what());
+	}
+	// If this packet is lost, a tracking packet will do the job to establish the connection
+	stream.send(from_headset::handshake{});
+}
+} // namespace
+
 wivrn_session::wivrn_session(in6_addr address, int port) :
         control(address, port), stream(), address(address)
 {
@@ -73,9 +98,7 @@ wivrn_session::wivrn_session(in6_addr address, int port) :
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET6, &address, buffer, sizeof(buffer)), port);
 	handshake();
 	stream.connect(address, port);
-	stream.set_receive_buffer_size(1024 * 1024 * 5);
-	// If this packet is lost, a tracking packet will do the job to establish the connection
-	send_stream(from_headset::handshake{});
+	init_stream(stream);
 }
 
 wivrn_session::wivrn_session(in_addr address, int port) :
@@ -85,7 +108,5 @@ wivrn_session::wivrn_session(in_addr address, int port) :
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET, &address, buffer, sizeof(buffer)), port);
 	handshake();
 	stream.connect(address, port);
-	stream.set_receive_buffer_size(1024 * 1024 * 5);
-	// If this packet is lost, a tracking packet will do the job to establish the connection
-	send_stream(from_headset::handshake{});
+	init_stream(stream);
 }
