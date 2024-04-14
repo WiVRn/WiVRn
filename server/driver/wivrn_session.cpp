@@ -77,7 +77,8 @@ void xrt::drivers::wivrn::max_accumulator::send(wivrn_connection & connection)
 
 	if (auto offset = max.exchange(0))
 		connection.send_stream(to_headset::prediction_offset{
-		        .offset = std::chrono::nanoseconds(offset),
+		        // Add a 5% margin
+		        .offset = std::chrono::nanoseconds(offset * 21 / 20),
 		});
 	next_sample += std::chrono::seconds(1);
 }
