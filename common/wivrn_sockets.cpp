@@ -344,8 +344,6 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 
 void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & spans)
 {
-	std::lock_guard lock(*mutex);
-
 	std::vector<iovec> iovecs;
 
 	uint16_t size = 0;
@@ -366,6 +364,7 @@ void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & 
 	        .msg_flags = 0,
 	};
 
+	std::lock_guard lock(*mutex);
 	while (true)
 	{
 		const auto & data = spans[0];
