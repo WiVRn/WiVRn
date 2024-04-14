@@ -44,6 +44,13 @@ protected:
 		XrTime t = offset.from_headset(timestamp);
 		std::lock_guard lock(mutex);
 
+		// Discard outdated data, packets could be reordered
+		if (not data.empty())
+		{
+			if (data.back().produced_timestamp > produced)
+				return;
+		}
+
 		// Only keep one predicted value
 		// It should be the last one
 		if (not data.empty() and t != produced and data.back().at_timestamp_ns != data.back().produced_timestamp)

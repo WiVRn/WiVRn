@@ -1,0 +1,76 @@
+From 3dbcae473ee48cf4128c0f752a5b1bbc3a80e1ed Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 14 Apr 2024 09:56:50 +0200
+Subject: [PATCH] t/oxr Install libopenxr in a subdirectory
+
+---
+ CMakeLists.txt                        |  6 +++---
+ src/xrt/targets/openxr/CMakeLists.txt | 15 +++++++--------
+ 2 files changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4bc420755..98c317181 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -332,9 +332,9 @@ option_with_deps(XRT_BUILD_DRIVER_SIMULAVR "Enable simula driver" DEPENDS XRT_HA
+ option(XRT_BUILD_DRIVER_SIMULATED "Enable simulated driver" ON)
+ 
+ option(XRT_BUILD_SAMPLES "Enable compiling sample code implementations that will not be linked into any final targets" ON)
+-set(XRT_IPC_MSG_SOCK_FILENAME monado_comp_ipc CACHE STRING "Service socket filename")
+-set(XRT_IPC_SERVICE_PID_FILENAME monado.pid CACHE STRING "Service pidfile filename")
+-set(XRT_OXR_RUNTIME_SUFFIX monado CACHE STRING "OpenXR client library suffix")
++set(XRT_OXR_RUNTIME_NAME monado CACHE STRING "Runtime name used to derive other filenames")
++set(XRT_IPC_MSG_SOCK_FILENAME ${XRT_OXR_RUNTIME_NAME}_comp_ipc CACHE STRING "Service socket filename")
++set(XRT_IPC_SERVICE_PID_FILENAME ${XRT_OXR_RUNTIME_NAME}.pid CACHE STRING "Service pidfile filename")
+ 
+ # cmake-format: on
+ 
+diff --git a/src/xrt/targets/openxr/CMakeLists.txt b/src/xrt/targets/openxr/CMakeLists.txt
+index 15a6963aa..410364550 100644
+--- a/src/xrt/targets/openxr/CMakeLists.txt
++++ b/src/xrt/targets/openxr/CMakeLists.txt
+@@ -4,11 +4,9 @@
+ ######
+ # Create a loadable OpenXR driver.
+ 
+-set(RUNTIME_SUFFIX _${XRT_OXR_RUNTIME_SUFFIX})
+-
+ set(RUNTIME_TARGET
+-    ${RUNTIME_PREFIX}openxr${RUNTIME_SUFFIX}
+-    CACHE INTERNAL "" FORCE
++	${RUNTIME_PREFIX}openxr_${XRT_OXR_RUNTIME_NAME}
++	CACHE INTERNAL "" FORCE
+ 	)
+ 
+ # OpenXR 1.0
+@@ -111,22 +109,23 @@ elseif(NOT ANDROID)
+ 		install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/active_runtime.cmake)
+ 	endif()
+ 
++	set(INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR}/${XRT_OXR_RUNTIME_NAME})
+ 	set(_extra_args)
+ 	if(XRT_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH)
+ 		set(_extra_args ABSOLUTE_RUNTIME_PATH)
+ 	elseif(XRT_OPENXR_INSTALL_MANIFEST_RELATIVE_RUNTIME_PATH)
+-		set(_extra_args RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${CMAKE_INSTALL_LIBDIR})
++		set(_extra_args RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${INSTALL_LIBDIR})
+ 	endif()
+ 	generate_openxr_runtime_manifest_at_install(
+ 		${_extra_args}
+ 		RUNTIME_TARGET ${RUNTIME_TARGET}
+ 		DESTINATION share/openxr/${XR_API_MAJOR}
+-		RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}
++		RELATIVE_RUNTIME_DIR ${INSTALL_LIBDIR}
+ 		)
+ 	install(
+ 		TARGETS ${RUNTIME_TARGET} #
+-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
+-		RUNTIME DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
++		LIBRARY DESTINATION ${INSTALL_LIBDIR} COMPONENT Runtime
++		RUNTIME DESTINATION ${INSTALL_LIBDIR} COMPONENT Runtime
+ 		)
+ endif()
+ 
+-- 
+2.44.0
+
