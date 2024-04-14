@@ -31,6 +31,7 @@
 #include "utils/sync_queue.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
+#include "wifi_lock.h"
 #include "wivrn_packets.h"
 #include <algorithm>
 #include <mutex>
@@ -203,6 +204,7 @@ void scenes::stream::on_focused()
 		imgui_ctx->set_position({0, 0, -1}, {1, 0, 0, 0});
 	}
 
+	wifi_lock::want_low_latency(true);
 	assert(video_stream_description);
 	setup_reprojection_swapchain();
 }
@@ -211,6 +213,7 @@ void scenes::stream::on_unfocused()
 {
 	imgui_ctx.reset();
 	swapchain_imgui = xr::swapchain();
+	wifi_lock::want_low_latency(false);
 }
 
 scenes::stream::~stream()

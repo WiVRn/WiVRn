@@ -29,6 +29,7 @@
 #include "stream.h"
 #include "utils/contains.h"
 #include "version.h"
+#include "wifi_lock.h"
 #include "wivrn_client.h"
 #include "xr/passthrough.h"
 #include <glm/gtc/matrix_access.hpp>
@@ -858,6 +859,7 @@ void scenes::lobby::on_focused()
 		about_picture = imgui_ctx->load_texture("wivrn.png");
 	}
 	setup_passthrough();
+	wifi_lock::want_multicast(true);
 }
 
 void scenes::lobby::setup_passthrough()
@@ -906,6 +908,7 @@ void scenes::lobby::on_unfocused()
 	swapchains_controllers.clear();
 	swapchain_imgui = xr::swapchain();
 	passthrough.emplace<xr::passthrough_fb>(); // default constructor does no passthrough
+	wifi_lock::want_multicast(false);
 }
 
 void scenes::lobby::on_session_state_changed(XrSessionState state)

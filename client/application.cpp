@@ -26,6 +26,7 @@
 #include "utils/files.h"
 #include "utils/named_thread.h"
 #include "vk/check.h"
+#include "wifi_lock.h"
 #include "xr/actionset.h"
 #include "xr/check.h"
 #include "xr/xr.h"
@@ -938,46 +939,6 @@ void application::setup_jni()
 {
 	jni::jni_thread::setup_thread(app_info.native_app->activity->vm);
 }
-
-void application::set_wifi_locks(bool enabled)
-{
-	jni::object<""> act(app_info.native_app->activity->clazz);
-
-	jni::string lock_name("WiVRn");
-
-	static int api_level = jni::klass("android/os/Build$VERSION").field<jni::Int>("SDK_INT");
-
-	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
-	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
-	auto wifi_service_id = ctx.klass().field<jni::string>("WIFI_SERVICE");
-	auto system_service = ctx.call<jni::object<"java/lang/Object">>("getSystemService", wifi_service_id);
-	auto lock = system_service.call<jni::object<"android/net/wifi/WifiManager$MulticastLock">>("createMulticastLock", lock_name);
-	lock.call<void>("setReferenceCounted", jni::Bool(false));
-	lock.call<void>(enabled ? "acquire" : "release");
-	if (lock.call<jni::Bool>("isHeld"))
-	{
-		spdlog::info("MulticastLock acquired");
-	}
-	else
-	{
-		spdlog::info("MulticastLock is not acquired");
-	}
-
-	auto wifi_lock = system_service.call<jni::object<"android/net/wifi/WifiManager$WifiLock">>(
-	        "createWifiLock",
-	        jni::Int(api_level >= 29 ? 4 /*WIFI_MODE_FULL_LOW_LATENCY*/ : 3 /*WIFI_MODE_FULL_HIGH_PERF*/),
-	        lock_name);
-	wifi_lock.call<void>("setReferenceCounted", jni::Bool(false));
-	wifi_lock.call<void>(enabled ? "acquire" : "release");
-	if (wifi_lock.call<jni::Bool>("isHeld"))
-	{
-		spdlog::info("WifiLock low latency acquired");
-	}
-	else
-	{
-		spdlog::info("WifiLock low latency is not acquired");
-	}
-}
 #endif
 
 void application::cleanup()
@@ -1258,9 +1219,7 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 		case XR_SESSION_STATE_FOCUSED:
 			session_visible = true;
 			session_focused = true;
-#ifdef __ANDROID__
-			set_wifi_locks(true);
-#endif
+			wifi_lock::set_enabled(true);
 			break;
 
 		case XR_SESSION_STATE_STOPPING:
@@ -1268,9 +1227,7 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 			session_focused = false;
 			xr_session.end_session();
 			session_running = false;
-#ifdef __ANDROID__
-			set_wifi_locks(false);
-#endif
+			wifi_lock::set_enabled(false);
 			break;
 
 		case XR_SESSION_STATE_EXITING:
