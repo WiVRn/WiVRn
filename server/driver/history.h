@@ -113,7 +113,7 @@ public:
 		{
 			auto prev = data.rbegin();
 			auto last = prev++;
-			return {ex, Derived::extrapolate(*prev, *last, prev->at_timestamp_ns, prev->at_timestamp_ns, at_timestamp_ns)};
+			return {ex, Derived::extrapolate(*prev, *last, prev->at_timestamp_ns, last->at_timestamp_ns, at_timestamp_ns)};
 		}
 		else
 		{
