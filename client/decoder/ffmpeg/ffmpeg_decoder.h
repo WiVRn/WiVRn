@@ -62,7 +62,7 @@ public:
 	};
 
 private:
-	static const int image_count = 3;
+	static const int image_count = 12;
 	struct image
 	{
 		image_allocation image;
