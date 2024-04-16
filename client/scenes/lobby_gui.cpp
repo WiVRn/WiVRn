@@ -88,6 +88,11 @@ void scenes::lobby::gui_connecting()
 		status = async_session.get_progress();
 	else if (async_error)
 		status = *async_error;
+	else
+	{
+		ImGui::CloseCurrentPopup();
+		return;
+	}
 
 	std::string button_label;
 
