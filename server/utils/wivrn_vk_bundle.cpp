@@ -16,11 +16,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #include "vk/vk_helpers.h"
 
 #include "wivrn_vk_bundle.h"
 
+#include "util/u_logging.h"
 #include <string>
 
 namespace
@@ -30,6 +30,45 @@ namespace
 	if (queue == VK_NULL_HANDLE)
 		return nullptr;
 	return vk::raii::Queue(device, family_index, index);
+}
+
+VkBool32 message_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                          VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+                          const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
+                          void * pUserData)
+{
+	u_logging_level level = U_LOGGING_ERROR;
+	switch (messageSeverity)
+	{
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+			level = U_LOGGING_DEBUG;
+			break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+			level = U_LOGGING_INFO;
+			break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+			level = U_LOGGING_WARN;
+			break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+			level = U_LOGGING_ERROR;
+			break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT:
+			break;
+	}
+	U_LOG(level, "%s", pCallbackData->pMessage);
+	return false;
+}
+
+vk::raii::DebugUtilsMessengerEXT register_message_callback(vk::raii::Instance & instance, vk_bundle & vk)
+{
+	if (vk.has_EXT_debug_utils)
+		return vk::raii::DebugUtilsMessengerEXT(
+		        instance, vk::DebugUtilsMessengerCreateInfoEXT{
+		                          .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
+		                          .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance,
+		                          .pfnUserCallback = message_callback,
+		                  });
+	return nullptr;
 }
 } // namespace
 
@@ -48,11 +87,12 @@ wivrn::wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> 
         queue_family_index(vk.queue_family_index),
 #ifdef VK_KHR_video_encode_queue
         encode_queue(make_queue(device, vk.encode_queue, vk.encode_queue_family_index, vk.encode_queue_index)),
-        encode_queue_family_index(vk.encode_queue_family_index)
+        encode_queue_family_index(vk.encode_queue_family_index),
 #else
         encode_queue(nullptr),
-        encode_queue_family_index(vk::QueueFamilyIgnored)
+        encode_queue_family_index(vk::QueueFamilyIgnored),
 #endif
+        debug(register_message_callback(instance, vk))
 {
 	// This is manually synced with monado code
 
