@@ -179,7 +179,7 @@ void scenes::lobby::gui_add_server()
 	if (ImGui::Button("Save", button_size))
 	{
 		current_tab = tab::server_list;
-		server_data data{
+		configuration::server_data data{
 		        .manual = true,
 		        .service = {
 		                .name = add_server_window_prettyname,
@@ -188,17 +188,19 @@ void scenes::lobby::gui_add_server()
 		        },
 		};
 
-		servers.emplace("manual-" + data.service.name, data);
-		save_config();
+		auto & config = application::get_config();
+		config.servers.emplace("manual-" + data.service.name, data);
+		config.save();
 	}
 	vibrate_on_hover();
 }
 
 void scenes::lobby::gui_server_list()
 {
+	auto & config = application::get_config();
 	// Build an index of the cookies sorted by server name
 	std::multimap<std::string, std::string> sorted_cookies;
-	for (auto && [cookie, data]: servers)
+	for (auto && [cookie, data]: config.servers)
 	{
 		sorted_cookies.emplace(data.service.name, cookie);
 	}
@@ -224,7 +226,7 @@ void scenes::lobby::gui_server_list()
 	ImGui::PushStyleColor(ImGuiCol_HeaderActive, 0);
 	for (const auto & [name, cookie]: sorted_cookies)
 	{
-		server_data & data = servers.at(cookie);
+		configuration::server_data & data = config.servers.at(cookie);
 		bool is_selected = (cookie == selected_item);
 
 		ImGui::SetCursorPos(pos);
@@ -242,7 +244,7 @@ void scenes::lobby::gui_server_list()
 		{
 			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
 			if (ImGui::Checkbox(("Autoconnect##" + cookie).c_str(), &data.autoconnect))
-				save_config();
+				config.save();
 			vibrate_on_hover();
 		}
 
@@ -310,8 +312,8 @@ void scenes::lobby::gui_server_list()
 
 	if (cookie_to_remove != "")
 	{
-		servers.erase(cookie_to_remove);
-		save_config();
+		config.servers.erase(cookie_to_remove);
+		config.save();
 	}
 
 	// Check if an automatic connection has started
@@ -331,6 +333,7 @@ void scenes::lobby::gui_server_list()
 
 void scenes::lobby::gui_settings()
 {
+	auto & config = application::get_config();
 	ImGuiStyle & style = ImGui::GetStyle();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
@@ -347,8 +350,8 @@ void scenes::lobby::gui_settings()
 					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == current) and rate != current)
 					{
 						session.set_refresh_rate(rate);
-						preferred_refresh_rate = rate;
-						save_config();
+						config.preferred_refresh_rate = rate;
+						config.save();
 					}
 				}
 				ImGui::EndCombo();
@@ -357,10 +360,10 @@ void scenes::lobby::gui_settings()
 		}
 	}
 
-	if (ImGui::Checkbox("Enable microphone", &microphone))
+	if (ImGui::Checkbox("Enable microphone", &config.microphone))
 	{
 #ifdef __ANDROID__
-		if (microphone)
+		if (config.microphone)
 		{
 			jni::object<""> act(application::native_app()->activity->clazz);
 			auto app = act.call<jni::object<"android/app/Application">>("getApplication");
@@ -380,26 +383,26 @@ void scenes::lobby::gui_settings()
 			}
 		}
 #endif
-		save_config();
+		config.save();
 	}
 	vibrate_on_hover();
 
 	ImGui::BeginDisabled(passthrough_supported == xr::system::passthrough_type::no_passthrough);
-	if (ImGui::Checkbox("Enable video passthrough in lobby", &passthrough_enabled))
+	if (ImGui::Checkbox("Enable video passthrough in lobby", &config.passthrough_enabled))
 	{
 		setup_passthrough();
-		save_config();
+		config.save();
 	}
 	vibrate_on_hover();
 	ImGui::EndDisabled();
 
-	if (ImGui::Checkbox("Show performance metrics", &show_performance_metrics))
-		save_config();
+	if (ImGui::Checkbox("Show performance metrics", &config.show_performance_metrics))
+		config.save();
 	vibrate_on_hover();
 
 	ImGui::PopStyleVar();
 
-	if (show_performance_metrics)
+	if (config.show_performance_metrics)
 	{
 		float win_width = ImGui::GetWindowSize().x;
 		float win_height = ImGui::GetWindowSize().y;

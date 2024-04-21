@@ -36,13 +36,10 @@
 
 #include "wivrn_discover.h"
 #include <cstdint>
-#include <fstream>
 #include <glm/gtc/quaternion.hpp>
-#include <ios>
 #include <magic_enum.hpp>
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
-#include <sstream>
 #include <string>
 #include <utils/ranges.h>
 #include <vulkan/vulkan_raii.hpp>
@@ -93,56 +90,6 @@ static std::string choose_webxr_profile()
 	__builtin_unreachable();
 }
 
-static std::string json_string(const std::string & in)
-{
-	std::string out;
-	out.reserve(in.size() + 2);
-
-	out += '"';
-
-	for (char c: in)
-	{
-		switch (c)
-		{
-			case '\b':
-				out += "\\b";
-				break;
-
-			case '\f':
-				out += "\\f";
-				break;
-
-			case '\n':
-				out += "\\n";
-				break;
-
-			case '\r':
-				out += "\\r";
-				break;
-
-			case '\t':
-				out += "\\t";
-				break;
-
-			case '"':
-				out += "\\\"";
-				break;
-
-			case '\\':
-				out += "\\\\";
-				break;
-
-			default:
-				out += c;
-				break;
-		}
-	}
-
-	out += '"';
-
-	return out;
-}
-
 static const std::array supported_formats = {
         vk::Format::eR8G8B8A8Srgb,
         vk::Format::eB8G8R8A8Srgb,
@@ -165,55 +112,8 @@ scenes::lobby::lobby()
 		force_autoconnect = true;
 
 	passthrough_supported = system.passthrough_supported();
-	passthrough_enabled = passthrough_supported == xr::system::passthrough_type::color;
 
-	try
-	{
-		simdjson::dom::parser parser;
-		simdjson::dom::element root = parser.load(application::get_config_path() / "client.json");
-		for (simdjson::dom::object i: simdjson::dom::array(root["servers"]))
-		{
-			server_data data{
-			        .autoconnect = i["autoconnect"].get_bool(),
-			        .manual = i["manual"].get_bool(),
-			        .visible = false,
-			        .compatible = true,
-			        .service = {
-			                .name = (std::string)i["pretty_name"],
-			                .hostname = (std::string)i["hostname"],
-			                .port = (int)i["port"].get_int64(),
-			                .txt = {{"cookie", (std::string)i["cookie"]}}
-
-			        }};
-			servers.emplace(data.service.txt["cookie"], data);
-		}
-
-		auto json_show_plots = root["show_performance_metrics"];
-		if (json_show_plots.is_bool())
-			show_performance_metrics = json_show_plots.get_bool();
-
-		auto rate = root["preferred_refresh_rate"];
-		if (rate.is_double())
-		{
-			preferred_refresh_rate = rate.get_double();
-			session.set_refresh_rate(preferred_refresh_rate);
-		}
-
-		auto mic = root["microphone"];
-		if (mic.is_bool())
-			microphone = mic.get_bool();
-
-		auto passthrough = root["passthrough_enabled"];
-		if (passthrough.is_bool())
-			passthrough_enabled = passthrough.get_bool();
-	}
-	catch (std::exception & e)
-	{
-		spdlog::warn("Cannot read configuration: {}", e.what());
-		servers.clear();
-		show_performance_metrics = false;
-	}
-
+	auto & servers = application::get_config().servers;
 	spdlog::info("{} known server(s):", servers.size());
 	for (auto & i: servers)
 	{
@@ -243,40 +143,6 @@ scenes::lobby::lobby()
 		throw std::runtime_error("No supported swapchain format");
 
 	spdlog::info("Using format {}", vk::to_string(swapchain_format));
-}
-
-void scenes::lobby::save_config()
-{
-	std::stringstream ss;
-
-	for (auto & [cookie, server_data]: servers)
-	{
-		if (server_data.autoconnect || server_data.manual)
-		{
-			ss << "{";
-			ss << "\"autoconnect\":" << std::boolalpha << server_data.autoconnect << ",";
-			ss << "\"manual\":" << std::boolalpha << server_data.manual << ",";
-			ss << "\"pretty_name\":" << json_string(server_data.service.name) << ",";
-			ss << "\"hostname\":" << json_string(server_data.service.hostname) << ",";
-			ss << "\"port\":" << server_data.service.port << ",";
-			ss << "\"cookie\":" << json_string(cookie);
-			ss << "},";
-		}
-	}
-
-	std::string servers_str = ss.str();
-	if (servers_str != "")
-		servers_str.pop_back(); // Remove last comma
-
-	std::ofstream json(application::get_config_path() / "client.json");
-
-	json << "{\"servers\":[" << servers_str << "],"
-	     << "\"show_performance_metrics\":" << std::boolalpha << show_performance_metrics;
-	if (preferred_refresh_rate != 0.)
-		json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate;
-	json << ",\"microphone\":" << std::boolalpha << microphone;
-	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
-	json << "}";
 }
 
 static std::string ip_address_to_string(const in_addr & addr)
@@ -413,6 +279,7 @@ void scenes::lobby::update_server_list()
 	std::vector<wivrn_discover::service> discovered_services = discover->get_services();
 
 	// TODO: only if discovered_services changed
+	auto & servers = application::get_config().servers;
 	for (auto & [cookie, data]: servers)
 	{
 		data.visible = false;
@@ -448,7 +315,7 @@ void scenes::lobby::update_server_list()
 			// Newly discovered server: add it to the list
 			servers.emplace(
 			        cookie,
-			        server_data{
+			        configuration::server_data{
 			                .autoconnect = false,
 			                .manual = false,
 			                .visible = true,
@@ -465,7 +332,7 @@ void scenes::lobby::update_server_list()
 	}
 }
 
-void scenes::lobby::connect(server_data & data)
+void scenes::lobby::connect(const configuration::server_data & data)
 {
 	server_name = data.service.name;
 	async_error.reset();
@@ -614,7 +481,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 		{
 			auto session = async_session.get();
 			if (session)
-				next_scene = stream::create(std::move(session), show_performance_metrics, microphone);
+				next_scene = stream::create(std::move(session));
 
 			async_session.reset();
 		}
@@ -639,6 +506,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	imgui_ctx->set_current();
 	if (!async_session.valid() && !next_scene && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 	{
+		const auto & servers = application::get_config().servers;
 		for (auto && [cookie, data]: servers)
 		{
 			if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible)
@@ -713,14 +581,14 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	assert(renderer);
 	renderer->start_frame();
 	std::vector<XrCompositionLayerProjectionView> lobby_layer_views;
-	if (!passthrough_enabled)
+	if (not application::get_config().passthrough_enabled)
 		lobby_layer_views = render_layer(views, swapchains_lobby, *renderer, *lobby_scene, {0, 0.25, 0.5, 1});
 
 	auto controllers_layer_views = render_layer(views, swapchains_controllers, *renderer, *controllers_scene, {0, 0, 0, 0});
 	renderer->end_frame();
 
 	// After end_frame because the command buffers are submitted in end_frame
-	if (!passthrough_enabled)
+	if (not application::get_config().passthrough_enabled)
 	{
 		for (auto & swapchain: swapchains_lobby)
 			swapchain.release();
@@ -748,7 +616,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	XrEnvironmentBlendMode blend_mode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
 	std::vector<XrCompositionLayerBaseHeader *> layers_base;
 
-	if (passthrough_enabled)
+	if (application::get_config().passthrough_enabled)
 	{
 		std::visit(
 		        overloaded{
@@ -864,6 +732,7 @@ void scenes::lobby::on_focused()
 
 void scenes::lobby::setup_passthrough()
 {
+	auto & passthrough_enabled = application::get_config().passthrough_enabled;
 	if (not passthrough_enabled)
 	{
 		passthrough.emplace<xr::passthrough_fb>();

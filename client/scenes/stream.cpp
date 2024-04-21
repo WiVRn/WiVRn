@@ -75,13 +75,11 @@ static const std::array supported_formats =
                 vk::Format::eR8G8B8A8Srgb,
                 vk::Format::eB8G8R8A8Srgb};
 
-std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, bool show_performance_metrics, bool enable_microphone)
+std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session)
 {
 	std::shared_ptr<stream> self{new stream};
 	spdlog::info("decoder_mutex.native_handle() = {}", (void *)self->decoder_mutex.native_handle());
-
 	self->network_session = std::move(network_session);
-	self->show_performance_metrics = show_performance_metrics;
 
 	from_headset::headset_info_packet info{};
 
@@ -115,7 +113,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	info.hand_tracking = application::get_hand_tracking_supported();
 
 	audio::get_audio_description(info);
-	if (not enable_microphone)
+	if (not application::get_config().microphone)
 		info.microphone = {};
 
 	self->network_session->send_control(info);
@@ -183,7 +181,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 void scenes::stream::on_focused()
 {
-	if (show_performance_metrics)
+	if (application::get_config().show_performance_metrics)
 	{
 		swapchain_imgui = xr::swapchain(
 		        session,

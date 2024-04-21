@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "configuration.h"
 #include "render/scene_data.h"
 #include "scene.h"
 #include "scenes/hand_model.h"
@@ -26,7 +27,6 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "xr/passthrough.h"
-#include <map>
 #include <optional>
 #include <vector>
 
@@ -43,16 +43,6 @@ class stream;
 
 class lobby : public scene_impl<lobby>
 {
-	struct server_data
-	{
-		bool autoconnect;
-		bool manual;
-		bool visible;
-		bool compatible;
-
-		wivrn_discover::service service;
-	};
-
 	enum class connection_status
 	{
 		idle,
@@ -62,7 +52,6 @@ class lobby : public scene_impl<lobby>
 	};
 
 	std::optional<wivrn_discover> discover;
-	std::map<std::string, server_data> servers;
 
 	char add_server_window_prettyname[200];
 	char add_server_window_hostname[200];
@@ -93,8 +82,6 @@ class lobby : public scene_impl<lobby>
 	xr::system::passthrough_type passthrough_supported;
 	xr::passthrough passthrough;
 
-	void save_config();
-
 	void update_server_list();
 
 	XrCompositionLayerQuad draw_gui(XrTime predicted_display_time);
@@ -118,11 +105,6 @@ class lobby : public scene_impl<lobby>
 	tab last_current_tab = tab::server_list;
 	ImTextureID about_picture;
 
-	float preferred_refresh_rate = 0;
-	bool show_performance_metrics = false;
-	bool microphone = false;
-	bool passthrough_enabled = false;
-
 	void gui_connecting();
 	void gui_server_list();
 	void gui_add_server();
@@ -134,7 +116,7 @@ class lobby : public scene_impl<lobby>
 
 	void vibrate_on_hover();
 
-	void connect(server_data & data);
+	void connect(const configuration::server_data & data);
 
 	std::optional<glm::vec3> check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & joints);
 	std::optional<glm::vec3> check_recenter_action(XrTime predicted_display_time);

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "configuration.h"
 #include "xr/hand_tracker.h"
 #ifdef __ANDROID__
 #include <android_native_app_glue.h>
@@ -133,6 +134,8 @@ class application : public singleton<application>
 	std::vector<std::shared_ptr<scene>> scene_stack;
 	std::weak_ptr<scene> last_scene;
 	std::chrono::nanoseconds last_scene_cpu_time;
+
+	std::optional<configuration> config;
 
 	void loop();
 
@@ -404,5 +407,11 @@ public:
 	static const std::vector<std::string> & get_xr_extensions()
 	{
 		return instance().xr_extensions;
+	}
+
+	static configuration & get_config()
+	{
+		assert(instance().config);
+		return *instance().config;
 	}
 };

@@ -106,7 +106,6 @@ private:
 	state state_ = state::initializing;
 	XrTime first_frame_time{};
 	const float dbrightness = 2;
-	bool show_performance_metrics = false;
 
 	std::vector<xr::swapchain> swapchains;
 	xr::swapchain swapchain_imgui;
@@ -124,7 +123,7 @@ private:
 public:
 	~stream();
 
-	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session, bool show_performance_metrics, bool enable_microphone);
+	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session);
 
 	void render(XrTime predicted_display_time, bool should_render) override;
 	void on_focused() override;
