@@ -226,11 +226,11 @@ yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Devic
 	}
 
 	// Descriptor set
-	ds = std::move(device.allocateDescriptorSets({
+	ds = device.allocateDescriptorSets({
 	        .descriptorPool = *dp,
 	        .descriptorSetCount = 1,
 	        .pSetLayouts = &*ds_layout,
-	})[0]);
+	})[0].release();
 
 	vk::DescriptorImageInfo rgb_desc_image_info{
 	        .imageView = *view_rgb,
@@ -248,21 +248,21 @@ yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Devic
 	device.updateDescriptorSets(
 	        {
 	                vk::WriteDescriptorSet{
-	                        .dstSet = *ds,
+	                        .dstSet = ds,
 	                        .dstBinding = 0,
 	                        .descriptorCount = 1,
 	                        .descriptorType = vk::DescriptorType::eStorageImage,
 	                        .pImageInfo = &rgb_desc_image_info,
 	                },
 	                vk::WriteDescriptorSet{
-	                        .dstSet = *ds,
+	                        .dstSet = ds,
 	                        .dstBinding = 1,
 	                        .descriptorCount = 1,
 	                        .descriptorType = vk::DescriptorType::eStorageImage,
 	                        .pImageInfo = &luma_desc_img_info_,
 	                },
 	                vk::WriteDescriptorSet{
-	                        .dstSet = *ds,
+	                        .dstSet = ds,
 	                        .dstBinding = 2,
 	                        .descriptorCount = 1,
 	                        .descriptorType = vk::DescriptorType::eStorageImage,
@@ -322,7 +322,7 @@ void yuv_converter::record_draw_commands(
 	        im_barriers);
 
 	cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
-	cmd_buf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *layout, 0, *ds, {});
+	cmd_buf.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *layout, 0, ds, {});
 	cmd_buf.pushConstants<float[3][4]>(*layout, vk::ShaderStageFlagBits::eCompute, 0, COLORSPACE_BT709);
 	cmd_buf.dispatch(extent.width / 16, extent.height / 16, 1);
 

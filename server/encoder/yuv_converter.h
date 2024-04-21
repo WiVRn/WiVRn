@@ -42,7 +42,7 @@ private:
 	vk::raii::PipelineLayout layout = nullptr;
 	vk::raii::Pipeline pipeline = nullptr;
 	vk::raii::DescriptorPool dp = nullptr;
-	vk::raii::DescriptorSet ds = nullptr;
+	vk::DescriptorSet ds = nullptr;
 
 	std::vector<vk::raii::DeviceMemory> mem;
 
