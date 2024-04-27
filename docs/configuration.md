@@ -41,7 +41,7 @@ Identifier of the encoder, one of `x264` (software encoding), `nvenc` (Nvidia ha
 ### `codec`
 Default value: `h265`
 
-One of `h264` or `h265`. If using `x264` encoder, value is ignored and `h264` is used.
+One of `h264`, `h265` or `av1`. If using `x264` encoder, value is ignored and `h264` is used. `av1` is only supported on `vaapi` encoder.
 
 ### `width`, `height`, `offset_x`, `offset_y` (advanced)
 Default values: full image (`width` = 1, `height` = 1, `offset_x` = 0, `offset_y` = 0)

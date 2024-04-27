@@ -99,11 +99,6 @@ void AvDeleter::operator()(AVCodecContext * x)
 	avcodec_free_context(&x);
 }
 
-void AvDeleter::operator()(AVFilterGraph * x)
-{
-	avfilter_graph_free(&x);
-}
-
 void AvDeleter::operator()(AVPacket * x)
 {
 	av_packet_free(&x);

@@ -52,6 +52,8 @@ encoder(VideoEncoderFFMPEG::Codec codec)
 			return "h264_vaapi";
 		case VideoEncoderFFMPEG::Codec::h265:
 			return "hevc_vaapi";
+		case VideoEncoderFFMPEG::Codec::av1:
+			return "av1_vaapi";
 	}
 	throw std::runtime_error("invalid codec " + std::to_string(int(codec)));
 }
@@ -191,6 +193,9 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 			break;
 		case Codec::h265:
 			encoder_ctx->profile = FF_PROFILE_HEVC_MAIN;
+			break;
+		case Codec::av1:
+			encoder_ctx->profile = FF_PROFILE_AV1_MAIN;
 			break;
 	}
 	for (auto option: settings.options)

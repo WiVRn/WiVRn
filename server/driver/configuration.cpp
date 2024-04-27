@@ -46,6 +46,8 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
                 {h264, "avc"},
                 {h265, "h265"},
                 {h265, "hevc"},
+                {av1, "av1"},
+                {av1, "AV1"},
         })
 }
 

@@ -128,6 +128,8 @@ static auto encode_guid(video_codec codec)
 			return NV_ENC_CODEC_H264_GUID;
 		case h265:
 			return NV_ENC_CODEC_HEVC_GUID;
+		case av1:
+			throw std::runtime_error("AV1 not implemented on nvenc");
 	}
 	throw std::out_of_range("Invalid codec " + std::to_string(codec));
 }
@@ -169,6 +171,9 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & se
 
 		case video_codec::h265:
 			printf("%d HEVC presets\n", count);
+			break;
+
+		case video_codec::av1:
 			break;
 	}
 
@@ -215,6 +220,8 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & se
 			params.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
 			params.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			params.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
+			break;
+		case video_codec::av1:
 			break;
 	}
 	settings.range = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;

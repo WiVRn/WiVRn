@@ -142,6 +142,9 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 			case h265:
 				file += ".h265";
 				break;
+			case av1:
+				file += ".av1";
+				break;
 		}
 		res->video_dump.open(file);
 	}

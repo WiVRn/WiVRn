@@ -54,6 +54,8 @@ static AVCodecID codec_id(xrt::drivers::wivrn::video_codec codec)
 			return AV_CODEC_ID_H264;
 		case c::h265:
 			return AV_CODEC_ID_HEVC;
+		case c::av1:
+			return AV_CODEC_ID_AV1;
 	}
 	assert(false);
 	__builtin_unreachable();

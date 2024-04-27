@@ -21,7 +21,6 @@
 #include "application.h"
 #include "scenes/stream.h"
 #include "utils/named_thread.h"
-#include <algorithm>
 #include <android/hardware_buffer.h>
 #include <cassert>
 #include <magic_enum.hpp>
@@ -57,6 +56,8 @@ const char * mime(xrt::drivers::wivrn::video_codec codec)
 			return "video/avc";
 		case c::h265:
 			return "video/hevc";
+		case c::av1:
+			return "video/AV1";
 	}
 	assert(false);
 }
@@ -70,109 +71,6 @@ void check(media_status_t status, const char * msg)
 	}
 }
 
-namespace nal_h264
-{
-static const int sps = 7;
-static const int pps = 8;
-} // namespace nal_h264
-
-namespace nal_h265
-{
-static const int vps = 32;
-static const int sps = 33;
-static const int pps = 34;
-static const int aud = 35;
-static const int filler = 38;
-}; // namespace nal_h265
-
-enum class nal_class
-{
-	csd,
-	data,
-	garbage
-};
-
-nal_class get_nal_class_h264(uint8_t * nal)
-{
-	uint8_t nal_type = (nal[2] == 0 ? nal[4] : nal[3]) & 0x1F;
-	// spdlog::info("H264 NAL type {}", (int)nal_type);
-	switch (nal_type)
-	{
-		case nal_h264::sps:
-		case nal_h264::pps:
-			return nal_class::csd;
-		default:
-			return nal_class::data;
-	}
-}
-
-nal_class get_nal_class_h265(uint8_t * nal)
-{
-	uint8_t nal_type = ((nal[2] == 0 ? nal[4] : nal[3]) >> 1) & 0x3F;
-	// spdlog::info("H265 NAL type {}", (int)nal_type);
-	switch (nal_type)
-	{
-		case nal_h265::vps:
-		case nal_h265::sps:
-		case nal_h265::pps:
-			return nal_class::csd;
-		case nal_h265::aud:
-		case nal_h265::filler:
-			return nal_class::garbage;
-		default:
-			return nal_class::data;
-	}
-}
-
-nal_class get_nal_class(uint8_t * nal, xrt::drivers::wivrn::video_codec codec)
-{
-	switch (codec)
-	{
-		case xrt::drivers::wivrn::video_codec::h264:
-			return get_nal_class_h264(nal);
-
-		case xrt::drivers::wivrn::video_codec::h265:
-			return get_nal_class_h265(nal);
-	}
-}
-
-std::pair<std::vector<uint8_t>, std::vector<uint8_t>> filter_csd(std::span<uint8_t> packet,
-                                                                 xrt::drivers::wivrn::video_codec codec)
-{
-	if (packet.size() < 4)
-		return {};
-
-	std::array<uint8_t, 3> header = {{0, 0, 1}};
-	auto end = packet.end();
-	auto header_start = packet.begin();
-
-	std::pair<std::vector<uint8_t>, std::vector<uint8_t>> out;
-
-	while (header_start != end)
-	{
-		auto next_header = std::search(header_start + 3, end, header.begin(), header.end());
-		if (next_header != end and next_header[-1] == 0)
-		{
-			next_header--;
-		}
-
-		switch (get_nal_class(&*header_start, codec))
-		{
-			case nal_class::csd:
-				out.first.insert(out.first.end(), header_start, next_header);
-				break;
-			case nal_class::data:
-				out.second.insert(out.second.end(), header_start, next_header);
-				break;
-			case nal_class::garbage:
-				break;
-		}
-
-		header_start = next_header;
-	}
-
-	return out;
-}
 } // namespace
 
 namespace wivrn::android
@@ -292,16 +190,6 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 {
 	if (!media_codec)
 	{
-		std::vector<uint8_t> contiguous_data;
-		for (const auto & d: data)
-			contiguous_data.insert(contiguous_data.end(), d.begin(), d.end());
-		auto [csd, not_csd] = filter_csd(contiguous_data, description.codec);
-		if (csd.empty())
-		{
-			// We can't initizale the encoder, drop the data
-			return;
-		}
-
 		AMediaFormat_ptr format(AMediaFormat_new());
 		AMediaFormat_setString(format.get(), AMEDIAFORMAT_KEY_MIME, mime(description.codec));
 		// AMediaFormat_setInt32(format.get(), "vendor.qti-ext-dec-low-latency.enable", 1); // Qualcomm low
@@ -310,7 +198,6 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, description.height);
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(fps));
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_PRIORITY, 0);
-		//  AMediaFormat_setBuffer(format.get(), AMEDIAFORMAT_KEY_CSD_0, csd.data(), csd.size());
 
 		media_codec.reset(AMediaCodec_createDecoderByType(mime(description.codec)));
 

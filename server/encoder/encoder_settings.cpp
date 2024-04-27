@@ -61,6 +61,7 @@ static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> & e
 				w *= 2;
 				break;
 			case xrt::drivers::wivrn::h265:
+			case xrt::drivers::wivrn::av1:
 				break;
 		}
 		encoder.bitrate = w;
