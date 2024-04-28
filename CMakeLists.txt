@@ -11,6 +11,7 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Default to PIC code
 include(CheckPIESupported)
@@ -53,7 +54,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Git)
-
+include(VulkanVersion)
 
 if (WIVRN_USE_SYSTEM_BOOST STREQUAL "AUTO")
     if(WIVRN_BUILD_DISSECTOR)
@@ -70,6 +71,10 @@ elseif(WIVRN_USE_SYSTEM_BOOST STREQUAL "ON")
 endif()
 
 if (WIVRN_BUILD_SERVER)
+    if (Vulkan_VERSION  VERSION_LESS "1.3.261")
+        message(FATAL_ERROR "Vulkan version must be at least 1.3.261, found ${Vulkan_VERSION}")
+    endif()
+
     if (NOT WIVRN_USE_NVENC AND NOT WIVRN_USE_VAAPI AND NOT WIVRN_USE_X264)
         message(FATAL_ERROR "No encoder selected, use at least one of WIVRN_USE_NVENC, WIVRN_USE_VAAPI or WIVRN_USE_X264")
     endif()
@@ -145,8 +150,6 @@ if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
         find_package(OpenXR 1.0.26 REQUIRED)
     endif()
 endif()
-
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 if(ANDROID)
     set(ANDROID_NDK $ENV{ANDROID_NDK_ROOT})

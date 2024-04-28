@@ -9,7 +9,6 @@ FetchContent_MakeAvailable(spdlog glm fastgltf imgui stb libktx implot)
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
-include(VulkanVersion)
 
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
