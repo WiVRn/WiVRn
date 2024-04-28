@@ -253,6 +253,8 @@ decoder::decoder(
 			        try
 			        {
 				        auto index = output_buffers.pop();
+				        if (index == -1)
+					        return;
 				        auto status = AMediaCodec_releaseOutputBuffer(media_codec.get(), index, true);
 				        // will trigger on_image_available through ImageReader
 				        if (status != AMEDIA_OK)
@@ -273,6 +275,13 @@ decoder::decoder(
 
 decoder::~decoder()
 {
+	if (media_codec)
+	{
+		AMediaCodec_stop(media_codec.get());
+		output_buffers.push(-1);
+		if (output_releaser.joinable())
+			output_releaser.join();
+	}
 	input_buffers.close();
 	output_buffers.close();
 
