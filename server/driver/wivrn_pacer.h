@@ -45,7 +45,7 @@ class wivrn_pacer
 	{
 		// Last feedback for each encoder
 		xrt::drivers::wivrn::from_headset::feedback last_feedback;
-		std::vector<uint64_t> times;
+		std::vector<int64_t> times;
 		size_t next_times_index = 0;
 	};
 	std::vector<stream_data> streams;
