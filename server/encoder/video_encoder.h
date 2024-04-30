@@ -60,6 +60,7 @@ private:
 	clock_offset clock;
 
 	std::atomic_bool sync_needed = true;
+	uint64_t last_idr_frame;
 
 	std::ofstream video_dump;
 
@@ -72,6 +73,7 @@ public:
 	        int input_height,
 	        float fps);
 
+	VideoEncoder();
 	virtual ~VideoEncoder() = default;
 
 	// called on present to submit command buffers for the image.

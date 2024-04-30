@@ -20,8 +20,10 @@
 // Include first because of incompatibility between Eigen and X includes
 #include "driver/wivrn_session.h"
 
-#include "os/os_time.h"
 #include "video_encoder.h"
+
+#include "os/os_time.h"
+#include "util/u_logging.h"
 
 #include <string>
 
@@ -91,6 +93,11 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 	return res;
 }
 
+static const uint64_t idr_throttle = 100;
+
+VideoEncoder::VideoEncoder() :
+        last_idr_frame(-idr_throttle) {}
+
 void VideoEncoder::SyncNeeded()
 {
 	sync_needed = true;
@@ -103,6 +110,15 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	this->cnx = &cnx;
 	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
 	bool idr = sync_needed.exchange(false);
+	// Throttle idr to prevent overloading the decoder
+	if (idr and frame_index < last_idr_frame + idr_throttle)
+	{
+		U_LOG_D("Throttle IDR: stream %d frame %ld", stream_idx, frame_index);
+		sync_needed = true;
+		idr = false;
+	}
+	if (idr)
+		last_idr_frame = frame_index;
 	const char * extra = idr ? ",idr" : ",p";
 	clock = cnx.get_offset();
 	timing_info.encode_begin = clock.to_headset(os_monotonic_get_ns());
