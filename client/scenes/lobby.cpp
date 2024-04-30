@@ -212,6 +212,7 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 		freeaddrinfo(addresses);
 	}
 
+	std::string error;
 	for (const auto & address: service.addresses)
 	{
 		std::string address_string = std::visit([](auto & address) {
@@ -230,11 +231,15 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 		}
 		catch (std::exception & e)
 		{
-			spdlog::warn("Cannot connect to {} ({}): {}", service.hostname, address_string, e.what());
+			std::string txt = fmt::format("Cannot connect to {} ({}): {}", service.hostname, address_string, e.what());
+			spdlog::warn(txt);
+			if (not error.empty())
+				error += "\n";
+			error += txt;
 		}
 	}
 
-	throw std::runtime_error("No usable address");
+	throw std::runtime_error(error);
 }
 
 static glm::mat4 projection_matrix(XrFovf fov, float zn = 0.02)
