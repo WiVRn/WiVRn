@@ -86,6 +86,11 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	auto view = self->system.view_configuration_views(self->viewconfig)[0];
 	view = override_view(view, guess_model());
 
+	auto resolution_scale = application::get_config().resolution_scale;
+
+	view.recommendedImageRectWidth *= resolution_scale;
+	view.recommendedImageRectHeight *= resolution_scale;
+
 	info.recommended_eye_width = view.recommendedImageRectWidth;
 	info.recommended_eye_height = view.recommendedImageRectHeight;
 

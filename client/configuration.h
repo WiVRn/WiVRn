@@ -41,6 +41,7 @@ public:
 
 	std::map<std::string, server_data> servers;
 	float preferred_refresh_rate = 0;
+	float resolution_scale = 1.0;
 	bool show_performance_metrics = false;
 	bool microphone = false;
 	bool passthrough_enabled = false;
