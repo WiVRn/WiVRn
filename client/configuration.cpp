@@ -117,6 +117,11 @@ configuration::configuration(const std::string & path)
 		preferred_refresh_rate = val.get_double();
 	}
 
+	if (auto val = root["resolution_scale"]; val.is_double())
+	{
+		resolution_scale = val.get_double();
+	}
+
 	if (auto val = root["microphone"]; val.is_bool())
 		microphone = val.get_bool();
 
@@ -153,6 +158,7 @@ void configuration::save()
 	     << "\"show_performance_metrics\":" << std::boolalpha << show_performance_metrics;
 	if (preferred_refresh_rate != 0.)
 		json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate;
+	json << ",\"resolution_scale\":" << resolution_scale;
 	json << ",\"microphone\":" << std::boolalpha << microphone;
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
 	json << "}";
