@@ -21,8 +21,8 @@
 
 layout (constant_id = 0) const bool use_foveation_x = false;
 layout (constant_id = 1) const bool use_foveation_y = false;
-layout (constant_id = 2) const int nb_x = 1;
-layout (constant_id = 3) const int nb_y = 1;
+layout (constant_id = 2) const int nb_x = 64;
+layout (constant_id = 3) const int nb_y = 64;
 
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
@@ -37,26 +37,24 @@ ubo;
 
 vec2 reproject_and_unfoveate(vec2 uv)
 {
-	vec4 tmp = ubo.reprojection * vec4(uv, 1.0, 1.0);
-	uv = vec2(tmp) / tmp.z; // between -1 and 1
-
+	uv = 2 * uv - 1;
 	if (use_foveation_x && use_foveation_y)
 	{
-		uv = atan(ubo.lambda * (uv - ubo.xc)) / ubo.a - ubo.b;
+		uv = ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc;
 	}
 	else
 	{
 		if (use_foveation_x)
 		{
-			uv.x = (atan(ubo.lambda * (uv - ubo.xc)) / ubo.a - ubo.b).x;
+			uv.x = (ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc).y;
 		}
 		if (use_foveation_y)
 		{
-			uv.y = (atan(ubo.lambda * (uv - ubo.xc)) / ubo.a - ubo.b).y;
+			uv.y = (ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc).y;
 		}
 	}
-
-	return uv * 0.5 + vec2(0.5, 0.5);
+	vec4 tmp = ubo.reprojection * vec4(uv, 1.0, 1.0);
+	return vec2(tmp) / tmp.z; // between -1 and 1
 }
 
 #ifdef VERT_SHADER
@@ -67,22 +65,15 @@ vec2 positions[6] = vec2[](
 
 layout(location = 0) out vec2 outUV;
 
-layout(location = 1) out vec4 test;
-
-
-
 void main()
 {
-	vec2 quad_size = vec2(2, 2) / vec2(nb_x, nb_y);
+	vec2 quad_size = 1 / vec2(nb_x, nb_y);
 	int cell_id = gl_VertexIndex / 6;
 
-	vec2 top_left = quad_size * vec2(cell_id % nb_x, cell_id / nb_x) - 1.0;
+	vec2 top_left = quad_size * vec2(cell_id % nb_x, cell_id / nb_x);
 	outUV = top_left + positions[gl_VertexIndex % 6] * quad_size;
 
-	gl_Position = vec4(outUV, 0.0, 1.0);
-
-	if (nb_x > 1 || nb_y > 1)
-		outUV = reproject_and_unfoveate(outUV);
+	gl_Position = vec4(reproject_and_unfoveate(outUV), 0.0, 1.0);
 }
 #endif
 
@@ -90,20 +81,12 @@ void main()
 layout(set = 0, binding = 0) uniform sampler2D texSampler;
 
 layout(location = 0) in vec2 inUV;
-layout(location = 1) in vec4 test;
 
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-	vec2 uv;
-
-	if (nb_x == 1 && nb_y == 1)
-		uv = reproject_and_unfoveate(inUV);
-	else
-		uv = inUV;
-
-	outColor = vec4(texture(texSampler, uv).rgb, 1);
+	outColor = vec4(texture(texSampler, inUV).rgb, 1);
 
 }
 #endif

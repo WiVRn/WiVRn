@@ -393,8 +393,8 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 	};
 	// clang-format on
 
-	glm::mat4 hmd_unview = glm::mat4_cast(glm::quat(
-	        dest_pose.w,
+	glm::mat4 hmd_view = glm::mat4_cast(glm::quat(
+	        -dest_pose.w,
 	        dest_pose.x,
 	        dest_pose.y,
 	        dest_pose.z));
@@ -413,23 +413,29 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 	};
 	// clang-format on
 
-	glm::mat4 video_view = glm::mat4_cast(glm::quat(
-	        -source_pose.w,
+	glm::mat4 video_unview = glm::mat4_cast(glm::quat(
+	        source_pose.w,
 	        source_pose.x,
 	        source_pose.y,
 	        source_pose.z));
 
-	ubo[source]->reprojection = video_proj * video_view * hmd_unview * glm::inverse(hmd_proj);
+	ubo[source]->reprojection = hmd_proj * hmd_view * video_unview * glm::inverse(video_proj);
 
-	ubo[source]->a.x = foveation_parameters[source].x.a;
-	ubo[source]->b.x = foveation_parameters[source].x.b;
-	ubo[source]->lambda.x = foveation_parameters[source].x.a / foveation_parameters[source].x.scale;
-	ubo[source]->xc.x = foveation_parameters[source].x.center;
+	if (foveation_parameters[source].x.scale < 1)
+	{
+		ubo[source]->a.x = foveation_parameters[source].x.a;
+		ubo[source]->b.x = foveation_parameters[source].x.b;
+		ubo[source]->lambda.x = foveation_parameters[source].x.scale / foveation_parameters[source].x.a;
+		ubo[source]->xc.x = foveation_parameters[source].x.center;
+	}
 
-	ubo[source]->a.y = foveation_parameters[source].y.a;
-	ubo[source]->b.y = foveation_parameters[source].y.b;
-	ubo[source]->lambda.y = foveation_parameters[source].y.a / foveation_parameters[source].y.scale;
-	ubo[source]->xc.y = foveation_parameters[source].y.center;
+	if (foveation_parameters[source].y.scale < 1)
+	{
+		ubo[source]->a.y = foveation_parameters[source].y.a;
+		ubo[source]->b.y = foveation_parameters[source].y.b;
+		ubo[source]->lambda.y = foveation_parameters[source].y.scale / foveation_parameters[source].y.a;
+		ubo[source]->xc.y = foveation_parameters[source].y.center;
+	}
 
 	vk::RenderPassBeginInfo begin_info{
 	        .renderPass = *renderpass,
