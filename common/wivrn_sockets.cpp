@@ -292,7 +292,8 @@ void xrt::drivers::wivrn::UDP::send_raw(const std::vector<uint8_t> & data)
 
 void xrt::drivers::wivrn::UDP::send_raw(const std::vector<std::span<uint8_t>> & data)
 {
-	std::vector<iovec> spans;
+	thread_local std::vector<iovec> spans;
+	spans.clear();
 	for (const auto & span: data)
 		spans.emplace_back((void *)span.data(), span.size());
 
@@ -344,7 +345,8 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 
 void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & spans)
 {
-	std::vector<iovec> iovecs;
+	thread_local std::vector<iovec> iovecs;
+	iovecs.clear();
 
 	uint16_t size = 0;
 	iovecs.emplace_back(&size, sizeof(size));

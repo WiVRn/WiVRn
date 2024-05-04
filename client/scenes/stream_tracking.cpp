@@ -124,6 +124,7 @@ void scenes::stream::tracking()
 	const XrDuration dt = 100'000;          // Wake up 0.1ms before measuring the position
 
 	XrTime t0 = instance.now();
+	from_headset::tracking packet{};
 
 	while (not exiting)
 	{
@@ -142,7 +143,6 @@ void scenes::stream::tracking()
 			// 1 or 2 samples
 			for (XrDuration Δt = 0; Δt <= prediction; Δt += std::max<XrDuration>(1, prediction))
 			{
-				from_headset::tracking packet{};
 				from_headset::hand_tracking hands{};
 
 				packet.production_timestamp = t0;
@@ -164,6 +164,7 @@ void scenes::stream::tracking()
 
 					packet.flags = flags;
 
+					packet.device_poses.clear();
 					for (auto [device, space]: spaces)
 					{
 						packet.device_poses.push_back(locate_space(device, space, world_space, t0 + Δt));
