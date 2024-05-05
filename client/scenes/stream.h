@@ -104,8 +104,6 @@ private:
 	std::vector<std::tuple<device_id, XrAction, XrActionType>> input_actions;
 
 	state state_ = state::initializing;
-	XrTime first_frame_time{};
-	const float dbrightness = 2;
 
 	std::vector<xr::swapchain> swapchains;
 	xr::swapchain swapchain_imgui;

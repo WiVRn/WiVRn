@@ -257,8 +257,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		    }))
 		{
 			state_ = state::streaming;
-			first_frame_time = application::now();
-			spdlog::info("Stream scene ready at t={}", first_frame_time);
+			spdlog::info("Stream scene ready at t={}", application::now());
 		}
 	}
 
@@ -696,14 +695,6 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 		        };
 	}
 
-	float brightness = std::clamp<float>(dbrightness * (predicted_display_time - first_frame_time) / 1.e9, 0, 1);
-
-	XrCompositionLayerColorScaleBiasKHR color_scale_bias{
-	        .type = XR_TYPE_COMPOSITION_LAYER_COLOR_SCALE_BIAS_KHR,
-	        .colorScale = {brightness, brightness, brightness, 1},
-	        .colorBias = {},
-	};
-
 	XrCompositionLayerProjection layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
 	        .layerFlags = 0,
@@ -711,9 +702,6 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	        .viewCount = (uint32_t)layer_view.size(),
 	        .views = layer_view.data(),
 	};
-
-	if (instance.has_extension(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME))
-		layer.next = &color_scale_bias;
 
 	XrCompositionLayerQuad imgui_layer;
 	if (imgui_ctx)
