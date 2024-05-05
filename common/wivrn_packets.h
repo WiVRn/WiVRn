@@ -213,9 +213,6 @@ struct feedback
 	XrTime displayed;
 
 	uint8_t times_displayed;
-
-	std::array<XrPosef, 2> received_pose;
-	std::array<XrPosef, 2> real_pose;
 };
 
 using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, hand_tracking, inputs, timesync_response>;

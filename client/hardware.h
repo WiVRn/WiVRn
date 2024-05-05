@@ -36,3 +36,5 @@ enum class model
 model guess_model();
 
 XrViewConfigurationView override_view(XrViewConfigurationView, model);
+
+bool use_runtime_reprojection();

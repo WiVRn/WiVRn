@@ -192,7 +192,6 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 		spdlog::warn("first shard has no view_info");
 		return;
 	}
-	feedback.received_pose = data_shards.front()->view_info->pose;
 
 	// Try to extract a frame
 	decoder->frame_completed(feedback, timing_info, *data_shards.front()->view_info);

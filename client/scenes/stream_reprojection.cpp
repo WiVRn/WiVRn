@@ -19,6 +19,7 @@
 
 #include "stream_reprojection.h"
 #include "application.h"
+#include "hardware.h"
 #include "vk/allocation.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
@@ -241,11 +242,13 @@ stream_reprojection::stream_reprojection(
 
 	layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
 
-	int use_foveation[] = {
+	int specialization_constants[] = {
 	        foveation_parameters[0].x.scale < 1,
 	        foveation_parameters[0].y.scale < 1,
 	        nb_reprojection_vertices,
-	        nb_reprojection_vertices};
+	        nb_reprojection_vertices,
+	        not use_runtime_reprojection(),
+	};
 
 	std::array specialization_constants_desc{
 	        vk::SpecializationMapEntry{
@@ -268,12 +271,17 @@ stream_reprojection::stream_reprojection(
 	                .offset = 3 * sizeof(int),
 	                .size = sizeof(int),
 	        },
+	        vk::SpecializationMapEntry{
+	                .constantID = 4,
+	                .offset = 4 * sizeof(int),
+	                .size = sizeof(int),
+	        },
 	};
 
 	vk::SpecializationInfo specialization_info;
 
 	specialization_info.setMapEntries(specialization_constants_desc);
-	specialization_info.setData<int>(use_foveation);
+	specialization_info.setData<int>(specialization_constants);
 
 	vk::pipeline_builder pipeline_info{
 	        .flags = {},
@@ -377,49 +385,52 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 	if (destination < 0 || destination >= (int)output_images.size())
 		throw std::runtime_error("Invalid destination image index");
 
-	// Compute the reprojection matrix
-	float zn = 1;
-	float r = tan(dest_fov.angleRight);
-	float l = tan(dest_fov.angleLeft);
-	float t = tan(dest_fov.angleUp);
-	float b = tan(dest_fov.angleDown);
+	if (not use_runtime_reprojection())
+	{
+		// Compute the reprojection matrix
+		float zn = 1;
+		float r = tan(dest_fov.angleRight);
+		float l = tan(dest_fov.angleLeft);
+		float t = tan(dest_fov.angleUp);
+		float b = tan(dest_fov.angleDown);
 
-	// clang-format off
-	glm::mat4 hmd_proj{
-		{ 2/(r-l),     0,            0,    0 },
-		{ 0,           2/(b-t),      0,    0 },
-		{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
-		{ 0,           0,           -2*zn, 0 }
-	};
-	// clang-format on
+		// clang-format off
+		glm::mat4 hmd_proj{
+			{ 2/(r-l),     0,            0,    0 },
+			{ 0,           2/(b-t),      0,    0 },
+			{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
+			{ 0,           0,           -2*zn, 0 }
+		};
+		// clang-format on
 
-	glm::mat4 hmd_view = glm::mat4_cast(glm::quat(
-	        -dest_pose.w,
-	        dest_pose.x,
-	        dest_pose.y,
-	        dest_pose.z));
+		glm::mat4 hmd_view = glm::mat4_cast(glm::quat(
+		        -dest_pose.w,
+		        dest_pose.x,
+		        dest_pose.y,
+		        dest_pose.z));
 
-	r = tan(source_fov.angleRight);
-	l = tan(source_fov.angleLeft);
-	t = tan(source_fov.angleUp);
-	b = tan(source_fov.angleDown);
+		r = tan(source_fov.angleRight);
+		l = tan(source_fov.angleLeft);
+		t = tan(source_fov.angleUp);
+		b = tan(source_fov.angleDown);
 
-	// clang-format off
-	glm::mat4 video_proj{
-		{ 2/(r-l),     0,            0,    0 },
-		{ 0,           2/(b-t),      0,    0 },
-		{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
-		{ 0,           0,           -2*zn, 0 }
-	};
-	// clang-format on
+		// clang-format off
+		glm::mat4 video_proj{
+			{ 2/(r-l),     0,            0,    0 },
+			{ 0,           2/(b-t),      0,    0 },
+			{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
+			{ 0,           0,           -2*zn, 0 }
+		};
+		// clang-format on
 
-	glm::mat4 video_unview = glm::mat4_cast(glm::quat(
-	        source_pose.w,
-	        source_pose.x,
-	        source_pose.y,
-	        source_pose.z));
+		glm::mat4 video_unview = glm::mat4_cast(glm::quat(
+		        source_pose.w,
+		        source_pose.x,
+		        source_pose.y,
+		        source_pose.z));
 
-	ubo[source]->reprojection = hmd_proj * hmd_view * video_unview * glm::inverse(video_proj);
+		ubo[source]->reprojection = hmd_proj * hmd_view * video_unview * glm::inverse(video_proj);
+	}
 
 	if (foveation_parameters[source].x.scale < 1)
 	{

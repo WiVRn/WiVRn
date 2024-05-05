@@ -501,12 +501,8 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 
 	session.begin_frame();
 
-	auto [flags, views] = session.locate_views(viewconfig, predicted_display_time, world_space);
-	assert(views.size() == swapchains.size());
-
 	std::array<int, view_count> image_indices;
-	assert(views.size() == view_count);
-	for (size_t swapchain_index = 0; swapchain_index < views.size(); swapchain_index++)
+	for (size_t swapchain_index = 0; swapchain_index < view_count; swapchain_index++)
 	{
 		int image_index = swapchains[swapchain_index].acquire();
 		swapchains[swapchain_index].wait();
@@ -526,8 +522,8 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	command_buffer.resetQueryPool(*query_pool, 0, size_gpu_timestamps);
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, 0);
 
-	std::array<XrPosef, 2> pose = {views[0].pose, views[1].pose};
-	std::array<XrFovf, 2> fov = {views[0].fov, views[1].fov};
+	std::array<XrPosef, 2> pose{};
+	std::array<XrFovf, 2> fov{};
 	{
 		std::unique_lock lock(decoder_mutex);
 		// Search for frame with desired display time on all decoders
@@ -548,8 +544,6 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 				state_ = stream::state::stalled;
 			++blit_handle->feedback.times_displayed;
 			blit_handle->feedback.displayed = predicted_display_time;
-			blit_handle->feedback.real_pose[0] = views[0].pose;
-			blit_handle->feedback.real_pose[1] = views[1].pose;
 
 			pose = blit_handle->view_info.pose;
 			fov = blit_handle->view_info.fov;
@@ -654,7 +648,24 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
-	// Reproject the image to the real pose
+	std::vector<XrView> views(view_count);
+	if (use_runtime_reprojection())
+	{
+		// In case of reprojection by runtime, give the original pose/fov
+		for (size_t i = 0; i < view_count; ++i)
+		{
+			views[i].pose = pose[i];
+			views[i].fov = fov[i];
+		}
+	}
+	else
+	{
+		// Fetch the latest view to reproject
+		views = session.locate_views(viewconfig, predicted_display_time, world_space).second;
+		assert(views.size() == swapchains.size());
+	}
+
+	// Unfoveate and reproject the image to the real pose
 	for (size_t view = 0; view < view_count; view++)
 	{
 		size_t destination_index = view * swapchains[0].images().size() + image_indices[view];
@@ -887,7 +898,9 @@ void scenes::stream::setup_reprojection_swapchain()
 		// Create a swapchain larger than video strem so that reprojection and foveation affect image quality less.
 		const double max_oversample = std::min(double(view.maxImageRectWidth) / swapchain_width,
 		                                       double(view.maxImageRectHeight) / swapchain_height);
-		double oversample = std::min(1.4, max_oversample);
+		double oversample = std::min(
+		        use_runtime_reprojection() ? 1 : 1.4,
+		        max_oversample);
 		XrExtent2Di extent{
 		        .width = int32_t(swapchain_width * oversample),
 		        .height = int32_t(swapchain_height * oversample),

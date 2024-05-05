@@ -23,6 +23,7 @@ layout (constant_id = 0) const bool use_foveation_x = false;
 layout (constant_id = 1) const bool use_foveation_y = false;
 layout (constant_id = 2) const int nb_x = 64;
 layout (constant_id = 3) const int nb_y = 64;
+layout (constant_id = 4) const bool reproject = false;
 
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
@@ -53,8 +54,15 @@ vec2 reproject_and_unfoveate(vec2 uv)
 			uv.y = (ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc).y;
 		}
 	}
-	vec4 tmp = ubo.reprojection * vec4(uv, 1.0, 1.0);
-	return vec2(tmp) / tmp.z; // between -1 and 1
+	if (reproject)
+	{
+		vec4 tmp = ubo.reprojection * vec4(uv, 1.0, 1.0);
+		return vec2(tmp) / tmp.z; // between -1 and 1
+	}
+	else
+	{
+		return uv;
+	}
 }
 
 #ifdef VERT_SHADER

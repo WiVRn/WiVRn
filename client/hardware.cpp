@@ -42,7 +42,7 @@ static std::string get_property(const char * property)
 }
 #endif
 
-model guess_model()
+static model guess_model_()
 {
 #ifdef __ANDROID__
 	const auto device = get_property("ro.product.device");
@@ -85,6 +85,12 @@ model guess_model()
 	return model::unknown;
 }
 
+model guess_model()
+{
+	static model m = guess_model_();
+	return m;
+}
+
 static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t width)
 {
 	double ratio = double(width) / view.recommendedImageRectWidth;
@@ -122,4 +128,28 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 			return view;
 	}
 	throw std::range_error("invalid model " + std::to_string((int)m));
+}
+
+static bool use_runtime_reprojection_()
+{
+	switch (guess_model())
+	{
+		case model::oculus_quest:
+			return false;
+		case model::oculus_quest_2:
+		case model::meta_quest_pro:
+		case model::meta_quest_3:
+		case model::pico_neo_3:
+		case model::pico_4:
+		case model::htc_vive_focus_3:
+		case model::htc_vive_xr_elite:
+		case model::unknown:
+			return true;
+	}
+}
+
+bool use_runtime_reprojection()
+{
+	static bool r = use_runtime_reprojection_();
+	return r;
 }
