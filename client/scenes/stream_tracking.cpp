@@ -65,6 +65,33 @@ static from_headset::tracking::pose locate_space(device_id device, XrSpace space
 	return res;
 }
 
+namespace
+{
+class timer
+{
+	xr::instance & instance;
+	XrTime start = instance.now();
+	XrDuration duration = 0;
+
+public:
+	timer(xr::instance & instance) :
+	        instance(instance) {}
+	void pause()
+	{
+		duration += instance.now() - start;
+	}
+	void resume()
+	{
+		start = instance.now();
+	}
+	XrDuration count()
+	{
+		pause();
+		return duration;
+	}
+};
+} // namespace
+
 static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> locate_hands(xr::hand_tracker & hand, XrSpace space, XrTime time)
 {
 	auto joints = hand.locate(space, time);
@@ -131,13 +158,13 @@ void scenes::stream::tracking()
 		try
 		{
 			XrTime now = instance.now();
-			// If tracking is slow, throttle so that we remain idle most of the time
-			tracking_period = std::clamp<XrDuration>(5 * (now - t0), 1'000'000, 10'000'000);
 			if (now < t0)
 				std::this_thread::sleep_for(std::chrono::nanoseconds(t0 - now - dt));
 
 			// If thread can't keep up, skip timestamps
-			t0 += tracking_period * ((now - t0) / tracking_period);
+			t0 = std::max(t0, now);
+
+			timer t(instance);
 
 			XrDuration prediction = tracking_prediction_offset;
 			// 1 or 2 samples
@@ -170,18 +197,28 @@ void scenes::stream::tracking()
 						packet.device_poses.push_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
-					network_session->send_stream(packet);
+					t.pause();
+					network_session->send_control(packet);
+					t.resume();
 
 					if (application::get_hand_tracking_supported())
 					{
 						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::left;
 						hands.joints = locate_hands(application::get_left_hand(), world_space, hands.timestamp);
+						t.pause();
 						network_session->send_stream(hands);
+						t.resume();
 
 						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::right;
 						hands.joints = locate_hands(application::get_right_hand(), world_space, hands.timestamp);
+						t.pause();
 						network_session->send_stream(hands);
+						t.resume();
 					}
+
+					XrDuration busy_time = t.count();
+					// Target: polling between 1 and 5ms, with 20% busy time
+					tracking_period = std::clamp<XrDuration>(std::lerp(tracking_period, busy_time * 5, 0.2), 1'000'000, 5'000'000);
 				}
 				catch (const std::system_error & e)
 				{
