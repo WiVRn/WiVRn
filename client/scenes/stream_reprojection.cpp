@@ -19,7 +19,6 @@
 
 #include "stream_reprojection.h"
 #include "application.h"
-#include "hardware.h"
 #include "vk/allocation.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
@@ -33,8 +32,6 @@
 
 struct stream_reprojection::uniform
 {
-	alignas(16) glm::mat4 reprojection;
-
 	// Foveation parameters
 	alignas(8) glm::vec2 a;
 	alignas(8) glm::vec2 b;
@@ -247,7 +244,6 @@ stream_reprojection::stream_reprojection(
 	        foveation_parameters[0].y.scale < 1,
 	        nb_reprojection_vertices,
 	        nb_reprojection_vertices,
-	        not use_runtime_reprojection(),
 	};
 
 	std::array specialization_constants_desc{
@@ -269,11 +265,6 @@ stream_reprojection::stream_reprojection(
 	        vk::SpecializationMapEntry{
 	                .constantID = 3,
 	                .offset = 3 * sizeof(int),
-	                .size = sizeof(int),
-	        },
-	        vk::SpecializationMapEntry{
-	                .constantID = 4,
-	                .offset = 4 * sizeof(int),
 	                .size = sizeof(int),
 	        },
 	};
@@ -378,59 +369,12 @@ stream_reprojection::stream_reprojection(
 	}
 }
 
-void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, int source, int destination, XrQuaternionf source_pose, XrFovf source_fov, XrQuaternionf dest_pose, XrFovf dest_fov)
+void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, int source, int destination)
 {
 	if (source < 0 || source >= (int)input_images.size())
 		throw std::runtime_error("Invalid source image index");
 	if (destination < 0 || destination >= (int)output_images.size())
 		throw std::runtime_error("Invalid destination image index");
-
-	if (not use_runtime_reprojection())
-	{
-		// Compute the reprojection matrix
-		float zn = 1;
-		float r = tan(dest_fov.angleRight);
-		float l = tan(dest_fov.angleLeft);
-		float t = tan(dest_fov.angleUp);
-		float b = tan(dest_fov.angleDown);
-
-		// clang-format off
-		glm::mat4 hmd_proj{
-			{ 2/(r-l),     0,            0,    0 },
-			{ 0,           2/(b-t),      0,    0 },
-			{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
-			{ 0,           0,           -2*zn, 0 }
-		};
-		// clang-format on
-
-		glm::mat4 hmd_view = glm::mat4_cast(glm::quat(
-		        -dest_pose.w,
-		        dest_pose.x,
-		        dest_pose.y,
-		        dest_pose.z));
-
-		r = tan(source_fov.angleRight);
-		l = tan(source_fov.angleLeft);
-		t = tan(source_fov.angleUp);
-		b = tan(source_fov.angleDown);
-
-		// clang-format off
-		glm::mat4 video_proj{
-			{ 2/(r-l),     0,            0,    0 },
-			{ 0,           2/(b-t),      0,    0 },
-			{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
-			{ 0,           0,           -2*zn, 0 }
-		};
-		// clang-format on
-
-		glm::mat4 video_unview = glm::mat4_cast(glm::quat(
-		        source_pose.w,
-		        source_pose.x,
-		        source_pose.y,
-		        source_pose.z));
-
-		ubo[source]->reprojection = hmd_proj * hmd_view * video_unview * glm::inverse(video_proj);
-	}
 
 	if (foveation_parameters[source].x.scale < 1)
 	{

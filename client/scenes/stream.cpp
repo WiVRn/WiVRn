@@ -648,28 +648,11 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
-	std::vector<XrView> views(view_count);
-	if (use_runtime_reprojection())
-	{
-		// In case of reprojection by runtime, give the original pose/fov
-		for (size_t i = 0; i < view_count; ++i)
-		{
-			views[i].pose = pose[i];
-			views[i].fov = fov[i];
-		}
-	}
-	else
-	{
-		// Fetch the latest view to reproject
-		views = session.locate_views(viewconfig, predicted_display_time, world_space).second;
-		assert(views.size() == swapchains.size());
-	}
-
-	// Unfoveate and reproject the image to the real pose
+	// Unfoveate the image to the real pose
 	for (size_t view = 0; view < view_count; view++)
 	{
 		size_t destination_index = view * swapchains[0].images().size() + image_indices[view];
-		reprojector->reproject(command_buffer, view, destination_index, pose[view].orientation, fov[view], views[view].pose.orientation, views[view].fov);
+		reprojector->reproject(command_buffer, view, destination_index);
 	}
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 2);
@@ -680,18 +663,17 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	queue.submit(submit_info, *fence);
 
 	std::vector<XrCompositionLayerBaseHeader *> layers_base;
-	std::vector<XrCompositionLayerProjectionView> layer_view;
-	layer_view.resize(views.size());
+	std::vector<XrCompositionLayerProjectionView> layer_view(view_count);
 
-	for (size_t swapchain_index = 0; swapchain_index < views.size(); swapchain_index++)
+	for (size_t swapchain_index = 0; swapchain_index < view_count; swapchain_index++)
 	{
 		swapchains[swapchain_index].release();
 
 		layer_view[swapchain_index] =
 		        {
 		                .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-		                .pose = views[swapchain_index].pose,
-		                .fov = views[swapchain_index].fov,
+		                .pose = pose[swapchain_index],
+		                .fov = fov[swapchain_index],
 
 		                .subImage = {
 		                        .swapchain = swapchains[swapchain_index],
@@ -895,15 +877,9 @@ void scenes::stream::setup_reprojection_swapchain()
 	swapchains.reserve(views.size());
 	for (auto view: views)
 	{
-		// Create a swapchain larger than video strem so that reprojection and foveation affect image quality less.
-		const double max_oversample = std::min(double(view.maxImageRectWidth) / swapchain_width,
-		                                       double(view.maxImageRectHeight) / swapchain_height);
-		double oversample = std::min(
-		        use_runtime_reprojection() ? 1 : 1.4,
-		        max_oversample);
 		XrExtent2Di extent{
-		        .width = int32_t(swapchain_width * oversample),
-		        .height = int32_t(swapchain_height * oversample),
+		        .width = std::min<int32_t>(view.maxImageRectWidth, swapchain_width),
+		        .height = std::min<int32_t>(view.maxImageRectHeight, swapchain_height),
 		};
 		swapchains.emplace_back(session, device, swapchain_format, extent.width, extent.height);
 

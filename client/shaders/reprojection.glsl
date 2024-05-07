@@ -23,12 +23,9 @@ layout (constant_id = 0) const bool use_foveation_x = false;
 layout (constant_id = 1) const bool use_foveation_y = false;
 layout (constant_id = 2) const int nb_x = 64;
 layout (constant_id = 3) const int nb_y = 64;
-layout (constant_id = 4) const bool reproject = false;
 
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
-	mat4 reprojection;
-
 	vec2 a;
 	vec2 b;
 	vec2 lambda;
@@ -36,7 +33,7 @@ layout(set = 0, binding = 1) uniform UniformBufferObject
 }
 ubo;
 
-vec2 reproject_and_unfoveate(vec2 uv)
+vec2 unfoveate(vec2 uv)
 {
 	uv = 2 * uv - 1;
 	if (use_foveation_x && use_foveation_y)
@@ -54,15 +51,7 @@ vec2 reproject_and_unfoveate(vec2 uv)
 			uv.y = (ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc).y;
 		}
 	}
-	if (reproject)
-	{
-		vec4 tmp = ubo.reprojection * vec4(uv, 1.0, 1.0);
-		return vec2(tmp) / tmp.z; // between -1 and 1
-	}
-	else
-	{
-		return uv;
-	}
+	return uv;
 }
 
 #ifdef VERT_SHADER
@@ -81,7 +70,7 @@ void main()
 	vec2 top_left = quad_size * vec2(cell_id % nb_x, cell_id / nb_x);
 	outUV = top_left + positions[gl_VertexIndex % 6] * quad_size;
 
-	gl_Position = vec4(reproject_and_unfoveate(outUV), 0.0, 1.0);
+	gl_Position = vec4(unfoveate(outUV), 0.0, 1.0);
 }
 #endif
 

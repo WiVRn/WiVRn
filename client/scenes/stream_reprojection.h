@@ -69,9 +69,5 @@ public:
 	void reproject(
 	        vk::raii::CommandBuffer & command_buffer,
 	        int source,
-	        int destination,
-	        XrQuaternionf source_pose,
-	        XrFovf source_fov,
-	        XrQuaternionf destination_pose,
-	        XrFovf destination_fov);
+	        int destination);
 };
