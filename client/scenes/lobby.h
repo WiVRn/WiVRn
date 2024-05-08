@@ -81,6 +81,7 @@ class lobby : public scene_impl<lobby>
 	vk::Format swapchain_format;
 	xr::system::passthrough_type passthrough_supported;
 	xr::passthrough passthrough;
+	XrViewConfigurationView stream_view;
 
 	void update_server_list();
 

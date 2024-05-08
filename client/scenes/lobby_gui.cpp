@@ -363,11 +363,13 @@ void scenes::lobby::gui_settings()
 	{
 		const auto available_scales = {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
 		const auto current = config.resolution_scale;
-		if (ImGui::BeginCombo("Resolution scale", fmt::format("{}", current).c_str()))
+		const auto width = stream_view.recommendedImageRectWidth;
+		const auto height = stream_view.recommendedImageRectHeight;
+		if (ImGui::BeginCombo("Resolution scale", fmt::format("{} - {}x{} per eye", current, (int)(width * current), (int)(height * current)).c_str()))
 		{
 			for (float scale: available_scales)
 			{
-				if (ImGui::Selectable(fmt::format("{}", scale).c_str(), scale == current) and scale != current)
+				if (ImGui::Selectable(fmt::format("{} - {}x{} per eye", scale, (int)(width * scale), (int)(height * scale)).c_str(), scale == current) and scale != current)
 				{
 					config.resolution_scale = scale;
 					config.save();
