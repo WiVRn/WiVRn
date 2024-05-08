@@ -648,6 +648,7 @@ void scenes::lobby::on_focused()
 	recenter_gui = true;
 
 	auto views = system.view_configuration_views(viewconfig);
+	stream_view = override_view(views[0], guess_model());
 	uint32_t width = views[0].recommendedImageRectWidth;
 	uint32_t height = views[0].recommendedImageRectHeight;
 
