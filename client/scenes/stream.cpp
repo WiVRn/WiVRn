@@ -123,6 +123,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	self->network_session->send_control(info);
 
+	self->update_local_floor(self->instance.now());
 	self->network_thread = utils::named_thread("network_thread", &stream::process_packets, self.get());
 
 	self->video_thread = utils::named_thread("video_thread", &stream::video, self.get());
@@ -696,7 +697,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	XrCompositionLayerProjection layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
 	        .layerFlags = 0,
-	        .space = world_space,
+	        .space = local_floor,
 	        .viewCount = (uint32_t)layer_view.size(),
 	        .views = layer_view.data(),
 	};
@@ -948,4 +949,28 @@ scene::meta & scenes::stream::get_meta_scene()
 	        {}};
 
 	return m;
+}
+
+void scenes::stream::update_local_floor(XrTime when)
+{
+	XrReferenceSpaceCreateInfo createInfo{XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
+	createInfo.poseInReferenceSpace.orientation.w = 1.f;
+
+	createInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
+	xr::space local = session.create_reference_space(XR_REFERENCE_SPACE_TYPE_LOCAL);
+	xr::space stage = session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
+
+	XrSpaceLocation location{
+	        .type = XR_TYPE_SPACE_LOCATION,
+	};
+	xrLocateSpace(stage, local, when, &location);
+
+	XrPosef offset{{0, 0, 0, 1}, {0, location.pose.position.y, 0}};
+	std::lock_guard lock(local_floor_mutex);
+	local_floor = session.create_reference_space(XR_REFERENCE_SPACE_TYPE_LOCAL, offset);
+}
+
+void scenes::stream::on_reference_space_changed(XrReferenceSpaceType space, XrTime when)
+{
+	update_local_floor(when);
 }

@@ -1267,7 +1267,7 @@ void application::reference_space_changed(XrReferenceSpaceType referenceSpaceTyp
 {
 	if (std::shared_ptr<scene> s = current_scene())
 	{
-		s->on_reference_space_changed(referenceSpaceType);
+		s->on_reference_space_changed(referenceSpaceType, timestamp);
 	}
 }
 

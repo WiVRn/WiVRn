@@ -75,6 +75,8 @@ private:
 	std::unique_ptr<wivrn_session> network_session;
 	std::atomic<bool> exiting = false;
 	std::thread network_thread;
+	std::mutex local_floor_mutex;
+	xr::space local_floor = nullptr;
 	std::atomic<std::chrono::nanoseconds::rep> tracking_prediction_offset;
 	std::optional<std::thread> tracking_thread;
 	std::thread video_thread;
@@ -220,5 +222,7 @@ private:
 
 	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
 	XrCompositionLayerQuad plot_performance_metrics(XrTime predicted_display_time);
+	void update_local_floor(XrTime when);
+	void on_reference_space_changed(XrReferenceSpaceType space, XrTime) override;
 };
 } // namespace scenes

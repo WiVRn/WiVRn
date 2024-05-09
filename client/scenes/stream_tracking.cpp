@@ -192,9 +192,10 @@ void scenes::stream::tracking()
 					packet.flags = flags;
 
 					packet.device_poses.clear();
+					std::lock_guard lock(local_floor_mutex);
 					for (auto [device, space]: spaces)
 					{
-						packet.device_poses.push_back(locate_space(device, space, world_space, t0 + Δt));
+						packet.device_poses.push_back(locate_space(device, space, local_floor, t0 + Δt));
 					}
 
 					t.pause();
@@ -204,13 +205,13 @@ void scenes::stream::tracking()
 					if (application::get_hand_tracking_supported())
 					{
 						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::left;
-						hands.joints = locate_hands(application::get_left_hand(), world_space, hands.timestamp);
+						hands.joints = locate_hands(application::get_left_hand(), local_floor, hands.timestamp);
 						t.pause();
 						network_session->send_stream(hands);
 						t.resume();
 
 						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::right;
-						hands.joints = locate_hands(application::get_right_hand(), world_space, hands.timestamp);
+						hands.joints = locate_hands(application::get_right_hand(), local_floor, hands.timestamp);
 						t.pause();
 						network_session->send_stream(hands);
 						t.resume();

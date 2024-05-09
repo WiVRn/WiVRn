@@ -105,7 +105,7 @@ public:
 	virtual void on_unfocused();
 	virtual void on_focused();
 	virtual void on_interaction_profile_changed();
-	virtual void on_reference_space_changed(XrReferenceSpaceType space);
+	virtual void on_reference_space_changed(XrReferenceSpaceType space, XrTime);
 	virtual void on_session_state_changed(XrSessionState state);
 };
 

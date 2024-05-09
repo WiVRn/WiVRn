@@ -47,5 +47,5 @@ scene::scene(key, const meta & current_meta) :
 void scene::on_unfocused() {}
 void scene::on_focused() {}
 void scene::on_interaction_profile_changed() {}
-void scene::on_reference_space_changed(XrReferenceSpaceType) {}
+void scene::on_reference_space_changed(XrReferenceSpaceType, XrTime) {}
 void scene::on_session_state_changed(XrSessionState) {}
