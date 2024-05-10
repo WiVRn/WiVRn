@@ -5,7 +5,9 @@ set(KTX_FEATURE_VK_UPLOAD ON)
 set(KTX_FEATURE_GL_UPLOAD OFF)
 set(KTX_FEATURE_LOADTEST_APPS OFF)
 
-FetchContent_MakeAvailable(spdlog glm fastgltf imgui stb libktx implot)
+set(FASTGLTF_COMPILE_AS_CPP20 ON)
+
+FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb libktx implot)
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
@@ -121,7 +123,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb fastgltf_simdjson ktx_read)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb ktx_read)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror
@@ -133,7 +135,7 @@ target_compile_options(wivrn PRIVATE -Wno-missing-field-initializers -Wno-unused
 
 target_include_directories(wivrn PRIVATE .)
 
-target_link_libraries(wivrn wivrn-common wivrn-external)
+target_link_libraries(wivrn simdjson wivrn-common wivrn-external)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/vk_layer_settings.txt

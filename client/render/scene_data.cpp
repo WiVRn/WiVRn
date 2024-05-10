@@ -25,8 +25,8 @@
 #include "utils/ranges.h"
 #include <boost/pfr/core.hpp>
 #include <fastgltf/base64.hpp>
+#include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
-#include <fastgltf/parser.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/util.hpp>
@@ -142,21 +142,7 @@ fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::fi
 	        fastgltf::Options::LoadGLBBuffers |
 	        fastgltf::Options::DecomposeNodeMatrices;
 
-	fastgltf::Expected<fastgltf::Asset> expected_asset{fastgltf::Error::None};
-
-	switch (fastgltf::determineGltfFileType(&buffer))
-	{
-		case fastgltf::GltfType::GLB:
-			expected_asset = parser.loadBinaryGLTF(&buffer, directory, gltf_options);
-			break;
-
-		case fastgltf::GltfType::glTF:
-			expected_asset = parser.loadGLTF(&buffer, directory, gltf_options);
-			break;
-
-		case fastgltf::GltfType::Invalid:
-			throw std::runtime_error("Unrecognized file type");
-	}
+	auto expected_asset = parser.loadGltf(&buffer, directory, gltf_options);
 
 	if (auto error = expected_asset.error(); error != fastgltf::Error::None)
 		throw std::runtime_error(std::string(fastgltf::getErrorMessage(error)));
@@ -462,6 +448,10 @@ public:
 			                          fastgltf::span<const std::byte> data{reinterpret_cast<const std::byte *>(vector.bytes.data()), vector.bytes.size()};
 			                          return {data, vector.mimeType};
 		                          },
+		                          [&](const fastgltf::sources::Array & array) -> return_type {
+			                          fastgltf::span<const std::byte> data{reinterpret_cast<const std::byte *>(array.bytes.data()), array.bytes.size()};
+			                          return {data, array.mimeType};
+		                          },
 		                          [&](const fastgltf::sources::CustomBuffer & custom_buffer) -> return_type {
 			                          throw std::runtime_error("Unimplemented source CustomBuffer");
 			                          // TODO ?
@@ -724,7 +714,7 @@ public:
 				unsorted_objects[child].parent_id = index;
 			}
 
-			auto TRS = std::get<fastgltf::Node::TRS>(gltf_node.transform);
+			auto TRS = std::get<fastgltf::TRS>(gltf_node.transform);
 
 			unsorted_objects[index].position = glm::make_vec3(TRS.translation.data());
 			unsorted_objects[index].orientation = glm::make_quat(TRS.rotation.data());
