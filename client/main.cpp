@@ -52,63 +52,29 @@ void real_main()
 		application app(info);
 
 		std::string server_address = app.get_server_address();
-		if (server_address.empty())
-			app.push_scene<scenes::lobby>();
-		else
+		if (not server_address.empty())
 		{
-			std::unique_ptr<wivrn_session> session;
-
 			auto colon = server_address.rfind(":");
-			int port;
-			if (colon == std::string::npos)
-			{
-				port = xrt::drivers::wivrn::default_port;
-			}
-			else
+			int port = xrt::drivers::wivrn::default_port;
+			if (colon != std::string::npos)
 			{
 				port = std::stoi(server_address.substr(colon + 1));
 				server_address = server_address.substr(0, colon);
 			}
-			struct addrinfo hint
-			{
-				.ai_flags = AI_ADDRCONFIG,
-				.ai_family = AF_UNSPEC,
-				.ai_socktype = SOCK_STREAM,
+			auto & config = application::get_config();
+			config.servers["wivrn://"] = configuration::server_data{
+			        .autoconnect = true,
+			        .manual = true,
+			        .visible = true,
+			        .compatible = true,
+			        .service = {
+			                .name = app.get_server_address(),
+			                .hostname = server_address,
+			                .port = port,
+			        },
 			};
-			struct addrinfo * addresses;
-			if (int err = getaddrinfo(server_address.c_str(), nullptr, &hint, &addresses))
-			{
-				throw std::runtime_error("Unable to resolve address for " + server_address + ":" + gai_strerror(err));
-			}
-			for (addrinfo * addr = addresses; addr and not session; addr = addr->ai_next)
-			{
-				try
-				{
-					char buf[100];
-					switch (addr->ai_family)
-					{
-						case AF_INET:
-							inet_ntop(addr->ai_family, &((sockaddr_in *)addr->ai_addr)->sin_addr, buf, sizeof(buf));
-							spdlog::info("Trying to connect to {} port {}", buf, port);
-							session = std::make_unique<wivrn_session>(((sockaddr_in *)addr->ai_addr)->sin_addr, port);
-							break;
-						case AF_INET6:
-							inet_ntop(addr->ai_family, &((sockaddr_in6 *)addr->ai_addr)->sin6_addr, buf, sizeof(buf));
-							spdlog::info("Trying to connect to {} port {}", buf, port);
-							session = std::make_unique<wivrn_session>(((sockaddr_in6 *)addr->ai_addr)->sin6_addr, port);
-							break;
-					}
-				}
-				catch (std::exception & e)
-				{
-					spdlog::warn("Cannot connect to {}: {}", server_address, e.what());
-				}
-			}
-			freeaddrinfo(addresses);
-			if (not session)
-				throw std::runtime_error("Unable to connect to " + server_address + ":" + std::to_string(port));
-			app.push_scene(scenes::stream::create(std::move(session)));
 		}
+		app.push_scene<scenes::lobby>();
 
 		app.run();
 	}

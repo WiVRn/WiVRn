@@ -515,7 +515,10 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 		for (auto && [cookie, data]: servers)
 		{
 			if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible)
+			{
 				connect(data);
+				break;
+			}
 		}
 	}
 
