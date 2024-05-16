@@ -953,10 +953,6 @@ scene::meta & scenes::stream::get_meta_scene()
 
 void scenes::stream::update_local_floor(XrTime when)
 {
-	XrReferenceSpaceCreateInfo createInfo{XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
-	createInfo.poseInReferenceSpace.orientation.w = 1.f;
-
-	createInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_LOCAL;
 	xr::space local = session.create_reference_space(XR_REFERENCE_SPACE_TYPE_LOCAL);
 	xr::space stage = session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
