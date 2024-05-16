@@ -117,6 +117,11 @@ configuration configuration::read_user_configuration()
 				}
 			}
 		}
+
+		if (json.contains("tcp_only"))
+		{
+			result.tcp_only = json["tcp_only"];
+		}
 	}
 	catch (const std::exception & e)
 	{

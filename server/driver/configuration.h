@@ -45,6 +45,7 @@ struct configuration
 	std::optional<int> bitrate;
 	std::optional<std::array<double, 2>> scale;
 	std::vector<std::string> application;
+	bool tcp_only = false;
 
 	static configuration read_user_configuration();
 };

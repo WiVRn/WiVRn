@@ -146,3 +146,16 @@ An application to start when connection with the headset is established, can be 
 }
 ```
 Launch No Man's Sky in VR mode on Steam when connection with headset is established.
+
+## `tcp_only`
+Default value: `false`
+
+Only use TCP for communications with the client, this may have increased latency.
+If `false` or unset, WiVRn will use both TCP and UDP.
+
+### Example
+```json
+{
+	"tcp_only": true
+}
+```

@@ -18,6 +18,7 @@
  */
 
 #include "wivrn_connection.h"
+#include "configuration.h"
 #include "util/u_logging.h"
 #include <arpa/inet.h>
 #include <poll.h>
@@ -25,7 +26,7 @@
 using namespace std::chrono_literals;
 
 wivrn_connection::wivrn_connection(TCP && tcp) :
-        control(std::move(tcp))
+        control(std::move(tcp)), stream(-1)
 {
 	sockaddr_in6 server_address;
 	socklen_t len = sizeof(server_address);
@@ -45,7 +46,15 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 	// Wait for client to send handshake
 	auto timeout = std::chrono::steady_clock::now() + std::chrono::seconds(10);
 
-	stream.bind(port);
+	if (configuration::read_user_configuration().tcp_only)
+	{
+		port = -1;
+	}
+	else
+	{
+		stream = decltype(stream)();
+		stream.bind(port);
+	}
 
 	control.send(to_headset::handshake{.stream_port = port});
 
