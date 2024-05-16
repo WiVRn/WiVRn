@@ -68,6 +68,11 @@ xrt::drivers::wivrn::UDP::UDP()
 		throw std::system_error{errno, std::generic_category()};
 }
 
+xrt::drivers::wivrn::UDP::UDP(int fd)
+{
+	this->fd = fd;
+}
+
 void xrt::drivers::wivrn::UDP::bind(int port)
 {
 	sockaddr_in6 bind_addr{};

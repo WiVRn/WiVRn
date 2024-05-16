@@ -102,6 +102,7 @@ class UDP : public fd_base
 {
 public:
 	UDP();
+	explicit UDP(int fd);
 
 	deserialization_packet receive_raw();
 	std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();

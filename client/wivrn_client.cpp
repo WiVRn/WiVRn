@@ -39,39 +39,6 @@
 
 using namespace std::chrono_literals;
 
-void wivrn_session::handshake()
-{
-	// Wait for handshake on control socket, then send ours on stream socket
-	pollfd fds{};
-	fds.events = POLLIN;
-	fds.fd = control.get_fd();
-
-	auto timeout = std::chrono::steady_clock::now() + 5s;
-
-	// Loop because TCP socket may return partial data
-	while (std::chrono::steady_clock::now() < timeout)
-	{
-		int r = ::poll(&fds, 1, 5000);
-		if (r < 0)
-			throw std::system_error(errno, std::system_category());
-
-		if (r > 0 && (fds.revents & POLLIN))
-		{
-			auto packet = control.receive();
-			if (not packet)
-				continue;
-			if (std::holds_alternative<to_headset::handshake>(*packet))
-			{
-				return;
-			}
-
-			throw std::runtime_error("Invalid handshake received");
-		}
-	}
-
-	throw std::runtime_error("No handshake received");
-}
-
 namespace
 {
 template <typename T>
@@ -86,27 +53,86 @@ void init_stream(T & stream)
 	{
 		spdlog::warn("Failed to set IP ToS to Expedited Forwarding: {}", e.what());
 	}
-	// If this packet is lost, a tracking packet will do the job to establish the connection
-	stream.send(from_headset::handshake{});
 }
 } // namespace
 
+template <typename T>
+void wivrn_session::handshake(T address)
+{
+	// Wait for handshake on control socket,
+	// then send ours on stream or control socket,
+	// finally wait for second server handshake
+	pollfd fds{};
+	fds.events = POLLIN;
+	fds.fd = control.get_fd();
+
+	auto timeout = std::chrono::steady_clock::now() + 5s;
+
+	// Loop because TCP socket may return partial data
+	while (true)
+	{
+		int r = ::poll(&fds, 1, 5000);
+		if (r < 0)
+			throw std::system_error(errno, std::system_category());
+
+		if (r > 0 && (fds.revents & POLLIN))
+		{
+			auto packet = control.receive();
+			if (not packet)
+				continue;
+			try
+			{
+				auto h = std::get<to_headset::handshake>(*packet);
+				if (h.stream_port > 0)
+				{
+					stream = decltype(stream)();
+					stream.connect(address, h.stream_port);
+					init_stream(stream);
+				}
+				break;
+			}
+			catch (std::exception & e)
+			{
+				spdlog::error("Error when expecting handshake: {}", e.what());
+				throw std::runtime_error("Invalid handshake received");
+			}
+		}
+
+		if (std::chrono::steady_clock::now() >= timeout)
+			throw std::runtime_error("No handshake received");
+	}
+
+	// may be on control socket if forced TCP
+	send_stream(from_headset::handshake{});
+
+	// Wait for second handshake
+	while (true)
+	{
+		if (poll(
+		            [](const auto && packet) { return std::is_same_v<std::remove_cvref_t<decltype(packet)>, to_headset::handshake>; },
+		            std::chrono::milliseconds(100)))
+			return;
+		if (std::chrono::steady_clock::now() >= timeout)
+			throw std::runtime_error("Failed to establish connection");
+
+		// If using stream socket, the handshake might be lost
+		if (stream)
+			stream.send(from_headset::handshake{});
+	}
+}
+
 wivrn_session::wivrn_session(in6_addr address, int port) :
-        control(address, port), stream(), address(address)
+        control(address, port), stream(-1), address(address)
 {
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET6, &address, buffer, sizeof(buffer)), port);
-	handshake();
-	stream.connect(address, port);
-	init_stream(stream);
+	handshake(address);
 }
 
 wivrn_session::wivrn_session(in_addr address, int port) :
-        control(address, port), stream(), address(address)
+        control(address, port), stream(-1), address(address)
 {
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET, &address, buffer, sizeof(buffer)), port);
-	handshake();
-	stream.connect(address, port);
-	init_stream(stream);
+	handshake(address);
 }

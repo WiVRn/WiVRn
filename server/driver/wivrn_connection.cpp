@@ -42,19 +42,19 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 		throw std::system_error(errno, std::system_category(), "Cannot get client address");
 	}
 
-	// Wait for client to send handshake on UDP
+	// Wait for client to send handshake
 	auto timeout = std::chrono::steady_clock::now() + std::chrono::seconds(10);
 
 	stream.bind(port);
 
-	control.send(to_headset::handshake{});
+	control.send(to_headset::handshake{.stream_port = port});
 
 	while (true)
 	{
 		pollfd fds[2] = {};
 		fds[0].events = POLLIN;
 		fds[0].fd = stream.get_fd();
-		fds[1].events = 0; // only check for errors on control socket
+		fds[1].events = POLLIN;
 		fds[1].fd = control.get_fd();
 
 		int r = ::poll(fds, std::size(fds), 1000);
@@ -80,16 +80,37 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 			}
 		}
 
+		if (fds[1].revents & POLLIN)
+		{
+			auto packet = control.receive();
+			if (packet)
+			{
+				if (std::holds_alternative<from_headset::handshake>(*packet))
+				{
+					stream = decltype(stream)(-1);
+					port = -1;
+					U_LOG_I("Using TCP only");
+					break;
+				}
+				else
+				{
+					throw std::runtime_error("Invalid handshake received from client");
+				}
+			}
+		}
+
 		if (std::chrono::steady_clock::now() > timeout)
 		{
-			throw std::runtime_error("No handshake received on stream socket");
+			throw std::runtime_error("No handshake received from client");
 		}
 	}
+	control.send(to_headset::handshake{.stream_port = port});
 
 	try
 	{
 		// Set Expedited forwarding https://datatracker.ietf.org/doc/html/rfc3246
-		stream.set_tos(IPTOS_DSCP_EF);
+		if (stream)
+			stream.set_tos(IPTOS_DSCP_EF);
 	}
 	catch (std::exception & e)
 	{

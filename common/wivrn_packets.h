@@ -111,6 +111,7 @@ struct headset_info_packet
 
 struct handshake
 {
+	// Sending this on TCP means connection will be TCP only
 };
 
 struct tracking
@@ -223,6 +224,8 @@ namespace to_headset
 
 struct handshake
 {
+	// -1 if stream socket should not be used
+	int stream_port;
 };
 
 struct audio_stream_description

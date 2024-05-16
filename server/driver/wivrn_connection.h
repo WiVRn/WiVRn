@@ -44,7 +44,10 @@ public:
 	template <typename T>
 	void send_stream(T && packet)
 	{
-		stream.send(std::forward<T>(packet));
+		if (stream)
+			stream.send(std::forward<T>(packet));
+		else
+			control.send(std::forward<T>(packet));
 	}
 
 	std::optional<from_headset::packets> poll_control(int timeout);

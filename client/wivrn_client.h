@@ -30,7 +30,8 @@ class wivrn_session
 	typed_socket<TCP, to_headset::packets, from_headset::packets> control;
 	typed_socket<UDP, to_headset::packets, from_headset::packets> stream;
 
-	void handshake();
+	template <typename T>
+	void handshake(T address);
 
 public:
 	std::variant<in_addr, in6_addr> address;
@@ -48,7 +49,10 @@ public:
 	template <typename T>
 	void send_stream(T && packet)
 	{
-		stream.send(std::forward<T>(packet));
+		if (stream)
+			stream.send(std::forward<T>(packet));
+		else
+			control.send(std::forward<T>(packet));
 	}
 
 	template <typename T>
