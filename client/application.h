@@ -29,6 +29,9 @@
 #include "vk/vk_allocator.h"
 #include "xr/xr.h"
 #include <atomic>
+#include <boost/locale/generator.hpp>
+#include <boost/locale/gnu_gettext.hpp>
+#include <boost/locale/message.hpp>
 #include <chrono>
 #include <filesystem>
 #include <glm/glm.hpp>
@@ -42,6 +45,10 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <openxr/openxr_reflection.h>
+
+#define _(x) boost::locale::gettext(x)
+#define _F(x) fmt::runtime(boost::locale::gettext(x))
+#define _S(x) boost::locale::gettext(x).c_str()
 
 class scene;
 
@@ -136,6 +143,9 @@ class application : public singleton<application>
 	std::chrono::nanoseconds last_scene_cpu_time;
 
 	std::optional<configuration> config;
+
+	boost::locale::generator gen;
+	boost::locale::gnu_gettext::messages_info messages_info;
 
 	void loop();
 
@@ -413,5 +423,10 @@ public:
 	{
 		assert(instance().config);
 		return *instance().config;
+	}
+
+	static boost::locale::gnu_gettext::messages_info & get_messages_info()
+	{
+		return instance().messages_info;
 	}
 };

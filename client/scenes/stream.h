@@ -185,10 +185,10 @@ private:
 
 	struct plot
 	{
-		const char * title;
+		std::string title;
 		struct subplot
 		{
-			const char * title;
+			std::string title;
 			float scenes::stream::global_metric::*data;
 		};
 		std::vector<subplot> subplots;

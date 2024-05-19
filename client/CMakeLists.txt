@@ -9,6 +9,10 @@ set(FASTGLTF_COMPILE_AS_CPP20 ON)
 
 FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb libktx implot)
 
+if (NOT BOOST_FOUND)
+    FetchContent_MakeAvailable(boost)
+endif()
+
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
 
@@ -123,7 +127,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb ktx_read)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb ktx_read Boost::locale)
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror
@@ -171,3 +175,28 @@ if(USE_ANDROID_VALIDATION_LAYER)
     target_link_libraries(wivrn vvl1 vvl2) # Hack to get gradle to package the validation layer in the APK
 endif()
 
+find_program(GETTEXT_MSGFMT_COMMAND msgfmt REQUIRED)
+
+set(MO_FILES)
+file(GLOB PO_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/locale/*")
+foreach(PO_DIR IN LISTS PO_DIRS)
+    cmake_path(GET PO_DIR FILENAME LANG)
+
+    if(ANDROID)
+        set(MO_DIR  ${CMAKE_ANDROID_ASSETS_DIRECTORIES}/locale/${LANG}/LC_MESSAGES)
+    else()
+        set(MO_DIR  ${CMAKE_CURRENT_BINARY_DIR}/locale/${LANG}/LC_MESSAGES)
+    endif()
+    set(MO_FILE ${MO_DIR}/wivrn.mo)
+    set(PO_FILE ${PO_DIR}/wivrn.po)
+
+    add_custom_command(OUTPUT ${MO_FILE}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${MO_DIR}
+        COMMAND ${GETTEXT_MSGFMT_COMMAND} ${PO_FILE} -o ${MO_FILE}
+        DEPENDS ${PO_FILE})
+    set(MO_FILES ${MO_FILES} ${MO_FILE})
+
+endforeach()
+
+add_custom_target(translations ALL DEPENDS ${MO_FILES})
+add_dependencies(wivrn translations)

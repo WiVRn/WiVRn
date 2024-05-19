@@ -58,15 +58,15 @@ include(VulkanVersion)
 
 if (WIVRN_USE_SYSTEM_BOOST STREQUAL "AUTO")
     if(WIVRN_BUILD_DISSECTOR)
-        find_package(Boost 1.84.0)
+        find_package(Boost 1.84.0 COMPONENTS locale)
     else()
-        find_package(Boost 1.75.0)
+        find_package(Boost 1.75.0 COMPONENTS locale)
     endif()
 elseif(WIVRN_USE_SYSTEM_BOOST STREQUAL "ON")
     if(WIVRN_BUILD_DISSECTOR)
-        find_package(Boost 1.84.0 REQUIRED)
+        find_package(Boost 1.84.0 REQUIRED COMPONENTS locale)
     else()
-        find_package(Boost 1.75.0 REQUIRED)
+        find_package(Boost 1.75.0 REQUIRED COMPONENTS locale)
     endif()
 endif()
 
@@ -164,6 +164,7 @@ endif()
 
 # Common dependencies
 FetchContent_Declare(boostpfr      URL https://github.com/boostorg/pfr/archive/refs/tags/2.2.0.tar.gz)
+FetchContent_Declare(boost         URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz)
 # Client dependencies
 FetchContent_Declare(simdjson      URL https://github.com/simdjson/simdjson/archive/refs/tags/v3.9.3.tar.gz)
 FetchContent_Declare(fastgltf      URL https://github.com/spnda/fastgltf/archive/refs/tags/v0.7.1.tar.gz)

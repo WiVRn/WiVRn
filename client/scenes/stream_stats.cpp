@@ -141,13 +141,13 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 
 	static const std::array plots = {
 	        // clang-format off
-	        plot("CPU time", {{"",          &global_metric::cpu_time}},     "s"),
+	        plot(_("CPU time"), {{"",          &global_metric::cpu_time}},     "s"),
 
-	        plot("GPU time", {{"Reproject", &global_metric::gpu_time},
-		                  {"Blit",      &global_metric::gpu_barrier}},  "s"),
+	        plot(_("GPU time"), {{_("Reproject"), &global_metric::gpu_time},
+		                     {_("Blit"),      &global_metric::gpu_barrier}},  "s"),
 
-	        plot("Network",  {{"Download",  &global_metric::bandwidth_rx},
-	                          {"Upload",    &global_metric::bandwidth_tx}}, "bit/s"),
+	        plot(("Network"),  {{_("Download"),  &global_metric::bandwidth_rx},
+	                            {_("Upload"),    &global_metric::bandwidth_tx}}, "bit/s"),
 	        // clang-format on
 	};
 
@@ -170,7 +170,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 	int n = 0;
 	for (const auto & [title, subplots, unit]: plots)
 	{
-		if (ImPlot::BeginPlot(title, plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(title.c_str(), plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText | ImPlotFlags_NoChild))
 		{
 			float min_v = 0;
 			float max_v = 0;
@@ -202,7 +202,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 				        .count = (int)global_metrics.size(),
 				        .multiplier = multiplier,
 				};
-				ImPlot::PlotLineG(subtitle, getter, &gdata, global_metrics.size(), ImPlotLineFlags_Shaded);
+				ImPlot::PlotLineG(subtitle.c_str(), getter, &gdata, global_metrics.size(), ImPlotLineFlags_Shaded);
 			}
 			ImPlot::EndPlot();
 		}
@@ -213,7 +213,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 
 	for (auto && [index, metrics]: utils::enumerate(decoder_metrics))
 	{
-		std::string title = "Decoder " + std::to_string(index);
+		std::string title = fmt::format(_F("Decoder {}"), std::to_string(index));
 		if (ImPlot::BeginPlot(title.c_str(), plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText | ImPlotFlags_NoChild))
 		{
 			float min_v = 0;
@@ -225,8 +225,8 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			else
 				axis_scale[n] = 0.99 * axis_scale[n] + 0.01 * max_v;
 
-			const char * title_with_units = "Timings [ms]";
-			ImPlot::SetupAxes(nullptr, title_with_units, ImPlotAxisFlags_NoDecorations, 0);
+			std::string title_with_units = _("Timings [ms]");
+			ImPlot::SetupAxes(nullptr, title_with_units.c_str(), ImPlotAxisFlags_NoDecorations, 0);
 			ImPlot::SetupAxesLimits(0, metrics.size() - 1, min_v * 1e3f, axis_scale[n] * 1e3f, ImGuiCond_Always);
 
 			getter_data getter_send_begin{
@@ -286,11 +286,11 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			        .multiplier = 1e3f};
 
 			// clang-format off
-			ImPlot::PlotShadedG("Send",    getter, &getter_send_begin,            getter, &getter_send_end,              metrics.size());
-			ImPlot::PlotShadedG("Receive", getter, &getter_received_first_packet, getter, &getter_received_last_packet,  metrics.size());
-			ImPlot::PlotShadedG("Decode",  getter, &getter_sent_to_decoder,       getter, &getter_received_from_decoder, metrics.size());
-			ImPlot::PlotLineG("Blitted",   getter, &getter_blitted,                                                      metrics.size());
-			ImPlot::PlotLineG("Displayed", getter, &getter_displayed,                                                    metrics.size());
+			ImPlot::PlotShadedG(_S("Send"),    getter, &getter_send_begin,            getter, &getter_send_end,              metrics.size());
+			ImPlot::PlotShadedG(_S("Receive"), getter, &getter_received_first_packet, getter, &getter_received_last_packet,  metrics.size());
+			ImPlot::PlotShadedG(_S("Decode"),  getter, &getter_sent_to_decoder,       getter, &getter_received_from_decoder, metrics.size());
+			ImPlot::PlotLineG(_S("Blitted"),   getter, &getter_blitted,                                                      metrics.size());
+			ImPlot::PlotLineG(_S("Displayed"), getter, &getter_displayed,                                                    metrics.size());
 			// clang-format on
 
 			ImPlot::EndPlot();

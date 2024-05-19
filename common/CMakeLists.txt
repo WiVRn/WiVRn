@@ -1,5 +1,7 @@
 if (BOOST_FOUND)
     add_library(Boost::pfr ALIAS Boost::headers)
+elseif (WIVRN_BUILD_CLIENT)
+    FetchContent_MakeAvailable(boost)
 else()
     FetchContent_MakeAvailable(boostpfr)
 endif()

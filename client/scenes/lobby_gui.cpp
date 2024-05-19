@@ -80,9 +80,9 @@ void scenes::lobby::gui_connecting()
 	if (next_scene)
 	{
 		if (next_scene->current_state() == scenes::stream::state::stalled)
-			status = "Video stream interrupted";
+			status = _("Video stream interrupted");
 		else
-			status = "Waiting for video stream";
+			status = _("Waiting for video stream");
 	}
 	else if (async_session.valid())
 		status = async_session.get_progress();
@@ -97,14 +97,14 @@ void scenes::lobby::gui_connecting()
 	std::string button_label;
 
 	if (async_error)
-		button_label = "Close";
+		button_label = _("Close");
 	else
-		button_label = "Cancel";
+		button_label = _("Cancel");
 
 	ImGui::Dummy({1000, 1});
 
 	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH(fmt::format("Connection to {}", server_name));
+	CenterTextH(fmt::format(_F("Connection to {}"), server_name));
 	ImGui::PopFont();
 
 	// ImGui::TextWrapped("%s", status.first.c_str());
@@ -132,7 +132,7 @@ void scenes::lobby::gui_add_server()
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
-	ImGui::Text("Displayed name");
+	ImGui::Text("%s", _S("Displayed name"));
 
 	static char buf[100];
 	ImGui::TableNextColumn();
@@ -141,7 +141,7 @@ void scenes::lobby::gui_add_server()
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
-	ImGui::Text("Host name");
+	ImGui::Text("%s", _S("Host name"));
 
 	static char buf2[100];
 	ImGui::TableNextColumn();
@@ -150,7 +150,7 @@ void scenes::lobby::gui_add_server()
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
-	ImGui::Text("Port");
+	ImGui::Text("%s", _S("Port"));
 
 	static int port;
 	ImGui::TableNextColumn();
@@ -214,7 +214,7 @@ void scenes::lobby::gui_server_list()
 	{
 		ImGui::PushFont(imgui_ctx->large_font);
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 0.5));
-		CenterTextHV("Start a WiVRn server on your\nlocal network");
+		CenterTextHV(_("Start a WiVRn server on your\nlocal network"));
 		ImGui::PopStyleColor();
 		ImGui::PopFont();
 	}
@@ -243,7 +243,8 @@ void scenes::lobby::gui_server_list()
 		if (!data.manual)
 		{
 			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 50));
-			if (ImGui::Checkbox(("Autoconnect##" + cookie).c_str(), &data.autoconnect))
+			std::string label = _("Autoconnect") + "##" + cookie;
+			if (ImGui::Checkbox(label.c_str(), &data.autoconnect))
 				config.save();
 			vibrate_on_hover();
 		}
@@ -273,7 +274,8 @@ void scenes::lobby::gui_server_list()
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.4f, 0.3f, 1.00f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
 		}
-		if (ImGui::Button(("Connect##" + cookie).c_str(), button_size))
+
+		if (ImGui::Button((_("Connect") + "##" + cookie).c_str(), button_size))
 		{
 			connect(data);
 			ImGui::OpenPopup("connecting");
@@ -283,9 +285,9 @@ void scenes::lobby::gui_server_list()
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 		{
 			if (!data.compatible)
-				ImGui::SetTooltip("Incompatible server version");
+				ImGui::SetTooltip("%s", _S("Incompatible server version"));
 			else if (!data.visible && !data.manual)
-				ImGui::SetTooltip("Server not available");
+				ImGui::SetTooltip("%s", _S("Server not available"));
 		}
 
 		ImGui::PopStyleColor(3);
@@ -299,7 +301,7 @@ void scenes::lobby::gui_server_list()
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
 
-			if (ImGui::Button(("Remove##" + cookie).c_str(), button_size))
+			if (ImGui::Button((_("Remove") + "##" + cookie).c_str(), button_size))
 				cookie_to_remove = cookie;
 			vibrate_on_hover();
 
@@ -343,7 +345,7 @@ void scenes::lobby::gui_settings()
 		float current = session.get_current_refresh_rate();
 		if (not refresh_rates.empty())
 		{
-			if (ImGui::BeginCombo("Refresh rate", fmt::format("{}", current).c_str()))
+			if (ImGui::BeginCombo(_S("Refresh rate"), fmt::format("{}", current).c_str()))
 			{
 				for (float rate: refresh_rates)
 				{
@@ -365,11 +367,11 @@ void scenes::lobby::gui_settings()
 		const auto current = config.resolution_scale;
 		const auto width = stream_view.recommendedImageRectWidth;
 		const auto height = stream_view.recommendedImageRectHeight;
-		if (ImGui::BeginCombo("Resolution scale", fmt::format("{} - {}x{} per eye", current, (int)(width * current), (int)(height * current)).c_str()))
+		if (ImGui::BeginCombo(_S("Resolution scale"), fmt::format(_F("{} - {}x{} per eye"), current, (int)(width * current), (int)(height * current)).c_str()))
 		{
 			for (float scale: available_scales)
 			{
-				if (ImGui::Selectable(fmt::format("{} - {}x{} per eye", scale, (int)(width * scale), (int)(height * scale)).c_str(), scale == current) and scale != current)
+				if (ImGui::Selectable(fmt::format(_F("{} - {}x{} per eye"), scale, (int)(width * scale), (int)(height * scale)).c_str(), scale == current) and scale != current)
 				{
 					config.resolution_scale = scale;
 					config.save();
@@ -380,7 +382,7 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 	}
 
-	if (ImGui::Checkbox("Enable microphone", &config.microphone))
+	if (ImGui::Checkbox(_S("Enable microphone"), &config.microphone))
 	{
 #ifdef __ANDROID__
 		if (config.microphone)
@@ -408,7 +410,7 @@ void scenes::lobby::gui_settings()
 	vibrate_on_hover();
 
 	ImGui::BeginDisabled(passthrough_supported == xr::system::passthrough_type::no_passthrough);
-	if (ImGui::Checkbox("Enable video passthrough in lobby", &config.passthrough_enabled))
+	if (ImGui::Checkbox(_S("Enable video passthrough in lobby"), &config.passthrough_enabled))
 	{
 		setup_passthrough();
 		config.save();
@@ -416,7 +418,7 @@ void scenes::lobby::gui_settings()
 	vibrate_on_hover();
 	ImGui::EndDisabled();
 
-	if (ImGui::Checkbox("Show performance metrics", &config.show_performance_metrics))
+	if (ImGui::Checkbox(_S("Show performance metrics"), &config.show_performance_metrics))
 		config.save();
 	vibrate_on_hover();
 
@@ -448,29 +450,29 @@ void scenes::lobby::gui_settings()
 		ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
 		ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
 
-		if (ImPlot::BeginPlot("CPU time", plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(_S("CPU time"), plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
 		{
 			auto col = ImPlot::GetColormapColor(0);
 
-			ImPlot::SetupAxes(nullptr, "CPU time", ImPlotAxisFlags_NoDecorations, 0);
+			ImPlot::SetupAxes(nullptr, _S("CPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
 			ImPlot::SetupAxesLimits(0, cpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
 			ImPlot::SetNextLineStyle(col);
 			ImPlot::SetNextFillStyle(col, 0.25);
-			ImPlot::PlotLine("CPU time", cpu_time.data(), cpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+			ImPlot::PlotLine(_S("CPU time"), cpu_time.data(), cpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
 			ImPlot::EndPlot();
 		}
 
 		ImGui::SameLine();
 
-		if (ImPlot::BeginPlot("GPU time", plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(_S("GPU time"), plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
 		{
 			auto col = ImPlot::GetColormapColor(1);
 
-			ImPlot::SetupAxes(nullptr, "GPU time [ms]", ImPlotAxisFlags_NoDecorations, 0);
+			ImPlot::SetupAxes(nullptr, _S("GPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
 			ImPlot::SetupAxesLimits(0, gpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
 			ImPlot::SetNextLineStyle(col);
 			ImPlot::SetNextFillStyle(col, 0.25);
-			ImPlot::PlotLine("GPU time", gpu_time.data(), gpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+			ImPlot::PlotLine(_S("GPU time"), gpu_time.data(), gpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
 			ImPlot::EndPlot();
 		}
 		ImPlot::PopStyleColor(5);
@@ -491,7 +493,7 @@ void scenes::lobby::gui_about()
 	ImGui::Image(about_picture, {win_width / 2, win_width / 2});
 }
 
-static bool RadioButtonWithoutCheckBox(const char * label, bool active, ImVec2 size_arg)
+static bool RadioButtonWithoutCheckBox(const std::string & label, bool active, ImVec2 size_arg)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	if (window->SkipItems)
@@ -499,8 +501,8 @@ static bool RadioButtonWithoutCheckBox(const char * label, bool active, ImVec2 s
 
 	ImGuiContext & g = *GImGui;
 	const ImGuiStyle & style = g.Style;
-	const ImGuiID id = window->GetID(label);
-	const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+	const ImGuiID id = window->GetID(label.c_str());
+	const ImVec2 label_size = ImGui::CalcTextSize(label.c_str(), NULL, true);
 
 	const ImVec2 pos = window->DC.CursorPos;
 
@@ -526,14 +528,14 @@ static bool RadioButtonWithoutCheckBox(const char * label, bool active, ImVec2 s
 	ImGui::RenderFrame(bb.Min, bb.Max, ImGui::GetColorU32(col), true, style.FrameRounding);
 
 	ImVec2 TextAlign{0, 0.5f};
-	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label, NULL, &label_size, TextAlign, &bb);
+	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label.c_str(), NULL, &label_size, TextAlign, &bb);
 
-	IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
+	IMGUI_TEST_ENGINE_ITEM_INFO(id, label.c_str(), g.LastItemData.StatusFlags);
 	return pressed;
 }
 
 template <typename T>
-static bool RadioButtonWithoutCheckBox(const char * label, T * v, T v_button, ImVec2 size_arg)
+static bool RadioButtonWithoutCheckBox(const std::string & label, T * v, T v_button, ImVec2 size_arg)
 {
 	const bool pressed = RadioButtonWithoutCheckBox(label, *v == v_button, size_arg);
 	if (pressed)
@@ -629,17 +631,17 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 		ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  Server list", &current_tab, tab::server_list, {TabWidth, 0});
+		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list"), &current_tab, tab::server_list, {TabWidth, 0});
 		vibrate_on_hover();
 
-		RadioButtonWithoutCheckBox(ICON_FA_GEARS "  Settings", &current_tab, tab::settings, {TabWidth, 0});
+		RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});
 		vibrate_on_hover();
 
 		ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 2 * ImGui::GetCurrentContext()->FontSize - 4 * style.FramePadding.y - style.ItemSpacing.y - style.WindowPadding.y);
-		RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  About", &current_tab, tab::about, {TabWidth, 0});
+		RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About"), &current_tab, tab::about, {TabWidth, 0});
 		vibrate_on_hover();
 
-		RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  Exit", &current_tab, tab::exit, {TabWidth, 0});
+		RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Exit"), &current_tab, tab::exit, {TabWidth, 0});
 		vibrate_on_hover();
 
 		ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding

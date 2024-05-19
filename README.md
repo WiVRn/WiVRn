@@ -74,6 +74,7 @@ See [configuration](docs/configuration.md) for configurable items.
 WiVRn uses the following software:
 - [ambientCG](https://ambientcg.com/)
 - [Avahi](https://www.avahi.org/)
+- [Boost.Locale](https://github.com/boostorg/locale)
 - [Boost.PFR](https://github.com/boostorg/pfr)
 - [Dear ImGui](https://github.com/ocornut/imgui)
 - [fastgltf](https://github.com/spnda/fastgltf)

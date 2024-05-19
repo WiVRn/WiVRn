@@ -18,6 +18,7 @@
  */
 
 #include "application.h"
+#include "asset.h"
 #include "openxr/openxr.h"
 #include "scene.h"
 #include "spdlog/common.h"
@@ -31,6 +32,7 @@
 #include "xr/check.h"
 #include "xr/xr.h"
 #include <algorithm>
+#include <boost/locale.hpp>
 #include <chrono>
 #include <ctype.h>
 #include <exception>
@@ -836,6 +838,53 @@ void application::initialize()
 	initialize_actions();
 
 	interaction_profile_changed();
+
+	gen.add_messages_domain("wivrn");
+	std::locale loc = gen("");
+
+#ifdef __ANDROID__
+	jni::klass java_util_Locale("java/util/Locale");
+	auto default_locale = java_util_Locale.call<jni::object<"java/util/Locale">>("getDefault");
+
+	// if (auto language = default_locale.call<jni::string>("toString"))
+	if (auto language = default_locale.call<jni::string>("getLanguage"))
+		messages_info.language = language;
+
+	if (auto country = default_locale.call<jni::string>("getCountry"))
+		messages_info.country = country;
+
+	messages_info.encoding = "UTF-8";
+
+#else
+	auto & facet = std::use_facet<boost::locale::info>(loc);
+	messages_info.language = facet.language();
+	messages_info.country = facet.country();
+	messages_info.encoding = facet.encoding();
+#endif
+
+	spdlog::info("Current locale: language {}, country {}, encoding {}", messages_info.language, messages_info.country, messages_info.encoding);
+
+	messages_info.paths.push_back("locale");
+
+	messages_info.domains.push_back(boost::locale::gnu_gettext::messages_info::domain("wivrn"));
+	messages_info.callback = [](const std::string & file_name, const std::string & encoding) {
+		std::vector<char> buffer;
+		try
+		{
+			asset file(file_name);
+			buffer.resize(file.size());
+			memcpy(buffer.data(), file.data(), file.size());
+		}
+		catch (...)
+		{
+		}
+
+		return buffer;
+	};
+
+	loc = std::locale(loc, boost::locale::gnu_gettext::create_messages_facet<char>(messages_info));
+
+	std::locale::global(loc);
 }
 
 std::pair<XrAction, XrActionType> application::get_action(const std::string & requested_name)

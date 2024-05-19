@@ -29,11 +29,13 @@
 #include "vulkan/vulkan_to_string.hpp"
 #include <algorithm>
 #include <backends/imgui_impl_vulkan.h>
+#include <boost/locale.hpp>
 #include <cmath>
 #include <cstddef>
 #include <glm/gtc/matrix_access.hpp>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <locale>
 #include <optional>
 #include <spdlog/spdlog.h>
 
@@ -103,6 +105,11 @@ static void check_vk_result(VkResult result)
 		abort();
 	}
 }
+
+const std::map<std::string, std::vector<ImWchar>> glyph_ranges_per_language =
+        {
+                {"fr", {0x0020, 0x017f, 0}} // Basic Latin + Latin Supplement + Latin Extended-A
+};
 
 std::optional<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
@@ -266,9 +273,16 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 	asset font_awesome_regular("Font Awesome 6 Free-Regular-400.otf");
 	asset font_awesome_solid("Font Awesome 6 Free-Solid-900.otf");
 	{
+		auto language = application::get_messages_info().language;
+
+		const ImWchar * range = io.Fonts->GetGlyphRangesDefault();
+
+		if (auto it = glyph_ranges_per_language.find(language); it != glyph_ranges_per_language.end())
+			range = it->second.data();
+
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
-		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(roboto.data()), roboto.size(), 30, &config);
+		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(roboto.data()), roboto.size(), 30, &config, range);
 
 		config.MergeMode = true;
 		config.GlyphMinAdvanceX = 40; // Use if you want to make the icon monospaced

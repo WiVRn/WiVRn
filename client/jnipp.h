@@ -76,6 +76,7 @@ struct Void
 		return "V";
 	}
 	constexpr static const auto call_method = &_JNIEnv::CallVoidMethod;
+	constexpr static const auto call_static_method = &_JNIEnv::CallStaticVoidMethod;
 };
 
 namespace details
@@ -166,6 +167,21 @@ struct klass
 		jfieldID id = env.GetStaticFieldID(*this, name.c_str(), T::type().c_str());
 		return T((env.*T::static_field)(*this, id));
 	}
+
+	template <typename R, typename... Args>
+	auto call(const char * method, Args &&... args)
+	{
+		using R1 = details::type_map_t<R>;
+		auto & env = jni_thread::env();
+		std::string signature = "(" + details::build_type(args...) + ")" + R1::type();
+		auto method_id = env.GetStaticMethodID(self.get(), method, signature.c_str());
+		assert(method_id);
+		auto handles = details::handle(std::forward<Args>(args)...);
+		return R(std::apply([&](auto &... t) {
+			return (env.*R1::call_static_method)(*this, method_id, t...);
+		},
+		                    handles));
+	}
 };
 
 struct Bool
@@ -175,6 +191,7 @@ struct Bool
 		return "Z";
 	}
 	constexpr static const auto call_method = &_JNIEnv::CallBooleanMethod;
+	constexpr static const auto call_static_method = &_JNIEnv::CallStaticBooleanMethod;
 
 	bool value;
 
@@ -193,6 +210,7 @@ struct Int
 {
 	constexpr static auto static_field = &_JNIEnv::GetStaticIntField;
 	constexpr static const auto call_method = &_JNIEnv::CallIntMethod;
+	constexpr static const auto call_static_method = &_JNIEnv::CallStaticIntMethod;
 
 	static std::string type()
 	{
@@ -222,6 +240,7 @@ struct object
 	std::unique_ptr<std::remove_pointer_t<jobject>, details::deleter> self;
 
 	constexpr static const auto call_method = &_JNIEnv::CallObjectMethod;
+	constexpr static const auto call_static_method = &_JNIEnv::CallStaticObjectMethod;
 
 	object(jobject o)
 	{

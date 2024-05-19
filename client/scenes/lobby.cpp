@@ -140,7 +140,7 @@ scenes::lobby::lobby()
 	}
 
 	if (swapchain_format == vk::Format::eUndefined)
-		throw std::runtime_error("No supported swapchain format");
+		throw std::runtime_error(_("No supported swapchain format"));
 
 	spdlog::info("Using format {}", vk::to_string(swapchain_format));
 }
@@ -175,10 +175,10 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 
 		auto protocol = service.txt.find("protocol");
 		if (protocol == service.txt.end())
-			throw std::runtime_error("Incompatible WiVRn server: no protocol field in TXT");
+			throw std::runtime_error(_("Incompatible WiVRn server: no protocol field in TXT"));
 
 		if (protocol->second != protocol_string)
-			throw std::runtime_error(fmt::format("Incompatible WiVRn server protocol (client: {}, server: {})", protocol_string, protocol->second));
+			throw std::runtime_error(fmt::format(_F("Incompatible WiVRn server protocol (client: {}, server: {})"), protocol_string, protocol->second));
 	}
 
 	// Only the automatically discovered servers already have their IP addresses available
@@ -193,7 +193,7 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 		if (int err = getaddrinfo(service.hostname.c_str(), nullptr, &hint, &addresses))
 		{
 			spdlog::error("Cannot resolve hostname {}: {}", service.hostname, gai_strerror(err));
-			throw std::runtime_error("Cannot resolve hostname: " + std::string(gai_strerror(err)));
+			throw std::runtime_error(fmt::format(_F("Cannot resolve hostname: {}"), _(gai_strerror(err))));
 		}
 
 		for (auto i = addresses; i; i = i->ai_next)
@@ -231,8 +231,8 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 		}
 		catch (std::exception & e)
 		{
-			std::string txt = fmt::format("Cannot connect to {} ({}): {}", service.hostname, address_string, e.what());
-			spdlog::warn(txt);
+			spdlog::warn("Cannot connect to {} ({}): {}", service.hostname, address_string, e.what());
+			std::string txt = fmt::format(_F("Cannot connect to {} ({}): {}"), service.hostname, address_string, e.what());
 			if (not error.empty())
 				error += "\n";
 			error += txt;
@@ -344,7 +344,7 @@ void scenes::lobby::connect(const configuration::server_data & data)
 
 	async_session = utils::async<std::unique_ptr<wivrn_session>, std::string>(
 	        [](auto token, wivrn_discover::service service, bool manual) {
-		        token.set_progress("Waiting for connection");
+		        token.set_progress(_("Waiting for connection"));
 		        return connect_to_session(service, manual);
 	        },
 	        data.service,

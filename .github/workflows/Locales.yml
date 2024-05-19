@@ -1,0 +1,14 @@
+name: Locales
+on: [push, pull_request]
+jobs:
+  locale-check:
+    name: Locale check
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install gettext
+
+    - name: Check that .po files are up to date
+      run: tools/check_messages.sh
