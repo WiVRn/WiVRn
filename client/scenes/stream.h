@@ -120,9 +120,9 @@ private:
 public:
 	~stream();
 
-	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session);
+	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session, float guessed_fps);
 
-	void render(XrTime predicted_display_time, bool should_render) override;
+	void render(const XrFrameState &) override;
 	void on_focused() override;
 	void on_unfocused() override;
 

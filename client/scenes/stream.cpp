@@ -74,7 +74,7 @@ static const std::array supported_formats =
                 vk::Format::eR8G8B8A8Srgb,
                 vk::Format::eB8G8R8A8Srgb};
 
-std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session)
+std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps)
 {
 	std::shared_ptr<stream> self{new stream};
 	self->network_session = std::move(network_session);
@@ -108,6 +108,12 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	{
 		info.available_refresh_rates = self->session.get_refresh_rates();
 		info.preferred_refresh_rate = self->session.get_current_refresh_rate();
+	}
+
+	if (info.preferred_refresh_rate == 0)
+	{
+		spdlog::warn("Unable to detect preferred refresh rate, using {}", guessed_fps);
+		info.preferred_refresh_rate = guessed_fps;
 	}
 
 	if (info.available_refresh_rates.empty())
@@ -335,20 +341,17 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 	return nullptr;
 }
 
-void scenes::stream::render(XrTime predicted_display_time, bool should_render)
+void scenes::stream::render(const XrFrameState & frame_state)
 {
 	if (exiting)
 		application::pop_scene();
 
 	std::shared_lock lock(decoder_mutex);
-	if (decoders.empty())
-		should_render = false;
-
-	if (!should_render)
+	if (decoders.empty() or not frame_state.shouldRender)
 	{
 		// TODO: stop/restart video stream
 		session.begin_frame();
-		session.end_frame(predicted_display_time, {});
+		session.end_frame(frame_state.predictedDisplayTime, {});
 
 		std::unique_lock lock(decoder_mutex);
 		for (auto & i: decoders)
@@ -527,7 +530,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	{
 		// Search for frame with desired display time on all decoders
 		// If no such frame exists, use the latest frame for each decoder
-		auto common_frame = accumulator_images::common_frame(decoders, predicted_display_time);
+		auto common_frame = accumulator_images::common_frame(decoders, frame_state.predictedDisplayTime);
 
 		// Blit images from the decoders
 		for (auto & i: decoders)
@@ -542,7 +545,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 			if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
 				state_ = stream::state::stalled;
 			++blit_handle->feedback.times_displayed;
-			blit_handle->feedback.displayed = predicted_display_time;
+			blit_handle->feedback.displayed = frame_state.predictedDisplayTime;
 
 			pose = blit_handle->view_info.pose;
 			fov = blit_handle->view_info.fov;
@@ -698,8 +701,8 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	XrCompositionLayerQuad imgui_layer;
 	if (imgui_ctx)
 	{
-		accumulate_metrics(predicted_display_time, current_blit_handles, timestamps);
-		imgui_layer = plot_performance_metrics(predicted_display_time);
+		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
+		imgui_layer = plot_performance_metrics(frame_state.predictedDisplayTime);
 	}
 
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
@@ -707,7 +710,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	if (imgui_ctx)
 		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 
-	session.end_frame(/*timestamp*/ predicted_display_time, layers_base);
+	session.end_frame(frame_state.predictedDisplayTime, layers_base);
 
 	// Network operations may be blocking, do them once everything was submitted
 	for (const auto & handle: current_blit_handles)

@@ -101,7 +101,7 @@ public:
 
 	virtual ~scene();
 
-	virtual void render(XrTime predicted_display_time, bool should_render) = 0;
+	virtual void render(const XrFrameState &) = 0;
 	virtual void on_unfocused();
 	virtual void on_focused();
 	virtual void on_interaction_profile_changed();

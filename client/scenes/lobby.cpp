@@ -478,7 +478,7 @@ template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 } // namespace
 
-void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
+void scenes::lobby::render(const XrFrameState & frame_state)
 {
 	if (async_session.valid() && async_session.poll() == utils::future_status::ready)
 	{
@@ -486,7 +486,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 		{
 			auto session = async_session.get();
 			if (session)
-				next_scene = stream::create(std::move(session));
+				next_scene = stream::create(std::move(session), 1'000'000'000.f / frame_state.predictedDisplayPeriod);
 
 			async_session.reset();
 		}
@@ -522,36 +522,36 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 		}
 	}
 
-	if (!should_render)
+	if (not frame_state.shouldRender)
 	{
 		session.begin_frame();
-		session.end_frame(predicted_display_time, {});
+		session.end_frame(frame_state.predictedDisplayTime, {});
 		return;
 	}
 
 	session.begin_frame();
 
-	auto [flags, views] = session.locate_views(viewconfig, predicted_display_time, world_space);
+	auto [flags, views] = session.locate_views(viewconfig, frame_state.predictedDisplayTime, world_space);
 	assert(views.size() == swapchains_lobby.size());
 
 	bool hide_left_controller = false;
 	bool hide_right_controller = false;
 
-	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::view(), world_space, predicted_display_time);
+	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::view(), world_space, frame_state.predictedDisplayTime);
 	std::optional<glm::vec3> new_gui_position;
 
 	if (head_position)
 		new_gui_position = check_recenter_gui(head_position->first, head_position->second);
 
 	if (!new_gui_position)
-		new_gui_position = check_recenter_action(predicted_display_time);
+		new_gui_position = check_recenter_action(frame_state.predictedDisplayTime);
 
 	if (application::get_hand_tracking_supported())
 	{
 		if (left_hand)
 		{
 			auto & hand = application::get_left_hand();
-			auto joints = hand.locate(world_space, predicted_display_time);
+			auto joints = hand.locate(world_space, frame_state.predictedDisplayTime);
 			left_hand->apply(joints);
 
 			if (joints)
@@ -565,7 +565,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 		if (right_hand)
 		{
 			auto & hand = application::get_right_hand();
-			auto joints = hand.locate(world_space, predicted_display_time);
+			auto joints = hand.locate(world_space, frame_state.predictedDisplayTime);
 			right_hand->apply(joints);
 
 			if (joints)
@@ -577,14 +577,14 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 		}
 	}
 
-	input->apply(world_space, predicted_display_time, hide_left_controller, hide_right_controller);
+	input->apply(world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller);
 
 	if (head_position && new_gui_position)
 	{
 		move_gui(head_position->first, *new_gui_position);
 	}
 
-	XrCompositionLayerQuad imgui_layer = draw_gui(predicted_display_time);
+	XrCompositionLayerQuad imgui_layer = draw_gui(frame_state.predictedDisplayTime);
 
 	assert(renderer);
 	renderer->start_frame();
@@ -643,7 +643,7 @@ void scenes::lobby::render(XrTime predicted_display_time, bool should_render)
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
 
-	session.end_frame(predicted_display_time, layers_base, blend_mode);
+	session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
 }
 
 void scenes::lobby::on_focused()

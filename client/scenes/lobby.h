@@ -127,7 +127,7 @@ public:
 	virtual ~lobby();
 	lobby();
 
-	void render(XrTime predicted_display_time, bool should_render) override;
+	void render(const XrFrameState &) override;
 	void on_unfocused() override;
 	void on_focused() override;
 	void on_session_state_changed(XrSessionState state) override;

@@ -1008,7 +1008,7 @@ void application::loop()
 
 			auto t1 = std::chrono::steady_clock::now();
 
-			scene->render(framestate.predictedDisplayTime, framestate.shouldRender);
+			scene->render(framestate);
 
 			last_scene_cpu_time = std::chrono::steady_clock::now() - t1;
 		}
