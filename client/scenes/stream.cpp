@@ -28,7 +28,6 @@
 #include "spdlog/spdlog.h"
 #include "utils/named_thread.h"
 #include "utils/ranges.h"
-#include "utils/sync_queue.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
 #include "wifi_lock.h"
@@ -78,7 +77,6 @@ static const std::array supported_formats =
 std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session)
 {
 	std::shared_ptr<stream> self{new stream};
-	spdlog::info("decoder_mutex.native_handle() = {}", (void *)self->decoder_mutex.native_handle());
 	self->network_session = std::move(network_session);
 
 	from_headset::headset_info_packet info{};
@@ -125,8 +123,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	self->update_local_floor(self->instance.now());
 	self->network_thread = utils::named_thread("network_thread", &stream::process_packets, self.get());
-
-	self->video_thread = utils::named_thread("video_thread", &stream::video, self.get());
 
 	self->command_buffer = std::move(self->device.allocateCommandBuffers({
 	        .commandPool = *self->commandpool,
@@ -224,9 +220,6 @@ scenes::stream::~stream()
 {
 	exit();
 
-	if (video_thread.joinable())
-		video_thread.join();
-
 	if (tracking_thread && tracking_thread->joinable())
 		tracking_thread->join();
 
@@ -242,7 +235,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		return;
 
 	{
-		std::unique_lock lock(decoder_mutex);
+		std::shared_lock lock(decoder_mutex);
 		for (auto & i: decoders)
 		{
 			if (i.decoder.get() == decoder)
@@ -347,6 +340,7 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	if (exiting)
 		application::pop_scene();
 
+	std::shared_lock lock(decoder_mutex);
 	if (decoders.empty())
 		should_render = false;
 
@@ -531,7 +525,6 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 	std::array<XrPosef, 2> pose{};
 	std::array<XrFovf, 2> fov{};
 	{
-		std::unique_lock lock(decoder_mutex);
 		// Search for frame with desired display time on all decoders
 		// If no such frame exists, use the latest frame for each decoder
 		auto common_frame = accumulator_images::common_frame(decoders, predicted_display_time);
@@ -727,14 +720,12 @@ void scenes::stream::render(XrTime predicted_display_time, bool should_render)
 void scenes::stream::exit()
 {
 	exiting = true;
-	shard_queue.close();
 }
 
 void scenes::stream::setup(const to_headset::video_stream_description & description)
 {
 	std::unique_lock lock(decoder_mutex);
 
-	// FIXME: stop video thread
 	decoders.clear();
 
 	if (description.items.empty())
@@ -908,38 +899,6 @@ void scenes::stream::setup_reprojection_swapchain()
 	}
 
 	reprojector.emplace(device, physical_device, images, swapchain_images, extent, swapchains[0].format(), *video_stream_description);
-}
-
-void scenes::stream::video()
-{
-#ifdef __ANDROID__
-	application::instance().setup_jni();
-#endif
-
-	while (not exiting)
-	{
-		try
-		{
-			auto shard = shard_queue.pop();
-
-			if (shard.stream_item_idx >= decoders.size())
-			{
-				// We don't know (yet?) about this stream, ignore packet
-				return;
-			}
-			auto idx = shard.stream_item_idx;
-			decoders[idx].decoder->push_shard(std::move(shard));
-		}
-		catch (utils::sync_queue_closed &)
-		{
-			break;
-		}
-		catch (std::exception & e)
-		{
-			spdlog::error("Exception in video thread: {}", e.what());
-			exit();
-		}
-	}
 }
 
 scene::meta & scenes::stream::get_meta_scene()

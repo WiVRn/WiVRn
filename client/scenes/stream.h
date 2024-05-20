@@ -24,10 +24,10 @@
 #include "render/imgui_impl.h"
 #include "scene.h"
 #include "stream_reprojection.h"
-#include "utils/sync_queue.h"
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 #include <vulkan/vulkan_core.h>
 
@@ -79,11 +79,8 @@ private:
 	xr::space local_floor = nullptr;
 	std::atomic<std::chrono::nanoseconds::rep> tracking_prediction_offset;
 	std::optional<std::thread> tracking_thread;
-	std::thread video_thread;
 
-	utils::sync_queue<to_headset::video_stream_data_shard> shard_queue;
-
-	std::mutex decoder_mutex;
+	std::shared_mutex decoder_mutex;
 	std::optional<to_headset::video_stream_description> video_stream_description;
 	std::vector<accumulator_images> decoders; // Locked by decoder_mutex
 	vk::raii::DescriptorPool blit_descriptor_pool = nullptr;
@@ -157,7 +154,6 @@ public:
 private:
 	void process_packets();
 	void tracking();
-	void video();
 	void read_actions();
 
 	void setup(const to_headset::video_stream_description &);
