@@ -122,7 +122,7 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 
 	XrInstanceCreateInfo create_info{
 	        .type = XR_TYPE_INSTANCE_CREATE_INFO,
-	        .applicationInfo = {.apiVersion = XR_CURRENT_API_VERSION},
+	        .applicationInfo = {.apiVersion = XR_MAKE_VERSION(1, 0, 0)},
 	        .enabledApiLayerCount = (uint32_t)layers.size(),
 	        .enabledApiLayerNames = layers.data(),
 	        .enabledExtensionCount = (uint32_t)extensions.size(),
