@@ -65,6 +65,7 @@ endif()
 
 
 add_executable(wivrn-server
+		accept_connection.cpp
 		active_runtime.cpp
 		avahi_publisher.cpp
 		hostname.cpp

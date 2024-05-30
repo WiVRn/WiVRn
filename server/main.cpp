@@ -10,24 +10,23 @@
 
 #include "util/u_trace_marker.h"
 
+#include "accept_connection.h"
+#include "active_runtime.h"
 #include "driver/configuration.h"
+#include "pidfd.h"
+#include "version.h"
+#include "wivrn_config.h"
 #include "wivrn_ipc.h"
-#include "wivrn_packets.h"
 #include "wivrn_sockets.h"
+
 #include <iostream>
 #include <memory>
+#include <poll.h>
 #include <sys/signalfd.h>
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "pidfd.h"
-#include "version.h"
-#include "wivrn_config.h"
-
-#include "active_runtime.h"
-#include "avahi_publisher.h"
-#include "hostname.h"
 #include <shared/ipc_protocol.h>
 #include <util/u_file.h>
 
@@ -43,12 +42,6 @@ extern "C"
 using namespace xrt::drivers::wivrn;
 
 std::unique_ptr<TCP> tcp;
-
-void avahi_set_bool_callback(AvahiWatch * w, int fd, AvahiWatchEvent event, void * userdata)
-{
-	bool * flag = (bool *)userdata;
-	*flag = true;
-}
 
 #ifdef WIVRN_USE_SYSTEMD
 std::string socket_path()
@@ -207,29 +200,10 @@ int inner_main(int argc, char * argv[])
 	{
 		try
 		{
-			avahi_publisher publisher(hostname().c_str(), "_wivrn._tcp", default_port, TXT);
-
-			TCPListener listener(default_port);
-			bool client_connected = false;
-			bool sigint_received = false;
-
-			AvahiWatch * watch_listener = publisher.watch_new(listener.get_fd(), AVAHI_WATCH_IN, &avahi_set_bool_callback, &client_connected);
-			AvahiWatch * watch_sigint = publisher.watch_new(sigint_fd, AVAHI_WATCH_IN, &avahi_set_bool_callback, &sigint_received);
-
-			while (publisher.iterate() && !client_connected && !sigint_received)
-				;
-
-			publisher.watch_free(watch_listener);
-			publisher.watch_free(watch_sigint);
-
-			if (client_connected)
-			{
-				tcp = std::make_unique<TCP>(listener.accept().first);
-
+			tcp = accept_connection(sigint_fd);
+			if (tcp)
 				init_cleanup_functions();
-			}
-
-			if (sigint_received)
+			else
 				break;
 		}
 		catch (std::exception & e)
