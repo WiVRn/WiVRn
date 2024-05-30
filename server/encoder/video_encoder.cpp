@@ -166,7 +166,14 @@ void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 			}
 		}
 		shard.payload = {begin, next};
-		cnx->send_stream(shard);
+		try
+		{
+			cnx->send_stream(shard);
+		}
+		catch (...)
+		{
+			// Ignore network errors
+		}
 		++shard.shard_idx;
 		shard.flags = 0;
 		shard.view_info.reset();

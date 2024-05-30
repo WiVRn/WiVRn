@@ -345,7 +345,7 @@ struct pulse_device : public audio_device
 		}
 		catch (const std::exception & e)
 		{
-			U_LOG_E("Error in audio thread: %s", e.what());
+			U_LOG_D("Error in audio thread: %s", e.what());
 		}
 	}
 

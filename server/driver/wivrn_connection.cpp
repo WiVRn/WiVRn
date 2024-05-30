@@ -28,6 +28,14 @@ using namespace std::chrono_literals;
 wivrn_connection::wivrn_connection(TCP && tcp) :
         control(std::move(tcp)), stream(-1)
 {
+	init();
+}
+
+void wivrn_connection::init()
+{
+	active = false;
+	stream = -1;
+
 	sockaddr_in6 server_address;
 	socklen_t len = sizeof(server_address);
 	if (getsockname(control.get_fd(), (sockaddr *)&server_address, &len) < 0)
@@ -125,6 +133,13 @@ wivrn_connection::wivrn_connection(TCP && tcp) :
 	{
 		U_LOG_I("Failed to set IP ToS to Expedited Forwarding: %s", e.what());
 	}
+	active = true;
+}
+
+void wivrn_connection::reset(TCP && tcp)
+{
+	control = std::move(tcp);
+	init();
 }
 
 std::optional<from_headset::packets> wivrn_connection::poll_control(int timeout)

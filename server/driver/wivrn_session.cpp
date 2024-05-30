@@ -19,6 +19,7 @@
 
 #include "wivrn_session.h"
 
+#include "accept_connection.h"
 #include "main/comp_main_interface.h"
 #include "main/comp_target.h"
 #include "util/u_builders.h"
@@ -279,10 +280,35 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			auto self = weak_self.lock();
 			if (self)
 			{
-				self->quit = true;
-				exit(0);
+				self->connection.deactivate();
+				U_LOG_I("Waiting for new connection");
+				auto tcp = accept_connection(0 /*stdin*/);
+				if (not tcp)
+				{
+					self->quit = true;
+					exit(0);
+				}
+				try
+				{
+					self->offset_est.reset();
+					self->connection.reset(std::move(*tcp));
+					std::optional<xrt::drivers::wivrn::from_headset::packets> control;
+					while (not(control = self->connection.poll_control(-1)))
+					{
+						// FIXME: timeout
+					}
+					const auto & info = std::get<from_headset::headset_info_packet>(*control);
+					// FIXME: ensure new client is compatible
+
+					self->comp_target->reset_encoders();
+					if (self->audio_handle)
+						self->send_control(self->audio_handle->description());
+				}
+				catch (const std::exception & e)
+				{
+					U_LOG_E("Reconnection failed: %s", e.what());
+				}
 			}
-			return;
 		}
 	}
 }

@@ -283,7 +283,7 @@ void pipewire_device::speaker_process(void * self_v)
 	}
 	catch (std::exception & e)
 	{
-		U_LOG_W("Failed to send audio data: %s", e.what());
+		U_LOG_D("Failed to send audio data: %s", e.what());
 	}
 	pw_stream_queue_buffer(self->speaker.get(), buffer);
 }

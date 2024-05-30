@@ -30,21 +30,31 @@ class wivrn_connection
 {
 	typed_socket<TCP, from_headset::packets, to_headset::packets> control;
 	typed_socket<UDP, from_headset::packets, to_headset::packets> stream;
+	std::atomic<bool> active = false;
+
+	void init();
 
 public:
 	wivrn_connection(TCP && tcp);
 	wivrn_connection(const wivrn_connection &) = delete;
 	wivrn_connection & operator=(const wivrn_connection &) = delete;
 
+	void deactivate()
+	{
+		active = false;
+	}
+	void reset(TCP && tcp);
+
 	template <typename T>
 	void send_control(T && packet)
 	{
-		control.send(std::forward<T>(packet));
+		if (active)
+			control.send(std::forward<T>(packet));
 	}
 	template <typename T>
 	void send_stream(T && packet)
 	{
-		if (stream)
+		if (active and stream)
 			stream.send(std::forward<T>(packet));
 		else
 			control.send(std::forward<T>(packet));

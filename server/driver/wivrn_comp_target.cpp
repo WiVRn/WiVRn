@@ -124,7 +124,7 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 	assert(cn->encoder_threads.empty());
 	assert(cn->wivrn_bundle);
 
-	to_headset::video_stream_description desc{};
+	auto & desc = cn->desc;
 	desc.width = cn->width;
 	desc.height = cn->height;
 	desc.fps = cn->fps;
@@ -647,6 +647,15 @@ void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, con
 			return;
 		encoders[feedback.stream_index]->SyncNeeded();
 	}
+}
+
+void wivrn_comp_target::reset_encoders()
+{
+	for (auto & encoder: encoders)
+	{
+		encoder->SyncNeeded();
+	}
+	cnx->send_control(desc);
 }
 
 wivrn_comp_target::wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps) :

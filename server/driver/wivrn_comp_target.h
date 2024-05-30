@@ -92,6 +92,7 @@ struct wivrn_comp_target : public comp_target
 			os_thread_helper_destroy(&thread);
 		}
 	};
+	to_headset::video_stream_description desc{};
 	std::list<encoder_thread> encoder_threads;
 	std::vector<std::shared_ptr<VideoEncoder>> encoders;
 
@@ -101,6 +102,7 @@ struct wivrn_comp_target : public comp_target
 	~wivrn_comp_target();
 
 	void on_feedback(const from_headset::feedback &, const clock_offset &);
+	void reset_encoders();
 };
 
 } // namespace xrt::drivers::wivrn

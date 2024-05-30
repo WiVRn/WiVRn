@@ -36,6 +36,7 @@ extern "C"
 #include <libavcodec/avcodec.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/hwcontext_drm.h>
+#include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 }
 
@@ -180,18 +181,20 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 
 	AVDictionary * opts = nullptr;
 	av_dict_set(&opts, "async_depth", "1", 0);
-	for (auto option: settings.options)
-	{
-		av_dict_set(&opts, option.first.c_str(), option.second.c_str(), 0);
-	}
 	switch (settings.codec)
 	{
 		case Codec::h264:
-			encoder_ctx->profile = FF_PROFILE_H264_MAIN;
+			encoder_ctx->profile = FF_PROFILE_H264_CONSTRAINED_BASELINE;
+			av_dict_set(&opts, "coder", "cavlc", 0);
+			av_dict_set(&opts, "rc_mode", "CBR", 0);
 			break;
 		case Codec::h265:
 			encoder_ctx->profile = FF_PROFILE_HEVC_MAIN;
 			break;
+	}
+	for (auto option: settings.options)
+	{
+		av_dict_set(&opts, option.first.c_str(), option.second.c_str(), 0);
 	}
 
 	encoder_ctx->width = settings.video_width;

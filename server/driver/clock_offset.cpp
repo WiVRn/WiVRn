@@ -25,6 +25,16 @@
 
 static const size_t num_samples = 100;
 
+void clock_offset_estimator::reset()
+{
+	std::lock_guard lock(mutex);
+	sample_index = 0;
+	samples.clear();
+	offset = clock_offset();
+	next_sample = {};
+	sample_interval = std::chrono::milliseconds(10);
+}
+
 void clock_offset_estimator::request_sample(wivrn_connection & connection)
 {
 	if (std::chrono::steady_clock::now() < next_sample)
