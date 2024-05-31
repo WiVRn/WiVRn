@@ -463,6 +463,10 @@ static void * comp_wivrn_present_thread(void * void_param)
 				encoder->Encode(*cn->cnx, psc_image.view_info, psc_image.frame_index);
 			}
 		}
+		catch (std::exception & e)
+		{
+			U_LOG_W("encode error: %s", e.what());
+		}
 		catch (...)
 		{
 			// Ignore errors
@@ -643,6 +647,8 @@ static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, uint6
 
 void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, const clock_offset & o)
 {
+	if (not o)
+		return;
 	pacer.on_feedback(feedback, o);
 	if (not feedback.sent_to_decoder)
 	{
@@ -654,6 +660,7 @@ void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, con
 
 void wivrn_comp_target::reset_encoders()
 {
+	pacer.reset();
 	for (auto & encoder: encoders)
 	{
 		encoder->SyncNeeded();

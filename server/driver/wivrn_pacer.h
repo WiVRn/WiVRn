@@ -35,8 +35,8 @@ class wivrn_pacer
 	uint64_t next_frame_ns;
 	uint64_t frame_duration_ns;
 
-	uint64_t mean_wake_up_to_present_ns = 0;
-	uint64_t mean_present_to_display_ns = 0;
+	uint64_t mean_wake_up_to_present_ns;
+	uint64_t mean_present_to_display_ns;
 
 	uint64_t last_wake_up_ns = 0;
 
@@ -60,7 +60,9 @@ class wivrn_pacer
 public:
 	wivrn_pacer(uint64_t frame_duration) :
 	        next_frame_ns(0),
-	        frame_duration_ns(frame_duration)
+	        frame_duration_ns(frame_duration),
+	        mean_wake_up_to_present_ns(1'000'000),
+	        mean_present_to_display_ns(frame_duration)
 	{}
 
 	void set_stream_count(size_t count);
@@ -77,4 +79,6 @@ public:
 	        comp_target_timing_point point,
 	        int64_t frame_id,
 	        uint64_t when_ns);
+
+	void reset();
 };

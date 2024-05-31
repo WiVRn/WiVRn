@@ -44,13 +44,10 @@ void wivrn_pacer::predict(
 	std::lock_guard lock(mutex);
 	auto now = os_monotonic_get_ns();
 
-	if (next_frame_ns == 0)
+	if (next_frame_ns < now)
 		next_frame_ns = now;
 
 	next_frame_ns += frame_duration_ns;
-
-	if (next_frame_ns < now)
-		next_frame_ns = now;
 
 	out_wake_up_time_ns = next_frame_ns;
 	out_desired_present_time_ns = out_wake_up_time_ns + mean_wake_up_to_present_ns;
@@ -135,7 +132,9 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 		auto & when = in_flight_frames[feedback.frame_index % in_flight_frames.size()];
 		if (when.frame_id == feedback.frame_index)
 		{
-			mean_present_to_display_ns = std::lerp(mean_present_to_display_ns, offset.from_headset(feedback.displayed) - when.present_ns, 0.1);
+			auto displayed = offset.from_headset(feedback.displayed);
+			if (displayed > when.present_ns)
+				mean_present_to_display_ns = std::lerp(mean_present_to_display_ns, displayed - when.present_ns, 0.1);
 			when.frame_id = 0;
 		}
 	}
@@ -166,4 +165,15 @@ void wivrn_pacer::mark_timing_point(
 			mean_wake_up_to_present_ns = std::lerp(mean_wake_up_to_present_ns, when_ns - last_wake_up_ns, 0.1);
 			in_flight_frames[frame_id % in_flight_frames.size()] = {.frame_id = uint64_t(frame_id), .present_ns = when_ns};
 	}
+}
+
+void wivrn_pacer::reset()
+{
+	std::lock_guard lock(mutex);
+	for (auto & stream: streams)
+	{
+		stream.times.clear();
+		stream.next_times_index = 0;
+	}
+	in_flight_frames = {};
 }

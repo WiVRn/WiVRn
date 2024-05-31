@@ -36,7 +36,7 @@ struct clock_offset
 	int64_t b = 0;
 	double a = 1;
 
-	operator bool()
+	operator bool() const
 	{
 		return b != 0;
 	}
