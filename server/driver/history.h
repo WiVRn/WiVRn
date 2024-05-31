@@ -80,6 +80,13 @@ public:
 			return {};
 		}
 
+		if (at_timestamp_ns - data.back().at_timestamp_ns > 1'000'000'000)
+		{
+			// stale data
+			data.clear();
+			return {};
+		}
+
 		if (data.size() == 1)
 		{
 			return {ex, data.front()};
