@@ -31,6 +31,7 @@
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
 
+#include "xrt/xrt_session.h"
 #include <cmath>
 #include <vulkan/vulkan.h>
 
@@ -84,8 +85,8 @@ void xrt::drivers::wivrn::max_accumulator::send(wivrn_connection & connection)
 	next_sample += std::chrono::seconds(1);
 }
 
-xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp) :
-        connection(std::move(tcp))
+xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, xrt_session_event_sink & sink) :
+        connection(std::move(tcp)), event_sink(sink)
 {
 }
 
@@ -99,7 +100,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	std::optional<xrt::drivers::wivrn::from_headset::packets> control;
 	try
 	{
-		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp)));
+		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp), event_sink));
 		while (not(control = self->connection.poll_control(-1)))
 		{
 			// FIXME: timeout
@@ -281,6 +282,18 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			if (self)
 			{
 				self->connection.deactivate();
+				xrt_session_event event{
+				        .state = {
+				                .type = XRT_SESSION_EVENT_STATE_CHANGE,
+				                .visible = false,
+				                .focused = false,
+				        },
+				};
+				auto result = xrt_session_event_sink_push(&self->event_sink, &event);
+				if (result != XRT_SUCCESS)
+				{
+					U_LOG_W("Failed to notify session state change");
+				}
 				U_LOG_I("Waiting for new connection");
 				auto tcp = accept_connection(0 /*stdin*/);
 				if (not tcp)
@@ -303,6 +316,14 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 					self->comp_target->reset_encoders();
 					if (self->audio_handle)
 						self->send_control(self->audio_handle->description());
+
+					event.state.visible = true;
+					event.state.focused = true;
+					result = xrt_session_event_sink_push(&self->event_sink, &event);
+					if (result != XRT_SUCCESS)
+					{
+						U_LOG_W("Failed to notify session state change");
+					}
 				}
 				catch (const std::exception & e)
 				{

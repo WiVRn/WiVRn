@@ -67,6 +67,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 {
 	friend wivrn_comp_target_factory;
 	wivrn_connection connection;
+	xrt_session_event_sink & event_sink;
 
 	std::atomic<bool> quit = false;
 	std::thread thread;
@@ -86,11 +87,11 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 
 	std::shared_ptr<audio_device> audio_handle;
 
-	wivrn_session(TCP && tcp);
+	wivrn_session(TCP && tcp, xrt_session_event_sink &);
 
 public:
 	static xrt_result_t create_session(TCP && tcp,
-	                                   xrt_session_event_sink & event_synk,
+	                                   xrt_session_event_sink & event_sink,
 	                                   xrt_system_devices ** out_xsysd,
 	                                   xrt_space_overseer ** out_xspovrs,
 	                                   xrt_system_compositor ** out_xsysc);
