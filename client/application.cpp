@@ -520,9 +520,11 @@ void application::initialize_vulkan()
 	                .ppEnabledExtensionNames = device_extensions.data(),
 	                .pEnabledFeatures = &device_features,
 	        },
+#ifdef __ANDROID__
 	        vk::PhysicalDeviceSamplerYcbcrConversionFeaturesKHR{
 	                .samplerYcbcrConversion = VK_TRUE,
 	        },
+#endif
 	};
 
 	vk_device = xr_system_id.create_device(vk_physical_device, device_create_info.get());
