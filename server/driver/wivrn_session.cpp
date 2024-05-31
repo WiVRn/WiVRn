@@ -192,6 +192,11 @@ clock_offset wivrn_session::get_offset()
 	return offset_est.get_offset();
 }
 
+bool wivrn_session::connected()
+{
+	return connection.is_active();
+}
+
 void wivrn_session::operator()(from_headset::headset_info_packet &&)
 {
 	U_LOG_W("unexpected headset info packet, ignoring");
@@ -281,7 +286,6 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			auto self = weak_self.lock();
 			if (self)
 			{
-				self->connection.deactivate();
 				xrt_session_event event{
 				        .state = {
 				                .type = XRT_SESSION_EVENT_STATE_CHANGE,

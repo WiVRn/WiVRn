@@ -260,6 +260,9 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 static bool comp_wivrn_check_ready(struct comp_target * ct)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+	if (not cn->cnx->connected())
+		return false;
+
 	// This function is called before on each frame before reprojection
 	// hijack it so that we can dynamically change ATW
 	cn->c->debug.atw_off = true;

@@ -39,25 +39,41 @@ public:
 	wivrn_connection(const wivrn_connection &) = delete;
 	wivrn_connection & operator=(const wivrn_connection &) = delete;
 
-	void deactivate()
+	bool is_active()
 	{
-		active = false;
+		return active;
 	}
 	void reset(TCP && tcp);
 
 	template <typename T>
 	void send_control(T && packet)
 	{
-		if (active)
-			control.send(std::forward<T>(packet));
+		try
+		{
+			if (active)
+				control.send(std::forward<T>(packet));
+		}
+		catch (...)
+		{
+			active = false;
+			throw;
+		}
 	}
 	template <typename T>
 	void send_stream(T && packet)
 	{
-		if (active and stream)
-			stream.send(std::forward<T>(packet));
-		else
-			control.send(std::forward<T>(packet));
+		try
+		{
+			if (active and stream)
+				stream.send(std::forward<T>(packet));
+			else
+				control.send(std::forward<T>(packet));
+		}
+		catch (...)
+		{
+			active = false;
+			throw;
+		}
 	}
 
 	std::optional<from_headset::packets> poll_control(int timeout);

@@ -97,6 +97,7 @@ public:
 	                                   xrt_system_compositor ** out_xsysc);
 
 	clock_offset get_offset();
+	bool connected();
 
 	void add_predict_offset(std::chrono::nanoseconds off)
 	{
