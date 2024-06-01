@@ -22,7 +22,7 @@
 #include "clock_offset.h"
 #include "wivrn_connection.h"
 #include "wivrn_packets.h"
-#include "xrt/xrt_system.h"
+#include "xrt/xrt_results.h"
 #include <atomic>
 #include <fstream>
 #include <memory>
@@ -33,7 +33,7 @@ class wivrn_hmd;
 class wivrn_controller;
 struct audio_device;
 
-struct xrt_session_event_sink;
+struct u_system;
 struct xrt_system_devices;
 struct xrt_space_overseer;
 struct xrt_system_compositor;
@@ -67,7 +67,8 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 {
 	friend wivrn_comp_target_factory;
 	wivrn_connection connection;
-	xrt_session_event_sink & event_sink;
+
+	u_system & xrt_system;
 
 	std::atomic<bool> quit = false;
 	std::thread thread;
@@ -87,11 +88,11 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 
 	std::shared_ptr<audio_device> audio_handle;
 
-	wivrn_session(TCP && tcp, xrt_session_event_sink &);
+	wivrn_session(TCP && tcp, u_system &);
 
 public:
 	static xrt_result_t create_session(TCP && tcp,
-	                                   xrt_session_event_sink & event_sink,
+	                                   u_system & system,
 	                                   xrt_system_devices ** out_xsysd,
 	                                   xrt_space_overseer ** out_xspovrs,
 	                                   xrt_system_compositor ** out_xsysc);
@@ -131,6 +132,7 @@ public:
 
 private:
 	static void run(std::weak_ptr<wivrn_session>);
+	void reconnect();
 };
 
 } // namespace xrt::drivers::wivrn

@@ -24,7 +24,9 @@
 #include "main/comp_target.h"
 #include "util/u_builders.h"
 #include "util/u_logging.h"
+#include "util/u_system.h"
 #include "util/u_system_helpers.h"
+#include "utils/scoped_lock.h"
 
 #include "audio/audio_setup.h"
 #include "wivrn_comp_target.h"
@@ -85,13 +87,13 @@ void xrt::drivers::wivrn::max_accumulator::send(wivrn_connection & connection)
 	next_sample += std::chrono::seconds(1);
 }
 
-xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, xrt_session_event_sink & sink) :
-        connection(std::move(tcp)), event_sink(sink)
+xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, u_system & system) :
+        connection(std::move(tcp)), xrt_system(system)
 {
 }
 
 xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp,
-                                                                xrt_session_event_sink & event_sink,
+                                                                u_system & system,
                                                                 xrt_system_devices ** out_xsysd,
                                                                 xrt_space_overseer ** out_xspovrs,
                                                                 xrt_system_compositor ** out_xsysc)
@@ -100,7 +102,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	std::optional<xrt::drivers::wivrn::from_headset::packets> control;
 	try
 	{
-		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp), event_sink));
+		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp), system));
 		while (not(control = self->connection.poll_control(-1)))
 		{
 			// FIXME: timeout
@@ -164,7 +166,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	}
 
 	u_builder_create_space_overseer_legacy(
-	        &event_sink,
+	        &self->xrt_system.broadcast,
 	        self->hmd.get(),
 	        self->left_hand.get(),
 	        self->right_hand.get(),
@@ -285,55 +287,7 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			U_LOG_E("Exception in network thread: %s", e.what());
 			auto self = weak_self.lock();
 			if (self)
-			{
-				xrt_session_event event{
-				        .state = {
-				                .type = XRT_SESSION_EVENT_STATE_CHANGE,
-				                .visible = false,
-				                .focused = false,
-				        },
-				};
-				auto result = xrt_session_event_sink_push(&self->event_sink, &event);
-				if (result != XRT_SUCCESS)
-				{
-					U_LOG_W("Failed to notify session state change");
-				}
-				U_LOG_I("Waiting for new connection");
-				auto tcp = accept_connection(0 /*stdin*/);
-				if (not tcp)
-				{
-					self->quit = true;
-					exit(0);
-				}
-				try
-				{
-					self->offset_est.reset();
-					self->connection.reset(std::move(*tcp));
-					std::optional<xrt::drivers::wivrn::from_headset::packets> control;
-					while (not(control = self->connection.poll_control(-1)))
-					{
-						// FIXME: timeout
-					}
-					const auto & info = std::get<from_headset::headset_info_packet>(*control);
-					// FIXME: ensure new client is compatible
-
-					self->comp_target->reset_encoders();
-					if (self->audio_handle)
-						self->send_control(self->audio_handle->description());
-
-					event.state.visible = true;
-					event.state.focused = true;
-					result = xrt_session_event_sink_push(&self->event_sink, &event);
-					if (result != XRT_SUCCESS)
-					{
-						U_LOG_W("Failed to notify session state change");
-					}
-				}
-				catch (const std::exception & e)
-				{
-					U_LOG_E("Reconnection failed: %s", e.what());
-				}
-			}
+				self->reconnect();
 		}
 	}
 }
@@ -349,5 +303,67 @@ void wivrn_session::dump_time(const std::string & event, uint64_t frame, uint64_
 	{
 		std::lock_guard lock(csv_mutex);
 		feedback_csv << std::quoted(event) << "," << frame << "," << time << "," << (int)stream << extra << std::endl;
+	}
+}
+
+static bool quit_if_no_client(u_system & xrt_system)
+{
+	scoped_lock lock(xrt_system.sessions.mutex);
+	if (xrt_system.sessions.count == 0)
+	{
+		U_LOG_I("No OpenXR client connected, exiting");
+		exit(0);
+	}
+	return false;
+}
+
+void wivrn_session::reconnect()
+{
+	// Notify clients about disconnected status
+	xrt_session_event event{
+	        .state = {
+	                .type = XRT_SESSION_EVENT_STATE_CHANGE,
+	                .visible = false,
+	                .focused = false,
+	        },
+	};
+	auto result = xrt_session_event_sink_push(&xrt_system.broadcast, &event);
+	if (result != XRT_SUCCESS)
+	{
+		U_LOG_W("Failed to notify session state change");
+	}
+
+	U_LOG_I("Waiting for new connection");
+	auto tcp = accept_connection(0 /*stdin*/, [this]() { return quit_if_no_client(xrt_system); });
+	if (not tcp)
+		exit(0);
+
+	try
+	{
+		offset_est.reset();
+		connection.reset(std::move(*tcp));
+		std::optional<xrt::drivers::wivrn::from_headset::packets> control;
+		while (not(control = connection.poll_control(-1)))
+		{
+			// FIXME: timeout
+		}
+		const auto & info = std::get<from_headset::headset_info_packet>(*control);
+		// FIXME: ensure new client is compatible
+
+		comp_target->reset_encoders();
+		if (audio_handle)
+			send_control(audio_handle->description());
+
+		event.state.visible = true;
+		event.state.focused = true;
+		result = xrt_session_event_sink_push(&xrt_system.broadcast, &event);
+		if (result != XRT_SUCCESS)
+		{
+			U_LOG_W("Failed to notify session state change");
+		}
+	}
+	catch (const std::exception & e)
+	{
+		U_LOG_E("Reconnection failed: %s", e.what());
 	}
 }

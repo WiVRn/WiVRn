@@ -35,7 +35,7 @@ static void avahi_set_bool_callback(AvahiWatch * w, int fd, AvahiWatchEvent even
 	*flag = true;
 }
 
-std::unique_ptr<xrt::drivers::wivrn::TCP> accept_connection(int watch_fd)
+std::unique_ptr<xrt::drivers::wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit)
 {
 	char protocol_string[17];
 	sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
@@ -55,8 +55,11 @@ std::unique_ptr<xrt::drivers::wivrn::TCP> accept_connection(int watch_fd)
 	AvahiWatch * watch_listener = publisher.watch_new(listener.get_fd(), AVAHI_WATCH_IN, &avahi_set_bool_callback, &client_connected);
 	AvahiWatch * watch_user = publisher.watch_new(watch_fd, AVAHI_WATCH_IN, &avahi_set_bool_callback, &fd_triggered);
 
-	while (publisher.iterate() && !client_connected && !fd_triggered)
-		;
+	while (not(client_connected or fd_triggered or (quit and quit())))
+	{
+		if (not publisher.iterate(quit ? 100 : -1))
+			break;
+	}
 
 	publisher.watch_free(watch_listener);
 	publisher.watch_free(watch_user);

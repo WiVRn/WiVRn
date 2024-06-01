@@ -19,8 +19,20 @@
 
 #pragma once
 
-#include <functional>
-#include <memory>
-#include <wivrn_sockets.h>
+#include "os/os_threading.h"
 
-std::unique_ptr<xrt::drivers::wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit = std::function<bool()>());
+class scoped_lock
+{
+	os_mutex & mutex;
+
+public:
+	scoped_lock(os_mutex & mutex) :
+	        mutex(mutex)
+	{
+		os_mutex_lock(&mutex);
+	}
+	~scoped_lock()
+	{
+		os_mutex_unlock(&mutex);
+	}
+};

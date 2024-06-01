@@ -21,6 +21,7 @@
 #include "encoder/video_encoder.h"
 #include "main/comp_compositor.h"
 #include "math/m_space.h"
+#include "utils/scoped_lock.h"
 #include "xrt_cast.h"
 #include <condition_variable>
 #include <list>
@@ -88,25 +89,6 @@ static void destroy_images(struct wivrn_comp_target * cn)
 
 	target_fini_semaphores(cn);
 }
-
-namespace
-{
-class scoped_lock
-{
-	os_mutex & mutex;
-
-public:
-	scoped_lock(os_mutex & mutex) :
-	        mutex(mutex)
-	{
-		os_mutex_lock(&mutex);
-	}
-	~scoped_lock()
-	{
-		os_mutex_unlock(&mutex);
-	}
-};
-}; // namespace
 
 struct encoder_thread_param
 {

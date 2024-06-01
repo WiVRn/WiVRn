@@ -43,7 +43,7 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	struct xrt_system_compositor * xsysc = NULL;
 	auto res = xrt::drivers::wivrn::wivrn_session::create_session(
 	        std::move(*tcp),
-	        u_sys->broadcast,
+	        *u_sys,
 	        out_xsysd,
 	        out_xspovrs,
 	        out_xsysc);
