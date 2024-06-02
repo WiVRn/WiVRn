@@ -430,7 +430,7 @@ void application::initialize_vulkan()
 	        .applicationVersion = (uint32_t)app_info.version,
 	        .pEngineName = engine_name,
 	        .engineVersion = engine_version,
-	        .apiVersion = VK_MAKE_API_VERSION(0, VK_VERSION_MAJOR(vulkan_version), VK_VERSION_MINOR(vulkan_version), 0),
+	        .apiVersion = VK_MAKE_API_VERSION(0, XR_VERSION_MAJOR(vulkan_version), XR_VERSION_MINOR(vulkan_version), 0),
 	};
 
 	vk::InstanceCreateInfo instance_create_info{
