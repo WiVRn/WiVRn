@@ -177,7 +177,7 @@ FetchContent_Declare(implot        URL https://github.com/epezent/implot/archive
 # Server dependencies
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
-    GIT_TAG          ffb71af26f8349952f5f820c268ee4774613e200
+    GIT_TAG          9f4f2541a672152c4d0255f48bf4298b8888cd63
     PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${CMAKE_CURRENT_LIST_DIR}/patches/monado/
     )
 
