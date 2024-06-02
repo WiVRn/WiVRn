@@ -226,6 +226,7 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	foveated_eye_height += foveated_eye_height % 2;
 
 	// Setup info.
+	hmd->view_count = 2;
 	hmd->blend_modes[0] = XRT_BLEND_MODE_OPAQUE;
 	hmd->blend_mode_count = 1;
 	hmd->distortion.models = XRT_DISTORTION_MODEL_COMPUTE;

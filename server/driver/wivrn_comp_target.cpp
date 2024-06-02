@@ -267,7 +267,7 @@ static bool comp_wivrn_check_ready(struct comp_target * ct)
 	{
 		const auto & slot = cn->c->base.slot;
 		if (slot.layer_count > 1 or
-		    slot.layers[0].data.type != XRT_LAYER_STEREO_PROJECTION)
+		    slot.layers[0].data.type != XRT_LAYER_PROJECTION)
 		{
 			// We are not in the trivial single stereo projection layer
 			// reprojection must be done
@@ -545,8 +545,8 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		view_info.pose[eye] = xrt_cast(slot.poses[eye]);
 		if (cn->c->debug.atw_off)
 		{
-			const auto & stereo = slot.layers[0].data.stereo;
-			view_info.pose[eye] = xrt_cast(eye ? stereo.r.pose : stereo.l.pose);
+			const auto & proj = slot.layers[0].data.proj;
+			view_info.pose[eye] = xrt_cast(proj.v[eye].pose);
 		}
 		else
 		{
