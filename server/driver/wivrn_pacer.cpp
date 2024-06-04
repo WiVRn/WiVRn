@@ -44,10 +44,10 @@ void wivrn_pacer::predict(
 	std::lock_guard lock(mutex);
 	auto now = os_monotonic_get_ns();
 
+	next_frame_ns += frame_duration_ns;
+
 	if (next_frame_ns < now)
 		next_frame_ns = now;
-
-	next_frame_ns += frame_duration_ns;
 
 	out_wake_up_time_ns = next_frame_ns;
 	out_desired_present_time_ns = out_wake_up_time_ns + mean_wake_up_to_present_ns;
