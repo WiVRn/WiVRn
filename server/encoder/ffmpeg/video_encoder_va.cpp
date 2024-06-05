@@ -279,7 +279,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 		                .mipLevels = 1,
 		                .arrayLayers = 1,
 		                .samples = vk::SampleCountFlagBits::e1,
-		                .tiling = has_modifiers ? vk::ImageTiling::eDrmFormatModifierEXT : (desc->objects[0].format_modifier == DRM_FORMAT_MOD_LINEAR ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal),
+		                .tiling = has_modifiers ? vk::ImageTiling::eDrmFormatModifierEXT : ((desc->objects[0].format_modifier == DRM_FORMAT_MOD_LINEAR || desc->objects[0].format_modifier == DRM_FORMAT_MOD_INVALID) ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal),
 		                .usage = vk::ImageUsageFlagBits::eTransferDst,
 		                .sharingMode = vk::SharingMode::eExclusive,
 		                .initialLayout = vk::ImageLayout::eUndefined,
@@ -341,6 +341,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 				                .pNext = signal_p ? &plane_info.back() : nullptr,
 				                .image = *((i == 0) ? luma : chroma),
 				                .memory = *mem[desc->layers[i].planes[j].object_index],
+				                .memoryOffset = has_modifiers ? 0 : (vk::DeviceSize)desc->layers[i].planes[j].offset,
 				        });
 			}
 		}
