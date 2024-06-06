@@ -214,16 +214,6 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 
 	auto eye_width = info.recommended_eye_width;
 	auto eye_height = info.recommended_eye_height;
-	auto scale = config.scale.value_or(std::array<double, 2>{0.8, 0.8});
-	int foveated_eye_width = info.recommended_eye_width * scale[0];
-	if (foveated_eye_width > 2048 and not config.scale)
-	{
-		scale[1] = scale[0] = 2048. / info.recommended_eye_width;
-		U_LOG_I("Encoded video would be %d wide, setting scale to %f", 2 * foveated_eye_width, scale[0]);
-		foveated_eye_width = info.recommended_eye_width * scale[0];
-	}
-	int foveated_eye_height = info.recommended_eye_height * scale[1];
-	foveated_eye_height += foveated_eye_height % 2;
 
 	// Setup info.
 	hmd->view_count = 2;
@@ -231,62 +221,23 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	hmd->blend_mode_count = 1;
 	hmd->distortion.models = XRT_DISTORTION_MODEL_COMPUTE;
 	hmd->distortion.preferred = XRT_DISTORTION_MODEL_COMPUTE;
-	hmd->screens[0].w_pixels = foveated_eye_width * 2;
-	hmd->screens[0].h_pixels = foveated_eye_height;
+	hmd->screens[0].w_pixels = eye_width * 2;
+	hmd->screens[0].h_pixels = eye_height;
 	hmd->screens[0].nominal_frame_interval_ns = 1000000000 / info.preferred_refresh_rate;
 
 	// Left
 	hmd->views[0].display.w_pixels = eye_width;
 	hmd->views[0].display.h_pixels = eye_height;
-	hmd->views[0].viewport.x_pixels = 0;
-	hmd->views[0].viewport.y_pixels = 0;
-	hmd->views[0].viewport.w_pixels = foveated_eye_width;
-	hmd->views[0].viewport.h_pixels = foveated_eye_height;
 	hmd->views[0].rot = u_device_rotation_ident;
 
 	// Right
 	hmd->views[1].display.w_pixels = eye_width;
 	hmd->views[1].display.h_pixels = eye_height;
-	hmd->views[1].viewport.x_pixels = foveated_eye_width;
-	hmd->views[1].viewport.y_pixels = 0;
-	hmd->views[1].viewport.w_pixels = foveated_eye_width;
-	hmd->views[1].viewport.h_pixels = foveated_eye_height;
 	hmd->views[1].rot = u_device_rotation_ident;
 
 	// FOV from headset info packet
 	hmd->distortion.fov[0] = xrt_cast(info.fov[0]);
 	hmd->distortion.fov[1] = xrt_cast(info.fov[1]);
-
-	for (int i = 0; i < 2; ++i)
-	{
-		foveation_parameters[i].x.scale = scale[0];
-		foveation_parameters[i].y.scale = scale[1];
-		const auto & view = hmd->views[i];
-		const auto & fov = hmd->distortion.fov[i];
-		float l = tan(fov.angle_left);
-		float r = tan(fov.angle_right);
-		float t = tan(fov.angle_up);
-		float b = tan(fov.angle_down);
-		if (scale[0] < 1)
-		{
-			float cu = (r + l) / (l - r);
-			foveation_parameters[i].x.center = cu;
-
-			std::tie(foveation_parameters[i].x.a, foveation_parameters[i].x.b) = solve_foveation(scale[0], cu);
-		}
-
-		if (scale[1] < 1)
-		{
-			float cv = (t + b) / (t - b);
-			foveation_parameters[i].y.center = cv;
-
-			std::tie(foveation_parameters[i].y.a, foveation_parameters[i].y.b) = solve_foveation(scale[1], cv);
-		}
-	}
-
-	// Distortion information
-	compute_distortion = wivrn_hmd_compute_distortion;
-	u_distortion_mesh_fill_in_compute(this);
 }
 
 void wivrn_hmd::update_inputs()
@@ -345,6 +296,58 @@ void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
 		out_fovs[eye] = view.fovs[eye];
 		out_poses[eye] = view.poses[eye];
 	}
+}
+
+decltype(wivrn_hmd::foveation_parameters) wivrn_hmd::set_foveated_size(uint32_t width, uint32_t height)
+{
+	assert(width % 2 == 0);
+	uint32_t eye_width = width / 2;
+	std::array<double, 2> scale{
+	        double(eye_width) / hmd->views[0].display.w_pixels,
+	        double(height) / hmd->views[0].display.h_pixels,
+	};
+
+	hmd->screens[0].w_pixels = width;
+	hmd->screens[0].h_pixels = height;
+
+	for (int i = 0; i < 2; ++i)
+	{
+		auto & view = hmd->views[i];
+		view.viewport.x_pixels = i * eye_width;
+		view.viewport.y_pixels = 0;
+
+		view.viewport.w_pixels = eye_width;
+		view.viewport.h_pixels = height;
+
+		foveation_parameters[i].x.scale = scale[0];
+		foveation_parameters[i].y.scale = scale[1];
+
+		const auto & fov = hmd->distortion.fov[i];
+		float l = tan(fov.angle_left);
+		float r = tan(fov.angle_right);
+		float t = tan(fov.angle_up);
+		float b = tan(fov.angle_down);
+		if (scale[0] < 1)
+		{
+			float cu = (r + l) / (l - r);
+			foveation_parameters[i].x.center = cu;
+
+			std::tie(foveation_parameters[i].x.a, foveation_parameters[i].x.b) = solve_foveation(scale[0], cu);
+		}
+
+		if (scale[1] < 1)
+		{
+			float cv = (t + b) / (t - b);
+			foveation_parameters[i].y.center = cv;
+
+			std::tie(foveation_parameters[i].y.a, foveation_parameters[i].y.b) = solve_foveation(scale[1], cv);
+		}
+	}
+
+	// Distortion information
+	compute_distortion = wivrn_hmd_compute_distortion;
+	u_distortion_mesh_fill_in_compute(this);
+	return foveation_parameters;
 }
 
 /*

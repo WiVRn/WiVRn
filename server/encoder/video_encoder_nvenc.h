@@ -20,6 +20,7 @@
 #pragma once
 
 #include "video_encoder.h"
+#include <array>
 #include <ffnvcodec/dynlink_cuda.h>
 #include <ffnvcodec/dynlink_loader.h>
 #include <ffnvcodec/nvEncodeAPI.h>
@@ -30,11 +31,14 @@ namespace xrt::drivers::wivrn
 
 class VideoEncoderNvenc : public VideoEncoder
 {
+public:
 	struct deleter
 	{
 		void operator()(CudaFunctions * fn);
 		void operator()(NvencFunctions * fn);
 	};
+
+private:
 	wivrn_vk_bundle & vk;
 	// relevant part of the input image to encode
 	vk::Rect2D rect;
@@ -43,7 +47,7 @@ class VideoEncoderNvenc : public VideoEncoder
 	std::unique_ptr<NvencFunctions, deleter> nvenc_fn;
 	NV_ENCODE_API_FUNCTION_LIST fn;
 	CUcontext cuda;
-	void * session_handle;
+	void * session_handle = nullptr;
 	NV_ENC_OUTPUT_PTR bitstreamBuffer;
 
 	vk::raii::Buffer yuv_buffer = nullptr;
@@ -53,16 +57,19 @@ class VideoEncoderNvenc : public VideoEncoder
 	vk::Image luma;
 	vk::Image chroma;
 	CUdeviceptr frame;
-	size_t pitch;
+	uint32_t pitch;
 	NV_ENC_REGISTERED_PTR nvenc_resource;
 	float fps;
 	int bitrate;
 
 public:
 	VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_settings & settings, float fps);
+	~VideoEncoderNvenc();
 
 	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;
 	void Encode(bool idr, std::chrono::steady_clock::time_point pts) override;
+
+	static std::array<int, 2> get_max_size(video_codec);
 };
 
 } // namespace xrt::drivers::wivrn

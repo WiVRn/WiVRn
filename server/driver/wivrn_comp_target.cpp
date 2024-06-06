@@ -23,8 +23,6 @@
 #include "math/m_space.h"
 #include "utils/scoped_lock.h"
 #include "xrt_cast.h"
-#include <condition_variable>
-#include <list>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
@@ -99,7 +97,7 @@ struct encoder_thread_param
 
 static void * comp_wivrn_present_thread(void * void_param);
 
-static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings> & _settings)
+static void create_encoders(wivrn_comp_target * cn)
 {
 	auto vk = get_vk(cn);
 	assert(cn->encoders.empty());
@@ -109,12 +107,11 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 	auto & desc = cn->desc;
 	desc.width = cn->width;
 	desc.height = cn->height;
-	desc.fps = cn->fps;
-	desc.foveation = cn->cnx->get_foveation_parameters();
+	desc.foveation = cn->cnx->set_foveated_size(desc.width, desc.height);
 
 	std::map<int, encoder_thread_param> thread_params;
 
-	for (auto & settings: _settings)
+	for (auto & settings: cn->settings)
 	{
 		uint8_t stream_index = cn->encoders.size();
 		auto & encoder = cn->encoders.emplace_back(
@@ -139,7 +136,7 @@ static void create_encoders(wivrn_comp_target * cn, std::vector<encoder_settings
 	cn->cnx->send_control(desc);
 }
 
-static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags flags, const std::vector<xrt::drivers::wivrn::encoder_settings> & settings)
+static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags flags)
 {
 	auto vk = get_vk(cn);
 	assert(cn->image_count > 0);
@@ -230,13 +227,24 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 		                .queueFamilyIndex = vk->queue_family_index,
 		        });
-		return true;
 	}
 	catch (std::exception & e)
 	{
 		U_LOG_E("Compositor target init failed: %s", e.what());
+		return false;
 	}
-	return false;
+
+	try
+	{
+		cn->settings = get_encoder_settings(*cn->wivrn_bundle->physical_device, cn->c->settings.preferred.width, cn->c->settings.preferred.height);
+		print_encoders(cn->settings);
+	}
+	catch (const std::exception & e)
+	{
+		U_LOG_E("Failed to create video encoder: %s", e.what());
+		return false;
+	}
+	return true;
 }
 
 static bool comp_wivrn_check_ready(struct comp_target * ct)
@@ -323,31 +331,16 @@ static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_
 	ct->surface_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
 
 	cn->image_count = 3;
-	cn->format = ct->format;
-	cn->width = create_info->extent.width;
-	cn->height = create_info->extent.height;
 	cn->color_space = create_info->color_space;
 
-	auto settings = get_encoder_settings(*cn->wivrn_bundle->physical_device, cn->width, cn->height);
-
-	VkResult res = create_images(cn, vk::ImageUsageFlags(create_info->image_usage), settings);
+	VkResult res = create_images(cn, vk::ImageUsageFlags(create_info->image_usage));
 	if (res != VK_SUCCESS)
 	{
 		vk_print_result(get_vk(cn), __FILE__, __LINE__, __func__, res, "create_images");
 		// TODO
 		abort();
 	}
-
-	try
-	{
-		print_encoders(settings);
-		create_encoders(cn, settings);
-	}
-	catch (const std::exception & e)
-	{
-		U_LOG_E("Failed to create video encoder: %s", e.what());
-		abort();
-	}
+	create_encoders(cn);
 }
 
 static bool comp_wivrn_has_images(struct comp_target * ct)
@@ -670,5 +663,6 @@ wivrn_comp_target::wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_
 	set_title = comp_wivrn_set_title;
 	flush = comp_wivrn_flush;
 	this->fps = fps;
+	desc.fps = fps;
 	this->c = c;
 }

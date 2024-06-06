@@ -126,7 +126,7 @@ public:
 		connection.send_control(std::forward<T>(packet));
 	}
 
-	std::array<to_headset::video_stream_description::foveation_parameter, 2> get_foveation_parameters();
+	std::array<to_headset::video_stream_description::foveation_parameter, 2> set_foveated_size(uint32_t width, uint32_t height);
 
 	void dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream = -1, const char * extra = "");
 

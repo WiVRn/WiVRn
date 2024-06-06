@@ -29,6 +29,7 @@
 #include "vk/allocation.h"
 
 #include "driver/wivrn_pacer.h"
+#include "encoder/encoder_settings.h"
 #include <condition_variable>
 #include <list>
 #include <memory>
@@ -92,6 +93,7 @@ struct wivrn_comp_target : public comp_target
 			os_thread_helper_destroy(&thread);
 		}
 	};
+	std::vector<encoder_settings> settings;
 	to_headset::video_stream_description desc{};
 	std::list<encoder_thread> encoder_threads;
 	std::vector<std::shared_ptr<VideoEncoder>> encoders;

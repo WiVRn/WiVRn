@@ -25,6 +25,7 @@
 #include "view_list.h"
 #include "wivrn_session.h"
 
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -66,8 +67,5 @@ public:
 
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 
-	const auto & get_foveation_parameters()
-	{
-		return foveation_parameters;
-	}
+	decltype(foveation_parameters) set_foveated_size(uint32_t width, uint32_t height);
 };

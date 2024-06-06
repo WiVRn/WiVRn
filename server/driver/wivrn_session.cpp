@@ -292,9 +292,9 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 	}
 }
 
-std::array<to_headset::video_stream_description::foveation_parameter, 2> wivrn_session::get_foveation_parameters()
+std::array<to_headset::video_stream_description::foveation_parameter, 2> wivrn_session::set_foveated_size(uint32_t width, uint32_t height)
 {
-	return hmd->get_foveation_parameters();
+	return hmd->set_foveated_size(width, height);
 }
 
 void wivrn_session::dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream, const char * extra)
