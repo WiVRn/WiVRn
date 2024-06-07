@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "asset.h"
 #include "configuration.h"
 #include "render/scene_data.h"
 #include "scene.h"
@@ -73,6 +74,7 @@ class lobby : public scene_impl<lobby>
 	std::array<XrAction, 2> haptic_output;
 
 	std::string selected_item;
+	std::unique_ptr<asset> license;
 	ImGuiID hovered_item;
 
 	std::vector<xr::swapchain> swapchains_lobby;
@@ -99,6 +101,7 @@ class lobby : public scene_impl<lobby>
 		new_server,
 		settings,
 		about,
+		licenses,
 		exit
 	};
 
@@ -111,6 +114,7 @@ class lobby : public scene_impl<lobby>
 	void gui_add_server();
 	void gui_settings();
 	void gui_about();
+	void gui_licenses();
 	void gui_keyboard(ImVec2 size);
 
 	void setup_passthrough();

@@ -20,6 +20,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "application.h"
+#include "asset.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "implot.h"
@@ -493,6 +494,50 @@ void scenes::lobby::gui_about()
 	ImGui::Image(about_picture, {win_width / 2, win_width / 2});
 }
 
+void scenes::lobby::gui_licenses()
+{
+	ImGui::PushFont(imgui_ctx->large_font);
+	ImGui::Text("%s", _("Licenses").c_str());
+	ImGui::PopFont();
+
+	const auto components = {"WiVRn", "openxr-loader", "simdjson"};
+	if (not license)
+	{
+		selected_item = *components.begin();
+		try
+		{
+			license = std::make_unique<asset>(std::filesystem::path("licenses") / selected_item);
+		}
+		catch (...)
+		{
+			spdlog::warn("No license file for {}", selected_item);
+		}
+	}
+	if (ImGui::BeginCombo("", selected_item.c_str()))
+	{
+		for (const auto & component: components)
+		{
+			try
+			{
+				auto current = std::make_unique<asset>(std::filesystem::path("licenses") / component);
+				if (ImGui::Selectable(component, component == selected_item))
+				{
+					selected_item = component;
+					license = std::move(current);
+				}
+			}
+			catch (...)
+			{
+				spdlog::debug("No license file for {}", component);
+			}
+		}
+		ImGui::EndCombo();
+	}
+	vibrate_on_hover();
+	if (license)
+		ImGui::TextUnformatted((const char *)license->data(), (const char *)license->data() + license->size());
+}
+
 static bool RadioButtonWithoutCheckBox(const std::string & label, bool active, ImVec2 size_arg)
 {
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
@@ -605,6 +650,10 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 				gui_about();
 				break;
 
+			case tab::licenses:
+				gui_licenses();
+				break;
+
 			case tab::exit:
 				application::pop_scene();
 				break;
@@ -637,8 +686,11 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 		RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});
 		vibrate_on_hover();
 
-		ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 2 * ImGui::GetCurrentContext()->FontSize - 4 * style.FramePadding.y - style.ItemSpacing.y - style.WindowPadding.y);
+		ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 3 * ImGui::GetCurrentContext()->FontSize - 6 * style.FramePadding.y - 2 * style.ItemSpacing.y - style.WindowPadding.y);
 		RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About"), &current_tab, tab::about, {TabWidth, 0});
+		vibrate_on_hover();
+
+		RadioButtonWithoutCheckBox(ICON_FA_SCALE_BALANCED "  " + _("Licenses"), &current_tab, tab::licenses, {TabWidth, 0});
 		vibrate_on_hover();
 
 		RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Exit"), &current_tab, tab::exit, {TabWidth, 0});

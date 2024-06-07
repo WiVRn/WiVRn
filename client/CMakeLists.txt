@@ -206,3 +206,18 @@ endforeach()
 
 add_custom_target(translations ALL DEPENDS ${MO_FILES})
 add_dependencies(wivrn translations)
+
+if(ANDROID)
+    set(LICENSES_DIR "${CMAKE_ANDROID_ASSETS_DIRECTORIES}/licenses")
+else()
+    set(LICENSES_DIR "licenses")
+endif()
+
+file(MAKE_DIRECTORY "${LICENSES_DIR}")
+file(COPY_FILE "${CMAKE_SOURCE_DIR}/COPYING" "${LICENSES_DIR}/WiVRn")
+file(COPY_FILE "${simdjson_SOURCE_DIR}/LICENSE" "${LICENSES_DIR}/simdjson")
+if (OPENXR_SOURCE_DIR)
+    file(COPY_FILE "${OPENXR_SOURCE_DIR}/LICENSE" "${LICENSES_DIR}/openxr-loader")
+endif()
+
+install(DIRECTORY "${LICENSES_DIR}" DESTINATION "${CMAKE_INSTALL_DATADIR}/wivrn")
