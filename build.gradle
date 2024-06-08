@@ -72,7 +72,15 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_TOOLCHAIN=clang', '-DANDROID_STL=c++_static', '-DCMAKE_ANDROID_NDK_VERSION=' + ndkVersion, '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DWIVRN_USE_SYSTEM_FREETYPE=OFF', '-DWIVRN_BUILD_CLIENT=ON', '-DWIVRN_BUILD_SERVER=OFF', '-DWIVRN_WERROR=ON'
+                arguments '-DANDROID_TOOLCHAIN=clang',
+                          '-DANDROID_STL=c++_static',
+                          '-DCMAKE_ANDROID_NDK_VERSION=' + ndkVersion,
+                          '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON',
+                          '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+                          '-DWIVRN_USE_SYSTEM_FREETYPE=OFF',
+                          '-DWIVRN_BUILD_CLIENT=ON',
+                          '-DWIVRN_BUILD_SERVER=OFF',
+                          '-DWIVRN_WERROR=ON'
                 resValue "string", "app_name", "WiVRn"
             }
         }
@@ -139,7 +147,7 @@ android {
             manifest.srcFile 'AndroidManifest.xml'
             res.srcDirs = [ 'resources', layout.buildDirectory.dir('generated_resources') ]
 
-            assets.srcDir 'assets'
+            assets.srcDirs 'assets'
         }
     }
 
@@ -152,5 +160,20 @@ android {
 
     applicationVariants.all { variant ->
         tasks["assemble${variant.name.capitalize()}"].finalizedBy "generatePngs"
+        tasks["assemble${variant.name.capitalize()}"].dependsOn "externalNativeBuild${variant.name.capitalize()}"
+    }
+
+    productFlavors.all { variant ->
+        sourceSets {
+            "${variant.name}" {
+                assets.srcDirs layout.buildDirectory.dir("assets${variant.name.capitalize()}")
+            }
+        }
+
+        externalNativeBuild{
+            cmake {
+                arguments '-DCMAKE_ANDROID_ASSETS_DIRECTORIES=' + layout.buildDirectory.dir("assets${variant.name.capitalize()}").get().asFile
+            }
+        }
     }
 }
