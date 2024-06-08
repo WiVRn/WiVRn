@@ -139,6 +139,10 @@ target_compile_options(wivrn PRIVATE -Wno-missing-field-initializers -Wno-unused
 
 target_include_directories(wivrn PRIVATE .)
 
+if(NOT ANDROID)
+    install(TARGETS wivrn)
+endif()
+
 target_link_libraries(wivrn simdjson wivrn-common wivrn-external)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -195,6 +199,8 @@ foreach(PO_DIR IN LISTS PO_DIRS)
         COMMAND ${GETTEXT_MSGFMT_COMMAND} ${PO_FILE} -o ${MO_FILE}
         DEPENDS ${PO_FILE})
     set(MO_FILES ${MO_FILES} ${MO_FILE})
+
+    install(FILES ${MO_FILE} DESTINATION ${CMAKE_INSTALL_DATADIR}/locale/${LANG}/LC_MESSAGES)
 
 endforeach()
 

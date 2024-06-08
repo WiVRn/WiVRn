@@ -35,6 +35,7 @@ class asset
 	std::span<const std::byte> bytes;
 #else
 	static std::filesystem::path asset_root();
+	static std::filesystem::path locale_root();
 	std::vector<std::byte> bytes;
 #endif
 

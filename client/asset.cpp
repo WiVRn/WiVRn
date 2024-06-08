@@ -58,21 +58,39 @@ asset::~asset()
 
 #else
 
+static std::filesystem::path get_exe_path()
+{
+	// Linux only: see https://stackoverflow.com/a/1024937
+	return std::filesystem::read_symlink("/proc/self/exe");
+}
+
 static std::filesystem::path get_asset_root()
 {
 	const char * path = std::getenv("WIVRN_ASSET_ROOT");
 	if (path && strcmp(path, ""))
 		return path;
 
-	// Linux only: see https://stackoverflow.com/a/1024937
-	auto exe = std::filesystem::read_symlink("/proc/self/exe");
+	return get_exe_path().parent_path().parent_path() / "share" / "wivrn" / "assets";
+}
 
-	return exe.parent_path().parent_path() / "share" / "wivrn" / "assets";
+static std::filesystem::path get_locale_root()
+{
+	const char * path = std::getenv("WIVRN_LOCALE_ROOT");
+	if (path && strcmp(path, ""))
+		return path;
+
+	return get_exe_path().parent_path().parent_path() / "share" / "locale";
 }
 
 std::filesystem::path asset::asset_root()
 {
 	static std::filesystem::path root = get_asset_root();
+	return root;
+}
+
+std::filesystem::path asset::locale_root()
+{
+	static std::filesystem::path root = get_locale_root();
 	return root;
 }
 
@@ -85,7 +103,14 @@ asset::asset(const std::filesystem::path & path)
 
 	spdlog::debug("Loading file asset {}", path.string());
 
-	bytes = utils::read_whole_file<std::byte>(asset_root() / path);
+	if (path.native().starts_with("locale/"))
+	{
+		bytes = utils::read_whole_file<std::byte>(locale_root() / path.native().substr(7));
+	}
+	else
+	{
+		bytes = utils::read_whole_file<std::byte>(asset_root() / path);
+	}
 }
 
 #endif
