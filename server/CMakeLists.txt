@@ -54,15 +54,7 @@ set(XRT_IPC_MSG_SOCK_FILENAME     "wivrn_comp_ipc" CACHE STRING "Service socket 
 set(XRT_IPC_SERVICE_PID_FILENAME  "wivrn.pid"      CACHE STRING "Service pidfile filename")
 set(XRT_OXR_RUNTIME_SUFFIX        "wivrn"          CACHE STRING "OpenXR client library suffix")
 
-FetchContent_GetProperties(monado)
-if(NOT monado_POPULATED)
-  # Fetch the content using previously declared details
-  FetchContent_Populate(monado)
-
-  # Bring the populated content into the build
-  add_subdirectory(${monado_SOURCE_DIR} ${monado_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
-
+FetchContent_MakeAvailable(monado)
 
 add_executable(wivrn-server
 		accept_connection.cpp
