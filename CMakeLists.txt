@@ -171,7 +171,7 @@ FetchContent_Declare(fastgltf      EXCLUDE_FROM_ALL URL https://github.com/spnda
 FetchContent_Declare(glm           EXCLUDE_FROM_ALL URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
 FetchContent_Declare(openxr_loader EXCLUDE_FROM_ALL URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.0.34.tar.gz)
 FetchContent_Declare(spdlog        EXCLUDE_FROM_ALL URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz)
-FetchContent_Declare(stb           EXCLUDE_FROM_ALL URL https://github.com/nothings/stb/archive/refs/heads/master.zip)
+FetchContent_Declare(stb           EXCLUDE_FROM_ALL URL https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.zip)
 FetchContent_Declare(libktx        EXCLUDE_FROM_ALL URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/v4.3.0.tar.gz)
 FetchContent_Declare(implot        EXCLUDE_FROM_ALL URL https://github.com/epezent/implot/archive/refs/tags/v0.16.tar.gz)
 FetchContent_Declare(imgui         EXCLUDE_FROM_ALL URL https://github.com/ocornut/imgui/archive/refs/tags/v1.90.1.tar.gz)
