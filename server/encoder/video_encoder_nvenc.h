@@ -63,7 +63,7 @@ private:
 	int bitrate;
 
 public:
-	VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_settings & settings, float fps);
+	VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps);
 	~VideoEncoderNvenc();
 
 	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;

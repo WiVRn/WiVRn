@@ -132,7 +132,7 @@ static auto encode_guid(video_codec codec)
 	throw std::out_of_range("Invalid codec " + std::to_string(codec));
 }
 
-VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_settings & settings, float fps) :
+VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps) :
         vk(vk), fps(fps), bitrate(settings.bitrate)
 {
 	std::tie(cuda_fn, nvenc_fn, fn, cuda, session_handle) = init();
@@ -202,13 +202,17 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, const encoder_setting
 			params.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
 			params.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
 			params.encodeCodecConfig.h264Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+			params.encodeCodecConfig.h264Config.h264VUIParameters.videoFullRangeFlag = 1;
 			break;
 		case video_codec::h265:
 			params.encodeCodecConfig.hevcConfig.repeatSPSPPS = 1;
 			params.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
 			params.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+			params.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
 			break;
 	}
+	settings.range = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
+	settings.color_model = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
 
 	NV_ENC_INITIALIZE_PARAMS params2{
 	        .version = NV_ENC_INITIALIZE_PARAMS_VER,
