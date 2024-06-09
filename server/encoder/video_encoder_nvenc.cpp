@@ -136,6 +136,8 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & se
         vk(vk), fps(fps), bitrate(settings.bitrate)
 {
 	std::tie(cuda_fn, nvenc_fn, fn, cuda, session_handle) = init();
+	settings.video_width += 32 - settings.video_width % 32;
+	settings.video_height += 32 - settings.video_height % 32;
 	rect = vk::Rect2D{
 	        .offset = {
 	                .x = settings.offset_x,
@@ -146,7 +148,8 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & se
 	                .height = settings.height,
 	        },
 	};
-	pitch = settings.video_width;
+	height = settings.video_height;
+	width = settings.video_width;
 
 	uint32_t count;
 	std::vector<GUID> presets;
@@ -236,7 +239,7 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & se
 	NVENC_CHECK(fn.nvEncCreateBitstreamBuffer(session_handle, &params3));
 	bitstreamBuffer = params3.bitstreamBuffer;
 
-	vk::DeviceSize buffer_size = pitch * settings.video_height * 3 / 2;
+	vk::DeviceSize buffer_size = width * settings.video_height * 3 / 2;
 
 	vk::StructureChain buffer_create_info{
 	        vk::BufferCreateInfo{
@@ -292,9 +295,9 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & se
 	NV_ENC_REGISTER_RESOURCE param3{
 	        .version = NV_ENC_REGISTER_RESOURCE_VER,
 	        .resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR,
-	        .width = rect.extent.width,
-	        .height = rect.extent.height,
-	        .pitch = pitch,
+	        .width = settings.video_width,
+	        .height = settings.video_height,
+	        .pitch = width,
 	        .resourceToRegister = (void *)frame,
 	        .bufferFormat = NV_ENC_BUFFER_FORMAT_NV12,
 	        .bufferUsage = NV_ENC_INPUT_IMAGE,
@@ -317,7 +320,7 @@ void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandB
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        *yuv_buffer,
 	        vk::BufferImageCopy{
-	                .bufferRowLength = pitch,
+	                .bufferRowLength = width,
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .layerCount = 1,
@@ -336,8 +339,8 @@ void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandB
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        *yuv_buffer,
 	        vk::BufferImageCopy{
-	                .bufferOffset = pitch * rect.extent.height,
-	                .bufferRowLength = uint32_t(pitch / 2),
+	                .bufferOffset = width * height,
+	                .bufferRowLength = uint32_t(width / 2),
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .layerCount = 1,
@@ -367,7 +370,7 @@ void VideoEncoderNvenc::Encode(bool idr, std::chrono::steady_clock::time_point p
 	        .version = NV_ENC_PIC_PARAMS_VER,
 	        .inputWidth = rect.extent.width,
 	        .inputHeight = rect.extent.height,
-	        .inputPitch = pitch,
+	        .inputPitch = width,
 	        .encodePicFlags = uint32_t(idr ? NV_ENC_PIC_TYPE_IDR : NV_ENC_PIC_TYPE_P),
 	        .frameIdx = 0,
 	        .inputTimeStamp = 0,

@@ -57,7 +57,8 @@ private:
 	vk::Image luma;
 	vk::Image chroma;
 	CUdeviceptr frame;
-	uint32_t pitch;
+	uint32_t width;
+	uint32_t height;
 	NV_ENC_REGISTERED_PTR nvenc_resource;
 	float fps;
 	int bitrate;
