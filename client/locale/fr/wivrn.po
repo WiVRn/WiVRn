@@ -38,40 +38,40 @@ msgstr "Impossible de se connecter à {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Attente de connexion"
 
-#: client/scenes/lobby_gui.cpp:83
+#: client/scenes/lobby_gui.cpp:84
 msgid "Video stream interrupted"
 msgstr "Flux vidéo interrompu"
 
-#: client/scenes/lobby_gui.cpp:85
+#: client/scenes/lobby_gui.cpp:86
 msgid "Waiting for video stream"
 msgstr "Attente du flux vidéo"
 
-#: client/scenes/lobby_gui.cpp:100
+#: client/scenes/lobby_gui.cpp:101
 msgid "Close"
 msgstr "Fermer"
 
-#: client/scenes/lobby_gui.cpp:102
+#: client/scenes/lobby_gui.cpp:103
 msgid "Cancel"
 msgstr "Annuler"
 
-#: client/scenes/lobby_gui.cpp:107
+#: client/scenes/lobby_gui.cpp:108
 #, c++-format
 msgid "Connection to {}"
 msgstr "Connexion à {}"
 
-#: client/scenes/lobby_gui.cpp:135
+#: client/scenes/lobby_gui.cpp:136
 msgid "Displayed name"
 msgstr "Nom affiché"
 
-#: client/scenes/lobby_gui.cpp:144
+#: client/scenes/lobby_gui.cpp:145
 msgid "Host name"
 msgstr "Nom d'hôte"
 
-#: client/scenes/lobby_gui.cpp:153
+#: client/scenes/lobby_gui.cpp:154
 msgid "Port"
 msgstr "Port"
 
-#: client/scenes/lobby_gui.cpp:217
+#: client/scenes/lobby_gui.cpp:218
 msgid ""
 "Start a WiVRn server on your\n"
 "local network"
@@ -79,82 +79,86 @@ msgstr ""
 "Démarrez un serveur WiVRn sur\n"
 "le réseau local"
 
-#: client/scenes/lobby_gui.cpp:246
+#: client/scenes/lobby_gui.cpp:247
 msgid "Autoconnect"
 msgstr "Autoconnexion"
 
-#: client/scenes/lobby_gui.cpp:278
+#: client/scenes/lobby_gui.cpp:279
 msgid "Connect"
 msgstr "Connexion"
 
-#: client/scenes/lobby_gui.cpp:288
+#: client/scenes/lobby_gui.cpp:289
 msgid "Incompatible server version"
 msgstr "Version du serveur incompatible"
 
-#: client/scenes/lobby_gui.cpp:290
+#: client/scenes/lobby_gui.cpp:291
 msgid "Server not available"
 msgstr "Serveur non disponible"
 
-#: client/scenes/lobby_gui.cpp:304
+#: client/scenes/lobby_gui.cpp:305
 msgid "Remove"
 msgstr "Enlever"
 
-#: client/scenes/lobby_gui.cpp:348
+#: client/scenes/lobby_gui.cpp:349
 msgid "Refresh rate"
 msgstr "Taux de rafraichissement"
 
-#: client/scenes/lobby_gui.cpp:370
+#: client/scenes/lobby_gui.cpp:371
 msgid "Resolution scale"
 msgstr "Échelle"
 
-#: client/scenes/lobby_gui.cpp:370 client/scenes/lobby_gui.cpp:374
+#: client/scenes/lobby_gui.cpp:371 client/scenes/lobby_gui.cpp:375
 #, c++-format
 msgid "{} - {}x{} per eye"
 msgstr "{} - {}x{} par œil"
 
-#: client/scenes/lobby_gui.cpp:385
+#: client/scenes/lobby_gui.cpp:386
 msgid "Enable microphone"
 msgstr "Activer le micro"
 
-#: client/scenes/lobby_gui.cpp:413
+#: client/scenes/lobby_gui.cpp:414
 msgid "Enable video passthrough in lobby"
 msgstr "Activer la vue réelle dans l'accueil"
 
-#: client/scenes/lobby_gui.cpp:421
+#: client/scenes/lobby_gui.cpp:422
 msgid "Show performance metrics"
 msgstr "Afficher les métriques de performances"
 
-#: client/scenes/lobby_gui.cpp:453 client/scenes/lobby_gui.cpp:461
+#: client/scenes/lobby_gui.cpp:454 client/scenes/lobby_gui.cpp:462
 #: client/scenes/stream_stats.cpp:144
 msgid "CPU time"
 msgstr "Temps CPU"
 
-#: client/scenes/lobby_gui.cpp:457
+#: client/scenes/lobby_gui.cpp:458
 msgid "CPU time [ms]"
 msgstr "Temps CPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:467 client/scenes/lobby_gui.cpp:475
+#: client/scenes/lobby_gui.cpp:468 client/scenes/lobby_gui.cpp:476
 #: client/scenes/stream_stats.cpp:146
 msgid "GPU time"
 msgstr "Temps GPU"
 
-#: client/scenes/lobby_gui.cpp:471
+#: client/scenes/lobby_gui.cpp:472
 msgid "GPU time [ms]"
 msgstr "Temps GPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:634
+#: client/scenes/lobby_gui.cpp:500 client/scenes/lobby_gui.cpp:693
+msgid "Licenses"
+msgstr "Licences"
+
+#: client/scenes/lobby_gui.cpp:683
 msgid "Server list"
 msgstr "Serveurs"
 
-#: client/scenes/lobby_gui.cpp:637
+#: client/scenes/lobby_gui.cpp:686
 msgid "Settings"
 msgstr "Paramètres"
 
-#: client/scenes/lobby_gui.cpp:641
+#: client/scenes/lobby_gui.cpp:690
 msgid "About"
 msgstr "À propos"
 
-#: client/scenes/lobby_gui.cpp:644
+#: client/scenes/lobby_gui.cpp:696
 msgid "Exit"
 msgstr "Quitter"
 
