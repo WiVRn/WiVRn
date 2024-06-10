@@ -30,7 +30,7 @@
 namespace wivrn
 {
 
-class VideoEncoderX264 : public VideoEncoder
+class video_encoder_x264 : public video_encoder
 {
 	x264_param_t param = {};
 	x264_t * enc;
@@ -61,13 +61,13 @@ class VideoEncoderX264 : public VideoEncoder
 	std::list<pending_nal> pending_nals;
 
 public:
-	VideoEncoderX264(wivrn_vk_bundle & vk, encoder_settings & settings, float fps);
+	video_encoder_x264(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);
 
 	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) override;
 
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;
 
-	~VideoEncoderX264();
+	~video_encoder_x264();
 
 private:
 	static void ProcessCb(x264_t * h, x264_nal_t * nal, void * opaque);

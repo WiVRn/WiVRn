@@ -28,9 +28,9 @@
 namespace wivrn
 {
 
-void VideoEncoderX264::ProcessCb(x264_t * h, x264_nal_t * nal, void * opaque)
+void video_encoder_x264::ProcessCb(x264_t * h, x264_nal_t * nal, void * opaque)
 {
-	VideoEncoderX264 * self = (VideoEncoderX264 *)opaque;
+	video_encoder_x264 * self = (video_encoder_x264 *)opaque;
 	std::vector<uint8_t> data(nal->i_payload * 3 / 2 + 5 + 64, 0);
 	x264_nal_encode(h, data.data(), nal);
 	data.resize(nal->i_payload);
@@ -50,7 +50,7 @@ void VideoEncoderX264::ProcessCb(x264_t * h, x264_nal_t * nal, void * opaque)
 	}
 }
 
-void VideoEncoderX264::ProcessNal(pending_nal && nal)
+void video_encoder_x264::ProcessNal(pending_nal && nal)
 {
 	std::lock_guard lock(mutex);
 	if (nal.first_mb == next_mb)
@@ -70,7 +70,7 @@ void VideoEncoderX264::ProcessNal(pending_nal && nal)
 	}
 }
 
-void VideoEncoderX264::InsertInPendingNal(pending_nal && nal)
+void video_encoder_x264::InsertInPendingNal(pending_nal && nal)
 {
 	auto it = pending_nals.begin();
 	auto end = pending_nals.end();
@@ -85,10 +85,12 @@ void VideoEncoderX264::InsertInPendingNal(pending_nal && nal)
 	pending_nals.push_back(std::move(nal));
 }
 
-VideoEncoderX264::VideoEncoderX264(
+video_encoder_x264::video_encoder_x264(
         wivrn_vk_bundle & vk,
         encoder_settings & settings,
-        float fps)
+        float fps,
+        uint8_t stream_idx) :
+        video_encoder(stream_idx, settings.channels, false)
 {
 	if (settings.codec != h264)
 	{
@@ -181,7 +183,7 @@ VideoEncoderX264::VideoEncoderX264(
 	}
 }
 
-void VideoEncoderX264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot)
+void video_encoder_x264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot)
 {
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
@@ -191,6 +193,7 @@ void VideoEncoderX264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer &
 	                .bufferRowLength = chroma_width * 2,
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
+	                        .baseArrayLayer = uint32_t(channels),
 	                        .layerCount = 1,
 	                },
 	                .imageOffset = {
@@ -210,6 +213,7 @@ void VideoEncoderX264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer &
 	                .bufferRowLength = chroma_width,
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
+	                        .baseArrayLayer = uint32_t(channels),
 	                        .layerCount = 1,
 	                },
 	                .imageOffset = {
@@ -223,7 +227,7 @@ void VideoEncoderX264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer &
 	                }});
 }
 
-std::optional<VideoEncoder::data> VideoEncoderX264::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
+std::optional<video_encoder::data> video_encoder_x264::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
 	int num_nal;
 	x264_nal_t * nal;
@@ -244,7 +248,7 @@ std::optional<VideoEncoder::data> VideoEncoderX264::encode(bool idr, std::chrono
 	return {};
 }
 
-VideoEncoderX264::~VideoEncoderX264()
+video_encoder_x264::~video_encoder_x264()
 {
 	x264_encoder_close(enc);
 }

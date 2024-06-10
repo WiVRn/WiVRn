@@ -45,12 +45,12 @@ inline const char * encoder_vaapi = "vaapi";
 inline const char * encoder_x264 = "x264";
 inline const char * encoder_vulkan = "vulkan";
 
-class VideoEncoder
+class video_encoder
 {
 protected:
 	struct data
 	{
-		VideoEncoder * encoder;
+		video_encoder * encoder;
 		std::span<uint8_t> span;
 		std::shared_ptr<void> mem;
 	};
@@ -68,11 +68,12 @@ private:
 	public:
 		void push(data &&);
 		static std::shared_ptr<sender> get();
-		void wait_idle(VideoEncoder *);
+		void wait_idle(video_encoder *);
 	};
 
-protected:
-	uint8_t stream_idx;
+public:
+	const uint8_t stream_idx;
+	const to_headset::video_stream_description::channels_t channels;
 	static const uint8_t num_slots = 2;
 
 private:
@@ -98,7 +99,7 @@ private:
 	std::shared_ptr<sender> shared_sender;
 
 public:
-	static std::unique_ptr<VideoEncoder> Create(
+	static std::unique_ptr<video_encoder> create(
 	        wivrn_vk_bundle &,
 	        encoder_settings & settings,
 	        uint8_t stream_idx,
@@ -110,8 +111,8 @@ public:
 	static std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> get_create_image_info(const std::vector<encoder_settings> &);
 #endif
 
-	VideoEncoder(bool async_send = false);
-	virtual ~VideoEncoder();
+	video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, bool async_send);
+	virtual ~video_encoder();
 
 	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf);
 	// for vulkan video (command buffer is on a video queue)

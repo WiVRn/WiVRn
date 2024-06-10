@@ -26,7 +26,7 @@
 namespace wivrn
 {
 
-class VideoEncoderFFMPEG : public wivrn::VideoEncoder
+class video_encoder_ffmpeg : public wivrn::video_encoder
 {
 public:
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
@@ -38,8 +38,8 @@ public:
 	};
 
 protected:
-	VideoEncoderFFMPEG() :
-	        wivrn::VideoEncoder(true) {}
+	video_encoder_ffmpeg(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels) :
+	        wivrn::video_encoder(stream_idx, channels, true) {}
 
 	virtual void push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) = 0;
 

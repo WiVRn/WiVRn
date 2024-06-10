@@ -1,0 +1,94 @@
+From 3a5642d8993d18f0a886dc6b7748ea718380e771 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Nov 2024 13:40:00 +0100
+Subject: [PATCH] store alpha channel in layer 1
+
+---
+ src/xrt/compositor/shaders/clear.comp      |  4 ++--
+ src/xrt/compositor/shaders/distortion.comp | 18 ++++++++++++------
+ 2 files changed, 14 insertions(+), 8 deletions(-)
+
+diff --git a/src/xrt/compositor/shaders/clear.comp b/src/xrt/compositor/shaders/clear.comp
+index 036da401a..db8e5178e 100644
+--- a/src/xrt/compositor/shaders/clear.comp
++++ b/src/xrt/compositor/shaders/clear.comp
+@@ -10,7 +10,7 @@
+ 
+ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+ 
+-layout(set = 0, binding = 2) uniform writeonly restrict image2D target;
++layout(set = 0, binding = 2) uniform writeonly restrict image2DArray target;
+ layout(set = 0, binding = 3) uniform restrict Config
+ {
+ 	ivec4 views[2];
+@@ -35,5 +35,5 @@ void main()
+ 
+ 	vec4 colour = vec4(from_linear_to_srgb(vec3(0.1)), 1.0);
+ 
+-	imageStore(target, ivec2(offset.x + ix, offset.y + iy), colour);
++	imageStore(target, ivec3(offset.x + ix, offset.y + iy, 0), colour);
+ }
+diff --git a/src/xrt/compositor/shaders/distortion.comp b/src/xrt/compositor/shaders/distortion.comp
+index 461aeb4ec..237221a54 100644
+--- a/src/xrt/compositor/shaders/distortion.comp
++++ b/src/xrt/compositor/shaders/distortion.comp
+@@ -18,7 +18,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+ 
+ layout(set = 0, binding = 0) uniform sampler2D source[2];
+ layout(set = 0, binding = 1) uniform sampler2D distortion[6];
+-layout(set = 0, binding = 2) uniform writeonly restrict image2D luma;
++layout(set = 0, binding = 2) uniform writeonly restrict image2DArray luma;
+ layout(set = 0, binding = 3, std140) uniform restrict Config
+ {
+ 	ivec4 views[2];
+@@ -26,7 +26,7 @@ layout(set = 0, binding = 3, std140) uniform restrict Config
+ 	vec4 post_transform[2];
+ 	mat4 transform[2];
+ } ubo;
+-layout(set = 0, binding = 4) uniform writeonly restrict image2D chroma;
++layout(set = 0, binding = 4) uniform writeonly restrict image2DArray chroma;
+ 
+ const mat3 color_space = mat3(
+ // clang-format off
+@@ -142,6 +142,7 @@ void main()
+ 	ivec2 offset = ivec2(ubo.views[iz].xy);
+ 	ivec2 extent = ivec2(ubo.views[iz].zw);
+ 	vec2 cbcrs[4];
++	vec4 alpha;
+ 	for (int k = 0; k < 2; k += 1) {
+ 		uint iy = gl_GlobalInvocationID.y * 2 + k;
+ 		for (int j = 0; j < 2; j += 1) {
+@@ -156,15 +157,16 @@ void main()
+ 			uv = transform_uv(uv, iz);
+ 
+ 			// Sample the source
+-			vec3 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5)).rgb;
++			vec4 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5));
+ 
+-			colour = rgb_to_ycbcr(from_linear_to_srgb(colour));
++			colour.rgb = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
+ 
+ 			int i = k * 2 + j;
+ 			cbcrs[i] = colour.yz;
++			alpha[i] = colour.a;
+ 
+ 			if (ix < extent.x && iy < extent.y) {
+-				imageStore(luma, ivec2(offset.x + ix, offset.y + iy), vec4(colour.x));
++				imageStore(luma, ivec3(offset.x + ix, offset.y + iy, 0), vec4(colour.x));
+ 			}
+ 		}
+ 	}
+@@ -172,5 +174,9 @@ void main()
+ 		return;
+ 	}
+ 	vec2 cbcr = mix(mix(cbcrs[0], cbcrs[1], 0.5), mix(cbcrs[2], cbcrs[3], 0.5), 0.5);
+-	imageStore(chroma, ivec2(offset.xy/2 + gl_GlobalInvocationID.xy), vec4(cbcr.x, cbcr.y, 0, 0));
++	imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 0), vec4(cbcr.x, cbcr.y, 0, 0));
++
++	imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), vec4(0.5, 0.5, 0, 0));
++	alpha = vec4(mix(mix(alpha[0], alpha[1], 0.5), mix(alpha[2], alpha[3], 0.5), 0.5));
++	imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), alpha);
+ }
+-- 
+2.47.0
+

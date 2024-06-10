@@ -24,6 +24,7 @@
 #include "encoder/encoder_settings.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "vk/allocation.h"
+#include "wivrn_foveation.h"
 #include "wivrn_pacer.h"
 #include "wivrn_packets.h"
 
@@ -37,9 +38,8 @@
 namespace wivrn
 {
 
-class wivrn_foveation_renderer;
 class wivrn_session;
-class VideoEncoder;
+class video_encoder;
 
 struct pseudo_swapchain
 {
@@ -101,7 +101,7 @@ struct wivrn_comp_target : public comp_target
 	std::vector<encoder_settings> settings;
 	to_headset::video_stream_description desc{};
 	std::list<std::jthread> encoder_threads;
-	std::vector<std::shared_ptr<VideoEncoder>> encoders;
+	std::vector<std::shared_ptr<video_encoder>> encoders;
 
 	wivrn::wivrn_session & cnx;
 	std::unique_ptr<wivrn_foveation_renderer> foveation_renderer = nullptr;

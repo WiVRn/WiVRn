@@ -45,12 +45,12 @@ void scenes::stream::process_packets()
 void scenes::stream::operator()(to_headset::video_stream_data_shard && shard)
 {
 	std::shared_lock lock(decoder_mutex);
-	if (shard.stream_item_idx >= decoders.size())
+	uint8_t idx = shard.stream_item_idx;
+	if (idx >= decoders.size())
 	{
 		// We don't know (yet?) about this stream, ignore packet
 		return;
 	}
-	auto idx = shard.stream_item_idx;
 	decoders[idx].decoder->push_shard(std::move(shard));
 }
 

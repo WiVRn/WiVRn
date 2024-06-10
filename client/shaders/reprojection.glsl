@@ -83,7 +83,7 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-	outColor = vec4(texture(texSampler, inUV).rgb, 1);
+	outColor = texture(texSampler, inUV).rgba;
 
 }
 #endif

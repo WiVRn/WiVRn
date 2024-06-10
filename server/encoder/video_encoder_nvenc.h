@@ -29,7 +29,7 @@
 namespace wivrn
 {
 
-class VideoEncoderNvenc : public VideoEncoder
+class video_encoder_nvenc : public video_encoder
 {
 public:
 	struct deleter
@@ -64,8 +64,8 @@ private:
 	int bitrate;
 
 public:
-	VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps);
-	~VideoEncoderNvenc();
+	video_encoder_nvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);
+	~video_encoder_nvenc();
 
 	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) override;
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;

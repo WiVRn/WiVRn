@@ -26,7 +26,7 @@
 
 namespace wivrn
 {
-class video_encoder_vulkan : public VideoEncoder
+class video_encoder_vulkan : public video_encoder
 {
 	wivrn_vk_bundle & vk;
 	const vk::VideoEncodeCapabilitiesKHR encode_caps;
@@ -75,7 +75,12 @@ protected:
 	const uint8_t num_dpb_slots = 5;
 	std::optional<vk::VideoEncodeRateControlInfoKHR> rate_control;
 
-	video_encoder_vulkan(wivrn_vk_bundle & vk, vk::Rect2D rect, vk::VideoEncodeCapabilitiesKHR encode_caps, float fps, uint64_t bitrate);
+	video_encoder_vulkan(wivrn_vk_bundle & vk,
+	                     vk::Rect2D rect,
+	                     vk::VideoEncodeCapabilitiesKHR encode_caps,
+	                     float fps,
+	                     uint8_t stream_idx,
+	                     const encoder_settings & settings);
 
 	void init(const vk::VideoCapabilitiesKHR & video_caps,
 	          const vk::VideoProfileInfoKHR & video_profile,

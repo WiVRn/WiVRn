@@ -60,6 +60,29 @@ const std::filesystem::path & configuration::get_config_file()
 	return config_file;
 }
 
+configuration::encoder parse_encoder(const nlohmann::json & item)
+{
+	configuration::encoder e;
+	if (item.contains("encoder"))
+		e.name = item["encoder"];
+
+#define SET_IF(property)              \
+	if (item.contains(#property)) \
+		e.property = item[#property];
+
+	SET_IF(width);
+	SET_IF(height);
+	SET_IF(offset_x);
+	SET_IF(offset_y);
+	SET_IF(group);
+	SET_IF(codec);
+	if (e.codec == wivrn::video_codec(-1))
+		throw std::runtime_error("invalid codec value " + item["codec"].get<std::string>());
+	SET_IF(options);
+	SET_IF(device);
+	return e;
+}
+
 configuration configuration::read_user_configuration()
 {
 	configuration result;
@@ -86,28 +109,11 @@ configuration configuration::read_user_configuration()
 		if (json.contains("encoders"))
 		{
 			for (const auto & encoder: json["encoders"])
-			{
-				configuration::encoder e;
-				if (encoder.contains("encoder"))
-					e.name = encoder["encoder"];
-
-#define SET_IF(property)                 \
-	if (encoder.contains(#property)) \
-		e.property = encoder[#property];
-
-				SET_IF(width);
-				SET_IF(height);
-				SET_IF(offset_x);
-				SET_IF(offset_y);
-				SET_IF(group);
-				SET_IF(codec);
-				if (e.codec == wivrn::video_codec(-1))
-					throw std::runtime_error("invalid codec value " + encoder["codec"].get<std::string>());
-				SET_IF(options);
-				SET_IF(device);
-				result.encoders.push_back(e);
-			}
+				result.encoders.push_back(parse_encoder(encoder));
 		}
+
+		if (json.contains("encoder-passthrough"))
+			result.encoder_passthrough = parse_encoder(json["encoder-passthrough"]);
 
 		if (json.contains("application"))
 		{

@@ -46,6 +46,7 @@ struct configuration
 	};
 
 	std::vector<encoder> encoders;
+	std::optional<encoder> encoder_passthrough;
 	std::optional<int> bitrate;
 	std::optional<std::array<double, 2>> scale;
 	std::vector<std::string> application;

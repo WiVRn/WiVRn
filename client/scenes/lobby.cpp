@@ -28,6 +28,7 @@
 #include "render/scene_data.h"
 #include "render/scene_renderer.h"
 #include "stream.h"
+#include "utils/overloaded.h"
 #include "version.h"
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
@@ -573,17 +574,6 @@ static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<Xr
 	return std::get<0>(render_layer(views, color_swapchains, depth_swapchains, renderer, data, clear_color));
 }
 
-namespace
-{
-template <class... Ts>
-struct overloaded : Ts...
-{
-	using Ts::operator()...;
-};
-template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
-} // namespace
-
 // Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
 static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
 {
@@ -873,7 +863,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	if (application::get_config().passthrough_enabled)
 	{
 		std::visit(
-		        overloaded{
+		        utils::overloaded{
 		                [&](std::monostate &) {
 			                assert(false);
 		                },

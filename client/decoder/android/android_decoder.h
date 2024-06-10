@@ -85,6 +85,7 @@ public:
 
 private:
 	wivrn::to_headset::video_stream_description::item description;
+	uint8_t stream_index;
 	float fps;
 
 	vk::raii::Device & device;

@@ -114,7 +114,7 @@ static void destroy_images(struct wivrn_comp_target * cn)
 	target_fini_semaphores(cn);
 }
 
-static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<VideoEncoder>> encoders);
+static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<video_encoder>> encoders);
 
 static void create_encoders(wivrn_comp_target * cn)
 {
@@ -129,7 +129,7 @@ static void create_encoders(wivrn_comp_target * cn)
 	desc.height = cn->height;
 	desc.foveation = cn->cnx.set_foveated_size(desc.width, desc.height);
 
-	std::map<int, std::vector<std::shared_ptr<VideoEncoder>>> thread_params;
+	std::map<int, std::vector<std::shared_ptr<video_encoder>>> thread_params;
 
 #if WIVRN_USE_VULKAN_ENCODE
 	if (std::ranges::any_of(cn->settings, [](const auto & item) { return item.encoder_name == encoder_vulkan; }))
@@ -162,7 +162,7 @@ static void create_encoders(wivrn_comp_target * cn)
 	{
 		uint8_t stream_index = cn->encoders.size();
 		auto & encoder = cn->encoders.emplace_back(
-		        VideoEncoder::Create(*cn->wivrn_bundle, settings, stream_index, desc.width, desc.height, desc.fps));
+		        video_encoder::create(*cn->wivrn_bundle, settings, stream_index, desc.width, desc.height, desc.fps));
 		desc.items.push_back(settings);
 
 		thread_params[settings.group].emplace_back(encoder);
@@ -193,7 +193,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 	cn->images = U_TYPED_ARRAY_CALLOC(struct comp_target_image, cn->image_count);
 
 #if WIVRN_USE_VULKAN_ENCODE
-	auto [video_profiles, encoder_flags] = VideoEncoder::get_create_image_info(cn->settings);
+	auto [video_profiles, encoder_flags] = video_encoder::get_create_image_info(cn->settings);
 
 	vk::VideoProfileListInfoKHR video_profile_list{
 	        .profileCount = uint32_t(video_profiles.size()),
@@ -202,7 +202,6 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 #endif
 
 	cn->psc.images.resize(cn->image_count);
-	std::vector<vk::Image> rgb;
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
 		std::array formats = {
@@ -233,7 +232,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                .depth = 1,
 		                        },
 		                        .mipLevels = 1,
-		                        .arrayLayers = 1,
+		                        .arrayLayers = 2, // colour then alpha
 		                        .samples = vk::SampleCountFlagBits::e1,
 		                        .tiling = vk::ImageTiling::eOptimal,
 		                        .usage = flags
@@ -247,7 +246,6 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                .usage = VMA_MEMORY_USAGE_AUTO,
 		        });
 		cn->images[i].handle = image;
-		rgb.push_back(image);
 	}
 
 	for (uint32_t i = 0; i < cn->image_count; i++)
@@ -260,24 +258,24 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                        {
 		                                                .pNext = &usage,
 		                                                .image = item.image,
-		                                                .viewType = vk::ImageViewType::e2D,
+		                                                .viewType = vk::ImageViewType::e2DArray,
 		                                                .format = vk::Format::eR8Unorm,
 		                                                .subresourceRange = {
 		                                                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
 		                                                        .levelCount = 1,
-		                                                        .layerCount = 1,
+		                                                        .layerCount = 2,
 		                                                },
 		                                        });
 		item.image_view_cbcr = vk::raii::ImageView(device,
 		                                           {
 		                                                   .pNext = &usage,
 		                                                   .image = item.image,
-		                                                   .viewType = vk::ImageViewType::e2D,
+		                                                   .viewType = vk::ImageViewType::e2DArray,
 		                                                   .format = vk::Format::eR8G8Unorm,
 		                                                   .subresourceRange = {
 		                                                           .aspectMask = vk::ImageAspectFlagBits::ePlane1,
 		                                                           .levelCount = 1,
-		                                                           .layerCount = 1,
+		                                                           .layerCount = 2,
 		                                                   },
 		                                           });
 		cn->images[i].view = *item.image_view_y;
@@ -460,7 +458,7 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 	};
 }
 
-static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<VideoEncoder>> encoders)
+static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<video_encoder>> encoders)
 {
 	auto & vk = *cn->wivrn_bundle;
 	U_LOG_I("Starting encoder thread %d", index);
@@ -506,7 +504,8 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 		{
 			for (auto & encoder: encoders)
 			{
-				encoder->Encode(cn->cnx, view_info, frame_index);
+				if (encoder->channels == to_headset::video_stream_description::channels_t::colour or view_info.alpha)
+					encoder->Encode(cn->cnx, view_info, frame_index);
 			}
 		}
 		catch (std::exception & e)
@@ -604,9 +603,12 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	cn->wivrn_bundle->device.resetFences(*cn->psc.fence);
 	psc_image.status = pseudo_swapchain::status_t::encoding;
 	auto info = cn->pacer.present_to_info(desired_present_time_ns);
+	const bool do_alpha = cn->c->base.layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND;
 
 	for (auto & encoder: cn->encoders)
 	{
+		if (encoder->channels == to_headset::video_stream_description::channels_t::alpha and not do_alpha)
+			continue;
 #if WIVRN_USE_VULKAN_ENCODE
 		encoder->present_image(psc_image.image, video_command_buffer, *cn->psc.images[index].video_fence, info.frame_id);
 #endif
@@ -658,6 +660,9 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	auto & view_info = cn->psc.view_info;
 	view_info.foveation = cn->cnx.get_foveation_parameters();
 	view_info.display_time = cn->cnx.get_offset().to_headset(info.predicted_display_time);
+	if (view_info.alpha != do_alpha)
+		cn->pacer.reset();
+	view_info.alpha = do_alpha;
 	for (int eye = 0; eye < 2; ++eye)
 	{
 		const auto & frame_params = cn->c->base.frame_params;
@@ -788,11 +793,13 @@ void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, con
 {
 	if (not o)
 		return;
-	pacer.on_feedback(feedback, o);
+	uint8_t stream = feedback.stream_index;
 	if (psc.status & 1)
 		return;
-	if (feedback.stream_index < encoders.size())
-		encoders[feedback.stream_index]->on_feedback(feedback);
+	if (encoders.size() <= stream)
+		return;
+	encoders[stream]->on_feedback(feedback);
+	pacer.on_feedback(feedback, o);
 }
 
 void wivrn_comp_target::reset_encoders()

@@ -68,8 +68,14 @@ static StdVideoH264LevelIdc compute_level(const StdVideoH264SequenceParameterSet
 	return STD_VIDEO_H264_LEVEL_IDC_6_2;
 }
 
-wivrn::video_encoder_vulkan_h264::video_encoder_vulkan_h264(wivrn_vk_bundle & vk, vk::Rect2D rect, vk::VideoEncodeCapabilitiesKHR encode_caps, float fps, uint64_t bitrate) :
-        video_encoder_vulkan(vk, rect, encode_caps, fps, bitrate),
+wivrn::video_encoder_vulkan_h264::video_encoder_vulkan_h264(
+        wivrn_vk_bundle & vk,
+        vk::Rect2D rect,
+        vk::VideoEncodeCapabilitiesKHR encode_caps,
+        float fps,
+        uint8_t stream_idx,
+        const encoder_settings & settings) :
+        video_encoder_vulkan(vk, rect, encode_caps, fps, stream_idx, settings),
         sps{
                 .flags =
                         {
@@ -139,7 +145,7 @@ wivrn::video_encoder_vulkan_h264::video_encoder_vulkan_h264(wivrn_vk_bundle & vk
                 .pScalingLists = nullptr,
         }
 {
-	sps.level_idc = compute_level(sps, fps, num_dpb_slots, bitrate);
+	sps.level_idc = compute_level(sps, fps, num_dpb_slots, settings.bitrate);
 	if (not std::ranges::any_of(vk.device_extensions, [](std::string_view ext) { return ext == VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME; }))
 	{
 		throw std::runtime_error("Vulkan video encode H264 extension not available");
@@ -165,7 +171,8 @@ std::vector<void *> wivrn::video_encoder_vulkan_h264::setup_slot_info(size_t dpb
 std::unique_ptr<wivrn::video_encoder_vulkan_h264> wivrn::video_encoder_vulkan_h264::create(
         wivrn_vk_bundle & vk,
         encoder_settings & settings,
-        float fps)
+        float fps,
+        uint8_t stream_idx)
 {
 	vk::Rect2D rect{
 	        .offset = {
@@ -184,7 +191,7 @@ std::unique_ptr<wivrn::video_encoder_vulkan_h264> wivrn::video_encoder_vulkan_h2
 	                vk::VideoEncodeCapabilitiesKHR,
 	                vk::VideoEncodeH264CapabilitiesKHR>(video_profile_info.get());
 
-	std::unique_ptr<video_encoder_vulkan_h264> self(new video_encoder_vulkan_h264(vk, rect, encode_caps, fps, settings.bitrate));
+	std::unique_ptr<video_encoder_vulkan_h264> self(new video_encoder_vulkan_h264(vk, rect, encode_caps, fps, stream_idx, settings));
 
 	vk::VideoEncodeH264SessionParametersAddInfoKHR h264_add_info{};
 	h264_add_info.setStdSPSs(self->sps);

@@ -226,8 +226,10 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 
 	// Setup info.
 	hmd->view_count = 2;
-	hmd->blend_modes[0] = XRT_BLEND_MODE_OPAQUE;
-	hmd->blend_mode_count = 1;
+	hmd->blend_modes[hmd->blend_mode_count++] = XRT_BLEND_MODE_OPAQUE;
+	if (info.passthrough)
+		hmd->blend_modes[hmd->blend_mode_count++] = XRT_BLEND_MODE_ALPHA_BLEND;
+
 	hmd->distortion.models = XRT_DISTORTION_MODEL_NONE;
 	hmd->distortion.preferred = XRT_DISTORTION_MODEL_NONE;
 	hmd->screens[0].w_pixels = eye_width * 2;

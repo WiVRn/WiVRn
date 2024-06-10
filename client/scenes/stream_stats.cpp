@@ -111,6 +111,8 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 	{
 		if (metrics.size() != global_metrics.size())
 			metrics.resize(global_metrics.size());
+		if (not bh)
+			continue;
 
 		// clang-format off
 		metrics[metrics_offset] = bh ? decoder_metric{
@@ -155,7 +157,7 @@ std::vector<XrCompositionLayerQuad> scenes::stream::plot_performance_metrics(XrT
 	        // clang-format on
 	};
 
-	int n_plots = plots.size() + decoders.size();
+	int n_plots = plots.size() + decoder_metrics.size();
 	axis_scale.resize(n_plots);
 
 	int n_cols = 2;

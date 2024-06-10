@@ -114,6 +114,7 @@ struct headset_info_packet
 	bool eye_gaze;
 	bool face_tracking2_fb;
 	bool palm_pose;
+	bool passthrough;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 };
 
@@ -232,7 +233,7 @@ struct timesync_response
 struct feedback
 {
 	uint64_t frame_index;
-	uint8_t stream_index;
+	uint8_t stream_index; // 0-127 for yuv, 128-255 for alpha
 
 	// Timestamps
 	XrTime received_first_packet;
@@ -290,6 +291,11 @@ struct audio_stream_description
 
 struct video_stream_description
 {
+	enum class channels_t
+	{
+		colour,
+		alpha,
+	};
 	struct item
 	{
 		// useful dimensions of the video stream
@@ -301,6 +307,8 @@ struct video_stream_description
 		uint16_t offset_x;
 		uint16_t offset_y;
 		video_codec codec;
+		channels_t channels;
+		uint8_t subsampling; // applies to width/height only, offsets are in full size pixels
 		std::optional<VkSamplerYcbcrRange> range;
 		std::optional<VkSamplerYcbcrModelConversion> color_model;
 	};
@@ -322,6 +330,7 @@ public:
 		end_of_frame = 1 << 2,
 	};
 	// Identifier of stream in video_stream_description
+	// elements > 127 are for alpha
 	uint8_t stream_item_idx;
 	// Counter increased for each frame
 	uint64_t frame_idx;
@@ -338,6 +347,8 @@ public:
 		std::array<XrPosef, 2> pose;
 		std::array<XrFovf, 2> fov;
 		std::array<foveation_parameter, 2> foveation;
+		// True when the frame contains an alpha channel
+		bool alpha;
 	};
 	std::optional<view_info_t> view_info;
 

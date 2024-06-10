@@ -85,7 +85,7 @@ decoder::decoder(
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> weak_scene,
         shard_accumulator * accumulator) :
-        description(description), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
+        description(description), stream_index(stream_index), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
 {
 	spdlog::info("hbm_mutex.native_handle() = {}", (void *)hbm_mutex.native_handle());
 
@@ -372,7 +372,7 @@ void decoder::create_sampler(const AHardwareBuffer_Desc & buffer_desc, vk::Andro
 	        },
 	};
 
-	ycbcr_sampler = vk::raii::Sampler(device, sampler_info.get<vk::SamplerCreateInfo>());
+	ycbcr_sampler = vk::raii::Sampler(device, sampler_info.get());
 }
 
 std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AImage * image)

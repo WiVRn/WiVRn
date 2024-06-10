@@ -64,9 +64,9 @@ bool set_log_level()
 namespace wivrn
 {
 
-bool VideoEncoderFFMPEG::once = set_log_level();
+bool video_encoder_ffmpeg::once = set_log_level();
 
-std::optional<wivrn::VideoEncoder::data> VideoEncoderFFMPEG::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot)
+std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot)
 {
 	push_frame(idr, target_timestamp, slot);
 	std::shared_ptr<AVPacket> enc_pkt(av_packet_alloc(), [](AVPacket * d) { av_packet_free(&d); });
@@ -87,13 +87,13 @@ std::optional<wivrn::VideoEncoder::data> VideoEncoderFFMPEG::encode(bool idr, st
 	throw std::runtime_error("frame encoding failed, code " + std::to_string(err));
 }
 
-VideoEncoderFFMPEG::mute_logs::mute_logs()
+video_encoder_ffmpeg::mute_logs::mute_logs()
 {
 	if (not getenv("FFMPEG_LOG_LEVEL"))
 		av_log_set_level(AV_LOG_QUIET);
 }
 
-VideoEncoderFFMPEG::mute_logs::~mute_logs()
+video_encoder_ffmpeg::mute_logs::~mute_logs()
 {
 	set_log_level();
 }
