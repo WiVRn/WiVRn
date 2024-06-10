@@ -422,6 +422,8 @@ void scenes::lobby::gui_settings()
 	if (ImGui::Checkbox(_S("Show performance metrics"), &config.show_performance_metrics))
 		config.save();
 	vibrate_on_hover();
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("%s", _S("Overlay can be toggled by pressing both thumbsticks"));
 
 	ImGui::PopStyleVar();
 

@@ -208,6 +208,8 @@ void scenes::stream::on_focused()
 		                  glm::vec2{1.0, 0.6666});
 
 		imgui_ctx->set_position({0, 0, -1}, {1, 0, 0, 0});
+		plots_toggle_1 = get_action("plots_toggle_1").first;
+		plots_toggle_2 = get_action("plots_toggle_2").first;
 	}
 
 	wifi_lock::want_low_latency(true);
@@ -699,7 +701,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	};
 
 	XrCompositionLayerQuad imgui_layer;
-	if (imgui_ctx)
+	if (imgui_ctx and plots_visible)
 	{
 		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
 		imgui_layer = plot_performance_metrics(frame_state.predictedDisplayTime);
@@ -707,7 +709,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 
-	if (imgui_ctx)
+	if (imgui_ctx and plots_visible)
 		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 
 	session.end_frame(frame_state.predictedDisplayTime, layers_base);
@@ -717,6 +719,24 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		send_feedback(handle->feedback);
 
 	read_actions();
+
+	if (plots_toggle_1 and plots_toggle_2)
+	{
+		XrActionStateGetInfo get_info{
+		        .type = XR_TYPE_ACTION_STATE_GET_INFO,
+		        .action = plots_toggle_1,
+		};
+
+		XrActionStateBoolean state_1{XR_TYPE_ACTION_STATE_BOOLEAN};
+		CHECK_XR(xrGetActionStateBoolean(session, &get_info, &state_1));
+		get_info.action = plots_toggle_2;
+		XrActionStateBoolean state_2{XR_TYPE_ACTION_STATE_BOOLEAN};
+		CHECK_XR(xrGetActionStateBoolean(session, &get_info, &state_2));
+
+		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
+			plots_visible = not plots_visible;
+	}
+
 	query_pool_filled = true;
 }
 
@@ -907,8 +927,46 @@ void scenes::stream::setup_reprojection_swapchain()
 scene::meta & scenes::stream::get_meta_scene()
 {
 	static meta m{
-	        "Stream",
-	        {}};
+	        .name = "Stream",
+	        .actions = {
+	                {"plots_toggle_1", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	                {"plots_toggle_2", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	        },
+	        .bindings = {
+	                suggested_binding{
+	                        "/interaction_profiles/oculus/touch_controller",
+	                        {
+	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
+	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
+	                        },
+	                },
+	                suggested_binding{
+	                        "/interaction_profiles/bytedance/pico_neo3_controller",
+	                        {
+	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
+	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
+	                        },
+	                },
+	                suggested_binding{
+	                        "/interaction_profiles/bytedance/pico4_controller",
+	                        {
+	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
+	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
+	                        },
+	                },
+	                suggested_binding{
+	                        "/interaction_profiles/htc/vive_focus3_controller",
+	                        {
+	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
+	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
+	                        },
+	                },
+	                suggested_binding{
+	                        "/interaction_profiles/khr/simple_controller",
+	                        {},
+	                },
+	        },
+	};
 
 	return m;
 }

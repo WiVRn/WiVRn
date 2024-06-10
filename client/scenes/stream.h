@@ -111,6 +111,9 @@ private:
 	std::optional<audio> audio_handle;
 
 	std::optional<imgui_context> imgui_ctx;
+	bool plots_visible = true;
+	XrAction plots_toggle_1 = XR_NULL_HANDLE;
+	XrAction plots_toggle_2 = XR_NULL_HANDLE;
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> current_blit_handles;

@@ -124,41 +124,45 @@ msgstr "Activer la vue réelle dans l'accueil"
 msgid "Show performance metrics"
 msgstr "Afficher les métriques de performances"
 
-#: client/scenes/lobby_gui.cpp:454 client/scenes/lobby_gui.cpp:462
+#: client/scenes/lobby_gui.cpp:426
+msgid "Overlay can be toggled by pressing both thumbsticks"
+msgstr "L'affichage peut être basculé en appuyant sur les deux joysticks"
+
+#: client/scenes/lobby_gui.cpp:456 client/scenes/lobby_gui.cpp:464
 #: client/scenes/stream_stats.cpp:144
 msgid "CPU time"
 msgstr "Temps CPU"
 
-#: client/scenes/lobby_gui.cpp:458
+#: client/scenes/lobby_gui.cpp:460
 msgid "CPU time [ms]"
 msgstr "Temps CPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:468 client/scenes/lobby_gui.cpp:476
+#: client/scenes/lobby_gui.cpp:470 client/scenes/lobby_gui.cpp:478
 #: client/scenes/stream_stats.cpp:146
 msgid "GPU time"
 msgstr "Temps GPU"
 
-#: client/scenes/lobby_gui.cpp:472
+#: client/scenes/lobby_gui.cpp:474
 msgid "GPU time [ms]"
 msgstr "Temps GPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:500 client/scenes/lobby_gui.cpp:693
+#: client/scenes/lobby_gui.cpp:502 client/scenes/lobby_gui.cpp:695
 msgid "Licenses"
 msgstr "Licences"
 
-#: client/scenes/lobby_gui.cpp:683
+#: client/scenes/lobby_gui.cpp:685
 msgid "Server list"
 msgstr "Serveurs"
 
-#: client/scenes/lobby_gui.cpp:686
+#: client/scenes/lobby_gui.cpp:688
 msgid "Settings"
 msgstr "Paramètres"
 
-#: client/scenes/lobby_gui.cpp:690
+#: client/scenes/lobby_gui.cpp:692
 msgid "About"
 msgstr "À propos"
 
-#: client/scenes/lobby_gui.cpp:696
+#: client/scenes/lobby_gui.cpp:698
 msgid "Exit"
 msgstr "Quitter"
 
