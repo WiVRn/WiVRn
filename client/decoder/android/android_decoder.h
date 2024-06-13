@@ -42,6 +42,7 @@
 	};                               \
 	using x##_ptr = std::unique_ptr<x, x##_deleter>;
 
+DEUGLIFY(AImage)
 DEUGLIFY(AImageReader)
 DEUGLIFY(AMediaCodec)
 
@@ -61,6 +62,10 @@ public:
 
 	struct blit_handle
 	{
+		struct deleter
+		{
+			void operator()(AImage *);
+		};
 		xrt::drivers::wivrn::from_headset::feedback feedback;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
@@ -70,9 +75,7 @@ public:
 
 		std::shared_ptr<mapped_hardware_buffer> vk_data;
 
-		AImage * aimage{};
-
-		~blit_handle();
+		AImage_ptr aimage;
 	};
 
 private:

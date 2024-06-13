@@ -380,13 +380,15 @@ void decoder::on_image_available(AImageReader * reader)
 	assert(reader == image_reader.get());
 	// Executed on image reader thread
 
-	AImage * image = nullptr;
+	decltype(blit_handle::aimage) image;
 	try
 	{
-		check(AImageReader_acquireLatestImage(image_reader.get(), &image), "AImageReader_acquireLatestImage");
+		AImage * tmp;
+		check(AImageReader_acquireLatestImage(image_reader.get(), &tmp), "AImageReader_acquireLatestImage");
+		image.reset(tmp);
 
 		int64_t fake_timestamp_ns;
-		check(AImage_getTimestamp(image, &fake_timestamp_ns), "AImage_getTimestamp");
+		check(AImage_getTimestamp(image.get(), &fake_timestamp_ns), "AImage_getTimestamp");
 		uint64_t frame_index = (fake_timestamp_ns + 5'000'000) / (10'000'000);
 
 		frame_infos.drop_until([frame_index](auto & x) { return x.feedback.frame_index >= frame_index; });
@@ -396,13 +398,12 @@ void decoder::on_image_available(AImageReader * reader)
 		if (!info)
 		{
 			spdlog::warn("No frame info for frame {}, dropping frame", frame_index);
-			AImage_delete(image);
 			return;
 		}
 
 		assert(info->feedback.frame_index == frame_index);
 
-		auto vk_data = map_hardware_buffer(image);
+		auto vk_data = map_hardware_buffer(image.get());
 
 		auto handle = std::make_shared<decoder::blit_handle>(
 		        info->feedback,
@@ -412,15 +413,13 @@ void decoder::on_image_available(AImageReader * reader)
 		        *vk_data->vimage,
 		        &vk_data->layout,
 		        vk_data,
-		        image);
+		        std::move(image));
 
 		if (auto scene = weak_scene.lock())
 			scene->push_blit_handle(accumulator, std::move(handle));
 	}
 	catch (...)
 	{
-		if (image)
-			AImage_delete(image);
 	}
 }
 
@@ -617,7 +616,7 @@ void decoder::on_media_output_available(AMediaCodec * media_codec, void * userda
 	// will be consumed by dedicated thread
 }
 
-decoder::blit_handle::~blit_handle()
+void decoder::blit_handle::deleter::operator()(AImage * aimage)
 {
 	AImage_delete(aimage);
 }
