@@ -298,7 +298,7 @@ int inner_main(int argc, char * argv[])
 				if (fds[2].revents & POLLIN)
 				{
 					// Client application exited
-					waitpid_verbose(server_pid, "Client");
+					waitpid_verbose(client_pid, "Client");
 
 					client_running = false;
 					fds[2].fd = -1;
