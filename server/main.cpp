@@ -239,6 +239,10 @@ int inner_main(int argc, char * argv[])
 
 			setenv("LISTEN_PID", std::to_string(getpid()).c_str(), true);
 
+			// In most cases there is no server-side reprojection and
+			// there is no need for oversampling.
+			setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", false);
+
 			// FIXME: synchronization fails on gfx pipeline
 			setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
 
