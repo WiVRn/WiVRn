@@ -213,7 +213,7 @@ stream_reprojection::stream_reprojection(
 	vk::AttachmentDescription attachment{
 	        .format = format,
 	        .samples = vk::SampleCountFlagBits::e1,
-	        .loadOp = vk::AttachmentLoadOp::eClear,
+	        .loadOp = vk::AttachmentLoadOp::eDontCare,
 	        .storeOp = vk::AttachmentStoreOp::eStore,
 	        .initialLayout = vk::ImageLayout::eColorAttachmentOptimal,
 	        .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
