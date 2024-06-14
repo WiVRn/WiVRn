@@ -65,8 +65,6 @@ struct getter_data
 {
 	uintptr_t data;
 	int stride;
-	int offset;
-	int count;
 	float multiplier;
 };
 
@@ -74,9 +72,7 @@ ImPlotPoint getter(int index, void * data_)
 {
 	getter_data & data = *(getter_data *)data_;
 
-	int offset_index = (index + data.offset) % data.count;
-
-	return ImPlotPoint(index, *(float *)(data.data + offset_index * data.stride) * data.multiplier);
+	return ImPlotPoint(index, *(float *)(data.data + index * data.stride) * data.multiplier);
 }
 } // namespace
 
@@ -198,11 +194,14 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 				getter_data gdata{
 				        .data = (uintptr_t) & (global_metrics.data()->*data),
 				        .stride = sizeof(global_metric),
-				        .offset = metrics_offset,
-				        .count = (int)global_metrics.size(),
 				        .multiplier = multiplier,
 				};
 				ImPlot::PlotLineG(subtitle.c_str(), getter, &gdata, global_metrics.size(), ImPlotLineFlags_Shaded);
+
+				double x[] = {double(metrics_offset), double(metrics_offset)};
+				double y[] = {0, axis_scale[n] * multiplier};
+				ImPlot::SetNextLineStyle(ImVec4(1, 1, 1, 1));
+				ImPlot::PlotLine("", x, y, 2);
 			}
 			ImPlot::EndPlot();
 		}
@@ -232,57 +231,41 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			getter_data getter_send_begin{
 			        .data = (uintptr_t) & (metrics.data()->send_begin),
 			        .stride = sizeof(decoder_metric),
-			        .offset = metrics_offset,
-			        .count = (int)metrics.size(),
 			        .multiplier = 1e3f};
 
 			getter_data getter_send_end{
 			        .data = (uintptr_t) & (metrics.data()->send_end),
 			        .stride = sizeof(decoder_metric),
-			        .offset = metrics_offset,
-			        .count = (int)metrics.size(),
 			        .multiplier = 1e3f};
 
 			getter_data getter_received_first_packet{
 			        .data = (uintptr_t) & (metrics.data()->received_first_packet),
 			        .stride = sizeof(decoder_metric),
-			        .offset = metrics_offset,
-			        .count = (int)metrics.size(),
 			        .multiplier = 1e3f};
 
 			getter_data getter_received_last_packet{
 			        .data = (uintptr_t) & (metrics.data()->received_last_packet),
 			        .stride = sizeof(decoder_metric),
-			        .offset = metrics_offset,
-			        .count = (int)metrics.size(),
 			        .multiplier = 1e3f};
 
 			getter_data getter_sent_to_decoder{
 			        .data = (uintptr_t) & (metrics.data()->sent_to_decoder),
 			        .stride = sizeof(decoder_metric),
-			        .offset = metrics_offset,
-			        .count = (int)metrics.size(),
 			        .multiplier = 1e3f};
 
 			getter_data getter_received_from_decoder{
 			        .data = (uintptr_t) & (metrics.data()->received_from_decoder),
 			        .stride = sizeof(decoder_metric),
-			        .offset = metrics_offset,
-			        .count = (int)metrics.size(),
 			        .multiplier = 1e3f};
 
 			getter_data getter_blitted{
 			        .data = (uintptr_t) & (metrics.data()->blitted),
 			        .stride = sizeof(decoder_metric),
-			        .offset = metrics_offset,
-			        .count = (int)metrics.size(),
 			        .multiplier = 1e3f};
 
 			getter_data getter_displayed{
 			        .data = (uintptr_t) & (metrics.data()->displayed),
 			        .stride = sizeof(decoder_metric),
-			        .offset = metrics_offset,
-			        .count = (int)metrics.size(),
 			        .multiplier = 1e3f};
 
 			// clang-format off
@@ -292,6 +275,11 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			ImPlot::PlotLineG(_S("Blitted"),   getter, &getter_blitted,                                                      metrics.size());
 			ImPlot::PlotLineG(_S("Displayed"), getter, &getter_displayed,                                                    metrics.size());
 			// clang-format on
+
+			double x[] = {double(metrics_offset), double(metrics_offset)};
+			double y[] = {0, 1e9};
+			ImPlot::SetNextLineStyle(ImVec4(1, 1, 1, 1));
+			ImPlot::PlotLine("", x, y, 2);
 
 			ImPlot::EndPlot();
 		}
