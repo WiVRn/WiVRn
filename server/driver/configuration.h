@@ -20,6 +20,7 @@
 #pragma once
 
 #include <array>
+#include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
@@ -47,6 +48,7 @@ struct configuration
 	std::vector<std::string> application;
 	bool tcp_only = false;
 
+	static void set_config_file(const std::filesystem::path &);
 	static configuration read_user_configuration();
 };
 

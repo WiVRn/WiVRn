@@ -33,10 +33,7 @@
 #include "configuration.h"
 #include "utils/xdg_base_directory.h"
 
-static std::filesystem::path get_config_file()
-{
-	return xdg_config_home() / "wivrn" / "config.json";
-}
+static std::filesystem::path config_file = xdg_config_home() / "wivrn" / "config.json";
 
 static std::filesystem::path get_cookie_file()
 {
@@ -56,13 +53,17 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         })
 }
 
+void configuration::set_config_file(const std::filesystem::path & path)
+{
+	config_file = path;
+}
+
 configuration configuration::read_user_configuration()
 {
 	configuration result;
-	auto config_file_path = get_config_file();
-	if (not std::filesystem::exists(config_file_path))
+	if (not std::filesystem::exists(config_file))
 		return result;
-	std::ifstream file(config_file_path);
+	std::ifstream file(config_file);
 	try
 	{
 		auto json = nlohmann::json::parse(file);

@@ -246,6 +246,12 @@ int inner_main(int argc, char * argv[])
 			// FIXME: synchronization fails on gfx pipeline
 			setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
 
+			// FIXME: use a proper library for cli options
+			if (argc == 2 and strcmp(argv[1], "-f") == 0)
+			{
+				configuration::set_config_file(argv[2]);
+			}
+
 			try
 			{
 				return ipc_server_main(argc, argv);
@@ -370,6 +376,13 @@ int inner_main(int argc, char * argv[])
 
 int main(int argc, char * argv[])
 {
+	if (argc > 1 and (strcmp(argv[1], "-f") != 0 or argc < 3))
+	{
+		std::cerr << "Usage: " << argv[0] << " [-f file]" << std::endl
+		          << "\t -f file: configuration file to use" << std::endl;
+		return EXIT_FAILURE;
+	}
+
 	try
 	{
 		return inner_main(argc, argv);
