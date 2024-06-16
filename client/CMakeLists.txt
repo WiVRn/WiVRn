@@ -121,7 +121,9 @@ file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
     "utils/*.cpp"
     "vk/*.cpp"
     "xr/*.cpp"
-    "render/*.cpp")
+    "render/*.cpp"
+    ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
+)
 
 file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
@@ -183,6 +185,11 @@ find_program(GETTEXT_MSGFMT_COMMAND msgfmt REQUIRED)
 
 set(MO_FILES)
 file(GLOB PO_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/locale/*")
+file(WRITE  ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "// generated file\n")
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "#include <map>\n")
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "#include <string>\n")
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "#include <vector>\n")
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "std::map<std::string, std::vector<int>> glyph_set_per_language = {\n")
 foreach(PO_DIR IN LISTS PO_DIRS)
     cmake_path(GET PO_DIR FILENAME LANG)
 
@@ -200,9 +207,19 @@ foreach(PO_DIR IN LISTS PO_DIRS)
         DEPENDS ${PO_FILE})
     set(MO_FILES ${MO_FILES} ${MO_FILE})
 
+    # Characters 0x20 to 0xff are always included
+    execute_process(
+        COMMAND python -c "print('{\"${LANG}\", {' + ', '.join([str(ord(c)) for c in sorted(set(open('wivrn.po').read())) if ord(c) > 255]) + '}},')"
+        WORKING_DIRECTORY ${PO_DIR}
+        # OUTPUT_QUIET
+        OUTPUT_VARIABLE out
+    )
+    file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp ${out})
+
     install(FILES ${MO_FILE} DESTINATION ${CMAKE_INSTALL_DATADIR}/locale/${LANG}/LC_MESSAGES)
 
 endforeach()
+file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "};\n")
 
 add_custom_target(translations ALL DEPENDS ${MO_FILES})
 add_dependencies(wivrn translations)
@@ -221,3 +238,10 @@ if (OPENXR_SOURCE_DIR)
 endif()
 
 install(DIRECTORY "${LICENSES_DIR}" DESTINATION "${CMAKE_INSTALL_DATADIR}/wivrn")
+
+if(NOT ANDROID)
+    set_target_properties(wivrn PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/share/wivrn)
+    file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets         ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
+    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/locale ${CMAKE_BINARY_DIR}/share/locale       SYMBOLIC)
+endif()
