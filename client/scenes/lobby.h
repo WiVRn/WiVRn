@@ -30,7 +30,6 @@
 #include "wivrn_discover.h"
 #include <vulkan/vulkan_raii.hpp>
 
-#include "xr/passthrough.h"
 #include "xr/system.h"
 #include <optional>
 #include <vector>
@@ -88,7 +87,6 @@ class lobby : public scene_impl<lobby>
 	vk::Format swapchain_format;
 	vk::Format depth_format;
 	xr::system::passthrough_type passthrough_supported;
-	xr::passthrough passthrough;
 	XrViewConfigurationView stream_view;
 
 #if WIVRN_CLIENT_DEBUG_MENU

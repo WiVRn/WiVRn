@@ -19,8 +19,10 @@
 
 #include "session.h"
 
+#include "application.h"
 #include "details/enumerate.h"
 #include "xr/instance.h"
+#include "utils/contains.h"
 #include "xr/system.h"
 #include <ranges>
 #include <vulkan/vulkan.h>
@@ -341,4 +343,28 @@ void xr::session::sync_actions(XrActionSet action_set, XrPath subaction_path)
 void xr::session::sync_actions(XrActionSet action_set, const std::string & subaction_path)
 {
 	sync_actions(action_set, inst->string_to_path(subaction_path));
+}
+
+void xr::session::enable_passthrough(xr::system & system)
+{
+	if (system.passthrough_supported() == xr::system::passthrough_type::no_passthrough)
+		return;
+
+	if (utils::contains(system.environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))
+	{
+		passthrough.emplace<xr::passthrough_alpha_blend>();
+	}
+	else if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
+	{
+		passthrough.emplace<xr::passthrough_fb>(*inst, *this);
+	}
+	else if (utils::contains(application::get_xr_extensions(), XR_HTC_PASSTHROUGH_EXTENSION_NAME))
+	{
+		passthrough.emplace<xr::passthrough_htc>(*inst, *this);
+	}
+}
+
+void xr::session::disable_passthrough()
+{
+	passthrough.emplace<std::monostate>();
 }
