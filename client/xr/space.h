@@ -24,21 +24,5 @@
 
 namespace xr
 {
-class space : public utils::handle<XrSpace>
-{
-public:
-	space() = default;
-	space(XrSpace s)
-	{
-		id = s;
-	}
-	space(space &&) = default;
-	space & operator=(space &&) = default;
-
-	~space()
-	{
-		if (id != XR_NULL_HANDLE)
-			xrDestroySpace(id);
-	}
-};
+using space = utils::handle<XrSpace, xrDestroySpace>;
 } // namespace xr

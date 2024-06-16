@@ -20,45 +20,36 @@
 #pragma once
 
 #include "openxr/openxr.h"
-#include "xr.h"
-#include <optional>
+#include "utils/handle.h"
 #include <variant>
 
 namespace xr
 {
+class instance;
 class session;
 
-class passthrough_layer_fb : public utils::handle<XrPassthroughLayerFB>
-{
-	PFN_xrDestroyPassthroughLayerFB xrDestroyPassthroughLayerFB{};
+XrResult destroy_passthrough_layer_fb(XrPassthroughLayerFB);
+XrResult destroy_passthrough_fb(XrPassthroughFB);
+XrResult destroy_passthrough_htc(XrPassthroughHTC);
 
+class passthrough_layer_fb : public utils::handle<XrPassthroughLayerFB, destroy_passthrough_layer_fb>
+{
 public:
-	passthrough_layer_fb() = default;
 	passthrough_layer_fb(instance &, session &, const XrPassthroughLayerCreateInfoFB &);
-	passthrough_layer_fb(passthrough_layer_fb &&) = delete;
-	passthrough_layer_fb & operator=(passthrough_layer_fb &&) = delete;
-	~passthrough_layer_fb();
 };
 
-class passthrough_fb : public utils::handle<XrPassthroughFB>
+class passthrough_fb : public utils::handle<XrPassthroughFB, destroy_passthrough_fb>
 {
-	PFN_xrDestroyPassthroughFB xrDestroyPassthroughFB{};
 	PFN_xrPassthroughStartFB xrPassthroughStartFB{};
 	PFN_xrPassthroughPauseFB xrPassthroughPauseFB{};
 	PFN_xrPassthroughLayerPauseFB xrPassthroughLayerPauseFB{};
 	PFN_xrPassthroughLayerResumeFB xrPassthroughLayerResumeFB{};
 
-	std::optional<passthrough_layer_fb> passthrough_layer;
+	passthrough_layer_fb passthrough_layer;
 	XrCompositionLayerPassthroughFB composition_layer;
 
 public:
-	passthrough_fb() = default;
 	passthrough_fb(instance &, session &);
-	passthrough_fb(passthrough_fb &&) = delete;
-	passthrough_fb(const passthrough_fb &) = delete;
-	passthrough_fb & operator=(passthrough_fb &&) = delete;
-	passthrough_fb & operator=(const passthrough_fb &) = delete;
-	~passthrough_fb();
 
 	void start();
 	void pause();
@@ -68,23 +59,12 @@ public:
 	}
 };
 
-class passthrough_htc : public utils::handle<XrPassthroughHTC>
+class passthrough_htc : public utils::handle<XrPassthroughHTC, destroy_passthrough_htc>
 {
-	PFN_xrDestroyPassthroughHTC xrDestroyPassthroughHTC{};
-
 	XrCompositionLayerPassthroughHTC composition_layer;
 
 public:
-	passthrough_htc() = default;
 	passthrough_htc(instance &, session &);
-	passthrough_htc(passthrough_htc &&) = default;
-	passthrough_htc(const passthrough_htc &) = delete;
-	passthrough_htc & operator=(passthrough_htc &&) = default;
-	passthrough_htc & operator=(const passthrough_htc &) = delete;
-	~passthrough_htc();
-
-	void start() {}
-	void pause() {}
 	XrCompositionLayerBaseHeader * layer()
 	{
 		return (XrCompositionLayerBaseHeader *)&composition_layer;
@@ -93,11 +73,8 @@ public:
 
 class passthrough_alpha_blend
 {
-public:
-	void start() {}
-	void pause() {}
 };
 
-using passthrough = std::variant<passthrough_fb, passthrough_htc, passthrough_alpha_blend>;
+using passthrough = std::variant<std::monostate, passthrough_fb, passthrough_htc, passthrough_alpha_blend>;
 
 } // namespace xr

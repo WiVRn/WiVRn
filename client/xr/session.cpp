@@ -21,7 +21,7 @@
 
 #include "details/enumerate.h"
 #include "utils/ranges.h"
-#include "xr.h"
+#include "xr/system.h"
 #include <vulkan/vulkan.h>
 #include <openxr/openxr_platform.h>
 
@@ -311,10 +311,4 @@ void xr::session::sync_actions(XrActionSet action_set, XrPath subaction_path)
 void xr::session::sync_actions(XrActionSet action_set, const std::string & subaction_path)
 {
 	sync_actions(action_set, inst->string_to_path(subaction_path));
-}
-
-xr::session::~session()
-{
-	if (id != XR_NULL_HANDLE)
-		xrDestroySession(id);
 }

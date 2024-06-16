@@ -29,7 +29,7 @@ namespace xr
 {
 class instance;
 
-class actionset : public utils::handle<XrActionSet>
+class actionset : public utils::handle<XrActionSet, xrDestroyActionSet>
 {
 	instance * inst;
 
@@ -45,7 +45,5 @@ public:
 	{
 		return create_action(type, name, name, subactionpaths);
 	}
-
-	~actionset();
 };
 } // namespace xr

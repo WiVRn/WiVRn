@@ -18,7 +18,8 @@
  */
 
 #include "actionset.h"
-#include "xr.h"
+#include "xr/check.h"
+#include "xr/instance.h"
 #include <cstring>
 
 xr::actionset::actionset(xr::instance & inst, const std::string & name, const std::string & localized_name, uint32_t priority)
@@ -54,10 +55,4 @@ XrAction xr::actionset::create_action(XrActionType type, const std::string & nam
 	CHECK_XR(xrCreateAction(id, &create_info, &action));
 
 	return action;
-}
-
-xr::actionset::~actionset()
-{
-	if (id != XR_NULL_HANDLE)
-		xrDestroyActionSet(id);
 }

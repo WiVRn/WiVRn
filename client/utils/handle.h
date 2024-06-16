@@ -20,10 +20,11 @@
 #pragma once
 
 #include <utility>
+#include <openxr/openxr.h>
 
 namespace utils
 {
-template <typename T>
+template <typename T, XrResult deleter(T)>
 class handle
 {
 protected:
@@ -31,10 +32,16 @@ protected:
 
 	T id = null_value;
 
-	handle() {}
-	~handle() {}
-
 public:
+	handle() {}
+	handle(T id) :
+	        id(id) {}
+	~handle()
+	{
+		if (id != null_value)
+			deleter(id);
+	}
+
 	handle(handle && other) noexcept :
 	        id(other.id)
 	{
@@ -68,14 +75,14 @@ public:
 	}
 };
 
-template <typename T>
-bool operator==(const handle<T> & lhs, const T & rhs)
+template <typename T, XrResult deleter(T)>
+bool operator==(const handle<T, deleter> & lhs, const T & rhs)
 {
 	return (T)lhs == rhs;
 }
 
-template <typename T>
-bool operator==(const T & lhs, const handle<T> & rhs)
+template <typename T, XrResult deleter(T)>
+bool operator==(const T & lhs, const handle<T, deleter> & rhs)
 {
 	return lhs == (T)rhs;
 }

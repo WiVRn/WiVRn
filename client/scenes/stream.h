@@ -76,7 +76,7 @@ private:
 	std::atomic<bool> exiting = false;
 	std::thread network_thread;
 	std::mutex local_floor_mutex;
-	xr::space local_floor = nullptr;
+	xr::space local_floor;
 	std::atomic<std::chrono::nanoseconds::rep> tracking_prediction_offset;
 	std::optional<std::thread> tracking_thread;
 

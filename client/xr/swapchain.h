@@ -33,7 +33,7 @@ namespace xr
 {
 class session;
 
-class swapchain : public utils::handle<XrSwapchain>
+class swapchain : public utils::handle<XrSwapchain, xrDestroySwapchain>
 {
 public:
 	struct image
@@ -53,11 +53,6 @@ private:
 public:
 	swapchain() = default;
 	swapchain(session &, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count = 1);
-	swapchain(swapchain &&) = default;
-	swapchain(const swapchain &) = delete;
-	swapchain & operator=(swapchain &&) = default;
-	swapchain & operator=(const swapchain &) = delete;
-	~swapchain();
 
 	int32_t width() const
 	{

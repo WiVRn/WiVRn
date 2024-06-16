@@ -34,17 +34,13 @@ namespace xr
 class instance;
 class system;
 
-class session : public utils::handle<XrSession>
+class session : public utils::handle<XrSession, xrDestroySession>
 {
 	instance * inst = nullptr;
 
 public:
 	session() = default;
 	session(instance &, system &, vk::raii::Instance &, vk::raii::PhysicalDevice &, vk::raii::Device &, int queue_family_index);
-	session(session &&) = default;
-	session & operator=(session &&) = default;
-
-	~session();
 
 	std::vector<XrReferenceSpaceType> get_reference_spaces() const;
 	space create_reference_space(XrReferenceSpaceType ref, const XrPosef & pose = {{0, 0, 0, 1}, {0, 0, 0}});

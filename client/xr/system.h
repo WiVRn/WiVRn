@@ -23,7 +23,6 @@
 #include <android_native_app_glue.h>
 #endif
 
-#include "xr.h"
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>

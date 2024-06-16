@@ -45,7 +45,7 @@ union event
 	XrEventDataDisplayRefreshRateChangedFB refresh_rate_changed;
 	XrEventDataPassthroughStateChangedFB passthrough_state_changed;
 };
-class instance : public utils::handle<XrInstance>
+class instance : public utils::handle<XrInstance, xrDestroyInstance>
 {
 	std::string runtime_version;
 	std::string runtime_name;
@@ -61,7 +61,6 @@ public:
 	instance() = default;
 	instance(instance &&) = default;
 	instance & operator=(instance &&) = default;
-	~instance();
 
 	const std::string & get_runtime_version() const
 	{

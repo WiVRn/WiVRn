@@ -628,6 +628,9 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	{
 		std::visit(
 		        overloaded{
+		                [&](std::monostate &) {
+			                assert(false);
+		                },
 		                [&](xr::passthrough_alpha_blend & p) {
 			                blend_mode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
 		                },
@@ -744,7 +747,7 @@ void scenes::lobby::setup_passthrough()
 	auto & passthrough_enabled = application::get_config().passthrough_enabled;
 	if (not passthrough_enabled)
 	{
-		passthrough.emplace<xr::passthrough_fb>();
+		passthrough.emplace<std::monostate>();
 		return;
 	}
 	if (passthrough_supported != xr::system::passthrough_type::no_passthrough)
@@ -761,8 +764,6 @@ void scenes::lobby::setup_passthrough()
 		{
 			passthrough.emplace<xr::passthrough_htc>(instance, session);
 		}
-
-		std::visit([](auto & p) { p.start(); }, passthrough);
 	}
 }
 
@@ -785,7 +786,7 @@ void scenes::lobby::on_unfocused()
 	swapchains_lobby.clear();
 	swapchains_controllers.clear();
 	swapchain_imgui = xr::swapchain();
-	passthrough.emplace<xr::passthrough_fb>(); // default constructor does no passthrough
+	passthrough.emplace<std::monostate>();
 	wifi_lock::want_multicast(false);
 }
 

@@ -70,12 +70,6 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 	}
 }
 
-xr::swapchain::~swapchain()
-{
-	if (id != XR_NULL_HANDLE)
-		xrDestroySwapchain(id);
-}
-
 int xr::swapchain::acquire()
 {
 	uint32_t index;

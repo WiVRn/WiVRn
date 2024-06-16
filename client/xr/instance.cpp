@@ -214,12 +214,6 @@ void xr::instance::suggest_bindings(const std::string & interaction_profile,
 	CHECK_XR(xrSuggestInteractionProfileBindings(id, &suggested_binding));
 }
 
-xr::instance::~instance()
-{
-	if (id != XR_NULL_HANDLE)
-		xrDestroyInstance(id);
-}
-
 XrTime xr::instance::now()
 {
 	static PFN_xrConvertTimespecTimeToTimeKHR xrConvertTimespecTimeToTimeKHR =

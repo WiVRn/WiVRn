@@ -28,6 +28,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "xr/passthrough.h"
+#include "xr/system.h"
 #include <optional>
 #include <vector>
 
