@@ -36,10 +36,19 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <locale>
+#include <mutex>
 #include <optional>
 #include <spdlog/spdlog.h>
 
 #include "IconsFontAwesome6.h"
+
+#ifdef __ANDROID__
+#include <android/font.h>
+#include <android/font_matcher.h>
+#include <android/system_fonts.h>
+#else
+#include <fontconfig/fontconfig.h>
+#endif
 
 /* Do not use:
  *
@@ -280,7 +289,7 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 
 void imgui_context::add_chars(std::string_view sv)
 {
-	for(auto it = sv.begin(); it != sv.end(); )
+	for (auto it = sv.begin(); it != sv.end();)
 	{
 		ImWchar c = (ImWchar)*it;
 		if (c < 0x80)
@@ -296,20 +305,127 @@ void imgui_context::add_chars(std::string_view sv)
 	}
 }
 
+#ifdef __ANDROID__
+static std::string find_font(std::string_view text, const std::string & locale)
+{
+	std::u16string wtext;
+
+	for (auto it = text.begin(); it != text.end();)
+	{
+		ImWchar c = (ImWchar)*it;
+		if (c < 0x80)
+			++it;
+		else
+			it += ImTextCharFromUtf8(&c, &*it, &*text.end());
+
+		wtext += c;
+	}
+
+	AFontMatcher * font_matcher = AFontMatcher_create();
+	if (!font_matcher)
+		throw std::runtime_error("AFontMatcher_create");
+
+	AFontMatcher_setFamilyVariant(font_matcher, AFAMILY_VARIANT_DEFAULT);
+	AFontMatcher_setLocales(font_matcher, locale.c_str());
+	AFontMatcher_setStyle(font_matcher, AFONT_WEIGHT_NORMAL, false);
+
+	AFont * font = AFontMatcher_match(font_matcher, "sans-serif", (uint16_t *)wtext.c_str(), wtext.size(), nullptr);
+
+	std::string font_filename = AFont_getFontFilePath(font);
+
+	AFont_close(font);
+	AFontMatcher_destroy(font_matcher);
+
+	return font_filename;
+}
+#else
+static std::string find_font(std::string_view text, const std::string & locale)
+{
+	static std::once_flag fontconfig_flag;
+	std::call_once(fontconfig_flag, FcInit);
+
+	FcConfig* config = FcInitLoadConfigAndFonts();
+
+	FcPattern * pattern = FcNameParse((const FcChar8*)"Arial"); // FcPatternCreate();
+	if (!pattern)
+		throw std::runtime_error("Failed to create Fontconfig pattern");
+
+	FcConfigSubstitute(config, pattern, FcMatchPattern); // NECESSARY; it increases the scope of possible fonts
+	FcDefaultSubstitute(pattern); // NECESSARY; it increases the scope of possible fonts
+
+	// Add the locale/language to the pattern
+	FcPatternAddString(pattern, FC_LANG, (const FcChar8 *)locale.c_str());
+
+	// Add the text to the pattern (to determine appropriate characters)
+	FcCharSet * charset = FcCharSetCreate();
+
+	for (auto it = text.begin(); it != text.end();)
+	{
+		ImWchar c = (ImWchar)*it;
+		if (c < 0x80)
+			++it;
+		else
+			it += ImTextCharFromUtf8(&c, &*it, &*text.end());
+
+		FcCharSetAddChar(charset, c);
+	}
+
+	FcPatternAddCharSet(pattern, FC_CHARSET, charset);
+	FcCharSetDestroy(charset);
+
+	// Match the pattern to find the best font
+	// FcConfig * config = FcConfigGetCurrent();
+	FcResult result;
+	FcPattern * match = FcFontMatch(config, pattern, &result);
+
+	// Retrieve the font file path
+	std::string font_path;
+	if (match)
+	{
+		FcChar8 * font_file;
+		if (FcPatternGetString(match, FC_FILE, 0, &font_file) == FcResultMatch)
+		{
+			font_path = (const char *)font_file;
+			FcPatternDestroy(match);
+			FcPatternDestroy(pattern);
+		}
+		else
+		{
+			FcPatternDestroy(match);
+			FcPatternDestroy(pattern);
+			throw std::runtime_error("Failed to get font file path");
+		}
+	}
+	else
+	{
+		FcPatternDestroy(pattern);
+		throw std::runtime_error("No matching font found");
+	}
+
+	return font_path;
+}
+#endif
+
 void imgui_context::initialize_fonts()
 {
 	glyph_ranges.clear();
 
 	glyph_range_builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
 
-	for(auto language = application::get_messages_info().language; language != ""; language = language.substr(0, language.size() - 1))
+	std::string text = "hello";
+	for (auto language = application::get_messages_info().language; language != ""; language = language.substr(0, language.size() - 1))
 	{
 		auto it = glyph_set_per_language.find(language);
 		if (it == glyph_set_per_language.end())
 			continue;
 
-		for(ImWchar c: it->second)
+		for (ImWchar c: it->second)
+		{
 			glyph_range_builder.AddChar(c);
+
+			char buf[10];
+			text += ImTextCharToUtf8(buf, c);
+		}
 
 		break;
 	}
@@ -317,7 +433,8 @@ void imgui_context::initialize_fonts()
 	glyph_range_builder.BuildRanges(&glyph_ranges);
 
 	// Load Fonts
-	asset roboto("Roboto-Regular.ttf");
+	auto font_path = find_font(text, application::get_messages_info().language);
+	spdlog::info("Using font {} (locale={}, sample text=\"{}\")", font_path, application::get_messages_info().language, text);
 	asset font_awesome_regular("Font Awesome 6 Free-Regular-400.otf");
 	asset font_awesome_solid("Font Awesome 6 Free-Solid-900.otf");
 
@@ -327,7 +444,7 @@ void imgui_context::initialize_fonts()
 	{
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
-		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(roboto.data()), roboto.size(), 30, &config, glyph_ranges.Data);
+		io.Fonts->AddFontFromFileTTF(font_path.c_str(), 30, &config, glyph_ranges.Data);
 
 		config.MergeMode = true;
 		config.GlyphMinAdvanceX = 40; // Use if you want to make the icon monospaced
@@ -339,7 +456,7 @@ void imgui_context::initialize_fonts()
 	{
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
-		large_font = io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(roboto.data()), roboto.size(), 75, &config);
+		large_font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 75, &config);
 	}
 
 	glyph_range_dirty = false;

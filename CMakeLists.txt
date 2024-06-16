@@ -143,6 +143,7 @@ endif()
 
 if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
     pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavcodec libavutil libswscale libavfilter)
+    find_package(Fontconfig REQUIRED)
 
     if (WIVRN_USE_SYSTEM_OPENXR STREQUAL "AUTO")
         find_package(OpenXR 1.0.26)

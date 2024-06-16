@@ -76,7 +76,7 @@ else()
         target_link_libraries(wivrn openxr_loader)
     endif()
 
-    target_link_libraries(wivrn PkgConfig::LIBAV)
+    target_link_libraries(wivrn PkgConfig::LIBAV Fontconfig::Fontconfig)
 
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
