@@ -44,6 +44,11 @@ class VideoEncoder;
 
 struct pseudo_swapchain
 {
+#ifdef __cpp_lib_atomic_lock_free_type_aliases
+	using status_type = std::atomic_unsigned_lock_free;
+#else
+	using status_type = std::atomic_uint64_t;
+#endif
 	struct item
 	{
 		image_allocation image;
@@ -51,12 +56,11 @@ struct pseudo_swapchain
 		vk::raii::Fence fence = nullptr;
 		vk::raii::CommandBuffer command_buffer = nullptr;
 		yuv_converter yuv;
-		uint8_t status; // bitmask of consumer status, index 0 for acquired, the rest for each encoder
+		status_type status; // bitmask of consumer status, index 0 for acquired, the rest for each encoder
 		int64_t frame_index;
 		to_headset::video_stream_data_shard::view_info_t view_info{};
 	};
-	std::vector<item> images;
-	std::mutex mutex;
+	std::unique_ptr<item[]> images;
 	std::condition_variable cv;
 };
 

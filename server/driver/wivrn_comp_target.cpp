@@ -29,8 +29,8 @@
 
 using namespace xrt::drivers::wivrn;
 
-static const uint8_t image_free = 0;
-static const uint8_t image_acquired = 1;
+static const pseudo_swapchain::status_type::value_type image_free = 0;
+static const pseudo_swapchain::status_type::value_type image_acquired = 1;
 
 std::vector<const char *> wivrn_comp_target::wanted_instance_extensions = {};
 std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
@@ -79,11 +79,10 @@ static void destroy_images(struct wivrn_comp_target * cn)
 	cn->encoder_threads.clear();
 	cn->encoders.clear();
 
-	cn->psc.images.clear();
+	cn->psc.images.reset();
 
 	free(cn->images);
 	cn->images = NULL;
-	cn->psc.images.clear();
 
 	target_fini_semaphores(cn);
 }
@@ -149,7 +148,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 
 	cn->images = U_TYPED_ARRAY_CALLOC(struct comp_target_image, cn->image_count);
 
-	cn->psc.images.resize(cn->image_count);
+	cn->psc.images.reset(new pseudo_swapchain::item[cn->image_count]);
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
 		auto & image = cn->psc.images[i].image;
@@ -197,7 +196,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		cn->images[i].view = *item.image_view;
 		item.yuv = yuv_converter(vk->physical_device, device, item.image, format, vk::Extent2D{cn->width, cn->height});
 
-		item.fence = vk::raii::Fence(device, vk::FenceCreateInfo());
+		item.fence = vk::raii::Fence(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
 
 		item.command_buffer = std::move(device.allocateCommandBuffers(
 		        {.commandPool = *cn->command_pool,
@@ -367,13 +366,11 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 
 	while (true)
 	{
-		std::lock_guard lock(cn->psc.mutex);
 		for (uint32_t i = 0; i < ct->image_count; i++)
 		{
-			if (cn->psc.images[i].status == image_free)
+			auto expected = image_free;
+			if (cn->psc.images[i].status.compare_exchange_weak(expected, image_acquired))
 			{
-				cn->psc.images[i].status = image_acquired;
-
 				*out_index = i;
 				return VK_SUCCESS;
 			}
@@ -389,6 +386,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 	U_LOG_I("Starting encoder thread %d", param->thread->index);
 
 	uint8_t status_bit = 1 << (param->thread->index + 1);
+	std::mutex dummy_mutex;
 
 	std::vector<VkFence> fences(cn->image_count);
 	std::vector<int> indices(cn->image_count);
@@ -397,8 +395,6 @@ static void * comp_wivrn_present_thread(void * void_param)
 		int presenting_index = -1;
 		int nb_fences = 0;
 		{
-			std::unique_lock lock(cn->psc.mutex);
-
 			uint64_t timestamp = 0;
 
 			for (uint32_t i = 0; i < cn->image_count; i++)
@@ -416,6 +412,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 
 			if (presenting_index < 0)
 			{
+				std::unique_lock lock(dummy_mutex);
 				// condition variable is not notified when we want to stop thread,
 				// use a timeout, but longer than a typical frame
 				cn->psc.cv.wait_for(lock, std::chrono::milliseconds(50));
@@ -429,6 +426,11 @@ static void * comp_wivrn_present_thread(void * void_param)
 			U_LOG_I("Encoder group %d dropped %d frames", param->thread->index, nb_fences - 1);
 		}
 		VK_CHK_WITH_RET(res, "vkWaitForFences", NULL);
+
+		for (int i = 0; i < nb_fences; i++)
+		{
+			cn->psc.images[indices[i]].status &= ~status_bit;
+		}
 
 		const auto & psc_image = cn->psc.images[presenting_index];
 		try
@@ -445,12 +447,6 @@ static void * comp_wivrn_present_thread(void * void_param)
 		catch (...)
 		{
 			// Ignore errors
-		}
-
-		std::lock_guard lock(cn->psc.mutex);
-		for (int i = 0; i < nb_fences; i++)
-		{
-			cn->psc.images[indices[i]].status &= ~status_bit;
 		}
 	}
 
@@ -506,7 +502,16 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	}
 	command_buffer.end();
 
-	std::lock_guard lock(cn->psc.mutex);
+	{
+		std::vector<vk::Fence> fences;
+		fences.reserve(ct->image_count);
+		for (size_t i = 0; i < ct->image_count; ++i)
+		{
+			fences.push_back(*cn->psc.images[i].fence);
+		}
+		auto res = cn->wivrn_bundle->device.waitForFences(fences, VK_TRUE, UINT64_MAX);
+	}
+
 	cn->wivrn_bundle->device.resetFences(*cn->psc.images[index].fence);
 	{
 		scoped_lock lock(vk->queue_mutex);
