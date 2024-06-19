@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-06-08 19:06+0200\n"
+"POT-Creation-Date: 2024-06-19 16:58+0200\n"
 "PO-Revision-Date: 2024-05-20 13:00+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language: French\n"
@@ -129,7 +129,7 @@ msgid "Overlay can be toggled by pressing both thumbsticks"
 msgstr "L'affichage peut être basculé en appuyant sur les deux joysticks"
 
 #: client/scenes/lobby_gui.cpp:456 client/scenes/lobby_gui.cpp:464
-#: client/scenes/stream_stats.cpp:144
+#: client/scenes/stream_stats.cpp:141
 msgid "CPU time"
 msgstr "Temps CPU"
 
@@ -138,7 +138,7 @@ msgid "CPU time [ms]"
 msgstr "Temps CPU [ms]"
 
 #: client/scenes/lobby_gui.cpp:470 client/scenes/lobby_gui.cpp:478
-#: client/scenes/stream_stats.cpp:146
+#: client/scenes/stream_stats.cpp:143
 msgid "GPU time"
 msgstr "Temps GPU"
 
@@ -166,19 +166,19 @@ msgstr "À propos"
 msgid "Exit"
 msgstr "Quitter"
 
-#: client/scenes/stream_stats.cpp:146
+#: client/scenes/stream_stats.cpp:143
 msgid "Reproject"
 msgstr "Reprojection"
 
-#: client/scenes/stream_stats.cpp:147
+#: client/scenes/stream_stats.cpp:144
 msgid "Blit"
 msgstr "Copie"
 
-#: client/scenes/stream_stats.cpp:149
+#: client/scenes/stream_stats.cpp:146
 msgid "Download"
 msgstr "Téléchargement"
 
-#: client/scenes/stream_stats.cpp:150
+#: client/scenes/stream_stats.cpp:147
 msgid "Upload"
 msgstr "Téléversement"
 
@@ -191,22 +191,27 @@ msgstr "Décodeur {}"
 msgid "Timings [ms]"
 msgstr "Durées [ms]"
 
-#: client/scenes/stream_stats.cpp:289
+#: client/scenes/stream_stats.cpp:273
 msgid "Send"
 msgstr "Envoi"
 
-#: client/scenes/stream_stats.cpp:290
+#: client/scenes/stream_stats.cpp:274
 msgid "Receive"
 msgstr "Réception"
 
-#: client/scenes/stream_stats.cpp:291
+#: client/scenes/stream_stats.cpp:275
 msgid "Decode"
 msgstr "Décodage"
 
-#: client/scenes/stream_stats.cpp:292
+#: client/scenes/stream_stats.cpp:276
 msgid "Blitted"
 msgstr "Copie"
 
-#: client/scenes/stream_stats.cpp:293
+#: client/scenes/stream_stats.cpp:277
 msgid "Displayed"
 msgstr "Affichage"
+
+#: client/scenes/stream_stats.cpp:293
+#, c++-format
+msgid "Estimated motion to photons latency: {}ms"
+msgstr "Latence mouvement à photons estimée: {}ms"

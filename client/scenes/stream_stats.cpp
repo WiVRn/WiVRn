@@ -22,6 +22,7 @@
 #include "stream.h"
 
 #include "application.h"
+#include "imgui_internal.h"
 #include "implot.h"
 #include "utils/ranges.h"
 #include <cmath>
@@ -155,7 +156,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 
 	ImVec2 plot_size = ImVec2(
 	        window_size.x / n_cols - style.ItemSpacing.x * (n_cols - 1) / n_cols,
-	        window_size.y / n_rows - style.ItemSpacing.y * (n_rows - 1) / n_rows);
+	        (window_size.y - ImGui::GetCurrentContext()->FontSize - style.ItemSpacing.y) / n_rows - style.ItemSpacing.y * (n_rows - 1) / n_rows);
 
 	ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
 	ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
@@ -289,6 +290,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 	}
 
 	ImPlot::PopStyleColor(5);
+	ImGui::Text("%s", fmt::format(_F("Estimated motion to photons latency: {}ms"), tracking_prediction_offset.load() / 1'000'000).c_str());
 	ImGui::End();
 
 	return imgui_ctx->end_frame();
