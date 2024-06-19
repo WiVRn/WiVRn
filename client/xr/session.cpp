@@ -261,7 +261,16 @@ std::vector<float> xr::session::get_refresh_rates()
 	static auto xrEnumerateDisplayRefreshRatesFB = inst->get_proc<PFN_xrEnumerateDisplayRefreshRatesFB>("xrEnumerateDisplayRefreshRatesFB");
 
 	if (xrEnumerateDisplayRefreshRatesFB)
-		return xr::details::enumerate<float>(xrEnumerateDisplayRefreshRatesFB, id);
+	{
+		try
+		{
+			return xr::details::enumerate<float>(xrEnumerateDisplayRefreshRatesFB, id);
+		}
+		catch (...)
+		{
+			// Return no available refresh rate in case of error
+		}
+	}
 
 	return {};
 }
