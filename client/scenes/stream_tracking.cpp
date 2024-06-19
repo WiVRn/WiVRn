@@ -242,5 +242,5 @@ void scenes::stream::tracking()
 void scenes::stream::operator()(to_headset::prediction_offset && packet)
 {
 	if (packet.offset.count() >= 0)
-		tracking_prediction_offset = packet.offset.count();
+		tracking_prediction_offset = std::lerp(packet.offset.count(), tracking_prediction_offset.load(), 0.2);
 }
