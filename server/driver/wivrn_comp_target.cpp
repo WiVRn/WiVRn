@@ -71,10 +71,8 @@ static inline struct vk_bundle * get_vk(struct wivrn_comp_target * cn)
 
 static void destroy_images(struct wivrn_comp_target * cn)
 {
-	if (cn->images == NULL)
-	{
+	if (cn->images == nullptr)
 		return;
-	}
 
 	cn->encoder_threads.clear();
 	cn->encoders.clear();
@@ -123,7 +121,7 @@ static void create_encoders(wivrn_comp_target * cn)
 	for (auto & [group, params]: thread_params)
 	{
 		auto params_ptr = new encoder_thread_param(params);
-		auto & thread = cn->encoder_threads.emplace_back();
+		auto & thread = cn->encoder_threads.emplace_back(cn->psc.present_gen);
 		thread.index = cn->encoder_threads.size() - 1;
 		params_ptr->thread = &thread;
 		params_ptr->cn = cn;
@@ -386,7 +384,6 @@ static void * comp_wivrn_present_thread(void * void_param)
 	U_LOG_I("Starting encoder thread %d", param->thread->index);
 
 	uint8_t status_bit = 1 << (param->thread->index + 1);
-	std::mutex dummy_mutex;
 
 	std::vector<VkFence> fences(cn->image_count);
 	std::vector<int> indices(cn->image_count);
@@ -396,6 +393,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 		int nb_fences = 0;
 		{
 			uint64_t timestamp = 0;
+			auto gen = cn->psc.present_gen.load();
 
 			for (uint32_t i = 0; i < cn->image_count; i++)
 			{
@@ -412,10 +410,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 
 			if (presenting_index < 0)
 			{
-				std::unique_lock lock(dummy_mutex);
-				// condition variable is not notified when we want to stop thread,
-				// use a timeout, but longer than a typical frame
-				cn->psc.cv.wait_for(lock, std::chrono::milliseconds(50));
+				cn->psc.present_gen.wait(gen);
 				continue;
 			}
 		}
@@ -544,7 +539,8 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 			view_info.pose[eye] = xrt_cast(result.pose);
 		}
 	}
-	cn->psc.cv.notify_all();
+	cn->psc.present_gen += 1;
+	cn->psc.present_gen.notify_all();
 
 	return VK_SUCCESS;
 }

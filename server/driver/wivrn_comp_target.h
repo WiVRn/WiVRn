@@ -30,7 +30,6 @@
 
 #include "driver/wivrn_pacer.h"
 #include "encoder/encoder_settings.h"
-#include <condition_variable>
 #include <list>
 #include <memory>
 #include <optional>
@@ -61,7 +60,8 @@ struct pseudo_swapchain
 		to_headset::video_stream_data_shard::view_info_t view_info{};
 	};
 	std::unique_ptr<item[]> images;
-	std::condition_variable cv;
+	// Incremented and notified when a new image is available for encoders
+	status_type present_gen;
 };
 
 struct wivrn_comp_target : public comp_target
@@ -86,14 +86,19 @@ struct wivrn_comp_target : public comp_target
 	{
 		int index;
 		os_thread_helper thread;
+		pseudo_swapchain::status_type & gen;
 
-		encoder_thread()
+		encoder_thread(pseudo_swapchain::status_type & gen) :
+		        gen(gen)
 		{
 			os_thread_helper_init(&thread);
 		}
 		~encoder_thread()
 		{
-			os_thread_helper_stop_and_wait(&thread);
+			os_thread_helper_signal_stop(&thread);
+			gen += 1;
+			gen.notify_all();
+			os_thread_helper_wait_locked(&thread);
 			os_thread_helper_destroy(&thread);
 		}
 	};
