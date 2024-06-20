@@ -27,16 +27,6 @@ See [building](docs/building.md#client-headset).
 
 # Usage
 
-## Set WiVRn as default OpenXR runtime
-
-In order to set WiVRn as the default OpenXR runtime, you can run the collowing commands:
-```bash
-mkdir -p ~/.config/openxr/1/
-ln --relative --symbolic --force build-server/openxr_wivrn-dev.json ~/.config/openxr/1/active_runtime.json
-```
-
-Alternatively, setting the environment `XR_RUNTIME_JSON="${PWD}/build-server/openxr_wivrn-dev.json"` will set it for the current shell only.
-
 ## Running
 
 ### Prerequisites
