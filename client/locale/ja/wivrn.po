@@ -1,0 +1,216 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WiVRn 0.16\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-06-20 10:33+0900\n"
+"PO-Revision-Date: 2024-06-20 10:33+0900\n"
+"Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
+"Language: Japanese\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: client/scenes/lobby.cpp:143
+msgid "No supported swapchain format"
+msgstr "互換性のあるスワップチェーンは見つからなかった"
+
+#: client/scenes/lobby.cpp:178
+msgid "Incompatible WiVRn server: no protocol field in TXT"
+msgstr "互換性のないサーバー（プロトコルのフィールドは欠落）"
+
+#: client/scenes/lobby.cpp:181
+#, c++-format
+msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
+msgstr "互換性のないサーバー（クライエント{}、サーバー{}）"
+
+#: client/scenes/lobby.cpp:196
+#, c++-format
+msgid "Cannot resolve hostname: {}"
+msgstr "ホスト名解決に失敗：{}"
+
+#: client/scenes/lobby.cpp:235
+#, c++-format
+msgid "Cannot connect to {} ({}): {}"
+msgstr "{}に接続できませんでした：({}) {}"
+
+#: client/scenes/lobby.cpp:347
+msgid "Waiting for connection"
+msgstr "接続待ち"
+
+#: client/scenes/lobby_gui.cpp:84
+msgid "Video stream interrupted"
+msgstr "動画ストリームの中断"
+
+#: client/scenes/lobby_gui.cpp:86
+msgid "Waiting for video stream"
+msgstr "動画ストリームを待ち"
+
+#: client/scenes/lobby_gui.cpp:101
+msgid "Close"
+msgstr "閉じる"
+
+#: client/scenes/lobby_gui.cpp:103
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: client/scenes/lobby_gui.cpp:108
+#, c++-format
+msgid "Connection to {}"
+msgstr "{}に接続中"
+
+#: client/scenes/lobby_gui.cpp:136
+msgid "Displayed name"
+msgstr "表示名"
+
+#: client/scenes/lobby_gui.cpp:145
+msgid "Host name"
+msgstr "ホスト名"
+
+#: client/scenes/lobby_gui.cpp:154
+msgid "Port"
+msgstr "ポート番号"
+
+#: client/scenes/lobby_gui.cpp:218
+msgid ""
+"Start a WiVRn server on your\n"
+"local network"
+msgstr ""
+"ローカルネットワークでWiVRnサーバーを\n"
+"起動してみて下さい"
+
+#: client/scenes/lobby_gui.cpp:247
+msgid "Autoconnect"
+msgstr "自動接続"
+
+#: client/scenes/lobby_gui.cpp:279
+msgid "Connect"
+msgstr "接続"
+
+#: client/scenes/lobby_gui.cpp:289
+msgid "Incompatible server version"
+msgstr "互換性のないサーバー"
+
+#: client/scenes/lobby_gui.cpp:291
+msgid "Server not available"
+msgstr "サーバーは利用不可"
+
+#: client/scenes/lobby_gui.cpp:305
+msgid "Remove"
+msgstr "削除"
+
+#: client/scenes/lobby_gui.cpp:349
+msgid "Refresh rate"
+msgstr "リフレッシュレート"
+
+#: client/scenes/lobby_gui.cpp:371
+msgid "Resolution scale"
+msgstr "解像度スケール"
+
+#: client/scenes/lobby_gui.cpp:371 client/scenes/lobby_gui.cpp:375
+#, c++-format
+msgid "{} - {}x{} per eye"
+msgstr "{} - 目あたり{}x{}"
+
+#: client/scenes/lobby_gui.cpp:386
+msgid "Enable microphone"
+msgstr "マイク有効"
+
+#: client/scenes/lobby_gui.cpp:414
+msgid "Enable video passthrough in lobby"
+msgstr "ロビーでパススルーを有効"
+
+#: client/scenes/lobby_gui.cpp:422
+msgid "Show performance metrics"
+msgstr "パフォーマンスグラフを表示"
+
+#: client/scenes/lobby_gui.cpp:426
+msgid "Overlay can be toggled by pressing both thumbsticks"
+msgstr "両方のサムスティックを同時に押すことで切り替え可能"
+
+#: client/scenes/lobby_gui.cpp:456 client/scenes/lobby_gui.cpp:464
+#: client/scenes/stream_stats.cpp:141
+msgid "CPU time"
+msgstr "CPU使用時間"
+
+#: client/scenes/lobby_gui.cpp:460
+msgid "CPU time [ms]"
+msgstr "CPU使用時間、ミリ秒"
+
+#: client/scenes/lobby_gui.cpp:470 client/scenes/lobby_gui.cpp:478
+#: client/scenes/stream_stats.cpp:143
+msgid "GPU time"
+msgstr "GPU使用時間"
+
+#: client/scenes/lobby_gui.cpp:474
+msgid "GPU time [ms]"
+msgstr "GPU使用時間、ミリ秒"
+
+#: client/scenes/lobby_gui.cpp:502 client/scenes/lobby_gui.cpp:695
+msgid "Licenses"
+msgstr "ライセンス"
+
+#: client/scenes/lobby_gui.cpp:685
+msgid "Server list"
+msgstr "サーバー"
+
+#: client/scenes/lobby_gui.cpp:688
+msgid "Settings"
+msgstr "設定"
+
+#: client/scenes/lobby_gui.cpp:692
+msgid "About"
+msgstr "WiVRnについて"
+
+#: client/scenes/lobby_gui.cpp:698
+msgid "Exit"
+msgstr "完了"
+
+#: client/scenes/stream_stats.cpp:143
+msgid "Reproject"
+msgstr "リプロジェクション"
+
+#: client/scenes/stream_stats.cpp:144
+msgid "Blit"
+msgstr "レンダー"
+
+#: client/scenes/stream_stats.cpp:146
+msgid "Download"
+msgstr "ダウンロード"
+
+#: client/scenes/stream_stats.cpp:147
+msgid "Upload"
+msgstr "アップロード"
+
+#: client/scenes/stream_stats.cpp:216
+#, c++-format
+msgid "Decoder {}"
+msgstr "デコーダー {}"
+
+#: client/scenes/stream_stats.cpp:228
+msgid "Timings [ms]"
+msgstr "タイミング、ミリ秒"
+
+#: client/scenes/stream_stats.cpp:273
+msgid "Send"
+msgstr "送信"
+
+#: client/scenes/stream_stats.cpp:274
+msgid "Receive"
+msgstr "受信"
+
+#: client/scenes/stream_stats.cpp:275
+msgid "Decode"
+msgstr "デコード"
+
+#: client/scenes/stream_stats.cpp:276
+msgid "Blitted"
+msgstr "レンダー"
+
+#: client/scenes/stream_stats.cpp:277
+msgid "Displayed"
+msgstr "表示"
+
+#: client/scenes/stream_stats.cpp:293
+#, c++-format
+msgid "Estimated motion to photons latency: {}ms"
+msgstr "「Motion-to-photon」推定遅延 {}ミリ秒"

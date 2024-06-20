@@ -40,6 +40,7 @@
 #include <spdlog/spdlog.h>
 
 #include "IconsFontAwesome6.h"
+#include <vector>
 
 /* Do not use:
  *
@@ -106,10 +107,24 @@ static void check_vk_result(VkResult result)
 	}
 }
 
+const std::vector<ImWchar> get_ranges_ja()
+{
+	auto atlas = std::make_unique<ImFontAtlas>();
+	auto vec = std::vector<ImWchar>();
+	auto ranges = atlas->GetGlyphRangesJapanese();
+	for (int i = 0;; i++)
+	{
+		if (ranges[i] == 0)
+			break;
+		vec.push_back(ranges[i]);
+	}
+	return vec;
+}
+
 const std::map<std::string, std::vector<ImWchar>> glyph_ranges_per_language =
         {
-                {"fr", {0x0020, 0x017f, 0}} // Basic Latin + Latin Supplement + Latin Extended-A
-};
+                {"fr", {0x0020, 0x017f, 0}}, // Basic Latin + Latin Supplement + Latin Extended-A
+                {"ja", get_ranges_ja()}};
 
 std::optional<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
