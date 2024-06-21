@@ -456,10 +456,12 @@ void imgui_context::initialize_fonts()
 	{
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
-		large_font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 75, &config);
+		large_font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 75, &config, glyph_ranges.Data);
 	}
 
 	glyph_range_dirty = false;
+
+	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 void imgui_context::new_frame(XrTime display_time)
