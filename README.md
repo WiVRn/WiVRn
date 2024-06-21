@@ -2,16 +2,18 @@
 
 [![License: GPL v3](images/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![CI](https://github.com/Meumeu/WiVRn/workflows/Build/badge.svg) ![Format](https://github.com/Meumeu/WiVRn/workflows/Format/badge.svg)
 
-OpenXR streaming application
-
 <img src="images/wivrn.svg" width="180">
 
-WiVRn lets you run OpenXR applications on a computer and display them on a standalone headset.
+WiVRn wirelessly connects a standalone VR headset to a Linux computer. You can then play PCVR games on the headset while processing is done on the computer.
+
+It supports a wide range of headsets such as Quest 1/2/pro/3, Pico Neo 3/4, HTC Vive Focus 3, HTC Vive XR elite and most other Android based headsets.
 
 # Installation
 ## Server (PC)
 
 See [building](docs/building.md).
+
+Packages are available on [AUR for Arch](https://aur.archlinux.org/packages/wivrn-server), [Guru for Gentoo](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn).
 
 ## Client (headset)
 ### Prebuilt apk
