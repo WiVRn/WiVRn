@@ -2,7 +2,7 @@
 
 [![License: GPL v3](images/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![CI](https://github.com/Meumeu/WiVRn/workflows/Build/badge.svg) ![Format](https://github.com/Meumeu/WiVRn/workflows/Format/badge.svg)
 
-<img src="images/wivrn.svg" width="180">
+<p align="center"><img src="images/wivrn.svg" width="180"></p>
 
 WiVRn wirelessly connects a standalone VR headset to a Linux computer. You can then play PCVR games on the headset while processing is done on the computer.
 
