@@ -131,6 +131,12 @@ private:
 
 	bool button_pressed = false;
 
+	ImFontGlyphRangesBuilder glyph_range_builder;
+	ImVector<ImWchar> glyph_ranges;
+	bool glyph_range_dirty = true;
+
+	void initialize_fonts();
+
 public:
 	imgui_context(
 	        vk::raii::PhysicalDevice physical_device,
@@ -210,4 +216,6 @@ public:
 	ImTextureID load_texture(const std::string & filename);
 	void free_texture(ImTextureID);
 	void set_current();
+
+	void add_chars(std::string_view sv);
 };

@@ -859,7 +859,7 @@ void application::initialize()
 	auto & facet = std::use_facet<boost::locale::info>(loc);
 	messages_info.language = facet.language();
 	messages_info.country = facet.country();
-	messages_info.encoding = facet.encoding();
+	messages_info.encoding = "UTF-8";
 #endif
 
 	spdlog::info("Current locale: language {}, country {}, encoding {}", messages_info.language, messages_info.country, messages_info.encoding);

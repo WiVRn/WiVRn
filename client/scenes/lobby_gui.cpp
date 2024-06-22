@@ -609,6 +609,11 @@ static void ScrollWhenDraggingOnVoid(ImVec2 delta)
 
 XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 {
+	for (const auto & [key, server]: application::get_config().servers)
+	{
+		imgui_ctx->add_chars(server.service.name);
+	}
+
 	imgui_ctx->new_frame(predicted_display_time);
 	ImGuiStyle & style = ImGui::GetStyle();
 

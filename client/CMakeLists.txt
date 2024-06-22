@@ -76,7 +76,7 @@ else()
         target_link_libraries(wivrn openxr_loader)
     endif()
 
-    target_link_libraries(wivrn PkgConfig::LIBAV)
+    target_link_libraries(wivrn PkgConfig::LIBAV Fontconfig::Fontconfig)
 
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
@@ -121,7 +121,8 @@ file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
     "utils/*.cpp"
     "vk/*.cpp"
     "xr/*.cpp"
-    "render/*.cpp")
+    "render/*.cpp"
+)
 
 file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
@@ -182,6 +183,7 @@ endif()
 find_program(GETTEXT_MSGFMT_COMMAND msgfmt REQUIRED)
 
 set(MO_FILES)
+set(PO_FILES)
 file(GLOB PO_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/locale/*")
 foreach(PO_DIR IN LISTS PO_DIRS)
     cmake_path(GET PO_DIR FILENAME LANG)
@@ -191,6 +193,7 @@ foreach(PO_DIR IN LISTS PO_DIRS)
     else()
         set(MO_DIR  ${CMAKE_CURRENT_BINARY_DIR}/locale/${LANG}/LC_MESSAGES)
     endif()
+
     set(MO_FILE ${MO_DIR}/wivrn.mo)
     set(PO_FILE ${PO_DIR}/wivrn.po)
 
@@ -198,14 +201,20 @@ foreach(PO_DIR IN LISTS PO_DIRS)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${MO_DIR}
         COMMAND ${GETTEXT_MSGFMT_COMMAND} ${PO_FILE} -o ${MO_FILE}
         DEPENDS ${PO_FILE})
+
     set(MO_FILES ${MO_FILES} ${MO_FILE})
+    set(PO_FILES ${PO_FILES} ${PO_FILE})
 
     install(FILES ${MO_FILE} DESTINATION ${CMAKE_INSTALL_DATADIR}/locale/${LANG}/LC_MESSAGES)
-
 endforeach()
 
-add_custom_target(translations ALL DEPENDS ${MO_FILES})
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_charset.py ${PO_FILES} > ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
+    DEPENDS ${PO_FILES})
+
+add_custom_target(translations ALL DEPENDS ${MO_FILES} ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
 add_dependencies(wivrn translations)
+target_sources(wivrn PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
 
 if(ANDROID)
     set(LICENSES_DIR "${CMAKE_ANDROID_ASSETS_DIRECTORIES}/licenses")
@@ -221,3 +230,10 @@ if (OPENXR_SOURCE_DIR)
 endif()
 
 install(DIRECTORY "${LICENSES_DIR}" DESTINATION "${CMAKE_INSTALL_DATADIR}/wivrn")
+
+if(NOT ANDROID)
+    set_target_properties(wivrn PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/share/wivrn)
+    file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets         ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
+    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/locale ${CMAKE_BINARY_DIR}/share/locale       SYMBOLIC)
+endif()
