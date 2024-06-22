@@ -39,6 +39,7 @@
 #include <mutex>
 #include <optional>
 #include <spdlog/spdlog.h>
+#include <string_view>
 
 #include "IconsFontAwesome6.h"
 
@@ -306,20 +307,26 @@ void imgui_context::add_chars(std::string_view sv)
 }
 
 #ifdef __ANDROID__
-static std::string find_font(std::string_view text, const std::string & locale)
+static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder& glyph_range_builder, const std::string & locale)
 {
 	std::u16string wtext;
-
-	for (auto it = text.begin(); it != text.end();)
+	std::u16string_view wtextview;
+	for(int i = 0; i < glyph_range_builder.UsedChars.Size; ++i)
 	{
-		ImWchar c = (ImWchar)*it;
-		if (c < 0x80)
-			++it;
-		else
-			it += ImTextCharFromUtf8(&c, &*it, &*text.end());
+		std::uint32_t used_chars = glyph_range_builder.UsedChars[i];
+		if (used_chars == 0)
+			continue;
 
-		wtext += c;
+		for(int j = 0; j < 32; ++j)
+		{
+			ImWchar c = i * 32 + j;
+			if (used_chars & (1 << j))
+			{
+				wtext += c;
+			}
+		}
 	}
+	wtextview = wtext;
 
 	AFontMatcher * font_matcher = AFontMatcher_create();
 	if (!font_matcher)
@@ -329,29 +336,39 @@ static std::string find_font(std::string_view text, const std::string & locale)
 	AFontMatcher_setLocales(font_matcher, locale.c_str());
 	AFontMatcher_setStyle(font_matcher, AFONT_WEIGHT_NORMAL, false);
 
-	AFont * font = AFontMatcher_match(font_matcher, "sans-serif", (uint16_t *)wtext.c_str(), wtext.size(), nullptr);
+	std::vector<std::string> fonts;
 
-	std::string font_filename = AFont_getFontFilePath(font);
+	while (!wtextview.empty())
+	{
+		uint32_t runlength = 0;
 
-	AFont_close(font);
+		AFont * font = AFontMatcher_match(font_matcher, "sans-serif", (uint16_t *)wtextview.data(), wtextview.size(), &runlength);
+		fonts.emplace_back(AFont_getFontFilePath(font));
+		AFont_close(font);
+
+		if (runlength == 0)
+			break;
+
+		wtextview = wtextview.substr(runlength);
+	}
+
 	AFontMatcher_destroy(font_matcher);
 
-	return font_filename;
+	return fonts;
 }
 #else
-static std::string find_font(std::string_view text, const std::string & locale)
+static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder& glyph_range_builder, const std::string & locale)
 {
-	static std::once_flag fontconfig_flag;
-	std::call_once(fontconfig_flag, FcInit);
+	// See https://www.camconn.cc/post/how-to-fontconfig-lib-c/
 
-	FcConfig* config = FcInitLoadConfigAndFonts();
+	static FcConfig * config = FcInitLoadConfigAndFonts();
 
-	FcPattern * pattern = FcNameParse((const FcChar8*)"Arial"); // FcPatternCreate();
+	FcPattern * pattern = FcNameParse((const FcChar8 *)"Noto Sans");
 	if (!pattern)
 		throw std::runtime_error("Failed to create Fontconfig pattern");
 
-	FcConfigSubstitute(config, pattern, FcMatchPattern); // NECESSARY; it increases the scope of possible fonts
-	FcDefaultSubstitute(pattern); // NECESSARY; it increases the scope of possible fonts
+	FcConfigSubstitute(config, pattern, FcMatchPattern);
+	FcDefaultSubstitute(pattern);
 
 	// Add the locale/language to the pattern
 	FcPatternAddString(pattern, FC_LANG, (const FcChar8 *)locale.c_str());
@@ -359,50 +376,53 @@ static std::string find_font(std::string_view text, const std::string & locale)
 	// Add the text to the pattern (to determine appropriate characters)
 	FcCharSet * charset = FcCharSetCreate();
 
-	for (auto it = text.begin(); it != text.end();)
+	for(int i = 8; i < glyph_range_builder.UsedChars.Size; ++i)
 	{
-		ImWchar c = (ImWchar)*it;
-		if (c < 0x80)
-			++it;
-		else
-			it += ImTextCharFromUtf8(&c, &*it, &*text.end());
+		std::uint32_t used_chars = glyph_range_builder.UsedChars[i];
+		if (used_chars == 0)
+			continue;
 
-		FcCharSetAddChar(charset, c);
+		for(int j = 0; j < 32; ++j)
+		{
+			ImWchar c = i * 32 + j;
+			if (used_chars & (1 << j))
+			{
+				FcCharSetAddChar(charset, c);
+			}
+		}
 	}
 
 	FcPatternAddCharSet(pattern, FC_CHARSET, charset);
 	FcCharSetDestroy(charset);
 
-	// Match the pattern to find the best font
-	// FcConfig * config = FcConfigGetCurrent();
-	FcResult result;
-	FcPattern * match = FcFontMatch(config, pattern, &result);
+	auto fs = FcFontSetCreate();
 
-	// Retrieve the font file path
-	std::string font_path;
-	if (match)
+	FcResult result;
+	FcFontSet * font_patterns = FcFontSort(config, pattern, FcTrue, nullptr, &result);
+
+	if (!font_patterns || font_patterns->nfont == 0)
+	{
+		FcFontSetDestroy(fs);
+		FcPatternDestroy(pattern);
+		throw std::runtime_error("Fontconfig could not find ANY fonts on the system?");
+	}
+
+	FcFontSetPrint(font_patterns);
+
+	std::vector<std::string> fonts;
+	for (int i = 0; i < font_patterns->nfont; i++)
 	{
 		FcChar8 * font_file;
-		if (FcPatternGetString(match, FC_FILE, 0, &font_file) == FcResultMatch)
+		if (FcPatternGetString(font_patterns->fonts[i], FC_FILE, 0, &font_file) == FcResultMatch)
 		{
-			font_path = (const char *)font_file;
-			FcPatternDestroy(match);
-			FcPatternDestroy(pattern);
+			fonts.emplace_back((const char *)font_file);
 		}
-		else
-		{
-			FcPatternDestroy(match);
-			FcPatternDestroy(pattern);
-			throw std::runtime_error("Failed to get font file path");
-		}
-	}
-	else
-	{
-		FcPatternDestroy(pattern);
-		throw std::runtime_error("No matching font found");
 	}
 
-	return font_path;
+	FcFontSetDestroy(fs);
+	FcPatternDestroy(pattern);
+
+	return fonts;
 }
 #endif
 
@@ -410,9 +430,10 @@ void imgui_context::initialize_fonts()
 {
 	glyph_ranges.clear();
 
-	glyph_range_builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+	// Always include Basic Latin and Latin-1 Supplement without control characters
+	ImWchar default_ranges[] = {0x20, 0x7f, 0xa0, 0xff, 0};
+	glyph_range_builder.AddRanges(default_ranges);
 
-	std::string text = "hello";
 	for (auto language = application::get_messages_info().language; language != ""; language = language.substr(0, language.size() - 1))
 	{
 		auto it = glyph_set_per_language.find(language);
@@ -422,19 +443,38 @@ void imgui_context::initialize_fonts()
 		for (ImWchar c: it->second)
 		{
 			glyph_range_builder.AddChar(c);
-
-			char buf[10];
-			text += ImTextCharToUtf8(buf, c);
 		}
 
 		break;
 	}
 
+	for(int i = 0; i < glyph_range_builder.UsedChars.Size; ++i)
+	{
+		std::uint32_t used_chars = glyph_range_builder.UsedChars[i];
+
+		if (used_chars == 0)
+			continue;
+
+		for(int j = 0; j < 32; ++j)
+		{
+			ImWchar c = i * 32 + j;
+			if (used_chars & (1 << j))
+			{
+				char buf[8];
+				ImTextCharToUtf8(buf, c);
+			}
+		}
+	}
+
 	glyph_range_builder.BuildRanges(&glyph_ranges);
 
 	// Load Fonts
-	auto font_path = find_font(text, application::get_messages_info().language);
-	spdlog::info("Using font {} (locale={}, sample text=\"{}\")", font_path, application::get_messages_info().language, text);
+	auto fonts = find_font(glyph_range_builder, application::get_messages_info().language);
+	for(auto& i: fonts)
+	{
+		spdlog::info("Font {}", i);
+	}
+
 	asset font_awesome_regular("Font Awesome 6 Free-Regular-400.otf");
 	asset font_awesome_solid("Font Awesome 6 Free-Solid-900.otf");
 
@@ -444,7 +484,13 @@ void imgui_context::initialize_fonts()
 	{
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
-		io.Fonts->AddFontFromFileTTF(font_path.c_str(), 30, &config, glyph_ranges.Data);
+
+		for(auto& font: fonts)
+		{
+			spdlog::info("Using font {}", font, application::get_messages_info().language);
+			io.Fonts->AddFontFromFileTTF(font.c_str(), 30, &config, glyph_ranges.Data);
+			config.MergeMode = true;
+		}
 
 		config.MergeMode = true;
 		config.GlyphMinAdvanceX = 40; // Use if you want to make the icon monospaced
@@ -456,7 +502,11 @@ void imgui_context::initialize_fonts()
 	{
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
-		large_font = io.Fonts->AddFontFromFileTTF(font_path.c_str(), 75, &config, glyph_ranges.Data);
+		for(auto& font: fonts)
+		{
+			large_font = io.Fonts->AddFontFromFileTTF(font.c_str(), 75, &config, glyph_ranges.Data);
+			config.MergeMode = true;
+		}
 	}
 
 	glyph_range_dirty = false;
