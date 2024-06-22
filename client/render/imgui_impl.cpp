@@ -307,17 +307,17 @@ void imgui_context::add_chars(std::string_view sv)
 }
 
 #ifdef __ANDROID__
-static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder& glyph_range_builder, const std::string & locale)
+static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder & glyph_range_builder, const std::string & locale)
 {
 	std::u16string wtext;
 	std::u16string_view wtextview;
-	for(int i = 0; i < glyph_range_builder.UsedChars.Size; ++i)
+	for (int i = 0; i < glyph_range_builder.UsedChars.Size; ++i)
 	{
 		std::uint32_t used_chars = glyph_range_builder.UsedChars[i];
 		if (used_chars == 0)
 			continue;
 
-		for(int j = 0; j < 32; ++j)
+		for (int j = 0; j < 32; ++j)
 		{
 			ImWchar c = i * 32 + j;
 			if (used_chars & (1 << j))
@@ -357,7 +357,7 @@ static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder& glyph_
 	return fonts;
 }
 #else
-static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder& glyph_range_builder, const std::string & locale)
+static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder & glyph_range_builder, const std::string & locale)
 {
 	// See https://www.camconn.cc/post/how-to-fontconfig-lib-c/
 
@@ -376,13 +376,13 @@ static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder& glyph_
 	// Add the text to the pattern (to determine appropriate characters)
 	FcCharSet * charset = FcCharSetCreate();
 
-	for(int i = 8; i < glyph_range_builder.UsedChars.Size; ++i)
+	for (int i = 8; i < glyph_range_builder.UsedChars.Size; ++i)
 	{
 		std::uint32_t used_chars = glyph_range_builder.UsedChars[i];
 		if (used_chars == 0)
 			continue;
 
-		for(int j = 0; j < 32; ++j)
+		for (int j = 0; j < 32; ++j)
 		{
 			ImWchar c = i * 32 + j;
 			if (used_chars & (1 << j))
@@ -448,14 +448,14 @@ void imgui_context::initialize_fonts()
 		break;
 	}
 
-	for(int i = 0; i < glyph_range_builder.UsedChars.Size; ++i)
+	for (int i = 0; i < glyph_range_builder.UsedChars.Size; ++i)
 	{
 		std::uint32_t used_chars = glyph_range_builder.UsedChars[i];
 
 		if (used_chars == 0)
 			continue;
 
-		for(int j = 0; j < 32; ++j)
+		for (int j = 0; j < 32; ++j)
 		{
 			ImWchar c = i * 32 + j;
 			if (used_chars & (1 << j))
@@ -470,7 +470,7 @@ void imgui_context::initialize_fonts()
 
 	// Load Fonts
 	auto fonts = find_font(glyph_range_builder, application::get_messages_info().language);
-	for(auto& i: fonts)
+	for (auto & i: fonts)
 	{
 		spdlog::info("Font {}", i);
 	}
@@ -485,7 +485,7 @@ void imgui_context::initialize_fonts()
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
 
-		for(auto& font: fonts)
+		for (auto & font: fonts)
 		{
 			spdlog::info("Using font {}", font, application::get_messages_info().language);
 			io.Fonts->AddFontFromFileTTF(font.c_str(), 30, &config, glyph_ranges.Data);
@@ -502,7 +502,7 @@ void imgui_context::initialize_fonts()
 	{
 		ImFontConfig config;
 		config.FontDataOwnedByAtlas = false;
-		for(auto& font: fonts)
+		for (auto & font: fonts)
 		{
 			large_font = io.Fonts->AddFontFromFileTTF(font.c_str(), 75, &config, glyph_ranges.Data);
 			config.MergeMode = true;
