@@ -122,7 +122,6 @@ file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
     "vk/*.cpp"
     "xr/*.cpp"
     "render/*.cpp"
-    ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
 )
 
 file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
@@ -184,12 +183,8 @@ endif()
 find_program(GETTEXT_MSGFMT_COMMAND msgfmt REQUIRED)
 
 set(MO_FILES)
+set(PO_FILES)
 file(GLOB PO_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/locale/*")
-file(WRITE  ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "// generated file\n")
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "#include <map>\n")
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "#include <string>\n")
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "#include <vector>\n")
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "std::map<std::string, std::vector<int>> glyph_set_per_language = {\n")
 foreach(PO_DIR IN LISTS PO_DIRS)
     cmake_path(GET PO_DIR FILENAME LANG)
 
@@ -198,6 +193,7 @@ foreach(PO_DIR IN LISTS PO_DIRS)
     else()
         set(MO_DIR  ${CMAKE_CURRENT_BINARY_DIR}/locale/${LANG}/LC_MESSAGES)
     endif()
+
     set(MO_FILE ${MO_DIR}/wivrn.mo)
     set(PO_FILE ${PO_DIR}/wivrn.po)
 
@@ -205,24 +201,20 @@ foreach(PO_DIR IN LISTS PO_DIRS)
         COMMAND ${CMAKE_COMMAND} -E make_directory ${MO_DIR}
         COMMAND ${GETTEXT_MSGFMT_COMMAND} ${PO_FILE} -o ${MO_FILE}
         DEPENDS ${PO_FILE})
-    set(MO_FILES ${MO_FILES} ${MO_FILE})
 
-    # Characters 0x20 to 0xff are always included
-    execute_process(
-        COMMAND python -c "print('{\"${LANG}\", {' + ', '.join([str(ord(c)) for c in sorted(set(open('wivrn.po').read())) if ord(c) > 255]) + '}},')"
-        WORKING_DIRECTORY ${PO_DIR}
-        # OUTPUT_QUIET
-        OUTPUT_VARIABLE out
-    )
-    file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp ${out})
+    set(MO_FILES ${MO_FILES} ${MO_FILE})
+    set(PO_FILES ${PO_FILES} ${PO_FILE})
 
     install(FILES ${MO_FILE} DESTINATION ${CMAKE_INSTALL_DATADIR}/locale/${LANG}/LC_MESSAGES)
-
 endforeach()
-file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp "};\n")
 
-add_custom_target(translations ALL DEPENDS ${MO_FILES})
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
+    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_charset.py ${PO_FILES} > ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
+    DEPENDS ${PO_FILES})
+
+add_custom_target(translations ALL DEPENDS ${MO_FILES} ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
 add_dependencies(wivrn translations)
+target_sources(wivrn PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
 
 if(ANDROID)
     set(LICENSES_DIR "${CMAKE_ANDROID_ASSETS_DIRECTORIES}/licenses")
