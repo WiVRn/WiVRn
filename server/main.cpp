@@ -3,9 +3,6 @@
 /*!
  * @file
  * @brief  Main file for WiVRn Monado service.
- * @author
- * @author
- * @ingroup ipc
  */
 
 #include "util/u_trace_marker.h"
@@ -14,6 +11,7 @@
 #include "active_runtime.h"
 #include "driver/configuration.h"
 #include "pidfd.h"
+#include "start_application.h"
 #include "version.h"
 #include "wivrn_config.h"
 #include "wivrn_ipc.h"
@@ -106,42 +104,6 @@ int create_listen_socket()
 }
 #endif
 
-pid_t start_application()
-{
-	auto config = configuration::read_user_configuration();
-
-	if (!config.application.empty())
-	{
-		pid_t application_pid = fork();
-		if (application_pid < 0)
-		{
-			throw std::system_error(errno, std::system_category(), "fork");
-		}
-
-		if (application_pid == 0)
-		{
-			// Start a new process group so that all processes started by the
-			// application can be signaled
-			setpgrp();
-
-			std::vector<char *> argv;
-			argv.reserve(config.application.size() + 1);
-			for (auto & arg: config.application)
-				argv.push_back(arg.data());
-			argv.push_back(nullptr);
-
-			execvp(config.application.front().c_str(), argv.data());
-
-			perror("Cannot start application");
-			exit(EXIT_FAILURE);
-		}
-
-		return application_pid;
-	}
-
-	return 0;
-}
-
 void waitpid_verbose(pid_t pid, const std::string & name)
 {
 	int wstatus = 0;
@@ -214,7 +176,7 @@ int inner_main(int argc, char * argv[])
 
 		active_runtime runtime_setter;
 
-		pid_t client_pid = start_application();
+		pid_t client_pid = fork_application();
 
 		pid_t server_pid = fork();
 
@@ -376,11 +338,27 @@ int inner_main(int argc, char * argv[])
 
 int main(int argc, char * argv[])
 {
-	if (argc > 1 and (strcmp(argv[1], "-f") != 0 or argc < 3))
+	if (argc > 1)
 	{
-		std::cerr << "Usage: " << argv[0] << " [-f file]" << std::endl
-		          << "\t -f file: configuration file to use" << std::endl;
-		return EXIT_FAILURE;
+		if ((strcmp(argv[1], "--application") == 0))
+		{
+			pid_t pid = exec_application(configuration::read_user_configuration());
+			if (pid < 0)
+			{
+				return EXIT_FAILURE;
+			}
+			return EXIT_SUCCESS;
+		}
+		else if ((strcmp(argv[1], "-f") != 0 or argc < 3))
+		{
+			std::cerr << "Usage: " << argv[0] << " [-f file]" << std::endl
+			          << "\t -f file: configuration file to use" << std::endl;
+			if (strcmp(argv[1], "-h") != 0 and strcmp(argv[1], "--help") != 0)
+			{
+				return EXIT_FAILURE;
+			}
+			return EXIT_SUCCESS;
+		}
 	}
 
 	try

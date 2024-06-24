@@ -62,6 +62,7 @@ add_executable(wivrn-server
 		avahi_publisher.cpp
 		hostname.cpp
 		main.cpp
+		start_application.cpp
 		target_instance_wivrn.cpp
 		wivrn_ipc.cpp
 
@@ -159,6 +160,10 @@ target_link_libraries(
 
 configure_file(dist/wivrn.service.in wivrn.service)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn.service
+	DESTINATION lib/systemd/user/)
+
+configure_file(dist/wivrn-application.service.in wivrn-application.service)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn-application.service
 	DESTINATION lib/systemd/user/)
 
 install(FILES dist/firewalld-wivrn.xml
