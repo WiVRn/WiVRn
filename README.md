@@ -77,6 +77,7 @@ WiVRn uses the following software:
 - [Avahi](https://www.avahi.org/)
 - [Boost.Locale](https://github.com/boostorg/locale)
 - [Boost.PFR](https://github.com/boostorg/pfr)
+- [CLI11](https://github.com/CLIUtils/CLI11)
 - [Dear ImGui](https://github.com/ocornut/imgui)
 - [fastgltf](https://github.com/spnda/fastgltf)
 - [ffmpeg](https://ffmpeg.org/) optional, for hardware encoding on AMD/Intel

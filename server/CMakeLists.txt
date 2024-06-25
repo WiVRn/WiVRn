@@ -95,6 +95,8 @@ target_compile_definitions(wivrn-server PRIVATE VULKAN_HPP_NO_CONSTRUCTORS)
 target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
 target_include_directories(wivrn-server PRIVATE .)
 
+target_link_libraries(wivrn-server PRIVATE CLI11::CLI11)
+
 if(WIVRN_USE_NVENC)
         target_sources(wivrn-server PRIVATE encoder/video_encoder_nvenc.cpp)
 endif()

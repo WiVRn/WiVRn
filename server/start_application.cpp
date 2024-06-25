@@ -9,7 +9,6 @@
 #include "start_application.h"
 
 #include "driver/configuration.h"
-#include "wivrn_config.h"
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -21,26 +20,7 @@
 #include <string>
 #include <systemd/sd-bus.h>
 #include <thread>
-#endif
 
-int exec_application(configuration config)
-{
-	if (config.application.empty())
-		return 0;
-
-	std::vector<char *> argv;
-	argv.reserve(config.application.size() + 1);
-	for (auto & arg: config.application)
-		argv.push_back(arg.data());
-	argv.push_back(nullptr);
-
-	execvp(config.application.front().c_str(), argv.data());
-
-	perror("Cannot start application");
-	exit(EXIT_FAILURE);
-}
-
-#ifdef WIVRN_USE_SYSTEMD
 int get_service_pid(const std::string & service_name, pid_t & pid)
 {
 	sd_bus * bus = nullptr;
@@ -185,7 +165,7 @@ finish:
 	return is_active;
 }
 
-pid_t fork_application()
+pid_t start_unit_file()
 {
 	std::string service_name = "wivrn-application.service";
 	pid_t pid;
@@ -218,30 +198,46 @@ pid_t fork_application()
 	return pid;
 }
 
-#else
+#endif
 
 pid_t fork_application()
 {
 	auto config = configuration::read_user_configuration();
 
-	if (!config.application.empty())
+	if (config.application.empty())
+		return 0;
+
+	pid_t application_pid = fork();
+	if (application_pid < 0)
 	{
-		pid_t application_pid = fork();
-		if (application_pid < 0)
-		{
-			throw std::system_error(errno, std::system_category(), "fork");
-		}
-
-		if (application_pid == 0)
-		{
-			// Start a new process group so that all processes started by the
-			// application can be signaled
-			setpgrp();
-
-			return exec_application(config);
-		}
+		throw std::system_error(errno, std::system_category(), "fork");
 	}
 
-	return 0;
+	if (application_pid == 0)
+	{
+		// Start a new process group so that all processes started by the
+		// application can be signaled
+		setpgrp();
+
+		return exec_application(config);
+	}
+
+	return application_pid;
 }
-#endif
+
+int exec_application(configuration config)
+{
+	if (config.application.empty())
+		return 0;
+
+	std::vector<char *> argv;
+	argv.reserve(config.application.size() + 1);
+	for (auto & arg: config.application)
+		argv.push_back(arg.data());
+	argv.push_back(nullptr);
+
+	execvp(config.application.front().c_str(), argv.data());
+
+	perror("Cannot start application");
+	exit(EXIT_FAILURE);
+}
