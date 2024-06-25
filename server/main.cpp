@@ -17,6 +17,7 @@
 #include "wivrn_ipc.h"
 #include "wivrn_sockets.h"
 
+#include <CLI/CLI.hpp>
 #include <iostream>
 #include <memory>
 #include <poll.h>
@@ -122,11 +123,13 @@ void waitpid_verbose(pid_t pid, const std::string & name)
 	}
 }
 
-int inner_main(int argc, char * argv[])
+int inner_main(int argc, char * argv[], bool use_systemd)
 {
 	std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
 #ifdef WIVRN_USE_SYSTEMD
 	create_listen_socket();
+#else
+	assert(not systemd);
 #endif
 
 	u_trace_marker_init();
@@ -176,7 +179,11 @@ int inner_main(int argc, char * argv[])
 
 		active_runtime runtime_setter;
 
+#ifdef WIVRN_USE_SYSTEMD
+		pid_t client_pid = use_systemd ? start_unit_file() : fork_application();
+#else
 		pid_t client_pid = fork_application();
+#endif
 
 		pid_t server_pid = fork();
 
@@ -207,12 +214,6 @@ int inner_main(int argc, char * argv[])
 
 			// FIXME: synchronization fails on gfx pipeline
 			setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
-
-			// FIXME: use a proper library for cli options
-			if (argc == 2 and strcmp(argv[1], "-f") == 0)
-			{
-				configuration::set_config_file(argv[2]);
-			}
 
 			try
 			{
@@ -338,32 +339,29 @@ int inner_main(int argc, char * argv[])
 
 int main(int argc, char * argv[])
 {
-	if (argc > 1)
-	{
-		if ((strcmp(argv[1], "--application") == 0))
-		{
-			pid_t pid = exec_application(configuration::read_user_configuration());
-			if (pid < 0)
-			{
-				return EXIT_FAILURE;
-			}
-			return EXIT_SUCCESS;
-		}
-		else if ((strcmp(argv[1], "-f") != 0 or argc < 3))
-		{
-			std::cerr << "Usage: " << argv[0] << " [-f file]" << std::endl
-			          << "\t -f file: configuration file to use" << std::endl;
-			if (strcmp(argv[1], "-h") != 0 and strcmp(argv[1], "--help") != 0)
-			{
-				return EXIT_FAILURE;
-			}
-			return EXIT_SUCCESS;
-		}
-	}
+	CLI::App app;
 
+	std::string config_file;
+	bool use_systemd = false;
+	app.add_option("-f", config_file, "configuration file")->option_text("FILE")->check(CLI::ExistingFile);
+#ifdef WIVRN_USE_SYSTEMD
+	// --application should only be used from wivrn-application unit file
+	auto app_flag = app.add_flag("--application")->group("");
+	app.add_flag("--systemd", use_systemd, "use systemd to launch user-configured application");
+#endif
+
+	CLI11_PARSE(app, argc, argv);
+
+	if (not config_file.empty())
+		configuration::set_config_file(config_file);
+
+#ifdef WIVRN_USE_SYSTEMD
+	if (*app_flag)
+		return exec_application(configuration::read_user_configuration());
+#endif
 	try
 	{
-		return inner_main(argc, argv);
+		return inner_main(argc, argv, use_systemd);
 	}
 	catch (std::exception & e)
 	{

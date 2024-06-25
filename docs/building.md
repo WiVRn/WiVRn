@@ -34,7 +34,7 @@ Additionally, if your environment requires absolute paths inside the OpenXR runt
 # Client (headset)
 
 #### Build dependencies
-As Arch package names: git pkgconf glslang cmake jre17-openjdk librsvg
+As Arch package names: git pkgconf glslang cmake jre17-openjdk librsvg cli11
 
 #### Android environment
 Download [sdkmanager](https://developer.android.com/tools/sdkmanager) commandline tool and extract it to any directory.
