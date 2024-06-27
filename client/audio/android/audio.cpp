@@ -69,13 +69,19 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 		}
 		else
 		{
-			auto tmp = self->output_buffer.read();
-			if (not tmp)
+			if (auto tmp = self->output_buffer.read())
 			{
-				memset(audio_data, 0, num_frames * frame_size);
-				return AAUDIO_CALLBACK_RESULT_CONTINUE;
+				self->speaker_tmp = std::move(*tmp);
 			}
-			self->speaker_tmp = std::move(*tmp);
+			else
+			{
+				// Buffer underrun: add 5ms buffer
+				size_t target_buffer_size = frame_size * AAudioStream_getSampleRate(stream) * 0.005;
+				self->speaker_tmp.data.c.clear();
+				self->speaker_tmp.data.c.resize(target_buffer_size, 0);
+				self->speaker_tmp.payload = self->speaker_tmp.data.c;
+				self->buffer_size_bytes += target_buffer_size;
+			}
 		}
 	}
 
