@@ -243,7 +243,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		return;
 
 	{
-		std::shared_lock lock(decoder_mutex);
+		std::unique_lock lock(decoder_mutex);
 		for (auto & i: decoders)
 		{
 			if (i.decoder.get() == decoder)
