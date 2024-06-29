@@ -83,20 +83,15 @@ xr::space xr::session::create_action_space(XrAction action, const XrPosef & pose
 
 xr::hand_tracker xr::session::create_hand_tracker(XrHandEXT hand, XrHandJointSetEXT hand_joint_set)
 {
-	XrHandTrackerCreateInfoEXT create_info{
-	        .type = XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT,
-	        .next = nullptr,
-	        .hand = hand,
-	        .handJointSet = hand_joint_set,
-	};
-
-	XrHandTrackerEXT ht;
-
-	auto xrCreateHandTrackerEXT = inst->get_proc<PFN_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT");
-	assert(xrCreateHandTrackerEXT);
-
-	CHECK_XR(xrCreateHandTrackerEXT(id, &create_info, &ht));
-	return {*inst, ht};
+	return {
+	        *inst,
+	        *this,
+	        XrHandTrackerCreateInfoEXT{
+	                .type = XR_TYPE_HAND_TRACKER_CREATE_INFO_EXT,
+	                .next = nullptr,
+	                .hand = hand,
+	                .handJointSet = hand_joint_set,
+	        }};
 }
 
 std::vector<vk::Format> xr::session::get_swapchain_formats() const

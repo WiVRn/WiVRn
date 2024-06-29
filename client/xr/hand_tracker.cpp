@@ -18,6 +18,8 @@
  */
 
 #include "hand_tracker.h"
+#include "xr/session.h"
+#include <cassert>
 
 static PFN_xrDestroyHandTrackerEXT xrDestroyHandTrackerEXT{};
 
@@ -26,11 +28,13 @@ XrResult xr::destroy_hand_tracker(XrHandTrackerEXT id)
 	return xrDestroyHandTrackerEXT(id);
 }
 
-xr::hand_tracker::hand_tracker(instance & inst, XrHandTrackerEXT h)
+xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info)
 {
-	id = h;
+	static auto xrCreateHandTrackerEXT = inst.get_proc<PFN_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT");
+	assert(xrCreateHandTrackerEXT);
 	xrLocateHandJointsEXT = inst.get_proc<PFN_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
 	xrDestroyHandTrackerEXT = inst.get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
+	CHECK_XR(xrCreateHandTrackerEXT(session, &info, &id));
 }
 
 std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::hand_tracker::locate(XrSpace space, XrTime time)
