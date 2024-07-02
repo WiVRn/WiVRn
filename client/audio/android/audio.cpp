@@ -85,18 +85,22 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 		}
 	}
 
-	// discard excess data (80ms buffer), so we don't accumulate latency
-	size_t target_buffer_size = frame_size * AAudioStream_getSampleRate(stream) * 0.08;
-	while (self->buffer_size_bytes > target_buffer_size and self->output_buffer.size() > 1)
+	// If we have more than 80ms of buffered data, discard some data
+	if (self->buffer_size_bytes > frame_size * AAudioStream_getSampleRate(stream) * 0.08)
 	{
-		auto tmp = self->output_buffer.read();
-		if (not tmp)
-			break;
-		auto prev = self->buffer_size_bytes.fetch_sub(tmp->payload.size_bytes());
-		spdlog::info("Audio sync: discard {} bytes (buffer {} target {})",
-		             tmp->payload.size_bytes(),
-		             prev,
-		             target_buffer_size);
+		// discard excess data until we only have 40ms left
+		size_t target_buffer_size = frame_size * AAudioStream_getSampleRate(stream) * 0.04;
+		while (self->buffer_size_bytes > target_buffer_size and self->output_buffer.size() > 1)
+		{
+			auto tmp = self->output_buffer.read();
+			if (not tmp)
+				break;
+			auto prev = self->buffer_size_bytes.fetch_sub(tmp->payload.size_bytes());
+			spdlog::info("Audio sync: discard {} bytes (buffer {} target {})",
+			             tmp->payload.size_bytes(),
+			             prev,
+			             target_buffer_size);
+		}
 	}
 
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;
