@@ -78,3 +78,12 @@ export JAVA_HOME=/usr/lib/jvm/openjdk-bin-17/
 ```
 
 Outputs will be in `build/outputs/apk/standard/release/WiVRn-standard-release.apk`
+
+#### Install apk with adb
+```
+# Start adb server
+sudo adb start-server
+
+# Install apk, substitute path to apk instead of PATH_TO_APK
+adb install PATH_TO_APK
+```
