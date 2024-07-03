@@ -56,6 +56,17 @@ Review and accept the licenses with
 sdkmanager --sdk_root="${HOME}/Android" --licenses
 ```
 
+#### Apk signing
+Your device may refuse to install an unsigned apk, so you must create signing keys before building the client
+```
+# Create key, then enter the password and other information that the tool asks for
+keytool -genkey -v -keystore ks.keystore -alias default_key -keyalg RSA -keysize 2048 -validity 10000
+
+# Substitute your password that you entered in the command above instead of YOUR_PASSWORD
+echo signingKeyPassword="YOUR_PASSWORD" > gradle.properties
+```
+Once you have generated the keys, the apk will be automatically signed at build time
+
 #### Client build
 From the main directory.
 ```bash
@@ -66,4 +77,4 @@ export JAVA_HOME=/usr/lib/jvm/openjdk-bin-17/
 # Or for Pico assemblePico
 ```
 
-Outputs will be in `build/outputs/apk/standard/release/WiVRn-standard-release-unsigned.apk`
+Outputs will be in `build/outputs/apk/standard/release/WiVRn-standard-release.apk`
