@@ -80,10 +80,26 @@ export JAVA_HOME=/usr/lib/jvm/openjdk-bin-17/
 Outputs will be in `build/outputs/apk/standard/release/WiVRn-standard-release.apk`
 
 #### Install apk with adb
+Before using adb you must enable usb debugging on your device:
+ * Pico - https://developer.picoxr.com/document/unity-openxr/set-up-the-development-environment/ (see first step)
+ * Quest - https://developer.oculus.com/documentation/unity/unity-env-device-setup/#headset-setup (see "Set Up Meta Headset" and "Test an App on Headset" until step 4)
+
+Also add your device in udev rules: https://wiki.archlinux.org/title/Android_Debug_Bridge#Adding_udev_rules
+
+Then connect the device via usb to your computer and execute the following commands
 ```
 # Start adb server
-sudo adb start-server
+adb start-server
 
-# Install apk, substitute path to apk instead of PATH_TO_APK
-adb install PATH_TO_APK
+# Check if the device is connected
+adb devices
+
+# Install standard apk
+adb install build/outputs/apk/standard/release/WiVRn-standard-release.apk
+
+# Or install pico apk
+adb install build/outputs/apk/pico/release/WiVRn-pico-release.apk
+
+# When you're done, you can stop the adb server
+abd kill-server
 ```
