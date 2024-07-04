@@ -236,7 +236,7 @@ decoder::decoder(
 	              5 /* maxImages */,
 	              &ir),
 	      "AImageReader_newWithUsage");
-	image_reader.reset(ir);
+	image_reader.reset(ir, AImageReader_deleter{});
 
 	AImageReader_ImageListener listener{this, on_image_available};
 	check(AImageReader_setImageListener(ir, &listener), "AImageReader_setImageListener");
@@ -413,6 +413,7 @@ void decoder::on_image_available(AImageReader * reader)
 		        *vk_data->vimage,
 		        &vk_data->layout,
 		        vk_data,
+		        image_reader,
 		        std::move(image));
 
 		if (auto scene = weak_scene.lock())

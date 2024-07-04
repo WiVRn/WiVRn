@@ -75,6 +75,7 @@ public:
 
 		std::shared_ptr<mapped_hardware_buffer> vk_data;
 
+		std::shared_ptr<AImageReader> image_reader;
 		AImage_ptr aimage;
 	};
 
@@ -90,7 +91,7 @@ private:
 	vk::Extent2D extent{};
 
 	std::mutex hbm_mutex;
-	AImageReader_ptr image_reader;
+	std::shared_ptr<AImageReader> image_reader;
 
 	AMediaCodec_ptr media_codec;
 	std::weak_ptr<scenes::stream> weak_scene;
