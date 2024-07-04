@@ -88,8 +88,8 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 	// If we have more than 80ms of buffered data, discard some data
 	if (self->buffer_size_bytes > frame_size * AAudioStream_getSampleRate(stream) * 0.08)
 	{
-		// discard excess data until we only have 40ms left
-		size_t target_buffer_size = frame_size * AAudioStream_getSampleRate(stream) * 0.04;
+		// discard excess data until we only have 60ms left
+		size_t target_buffer_size = frame_size * AAudioStream_getSampleRate(stream) * 0.06;
 		while (self->buffer_size_bytes > target_buffer_size and self->output_buffer.size() > 1)
 		{
 			auto tmp = self->output_buffer.read();
