@@ -45,14 +45,6 @@ template <typename T>
 void init_stream(T & stream)
 {
 	stream.set_receive_buffer_size(1024 * 1024 * 5);
-	try
-	{
-		stream.set_tos(IPTOS_DSCP_EF);
-	}
-	catch (std::exception & e)
-	{
-		spdlog::warn("Failed to set IP ToS to Expedited Forwarding: {}", e.what());
-	}
 }
 } // namespace
 

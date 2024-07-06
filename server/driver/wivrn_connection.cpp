@@ -123,16 +123,6 @@ void wivrn_connection::init()
 	}
 	control.send(to_headset::handshake{.stream_port = port});
 
-	try
-	{
-		// Set Expedited forwarding https://datatracker.ietf.org/doc/html/rfc3246
-		if (stream)
-			stream.set_tos(IPTOS_DSCP_EF);
-	}
-	catch (std::exception & e)
-	{
-		U_LOG_I("Failed to set IP ToS to Expedited Forwarding: %s", e.what());
-	}
 	active = true;
 }
 
