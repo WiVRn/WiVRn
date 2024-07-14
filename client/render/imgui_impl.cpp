@@ -357,7 +357,7 @@ static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder & glyph
 	return fonts;
 }
 #else
-static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder & glyph_range_builder, const std::string & locale)
+static std::vector<std::string> find_font(ImFontGlyphRangesBuilder glyph_range_builder, const std::string & locale)
 {
 	// See https://www.camconn.cc/post/how-to-fontconfig-lib-c/
 
@@ -413,10 +413,36 @@ static std::vector<std::string> find_font(const ImFontGlyphRangesBuilder & glyph
 	for (int i = 0; i < font_patterns->nfont; i++)
 	{
 		FcChar8 * font_file;
-		if (FcPatternGetString(font_patterns->fonts[i], FC_FILE, 0, &font_file) == FcResultMatch)
+		if (FcPatternGetString(font_patterns->fonts[i], FC_FILE, 0, &font_file) != FcResultMatch)
+			continue;
+
+		FcCharSet * font_charset;
+		if (FcPatternGetCharSet(font_patterns->fonts[i], FC_CHARSET, 0, &font_charset) != FcResultMatch)
+			continue;
+
+		bool keep_this_font = false;
+		for (int i = 8; i < glyph_range_builder.UsedChars.Size; ++i)
 		{
-			fonts.emplace_back((const char *)font_file);
+			std::uint32_t & used_chars = glyph_range_builder.UsedChars[i];
+			if (used_chars == 0)
+				continue;
+
+			for (int j = 0; j < 32; ++j)
+			{
+				ImWchar c = i * 32 + j;
+				if (used_chars & (1 << j))
+				{
+					if (FcCharSetHasChar(font_charset, c))
+					{
+						keep_this_font = true;
+						used_chars &= ~(1 << j);
+					}
+				}
+			}
 		}
+
+		if (keep_this_font)
+			fonts.emplace_back((const char *)font_file);
 	}
 
 	FcFontSetDestroy(fs);
