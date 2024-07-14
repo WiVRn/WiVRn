@@ -237,26 +237,18 @@ scenes::stream::~stream()
 
 void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_ptr<shard_accumulator::blit_handle> handle)
 {
-	std::shared_ptr<shard_accumulator::blit_handle> removed;
-
+	assert(handle);
 	if (!application::is_visible())
 		return;
 
 	{
 		std::unique_lock lock(decoder_mutex);
-		for (auto & i: decoders)
+		const auto stream = handle->feedback.stream_index;
+		if (stream < decoders.size())
 		{
-			if (i.decoder.get() == decoder)
-			{
-				std::swap(removed, i.latest_frames[0]);
-				for (size_t j = 1; j < i.latest_frames.size(); ++j)
-				{
-					std::swap(i.latest_frames[j - 1], i.latest_frames[j]);
-				}
-				handle->feedback.received_from_decoder = application::now();
-				std::swap(i.latest_frames.back(), handle);
-				break;
-			}
+			assert(decoder == decoders[stream].decoder.get());
+			handle->feedback.received_from_decoder = application::now();
+			std::swap(handle, decoders[stream].latest_frames[handle->feedback.frame_index % decoders[stream].latest_frames.size()]);
 		}
 
 		if (state_ != state::streaming && std::all_of(decoders.begin(), decoders.end(), [](accumulator_images & i) {
@@ -268,9 +260,9 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		}
 	}
 
-	if (removed and not removed->feedback.blitted)
+	if (handle and not handle->feedback.blitted)
 	{
-		send_feedback(removed->feedback);
+		send_feedback(handle->feedback);
 	}
 }
 
