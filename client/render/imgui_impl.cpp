@@ -509,7 +509,7 @@ void imgui_context::initialize_fonts()
 
 	{
 		ImFontConfig config;
-		config.FontDataOwnedByAtlas = true;
+		config.FontDataOwnedByAtlas = false;
 
 		for (auto & font: fonts)
 		{
@@ -527,7 +527,7 @@ void imgui_context::initialize_fonts()
 
 	{
 		ImFontConfig config;
-		config.FontDataOwnedByAtlas = true;
+		config.FontDataOwnedByAtlas = false;
 		for (auto & font: fonts)
 		{
 			large_font = io.Fonts->AddFontFromFileTTF(font.c_str(), 75, &config, glyph_ranges.Data);
