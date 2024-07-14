@@ -515,7 +515,7 @@ void scenes::lobby::gui_licenses()
 			spdlog::warn("No license file for {}", selected_item);
 		}
 	}
-	if (ImGui::BeginCombo("", selected_item.c_str()))
+	if (ImGui::BeginCombo("##component", selected_item.c_str()))
 	{
 		for (const auto & component: components)
 		{
