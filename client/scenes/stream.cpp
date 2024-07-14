@@ -242,7 +242,8 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		return;
 
 	{
-		std::unique_lock lock(decoder_mutex);
+		std::shared_lock lock(decoder_mutex);
+		std::unique_lock frame_lock(frames_mutex);
 		const auto stream = handle->feedback.stream_index;
 		if (stream < decoders.size())
 		{
@@ -277,19 +278,20 @@ std::vector<uint64_t> scenes::stream::accumulator_images::frames() const
 	return result;
 }
 
-std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const std::vector<accumulator_images> & sets, XrTime display_time)
+std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::common_frame(XrTime display_time)
 {
-	if (sets.empty())
+	if (decoders.empty())
 		return {};
+	std::unique_lock lock(frames_mutex);
 	thread_local std::vector<shard_accumulator::blit_handle *> common_frames;
 	thread_local std::vector<shard_accumulator::blit_handle *> tmp;
 	common_frames.clear();
 	auto proj = [](const shard_accumulator::blit_handle * h) { return h ? h->feedback.frame_index : -1; };
-	for (size_t i = 0; i < sets.size(); ++i)
+	for (size_t i = 0; i < decoders.size(); ++i)
 	{
 		if (i == 0)
 		{
-			for (const auto & h: sets[i].latest_frames)
+			for (const auto & h: decoders[i].latest_frames)
 				if (h)
 					common_frames.push_back(h.get());
 		}
@@ -297,7 +299,7 @@ std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const s
 		{
 			tmp.clear();
 			std::ranges::set_intersection(
-			        std::ranges::views::transform(sets[i].latest_frames, [](auto ptr) { return ptr.get(); }),
+			        std::ranges::views::transform(decoders[i].latest_frames, [](auto ptr) { return ptr.get(); }),
 			        common_frames,
 			        std::back_inserter(tmp),
 			        std::ranges::less{},
@@ -306,21 +308,28 @@ std::optional<uint64_t> scenes::stream::accumulator_images::common_frame(const s
 			std::swap(common_frames, tmp);
 		}
 	}
-	if (common_frames.empty())
-		return {};
-	auto min = std::ranges::min_element(common_frames,
-	                                    std::ranges::less{},
-	                                    [display_time](auto frame) {
-		                                    if (not frame)
-			                                    return std::numeric_limits<XrTime>::max();
-		                                    return std::abs(frame->view_info.display_time - display_time);
-	                                    });
+	std::optional<uint64_t> frame_index;
+	if (not common_frames.empty())
+	{
+		auto min = std::ranges::min_element(common_frames,
+		                                    std::ranges::less{},
+		                                    [display_time](auto frame) {
+			                                    if (not frame)
+				                                    return std::numeric_limits<XrTime>::max();
+			                                    return std::abs(frame->view_info.display_time - display_time);
+		                                    });
 
-	assert(*min);
-	return (*min)->feedback.frame_index;
+		assert(*min);
+		frame_index = (*min)->feedback.frame_index;
+	}
+	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> result;
+	result.reserve(decoders.size());
+	for (const auto & decoder: decoders)
+		result.push_back(decoder.frame(frame_index));
+	return result;
 }
 
-std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_images::frame(std::optional<uint64_t> id)
+std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_images::frame(std::optional<uint64_t> id) const
 {
 	for (auto it = latest_frames.rbegin(); it != latest_frames.rend(); ++it)
 	{
@@ -514,7 +523,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	command_buffer.begin(begin_info);
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
-	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> current_blit_handles;
+	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> blit_handles;
 
 	command_buffer.resetQueryPool(*query_pool, 0, size_gpu_timestamps);
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, 0);
@@ -524,16 +533,13 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	{
 		// Search for frame with desired display time on all decoders
 		// If no such frame exists, use the latest frame for each decoder
-		auto common_frame = accumulator_images::common_frame(decoders, frame_state.predictedDisplayTime);
+		blit_handles = common_frame(frame_state.predictedDisplayTime);
 
 		// Blit images from the decoders
-		for (auto & i: decoders)
+		for (auto [i, blit_handle]: utils::zip(decoders, blit_handles))
 		{
-			auto blit_handle = i.frame(common_frame);
 			if (not blit_handle)
 				continue;
-
-			current_blit_handles.push_back(blit_handle);
 
 			blit_handle->feedback.blitted = application::now();
 			if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
@@ -695,7 +701,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	XrCompositionLayerQuad imgui_layer;
 	if (imgui_ctx and plots_visible)
 	{
-		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
+		accumulate_metrics(frame_state.predictedDisplayTime, blit_handles, timestamps);
 		imgui_layer = plot_performance_metrics(frame_state.predictedDisplayTime);
 	}
 
@@ -707,7 +713,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	session.end_frame(frame_state.predictedDisplayTime, layers_base);
 
 	// Network operations may be blocking, do them once everything was submitted
-	for (const auto & handle: current_blit_handles)
+	for (const auto & handle: blit_handles)
 		send_feedback(handle->feedback);
 
 	read_actions();

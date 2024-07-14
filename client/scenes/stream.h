@@ -58,10 +58,13 @@ private:
 		// latest frames from oldest to most recent
 		std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> latest_frames;
 
-		static std::optional<uint64_t> common_frame(const std::vector<accumulator_images> &, XrTime display_time);
-		std::shared_ptr<shard_accumulator::blit_handle> frame(std::optional<uint64_t> id);
+		std::shared_ptr<shard_accumulator::blit_handle> frame(std::optional<uint64_t> id) const;
 		std::vector<uint64_t> frames() const;
 	};
+
+	// for frames inside accumulator images
+	std::mutex frames_mutex;
+	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> common_frame(XrTime display_time);
 
 	struct renderpass_output
 	{
