@@ -129,7 +129,7 @@ int inner_main(int argc, char * argv[], bool use_systemd)
 #ifdef WIVRN_USE_SYSTEMD
 	create_listen_socket();
 #else
-	assert(not systemd);
+	assert(not use_systemd);
 #endif
 
 	u_trace_marker_init();
