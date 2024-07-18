@@ -85,14 +85,7 @@ static void destroy_images(struct wivrn_comp_target * cn)
 	target_fini_semaphores(cn);
 }
 
-struct encoder_thread_param
-{
-	wivrn_comp_target * cn;
-	wivrn_comp_target::encoder_thread * thread;
-	std::vector<std::shared_ptr<VideoEncoder>> encoders;
-};
-
-static void * comp_wivrn_present_thread(void * void_param);
+static void * comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<VideoEncoder>> encoders);
 
 static void create_encoders(wivrn_comp_target * cn)
 {
@@ -106,7 +99,7 @@ static void create_encoders(wivrn_comp_target * cn)
 	desc.height = cn->height;
 	desc.foveation = cn->cnx->set_foveated_size(desc.width, desc.height);
 
-	std::map<int, encoder_thread_param> thread_params;
+	std::map<int, std::vector<std::shared_ptr<VideoEncoder>>> thread_params;
 
 	for (auto & settings: cn->settings)
 	{
@@ -115,19 +108,16 @@ static void create_encoders(wivrn_comp_target * cn)
 		        VideoEncoder::Create(*cn->wivrn_bundle, settings, stream_index, desc.width, desc.height, desc.fps));
 		desc.items.push_back(settings);
 
-		thread_params[settings.group].encoders.emplace_back(encoder);
+		thread_params[settings.group].emplace_back(encoder);
 	}
 
 	for (auto & [group, params]: thread_params)
 	{
-		auto params_ptr = new encoder_thread_param(params);
-		auto & thread = cn->encoder_threads.emplace_back(cn->psc.present_gen);
-		thread.index = cn->encoder_threads.size() - 1;
-		params_ptr->thread = &thread;
-		params_ptr->cn = cn;
-		os_thread_helper_start(&thread.thread, comp_wivrn_present_thread, params_ptr);
+		auto & thread = cn->encoder_threads.emplace_back(
+		        std::jthread(comp_wivrn_present_thread, cn, cn->encoder_threads.size(), std::move(params)),
+		        cn->psc.present_gen);
 		std::string name = "encoder " + std::to_string(group);
-		os_thread_helper_name(&thread.thread, name.c_str());
+		pthread_setname_np(thread.thread.native_handle(), name.c_str());
 	}
 	cn->pacer.set_stream_count(cn->encoders.size());
 	cn->cnx->send_control(desc);
@@ -376,18 +366,16 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 	};
 }
 
-static void * comp_wivrn_present_thread(void * void_param)
+static void * comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<VideoEncoder>> encoders)
 {
-	std::unique_ptr<encoder_thread_param> param((encoder_thread_param *)void_param);
-	struct wivrn_comp_target * cn = param->cn;
 	struct vk_bundle * vk = get_vk(cn);
-	U_LOG_I("Starting encoder thread %d", param->thread->index);
+	U_LOG_I("Starting encoder thread %d", index);
 
-	uint8_t status_bit = 1 << (param->thread->index + 1);
+	uint8_t status_bit = 1 << (index + 1);
 
 	std::vector<VkFence> fences(cn->image_count);
 	std::vector<int> indices(cn->image_count);
-	while (os_thread_helper_is_running(&param->thread->thread))
+	while (not stop_token.stop_requested())
 	{
 		int presenting_index = -1;
 		int nb_fences = 0;
@@ -418,7 +406,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 		VkResult res = vk->vkWaitForFences(vk->device, nb_fences, fences.data(), VK_TRUE, UINT64_MAX);
 		if (nb_fences > 1)
 		{
-			U_LOG_I("Encoder group %d dropped %d frames", param->thread->index, nb_fences - 1);
+			U_LOG_I("Encoder group %d dropped %d frames", index, nb_fences - 1);
 		}
 		VK_CHK_WITH_RET(res, "vkWaitForFences", NULL);
 
@@ -430,7 +418,7 @@ static void * comp_wivrn_present_thread(void * void_param)
 		const auto & psc_image = cn->psc.images[presenting_index];
 		try
 		{
-			for (auto & encoder: param->encoders)
+			for (auto & encoder: encoders)
 			{
 				encoder->Encode(*cn->cnx, psc_image.view_info, psc_image.frame_index);
 			}

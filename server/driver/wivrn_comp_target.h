@@ -84,22 +84,23 @@ struct wivrn_comp_target : public comp_target
 
 	struct encoder_thread
 	{
-		int index;
-		os_thread_helper thread;
+		std::jthread thread;
 		pseudo_swapchain::status_type & gen;
+		std::jthread stopper;
 
-		encoder_thread(pseudo_swapchain::status_type & gen) :
-		        gen(gen)
-		{
-			os_thread_helper_init(&thread);
-		}
+		encoder_thread(std::jthread && thread, pseudo_swapchain::status_type & gen) :
+		        thread(std::move(thread)), gen(gen) {}
 		~encoder_thread()
 		{
-			os_thread_helper_signal_stop(&thread);
-			gen += 1;
-			gen.notify_all();
-			os_thread_helper_wait_locked(&thread);
-			os_thread_helper_destroy(&thread);
+			thread.request_stop();
+			// Encoder will be in a loop on the gen variable, wake them up
+			stopper = std::jthread([&]() {
+				while (not stopper.get_stop_token().stop_requested())
+			        {
+				        gen += 1;
+				        gen.notify_all();
+				        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			        } });
 		}
 	};
 	std::vector<encoder_settings> settings;
