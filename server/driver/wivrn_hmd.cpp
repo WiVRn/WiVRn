@@ -186,9 +186,8 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 
 	base->hmd = &hmd_parts;
 	base->tracking_origin = &tracking_origin;
-	base->stage_supported = true;
 	tracking_origin.type = XRT_TRACKING_TYPE_OTHER;
-	tracking_origin.offset.orientation = xrt_quat{0, 0, 0, 1};
+	tracking_origin.initial_offset.orientation = xrt_quat{0, 0, 0, 1};
 	strcpy(tracking_origin.name, "No tracking");
 
 	base->update_inputs = wivrn_hmd_update_inputs;
@@ -249,13 +248,6 @@ void wivrn_hmd::update_inputs()
 
 xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
 {
-	if (name == XRT_INPUT_GENERIC_STAGE_SPACE_POSE)
-	{
-		// STAGE is implicitly defined as the space poses are returned in, therefore STAGE origin is (0, 0, 0).
-		xrt_space_relation relation = (struct xrt_space_relation)XRT_SPACE_RELATION_ZERO;
-		relation.relation_flags = XRT_SPACE_RELATION_BITMASK_ALL;
-		return relation;
-	}
 	if (name != XRT_INPUT_GENERIC_HEAD_POSE)
 	{
 		U_LOG_E("Unknown input name");

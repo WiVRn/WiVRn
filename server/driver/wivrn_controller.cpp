@@ -169,7 +169,6 @@ wivrn_controller::wivrn_controller(int hand_id,
 	base->orientation_tracking_supported = true;
 	base->hand_tracking_supported = true;
 	base->position_tracking_supported = true;
-	base->stage_supported = true;
 
 	base->tracking_origin = hmd->tracking_origin;
 
@@ -314,11 +313,6 @@ xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, uint6
 	xrt_space_relation res;
 	switch (name)
 	{
-		case XRT_INPUT_GENERIC_STAGE_SPACE_POSE:
-			// STAGE is implicitly defined as the space poses are returned in, therefore STAGE origin is (0, 0, 0).
-			res = (struct xrt_space_relation)XRT_SPACE_RELATION_ZERO;
-			res.relation_flags = XRT_SPACE_RELATION_BITMASK_ALL;
-			return res;
 		case XRT_INPUT_TOUCH_AIM_POSE:
 			std::tie(extrapolation_time, res) = aim.get_at(at_timestamp_ns);
 			break;

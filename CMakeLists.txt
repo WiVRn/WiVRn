@@ -183,7 +183,7 @@ FetchContent_Declare(imgui         EXCLUDE_FROM_ALL URL https://github.com/ocorn
 # Server dependencies
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
-    GIT_TAG          28cb225be12a8a55c221f22103c235aff6de3883
+    GIT_TAG          c6d341a935b669ee85761195966fa6f2a02f7e9c
     PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${CMAKE_CURRENT_LIST_DIR}/patches/monado/
     EXCLUDE_FROM_ALL
     )
