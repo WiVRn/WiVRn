@@ -11,7 +11,6 @@
 
 #include "os/os_time.h"
 
-#include "util/u_misc.h"
 #include "util/u_system.h"
 #include "util/u_trace_marker.h"
 
@@ -76,14 +75,12 @@ xrt_instance_create(struct xrt_instance_info * ii, struct xrt_instance ** out_xi
 {
 	u_trace_marker_init();
 
-	struct xrt_instance * xinst = U_TYPED_CALLOC(struct xrt_instance);
-	xinst->create_system = wivrn_instance_create_system;
-	xinst->get_prober = wivrn_instance_get_prober;
-	xinst->destroy = wivrn_instance_destroy;
-
-	xinst->startup_timestamp = os_monotonic_get_ns();
-
-	*out_xinst = xinst;
+	*out_xinst = new xrt_instance{
+	        .create_system = wivrn_instance_create_system,
+	        .get_prober = wivrn_instance_get_prober,
+	        .destroy = wivrn_instance_destroy,
+	        .startup_timestamp = os_monotonic_get_ns(),
+	};
 
 	return XRT_SUCCESS;
 }
