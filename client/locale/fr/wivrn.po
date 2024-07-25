@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-06-19 16:58+0200\n"
+"POT-Creation-Date: 2024-07-25 11:44+0200\n"
 "PO-Revision-Date: 2024-05-20 13:00+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language: French\n"
@@ -43,8 +43,13 @@ msgid "Video stream interrupted"
 msgstr "Flux vidéo interrompu"
 
 #: client/scenes/lobby_gui.cpp:86
-msgid "Waiting for video stream"
-msgstr "Attente du flux vidéo"
+#, c++-format
+msgid ""
+"Connection ready\n"
+"Start a VR application on {}"
+msgstr ""
+"Connexion prête\n"
+"Démarrez une application VR sur {}"
 
 #: client/scenes/lobby_gui.cpp:101
 msgid "Close"
@@ -146,23 +151,23 @@ msgstr "Temps GPU"
 msgid "GPU time [ms]"
 msgstr "Temps GPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:502 client/scenes/lobby_gui.cpp:695
+#: client/scenes/lobby_gui.cpp:502 client/scenes/lobby_gui.cpp:700
 msgid "Licenses"
 msgstr "Licences"
 
-#: client/scenes/lobby_gui.cpp:685
+#: client/scenes/lobby_gui.cpp:690
 msgid "Server list"
 msgstr "Serveurs"
 
-#: client/scenes/lobby_gui.cpp:688
+#: client/scenes/lobby_gui.cpp:693
 msgid "Settings"
 msgstr "Paramètres"
 
-#: client/scenes/lobby_gui.cpp:692
+#: client/scenes/lobby_gui.cpp:697
 msgid "About"
 msgstr "À propos"
 
-#: client/scenes/lobby_gui.cpp:698
+#: client/scenes/lobby_gui.cpp:703
 msgid "Exit"
 msgstr "Quitter"
 

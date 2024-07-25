@@ -83,7 +83,7 @@ void scenes::lobby::gui_connecting()
 		if (next_scene->current_state() == scenes::stream::state::stalled)
 			status = _("Video stream interrupted");
 		else
-			status = _("Waiting for video stream");
+			status = fmt::format(_F("Connection ready\nStart a VR application on {}"), server_name);
 	}
 	else if (async_session.valid())
 		status = async_session.get_progress();
@@ -326,7 +326,7 @@ void scenes::lobby::gui_server_list()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 20));
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
-	if (ImGui::BeginPopupModal("connecting", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove))
+	if (ImGui::BeginPopupModal("connecting", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		gui_connecting();
 		ImGui::EndPopup();
