@@ -35,9 +35,6 @@ static const pseudo_swapchain::status_type::value_type image_acquired = 1;
 std::vector<const char *> wivrn_comp_target::wanted_instance_extensions = {};
 std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
 // For FFMPEG
-#ifdef VK_KHR_external_memory_fd
-        VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
-#endif
 #ifdef VK_EXT_external_memory_dma_buf
         VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,
 #endif
