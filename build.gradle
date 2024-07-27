@@ -123,15 +123,6 @@ android {
     flavorDimensions "device"
 
     productFlavors {
-        pico {
-            dimension "device"
-            externalNativeBuild {
-                cmake {
-                    abiFilters 'arm64-v8a'
-                    arguments '-DPICO=ON'
-                }
-            }
-        }
         standard {
             dimension "device"
             externalNativeBuild {

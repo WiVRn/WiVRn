@@ -146,7 +146,7 @@ jobs:
 
     strategy:
       matrix:
-        hmd: ['Standard', 'Pico']
+        hmd: ['Standard']
         buildtype: ['Release', 'Debug', 'DebugWithValidationLayer']
 
     steps:

@@ -74,7 +74,6 @@ export ANDROID_HOME=~/Android
 export JAVA_HOME=/usr/lib/jvm/openjdk-bin-17/
 
 ./gradlew assembleStandardRelease
-# Or for Pico assemblePico
 ```
 
 Outputs will be in `build/outputs/apk/standard/release/WiVRn-standard-release.apk`
@@ -94,11 +93,8 @@ adb start-server
 # Check if the device is connected
 adb devices
 
-# Install standard apk
+# Install apk
 adb install build/outputs/apk/standard/release/WiVRn-standard-release.apk
-
-# Or install pico apk
-adb install build/outputs/apk/pico/release/WiVRn-pico-release.apk
 
 # When you're done, you can stop the adb server
 abd kill-server
