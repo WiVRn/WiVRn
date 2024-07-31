@@ -47,6 +47,7 @@ class wivrn_hmd : public xrt_device
 	};
 
 	view_list views;
+	pose_list gaze;
 	std::array<to_headset::video_stream_description::foveation_parameter, 2> foveation_parameters{};
 
 	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;

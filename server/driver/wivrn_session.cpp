@@ -142,6 +142,10 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	int n = 0;
 	if (self->hmd)
 		usysds->base.base.static_roles.head = devices->xdevs[n++] = self->hmd.get();
+
+	if (self->hmd->eye_gaze_supported)
+		usysds->base.base.static_roles.eyes = self->hmd.get();
+
 	if (self->left_hand)
 	{
 		devices->xdevs[n++] = self->left_hand.get();
