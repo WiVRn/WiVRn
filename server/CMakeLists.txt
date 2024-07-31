@@ -189,9 +189,10 @@ generate_openxr_runtime_manifest_at_install(
 	RUNTIME_TARGET ${RUNTIME_TARGET}
 	DESTINATION share/openxr/1
 	RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}/wivrn
+	LIBMONADO monado
 	)
 
-install(TARGETS ${RUNTIME_TARGET}
+install(TARGETS ${RUNTIME_TARGET} monado
 	LIBRARY
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/wivrn
 	COMPONENT Runtime)
