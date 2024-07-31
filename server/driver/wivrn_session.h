@@ -22,6 +22,7 @@
 #include "clock_offset.h"
 #include "wivrn_connection.h"
 #include "wivrn_packets.h"
+#include "xrt/xrt_defines.h"
 #include "xrt/xrt_results.h"
 #include <atomic>
 #include <fstream>
@@ -69,6 +70,8 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	wivrn_connection connection;
 
 	u_system & xrt_system;
+	xrt_space_overseer * space_overseer;
+	xrt_vec3 reconnect_offset{}; // z is used to store reconnect flag: 0 is none, non 0 means offset needs to be applied
 
 	std::atomic<bool> quit = false;
 	std::thread thread;
