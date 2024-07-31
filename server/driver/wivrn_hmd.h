@@ -38,7 +38,13 @@ class wivrn_hmd : public xrt_device
 
 	xrt_input pose_input;
 	xrt_hmd_parts hmd_parts;
-	xrt_tracking_origin tracking_origin;
+	xrt_tracking_origin tracking_origin{
+	        .name = "WiVRn origin",
+	        .type = XRT_TRACKING_TYPE_OTHER,
+	        .initial_offset = {
+	                .orientation = {0, 0, 0, 1},
+	        },
+	};
 
 	view_list views;
 	std::array<to_headset::video_stream_description::foveation_parameter, 2> foveation_parameters{};
