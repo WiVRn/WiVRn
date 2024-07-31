@@ -342,9 +342,10 @@ void wivrn_session::reconnect()
 		offset_est.reset();
 		connection.reset(std::move(*tcp));
 		std::optional<xrt::drivers::wivrn::from_headset::packets> control;
-		while (not(control = connection.poll_control(-1)))
+		while (not(control = connection.poll_control(100)))
 		{
 			// FIXME: timeout
+			quit_if_no_client(xrt_system);
 		}
 		const auto & info = std::get<from_headset::headset_info_packet>(*control);
 		// FIXME: ensure new client is compatible
