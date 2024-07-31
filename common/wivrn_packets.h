@@ -73,6 +73,7 @@ enum class device_id : uint8_t
 	RIGHT_THUMBSTICK_CLICK,  // /user/hand/right/input/thumbstick/click
 	RIGHT_THUMBSTICK_TOUCH,  // /user/hand/right/input/thumbstick/touch
 	RIGHT_THUMBREST_TOUCH,   // /user/hand/right/input/thumbrest/touch
+	EYE_GAZE,                // /user/eyes_ext/input/gaze_ext/pose
 };
 
 enum video_codec
@@ -107,6 +108,7 @@ struct headset_info_packet
 	std::optional<audio_description> microphone;
 	std::array<XrFovf, 2> fov;
 	bool hand_tracking;
+	bool eye_gaze;
 };
 
 struct handshake

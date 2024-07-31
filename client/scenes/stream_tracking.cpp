@@ -146,6 +146,9 @@ void scenes::stream::tracking()
 	        {device_id::RIGHT_AIM, application::right_aim()},
 	        {device_id::RIGHT_GRIP, application::right_grip()}};
 
+	if (application::get_eye_gaze_supported())
+		spaces.push_back({device_id::EYE_GAZE, application::eye_gaze()});
+
 	XrSpace view_space = application::view();
 	XrDuration tracking_period = 1'000'000; // Send tracking data every 1ms
 	const XrDuration dt = 100'000;          // Wake up 0.1ms before measuring the position

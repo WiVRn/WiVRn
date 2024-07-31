@@ -31,8 +31,11 @@
 
     <!-- Allow starting the application even without controllers -->
     <uses-feature android:name="oculus.software.handtracking" android:required="false" />
+    <uses-feature android:name="oculus.software.eye_tracking" android:required="false" />
     <uses-permission android:name="com.magicleap.permission.HAND_TRACKING" />
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
+    <uses-permission android:name="com.oculus.permission.EYE_TRACKING" />
+    <uses-permission android:name="com.picovr.permission.EYE_TRACKING" />
 
     <!-- Required for XR_FB_render_model -->
     <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="false" />
@@ -56,6 +59,7 @@
 
         <meta-data android:name="pvr.app.type" android:value="vr" />
         <meta-data android:name="pvr.sdk.version" android:value="OpenXR" />
+        <meta-data android:name="picovr.software.eye_tracking" android:value="true" />
         <meta-data android:name="com.oculus.intent.category.VR" android:value="vr_only"/>
         <meta-data android:name="com.oculus.supportedDevices" android:value="all"/>
         <meta-data android:name="com.oculus.vr.focusaware" android:value="true"/>
@@ -65,6 +69,7 @@
         <meta-data android:name="com.htc.vr.content.NumDoFController" android:value="6DoF"/>
 
         <meta-data android:name="handtracking" android:value="1" />
+        <meta-data android:name="eyetracking_calibration" android:value="true" />
 
         <!-- The activity is the built-in NativeActivity framework class. -->
         <!-- launchMode is set to singleTask because there should never be multiple copies of the app running. -->

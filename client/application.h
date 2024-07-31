@@ -121,10 +121,13 @@ class application : public singleton<application>
 	xr::space left_aim_space;
 	xr::space right_grip_space;
 	xr::space right_aim_space;
+	xr::space eye_gaze_space;
 
 	bool hand_tracking_supported = false;
 	xr::hand_tracker left_hand;
 	xr::hand_tracker right_hand;
+
+	bool eye_gaze_supported = false;
 
 	bool session_running = false;
 	bool session_focused = false;
@@ -304,6 +307,10 @@ public:
 	{
 		return instance().right_aim_space;
 	};
+	static XrSpace eye_gaze()
+	{
+		return instance().eye_gaze_space;
+	};
 
 	static void ignore_debug_reports_for(void * object)
 	{
@@ -402,6 +409,11 @@ public:
 	static bool get_hand_tracking_supported()
 	{
 		return instance().hand_tracking_supported;
+	}
+
+	static bool get_eye_gaze_supported()
+	{
+		return instance().eye_gaze_supported;
 	}
 
 	static xr::hand_tracker & get_left_hand()
