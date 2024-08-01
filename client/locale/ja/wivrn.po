@@ -42,8 +42,12 @@ msgid "Video stream interrupted"
 msgstr "動画ストリームの中断"
 
 #: client/scenes/lobby_gui.cpp:86
-msgid "Waiting for video stream"
-msgstr "動画ストリームを待ち"
+msgid ""
+"Connection ready\n"
+"Start a VR application on {}"
+msgstr ""
+"接続に成功しました。\n"
+"{}でVRアプリを起動して下さい。"
 
 #: client/scenes/lobby_gui.cpp:101
 msgid "Close"
@@ -211,6 +215,5 @@ msgid "Displayed"
 msgstr "表示"
 
 #: client/scenes/stream_stats.cpp:293
-#, c++-format
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "「Motion-to-photon」推定遅延 {}ミリ秒"
