@@ -41,20 +41,6 @@ std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
 #ifdef VK_EXT_image_drm_format_modifier
         VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME,
 #endif
-
-// For vulkan video encode
-#ifdef VK_KHR_video_queue
-        VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,
-#endif
-#ifdef VK_KHR_video_encode_queue
-        VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME,
-#endif
-#ifdef VK_KHR_video_encode_h264
-        VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME,
-#endif
-#ifdef VK_KHR_video_encode_h265
-        VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME,
-#endif
 };
 
 static void target_init_semaphores(struct wivrn_comp_target * cn);
