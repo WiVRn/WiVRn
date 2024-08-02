@@ -25,16 +25,15 @@
 
 class yuv_converter
 {
-	vk::Extent2D extent;
-
-	vk::Image rgb;
-
 public:
 	image_allocation luma;
 	image_allocation chroma;
 
 private:
-	vk::raii::ImageView view_rgb = nullptr;
+	vk::Device device;
+	vk::Extent2D extent;
+	std::vector<vk::Image> rgb;
+	std::vector<vk::raii::ImageView> views_rgb;
 	vk::raii::ImageView view_luma = nullptr;
 	vk::raii::ImageView view_chroma = nullptr;
 
@@ -44,15 +43,13 @@ private:
 	vk::raii::DescriptorPool dp = nullptr;
 	vk::DescriptorSet ds = nullptr;
 
-	std::vector<vk::raii::DeviceMemory> mem;
-
 public:
 	yuv_converter();
-	yuv_converter(vk::PhysicalDevice, vk::raii::Device & device, vk::Image rgb, vk::Format format, vk::Extent2D extent);
+	yuv_converter(vk::PhysicalDevice, vk::raii::Device & device, std::span<vk::Image> rgb, vk::Format format, vk::Extent2D extent);
 
 	// Converts the given image to yuv, stored in luma and chroma images.
 	// The output images will be in transfer src optimal layout
-	void record_draw_commands(vk::raii::CommandBuffer & cmd_buf);
+	void record_draw_commands(vk::raii::CommandBuffer & cmd_buf, size_t index);
 
 	void assemble_planes(vk::Rect2D, vk::raii::CommandBuffer &, vk::Image target);
 };

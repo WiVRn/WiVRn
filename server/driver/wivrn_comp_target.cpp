@@ -29,9 +29,6 @@
 
 using namespace xrt::drivers::wivrn;
 
-static const pseudo_swapchain::status_type::value_type image_free = 0;
-static const pseudo_swapchain::status_type::value_type image_acquired = 1;
-
 std::vector<const char *> wivrn_comp_target::wanted_instance_extensions = {};
 std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
 // For FFMPEG
@@ -57,10 +54,12 @@ static void destroy_images(struct wivrn_comp_target * cn)
 	if (cn->images == nullptr)
 		return;
 
+	cn->psc.status = 1;
+	cn->psc.status.notify_all();
 	cn->encoder_threads.clear();
 	cn->encoders.clear();
 
-	cn->psc.images.reset();
+	cn->psc.images.clear();
 
 	free(cn->images);
 	cn->images = NULL;
@@ -68,7 +67,7 @@ static void destroy_images(struct wivrn_comp_target * cn)
 	target_fini_semaphores(cn);
 }
 
-static void * comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<VideoEncoder>> encoders);
+static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<VideoEncoder>> encoders);
 
 static void create_encoders(wivrn_comp_target * cn)
 {
@@ -76,6 +75,7 @@ static void create_encoders(wivrn_comp_target * cn)
 	assert(cn->encoders.empty());
 	assert(cn->encoder_threads.empty());
 	assert(cn->wivrn_bundle);
+	cn->psc.status = 0;
 
 	auto & desc = cn->desc;
 	desc.width = cn->width;
@@ -97,10 +97,9 @@ static void create_encoders(wivrn_comp_target * cn)
 	for (auto & [group, params]: thread_params)
 	{
 		auto & thread = cn->encoder_threads.emplace_back(
-		        std::jthread(comp_wivrn_present_thread, cn, cn->encoder_threads.size(), std::move(params)),
-		        cn->psc.present_gen);
+		        comp_wivrn_present_thread, cn, cn->encoder_threads.size(), std::move(params));
 		std::string name = "encoder " + std::to_string(group);
-		pthread_setname_np(thread.thread.native_handle(), name.c_str());
+		pthread_setname_np(thread.native_handle(), name.c_str());
 	}
 	cn->pacer.set_stream_count(cn->encoders.size());
 	cn->cnx->send_control(desc);
@@ -119,7 +118,8 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 
 	cn->images = U_TYPED_ARRAY_CALLOC(struct comp_target_image, cn->image_count);
 
-	cn->psc.images.reset(new pseudo_swapchain::item[cn->image_count]);
+	cn->psc.images.resize(cn->image_count);
+	std::vector<vk::Image> rgb;
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
 		auto & image = cn->psc.images[i].image;
@@ -144,6 +144,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                .usage = VMA_MEMORY_USAGE_AUTO,
 		        });
 		cn->images[i].handle = image;
+		rgb.push_back(image);
 	}
 
 	for (uint32_t i = 0; i < cn->image_count; i++)
@@ -165,14 +166,15 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                              },
 		                                      });
 		cn->images[i].view = *item.image_view;
-		item.yuv = yuv_converter(vk->physical_device, device, item.image, format, vk::Extent2D{cn->width, cn->height});
-
-		item.fence = vk::raii::Fence(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
-
-		item.command_buffer = std::move(device.allocateCommandBuffers(
-		        {.commandPool = *cn->command_pool,
-		         .commandBufferCount = 1})[0]);
 	}
+
+	cn->psc.yuv = yuv_converter(vk->physical_device, device, rgb, format, vk::Extent2D{cn->width, cn->height});
+
+	cn->psc.fence = vk::raii::Fence(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+
+	cn->psc.command_buffer = std::move(device.allocateCommandBuffers(
+	        {.commandPool = *cn->command_pool,
+	         .commandBufferCount = 1})[0]);
 
 	return VK_SUCCESS;
 }
@@ -339,9 +341,9 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 	{
 		for (uint32_t i = 0; i < ct->image_count; i++)
 		{
-			auto expected = image_free;
-			if (cn->psc.images[i].status.compare_exchange_weak(expected, image_acquired))
+			if (cn->psc.images[i].status == pseudo_swapchain::status_t::free)
 			{
+				cn->psc.images[i].status = pseudo_swapchain::status_t::acquired;
 				*out_index = i;
 				return VK_SUCCESS;
 			}
@@ -349,61 +351,35 @@ static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index
 	};
 }
 
-static void * comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<VideoEncoder>> encoders)
+static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_target * cn, int index, std::vector<std::shared_ptr<VideoEncoder>> encoders)
 {
-	struct vk_bundle * vk = get_vk(cn);
+	auto & vk = *cn->wivrn_bundle;
 	U_LOG_I("Starting encoder thread %d", index);
 
-	uint8_t status_bit = 1 << (index + 1);
+	const uint8_t status_bit = 1 << (index + 1);
 
-	std::vector<VkFence> fences(cn->image_count);
-	std::vector<int> indices(cn->image_count);
 	while (not stop_token.stop_requested())
 	{
-		int presenting_index = -1;
-		int nb_fences = 0;
 		{
-			uint64_t timestamp = 0;
-			auto gen = cn->psc.present_gen.load();
+			auto status = cn->psc.status.load();
+			// Bit 0 to request exit
+			if (status & 1)
+				return;
 
-			for (uint32_t i = 0; i < cn->image_count; i++)
+			if (not(status & status_bit))
 			{
-				if (cn->psc.images[i].status & status_bit)
-				{
-					if (timestamp < cn->psc.images[i].view_info.display_time)
-					{
-						presenting_index = i;
-					}
-					indices[nb_fences] = i;
-					fences[nb_fences++] = *cn->psc.images[i].fence;
-				}
-			}
-
-			if (presenting_index < 0)
-			{
-				cn->psc.present_gen.wait(gen);
+				cn->psc.status.wait(status);
 				continue;
 			}
 		}
 
-		VkResult res = vk->vkWaitForFences(vk->device, nb_fences, fences.data(), VK_TRUE, UINT64_MAX);
-		if (nb_fences > 1)
-		{
-			U_LOG_I("Encoder group %d dropped %d frames", index, nb_fences - 1);
-		}
-		VK_CHK_WITH_RET(res, "vkWaitForFences", NULL);
+		auto res = vk.device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
 
-		for (int i = 0; i < nb_fences; i++)
-		{
-			cn->psc.images[indices[i]].status &= ~status_bit;
-		}
-
-		const auto & psc_image = cn->psc.images[presenting_index];
 		try
 		{
 			for (auto & encoder: encoders)
 			{
-				encoder->Encode(*cn->cnx, psc_image.view_info, psc_image.frame_index);
+				encoder->Encode(*cn->cnx, cn->psc.view_info, cn->psc.frame_index);
 			}
 		}
 		catch (std::exception & e)
@@ -414,9 +390,20 @@ static void * comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_t
 		{
 			// Ignore errors
 		}
-	}
 
-	return NULL;
+		// Update encoder status, release image
+		if ((cn->psc.status &= ~status_bit) == 0)
+		{
+			for (auto & img: cn->psc.images)
+			{
+				if (img.status == pseudo_swapchain::status_t::encoding)
+				{
+					img.status = pseudo_swapchain::status_t::free;
+					break;
+				}
+			}
+		}
+	}
 }
 
 static VkResult comp_wivrn_present(struct comp_target * ct,
@@ -429,10 +416,11 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
 	assert(index < cn->image_count);
+	assert(cn->psc.images[index].status == pseudo_swapchain::status_t::acquired);
 
 	struct vk_bundle * vk = get_vk(cn);
 
-	auto & command_buffer = cn->psc.images[index].command_buffer;
+	auto & command_buffer = cn->psc.command_buffer;
 	command_buffer.reset();
 	command_buffer.begin(vk::CommandBufferBeginInfo{});
 
@@ -446,50 +434,41 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	        .pCommandBuffers = &*command_buffer,
 	};
 
-	if (cn->c->base.slot.layer_count == 0 or not cn->cnx->get_offset())
+	bool skip = cn->c->base.slot.layer_count == 0 or not cn->cnx->get_offset();
+	if (cn->psc.status != 0)
 	{
-		// TODO: Tell the headset that there is no image to display
-		assert(cn->psc.images[index].status == image_acquired);
+		U_LOG_W("Encoders not done with previous image, skip one");
+		skip = true;
+	}
+
+	if (skip)
+	{
 		command_buffer.end();
 		scoped_lock lock(vk->queue_mutex);
 		cn->wivrn_bundle->queue.submit(submit_info);
-		cn->psc.images[index].status = image_free;
+		cn->psc.images[index].status = pseudo_swapchain::status_t::free;
 		return VK_SUCCESS;
 	}
 
-	assert(index < ct->image_count);
-	assert(ct->images != NULL);
+	cn->psc.images[index].status = pseudo_swapchain::status_t::encoding;
 
-	auto & yuv = cn->psc.images[index].yuv;
-	yuv.record_draw_commands(command_buffer);
+	auto & yuv = cn->psc.yuv;
+	yuv.record_draw_commands(command_buffer, index);
 	for (auto & encoder: cn->encoders)
 	{
 		encoder->PresentImage(yuv, command_buffer);
 	}
 	command_buffer.end();
 
-	{
-		std::vector<vk::Fence> fences;
-		fences.reserve(ct->image_count);
-		for (size_t i = 0; i < ct->image_count; ++i)
-		{
-			fences.push_back(*cn->psc.images[i].fence);
-		}
-		auto res = cn->wivrn_bundle->device.waitForFences(fences, VK_TRUE, UINT64_MAX);
-	}
+	auto res = cn->wivrn_bundle->device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
 
-	cn->wivrn_bundle->device.resetFences(*cn->psc.images[index].fence);
+	cn->wivrn_bundle->device.resetFences(*cn->psc.fence);
 	{
 		scoped_lock lock(vk->queue_mutex);
-		cn->wivrn_bundle->queue.submit(submit_info, *cn->psc.images[index].fence);
+		cn->wivrn_bundle->queue.submit(submit_info, *cn->psc.fence);
 	}
 
-	assert(cn->psc.images[index].status == image_acquired);
-	// set bits to 1 for index 1..num encoder threads + 1
-	cn->psc.images[index].status = (1 << (cn->encoder_threads.size() + 1)) - 2;
-	cn->psc.images[index].frame_index = cn->current_frame_id;
-
-	auto & view_info = cn->psc.images[index].view_info;
+	auto & view_info = cn->psc.view_info;
 	view_info.display_time = cn->cnx->get_offset().to_headset(desired_present_time_ns);
 	for (int eye = 0; eye < 2; ++eye)
 	{
@@ -510,8 +489,10 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 			view_info.pose[eye] = xrt_cast(result.pose);
 		}
 	}
-	cn->psc.present_gen += 1;
-	cn->psc.present_gen.notify_all();
+	// set bits to 1 for index 1..num encoder threads + 1
+	cn->psc.status = (1 << (cn->encoder_threads.size() + 1)) - 2;
+	cn->psc.frame_index = cn->current_frame_id;
+	cn->psc.status.notify_all();
 
 	return VK_SUCCESS;
 }

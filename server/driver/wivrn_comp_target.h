@@ -48,20 +48,31 @@ struct pseudo_swapchain
 #else
 	using status_type = std::atomic_uint64_t;
 #endif
+	enum class status_t
+	{
+		free,
+		acquired,
+		encoding,
+	};
 	struct item
 	{
 		image_allocation image;
 		vk::raii::ImageView image_view = nullptr;
-		vk::raii::Fence fence = nullptr;
-		vk::raii::CommandBuffer command_buffer = nullptr;
-		yuv_converter yuv;
-		status_type status; // bitmask of consumer status, index 0 for acquired, the rest for each encoder
-		int64_t frame_index;
-		to_headset::video_stream_data_shard::view_info_t view_info{};
+		status_t status;
 	};
-	std::unique_ptr<item[]> images;
-	// Incremented and notified when a new image is available for encoders
-	status_type present_gen;
+	std::vector<item> images;
+
+	// bitmask of encoder status, first bit to request exit, then one bit per thread:
+	// 0 when encoder is done
+	// 1 when busy/image to be encoded
+	status_type status;
+
+	// Data to be encoded
+	vk::raii::Fence fence = nullptr;
+	vk::raii::CommandBuffer command_buffer = nullptr;
+	yuv_converter yuv;
+	int64_t frame_index;
+	to_headset::video_stream_data_shard::view_info_t view_info{};
 };
 
 struct wivrn_comp_target : public comp_target
@@ -82,30 +93,9 @@ struct wivrn_comp_target : public comp_target
 	static std::vector<const char *> wanted_instance_extensions;
 	static std::vector<const char *> wanted_device_extensions;
 
-	struct encoder_thread
-	{
-		std::jthread thread;
-		pseudo_swapchain::status_type & gen;
-		std::jthread stopper;
-
-		encoder_thread(std::jthread && thread, pseudo_swapchain::status_type & gen) :
-		        thread(std::move(thread)), gen(gen) {}
-		~encoder_thread()
-		{
-			thread.request_stop();
-			// Encoder will be in a loop on the gen variable, wake them up
-			stopper = std::jthread([&]() {
-				while (not stopper.get_stop_token().stop_requested())
-			        {
-				        gen += 1;
-				        gen.notify_all();
-				        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-			        } });
-		}
-	};
 	std::vector<encoder_settings> settings;
 	to_headset::video_stream_description desc{};
-	std::list<encoder_thread> encoder_threads;
+	std::list<std::jthread> encoder_threads;
 	std::vector<std::shared_ptr<VideoEncoder>> encoders;
 
 	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;

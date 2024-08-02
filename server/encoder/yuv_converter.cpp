@@ -59,8 +59,13 @@ static vk::Format view_format(vk::Format image_format)
 }
 
 yuv_converter::yuv_converter() {}
-yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Device & device, vk::Image rgb, vk::Format fmt, vk::Extent2D extent) :
-        extent(extent), rgb(rgb)
+yuv_converter::yuv_converter(
+		vk::PhysicalDevice physical_device,
+		vk::raii::Device & device,
+		std::span<vk::Image> rgb,
+		vk::Format fmt,
+		vk::Extent2D extent) :
+        device(*device), extent(extent), rgb(rgb.begin(), rgb.end())
 {
 	auto view_fmt = view_format(fmt);
 
@@ -89,14 +94,15 @@ yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Devic
 	};
 
 	// Input image view
+	for(vk::Image rgb_image: rgb)
 	{
 		vk::ImageViewUsageCreateInfo usage{
 		        .usage = vk::ImageUsageFlagBits::eStorage,
 		};
-		view_rgb = device.createImageView(
+		views_rgb.push_back(device.createImageView(
 		        {
 		                .pNext = &usage,
-		                .image = rgb,
+		                .image = rgb_image,
 		                .viewType = vk::ImageViewType::e2D,
 		                .format = view_fmt,
 		                .subresourceRange = {
@@ -104,7 +110,7 @@ yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Devic
 		                        .levelCount = 1,
 		                        .layerCount = 1,
 		                },
-		        });
+		        }));
 	}
 
 	// Output images
@@ -232,10 +238,6 @@ yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Devic
 	        .pSetLayouts = &*ds_layout,
 	})[0].release();
 
-	vk::DescriptorImageInfo rgb_desc_image_info{
-	        .imageView = *view_rgb,
-	        .imageLayout = vk::ImageLayout::eGeneral,
-	};
 	vk::DescriptorImageInfo luma_desc_img_info_{
 	        .imageView = *view_luma,
 	        .imageLayout = vk::ImageLayout::eGeneral,
@@ -247,13 +249,6 @@ yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Devic
 
 	device.updateDescriptorSets(
 	        {
-	                vk::WriteDescriptorSet{
-	                        .dstSet = ds,
-	                        .dstBinding = 0,
-	                        .descriptorCount = 1,
-	                        .descriptorType = vk::DescriptorType::eStorageImage,
-	                        .pImageInfo = &rgb_desc_image_info,
-	                },
 	                vk::WriteDescriptorSet{
 	                        .dstSet = ds,
 	                        .dstBinding = 1,
@@ -273,8 +268,22 @@ yuv_converter::yuv_converter(vk::PhysicalDevice physical_device, vk::raii::Devic
 }
 
 void yuv_converter::record_draw_commands(
-        vk::raii::CommandBuffer & cmd_buf)
+        vk::raii::CommandBuffer & cmd_buf, size_t index)
 {
+	assert(index < rgb.size());
+	vk::DescriptorImageInfo rgb_desc_image_info{
+	        .imageView = *views_rgb[index],
+	        .imageLayout = vk::ImageLayout::eGeneral,
+	};
+	device.updateDescriptorSets(
+	                vk::WriteDescriptorSet{
+	                        .dstSet = ds,
+	                        .dstBinding = 0,
+	                        .descriptorCount = 1,
+	                        .descriptorType = vk::DescriptorType::eStorageImage,
+	                        .pImageInfo = &rgb_desc_image_info,
+			}, nullptr);
+
 	std::array im_barriers = {
 	        vk::ImageMemoryBarrier{
 	                .srcAccessMask = vk::AccessFlagBits::eNone,
@@ -305,7 +314,7 @@ void yuv_converter::record_draw_commands(
 	                .dstAccessMask = vk::AccessFlagBits::eMemoryRead,
 	                .oldLayout = vk::ImageLayout::ePresentSrcKHR,
 	                .newLayout = vk::ImageLayout::eGeneral,
-	                .image = rgb,
+	                .image = rgb[index],
 	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
 	                                     .baseMipLevel = 0,
 	                                     .levelCount = 1,
