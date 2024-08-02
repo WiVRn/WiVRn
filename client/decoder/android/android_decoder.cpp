@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <android/hardware_buffer.h>
 #include <cassert>
+#include <magic_enum.hpp>
 #include <media/NdkImage.h>
 #include <media/NdkImageReader.h>
 #include <media/NdkMediaCodec.h>
@@ -207,12 +208,14 @@ void decoder::push_nals(std::span<std::span<const uint8_t>> data, int64_t timest
 		data_size += sub_data.size();
 	}
 
-	t1 = application::now();
-	check(AMediaCodec_queueInputBuffer(media_codec.get(), input_buffer, 0 /* offset */, data_size, timestamp, flags),
-	      "AMediaCodec_queueInputBuffer");
-	t2 = application::now();
-	if (t2 - t1 > 1'000'000)
-		spdlog::warn("AMediaCodec_queueInputBuffer() took {}µs", (t2 - t1) / 1000);
+	jobs.push([=, mc = media_codec.get()]() {
+		auto status = AMediaCodec_queueInputBuffer(mc, input_buffer, 0, data_size, timestamp, flags);
+		if (status != AMEDIA_OK)
+			spdlog::error("AMediaCodec_queueInputBuffer: MediaCodec error {}({})",
+			              int(status),
+			              std::string(magic_enum::enum_name(status)).c_str());
+		return false;
+	});
 }
 
 decoder::decoder(
@@ -245,21 +248,15 @@ decoder::decoder(
 	        application::get_vulkan_proc<PFN_vkGetAndroidHardwareBufferPropertiesANDROID>(
 	                "vkGetAndroidHardwareBufferPropertiesANDROID");
 
-	output_releaser = utils::named_thread(
+	worker = utils::named_thread(
 	        "decoder-" + std::to_string(stream_index),
 	        [this]() {
 		        while (true)
 		        {
 			        try
 			        {
-				        auto index = output_buffers.pop();
-				        if (index == -1)
+				        if (jobs.pop()())
 					        return;
-				        auto status = AMediaCodec_releaseOutputBuffer(media_codec.get(), index, true);
-				        // will trigger on_image_available through ImageReader
-				        if (status != AMEDIA_OK)
-					        spdlog::error("AMediaCodec_releaseOutputBuffer: MediaCodec error {}",
-					                      (int)status);
 			        }
 			        catch (const utils::sync_queue_closed & e)
 			        {
@@ -267,7 +264,7 @@ decoder::decoder(
 			        }
 			        catch (const std::exception & e)
 			        {
-				        spdlog::error("error in output releaser thread: {}", e.what());
+				        spdlog::error("error in decoder thread: {}", e.what());
 			        }
 		        }
 	        });
@@ -278,15 +275,15 @@ decoder::~decoder()
 	if (media_codec)
 	{
 		AMediaCodec_stop(media_codec.get());
-		output_buffers.push(-1);
-		if (output_releaser.joinable())
-			output_releaser.join();
+		jobs.push([]() { return true; });
+		if (worker.joinable())
+			worker.join();
 	}
 	input_buffers.close();
-	output_buffers.close();
+	jobs.close();
 
-	if (output_releaser.joinable())
-		output_releaser.join();
+	if (worker.joinable())
+		worker.join();
 
 	spdlog::info("decoder::~decoder");
 }
@@ -613,8 +610,15 @@ void decoder::on_media_input_available(AMediaCodec *, void * userdata, int32_t i
 void decoder::on_media_output_available(AMediaCodec * media_codec, void * userdata, int32_t index, AMediaCodecBufferInfo * bufferInfo)
 {
 	auto self = (decoder *)userdata;
-	self->output_buffers.push(index);
-	// will be consumed by dedicated thread
+	self->jobs.push([=]() {
+		auto status = AMediaCodec_releaseOutputBuffer(media_codec, index, true);
+		// will trigger on_image_available through ImageReader
+		if (status != AMEDIA_OK)
+			spdlog::error("AMediaCodec_releaseOutputBuffer: MediaCodec error {}({})",
+			              int(status),
+			              std::string(magic_enum::enum_name(status)).c_str());
+		return false;
+	});
 }
 
 void decoder::blit_handle::deleter::operator()(AImage * aimage)

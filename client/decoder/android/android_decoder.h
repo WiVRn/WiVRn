@@ -103,7 +103,7 @@ private:
 	static void on_image_available(void * context, AImageReader * reader);
 
 	utils::sync_queue<int32_t> input_buffers;
-	utils::sync_queue<int32_t> output_buffers;
+	utils::sync_queue<std::function<bool(void)>> jobs;
 
 	struct frame_info
 	{
@@ -113,7 +113,7 @@ private:
 	};
 	utils::sync_queue<frame_info> frame_infos;
 
-	std::thread output_releaser;
+	std::thread worker;
 	static void on_media_error(AMediaCodec *, void * userdata, media_status_t error, int32_t actionCode, const char * detail);
 	static void on_media_format_changed(AMediaCodec *, void * userdata, AMediaFormat *);
 	static void on_media_input_available(AMediaCodec *, void * userdata, int32_t index);
