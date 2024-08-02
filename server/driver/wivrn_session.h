@@ -32,6 +32,7 @@
 
 class wivrn_hmd;
 class wivrn_controller;
+class wivrn_eye_tracker;
 struct audio_device;
 
 struct u_system;
@@ -79,6 +80,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	std::unique_ptr<wivrn_hmd> hmd;
 	std::unique_ptr<wivrn_controller> left_hand;
 	std::unique_ptr<wivrn_controller> right_hand;
+	std::unique_ptr<wivrn_eye_tracker> eye_tracker;
 	wivrn_comp_target * comp_target;
 
 	clock_offset_estimator offset_est;
