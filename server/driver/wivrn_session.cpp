@@ -31,6 +31,7 @@
 #include "audio/audio_setup.h"
 #include "wivrn_comp_target.h"
 #include "wivrn_controller.h"
+#include "wivrn_eye_tracker.h"
 #include "wivrn_hmd.h"
 
 #include "xrt/xrt_session.h"
@@ -143,9 +144,6 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	if (self->hmd)
 		usysds->base.base.static_roles.head = devices->xdevs[n++] = self->hmd.get();
 
-	if (self->hmd->eye_gaze_supported)
-		usysds->base.base.static_roles.eyes = self->hmd.get();
-
 	if (self->left_hand)
 	{
 		devices->xdevs[n++] = self->left_hand.get();
@@ -155,6 +153,12 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	{
 		devices->xdevs[n++] = self->right_hand.get();
 		usysds->base.base.static_roles.hand_tracking.right = self->right_hand.get();
+	}
+	if (info.eye_gaze)
+	{
+		self->eye_tracker = std::make_unique<wivrn_eye_tracker>(self->hmd.get(), self);
+		usysds->base.base.static_roles.eyes = self->eye_tracker.get();
+		devices->xdevs[n++] = self->eye_tracker.get();
 	}
 	devices->xdev_count = n;
 
@@ -250,6 +254,8 @@ void wivrn_session::operator()(from_headset::tracking && tracking)
 	hmd->update_tracking(tracking, offset);
 	left_hand->update_tracking(tracking, offset);
 	right_hand->update_tracking(tracking, offset);
+	if (eye_tracker)
+		eye_tracker->update_tracking(tracking, offset);
 }
 
 void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)

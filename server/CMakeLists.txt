@@ -78,6 +78,7 @@ add_executable(wivrn-server
 		driver/wivrn_pacer.cpp
 		driver/wivrn_comp_target.cpp
 		driver/wivrn_controller.cpp
+		driver/wivrn_eye_tracker.cpp
 		driver/pose_list.cpp
 		driver/view_list.cpp
 		driver/hand_joints_list.cpp

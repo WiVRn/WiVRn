@@ -180,7 +180,7 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 
 wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
                      const from_headset::headset_info_packet & info) :
-        xrt_device{}, gaze(device_id::EYE_GAZE), cnx(cnx)
+        xrt_device{}, cnx(cnx)
 {
 	xrt_device * base = this;
 
@@ -196,7 +196,6 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	orientation_tracking_supported = true;
 	// hand_tracking_supported = true;
 	position_tracking_supported = true;
-	eye_gaze_supported = info.eye_gaze;
 
 	// Print name.
 	strcpy(str, "WiVRn HMD");
@@ -246,27 +245,20 @@ void wivrn_hmd::update_inputs()
 
 xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
 {
-	if (name == XRT_INPUT_GENERIC_HEAD_POSE)
+	if (name != XRT_INPUT_GENERIC_HEAD_POSE)
 	{
-		auto [extrapolation_time, res] = views.get_at(at_timestamp_ns);
-		cnx->add_predict_offset(extrapolation_time);
-		return res.relation;
+		U_LOG_E("Unknown input name");
+		return {};
 	}
 
-	if (name == XRT_INPUT_GENERIC_EYE_GAZE_POSE)
-	{
-		auto [_, relation] = gaze.get_at(at_timestamp_ns);
-		return relation;
-	}
-
-	U_LOG_E("Unknown input name");
-	return {};
+	auto [extrapolation_time, res] = views.get_at(at_timestamp_ns);
+	cnx->add_predict_offset(extrapolation_time);
+	return res.relation;
 }
 
 void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	views.update_tracking(tracking, offset);
-	gaze.update_tracking(tracking, offset);
 }
 
 void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
