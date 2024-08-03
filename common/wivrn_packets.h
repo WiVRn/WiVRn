@@ -248,6 +248,19 @@ struct handshake
 	int stream_port;
 };
 
+struct foveation_parameter_item
+{
+	float center;
+	float scale;
+	float a;
+	float b;
+};
+struct foveation_parameter
+{
+	foveation_parameter_item x;
+	foveation_parameter_item y;
+};
+
 struct audio_stream_description
 {
 	struct device
@@ -274,18 +287,6 @@ struct video_stream_description
 		video_codec codec;
 		std::optional<VkSamplerYcbcrRange> range;
 		std::optional<VkSamplerYcbcrModelConversion> color_model;
-	};
-	struct foveation_parameter_item
-	{
-		double center;
-		double scale;
-		double a;
-		double b;
-	};
-	struct foveation_parameter
-	{
-		foveation_parameter_item x;
-		foveation_parameter_item y;
 	};
 	uint16_t width;
 	uint16_t height;
@@ -320,6 +321,7 @@ public:
 
 		std::array<XrPosef, 2> pose;
 		std::array<XrFovf, 2> fov;
+		std::array<foveation_parameter, 2> foveation;
 	};
 	std::optional<view_info_t> view_info;
 

@@ -1,0 +1,13 @@
+diff --git a/src/xrt/compositor/render/render_distortion.c b/src/xrt/compositor/render/render_distortion.c
+index 031f74ad5..1255f2616 100644
+--- a/src/xrt/compositor/render/render_distortion.c
++++ b/src/xrt/compositor/render/render_distortion.c
+@@ -42,7 +42,7 @@ create_distortion_image_and_view(struct vk_bundle *vk,
+ 	    vk,                                                           // vk_bundle
+ 	    extent,                                                       // extent
+ 	    format,                                                       // format
+-	    VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, // usage
++	    VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, // usage
+ 	    &device_memory,                                               // out_device_memory
+ 	    &image);                                                      // out_image
+ 	VK_CHK_AND_RET(ret, "vk_create_image_simple");

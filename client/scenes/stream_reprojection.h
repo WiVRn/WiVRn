@@ -52,7 +52,7 @@ class stream_reprojection
 	vk::Extent2D extent;
 
 	// Foveation
-	std::array<xrt::drivers::wivrn::to_headset::video_stream_description::foveation_parameter, 2> foveation_parameters;
+	std::array<xrt::drivers::wivrn::to_headset::foveation_parameter, 2> foveation_parameters;
 
 public:
 	stream_reprojection(
@@ -70,4 +70,6 @@ public:
 	        vk::raii::CommandBuffer & command_buffer,
 	        int source,
 	        int destination);
+
+	void set_foveation(std::array<xrt::drivers::wivrn::to_headset::foveation_parameter, 2> foveation);
 };
