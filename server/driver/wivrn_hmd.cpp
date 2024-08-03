@@ -23,7 +23,6 @@
 #include "xrt/xrt_device.h"
 
 #include "util/u_device.h"
-#include "util/u_distortion_mesh.h"
 #include "util/u_logging.h"
 
 #include "xrt_cast.h"
@@ -372,6 +371,26 @@ decltype(wivrn_hmd::foveation_parameters) wivrn_hmd::set_foveated_size(uint32_t 
 	hmd->distortion.models = XRT_DISTORTION_MODEL_COMPUTE;
 	hmd->distortion.preferred = XRT_DISTORTION_MODEL_COMPUTE;
 	return foveation_parameters;
+}
+
+void wivrn_hmd::set_foveation_center(std::array<xrt_vec2, 2> center)
+{
+	for (int i = 0; i < 2; ++i)
+	{
+		foveation_parameters[i].x.center = center[i].x;
+		foveation_parameters[i].y.center = center[i].y;
+
+		if (foveation_parameters[i].x.scale < 1)
+		{
+			std::tie(foveation_parameters[i].x.a, foveation_parameters[i].x.b) =
+			        solve_foveation(foveation_parameters[i].x.scale, foveation_parameters[i].x.center);
+		}
+		if (foveation_parameters[i].y.scale < 1)
+		{
+			std::tie(foveation_parameters[i].y.a, foveation_parameters[i].y.b) =
+			        solve_foveation(foveation_parameters[i].y.scale, foveation_parameters[i].y.center);
+		}
+	}
 }
 
 /*

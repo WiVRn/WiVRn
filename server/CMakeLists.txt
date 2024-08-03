@@ -81,6 +81,7 @@ add_executable(wivrn-server
 		driver/wivrn_controller.cpp
 		driver/wivrn_eye_tracker.cpp
 		driver/wivrn_fb_face2_tracker.cpp
+		driver/wivrn_foveation.cpp
 		driver/pose_list.cpp
 		driver/view_list.cpp
 		driver/hand_joints_list.cpp
@@ -141,7 +142,7 @@ endif()
 
 include(CompileGLSL)
 
-file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "encoder/shaders/*.glsl")
+file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "shaders/*.glsl")
 target_sources(wivrn-server PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn-server ${VULKAN_SHADERS})
 

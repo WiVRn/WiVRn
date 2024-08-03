@@ -532,6 +532,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	std::array<XrPosef, 2> pose{};
 	std::array<XrFovf, 2> fov{};
+	std::array<xrt::drivers::wivrn::to_headset::foveation_parameter, 2> foveation{};
 	{
 		// Search for frame with desired display time on all decoders
 		// If no such frame exists, use the latest frame for each decoder
@@ -551,6 +552,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 			pose = blit_handle->view_info.pose;
 			fov = blit_handle->view_info.fov;
+			foveation = blit_handle->view_info.foveation;
 
 			vk::DescriptorImageInfo image_info{
 			        .imageView = *blit_handle->image_view,
@@ -651,6 +653,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	}
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
+	reprojector->set_foveation(foveation);
 
 	// Unfoveate the image to the real pose
 	for (size_t view = 0; view < view_count; view++)

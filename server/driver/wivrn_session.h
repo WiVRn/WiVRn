@@ -34,6 +34,8 @@ class wivrn_hmd;
 class wivrn_controller;
 class wivrn_eye_tracker;
 class wivrn_fb_face2_tracker;
+class wivrn_foveation;
+class wivrn_foveation_renderer;
 struct audio_device;
 
 struct u_system;
@@ -83,6 +85,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	std::unique_ptr<wivrn_controller> right_hand;
 	std::unique_ptr<wivrn_eye_tracker> eye_tracker;
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
+	std::unique_ptr<wivrn_foveation> foveation;
 	wivrn_comp_target * comp_target;
 
 	clock_offset_estimator offset_est;
@@ -135,7 +138,13 @@ public:
 		connection.send_control(std::forward<T>(packet));
 	}
 
-	std::array<to_headset::video_stream_description::foveation_parameter, 2> set_foveated_size(uint32_t width, uint32_t height);
+	std::array<to_headset::foveation_parameter, 2> set_foveated_size(uint32_t width, uint32_t height);
+	std::array<to_headset::foveation_parameter, 2> get_foveation_parameters();
+	bool apply_dynamic_foveation();
+	bool has_dynamic_foveation()
+	{
+		return (bool)foveation;
+	}
 
 	void dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream = -1, const char * extra = "");
 

@@ -433,3 +433,8 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 	command_buffer.draw(6 * nb_reprojection_vertices * nb_reprojection_vertices, 1, 0, 0);
 	command_buffer.endRenderPass();
 }
+
+void stream_reprojection::set_foveation(std::array<xrt::drivers::wivrn::to_headset::foveation_parameter, 2> foveation)
+{
+	foveation_parameters = foveation;
+}

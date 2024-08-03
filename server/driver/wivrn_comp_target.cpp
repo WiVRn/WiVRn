@@ -22,10 +22,12 @@
 #include "main/comp_compositor.h"
 #include "math/m_space.h"
 #include "utils/scoped_lock.h"
+#include "wivrn_foveation.h"
 #include "xrt_cast.h"
 #include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_handles.hpp>
 
 using namespace xrt::drivers::wivrn;
 
@@ -216,6 +218,12 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		U_LOG_E("Failed to create video encoder: %s", e.what());
 		return false;
 	}
+
+	if (cn->cnx->has_dynamic_foveation())
+	{
+		cn->foveation_renderer = std::make_unique<wivrn_foveation_renderer>(*cn->wivrn_bundle, cn->command_pool);
+	}
+
 	return true;
 }
 
@@ -323,19 +331,6 @@ static bool comp_wivrn_has_images(struct comp_target * ct)
 static VkResult comp_wivrn_acquire(struct comp_target * ct, uint32_t * out_index)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
-	struct vk_bundle * vk = get_vk(cn);
-
-	vk::Semaphore sem(cn->semaphores.present_complete);
-
-	vk::SubmitInfo submit_info{
-	        .signalSemaphoreCount = 1,
-	        .pSignalSemaphores = &sem,
-	};
-
-	{
-		scoped_lock lock(vk->queue_mutex);
-		cn->wivrn_bundle->queue.submit(submit_info);
-	}
 
 	while (true)
 	{
@@ -470,6 +465,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 
 	auto & view_info = cn->psc.view_info;
 	view_info.display_time = cn->cnx->get_offset().to_headset(desired_present_time_ns);
+	view_info.foveation = cn->cnx->get_foveation_parameters();
 	for (int eye = 0; eye < 2; ++eye)
 	{
 		const auto & slot = cn->c->base.slot;
@@ -499,7 +495,26 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 
 static void comp_wivrn_flush(struct comp_target * ct)
 {
-	(void)ct;
+	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+
+	// apply foveation for current frame
+	if (cn->cnx->apply_dynamic_foveation())
+		// foveation renderer already signaled the semaphore; nothing to do
+		return;
+
+	struct vk_bundle * vk = get_vk(cn);
+
+	vk::Semaphore sem(cn->semaphores.present_complete);
+
+	vk::SubmitInfo submit_info{
+	        .signalSemaphoreCount = 1,
+	        .pSignalSemaphores = &sem,
+	};
+
+	{
+		scoped_lock lock(vk->queue_mutex);
+		cn->wivrn_bundle->queue.submit(submit_info);
+	}
 }
 
 static void comp_wivrn_calc_frame_pacing(struct comp_target * ct,
@@ -594,6 +609,27 @@ void wivrn_comp_target::reset_encoders()
 		encoder->SyncNeeded();
 	}
 	cnx->send_control(desc);
+}
+
+void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveation_parameter, 2> foveation)
+{
+	assert(foveation_renderer);
+
+	vk::Semaphore sem(semaphores.present_complete);
+
+	vk::SubmitInfo submit_info{
+	        .commandBufferCount = 1,
+	        .pCommandBuffers = &*foveation_renderer->cmd_buf,
+	        .signalSemaphoreCount = 1,
+	        .pSignalSemaphores = &sem,
+	};
+
+	foveation_renderer->render_distortion_images(foveation, c->nr.distortion.images, c->nr.distortion.image_views);
+
+	{
+		scoped_lock lock(c->base.vk.queue_mutex);
+		wivrn_bundle->queue.submit(submit_info);
+	}
 }
 
 wivrn_comp_target::wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps) :
