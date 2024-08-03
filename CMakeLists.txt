@@ -23,6 +23,10 @@ include(ExternalProject)
 include(GNUInstallDirs)
 include("cmake/AutoOption.cmake")
 
+if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+	set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}/wivrn" CACHE STRING "Library directory" FORCE)
+endif()
+
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 auto_option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" AUTO)
 auto_option(WIVRN_USE_SYSTEM_OPENXR "Use system OpenXR headers" AUTO)
