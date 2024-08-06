@@ -503,7 +503,10 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		if (!next_scene->alive())
 			next_scene.reset();
 		else if (next_scene->current_state() == scenes::stream::state::streaming)
+		{
+			autoconnect_enabled = true;
 			application::push_scene(next_scene);
+		}
 	}
 
 	update_server_list();
@@ -514,8 +517,9 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		const auto & servers = application::get_config().servers;
 		for (auto && [cookie, data]: servers)
 		{
-			if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible)
+			if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible && autoconnect_enabled)
 			{
+				autoconnect_enabled = false;
 				connect(data);
 				break;
 			}

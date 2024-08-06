@@ -55,6 +55,7 @@ class lobby : public scene_impl<lobby>
 	std::optional<std::string> async_error;
 	std::shared_ptr<stream> next_scene;
 	std::string server_name;
+	bool autoconnect_enabled = true;
 
 	std::optional<scene_renderer> renderer;
 	std::optional<scene_data> lobby_scene;
