@@ -45,14 +45,6 @@ class stream;
 
 class lobby : public scene_impl<lobby>
 {
-	enum class connection_status
-	{
-		idle,
-		connecting,
-		connected,
-		error,
-	};
-
 	std::optional<wivrn_discover> discover;
 
 	char add_server_window_prettyname[200];
