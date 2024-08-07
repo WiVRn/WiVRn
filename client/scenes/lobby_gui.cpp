@@ -30,10 +30,6 @@
 #include <spdlog/fmt/fmt.h>
 #include <utils/strings.h>
 
-#ifdef __ANDROID__
-#include "jnipp.h"
-#endif
-
 #include "IconsFontAwesome6.h"
 
 static void CenterTextH(const std::string & text)
@@ -385,27 +381,8 @@ void scenes::lobby::gui_settings()
 
 	if (ImGui::Checkbox(_S("Enable microphone"), &config.microphone))
 	{
-#ifdef __ANDROID__
 		if (config.microphone)
-		{
-			jni::object<""> act(application::native_app()->activity->clazz);
-			auto app = act.call<jni::object<"android/app/Application">>("getApplication");
-			auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
-
-			jni::string permission("android.permission.RECORD_AUDIO");
-			auto result = ctx.call<jni::Int>("checkSelfPermission", permission);
-			if (result != 0 /*PERMISSION_GRANTED*/)
-			{
-				spdlog::info("RECORD_AUDIO permission not granted, requesting it");
-				jni::array permissions(permission);
-				act.call<void>("requestPermissions", permissions, jni::Int(0));
-			}
-			else
-			{
-				spdlog::info("RECORD_AUDIO permission already granted");
-			}
-		}
-#endif
+			audio::request_mic_permission();
 		config.save();
 	}
 	vibrate_on_hover();
@@ -607,6 +584,29 @@ static void ScrollWhenDraggingOnVoid(ImVec2 delta)
 		ImGui::SetScrollY(window, window->Scroll.y + delta.y);
 }
 
+void scenes::lobby::draw_mic_status()
+{
+	auto & config = application::get_config();
+	const char * text = config.microphone ? ICON_FA_MICROPHONE : ICON_FA_MICROPHONE_SLASH;
+	float win_width = ImGui::GetWindowSize().x;
+	float text_width = ImGui::CalcTextSize(text).x;
+	ImGui::SetCursorPosX((win_width - text_width) / 2);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, text_width / 2);
+	ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32_BLACK_TRANS);
+	ImGui::PushStyleColor(ImGuiCol_Text, config.microphone ? ImGui::GetColorU32(ImGuiCol_Text) : IM_COL32(255, 0, 0, 255));
+	if (ImGui::Button(text))
+	{
+		config.microphone = not config.microphone;
+		if (config.microphone)
+			audio::request_mic_permission();
+		config.save();
+	}
+	vibrate_on_hover();
+	ImGui::PopStyleColor(2);
+	ImGui::PopStyleVar();
+}
+
 XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 {
 	for (const auto & [key, server]: application::get_config().servers)
@@ -643,6 +643,7 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 		switch (current_tab)
 		{
 			case tab::server_list:
+				draw_mic_status();
 				gui_server_list();
 				break;
 

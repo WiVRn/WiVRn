@@ -63,5 +63,6 @@ public:
 	void operator()(xrt::drivers::wivrn::audio_data &&);
 
 	static void get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info);
+	static void request_mic_permission();
 };
 } // namespace wivrn::android
