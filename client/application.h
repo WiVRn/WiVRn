@@ -134,6 +134,7 @@ class application : public singleton<application>
 	bool session_visible = false;
 	bool debug_extensions_found = false;
 	std::vector<std::string> xr_extensions;
+	std::vector<const char *> vk_device_extensions;
 	std::atomic<bool> exit_requested = false;
 	std::filesystem::path config_path;
 	std::filesystem::path cache_path;
@@ -429,6 +430,11 @@ public:
 	static const std::vector<std::string> & get_xr_extensions()
 	{
 		return instance().xr_extensions;
+	}
+
+	static const std::vector<const char *> & get_vk_device_extensions()
+	{
+		return instance().vk_device_extensions;
 	}
 
 	static configuration & get_config()

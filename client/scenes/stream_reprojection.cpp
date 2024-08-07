@@ -19,6 +19,7 @@
 
 #include "stream_reprojection.h"
 #include "application.h"
+#include "utils/contains.h"
 #include "vk/allocation.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
@@ -74,6 +75,9 @@ stream_reprojection::stream_reprojection(
 	        .borderColor = vk::BorderColor::eFloatOpaqueBlack,
 	        .unnormalizedCoordinates = VK_FALSE,
 	};
+
+	if (utils::contains(application::get_vk_device_extensions(), VK_IMG_FILTER_CUBIC_EXTENSION_NAME))
+		sampler_info.magFilter = vk::Filter::eCubicIMG;
 
 	sampler = vk::raii::Sampler(device, sampler_info);
 

@@ -388,7 +388,7 @@ void application::initialize_vulkan()
 #endif
 
 	std::vector<const char *> instance_extensions{};
-	std::vector<const char *> device_extensions{};
+	std::unordered_set<std::string_view> optional_device_extensions{};
 
 #ifndef NDEBUG
 	bool debug_report_found = false;
@@ -418,17 +418,18 @@ void application::initialize_vulkan()
 	}
 #endif
 
-	device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 
 #ifdef __ANDROID__
-	device_extensions.push_back(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME);
-	device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
-	device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
-	device_extensions.push_back(VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME);
-	device_extensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
-	device_extensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
-	device_extensions.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
-	device_extensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
 	instance_extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 	instance_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME);
 #endif
@@ -488,6 +489,8 @@ void application::initialize_vulkan()
 	for (vk::ExtensionProperties & i: vk_physical_device.enumerateDeviceExtensionProperties())
 	{
 		spdlog::info("    {}", i.extensionName);
+		if (auto it = optional_device_extensions.find(i.extensionName); it != optional_device_extensions.end())
+			vk_device_extensions.push_back(it->data());
 	}
 
 	vk::PhysicalDeviceProperties prop = vk_physical_device.getProperties();
@@ -524,8 +527,8 @@ void application::initialize_vulkan()
 	        vk::DeviceCreateInfo{
 	                .queueCreateInfoCount = 1,
 	                .pQueueCreateInfos = &queueCreateInfo,
-	                .enabledExtensionCount = (uint32_t)device_extensions.size(),
-	                .ppEnabledExtensionNames = device_extensions.data(),
+	                .enabledExtensionCount = (uint32_t)vk_device_extensions.size(),
+	                .ppEnabledExtensionNames = vk_device_extensions.data(),
 	                .pEnabledFeatures = &device_features,
 	        },
 #ifdef __ANDROID__
