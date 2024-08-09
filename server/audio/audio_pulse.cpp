@@ -337,7 +337,7 @@ struct pulse_device : public audio_device
 					size -= remainder;              // size of data to send
 					packet.payload = std::span<uint8_t>(buffer.begin(), size);
 					packet.timestamp = session.get_offset().to_headset(os_monotonic_get_ns());
-					
+
 					try
 					{
 						session.send_control(packet);
