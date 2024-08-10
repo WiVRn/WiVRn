@@ -117,6 +117,7 @@ public:
 	void operator()(from_headset::inputs &&);
 	void operator()(from_headset::timesync_response &&);
 	void operator()(from_headset::feedback &&);
+	void operator()(from_headset::battery &&);
 	void operator()(audio_data &&);
 
 	template <typename T>
