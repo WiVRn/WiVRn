@@ -70,6 +70,11 @@ static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      xrt_fov * out_fovs,
                                      xrt_pose * out_poses);
 
+static xrt_result_t wivrn_hmd_get_battery_status(struct xrt_device * xdev,
+                                                 bool * out_present,
+                                                 bool * out_charging,
+                                                 float * out_charge);
+
 static double foveate(double a, double b, double λ, double c, double x)
 {
 	// In order to save encoding, transmit and decoding time, only a portion of the image is encoded in full resolution.
@@ -190,11 +195,13 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	base->update_inputs = wivrn_hmd_update_inputs;
 	base->get_tracked_pose = wivrn_hmd_get_tracked_pose;
 	base->get_view_poses = wivrn_hmd_get_view_poses;
+	base->get_battery_status = wivrn_hmd_get_battery_status;
 	base->destroy = wivrn_hmd_destroy;
 	name = XRT_DEVICE_GENERIC_HMD;
 	device_type = XRT_DEVICE_TYPE_HMD;
 	orientation_tracking_supported = true;
 	// hand_tracking_supported = true;
+	battery_status_supported = true;
 	position_tracking_supported = true;
 
 	// Print name.
@@ -261,6 +268,12 @@ void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const c
 	views.update_tracking(tracking, offset);
 }
 
+void wivrn_hmd::update_battery(const from_headset::battery & new_battery)
+{
+	std::lock_guard lock(mutex);
+	battery = new_battery;
+}
+
 void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
                                uint64_t at_timestamp_ns,
                                uint32_t view_count,
@@ -294,6 +307,19 @@ void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
 		out_fovs[eye] = view.fovs[eye];
 		out_poses[eye] = view.poses[eye];
 	}
+}
+
+xrt_result_t wivrn_hmd::get_battery_status(struct xrt_device * xdev,
+                                           bool * out_present,
+                                           bool * out_charging,
+                                           float * out_charge)
+{
+	std::lock_guard lock(mutex);
+	*out_present = battery.present;
+	*out_charging = battery.charging;
+	*out_charge = battery.charge;
+
+	return XRT_SUCCESS;
 }
 
 decltype(wivrn_hmd::foveation_parameters) wivrn_hmd::set_foveated_size(uint32_t width, uint32_t height)
@@ -383,4 +409,12 @@ static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      xrt_pose * out_poses)
 {
 	static_cast<wivrn_hmd *>(xdev)->get_view_poses(default_eye_relation, at_timestamp_ns, view_count, out_head_relation, out_fovs, out_poses);
+}
+
+static xrt_result_t wivrn_hmd_get_battery_status(struct xrt_device * xdev,
+                                                 bool * out_present,
+                                                 bool * out_charging,
+                                                 float * out_charge)
+{
+	return static_cast<wivrn_hmd *>(xdev)->get_battery_status(xdev, out_present, out_charging, out_charge);
 }

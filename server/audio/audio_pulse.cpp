@@ -337,7 +337,16 @@ struct pulse_device : public audio_device
 					size -= remainder;              // size of data to send
 					packet.payload = std::span<uint8_t>(buffer.begin(), size);
 					packet.timestamp = session.get_offset().to_headset(os_monotonic_get_ns());
-					session.send_stream(packet);
+
+					try
+					{
+						session.send_control(packet);
+					}
+					catch (std::exception & e)
+					{
+						U_LOG_D("Failed to send audio data: %s", e.what());
+					}
+
 					// put the remaining data at the beginning of the buffer
 					memmove(buffer.data(), buffer.data() + size, remainder);
 				}

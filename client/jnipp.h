@@ -182,6 +182,17 @@ struct klass
 		},
 		                    handles));
 	}
+
+	template <typename R, typename... Args>
+	auto method(const char * method, Args &&... args)
+	{
+		using R1 = details::type_map_t<R>;
+		auto & env = jni_thread::env();
+		std::string signature = "(" + details::build_type(args...) + ")" + R1::type();
+		auto method_id = env.GetMethodID(self.get(), method, signature.c_str());
+		assert(method_id);
+		return method_id;
+	}
 };
 
 struct Bool
@@ -264,6 +275,19 @@ struct object
 		                    handles));
 	}
 
+	template <typename R, typename... Args>
+	auto call(jmethodID method_id, Args &&... args)
+	{
+		using R1 = details::type_map_t<R>;
+		auto & env = jni_thread::env();
+		assert(method_id);
+		auto handles = details::handle(std::forward<Args>(args)...);
+		return R(std::apply([&](auto &... t) {
+			return (env.*R1::call_method)(*this, method_id, t...);
+		},
+		                    handles));
+	}
+
 	jobject handle() const
 	{
 		return *this;
@@ -279,6 +303,21 @@ struct object
 		return *this;
 	}
 };
+
+template <details::string_literal Type, typename... Args>
+static object<Type> new_object(Args &&... args)
+{
+	auto & env = jni_thread::env();
+	auto klass = jni::klass(Type.value);
+	std::string signature = "(" + details::build_type(args...) + ")V";
+	auto method_id = env.GetMethodID(klass, "<init>", signature.c_str());
+	assert(method_id);
+	auto handles = details::handle(std::forward<Args>(args)...);
+	return object<Type>(std::apply([&](auto &... t) {
+		return env.NewObject(klass, method_id, t...);
+	},
+	                               handles));
+}
 
 using string_t = object<"java/lang/String">;
 

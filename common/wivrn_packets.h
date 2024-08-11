@@ -218,7 +218,14 @@ struct feedback
 	uint8_t times_displayed;
 };
 
-using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, hand_tracking, inputs, timesync_response>;
+struct battery
+{
+	float charge;
+	bool present;
+	bool charging;
+};
+
+using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, hand_tracking, inputs, timesync_response, battery>;
 } // namespace from_headset
 
 namespace to_headset

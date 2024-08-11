@@ -304,6 +304,11 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 		dump_time("display", feedback.frame_index, o.from_headset(feedback.displayed), feedback.stream_index);
 }
 
+void wivrn_session::operator()(from_headset::battery && battery)
+{
+	hmd->update_battery(battery);
+}
+
 void wivrn_session::operator()(audio_data && data)
 {
 	if (audio_handle)

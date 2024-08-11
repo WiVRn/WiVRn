@@ -48,6 +48,7 @@ class wivrn_hmd : public xrt_device
 
 	view_list views;
 	std::array<to_headset::video_stream_description::foveation_parameter, 2> foveation_parameters{};
+	from_headset::battery battery{};
 
 	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
 
@@ -70,7 +71,12 @@ public:
 	                    xrt_space_relation * out_head_relation,
 	                    xrt_fov * out_fovs,
 	                    xrt_pose * out_poses);
+	xrt_result_t get_battery_status(struct xrt_device * xdev,
+	                                bool * out_present,
+	                                bool * out_charging,
+	                                float * out_charge);
 
+	void update_battery(const from_headset::battery &);
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 
 	decltype(foveation_parameters) set_foveated_size(uint32_t width, uint32_t height);
