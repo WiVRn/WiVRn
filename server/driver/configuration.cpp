@@ -1,6 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022-2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
  * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -34,11 +34,7 @@
 #include "utils/xdg_base_directory.h"
 
 static std::filesystem::path config_file = xdg_config_home() / "wivrn" / "config.json";
-
-static std::filesystem::path get_cookie_file()
-{
-	return xdg_config_home() / "wivrn" / "cookie";
-}
+static std::filesystem::path cookie_file = xdg_config_home() / "wivrn" / "cookie";
 
 namespace xrt::drivers::wivrn
 {
@@ -135,10 +131,8 @@ configuration configuration::read_user_configuration()
 
 std::string server_cookie()
 {
-	auto path = get_cookie_file();
-
 	{
-		std::ifstream cookie(path);
+		std::ifstream cookie(cookie_file);
 		char buffer[33];
 		cookie.read(buffer, sizeof(buffer) - 1);
 
@@ -167,7 +161,8 @@ std::string server_cookie()
 
 		buffer[sizeof(buffer) - 1] = 0;
 
-		std::ofstream cookie(path);
+		std::filesystem::create_directories(cookie_file.parent_path());
+		std::ofstream cookie(cookie_file);
 		cookie.write(buffer, sizeof(buffer) - 1);
 
 		return buffer;
