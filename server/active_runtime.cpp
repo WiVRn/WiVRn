@@ -1,6 +1,7 @@
 /*
  * WiVRn VR streaming
  * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,10 +21,37 @@
 #include "utils/xdg_base_directory.h"
 #include "wivrn_config.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 
+static std::filesystem::path manifest_path()
+{
+	const std::filesystem::path install_location = "share/openxr/1/openxr_wivrn.json";
+	// Check if in a flatpak
+	if (std::filesystem::exists("/.flatpak-info"))
+	{
+		const std::string key("app-path=");
+		std::string line;
+		std::ifstream info("/.flatpak-info");
+		while (std::getline(info, line))
+		{
+			if (line.starts_with(key))
+				return line.substr(key.size()) / install_location.relative_path();
+		}
+	}
+
+	// Check if running from build directory
+	auto exe = std::filesystem::read_symlink("/proc/self/exe");
+	auto dev_manifest = exe.parent_path().parent_path() / "openxr_wivrn-dev.json";
+	if (std::filesystem::exists(dev_manifest))
+		return dev_manifest;
+
+	// Assume we are installed
+	return std::filesystem::path(WIVRN_INSTALL_PREFIX) / install_location;
+}
+
 active_runtime::active_runtime() :
-        pid(getpid()), active_runtime_json(xdg_config_home() / "openxr" / "1" / "active_runtime.json")
+        pid(getpid()), active_runtime_json(xdg_config_home() / "openxr/1/active_runtime.json")
 {
 	try
 	{
@@ -32,12 +60,7 @@ active_runtime::active_runtime() :
 
 		std::filesystem::create_directories(active_runtime_json.parent_path());
 
-		auto exe = std::filesystem::read_symlink("/proc/self/exe");
-		auto openxr_wivrn_json = exe.parent_path().parent_path() / "openxr_wivrn-dev.json";
-		if (!std::filesystem::exists(openxr_wivrn_json))
-			openxr_wivrn_json = std::filesystem::path(WIVRN_INSTALL_PREFIX) / "share" / "openxr" / "1" / "openxr_wivrn.json";
-
-		std::filesystem::create_symlink(openxr_wivrn_json, active_runtime_json);
+		std::filesystem::create_symlink(manifest_path(), active_runtime_json);
 
 		to_be_deleted = true;
 	}
