@@ -41,6 +41,8 @@ using namespace xrt::drivers::wivrn;
 // TODO: size independent bitrate
 static const uint64_t default_bitrate = 50'000'000;
 
+// #define WIVRN_SPLIT_ENCODERS 1
+
 static bool is_nvidia(vk::PhysicalDevice physical_device)
 {
 	auto props = physical_device.getProperties();
@@ -129,8 +131,6 @@ static std::vector<configuration::encoder> get_encoder_default_settings(vk::Phys
 	else
 	{
 #ifdef WIVRN_USE_VAAPI
-		return {{.name = encoder_vaapi}};
-// Split encoders have been reported to cause issues, don't use them in default configuration
 #ifdef WIVRN_SPLIT_ENCODERS
 		/* Split in 3 parts:
 		 *  +--------+--------+
@@ -164,10 +164,12 @@ static std::vector<configuration::encoder> get_encoder_default_settings(vk::Phys
 		        {
 		                .name = encoder_vaapi,
 		                .width = 0.5,
-		                .offset_y = 0.5,
+		                .offset_x = 0.5,
 		                .group = 0,
 		        },
 		};
+#else
+		return {{.name = encoder_vaapi}};
 #endif
 #elif defined(WIVRN_USE_X264)
 		U_LOG_W("ffmpeg support not compiled, vaapi encoder not available");
