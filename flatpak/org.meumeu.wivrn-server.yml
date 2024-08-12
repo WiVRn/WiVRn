@@ -135,7 +135,7 @@ modules:
         sha256: 6f490ec1383de5855dcf801c23f0a967f888eb6e1440b6ca0bf36c12d4ae7ac7
       - type: git
         url: https://gitlab.freedesktop.org/monado/monado
-        tag: dfc602288ab05131584a3f2be18031a13fccd061
+        tag: 2d3978b1b0d0f1ce9fc20f435c7080a07124362a
         dest: deps/monado-src
       - type: shell
         commands:
