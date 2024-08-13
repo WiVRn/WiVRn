@@ -137,6 +137,9 @@ modules:
         url: https://gitlab.freedesktop.org/monado/monado
         tag: dfc602288ab05131584a3f2be18031a13fccd061
         dest: deps/monado-src
+      - type: shell
+        commands:
+         - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado
 
   - name: opencomposite
     buildsystem: cmake-ninja
