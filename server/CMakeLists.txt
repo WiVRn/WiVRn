@@ -23,13 +23,16 @@ set(XRT_BUILD_DRIVER_WMR                OFF)
 set(XRT_BUILD_DRIVER_XREAL_AIR          OFF)
 set(XRT_BUILD_SAMPLES                   OFF)
 
-set(XRT_FEATURE_COMPOSITOR_NULL      OFF)
-set(XRT_FEATURE_SERVICE              ON)
-set(XRT_FEATURE_SERVICE_SYSTEMD      OFF)
-set(XRT_FEATURE_SLAM                 OFF)
-set(XRT_FEATURE_STEAMVR_PLUGIN       OFF)
-set(XRT_FEATURE_WINDOW_PEEK          OFF)
-set(XRT_FEATURE_STEAMVR_PLUGIN       OFF)
+set(XRT_FEATURE_COMPOSITOR_NULL          OFF)
+set(XRT_FEATURE_SERVICE                  ON)
+set(XRT_FEATURE_SERVICE_SYSTEMD          OFF)
+set(XRT_FEATURE_SLAM                     OFF)
+set(XRT_FEATURE_STEAMVR_PLUGIN           OFF)
+set(XRT_FEATURE_WINDOW_PEEK              OFF)
+set(XRT_FEATURE_STEAMVR_PLUGIN           OFF)
+set(XRT_FEATURE_WINDOW_PEEK              OFF)
+set(XRT_FEATURE_WINDOW_PEEK              OFF)
+set(XRT_FEATURE_OPENXR_FACE_TRACKING2_FB ON)
 
 set(XRT_HAVE_BLUETOOTH               OFF)
 set(XRT_HAVE_GST                     OFF)
@@ -77,6 +80,7 @@ add_executable(wivrn-server
 		driver/wivrn_comp_target.cpp
 		driver/wivrn_controller.cpp
 		driver/wivrn_eye_tracker.cpp
+		driver/wivrn_fb_face2_tracker.cpp
 		driver/pose_list.cpp
 		driver/view_list.cpp
 		driver/hand_joints_list.cpp

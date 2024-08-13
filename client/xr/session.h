@@ -26,6 +26,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 
+#include "fb_face_tracker2.h"
 #include "hand_tracker.h"
 #include "space.h"
 
@@ -46,6 +47,7 @@ public:
 	space create_reference_space(XrReferenceSpaceType ref, const XrPosef & pose = {{0, 0, 0, 1}, {0, 0, 0}});
 	space create_action_space(XrAction action, const XrPosef & pose = {{0, 0, 0, 1}, {0, 0, 0}});
 	hand_tracker create_hand_tracker(XrHandEXT hand, XrHandJointSetEXT hand_joint_set = XR_HAND_JOINT_SET_DEFAULT_EXT);
+	fb_face_tracker2 create_fb_face_tracker2();
 
 	std::vector<vk::Format> get_swapchain_formats() const;
 

@@ -94,7 +94,7 @@ public:
 
 		if (data.front().at_timestamp_ns > at_timestamp_ns)
 		{
-			if (extrapolate)
+			if constexpr (extrapolate)
 			{
 				auto second = data.begin();
 				auto first = second++;
@@ -116,7 +116,7 @@ public:
 		}
 
 		ex = std::chrono::nanoseconds(at_timestamp_ns - data.back().produced_timestamp);
-		if (extrapolate)
+		if constexpr (extrapolate)
 		{
 			auto prev = data.rbegin();
 			auto last = prev++;

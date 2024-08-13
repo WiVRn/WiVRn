@@ -121,6 +121,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	info.hand_tracking = application::get_hand_tracking_supported();
 	info.eye_gaze = application::get_eye_gaze_supported();
+	info.face_tracking2_fb = application::get_fb_face_tracking2_supported();
 
 	audio::get_audio_description(info);
 	if (not application::get_config().microphone)

@@ -32,10 +32,12 @@
     <!-- Allow starting the application even without controllers -->
     <uses-feature android:name="oculus.software.handtracking" android:required="false" />
     <uses-feature android:name="oculus.software.eye_tracking" android:required="false" />
+    <uses-feature android:name="oculus.software.face_tracking" android:required="false" />
     <uses-permission android:name="com.magicleap.permission.HAND_TRACKING" />
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING" />
     <uses-permission android:name="com.oculus.permission.EYE_TRACKING" />
     <uses-permission android:name="com.picovr.permission.EYE_TRACKING" />
+    <uses-permission android:name="com.oculus.permission.FACE_TRACKING" />
 
     <!-- Required for XR_FB_render_model -->
     <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="false" />

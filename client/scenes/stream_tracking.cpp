@@ -197,12 +197,15 @@ void scenes::stream::tracking()
 			for (XrDuration Δt = 0; Δt <= prediction; Δt += std::max<XrDuration>(1, prediction))
 			{
 				from_headset::hand_tracking hands{};
+				from_headset::fb_face2 fb_face2{};
 
 				packet.production_timestamp = t0;
 				hands.production_timestamp = t0;
+				fb_face2.production_timestamp = t0;
 
 				packet.timestamp = t0 + Δt;
 				hands.timestamp = t0 + Δt;
+				fb_face2.timestamp = t0 + Δt;
 
 				try
 				{
@@ -240,6 +243,14 @@ void scenes::stream::tracking()
 						hands.joints = locate_hands(application::get_right_hand(), local_floor, hands.timestamp);
 						t.pause();
 						network_session->send_stream(hands);
+						t.resume();
+					}
+
+					if (application::get_fb_face_tracking2_supported())
+					{
+						application::get_fb_face_tracker2().get_weights(t0 + Δt, &fb_face2);
+						t.pause();
+						network_session->send_stream(fb_face2);
 						t.resume();
 					}
 

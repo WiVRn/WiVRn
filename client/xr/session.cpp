@@ -94,6 +94,28 @@ xr::hand_tracker xr::session::create_hand_tracker(XrHandEXT hand, XrHandJointSet
 	        }};
 }
 
+xr::fb_face_tracker2 xr::session::create_fb_face_tracker2()
+{
+	XrFaceTrackingDataSource2FB data_sources[1];
+	data_sources[0] = XR_FACE_TRACKING_DATA_SOURCE2_VISUAL_FB;
+
+	XrFaceTrackerCreateInfo2FB create_info{
+	        .type = XR_TYPE_FACE_TRACKER_CREATE_INFO2_FB,
+	        .next = nullptr,
+	        .faceExpressionSet = XR_FACE_EXPRESSION_SET2_DEFAULT_FB,
+	        .requestedDataSourceCount = 1,
+	        .requestedDataSources = data_sources,
+	};
+
+	XrFaceTracker2FB ft;
+
+	auto xrCreateFaceTracker2FB = inst->get_proc<PFN_xrCreateFaceTracker2FB>("xrCreateFaceTracker2FB");
+	assert(xrCreateFaceTracker2FB);
+
+	CHECK_XR(xrCreateFaceTracker2FB(id, &create_info, &ft));
+	return {*inst, ft};
+}
+
 std::vector<vk::Format> xr::session::get_swapchain_formats() const
 {
 	std::vector<vk::Format> formats;
