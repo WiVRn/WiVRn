@@ -20,6 +20,7 @@
 #pragma once
 
 #include "vk/allocation.h"
+#include <span>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
