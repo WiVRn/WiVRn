@@ -32,6 +32,7 @@
 #include "wivrn_comp_target.h"
 #include "wivrn_controller.h"
 #include "wivrn_eye_tracker.h"
+#include "wivrn_fb_face2_tracker.h"
 #include "wivrn_hmd.h"
 
 #include "xrt/xrt_session.h"
@@ -144,6 +145,9 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	if (self->hmd)
 		usysds->base.base.static_roles.head = devices->xdevs[n++] = self->hmd.get();
 
+	if (self->hmd->face_tracking_supported)
+		usysds->base.base.static_roles.face = self->hmd.get();
+
 	if (self->left_hand)
 	{
 		devices->xdevs[n++] = self->left_hand.get();
@@ -159,6 +163,12 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		self->eye_tracker = std::make_unique<wivrn_eye_tracker>(self->hmd.get(), self);
 		usysds->base.base.static_roles.eyes = self->eye_tracker.get();
 		devices->xdevs[n++] = self->eye_tracker.get();
+	}
+	if (info.face_tracking2_fb)
+	{
+		self->fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(self->hmd.get(), self);
+		usysds->base.base.static_roles.face = self->fb_face2_tracker.get();
+		devices->xdevs[n++] = self->fb_face2_tracker.get();
 	}
 	devices->xdev_count = n;
 
@@ -267,7 +277,17 @@ void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 	left_hand->update_hand_tracking(hand_tracking, offset);
 	right_hand->update_hand_tracking(hand_tracking, offset);
 }
+void wivrn_session::operator()(from_headset::fb_face2 && fb_face2)
+{
+	if (not fb_face2_tracker)
+		return;
 
+	auto offset = offset_est.get_offset();
+	if (not offset)
+		return;
+
+	fb_face2_tracker->update_tracking(fb_face2, offset);
+}
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
 	auto offset = get_offset();

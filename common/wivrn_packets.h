@@ -109,6 +109,7 @@ struct headset_info_packet
 	std::array<XrFovf, 2> fov;
 	bool hand_tracking;
 	bool eye_gaze;
+	bool face_tracking2_fb;
 };
 
 struct handshake
@@ -185,6 +186,16 @@ struct hand_tracking
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
 };
 
+struct fb_face2
+{
+	std::array<float, XR_FACE_EXPRESSION2_COUNT_FB> weights;
+	std::array<float, XR_FACE_CONFIDENCE2_COUNT_FB> confidences;
+	XrTime production_timestamp;
+	XrTime timestamp;
+	bool is_valid;
+	bool is_eye_following_blendshapes_valid;
+};
+
 struct inputs
 {
 	struct input_value
@@ -225,7 +236,7 @@ struct battery
 	bool charging;
 };
 
-using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, hand_tracking, inputs, timesync_response, battery>;
+using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, hand_tracking, fb_face2, inputs, timesync_response, battery>;
 } // namespace from_headset
 
 namespace to_headset
