@@ -5,7 +5,7 @@
 	<metadata_license>FSFAP</metadata_license>
 	<project_license>GPL-3.0+</project_license>
 	<summary>The WiVRn server</summary>
-	<description><p>The WiVRn server, long description TBD</p></description>
+	<description><p>Server component of the WiVRn OpenXR streaming system</p></description>
 	<developer id="org.meumeu.wivrn-server">
 		<name>Guillaume Meunier, Patrick Nicolas et al</name>
 	</developer>
@@ -23,7 +23,13 @@
 		<release version="0.18" date="2024-08-13">
 			<url type="details">https://github.com/Meumeu/WiVRn/releases/tag/v0.18</url>
 			<description>
-				TBD
+				<ul>
+					<li>The standard APK is now compatible with Pico headsets</li>
+					<li>Fixes for position on start and reconnect</li>
+					<li>Support for EXT_eye_gaze_interaction by @galister</li>
+					<li>Better support for libmonado, now discoverable in manifest</li>
+					<li>Server can now be distributed as a flatpak</li>
+				</ul>
 			</description>
 		</release>
 
