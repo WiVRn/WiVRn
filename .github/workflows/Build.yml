@@ -96,11 +96,20 @@ jobs:
         mkdir -p deps
         tar --file server-build-deps.tar.xz --directory=deps --extract
 
-    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+    # TODO: replace with version > v6.3 when it's released
+    - uses: flatpak/flatpak-github-actions/flatpak-builder@b8be6bc0ede43cb3a2cc55895654312b14f84a0d
       with:
         manifest-path: flatpak/org.meumeu.wivrn-server.yml
         bundle: wivrn-server.flatpak
+        upload-artifact: false
 
+    # Upload manually instead of using flatpak/flatpak-github-actions/flatpak-builder because
+    # it uses upload-artifact@v3
+    - name: Publish artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: wivrn-server-x86_64
+        path: wivrn-server.flatpak
 
   build-test-client:
     name: Linux client
@@ -243,15 +252,21 @@ jobs:
     name: Create release
     runs-on: ubuntu-22.04
     if: success() && startsWith(github.ref, 'refs/tags/')
-    needs: build-android
+    needs: [build-android, build-server-flatpak]
 
     steps:
-    - name: Download artifacts
+    - name: Download artifacts (APK)
       uses: actions/download-artifact@v4
       with:
         path: apk
         pattern: '*-Release'
         merge-multiple: true
+
+    - name: Download artifacts (flatpak)
+      uses: actions/download-artifact@v4
+      with:
+        name: wivrn-server-x86_64
+        path: flatpak
 
     - name: Release
       uses: softprops/action-gh-release@v1
@@ -261,3 +276,4 @@ jobs:
         draft: true
         files: |
           apk/*.apk
+          flatpak/*.flatpak
