@@ -11,8 +11,33 @@
 	</developer>
 <!-- 	<launchable type="desktop-id">org.meumeu.wivrn-server.desktop</launchable> -->
 
+	<url type="homepage">https://www.github.org/Meumeu/WiVRn</url>
+
 	<provides>
 		<binary>launch-wivrn-server</binary>
 	</provides>
 
+	<content_rating type="oars-1.1" />
+
+	<releases>
+		<release version="0.18" date="2024-08-13">
+			<url type="details">https://github.com/Meumeu/WiVRn/releases/tag/v0.18</url>
+			<description>
+				TBD
+			</description>
+		</release>
+
+		<release version="0.17" date="2024-07-14">
+			<url type="details">https://github.com/Meumeu/WiVRn/releases/tag/v0.17</url>
+			<description>
+				<ul>
+					<li>Add systemd hardening options by @Pandapip1</li>
+					<li>update monado to 24.0.0 by @galister</li>
+					<li>Update building doc by @SanyaNya</li>
+					<li>Multiple tweaks for controller tracking, audio resync</li>
+					<li>Minor performance improvements</li>
+				</ul>
+			</description>
+		</release>
+	</releases>
 </component>
