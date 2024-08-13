@@ -32,4 +32,6 @@ public:
 	active_runtime(const active_runtime &) = delete;
 	active_runtime & operator=(const active_runtime &) = delete;
 	~active_runtime();
+
+	static std::filesystem::path manifest_path();
 };

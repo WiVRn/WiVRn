@@ -24,7 +24,7 @@
 #include <fstream>
 #include <iostream>
 
-static std::filesystem::path manifest_path()
+std::filesystem::path active_runtime::manifest_path()
 {
 	const std::filesystem::path install_location = "share/openxr/1/openxr_wivrn.json";
 	// Check if in a flatpak

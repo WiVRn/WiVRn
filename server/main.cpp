@@ -126,6 +126,13 @@ void waitpid_verbose(pid_t pid, const std::string & name)
 int inner_main(int argc, char * argv[], bool use_systemd)
 {
 	std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
+
+	std::string command = "PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/" XRT_IPC_MSG_SOCK_FILENAME " %command%";
+	if (auto p = active_runtime::manifest_path().string(); p.starts_with("/usr"))
+		command = "XR_RUNTIME_JSON=/run/host" + p + " " + command;
+
+	std::cerr << "For Steam games, set command to " << command << std::endl;
+
 #ifdef WIVRN_USE_SYSTEMD
 	create_listen_socket();
 #else
