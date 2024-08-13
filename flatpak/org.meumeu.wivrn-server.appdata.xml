@@ -6,7 +6,9 @@
 	<project_license>GPL-3.0+</project_license>
 	<summary>The WiVRn server</summary>
 	<description><p>The WiVRn server, long description TBD</p></description>
-
+	<developer id="org.meumeu.wivrn-server">
+		<name>Guillaume Meunier, Patrick Nicolas et al</name>
+	</developer>
 <!-- 	<launchable type="desktop-id">org.meumeu.wivrn-server.desktop</launchable> -->
 
 	<provides>

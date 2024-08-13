@@ -129,7 +129,14 @@ modules:
     sources:
       - type: dir
         path: ..
-        # This assumes server-build-deps.tar.xz from the CI is extracted in the deps subdirectory
+      - type: archive
+        url: https://github.com/boostorg/pfr/archive/refs/tags/2.2.0.tar.gz
+        dest: deps/boostpfr-src
+        sha256: 6f490ec1383de5855dcf801c23f0a967f888eb6e1440b6ca0bf36c12d4ae7ac7
+      - type: git
+        url: https://gitlab.freedesktop.org/monado/monado
+        tag: dfc602288ab05131584a3f2be18031a13fccd061
+        dest: deps/monado-src
 
   - name: opencomposite
     buildsystem: cmake-ninja
