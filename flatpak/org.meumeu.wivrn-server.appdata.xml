@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="console-application">
+	<id>org.meumeu.wivrn-server</id>
+	<name>WiVRn server</name>
+	<metadata_license>FSFAP</metadata_license>
+	<project_license>GPL-3.0+</project_license>
+	<summary>The WiVRn server</summary>
+	<description><p>The WiVRn server, long description TBD</p></description>
+
+<!-- 	<launchable type="desktop-id">org.meumeu.wivrn-server.desktop</launchable> -->
+
+	<provides>
+		<binary>launch-wivrn-server</binary>
+	</provides>
+
+</component>

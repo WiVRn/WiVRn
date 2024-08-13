@@ -54,9 +54,9 @@ jobs:
       # For easier packaging, build dependencies are made available as a separate archive
       run: (cd build/_deps/ ; tar --create --xz *-src) > server-build-deps.tar.xz
 
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    # - name: Build
+    #   # Build your program with the given configuration
+    #   run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Publish build dependencies
       uses: actions/upload-artifact@v4
@@ -72,6 +72,35 @@ jobs:
         generate_release_notes: true
         draft: true
         files: server-build-deps.tar.xz
+
+
+  build-server-flatpak:
+    name: Linux server (flatpak)
+    needs: build-server
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:freedesktop-23.08
+      options: --privileged
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/download-artifact@v4
+      name: Download server build dependencies
+      with:
+        name: server-build-deps
+        path: .
+
+    - name: Extract server build dependencies
+      run: |
+        mkdir -p deps
+        tar --file server-build-deps.tar.xz --directory=deps --extract
+
+    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      with:
+        manifest-path: flatpak/org.meumeu.wivrn-server.yml
+        bundle: wivrn-server.flatpak
+
 
   build-test-client:
     name: Linux client

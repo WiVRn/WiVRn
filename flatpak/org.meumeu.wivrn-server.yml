@@ -1,0 +1,201 @@
+id: org.meumeu.wivrn-server
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+command: launch-wivrn-server
+
+add-extensions:
+  org.freedesktop.Platform.VAAPI.Intel:
+    version: '23.08'
+    directory: lib/dri
+    add-ld-path: lib
+    subdirectories: true
+    no-autodownload: true
+    autodelete: true
+cleanup-commands:
+  - mkdir -p ${FLATPAK_DEST}/lib/dri
+
+modules:
+  - name: libavahi-client
+    buildsystem: autotools
+    config-opts:
+      - --disable-mono
+      - --enable-compat-libdns_sd
+      - --with-autoipd-group=avahi
+      - --with-autoipd-user=avahi
+      - --with-avahi-priv-access-group=network
+      - --disable-libdaemon
+      - --with-distro=none
+      - --disable-libevent
+      - --disable-qt4
+      - --disable-qt5
+      - --disable-gtk
+      - --disable-gtk3
+      - --disable-python
+      - --disable-manpages
+      - --disable-static
+    sources:
+    - type: git
+      url: https://github.com/avahi/avahi.git
+      tag: v0.8
+    cleanup:
+      - /share/locale
+      - /share/runtime/locale
+      - /bin/avahi-*
+
+  - name: x264
+    buildsystem: autotools
+    config-opts:
+      - --enable-shared
+    sources:
+    - type: git
+      url: https://code.videolan.org/videolan/x264.git
+      tag: 31e19f92f00c7003fa115047ce50978bc98c3a0d
+    cleanup:
+      - /bin/x264
+
+  - name: ffmpeg-libdrm
+    config-opts:
+      - --optflags="${CFLAGS}"
+      - --extra-ldflags="${LDFLAGS}"
+      - --disable-stripping
+      - --disable-debug
+      - --disable-doc
+      - --disable-static
+      - --disable-everything
+      - --enable-shared
+      - --enable-libdrm
+      - --enable-vaapi
+      - --enable-pthreads
+      - --enable-encoder=hevc_vaapi,h264_vaapi,av1_vaapi
+    build-commands:
+      - make install
+    cleanup:
+      - /share/ffmpeg
+
+    sources:
+    - type: git
+      url: https://gitlab.com/freedesktop-sdk/mirrors/ffmpeg/ffmpeg.git
+      tag: n7.0.1
+
+  - name: eigen3
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DBUILD_TESTING=OFF
+    builddir: true
+    sources:
+    - type: git
+      url: https://gitlab.com/libeigen/eigen.git
+      tag: 3.4.0
+    cleanup:
+      - '*'
+
+  - name: nlohmann_json
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DJSON_BuildTests=OFF
+    sources:
+    - type: git
+      url: https://github.com/nlohmann/json.git
+      tag: v3.11.3
+
+  - name: cli11
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - -DBUILD_TESTING=OFF
+      - -DCLI11_BUILD_TESTS=OFF
+      - -DCLI11_BUILD_EXAMPLES=OFF
+    sources:
+    - type: git
+      url: https://github.com/CLIUtils/CLI11
+      tag: v2.4.2
+    cleanup:
+      - '*'
+
+  - name: wivrn
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - -DWIVRN_BUILD_CLIENT=OFF
+      - -DWIVRN_USE_VAAPI=ON
+      - -DWIVRN_USE_X264=ON
+      - -DWIVRN_USE_NVENC=ON
+      - -DWIVRN_USE_PULSEAUDIO=OFF
+      - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+      - -DFETCHCONTENT_BASE_DIR=deps
+      - -DXRT_IPC_MSG_SOCK_FILENAME=wivrn/comp_ipc
+      - -Wno-dev
+    sources:
+      - type: dir
+        path: ..
+        # This assumes server-build-deps.tar.xz from the CI is extracted in the deps subdirectory
+
+  - name: opencomposite
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DUSE_SYSTEM_OPENXR=OFF
+      - -DUSE_SYSTEM_GLM=OFF
+    sources:
+      - type: git
+        url: https://gitlab.com/znixian/OpenOVR.git
+        tag: 632e5cc50b913e93194ca2970e6f13021182579f
+      - type: patch
+        paths:
+          - opencomposite-0001-Add-install-target.patch
+
+  - name: launcher
+    buildsystem: simple
+    build-commands:
+     - install -Dm755 launch-wivrn-server.sh ${FLATPAK_DEST}/bin/launch-wivrn-server
+    sources:
+      - type: script
+        dest-filename: launch-wivrn-server.sh
+        commands:
+        - rm -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+        - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+        - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+        - wivrn-server
+
+  - name: appdata
+    buildsystem: simple
+    build-commands:
+      - install -Dm644 org.meumeu.wivrn-server.appdata.xml -t ${FLATPAK_DEST}/share/appdata
+    sources:
+      - type: file
+        path: org.meumeu.wivrn-server.appdata.xml
+
+cleanup:
+  - /lib/pkgconfig
+  - /share/pkgconfig
+  - /include
+  - /share/man
+  - /share/cmake
+  - /share/gir-1.0
+  - /lib/girepository-1.0
+  - /lib/systemd
+  - '*.a'
+  - '*.la'
+
+finish-args:
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=fallback-x11
+  # Wayland access
+  - --socket=wayland
+  # GPU acceleration if needed
+  - --device=dri
+  # Needs to talk to the network
+  - --share=network
+  # Announce WiVRn via avahi
+  # - --system-talk-name=org.freedesktop.Avahi
+  # Allow getting the pretty hostname
+  # - --system-talk-name=org.freedesktop.hostname1
+  - --socket=system-bus # workaround bug between sd-bus (https://github.com/systemd/systemd/issues/16610) and xdg-dbus-proxy (https://github.com/flatpak/xdg-dbus-proxy/issues/21)
+  # Pipewire
+  - --filesystem=xdg-run/pipewire-0
+  # Set the active OpenXR / OpenVR runtime
+  - --filesystem=xdg-config/openxr:create
+  - --filesystem=xdg-config/openvr:create
+  # Let outside application access the WiVRn socket
+  - --filesystem=xdg-run/wivrn:create
