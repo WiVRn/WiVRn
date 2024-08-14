@@ -30,8 +30,6 @@ set(XRT_FEATURE_SLAM                 OFF)
 set(XRT_FEATURE_STEAMVR_PLUGIN       OFF)
 set(XRT_FEATURE_WINDOW_PEEK          OFF)
 set(XRT_FEATURE_STEAMVR_PLUGIN       OFF)
-set(XRT_FEATURE_WINDOW_PEEK          OFF)
-set(XRT_FEATURE_WINDOW_PEEK          OFF)
 
 set(XRT_HAVE_BLUETOOTH               OFF)
 set(XRT_HAVE_GST                     OFF)
