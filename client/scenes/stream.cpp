@@ -127,6 +127,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	if (not application::get_config().microphone)
 		info.microphone = {};
 
+	info.supported_codecs = decoder_impl::supported_codecs();
+
 	self->network_session->send_control(info);
 
 	self->update_local_floor(self->instance.now());

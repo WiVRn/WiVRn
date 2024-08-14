@@ -111,6 +111,7 @@ struct headset_info_packet
 	bool hand_tracking;
 	bool eye_gaze;
 	bool face_tracking2_fb;
+	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 };
 
 struct handshake
