@@ -29,6 +29,7 @@
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
 #include <mutex>
+#include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
 #include <vulkan/vulkan.hpp>
@@ -511,6 +512,23 @@ void decoder::on_media_output_available(AMediaCodec * media_codec, void * userda
 void decoder::blit_handle::deleter::operator()(AImage * aimage)
 {
 	AImage_delete(aimage);
+}
+
+std::vector<xrt::drivers::wivrn::video_codec> decoder::supported_codecs()
+{
+	std::vector<xrt::drivers::wivrn::video_codec> result;
+
+	for (auto codec: std::ranges::reverse_view(magic_enum::enum_values<xrt::drivers::wivrn::video_codec>()))
+	{
+		AMediaCodec_ptr media_codec(AMediaCodec_createDecoderByType(mime(codec)));
+
+		if (media_codec)
+			result.push_back(codec);
+
+		spdlog::info("video codec {}: {}supported", magic_enum::enum_name(codec), media_codec ? "" : "NOT ");
+	}
+
+	return result;
 }
 
 } // namespace wivrn::android

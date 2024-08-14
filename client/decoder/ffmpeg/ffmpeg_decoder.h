@@ -123,5 +123,7 @@ public:
 	{
 		return extent;
 	}
+
+	static std::vector<xrt::drivers::wivrn::video_codec> supported_codecs();
 };
 } // namespace ffmpeg

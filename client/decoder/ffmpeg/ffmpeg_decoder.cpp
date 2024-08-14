@@ -235,4 +235,13 @@ void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback 
 		scene->push_blit_handle(accumulator, std::move(handle));
 }
 
+std::vector<xrt::drivers::wivrn::video_codec> decoder::supported_codecs()
+{
+	return {
+	        xrt::drivers::wivrn::video_codec::h264,
+	        xrt::drivers::wivrn::video_codec::h265,
+	        xrt::drivers::wivrn::video_codec::av1,
+	};
+}
+
 } // namespace ffmpeg
