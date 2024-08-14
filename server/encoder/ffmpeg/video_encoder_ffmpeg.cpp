@@ -83,3 +83,14 @@ std::optional<xrt::drivers::wivrn::VideoEncoder::data> VideoEncoderFFMPEG::encod
 	}
 	throw std::runtime_error("frame encoding failed, code " + std::to_string(err));
 }
+
+VideoEncoderFFMPEG::mute_logs::mute_logs()
+{
+	if (not getenv("FFMPEG_LOG_LEVEL"))
+		av_log_set_level(AV_LOG_QUIET);
+}
+
+VideoEncoderFFMPEG::mute_logs::~mute_logs()
+{
+	set_log_level();
+}

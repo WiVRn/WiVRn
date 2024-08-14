@@ -72,6 +72,7 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 {
 	friend wivrn_comp_target_factory;
 	wivrn_connection connection;
+	from_headset::headset_info_packet info{};
 
 	u_system & xrt_system;
 	xrt_space_overseer * space_overseer;
@@ -109,6 +110,10 @@ public:
 
 	clock_offset get_offset();
 	bool connected();
+	const from_headset::headset_info_packet & get_info()
+	{
+		return info;
+	};
 
 	void add_predict_offset(std::chrono::nanoseconds off)
 	{

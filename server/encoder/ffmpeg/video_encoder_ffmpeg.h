@@ -30,6 +30,12 @@ public:
 
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) override;
 
+	struct mute_logs
+	{
+		mute_logs();
+		~mute_logs();
+	};
+
 protected:
 	VideoEncoderFFMPEG() :
 	        xrt::drivers::wivrn::VideoEncoder(true) {}

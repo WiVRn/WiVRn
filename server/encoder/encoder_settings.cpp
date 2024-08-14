@@ -20,6 +20,7 @@
 #include "encoder_settings.h"
 #include "driver/configuration.h"
 #include "util/u_logging.h"
+#include "utils/wivrn_vk_bundle.h"
 #include "video_encoder.h"
 
 #include <cmath>
@@ -115,9 +116,39 @@ static void check_scale(std::string_view encoder_name, video_codec codec, uint16
 #endif
 }
 
-static std::vector<configuration::encoder> get_encoder_default_settings(vk::PhysicalDevice physical_device)
+static std::optional<xrt::drivers::wivrn::video_codec> filter_codecs(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & codecs)
 {
-	if (is_nvidia(physical_device))
+	VideoEncoderFFMPEG::mute_logs mute;
+	encoder_settings s{
+	        {
+	                .width = 800,
+	                .height = 600,
+	                .video_width = 800,
+	                .video_height = 600,
+	        },
+	        "vaapi",
+	        default_bitrate,
+	};
+	for (auto codec: codecs)
+	{
+		try
+		{
+			s.codec = codec;
+			video_encoder_va test(bundle, s, 60);
+			return codec;
+		}
+		catch (...)
+		{}
+
+		U_LOG_I("Video codec %s not supported", std::string(magic_enum::enum_name(codec)).c_str());
+	}
+
+	return {};
+}
+
+static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs)
+{
+	if (is_nvidia(*bundle.physical_device))
 	{
 #ifdef WIVRN_USE_NVENC
 		return {{.name = encoder_nvenc}};
@@ -132,6 +163,12 @@ static std::vector<configuration::encoder> get_encoder_default_settings(vk::Phys
 	else
 	{
 #ifdef WIVRN_USE_VAAPI
+		auto codec = filter_codecs(bundle, headset_codecs);
+		if (not codec)
+		{
+			U_LOG_W("Failed to initialize vaapi, fallback to software encoding");
+			return {{.name = encoder_x264, .codec = h264}};
+		}
 #ifdef WIVRN_SPLIT_ENCODERS
 		/* Split in 3 parts:
 		 *  +--------+--------+
@@ -154,6 +191,7 @@ static std::vector<configuration::encoder> get_encoder_default_settings(vk::Phys
 		                .width = 0.5,
 		                .height = 0.25,
 		                .group = 0,
+		                .codec = *codec,
 		        },
 		        {
 		                .name = encoder_vaapi,
@@ -161,16 +199,18 @@ static std::vector<configuration::encoder> get_encoder_default_settings(vk::Phys
 		                .height = 0.75,
 		                .offset_y = 0.25,
 		                .group = 0,
+		                .codec = *codec,
 		        },
 		        {
 		                .name = encoder_vaapi,
 		                .width = 0.5,
 		                .offset_x = 0.5,
 		                .group = 0,
+		                .codec = *codec,
 		        },
 		};
 #else
-		return {{.name = encoder_vaapi}};
+		return {{.name = encoder_vaapi, .codec = *codec}};
 #endif
 #elif defined(WIVRN_USE_X264)
 		U_LOG_W("ffmpeg support not compiled, vaapi encoder not available");
@@ -188,7 +228,7 @@ static void make_even(uint16_t & value, uint16_t max)
 	value = std::min(value, max);
 }
 
-std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::PhysicalDevice physical_device, uint32_t & width, uint32_t & height)
+std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs)
 {
 	configuration config;
 	try
@@ -200,7 +240,7 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(vk::Phys
 		U_LOG_E("Failed to read encoder configuration: %s", e.what());
 	}
 	if (config.encoders.empty())
-		config.encoders = get_encoder_default_settings(physical_device);
+		config.encoders = get_encoder_default_settings(bundle, headset_codecs);
 	uint64_t bitrate = config.bitrate.value_or(default_bitrate);
 	auto scale = config.scale.value_or(std::array<double, 2>{0.8, 0.8});
 	for (const auto & encoder: config.encoders)

@@ -117,7 +117,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		return XRT_ERROR_DEVICE_CREATION_FAILED;
 	}
 
-	const auto & info = std::get<from_headset::headset_info_packet>(*control);
+	self->info = std::get<from_headset::headset_info_packet>(*control);
 
 	try
 	{
@@ -126,7 +126,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		        "WiVRn(microphone)",
 		        "wivrn.sink",
 		        "WiVRn",
-		        info,
+		        self->info,
 		        *self);
 		if (self->audio_handle)
 			self->send_control(self->audio_handle->description());
@@ -136,7 +136,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		U_LOG_E("Failed to register audio device: %s", e.what());
 		return XRT_ERROR_DEVICE_CREATION_FAILED;
 	}
-	self->hmd = std::make_unique<wivrn_hmd>(self, info);
+	self->hmd = std::make_unique<wivrn_hmd>(self, self->info);
 	self->left_hand = std::make_unique<wivrn_controller>(0, self->hmd.get(), self);
 	self->right_hand = std::make_unique<wivrn_controller>(1, self->hmd.get(), self);
 
@@ -160,14 +160,14 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		devices->xdevs[n++] = self->right_hand.get();
 		usysds->base.base.static_roles.hand_tracking.right = self->right_hand.get();
 	}
-	if (info.eye_gaze)
+	if (self->info.eye_gaze)
 	{
 		self->eye_tracker = std::make_unique<wivrn_eye_tracker>(self->hmd.get(), self);
 		self->foveation = std::make_unique<wivrn_foveation>();
 		usysds->base.base.static_roles.eyes = self->eye_tracker.get();
 		devices->xdevs[n++] = self->eye_tracker.get();
 	}
-	if (info.face_tracking2_fb)
+	if (self->info.face_tracking2_fb)
 	{
 		self->fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(self->hmd.get(), self);
 		usysds->base.base.static_roles.face = self->fb_face2_tracker.get();
@@ -177,7 +177,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 
 	u_system_devices_static_finalize(usysds, self->left_hand.get(), self->right_hand.get());
 
-	wivrn_comp_target_factory ctf(self, info.preferred_refresh_rate);
+	wivrn_comp_target_factory ctf(self, self->info.preferred_refresh_rate);
 	auto xret = comp_main_create_system_compositor(self->hmd.get(), &ctf, out_xsysc);
 	if (xret != XRT_SUCCESS)
 	{
