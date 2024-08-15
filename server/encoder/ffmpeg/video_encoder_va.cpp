@@ -434,6 +434,20 @@ void video_encoder_va::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBu
 	                        .height = rect.extent.height / 2,
 	                        .depth = 1,
 	                }});
+
+	for (auto & b: im_barriers)
+	{
+		b.oldLayout = vk::ImageLayout::eTransferDstOptimal;
+		b.newLayout = vk::ImageLayout::eGeneral;
+	}
+
+	cmd_buf.pipelineBarrier(
+	        vk::PipelineStageFlagBits::eTransfer,
+	        vk::PipelineStageFlagBits::eAllCommands,
+	        {},
+	        nullptr,
+	        nullptr,
+	        im_barriers);
 }
 
 void video_encoder_va::PushFrame(bool idr, std::chrono::steady_clock::time_point pts)
