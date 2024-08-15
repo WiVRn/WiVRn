@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=WiVRn server
-Comment=TBD
-GenericName=TBD
-Exec=launch-wivrn-server
-Icon=org.meumeu.wivrn
-Type=Application
-Categories=ConsoleOnly
-Keywords=wivrn;

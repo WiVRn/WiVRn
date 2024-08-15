@@ -57,11 +57,11 @@ task "generatePngs"() {
 }
 
 android {
-    namespace "org.meumeu.wivrn"
+    namespace "io.github.wivrn.client"
     ndkVersion "26.1.10909125"
 
     defaultConfig {
-        applicationId "org.meumeu.wivrn"
+        applicationId "io.github.wivrn.client"
         // for Vulkan, need at least 24
         // for AImage_getHardwareBuffer, API 26
         minSdkVersion 29

@@ -1,4 +1,4 @@
-id: org.meumeu.wivrn-server
+id: io.github.wivrn.wivrn
 runtime: org.freedesktop.Platform
 runtime-version: '23.08'
 sdk: org.freedesktop.Sdk
@@ -140,6 +140,10 @@ modules:
       - type: shell
         commands:
          - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado
+    build-commands:
+      - install -DTm644 images/wivrn.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.wivrn.wivrn.svg
+      - install -Dm644 flatpak/io.github.wivrn.wivrn.metainfo.xml -t ${FLATPAK_DEST}/share/metainfo
+      - install -Dm644 flatpak/io.github.wivrn.wivrn.desktop -t ${FLATPAK_DEST}/share/applications
 
   - name: opencomposite
     buildsystem: cmake-ninja
@@ -157,7 +161,7 @@ modules:
   - name: launcher
     buildsystem: simple
     build-commands:
-     - install -Dm755 launch-wivrn-server.sh ${FLATPAK_DEST}/bin/launch-wivrn-server
+      - install -Dm755 launch-wivrn-server.sh ${FLATPAK_DEST}/bin/launch-wivrn-server
     sources:
       - type: script
         dest-filename: launch-wivrn-server.sh
@@ -166,14 +170,6 @@ modules:
         - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
         - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
         - wivrn-server
-
-  - name: appdata
-    buildsystem: simple
-    build-commands:
-      - install -Dm644 org.meumeu.wivrn-server.appdata.xml -t ${FLATPAK_DEST}/share/appdata
-    sources:
-      - type: file
-        path: org.meumeu.wivrn-server.appdata.xml
 
 cleanup:
   - /lib/pkgconfig
@@ -193,7 +189,7 @@ finish-args:
   - --socket=fallback-x11
   # Wayland access
   - --socket=wayland
-  # GPU acceleration if needed
+  # GPU acceleration
   - --device=dri
   # Needs to talk to the network
   - --share=network
