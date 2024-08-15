@@ -262,11 +262,6 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 			        .rowPitch = vk::DeviceSize(desc->layers[i].planes[plane].pitch),
 			});
 		}
-		vk::ImageDrmFormatModifierExplicitCreateInfoEXT drm_info{
-		        .drmFormatModifier = desc->objects[0].format_modifier,
-		        .drmFormatModifierPlaneCount = uint32_t(plane_layouts.size()),
-		        .pPlaneLayouts = plane_layouts.data(),
-		};
 		vk::StructureChain image_create_info{
 		        vk::ImageCreateInfo{
 		                .imageType = vk::ImageType::e2D,
@@ -285,11 +280,18 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 		                .initialLayout = vk::ImageLayout::eUndefined,
 		        },
 		        vk::ExternalMemoryImageCreateInfo{
-		                .pNext = has_modifiers ? &drm_info : nullptr,
 		                .handleTypes = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
 		        },
-
+		        vk::ImageDrmFormatModifierExplicitCreateInfoEXT{
+		                .drmFormatModifier = desc->objects[0].format_modifier,
+		                .drmFormatModifierPlaneCount = uint32_t(plane_layouts.size()),
+		                .pPlaneLayouts = plane_layouts.data(),
+		        },
 		};
+
+		if (not has_modifiers)
+			image_create_info.unlink<vk::ImageDrmFormatModifierExplicitCreateInfoEXT>();
+
 		auto & image = (i == 0 ? luma : chroma);
 		image = vk.device.createImage(image_create_info.get());
 	}
