@@ -1,6 +1,6 @@
 # WiVRn
 
-[![License: GPL v3](images/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![CI](https://github.com/Meumeu/WiVRn/workflows/Build/badge.svg) ![Format](https://github.com/Meumeu/WiVRn/workflows/Format/badge.svg)
+[![License: GPL v3](images/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![CI](https://github.com/WiVRn/WiVRn/workflows/Build/badge.svg) ![Format](https://github.com/WiVRn/WiVRn/workflows/Format/badge.svg)
 
 <p align="center"><img src="images/wivrn.svg" width="180"></p>
 
@@ -17,7 +17,7 @@ Packages are available on [AUR for Arch](https://aur.archlinux.org/packages/wivr
 
 ## Client (headset)
 ### Prebuilt apk
-Download apk from [Releases](https://github.com/Meumeu/WiVRn/releases).
+Download apk from [Releases](https://github.com/WiVRn/WiVRn/releases).
 Install with adb (headset connected to PC), developer mode must be enabled.
 ```bash
 adb install WiVRn.apk
