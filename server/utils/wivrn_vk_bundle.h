@@ -52,6 +52,7 @@ struct raii_device : public vk::raii::Device
 
 struct wivrn_vk_bundle
 {
+	vk_bundle & vk;
 	vk::raii::Context vk_ctx;
 	raii_instance instance;
 	vk::raii::PhysicalDevice physical_device;

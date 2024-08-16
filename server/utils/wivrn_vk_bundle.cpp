@@ -24,6 +24,7 @@
 #include <string>
 
 wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> requested_instance_extensions, std::span<const char *> requested_device_extensions) :
+        vk(vk),
         instance(vk_ctx, vk.instance),
         physical_device(instance, vk.physical_device),
         device(physical_device, vk.device),

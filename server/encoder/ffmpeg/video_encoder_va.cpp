@@ -18,6 +18,7 @@
  */
 
 // must be included before vulkan_raii
+#include "vk/vk_helpers.h"
 
 #include "video_encoder_va.h"
 
@@ -126,7 +127,7 @@ vk::Format drm_to_vulkan_fmt(uint32_t drm_fourcc)
 } // namespace
 
 video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::encoder_settings & settings, float fps) :
-        luma(nullptr), chroma(nullptr)
+        luma(nullptr), chroma(nullptr), synchronization2(vk.vk.features.synchronization_2)
 {
 	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device, settings.device);
 	AVBufferRef * tmp;
@@ -443,7 +444,7 @@ void video_encoder_va::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBu
 
 	cmd_buf.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eTransfer,
-	        vk::PipelineStageFlagBits::eAllCommands,
+	        synchronization2 ? vk::PipelineStageFlagBits::eNone : vk::PipelineStageFlagBits::eAllCommands,
 	        {},
 	        nullptr,
 	        nullptr,

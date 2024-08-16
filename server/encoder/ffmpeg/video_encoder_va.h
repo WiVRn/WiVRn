@@ -38,6 +38,7 @@ class video_encoder_va : public VideoEncoderFFMPEG
 	vk::raii::Image luma;
 	vk::raii::Image chroma;
 	std::vector<vk::raii::DeviceMemory> mem;
+	bool synchronization2 = false;
 
 public:
 	video_encoder_va(wivrn_vk_bundle &, xrt::drivers::wivrn::encoder_settings & settings, float fps);
