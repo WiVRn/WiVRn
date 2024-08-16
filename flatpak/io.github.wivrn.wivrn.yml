@@ -122,6 +122,7 @@ modules:
       - -DWIVRN_USE_X264=ON
       - -DWIVRN_USE_NVENC=ON
       - -DWIVRN_USE_PULSEAUDIO=OFF
+      - -DWIVRN_USE_GLIB=ON
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
       - -DFETCHCONTENT_BASE_DIR=deps
       - -DXRT_IPC_MSG_SOCK_FILENAME=wivrn/comp_ipc
@@ -194,10 +195,10 @@ finish-args:
   # Needs to talk to the network
   - --share=network
   # Announce WiVRn via avahi
-  # - --system-talk-name=org.freedesktop.Avahi
+  - --system-talk-name=org.freedesktop.Avahi
   # Allow getting the pretty hostname
-  # - --system-talk-name=org.freedesktop.hostname1
-  - --socket=system-bus # workaround bug between sd-bus (https://github.com/systemd/systemd/issues/16610) and xdg-dbus-proxy (https://github.com/flatpak/xdg-dbus-proxy/issues/21)
+  - --system-talk-name=org.freedesktop.hostname1
+  # - --socket=system-bus # workaround bug between sd-bus (https://github.com/systemd/systemd/issues/16610) and xdg-dbus-proxy (https://github.com/flatpak/xdg-dbus-proxy/issues/21)
   # Pipewire
   - --filesystem=xdg-run/pipewire-0
   # Set the active OpenXR / OpenVR runtime

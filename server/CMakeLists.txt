@@ -159,6 +159,10 @@ target_link_libraries(
 		nlohmann_json::nlohmann_json
 	)
 
+if(WIVRN_USE_GLIB)
+	target_link_libraries( wivrn-server PRIVATE PkgConfig::glib2)
+endif()
+
 configure_file(dist/wivrn.service.in wivrn.service)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn.service
 	DESTINATION lib/systemd/user/)
