@@ -242,7 +242,6 @@ wivrn_hmd::wivrn_hmd(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx,
 	// FOV from headset info packet
 	hmd->distortion.fov[0] = xrt_cast(info.fov[0]);
 	hmd->distortion.fov[1] = xrt_cast(info.fov[1]);
-	u_distortion_mesh_fill_in_compute(this);
 }
 
 void wivrn_hmd::update_inputs()
@@ -372,7 +371,6 @@ decltype(wivrn_hmd::foveation_parameters) wivrn_hmd::set_foveated_size(uint32_t 
 	compute_distortion = wivrn_hmd_compute_distortion;
 	hmd->distortion.models = XRT_DISTORTION_MODEL_COMPUTE;
 	hmd->distortion.preferred = XRT_DISTORTION_MODEL_COMPUTE;
-	u_distortion_mesh_fill_in_compute(this);
 	return foveation_parameters;
 }
 

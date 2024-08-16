@@ -40,7 +40,7 @@ struct stream_reprojection::uniform
 	alignas(8) glm::vec2 xc;
 };
 
-const int nb_reprojection_vertices = 64;
+const int nb_reprojection_vertices = 128;
 
 stream_reprojection::stream_reprojection(
         vk::raii::Device & device,
