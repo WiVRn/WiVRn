@@ -4,6 +4,7 @@ jobs:
   formatting-check:
     name: Formatting check
     runs-on: ubuntu-latest
+    if: ${{ vars.APK_ONLY == '' }}
     strategy:
       fail-fast: false
       matrix:

@@ -1,0 +1,129 @@
+name: Release APK Only
+
+on:
+  push:
+    branches: [ "master" ]
+
+env:
+  BUILD_TYPE: RelWithDebInfo
+
+jobs:
+  build-android-only:
+    name: Android
+    runs-on: ubuntu-22.04
+    if: ${{ vars.APK_ONLY != '' }}
+
+    strategy:
+      matrix:
+        hmd: ['Standard']
+        buildtype: ['Release', 'Debug', 'DebugWithValidationLayer']
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Install dependencies
+      run: >
+        sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin gettext
+
+    - name: Check for Secret availability
+      id: secret-check
+      shell: bash
+      run: |
+        if [[ "${{ secrets.APK_SIGNINGKEYPASSWORD }}" != '' && "${{ secrets.APK_KEYSTORE_BASE64 }}" != '' ]]; then
+          echo "available=true" >> $GITHUB_OUTPUT;
+        else
+          echo "available=false" >> $GITHUB_OUTPUT;
+        fi
+
+    - name: Secrets
+      if: ${{ github.event_name != 'pull_request' && steps.secret-check.outputs.available == 'true' }}
+      env:
+        APK_SIGNINGKEYPASSWORD: ${{ secrets.APK_SIGNINGKEYPASSWORD }}
+        APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+      run: |
+        echo signingKeyPassword="$APK_SIGNINGKEYPASSWORD" > gradle.properties
+        echo "$APK_KEYSTORE_BASE64" | base64 --decode --ignore-garbage > ks.keystore
+
+    - name: Build
+      run: |
+        chmod +x gradlew
+        ./gradlew assemble${{ matrix.hmd }}${{ matrix.buildtype }}
+
+    - name: Prepare before archiving artifacts
+      run: |
+        mkdir apk
+        mv $(find build/outputs/apk/ -name "*.apk") apk/
+        mkdir debug
+        mv build/intermediates/merged_native_libs/*/out/lib/* debug/
+        find debug -name libopenxr_loader.so -delete
+
+    - name: Archive APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: apk-${{ matrix.hmd }}-${{ (github.event_name == 'pull_request' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
+        path: apk/*.apk
+        retention-days: 7
+
+    - name: Archive debug symbols
+      if: ${{ matrix.buildtype != 'Release' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: symbols-${{ matrix.hmd }}-${{ matrix.buildtype }}
+        path: debug/**/*.so
+        retention-days: 7
+
+  release:
+    name: Create APK release
+    runs-on: ubuntu-latest
+    needs: build-android-only
+    if: ${{ vars.APK_ONLY != '' }}
+
+    steps:
+    - name: Download APK artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: apk
+        pattern: 'apk-*'
+        merge-multiple: true
+
+    - name: Rename APK artifacts
+      run: |
+        cd apk
+        for f in *.apk; do
+          BASENAME=`echo ${f}|awk -F '-apk-' '{print $2}'`
+          mv "${f}" "org.meumeu.wivrn-${BASENAME}"
+        done
+
+    - name: Download APK debug artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: symbols
+        pattern: 'symbols-*'
+        merge-multiple: false
+
+    - name: Zip APK debug artifacts
+      run: |
+        cd symbols
+        zip -r ../debug-symbols.zip .
+
+    - name: APK Release
+      uses: softprops/action-gh-release@v2
+      with:
+        token: ${{ secrets.DOWNSTREAM_GITHUB_TOKEN }}
+        tag_name: "apk-${{ github.sha }}"
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+        fail_on_unmatched_files: true
+        files: |
+          apk/*.apk
+          debug-symbols.zip

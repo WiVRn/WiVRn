@@ -16,6 +16,7 @@ jobs:
     # You can convert this to a matrix build if you need cross-platform coverage.
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-22.04
+    if: ${{ vars.APK_ONLY == '' }}
 
     steps:
     - uses: actions/checkout@v4
@@ -77,6 +78,7 @@ jobs:
   build-server-flatpak:
     name: Linux server (flatpak)
     runs-on: ubuntu-latest
+    if: ${{ vars.APK_ONLY == '' }}
     container:
       image: bilelmoussaoui/flatpak-github-actions:freedesktop-23.08
       options: --privileged
@@ -102,6 +104,7 @@ jobs:
   build-test-client:
     name: Linux client
     runs-on: ubuntu-22.04
+    if: ${{ vars.APK_ONLY == '' }}
 
     steps:
     - uses: actions/checkout@v4
@@ -135,6 +138,7 @@ jobs:
   build-dissector:
     name: Wireshark dissector
     runs-on: ubuntu-22.04
+    if: ${{ vars.APK_ONLY == '' }}
 
     steps:
     - uses: actions/checkout@v4
@@ -169,6 +173,7 @@ jobs:
   build-android:
     name: Android
     runs-on: ubuntu-22.04
+    if: ${{ vars.APK_ONLY == '' }}
 
     strategy:
       matrix:
@@ -228,6 +233,7 @@ jobs:
       with:
         name: apk-${{ matrix.hmd }}-${{ (github.event_name == 'pull_request' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
         path: apk/*.apk
+        retention-days: 30
 
     - name: Archive debug symbols
       if: ${{ matrix.buildtype != 'Release' }}
@@ -235,12 +241,13 @@ jobs:
       with:
         name: symbols-${{ matrix.hmd }}-${{ matrix.buildtype }}
         path: debug/**/*.so
+        retention-days: 30
 
   release:
     name: Create release
     runs-on: ubuntu-22.04
+    needs: [build-server, build-android, build-test-client, build-dissector, build-server-flatpak]
     if: success() && startsWith(github.ref, 'refs/tags/')
-    needs: [build-android, build-server-flatpak]
 
     steps:
     - name: Download artifacts (APK)
@@ -257,7 +264,7 @@ jobs:
         path: flatpak
 
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ inputs.ref }}
         generate_release_notes: true
@@ -265,3 +272,26 @@ jobs:
         files: |
           apk/*.apk
           flatpak/*.flatpak
+
+  sync_fork_downstream:
+    name: Sync fork downstream
+    runs-on: ubuntu-latest
+    needs: [build-server, build-android]
+    if: ${{ vars.APK_ONLY == '' }} && github.branch == 'master'
+    steps:
+      - name: Check for DOWNSTREAM_GITHUB_TOKEN
+        id: downstream-secret-check
+        shell: bash
+        run: |
+          if [[ "${{ secrets.DOWNSTREAM_GITHUB_TOKEN }}" != '' ]]; then
+            echo "available=true" >> $GITHUB_OUTPUT;
+          else
+            echo "available=false" >> $GITHUB_OUTPUT;
+          fi
+      - name: Sync fork downstream
+        if: ${{ steps.downstream-secret-check.outputs.available == 'true' }}
+        run: |
+          curl -X POST -H "Accept: application/vnd.github.v3+json" \
+               -H "Authorization: token ${{ secrets.DOWNSTREAM_GITHUB_TOKEN }}" \
+               https://api.github.com/repos/WiVRn/WiVRn-APK/merge-upstream \
+               -d '{"branch":"master"}'
