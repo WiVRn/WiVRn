@@ -343,6 +343,15 @@ int inner_main(int argc, char * argv[], bool use_systemd)
 			run_cleanup_functions();
 		}
 	}
+#ifdef WIVRN_USE_SYSTEMD
+	try
+	{
+		std::filesystem::remove(socket_path());
+	}
+	catch (...)
+	{
+	}
+#endif
 	return EXIT_SUCCESS;
 }
 
