@@ -246,36 +246,6 @@ void scenes::stream::tracking()
 					XrDuration busy_time = t.count();
 					// Target: polling between 1 and 5ms, with 20% busy time
 					tracking_period = std::clamp<XrDuration>(std::lerp(tracking_period, busy_time * 5, 0.2), 1'000'000, 5'000'000);
-
-#ifdef __ANDROID__
-					if (next_battery_check < now)
-					{
-						timer t2(instance);
-						from_headset::battery battery{};
-						auto intent = ctx.call<jni::object<"android/content/Intent">>(register_receiver, receiver_jobj, filter_jobj);
-						if (intent)
-						{
-							auto level_jint = intent.call<jni::Int>(get_int_extra, level_jstr, default_jint);
-							auto scale_jint = intent.call<jni::Int>(get_int_extra, scale_jstr, default_jint);
-
-							if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
-							{
-								battery.present = true;
-								battery.charge = (float)(level_jint.value) / (float)(scale_jint.value);
-							}
-
-							auto plugged_jint = intent.call<jni::Int>(get_int_extra, plugged_jstr, default_jint);
-							battery.charging = plugged_jint && plugged_jint.value > 0;
-						}
-
-						network_session->send_stream(battery);
-
-						next_battery_check = now + battery_check_interval;
-						XrDuration battery_dur = t2.count();
-
-						spdlog::info("Battery check took: {}", battery_dur);
-					}
-#endif
 				}
 				catch (const std::system_error & e)
 				{
@@ -284,6 +254,36 @@ void scenes::stream::tracking()
 						throw;
 				}
 			}
+
+#ifdef __ANDROID__
+			if (next_battery_check < now)
+			{
+				timer t2(instance);
+				from_headset::battery battery{};
+				auto intent = ctx.call<jni::object<"android/content/Intent">>(register_receiver, receiver_jobj, filter_jobj);
+				if (intent)
+				{
+					auto level_jint = intent.call<jni::Int>(get_int_extra, level_jstr, default_jint);
+					auto scale_jint = intent.call<jni::Int>(get_int_extra, scale_jstr, default_jint);
+
+					if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
+					{
+						battery.present = true;
+						battery.charge = (float)(level_jint.value) / (float)(scale_jint.value);
+					}
+
+					auto plugged_jint = intent.call<jni::Int>(get_int_extra, plugged_jstr, default_jint);
+					battery.charging = plugged_jint && plugged_jint.value > 0;
+				}
+
+				network_session->send_stream(battery);
+
+				next_battery_check = now + battery_check_interval;
+				XrDuration battery_dur = t2.count();
+
+				spdlog::info("Battery check took: {}", battery_dur);
+			}
+#endif
 
 			t0 += tracking_period;
 		}
