@@ -11,7 +11,7 @@
 #include <systemd/sd-bus.h>
 #endif
 
-std::string hostname()
+static std::string _hostname()
 {
 #ifdef WIVRN_USE_GLIB
 	GError * error = NULL;
@@ -99,4 +99,11 @@ std::string hostname()
 
 	U_LOG_W("Failed to get hostname");
 	return "no-hostname";
+}
+
+std::string hostname()
+{
+	// Accessing hostname in child process fails with glib
+	static std::string result = _hostname();
+	return result;
 }
