@@ -4,6 +4,7 @@ jobs:
   locale-check:
     name: Locale check
     runs-on: ubuntu-latest
+    if: ${{ vars.APK_ONLY == '' }}
     steps:
     - uses: actions/checkout@v4
 
