@@ -99,7 +99,7 @@ jobs:
       run: |
         cd apk
         for f in *.apk; do
-          BASENAME=`echo ${f}|awk -F '-apk-' '{print $2}'`
+          BASENAME=`echo ${f}|awk -F '-APK-' '{print $2}'`
           mv "${f}" "org.meumeu.wivrn-${BASENAME}"
         done
 
