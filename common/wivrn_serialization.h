@@ -103,6 +103,8 @@ class serialization_packet
 	// Either the size to read from the buffer, or an actual span
 	// Last element is always an integer
 	std::vector<std::variant<size_t, std::span<uint8_t>>> spans = {size_t(0)};
+	// expanded spans: offsets are expanded to point to the buffer
+	std::vector<std::span<uint8_t>> exp_spans;
 
 public:
 	serialization_packet() = default;
@@ -134,29 +136,30 @@ public:
 		serialization_traits<T>::serialize(value, *this);
 	}
 
-	operator std::vector<std::span<uint8_t>>()
+	operator const std::vector<std::span<uint8_t>> &()
 	{
+		exp_spans.clear();
 		struct visitor
 		{
 			std::vector<uint8_t>::iterator it;
-			std::vector<std::span<uint8_t>> res;
+			std::vector<std::span<uint8_t>> & exp_spans;
 			void operator()(size_t s)
 			{
 				if (s > 0)
-					res.emplace_back(it, it + s);
+					exp_spans.emplace_back(it, it + s);
 				it += s;
 			}
 			void operator()(const std::span<uint8_t> & span)
 			{
-				res.push_back(span);
+				exp_spans.push_back(span);
 			}
 		};
-		visitor v{.it = buffer.begin()};
+		visitor v{.it = buffer.begin(), .exp_spans = exp_spans};
 		for (const auto & span_variant: spans)
 		{
 			std::visit(v, span_variant);
 		}
-		return v.res;
+		return exp_spans;
 	}
 };
 
