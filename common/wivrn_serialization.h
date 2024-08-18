@@ -118,9 +118,8 @@ public:
 
 	void write(const void * data, size_t size)
 	{
-		size_t index = buffer.size();
-		buffer.resize(index + size);
-		memcpy(&buffer[index], data, size);
+		auto d = (uint8_t *)data;
+		buffer.insert(buffer.end(), d, d + size);
 		std::get<size_t>(spans.back()) += size;
 	}
 
