@@ -22,6 +22,7 @@
 #include "encoder/video_encoder.h"
 #include "ffmpeg_helper.h"
 #include <chrono>
+#include <thread>
 
 class VideoEncoderFFMPEG : public xrt::drivers::wivrn::VideoEncoder
 {
@@ -32,6 +33,8 @@ public:
 	Encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) override;
 
 protected:
+	VideoEncoderFFMPEG();
+	virtual ~VideoEncoderFFMPEG();
 	virtual void
 	PushFrame(bool idr, std::chrono::steady_clock::time_point pts) = 0;
 
@@ -39,4 +42,6 @@ protected:
 
 private:
 	static bool once;
+	std::atomic<AVPacket *> packet_to_send;
+	std::jthread send_thread;
 };

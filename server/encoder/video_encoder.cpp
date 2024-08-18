@@ -121,15 +121,19 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 		last_idr_frame = frame_index;
 	const char * extra = idr ? ",idr" : ",p";
 	clock = cnx.get_offset();
-	timing_info.encode_begin = clock.to_headset(os_monotonic_get_ns());
-	cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 
-	// Prepare the video shard template
-	shard.stream_item_idx = stream_idx;
-	shard.frame_idx = frame_index;
-	shard.shard_idx = 0;
-	shard.view_info = view_info;
-	shard.timing_info.reset();
+	{
+		std::lock_guard lock(mutex);
+		timing_info.encode_begin = clock.to_headset(os_monotonic_get_ns());
+		cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx, extra);
+
+		// Prepare the video shard template
+		shard.stream_item_idx = stream_idx;
+		shard.frame_idx = frame_index;
+		shard.shard_idx = 0;
+		shard.view_info = view_info;
+		shard.timing_info.reset();
+	}
 
 	Encode(idr, target_timestamp);
 	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);

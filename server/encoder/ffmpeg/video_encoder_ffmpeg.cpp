@@ -70,7 +70,8 @@ void VideoEncoderFFMPEG::Encode(bool idr, std::chrono::steady_clock::time_point 
 	int err = avcodec_receive_packet(encoder_ctx.get(), enc_pkt.get());
 	if (err == 0)
 	{
-		SendData(std::span<uint8_t>(enc_pkt->data, enc_pkt->size), true);
+		enc_pkt.reset(packet_to_send.exchange(enc_pkt.release()));
+		packet_to_send.notify_all();
 	}
 	if (err == AVERROR(EAGAIN))
 	{
@@ -81,4 +82,25 @@ void VideoEncoderFFMPEG::Encode(bool idr, std::chrono::steady_clock::time_point 
 	{
 		throw std::runtime_error("frame encoding failed, code " + std::to_string(err));
 	}
+}
+
+VideoEncoderFFMPEG::VideoEncoderFFMPEG()
+{
+	send_thread = std::jthread(
+	        [this](std::stop_token stop) {
+		        while (not stop.stop_requested())
+		        {
+			        packet_to_send.wait(nullptr);
+			        av_packet_ptr packet(packet_to_send.exchange(nullptr));
+			        if (packet)
+				        SendData(std::span<uint8_t>(packet->data, packet->size), true);
+		        }
+		        av_packet_ptr packet(packet_to_send.exchange(nullptr));
+	        });
+}
+
+VideoEncoderFFMPEG::~VideoEncoderFFMPEG()
+{
+	send_thread.request_stop();
+	packet_to_send.notify_all();
 }
