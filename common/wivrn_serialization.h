@@ -254,6 +254,11 @@ struct serialization_traits<T, std::enable_if_t<std::is_arithmetic_v<T>>>
 		packet.read((char *)&value, sizeof(value));
 		return value;
 	}
+
+	static bool consteval is_trivially_serializable()
+	{
+		return true;
+	}
 };
 
 template <typename T>
@@ -275,6 +280,10 @@ struct serialization_traits<T, std::enable_if_t<std::is_enum_v<T>>>
 		T value;
 		packet.read((char *)&value, sizeof(value));
 		return value;
+	}
+	static bool consteval is_trivially_serializable()
+	{
+		return true;
 	}
 };
 
@@ -315,17 +324,60 @@ struct serialization_traits<T, std::enable_if_t<std::is_aggregate_v<T> && !is_st
 
 	static void serialize(const T & value, serialization_packet & packet)
 	{
-		boost::pfr::for_each_field(value, [&](const auto & x) { packet.serialize(x); });
+		if constexpr (serialization_traits<T>::is_trivially_serializable())
+		{
+			packet.write((void *)&value, sizeof(T));
+		}
+		else
+		{
+			boost::pfr::for_each_field(value, [&](const auto & x) { packet.serialize(x); });
+		}
 	}
 
 	static T deserialize(deserialization_packet & packet)
 	{
 		T value;
 
-		boost::pfr::for_each_field(
-		        value, [&](auto & x) { x = packet.deserialize<std::remove_reference_t<decltype(x)>>(); });
+		if constexpr (serialization_traits<T>::is_trivially_serializable())
+		{
+			packet.read((void *)&value, sizeof(T));
+		}
+		else
+		{
+			boost::pfr::for_each_field(
+			        value, [&](auto & x) { x = packet.deserialize<std::remove_reference_t<decltype(x)>>(); });
+		}
 
 		return value;
+	}
+
+	template <size_t I>
+	static consteval size_t ts_aux_size_2()
+	{
+		return sizeof(boost::pfr::tuple_element_t<I, T>);
+	}
+
+	template <size_t... I>
+	static constexpr size_t ts_aux_size_1(std::index_sequence<I...>)
+	{
+		return (ts_aux_size_2<I>() + ... + 0);
+	}
+
+	template <size_t I>
+	static consteval bool ts_aux_trivial_2()
+	{
+		return serialization_traits<boost::pfr::tuple_element_t<I, T>>::is_trivially_serializable();
+	}
+
+	template <size_t... I>
+	static constexpr bool ts_aux_trivial_1(std::index_sequence<I...>)
+	{
+		return (ts_aux_trivial_2<I>() and ...);
+	}
+
+	static bool consteval is_trivially_serializable()
+	{
+		return sizeof(T) == ts_aux_size_1(std::make_index_sequence<boost::pfr::tuple_size_v<T>>()) and ts_aux_trivial_1(std::make_index_sequence<boost::pfr::tuple_size_v<T>>());
 	}
 };
 
@@ -354,6 +406,11 @@ struct serialization_traits<std::string>
 		packet.read(value.data(), size);
 		return value;
 	}
+
+	static bool consteval is_trivially_serializable()
+	{
+		return false;
+	}
 };
 
 template <typename T>
@@ -370,7 +427,7 @@ struct serialization_traits<std::vector<T>>
 	{
 		packet.serialize<uint16_t>(value.size());
 
-		if constexpr (std::is_arithmetic_v<T>)
+		if constexpr (serialization_traits<T>::is_trivially_serializable())
 		{
 			packet.write(value.data(), value.size() * sizeof(T));
 		}
@@ -386,7 +443,7 @@ struct serialization_traits<std::vector<T>>
 		std::vector<T> value;
 		size_t size = packet.deserialize<uint16_t>();
 
-		if constexpr (std::is_arithmetic_v<T>)
+		if constexpr (serialization_traits<T>::is_trivially_serializable())
 		{
 			packet.check_remaining_size(size * sizeof(T));
 			value.resize(size);
@@ -402,6 +459,10 @@ struct serialization_traits<std::vector<T>>
 		}
 
 		return value;
+	}
+	static bool consteval is_trivially_serializable()
+	{
+		return false;
 	}
 };
 
@@ -435,6 +496,10 @@ struct serialization_traits<std::optional<T>>
 		else
 			return std::nullopt;
 	}
+	static bool consteval is_trivially_serializable()
+	{
+		return false;
+	}
 };
 
 template <typename T, size_t N>
@@ -451,20 +516,39 @@ struct serialization_traits<std::array<T, N>>
 
 	static void serialize(const std::array<T, N> & value, serialization_packet & packet)
 	{
-		for (const T & i: value)
-			packet.serialize<T>(i);
+		if constexpr (serialization_traits<T>::is_trivially_serializable())
+		{
+			packet.write(value.data(), value.size() * sizeof(T));
+		}
+		else
+		{
+			for (const T & i: value)
+				packet.serialize<T>(i);
+		}
 	}
 
 	static std::array<T, N> deserialize(deserialization_packet & packet)
 	{
 		std::array<T, N> value;
-
-		for (size_t i = 0; i < N; i++)
+		if constexpr (serialization_traits<T>::is_trivially_serializable())
 		{
-			value[i] = packet.deserialize<T>();
+			packet.check_remaining_size(N * sizeof(T));
+			packet.read(value.data(), N * sizeof(T));
+		}
+		else
+		{
+			for (size_t i = 0; i < N; i++)
+			{
+				value[i] = packet.deserialize<T>();
+			}
 		}
 
 		return value;
+	}
+
+	static bool consteval is_trivially_serializable()
+	{
+		return serialization_traits<T>::is_trivially_serializable() and sizeof(std::array<T, N>) == sizeof(T) * N;
 	}
 };
 
@@ -515,6 +599,10 @@ struct serialization_traits<std::variant<T...>>
 
 		return deserialize_aux(packet, type_index, std::make_index_sequence<sizeof...(T)>());
 	}
+	static bool consteval is_trivially_serializable()
+	{
+		return false;
+	}
 };
 
 template <typename Rep, typename Period>
@@ -541,6 +629,11 @@ struct serialization_traits<std::chrono::duration<Rep, Period>>
 		Rep nsec = packet.deserialize<Rep>();
 		return std::chrono::duration<Rep, Period>{nsec};
 	}
+
+	static bool consteval is_trivially_serializable()
+	{
+		return sizeof(std::chrono::duration<Rep, Period>) == sizeof(Rep);
+	}
 };
 
 template <>
@@ -562,6 +655,10 @@ struct serialization_traits<std::span<uint8_t>>
 		size_t size = packet.deserialize<uint16_t>();
 		return packet.read_span(size);
 	}
+	static bool consteval is_trivially_serializable()
+	{
+		return false;
+	}
 };
 
 template <>
@@ -581,6 +678,10 @@ struct serialization_traits<data_holder>
 		size_t size;
 		std::tie(size, value.c) = packet.steal_buffer();
 		return value;
+	}
+	static bool consteval is_trivially_serializable()
+	{
+		return false;
 	}
 };
 
