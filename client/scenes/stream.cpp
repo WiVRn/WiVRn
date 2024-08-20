@@ -358,7 +358,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		session.begin_frame();
 		session.end_frame(frame_state.predictedDisplayTime, {});
 
-		std::unique_lock lock(decoder_mutex);
+		std::unique_lock lock(frames_mutex);
 		for (auto & i: decoders)
 		{
 			for (auto & frame: i.latest_frames)
@@ -716,7 +716,10 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	// Network operations may be blocking, do them once everything was submitted
 	for (const auto & handle: blit_handles)
-		send_feedback(handle->feedback);
+	{
+		if (handle)
+			send_feedback(handle->feedback);
+	}
 
 	read_actions();
 
