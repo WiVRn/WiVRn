@@ -139,6 +139,17 @@ using type_map_t = type_map<T>::type;
 
 struct klass
 {
+private:
+	template <typename R, typename... Args>
+	jmethodID get_method_id(const char * method, Args &&... args)
+	{
+		using R1 = details::type_map_t<R>;
+		auto & env = jni_thread::env();
+		std::string signature = "(" + details::build_type(args...) + ")" + R1::type();
+		return env.GetStaticMethodID(self.get(), method, signature.c_str());
+	}
+
+public:
 	std::unique_ptr<std::remove_pointer_t<jclass>, details::deleter> self;
 
 	operator jclass()
@@ -173,25 +184,13 @@ struct klass
 	{
 		using R1 = details::type_map_t<R>;
 		auto & env = jni_thread::env();
-		std::string signature = "(" + details::build_type(args...) + ")" + R1::type();
-		auto method_id = env.GetStaticMethodID(self.get(), method, signature.c_str());
+		static jmethodID method_id = get_method_id<R>(method, args...);
 		assert(method_id);
 		auto handles = details::handle(std::forward<Args>(args)...);
 		return R(std::apply([&](auto &... t) {
 			return (env.*R1::call_static_method)(*this, method_id, t...);
 		},
 		                    handles));
-	}
-
-	template <typename R, typename... Args>
-	auto method(const char * method, Args &&... args)
-	{
-		using R1 = details::type_map_t<R>;
-		auto & env = jni_thread::env();
-		std::string signature = "(" + details::build_type(args...) + ")" + R1::type();
-		auto method_id = env.GetMethodID(self.get(), method, signature.c_str());
-		assert(method_id);
-		return method_id;
 	}
 };
 
@@ -244,6 +243,17 @@ struct Int
 template <details::string_literal Type>
 struct object
 {
+private:
+	template <typename R, typename... Args>
+	jmethodID get_method_id(const char * method, Args &&... args)
+	{
+		using R1 = details::type_map_t<R>;
+		auto & env = jni_thread::env();
+		std::string signature = "(" + details::build_type(args...) + ")" + R1::type();
+		return env.GetMethodID(klass(), method, signature.c_str());
+	}
+
+public:
 	static std::string type()
 	{
 		return std::string("L") + Type.value + ";";
@@ -265,21 +275,7 @@ struct object
 	{
 		using R1 = details::type_map_t<R>;
 		auto & env = jni_thread::env();
-		std::string signature = "(" + details::build_type(args...) + ")" + R1::type();
-		auto method_id = env.GetMethodID(klass(), method, signature.c_str());
-		assert(method_id);
-		auto handles = details::handle(std::forward<Args>(args)...);
-		return R(std::apply([&](auto &... t) {
-			return (env.*R1::call_method)(*this, method_id, t...);
-		},
-		                    handles));
-	}
-
-	template <typename R, typename... Args>
-	auto call(jmethodID method_id, Args &&... args)
-	{
-		using R1 = details::type_map_t<R>;
-		auto & env = jni_thread::env();
+		static auto method_id = get_method_id<R>(method, std::forward<Args>(args)...);
 		assert(method_id);
 		auto handles = details::handle(std::forward<Args>(args)...);
 		return R(std::apply([&](auto &... t) {
