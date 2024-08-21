@@ -42,6 +42,62 @@
 namespace xrt::drivers::wivrn
 {
 
+VideoEncoder::sender::sender() :
+        thread([this](std::stop_token t) {
+	        while (not t.stop_requested())
+	        {
+		        data d;
+		        {
+			        std::unique_lock lock(mutex);
+			        if (pending.empty())
+			        {
+				        cv.wait_for(lock, std::chrono::milliseconds(100));
+			        }
+			        else
+			        {
+				        d = std::move(pending.front());
+				        pending.pop_front();
+				        if (pending.empty())
+					        cv.notify_all();
+			        }
+		        }
+		        if (not d.span.empty())
+			        d.encoder->SendData(d.span, true);
+	        }
+	        std::unique_lock lock(mutex);
+	        pending.clear();
+	        cv.notify_all();
+        })
+{
+}
+
+void VideoEncoder::sender::push(data && d)
+{
+	std::unique_lock lock(mutex);
+	pending.push_back(std::move(d));
+	cv.notify_all();
+}
+
+void VideoEncoder::sender::wait_idle()
+{
+	std::unique_lock lock(mutex);
+	while (not pending.empty())
+		cv.wait_for(lock, std::chrono::milliseconds(100));
+}
+
+std::shared_ptr<VideoEncoder::sender> VideoEncoder::sender::get()
+{
+	static std::weak_ptr<VideoEncoder::sender> instance;
+	static std::mutex m;
+	std::unique_lock lock(m);
+	auto s = instance.lock();
+	if (s)
+		return s;
+	s.reset(new VideoEncoder::sender());
+	instance = s;
+	return s;
+}
+
 std::unique_ptr<VideoEncoder> VideoEncoder::Create(
         wivrn_vk_bundle & wivrn_vk,
         encoder_settings & settings,
@@ -95,8 +151,16 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 
 static const uint64_t idr_throttle = 100;
 
-VideoEncoder::VideoEncoder() :
-        last_idr_frame(-idr_throttle) {}
+VideoEncoder::VideoEncoder(bool async_send) :
+        last_idr_frame(-idr_throttle),
+        shared_sender(async_send ? sender::get() : nullptr)
+{}
+
+VideoEncoder::~VideoEncoder()
+{
+	if (shared_sender)
+		shared_sender->wait_idle();
+}
 
 void VideoEncoder::SyncNeeded()
 {
@@ -107,6 +171,8 @@ void VideoEncoder::Encode(wivrn_session & cnx,
                           const to_headset::video_stream_data_shard::view_info_t & view_info,
                           uint64_t frame_index)
 {
+	if (shared_sender)
+		shared_sender->wait_idle();
 	this->cnx = &cnx;
 	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
 	bool idr = sync_needed.exchange(false);
@@ -122,20 +188,22 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	const char * extra = idr ? ",idr" : ",p";
 	clock = cnx.get_offset();
 
+	timing_info.encode_begin = clock.to_headset(os_monotonic_get_ns());
+	cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx, extra);
+
+	// Prepare the video shard template
+	shard.stream_item_idx = stream_idx;
+	shard.frame_idx = frame_index;
+	shard.shard_idx = 0;
+	shard.view_info = view_info;
+	shard.timing_info.reset();
+
+	auto data = encode(idr, target_timestamp);
+	if (data)
 	{
-		std::lock_guard lock(mutex);
-		timing_info.encode_begin = clock.to_headset(os_monotonic_get_ns());
-		cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx, extra);
-
-		// Prepare the video shard template
-		shard.stream_item_idx = stream_idx;
-		shard.frame_idx = frame_index;
-		shard.shard_idx = 0;
-		shard.view_info = view_info;
-		shard.timing_info.reset();
+		assert(shared_sender);
+		shared_sender->push(std::move(*data));
 	}
-
-	Encode(idr, target_timestamp);
 	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 }
 

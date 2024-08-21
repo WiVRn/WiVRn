@@ -68,7 +68,7 @@ public:
 	~VideoEncoderNvenc();
 
 	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;
-	void Encode(bool idr, std::chrono::steady_clock::time_point pts) override;
+	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts) override;
 
 	static std::array<int, 2> get_max_size(video_codec);
 };

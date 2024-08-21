@@ -357,7 +357,7 @@ void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandB
 	return;
 }
 
-void VideoEncoderNvenc::Encode(bool idr, std::chrono::steady_clock::time_point pts)
+std::optional<VideoEncoder::data> VideoEncoderNvenc::encode(bool idr, std::chrono::steady_clock::time_point pts)
 {
 	CU_CHECK(cuda_fn->cuCtxPushCurrent(cuda));
 
@@ -397,6 +397,7 @@ void VideoEncoderNvenc::Encode(bool idr, std::chrono::steady_clock::time_point p
 	NVENC_CHECK(fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer));
 
 	CU_CHECK(cuda_fn->cuCtxPopCurrent(NULL));
+	return {};
 }
 
 std::array<int, 2> VideoEncoderNvenc::get_max_size(video_codec codec)

@@ -22,19 +22,18 @@
 #include "encoder/video_encoder.h"
 #include "ffmpeg_helper.h"
 #include <chrono>
-#include <thread>
 
 class VideoEncoderFFMPEG : public xrt::drivers::wivrn::VideoEncoder
 {
 public:
 	using Codec = xrt::drivers::wivrn::video_codec;
 
-	void
-	Encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) override;
+	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) override;
 
 protected:
-	VideoEncoderFFMPEG();
-	virtual ~VideoEncoderFFMPEG();
+	VideoEncoderFFMPEG() :
+	        xrt::drivers::wivrn::VideoEncoder(true) {}
+
 	virtual void
 	PushFrame(bool idr, std::chrono::steady_clock::time_point pts) = 0;
 
@@ -42,6 +41,4 @@ protected:
 
 private:
 	static bool once;
-	std::atomic<AVPacket *> packet_to_send;
-	std::jthread send_thread;
 };

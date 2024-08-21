@@ -221,7 +221,7 @@ void VideoEncoderX264::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBu
 	                }});
 }
 
-void VideoEncoderX264::Encode(bool idr, std::chrono::steady_clock::time_point pts)
+std::optional<VideoEncoder::data> VideoEncoderX264::encode(bool idr, std::chrono::steady_clock::time_point pts)
 {
 	int num_nal;
 	x264_nal_t * nal;
@@ -237,12 +237,8 @@ void VideoEncoderX264::Encode(bool idr, std::chrono::steady_clock::time_point pt
 	if (size < 0)
 	{
 		U_LOG_W("x264_encoder_encode failed: %d", size);
-		return;
 	}
-	if (size == 0)
-	{
-		return;
-	}
+	return {};
 }
 
 VideoEncoderX264::~VideoEncoderX264()

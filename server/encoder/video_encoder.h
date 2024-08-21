@@ -22,9 +22,12 @@
 #include "driver/clock_offset.h"
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <deque>
 #include <fstream>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <vulkan/vulkan_raii.hpp>
 
 #include "encoder_settings.h"
@@ -44,12 +47,36 @@ inline const char * encoder_x264 = "x264";
 
 class VideoEncoder
 {
-	std::mutex mutex;
+protected:
+	struct data
+	{
+		VideoEncoder * encoder;
+		std::span<uint8_t> span;
+		std::shared_ptr<void> mem;
+	};
+
+private:
+	class sender
+	{
+		std::mutex mutex;
+		std::condition_variable cv;
+		std::deque<data> pending;
+		std::jthread thread;
+		void run();
+		sender();
+
+	public:
+		void push(data &&);
+		static std::shared_ptr<sender> get();
+		void wait_idle();
+	};
 
 protected:
 	uint8_t stream_idx;
 
 private:
+	std::mutex mutex;
+
 	// temporary data
 	wivrn_session * cnx;
 
@@ -64,6 +91,8 @@ private:
 
 	std::ofstream video_dump;
 
+	std::shared_ptr<sender> shared_sender;
+
 public:
 	static std::unique_ptr<VideoEncoder> Create(
 	        wivrn_vk_bundle &,
@@ -73,8 +102,8 @@ public:
 	        int input_height,
 	        float fps);
 
-	VideoEncoder();
-	virtual ~VideoEncoder() = default;
+	VideoEncoder(bool async_send = false);
+	virtual ~VideoEncoder();
 
 	// called on present to submit command buffers for the image.
 	virtual void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) = 0;
@@ -88,7 +117,7 @@ public:
 
 protected:
 	// called when command buffer finished executing
-	virtual void Encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) = 0;
+	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) = 0;
 
 	void SendData(std::span<uint8_t> data, bool end_of_frame);
 };
