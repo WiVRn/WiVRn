@@ -4,16 +4,39 @@ runtime-version: '23.08'
 sdk: org.freedesktop.Sdk
 command: launch-wivrn-server
 
-add-extensions:
-  org.freedesktop.Platform.VAAPI.Intel:
-    version: '23.08'
-    directory: lib/dri
-    add-ld-path: lib
-    subdirectories: true
-    no-autodownload: true
-    autodelete: true
-cleanup-commands:
-  - mkdir -p ${FLATPAK_DEST}/lib/dri
+finish-args:
+  # X11 + XShm access
+  - --share=ipc
+  - --socket=fallback-x11
+  # Wayland access
+  - --socket=wayland
+  # GPU acceleration
+  - --device=dri
+  # Needs to talk to the network
+  - --share=network
+  # Announce WiVRn via avahi
+  - --system-talk-name=org.freedesktop.Avahi
+  # Allow getting the pretty hostname
+  - --system-talk-name=org.freedesktop.hostname1
+  # Pipewire
+  - --filesystem=xdg-run/pipewire-0
+  # Set the active OpenXR / OpenVR runtime
+  - --filesystem=xdg-config/openxr:create
+  - --filesystem=xdg-config/openvr:create
+  # Let outside application access the WiVRn socket
+  - --filesystem=xdg-run/wivrn:create
+
+cleanup:
+  - /lib/pkgconfig
+  - /share/pkgconfig
+  - /include
+  - /share/man
+  - /share/cmake
+  - /share/gir-1.0
+  - /lib/girepository-1.0
+  - /lib/systemd
+  - '*.a'
+  - '*.la'
 
 modules:
   - name: libavahi-client
@@ -171,38 +194,3 @@ modules:
         - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
         - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
         - wivrn-server
-
-cleanup:
-  - /lib/pkgconfig
-  - /share/pkgconfig
-  - /include
-  - /share/man
-  - /share/cmake
-  - /share/gir-1.0
-  - /lib/girepository-1.0
-  - /lib/systemd
-  - '*.a'
-  - '*.la'
-
-finish-args:
-  # X11 + XShm access
-  - --share=ipc
-  - --socket=fallback-x11
-  # Wayland access
-  - --socket=wayland
-  # GPU acceleration
-  - --device=dri
-  # Needs to talk to the network
-  - --share=network
-  # Announce WiVRn via avahi
-  - --system-talk-name=org.freedesktop.Avahi
-  # Allow getting the pretty hostname
-  - --system-talk-name=org.freedesktop.hostname1
-  # - --socket=system-bus # workaround bug between sd-bus (https://github.com/systemd/systemd/issues/16610) and xdg-dbus-proxy (https://github.com/flatpak/xdg-dbus-proxy/issues/21)
-  # Pipewire
-  - --filesystem=xdg-run/pipewire-0
-  # Set the active OpenXR / OpenVR runtime
-  - --filesystem=xdg-config/openxr:create
-  - --filesystem=xdg-config/openvr:create
-  # Let outside application access the WiVRn socket
-  - --filesystem=xdg-run/wivrn:create
