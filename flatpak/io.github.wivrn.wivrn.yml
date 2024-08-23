@@ -95,7 +95,9 @@ modules:
       - make install
     cleanup:
       - /share/ffmpeg
-
+      - /bin/ffmpeg
+      - /bin/ffplay
+      - /bin/ffprobe
     sources:
     - type: git
       url: https://gitlab.com/freedesktop-sdk/mirrors/ffmpeg/ffmpeg.git
