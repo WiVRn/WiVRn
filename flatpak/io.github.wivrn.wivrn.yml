@@ -166,10 +166,6 @@ modules:
       - type: shell
         commands:
          - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado
-    build-commands:
-      - install -DTm644 images/wivrn.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.wivrn.wivrn.svg
-      - install -Dm644 flatpak/io.github.wivrn.wivrn.metainfo.xml -t ${FLATPAK_DEST}/share/metainfo
-      - install -Dm644 flatpak/io.github.wivrn.wivrn.desktop -t ${FLATPAK_DEST}/share/applications
 
   - name: opencomposite
     buildsystem: cmake-ninja
