@@ -26,7 +26,7 @@
 			<li>Supports OpenXR and OpenVR applications</li>
 			<li>Controller tracking, hand tracking, eye gaze tracking (if supported by the headset)</li>
 			<li>Audio streaming and microphone</li>
-			<li>Video streaming with H264 / HEVC / AV1 compression</li>
+			<li>Video streaming with H264 / HEVC compression</li>
 			<li>Hardware accelerated compression with VAAPI or NVENC</li>
 			<li>Software compression with x264</li>
 		</ul>
@@ -41,7 +41,9 @@
 
 	<launchable type="desktop-id">io.github.wivrn.wivrn.desktop</launchable>
 
-	<url type="homepage">https://www.github.com/WiVRn/WiVRn</url>
+	<url type="homepage">https://wivrn.github.io</url>
+	<url type="vcs-browser">https://www.github.com/WiVRn/WiVRn</url>
+	<url type="bugtracker">https://github.com/WiVRn/WiVRn/issues</url>
 
 	<icon type="stock">io.github.wivrn.wivrn</icon>
 
