@@ -80,9 +80,12 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 			{
 				// Buffer underrun: add 5ms buffer
 				size_t target_buffer_size = frame_size * AAudioStream_getSampleRate(stream) * 0.005;
-				self->speaker_tmp.data.c.clear();
-				self->speaker_tmp.data.c.resize(target_buffer_size, 0);
-				self->speaker_tmp.payload = self->speaker_tmp.data.c;
+#if __cpp_lib_shared_ptr_arrays >= 201707L
+				self->speaker_tmp.data.c = std::make_shared<uint8_t[]>(target_buffer_size, 0);
+#else
+				self->speaker_tmp.data.c.reset(new uint8_t[target_buffer_size]());
+#endif
+				self->speaker_tmp.payload = std::span(self->speaker_tmp.data.c.get(), target_buffer_size);
 				self->buffer_size_bytes += target_buffer_size;
 			}
 		}

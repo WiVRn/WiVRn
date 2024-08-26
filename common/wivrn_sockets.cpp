@@ -260,30 +260,38 @@ std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::driver
 
 	size_t size = recvfrom(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC, (sockaddr *)&addr, &addrlen);
 
-	std::vector<uint8_t> buffer(size);
-	ssize_t received = recvfrom(fd, buffer.data(), buffer.size(), 0, (sockaddr *)&addr, &addrlen);
+#if __cpp_lib_smart_ptr_for_overwrite >= 202002L
+	auto buffer = std::make_shared_for_overwrite<uint8_t[]>(size);
+#else
+	std::shared_ptr<uint8_t[]> buffer(new uint8_t[size]);
+#endif
+	ssize_t received = recvfrom(fd, buffer.get(), size, 0, (sockaddr *)&addr, &addrlen);
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
 
 	bytes_received_ += received;
-	buffer.resize(received);
 
-	return {deserialization_packet{std::move(buffer)}, addr};
+	auto tmp = buffer.get();
+	return {deserialization_packet{std::move(buffer), std::span(tmp, received)}, addr};
 }
 
 xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_raw()
 {
 	size_t size = recv(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC);
-	std::vector<uint8_t> buffer(size);
+#if __cpp_lib_smart_ptr_for_overwrite >= 202002L
+	auto buffer = std::make_shared_for_overwrite<uint8_t[]>(size);
+#else
+	std::shared_ptr<uint8_t[]> buffer(new uint8_t[size]);
+#endif
 
-	ssize_t received = recv(fd, buffer.data(), buffer.size(), 0);
+	ssize_t received = recv(fd, buffer.get(), size, 0);
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
 
 	bytes_received_ += received;
-	buffer.resize(received);
 
-	return deserialization_packet{std::move(buffer)};
+	auto tmp = buffer.get();
+	return deserialization_packet{std::move(buffer), std::span(tmp, received)};
 }
 
 void xrt::drivers::wivrn::UDP::send_raw(const std::vector<uint8_t> & data)
@@ -309,20 +317,25 @@ void xrt::drivers::wivrn::UDP::send_raw(const std::vector<std::span<uint8_t>> & 
 xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_raw()
 {
 	size_t expected_size;
-	size_t already_received = buffer.size();
 
-	if (already_received < sizeof(uint16_t))
+	if (buffer_size < sizeof(uint16_t))
 	{
-		expected_size = sizeof(uint16_t) - buffer.size();
+		expected_size = sizeof(uint16_t) - buffer_size;
 	}
 	else
 	{
-		uint32_t payload_size = *reinterpret_cast<uint16_t *>(buffer.data());
-		expected_size = payload_size + sizeof(uint16_t) - buffer.size();
+		uint32_t payload_size = *reinterpret_cast<uint16_t *>(buffer.get());
+		expected_size = payload_size + sizeof(uint16_t) - buffer_size;
 	}
 
-	buffer.resize(already_received + expected_size);
-	ssize_t received = recv(fd, buffer.data() + already_received, expected_size, MSG_DONTWAIT);
+	auto old = std::move(buffer);
+#if __cpp_lib_smart_ptr_for_overwrite >= 202002L
+	buffer = std::make_shared_for_overwrite<uint8_t[]>(buffer_size + expected_size);
+#else
+	buffer.reset(new uint8_t[buffer_size + expected_size]);
+#endif
+
+	ssize_t received = recv(fd, buffer.get() + buffer_size, expected_size, MSG_DONTWAIT);
 
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
@@ -331,21 +344,20 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 		throw socket_shutdown{};
 
 	bytes_received_ += received;
-	buffer.resize(already_received + received);
 
-	if (buffer.size() < sizeof(uint16_t))
+	memcpy(buffer.get(), old.get(), buffer_size);
+	buffer_size += received;
+	if (buffer_size < sizeof(uint16_t))
 		return {};
 
-	uint32_t payload_size = *reinterpret_cast<uint16_t *>(buffer.data());
-	if (buffer.size() < sizeof(uint16_t) + payload_size)
+	uint32_t payload_size = *reinterpret_cast<uint16_t *>(buffer.get());
+	if (buffer_size < sizeof(uint16_t) + payload_size)
 		return {};
 
-	assert(buffer.size() == sizeof(uint16_t) + payload_size);
-
-	std::vector<uint8_t> new_buffer;
-	std::swap(buffer, new_buffer);
-
-	return deserialization_packet{std::move(new_buffer), sizeof(uint16_t)};
+	assert(buffer_size == sizeof(uint16_t) + payload_size);
+	auto span = std::span(buffer.get() + sizeof(uint16_t), buffer_size);
+	buffer_size = 0;
+	return deserialization_packet{std::move(buffer), span};
 }
 
 void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & spans)

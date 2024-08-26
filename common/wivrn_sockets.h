@@ -121,7 +121,8 @@ public:
 
 class TCP : public fd_base
 {
-	std::vector<uint8_t> buffer;
+	std::shared_ptr<uint8_t[]> buffer;
+	size_t buffer_size = 0;
 	std::unique_ptr<std::mutex> mutex;
 
 	void init();

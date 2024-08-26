@@ -164,14 +164,17 @@ public:
 
 class deserialization_packet
 {
-	std::vector<uint8_t> buffer;
+	std::shared_ptr<uint8_t[]> memory;
+	std::span<uint8_t> buffer;
 	size_t read_index;
 
 public:
 	deserialization_packet() :
 	        read_index(0) {}
-	explicit deserialization_packet(std::vector<uint8_t> buffer, size_t skip = 0) :
-	        buffer(std::move(buffer)), read_index(skip)
+	explicit deserialization_packet(std::shared_ptr<uint8_t[]> memory, std::span<uint8_t> buffer, size_t skip = 0) :
+	        memory(memory),
+	        buffer(buffer),
+	        read_index(skip)
 	{}
 
 	void read(void * data, size_t size)
@@ -218,9 +221,9 @@ public:
 		v = deserialize<T>();
 	}
 
-	std::pair<size_t, std::vector<uint8_t>> steal_buffer()
+	std::pair<size_t, std::shared_ptr<uint8_t[]>> steal_buffer()
 	{
-		return {read_index, std::move(buffer)};
+		return {read_index, std::move(memory)};
 	}
 };
 

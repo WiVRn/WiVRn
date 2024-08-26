@@ -19,7 +19,7 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
+#include <memory>
 
 namespace xrt::drivers::wivrn
 {
@@ -34,7 +34,7 @@ struct data_holder
 	data_holder & operator=(const data_holder &) = delete;
 	data_holder & operator=(data_holder &&) = default;
 
-	std::vector<uint8_t> c;
+	std::shared_ptr<uint8_t[]> c;
 };
 
 } // namespace xrt::drivers::wivrn
