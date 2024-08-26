@@ -133,7 +133,10 @@ static auto encode_guid(video_codec codec)
 }
 
 VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps) :
-        vk(vk), fps(fps), bitrate(settings.bitrate)
+        VideoEncoder(true),
+        vk(vk),
+        fps(fps),
+        bitrate(settings.bitrate)
 {
 	std::tie(cuda_fn, nvenc_fn, fn, cuda, session_handle) = init();
 	settings.video_width += 32 - settings.video_width % 32;
@@ -388,16 +391,16 @@ std::optional<VideoEncoder::data> VideoEncoderNvenc::encode(bool idr, std::chron
 	};
 	NVENC_CHECK(fn.nvEncLockBitstream(session_handle, &param2));
 
-	SendData({
-	                 (uint8_t *)param2.bitstreamBufferPtr,
-	                 (uint8_t *)param2.bitstreamBufferPtr + param2.bitstreamSizeInBytes,
-	         },
-	         true);
-
-	NVENC_CHECK(fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer));
-
 	CU_CHECK(cuda_fn->cuCtxPopCurrent(NULL));
-	return {};
+	return data{
+	        .encoder = this,
+	        .span = std::span((uint8_t *)param2.bitstreamBufferPtr, param2.bitstreamSizeInBytes),
+	        .mem = std::shared_ptr<void>(param2.bitstreamBufferPtr, [this](void *) {
+		        NVENCSTATUS status = fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer);
+		        if (status != NV_ENC_SUCCESS)
+			        U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, fn.nvEncGetLastErrorString(session_handle));
+	        }),
+	};
 }
 
 std::array<int, 2> VideoEncoderNvenc::get_max_size(video_codec codec)
