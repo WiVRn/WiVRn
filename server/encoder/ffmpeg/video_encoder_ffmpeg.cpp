@@ -73,7 +73,7 @@ std::optional<xrt::drivers::wivrn::VideoEncoder::data> VideoEncoderFFMPEG::encod
 		return data{
 		        .encoder = this,
 		        .span = std::span(enc_pkt->data, enc_pkt->size),
-		        .mem = enc_pkt,
+		        .mem = std::move(enc_pkt), // elements are evaluated in order
 		};
 	}
 	if (err == AVERROR(EAGAIN))
