@@ -105,6 +105,10 @@ public:
 	explicit UDP(int fd);
 
 	deserialization_packet receive_raw();
+	deserialization_packet receive_pending()
+	{
+		return {};
+	};
 	std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();
 	void send_raw(const std::vector<uint8_t> & data);
 	void send_raw(const std::vector<std::span<uint8_t>> & data);
@@ -122,7 +126,8 @@ public:
 class TCP : public fd_base
 {
 	std::shared_ptr<uint8_t[]> buffer;
-	size_t buffer_size = 0;
+	ssize_t capacity_left = 0;
+	std::span<uint8_t> data;
 	std::unique_ptr<std::mutex> mutex;
 
 	void init();
@@ -133,6 +138,7 @@ public:
 	explicit TCP(int fd);
 
 	deserialization_packet receive_raw();
+	deserialization_packet receive_pending();
 	void send_raw(const std::vector<std::span<uint8_t>> & data);
 };
 
@@ -185,6 +191,15 @@ public:
 	typed_socket(Args &&... args) :
 	        Socket(std::forward<Args>(args)...)
 	{}
+
+	std::optional<ReceivedType> receive_pending()
+	{
+		deserialization_packet packet = ((Socket *)this)->receive_pending();
+		if (packet.empty())
+			return {};
+
+		return packet.deserialize<ReceivedType>();
+	}
 
 	std::optional<ReceivedType> receive()
 	{

@@ -64,6 +64,11 @@ public:
 		fds[1].events = POLLIN;
 		fds[1].fd = control.get_fd();
 
+		while (auto packet = stream.receive_pending())
+			std::visit(std::forward<T>(visitor), std::move(*packet));
+		while (auto packet = control.receive_pending())
+			std::visit(std::forward<T>(visitor), std::move(*packet));
+
 		int r = ::poll(fds, std::size(fds), timeout.count());
 		if (r < 0)
 			throw std::system_error(errno, std::system_category());

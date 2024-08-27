@@ -316,26 +316,34 @@ void xrt::drivers::wivrn::UDP::send_raw(const std::vector<std::span<uint8_t>> & 
 
 xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_raw()
 {
-	size_t expected_size;
+	ssize_t expected_size;
 
-	if (buffer_size < sizeof(uint16_t))
+	if (data.size_bytes() < sizeof(uint16_t))
 	{
-		expected_size = sizeof(uint16_t) - buffer_size;
+		expected_size = sizeof(uint16_t) - data.size_bytes();
 	}
 	else
 	{
-		uint32_t payload_size = *reinterpret_cast<uint16_t *>(buffer.get());
-		expected_size = payload_size + sizeof(uint16_t) - buffer_size;
+		uint32_t payload_size = *reinterpret_cast<uint16_t *>(data.data());
+		expected_size = payload_size + sizeof(uint16_t) - data.size_bytes();
 	}
 
-	auto old = std::move(buffer);
+	if (expected_size > capacity_left)
+	{
+		size_t new_size = std::max<size_t>(data.size_bytes() + expected_size,
+		                                   4096);
+		auto old = std::move(buffer);
 #if __cpp_lib_smart_ptr_for_overwrite >= 202002L
-	buffer = std::make_shared_for_overwrite<uint8_t[]>(buffer_size + expected_size);
+		buffer = std::make_shared_for_overwrite<uint8_t[]>(new_size);
 #else
-	buffer.reset(new uint8_t[buffer_size + expected_size]);
+		buffer.reset(new uint8_t[new_size]);
 #endif
+		memcpy(buffer.get(), data.data(), data.size_bytes());
+		data = std::span(buffer.get(), data.size());
+		capacity_left = new_size - data.size_bytes();
+	}
 
-	ssize_t received = recv(fd, buffer.get() + buffer_size, expected_size, MSG_DONTWAIT);
+	ssize_t received = recv(fd, &*data.end(), capacity_left, MSG_DONTWAIT);
 
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
@@ -345,19 +353,38 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 
 	bytes_received_ += received;
 
-	memcpy(buffer.get(), old.get(), buffer_size);
-	buffer_size += received;
-	if (buffer_size < sizeof(uint16_t))
+	data = std::span(data.data(), data.size() + received);
+	capacity_left -= received;
+	if (data.size_bytes() < sizeof(uint16_t))
 		return {};
 
-	uint32_t payload_size = *reinterpret_cast<uint16_t *>(buffer.get());
-	if (buffer_size < sizeof(uint16_t) + payload_size)
+	uint32_t payload_size = *reinterpret_cast<uint16_t *>(data.data());
+	if (payload_size == 0)
+		throw std::runtime_error("Invalid packet: 0 size");
+
+	if (data.size_bytes() < sizeof(uint16_t) + payload_size)
 		return {};
 
-	assert(buffer_size == sizeof(uint16_t) + payload_size);
-	auto span = std::span(buffer.get() + sizeof(uint16_t), buffer_size);
-	buffer_size = 0;
-	return deserialization_packet{std::move(buffer), span};
+	auto span = data.subspan(sizeof(uint16_t), payload_size);
+	data = data.subspan(sizeof(uint16_t) + payload_size);
+	return deserialization_packet{buffer, span};
+}
+
+xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_pending()
+{
+	if (data.size_bytes() < sizeof(uint16_t))
+		return {};
+
+	uint32_t payload_size = *reinterpret_cast<uint16_t *>(data.data());
+	if (payload_size == 0)
+		throw std::runtime_error("Invalid packet: 0 size");
+
+	if (data.size_bytes() < sizeof(uint16_t) + payload_size)
+		return {};
+
+	auto span = data.subspan(sizeof(uint16_t), payload_size);
+	data = data.subspan(sizeof(uint16_t) + payload_size);
+	return deserialization_packet{buffer, span};
 }
 
 void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & spans)
