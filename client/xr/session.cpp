@@ -264,6 +264,7 @@ std::vector<std::string> xr::session::localized_sources_for_action(XrAction acti
 
 float xr::session::get_current_refresh_rate()
 {
+	assert(inst->has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME));
 	static auto xrGetDisplayRefreshRateFB = inst->get_proc<PFN_xrGetDisplayRefreshRateFB>("xrGetDisplayRefreshRateFB");
 
 	float refresh_rate = 0;
@@ -275,6 +276,7 @@ float xr::session::get_current_refresh_rate()
 
 std::vector<float> xr::session::get_refresh_rates()
 {
+	assert(inst->has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME));
 	static auto xrEnumerateDisplayRefreshRatesFB = inst->get_proc<PFN_xrEnumerateDisplayRefreshRatesFB>("xrEnumerateDisplayRefreshRatesFB");
 
 	if (xrEnumerateDisplayRefreshRatesFB)
@@ -294,6 +296,7 @@ std::vector<float> xr::session::get_refresh_rates()
 
 void xr::session::set_refresh_rate(float refresh_rate)
 {
+	assert(inst->has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME));
 	static auto xrRequestDisplayRefreshRateFB = inst->get_proc<PFN_xrRequestDisplayRefreshRateFB>("xrRequestDisplayRefreshRateFB");
 
 	if (xrRequestDisplayRefreshRateFB)

@@ -869,13 +869,16 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	{
 		spdlog::info("Creating decoder size {}x{} offset {},{}", item.width, item.height, item.offset_x, item.offset_y);
 
-		try
+		if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 		{
-			session.set_refresh_rate(description.fps);
-		}
-		catch (std::exception & e)
-		{
-			spdlog::warn("Failed to set refresh rate to {}: {}", description.fps, e.what());
+			try
+			{
+				session.set_refresh_rate(description.fps);
+			}
+			catch (std::exception & e)
+			{
+				spdlog::warn("Failed to set refresh rate to {}: {}", description.fps, e.what());
+			}
 		}
 
 		accumulator_images dec;

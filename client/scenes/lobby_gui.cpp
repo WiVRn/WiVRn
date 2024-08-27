@@ -337,6 +337,7 @@ void scenes::lobby::gui_settings()
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
 
+	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 	{
 		const auto & refresh_rates = session.get_refresh_rates();
 		float current = session.get_current_refresh_rate();
