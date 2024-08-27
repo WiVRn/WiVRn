@@ -275,23 +275,68 @@ std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::driver
 	return {deserialization_packet{std::move(buffer), std::span(tmp, received)}, addr};
 }
 
+xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_pending()
+{
+	if (messages.empty())
+		return {};
+
+	auto span = messages.back();
+	messages.pop_back();
+	return deserialization_packet{buffer, span};
+}
+
 xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_raw()
 {
-	size_t size = recv(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC);
-#if __cpp_lib_smart_ptr_for_overwrite >= 202002L
-	auto buffer = std::make_shared_for_overwrite<uint8_t[]>(size);
-#else
-	std::shared_ptr<uint8_t[]> buffer(new uint8_t[size]);
-#endif
+	if (not messages.empty())
+	{
+		auto span = messages.back();
+		messages.pop_back();
+		return deserialization_packet{buffer, span};
+	}
 
-	ssize_t received = recv(fd, buffer.get(), size, 0);
+	static const size_t message_size = 2048;
+	static const size_t num_messages = 20;
+#if __cpp_lib_smart_ptr_for_overwrite >= 202002L
+	buffer = std::make_shared_for_overwrite<uint8_t[]>(message_size * num_messages);
+#else
+	buffer.reset(new uint8_t[message_size * num_messages]);
+#endif
+	std::vector<iovec> iovecs;
+	std::vector<mmsghdr> mmsgs;
+	iovecs.reserve(num_messages);
+	mmsgs.reserve(num_messages);
+	for (size_t i = 0; i < num_messages; ++i)
+	{
+		iovecs.push_back({
+		        .iov_base = buffer.get() + message_size * i,
+		        .iov_len = message_size,
+		});
+		mmsgs.push_back(
+		        {
+		                .msg_hdr = {
+		                        .msg_iov = &iovecs.back(),
+		                        .msg_iovlen = 1,
+		                },
+		        });
+	}
+
+	int received = recvmmsg(fd, mmsgs.data(), num_messages, MSG_DONTWAIT, nullptr);
+
 	if (received < 0)
 		throw std::system_error{errno, std::generic_category()};
+	if (received == 0)
+		throw socket_shutdown();
 
-	bytes_received_ += received;
+	messages.reserve(received);
+	for (int i = received - 1; i > 0; --i)
+	{
+		messages.emplace_back(
+		        (uint8_t *)iovecs[i].iov_base,
+		        mmsgs[i].msg_len);
+		bytes_received_ += mmsgs[i].msg_len;
+	}
 
-	auto tmp = buffer.get();
-	return deserialization_packet{std::move(buffer), std::span(tmp, received)};
+	return deserialization_packet{buffer, std::span(buffer.get(), mmsgs[0].msg_len)};
 }
 
 void xrt::drivers::wivrn::UDP::send_raw(const std::vector<uint8_t> & data)
