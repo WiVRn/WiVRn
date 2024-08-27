@@ -712,7 +712,17 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	if (imgui_ctx and plots_visible)
 		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 
-	session.end_frame(frame_state.predictedDisplayTime, layers_base);
+	try
+	{
+		session.end_frame(frame_state.predictedDisplayTime, layers_base);
+	}
+	catch (std::system_error & e)
+	{
+		if (e.code().category() == xr::error_category() and e.code().value() == XR_ERROR_POSE_INVALID)
+			spdlog::info("Invalid pose submitted");
+		else
+			throw;
+	}
 
 	// Network operations may be blocking, do them once everything was submitted
 	for (const auto & handle: blit_handles)
