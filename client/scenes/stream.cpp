@@ -424,9 +424,19 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			                .size = sizeof(float),
 			        }};
 
-			vk::SpecializationInfo specialization_info;
-			specialization_info.setMapEntries(specialization_constants_desc);
-			specialization_info.setData<float>(useful_size);
+			vk::SpecializationInfo vert_specialization_info;
+			vert_specialization_info.setMapEntries(specialization_constants_desc);
+			vert_specialization_info.setData<float>(useful_size);
+
+			VkBool32 do_srgb = need_srgb_conversion(guess_model());
+			vk::SpecializationMapEntry frag_specialization_constant_desc{
+			        .constantID = 0,
+			        .offset = 0,
+			        .size = sizeof(do_srgb),
+			};
+			vk::SpecializationInfo frag_specialization_info;
+			frag_specialization_info.setMapEntries(frag_specialization_constant_desc);
+			frag_specialization_info.setData<VkBool32>(do_srgb);
 
 			// Create graphics pipeline
 			vk::raii::ShaderModule vertex_shader = load_shader(device, "stream.vert");
@@ -445,12 +455,13 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			                           .stage = vk::ShaderStageFlagBits::eVertex,
 			                           .module = *vertex_shader,
 			                           .pName = "main",
-			                           .pSpecializationInfo = &specialization_info,
+			                           .pSpecializationInfo = &vert_specialization_info,
 			                   },
 			                   {
 			                           .stage = vk::ShaderStageFlagBits::eFragment,
 			                           .module = *fragment_shader,
 			                           .pName = "main",
+			                           .pSpecializationInfo = &frag_specialization_info,
 			                   }},
 			        .VertexInputState = {.flags = {}},
 			        .VertexBindingDescriptions = {},

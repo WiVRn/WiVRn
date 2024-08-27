@@ -132,3 +132,23 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 	}
 	throw std::range_error("invalid model " + std::to_string((int)m));
 }
+
+bool need_srgb_conversion(model m)
+{
+	switch (m)
+	{
+		case model::lynx_r1:
+			return false;
+		case model::oculus_quest:
+		case model::oculus_quest_2:
+		case model::meta_quest_pro:
+		case model::meta_quest_3:
+		case model::pico_neo_3:
+		case model::pico_4:
+		case model::htc_vive_focus_3:
+		case model::htc_vive_xr_elite:
+		case model::unknown:
+			return true;
+	}
+	throw std::range_error("invalid model " + std::to_string((int)m));
+}

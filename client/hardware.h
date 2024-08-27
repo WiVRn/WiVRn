@@ -37,3 +37,5 @@ enum class model
 model guess_model();
 
 XrViewConfigurationView override_view(XrViewConfigurationView, model);
+
+bool need_srgb_conversion(model);

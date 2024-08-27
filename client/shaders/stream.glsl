@@ -45,6 +45,7 @@ void main()
 
 #ifdef FRAG_SHADER
 layout(binding = 0) uniform sampler2D texSampler;
+layout(constant_id = 0) const bool do_srgb = true;
 
 layout(location = 0) in vec2 inUV;
 
@@ -69,6 +70,13 @@ vec4 sRGB_to_linear_rgba(vec4 x)
 
 void main()
 {
-	outColor = sRGB_to_linear_rgba(texture(texSampler, inUV));
+	if (do_srgb)
+	{
+		outColor = sRGB_to_linear_rgba(texture(texSampler, inUV));
+	}
+	else
+	{
+		outColor = texture(texSampler, inUV);
+	}
 }
 #endif
