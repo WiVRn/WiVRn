@@ -62,6 +62,8 @@ static model guess_model_()
 		return model::meta_quest_pro;
 	if (device == "eureka")
 		return model::meta_quest_3;
+	if (model == "Lynx-R1")
+		return model::lynx_r1;
 
 	if (manufacturer == "Pico")
 	{
@@ -124,6 +126,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 			return scale_view(view, 2448);
 		case model::htc_vive_xr_elite:
 			return scale_view(view, 1920);
+		case model::lynx_r1:
 		case model::unknown:
 			return view;
 	}

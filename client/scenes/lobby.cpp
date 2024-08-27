@@ -83,6 +83,7 @@ static std::string choose_webxr_profile()
 		case model::htc_vive_focus_3:
 		case model::htc_vive_xr_elite:
 			return "htc-vive-focus-3";
+		case model::lynx_r1:
 		case model::unknown:
 			return "generic-trigger-squeeze";
 	}
