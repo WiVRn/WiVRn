@@ -33,7 +33,6 @@ shard_set::shard_set(uint8_t stream_index)
 
 void shard_set::reset(uint64_t frame_index)
 {
-	num_shards = 0;
 	min_for_reconstruction = -1;
 	data.clear();
 
@@ -45,7 +44,7 @@ void shard_set::reset(uint64_t frame_index)
 
 bool shard_set::empty() const
 {
-	return num_shards == 0;
+	return data.empty();
 }
 
 static bool is_complete(const shard_set & shards)
@@ -71,8 +70,6 @@ uint16_t shard_set::insert(data_shard && shard)
 	auto idx = shard.shard_idx;
 	if (idx >= data.size())
 		data.resize(idx + 1);
-	if (not data[idx])
-		++num_shards;
 	data[idx] = std::move(shard);
 	return idx;
 }
@@ -87,6 +84,7 @@ static void debug_why_not_sent(const shard_set & shards)
 	}
 	int frame_idx = -1;
 	size_t data = 0;
+	size_t missing = 0;
 	for (const auto & shard: frame)
 	{
 		if (shard)
@@ -94,9 +92,12 @@ static void debug_why_not_sent(const shard_set & shards)
 			frame_idx = shard->frame_idx;
 			++data;
 		}
+		else
+			++missing;
 	}
 
-	spdlog::info("frame {} was not sent with {} data shards", frame_idx, data);
+	bool end = frame.back() and frame.back()->flags & video_stream_data_shard::end_of_frame;
+	spdlog::info("frame {} was not sent with {} data shards, {}{} missing", frame_idx, data, end ? "" : "at least ", missing);
 }
 
 void shard_accumulator::advance()
@@ -113,6 +114,7 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 	if (shard.frame_idx < current.frame_index())
 	{
 		// frame is in the past, drop it
+		spdlog::info("Drop shard for old frame {} (current {})", shard.frame_idx, current.frame_index());
 	}
 	else if (frame_diff == 0)
 	{

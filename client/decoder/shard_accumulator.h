@@ -42,7 +42,6 @@ public:
 	using data_shard = xrt::drivers::wivrn::to_headset::video_stream_data_shard;
 	struct shard_set
 	{
-		size_t num_shards = 0;
 		size_t min_for_reconstruction = -1;
 		std::vector<std::optional<data_shard>> data;
 		void reset(uint64_t frame_index);
