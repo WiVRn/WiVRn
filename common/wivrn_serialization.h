@@ -166,46 +166,38 @@ class deserialization_packet
 {
 	std::shared_ptr<uint8_t[]> memory;
 	std::span<uint8_t> buffer;
-	size_t read_index;
 
 public:
-	deserialization_packet() :
-	        read_index(0) {}
-	explicit deserialization_packet(std::shared_ptr<uint8_t[]> memory, std::span<uint8_t> buffer, size_t skip = 0) :
+	deserialization_packet() = default;
+	explicit deserialization_packet(std::shared_ptr<uint8_t[]> memory, std::span<uint8_t> buffer) :
 	        memory(memory),
-	        buffer(buffer),
-	        read_index(skip)
+	        buffer(buffer)
 	{}
 
 	void read(void * data, size_t size)
 	{
 		check_remaining_size(size);
 
-		memcpy(data, &buffer[read_index], size);
-		read_index += size;
+		memcpy(data, buffer.data(), size);
+		buffer = buffer.subspan(size);
 	}
 
 	std::span<uint8_t> read_span(size_t size)
 	{
 		check_remaining_size(size);
-		std::span<uint8_t> res(&buffer[read_index], size);
-		read_index += size;
+		auto res = buffer.first(size);
+		buffer = buffer.subspan(size);
 		return res;
-	}
-
-	size_t remaining() const
-	{
-		return buffer.size() - read_index;
 	}
 
 	bool empty() const
 	{
-		return buffer.size() <= read_index;
+		return buffer.empty();
 	}
 
 	void check_remaining_size(size_t min_size) const
 	{
-		if (min_size > remaining())
+		if (min_size > buffer.size_bytes())
 			throw deserialization_error();
 	}
 
@@ -221,9 +213,9 @@ public:
 		v = deserialize<T>();
 	}
 
-	std::pair<size_t, std::shared_ptr<uint8_t[]>> steal_buffer()
+	std::shared_ptr<uint8_t[]> steal_buffer()
 	{
-		return {read_index, std::move(memory)};
+		return std::move(memory);
 	}
 };
 
@@ -677,8 +669,7 @@ struct serialization_traits<data_holder>
 	static data_holder deserialize(deserialization_packet & packet)
 	{
 		data_holder value;
-		size_t size;
-		std::tie(size, value.c) = packet.steal_buffer();
+		value.c = packet.steal_buffer();
 		return value;
 	}
 	static bool consteval is_trivially_serializable()
