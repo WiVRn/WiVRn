@@ -68,7 +68,7 @@ private:
 	public:
 		void push(data &&);
 		static std::shared_ptr<sender> get();
-		void wait_idle();
+		void wait_idle(VideoEncoder *);
 	};
 
 protected:

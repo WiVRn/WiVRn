@@ -57,8 +57,7 @@ VideoEncoder::sender::sender() :
 			        {
 				        d = std::move(pending.front());
 				        pending.pop_front();
-				        if (pending.empty())
-					        cv.notify_all();
+				        cv.notify_all();
 			        }
 		        }
 		        if (not d.span.empty())
@@ -78,10 +77,10 @@ void VideoEncoder::sender::push(data && d)
 	cv.notify_all();
 }
 
-void VideoEncoder::sender::wait_idle()
+void VideoEncoder::sender::wait_idle(VideoEncoder * encoder)
 {
 	std::unique_lock lock(mutex);
-	while (not pending.empty())
+	while (std::ranges::any_of(pending, [=](auto & data) { return data.encoder == encoder; }))
 		cv.wait_for(lock, std::chrono::milliseconds(100));
 }
 
@@ -159,7 +158,7 @@ VideoEncoder::VideoEncoder(bool async_send) :
 VideoEncoder::~VideoEncoder()
 {
 	if (shared_sender)
-		shared_sender->wait_idle();
+		shared_sender->wait_idle(this);
 }
 
 void VideoEncoder::SyncNeeded()
@@ -172,7 +171,7 @@ void VideoEncoder::Encode(wivrn_session & cnx,
                           uint64_t frame_index)
 {
 	if (shared_sender)
-		shared_sender->wait_idle();
+		shared_sender->wait_idle(this);
 	this->cnx = &cnx;
 	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
 	bool idr = sync_needed.exchange(false);
