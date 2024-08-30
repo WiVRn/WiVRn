@@ -222,7 +222,7 @@ int inner_main(int argc, char * argv[], bool use_systemd)
 			// FIXME: synchronization fails on gfx pipeline
 			setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
 
-			setenv("AMD_DEBUG", "lowlatencyenc", true);
+			setenv("AMD_DEBUG", "lowlatencyenc", false);
 
 			try
 			{
