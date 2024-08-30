@@ -110,6 +110,8 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 
 		metrics[metrics_offset] = decoder_metric{
 		        // clang-format off
+			.encode_begin          = (bh->timing_info.encode_begin       - min_encode_begin) * 1e-9f,
+			.encode_end            = (bh->timing_info.encode_end         - min_encode_begin) * 1e-9f,
 			.send_begin            = (bh->timing_info.send_begin         - min_encode_begin) * 1e-9f,
 			.send_end              = (bh->timing_info.send_end           - min_encode_begin) * 1e-9f,
 			.received_first_packet = (bh->feedback.received_first_packet - min_encode_begin) * 1e-9f,
@@ -229,6 +231,16 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			ImPlot::SetupAxes(nullptr, title_with_units.c_str(), ImPlotAxisFlags_NoDecorations, 0);
 			ImPlot::SetupAxesLimits(0, metrics.size() - 1, min_v * 1e3f, axis_scale[n] * 1e3f, ImGuiCond_Always);
 
+			getter_data getter_encode_begin{
+			        .data = (uintptr_t) & (metrics.data()->encode_begin),
+			        .stride = sizeof(decoder_metric),
+			        .multiplier = 1e3f};
+
+			getter_data getter_encode_end{
+			        .data = (uintptr_t) & (metrics.data()->encode_end),
+			        .stride = sizeof(decoder_metric),
+			        .multiplier = 1e3f};
+
 			getter_data getter_send_begin{
 			        .data = (uintptr_t) & (metrics.data()->send_begin),
 			        .stride = sizeof(decoder_metric),
@@ -270,6 +282,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			        .multiplier = 1e3f};
 
 			// clang-format off
+			ImPlot::PlotShadedG(_S("Encode"),  getter, &getter_encode_begin,          getter, &getter_encode_end,            metrics.size());
 			ImPlot::PlotShadedG(_S("Send"),    getter, &getter_send_begin,            getter, &getter_send_end,              metrics.size());
 			ImPlot::PlotShadedG(_S("Receive"), getter, &getter_received_first_packet, getter, &getter_received_last_packet,  metrics.size());
 			ImPlot::PlotShadedG(_S("Decode"),  getter, &getter_sent_to_decoder,       getter, &getter_received_from_decoder, metrics.size());

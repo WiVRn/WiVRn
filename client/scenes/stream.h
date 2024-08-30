@@ -206,6 +206,8 @@ private:
 	struct decoder_metric
 	{
 		// All times are in seconds relative to encode_begin
+		float encode_begin;
+		float encode_end;
 		float send_begin;
 		float send_end;
 		float received_first_packet;

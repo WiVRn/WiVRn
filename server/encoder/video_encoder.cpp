@@ -187,7 +187,9 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	const char * extra = idr ? ",idr" : ",p";
 	clock = cnx.get_offset();
 
-	timing_info.encode_begin = clock.to_headset(os_monotonic_get_ns());
+	timing_info = {
+	        .encode_begin = clock.to_headset(os_monotonic_get_ns()),
+	};
 	cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 
 	// Prepare the video shard template
@@ -198,19 +200,24 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	shard.timing_info.reset();
 
 	auto data = encode(idr, target_timestamp);
+	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 	if (data)
 	{
+		timing_info.encode_end = clock.to_headset(os_monotonic_get_ns());
 		assert(shared_sender);
 		shared_sender->push(std::move(*data));
 	}
-	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 }
 
 void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 {
 	std::lock_guard lock(mutex);
 	if (end_of_frame)
+	{
 		timing_info.send_end = clock.to_headset(os_monotonic_get_ns());
+		if (not timing_info.encode_end)
+			timing_info.encode_end = timing_info.send_end;
+	}
 	if (video_dump)
 		video_dump.write((char *)data.data(), data.size());
 	if (shard.shard_idx == 0)

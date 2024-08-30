@@ -327,6 +327,7 @@ public:
 	struct timing_info_t
 	{
 		XrTime encode_begin;
+		XrTime encode_end;
 		XrTime send_begin;
 		XrTime send_end;
 	};
