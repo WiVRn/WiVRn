@@ -18,6 +18,7 @@
 #include "wivrn_sockets.h"
 
 #include <CLI/CLI.hpp>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <poll.h>
@@ -123,11 +124,47 @@ void waitpid_verbose(pid_t pid, const std::string & name)
 	}
 }
 
+static std::filesystem::path flatpak_app_path()
+{
+	const std::string key("app-path=");
+	std::string line;
+	std::ifstream info("/.flatpak-info");
+	while (std::getline(info, line))
+	{
+		if (line.starts_with(key))
+		{
+			std::filesystem::path path = line.substr(key.size());
+			while (path != "" and path != path.parent_path() and path.filename() != "io.github.wivrn.wivrn")
+				path = path.parent_path();
+
+			return path;
+		}
+	}
+
+	return "/";
+}
+
+static std::string steam_command()
+{
+	std::string pressure_vessel_filesystems_rw = "$XDG_RUNTIME_DIR/" XRT_IPC_MSG_SOCK_FILENAME;
+
+	// Check if in a flatpak
+	if (std::filesystem::exists("/.flatpak-info"))
+	{
+		std::string app_path = flatpak_app_path().string();
+		// /usr and /var are remapped by steam
+		if (app_path.starts_with("/usr") or app_path.starts_with("/var"))
+			pressure_vessel_filesystems_rw += ":" + app_path;
+	}
+	return "PRESSURE_VESSEL_FILESYSTEMS_RW=" + pressure_vessel_filesystems_rw + " %command%";
+}
+
 int inner_main(int argc, char * argv[], bool use_systemd)
 {
 	std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
 
-	std::string command = "PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/" XRT_IPC_MSG_SOCK_FILENAME " %command%";
+	std::string command = steam_command();
+
 	if (auto p = active_runtime::manifest_path().string(); p.starts_with("/usr"))
 		command = "XR_RUNTIME_JSON=/run/host" + p + " " + command;
 

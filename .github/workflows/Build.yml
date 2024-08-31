@@ -89,7 +89,7 @@ jobs:
     # TODO: replace with version > v6.3 when it's released
     - uses: flatpak/flatpak-github-actions/flatpak-builder@b8be6bc0ede43cb3a2cc55895654312b14f84a0d
       with:
-        manifest-path: flatpak/org.meumeu.wivrn-server.yml
+        manifest-path: flatpak/io.github.wivrn.wivrn.yml
         bundle: wivrn-server.flatpak
         upload-artifact: false
 
