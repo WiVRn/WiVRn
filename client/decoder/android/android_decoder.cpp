@@ -58,7 +58,7 @@ const char * mime(xrt::drivers::wivrn::video_codec codec)
 		case c::h265:
 			return "video/hevc";
 		case c::av1:
-			return "video/AV1";
+			return "video/av01";
 	}
 	assert(false);
 }
