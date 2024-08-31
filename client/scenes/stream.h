@@ -216,6 +216,7 @@ private:
 		float received_from_decoder;
 		float blitted;
 		float displayed;
+		float predicted_display;
 	};
 
 	std::vector<global_metric> global_metrics{300};

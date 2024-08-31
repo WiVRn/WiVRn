@@ -123,6 +123,7 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 			.received_from_decoder = (bh->feedback.received_from_decoder - min_encode_begin) * 1e-9f,
 			.blitted               = (bh->feedback.blitted               - min_encode_begin) * 1e-9f,
 			.displayed             = (bh->feedback.displayed             - min_encode_begin) * 1e-9f,
+			.predicted_display     = (bh->view_info.display_time         - min_encode_begin) * 1e-9f,
 		}: decoder_metric{};
 		// clang-format on
 	}
@@ -284,6 +285,11 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
+			getter_data getter_predicted{
+			        .data = (uintptr_t) & (metrics.data()->predicted_display),
+			        .stride = sizeof(decoder_metric),
+			        .multiplier = 1e3f};
+
 			// clang-format off
 			ImPlot::PlotShadedG(_S("Encode"),  getter, &getter_encode_begin,          getter, &getter_encode_end,            metrics.size());
 			ImPlot::PlotShadedG(_S("Send"),    getter, &getter_send_begin,            getter, &getter_send_end,              metrics.size());
@@ -291,6 +297,7 @@ XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted
 			ImPlot::PlotShadedG(_S("Decode"),  getter, &getter_sent_to_decoder,       getter, &getter_received_from_decoder, metrics.size());
 			ImPlot::PlotLineG(_S("Blitted"),   getter, &getter_blitted,                                                      metrics.size());
 			ImPlot::PlotLineG(_S("Displayed"), getter, &getter_displayed,                                                    metrics.size());
+			ImPlot::PlotLineG(_S("Predicted"), getter, &getter_predicted,                                                    metrics.size());
 			// clang-format on
 
 			double x[] = {double(metrics_offset), double(metrics_offset)};
