@@ -468,8 +468,9 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	}
 
 	auto & view_info = cn->psc.view_info;
-	view_info.display_time = cn->cnx->get_offset().to_headset(desired_present_time_ns);
 	view_info.foveation = cn->cnx->get_foveation_parameters();
+	auto info = cn->pacer.present_to_info(desired_present_time_ns);
+	view_info.display_time = cn->cnx->get_offset().to_headset(info.predicted_display_time);
 	for (int eye = 0; eye < 2; ++eye)
 	{
 		const auto & slot = cn->c->base.slot;
@@ -491,7 +492,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	}
 	// set bits to 1 for index 1..num encoder threads + 1
 	cn->psc.status = (1 << (cn->encoder_threads.size() + 1)) - 2;
-	cn->psc.frame_index = cn->current_frame_id;
+	cn->psc.frame_index = info.frame_id;
 	cn->psc.status.notify_all();
 
 	return VK_SUCCESS;
@@ -531,11 +532,11 @@ static void comp_wivrn_calc_frame_pacing(struct comp_target * ct,
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
 	cn->pacer.predict(
+	        *out_frame_id,
 	        *out_wake_up_time_ns,
 	        *out_desired_present_time_ns,
 	        *out_present_slop_ns,
 	        *out_predicted_display_time_ns);
-	*out_frame_id = cn->current_frame_id++;
 }
 
 static void comp_wivrn_mark_timing_point(struct comp_target * ct,
@@ -544,7 +545,6 @@ static void comp_wivrn_mark_timing_point(struct comp_target * ct,
                                          uint64_t when_ns)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
-	assert(frame_id + 1 == cn->current_frame_id);
 
 	cn->pacer.mark_timing_point(point, frame_id, when_ns);
 

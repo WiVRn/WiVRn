@@ -30,13 +30,25 @@ struct clock_offset;
 
 class wivrn_pacer
 {
+public:
+	const uint64_t frame_duration_ns;
+	struct frame_info
+	{
+		int64_t frame_id;
+		uint64_t present_ns;
+		uint64_t predicted_display_time;
+	};
+
+private:
 	std::mutex mutex;
+	uint64_t last_ns = 0;
+	int64_t frame_id = 0;
 
-	uint64_t next_frame_ns;
-	uint64_t frame_duration_ns;
+	uint64_t client_render_phase_ns = 0;
 
-	uint64_t mean_wake_up_to_present_ns;
-	uint64_t mean_present_to_display_ns;
+	uint64_t mean_wake_up_to_present_ns = 1'000'000;
+	uint64_t safe_present_to_decoded_ns = 0;
+	uint64_t mean_render_to_display_ns = 0;
 
 	uint64_t last_wake_up_ns = 0;
 
@@ -50,24 +62,17 @@ class wivrn_pacer
 	};
 	std::vector<stream_data> streams;
 
-	struct frame_history
-	{
-		uint64_t frame_id;
-		uint64_t present_ns;
-	};
-	std::array<frame_history, 4> in_flight_frames;
+	std::array<frame_info, 4> in_flight_frames;
 
 public:
 	wivrn_pacer(uint64_t frame_duration) :
-	        next_frame_ns(0),
-	        frame_duration_ns(frame_duration),
-	        mean_wake_up_to_present_ns(1'000'000),
-	        mean_present_to_display_ns(frame_duration)
+	        frame_duration_ns(frame_duration)
 	{}
 
 	void set_stream_count(size_t count);
 
 	void predict(
+	        int64_t & out_frame_id,
 	        uint64_t & out_wake_up_time_ns,
 	        uint64_t & out_desired_present_time_ns,
 	        uint64_t & out_present_slop_ns,
@@ -79,6 +84,8 @@ public:
 	        comp_target_timing_point point,
 	        int64_t frame_id,
 	        uint64_t when_ns);
+
+	frame_info present_to_info(uint64_t present);
 
 	void reset();
 };
