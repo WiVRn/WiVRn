@@ -190,11 +190,15 @@ msgstr "アップロード"
 msgid "Decoder {}"
 msgstr "デコーダー {}"
 
-#: client/scenes/stream_stats.cpp:228
+#: client/scenes/stream_stats.cpp:230
 msgid "Timings [ms]"
 msgstr "タイミング、ミリ秒"
 
-#: client/scenes/stream_stats.cpp:273
+#: client/scenes/stream_stats.cpp:285
+msgid "Encode"
+msgstr "動画エンコード"
+
+#: client/scenes/stream_stats.cpp:286
 msgid "Send"
 msgstr "送信"
 
