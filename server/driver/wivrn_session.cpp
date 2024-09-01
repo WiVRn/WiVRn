@@ -261,8 +261,6 @@ void wivrn_session::operator()(from_headset::tracking && tracking)
 	}
 
 	auto offset = offset_est.get_offset();
-	if (not offset)
-		return;
 
 	hmd->update_tracking(tracking, offset);
 	left_hand->update_tracking(tracking, offset);
@@ -276,8 +274,6 @@ void wivrn_session::operator()(from_headset::tracking && tracking)
 void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 {
 	auto offset = offset_est.get_offset();
-	if (not offset)
-		return;
 
 	left_hand->update_hand_tracking(hand_tracking, offset);
 	right_hand->update_hand_tracking(hand_tracking, offset);
@@ -288,16 +284,13 @@ void wivrn_session::operator()(from_headset::fb_face2 && fb_face2)
 		return;
 
 	auto offset = offset_est.get_offset();
-	if (not offset)
-		return;
 
 	fb_face2_tracker->update_tracking(fb_face2, offset);
 }
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
 	auto offset = get_offset();
-	if (not offset)
-		return;
+
 	left_hand->set_inputs(inputs, offset);
 	right_hand->set_inputs(inputs, offset);
 }

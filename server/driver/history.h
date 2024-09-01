@@ -20,6 +20,7 @@
 #pragma once
 
 #include "clock_offset.h"
+#include "util/u_logging.h"
 #include <algorithm>
 #include <cstddef>
 #include <list>
@@ -47,6 +48,15 @@ protected:
 		// Discard outdated data, packets could be reordered
 		if (not data.empty())
 		{
+			// keep only one sample if the clock_offset is unreliable
+			if (not offset)
+			{
+				U_LOG_D("not using history: clock_offset not stable");
+				data.clear();
+				data.emplace_back(sample, produced, t);
+				return;
+			}
+
 			if (data.back().produced_timestamp > produced)
 				return;
 		}

@@ -32,13 +32,13 @@ struct clock_offset
 {
 	// y: headset time
 	// x: server time
-	// y = ax+b
+	// y = x+b
 	int64_t b = 0;
-	double a = 1;
+	bool stable = false;
 
 	operator bool() const
 	{
-		return b != 0;
+		return stable;
 	}
 
 	XrTime from_headset(XrTime) const;

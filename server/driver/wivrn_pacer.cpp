@@ -68,7 +68,7 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 	    feedback.displayed and
 	    feedback.frame_index == last.frame_index + 1)
 	{
-		frame_duration_ns = std::lerp(frame_duration_ns, (feedback.displayed - last.displayed) / offset.a, 0.1);
+		frame_duration_ns = std::lerp(frame_duration_ns, (feedback.displayed - last.displayed), 0.1);
 	}
 
 	auto blitted = feedback.blitted;

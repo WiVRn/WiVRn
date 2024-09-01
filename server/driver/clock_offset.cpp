@@ -58,7 +58,7 @@ void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset:
 	}
 	else
 	{
-		sample_interval = std::chrono::seconds(1);
+		sample_interval = std::chrono::milliseconds(100);
 		int64_t latency = 0;
 		for (const auto & s: samples)
 			latency += s.received - s.query;
@@ -88,12 +88,11 @@ void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset:
 		x0 += (s.query + s.received) * 0.5;
 		y0 += s.response;
 	}
-	x0 /= n;
-	y0 /= n;
+	x0 *= inv_n;
+	y0 *= inv_n;
 
 	if (samples.size() < num_samples)
 	{
-		offset.a = 1;
 		offset.b = y0 - x0;
 		return;
 	}
@@ -120,15 +119,14 @@ void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset:
 
 	double mean_x = sum_x * inv_n;
 	double mean_y = sum_y * inv_n;
-	// y = ax + b
-	double cov = inv_n * sum_xy - mean_x * mean_y;
-	double v = inv_n * sum_x2 - mean_x * mean_x;
-	double a = cov / v;
-	double b = mean_y - a * mean_x;
 
-	offset.a = a;
-	offset.b = y0 + b - int64_t(a * x0);
-	U_LOG_D("clock relations: headset = a*x+b where a=%f b=%ldµs", offset.a, offset.b / 1000);
+	double b = y0 + (mean_y - mean_x) - x0;
+
+	// b changed less than 20ms
+	offset.stable = std::abs((b - (double)offset.b)) < 20'000'000;
+
+	offset.b = b;
+	U_LOG_D("clock relations: headset = x+b where b=%ldµs", offset.b / 1000);
 }
 
 clock_offset clock_offset_estimator::get_offset()
@@ -139,10 +137,10 @@ clock_offset clock_offset_estimator::get_offset()
 
 XrTime clock_offset::from_headset(XrTime ts) const
 {
-	return (ts - b) / a;
+	return ts - b;
 }
 
 XrTime clock_offset::to_headset(XrTime timestamp_ns) const
 {
-	return a * timestamp_ns + b;
+	return timestamp_ns + b;
 }
