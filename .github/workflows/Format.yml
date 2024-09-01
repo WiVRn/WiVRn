@@ -11,6 +11,7 @@ jobs:
         path:
           - 'client'
           - 'server'
+          - 'dashboard'
           - 'common'
           - 'tools/wireshark'
     steps:

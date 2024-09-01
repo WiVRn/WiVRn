@@ -26,6 +26,7 @@ auto_option(WIVRN_USE_SYSTEMD "Use libsystemd" AUTO)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
+option(WIVRN_BUILD_DASHBOARD "Build WiVRn dashboard" ON)
 option(WIVRN_BUILD_DISSECTOR "Build Wireshark dissector" OFF)
 option(WIVRN_WERROR "Treat warnings as errors" OFF)
 
@@ -42,6 +43,8 @@ option(WIVRN_FEATURE_SOLARXR "Enable SolarXR driver" OFF)
 option(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH OFF)
 
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
+
+set(WIVRN_CLIENT_URL "https://github.com/WiVRn/WiVRn/releases/latest/download/WiVRn-standard-release.apk" CACHE STRING "URL used to download the client in the GUI")
 
 if(ENABLE_COLOURED_OUTPUT)
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -144,6 +147,13 @@ if (WIVRN_BUILD_SERVER)
     pkg_check_modules(glib2 REQUIRED IMPORTED_TARGET glib-2.0 gio-2.0 gio-unix-2.0)
 endif()
 
+if (WIVRN_BUILD_DASHBOARD)
+    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets DBus Network LinguistTools)
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_AUTORCC ON)
+    set(CMAKE_AUTOUIC ON)
+endif()
+
 if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
     pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavcodec libavutil libswscale libavfilter)
     find_package(Fontconfig REQUIRED)
@@ -219,9 +229,14 @@ if (WIVRN_BUILD_SERVER)
     message("\tsystemd: ${WIVRN_USE_SYSTEMD}")
 endif()
 
+if (WIVRN_BUILD_DASHBOARD)
+    add_subdirectory(dashboard)
+    set_target_properties(wivrn-dashboard PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/server)
+endif()
+
 add_subdirectory(tools)
 
-foreach(TARGET_NAME wivrn wivrn-server wivrn-common wivrn-dissector)
+foreach(TARGET_NAME wivrn wivrn-server wivrn-dashboard wivrn-common wivrn-dissector)
     if(TARGET ${TARGET_NAME})
         target_compile_options(${TARGET_NAME} PRIVATE
             -fdiagnostics-color -Wall -Wextra -pedantic

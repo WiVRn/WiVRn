@@ -1,7 +1,7 @@
 id: io.github.wivrn.wivrn
-runtime: org.freedesktop.Platform
-runtime-version: '23.08'
-sdk: org.freedesktop.Sdk
+runtime: org.kde.Platform
+runtime-version: '6.7'
+sdk: org.kde.Sdk
 command: launch-wivrn-server
 
 finish-args:
@@ -26,6 +26,8 @@ finish-args:
   # Let outside application access the WiVRn socket
   - --filesystem=xdg-run/wivrn:create
   - --own-name=io.github.wivrn.Server
+  # QSystemTrayIcon
+  - --talk-name=org.kde.StatusNotifierWatcher
 
 cleanup:
   - /lib/pkgconfig
@@ -144,6 +146,8 @@ modules:
     config-opts:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DWIVRN_BUILD_CLIENT=OFF
+      - -DWIVRN_BUILD_SERVER=ON
+      - -DWIVRN_BUILD_DASHBOARD=ON
       - -DWIVRN_USE_VAAPI=ON
       - -DWIVRN_USE_X264=ON
       - -DWIVRN_USE_NVENC=ON
@@ -198,7 +202,7 @@ modules:
         - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
         - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
         -
-        - wivrn-server
+        - wivrn-dashboard
         -
         - rm -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
         - if [ -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup ]

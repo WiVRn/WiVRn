@@ -5,5 +5,4 @@ GenericName=WiVRn server
 Exec=launch-wivrn-server
 Icon=io.github.wivrn.wivrn
 Type=Application
-Categories=ConsoleOnly
-Terminal=true
+Categories=Network;Game

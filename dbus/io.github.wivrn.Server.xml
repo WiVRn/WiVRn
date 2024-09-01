@@ -10,6 +10,7 @@
 		<method name="GetAll">
 			<arg name="interface_name" direction="in" type="s"/>
 			<arg name="props" direction="out" type="a{sv}"/>
+			<annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
 		</method>
 		<method name="Set">
 			<arg name="interface_name" direction="in" type="s"/>
@@ -19,6 +20,7 @@
 		<signal name="PropertiesChanged">
 			<arg type="s" name="interface_name"/>
 			<arg type="a{sv}" name="changed_properties"/>
+			<annotation name="org.qtproject.QtDBus.QtTypeName.Out1" value="QVariantMap"/>
 			<arg type="as" name="invalidated_properties"/>
 		</signal>
 	</interface>
@@ -32,14 +34,20 @@
 		<property name="JsonConfiguration"     type="s" access="readwrite"/>
 
 		<!-- Data from the headset info packet -->
-		<property name="RecommendedEyeSize"    type="(uu)" access="read"/>
-		<property name="AvailableRefreshRates" type="ad" access="read"/>
+		<property name="RecommendedEyeSize"    type="(uu)" access="read">
+			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QSize"/>
+		</property>
+		<property name="AvailableRefreshRates" type="ad" access="read">
+			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;double&gt;"/>
+		</property>
 		<property name="PreferredRefreshRate"  type="d" access="read"/>
 		<property name="SpeakerChannels"       type="u" access="read"/>
 		<property name="SpeakerSampleRate"     type="u" access="read"/>
 		<property name="MicChannels"           type="u" access="read"/>
 		<property name="MicSampleRate"         type="u" access="read"/>
-		<property name="FieldOfView"           type="a(dddd)" access="read"/>
+		<property name="FieldOfView"           type="a(dddd)" access="read">
+			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;field_of_view&gt;"/>
+		</property>
 		<property name="HandTracking"          type="b" access="read"/>
 		<property name="EyeGaze"               type="b" access="read"/>
 		<property name="FaceTracking"          type="b" access="read"/>

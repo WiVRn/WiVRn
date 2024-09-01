@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component type="console-application">
+<component type="desktop-application">
 	<id>io.github.wivrn.wivrn</id>
 	<name>WiVRn server</name>
 	<metadata_license>FSFAP</metadata_license>
@@ -40,6 +40,18 @@
 	</branding>
 
 	<launchable type="desktop-id">io.github.wivrn.wivrn.desktop</launchable>
+
+	<categories>
+		<category>Game</category>
+		<category>Network</category>
+	</categories>
+
+	<screenshots>
+		<screenshot type="default">
+			<image type="source">https://wivrn.github.io/assets/img/mountains.jpeg</image>
+			<caption>A caption</caption>
+		</screenshot>
+	</screenshots>
 
 	<url type="homepage">https://wivrn.github.io</url>
 	<url type="vcs-browser">https://www.github.com/WiVRn/WiVRn</url>

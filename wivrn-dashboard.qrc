@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/wivrn.svg</file>
+        <file>assets/wivrn.png</file>
+    </qresource>
+</RCC>
