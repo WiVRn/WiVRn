@@ -61,10 +61,19 @@ protected:
 				return;
 		}
 
-		// Only keep one predicted value
-		// It should be the last one
-		if (not data.empty() and t != produced and data.back().at_timestamp_ns != data.back().produced_timestamp)
-			data.pop_back();
+		// Discard outdated predictions
+		if (t != produced)
+		{
+			for (auto it = data.begin(); it != data.end();)
+			{
+				if (it->at_timestamp_ns == it->produced_timestamp // not a prediction
+				    or it->produced_timestamp >= produced         // recent prediction
+				    or it->at_timestamp_ns > t + 1'000'000)       // we don't have far enough data yet
+					++it;
+				else
+					it = data.erase(it);
+			}
+		}
 
 		// Insert the new sample
 		auto it = std::lower_bound(data.begin(), data.end(), t, [](TimedData & sample, uint64_t t) { return sample.at_timestamp_ns < t; });

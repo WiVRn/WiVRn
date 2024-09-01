@@ -80,7 +80,9 @@ private:
 	std::thread network_thread;
 	std::mutex local_floor_mutex;
 	xr::space local_floor;
-	std::atomic<std::chrono::nanoseconds::rep> tracking_prediction_offset;
+	std::atomic<std::chrono::nanoseconds::rep> tracking_prediction_offset = 0;
+	std::atomic<XrDuration> display_time_phase = 0;
+	std::atomic<XrDuration> display_time_period = 0;
 	std::optional<std::thread> tracking_thread;
 
 	std::shared_mutex decoder_mutex;

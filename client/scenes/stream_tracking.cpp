@@ -193,8 +193,9 @@ void scenes::stream::tracking()
 			timer t(instance);
 
 			XrDuration prediction = std::min<XrDuration>(tracking_prediction_offset, 80'000'000);
+			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
 			// 1 or 2 samples
-			for (XrDuration Δt = 0; Δt <= prediction; Δt += std::max<XrDuration>(1, prediction))
+			for (XrDuration Δt = 0; Δt <= prediction + period / 2; Δt += period)
 			{
 				from_headset::hand_tracking hands{};
 				from_headset::fb_face2 fb_face2{};
@@ -264,6 +265,10 @@ void scenes::stream::tracking()
 					    e.code().value() != XR_ERROR_TIME_INVALID)
 						throw;
 				}
+
+				// Make sure predictions are phase-synced with display time
+				if (Δt == 0 and prediction)
+					Δt = display_time_phase - t0 % period;
 			}
 
 #ifdef __ANDROID__
