@@ -1,7 +1,6 @@
 #pragma once
 
 #include <avahi-client/publish.h>
-#include <avahi-common/simple-watch.h>
 #include <avahi-common/watch.h>
 #include <map>
 #include <string>
@@ -15,7 +14,7 @@ class avahi_publisher
 	int port;
 	std::vector<std::string> txt;
 
-	AvahiSimplePoll * avahi_poll{};
+	const AvahiPoll * poll_api{};
 	AvahiClient * avahi_client{};
 
 	void alt_name();
@@ -32,16 +31,8 @@ class avahi_publisher
 	                            void * userdata /**< The user data that was passed to avahi_client_new() */);
 
 public:
-	avahi_publisher(const char * name, std::string type, int port, const std::map<std::string, std::string> & txt = {});
-
+	avahi_publisher(const AvahiPoll * poll_api, const std::string & name, std::string type, int port, const std::map<std::string, std::string> & txt = {});
+	avahi_publisher(const avahi_publisher &) = delete;
+	avahi_publisher & operator=(const avahi_publisher &) = delete;
 	~avahi_publisher();
-
-	AvahiWatch * watch_new(int fd,
-	                       AvahiWatchEvent event,
-	                       void (*callback)(AvahiWatch * w, int fd, AvahiWatchEvent event, void * userdata),
-	                       void * userdata);
-
-	void watch_free(AvahiWatch * watch);
-
-	bool iterate(int sleep_time = -1);
 };

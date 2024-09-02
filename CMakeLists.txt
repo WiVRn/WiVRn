@@ -139,7 +139,7 @@ if (WIVRN_BUILD_SERVER)
         pkg_check_modules(libpulse REQUIRED IMPORTED_TARGET libpulse)
     endif()
 
-    pkg_check_modules(AVAHI REQUIRED IMPORTED_TARGET avahi-client)
+    pkg_check_modules(AVAHI REQUIRED IMPORTED_TARGET avahi-client avahi-glib)
     find_package(Eigen3 REQUIRED)
     find_package(nlohmann_json REQUIRED)
     find_package(CLI11 REQUIRED)

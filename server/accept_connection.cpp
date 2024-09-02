@@ -19,53 +19,47 @@
 
 #include "accept_connection.h"
 
-#include "avahi_publisher.h"
-#include "driver/configuration.h"
-#include "hostname.h"
-#include "version.h"
 #include "wivrn_packets.h"
 #include "wivrn_sockets.h"
 
-#include <map>
-#include <string>
+#include <sys/poll.h>
 
-static void avahi_set_bool_callback(AvahiWatch * w, int fd, AvahiWatchEvent event, void * userdata)
+extern int control_pipe_fd;
+
+static void report_status(int status)
 {
-	bool * flag = (bool *)userdata;
-	*flag = true;
+	uint8_t status_byte = status;
+	write(control_pipe_fd, &status_byte, sizeof(status_byte));
 }
 
 std::unique_ptr<xrt::drivers::wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit)
 {
-	char protocol_string[17];
-	sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
-
-	std::map<std::string, std::string> TXT = {
-	        {"protocol", protocol_string},
-	        {"version", xrt::drivers::wivrn::git_version},
-	        {"cookie", server_cookie()},
-	};
-
-	avahi_publisher publisher(hostname().c_str(), "_wivrn._tcp", xrt::drivers::wivrn::default_port, TXT);
+	report_status(0);
 
 	xrt::drivers::wivrn::TCPListener listener(xrt::drivers::wivrn::default_port);
-	bool client_connected = false;
-	bool fd_triggered = false;
 
-	AvahiWatch * watch_listener = publisher.watch_new(listener.get_fd(), AVAHI_WATCH_IN, &avahi_set_bool_callback, &client_connected);
-	AvahiWatch * watch_user = publisher.watch_new(watch_fd, AVAHI_WATCH_IN, &avahi_set_bool_callback, &fd_triggered);
+	pollfd fds[2]{
+	        {.fd = watch_fd, .events = POLLIN},
+	        {.fd = listener.get_fd(), .events = POLLIN},
+	};
 
-	while (not(client_connected or fd_triggered or (quit and quit())))
+	while (not(quit and quit()))
 	{
-		if (not publisher.iterate(quit ? 100 : -1))
-			break;
+		if (poll(fds, std::size(fds), 100) < 0)
+		{
+			perror("poll");
+			return {};
+		}
+
+		if (fds[0].revents & POLLIN)
+			return {};
+
+		if (fds[1].revents & POLLIN)
+		{
+			report_status(1);
+			return std::make_unique<xrt::drivers::wivrn::TCP>(listener.accept().first);
+		}
 	}
 
-	publisher.watch_free(watch_listener);
-	publisher.watch_free(watch_user);
-
-	if (client_connected)
-		return std::make_unique<xrt::drivers::wivrn::TCP>(listener.accept().first);
-
-	return nullptr;
+	return {};
 }

@@ -131,19 +131,17 @@ void avahi_publisher::client_callback(AvahiClient * s,
 	}
 }
 
-avahi_publisher::avahi_publisher(const char * name, std::string type, int port, const std::map<std::string, std::string> & txt) :
-        name(avahi_strdup(name)), type(std::move(type)), port(port)
+avahi_publisher::avahi_publisher(const AvahiPoll * poll_api, const std::string & name, std::string type, int port, const std::map<std::string, std::string> & txt) :
+        poll_api(poll_api), name(avahi_strdup(name.c_str())), type(std::move(type)), port(port)
 {
 	for (const auto & [key, value]: txt)
 	{
 		this->txt.push_back(key + "=" + value);
 	}
 
-	avahi_poll = avahi_simple_poll_new();
-
 	int error;
 	avahi_client = avahi_client_new(
-	        avahi_simple_poll_get(avahi_poll),
+	        poll_api,
 	        (AvahiClientFlags)0,
 	        &client_callback,
 	        this,
@@ -157,31 +155,19 @@ avahi_publisher::~avahi_publisher()
 {
 	avahi_free(name);
 	avahi_client_free(avahi_client);
-	avahi_simple_poll_free(avahi_poll);
 }
-
+/*
 AvahiWatch * avahi_publisher::watch_new(int fd,
                                         AvahiWatchEvent event,
                                         void (*callback)(AvahiWatch * w, int fd, AvahiWatchEvent event, void * userdata),
                                         void * userdata)
 {
-	AvahiWatch * watch = avahi_simple_poll_get(avahi_poll)
-	                             ->watch_new(avahi_simple_poll_get(avahi_poll), fd, event, callback, userdata);
+        AvahiWatch * watch = poll_api->watch_new(poll_api, fd, event, callback, userdata);
 
-	return watch;
+        return watch;
 }
 
 void avahi_publisher::watch_free(AvahiWatch * watch)
 {
-	avahi_simple_poll_get(avahi_poll)->watch_free(watch);
-}
-
-bool avahi_publisher::iterate(int sleep_time)
-{
-	int r = avahi_simple_poll_iterate(avahi_poll, sleep_time);
-
-	if (r < 0 && errno != EINTR)
-		throw std::system_error(errno, std::system_category(), "avahi_simple_poll_iterate: ");
-
-	return r == 0;
-}
+        poll_api->watch_free(watch);
+}*/
