@@ -178,6 +178,7 @@ void scenes::stream::tracking()
 
 	XrTime t0 = instance.now();
 	from_headset::tracking packet{};
+	int skip_samples = 0;
 
 	while (not exiting)
 	{
@@ -191,11 +192,17 @@ void scenes::stream::tracking()
 			t0 = std::max(t0, now);
 
 			timer t(instance);
+			int samples = 0;
+
+			auto send_stream = [&, this](auto && data) {
+				t.pause();
+				network_session->send_stream(data);
+				t.resume();
+			};
 
 			XrDuration prediction = std::min<XrDuration>(tracking_prediction_offset, 80'000'000);
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
-			// 1 or 2 samples
-			for (XrDuration Δt = 0; Δt <= prediction + period / 2; Δt += period)
+			for (XrDuration Δt = 0; Δt <= prediction + period / 2; Δt += period, ++samples)
 			{
 				from_headset::hand_tracking hands{};
 				from_headset::fb_face2 fb_face2{};
@@ -228,36 +235,24 @@ void scenes::stream::tracking()
 						packet.device_poses.push_back(locate_space(device, space, local_floor, t0 + Δt));
 					}
 
-					t.pause();
-					network_session->send_stream(packet);
-					t.resume();
+					send_stream(packet);
 
 					if (application::get_hand_tracking_supported())
 					{
 						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::left;
 						hands.joints = locate_hands(application::get_left_hand(), local_floor, hands.timestamp);
-						t.pause();
-						network_session->send_stream(hands);
-						t.resume();
+						send_stream(hands);
 
 						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::right;
 						hands.joints = locate_hands(application::get_right_hand(), local_floor, hands.timestamp);
-						t.pause();
-						network_session->send_stream(hands);
-						t.resume();
+						send_stream(hands);
 					}
 
 					if (application::get_fb_face_tracking2_supported())
 					{
 						application::get_fb_face_tracker2().get_weights(t0 + Δt, &fb_face2);
-						t.pause();
-						network_session->send_stream(fb_face2);
-						t.resume();
+						send_stream(fb_face2);
 					}
-
-					XrDuration busy_time = t.count();
-					// Target: polling between 1 and 5ms, with 20% busy time
-					tracking_period = std::clamp<XrDuration>(std::lerp(tracking_period, busy_time * 5, 0.2), 1'000'000, 5'000'000);
 				}
 				catch (const std::system_error & e)
 				{
@@ -268,7 +263,18 @@ void scenes::stream::tracking()
 
 				// Make sure predictions are phase-synced with display time
 				if (Δt == 0 and prediction)
-					Δt = display_time_phase - t0 % period;
+				{
+					Δt = display_time_phase - t0 % period + skip_samples * period;
+				}
+			}
+
+			XrDuration busy_time = t.count();
+			// Target: polling between 1 and 5ms, with 20% busy time
+			tracking_period = std::clamp<XrDuration>(std::lerp(tracking_period, busy_time * 5, 0.2), 1'000'000, 5'000'000);
+
+			if (busy_time / samples > 2'000'000)
+			{
+				skip_samples = busy_time / 2'000'000;
 			}
 
 #ifdef __ANDROID__
