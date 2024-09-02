@@ -39,6 +39,7 @@ class history
 	std::mutex mutex;
 	std::list<TimedData> data;
 	XrTime last_request;
+	XrTime last_produced;
 
 protected:
 	history() :
@@ -52,6 +53,7 @@ protected:
 		std::lock_guard lock(mutex);
 
 		bool active = produced - last_request < 1'000'000'000;
+		last_produced = std::max(produced, last_produced);
 
 		// Discard outdated data, packets could be reordered
 		if (not data.empty())
@@ -102,7 +104,7 @@ public:
 	std::pair<std::chrono::nanoseconds, Data> get_at(XrTime at_timestamp_ns)
 	{
 		std::lock_guard lock(mutex);
-		std::chrono::nanoseconds ex(0);
+		std::chrono::nanoseconds ex(std::max<XrTime>(0, at_timestamp_ns - last_produced));
 
 		last_request = at_timestamp_ns;
 
@@ -139,14 +141,12 @@ public:
 		{
 			if (after->at_timestamp_ns > at_timestamp_ns)
 			{
-				ex = std::chrono::nanoseconds(at_timestamp_ns - std::min(before->produced_timestamp, after->produced_timestamp));
 				float t = float(after->at_timestamp_ns - at_timestamp_ns) /
 				          (after->at_timestamp_ns - before->at_timestamp_ns);
 				return {ex, Derived::interpolate(*before, *after, t)};
 			}
 		}
 
-		ex = std::chrono::nanoseconds(at_timestamp_ns - data.back().produced_timestamp);
 		if constexpr (extrapolate)
 		{
 			auto prev = data.rbegin();
