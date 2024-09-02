@@ -268,6 +268,8 @@ void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const c
 
 void wivrn_hmd::update_battery(const from_headset::battery & new_battery)
 {
+	// We will only request a new sample if the current one is consumed
+	cnx->set_enabled(to_headset::tracking_control::id::battery, false);
 	std::lock_guard lock(mutex);
 	battery = new_battery;
 }
@@ -312,6 +314,8 @@ xrt_result_t wivrn_hmd::get_battery_status(struct xrt_device * xdev,
                                            bool * out_charging,
                                            float * out_charge)
 {
+	cnx->set_enabled(to_headset::tracking_control::id::battery, true);
+
 	std::lock_guard lock(mutex);
 	*out_present = battery.present;
 	*out_charging = battery.charging;

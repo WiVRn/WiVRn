@@ -24,14 +24,14 @@
 
 class hand_joints_list : public history<hand_joints_list, xrt_hand_joint_set>
 {
-	int hand_id;
-
 public:
+	const int hand_id;
+
 	static xrt_hand_joint_set interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t);
 	static xrt_hand_joint_set extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, uint64_t ta, uint64_t tb, uint64_t t);
 
 	hand_joints_list(int hand_id) :
 	        hand_id(hand_id) {}
 
-	void update_tracking(const xrt::drivers::wivrn::from_headset::hand_tracking & tracking, const clock_offset & offset);
+	bool update_tracking(const xrt::drivers::wivrn::from_headset::hand_tracking & tracking, const clock_offset & offset);
 };

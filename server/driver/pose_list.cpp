@@ -60,16 +60,16 @@ xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xr
 	return res;
 }
 
-void pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
+bool pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	for (const auto & pose: tracking.device_poses)
 	{
 		if (pose.device != device)
 			continue;
 
-		add_sample(tracking.production_timestamp, tracking.timestamp, convert_pose(pose), offset);
-		return;
+		return add_sample(tracking.production_timestamp, tracking.timestamp, convert_pose(pose), offset);
 	}
+	return true;
 }
 
 xrt_space_relation pose_list::convert_pose(const from_headset::tracking::pose & pose)

@@ -315,9 +315,11 @@ xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, uint6
 	{
 		case XRT_INPUT_TOUCH_AIM_POSE:
 			std::tie(extrapolation_time, res) = aim.get_at(at_timestamp_ns);
+			cnx->set_enabled(aim.device, true);
 			break;
 		case XRT_INPUT_TOUCH_GRIP_POSE:
 			std::tie(extrapolation_time, res) = grip.get_at(at_timestamp_ns);
+			cnx->set_enabled(grip.device, true);
 			break;
 		default:
 			U_LOG_W("Unknown input name requested");
@@ -335,6 +337,7 @@ std::pair<xrt_hand_joint_set, uint64_t> wivrn_controller::get_hand_tracking(xrt_
 		case XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT: {
 			auto [extrapolation_time, data] = joints.get_at(desired_timestamp_ns);
 			cnx->add_predict_offset(extrapolation_time);
+			cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, true);
 			return {data, desired_timestamp_ns};
 		}
 
@@ -346,13 +349,16 @@ std::pair<xrt_hand_joint_set, uint64_t> wivrn_controller::get_hand_tracking(xrt_
 
 void wivrn_controller::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	aim.update_tracking(tracking, offset);
-	grip.update_tracking(tracking, offset);
+	if (not aim.update_tracking(tracking, offset))
+		cnx->set_enabled(aim.device, false);
+	if (not grip.update_tracking(tracking, offset))
+		cnx->set_enabled(grip.device, false);
 }
 
 void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
-	joints.update_tracking(tracking, offset);
+	if (not joints.update_tracking(tracking, offset))
+		cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, false);
 }
 
 void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)

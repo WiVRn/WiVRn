@@ -356,12 +356,26 @@ struct timesync_query
 	XrTime query;
 };
 
-struct prediction_offset
+struct tracking_control
 {
+	enum class id
+	{
+		left_aim,
+		left_grip,
+		right_aim,
+		right_grip,
+		left_hand,
+		right_hand,
+		face,
+		battery,
+
+		last = battery,
+	};
 	std::chrono::nanoseconds offset;
+	std::array<bool, size_t(id::last) + 1> enabled;
 };
 
-using packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query, prediction_offset>;
+using packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query, tracking_control>;
 
 } // namespace to_headset
 

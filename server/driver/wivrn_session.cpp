@@ -39,6 +39,7 @@
 
 #include "xrt/xrt_session.h"
 #include <cmath>
+#include <magic_enum.hpp>
 #include <vulkan/vulkan.h>
 
 struct wivrn_comp_target_factory : public comp_target_factory
@@ -78,16 +79,25 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	}
 };
 
-void xrt::drivers::wivrn::max_accumulator::send(wivrn_connection & connection)
+void xrt::drivers::wivrn::tracking_control_t::send(wivrn_connection & connection)
 {
 	if (std::chrono::steady_clock::now() < next_sample)
 		return;
 
 	if (auto offset = max.exchange(0))
-		connection.send_stream(to_headset::prediction_offset{
+		connection.send_stream(to_headset::tracking_control{
 		        .offset = std::chrono::nanoseconds(offset),
+		        .enabled = enabled,
 		});
 	next_sample += std::chrono::seconds(1);
+}
+
+void xrt::drivers::wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id, bool enabled)
+{
+	std::lock_guard lock(mutex);
+	if (enabled != this->enabled[size_t(id)])
+		U_LOG_I("%s tracking: %s", std::string(magic_enum::enum_name(id)).c_str(), enabled ? "enabled" : "disabled");
+	this->enabled[size_t(id)] = enabled;
 }
 
 xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, u_system & system) :
@@ -300,6 +310,30 @@ void wivrn_session::operator()(from_headset::timesync_response && timesync)
 	offset_est.add_sample(timesync);
 }
 
+static auto to_tracking_control(device_id id)
+{
+	using tid = to_headset::tracking_control::id;
+	switch (id)
+	{
+		case device_id::LEFT_AIM:
+			return tid::left_aim;
+		case device_id::LEFT_GRIP:
+			return tid::left_grip;
+		case device_id::RIGHT_AIM:
+			return tid::right_aim;
+		case device_id::RIGHT_GRIP:
+			return tid::right_grip;
+		default:
+			break;
+	}
+	__builtin_unreachable();
+}
+
+void wivrn_session::set_enabled(device_id id, bool enabled)
+{
+	tracking_control.set_enabled(to_tracking_control(id), enabled);
+}
+
 void wivrn_session::operator()(from_headset::feedback && feedback)
 {
 	assert(comp_target);
@@ -343,7 +377,7 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 			if (self and not self->quit)
 			{
 				self->offset_est.request_sample(self->connection);
-				self->predict_offset.send(self->connection);
+				self->tracking_control.send(self->connection);
 				self->connection.poll(*self, 20);
 			}
 			else

@@ -36,5 +36,5 @@ public:
 	static tracked_views interpolate(const tracked_views & a, const tracked_views & b, float t);
 	static tracked_views extrapolate(const tracked_views & a, const tracked_views & b, uint64_t ta, uint64_t tb, uint64_t t);
 
-	void update_tracking(const from_headset::tracking & tracking, const clock_offset & offset);
+	bool update_tracking(const from_headset::tracking & tracking, const clock_offset & offset);
 };

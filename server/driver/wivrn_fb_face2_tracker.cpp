@@ -79,13 +79,15 @@ void wivrn_fb_face2_tracker::update_tracking(const from_headset::fb_face2 & face
 	data.weights = face.weights;
 	data.confidences = face.confidences;
 
-	face_list.update_tracking(face.production_timestamp, face.timestamp, data, offset);
+	if (not face_list.update_tracking(face.production_timestamp, face.timestamp, data, offset))
+		cnx->set_enabled(to_headset::tracking_control::id::face, false);
 }
 
 xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facial_expression_type, struct xrt_facial_expression_set * inout_value)
 {
 	if (facial_expression_type == XRT_INPUT_FB_FACE_TRACKING2_VISUAL)
 	{
+		cnx->set_enabled(to_headset::tracking_control::id::face, true);
 		auto [_, data] = face_list.get_at(inout_value->face_expression_set2_fb.sample_time_ns);
 
 		inout_value->face_expression_set2_fb.is_valid = data.is_valid;

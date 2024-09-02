@@ -20,6 +20,7 @@
 #pragma once
 
 #include "clock_offset.h"
+#include "os/os_time.h"
 #include "util/u_logging.h"
 #include <algorithm>
 #include <cstddef>
@@ -37,13 +38,20 @@ class history
 
 	std::mutex mutex;
 	std::list<TimedData> data;
+	XrTime last_request;
 
 protected:
-	void add_sample(XrTime produced_timestamp, XrTime timestamp, const Data & sample, const clock_offset & offset)
+	history() :
+	        last_request(os_monotonic_get_ns()) {}
+
+	// return true if object is active (last request is not too old)
+	bool add_sample(XrTime produced_timestamp, XrTime timestamp, const Data & sample, const clock_offset & offset)
 	{
 		XrTime produced = offset.from_headset(produced_timestamp);
 		XrTime t = offset.from_headset(timestamp);
 		std::lock_guard lock(mutex);
+
+		bool active = produced - last_request < 1'000'000'000;
 
 		// Discard outdated data, packets could be reordered
 		if (not data.empty())
@@ -54,11 +62,11 @@ protected:
 				U_LOG_D("not using history: clock_offset not stable");
 				data.clear();
 				data.emplace_back(sample, produced, t);
-				return;
+				return active;
 			}
 
 			if (data.back().produced_timestamp > produced)
-				return;
+				return active;
 		}
 
 		// Discard outdated predictions
@@ -86,6 +94,8 @@ protected:
 
 		while (data.size() > MaxSamples)
 			data.pop_front();
+
+		return active;
 	}
 
 public:
@@ -93,6 +103,8 @@ public:
 	{
 		std::lock_guard lock(mutex);
 		std::chrono::nanoseconds ex(0);
+
+		last_request = at_timestamp_ns;
 
 		if (data.empty())
 		{

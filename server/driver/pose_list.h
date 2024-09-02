@@ -26,16 +26,16 @@
 
 class pose_list : public history<pose_list, xrt_space_relation>
 {
-	xrt::drivers::wivrn::device_id device;
-
 public:
+	const xrt::drivers::wivrn::device_id device;
+
 	static xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t);
 	static xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, uint64_t ta, uint64_t tb, uint64_t t);
 
 	pose_list(xrt::drivers::wivrn::device_id id) :
 	        device(id) {}
 
-	void update_tracking(const xrt::drivers::wivrn::from_headset::tracking &, const clock_offset & offset);
+	bool update_tracking(const xrt::drivers::wivrn::from_headset::tracking &, const clock_offset & offset);
 
 	static xrt_space_relation convert_pose(const xrt::drivers::wivrn::from_headset::tracking::pose &);
 };

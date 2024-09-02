@@ -48,15 +48,20 @@ namespace xrt::drivers::wivrn
 {
 struct wivrn_comp_target;
 
-class max_accumulator
+class tracking_control_t
 {
 	using T = std::chrono::nanoseconds::rep;
 	std::atomic<T> max;
 	std::chrono::steady_clock::time_point next_sample;
+	std::mutex mutex;
+	decltype(to_headset::tracking_control::enabled) enabled;
 
 public:
-	max_accumulator() :
-	        next_sample(std::chrono::steady_clock::now()) {}
+	tracking_control_t() :
+	        next_sample(std::chrono::steady_clock::now())
+	{
+		enabled.fill(true);
+	}
 	void add(std::chrono::nanoseconds s)
 	{
 		auto sample = s.count();
@@ -66,6 +71,8 @@ public:
 		}
 	}
 	void send(wivrn_connection & connection);
+
+	void set_enabled(to_headset::tracking_control::id id, bool enabled);
 };
 
 class wivrn_session : public std::enable_shared_from_this<wivrn_session>
@@ -91,8 +98,9 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 
 	clock_offset_estimator offset_est;
 
-	// offsets in ns of each requested frame from its generation time
-	max_accumulator predict_offset;
+	// prediction offset and enabled tracking to configure client
+	tracking_control_t tracking_control;
+	std::mutex tracking_control_mutex;
 
 	std::mutex csv_mutex;
 	std::ofstream feedback_csv;
@@ -117,8 +125,15 @@ public:
 
 	void add_predict_offset(std::chrono::nanoseconds off)
 	{
-		predict_offset.add(off);
+		tracking_control.add(off);
 	}
+
+	void set_enabled(to_headset::tracking_control::id id, bool enabled)
+	{
+		tracking_control.set_enabled(id, enabled);
+	}
+
+	void set_enabled(device_id id, bool enabled);
 
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::headset_info_packet &&);

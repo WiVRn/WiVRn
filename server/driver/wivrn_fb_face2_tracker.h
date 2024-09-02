@@ -75,9 +75,9 @@ public:
 		return result;
 	}
 
-	void update_tracking(const XrTime & production_timestamp, const XrTime & timestamp, const wivrn_fb_face2_data & data, const clock_offset & offset)
+	bool update_tracking(const XrTime & production_timestamp, const XrTime & timestamp, const wivrn_fb_face2_data & data, const clock_offset & offset)
 	{
-		this->add_sample(production_timestamp, timestamp, data, offset);
+		return this->add_sample(production_timestamp, timestamp, data, offset);
 	}
 };
 

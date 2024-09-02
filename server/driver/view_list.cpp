@@ -35,7 +35,7 @@ tracked_views view_list::extrapolate(const tracked_views & a, const tracked_view
 	return result;
 }
 
-void view_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
+bool view_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	for (const auto & pose: tracking.device_poses)
 	{
@@ -53,7 +53,7 @@ void view_list::update_tracking(const from_headset::tracking & tracking, const c
 			view.fovs[eye] = xrt_cast(tracking.views[eye].fov);
 		}
 
-		add_sample(tracking.production_timestamp, tracking.timestamp, view, offset);
-		return;
+		return add_sample(tracking.production_timestamp, tracking.timestamp, view, offset);
 	}
+	return true;
 }

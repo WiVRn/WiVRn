@@ -27,6 +27,8 @@
 #include "jnipp.h"
 #endif
 
+using tid = to_headset::tracking_control::id;
+
 static from_headset::tracking::pose locate_space(device_id device, XrSpace space, XrSpace reference, XrTime time)
 {
 	XrSpaceVelocity velocity{
@@ -137,6 +139,26 @@ static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT
 		return std::nullopt;
 }
 
+static bool enabled(const to_headset::tracking_control & control, device_id id)
+{
+	switch (id)
+	{
+		case device_id::HEAD:
+			return true;
+		case device_id::LEFT_AIM:
+			return control.enabled[size_t(tid::left_aim)];
+		case device_id::LEFT_GRIP:
+			return control.enabled[size_t(tid::left_grip)];
+		case device_id::RIGHT_AIM:
+			return control.enabled[size_t(tid::right_aim)];
+		case device_id::RIGHT_GRIP:
+			return control.enabled[size_t(tid::right_grip)];
+		default:
+			break;
+	}
+	__builtin_unreachable();
+}
+
 void scenes::stream::tracking()
 {
 #ifdef __ANDROID__
@@ -200,7 +222,13 @@ void scenes::stream::tracking()
 				t.resume();
 			};
 
-			XrDuration prediction = std::min<XrDuration>(tracking_prediction_offset, 80'000'000);
+			to_headset::tracking_control control;
+			{
+				std::lock_guard lock(tracking_control_mutex);
+				control = tracking_control;
+			}
+
+			XrDuration prediction = std::min<XrDuration>(control.offset.count(), 80'000'000);
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
 			for (XrDuration Δt = 0; Δt <= prediction + period / 2; Δt += period, ++samples)
 			{
@@ -232,23 +260,30 @@ void scenes::stream::tracking()
 					std::lock_guard lock(local_floor_mutex);
 					for (auto [device, space]: spaces)
 					{
-						packet.device_poses.push_back(locate_space(device, space, local_floor, t0 + Δt));
+						if (enabled(control, device))
+							packet.device_poses.push_back(locate_space(device, space, local_floor, t0 + Δt));
 					}
 
 					send_stream(packet);
 
 					if (application::get_hand_tracking_supported())
 					{
-						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::left;
-						hands.joints = locate_hands(application::get_left_hand(), local_floor, hands.timestamp);
-						send_stream(hands);
+						if (control.enabled[size_t(tid::left_hand)])
+						{
+							hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::left;
+							hands.joints = locate_hands(application::get_left_hand(), local_floor, hands.timestamp);
+							send_stream(hands);
+						}
 
-						hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::right;
-						hands.joints = locate_hands(application::get_right_hand(), local_floor, hands.timestamp);
-						send_stream(hands);
+						if (control.enabled[size_t(tid::right_hand)])
+						{
+							hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::right;
+							hands.joints = locate_hands(application::get_right_hand(), local_floor, hands.timestamp);
+							send_stream(hands);
+						}
 					}
 
-					if (application::get_fb_face_tracking2_supported())
+					if (application::get_fb_face_tracking2_supported() and control.enabled[size_t(tid::face)])
 					{
 						application::get_fb_face_tracker2().get_weights(t0 + Δt, &fb_face2);
 						send_stream(fb_face2);
@@ -278,7 +313,7 @@ void scenes::stream::tracking()
 			}
 
 #ifdef __ANDROID__
-			if (next_battery_check < now)
+			if (next_battery_check < now and control.enabled[size_t(tid::battery)])
 			{
 				timer t2(instance);
 				from_headset::battery battery{};
@@ -317,8 +352,8 @@ void scenes::stream::tracking()
 	}
 }
 
-void scenes::stream::operator()(to_headset::prediction_offset && packet)
+void scenes::stream::operator()(to_headset::tracking_control && packet)
 {
-	if (packet.offset.count() >= 0)
-		tracking_prediction_offset = std::lerp(packet.offset.count(), tracking_prediction_offset.load(), 0.2);
+	std::lock_guard lock(tracking_control_mutex);
+	tracking_control = packet;
 }
