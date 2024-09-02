@@ -101,15 +101,18 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 
 	auto min_encode_begin = std::numeric_limits<decltype(blit_handles[0]->timing_info.encode_begin)>::max();
 	for (const auto & bh: blit_handles)
-		min_encode_begin = std::min(min_encode_begin, bh->timing_info.encode_begin);
+	{
+		if (bh)
+			min_encode_begin = std::min(min_encode_begin, bh->timing_info.encode_begin);
+	}
 
 	for (auto && [metrics, bh]: utils::zip(decoder_metrics, blit_handles))
 	{
 		if (metrics.size() != global_metrics.size())
 			metrics.resize(global_metrics.size());
 
-		metrics[metrics_offset] = decoder_metric{
-		        // clang-format off
+		// clang-format off
+		metrics[metrics_offset] = bh ? decoder_metric{
 			.encode_begin          = (bh->timing_info.encode_begin       - min_encode_begin) * 1e-9f,
 			.encode_end            = (bh->timing_info.encode_end         - min_encode_begin) * 1e-9f,
 			.send_begin            = (bh->timing_info.send_begin         - min_encode_begin) * 1e-9f,
@@ -120,8 +123,8 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 			.received_from_decoder = (bh->feedback.received_from_decoder - min_encode_begin) * 1e-9f,
 			.blitted               = (bh->feedback.blitted               - min_encode_begin) * 1e-9f,
 			.displayed             = (bh->feedback.displayed             - min_encode_begin) * 1e-9f,
-		        // clang-format on
-		};
+		}: decoder_metric{};
+		// clang-format on
 	}
 
 	metrics_offset = (metrics_offset + 1) % global_metrics.size();
