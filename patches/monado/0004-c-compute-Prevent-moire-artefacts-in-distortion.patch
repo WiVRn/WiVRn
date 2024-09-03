@@ -1,8 +1,28 @@
+From 27ead38036b39cae803fa03008e8d08b0ff73fb8 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 11 Aug 2024 18:37:48 +0200
+Subject: [PATCH] c/compute: Prevent moire artefacts in distortion
+
+If distortion shrinks some areas too much, the shader will only sample a
+few pixels and cause moire.
+Change the shader so that it averages values between samples.
+This is similar to what mipmaps would do, except that creating mipmaps
+on a compute queue is not trivial, and accessing them in compute shaders
+may be complex too.
+---
+ src/xrt/compositor/main/comp_renderer.c      |  3 +
+ src/xrt/compositor/render/render_compute.c   |  6 ++
+ src/xrt/compositor/render/render_interface.h |  3 +
+ src/xrt/compositor/shaders/distortion.comp   | 87 ++++++++++++++++----
+ src/xrt/compositor/util/comp_render.h        |  2 +
+ src/xrt/compositor/util/comp_render_cs.c     |  8 ++
+ 6 files changed, 91 insertions(+), 18 deletions(-)
+
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 1b295a324..baabd2a0c 100644
+index 4716c8a71..a39e4275e 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -1037,6 +1037,9 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1038,6 +1038,9 @@ dispatch_compute(struct comp_renderer *r,
  		// Scratch image covers the whole image.
  		struct xrt_normalized_rect layer_norm_rect = {.x = 0.0f, .y = 0.0f, .w = 1.0f, .h = 1.0f};
  
@@ -277,3 +297,6 @@ index 8201407ae..ea9d1f258 100644
  		    src_poses,                      //
  		    src_fovs,                       //
  		    world_poses,                    //
+-- 
+2.46.0
+
