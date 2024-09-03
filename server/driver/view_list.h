@@ -30,7 +30,7 @@ struct tracked_views
 	std::array<xrt_fov, 2> fovs;
 };
 
-class view_list : public history<view_list, tracked_views, true>
+class view_list : public history<view_list, tracked_views>
 {
 public:
 	static tracked_views interpolate(const tracked_views & a, const tracked_views & b, float t);

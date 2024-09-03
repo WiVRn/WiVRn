@@ -27,7 +27,7 @@
 #include <list>
 #include <mutex>
 
-template <typename Derived, typename Data, bool extrapolate = false, size_t MaxSamples = 10>
+template <typename Derived, typename Data, XrDuration extrapolation = 0, size_t MaxSamples = 10>
 class history
 {
 	struct TimedData : public Data
@@ -127,10 +127,11 @@ public:
 
 		if (data.front().at_timestamp_ns > at_timestamp_ns)
 		{
-			if constexpr (extrapolate)
+			if constexpr (extrapolation)
 			{
 				auto second = data.begin();
 				auto first = second++;
+				at_timestamp_ns = std::max(at_timestamp_ns, data.front().at_timestamp_ns - extrapolation);
 				return {ex, Derived::extrapolate(*first, *second, first->at_timestamp_ns, second->at_timestamp_ns, at_timestamp_ns)};
 			}
 			else
@@ -147,10 +148,11 @@ public:
 			}
 		}
 
-		if constexpr (extrapolate)
+		if constexpr (extrapolation)
 		{
 			auto prev = data.rbegin();
 			auto last = prev++;
+			at_timestamp_ns = std::min(at_timestamp_ns, data.back().at_timestamp_ns + extrapolation);
 			return {ex, Derived::extrapolate(*prev, *last, prev->at_timestamp_ns, last->at_timestamp_ns, at_timestamp_ns)};
 		}
 		else
