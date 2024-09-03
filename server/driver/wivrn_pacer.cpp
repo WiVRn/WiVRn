@@ -118,7 +118,7 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 		client_render_phase_ns = std::lerp(client_render_phase_ns, offset.from_headset(feedback.blitted) % frame_duration_ns, 0.1);
 	}
 
-	if (feedback.displayed)
+	if (feedback.displayed and feedback.displayed > feedback.blitted and feedback.displayed < feedback.blitted + 100'000'000)
 		mean_render_to_display_ns = std::lerp(mean_render_to_display_ns, feedback.displayed - feedback.blitted, 0.1);
 }
 void wivrn_pacer::mark_timing_point(
@@ -144,7 +144,8 @@ void wivrn_pacer::mark_timing_point(
 
 		//! Just after submitting work to the GPU.
 		case COMP_TARGET_TIMING_POINT_SUBMIT_END:
-			mean_wake_up_to_present_ns = std::lerp(mean_wake_up_to_present_ns, when_ns - last_wake_up_ns, 0.1);
+			if (when_ns > last_wake_up_ns and when_ns < last_wake_up_ns + 100'000'000)
+				mean_wake_up_to_present_ns = std::lerp(mean_wake_up_to_present_ns, when_ns - last_wake_up_ns, 0.1);
 	}
 }
 
