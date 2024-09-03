@@ -214,10 +214,14 @@ msgstr "デコード"
 msgid "Blitted"
 msgstr "レンダー"
 
-#: client/scenes/stream_stats.cpp:277
+#: client/scenes/stream_stats.cpp:299
 msgid "Displayed"
 msgstr "表示"
 
-#: client/scenes/stream_stats.cpp:293
+#: client/scenes/stream_stats.cpp:300
+msgid "Predicted"
+msgstr "予測時間"
+
+#: client/scenes/stream_stats.cpp:318
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "「Motion-to-photon」推定遅延 {}ミリ秒"
