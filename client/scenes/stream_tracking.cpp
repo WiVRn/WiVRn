@@ -144,6 +144,7 @@ static bool enabled(const to_headset::tracking_control & control, device_id id)
 	switch (id)
 	{
 		case device_id::HEAD:
+		case device_id::EYE_GAZE:
 			return true;
 		case device_id::LEFT_AIM:
 			return control.enabled[size_t(tid::left_aim)];
