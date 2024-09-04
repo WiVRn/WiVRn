@@ -183,7 +183,7 @@ void scenes::stream::tracking()
 	auto get_int_extra = jni::klass("android/content/Intent").method<jni::Int>("getIntExtra", level_jstr, default_jint);
 
 	XrTime next_battery_check = 0;
-	const XrDuration battery_check_interval = 5'000'000'000; // 5s
+	const XrDuration battery_check_interval = 30'000'000'000; // 30s
 #endif
 	std::vector<std::pair<device_id, XrSpace>> spaces = {
 	        {device_id::HEAD, application::view()},
