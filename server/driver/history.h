@@ -106,7 +106,7 @@ public:
 		std::lock_guard lock(mutex);
 		std::chrono::nanoseconds ex(std::max<XrTime>(0, at_timestamp_ns - last_produced));
 
-		last_request = at_timestamp_ns;
+		last_request = os_monotonic_get_ns();
 
 		if (data.empty())
 		{
