@@ -45,7 +45,7 @@ bool view_list::update_tracking(const from_headset::tracking & tracking, const c
 		tracked_views view{};
 
 		view.relation = pose_list::convert_pose(pose);
-		view.flags = tracking.flags;
+		view.flags = tracking.view_flags;
 
 		for (size_t eye = 0; eye < 2; ++eye)
 		{

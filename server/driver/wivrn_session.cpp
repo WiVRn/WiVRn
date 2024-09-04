@@ -20,9 +20,11 @@
 #include "wivrn_session.h"
 
 #include "accept_connection.h"
+#include "driver/xrt_cast.h"
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
 #include "main/comp_target.h"
+#include "math/m_api.h"
 #include "util/u_builders.h"
 #include "util/u_logging.h"
 #include "util/u_system.h"
@@ -236,37 +238,38 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 }
 void wivrn_session::operator()(from_headset::tracking && tracking)
 {
-	// Reset the tracking origin on reconnect
-	if (tracking.timestamp == tracking.production_timestamp)
+	if (tracking.state_flags & from_headset::tracking::state_flags::recentered)
 	{
-		for (const auto & p: tracking.device_poses)
+		for (const auto & pose: tracking.device_poses)
 		{
-			if (p.device == device_id::HEAD)
-			{
-				if (p.flags & from_headset::tracking::flags::position_valid)
-				{
-					const auto & pos = p.pose.position;
-					if (reconnect_offset.z != 0)
-					{
-						// Apply offset
-						xrt_pose offset;
-						auto tracking_origin = ((xrt_device *)hmd.get())->tracking_origin;
-						space_overseer->get_tracking_origin_offset(space_overseer, tracking_origin, &offset);
-						offset.position.x = reconnect_offset.x - pos.x;
-						offset.position.y = reconnect_offset.y - pos.y;
-						auto res = space_overseer->set_tracking_origin_offset(space_overseer, tracking_origin, &offset);
-						U_LOG_I("Updated tracking origin, offset %f,%f",
-						        reconnect_offset.x - pos.x,
-						        reconnect_offset.y - pos.y);
-					}
-					// Store latest position
-					reconnect_offset = {
-					        .x = pos.x,
-					        .y = pos.y,
-					};
-				}
-				break;
-			}
+			if (pose.device != device_id::HEAD)
+				continue;
+
+			xrt_pose offset;
+			auto tracking_origin = ((xrt_device *)hmd.get())->tracking_origin;
+			space_overseer->get_reference_space_offset(space_overseer, xrt_reference_space_type::XRT_SPACE_REFERENCE_TYPE_STAGE, &offset);
+
+			xrt_vec3 hmd_pos = xrt_cast(pose.pose.position);
+			xrt_quat hmd_quat = xrt_cast(pose.pose.orientation);
+			xrt_vec3 unit_z = XRT_VEC3_UNIT_Z;
+			xrt_vec3 unit_y = XRT_VEC3_UNIT_Y;
+
+			xrt_vec3 hmd_z;
+			math_quat_rotate_vec3(&hmd_quat, &unit_z, &hmd_z);
+
+			float angle_y = atan2(unit_z.x, unit_z.z) - atan2(hmd_z.x, hmd_z.z);
+
+			xrt_quat new_orientation;
+			math_quat_from_angle_vector(-angle_y, &unit_y, &new_orientation);
+			offset.orientation = new_orientation;
+			offset.position.x = hmd_pos.x;
+			offset.position.z = hmd_pos.z;
+
+			auto res = space_overseer->set_reference_space_offset(space_overseer, xrt_reference_space_type::XRT_SPACE_REFERENCE_TYPE_STAGE, &offset);
+			if (res != XRT_SUCCESS)
+				U_LOG_W("could not recenter: offset failed to apply!");
+
+			break;
 		}
 	}
 
@@ -453,9 +456,6 @@ void wivrn_session::reconnect()
 	{
 		U_LOG_W("Failed to notify session state change");
 	}
-
-	// Flag offset to be applied
-	reconnect_offset.z = 1;
 
 	U_LOG_I("Waiting for new connection");
 	auto tcp = accept_connection(0 /*stdin*/, [this]() { return quit_if_no_client(xrt_system); });

@@ -255,14 +255,17 @@ void scenes::stream::tracking()
 						j.fov = i.fov;
 					}
 
-					packet.flags = flags;
+					packet.view_flags = flags;
+
+					packet.state_flags = 0;
+					if (local_dirty.exchange(false))
+						packet.state_flags = xrt::drivers::wivrn::from_headset::tracking::recentered;
 
 					packet.device_poses.clear();
-					std::lock_guard lock(local_floor_mutex);
 					for (auto [device, space]: spaces)
 					{
 						if (enabled(control, device))
-							packet.device_poses.push_back(locate_space(device, space, local_floor, t0 + Δt));
+							packet.device_poses.push_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
 					send_stream(packet);
@@ -272,14 +275,14 @@ void scenes::stream::tracking()
 						if (control.enabled[size_t(tid::left_hand)])
 						{
 							hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::left;
-							hands.joints = locate_hands(application::get_left_hand(), local_floor, hands.timestamp);
+							hands.joints = locate_hands(application::get_left_hand(), world_space, hands.timestamp);
 							send_stream(hands);
 						}
 
 						if (control.enabled[size_t(tid::right_hand)])
 						{
 							hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::right;
-							hands.joints = locate_hands(application::get_right_hand(), local_floor, hands.timestamp);
+							hands.joints = locate_hands(application::get_right_hand(), world_space, hands.timestamp);
 							send_stream(hands);
 						}
 					}

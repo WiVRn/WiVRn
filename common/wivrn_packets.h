@@ -131,6 +131,11 @@ struct tracking
 		position_tracked = 1 << 5
 	};
 
+	enum state_flags : uint8_t
+	{
+		recentered = 1 << 0,
+	};
+
 	struct pose
 	{
 		device_id device;
@@ -149,7 +154,9 @@ struct tracking
 
 	XrTime production_timestamp;
 	XrTime timestamp;
-	XrViewStateFlags flags;
+	XrViewStateFlags view_flags;
+
+	uint8_t state_flags;
 
 	std::array<view, 2> views;
 	std::vector<pose> device_poses;
