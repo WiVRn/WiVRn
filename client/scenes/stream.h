@@ -134,7 +134,7 @@ public:
 	void on_focused() override;
 	void on_unfocused() override;
 
-	void operator()(to_headset::handshake &&){};
+	void operator()(to_headset::handshake &&) {};
 	void operator()(to_headset::video_stream_data_shard &&);
 	void operator()(to_headset::haptics &&);
 	void operator()(to_headset::timesync_query &&);
