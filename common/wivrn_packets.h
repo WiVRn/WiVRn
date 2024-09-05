@@ -45,8 +45,10 @@ enum class device_id : uint8_t
 	RIGHT_CONTROLLER_HAPTIC, // /user/hand/right/output/haptic
 	LEFT_GRIP,               // /user/hand/left/input/grip/pose
 	LEFT_AIM,                // /user/hand/left/input/aim/pose
+	LEFT_PALM,               // /user/hand/left/palm_ext/pose
 	RIGHT_GRIP,              // /user/hand/right/input/grip/pose
 	RIGHT_AIM,               // /user/hand/right/input/aim/pose
+	RIGHT_PALM,              // /user/hand/right/palm_ext/pose
 	X_CLICK,                 // /user/hand/left/input/x/click
 	X_TOUCH,                 // /user/hand/left/input/x/touch
 	Y_CLICK,                 // /user/hand/left/input/y/click
@@ -111,6 +113,7 @@ struct headset_info_packet
 	bool hand_tracking;
 	bool eye_gaze;
 	bool face_tracking2_fb;
+	bool palm_pose;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 };
 
@@ -373,8 +376,10 @@ struct tracking_control
 	{
 		left_aim,
 		left_grip,
+		left_palm,
 		right_aim,
 		right_grip,
+		right_palm,
 		left_hand,
 		right_hand,
 		face,

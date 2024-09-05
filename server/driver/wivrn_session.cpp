@@ -373,10 +373,14 @@ static auto to_tracking_control(device_id id)
 			return tid::left_aim;
 		case device_id::LEFT_GRIP:
 			return tid::left_grip;
+		case device_id::LEFT_PALM:
+			return tid::left_palm;
 		case device_id::RIGHT_AIM:
 			return tid::right_aim;
 		case device_id::RIGHT_GRIP:
 			return tid::right_grip;
+		case device_id::RIGHT_PALM:
+			return tid::right_palm;
 		default:
 			break;
 	}

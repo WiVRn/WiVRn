@@ -35,6 +35,8 @@ enum class spaces
 	grip_right,
 	aim_left,
 	aim_right,
+	palm_left,
+	palm_right,
 
 	count
 };

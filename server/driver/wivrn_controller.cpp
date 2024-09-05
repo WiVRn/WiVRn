@@ -33,6 +33,7 @@ enum wivrn_controller_input_index
 	WIVRN_CONTROLLER_AIM_POSE,
 	WIVRN_CONTROLLER_GRIP_POSE,
 	WIVRN_CONTROLLER_HAND_TRACKER,
+	WIVRN_CONTROLLER_PALM_POSE,
 
 	WIVRN_CONTROLLER_MENU_CLICK,                         // /user/hand/left/input/menu/click
 	WIVRN_CONTROLLER_A_CLICK,                            // /user/hand/right/input/a/click
@@ -152,6 +153,7 @@ wivrn_controller::wivrn_controller(int hand_id,
         xrt_device{},
         grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
         aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM),
+        palm(hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM),
         joints(hand_id),
         cnx(cnx)
 {
@@ -172,7 +174,7 @@ wivrn_controller::wivrn_controller(int hand_id,
 
 	inputs_array.resize(WIVRN_CONTROLLER_INPUT_COUNT);
 	inputs = inputs_array.data();
-	input_count = WIVRN_CONTROLLER_INPUT_COUNT;
+	input_count = inputs_array.size();
 
 	// Setup input.
 #define SET_INPUT(NAME)                                                        \
@@ -209,6 +211,9 @@ wivrn_controller::wivrn_controller(int hand_id,
 
 	inputs[WIVRN_CONTROLLER_HAND_TRACKER].name = hand_id == 0 ? XRT_INPUT_GENERIC_HAND_TRACKING_LEFT : XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT;
 	inputs[WIVRN_CONTROLLER_HAND_TRACKER].active = true;
+
+	inputs[WIVRN_CONTROLLER_PALM_POSE].name = XRT_INPUT_GENERIC_PALM_POSE;
+	inputs[WIVRN_CONTROLLER_PALM_POSE].active = cnx->get_info().palm_pose;
 
 	output_count = 1;
 	outputs = &haptic_output;
@@ -318,6 +323,10 @@ xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, int64
 		case XRT_INPUT_TOUCH_GRIP_POSE:
 			std::tie(extrapolation_time, res) = grip.get_at(at_timestamp_ns);
 			cnx->set_enabled(grip.device, true);
+			break;
+		case XRT_INPUT_GENERIC_PALM_POSE:
+			std::tie(extrapolation_time, res) = palm.get_at(at_timestamp_ns);
+			cnx->set_enabled(palm.device, true);
 			break;
 		default:
 			U_LOG_W("Unknown input name requested");
