@@ -559,7 +559,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 			auto joints = hand.locate(world_space, frame_state.predictedDisplayTime);
 			left_hand->apply(joints);
 
-			if (joints)
+			if (joints and xr::hand_tracker::check_flags(*joints, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
 			{
 				hide_left_controller = true;
 				if (!new_gui_position)
@@ -573,7 +573,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 			auto joints = hand.locate(world_space, frame_state.predictedDisplayTime);
 			right_hand->apply(joints);
 
-			if (joints)
+			if (joints and xr::hand_tracker::check_flags(*joints, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
 			{
 				hide_right_controller = true;
 				if (!new_gui_position)

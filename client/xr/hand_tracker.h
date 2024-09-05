@@ -44,5 +44,7 @@ public:
 	using joint = std::pair<XrHandJointLocationEXT, XrHandJointVelocityEXT>;
 
 	std::optional<std::array<joint, XR_HAND_JOINT_COUNT_EXT>> locate(XrSpace space, XrTime time);
+
+	static bool check_flags(const std::array<joint, XR_HAND_JOINT_COUNT_EXT> & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity);
 };
 } // namespace xr

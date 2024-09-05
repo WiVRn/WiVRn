@@ -61,7 +61,7 @@ hand_model::hand_model(const std::filesystem::path & gltf_path, scene_loader & l
 
 void hand_model::apply(const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & joints_location)
 {
-	if (joints_location)
+	if (joints_location and xr::hand_tracker::check_flags(*joints_location, XR_SPACE_LOCATION_POSITION_VALID_BIT | XR_SPACE_LOCATION_POSITION_TRACKED_BIT, 0))
 	{
 		root_node->visible = true;
 
