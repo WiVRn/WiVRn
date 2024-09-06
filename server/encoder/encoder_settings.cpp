@@ -228,7 +228,7 @@ static void make_even(uint16_t & value, uint16_t max)
 	value = std::min(value, max);
 }
 
-std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs)
+std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
 {
 	configuration config;
 	try
@@ -240,9 +240,11 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(wivrn_vk
 		U_LOG_E("Failed to read encoder configuration: %s", e.what());
 	}
 	if (config.encoders.empty())
-		config.encoders = get_encoder_default_settings(bundle, headset_codecs);
+		config.encoders = get_encoder_default_settings(bundle, info.supported_codecs);
 	uint64_t bitrate = config.bitrate.value_or(default_bitrate);
-	auto scale = config.scale.value_or(std::array<double, 2>{0.8, 0.8});
+	std::array<double, 2> default_scale;
+	default_scale.fill(info.eye_gaze ? 0.35 : 0.5);
+	auto scale = config.scale.value_or(default_scale);
 	for (const auto & encoder: config.encoders)
 	{
 		check_scale(encoder.name,

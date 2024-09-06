@@ -214,7 +214,7 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		        *cn->wivrn_bundle,
 		        cn->c->settings.preferred.width,
 		        cn->c->settings.preferred.height,
-		        cn->cnx->get_info().supported_codecs);
+		        cn->cnx->get_info());
 		print_encoders(cn->settings);
 	}
 	catch (const std::exception & e)

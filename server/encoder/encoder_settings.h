@@ -41,7 +41,7 @@ struct encoder_settings : public to_headset::video_stream_description::item
 	std::optional<std::string> device;
 };
 
-std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle &, uint32_t & width, uint32_t & height, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs);
+std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle &, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info);
 
 } // namespace xrt::drivers::wivrn
 

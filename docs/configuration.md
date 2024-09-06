@@ -1,6 +1,6 @@
 # Configurable items:
 ## `scale`
-Default value: `0.8`
+Default value: `0.5`, `0.35` if headset supports eye tracking
 
 Controls the size of the video stream, either a number between 0 and 1 or a pair of numbers between 0 and 1. If two numbers are provided the first one is horizontal scale and the second vertical.
 Scaling is applied in a foveated fashion: the center has a 1:1 ratio and the rest is scaled so that the total number of pixels matches the desired scale.
@@ -28,7 +28,7 @@ Bitrate of the video, in bit/s. Split among decoders based on size and codecs.
 ## `encoders`
 A list of encoders to use.
 
-Default value: single encoder if using Nvidia or software encoding. Split into 3 sequential parts (1/8th, 3/8th, 4/8th) if using vaapi.
+Default value: single encoder.
 
 WiVRn has the ability to split the video in blocks that are processed independently, this may use resources more effectively and reduce latency.
 All the provided encoders are put into groups, groups are executed concurrently and items within a group are processed sequentially.
@@ -39,7 +39,7 @@ Default value: `nvenc` if Nvidia GPU and compiled with cuda, `vaapi` for all oth
 Identifier of the encoder, one of `x264` (software encoding), `nvenc` (Nvidia hardware encoding), `vaapi` (AMD/Intel hardware encoding)
 
 ### `codec`
-Default value: `h265`
+Default value: `av1` if supported by both headset and hardware encoder, else `h265`.
 
 One of `h264`, `h265` or `av1`. If using `x264` encoder, value is ignored and `h264` is used. `av1` is only supported on `vaapi` encoder.
 
