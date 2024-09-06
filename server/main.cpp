@@ -159,16 +159,19 @@ static std::string steam_command()
 	return "PRESSURE_VESSEL_FILESYSTEMS_RW=" + pressure_vessel_filesystems_rw + " %command%";
 }
 
-int inner_main(int argc, char * argv[], bool use_systemd)
+int inner_main(int argc, char * argv[], bool use_systemd, bool show_instructions)
 {
 	std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
 
-	std::string command = steam_command();
+	if (show_instructions)
+	{
+		std::string command = steam_command();
 
-	if (auto p = active_runtime::manifest_path().string(); p.starts_with("/usr"))
-		command = "XR_RUNTIME_JSON=/run/host" + p + " " + command;
+		if (auto p = active_runtime::manifest_path().string(); p.starts_with("/usr"))
+			command = "XR_RUNTIME_JSON=/run/host" + p + " " + command;
 
-	std::cerr << "For Steam games, set command to " << command << std::endl;
+		std::cerr << "For Steam games, set command to " << command << std::endl;
+	}
 
 #ifdef WIVRN_USE_SYSTEMD
 	create_listen_socket();
@@ -399,6 +402,7 @@ int main(int argc, char * argv[])
 	std::string config_file;
 	bool use_systemd = false;
 	app.add_option("-f", config_file, "configuration file")->option_text("FILE")->check(CLI::ExistingFile);
+	auto no_instructions = app.add_flag("--no-instructions")->group("");
 #ifdef WIVRN_USE_SYSTEMD
 	// --application should only be used from wivrn-application unit file
 	auto app_flag = app.add_flag("--application")->group("");
@@ -416,7 +420,7 @@ int main(int argc, char * argv[])
 #endif
 	try
 	{
-		return inner_main(argc, argv, use_systemd);
+		return inner_main(argc, argv, use_systemd, not *no_instructions);
 	}
 	catch (std::exception & e)
 	{
