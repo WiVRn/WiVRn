@@ -142,6 +142,18 @@ if(WIVRN_USE_PULSEAUDIO)
 	target_link_libraries(wivrn-server PRIVATE PkgConfig::libpulse)
 endif()
 
+# Generate dbus interface code
+add_custom_command(OUTPUT wivrn_server_dbus.c wivrn_server_dbus.h
+		   COMMAND gdbus-codegen ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml --interface-prefix io.github.wivrn --generate-c-code wivrn_server_dbus --c-namespace Wivrn
+		   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml)
+add_custom_target(wivrn_server_dbus ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.c ${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.h)
+add_dependencies(wivrn-server wivrn_server_dbus)
+target_sources(wivrn-server PRIVATE
+	${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.c
+	${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.h
+	)
+target_include_directories(wivrn-server PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
 include(CompileGLSL)
 
 file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "shaders/*.glsl")
@@ -166,9 +178,7 @@ target_link_libraries(
 		nlohmann_json::nlohmann_json
 	)
 
-if(WIVRN_USE_GLIB)
-	target_link_libraries( wivrn-server PRIVATE PkgConfig::glib2)
-endif()
+target_link_libraries(wivrn-server PRIVATE PkgConfig::glib2)
 
 configure_file(dist/wivrn.service.in wivrn.service)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn.service

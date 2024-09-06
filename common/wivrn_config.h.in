@@ -24,7 +24,6 @@
 #cmakedefine WIVRN_USE_X264
 
 #cmakedefine WIVRN_USE_SYSTEMD
-#cmakedefine WIVRN_USE_GLIB
 
 #cmakedefine WIVRN_USE_PIPEWIRE
 #cmakedefine WIVRN_USE_PULSEAUDIO

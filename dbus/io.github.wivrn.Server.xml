@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node name="/io/github/wivrn/Server">
+	<interface name="org.freedesktop.DBus.Properties">
+		<method name="Get">
+			<arg name="interface_name" direction="in" type="s"/>
+			<arg name="property_name" direction="in" type="s"/>
+			<arg name="value" direction="out" type="v"/>
+		</method>
+		<method name="GetAll">
+			<arg name="interface_name" direction="in" type="s"/>
+			<arg name="props" direction="out" type="a{sv}"/>
+		</method>
+		<method name="Set">
+			<arg name="interface_name" direction="in" type="s"/>
+			<arg name="property_name" direction="in" type="s"/>
+			<arg name="value" direction="in" type="v"/>
+		</method>
+		<signal name="PropertiesChanged">
+			<arg type="s" name="interface_name"/>
+			<arg type="a{sv}" name="changed_properties"/>
+			<arg type="as" name="invalidated_properties"/>
+		</signal>
+	</interface>
+
+	<interface name="io.github.wivrn.Server">
+		<method name="Disconnect"/>
+		<method name="Quit"/>
+
+		<property name="HeadsetConnected"      type="b" access="read"/>
+		<property name="SteamCommand"          type="s" access="read"/>
+		<property name="JsonConfiguration"     type="s" access="readwrite"/>
+
+		<!-- Data from the headset info packet -->
+		<property name="RecommendedEyeSize"    type="(uu)" access="read"/>
+		<property name="AvailableRefreshRates" type="ad" access="read"/>
+		<property name="PreferredRefreshRate"  type="d" access="read"/>
+		<property name="SpeakerChannels"       type="u" access="read"/>
+		<property name="SpeakerSampleRate"     type="u" access="read"/>
+		<property name="MicChannels"           type="u" access="read"/>
+		<property name="MicSampleRate"         type="u" access="read"/>
+		<property name="FieldOfView"           type="a(dddd)" access="read"/>
+		<property name="HandTracking"          type="b" access="read"/>
+		<property name="EyeGaze"               type="b" access="read"/>
+		<property name="FaceTracking"          type="b" access="read"/>
+		<property name="SupportedCodecs"       type="as" access="read"/>
+	</interface>
+</node>

@@ -23,6 +23,8 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 
+std::unique_ptr<xrt::drivers::wivrn::TCP> tcp;
+
 struct cleanup_function
 {
 	void (*callback)(uintptr_t);
@@ -30,6 +32,11 @@ struct cleanup_function
 };
 
 std::array<cleanup_function, 1024> * cleanup_functions; // In shared memory
+
+std::optional<to_monado::packets> receive_from_main()
+{
+	return wivrn_ipc_socket_monado->receive();
+}
 
 void init_cleanup_functions()
 {

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include "wivrn_sockets.h"
 #include <optional>
@@ -81,11 +82,13 @@ public:
 	template <typename T>
 	int poll(T && visitor, int timeout)
 	{
-		pollfd fds[2] = {};
+		pollfd fds[3] = {};
 		fds[0].events = POLLIN;
 		fds[0].fd = stream.get_fd();
 		fds[1].events = POLLIN;
 		fds[1].fd = control.get_fd();
+		fds[2].fd = wivrn_ipc_socket_monado->get_fd();
+		fds[2].events = POLLIN;
 
 		while (auto packet = stream.receive_pending())
 			std::visit(std::forward<T>(visitor), std::move(*packet));
@@ -102,6 +105,9 @@ public:
 		if (fds[1].revents & (POLLHUP | POLLERR))
 			throw std::runtime_error("Error on control socket");
 
+		if (fds[2].revents & (POLLHUP | POLLERR))
+			throw std::runtime_error("Error on IPC socket");
+
 		if (fds[0].revents & POLLIN)
 		{
 			auto packet = stream.receive();
@@ -112,6 +118,13 @@ public:
 		if (fds[1].revents & POLLIN)
 		{
 			auto packet = control.receive();
+			if (packet)
+				std::visit(std::forward<T>(visitor), std::move(*packet));
+		}
+
+		if (fds[2].revents & POLLIN)
+		{
+			auto packet = receive_from_main();
 			if (packet)
 				std::visit(std::forward<T>(visitor), std::move(*packet));
 		}

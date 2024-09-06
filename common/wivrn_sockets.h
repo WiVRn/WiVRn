@@ -142,6 +142,8 @@ public:
 	void send_raw(const std::vector<std::span<uint8_t>> & data);
 };
 
+using UnixDatagram = UDP;
+
 class TCPListener : public fd_base
 {
 public:

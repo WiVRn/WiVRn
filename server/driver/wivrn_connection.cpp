@@ -20,10 +20,16 @@
 #include "wivrn_connection.h"
 #include "configuration.h"
 #include "util/u_logging.h"
+#include "wivrn_ipc.h"
 #include <arpa/inet.h>
 #include <poll.h>
 
 using namespace std::chrono_literals;
+
+static void handle_event_from_main_loop(to_monado::disconnect)
+{
+	// Ignore disconnect request when no headset is connected
+}
 
 wivrn_connection::wivrn_connection(TCP && tcp) :
         control(std::move(tcp)), stream(-1)
@@ -68,11 +74,13 @@ void wivrn_connection::init()
 
 	while (true)
 	{
-		pollfd fds[2] = {};
+		pollfd fds[3] = {};
 		fds[0].events = POLLIN;
 		fds[0].fd = stream.get_fd();
 		fds[1].events = POLLIN;
 		fds[1].fd = control.get_fd();
+		fds[2].fd = wivrn_ipc_socket_monado->get_fd();
+		fds[2].events = POLLIN;
 
 		int r = ::poll(fds, std::size(fds), 1000);
 		if (r < 0)
@@ -83,6 +91,9 @@ void wivrn_connection::init()
 
 		if (fds[1].revents & (POLLHUP | POLLERR))
 			throw std::runtime_error("Error on control socket");
+
+		if (fds[2].revents & (POLLHUP | POLLERR))
+			throw std::runtime_error("Error on IPC socket");
 
 		if (fds[0].revents & POLLIN)
 		{
@@ -114,6 +125,13 @@ void wivrn_connection::init()
 					throw std::runtime_error("Invalid handshake received from client");
 				}
 			}
+		}
+
+		if (fds[2].revents & POLLIN)
+		{
+			auto packet = receive_from_main();
+			if (packet)
+				std::visit([](auto && x) { handle_event_from_main_loop(x); }, *packet);
 		}
 
 		if (std::chrono::steady_clock::now() > timeout)

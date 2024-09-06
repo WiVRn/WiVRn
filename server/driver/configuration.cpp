@@ -56,6 +56,11 @@ void configuration::set_config_file(const std::filesystem::path & path)
 	config_file = path;
 }
 
+const std::filesystem::path & configuration::get_config_file()
+{
+	return config_file;
+}
+
 configuration configuration::read_user_configuration()
 {
 	configuration result;

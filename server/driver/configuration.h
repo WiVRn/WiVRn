@@ -49,6 +49,7 @@ struct configuration
 	bool tcp_only = false;
 
 	static void set_config_file(const std::filesystem::path &);
+	static const std::filesystem::path & get_config_file();
 	static configuration read_user_configuration();
 };
 

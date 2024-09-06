@@ -33,16 +33,17 @@
 
 #include "audio/audio_setup.h"
 #include "wivrn_comp_target.h"
-#include "wivrn_config.h"
 #include "wivrn_controller.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
 #include "wivrn_foveation.h"
 #include "wivrn_hmd.h"
+#include "wivrn_ipc.h"
 
 #include "xrt/xrt_session.h"
 #include <cmath>
 #include <magic_enum.hpp>
+#include <stdexcept>
 #include <vulkan/vulkan.h>
 
 #ifdef WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
@@ -134,6 +135,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	}
 
 	self->info = std::get<from_headset::headset_info_packet>(*control);
+	send_to_main(self->info);
 
 	try
 	{
@@ -405,6 +407,11 @@ void wivrn_session::operator()(audio_data && data)
 {
 	if (audio_handle)
 		audio_handle->process_mic_data(std::move(data));
+}
+
+void wivrn_session::operator()(to_monado::disconnect &&)
+{
+	throw std::runtime_error("Disconnecting as requested by main loop");
 }
 
 void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)

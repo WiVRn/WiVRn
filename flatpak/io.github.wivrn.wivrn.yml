@@ -25,6 +25,7 @@ finish-args:
   - --filesystem=xdg-config/openvr:create
   # Let outside application access the WiVRn socket
   - --filesystem=xdg-run/wivrn:create
+  - --own-name=io.github.wivrn.Server
 
 cleanup:
   - /lib/pkgconfig
@@ -147,7 +148,6 @@ modules:
       - -DWIVRN_USE_X264=ON
       - -DWIVRN_USE_NVENC=ON
       - -DWIVRN_USE_PULSEAUDIO=OFF
-      - -DWIVRN_USE_GLIB=ON
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
       - -DFETCHCONTENT_BASE_DIR=deps
       - -DXRT_IPC_MSG_SOCK_FILENAME=wivrn/comp_ipc

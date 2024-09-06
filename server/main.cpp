@@ -5,6 +5,7 @@
  * @brief  Main file for WiVRn Monado service.
  */
 
+#include "openxr/openxr.h"
 #include "util/u_trace_marker.h"
 
 #include "active_runtime.h"
@@ -15,12 +16,16 @@
 #include "version.h"
 #include "wivrn_config.h"
 #include "wivrn_ipc.h"
+#include "wivrn_packets.h"
 #include "wivrn_sockets.h"
+
+#include "wivrn_server_dbus.h"
 
 #include <CLI/CLI.hpp>
 #include <avahi-glib/glib-watch.h>
 #include <filesystem>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <poll.h>
 #include <sys/signalfd.h>
@@ -46,9 +51,9 @@ extern "C"
 
 using namespace xrt::drivers::wivrn;
 
-std::unique_ptr<TCP> tcp;
-std::unique_ptr<TCPListener> listener;
-int control_pipe_fd;
+static std::unique_ptr<TCPListener> listener;
+std::optional<xrt::drivers::wivrn::typed_socket<xrt::drivers::wivrn::UnixDatagram, from_monado::packets, to_monado::packets>> wivrn_ipc_socket_main_loop;
+std::optional<xrt::drivers::wivrn::typed_socket<xrt::drivers::wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;
 
 #ifdef WIVRN_USE_SYSTEMD
 std::string socket_path()
@@ -163,8 +168,8 @@ static std::string steam_command()
 
 	std::string command = "PRESSURE_VESSEL_FILESYSTEMS_RW=" + pressure_vessel_filesystems_rw + " %command%";
 
-		if (auto p = active_runtime::manifest_path().string(); p.starts_with("/usr"))
-			command = "XR_RUNTIME_JSON=/run/host" + p + " " + command;
+	if (auto p = active_runtime::manifest_path().string(); p.starts_with("/usr"))
+		command = "XR_RUNTIME_JSON=/run/host" + p + " " + command;
 
 	return command;
 }
@@ -190,6 +195,8 @@ bool quitting_main_loop;
 
 guint listener_watch;
 
+WivrnServer * dbus_server;
+
 /* TODO: Document FSM
  */
 std::optional<active_runtime> runtime_setter;
@@ -197,6 +204,7 @@ std::optional<avahi_publisher> publisher;
 
 gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data);
 void stop_listening();
+void on_headset_info_packet(const xrt::drivers::wivrn::from_headset::headset_info_packet & info);
 
 void start_publishing();
 void stop_publishing();
@@ -395,6 +403,7 @@ void update_fsm()
 
 			start_listening();
 			start_publishing();
+			wivrn_server_set_headset_connected(dbus_server, false);
 		}
 	}
 }
@@ -430,36 +439,162 @@ gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data)
 
 gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 {
-	uint8_t status;
-	if (read(fd, &status, sizeof(status)) == sizeof(status))
+	auto packet = wivrn_ipc_socket_main_loop->receive();
+	if (packet)
 	{
-		switch (status)
+		if (std::holds_alternative<xrt::drivers::wivrn::from_headset::headset_info_packet>(*packet))
 		{
-			case 0:
-				start_publishing();
-				break;
-			case 1:
-				stop_publishing();
-				break;
-			default:
-				std::cerr << "Unexpected status received: " << (int)status << std::endl;
-				break;
+			on_headset_info_packet(std::get<xrt::drivers::wivrn::from_headset::headset_info_packet>(*packet));
+			wivrn_server_set_headset_connected(dbus_server, true);
 		}
-	}
-	else
-	{
-		perror("read control pipe");
+		else if (std::holds_alternative<from_monado::headsdet_connected>(*packet))
+		{
+			stop_publishing();
+			wivrn_server_set_headset_connected(dbus_server, true);
+		}
+		else if (std::holds_alternative<from_monado::headsdet_disconnected>(*packet))
+		{
+			start_publishing();
+			wivrn_server_set_headset_connected(dbus_server, false);
+		}
 	}
 
 	return true;
+}
+
+gboolean
+on_handle_disconnect(WivrnServer * skeleton,
+                     GDBusMethodInvocation * invocation,
+                     gpointer user_data)
+{
+	wivrn_ipc_socket_main_loop->send(to_monado::disconnect{});
+
+	return true;
+}
+
+gboolean
+on_handle_quit(WivrnServer * skeleton,
+               GDBusMethodInvocation * invocation,
+               gpointer user_data)
+{
+	quitting_main_loop = true;
+	update_fsm();
+
+	return true;
+}
+
+void on_json_configuration(WivrnServer * server, const GParamSpec * pspec, gpointer data)
+{
+	const char * json = wivrn_server_get_json_configuration(server);
+
+	std::filesystem::path config = configuration::get_config_file();
+	std::filesystem::path config_new = config;
+	config_new += ".new";
+
+	std::ofstream file(config_new);
+	file.write(json, strlen(json));
+
+	std::error_code ec;
+	std::filesystem::rename(config_new, config, ec);
+
+	if (ec)
+		std::cerr << "Failed to save configuration: " << ec.message() << std::endl;
+}
+
+void on_headset_info_packet(const xrt::drivers::wivrn::from_headset::headset_info_packet & info)
+{
+	GVariantBuilder * builder;
+
+	GVariant * value_eye_size = g_variant_new("(uu)", info.recommended_eye_width, info.recommended_eye_height);
+	wivrn_server_set_recommended_eye_size(dbus_server, value_eye_size);
+
+	builder = g_variant_builder_new(G_VARIANT_TYPE("ad"));
+	for (double rate: info.available_refresh_rates)
+	{
+		g_variant_builder_add(builder, "d", rate);
+	}
+	GVariant * value_refresh_rates = g_variant_new("ad", builder);
+	g_variant_builder_unref(builder);
+	wivrn_server_set_available_refresh_rates(dbus_server, value_refresh_rates);
+
+	wivrn_server_set_preferred_refresh_rate(dbus_server, info.preferred_refresh_rate);
+
+	auto speaker = info.speaker.value_or(xrt::drivers::wivrn::from_headset::headset_info_packet::audio_description{});
+	wivrn_server_set_speaker_channels(dbus_server, speaker.num_channels);
+	wivrn_server_set_speaker_sample_rate(dbus_server, speaker.sample_rate);
+
+	auto mic = info.microphone.value_or(xrt::drivers::wivrn::from_headset::headset_info_packet::audio_description{});
+	wivrn_server_set_mic_channels(dbus_server, mic.num_channels);
+	wivrn_server_set_mic_sample_rate(dbus_server, mic.sample_rate);
+
+	builder = g_variant_builder_new(G_VARIANT_TYPE("a(dddd)"));
+	for (XrFovf fov: info.fov)
+	{
+		g_variant_builder_add(builder, "(dddd)", fov.angleLeft, fov.angleRight, fov.angleUp, fov.angleDown);
+	}
+	GVariant * value_field_of_view = g_variant_new("a(dddd)", builder);
+	g_variant_builder_unref(builder);
+	wivrn_server_set_field_of_view(dbus_server, value_field_of_view);
+
+	wivrn_server_set_hand_tracking(dbus_server, info.hand_tracking);
+	wivrn_server_set_eye_gaze(dbus_server, info.eye_gaze);
+	wivrn_server_set_face_tracking(dbus_server, info.face_tracking2_fb);
+
+	std::vector<const char *> codecs;
+	static const std::map<video_codec, const char *> codec_names = {
+	        {h264, "h264"},
+	        {h265, "h265"},
+	        {av1, "av1"}};
+	for (video_codec codec: info.supported_codecs)
+	{
+		auto it = codec_names.find(codec);
+		if (it != codec_names.end())
+			codecs.push_back(it->second);
+	}
+	codecs.push_back(nullptr);
+	wivrn_server_set_supported_codecs(dbus_server, codecs.data());
+}
+
+void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer user_data)
+{
+	dbus_server = wivrn_server_skeleton_new();
+
+	g_signal_connect(dbus_server,
+	                 "handle-disconnect",
+	                 G_CALLBACK(on_handle_disconnect),
+	                 NULL);
+
+	g_signal_connect(dbus_server,
+	                 "handle-quit",
+	                 G_CALLBACK(on_handle_quit),
+	                 NULL);
+
+	wivrn_server_set_steam_command(dbus_server, steam_command().c_str());
+
+	on_headset_info_packet({});
+
+	std::ifstream file(configuration::get_config_file());
+	std::string config{std::istream_iterator<char>(file), std::istream_iterator<char>()};
+
+	wivrn_server_set_json_configuration(dbus_server, config.c_str());
+
+	g_signal_connect(dbus_server, "notify::json-configuration", G_CALLBACK(on_json_configuration), NULL);
+
+	g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(dbus_server),
+	                                 connection,
+	                                 "/io/github/wivrn/Server",
+	                                 NULL);
 }
 
 } // namespace
 
 int inner_main(int argc, char * argv[], bool show_instructions)
 {
-	std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
-	std::cerr << "For Steam games, set command to " << steam_command() << std::endl;
+	if (show_instructions)
+	{
+		std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
+		std::cerr << "For Steam games, set command to " << steam_command() << std::endl;
+	}
 
 #ifdef WIVRN_USE_SYSTEMD
 	create_listen_socket();
@@ -486,15 +621,16 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	fcntl(stdin_pipe_fds[0], F_SETFD, FD_CLOEXEC);
 	fcntl(stdin_pipe_fds[1], F_SETFD, FD_CLOEXEC);
 
-	// Create a pipe to report monado status to the main loop
-	if (pipe(control_pipe_fds) < 0)
+	// Create a socket to report monado status to the main loop
+	if (socketpair(AF_UNIX, SOCK_DGRAM, 0, control_pipe_fds) < 0)
 	{
-		perror("pipe");
+		perror("socketpair");
 		return EXIT_FAILURE;
 	}
 	fcntl(control_pipe_fds[0], F_SETFD, FD_CLOEXEC);
 	fcntl(control_pipe_fds[1], F_SETFD, FD_CLOEXEC);
-	control_pipe_fd = control_pipe_fds[1];
+	wivrn_ipc_socket_main_loop.emplace(control_pipe_fds[0]);
+	wivrn_ipc_socket_monado.emplace(control_pipe_fds[1]);
 
 	auto control_listener = g_unix_fd_source_new(control_pipe_fds[0], GIOCondition::G_IO_IN);
 	g_source_set_callback(control_listener, G_SOURCE_FUNC(&control_received), nullptr, nullptr);
@@ -510,6 +646,16 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	// Catch SIGINT & SIGTERM
 	g_unix_signal_add(SIGINT, &sigint, (void *)SIGINT);
 	g_unix_signal_add(SIGTERM, &sigint, (void *)SIGTERM);
+
+	// Add dbus server
+	g_bus_own_name(G_BUS_TYPE_SESSION,
+	               "io.github.wivrn.Server",
+	               G_BUS_NAME_OWNER_FLAGS_NONE,
+	               nullptr,
+	               on_name_acquired,
+	               nullptr,
+	               nullptr,
+	               nullptr);
 
 	// Main loop
 	g_main_loop_run(main_loop);

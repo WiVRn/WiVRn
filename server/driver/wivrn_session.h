@@ -21,6 +21,7 @@
 
 #include "clock_offset.h"
 #include "wivrn_connection.h"
+#include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_results.h"
@@ -144,6 +145,8 @@ public:
 	void operator()(from_headset::feedback &&);
 	void operator()(from_headset::battery &&);
 	void operator()(audio_data &&);
+
+	void operator()(to_monado::disconnect &&);
 
 	template <typename T>
 	void send_stream(T && packet)
