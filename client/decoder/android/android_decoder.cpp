@@ -77,44 +77,42 @@ void check(media_status_t status, const char * msg)
 namespace wivrn::android
 {
 
-void decoder::push_nals(std::span<std::span<const uint8_t>> data, int64_t timestamp, uint32_t flags)
+void decoder::push_nals(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
-	auto t1 = application::now();
-	auto input_buffer = input_buffers.pop();
-	auto t2 = application::now();
-	assert(input_buffer >= 0);
-
-	if (t2 - t1 > 1'000'000)
-		spdlog::warn("input_buffers.pop() took {}µs", (t2 - t1) / 1000);
-
-	size_t size;
-	t1 = application::now();
-	uint8_t * buffer = AMediaCodec_getInputBuffer(media_codec.get(), input_buffer, &size);
-	t2 = application::now();
-	if (t2 - t1 > 1'000'000)
-		spdlog::warn("AMediaCodec_getInputBuffer() took {}µs", (t2 - t1) / 1000);
-	size_t data_size = 0;
+	if (current_input_buffer.data == nullptr)
+		current_input_buffer = input_buffers.pop();
+	else if (current_input_buffer.frame_index != frame_index)
+	{
+		// Reuse the input buffer, discard existing data
+		current_input_buffer.data_size = 0;
+	}
+	current_input_buffer.frame_index = frame_index;
 
 	for (const auto & sub_data: data)
 	{
-		if (sub_data.size() > size)
+		if (current_input_buffer.data_size + sub_data.size() > current_input_buffer.capacity)
 		{
 			spdlog::error("data to decode is larger than decoder buffer, skipping frame");
 			return;
 		}
 
-		memcpy(buffer + data_size, sub_data.data(), sub_data.size());
-		data_size += sub_data.size();
+		memcpy(current_input_buffer.data + current_input_buffer.data_size, sub_data.data(), sub_data.size());
+		current_input_buffer.data_size += sub_data.size();
 	}
 
-	jobs.push([=, mc = media_codec.get()]() {
-		auto status = AMediaCodec_queueInputBuffer(mc, input_buffer, 0, data_size, timestamp, flags);
+	if (partial)
+		return;
+
+	jobs.push([=, idx = current_input_buffer.idx, data_size = current_input_buffer.data_size, mc = media_codec.get()]() {
+		uint64_t timestamp = frame_index * 10'000;
+		auto status = AMediaCodec_queueInputBuffer(mc, idx, 0, data_size, timestamp, 0);
 		if (status != AMEDIA_OK)
 			spdlog::error("AMediaCodec_queueInputBuffer: MediaCodec error {}({})",
 			              int(status),
 			              std::string(magic_enum::enum_name(status)).c_str());
 		return false;
 	});
+	current_input_buffer = input_buffer{};
 }
 
 decoder::decoder(
@@ -226,8 +224,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 		check(AMediaCodec_start(media_codec.get()), "AMediaCodec_start");
 	}
 
-	uint64_t fake_timestamp_us = frame_index * 10'000;
-	push_nals(data, fake_timestamp_us, partial ? AMEDIACODEC_BUFFER_FLAG_PARTIAL_FRAME : 0);
+	push_nals(data, frame_index, partial);
 }
 
 void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
@@ -490,10 +487,16 @@ void decoder::on_media_format_changed(AMediaCodec *, void * userdata, AMediaForm
 {
 	spdlog::info("Mediacodec format changed");
 }
-void decoder::on_media_input_available(AMediaCodec *, void * userdata, int32_t index)
+void decoder::on_media_input_available(AMediaCodec * media_codec, void * userdata, int32_t index)
 {
 	auto self = (decoder *)userdata;
-	self->input_buffers.push(index);
+	size_t size;
+	uint8_t * buffer = AMediaCodec_getInputBuffer(media_codec, index, &size);
+	self->input_buffers.push({
+	        .idx = index,
+	        .capacity = size,
+	        .data = buffer,
+	});
 }
 void decoder::on_media_output_available(AMediaCodec * media_codec, void * userdata, int32_t index, AMediaCodecBufferInfo * bufferInfo)
 {

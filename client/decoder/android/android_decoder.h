@@ -102,7 +102,17 @@ private:
 	void on_image_available(AImageReader * reader);
 	static void on_image_available(void * context, AImageReader * reader);
 
-	utils::sync_queue<int32_t> input_buffers;
+	struct input_buffer
+	{
+		int32_t idx;
+		uint64_t frame_index = 0;
+		size_t data_size = 0;
+		size_t capacity = 0;
+		uint8_t * data = nullptr;
+	};
+
+	utils::sync_queue<input_buffer> input_buffers;
+	input_buffer current_input_buffer; // Only accessed in network thread
 	utils::sync_queue<std::function<bool(void)>> jobs;
 
 	struct frame_info
@@ -119,7 +129,7 @@ private:
 	static void on_media_input_available(AMediaCodec *, void * userdata, int32_t index);
 	static void on_media_output_available(AMediaCodec *, void * userdata, int32_t index, AMediaCodecBufferInfo * bufferInfo);
 
-	void push_nals(std::span<std::span<const uint8_t>> data, int64_t timestamp, uint32_t flags);
+	void push_nals(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
 	std::unordered_map<AHardwareBuffer *, std::shared_ptr<mapped_hardware_buffer>> hardware_buffer_map;
 	vk::raii::RenderPass renderpass = nullptr;

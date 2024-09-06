@@ -47,7 +47,7 @@ public:
 		void reset(uint64_t frame_index);
 		bool empty() const;
 
-		uint16_t insert(data_shard &&);
+		std::optional<uint16_t> insert(data_shard &&);
 
 		xrt::drivers::wivrn::from_headset::feedback feedback{};
 
@@ -106,6 +106,6 @@ public:
 private:
 	void try_submit_frame(std::optional<uint16_t> shard_idx);
 	void try_submit_frame(uint16_t shard_idx);
-	void send_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback);
+	void send_feedback(xrt::drivers::wivrn::from_headset::feedback & feedback);
 	void advance();
 };

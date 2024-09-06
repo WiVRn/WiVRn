@@ -60,16 +60,16 @@ static bool is_complete(const shard_set & shards)
 	return true;
 }
 
-uint16_t shard_set::insert(data_shard && shard)
+std::optional<uint16_t> shard_set::insert(data_shard && shard)
 {
-	XrTime now = application::now();
 	if (empty())
-		feedback.received_first_packet = now;
-	feedback.received_last_packet = now;
+		feedback.received_first_packet = application::now();
 
 	auto idx = shard.shard_idx;
 	if (idx >= data.size())
 		data.resize(idx + 1);
+	if (data[idx])
+		return {};
 	data[idx] = std::move(shard);
 	return idx;
 }
@@ -165,30 +165,32 @@ void shard_accumulator::try_submit_frame(std::optional<uint16_t> shard_idx)
 void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 {
 	auto & data_shards = current.data;
-	// Do not submit if the frame is not complete
-	for (const auto & shard: data_shards)
-	{
-		if (not shard)
+
+	for (size_t idx = 0; idx < shard_idx; ++idx)
+		if (not data_shards[idx])
 			return;
+
+	uint16_t last_idx = shard_idx + 1;
+	for (size_t size = data_shards.size();
+	     last_idx < size and data_shards[last_idx];
+	     ++last_idx)
+	{
 	}
-	if (not(data_shards.back()->flags & video_stream_data_shard::end_of_frame))
+
+	std::vector<std::span<const uint8_t>> payload;
+	payload.reserve(last_idx - shard_idx);
+	for (size_t idx = shard_idx; idx < last_idx; ++idx)
+		payload.emplace_back(data_shards[idx]->payload);
+
+	bool frame_complete = last_idx == data_shards.size() and data_shards.back()->flags & video_stream_data_shard::end_of_frame;
+	decoder->push_data(payload, data_shards[shard_idx]->frame_idx, not frame_complete);
+
+	if (not frame_complete)
 		return;
 
-	uint64_t frame_index = data_shards[0]->frame_idx;
-	std::vector<std::span<const uint8_t>> payload;
-	payload.reserve(data_shards.size());
+	current.feedback.received_last_packet = application::now();
+	data_shard::timing_info_t timing_info = data_shards.back()->timing_info.value_or(data_shard::timing_info_t{});
 
-	data_shard::timing_info_t timing_info{};
-	for (const auto & shard: data_shards)
-	{
-		if (shard->timing_info)
-			timing_info = *shard->timing_info;
-
-		payload.emplace_back(shard->payload);
-	}
-	decoder->push_data(payload, frame_index, false);
-
-	auto feedback = current.feedback;
 	if (not data_shards.front()->view_info)
 	{
 		spdlog::warn("first shard has no view_info");
@@ -196,13 +198,15 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	}
 
 	// Try to extract a frame
-	decoder->frame_completed(feedback, timing_info, *data_shards.front()->view_info);
+	decoder->frame_completed(current.feedback, timing_info, *data_shards.front()->view_info);
 
 	advance();
 }
 
-void shard_accumulator::send_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback)
+void shard_accumulator::send_feedback(xrt::drivers::wivrn::from_headset::feedback & feedback)
 {
+	if (not feedback.received_last_packet)
+		feedback.received_first_packet = application::now();
 	auto scene = weak_scene.lock();
 	if (scene)
 		scene->send_feedback(feedback);
