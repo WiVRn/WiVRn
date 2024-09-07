@@ -46,22 +46,21 @@ VideoEncoder::sender::sender() :
         thread([this](std::stop_token t) {
 	        while (not t.stop_requested())
 	        {
-		        data d;
+		        data * d = nullptr;
 		        {
 			        std::unique_lock lock(mutex);
 			        if (pending.empty())
-			        {
 				        cv.wait_for(lock, std::chrono::milliseconds(100));
-			        }
 			        else
-			        {
-				        d = std::move(pending.front());
-				        pending.pop_front();
-				        cv.notify_all();
-			        }
+				        d = &pending.front();
 		        }
-		        if (not d.span.empty())
-			        d.encoder->SendData(d.span, true);
+		        if (d and not d->span.empty())
+		        {
+			        d->encoder->SendData(d->span, true);
+			        std::unique_lock lock(mutex);
+			        pending.pop_front();
+			        cv.notify_all();
+		        }
 	        }
 	        std::unique_lock lock(mutex);
 	        pending.clear();
