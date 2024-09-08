@@ -21,7 +21,6 @@
 
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
-#include "yuv_converter.h"
 #include <stdexcept>
 
 namespace xrt::drivers::wivrn
@@ -179,16 +178,16 @@ VideoEncoderX264::VideoEncoderX264(
 	pic.img.plane[1] = (uint8_t *)chroma.map();
 }
 
-void VideoEncoderX264::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf)
+void VideoEncoderX264::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
 {
 	cmd_buf.copyImageToBuffer(
-	        src_yuv.luma,
+	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        luma,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = chroma_width * 2,
 	                .imageSubresource = {
-	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
 	                        .layerCount = 1,
 	                },
 	                .imageOffset = {
@@ -201,13 +200,13 @@ void VideoEncoderX264::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBu
 	                        .depth = 1,
 	                }});
 	cmd_buf.copyImageToBuffer(
-	        src_yuv.chroma,
+	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        chroma,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = chroma_width,
 	                .imageSubresource = {
-	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
 	                        .layerCount = 1,
 	                },
 	                .imageOffset = {

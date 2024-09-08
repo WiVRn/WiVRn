@@ -54,8 +54,6 @@ private:
 	vk::raii::DeviceMemory mem = nullptr;
 	CUexternalMemory extmem;
 
-	vk::Image luma;
-	vk::Image chroma;
 	CUdeviceptr frame;
 	uint32_t width;
 	uint32_t height;
@@ -67,7 +65,7 @@ public:
 	VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps);
 	~VideoEncoderNvenc();
 
-	void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) override;
+	void PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf) override;
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts) override;
 
 	static std::array<int, 2> get_max_size(video_codec);

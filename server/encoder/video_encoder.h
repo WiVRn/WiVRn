@@ -33,7 +33,6 @@
 #include "encoder_settings.h"
 #include "wivrn_packets.h"
 
-class yuv_converter;
 struct wivrn_vk_bundle;
 
 namespace xrt::drivers::wivrn
@@ -106,7 +105,7 @@ public:
 	virtual ~VideoEncoder();
 
 	// called on present to submit command buffers for the image.
-	virtual void PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf) = 0;
+	virtual void PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf) = 0;
 
 	// The other end lost a frame and needs to resynchronize
 	void SyncNeeded();

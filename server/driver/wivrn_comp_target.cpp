@@ -124,9 +124,18 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 	std::vector<vk::Image> rgb;
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
+		std::array formats = {
+		        vk::Format::eR8Unorm,
+		        vk::Format::eR8G8Unorm,
+		};
+		vk::ImageFormatListCreateInfo formats_info{
+		        .viewFormatCount = formats.size(),
+		        .pViewFormats = formats.data(),
+		};
 		auto & image = cn->psc.images[i].image;
 		image = image_allocation(
 		        device, {
+		                        .pNext = &formats_info,
 		                        .flags = vk::ImageCreateFlagBits::eExtendedUsage | vk::ImageCreateFlagBits::eMutableFormat,
 		                        .imageType = vk::ImageType::e2D,
 		                        .format = format,
@@ -139,7 +148,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                        .arrayLayers = 1,
 		                        .samples = vk::SampleCountFlagBits::e1,
 		                        .tiling = vk::ImageTiling::eOptimal,
-		                        .usage = flags | vk::ImageUsageFlagBits::eStorage,
+		                        .usage = flags | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
 		                        .sharingMode = vk::SharingMode::eExclusive,
 		                },
 		        {
@@ -155,22 +164,33 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		vk::ImageViewUsageCreateInfo usage{
 		        .usage = flags,
 		};
-		item.image_view = vk::raii::ImageView(device,
-		                                      {
-		                                              .pNext = &usage,
-		                                              .image = item.image,
-		                                              .viewType = vk::ImageViewType::e2D,
-		                                              .format = format,
-		                                              .subresourceRange = {
-		                                                      .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                                                      .levelCount = 1,
-		                                                      .layerCount = 1,
-		                                              },
-		                                      });
-		cn->images[i].view = *item.image_view;
+		item.image_view_y = vk::raii::ImageView(device,
+		                                        {
+		                                                .pNext = &usage,
+		                                                .image = item.image,
+		                                                .viewType = vk::ImageViewType::e2D,
+		                                                .format = vk::Format::eR8Unorm,
+		                                                .subresourceRange = {
+		                                                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
+		                                                        .levelCount = 1,
+		                                                        .layerCount = 1,
+		                                                },
+		                                        });
+		item.image_view_cbcr = vk::raii::ImageView(device,
+		                                           {
+		                                                   .pNext = &usage,
+		                                                   .image = item.image,
+		                                                   .viewType = vk::ImageViewType::e2D,
+		                                                   .format = vk::Format::eR8G8Unorm,
+		                                                   .subresourceRange = {
+		                                                           .aspectMask = vk::ImageAspectFlagBits::ePlane1,
+		                                                           .levelCount = 1,
+		                                                           .layerCount = 1,
+		                                                   },
+		                                           });
+		cn->images[i].view = *item.image_view_y;
+		cn->images[i].view_cbcr = *item.image_view_cbcr;
 	}
-
-	cn->psc.yuv = yuv_converter(vk->physical_device, device, rgb, format, vk::Extent2D{cn->width, cn->height});
 
 	cn->psc.fence = vk::raii::Fence(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
 
@@ -308,8 +328,7 @@ static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_
 	target_init_semaphores(cn);
 
 	// FIXME: select preferred format
-	assert(create_info->format_count > 0);
-	ct->format = create_info->formats[0];
+	ct->format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
 	ct->width = create_info->extent.width;
 	ct->height = create_info->extent.height;
 	ct->surface_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -421,44 +440,40 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	struct vk_bundle * vk = get_vk(cn);
 	auto res = cn->wivrn_bundle->device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
 
-	auto & command_buffer = cn->psc.command_buffer;
-	command_buffer.reset();
-	command_buffer.begin(vk::CommandBufferBeginInfo{});
-
 	vk::Semaphore wait_semaphore = cn->semaphores.render_complete;
-	vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eComputeShader;
+	vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eTransfer;
 	vk::SubmitInfo submit_info{
 	        .waitSemaphoreCount = 1,
 	        .pWaitSemaphores = &wait_semaphore,
 	        .pWaitDstStageMask = &wait_stage,
-	        .commandBufferCount = 1,
-	        .pCommandBuffers = &*command_buffer,
 	};
 
 	if (cn->c->base.slot.layer_count == 0 or not cn->cnx->get_offset())
 	{
-		command_buffer.end();
 		scoped_lock lock(vk->queue_mutex);
 		cn->wivrn_bundle->queue.submit(submit_info);
 		cn->psc.images[index].status = pseudo_swapchain::status_t::free;
 		return VK_SUCCESS;
 	}
 
-	cn->psc.images[index].status = pseudo_swapchain::status_t::encoding;
-
-	auto & yuv = cn->psc.yuv;
-	yuv.record_draw_commands(command_buffer, index);
-	for (auto & encoder: cn->encoders)
-	{
-		encoder->PresentImage(yuv, command_buffer);
-	}
-	command_buffer.end();
+	auto & command_buffer = cn->psc.command_buffer;
+	command_buffer.reset();
+	command_buffer.begin(vk::CommandBufferBeginInfo{});
 
 	// Wait for encoders to be done with previous frame
 	for (auto status = cn->psc.status.load(); status != 0; status = cn->psc.status)
 		cn->psc.status.wait(status);
 
 	cn->wivrn_bundle->device.resetFences(*cn->psc.fence);
+	cn->psc.images[index].status = pseudo_swapchain::status_t::encoding;
+
+	for (auto & encoder: cn->encoders)
+	{
+		encoder->PresentImage(cn->psc.images[index].image, command_buffer);
+	}
+	command_buffer.end();
+	submit_info.setCommandBuffers(*command_buffer);
+
 	{
 		scoped_lock lock(vk->queue_mutex);
 		cn->wivrn_bundle->queue.submit(submit_info, *cn->psc.fence);

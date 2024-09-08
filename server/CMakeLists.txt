@@ -68,7 +68,6 @@ add_executable(wivrn-server
 
 		encoder/encoder_settings.cpp
 		encoder/video_encoder.cpp
-		encoder/yuv_converter.cpp
 
 		driver/clock_offset.cpp
 		driver/configuration.cpp

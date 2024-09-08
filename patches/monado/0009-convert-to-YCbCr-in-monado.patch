@@ -1,0 +1,717 @@
+From f04fc2ea2660105af8af3a51dbe13c638cfa68b8 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Wed, 11 Sep 2024 22:56:29 +0200
+Subject: [PATCH] Convert to YCbCr in Monado
+
+---
+ src/xrt/compositor/main/comp_renderer.c      |   6 +-
+ src/xrt/compositor/main/comp_target.h        |   3 +-
+ src/xrt/compositor/render/render_compute.c   | 104 +++++++++++++------
+ src/xrt/compositor/render/render_interface.h |  15 ++-
+ src/xrt/compositor/render/render_resources.c |  35 +++++--
+ src/xrt/compositor/shaders/distortion.comp   |  53 +++++++---
+ src/xrt/compositor/util/comp_render.h        |  12 ++-
+ src/xrt/compositor/util/comp_render_cs.c     |  41 +++++---
+ 8 files changed, 184 insertions(+), 85 deletions(-)
+
+diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
+index e29b79b03..f3daf0e15 100644
+--- a/src/xrt/compositor/main/comp_renderer.c
++++ b/src/xrt/compositor/main/comp_renderer.c
+@@ -1005,7 +1005,8 @@ dispatch_compute(struct comp_renderer *r,
+ 
+ 	// Target Vulkan resources..
+ 	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
+-	VkImageView target_image_view = r->c->target->images[r->acquired_buffer].view;
++	VkImageView target_image_view_y = r->c->target->images[r->acquired_buffer].view;
++	VkImageView target_image_view_cbcr = r->c->target->images[r->acquired_buffer].view_cbcr;
+ 
+ 	// Target view information.
+ 	struct render_viewport_data views[XRT_MAX_VIEWS];
+@@ -1016,7 +1017,8 @@ dispatch_compute(struct comp_renderer *r,
+ 	comp_render_cs_initial_init( //
+ 	    &data,                   // data
+ 	    target_image,            // target_image
+-	    target_image_view,       // target_unorm_view
++	    target_image_view_y,     // target_unorm_view_y
++	    target_image_view_cbcr,  // target_unorm_view_cbcr
+ 	    fast_path,               // fast_path
+ 	    do_timewarp);            // do_timewarp
+ 
+diff --git a/src/xrt/compositor/main/comp_target.h b/src/xrt/compositor/main/comp_target.h
+index bababbe1d..806d454e6 100644
+--- a/src/xrt/compositor/main/comp_target.h
++++ b/src/xrt/compositor/main/comp_target.h
+@@ -61,7 +61,8 @@ enum comp_target_display_timing_usage
+ struct comp_target_image
+ {
+ 	VkImage handle;
+-	VkImageView view;
++	VkImageView view; // Y
++	VkImageView view_cbcr;
+ };
+ 
+ /*!
+diff --git a/src/xrt/compositor/render/render_compute.c b/src/xrt/compositor/render/render_compute.c
+index 6976ee25c..d72dabb40 100644
+--- a/src/xrt/compositor/render/render_compute.c
++++ b/src/xrt/compositor/render/render_compute.c
+@@ -66,8 +66,8 @@ calc_dispatch_dims_views(const struct render_viewport_data views[XRT_MAX_VIEWS],
+ #undef IMAX
+ 
+ 	// Power of two divide and round up.
+-	w = uint_divide_and_round_up(w, 8);
+-	h = uint_divide_and_round_up(h, 8);
++	w = uint_divide_and_round_up(w, 16);
++	h = uint_divide_and_round_up(h, 16);
+ 
+ 	*out_w = w;
+ 	*out_h = h;
+@@ -86,8 +86,10 @@ update_compute_layer_descriptor_set(struct vk_bundle *vk,
+                                     VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],
+                                     VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE],
+                                     uint32_t image_count,
+-                                    uint32_t target_binding,
+-                                    VkImageView target_image_view,
++                                    uint32_t target_binding_y,
++                                    uint32_t target_binding_cbcr,
++                                    VkImageView target_image_view_y,
++                                    VkImageView target_image_view_cbcr,
+                                     uint32_t ubo_binding,
+                                     VkBuffer ubo_buffer,
+                                     VkDeviceSize ubo_size,
+@@ -100,8 +102,13 @@ update_compute_layer_descriptor_set(struct vk_bundle *vk,
+ 		src_image_info[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+ 	}
+ 
+-	VkDescriptorImageInfo target_image_info = {
+-	    .imageView = target_image_view,
++	VkDescriptorImageInfo target_image_info_y = {
++	    .imageView = target_image_view_y,
++	    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
++	};
++
++	VkDescriptorImageInfo target_image_info_cbcr = {
++	    .imageView = target_image_view_cbcr,
+ 	    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+ 	};
+ 
+@@ -111,7 +118,7 @@ update_compute_layer_descriptor_set(struct vk_bundle *vk,
+ 	    .range = ubo_size,
+ 	};
+ 
+-	VkWriteDescriptorSet write_descriptor_sets[3] = {
++	VkWriteDescriptorSet write_descriptor_sets[4] = {
+ 	    {
+ 	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+ 	        .dstSet = descriptor_set,
+@@ -123,10 +130,10 @@ update_compute_layer_descriptor_set(struct vk_bundle *vk,
+ 	    {
+ 	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+ 	        .dstSet = descriptor_set,
+-	        .dstBinding = target_binding,
++	        .dstBinding = target_binding_y,
+ 	        .descriptorCount = 1,
+ 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+-	        .pImageInfo = &target_image_info,
++	        .pImageInfo = &target_image_info_y,
+ 	    },
+ 	    {
+ 	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+@@ -136,6 +143,14 @@ update_compute_layer_descriptor_set(struct vk_bundle *vk,
+ 	        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+ 	        .pBufferInfo = &buffer_info,
+ 	    },
++	    {
++	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
++	        .dstSet = descriptor_set,
++	        .dstBinding = target_binding_cbcr,
++	        .descriptorCount = 1,
++	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
++	        .pImageInfo = &target_image_info_cbcr,
++	    },
+ 	};
+ 
+ 	vk->vkUpdateDescriptorSets(            //
+@@ -154,8 +169,10 @@ update_compute_shared_descriptor_set(struct vk_bundle *vk,
+                                      uint32_t distortion_binding,
+                                      VkSampler distortion_samplers[3 * XRT_MAX_VIEWS],
+                                      VkImageView distortion_image_views[3 * XRT_MAX_VIEWS],
+-                                     uint32_t target_binding,
+-                                     VkImageView target_image_view,
++                                     uint32_t target_binding_y,
++                                     uint32_t target_binding_cbcr,
++                                     VkImageView target_image_view_y,
++                                     VkImageView target_image_view_cbcr,
+                                      uint32_t ubo_binding,
+                                      VkBuffer ubo_buffer,
+                                      VkDeviceSize ubo_size,
+@@ -176,8 +193,13 @@ update_compute_shared_descriptor_set(struct vk_bundle *vk,
+ 		distortion_image_info[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+ 	}
+ 
+-	VkDescriptorImageInfo target_image_info = {
+-	    .imageView = target_image_view,
++	VkDescriptorImageInfo target_image_y_info = {
++	    .imageView = target_image_view_y,
++	    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
++	};
++
++	VkDescriptorImageInfo target_image_cbcr_info = {
++	    .imageView = target_image_view_cbcr,
+ 	    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+ 	};
+ 
+@@ -187,7 +209,7 @@ update_compute_shared_descriptor_set(struct vk_bundle *vk,
+ 	    .range = ubo_size,
+ 	};
+ 
+-	VkWriteDescriptorSet write_descriptor_sets[4] = {
++	VkWriteDescriptorSet write_descriptor_sets[5] = {
+ 	    {
+ 	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+ 	        .dstSet = descriptor_set,
+@@ -207,10 +229,10 @@ update_compute_shared_descriptor_set(struct vk_bundle *vk,
+ 	    {
+ 	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+ 	        .dstSet = descriptor_set,
+-	        .dstBinding = target_binding,
++	        .dstBinding = target_binding_y,
+ 	        .descriptorCount = 1,
+ 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+-	        .pImageInfo = &target_image_info,
++	        .pImageInfo = &target_image_y_info,
+ 	    },
+ 	    {
+ 	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+@@ -220,6 +242,14 @@ update_compute_shared_descriptor_set(struct vk_bundle *vk,
+ 	        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+ 	        .pBufferInfo = &buffer_info,
+ 	    },
++	    {
++	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
++	        .dstSet = descriptor_set,
++	        .dstBinding = target_binding_cbcr,
++	        .descriptorCount = 1,
++	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
++	        .pImageInfo = &target_image_cbcr_info,
++	    },
+ 	};
+ 
+ 	vk->vkUpdateDescriptorSets(            //
+@@ -409,7 +439,8 @@ render_compute_layers(struct render_compute *crc,
+                       VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],
+                       VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE],
+                       uint32_t num_srcs,
+-                      VkImageView target_image_view,
++                      VkImageView target_image_view_y,
++                      VkImageView target_image_view_cbcr,
+                       const struct render_viewport_data *view,
+                       bool do_timewarp)
+ {
+@@ -429,8 +460,10 @@ render_compute_layers(struct render_compute *crc,
+ 	    src_samplers,                    //
+ 	    src_image_views,                 //
+ 	    num_srcs,                        //
+-	    r->compute.target_binding,       //
+-	    target_image_view,               //
++	    r->compute.target_binding_y,     //
++	    r->compute.target_binding_cbcr,  //
++	    target_image_view_y,             //
++	    target_image_view_cbcr,          //
+ 	    r->compute.ubo_binding,          //
+ 	    ubo,                             //
+ 	    VK_WHOLE_SIZE,                   //
+@@ -473,7 +506,8 @@ render_compute_projection_timewarp(struct render_compute *crc,
+                                    const struct xrt_fov src_fovs[XRT_MAX_VIEWS],
+                                    const struct xrt_pose new_poses[XRT_MAX_VIEWS],
+                                    VkImage target_image,
+-                                   VkImageView target_image_view,
++                                   VkImageView target_image_view_y,
++                                   VkImageView target_image_view_cbcr,
+                                    const struct render_viewport_data views[XRT_MAX_VIEWS])
+ {
+ 	assert(crc->r != NULL);
+@@ -542,8 +576,10 @@ render_compute_projection_timewarp(struct render_compute *crc,
+ 	    r->compute.distortion_binding,    //
+ 	    distortion_samplers,              //
+ 	    r->distortion.image_views,        //
+-	    r->compute.target_binding,        //
+-	    target_image_view,                //
++	    r->compute.target_binding_y,      //
++	    r->compute.target_binding_cbcr,   //
++	    target_image_view_y,              //
++	    target_image_view_cbcr,           //
+ 	    r->compute.ubo_binding,           //
+ 	    r->compute.distortion.ubo.buffer, //
+ 	    VK_WHOLE_SIZE,                    //
+@@ -581,7 +617,7 @@ render_compute_projection_timewarp(struct render_compute *crc,
+ 	    .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+ 	    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+ 	    .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+-	    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
++	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+ 	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+ 	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+ 	    .image = target_image,
+@@ -607,7 +643,8 @@ render_compute_projection(struct render_compute *crc,
+                           VkImageView src_image_views[XRT_MAX_VIEWS],
+                           const struct xrt_normalized_rect src_norm_rects[XRT_MAX_VIEWS],
+                           VkImage target_image,
+-                          VkImageView target_image_view,
++                          VkImageView target_image_view_y,
++                          VkImageView target_image_view_cbcr,
+                           const struct render_viewport_data views[XRT_MAX_VIEWS])
+ {
+ 	assert(crc->r != NULL);
+@@ -666,8 +703,10 @@ render_compute_projection(struct render_compute *crc,
+ 	    r->compute.distortion_binding,    //
+ 	    distortion_samplers,              //
+ 	    r->distortion.image_views,        //
+-	    r->compute.target_binding,        //
+-	    target_image_view,                //
++	    r->compute.target_binding_y,      //
++	    r->compute.target_binding_cbcr,   //
++	    target_image_view_y,              //
++	    target_image_view_cbcr,           //
+ 	    r->compute.ubo_binding,           //
+ 	    r->compute.distortion.ubo.buffer, //
+ 	    VK_WHOLE_SIZE,                    //
+@@ -705,7 +744,7 @@ render_compute_projection(struct render_compute *crc,
+ 	    .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+ 	    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+ 	    .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+-	    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
++	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+ 	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+ 	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+ 	    .image = target_image,
+@@ -728,7 +767,8 @@ render_compute_projection(struct render_compute *crc,
+ void
+ render_compute_clear(struct render_compute *crc,                             //
+                      VkImage target_image,                                   //
+-                     VkImageView target_image_view,                          //
++                     VkImageView target_image_view_y,                        //
++                     VkImageView target_image_view_cbcr,                     //
+                      const struct render_viewport_data views[XRT_MAX_VIEWS]) //
+ {
+ 	assert(crc->r != NULL);
+@@ -795,8 +835,10 @@ render_compute_clear(struct render_compute *crc,                             //
+ 	    r->compute.distortion_binding,    // distortion_binding
+ 	    distortion_samplers,              // distortion_samplers[6]
+ 	    r->distortion.image_views,        // distortion_image_views[6]
+-	    r->compute.target_binding,        // target_binding
+-	    target_image_view,                // target_image_view
++	    r->compute.target_binding_y,      // target_binding
++	    r->compute.target_binding_cbcr,   // target_binding
++	    target_image_view_y,              // target_image_view_y
++	    target_image_view_cbcr,           // target_image_view_cbcr
+ 	    r->compute.ubo_binding,           // ubo_binding
+ 	    r->compute.clear.ubo.buffer,      // ubo_buffer
+ 	    VK_WHOLE_SIZE,                    // ubo_size
+@@ -834,7 +876,7 @@ render_compute_clear(struct render_compute *crc,                             //
+ 	    .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+ 	    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+ 	    .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+-	    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
++	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+ 	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+ 	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+ 	    .image = target_image,
+diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
+index 9fe5207b5..9b1ce09c6 100644
+--- a/src/xrt/compositor/render/render_interface.h
++++ b/src/xrt/compositor/render/render_interface.h
+@@ -488,7 +488,8 @@ struct render_resources
+ 		uint32_t distortion_binding;
+ 
+ 		//! Writing the image out too.
+-		uint32_t target_binding;
++		uint32_t target_binding_y;
++		uint32_t target_binding_cbcr;
+ 
+ 		//! Uniform data binding.
+ 		uint32_t ubo_binding;
+@@ -1306,7 +1307,8 @@ render_compute_layers(struct render_compute *crc,                          //
+                       VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],      //
+                       VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE], //
+                       uint32_t num_srcs,                                   //
+-                      VkImageView target_image_view,                       //
++                      VkImageView target_image_view_y,                     //
++                      VkImageView target_image_view_cbcr,                  //
+                       const struct render_viewport_data *view,             //
+                       bool timewarp);                                      //
+ 
+@@ -1322,7 +1324,8 @@ render_compute_projection_timewarp(struct render_compute *crc,
+                                    const struct xrt_fov src_fovs[XRT_MAX_VIEWS],
+                                    const struct xrt_pose new_poses[XRT_MAX_VIEWS],
+                                    VkImage target_image,
+-                                   VkImageView target_image_view,
++                                   VkImageView target_image_view_y,
++                                   VkImageView target_image_view_cbcr,
+                                    const struct render_viewport_data views[XRT_MAX_VIEWS]);
+ 
+ /*!
+@@ -1334,7 +1337,8 @@ render_compute_projection(struct render_compute *crc,
+                           VkImageView src_image_views[XRT_MAX_VIEWS],                //
+                           const struct xrt_normalized_rect src_rects[XRT_MAX_VIEWS], //
+                           VkImage target_image,                                      //
+-                          VkImageView target_image_view,                             //
++                          VkImageView target_image_view_y,                           //
++                          VkImageView target_image_view_cbcr,                        //
+                           const struct render_viewport_data views[XRT_MAX_VIEWS]);   //
+ 
+ /*!
+@@ -1343,7 +1347,8 @@ render_compute_projection(struct render_compute *crc,
+ void
+ render_compute_clear(struct render_compute *crc,                              //
+                      VkImage target_image,                                    //
+-                     VkImageView target_image_view,                           //
++                     VkImageView target_image_view_y,                         //
++                     VkImageView target_image_view_cbcr,                      //
+                      const struct render_viewport_data views[XRT_MAX_VIEWS]); //
+ 
+ 
+diff --git a/src/xrt/compositor/render/render_resources.c b/src/xrt/compositor/render/render_resources.c
+index 9ae017001..c5474116f 100644
+--- a/src/xrt/compositor/render/render_resources.c
++++ b/src/xrt/compositor/render/render_resources.c
+@@ -184,14 +184,15 @@ init_mesh_ubo_buffers(struct vk_bundle *vk, struct render_buffer ubo[XRT_MAX_VIE
+ XRT_CHECK_RESULT static VkResult
+ create_compute_layer_descriptor_set_layout(struct vk_bundle *vk,
+                                            uint32_t src_binding,
+-                                           uint32_t target_binding,
++                                           uint32_t target_binding_y,
++                                           uint32_t target_binding_cbcr,
+                                            uint32_t ubo_binding,
+                                            uint32_t source_images_count,
+                                            VkDescriptorSetLayout *out_descriptor_set_layout)
+ {
+ 	VkResult ret;
+ 
+-	VkDescriptorSetLayoutBinding set_layout_bindings[3] = {
++	VkDescriptorSetLayoutBinding set_layout_bindings[4] = {
+ 	    {
+ 	        .binding = src_binding,
+ 	        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+@@ -199,7 +200,7 @@ create_compute_layer_descriptor_set_layout(struct vk_bundle *vk,
+ 	        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+ 	    },
+ 	    {
+-	        .binding = target_binding,
++	        .binding = target_binding_y,
+ 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+ 	        .descriptorCount = 1,
+ 	        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+@@ -210,6 +211,12 @@ create_compute_layer_descriptor_set_layout(struct vk_bundle *vk,
+ 	        .descriptorCount = 1,
+ 	        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+ 	    },
++	    {
++	        .binding = target_binding_cbcr,
++	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
++	        .descriptorCount = 1,
++	        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
++	    },
+ 	};
+ 
+ 	VkDescriptorSetLayoutCreateInfo set_layout_info = {
+@@ -235,13 +242,14 @@ XRT_CHECK_RESULT static VkResult
+ create_compute_distortion_descriptor_set_layout(struct vk_bundle *vk,
+                                                 uint32_t src_binding,
+                                                 uint32_t distortion_binding,
+-                                                uint32_t target_binding,
++                                                uint32_t target_binding_y,
++                                                uint32_t target_binding_cbcr,
+                                                 uint32_t ubo_binding,
+                                                 VkDescriptorSetLayout *out_descriptor_set_layout)
+ {
+ 	VkResult ret;
+ 
+-	VkDescriptorSetLayoutBinding set_layout_bindings[4] = {
++	VkDescriptorSetLayoutBinding set_layout_bindings[5] = {
+ 	    {
+ 	        .binding = src_binding,
+ 	        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+@@ -255,7 +263,7 @@ create_compute_distortion_descriptor_set_layout(struct vk_bundle *vk,
+ 	        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+ 	    },
+ 	    {
+-	        .binding = target_binding,
++	        .binding = target_binding_y,
+ 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+ 	        .descriptorCount = 1,
+ 	        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+@@ -266,6 +274,12 @@ create_compute_distortion_descriptor_set_layout(struct vk_bundle *vk,
+ 	        .descriptorCount = 1,
+ 	        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+ 	    },
++	    {
++	        .binding = target_binding_cbcr,
++	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
++	        .descriptorCount = 1,
++	        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
++	    },
+ 	};
+ 
+ 	VkDescriptorSetLayoutCreateInfo set_layout_info = {
+@@ -601,8 +615,9 @@ render_resources_init(struct render_resources *r,
+ 	}
+ 	r->compute.src_binding = 0;
+ 	r->compute.distortion_binding = 1;
+-	r->compute.target_binding = 2;
++	r->compute.target_binding_y = 2;
+ 	r->compute.ubo_binding = 3;
++	r->compute.target_binding_cbcr = 4;
+ 
+ 	r->compute.layer.image_array_size = vk->features.max_per_stage_descriptor_sampled_images;
+ 	if (r->compute.layer.image_array_size > RENDER_MAX_IMAGES_COUNT) {
+@@ -921,7 +936,8 @@ render_resources_init(struct render_resources *r,
+ 	ret = create_compute_layer_descriptor_set_layout( //
+ 	    vk,                                           // vk_bundle
+ 	    r->compute.src_binding,                       // src_binding,
+-	    r->compute.target_binding,                    // target_binding,
++	    r->compute.target_binding_y,                  // target_binding_y,
++	    r->compute.target_binding_cbcr,               // target_binding_cbcr,
+ 	    r->compute.ubo_binding,                       // ubo_binding,
+ 	    r->compute.layer.image_array_size,            // source_images_count,
+ 	    &r->compute.layer.descriptor_set_layout);     // out_descriptor_set_layout
+@@ -1002,7 +1018,8 @@ render_resources_init(struct render_resources *r,
+ 	    vk,                                                // vk_bundle
+ 	    r->compute.src_binding,                            // src_binding,
+ 	    r->compute.distortion_binding,                     // distortion_binding,
+-	    r->compute.target_binding,                         // target_binding,
++	    r->compute.target_binding_y,                       // target_binding_y,
++	    r->compute.target_binding_cbcr,                    // target_binding_cbcr,
+ 	    r->compute.ubo_binding,                            // ubo_binding,
+ 	    &r->compute.distortion.descriptor_set_layout);     // out_descriptor_set_layout
+ 	VK_CHK_WITH_RET(ret, "create_compute_distortion_descriptor_set_layout", false);
+diff --git a/src/xrt/compositor/shaders/distortion.comp b/src/xrt/compositor/shaders/distortion.comp
+index 9a09c03db..716d0f9f6 100644
+--- a/src/xrt/compositor/shaders/distortion.comp
++++ b/src/xrt/compositor/shaders/distortion.comp
+@@ -18,7 +18,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+ 
+ layout(set = 0, binding = 0) uniform sampler2D source[2];
+ layout(set = 0, binding = 1) uniform sampler2D distortion[6];
+-layout(set = 0, binding = 2) uniform writeonly restrict image2D target;
++layout(set = 0, binding = 2) uniform writeonly restrict image2D luma;
+ layout(set = 0, binding = 3, std140) uniform restrict Config
+ {
+ 	ivec4 views[2];
+@@ -26,7 +26,20 @@ layout(set = 0, binding = 3, std140) uniform restrict Config
+ 	vec4 post_transform[2];
+ 	mat4 transform[2];
+ } ubo;
++layout(set = 0, binding = 4) uniform writeonly restrict image2D chroma;
+ 
++const mat3 color_space = mat3(
++// clang-format off
++//         R        G        B
++/* Y */ 0.2126,  0.7152,  0.0722,
++/* Cb*/-0.1146, -0.3854,  0.5,
++/* Cr*/ 0.5   , -0.4542, -0.0458);
++//clang-format: on
++
++vec3 rgb_to_ycbcr(vec3 color)
++{
++	return transpose(color_space) * color + vec3(0, 0.5, 0.5);
++}
+ 
+ vec2 position_to_uv(ivec2 extent, uint ix, uint iy)
+ {
+@@ -124,30 +137,38 @@ mat3x2 source_coord(ivec3 xyv, ivec2 extent)
+ 
+ void main()
+ {
+-	uint ix = gl_GlobalInvocationID.x;
+-	uint iy = gl_GlobalInvocationID.y;
+ 	uint iz = gl_GlobalInvocationID.z;
+ 
+ 	ivec2 offset = ivec2(ubo.views[iz].xy);
+ 	ivec2 extent = ivec2(ubo.views[iz].zw);
++	vec2 cbcrs[4];
++	for (int k = 0; k < 2; k += 1) {
++		uint iy = gl_GlobalInvocationID.y * 2 + k;
++		for (int j = 0; j < 2; j += 1) {
++			uint ix = gl_GlobalInvocationID.x * 2 + j;
+ 
+-	if (ix >= extent.x || iy >= extent.y) {
+-		return;
+-	}
++			if (ix >= extent.x || iy >= extent.y) {
++				return;
++			}
+ 
+-	vec2 dist_uv = position_to_uv(extent, ix, iy);
++			vec2 dist_uv = position_to_uv(extent, ix, iy);
+ 
+-	vec2 uv = texture(distortion[iz + 0], dist_uv).xy;
+-	vec2 lod = texture(distortion[iz + 2], dist_uv).xy;
++			vec2 uv = texture(distortion[iz + 0], dist_uv).xy;
++			vec2 lod = texture(distortion[iz + 2], dist_uv).xy;
+ 
+-	// Do any transformation needed.
+-	uv = transform_uv(uv, iz);
++			// Do any transformation needed.
++			uv = transform_uv(uv, iz);
+ 
+-	// Sample the source
+-	vec4 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5));
++			// Sample the source
++			vec3 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5)).rgb;
+ 
+-	// Do colour correction here since there are no automatic conversion in hardware available.
+-	colour = vec4(from_linear_to_srgb(colour.rgb), 1);
++			colour = rgb_to_ycbcr(from_linear_to_srgb(colour));
+ 
+-	imageStore(target, ivec2(offset.x + ix, offset.y + iy), colour);
++			imageStore(luma, ivec2(offset.x + ix, offset.y + iy), vec4(colour.x));
++			int i = k * 2 + j;
++			cbcrs[i] = colour.yz;
++		}
++	}
++	vec2 cbcr = mix(mix(cbcrs[0], cbcrs[1], 0.5), mix(cbcrs[2], cbcrs[3], 0.5), 0.5);
++	imageStore(chroma, ivec2(offset.xy/2 + gl_GlobalInvocationID.xy), vec4(cbcr.x, cbcr.y, 0, 0));
+ }
+diff --git a/src/xrt/compositor/util/comp_render.h b/src/xrt/compositor/util/comp_render.h
+index da717aa91..69234bac4 100644
+--- a/src/xrt/compositor/util/comp_render.h
++++ b/src/xrt/compositor/util/comp_render.h
+@@ -130,7 +130,8 @@ struct comp_render_dispatch_data
+ 		VkImage target_image;
+ 
+ 		// Target image view for distortion.
+-		VkImageView target_unorm_view;
++		VkImageView target_unorm_view_y;
++		VkImageView target_unorm_view_cbcr;
+ 	} cs;
+ };
+ 
+@@ -231,7 +232,8 @@ comp_render_gfx_dispatch(struct render_gfx *rr,
+ static inline void
+ comp_render_cs_initial_init(struct comp_render_dispatch_data *data,
+                             VkImage target_image,
+-                            VkImageView target_unorm_view,
++                            VkImageView target_unorm_view_y,
++                            VkImageView target_unorm_view_cbcr,
+                             bool fast_path,
+                             bool do_timewarp)
+ {
+@@ -241,7 +243,8 @@ comp_render_cs_initial_init(struct comp_render_dispatch_data *data,
+ 	data->do_timewarp = do_timewarp;
+ 
+ 	data->cs.target_image = target_image;
+-	data->cs.target_unorm_view = target_unorm_view;
++	data->cs.target_unorm_view_y = target_unorm_view_y;
++	data->cs.target_unorm_view_cbcr = target_unorm_view_cbcr;
+ }
+ 
+ static inline void
+@@ -301,7 +304,8 @@ comp_render_cs_layer(struct render_compute *crc,
+                      const struct xrt_pose *world_pose,
+                      const struct xrt_pose *eye_pose,
+                      const VkImage target_image,
+-                     const VkImageView target_image_view,
++                     const VkImageView target_image_view_y,
++                     const VkImageView target_image_view_cbcr,
+                      const struct render_viewport_data *target_view,
+                      bool do_timewarp);
+ 
+diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
+index e85cd511a..34cc27ece 100644
+--- a/src/xrt/compositor/util/comp_render_cs.c
++++ b/src/xrt/compositor/util/comp_render_cs.c
+@@ -330,11 +330,12 @@ do_cs_clear(struct render_compute *crc, const struct comp_render_dispatch_data *
+ 	}
+ 
+ 
+-	render_compute_clear(        //
+-	    crc,                     // crc
+-	    d->cs.target_image,      // target_image
+-	    d->cs.target_unorm_view, // target_image_view
+-	    target_viewport_datas);  // views
++	render_compute_clear(             //
++	    crc,                          // crc
++	    d->cs.target_image,           // target_image
++	    d->cs.target_unorm_view_y,    // target_image_view_y
++	    d->cs.target_unorm_view_cbcr, // target_image_view_cbcr
++	    target_viewport_datas);       // views
+ }
+ 
+ static void
+@@ -458,14 +459,15 @@ do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_rend
+ 		src_norm_rects[i] = src_norm_rect;
+ 	}
+ 
+-	render_compute_projection(   //
+-	    crc,                     // crc
+-	    src_samplers,            // src_samplers
+-	    src_image_views,         // src_image_views
+-	    src_norm_rects,          // src_rects
+-	    d->cs.target_image,      // target_image
+-	    d->cs.target_unorm_view, // target_image_view
+-	    target_viewport_datas);  // views
++	render_compute_projection(        //
++	    crc,                          // crc
++	    src_samplers,                 // src_samplers
++	    src_image_views,              // src_image_views
++	    src_norm_rects,               // src_rects
++	    d->cs.target_image,           // target_image
++	    d->cs.target_unorm_view_y,    // target_image_view_y
++	    d->cs.target_unorm_view_cbcr, // target_image_view_cbcr
++	    target_viewport_datas);       // views
+ }
+ 
+ static void
+@@ -535,7 +537,8 @@ do_cs_distortion_for_layer(struct render_compute *crc,
+ 		    src_image_views,         //
+ 		    src_norm_rects,          //
+ 		    d->cs.target_image,      //
+-		    d->cs.target_unorm_view, //
++		    d->cs.target_unorm_view_y, //
++		    d->cs.target_unorm_view_cbcr, //
+ 		    target_viewport_datas);  //
+ 	} else {
+ 		render_compute_projection_timewarp( //
+@@ -547,7 +550,8 @@ do_cs_distortion_for_layer(struct render_compute *crc,
+ 		    src_fovs,                       //
+ 		    world_poses,                    //
+ 		    d->cs.target_image,             //
+-		    d->cs.target_unorm_view,        //
++		    d->cs.target_unorm_view_y,      //
++		    d->cs.target_unorm_view_cbcr,   //
+ 		    target_viewport_datas);         //
+ 	}
+ }
+@@ -568,7 +572,8 @@ comp_render_cs_layer(struct render_compute *crc,
+                      const struct xrt_pose *world_pose,
+                      const struct xrt_pose *eye_pose,
+                      const VkImage target_image,
+-                     const VkImageView target_image_view,
++                     const VkImageView target_image_view_y,
++                     const VkImageView target_image_view_cbcr,
+                      const struct render_viewport_data *target_view,
+                      bool do_timewarp)
+ {
+@@ -729,7 +734,8 @@ comp_render_cs_layer(struct render_compute *crc,
+ 	    src_samplers,      //
+ 	    src_image_views,   //
+ 	    cur_image,         //
+-	    target_image_view, //
++	    target_image_view_y, //
++	    target_image_view_cbcr, //
+ 	    target_view,       //
+ 	    do_timewarp);      //
+ }
+@@ -765,6 +771,7 @@ comp_render_cs_layers(struct render_compute *crc,
+ 		    &view->eye_pose,             //
+ 		    view->image,                 //
+ 		    view->cs.unorm_view,         //
++		    view->cs.unorm_view,         //
+ 		    &view->layer_viewport_data,  //
+ 		    d->do_timewarp);             //
+ 	}
+-- 
+2.46.0
+

@@ -24,7 +24,6 @@
 
 #include "main/comp_target.h"
 
-#include "encoder/yuv_converter.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "vk/allocation.h"
 
@@ -57,7 +56,8 @@ struct pseudo_swapchain
 	struct item
 	{
 		image_allocation image;
-		vk::raii::ImageView image_view = nullptr;
+		vk::raii::ImageView image_view_y = nullptr;
+		vk::raii::ImageView image_view_cbcr = nullptr;
 		status_t status;
 	};
 	std::vector<item> images;
@@ -70,7 +70,6 @@ struct pseudo_swapchain
 	// Data to be encoded
 	vk::raii::Fence fence = nullptr;
 	vk::raii::CommandBuffer command_buffer = nullptr;
-	yuv_converter yuv;
 	int64_t frame_index;
 	to_headset::video_stream_data_shard::view_info_t view_info{};
 };

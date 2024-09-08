@@ -18,7 +18,6 @@
  */
 
 #include "video_encoder_nvenc.h"
-#include "encoder/yuv_converter.h"
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 
@@ -323,16 +322,16 @@ VideoEncoderNvenc::~VideoEncoderNvenc()
 		fn.nvEncDestroyEncoder(session_handle);
 }
 
-void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandBuffer & cmd_buf)
+void VideoEncoderNvenc::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
 {
 	cmd_buf.copyImageToBuffer(
-	        src_yuv.luma,
+	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        *yuv_buffer,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = width,
 	                .imageSubresource = {
-	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
 	                        .layerCount = 1,
 	                },
 	                .imageOffset = {
@@ -345,14 +344,14 @@ void VideoEncoderNvenc::PresentImage(yuv_converter & src_yuv, vk::raii::CommandB
 	                        .depth = 1,
 	                }});
 	cmd_buf.copyImageToBuffer(
-	        src_yuv.chroma,
+	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        *yuv_buffer,
 	        vk::BufferImageCopy{
 	                .bufferOffset = width * height,
 	                .bufferRowLength = uint32_t(width / 2),
 	                .imageSubresource = {
-	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
 	                        .layerCount = 1,
 	                },
 	                .imageOffset = {
