@@ -229,7 +229,7 @@ void scenes::stream::tracking()
 				control = tracking_control;
 			}
 
-			XrDuration prediction = std::min<XrDuration>(control.offset.count(), 80'000'000);
+			XrDuration prediction = std::clamp<XrDuration>(control.offset.count(), 0, 80'000'000);
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
 			for (XrDuration Δt = 0; Δt <= prediction + period / 2; Δt += period, ++samples)
 			{
@@ -311,7 +311,7 @@ void scenes::stream::tracking()
 			// Target: polling between 1 and 5ms, with 20% busy time
 			tracking_period = std::clamp<XrDuration>(std::lerp(tracking_period, busy_time * 5, 0.2), 1'000'000, 5'000'000);
 
-			if (busy_time / samples > 2'000'000)
+			if (samples and busy_time / samples > 2'000'000)
 			{
 				skip_samples = busy_time / 2'000'000;
 			}
