@@ -129,8 +129,8 @@ decoder::decoder(
 
 	AImageReader * ir;
 	check(AImageReader_newWithUsage(
-	              description.width,
-	              description.height,
+	              description.video_width,
+	              description.video_height,
 	              AIMAGE_FORMAT_PRIVATE,
 	              AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE,
 	              5 /* maxImages */,
@@ -193,8 +193,8 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 		AMediaFormat_setString(format.get(), AMEDIAFORMAT_KEY_MIME, mime(description.codec));
 		// AMediaFormat_setInt32(format.get(), "vendor.qti-ext-dec-low-latency.enable", 1); // Qualcomm low
 		// latency mode
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_WIDTH, description.width);
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, description.height);
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_WIDTH, description.video_width);
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, description.video_height);
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(fps));
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_PRIORITY, 0);
 
