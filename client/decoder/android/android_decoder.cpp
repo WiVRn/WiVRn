@@ -77,44 +77,6 @@ void check(media_status_t status, const char * msg)
 namespace wivrn::android
 {
 
-void decoder::push_nals(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
-{
-	if (current_input_buffer.data == nullptr)
-		current_input_buffer = input_buffers.pop();
-	else if (current_input_buffer.frame_index != frame_index)
-	{
-		// Reuse the input buffer, discard existing data
-		current_input_buffer.data_size = 0;
-	}
-	current_input_buffer.frame_index = frame_index;
-
-	for (const auto & sub_data: data)
-	{
-		if (current_input_buffer.data_size + sub_data.size() > current_input_buffer.capacity)
-		{
-			spdlog::error("data to decode is larger than decoder buffer, skipping frame");
-			return;
-		}
-
-		memcpy(current_input_buffer.data + current_input_buffer.data_size, sub_data.data(), sub_data.size());
-		current_input_buffer.data_size += sub_data.size();
-	}
-
-	if (partial)
-		return;
-
-	jobs.push([=, idx = current_input_buffer.idx, data_size = current_input_buffer.data_size, mc = media_codec.get()]() {
-		uint64_t timestamp = frame_index * 10'000;
-		auto status = AMediaCodec_queueInputBuffer(mc, idx, 0, data_size, timestamp, 0);
-		if (status != AMEDIA_OK)
-			spdlog::error("AMediaCodec_queueInputBuffer: MediaCodec error {}({})",
-			              int(status),
-			              std::string(magic_enum::enum_name(status)).c_str());
-		return false;
-	});
-	current_input_buffer = input_buffer{};
-}
-
 decoder::decoder(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
@@ -144,7 +106,41 @@ decoder::decoder(
 	vkGetAndroidHardwareBufferPropertiesANDROID =
 	        application::get_vulkan_proc<PFN_vkGetAndroidHardwareBufferPropertiesANDROID>(
 	                "vkGetAndroidHardwareBufferPropertiesANDROID");
+	{
+		AMediaFormat_ptr format(AMediaFormat_new());
+		AMediaFormat_setString(format.get(), AMEDIAFORMAT_KEY_MIME, mime(description.codec));
+		// AMediaFormat_setInt32(format.get(), "vendor.qti-ext-dec-low-latency.enable", 1); // Qualcomm low
+		// latency mode
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_WIDTH, description.video_width);
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, description.video_height);
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(fps));
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_PRIORITY, 0);
 
+		media_codec.reset(AMediaCodec_createDecoderByType(mime(description.codec)));
+
+		char * codec_name;
+		check(AMediaCodec_getName(media_codec.get(), &codec_name), "AMediaCodec_getName");
+		spdlog::info("Created MediaCodec decoder \"{}\"", codec_name);
+		AMediaCodec_releaseName(media_codec.get(), codec_name);
+
+		ANativeWindow * window;
+
+		check(AImageReader_getWindow(image_reader.get(), &window), "AImageReader_getWindow");
+
+		AMediaCodecOnAsyncNotifyCallback callback{
+		        .onAsyncInputAvailable = decoder::on_media_input_available,
+		        .onAsyncOutputAvailable = decoder::on_media_output_available,
+		        .onAsyncFormatChanged = decoder::on_media_format_changed,
+		        .onAsyncError = decoder::on_media_error,
+		};
+		check(AMediaCodec_setAsyncNotifyCallback(media_codec.get(), callback, this),
+		      "AMediaCodec_setAsyncNotifyCallback");
+
+		check(AMediaCodec_configure(media_codec.get(), format.get(), window, nullptr /* crypto */, 0 /* flags */),
+		      "AMediaCodec_configure");
+
+		check(AMediaCodec_start(media_codec.get()), "AMediaCodec_start");
+	}
 	worker = utils::named_thread(
 	        "decoder-" + std::to_string(stream_index),
 	        [this]() {
@@ -187,44 +183,40 @@ decoder::~decoder()
 
 void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
-	if (!media_codec)
+	if (current_input_buffer.data == nullptr)
+		current_input_buffer = input_buffers.pop();
+	else if (current_input_buffer.frame_index != frame_index)
 	{
-		AMediaFormat_ptr format(AMediaFormat_new());
-		AMediaFormat_setString(format.get(), AMEDIAFORMAT_KEY_MIME, mime(description.codec));
-		// AMediaFormat_setInt32(format.get(), "vendor.qti-ext-dec-low-latency.enable", 1); // Qualcomm low
-		// latency mode
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_WIDTH, description.video_width);
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, description.video_height);
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(fps));
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_PRIORITY, 0);
+		// Reuse the input buffer, discard existing data
+		current_input_buffer.data_size = 0;
+	}
+	current_input_buffer.frame_index = frame_index;
 
-		media_codec.reset(AMediaCodec_createDecoderByType(mime(description.codec)));
+	for (const auto & sub_data: data)
+	{
+		if (current_input_buffer.data_size + sub_data.size() > current_input_buffer.capacity)
+		{
+			spdlog::error("data to decode is larger than decoder buffer, skipping frame");
+			return;
+		}
 
-		char * codec_name;
-		check(AMediaCodec_getName(media_codec.get(), &codec_name), "AMediaCodec_getName");
-		spdlog::info("Created MediaCodec decoder \"{}\"", codec_name);
-		AMediaCodec_releaseName(media_codec.get(), codec_name);
-
-		ANativeWindow * window;
-
-		check(AImageReader_getWindow(image_reader.get(), &window), "AImageReader_getWindow");
-
-		AMediaCodecOnAsyncNotifyCallback callback{
-		        .onAsyncInputAvailable = decoder::on_media_input_available,
-		        .onAsyncOutputAvailable = decoder::on_media_output_available,
-		        .onAsyncFormatChanged = decoder::on_media_format_changed,
-		        .onAsyncError = decoder::on_media_error,
-		};
-		check(AMediaCodec_setAsyncNotifyCallback(media_codec.get(), callback, this),
-		      "AMediaCodec_setAsyncNotifyCallback");
-
-		check(AMediaCodec_configure(media_codec.get(), format.get(), window, nullptr /* crypto */, 0 /* flags */),
-		      "AMediaCodec_configure");
-
-		check(AMediaCodec_start(media_codec.get()), "AMediaCodec_start");
+		memcpy(current_input_buffer.data + current_input_buffer.data_size, sub_data.data(), sub_data.size());
+		current_input_buffer.data_size += sub_data.size();
 	}
 
-	push_nals(data, frame_index, partial);
+	if (partial)
+		return;
+
+	jobs.push([=, idx = current_input_buffer.idx, data_size = current_input_buffer.data_size, mc = media_codec.get()]() {
+		uint64_t timestamp = frame_index * 10'000;
+		auto status = AMediaCodec_queueInputBuffer(mc, idx, 0, data_size, timestamp, 0);
+		if (status != AMEDIA_OK)
+			spdlog::error("AMediaCodec_queueInputBuffer: MediaCodec error {}({})",
+			              int(status),
+			              std::string(magic_enum::enum_name(status)).c_str());
+		return false;
+	});
+	current_input_buffer = input_buffer{};
 }
 
 void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)

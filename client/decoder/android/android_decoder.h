@@ -129,8 +129,6 @@ private:
 	static void on_media_input_available(AMediaCodec *, void * userdata, int32_t index);
 	static void on_media_output_available(AMediaCodec *, void * userdata, int32_t index, AMediaCodecBufferInfo * bufferInfo);
 
-	void push_nals(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
-
 	std::unordered_map<AHardwareBuffer *, std::shared_ptr<mapped_hardware_buffer>> hardware_buffer_map;
 	vk::raii::RenderPass renderpass = nullptr;
 
