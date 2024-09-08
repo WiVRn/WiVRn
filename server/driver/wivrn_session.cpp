@@ -91,11 +91,10 @@ void xrt::drivers::wivrn::tracking_control_t::send(wivrn_connection & connection
 	if (std::chrono::steady_clock::now() < next_sample)
 		return;
 
-	if (auto offset = max.exchange(0))
-		connection.send_stream(to_headset::tracking_control{
-		        .offset = std::chrono::nanoseconds(offset),
-		        .enabled = enabled,
-		});
+	connection.send_stream(to_headset::tracking_control{
+	        .offset = std::chrono::nanoseconds(max.exchange(0)),
+	        .enabled = enabled,
+	});
 	next_sample += std::chrono::seconds(1);
 }
 
