@@ -393,6 +393,7 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 		// Update encoder status, release image
 		if ((cn->psc.status &= ~status_bit) == 0)
 		{
+			cn->psc.status.notify_all();
 			for (auto & img: cn->psc.images)
 			{
 				if (img.status == pseudo_swapchain::status_t::encoding)
@@ -434,14 +435,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	        .pCommandBuffers = &*command_buffer,
 	};
 
-	bool skip = cn->c->base.slot.layer_count == 0 or not cn->cnx->get_offset();
-	if (cn->psc.status != 0)
-	{
-		U_LOG_W("Encoders not done with previous image, skip one");
-		skip = true;
-	}
-
-	if (skip)
+	if (cn->c->base.slot.layer_count == 0 or not cn->cnx->get_offset())
 	{
 		command_buffer.end();
 		scoped_lock lock(vk->queue_mutex);
@@ -459,6 +453,10 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		encoder->PresentImage(yuv, command_buffer);
 	}
 	command_buffer.end();
+
+	// Wait for encoders to be done with previous frame
+	for (auto status = cn->psc.status.load(); status != 0; status = cn->psc.status)
+		cn->psc.status.wait(status);
 
 	cn->wivrn_bundle->device.resetFences(*cn->psc.fence);
 	{
