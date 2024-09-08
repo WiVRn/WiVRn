@@ -418,6 +418,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	assert(cn->psc.images[index].status == pseudo_swapchain::status_t::acquired);
 
 	struct vk_bundle * vk = get_vk(cn);
+	auto res = cn->wivrn_bundle->device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
 
 	auto & command_buffer = cn->psc.command_buffer;
 	command_buffer.reset();
@@ -458,8 +459,6 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		encoder->PresentImage(yuv, command_buffer);
 	}
 	command_buffer.end();
-
-	auto res = cn->wivrn_bundle->device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
 
 	cn->wivrn_bundle->device.resetFences(*cn->psc.fence);
 	{
