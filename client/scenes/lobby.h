@@ -130,6 +130,7 @@ public:
 	void on_unfocused() override;
 	void on_focused() override;
 	void on_session_state_changed(XrSessionState state) override;
+	void on_reference_space_changed(XrReferenceSpaceType, XrTime) override;
 
 	static meta & get_meta_scene();
 };

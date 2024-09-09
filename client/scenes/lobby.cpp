@@ -799,6 +799,12 @@ void scenes::lobby::on_session_state_changed(XrSessionState state)
 {
 	if (state == XR_SESSION_STATE_STOPPING)
 		discover.reset();
+	recenter_gui = true;
+}
+
+void scenes::lobby::on_reference_space_changed(XrReferenceSpaceType, XrTime)
+{
+	recenter_gui = true;
 }
 
 scene::meta & scenes::lobby::get_meta_scene()
