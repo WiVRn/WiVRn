@@ -128,7 +128,7 @@ vk::Format drm_to_vulkan_fmt(uint32_t drm_fourcc)
 } // namespace
 
 video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::encoder_settings & settings, float fps) :
-        luma(nullptr), chroma(nullptr), synchronization2(vk.vk.features.synchronization_2)
+        synchronization2(vk.vk.features.synchronization_2)
 {
 	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device, settings.device);
 	AVBufferRef * tmp;
@@ -232,131 +232,138 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::en
 		U_LOG_W("Encoder %d reports a %d frame delay, reprojection will fail", stream_idx, encoder_ctx->delay);
 	}
 
-	va_frame = make_av_frame();
-	err = av_hwframe_get_buffer(vaapi_frame_ctx.get(), va_frame.get(), 0);
-	if (err < 0)
-	{
-		throw std::system_error(err, av_error_category(), "Cannot create vaapi frame");
-	}
-	drm_frame = make_av_frame();
-	err = av_hwframe_get_buffer(drm_frame_ctx.get(), drm_frame.get(), 0);
-	if (err < 0)
-	{
-		throw std::system_error(err, av_error_category(), "Cannot create vulkan frame");
-	}
-	av_hwframe_map(va_frame.get(), drm_frame.get(), AV_HWFRAME_MAP_DIRECT);
-	va_frame->color_range = AVCOL_RANGE_JPEG;
-	va_frame->colorspace = AVCOL_SPC_BT709;
-	va_frame->color_primaries = AVCOL_PRI_BT709;
-	va_frame->color_trc = AVCOL_TRC_BT709;
-	auto desc = (AVDRMFrameDescriptor *)drm_frame->data[0];
-
 	const bool has_modifiers =
 	        std::ranges::any_of(vk.device_extensions, [](const char * ext) {
 		        return strcmp(ext, VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME) == 0;
 	        });
-
-	// layer == image
-	for (int i = 0; i < desc->nb_layers; ++i)
+	for (auto & slot: in)
 	{
-		std::vector<vk::SubresourceLayout> plane_layouts;
-		for (int plane = 0; plane < desc->layers[i].nb_planes; ++plane)
+		auto & va_frame = slot.va_frame;
+		auto & drm_frame = slot.drm_frame;
+		auto & luma = slot.luma;
+		auto & chroma = slot.chroma;
+		auto & mem = slot.mem;
+		va_frame = make_av_frame();
+		err = av_hwframe_get_buffer(vaapi_frame_ctx.get(), va_frame.get(), 0);
+		if (err < 0)
 		{
-			plane_layouts.push_back({
-			        .offset = vk::DeviceSize(desc->layers[i].planes[plane].offset),
-			        .rowPitch = vk::DeviceSize(desc->layers[i].planes[plane].pitch),
-			});
+			throw std::system_error(err, av_error_category(), "Cannot create vaapi frame");
 		}
-		vk::StructureChain image_create_info{
-		        vk::ImageCreateInfo{
-		                .imageType = vk::ImageType::e2D,
-		                .format = drm_to_vulkan_fmt(desc->layers[i].format),
-		                .extent = {
-		                        .width = uint32_t(drm_frame->width / (i == 0 ? 1 : 2)),
-		                        .height = uint32_t(drm_frame->height / (i == 0 ? 1 : 2)),
-		                        .depth = 1,
-		                },
-		                .mipLevels = 1,
-		                .arrayLayers = 1,
-		                .samples = vk::SampleCountFlagBits::e1,
-		                .tiling = has_modifiers ? vk::ImageTiling::eDrmFormatModifierEXT : ((desc->objects[0].format_modifier == DRM_FORMAT_MOD_LINEAR || desc->objects[0].format_modifier == DRM_FORMAT_MOD_INVALID) ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal),
-		                .usage = vk::ImageUsageFlagBits::eTransferDst,
-		                .sharingMode = vk::SharingMode::eExclusive,
-		                .initialLayout = vk::ImageLayout::eUndefined,
-		        },
-		        vk::ExternalMemoryImageCreateInfo{
-		                .handleTypes = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
-		        },
-		        vk::ImageDrmFormatModifierExplicitCreateInfoEXT{
-		                .drmFormatModifier = desc->objects[0].format_modifier,
-		                .drmFormatModifierPlaneCount = uint32_t(plane_layouts.size()),
-		                .pPlaneLayouts = plane_layouts.data(),
-		        },
-		};
-
-		if (not has_modifiers)
-			image_create_info.unlink<vk::ImageDrmFormatModifierExplicitCreateInfoEXT>();
-
-		auto & image = (i == 0 ? luma : chroma);
-		image = vk.device.createImage(image_create_info.get());
-	}
-	// objects == memory
-	for (int i = 0; i < desc->nb_objects; ++i)
-	{
-		auto memory_props = vk.device.getMemoryFdPropertiesKHR(vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT, desc->objects[i].fd);
-
-		vk::StructureChain alloc_info{
-		        vk::MemoryAllocateInfo{
-		                .allocationSize = desc->objects[i].size,
-		                .memoryTypeIndex = vk.get_memory_type(memory_props.memoryTypeBits, {}),
-		        },
-		        vk::ImportMemoryFdInfoKHR{
-		                .handleType = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
-		                .fd = dup(desc->objects[i].fd),
-		        },
-		};
-		try
+		drm_frame = make_av_frame();
+		err = av_hwframe_get_buffer(drm_frame_ctx.get(), drm_frame.get(), 0);
+		if (err < 0)
 		{
-			mem.emplace_back(vk.device, alloc_info.get());
+			throw std::system_error(err, av_error_category(), "Cannot create vulkan frame");
 		}
-		catch (...)
-		{
-			close(alloc_info.get<vk::ImportMemoryFdInfoKHR>().fd);
-			throw;
-		}
-	}
+		av_hwframe_map(va_frame.get(), drm_frame.get(), AV_HWFRAME_MAP_DIRECT);
+		va_frame->color_range = AVCOL_RANGE_JPEG;
+		va_frame->colorspace = AVCOL_SPC_BT709;
+		va_frame->color_primaries = AVCOL_PRI_BT709;
+		va_frame->color_trc = AVCOL_TRC_BT709;
+		auto desc = (AVDRMFrameDescriptor *)drm_frame->data[0];
 
-	{
-		std::vector<vk::BindImageMemoryInfo> bind_info;
-		std::vector<vk::BindImagePlaneMemoryInfo> plane_info;
-		plane_info.reserve(8); // at most 8 elements in ffmpeg data
-		for (int i = 0; i < desc->nb_layers; i++)
+		// layer == image
+		for (int i = 0; i < desc->nb_layers; ++i)
 		{
-			const int planes = desc->layers[i].nb_planes;
-			const int signal_p = has_modifiers && (planes > 1);
-			for (int j = 0; j < planes; j++)
+			std::vector<vk::SubresourceLayout> plane_layouts;
+			for (int plane = 0; plane < desc->layers[i].nb_planes; ++plane)
 			{
-				const std::array aspect{
-				        vk::ImageAspectFlagBits::ePlane0,
-				        vk::ImageAspectFlagBits::ePlane1,
-				        vk::ImageAspectFlagBits::ePlane2,
-				};
-				plane_info.push_back({.planeAspect = aspect.at(j)});
+				plane_layouts.push_back({
+				        .offset = vk::DeviceSize(desc->layers[i].planes[plane].offset),
+				        .rowPitch = vk::DeviceSize(desc->layers[i].planes[plane].pitch),
+				});
+			}
+			vk::StructureChain image_create_info{
+			        vk::ImageCreateInfo{
+			                .imageType = vk::ImageType::e2D,
+			                .format = drm_to_vulkan_fmt(desc->layers[i].format),
+			                .extent = {
+			                        .width = uint32_t(drm_frame->width / (i == 0 ? 1 : 2)),
+			                        .height = uint32_t(drm_frame->height / (i == 0 ? 1 : 2)),
+			                        .depth = 1,
+			                },
+			                .mipLevels = 1,
+			                .arrayLayers = 1,
+			                .samples = vk::SampleCountFlagBits::e1,
+			                .tiling = has_modifiers ? vk::ImageTiling::eDrmFormatModifierEXT : ((desc->objects[0].format_modifier == DRM_FORMAT_MOD_LINEAR || desc->objects[0].format_modifier == DRM_FORMAT_MOD_INVALID) ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal),
+			                .usage = vk::ImageUsageFlagBits::eTransferDst,
+			                .sharingMode = vk::SharingMode::eExclusive,
+			                .initialLayout = vk::ImageLayout::eUndefined,
+			        },
+			        vk::ExternalMemoryImageCreateInfo{
+			                .handleTypes = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
+			        },
+			        vk::ImageDrmFormatModifierExplicitCreateInfoEXT{
+			                .drmFormatModifier = desc->objects[0].format_modifier,
+			                .drmFormatModifierPlaneCount = uint32_t(plane_layouts.size()),
+			                .pPlaneLayouts = plane_layouts.data(),
+			        },
+			};
 
-				bind_info.push_back(
-				        {
-				                .pNext = signal_p ? &plane_info.back() : nullptr,
-				                .image = *((i == 0) ? luma : chroma),
-				                .memory = *mem[desc->layers[i].planes[j].object_index],
-				                .memoryOffset = has_modifiers ? 0 : (vk::DeviceSize)desc->layers[i].planes[j].offset,
-				        });
+			if (not has_modifiers)
+				image_create_info.unlink<vk::ImageDrmFormatModifierExplicitCreateInfoEXT>();
+
+			auto & image = (i == 0 ? luma : chroma);
+			image = vk.device.createImage(image_create_info.get());
+		}
+		// objects == memory
+		for (int i = 0; i < desc->nb_objects; ++i)
+		{
+			auto memory_props = vk.device.getMemoryFdPropertiesKHR(vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT, desc->objects[i].fd);
+
+			vk::StructureChain alloc_info{
+			        vk::MemoryAllocateInfo{
+			                .allocationSize = desc->objects[i].size,
+			                .memoryTypeIndex = vk.get_memory_type(memory_props.memoryTypeBits, {}),
+			        },
+			        vk::ImportMemoryFdInfoKHR{
+			                .handleType = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
+			                .fd = dup(desc->objects[i].fd),
+			        },
+			};
+			try
+			{
+				mem.emplace_back(vk.device, alloc_info.get());
+			}
+			catch (...)
+			{
+				close(alloc_info.get<vk::ImportMemoryFdInfoKHR>().fd);
+				throw;
 			}
 		}
-		vk.device.bindImageMemory2(bind_info);
+
+		{
+			std::vector<vk::BindImageMemoryInfo> bind_info;
+			std::vector<vk::BindImagePlaneMemoryInfo> plane_info;
+			plane_info.reserve(8); // at most 8 elements in ffmpeg data
+			for (int i = 0; i < desc->nb_layers; i++)
+			{
+				const int planes = desc->layers[i].nb_planes;
+				const int signal_p = has_modifiers && (planes > 1);
+				for (int j = 0; j < planes; j++)
+				{
+					const std::array aspect{
+					        vk::ImageAspectFlagBits::ePlane0,
+					        vk::ImageAspectFlagBits::ePlane1,
+					        vk::ImageAspectFlagBits::ePlane2,
+					};
+					plane_info.push_back({.planeAspect = aspect.at(j)});
+
+					bind_info.push_back(
+					        {
+					                .pNext = signal_p ? &plane_info.back() : nullptr,
+					                .image = *((i == 0) ? luma : chroma),
+					                .memory = *mem[desc->layers[i].planes[j].object_index],
+					                .memoryOffset = has_modifiers ? 0 : (vk::DeviceSize)desc->layers[i].planes[j].offset,
+					        });
+				}
+			}
+			vk.device.bindImageMemory2(bind_info);
+		}
 	}
 }
 
-void video_encoder_va::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
+void video_encoder_va::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot)
 {
 	std::array im_barriers = {
 	        vk::ImageMemoryBarrier{
@@ -364,7 +371,7 @@ void video_encoder_va::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & 
 	                .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
 	                .oldLayout = vk::ImageLayout::eUndefined,
 	                .newLayout = vk::ImageLayout::eTransferDstOptimal,
-	                .image = *luma,
+	                .image = *in[slot].luma,
 	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
 	                                     .baseMipLevel = 0,
 	                                     .levelCount = 1,
@@ -376,7 +383,7 @@ void video_encoder_va::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & 
 	                .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
 	                .oldLayout = vk::ImageLayout::eUndefined,
 	                .newLayout = vk::ImageLayout::eTransferDstOptimal,
-	                .image = *chroma,
+	                .image = *in[slot].chroma,
 	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
 	                                     .baseMipLevel = 0,
 	                                     .levelCount = 1,
@@ -395,7 +402,7 @@ void video_encoder_va::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & 
 	cmd_buf.copyImage(
 	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
-	        *luma,
+	        *in[slot].luma,
 	        vk::ImageLayout::eTransferDstOptimal,
 	        vk::ImageCopy{
 	                .srcSubresource = {
@@ -419,7 +426,7 @@ void video_encoder_va::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & 
 	cmd_buf.copyImage(
 	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
-	        *chroma,
+	        *in[slot].chroma,
 	        vk::ImageLayout::eTransferDstOptimal,
 	        vk::ImageCopy{
 	                .srcSubresource = {
@@ -457,8 +464,9 @@ void video_encoder_va::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & 
 	        im_barriers);
 }
 
-void video_encoder_va::PushFrame(bool idr, std::chrono::steady_clock::time_point pts)
+void video_encoder_va::push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
+	auto & va_frame = in[slot].va_frame;
 	va_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
 	va_frame->pts = pts.time_since_epoch().count();
 	int err = avcodec_send_frame(encoder_ctx.get(), va_frame.get());

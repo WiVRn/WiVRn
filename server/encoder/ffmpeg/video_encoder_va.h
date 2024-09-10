@@ -31,20 +31,24 @@ struct encoder_settings;
 
 class video_encoder_va : public VideoEncoderFFMPEG
 {
+	struct in_t
+	{
+		av_frame_ptr va_frame;
+		av_frame_ptr drm_frame;
+		vk::raii::Image luma = nullptr;
+		vk::raii::Image chroma = nullptr;
+		std::vector<vk::raii::DeviceMemory> mem;
+	};
 	av_buffer_ptr drm_frame_ctx;
-	av_frame_ptr va_frame;
-	av_frame_ptr drm_frame;
+	std::array<in_t, num_slots> in;
 	vk::Rect2D rect;
-	vk::raii::Image luma;
-	vk::raii::Image chroma;
-	std::vector<vk::raii::DeviceMemory> mem;
 	bool synchronization2 = false;
 
 public:
 	video_encoder_va(wivrn_vk_bundle &, xrt::drivers::wivrn::encoder_settings & settings, float fps);
 
-	void PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf) override;
+	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) override;
 
 protected:
-	void PushFrame(bool idr, std::chrono::steady_clock::time_point pts) override;
+	void push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;
 };

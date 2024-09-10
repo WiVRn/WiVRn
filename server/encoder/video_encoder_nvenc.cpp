@@ -260,59 +260,64 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & se
 	        },
 	};
 
-	yuv_buffer = vk::raii::Buffer(vk.device, buffer_create_info.get());
-	auto memory_req = yuv_buffer.getMemoryRequirements();
-
-	vk::StructureChain mem_info{
-	        vk::MemoryAllocateInfo{
-	                .allocationSize = buffer_size,
-	                .memoryTypeIndex = vk.get_memory_type(memory_req.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal),
-	        },
-	        vk::MemoryDedicatedAllocateInfo{
-	                .buffer = *yuv_buffer,
-	        },
-	        vk::ExportMemoryAllocateInfo{
-	                .handleTypes = vk::ExternalMemoryHandleTypeFlagBitsKHR::eOpaqueFd,
-	        },
-	};
-	mem = vk.device.allocateMemory(mem_info.get());
-	yuv_buffer.bindMemory(*mem, 0);
-
-	int fd = vk.device.getMemoryFdKHR({
-	        .memory = *mem,
-	        .handleType = vk::ExternalMemoryHandleTypeFlagBitsKHR::eOpaqueFd,
-	});
-
-	CU_CHECK(cuda_fn->cuCtxPushCurrent(cuda));
+	for (auto & i: in)
 	{
-		CUDA_EXTERNAL_MEMORY_HANDLE_DESC param{
-		        .type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD,
-		        .handle = {.fd = fd},
-		        .size = memory_req.size,
-		        .flags = 0,
-		};
-		CU_CHECK(cuda_fn->cuImportExternalMemory(&extmem, &param));
+		i.yuv = vk::raii::Buffer(vk.device, buffer_create_info.get());
+		auto memory_req = i.yuv.getMemoryRequirements();
 
-		CUDA_EXTERNAL_MEMORY_BUFFER_DESC map_param{
-		        .offset = 0,
-		        .size = buffer_size,
-		        .flags = 0,
+		vk::StructureChain mem_info{
+		        vk::MemoryAllocateInfo{
+		                .allocationSize = buffer_size,
+		                .memoryTypeIndex = vk.get_memory_type(memory_req.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal),
+		        },
+		        vk::MemoryDedicatedAllocateInfo{
+		                .buffer = *i.yuv,
+		        },
+		        vk::ExportMemoryAllocateInfo{
+		                .handleTypes = vk::ExternalMemoryHandleTypeFlagBitsKHR::eOpaqueFd,
+		        },
 		};
-		CU_CHECK(cuda_fn->cuExternalMemoryGetMappedBuffer(&frame, extmem, &map_param));
+		i.mem = vk.device.allocateMemory(mem_info.get());
+		i.yuv.bindMemory(*i.mem, 0);
+
+		int fd = vk.device.getMemoryFdKHR({
+		        .memory = *i.mem,
+		        .handleType = vk::ExternalMemoryHandleTypeFlagBitsKHR::eOpaqueFd,
+		});
+
+		CUdeviceptr frame;
+		CU_CHECK(cuda_fn->cuCtxPushCurrent(cuda));
+		{
+			CUexternalMemory extmem;
+			CUDA_EXTERNAL_MEMORY_HANDLE_DESC param{
+			        .type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD,
+			        .handle = {.fd = fd},
+			        .size = memory_req.size,
+			        .flags = 0,
+			};
+			CU_CHECK(cuda_fn->cuImportExternalMemory(&extmem, &param));
+
+			CUDA_EXTERNAL_MEMORY_BUFFER_DESC map_param{
+			        .offset = 0,
+			        .size = buffer_size,
+			        .flags = 0,
+			};
+			CU_CHECK(cuda_fn->cuExternalMemoryGetMappedBuffer(&frame, extmem, &map_param));
+		}
+
+		NV_ENC_REGISTER_RESOURCE param3{
+		        .version = NV_ENC_REGISTER_RESOURCE_VER,
+		        .resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR,
+		        .width = settings.video_width,
+		        .height = settings.video_height,
+		        .pitch = width,
+		        .resourceToRegister = (void *)frame,
+		        .bufferFormat = NV_ENC_BUFFER_FORMAT_NV12,
+		        .bufferUsage = NV_ENC_INPUT_IMAGE,
+		};
+		NVENC_CHECK(fn.nvEncRegisterResource(session_handle, &param3));
+		i.nvenc_resource = param3.registeredResource;
 	}
-
-	NV_ENC_REGISTER_RESOURCE param3{
-	        .version = NV_ENC_REGISTER_RESOURCE_VER,
-	        .resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR,
-	        .width = settings.video_width,
-	        .height = settings.video_height,
-	        .pitch = width,
-	        .resourceToRegister = (void *)frame,
-	        .bufferFormat = NV_ENC_BUFFER_FORMAT_NV12,
-	        .bufferUsage = NV_ENC_INPUT_IMAGE,
-	};
-	NVENC_CHECK(fn.nvEncRegisterResource(session_handle, &param3));
-	nvenc_resource = param3.registeredResource;
 	CU_CHECK(cuda_fn->cuCtxPopCurrent(NULL));
 }
 
@@ -322,12 +327,12 @@ VideoEncoderNvenc::~VideoEncoderNvenc()
 		fn.nvEncDestroyEncoder(session_handle);
 }
 
-void VideoEncoderNvenc::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
+void VideoEncoderNvenc::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot)
 {
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
-	        *yuv_buffer,
+	        *in[slot].yuv,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = width,
 	                .imageSubresource = {
@@ -346,7 +351,7 @@ void VideoEncoderNvenc::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer &
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
-	        *yuv_buffer,
+	        *in[slot].yuv,
 	        vk::BufferImageCopy{
 	                .bufferOffset = width * height,
 	                .bufferRowLength = uint32_t(width / 2),
@@ -363,16 +368,15 @@ void VideoEncoderNvenc::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer &
 	                        .height = rect.extent.height / 2,
 	                        .depth = 1,
 	                }});
-	return;
 }
 
-std::optional<VideoEncoder::data> VideoEncoderNvenc::encode(bool idr, std::chrono::steady_clock::time_point pts)
+std::optional<VideoEncoder::data> VideoEncoderNvenc::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
 	CU_CHECK(cuda_fn->cuCtxPushCurrent(cuda));
 
 	NV_ENC_MAP_INPUT_RESOURCE param4{};
 	param4.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
-	param4.registeredResource = nvenc_resource;
+	param4.registeredResource = in[slot].nvenc_resource;
 	NVENC_CHECK(fn.nvEncMapInputResource(session_handle, &param4));
 
 	NV_ENC_PIC_PARAMS param{

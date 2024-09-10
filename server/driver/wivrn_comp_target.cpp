@@ -391,23 +391,11 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 			}
 		}
 
-		auto res = vk.device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
+		// Get local copies before releasing the image
+		auto view_info = cn->psc.view_info;
+		auto frame_index = cn->psc.frame_index;
 
-		try
-		{
-			for (auto & encoder: encoders)
-			{
-				encoder->Encode(*cn->cnx, cn->psc.view_info, cn->psc.frame_index);
-			}
-		}
-		catch (std::exception & e)
-		{
-			U_LOG_W("encode error: %s", e.what());
-		}
-		catch (...)
-		{
-			// Ignore errors
-		}
+		auto res = vk.device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
 
 		// Update encoder status, release image
 		if ((cn->psc.status &= ~status_bit) == 0)
@@ -421,6 +409,22 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 					break;
 				}
 			}
+		}
+
+		try
+		{
+			for (auto & encoder: encoders)
+			{
+				encoder->Encode(*cn->cnx, view_info, frame_index);
+			}
+		}
+		catch (std::exception & e)
+		{
+			U_LOG_W("encode error: %s", e.what());
+		}
+		catch (...)
+		{
+			// Ignore errors
 		}
 	}
 }

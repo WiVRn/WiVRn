@@ -50,14 +50,16 @@ private:
 	void * session_handle = nullptr;
 	NV_ENC_OUTPUT_PTR bitstreamBuffer;
 
-	vk::raii::Buffer yuv_buffer = nullptr;
-	vk::raii::DeviceMemory mem = nullptr;
-	CUexternalMemory extmem;
+	struct in_t
+	{
+		vk::raii::Buffer yuv = nullptr;
+		vk::raii::DeviceMemory mem = nullptr;
+		NV_ENC_REGISTERED_PTR nvenc_resource;
+	};
+	std::array<in_t, num_slots> in;
 
-	CUdeviceptr frame;
 	uint32_t width;
 	uint32_t height;
-	NV_ENC_REGISTERED_PTR nvenc_resource;
 	float fps;
 	int bitrate;
 
@@ -65,8 +67,8 @@ public:
 	VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps);
 	~VideoEncoderNvenc();
 
-	void PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf) override;
-	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts) override;
+	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) override;
+	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;
 
 	static std::array<int, 2> get_max_size(video_codec);
 };

@@ -72,9 +72,13 @@ private:
 
 protected:
 	uint8_t stream_idx;
+	static const uint8_t num_slots = 2;
 
 private:
 	std::mutex mutex;
+	std::array<std::atomic<bool>, num_slots> busy = {false, false};
+	uint8_t next_present = 0;
+	uint8_t next_encode = 0;
 
 	// temporary data
 	wivrn_session * cnx;
@@ -104,8 +108,7 @@ public:
 	VideoEncoder(bool async_send = false);
 	virtual ~VideoEncoder();
 
-	// called on present to submit command buffers for the image.
-	virtual void PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf) = 0;
+	void PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf);
 
 	// The other end lost a frame and needs to resynchronize
 	void SyncNeeded();
@@ -115,8 +118,10 @@ public:
 	            uint64_t frame_index);
 
 protected:
+	// called on present to submit command buffers for the image.
+	virtual void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) = 0;
 	// called when command buffer finished executing
-	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) = 0;
+	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) = 0;
 
 	void SendData(std::span<uint8_t> data, bool end_of_frame);
 };

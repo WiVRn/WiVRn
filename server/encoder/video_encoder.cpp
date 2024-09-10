@@ -168,10 +168,21 @@ void VideoEncoder::SyncNeeded()
 	sync_needed = true;
 }
 
+void VideoEncoder::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
+{
+	// Wait for encoder to be done
+	busy[next_present].wait(true);
+
+	busy[next_present] = true;
+	present_image(y_cbcr, cmd_buf, next_present);
+	next_present = (next_present + 1) % num_slots;
+}
+
 void VideoEncoder::Encode(wivrn_session & cnx,
                           const to_headset::video_stream_data_shard::view_info_t & view_info,
                           uint64_t frame_index)
 {
+	assert(busy[next_encode].load());
 	if (shared_sender)
 		shared_sender->wait_idle(this);
 	this->cnx = &cnx;
@@ -201,14 +212,27 @@ void VideoEncoder::Encode(wivrn_session & cnx,
 	shard.view_info = view_info;
 	shard.timing_info.reset();
 
-	auto data = encode(idr, target_timestamp);
-	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
-	if (data)
+	std::exception_ptr ex;
+	try
 	{
-		timing_info.encode_end = clock.to_headset(os_monotonic_get_ns());
-		assert(shared_sender);
-		shared_sender->push(std::move(*data));
+		auto data = encode(idr, target_timestamp, next_encode);
+		cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
+		if (data)
+		{
+			timing_info.encode_end = clock.to_headset(os_monotonic_get_ns());
+			assert(shared_sender);
+			shared_sender->push(std::move(*data));
+		}
 	}
+	catch (...)
+	{
+		ex = std::current_exception();
+	}
+	busy[next_encode] = false;
+	busy[next_encode].notify_all();
+	next_encode = (next_encode + 1) % num_slots;
+	if (ex)
+		std::rethrow_exception(ex);
 }
 
 void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)

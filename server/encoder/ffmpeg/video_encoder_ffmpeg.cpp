@@ -63,9 +63,9 @@ bool set_log_level()
 
 bool VideoEncoderFFMPEG::once = set_log_level();
 
-std::optional<xrt::drivers::wivrn::VideoEncoder::data> VideoEncoderFFMPEG::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp)
+std::optional<xrt::drivers::wivrn::VideoEncoder::data> VideoEncoderFFMPEG::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot)
 {
-	PushFrame(idr, target_timestamp);
+	push_frame(idr, target_timestamp, slot);
 	std::shared_ptr<AVPacket> enc_pkt(av_packet_alloc(), [](AVPacket * d) { av_packet_free(&d); });
 	int err = avcodec_receive_packet(encoder_ctx.get(), enc_pkt.get());
 	if (err == 0)

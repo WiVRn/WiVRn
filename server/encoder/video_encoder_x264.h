@@ -35,11 +35,15 @@ class VideoEncoderX264 : public VideoEncoder
 	x264_param_t param = {};
 	x264_t * enc;
 
-	x264_picture_t pic_in;
 	x264_picture_t pic_out = {};
 
-	buffer_allocation luma;
-	buffer_allocation chroma;
+	struct in_t
+	{
+		x264_picture_t pic;
+		buffer_allocation luma;
+		buffer_allocation chroma;
+	};
+	std::array<in_t, num_slots> in;
 	uint32_t chroma_width;
 
 	vk::Rect2D rect;
@@ -59,9 +63,9 @@ class VideoEncoderX264 : public VideoEncoder
 public:
 	VideoEncoderX264(wivrn_vk_bundle & vk, encoder_settings & settings, float fps);
 
-	void PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf) override;
+	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) override;
 
-	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts) override;
+	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;
 
 	~VideoEncoderX264();
 

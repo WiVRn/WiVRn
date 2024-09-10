@@ -28,7 +28,7 @@ class VideoEncoderFFMPEG : public xrt::drivers::wivrn::VideoEncoder
 public:
 	using Codec = xrt::drivers::wivrn::video_codec;
 
-	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp) override;
+	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
 
 	struct mute_logs
 	{
@@ -40,8 +40,7 @@ protected:
 	VideoEncoderFFMPEG() :
 	        xrt::drivers::wivrn::VideoEncoder(true) {}
 
-	virtual void
-	PushFrame(bool idr, std::chrono::steady_clock::time_point pts) = 0;
+	virtual void push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) = 0;
 
 	av_codec_context_ptr encoder_ctx;
 

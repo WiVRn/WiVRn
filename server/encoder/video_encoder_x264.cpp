@@ -113,26 +113,6 @@ VideoEncoderX264::VideoEncoderX264(
 
 	num_mb = ((settings.video_width + 15) / 16) * ((settings.video_height + 15) / 16);
 
-	luma = buffer_allocation(
-	        vk.device,
-	        {
-	                .size = vk::DeviceSize(settings.video_width * settings.video_height),
-	                .usage = vk::BufferUsageFlagBits::eTransferDst,
-	        },
-	        {
-	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-	                .usage = VMA_MEMORY_USAGE_AUTO,
-	        });
-	chroma = buffer_allocation(
-	        vk.device, {
-	                           .size = vk::DeviceSize(settings.video_width * settings.video_height / 2),
-	                           .usage = vk::BufferUsageFlagBits::eTransferDst,
-	                   },
-	        {
-	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-	                .usage = VMA_MEMORY_USAGE_AUTO,
-	        });
-
 	x264_param_default_preset(&param, "ultrafast", "zerolatency");
 	param.nalu_process = &ProcessCb;
 	// param.i_slice_max_size = 1300;
@@ -166,24 +146,47 @@ VideoEncoderX264::VideoEncoderX264(
 
 	assert(x264_encoder_maximum_delayed_frames(enc) == 0);
 
-	auto & pic = pic_in;
-	x264_picture_init(&pic);
-	pic.opaque = this;
-	pic.img.i_csp = X264_CSP_NV12;
-	pic.img.i_plane = 2;
+	for (auto & i: in)
+	{
+		i.luma = buffer_allocation(
+		        vk.device,
+		        {
+		                .size = vk::DeviceSize(settings.video_width * settings.video_height),
+		                .usage = vk::BufferUsageFlagBits::eTransferDst,
+		        },
+		        {
+		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		        });
+		i.chroma = buffer_allocation(
+		        vk.device, {
+		                           .size = vk::DeviceSize(settings.video_width * settings.video_height / 2),
+		                           .usage = vk::BufferUsageFlagBits::eTransferDst,
+		                   },
+		        {
+		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		        });
 
-	pic.img.i_stride[0] = settings.video_width;
-	pic.img.plane[0] = (uint8_t *)luma.map();
-	pic.img.i_stride[1] = settings.video_width;
-	pic.img.plane[1] = (uint8_t *)chroma.map();
+		auto & pic = i.pic;
+		x264_picture_init(&pic);
+		pic.opaque = this;
+		pic.img.i_csp = X264_CSP_NV12;
+		pic.img.i_plane = 2;
+
+		pic.img.i_stride[0] = settings.video_width;
+		pic.img.plane[0] = (uint8_t *)i.luma.map();
+		pic.img.i_stride[1] = settings.video_width;
+		pic.img.plane[1] = (uint8_t *)i.chroma.map();
+	}
 }
 
-void VideoEncoderX264::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
+void VideoEncoderX264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot)
 {
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
-	        luma,
+	        in[slot].luma,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = chroma_width * 2,
 	                .imageSubresource = {
@@ -202,7 +205,7 @@ void VideoEncoderX264::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & 
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
-	        chroma,
+	        in[slot].chroma,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = chroma_width,
 	                .imageSubresource = {
@@ -220,15 +223,16 @@ void VideoEncoderX264::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & 
 	                }});
 }
 
-std::optional<VideoEncoder::data> VideoEncoderX264::encode(bool idr, std::chrono::steady_clock::time_point pts)
+std::optional<VideoEncoder::data> VideoEncoderX264::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
 	int num_nal;
 	x264_nal_t * nal;
-	pic_in.i_type = idr ? X264_TYPE_IDR : X264_TYPE_P;
-	pic_in.i_pts = pts.time_since_epoch().count();
+	auto & pic = in[slot].pic;
+	pic.i_type = idr ? X264_TYPE_IDR : X264_TYPE_P;
+	pic.i_pts = pts.time_since_epoch().count();
 	next_mb = 0;
 	assert(pending_nals.empty());
-	int size = x264_encoder_encode(enc, &nal, &num_nal, &pic_in, &pic_out);
+	int size = x264_encoder_encode(enc, &nal, &num_nal, &pic, &pic_out);
 	if (next_mb != num_mb)
 	{
 		U_LOG_W("unexpected macroblock count: %d", next_mb);
