@@ -183,9 +183,11 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 			{
 				case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
 					active_left_hand = lhdev;
+					usysds->base.base.static_roles.hand_tracking.left = lhdev;
 					break;
 				case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER:
 					active_right_hand = lhdev;
+					usysds->base.base.static_roles.hand_tracking.right = lhdev;
 					break;
 				default:
 					break;
