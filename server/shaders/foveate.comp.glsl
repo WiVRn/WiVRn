@@ -21,6 +21,7 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, rgba8) uniform writeonly restrict image2D target;
+layout(set = 0, binding = 1, rgba8) uniform writeonly restrict image2D dtarget;
 
 layout(push_constant) uniform PushConstants
 {
@@ -36,6 +37,10 @@ float foveate(float a, float b, float scale, float c, float x) {
     return scale / a * tan(a * x + b) + c;
 }
 
+float foveate_lod(float a, float b, float scale, float c, float x) {
+    return max(0, log2(1 / (cos(a * x + b) * cos(a * x + b))));
+}
+
 void main()
 {
     ivec2 coords = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
@@ -44,18 +49,22 @@ void main()
             float(coords.x),
             float(coords.y)
         ) * one_over_dim;
+    vec2 duv = vec2(1.0);
 
     if (pcs.scale.x < 1.0) {
         float u = uv.x * 2.0 - 1.0;
         float val = foveate(pcs.a.x, pcs.b.x, pcs.scale.x, pcs.center.x, u);
+        duv.x = foveate_lod(pcs.a.x, pcs.b.x, pcs.scale.x, pcs.center.x, u);
         uv.x = clamp((1.0 + val) / 2.0, 0.0, 1.0);
     }
 
     if (pcs.scale.y < 1.0) {
         float v = uv.y * 2.0 - 1.0;
         float val = foveate(pcs.a.y, pcs.b.y, pcs.scale.y, pcs.center.y, v);
+        duv.y= foveate_lod(pcs.a.y, pcs.b.y, pcs.scale.y, pcs.center.y, v);
         uv.y = clamp((1.0 + val) / 2.0, 0.0, 1.0);
     }
 
     imageStore(target, coords, vec4(uv.x, uv.y, 0.0, 0.0));
+    imageStore(dtarget, coords, vec4(duv.x, duv.y, 0.0, 0.0));
 }

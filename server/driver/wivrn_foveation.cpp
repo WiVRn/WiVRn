@@ -49,14 +49,19 @@ static const std::array pool_sizes =
         {
                 vk::DescriptorPoolSize{
                         .type = vk::DescriptorType::eStorageImage,
-                        .descriptorCount = 2,
+                        .descriptorCount = 4,
                 }};
 
-static const vk::DescriptorSetLayoutBinding layout_bindings{
-        .binding = 0,
-        .descriptorType = vk::DescriptorType::eStorageImage,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eCompute};
+static const std::array<vk::DescriptorSetLayoutBinding, 2> layout_bindings{
+        vk::DescriptorSetLayoutBinding{.binding = 0,
+                                       .descriptorType = vk::DescriptorType::eStorageImage,
+                                       .descriptorCount = 1,
+                                       .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        vk::DescriptorSetLayoutBinding{.binding = 1,
+                                       .descriptorType = vk::DescriptorType::eStorageImage,
+                                       .descriptorCount = 1,
+                                       .stageFlags = vk::ShaderStageFlagBits::eCompute},
+};
 
 wivrn_foveation_renderer::wivrn_foveation_renderer(wivrn_vk_bundle & vk, vk::raii::CommandPool & cmd_pool) :
         vk(vk),
@@ -67,7 +72,7 @@ wivrn_foveation_renderer::wivrn_foveation_renderer(wivrn_vk_bundle & vk, vk::rai
                    .poolSizeCount = pool_sizes.size(),
                    .pPoolSizes = pool_sizes.data(),
            }),
-        ds_layout(vk.device, vk::DescriptorSetLayoutCreateInfo{.bindingCount = 1, .pBindings = &layout_bindings})
+        ds_layout(vk.device, vk::DescriptorSetLayoutCreateInfo{.bindingCount = layout_bindings.size(), .pBindings = layout_bindings.data()})
 {
 	cmd_buf = std::move(vk.device.allocateCommandBuffers(
 	        {.commandPool = *cmd_pool,
@@ -141,32 +146,21 @@ void wivrn_foveation_renderer::render_distortion_images(std::array<to_headset::f
 	cmd_buf.reset();
 	cmd_buf.begin(vk::CommandBufferBeginInfo{});
 
-	std::array im_barriers0 = {
-	        vk::ImageMemoryBarrier{
-	                .srcAccessMask = vk::AccessFlagBits::eNone,
-	                .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
-	                .oldLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-	                .newLayout = vk::ImageLayout::eGeneral,
-	                .image = images[0],
-	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                     .baseMipLevel = 0,
-	                                     .levelCount = 1,
-	                                     .baseArrayLayer = 0,
-	                                     .layerCount = 1},
-	        },
-	        vk::ImageMemoryBarrier{
-	                .srcAccessMask = vk::AccessFlagBits::eNone,
-	                .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
-	                .oldLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-	                .newLayout = vk::ImageLayout::eGeneral,
-	                .image = images[1],
-	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                     .baseMipLevel = 0,
-	                                     .levelCount = 1,
-	                                     .baseArrayLayer = 0,
-	                                     .layerCount = 1},
-	        },
-	};
+	// images: left position, right position, left derivate, right derivate
+	std::array<vk::ImageMemoryBarrier, 4> im_barriers;
+	im_barriers.fill({
+	        .srcAccessMask = vk::AccessFlagBits::eNone,
+	        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+	        .oldLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+	        .newLayout = vk::ImageLayout::eGeneral,
+	        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+	                             .baseMipLevel = 0,
+	                             .levelCount = 1,
+	                             .baseArrayLayer = 0,
+	                             .layerCount = 1},
+	});
+	for (size_t i = 0; i < im_barriers.size(); ++i)
+		im_barriers[i].image = images[i];
 
 	cmd_buf.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eTopOfPipe,
@@ -174,26 +168,40 @@ void wivrn_foveation_renderer::render_distortion_images(std::array<to_headset::f
 	        {},
 	        nullptr,
 	        nullptr,
-	        im_barriers0);
+	        im_barriers);
 
-	// Monado's distortion shader is patched to only consider the red channel's image
+	// Monado's distortion shader is patched to read red as position and green as derivate
 	for (int eye = 0; eye < 2; ++eye)
 	{
 		// Descriptor set
 
-		vk::DescriptorImageInfo image_info{
-		        .imageView = image_views[eye],
-		        .imageLayout = vk::ImageLayout::eGeneral,
-		};
-		vk.device.updateDescriptorSets(
-		        vk::WriteDescriptorSet{
-		                .dstSet = ds[eye],
-		                .dstBinding = 0,
-		                .descriptorCount = 1,
-		                .descriptorType = vk::DescriptorType::eStorageImage,
-		                .pImageInfo = &image_info,
+		std::array image_info{
+		        vk::DescriptorImageInfo{
+		                .imageView = image_views[eye],
+		                .imageLayout = vk::ImageLayout::eGeneral,
 		        },
-		        nullptr);
+		        vk::DescriptorImageInfo{
+		                .imageView = image_views[eye + 2],
+		                .imageLayout = vk::ImageLayout::eGeneral,
+		        },
+		};
+		vk.device.updateDescriptorSets({
+		                                       vk::WriteDescriptorSet{
+		                                               .dstSet = ds[eye],
+		                                               .dstBinding = 0,
+		                                               .descriptorCount = 1,
+		                                               .descriptorType = vk::DescriptorType::eStorageImage,
+		                                               .pImageInfo = &image_info[0],
+		                                       },
+		                                       vk::WriteDescriptorSet{
+		                                               .dstSet = ds[eye],
+		                                               .dstBinding = 1,
+		                                               .descriptorCount = 1,
+		                                               .descriptorType = vk::DescriptorType::eStorageImage,
+		                                               .pImageInfo = &image_info[1],
+		                                       },
+		                               },
+		                               nullptr);
 
 		auto foveation = foveations[eye];
 
@@ -210,32 +218,13 @@ void wivrn_foveation_renderer::render_distortion_images(std::array<to_headset::f
 		cmd_buf.dispatch(dispatch_group_count, dispatch_group_count, 1);
 	}
 
-	std::array im_barriers1 = {
-	        vk::ImageMemoryBarrier{
-	                .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
-	                .dstAccessMask = vk::AccessFlagBits::eNone,
-	                .oldLayout = vk::ImageLayout::eGeneral,
-	                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-	                .image = images[0],
-	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                     .baseMipLevel = 0,
-	                                     .levelCount = 1,
-	                                     .baseArrayLayer = 0,
-	                                     .layerCount = 1},
-	        },
-	        vk::ImageMemoryBarrier{
-	                .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
-	                .dstAccessMask = vk::AccessFlagBits::eNone,
-	                .oldLayout = vk::ImageLayout::eGeneral,
-	                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-	                .image = images[1],
-	                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                     .baseMipLevel = 0,
-	                                     .levelCount = 1,
-	                                     .baseArrayLayer = 0,
-	                                     .layerCount = 1},
-	        },
-	};
+	for (auto & barrier: im_barriers)
+	{
+		barrier.srcAccessMask = vk::AccessFlagBits::eMemoryWrite;
+		barrier.dstAccessMask = vk::AccessFlagBits::eNone;
+		barrier.oldLayout = vk::ImageLayout::eGeneral;
+		barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+	}
 
 	cmd_buf.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eComputeShader,
@@ -243,7 +232,7 @@ void wivrn_foveation_renderer::render_distortion_images(std::array<to_headset::f
 	        {},
 	        nullptr,
 	        nullptr,
-	        im_barriers1);
+	        im_barriers);
 
 	cmd_buf.end();
 }
