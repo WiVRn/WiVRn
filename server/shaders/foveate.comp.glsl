@@ -38,7 +38,8 @@ float foveate(float a, float b, float scale, float c, float x) {
 }
 
 float foveate_lod(float a, float b, float scale, float c, float x) {
-    return max(0, log2(1 / (cos(a * x + b) * cos(a * x + b))));
+    // derivate foveation and add a bias
+    return max(0, log2(1 / (cos(a * x + b) * cos(a * x + b)) - 0.5));
 }
 
 void main()

@@ -1,4 +1,4 @@
-From 0806746e1c8e5fb72028a1fdde5049aa9d85bb67 Mon Sep 17 00:00:00 2001
+From 5c4caf876ba70ecc2a37099c87ff711fd149824b Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 11 Aug 2024 13:03:46 +0200
 Subject: [PATCH] Use mipmaps for distortion shader
@@ -2247,7 +2247,7 @@ index 12a66b533..a6fb4353b 100644
  	D(ShaderModule, s->mesh_vert);
  	D(ShaderModule, s->mesh_frag);
 diff --git a/src/xrt/compositor/shaders/distortion.comp b/src/xrt/compositor/shaders/distortion.comp
-index 08b44d4cf..a47d4d777 100644
+index 08b44d4cf..9a09c03db 100644
 --- a/src/xrt/compositor/shaders/distortion.comp
 +++ b/src/xrt/compositor/shaders/distortion.comp
 @@ -102,6 +102,26 @@ vec2 transform_uv(vec2 uv, uint iz)
@@ -2301,7 +2301,7 @@ index 08b44d4cf..a47d4d777 100644
 +	uv = transform_uv(uv, iz);
 +
 +	// Sample the source
-+	vec4 colour = textureLod(source[iz], uv, max(lod.x, lod.y));
++	vec4 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5));
  
  	// Do colour correction here since there are no automatic conversion in hardware available.
  	colour = vec4(from_linear_to_srgb(colour.rgb), 1);

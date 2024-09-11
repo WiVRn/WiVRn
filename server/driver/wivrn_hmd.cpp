@@ -90,7 +90,8 @@ static double foveate(double a, double b, double λ, double c, double x)
 static double foveate_lod(double a, double b, double /*λ*/, double /*c*/, double x)
 {
 	// derivate of foveate * scale
-	return std::max(0., log2(1 / (cos(a * x + b) * cos(a * x + b))));
+	// bias it to favor sharper image
+	return std::max(0., log2(1 / (cos(a * x + b) * cos(a * x + b)) - 0.5));
 }
 
 static std::tuple<float, float> solve_foveation(float λ, float c)
