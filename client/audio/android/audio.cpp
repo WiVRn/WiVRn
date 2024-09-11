@@ -87,15 +87,17 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 #endif
 				self->speaker_tmp.payload = std::span(self->speaker_tmp.data.c.get(), target_buffer_size);
 				self->buffer_size_bytes += target_buffer_size;
+				spdlog::info("Audio sync: underrun, add {} bytes buffer",
+				             target_buffer_size);
 			}
 		}
 	}
 
-	// If we have more than 100ms of buffered data, discard some data
-	if (self->buffer_size_bytes > frame_size * AAudioStream_getSampleRate(stream) * 0.1)
+	// If we have more than 50ms of buffered data, discard some data
+	if (self->buffer_size_bytes > frame_size * AAudioStream_getSampleRate(stream) * 0.05)
 	{
-		// discard excess data until we only have 60ms left
-		size_t target_buffer_size = frame_size * AAudioStream_getSampleRate(stream) * 0.06;
+		// discard excess data until we only have 30ms left
+		size_t target_buffer_size = frame_size * AAudioStream_getSampleRate(stream) * 0.03;
 		while (self->buffer_size_bytes > target_buffer_size and self->output_buffer.size() > 1)
 		{
 			auto tmp = self->output_buffer.read();
@@ -218,8 +220,8 @@ wivrn::android::audio::~audio()
 
 void wivrn::android::audio::operator()(xrt::drivers::wivrn::audio_data && data)
 {
-	buffer_size_bytes.fetch_add(data.payload.size_bytes());
-	output_buffer.write(std::move(data));
+	if (output_buffer.write(std::move(data)))
+		buffer_size_bytes.fetch_add(data.payload.size_bytes());
 }
 
 void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info)
