@@ -116,7 +116,8 @@ static void check_scale(std::string_view encoder_name, video_codec codec, uint16
 #endif
 }
 
-static std::optional<xrt::drivers::wivrn::video_codec> filter_codecs(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & codecs)
+#ifdef WIVRN_USE_VAAPI
+static std::optional<xrt::drivers::wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & codecs)
 {
 	VideoEncoderFFMPEG::mute_logs mute;
 	encoder_settings s{
@@ -145,6 +146,7 @@ static std::optional<xrt::drivers::wivrn::video_codec> filter_codecs(wivrn_vk_bu
 
 	return {};
 }
+#endif
 
 static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs)
 {
@@ -163,7 +165,7 @@ static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk
 	else
 	{
 #ifdef WIVRN_USE_VAAPI
-		auto codec = filter_codecs(bundle, headset_codecs);
+		auto codec = filter_codecs_vaapi(bundle, headset_codecs);
 		if (not codec)
 		{
 			U_LOG_W("Failed to initialize vaapi, fallback to software encoding");
