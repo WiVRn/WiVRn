@@ -147,6 +147,97 @@ int32_t wivrn::android::audio::microphone_data_cb(AAudioStream * stream, void * 
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;
 }
 
+void wivrn::android::audio::build_microphone(AAudioStreamBuilder * builder, int32_t sample_rate, int32_t num_channels)
+{
+	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
+	AAudioStreamBuilder_setSampleRate(builder, sample_rate);
+	AAudioStreamBuilder_setChannelCount(builder, num_channels);
+	AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+	AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
+	AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+
+	AAudioStreamBuilder_setDataCallback(builder, &microphone_data_cb, this);
+	AAudioStreamBuilder_setErrorCallback(builder, &microphone_error_cb, this);
+
+	aaudio_result_t result = AAudioStreamBuilder_openStream(builder, &microphone);
+	if (result != AAUDIO_OK)
+		spdlog::error("Cannot create input stream: {}", AAudio_convertResultToText(result));
+
+	result = AAudioStream_requestStart(microphone);
+	if (result == AAUDIO_OK)
+		spdlog::info("Microphone stream started");
+	else
+	{
+		AAudioStream_close(microphone);
+		spdlog::warn("Microphone stream failed to start: {}", AAudio_convertResultToText(result));
+	}
+}
+
+void wivrn::android::audio::build_speaker(AAudioStreamBuilder * builder, int32_t sample_rate, int32_t num_channels)
+{
+	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
+	AAudioStreamBuilder_setSampleRate(builder, sample_rate);
+	AAudioStreamBuilder_setChannelCount(builder, num_channels);
+	AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+	AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
+	AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+
+	AAudioStreamBuilder_setDataCallback(builder, &speaker_data_cb, this);
+	AAudioStreamBuilder_setErrorCallback(builder, &speaker_error_cb, this);
+
+	aaudio_result_t result = AAudioStreamBuilder_openStream(builder, &speaker);
+	if (result != AAUDIO_OK)
+		spdlog::error("Cannot create output stream: {}", AAudio_convertResultToText(result));
+
+	AAudioStream_requestStart(speaker);
+	if (result == AAUDIO_OK)
+		spdlog::info("Speaker stream started");
+	else
+	{
+		AAudioStream_close(speaker);
+		spdlog::warn("Speaker stream failed to start: {}", AAudio_convertResultToText(result));
+	}
+}
+
+void wivrn::android::audio::recreate_stream(audio * self, AAudioStreamStruct * stream)
+{
+	size_t num_channels = AAudioStream_getChannelCount(stream);
+	size_t sample_rate = AAudioStream_getSampleRate(stream);
+
+	AAudioStream_requestStop(stream);
+	AAudioStream_close(stream);
+
+	AAudioStreamBuilder * builder;
+	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
+	if (result != AAUDIO_OK)
+		throw std::runtime_error(std::string("Cannot create stream builder: ") + AAudio_convertResultToText(result));
+
+	if (stream == self->speaker)
+		self->build_speaker(builder, sample_rate, num_channels);
+	else if (stream == self->microphone)
+		self->build_microphone(builder, sample_rate, num_channels);
+	else
+		spdlog::error("Stream to recreate is neither speaker, not microphone!");
+
+	AAudioStreamBuilder_delete(builder);
+}
+
+void wivrn::android::audio::speaker_error_cb(AAudioStream * stream, void * userdata, aaudio_result_t error)
+{
+	auto self = (wivrn::android::audio *)userdata;
+	spdlog::warn("Speaker stream interrupted: {}", AAudio_convertResultToText(error));
+	std::thread recreate_thread = utils::named_thread("recreate_stream", &self->recreate_stream, self, stream);
+	recreate_thread.detach();
+}
+
+void wivrn::android::audio::microphone_error_cb(AAudioStream * stream, void * userdata, aaudio_result_t error)
+{
+	auto self = (wivrn::android::audio *)userdata;
+	spdlog::warn("Microphone stream interrupted: {}", AAudio_convertResultToText(error));
+	std::thread recreate_thread = utils::named_thread("recreate_stream", &self->recreate_stream, self, stream);
+	recreate_thread.detach();
+}
+
 wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, wivrn_session & session, xr::instance & instance) :
         session(session), instance(instance)
 {
@@ -156,54 +247,11 @@ wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream
 		throw std::runtime_error(std::string("Cannot create stream builder: ") + AAudio_convertResultToText(result));
 
 	if (desc.microphone)
-	{
-		AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
-		AAudioStreamBuilder_setSampleRate(builder, desc.microphone->sample_rate);
-		AAudioStreamBuilder_setChannelCount(builder, desc.microphone->num_channels);
-		AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-		AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
-		AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
-
-		AAudioStreamBuilder_setDataCallback(builder, &microphone_data_cb, this);
-
-		result = AAudioStreamBuilder_openStream(builder, &microphone);
-		if (result != AAUDIO_OK)
-			spdlog::error("Cannot create input stream: {}", AAudio_convertResultToText(result));
-
-		result = AAudioStream_requestStart(microphone);
-		if (result == AAUDIO_OK)
-			spdlog::info("Microphone stream started");
-		else
-		{
-			AAudioStream_close(microphone);
-			spdlog::warn("Microphone stream failed to start: {}", AAudio_convertResultToText(result));
-		}
-	}
+		build_microphone(builder, desc.microphone->sample_rate, desc.microphone->num_channels);
 
 	if (desc.speaker)
-	{
-		AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-		AAudioStreamBuilder_setSampleRate(builder, desc.speaker->sample_rate);
-		AAudioStreamBuilder_setChannelCount(builder, desc.speaker->num_channels);
-		AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-		AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
-		AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+		build_speaker(builder, desc.speaker->sample_rate, desc.speaker->num_channels);
 
-		AAudioStreamBuilder_setDataCallback(builder, &speaker_data_cb, this);
-
-		result = AAudioStreamBuilder_openStream(builder, &speaker);
-		if (result != AAUDIO_OK)
-			spdlog::error("Cannot create output stream: {}", AAudio_convertResultToText(result));
-
-		AAudioStream_requestStart(speaker);
-		if (result == AAUDIO_OK)
-			spdlog::info("Speaker stream started");
-		else
-		{
-			AAudioStream_close(speaker);
-			spdlog::warn("Speaker stream failed to start: {}", AAudio_convertResultToText(result));
-		}
-	}
 	AAudioStreamBuilder_delete(builder);
 }
 
