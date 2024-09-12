@@ -165,7 +165,7 @@ public:
 		return (bool)foveation;
 	}
 
-	void dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream = -1, const char * extra = "");
+	void dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream = -1, const char * extra = "");
 
 private:
 	static void run(std::weak_ptr<wivrn_session>);

@@ -457,7 +457,7 @@ std::array<to_headset::foveation_parameter, 2> wivrn_session::get_foveation_para
 	return hmd->get_foveation_parameters();
 }
 
-void wivrn_session::dump_time(const std::string & event, uint64_t frame, uint64_t time, uint8_t stream, const char * extra)
+void wivrn_session::dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream, const char * extra)
 {
 	if (feedback_csv)
 	{

@@ -35,22 +35,22 @@ public:
 	struct frame_info
 	{
 		int64_t frame_id;
-		uint64_t present_ns;
-		uint64_t predicted_display_time;
+		int64_t present_ns;
+		int64_t predicted_display_time;
 	};
 
 private:
 	std::mutex mutex;
-	uint64_t last_ns = 0;
+	int64_t last_ns = 0;
 	int64_t frame_id = 0;
 
-	uint64_t client_render_phase_ns = 0;
+	int64_t client_render_phase_ns = 0;
 
-	uint64_t mean_wake_up_to_present_ns = 1'000'000;
-	uint64_t safe_present_to_decoded_ns = 0;
-	uint64_t mean_render_to_display_ns = 0;
+	int64_t mean_wake_up_to_present_ns = 1'000'000;
+	int64_t safe_present_to_decoded_ns = 0;
+	int64_t mean_render_to_display_ns = 0;
 
-	uint64_t last_wake_up_ns = 0;
+	int64_t last_wake_up_ns = 0;
 
 	// Client wait time for each decoder
 	struct stream_data
@@ -73,19 +73,19 @@ public:
 
 	void predict(
 	        int64_t & out_frame_id,
-	        uint64_t & out_wake_up_time_ns,
-	        uint64_t & out_desired_present_time_ns,
-	        uint64_t & out_present_slop_ns,
-	        uint64_t & out_predicted_display_time_ns);
+	        int64_t & out_wake_up_time_ns,
+	        int64_t & out_desired_present_time_ns,
+	        int64_t & out_present_slop_ns,
+	        int64_t & out_predicted_display_time_ns);
 
 	void on_feedback(const xrt::drivers::wivrn::from_headset::feedback &, const clock_offset &);
 
 	void mark_timing_point(
 	        comp_target_timing_point point,
 	        int64_t frame_id,
-	        uint64_t when_ns);
+	        int64_t when_ns);
 
-	frame_info present_to_info(uint64_t present);
+	frame_info present_to_info(int64_t present);
 
 	void reset();
 };

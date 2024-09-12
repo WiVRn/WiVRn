@@ -86,7 +86,7 @@ protected:
 		}
 
 		// Insert the new sample
-		auto it = std::lower_bound(data.begin(), data.end(), t, [](TimedData & sample, uint64_t t) { return sample.at_timestamp_ns < t; });
+		auto it = std::lower_bound(data.begin(), data.end(), t, [](TimedData & sample, int64_t t) { return sample.at_timestamp_ns < t; });
 		if (it == data.end())
 			data.emplace_back(sample, produced, t);
 		else if (it->at_timestamp_ns == t)

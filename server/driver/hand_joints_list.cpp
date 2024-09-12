@@ -46,7 +46,7 @@ xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, c
 	return j;
 }
 
-xrt_hand_joint_set hand_joints_list::extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, uint64_t ta, uint64_t tb, uint64_t t)
+xrt_hand_joint_set hand_joints_list::extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, int64_t ta, int64_t tb, int64_t t)
 {
 	xrt_hand_joint_set j = t <= ta ? a : b;
 	// Only extrapolate the hand pose, individual joints are too noisy

@@ -58,12 +58,12 @@ static void wivrn_hmd_update_inputs(xrt_device * xdev);
 
 static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
                                        xrt_input_name name,
-                                       uint64_t at_timestamp_ns,
+                                       int64_t at_timestamp_ns,
                                        xrt_space_relation * out_relation);
 
 static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      const xrt_vec3 * default_eye_relation,
-                                     uint64_t at_timestamp_ns,
+                                     int64_t at_timestamp_ns,
                                      uint32_t view_count,
                                      xrt_space_relation * out_head_relation,
                                      xrt_fov * out_fovs,
@@ -264,7 +264,7 @@ void wivrn_hmd::update_inputs()
 	// Empty
 }
 
-xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
+xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns)
 {
 	if (name != XRT_INPUT_GENERIC_HEAD_POSE)
 	{
@@ -291,7 +291,7 @@ void wivrn_hmd::update_battery(const from_headset::battery & new_battery)
 }
 
 void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
-                               uint64_t at_timestamp_ns,
+                               int64_t at_timestamp_ns,
                                uint32_t view_count,
                                xrt_space_relation * out_head_relation,
                                xrt_fov * out_fovs,
@@ -431,7 +431,7 @@ static void wivrn_hmd_update_inputs(xrt_device * xdev)
 
 static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
                                        xrt_input_name name,
-                                       uint64_t at_timestamp_ns,
+                                       int64_t at_timestamp_ns,
                                        xrt_space_relation * out_relation)
 {
 	*out_relation = static_cast<wivrn_hmd *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
@@ -439,7 +439,7 @@ static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
 
 static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      const xrt_vec3 * default_eye_relation,
-                                     uint64_t at_timestamp_ns,
+                                     int64_t at_timestamp_ns,
                                      uint32_t view_count,
                                      xrt_space_relation * out_head_relation,
                                      xrt_fov * out_fovs,

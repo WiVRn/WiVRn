@@ -28,6 +28,7 @@
 
 #include "xrt/xrt_results.h"
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <openxr/openxr.h>
 
@@ -37,6 +38,7 @@ static void wivrn_fb_face2_tracker_update_inputs(xrt_device * xdev);
 
 static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device * xdev,
                                                              enum xrt_input_name facial_expression_type,
+                                                             int64_t at_timestamp_ns,
                                                              struct xrt_facial_expression_set * out_value);
 
 wivrn_fb_face2_tracker::wivrn_fb_face2_tracker(xrt_device * hmd,
@@ -83,12 +85,12 @@ void wivrn_fb_face2_tracker::update_tracking(const from_headset::fb_face2 & face
 		cnx->set_enabled(to_headset::tracking_control::id::face, false);
 }
 
-xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facial_expression_type, struct xrt_facial_expression_set * inout_value)
+xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facial_expression_type, int64_t at_timestamp_ns, struct xrt_facial_expression_set * inout_value)
 {
 	if (facial_expression_type == XRT_INPUT_FB_FACE_TRACKING2_VISUAL)
 	{
 		cnx->set_enabled(to_headset::tracking_control::id::face, true);
-		auto [_, data] = face_list.get_at(inout_value->face_expression_set2_fb.sample_time_ns);
+		auto [_, data] = face_list.get_at(at_timestamp_ns);
 
 		inout_value->face_expression_set2_fb.is_valid = data.is_valid;
 
@@ -126,7 +128,8 @@ static void wivrn_fb_face2_tracker_update_inputs(xrt_device * xdev)
 
 static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device * xdev,
                                                              enum xrt_input_name facial_expression_type,
+                                                             int64_t at_timestamp_ns,
                                                              struct xrt_facial_expression_set * inout_value)
 {
-	return static_cast<wivrn_fb_face2_tracker *>(xdev)->get_face_tracking(facial_expression_type, inout_value);
+	return static_cast<wivrn_fb_face2_tracker *>(xdev)->get_face_tracking(facial_expression_type, at_timestamp_ns, inout_value);
 }
