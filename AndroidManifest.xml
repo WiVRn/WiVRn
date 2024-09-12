@@ -79,6 +79,9 @@
         <meta-data android:name="handtracking" android:value="1" />
         <meta-data android:name="eyetracking_calibration" android:value="true" />
 
+        <!-- https://developer.oculus.com/documentation/native/android/mobile-splash/ -->
+        <meta-data android:name="com.oculus.ossplash" android:value="true"/>
+
         <!-- The activity is the built-in NativeActivity framework class. -->
         <!-- launchMode is set to singleTask because there should never be multiple copies of the app running. -->
         <!-- Theme.Black.NoTitleBar.Fullscreen gives solid black instead of a (bad stereoscopic) gradient on app transition. -->
