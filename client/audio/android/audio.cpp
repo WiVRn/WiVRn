@@ -220,8 +220,9 @@ wivrn::android::audio::~audio()
 
 void wivrn::android::audio::operator()(xrt::drivers::wivrn::audio_data && data)
 {
+	auto size = data.payload.size_bytes();
 	if (output_buffer.write(std::move(data)))
-		buffer_size_bytes.fetch_add(data.payload.size_bytes());
+		buffer_size_bytes.fetch_add(size);
 }
 
 void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info)
