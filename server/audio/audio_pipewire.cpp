@@ -234,6 +234,7 @@ void pipewire_device::mic_process(void * self_v)
 			data_ptr += tmp_remain;
 			data.chunk->size += tmp_remain;
 			num_frames -= tmp_remain / frame_size;
+			self->mic_buffer_size_bytes -= tmp_remain;
 		}
 		else
 		{
@@ -252,7 +253,7 @@ void pipewire_device::mic_process(void * self_v)
 		auto tmp = self->mic_samples.read();
 		if (not tmp)
 			break;
-		self->mic_buffer_size_bytes.fetch_sub(tmp->payload.size_bytes());
+		self->mic_buffer_size_bytes -= tmp->payload.size_bytes();
 		U_LOG_D("Audio sync: discard %ld bytes", tmp->payload.size_bytes());
 	}
 }
@@ -290,7 +291,9 @@ void pipewire_device::speaker_process(void * self_v)
 
 void pipewire_device::process_mic_data(xrt::drivers::wivrn::audio_data && sample)
 {
-	mic_samples.write(std::move(sample));
+	auto size = sample.payload.size_bytes();
+	if (mic_samples.write(std::move(sample)))
+		mic_buffer_size_bytes += size;
 }
 
 std::shared_ptr<audio_device> create_pipewire_handle(
