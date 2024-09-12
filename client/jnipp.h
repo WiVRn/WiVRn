@@ -86,11 +86,11 @@ struct deleter
 {
 	void operator()(jobject j)
 	{
-		jni_thread::env().DeleteLocalRef(j);
+		jni_thread::env().DeleteGlobalRef(j);
 	}
 	void operator()(jobjectArray j)
 	{
-		jni_thread::env().DeleteLocalRef(j);
+		jni_thread::env().DeleteGlobalRef(j);
 	}
 };
 
@@ -150,13 +150,14 @@ struct klass
 	klass(T & instance)
 	{
 		auto & env = jni_thread::env();
-		self.reset(env.GetObjectClass(instance));
+		self.reset((jclass)env.NewGlobalRef(env.GetObjectClass(instance)));
 		assert(self.get());
 	}
 
-	klass(const char * name) :
-	        self(jni_thread::env().FindClass(name))
+	klass(const char * name)
 	{
+		auto & env = jni_thread::env();
+		self.reset((jclass)env.NewGlobalRef(env.FindClass(name)));
 		assert(self.get());
 	}
 
@@ -257,7 +258,7 @@ struct object
 	{
 		auto & env = jni_thread::env();
 		if (o)
-			self.reset(env.NewLocalRef(o));
+			self.reset(env.NewGlobalRef(o));
 	}
 
 	template <typename R, typename... Args>
