@@ -18,25 +18,20 @@
  */
 
 #include "wifi_lock.h"
-#include "spdlog/spdlog.h"
 
 #ifdef __ANDROID__
 #include "application.h"
+#include "spdlog/spdlog.h"
 #include <android/native_activity.h>
 #include <sys/system_properties.h>
 
 #include "jnipp.h"
-#endif
 
-wifi_lock instance;
+wifi_lock::wifi_lock(decltype(multicast_) m, decltype(wifi_) w) :
+        multicast_(std::move(m)), wifi_(std::move(w)) {}
 
-void wifi_lock::apply()
+std::shared_ptr<wifi_lock> wifi_lock::make_wifi_lock(jobject activity)
 {
-#ifdef __ANDROID__
-	spdlog::debug("wifi locks: enabled {} multicast {} low latency {}",
-	              enabled,
-	              wants_multicast,
-	              wants_low_latency);
 	jni::object<""> act(application::native_app()->activity->clazz);
 
 	jni::string lock_name("WiVRn");
@@ -47,51 +42,78 @@ void wifi_lock::apply()
 	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
 	auto wifi_service_id = ctx.klass().field<jni::string>("WIFI_SERVICE");
 	auto system_service = ctx.call<jni::object<"java/lang/Object">>("getSystemService", wifi_service_id);
-	auto lock = system_service.call<jni::object<"android/net/wifi/WifiManager$MulticastLock">>("createMulticastLock", lock_name);
-	lock.call<void>("setReferenceCounted", jni::Bool(false));
-	lock.call<void>((enabled and wants_multicast) ? "acquire" : "release");
-	if (lock.call<jni::Bool>("isHeld"))
-	{
-		spdlog::info("MulticastLock acquired");
-	}
-	else
-	{
-		spdlog::info("MulticastLock is not acquired");
-	}
+	return std::shared_ptr<wifi_lock>(new wifi_lock(
+	        system_service.call<jni::object<"android/net/wifi/WifiManager$MulticastLock">>("createMulticastLock", lock_name),
+	        system_service.call<jni::object<"android/net/wifi/WifiManager$WifiLock">>(
+	                "createWifiLock",
+	                jni::Int(api_level >= 29 ? 4 /*WIFI_MODE_FULL_LOW_LATENCY*/ : 3 /*WIFI_MODE_FULL_HIGH_PERF*/),
+	                lock_name)));
+}
 
-	auto wifi_lock = system_service.call<jni::object<"android/net/wifi/WifiManager$WifiLock">>(
-	        "createWifiLock",
-	        jni::Int(api_level >= 29 ? 4 /*WIFI_MODE_FULL_LOW_LATENCY*/ : 3 /*WIFI_MODE_FULL_HIGH_PERF*/),
-	        lock_name);
-	wifi_lock.call<void>("setReferenceCounted", jni::Bool(false));
-	wifi_lock.call<void>((enabled and wants_low_latency) ? "acquire" : "release");
-	if (wifi_lock.call<jni::Bool>("isHeld"))
-	{
+void wifi_lock::print_wifi()
+{
+	if (wifi_.call<jni::Bool>("isHeld"))
 		spdlog::info("WifiLock low latency acquired");
-	}
 	else
-	{
-		spdlog::info("WifiLock low latency is not acquired");
-	}
+		spdlog::info("WifiLock low latency released");
+}
+
+void wifi_lock::acquire_wifi()
+{
+	std::lock_guard lock(mutex);
+	wifi_.call<void>("acquire");
+	print_wifi();
+}
+void wifi_lock::release_wifi()
+{
+	std::lock_guard lock(mutex);
+	wifi_.call<void>("release");
+	print_wifi();
+}
+
+void wifi_lock::print_multicast()
+{
+	if (multicast_.call<jni::Bool>("isHeld"))
+		spdlog::info("MulticastLock acquired");
+	else
+		spdlog::info("MulticastLock released");
+}
+
+void wifi_lock::acquire_multicast()
+{
+	std::lock_guard lock(mutex);
+	multicast_.call<void>("acquire");
+	print_multicast();
+}
+void wifi_lock::release_multicast()
+{
+	std::lock_guard lock(mutex);
+	multicast_.call<void>("release");
+	print_multicast();
+}
+
+std::shared_ptr<void> wifi_lock::get_wifi_lock()
+{
+	acquire_wifi();
+	// The shared pointer has a separate reference counter: destructor only calls a method
+	return std::shared_ptr<void>(this, [self = shared_from_this()](void *) { self->release_wifi(); });
+}
+std::shared_ptr<void> wifi_lock::get_multicast_lock()
+{
+	acquire_multicast();
+	// The shared pointer has a separate reference counter: destructor only calls a method
+	return std::shared_ptr<void>(this, [self = shared_from_this()](void *) { self->release_multicast(); });
+}
+
+#else
+
+std::shared_ptr<void> wifi_lock::get_wifi_lock()
+{
+	return nullptr;
+}
+std::shared_ptr<void> wifi_lock::get_multicast_lock()
+{
+	return nullptr;
+}
+
 #endif
-}
-
-void wifi_lock::set_enabled(bool enabled)
-{
-	std::lock_guard lock(instance.mutex);
-	instance.enabled = enabled;
-	instance.apply();
-}
-
-void wifi_lock::want_multicast(bool enabled)
-{
-	std::lock_guard lock(instance.mutex);
-	instance.wants_multicast += enabled ? 1 : -1;
-	instance.apply();
-}
-void wifi_lock::want_low_latency(bool enabled)
-{
-	std::lock_guard lock(instance.mutex);
-	instance.wants_low_latency += enabled ? 1 : -1;
-	instance.apply();
-}

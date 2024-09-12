@@ -18,19 +18,36 @@
  */
 
 #pragma once
-#include <mutex>
+#include <memory>
 
-class wifi_lock
+#ifdef __ANDROID__
+#include "jnipp.h"
+#include <mutex>
+#endif
+
+class wifi_lock : public std::enable_shared_from_this<wifi_lock>
 {
+#ifdef __ANDROID__
 	std::mutex mutex;
-	int wants_multicast = 0;
-	int wants_low_latency = 0;
-	bool enabled = true;
-	void apply();
+	jni::object<"android/net/wifi/WifiManager$MulticastLock"> multicast_;
+	jni::object<"android/net/wifi/WifiManager$WifiLock"> wifi_;
+	wifi_lock(decltype(multicast_), decltype(wifi_));
+
+	void print_wifi();
+	void acquire_wifi();
+	void release_wifi();
+	void print_multicast();
+	void acquire_multicast();
+	void release_multicast();
 
 public:
-	static void set_enabled(bool enabled);
+	static std::shared_ptr<wifi_lock> make_wifi_lock(jobject activity);
+#endif
 
-	static void want_multicast(bool enabled);
-	static void want_low_latency(bool enabled);
+public:
+	using multicast = std::shared_ptr<void>;
+	using wifi = std::shared_ptr<void>;
+
+	multicast get_multicast_lock();
+	wifi get_wifi_lock();
 };

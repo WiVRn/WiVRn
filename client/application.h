@@ -20,6 +20,7 @@
 #pragma once
 
 #include "configuration.h"
+#include "wifi_lock.h"
 #include "xr/fb_face_tracker2.h"
 #include "xr/hand_tracker.h"
 #ifdef __ANDROID__
@@ -143,6 +144,8 @@ class application : public singleton<application>
 	std::filesystem::path config_path;
 	std::filesystem::path cache_path;
 
+	std::shared_ptr<wifi_lock> wifi;
+
 	std::string server_address;
 
 	std::mutex scene_stack_lock;
@@ -181,8 +184,6 @@ public:
 	~application();
 #ifdef __ANDROID__
 	void setup_jni();
-
-	void set_wifi_locks(bool enabled);
 
 	static AAssetManager * asset_manager()
 	{
@@ -316,6 +317,11 @@ public:
 	{
 		return instance().eye_gaze_space;
 	};
+
+	static wifi_lock & get_wifi_lock()
+	{
+		return *instance().wifi;
+	}
 
 	static void ignore_debug_reports_for(void * object)
 	{

@@ -30,7 +30,6 @@
 #include "utils/ranges.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
-#include "wifi_lock.h"
 #include "wivrn_packets.h"
 #include <algorithm>
 #include <mutex>
@@ -215,7 +214,7 @@ void scenes::stream::on_focused()
 		plots_toggle_2 = get_action("plots_toggle_2").first;
 	}
 
-	wifi_lock::want_low_latency(true);
+	wifi = application::get_wifi_lock().get_wifi_lock();
 	assert(video_stream_description);
 	setup_reprojection_swapchain();
 }
@@ -224,7 +223,7 @@ void scenes::stream::on_unfocused()
 {
 	imgui_ctx.reset();
 	swapchain_imgui = xr::swapchain();
-	wifi_lock::want_low_latency(false);
+	wifi.reset();
 }
 
 scenes::stream::~stream()

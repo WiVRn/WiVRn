@@ -24,6 +24,7 @@
 #include "render/scene_data.h"
 #include "scene.h"
 #include "scenes/hand_model.h"
+#include "wifi_lock.h"
 #include "wivrn_discover.h"
 #include <vulkan/vulkan_raii.hpp>
 
@@ -46,6 +47,7 @@ class stream;
 class lobby : public scene_impl<lobby>
 {
 	std::optional<wivrn_discover> discover;
+	wifi_lock::multicast multicast;
 
 	char add_server_window_prettyname[200];
 	char add_server_window_hostname[200];

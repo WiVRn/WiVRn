@@ -935,6 +935,7 @@ std::pair<XrAction, XrActionType> application::get_action(const std::string & re
 
 application::application(application_info info) :
         app_info(std::move(info))
+
 {
 #ifdef __ANDROID__
 	// https://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html
@@ -995,6 +996,12 @@ application::application(application_info info) :
 		}
 	};
 
+#ifdef __ANDROID__
+	wifi = wifi_lock::make_wifi_lock(app_info.native_app->activity->clazz);
+#else
+	wifi = std::make_shared<wifi_lock>();
+#endif
+
 	// Initialize the loader for this platform
 	PFN_xrInitializeLoaderKHR initializeLoader = nullptr;
 	if (XR_SUCCEEDED(xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction *)(&initializeLoader))))
@@ -1049,6 +1056,8 @@ void application::cleanup()
 		i->actions_by_name.clear(); // Not strictly necessary
 		i->spaces_by_name.clear();
 	}
+
+	wifi.reset();
 
 #ifdef __ANDROID__
 	jni::jni_thread::detach();
@@ -1315,7 +1324,6 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 		case XR_SESSION_STATE_FOCUSED:
 			session_visible = true;
 			session_focused = true;
-			wifi_lock::set_enabled(true);
 			break;
 
 		case XR_SESSION_STATE_STOPPING:
@@ -1323,7 +1331,6 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 			session_focused = false;
 			xr_session.end_session();
 			session_running = false;
-			wifi_lock::set_enabled(false);
 			break;
 
 		case XR_SESSION_STATE_EXITING:

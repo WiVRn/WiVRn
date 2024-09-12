@@ -24,6 +24,7 @@
 #include "render/imgui_impl.h"
 #include "scene.h"
 #include "stream_reprojection.h"
+#include "wifi_lock.h"
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
 #include <mutex>
@@ -61,6 +62,8 @@ private:
 		std::shared_ptr<shard_accumulator::blit_handle> frame(std::optional<uint64_t> id) const;
 		std::vector<uint64_t> frames() const;
 	};
+
+	wifi_lock::wifi wifi;
 
 	// for frames inside accumulator images
 	std::mutex frames_mutex;
