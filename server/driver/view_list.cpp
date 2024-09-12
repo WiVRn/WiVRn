@@ -28,7 +28,7 @@ tracked_views view_list::interpolate(const tracked_views & a, const tracked_view
 	return result;
 }
 
-tracked_views view_list::extrapolate(const tracked_views & a, const tracked_views & b, uint64_t ta, uint64_t tb, uint64_t t)
+tracked_views view_list::extrapolate(const tracked_views & a, const tracked_views & b, int64_t ta, int64_t tb, int64_t t)
 {
 	tracked_views result = t < ta ? a : b;
 	result.relation = pose_list::extrapolate(a.relation, b.relation, ta, tb, t);

@@ -34,7 +34,7 @@ class view_list : public history<view_list, tracked_views>
 {
 public:
 	static tracked_views interpolate(const tracked_views & a, const tracked_views & b, float t);
-	static tracked_views extrapolate(const tracked_views & a, const tracked_views & b, uint64_t ta, uint64_t tb, uint64_t t);
+	static tracked_views extrapolate(const tracked_views & a, const tracked_views & b, int64_t ta, int64_t tb, int64_t t);
 
 	bool update_tracking(const from_headset::tracking & tracking, const clock_offset & offset);
 };

@@ -63,10 +63,10 @@ public:
 	}
 
 	void update_inputs();
-	xrt_space_relation get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns);
+	xrt_space_relation get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns);
 	comp_target * create_compositor_target(struct comp_compositor * comp);
 	void get_view_poses(const xrt_vec3 * default_eye_relation,
-	                    uint64_t at_timestamp_ns,
+	                    int64_t at_timestamp_ns,
 	                    uint32_t view_count,
 	                    xrt_space_relation * out_head_relation,
 	                    xrt_fov * out_fovs,

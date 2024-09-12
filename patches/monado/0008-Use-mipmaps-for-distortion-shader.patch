@@ -14,7 +14,7 @@ Subject: [PATCH] Use mipmaps for distortion shader
  .../nvpro_pyramid/srgba8_mipmap_preamble.glsl | 128 +++
  src/xrt/auxiliary/vk/vk_helpers.c             |   1 +
  src/xrt/compositor/CMakeLists.txt             |   6 +-
- src/xrt/compositor/main/comp_renderer.c       |  82 +-
+ src/xrt/compositor/main/comp_renderer.c       |  60 +-
  src/xrt/compositor/main/comp_settings.c       |   6 +
  src/xrt/compositor/main/comp_settings.h       |   3 +
  src/xrt/compositor/render/render_compute.c    |  14 +
@@ -30,7 +30,7 @@ Subject: [PATCH] Use mipmaps for distortion shader
  src/xrt/compositor/util/comp_render_helpers.h |  26 +-
  src/xrt/compositor/util/comp_scratch.c        |  69 +-
  src/xrt/compositor/util/comp_scratch.h        |   7 +-
- 26 files changed, 2081 insertions(+), 88 deletions(-)
+ 26 files changed, 2072 insertions(+), 75 deletions(-)
  create mode 100644 src/external/nvpro_pyramid/CMakeLists.txt
  create mode 100644 src/external/nvpro_pyramid/LICENSE
  create mode 100644 src/external/nvpro_pyramid/nvpro_pyramid.glsl
@@ -1685,7 +1685,7 @@ index f7086b489..b61e42e10 100644
  
  	ret = vk->vkCreateSampler(vk->device, &info, NULL, &sampler);
 diff --git a/src/xrt/compositor/CMakeLists.txt b/src/xrt/compositor/CMakeLists.txt
-index 08a4b2d09..c840caa40 100644
+index f1c54ed4d..3bc9302f7 100644
 --- a/src/xrt/compositor/CMakeLists.txt
 +++ b/src/xrt/compositor/CMakeLists.txt
 @@ -127,7 +127,7 @@ if(XRT_HAVE_VULKAN)
@@ -1703,10 +1703,10 @@ index 08a4b2d09..c840caa40 100644
  		util/comp_base.c
 +		util/comp_mipmap.h
 +		util/comp_mipmap.cpp
+ 		util/comp_layer_accum.h
+ 		util/comp_layer_accum.c
  		util/comp_render.h
- 		util/comp_render_cs.c
- 		util/comp_render_gfx.c
-@@ -164,7 +166,7 @@ if(XRT_HAVE_VULKAN)
+@@ -166,7 +168,7 @@ if(XRT_HAVE_VULKAN)
  	target_link_libraries(
  		comp_util
  		PUBLIC xrt-interfaces
@@ -1716,30 +1716,20 @@ index 08a4b2d09..c840caa40 100644
  	target_include_directories(comp_util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
  endif()
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 1b295a324..e29b79b03 100644
+index 7dc8ae182..e59988b7c 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -366,12 +366,13 @@ renderer_build_rendering_target_resources(struct comp_renderer *r,
+@@ -366,6 +366,9 @@ renderer_build_rendering_target_resources(struct comp_renderer *r,
  	VkImageView image_view = r->c->target->images[index].view;
  	VkExtent2D extent = {r->c->target->width, r->c->target->height};
  
--	render_gfx_target_resources_init( //
--	    rtr,                          //
--	    &c->nr,                       //
--	    &r->target_render_pass,       //
--	    image_view,                   //
--	    extent);                      //
-+	if (!r->settings->use_compute)
-+		render_gfx_target_resources_init( //
-+		    rtr,                          //
-+		    &c->nr,                       //
-+		    &r->target_render_pass,       //
-+		    image_view,                   //
-+		    extent);                      //
- }
- 
- /*!
-@@ -574,7 +575,8 @@ renderer_init(struct comp_renderer *r, struct comp_compositor *c, VkExtent2D scr
++	if (r->settings->use_compute)
++		return;
++
+ 	render_gfx_target_resources_init( //
+ 	    rtr,                          //
+ 	    &c->nr,                       //
+@@ -574,12 +577,16 @@ renderer_init(struct comp_renderer *r, struct comp_compositor *c, VkExtent2D scr
  	    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL); // final_layout
  
  	for (uint32_t i = 0; i < c->nr.view_count; i++) {
@@ -1749,36 +1739,15 @@ index 1b295a324..e29b79b03 100644
  		if (!bret) {
  			COMP_ERROR(c, "comp_scratch_single_images_ensure: false");
  			assert(false && "Whelp, can't return an error. But should never really fail.");
-@@ -583,12 +585,13 @@ renderer_init(struct comp_renderer *r, struct comp_compositor *c, VkExtent2D scr
+ 		}
+ 
++		if (r->settings->use_compute)
++			continue;
++
  		for (uint32_t k = 0; k < COMP_SCRATCH_NUM_IMAGES; k++) {
  			struct render_scratch_color_image *rsci = &c->scratch.views[i].images[k];
  
--			render_gfx_target_resources_init(    //
--			    &r->scratch.views[i].targets[k], //
--			    &r->c->nr,                       //
--			    &r->scratch_render_pass,         //
--			    rsci->srgb_view,                 //
--			    scratch_extent);                 //
-+			if (!r->settings->use_compute)
-+				render_gfx_target_resources_init(    //
-+				    &r->scratch.views[i].targets[k], //
-+				    &r->c->nr,                       //
-+				    &r->scratch_render_pass,         //
-+				    rsci->srgb_view,                 //
-+				    scratch_extent);                 //
- 		}
- 	}
- 
-@@ -829,7 +832,7 @@ renderer_fini(struct comp_renderer *r)
- 		}
- 	}
- 
--	// Do this after the layer renderer and targert resources.
-+	// Do this after the layer renderer and target resources.
- 	render_gfx_render_pass_close(&r->scratch_render_pass);
- }
- 
-@@ -919,18 +922,19 @@ dispatch_graphics(struct comp_renderer *r,
+@@ -919,18 +926,19 @@ dispatch_graphics(struct comp_renderer *r,
  		// Scratch image covers the whole image.
  		struct xrt_normalized_rect layer_norm_rect = {.x = 0.0f, .y = 0.0f, .w = 1.0f, .h = 1.0f};
  
@@ -1794,32 +1763,32 @@ index 1b295a324..e29b79b03 100644
 -		    rsci->srgb_view,      // srgb_view
 -		    &vertex_rots[i],      // vertex_rot
 -		    &viewport_datas[i]);  // target_viewport_data
-+		comp_render_gfx_add_view(         //
-+		    &data,                        // data
-+		    &world_poses[i],              // world_pose
-+		    &eye_poses[i],                // eye_pose
-+		    &fovs[i],                     // fov
-+		    rsci_rtr,                     // rtr
-+		    &layer_viewport_data,         // layer_viewport_data
-+		    &layer_norm_rect,             // layer_norm_rect
-+		    rsci->image,                  // image
-+		    rsci->srgb_view,              // srgb_view
-+		    scratch_view->info.mip_count, // mip_count
-+		    &vertex_rots[i],              // vertex_rot
-+		    &viewport_datas[i]);          // target_viewport_data
++		comp_render_gfx_add_view(          //
++		    &data,                         // data
++		    &world_poses[i],               // world_pose
++		    &eye_poses[i],                 // eye_pose
++		    &fovs[i],                      // fov
++		    rsci_rtr,                      // rtr
++		    &layer_viewport_data,          // layer_viewport_data
++		    &layer_norm_rect,              // layer_norm_rect
++		    rsci->image,                   // image
++		    rsci->srgb_view,               // srgb_view
++		    scratch_view->info.mip_count,  // mip_count
++		    &vertex_rots[i],               // vertex_rot
++		    &viewport_datas[i]);           // target_viewport_data
  
  		if (layer_count == 0) {
  			crss->views[i].used = false;
-@@ -984,7 +988,7 @@ dispatch_compute(struct comp_renderer *r,
+@@ -984,7 +992,7 @@ dispatch_compute(struct comp_renderer *r,
  	// Basics
- 	const struct comp_layer *layers = c->base.slot.layers;
- 	uint32_t layer_count = c->base.slot.layer_count;
--	bool fast_path = c->base.slot.one_projection_layer_fast_path;
-+	bool fast_path = c->base.slot.one_projection_layer_fast_path && r->settings->mip_levels == 1;
+ 	const struct comp_layer *layers = c->base.layer_accum.layers;
+ 	uint32_t layer_count = c->base.layer_accum.layer_count;
+-	bool fast_path = c->base.frame_params.one_projection_layer_fast_path;
++	bool fast_path = c->base.frame_params.one_projection_layer_fast_path && r->settings->mip_levels == 1;
  	bool do_timewarp = !c->debug.atw_off;
  
  	// Device view information.
-@@ -1037,17 +1041,19 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1037,17 +1045,19 @@ dispatch_compute(struct comp_renderer *r,
  		// Scratch image covers the whole image.
  		struct xrt_normalized_rect layer_norm_rect = {.x = 0.0f, .y = 0.0f, .w = 1.0f, .h = 1.0f};
  
@@ -1882,7 +1851,7 @@ index 4b2106a7d..41fa02d47 100644
  
  	s->display = debug_get_num_option_xcb_display();
 diff --git a/src/xrt/compositor/main/comp_settings.h b/src/xrt/compositor/main/comp_settings.h
-index 1496367c8..78b31e342 100644
+index dcb479a51..8c36902d5 100644
 --- a/src/xrt/compositor/main/comp_settings.h
 +++ b/src/xrt/compositor/main/comp_settings.h
 @@ -108,6 +108,9 @@ struct comp_settings
@@ -2416,10 +2385,10 @@ index 653cc0e3d..da717aa91 100644
  
  /*!
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index 8201407ae..e85cd511a 100644
+index 25e4a17b4..fe5a480de 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
-@@ -23,6 +23,7 @@
+@@ -25,6 +25,7 @@
  
  #include "render/render_interface.h"
  
@@ -2427,7 +2396,7 @@ index 8201407ae..e85cd511a 100644
  #include "util/comp_render.h"
  #include "util/comp_render_helpers.h"
  #include "util/comp_base.h"
-@@ -336,6 +337,92 @@ do_cs_clear(struct render_compute *crc, const struct comp_render_dispatch_data *
+@@ -356,6 +357,92 @@ do_cs_clear(struct render_compute *crc, const struct comp_render_dispatch_data *
  	    target_viewport_datas);  // views
  }
  
@@ -2520,7 +2489,7 @@ index 8201407ae..e85cd511a 100644
  static void
  do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_render_dispatch_data *d)
  {
-@@ -352,6 +439,8 @@ do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_rend
+@@ -372,6 +459,8 @@ do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_rend
  	struct xrt_normalized_rect src_norm_rects[XRT_MAX_VIEWS];
  
  	for (uint32_t i = 0; i < d->view_count; i++) {
@@ -2529,7 +2498,7 @@ index 8201407ae..e85cd511a 100644
  		// Data to be filled in.
  		struct render_viewport_data viewport_data;
  		VkImageView src_image_view;
-@@ -733,6 +822,8 @@ comp_render_cs_dispatch(struct render_compute *crc,
+@@ -753,6 +842,8 @@ comp_render_cs_dispatch(struct render_compute *crc,
  		    vds,                    // vds
  		    d);                     // d
  	} else if (layer_count > 0) {
@@ -2799,5 +2768,5 @@ index 44849c20e..f8c891e49 100644
  void
  comp_scratch_stereo_images_free(struct comp_scratch_stereo_images *cssi, struct vk_bundle *vk);
 -- 
-2.46.0
+2.44.2
 

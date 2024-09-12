@@ -262,9 +262,9 @@ static bool comp_wivrn_check_ready(struct comp_target * ct)
 	cn->c->debug.atw_off = true;
 	for (int eye = 0; eye < 2; ++eye)
 	{
-		const auto & slot = cn->c->base.slot;
-		if (slot.layer_count > 1 or
-		    slot.layers[0].data.type != XRT_LAYER_PROJECTION)
+		const auto & layer_accum = cn->c->base.layer_accum;
+		if (layer_accum.layer_count > 1 or
+		    layer_accum.layers[0].data.type != XRT_LAYER_PROJECTION)
 		{
 			// We are not in the trivial single stereo projection layer
 			// reprojection must be done
@@ -319,8 +319,6 @@ static void target_init_semaphores(struct wivrn_comp_target * cn)
 static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_target_create_images_info * create_info)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
-
-	uint64_t now_ns = os_monotonic_get_ns();
 
 	// Free old images.
 	destroy_images(cn);
@@ -433,8 +431,8 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
                                    VkQueue queue_,
                                    uint32_t index,
                                    uint64_t timeline_semaphore_value,
-                                   uint64_t desired_present_time_ns,
-                                   uint64_t present_slop_ns)
+                                   int64_t desired_present_time_ns,
+                                   int64_t present_slop_ns)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
@@ -452,7 +450,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	        .pWaitDstStageMask = &wait_stage,
 	};
 
-	if (cn->c->base.slot.layer_count == 0 or not cn->cnx->get_offset())
+	if (cn->c->base.layer_accum.layer_count == 0 or not cn->cnx->get_offset())
 	{
 		scoped_lock lock(vk->queue_mutex);
 		cn->wivrn_bundle->queue.submit(submit_info);
@@ -489,19 +487,19 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	view_info.display_time = cn->cnx->get_offset().to_headset(info.predicted_display_time);
 	for (int eye = 0; eye < 2; ++eye)
 	{
-		const auto & slot = cn->c->base.slot;
-		view_info.fov[eye] = xrt_cast(slot.fovs[eye]);
-		view_info.pose[eye] = xrt_cast(slot.poses[eye]);
+		const auto & frame_params = cn->c->base.frame_params;
+		view_info.fov[eye] = xrt_cast(frame_params.fovs[eye]);
+		view_info.pose[eye] = xrt_cast(frame_params.poses[eye]);
 		if (cn->c->debug.atw_off)
 		{
-			const auto & proj = slot.layers[0].data.proj;
+			const auto & proj = cn->c->base.layer_accum.layers[0].data.proj;
 			view_info.pose[eye] = xrt_cast(proj.v[eye].pose);
 		}
 		else
 		{
 			xrt_relation_chain xrc{};
 			xrt_space_relation result{};
-			m_relation_chain_push_pose_if_not_identity(&xrc, &slot.poses[eye]);
+			m_relation_chain_push_pose_if_not_identity(&xrc, &frame_params.poses[eye]);
 			m_relation_chain_resolve(&xrc, &result);
 			view_info.pose[eye] = xrt_cast(result.pose);
 		}
@@ -540,10 +538,10 @@ static void comp_wivrn_flush(struct comp_target * ct)
 
 static void comp_wivrn_calc_frame_pacing(struct comp_target * ct,
                                          int64_t * out_frame_id,
-                                         uint64_t * out_wake_up_time_ns,
-                                         uint64_t * out_desired_present_time_ns,
-                                         uint64_t * out_present_slop_ns,
-                                         uint64_t * out_predicted_display_time_ns)
+                                         int64_t * out_wake_up_time_ns,
+                                         int64_t * out_desired_present_time_ns,
+                                         int64_t * out_present_slop_ns,
+                                         int64_t * out_predicted_display_time_ns)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
@@ -558,7 +556,7 @@ static void comp_wivrn_calc_frame_pacing(struct comp_target * ct,
 static void comp_wivrn_mark_timing_point(struct comp_target * ct,
                                          enum comp_target_timing_point point,
                                          int64_t frame_id,
-                                         uint64_t when_ns)
+                                         int64_t when_ns)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
@@ -603,7 +601,7 @@ static void comp_wivrn_destroy(struct comp_target * ct)
 	delete (struct wivrn_comp_target *)ct;
 }
 
-static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, uint64_t gpu_start_ns, uint64_t gpu_end_ns, uint64_t when_ns)
+static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, int64_t gpu_start_ns, int64_t gpu_end_ns, int64_t when_ns)
 {
 	COMP_TRACE_MARKER();
 }

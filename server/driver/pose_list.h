@@ -30,7 +30,7 @@ public:
 	const xrt::drivers::wivrn::device_id device;
 
 	static xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t);
-	static xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, uint64_t ta, uint64_t tb, uint64_t t);
+	static xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, int64_t ta, int64_t tb, int64_t t);
 
 	pose_list(xrt::drivers::wivrn::device_id id) :
 	        device(id) {}

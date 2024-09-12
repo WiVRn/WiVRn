@@ -37,16 +37,16 @@ void wivrn_pacer::set_stream_count(size_t count)
 
 void wivrn_pacer::predict(
         int64_t & frame_id,
-        uint64_t & out_wake_up_time_ns,
-        uint64_t & out_desired_present_time_ns,
-        uint64_t & out_present_slop_ns,
-        uint64_t & out_predicted_display_time_ns)
+        int64_t & out_wake_up_time_ns,
+        int64_t & out_desired_present_time_ns,
+        int64_t & out_present_slop_ns,
+        int64_t & out_predicted_display_time_ns)
 {
 	std::lock_guard lock(mutex);
 	frame_id = this->frame_id++;
 	auto now = os_monotonic_get_ns();
 
-	uint64_t predicted_client_render = last_ns + frame_duration_ns;
+	int64_t predicted_client_render = last_ns + frame_duration_ns;
 	// snap to phase
 	predicted_client_render = (predicted_client_render / frame_duration_ns) * frame_duration_ns + client_render_phase_ns;
 
@@ -89,7 +89,7 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 
 	if (feedback.stream_index == 0)
 	{
-		uint64_t safe_time = 0;
+		int64_t safe_time = 0;
 		for (const auto & stream: streams)
 		{
 			if (stream.times.size() >= min_wait_times)
@@ -109,7 +109,7 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 				time_variance /= (stream.times.size() - 1);
 				double time_std_dev = std::sqrt(time_variance);
 
-				safe_time = std::max<uint64_t>(safe_time, mean_time + 3 * time_std_dev);
+				safe_time = std::max<int64_t>(safe_time, mean_time + 3 * time_std_dev);
 			}
 		}
 		if (safe_time > 0 and safe_time < 100'000'000)
@@ -124,7 +124,7 @@ void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback 
 void wivrn_pacer::mark_timing_point(
         comp_target_timing_point point,
         int64_t frame_id,
-        uint64_t when_ns)
+        int64_t when_ns)
 {
 	std::lock_guard lock(mutex);
 	switch (point)
@@ -149,7 +149,7 @@ void wivrn_pacer::mark_timing_point(
 	}
 }
 
-wivrn_pacer::frame_info wivrn_pacer::present_to_info(uint64_t present)
+wivrn_pacer::frame_info wivrn_pacer::present_to_info(int64_t present)
 {
 	std::lock_guard lock(mutex);
 	for (const auto & info: in_flight_frames)

@@ -36,7 +36,7 @@ static void wivrn_eye_tracker_update_inputs(xrt_device * xdev);
 
 static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
                                                xrt_input_name name,
-                                               uint64_t at_timestamp_ns,
+                                               int64_t at_timestamp_ns,
                                                xrt_space_relation * out_relation);
 
 wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd,
@@ -70,7 +70,7 @@ void wivrn_eye_tracker::update_inputs()
 	// Empty
 }
 
-xrt_space_relation wivrn_eye_tracker::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns)
+xrt_space_relation wivrn_eye_tracker::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns)
 {
 	if (name == XRT_INPUT_GENERIC_EYE_GAZE_POSE)
 	{
@@ -105,7 +105,7 @@ static void wivrn_eye_tracker_update_inputs(xrt_device * xdev)
 
 static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
                                                xrt_input_name name,
-                                               uint64_t at_timestamp_ns,
+                                               int64_t at_timestamp_ns,
                                                xrt_space_relation * out_relation)
 {
 	*out_relation = static_cast<wivrn_eye_tracker *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
