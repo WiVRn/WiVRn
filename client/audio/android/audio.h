@@ -24,6 +24,8 @@
 #include <atomic>
 
 struct AAudioStreamStruct;
+struct AAudioStreamBuilderStruct;
+
 class wivrn_session;
 
 namespace xr
@@ -37,6 +39,14 @@ class audio
 {
 	static int32_t speaker_data_cb(AAudioStreamStruct *, void *, void *, int32_t);
 	static int32_t microphone_data_cb(AAudioStreamStruct *, void *, void *, int32_t);
+
+	static void microphone_error_cb(AAudioStreamStruct *, void *, int32_t);
+	static void speaker_error_cb(AAudioStreamStruct *, void *, int32_t);
+
+	static void recreate_stream(audio *, AAudioStreamStruct *);
+
+	void build_microphone(AAudioStreamBuilderStruct *, int32_t, int32_t);
+	void build_speaker(AAudioStreamBuilderStruct *, int32_t, int32_t);
 
 	utils::ring_buffer<xrt::drivers::wivrn::audio_data, 100> output_buffer;
 	std::atomic<size_t> buffer_size_bytes;
