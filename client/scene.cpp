@@ -43,6 +43,17 @@ scene::scene(key, const meta & current_meta) :
         current_meta(current_meta)
 {
 }
+void scene::set_focused(bool status)
+{
+	if (status != focused)
+	{
+		focused = status;
+		if (focused)
+			on_focused();
+		else
+			on_unfocused();
+	}
+}
 
 void scene::on_unfocused() {}
 void scene::on_focused() {}

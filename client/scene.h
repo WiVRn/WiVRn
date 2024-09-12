@@ -76,6 +76,7 @@ protected:
 	xr::space & world_space;
 	xr::space & view_space;
 	XrViewConfigurationType viewconfig;
+	bool focused = false;
 
 	vk::raii::Instance & vk_instance;
 	vk::raii::Device & device;
@@ -96,14 +97,16 @@ protected:
 		return current_meta.spaces_by_name.at(name);
 	}
 
+	virtual void on_unfocused();
+	virtual void on_focused();
+
 public:
 	scene(key, const meta &);
 
 	virtual ~scene();
 
+	void set_focused(bool status);
 	virtual void render(const XrFrameState &) = 0;
-	virtual void on_unfocused();
-	virtual void on_focused();
 	virtual void on_interaction_profile_changed();
 	virtual void on_reference_space_changed(XrReferenceSpaceType space, XrTime);
 	virtual void on_session_state_changed(XrSessionState state);

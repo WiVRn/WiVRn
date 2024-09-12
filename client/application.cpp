@@ -1076,26 +1076,27 @@ void application::loop()
 {
 	poll_events();
 
+	auto scene = current_scene();
 	if (!is_session_running())
 	{
+		if (scene)
+			scene->set_focused(false);
 		// Throttle loop since xrWaitFrame won't be called.
 		std::this_thread::sleep_for(250ms);
 	}
 	else
 	{
-		auto scene = current_scene();
 		if (scene)
 		{
 			poll_actions();
 			if (auto tmp = last_scene.lock(); scene != tmp)
 			{
 				if (tmp)
-					tmp->on_unfocused();
-
-				scene->on_focused();
+					tmp->set_focused(false);
 
 				last_scene = scene;
 			}
+			scene->set_focused(true);
 
 			XrFrameState framestate = xr_session.wait_frame();
 
