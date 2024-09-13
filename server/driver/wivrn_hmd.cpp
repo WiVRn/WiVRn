@@ -187,7 +187,7 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 		lod.y = 0;
 	}
 
-	U_LOG_W("%f %f (%f %f)", lod.x, lod.y, u, v);
+	U_LOG_D("distortion parameters: %f %f (%f %f)", lod.x, lod.y, u, v);
 
 	result->r = out;
 	result->g = lod;
