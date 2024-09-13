@@ -51,6 +51,10 @@
 #include "steamvr_lh_interface.h"
 #endif
 
+#ifdef WIVRN_FEATURE_SOLARXR
+#include "solarxr_device.h"
+#endif
+
 struct wivrn_comp_target_factory : public comp_target_factory
 {
 	std::shared_ptr<wivrn_session> session;
@@ -225,6 +229,19 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		usysds->base.base.static_roles.face = self->fb_face2_tracker.get();
 		devices->xdevs[n++] = self->fb_face2_tracker.get();
 	}
+
+#ifdef WIVRN_FEATURE_SOLARXR
+	xrt_device * solar_devs[XRT_SYSTEM_MAX_DEVICES];
+	uint32_t solar_devs_cap = XRT_SYSTEM_MAX_DEVICES - devices->xdev_count;
+	uint32_t num_devs = solarxr_device_create_xdevs(self->hmd.get(), solar_devs, XRT_SYSTEM_MAX_DEVICES - devices->xdev_count);
+	for (int i = 0; i < num_devs; i++)
+	{
+		devices->xdevs[n++] = solar_devs[i];
+		if (i == 0)
+			usysds->base.base.static_roles.body = solar_devs[i];
+	}
+#endif
+
 	devices->xdev_count = n;
 
 	u_system_devices_static_finalize(usysds, active_left_hand, active_right_hand);

@@ -40,6 +40,7 @@ auto_option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" AUTO)
 auto_option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" AUTO)
 
 option(WIVRN_FEATURE_STEAMVR_LIGHTHOUSE "Enable SteamVR Lighthouse driver" OFF)
+option(WIVRN_FEATURE_SOLARXR "Enable SolarXR driver" OFF)
 
 option(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH OFF)
 
