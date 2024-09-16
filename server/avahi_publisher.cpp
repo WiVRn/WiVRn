@@ -9,21 +9,23 @@
 #include <avahi-common/strlst.h>
 #include <iostream>
 
-namespace
+const std::error_category & avahi_error_category()
 {
-struct : std::error_category
-{
-	const char * name() const noexcept override
+	static struct : std::error_category
 	{
-		return "avahi";
-	}
+		const char * name() const noexcept override
+		{
+			return "avahi";
+		}
 
-	std::string message(int condition) const override
-	{
-		return avahi_strerror(condition);
-	}
-} avahi_error_category;
-} // namespace
+		std::string message(int condition) const override
+		{
+			return avahi_strerror(condition);
+		}
+	} _avahi_error_category;
+
+	return _avahi_error_category;
+}
 
 void avahi_publisher::alt_name()
 {
@@ -40,7 +42,7 @@ void avahi_publisher::create_service(AvahiClient * client)
 		if (!entry_group)
 		{
 			throw std::system_error(avahi_client_errno(client),
-			                        avahi_error_category,
+			                        avahi_error_category(),
 			                        "Cannot create entry group, ensure disable-user-service-publishing is unset in avahi daemon config");
 		}
 	}
@@ -148,7 +150,7 @@ avahi_publisher::avahi_publisher(const AvahiPoll * poll_api, const std::string &
 	        &error);
 
 	if (!avahi_client)
-		throw std::system_error(error, avahi_error_category, "Cannot create avahi client");
+		throw std::system_error(error, avahi_error_category(), "Cannot create avahi client");
 }
 
 avahi_publisher::~avahi_publisher()

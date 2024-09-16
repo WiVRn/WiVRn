@@ -11,6 +11,7 @@
 #include "active_runtime.h"
 #include "avahi_publisher.h"
 #include "driver/configuration.h"
+#include "exit_codes.h"
 #include "hostname.h"
 #include "start_application.h"
 #include "version.h"
@@ -616,7 +617,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	if (pipe(stdin_pipe_fds) < 0)
 	{
 		perror("pipe");
-		return EXIT_FAILURE;
+		return wivrn_exit_code::cannot_create_pipe;
 	}
 	fcntl(stdin_pipe_fds[0], F_SETFD, FD_CLOEXEC);
 	fcntl(stdin_pipe_fds[1], F_SETFD, FD_CLOEXEC);
@@ -625,7 +626,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	if (socketpair(AF_UNIX, SOCK_DGRAM, 0, control_pipe_fds) < 0)
 	{
 		perror("socketpair");
-		return EXIT_FAILURE;
+		return wivrn_exit_code::cannot_create_socketpair;
 	}
 	fcntl(control_pipe_fds[0], F_SETFD, FD_CLOEXEC);
 	fcntl(control_pipe_fds[1], F_SETFD, FD_CLOEXEC);
@@ -672,7 +673,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	std::filesystem::remove(socket_path(), ec);
 #endif
 
-	return EXIT_SUCCESS;
+	return wivrn_exit_code::success;
 }
 
 int main(int argc, char * argv[])
@@ -701,9 +702,15 @@ int main(int argc, char * argv[])
 	{
 		return inner_main(argc, argv, not *no_instructions);
 	}
+	catch (std::system_error & e)
+	{
+		std::cerr << e.what() << std::endl;
+		if (e.code().category() == avahi_error_category())
+			return wivrn_exit_code::cannot_connect_to_avahi;
+	}
 	catch (std::exception & e)
 	{
 		std::cerr << e.what() << std::endl;
-		return EXIT_FAILURE;
+		return wivrn_exit_code::unknown_error;
 	}
 }

@@ -4,7 +4,10 @@
 #include <avahi-common/watch.h>
 #include <map>
 #include <string>
+#include <system_error>
 #include <vector>
+
+const std::error_category & avahi_error_category();
 
 class avahi_publisher
 {
