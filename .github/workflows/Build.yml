@@ -273,6 +273,9 @@ jobs:
           apk/*.apk
           flatpak/*.flatpak
 
+    - name: Update release branch
+      run: git push origin HEAD:release
+
   sync_fork_downstream:
     name: Sync fork downstream
     runs-on: ubuntu-latest
