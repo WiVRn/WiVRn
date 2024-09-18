@@ -286,9 +286,7 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 		return {};
 	std::unique_lock lock(frames_mutex);
 	thread_local std::vector<shard_accumulator::blit_handle *> common_frames;
-	thread_local std::vector<shard_accumulator::blit_handle *> tmp;
 	common_frames.clear();
-	auto proj = [](const shard_accumulator::blit_handle * h) { return h ? h->feedback.frame_index : -1; };
 	for (size_t i = 0; i < decoders.size(); ++i)
 	{
 		if (i == 0)
@@ -299,15 +297,18 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 		}
 		else
 		{
-			tmp.clear();
-			std::ranges::set_intersection(
-			        std::ranges::views::transform(decoders[i].latest_frames, [](auto ptr) { return ptr.get(); }),
-			        common_frames,
-			        std::back_inserter(tmp),
-			        std::ranges::less{},
-			        proj,
-			        proj);
-			std::swap(common_frames, tmp);
+			// clang-format off
+			std::erase_if(common_frames,
+				[this, i](auto & left)
+				{
+					return std::ranges::none_of(
+						decoders[i].latest_frames,
+						[&left](auto & right)
+						{
+							return left->feedback.frame_index == right->feedback.frame_index;
+						});
+				});
+			// clang-format on
 		}
 	}
 	std::optional<uint64_t> frame_index;
@@ -323,6 +324,22 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 
 		assert(*min);
 		frame_index = (*min)->feedback.frame_index;
+	}
+	else
+	{
+		spdlog::warn("Failed to find a common frame for all decoders, dumping available frames per decoder");
+		for (const auto & decoder: decoders)
+		{
+			std::string frames;
+			for (const auto & frame: decoder.latest_frames)
+			{
+				if (frame)
+					frames += " " + std::to_string(frame->feedback.frame_index);
+				else
+					frames += " -";
+			}
+			spdlog::warn(frames);
+		}
 	}
 	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> result;
 	result.reserve(decoders.size());

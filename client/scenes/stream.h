@@ -43,6 +43,7 @@ public:
 		streaming,
 		stalled
 	};
+	static const size_t image_buffer_size = 3;
 
 private:
 	static const size_t view_count = 2;
@@ -57,7 +58,7 @@ private:
 		vk::raii::PipelineLayout blit_pipeline_layout = nullptr;
 		vk::raii::Pipeline blit_pipeline = nullptr;
 		// latest frames from oldest to most recent
-		std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> latest_frames;
+		std::array<std::shared_ptr<shard_accumulator::blit_handle>, image_buffer_size> latest_frames;
 
 		std::shared_ptr<shard_accumulator::blit_handle> frame(std::optional<uint64_t> id) const;
 		std::vector<uint64_t> frames() const;

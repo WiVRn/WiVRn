@@ -95,7 +95,7 @@ decoder::decoder(
 	              description.video_height,
 	              AIMAGE_FORMAT_PRIVATE,
 	              AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE,
-	              5 /* maxImages */,
+	              scenes::stream::image_buffer_size + 2 /* maxImages */,
 	              &ir),
 	      "AImageReader_newWithUsage");
 	image_reader.reset(ir, AImageReader_deleter{});
