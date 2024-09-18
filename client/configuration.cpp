@@ -103,6 +103,7 @@ configuration::configuration(const std::string & path)
 		                .name = (std::string)i["pretty_name"],
 		                .hostname = (std::string)i["hostname"],
 		                .port = (int)i["port"].get_int64(),
+		                .tcp_only = i["tcp_only"].is_bool() && i["tcp_only"].get_bool(),
 		                .txt = {{"cookie", (std::string)i["cookie"]}}
 
 		        }};
@@ -143,6 +144,7 @@ void configuration::save()
 			ss << "\"pretty_name\":" << json_string(server_data.service.name) << ",";
 			ss << "\"hostname\":" << json_string(server_data.service.hostname) << ",";
 			ss << "\"port\":" << server_data.service.port << ",";
+			ss << "\"tcp_only\":" << std::boolalpha << server_data.service.tcp_only << ",";
 			ss << "\"cookie\":" << json_string(cookie);
 			ss << "},";
 		}

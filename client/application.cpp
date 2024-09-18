@@ -959,6 +959,12 @@ application::application(application_info info) :
 			server_address = data_string.substr(strlen("wivrn://"));
 		}
 
+		if (data_string.starts_with("wivrn+tcp://"))
+		{
+			server_address = data_string.substr(strlen("wivrn+tcp://"));
+			server_tcp_only = true;
+		}
+
 		auto files_dir = ctx.call<jni::object<"java/io/File">>("getFilesDir");
 		if (auto files_dir_path = files_dir.call<jni::string>("getAbsolutePath"))
 		{

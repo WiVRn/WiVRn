@@ -106,6 +106,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="wivrn" />
+                <data android:scheme="wivrn+tcp" />
             </intent-filter>
         </activity>
     </application>

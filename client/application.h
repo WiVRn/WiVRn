@@ -147,6 +147,7 @@ class application : public singleton<application>
 	std::shared_ptr<wifi_lock> wifi;
 
 	std::string server_address;
+	bool server_tcp_only = false;
 
 	std::mutex scene_stack_lock;
 	std::vector<std::shared_ptr<scene>> scene_stack;
@@ -375,6 +376,11 @@ public:
 	const std::string & get_server_address() const
 	{
 		return server_address;
+	}
+
+	const bool & get_server_tcp_only() const
+	{
+		return server_tcp_only;
 	}
 
 	static vk::raii::PhysicalDevice & get_physical_device()

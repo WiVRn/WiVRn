@@ -71,6 +71,7 @@ void real_main()
 			                .name = app.get_server_address(),
 			                .hostname = server_address,
 			                .port = port,
+			                .tcp_only = app.get_server_tcp_only(),
 			        },
 			};
 		}
