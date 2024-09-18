@@ -20,6 +20,7 @@ public:
 		std::string name;
 		std::string hostname;
 		int port;
+		bool tcp_only = false;
 
 		std::vector<std::variant<in_addr, in6_addr>> addresses;
 		std::map<std::string, std::string> txt;

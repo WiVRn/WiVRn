@@ -49,7 +49,7 @@ void init_stream(T & stream)
 } // namespace
 
 template <typename T>
-void wivrn_session::handshake(T address)
+void wivrn_session::handshake(T address, bool tcp_only)
 {
 	// Wait for handshake on control socket,
 	// then send ours on stream or control socket,
@@ -75,7 +75,7 @@ void wivrn_session::handshake(T address)
 			try
 			{
 				auto h = std::get<to_headset::handshake>(*packet);
-				if (h.stream_port > 0)
+				if (h.stream_port > 0 && !tcp_only)
 				{
 					stream = decltype(stream)();
 					stream.connect(address, h.stream_port);
@@ -113,18 +113,18 @@ void wivrn_session::handshake(T address)
 	}
 }
 
-wivrn_session::wivrn_session(in6_addr address, int port) :
+wivrn_session::wivrn_session(in6_addr address, int port, bool tcp_only) :
         control(address, port), stream(-1), address(address)
 {
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET6, &address, buffer, sizeof(buffer)), port);
-	handshake(address);
+	handshake(address, tcp_only);
 }
 
-wivrn_session::wivrn_session(in_addr address, int port) :
+wivrn_session::wivrn_session(in_addr address, int port, bool tcp_only) :
         control(address, port), stream(-1), address(address)
 {
 	char buffer[100];
 	spdlog::info("Connection to {}:{}", inet_ntop(AF_INET, &address, buffer, sizeof(buffer)), port);
-	handshake(address);
+	handshake(address, tcp_only);
 }

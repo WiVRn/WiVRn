@@ -224,8 +224,8 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 		{
 			spdlog::debug("Trying address {}", address_string);
 
-			return std::visit([port = service.port](auto & address) {
-				return std::make_unique<wivrn_session>(address, port);
+			return std::visit([port = service.port, tcp_only = service.tcp_only](auto & address) {
+				return std::make_unique<wivrn_session>(address, port, tcp_only);
 			},
 			                  address);
 		}

@@ -31,13 +31,13 @@ class wivrn_session
 	typed_socket<UDP, to_headset::packets, from_headset::packets> stream;
 
 	template <typename T>
-	void handshake(T address);
+	void handshake(T address, bool tcp_only);
 
 public:
 	std::variant<in_addr, in6_addr> address;
 
-	wivrn_session(in6_addr address, int port);
-	wivrn_session(in_addr address, int port);
+	wivrn_session(in6_addr address, int port, bool tcp_only);
+	wivrn_session(in_addr address, int port, bool tcp_only);
 	wivrn_session(const wivrn_session &) = delete;
 	wivrn_session & operator=(const wivrn_session &) = delete;
 
