@@ -1,4 +1,4 @@
-From f04fc2ea2660105af8af3a51dbe13c638cfa68b8 Mon Sep 17 00:00:00 2001
+From db34211565a0e67e3da2fc0be174bd570869efaa Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH] Convert to YCbCr in Monado
@@ -9,16 +9,16 @@ Subject: [PATCH] Convert to YCbCr in Monado
  src/xrt/compositor/render/render_compute.c   | 104 +++++++++++++------
  src/xrt/compositor/render/render_interface.h |  15 ++-
  src/xrt/compositor/render/render_resources.c |  35 +++++--
- src/xrt/compositor/shaders/distortion.comp   |  53 +++++++---
+ src/xrt/compositor/shaders/distortion.comp   |  55 +++++++---
  src/xrt/compositor/util/comp_render.h        |  12 ++-
  src/xrt/compositor/util/comp_render_cs.c     |  41 +++++---
- 8 files changed, 184 insertions(+), 85 deletions(-)
+ 8 files changed, 186 insertions(+), 85 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index e29b79b03..f3daf0e15 100644
+index e8e1072ac..a86570665 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -1005,7 +1005,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1009,7 +1009,8 @@ dispatch_compute(struct comp_renderer *r,
  
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
@@ -28,7 +28,7 @@ index e29b79b03..f3daf0e15 100644
  
  	// Target view information.
  	struct render_viewport_data views[XRT_MAX_VIEWS];
-@@ -1016,7 +1017,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1020,7 +1021,8 @@ dispatch_compute(struct comp_renderer *r,
  	comp_render_cs_initial_init( //
  	    &data,                   // data
  	    target_image,            // target_image
@@ -39,7 +39,7 @@ index e29b79b03..f3daf0e15 100644
  	    do_timewarp);            // do_timewarp
  
 diff --git a/src/xrt/compositor/main/comp_target.h b/src/xrt/compositor/main/comp_target.h
-index bababbe1d..806d454e6 100644
+index 8a94607d4..43e556b73 100644
 --- a/src/xrt/compositor/main/comp_target.h
 +++ b/src/xrt/compositor/main/comp_target.h
 @@ -61,7 +61,8 @@ enum comp_target_display_timing_usage
@@ -487,7 +487,7 @@ index 9ae017001..c5474116f 100644
  	    &r->compute.distortion.descriptor_set_layout);     // out_descriptor_set_layout
  	VK_CHK_WITH_RET(ret, "create_compute_distortion_descriptor_set_layout", false);
 diff --git a/src/xrt/compositor/shaders/distortion.comp b/src/xrt/compositor/shaders/distortion.comp
-index 9a09c03db..716d0f9f6 100644
+index 9a09c03db..461aeb4ec 100644
 --- a/src/xrt/compositor/shaders/distortion.comp
 +++ b/src/xrt/compositor/shaders/distortion.comp
 @@ -18,7 +18,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -520,7 +520,7 @@ index 9a09c03db..716d0f9f6 100644
  
  vec2 position_to_uv(ivec2 extent, uint ix, uint iy)
  {
-@@ -124,30 +137,38 @@ mat3x2 source_coord(ivec3 xyv, ivec2 extent)
+@@ -124,30 +137,40 @@ mat3x2 source_coord(ivec3 xyv, ivec2 extent)
  
  void main()
  {
@@ -539,37 +539,39 @@ index 9a09c03db..716d0f9f6 100644
 -	if (ix >= extent.x || iy >= extent.y) {
 -		return;
 -	}
-+			if (ix >= extent.x || iy >= extent.y) {
-+				return;
-+			}
- 
--	vec2 dist_uv = position_to_uv(extent, ix, iy);
 +			vec2 dist_uv = position_to_uv(extent, ix, iy);
  
--	vec2 uv = texture(distortion[iz + 0], dist_uv).xy;
--	vec2 lod = texture(distortion[iz + 2], dist_uv).xy;
+-	vec2 dist_uv = position_to_uv(extent, ix, iy);
 +			vec2 uv = texture(distortion[iz + 0], dist_uv).xy;
 +			vec2 lod = texture(distortion[iz + 2], dist_uv).xy;
  
--	// Do any transformation needed.
--	uv = transform_uv(uv, iz);
+-	vec2 uv = texture(distortion[iz + 0], dist_uv).xy;
+-	vec2 lod = texture(distortion[iz + 2], dist_uv).xy;
 +			// Do any transformation needed.
 +			uv = transform_uv(uv, iz);
  
--	// Sample the source
--	vec4 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5));
+-	// Do any transformation needed.
+-	uv = transform_uv(uv, iz);
 +			// Sample the source
 +			vec3 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5)).rgb;
  
--	// Do colour correction here since there are no automatic conversion in hardware available.
--	colour = vec4(from_linear_to_srgb(colour.rgb), 1);
+-	// Sample the source
+-	vec4 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5));
 +			colour = rgb_to_ycbcr(from_linear_to_srgb(colour));
  
--	imageStore(target, ivec2(offset.x + ix, offset.y + iy), colour);
-+			imageStore(luma, ivec2(offset.x + ix, offset.y + iy), vec4(colour.x));
+-	// Do colour correction here since there are no automatic conversion in hardware available.
+-	colour = vec4(from_linear_to_srgb(colour.rgb), 1);
 +			int i = k * 2 + j;
 +			cbcrs[i] = colour.yz;
+ 
+-	imageStore(target, ivec2(offset.x + ix, offset.y + iy), colour);
++			if (ix < extent.x && iy < extent.y) {
++				imageStore(luma, ivec2(offset.x + ix, offset.y + iy), vec4(colour.x));
++			}
 +		}
++	}
++	if (gl_GlobalInvocationID.x >= extent.x || gl_GlobalInvocationID.y >= extent.y) {
++		return;
 +	}
 +	vec2 cbcr = mix(mix(cbcrs[0], cbcrs[1], 0.5), mix(cbcrs[2], cbcrs[3], 0.5), 0.5);
 +	imageStore(chroma, ivec2(offset.xy/2 + gl_GlobalInvocationID.xy), vec4(cbcr.x, cbcr.y, 0, 0));
@@ -619,10 +621,10 @@ index da717aa91..69234bac4 100644
                       bool do_timewarp);
  
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index e85cd511a..34cc27ece 100644
+index fe5a480de..7e261fd3c 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
-@@ -330,11 +330,12 @@ do_cs_clear(struct render_compute *crc, const struct comp_render_dispatch_data *
+@@ -350,11 +350,12 @@ do_cs_clear(struct render_compute *crc, const struct comp_render_dispatch_data *
  	}
  
  
@@ -640,7 +642,7 @@ index e85cd511a..34cc27ece 100644
  }
  
  static void
-@@ -458,14 +459,15 @@ do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_rend
+@@ -478,14 +479,15 @@ do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_rend
  		src_norm_rects[i] = src_norm_rect;
  	}
  
@@ -664,7 +666,7 @@ index e85cd511a..34cc27ece 100644
  }
  
  static void
-@@ -535,7 +537,8 @@ do_cs_distortion_for_layer(struct render_compute *crc,
+@@ -555,7 +557,8 @@ do_cs_distortion_for_layer(struct render_compute *crc,
  		    src_image_views,         //
  		    src_norm_rects,          //
  		    d->cs.target_image,      //
@@ -674,7 +676,7 @@ index e85cd511a..34cc27ece 100644
  		    target_viewport_datas);  //
  	} else {
  		render_compute_projection_timewarp( //
-@@ -547,7 +550,8 @@ do_cs_distortion_for_layer(struct render_compute *crc,
+@@ -567,7 +570,8 @@ do_cs_distortion_for_layer(struct render_compute *crc,
  		    src_fovs,                       //
  		    world_poses,                    //
  		    d->cs.target_image,             //
@@ -684,7 +686,7 @@ index e85cd511a..34cc27ece 100644
  		    target_viewport_datas);         //
  	}
  }
-@@ -568,7 +572,8 @@ comp_render_cs_layer(struct render_compute *crc,
+@@ -588,7 +592,8 @@ comp_render_cs_layer(struct render_compute *crc,
                       const struct xrt_pose *world_pose,
                       const struct xrt_pose *eye_pose,
                       const VkImage target_image,
@@ -694,7 +696,7 @@ index e85cd511a..34cc27ece 100644
                       const struct render_viewport_data *target_view,
                       bool do_timewarp)
  {
-@@ -729,7 +734,8 @@ comp_render_cs_layer(struct render_compute *crc,
+@@ -749,7 +754,8 @@ comp_render_cs_layer(struct render_compute *crc,
  	    src_samplers,      //
  	    src_image_views,   //
  	    cur_image,         //
@@ -704,7 +706,7 @@ index e85cd511a..34cc27ece 100644
  	    target_view,       //
  	    do_timewarp);      //
  }
-@@ -765,6 +771,7 @@ comp_render_cs_layers(struct render_compute *crc,
+@@ -785,6 +791,7 @@ comp_render_cs_layers(struct render_compute *crc,
  		    &view->eye_pose,             //
  		    view->image,                 //
  		    view->cs.unorm_view,         //
