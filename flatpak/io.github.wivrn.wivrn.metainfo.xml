@@ -54,6 +54,20 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="0.19" date="2024-09-19">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.19</url>
+			<description>
+				<ul>
+					<li>Added support for eye-tracked foveation</li>
+					<li>Added support for FB_face_tracking2</li>
+					<li>More fluid experience with improved frame and input pacing</li>
+					<li>AV1 support with VAAPI</li>
+					<li>Reduced aliasing with high foveation</li>
+					<li>Improved server and client performance</li>
+				</ul>
+			</description>
+		</release>
+
 		<release version="0.18" date="2024-08-13">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.18</url>
 			<description>
