@@ -407,8 +407,6 @@ static std::vector<std::string> find_font(ImFontGlyphRangesBuilder glyph_range_b
 		throw std::runtime_error("Fontconfig could not find ANY fonts on the system?");
 	}
 
-	FcFontSetPrint(font_patterns);
-
 	std::vector<std::string> fonts;
 	for (int i = 0; i < font_patterns->nfont; i++)
 	{
@@ -421,7 +419,7 @@ static std::vector<std::string> find_font(ImFontGlyphRangesBuilder glyph_range_b
 			continue;
 
 		bool keep_this_font = false;
-		for (int i = 8; i < glyph_range_builder.UsedChars.Size; ++i)
+		for (int i = 0; i < glyph_range_builder.UsedChars.Size; ++i)
 		{
 			std::uint32_t & used_chars = glyph_range_builder.UsedChars[i];
 			if (used_chars == 0)
@@ -472,24 +470,6 @@ void imgui_context::initialize_fonts()
 		}
 
 		break;
-	}
-
-	for (int i = 0; i < glyph_range_builder.UsedChars.Size; ++i)
-	{
-		std::uint32_t used_chars = glyph_range_builder.UsedChars[i];
-
-		if (used_chars == 0)
-			continue;
-
-		for (int j = 0; j < 32; ++j)
-		{
-			ImWchar c = i * 32 + j;
-			if (used_chars & (1 << j))
-			{
-				char buf[8];
-				ImTextCharToUtf8(buf, c);
-			}
-		}
 	}
 
 	glyph_range_builder.BuildRanges(&glyph_ranges);
