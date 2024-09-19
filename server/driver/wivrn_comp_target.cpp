@@ -33,9 +33,13 @@
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_handles.hpp>
 
+#include "xrt/xrt_config_build.h"
+#ifdef XRT_FEATURE_RENDERDOC
+#include "renderdoc_app.h"
+#endif
+
 namespace wivrn
 {
-
 std::vector<const char *> wivrn_comp_target::wanted_instance_extensions = {};
 std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
 // For FFMPEG
@@ -55,6 +59,28 @@ static inline struct vk_bundle * get_vk(struct wivrn_comp_target * cn)
 {
 	return &cn->c->base.vk;
 }
+
+#ifdef XRT_FEATURE_RENDERDOC
+static auto renderdoc()
+{
+	auto x = []() {
+		RENDERDOC_API_1_5_0 * rdoc_api = nullptr;
+		const char * env = std::getenv("ENABLE_VULKAN_RENDERDOC_CAPTURE");
+		if (not env or env != std::string_view("1"))
+			return rdoc_api;
+		void * mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD);
+		if (mod)
+		{
+			pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+			XRT_MAYBE_UNUSED int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_5_0, (void **)&rdoc_api);
+			assert(ret == 1);
+		}
+		return rdoc_api;
+	};
+	static auto res = x();
+	return res;
+}
+#endif
 
 static void destroy_images(struct wivrn_comp_target * cn)
 {
@@ -486,6 +512,11 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		cn->wivrn_bundle->queue.submit(submit_info, *cn->psc.fence);
 	}
 
+#ifdef XRT_FEATURE_RENDERDOC
+	if (auto r = renderdoc())
+		r->EndFrameCapture(NULL, NULL);
+#endif
+
 	auto & view_info = cn->psc.view_info;
 	view_info.foveation = cn->cnx->get_foveation_parameters();
 	auto info = cn->pacer.present_to_info(desired_present_time_ns);
@@ -520,6 +551,11 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 static void comp_wivrn_flush(struct comp_target * ct)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+
+#ifdef XRT_FEATURE_RENDERDOC
+	if (auto r = renderdoc())
+		r->StartFrameCapture(NULL, NULL);
+#endif
 
 	// apply foveation for current frame
 	if (cn->cnx->apply_dynamic_foveation())

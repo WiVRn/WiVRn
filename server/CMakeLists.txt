@@ -32,6 +32,7 @@ set(XRT_FEATURE_STEAMVR_PLUGIN           OFF)
 set(XRT_FEATURE_WINDOW_PEEK              OFF)
 set(XRT_FEATURE_OPENXR_FACE_TRACKING2_FB ON)
 set(XRT_FEATURE_OPENXR_HAND_TRACKING_EXT ON)
+set(XRT_FEATURE_RENDERDOC                ${WIVRN_FEATURE_RENDERDOC})
 
 set(XRT_HAVE_BLUETOOTH               OFF)
 set(XRT_HAVE_GST                     OFF)
@@ -97,7 +98,7 @@ target_compile_definitions(wivrn-server PRIVATE VULKAN_HPP_NO_CONSTRUCTORS)
 target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
 target_include_directories(wivrn-server PRIVATE .)
 
-target_link_libraries(wivrn-server PRIVATE CLI11::CLI11)
+target_link_libraries(wivrn-server PRIVATE CLI11::CLI11 xrt-external-renderdoc)
 
 if (WIVRN_FEATURE_STEAMVR_LIGHTHOUSE)
 	target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/drivers/steamvr_lh/)
