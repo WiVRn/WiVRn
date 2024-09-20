@@ -74,7 +74,6 @@ jobs:
         draft: true
         files: server-build-deps.tar.xz
 
-
   build-server-flatpak:
     name: Linux server (flatpak)
     runs-on: ubuntu-latest
@@ -178,7 +177,7 @@ jobs:
     strategy:
       matrix:
         hmd: ['Standard']
-        buildtype: ['Release', 'Debug', 'DebugWithValidationLayer']
+        buildtype: ['Release', 'Debug', 'DebugWithValidationLayer', 'Oculus']
 
     steps:
     - uses: actions/checkout@v4
@@ -217,8 +216,18 @@ jobs:
 
     - name: Build
       run: |
+        VERSION=$(git describe --tags)
+        if [ ${{ matrix.buildtype }} = 'Oculus' ]
+        then
+          VERSION_CODE=$(git rev-list --count HEAD)
+        else
+          VERSION_CODE=1
+        fi
+
+        echo Setting version $VERSION and version code $VERSION_CODE in manifest
+
         chmod +x gradlew
-        ./gradlew assemble${{ matrix.hmd }}${{ matrix.buildtype }}
+        ./gradlew -Pwivrn_version=$VERSION -Pwivrn_versionCode=$VERSION_CODE assemble${{ matrix.hmd }}${{ matrix.buildtype }}
 
     - name: Prepare before archiving artifacts
       run: |
@@ -230,18 +239,28 @@ jobs:
 
     - name: Archive APK
       uses: actions/upload-artifact@v4
+      if: ${{ matrix.buildtype != 'Oculus' }}
       with:
         name: apk-${{ matrix.hmd }}-${{ (github.event_name == 'pull_request' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
         path: apk/*.apk
         retention-days: 30
 
     - name: Archive debug symbols
-      if: ${{ matrix.buildtype != 'Release' }}
+      if: ${{ matrix.buildtype != 'Release' && matrix.buildtype != 'Oculus' }}
       uses: actions/upload-artifact@v4
       with:
         name: symbols-${{ matrix.hmd }}-${{ matrix.buildtype }}
         path: debug/**/*.so
         retention-days: 30
+
+    - name: Push to Oculus store
+      if: ${{ matrix.buildtype == 'Oculus' && startsWith(github.ref, 'refs/tags/') }}
+      env:
+        OCULUS_TOKEN: ${{ secrets.OCULUS_TOKEN }}
+      run: |
+        curl -L 'https://www.oculus.com/download_app/?id=5159709737372459' -o ovr-platform-util
+        chmod +x ovr-platform-util
+        ./ovr-platform-util upload-quest-build --app-id 7959676140827574 --token $OCULUS_TOKEN --apk apk/WiVRn-standard-oculus.apk --channel ALPHA --age-group TEENS_AND_ADULTS --draft --debug_symbols_dir debug/ --debug-symbols-pattern '*.so'
 
   release:
     name: Create release
