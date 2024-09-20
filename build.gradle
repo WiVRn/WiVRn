@@ -65,10 +65,10 @@ android {
         // for Vulkan, need at least 24
         // for AImage_getHardwareBuffer, API 26
         minSdkVersion 29
-        compileSdkVersion 29
+        compileSdkVersion 32
         targetSdkVersion 32 // for Oculus Store
 
-        versionName = "1.0"
+        versionName = "0.19"
         versionCode = 1
 
         externalNativeBuild {

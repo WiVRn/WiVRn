@@ -27,7 +27,8 @@ if(ANDROID)
     find_library(AAUDIO_LIBRARY NAMES aaudio REQUIRED)
     target_link_libraries(wivrn ${ANDROID_LIBRARY} ${MEDIA_LIBRARY} ${AAUDIO_LIBRARY})
 
-    set(DYNAMIC_LOADER OFF)
+    # The OpenXR loader must be dynamically loaded or the Oculus store will refuse it with "Oculus SDK not found or older than 1.0"
+    set(DYNAMIC_LOADER ON)
     FetchContent_MakeAvailable(openxr_loader)
     target_link_libraries(wivrn openxr_loader)
 
