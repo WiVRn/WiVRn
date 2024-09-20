@@ -68,8 +68,8 @@ android {
         compileSdkVersion 32
         targetSdkVersion 32 // for Oculus Store
 
-        versionName = "0.19"
-        versionCode = 1
+       versionName = project.hasProperty('wivrn_version') ? wivrn_version : "1.0"
+       versionCode = project.hasProperty('wivrn_versionCode') ? wivrn_versionCode.toInteger() : 1
 
         externalNativeBuild {
             cmake {
