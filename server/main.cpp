@@ -193,6 +193,7 @@ guint app_kill_watch;
 pid_t app_pid;
 
 bool quitting_main_loop;
+bool do_fork;
 
 guint listener_watch;
 
@@ -245,7 +246,7 @@ void start_server()
 {
 	stop_listening();
 	stop_publishing();
-	server_pid = fork();
+	server_pid = do_fork ? fork() : 0;
 
 	if (server_pid < 0)
 	{
@@ -254,10 +255,13 @@ void start_server()
 	}
 	else if (server_pid == 0)
 	{
-		// Redirect stdin
-		dup2(stdin_pipe_fds[0], 0);
-		close(stdin_pipe_fds[0]);
-		close(stdin_pipe_fds[1]);
+		if (do_fork)
+		{
+			// Redirect stdin
+			dup2(stdin_pipe_fds[0], 0);
+			close(stdin_pipe_fds[0]);
+			close(stdin_pipe_fds[1]);
+		}
 
 		setenv("LISTEN_PID", std::to_string(getpid()).c_str(), true);
 
@@ -686,6 +690,7 @@ int main(int argc, char * argv[])
 	std::string config_file;
 	app.add_option("-f", config_file, "configuration file")->option_text("FILE")->check(CLI::ExistingFile);
 	auto no_instructions = app.add_flag("--no-instructions")->group("");
+	do_fork = not app.add_flag("--no-fork")->description("disable fork to serve connection")->group("Debug");
 #if WIVRN_USE_SYSTEMD
 	// --application should only be used from wivrn-application unit file
 	auto app_flag = app.add_flag("--application")->group("");
