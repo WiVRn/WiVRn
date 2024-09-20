@@ -66,6 +66,7 @@ android {
         // for AImage_getHardwareBuffer, API 26
         minSdkVersion 29
         compileSdkVersion 29
+        targetSdkVersion 32 // for Oculus Store
 
         versionName = "1.0"
         versionCode = 1
@@ -105,6 +106,10 @@ android {
             }
         }
 
+        release {
+            manifestPlaceholders.ComOculusSupportedDevices = "all"
+        }
+
         releaseDebuggable {
             initWith release
             debuggable true
@@ -116,6 +121,16 @@ android {
 //                 doNotStrip "*/x86/*.so"
 //                 doNotStrip "*/x86_64/*.so"
 //             }
+        }
+
+        oculus
+        {
+            initWith release
+            manifestPlaceholders.ComOculusSupportedDevices = "quest2|quest3|questpro"
+        }
+
+        debug {
+            manifestPlaceholders.ComOculusSupportedDevices = "all"
         }
 
         debugWithValidationLayer {
