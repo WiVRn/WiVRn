@@ -480,7 +480,7 @@ void scenes::lobby::gui_licenses()
 	ImGui::Text("%s", _("Licenses").c_str());
 	ImGui::PopFont();
 
-	const auto components = {"WiVRn", "openxr-loader", "simdjson"};
+	const auto components = {"WiVRn", "FontAwesome", "openxr-loader", "simdjson"};
 	if (not license)
 	{
 		selected_item = *components.begin();
