@@ -115,11 +115,19 @@ msgstr "解像度スケール"
 msgid "{} - {}x{} per eye"
 msgstr "{} - 目あたり{}x{}"
 
-#: client/scenes/lobby_gui.cpp:386
+#: client/scenes/lobby_gui.cpp:385
 msgid "Enable microphone"
 msgstr "マイク有効"
 
-#: client/scenes/lobby_gui.cpp:414
+#: client/scenes/lobby_gui.cpp:395
+msgid "Enable eye tracking"
+msgstr "アイトラッキング有効"
+
+#: client/scenes/lobby_gui.cpp:406
+msgid "Enable face tracking"
+msgstr "顔トラッキング有効"
+
+#: client/scenes/lobby_gui.cpp:416
 msgid "Enable video passthrough in lobby"
 msgstr "ロビーでパススルーを有効"
 
