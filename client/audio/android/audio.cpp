@@ -19,8 +19,8 @@
 
 #include "audio.h"
 
-#include "android/jnipp.h"
-#include "application.h"
+#include "android/permissions.h"
+#include "utils/named_thread.h"
 #include "wivrn_client.h"
 #include "xr/instance.h"
 
@@ -312,20 +312,5 @@ void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_head
 
 void wivrn::android::audio::request_mic_permission()
 {
-	jni::object<""> act(application::native_app()->activity->clazz);
-	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
-	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
-
-	jni::string permission("android.permission.RECORD_AUDIO");
-	auto result = ctx.call<jni::Int>("checkSelfPermission", permission);
-	if (result != 0 /*PERMISSION_GRANTED*/)
-	{
-		spdlog::info("RECORD_AUDIO permission not granted, requesting it");
-		jni::array permissions(permission);
-		act.call<void>("requestPermissions", permissions, jni::Int(0));
-	}
-	else
-	{
-		spdlog::info("RECORD_AUDIO permission already granted");
-	}
+	request_permission("android.permission.RECORD_AUDIO", 0);
 }

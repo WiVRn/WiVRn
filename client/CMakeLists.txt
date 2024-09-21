@@ -38,6 +38,7 @@ if(ANDROID)
     target_link_options(wivrn PRIVATE -Wl,--undefined=ANativeActivity_onCreate)
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
+        "android/*.cpp"
         "audio/android/*.cpp"
         "decoder/android/*.cpp"
         )
