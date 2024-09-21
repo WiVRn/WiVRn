@@ -21,7 +21,7 @@
 #include <memory>
 
 #ifdef __ANDROID__
-#include "jnipp.h"
+#include "android/jnipp.h"
 #include <mutex>
 #endif
 

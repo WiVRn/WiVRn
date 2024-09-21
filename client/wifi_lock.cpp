@@ -25,7 +25,7 @@
 #include <android/native_activity.h>
 #include <sys/system_properties.h>
 
-#include "jnipp.h"
+#include "android/jnipp.h"
 
 wifi_lock::wifi_lock(decltype(multicast_) m, decltype(wifi_) w) :
         multicast_(std::move(m)), wifi_(std::move(w)) {}

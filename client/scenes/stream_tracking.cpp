@@ -24,7 +24,7 @@
 #include <thread>
 
 #ifdef __ANDROID__
-#include "jnipp.h"
+#include "android/jnipp.h"
 #endif
 
 using tid = to_headset::tracking_control::id;

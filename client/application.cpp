@@ -51,7 +51,7 @@
 #include <android/native_activity.h>
 #include <sys/system_properties.h>
 
-#include "jnipp.h"
+#include "android/jnipp.h"
 #else
 #include "utils/xdg_base_directory.h"
 #include <signal.h>

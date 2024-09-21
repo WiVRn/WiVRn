@@ -19,8 +19,8 @@
 
 #include "audio.h"
 
+#include "android/jnipp.h"
 #include "application.h"
-#include "jnipp.h"
 #include "wivrn_client.h"
 #include "xr/instance.h"
 
