@@ -19,7 +19,6 @@
 
 #include "audio.h"
 
-#include "android/permissions.h"
 #include "utils/named_thread.h"
 #include "wivrn_client.h"
 #include "xr/instance.h"
@@ -308,17 +307,4 @@ void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_head
 	}
 
 	AAudioStreamBuilder_delete(builder);
-}
-
-bool wivrn::android::audio::check_mic_permission()
-{
-	static std::atomic<bool> allowed = false;
-	if (not allowed)
-		allowed = check_permission("android.permission.RECORD_AUDIO");
-	return allowed;
-}
-
-void wivrn::android::audio::request_mic_permission()
-{
-	request_permission("android.permission.RECORD_AUDIO", 0);
 }

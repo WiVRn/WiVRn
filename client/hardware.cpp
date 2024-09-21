@@ -152,3 +152,46 @@ bool need_srgb_conversion(model m)
 	}
 	throw std::range_error("invalid model " + std::to_string((int)m));
 }
+
+const char * permission_name(feature f)
+{
+	switch (f)
+	{
+		case feature::microphone:
+			return "android.permission.RECORD_AUDIO";
+		case feature::eye_gaze:
+			switch (guess_model())
+			{
+				case model::oculus_quest:
+				case model::oculus_quest_2:
+				case model::meta_quest_pro:
+				case model::meta_quest_3:
+					return "com.oculus.permission.EYE_TRACKING";
+				case model::pico_neo_3:
+				case model::pico_4:
+					return "com.picovr.permission.EYE_TRACKING";
+				case model::htc_vive_focus_3:
+				case model::htc_vive_xr_elite:
+				case model::lynx_r1:
+				case model::unknown:
+					return nullptr;
+			}
+		case feature::face_tracking:
+			switch (guess_model())
+			{
+				case model::oculus_quest:
+				case model::oculus_quest_2:
+				case model::meta_quest_pro:
+				case model::meta_quest_3:
+					return "com.oculus.permission.FACE_TRACKING";
+				case model::pico_neo_3:
+				case model::pico_4:
+				case model::htc_vive_focus_3:
+				case model::htc_vive_xr_elite:
+				case model::lynx_r1:
+				case model::unknown:
+					return nullptr;
+			}
+	}
+	__builtin_unreachable();
+}

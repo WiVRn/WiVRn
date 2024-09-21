@@ -39,12 +39,6 @@ public:
 	void operator()(xrt::drivers::wivrn::audio_data &&) {}
 
 	static void get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info) {}
-
-	static bool check_mic_permission()
-	{
-		return false;
-	}
-	static void request_mic_permission() {}
 };
 
 #endif

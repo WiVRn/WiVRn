@@ -20,8 +20,14 @@
 #include "configuration.h"
 
 #include "application.h"
+#include "hardware.h"
 #include <fstream>
+#include <magic_enum.hpp>
 #include <simdjson.h>
+
+#ifdef __ANDROID__
+#include "android/permissions.h"
+#endif
 
 static std::string json_string(const std::string & in)
 {
@@ -71,6 +77,31 @@ static std::string json_string(const std::string & in)
 	out += '"';
 
 	return out;
+}
+
+bool configuration::check_feature(feature f)
+{
+	auto it = features.find(f);
+	if (it == features.end())
+		return false;
+
+	// Skip permission checks if not requested
+	if (not it->second)
+		return false;
+#ifdef __ANDROID__
+	return check_permission(permission_name(f));
+#else
+	return true;
+#endif
+}
+
+void configuration::set_feature(feature f, bool state)
+{
+#ifdef __ANDROID__
+	if (state)
+		request_permission(permission_name(f), 0);
+#endif
+	features[f] = state;
 }
 
 configuration::configuration(xr::system & system)
@@ -123,11 +154,19 @@ configuration::configuration(const std::string & path)
 		resolution_scale = val.get_double();
 	}
 
-	if (auto val = root["microphone"]; val.is_bool())
-		microphone = val.get_bool();
-
 	if (auto val = root["passthrough_enabled"]; val.is_bool())
 		passthrough_enabled = val.get_bool();
+
+	for (const auto & [i, name]: magic_enum::enum_entries<feature>())
+	{
+		if (auto val = root[name]; val.is_bool())
+			features[i] = val.get_bool();
+	}
+}
+
+static std::ostream & operator<<(std::ostream & stream, feature f)
+{
+	return stream << "\"" << magic_enum::enum_name(f) << "\"";
 }
 
 void configuration::save()
@@ -161,7 +200,8 @@ void configuration::save()
 	if (preferred_refresh_rate != 0.)
 		json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate;
 	json << ",\"resolution_scale\":" << resolution_scale;
-	json << ",\"microphone\":" << std::boolalpha << microphone;
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
+	for (auto & [key, value]: features)
+		json << "," << key << ":" << std::boolalpha << value;
 	json << "}";
 }

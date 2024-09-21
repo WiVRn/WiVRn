@@ -34,8 +34,18 @@ enum class model
 	unknown
 };
 
+enum class feature
+{
+	microphone,
+	eye_gaze,
+	face_tracking,
+};
+
 model guess_model();
 
 XrViewConfigurationView override_view(XrViewConfigurationView, model);
 
 bool need_srgb_conversion(model);
+
+// Return nullptr if no permission is required
+const char * permission_name(feature f);

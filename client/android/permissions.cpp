@@ -22,6 +22,9 @@
 #include "application.h"
 #include "jnipp.h"
 
+#include <mutex>
+#include <set>
+
 static bool check_permission(jni::object<jni::details::string_literal<24>{"android/content/Context"}> & ctx, jni::string & permission)
 {
 	auto result = ctx.call<jni::Int>("checkSelfPermission", permission);
@@ -30,12 +33,25 @@ static bool check_permission(jni::object<jni::details::string_literal<24>{"andro
 
 bool check_permission(const char * permission)
 {
+	if (not permission)
+		return true;
+
+	// Cache positive results to avoid useless jni calls
+	static std::set<const char *> permissions;
+	static std::mutex mutex;
+	std::lock_guard lock(mutex);
+	if (permissions.contains(permission))
+		return true;
+
 	jni::object<""> act(application::native_app()->activity->clazz);
 	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
 	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
 
 	jni::string jpermission(permission);
-	return check_permission(ctx, jpermission);
+	bool res = check_permission(ctx, jpermission);
+	if (res)
+		permissions.insert(permission);
+	return res;
 }
 
 void request_permission(const char * permission, int requestCode)
