@@ -105,7 +105,7 @@ class lobby : public scene_impl<lobby>
 	tab last_current_tab = tab::server_list;
 	ImTextureID about_picture;
 
-	void draw_mic_status();
+	void draw_features_status();
 	void gui_connecting();
 	void gui_server_list();
 	void gui_add_server();

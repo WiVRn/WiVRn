@@ -609,27 +609,74 @@ static void ScrollWhenDraggingOnVoid(ImVec2 delta)
 		ImGui::SetScrollY(window, window->Scroll.y + delta.y);
 }
 
-void scenes::lobby::draw_mic_status()
+void scenes::lobby::draw_features_status()
 {
+	const float win_width = ImGui::GetWindowSize().x;
+	float text_width = 0;
 	auto & config = application::get_config();
-	const bool enabled = config.check_feature(feature::microphone);
-	const char * text = enabled ? ICON_FA_MICROPHONE : ICON_FA_MICROPHONE_SLASH;
-	float win_width = ImGui::GetWindowSize().x;
-	float text_width = ImGui::CalcTextSize(text).x;
-	ImGui::SetCursorPosX((win_width - text_width) / 2);
 
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, text_width / 2);
-	ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32_BLACK_TRANS);
-	ImGui::PushStyleColor(ImGuiCol_Text, enabled ? ImGui::GetColorU32(ImGuiCol_Text) : IM_COL32(255, 0, 0, 255));
-	if (ImGui::Button(text))
+	struct item
 	{
-		// button doesn't alter the bool
-		config.set_feature(feature::microphone, not enabled);
-		config.save();
+		feature f;
+		const char * icon_enabled;
+		const char * icon_disabled;
+		bool enabled;
+		float w;
+	};
+	std::vector<item> items;
+
+	items.push_back({
+	        .f = feature::microphone,
+	        .icon_enabled = ICON_FA_MICROPHONE,
+	        .icon_disabled = ICON_FA_MICROPHONE_SLASH,
+	});
+
+	if (application::get_eye_gaze_supported())
+	{
+		items.push_back({
+		        .f = feature::eye_gaze,
+		        .icon_enabled = ICON_FA_EYE,
+		        .icon_disabled = ICON_FA_EYE_SLASH,
+		});
 	}
-	vibrate_on_hover();
-	ImGui::PopStyleColor(2);
-	ImGui::PopStyleVar();
+
+	if (application::get_fb_face_tracking2_supported())
+	{
+		items.push_back({
+		        .f = feature::face_tracking,
+		        .icon_enabled = ICON_FA_FACE_SMILE,
+		        .icon_disabled = ICON_FA_FACE_MEH_BLANK,
+		});
+	}
+
+	// Get statuses
+	for (auto & i: items)
+	{
+		i.enabled = config.check_feature(i.f);
+		i.w = ImGui::CalcTextSize(i.enabled ? i.icon_enabled : i.icon_disabled).x;
+		text_width += i.w;
+	}
+	const ImGuiStyle & style = ImGui::GetStyle();
+	text_width += items.size() * style.FramePadding.x * 2;
+
+	ImGui::SetCursorPosX((win_width - text_width) / 2);
+	for (auto & i: items)
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, i.w / 2);
+		ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32_BLACK_TRANS);
+		ImGui::PushStyleColor(ImGuiCol_Text, i.enabled ? ImGui::GetColorU32(ImGuiCol_Text) : IM_COL32(255, 0, 0, 255));
+		if (&i != &items.front())
+			ImGui::SameLine();
+		if (ImGui::Button(i.enabled ? i.icon_enabled : i.icon_disabled))
+		{
+			// button doesn't alter the bool
+			config.set_feature(i.f, not i.enabled);
+			config.save();
+		}
+		vibrate_on_hover();
+		ImGui::PopStyleColor(2);
+		ImGui::PopStyleVar();
+	}
 }
 
 XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
@@ -668,7 +715,7 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 		switch (current_tab)
 		{
 			case tab::server_list:
-				draw_mic_status();
+				draw_features_status();
 				gui_server_list();
 				break;
 
