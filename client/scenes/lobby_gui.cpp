@@ -380,8 +380,10 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 	}
 
-	if (ImGui::Checkbox(_S("Enable microphone"), &config.microphone))
+	bool enabled = config.microphone and audio::check_mic_permission();
+	if (ImGui::Checkbox(_S("Enable microphone"), &enabled))
 	{
+		config.microphone = enabled;
 		if (config.microphone)
 			audio::request_mic_permission();
 		config.save();
@@ -588,17 +590,18 @@ static void ScrollWhenDraggingOnVoid(ImVec2 delta)
 void scenes::lobby::draw_mic_status()
 {
 	auto & config = application::get_config();
-	const char * text = config.microphone ? ICON_FA_MICROPHONE : ICON_FA_MICROPHONE_SLASH;
+	bool enabled = config.microphone and audio::check_mic_permission();
+	const char * text = enabled ? ICON_FA_MICROPHONE : ICON_FA_MICROPHONE_SLASH;
 	float win_width = ImGui::GetWindowSize().x;
 	float text_width = ImGui::CalcTextSize(text).x;
 	ImGui::SetCursorPosX((win_width - text_width) / 2);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, text_width / 2);
 	ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32_BLACK_TRANS);
-	ImGui::PushStyleColor(ImGuiCol_Text, config.microphone ? ImGui::GetColorU32(ImGuiCol_Text) : IM_COL32(255, 0, 0, 255));
+	ImGui::PushStyleColor(ImGuiCol_Text, enabled ? ImGui::GetColorU32(ImGuiCol_Text) : IM_COL32(255, 0, 0, 255));
 	if (ImGui::Button(text))
 	{
-		config.microphone = not config.microphone;
+		config.microphone = not enabled;
 		if (config.microphone)
 			audio::request_mic_permission();
 		config.save();

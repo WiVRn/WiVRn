@@ -22,6 +22,22 @@
 #include "application.h"
 #include "jnipp.h"
 
+static bool check_permission(jni::object<jni::details::string_literal<24>{"android/content/Context"}> & ctx, jni::string & permission)
+{
+	auto result = ctx.call<jni::Int>("checkSelfPermission", permission);
+	return result == 0;
+}
+
+bool check_permission(const char * permission)
+{
+	jni::object<""> act(application::native_app()->activity->clazz);
+	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
+	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
+
+	jni::string jpermission(permission);
+	return check_permission(ctx, jpermission);
+}
+
 void request_permission(const char * permission, int requestCode)
 {
 	jni::object<""> act(application::native_app()->activity->clazz);
@@ -29,15 +45,14 @@ void request_permission(const char * permission, int requestCode)
 	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
 
 	jni::string jpermission(permission);
-	auto result = ctx.call<jni::Int>("checkSelfPermission", jpermission);
-	if (result != 0 /*PERMISSION_GRANTED*/)
+	if (check_permission(ctx, jpermission))
+	{
+		spdlog::info("{} permission already granted", permission);
+	}
+	else
 	{
 		spdlog::info("{} permission not granted, requesting it", permission);
 		jni::array permissions(jpermission);
 		act.call<void>("requestPermissions", permissions, jni::Int(requestCode));
-	}
-	else
-	{
-		spdlog::info("{} permission already granted", permission);
 	}
 }

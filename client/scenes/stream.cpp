@@ -123,7 +123,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	info.face_tracking2_fb = application::get_fb_face_tracking2_supported();
 
 	audio::get_audio_description(info);
-	if (not application::get_config().microphone)
+	if (not(application::get_config().microphone and audio::check_mic_permission()))
 		info.microphone = {};
 
 	info.supported_codecs = decoder_impl::supported_codecs();

@@ -19,4 +19,5 @@
 
 #pragma once
 
+bool check_permission(const char * permission);
 void request_permission(const char * permission, int requestCode);
