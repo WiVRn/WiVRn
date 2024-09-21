@@ -23,6 +23,7 @@
 #include "wivrn_discover.h"
 
 #include <map>
+#include <mutex>
 #include <string>
 
 namespace xr
@@ -53,8 +54,8 @@ public:
 	void set_feature(feature f, bool state);
 
 private:
+	mutable std::mutex mutex;
 	std::map<feature, bool> features;
-	configuration(const std::string &);
 
 public:
 	configuration(xr::system &);

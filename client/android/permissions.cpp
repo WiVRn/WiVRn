@@ -22,8 +22,13 @@
 #include "application.h"
 #include "jnipp.h"
 
+#include <map>
 #include <mutex>
 #include <set>
+
+static std::mutex permission_callbacks_mutex;
+static std::map<int, std::pair<std::string, std::function<void(bool)>>> permission_callbacks;
+static int next_permission_request_id;
 
 static bool check_permission(jni::object<jni::details::string_literal<24>{"android/content/Context"}> & ctx, jni::string & permission)
 {
@@ -54,10 +59,14 @@ bool check_permission(const char * permission)
 	return res;
 }
 
-void request_permission(const char * permission, int requestCode)
+void request_permission(const char * permission, std::function<void(bool)> callback)
 {
 	if (not permission)
+	{
+		callback(true);
 		return;
+	}
+
 	jni::object<""> act(application::native_app()->activity->clazz);
 	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
 	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
@@ -66,30 +75,69 @@ void request_permission(const char * permission, int requestCode)
 	if (check_permission(ctx, jpermission))
 	{
 		spdlog::info("{} permission already granted", permission);
+		callback(true);
 	}
 	else
 	{
 		spdlog::info("{} permission not granted, requesting it", permission);
 		jni::array permissions(jpermission);
-		act.call<void>("requestPermissions", permissions, jni::Int(requestCode));
+
+		int request_code;
+		{
+			std::lock_guard lock(permission_callbacks_mutex);
+			request_code = ++next_permission_request_id;
+			permission_callbacks.emplace(request_code, std::make_pair(permission, callback));
+		}
+
+		act.call<void>("requestPermissions", permissions, jni::Int(request_code));
 	}
 }
 
 extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult(
         JNIEnv * env,
         jobject instance,
-        int requestCode);
-
-// extern "C" JNIEXPORT void JNICALL
-// Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult(
+        int requestCode,
+        jobjectArray permissions,
+        jintArray grantResults);
 
 void Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult(
         JNIEnv * env,
         jobject instance,
-        int requestCode
-        /*String [] permissions, int[] grantResults*/)
+        int request_code,
+        jobjectArray permissions,
+        jintArray grant_results)
 {
-	spdlog::info("Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult {}", requestCode);
-	// GetAppEngine()->OnCameraParameterChanged(ACAMERA_SENSOR_EXPOSURE_TIME,
-	// exposurePercent);
+	std::pair<std::string, std::function<void(bool)>> callback;
+	{
+		std::lock_guard lock(permission_callbacks_mutex);
+		auto it = permission_callbacks.find(request_code);
+		if (it == permission_callbacks.end())
+		{
+			spdlog::info("Ignoring unexpected request code");
+			return;
+		}
+
+		callback = it->second;
+		permission_callbacks.erase(it);
+	}
+
+	size_t nb_permissions = std::min(env->GetArrayLength(permissions), env->GetArrayLength(grant_results));
+
+	jint * results = env->GetIntArrayElements(grant_results, nullptr);
+
+	for (size_t i = 0; i < nb_permissions; ++i)
+	{
+		jstring string = (jstring)(env->GetObjectArrayElement(permissions, i));
+		const char * permission = env->GetStringUTFChars(string, nullptr);
+		spdlog::info("Permission {} {}", permission, results[i] ? "denied" : "granted");
+
+		if (permission == callback.first)
+		{
+			callback.second(results[i] == 0);
+		}
+
+		env->ReleaseStringUTFChars(string, permission);
+	}
+
+	env->ReleaseIntArrayElements(grant_results, results, 0);
 }

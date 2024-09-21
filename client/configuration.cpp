@@ -81,25 +81,29 @@ static std::string json_string(const std::string & in)
 
 bool configuration::check_feature(feature f) const
 {
-	auto it = features.find(f);
-	if (it == features.end())
-		return false;
-
-	// Skip permission checks if not requested
-	if (not it->second)
-		return false;
-	switch (f)
 	{
-		case feature::microphone:
-			break;
-		case feature::eye_gaze:
-			if (not application::get_eye_gaze_supported())
-				return false;
-			break;
-		case feature::face_tracking:
-			if (not application::get_fb_face_tracking2_supported())
-				return false;
-			break;
+		std::lock_guard lock(mutex);
+
+		auto it = features.find(f);
+		if (it == features.end())
+			return false;
+
+		// Skip permission checks if not requested
+		if (not it->second)
+			return false;
+		switch (f)
+		{
+			case feature::microphone:
+				break;
+			case feature::eye_gaze:
+				if (not application::get_eye_gaze_supported())
+					return false;
+				break;
+			case feature::face_tracking:
+				if (not application::get_fb_face_tracking2_supported())
+					return false;
+				break;
+		}
 	}
 #ifdef __ANDROID__
 	return check_permission(permission_name(f));
@@ -112,9 +116,23 @@ void configuration::set_feature(feature f, bool state)
 {
 #ifdef __ANDROID__
 	if (state)
-		request_permission(permission_name(f), 0);
+	{
+		request_permission(permission_name(f), [this, f](bool granted) {
+			{
+				std::lock_guard lock(mutex);
+				features[f] = granted;
+			}
+			save();
+		});
+
+		return;
+	}
 #endif
-	features[f] = state;
+	{
+		std::lock_guard lock(mutex);
+		features[f] = state;
+	}
+	save();
 }
 
 configuration::configuration(xr::system & system)
@@ -122,58 +140,57 @@ configuration::configuration(xr::system & system)
 	passthrough_enabled = system.passthrough_supported() == xr::system::passthrough_type::color;
 	try
 	{
-		*this = configuration(application::get_config_path() / "client.json");
+		simdjson::dom::parser parser;
+		simdjson::dom::element root = parser.load(application::get_config_path() / "client.json");
+		for (simdjson::dom::object i: simdjson::dom::array(root["servers"]))
+		{
+			server_data data{
+			        .autoconnect = i["autoconnect"].get_bool(),
+			        .manual = i["manual"].get_bool(),
+			        .visible = false,
+			        .compatible = true,
+			        .service = {
+			                .name = (std::string)i["pretty_name"],
+			                .hostname = (std::string)i["hostname"],
+			                .port = (int)i["port"].get_int64(),
+			                .tcp_only = i["tcp_only"].is_bool() && i["tcp_only"].get_bool(),
+			                .txt = {{"cookie", (std::string)i["cookie"]}}
+
+			        }};
+			servers.emplace(data.service.txt["cookie"], data);
+		}
+
+		if (auto val = root["show_performance_metrics"]; val.is_bool())
+			show_performance_metrics = val.get_bool();
+
+		if (auto val = root["preferred_refresh_rate"]; val.is_double())
+			preferred_refresh_rate = val.get_double();
+
+		if (auto val = root["resolution_scale"]; val.is_double())
+			resolution_scale = val.get_double();
+
+		if (auto val = root["passthrough_enabled"]; val.is_bool())
+			passthrough_enabled = val.get_bool();
+
+		for (const auto & [i, name]: magic_enum::enum_entries<feature>())
+		{
+			if (auto val = root[name]; val.is_bool())
+				features[i] = val.get_bool();
+		}
+
 		if (system.passthrough_supported() == xr::system::passthrough_type::no_passthrough)
 			passthrough_enabled = false;
 	}
 	catch (std::exception & e)
 	{
 		spdlog::warn("Cannot read configuration: {}", e.what());
-	}
-}
 
-configuration::configuration(const std::string & path)
-{
-	simdjson::dom::parser parser;
-	simdjson::dom::element root = parser.load(path);
-	for (simdjson::dom::object i: simdjson::dom::array(root["servers"]))
-	{
-		server_data data{
-		        .autoconnect = i["autoconnect"].get_bool(),
-		        .manual = i["manual"].get_bool(),
-		        .visible = false,
-		        .compatible = true,
-		        .service = {
-		                .name = (std::string)i["pretty_name"],
-		                .hostname = (std::string)i["hostname"],
-		                .port = (int)i["port"].get_int64(),
-		                .tcp_only = i["tcp_only"].is_bool() && i["tcp_only"].get_bool(),
-		                .txt = {{"cookie", (std::string)i["cookie"]}}
-
-		        }};
-		servers.emplace(data.service.txt["cookie"], data);
-	}
-
-	if (auto val = root["show_performance_metrics"]; val.is_bool())
-		show_performance_metrics = val.get_bool();
-
-	if (auto val = root["preferred_refresh_rate"]; val.is_double())
-	{
-		preferred_refresh_rate = val.get_double();
-	}
-
-	if (auto val = root["resolution_scale"]; val.is_double())
-	{
-		resolution_scale = val.get_double();
-	}
-
-	if (auto val = root["passthrough_enabled"]; val.is_bool())
-		passthrough_enabled = val.get_bool();
-
-	for (const auto & [i, name]: magic_enum::enum_entries<feature>())
-	{
-		if (auto val = root[name]; val.is_bool())
-			features[i] = val.get_bool();
+		// Restore default configuration
+		servers.clear();
+		preferred_refresh_rate = 0;
+		resolution_scale = 1.4;
+		show_performance_metrics = false;
+		passthrough_enabled = system.passthrough_supported() == xr::system::passthrough_type::color;
 	}
 }
 
@@ -184,6 +201,8 @@ static std::ostream & operator<<(std::ostream & stream, feature f)
 
 void configuration::save()
 {
+	std::lock_guard lock(mutex);
+
 	std::stringstream ss;
 
 	for (auto & [cookie, server_data]: servers)

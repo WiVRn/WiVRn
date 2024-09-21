@@ -19,7 +19,9 @@
 
 #pragma once
 
+#include <functional>
+
 // accepts nullptr (returns true)
 bool check_permission(const char * permission);
 
-void request_permission(const char * permission, int requestCode);
+void request_permission(const char * permission, std::function<void(bool)> callback);
