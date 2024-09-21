@@ -74,3 +74,22 @@ void request_permission(const char * permission, int requestCode)
 		act.call<void>("requestPermissions", permissions, jni::Int(requestCode));
 	}
 }
+
+extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult(
+        JNIEnv * env,
+        jobject instance,
+        int requestCode);
+
+// extern "C" JNIEXPORT void JNICALL
+// Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult(
+
+void Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult(
+        JNIEnv * env,
+        jobject instance,
+        int requestCode
+        /*String [] permissions, int[] grantResults*/)
+{
+	spdlog::info("Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult {}", requestCode);
+	// GetAppEngine()->OnCameraParameterChanged(ACAMERA_SENSOR_EXPOSURE_TIME,
+	// exposurePercent);
+}

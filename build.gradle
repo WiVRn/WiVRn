@@ -159,6 +159,7 @@ android {
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['client/java']
             res.srcDirs = [ 'resources', layout.buildDirectory.dir('generated_resources') ]
 
             assets.srcDirs 'assets'

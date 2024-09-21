@@ -58,7 +58,7 @@
 
     <application
         android:allowBackup="false"
-        android:hasCode="false"
+        android:hasCode="true"
         android:icon="@mipmap/ic_wivrn_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_wivrn_launcher">
@@ -84,7 +84,7 @@
         <!-- Theme.Black.NoTitleBar.Fullscreen gives solid black instead of a (bad stereoscopic) gradient on app transition. -->
         <activity
             android:exported="true"
-            android:name="android.app.NativeActivity"
+            android:name="org.meumeu.wivrn.MainActivity"
             android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode|density"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
