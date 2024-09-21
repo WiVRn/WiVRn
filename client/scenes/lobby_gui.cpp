@@ -380,13 +380,37 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 	}
 
-	bool enabled = config.check_feature(feature::microphone);
-	if (ImGui::Checkbox(_S("Enable microphone"), &enabled))
 	{
-		config.set_feature(feature::microphone, enabled);
-		config.save();
+		bool enabled = config.check_feature(feature::microphone);
+		if (ImGui::Checkbox(_S("Enable microphone"), &enabled))
+		{
+			config.set_feature(feature::microphone, enabled);
+			config.save();
+		}
+		vibrate_on_hover();
 	}
-	vibrate_on_hover();
+	{
+		ImGui::BeginDisabled(not application::get_eye_gaze_supported());
+		bool enabled = config.check_feature(feature::eye_gaze);
+		if (ImGui::Checkbox(_S("Enable eye tracking"), &enabled))
+		{
+			config.set_feature(feature::eye_gaze, enabled);
+			config.save();
+		}
+		vibrate_on_hover();
+		ImGui::EndDisabled();
+	}
+	{
+		ImGui::BeginDisabled(not application::get_fb_face_tracking2_supported());
+		bool enabled = config.check_feature(feature::face_tracking);
+		if (ImGui::Checkbox(_S("Enable face tracking"), &enabled))
+		{
+			config.set_feature(feature::face_tracking, enabled);
+			config.save();
+		}
+		ImGui::EndDisabled();
+		vibrate_on_hover();
+	}
 
 	ImGui::BeginDisabled(passthrough_supported == xr::system::passthrough_type::no_passthrough);
 	if (ImGui::Checkbox(_S("Enable video passthrough in lobby"), &config.passthrough_enabled))

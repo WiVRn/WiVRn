@@ -49,7 +49,7 @@ public:
 	bool show_performance_metrics = false;
 	bool passthrough_enabled = false;
 
-	bool check_feature(feature f);
+	bool check_feature(feature f) const;
 	void set_feature(feature f, bool state);
 
 private:

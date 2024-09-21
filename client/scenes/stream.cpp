@@ -118,12 +118,14 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	if (info.available_refresh_rates.empty())
 		spdlog::warn("Unable to detect refresh rates");
 
+	const auto & config = application::get_config();
+
 	info.hand_tracking = application::get_hand_tracking_supported();
-	info.eye_gaze = application::get_eye_gaze_supported();
-	info.face_tracking2_fb = application::get_fb_face_tracking2_supported();
+	info.eye_gaze = config.check_feature(feature::eye_gaze);
+	info.face_tracking2_fb = config.check_feature(feature::face_tracking);
 
 	audio::get_audio_description(info);
-	if (not(application::get_config().check_feature(feature::microphone)))
+	if (not(config.check_feature(feature::microphone)))
 		info.microphone = {};
 
 	info.supported_codecs = decoder_impl::supported_codecs();

@@ -79,7 +79,7 @@ static std::string json_string(const std::string & in)
 	return out;
 }
 
-bool configuration::check_feature(feature f)
+bool configuration::check_feature(feature f) const
 {
 	auto it = features.find(f);
 	if (it == features.end())
@@ -88,6 +88,19 @@ bool configuration::check_feature(feature f)
 	// Skip permission checks if not requested
 	if (not it->second)
 		return false;
+	switch (f)
+	{
+		case feature::microphone:
+			break;
+		case feature::eye_gaze:
+			if (not application::get_eye_gaze_supported())
+				return false;
+			break;
+		case feature::face_tracking:
+			if (not application::get_fb_face_tracking2_supported())
+				return false;
+			break;
+	}
 #ifdef __ANDROID__
 	return check_permission(permission_name(f));
 #else
