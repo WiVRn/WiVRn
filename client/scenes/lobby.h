@@ -105,7 +105,7 @@ class lobby : public scene_impl<lobby>
 	tab last_current_tab = tab::server_list;
 	ImTextureID about_picture;
 
-	void draw_features_status();
+	void draw_features_status(XrTime predicted_display_time);
 	void gui_connecting();
 	void gui_server_list();
 	void gui_add_server();
