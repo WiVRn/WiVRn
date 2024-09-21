@@ -365,7 +365,7 @@ struct array
 	array(T & element)
 	{
 		auto & env = jni_thread::env();
-		self.reset(env.NewObjectArray(1, element.klass(), element));
+		self.reset((jobjectArray)env.NewGlobalRef(env.NewObjectArray(1, element.klass(), element)));
 	}
 };
 
