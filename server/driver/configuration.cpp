@@ -84,7 +84,8 @@ configuration configuration::read_user_configuration()
 			for (const auto & encoder: json["encoders"])
 			{
 				configuration::encoder e;
-				e.name = encoder.at("encoder");
+				if (encoder.contains("encoder"))
+					e.name = encoder["encoder"];
 
 #define SET_IF(property)                 \
 	if (encoder.contains(#property)) \

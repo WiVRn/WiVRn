@@ -110,7 +110,7 @@ static void check_scale(std::string_view encoder_name, video_codec codec, uint16
 		if (height * scale[1] > max[1])
 		{
 			scale[1] = double(max[1] - 1) / width;
-			U_LOG_W("Image is too tall for encoder, reducing scale to %f", scale[0]);
+			U_LOG_W("Image is too tall for encoder, reducing scale to %f", scale[1]);
 		}
 	}
 #endif
@@ -148,30 +148,66 @@ static std::optional<xrt::drivers::wivrn::video_codec> filter_codecs_vaapi(wivrn
 }
 #endif
 
-static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs)
+static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs, configuration::encoder & config)
 {
-	if (is_nvidia(*bundle.physical_device))
+	if (config.name.empty())
 	{
+		if (is_nvidia(*bundle.physical_device))
+		{
 #ifdef WIVRN_USE_NVENC
-		return {{.name = encoder_nvenc}};
+			config.name = encoder_nvenc;
 #elif defined(WIVRN_USE_X264)
-		U_LOG_W("nvidia GPU detected, but nvenc support not compiled");
-		return {{.name = encoder_x264, .codec = h264}};
+			U_LOG_W("nvidia GPU detected, but nvenc support not compiled");
+			config.name = encoder_x264;
+			config.codec = h264;
 #else
-		U_LOG_E("no suitable encoder available (compile with x264 or nvenc support)");
-		return {};
+			U_LOG_E("no suitable encoder available (compile with x264 or nvenc support)");
 #endif
-	}
-	else
-	{
+		}
+		else
+		{
 #ifdef WIVRN_USE_VAAPI
-		auto codec = filter_codecs_vaapi(bundle, headset_codecs);
-		if (not codec)
+			config.name = encoder_vaapi;
+#elif defined(WIVRN_USE_X264)
+			U_LOG_W("ffmpeg support not compiled, vaapi encoder not available");
+			config.name = encoder_x264;
+			config.codec = h264;
+#else
+			U_LOG_E("no suitable encoder available (compile with x264 or nvenc support)");
+#endif
+		}
+	}
+
+#ifdef WIVRN_USE_VAAPI
+	if (config.name == encoder_vaapi and not config.codec)
+	{
+		config.codec = filter_codecs_vaapi(bundle, headset_codecs);
+		if (not config.codec)
 		{
 			U_LOG_W("Failed to initialize vaapi, fallback to software encoding");
-			return {{.name = encoder_x264, .codec = h264}};
+			config.name = encoder_x264;
+			config.codec = h264;
 		}
+	}
+#endif
+
+#ifdef WIVRN_USE_X264
+	if (config.name == encoder_x264)
+		config.codec = h264;
+#endif
+
+	if (not config.codec)
+		config.codec = h265;
+}
+
+static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs)
+{
+	configuration::encoder base;
+	fill_defaults(bundle, headset_codecs, base);
+
 #ifdef WIVRN_SPLIT_ENCODERS
+	if (base.name != encoder_x264)
+	{
 		/* Split in 3 parts:
 		 *  +--------+--------+
 		 *  |        |        |
@@ -189,39 +225,31 @@ static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk
 		 */
 		return {
 		        {
-		                .name = encoder_vaapi,
+		                .name = base.name,
 		                .width = 0.5,
 		                .height = 0.25,
 		                .group = 0,
-		                .codec = *codec,
+		                .codec = base.codec,
 		        },
 		        {
-		                .name = encoder_vaapi,
+		                .name = base.name,
 		                .width = 0.5,
 		                .height = 0.75,
 		                .offset_y = 0.25,
 		                .group = 0,
-		                .codec = *codec,
+		                .codec = base.codec,
 		        },
 		        {
 		                .name = encoder_vaapi,
 		                .width = 0.5,
 		                .offset_x = 0.5,
 		                .group = 0,
-		                .codec = *codec,
+		                .codec = base.codec,
 		        },
 		};
-#else
-		return {{.name = encoder_vaapi, .codec = *codec}};
-#endif
-#elif defined(WIVRN_USE_X264)
-		U_LOG_W("ffmpeg support not compiled, vaapi encoder not available");
-		return {{.name = encoder_x264, .codec = h264}};
-#else
-		U_LOG_E("no suitable encoder available (compile with x264 or ffmpeg support)");
-		return {};
-#endif
 	}
+#endif
+	return {base};
 }
 
 static void make_even(uint16_t & value, uint16_t max)
@@ -247,10 +275,12 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(wivrn_vk
 	std::array<double, 2> default_scale;
 	default_scale.fill(info.eye_gaze ? 0.35 : 0.5);
 	auto scale = config.scale.value_or(default_scale);
-	for (const auto & encoder: config.encoders)
+	for (auto & encoder: config.encoders)
 	{
+		fill_defaults(bundle, info.supported_codecs, encoder);
+		assert(encoder.codec);
 		check_scale(encoder.name,
-		            encoder.codec.value_or(xrt::drivers::wivrn::h264),
+		            *encoder.codec,
 		            std::ceil(encoder.width.value_or(1) * width),
 		            std::ceil(encoder.height.value_or(1) * height),
 		            scale);
@@ -275,7 +305,7 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(wivrn_vk
 		settings.offset_y = std::ceil(encoder.offset_y.value_or(0) * height);
 		make_even(settings.width, width - settings.offset_x);
 		make_even(settings.height, height - settings.offset_y);
-		settings.codec = encoder.codec.value_or(xrt::drivers::wivrn::h265);
+		settings.codec = *encoder.codec;
 		settings.group = encoder.group.value_or(next_group);
 		settings.options = encoder.options;
 		settings.device = encoder.device;

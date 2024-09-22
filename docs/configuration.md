@@ -34,7 +34,7 @@ WiVRn has the ability to split the video in blocks that are processed independen
 All the provided encoders are put into groups, groups are executed concurrently and items within a group are processed sequentially.
 
 ### `encoder`
-Default value: `nvenc` if Nvidia GPU and compiled with cuda, `vaapi` for all other GPU when compiled with ffmpeg, else `x264`.
+Default value: `nvenc` if Nvidia GPU and compiled with nvenc, `vaapi` for all other GPU when compiled with ffmpeg, else `x264`.
 
 Identifier of the encoder, one of `x264` (software encoding), `nvenc` (Nvidia hardware encoding), `vaapi` (AMD/Intel hardware encoding)
 
