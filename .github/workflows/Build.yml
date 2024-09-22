@@ -295,7 +295,9 @@ jobs:
           flatpak/*.flatpak
 
     - name: Update release branch
-      run: git push origin HEAD:release
+      run: |
+        git fetch origin release
+        git push origin HEAD:release
 
   sync_fork_downstream:
     name: Sync fork downstream
