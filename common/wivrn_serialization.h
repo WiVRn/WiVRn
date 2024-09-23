@@ -107,6 +107,9 @@ class serialization_packet
 	std::vector<std::span<uint8_t>> exp_spans;
 
 public:
+	// Minimum size to prefer a span over data copy
+	static constexpr size_t span_min_size = 32;
+
 	serialization_packet() = default;
 
 	void clear()
@@ -320,7 +323,10 @@ struct serialization_traits<T, std::enable_if_t<std::is_aggregate_v<T> && !is_st
 	{
 		if constexpr (serialization_traits<T>::is_trivially_serializable())
 		{
-			packet.write((void *)&value, sizeof(T));
+			if constexpr (sizeof(T) > serialization_packet::span_min_size)
+				packet.write(std::span((uint8_t *)&value, sizeof(T)));
+			else
+				packet.write((void *)&value, sizeof(T));
 		}
 		else
 		{
@@ -423,7 +429,7 @@ struct serialization_traits<std::vector<T>>
 
 		if constexpr (serialization_traits<T>::is_trivially_serializable())
 		{
-			packet.write(value.data(), value.size() * sizeof(T));
+			packet.write(std::span((uint8_t *)value.data(), value.size() * sizeof(T)));
 		}
 		else
 		{
@@ -512,7 +518,10 @@ struct serialization_traits<std::array<T, N>>
 	{
 		if constexpr (serialization_traits<T>::is_trivially_serializable())
 		{
-			packet.write(value.data(), value.size() * sizeof(T));
+			if constexpr (N * sizeof(T) > serialization_packet::span_min_size)
+				packet.write(std::span((uint8_t *)value.data(), value.size() * sizeof(T)));
+			else
+				packet.write(value.data(), value.size() * sizeof(T));
 		}
 		else
 		{
