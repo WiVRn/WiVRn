@@ -200,7 +200,7 @@ FetchContent_Declare(imgui         EXCLUDE_FROM_ALL SYSTEM URL https://github.co
 # Server dependencies
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
-    # also change in flatpak/io.github.wivrn.wivrn.yml !!!
+    # The flatpak manifest is updated automatically
     GIT_TAG          01806a3ffa62a2440da83d94e7a9297645d9d95a
     PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${CMAKE_CURRENT_LIST_DIR}/patches/monado/
     EXCLUDE_FROM_ALL

@@ -152,20 +152,23 @@ modules:
       - -DWIVRN_USE_X264=ON
       - -DWIVRN_USE_NVENC=ON
       - -DWIVRN_USE_PULSEAUDIO=OFF
+      - -DWIVRN_CLIENT_URL=https://github.com/WiVRn/WiVRn/releases/latest/download/WiVRn-standard-release.apk
+        -DWIVRN_WERROR=ON
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
       - -DFETCHCONTENT_BASE_DIR=deps
-      - -DXRT_IPC_MSG_SOCK_FILENAME=wivrn/comp_ipc
+      - -DGIT_DESC=WIVRN_GIT_DESC
       - -Wno-dev
     sources:
-      - type: dir
-        path: ..
+      - WIVRN_SRC1
+        WIVRN_SRC2
+        WIVRN_SRC3
       - type: archive
-        url: https://github.com/boostorg/pfr/archive/refs/tags/2.2.0.tar.gz
+        url: BOOSTPFR_URL
         dest: deps/boostpfr-src
-        sha256: 6f490ec1383de5855dcf801c23f0a967f888eb6e1440b6ca0bf36c12d4ae7ac7
+        sha256: BOOSTPFR_SHA256
       - type: git
         url: https://gitlab.freedesktop.org/monado/monado
-        tag: 01806a3ffa62a2440da83d94e7a9297645d9d95a
+        tag: MONADO_COMMIT
         dest: deps/monado-src
       - type: shell
         commands:
@@ -181,10 +184,7 @@ modules:
     sources:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
-        tag: 632e5cc50b913e93194ca2970e6f13021182579f
-      - type: patch
-        paths:
-          - opencomposite-0001-Add-install-target.patch
+        tag: f969a972e9a151de776fa8d1bd6e67056f0a5d5d
 
   - name: launcher
     buildsystem: simple

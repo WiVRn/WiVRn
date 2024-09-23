@@ -86,11 +86,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Create the flatpak manifest
+      run: |
+        git config --global --add safe.directory $(pwd)
+        tools/gen_flatpak_manifest.sh --git > io.github.wivrn.wivrn.yml
 
     # TODO: replace with version > v6.3 when it's released
     - uses: flatpak/flatpak-github-actions/flatpak-builder@b8be6bc0ede43cb3a2cc55895654312b14f84a0d
       with:
-        manifest-path: flatpak/io.github.wivrn.wivrn.yml
+        manifest-path: io.github.wivrn.wivrn.yml
         bundle: wivrn-server.flatpak
         upload-artifact: false
 
@@ -279,6 +286,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: wivrn
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        repository: WiVRn/io.github.wivrn.wivrn
+        path: flathub
+        token: ${{ secrets.FLATHUB_TOKEN }}
 
     - name: Download artifacts (APK)
       uses: actions/download-artifact@v4
@@ -303,8 +320,31 @@ jobs:
           apk/*.apk
           flatpak/*.flatpak
 
+    - name: Update flatpak manifest for flathub
+      run: |
+        WIVRN_TAG=$(echo $GITHUB_REF | sed -E -e "s,refs/[^/]*/v?,,")
+
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+
+        cd flathub
+        git remote add upstream https://github.com/flathub/io.github.wivrn.wivrn.git
+        git fetch upstream
+        git reset --hard upstream/master
+
+        git config --global --add safe.directory $(pwd)
+        ../wivrn/tools/gen_flatpak_manifest.sh --git > io.github.wivrn.wivrn.yml
+
+        git checkout -b $WIVRN_TAG
+        git add io.github.wivrn.wivrn.yml
+        git commit -m "Version "$WIVRN_TAG
+        git push --set-upstream origin $WIVRN_TAG
+
+        git show
+
     - name: Update release branch
       run: |
+        cd wivrn
         git fetch origin release
         git push origin HEAD:release
 
