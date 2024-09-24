@@ -16,7 +16,10 @@ See [building](docs/building.md).
 Packages are available on [AUR for Arch](https://aur.archlinux.org/packages/wivrn-server), [Guru for Gentoo](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn).
 
 ## Client (headset)
-### Prebuilt apk
+### Meta Store (Meta Quest 2/Pro/3)
+The client is available on the [Meta Store](https://www.meta.com/experiences/7959676140827574/).
+
+### Prebuilt apk (Quest 1 and other vendors)
 Download apk from [Releases](https://github.com/WiVRn/WiVRn/releases).
 Install with adb (headset connected to PC), developer mode must be enabled.
 ```bash
