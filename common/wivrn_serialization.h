@@ -222,6 +222,135 @@ public:
 	}
 };
 
+namespace details
+{
+
+// Partition a structure into trivial portions (or single element when not trivial)
+template <
+        typename T,                                               // structure to partition
+        typename Indices = std::tuple<>,                          // indices already partitionned
+        typename Current_Indices = std::integer_sequence<size_t>, // indices of current partition
+        size_t i = 0,                                             // index of the first of remaining elements
+        size_t offset = 0,                                        // offset of previous element + its size
+        typename Enable = void>
+struct trivial_bits;
+
+template <
+        typename T,
+        typename... Indices,
+        size_t... current_indices,
+        size_t i,
+        size_t offset>
+struct trivial_bits<
+        T,
+        std::tuple<Indices...>,
+        std::integer_sequence<size_t, current_indices...>,
+        i,
+        offset,
+        std::enable_if_t<boost::pfr::tuple_size_v<T> == i, void>>
+{
+	// termination condition
+	using types = std::conditional_t<sizeof...(current_indices) == 0,
+	                                 std::tuple<Indices...>,
+	                                 std::tuple<Indices..., std::integer_sequence<size_t, current_indices...>>>;
+};
+
+template <
+        typename T,
+        typename... Indices,
+        size_t... current_indices,
+        size_t i,
+        size_t offset>
+struct trivial_bits<
+        T,
+        std::tuple<Indices...>,
+        std::integer_sequence<size_t, current_indices...>,
+        i,
+        offset,
+        std::enable_if_t<(boost::pfr::tuple_size_v<T> > i), void>>
+{
+	using Ti = boost::pfr::tuple_element_t<i, T>;
+	static constexpr size_t alignment = std::alignment_of_v<Ti>;
+	static constexpr size_t padding = (alignment - offset) % alignment;
+	static constexpr bool aligned = padding == 0;
+	static constexpr bool trivial = serialization_traits<Ti>::is_trivially_serializable();
+
+	using types = trivial_bits<
+	        T,
+	        std::conditional_t<
+	                trivial and aligned,
+	                std::tuple<Indices...>,
+	                std::conditional_t<trivial,
+	                                   std::conditional_t<sizeof...(current_indices) == 0,
+	                                                      std::tuple<Indices...>,
+	                                                      std::tuple<Indices..., std::integer_sequence<size_t, current_indices...>>>,
+	                                   std::conditional_t<sizeof...(current_indices) == 0,
+	                                                      std::tuple<Indices..., std::integer_sequence<size_t, i>>,
+	                                                      std::tuple<Indices..., std::integer_sequence<size_t, current_indices...>, std::integer_sequence<size_t, i>>>>>,
+	        std::conditional_t<
+	                trivial and aligned,
+	                std::integer_sequence<size_t, current_indices..., i>,
+	                std::conditional_t<trivial,
+	                                   std::integer_sequence<size_t, i>,
+	                                   std::integer_sequence<size_t>>>,
+	        i + 1,
+	        offset + padding + sizeof(boost::pfr::tuple_element_t<i, T>)>::types;
+};
+
+// Serialize bits of a structure, partitionned by trivial_bits
+template <typename T, typename Bits>
+struct serialize_bits;
+
+template <typename T>
+struct serialize_bits<T, std::tuple<>>
+{
+	// termination case, nothing to do
+	static void serialize(const T &, serialization_packet &) {}
+	static void deserialize(T &, deserialization_packet &) {}
+};
+
+template <typename T, size_t i, typename... Bits>
+struct serialize_bits<T, std::tuple<std::integer_sequence<size_t, i>, Bits...>>
+{
+	// single element case
+	static void serialize(const T & t, serialization_packet & p)
+	{
+		serialization_traits<boost::pfr::tuple_element_t<i, T>>::serialize(boost::pfr::get<i>(t), p);
+		serialize_bits<T, std::tuple<Bits...>>::serialize(t, p);
+	}
+	static void deserialize(T & t, deserialization_packet & p)
+	{
+		// serialization of a single element
+		boost::pfr::get<i>(t) = serialization_traits<boost::pfr::tuple_element_t<i, T>>::deserialize(p);
+		serialize_bits<T, std::tuple<Bits...>>::deserialize(t, p);
+	}
+};
+
+template <typename T, size_t i, size_t... mid, typename... Bits>
+struct serialize_bits<T, std::tuple<std::integer_sequence<size_t, i, mid...>, Bits...>>
+{
+	// multiple elements, trivial serialization
+	static void serialize(const T & t, serialization_packet & p)
+	{
+		constexpr auto size = (sizeof(boost::pfr::tuple_element_t<mid, T>) + ... + sizeof(boost::pfr::tuple_element_t<i, T>));
+		auto first = (uint8_t *)&boost::pfr::get<i, T>(t);
+		if constexpr (size > serialization_packet::span_min_size)
+			p.write(std::span(first, size));
+		else
+			p.write(first, size);
+		serialize_bits<T, std::tuple<Bits...>>::serialize(t, p);
+	}
+
+	static void deserialize(T & t, deserialization_packet & p)
+	{
+		auto size = (sizeof(boost::pfr::tuple_element_t<mid, T>) + ... + sizeof(boost::pfr::tuple_element_t<i, T>));
+		auto first = (uint8_t *)&boost::pfr::get<i, T>(t);
+		p.read(first, size);
+		serialize_bits<T, std::tuple<Bits...>>::deserialize(t, p);
+	}
+};
+} // namespace details
+
 template <typename T>
 struct serialization_traits<T, std::enable_if_t<std::is_arithmetic_v<T>>>
 {
@@ -298,6 +427,9 @@ inline constexpr bool is_stdarray_v = is_stdarray<T>::value;
 template <typename T>
 struct serialization_traits<T, std::enable_if_t<std::is_aggregate_v<T> && !is_stdarray_v<T>>>
 {
+	using bits = typename details::trivial_bits<T>::types;
+	static constexpr size_t bits_size = std::tuple_size_v<bits>;
+
 	template <size_t I>
 	static constexpr void aux2(details::hash_context & h)
 	{
@@ -321,63 +453,31 @@ struct serialization_traits<T, std::enable_if_t<std::is_aggregate_v<T> && !is_st
 
 	static void serialize(const T & value, serialization_packet & packet)
 	{
-		if constexpr (serialization_traits<T>::is_trivially_serializable())
-		{
-			if constexpr (sizeof(T) > serialization_packet::span_min_size)
-				packet.write(std::span((uint8_t *)&value, sizeof(T)));
-			else
-				packet.write((void *)&value, sizeof(T));
-		}
-		else
-		{
-			boost::pfr::for_each_field(value, [&](const auto & x) { packet.serialize(x); });
-		}
+		details::serialize_bits<T, bits>::serialize(value, packet);
 	}
 
 	static T deserialize(deserialization_packet & packet)
 	{
 		T value;
-
-		if constexpr (serialization_traits<T>::is_trivially_serializable())
-		{
-			packet.read((void *)&value, sizeof(T));
-		}
-		else
-		{
-			boost::pfr::for_each_field(
-			        value, [&](auto & x) { x = packet.deserialize<std::remove_reference_t<decltype(x)>>(); });
-		}
-
+		details::serialize_bits<T, bits>::deserialize(value, packet);
 		return value;
 	}
 
-	template <size_t I>
-	static consteval size_t ts_aux_size_2()
+	template <size_t... I>
+	static constexpr size_t ts_aux_size(std::index_sequence<I...>)
 	{
-		return sizeof(boost::pfr::tuple_element_t<I, T>);
+		return (sizeof(boost::pfr::tuple_element_t<I, T>) + ... + 0);
 	}
 
 	template <size_t... I>
-	static constexpr size_t ts_aux_size_1(std::index_sequence<I...>)
+	static constexpr bool ts_aux_trivial(std::index_sequence<I...>)
 	{
-		return (ts_aux_size_2<I>() + ... + 0);
-	}
-
-	template <size_t I>
-	static consteval bool ts_aux_trivial_2()
-	{
-		return serialization_traits<boost::pfr::tuple_element_t<I, T>>::is_trivially_serializable();
-	}
-
-	template <size_t... I>
-	static constexpr bool ts_aux_trivial_1(std::index_sequence<I...>)
-	{
-		return (ts_aux_trivial_2<I>() and ...);
+		return (serialization_traits<boost::pfr::tuple_element_t<I, T>>::is_trivially_serializable() and ...);
 	}
 
 	static bool consteval is_trivially_serializable()
 	{
-		return sizeof(T) == ts_aux_size_1(std::make_index_sequence<boost::pfr::tuple_size_v<T>>()) and ts_aux_trivial_1(std::make_index_sequence<boost::pfr::tuple_size_v<T>>());
+		return sizeof(T) == ts_aux_size(std::make_index_sequence<boost::pfr::tuple_size_v<T>>()) and ts_aux_trivial(std::make_index_sequence<boost::pfr::tuple_size_v<T>>());
 	}
 };
 
