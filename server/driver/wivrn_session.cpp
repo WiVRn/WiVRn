@@ -169,6 +169,19 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	xrt_device * active_left_hand = nullptr;
 	xrt_device * active_right_hand = nullptr;
 
+	if (self->left_hand)
+	{
+		devices->xdevs[n++] = self->left_hand.get();
+		active_left_hand = self->left_hand.get();
+		usysds->base.base.static_roles.hand_tracking.left = self->left_hand.get();
+	}
+	if (self->right_hand)
+	{
+		devices->xdevs[n++] = self->right_hand.get();
+		active_right_hand = self->right_hand.get();
+		usysds->base.base.static_roles.hand_tracking.right = self->right_hand.get();
+	}
+
 #ifdef WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
 	auto use_steamvr_lh = std::getenv("WIVRN_USE_STEAMVR_LH");
 	xrt_system_devices * lhdevs = NULL;
@@ -196,18 +209,6 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	}
 #endif
 
-	if (self->left_hand && !active_left_hand)
-	{
-		active_left_hand = self->left_hand.get();
-		devices->xdevs[n++] = self->left_hand.get();
-		usysds->base.base.static_roles.hand_tracking.left = self->left_hand.get();
-	}
-	if (self->right_hand && !active_right_hand)
-	{
-		active_right_hand = self->right_hand.get();
-		devices->xdevs[n++] = self->right_hand.get();
-		usysds->base.base.static_roles.hand_tracking.right = self->right_hand.get();
-	}
 	if (self->info.eye_gaze)
 	{
 		self->eye_tracker = std::make_unique<wivrn_eye_tracker>(self->hmd.get(), self);
