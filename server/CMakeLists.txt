@@ -49,7 +49,7 @@ set(BUILD_TESTING                    OFF)
 
 set(XRT_HAVE_SYSTEM_CJSON            OFF)
 
-set(XRT_IPC_MSG_SOCK_FILENAME     "wivrn_comp_ipc" CACHE STRING "Service socket filename")
+set(XRT_IPC_MSG_SOCK_FILENAME     "wivrn/comp_ipc" CACHE STRING "Service socket filename")
 set(XRT_IPC_SERVICE_PID_FILENAME  "wivrn.pid"      CACHE STRING "Service pidfile filename")
 set(XRT_OXR_RUNTIME_SUFFIX        "wivrn"          CACHE STRING "OpenXR client library suffix")
 

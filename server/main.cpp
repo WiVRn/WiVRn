@@ -57,12 +57,12 @@ std::optional<xrt::drivers::wivrn::typed_socket<xrt::drivers::wivrn::UnixDatagra
 std::optional<xrt::drivers::wivrn::typed_socket<xrt::drivers::wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;
 
 #ifdef WIVRN_USE_SYSTEMD
-std::string socket_path()
+std::filesystem::path socket_path()
 {
 	char sock_file[PATH_MAX];
 	size_t size = u_file_get_path_in_runtime_dir(XRT_IPC_MSG_SOCK_FILENAME, sock_file, PATH_MAX);
 
-	return {sock_file, size};
+	return {sock_file, sock_file + size};
 }
 
 int create_listen_socket()
@@ -70,6 +70,8 @@ int create_listen_socket()
 	sockaddr_un addr{};
 
 	auto sock_file = socket_path();
+
+	std::filesystem::create_directories(sock_file.parent_path());
 
 	addr.sun_family = AF_UNIX;
 	strcpy(addr.sun_path, sock_file.c_str());
