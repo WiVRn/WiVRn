@@ -14,3 +14,5 @@ do
 done
 
 rm $WIVRN_POT
+
+lupdate dashboard/*.{cpp,ui} -ts dashboard/wivrn_*.ts

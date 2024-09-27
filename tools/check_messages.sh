@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+set -e
 
 cd $(dirname $0)/..
 
@@ -24,5 +26,23 @@ do
 done
 
 rm $WIVRN_POT
+
+for i in $(find dashboard -name "wivrn_*.ts")
+do
+       cp $i $i.bak
+       lupdate -silent dashboard/*.{cpp,ui} -ts $i
+       mv $i $i.new
+       mv $i.bak $i
+
+       diff -U 3 -I '.*<location.*/>' $i $i.new
+
+       if [ $? != 0 ]
+       then
+               RC=1
+       fi
+
+       rm $i.new
+done
+
 
 exit $RC
