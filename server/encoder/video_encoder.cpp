@@ -106,24 +106,30 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 {
 	using namespace std::string_literals;
 	std::unique_ptr<VideoEncoder> res;
-#ifdef WIVRN_USE_X264
 	if (settings.encoder_name == encoder_x264)
 	{
+#ifdef WIVRN_USE_X264
 		res = std::make_unique<VideoEncoderX264>(wivrn_vk, settings, fps);
-	}
+#else
+		throw std::runtime_error("x264 encoder not enabled");
 #endif
-#ifdef WIVRN_USE_NVENC
+	}
 	if (settings.encoder_name == encoder_nvenc)
 	{
+#ifdef WIVRN_USE_NVENC
 		res = std::make_unique<VideoEncoderNvenc>(wivrn_vk, settings, fps);
-	}
+#else
+		throw std::runtime_error("nvenc support not enabled");
 #endif
-#ifdef WIVRN_USE_VAAPI
+	}
 	if (settings.encoder_name == encoder_vaapi)
 	{
+#ifdef WIVRN_USE_VAAPI
 		res = std::make_unique<video_encoder_va>(wivrn_vk, settings, fps);
-	}
+#else
+		throw std::runtime_error("vaapi support not enabled");
 #endif
+	}
 	if (not res)
 		throw std::runtime_error("Failed to create encoder " + settings.encoder_name);
 	res->stream_idx = stream_idx;
