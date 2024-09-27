@@ -113,7 +113,9 @@ public:
 	VideoEncoder(bool async_send = false);
 	virtual ~VideoEncoder();
 
-	void PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf);
+	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf);
+	// for vulkan video (command buffer is on a video queue)
+	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence fence);
 
 	// The other end lost a frame and needs to resynchronize
 	void SyncNeeded();
@@ -124,7 +126,9 @@ public:
 
 protected:
 	// called on present to submit command buffers for the image.
-	virtual void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) = 0;
+	virtual void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) {};
+	// for vulkan video (command buffer is on a video queue)
+	virtual void present_image(bool idr, vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence, uint8_t slot) {};
 	// called when command buffer finished executing
 	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) = 0;
 

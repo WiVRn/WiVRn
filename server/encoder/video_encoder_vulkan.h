@@ -31,15 +31,10 @@ class video_encoder_vulkan : public VideoEncoder
 	wivrn_vk_bundle & vk;
 	const vk::VideoEncodeCapabilitiesKHR encode_caps;
 
-	vk::raii::Fence fence = nullptr;
-
 	vk::raii::VideoSessionKHR video_session = nullptr;
 	vk::raii::VideoSessionParametersKHR video_session_parameters = nullptr;
 
 	vk::raii::QueryPool query_pool = nullptr;
-	vk::raii::CommandPool command_pool = nullptr;
-
-	vk::raii::CommandBuffer command_buffer = nullptr;
 
 	buffer_allocation output_buffer;
 	size_t output_buffer_size;
@@ -47,7 +42,7 @@ class video_encoder_vulkan : public VideoEncoder
 	vk::ImageViewUsageCreateInfo image_view_template_next;
 	vk::ImageViewCreateInfo image_view_template;
 	std::unordered_map<VkImage, vk::raii::ImageView> image_views; // for input images
-	std::array<vk::ImageView, num_slots> image_views_slots;
+	std::array<vk::Fence, num_slots> fences;
 
 	image_allocation dpb_image;
 	std::vector<vk::raii::ImageView> dpb_image_views;
@@ -90,6 +85,6 @@ protected:
 
 public:
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
-	void present_image(vk::Image src_yuv, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) override;
+	void present_image(bool idr, vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence, uint8_t slot) override;
 };
 } // namespace wivrn

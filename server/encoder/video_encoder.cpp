@@ -223,7 +223,7 @@ void VideoEncoder::SyncNeeded()
 	sync_needed = true;
 }
 
-void VideoEncoder::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
+void VideoEncoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
 {
 	// Wait for encoder to be done
 	busy[next_present].wait(true);
@@ -231,6 +231,11 @@ void VideoEncoder::PresentImage(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_
 	busy[next_present] = true;
 	present_image(y_cbcr, cmd_buf, next_present);
 	next_present = (next_present + 1) % num_slots;
+}
+
+void VideoEncoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & video_cmd_buf, vk::Fence fence)
+{
+	present_image(sync_needed.load(), y_cbcr, video_cmd_buf, fence, next_present);
 }
 
 void VideoEncoder::Encode(wivrn_session & cnx,

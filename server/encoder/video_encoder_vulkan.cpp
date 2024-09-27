@@ -102,8 +102,6 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
                                        void * video_session_create_next,
                                        void * session_params_next)
 {
-	fence = vk.device.createFence({});
-
 	vk::VideoProfileListInfoKHR video_profile_list{
 	        .profileCount = 1,
 	        .pProfiles = &video_profile,
@@ -222,6 +220,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	        .usage = picture_format.imageUsageFlags,
 	};
 	image_view_template = {
+	        .pNext = &image_view_template_next,
 	        .viewType = vk::ImageViewType::e2D,
 	        .format = picture_format.format,
 	        .components = picture_format.componentMapping,
@@ -303,17 +302,6 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 
 		query_pool = vk.device.createQueryPool(query_pool_create.get());
 	}
-
-	// command pool and buffer
-	{
-		command_pool = vk.device.createCommandPool({
-		        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-		        .queueFamilyIndex = vk.encode_queue_family_index,
-		});
-
-		command_buffer = std::move(vk.device.allocateCommandBuffers({.commandPool = *command_pool,
-		                                                             .commandBufferCount = 1})[0]);
-	}
 }
 
 wivrn::video_encoder_vulkan::~video_encoder_vulkan()
@@ -331,10 +319,41 @@ std::vector<uint8_t> wivrn::video_encoder_vulkan::get_encoded_parameters(void * 
 
 std::optional<wivrn::VideoEncoder::data> wivrn::video_encoder_vulkan::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t encode_slot)
 {
-	command_buffer.reset();
-	command_buffer.begin(vk::CommandBufferBeginInfo{
-	        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
-	});
+	if (idr)
+		send_idr_data();
+
+	if (auto res = vk.device.waitForFences(fences[encode_slot], true, 1'000'000'000);
+	    res != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("wait for fences: " + vk::to_string(res));
+	}
+
+	// Feedback = offset / size / has overrides
+	auto [res, feedback] = query_pool.getResults<uint32_t>(0, 1, 3 * sizeof(uint32_t), 0, vk::QueryResultFlagBits::eWait);
+	if (res != vk::Result::eSuccess)
+	{
+		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
+	}
+
+	return data{
+	        .encoder = this,
+	        .span = std::span(((uint8_t *)output_buffer.map()) + feedback[0], feedback[1]),
+	};
+}
+
+void wivrn::video_encoder_vulkan::present_image(bool idr, vk::Image src_yuv, vk::raii::CommandBuffer & command_buffer, vk::Fence fence, uint8_t encode_slot)
+{
+	fences[encode_slot] = fence;
+	auto it = image_views.find(src_yuv);
+	vk::ImageView image_view;
+	if (it != image_views.end())
+		image_view = *it->second;
+	else
+	{
+		image_view_template.image = src_yuv;
+		image_view = *image_views.emplace(src_yuv, vk.device.createImageView(image_view_template)).first->second;
+	}
+
 	command_buffer.resetQueryPool(*query_pool, 0, 1);
 
 	if (idr)
@@ -412,7 +431,7 @@ std::optional<wivrn::VideoEncoder::data> wivrn::video_encoder_vulkan::encode(boo
 	        .dstBufferRange = output_buffer_size,
 	        .srcPictureResource = {.codedExtent = rect.extent,
 	                               .baseArrayLayer = 0,
-	                               .imageViewBinding = image_views_slots[encode_slot]},
+	                               .imageViewBinding = image_view},
 	        .pSetupReferenceSlot = &dpb_slots[slot],
 	        .referenceSlotCount = uint32_t(ref_slots.size()),
 	        .pReferenceSlots = ref_slots.data(),
@@ -424,46 +443,5 @@ std::optional<wivrn::VideoEncoder::data> wivrn::video_encoder_vulkan::encode(boo
 	command_buffer.endVideoCodingKHR(vk::VideoEndCodingInfoKHR{});
 	command_buffer.end();
 
-	vk::SubmitInfo2 submit{};
-	vk::CommandBufferSubmitInfo cmd_info{
-	        .commandBuffer = *command_buffer,
-	};
-	submit.setCommandBufferInfos(cmd_info);
-	vk.encode_queue.submit2(submit, *fence);
 	++frame_num;
-
-	if (idr)
-		send_idr_data();
-
-	if (auto res = vk.device.waitForFences(*fence, true, 1'000'000'000);
-	    res != vk::Result::eSuccess)
-	{
-		throw std::runtime_error("wait for fences: " + vk::to_string(res));
-	}
-
-	// Feedback = offset / size / has overrides
-	auto [res, feedback] = query_pool.getResults<uint32_t>(0, 1, 3 * sizeof(uint32_t), 0, vk::QueryResultFlagBits::eWait);
-	if (res != vk::Result::eSuccess)
-	{
-		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
-	}
-
-	vk.device.resetFences(*fence);
-
-	return data{
-	        .encoder = this,
-	        .span = std::span(((uint8_t *)output_buffer.map()) + feedback[0], feedback[1]),
-	};
-}
-
-void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::CommandBuffer &, uint8_t slot)
-{
-	auto it = image_views.find(src_yuv);
-	if (it != image_views.end())
-		image_views_slots[slot] = *it->second;
-	else
-	{
-		image_view_template.image = src_yuv;
-		image_views_slots[slot] = *image_views.emplace(src_yuv, vk.device.createImageView(image_view_template)).first->second;
-	}
 }
