@@ -103,10 +103,15 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		j = i.fov;
 	}
 
+	const auto & config = application::get_config();
+
 	if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 	{
 		info.available_refresh_rates = self->session.get_refresh_rates();
-		info.preferred_refresh_rate = self->session.get_current_refresh_rate();
+		if (std::ranges::find(info.available_refresh_rates, config.preferred_refresh_rate) != info.available_refresh_rates.end())
+			info.preferred_refresh_rate = config.preferred_refresh_rate;
+		else
+			info.preferred_refresh_rate = self->session.get_current_refresh_rate();
 	}
 
 	if (info.preferred_refresh_rate == 0)
@@ -117,8 +122,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	if (info.available_refresh_rates.empty())
 		spdlog::warn("Unable to detect refresh rates");
-
-	const auto & config = application::get_config();
 
 	info.hand_tracking = application::get_hand_tracking_supported();
 	info.eye_gaze = config.check_feature(feature::eye_gaze);
