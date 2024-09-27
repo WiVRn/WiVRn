@@ -188,7 +188,20 @@ modules:
       - type: script
         dest-filename: launch-wivrn-server.sh
         commands:
-        - rm -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+        - if [ -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath ]
+        - then
+        -   mv $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
+        - else
+        -   rm -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
+        - fi
+        -
         - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
         - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+        -
         - wivrn-server
+        -
+        - rm -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+        - if [ -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup ]
+        - then
+        -   mv $XDG_CONFIG_HOME/openvrpaths.vrpath-backup $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+        - fi
