@@ -56,7 +56,6 @@ static std::unique_ptr<TCPListener> listener;
 std::optional<xrt::drivers::wivrn::typed_socket<xrt::drivers::wivrn::UnixDatagram, from_monado::packets, to_monado::packets>> wivrn_ipc_socket_main_loop;
 std::optional<xrt::drivers::wivrn::typed_socket<xrt::drivers::wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;
 
-#ifdef WIVRN_USE_SYSTEMD
 std::filesystem::path socket_path()
 {
 	char sock_file[PATH_MAX];
@@ -65,13 +64,12 @@ std::filesystem::path socket_path()
 	return {sock_file, sock_file + size};
 }
 
+#ifdef WIVRN_USE_SYSTEMD
 int create_listen_socket()
 {
 	sockaddr_un addr{};
 
 	auto sock_file = socket_path();
-
-	std::filesystem::create_directories(sock_file.parent_path());
 
 	addr.sun_family = AF_UNIX;
 	strcpy(addr.sun_path, sock_file.c_str());
@@ -598,6 +596,8 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 		std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
 		std::cerr << "For Steam games, set command to " << steam_command() << std::endl;
 	}
+
+	std::filesystem::create_directories(socket_path().parent_path());
 
 #ifdef WIVRN_USE_SYSTEMD
 	create_listen_socket();
