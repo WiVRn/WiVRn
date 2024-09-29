@@ -8,7 +8,7 @@
 	<description>
 		<p>WiVRn allows you to run your VR games from your PC and play them from a standalone headset.</p>
 
-		<p>You will need to install the WiVRn client on your headset from the APK on Github.</p>
+		<p>You will need to install the WiVRn client on your headset from the Meta Store or by following the wizard in the application.</p>
 
 		<p>Supported headsets:</p>
 		<ul>
@@ -16,7 +16,6 @@
 			<li>Meta Quest 2</li>
 			<li>Meta Quest 3</li>
 			<li>Meta Quest Pro</li>
-			<li>Pico Neo 3</li>
 			<li>Pico Neo 4</li>
 			<li>HTC Vive Focus 3</li>
 			<li>HTC Vive XR Elite</li>
@@ -26,7 +25,7 @@
 			<li>Supports OpenXR and OpenVR applications</li>
 			<li>Controller tracking, hand tracking, eye gaze tracking (if supported by the headset)</li>
 			<li>Audio streaming and microphone</li>
-			<li>Video streaming with H264 / HEVC compression</li>
+			<li>Video streaming with H264 / HEVC / AV1 compression</li>
 			<li>Hardware accelerated compression with VAAPI or NVENC</li>
 			<li>Software compression with x264</li>
 		</ul>
@@ -48,8 +47,16 @@
 
 	<screenshots>
 		<screenshot type="default">
-			<image type="source">https://wivrn.github.io/assets/img/mountains.jpeg</image>
-			<caption>A caption</caption>
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-2-orig.png</image>
+			<caption>Dashboard</caption>
+		</screenshot>
+		<screenshot>
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-1-orig.png</image>
+			<caption>Wizard</caption>
+		</screenshot>
+		<screenshot>
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-3-orig.png</image>
+			<caption>Settings</caption>
 		</screenshot>
 	</screenshots>
 
@@ -59,13 +66,31 @@
 
 	<icon type="stock">io.github.wivrn.wivrn</icon>
 
-	<provides>
-		<binary>launch-wivrn-server</binary>
-	</provides>
-
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="0.20" date="2024-10-12">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.20</url>
+			<description>
+				<ul>
+					<li>Added server dashboard</li>
+					<li>Added optional SolarXR support</li>
+					<li>Network latency improvements</li>
+					<li>More accurate frame pacing</li>
+					<li>Smarter default configuration</li>
+				</ul>
+			</description>
+		</release>
+
+		<release version="0.19.1" date="2024-09-21">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.19.1</url>
+			<description>
+				<ul>
+					<li>Fix possible crash when requesting Android permissions on client</li>
+				</ul>
+			</description>
+		</release>
+
 		<release version="0.19" date="2024-09-19">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.19</url>
 			<description>
