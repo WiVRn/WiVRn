@@ -221,16 +221,3 @@ install(TARGETS ${RUNTIME_TARGET} monado
 	LIBRARY
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/wivrn
 	COMPONENT Runtime)
-
-install(FILES ../flatpak/io.github.wivrn.wivrn.metainfo.xml
-	DESTINATION share/metainfo
-)
-
-install(FILES ../images/wivrn.svg
-	DESTINATION share/icons/hicolor/scalable/apps
-	RENAME io.github.wivrn.wivrn.svg
-)
-
-install(FILES ../flatpak/io.github.wivrn.wivrn.desktop
-	DESTINATION share/applications
-)
