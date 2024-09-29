@@ -134,7 +134,7 @@
                   <string>Stop</string>
                  </property>
                  <property name="icon">
-                  <iconset theme="media-playback-stop"/>
+                  <iconset theme="media-playback-stop-symbolic"/>
                  </property>
                 </widget>
                </item>
@@ -180,7 +180,7 @@
                   <string/>
                  </property>
                  <property name="icon">
-                  <iconset theme="edit-copy"/>
+                  <iconset theme="edit-copy-symbolic"/>
                  </property>
                 </widget>
                </item>
@@ -244,7 +244,7 @@
             <string>Disconnect</string>
            </property>
            <property name="icon">
-            <iconset theme="network-disconnect"/>
+            <iconset theme="network-disconnect-symbolic"/>
            </property>
           </widget>
          </item>
@@ -462,7 +462,7 @@
          <string>About</string>
         </property>
         <property name="icon">
-         <iconset theme="help-about"/>
+         <iconset theme="help-about-symbolic"/>
         </property>
        </widget>
       </item>
@@ -472,7 +472,7 @@
          <string>Exit</string>
         </property>
         <property name="icon">
-         <iconset theme="application-exit"/>
+         <iconset theme="application-exit-symbolic"/>
         </property>
        </widget>
       </item>
@@ -482,7 +482,7 @@
   </widget>
   <action name="action_systray_show">
    <property name="icon">
-    <iconset theme="settings-configure"/>
+    <iconset theme="settings-configure-symbolic"/>
    </property>
    <property name="text">
     <string>&amp;Show</string>
@@ -490,7 +490,7 @@
   </action>
   <action name="action_systray_hide">
    <property name="icon">
-    <iconset theme="settings-configure"/>
+    <iconset theme="preferences-system-symbolic"/>
    </property>
    <property name="text">
     <string>&amp;Hide</string>
@@ -498,7 +498,7 @@
   </action>
   <action name="action_systray_exit">
    <property name="icon">
-    <iconset theme="application-exit"/>
+    <iconset theme="application-exit-symbolic"/>
    </property>
    <property name="text">
     <string>&amp;Exit</string>

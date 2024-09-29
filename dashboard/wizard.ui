@@ -16,9 +16,6 @@
   <property name="modal">
    <bool>true</bool>
   </property>
-  <property name="currentId">
-   <number>1</number>
-  </property>
   <widget class="QWizardPage" name="page_1_select_install_method">
    <property name="title">
     <string>Welcome</string>
@@ -289,7 +286,7 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset theme="edit-copy"/>
+         <iconset theme="edit-copy-symbolic"/>
         </property>
        </widget>
       </item>
@@ -486,7 +483,7 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset theme="edit-copy"/>
+         <iconset theme="edit-copy-symbolic"/>
         </property>
        </widget>
       </item>
