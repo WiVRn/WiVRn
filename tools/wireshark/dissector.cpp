@@ -285,7 +285,7 @@ struct tree_traits<abbrev, T, std::enable_if_t<details::is_struct_v<T>>>
 	}
 
 	template <size_t... I>
-	static void dissect_aux1(proto_tree *tree, tvbuff_t *tvb, int& start, std::index_sequence<I...>)
+	static void dissect_aux1([[maybe_unused]] proto_tree * tree, [[maybe_unused]] tvbuff_t *tvb, int& start, std::index_sequence<I...>)
 	{
 		(dissect_aux2<I>(tree, tvb, start), ...);
 	}
@@ -309,7 +309,7 @@ struct tree_traits<abbrev, T, std::enable_if_t<details::is_struct_v<T>>>
 	}
 
 	template <size_t... I>
-	static size_t size_aux1(tvbuff_t *tvb, int& start, std::index_sequence<I...>)
+	static size_t size_aux1([[maybe_unused]] tvbuff_t *tvb, int& start, std::index_sequence<I...>)
 	{
 		return (size_aux2<I>(tvb, start) + ... + 0);
 	}
@@ -350,7 +350,7 @@ struct tree_traits<abbrev, std::string>
 
 	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
 	{
-		size_t string_size = tvb_get_guint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t string_size = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 
 		proto_tree_add_item(tree, field_handle, tvb, start, string_size, ENC_STRING);
@@ -360,7 +360,7 @@ struct tree_traits<abbrev, std::string>
 
 	static size_t size(tvbuff_t *tvb, int& start)
 	{
-		size_t string_size = tvb_get_guint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t string_size = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 		start += string_size;
 
@@ -403,7 +403,7 @@ struct tree_traits<abbrev, std::vector<T>>
 		proto_item * ti = proto_tree_add_item(tree, field_handle, tvb, start, size2, ENC_NA);
 		proto_tree * subtree = proto_item_add_subtree(ti, subtree_handles.at(abbrev.value));
 
-		size_t count = tvb_get_guint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t count = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 
 		for(size_t i = 0; i < count; i++)
@@ -414,7 +414,7 @@ struct tree_traits<abbrev, std::vector<T>>
 
 	static size_t size(tvbuff_t *tvb, int& start)
 	{
-		size_t count = tvb_get_guint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t count = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 		size_t size = sizeof(uint16_t);
 
@@ -440,7 +440,7 @@ struct tree_traits<abbrev, std::optional<T>>
 		int start2 = start;
 		size_t size2 = size(tvb, start2);
 
-		bool has_value = tvb_get_guint8(tvb, start);
+		bool has_value = tvb_get_uint8(tvb, start);
 
 		if (has_value)
 		{
@@ -457,7 +457,7 @@ struct tree_traits<abbrev, std::optional<T>>
 
 	static size_t size(tvbuff_t *tvb, int& start)
 	{
-		bool has_value = tvb_get_guint8(tvb, start);
+		bool has_value = tvb_get_uint8(tvb, start);
 		start += sizeof(uint8_t);
 		size_t size = sizeof(uint8_t);
 
@@ -555,7 +555,7 @@ struct tree_traits<abbrev, std::variant<T...>>
 
 	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
 	{
-		uint8_t type_index = tvb_get_guint8(tvb, start);
+		uint8_t type_index = tvb_get_uint8(tvb, start);
 		start += 1;
 
 		dissect_aux(tree, tvb, start, type_index, std::make_index_sequence<sizeof...(T)>());
@@ -571,7 +571,7 @@ struct tree_traits<abbrev, std::variant<T...>>
 
 	static size_t size(tvbuff_t *tvb, int& start)
 	{
-		uint8_t type_index = tvb_get_guint8(tvb, start);
+		uint8_t type_index = tvb_get_uint8(tvb, start);
 		start += sizeof(uint8_t);
 
 		return sizeof(uint8_t) + size_aux(tvb, start, type_index, std::make_index_sequence<sizeof...(T)>());
@@ -642,7 +642,7 @@ struct tree_traits<abbrev, std::span<uint8_t>>
 
 	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
 	{
-		size_t span_size = tvb_get_guint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t span_size = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 
 		proto_tree_add_item(tree, field_handle, tvb, start, span_size, ENC_NA);
@@ -652,7 +652,7 @@ struct tree_traits<abbrev, std::span<uint8_t>>
 
 	static size_t size(tvbuff_t *tvb, int& start)
 	{
-		size_t span_size = tvb_get_guint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t span_size = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 		start += span_size;
 

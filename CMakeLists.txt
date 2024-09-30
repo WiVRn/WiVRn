@@ -221,7 +221,7 @@ endif()
 
 add_subdirectory(tools)
 
-foreach(TARGET_NAME wivrn wivrn-server wivrn-common)
+foreach(TARGET_NAME wivrn wivrn-server wivrn-common wivrn-dissector)
     if(TARGET ${TARGET_NAME})
         target_compile_options(${TARGET_NAME} PRIVATE
             -fdiagnostics-color -Wall -Wextra -pedantic
