@@ -42,6 +42,20 @@ Systemd service and pretty hostname support
 
 Additionally, if your environment requires absolute paths inside the OpenXR runtime manifest, you can add `-DWIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH=ON` to the build configuration.
 
+# Dashboard
+
+The WiVRn dashboard requires Qt6, and the WiVRn server.
+
+## Compile
+
+From your checkout directory, compile both the server and the dashboard:
+```bash
+cmake -B build-dashboard . -GNinja -DWIVRN_BUILD_CLIENT=OFF -DWIVRN_BUILD_SERVER=ON -DWIVRN_BUILD_DASHBOARD=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build-dashboard
+```
+
+See [Server](#server-pc) for the server compile options.
+
 # Client (headset)
 
 #### Build dependencies

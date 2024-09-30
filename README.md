@@ -11,9 +11,15 @@ It supports a wide range of headsets such as Quest 1/2/pro/3, Pico Neo 3/4, HTC 
 # Installation
 ## Server (PC)
 
-See [building](docs/building.md).
+See [building](docs/building.md#server-pc).
 
 Packages are available on [AUR for Arch](https://aur.archlinux.org/packages/wivrn-server), [Guru for Gentoo](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn).
+
+## Dashboard
+
+See [building](docs/building.md#dashboard).
+
+Packages are available on [AUR for Arch](https://aur.archlinux.org/packages/wivrn-dashboard), [Guru for Gentoo](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn).
 
 ## Client (headset)
 ### Meta Store (Meta Quest 2/Pro/3)
@@ -89,7 +95,7 @@ WiVRn uses the following software:
 - [HarfBuzz](https://harfbuzz.github.io/)
 - [Monado](https://monado.freedesktop.org/)
 - [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on Nvidia
-- [sd-bus](https://www.freedesktop.org/software/systemd/man/sd-bus.html)
+- [Qt 6](https://www.qt.io/) optional, for the dashboard
 - [spdlog](https://github.com/gabime/spdlog)
 - [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [WebXR input profiles](https://www.npmjs.com/package/@webxr-input-profiles/motion-controllers)
