@@ -35,7 +35,7 @@ std::pair<vk::raii::Buffer, VmaAllocation> basic_allocation_traits<VkBuffer>::cr
 	VmaAllocation allocation;
 	VkBuffer tmp;
 
-	CHECK_VK(vmaCreateBuffer(allocator, &(NativeCreateInfo &)buffer_info, &alloc_info, &tmp, &allocation, nullptr));
+	CHECK_VK(vmaCreateBuffer(allocator, &(const NativeCreateInfo &)buffer_info, &alloc_info, &tmp, &allocation, nullptr));
 
 	return std::pair<vk::raii::Buffer, VmaAllocation>{vk::raii::Buffer{device, tmp}, allocation};
 }
@@ -79,7 +79,7 @@ std::pair<vk::raii::Image, VmaAllocation> basic_allocation_traits<VkImage>::crea
 	VmaAllocation allocation;
 	VkImage tmp;
 
-	CHECK_VK(vmaCreateImage(allocator, &(NativeCreateInfo &)image_info, &alloc_info, &tmp, &allocation, nullptr));
+	CHECK_VK(vmaCreateImage(allocator, &(const NativeCreateInfo &)image_info, &alloc_info, &tmp, &allocation, nullptr));
 
 	return std::pair<vk::raii::Image, VmaAllocation>{vk::raii::Image{device, tmp}, allocation};
 }

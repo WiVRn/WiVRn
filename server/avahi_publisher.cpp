@@ -134,7 +134,7 @@ void avahi_publisher::client_callback(AvahiClient * s,
 }
 
 avahi_publisher::avahi_publisher(const AvahiPoll * poll_api, const std::string & name, std::string type, int port, const std::map<std::string, std::string> & txt) :
-        poll_api(poll_api), name(avahi_strdup(name.c_str())), type(std::move(type)), port(port)
+        name(avahi_strdup(name.c_str())), type(std::move(type)), port(port), poll_api(poll_api)
 {
 	for (const auto & [key, value]: txt)
 	{

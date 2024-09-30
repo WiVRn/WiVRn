@@ -196,7 +196,7 @@ void pipewire_device::mic_process(void * self_v)
 	auto buffer = pw_stream_dequeue_buffer(self->microphone.get());
 	if (not buffer)
 	{
-		pw_log_warn("Out of buffers: %m");
+		U_LOG_W("Out of buffers: %s", strerror(errno));
 		return;
 	}
 
@@ -264,7 +264,7 @@ void pipewire_device::speaker_process(void * self_v)
 	auto buffer = pw_stream_dequeue_buffer(self->speaker.get());
 	if (not buffer)
 	{
-		pw_log_warn("Out of buffers: %m");
+		U_LOG_W("Out of buffers: %s", strerror(errno));
 		return;
 	}
 

@@ -478,7 +478,7 @@ void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & 
 		}
 		if (hdr.msg_iovlen == 0)
 			return;
-		*(uintptr_t *)&hdr.msg_iov[0].iov_base += sent;
+		hdr.msg_iov[0].iov_base = (void *)((uintptr_t)hdr.msg_iov[0].iov_base + sent);
 		hdr.msg_iov[0].iov_len -= sent;
 	}
 }

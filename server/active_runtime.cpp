@@ -51,7 +51,7 @@ std::filesystem::path active_runtime::manifest_path()
 }
 
 active_runtime::active_runtime() :
-        pid(getpid()), active_runtime_json(xdg_config_home() / "openxr/1/active_runtime.json")
+        active_runtime_json(xdg_config_home() / "openxr/1/active_runtime.json"), pid(getpid())
 {
 	try
 	{

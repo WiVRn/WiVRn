@@ -75,7 +75,7 @@ av_buffer_ptr make_hwframe_ctx(AVBufferRef * hw_device_ctx, AVPixelFormat hw_for
 	{
 		throw std::system_error(err, av_error_category(), "Failed to initialize frame context");
 	}
-	return std::move(hw_frames_ref);
+	return hw_frames_ref;
 }
 
 std::optional<std::filesystem::path>

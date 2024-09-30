@@ -176,6 +176,7 @@ const char * permission_name(feature f)
 				case model::unknown:
 					return nullptr;
 			}
+			__builtin_unreachable();
 		case feature::face_tracking:
 			switch (guess_model())
 			{
@@ -192,6 +193,7 @@ const char * permission_name(feature f)
 				case model::unknown:
 					return nullptr;
 			}
+			__builtin_unreachable();
 	}
 	__builtin_unreachable();
 }
