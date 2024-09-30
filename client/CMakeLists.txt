@@ -109,12 +109,6 @@ target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf Free
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_definitions(wivrn PRIVATE -DGLM_ENABLE_EXPERIMENTAL)
-target_compile_options(wivrn PRIVATE -fdiagnostics-color -Wall -Wextra -pedantic) # -Werror
-
-target_compile_options(wivrn PRIVATE -Wno-missing-field-initializers -Wno-unused-parameter
-    $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-volatile>
-    $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-deprecated-volatile>
-)
 
 target_include_directories(wivrn PRIVATE .)
 

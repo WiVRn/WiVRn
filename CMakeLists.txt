@@ -27,6 +27,7 @@ option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the V
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
 option(WIVRN_BUILD_DISSECTOR "Build Wireshark dissector" OFF)
+option(WIVRN_WERROR "Treat warnings as errors" OFF)
 
 option(WIVRN_USE_NVENC "Enable nvenc (Nvidia) hardware encoder" ON)
 auto_option(WIVRN_USE_VAAPI "Enable vaapi (AMD/Intel) hardware encoder" AUTO)
@@ -219,3 +220,24 @@ if (WIVRN_BUILD_SERVER)
 endif()
 
 add_subdirectory(tools)
+
+foreach(TARGET_NAME wivrn wivrn-server wivrn-common)
+    if(TARGET ${TARGET_NAME})
+        target_compile_options(${TARGET_NAME} PRIVATE
+            -fdiagnostics-color -Wall -Wextra -pedantic
+            -Wundef
+            -Wno-missing-field-initializers
+            -Wno-unused-parameter
+            -Wno-comment
+            -Wno-unused-variable
+            -Wno-sign-compare
+            $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-volatile>
+            $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-deprecated-volatile -Wno-unneeded-internal-declaration -Wno-c99-extensions -Wno-unused-private-field>
+        )
+
+        if (WIVRN_WERROR)
+            target_compile_options(${TARGET_NAME} PRIVATE -Werror)
+        endif()
+
+    endif()
+endforeach()
