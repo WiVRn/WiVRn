@@ -1151,7 +1151,7 @@ void application::run()
 		struct android_poll_source * source;
 
 		// TODO signal with a file descriptor instead of a 100ms timeout
-		while (ALooper_pollAll(100, nullptr, &events, (void **)&source) >= 0)
+		while (ALooper_pollOnce(100, nullptr, &events, (void **)&source) >= 0)
 		{
 			// Process this event.
 			if (source != nullptr)

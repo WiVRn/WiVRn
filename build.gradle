@@ -58,7 +58,7 @@ task "generatePngs"() {
 
 android {
     namespace "org.meumeu.wivrn"
-    ndkVersion "26.1.10909125"
+    ndkVersion "27.1.12297006"
 
     defaultConfig {
         applicationId "org.meumeu.wivrn"

@@ -97,7 +97,7 @@ void real_main()
 		int events;
 		struct android_poll_source * source;
 
-		while (ALooper_pollAll(100, nullptr, &events, (void **)&source) >= 0)
+		while (ALooper_pollOnce(100, nullptr, &events, (void **)&source) >= 0)
 		{
 			// Process this event.
 			if (source != nullptr)
