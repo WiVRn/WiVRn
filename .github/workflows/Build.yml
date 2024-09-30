@@ -224,6 +224,9 @@ jobs:
           VERSION_CODE=1
         fi
 
+        sudo rm /usr/local/bin/cmake
+        "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.30.3"
+
         echo Setting version $VERSION and version code $VERSION_CODE in manifest
 
         chmod +x gradlew
@@ -234,7 +237,7 @@ jobs:
         mkdir apk
         mv $(find build/outputs/apk/ -name "*.apk") apk/
         mkdir debug
-        mv build/intermediates/merged_native_libs/*/out/lib/* debug/
+        mv build/intermediates/merged_native_libs/*/*/out/lib/* debug/
         find debug -name libopenxr_loader.so -delete
 
     - name: Archive APK
