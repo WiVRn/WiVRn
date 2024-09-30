@@ -33,6 +33,7 @@
 
 #include "audio/audio_setup.h"
 #include "wivrn_comp_target.h"
+#include "wivrn_config.h"
 #include "wivrn_controller.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
