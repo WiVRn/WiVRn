@@ -48,7 +48,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-static const std::string discover_service = "_wivrn._tcp.local.";
 static bool force_autoconnect = false;
 
 scenes::lobby::~lobby()
