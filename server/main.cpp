@@ -64,7 +64,7 @@ std::filesystem::path socket_path()
 	return {sock_file, sock_file + size};
 }
 
-#ifdef WIVRN_USE_SYSTEMD
+#if WIVRN_USE_SYSTEMD
 int create_listen_socket()
 {
 	sockaddr_un addr{};
@@ -214,7 +214,7 @@ void update_fsm();
 
 void start_app()
 {
-#ifdef WIVRN_USE_SYSTEMD
+#if WIVRN_USE_SYSTEMD
 	app_pid = use_systemd ? start_unit_file() : fork_application();
 #else
 	app_pid = fork_application();
@@ -599,7 +599,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 
 	std::filesystem::create_directories(socket_path().parent_path());
 
-#ifdef WIVRN_USE_SYSTEMD
+#if WIVRN_USE_SYSTEMD
 	create_listen_socket();
 #else
 	assert(not use_systemd);
@@ -670,7 +670,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	avahi_glib_poll_free(glib_poll);
 	g_main_loop_unref(main_loop);
 
-#ifdef WIVRN_USE_SYSTEMD
+#if WIVRN_USE_SYSTEMD
 	std::error_code ec;
 	std::filesystem::remove(socket_path(), ec);
 #endif
@@ -685,7 +685,7 @@ int main(int argc, char * argv[])
 	std::string config_file;
 	app.add_option("-f", config_file, "configuration file")->option_text("FILE")->check(CLI::ExistingFile);
 	auto no_instructions = app.add_flag("--no-instructions")->group("");
-#ifdef WIVRN_USE_SYSTEMD
+#if WIVRN_USE_SYSTEMD
 	// --application should only be used from wivrn-application unit file
 	auto app_flag = app.add_flag("--application")->group("");
 	app.add_flag("--systemd", use_systemd, "use systemd to launch user-configured application");
@@ -696,7 +696,7 @@ int main(int argc, char * argv[])
 	if (not config_file.empty())
 		configuration::set_config_file(config_file);
 
-#ifdef WIVRN_USE_SYSTEMD
+#if WIVRN_USE_SYSTEMD
 	if (*app_flag)
 		return exec_application(configuration::read_user_configuration());
 #endif

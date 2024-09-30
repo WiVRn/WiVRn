@@ -30,10 +30,10 @@
 
 #include "wivrn_config.h"
 
-#ifdef WIVRN_USE_NVENC
+#if WIVRN_USE_NVENC
 #include "video_encoder_nvenc.h"
 #endif
-#ifdef WIVRN_USE_VAAPI
+#if WIVRN_USE_VAAPI
 #include "ffmpeg/video_encoder_va.h"
 #endif
 
@@ -98,7 +98,7 @@ void print_encoders(const std::vector<xrt::drivers::wivrn::encoder_settings> & e
 
 static void check_scale(std::string_view encoder_name, video_codec codec, uint16_t width, uint16_t height, std::array<double, 2> & scale)
 {
-#ifdef WIVRN_USE_NVENC
+#if WIVRN_USE_NVENC
 	if (encoder_name == encoder_nvenc)
 	{
 		auto max = VideoEncoderNvenc::get_max_size(codec);
@@ -116,7 +116,7 @@ static void check_scale(std::string_view encoder_name, video_codec codec, uint16
 #endif
 }
 
-#ifdef WIVRN_USE_VAAPI
+#if WIVRN_USE_VAAPI
 static std::optional<xrt::drivers::wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & codecs)
 {
 	VideoEncoderFFMPEG::mute_logs mute;
@@ -154,9 +154,9 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<xrt::drive
 	{
 		if (is_nvidia(*bundle.physical_device))
 		{
-#ifdef WIVRN_USE_NVENC
+#if WIVRN_USE_NVENC
 			config.name = encoder_nvenc;
-#elif defined(WIVRN_USE_X264)
+#elif WIVRN_USE_X264
 			U_LOG_W("nvidia GPU detected, but nvenc support not compiled");
 			config.name = encoder_x264;
 			config.codec = h264;
@@ -166,9 +166,9 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<xrt::drive
 		}
 		else
 		{
-#ifdef WIVRN_USE_VAAPI
+#if WIVRN_USE_VAAPI
 			config.name = encoder_vaapi;
-#elif defined(WIVRN_USE_X264)
+#elif WIVRN_USE_X264
 			U_LOG_W("ffmpeg support not compiled, vaapi encoder not available");
 			config.name = encoder_x264;
 			config.codec = h264;
@@ -178,7 +178,7 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<xrt::drive
 		}
 	}
 
-#ifdef WIVRN_USE_VAAPI
+#if WIVRN_USE_VAAPI
 	if (config.name == encoder_vaapi and not config.codec)
 	{
 		config.codec = filter_codecs_vaapi(bundle, headset_codecs);
@@ -191,7 +191,7 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<xrt::drive
 	}
 #endif
 
-#ifdef WIVRN_USE_X264
+#if WIVRN_USE_X264
 	if (config.name == encoder_x264)
 		config.codec = h264;
 #endif

@@ -47,11 +47,11 @@
 #include <stdexcept>
 #include <vulkan/vulkan.h>
 
-#ifdef WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
+#if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
 #include "steamvr_lh_interface.h"
 #endif
 
-#ifdef WIVRN_FEATURE_SOLARXR
+#if WIVRN_FEATURE_SOLARXR
 #include "solarxr_device.h"
 #endif
 
@@ -189,7 +189,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		usysds->base.base.static_roles.hand_tracking.right = self->right_hand.get();
 	}
 
-#ifdef WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
+#if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
 	auto use_steamvr_lh = std::getenv("WIVRN_USE_STEAMVR_LH");
 	xrt_system_devices * lhdevs = NULL;
 
@@ -230,7 +230,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		devices->xdevs[n++] = self->fb_face2_tracker.get();
 	}
 
-#ifdef WIVRN_FEATURE_SOLARXR
+#if WIVRN_FEATURE_SOLARXR
 	xrt_device * solar_devs[XRT_SYSTEM_MAX_DEVICES];
 	uint32_t solar_devs_cap = XRT_SYSTEM_MAX_DEVICES - devices->xdev_count;
 	uint32_t num_devs = solarxr_device_create_xdevs(self->hmd.get(), solar_devs, XRT_SYSTEM_MAX_DEVICES - devices->xdev_count);

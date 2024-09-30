@@ -29,13 +29,13 @@
 
 #include "wivrn_config.h"
 
-#ifdef WIVRN_USE_NVENC
+#if WIVRN_USE_NVENC
 #include "video_encoder_nvenc.h"
 #endif
-#ifdef WIVRN_USE_VAAPI
+#if WIVRN_USE_VAAPI
 #include "ffmpeg/video_encoder_va.h"
 #endif
-#ifdef WIVRN_USE_X264
+#if WIVRN_USE_X264
 #include "video_encoder_x264.h"
 #endif
 
@@ -108,7 +108,7 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 	std::unique_ptr<VideoEncoder> res;
 	if (settings.encoder_name == encoder_x264)
 	{
-#ifdef WIVRN_USE_X264
+#if WIVRN_USE_X264
 		res = std::make_unique<VideoEncoderX264>(wivrn_vk, settings, fps);
 #else
 		throw std::runtime_error("x264 encoder not enabled");
@@ -116,7 +116,7 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 	}
 	if (settings.encoder_name == encoder_nvenc)
 	{
-#ifdef WIVRN_USE_NVENC
+#if WIVRN_USE_NVENC
 		res = std::make_unique<VideoEncoderNvenc>(wivrn_vk, settings, fps);
 #else
 		throw std::runtime_error("nvenc support not enabled");
@@ -124,7 +124,7 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 	}
 	if (settings.encoder_name == encoder_vaapi)
 	{
-#ifdef WIVRN_USE_VAAPI
+#if WIVRN_USE_VAAPI
 		res = std::make_unique<video_encoder_va>(wivrn_vk, settings, fps);
 #else
 		throw std::runtime_error("vaapi support not enabled");

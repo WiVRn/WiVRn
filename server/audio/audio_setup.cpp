@@ -22,11 +22,11 @@
 #include "util/u_logging.h"
 #include "wivrn_config.h"
 
-#ifdef WIVRN_USE_PULSEAUDIO
+#if WIVRN_USE_PULSEAUDIO
 #include "audio_pulse.h"
 #endif
 
-#ifdef WIVRN_USE_PIPEWIRE
+#if WIVRN_USE_PIPEWIRE
 #include "audio_pipewire.h"
 #endif
 
@@ -38,12 +38,12 @@ std::shared_ptr<audio_device> audio_device::create(
         const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
         xrt::drivers::wivrn::wivrn_session & session)
 {
-#ifdef WIVRN_USE_PIPEWIRE
+#if WIVRN_USE_PIPEWIRE
 	if (auto res = create_pipewire_handle(source_name, source_description, sink_name, sink_description, info, session))
 		return res;
 #endif
 
-#ifdef WIVRN_USE_PULSEAUDIO
+#if WIVRN_USE_PULSEAUDIO
 	if (auto res = create_pulse_handle(source_name, source_description, sink_name, sink_description, info, session))
 		return res;
 #endif

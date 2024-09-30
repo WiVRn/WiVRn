@@ -19,16 +19,16 @@
 
 #pragma once
 
-#cmakedefine WIVRN_USE_NVENC
-#cmakedefine WIVRN_USE_VAAPI
-#cmakedefine WIVRN_USE_X264
+#cmakedefine01 WIVRN_USE_NVENC
+#cmakedefine01 WIVRN_USE_VAAPI
+#cmakedefine01 WIVRN_USE_X264
 
-#cmakedefine WIVRN_USE_SYSTEMD
+#cmakedefine01 WIVRN_USE_SYSTEMD
 
-#cmakedefine WIVRN_USE_PIPEWIRE
-#cmakedefine WIVRN_USE_PULSEAUDIO
+#cmakedefine01 WIVRN_USE_PIPEWIRE
+#cmakedefine01 WIVRN_USE_PULSEAUDIO
 
-#cmakedefine WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
-#cmakedefine WIVRN_FEATURE_SOLARXR
+#cmakedefine01 WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
+#cmakedefine01 WIVRN_FEATURE_SOLARXR
 
 #define WIVRN_INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@"
