@@ -1,13 +1,9 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 project(WiVRn VERSION 0.0.0 LANGUAGES C CXX)
 
 # Set default for FetchContent projects
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
-    cmake_policy(SET CMP0135 NEW)
-endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -175,18 +171,18 @@ if (WIVRN_BUILD_DISSECTOR)
 endif()
 
 # Common dependencies
-FetchContent_Declare(boostpfr      EXCLUDE_FROM_ALL URL https://github.com/boostorg/pfr/archive/refs/tags/2.2.0.tar.gz)
-FetchContent_Declare(boost         EXCLUDE_FROM_ALL URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz)
+FetchContent_Declare(boostpfr      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/boostorg/pfr/archive/refs/tags/2.2.0.tar.gz)
+FetchContent_Declare(boost         EXCLUDE_FROM_ALL SYSTEM URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz)
 # Client dependencies
-FetchContent_Declare(simdjson      EXCLUDE_FROM_ALL URL https://github.com/simdjson/simdjson/archive/refs/tags/v3.9.3.tar.gz)
-FetchContent_Declare(fastgltf      EXCLUDE_FROM_ALL URL https://github.com/spnda/fastgltf/archive/refs/tags/v0.7.1.tar.gz)
-FetchContent_Declare(glm           EXCLUDE_FROM_ALL URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
-FetchContent_Declare(openxr_loader EXCLUDE_FROM_ALL URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.0.34.tar.gz)
-FetchContent_Declare(spdlog        EXCLUDE_FROM_ALL URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz)
-FetchContent_Declare(stb           EXCLUDE_FROM_ALL URL https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.zip)
-FetchContent_Declare(libktx        EXCLUDE_FROM_ALL URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/v4.3.0.tar.gz)
-FetchContent_Declare(implot        EXCLUDE_FROM_ALL URL https://github.com/epezent/implot/archive/refs/tags/v0.16.tar.gz)
-FetchContent_Declare(imgui         EXCLUDE_FROM_ALL URL https://github.com/ocornut/imgui/archive/refs/tags/v1.90.1.tar.gz)
+FetchContent_Declare(simdjson      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/simdjson/simdjson/archive/refs/tags/v3.9.3.tar.gz)
+FetchContent_Declare(fastgltf      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/spnda/fastgltf/archive/refs/tags/v0.7.1.tar.gz)
+FetchContent_Declare(glm           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/g-truc/glm/archive/refs/tags/0.9.9.8.tar.gz)
+FetchContent_Declare(openxr_loader EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.0.34.tar.gz)
+FetchContent_Declare(spdlog        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/gabime/spdlog/archive/refs/tags/v1.11.0.tar.gz)
+FetchContent_Declare(stb           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.zip)
+FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/v4.3.0.tar.gz)
+FetchContent_Declare(implot        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/epezent/implot/archive/refs/tags/v0.16.tar.gz)
+FetchContent_Declare(imgui         EXCLUDE_FROM_ALL SYSTEM URL https://github.com/ocornut/imgui/archive/refs/tags/v1.90.1.tar.gz)
 # Use the docking branch of imgui to use multi-viewport
 # FetchContent_Declare(imgui         EXCLUDE_FROM_ALL URL https://github.com/ocornut/imgui/archive/ce0d0ac8298ce164b5d862577e8b087d92f6e90e.zip)
 
