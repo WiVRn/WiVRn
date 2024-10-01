@@ -50,6 +50,7 @@ jobs:
         -DWIVRN_USE_SYSTEM_BOOST=OFF
         -DWIVRN_USE_PULSEAUDIO=ON
         -DWIVRN_USE_PIPEWIRE=ON
+        -DWIVRN_WERROR=ON
 
     - name: Package build dependencies
       # For easier packaging, build dependencies are made available as a separate archive
@@ -130,6 +131,7 @@ jobs:
         -DWIVRN_BUILD_CLIENT=ON
         -DWIVRN_BUILD_DISSECTOR=OFF
         -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+        -DWIVRN_WERROR=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -165,6 +167,7 @@ jobs:
         -DWIVRN_BUILD_DISSECTOR=ON
         -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
         -DWIVRN_USE_SYSTEM_BOOST=OFF
+        -DWIVRN_WERROR=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
