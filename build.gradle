@@ -60,6 +60,10 @@ android {
     namespace "org.meumeu.wivrn"
     ndkVersion "27.1.12297006"
 
+    lint {
+        disable += "ExpiredTargetSdkVersion"
+    }
+
     defaultConfig {
         applicationId "org.meumeu.wivrn"
         // for Vulkan, need at least 24
