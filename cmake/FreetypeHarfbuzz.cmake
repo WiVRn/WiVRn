@@ -14,7 +14,8 @@ else()
         if (EXISTS ${CMAKE_SOURCE_DIR}/freetype-${FREETYPE_VERSION}.tar.xz)
             file(CREATE_LINK ${CMAKE_SOURCE_DIR}/freetype-${FREETYPE_VERSION}.tar.xz ${CMAKE_BINARY_DIR}/freetype-${FREETYPE_VERSION}.tar.xz SYMBOLIC)
         else()
-            file(DOWNLOAD https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE_VERSION}.tar.xz ${CMAKE_BINARY_DIR}/freetype-${FREETYPE_VERSION}.tar.xz
+            file(DOWNLOAD https://downloads.sourceforge.net/project/freetype/freetype2/${FREETYPE_VERSION}/freetype-${FREETYPE_VERSION}.tar.xz
+                "${CMAKE_BINARY_DIR}/freetype-${FREETYPE_VERSION}.tar.xz"
                 EXPECTED_HASH SHA256=12991c4e55c506dd7f9b765933e62fd2be2e06d421505d7950a132e4f1bb484d)
         endif()
     endif()
