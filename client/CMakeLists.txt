@@ -66,7 +66,8 @@ else()
     file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
 endif()
 
-target_sources(wivrn PRIVATE
+add_library(wivrn-imgui STATIC)
+target_sources(wivrn-imgui PRIVATE
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
@@ -78,13 +79,17 @@ target_sources(wivrn PRIVATE
     ${implot_SOURCE_DIR}/implot_items.cpp
 )
 
-target_include_directories(wivrn PRIVATE ${imgui_SOURCE_DIR})
-target_include_directories(wivrn PRIVATE ${implot_SOURCE_DIR})
-# target_compile_definitions(wivrn PRIVATE "IMGUI_USER_CONFIG=\"render/imgui_config.h\"")
-target_compile_definitions(wivrn PRIVATE IMGUI_USE_WCHAR32)
-target_compile_definitions(wivrn PRIVATE IMGUI_ENABLE_FREETYPE)
-# target_compile_definitions(wivrn PRIVATE IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
-# target_compile_definitions(wivrn PRIVATE IMGUI_ENABLE_FREETYPE_LUNASVG)
+target_include_directories(wivrn-imgui PUBLIC ${imgui_SOURCE_DIR})
+target_include_directories(wivrn-imgui PUBLIC ${implot_SOURCE_DIR})
+# target_compile_definitions(wivrn-imgui PUBLIC "IMGUI_USER_CONFIG=\"render/imgui_config.h\"")
+target_compile_definitions(wivrn-imgui PUBLIC IMGUI_USE_WCHAR32)
+target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE)
+# target_compile_definitions(wivrn-imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
+# target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
+target_compile_features(wivrn-imgui PRIVATE cxx_std_20)
+target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
+
+target_link_libraries(wivrn wivrn-imgui)
 
 target_compile_features(wivrn PRIVATE cxx_std_20)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
