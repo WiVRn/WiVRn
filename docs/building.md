@@ -56,6 +56,11 @@ Review and accept the licenses with
 sdkmanager --sdk_root="${HOME}/Android" --licenses
 ```
 
+Install the correct cmake version with
+```bash
+sdkmanager --install "cmake;3.30.3"
+```
+
 #### Apk signing
 Your device may refuse to install an unsigned apk, so you must create signing keys before building the client
 ```
