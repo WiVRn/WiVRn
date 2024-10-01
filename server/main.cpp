@@ -322,7 +322,8 @@ void kill_server()
 	// FIXME: server doesn't listen on stdin when used in socket activation mode
 	// Write to the server's stdin to make it quit
 	char buffer[] = "\n";
-	(void)write(stdin_pipe_fds[1], &buffer, strlen(buffer));
+	if (write(stdin_pipe_fds[1], &buffer, strlen(buffer)) < 0)
+		std::cerr << "Cannot stop monado properly." << std::endl;
 
 	// Send SIGTERM after 1s if it is still running
 	server_kill_watch = g_timeout_add(1000, [](void *) {
