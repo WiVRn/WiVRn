@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <chrono>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <epan/ftypes/ftypes.h>
 #include <epan/packet.h>
@@ -31,6 +31,28 @@
 #include <epan/proto.h>
 #include <epan/unit_strings.h>
 #include <ws_version.h>
+
+#if WIRESHARK_VERSION_MAJOR > 4 || (WIRESHARK_VERSION_MAJOR == 4 && WIRESHARK_VERSION_MINOR >= 4)
+static inline uint16_t get_uint16(tvbuff_t * tvb, const int offset, const unsigned encoding)
+{
+	return tvb_get_uint16(tvb, offset, encoding);
+}
+
+static inline uint16_t get_uint8(tvbuff_t * tvb, const int offset)
+{
+	return tvb_get_uint8(tvb, offset);
+}
+#else
+static inline uint16_t get_uint16(tvbuff_t * tvb, const int offset, const unsigned encoding)
+{
+	return tvb_get_guint16(tvb, offset, encoding);
+}
+
+static inline uint16_t get_uint8(tvbuff_t * tvb, const int offset)
+{
+	return tvb_get_guint8(tvb, offset);
+}
+#endif
 
 using namespace xrt::drivers::wivrn;
 
@@ -54,7 +76,8 @@ inline constexpr bool is_stdarray_v = is_stdarray<T>::value;
 template <typename T>
 inline constexpr bool is_struct_v = std::is_aggregate_v<T> && !is_stdarray_v<T>;
 
-template<size_t N> struct fixed_string
+template <size_t N>
+struct fixed_string
 {
 	char value[N];
 
@@ -77,8 +100,8 @@ template<size_t N> struct fixed_string
 	}
 };
 
-template<size_t N1, size_t N2>
-consteval auto join(const fixed_string<N1>& str1, const fixed_string<N2>& str2) -> fixed_string<N1 + N2>
+template <size_t N1, size_t N2>
+consteval auto join(const fixed_string<N1> & str1, const fixed_string<N2> & str2) -> fixed_string<N1 + N2>
 {
 	fixed_string<N1 + N2> value;
 	std::copy_n(str1.value, N1, &value.value[0]);
@@ -87,8 +110,8 @@ consteval auto join(const fixed_string<N1>& str1, const fixed_string<N2>& str2) 
 	return value;
 }
 
-template<size_t N1, size_t N2>
-consteval auto join(const fixed_string<N1>& str1, std::string_view str2)
+template <size_t N1, size_t N2>
+consteval auto join(const fixed_string<N1> & str1, std::string_view str2)
 {
 	fixed_string<N1 + N2 + 1> value;
 	std::copy_n(str1.value, N1, &value.value[0]);
@@ -97,7 +120,7 @@ consteval auto join(const fixed_string<N1>& str1, std::string_view str2)
 	return value;
 }
 
-std::string name_from_abbrev(const std::string& name)
+std::string name_from_abbrev(const std::string & name)
 {
 	auto pos = name.find_last_of('.');
 	if (pos == std::string::npos)
@@ -106,7 +129,7 @@ std::string name_from_abbrev(const std::string& name)
 		return name.substr(pos + 1);
 }
 
-template<typename T>
+template <typename T>
 constexpr auto type_name()
 {
 	constexpr std::string_view sv = __PRETTY_FUNCTION__;
@@ -121,28 +144,39 @@ constexpr auto type_name()
 	return fixed_string<sv4.size() + 1>(sv4);
 }
 
-template<typename T> ftenum field_type = FT_NONE;
+template <typename T>
+ftenum field_type = FT_NONE;
 
-template<> ftenum field_type<bool> = FT_BOOLEAN;
-template<> ftenum field_type<uint8_t> = FT_UINT8;
-template<> ftenum field_type<uint16_t> = FT_UINT16;
-template<> ftenum field_type<uint32_t> = FT_UINT32;
-template<> ftenum field_type<uint64_t> = FT_UINT64;
-template<> ftenum field_type<int8_t> = FT_INT8;
-template<> ftenum field_type<int16_t> = FT_INT16;
-template<> ftenum field_type<int32_t> = FT_INT32;
-template<> ftenum field_type<int64_t> = FT_INT64;
-template<> ftenum field_type<float> = FT_FLOAT;
-template<> ftenum field_type<double> = FT_DOUBLE;
+template <>
+ftenum field_type<bool> = FT_BOOLEAN;
+template <>
+ftenum field_type<uint8_t> = FT_UINT8;
+template <>
+ftenum field_type<uint16_t> = FT_UINT16;
+template <>
+ftenum field_type<uint32_t> = FT_UINT32;
+template <>
+ftenum field_type<uint64_t> = FT_UINT64;
+template <>
+ftenum field_type<int8_t> = FT_INT8;
+template <>
+ftenum field_type<int16_t> = FT_INT16;
+template <>
+ftenum field_type<int32_t> = FT_INT32;
+template <>
+ftenum field_type<int64_t> = FT_INT64;
+template <>
+ftenum field_type<float> = FT_FLOAT;
+template <>
+ftenum field_type<double> = FT_DOUBLE;
 
-}
+} // namespace details
 
 template <details::fixed_string abbrev, typename T, typename Enable = void>
 struct tree_traits;
 
 std::unordered_map<std::string, int> subtree_handles;
 std::vector<hf_register_info> fields;
-
 
 template <details::fixed_string abbrev, typename T>
 struct tree_traits<abbrev, T, std::enable_if_t<std::is_arithmetic_v<T>>>
@@ -151,23 +185,22 @@ struct tree_traits<abbrev, T, std::enable_if_t<std::is_arithmetic_v<T>>>
 	static void info()
 	{
 		hf_register_info hf = {
-			.p_id = &field_handle,
-			.hfinfo = {
-				.name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
-				.abbrev = abbrev.value,
-				.type = details::field_type<T>,
-				.display = BASE_DEC,
-				.strings = nullptr,
-				.bitmask = 0,
-				.blurb = "",
-			}
-		};
+		        .p_id = &field_handle,
+		        .hfinfo = {
+		                .name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
+		                .abbrev = abbrev.value,
+		                .type = details::field_type<T>,
+		                .display = BASE_DEC,
+		                .strings = nullptr,
+		                .bitmask = 0,
+		                .blurb = "",
+		        }};
 		HFILL_INIT(hf);
 
 		fields.push_back(hf);
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 		std::string s = abbrev.value;
 		auto member = s.substr(s.find_last_of('.') + 1);
@@ -182,7 +215,7 @@ struct tree_traits<abbrev, T, std::enable_if_t<std::is_arithmetic_v<T>>>
 		start += sizeof(T);
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
 		start += sizeof(T);
 		return sizeof(T);
@@ -200,7 +233,7 @@ struct tree_traits<abbrev, T, std::enable_if_t<std::is_enum_v<T>>>
 	static void info()
 	{
 		value_string * strings = new value_string[entries.size() + 1];
-		for(size_t i = 0; i < entries.size(); i++)
+		for (size_t i = 0; i < entries.size(); i++)
 		{
 			strings[i].value = (uint32_t)entries[i].first;
 			strings[i].strptr = strndup(entries[i].second.data(), entries[i].second.size());
@@ -208,29 +241,28 @@ struct tree_traits<abbrev, T, std::enable_if_t<std::is_enum_v<T>>>
 		strings[entries.size()] = {0, nullptr};
 
 		hf_register_info hf = {
-			.p_id = &field_handle,
-			.hfinfo = {
-				.name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
-				.abbrev = abbrev.value,
-				.type = details::field_type<U>,
-				.display = BASE_DEC,
-				.strings = strings,
-				.bitmask = 0,
-				.blurb = "",
-			}
-		};
+		        .p_id = &field_handle,
+		        .hfinfo = {
+		                .name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
+		                .abbrev = abbrev.value,
+		                .type = details::field_type<U>,
+		                .display = BASE_DEC,
+		                .strings = strings,
+		                .bitmask = 0,
+		                .blurb = "",
+		        }};
 		HFILL_INIT(hf);
 
 		fields.push_back(hf);
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 		proto_tree_add_item(tree, field_handle, tvb, start, sizeof(U), ENC_LITTLE_ENDIAN);
 		start += sizeof(U);
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
 		start += sizeof(U);
 		return sizeof(U);
@@ -259,17 +291,16 @@ struct tree_traits<abbrev, T, std::enable_if_t<details::is_struct_v<T>>>
 	{
 		subtree_handles.emplace(abbrev.value, -1);
 		hf_register_info hf = {
-			.p_id = &field_handle,
-			.hfinfo = {
-				.name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
-				.abbrev = abbrev.value,
-				.type = FT_NONE,
-				.display = BASE_NONE,
-				.strings = nullptr,
-				.bitmask = 0,
-				.blurb = "",
-			}
-		};
+		        .p_id = &field_handle,
+		        .hfinfo = {
+		                .name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
+		                .abbrev = abbrev.value,
+		                .type = FT_NONE,
+		                .display = BASE_NONE,
+		                .strings = nullptr,
+		                .bitmask = 0,
+		                .blurb = "",
+		        }};
 		HFILL_INIT(hf);
 
 		fields.push_back(hf);
@@ -278,19 +309,19 @@ struct tree_traits<abbrev, T, std::enable_if_t<details::is_struct_v<T>>>
 	}
 
 	template <size_t I>
-	static void dissect_aux2(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect_aux2(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 		constexpr static auto names = boost::pfr::names_as_array<T>();
 		tree_traits<details::join<abbrev.size(), names[I].size()>(abbrev, names[I]), boost::pfr::tuple_element_t<I, T>>::dissect(tree, tvb, start);
 	}
 
 	template <size_t... I>
-	static void dissect_aux1([[maybe_unused]] proto_tree * tree, [[maybe_unused]] tvbuff_t *tvb, int& start, std::index_sequence<I...>)
+	static void dissect_aux1([[maybe_unused]] proto_tree * tree, [[maybe_unused]] tvbuff_t * tvb, int & start, std::index_sequence<I...>)
 	{
 		(dissect_aux2<I>(tree, tvb, start), ...);
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 		int start2 = start;
 		size_t size2 = size(tvb, start2);
@@ -302,19 +333,19 @@ struct tree_traits<abbrev, T, std::enable_if_t<details::is_struct_v<T>>>
 	}
 
 	template <size_t I>
-	static size_t size_aux2(tvbuff_t *tvb, int& start)
+	static size_t size_aux2(tvbuff_t * tvb, int & start)
 	{
 		constexpr static auto names = boost::pfr::names_as_array<T>();
 		return tree_traits<details::join<abbrev.size(), names[I].size()>(abbrev, names[I]), boost::pfr::tuple_element_t<I, T>>::size(tvb, start);
 	}
 
 	template <size_t... I>
-	static size_t size_aux1([[maybe_unused]] tvbuff_t *tvb, int& start, std::index_sequence<I...>)
+	static size_t size_aux1([[maybe_unused]] tvbuff_t * tvb, int & start, std::index_sequence<I...>)
 	{
 		return (size_aux2<I>(tvb, start) + ... + 0);
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
 		return size_aux1(tvb, start, std::make_index_sequence<boost::pfr::tuple_size_v<T>>());
 	}
@@ -328,29 +359,28 @@ struct tree_traits<abbrev, std::string>
 	static void info()
 	{
 		hf_register_info hf = {
-			.p_id = &field_handle,
-			.hfinfo = {
-				.name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
-				.abbrev = abbrev.value,
-				.type = FT_STRING,
+		        .p_id = &field_handle,
+		        .hfinfo = {
+		                .name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
+		                .abbrev = abbrev.value,
+		                .type = FT_STRING,
 #if WIRESHARK_VERSION_MAJOR >= 4 && WIRESHARK_VERSION_MINOR >= 2
-				.display = BASE_STR_WSP,
+		                .display = BASE_STR_WSP,
 #else
-				.display = BASE_NONE,
+		                .display = BASE_NONE,
 #endif
-				.strings = nullptr,
-				.bitmask = 0,
-				.blurb = "",
-			}
-		};
+		                .strings = nullptr,
+		                .bitmask = 0,
+		                .blurb = "",
+		        }};
 		HFILL_INIT(hf);
 
 		fields.push_back(hf);
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
-		size_t string_size = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t string_size = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 
 		proto_tree_add_item(tree, field_handle, tvb, start, string_size, ENC_STRING);
@@ -358,9 +388,9 @@ struct tree_traits<abbrev, std::string>
 		start += string_size;
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
-		size_t string_size = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t string_size = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 		start += string_size;
 
@@ -377,17 +407,16 @@ struct tree_traits<abbrev, std::vector<T>>
 	{
 		subtree_handles.emplace(abbrev.value, -1);
 		hf_register_info hf = {
-			.p_id = &field_handle,
-			.hfinfo = {
-				.name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
-				.abbrev = abbrev.value,
-				.type = FT_NONE,
-				.display = BASE_NONE,
-				.strings = nullptr,
-				.bitmask = 0,
-				.blurb = "",
-			}
-		};
+		        .p_id = &field_handle,
+		        .hfinfo = {
+		                .name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
+		                .abbrev = abbrev.value,
+		                .type = FT_NONE,
+		                .display = BASE_NONE,
+		                .strings = nullptr,
+		                .bitmask = 0,
+		                .blurb = "",
+		        }};
 		HFILL_INIT(hf);
 
 		fields.push_back(hf);
@@ -395,7 +424,7 @@ struct tree_traits<abbrev, std::vector<T>>
 		tree_traits<details::join(abbrev, details::type_name<T>()), T>::info();
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 		int start2 = start;
 		size_t size2 = size(tvb, start2);
@@ -403,22 +432,22 @@ struct tree_traits<abbrev, std::vector<T>>
 		proto_item * ti = proto_tree_add_item(tree, field_handle, tvb, start, size2, ENC_NA);
 		proto_tree * subtree = proto_item_add_subtree(ti, subtree_handles.at(abbrev.value));
 
-		size_t count = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t count = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 
-		for(size_t i = 0; i < count; i++)
+		for (size_t i = 0; i < count; i++)
 		{
 			tree_traits<details::join(abbrev, details::type_name<T>()), T>::dissect(subtree, tvb, start);
 		}
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
-		size_t count = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t count = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 		size_t size = sizeof(uint16_t);
 
-		for(size_t i = 0; i < count; i++)
+		for (size_t i = 0; i < count; i++)
 		{
 			size += tree_traits<details::join(abbrev, details::type_name<T>()), T>::size(tvb, start);
 		}
@@ -435,12 +464,12 @@ struct tree_traits<abbrev, std::optional<T>>
 		tree_traits<abbrev, T>::info();
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 		int start2 = start;
 		size_t size2 = size(tvb, start2);
 
-		bool has_value = tvb_get_uint8(tvb, start);
+		bool has_value = get_uint8(tvb, start);
 
 		if (has_value)
 		{
@@ -455,9 +484,9 @@ struct tree_traits<abbrev, std::optional<T>>
 		}
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
-		bool has_value = tvb_get_uint8(tvb, start);
+		bool has_value = get_uint8(tvb, start);
 		start += sizeof(uint8_t);
 		size_t size = sizeof(uint8_t);
 
@@ -479,17 +508,16 @@ struct tree_traits<abbrev, std::array<T, N>>
 	{
 		subtree_handles.emplace(abbrev.value, -1);
 		hf_register_info hf = {
-			.p_id = &field_handle,
-			.hfinfo = {
-				.name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
-				.abbrev = abbrev.value,
-				.type = FT_NONE,
-				.display = BASE_NONE,
-				.strings = nullptr,
-				.bitmask = 0,
-				.blurb = "",
-			}
-		};
+		        .p_id = &field_handle,
+		        .hfinfo = {
+		                .name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
+		                .abbrev = abbrev.value,
+		                .type = FT_NONE,
+		                .display = BASE_NONE,
+		                .strings = nullptr,
+		                .bitmask = 0,
+		                .blurb = "",
+		        }};
 		HFILL_INIT(hf);
 
 		fields.push_back(hf);
@@ -497,7 +525,7 @@ struct tree_traits<abbrev, std::array<T, N>>
 		tree_traits<details::join(abbrev, details::type_name<T>()), T>::info();
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 		int start2 = start;
 		size_t size2 = size(tvb, start2);
@@ -505,17 +533,17 @@ struct tree_traits<abbrev, std::array<T, N>>
 		proto_item * ti = proto_tree_add_item(tree, field_handle, tvb, start, size2, ENC_NA);
 		proto_tree * subtree = proto_item_add_subtree(ti, subtree_handles.at(abbrev.value));
 
-		for(size_t i = 0; i < N; i++)
+		for (size_t i = 0; i < N; i++)
 		{
 			tree_traits<details::join(abbrev, details::type_name<T>()), T>::dissect(subtree, tvb, start);
 		}
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
 		size_t size = 0;
 
-		for(size_t i = 0; i < N; i++)
+		for (size_t i = 0; i < N; i++)
 		{
 			size += tree_traits<details::join(abbrev, details::type_name<T>()), T>::size(tvb, start);
 		}
@@ -548,30 +576,30 @@ struct tree_traits<abbrev, std::variant<T...>>
 	}
 
 	template <size_t... I>
-	static void dissect_aux(proto_tree *tree, tvbuff_t *tvb, int& start, size_t type_index, std::index_sequence<I...>)
+	static void dissect_aux(proto_tree * tree, tvbuff_t * tvb, int & start, size_t type_index, std::index_sequence<I...>)
 	{
 		((I == type_index ? (void)(tree_traits<details::join(abbrev, details::type_name<i_th_type<I>>()), i_th_type<I>>::dissect(tree, tvb, start)) : (void)0), ...);
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
-		uint8_t type_index = tvb_get_uint8(tvb, start);
+		uint8_t type_index = get_uint8(tvb, start);
 		start += 1;
 
 		dissect_aux(tree, tvb, start, type_index, std::make_index_sequence<sizeof...(T)>());
 	}
 
 	template <size_t... I>
-	static size_t size_aux(tvbuff_t *tvb, int& start, size_t type_index, std::index_sequence<I...>)
+	static size_t size_aux(tvbuff_t * tvb, int & start, size_t type_index, std::index_sequence<I...>)
 	{
 		size_t value;
 		((I == type_index ? (void)(value = tree_traits<details::join(abbrev, details::type_name<i_th_type<I>>()), i_th_type<I>>::size(tvb, start)) : (void)0), ...);
 		return value;
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
-		uint8_t type_index = tvb_get_uint8(tvb, start);
+		uint8_t type_index = get_uint8(tvb, start);
 		start += sizeof(uint8_t);
 
 		return sizeof(uint8_t) + size_aux(tvb, start, type_index, std::make_index_sequence<sizeof...(T)>());
@@ -587,29 +615,28 @@ struct tree_traits<abbrev, std::chrono::nanoseconds>
 	static void info()
 	{
 		hf_register_info hf = {
-			.p_id = &field_handle,
-			.hfinfo = {
-				.name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
-				.abbrev = abbrev.value,
-				.type = details::field_type<T>,
-				.display = BASE_DEC | BASE_UNIT_STRING,
-				.strings = &units_nanoseconds,
-				.bitmask = 0,
-				.blurb = "",
-			}
-		};
+		        .p_id = &field_handle,
+		        .hfinfo = {
+		                .name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
+		                .abbrev = abbrev.value,
+		                .type = details::field_type<T>,
+		                .display = BASE_DEC | BASE_UNIT_STRING,
+		                .strings = &units_nanoseconds,
+		                .bitmask = 0,
+		                .blurb = "",
+		        }};
 		HFILL_INIT(hf);
 
 		fields.push_back(hf);
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 		proto_tree_add_item(tree, field_handle, tvb, start, sizeof(T), ENC_LITTLE_ENDIAN);
 		start += sizeof(T);
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
 		start += sizeof(T);
 		return sizeof(T);
@@ -624,25 +651,24 @@ struct tree_traits<abbrev, std::span<uint8_t>>
 	static void info()
 	{
 		hf_register_info hf = {
-			.p_id = &field_handle,
-			.hfinfo = {
-				.name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
-				.abbrev = abbrev.value,
-				.type = FT_BYTES,
-				.display = BASE_NONE,
-				.strings = nullptr,
-				.bitmask = 0,
-				.blurb = "",
-			}
-		};
+		        .p_id = &field_handle,
+		        .hfinfo = {
+		                .name = strdup(details::name_from_abbrev(abbrev.value).c_str()),
+		                .abbrev = abbrev.value,
+		                .type = FT_BYTES,
+		                .display = BASE_NONE,
+		                .strings = nullptr,
+		                .bitmask = 0,
+		                .blurb = "",
+		        }};
 		HFILL_INIT(hf);
 
 		fields.push_back(hf);
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
-		size_t span_size = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t span_size = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 
 		proto_tree_add_item(tree, field_handle, tvb, start, span_size, ENC_NA);
@@ -650,9 +676,9 @@ struct tree_traits<abbrev, std::span<uint8_t>>
 		start += span_size;
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
-		size_t span_size = tvb_get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
+		size_t span_size = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 		start += span_size;
 
@@ -667,16 +693,15 @@ struct tree_traits<abbrev, data_holder>
 	{
 	}
 
-	static void dissect(proto_tree *tree, tvbuff_t *tvb, int& start)
+	static void dissect(proto_tree * tree, tvbuff_t * tvb, int & start)
 	{
 	}
 
-	static size_t size(tvbuff_t *tvb, int& start)
+	static size_t size(tvbuff_t * tvb, int & start)
 	{
 		return 0;
 	}
 };
-
 
 int dissect_wivrn(tvbuff_t * tvb, packet_info * pinfo, proto_tree * tree _U_, void * data _U_, bool tcp)
 {
@@ -695,7 +720,6 @@ int dissect_wivrn(tvbuff_t * tvb, packet_info * pinfo, proto_tree * tree _U_, vo
 		tree_traits<"wivrn.from_headset", from_headset::packets>::dissect(subtree, tvb, start);
 	else
 		tree_traits<"wivrn.to_headset", to_headset::packets>::dissect(subtree, tvb, start);
-
 
 	return tvb_captured_length(tvb);
 }
@@ -717,14 +741,14 @@ void proto_register_wivrn()
 	tree_traits<"wivrn.to_headset", to_headset::packets>::info();
 
 	proto = proto_register_protocol(
-		"WiVRn protocol",
-		"WiVRn",
-		"wivrn");
+	        "WiVRn protocol",
+	        "WiVRn",
+	        "wivrn");
 
 	proto_register_field_array(proto, fields.data(), fields.size());
 
-	std::vector<int*> tree;
-	for(auto& [i,j]: subtree_handles)
+	std::vector<int *> tree;
+	for (auto & [i, j]: subtree_handles)
 	{
 		tree.push_back(&j);
 	}
