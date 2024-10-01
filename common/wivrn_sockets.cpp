@@ -260,7 +260,7 @@ std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> xrt::driver
 
 	size_t size = recvfrom(fd, nullptr, 0, MSG_PEEK | MSG_TRUNC, (sockaddr *)&addr, &addrlen);
 
-#if __cpp_lib_smart_ptr_for_overwrite >= 202002L
+#if defined(__cpp_lib_smart_ptr_for_overwrite) && __cpp_lib_smart_ptr_for_overwrite >= 202002L
 	auto buffer = std::make_shared_for_overwrite<uint8_t[]>(size);
 #else
 	std::shared_ptr<uint8_t[]> buffer(new uint8_t[size]);
@@ -296,7 +296,7 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::UDP::receive_ra
 
 	static const size_t message_size = 2048;
 	static const size_t num_messages = 20;
-#if __cpp_lib_smart_ptr_for_overwrite >= 202002L
+#if defined(__cpp_lib_smart_ptr_for_overwrite) && __cpp_lib_smart_ptr_for_overwrite >= 202002L
 	buffer = std::make_shared_for_overwrite<uint8_t[]>(message_size * num_messages);
 #else
 	buffer.reset(new uint8_t[message_size * num_messages]);
@@ -378,7 +378,7 @@ xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_ra
 		size_t new_size = std::max<size_t>(data.size_bytes() + expected_size,
 		                                   4096);
 		auto old = std::move(buffer);
-#if __cpp_lib_smart_ptr_for_overwrite >= 202002L
+#if defined(__cpp_lib_smart_ptr_for_overwrite) && __cpp_lib_smart_ptr_for_overwrite >= 202002L
 		buffer = std::make_shared_for_overwrite<uint8_t[]>(new_size);
 #else
 		buffer.reset(new uint8_t[new_size]);
