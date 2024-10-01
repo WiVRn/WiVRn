@@ -12,6 +12,7 @@ jobs:
           - 'client'
           - 'server'
           - 'common'
+          - 'tools/wireshark'
     steps:
     - uses: actions/checkout@v4
     - name: Run clang-format style check for C/C++/Protobuf programs.
