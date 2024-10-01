@@ -188,7 +188,12 @@ private:
 		pollfds.reserve(sockets.size() + 1);
 
 		int fds[2];
-		pipe(fds);
+		if (pipe(fds) < 0)
+		{
+			spdlog::error("Cannot create pipe: {}", strerror(errno));
+			abort();
+		}
+
 		itc_fd = fds[1];
 		pollfds.push_back({.fd = fds[0], .events = POLLIN});
 
@@ -408,7 +413,8 @@ public:
 
 		if (pollfds[0].revents & POLLIN)
 		{
-			::read(pollfds[0].fd, buffer.data(), buffer.size());
+			if (::read(pollfds[0].fd, buffer.data(), buffer.size()) < 0)
+				spdlog::debug("Cannot read from interthread pipe");
 		}
 
 		for (size_t i = 1; i < pollfds.size(); i++)
@@ -423,7 +429,8 @@ public:
 	void stop_polling()
 	{
 		char c = 0;
-		write(itc_fd, &c, 1);
+		if (write(itc_fd, &c, 1) < 0)
+			spdlog::debug("Cannot write to interthread pipe");
 	}
 
 	template <typename T>
