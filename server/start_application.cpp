@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <vector>
 
-#ifdef WIVRN_USE_SYSTEMD
+#if WIVRN_USE_SYSTEMD
 #include <chrono>
 #include <iostream>
 #include <string>
