@@ -764,10 +764,28 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	}
 
 	// Network operations may be blocking, do them once everything was submitted
-	for (const auto & handle: blit_handles)
 	{
-		if (handle)
-			send_feedback(handle->feedback);
+		std::vector<serialization_packet> packets;
+		packets.reserve(blit_handles.size());
+		for (const auto & handle: blit_handles)
+		{
+			if (handle)
+			{
+				auto & packet = packets.emplace_back();
+				wivrn_session::control_socket_t::serialize(packet, handle->feedback);
+			}
+		}
+		if (not packets.empty())
+		{
+			try
+			{
+				network_session->send_control(std::span(packets));
+			}
+			catch (std::exception & e)
+			{
+				spdlog::warn("Exception while sending feedback packet: {}", e.what());
+			}
+		}
 	}
 
 	read_actions();
