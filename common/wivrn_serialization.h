@@ -138,6 +138,10 @@ public:
 		serialization_traits<T>::serialize(value, *this);
 	}
 
+	operator const std::vector<std::span<uint8_t>> *()
+	{
+		return &this->operator const std::vector<std::span<uint8_t>> &();
+	}
 	operator const std::vector<std::span<uint8_t>> &()
 	{
 		exp_spans.clear();

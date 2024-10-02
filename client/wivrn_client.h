@@ -27,8 +27,13 @@ using namespace xrt::drivers::wivrn;
 
 class wivrn_session
 {
-	typed_socket<TCP, to_headset::packets, from_headset::packets> control;
-	typed_socket<UDP, to_headset::packets, from_headset::packets> stream;
+public:
+	using control_socket_t = typed_socket<TCP, to_headset::packets, from_headset::packets>;
+	using stream_socket_t = typed_socket<UDP, to_headset::packets, from_headset::packets>;
+
+private:
+	control_socket_t control;
+	stream_socket_t stream;
 
 	template <typename T>
 	void handshake(T address, bool tcp_only);

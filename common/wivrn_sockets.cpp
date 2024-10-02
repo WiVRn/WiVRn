@@ -359,6 +359,40 @@ void xrt::drivers::wivrn::UDP::send_raw(const std::vector<std::span<uint8_t>> & 
 		throw std::system_error{errno, std::generic_category()};
 }
 
+void xrt::drivers::wivrn::UDP::send_many_raw(std::span<const std::vector<std::span<uint8_t>> *> data)
+{
+	thread_local std::vector<iovec> iovecs;
+	thread_local std::vector<mmsghdr> mmsgs;
+	iovecs.clear();
+	mmsgs.clear();
+	for (const auto & message: data)
+	{
+		for (const auto & span: *message)
+		{
+			iovecs.push_back(
+			        {
+			                .iov_base = span.data(),
+			                .iov_len = span.size_bytes(),
+			        });
+		}
+	}
+	size_t i = 0;
+	for (const auto & message: data)
+	{
+		mmsgs.push_back(
+		        {
+		                .msg_hdr = {
+		                        .msg_iov = &iovecs[i],
+		                        .msg_iovlen = message->size(),
+		                },
+		        });
+		i += message->size();
+	}
+	// sendmmsg may not send all messages, just consider them as lost for UDP
+	if (sendmmsg(fd, mmsgs.data(), mmsgs.size(), 0) < 0)
+		throw std::system_error{errno, std::generic_category()};
+}
+
 xrt::drivers::wivrn::deserialization_packet xrt::drivers::wivrn::TCP::receive_raw()
 {
 	ssize_t expected_size;
@@ -459,6 +493,62 @@ void xrt::drivers::wivrn::TCP::send_raw(const std::vector<std::span<uint8_t>> & 
 	while (true)
 	{
 		const auto & data = spans[0];
+		ssize_t sent = ::sendmsg(fd, &hdr, MSG_NOSIGNAL);
+
+		if (sent == 0)
+			throw socket_shutdown{};
+
+		if (sent < 0)
+			throw std::system_error{errno, std::generic_category()};
+
+		bytes_sent_ += sent;
+
+		// iov fully consumed
+		while (hdr.msg_iovlen > 0 and sent >= hdr.msg_iov[0].iov_len)
+		{
+			sent -= hdr.msg_iov[0].iov_len;
+			++hdr.msg_iov;
+			--hdr.msg_iovlen;
+		}
+		if (hdr.msg_iovlen == 0)
+			return;
+		hdr.msg_iov[0].iov_base = (void *)((uintptr_t)hdr.msg_iov[0].iov_base + sent);
+		hdr.msg_iov[0].iov_len -= sent;
+	}
+}
+
+void xrt::drivers::wivrn::TCP::send_many_raw(std::span<const std::vector<std::span<uint8_t>> *> data)
+{
+	thread_local std::vector<iovec> iovecs;
+	thread_local std::vector<uint16_t> sizes;
+	iovecs.clear();
+	sizes.clear();
+
+	sizes.reserve(data.size());
+	for (const auto & spans: data)
+	{
+		auto & size = sizes.emplace_back(0);
+		iovecs.emplace_back(&size, sizeof(size));
+		for (const auto & span: *spans)
+		{
+			size += span.size_bytes();
+			iovecs.emplace_back(span.data(), span.size_bytes());
+		}
+	}
+
+	msghdr hdr{
+	        .msg_name = nullptr,
+	        .msg_namelen = 0,
+	        .msg_iov = iovecs.data(),
+	        .msg_iovlen = iovecs.size(),
+	        .msg_control = nullptr,
+	        .msg_controllen = 0,
+	        .msg_flags = 0,
+	};
+
+	std::lock_guard lock(*mutex);
+	while (true)
+	{
 		ssize_t sent = ::sendmsg(fd, &hdr, MSG_NOSIGNAL);
 
 		if (sent == 0)

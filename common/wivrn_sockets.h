@@ -112,6 +112,7 @@ public:
 	std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();
 	void send_raw(const std::vector<uint8_t> & data);
 	void send_raw(const std::vector<std::span<uint8_t>> & data);
+	void send_many_raw(std::span<const std::vector<std::span<uint8_t>> *> data);
 
 	void connect(in6_addr address, int port);
 	void connect(in_addr address, int port);
@@ -140,6 +141,7 @@ public:
 	deserialization_packet receive_raw();
 	deserialization_packet receive_pending();
 	void send_raw(const std::vector<std::span<uint8_t>> & data);
+	void send_many_raw(std::span<const std::vector<std::span<uint8_t>> *> data);
 };
 
 using UnixDatagram = UDP;
@@ -212,15 +214,31 @@ public:
 		return packet.deserialize<ReceivedType>();
 	}
 
+	// WARNING: serialization packet keeps references to data
 	template <typename T>
-	void send(T && data)
+	static void serialize(serialization_packet & p, const T & data)
 	{
-		thread_local serialization_packet p;
 		p.clear();
 		uint8_t index = details::Index<std::decay_t<T>, std::tuple<VariantTypes...>>::value;
 		p.serialize(index);
-		p.serialize(std::forward<T>(data));
+		p.serialize(data);
+	}
+
+	template <typename T>
+	void send(const T & data)
+	{
+		thread_local serialization_packet p;
+		serialize(p, data);
 		this->send_raw(p);
+	}
+
+	void send(const std::span<serialization_packet> & packets)
+	{
+		thread_local std::vector<const std::vector<std::span<uint8_t>> *> data;
+		data.clear();
+		for (auto & packet: packets)
+			data.emplace_back(packet);
+		this->send_many_raw(data);
 	}
 };
 

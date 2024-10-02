@@ -82,18 +82,9 @@ class timer
 public:
 	timer(xr::instance & instance) :
 	        instance(instance) {}
-	void pause()
-	{
-		duration += instance.now() - start;
-	}
-	void resume()
-	{
-		start = instance.now();
-	}
 	XrDuration count()
 	{
-		pause();
-		return duration;
+		return instance.now() - start;
 	}
 };
 } // namespace
@@ -200,13 +191,19 @@ void scenes::stream::tracking()
 	const XrDuration dt = 100'000;          // Wake up 0.1ms before measuring the position
 
 	XrTime t0 = instance.now();
-	from_headset::tracking packet{};
+	std::vector<from_headset::tracking> tracking;
+	std::vector<from_headset::hand_tracking> hands;
+	std::vector<from_headset::fb_face2> face;
 	int skip_samples = 0;
 
 	while (not exiting)
 	{
 		try
 		{
+			tracking.clear();
+			hands.clear();
+			face.clear();
+
 			XrTime now = instance.now();
 			if (now < t0)
 				std::this_thread::sleep_for(std::chrono::nanoseconds(t0 - now - dt));
@@ -216,12 +213,6 @@ void scenes::stream::tracking()
 
 			timer t(instance);
 			int samples = 0;
-
-			auto send_stream = [&, this](auto && data) {
-				t.pause();
-				network_session->send_stream(data);
-				t.resume();
-			};
 
 			to_headset::tracking_control control;
 			{
@@ -233,16 +224,9 @@ void scenes::stream::tracking()
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
 			for (XrDuration Δt = 0; Δt <= prediction + period / 2; Δt += period, ++samples)
 			{
-				from_headset::hand_tracking hands{};
-				from_headset::fb_face2 fb_face2{};
-
+				auto & packet = tracking.emplace_back();
 				packet.production_timestamp = t0;
-				hands.production_timestamp = t0;
-				fb_face2.production_timestamp = t0;
-
 				packet.timestamp = t0 + Δt;
-				hands.timestamp = t0 + Δt;
-				fb_face2.timestamp = t0 + Δt;
 
 				try
 				{
@@ -268,29 +252,30 @@ void scenes::stream::tracking()
 							packet.device_poses.push_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
-					send_stream(packet);
-
 					if (application::get_hand_tracking_supported())
 					{
 						if (control.enabled[size_t(tid::left_hand)])
-						{
-							hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::left;
-							hands.joints = locate_hands(application::get_left_hand(), world_space, hands.timestamp);
-							send_stream(hands);
-						}
+							hands.emplace_back(
+							        t0,
+							        t0 + Δt,
+							        from_headset::hand_tracking::left,
+							        locate_hands(application::get_left_hand(), world_space, t0 + Δt));
 
 						if (control.enabled[size_t(tid::right_hand)])
-						{
-							hands.hand = xrt::drivers::wivrn::from_headset::hand_tracking::right;
-							hands.joints = locate_hands(application::get_right_hand(), world_space, hands.timestamp);
-							send_stream(hands);
-						}
+							hands.emplace_back(
+							        t0,
+							        t0 + Δt,
+							        from_headset::hand_tracking::right,
+							        locate_hands(application::get_right_hand(), world_space, t0 + Δt));
 					}
 
 					if (application::get_fb_face_tracking2_supported() and control.enabled[size_t(tid::face)])
 					{
+						auto & fb_face2 = face.emplace_back();
+						fb_face2.production_timestamp = t0;
+						fb_face2.timestamp = t0 + Δt;
+
 						application::get_fb_face_tracker2().get_weights(t0 + Δt, &fb_face2);
-						send_stream(fb_face2);
 					}
 				}
 				catch (const std::system_error & e)
@@ -345,6 +330,17 @@ void scenes::stream::tracking()
 				spdlog::info("Battery check took: {}", battery_dur);
 			}
 #endif
+
+			std::vector<serialization_packet> packets;
+			packets.reserve(tracking.size() + hands.size() + face.size());
+			for (const auto & i: tracking)
+				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+			for (const auto & i: hands)
+				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+			for (const auto & i: face)
+				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+
+			network_session->send_stream(std::span(packets));
 
 			t0 += tracking_period;
 		}
