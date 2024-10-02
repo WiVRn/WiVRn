@@ -372,12 +372,12 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 
 	if (application::read_action_bool(recenter_left_action).value_or(std::pair{0, false}).second)
 	{
-		aim = application::locate_controller(application::left_aim(), world_space, predicted_display_time);
+		aim = application::locate_controller(application::space(xr::spaces::aim_left), application::space(xr::spaces::world), predicted_display_time);
 	}
 
 	if (application::read_action_bool(recenter_right_action).value_or(std::pair{0, false}).second)
 	{
-		aim = application::locate_controller(application::right_aim(), world_space, predicted_display_time);
+		aim = application::locate_controller(application::space(xr::spaces::aim_right), application::space(xr::spaces::world), predicted_display_time);
 	}
 
 	if (aim)
@@ -534,13 +534,14 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	session.begin_frame();
 
+	XrSpace world_space = application::space(xr::spaces::world);
 	auto [flags, views] = session.locate_views(viewconfig, frame_state.predictedDisplayTime, world_space);
 	assert(views.size() == swapchains_lobby.size());
 
 	bool hide_left_controller = false;
 	bool hide_right_controller = false;
 
-	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::view(), world_space, frame_state.predictedDisplayTime);
+	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::space(xr::spaces::view), world_space, frame_state.predictedDisplayTime);
 	std::optional<glm::vec3> new_gui_position;
 
 	if (head_position)
@@ -731,7 +732,7 @@ void scenes::lobby::on_focused()
 	}
 
 	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 1500, 1000);
-	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, world_space, imgui_inputs, swapchain_imgui, glm::vec2{0.6, 0.4});
+	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, application::space(xr::spaces::world), imgui_inputs, swapchain_imgui, glm::vec2{0.6, 0.4});
 
 	try
 	{

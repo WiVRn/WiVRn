@@ -115,15 +115,9 @@ class application : public singleton<application>
 	xr::session xr_session;
 	XrSessionState session_state = XR_SESSION_STATE_UNKNOWN;
 
-	xr::space world_space;
-	xr::space view_space;
+	std::array<xr::space, size_t(xr::spaces::count)> spaces;
 	xr::actionset xr_actionset;
 	std::vector<std::tuple<XrAction, XrActionType, std::string>> actions;
-	xr::space left_grip_space;
-	xr::space left_aim_space;
-	xr::space right_grip_space;
-	xr::space right_aim_space;
-	xr::space eye_gaze_space;
 
 	bool hand_tracking_supported = false;
 	xr::hand_tracker left_hand;
@@ -294,30 +288,11 @@ public:
 		return (T)proc;
 	}
 
-	static XrSpace view()
+	static XrSpace space(xr::spaces s)
 	{
-		return instance().view_space;
-	};
-	static XrSpace left_grip()
-	{
-		return instance().left_grip_space;
-	};
-	static XrSpace left_aim()
-	{
-		return instance().left_aim_space;
-	};
-	static XrSpace right_grip()
-	{
-		return instance().right_grip_space;
-	};
-	static XrSpace right_aim()
-	{
-		return instance().right_aim_space;
-	};
-	static XrSpace eye_gaze()
-	{
-		return instance().eye_gaze_space;
-	};
+		assert(size_t(s) >= 0 and s < xr::spaces::count);
+		return instance().spaces[size_t(s)];
+	}
 
 	static wifi_lock & get_wifi_lock()
 	{

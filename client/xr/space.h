@@ -25,4 +25,17 @@
 namespace xr
 {
 using space = utils::handle<XrSpace, xrDestroySpace>;
+
+enum class spaces
+{
+	world,
+	view,
+	eye_gaze,
+	grip_left,
+	grip_right,
+	aim_left,
+	aim_right,
+
+	count
+};
 } // namespace xr

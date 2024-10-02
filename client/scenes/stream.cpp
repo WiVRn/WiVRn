@@ -94,7 +94,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	auto [flags, views] = self->session.locate_views(
 	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
 	        self->instance.now(),
-	        application::view());
+	        application::space(xr::spaces::view));
 
 	assert(views.size() == info.fov.size());
 
@@ -209,7 +209,7 @@ void scenes::stream::on_focused()
 		                  device,
 		                  queue_family_index,
 		                  queue,
-		                  view_space,
+		                  application::space(xr::spaces::world),
 		                  std::span<imgui_context::controller>{},
 		                  swapchain_imgui,
 		                  glm::vec2{1.0, 0.6666});
@@ -734,7 +734,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	XrCompositionLayerProjection layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
 	        .layerFlags = 0,
-	        .space = world_space,
+	        .space = application::space(xr::spaces::world),
 	        .viewCount = (uint32_t)layer_view.size(),
 	        .views = layer_view.data(),
 	};

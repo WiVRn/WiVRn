@@ -73,8 +73,6 @@ protected:
 	xr::instance & instance;
 	xr::system & system;
 	xr::session & session;
-	xr::space & world_space;
-	xr::space & view_space;
 	XrViewConfigurationType viewconfig;
 	bool focused = false;
 

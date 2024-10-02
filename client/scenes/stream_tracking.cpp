@@ -176,16 +176,17 @@ void scenes::stream::tracking()
 	const XrDuration battery_check_interval = 30'000'000'000; // 30s
 #endif
 	std::vector<std::pair<device_id, XrSpace>> spaces = {
-	        {device_id::HEAD, application::view()},
-	        {device_id::LEFT_AIM, application::left_aim()},
-	        {device_id::LEFT_GRIP, application::left_grip()},
-	        {device_id::RIGHT_AIM, application::right_aim()},
-	        {device_id::RIGHT_GRIP, application::right_grip()}};
+	        {device_id::HEAD, application::space(xr::spaces::view)},
+	        {device_id::LEFT_AIM, application::space(xr::spaces::aim_left)},
+	        {device_id::LEFT_GRIP, application::space(xr::spaces::grip_left)},
+	        {device_id::RIGHT_AIM, application::space(xr::spaces::aim_right)},
+	        {device_id::RIGHT_GRIP, application::space(xr::spaces::grip_right)}};
 
 	if (application::get_eye_gaze_supported())
-		spaces.push_back({device_id::EYE_GAZE, application::eye_gaze()});
+		spaces.push_back({device_id::EYE_GAZE, application::space(xr::spaces::eye_gaze)});
 
-	XrSpace view_space = application::view();
+	XrSpace view_space = application::space(xr::spaces::view);
+	XrSpace world_space = application::space(xr::spaces::world);
 	XrDuration tracking_period = 1'000'000; // Send tracking data every 1ms
 	const XrDuration dt = 100'000;          // Wake up 0.1ms before measuring the position
 

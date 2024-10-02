@@ -30,8 +30,6 @@ scene::scene(key, const meta & current_meta) :
         instance(application::instance().xr_instance),
         system(application::instance().xr_system_id),
         session(application::instance().xr_session),
-        world_space(application::instance().world_space),
-        view_space(application::instance().view_space),
         viewconfig(application::instance().app_info.viewconfig),
 
         vk_instance(application::instance().vk_instance),

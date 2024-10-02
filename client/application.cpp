@@ -650,15 +650,15 @@ void application::initialize_actions()
 		actions_by_name.emplace(name, a);
 
 		if (name == "/user/hand/left/input/grip/pose")
-			left_grip_space = xr_session.create_action_space(a);
+			spaces[size_t(xr::spaces::grip_left)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/left/input/aim/pose")
-			left_aim_space = xr_session.create_action_space(a);
+			spaces[size_t(xr::spaces::aim_left)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/right/input/grip/pose")
-			right_grip_space = xr_session.create_action_space(a);
+			spaces[size_t(xr::spaces::grip_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/right/input/aim/pose")
-			right_aim_space = xr_session.create_action_space(a);
+			spaces[size_t(xr::spaces::aim_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/eyes_ext/input/gaze_ext/pose")
-			eye_gaze_space = xr_session.create_action_space(a);
+			spaces[size_t(xr::spaces::eye_gaze)] = xr_session.create_action_space(a);
 	}
 
 	// Build an action set for each scene
@@ -828,16 +828,15 @@ void application::initialize()
 
 	xr_session = xr::session(xr_instance, xr_system_id, vk_instance, vk_physical_device, vk_device, vk_queue_family_index);
 
-	auto spaces = xr_session.get_reference_spaces();
-	spdlog::info("{} reference spaces", spaces.size());
-	for (XrReferenceSpaceType i: spaces)
 	{
-		spdlog::info("    {}", xr::to_string(i));
+		auto spaces = xr_session.get_reference_spaces();
+		spdlog::info("{} reference spaces", spaces.size());
+		for (XrReferenceSpaceType i: spaces)
+			spdlog::info("    {}", xr::to_string(i));
 	}
 
-	view_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
-	world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
-	// world_space = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_LOCAL);
+	spaces[size_t(xr::spaces::view)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
+	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
 	config.emplace(xr_system_id);
 	if (xr_instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))

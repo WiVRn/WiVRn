@@ -211,9 +211,9 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 
 		XrSpace space;
 		if (layout == "left")
-			space = application::left_grip();
+			space = application::space(xr::spaces::grip_left);
 		else if (layout == "right")
-			space = application::right_grip();
+			space = application::space(xr::spaces::grip_right);
 		else
 			continue;
 
@@ -292,13 +292,13 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bo
 {
 	for (auto && [space, node]: model_handles)
 	{
-		if (space == application::left_grip() && hide_left)
+		if (space == application::space(xr::spaces::grip_left) && hide_left)
 		{
 			node->visible = false;
 			continue;
 		}
 
-		if (space == application::right_grip() && hide_right)
+		if (space == application::space(xr::spaces::grip_right) && hide_right)
 		{
 			node->visible = false;
 			continue;
