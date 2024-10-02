@@ -18,11 +18,8 @@
 
 #pragma once
 
-#include "../common/wivrn_packets.h"
 #include "utils/handle.h"
-#include <array>
-#include <optional>
-#include <utility>
+#include "wivrn_packets.h"
 #include <openxr/openxr.h>
 
 #include "instance.h"
@@ -39,15 +36,7 @@ class fb_face_tracker2 : public utils::handle<XrFaceTracker2FB, destroy_fb_face_
 public:
 	fb_face_tracker2() = default;
 	fb_face_tracker2(instance & inst, XrFaceTracker2FB h);
-	fb_face_tracker2(fb_face_tracker2 &&) = default;
-	fb_face_tracker2 & operator=(fb_face_tracker2 &&) = default;
 
-	~fb_face_tracker2()
-	{
-		if (id != XR_NULL_HANDLE && xrDestroyFaceTracker2FB)
-			xrDestroyFaceTracker2FB(id);
-	}
-
-	void get_weights(XrTime time, struct xrt::drivers::wivrn::from_headset::fb_face2 * out_expressions);
+	void get_weights(XrTime time, struct xrt::drivers::wivrn::from_headset::tracking::fb_face2 & out_expressions);
 };
 } // namespace xr

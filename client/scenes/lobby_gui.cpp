@@ -611,7 +611,7 @@ static void ScrollWhenDraggingOnVoid(ImVec2 delta)
 
 static auto face_weights()
 {
-	using weights = decltype(xrt::drivers::wivrn::from_headset::fb_face2{}.weights);
+	using weights = decltype(xrt::drivers::wivrn::from_headset::tracking::fb_face2{}.weights);
 	using item = std::pair<const char *, std::array<float, XR_FACE_EXPRESSION2_COUNT_FB>>;
 	std::vector<item> res;
 
@@ -794,8 +794,8 @@ static auto face_weights()
 static const char * get_face_icon(XrTime predicted_display_time)
 {
 	static const auto w = face_weights();
-	xrt::drivers::wivrn::from_headset::fb_face2 expression;
-	application::get_fb_face_tracker2().get_weights(predicted_display_time, &expression);
+	xrt::drivers::wivrn::from_headset::tracking::fb_face2 expression;
+	application::get_fb_face_tracker2().get_weights(predicted_display_time, expression);
 
 	if (not expression.is_valid)
 		return ICON_FA_FACE_MEH;

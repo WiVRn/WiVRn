@@ -43,10 +43,10 @@ static from_headset::tracking::pose locate_space(device_id device, XrSpace space
 	xrLocateSpace(space, reference, time, &location);
 
 	from_headset::tracking::pose res{
-	        .device = device,
 	        .pose = location.pose,
 	        .linear_velocity = velocity.linearVelocity,
 	        .angular_velocity = velocity.angularVelocity,
+	        .device = device,
 	        .flags = 0,
 	};
 
@@ -77,7 +77,6 @@ class timer
 {
 	xr::instance & instance;
 	XrTime start = instance.now();
-	XrDuration duration = 0;
 
 public:
 	timer(xr::instance & instance) :
@@ -193,7 +192,6 @@ void scenes::stream::tracking()
 	XrTime t0 = instance.now();
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::hand_tracking> hands;
-	std::vector<from_headset::fb_face2> face;
 	int skip_samples = 0;
 
 	while (not exiting)
@@ -202,7 +200,6 @@ void scenes::stream::tracking()
 		{
 			tracking.clear();
 			hands.clear();
-			face.clear();
 
 			XrTime now = instance.now();
 			if (now < t0)
@@ -271,11 +268,7 @@ void scenes::stream::tracking()
 
 					if (application::get_fb_face_tracking2_supported() and control.enabled[size_t(tid::face)])
 					{
-						auto & fb_face2 = face.emplace_back();
-						fb_face2.production_timestamp = t0;
-						fb_face2.timestamp = t0 + Δt;
-
-						application::get_fb_face_tracker2().get_weights(t0 + Δt, &fb_face2);
+						application::get_fb_face_tracker2().get_weights(t0 + Δt, packet.face.emplace());
 					}
 				}
 				catch (const std::system_error & e)
@@ -331,14 +324,34 @@ void scenes::stream::tracking()
 			}
 #endif
 
+			std::vector<from_headset::trackings> merged_tracking(1);
+			size_t current_size = 0;
+			for (auto & item: tracking)
+			{
+				size_t size =
+				        3 * 8                                   // XrTime, XrViewStateFlags
+				        + 1                                     // state_flags
+				        + 88                                    // views
+				        + 2 + item.device_poses.size() * 54     // size + data
+				        + 1 + (item.face ? 70 * 4 * 2 + 2 : 0); // face
+				if (size + current_size > 1400)
+				{
+					merged_tracking.emplace_back();
+					current_size = 0;
+				}
+				current_size += size;
+				merged_tracking.back().items.push_back(std::move(item));
+			}
+
 			std::vector<serialization_packet> packets;
-			packets.reserve(tracking.size() + hands.size() + face.size());
-			for (const auto & i: tracking)
+			packets.reserve(merged_tracking.size() + hands.size());
+			for (const auto & i: merged_tracking)
 				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
 			for (const auto & i: hands)
-				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
-			for (const auto & i: face)
-				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+			{
+				if (i.joints)
+					wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+			}
 
 			network_session->send_stream(std::span(packets));
 

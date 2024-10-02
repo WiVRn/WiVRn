@@ -137,9 +137,9 @@ public:
 
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::headset_info_packet &&);
-	void operator()(from_headset::tracking &&);
+	void operator()(from_headset::trackings &&);
+	void operator()(const from_headset::tracking &);
 	void operator()(from_headset::hand_tracking &&);
-	void operator()(from_headset::fb_face2 &&);
 	void operator()(from_headset::inputs &&);
 	void operator()(from_headset::timesync_response &&);
 	void operator()(from_headset::feedback &&);

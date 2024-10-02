@@ -35,7 +35,7 @@ xr::fb_face_tracker2::fb_face_tracker2(instance & inst, XrFaceTracker2FB h)
 	xrDestroyFaceTracker2FB = inst.get_proc<PFN_xrDestroyFaceTracker2FB>("xrDestroyFaceTracker2FB");
 }
 
-void xr::fb_face_tracker2::get_weights(XrTime time, xrt::drivers::wivrn::from_headset::fb_face2 * out_expressions)
+void xr::fb_face_tracker2::get_weights(XrTime time, xrt::drivers::wivrn::from_headset::tracking::fb_face2 & out_expressions)
 {
 	if (!id || !xrGetFaceExpressionWeights2FB)
 		return;
@@ -49,14 +49,14 @@ void xr::fb_face_tracker2::get_weights(XrTime time, xrt::drivers::wivrn::from_he
 	XrFaceExpressionWeights2FB expression_weights{
 	        .type = XR_TYPE_FACE_EXPRESSION_WEIGHTS2_FB,
 	        .next = nullptr,
-	        .weightCount = (uint32_t)out_expressions->weights.size(),
-	        .weights = out_expressions->weights.data(),
-	        .confidenceCount = (uint32_t)out_expressions->confidences.size(),
-	        .confidences = out_expressions->confidences.data(),
+	        .weightCount = (uint32_t)out_expressions.weights.size(),
+	        .weights = out_expressions.weights.data(),
+	        .confidenceCount = (uint32_t)out_expressions.confidences.size(),
+	        .confidences = out_expressions.confidences.data(),
 	};
 
 	CHECK_XR(xrGetFaceExpressionWeights2FB(id, &info, &expression_weights));
 
-	out_expressions->is_valid = expression_weights.isValid;
-	out_expressions->is_eye_following_blendshapes_valid = expression_weights.isEyeFollowingBlendshapesValid;
+	out_expressions.is_valid = expression_weights.isValid;
+	out_expressions.is_eye_following_blendshapes_valid = expression_weights.isEyeFollowingBlendshapesValid;
 }

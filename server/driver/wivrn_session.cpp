@@ -293,7 +293,12 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 {
 	U_LOG_W("unexpected headset info packet, ignoring");
 }
-void wivrn_session::operator()(from_headset::tracking && tracking)
+void wivrn_session::operator()(from_headset::trackings && tracking)
+{
+	for (auto & item: tracking.items)
+		(*this)(item);
+}
+void wivrn_session::operator()(const from_headset::tracking & tracking)
 {
 	if (tracking.state_flags & from_headset::tracking::state_flags::recentered)
 	{
@@ -339,6 +344,8 @@ void wivrn_session::operator()(from_headset::tracking && tracking)
 		eye_tracker->update_tracking(tracking, offset);
 	if (foveation)
 		foveation->update_tracking(tracking, offset);
+	if (fb_face2_tracker)
+		fb_face2_tracker->update_tracking(tracking, offset);
 }
 
 void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
@@ -347,15 +354,6 @@ void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 
 	left_hand->update_hand_tracking(hand_tracking, offset);
 	right_hand->update_hand_tracking(hand_tracking, offset);
-}
-void wivrn_session::operator()(from_headset::fb_face2 && fb_face2)
-{
-	if (not fb_face2_tracker)
-		return;
-
-	auto offset = offset_est.get_offset();
-
-	fb_face2_tracker->update_tracking(fb_face2, offset);
 }
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {

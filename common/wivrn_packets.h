@@ -138,10 +138,10 @@ struct tracking
 
 	struct pose
 	{
-		device_id device;
 		XrPosef pose;
 		XrVector3f linear_velocity;
 		XrVector3f angular_velocity;
+		device_id device;
 		uint8_t flags;
 	};
 
@@ -160,6 +160,20 @@ struct tracking
 
 	std::array<view, 2> views;
 	std::vector<pose> device_poses;
+
+	struct fb_face2
+	{
+		std::array<float, XR_FACE_EXPRESSION2_COUNT_FB> weights;
+		std::array<float, XR_FACE_CONFIDENCE2_COUNT_FB> confidences;
+		bool is_valid;
+		bool is_eye_following_blendshapes_valid;
+	};
+	std::optional<fb_face2> face;
+};
+
+struct trackings
+{
+	std::vector<tracking> items;
 };
 
 struct hand_tracking
@@ -193,16 +207,6 @@ struct hand_tracking
 	XrTime timestamp;
 	hand_id hand;
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
-};
-
-struct fb_face2
-{
-	std::array<float, XR_FACE_EXPRESSION2_COUNT_FB> weights;
-	std::array<float, XR_FACE_CONFIDENCE2_COUNT_FB> confidences;
-	XrTime production_timestamp;
-	XrTime timestamp;
-	bool is_valid;
-	bool is_eye_following_blendshapes_valid;
 };
 
 struct inputs
@@ -245,7 +249,7 @@ struct battery
 	bool charging;
 };
 
-using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, hand_tracking, fb_face2, inputs, timesync_response, battery>;
+using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, trackings, hand_tracking, inputs, timesync_response, battery>;
 } // namespace from_headset
 
 namespace to_headset
