@@ -55,6 +55,8 @@ jobs:
 
     - name: Build
       run: |
+        sudo rm /usr/local/bin/cmake
+        "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.30.3"
         chmod +x gradlew
         ./gradlew assemble${{ matrix.hmd }}${{ matrix.buildtype }}
 
