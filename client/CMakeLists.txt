@@ -46,7 +46,7 @@ if(ANDROID)
 else()
     add_executable(wivrn)
 
-    if (OPENXR_FOUND)
+    if (OpenXR_FOUND)
         target_link_libraries(wivrn OpenXR::openxr_loader OpenXR::headers)
     else()
         FetchContent_MakeAvailable(openxr_loader)
