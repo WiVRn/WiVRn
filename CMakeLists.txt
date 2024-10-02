@@ -26,7 +26,7 @@ auto_option(WIVRN_USE_SYSTEMD "Use libsystemd" AUTO)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
-option(WIVRN_BUILD_DASHBOARD "Build WiVRn dashboard" ON)
+option(WIVRN_BUILD_DASHBOARD "Build WiVRn dashboard" OFF)
 option(WIVRN_BUILD_DISSECTOR "Build Wireshark dissector" OFF)
 option(WIVRN_WERROR "Treat warnings as errors" OFF)
 
