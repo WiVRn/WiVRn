@@ -22,7 +22,6 @@
 #include "utils/handle.h"
 #include <string>
 #include <vector>
-#include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
 
 namespace xr

@@ -20,6 +20,8 @@
 #include "passthrough.h"
 #include "openxr/openxr.h"
 #include "session.h"
+#include "xr/check.h"
+#include "xr/instance.h"
 
 static PFN_xrDestroyPassthroughLayerFB xrDestroyPassthroughLayerFB{};
 static PFN_xrDestroyPassthroughFB xrDestroyPassthroughFB{};

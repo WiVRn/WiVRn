@@ -18,6 +18,8 @@
  */
 
 #include "hand_tracker.h"
+#include "xr/check.h"
+#include "xr/instance.h"
 #include "xr/session.h"
 #include <cassert>
 

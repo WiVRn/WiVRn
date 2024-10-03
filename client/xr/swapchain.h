@@ -27,7 +27,6 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
-#include <openxr/openxr_platform.h>
 
 namespace xr
 {

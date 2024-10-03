@@ -29,9 +29,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
-#include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
-#include <openxr/openxr_platform.h>
 
 namespace xr
 {

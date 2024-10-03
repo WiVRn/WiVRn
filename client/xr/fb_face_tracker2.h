@@ -22,10 +22,10 @@
 #include "wivrn_packets.h"
 #include <openxr/openxr.h>
 
-#include "instance.h"
-
 namespace xr
 {
+class instance;
+
 XrResult destroy_fb_face_tracker2(XrFaceTracker2FB);
 
 class fb_face_tracker2 : public utils::handle<XrFaceTracker2FB, destroy_fb_face_tracker2>

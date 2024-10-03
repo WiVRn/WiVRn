@@ -18,7 +18,9 @@
 
 #pragma once
 
+#include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <vector>
 
 namespace utils

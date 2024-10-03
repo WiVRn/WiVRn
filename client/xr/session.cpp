@@ -21,6 +21,7 @@
 
 #include "details/enumerate.h"
 #include "utils/ranges.h"
+#include "xr/instance.h"
 #include "xr/system.h"
 #include <vulkan/vulkan.h>
 #include <openxr/openxr_platform.h>

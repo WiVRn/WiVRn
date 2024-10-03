@@ -22,10 +22,7 @@
 #include "utils/handle.h"
 #include <array>
 #include <optional>
-#include <utility>
 #include <openxr/openxr.h>
-
-#include "instance.h"
 
 namespace xr
 {

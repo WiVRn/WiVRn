@@ -18,6 +18,7 @@
 
 #include "fb_face_tracker2.h"
 #include "wivrn_packets.h"
+#include "xr/instance.h"
 #include <cstdint>
 #include <openxr/openxr.h>
 
