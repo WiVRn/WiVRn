@@ -24,8 +24,10 @@
 #include "xrt/xrt_defines.h"
 #include "xrt_cast.h"
 
-using namespace wivrn;
 using namespace xrt::auxiliary::math;
+
+namespace wivrn
+{
 
 xrt_space_relation pose_list::interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)
 {
@@ -103,3 +105,4 @@ xrt_space_relation pose_list::convert_pose(const from_headset::tracking::pose & 
 
 	return res;
 }
+} // namespace wivrn

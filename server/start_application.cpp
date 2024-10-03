@@ -21,7 +21,7 @@
 #include <systemd/sd-bus.h>
 #include <thread>
 
-int get_service_pid(const std::string & service_name, pid_t & pid)
+static int get_service_pid(const std::string & service_name, pid_t & pid)
 {
 	sd_bus * bus = nullptr;
 	sd_bus_error error = SD_BUS_ERROR_NULL;
@@ -165,7 +165,7 @@ finish:
 	return is_active;
 }
 
-pid_t start_unit_file()
+pid_t wivrn::start_unit_file()
 {
 	std::string service_name = "wivrn-application.service";
 	pid_t pid;
@@ -200,7 +200,7 @@ pid_t start_unit_file()
 
 #endif
 
-pid_t fork_application()
+pid_t wivrn::fork_application()
 {
 	auto config = configuration::read_user_configuration();
 
@@ -225,7 +225,7 @@ pid_t fork_application()
 	return application_pid;
 }
 
-int exec_application(configuration config)
+int wivrn::exec_application(configuration config)
 {
 	if (config.application.empty())
 		return 0;

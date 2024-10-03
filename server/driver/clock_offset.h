@@ -26,6 +26,9 @@
 #include <cstdint>
 #include <mutex>
 
+namespace wivrn
+{
+
 class wivrn_connection;
 
 struct clock_offset
@@ -68,3 +71,4 @@ public:
 
 	clock_offset get_offset();
 };
+} // namespace wivrn

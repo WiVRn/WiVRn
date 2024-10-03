@@ -33,6 +33,9 @@
 #include <memory>
 #include <openxr/openxr.h>
 
+namespace wivrn
+{
+
 struct wivrn_fb_face2_data
 {
 	std::array<float, XRT_FACE_EXPRESSION2_COUNT_FB> weights;
@@ -99,3 +102,4 @@ public:
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	xrt_result_t get_face_tracking(enum xrt_input_name facial_expression_type, int64_t at_timestamp_ns, struct xrt_facial_expression_set * out_value);
 };
+} // namespace wivrn

@@ -23,6 +23,9 @@
 #include "ffmpeg_helper.h"
 #include <chrono>
 
+namespace wivrn
+{
+
 class VideoEncoderFFMPEG : public wivrn::VideoEncoder
 {
 public:
@@ -47,3 +50,4 @@ protected:
 private:
 	static bool once;
 };
+} // namespace wivrn

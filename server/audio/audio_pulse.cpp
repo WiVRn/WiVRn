@@ -25,6 +25,9 @@ static const char * sink_name = "WiVRn";
 static const char * source_pipe = "wivrn-source";
 static const char * sink_pipe = "wivrn-sink";
 
+namespace wivrn
+{
+
 struct module_entry
 {
 	uint32_t module;
@@ -466,3 +469,4 @@ void unload_module(uintptr_t id)
 	pa_connection cnx("WiVRn");
 	unload_module(cnx, id);
 }
+} // namespace wivrn

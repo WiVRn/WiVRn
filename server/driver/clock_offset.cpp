@@ -23,6 +23,9 @@
 #include "os/os_time.h"
 #include "util/u_logging.h"
 
+namespace wivrn
+{
+
 static const size_t num_samples = 100;
 
 void clock_offset_estimator::reset()
@@ -144,3 +147,4 @@ XrTime clock_offset::to_headset(XrTime timestamp_ns) const
 {
 	return timestamp_ns + b;
 }
+} // namespace wivrn

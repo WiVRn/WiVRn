@@ -32,6 +32,9 @@
 #include <cstring>
 #include <openxr/openxr.h>
 
+namespace wivrn
+{
+
 static void wivrn_fb_face2_tracker_destroy(xrt_device * xdev);
 
 static void wivrn_fb_face2_tracker_update_inputs(xrt_device * xdev);
@@ -135,3 +138,4 @@ static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device *
 {
 	return static_cast<wivrn_fb_face2_tracker *>(xdev)->get_face_tracking(facial_expression_type, at_timestamp_ns, inout_value);
 }
+} // namespace wivrn

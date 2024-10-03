@@ -33,21 +33,20 @@
 #include <mutex>
 #include <thread>
 
+struct u_system;
+struct xrt_system_devices;
+struct xrt_space_overseer;
+struct xrt_system_compositor;
+
+namespace wivrn
+{
 class wivrn_eye_tracker;
 class wivrn_fb_face2_tracker;
 class wivrn_foveation;
 class wivrn_foveation_renderer;
 struct audio_device;
-
-struct u_system;
-struct xrt_system_devices;
-struct xrt_space_overseer;
-struct xrt_system_compositor;
-struct wivrn_comp_target_factory;
-
-namespace wivrn
-{
 struct wivrn_comp_target;
+struct wivrn_comp_target_factory;
 
 class tracking_control_t
 {

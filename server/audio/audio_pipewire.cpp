@@ -26,8 +26,11 @@
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 
-using namespace wivrn;
+namespace wivrn
+{
 
+namespace
+{
 struct deleter
 {
 	void operator()(pw_main_loop * loop)
@@ -189,6 +192,7 @@ struct pipewire_device : public audio_device
 			        [loop = pw_loop.get()]() { pw_main_loop_run(loop); });
 	}
 };
+} // namespace
 
 void pipewire_device::mic_process(void * self_v)
 {
@@ -315,3 +319,4 @@ std::shared_ptr<audio_device> create_pipewire_handle(
 		return nullptr;
 	}
 }
+} // namespace wivrn

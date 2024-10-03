@@ -29,7 +29,8 @@
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_handles.hpp>
 
-using namespace wivrn;
+namespace wivrn
+{
 
 std::vector<const char *> wivrn_comp_target::wanted_instance_extensions = {};
 std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
@@ -673,3 +674,4 @@ wivrn_comp_target::wivrn_comp_target(std::shared_ptr<wivrn::wivrn_session> cnx, 
 	desc.fps = fps;
 	this->c = c;
 }
+} // namespace wivrn

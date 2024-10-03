@@ -35,23 +35,8 @@
 
 #include "configuration.h"
 
-/*
- *
- * Structs and defines.
- *
- */
-
-/*!
- * A wivrn HMD device.
- *
- * @implements xrt_device
- */
-
-/*
- *
- * Functions
- *
- */
+namespace wivrn
+{
 
 static void wivrn_hmd_destroy(xrt_device * xdev);
 
@@ -456,3 +441,4 @@ static xrt_result_t wivrn_hmd_get_battery_status(struct xrt_device * xdev,
 {
 	return static_cast<wivrn_hmd *>(xdev)->get_battery_status(xdev, out_present, out_charging, out_charge);
 }
+} // namespace wivrn

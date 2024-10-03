@@ -25,7 +25,8 @@
 #include <optional>
 #include <poll.h>
 
-using namespace wivrn;
+namespace wivrn
+{
 
 class wivrn_connection
 {
@@ -131,3 +132,4 @@ public:
 		return r;
 	}
 };
+} // namespace wivrn

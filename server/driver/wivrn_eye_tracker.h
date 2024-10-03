@@ -32,6 +32,9 @@
 #include <memory>
 #include <mutex>
 
+namespace wivrn
+{
+
 class wivrn_eye_tracker : public xrt_device
 {
 	std::mutex mutex;
@@ -51,3 +54,4 @@ public:
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	xrt_space_relation get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns);
 };
+} // namespace wivrn

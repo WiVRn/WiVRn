@@ -21,6 +21,9 @@
 #include <filesystem>
 #include <unistd.h>
 
+namespace wivrn
+{
+
 class active_runtime
 {
 	bool to_be_deleted = false;
@@ -35,3 +38,4 @@ public:
 
 	static std::filesystem::path manifest_path();
 };
+} // namespace wivrn

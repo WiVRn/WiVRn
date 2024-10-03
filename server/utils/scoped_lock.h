@@ -21,6 +21,9 @@
 
 #include "os/os_threading.h"
 
+namespace wivrn
+{
+
 class scoped_lock
 {
 	os_mutex & mutex;
@@ -36,3 +39,4 @@ public:
 		os_mutex_unlock(&mutex);
 	}
 };
+} // namespace wivrn

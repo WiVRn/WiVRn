@@ -26,6 +26,9 @@
 #include <mutex>
 #include <vector>
 
+namespace wivrn
+{
+
 struct clock_offset;
 
 class wivrn_pacer
@@ -89,3 +92,4 @@ public:
 
 	void reset();
 };
+} // namespace wivrn

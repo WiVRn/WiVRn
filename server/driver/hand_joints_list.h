@@ -22,6 +22,9 @@
 #include "history.h"
 #include "xrt/xrt_defines.h"
 
+namespace wivrn
+{
+
 class hand_joints_list : public history<hand_joints_list, xrt_hand_joint_set>
 {
 public:
@@ -35,3 +38,4 @@ public:
 
 	bool update_tracking(const wivrn::from_headset::hand_tracking & tracking, const clock_offset & offset);
 };
+} // namespace wivrn

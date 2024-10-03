@@ -32,7 +32,6 @@
 namespace wivrn
 {
 class wivrn_session;
-}
 
 class wivrn_controller : public xrt_device
 {
@@ -70,3 +69,4 @@ public:
 private:
 	void set_inputs(device_id input_id, float value, int64_t last_change_time);
 };
+} // namespace wivrn

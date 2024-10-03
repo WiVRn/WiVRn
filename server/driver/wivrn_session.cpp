@@ -53,6 +53,9 @@
 #include "solarxr_device.h"
 #endif
 
+namespace wivrn
+{
+
 struct wivrn_comp_target_factory : public comp_target_factory
 {
 	std::shared_ptr<wivrn_session> session;
@@ -545,3 +548,4 @@ void wivrn_session::reconnect()
 		U_LOG_E("Reconnection failed: %s", e.what());
 	}
 }
+} // namespace wivrn

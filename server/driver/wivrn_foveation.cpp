@@ -35,6 +35,9 @@
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
+namespace wivrn
+{
+
 const uint32_t dispatch_group_count = RENDER_DISTORTION_IMAGE_DIMENSIONS / 8;
 
 struct FoveationParamsPcs
@@ -317,3 +320,4 @@ void wivrn_foveation::set_initial_parameters(std::array<to_headset::foveation_pa
 	center_offset[0] = {p[0].x.center, p[0].y.center};
 	center_offset[1] = {p[1].x.center, p[1].y.center};
 }
+} // namespace wivrn

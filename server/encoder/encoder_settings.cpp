@@ -37,8 +37,8 @@
 #include "ffmpeg/video_encoder_va.h"
 #endif
 
-using namespace wivrn;
-
+namespace wivrn
+{
 // TODO: size independent bitrate
 static const uint64_t default_bitrate = 50'000'000;
 
@@ -258,7 +258,7 @@ static void make_even(uint16_t & value, uint16_t max)
 	value = std::min(value, max);
 }
 
-std::vector<encoder_settings> wivrn::get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
+std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
 {
 	configuration config;
 	try
@@ -316,3 +316,4 @@ std::vector<encoder_settings> wivrn::get_encoder_settings(wivrn_vk_bundle & bund
 	split_bitrate(res, bitrate);
 	return res;
 }
+} // namespace wivrn

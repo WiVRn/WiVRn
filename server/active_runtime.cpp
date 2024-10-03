@@ -24,6 +24,9 @@
 #include <fstream>
 #include <iostream>
 
+namespace wivrn
+{
+
 std::filesystem::path active_runtime::manifest_path()
 {
 	const std::filesystem::path install_location = "share/openxr/1/openxr_wivrn.json";
@@ -84,3 +87,4 @@ active_runtime::~active_runtime()
 		std::cerr << "Cannot unset active OpenXR runtime: " << e.what() << std::endl;
 	}
 }
+} // namespace wivrn

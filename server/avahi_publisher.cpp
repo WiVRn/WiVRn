@@ -9,6 +9,9 @@
 #include <avahi-common/strlst.h>
 #include <iostream>
 
+namespace wivrn
+{
+
 const std::error_category & avahi_error_category()
 {
 	static struct : std::error_category
@@ -173,3 +176,4 @@ void avahi_publisher::watch_free(AvahiWatch * watch)
 {
         poll_api->watch_free(watch);
 }*/
+} // namespace wivrn

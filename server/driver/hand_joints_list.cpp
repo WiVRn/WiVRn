@@ -22,26 +22,25 @@
 #include "pose_list.h"
 #include "xrt_cast.h"
 
-using namespace wivrn;
-
 static_assert(XRT_HAND_JOINT_COUNT == XR_HAND_JOINT_COUNT_EXT);
 
-namespace
+namespace wivrn
 {
-xrt_hand_joint_value interpolate(const xrt_hand_joint_value & a, const xrt_hand_joint_value & b, float t)
+
+static xrt_hand_joint_value interpolate(const xrt_hand_joint_value & a, const xrt_hand_joint_value & b, float t)
 {
 	return {
 	        .relation = pose_list::interpolate(a.relation, b.relation, t),
-	        .radius = a.radius * (1 - t) + b.radius * t};
+	        .radius = a.radius * (1 - t) + b.radius * t,
+	};
 }
-} // namespace
 
 xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t)
 {
 	xrt_hand_joint_set j = a;
 	for (int i = 0; i < XRT_HAND_JOINT_COUNT; i++)
 	{
-		j.values.hand_joint_set_default[i] = ::interpolate(a.values.hand_joint_set_default[i], b.values.hand_joint_set_default[i], t);
+		j.values.hand_joint_set_default[i] = ::wivrn::interpolate(a.values.hand_joint_set_default[i], b.values.hand_joint_set_default[i], t);
 	}
 	return j;
 }
@@ -128,3 +127,4 @@ bool hand_joints_list::update_tracking(const from_headset::hand_tracking & track
 		        offset);
 	return true;
 }
+} // namespace wivrn

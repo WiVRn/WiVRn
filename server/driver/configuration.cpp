@@ -49,7 +49,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
                 {av1, "av1"},
                 {av1, "AV1"},
         })
-}
 
 void configuration::set_config_file(const std::filesystem::path & path)
 {
@@ -176,3 +175,4 @@ std::string server_cookie()
 		return buffer;
 	}
 }
+} // namespace wivrn

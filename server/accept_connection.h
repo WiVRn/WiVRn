@@ -23,4 +23,7 @@
 #include <memory>
 #include <wivrn_sockets.h>
 
+namespace wivrn
+{
 std::unique_ptr<wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit = std::function<bool()>());
+}

@@ -23,7 +23,7 @@
 
 #include <string>
 
-wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> requested_instance_extensions, std::span<const char *> requested_device_extensions) :
+wivrn::wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> requested_instance_extensions, std::span<const char *> requested_device_extensions) :
         vk(vk),
         instance(vk_ctx, vk.instance),
         physical_device(instance, vk.physical_device),
@@ -147,7 +147,7 @@ wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> request
 	}
 }
 
-uint32_t wivrn_vk_bundle::get_memory_type(uint32_t type_bits, vk::MemoryPropertyFlags memory_props)
+uint32_t wivrn::wivrn_vk_bundle::get_memory_type(uint32_t type_bits, vk::MemoryPropertyFlags memory_props)
 {
 	auto mem_prop = physical_device.getMemoryProperties();
 

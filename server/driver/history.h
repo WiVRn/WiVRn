@@ -27,6 +27,9 @@
 #include <list>
 #include <mutex>
 
+namespace wivrn
+{
+
 template <typename Derived, typename Data, XrDuration extrapolation = 0, size_t MaxSamples = 10>
 class history
 {
@@ -161,3 +164,4 @@ public:
 		}
 	}
 };
+} // namespace wivrn

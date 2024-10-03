@@ -7,6 +7,9 @@
 #include <system_error>
 #include <vector>
 
+namespace wivrn
+{
+
 const std::error_category & avahi_error_category();
 
 class avahi_publisher
@@ -39,3 +42,4 @@ public:
 	avahi_publisher & operator=(const avahi_publisher &) = delete;
 	~avahi_publisher();
 };
+} // namespace wivrn

@@ -24,6 +24,9 @@
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 
+namespace wivrn
+{
+
 class pose_list : public history<pose_list, xrt_space_relation>
 {
 public:
@@ -39,3 +42,4 @@ public:
 
 	static xrt_space_relation convert_pose(const wivrn::from_headset::tracking::pose &);
 };
+} // namespace wivrn

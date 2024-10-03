@@ -25,10 +25,9 @@
 #include <string>
 #include <vector>
 
-struct wivrn_vk_bundle;
-
 namespace wivrn
 {
+struct wivrn_vk_bundle;
 
 struct encoder_settings : public to_headset::video_stream_description::item
 {
@@ -43,6 +42,6 @@ struct encoder_settings : public to_headset::video_stream_description::item
 
 std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle &, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info);
 
-} // namespace wivrn
-
 void print_encoders(const std::vector<wivrn::encoder_settings> & encoders);
+
+} // namespace wivrn

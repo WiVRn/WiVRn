@@ -21,6 +21,9 @@
 #include "pose_list.h"
 #include "xrt_cast.h"
 
+namespace wivrn
+{
+
 tracked_views view_list::interpolate(const tracked_views & a, const tracked_views & b, float t)
 {
 	tracked_views result = a;
@@ -57,3 +60,4 @@ bool view_list::update_tracking(const from_headset::tracking & tracking, const c
 	}
 	return true;
 }
+} // namespace wivrn

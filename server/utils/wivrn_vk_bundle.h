@@ -27,6 +27,9 @@
 
 struct vk_bundle;
 
+namespace wivrn
+{
+
 // to use vk::raii we need a vk::raii::{Instance,PhysicalDevice,Device}
 // however we don't own it, so deactivate the destructor
 struct raii_instance : public vk::raii::Instance
@@ -68,3 +71,4 @@ struct wivrn_vk_bundle
 
 	uint32_t get_memory_type(uint32_t type_bits, vk::MemoryPropertyFlags memory_props);
 };
+} // namespace wivrn

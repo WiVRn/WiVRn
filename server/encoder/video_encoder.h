@@ -33,11 +33,10 @@
 #include "encoder_settings.h"
 #include "wivrn_packets.h"
 
-struct wivrn_vk_bundle;
-
 namespace wivrn
 {
 
+struct wivrn_vk_bundle;
 class wivrn_session;
 
 inline const char * encoder_nvenc = "nvenc";

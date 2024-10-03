@@ -27,6 +27,9 @@
 
 #include "wivrn_packets.h"
 
+namespace wivrn
+{
+
 struct configuration
 {
 	struct encoder
@@ -54,3 +57,4 @@ struct configuration
 };
 
 std::string server_cookie();
+} // namespace wivrn

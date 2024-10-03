@@ -24,7 +24,7 @@
  *
  */
 
-extern std::unique_ptr<TCP> tcp;
+extern std::unique_ptr<wivrn::TCP> tcp;
 
 static xrt_result_t
 wivrn_instance_create_system(struct xrt_instance * xinst,

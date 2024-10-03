@@ -27,7 +27,6 @@
 namespace wivrn
 {
 struct encoder_settings;
-}
 
 class video_encoder_va : public VideoEncoderFFMPEG
 {
@@ -52,3 +51,4 @@ public:
 protected:
 	void push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;
 };
+} // namespace wivrn

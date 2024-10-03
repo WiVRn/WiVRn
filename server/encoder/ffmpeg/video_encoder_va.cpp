@@ -40,6 +40,9 @@ extern "C"
 #include <libavutil/pixdesc.h>
 }
 
+namespace wivrn
+{
+
 namespace
 {
 const char *
@@ -475,3 +478,4 @@ void video_encoder_va::push_frame(bool idr, std::chrono::steady_clock::time_poin
 		throw std::system_error(err, av_error_category(), "avcodec_send_frame failed");
 	}
 }
+} // namespace wivrn

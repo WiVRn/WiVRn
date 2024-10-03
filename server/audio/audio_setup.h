@@ -27,7 +27,6 @@
 namespace wivrn
 {
 class wivrn_session;
-}
 
 struct audio_device
 {
@@ -46,3 +45,4 @@ struct audio_device
 	        const wivrn::from_headset::headset_info_packet & info,
 	        wivrn::wivrn_session & session);
 };
+} // namespace wivrn

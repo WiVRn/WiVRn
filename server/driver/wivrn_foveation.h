@@ -22,6 +22,9 @@
 
 #include "wivrn_session.h"
 
+namespace wivrn
+{
+
 struct wivrn_vk_bundle;
 
 // Calculates the center parameter from the received eye tracking data.
@@ -59,3 +62,4 @@ public:
 
 	void render_distortion_images(std::array<to_headset::foveation_parameter, 2> foveation_arr, const VkImage * images, const VkImageView * image_views);
 };
+} // namespace wivrn

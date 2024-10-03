@@ -30,6 +30,9 @@
 #include <cstdint>
 #include <openxr/openxr.h>
 
+namespace wivrn
+{
+
 static void wivrn_eye_tracker_destroy(xrt_device * xdev);
 
 static void wivrn_eye_tracker_update_inputs(xrt_device * xdev);
@@ -110,3 +113,4 @@ static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
 {
 	*out_relation = static_cast<wivrn_eye_tracker *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
 }
+} // namespace wivrn

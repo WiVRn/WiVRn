@@ -61,6 +61,9 @@ bool set_log_level()
 
 } // namespace
 
+namespace wivrn
+{
+
 bool VideoEncoderFFMPEG::once = set_log_level();
 
 std::optional<wivrn::VideoEncoder::data> VideoEncoderFFMPEG::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot)
@@ -94,3 +97,4 @@ VideoEncoderFFMPEG::mute_logs::~mute_logs()
 {
 	set_log_level();
 }
+} // namespace wivrn

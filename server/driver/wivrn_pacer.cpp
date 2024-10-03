@@ -22,10 +22,13 @@
 #include "os/os_time.h"
 #include <cmath>
 
+namespace wivrn
+{
+
 // How many samples of wait time to store per decoder
-const size_t num_wait_times = 100;
+static const size_t num_wait_times = 100;
 // How many samples of wait time are required to use them
-const size_t min_wait_times = 50;
+static const size_t min_wait_times = 50;
 
 void wivrn_pacer::set_stream_count(size_t count)
 {
@@ -171,3 +174,4 @@ void wivrn_pacer::reset()
 	}
 	in_flight_frames = {};
 }
+} // namespace wivrn

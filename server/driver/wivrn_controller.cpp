@@ -25,11 +25,8 @@
 
 #include "xrt/xrt_defines.h"
 
-/*
- *
- * Defines & structs.
- *
- */
+namespace wivrn
+{
 
 enum wivrn_controller_input_index
 {
@@ -418,3 +415,4 @@ static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_outpu
 {
 	static_cast<wivrn_controller *>(xdev)->set_output(name, value);
 }
+} // namespace wivrn

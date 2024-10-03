@@ -31,13 +31,13 @@ static void handle_event_from_main_loop(to_monado::disconnect)
 	// Ignore disconnect request when no headset is connected
 }
 
-wivrn_connection::wivrn_connection(TCP && tcp) :
+wivrn::wivrn_connection::wivrn_connection(TCP && tcp) :
         control(std::move(tcp)), stream(-1)
 {
 	init();
 }
 
-void wivrn_connection::init()
+void wivrn::wivrn_connection::init()
 {
 	active = false;
 	stream = -1;
@@ -144,13 +144,13 @@ void wivrn_connection::init()
 	active = true;
 }
 
-void wivrn_connection::reset(TCP && tcp)
+void wivrn::wivrn_connection::reset(TCP && tcp)
 {
 	control = std::move(tcp);
 	init();
 }
 
-std::optional<from_headset::packets> wivrn_connection::poll_control(int timeout)
+std::optional<wivrn::from_headset::packets> wivrn::wivrn_connection::poll_control(int timeout)
 {
 	pollfd fds{};
 	fds.events = POLLIN;

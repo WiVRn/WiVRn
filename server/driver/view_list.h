@@ -22,6 +22,9 @@
 #include "pose_list.h"
 #include "wivrn_connection.h"
 
+namespace wivrn
+{
+
 struct tracked_views
 {
 	XrViewStateFlags flags;
@@ -38,3 +41,4 @@ public:
 
 	bool update_tracking(const from_headset::tracking & tracking, const clock_offset & offset);
 };
+} // namespace wivrn
