@@ -102,8 +102,6 @@ void clock_offset_estimator::add_sample(const wivrn::from_headset::timesync_resp
 
 	double sum_x = 0;
 	double sum_y = 0;
-	double sum_x2 = 0;
-	double sum_xy = 0;
 	for (const auto & s: samples)
 	{
 #if 1
@@ -116,8 +114,6 @@ void clock_offset_estimator::add_sample(const wivrn::from_headset::timesync_resp
 		double y = s.response - y0;
 		sum_x += x;
 		sum_y += y;
-		sum_x2 += x * x;
-		sum_xy += x * y;
 	}
 
 	double mean_x = sum_x * inv_n;
