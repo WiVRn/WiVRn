@@ -22,12 +22,12 @@
 
 #include "video_encoder.h"
 
+#include "encoder_settings.h"
 #include "os/os_time.h"
 #include "util/u_logging.h"
+#include "wivrn_config.h"
 
 #include <string>
-
-#include "wivrn_config.h"
 
 #if WIVRN_USE_NVENC
 #include "video_encoder_nvenc.h"

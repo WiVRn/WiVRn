@@ -19,13 +19,13 @@
 
 #pragma once
 
-#include "clock_offset.h"
 #include "history.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 
 namespace wivrn
 {
+struct clock_offset;
 
 class pose_list : public history<pose_list, xrt_space_relation>
 {

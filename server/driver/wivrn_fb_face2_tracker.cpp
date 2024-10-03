@@ -21,12 +21,13 @@
 #include "wivrn_fb_face2_tracker.h"
 
 #include "wivrn_packets.h"
-#include "xrt/xrt_defines.h"
-#include "xrt/xrt_device.h"
+#include "wivrn_session.h"
 
 #include "util/u_logging.h"
-
+#include "xrt/xrt_defines.h"
+#include "xrt/xrt_device.h"
 #include "xrt/xrt_results.h"
+
 #include <cmath>
 #include <cstdint>
 #include <cstring>

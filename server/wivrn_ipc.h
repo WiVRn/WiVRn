@@ -20,8 +20,12 @@
 #pragma once
 
 #include "wivrn_packets.h"
+#include "wivrn_sockets.h"
+
 #include <memory>
-#include <wivrn_sockets.h>
+#include <optional>
+#include <stdint.h>
+#include <variant>
 
 extern std::unique_ptr<wivrn::TCP> tcp;
 

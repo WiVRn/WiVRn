@@ -20,7 +20,9 @@
 #pragma once
 
 #include "pose_list.h"
-#include "wivrn_connection.h"
+
+#include <array>
+#include <openxr/openxr.h>
 
 namespace wivrn
 {

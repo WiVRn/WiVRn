@@ -23,9 +23,7 @@
 
 #include "hand_joints_list.h"
 #include "pose_list.h"
-#include "wivrn_connection.h"
 
-#include <memory>
 #include <mutex>
 #include <vector>
 

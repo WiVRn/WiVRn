@@ -33,14 +33,11 @@ extern "C"
 #include <libavutil/avutil.h>
 }
 
-const std::error_category &
-av_error_category();
+const std::error_category & av_error_category();
 
-AVPixelFormat
-vk_format_to_av_format(VkFormat vk_fmt);
+AVPixelFormat vk_format_to_av_format(VkFormat vk_fmt);
 
-uint32_t
-vk_format_to_fourcc(VkFormat vk_fmt);
+uint32_t vk_format_to_fourcc(VkFormat vk_fmt);
 
 struct AvDeleter
 {

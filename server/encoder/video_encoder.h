@@ -20,6 +20,8 @@
 #pragma once
 
 #include "driver/clock_offset.h"
+#include "wivrn_packets.h"
+
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -30,12 +32,10 @@
 #include <thread>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "encoder_settings.h"
-#include "wivrn_packets.h"
-
 namespace wivrn
 {
 
+struct encoder_settings;
 struct wivrn_vk_bundle;
 class wivrn_session;
 

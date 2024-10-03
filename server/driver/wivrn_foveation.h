@@ -18,13 +18,15 @@
 
 #pragma once
 
-#include <vulkan/vulkan_raii.hpp>
+#include "wivrn_packets.h"
+#include "xrt/xrt_defines.h"
 
-#include "wivrn_session.h"
+#include <vulkan/vulkan_raii.hpp>
 
 namespace wivrn
 {
 
+struct clock_offset;
 struct wivrn_vk_bundle;
 
 // Calculates the center parameter from the received eye tracking data.

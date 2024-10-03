@@ -29,8 +29,6 @@ namespace wivrn
 class VideoEncoderFFMPEG : public wivrn::VideoEncoder
 {
 public:
-	using Codec = wivrn::video_codec;
-
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
 
 	struct mute_logs

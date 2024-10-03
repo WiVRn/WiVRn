@@ -18,12 +18,16 @@
  */
 
 #include "wivrn_comp_target.h"
+
+#include "driver/wivrn_session.h"
 #include "encoder/video_encoder.h"
-#include "main/comp_compositor.h"
-#include "math/m_space.h"
 #include "utils/scoped_lock.h"
 #include "wivrn_foveation.h"
+
+#include "main/comp_compositor.h"
+#include "math/m_space.h"
 #include "xrt_cast.h"
+
 #include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>

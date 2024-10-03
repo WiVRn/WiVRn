@@ -22,6 +22,7 @@
 #include "wivrn_packets.h"
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 

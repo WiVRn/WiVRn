@@ -22,8 +22,12 @@
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include "wivrn_sockets.h"
+
+#include <atomic>
 #include <optional>
 #include <poll.h>
+#include <stdexcept>
+#include <system_error>
 
 namespace wivrn
 {

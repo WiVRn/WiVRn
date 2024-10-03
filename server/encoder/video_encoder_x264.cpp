@@ -19,8 +19,10 @@
 
 #include "video_encoder_x264.h"
 
+#include "encoder_settings.h"
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
+
 #include <stdexcept>
 
 namespace wivrn

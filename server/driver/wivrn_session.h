@@ -23,9 +23,7 @@
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
-#include "wivrn_ipc.h"
 #include "wivrn_packets.h"
-#include "xrt/xrt_defines.h"
 #include "xrt/xrt_results.h"
 #include <atomic>
 #include <fstream>

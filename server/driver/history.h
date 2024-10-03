@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <list>
 #include <mutex>
+#include <openxr/openxr.h>
 
 namespace wivrn
 {

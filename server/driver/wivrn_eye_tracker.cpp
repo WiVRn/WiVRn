@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <openxr/openxr.h>
 
 namespace wivrn

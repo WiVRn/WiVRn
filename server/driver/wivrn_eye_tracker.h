@@ -20,13 +20,10 @@
 
 #pragma once
 
+#include "pose_list.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
-#include "xrt/xrt_tracking.h"
-
-#include "pose_list.h"
-#include "wivrn_session.h"
 
 #include <cstdint>
 #include <memory>
@@ -34,6 +31,8 @@
 
 namespace wivrn
 {
+
+class wivrn_session;
 
 class wivrn_eye_tracker : public xrt_device
 {

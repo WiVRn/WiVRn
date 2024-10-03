@@ -22,6 +22,8 @@
 
 #include "video_encoder_va.h"
 
+#include "encoder/encoder_settings.h"
+
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 
@@ -45,16 +47,15 @@ namespace wivrn
 
 namespace
 {
-const char *
-encoder(VideoEncoderFFMPEG::Codec codec)
+const char * encoder(video_codec codec)
 {
 	switch (codec)
 	{
-		case VideoEncoderFFMPEG::Codec::h264:
+		case video_codec::h264:
 			return "h264_vaapi";
-		case VideoEncoderFFMPEG::Codec::h265:
+		case video_codec::h265:
 			return "hevc_vaapi";
-		case VideoEncoderFFMPEG::Codec::av1:
+		case video_codec::av1:
 			return "av1_vaapi";
 	}
 	throw std::runtime_error("invalid codec " + std::to_string(int(codec)));
@@ -188,15 +189,15 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, wivrn::encoder_settings
 	av_dict_set(&opts, "async_depth", "1", 0);
 	switch (settings.codec)
 	{
-		case Codec::h264:
+		case video_codec::h264:
 			encoder_ctx->profile = FF_PROFILE_H264_CONSTRAINED_BASELINE;
 			av_dict_set(&opts, "coder", "cavlc", 0);
 			av_dict_set(&opts, "rc_mode", "CBR", 0);
 			break;
-		case Codec::h265:
+		case video_codec::h265:
 			encoder_ctx->profile = FF_PROFILE_HEVC_MAIN;
 			break;
-		case Codec::av1:
+		case video_codec::av1:
 			encoder_ctx->profile = FF_PROFILE_AV1_MAIN;
 			break;
 	}

@@ -18,12 +18,13 @@
  */
 
 #include "video_encoder_nvenc.h"
+
+#include "encoder_settings.h"
+
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 
 #include <stdexcept>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 #define NVENC_CHECK_NOENCODER(x)                                          \
 	do                                                                \

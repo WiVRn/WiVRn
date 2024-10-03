@@ -20,10 +20,12 @@
 #pragma once
 
 #include "history.h"
+#include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 
 namespace wivrn
 {
+struct clock_offset;
 
 class hand_joints_list : public history<hand_joints_list, xrt_hand_joint_set>
 {

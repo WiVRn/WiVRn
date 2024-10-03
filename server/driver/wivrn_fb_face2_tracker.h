@@ -23,18 +23,19 @@
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
-#include "xrt/xrt_tracking.h"
 
-#include "clock_offset.h"
 #include "history.h"
-#include "wivrn_session.h"
 
+#include <array>
 #include <cmath>
 #include <memory>
 #include <openxr/openxr.h>
 
 namespace wivrn
 {
+
+struct clock_offset;
+class wivrn_session;
 
 struct wivrn_fb_face2_data
 {

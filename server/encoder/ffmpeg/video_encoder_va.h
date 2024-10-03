@@ -20,13 +20,17 @@
 #pragma once
 
 #include "ffmpeg_helper.h"
-#include "utils/wivrn_vk_bundle.h"
 #include "video_encoder_ffmpeg.h"
+
+#include <array>
+#include <chrono>
+#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace wivrn
 {
 struct encoder_settings;
+struct wivrn_vk_bundle;
 
 class video_encoder_va : public VideoEncoderFFMPEG
 {

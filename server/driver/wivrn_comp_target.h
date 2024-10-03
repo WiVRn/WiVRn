@@ -19,25 +19,26 @@
 
 #pragma once
 
-#include "wivrn_packets.h"
-#include "wivrn_session.h"
-
 #include "main/comp_target.h"
 
+#include "encoder/encoder_settings.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "vk/allocation.h"
+#include "wivrn_pacer.h"
+#include "wivrn_packets.h"
 
-#include "driver/wivrn_pacer.h"
-#include "encoder/encoder_settings.h"
 #include <list>
 #include <memory>
 #include <optional>
+#include <thread>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace wivrn
 {
 
+class wivrn_foveation_renderer;
+class wivrn_session;
 class VideoEncoder;
 
 struct pseudo_swapchain
