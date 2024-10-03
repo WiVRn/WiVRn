@@ -18,6 +18,7 @@
  */
 
 #include "wivrn_controller.h"
+#include "wivrn_session.h"
 
 #include "util/u_logging.h"
 #include <stdio.h>
@@ -150,7 +151,7 @@ static void wivrn_controller_update_inputs(xrt_device * xdev);
 
 wivrn_controller::wivrn_controller(int hand_id,
                                    xrt_device * hmd,
-                                   std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx) :
+                                   xrt::drivers::wivrn::wivrn_session * cnx) :
         xrt_device{},
         grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
         aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM),
@@ -388,7 +389,7 @@ void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value *
 
 static void wivrn_controller_destroy(xrt_device * xdev)
 {
-	delete (wivrn_controller *)xdev;
+	static_cast<wivrn_controller *>(xdev)->unregister();
 }
 
 static void wivrn_controller_update_inputs(xrt_device * xdev)

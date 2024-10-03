@@ -34,11 +34,9 @@
 #include "audio/audio_setup.h"
 #include "wivrn_comp_target.h"
 #include "wivrn_config.h"
-#include "wivrn_controller.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
 #include "wivrn_foveation.h"
-#include "wivrn_hmd.h"
 #include "wivrn_ipc.h"
 
 #include "xrt/xrt_session.h"
@@ -113,7 +111,19 @@ void xrt::drivers::wivrn::tracking_control_t::set_enabled(to_headset::tracking_c
 }
 
 xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, u_system & system) :
-        connection(std::move(tcp)), xrt_system(system)
+        connection(std::move(tcp)),
+        info([](wivrn_connection & connection) {
+	        std::optional<xrt::drivers::wivrn::from_headset::packets> control;
+	        while (not(control = connection.poll_control(-1)))
+	        {
+		        // FIXME: timeout
+	        }
+	        return std::get<from_headset::headset_info_packet>(*control);
+        }(connection)),
+        xrt_system(system),
+        hmd(this, info),
+        left_hand(0, &hmd, this),
+        right_hand(1, &hmd, this)
 {
 }
 
@@ -124,14 +134,9 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
                                                                 xrt_system_compositor ** out_xsysc)
 {
 	std::shared_ptr<wivrn_session> self;
-	std::optional<xrt::drivers::wivrn::from_headset::packets> control;
 	try
 	{
 		self = std::shared_ptr<wivrn_session>(new wivrn_session(std::move(tcp), system));
-		while (not(control = self->connection.poll_control(-1)))
-		{
-			// FIXME: timeout
-		}
 	}
 	catch (std::exception & e)
 	{
@@ -139,7 +144,6 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		return XRT_ERROR_DEVICE_CREATION_FAILED;
 	}
 
-	self->info = std::get<from_headset::headset_info_packet>(*control);
 	send_to_main(self->info);
 
 	try
@@ -159,35 +163,24 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 		U_LOG_E("Failed to register audio device: %s", e.what());
 		return XRT_ERROR_DEVICE_CREATION_FAILED;
 	}
-	self->hmd = std::make_unique<wivrn_hmd>(self, self->info);
-	self->left_hand = std::make_unique<wivrn_controller>(0, self->hmd.get(), self);
-	self->right_hand = std::make_unique<wivrn_controller>(1, self->hmd.get(), self);
 
 	auto * usysds = u_system_devices_static_allocate();
 	*out_xsysd = &usysds->base.base;
 	auto & devices = *out_xsysd;
 	int n = 0;
-	if (self->hmd)
-		usysds->base.base.static_roles.head = devices->xdevs[n++] = self->hmd.get();
 
-	if (self->hmd->face_tracking_supported)
-		usysds->base.base.static_roles.face = self->hmd.get();
+	usysds->base.base.static_roles.head = devices->xdevs[n++] = &self->hmd;
 
-	xrt_device * active_left_hand = nullptr;
-	xrt_device * active_right_hand = nullptr;
+	if (self->hmd.face_tracking_supported)
+		usysds->base.base.static_roles.face = &self->hmd;
 
-	if (self->left_hand)
-	{
-		devices->xdevs[n++] = self->left_hand.get();
-		active_left_hand = self->left_hand.get();
-		usysds->base.base.static_roles.hand_tracking.left = self->left_hand.get();
-	}
-	if (self->right_hand)
-	{
-		devices->xdevs[n++] = self->right_hand.get();
-		active_right_hand = self->right_hand.get();
-		usysds->base.base.static_roles.hand_tracking.right = self->right_hand.get();
-	}
+	devices->xdevs[n++] = &self->left_hand;
+	xrt_device * active_left_hand = &self->left_hand;
+	usysds->base.base.static_roles.hand_tracking.left = &self->left_hand;
+
+	devices->xdevs[n++] = &self->right_hand;
+	xrt_device * active_right_hand = &self->right_hand;
+	usysds->base.base.static_roles.hand_tracking.right = &self->right_hand;
 
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
 	auto use_steamvr_lh = std::getenv("WIVRN_USE_STEAMVR_LH");
@@ -218,14 +211,14 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 
 	if (self->info.eye_gaze)
 	{
-		self->eye_tracker = std::make_unique<wivrn_eye_tracker>(self->hmd.get(), self);
+		self->eye_tracker = std::make_unique<wivrn_eye_tracker>(&self->hmd, self);
 		self->foveation = std::make_unique<wivrn_foveation>();
 		usysds->base.base.static_roles.eyes = self->eye_tracker.get();
 		devices->xdevs[n++] = self->eye_tracker.get();
 	}
 	if (self->info.face_tracking2_fb)
 	{
-		self->fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(self->hmd.get(), self);
+		self->fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(&self->hmd, self);
 		usysds->base.base.static_roles.face = self->fb_face2_tracker.get();
 		devices->xdevs[n++] = self->fb_face2_tracker.get();
 	}
@@ -233,7 +226,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 #if WIVRN_FEATURE_SOLARXR
 	xrt_device * solar_devs[XRT_SYSTEM_MAX_DEVICES];
 	uint32_t solar_devs_cap = XRT_SYSTEM_MAX_DEVICES - devices->xdev_count;
-	uint32_t num_devs = solarxr_device_create_xdevs(self->hmd.get(), solar_devs, XRT_SYSTEM_MAX_DEVICES - devices->xdev_count);
+	uint32_t num_devs = solarxr_device_create_xdevs(&self->hmd, solar_devs, XRT_SYSTEM_MAX_DEVICES - devices->xdev_count);
 	for (int i = 0; i < num_devs; i++)
 	{
 		devices->xdevs[n++] = solar_devs[i];
@@ -247,7 +240,7 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 	u_system_devices_static_finalize(usysds, active_left_hand, active_right_hand);
 
 	wivrn_comp_target_factory ctf(self, self->info.preferred_refresh_rate);
-	auto xret = comp_main_create_system_compositor(self->hmd.get(), &ctf, out_xsysc);
+	auto xret = comp_main_create_system_compositor(&self->hmd, &ctf, out_xsysc);
 	if (xret != XRT_SUCCESS)
 	{
 		U_LOG_E("Failed to create system compositor");
@@ -256,9 +249,9 @@ xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wi
 
 	u_builder_create_space_overseer_legacy(
 	        &self->xrt_system.broadcast,
-	        self->hmd.get(),
-	        self->left_hand.get(),
-	        self->right_hand.get(),
+	        &self->hmd,
+	        &self->left_hand,
+	        &self->right_hand,
 	        devices->xdevs,
 	        devices->xdev_count,
 	        false,
@@ -308,7 +301,7 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 				continue;
 
 			xrt_pose offset;
-			auto tracking_origin = ((xrt_device *)hmd.get())->tracking_origin;
+			auto tracking_origin = static_cast<xrt_device &>(hmd).tracking_origin;
 			space_overseer->get_reference_space_offset(space_overseer, xrt_reference_space_type::XRT_SPACE_REFERENCE_TYPE_STAGE, &offset);
 
 			xrt_vec3 hmd_pos = xrt_cast(pose.pose.position);
@@ -337,9 +330,9 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 
 	auto offset = offset_est.get_offset();
 
-	hmd->update_tracking(tracking, offset);
-	left_hand->update_tracking(tracking, offset);
-	right_hand->update_tracking(tracking, offset);
+	hmd.update_tracking(tracking, offset);
+	left_hand.update_tracking(tracking, offset);
+	right_hand.update_tracking(tracking, offset);
 	if (eye_tracker)
 		eye_tracker->update_tracking(tracking, offset);
 	if (foveation)
@@ -352,15 +345,15 @@ void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 {
 	auto offset = offset_est.get_offset();
 
-	left_hand->update_hand_tracking(hand_tracking, offset);
-	right_hand->update_hand_tracking(hand_tracking, offset);
+	left_hand.update_hand_tracking(hand_tracking, offset);
+	right_hand.update_hand_tracking(hand_tracking, offset);
 }
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
 	auto offset = get_offset();
 
-	left_hand->set_inputs(inputs, offset);
-	right_hand->set_inputs(inputs, offset);
+	left_hand.set_inputs(inputs, offset);
+	right_hand.set_inputs(inputs, offset);
 }
 
 void wivrn_session::operator()(from_headset::timesync_response && timesync)
@@ -416,7 +409,7 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 
 void wivrn_session::operator()(from_headset::battery && battery)
 {
-	hmd->update_battery(battery);
+	hmd.update_battery(battery);
 }
 
 void wivrn_session::operator()(audio_data && data)
@@ -458,7 +451,7 @@ void wivrn_session::run(std::weak_ptr<wivrn_session> weak_self)
 
 std::array<to_headset::foveation_parameter, 2> wivrn_session::set_foveated_size(uint32_t width, uint32_t height)
 {
-	auto p = hmd->set_foveated_size(width, height);
+	auto p = hmd.set_foveated_size(width, height);
 
 	if (foveation)
 		foveation->set_initial_parameters(p);
@@ -471,14 +464,14 @@ bool wivrn_session::apply_dynamic_foveation()
 	if (!foveation)
 		return false;
 
-	hmd->set_foveation_center(foveation->get_center());
-	comp_target->render_dynamic_foveation(hmd->get_foveation_parameters());
+	hmd.set_foveation_center(foveation->get_center());
+	comp_target->render_dynamic_foveation(hmd.get_foveation_parameters());
 	return true;
 }
 
 std::array<to_headset::foveation_parameter, 2> wivrn_session::get_foveation_parameters()
 {
-	return hmd->get_foveation_parameters();
+	return hmd.get_foveation_parameters();
 }
 
 void wivrn_session::dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream, const char * extra)

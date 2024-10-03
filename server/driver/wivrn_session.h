@@ -21,6 +21,8 @@
 
 #include "clock_offset.h"
 #include "wivrn_connection.h"
+#include "wivrn_controller.h"
+#include "wivrn_hmd.h"
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
@@ -31,8 +33,6 @@
 #include <mutex>
 #include <thread>
 
-class wivrn_hmd;
-class wivrn_controller;
 class wivrn_eye_tracker;
 class wivrn_fb_face2_tracker;
 class wivrn_foveation;
@@ -88,9 +88,9 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	std::atomic<bool> quit = false;
 	std::thread thread;
 
-	std::unique_ptr<wivrn_hmd> hmd;
-	std::unique_ptr<wivrn_controller> left_hand;
-	std::unique_ptr<wivrn_controller> right_hand;
+	wivrn_hmd hmd;
+	wivrn_controller left_hand;
+	wivrn_controller right_hand;
 	std::unique_ptr<wivrn_eye_tracker> eye_tracker;
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::unique_ptr<wivrn_foveation> foveation;
