@@ -33,7 +33,7 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
-namespace ffmpeg
+namespace wivrn::ffmpeg
 {
 static void free_codec_context(AVCodecContext * ctx)
 {
@@ -244,4 +244,4 @@ std::vector<wivrn::video_codec> decoder::supported_codecs()
 	};
 }
 
-} // namespace ffmpeg
+} // namespace wivrn::ffmpeg

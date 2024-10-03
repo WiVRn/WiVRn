@@ -27,7 +27,7 @@
 using decoder_impl = ::wivrn::android::decoder;
 #else
 #include "decoder/ffmpeg/ffmpeg_decoder.h"
-using decoder_impl = ::ffmpeg::decoder;
+using decoder_impl = ::wivrn::ffmpeg::decoder;
 #endif
 
 #include "wivrn_packets.h"

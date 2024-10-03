@@ -41,7 +41,7 @@ namespace scenes
 class stream;
 }
 
-namespace ffmpeg
+namespace wivrn::ffmpeg
 {
 class decoder
 {
