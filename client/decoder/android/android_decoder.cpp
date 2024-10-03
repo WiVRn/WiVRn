@@ -509,6 +509,29 @@ void decoder::blit_handle::deleter::operator()(AImage * aimage)
 	AImage_delete(aimage);
 }
 
+static bool hardware_accelerated(AMediaCodec * media_codec)
+{
+	// MediaCodecInfo has isHardwareAccelerated, but this does not exist in NDK.
+	char * name;
+	AMediaCodec_getName(media_codec, &name);
+	auto release = [&]() {
+		AMediaCodec_releaseName(media_codec, name);
+	};
+	for (const char * prefix: {
+	             "OMX.google",
+	             "c2.android",
+	     })
+	{
+		if (std::string_view(name).starts_with(prefix))
+		{
+			release();
+			return false;
+		}
+	}
+	release();
+	return true;
+}
+
 std::vector<xrt::drivers::wivrn::video_codec> decoder::supported_codecs()
 {
 	std::vector<xrt::drivers::wivrn::video_codec> result;
@@ -517,10 +540,11 @@ std::vector<xrt::drivers::wivrn::video_codec> decoder::supported_codecs()
 	{
 		AMediaCodec_ptr media_codec(AMediaCodec_createDecoderByType(mime(codec)));
 
-		if (media_codec)
+		bool supported = media_codec and hardware_accelerated(media_codec.get());
+		if (supported)
 			result.push_back(codec);
 
-		spdlog::info("video codec {}: {}supported", magic_enum::enum_name(codec), media_codec ? "" : "NOT ");
+		spdlog::info("video codec {}: {}supported", magic_enum::enum_name(codec), supported ? "" : "NOT ");
 	}
 
 	return result;
