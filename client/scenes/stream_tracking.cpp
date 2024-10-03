@@ -328,12 +328,7 @@ void scenes::stream::tracking()
 			size_t current_size = 0;
 			for (auto & item: tracking)
 			{
-				size_t size =
-				        3 * 8                                   // XrTime, XrViewStateFlags
-				        + 1                                     // state_flags
-				        + 88                                    // views
-				        + 2 + item.device_poses.size() * 54     // size + data
-				        + 1 + (item.face ? 70 * 4 * 2 + 2 : 0); // face
+				size_t size = serialized_size(item);
 				if (size + current_size > 1400)
 				{
 					merged_tracking.emplace_back();

@@ -90,6 +90,12 @@ struct hash_context
 template <typename T, typename Enable = void>
 struct serialization_traits;
 
+template <typename T>
+size_t serialized_size(const T & x)
+{
+	return serialization_traits<T>::size(x);
+}
+
 class deserialization_error : public std::runtime_error
 {
 public:
@@ -311,6 +317,10 @@ struct serialize_bits<T, std::tuple<>>
 	// termination case, nothing to do
 	static void serialize(const T &, serialization_packet &) {}
 	static void deserialize(T &, deserialization_packet &) {}
+	static size_t size(const T &)
+	{
+		return 0;
+	}
 };
 
 template <typename T, size_t i, typename... Bits>
@@ -327,6 +337,10 @@ struct serialize_bits<T, std::tuple<std::integer_sequence<size_t, i>, Bits...>>
 		// serialization of a single element
 		boost::pfr::get<i>(t) = serialization_traits<boost::pfr::tuple_element_t<i, T>>::deserialize(p);
 		serialize_bits<T, std::tuple<Bits...>>::deserialize(t, p);
+	}
+	static size_t size(const T & t)
+	{
+		return serialized_size(boost::pfr::get<i>(t)) + serialize_bits<T, std::tuple<Bits...>>::size(t);
 	}
 };
 
@@ -351,6 +365,10 @@ struct serialize_bits<T, std::tuple<std::integer_sequence<size_t, i, mid...>, Bi
 		auto first = (uint8_t *)&boost::pfr::get<i, T>(t);
 		p.read(first, size);
 		serialize_bits<T, std::tuple<Bits...>>::deserialize(t, p);
+	}
+	static size_t size(const T & t)
+	{
+		return (sizeof(boost::pfr::tuple_element_t<mid, T>) + ... + sizeof(boost::pfr::tuple_element_t<i, T>)) + serialize_bits<T, std::tuple<Bits...>>::size(t);
 	}
 };
 } // namespace details
@@ -389,6 +407,11 @@ struct serialization_traits<T, std::enable_if_t<std::is_arithmetic_v<T>>>
 	{
 		return true;
 	}
+
+	static size_t size(const T &)
+	{
+		return sizeof(T);
+	}
 };
 
 template <typename T>
@@ -414,6 +437,11 @@ struct serialization_traits<T, std::enable_if_t<std::is_enum_v<T>>>
 	static bool consteval is_trivially_serializable()
 	{
 		return true;
+	}
+
+	static size_t size(const T &)
+	{
+		return sizeof(T);
 	}
 };
 
@@ -483,6 +511,14 @@ struct serialization_traits<T, std::enable_if_t<std::is_aggregate_v<T> && !is_st
 	{
 		return sizeof(T) == ts_aux_size(std::make_index_sequence<boost::pfr::tuple_size_v<T>>()) and ts_aux_trivial(std::make_index_sequence<boost::pfr::tuple_size_v<T>>());
 	}
+
+	static size_t size(const T & value)
+	{
+		if constexpr (is_trivially_serializable())
+			return sizeof(T);
+		else
+			return details::serialize_bits<T, bits>::size(value);
+	}
 };
 
 template <>
@@ -514,6 +550,10 @@ struct serialization_traits<std::string>
 	static bool consteval is_trivially_serializable()
 	{
 		return false;
+	}
+	static size_t size(const std::string & value)
+	{
+		return sizeof(uint16_t) + value.size();
 	}
 };
 
@@ -568,6 +608,19 @@ struct serialization_traits<std::vector<T>>
 	{
 		return false;
 	}
+
+	static size_t size(const std::vector<T> & value)
+	{
+		if constexpr (is_trivially_serializable())
+			return sizeof(uint16_t) + value.size() * sizeof(T);
+		else
+		{
+			size_t res = sizeof(uint16_t);
+			for (const auto & item: value)
+				res += serialized_size(item);
+			return res;
+		}
+	}
 };
 
 template <typename T>
@@ -603,6 +656,11 @@ struct serialization_traits<std::optional<T>>
 	static bool consteval is_trivially_serializable()
 	{
 		return false;
+	}
+
+	static size_t size(const std::optional<T> & value)
+	{
+		return 1 + (value ? serialized_size(*value) : 0);
 	}
 };
 
@@ -657,6 +715,19 @@ struct serialization_traits<std::array<T, N>>
 	{
 		return serialization_traits<T>::is_trivially_serializable() and sizeof(std::array<T, N>) == sizeof(T) * N;
 	}
+
+	static size_t size(const std::array<T, N> & value)
+	{
+		if constexpr (is_trivially_serializable())
+			return N * sizeof(T);
+		else
+		{
+			size_t res = 0;
+			for (const auto & item: value)
+				res += serialized_size(item);
+			return res;
+		}
+	}
 };
 
 template <typename... T>
@@ -710,6 +781,11 @@ struct serialization_traits<std::variant<T...>>
 	{
 		return false;
 	}
+
+	static size_t size(const std::variant<T...> & value)
+	{
+		return 1 + std::visit([](const auto & x) { return serialized_size(x); });
+	}
 };
 
 template <typename Rep, typename Period>
@@ -741,6 +817,11 @@ struct serialization_traits<std::chrono::duration<Rep, Period>>
 	{
 		return sizeof(std::chrono::duration<Rep, Period>) == sizeof(Rep);
 	}
+
+	static size_t size(const std::chrono::duration<Rep, Period> & x)
+	{
+		return serialization_traits<Rep>::size(x);
+	}
 };
 
 template <>
@@ -766,6 +847,10 @@ struct serialization_traits<std::span<uint8_t>>
 	{
 		return false;
 	}
+	static size_t size(const std::span<uint8_t> & x)
+	{
+		return 1 + x.size_bytes();
+	}
 };
 
 template <>
@@ -788,6 +873,11 @@ struct serialization_traits<data_holder>
 	static bool consteval is_trivially_serializable()
 	{
 		return false;
+	}
+
+	static size_t size(const data_holder &)
+	{
+		return 0;
 	}
 };
 
