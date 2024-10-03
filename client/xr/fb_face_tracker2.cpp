@@ -35,7 +35,7 @@ xr::fb_face_tracker2::fb_face_tracker2(instance & inst, XrFaceTracker2FB h)
 	xrDestroyFaceTracker2FB = inst.get_proc<PFN_xrDestroyFaceTracker2FB>("xrDestroyFaceTracker2FB");
 }
 
-void xr::fb_face_tracker2::get_weights(XrTime time, xrt::drivers::wivrn::from_headset::tracking::fb_face2 & out_expressions)
+void xr::fb_face_tracker2::get_weights(XrTime time, wivrn::from_headset::tracking::fb_face2 & out_expressions)
 {
 	if (!id || !xrGetFaceExpressionWeights2FB)
 		return;

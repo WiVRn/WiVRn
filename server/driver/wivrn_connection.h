@@ -25,7 +25,7 @@
 #include <optional>
 #include <poll.h>
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 class wivrn_connection
 {

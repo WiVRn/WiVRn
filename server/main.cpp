@@ -50,11 +50,11 @@ extern "C"
 	ipc_server_main(int argc, char * argv[]);
 }
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 static std::unique_ptr<TCPListener> listener;
-std::optional<xrt::drivers::wivrn::typed_socket<xrt::drivers::wivrn::UnixDatagram, from_monado::packets, to_monado::packets>> wivrn_ipc_socket_main_loop;
-std::optional<xrt::drivers::wivrn::typed_socket<xrt::drivers::wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;
+std::optional<wivrn::typed_socket<wivrn::UnixDatagram, from_monado::packets, to_monado::packets>> wivrn_ipc_socket_main_loop;
+std::optional<wivrn::typed_socket<wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;
 
 std::filesystem::path socket_path()
 {
@@ -205,7 +205,7 @@ std::optional<avahi_publisher> publisher;
 
 gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data);
 void stop_listening();
-void on_headset_info_packet(const xrt::drivers::wivrn::from_headset::headset_info_packet & info);
+void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & info);
 
 void start_publishing();
 void stop_publishing();
@@ -339,7 +339,7 @@ void start_listening()
 
 	assert(listener_watch == 0);
 
-	listener = std::make_unique<TCPListener>(xrt::drivers::wivrn::default_port);
+	listener = std::make_unique<TCPListener>(wivrn::default_port);
 	auto source_listener = g_unix_fd_source_new(listener->get_fd(), GIOCondition::G_IO_IN);
 	g_source_set_callback(source_listener, G_SOURCE_FUNC(&headset_connected), nullptr, nullptr);
 	listener_watch = g_source_attach(source_listener, nullptr);
@@ -364,13 +364,13 @@ void start_publishing()
 		return;
 
 	char protocol_string[17];
-	sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
+	sprintf(protocol_string, "%016lx", wivrn::protocol_version);
 	std::map<std::string, std::string> TXT = {
 	        {"protocol", protocol_string},
-	        {"version", xrt::drivers::wivrn::git_version},
+	        {"version", wivrn::git_version},
 	        {"cookie", server_cookie()},
 	};
-	publisher.emplace(poll_api, hostname(), "_wivrn._tcp", xrt::drivers::wivrn::default_port, TXT);
+	publisher.emplace(poll_api, hostname(), "_wivrn._tcp", wivrn::default_port, TXT);
 }
 
 void stop_publishing()
@@ -428,7 +428,7 @@ gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data)
 
 	assert(listener);
 
-	tcp = std::make_unique<xrt::drivers::wivrn::TCP>(listener->accept().first);
+	tcp = std::make_unique<wivrn::TCP>(listener->accept().first);
 	init_cleanup_functions();
 
 	std::cout << "Client connected" << std::endl;
@@ -444,9 +444,9 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 	auto packet = wivrn_ipc_socket_main_loop->receive();
 	if (packet)
 	{
-		if (std::holds_alternative<xrt::drivers::wivrn::from_headset::headset_info_packet>(*packet))
+		if (std::holds_alternative<wivrn::from_headset::headset_info_packet>(*packet))
 		{
-			on_headset_info_packet(std::get<xrt::drivers::wivrn::from_headset::headset_info_packet>(*packet));
+			on_headset_info_packet(std::get<wivrn::from_headset::headset_info_packet>(*packet));
 			wivrn_server_set_headset_connected(dbus_server, true);
 		}
 		else if (std::holds_alternative<from_monado::headsdet_connected>(*packet))
@@ -503,7 +503,7 @@ void on_json_configuration(WivrnServer * server, const GParamSpec * pspec, gpoin
 		std::cerr << "Failed to save configuration: " << ec.message() << std::endl;
 }
 
-void on_headset_info_packet(const xrt::drivers::wivrn::from_headset::headset_info_packet & info)
+void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & info)
 {
 	GVariantBuilder * builder;
 
@@ -521,11 +521,11 @@ void on_headset_info_packet(const xrt::drivers::wivrn::from_headset::headset_inf
 
 	wivrn_server_set_preferred_refresh_rate(dbus_server, info.preferred_refresh_rate);
 
-	auto speaker = info.speaker.value_or(xrt::drivers::wivrn::from_headset::headset_info_packet::audio_description{});
+	auto speaker = info.speaker.value_or(wivrn::from_headset::headset_info_packet::audio_description{});
 	wivrn_server_set_speaker_channels(dbus_server, speaker.num_channels);
 	wivrn_server_set_speaker_sample_rate(dbus_server, speaker.sample_rate);
 
-	auto mic = info.microphone.value_or(xrt::drivers::wivrn::from_headset::headset_info_packet::audio_description{});
+	auto mic = info.microphone.value_or(wivrn::from_headset::headset_info_packet::audio_description{});
 	wivrn_server_set_mic_channels(dbus_server, mic.num_channels);
 	wivrn_server_set_mic_sample_rate(dbus_server, mic.sample_rate);
 
@@ -594,7 +594,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 {
 	if (show_instructions)
 	{
-		std::cerr << "WiVRn " << xrt::drivers::wivrn::git_version << " starting" << std::endl;
+		std::cerr << "WiVRn " << wivrn::git_version << " starting" << std::endl;
 		std::cerr << "For Steam games, set command to " << steam_command() << std::endl;
 	}
 

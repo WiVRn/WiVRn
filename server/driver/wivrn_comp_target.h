@@ -35,7 +35,7 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 class VideoEncoder;
@@ -97,10 +97,10 @@ struct wivrn_comp_target : public comp_target
 	std::list<std::jthread> encoder_threads;
 	std::vector<std::shared_ptr<VideoEncoder>> encoders;
 
-	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
+	std::shared_ptr<wivrn::wivrn_session> cnx;
 	std::unique_ptr<wivrn_foveation_renderer> foveation_renderer = nullptr;
 
-	wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps);
+	wivrn_comp_target(std::shared_ptr<wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps);
 	~wivrn_comp_target();
 
 	void on_feedback(const from_headset::feedback &, const clock_offset &);
@@ -109,4 +109,4 @@ struct wivrn_comp_target : public comp_target
 	void render_dynamic_foveation(std::array<to_headset::foveation_parameter, 2> foveation);
 };
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

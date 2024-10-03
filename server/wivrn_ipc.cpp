@@ -23,7 +23,7 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 
-std::unique_ptr<xrt::drivers::wivrn::TCP> tcp;
+std::unique_ptr<wivrn::TCP> tcp;
 
 struct cleanup_function
 {

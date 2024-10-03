@@ -163,7 +163,7 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 	if (!manual_connection)
 	{
 		char protocol_string[17];
-		sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
+		sprintf(protocol_string, "%016lx", wivrn::protocol_version);
 
 		spdlog::debug("Client protocol version: {}", protocol_string);
 		spdlog::debug("Server TXT:");
@@ -290,7 +290,7 @@ void scenes::lobby::update_server_list()
 	}
 
 	char protocol_string[17];
-	sprintf(protocol_string, "%016lx", xrt::drivers::wivrn::protocol_version);
+	sprintf(protocol_string, "%016lx", wivrn::protocol_version);
 
 	for (auto & service: discovered_services)
 	{

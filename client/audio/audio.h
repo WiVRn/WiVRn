@@ -33,12 +33,12 @@ class audio
 public:
 	audio(const audio &) = delete;
 	audio & operator=(const audio &) = delete;
-	audio(const xrt::drivers::wivrn::to_headset::audio_stream_description &, wivrn_session &, xr::instance &) {}
+	audio(const wivrn::to_headset::audio_stream_description &, wivrn_session &, xr::instance &) {}
 	~audio() = default;
 
-	void operator()(xrt::drivers::wivrn::audio_data &&) {}
+	void operator()(wivrn::audio_data &&) {}
 
-	static void get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info) {}
+	static void get_audio_description(wivrn::from_headset::headset_info_packet & info) {}
 };
 
 #endif

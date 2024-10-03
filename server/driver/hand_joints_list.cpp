@@ -22,7 +22,7 @@
 #include "pose_list.h"
 #include "xrt_cast.h"
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 static_assert(XRT_HAND_JOINT_COUNT == XR_HAND_JOINT_COUNT_EXT);
 

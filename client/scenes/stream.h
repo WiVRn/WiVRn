@@ -48,7 +48,7 @@ public:
 private:
 	static const size_t view_count = 2;
 
-	using stream_description = xrt::drivers::wivrn::to_headset::video_stream_description::item;
+	using stream_description = wivrn::to_headset::video_stream_description::item;
 
 	struct accumulator_images
 	{
@@ -149,7 +149,7 @@ public:
 
 	void push_blit_handle(shard_accumulator * decoder, std::shared_ptr<shard_accumulator::blit_handle> handle);
 
-	void send_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback);
+	void send_feedback(const wivrn::from_headset::feedback & feedback);
 
 	state current_state() const
 	{

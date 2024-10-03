@@ -32,7 +32,7 @@
 
 #include "wivrn_serialization_types.h"
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 // Default port for server to listen, both TCP and UDP
@@ -390,4 +390,4 @@ using packets = std::variant<handshake, audio_stream_description, video_stream_d
 
 } // namespace to_headset
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

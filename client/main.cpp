@@ -55,7 +55,7 @@ void real_main()
 		if (not server_address.empty())
 		{
 			auto colon = server_address.rfind(":");
-			int port = xrt::drivers::wivrn::default_port;
+			int port = wivrn::default_port;
 			if (colon != std::string::npos)
 			{
 				port = std::stoi(server_address.substr(colon + 1));

@@ -23,7 +23,7 @@
 #include "wivrn_sockets.h"
 #include <poll.h>
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 class wivrn_session
 {

@@ -24,7 +24,7 @@
 #include "xrt/xrt_defines.h"
 #include "xrt_cast.h"
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 using namespace xrt::auxiliary::math;
 
 xrt_space_relation pose_list::interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t)

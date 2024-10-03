@@ -39,7 +39,7 @@ class shard_accumulator
 	std::shared_ptr<decoder_impl> decoder;
 
 public:
-	using data_shard = xrt::drivers::wivrn::to_headset::video_stream_data_shard;
+	using data_shard = wivrn::to_headset::video_stream_data_shard;
 	struct shard_set
 	{
 		size_t min_for_reconstruction = -1;
@@ -49,7 +49,7 @@ public:
 
 		std::optional<uint16_t> insert(data_shard &&);
 
-		xrt::drivers::wivrn::from_headset::feedback feedback{};
+		wivrn::from_headset::feedback feedback{};
 
 		explicit shard_set(uint8_t stream_index);
 		shard_set(const shard_set &) = default;
@@ -72,7 +72,7 @@ public:
 	explicit shard_accumulator(
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
-	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+	        const wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        std::weak_ptr<scenes::stream> scene,
 	        uint8_t stream_index) :
@@ -84,7 +84,7 @@ public:
 		next.reset(1);
 	}
 
-	void push_shard(xrt::drivers::wivrn::to_headset::video_stream_data_shard &&);
+	void push_shard(wivrn::to_headset::video_stream_data_shard &&);
 
 	auto & desc() const
 	{
@@ -106,6 +106,6 @@ public:
 private:
 	void try_submit_frame(std::optional<uint16_t> shard_idx);
 	void try_submit_frame(uint16_t shard_idx);
-	void send_feedback(xrt::drivers::wivrn::from_headset::feedback & feedback);
+	void send_feedback(wivrn::from_headset::feedback & feedback);
 	void advance();
 };

@@ -37,7 +37,7 @@
 #include <thread>
 #include <vulkan/vulkan_raii.hpp>
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 // clang-format off
 static const std::unordered_map<std::string, device_id> device_ids = {
@@ -568,7 +568,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	std::array<XrPosef, 2> pose{};
 	std::array<XrFovf, 2> fov{};
-	std::array<xrt::drivers::wivrn::to_headset::foveation_parameter, 2> foveation{};
+	std::array<wivrn::to_headset::foveation_parameter, 2> foveation{};
 	{
 		// Search for frame with desired display time on all decoders
 		// If no such frame exists, use the latest frame for each decoder

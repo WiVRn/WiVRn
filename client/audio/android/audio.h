@@ -48,10 +48,10 @@ class audio
 	void build_microphone(AAudioStreamBuilderStruct *, int32_t, int32_t);
 	void build_speaker(AAudioStreamBuilderStruct *, int32_t, int32_t);
 
-	utils::ring_buffer<xrt::drivers::wivrn::audio_data, 100> output_buffer;
+	utils::ring_buffer<wivrn::audio_data, 100> output_buffer;
 	std::atomic<size_t> buffer_size_bytes;
 
-	xrt::drivers::wivrn::audio_data speaker_tmp;
+	wivrn::audio_data speaker_tmp;
 	AAudioStreamStruct * speaker = nullptr;
 	std::atomic<bool> speaker_stop_ack = false;
 	AAudioStreamStruct * microphone = nullptr;
@@ -67,11 +67,11 @@ class audio
 public:
 	audio(const audio &) = delete;
 	audio & operator=(const audio &) = delete;
-	audio(const xrt::drivers::wivrn::to_headset::audio_stream_description &, wivrn_session &, xr::instance &);
+	audio(const wivrn::to_headset::audio_stream_description &, wivrn_session &, xr::instance &);
 	~audio();
 
-	void operator()(xrt::drivers::wivrn::audio_data &&);
+	void operator()(wivrn::audio_data &&);
 
-	static void get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info);
+	static void get_audio_description(wivrn::from_headset::headset_info_packet & info);
 };
 } // namespace wivrn::android

@@ -127,7 +127,7 @@ vk::Format drm_to_vulkan_fmt(uint32_t drm_fourcc)
 
 } // namespace
 
-video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, xrt::drivers::wivrn::encoder_settings & settings, float fps) :
+video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, wivrn::encoder_settings & settings, float fps) :
         synchronization2(vk.vk.features.synchronization_2)
 {
 	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device, settings.device);

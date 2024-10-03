@@ -30,11 +30,11 @@ static void handle_event_from_main_loop(to_monado::disconnect)
 	// Ignore disconnect request when no headset is connected
 }
 
-std::unique_ptr<xrt::drivers::wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit)
+std::unique_ptr<wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit)
 {
 	wivrn_ipc_socket_monado->send(from_monado::headsdet_disconnected{});
 
-	xrt::drivers::wivrn::TCPListener listener(xrt::drivers::wivrn::default_port);
+	wivrn::TCPListener listener(wivrn::default_port);
 
 	pollfd fds[3]{
 	        {.fd = watch_fd, .events = POLLIN},
@@ -56,7 +56,7 @@ std::unique_ptr<xrt::drivers::wivrn::TCP> accept_connection(int watch_fd, std::f
 		if (fds[1].revents & POLLIN)
 		{
 			wivrn_ipc_socket_monado->send(from_monado::headsdet_connected{});
-			return std::make_unique<xrt::drivers::wivrn::TCP>(listener.accept().first);
+			return std::make_unique<wivrn::TCP>(listener.accept().first);
 		}
 
 		if (fds[2].revents & POLLIN)

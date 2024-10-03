@@ -23,7 +23,7 @@
 #include "utils/wivrn_vk_bundle.h"
 #include <stdexcept>
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 void VideoEncoderX264::ProcessCb(x264_t * h, x264_nal_t * nal, void * opaque)
@@ -249,4 +249,4 @@ VideoEncoderX264::~VideoEncoderX264()
 	x264_encoder_close(enc);
 }
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

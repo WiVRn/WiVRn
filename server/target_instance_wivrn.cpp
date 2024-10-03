@@ -40,7 +40,7 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	*out_xsys = &u_sys->base;
 
 	struct xrt_system_compositor * xsysc = NULL;
-	auto res = xrt::drivers::wivrn::wivrn_session::create_session(
+	auto res = wivrn::wivrn_session::create_session(
 	        std::move(*tcp),
 	        *u_sys,
 	        out_xsysd,

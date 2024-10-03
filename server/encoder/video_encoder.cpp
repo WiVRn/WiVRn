@@ -39,7 +39,7 @@
 #include "video_encoder_x264.h"
 #endif
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 VideoEncoder::sender::sender() :
@@ -293,4 +293,4 @@ void VideoEncoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 		cnx->dump_time("send_end", shard.frame_idx, os_monotonic_get_ns(), stream_idx);
 }
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

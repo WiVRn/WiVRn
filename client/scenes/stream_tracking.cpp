@@ -240,7 +240,7 @@ void scenes::stream::tracking()
 
 					packet.state_flags = 0;
 					if (local_dirty.exchange(false))
-						packet.state_flags = xrt::drivers::wivrn::from_headset::tracking::recentered;
+						packet.state_flags = wivrn::from_headset::tracking::recentered;
 
 					packet.device_poses.clear();
 					for (auto [device, space]: spaces)

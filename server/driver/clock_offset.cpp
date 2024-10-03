@@ -42,12 +42,12 @@ void clock_offset_estimator::request_sample(wivrn_connection & connection)
 
 	next_sample = std::chrono::steady_clock::now() + sample_interval.load();
 	connection.send_stream(
-	        xrt::drivers::wivrn::to_headset::timesync_query{
+	        wivrn::to_headset::timesync_query{
 	                .query = XrTime(os_monotonic_get_ns()),
 	        });
 }
 
-void clock_offset_estimator::add_sample(const xrt::drivers::wivrn::from_headset::timesync_response & base_sample)
+void clock_offset_estimator::add_sample(const wivrn::from_headset::timesync_response & base_sample)
 {
 	XrTime now = os_monotonic_get_ns();
 	clock_offset_estimator::sample sample{base_sample, now};

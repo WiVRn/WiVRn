@@ -48,9 +48,9 @@ struct wivrn::android::decoder::mapped_hardware_buffer
 
 namespace
 {
-const char * mime(xrt::drivers::wivrn::video_codec codec)
+const char * mime(wivrn::video_codec codec)
 {
-	using c = xrt::drivers::wivrn::video_codec;
+	using c = wivrn::video_codec;
 	switch (codec)
 	{
 		case c::h264:
@@ -80,7 +80,7 @@ namespace wivrn::android
 decoder::decoder(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
-        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+        const wivrn::to_headset::video_stream_description::item & description,
         float fps,
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> weak_scene,
@@ -219,7 +219,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 	current_input_buffer = input_buffer{};
 }
 
-void decoder::frame_completed(xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
+void decoder::frame_completed(wivrn::from_headset::feedback & feedback, const wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
 {
 	if (not media_codec)
 	{
@@ -532,11 +532,11 @@ static bool hardware_accelerated(AMediaCodec * media_codec)
 	return true;
 }
 
-std::vector<xrt::drivers::wivrn::video_codec> decoder::supported_codecs()
+std::vector<wivrn::video_codec> decoder::supported_codecs()
 {
-	std::vector<xrt::drivers::wivrn::video_codec> result;
+	std::vector<wivrn::video_codec> result;
 
-	for (auto codec: std::ranges::reverse_view(magic_enum::enum_values<xrt::drivers::wivrn::video_codec>()))
+	for (auto codec: std::ranges::reverse_view(magic_enum::enum_values<wivrn::video_codec>()))
 	{
 		AMediaCodec_ptr media_codec(AMediaCodec_createDecoderByType(mime(codec)));
 

@@ -26,7 +26,7 @@
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 struct deleter
 {
@@ -73,7 +73,7 @@ struct pipewire_device : public audio_device
 	static void speaker_process(void * self_v);
 	static void mic_process(void * self_v);
 
-	void process_mic_data(xrt::drivers::wivrn::audio_data &&) override;
+	void process_mic_data(wivrn::audio_data &&) override;
 
 	~pipewire_device() = default;
 
@@ -82,8 +82,8 @@ struct pipewire_device : public audio_device
 	        const std::string & source_description,
 	        const std::string & sink_name,
 	        const std::string & sink_description,
-	        const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
-	        xrt::drivers::wivrn::wivrn_session & session) :
+	        const wivrn::from_headset::headset_info_packet & info,
+	        wivrn::wivrn_session & session) :
 	        session(session)
 	{
 		int argc = 0;
@@ -289,7 +289,7 @@ void pipewire_device::speaker_process(void * self_v)
 	pw_stream_queue_buffer(self->speaker.get(), buffer);
 }
 
-void pipewire_device::process_mic_data(xrt::drivers::wivrn::audio_data && sample)
+void pipewire_device::process_mic_data(wivrn::audio_data && sample)
 {
 	auto size = sample.payload.size_bytes();
 	if (mic_samples.write(std::move(sample)))
@@ -301,7 +301,7 @@ std::shared_ptr<audio_device> create_pipewire_handle(
         const std::string & source_description,
         const std::string & sink_name,
         const std::string & sink_description,
-        const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
+        const wivrn::from_headset::headset_info_packet & info,
         wivrn_session & session)
 {
 	try

@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 // Intended to be the last element of a serializable type
@@ -37,4 +37,4 @@ struct data_holder
 	std::shared_ptr<uint8_t[]> c;
 };
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

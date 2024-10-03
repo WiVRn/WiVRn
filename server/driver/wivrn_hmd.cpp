@@ -197,7 +197,7 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 	return true;
 }
 
-wivrn_hmd::wivrn_hmd(xrt::drivers::wivrn::wivrn_session * cnx,
+wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
                      const from_headset::headset_info_packet & info) :
         xrt_device{}, cnx(cnx)
 {

@@ -40,7 +40,7 @@ static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
                                                xrt_space_relation * out_relation);
 
 wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd,
-                                     std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx) :
+                                     std::shared_ptr<wivrn::wivrn_session> cnx) :
         xrt_device{}, gaze(device_id::EYE_GAZE), cnx(cnx)
 {
 	xrt_device * base = this;

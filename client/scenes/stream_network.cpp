@@ -83,7 +83,7 @@ void scenes::stream::operator()(audio_data && data)
 		(*audio_handle)(std::move(data));
 }
 
-void scenes::stream::send_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback)
+void scenes::stream::send_feedback(const wivrn::from_headset::feedback & feedback)
 {
 	try
 	{

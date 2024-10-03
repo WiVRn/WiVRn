@@ -27,7 +27,7 @@
 #include "main_window.h"
 #include "wizard.h"
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 extern const char git_version[];
 }
@@ -38,7 +38,7 @@ int main(int argc, char * argv[])
 
 	app.setApplicationName("wivrn-dashboard");
 	app.setOrganizationName("wivrn");
-	app.setApplicationVersion(xrt::drivers::wivrn::git_version);
+	app.setApplicationVersion(wivrn::git_version);
 	app.setDesktopFileName("io.github.wivrn.wivrn");
 
 	QTranslator translator;

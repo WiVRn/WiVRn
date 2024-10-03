@@ -35,8 +35,8 @@ std::shared_ptr<audio_device> audio_device::create(
         const std::string & source_description,
         const std::string & sink_name,
         const std::string & sink_description,
-        const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
-        xrt::drivers::wivrn::wivrn_session & session)
+        const wivrn::from_headset::headset_info_packet & info,
+        wivrn::wivrn_session & session)
 {
 #if WIVRN_USE_PIPEWIRE
 	if (auto res = create_pipewire_handle(source_name, source_description, sink_name, sink_description, info, session))

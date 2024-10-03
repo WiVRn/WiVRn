@@ -37,7 +37,7 @@ struct configuration
 		std::optional<double> offset_x;
 		std::optional<double> offset_y;
 		std::optional<int> group;
-		std::optional<xrt::drivers::wivrn::video_codec> codec;
+		std::optional<wivrn::video_codec> codec;
 		std::map<std::string, std::string> options;
 		std::optional<std::string> device;
 	};

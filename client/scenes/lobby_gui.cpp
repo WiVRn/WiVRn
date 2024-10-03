@@ -487,7 +487,7 @@ void scenes::lobby::gui_settings()
 void scenes::lobby::gui_about()
 {
 	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH(std::string("WiVRn ") + xrt::drivers::wivrn::git_version);
+	CenterTextH(std::string("WiVRn ") + wivrn::git_version);
 	ImGui::PopFont();
 
 	ImGui::Dummy(ImVec2(0, 60));
@@ -611,7 +611,7 @@ static void ScrollWhenDraggingOnVoid(ImVec2 delta)
 
 static auto face_weights()
 {
-	using weights = decltype(xrt::drivers::wivrn::from_headset::tracking::fb_face2{}.weights);
+	using weights = decltype(wivrn::from_headset::tracking::fb_face2{}.weights);
 	using item = std::pair<const char *, std::array<float, XR_FACE_EXPRESSION2_COUNT_FB>>;
 	std::vector<item> res;
 
@@ -794,7 +794,7 @@ static auto face_weights()
 static const char * get_face_icon(XrTime predicted_display_time)
 {
 	static const auto w = face_weights();
-	xrt::drivers::wivrn::from_headset::tracking::fb_face2 expression;
+	wivrn::from_headset::tracking::fb_face2 expression;
 	application::get_fb_face_tracker2().get_weights(predicted_display_time, expression);
 
 	if (not expression.is_valid)

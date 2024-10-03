@@ -49,7 +49,7 @@ stream_reprojection::stream_reprojection(
         std::vector<vk::Image> output_images_,
         vk::Extent2D extent,
         vk::Format format,
-        const xrt::drivers::wivrn::to_headset::video_stream_description & description) :
+        const wivrn::to_headset::video_stream_description & description) :
         input_images(std::move(input_images_)),
         output_images(std::move(output_images_)),
         extent(extent)
@@ -434,7 +434,7 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 	command_buffer.endRenderPass();
 }
 
-void stream_reprojection::set_foveation(std::array<xrt::drivers::wivrn::to_headset::foveation_parameter, 2> foveation)
+void stream_reprojection::set_foveation(std::array<wivrn::to_headset::foveation_parameter, 2> foveation)
 {
 	foveation_parameters = foveation;
 }

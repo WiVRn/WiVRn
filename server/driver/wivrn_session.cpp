@@ -90,7 +90,7 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	}
 };
 
-void xrt::drivers::wivrn::tracking_control_t::send(wivrn_connection & connection)
+void wivrn::tracking_control_t::send(wivrn_connection & connection)
 {
 	if (std::chrono::steady_clock::now() < next_sample)
 		return;
@@ -102,7 +102,7 @@ void xrt::drivers::wivrn::tracking_control_t::send(wivrn_connection & connection
 	next_sample += std::chrono::seconds(1);
 }
 
-void xrt::drivers::wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id, bool enabled)
+void wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id, bool enabled)
 {
 	std::lock_guard lock(mutex);
 	if (enabled != this->enabled[size_t(id)])
@@ -110,10 +110,10 @@ void xrt::drivers::wivrn::tracking_control_t::set_enabled(to_headset::tracking_c
 	this->enabled[size_t(id)] = enabled;
 }
 
-xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tcp, u_system & system) :
+wivrn::wivrn_session::wivrn_session(wivrn::TCP && tcp, u_system & system) :
         connection(std::move(tcp)),
         info([](wivrn_connection & connection) {
-	        std::optional<xrt::drivers::wivrn::from_headset::packets> control;
+	        std::optional<wivrn::from_headset::packets> control;
 	        while (not(control = connection.poll_control(-1)))
 	        {
 		        // FIXME: timeout
@@ -127,11 +127,11 @@ xrt::drivers::wivrn::wivrn_session::wivrn_session(xrt::drivers::wivrn::TCP && tc
 {
 }
 
-xrt_result_t xrt::drivers::wivrn::wivrn_session::create_session(xrt::drivers::wivrn::TCP && tcp,
-                                                                u_system & system,
-                                                                xrt_system_devices ** out_xsysd,
-                                                                xrt_space_overseer ** out_xspovrs,
-                                                                xrt_system_compositor ** out_xsysc)
+xrt_result_t wivrn::wivrn_session::create_session(wivrn::TCP && tcp,
+                                                  u_system & system,
+                                                  xrt_system_devices ** out_xsysd,
+                                                  xrt_space_overseer ** out_xspovrs,
+                                                  xrt_system_compositor ** out_xsysc)
 {
 	std::shared_ptr<wivrn_session> self;
 	try
@@ -519,7 +519,7 @@ void wivrn_session::reconnect()
 	{
 		offset_est.reset();
 		connection.reset(std::move(*tcp));
-		std::optional<xrt::drivers::wivrn::from_headset::packets> control;
+		std::optional<wivrn::from_headset::packets> control;
 		while (not(control = connection.poll_control(100)))
 		{
 			// FIXME: timeout

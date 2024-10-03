@@ -60,7 +60,7 @@
 		}                                                                                 \
 	} while (0)
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 void VideoEncoderNvenc::deleter::operator()(CudaFunctions * fn)
@@ -445,4 +445,4 @@ std::array<int, 2> VideoEncoderNvenc::get_max_size(video_codec codec)
 	return result;
 }
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

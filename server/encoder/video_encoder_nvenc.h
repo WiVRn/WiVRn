@@ -26,7 +26,7 @@
 #include <ffnvcodec/nvEncodeAPI.h>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 class VideoEncoderNvenc : public VideoEncoder
@@ -73,4 +73,4 @@ public:
 	static std::array<int, 2> get_max_size(video_codec);
 };
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

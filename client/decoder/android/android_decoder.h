@@ -66,9 +66,9 @@ public:
 		{
 			void operator()(AImage *);
 		};
-		xrt::drivers::wivrn::from_headset::feedback feedback;
-		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
-		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
+		wivrn::from_headset::feedback feedback;
+		wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
+		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 		vk::raii::ImageView & image_view;
 		vk::Image image = nullptr;
 		vk::ImageLayout * current_layout = nullptr;
@@ -80,7 +80,7 @@ public:
 	};
 
 private:
-	xrt::drivers::wivrn::to_headset::video_stream_description::item description;
+	wivrn::to_headset::video_stream_description::item description;
 	float fps;
 
 	vk::raii::Device & device;
@@ -117,9 +117,9 @@ private:
 
 	struct frame_info
 	{
-		xrt::drivers::wivrn::from_headset::feedback feedback;
-		xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
-		xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
+		wivrn::from_headset::feedback feedback;
+		wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
+		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 	};
 	utils::sync_queue<frame_info> frame_infos;
 
@@ -138,7 +138,7 @@ private:
 public:
 	decoder(vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
-	        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+	        const wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,
 	        std::weak_ptr<scenes::stream> scene,
@@ -151,9 +151,9 @@ public:
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
 
 	void frame_completed(
-	        xrt::drivers::wivrn::from_headset::feedback & feedback,
-	        const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info,
-	        const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
+	        wivrn::from_headset::feedback & feedback,
+	        const wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info,
+	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 
 	const auto & desc() const
 	{
@@ -170,7 +170,7 @@ public:
 		return extent;
 	}
 
-	static std::vector<xrt::drivers::wivrn::video_codec> supported_codecs();
+	static std::vector<wivrn::video_codec> supported_codecs();
 };
 
 } // namespace wivrn::android

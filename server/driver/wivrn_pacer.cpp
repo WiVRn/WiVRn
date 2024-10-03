@@ -68,7 +68,7 @@ void wivrn_pacer::predict(
 	out_present_slop_ns = 0;
 }
 
-void wivrn_pacer::on_feedback(const xrt::drivers::wivrn::from_headset::feedback & feedback, const clock_offset & offset)
+void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, const clock_offset & offset)
 {
 	std::lock_guard lock(mutex);
 	if (feedback.stream_index >= streams.size() or feedback.times_displayed > 1)

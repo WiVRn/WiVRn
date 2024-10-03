@@ -35,7 +35,7 @@
 
 struct wivrn_vk_bundle;
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 class wivrn_session;
@@ -126,4 +126,4 @@ protected:
 	void SendData(std::span<uint8_t> data, bool end_of_frame);
 };
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

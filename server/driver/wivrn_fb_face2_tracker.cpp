@@ -42,7 +42,7 @@ static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device *
                                                              struct xrt_facial_expression_set * out_value);
 
 wivrn_fb_face2_tracker::wivrn_fb_face2_tracker(xrt_device * hmd,
-                                               std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx) :
+                                               std::shared_ptr<wivrn::wivrn_session> cnx) :
         xrt_device{}, cnx(cnx)
 {
 	xrt_device * base = this;

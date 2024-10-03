@@ -240,7 +240,7 @@ public:
 
 struct pulse_device : public audio_device
 {
-	xrt::drivers::wivrn::to_headset::audio_stream_description desc;
+	wivrn::to_headset::audio_stream_description desc;
 
 	std::thread mic_thread;
 	std::thread speaker_thread;
@@ -251,10 +251,10 @@ struct pulse_device : public audio_device
 
 	utils::sync_queue<audio_data> mic_buffer;
 
-	xrt::drivers::wivrn::fd_base speaker_pipe;
-	xrt::drivers::wivrn::fd_base mic_pipe;
+	wivrn::fd_base speaker_pipe;
+	wivrn::fd_base mic_pipe;
 
-	xrt::drivers::wivrn::wivrn_session & session;
+	wivrn::wivrn_session & session;
 
 	~pulse_device()
 	{
@@ -282,7 +282,7 @@ struct pulse_device : public audio_device
 		}
 	}
 
-	xrt::drivers::wivrn::to_headset::audio_stream_description description() const override
+	wivrn::to_headset::audio_stream_description description() const override
 	{
 		return desc;
 	};
@@ -298,7 +298,7 @@ struct pulse_device : public audio_device
 		// use buffers of up to 2ms
 		// read buffers must be smaller than buffer size on client or we will discard chunks often
 		const size_t buffer_size = (desc.speaker->sample_rate * sample_size * 2) / 1000;
-		xrt::drivers::wivrn::audio_data packet;
+		wivrn::audio_data packet;
 		std::vector<uint8_t> buffer(buffer_size, 0);
 		size_t remainder = 0;
 
@@ -396,7 +396,7 @@ struct pulse_device : public audio_device
 		}
 	}
 
-	void process_mic_data(xrt::drivers::wivrn::audio_data && mic_data) override
+	void process_mic_data(wivrn::audio_data && mic_data) override
 	{
 		mic_buffer.push(std::move(mic_data));
 	}
@@ -406,8 +406,8 @@ struct pulse_device : public audio_device
 	        const std::string & source_description,
 	        const std::string & sink_name,
 	        const std::string & sink_description,
-	        const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
-	        xrt::drivers::wivrn::wivrn_session & session) :
+	        const wivrn::from_headset::headset_info_packet & info,
+	        wivrn::wivrn_session & session) :
 	        session(session)
 	{
 		pa_connection cnx("WiVRn");
@@ -446,7 +446,7 @@ std::shared_ptr<audio_device> create_pulse_handle(
         const std::string & source_description,
         const std::string & sink_name,
         const std::string & sink_description,
-        const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
+        const wivrn::from_headset::headset_info_packet & info,
         wivrn_session & session)
 {
 	try

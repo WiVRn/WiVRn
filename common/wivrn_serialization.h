@@ -38,7 +38,7 @@
 
 #include "wivrn_serialization_types.h"
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 namespace details
@@ -889,4 +889,4 @@ constexpr uint64_t serialization_type_hash()
 	return h.hash;
 }
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

@@ -23,10 +23,10 @@
 #include "ffmpeg_helper.h"
 #include <chrono>
 
-class VideoEncoderFFMPEG : public xrt::drivers::wivrn::VideoEncoder
+class VideoEncoderFFMPEG : public wivrn::VideoEncoder
 {
 public:
-	using Codec = xrt::drivers::wivrn::video_codec;
+	using Codec = wivrn::video_codec;
 
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
 
@@ -38,7 +38,7 @@ public:
 
 protected:
 	VideoEncoderFFMPEG() :
-	        xrt::drivers::wivrn::VideoEncoder(true) {}
+	        wivrn::VideoEncoder(true) {}
 
 	virtual void push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) = 0;
 

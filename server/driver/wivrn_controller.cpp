@@ -151,7 +151,7 @@ static void wivrn_controller_update_inputs(xrt_device * xdev);
 
 wivrn_controller::wivrn_controller(int hand_id,
                                    xrt_device * hmd,
-                                   xrt::drivers::wivrn::wivrn_session * cnx) :
+                                   wivrn::wivrn_session * cnx) :
         xrt_device{},
         grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
         aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM),

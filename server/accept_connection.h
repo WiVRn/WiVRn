@@ -23,4 +23,4 @@
 #include <memory>
 #include <wivrn_sockets.h>
 
-std::unique_ptr<xrt::drivers::wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit = std::function<bool()>());
+std::unique_ptr<wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit = std::function<bool()>());

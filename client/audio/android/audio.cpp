@@ -127,7 +127,7 @@ int32_t wivrn::android::audio::microphone_data_cb(AAudioStream * stream, void * 
 
 	size_t frame_size = AAudioStream_getChannelCount(stream) * sizeof(uint16_t);
 
-	xrt::drivers::wivrn::audio_data packet{
+	wivrn::audio_data packet{
 	        .timestamp = self->instance.now(),
 	        .payload = std::span(audio_data, frame_size * num_frames),
 	};
@@ -237,7 +237,7 @@ void wivrn::android::audio::microphone_error_cb(AAudioStream * stream, void * us
 	recreate_thread.detach();
 }
 
-wivrn::android::audio::audio(const xrt::drivers::wivrn::to_headset::audio_stream_description & desc, wivrn_session & session, xr::instance & instance) :
+wivrn::android::audio::audio(const wivrn::to_headset::audio_stream_description & desc, wivrn_session & session, xr::instance & instance) :
         session(session), instance(instance)
 {
 	AAudioStreamBuilder * builder;
@@ -265,14 +265,14 @@ wivrn::android::audio::~audio()
 	}
 }
 
-void wivrn::android::audio::operator()(xrt::drivers::wivrn::audio_data && data)
+void wivrn::android::audio::operator()(wivrn::audio_data && data)
 {
 	auto size = data.payload.size_bytes();
 	if (output_buffer.write(std::move(data)))
 		buffer_size_bytes.fetch_add(size);
 }
 
-void wivrn::android::audio::get_audio_description(xrt::drivers::wivrn::from_headset::headset_info_packet & info)
+void wivrn::android::audio::get_audio_description(wivrn::from_headset::headset_info_packet & info)
 {
 	AAudioStreamBuilder * builder;
 

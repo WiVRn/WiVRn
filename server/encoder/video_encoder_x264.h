@@ -27,7 +27,7 @@
 #include <mutex>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 
 class VideoEncoderX264 : public VideoEncoder
@@ -77,4 +77,4 @@ private:
 	void InsertInPendingNal(pending_nal && nal);
 };
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

@@ -24,7 +24,7 @@
 
 #include "wivrn_packets.h"
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 class wivrn_session;
 }
@@ -34,15 +34,15 @@ struct audio_device
 	// unpublishes the device
 	virtual ~audio_device() = default;
 
-	virtual xrt::drivers::wivrn::to_headset::audio_stream_description description() const = 0;
+	virtual wivrn::to_headset::audio_stream_description description() const = 0;
 
-	virtual void process_mic_data(xrt::drivers::wivrn::audio_data &&) = 0;
+	virtual void process_mic_data(wivrn::audio_data &&) = 0;
 
 	static std::shared_ptr<audio_device> create(
 	        const std::string & source_name,
 	        const std::string & source_description,
 	        const std::string & sink_name,
 	        const std::string & sink_description,
-	        const xrt::drivers::wivrn::from_headset::headset_info_packet & info,
-	        xrt::drivers::wivrn::wivrn_session & session);
+	        const wivrn::from_headset::headset_info_packet & info,
+	        wivrn::wivrn_session & session);
 };

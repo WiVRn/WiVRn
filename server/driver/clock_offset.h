@@ -48,7 +48,7 @@ struct clock_offset
 
 class clock_offset_estimator
 {
-	struct sample : public xrt::drivers::wivrn::from_headset::timesync_response
+	struct sample : public wivrn::from_headset::timesync_response
 	{
 		XrTime received;
 	};
@@ -64,7 +64,7 @@ class clock_offset_estimator
 public:
 	void reset();
 	void request_sample(wivrn_connection & connection);
-	void add_sample(const xrt::drivers::wivrn::from_headset::timesync_response & sample);
+	void add_sample(const wivrn::from_headset::timesync_response & sample);
 
 	clock_offset get_offset();
 };

@@ -24,7 +24,7 @@
 #include "video_encoder_ffmpeg.h"
 #include <vulkan/vulkan_raii.hpp>
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 struct encoder_settings;
 }
@@ -45,7 +45,7 @@ class video_encoder_va : public VideoEncoderFFMPEG
 	bool synchronization2 = false;
 
 public:
-	video_encoder_va(wivrn_vk_bundle &, xrt::drivers::wivrn::encoder_settings & settings, float fps);
+	video_encoder_va(wivrn_vk_bundle &, wivrn::encoder_settings & settings, float fps);
 
 	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) override;
 

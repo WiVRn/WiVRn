@@ -45,7 +45,7 @@ struct xrt_space_overseer;
 struct xrt_system_compositor;
 struct wivrn_comp_target_factory;
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 struct wivrn_comp_target;
 
@@ -175,4 +175,4 @@ private:
 	void reconnect();
 };
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

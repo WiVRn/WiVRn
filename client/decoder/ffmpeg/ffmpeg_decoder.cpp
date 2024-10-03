@@ -45,9 +45,9 @@ static void free_frame(AVFrame * frame)
 	av_frame_free(&frame);
 }
 
-static AVCodecID codec_id(xrt::drivers::wivrn::video_codec codec)
+static AVCodecID codec_id(wivrn::video_codec codec)
 {
-	using c = xrt::drivers::wivrn::video_codec;
+	using c = wivrn::video_codec;
 	switch (codec)
 	{
 		case c::h264:
@@ -73,7 +73,7 @@ decoder::blit_handle::~blit_handle()
 decoder::decoder(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
-        const xrt::drivers::wivrn::to_headset::video_stream_description::item & description,
+        const wivrn::to_headset::video_stream_description::item & description,
         float fps,
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> scene,
@@ -166,7 +166,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 	this->frame_index = frame_index;
 }
 
-void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback & feedback, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const xrt::drivers::wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
+void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, const wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
 {
 	spdlog::trace("ffmpeg decoder:frame_completed {}", frame_index);
 	AVPacket packet{};
@@ -235,12 +235,12 @@ void decoder::frame_completed(const xrt::drivers::wivrn::from_headset::feedback 
 		scene->push_blit_handle(accumulator, std::move(handle));
 }
 
-std::vector<xrt::drivers::wivrn::video_codec> decoder::supported_codecs()
+std::vector<wivrn::video_codec> decoder::supported_codecs()
 {
 	return {
-	        xrt::drivers::wivrn::video_codec::h264,
-	        xrt::drivers::wivrn::video_codec::h265,
-	        xrt::drivers::wivrn::video_codec::av1,
+	        wivrn::video_codec::h264,
+	        wivrn::video_codec::h265,
+	        wivrn::video_codec::av1,
 	};
 }
 

@@ -38,10 +38,10 @@ class wivrn_eye_tracker : public xrt_device
 	xrt_input gaze_input;
 	pose_list gaze;
 
-	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
+	std::shared_ptr<wivrn::wivrn_session> cnx;
 
 public:
-	wivrn_eye_tracker(xrt_device * hmd, std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx);
+	wivrn_eye_tracker(xrt_device * hmd, std::shared_ptr<wivrn::wivrn_session> cnx);
 	void unregister()
 	{
 		cnx = nullptr;

@@ -56,7 +56,7 @@ private:
 	struct stream_data
 	{
 		// Last feedback for each encoder
-		xrt::drivers::wivrn::from_headset::feedback last_feedback;
+		wivrn::from_headset::feedback last_feedback;
 		std::vector<int64_t> times;
 		size_t next_times_index = 0;
 	};
@@ -78,7 +78,7 @@ public:
 	        int64_t & out_present_slop_ns,
 	        int64_t & out_predicted_display_time_ns);
 
-	void on_feedback(const xrt::drivers::wivrn::from_headset::feedback &, const clock_offset &);
+	void on_feedback(const wivrn::from_headset::feedback &, const clock_offset &);
 
 	void mark_timing_point(
 	        comp_target_timing_point point,

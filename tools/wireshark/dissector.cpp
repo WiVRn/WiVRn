@@ -54,7 +54,7 @@ static inline uint16_t get_uint8(tvbuff_t * tvb, const int offset)
 }
 #endif
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 namespace
 {
@@ -716,7 +716,7 @@ int dissect_wivrn(tvbuff_t * tvb, packet_info * pinfo, proto_tree * tree _U_, vo
 	if (tcp)
 		start += sizeof(uint16_t);
 
-	if (pinfo->destport == xrt::drivers::wivrn::default_port)
+	if (pinfo->destport == wivrn::default_port)
 		tree_traits<"wivrn.from_headset", from_headset::packets>::dissect(subtree, tvb, start);
 	else
 		tree_traits<"wivrn.to_headset", to_headset::packets>::dissect(subtree, tvb, start);
@@ -760,8 +760,8 @@ void proto_reg_handoff_wivrn()
 {
 	static dissector_handle_t handle_tcp = create_dissector_handle(dissect_wivrn_tcp, proto);
 	static dissector_handle_t handle_udp = create_dissector_handle(dissect_wivrn_udp, proto);
-	dissector_add_uint("udp.port", xrt::drivers::wivrn::default_port, handle_udp);
-	dissector_add_uint("tcp.port", xrt::drivers::wivrn::default_port, handle_tcp);
+	dissector_add_uint("udp.port", wivrn::default_port, handle_udp);
+	dissector_add_uint("tcp.port", wivrn::default_port, handle_tcp);
 }
 
 } // namespace

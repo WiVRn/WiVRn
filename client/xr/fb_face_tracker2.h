@@ -37,6 +37,6 @@ public:
 	fb_face_tracker2() = default;
 	fb_face_tracker2(instance & inst, XrFaceTracker2FB h);
 
-	void get_weights(XrTime time, struct xrt::drivers::wivrn::from_headset::tracking::fb_face2 & out_expressions);
+	void get_weights(XrTime time, struct wivrn::from_headset::tracking::fb_face2 & out_expressions);
 };
 } // namespace xr

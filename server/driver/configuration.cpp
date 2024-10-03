@@ -36,7 +36,7 @@
 static std::filesystem::path config_file = xdg_config_home() / "wivrn" / "config.json";
 static std::filesystem::path cookie_file = xdg_config_home() / "wivrn" / "cookie";
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 NLOHMANN_JSON_SERIALIZE_ENUM(
         video_codec,
@@ -102,7 +102,7 @@ configuration configuration::read_user_configuration()
 				SET_IF(offset_y);
 				SET_IF(group);
 				SET_IF(codec);
-				if (e.codec == xrt::drivers::wivrn::video_codec(-1))
+				if (e.codec == wivrn::video_codec(-1))
 					throw std::runtime_error("invalid codec value " + encoder["codec"].get<std::string>());
 				SET_IF(options);
 				SET_IF(device);

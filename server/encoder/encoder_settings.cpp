@@ -37,7 +37,7 @@
 #include "ffmpeg/video_encoder_va.h"
 #endif
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 // TODO: size independent bitrate
 static const uint64_t default_bitrate = 50'000'000;
@@ -50,7 +50,7 @@ static bool is_nvidia(vk::PhysicalDevice physical_device)
 	return props.vendorID == 0x10DE;
 }
 
-static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> & encoders, uint64_t bitrate)
+static void split_bitrate(std::vector<wivrn::encoder_settings> & encoders, uint64_t bitrate)
 {
 	double total_weight = 0;
 	for (auto & encoder: encoders)
@@ -58,11 +58,11 @@ static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> & e
 		double w = encoder.width * encoder.height;
 		switch (encoder.codec)
 		{
-			case xrt::drivers::wivrn::h264:
+			case wivrn::h264:
 				w *= 2;
 				break;
-			case xrt::drivers::wivrn::h265:
-			case xrt::drivers::wivrn::av1:
+			case wivrn::h265:
+			case wivrn::av1:
 				break;
 		}
 		encoder.bitrate = w;
@@ -75,7 +75,7 @@ static void split_bitrate(std::vector<xrt::drivers::wivrn::encoder_settings> & e
 	}
 }
 
-void print_encoders(const std::vector<xrt::drivers::wivrn::encoder_settings> & encoders)
+void print_encoders(const std::vector<wivrn::encoder_settings> & encoders)
 {
 	int group = -1;
 	for (auto & encoder: encoders)
@@ -117,7 +117,7 @@ static void check_scale(std::string_view encoder_name, video_codec codec, uint16
 }
 
 #if WIVRN_USE_VAAPI
-static std::optional<xrt::drivers::wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & codecs)
+static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & codecs)
 {
 	VideoEncoderFFMPEG::mute_logs mute;
 	encoder_settings s{
@@ -148,7 +148,7 @@ static std::optional<xrt::drivers::wivrn::video_codec> filter_codecs_vaapi(wivrn
 }
 #endif
 
-static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs, configuration::encoder & config)
+static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs, configuration::encoder & config)
 {
 	if (config.name.empty())
 	{
@@ -200,7 +200,7 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<xrt::drive
 		config.codec = h265;
 }
 
-static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<xrt::drivers::wivrn::video_codec> & headset_codecs)
+static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs)
 {
 	configuration::encoder base;
 	fill_defaults(bundle, headset_codecs, base);
@@ -258,7 +258,7 @@ static void make_even(uint16_t & value, uint16_t max)
 	value = std::min(value, max);
 }
 
-std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
+std::vector<encoder_settings> wivrn::get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
 {
 	configuration config;
 	try
@@ -291,11 +291,11 @@ std::vector<encoder_settings> xrt::drivers::wivrn::get_encoder_settings(wivrn_vk
 	height *= scale[1];
 	height += height % 2;
 
-	std::vector<xrt::drivers::wivrn::encoder_settings> res;
+	std::vector<wivrn::encoder_settings> res;
 	int next_group = 0;
 	for (const auto & encoder: config.encoders)
 	{
-		xrt::drivers::wivrn::encoder_settings settings{};
+		wivrn::encoder_settings settings{};
 		settings.encoder_name = encoder.name;
 		settings.width = std::ceil(encoder.width.value_or(1) * width);
 		settings.height = std::ceil(encoder.height.value_or(1) * height);

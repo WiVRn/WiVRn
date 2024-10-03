@@ -19,7 +19,7 @@
 
 #include "wivrn_serialization.h"
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 namespace
 {

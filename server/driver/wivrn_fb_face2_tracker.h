@@ -86,10 +86,10 @@ class wivrn_fb_face2_tracker : public xrt_device
 	fb_face2_list face_list;
 	xrt_input face_input;
 
-	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
+	std::shared_ptr<wivrn::wivrn_session> cnx;
 
 public:
-	wivrn_fb_face2_tracker(xrt_device * hmd, std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx);
+	wivrn_fb_face2_tracker(xrt_device * hmd, std::shared_ptr<wivrn::wivrn_session> cnx);
 	void unregister()
 	{
 		cnx = nullptr;

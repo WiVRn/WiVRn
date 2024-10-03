@@ -29,7 +29,7 @@
 #include <mutex>
 #include <vector>
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 class wivrn_session;
 }
@@ -46,10 +46,10 @@ class wivrn_controller : public xrt_device
 	std::vector<xrt_input> inputs_array;
 	xrt_output haptic_output;
 
-	xrt::drivers::wivrn::wivrn_session * cnx;
+	wivrn::wivrn_session * cnx;
 
 public:
-	wivrn_controller(int hand_id, xrt_device * hmd, xrt::drivers::wivrn::wivrn_session * cnx);
+	wivrn_controller(int hand_id, xrt_device * hmd, wivrn::wivrn_session * cnx);
 
 	void unregister()
 	{

@@ -22,7 +22,7 @@
 #include "scenes/stream.h"
 #include "spdlog/spdlog.h"
 
-using namespace xrt::drivers::wivrn::to_headset;
+using namespace wivrn::to_headset;
 using shard_set = shard_accumulator::shard_set;
 using data_shard = shard_accumulator::data_shard;
 
@@ -203,7 +203,7 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	advance();
 }
 
-void shard_accumulator::send_feedback(xrt::drivers::wivrn::from_headset::feedback & feedback)
+void shard_accumulator::send_feedback(wivrn::from_headset::feedback & feedback)
 {
 	if (not feedback.received_last_packet)
 		feedback.received_first_packet = application::now();

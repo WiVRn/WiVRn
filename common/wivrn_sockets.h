@@ -31,7 +31,7 @@
 #include <utility>
 #include <vector>
 
-namespace xrt::drivers::wivrn
+namespace wivrn
 {
 class socket_shutdown : public std::exception
 {
@@ -109,7 +109,7 @@ public:
 
 	deserialization_packet receive_raw();
 	deserialization_packet receive_pending();
-	std::pair<xrt::drivers::wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();
+	std::pair<wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();
 	void send_raw(const std::vector<uint8_t> & data);
 	void send_raw(const std::vector<std::span<uint8_t>> & data);
 	void send_many_raw(std::span<const std::vector<std::span<uint8_t>> *> data);
@@ -242,4 +242,4 @@ public:
 	}
 };
 
-} // namespace xrt::drivers::wivrn
+} // namespace wivrn

@@ -29,7 +29,7 @@
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_handles.hpp>
 
-using namespace xrt::drivers::wivrn;
+using namespace wivrn;
 
 std::vector<const char *> wivrn_comp_target::wanted_instance_extensions = {};
 std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
@@ -650,7 +650,7 @@ void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveatio
 	}
 }
 
-wivrn_comp_target::wivrn_comp_target(std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps) :
+wivrn_comp_target::wivrn_comp_target(std::shared_ptr<wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps) :
         comp_target{},
         pacer(U_TIME_1S_IN_NS / fps),
         cnx(cnx)
