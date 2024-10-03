@@ -373,7 +373,7 @@ void application::initialize_vulkan()
 
 	for (vk::LayerProperties & i: vk_context.enumerateInstanceLayerProperties())
 	{
-		spdlog::info("    {}", i.layerName);
+		spdlog::info("    {}", i.layerName.data());
 		if (!strcmp(i.layerName, "VK_LAYER_KHRONOS_validation"))
 		{
 			validation_layer_found = true;
@@ -397,7 +397,7 @@ void application::initialize_vulkan()
 	spdlog::info("Available Vulkan instance extensions:");
 	for (vk::ExtensionProperties & i: vk_context.enumerateInstanceExtensionProperties(nullptr))
 	{
-		spdlog::info("    {} (version {})", i.extensionName, i.specVersion);
+		spdlog::info("    {} (version {})", i.extensionName.data(), i.specVersion);
 
 #ifndef NDEBUG
 		if (!strcmp(i.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
@@ -488,13 +488,13 @@ void application::initialize_vulkan()
 	spdlog::info("Available Vulkan device extensions:");
 	for (vk::ExtensionProperties & i: vk_physical_device.enumerateDeviceExtensionProperties())
 	{
-		spdlog::info("    {}", i.extensionName);
+		spdlog::info("    {}", i.extensionName.data());
 		if (auto it = optional_device_extensions.find(i.extensionName); it != optional_device_extensions.end())
 			vk_device_extensions.push_back(it->data());
 	}
 
 	vk::PhysicalDeviceProperties prop = vk_physical_device.getProperties();
-	spdlog::info("Initializing Vulkan with device {}", prop.deviceName);
+	spdlog::info("Initializing Vulkan with device {}", prop.deviceName.data());
 
 	std::vector<vk::QueueFamilyProperties> queue_properties = vk_physical_device.getQueueFamilyProperties();
 
