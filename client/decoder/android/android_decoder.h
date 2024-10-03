@@ -46,7 +46,10 @@ DEUGLIFY(AImage)
 DEUGLIFY(AImageReader)
 DEUGLIFY(AMediaCodec)
 
+namespace wivrn
+{
 class shard_accumulator;
+}
 
 namespace scenes
 {

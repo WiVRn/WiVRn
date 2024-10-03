@@ -52,15 +52,15 @@ private:
 
 	struct accumulator_images
 	{
-		std::unique_ptr<shard_accumulator> decoder;
+		std::unique_ptr<wivrn::shard_accumulator> decoder;
 		vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
 		vk::DescriptorSet descriptor_set = nullptr;
 		vk::raii::PipelineLayout blit_pipeline_layout = nullptr;
 		vk::raii::Pipeline blit_pipeline = nullptr;
 		// latest frames from oldest to most recent
-		std::array<std::shared_ptr<shard_accumulator::blit_handle>, image_buffer_size> latest_frames;
+		std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, image_buffer_size> latest_frames;
 
-		std::shared_ptr<shard_accumulator::blit_handle> frame(std::optional<uint64_t> id) const;
+		std::shared_ptr<wivrn::shard_accumulator::blit_handle> frame(std::optional<uint64_t> id) const;
 		std::vector<uint64_t> frames() const;
 	};
 
@@ -68,7 +68,7 @@ private:
 
 	// for frames inside accumulator images
 	std::mutex frames_mutex;
-	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> common_frame(XrTime display_time);
+	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> common_frame(XrTime display_time);
 
 	struct renderpass_output
 	{
@@ -125,7 +125,7 @@ private:
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
-	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> current_blit_handles;
+	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> current_blit_handles;
 
 	stream() = default;
 
@@ -147,7 +147,7 @@ public:
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(audio_data &&);
 
-	void push_blit_handle(shard_accumulator * decoder, std::shared_ptr<shard_accumulator::blit_handle> handle);
+	void push_blit_handle(wivrn::shard_accumulator * decoder, std::shared_ptr<wivrn::shard_accumulator::blit_handle> handle);
 
 	void send_feedback(const wivrn::from_headset::feedback & feedback);
 
@@ -231,7 +231,7 @@ private:
 	XrTime last_metric_time = 0;
 	int metrics_offset = 0;
 
-	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
+	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
 	XrCompositionLayerQuad plot_performance_metrics(XrTime predicted_display_time);
 	void on_reference_space_changed(XrReferenceSpaceType space, XrTime) override;
 };

@@ -27,7 +27,10 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
+namespace wivrn
+{
 class shard_accumulator;
+}
 
 extern "C"
 {
@@ -126,4 +129,4 @@ public:
 
 	static std::vector<wivrn::video_codec> supported_codecs();
 };
-} // namespace ffmpeg
+} // namespace wivrn::ffmpeg

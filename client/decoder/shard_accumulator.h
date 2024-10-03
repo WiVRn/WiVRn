@@ -34,6 +34,9 @@ using decoder_impl = ::wivrn::ffmpeg::decoder;
 #include <optional>
 #include <vector>
 
+namespace wivrn
+{
+
 class shard_accumulator
 {
 	std::shared_ptr<decoder_impl> decoder;
@@ -109,3 +112,4 @@ private:
 	void send_feedback(wivrn::from_headset::feedback & feedback);
 	void advance();
 };
+} // namespace wivrn

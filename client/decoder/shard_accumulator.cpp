@@ -22,6 +22,9 @@
 #include "scenes/stream.h"
 #include "spdlog/spdlog.h"
 
+namespace wivrn
+{
+
 using namespace wivrn::to_headset;
 using shard_set = shard_accumulator::shard_set;
 using data_shard = shard_accumulator::data_shard;
@@ -211,3 +214,4 @@ void shard_accumulator::send_feedback(wivrn::from_headset::feedback & feedback)
 	if (scene)
 		scene->send_feedback(feedback);
 }
+} // namespace wivrn
