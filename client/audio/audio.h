@@ -19,15 +19,20 @@
 
 #pragma once
 
+#ifdef __ANDROID__
+#include "android/audio.h"
+namespace wivrn
+{
+using audio = ::wivrn::android::audio;
+}
+#else
+
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
 #include "xr/instance.h"
 
-#ifdef __ANDROID__
-#include "android/audio.h"
-using audio = ::wivrn::android::audio;
-#else
-
+namespace wivrn
+{
 class audio
 {
 public:
@@ -40,5 +45,6 @@ public:
 
 	static void get_audio_description(wivrn::from_headset::headset_info_packet & info) {}
 };
+} // namespace wivrn
 
 #endif
