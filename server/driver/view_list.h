@@ -20,7 +20,7 @@
 #pragma once
 
 #include "pose_list.h"
-#include "wivrn_session.h"
+#include "wivrn_connection.h"
 
 struct tracked_views
 {

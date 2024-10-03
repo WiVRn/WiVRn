@@ -23,11 +23,16 @@
 
 #include "hand_joints_list.h"
 #include "pose_list.h"
-#include "wivrn_session.h"
+#include "wivrn_connection.h"
 
 #include <memory>
 #include <mutex>
 #include <vector>
+
+namespace xrt::drivers::wivrn
+{
+class wivrn_session;
+}
 
 class wivrn_controller : public xrt_device
 {
@@ -41,10 +46,10 @@ class wivrn_controller : public xrt_device
 	std::vector<xrt_input> inputs_array;
 	xrt_output haptic_output;
 
-	std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx;
+	xrt::drivers::wivrn::wivrn_session * cnx;
 
 public:
-	wivrn_controller(int hand_id, xrt_device * hmd, std::shared_ptr<xrt::drivers::wivrn::wivrn_session> cnx);
+	wivrn_controller(int hand_id, xrt_device * hmd, xrt::drivers::wivrn::wivrn_session * cnx);
 
 	void unregister()
 	{
