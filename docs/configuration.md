@@ -1,4 +1,9 @@
-# Configurable items:
+# Configurable items
+
+Configuration is done on server side, in `$XDG_CONFIG_HOME/wivrn/config.json` or if `$XDG_CONFIG_HOME` is not set, `$HOME/.config/wivrn/config.json`.
+
+All elements are optional and have default values.
+
 ## `scale`
 Default value: `0.5`, `0.35` if headset supports eye tracking
 
