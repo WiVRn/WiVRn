@@ -6,35 +6,29 @@
 
 WiVRn wirelessly connects a standalone VR headset to a Linux computer. You can then play PCVR games on the headset while processing is done on the computer.
 
-It supports a wide range of headsets such as Quest 1/2/pro/3, Pico Neo 3/4, HTC Vive Focus 3, HTC Vive XR elite and most other Android based headsets.
+It supports a wide range of headsets such as Quest 1 / 2 / Pro / 3, Pico Neo 3 / 4, HTC Vive Focus 3, HTC Vive XR elite and most other Android based headsets.
 
-# Installation
-## Server (PC)
+# Getting started
 
-See [building](docs/building.md#server-pc).
 
-Packages are available on [AUR for Arch](https://aur.archlinux.org/packages/wivrn-server), [Guru for Gentoo](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn).
+## Server and dashboard
 
-## Dashboard
+We recommend using the flatpak package from Flathub:
 
-See [building](docs/building.md#dashboard).
+[![Flathub](https://flathub.org/api/badge)](https://flathub.org/apps/io.github.wivrn.wivrn)
 
-Packages are available on [AUR for Arch](https://aur.archlinux.org/packages/wivrn-dashboard), [Guru for Gentoo](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn).
+Alternatively, packages are available:
+- [AUR for Arch](https://aur.archlinux.org/packages/wivrn-dashboard)
+- [Guru for Gentoo](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn).
 
-## Client (headset)
-### Meta Store (Meta Quest 2/Pro/3)
-The client is available on the [Meta Store](https://www.meta.com/experiences/7959676140827574/).
 
-### Prebuilt apk (Quest 1 and other vendors)
-Download apk from [Releases](https://github.com/WiVRn/WiVRn/releases).
-Install with adb (headset connected to PC), developer mode must be enabled.
-```bash
-adb install WiVRn.apk
-```
+## Headset app
 
-### Compilation
+Follow the wizard in the dashboard to install the client app on the headset: it will either lead you to the [Meta Store](https://www.meta.com/experiences/7959676140827574/) or download the correct APK.
 
-See [building](docs/building.md#client-headset).
+⚠️ You will need to have a compatible version: if the headset fails to connect to your computer, see [troubleshooting](#troubleshooting).
+
+
 
 # Usage
 
@@ -50,35 +44,55 @@ If a firewall is installed, open port 5353/UDP for avahi.
 Open ports 9757/UDP+TCP for WiVRn itself.
 
 ### Running
-On the computer, run `wivrn-server`, from checkout directory
-```bash
-build-server/server/wivrn-server
-```
-Then, on headset, launch WiVRn from the App Library, in "unknown sources" section.
+- On your computer, run "WiVRn server" application, or `wivrn-dashboard`  from the command line, it will show the connection wizard the first time you launch it.
+- On your headset, run WiVRn from the App Library. If you are using a Quest and you have installed it from an APK instead of the Meta Store, it will be in the "unknown sources" section.
+- You should now see your computer in the list: click connect, the screen will show "Connection ready. Start a VR application on **your computer's name**".
 
-You should now see your server in the list, click connect, screen will show "waiting for video stream".
-Now on your computer you can run an OpenXR application, and it will show on your headset, enjoy!
+You can now start an OpenXR application on your computer. For Steam games, you will also need to set the launch options to be able to use WiVRn:
+- Right-click on the game you want to play in VR in Steam and click "Properties".
+- In the "General" tab, set the launch options to the value given in the dashboard.
 
-### Notes for OpenVR and Steam
-WiVRn only provides an OpenXR runtime. For games that use OpenVR, [OpenComposite](https://gitlab.com/znixian/OpenOVR/) should be used to translate the APIs.
+You can set an application to be started automatically when you connect your headset in the dashboard settings or [manually](docs/configuration.md#application)
+
+### OpenVR and Steam games
+
+The flatpak also includes [OpenComposite](https://gitlab.com/znixian/OpenOVR/), used to translate the OpenVR API used by SteamVR to OpenXR used by WiVRn, see [SteamVR](docs/steamvr.md) for details.
 
 If using Wine/Proton, it will probe for OpenVR at startup, so even for OpenXR applications, OpenComposite is required.
 
-If using Steam, games will be sandboxed by pressure vessel, which is not OpenXR aware yet.
-- Files under `/usr` are mapped into `/run/host/usr`, if OpenComposite or WiVRn are installed there, make sure that `XR_RUNTIME_JSON` uses `/run/host/usr` prefix and that `VR_OVERRIDE` or `~/.config/openvr/openvrpaths.vrpath` also uses this configuration.
-- WiVRn uses a socket to communicate between the application and the server process, this socket needs to be whitelisted as `PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc`.
+When you start the server through flatpak, it will automatically configure the current OpenVR to use OpenComposite.
+
 
 ### Audio
-When headset is connected, wivrn-server will create a virtual output device named WiVRn. It is not selected as default and you should either assign the application to the device when it is running, or mark it as default. To do so you can use `pavucontrol` or your desktop environment's configuration panel. Please note that in `pavucontrol` it will appear as a virtual device.
+When the headset is connected, WiVRn will create a virtual output device named WiVRn. It is not selected as default and you should either assign the application to the device when it is running, or mark it as default. To do so you can use `pavucontrol` or your desktop environment's configuration panel. Please note that in `pavucontrol` it will appear as a virtual device.
 
 For microphone, you first have to enable it on the settings tabs on the headset (and give permission when prompted). It will then appear as a virtual input device named WiVRn(microphone) and also needs to be assigned like for output device.
 
+
+# Building
+
+See [building](docs/building.md) for building the [dashboard](docs/building.md#dashboard), [server (PC)](docs/building.md#server-pc), and [client (headset)](docs/building.md#client-headset)
+
+
 # Configuration
-Configuration is done on server side, in `$XDG_CONFIG_HOME/wivrn/config.json` or if `$XDG_CONFIG_HOME` is not set, `$HOME/.config/wivrn/config.json`.
+Configuration can be done from the dashboard.
 
-All elements are optional and have default values.
+See [configuration](docs/configuration.md) for editing the configuration manually.
 
-See [configuration](docs/configuration.md) for configurable items.
+# Troubleshooting
+
+## My computer is not seen by the headset
+
+If the server list is empty in the headset app:
+- Make sure your computer is connected on the same network as your headset
+- Check that avahi is running with `systemctl status avahi-daemon`, if it is not, enable it with `systemctl enable --now avahi-daemon`
+- If you have a firewall, check that port 5353 (UDP) is open
+
+## My headset does not connect to my computer
+- If you have a firewall, check that port 9757 (UDP and TCP) is open
+- The server and client must be compatible:
+
+
 
 # Credits
 WiVRn uses the following software:
