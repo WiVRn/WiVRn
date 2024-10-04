@@ -103,7 +103,7 @@ static std::tuple<float, float> solve_foveation(float λ, float c)
 	double f_a1 = eq(a1);
 
 	int n = 0;
-	double a;
+	double a = 0;
 	while (std::abs(a1 - a0) > 0.0000001 && n++ < 100)
 	{
 		if (not f_a0)
