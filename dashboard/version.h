@@ -17,11 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 namespace wivrn
 {
-	extern const char git_version[];
-	const char git_version[] = "@GIT_DESC@";
-
-	extern const char git_commit[];
-	const char git_commit[] = "@GIT_COMMIT@";
-}
+extern const char git_version[];
+extern const char git_commit[];
+} // namespace wivrn

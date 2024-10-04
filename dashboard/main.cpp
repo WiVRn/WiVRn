@@ -25,12 +25,8 @@
 #include <QTranslator>
 
 #include "main_window.h"
+#include "version.h"
 #include "wizard.h"
-
-namespace wivrn
-{
-extern const char git_version[];
-}
 
 int main(int argc, char * argv[])
 {
@@ -63,13 +59,13 @@ int main(int argc, char * argv[])
 	auto main = std::make_unique<main_window>();
 
 	QSettings settings;
-	if (settings.value("first_run", true).toBool())
+	if (settings.value("wizard/first_run", true).toBool())
 	{
 		wizard_window.reset(new wizard);
 		wizard_window->show();
 
 		QObject::connect(wizard_window.get(), &QWizard::finished, [&](int value) {
-			settings.setValue("first_run", false);
+			settings.setValue("wizard/first_run", false);
 
 			wizard_window.release()->deleteLater();
 			main->show();

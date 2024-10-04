@@ -1,7 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-namespace wivrn
-{
-	extern const char git_version[];
-	const char git_version[] = "@GIT_DESC@";
+#pragma once
 
-	extern const char git_commit[];
-	const char git_commit[] = "@GIT_COMMIT@";
-}
+#include <string>
+#include <vector>
+
+struct steam_app
+{
+	std::string name;
+	std::string image_path;
+	std::string url;
+};
+
+std::vector<steam_app> steam_apps(const std::string & locale = "en_us");

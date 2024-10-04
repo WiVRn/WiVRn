@@ -32,13 +32,6 @@ MONADO_COMMIT=$(grep -zo "FetchContent_Declare(monado[^)]*)" ../CMakeLists.txt |
 BOOSTPFR_URL=$(grep -zo "FetchContent_Declare(boostpfr[^)]*)" ../CMakeLists.txt | sed -ze "s/^.*URL *\([^ )]*\).*$/\1/" | tr -d '\0')
 BOOSTPFR_SHA256=$(curl --silent --location $BOOSTPFR_URL | sha256sum | cut -f1 -d' ')
 
-if [ -z "$GIT_TAG" ]
-then
-    WIVRN_CLIENT_URL=https://github.com/WiVRn/WiVRn-APK/releases/download/apk-${GIT_SHA}/org.meumeu.wivrn-standard-release.apk
-else
-    WIVRN_CLIENT_URL=https://github.com/WiVRn/WiVRn/releases/download/${GIT_TAG}/WiVRn-standard-release.apk
-fi
-
 if [ $WIVRN_SRC_TYPE = git ]
 then
     WIVRN_SRC1="type: git"
@@ -57,17 +50,16 @@ fi
 
 echo "Git commit:       $GIT_COMMIT"        >&2
 echo "Git tag:          $GIT_DESC"          >&2
-echo "Client URL:       $WIVRN_CLIENT_URL"  >&2
 echo "Monado commit:    $MONADO_COMMIT"     >&2
 echo "Boost.PFR URL:    $BOOSTPFR_URL"      >&2
 echo "Boost.PFR SHA256: $BOOSTPFR_SHA256"   >&2
 
 cat ../flatpak/io.github.wivrn.wivrn.yml.in | sed \
-    -e s,WIVRN_SRC1,"$WIVRN_SRC1",                                      \
-    -e s,WIVRN_SRC2,"$WIVRN_SRC2",                                      \
-    -e s,WIVRN_SRC3,"$WIVRN_SRC3",                                      \
+    -e s,WIVRN_SRC1,"$WIVRN_SRC1",                                    \
+    -e s,WIVRN_SRC2,"$WIVRN_SRC2",                                    \
+    -e s,WIVRN_SRC3,"$WIVRN_SRC3",                                    \
     -e s,WIVRN_GIT_DESC,$GIT_DESC,                                    \
-    -e s,WIVRN_CLIENT_URL=.*,WIVRN_CLIENT_URL=$WIVRN_CLIENT_URL,      \
+    -e s,WIVRN_GIT_COMMIT,$GIT_COMMIT,                                \
     -e s,BOOSTPFR_URL,$BOOSTPFR_URL,                                  \
     -e s,BOOSTPFR_SHA256,$BOOSTPFR_SHA256,                            \
     -e s,MONADO_COMMIT,$MONADO_COMMIT,

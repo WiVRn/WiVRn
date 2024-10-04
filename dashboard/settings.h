@@ -19,8 +19,7 @@
 #pragma once
 
 #include <QDialog>
-#include <QJsonArray>
-#include <QJsonDocument>
+#include <nlohmann/json.hpp>
 
 namespace Ui
 {
@@ -35,7 +34,7 @@ class settings : public QDialog
 	Ui::Settings * ui;
 	wivrn_server * server_interface;
 
-	QJsonDocument json_doc;
+	nlohmann::json json_doc;
 
 	void selected_rectangle_changed(int);
 
@@ -43,8 +42,12 @@ public:
 	settings(wivrn_server * server_interface = nullptr);
 	~settings();
 
-	void on_settings_changed();
-	void on_encoder_changed();
+private:
+	void on_encoder_settings_changed();
+	void on_selected_encoder_changed();
+	void on_selected_game_changed(int index);
+	void on_browse_game();
+	void load_settings();
 	void save_settings();
 	void restore_defaults();
 };

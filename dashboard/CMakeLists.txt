@@ -1,3 +1,19 @@
+
+if (GIT_DESC)
+    configure_file(version.cpp.in version.cpp)
+else ()
+    add_custom_target(wivrn-dashboard-version ALL
+        COMMAND ${CMAKE_COMMAND}
+            -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
+            -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
+            -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+            -D CMAKE_PROJECT_VERSION=${CMAKE_PROJECT_VERSION}
+            -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
+        BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+        SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
+        )
+endif()
+
 qt_add_executable(wivrn-dashboard
         main.cpp
         main_window.cpp
@@ -13,8 +29,12 @@ qt_add_executable(wivrn-dashboard
         wizard.ui
         rectangle_partitionner.cpp
         rectangle_partitionner.h
+        steam_app.cpp
+        steam_app.h
+        adb.cpp
+        adb.h
         ../wivrn-dashboard.qrc
-        ${CMAKE_CURRENT_BINARY_DIR}/../common/version.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
 )
 
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml PROPERTIES INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/wivrn_qdbus_types.h")
@@ -28,12 +48,12 @@ configure_file(gui_config.h.in gui_config.h)
 configure_file(io.github.wivrn.wivrn.desktop.in io.github.wivrn.wivrn.desktop)
 
 target_link_libraries(wivrn-dashboard PRIVATE
-        wivrn-common
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
         Qt6::DBus
         Qt6::Network
+        nlohmann_json
 )
 
 file(GLOB TRANSLATION_FILES ${CMAKE_CURRENT_SOURCE_DIR}/wivrn_*.ts)

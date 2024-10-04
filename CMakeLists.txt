@@ -45,8 +45,6 @@ option(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH OFF)
 
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
 
-set(WIVRN_CLIENT_URL "https://github.com/WiVRn/WiVRn/releases/latest/download/WiVRn-standard-release.apk" CACHE STRING "URL used to download the client in the GUI")
-
 if(ENABLE_COLOURED_OUTPUT)
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 		add_compile_options(-fdiagnostics-color=always)
@@ -150,6 +148,7 @@ endif()
 
 if (WIVRN_BUILD_DASHBOARD)
     find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets DBus Network LinguistTools)
+    find_package(nlohmann_json REQUIRED)
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
     set(CMAKE_AUTOUIC ON)

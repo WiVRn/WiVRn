@@ -19,11 +19,12 @@
 #include "settings.h"
 
 #include "rectangle_partitionner.h"
+#include "steam_app.h"
 #include "ui_settings.h"
 #include "wivrn_server.h"
 
 #include <QFile>
-#include <QJsonObject>
+#include <QFileDialog>
 #include <QMessageBox>
 #include <QPainter>
 #include <QPushButton>
@@ -31,7 +32,6 @@
 #include <QStandardPaths>
 #include <QToolTip>
 
-#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -123,108 +123,18 @@ settings::settings(wivrn_server * server_interface) :
 	ui = new Ui::Settings;
 	ui->setupUi(this);
 
-	QJsonParseError error;
-	json_doc = QJsonDocument::fromJson(server_interface->jsonConfiguration().toUtf8(), &error);
-
-	std::vector<QRectF> rectangles;
-	std::vector<QVariant> encoder_config;
-
-	if (error.error)
-	{
-		std::cout << "Cannot read configuration: " << error.errorString().toStdString() << ", offset " << error.offset << std::endl;
-	}
-	else
-	{
-		auto encoders = json_doc.object().find("encoders");
-
-		if (encoders->isArray())
-		{
-			ui->radio_auto_encoder->setChecked(false);
-			ui->radio_manual_encoder->setChecked(true);
-		}
-		else
-		{
-			ui->radio_auto_encoder->setChecked(true);
-			ui->radio_manual_encoder->setChecked(false);
-
-			encoders = json_doc.object().find("encoders.disabled");
-		}
-
-		if (encoders->isArray())
-		{
-			for (QJsonValue i: encoders->toArray())
-			{
-				int encoder = encoder_id_from_string(i["encoder"].toString("auto").toLower().toStdString());
-				int codec = codec_id_from_string(i["codec"].toString("auto").toLower().toStdString());
-				double width = i["width"].toDouble(1);
-				double height = i["height"].toDouble(1);
-				double offset_x = i["offset_x"].toDouble(0);
-				double offset_y = i["offset_y"].toDouble(0);
-				int group = i["group"].toInt(0); // TODO: handle groups
-
-				rectangles.push_back(QRectF(offset_x, offset_y, width, height));
-				encoder_config.push_back(QVariant::fromValue(std::pair(encoder, codec)));
-			}
-		}
-	}
-
-	if (rectangles.empty())
-	{
-		rectangles.push_back(QRectF(0, 0, 1, 1));
-		std::pair<int, int> config{0, 0};
-		encoder_config.push_back(QVariant::fromValue(config));
-	}
-
-	try
-	{
-		ui->partitionner->set_rectangles(rectangles);
-	}
-	catch (...)
-	{
-		QMessageBox msgbox{QMessageBox::Information, tr("Invalid settings"), tr("The encoder configuration is invalid, the default values will be restored."), QMessageBox::Close, this};
-		msgbox.exec();
-
-		ui->radio_auto_encoder->setChecked(true);
-		ui->radio_manual_encoder->setChecked(false);
-
-		rectangles.clear();
-		encoder_config.clear();
-
-		rectangles.push_back(QRectF(0, 0, 1, 1));
-		ui->partitionner->set_rectangles(rectangles);
-
-		std::pair<int, int> config{0, 0};
-		encoder_config.push_back(QVariant::fromValue(config));
-	}
-
-	ui->partitionner->set_rectangles_data(encoder_config);
-	ui->partitionner->set_selected_index(0);
-
-	if (json_doc["scale"].isDouble())
-	{
-		ui->slider_foveation->setValue(std::round((1 - json_doc["scale"].toDouble(1)) * 100));
-		ui->spin_foveation->setValue(std::round((1 - json_doc["scale"].toDouble(1)) * 100));
-		ui->radio_auto_foveation->setChecked(false);
-		ui->radio_manual_foveation->setChecked(true);
-	}
-	else
-	{
-		ui->radio_auto_foveation->setChecked(true);
-		ui->radio_manual_foveation->setChecked(false);
-	}
-	ui->bitrate->setValue(json_doc["bitrate"].toDouble(50'000'000) / 1'000'000);
-
-	selected_rectangle_changed(0);
+	connect(ui->combo_select_game, &QComboBox::currentIndexChanged, this, &settings::on_selected_game_changed);
+	connect(ui->button_game_browse, &QPushButton::clicked, this, &settings::on_browse_game);
 
 	connect(ui->partitionner, &rectangle_partitionner::selected_index_change, this, &settings::selected_rectangle_changed);
 	// connect(ui->partitionner, &rectangle_partitionner::rectangles_change, this, [](){});
 
-	connect(ui->encoder, &QComboBox::currentIndexChanged, this, &settings::on_encoder_changed);
-	connect(ui->encoder, &QComboBox::currentIndexChanged, this, &settings::on_settings_changed);
-	connect(ui->codec, &QComboBox::currentIndexChanged, this, &settings::on_settings_changed);
-	connect(ui->bitrate, &QDoubleSpinBox::valueChanged, this, &settings::on_settings_changed);
-	connect(ui->slider_foveation, &QSlider::valueChanged, this, &settings::on_settings_changed);
-	connect(ui->spin_foveation, &QSpinBox::valueChanged, this, &settings::on_settings_changed);
+	connect(ui->encoder, &QComboBox::currentIndexChanged, this, &settings::on_selected_encoder_changed);
+	connect(ui->encoder, &QComboBox::currentIndexChanged, this, &settings::on_encoder_settings_changed);
+	connect(ui->codec, &QComboBox::currentIndexChanged, this, &settings::on_encoder_settings_changed);
+	connect(ui->bitrate, &QDoubleSpinBox::valueChanged, this, &settings::on_encoder_settings_changed);
+	connect(ui->slider_foveation, &QSlider::valueChanged, this, &settings::on_encoder_settings_changed);
+	connect(ui->spin_foveation, &QSpinBox::valueChanged, this, &settings::on_encoder_settings_changed);
 
 	// connect(ui->foveation_info, &QPushButton::clicked, this, [&]() { QToolTip::showText(ui->radio_manual_foveation->pos(), ui->radio_manual_foveation->toolTip(), ui->radio_manual_foveation); });
 
@@ -264,13 +174,9 @@ settings::settings(wivrn_server * server_interface) :
 		painter.setFont(font);
 	});
 
-	// Update the compatible codecs
-	on_encoder_changed();
-
-	// Update the status text
-	on_settings_changed();
-
 	setWindowModality(Qt::WindowModality::ApplicationModal);
+
+	load_settings();
 }
 
 settings::~settings()
@@ -279,7 +185,7 @@ settings::~settings()
 	ui = nullptr;
 }
 
-void settings::on_encoder_changed()
+void settings::on_selected_encoder_changed()
 {
 	int encoder = ui->encoder->currentIndex();
 
@@ -302,7 +208,7 @@ void settings::on_encoder_changed()
 	}
 }
 
-void settings::on_settings_changed()
+void settings::on_encoder_settings_changed()
 {
 	QString status;
 
@@ -343,6 +249,45 @@ void settings::on_settings_changed()
 	ui->message->setText(status);
 }
 
+void settings::on_selected_game_changed(int index)
+{
+	if (index == 0) // No game selected
+	{
+		ui->edit_game_path->setEnabled(false);
+		ui->button_game_browse->setEnabled(false);
+	}
+	else if (index == 1) // Custom path
+	{
+		ui->edit_game_path->setEnabled(true);
+		ui->button_game_browse->setEnabled(true);
+	}
+	else // From Steam vrmanifest
+	{
+		ui->edit_game_path->setEnabled(false);
+		ui->button_game_browse->setEnabled(false);
+	}
+}
+
+void settings::on_browse_game()
+{
+	QFileInfo info(ui->edit_game_path->text());
+
+	QFileDialog dlg(this, tr("Select game"));
+	dlg.setFilter(QDir::Executable | QDir::Files);
+	dlg.setFileMode(QFileDialog::ExistingFile);
+	dlg.setDirectory(info.dir());
+
+	if (not dlg.exec())
+		return;
+
+	auto files = dlg.selectedFiles();
+
+	if (files.empty())
+		return;
+
+	ui->edit_game_path->setText(files.front());
+}
+
 void settings::selected_rectangle_changed(int index)
 {
 	auto [encoder, codec] = ui->partitionner->rectangles_data(index).value<std::pair<int, int>>();
@@ -367,44 +312,223 @@ void settings::restore_defaults()
 	ui->partitionner->set_rectangles(rectangles);
 	ui->partitionner->set_rectangles_data(encoder_config);
 	ui->partitionner->set_selected_index(0);
+
+	ui->combo_select_game->setCurrentIndex(0);
+	ui->edit_game_path->setText("");
+}
+
+void settings::load_settings()
+{
+	std::vector<QRectF> rectangles;
+	std::vector<QVariant> encoder_config;
+
+	// Encoders configuration
+	try
+	{
+		json_doc = nlohmann::json::parse(server_interface->jsonConfiguration().toUtf8());
+	}
+	catch (std::exception & e)
+	{
+		qWarning() << "Cannot read configuration: " << e.what();
+		restore_defaults();
+		return;
+	}
+
+	try
+	{
+		nlohmann::json encoders;
+
+		if (json_doc.contains("encoders"))
+		{
+			encoders = json_doc["encoders"];
+			ui->radio_auto_encoder->setChecked(false);
+			ui->radio_manual_encoder->setChecked(true);
+		}
+		else if (json_doc.contains("encoders.disabled"))
+		{
+			encoders = json_doc["encoders.disabled"];
+			ui->radio_auto_encoder->setChecked(true);
+			ui->radio_manual_encoder->setChecked(false);
+			ui->layout_encoder_config->setVisible(false);
+		}
+		else
+		{
+			ui->radio_auto_encoder->setChecked(true);
+			ui->radio_manual_encoder->setChecked(false);
+			ui->layout_encoder_config->setVisible(false);
+		}
+
+		for (auto & i: encoders)
+		{
+			int encoder = encoder_id_from_string(i.value("encoder", "auto"));
+			int codec = codec_id_from_string(i.value("codec", "auto"));
+			double width = i.value("width", 1.0);
+			double height = i.value("height", 1.0);
+			double offset_x = i.value("offset_x", 0.0);
+			double offset_y = i.value("offset_y", 0.0);
+			int group = i.value("group", 0); // TODO: handle groups
+
+			rectangles.push_back(QRectF(offset_x, offset_y, width, height));
+			encoder_config.push_back(QVariant::fromValue(std::pair(encoder, codec)));
+		}
+	}
+	catch (...)
+	{
+		QMessageBox msgbox{QMessageBox::Information, tr("Invalid settings"), tr("The encoder configuration is invalid, the default values will be restored."), QMessageBox::Close, this};
+		msgbox.exec();
+
+		rectangles.clear();
+		encoder_config.clear();
+	}
+
+	if (rectangles.empty())
+	{
+		ui->radio_auto_encoder->setChecked(true);
+		ui->radio_manual_encoder->setChecked(false);
+		ui->layout_encoder_config->setVisible(false);
+
+		rectangles.push_back(QRectF(0, 0, 1, 1));
+		std::pair<int, int> config{0, 0};
+		encoder_config.push_back(QVariant::fromValue(config));
+	}
+
+	ui->partitionner->set_rectangles(rectangles);
+	ui->partitionner->set_rectangles_data(encoder_config);
+	ui->partitionner->set_selected_index(0);
+
+	// Foveation
+	try
+	{
+		if (json_doc.contains("scale"))
+		{
+			ui->slider_foveation->setValue(std::round((1 - json_doc.value("scale", 1.0)) * 100));
+			ui->spin_foveation->setValue(std::round((1 - json_doc.value("scale", 1.0)) * 100));
+			ui->radio_auto_foveation->setChecked(false);
+			ui->radio_manual_foveation->setChecked(true);
+		}
+		else
+		{
+			ui->radio_auto_foveation->setChecked(true);
+			ui->radio_manual_foveation->setChecked(false);
+		}
+	}
+	catch (...)
+	{
+		ui->radio_auto_foveation->setChecked(true);
+		ui->radio_manual_foveation->setChecked(false);
+	}
+
+	// Bitrate
+	ui->bitrate->setValue(json_doc.value("bitrate", 50'000'000.0) / 1'000'000);
+
+	// Automatically started application
+	std::vector<std::string> application;
+
+	if (json_doc["application"].is_array())
+		application = json_doc.value<std::vector<std::string>>("application", {});
+	else if (json_doc["application"].is_string())
+		application.push_back(json_doc["application"]);
+
+	ui->combo_select_game->clear();
+	ui->combo_select_game->addItem(tr("None", "Game selection combo box"));
+	ui->combo_select_game->addItem(tr("Custom...", "Game selection combo box"));
+
+	auto apps = steam_apps();
+	for (auto & app: apps)
+	{
+		ui->combo_select_game->addItem(QString::fromUtf8(app.name), QVariant::fromValue(app));
+
+		if (application.size() == 2 and application[0] == "steam" and application[1] == app.url)
+		{
+			ui->combo_select_game->setCurrentIndex(ui->combo_select_game->count() - 1);
+		}
+	}
+
+	if (application.size() == 1 and ui->combo_select_game->currentIndex() == 0)
+	{
+		ui->combo_select_game->setCurrentIndex(1);
+		ui->edit_game_path->setText(QString::fromUtf8(application.front()));
+	}
+	selected_rectangle_changed(0);
+
+	ui->partitionner->set_paint([&](QPainter & painter, QRect rect, const QVariant & data, int index, bool selected) {
+		if (selected)
+		{
+			painter.fillRect(rect.adjusted(1, 1, 0, 0), QColorConstants::Cyan);
+		}
+
+		auto [encoder_id, codec_id] = data.value<std::pair<int, int>>();
+
+		QString codec = ui->codec->itemText(codec_id);
+		QString encoder = ui->encoder->itemText(encoder_id);
+
+		QFont font = painter.font();
+		QFont font2 = font;
+
+		font2.setPixelSize(24);
+
+		QString text = QString("%1\n%2").arg(encoder, codec);
+
+		QFontMetrics metrics{font2};
+		QSize size = metrics.size(0, text);
+
+		if (double ratio = std::max((double)size.width() / rect.width(), (double)size.height() / rect.height()); ratio > 1)
+		{
+			int pixel_size = font2.pixelSize() / ratio;
+			if (pixel_size > 0)
+				font2.setPixelSize(pixel_size);
+		}
+
+		painter.setFont(font2);
+		painter.drawText(rect, Qt::AlignCenter, text);
+		painter.setFont(font);
+	});
+
+	// Update the compatible codecs
+	on_selected_encoder_changed();
+
+	// Update the status text
+	on_encoder_settings_changed();
 }
 
 void settings::save_settings()
 {
-	QJsonObject json = json_doc.object();
-
 	// Remove all optional keys that might not be overwritten
-	auto it = json.find("scale");
-	if (it != json.end())
-		json.erase(it);
+	auto it = json_doc.find("scale");
+	if (it != json_doc.end())
+		json_doc.erase(it);
 
-	it = json.find("encoders.disabled");
-	if (it != json.end())
-		json.erase(it);
+	it = json_doc.find("encoders.disabled");
+	if (it != json_doc.end())
+		json_doc.erase(it);
 
-	it = json.find("encoders");
-	if (it != json.end())
-		json.erase(it);
+	it = json_doc.find("encoders");
+	if (it != json_doc.end())
+		json_doc.erase(it);
+
+	it = json_doc.find("application");
+	if (it != json_doc.end())
+		json_doc.erase(it);
 
 	if (not ui->radio_auto_foveation->isChecked())
-		json["scale"] = 1 - ui->slider_foveation->value() / 100.0;
+		json_doc["scale"] = 1 - ui->slider_foveation->value() / 100.0;
 
-	json["bitrate"] = ui->bitrate->value() * 1'000'000;
+	json_doc["bitrate"] = ui->bitrate->value() * 1'000'000;
 
-	QJsonArray encoders;
+	nlohmann::json encoders;
 
 	const auto & rect = ui->partitionner->rectangles();
 	const auto & data = ui->partitionner->rectangles_data();
 
 	for (int i = 0, n = rect.size(); i < n; i++)
 	{
-		QJsonObject encoder;
+		nlohmann::json encoder;
 		auto [encoder_id, codec_id] = data[i].value<std::pair<int, int>>();
 
-		if (auto value = QString::fromLatin1(encoder_from_id(encoder_id)); value != "auto")
+		if (auto value = encoder_from_id(encoder_id); value != "auto")
 			encoder["encoder"] = value;
 
-		if (auto value = QString::fromLatin1(codec_from_id(codec_id)); value != "auto")
+		if (auto value = codec_from_id(codec_id); value != "auto")
 			encoder["codec"] = value;
 
 		encoder["width"] = rect[i].width();
@@ -418,15 +542,34 @@ void settings::save_settings()
 	}
 
 	// If there is only one automatic encoder, don't save it'
-	if (encoders.size() != 1 or encoders[0].toObject().contains("codec") or encoders[0].toObject().contains("encoder"))
+	if (encoders.size() != 1 or encoders[0].contains("codec") or encoders[0].contains("encoder"))
 	{
 		if (ui->radio_manual_encoder->isChecked())
-			json["encoders"] = encoders;
+			json_doc["encoders"] = encoders;
 		else
-			json["encoders.disabled"] = encoders;
+			json_doc["encoders.disabled"] = encoders;
 	}
 
-	server_interface->setJsonConfiguration(QString::fromUtf8(QJsonDocument(json).toJson()));
+	if (ui->combo_select_game->currentIndex() == 0)
+	{
+	}
+	else if (ui->combo_select_game->currentIndex() == 1)
+	{
+		nlohmann::json application;
+		application.push_back(ui->edit_game_path->text().toStdString());
+		json_doc["application"] = application;
+	}
+	else
+	{
+		auto app = qvariant_cast<steam_app>(ui->combo_select_game->currentData());
+
+		nlohmann::json application;
+		application.push_back("steam");
+		application.push_back(app.url);
+		json_doc["application"] = application;
+	}
+
+	server_interface->setJsonConfiguration(QString::fromStdString(json_doc.dump(2)));
 }
 
 #include "moc_settings.cpp"

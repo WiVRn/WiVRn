@@ -18,12 +18,18 @@
 
 #pragma once
 
+#include "adb.h"
+#include <QFutureWatcher>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QProcess>
 #include <QSaveFile>
 #include <QSettings>
 #include <QStandardItemModel>
+#include <QTimer>
 #include <QWizard>
+#include <memory>
+#include <string>
 
 namespace Ui
 {
@@ -43,9 +49,30 @@ class wizard : public QWizard
 
 	QSettings settings;
 	QNetworkAccessManager manager;
-	QNetworkReply * reply = nullptr;
+
+	// Used to download the APK
+	QNetworkReply * apk_reply = nullptr;
+
+	// Used to query the latest release on github
+	QNetworkReply * latest_release_reply = nullptr;
+
+	// Used to get the info about the current version on github, either from the WiVRn or the WiVRn-APK repo
+	QNetworkReply * apk_release_reply = nullptr;
+
 	QSaveFile apk_file;
+	std::string apk_url;
 	bool apk_downloaded = false;
+
+	std::string latest_release;
+
+	std::shared_ptr<QPromise<std::vector<adb::device>>> android_devices_promise;
+	QFuture<std::vector<adb::device>> android_devices_future;
+	QFutureWatcher<std::vector<adb::device>> android_devices_future_watcher;
+
+	std::vector<adb::device> android_devices;
+	QTimer poll_devices_timer;
+	// std::unique_ptr<QProcess> process_adb_devices;
+	std::unique_ptr<QProcess> process_adb_install;
 
 public:
 	wizard();
@@ -64,7 +91,18 @@ public:
 	void on_download_error(QNetworkReply::NetworkError code);
 	void on_download_finished();
 
-	void on_headset_model_changed();
+	void on_android_devices_future_finished();
+	void on_adb_device_list_changed();
+
+	void start_install();
+	void on_install_finished(int exit_code, QProcess::ExitStatus exit_status);
+	void on_install_stdout();
+	void on_install_stderr();
+
+	void on_latest_release_finished();
+	void on_apk_release_finished();
+
+	void update_welcome_page();
 	void on_headset_connected_changed(bool);
 	void on_custom_button_clicked(int which);
 };

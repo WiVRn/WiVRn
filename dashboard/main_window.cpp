@@ -28,7 +28,6 @@
 #include <chrono>
 #include <cmath>
 
-#include "exit_codes.h"
 #include "settings.h"
 #include "ui_main_window.h"
 #include "wivrn_server.h"
@@ -372,19 +371,19 @@ void main_window::on_server_finished(int exit_code, QProcess::ExitStatus status)
 		QString error_message = tr("Unknown error (%1), check logs").arg(exit_code);
 		switch (exit_code)
 		{
-			case wivrn_exit_code::cannot_connect_to_avahi:
-				error_message = tr("Cannot connect to avahi, make sure avahi-daemon service is started");
+			case EXIT_SUCCESS:
+			case EXIT_FAILURE:
 				break;
-			case wivrn_exit_code::cannot_create_pipe:
-			case wivrn_exit_code::cannot_create_socketpair:
+			case 2:
+			case 3:
 				error_message = tr("Insufficient system resources");
 				break;
-			case wivrn_exit_code::success:
-			case wivrn_exit_code::unknown_error:
+			case 4:
+				error_message = tr("Cannot connect to avahi, make sure avahi-daemon service is started");
 				break;
 		}
 
-		QMessageBox msgbox /*(this)*/;
+		QMessageBox msgbox;
 		msgbox.setIcon(QMessageBox::Critical);
 		msgbox.setText(tr("Server crashed:\n%1").arg(error_message));
 		msgbox.setStandardButtons(QMessageBox::Close);

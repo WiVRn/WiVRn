@@ -10,6 +10,8 @@
 
 #include "driver/configuration.h"
 
+#include <filesystem>
+#include <iomanip>
 #include <stdlib.h>
 #include <unistd.h>
 #include <vector>
@@ -230,13 +232,39 @@ int wivrn::exec_application(configuration config)
 	if (config.application.empty())
 		return 0;
 
-	std::vector<char *> argv;
-	argv.reserve(config.application.size() + 1);
+	std::string executable;
+	std::vector<std::string> args;
+
+	if (std::filesystem::exists("/.flatpak-info"))
+	{
+		executable = "flatpak-spawn";
+		args.push_back("flatpak-spawn");
+		args.push_back("--host");
+	}
+	else
+	{
+		executable = config.application.front();
+	}
+
 	for (auto & arg: config.application)
-		argv.push_back(arg.data());
+		args.push_back(arg.data());
+
+	std::vector<char *> argv;
+	argv.reserve(args.size());
+
+	for (auto & i: args)
+		argv.push_back(i.data());
 	argv.push_back(nullptr);
 
-	execvp(config.application.front().c_str(), argv.data());
+	std::cerr << "Launching " << executable << std::endl;
+	std::cerr << "With args:" << std::endl;
+	for (auto & i: argv)
+	{
+		if (i)
+			std::cerr << "    " << std::quoted(i) << std::endl;
+	}
+
+	execvp(executable.c_str(), argv.data());
 
 	perror("Cannot start application");
 	exit(EXIT_FAILURE);

@@ -1,3 +1,4 @@
+# kate: syntax yaml
 id: io.github.wivrn.wivrn
 runtime: org.kde.Platform
 runtime-version: '6.7'
@@ -28,6 +29,8 @@ finish-args:
   - --own-name=io.github.wivrn.Server
   # QSystemTrayIcon
   - --talk-name=org.kde.StatusNotifierWatcher
+  # Run processes outside of sandbox
+  - --talk-name=org.freedesktop.Flatpak
 
 cleanup:
   - /lib/pkgconfig
@@ -152,11 +155,11 @@ modules:
       - -DWIVRN_USE_X264=ON
       - -DWIVRN_USE_NVENC=ON
       - -DWIVRN_USE_PULSEAUDIO=OFF
-      - -DWIVRN_CLIENT_URL=https://github.com/WiVRn/WiVRn/releases/latest/download/WiVRn-standard-release.apk
       - -DWIVRN_WERROR=ON
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
       - -DFETCHCONTENT_BASE_DIR=deps
       - -DGIT_DESC=WIVRN_GIT_DESC
+      - -DGIT_COMMIT=WIVRN_GIT_COMMIT
       - -Wno-dev
     sources:
       - WIVRN_SRC1
@@ -217,4 +220,3 @@ modules:
           - trap cleanup EXIT INT TERM HUP
           -
           - wivrn-dashboard
-

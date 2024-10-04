@@ -574,7 +574,7 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	on_headset_info_packet({});
 
 	std::ifstream file(configuration::get_config_file());
-	std::string config{std::istream_iterator<char>(file), std::istream_iterator<char>()};
+	std::string config{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 
 	wivrn_server_set_json_configuration(dbus_server, config.c_str());
 
