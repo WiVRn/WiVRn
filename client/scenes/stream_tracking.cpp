@@ -178,6 +178,7 @@ void scenes::stream::tracking()
 	XrTime next_battery_check = 0;
 	const XrDuration battery_check_interval = 30'000'000'000; // 30s
 #endif
+
 	std::vector<std::pair<device_id, XrSpace>> spaces = {
 	        {device_id::HEAD, application::space(xr::spaces::view)},
 	        {device_id::LEFT_AIM, application::space(xr::spaces::aim_left)},
@@ -358,7 +359,10 @@ void scenes::stream::tracking()
 				size_t size = serialized_size(item);
 				if (size + current_size > 1400)
 				{
-					merged_tracking.emplace_back();
+					merged_tracking.emplace_back().interaction_profiles = {
+					        interaction_profiles[0].load(),
+					        interaction_profiles[1].load(),
+					};
 					current_size = 0;
 				}
 				current_size += size;
@@ -420,7 +424,7 @@ void scenes::stream::operator()(to_headset::tracking_control && packet)
 	tracking_control.min_offset = std::min(tracking_control.min_offset, tracking_control.max_offset);
 }
 
-void scenes::stream::on_interaction_profile_changed(const XrEventDataInteractionProfileChanged & event)
+void scenes::stream::on_interaction_profile_changed(const XrEventDataInteractionProfileChanged &)
 {
 	auto now = instance.now();
 	for (auto [target, space]: {
@@ -464,5 +468,52 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 			        .target = target,
 			});
 		}
+	}
+
+	std::array path = {
+	        "/user/hand/left",
+	        "/user/hand/right",
+	};
+#define DO_PROFILE(vendor, name)                                                \
+	if (profile == "/interaction_profiles/" #vendor "/" #name)              \
+	{                                                                       \
+		interaction_profiles[i] = interaction_profile::vendor##_##name; \
+		continue;                                                       \
+	}
+
+	for (size_t i = 0; i < 2; ++i)
+	{
+		try
+		{
+			auto profile = session.get_current_interaction_profile(path[i]);
+			spdlog::info("interaction profile for {}: {}", path[i], profile);
+			DO_PROFILE(khr, simple_controller)
+			DO_PROFILE(bd, pico_neo3_controller)
+			DO_PROFILE(bd, pico4_controller)
+			DO_PROFILE(bd, pico_g3_controller)
+			DO_PROFILE(google, daydream_controller)
+			DO_PROFILE(hp, mixed_reality_controller)
+			DO_PROFILE(htc, vive_controller)
+			DO_PROFILE(htc, vive_cosmos_controller)
+			DO_PROFILE(htc, vive_focus3_controller)
+			DO_PROFILE(htc, vive_pro)
+			DO_PROFILE(ml, ml2_controller)
+			DO_PROFILE(microsoft, motion_controller)
+			DO_PROFILE(microsoft, xbox_controller)
+			DO_PROFILE(oculus, go_controller)
+			DO_PROFILE(oculus, touch_controller)
+			DO_PROFILE(meta, touch_pro_controller)
+			DO_PROFILE(meta, touch_plus_controller)
+			DO_PROFILE(meta, touch_controller_rift_cv1)
+			DO_PROFILE(meta, touch_controller_quest_1_rift_s)
+			DO_PROFILE(meta, touch_controller_quest_2)
+			DO_PROFILE(samsung, odyssey_controller)
+			DO_PROFILE(valve, index_controller)
+		}
+		catch (std::exception & e)
+		{
+			spdlog::warn("Failed to get current interation profile: {}", e.what());
+		}
+		interaction_profiles[i] = interaction_profile::none;
 	}
 }

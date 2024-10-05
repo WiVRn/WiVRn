@@ -83,6 +83,33 @@ enum class device_id : uint8_t
 	EYE_GAZE,                // /user/eyes_ext/input/gaze_ext/pose
 };
 
+enum class interaction_profile : uint8_t
+{
+	none,
+	khr_simple_controller,
+	bd_pico_neo3_controller,
+	bd_pico4_controller,
+	bd_pico_g3_controller,
+	google_daydream_controller,
+	hp_mixed_reality_controller,
+	htc_vive_controller,
+	htc_vive_cosmos_controller,
+	htc_vive_focus3_controller,
+	htc_vive_pro,
+	ml_ml2_controller,
+	microsoft_motion_controller,
+	microsoft_xbox_controller,
+	oculus_go_controller,
+	oculus_touch_controller,
+	meta_touch_pro_controller,
+	meta_touch_plus_controller,
+	meta_touch_controller_rift_cv1,
+	meta_touch_controller_quest_1_rift_s,
+	meta_touch_controller_quest_2,
+	samsung_odyssey_controller,
+	valve_index_controller,
+};
+
 enum video_codec
 {
 	h264,
@@ -228,6 +255,8 @@ struct tracking
 
 struct trackings
 {
+	// /user/hand/left and /user/hand/right
+	std::array<interaction_profile, 2> interaction_profiles;
 	std::vector<tracking> items;
 };
 
