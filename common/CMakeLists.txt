@@ -20,7 +20,6 @@ else ()
         SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
         )
 endif()
-file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS "*.cpp")
 
 configure_file(wivrn_config.h.in wivrn_config.h)
 

@@ -196,7 +196,7 @@ target_sources(wivrn PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
 if(ANDROID)
     set(LICENSES_DIR "${CMAKE_ANDROID_ASSETS_DIRECTORIES}/licenses")
 else()
-    set(LICENSES_DIR "licenses")
+    set(LICENSES_DIR "${CMAKE_CURRENT_BINARY_DIR}/licenses")
 endif()
 
 file(MAKE_DIRECTORY "${LICENSES_DIR}")
