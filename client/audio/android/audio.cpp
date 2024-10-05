@@ -86,8 +86,8 @@ int32_t wivrn::android::audio::speaker_data_cb(AAudioStream * stream, void * use
 #endif
 				self->speaker_tmp.payload = std::span(self->speaker_tmp.data.c.get(), target_buffer_size);
 				self->buffer_size_bytes += target_buffer_size;
-				spdlog::info("Audio sync: underrun, add {} bytes buffer",
-				             target_buffer_size);
+				spdlog::debug("Audio sync: underrun, add {} bytes buffer",
+				              target_buffer_size);
 			}
 		}
 	}
