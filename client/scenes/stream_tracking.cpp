@@ -249,7 +249,7 @@ void scenes::stream::tracking()
 					packet.view_flags = flags;
 
 					packet.state_flags = 0;
-					if (local_dirty.exchange(false))
+					if (recenter_requested.exchange(false))
 						packet.state_flags = wivrn::from_headset::tracking::recentered;
 
 					packet.device_poses.clear();

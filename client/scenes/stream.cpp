@@ -1049,6 +1049,6 @@ void scenes::stream::on_reference_space_changed(XrReferenceSpaceType space, XrTi
 {
 	if (space == XrReferenceSpaceType::XR_REFERENCE_SPACE_TYPE_LOCAL)
 	{
-		local_dirty = true;
+		recenter_requested = true;
 	}
 }

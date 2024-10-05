@@ -84,7 +84,7 @@ private:
 	std::thread network_thread;
 	std::mutex tracking_control_mutex;
 	to_headset::tracking_control tracking_control;
-	std::atomic<bool> local_dirty = false;
+	std::atomic<bool> recenter_requested = false;
 	std::atomic<XrDuration> display_time_phase = 0;
 	std::atomic<XrDuration> display_time_period = 0;
 	std::optional<std::thread> tracking_thread;
