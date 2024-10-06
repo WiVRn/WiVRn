@@ -360,6 +360,8 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 		cnx->set_enabled(aim.device, false);
 	if (not grip.update_tracking(tracking, offset))
 		cnx->set_enabled(grip.device, false);
+	if (not palm.update_tracking(tracking, offset))
+		cnx->set_enabled(palm.device, false);
 }
 
 void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
