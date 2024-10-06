@@ -312,6 +312,14 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 }
 void wivrn_session::operator()(from_headset::trackings && tracking)
 {
+	bool changed = left_hand.set_interaction_profile(tracking.interaction_profiles[0]);
+	changed |= right_hand.set_interaction_profile(tracking.interaction_profiles[1]);
+	if (changed)
+	{
+		std::lock_guard lock(roles_mutex);
+		++roles.generation_id;
+	}
+
 	for (auto & item: tracking.items)
 		(*this)(item);
 }

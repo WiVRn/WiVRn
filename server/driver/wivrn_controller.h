@@ -66,6 +66,9 @@ public:
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	void update_hand_tracking(const from_headset::hand_tracking &, const clock_offset &);
 
+	// return true if changed
+	bool set_interaction_profile(interaction_profile);
+
 private:
 	void set_inputs(device_id input_id, float value, int64_t last_change_time);
 };

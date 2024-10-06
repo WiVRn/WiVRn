@@ -532,6 +532,11 @@ void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value *
 	}
 }
 
+bool wivrn_controller::set_interaction_profile(interaction_profile profile)
+{
+	return false;
+}
+
 /*
  *
  * Functions
