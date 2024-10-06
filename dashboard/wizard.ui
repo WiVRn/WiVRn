@@ -480,7 +480,7 @@
     <item>
      <widget class="QLabel" name="label_12">
       <property name="text">
-       <string>For Steam games, set the command to:</string>
+       <string>For Steam games, set the launch options to:</string>
       </property>
       <property name="textFormat">
        <enum>Qt::TextFormat::PlainText</enum>
