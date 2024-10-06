@@ -26,13 +26,10 @@
 #include "xrt/xrt_device.h"
 
 #include <cstdint>
-#include <memory>
 #include <mutex>
 
 namespace wivrn
 {
-
-class wivrn_session;
 
 class wivrn_eye_tracker : public xrt_device
 {
@@ -40,14 +37,8 @@ class wivrn_eye_tracker : public xrt_device
 	xrt_input gaze_input;
 	pose_list gaze;
 
-	std::shared_ptr<wivrn::wivrn_session> cnx;
-
 public:
-	wivrn_eye_tracker(xrt_device * hmd, std::shared_ptr<wivrn::wivrn_session> cnx);
-	void unregister()
-	{
-		cnx = nullptr;
-	}
+	wivrn_eye_tracker(xrt_device * hmd);
 
 	void update_inputs();
 	void update_tracking(const from_headset::tracking &, const clock_offset &);

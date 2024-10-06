@@ -113,7 +113,7 @@ static void create_encoders(wivrn_comp_target * cn)
 	auto & desc = cn->desc;
 	desc.width = cn->width;
 	desc.height = cn->height;
-	desc.foveation = cn->cnx->set_foveated_size(desc.width, desc.height);
+	desc.foveation = cn->cnx.set_foveated_size(desc.width, desc.height);
 
 	std::map<int, std::vector<std::shared_ptr<VideoEncoder>>> thread_params;
 
@@ -135,7 +135,7 @@ static void create_encoders(wivrn_comp_target * cn)
 		pthread_setname_np(thread.native_handle(), name.c_str());
 	}
 	cn->pacer.set_stream_count(cn->encoders.size());
-	cn->cnx->send_control(desc);
+	cn->cnx.send_control(desc);
 }
 
 static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags flags)
@@ -265,7 +265,7 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		        *cn->wivrn_bundle,
 		        cn->c->settings.preferred.width,
 		        cn->c->settings.preferred.height,
-		        cn->cnx->get_info());
+		        cn->cnx.get_info());
 		print_encoders(cn->settings);
 	}
 	catch (const std::exception & e)
@@ -274,7 +274,7 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		return false;
 	}
 
-	if (cn->cnx->has_dynamic_foveation())
+	if (cn->cnx.has_dynamic_foveation())
 	{
 		cn->foveation_renderer = std::make_unique<wivrn_foveation_renderer>(*cn->wivrn_bundle, cn->command_pool);
 	}
@@ -285,7 +285,7 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 static bool comp_wivrn_check_ready(struct comp_target * ct)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
-	if (not cn->cnx->connected())
+	if (not cn->cnx.connected())
 		return false;
 
 	// This function is called before on each frame before reprojection
@@ -444,7 +444,7 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 		{
 			for (auto & encoder: encoders)
 			{
-				encoder->Encode(*cn->cnx, view_info, frame_index);
+				encoder->Encode(cn->cnx, view_info, frame_index);
 			}
 		}
 		catch (std::exception & e)
@@ -481,7 +481,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	        .pWaitDstStageMask = &wait_stage,
 	};
 
-	if (cn->c->base.layer_accum.layer_count == 0 or not cn->cnx->get_offset())
+	if (cn->c->base.layer_accum.layer_count == 0 or not cn->cnx.get_offset())
 	{
 		scoped_lock lock(vk->queue_mutex);
 		cn->wivrn_bundle->queue.submit(submit_info);
@@ -518,9 +518,9 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 #endif
 
 	auto & view_info = cn->psc.view_info;
-	view_info.foveation = cn->cnx->get_foveation_parameters();
+	view_info.foveation = cn->cnx.get_foveation_parameters();
 	auto info = cn->pacer.present_to_info(desired_present_time_ns);
-	view_info.display_time = cn->cnx->get_offset().to_headset(info.predicted_display_time);
+	view_info.display_time = cn->cnx.get_offset().to_headset(info.predicted_display_time);
 	for (int eye = 0; eye < 2; ++eye)
 	{
 		const auto & frame_params = cn->c->base.frame_params;
@@ -558,7 +558,7 @@ static void comp_wivrn_flush(struct comp_target * ct)
 #endif
 
 	// apply foveation for current frame
-	if (cn->cnx->apply_dynamic_foveation())
+	if (cn->cnx.apply_dynamic_foveation())
 		// foveation renderer already signaled the semaphore; nothing to do
 		return;
 
@@ -606,15 +606,15 @@ static void comp_wivrn_mark_timing_point(struct comp_target * ct,
 	switch (point)
 	{
 		case COMP_TARGET_TIMING_POINT_WAKE_UP:
-			cn->cnx->dump_time("wake_up", frame_id, when_ns);
+			cn->cnx.dump_time("wake_up", frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_BEGIN:
-			cn->cnx->dump_time("begin", frame_id, when_ns);
+			cn->cnx.dump_time("begin", frame_id, when_ns);
 			break;
 		case COMP_TARGET_TIMING_POINT_SUBMIT_BEGIN:
 			break;
 		case COMP_TARGET_TIMING_POINT_SUBMIT_END:
-			cn->cnx->dump_time("submit", frame_id, when_ns);
+			cn->cnx.dump_time("submit", frame_id, when_ns);
 			break;
 		default:
 			assert(false);
@@ -667,7 +667,7 @@ void wivrn_comp_target::reset_encoders()
 	{
 		encoder->SyncNeeded();
 	}
-	cnx->send_control(desc);
+	cnx.send_control(desc);
 }
 
 void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveation_parameter, 2> foveation)
@@ -691,7 +691,7 @@ void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveatio
 	}
 }
 
-wivrn_comp_target::wivrn_comp_target(std::shared_ptr<wivrn::wivrn_session> cnx, struct comp_compositor * c, float fps) :
+wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c, float fps) :
         comp_target{},
         pacer(U_TIME_1S_IN_NS / fps),
         cnx(cnx)

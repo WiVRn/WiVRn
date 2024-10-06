@@ -46,7 +46,7 @@ static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device *
                                                              struct xrt_facial_expression_set * out_value);
 
 wivrn_fb_face2_tracker::wivrn_fb_face2_tracker(xrt_device * hmd,
-                                               std::shared_ptr<wivrn::wivrn_session> cnx) :
+                                               wivrn::wivrn_session & cnx) :
         xrt_device{}, cnx(cnx)
 {
 	xrt_device * base = this;
@@ -88,14 +88,14 @@ void wivrn_fb_face2_tracker::update_tracking(const from_headset::tracking & trac
 	};
 
 	if (not face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset))
-		cnx->set_enabled(to_headset::tracking_control::id::face, false);
+		cnx.set_enabled(to_headset::tracking_control::id::face, false);
 }
 
 xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facial_expression_type, int64_t at_timestamp_ns, struct xrt_facial_expression_set * inout_value)
 {
 	if (facial_expression_type == XRT_INPUT_FB_FACE_TRACKING2_VISUAL)
 	{
-		cnx->set_enabled(to_headset::tracking_control::id::face, true);
+		cnx.set_enabled(to_headset::tracking_control::id::face, true);
 		auto [_, data] = face_list.get_at(at_timestamp_ns);
 
 		inout_value->face_expression_set2_fb.is_valid = data.is_valid;
@@ -124,7 +124,6 @@ xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facia
 
 static void wivrn_fb_face2_tracker_destroy(xrt_device * xdev)
 {
-	static_cast<wivrn_fb_face2_tracker *>(xdev)->unregister();
 }
 
 static void wivrn_fb_face2_tracker_update_inputs(xrt_device * xdev)

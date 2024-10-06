@@ -25,6 +25,7 @@
 #include "wivrn_hmd.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_results.h"
+#include "xrt/xrt_system.h"
 #include <atomic>
 #include <fstream>
 #include <memory>
@@ -32,7 +33,6 @@
 #include <thread>
 
 struct u_system;
-struct xrt_system_devices;
 struct xrt_space_overseer;
 struct xrt_system_compositor;
 
@@ -73,7 +73,7 @@ public:
 	void set_enabled(to_headset::tracking_control::id id, bool enabled);
 };
 
-class wivrn_session : public std::enable_shared_from_this<wivrn_session>
+class wivrn_session : public xrt_system_devices
 {
 	friend wivrn_comp_target_factory;
 	wivrn_connection connection;
@@ -82,8 +82,14 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	u_system & xrt_system;
 	xrt_space_overseer * space_overseer;
 
-	std::atomic<bool> quit = false;
-	std::thread thread;
+	std::mutex roles_mutex;
+	xrt_system_roles roles{
+	        .generation_id = 1,
+	        .left = -1,
+	        .right = -1,
+	        .gamepad = -1,
+	};
+	std::array<xrt_reference, XRT_DEVICE_FEATURE_MAX_ENUM> feature_use{};
 
 	wivrn_hmd hmd;
 	wivrn_controller left_hand;
@@ -103,6 +109,8 @@ class wivrn_session : public std::enable_shared_from_this<wivrn_session>
 	std::ofstream feedback_csv;
 
 	std::shared_ptr<audio_device> audio_handle;
+
+	std::jthread thread;
 
 	wivrn_session(TCP && tcp, u_system &);
 
@@ -168,8 +176,13 @@ public:
 	void dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream = -1, const char * extra = "");
 
 private:
-	static void run(std::weak_ptr<wivrn_session>);
+	void run(std::stop_token stop);
 	void reconnect();
+
+	// xrt_system implementation
+	xrt_result_t get_roles(xrt_system_roles * out_roles);
+	xrt_result_t feature_inc(xrt_device_feature_type type);
+	xrt_result_t feature_dec(xrt_device_feature_type type);
 };
 
 } // namespace wivrn

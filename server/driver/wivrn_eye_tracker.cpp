@@ -43,9 +43,8 @@ static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
                                                int64_t at_timestamp_ns,
                                                xrt_space_relation * out_relation);
 
-wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd,
-                                     std::shared_ptr<wivrn::wivrn_session> cnx) :
-        xrt_device{}, gaze(device_id::EYE_GAZE), cnx(cnx)
+wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd) :
+        xrt_device{}, gaze(device_id::EYE_GAZE)
 {
 	xrt_device * base = this;
 	base->tracking_origin = hmd->tracking_origin;
@@ -99,7 +98,6 @@ void wivrn_eye_tracker::update_tracking(const from_headset::tracking & tracking,
 
 static void wivrn_eye_tracker_destroy(xrt_device * xdev)
 {
-	static_cast<wivrn_eye_tracker *>(xdev)->unregister();
 }
 
 static void wivrn_eye_tracker_update_inputs(xrt_device * xdev)
