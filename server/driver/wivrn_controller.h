@@ -42,7 +42,7 @@ class wivrn_controller : public xrt_device
 
 	std::vector<xrt_input> inputs_staging;
 	std::vector<xrt_input> inputs_array;
-	xrt_output haptic_output;
+	std::vector<xrt_output> outputs_array;
 
 	wivrn::wivrn_session * cnx;
 

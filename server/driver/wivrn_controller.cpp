@@ -28,7 +28,6 @@
 #include <magic_enum.hpp>
 #include <numbers>
 #include <optional>
-#include <stdio.h>
 
 #include <fstream>
 
@@ -41,10 +40,13 @@ enum wivrn_controller_input_index
 {
 	WIVRN_CONTROLLER_AIM_POSE,
 	WIVRN_CONTROLLER_GRIP_POSE,
-	WIVRN_CONTROLLER_HAND_TRACKER,
 	WIVRN_CONTROLLER_PALM_POSE,
+	WIVRN_CONTROLLER_HAND_TRACKING_LEFT,
+	WIVRN_CONTROLLER_HAND_TRACKING_RIGHT = WIVRN_CONTROLLER_HAND_TRACKING_LEFT,
 
 	WIVRN_CONTROLLER_MENU_CLICK,                         // /user/hand/left/input/menu/click
+	WIVRN_CONTROLLER_SYSTEM_CLICK                        // /user/hand/right/input/system/click
+	= WIVRN_CONTROLLER_MENU_CLICK,                       //
 	WIVRN_CONTROLLER_A_CLICK,                            // /user/hand/right/input/a/click
 	WIVRN_CONTROLLER_A_TOUCH,                            // /user/hand/right/input/a/touch
 	WIVRN_CONTROLLER_B_CLICK,                            // /user/hand/right/input/b/click
@@ -54,14 +56,26 @@ enum wivrn_controller_input_index
 	WIVRN_CONTROLLER_Y_CLICK = WIVRN_CONTROLLER_B_CLICK, // /user/hand/left/input/y/click
 	WIVRN_CONTROLLER_Y_TOUCH = WIVRN_CONTROLLER_B_TOUCH, // /user/hand/left/input/y/touch
 	WIVRN_CONTROLLER_SQUEEZE_CLICK,                      // /user/hand/XXXX/input/squeeze/click
+	WIVRN_CONTROLLER_SQUEEZE_FORCE,                      // /user/hand/XXXX/input/squeeze/force
 	WIVRN_CONTROLLER_SQUEEZE_VALUE,                      // /user/hand/XXXX/input/squeeze/value
 	WIVRN_CONTROLLER_TRIGGER_CLICK,                      // /user/hand/XXXX/input/trigger/click
 	WIVRN_CONTROLLER_TRIGGER_VALUE,                      // /user/hand/XXXX/input/trigger/value
 	WIVRN_CONTROLLER_TRIGGER_TOUCH,                      // /user/hand/XXXX/input/trigger/touch
+	WIVRN_CONTROLLER_TRIGGER_PROXIMITY,                  // /user/hand/XXXX/input/trigger/proximity
+	WIVRN_CONTROLLER_TRIGGER_CURL,                       // /user/hand/XXXX/input/trigger/curl_fb
+	WIVRN_CONTROLLER_TRIGGER_SLIDE,                      // /user/hand/XXXX/input/trigger/slide_fb
+	WIVRN_CONTROLLER_TRIGGER_FORCE,                      // /user/hand/XXXX/input/trigger/force
 	WIVRN_CONTROLLER_THUMBSTICK,                         // /user/hand/XXXX/input/thumbstick/{x,y}
 	WIVRN_CONTROLLER_THUMBSTICK_CLICK,                   // /user/hand/XXXX/input/thumbstick/click
 	WIVRN_CONTROLLER_THUMBSTICK_TOUCH,                   // /user/hand/XXXX/input/thumbstick/touch
 	WIVRN_CONTROLLER_THUMBREST_TOUCH,                    // /user/hand/XXXX/input/thumbrest/touch
+	WIVRN_CONTROLLER_THUMBREST_FORCE,                    // /user/hand/XXXX/input/thumbrest/force
+	WIVRN_CONTROLLER_THUMB_PROXIMITY,                    // /user/hand/XXXX/input/thumb_resting_surfaces/proximity
+	WIVRN_CONTROLLER_TRACKPAD,                           // /user/hand/XXXX/input/trackpad/{x,y}
+	WIVRN_CONTROLLER_TRACKPAD_CLICK,                     // /user/hand/XXXX/input/trackpad/click
+	WIVRN_CONTROLLER_TRACKPAD_FORCE,                     // /user/hand/XXXX/input/trackpad/force
+	WIVRN_CONTROLLER_TRACKPAD_TOUCH,                     // /user/hand/XXXX/input/trackpad/touch
+	WIVRN_CONTROLLER_STYLUS_FORCE,                       // /user/hand/XXXX/input/stylus_fb/force
 
 	WIVRN_CONTROLLER_INPUT_COUNT
 };
@@ -71,52 +85,158 @@ enum class wivrn_input_type
 	BOOL,
 	FLOAT,
 	VEC2_X,
-	VEC2_Y
+	VEC2_Y,
+	POSE,
 };
 
-struct wivrn_to_wivrn_controller_input
+struct input_data
 {
-	wivrn_controller_input_index input_id;
-	device_id wivrn_id;
-	wivrn_input_type input_type;
+	wivrn_controller_input_index index;
+	wivrn_input_type type;
+	xrt_device_type device;
 };
 
-// clang-format off
-static const wivrn_to_wivrn_controller_input left_hand_bindings[] = {
-	{WIVRN_CONTROLLER_MENU_CLICK,       device_id::MENU_CLICK, wivrn_input_type::BOOL},           // /user/hand/left/input/menu/click
-	{WIVRN_CONTROLLER_X_CLICK,          device_id::X_CLICK, wivrn_input_type::BOOL},              // /user/hand/left/input/x/click
-	{WIVRN_CONTROLLER_X_TOUCH,          device_id::X_TOUCH, wivrn_input_type::BOOL},              // /user/hand/left/input/x/touch
-	{WIVRN_CONTROLLER_Y_CLICK,          device_id::Y_CLICK, wivrn_input_type::BOOL},              // /user/hand/left/input/y/click
-	{WIVRN_CONTROLLER_Y_TOUCH,          device_id::Y_TOUCH, wivrn_input_type::BOOL},              // /user/hand/left/input/y/touch
-	{WIVRN_CONTROLLER_MENU_CLICK,       device_id::MENU_CLICK, wivrn_input_type::BOOL},           // /user/hand/left/input/menu/click
-	{WIVRN_CONTROLLER_SQUEEZE_VALUE,    device_id::LEFT_SQUEEZE_VALUE, wivrn_input_type::FLOAT},  // /user/hand/left/input/squeeze/value
-	{WIVRN_CONTROLLER_TRIGGER_VALUE,    device_id::LEFT_TRIGGER_VALUE, wivrn_input_type::FLOAT},  // /user/hand/left/input/trigger/value
-	{WIVRN_CONTROLLER_TRIGGER_TOUCH,    device_id::LEFT_TRIGGER_TOUCH, wivrn_input_type::BOOL},   // /user/hand/left/input/trigger/touch
-	{WIVRN_CONTROLLER_THUMBSTICK,       device_id::LEFT_THUMBSTICK_X, wivrn_input_type::VEC2_X},  // /user/hand/left/input/thumbstick/x
-	{WIVRN_CONTROLLER_THUMBSTICK,       device_id::LEFT_THUMBSTICK_Y, wivrn_input_type::VEC2_Y},  // /user/hand/left/input/thumbstick/y
-	{WIVRN_CONTROLLER_THUMBSTICK_CLICK, device_id::LEFT_THUMBSTICK_CLICK, wivrn_input_type::BOOL},// /user/hand/left/input/thumbstick/click
-	{WIVRN_CONTROLLER_THUMBSTICK_TOUCH, device_id::LEFT_THUMBSTICK_TOUCH, wivrn_input_type::BOOL},// /user/hand/left/input/thumbstick/touch
-	{WIVRN_CONTROLLER_THUMBREST_TOUCH,  device_id::LEFT_THUMBREST_TOUCH, wivrn_input_type::BOOL}, // /user/hand/left/input/thumbrest/touch
-};
-
-static const wivrn_to_wivrn_controller_input right_hand_bindings[] = {
-	{WIVRN_CONTROLLER_A_CLICK,          device_id::A_CLICK, wivrn_input_type::BOOL},               // /user/hand/right/input/a/click
-	{WIVRN_CONTROLLER_A_TOUCH,          device_id::A_TOUCH, wivrn_input_type::BOOL},               // /user/hand/right/input/a/touch
-	{WIVRN_CONTROLLER_B_CLICK,          device_id::B_CLICK, wivrn_input_type::BOOL},               // /user/hand/right/input/b/click
-	{WIVRN_CONTROLLER_B_TOUCH,          device_id::B_TOUCH, wivrn_input_type::BOOL},               // /user/hand/right/input/b/touch
-	{WIVRN_CONTROLLER_SQUEEZE_VALUE,    device_id::RIGHT_SQUEEZE_VALUE, wivrn_input_type::FLOAT},  // /user/hand/right/input/squeeze/value
-	{WIVRN_CONTROLLER_TRIGGER_VALUE,    device_id::RIGHT_TRIGGER_VALUE, wivrn_input_type::FLOAT},  // /user/hand/right/input/trigger/value
-	{WIVRN_CONTROLLER_TRIGGER_TOUCH,    device_id::RIGHT_TRIGGER_TOUCH, wivrn_input_type::BOOL},   // /user/hand/right/input/trigger/touch
-	{WIVRN_CONTROLLER_THUMBSTICK,       device_id::RIGHT_THUMBSTICK_X, wivrn_input_type::VEC2_X},  // /user/hand/right/input/thumbstick/x
-	{WIVRN_CONTROLLER_THUMBSTICK,       device_id::RIGHT_THUMBSTICK_Y, wivrn_input_type::VEC2_Y},  // /user/hand/right/input/thumbstick/y
-	{WIVRN_CONTROLLER_THUMBSTICK_CLICK, device_id::RIGHT_THUMBSTICK_CLICK, wivrn_input_type::BOOL},// /user/hand/right/input/thumbstick/click
-	{WIVRN_CONTROLLER_THUMBSTICK_TOUCH, device_id::RIGHT_THUMBSTICK_TOUCH, wivrn_input_type::BOOL},// /user/hand/right/input/thumbstick/touch
-	{WIVRN_CONTROLLER_THUMBREST_TOUCH,  device_id::RIGHT_THUMBREST_TOUCH, wivrn_input_type::BOOL}, // /user/hand/right/input/thumbrest/touch
-};
-// clang-format on
-
-static const size_t left_hand_bindings_count = ARRAY_SIZE(left_hand_bindings);
-static const size_t right_hand_bindings_count = ARRAY_SIZE(right_hand_bindings);
+static input_data map_input(device_id id)
+{
+	switch (id)
+	{
+		case device_id::HEAD:
+		case device_id::EYE_GAZE:
+		case device_id::LEFT_CONTROLLER_HAPTIC:
+		case device_id::RIGHT_CONTROLLER_HAPTIC:
+		case device_id::LEFT_TRIGGER_HAPTIC:
+		case device_id::RIGHT_TRIGGER_HAPTIC:
+		case device_id::LEFT_THUMB_HAPTIC:
+		case device_id::RIGHT_THUMB_HAPTIC:
+			break;
+		case device_id::LEFT_GRIP:
+			return {WIVRN_CONTROLLER_GRIP_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_GRIP:
+			return {WIVRN_CONTROLLER_GRIP_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_AIM:
+			return {WIVRN_CONTROLLER_AIM_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_AIM:
+			return {WIVRN_CONTROLLER_AIM_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_PALM:
+			return {WIVRN_CONTROLLER_PALM_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_PALM:
+			return {WIVRN_CONTROLLER_PALM_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::X_CLICK:
+			return {WIVRN_CONTROLLER_X_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::A_CLICK:
+			return {WIVRN_CONTROLLER_A_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::X_TOUCH:
+			return {WIVRN_CONTROLLER_X_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::A_TOUCH:
+			return {WIVRN_CONTROLLER_A_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::Y_CLICK:
+			return {WIVRN_CONTROLLER_Y_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::B_CLICK:
+			return {WIVRN_CONTROLLER_B_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::Y_TOUCH:
+			return {WIVRN_CONTROLLER_Y_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::B_TOUCH:
+			return {WIVRN_CONTROLLER_B_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::MENU_CLICK:
+			return {WIVRN_CONTROLLER_MENU_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::SYSTEM_CLICK:
+			return {WIVRN_CONTROLLER_SYSTEM_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_SQUEEZE_VALUE:
+			return {WIVRN_CONTROLLER_SQUEEZE_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_SQUEEZE_VALUE:
+			return {WIVRN_CONTROLLER_SQUEEZE_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRIGGER_VALUE:
+			return {WIVRN_CONTROLLER_TRIGGER_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRIGGER_VALUE:
+			return {WIVRN_CONTROLLER_TRIGGER_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRIGGER_TOUCH:
+			return {WIVRN_CONTROLLER_TRIGGER_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRIGGER_TOUCH:
+			return {WIVRN_CONTROLLER_TRIGGER_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_THUMBSTICK_X:
+			return {WIVRN_CONTROLLER_THUMBSTICK, wivrn_input_type::VEC2_X, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_THUMBSTICK_X:
+			return {WIVRN_CONTROLLER_THUMBSTICK, wivrn_input_type::VEC2_X, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_THUMBSTICK_Y:
+			return {WIVRN_CONTROLLER_THUMBSTICK, wivrn_input_type::VEC2_Y, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_THUMBSTICK_Y:
+			return {WIVRN_CONTROLLER_THUMBSTICK, wivrn_input_type::VEC2_Y, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_THUMBSTICK_CLICK:
+			return {WIVRN_CONTROLLER_THUMBSTICK_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_THUMBSTICK_CLICK:
+			return {WIVRN_CONTROLLER_THUMBSTICK_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_THUMBSTICK_TOUCH:
+			return {WIVRN_CONTROLLER_THUMBSTICK_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_THUMBSTICK_TOUCH:
+			return {WIVRN_CONTROLLER_THUMBSTICK_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_THUMBREST_TOUCH:
+			return {WIVRN_CONTROLLER_THUMBREST_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_THUMBREST_TOUCH:
+			return {WIVRN_CONTROLLER_THUMBREST_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_SQUEEZE_CLICK:
+			return {WIVRN_CONTROLLER_SQUEEZE_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_SQUEEZE_CLICK:
+			return {WIVRN_CONTROLLER_SQUEEZE_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_SQUEEZE_FORCE:
+			return {WIVRN_CONTROLLER_SQUEEZE_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_SQUEEZE_FORCE:
+			return {WIVRN_CONTROLLER_SQUEEZE_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRIGGER_CLICK:
+			return {WIVRN_CONTROLLER_TRIGGER_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRIGGER_CLICK:
+			return {WIVRN_CONTROLLER_TRIGGER_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRIGGER_PROXIMITY:
+			return {WIVRN_CONTROLLER_TRIGGER_PROXIMITY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRIGGER_PROXIMITY:
+			return {WIVRN_CONTROLLER_TRIGGER_PROXIMITY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_THUMB_PROXIMITY:
+			return {WIVRN_CONTROLLER_THUMB_PROXIMITY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_THUMB_PROXIMITY:
+			return {WIVRN_CONTROLLER_THUMB_PROXIMITY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRACKPAD_X:
+			return {WIVRN_CONTROLLER_TRACKPAD, wivrn_input_type::VEC2_X, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRACKPAD_X:
+			return {WIVRN_CONTROLLER_TRACKPAD, wivrn_input_type::VEC2_X, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRACKPAD_Y:
+			return {WIVRN_CONTROLLER_TRACKPAD, wivrn_input_type::VEC2_Y, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRACKPAD_Y:
+			return {WIVRN_CONTROLLER_TRACKPAD, wivrn_input_type::VEC2_Y, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRACKPAD_CLICK:
+			return {WIVRN_CONTROLLER_TRACKPAD_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRACKPAD_CLICK:
+			return {WIVRN_CONTROLLER_TRACKPAD_CLICK, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRACKPAD_TOUCH:
+			return {WIVRN_CONTROLLER_TRACKPAD_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRACKPAD_TOUCH:
+			return {WIVRN_CONTROLLER_TRACKPAD_TOUCH, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRACKPAD_FORCE:
+			return {WIVRN_CONTROLLER_TRACKPAD_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRACKPAD_FORCE:
+			return {WIVRN_CONTROLLER_TRACKPAD_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::LEFT_TRIGGER_CURL:
+			return {WIVRN_CONTROLLER_TRIGGER_CURL, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::LEFT_TRIGGER_SLIDE:
+			return {WIVRN_CONTROLLER_TRIGGER_SLIDE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::LEFT_TRIGGER_FORCE:
+			return {WIVRN_CONTROLLER_TRIGGER_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::LEFT_THUMBREST_FORCE:
+			return {WIVRN_CONTROLLER_THUMBREST_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::LEFT_STYLUS_FORCE:
+			return {WIVRN_CONTROLLER_STYLUS_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRIGGER_CURL:
+			return {WIVRN_CONTROLLER_TRIGGER_CURL, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRIGGER_SLIDE:
+			return {WIVRN_CONTROLLER_TRIGGER_SLIDE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::RIGHT_TRIGGER_FORCE:
+			return {WIVRN_CONTROLLER_TRIGGER_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::RIGHT_THUMBREST_FORCE:
+			return {WIVRN_CONTROLLER_THUMBREST_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		case device_id::RIGHT_STYLUS_FORCE:
+			return {WIVRN_CONTROLLER_STYLUS_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+			break;
+	}
+	throw std::range_error("bad input id " + std::to_string((int)id));
+}
 
 static xrt_binding_input_pair simple_input_binding[] = {
         {XRT_INPUT_SIMPLE_SELECT_CLICK, XRT_INPUT_TOUCH_TRIGGER_VALUE},
@@ -129,6 +249,176 @@ static xrt_binding_output_pair simple_output_binding[] = {
         {XRT_OUTPUT_NAME_SIMPLE_VIBRATION, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
+static xrt_binding_input_pair index_input_binding[] = {
+        {XRT_INPUT_INDEX_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
+        {XRT_INPUT_INDEX_SYSTEM_TOUCH, XRT_INPUT_INDEX_SYSTEM_TOUCH},
+        {XRT_INPUT_INDEX_A_CLICK, XRT_INPUT_TOUCH_A_CLICK},
+        {XRT_INPUT_INDEX_A_TOUCH, XRT_INPUT_TOUCH_A_TOUCH},
+        {XRT_INPUT_INDEX_B_CLICK, XRT_INPUT_TOUCH_B_CLICK},
+        {XRT_INPUT_INDEX_B_TOUCH, XRT_INPUT_TOUCH_B_TOUCH},
+        {XRT_INPUT_INDEX_SQUEEZE_VALUE, XRT_INPUT_TOUCH_SQUEEZE_VALUE},
+        {XRT_INPUT_INDEX_SQUEEZE_FORCE, XRT_INPUT_INDEX_SQUEEZE_FORCE},
+        {XRT_INPUT_INDEX_TRIGGER_CLICK, XRT_INPUT_INDEX_TRIGGER_CLICK},
+        {XRT_INPUT_INDEX_TRIGGER_VALUE, XRT_INPUT_TOUCH_TRIGGER_VALUE},
+        {XRT_INPUT_INDEX_TRIGGER_TOUCH, XRT_INPUT_TOUCH_TRIGGER_TOUCH},
+        {XRT_INPUT_INDEX_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
+        {XRT_INPUT_INDEX_THUMBSTICK_CLICK, XRT_INPUT_TOUCH_THUMBSTICK_CLICK},
+        {XRT_INPUT_INDEX_THUMBSTICK_TOUCH, XRT_INPUT_TOUCH_THUMBSTICK_TOUCH},
+        {XRT_INPUT_INDEX_TRACKPAD, XRT_INPUT_INDEX_TRACKPAD},
+        {XRT_INPUT_INDEX_TRACKPAD_FORCE, XRT_INPUT_INDEX_TRACKPAD_FORCE},
+        {XRT_INPUT_INDEX_TRACKPAD_TOUCH, XRT_INPUT_INDEX_TRACKPAD_TOUCH},
+        {XRT_INPUT_INDEX_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+        {XRT_INPUT_INDEX_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+};
+
+static xrt_binding_output_pair index_output_binding[] = {
+        {XRT_OUTPUT_NAME_INDEX_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
+};
+
+static xrt_binding_input_pair focus3_input_binding[] = {
+        {XRT_INPUT_VIVE_FOCUS3_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_A_CLICK, XRT_INPUT_TOUCH_A_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_B_CLICK, XRT_INPUT_TOUCH_B_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_SQUEEZE_CLICK, XRT_INPUT_VIVE_FOCUS3_SQUEEZE_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_SQUEEZE_TOUCH, XRT_INPUT_VIVE_FOCUS3_SQUEEZE_TOUCH},
+        {XRT_INPUT_VIVE_FOCUS3_SQUEEZE_VALUE, XRT_INPUT_TOUCH_SQUEEZE_VALUE},
+        {XRT_INPUT_VIVE_FOCUS3_TRIGGER_CLICK, XRT_INPUT_INDEX_TRIGGER_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_TRIGGER_TOUCH, XRT_INPUT_TOUCH_TRIGGER_TOUCH},
+        {XRT_INPUT_VIVE_FOCUS3_TRIGGER_VALUE, XRT_INPUT_TOUCH_TRIGGER_VALUE},
+        {XRT_INPUT_VIVE_FOCUS3_THUMBSTICK_CLICK, XRT_INPUT_TOUCH_THUMBSTICK_CLICK},
+        {XRT_INPUT_VIVE_FOCUS3_THUMBSTICK_TOUCH, XRT_INPUT_TOUCH_THUMBSTICK_TOUCH},
+        {XRT_INPUT_VIVE_FOCUS3_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
+        {XRT_INPUT_VIVE_FOCUS3_THUMBREST_TOUCH, XRT_INPUT_TOUCH_THUMBREST_TOUCH},
+        {XRT_INPUT_VIVE_FOCUS3_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+        {XRT_INPUT_VIVE_FOCUS3_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+};
+
+static xrt_binding_output_pair focus3_output_binding[] = {
+        {XRT_OUTPUT_NAME_VIVE_FOCUS3_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
+};
+
+static xrt_binding_input_pair touch_pro_input_binding[] = {
+        {XRT_INPUT_TOUCH_PRO_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
+        {XRT_INPUT_TOUCH_PRO_X_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
+        {XRT_INPUT_TOUCH_PRO_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
+        {XRT_INPUT_TOUCH_PRO_Y_TOUCH, XRT_INPUT_TOUCH_Y_TOUCH},
+        {XRT_INPUT_TOUCH_PRO_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
+        {XRT_INPUT_TOUCH_PRO_A_CLICK, XRT_INPUT_TOUCH_A_CLICK},
+        {XRT_INPUT_TOUCH_PRO_A_TOUCH, XRT_INPUT_TOUCH_A_TOUCH},
+        {XRT_INPUT_TOUCH_PRO_B_CLICK, XRT_INPUT_TOUCH_B_CLICK},
+        {XRT_INPUT_TOUCH_PRO_B_TOUCH, XRT_INPUT_TOUCH_B_TOUCH},
+        {XRT_INPUT_TOUCH_PRO_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
+        {XRT_INPUT_TOUCH_PRO_SQUEEZE_VALUE, XRT_INPUT_TOUCH_SQUEEZE_VALUE},
+        {XRT_INPUT_TOUCH_PRO_TRIGGER_TOUCH, XRT_INPUT_TOUCH_TRIGGER_TOUCH},
+        {XRT_INPUT_TOUCH_PRO_TRIGGER_VALUE, XRT_INPUT_TOUCH_TRIGGER_VALUE},
+        {XRT_INPUT_TOUCH_PRO_THUMBSTICK_CLICK, XRT_INPUT_TOUCH_THUMBSTICK_CLICK},
+        {XRT_INPUT_TOUCH_PRO_THUMBSTICK_TOUCH, XRT_INPUT_TOUCH_THUMBSTICK_TOUCH},
+        {XRT_INPUT_TOUCH_PRO_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
+        {XRT_INPUT_TOUCH_PRO_THUMBREST_TOUCH, XRT_INPUT_TOUCH_THUMBREST_TOUCH},
+        {XRT_INPUT_TOUCH_PRO_THUMBREST_FORCE, XRT_INPUT_TOUCH_PRO_THUMBREST_FORCE},
+        {XRT_INPUT_TOUCH_PRO_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+        {XRT_INPUT_TOUCH_PRO_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+        {XRT_INPUT_TOUCH_PRO_TRIGGER_PROXIMITY, XRT_INPUT_TOUCH_TRIGGER_PROXIMITY},
+        {XRT_INPUT_TOUCH_PRO_THUMB_PROXIMITY, XRT_INPUT_TOUCH_THUMB_PROXIMITY},
+        {XRT_INPUT_TOUCH_PRO_TRIGGER_CURL, XRT_INPUT_TOUCH_PRO_TRIGGER_CURL},
+        {XRT_INPUT_TOUCH_PRO_TRIGGER_SLIDE, XRT_INPUT_TOUCH_PRO_TRIGGER_SLIDE},
+        {XRT_INPUT_TOUCH_PRO_STYLUS_FORCE, XRT_INPUT_TOUCH_PRO_STYLUS_FORCE},
+};
+
+static xrt_binding_output_pair touch_pro_output_binding[] = {
+        {XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
+        {XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_THUMB, XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_THUMB},
+        {XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_TRIGGER, XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_TRIGGER},
+};
+
+static xrt_binding_input_pair touch_plus_input_binding[] = {
+        {XRT_INPUT_TOUCH_PLUS_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
+        {XRT_INPUT_TOUCH_PLUS_X_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
+        {XRT_INPUT_TOUCH_PLUS_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
+        {XRT_INPUT_TOUCH_PLUS_Y_TOUCH, XRT_INPUT_TOUCH_Y_TOUCH},
+        {XRT_INPUT_TOUCH_PLUS_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
+        {XRT_INPUT_TOUCH_PLUS_A_CLICK, XRT_INPUT_TOUCH_A_CLICK},
+        {XRT_INPUT_TOUCH_PLUS_A_TOUCH, XRT_INPUT_TOUCH_A_TOUCH},
+        {XRT_INPUT_TOUCH_PLUS_B_CLICK, XRT_INPUT_TOUCH_B_CLICK},
+        {XRT_INPUT_TOUCH_PLUS_B_TOUCH, XRT_INPUT_TOUCH_B_TOUCH},
+        {XRT_INPUT_TOUCH_PLUS_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
+        {XRT_INPUT_TOUCH_PLUS_SQUEEZE_VALUE, XRT_INPUT_TOUCH_SQUEEZE_VALUE},
+        {XRT_INPUT_TOUCH_PLUS_TRIGGER_TOUCH, XRT_INPUT_TOUCH_TRIGGER_TOUCH},
+        {XRT_INPUT_TOUCH_PLUS_TRIGGER_PROXIMITY, XRT_INPUT_TOUCH_TRIGGER_PROXIMITY},
+        {XRT_INPUT_TOUCH_PLUS_TRIGGER_VALUE, XRT_INPUT_TOUCH_TRIGGER_VALUE},
+        {XRT_INPUT_TOUCH_PLUS_TRIGGER_FORCE, XRT_INPUT_TOUCH_PLUS_TRIGGER_FORCE},
+        {XRT_INPUT_TOUCH_PLUS_THUMBSTICK_CLICK, XRT_INPUT_TOUCH_THUMBSTICK_CLICK},
+        {XRT_INPUT_TOUCH_PLUS_THUMBSTICK_TOUCH, XRT_INPUT_TOUCH_THUMBSTICK_TOUCH},
+        {XRT_INPUT_TOUCH_PLUS_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
+        {XRT_INPUT_TOUCH_PLUS_THUMBREST_TOUCH, XRT_INPUT_TOUCH_THUMBREST_TOUCH},
+        {XRT_INPUT_TOUCH_PLUS_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+        {XRT_INPUT_TOUCH_PLUS_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+        {XRT_INPUT_TOUCH_PLUS_THUMB_PROXIMITY, XRT_INPUT_TOUCH_THUMB_PROXIMITY},
+        {XRT_INPUT_TOUCH_PLUS_TRIGGER_CURL, XRT_INPUT_TOUCH_PRO_TRIGGER_CURL},
+        {XRT_INPUT_TOUCH_PLUS_TRIGGER_SLIDE, XRT_INPUT_TOUCH_PRO_TRIGGER_SLIDE},
+};
+
+static xrt_binding_output_pair touch_plus_output_binding[] = {
+        {XRT_OUTPUT_NAME_TOUCH_PLUS_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
+};
+
+static xrt_binding_input_pair pico_neo3_input_binding[] = {
+        {XRT_INPUT_PICO_NEO3_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
+        {XRT_INPUT_PICO_NEO3_X_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
+        {XRT_INPUT_PICO_NEO3_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
+        {XRT_INPUT_PICO_NEO3_Y_TOUCH, XRT_INPUT_TOUCH_Y_TOUCH},
+        {XRT_INPUT_PICO_NEO3_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
+        {XRT_INPUT_PICO_NEO3_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
+        {XRT_INPUT_PICO_NEO3_TRIGGER_CLICK, XRT_INPUT_INDEX_TRIGGER_CLICK},
+        {XRT_INPUT_PICO_NEO3_TRIGGER_VALUE, XRT_INPUT_TOUCH_TRIGGER_VALUE},
+        {XRT_INPUT_PICO_NEO3_TRIGGER_TOUCH, XRT_INPUT_TOUCH_TRIGGER_TOUCH},
+        {XRT_INPUT_PICO_NEO3_THUMBSTICK_CLICK, XRT_INPUT_TOUCH_THUMBSTICK_CLICK},
+        {XRT_INPUT_PICO_NEO3_THUMBSTICK_TOUCH, XRT_INPUT_TOUCH_THUMBSTICK_TOUCH},
+        {XRT_INPUT_PICO_NEO3_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
+        {XRT_INPUT_PICO_NEO3_SQUEEZE_CLICK, XRT_INPUT_VIVE_FOCUS3_SQUEEZE_CLICK},
+        {XRT_INPUT_PICO_NEO3_SQUEEZE_VALUE, XRT_INPUT_TOUCH_SQUEEZE_VALUE},
+        {XRT_INPUT_PICO_NEO3_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+        {XRT_INPUT_PICO_NEO3_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+        {XRT_INPUT_PICO_NEO3_A_CLICK, XRT_INPUT_TOUCH_A_CLICK},
+        {XRT_INPUT_PICO_NEO3_A_TOUCH, XRT_INPUT_TOUCH_A_TOUCH},
+        {XRT_INPUT_PICO_NEO3_B_CLICK, XRT_INPUT_TOUCH_B_CLICK},
+        {XRT_INPUT_PICO_NEO3_B_TOUCH, XRT_INPUT_TOUCH_B_TOUCH},
+};
+
+static xrt_binding_output_pair pico_neo3_output_binding[] = {
+        {XRT_OUTPUT_NAME_PICO_NEO3_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
+};
+
+static xrt_binding_input_pair pico4_input_binding[] = {
+        {XRT_INPUT_PICO4_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
+        {XRT_INPUT_PICO4_X_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
+        {XRT_INPUT_PICO4_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
+        {XRT_INPUT_PICO4_Y_TOUCH, XRT_INPUT_TOUCH_Y_TOUCH},
+        {XRT_INPUT_PICO4_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
+        {XRT_INPUT_PICO4_TRIGGER_CLICK, XRT_INPUT_INDEX_TRIGGER_CLICK},
+        {XRT_INPUT_PICO4_TRIGGER_VALUE, XRT_INPUT_TOUCH_TRIGGER_VALUE},
+        {XRT_INPUT_PICO4_TRIGGER_TOUCH, XRT_INPUT_TOUCH_TRIGGER_TOUCH},
+        {XRT_INPUT_PICO4_THUMBSTICK_CLICK, XRT_INPUT_TOUCH_THUMBSTICK_CLICK},
+        {XRT_INPUT_PICO4_THUMBSTICK_TOUCH, XRT_INPUT_TOUCH_THUMBSTICK_TOUCH},
+        {XRT_INPUT_PICO4_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
+        {XRT_INPUT_PICO4_SQUEEZE_CLICK, XRT_INPUT_VIVE_FOCUS3_SQUEEZE_CLICK},
+        {XRT_INPUT_PICO4_SQUEEZE_VALUE, XRT_INPUT_TOUCH_SQUEEZE_VALUE},
+        {XRT_INPUT_PICO4_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+        {XRT_INPUT_PICO4_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+        {XRT_INPUT_PICO4_A_CLICK, XRT_INPUT_TOUCH_A_CLICK},
+        {XRT_INPUT_PICO4_A_TOUCH, XRT_INPUT_TOUCH_A_TOUCH},
+        {XRT_INPUT_PICO4_B_CLICK, XRT_INPUT_TOUCH_B_CLICK},
+        {XRT_INPUT_PICO4_B_TOUCH, XRT_INPUT_TOUCH_B_TOUCH},
+        {XRT_INPUT_PICO4_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
+};
+
+static xrt_binding_output_pair pico4_output_binding[] = {
+        {XRT_OUTPUT_NAME_PICO4_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
+};
+
 static xrt_binding_profile wivrn_binding_profiles[] = {
         {
                 .name = XRT_DEVICE_SIMPLE_CONTROLLER,
@@ -136,6 +426,48 @@ static xrt_binding_profile wivrn_binding_profiles[] = {
                 .input_count = std::size(simple_input_binding),
                 .outputs = simple_output_binding,
                 .output_count = std::size(simple_output_binding),
+        },
+        {
+                .name = XRT_DEVICE_INDEX_CONTROLLER,
+                .inputs = index_input_binding,
+                .input_count = std::size(index_input_binding),
+                .outputs = index_output_binding,
+                .output_count = std::size(index_output_binding),
+        },
+        {
+                .name = XRT_DEVICE_VIVE_FOCUS3_CONTROLLER,
+                .inputs = focus3_input_binding,
+                .input_count = std::size(focus3_input_binding),
+                .outputs = focus3_output_binding,
+                .output_count = std::size(focus3_output_binding),
+        },
+        {
+                .name = XRT_DEVICE_TOUCH_PRO_CONTROLLER,
+                .inputs = touch_pro_input_binding,
+                .input_count = std::size(touch_pro_input_binding),
+                .outputs = touch_pro_output_binding,
+                .output_count = std::size(touch_pro_output_binding),
+        },
+        {
+                .name = XRT_DEVICE_TOUCH_PLUS_CONTROLLER,
+                .inputs = touch_plus_input_binding,
+                .input_count = std::size(touch_plus_input_binding),
+                .outputs = touch_plus_output_binding,
+                .output_count = std::size(touch_plus_output_binding),
+        },
+        {
+                .name = XRT_DEVICE_PICO_NEO3_CONTROLLER,
+                .inputs = pico_neo3_input_binding,
+                .input_count = std::size(pico_neo3_input_binding),
+                .outputs = pico_neo3_output_binding,
+                .output_count = std::size(pico_neo3_output_binding),
+        },
+        {
+                .name = XRT_DEVICE_PICO4_CONTROLLER,
+                .inputs = pico4_input_binding,
+                .input_count = std::size(pico4_input_binding),
+                .outputs = pico4_output_binding,
+                .output_count = std::size(pico4_output_binding),
         },
 };
 
@@ -250,40 +582,15 @@ wivrn_controller::wivrn_controller(int hand_id,
 	input_count = inputs_array.size();
 
 	// Setup input.
-#define SET_INPUT(NAME)                                                        \
-	do                                                                     \
-	{                                                                      \
-		inputs[WIVRN_CONTROLLER_##NAME].name = XRT_INPUT_TOUCH_##NAME; \
-		inputs[WIVRN_CONTROLLER_##NAME].active = true;                 \
+#define SET_INPUT(VENDOR, NAME)                                                     \
+	do                                                                          \
+	{                                                                           \
+		inputs[WIVRN_CONTROLLER_##NAME].name = XRT_INPUT_##VENDOR##_##NAME; \
+		inputs[WIVRN_CONTROLLER_##NAME].active = true;                      \
 	} while (0)
 
-	SET_INPUT(AIM_POSE);
-	SET_INPUT(GRIP_POSE);
-	if (hand_id == 0)
-	{
-		SET_INPUT(X_CLICK);
-		SET_INPUT(Y_CLICK);
-		SET_INPUT(X_TOUCH);
-		SET_INPUT(Y_TOUCH);
-		SET_INPUT(MENU_CLICK);
-	}
-	else
-	{
-		SET_INPUT(A_CLICK);
-		SET_INPUT(B_CLICK);
-		SET_INPUT(A_TOUCH);
-		SET_INPUT(B_TOUCH);
-	}
-	SET_INPUT(SQUEEZE_VALUE);
-	SET_INPUT(TRIGGER_VALUE);
-	SET_INPUT(TRIGGER_TOUCH);
-	SET_INPUT(THUMBSTICK);
-	SET_INPUT(THUMBSTICK_CLICK);
-	SET_INPUT(THUMBSTICK_TOUCH);
-	SET_INPUT(THUMBREST_TOUCH);
-
-	inputs[WIVRN_CONTROLLER_HAND_TRACKER].name = hand_id == 0 ? XRT_INPUT_GENERIC_HAND_TRACKING_LEFT : XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT;
-	inputs[WIVRN_CONTROLLER_HAND_TRACKER].active = hand_tracking_supported;
+	SET_INPUT(TOUCH, AIM_POSE);
+	SET_INPUT(TOUCH, GRIP_POSE);
 
 	inputs[WIVRN_CONTROLLER_PALM_POSE].name = XRT_INPUT_GENERIC_PALM_POSE;
 	inputs[WIVRN_CONTROLLER_PALM_POSE].active = cnx->get_info().palm_pose;
@@ -301,9 +608,60 @@ wivrn_controller::wivrn_controller(int hand_id,
 		inputs[WIVRN_CONTROLLER_PALM_POSE].active = true;
 	}
 
-	output_count = 1;
-	outputs = &haptic_output;
-	haptic_output.name = XRT_OUTPUT_NAME_TOUCH_HAPTIC;
+	if (hand_id == 0)
+	{
+		SET_INPUT(GENERIC, HAND_TRACKING_LEFT);
+		SET_INPUT(TOUCH, MENU_CLICK);
+		SET_INPUT(TOUCH, X_CLICK);
+		SET_INPUT(TOUCH, Y_CLICK);
+		SET_INPUT(TOUCH, X_TOUCH);
+		SET_INPUT(TOUCH, Y_TOUCH);
+	}
+	else
+	{
+		SET_INPUT(GENERIC, HAND_TRACKING_RIGHT);
+		SET_INPUT(TOUCH, SYSTEM_CLICK);
+		SET_INPUT(TOUCH, A_CLICK);
+		SET_INPUT(TOUCH, B_CLICK);
+		SET_INPUT(TOUCH, A_TOUCH);
+		SET_INPUT(TOUCH, B_TOUCH);
+	}
+	SET_INPUT(VIVE_FOCUS3, SQUEEZE_CLICK);
+	SET_INPUT(INDEX, SQUEEZE_FORCE);
+	SET_INPUT(TOUCH, SQUEEZE_VALUE);
+	SET_INPUT(INDEX, TRIGGER_CLICK);
+	SET_INPUT(TOUCH, TRIGGER_VALUE);
+	SET_INPUT(TOUCH, TRIGGER_TOUCH);
+	SET_INPUT(TOUCH, TRIGGER_PROXIMITY);
+	SET_INPUT(TOUCH_PRO, TRIGGER_CURL);
+	SET_INPUT(TOUCH_PRO, TRIGGER_SLIDE);
+	SET_INPUT(TOUCH_PLUS, TRIGGER_FORCE);
+	SET_INPUT(TOUCH, THUMBSTICK);
+	SET_INPUT(TOUCH, THUMBSTICK_CLICK);
+	SET_INPUT(TOUCH, THUMBSTICK_TOUCH);
+	SET_INPUT(TOUCH, THUMBREST_TOUCH);
+	SET_INPUT(TOUCH_PRO, THUMBREST_FORCE);
+	SET_INPUT(TOUCH, THUMB_PROXIMITY);
+	SET_INPUT(INDEX, TRACKPAD);
+	SET_INPUT(VIVE, TRACKPAD_CLICK);
+	SET_INPUT(INDEX, TRACKPAD_FORCE);
+	SET_INPUT(INDEX, TRACKPAD_TOUCH);
+	SET_INPUT(TOUCH_PRO, STYLUS_FORCE);
+
+	// Make sure everything is mapped
+	for (const auto & item: inputs_array)
+	{
+		assert(item.name);
+	}
+
+	outputs_array = {
+	        {.name = XRT_OUTPUT_NAME_TOUCH_HAPTIC},
+	        {.name = XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_THUMB},
+	        {.name = XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_TRIGGER},
+	};
+
+	output_count = outputs_array.size();
+	outputs = outputs_array.data();
 
 	inputs_staging = inputs_array;
 
@@ -344,6 +702,23 @@ void wivrn_controller::update_inputs()
 void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clock_offset & clock_offset)
 {
 	std::lock_guard lock{mutex};
+	for (auto & input: inputs_staging)
+	{
+		switch (XRT_GET_INPUT_TYPE(input.name))
+		{
+			case XRT_INPUT_TYPE_VEC1_ZERO_TO_ONE:
+			case XRT_INPUT_TYPE_VEC1_MINUS_ONE_TO_ONE:
+			case XRT_INPUT_TYPE_VEC2_MINUS_ONE_TO_ONE:
+			case XRT_INPUT_TYPE_VEC3_MINUS_ONE_TO_ONE:
+			case XRT_INPUT_TYPE_BOOLEAN:
+				input.active = false;
+			case XRT_INPUT_TYPE_POSE:
+			case XRT_INPUT_TYPE_HAND_TRACKING:
+			case XRT_INPUT_TYPE_FACE_TRACKING:
+			case XRT_INPUT_TYPE_BODY_TRACKING:
+				break;
+		}
+	}
 	for (const auto & input: inputs.values)
 	{
 		set_inputs(input.id, input.value, input.last_change_time ? clock_offset.from_headset(input.last_change_time) : 0);
@@ -352,47 +727,29 @@ void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clo
 
 void wivrn_controller::set_inputs(device_id input_id, float value, int64_t last_change_time)
 {
-	const struct wivrn_to_wivrn_controller_input * bindings;
-	size_t bindings_count;
-	if (device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER)
+	auto [index, type, device] = map_input(input_id);
+	if (device != device_type)
+		return;
+	assert(index > 0 and index < input_count);
+	inputs_staging[index].timestamp = last_change_time;
+	inputs_staging[index].active = true;
+	switch (type)
 	{
-		bindings = left_hand_bindings;
-		bindings_count = left_hand_bindings_count;
-	}
-	else
-	{
-		bindings = right_hand_bindings;
-		bindings_count = right_hand_bindings_count;
-	}
-
-	const struct wivrn_to_wivrn_controller_input * binding = NULL;
-	for (size_t i = 0; i < bindings_count; i++)
-	{
-		if (bindings[i].wivrn_id == input_id)
-		{
-			binding = &bindings[i];
+		case wivrn_input_type::BOOL:
+			inputs_staging[index].value.boolean = (value != 0);
 			break;
-		}
-	}
-
-	if (binding)
-	{
-		inputs_staging[binding->input_id].timestamp = last_change_time;
-		switch (binding->input_type)
-		{
-			case wivrn_input_type::BOOL:
-				inputs_staging[binding->input_id].value.boolean = (value != 0);
-				break;
-			case wivrn_input_type::FLOAT:
-				inputs_staging[binding->input_id].value.vec1.x = value;
-				break;
-			case wivrn_input_type::VEC2_X:
-				inputs_staging[binding->input_id].value.vec2.x = value;
-				break;
-			case wivrn_input_type::VEC2_Y:
-				inputs_staging[binding->input_id].value.vec2.y = value;
-				break;
-		}
+		case wivrn_input_type::FLOAT:
+			inputs_staging[index].value.vec1.x = value;
+			break;
+		case wivrn_input_type::VEC2_X:
+			inputs_staging[index].value.vec2.x = value;
+			break;
+		case wivrn_input_type::VEC2_Y:
+			inputs_staging[index].value.vec2.y = value;
+			break;
+		case wivrn_input_type::POSE:
+			// Pose should not be in the inputs array
+			break;
 	}
 }
 
@@ -515,8 +872,22 @@ void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & 
 
 void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)
 {
-	auto id = device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER ? device_id::LEFT_CONTROLLER_HAPTIC
-	                                                              : device_id::RIGHT_CONTROLLER_HAPTIC;
+	device_id id;
+	const bool left = device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER;
+	switch (name)
+	{
+		case XRT_OUTPUT_NAME_TOUCH_HAPTIC:
+			id = left ? device_id::LEFT_CONTROLLER_HAPTIC : device_id::RIGHT_CONTROLLER_HAPTIC;
+			break;
+		case XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_TRIGGER:
+			id = left ? device_id::LEFT_TRIGGER_HAPTIC : device_id::RIGHT_TRIGGER_HAPTIC;
+			break;
+		case XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_THUMB:
+			id = left ? device_id::LEFT_THUMB_HAPTIC : device_id::RIGHT_THUMB_HAPTIC;
+			break;
+		default:
+			return;
+	}
 
 	try
 	{
