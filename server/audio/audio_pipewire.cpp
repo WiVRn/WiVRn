@@ -35,7 +35,6 @@ struct deleter
 {
 	void operator()(pw_main_loop * loop)
 	{
-		pw_main_loop_quit(loop);
 		pw_main_loop_destroy(loop);
 	}
 	void operator()(pw_stream * stream)
@@ -48,6 +47,8 @@ struct pipewire_device : public audio_device
 {
 	to_headset::audio_stream_description desc;
 	wivrn_session & session;
+
+	std::unique_ptr<pw_main_loop, deleter> pw_loop;
 
 	std::unique_ptr<pw_stream, deleter> speaker;
 	pw_stream_events speaker_events{
@@ -63,10 +64,7 @@ struct pipewire_device : public audio_device
 	        .version = PW_VERSION_STREAM_EVENTS,
 	        .process = &pipewire_device::mic_process,
 	};
-
-	std::unique_ptr<pw_main_loop, deleter> pw_loop;
-
-	std::thread thread;
+	std::jthread thread;
 
 	to_headset::audio_stream_description description() const override
 	{
@@ -78,7 +76,10 @@ struct pipewire_device : public audio_device
 
 	void process_mic_data(wivrn::audio_data &&) override;
 
-	~pipewire_device() = default;
+	~pipewire_device()
+	{
+		pw_main_loop_quit(pw_loop.get());
+	};
 
 	pipewire_device(
 	        const std::string & source_name,
@@ -188,8 +189,12 @@ struct pipewire_device : public audio_device
 		}
 
 		if (desc.speaker or desc.microphone)
-			thread = std::thread(
-			        [loop = pw_loop.get()]() { pw_main_loop_run(loop); });
+			thread = std::jthread(
+			        [this](std::stop_token) {
+				pw_main_loop_run(pw_loop.get());
+				speaker.reset();
+				microphone.reset();
+				; });
 	}
 };
 } // namespace
