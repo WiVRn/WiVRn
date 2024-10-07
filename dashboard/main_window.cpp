@@ -28,12 +28,12 @@
 #include <chrono>
 #include <cmath>
 
+#include "adb.h"
+#include "gui_config.h"
 #include "settings.h"
 #include "ui_main_window.h"
 #include "wivrn_server.h"
 #include "wizard.h"
-
-#include "gui_config.h"
 
 Q_LOGGING_CATEGORY(wivrn_log_category, "wivrn")
 
@@ -120,6 +120,53 @@ main_window::main_window()
 
 	connect(ui->copy_steam_command, &QPushButton::clicked, this, [&]() {
 		QGuiApplication::clipboard()->setText(ui->label_steam_command->text());
+	});
+
+	usb_device_menu = new QMenu(this);
+	ui->button_usb->setMenu(usb_device_menu);
+	connect(&adb_service, &adb::android_devices_changed, this, [this](const std::vector<adb::device> & devices) {
+		ui->button_usb->setDisabled(devices.empty());
+
+		if (devices.empty())
+			ui->button_usb->setToolTip(tr("No device detected"));
+		else
+			ui->button_usb->setToolTip("");
+
+		std::vector<std::string> to_be_removed;
+		for (auto & [serial, action]: usb_actions)
+		{
+			if (std::ranges::none_of(devices, [&](const adb::device & x) { return x.serial() == serial; }))
+			{
+				qDebug() << "Removed" << QString::fromStdString(serial);
+
+				usb_device_menu->removeAction(action.get());
+				to_be_removed.push_back(serial);
+			}
+		}
+
+		for (const auto & serial: to_be_removed)
+		{
+			usb_actions.erase(serial);
+		}
+
+		for (auto & device: devices)
+		{
+			if (std::ranges::none_of(usb_actions, [&](const std::pair<const std::string, std::unique_ptr<QAction>> & x) { return x.first == device.serial(); }))
+			{
+				qDebug() << "Detected" << QString::fromStdString(device.serial());
+
+				std::unique_ptr<QAction> device_action = std::make_unique<QAction>(this);
+				device_action->setText(QString::fromStdString(device.properties().at("model")));
+				usb_device_menu->addAction(device_action.get());
+
+				device_action->setData(QString::fromStdString(device.serial()));
+				connect(device_action.get(), &QAction::triggered, this, [this, serial = device.serial()]() {
+					on_action_usb(serial);
+				});
+
+				usb_actions.insert(std::make_pair(device.serial(), std::move(device_action)));
+			}
+		}
 	});
 
 	retranslate();
@@ -221,11 +268,13 @@ void main_window::setVisible(bool visible)
 	{
 		action_show.setVisible(false);
 		action_hide.setVisible(true);
+		adb_service.start();
 	}
 	else
 	{
 		action_show.setVisible(true);
 		action_hide.setVisible(false);
+		adb_service.stop();
 	}
 
 	QMainWindow::setVisible(visible);
@@ -266,6 +315,7 @@ void main_window::on_headset_connected_changed(bool connected)
 	ui->button_disconnect->setVisible(connected);
 	ui->button_wizard->setHidden(connected);
 	ui->button_details->setVisible(connected);
+	ui->button_usb->setHidden(connected);
 	ui->headset_properties->setVisible(connected and ui->button_details->isChecked());
 
 	ui->label_how_to_connect->setHidden(connected);
@@ -504,6 +554,76 @@ void main_window::on_action_wizard()
 #endif
 
 	wizard_window->exec();
+}
+
+void main_window::on_action_usb(const std::string & serial)
+{
+	auto devs = adb_service.devices();
+
+	if (devs.empty())
+		return;
+
+	adb::device dev;
+	for (auto & i: adb_service.devices())
+	{
+		if (i.serial() == serial)
+		{
+			dev = i;
+			break;
+		}
+	}
+
+	if (!dev)
+		return;
+
+	// TODO: in another thread
+	bool ok = false;
+	for (auto & app: dev.installed_apps())
+	{
+		if (app.starts_with("org.meumeu.wivrn.") or app == "org.meumeu.wivrn")
+		{
+			dev.reverse_forward(9757, 9757);
+			dev.start(app, "android.intent.action.VIEW", "wivrn+tcp://127.0.0.1:9757");
+			ok = true;
+			break;
+		}
+	}
+
+	if (not ok)
+	{
+		QMessageBox msgbox /*(this)*/;
+
+		msgbox.setIcon(QMessageBox::Critical);
+		msgbox.setText(tr("The WiVRn app is not installed on your headset.\nDo you want to install it?"));
+		msgbox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+
+#ifdef WORKAROUND_QTBUG_90005
+		setEnabled(false);
+#endif
+		msgbox.exec();
+
+#ifdef WORKAROUND_QTBUG_90005
+		setEnabled(true);
+#endif
+
+		if (msgbox.clickedButton() == msgbox.button(QMessageBox::Yes))
+		{
+			QMessageBox msgbox /*(this)*/;
+
+			msgbox.setIcon(QMessageBox::Critical);
+			msgbox.setText("Not implemented");
+			msgbox.setStandardButtons(QMessageBox::Close);
+
+#ifdef WORKAROUND_QTBUG_90005
+			setEnabled(false);
+#endif
+			msgbox.exec();
+
+#ifdef WORKAROUND_QTBUG_90005
+			setEnabled(true);
+#endif
+		}
+	}
 }
 
 void main_window::start_server()

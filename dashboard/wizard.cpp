@@ -32,7 +32,6 @@
 #include <QStandardPaths>
 #include <QUrl>
 #include <QWizard>
-#include <algorithm>
 #include <nlohmann/json.hpp>
 
 #include "adb.h"
@@ -182,17 +181,8 @@ wizard::wizard() :
 	}
 
 	// Detect connected android devices
-	poll_devices_timer.setInterval(std::chrono::milliseconds(500));
-	connect(&poll_devices_timer, &QTimer::timeout, this, [this]() {
-		if (android_devices_future.isFinished())
-		{
-			android_devices_promise = adb{}.devices();
-			android_devices_future = android_devices_promise->future();
-			android_devices_future_watcher.setFuture(android_devices_future);
-		}
-	});
-	poll_devices_timer.start();
-	connect(&android_devices_future_watcher, &QFutureWatcher<std::vector<adb::device>>::finished, this, &wizard::on_android_devices_future_finished);
+	connect(&adb_service, &adb::android_devices_changed, this, &wizard::on_android_device_list_changed);
+	on_android_device_list_changed(adb_service.devices());
 }
 
 void wizard::on_latest_release_finished()
@@ -392,7 +382,6 @@ void wizard::on_page_changed(int id)
 
 		case wizard_page::sideload_devmode:
 			setButtonLayout({QWizard::Stretch, QWizard::BackButton, QWizard::NextButton, QWizard::CancelButton});
-			on_adb_device_list_changed();
 			return;
 
 		case wizard_page::sideload_install:
@@ -580,36 +569,11 @@ void wizard::on_download_finished()
 	}
 }
 
-void wizard::on_android_devices_future_finished()
+void wizard::on_android_device_list_changed(const std::vector<adb::device>& new_devs)
 {
 	auto old_devs = android_devices;
-	android_devices = android_devices_future.result();
+	android_devices = new_devs;
 
-	bool changed = false;
-	for (auto & i: android_devices)
-	{
-		if (i.state() != "device")
-			continue;
-
-		if (std::ranges::find(old_devs, i) == old_devs.end())
-			changed = true;
-	}
-
-	for (auto & i: old_devs)
-	{
-		if (i.state() != "device")
-			continue;
-
-		if (std::ranges::find(android_devices, i) == android_devices.end())
-			changed = true;
-	}
-
-	if (changed)
-		on_adb_device_list_changed();
-}
-
-void wizard::on_adb_device_list_changed()
-{
 	if (android_devices.empty())
 	{
 		ui->label_device_detected->setText(tr("No device detected."));

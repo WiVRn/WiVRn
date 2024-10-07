@@ -20,9 +20,10 @@
 
 #include <QDebug>
 #include <QProcess>
-#include <QPromise>
-#include <exception>
-#include <memory>
+#include <chrono>
+#include <vector>
+
+using namespace std::chrono_literals;
 
 template <typename... Args>
 std::unique_ptr<QProcess> escape_sandbox(const std::string & executable, Args &&... args_orig)
@@ -48,79 +49,78 @@ std::unique_ptr<QProcess> escape_sandbox(const std::string & executable, Args &&
 	return process;
 }
 
-std::shared_ptr<QPromise<std::vector<adb::device>>> adb::devices()
+adb::adb()
 {
-	auto process = escape_sandbox("adb", "devices", "-l");
+	poll_devices_timer.setInterval(500ms);
+	connect(&poll_devices_timer, &QTimer::timeout, this, &adb::on_poll_devices_timeout);
 
-	process->start();
+	on_poll_devices_timeout();
+	poll_devices_timer.start();
+}
 
-	auto promise = std::make_shared<QPromise<std::vector<adb::device>>>();
+void adb::on_poll_devices_timeout()
+{
+	if (poll_devices_process)
+		return;
 
-	auto p = process.get();
+	poll_devices_process = escape_sandbox("adb", "devices", "-l");
+	connect(poll_devices_process.get(), &QProcess::finished, this, &adb::on_poll_devices_process_finished);
+	poll_devices_process->start();
+}
 
-	QObject::connect(p, &QProcess::finished, [p = std::move(process), promise](int exitCode, QProcess::ExitStatus exitStatus) {
-		try
+void adb::on_poll_devices_process_finished(int exit_code, QProcess::ExitStatus exit_status)
+{
+	if (exit_code != 0 or exit_status != QProcess::NormalExit)
+	{
+		qDebug() << "adb devices exited with code" << exit_code << ", status" << exit_status;
+
+		QString out = poll_devices_process->readAllStandardOutput();
+		qDebug() << "stdout:" << out;
+
+		QString err = poll_devices_process->readAllStandardError();
+		qDebug() << "stderr:" << err;
+	}
+	else
+	{
+		auto out = poll_devices_process->readAllStandardOutput();
+		auto lines = QString{out}.split('\n');
+
+		if (not lines.empty())
+			lines.pop_front();
+
+		std::vector<adb::device> devs;
+		for (auto & line: lines)
 		{
-			if (exitCode != 0 or exitStatus != QProcess::NormalExit)
+			auto words = line.split(' ', Qt::SkipEmptyParts);
+			device dev;
+
+			if (words.empty())
+				continue;
+			dev._serial = words.front().toStdString();
+			words.pop_front();
+
+			if (words.empty())
+				continue;
+			dev._state = words.front().toStdString();
+			words.pop_front();
+
+			for (auto & word: words)
 			{
-				qDebug() << "adb devices exited with code" << exitCode << ", status" << exitStatus;
-
-				QString out = p->readAllStandardOutput();
-				qDebug() << "stdout:" << out;
-
-				QString err = p->readAllStandardError();
-				qDebug() << "stderr:" << err;
-
-				throw std::runtime_error("adb devices failed");
-			}
-			else
-			{
-				auto out = p->readAllStandardOutput();
-				auto lines = QString{out}.split('\n');
-
-				if (not lines.empty())
-					lines.pop_front();
-
-				std::vector<adb::device> devs;
-				for (auto & line: lines)
+				auto idx = word.indexOf(':');
+				if (idx >= 0)
 				{
-					auto words = line.split(' ', Qt::SkipEmptyParts);
-					device dev;
-
-					if (words.empty())
-						continue;
-					dev._serial = words.front().toStdString();
-					words.pop_front();
-
-					if (words.empty())
-						continue;
-					dev._state = words.front().toStdString();
-					words.pop_front();
-
-					for (auto & word: words)
-					{
-						auto idx = word.indexOf(':');
-						if (idx >= 0)
-						{
-							dev._properties[word.left(idx).toStdString()] = word.mid(idx + 1).toStdString();
-						}
-					}
-
-					devs.push_back(dev);
+					dev._properties[word.left(idx).toStdString()] = word.mid(idx + 1).toStdString();
 				}
-
-				promise->addResult(std::move(devs));
 			}
-		}
-		catch (...)
-		{
-			promise->setException(std::current_exception());
+
+			devs.push_back(dev);
 		}
 
-		promise->finish();
-	});
+		_android_devices = std::move(devs);
+		android_devices_changed(_android_devices);
+	}
 
-	return promise;
+	poll_devices_process.release()->deleteLater();
 }
 
 std::unique_ptr<QProcess> adb::device::install(const std::filesystem::path & path)
@@ -131,6 +131,32 @@ std::unique_ptr<QProcess> adb::device::install(const std::filesystem::path & pat
 std::unique_ptr<QProcess> adb::device::uninstall(const std::string & app)
 {
 	return escape_sandbox("adb", "-s", _serial, "uninstall", app);
+}
+
+std::vector<std::string> adb::device::installed_apps()
+{
+	auto process = escape_sandbox("adb", "-s", _serial, "shell", "pm", "list", "packages");
+	process->start();
+	process->waitForFinished();
+
+	if (process->exitCode() != 0 or process->exitStatus() != QProcess::NormalExit)
+		throw std::runtime_error("Cannot list packages");
+
+	auto out = process->readAllStandardOutput();
+	auto lines = QString{out}.split('\n');
+
+	std::vector<std::string> apps;
+
+	for (auto & line: lines)
+	{
+		QString prefix = "package:";
+		if (line.startsWith(prefix))
+		{
+			apps.push_back(line.toStdString().substr(prefix.size()));
+		}
+	}
+
+	return apps;
 }
 
 // void adb::device::start(const std::string& app)
@@ -147,10 +173,19 @@ std::unique_ptr<QProcess> adb::device::uninstall(const std::string & app)
 // 	process->waitForFinished();
 // }
 //
-// void adb::device::start(const std::string& app, const std::string& action, const std::string& uri)
-// {
-// 	// action: "android.intent.action.VIEW" or "android.intent.action.MAIN"
-// 	auto process = escape_sandbox("adb", "-s", _serial, "shell", "am", "start", "-a", action, "-d", uri, app);
-// 	process->start();
-// 	process->waitForFinished();
-// }
+void adb::device::start(const std::string & app, const std::string & action, const std::string & uri)
+{
+	// action: "android.intent.action.VIEW" or "android.intent.action.MAIN"
+	auto process = escape_sandbox("adb", "-s", _serial, "shell", "am", "start", "-a", action, "-d", uri, app);
+	process->start();
+	process->waitForFinished();
+}
+
+void adb::device::reverse_forward(int local_port, int device_port)
+{
+	auto process = escape_sandbox("adb", "-s", _serial, "reverse", "tcp:" + std::to_string(local_port), "tcp:" + std::to_string(device_port));
+	process->start();
+	process->waitForFinished();
+}
+
+#include "moc_adb.cpp"

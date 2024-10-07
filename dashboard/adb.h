@@ -18,17 +18,20 @@
 
 #pragma once
 
-#include <QFuture>
+#include <QObject>
+#include <QProcess>
+#include <QTimer>
 #include <filesystem>
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
 class QProcess;
 
-class adb
+class adb : public QObject
 {
+	Q_OBJECT
+
 public:
 	class device
 	{
@@ -65,12 +68,43 @@ public:
 			return _serial == other._serial;
 		}
 
+		operator bool() const
+		{
+			return _serial != "";
+		}
+
 		std::unique_ptr<QProcess> install(const std::filesystem::path & path);
 		std::unique_ptr<QProcess> uninstall(const std::string & app);
-		// void start(const std::string& app);
-		// void stop(const std::string& app);
-		// void start(const std::string& app, const std::string& action, const std::string& uri);
+		void start(const std::string & app, const std::string & action, const std::string & uri);
+		void reverse_forward(int local_port, int device_port);
+		std::vector<std::string> installed_apps();
 	};
 
-	std::shared_ptr<QPromise<std::vector<adb::device>>> devices();
+private:
+	QTimer poll_devices_timer;
+	std::unique_ptr<QProcess> poll_devices_process;
+	std::vector<adb::device> _android_devices;
+
+	void on_poll_devices_timeout();
+	void on_poll_devices_process_finished(int exit_code, QProcess::ExitStatus exit_status);
+
+public:
+	adb();
+	const std::vector<adb::device> & devices() const
+	{
+		return _android_devices;
+	}
+
+	void start()
+	{
+		poll_devices_timer.start();
+	}
+
+	void stop()
+	{
+		poll_devices_timer.stop();
+	}
+
+Q_SIGNALS:
+	void android_devices_changed(const std::vector<adb::device> &);
 };

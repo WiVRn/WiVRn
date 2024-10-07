@@ -28,7 +28,6 @@
 #include <QStandardItemModel>
 #include <QTimer>
 #include <QWizard>
-#include <memory>
 #include <string>
 
 namespace Ui
@@ -65,13 +64,9 @@ class wizard : public QWizard
 
 	std::string latest_release;
 
-	std::shared_ptr<QPromise<std::vector<adb::device>>> android_devices_promise;
-	QFuture<std::vector<adb::device>> android_devices_future;
-	QFutureWatcher<std::vector<adb::device>> android_devices_future_watcher;
+	adb adb_service;
 
 	std::vector<adb::device> android_devices;
-	QTimer poll_devices_timer;
-	// std::unique_ptr<QProcess> process_adb_devices;
 	std::unique_ptr<QProcess> process_adb_install;
 
 public:
@@ -91,8 +86,7 @@ public:
 	void on_download_error(QNetworkReply::NetworkError code);
 	void on_download_finished();
 
-	void on_android_devices_future_finished();
-	void on_adb_device_list_changed();
+	void on_android_device_list_changed(const std::vector<adb::device>&);
 
 	void start_install();
 	void on_install_finished(int exit_code, QProcess::ExitStatus exit_status);

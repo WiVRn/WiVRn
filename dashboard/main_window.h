@@ -26,6 +26,7 @@
 #include <QTimer>
 #include <QVariantMap>
 
+#include "adb.h"
 #include "wivrn_qdbus_types.h"
 
 Q_DECLARE_LOGGING_CATEGORY(wivrn_log_category)
@@ -62,6 +63,11 @@ class main_window : public QMainWindow
 	QProcess * server_process = nullptr;
 	QTimer * server_process_timeout = nullptr;
 
+	QMenu * usb_device_menu;
+	std::map<std::string, std::unique_ptr<QAction>> usb_actions;
+
+	adb adb_service;
+
 public:
 	main_window();
 	~main_window();
@@ -95,6 +101,7 @@ private:
 
 	void on_action_settings();
 	void on_action_wizard();
+	void on_action_usb(const std::string & serial);
 	void start_server();
 	void stop_server();
 	void disconnect_client();
