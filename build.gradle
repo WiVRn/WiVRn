@@ -72,8 +72,8 @@ android {
         compileSdkVersion 32
         targetSdkVersion 32 // for Oculus Store
 
-       versionName = project.hasProperty('wivrn_version') ? wivrn_version : "1.0"
-       versionCode = project.hasProperty('wivrn_versionCode') ? wivrn_versionCode.toInteger() : 1
+        versionName = project.hasProperty('wivrn_version') ? wivrn_version : "1.0"
+        versionCode = project.hasProperty('wivrn_versionCode') ? wivrn_versionCode.toInteger() : 1
 
         externalNativeBuild {
             cmake {
@@ -113,6 +113,7 @@ android {
 
         release {
             manifestPlaceholders.ComOculusSupportedDevices = "all"
+            applicationIdSuffix = project.hasProperty('suffix') ? suffix: ".local"
         }
 
         releaseDebuggable {
@@ -131,10 +132,12 @@ android {
         oculus
         {
             initWith release
+            applicationIdSuffix = project.hasProperty('suffix') ? suffix: ""
             manifestPlaceholders.ComOculusSupportedDevices = "quest2|quest3|questpro"
         }
 
         debug {
+            applicationIdSuffix = project.hasProperty('suffix') ? suffix: ".local"
             manifestPlaceholders.ComOculusSupportedDevices = "all"
         }
 
