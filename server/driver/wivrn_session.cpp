@@ -366,6 +366,13 @@ void wivrn_session::operator()(from_headset::trackings && tracking)
 	auto right = get_name(tracking.interaction_profiles[1]);
 	if (left != roles.left_profile or right != roles.right_profile)
 	{
+		U_LOG_I("Updating interaction profiles: from \n"
+		        "\t%s (left)  to %s\n"
+		        "\t%s (right) to %s\n",
+		        std::string(magic_enum::enum_name(roles.left_profile)).c_str(),
+		        std::string(magic_enum::enum_name(left)).c_str(),
+		        std::string(magic_enum::enum_name(roles.right_profile)).c_str(),
+		        std::string(magic_enum::enum_name(right)).c_str());
 		std::lock_guard lock(roles_mutex);
 		roles.left_profile = left;
 		roles.right_profile = right;
