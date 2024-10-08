@@ -36,7 +36,11 @@ namespace wivrn
 
 static void wivrn_eye_tracker_destroy(xrt_device * xdev);
 
-static void wivrn_eye_tracker_update_inputs(xrt_device * xdev);
+static xrt_result_t wivrn_eye_tracker_update_inputs(xrt_device * xdev)
+{
+	static_cast<wivrn_eye_tracker *>(xdev)->update_inputs();
+	return XRT_SUCCESS;
+}
 
 static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
                                                xrt_input_name name,
@@ -98,11 +102,6 @@ void wivrn_eye_tracker::update_tracking(const from_headset::tracking & tracking,
 
 static void wivrn_eye_tracker_destroy(xrt_device * xdev)
 {
-}
-
-static void wivrn_eye_tracker_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_eye_tracker *>(xdev)->update_inputs();
 }
 
 static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,

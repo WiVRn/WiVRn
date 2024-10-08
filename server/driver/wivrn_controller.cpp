@@ -145,7 +145,11 @@ static void wivrn_controller_get_hand_tracking(xrt_device * xdev,
 
 static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_output_name name, const union xrt_output_value * value);
 
-static void wivrn_controller_update_inputs(xrt_device * xdev);
+static xrt_result_t wivrn_controller_update_inputs(xrt_device * xdev)
+{
+	static_cast<wivrn_controller *>(xdev)->update_inputs();
+	return XRT_SUCCESS;
+}
 
 wivrn_controller::wivrn_controller(int hand_id,
                                    xrt_device * hmd,
@@ -398,11 +402,6 @@ void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value *
 static void wivrn_controller_destroy(xrt_device * xdev)
 {
 	static_cast<wivrn_controller *>(xdev)->unregister();
-}
-
-static void wivrn_controller_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_controller *>(xdev)->update_inputs();
 }
 
 static void wivrn_controller_get_tracked_pose(xrt_device * xdev,

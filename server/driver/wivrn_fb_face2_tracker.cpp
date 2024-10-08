@@ -38,7 +38,11 @@ namespace wivrn
 
 static void wivrn_fb_face2_tracker_destroy(xrt_device * xdev);
 
-static void wivrn_fb_face2_tracker_update_inputs(xrt_device * xdev);
+static xrt_result_t wivrn_fb_face2_tracker_update_inputs(xrt_device * xdev)
+{
+	static_cast<wivrn_fb_face2_tracker *>(xdev)->update_inputs();
+	return XRT_SUCCESS;
+}
 
 static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device * xdev,
                                                              enum xrt_input_name facial_expression_type,
@@ -124,11 +128,6 @@ xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facia
 
 static void wivrn_fb_face2_tracker_destroy(xrt_device * xdev)
 {
-}
-
-static void wivrn_fb_face2_tracker_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_fb_face2_tracker *>(xdev)->update_inputs();
 }
 
 static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device * xdev,

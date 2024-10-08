@@ -1,7 +1,7 @@
-From db34211565a0e67e3da2fc0be174bd570869efaa Mon Sep 17 00:00:00 2001
+From d9a0409876d4bfc673d7213ca320f4687ba84bd9 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH] Convert to YCbCr in Monado
+Subject: [PATCH 5/6] Convert to YCbCr in Monado
 
 ---
  src/xrt/compositor/main/comp_renderer.c      |   6 +-
@@ -319,7 +319,7 @@ index 6976ee25c..d72dabb40 100644
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
 diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
-index 9fe5207b5..9b1ce09c6 100644
+index 9652a3545..9a579bc9f 100644
 --- a/src/xrt/compositor/render/render_interface.h
 +++ b/src/xrt/compositor/render/render_interface.h
 @@ -488,7 +488,8 @@ struct render_resources
@@ -332,7 +332,7 @@ index 9fe5207b5..9b1ce09c6 100644
  
  		//! Uniform data binding.
  		uint32_t ubo_binding;
-@@ -1306,7 +1307,8 @@ render_compute_layers(struct render_compute *crc,                          //
+@@ -1312,7 +1313,8 @@ render_compute_layers(struct render_compute *crc,                          //
                        VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],      //
                        VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE], //
                        uint32_t num_srcs,                                   //
@@ -342,7 +342,7 @@ index 9fe5207b5..9b1ce09c6 100644
                        const struct render_viewport_data *view,             //
                        bool timewarp);                                      //
  
-@@ -1322,7 +1324,8 @@ render_compute_projection_timewarp(struct render_compute *crc,
+@@ -1328,7 +1330,8 @@ render_compute_projection_timewarp(struct render_compute *crc,
                                     const struct xrt_fov src_fovs[XRT_MAX_VIEWS],
                                     const struct xrt_pose new_poses[XRT_MAX_VIEWS],
                                     VkImage target_image,
@@ -352,7 +352,7 @@ index 9fe5207b5..9b1ce09c6 100644
                                     const struct render_viewport_data views[XRT_MAX_VIEWS]);
  
  /*!
-@@ -1334,7 +1337,8 @@ render_compute_projection(struct render_compute *crc,
+@@ -1340,7 +1343,8 @@ render_compute_projection(struct render_compute *crc,
                            VkImageView src_image_views[XRT_MAX_VIEWS],                //
                            const struct xrt_normalized_rect src_rects[XRT_MAX_VIEWS], //
                            VkImage target_image,                                      //
@@ -362,7 +362,7 @@ index 9fe5207b5..9b1ce09c6 100644
                            const struct render_viewport_data views[XRT_MAX_VIEWS]);   //
  
  /*!
-@@ -1343,7 +1347,8 @@ render_compute_projection(struct render_compute *crc,
+@@ -1349,7 +1353,8 @@ render_compute_projection(struct render_compute *crc,
  void
  render_compute_clear(struct render_compute *crc,                              //
                       VkImage target_image,                                    //
@@ -577,20 +577,20 @@ index 9a09c03db..461aeb4ec 100644
 +	imageStore(chroma, ivec2(offset.xy/2 + gl_GlobalInvocationID.xy), vec4(cbcr.x, cbcr.y, 0, 0));
  }
 diff --git a/src/xrt/compositor/util/comp_render.h b/src/xrt/compositor/util/comp_render.h
-index da717aa91..69234bac4 100644
+index 65f5d843f..a1f2f592e 100644
 --- a/src/xrt/compositor/util/comp_render.h
 +++ b/src/xrt/compositor/util/comp_render.h
-@@ -130,7 +130,8 @@ struct comp_render_dispatch_data
+@@ -160,7 +160,8 @@ struct comp_render_dispatch_data
  		VkImage target_image;
  
- 		// Target image view for distortion.
+ 		//! Target image view for distortion.
 -		VkImageView target_unorm_view;
 +		VkImageView target_unorm_view_y;
 +		VkImageView target_unorm_view_cbcr;
  	} cs;
  };
  
-@@ -231,7 +232,8 @@ comp_render_gfx_dispatch(struct render_gfx *rr,
+@@ -343,7 +344,8 @@ comp_render_gfx_dispatch(struct render_gfx *rr,
  static inline void
  comp_render_cs_initial_init(struct comp_render_dispatch_data *data,
                              VkImage target_image,
@@ -600,7 +600,7 @@ index da717aa91..69234bac4 100644
                              bool fast_path,
                              bool do_timewarp)
  {
-@@ -241,7 +243,8 @@ comp_render_cs_initial_init(struct comp_render_dispatch_data *data,
+@@ -353,7 +355,8 @@ comp_render_cs_initial_init(struct comp_render_dispatch_data *data,
  	data->do_timewarp = do_timewarp;
  
  	data->cs.target_image = target_image;
@@ -609,8 +609,8 @@ index da717aa91..69234bac4 100644
 +	data->cs.target_unorm_view_cbcr = target_unorm_view_cbcr;
  }
  
- static inline void
-@@ -301,7 +304,8 @@ comp_render_cs_layer(struct render_compute *crc,
+ /*!
+@@ -451,7 +454,8 @@ comp_render_cs_layer(struct render_compute *crc,
                       const struct xrt_pose *world_pose,
                       const struct xrt_pose *eye_pose,
                       const VkImage target_image,
@@ -715,5 +715,5 @@ index fe5a480de..7e261fd3c 100644
  		    d->do_timewarp);             //
  	}
 -- 
-2.46.0
+2.47.0
 

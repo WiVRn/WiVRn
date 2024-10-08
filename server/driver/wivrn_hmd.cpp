@@ -40,7 +40,11 @@ namespace wivrn
 
 static void wivrn_hmd_destroy(xrt_device * xdev);
 
-static void wivrn_hmd_update_inputs(xrt_device * xdev);
+static xrt_result_t wivrn_hmd_update_inputs(xrt_device * xdev)
+{
+	static_cast<wivrn_hmd *>(xdev)->update_inputs();
+	return XRT_SUCCESS;
+}
 
 static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
                                        xrt_input_name name,
@@ -408,11 +412,6 @@ void wivrn_hmd::set_foveation_center(std::array<xrt_vec2, 2> center)
 static void wivrn_hmd_destroy(xrt_device * xdev)
 {
 	static_cast<wivrn_hmd *>(xdev)->unregister();
-}
-
-static void wivrn_hmd_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_hmd *>(xdev)->update_inputs();
 }
 
 static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
