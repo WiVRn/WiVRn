@@ -48,6 +48,8 @@ extern "C"
 {
 	int
 	ipc_server_main(int argc, char * argv[]);
+
+	int listen_socket = -1;
 }
 
 using namespace wivrn;
@@ -64,7 +66,6 @@ std::filesystem::path socket_path()
 	return {sock_file, sock_file + size};
 }
 
-#if WIVRN_USE_SYSTEMD
 int create_listen_socket()
 {
 	sockaddr_un addr{};
@@ -109,15 +110,8 @@ int create_listen_socket()
 		throw std::system_error(errno, std::system_category());
 	}
 
-	// we use "socket activation" mode of monado,
-	// it requires fd to be SD_LISTEN_FDS_START, which is 3
-	assert(fd == 3);
-
-	setenv("LISTEN_FDS", "1", true);
-
 	return fd;
 }
-#endif
 
 void display_child_status(int wstatus, const std::string & name)
 {
@@ -604,11 +598,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 
 	std::filesystem::create_directories(socket_path().parent_path());
 
-#if WIVRN_USE_SYSTEMD
-	create_listen_socket();
-#else
-	assert(not use_systemd);
-#endif
+	listen_socket = create_listen_socket();
 
 	u_trace_marker_init();
 
