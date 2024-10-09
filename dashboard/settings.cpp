@@ -270,7 +270,7 @@ void settings::on_selected_game_changed(int index)
 
 void settings::on_browse_game()
 {
-	QFileInfo info(ui->edit_game_path->text());
+	QFileInfo info(application().empty() ? QString{} : QString::fromStdString(application().front()));
 
 	QFileDialog dlg(this, tr("Select game"));
 	dlg.setFilter(QDir::Executable | QDir::Files);
@@ -285,7 +285,7 @@ void settings::on_browse_game()
 	if (files.empty())
 		return;
 
-	ui->edit_game_path->setText(files.front());
+	set_application({files.front().toStdString()});
 }
 
 void settings::selected_rectangle_changed(int index)
@@ -315,6 +315,96 @@ void settings::restore_defaults()
 
 	ui->combo_select_game->setCurrentIndex(0);
 	ui->edit_game_path->setText("");
+}
+
+void settings::set_application(const std::vector<std::string> & app)
+{
+	static const std::string_view escaped_chars = R"( '"\)";
+	std::string app_string;
+	for (const auto & i: app)
+	{
+		for (char c: i)
+		{
+			if (escaped_chars.find(c) == std::string_view::npos)
+			{
+				app_string += c;
+			}
+			else
+			{
+				app_string += '\\';
+				app_string += c;
+			}
+		}
+
+		app_string += ' ';
+	}
+	app_string.resize(app_string.size() - 1);
+
+	ui->edit_game_path->setText(QString::fromStdString(app_string));
+}
+
+std::vector<std::string> settings::application()
+{
+	std::string app_string = ui->edit_game_path->text().toStdString();
+
+	std::vector<std::string> app;
+	app.emplace_back();
+
+	bool seen_backslash = false;
+	bool seen_single_quote = false;
+	bool seen_double_quote = false;
+	for (auto c: app_string)
+	{
+		if (seen_backslash)
+		{
+			app.back() += c;
+			seen_backslash = false;
+		}
+		else if (seen_single_quote)
+		{
+			if (c == '\'')
+				seen_single_quote = false;
+			else if (c == '\\')
+				seen_backslash = true;
+			else
+				app.back() += c;
+		}
+		else if (seen_double_quote)
+		{
+			if (c == '"')
+				seen_double_quote = false;
+			else if (c == '\\')
+				seen_backslash = true;
+			else
+				app.back() += c;
+		}
+		else
+		{
+			switch (c)
+			{
+				case '\\':
+					seen_backslash = true;
+					break;
+				case '\'':
+					seen_single_quote = true;
+					break;
+				case '"':
+					seen_double_quote = true;
+					break;
+				case ' ':
+					if (not app.back().empty())
+						app.emplace_back();
+					break;
+				default:
+					app.back() += c;
+			}
+		}
+	}
+
+	if (app.back().empty())
+		app.pop_back();
+
+	return app;
 }
 
 void settings::load_settings()
@@ -444,10 +534,10 @@ void settings::load_settings()
 		}
 	}
 
-	if (application.size() == 1 and ui->combo_select_game->currentIndex() == 0)
+	if (not application.empty() and ui->combo_select_game->currentIndex() == 0)
 	{
 		ui->combo_select_game->setCurrentIndex(1);
-		ui->edit_game_path->setText(QString::fromUtf8(application.front()));
+		set_application(application);
 	}
 	selected_rectangle_changed(0);
 
@@ -555,9 +645,7 @@ void settings::save_settings()
 	}
 	else if (ui->combo_select_game->currentIndex() == 1)
 	{
-		nlohmann::json application;
-		application.push_back(ui->edit_game_path->text().toStdString());
-		json_doc["application"] = application;
+		json_doc["application"] = application();
 	}
 	else
 	{

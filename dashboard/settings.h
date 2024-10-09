@@ -50,4 +50,7 @@ private:
 	void load_settings();
 	void save_settings();
 	void restore_defaults();
+
+	void set_application(const std::vector<std::string> & app);
+	std::vector<std::string> application();
 };
