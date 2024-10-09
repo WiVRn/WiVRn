@@ -497,7 +497,7 @@ void wizard::start_download()
 
 void wizard::cancel_download()
 {
-	assert(reply);
+	assert(apk_reply);
 
 	disconnect(apk_reply, &QNetworkReply::downloadProgress, this, &wizard::on_download_progress);
 	disconnect(apk_reply, &QNetworkReply::errorOccurred, this, &wizard::on_download_error);
@@ -515,7 +515,7 @@ void wizard::cancel_download()
 
 void wizard::on_download_progress(qint64 bytesReceived, qint64 bytesTotal)
 {
-	assert(reply);
+	assert(apk_reply);
 
 	if (not apk_reply->error())
 	{
@@ -561,7 +561,7 @@ void wizard::on_download_error(QNetworkReply::NetworkError code)
 
 void wizard::on_download_finished()
 {
-	assert(reply);
+	assert(apk_reply);
 
 	if (not apk_reply->error())
 	{
