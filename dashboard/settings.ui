@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1007</width>
+    <width>960</width>
     <height>932</height>
    </rect>
   </property>
@@ -25,6 +25,12 @@
    </property>
    <item>
     <widget class="QScrollArea" name="scrollArea">
+     <property name="minimumSize">
+      <size>
+       <width>960</width>
+       <height>0</height>
+      </size>
+     </property>
      <property name="frameShape">
       <enum>QFrame::Shape::NoFrame</enum>
      </property>
@@ -36,7 +42,7 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>986</width>
+        <width>939</width>
         <height>1047</height>
        </rect>
       </property>
