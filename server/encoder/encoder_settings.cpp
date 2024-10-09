@@ -292,7 +292,17 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	height += height % 2;
 
 	std::vector<wivrn::encoder_settings> res;
+	std::unordered_map<std::string, int> groups;
 	int next_group = 0;
+	for (const auto & encoder: config.encoders)
+	{
+		if (encoder.group)
+		{
+			groups[encoder.name] = *encoder.group;
+			next_group = std::max(next_group, *encoder.group + 1);
+		}
+	}
+
 	for (const auto & encoder: config.encoders)
 	{
 		wivrn::encoder_settings settings{};
@@ -306,11 +316,18 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		make_even(settings.width, width - settings.offset_x);
 		make_even(settings.height, height - settings.offset_y);
 		settings.codec = *encoder.codec;
-		settings.group = encoder.group.value_or(next_group);
+		if (encoder.group)
+			settings.group = *encoder.group;
+		else
+		{
+			auto [it, inserted] = groups.emplace(encoder.name, next_group);
+			settings.group = it->second;
+			if (inserted)
+				++next_group;
+		}
 		settings.options = encoder.options;
 		settings.device = encoder.device;
 
-		next_group = std::max(next_group, settings.group + 1);
 		res.push_back(settings);
 	}
 	split_bitrate(res, bitrate);

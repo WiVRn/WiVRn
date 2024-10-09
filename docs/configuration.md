@@ -49,9 +49,10 @@ Default values: full image (`width` = 1, `height` = 1, `offset_x` = 0, `offset_y
 Specifies the portion of the video to encode: all values are in 0, 1 range. Left eye image ranges from x 0 to x 0.5 and y 0 to 1, Rigth eye is x from 0.5 to 1 and y 0 to 1.
 
 ### `group` (very advanced)
-Default value: First unused group identifier, if omitted on all encoders, they are executed concurrently.
+Default value: One value for each encoder type (nvenc, vaapi, x264).
 
 Identifier (number) of the encoder group. Encoders with the same identifier are executed sequentially, in the order they are defined in the configuration. Encoders with different identifiers are executed concurrently.
+Default setting will have all encoders of a given type execute sequentially, and different types in parallel.
 
 ### Examples
 1. Simple encoder
