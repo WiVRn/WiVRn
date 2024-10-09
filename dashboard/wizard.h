@@ -86,7 +86,8 @@ public:
 	void on_download_error(QNetworkReply::NetworkError code);
 	void on_download_finished();
 
-	void on_android_device_list_changed(const std::vector<adb::device>&);
+	void on_android_device_list_changed(const std::vector<adb::device> &);
+	void on_selected_android_device_changed();
 
 	void start_install();
 	void on_install_finished(int exit_code, QProcess::ExitStatus exit_status);

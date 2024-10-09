@@ -32,6 +32,7 @@
 #include <QStandardPaths>
 #include <QUrl>
 #include <QWizard>
+#include <algorithm>
 #include <nlohmann/json.hpp>
 
 #include "adb.h"
@@ -183,6 +184,8 @@ wizard::wizard() :
 	// Detect connected android devices
 	connect(&adb_service, &adb::android_devices_changed, this, &wizard::on_android_device_list_changed);
 	on_android_device_list_changed(adb_service.devices());
+
+	connect(ui->list_devices, &QListWidget::itemSelectionChanged, this, &wizard::on_selected_android_device_changed);
 }
 
 void wizard::on_latest_release_finished()
@@ -204,7 +207,7 @@ void wizard::on_latest_release_finished()
 		if (latest_release == git_version)
 		{
 			// This is already the latest release
-			ui->label_release_info->setText("This is the latest WiVRn release.");
+			ui->label_release_info->setText(tr("This is the latest WiVRn release."));
 		}
 		else
 		{
@@ -382,6 +385,7 @@ void wizard::on_page_changed(int id)
 
 		case wizard_page::sideload_devmode:
 			setButtonLayout({QWizard::Stretch, QWizard::BackButton, QWizard::NextButton, QWizard::CancelButton});
+			button(NextButton)->setEnabled(false);
 			return;
 
 		case wizard_page::sideload_install:
@@ -569,46 +573,82 @@ void wizard::on_download_finished()
 	}
 }
 
-void wizard::on_android_device_list_changed(const std::vector<adb::device>& new_devs)
+void wizard::on_android_device_list_changed(const std::vector<adb::device> & new_devs)
 {
-	auto old_devs = android_devices;
+	auto old_devs = std::move(android_devices);
 	android_devices = new_devs;
 
 	if (android_devices.empty())
-	{
 		ui->label_device_detected->setText(tr("No device detected."));
-
-		if (currentId() == (int)wizard_page::sideload_devmode)
-			button(NextButton)->setEnabled(false);
-	}
 	else
-	{
 		ui->label_device_detected->setText(tr("%n device(s) detected.", nullptr, android_devices.size()));
 
-		if (currentId() == (int)wizard_page::sideload_devmode)
-			button(NextButton)->setEnabled(true);
+	// Removed devices
+	for (int i = 0; i < ui->list_devices->count();)
+	{
+		QListWidgetItem * item = ui->list_devices->item(i);
+
+		std::string serial = item->data(QListWidgetItem::UserType).toString().toStdString();
+
+		if (std::ranges::none_of(android_devices, [&](const adb::device & x) { return x.serial() == serial; }))
+			delete item;
+		else
+			i++;
 	}
 
-	// TODO show device list
+	// Added devices
+	for (const auto & i: android_devices)
+	{
+		if (std::ranges::none_of(old_devs, [&](const adb::device & x) { return x == i; }))
+		{
+			auto it = i.properties().find("model");
+
+			const std::string model = (it == i.properties().end()) ? "Unknown model (" + i.serial() + ")" : it->second;
+
+			QListWidgetItem * item = new QListWidgetItem(QString::fromStdString(model));
+
+			item->setData(QListWidgetItem::UserType, QString::fromStdString(i.serial()));
+
+			ui->list_devices->addItem(item);
+		}
+	}
+}
+
+void wizard::on_selected_android_device_changed()
+{
+	if (ui->list_devices->currentItem())
+		button(NextButton)->setEnabled(true);
+	else
+		button(NextButton)->setEnabled(false);
 }
 
 void wizard::start_install()
 {
-	if (android_devices.empty())
+	QListWidgetItem * item = ui->list_devices->currentItem();
+
+	if (not item)
 	{
 		back();
 		return;
 	}
 
-	auto dev = android_devices.back(); // TODO choose device from device list
-	process_adb_install = dev.install(apk_file.fileName().toStdString());
+	const std::string serial = item->data(QListWidgetItem::UserType).toString().toStdString();
 
-	connect(process_adb_install.get(), &QProcess::finished, this, &wizard::on_install_finished);
-	connect(process_adb_install.get(), &QProcess::readyReadStandardOutput, this, &wizard::on_install_stdout);
-	connect(process_adb_install.get(), &QProcess::readyReadStandardError, this, &wizard::on_install_stderr);
-	process_adb_install->setParent(this);
-	process_adb_install->start();
-	ui->adb_install_logs->setPlainText("");
+	for (adb::device & i: android_devices)
+	{
+		if (i.serial() == serial)
+		{
+			process_adb_install = i.install(apk_file.fileName().toStdString());
+
+			connect(process_adb_install.get(), &QProcess::finished, this, &wizard::on_install_finished);
+			connect(process_adb_install.get(), &QProcess::readyReadStandardOutput, this, &wizard::on_install_stdout);
+			connect(process_adb_install.get(), &QProcess::readyReadStandardError, this, &wizard::on_install_stderr);
+			process_adb_install->setParent(this);
+			process_adb_install->start();
+			ui->adb_install_logs->setPlainText("");
+			break;
+		}
+	}
 }
 
 void wizard::on_install_stdout()
