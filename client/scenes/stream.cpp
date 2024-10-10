@@ -210,7 +210,7 @@ void scenes::stream::on_focused()
 		                  device,
 		                  queue_family_index,
 		                  queue,
-		                  application::space(xr::spaces::world),
+		                  application::space(xr::spaces::view),
 		                  std::span<imgui_context::controller>{},
 		                  swapchain_imgui,
 		                  glm::vec2{1.0, 0.6666});
