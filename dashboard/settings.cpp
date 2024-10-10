@@ -33,6 +33,7 @@
 #include <QStandardPaths>
 #include <QToolTip>
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -526,7 +527,7 @@ void settings::save_settings()
 
 	json_doc["bitrate"] = ui->bitrate->value() * 1'000'000;
 
-	nlohmann::json encoders;
+	std::vector<nlohmann::json> encoders;
 
 	const auto & rect = ui->partitionner->rectangles();
 	const auto & data = ui->partitionner->rectangles_data();
@@ -552,7 +553,13 @@ void settings::save_settings()
 		encoders.push_back(encoder);
 	}
 
-	// If there is only one automatic encoder, don't save it'
+	std::ranges::stable_sort(encoders, [](const nlohmann::json & i, const nlohmann::json & j) {
+		double size_i = i.value("width", 0.0) * i.value("height", 0.0);
+		double size_j = j.value("width", 0.0) * j.value("height", 0.0);
+		return size_i < size_j;
+	});
+
+	// If there is only one automatic encoder, don't save it
 	if (encoders.size() != 1 or encoders[0].contains("codec") or encoders[0].contains("encoder"))
 	{
 		if (ui->radio_manual_encoder->isChecked())
