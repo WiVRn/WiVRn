@@ -2,7 +2,7 @@ id: io.github.wivrn.wivrn
 runtime: org.kde.Platform
 runtime-version: '6.7'
 sdk: org.kde.Sdk
-command: launch-wivrn-server
+command: launch-wivrn-dashboard
 
 finish-args:
   # X11 + XShm access
@@ -153,7 +153,7 @@ modules:
       - -DWIVRN_USE_NVENC=ON
       - -DWIVRN_USE_PULSEAUDIO=OFF
       - -DWIVRN_CLIENT_URL=https://github.com/WiVRn/WiVRn/releases/latest/download/WiVRn-standard-release.apk
-        -DWIVRN_WERROR=ON
+      - -DWIVRN_WERROR=ON
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
       - -DFETCHCONTENT_BASE_DIR=deps
       - -DGIT_DESC=WIVRN_GIT_DESC
@@ -173,8 +173,9 @@ modules:
       - type: shell
         commands:
          - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado
-    build-commands:
-      - install -Dm644 flatpak/io.github.wivrn.wivrn.desktop -t ${FLATPAK_DEST}/share/applications
+      - type: shell
+        commands:
+         - sed -i "s,Exec=.*$,Exec=${FLATPAK_DEST}/bin/launch-wivrn-dashboard," dashboard/io.github.wivrn.wivrn.desktop.in
 
   - name: opencomposite
     buildsystem: cmake-ninja
@@ -189,25 +190,31 @@ modules:
   - name: launcher
     buildsystem: simple
     build-commands:
-      - install -Dm755 launch-wivrn-server.sh ${FLATPAK_DEST}/bin/launch-wivrn-server
+      - install -Dm755 launch-wivrn-dashboard.sh ${FLATPAK_DEST}/bin/launch-wivrn-dashboard
     sources:
       - type: script
-        dest-filename: launch-wivrn-server.sh
+        dest-filename: launch-wivrn-dashboard.sh
         commands:
-        - if [ -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath ]
-        - then
-        -   mv $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
-        - else
-        -   rm -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
-        - fi
-        -
-        - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-        - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-        -
-        - wivrn-dashboard
-        -
-        - rm -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-        - if [ -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup ]
-        - then
-        -   mv $XDG_CONFIG_HOME/openvrpaths.vrpath-backup $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-        - fi
+          - if [ -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath ]
+          - then
+          -         mv $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
+          - else
+          -         rm -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
+          - fi
+          -
+          - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+          - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+          -
+          - cleanup() {
+          -         rm -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+          -         if [ -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup ]
+          -         then
+          -                 mv $XDG_CONFIG_HOME/openvrpaths.vrpath-backup $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
+          -         fi
+          -         trap - EXIT
+          - '}'
+          -
+          - trap cleanup EXIT INT TERM HUP
+          -
+          - wivrn-dashboard
+
