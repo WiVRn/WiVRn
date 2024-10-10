@@ -598,8 +598,8 @@ void main_window::on_action_usb(const std::string & serial)
 		QMessageBox msgbox /*(this)*/;
 
 		msgbox.setIcon(QMessageBox::Critical);
-		msgbox.setText(tr("The WiVRn app is not installed on your headset.\nDo you want to install it?"));
-		msgbox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+		msgbox.setText(tr("The WiVRn app is not installed on your headset."));
+		msgbox.setStandardButtons(QMessageBox::Close);
 
 #ifdef WORKAROUND_QTBUG_90005
 		setEnabled(false);
@@ -609,24 +609,6 @@ void main_window::on_action_usb(const std::string & serial)
 #ifdef WORKAROUND_QTBUG_90005
 		setEnabled(true);
 #endif
-
-		if (msgbox.clickedButton() == msgbox.button(QMessageBox::Yes))
-		{
-			QMessageBox msgbox /*(this)*/;
-
-			msgbox.setIcon(QMessageBox::Critical);
-			msgbox.setText("Not implemented");
-			msgbox.setStandardButtons(QMessageBox::Close);
-
-#ifdef WORKAROUND_QTBUG_90005
-			setEnabled(false);
-#endif
-			msgbox.exec();
-
-#ifdef WORKAROUND_QTBUG_90005
-			setEnabled(true);
-#endif
-		}
 	}
 }
 
