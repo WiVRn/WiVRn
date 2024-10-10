@@ -29,6 +29,7 @@
 #include <iterator>
 #include <memory>
 #include <poll.h>
+#include <sys/capability.h>
 #include <sys/signalfd.h>
 #include <sys/un.h>
 #include <sys/wait.h>
@@ -594,6 +595,23 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	{
 		std::cerr << "WiVRn " << wivrn::git_version << " starting" << std::endl;
 		std::cerr << "For Steam games, set command to " << steam_command() << std::endl;
+
+		auto caps = cap_get_proc();
+
+		cap_flag_value_t value{};
+		if (cap_get_flag(caps, CAP_SYS_NICE, CAP_EFFECTIVE, &value) == 0)
+		{
+			if (value == CAP_CLEAR)
+			{
+				std::cerr << "CAP_SYS_NICE is not available, run \"setcap CAP_SYS_NICE=+ep " << std::filesystem::read_symlink("/proc/self/exe").native() << "\" as root to grant it." << std::endl;
+			}
+		}
+		else
+		{
+			perror("Cannot get current process capabilities");
+		}
+
+		cap_free(caps);
 	}
 
 	std::filesystem::create_directories(socket_path().parent_path());

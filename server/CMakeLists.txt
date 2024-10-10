@@ -187,6 +187,7 @@ target_link_libraries(
 		wivrn-common
 		wivrn-external
 		nlohmann_json::nlohmann_json
+		PkgConfig::libcap
 	)
 
 configure_file(dist/wivrn.service.in wivrn.service)

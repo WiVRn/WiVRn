@@ -146,6 +146,8 @@ if (WIVRN_BUILD_SERVER)
     find_package(CLI11 REQUIRED)
 
     pkg_check_modules(glib2 REQUIRED IMPORTED_TARGET glib-2.0 gio-2.0 gio-unix-2.0)
+
+    pkg_check_modules(libcap REQUIRED IMPORTED_TARGET libcap)
 endif()
 
 if (WIVRN_BUILD_DASHBOARD)
