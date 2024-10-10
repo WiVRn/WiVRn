@@ -124,50 +124,8 @@ main_window::main_window()
 
 	usb_device_menu = new QMenu(this);
 	ui->button_usb->setMenu(usb_device_menu);
-	connect(&adb_service, &adb::android_devices_changed, this, [this](const std::vector<adb::device> & devices) {
-		ui->button_usb->setDisabled(devices.empty());
-
-		if (devices.empty())
-			ui->button_usb->setToolTip(tr("No device detected"));
-		else
-			ui->button_usb->setToolTip("");
-
-		std::vector<std::string> to_be_removed;
-		for (auto & [serial, action]: usb_actions)
-		{
-			if (std::ranges::none_of(devices, [&](const adb::device & x) { return x.serial() == serial; }))
-			{
-				qDebug() << "Removed" << QString::fromStdString(serial);
-
-				usb_device_menu->removeAction(action.get());
-				to_be_removed.push_back(serial);
-			}
-		}
-
-		for (const auto & serial: to_be_removed)
-		{
-			usb_actions.erase(serial);
-		}
-
-		for (auto & device: devices)
-		{
-			if (std::ranges::none_of(usb_actions, [&](const std::pair<const std::string, std::unique_ptr<QAction>> & x) { return x.first == device.serial(); }))
-			{
-				qDebug() << "Detected" << QString::fromStdString(device.serial());
-
-				std::unique_ptr<QAction> device_action = std::make_unique<QAction>(this);
-				device_action->setText(QString::fromStdString(device.properties().at("model")));
-				usb_device_menu->addAction(device_action.get());
-
-				device_action->setData(QString::fromStdString(device.serial()));
-				connect(device_action.get(), &QAction::triggered, this, [this, serial = device.serial()]() {
-					on_action_usb(serial);
-				});
-
-				usb_actions.insert(std::make_pair(device.serial(), std::move(device_action)));
-			}
-		}
-	});
+	connect(&adb_service, &adb::android_devices_changed, this, &main_window::on_android_device_list_changed);
+	on_android_device_list_changed(adb_service.devices());
 
 	retranslate();
 }
@@ -278,6 +236,52 @@ void main_window::setVisible(bool visible)
 	}
 
 	QMainWindow::setVisible(visible);
+}
+
+void main_window::on_android_device_list_changed(const std::vector<adb::device> & devices)
+{
+	ui->button_usb->setDisabled(devices.empty());
+
+	if (devices.empty())
+		ui->button_usb->setToolTip(tr("No device detected"));
+	else
+		ui->button_usb->setToolTip("");
+
+	std::vector<std::string> to_be_removed;
+	for (auto & [serial, action]: usb_actions)
+	{
+		if (std::ranges::none_of(devices, [&](const adb::device & x) { return x.serial() == serial; }))
+		{
+			qDebug() << "Removed" << QString::fromStdString(serial);
+
+			usb_device_menu->removeAction(action.get());
+			to_be_removed.push_back(serial);
+		}
+	}
+
+	for (const auto & serial: to_be_removed)
+	{
+		usb_actions.erase(serial);
+	}
+
+	for (auto & device: devices)
+	{
+		if (std::ranges::none_of(usb_actions, [&](const std::pair<const std::string, std::unique_ptr<QAction>> & x) { return x.first == device.serial(); }))
+		{
+			qDebug() << "Detected" << QString::fromStdString(device.serial());
+
+			std::unique_ptr<QAction> device_action = std::make_unique<QAction>(this);
+			device_action->setText(QString::fromStdString(device.properties().at("model")));
+			usb_device_menu->addAction(device_action.get());
+
+			device_action->setData(QString::fromStdString(device.serial()));
+			connect(device_action.get(), &QAction::triggered, this, [this, serial = device.serial()]() {
+				on_action_usb(serial);
+			});
+
+			usb_actions.insert(std::make_pair(device.serial(), std::move(device_action)));
+		}
+	}
 }
 
 void main_window::on_server_running_changed(bool running)

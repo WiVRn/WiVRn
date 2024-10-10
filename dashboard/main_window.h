@@ -99,6 +99,8 @@ private:
 	void on_supported_codecs_changed(QStringList value);
 	void on_steam_command_changed(QString value);
 
+	void on_android_device_list_changed(const std::vector<adb::device> &);
+
 	void on_action_settings();
 	void on_action_wizard();
 	void on_action_usb(const std::string & serial);
