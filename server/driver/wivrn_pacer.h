@@ -58,8 +58,7 @@ private:
 	// Client wait time for each decoder
 	struct stream_data
 	{
-		// Last feedback for each encoder
-		wivrn::from_headset::feedback last_feedback;
+		// server present to client decoded
 		std::vector<int64_t> times;
 		size_t next_times_index = 0;
 	};

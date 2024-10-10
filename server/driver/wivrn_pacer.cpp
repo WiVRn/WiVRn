@@ -41,6 +41,18 @@ void wivrn_pacer::set_stream_count(size_t count)
 		stream.times.reserve(num_wait_times);
 }
 
+template <typename T>
+static T lerp_mod(T a, T b, double t, T mod)
+{
+	if (2 * std::abs(a - b) < mod)
+		return std::lerp(a, b, t);
+	if (a < b)
+		a += mod;
+	else
+		b += mod;
+	return T(std::lerp(a, b, t)) % mod;
+}
+
 void wivrn_pacer::predict(
         int64_t & frame_id,
         int64_t & out_wake_up_time_ns,
@@ -121,7 +133,7 @@ void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, co
 		if (safe_time > 0 and safe_time < 100'000'000)
 			safe_present_to_decoded_ns = std::lerp(safe_present_to_decoded_ns, safe_time, 0.1);
 
-		client_render_phase_ns = std::lerp(client_render_phase_ns, offset.from_headset(feedback.blitted) % frame_duration_ns, 0.1);
+		client_render_phase_ns = lerp_mod<int64_t>(client_render_phase_ns, offset.from_headset(feedback.blitted) % frame_duration_ns, 0.1, frame_duration_ns);
 	}
 
 	if (feedback.displayed and feedback.displayed > feedback.blitted and feedback.displayed < feedback.blitted + 100'000'000)
