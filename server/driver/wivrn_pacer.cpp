@@ -30,6 +30,9 @@ static const size_t num_wait_times = 100;
 // How many samples of wait time are required to use them
 static const size_t min_wait_times = 50;
 
+static const int64_t margin_ns = 1'000'000;
+static const int64_t slop_ns = 500'000;
+
 void wivrn_pacer::set_stream_count(size_t count)
 {
 	std::lock_guard lock(mutex);
@@ -58,7 +61,7 @@ void wivrn_pacer::predict(
 
 	out_predicted_display_time_ns = predicted_client_render + mean_render_to_display_ns;
 	out_desired_present_time_ns = predicted_client_render - safe_present_to_decoded_ns;
-	out_wake_up_time_ns = out_desired_present_time_ns - mean_wake_up_to_present_ns;
+	out_wake_up_time_ns = out_desired_present_time_ns - mean_wake_up_to_present_ns - margin_ns;
 
 	last_ns = predicted_client_render;
 
@@ -68,7 +71,7 @@ void wivrn_pacer::predict(
 	        .predicted_display_time = out_predicted_display_time_ns,
 	};
 
-	out_present_slop_ns = 0;
+	out_present_slop_ns = slop_ns;
 }
 
 void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, const clock_offset & offset)
