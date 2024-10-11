@@ -270,7 +270,6 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	                .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
 	                .initialLayout = vk::ImageLayout::eUndefined,
 	                .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-
 	        },
 #ifdef MSAA_4x
 	        vk::AttachmentDescription{
@@ -340,11 +339,12 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 
 scene_renderer::output_image & scene_renderer::get_output_image_data(vk::Image output_color, vk::Image output_depth)
 {
-	auto it = output_images.find(output_color);
+	std::pair images{output_color, output_depth};
+	auto it = output_images.find(images);
 	if (it != output_images.end())
 		return it->second;
 
-	return output_images.emplace(output_color, create_output_image_data(output_color, output_depth)).first->second;
+	return output_images.emplace(images, create_output_image_data(output_color, output_depth)).first->second;
 }
 
 scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image output_color, vk::Image output_depth)
