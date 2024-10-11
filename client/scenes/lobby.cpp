@@ -142,7 +142,27 @@ scenes::lobby::lobby()
 	if (swapchain_format == vk::Format::eUndefined)
 		throw std::runtime_error(_("No supported swapchain format"));
 
-	spdlog::info("Using format {}", vk::to_string(swapchain_format));
+	std::array depth_formats{
+	        vk::Format::eX8D24UnormPack32,
+	        vk::Format::eD32Sfloat,
+	};
+
+	auto views = system.view_configuration_views(viewconfig);
+	stream_view = override_view(views[0], guess_model());
+	uint32_t width = views[0].recommendedImageRectWidth;
+	uint32_t height = views[0].recommendedImageRectHeight;
+
+	depth_format = scene_renderer::find_usable_image_format(
+	        physical_device,
+	        depth_formats,
+	        {
+	                width,
+	                height,
+	                1,
+	        },
+	        vk::ImageUsageFlagBits::eDepthStencilAttachment);
+
+	spdlog::info("Using formats {} and {}", vk::to_string(swapchain_format), vk::to_string(depth_format));
 
 	composition_layer_depth_test_supported =
 	        instance.has_extension(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME) and
@@ -438,7 +458,7 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gui(glm::vec3 head_positi
 	return std::nullopt;
 }
 
-static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView> & views, std::vector<xr::swapchain> & swapchains, scene_renderer & renderer, scene_data & data, const std::array<float, 4> & clear_color)
+static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView> & views, std::vector<xr::swapchain> & color_swapchains, std::vector<xr::swapchain> & depth_swapchains, scene_renderer & renderer, scene_data & data, const std::array<float, 4> & clear_color)
 {
 	std::vector<scene_renderer::frame_info> frames;
 	frames.reserve(views.size());
@@ -446,13 +466,13 @@ static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<Xr
 	std::vector<XrCompositionLayerProjectionView> layer_views;
 	layer_views.reserve(views.size());
 
-	for (auto && [view, swapchain]: utils::zip(views, swapchains))
+	for (auto && [view, color_swapchain]: utils::zip(views, color_swapchains /*, depth_swpachains */))
 	{
-		int image_index = swapchain.acquire();
-		swapchain.wait();
+		int color_image_index = color_swapchain.acquire();
+		color_swapchain.wait();
 
 		frames.push_back({
-		        .destination = swapchain.images()[image_index].image,
+		        .destination = color_swapchain.images()[color_image_index].image,
 		        .projection = projection_matrix(view.fov),
 		        .view = view_matrix(view.pose),
 		});
@@ -462,10 +482,10 @@ static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<Xr
 		        .pose = view.pose,
 		        .fov = view.fov,
 		        .subImage = {
-		                .swapchain = swapchain,
+		                .swapchain = color_swapchain,
 		                .imageRect = {
 		                        .offset = {0, 0},
-		                        .extent = swapchain.extent(),
+		                        .extent = color_swapchain.extent(),
 		                },
 		        },
 		});
@@ -474,6 +494,12 @@ static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<Xr
 	renderer.render(data, clear_color, frames);
 
 	return layer_views;
+}
+
+static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView> & views, std::vector<xr::swapchain> & color_swapchains, scene_renderer & renderer, scene_data & data, const std::array<float, 4> & clear_color)
+{
+	std::vector<xr::swapchain> depth_swapchains;
+	return render_layer(views, color_swapchains, depth_swapchains, renderer, data, clear_color);
 }
 
 namespace
@@ -602,6 +628,12 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	assert(renderer);
 	renderer->start_frame();
+	if (composition_layer_depth_test_supported)
+	{
+		// TODO
+		abort();
+	}
+
 	std::vector<XrCompositionLayerProjectionView> lobby_layer_views;
 	if (not application::get_config().passthrough_enabled)
 		lobby_layer_views = render_layer(views, swapchains_lobby, *renderer, *lobby_scene, {0, 0.25, 0.5, 1});
@@ -672,8 +704,16 @@ void scenes::lobby::on_focused()
 	uint32_t width = views[0].recommendedImageRectWidth;
 	uint32_t height = views[0].recommendedImageRectHeight;
 
+	if (composition_layer_depth_test_supported)
+	{
+	}
+	else
+	{
+	}
+
 	swapchains_lobby.reserve(views.size());
 	swapchains_controllers.reserve(views.size());
+	swapchains_depth.reserve(views.size());
 	for ([[maybe_unused]] auto view: views)
 	{
 		assert(view.recommendedImageRectWidth == width);
@@ -687,12 +727,7 @@ void scenes::lobby::on_focused()
 
 	vk::Extent2D output_size{width, height};
 
-	std::array depth_formats{
-	        vk::Format::eX8D24UnormPack32,
-	        vk::Format::eD32Sfloat,
-	};
-
-	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchain_format, depth_formats);
+	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchain_format, depth_format);
 
 	scene_loader loader(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
 
@@ -799,6 +834,7 @@ void scenes::lobby::on_unfocused()
 	renderer.reset();
 	swapchains_lobby.clear();
 	swapchains_controllers.clear();
+	swapchains_depth.clear();
 	swapchain_imgui = xr::swapchain();
 	passthrough.emplace<std::monostate>();
 	multicast.reset();
