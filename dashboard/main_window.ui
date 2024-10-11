@@ -50,7 +50,7 @@ border-radius: 5px;
        <item>
         <widget class="QPushButton" name="banner_capsysnice_dismiss">
          <property name="icon">
-          <iconset theme="QIcon::ThemeIcon::WindowClose"/>
+          <iconset theme="window-close"/>
          </property>
         </widget>
        </item>

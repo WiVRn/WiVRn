@@ -158,7 +158,7 @@ main_window::main_window()
 	on_android_device_list_changed(adb_service.devices());
 
 #if WIVRN_CHECK_CAPSYSNICE
-	QIcon icon = QIcon::fromTheme(QIcon::ThemeIcon::DialogInformation);
+	QIcon icon = QIcon::fromTheme("dialog-information");
 	ui->banner_capsysnice_icon->setPixmap(icon.pixmap(ui->banner_capsysnice_dismiss->height()));
 	connect(ui->banner_capsysnice_text, &QLabel::linkActivated, this, &main_window::on_banner_capsysnice);
 
