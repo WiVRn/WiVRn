@@ -129,6 +129,7 @@ scenes::lobby::lobby()
 	{
 		spdlog::info("    {}", vk::to_string(format));
 	}
+
 	for (auto format: session.get_swapchain_formats())
 	{
 		if (std::find(supported_formats.begin(), supported_formats.end(), format) != supported_formats.end())
@@ -142,6 +143,15 @@ scenes::lobby::lobby()
 		throw std::runtime_error(_("No supported swapchain format"));
 
 	spdlog::info("Using format {}", vk::to_string(swapchain_format));
+
+	composition_layer_depth_test_supported =
+	        instance.has_extension(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME) and
+	        instance.has_extension(XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME);
+
+	if (composition_layer_depth_test_supported)
+		spdlog::info("Composition layer depth test supported");
+	else
+		spdlog::info("Composition layer depth test NOT supported");
 }
 
 static std::string ip_address_to_string(const in_addr & addr)

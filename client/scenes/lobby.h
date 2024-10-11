@@ -65,6 +65,7 @@ class lobby : public scene_impl<lobby>
 	std::optional<input_profile> input;
 	std::optional<hand_model> left_hand;
 	std::optional<hand_model> right_hand;
+	bool composition_layer_depth_test_supported;
 
 	std::optional<imgui_context> imgui_ctx;
 	std::array<XrAction, 2> haptic_output;
