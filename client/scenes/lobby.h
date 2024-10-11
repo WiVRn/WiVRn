@@ -76,8 +76,10 @@ class lobby : public scene_impl<lobby>
 
 	std::vector<xr::swapchain> swapchains_lobby;
 	std::vector<xr::swapchain> swapchains_controllers;
+	std::vector<xr::swapchain> swapchains_depth;
 	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
+	vk::Format depth_format;
 	xr::system::passthrough_type passthrough_supported;
 	xr::passthrough passthrough;
 	XrViewConfigurationView stream_view;
