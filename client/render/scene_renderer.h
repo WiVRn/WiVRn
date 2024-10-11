@@ -24,6 +24,7 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+#include <map>
 #include <span>
 #include <unordered_map>
 #include <vector>
@@ -82,8 +83,8 @@ class scene_renderer
 		image_allocation depth_buffer;
 		vk::raii::ImageView depth_view = nullptr;
 
-		image_allocation multisample_image;
-		vk::raii::ImageView multisample_view = nullptr;
+		// image_allocation multisample_image;
+		// vk::raii::ImageView multisample_view = nullptr;
 	};
 
 	// Initialization functions
@@ -97,7 +98,7 @@ class scene_renderer
 	vk::raii::DescriptorSetLayout create_descriptor_set_layout(std::span<vk::DescriptorSetLayoutBinding> bindings, vk::DescriptorSetLayoutCreateFlags flags = {});
 
 	// Caches
-	std::unordered_map<VkImage, output_image> output_images;
+	std::/*unordered_*/ map<std::pair<VkImage, VkImage>, output_image> output_images; // TODO: use an unordered_map, create a hash for std::pair
 	std::unordered_map<pipeline_info, vk::raii::Pipeline> pipelines;
 
 	output_image & get_output_image_data(vk::Image output_color, vk::Image output_depth);
