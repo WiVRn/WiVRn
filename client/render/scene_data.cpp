@@ -31,6 +31,7 @@
 #include <fastgltf/types.hpp>
 #include <fastgltf/util.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <ranges>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <type_traits>
@@ -492,7 +493,7 @@ public:
 
 		std::vector<std::shared_ptr<scene_data::texture>> textures;
 		textures.reserve(gltf.textures.size());
-		for (auto && [srgb, gltf_texture]: utils::zip(srgb_array, gltf.textures))
+		for (auto && [srgb, gltf_texture]: std::views::zip(srgb_array, gltf.textures))
 		{
 			auto & texture_ref = *textures.emplace_back(std::make_shared<scene_data::texture>());
 

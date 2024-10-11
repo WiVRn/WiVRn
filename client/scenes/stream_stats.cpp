@@ -27,6 +27,7 @@
 #include "utils/ranges.h"
 #include <cmath>
 #include <limits>
+#include <ranges>
 #include <spdlog/spdlog.h>
 
 namespace
@@ -106,7 +107,7 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 			min_encode_begin = std::min(min_encode_begin, bh->timing_info.encode_begin);
 	}
 
-	for (auto && [metrics, bh]: utils::zip(decoder_metrics, blit_handles))
+	for (auto && [metrics, bh]: std::views::zip(decoder_metrics, blit_handles))
 	{
 		if (metrics.size() != global_metrics.size())
 			metrics.resize(global_metrics.size());

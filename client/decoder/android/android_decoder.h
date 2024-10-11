@@ -21,6 +21,7 @@
 
 #include "utils/sync_queue.h"
 #include "wivrn_packets.h"
+#include <functional>
 #include <memory>
 #include <span>
 #include <thread>
