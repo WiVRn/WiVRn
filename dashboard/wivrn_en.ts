@@ -4,48 +4,48 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="main_window.ui" line="67"/>
+        <location filename="main_window.ui" line="105"/>
         <source>Start</source>
         <translation>Start</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="134"/>
+        <location filename="main_window.ui" line="172"/>
         <source>Stop</source>
         <translation>Stop</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="124"/>
+        <location filename="main_window.ui" line="162"/>
         <source>Settings</source>
         <translation>Settings</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="159"/>
+        <location filename="main_window.ui" line="197"/>
         <source>For Steam games, set the launch options to:</source>
         <oldsource>For Steam games, set the command to:</oldsource>
         <translation>For Steam games, set the launch options to:</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="177"/>
+        <location filename="main_window.ui" line="215"/>
         <source>Copy to clipboard</source>
         <translation>Copy to clipboard</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="244"/>
+        <location filename="main_window.ui" line="289"/>
         <source>Disconnect</source>
         <translation>Disconnect</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="309"/>
+        <location filename="main_window.ui" line="354"/>
         <source>Field of view</source>
         <translation>Field of view</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="330"/>
+        <location filename="main_window.ui" line="375"/>
         <source>Microphone</source>
         <translation>Microphone</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="302"/>
+        <location filename="main_window.ui" line="347"/>
         <source>Speaker</source>
         <translation>Speaker</translation>
     </message>
@@ -55,93 +55,103 @@
         <translation>WiVRn dashboard</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="25"/>
+        <location filename="main_window.ui" line="46"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The server does not have CAP_SYS_NICE capabilities. Click &lt;a href=&quot;setcap&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;here&lt;/span&gt;&lt;/a&gt; to grant it.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The server does not have CAP_SYS_NICE capabilities. Click &lt;a href=&quot;setcap&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;here&lt;/span&gt;&lt;/a&gt; to grant it.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="main_window.ui" line="63"/>
         <source>Server status</source>
         <oldsource>Server</oldsource>
         <translation>Server status</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="60"/>
+        <location filename="main_window.ui" line="98"/>
         <source>Stopped</source>
         <translation>Stopped</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="117"/>
+        <location filename="main_window.ui" line="155"/>
         <source>Running</source>
         <translation>Running</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="288"/>
+        <location filename="main_window.ui" line="275"/>
+        <source>Connect by USB</source>
+        <translation>Connect by USB</translation>
+    </message>
+    <message>
+        <location filename="main_window.ui" line="333"/>
         <source>Eye gaze tracking</source>
         <translation>Eye gaze tracking</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="351"/>
+        <location filename="main_window.ui" line="396"/>
         <source>Hand tracking</source>
         <translation>Hand tracking</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="344"/>
+        <location filename="main_window.ui" line="389"/>
         <source>Supported codecs</source>
         <translation>Supported codecs</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="365"/>
+        <location filename="main_window.ui" line="410"/>
         <source>Face tracking</source>
         <translation>Face tracking</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="337"/>
+        <location filename="main_window.ui" line="382"/>
         <source>Available refresh rates</source>
         <translation>Available refresh rates</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="295"/>
+        <location filename="main_window.ui" line="340"/>
         <source>Eye resolution</source>
         <translation>Eye resolution</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="358"/>
+        <location filename="main_window.ui" line="403"/>
         <source>Preferred refresh rate</source>
         <translation>Preferred refresh rate</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="504"/>
+        <location filename="main_window.ui" line="549"/>
         <source>&amp;Exit</source>
         <translation>&amp;Exit</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="488"/>
+        <location filename="main_window.ui" line="533"/>
         <source>&amp;Show</source>
         <translation>&amp;Show</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="217"/>
+        <location filename="main_window.ui" line="255"/>
         <source>Headset status</source>
         <translation>Headset status</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="237"/>
+        <location filename="main_window.ui" line="282"/>
         <source>Wizard</source>
         <translation>Wizard</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="254"/>
+        <location filename="main_window.ui" line="299"/>
         <source>Details</source>
         <translation>Details</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="462"/>
+        <location filename="main_window.ui" line="507"/>
         <source>About</source>
         <translation>About</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="472"/>
+        <location filename="main_window.ui" line="517"/>
         <source>Exit</source>
         <translation>Exit</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="496"/>
+        <location filename="main_window.ui" line="541"/>
         <source>&amp;Hide</source>
         <translation>&amp;Hide</translation>
     </message>
@@ -157,7 +167,7 @@
 <context>
     <name>QWizard</name>
     <message>
-        <location filename="wizard.cpp" line="339"/>
+        <location filename="wizard.cpp" line="332"/>
         <source>&amp;Next &gt;</source>
         <comment>do not translate, the QWizard translation will be used</comment>
         <translation type="unfinished"></translation>
@@ -171,52 +181,58 @@
         <translation>Settings</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="529"/>
+        <location filename="settings.ui" line="534"/>
         <source>Bitrate:</source>
         <oldsource>Bi&amp;trate:</oldsource>
         <translation>Bitrate:</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="90"/>
+        <location filename="settings.ui" line="96"/>
         <source>Foveation strength:</source>
         <translation>Foveation strength:</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="202"/>
+        <location filename="settings.ui" line="208"/>
         <source>Manual</source>
         <oldsource>&amp;Manual</oldsource>
         <comment>Encoder</comment>
         <translation>Manual</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="304"/>
+        <location filename="settings.ui" line="240"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;You can drag an edge to resize or remove encoders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <oldsource>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;You can drag an edge to resize or remove an encoder.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</oldsource>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;You can drag an edge to resize or remove encoders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="settings.ui" line="319"/>
         <source>nvenc (NVIDIA GPUs)</source>
         <translation>nvenc (NVIDIA GPUs)</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="309"/>
+        <location filename="settings.ui" line="324"/>
         <source>vaapi (AMD and Intel GPUs)</source>
         <translation>vaapi (AMD and Intel GPUs)</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="314"/>
+        <location filename="settings.ui" line="329"/>
         <source>x264 (software encoding)</source>
         <translation>x264 (software encoding)</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="410"/>
+        <location filename="settings.ui" line="415"/>
         <source>Manual</source>
         <oldsource>&amp;Manual</oldsource>
         <comment>Foveation</comment>
         <translation>Manual</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="423"/>
+        <location filename="settings.ui" line="428"/>
         <source>Path</source>
         <translation>Path</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="478"/>
+        <location filename="settings.ui" line="483"/>
         <source>Encoder configuration:</source>
         <translation>Encoder configuration:</translation>
     </message>
@@ -225,34 +241,34 @@
         <translation type="vanished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;A stronger foveation makes the image sharper in the center than in the periphery and makes the decoding faster. This is better for fast paced games.&lt;/p&gt;&lt;p&gt;A weaker foveation gives a uniform sharpness in the whole image.&lt;/p&gt;&lt;p&gt;The recommended values are between 20% and 50% for headsets without eye tracking and between 50% and 70% for headsets with eye tracking.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="115"/>
+        <location filename="settings.ui" line="121"/>
         <source>Weaker</source>
         <translation>Weaker</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="135"/>
+        <location filename="settings.ui" line="141"/>
         <source>Stronger</source>
         <translation>Stronger</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="279"/>
+        <location filename="settings.ui" line="294"/>
         <source>Encoder</source>
         <translation>Encoder</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="299"/>
-        <location filename="settings.ui" line="332"/>
+        <location filename="settings.ui" line="314"/>
+        <location filename="settings.ui" line="347"/>
         <source>Auto</source>
         <translation>Auto</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="509"/>
+        <location filename="settings.ui" line="514"/>
         <source>Automatic</source>
         <comment>Encoder</comment>
         <translation>Automatic</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="160"/>
+        <location filename="settings.ui" line="166"/>
         <source>A stronger foveation makes the image sharper in the center than in the periphery and makes the decoding faster. This is better for fast paced games.
 
 A weaker foveation gives a uniform sharpness in the whole image.
@@ -265,43 +281,44 @@ A weaker foveation gives a uniform sharpness in the whole image.
 The recommended values are between 20% and 50% for headsets without eye tracking and between 50% and 70% for headsets with eye tracking.</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="100"/>
+        <location filename="settings.ui" line="106"/>
         <source>Automatic</source>
+        <oldsource>Au&amp;tomatic</oldsource>
         <comment>Foveation</comment>
         <translation>Automatic</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="453"/>
+        <location filename="settings.ui" line="458"/>
         <source>WiVRn settings</source>
         <translation>WiVRn settings</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="395"/>
+        <location filename="settings.ui" line="398"/>
         <source>Codec</source>
         <translation>Codec</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="49"/>
+        <location filename="settings.ui" line="55"/>
         <source> Mbit/s</source>
         <translation> Mbit/s</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="522"/>
+        <location filename="settings.ui" line="527"/>
         <source>You can use several encoders in order to split the workload between your CPU and your GPU and reduce the latency.</source>
         <translation>You can use several encoders in order to split the workload between your CPU and your GPU and reduce the latency.</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="542"/>
+        <location filename="settings.ui" line="547"/>
         <source>You can choose a game to be started automatically when the headset connects.</source>
         <translation>You can choose a game to be started automatically when the headset connects.</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="558"/>
+        <location filename="settings.ui" line="563"/>
         <source>Browse</source>
         <translation>Browse</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="571"/>
+        <location filename="settings.ui" line="576"/>
         <source> %</source>
         <translation> %</translation>
     </message>
@@ -330,7 +347,7 @@ The recommended values are between 20% and 50% for headsets without eye tracking
     </message>
     <message>
         <location filename="wizard.ui" line="223"/>
-        <location filename="wizard.ui" line="312"/>
+        <location filename="wizard.ui" line="318"/>
         <source>Install the WiVRn app on your headset</source>
         <translation>Install the WiVRn app on your headset</translation>
     </message>
@@ -381,37 +398,37 @@ The recommended values are between 20% and 50% for headsets without eye tracking
         <translation type="vanished">Run the following command to install the client:</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="501"/>
+        <location filename="wizard.ui" line="523"/>
         <source>Copy to clipboard</source>
         <translation>Copy to clipboard</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="357"/>
+        <location filename="wizard.ui" line="379"/>
         <source>Start the WiVRn app and connect to this computer</source>
         <translation>Start the WiVRn app and connect to this computer</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="334"/>
+        <location filename="wizard.ui" line="340"/>
         <source>Installing...</source>
         <translation>Installing...</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="424"/>
+        <location filename="wizard.ui" line="446"/>
         <source>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</source>
         <translation>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="451"/>
+        <location filename="wizard.ui" line="473"/>
         <source>Finished</source>
         <translation>Finished</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="476"/>
+        <location filename="wizard.ui" line="498"/>
         <source>You can now start an OpenXR application on this computer.</source>
         <translation>You can now start an OpenXR application on this computer.</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="483"/>
+        <location filename="wizard.ui" line="505"/>
         <source>For Steam games, set the launch options to:</source>
         <oldsource>For Steam games, set the command to:</oldsource>
         <translation>For Steam games, set the launch options to:</translation>
@@ -420,53 +437,75 @@ The recommended values are between 20% and 50% for headsets without eye tracking
 <context>
     <name>main_window</name>
     <message>
-        <location filename="main_window.cpp" line="186"/>
+        <location filename="main_window.cpp" line="232"/>
         <source>&amp;Show GUI</source>
         <translation>&amp;Show GUI</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="187"/>
+        <location filename="main_window.cpp" line="233"/>
         <source>&amp;Hide GUI</source>
         <translation>&amp;Hide GUI</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="188"/>
+        <location filename="main_window.cpp" line="234"/>
         <source>&amp;Exit</source>
         <translation>&amp;Exit</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="281"/>
+        <location filename="main_window.cpp" line="373"/>
+        <source>You have to restart the WiVRn server to use the CAP_SYS_NICE capability.
+Do you want to restart it now?</source>
+        <translation>You have to restart the WiVRn server to use the CAP_SYS_NICE capability.
+Do you want to restart it now?</translation>
+    </message>
+    <message>
+        <location filename="main_window.cpp" line="377"/>
+        <source>This will disconnect the currently connected headset.</source>
+        <translation>This will disconnect the currently connected headset.</translation>
+    </message>
+    <message>
+        <location filename="main_window.cpp" line="380"/>
+        <source>Restart WiVRn</source>
+        <translation>Restart WiVRn</translation>
+    </message>
+    <message>
+        <location filename="main_window.cpp" line="404"/>
+        <source>Cannot start setcap: %1</source>
+        <translation>Cannot start setcap: %1</translation>
+    </message>
+    <message>
+        <location filename="main_window.cpp" line="476"/>
         <source>%1 ⨯ %2</source>
         <translation>%1 ⨯ %2</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="288"/>
-        <location filename="main_window.cpp" line="295"/>
+        <location filename="main_window.cpp" line="483"/>
+        <location filename="main_window.cpp" line="490"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="300"/>
-        <location filename="main_window.cpp" line="305"/>
-        <location filename="main_window.cpp" line="322"/>
+        <location filename="main_window.cpp" line="495"/>
+        <location filename="main_window.cpp" line="500"/>
+        <location filename="main_window.cpp" line="517"/>
         <source>Supported</source>
         <translation>Supported</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="300"/>
-        <location filename="main_window.cpp" line="305"/>
-        <location filename="main_window.cpp" line="322"/>
+        <location filename="main_window.cpp" line="495"/>
+        <location filename="main_window.cpp" line="500"/>
+        <location filename="main_window.cpp" line="517"/>
         <source>Not supported</source>
         <translation>Not supported</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="312"/>
+        <location filename="main_window.cpp" line="507"/>
         <source>Left eye: %1° ⨯ %2°, right eye: %3° ⨯ %4°</source>
         <translation>Left eye: %1° ⨯ %2°, right eye: %3° ⨯ %4°</translation>
     </message>
     <message numerus="yes">
-        <location filename="main_window.cpp" line="331"/>
-        <location filename="main_window.cpp" line="342"/>
+        <location filename="main_window.cpp" line="526"/>
+        <location filename="main_window.cpp" line="537"/>
         <source>%n channel(s), %1 Hz</source>
         <oldsource>%1 channel(s), %2 Hz</oldsource>
         <translation>
@@ -475,43 +514,54 @@ The recommended values are between 20% and 50% for headsets without eye tracking
         </translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="333"/>
-        <location filename="main_window.cpp" line="344"/>
+        <location filename="main_window.cpp" line="528"/>
+        <location filename="main_window.cpp" line="539"/>
         <source>N/A</source>
         <translation>N/A</translation>
+    </message>
+    <message>
+        <location filename="main_window.cpp" line="746"/>
+        <source>The WiVRn app is not installed on your headset.</source>
+        <translation>The WiVRn app is not installed on your headset.</translation>
+    </message>
+    <message>
+        <source>The WiVRn app is not installed on your headset.
+Do you want to install it?</source>
+        <translation type="vanished">The WiVRn app is not installed on your headset.
+Do you want to install it?</translation>
     </message>
     <message>
         <source>WiVRn</source>
         <translation type="obsolete">WiVRn</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="410"/>
+        <location filename="main_window.cpp" line="608"/>
         <source>Failed to start</source>
         <translation>Failed to start</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="413"/>
+        <location filename="main_window.cpp" line="611"/>
         <source>Crashed</source>
         <translation>Crashed</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="416"/>
+        <location filename="main_window.cpp" line="614"/>
         <source>Time out</source>
         <translation>Time out</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="419"/>
+        <location filename="main_window.cpp" line="617"/>
         <source>Read error</source>
         <translation>Read error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="422"/>
+        <location filename="main_window.cpp" line="620"/>
         <source>Write error</source>
         <oldsource>write error</oldsource>
         <translation>Write error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="425"/>
+        <location filename="main_window.cpp" line="623"/>
         <source>Unknown error</source>
         <translation>Unknown error</translation>
     </message>
@@ -520,57 +570,62 @@ The recommended values are between 20% and 50% for headsets without eye tracking
         <translation type="vanished">Server error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="431"/>
+        <location filename="main_window.cpp" line="629"/>
         <source>Failed to start server:
 %1</source>
         <translation>Failed to start server:
 %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="371"/>
+        <location filename="main_window.cpp" line="563"/>
         <source>Unknown error (%1), check logs</source>
         <translation>Unknown error (%1), check logs</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="184"/>
+        <location filename="main_window.cpp" line="287"/>
+        <source>No device detected</source>
+        <translation>No device detected</translation>
+    </message>
+    <message>
+        <location filename="main_window.cpp" line="230"/>
         <source>Start the WiVRn app on your headset and connect to &quot;%1&quot;.</source>
         <translation>Start the WiVRn app on your headset and connect to &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="184"/>
+        <location filename="main_window.cpp" line="230"/>
         <source>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</source>
         <translation>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="259"/>
+        <location filename="main_window.cpp" line="452"/>
         <source>Connected</source>
         <translation>Connected</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="263"/>
+        <location filename="main_window.cpp" line="457"/>
         <source>Not connected</source>
         <translation>Not connected</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="382"/>
+        <location filename="main_window.cpp" line="574"/>
         <source>Cannot connect to avahi, make sure avahi-daemon service is started</source>
         <oldsource>Cannot connect to avahi, make sure avahi_daemon.service is started</oldsource>
         <translation>Cannot connect to avahi, make sure avahi-daemon service is started</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="379"/>
+        <location filename="main_window.cpp" line="571"/>
         <source>Insufficient system resources</source>
         <translation>Insufficient system resources</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="388"/>
+        <location filename="main_window.cpp" line="580"/>
         <source>Server crashed:
 %1</source>
         <translation>Server crashed:
 %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="460"/>
+        <location filename="main_window.cpp" line="658"/>
         <source>Timeout starting server</source>
         <translation>Timeout starting server</translation>
     </message>
@@ -578,36 +633,36 @@ The recommended values are between 20% and 50% for headsets without eye tracking
 <context>
     <name>settings</name>
     <message>
-        <location filename="settings.cpp" line="377"/>
+        <location filename="settings.cpp" line="389"/>
         <source>Invalid settings</source>
         <translation>Invalid settings</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="377"/>
+        <location filename="settings.cpp" line="389"/>
         <source>The encoder configuration is invalid, the default values will be restored.</source>
         <translation>The encoder configuration is invalid, the default values will be restored.</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="433"/>
+        <location filename="settings.cpp" line="445"/>
         <source>None</source>
         <comment>Game selection combo box</comment>
         <translation>None</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="434"/>
+        <location filename="settings.cpp" line="446"/>
         <source>Custom...</source>
         <comment>Game selection combo box</comment>
         <translation>Custom...</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="244"/>
+        <location filename="settings.cpp" line="246"/>
         <source>Not all headsets and GPUs support AV1
 </source>
         <translation>Not all headsets and GPUs support AV1
 </translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="275"/>
+        <location filename="settings.cpp" line="277"/>
         <source>Select game</source>
         <translation>Select game</translation>
     </message>
@@ -615,8 +670,8 @@ The recommended values are between 20% and 50% for headsets without eye tracking
 <context>
     <name>wizard</name>
     <message>
-        <location filename="wizard.cpp" line="337"/>
-        <location filename="wizard.cpp" line="377"/>
+        <location filename="wizard.cpp" line="330"/>
+        <location filename="wizard.cpp" line="370"/>
         <source>Download</source>
         <translation>Download</translation>
     </message>
@@ -632,64 +687,69 @@ The recommended values are between 20% and 50% for headsets without eye tracking
     </message>
     <message>
         <location filename="wizard.cpp" line="157"/>
-        <location filename="wizard.cpp" line="224"/>
+        <location filename="wizard.cpp" line="217"/>
         <source>If you install the headset app from the store, it might not be compatible with this server.</source>
         <translation>If you install the headset app from the store, it might not be compatible with this server.</translation>
     </message>
     <message>
         <location filename="wizard.cpp" line="159"/>
-        <location filename="wizard.cpp" line="226"/>
+        <location filename="wizard.cpp" line="219"/>
         <source>If you install the headset app manually, this wizard will download the version that matches the dashboard.</source>
         <translation>If you install the headset app manually, this wizard will download the version that matches the dashboard.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="222"/>
+        <location filename="wizard.cpp" line="210"/>
+        <source>This is the latest WiVRn release.</source>
+        <translation>This is the latest WiVRn release.</translation>
+    </message>
+    <message>
+        <location filename="wizard.cpp" line="215"/>
         <source>A new release is available (%1 → %2).</source>
         <translation>A new release is available (%1 → %2).</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="232"/>
+        <location filename="wizard.cpp" line="225"/>
         <source>Cannot get latest release: %1</source>
         <translation>Cannot get latest release: %1</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="252"/>
+        <location filename="wizard.cpp" line="245"/>
         <source>There is no precompiled APK for this version.</source>
         <translation>There is no precompiled APK for this version.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="254"/>
+        <location filename="wizard.cpp" line="247"/>
         <source>Follow the &lt;a href=&quot;https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#2980b9;&quot;&gt;documentation&lt;/span&gt;&lt;/a&gt; to build your own client.</source>
         <translation>Follow the &lt;a href=&quot;https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#2980b9;&quot;&gt;documentation&lt;/span&gt;&lt;/a&gt; to build your own client.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="287"/>
+        <location filename="wizard.cpp" line="280"/>
         <source>Cannot get APK information: %1</source>
         <translation>Cannot get APK information: %1</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="310"/>
+        <location filename="wizard.cpp" line="303"/>
         <source>How?</source>
         <translation>How?</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="378"/>
-        <location filename="wizard.cpp" line="406"/>
+        <location filename="wizard.cpp" line="371"/>
+        <location filename="wizard.cpp" line="399"/>
         <source>Skip</source>
         <translation>Skip</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="455"/>
+        <location filename="wizard.cpp" line="448"/>
         <source>Start the WiVRn app on your headset and connect to &quot;%1&quot;.</source>
         <translation>Start the WiVRn app on your headset and connect to &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="615"/>
+        <location filename="wizard.cpp" line="582"/>
         <source>No device detected.</source>
         <translation>No device detected.</translation>
     </message>
     <message numerus="yes">
-        <location filename="wizard.cpp" line="622"/>
+        <location filename="wizard.cpp" line="584"/>
         <source>%n device(s) detected.</source>
         <translation>
             <numerusform>%n device detected.</numerusform>
@@ -709,7 +769,7 @@ The recommended values are between 20% and 50% for headsets without eye tracking
         <translation type="vanished">WiVRn</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="539"/>
+        <location filename="wizard.cpp" line="532"/>
         <source>Error downloading the client:
 %1</source>
         <translation>Error downloading the client:
@@ -721,12 +781,12 @@ The recommended values are between 20% and 50% for headsets without eye tracking
         <translation type="vanished">Download error: %1</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="678"/>
+        <location filename="wizard.cpp" line="682"/>
         <source>The headset is connected.</source>
         <translation>The headset is connected.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="680"/>
+        <location filename="wizard.cpp" line="684"/>
         <source>The headset is not connected.</source>
         <translation>The headset is not connected.</translation>
     </message>
