@@ -35,6 +35,10 @@
 #include "wivrn_server.h"
 #include "wizard.h"
 
+#if WIVRN_CHECK_CAPSYSNICE
+#include <sys/capability.h>
+#endif
+
 Q_LOGGING_CATEGORY(wivrn_log_category, "wivrn")
 
 enum class server_state
@@ -42,6 +46,33 @@ enum class server_state
 	stopped = 0,
 	started = 1
 };
+
+static QString server_path()
+{
+	return QCoreApplication::applicationDirPath() + "/wivrn-server";
+}
+
+#if WIVRN_CHECK_CAPSYSNICE
+static bool server_has_cap_sys_nice()
+{
+	auto caps = cap_get_file(server_path().toStdString().c_str());
+
+	if (not caps)
+		return false;
+
+	char * cap_text = cap_to_text(caps, nullptr);
+	qDebug() << "Server capabilities:" << cap_text;
+	cap_free(cap_text);
+
+	cap_flag_value_t value{};
+	if (cap_get_flag(caps, CAP_SYS_NICE, CAP_EFFECTIVE, &value) < 0)
+		return false;
+
+	cap_free(caps);
+
+	return value == CAP_SET;
+}
+#endif
 
 main_window::main_window()
 {
@@ -89,9 +120,8 @@ main_window::main_window()
 	connect(server_interface, &wivrn_server::serverRunningChanged, this, &main_window::on_server_running_changed);
 	connect(server_interface, &wivrn_server::headsetConnectedChanged, this, &main_window::on_headset_connected_changed);
 
-	if (server_interface->isServerRunning())
-		on_server_dbus_registered();
-	else
+	on_server_running_changed(server_interface->isServerRunning());
+	if (not server_interface->isServerRunning())
 		start_server();
 
 	connect(server_interface, &wivrn_server::recommendedEyeSizeChanged, this, &main_window::on_recommended_eye_size_changed);
@@ -126,6 +156,17 @@ main_window::main_window()
 	ui->button_usb->setMenu(usb_device_menu);
 	connect(&adb_service, &adb::android_devices_changed, this, &main_window::on_android_device_list_changed);
 	on_android_device_list_changed(adb_service.devices());
+
+#if WIVRN_CHECK_CAPSYSNICE
+	QIcon icon = QIcon::fromTheme(QIcon::ThemeIcon::DialogInformation);
+	ui->banner_capsysnice_icon->setPixmap(icon.pixmap(ui->banner_capsysnice_dismiss->height()));
+	connect(ui->banner_capsysnice_text, &QLabel::linkActivated, this, &main_window::on_banner_capsysnice);
+
+	if (server_has_cap_sys_nice())
+		ui->banner_capsysnice->hide();
+#else
+	ui->banner_capsysnice->hide();
+#endif
 
 	retranslate();
 }
@@ -284,11 +325,108 @@ void main_window::on_android_device_list_changed(const std::vector<adb::device> 
 	}
 }
 
+void main_window::on_banner_capsysnice(const QString & link)
+{
+#if WIVRN_CHECK_CAPSYSNICE
+	if (link == "setcap" and not setcap_process)
+	{
+		setcap_process = new QProcess(this);
+		setcap_process->setProgram("pkexec");
+		setcap_process->setArguments({"setcap", "CAP_SYS_NICE=+ep", server_path()});
+		setcap_process->setProcessChannelMode(QProcess::MergedChannels);
+		setcap_process->start();
+
+		connect(setcap_process, &QProcess::finished, this, [this](int exit_code, QProcess::ExitStatus exit_status) {
+			// Exit codes:
+			// 0: setcap successful
+			// 1: setcap failed
+			// 126: pkexec: not authorized or authentication error
+			// 127: pkexec: dismissed by user
+			qDebug() << "pkexec setcap exited with code" << exit_code << "and status" << exit_status;
+
+			qDebug() << "--------";
+			for (auto line: setcap_process->readAllStandardOutput().split('\n'))
+			{
+				QDebug dbg = qDebug();
+				dbg.noquote();
+				dbg << "  " << QString::fromStdString(line.toStdString());
+			}
+			qDebug() << "--------";
+
+			if (exit_status == QProcess::NormalExit)
+			{
+				if (exit_code == 0)
+				{
+					if (not server_has_cap_sys_nice())
+					{
+						qDebug() << "pkexec setcap returned successfully but the server does not have the CAP_SYS_NICE capability";
+					}
+					else
+					{
+						ui->banner_capsysnice->hide();
+
+						// Don't restart if it wasn't already started
+						if (server_interface)
+						{
+							QMessageBox msgbox;
+							msgbox.setIcon(QMessageBox::Information);
+							msgbox.setText(tr("You have to restart the WiVRn server to use the CAP_SYS_NICE capability.\nDo you want to restart it now?"));
+
+							if (server_interface->isHeadsetConnected())
+							{
+								msgbox.setText(msgbox.text() + "\n\n" + tr("This will disconnect the currently connected headset."));
+							}
+
+							auto restart_button = msgbox.addButton(tr("Restart WiVRn"), QMessageBox::YesRole);
+							auto close_button = msgbox.addButton(QMessageBox::Close);
+
+#ifdef WORKAROUND_QTBUG_90005
+							setEnabled(false);
+#endif
+							msgbox.exec();
+#ifdef WORKAROUND_QTBUG_90005
+							setEnabled(true);
+#endif
+
+							if (msgbox.clickedButton() == restart_button)
+							{
+								server_process_restart = true;
+								stop_server();
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				QMessageBox msgbox;
+				msgbox.setIcon(QMessageBox::Critical);
+				msgbox.setText(tr("Cannot start setcap: %1").arg(exit_status));
+
+				auto close_button = msgbox.addButton(QMessageBox::Close);
+
+#ifdef WORKAROUND_QTBUG_90005
+				setEnabled(false);
+#endif
+				msgbox.exec();
+#ifdef WORKAROUND_QTBUG_90005
+				setEnabled(true);
+#endif
+			}
+
+			setcap_process->deleteLater();
+			setcap_process = nullptr;
+		});
+	}
+#endif
+}
+
 void main_window::on_server_running_changed(bool running)
 {
 	if (running)
 	{
-		on_server_dbus_registered();
+		qDebug() << "Server started";
+		server_process_timeout->stop();
 
 		ui->stacked_widget_server->setCurrentIndex((int)server_state::started);
 		ui->group_client->setEnabled(true);
@@ -298,6 +436,7 @@ void main_window::on_server_running_changed(bool running)
 	}
 	else
 	{
+		qDebug() << "Server stopped";
 		ui->stacked_widget_server->setCurrentIndex((int)server_state::stopped);
 		ui->group_client->setEnabled(false);
 
@@ -309,10 +448,12 @@ void main_window::on_headset_connected_changed(bool connected)
 {
 	if (connected)
 	{
+		qDebug() << "Headset connected";
 		ui->label_client_status->setText(tr("Connected"));
 	}
 	else
 	{
+		qDebug() << "Headset disconnected";
 		ui->label_client_status->setText(tr("Not connected"));
 	}
 
@@ -408,13 +549,10 @@ void main_window::on_steam_command_changed(QString value)
 	ui->label_steam_command->setText(value);
 }
 
-void main_window::on_server_dbus_registered()
-{
-	server_process_timeout->stop();
-}
-
 void main_window::on_server_finished(int exit_code, QProcess::ExitStatus status)
 {
+	qDebug() << "Server exited with code" << exit_code << ", status" << status;
+
 	disconnect(server_process, &QProcess::finished, this, &main_window::on_server_finished);
 	disconnect(server_process, &QProcess::errorOccurred, this, &main_window::on_server_error_occurred);
 	server_process->deleteLater();
@@ -450,6 +588,12 @@ void main_window::on_server_finished(int exit_code, QProcess::ExitStatus status)
 #ifdef WORKAROUND_QTBUG_90005
 		setEnabled(true);
 #endif
+	}
+
+	if (server_process_restart)
+	{
+		server_process_restart = false;
+		start_server();
 	}
 }
 
@@ -581,6 +725,7 @@ void main_window::on_action_usb(const std::string & serial)
 		return;
 
 	// TODO: in another thread
+	// TODO: check if adb works
 	bool ok = false;
 	for (auto & app: dev.installed_apps())
 	{
@@ -614,6 +759,8 @@ void main_window::on_action_usb(const std::string & serial)
 
 void main_window::start_server()
 {
+	qDebug() << "Starting server";
+
 	// TODO activate by dbus?
 	server_process = new QProcess;
 	connect(server_process, &QProcess::finished, this, &main_window::on_server_finished);
@@ -621,7 +768,7 @@ void main_window::start_server()
 
 	server_process->setProcessChannelMode(QProcess::ForwardedChannels);
 
-	server_process->start(QCoreApplication::applicationDirPath() + "/wivrn-server");
+	server_process->start(server_path());
 	server_process_timeout->start();
 
 	ui->button_start->setEnabled(false);
@@ -629,6 +776,8 @@ void main_window::start_server()
 
 void main_window::stop_server()
 {
+	qDebug() << "Stopping server";
+
 	if (server_interface)
 		server_interface->quit() /*.waitForFinished()*/;
 	// server_process.terminate(); // TODO timer and kill
@@ -637,6 +786,8 @@ void main_window::stop_server()
 
 void main_window::disconnect_client()
 {
+	qDebug() << "Disconnecting client";
+
 	if (server_interface)
 		server_interface->disconnect_headset();
 }

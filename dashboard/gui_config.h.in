@@ -19,6 +19,6 @@
 
 #pragma once
 
-#define WIVRN_CLIENT_URL "@WIVRN_CLIENT_URL@"
+#cmakedefine01 WIVRN_CHECK_CAPSYSNICE
 
 #define WORKAROUND_QTBUG_90005 // See https://bugreports.qt.io/browse/QTBUG-90005

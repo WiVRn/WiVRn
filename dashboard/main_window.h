@@ -62,11 +62,14 @@ class main_window : public QMainWindow
 
 	QProcess * server_process = nullptr;
 	QTimer * server_process_timeout = nullptr;
+	bool server_process_restart = false;
 
 	QMenu * usb_device_menu;
 	std::map<std::string, std::unique_ptr<QAction>> usb_actions;
 
 	adb adb_service;
+
+	QProcess * setcap_process = nullptr;
 
 public:
 	main_window();
@@ -78,12 +81,12 @@ public:
 	void setVisible(bool visible) override;
 
 private:
-	void on_server_dbus_registered();
 	void on_server_finished(int exit_code, QProcess::ExitStatus status);
 	void on_server_error_occurred(QProcess::ProcessError error);
 	void on_server_start_timeout();
 
 	void on_button_details_toggled(bool);
+	void on_banner_capsysnice(const QString & link);
 
 	void on_server_running_changed(bool running);
 	void on_headset_connected_changed(bool connected);

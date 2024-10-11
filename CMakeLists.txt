@@ -41,6 +41,8 @@ option(WIVRN_FEATURE_RENDERDOC "Support renderdoc" OFF)
 option(WIVRN_FEATURE_SOLARXR "Enable SolarXR driver" OFF)
 option(WIVRN_FEATURE_STEAMVR_LIGHTHOUSE "Enable SteamVR Lighthouse driver" OFF)
 
+option(WIVRN_CHECK_CAPSYSNICE "Check if CAP_SYS_NICE is available at startup" ON)
+
 option(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH OFF)
 
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
@@ -149,6 +151,10 @@ endif()
 if (WIVRN_BUILD_DASHBOARD)
     find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets DBus Network LinguistTools)
     find_package(nlohmann_json REQUIRED)
+    if (WIVRN_CHECK_CAPSYSNICE)
+        pkg_check_modules(libcap REQUIRED IMPORTED_TARGET libcap)
+    endif()
+
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
     set(CMAKE_AUTOUIC ON)

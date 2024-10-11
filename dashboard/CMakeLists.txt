@@ -55,6 +55,9 @@ target_link_libraries(wivrn-dashboard PRIVATE
         Qt6::Network
         nlohmann_json
 )
+if (WIVRN_CHECK_CAPSYSNICE)
+    target_link_libraries(wivrn-dashboard PRIVATE PkgConfig::libcap)
+endif()
 
 file(GLOB TRANSLATION_FILES ${CMAKE_CURRENT_SOURCE_DIR}/wivrn_*.ts)
 qt_add_translations(wivrn-dashboard TS_FILES ${TRANSLATION_FILES})

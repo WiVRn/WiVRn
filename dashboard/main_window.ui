@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>898</width>
-    <height>796</height>
+    <height>757</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,45 @@
     <normaloff>:/images/wivrn.svg</normaloff>:/images/wivrn.svg</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,1,0">
+   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,1,0">
+    <item>
+     <widget class="QFrame" name="banner_capsysnice">
+      <property name="styleSheet">
+       <string notr="true">#banner_capsysnice
+{
+background-color: rgb(255, 170, 127);
+border: 1px solid rgb(255, 127, 127);
+border-radius: 5px;
+}</string>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::Box</enum>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="0,1,0">
+       <item>
+        <widget class="QLabel" name="banner_capsysnice_icon">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="banner_capsysnice_text">
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The server does not have CAP_SYS_NICE capabilities. Click &lt;a href=&quot;setcap&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;here&lt;/span&gt;&lt;/a&gt; to grant it.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="banner_capsysnice_dismiss">
+         <property name="icon">
+          <iconset theme="QIcon::ThemeIcon::WindowClose"/>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
     <item>
      <widget class="QGroupBox" name="group_server">
       <property name="title">
@@ -514,7 +552,23 @@
  </widget>
  <resources>
   <include location="../wivrn-dashboard.qrc"/>
-  <include location="../wivrn-dashboard.qrc"/>
  </resources>
- <connections/>
+ <connections>
+  <connection>
+   <sender>banner_capsysnice_dismiss</sender>
+   <signal>clicked()</signal>
+   <receiver>banner_capsysnice</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>837</x>
+     <y>31</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>799</x>
+     <y>54</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
