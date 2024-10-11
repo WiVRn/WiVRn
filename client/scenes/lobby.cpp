@@ -42,6 +42,7 @@
 #include <string>
 #include <utils/ranges.h>
 #include <vulkan/vulkan_raii.hpp>
+#include <ranges>
 
 #include <arpa/inet.h>
 #include <netdb.h>

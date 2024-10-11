@@ -20,9 +20,9 @@
 #include "session.h"
 
 #include "details/enumerate.h"
-#include "utils/ranges.h"
 #include "xr/instance.h"
 #include "xr/system.h"
+#include <ranges>
 #include <vulkan/vulkan.h>
 #include <openxr/openxr_platform.h>
 
@@ -308,7 +308,7 @@ void xr::session::sync_actions(std::span<XrActionSet> action_sets)
 {
 	std::vector<XrActiveActionSet> active_action_sets(action_sets.size());
 
-	for (auto && [i, j]: utils::zip(active_action_sets, action_sets))
+	for (auto && [i, j]: std::views::zip(active_action_sets, action_sets))
 	{
 		i.actionSet = j;
 		i.subactionPath = XR_NULL_PATH;

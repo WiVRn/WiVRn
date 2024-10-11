@@ -19,7 +19,7 @@
 
 #include "application.h"
 #include "stream.h"
-#include "utils/ranges.h"
+#include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
 
@@ -240,7 +240,7 @@ void scenes::stream::tracking()
 					auto [flags, views] = session.locate_views(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, t0 + Δt, view_space);
 					assert(views.size() == packet.views.size());
 
-					for (auto [i, j]: utils::zip(views, packet.views))
+					for (auto [i, j]: std::views::zip(views, packet.views))
 					{
 						j.pose = i.pose;
 						j.fov = i.fov;
