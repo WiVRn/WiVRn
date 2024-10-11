@@ -68,7 +68,7 @@ void wivrn_pacer::predict(
 	// snap to phase
 	predicted_client_render = (predicted_client_render / frame_duration_ns) * frame_duration_ns + client_render_phase_ns;
 
-	if (now + mean_wake_up_to_present_ns + safe_present_to_decoded_ns > predicted_client_render)
+	if (now + mean_wake_up_to_present_ns + safe_present_to_decoded_ns + margin_ns > predicted_client_render)
 		predicted_client_render += frame_duration_ns * ((now + mean_wake_up_to_present_ns + safe_present_to_decoded_ns - predicted_client_render) / frame_duration_ns);
 
 	out_predicted_display_time_ns = predicted_client_render + mean_render_to_display_ns;
