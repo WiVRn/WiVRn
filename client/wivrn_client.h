@@ -51,6 +51,13 @@ public:
 	{
 		control.send(std::forward<T>(packet));
 	}
+
+	template <typename T>
+	void serialize_control(serialization_packet & p, const T & data)
+	{
+		control.serialize<T>(p, data);
+	}
+
 	template <typename T>
 	void send_stream(T && packet)
 	{
@@ -58,6 +65,12 @@ public:
 			stream.send(std::forward<T>(packet));
 		else
 			control.send(std::forward<T>(packet));
+	}
+
+	template <typename T>
+	void serialize_stream(serialization_packet & p, const T & data)
+	{
+		stream.serialize<T>(p, data);
 	}
 
 	template <typename T>

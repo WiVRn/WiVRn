@@ -34,6 +34,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <map>
 #include <memory>
+#include <ranges>
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
 
@@ -206,7 +207,7 @@ scene_renderer::scene_renderer(
 	                .commandBufferCount = (uint32_t)frame_resources.size(),
 	        });
 
-	for (auto && [res, cb]: utils::zip(frame_resources, command_buffers))
+	for (auto && [res, cb]: std::views::zip(frame_resources, command_buffers))
 	{
 		res.fence = device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
 		res.cb = std::move(cb);
