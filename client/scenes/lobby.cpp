@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <glm/gtc/quaternion.hpp>
 #include <magic_enum.hpp>
+#include <ranges>
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -89,9 +90,14 @@ static std::string choose_webxr_profile()
 	__builtin_unreachable();
 }
 
-static const std::array supported_formats = {
+static const std::array supported_color_formats = {
         vk::Format::eR8G8B8A8Srgb,
         vk::Format::eB8G8R8A8Srgb,
+};
+
+static const std::array supported_depth_formats{
+        vk::Format::eD32Sfloat,
+        vk::Format::eX8D24UnormPack32,
 };
 
 void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
@@ -129,9 +135,10 @@ scenes::lobby::lobby()
 	{
 		spdlog::info("    {}", vk::to_string(format));
 	}
+
 	for (auto format: session.get_swapchain_formats())
 	{
-		if (std::find(supported_formats.begin(), supported_formats.end(), format) != supported_formats.end())
+		if (std::find(supported_color_formats.begin(), supported_color_formats.end(), format) != supported_color_formats.end())
 		{
 			swapchain_format = format;
 			break;
@@ -141,7 +148,31 @@ scenes::lobby::lobby()
 	if (swapchain_format == vk::Format::eUndefined)
 		throw std::runtime_error(_("No supported swapchain format"));
 
-	spdlog::info("Using format {}", vk::to_string(swapchain_format));
+	auto views = system.view_configuration_views(viewconfig);
+	stream_view = override_view(views[0], guess_model());
+	uint32_t width = views[0].recommendedImageRectWidth;
+	uint32_t height = views[0].recommendedImageRectHeight;
+
+	depth_format = scene_renderer::find_usable_image_format(
+	        physical_device,
+	        supported_depth_formats,
+	        {
+	                width,
+	                height,
+	                1,
+	        },
+	        vk::ImageUsageFlagBits::eDepthStencilAttachment);
+
+	spdlog::info("Using formats {} and {}", vk::to_string(swapchain_format), vk::to_string(depth_format));
+
+	composition_layer_depth_test_supported =
+	        instance.has_extension(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME) and
+	        instance.has_extension(XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME);
+
+	if (composition_layer_depth_test_supported)
+		spdlog::info("Composition layer depth test supported");
+	else
+		spdlog::info("Composition layer depth test NOT supported");
 }
 
 static std::string ip_address_to_string(const in_addr & addr)
@@ -248,12 +279,14 @@ static glm::mat4 projection_matrix(XrFovf fov, float zn = 0.02)
 	float t = tan(fov.angleUp);
 	float b = tan(fov.angleDown);
 
+	// reversed Z projection, infinite far plane
+
 	// clang-format off
 	return glm::mat4{
 		{ 2/(r-l),     0,            0,    0 },
 		{ 0,           2/(b-t),      0,    0 },
-		{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
-		{ 0,           0,           -2*zn, 0 }
+		{ (l+r)/(r-l), (t+b)/(b-t),  0,   -1 },
+		{ 0,           0,            zn,   0 }
 	};
 	// clang-format on
 }
@@ -428,42 +461,81 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gui(glm::vec3 head_positi
 	return std::nullopt;
 }
 
-static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView> & views, std::vector<xr::swapchain> & swapchains, scene_renderer & renderer, scene_data & data, const std::array<float, 4> & clear_color)
+static std::pair<std::vector<XrCompositionLayerProjectionView>, std::vector<XrCompositionLayerDepthInfoKHR>> render_layer(
+        std::vector<XrView> & views,
+        std::vector<xr::swapchain> & color_swapchains,
+        std::vector<xr::swapchain> & depth_swapchains,
+        scene_renderer & renderer,
+        scene_data & data,
+        const std::array<float, 4> & clear_color)
 {
 	std::vector<scene_renderer::frame_info> frames;
 	frames.reserve(views.size());
 
-	std::vector<XrCompositionLayerProjectionView> layer_views;
-	layer_views.reserve(views.size());
+	std::vector<XrCompositionLayerProjectionView> proj_layer_views;
+	std::vector<XrCompositionLayerDepthInfoKHR> depth_layer_views;
+	proj_layer_views.reserve(views.size());
+	depth_layer_views.reserve(views.size());
 
-	for (auto && [view, swapchain]: utils::zip(views, swapchains))
+	for (auto && [view, color_swapchain, depth_swapchain]: std::views::zip(views, color_swapchains, depth_swapchains))
 	{
-		int image_index = swapchain.acquire();
-		swapchain.wait();
+		int color_image_index = color_swapchain.acquire();
+		color_swapchain.wait();
+
+		int depth_image_index = depth_swapchain ? depth_swapchain.acquire() : 0;
+		if (depth_swapchain)
+			depth_swapchain.wait();
+
+		float zn = 0.02;
 
 		frames.push_back({
-		        .destination = swapchain.images()[image_index].image,
-		        .projection = projection_matrix(view.fov),
+		        .destination = color_swapchain.images()[color_image_index].image,
+		        .depth_buffer = depth_swapchain ? depth_swapchain.images()[depth_image_index].image : vk::Image{},
+		        .projection = projection_matrix(view.fov, zn),
 		        .view = view_matrix(view.pose),
 		});
 
-		layer_views.push_back({
+		proj_layer_views.push_back({
 		        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
 		        .pose = view.pose,
 		        .fov = view.fov,
 		        .subImage = {
-		                .swapchain = swapchain,
+		                .swapchain = color_swapchain,
 		                .imageRect = {
 		                        .offset = {0, 0},
-		                        .extent = swapchain.extent(),
+		                        .extent = color_swapchain.extent(),
 		                },
 		        },
+		});
+
+		// TODO: check that the projection matrix is correct wrt https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#XR_KHR_composition_layer_depth
+		depth_layer_views.push_back({
+		        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR,
+		        .subImage = {
+		                .swapchain = depth_swapchain,
+		                .imageRect = {
+		                        .offset = {0, 0},
+		                        .extent = depth_swapchain.extent(),
+		                },
+		        },
+		        .minDepth = 0,
+		        .maxDepth = 1,
+		        .nearZ = std::numeric_limits<float>::infinity(),
+		        .farZ = zn,
 		});
 	}
 
 	renderer.render(data, clear_color, frames);
 
-	return layer_views;
+	return {proj_layer_views, depth_layer_views};
+}
+
+static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView> & views, std::vector<xr::swapchain> & color_swapchains, scene_renderer & renderer, scene_data & data, const std::array<float, 4> & clear_color)
+{
+	std::vector<xr::swapchain> depth_swapchains;
+	depth_swapchains.resize(color_swapchains.size());
+
+	return std::get<0>(render_layer(views, color_swapchains, depth_swapchains, renderer, data, clear_color));
 }
 
 namespace
@@ -592,22 +664,57 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	assert(renderer);
 	renderer->start_frame();
+
 	std::vector<XrCompositionLayerProjectionView> lobby_layer_views;
-	if (not application::get_config().passthrough_enabled)
-		lobby_layer_views = render_layer(views, swapchains_lobby, *renderer, *lobby_scene, {0, 0.25, 0.5, 1});
+	std::vector<XrCompositionLayerDepthInfoKHR> depthinfo_layer_views;
+	std::vector<XrCompositionLayerDepthTestFB> depthtest_layer_views;
+	std::vector<XrCompositionLayerProjectionView> controllers_layer_views;
 
-	auto controllers_layer_views = render_layer(views, swapchains_controllers, *renderer, *controllers_scene, {0, 0, 0, 0});
-	renderer->end_frame();
-
-	// After end_frame because the command buffers are submitted in end_frame
-	if (not application::get_config().passthrough_enabled)
+	if (composition_layer_depth_test_supported)
 	{
+		std::array<float, 4> clear_color;
+
+		lobby_handle->visible = not application::get_config().passthrough_enabled;
+
+		if (application::get_config().passthrough_enabled)
+			clear_color = {0, 0, 0, 0};
+		else
+			clear_color = {0, 0.25, 0.5, 1};
+
+		std::tie(lobby_layer_views, depthinfo_layer_views) = render_layer(views, swapchains_lobby, swapchains_depth, *renderer, *lobby_scene, clear_color);
+
+		for (auto [color, depth]: std::views::zip(lobby_layer_views, depthinfo_layer_views))
+		{
+			color.next = &depth;
+		}
+
+		renderer->end_frame();
+
+		// After end_frame because the command buffers are submitted in end_frame
 		for (auto & swapchain: swapchains_lobby)
 			swapchain.release();
-	}
 
-	for (auto & swapchain: swapchains_controllers)
-		swapchain.release();
+		for (auto & swapchain: swapchains_depth)
+			swapchain.release();
+	}
+	else
+	{
+		if (not application::get_config().passthrough_enabled)
+			lobby_layer_views = render_layer(views, swapchains_lobby, *renderer, *lobby_scene, {0, 0.25, 0.5, 1});
+
+		controllers_layer_views = render_layer(views, swapchains_controllers, *renderer, *controllers_scene, {0, 0, 0, 0});
+		renderer->end_frame();
+
+		// After end_frame because the command buffers are submitted in end_frame
+		if (not application::get_config().passthrough_enabled)
+		{
+			for (auto & swapchain: swapchains_lobby)
+				swapchain.release();
+		}
+
+		for (auto & swapchain: swapchains_controllers)
+			swapchain.release();
+	}
 
 	XrCompositionLayerProjection lobby_layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
@@ -643,14 +750,39 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		                }},
 		        passthrough);
 	}
-	else
+
+	if (composition_layer_depth_test_supported)
 	{
 		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
-	}
-	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
-	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
+		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 
-	session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
+		// Add XrCompositionLayerDepthTestFB to lobby_layer and imgui_layer
+		// The sky in the lobby layer and the passthrough layer have the same depth, so the operation must be:
+		// - LESS when passthrough is enabled (to avoid overwriting the passthrough)
+		// - LESS_OR_EQUAL when passthrough is disabled (so that the sky is visible)
+		XrCompositionLayerDepthTestFB layer_depth_test{
+		        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_TEST_FB,
+		        .next = nullptr,
+		        .depthMask = true,
+		        .compareOp = application::get_config().passthrough_enabled ? XR_COMPARE_OP_LESS_FB : XR_COMPARE_OP_LESS_OR_EQUAL_FB};
+
+		lobby_layer.next = &layer_depth_test;
+		imgui_layer.next = &layer_depth_test;
+
+		session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
+	}
+	else
+	{
+		if (not application::get_config().passthrough_enabled)
+			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
+
+		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
+
+		if (not composition_layer_depth_test_supported)
+			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
+
+		session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
+	}
 }
 
 void scenes::lobby::on_focused()
@@ -663,40 +795,47 @@ void scenes::lobby::on_focused()
 	uint32_t height = views[0].recommendedImageRectHeight;
 
 	swapchains_lobby.reserve(views.size());
-	swapchains_controllers.reserve(views.size());
+
+	if (composition_layer_depth_test_supported)
+		swapchains_depth.reserve(views.size());
+	else
+		swapchains_controllers.reserve(views.size());
+
 	for ([[maybe_unused]] auto view: views)
 	{
 		assert(view.recommendedImageRectWidth == width);
 		assert(view.recommendedImageRectHeight == height);
 
 		swapchains_lobby.emplace_back(session, device, swapchain_format, width, height);
-		swapchains_controllers.emplace_back(session, device, swapchain_format, width, height);
+		if (composition_layer_depth_test_supported)
+			swapchains_depth.emplace_back(session, device, depth_format, width, height);
+		else
+			swapchains_controllers.emplace_back(session, device, swapchain_format, width, height);
 	}
 
 	spdlog::info("Created lobby swapchains: {}x{}", width, height);
 
 	vk::Extent2D output_size{width, height};
 
-	std::array depth_formats{
-	        vk::Format::eX8D24UnormPack32,
-	        vk::Format::eD32Sfloat,
-	};
-
-	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchain_format, depth_formats);
+	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchain_format, depth_format, 2, composition_layer_depth_test_supported);
 
 	scene_loader loader(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
 
 	lobby_scene.emplace();
-	lobby_scene->import(loader("ground.gltf"));
+	lobby_handle = lobby_scene->new_node();
+	lobby_scene->import(loader("ground.gltf"), lobby_handle);
 
-	controllers_scene.emplace();
-	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, *controllers_scene);
+	if (not composition_layer_depth_test_supported)
+		controllers_scene.emplace();
+
+	scene_data & controllers_scene_data = composition_layer_depth_test_supported ? *lobby_scene : *controllers_scene;
+	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, controllers_scene_data);
 	spdlog::info("Loaded input profile {}", input->id);
 
 	if (application::get_hand_tracking_supported())
 	{
-		left_hand.emplace("left-hand.glb", loader, *controllers_scene);
-		right_hand.emplace("right-hand.glb", loader, *controllers_scene);
+		left_hand.emplace("left-hand.glb", loader, controllers_scene_data);
+		right_hand.emplace("right-hand.glb", loader, controllers_scene_data);
 	}
 
 	recenter_left_action = get_action("recenter_left").first;
@@ -789,6 +928,7 @@ void scenes::lobby::on_unfocused()
 	renderer.reset();
 	swapchains_lobby.clear();
 	swapchains_controllers.clear();
+	swapchains_depth.clear();
 	swapchain_imgui = xr::swapchain();
 	passthrough.emplace<std::monostate>();
 	multicast.reset();

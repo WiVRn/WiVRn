@@ -18,7 +18,7 @@
 
 #include "hand_model.h"
 #include "openxr/openxr.h"
-#include "utils/ranges.h"
+#include <ranges>
 #include <spdlog/spdlog.h>
 
 hand_model::hand_model(const std::filesystem::path & gltf_path, scene_loader & loader, scene_data & scene)
@@ -65,7 +65,7 @@ void hand_model::apply(const std::optional<std::array<xr::hand_tracker::joint, X
 	{
 		root_node->visible = true;
 
-		for (auto && [joint, loc]: utils::zip(joints, *joints_location))
+		for (auto && [joint, loc]: std::views::zip(joints, *joints_location))
 		{
 			if (!joint)
 				continue;

@@ -98,7 +98,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	assert(views.size() == info.fov.size());
 
-	for (auto [i, j]: utils::zip(views, info.fov))
+	for (auto [i, j]: std::views::zip(views, info.fov))
 	{
 		j = i.fov;
 	}
@@ -576,7 +576,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		blit_handles = common_frame(frame_state.predictedDisplayTime);
 
 		// Blit images from the decoders
-		for (auto [i, blit_handle]: utils::zip(decoders, blit_handles))
+		for (auto [i, blit_handle]: std::views::zip(decoders, blit_handles))
 		{
 			if (not blit_handle)
 				continue;

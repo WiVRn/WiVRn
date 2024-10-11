@@ -38,6 +38,7 @@
 #include <locale>
 #include <mutex>
 #include <optional>
+#include <ranges>
 #include <spdlog/spdlog.h>
 #include <string_view>
 
@@ -617,7 +618,7 @@ void imgui_context::new_frame(XrTime display_time)
 		}
 	}
 
-	for (auto [new_state, controller]: utils::zip(new_states, controllers))
+	for (auto [new_state, controller]: std::views::zip(new_states, controllers))
 	{
 		if (new_state.hover_distance < 0.02 && controller.second.hover_distance >= 0.02)
 			new_state.fingertip_touched = true;
@@ -685,7 +686,7 @@ void imgui_context::new_frame(XrTime display_time)
 	}
 
 	focused_controller = new_focused_controller;
-	for (auto && [controller, next_state]: utils::zip(controllers, new_states))
+	for (auto && [controller, next_state]: std::views::zip(controllers, new_states))
 	{
 		controller.second = next_state;
 	}

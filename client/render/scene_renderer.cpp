@@ -34,19 +34,21 @@
 #include <glm/gtx/quaternion.hpp>
 #include <map>
 #include <memory>
+#include <ranges>
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
-static vk::Format find_usable_image_format(
+// TODO move in lobby?
+vk::Format scene_renderer::find_usable_image_format(
         vk::raii::PhysicalDevice physical_device,
-        std::span<vk::Format> formats,
+        std::span<const vk::Format> formats,
         vk::Extent3D min_extent,
         vk::ImageUsageFlags usage,
-        vk::ImageType type = vk::ImageType::e2D,
-        vk::ImageTiling tiling = vk::ImageTiling::eOptimal,
-        vk::ImageCreateFlags flags = {})
+        vk::ImageType type,
+        vk::ImageTiling tiling,
+        vk::ImageCreateFlags flags)
 {
 	for (vk::Format format: formats)
 	{
@@ -176,27 +178,21 @@ scene_renderer::scene_renderer(
         vk::raii::CommandPool & cb_pool,
         vk::Extent2D output_size,
         vk::Format output_format,
-        std::span<vk::Format> depth_formats,
-        int frames_in_flight) :
+        // std::span<vk::Format> depth_formats,
+        vk::Format depth_format,
+        int frames_in_flight,
+        bool keep_depth_buffer) :
         physical_device(physical_device),
         device(device),
         physical_device_properties(physical_device.getProperties()),
         queue(queue),
         output_size(output_size),
         output_format(output_format),
-        depth_format(
-                find_usable_image_format(
-                        physical_device,
-                        depth_formats,
-                        {
-                                output_size.width,
-                                output_size.height,
-                                1,
-                        },
-                        vk::ImageUsageFlagBits::eDepthStencilAttachment)),
+        depth_format(depth_format),
         layout_0(create_descriptor_set_layout(layout_bindings_0, vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR)),
         layout_1(create_descriptor_set_layout(layout_bindings_1)),
-        ds_pool_material(device, layout_1, layout_bindings_1, 100) // TODO tunable
+        ds_pool_material(device, layout_1, layout_bindings_1, 100), // TODO tunable
+        keep_depth_buffer(keep_depth_buffer)
 {
 	// Create the default material
 	default_material = create_default_material(cb_pool);
@@ -211,7 +207,7 @@ scene_renderer::scene_renderer(
 	                .commandBufferCount = (uint32_t)frame_resources.size(),
 	        });
 
-	for (auto && [res, cb]: utils::zip(frame_resources, command_buffers))
+	for (auto && [res, cb]: std::views::zip(frame_resources, command_buffers))
 	{
 		res.fence = device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
 		res.cb = std::move(cb);
@@ -269,12 +265,11 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	                .format = depth_format,
 	                .samples = MSAA_SAMPLES,
 	                .loadOp = vk::AttachmentLoadOp::eClear,
-	                .storeOp = vk::AttachmentStoreOp::eDontCare,
+	                .storeOp = keep_depth_buffer ? vk::AttachmentStoreOp::eStore : vk::AttachmentStoreOp::eDontCare,
 	                .stencilLoadOp = vk::AttachmentLoadOp::eClear,
 	                .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
 	                .initialLayout = vk::ImageLayout::eUndefined,
 	                .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-
 	        },
 #ifdef MSAA_4x
 	        vk::AttachmentDescription{
@@ -342,23 +337,24 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	return vk::raii::RenderPass(device, info);
 }
 
-scene_renderer::output_image & scene_renderer::get_output_image_data(vk::Image output)
+scene_renderer::output_image & scene_renderer::get_output_image_data(vk::Image output_color, vk::Image output_depth)
 {
-	auto it = output_images.find(output);
+	std::pair images{output_color, output_depth};
+	auto it = output_images.find(images);
 	if (it != output_images.end())
 		return it->second;
 
-	return output_images.emplace(output, create_output_image_data(output)).first->second;
+	return output_images.emplace(images, create_output_image_data(output_color, output_depth)).first->second;
 }
 
-scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image output)
+scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image output_color, vk::Image output_depth)
 {
 	output_image out;
 
 	// TODO: use image view from xr::swapchain
 	out.image_view = vk::raii::ImageView(
 	        device, vk::ImageViewCreateInfo{
-	                        .image = output,
+	                        .image = output_color,
 	                        .viewType = vk::ImageViewType::e2D,
 	                        .format = output_format,
 	                        .components{},
@@ -371,30 +367,33 @@ scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image 
 	                        },
 	                });
 
-	out.depth_buffer = image_allocation{
-	        device,
-	        vk::ImageCreateInfo{
-	                .imageType = vk::ImageType::e2D,
-	                .format = depth_format,
-	                .extent = {
-	                        .width = output_size.width,
-	                        .height = output_size.height,
-	                        .depth = 1,
-	                },
-	                .mipLevels = 1,
-	                .arrayLayers = 1,
-	                .samples = MSAA_SAMPLES,
-	                .tiling = vk::ImageTiling::eOptimal,
-	                .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment},
-	        VmaAllocationCreateInfo{
-	                .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, .usage = VMA_MEMORY_USAGE_AUTO,
-	                .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // TODO: check
-	        }};
+	// TODO: check requiredFlags
+	if (not output_depth)
+		out.depth_buffer = image_allocation{
+		        device,
+		        vk::ImageCreateInfo{
+		                .imageType = vk::ImageType::e2D,
+		                .format = depth_format,
+		                .extent = {
+		                        .width = output_size.width,
+		                        .height = output_size.height,
+		                        .depth = 1,
+		                },
+		                .mipLevels = 1,
+		                .arrayLayers = 1,
+		                .samples = MSAA_SAMPLES,
+		                .tiling = vk::ImageTiling::eOptimal,
+		                .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment},
+		        VmaAllocationCreateInfo{
+		                .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		                .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		        }};
 
 	out.depth_view = vk::raii::ImageView(
 	        device,
 	        vk::ImageViewCreateInfo{
-	                .image = out.depth_buffer,
+	                .image = output_depth ? output_depth : out.depth_buffer,
 	                .viewType = vk::ImageViewType::e2D,
 	                .format = depth_format,
 	                .components{},
@@ -586,7 +585,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                .DepthStencilState = {vk::PipelineDepthStencilStateCreateInfo{
 	                        .depthTestEnable = true,
 	                        .depthWriteEnable = true,
-	                        .depthCompareOp = vk::CompareOp::eLess,
+	                        .depthCompareOp = vk::CompareOp::eGreater,
 	                        .depthBoundsTestEnable = false,
 	                        .minDepthBounds = 0.0f,
 	                        .maxDepthBounds = 1.0f,
@@ -777,7 +776,7 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 
 	std::array<vk::ClearValue, 2> clear_values{
 	        vk::ClearColorValue{clear_color},
-	        vk::ClearDepthStencilValue{1.0, 0},
+	        vk::ClearDepthStencilValue{0.0, 0},
 	};
 
 	auto vertex_layout = scene_data::vertex::describe();
@@ -814,7 +813,7 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 
 	for (const auto && [frame_index, frame]: utils::enumerate(frames))
 	{
-		scene_renderer::output_image & output = get_output_image_data(frame.destination);
+		scene_renderer::output_image & output = get_output_image_data(frame.destination, frame.depth_buffer);
 		glm::mat4 viewproj = frame.projection * frame.view;
 
 		vk::DeviceSize frame_ubo_offset = resources.uniform_buffer_offset;

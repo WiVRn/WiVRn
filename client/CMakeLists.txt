@@ -86,12 +86,12 @@ target_compile_definitions(wivrn-imgui PUBLIC IMGUI_USE_WCHAR32)
 target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE)
 # target_compile_definitions(wivrn-imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
 # target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
-target_compile_features(wivrn-imgui PRIVATE cxx_std_20)
+target_compile_features(wivrn-imgui PRIVATE cxx_std_23)
 target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
 
 target_link_libraries(wivrn wivrn-imgui)
 
-target_compile_features(wivrn PRIVATE cxx_std_20)
+target_compile_features(wivrn PRIVATE cxx_std_23)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
 
 set_target_properties(wivrn PROPERTIES CXX_VISIBILITY_PRESET hidden)

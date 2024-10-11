@@ -65,6 +65,8 @@ class lobby : public scene_impl<lobby>
 	std::optional<input_profile> input;
 	std::optional<hand_model> left_hand;
 	std::optional<hand_model> right_hand;
+	node_handle lobby_handle;
+	bool composition_layer_depth_test_supported;
 
 	std::optional<imgui_context> imgui_ctx;
 	std::array<XrAction, 2> haptic_output;
@@ -75,8 +77,10 @@ class lobby : public scene_impl<lobby>
 
 	std::vector<xr::swapchain> swapchains_lobby;
 	std::vector<xr::swapchain> swapchains_controllers;
+	std::vector<xr::swapchain> swapchains_depth;
 	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
+	vk::Format depth_format;
 	xr::system::passthrough_type passthrough_supported;
 	xr::passthrough passthrough;
 	XrViewConfigurationView stream_view;

@@ -23,8 +23,8 @@
 #include "imgui_internal.h"
 #include "lobby.h"
 
-#include "utils/ranges.h"
 #include <cwchar>
+#include <ranges>
 #include <unicode/uchar.h> // u_toupper
 
 struct key
@@ -364,7 +364,7 @@ void scenes::lobby::gui_keyboard(ImVec2 size)
 	}
 
 	int id = 0;
-	for (const auto & [row, width]: utils::zip(layout, keys_width))
+	for (const auto & [row, width]: std::views::zip(layout, keys_width))
 	{
 		ImVec2 key_position = position;
 

@@ -25,10 +25,27 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 {
 	assert(sample_count == 1);
 
+	XrSwapchainUsageFlags usage_flags;
+
+	switch (format)
+	{
+		case vk::Format::eD16Unorm:
+		case vk::Format::eD16UnormS8Uint:
+		case vk::Format::eD24UnormS8Uint:
+		case vk::Format::eX8D24UnormPack32:
+		case vk::Format::eD32Sfloat:
+		case vk::Format::eD32SfloatS8Uint:
+			usage_flags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			break;
+		default:
+			usage_flags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+			break;
+	}
+
 	XrSwapchainCreateInfo create_info{
 	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
 	        .createFlags = 0,
-	        .usageFlags = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT,
+	        .usageFlags = usage_flags,
 	        .format = static_cast<VkFormat>(format),
 	        .sampleCount = (uint32_t)sample_count,
 	        .width = (uint32_t)width,
