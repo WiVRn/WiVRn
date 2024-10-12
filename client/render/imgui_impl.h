@@ -20,6 +20,7 @@
 
 #include "xr/hand_tracker.h"
 #include "xr/swapchain.h"
+#include "wivrn_config.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <imgui.h>
@@ -134,6 +135,10 @@ private:
 	ImFontGlyphRangesBuilder glyph_range_builder;
 	ImVector<ImWchar> glyph_ranges;
 	bool glyph_range_dirty = true;
+
+#if WIVRN_SHOW_IMGUI_DEMO_WINDOW
+	bool show_demo_window = true;
+#endif
 
 	void initialize_fonts();
 

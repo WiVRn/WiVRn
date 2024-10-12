@@ -740,6 +740,12 @@ void imgui_context::new_frame(XrTime display_time)
 		draw_list->AddCircle(position_distance->first, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
 	}
 
+
+#if WIVRN_SHOW_IMGUI_DEMO_WINDOW
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+#endif
+
 	image_index = swapchain.acquire();
 	swapchain.wait();
 }
