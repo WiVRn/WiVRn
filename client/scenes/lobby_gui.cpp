@@ -290,7 +290,7 @@ void scenes::lobby::gui_server_list()
 		ImGui::PopStyleColor(3);
 		ImGui::EndDisabled();
 
-		button_position.x -= button_size.x + style.WindowPadding.x;
+		button_position.x -= button_size.x + style.WindowPadding.x + 20;
 		if (data.manual)
 		{
 			ImGui::SetCursorPos(button_position);
