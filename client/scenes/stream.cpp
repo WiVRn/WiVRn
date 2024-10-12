@@ -206,16 +206,23 @@ void scenes::stream::on_focused()
 		        1500,
 		        1000);
 
+		imgui_context::viewport vp{
+		        .space = xr::spaces::view,
+		        .position = {0, 0, -1},
+		        .orientation = {1, 0, 0, 0},
+		        .size = {1.0, 0.6666},
+		        .vp_origin = {0, 0},
+		        .vp_size = {1500, 1000},
+		};
+
 		imgui_ctx.emplace(physical_device,
 		                  device,
 		                  queue_family_index,
 		                  queue,
-		                  application::space(xr::spaces::view),
 		                  std::span<imgui_context::controller>{},
 		                  swapchain_imgui,
-		                  glm::vec2{1.0, 0.6666});
+		                  std::vector{vp});
 
-		imgui_ctx->set_position({0, 0, -1}, {1, 0, 0, 0});
 		plots_toggle_1 = get_action("plots_toggle_1").first;
 		plots_toggle_2 = get_action("plots_toggle_2").first;
 	}
@@ -740,17 +747,20 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	        .views = layer_view.data(),
 	};
 
-	XrCompositionLayerQuad imgui_layer;
+	std::vector<XrCompositionLayerQuad> imgui_layers;
 	if (imgui_ctx and plots_visible)
 	{
 		accumulate_metrics(frame_state.predictedDisplayTime, blit_handles, timestamps);
-		imgui_layer = plot_performance_metrics(frame_state.predictedDisplayTime);
+		imgui_layers = plot_performance_metrics(frame_state.predictedDisplayTime);
 	}
 
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 
 	if (imgui_ctx and plots_visible)
-		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
+	{
+		for (auto & layer: imgui_layers)
+			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
+	}
 
 	try
 	{

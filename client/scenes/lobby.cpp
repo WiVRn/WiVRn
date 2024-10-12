@@ -103,12 +103,25 @@ static const std::array supported_depth_formats{
 void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
 	const float gui_pitch = -0.2;
+	const float keyboard_pitch = -0.6;
 	glm::vec3 gui_direction = new_gui_position - head_position;
 
 	float gui_yaw = atan2(gui_direction.x, gui_direction.z) + M_PI;
 
-	imgui_ctx->position() = new_gui_position;
-	imgui_ctx->orientation() = glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
+	auto q = glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
+	auto M = glm::mat3_cast(q); // plane-to-world transform
+
+	// Main window
+	imgui_ctx->layers()[0].position = new_gui_position;
+	imgui_ctx->layers()[0].orientation = q;
+
+	// Popup
+	imgui_ctx->layers()[1].position = new_gui_position + M * glm::vec3(0, 0, 0.05);
+	imgui_ctx->layers()[1].orientation = q;
+
+	// Keyboard
+	imgui_ctx->layers()[2].position = new_gui_position + M * glm::vec3(0, -0.3, 0.1);
+	imgui_ctx->layers()[2].orientation = q * glm::quat(cos(keyboard_pitch / 2), sin(keyboard_pitch / 2), 0, 0);
 }
 
 scenes::lobby::lobby()
@@ -422,10 +435,11 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 			        .aim_position = aim->first,
 			        .aim_orientation = aim->second,
 			});
-			if (intersection)
+
+			if (not intersection.empty())
 			{
-				gui_recenter_distance = std::clamp(intersection->second, 0.05f, 1.f);
-				spdlog::info("recentering at {}m", intersection->second);
+				gui_recenter_distance = std::clamp(intersection.front().second, 0.05f, 1.f);
+				spdlog::info("recentering at {}m", intersection.front().second);
 			}
 			else
 			{
@@ -660,7 +674,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		move_gui(head_position->first, *new_gui_position);
 	}
 
-	XrCompositionLayerQuad imgui_layer = draw_gui(frame_state.predictedDisplayTime);
+	std::vector<XrCompositionLayerQuad> imgui_layers = draw_gui(frame_state.predictedDisplayTime);
 
 	assert(renderer);
 	renderer->start_frame();
@@ -754,7 +768,9 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	if (composition_layer_depth_test_supported)
 	{
 		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
-		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
+
+		for (auto & layer: imgui_layers)
+			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 
 		// Add XrCompositionLayerDepthTestFB to lobby_layer and imgui_layer
 		// The sky in the lobby layer and the passthrough layer have the same depth, so the operation must be:
@@ -767,7 +783,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		        .compareOp = application::get_config().passthrough_enabled ? XR_COMPARE_OP_LESS_FB : XR_COMPARE_OP_LESS_OR_EQUAL_FB};
 
 		lobby_layer.next = &layer_depth_test;
-		imgui_layer.next = &layer_depth_test;
+		for (auto & layer: imgui_layers)
+			layer.next = &layer_depth_test;
 
 		session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
 	}
@@ -776,7 +793,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		if (not application::get_config().passthrough_enabled)
 			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
 
-		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
+		for (auto & layer: imgui_layers)
+			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 
 		if (not composition_layer_depth_test_supported)
 			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
@@ -870,8 +888,30 @@ void scenes::lobby::on_focused()
 		        });
 	}
 
-	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 1500, 1000);
-	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, application::space(xr::spaces::world), imgui_inputs, swapchain_imgui, glm::vec2{0.6, 0.4});
+	std::vector<imgui_context::viewport> vps{
+	        {
+	                // Main window
+	                .size = {0.6, 0.4},
+	                .vp_origin = {0, 0},
+	                .vp_size = {1500, 1000},
+	        },
+	        {
+	                // Pop up window
+	                .size = {0.6, 0.2},
+	                .vp_origin = {1500, 0},
+	                .vp_size = {1500, 500},
+	        },
+	        {
+	                // Virtual keyboard
+	                .size = {0.6, 0.2},
+	                .vp_origin = {1500, 500},
+	                .vp_size = {1500, 500},
+	        },
+	};
+
+	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 3000, 1000);
+
+	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, imgui_inputs, swapchain_imgui, vps);
 
 	try
 	{

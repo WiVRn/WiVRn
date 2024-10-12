@@ -87,7 +87,7 @@ class lobby : public scene_impl<lobby>
 
 	void update_server_list();
 
-	XrCompositionLayerQuad draw_gui(XrTime predicted_display_time);
+	std::vector<XrCompositionLayerQuad> draw_gui(XrTime predicted_display_time);
 
 	XrAction recenter_left_action = XR_NULL_HANDLE;
 	XrAction recenter_right_action = XR_NULL_HANDLE;

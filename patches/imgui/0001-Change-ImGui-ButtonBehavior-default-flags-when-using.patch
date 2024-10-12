@@ -1,0 +1,76 @@
+From ebf48c25bdd98cbc7bb0ec01ca19539b7a841b0d Mon Sep 17 00:00:00 2001
+From: Guillaume Meunier <guillaume.meunier@centraliens.net>
+Date: Wed, 16 Oct 2024 20:51:52 +0200
+Subject: [PATCH] Change ImGui::ButtonBehavior default flags when using hand
+ tracking
+
+---
+ imgui.cpp         | 2 +-
+ imgui.h           | 2 ++
+ imgui_demo.cpp    | 5 +++++
+ imgui_widgets.cpp | 7 ++++++-
+ 4 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/imgui.cpp b/imgui.cpp
+index 50c8d362e..7d67538dc 100644
+--- a/imgui.cpp
++++ b/imgui.cpp
+@@ -9969,7 +9969,7 @@ static const char* GetInputSourceName(ImGuiInputSource source)
+ }
+ static const char* GetMouseSourceName(ImGuiMouseSource source)
+ {
+-    const char* mouse_source_names[] = { "Mouse", "TouchScreen", "Pen" };
++    const char* mouse_source_names[] = { "Mouse", "TouchScreen", "Pen", "VRHandTracking", "VRController" };
+     IM_ASSERT(IM_ARRAYSIZE(mouse_source_names) == ImGuiMouseSource_COUNT && source >= 0 && source < ImGuiMouseSource_COUNT);
+     return mouse_source_names[source];
+ }
+diff --git a/imgui.h b/imgui.h
+index dc6ac6e59..1b31e56b4 100644
+--- a/imgui.h
++++ b/imgui.h
+@@ -1838,6 +1838,8 @@ enum ImGuiMouseSource : int
+     ImGuiMouseSource_Mouse = 0,         // Input is coming from an actual mouse.
+     ImGuiMouseSource_TouchScreen,       // Input is coming from a touch screen (no hovering prior to initial press, less precise initial press aiming, dual-axis wheeling possible).
+     ImGuiMouseSource_Pen,               // Input is coming from a pressure/magnetic pen (often used in conjunction with high-sampling rates).
++    ImGuiMouseSource_VRHandTracking,    // Input is coming from a tracked hand in virtual reality
++    ImGuiMouseSource_VRController,      // Input is coming from a controller in virtual reality
+     ImGuiMouseSource_COUNT
+ };
+ 
+diff --git a/imgui_demo.cpp b/imgui_demo.cpp
+index 7ed778b57..580a662ef 100644
+--- a/imgui_demo.cpp
++++ b/imgui_demo.cpp
+@@ -7350,6 +7350,11 @@ static void ShowDemoWindowInputs()
+             for (int i = 0; i < IM_ARRAYSIZE(io.MouseDown); i++) if (ImGui::IsMouseDown(i)) { ImGui::SameLine(); ImGui::Text("b%d (%.02f secs)", i, io.MouseDownDuration[i]); }
+             ImGui::Text("Mouse wheel: %.1f", io.MouseWheel);
+ 
++            const char* mouse_source_names[] = { "Mouse", "TouchScreen", "Pen", "VRHandTracking", "VRController" };
++            IM_ASSERT(IM_ARRAYSIZE(mouse_source_names) == ImGuiMouseSource_COUNT && io.MouseSource >= 0 && io.MouseSource < ImGuiMouseSource_COUNT);
++
++            ImGui::Text("Mouse source: %s", mouse_source_names[io.MouseSource]);
++
+             // We iterate both legacy native range and named ImGuiKey ranges. This is a little unusual/odd but this allows
+             // displaying the data for old/new backends.
+             // User code should never have to go through such hoops!
+diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
+index 837d1c64d..7df2429fc 100644
+--- a/imgui_widgets.cpp
++++ b/imgui_widgets.cpp
+@@ -501,7 +501,12 @@ bool ImGui::ButtonBehavior(const ImRect& bb, ImGuiID id, bool* out_hovered, bool
+ 
+     // Default behavior requires click + release inside bounding box
+     if ((flags & ImGuiButtonFlags_PressedOnMask_) == 0)
+-        flags |= ImGuiButtonFlags_PressedOnDefault_;
++    {
++        if (g.IO.MouseSource == ImGuiMouseSource_VRHandTracking)
++            flags |= ImGuiButtonFlags_PressedOnClick;
++        else
++            flags |= ImGuiButtonFlags_PressedOnDefault_;
++    }
+ 
+     // Default behavior inherited from item flags
+     // Note that _both_ ButtonFlags and ItemFlags are valid sources, so copy one into the item_flags and only check that.
+-- 
+2.47.0
+
