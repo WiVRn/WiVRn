@@ -74,6 +74,7 @@ android {
 
         versionName = project.hasProperty('wivrn_version') ? wivrn_version : "1.0"
         versionCode = project.hasProperty('wivrn_versionCode') ? wivrn_versionCode.toInteger() : 1
+        def showImguiDemo = project.hasProperty('wivrn_show_imgui_demo') ? wivrn_show_imgui_demo : 'OFF'
 
         externalNativeBuild {
             cmake {
@@ -86,7 +87,8 @@ android {
                           '-DWIVRN_BUILD_CLIENT=ON',
                           '-DWIVRN_BUILD_SERVER=OFF',
                           '-DWIVRN_BUILD_DASHBOARD=OFF',
-                          '-DWIVRN_WERROR=ON'
+                          '-DWIVRN_WERROR=ON',
+                          '-DWIVRN_SHOW_IMGUI_DEMO_WINDOW=' + showImguiDemo
                 resValue "string", "app_name", "WiVRn"
             }
         }
