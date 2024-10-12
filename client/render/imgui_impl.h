@@ -83,7 +83,7 @@ public:
 		bool squeeze_clicked = false;
 		bool trigger_clicked = false;
 		bool fingertip_hovered = false;
-		bool fingertip_touched = false;
+		bool fingertip_touching = false;
 	};
 
 private:
@@ -131,6 +131,7 @@ private:
 	XrTime last_display_time = 0;
 
 	bool button_pressed = false;
+	bool fingertip_touching = false;
 
 	ImFontGlyphRangesBuilder glyph_range_builder;
 	ImVector<ImWchar> glyph_ranges;
