@@ -174,6 +174,9 @@ void settings::on_selected_encoder_changed()
 
 void settings::on_encoder_settings_changed()
 {
+	if (ui->partitionner->selected_index() < 0)
+		return;
+
 	QString status;
 
 	int encoder = ui->encoder->currentIndex();
@@ -254,10 +257,22 @@ void settings::on_browse_game()
 
 void settings::selected_rectangle_changed(int index)
 {
-	auto [encoder, codec] = ui->partitionner->rectangles_data(index).value<std::pair<int, int>>();
+	if (index >= 0)
+	{
+		auto [encoder, codec] = ui->partitionner->rectangles_data(index).value<std::pair<int, int>>();
 
-	ui->encoder->setCurrentIndex(encoder);
-	ui->codec->setCurrentIndex(codec);
+		ui->encoder->setCurrentIndex(encoder);
+		ui->codec->setCurrentIndex(codec);
+		ui->encoder->setEnabled(true);
+		ui->codec->setEnabled(true);
+	}
+	else
+	{
+		ui->encoder->setCurrentIndex(-1);
+		ui->codec->setCurrentIndex(-1);
+		ui->encoder->setEnabled(false);
+		ui->codec->setEnabled(false);
+	}
 }
 
 void settings::restore_defaults()
@@ -275,7 +290,7 @@ void settings::restore_defaults()
 
 	ui->partitionner->set_rectangles(rectangles);
 	ui->partitionner->set_rectangles_data(encoder_config);
-	ui->partitionner->set_selected_index(0);
+	ui->partitionner->set_selected_index(-1);
 
 	ui->combo_select_game->setCurrentIndex(0);
 	ui->edit_game_path->setText("");
@@ -368,7 +383,7 @@ void settings::load_settings()
 
 	ui->partitionner->set_rectangles(rectangles);
 	ui->partitionner->set_rectangles_data(encoder_config);
-	ui->partitionner->set_selected_index(0);
+	ui->partitionner->set_selected_index(-1);
 
 	// Foveation
 	try

@@ -391,7 +391,7 @@ void rectangle_partitionner::paintEvent(QPaintEvent * event)
 		{
 			painter.drawRect(i);
 			bool is_selected = n == m_selected_index and isEnabled();
-			m_paint(painter, i, m_rectangles_data[n], n, is_selected);
+			m_paint(painter, i, m_rectangles_data.at(n), n, is_selected);
 
 			n++;
 		}
@@ -658,25 +658,26 @@ void rectangle_partitionner::mouseReleaseEvent(QMouseEvent * event)
 	p->selection.clear();
 
 	// Delete empty rectangles
-	auto i1 = m_rectangles.begin();
-	auto i3 = m_rectangles_data.begin();
-
 	assert(m_rectangles.size() == m_rectangles_data.size());
-
 	bool changed = false;
-	for (; i1 != m_rectangles.end();)
+	for (int i = 0; i < m_rectangles.size();)
 	{
-		// if (i2->width() <= 1 or i2->height() <= 1)
-		if (i1->width() <= 0.0001 or i1->height() <= 0.0001) // TODO configurable thresholds
+		if (m_rectangles[i].width() <= 0.0001 or m_rectangles[i].height() <= 0.0001) // TODO configurable thresholds
 		{
-			i1 = m_rectangles.erase(i1);
-			i3 = m_rectangles_data.erase(i3);
+			m_rectangles.erase(m_rectangles.begin() + i);
+			m_rectangles_data.erase(m_rectangles_data.begin() + i);
 			changed = true;
+
+			if (m_selected_index > i)
+				m_selected_index--;
+			else if (m_selected_index == i)
+			{
+				m_selected_index = -1;
+			}
 		}
 		else
 		{
-			++i1;
-			++i3;
+			++i;
 		}
 	}
 	assert(m_rectangles.size() == m_rectangles_data.size());
@@ -687,6 +688,7 @@ void rectangle_partitionner::mouseReleaseEvent(QMouseEvent * event)
 			abort();
 
 		rectangles_change(m_rectangles);
+		selected_index_change(m_selected_index);
 		update();
 	}
 }
@@ -742,7 +744,7 @@ void rectangle_partitionner::set_rectangles(rectangle_list value)
 
 void rectangle_partitionner::set_selected_index(int new_index)
 {
-	new_index = std::clamp<int>(new_index, 0, m_rectangles.size());
+	new_index = std::clamp<int>(new_index, -1, m_rectangles.size());
 
 	if (new_index != m_selected_index)
 	{
@@ -766,8 +768,8 @@ void rectangle_partitionner::set_rectangles_data(const data_list & value)
 void rectangle_partitionner::set_rectangles_data(int index, QVariant value)
 {
 	assert(m_rectangles.size() == m_rectangles_data.size());
-	assert(index < m_rectangles_data.size());
-	m_rectangles_data[index] = value;
+	assert(index < m_rectangles_data.size() and index >= 0);
+	m_rectangles_data.at(index) = value;
 	assert(m_rectangles.size() == m_rectangles_data.size());
 
 	update();
