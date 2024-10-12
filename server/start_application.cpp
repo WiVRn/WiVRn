@@ -12,13 +12,13 @@
 
 #include <filesystem>
 #include <iomanip>
+#include <iostream>
 #include <stdlib.h>
 #include <unistd.h>
 #include <vector>
 
 #if WIVRN_USE_SYSTEMD
 #include <chrono>
-#include <iostream>
 #include <string>
 #include <systemd/sd-bus.h>
 #include <thread>
