@@ -134,47 +134,9 @@ settings::settings(wivrn_server * server_interface) :
 	connect(ui->encoder, &QComboBox::currentIndexChanged, this, &settings::on_selected_encoder_changed);
 	connect(ui->encoder, &QComboBox::currentIndexChanged, this, &settings::on_encoder_settings_changed);
 	connect(ui->codec, &QComboBox::currentIndexChanged, this, &settings::on_encoder_settings_changed);
-	connect(ui->bitrate, &QDoubleSpinBox::valueChanged, this, &settings::on_encoder_settings_changed);
-	connect(ui->slider_foveation, &QSlider::valueChanged, this, &settings::on_encoder_settings_changed);
-	connect(ui->spin_foveation, &QSpinBox::valueChanged, this, &settings::on_encoder_settings_changed);
-
-	// connect(ui->foveation_info, &QPushButton::clicked, this, [&]() { QToolTip::showText(ui->radio_manual_foveation->pos(), ui->radio_manual_foveation->toolTip(), ui->radio_manual_foveation); });
 
 	connect(this, &QDialog::accepted, this, &settings::save_settings);
 	connect(ui->buttonBox->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, this, &settings::restore_defaults);
-
-	ui->partitionner->set_paint([&](QPainter & painter, QRect rect, const QVariant & data, int index, bool selected) {
-		if (selected)
-		{
-			painter.fillRect(rect.adjusted(1, 1, 0, 0), QColorConstants::Cyan);
-		}
-
-		auto [encoder_id, codec_id] = data.value<std::pair<int, int>>();
-
-		QString codec = ui->codec->itemText(codec_id);
-		QString encoder = ui->encoder->itemText(encoder_id);
-
-		QFont font = painter.font();
-		QFont font2 = font;
-
-		font2.setPixelSize(24);
-
-		QString text = QString("%1\n%2").arg(encoder, codec);
-
-		QFontMetrics metrics{font2};
-		QSize size = metrics.size(0, text);
-
-		if (double ratio = std::max((double)size.width() / rect.width(), (double)size.height() / rect.height()); ratio > 1)
-		{
-			int pixel_size = font2.pixelSize() / ratio;
-			if (pixel_size > 0)
-				font2.setPixelSize(pixel_size);
-		}
-
-		painter.setFont(font2);
-		painter.drawText(rect, Qt::AlignCenter, text);
-		painter.setFont(font);
-	});
 
 	setWindowModality(Qt::WindowModality::ApplicationModal);
 
