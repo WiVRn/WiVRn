@@ -263,19 +263,20 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 	        .Device = *application::get_device(),
 	        .QueueFamily = application::queue_family_index(),
 	        .Queue = *application::get_queue(),
-	        .PipelineCache = *application::get_pipeline_cache(),
 	        .DescriptorPool = *descriptor_pool,
-	        .Subpass = 0,
+		.RenderPass = *renderpass,
 	        .MinImageCount = 2,
 	        .ImageCount = (uint32_t)swapchain.images().size(), // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
 	        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+	        .PipelineCache = *application::get_pipeline_cache(),
+	        .Subpass = 0,
 	        .Allocator = nullptr,
 	        .CheckVkResultFn = check_vk_result,
 	};
 
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
-	ImGui_ImplVulkan_Init(&init_info, *renderpass);
+	ImGui_ImplVulkan_Init(&init_info);
 
 	initialize_fonts();
 
