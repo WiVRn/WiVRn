@@ -554,6 +554,8 @@ void imgui_context::new_frame(XrTime display_time)
 					        index_tip.pose.position.y,
 					        index_tip.pose.position.z};
 
+					// Use the GUI plane as orientation to have the finger point perpendicularly
+					// to the plane instead of following the finger direction
 					new_state.aim_orientation = orientation_;
 
 					new_state.active = true;
@@ -561,15 +563,15 @@ void imgui_context::new_frame(XrTime display_time)
 
 					if (position_distance)
 					{
-						new_state.hover_distance = std::abs(position_distance->second);
+						new_state.hover_distance = position_distance->second;
 
 						if (std::abs(position_distance->second) < 0.1f)
 							new_state.fingertip_hovered = true;
 						else
 							new_state.active = false;
 
-						if (new_state.hover_distance < 0.02)
-							new_state.fingertip_touched = true;
+						if (new_state.fingertip_hovered && (new_state.hover_distance < 0.02))
+							new_state.fingertip_touching = true;
 					}
 					else
 						new_state.hover_distance = 1e10;
@@ -618,19 +620,13 @@ void imgui_context::new_frame(XrTime display_time)
 		}
 	}
 
-	for (auto [new_state, controller]: std::views::zip(new_states, controllers))
-	{
-		if (new_state.hover_distance < 0.02 && controller.second.hover_distance >= 0.02)
-			new_state.fingertip_touched = true;
-	}
-
 	float closest_hover_distance = 1e10;
 	for (auto && [index, new_state]: utils::enumerate(new_states))
 	{
-		if (new_state.hover_distance < closest_hover_distance && new_state.fingertip_hovered)
+		if (std::abs(new_state.hover_distance) < closest_hover_distance && new_state.fingertip_hovered)
 		{
 			new_focused_controller = index;
-			closest_hover_distance = new_state.hover_distance;
+			closest_hover_distance = std::abs(new_state.hover_distance);
 		}
 		else if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.01f)
 		{
@@ -647,6 +643,7 @@ void imgui_context::new_frame(XrTime display_time)
 		// Focused controller changed: end the current click
 		io.AddMouseButtonEvent(0, false);
 		button_pressed = false;
+		fingertip_touching = false;
 	}
 
 	std::optional<std::pair<ImVec2, float>> position_distance;
@@ -656,17 +653,19 @@ void imgui_context::new_frame(XrTime display_time)
 		position_distance = ray_plane_intersection(new_states[new_focused_controller]);
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
-		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked || controllers[new_focused_controller].second.fingertip_touched;
-		button_pressed = new_states[new_focused_controller].trigger_clicked ||
-		                 (new_states[new_focused_controller].fingertip_touched && !controllers[new_focused_controller].second.fingertip_touched);
+		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
+		button_pressed = new_states[new_focused_controller].trigger_clicked;
+
+		bool last_touching = controllers[new_focused_controller].second.fingertip_touching;
+		fingertip_touching = new_states[new_focused_controller].fingertip_touching;
 
 		if (position_distance)
 		{
 			io.AddMousePosEvent(position_distance->first.x, position_distance->first.y);
 
-			if (focused_change || last_trigger != button_pressed)
+			if (focused_change || (last_trigger || last_touching) != (button_pressed || fingertip_touching))
 			{
-				io.AddMouseButtonEvent(0, button_pressed);
+				io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 			}
 
 			if (glm::length(scroll) > 0.01f)
@@ -674,9 +673,9 @@ void imgui_context::new_frame(XrTime display_time)
 		}
 		else
 		{
-			if (last_trigger && !button_pressed)
+			if ((last_trigger || last_touching) && !(button_pressed || fingertip_touching))
 			{
-				io.AddMouseButtonEvent(0, button_pressed);
+				io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 			}
 		}
 	}
@@ -734,16 +733,15 @@ void imgui_context::new_frame(XrTime display_time)
 		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
 		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
 
-		bool pressed = button_pressed || new_states[new_focused_controller].fingertip_touched;
+		bool pressed = button_pressed || fingertip_touching;
 
 		draw_list->AddCircleFilled(position_distance->first, radius, pressed ? color_pressed : color_unpressed);
 		draw_list->AddCircle(position_distance->first, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
 	}
 
-
 #if WIVRN_SHOW_IMGUI_DEMO_WINDOW
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+	if (show_demo_window)
+		ImGui::ShowDemoWindow(&show_demo_window);
 #endif
 
 	image_index = swapchain.acquire();
