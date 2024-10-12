@@ -18,6 +18,10 @@ jobs:
     runs-on: ubuntu-24.04
     if: ${{ vars.APK_ONLY == '' }}
 
+    strategy:
+      matrix:
+        cmake_preset: ['server', 'server-no-systemd', 'server-no-system-boost', 'dashboard']
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -25,7 +29,7 @@ jobs:
 
     - name: Install dependencies
       run: >
-        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev policykit-1
+        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev policykit-1 libboost-all-dev
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@286ed76c72de45dbf50c515779cf4ca2f6aa3944
       with:
@@ -40,20 +44,10 @@ jobs:
         cmake -B ${{github.workspace}}/build
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         -DCMAKE_INSTALL_PREFIX=/usr
-        -DWIVRN_BUILD_SERVER=ON
-        -DWIVRN_BUILD_DASHBOARD=ON
-        -DWIVRN_BUILD_CLIENT=OFF
-        -DWIVRN_BUILD_DISSECTOR=OFF
-        -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
-        -DWIVRN_USE_VAAPI=ON
-        -DWIVRN_USE_X264=ON
-        -DWIVRN_USE_NVENC=ON
-        -DWIVRN_USE_SYSTEM_BOOST=OFF
-        -DWIVRN_USE_PULSEAUDIO=ON
-        -DWIVRN_USE_PIPEWIRE=ON
-        -DWIVRN_WERROR=ON
+        --preset ${{ matrix.cmake_preset }}
 
     - name: Package build dependencies
+      if: ${{ matrix.buildtype == 'server' }}
       # For easier packaging, build dependencies are made available as a separate archive
       run: (cd build/_deps/ ; tar --create --xz *-src) > server-build-deps.tar.xz
 
@@ -62,6 +56,7 @@ jobs:
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Publish build dependencies
+      if: ${{ matrix.buildtype == 'server' }}
       uses: actions/upload-artifact@v4
       with:
         name: server-build-deps
@@ -69,7 +64,7 @@ jobs:
 
     - name: Release build dependencies
       uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/')
+      if: startsWith(github.ref, 'refs/tags/') && matrix.buildtype == 'server'
       with:
         tag_name: ${{ inputs.ref }}
         generate_release_notes: true
@@ -114,6 +109,10 @@ jobs:
     runs-on: ubuntu-24.04
     if: ${{ vars.APK_ONLY == '' }}
 
+    strategy:
+      matrix:
+        cmake_preset: ['client', 'client-no-system-boost', 'client-no-system-freetype']
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -128,19 +127,14 @@ jobs:
 
     - name: Install dependencies
       run: >
-        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev libxcb-glx0-dev gettext libfontconfig-dev
+        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev libxcb-glx0-dev gettext libfontconfig-dev libboost-all-dev
 
     - name: Configure CMake
       run: >
         cmake -B ${{github.workspace}}/build
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         -DCMAKE_INSTALL_PREFIX=/usr
-        -DWIVRN_BUILD_SERVER=OFF
-        -DWIVRN_BUILD_DASHBOARD=OFF
-        -DWIVRN_BUILD_CLIENT=ON
-        -DWIVRN_BUILD_DISSECTOR=OFF
-        -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
-        -DWIVRN_WERROR=ON
+        --preset ${{ matrix.cmake_preset }}
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -149,6 +143,12 @@ jobs:
     name: Wireshark dissector
     runs-on: ubuntu-24.04
     if: ${{ vars.APK_ONLY == '' }}
+
+    strategy:
+      matrix:
+        # Ubuntu 24.04 has boost 1.83, the dissector requires 1.84
+        # cmake_preset: ['dissector', 'dissector-no-system-boost']
+        cmake_preset: ['dissector-no-system-boost']
 
     steps:
     - uses: actions/checkout@v4
@@ -171,13 +171,7 @@ jobs:
         cmake -B ${{github.workspace}}/build
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         -DCMAKE_INSTALL_PREFIX=/usr
-        -DWIVRN_BUILD_SERVER=OFF
-        -DWIVRN_BUILD_DASHBOARD=OFF
-        -DWIVRN_BUILD_CLIENT=OFF
-        -DWIVRN_BUILD_DISSECTOR=ON
-        -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
-        -DWIVRN_USE_SYSTEM_BOOST=OFF
-        -DWIVRN_WERROR=ON
+        --preset ${{ matrix.cmake_preset }}
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}

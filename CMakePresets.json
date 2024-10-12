@@ -1,0 +1,150 @@
+{
+	"version": 3,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 25,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name": "base",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"CMAKE_INTERPROCEDURAL_OPTIMIZATION": "ON",
+				"CMAKE_BUILD_TYPE": "Debug",
+				"WIVRN_BUILD_CLIENT": "OFF",
+				"WIVRN_BUILD_SERVER": "OFF",
+				"WIVRN_BUILD_DASHBOARD": "OFF",
+				"WIVRN_BUILD_DISSECTOR": "OFF",
+				"WIVRN_USE_VAAPI": "ON",
+				"WIVRN_USE_X264": "ON",
+				"WIVRN_USE_NVENC": "ON",
+				"WIVRN_USE_SYSTEMD": "ON",
+				"WIVRN_USE_SYSTEM_BOOST": "ON",
+				"WIVRN_USE_PULSEAUDIO": "ON",
+				"WIVRN_USE_PIPEWIRE": "ON",
+				"WIVRN_WERROR": "ON"
+			}
+		},
+		{
+			"name": "everything",
+			"displayName": "Everything",
+			"inherits": "base",
+			"binaryDir": "${sourceDir}/build-everything",
+			"cacheVariables": {
+				"WIVRN_BUILD_CLIENT": "ON",
+				"WIVRN_BUILD_SERVER": "ON",
+				"WIVRN_BUILD_DASHBOARD": "ON",
+				"WIVRN_BUILD_DISSECTOR": "ON"
+			}
+		},
+		{
+			"name": "client",
+			"displayName": "Client only",
+			"inherits": "base",
+			"binaryDir": "${sourceDir}/build-client",
+			"cacheVariables": {
+				"WIVRN_BUILD_CLIENT": "ON"
+			}
+		},
+		{
+			"name": "server",
+			"displayName": "Server only",
+			"inherits": "base",
+			"binaryDir": "${sourceDir}/build-server",
+			"cacheVariables": {
+				"WIVRN_BUILD_SERVER": "ON"
+			}
+		},
+		{
+			"name": "dashboard",
+			"displayName": "Dashboard only",
+			"inherits": "base",
+			"binaryDir": "${sourceDir}/build-dashboard",
+			"cacheVariables": {
+				"WIVRN_BUILD_DASHBOARD": "ON"
+			}
+		},
+		{
+			"name": "dissector",
+			"displayName": "Wireshark dissector only",
+			"inherits": "base",
+			"binaryDir": "${sourceDir}/build-dissector",
+			"cacheVariables": {
+				"WIVRN_BUILD_DISSECTOR": "ON"
+			}
+		},
+		{
+			"name": "everything-no-systemd",
+			"displayName": "Everything (no systemd)",
+			"inherits": "everything",
+			"binaryDir": "${sourceDir}/build-no-systemd",
+			"cacheVariables": {
+				"WIVRN_USE_SYSTEMD": "OFF"
+			}
+		},
+		{
+			"name": "everything-no-system-boost",
+			"displayName": "Everything (no system Boost)",
+			"inherits": "everything",
+			"binaryDir": "${sourceDir}/build-no-system-boost",
+			"cacheVariables": {
+				"WIVRN_USE_SYSTEM_BOOST": "OFF"
+			}
+		},
+		{
+			"name": "server-no-systemd",
+			"displayName": "Server only (no systemd)",
+			"inherits": "server",
+			"binaryDir": "${sourceDir}/build-server-no-systemd",
+			"cacheVariables": {
+				"WIVRN_USE_SYSTEMD": "OFF"
+			}
+		},
+		{
+			"name": "server-no-system-boost",
+			"displayName": "Server only (no system Boost)",
+			"inherits": "server",
+			"binaryDir": "${sourceDir}/build-server-no-system-boost",
+			"cacheVariables": {
+				"WIVRN_USE_SYSTEM_BOOST": "OFF"
+			}
+		},
+		{
+			"name": "client-no-system-boost",
+			"displayName": "Client only (no system Boost)",
+			"inherits": "client",
+			"binaryDir": "${sourceDir}/build-client-no-system-boost",
+			"cacheVariables": {
+				"WIVRN_USE_SYSTEM_BOOST": "OFF"
+			}
+		},
+		{
+			"name": "client-no-system-freetype",
+			"displayName": "Client only (no system freetype/harfbuzz)",
+			"inherits": "client",
+			"binaryDir": "${sourceDir}/build-client-no-system-freetype",
+			"cacheVariables": {
+				"WIVRN_USE_SYSTEM_FREETYPE": "OFF"
+			}
+		},
+		{
+			"name": "dissector-no-system-boost",
+			"displayName": "Dissector only (no system Boost)",
+			"inherits": "dissector",
+			"binaryDir": "${sourceDir}/build-dissector-no-system-boost",
+			"cacheVariables": {
+				"WIVRN_USE_SYSTEM_BOOST": "OFF"
+			}
+		}
+	],
+	"buildPresets": [
+		{
+		"name": "default",
+		"displayName": "Build and install",
+		"configurePreset": "everything",
+		"targets": "install"
+		}
+	]
+}
