@@ -59,40 +59,13 @@ else()
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
-
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_INSTALL_DATADIR}/wivrn)
-
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/share/wivrn)
-    file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
 endif()
 
-add_library(wivrn-imgui STATIC)
-target_sources(wivrn-imgui PRIVATE
-    ${imgui_SOURCE_DIR}/imgui.cpp
-    ${imgui_SOURCE_DIR}/imgui_draw.cpp
-    ${imgui_SOURCE_DIR}/imgui_tables.cpp
-    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-    ${imgui_SOURCE_DIR}/imgui_demo.cpp
-    ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
-    ${implot_SOURCE_DIR}/implot.cpp
-    ${implot_SOURCE_DIR}/implot_items.cpp
-)
 
-target_include_directories(wivrn-imgui PUBLIC ${imgui_SOURCE_DIR})
-target_include_directories(wivrn-imgui PUBLIC ${implot_SOURCE_DIR})
-# target_compile_definitions(wivrn-imgui PUBLIC "IMGUI_USER_CONFIG=\"render/imgui_config.h\"")
-target_compile_definitions(wivrn-imgui PUBLIC IMGUI_USE_WCHAR32)
-target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE)
-# target_compile_definitions(wivrn-imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
-# target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
-target_compile_features(wivrn-imgui PRIVATE cxx_std_23)
-target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
 
-target_link_libraries(wivrn wivrn-imgui)
-
-target_link_libraries(wivrn uni-algo)
-
+##############################################################################
+# Main sources
+#
 target_compile_features(wivrn PRIVATE cxx_std_23)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
 
@@ -123,8 +96,43 @@ if(NOT ANDROID)
     install(TARGETS wivrn)
 endif()
 
-target_link_libraries(wivrn simdjson wivrn-common wivrn-external)
+target_link_libraries(wivrn simdjson uni-algo wivrn-common wivrn-external)
 
+
+
+##############################################################################
+# Dear ImGui
+#
+add_library(wivrn-imgui STATIC)
+target_sources(wivrn-imgui PRIVATE
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp
+    ${implot_SOURCE_DIR}/implot.cpp
+    ${implot_SOURCE_DIR}/implot_items.cpp
+)
+
+target_include_directories(wivrn-imgui PUBLIC ${imgui_SOURCE_DIR})
+target_include_directories(wivrn-imgui PUBLIC ${implot_SOURCE_DIR})
+# target_compile_definitions(wivrn-imgui PUBLIC "IMGUI_USER_CONFIG=\"render/imgui_config.h\"")
+target_compile_definitions(wivrn-imgui PUBLIC IMGUI_USE_WCHAR32)
+target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE)
+# target_compile_definitions(wivrn-imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
+# target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
+target_compile_features(wivrn-imgui PRIVATE cxx_std_23)
+target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
+
+target_link_libraries(wivrn wivrn-imgui)
+
+
+
+##############################################################################
+# Vulkan Validation Layer
+#
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/vk_layer_settings.txt
 "khronos_validation.debug_action = VK_DBG_LAYER_ACTION_LOG_MSG,VK_DBG_LAYER_ACTION_BREAK
@@ -159,6 +167,18 @@ if(USE_ANDROID_VALIDATION_LAYER)
     target_link_libraries(wivrn vvl1 vvl2) # Hack to get gradle to package the validation layer in the APK
 endif()
 
+if(ANDROID)
+    set(ASSETS_DIR ${CMAKE_ANDROID_ASSETS_DIRECTORIES})
+else()
+    set(ASSETS_DIR ${CMAKE_CURRENT_BINARY_DIR}/assets)
+    file(MAKE_DIRECTORY ${ASSETS_DIR})
+endif()
+
+
+
+##############################################################################
+# Internationalization
+#
 find_program(GETTEXT_MSGFMT_COMMAND msgfmt REQUIRED)
 
 set(MO_FILES)
@@ -168,9 +188,9 @@ foreach(PO_DIR IN LISTS PO_DIRS)
     cmake_path(GET PO_DIR FILENAME LANG)
 
     if(ANDROID)
-        set(MO_DIR  ${CMAKE_ANDROID_ASSETS_DIRECTORIES}/locale/${LANG}/LC_MESSAGES)
+        set(MO_DIR ${CMAKE_ANDROID_ASSETS_DIRECTORIES}/locale/${LANG}/LC_MESSAGES)
     else()
-        set(MO_DIR  ${CMAKE_CURRENT_BINARY_DIR}/locale/${LANG}/LC_MESSAGES)
+        set(MO_DIR ${CMAKE_CURRENT_BINARY_DIR}/locale/${LANG}/LC_MESSAGES)
     endif()
 
     set(MO_FILE ${MO_DIR}/wivrn.mo)
@@ -195,6 +215,11 @@ add_custom_target(translations ALL DEPENDS ${MO_FILES} ${CMAKE_CURRENT_BINARY_DI
 add_dependencies(wivrn translations)
 target_sources(wivrn PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
 
+
+
+##############################################################################
+# License files
+#
 if(ANDROID)
     set(LICENSES_DIR "${CMAKE_ANDROID_ASSETS_DIRECTORIES}/licenses")
 else()
@@ -211,9 +236,73 @@ endif()
 
 install(DIRECTORY "${LICENSES_DIR}" DESTINATION "${CMAKE_INSTALL_DATADIR}/wivrn")
 
+
+
+##############################################################################
+# Generate assets from SVGs
+#
+file(REAL_PATH ${WIVRN_CSS} WIVRN_CSS_ABS BASE_DIRECTORY "${CMAKE_SOURCE_DIR}")
+set(RSVG_OPTS "--stylesheet=${WIVRN_CSS_ABS}")
+
+set(IMG_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../images)
+set(AST_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../assets)
+
+add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn.png
+    COMMAND rsvg-convert ${IMG_SRC_DIR}/wivrn.svg -w 540 -h 540 -o ${ASSETS_DIR}/wivrn.png ${RSVG_OPTS}
+    DEPENDS ${IMG_SRC_DIR}/wivrn.svg ${WIVRN_CSS_ABS})
+
+add_custom_target(assets ALL DEPENDS
+    ${ASSETS_DIR}/wivrn.png
+)
+
+add_dependencies(wivrn assets)
+
+if(ANDROID)
+    add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn.ktx2
+        COMMAND toktx --encode astc --astc_blk_d 4x4 --astc_quality 100 --genmipmap ${ASSETS_DIR}/wivrn.ktx2 ${ASSETS_DIR}/wivrn.png
+        DEPENDS ${ASSETS_DIR}/wivrn.png)
+
+    add_custom_command(OUTPUT ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2
+        COMMAND toktx --encode astc --astc_blk_d 12x12 --astc_quality 100 --genmipmap ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2 ${AST_SRC_DIR}/WoodFloor051_1K-JPG_Color.jpg
+        DEPENDS ${AST_SRC_DIR}/WoodFloor051_1K-JPG_Color.jpg)
+
+    add_custom_command(OUTPUT ${ASSETS_DIR}/vr_splash.png
+        COMMAND ${CMAKE_COMMAND} -E copy ${ASSETS_DIR}/wivrn.png ${ASSETS_DIR}/vr_splash.png
+        DEPENDS ${ASSETS_DIR}/wivrn.png)
+
+    add_custom_target(assets-android ALL DEPENDS
+        ${ASSETS_DIR}/wivrn.ktx2
+        ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2
+        ${ASSETS_DIR}/vr_splash.png
+    )
+    add_dependencies(assets-android assets)
+    add_dependencies(wivrn assets-android)
+endif()
+
+
+
+##############################################################################
+# Copy the assets to be able to find them when started from the build
+# directory
 if(NOT ANDROID)
+    file(GLOB_RECURSE ASSETS CONFIGURE_DEPENDS LIST_DIRECTORIES FALSE RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/../assets" "${CMAKE_CURRENT_SOURCE_DIR}/../assets/*" )
+
+    set(COPIED_ASSETS)
+
+    foreach(ASSET IN LISTS ASSETS)
+        add_custom_command(OUTPUT ${ASSETS_DIR}/${ASSET}
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../assets/${ASSET} ${ASSETS_DIR}/${ASSET}
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../assets/${ASSET})
+
+        set(COPIED_ASSETS ${COPIED_ASSETS} ${ASSETS_DIR}/${ASSET})
+    endforeach()
+    add_custom_target(assets-builddir ALL DEPENDS ${COPIED_ASSETS})
+    add_dependencies(wivrn assets-builddir)
+
     set_target_properties(wivrn PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/share/wivrn)
-    file(CREATE_LINK ${CMAKE_SOURCE_DIR}/assets         ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
+    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/assets ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
     file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/locale ${CMAKE_BINARY_DIR}/share/locale       SYMBOLIC)
+
+    install(DIRECTORY "${ASSETS_DIR}" DESTINATION ${CMAKE_INSTALL_DATADIR}/wivrn)
 endif()

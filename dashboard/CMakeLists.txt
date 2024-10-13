@@ -46,12 +46,22 @@ qt_add_executable(wivrn-dashboard
         ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
 )
 
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png
+    COMMAND rsvg-convert ${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg -w 540 -h 540 -o ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg)
+
+add_custom_target(dashboard-assets ALL DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png
+)
+
+add_dependencies(wivrn-dashboard dashboard-assets)
+
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg PROPERTIES QT_RESOURCE_ALIAS "images/wivrn.svg")
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../assets/wivrn.png PROPERTIES QT_RESOURCE_ALIAS "images/wivrn.png")
+set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/wivrn.png           PROPERTIES QT_RESOURCE_ALIAS "images/wivrn.png")
 
 qt_add_resources(wivrn-dashboard wivrn-dashboard-resources PREFIX / FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg
-    ${CMAKE_CURRENT_SOURCE_DIR}/../assets/wivrn.png
+    ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png
 )
 
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml PROPERTIES INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/wivrn_qdbus_types.h")

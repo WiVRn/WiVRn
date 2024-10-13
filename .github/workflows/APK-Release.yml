@@ -33,6 +33,8 @@ jobs:
     - name: Install dependencies
       run: >
         sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin gettext
+        wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.deb
+        sudo dpkg --install KTX-Software-4.3.2-Linux-x86_64.deb
 
     - name: Check for Secret availability
       id: secret-check
@@ -58,7 +60,7 @@ jobs:
         sudo rm /usr/local/bin/cmake
         "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.30.3"
         chmod +x gradlew
-        ./gradlew -Psuffix=".github" assemble${{ matrix.hmd }}${{ matrix.buildtype }}
+        ./gradlew -Psuffix=".github.nightly" -Pwivrn_css=images/wivrn-nightly.css -Pwivrn_app_name="WiVRn Nightly" assemble${{ matrix.hmd }}${{ matrix.buildtype }}
 
     - name: Prepare before archiving artifacts
       run: |

@@ -25,34 +25,31 @@ task "generatePngs"() {
         mkdir layout.buildDirectory.dir("generated_resources/${it}")
     }
 
+    def css = project.hasProperty('wivrn_css') ? project.wivrn_css: "images/wivrn-local.css"
+
     exec {
         executable = 'rsvg-convert'
-        args = [ "wivrn.svg", "-w", "48", "-h", "48", "-o", layout.buildDirectory.file('generated_resources/mipmap-mdpi/ic_wivrn_launcher.png').get().asFile ]
-        workingDir 'images'
+        args = [ "images/wivrn.svg", "-w", "48", "-h", "48", "-o", layout.buildDirectory.file('generated_resources/mipmap-mdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
     }
 
     exec {
         executable = 'rsvg-convert'
-        args = [ "wivrn.svg", "-w", "72", "-h", "72", "-o", layout.buildDirectory.file('generated_resources/mipmap-hdpi/ic_wivrn_launcher.png').get().asFile ]
-        workingDir 'images'
+        args = [ "images/wivrn.svg", "-w", "72", "-h", "72", "-o", layout.buildDirectory.file('generated_resources/mipmap-hdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
     }
 
     exec {
         executable = 'rsvg-convert'
-        args = [ "wivrn.svg", "-w", "96", "-h", "96", "-o", layout.buildDirectory.file('generated_resources/mipmap-xhdpi/ic_wivrn_launcher.png').get().asFile ]
-        workingDir 'images'
+        args = [ "images/wivrn.svg", "-w", "96", "-h", "96", "-o", layout.buildDirectory.file('generated_resources/mipmap-xhdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
     }
 
     exec {
         executable = 'rsvg-convert'
-        args = [ "wivrn.svg", "-w", "144", "-h", "144", "-o", layout.buildDirectory.file('generated_resources/mipmap-xxhdpi/ic_wivrn_launcher.png').get().asFile ]
-        workingDir 'images'
+        args = [ "images/wivrn.svg", "-w", "144", "-h", "144", "-o", layout.buildDirectory.file('generated_resources/mipmap-xxhdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
     }
 
     exec {
         executable = 'rsvg-convert'
-        args = [ "wivrn.svg", "-w", "192", "-h", "192", "-o", layout.buildDirectory.file('generated_resources/mipmap-xxxhdpi/ic_wivrn_launcher.png').get().asFile ]
-        workingDir 'images'
+        args = [ "images/wivrn.svg", "-w", "192", "-h", "192", "-o", layout.buildDirectory.file('generated_resources/mipmap-xxxhdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
     }
 }
 
@@ -77,6 +74,8 @@ android {
         def showImguiDemo = project.hasProperty('wivrn_show_imgui_demo') ? wivrn_show_imgui_demo : 'OFF'
 
         externalNativeBuild {
+            def css = project.hasProperty('wivrn_css') ? project.wivrn_css: "images/wivrn-local.css"
+
             cmake {
                 arguments '-DANDROID_TOOLCHAIN=clang',
                           '-DANDROID_STL=c++_static',
@@ -88,8 +87,9 @@ android {
                           '-DWIVRN_BUILD_SERVER=OFF',
                           '-DWIVRN_BUILD_DASHBOARD=OFF',
                           '-DWIVRN_WERROR=ON',
-                          '-DWIVRN_SHOW_IMGUI_DEMO_WINDOW=' + showImguiDemo
-                resValue "string", "app_name", "WiVRn"
+                          '-DWIVRN_SHOW_IMGUI_DEMO_WINDOW=' + showImguiDemo,
+                          '-DWIVRN_CSS=' + css
+                resValue "string", "app_name", project.hasProperty('wivrn_app_name') ? project.wivrn_app_name : "WiVRn Local"
             }
         }
     }
@@ -183,9 +183,11 @@ android {
         }
     }
 
+    tasks["preBuild"].dependsOn "generatePngs"
+
     applicationVariants.all { variant ->
-        tasks["assemble${variant.name.capitalize()}"].finalizedBy "generatePngs"
-        tasks["assemble${variant.name.capitalize()}"].dependsOn "externalNativeBuild${variant.name.capitalize()}"
+        // It probably works with merge${variant.name.capitalize()}Assets too
+        tasks["generate${variant.name.capitalize()}Assets"].dependsOn "externalNativeBuild${variant.name.capitalize()}"
     }
 
     productFlavors.all { variant ->
