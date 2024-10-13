@@ -441,9 +441,11 @@ void settings::load_settings()
 	selected_rectangle_changed(0);
 
 	ui->partitionner->set_paint([&](QPainter & painter, QRect rect, const QVariant & data, int index, bool selected) {
+		QPalette palette = QApplication::palette();
+
 		if (selected)
 		{
-			painter.fillRect(rect.adjusted(1, 1, 0, 0), QColorConstants::Cyan);
+			painter.fillRect(rect.adjusted(1, 1, 0, 0), palette.color(QPalette::Highlight));
 		}
 
 		auto [encoder_id, codec_id] = data.value<std::pair<int, int>>();
