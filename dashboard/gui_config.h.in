@@ -20,5 +20,3 @@
 #pragma once
 
 #cmakedefine01 WIVRN_CHECK_CAPSYSNICE
-
-#define WORKAROUND_QTBUG_90005 // See https://bugreports.qt.io/browse/QTBUG-90005

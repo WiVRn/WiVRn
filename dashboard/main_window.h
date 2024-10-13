@@ -76,7 +76,6 @@ public:
 	~main_window();
 
 	void changeEvent(QEvent * e) override;
-	bool event(QEvent * e) override;
 	void closeEvent(QCloseEvent * event) override;
 	void setVisible(bool visible) override;
 

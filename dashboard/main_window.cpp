@@ -206,24 +206,6 @@ void main_window::changeEvent(QEvent * e)
 	}
 }
 
-bool main_window::event(QEvent * e)
-{
-#ifdef WORKAROUND_QTBUG_90005
-	if (wizard_window and e->type() == QEvent::WindowActivate)
-	{
-		wizard_window->activateWindow();
-		return true;
-	}
-	else if (settings_window and e->type() == QEvent::WindowActivate)
-	{
-		settings_window->activateWindow();
-		return true;
-	}
-	else
-#endif
-		return QMainWindow::event(e);
-}
-
 void main_window::retranslate()
 {
 	ui->retranslateUi(this);
@@ -380,13 +362,7 @@ void main_window::on_banner_capsysnice(const QString & link)
 							auto restart_button = msgbox.addButton(tr("Restart WiVRn"), QMessageBox::YesRole);
 							auto close_button = msgbox.addButton(QMessageBox::Close);
 
-#ifdef WORKAROUND_QTBUG_90005
-							setEnabled(false);
-#endif
 							msgbox.exec();
-#ifdef WORKAROUND_QTBUG_90005
-							setEnabled(true);
-#endif
 
 							if (msgbox.clickedButton() == restart_button)
 							{
@@ -405,13 +381,7 @@ void main_window::on_banner_capsysnice(const QString & link)
 
 				auto close_button = msgbox.addButton(QMessageBox::Close);
 
-#ifdef WORKAROUND_QTBUG_90005
-				setEnabled(false);
-#endif
 				msgbox.exec();
-#ifdef WORKAROUND_QTBUG_90005
-				setEnabled(true);
-#endif
 			}
 
 			setcap_process->deleteLater();
@@ -579,15 +549,7 @@ void main_window::on_server_finished(int exit_code, QProcess::ExitStatus status)
 		msgbox.setIcon(QMessageBox::Critical);
 		msgbox.setText(tr("Server crashed:\n%1").arg(error_message));
 		msgbox.setStandardButtons(QMessageBox::Close);
-
-#ifdef WORKAROUND_QTBUG_90005
-		setEnabled(false);
-#endif
 		msgbox.exec();
-
-#ifdef WORKAROUND_QTBUG_90005
-		setEnabled(true);
-#endif
 	}
 
 	if (server_process_restart)
@@ -628,15 +590,7 @@ void main_window::on_server_error_occurred(QProcess::ProcessError error)
 	msgbox.setIcon(QMessageBox::Critical);
 	msgbox.setText(tr("Failed to start server:\n%1").arg(error_message));
 	msgbox.setStandardButtons(QMessageBox::Close);
-
-#ifdef WORKAROUND_QTBUG_90005
-	setEnabled(false);
-#endif
 	msgbox.exec();
-
-#ifdef WORKAROUND_QTBUG_90005
-	setEnabled(true);
-#endif
 }
 
 void main_window::on_server_start_timeout()
@@ -658,14 +612,7 @@ void main_window::on_server_start_timeout()
 	msgbox.setText(tr("Timeout starting server"));
 	msgbox.setStandardButtons(QMessageBox::Close);
 
-#ifdef WORKAROUND_QTBUG_90005
-	setEnabled(false);
-#endif
 	msgbox.exec();
-
-#ifdef WORKAROUND_QTBUG_90005
-	setEnabled(true);
-#endif
 }
 
 void main_window::on_action_settings()
@@ -673,16 +620,6 @@ void main_window::on_action_settings()
 	assert(not settings_window);
 
 	settings_window = new settings(server_interface);
-
-#ifdef WORKAROUND_QTBUG_90005
-	setEnabled(false);
-	connect(settings_window, &QDialog::finished, this, [&](int r) {
-		setEnabled(true);
-		settings_window->deleteLater();
-		settings_window = nullptr;
-	});
-#endif
-
 	settings_window->exec();
 }
 
@@ -691,16 +628,6 @@ void main_window::on_action_wizard()
 	assert(not wizard_window);
 
 	wizard_window = new wizard;
-
-#ifdef WORKAROUND_QTBUG_90005
-	setDisabled(true);
-	connect(wizard_window, &QWizard::finished, this, [&]() {
-		setEnabled(true);
-		wizard_window->deleteLater();
-		wizard_window = nullptr;
-	});
-#endif
-
 	wizard_window->exec();
 }
 
@@ -745,15 +672,7 @@ void main_window::on_action_usb(const std::string & serial)
 		msgbox.setIcon(QMessageBox::Critical);
 		msgbox.setText(tr("The WiVRn app is not installed on your headset."));
 		msgbox.setStandardButtons(QMessageBox::Close);
-
-#ifdef WORKAROUND_QTBUG_90005
-		setEnabled(false);
-#endif
 		msgbox.exec();
-
-#ifdef WORKAROUND_QTBUG_90005
-		setEnabled(true);
-#endif
 	}
 }
 
