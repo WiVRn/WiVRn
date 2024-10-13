@@ -181,58 +181,62 @@
         <translation>Settings</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="534"/>
+        <location filename="settings.ui" line="117"/>
         <source>Bitrate:</source>
         <oldsource>Bi&amp;trate:</oldsource>
         <translation>Bitrate:</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="96"/>
+        <location filename="settings.ui" line="130"/>
         <source>Foveation strength:</source>
         <translation>Foveation strength:</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="208"/>
+        <location filename="settings.ui" line="173"/>
         <source>Manual</source>
         <oldsource>&amp;Manual</oldsource>
         <comment>Encoder</comment>
         <translation>Manual</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="240"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;You can drag an edge to resize or remove encoders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <oldsource>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;You can drag an edge to resize or remove an encoder.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</oldsource>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;You can drag an edge to resize or remove encoders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+        <translation type="vanished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;You can drag an edge to resize or remove encoders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="319"/>
+        <location filename="settings.ui" line="297"/>
         <source>nvenc (NVIDIA GPUs)</source>
         <translation>nvenc (NVIDIA GPUs)</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="324"/>
+        <location filename="settings.ui" line="302"/>
         <source>vaapi (AMD and Intel GPUs)</source>
         <translation>vaapi (AMD and Intel GPUs)</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="329"/>
+        <location filename="settings.ui" line="307"/>
         <source>x264 (software encoding)</source>
         <translation>x264 (software encoding)</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="415"/>
+        <location filename="settings.ui" line="60"/>
         <source>Manual</source>
         <oldsource>&amp;Manual</oldsource>
         <comment>Foveation</comment>
         <translation>Manual</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="428"/>
+        <location filename="settings.ui" line="393"/>
+        <source>Application to start when a headset connects</source>
+        <translation>Application to start when a headset connects</translation>
+    </message>
+    <message>
+        <location filename="settings.ui" line="470"/>
         <source>Path</source>
         <translation>Path</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="483"/>
+        <location filename="settings.ui" line="163"/>
         <source>Encoder configuration:</source>
         <translation>Encoder configuration:</translation>
     </message>
@@ -241,34 +245,39 @@
         <translation type="vanished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;A stronger foveation makes the image sharper in the center than in the periphery and makes the decoding faster. This is better for fast paced games.&lt;/p&gt;&lt;p&gt;A weaker foveation gives a uniform sharpness in the whole image.&lt;/p&gt;&lt;p&gt;The recommended values are between 20% and 50% for headsets without eye tracking and between 50% and 70% for headsets with eye tracking.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="121"/>
+        <location filename="settings.ui" line="72"/>
         <source>Weaker</source>
         <translation>Weaker</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="141"/>
+        <location filename="settings.ui" line="92"/>
         <source>Stronger</source>
         <translation>Stronger</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="294"/>
+        <location filename="settings.ui" line="218"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;Drag an edge to resize or remove encoders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To add a new encoder, split an existing encoder by clicking near an edge.&lt;/p&gt;&lt;p&gt;Drag an edge to resize or remove encoders.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="settings.ui" line="272"/>
         <source>Encoder</source>
         <translation>Encoder</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="314"/>
-        <location filename="settings.ui" line="347"/>
+        <location filename="settings.ui" line="292"/>
+        <location filename="settings.ui" line="325"/>
         <source>Auto</source>
         <translation>Auto</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="514"/>
+        <location filename="settings.ui" line="140"/>
         <source>Automatic</source>
         <comment>Encoder</comment>
         <translation>Automatic</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="166"/>
+        <location filename="settings.ui" line="581"/>
         <source>A stronger foveation makes the image sharper in the center than in the periphery and makes the decoding faster. This is better for fast paced games.
 
 A weaker foveation gives a uniform sharpness in the whole image.
@@ -281,44 +290,42 @@ A weaker foveation gives a uniform sharpness in the whole image.
 The recommended values are between 20% and 50% for headsets without eye tracking and between 50% and 70% for headsets with eye tracking.</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="106"/>
+        <location filename="settings.ui" line="196"/>
         <source>Automatic</source>
         <oldsource>Au&amp;tomatic</oldsource>
         <comment>Foveation</comment>
         <translation>Automatic</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="458"/>
+        <location filename="settings.ui" line="556"/>
         <source>WiVRn settings</source>
         <translation>WiVRn settings</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="398"/>
+        <location filename="settings.ui" line="376"/>
         <source>Codec</source>
         <translation>Codec</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="55"/>
+        <location filename="settings.ui" line="499"/>
         <source> Mbit/s</source>
         <translation> Mbit/s</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="527"/>
         <source>You can use several encoders in order to split the workload between your CPU and your GPU and reduce the latency.</source>
-        <translation>You can use several encoders in order to split the workload between your CPU and your GPU and reduce the latency.</translation>
+        <translation type="vanished">You can use several encoders in order to split the workload between your CPU and your GPU and reduce the latency.</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="547"/>
         <source>You can choose a game to be started automatically when the headset connects.</source>
-        <translation>You can choose a game to be started automatically when the headset connects.</translation>
+        <translation type="vanished">You can choose a game to be started automatically when the headset connects.</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="563"/>
+        <location filename="settings.ui" line="156"/>
         <source>Browse</source>
         <translation>Browse</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="576"/>
+        <location filename="settings.ui" line="444"/>
         <source> %</source>
         <translation> %</translation>
     </message>
@@ -437,75 +444,75 @@ The recommended values are between 20% and 50% for headsets without eye tracking
 <context>
     <name>main_window</name>
     <message>
-        <location filename="main_window.cpp" line="232"/>
+        <location filename="main_window.cpp" line="214"/>
         <source>&amp;Show GUI</source>
         <translation>&amp;Show GUI</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="233"/>
+        <location filename="main_window.cpp" line="215"/>
         <source>&amp;Hide GUI</source>
         <translation>&amp;Hide GUI</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="234"/>
+        <location filename="main_window.cpp" line="216"/>
         <source>&amp;Exit</source>
         <translation>&amp;Exit</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="373"/>
+        <location filename="main_window.cpp" line="355"/>
         <source>You have to restart the WiVRn server to use the CAP_SYS_NICE capability.
 Do you want to restart it now?</source>
         <translation>You have to restart the WiVRn server to use the CAP_SYS_NICE capability.
 Do you want to restart it now?</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="377"/>
+        <location filename="main_window.cpp" line="359"/>
         <source>This will disconnect the currently connected headset.</source>
         <translation>This will disconnect the currently connected headset.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="380"/>
+        <location filename="main_window.cpp" line="362"/>
         <source>Restart WiVRn</source>
         <translation>Restart WiVRn</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="404"/>
+        <location filename="main_window.cpp" line="380"/>
         <source>Cannot start setcap: %1</source>
         <translation>Cannot start setcap: %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="476"/>
+        <location filename="main_window.cpp" line="446"/>
         <source>%1 ⨯ %2</source>
         <translation>%1 ⨯ %2</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="483"/>
-        <location filename="main_window.cpp" line="490"/>
+        <location filename="main_window.cpp" line="453"/>
+        <location filename="main_window.cpp" line="460"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="495"/>
-        <location filename="main_window.cpp" line="500"/>
-        <location filename="main_window.cpp" line="517"/>
+        <location filename="main_window.cpp" line="465"/>
+        <location filename="main_window.cpp" line="470"/>
+        <location filename="main_window.cpp" line="487"/>
         <source>Supported</source>
         <translation>Supported</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="495"/>
-        <location filename="main_window.cpp" line="500"/>
-        <location filename="main_window.cpp" line="517"/>
+        <location filename="main_window.cpp" line="465"/>
+        <location filename="main_window.cpp" line="470"/>
+        <location filename="main_window.cpp" line="487"/>
         <source>Not supported</source>
         <translation>Not supported</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="507"/>
+        <location filename="main_window.cpp" line="477"/>
         <source>Left eye: %1° ⨯ %2°, right eye: %3° ⨯ %4°</source>
         <translation>Left eye: %1° ⨯ %2°, right eye: %3° ⨯ %4°</translation>
     </message>
     <message numerus="yes">
-        <location filename="main_window.cpp" line="526"/>
-        <location filename="main_window.cpp" line="537"/>
+        <location filename="main_window.cpp" line="496"/>
+        <location filename="main_window.cpp" line="507"/>
         <source>%n channel(s), %1 Hz</source>
         <oldsource>%1 channel(s), %2 Hz</oldsource>
         <translation>
@@ -514,13 +521,13 @@ Do you want to restart it now?</translation>
         </translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="528"/>
-        <location filename="main_window.cpp" line="539"/>
+        <location filename="main_window.cpp" line="498"/>
+        <location filename="main_window.cpp" line="509"/>
         <source>N/A</source>
         <translation>N/A</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="746"/>
+        <location filename="main_window.cpp" line="673"/>
         <source>The WiVRn app is not installed on your headset.</source>
         <translation>The WiVRn app is not installed on your headset.</translation>
     </message>
@@ -535,33 +542,33 @@ Do you want to install it?</translation>
         <translation type="obsolete">WiVRn</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="608"/>
+        <location filename="main_window.cpp" line="570"/>
         <source>Failed to start</source>
         <translation>Failed to start</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="611"/>
+        <location filename="main_window.cpp" line="573"/>
         <source>Crashed</source>
         <translation>Crashed</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="614"/>
+        <location filename="main_window.cpp" line="576"/>
         <source>Time out</source>
         <translation>Time out</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="617"/>
+        <location filename="main_window.cpp" line="579"/>
         <source>Read error</source>
         <translation>Read error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="620"/>
+        <location filename="main_window.cpp" line="582"/>
         <source>Write error</source>
         <oldsource>write error</oldsource>
         <translation>Write error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="623"/>
+        <location filename="main_window.cpp" line="585"/>
         <source>Unknown error</source>
         <translation>Unknown error</translation>
     </message>
@@ -570,62 +577,62 @@ Do you want to install it?</translation>
         <translation type="vanished">Server error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="629"/>
+        <location filename="main_window.cpp" line="591"/>
         <source>Failed to start server:
 %1</source>
         <translation>Failed to start server:
 %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="563"/>
+        <location filename="main_window.cpp" line="533"/>
         <source>Unknown error (%1), check logs</source>
         <translation>Unknown error (%1), check logs</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="287"/>
+        <location filename="main_window.cpp" line="269"/>
         <source>No device detected</source>
         <translation>No device detected</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="230"/>
+        <location filename="main_window.cpp" line="212"/>
         <source>Start the WiVRn app on your headset and connect to &quot;%1&quot;.</source>
         <translation>Start the WiVRn app on your headset and connect to &quot;%1&quot;.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="230"/>
+        <location filename="main_window.cpp" line="212"/>
         <source>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</source>
         <translation>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="452"/>
+        <location filename="main_window.cpp" line="422"/>
         <source>Connected</source>
         <translation>Connected</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="457"/>
+        <location filename="main_window.cpp" line="427"/>
         <source>Not connected</source>
         <translation>Not connected</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="574"/>
+        <location filename="main_window.cpp" line="544"/>
         <source>Cannot connect to avahi, make sure avahi-daemon service is started</source>
         <oldsource>Cannot connect to avahi, make sure avahi_daemon.service is started</oldsource>
         <translation>Cannot connect to avahi, make sure avahi-daemon service is started</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="571"/>
+        <location filename="main_window.cpp" line="541"/>
         <source>Insufficient system resources</source>
         <translation>Insufficient system resources</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="580"/>
+        <location filename="main_window.cpp" line="550"/>
         <source>Server crashed:
 %1</source>
         <translation>Server crashed:
 %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="658"/>
+        <location filename="main_window.cpp" line="612"/>
         <source>Timeout starting server</source>
         <translation>Timeout starting server</translation>
     </message>
@@ -633,36 +640,36 @@ Do you want to install it?</translation>
 <context>
     <name>settings</name>
     <message>
-        <location filename="settings.cpp" line="389"/>
+        <location filename="settings.cpp" line="372"/>
         <source>Invalid settings</source>
         <translation>Invalid settings</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="389"/>
+        <location filename="settings.cpp" line="372"/>
         <source>The encoder configuration is invalid, the default values will be restored.</source>
         <translation>The encoder configuration is invalid, the default values will be restored.</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="445"/>
+        <location filename="settings.cpp" line="428"/>
         <source>None</source>
         <comment>Game selection combo box</comment>
         <translation>None</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="446"/>
+        <location filename="settings.cpp" line="429"/>
         <source>Custom...</source>
         <comment>Game selection combo box</comment>
         <translation>Custom...</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="246"/>
+        <location filename="settings.cpp" line="217"/>
         <source>Not all headsets and GPUs support AV1
 </source>
         <translation>Not all headsets and GPUs support AV1
 </translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="277"/>
+        <location filename="settings.cpp" line="248"/>
         <source>Select game</source>
         <translation>Select game</translation>
     </message>

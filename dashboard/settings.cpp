@@ -438,7 +438,6 @@ void settings::load_settings()
 		ui->combo_select_game->setCurrentIndex(1);
 		set_application(application);
 	}
-	selected_rectangle_changed(0);
 
 	ui->partitionner->set_paint([&](QPainter & painter, QRect rect, const QVariant & data, int index, bool selected) {
 		QPalette palette = QApplication::palette();
