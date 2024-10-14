@@ -53,7 +53,9 @@ const std::vector<std::pair<int, std::string>> codec_ids{
         {1, "h264"},
         {1, "avc"},
         {2, "h265"},
+        {2, "hevc"},
         {3, "av1"},
+        {3, "AV1"},
 };
 
 const std::vector<std::pair<int, int>> compatible_combos{
@@ -141,6 +143,41 @@ settings::settings(wivrn_server * server_interface) :
 	setWindowModality(Qt::WindowModality::ApplicationModal);
 
 	load_settings();
+
+	ui->partitionner->set_paint([&](QPainter & painter, QRect rect, const QVariant & data, int index, bool selected) {
+		QPalette palette = QApplication::palette();
+
+		if (selected)
+		{
+			painter.fillRect(rect.adjusted(1, 1, 0, 0), palette.color(QPalette::Highlight));
+		}
+
+		auto [encoder_id, codec_id] = data.value<std::pair<int, int>>();
+
+		QString codec = ui->codec->itemText(codec_id);
+		QString encoder = ui->encoder->itemText(encoder_id);
+
+		QFont font = painter.font();
+		QFont font2 = font;
+
+		font2.setPixelSize(24);
+
+		QString text = QString("%1\n%2").arg(encoder, codec);
+
+		QFontMetrics metrics{font2};
+		QSize size = metrics.size(0, text);
+
+		if (double ratio = std::max((double)size.width() / rect.width(), (double)size.height() / rect.height()); ratio > 1)
+		{
+			int pixel_size = font2.pixelSize() / ratio;
+			if (pixel_size > 0)
+				font2.setPixelSize(pixel_size);
+		}
+
+		painter.setFont(font2);
+		painter.drawText(rect, Qt::AlignCenter, text);
+		painter.setFont(font);
+	});
 }
 
 settings::~settings()
@@ -439,41 +476,6 @@ void settings::load_settings()
 		set_application(application);
 	}
 
-	ui->partitionner->set_paint([&](QPainter & painter, QRect rect, const QVariant & data, int index, bool selected) {
-		QPalette palette = QApplication::palette();
-
-		if (selected)
-		{
-			painter.fillRect(rect.adjusted(1, 1, 0, 0), palette.color(QPalette::Highlight));
-		}
-
-		auto [encoder_id, codec_id] = data.value<std::pair<int, int>>();
-
-		QString codec = ui->codec->itemText(codec_id);
-		QString encoder = ui->encoder->itemText(encoder_id);
-
-		QFont font = painter.font();
-		QFont font2 = font;
-
-		font2.setPixelSize(24);
-
-		QString text = QString("%1\n%2").arg(encoder, codec);
-
-		QFontMetrics metrics{font2};
-		QSize size = metrics.size(0, text);
-
-		if (double ratio = std::max((double)size.width() / rect.width(), (double)size.height() / rect.height()); ratio > 1)
-		{
-			int pixel_size = font2.pixelSize() / ratio;
-			if (pixel_size > 0)
-				font2.setPixelSize(pixel_size);
-		}
-
-		painter.setFont(font2);
-		painter.drawText(rect, Qt::AlignCenter, text);
-		painter.setFont(font);
-	});
-
 	// Update the compatible codecs
 	on_selected_encoder_changed();
 
@@ -503,7 +505,7 @@ void settings::save_settings()
 	if (not ui->radio_auto_foveation->isChecked())
 		json_doc["scale"] = 1 - ui->slider_foveation->value() / 100.0;
 
-	json_doc["bitrate"] = ui->bitrate->value() * 1'000'000;
+	json_doc["bitrate"] = static_cast<int>(ui->bitrate->value() * 1'000'000);
 
 	std::vector<nlohmann::json> encoders;
 
