@@ -69,7 +69,7 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
-		<release version="0.20" date="2024-10-12">
+		<release version="0.20" date="2024-10-14">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.20</url>
 			<description>
 				<ul>
