@@ -1,0 +1,237 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WiVRn 0.15\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-09-21 16:13+0200\n"
+"PO-Revision-Date: 2024-10-15 20:16+0100\n"
+"Last-Translator: Albano Battistella <albanobattistella@gmail.com>\n"
+"Language: Italian\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: client/scenes/lobby.cpp:143
+msgid "No supported swapchain format"
+msgstr "Nessun formato swapchain supportato"
+
+#: client/scenes/lobby.cpp:178
+msgid "Incompatible WiVRn server: no protocol field in TXT"
+msgstr "Server WiVRn incompatibile: nessun campo protocollo in TXT"
+
+#: client/scenes/lobby.cpp:181
+#, c++-format
+msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
+msgstr "Protocollo server WiVRn incompatibile (client: {}, server: {})"
+
+#: client/scenes/lobby.cpp:196
+#, c++-format
+msgid "Cannot resolve hostname: {}"
+msgstr "Impossibile risolvere il nome host: {}"
+
+#: client/scenes/lobby.cpp:235
+#, c++-format
+msgid "Cannot connect to {} ({}): {}"
+msgstr "Impossibile connettersi a {} ({}): {}"
+
+#: client/scenes/lobby.cpp:347
+msgid "Waiting for connection"
+msgstr "In attesa di connessione"
+
+#: client/scenes/lobby_gui.cpp:80
+msgid "Video stream interrupted"
+msgstr "Flusso video interrotto"
+
+#: client/scenes/lobby_gui.cpp:82
+#, c++-format
+msgid ""
+"Connection ready\n"
+"Start a VR application on {}"
+msgstr ""
+"Connessione pronta\n"
+"Avvia un'applicazione VR su {}"
+
+#: client/scenes/lobby_gui.cpp:97
+msgid "Close"
+msgstr "Chiudi"
+
+#: client/scenes/lobby_gui.cpp:99
+msgid "Cancel"
+msgstr "Annulla"
+
+#: client/scenes/lobby_gui.cpp:104
+#, c++-format
+msgid "Connection to {}"
+msgstr "Connnetti a {}"
+
+#: client/scenes/lobby_gui.cpp:132
+msgid "Displayed name"
+msgstr "Nome visualizzato"
+
+#: client/scenes/lobby_gui.cpp:141
+msgid "Host name"
+msgstr "Nome host"
+
+#: client/scenes/lobby_gui.cpp:150
+msgid "Port"
+msgstr "Porta"
+
+#: client/scenes/lobby_gui.cpp:214
+msgid ""
+"Start a WiVRn server on your\n"
+"local network"
+msgstr ""
+"Avvia un server WiVRn sulla tua\n"
+"rete locale"
+
+#: client/scenes/lobby_gui.cpp:243
+msgid "Autoconnect"
+msgstr "Connessione automatica"
+
+#: client/scenes/lobby_gui.cpp:275
+msgid "Connect"
+msgstr "Connetti"
+
+#: client/scenes/lobby_gui.cpp:285
+msgid "Incompatible server version"
+msgstr "Versione del server incompatibile"
+
+#: client/scenes/lobby_gui.cpp:287
+msgid "Server not available"
+msgstr "Server non disponibile"
+
+#: client/scenes/lobby_gui.cpp:301
+msgid "Remove"
+msgstr "Rimuovi"
+
+#: client/scenes/lobby_gui.cpp:346
+msgid "Refresh rate"
+msgstr "Frequenza di aggiornamento"
+
+#: client/scenes/lobby_gui.cpp:368
+msgid "Resolution scale"
+msgstr "Scala di risoluzione"
+
+#: client/scenes/lobby_gui.cpp:368 client/scenes/lobby_gui.cpp:372
+#, c++-format
+msgid "{} - {}x{} per eye"
+msgstr "{} - {}x{} per occhio"
+
+#: client/scenes/lobby_gui.cpp:385
+msgid "Enable microphone"
+msgstr "Attiva il microfono"
+
+#: client/scenes/lobby_gui.cpp:395
+msgid "Enable eye tracking"
+msgstr "Abilita il tracciamento oculare"
+
+#: client/scenes/lobby_gui.cpp:406
+msgid "Enable face tracking"
+msgstr "Abilita il tracciamento facciale"
+
+#: client/scenes/lobby_gui.cpp:416
+msgid "Enable video passthrough in lobby"
+msgstr "Abilita la visualizzazione reale in ingresso"
+
+#: client/scenes/lobby_gui.cpp:424
+msgid "Show performance metrics"
+msgstr "Mostra metriche delle prestazioni"
+
+#: client/scenes/lobby_gui.cpp:428
+msgid "Overlay can be toggled by pressing both thumbsticks"
+msgstr "È possibile alternare la visualizzazione premendo entrambi i joystick"
+
+#: client/scenes/lobby_gui.cpp:458 client/scenes/lobby_gui.cpp:466
+#: client/scenes/stream_stats.cpp:147
+msgid "CPU time"
+msgstr "Tempo CPU"
+
+#: client/scenes/lobby_gui.cpp:462
+msgid "CPU time [ms]"
+msgstr "Tempo CPU [ms]"
+
+#: client/scenes/lobby_gui.cpp:472 client/scenes/lobby_gui.cpp:480
+#: client/scenes/stream_stats.cpp:149
+msgid "GPU time"
+msgstr "Tempo GPU"
+
+#: client/scenes/lobby_gui.cpp:476
+msgid "GPU time [ms]"
+msgstr "Tempo GPU [ms]"
+
+#: client/scenes/lobby_gui.cpp:504 client/scenes/lobby_gui.cpp:773
+msgid "Licenses"
+msgstr "Licenze"
+
+#: client/scenes/lobby_gui.cpp:763
+msgid "Server list"
+msgstr "Elenco dei server"
+
+#: client/scenes/lobby_gui.cpp:766
+msgid "Settings"
+msgstr "Impostazioni"
+
+#: client/scenes/lobby_gui.cpp:770
+msgid "About"
+msgstr "Informazioni"
+
+#: client/scenes/lobby_gui.cpp:776
+msgid "Exit"
+msgstr "Esci"
+
+#: client/scenes/stream_stats.cpp:149
+msgid "Reproject"
+msgstr "Riproiezione"
+
+#: client/scenes/stream_stats.cpp:150
+msgid "Blit"
+msgstr "Copia"
+
+#: client/scenes/stream_stats.cpp:152
+msgid "Download"
+msgstr "Download"
+
+#: client/scenes/stream_stats.cpp:153
+msgid "Upload"
+msgstr "Upload"
+
+#: client/scenes/stream_stats.cpp:222
+#, c++-format
+msgid "Decoder {}"
+msgstr "Decoder {}"
+
+#: client/scenes/stream_stats.cpp:234
+msgid "Timings [ms]"
+msgstr "Durata [ms]"
+
+#: client/scenes/stream_stats.cpp:294
+msgid "Encode"
+msgstr "Compressione"
+
+#: client/scenes/stream_stats.cpp:295
+msgid "Send"
+msgstr "Invio"
+
+#: client/scenes/stream_stats.cpp:296
+msgid "Receive"
+msgstr "Ricezione"
+
+#: client/scenes/stream_stats.cpp:297
+msgid "Decode"
+msgstr "Decodifica"
+
+#: client/scenes/stream_stats.cpp:298
+msgid "Blitted"
+msgstr "Copiato"
+
+#: client/scenes/stream_stats.cpp:299
+msgid "Displayed"
+msgstr "Visualizzato"
+
+#: client/scenes/stream_stats.cpp:300
+msgid "Predicted"
+msgstr "Previsto"
+
+#: client/scenes/stream_stats.cpp:318
+#, c++-format
+msgid "Estimated motion to photons latency: {}ms"
+msgstr "Latenza stimata da movimento a fotoni: {}ms"
