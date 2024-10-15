@@ -234,4 +234,4 @@ msgstr "Previsto"
 #: client/scenes/stream_stats.cpp:318
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
-msgstr "Latenza stimata del movimento dei fotoni: {}ms"
+msgstr "Latenza stimata da movimento dei fotoni: {}ms"
