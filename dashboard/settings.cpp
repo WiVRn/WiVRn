@@ -130,8 +130,12 @@ settings::settings(wivrn_server * server_interface) :
 	connect(ui->combo_select_game, &QComboBox::currentIndexChanged, this, &settings::on_selected_game_changed);
 	connect(ui->button_game_browse, &QPushButton::clicked, this, &settings::on_browse_game);
 
+	// Use a queued connection so that the slot is called after the widgets have been laid out
+	connect(ui->radio_manual_encoder, &QRadioButton::toggled, this, [&](bool value) {
+		if (value)
+			ui->scrollArea->ensureWidgetVisible(ui->layout_encoder_config); }, Qt::QueuedConnection);
+
 	connect(ui->partitionner, &rectangle_partitionner::selected_index_change, this, &settings::selected_rectangle_changed);
-	// connect(ui->partitionner, &rectangle_partitionner::rectangles_change, this, [](){});
 
 	connect(ui->encoder, &QComboBox::currentIndexChanged, this, &settings::on_selected_encoder_changed);
 	connect(ui->encoder, &QComboBox::currentIndexChanged, this, &settings::on_encoder_settings_changed);
@@ -142,6 +146,7 @@ settings::settings(wivrn_server * server_interface) :
 
 	setWindowModality(Qt::WindowModality::ApplicationModal);
 
+	fill_steam_games_list();
 	load_settings();
 
 	ui->partitionner->set_paint([&](QPainter & painter, QRect rect, const QVariant & data, int index, bool selected) {
@@ -184,6 +189,19 @@ settings::~settings()
 {
 	delete ui;
 	ui = nullptr;
+}
+
+void settings::fill_steam_games_list()
+{
+	ui->combo_select_game->clear();
+	ui->combo_select_game->addItem(tr("None", "Game selection combo box"));
+	ui->combo_select_game->addItem(tr("Custom...", "Game selection combo box"));
+
+	auto apps = steam_apps();
+	for (auto & app: apps)
+	{
+		ui->combo_select_game->addItem(QString::fromUtf8(app.name), QVariant::fromValue(app));
+	}
 }
 
 void settings::on_selected_encoder_changed()
@@ -317,6 +335,7 @@ void settings::restore_defaults()
 	ui->bitrate->setValue(50);
 	ui->radio_auto_foveation->setChecked(true);
 	ui->radio_auto_encoder->setChecked(true);
+	ui->layout_encoder_config->setVisible(false);
 
 	std::vector<QRectF> rectangles;
 	std::vector<QVariant> encoder_config;
@@ -327,7 +346,7 @@ void settings::restore_defaults()
 
 	ui->partitionner->set_rectangles(rectangles);
 	ui->partitionner->set_rectangles_data(encoder_config);
-	ui->partitionner->set_selected_index(-1);
+	ui->partitionner->set_selected_index(0);
 
 	ui->combo_select_game->setCurrentIndex(0);
 	ui->edit_game_path->setText("");
@@ -351,7 +370,9 @@ void settings::load_settings()
 	// Encoders configuration
 	try
 	{
-		json_doc = nlohmann::json::parse(server_interface->jsonConfiguration().toUtf8());
+		auto conf = server_interface->jsonConfiguration();
+		qDebug() << "Server config" << conf;
+		json_doc = nlohmann::json::parse(conf.toUtf8());
 	}
 	catch (std::exception & e)
 	{
@@ -420,7 +441,15 @@ void settings::load_settings()
 
 	ui->partitionner->set_rectangles(rectangles);
 	ui->partitionner->set_rectangles_data(encoder_config);
-	ui->partitionner->set_selected_index(-1);
+
+	if (rectangles.size() == 1)
+	{
+		ui->partitionner->set_selected_index(0);
+		// Force updating the combo boxes, if the selected index is already 0 the signal is not called
+		selected_rectangle_changed(0);
+	}
+	else
+		ui->partitionner->set_selected_index(-1);
 
 	// Foveation
 	try
@@ -445,35 +474,52 @@ void settings::load_settings()
 	}
 
 	// Bitrate
-	ui->bitrate->setValue(json_doc.value("bitrate", 50'000'000.0) / 1'000'000);
+	try
+	{
+		ui->bitrate->setValue(json_doc.value("bitrate", 50'000'000.0) / 1'000'000);
+	}
+	catch (...)
+	{
+		ui->bitrate->setValue(50);
+	}
 
 	// Automatically started application
 	std::vector<std::string> application;
-
-	if (json_doc["application"].is_array())
-		application = json_doc.value<std::vector<std::string>>("application", {});
-	else if (json_doc["application"].is_string())
-		application.push_back(json_doc["application"]);
-
-	ui->combo_select_game->clear();
-	ui->combo_select_game->addItem(tr("None", "Game selection combo box"));
-	ui->combo_select_game->addItem(tr("Custom...", "Game selection combo box"));
-
-	auto apps = steam_apps();
-	for (auto & app: apps)
+	try
 	{
-		ui->combo_select_game->addItem(QString::fromUtf8(app.name), QVariant::fromValue(app));
+		if (json_doc["application"].is_array())
+			application = json_doc.value<std::vector<std::string>>("application", {});
+		else if (json_doc["application"].is_string())
+			application.push_back(json_doc["application"]);
 
-		if (application.size() == 2 and application[0] == "steam" and application[1] == app.url)
+		int game_index = 0;
+		if (application.size() == 2 and application[0] == "steam")
 		{
-			ui->combo_select_game->setCurrentIndex(ui->combo_select_game->count() - 1);
-		}
-	}
+			auto url = application[1];
 
-	if (not application.empty() and ui->combo_select_game->currentIndex() == 0)
+			// Indices 0 and 1 are None and Custom
+			for (int i = 2, n = ui->combo_select_game->count(); i < n; i++)
+			{
+				QVariant data = ui->combo_select_game->itemData(i);
+				if (data.value<steam_app>().url == url)
+				{
+					game_index = i;
+					break;
+				}
+			}
+		}
+
+		if (game_index == 0 and not application.empty())
+		{
+			game_index = 1;
+			set_application(application);
+		}
+
+		ui->combo_select_game->setCurrentIndex(game_index);
+	}
+	catch (...)
 	{
-		ui->combo_select_game->setCurrentIndex(1);
-		set_application(application);
+		ui->combo_select_game->setCurrentIndex(0);
 	}
 
 	// Update the compatible codecs

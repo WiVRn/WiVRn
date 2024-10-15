@@ -51,6 +51,8 @@ private:
 	void save_settings();
 	void restore_defaults();
 
+	void fill_steam_games_list();
+
 	void set_application(const std::vector<std::string> & app);
 	std::vector<std::string> application();
 };

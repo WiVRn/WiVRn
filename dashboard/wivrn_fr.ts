@@ -204,17 +204,17 @@
         <translation type="vanished">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pour ajouter un encodeur, découpez un encodeur existant en cliquant près d&apos;un bord.&lt;/p&gt;&lt;p&gt;Vous pouvez déplacer un bord pour redimensionner ou supprimer un encodeur.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="297"/>
+        <location filename="settings.ui" line="291"/>
         <source>nvenc (NVIDIA GPUs)</source>
         <translation>nvenc (GPUs NVIDIA)</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="302"/>
+        <location filename="settings.ui" line="296"/>
         <source>vaapi (AMD and Intel GPUs)</source>
         <translation>vaapi (GPUs AMD et Intel)</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="307"/>
+        <location filename="settings.ui" line="301"/>
         <source>x264 (software encoding)</source>
         <translation>x264 (encodage logiciel)</translation>
     </message>
@@ -226,12 +226,12 @@
         <translation>Manuelle</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="393"/>
+        <location filename="settings.ui" line="381"/>
         <source>Application to start when a headset connects</source>
         <translation>Application à démarrer quand un casque est connecté</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="470"/>
+        <location filename="settings.ui" line="458"/>
         <source>Path</source>
         <translation>Chemin</translation>
     </message>
@@ -260,13 +260,19 @@
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pour ajouter un encodeur, découpez un encodeur existant en cliquant près d&apos;un bord.&lt;/p&gt;&lt;p&gt;Déplacez un bord pour redimensionner ou supprimer un encodeur.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="272"/>
+        <location filename="settings.ui" line="266"/>
         <source>Encoder</source>
         <translation>Encodeur</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="292"/>
-        <location filename="settings.ui" line="325"/>
+        <location filename="settings.ui" line="282"/>
+        <location filename="settings.ui" line="315"/>
+        <source>No encoder selected</source>
+        <translation>Aucun encodeur sélectionné</translation>
+    </message>
+    <message>
+        <location filename="settings.ui" line="286"/>
+        <location filename="settings.ui" line="319"/>
         <source>Auto</source>
         <translation>Automatique</translation>
     </message>
@@ -277,7 +283,7 @@
         <translation>Automatique</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="581"/>
+        <location filename="settings.ui" line="569"/>
         <source>A stronger foveation makes the image sharper in the center than in the periphery and makes the decoding faster. This is better for fast paced games.
 
 A weaker foveation gives a uniform sharpness in the whole image.
@@ -297,17 +303,17 @@ Les valeurs recommandées sont entre 20% et 50% pour les casques sans suivi des 
         <translation>Automatique</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="556"/>
+        <location filename="settings.ui" line="544"/>
         <source>WiVRn settings</source>
         <translation>Paramètres de WiVRn</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="376"/>
+        <location filename="settings.ui" line="364"/>
         <source>Codec</source>
         <translation>Codec</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="499"/>
+        <location filename="settings.ui" line="487"/>
         <source> Mbit/s</source>
         <translation> Mbit/s</translation>
     </message>
@@ -325,7 +331,7 @@ Les valeurs recommandées sont entre 20% et 50% pour les casques sans suivi des 
         <translation>Parcourir</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="444"/>
+        <location filename="settings.ui" line="432"/>
         <source> %</source>
         <translation> %</translation>
     </message>
@@ -640,36 +646,38 @@ Voulez-vous l&apos;installer&#xa0;?</translation>
 <context>
     <name>settings</name>
     <message>
-        <location filename="settings.cpp" line="372"/>
+        <location filename="settings.cpp" line="420"/>
         <source>Invalid settings</source>
         <translation>Paramètres invalides</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="372"/>
+        <location filename="settings.cpp" line="420"/>
         <source>The encoder configuration is invalid, the default values will be restored.</source>
         <translation>La configuration des encodeurs est invalide, les valeurs par défaut seront restaurées.</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="428"/>
+        <location filename="settings.cpp" line="193"/>
+        <location filename="settings.cpp" line="476"/>
         <source>None</source>
         <comment>Game selection combo box</comment>
         <translation>Aucun</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="429"/>
+        <location filename="settings.cpp" line="194"/>
+        <location filename="settings.cpp" line="477"/>
         <source>Custom...</source>
         <comment>Game selection combo box</comment>
         <translation>Personnalisé...</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="217"/>
+        <location filename="settings.cpp" line="262"/>
         <source>Not all headsets and GPUs support AV1
 </source>
         <translation>Tous les casques et GPUs ne supportent pas AV1
 </translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="248"/>
+        <location filename="settings.cpp" line="293"/>
         <source>Select game</source>
         <translation>Choisir un jeu</translation>
     </message>
