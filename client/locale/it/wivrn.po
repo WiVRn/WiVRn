@@ -118,7 +118,7 @@ msgstr "{} - {}x{} per occhio"
 
 #: client/scenes/lobby_gui.cpp:385
 msgid "Enable microphone"
-msgstr "Attiva microfono"
+msgstr "Attiva il microfono"
 
 #: client/scenes/lobby_gui.cpp:395
 msgid "Enable eye tracking"
@@ -205,7 +205,7 @@ msgstr "Durata [ms]"
 
 #: client/scenes/stream_stats.cpp:294
 msgid "Encode"
-msgstr "Codifica"
+msgstr "Compressione"
 
 #: client/scenes/stream_stats.cpp:295
 msgid "Send"
@@ -213,7 +213,7 @@ msgstr "Invio"
 
 #: client/scenes/stream_stats.cpp:296
 msgid "Receive"
-msgstr "Ricevi"
+msgstr "Ricezione"
 
 #: client/scenes/stream_stats.cpp:297
 msgid "Decode"
@@ -234,4 +234,4 @@ msgstr "Previsto"
 #: client/scenes/stream_stats.cpp:318
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
-msgstr "Latenza stimata da movimento dei fotoni: {}ms"
+msgstr "Latenza stimata da movimento a fotoni: {}ms"
