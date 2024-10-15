@@ -1,7 +1,7 @@
-From c76208abd1c8df21a7cba1f85a86f68d2fa9df74 Mon Sep 17 00:00:00 2001
+From b277706d65c3acbd92c4ed7e73c31f12cb3e470c Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 17 Jun 2024 04:32:36 +0000
-Subject: [PATCH 1/1] d/solarxr: Add SolarXR WebSockets driver
+Subject: [PATCH] d/solarxr: Add SolarXR WebSockets driver
 
 ---
  CMakeLists.txt                                |   3 +
@@ -9,7 +9,7 @@ Subject: [PATCH 1/1] d/solarxr: Add SolarXR WebSockets driver
  src/external/solarxr/CMakeLists.txt           |  41 +
  src/external/solarxr/solarxr_protocol.fbs     | 788 +++++++++++++++++
  src/xrt/drivers/CMakeLists.txt                |   9 +
- src/xrt/drivers/solarxr/solarxr_device.c      | 822 ++++++++++++++++++
+ src/xrt/drivers/solarxr/solarxr_device.c      | 824 ++++++++++++++++++
  src/xrt/drivers/solarxr/solarxr_device.h      |  34 +
  src/xrt/drivers/solarxr/websocket.c           | 378 ++++++++
  src/xrt/drivers/solarxr/websocket.h           |  35 +
@@ -17,7 +17,7 @@ Subject: [PATCH 1/1] d/solarxr: Add SolarXR WebSockets driver
  .../common/target_builder_lighthouse.c        |  13 +
  .../targets/common/target_builder_qwerty.c    |  13 +
  .../targets/common/target_builder_steamvr.c   |  13 +
- 13 files changed, 2158 insertions(+)
+ 13 files changed, 2160 insertions(+)
  create mode 100644 src/external/solarxr/CMakeLists.txt
  create mode 100644 src/external/solarxr/solarxr_protocol.fbs
  create mode 100644 src/xrt/drivers/solarxr/solarxr_device.c
@@ -54,10 +54,10 @@ index 74d0bd7f9..22b5f7c7a 100644
  # cmake-format: on
  
 diff --git a/src/external/CMakeLists.txt b/src/external/CMakeLists.txt
-index baf5bbeb4..bf3297c62 100644
+index 51f89714f..9b15844d9 100644
 --- a/src/external/CMakeLists.txt
 +++ b/src/external/CMakeLists.txt
-@@ -188,6 +188,11 @@ target_include_directories(
+@@ -212,6 +212,11 @@ target_include_directories(
  	xrt-external-vdf SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/valve-file-vdf
  	)
  
@@ -932,10 +932,10 @@ index 0d422f16e..900b6a309 100644
  	# but it never gets linked into a final target.
 diff --git a/src/xrt/drivers/solarxr/solarxr_device.c b/src/xrt/drivers/solarxr/solarxr_device.c
 new file mode 100644
-index 000000000..c3ea827e9
+index 000000000..b9970b2b1
 --- /dev/null
 +++ b/src/xrt/drivers/solarxr/solarxr_device.c
-@@ -0,0 +1,823 @@
+@@ -0,0 +1,824 @@
 +// Copyright 2024, rcelyte
 +// SPDX-License-Identifier: BSL-1.0
 +
@@ -1015,7 +1015,7 @@ index 000000000..c3ea827e9
 +	}
 +}
 +
-+static void
++static xrt_result_t
 +solarxr_device_update_inputs(struct xrt_device *const xdev)
 +{
 +	struct solarxr_device *const device = solarxr_device(xdev);
@@ -1033,7 +1033,7 @@ index 000000000..c3ea827e9
 +	struct xrt_space_relation head = {0};
 +	solarxr_device_get_tracked_pose(xdev, XRT_INPUT_GENERIC_HEAD_POSE, os_monotonic_get_ns(), &head);
 +	if (head.relation_flags == 0) {
-+		return;
++		return XRT_SUCCESS;
 +	}
 +	char feedback[0x200];
 +	// clang-format off
@@ -1051,6 +1051,7 @@ index 000000000..c3ea827e9
 +	// clang-format on
 +	assert(feedback_len < sizeof(feedback));
 +	WebSocket_sendWithOpcode(&device->socket, (uint8_t *)feedback, feedback_len, 0x1);
++	return XRT_SUCCESS;
 +}
 +
 +static inline struct xrt_body_skeleton_joint_fb
@@ -2333,5 +2334,5 @@ index 814656519..f0b7de8a0 100644
  	 * Space overseer.
  	 */
 -- 
-2.44.2
+2.47.0
 
