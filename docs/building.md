@@ -116,5 +116,5 @@ adb devices
 adb install build/outputs/apk/standard/release/WiVRn-standard-release.apk
 
 # When you're done, you can stop the adb server
-abd kill-server
+adb kill-server
 ```
