@@ -288,6 +288,7 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 	ImGuiStyle & style = ImGui::GetStyle();
 
 	style.WindowBorderSize = 0;
+	style.DisabledAlpha = 0.2;
 }
 
 void imgui_context::add_chars(std::string_view sv)
