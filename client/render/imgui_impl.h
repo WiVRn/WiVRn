@@ -18,9 +18,9 @@
 
 #pragma once
 
+#include "wivrn_config.h"
 #include "xr/hand_tracker.h"
 #include "xr/swapchain.h"
-#include "wivrn_config.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <imgui.h>
@@ -84,6 +84,7 @@ public:
 		bool trigger_clicked = false;
 		bool fingertip_hovered = false;
 		bool fingertip_touching = false;
+		ImGuiMouseSource source = ImGuiMouseSource_Mouse;
 	};
 
 private:
