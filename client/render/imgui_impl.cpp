@@ -264,7 +264,7 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 	        .QueueFamily = application::queue_family_index(),
 	        .Queue = *application::get_queue(),
 	        .DescriptorPool = *descriptor_pool,
-		.RenderPass = *renderpass,
+	        .RenderPass = *renderpass,
 	        .MinImageCount = 2,
 	        .ImageCount = (uint32_t)swapchain.images().size(), // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
 	        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
@@ -560,6 +560,7 @@ void imgui_context::new_frame(XrTime display_time)
 					new_state.aim_orientation = orientation_;
 
 					new_state.active = true;
+					new_state.source = ImGuiMouseSource_VRHandTracking;
 					auto position_distance = ray_plane_intersection(new_state);
 
 					if (position_distance)
@@ -580,6 +581,8 @@ void imgui_context::new_frame(XrTime display_time)
 			}
 			continue;
 		}
+
+		new_state.source = ImGuiMouseSource_VRController;
 
 		if (auto location = application::locate_controller(ctrl.aim, world, display_time))
 		{
@@ -637,8 +640,10 @@ void imgui_context::new_frame(XrTime display_time)
 
 	bool focused_change = new_focused_controller != focused_controller && focused_controller != (size_t)-1;
 
-	// Simulate a pen for the following events
-	io.AddMouseSourceEvent(ImGuiMouseSource_Pen);
+	// Set the source for the following events
+	if (focused_controller != (size_t)-1)
+		io.AddMouseSourceEvent(new_states[focused_controller].source);
+
 	if (focused_change && controllers[focused_controller].second.trigger_clicked)
 	{
 		// Focused controller changed: end the current click
