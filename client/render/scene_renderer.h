@@ -177,7 +177,7 @@ class scene_renderer
 public:
 	static vk::Format find_usable_image_format(
 	        vk::raii::PhysicalDevice physical_device,
-	        std::span<vk::Format> formats,
+	        std::span<const vk::Format> formats,
 	        vk::Extent3D min_extent,
 	        vk::ImageUsageFlags usage,
 	        vk::ImageType type = vk::ImageType::e2D,
