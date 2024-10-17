@@ -30,6 +30,7 @@
 #include "utils/contains.h"
 #include "version.h"
 #include "wivrn_client.h"
+#include "wivrn_packets.h"
 #include "xr/passthrough.h"
 #include <glm/gtc/matrix_access.hpp>
 
@@ -192,6 +193,11 @@ scenes::lobby::lobby()
 		spdlog::info("Composition layer color scale/bias supported");
 	else
 		spdlog::info("Composition layer color scale/bias NOT supported");
+
+	strcpy(add_server_window_prettyname, "");
+	strcpy(add_server_window_hostname, "");
+	add_server_window_port = wivrn::default_port;
+	add_server_tcp_only = false;
 }
 
 static std::string ip_address_to_string(const in_addr & addr)

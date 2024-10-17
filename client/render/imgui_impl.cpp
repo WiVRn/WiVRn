@@ -794,21 +794,14 @@ void imgui_context::new_frame(XrTime display_time)
 		if (auto position = new_states[new_focused_controller].pointer_position)
 		{
 			io.AddMousePosEvent(position->x, position->y);
-
-			if (focused_change || (last_trigger || last_touching) != (button_pressed || fingertip_touching))
-			{
-				io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
-			}
+			io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 
 			if (glm::length(scroll) > 0.01f)
 				io.AddMouseWheelEvent(scroll.x, scroll.y);
 		}
 		else
 		{
-			if ((last_trigger || last_touching) && !(button_pressed || fingertip_touching))
-			{
-				io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
-			}
+			io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 		}
 	}
 

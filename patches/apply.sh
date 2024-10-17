@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 if [ -d ".git" ] ; then
 	git config user.email > /dev/null || git config user.email "git-am@invalid"
 	git config user.name > /dev/null || git config user.name "no name"

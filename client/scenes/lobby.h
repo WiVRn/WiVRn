@@ -24,6 +24,7 @@
 #include "render/scene_data.h"
 #include "scene.h"
 #include "scenes/hand_model.h"
+#include "scenes/lobby_keyboard.h"
 #include "wifi_lock.h"
 #include "wivrn_discover.h"
 #include <vulkan/vulkan_raii.hpp>
@@ -52,6 +53,7 @@ class lobby : public scene_impl<lobby>
 	char add_server_window_prettyname[200];
 	char add_server_window_hostname[200];
 	int add_server_window_port;
+	bool add_server_tcp_only;
 
 	utils::future<std::unique_ptr<wivrn_session>, std::string> async_session;
 	std::optional<std::string> async_error;
@@ -110,14 +112,16 @@ class lobby : public scene_impl<lobby>
 	tab last_current_tab = tab::server_list;
 	ImTextureID about_picture;
 
+	virtual_keyboard keyboard;
+
 	void draw_features_status(XrTime predicted_display_time);
 	void gui_connecting();
 	void gui_server_list();
-	void gui_add_server();
+	void gui_new_server();
 	void gui_settings();
 	void gui_about();
 	void gui_licenses();
-	void gui_keyboard(ImVec2 size);
+	void gui_keyboard();
 
 	void setup_passthrough();
 
