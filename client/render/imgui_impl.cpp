@@ -831,11 +831,6 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 		draw_list->PopClipRect();
 	}
 
-	if (not context->OpenPopupStack.empty())
-	{
-		// TODO dim main window
-	}
-
 	ImGui::Render();
 
 	current_command_buffer = (current_command_buffer + 1) % command_buffers.size();
@@ -1008,4 +1003,9 @@ void imgui_context::set_current()
 {
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
+}
+
+bool imgui_context::is_popup_shown() const
+{
+	return not context->OpenPopupStack.empty();
 }

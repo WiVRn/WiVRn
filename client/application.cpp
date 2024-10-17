@@ -758,6 +758,7 @@ void application::initialize()
 	opt_extensions.push_back(XR_EXT_PALM_POSE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME);
+	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
 
 	for (const auto & i: interaction_profiles)
 	{
@@ -797,7 +798,7 @@ void application::initialize()
 	spdlog::info("    Vendor ID: {:#x}", properties.vendorId);
 	spdlog::info("    System name: {}", properties.systemName);
 	spdlog::info("    Graphics properties:");
-	spdlog::info("        Maximum swapchain image size: {}x{}", properties.graphicsProperties.maxSwapchainImageWidth, properties.graphicsProperties.maxSwapchainImageWidth);
+	spdlog::info("        Maximum swapchain image size: {}x{}", properties.graphicsProperties.maxSwapchainImageWidth, properties.graphicsProperties.maxSwapchainImageHeight);
 	spdlog::info("        Maximum layer count: {}", properties.graphicsProperties.maxLayerCount);
 	spdlog::info("    Tracking properties:");
 	spdlog::info("        Orientation tracking: {}", (bool)properties.trackingProperties.orientationTracking);

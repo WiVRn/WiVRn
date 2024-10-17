@@ -192,4 +192,5 @@ public:
 	void set_current();
 
 	void add_chars(std::string_view sv);
+	bool is_popup_shown() const;
 };
