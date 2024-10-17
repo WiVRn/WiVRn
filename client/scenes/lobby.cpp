@@ -90,9 +90,14 @@ static std::string choose_webxr_profile()
 	__builtin_unreachable();
 }
 
-static const std::array supported_formats = {
+static const std::array supported_color_formats = {
         vk::Format::eR8G8B8A8Srgb,
         vk::Format::eB8G8R8A8Srgb,
+};
+
+static const std::array supported_depth_formats{
+        vk::Format::eD32Sfloat,
+        vk::Format::eX8D24UnormPack32,
 };
 
 void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
@@ -133,7 +138,7 @@ scenes::lobby::lobby()
 
 	for (auto format: session.get_swapchain_formats())
 	{
-		if (std::find(supported_formats.begin(), supported_formats.end(), format) != supported_formats.end())
+		if (std::find(supported_color_formats.begin(), supported_color_formats.end(), format) != supported_color_formats.end())
 		{
 			swapchain_format = format;
 			break;
@@ -143,11 +148,6 @@ scenes::lobby::lobby()
 	if (swapchain_format == vk::Format::eUndefined)
 		throw std::runtime_error(_("No supported swapchain format"));
 
-	std::array depth_formats{
-	        vk::Format::eX8D24UnormPack32,
-	        vk::Format::eD32Sfloat,
-	};
-
 	auto views = system.view_configuration_views(viewconfig);
 	stream_view = override_view(views[0], guess_model());
 	uint32_t width = views[0].recommendedImageRectWidth;
@@ -155,7 +155,7 @@ scenes::lobby::lobby()
 
 	depth_format = scene_renderer::find_usable_image_format(
 	        physical_device,
-	        depth_formats,
+	        supported_depth_formats,
 	        {
 	                width,
 	                height,
@@ -279,12 +279,14 @@ static glm::mat4 projection_matrix(XrFovf fov, float zn = 0.02)
 	float t = tan(fov.angleUp);
 	float b = tan(fov.angleDown);
 
+	// reversed Z projection, infinite far plane
+
 	// clang-format off
 	return glm::mat4{
 		{ 2/(r-l),     0,            0,    0 },
 		{ 0,           2/(b-t),      0,    0 },
-		{ (l+r)/(r-l), (t+b)/(b-t), -1,   -1 },
-		{ 0,           0,           -zn,   0 }
+		{ (l+r)/(r-l), (t+b)/(b-t),  0,   -1 },
+		{ 0,           0,            zn,   0 }
 	};
 	// clang-format on
 }
@@ -518,8 +520,8 @@ static std::pair<std::vector<XrCompositionLayerProjectionView>, std::vector<XrCo
 		        },
 		        .minDepth = 0,
 		        .maxDepth = 1,
-		        .nearZ = zn,
-		        .farZ = std::numeric_limits<float>::infinity(),
+		        .nearZ = std::numeric_limits<float>::infinity(),
+		        .farZ = zn,
 		});
 	}
 
@@ -755,11 +757,14 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&imgui_layer));
 
 		// Add XrCompositionLayerDepthTestFB to lobby_layer and imgui_layer
+		// The sky in the lobby layer and the passthrough layer have the same depth, so the operation must be:
+		// - LESS when passthrough is enabled (to avoid overwriting the passthrough)
+		// - LESS_OR_EQUAL when passthrough is disabled (so that the sky is visible)
 		XrCompositionLayerDepthTestFB layer_depth_test{
 		        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_TEST_FB,
 		        .next = nullptr,
 		        .depthMask = true,
-		        .compareOp = XR_COMPARE_OP_LESS_FB};
+		        .compareOp = application::get_config().passthrough_enabled ? XR_COMPARE_OP_LESS_FB : XR_COMPARE_OP_LESS_OR_EQUAL_FB};
 
 		lobby_layer.next = &layer_depth_test;
 		imgui_layer.next = &layer_depth_test;
