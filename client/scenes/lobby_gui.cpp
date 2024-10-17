@@ -319,6 +319,9 @@ void scenes::lobby::gui_server_list()
 	if ((async_session.valid() || next_scene) && !ImGui::IsPopupOpen("connecting"))
 		ImGui::OpenPopup("connecting");
 
+	const auto & popup_layer = imgui_ctx->layers()[1];
+	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
+	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 20));
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
@@ -347,7 +350,7 @@ void scenes::lobby::gui_settings()
 			{
 				for (float rate: refresh_rates)
 				{
-					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == current) and rate != current)
+					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == current, ImGuiSelectableFlags_SelectOnRelease) and rate != current)
 					{
 						session.set_refresh_rate(rate);
 						config.preferred_refresh_rate = rate;
@@ -369,7 +372,7 @@ void scenes::lobby::gui_settings()
 		{
 			for (float scale: available_scales)
 			{
-				if (ImGui::Selectable(fmt::format(_F("{} - {}x{} per eye"), scale, (int)(width * scale), (int)(height * scale)).c_str(), scale == current) and scale != current)
+				if (ImGui::Selectable(fmt::format(_F("{} - {}x{} per eye"), scale, (int)(width * scale), (int)(height * scale)).c_str(), scale == current, ImGuiSelectableFlags_SelectOnRelease) and scale != current)
 				{
 					config.resolution_scale = scale;
 					config.save();
@@ -535,7 +538,7 @@ void scenes::lobby::gui_licenses()
 			try
 			{
 				auto current = std::make_unique<asset>(std::filesystem::path("licenses") / component);
-				if (ImGui::Selectable(component, component == selected_item))
+				if (ImGui::Selectable(component, component == selected_item, ImGuiSelectableFlags_SelectOnRelease))
 				{
 					selected_item = component;
 					license = std::move(current);
@@ -909,7 +912,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	}
 }
 
-XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
+std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_display_time)
 {
 	for (const auto & [key, server]: application::get_config().servers)
 	{
@@ -929,9 +932,7 @@ XrCompositionLayerQuad scenes::lobby::draw_gui(XrTime predicted_display_time)
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
 
 	ImGui::SetNextWindowPos({50, 50});
-	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - ImVec2(100, 100));
-	// ImGui::SetNextWindowPos({0, 0});
-	// ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
+	ImGui::SetNextWindowSize({1400, 900});
 
 	ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
