@@ -132,7 +132,7 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 	metrics_offset = (metrics_offset + 1) % global_metrics.size();
 }
 
-XrCompositionLayerQuad scenes::stream::plot_performance_metrics(XrTime predicted_display_time)
+std::vector<XrCompositionLayerQuad> scenes::stream::plot_performance_metrics(XrTime predicted_display_time)
 {
 	imgui_ctx->new_frame(predicted_display_time);
 	const ImGuiStyle & style = ImGui::GetStyle();
