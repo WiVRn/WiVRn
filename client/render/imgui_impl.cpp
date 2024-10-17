@@ -1009,3 +1009,8 @@ void imgui_context::set_current()
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
 }
+
+bool imgui_context::is_popup_shown() const
+{
+	return not context->OpenPopupStack.empty();
+}
