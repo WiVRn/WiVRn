@@ -186,6 +186,12 @@ scenes::lobby::lobby()
 		spdlog::info("Composition layer depth test supported");
 	else
 		spdlog::info("Composition layer depth test NOT supported");
+
+	composition_layer_color_scale_bias_supported = instance.has_extension(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
+	if (composition_layer_color_scale_bias_supported)
+		spdlog::info("Composition layer color scale/bias supported");
+	else
+		spdlog::info("Composition layer color scale/bias NOT supported");
 }
 
 static std::string ip_address_to_string(const in_addr & addr)
@@ -522,7 +528,6 @@ static std::pair<std::vector<XrCompositionLayerProjectionView>, std::vector<XrCo
 		        },
 		});
 
-		// TODO: check that the projection matrix is correct wrt https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#XR_KHR_composition_layer_depth
 		depth_layer_views.push_back({
 		        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR,
 		        .subImage = {
@@ -765,6 +770,23 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		        passthrough);
 	}
 
+	// Dimming settings if a popup window is displayed
+	XrCompositionLayerColorScaleBiasKHR color_scale_bias{
+	        .type = XR_TYPE_COMPOSITION_LAYER_COLOR_SCALE_BIAS_KHR,
+	        .colorScale = {
+	                .r = 0.5,
+	                .g = 0.5,
+	                .b = 0.5,
+	                .a = 1,
+	        },
+	        .colorBias = {
+	                .r = 0.25,
+	                .g = 0.25,
+	                .b = 0.25,
+	                .a = 0,
+	        },
+	};
+
 	if (composition_layer_depth_test_supported)
 	{
 		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
@@ -786,6 +808,12 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		for (auto & layer: imgui_layers)
 			layer.next = &layer_depth_test;
 
+		if (imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported)
+		{
+			color_scale_bias.next = imgui_layers.front().next;
+			imgui_layers.front().next = &color_scale_bias;
+		}
+
 		session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
 	}
 	else
@@ -798,6 +826,12 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 		if (not composition_layer_depth_test_supported)
 			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
+
+		if (imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported)
+		{
+			color_scale_bias.next = imgui_layers.front().next;
+			imgui_layers.front().next = &color_scale_bias;
+		}
 
 		session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
 	}

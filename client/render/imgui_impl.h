@@ -75,14 +75,14 @@ public:
 		glm::quat aim_orientation = {1, 0, 0, 0};
 
 		float trigger_value = 0;
-		float squeeze_value = 0;
 		glm::vec2 scroll_value = {0, 0};
 
+		std::optional<ImVec2> pointer_position;
 		float hover_distance = 1e10;
 
 		bool squeeze_clicked = false;
 		bool trigger_clicked = false;
-		bool fingertip_hovered = false;
+		bool fingertip_hovering = false;
 		bool fingertip_touching = false;
 		ImGuiMouseSource source = ImGuiMouseSource_Mouse;
 	};
@@ -148,14 +148,14 @@ private:
 	ImVector<ImWchar> glyph_ranges;
 	bool glyph_range_dirty = true;
 
-	std::vector<std::pair<ImVec2, float>> pointer_position; // first: coordinates from imgui pov, second: distance from the plane, sorted by increasing distance
-
 #if WIVRN_SHOW_IMGUI_DEMO_WINDOW
 	bool show_demo_window = true;
 #endif
 
 	void initialize_fonts();
-	std::optional<ImVec2> get_pointer_position_in_imgui_frame();
+
+	std::vector<controller_state> read_controllers_state(XrTime display_time);
+	void compute_pointer_position(controller_state & state);
 
 public:
 	imgui_context(
@@ -191,4 +191,5 @@ public:
 	void set_current();
 
 	void add_chars(std::string_view sv);
+	bool is_modal_popup_shown() const;
 };
