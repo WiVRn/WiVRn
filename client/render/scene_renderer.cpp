@@ -43,7 +43,7 @@ extern const std::map<std::string, std::vector<uint32_t>> shaders;
 // TODO move in lobby?
 vk::Format scene_renderer::find_usable_image_format(
         vk::raii::PhysicalDevice physical_device,
-        std::span<vk::Format> formats,
+        std::span<const vk::Format> formats,
         vk::Extent3D min_extent,
         vk::ImageUsageFlags usage,
         vk::ImageType type,
@@ -585,7 +585,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                .DepthStencilState = {vk::PipelineDepthStencilStateCreateInfo{
 	                        .depthTestEnable = true,
 	                        .depthWriteEnable = true,
-	                        .depthCompareOp = vk::CompareOp::eLess,
+	                        .depthCompareOp = vk::CompareOp::eGreater,
 	                        .depthBoundsTestEnable = false,
 	                        .minDepthBounds = 0.0f,
 	                        .maxDepthBounds = 1.0f,
@@ -776,7 +776,7 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 
 	std::array<vk::ClearValue, 2> clear_values{
 	        vk::ClearColorValue{clear_color},
-	        vk::ClearDepthStencilValue{1.0, 0},
+	        vk::ClearDepthStencilValue{0.0, 0},
 	};
 
 	auto vertex_layout = scene_data::vertex::describe();
