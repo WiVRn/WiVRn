@@ -46,7 +46,7 @@ index 7ed778b57..580a662ef 100644
              ImGui::Text("Mouse wheel: %.1f", io.MouseWheel);
  
 +            const char* mouse_source_names[] = { "Mouse", "TouchScreen", "Pen", "VRHandTracking", "VRController" };
-+            IM_ASSERT(IM_ARRAYSIZE(mouse_source_names) == ImGuiMouseSource_COUNT && source >= 0 && io.MouseSource < ImGuiMouseSource_COUNT);
++            IM_ASSERT(IM_ARRAYSIZE(mouse_source_names) == ImGuiMouseSource_COUNT && io.MouseSource >= 0 && io.MouseSource < ImGuiMouseSource_COUNT);
 +
 +            ImGui::Text("Mouse source: %s", mouse_source_names[io.MouseSource]);
 +
