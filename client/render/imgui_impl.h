@@ -87,6 +87,18 @@ public:
 		ImGuiMouseSource source = ImGuiMouseSource_Mouse;
 	};
 
+	struct viewport
+	{
+		// Position of this viewport in the world
+		glm::vec3 position;
+		glm::quat orientation;
+		glm::vec2 size;
+
+		// Position of this viewport in the swapchain image
+		glm::ivec2 vp_origin;
+		glm::ivec2 vp_size;
+	};
+
 private:
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
@@ -115,9 +127,7 @@ private:
 	vk::Format format;
 	vk::ClearValue clear_value = {vk::ClearColorValue{0, 0, 0, 0}};
 
-	glm::vec3 position_ = {0, 1, -1.5};
-	glm::quat orientation_ = {1, 0, 0, 0};
-	glm::vec2 scale_;
+	std::vector<viewport> layers_;
 
 	xr::swapchain & swapchain;
 	int image_index;
@@ -138,11 +148,14 @@ private:
 	ImVector<ImWchar> glyph_ranges;
 	bool glyph_range_dirty = true;
 
+	std::vector<std::pair<ImVec2, float>> pointer_position; // first: coordinates from imgui pov, second: distance from the plane, sorted by increasing distance
+
 #if WIVRN_SHOW_IMGUI_DEMO_WINDOW
 	bool show_demo_window = true;
 #endif
 
 	void initialize_fonts();
+	std::optional<ImVec2> get_pointer_position_in_imgui_frame();
 
 public:
 	imgui_context(
@@ -153,63 +166,17 @@ public:
 	        XrSpace world,
 	        std::span<controller> controllers,
 	        xr::swapchain & swapchain,
-	        glm::vec2 size);
+	        std::vector<viewport> layers);
 
 	~imgui_context();
 
-	void set_position(glm::vec3 position, glm::quat orientation)
+	std::span<viewport> layers()
 	{
-		position_ = position;
-		orientation_ = orientation;
-	}
-
-	XrPosef pose() const
-	{
-		return XrPosef{
-		        .orientation = {
-		                .x = orientation_.x,
-		                .y = orientation_.y,
-		                .z = orientation_.z,
-		                .w = orientation_.w,
-		        },
-		        .position = {
-		                .x = position_.x,
-		                .y = position_.y,
-		                .z = position_.z,
-		        },
-		};
-	}
-
-	glm::vec3 & position()
-	{
-		return position_;
-	}
-
-	glm::quat & orientation()
-	{
-		return orientation_;
-	}
-
-	glm::vec3 position() const
-	{
-		return position_;
-	}
-
-	glm::quat orientation() const
-	{
-		return orientation_;
-	}
-
-	XrExtent2Df scale() const
-	{
-		return {
-		        scale_.x,
-		        scale_.y,
-		};
+		return layers_;
 	}
 
 	void new_frame(XrTime display_time);
-	XrCompositionLayerQuad end_frame();
+	std::vector<XrCompositionLayerQuad> end_frame();
 
 	ImFont * large_font;
 	size_t get_focused_controller() const
@@ -217,7 +184,7 @@ public:
 		return focused_controller;
 	}
 
-	std::optional<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state & in) const;
+	std::vector<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state & in) const;
 
 	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
 	ImTextureID load_texture(const std::string & filename);

@@ -35,8 +35,6 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <imgui.h>
 #include <imgui_internal.h>
-#include <locale>
-#include <mutex>
 #include <optional>
 #include <ranges>
 #include <spdlog/spdlog.h>
@@ -120,41 +118,59 @@ static void check_vk_result(VkResult result)
 	}
 }
 
-std::optional<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
+std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
 	if (!in.active)
 		return {};
 
-	auto M = glm::transpose(glm::mat3_cast(orientation_)); // world-to-plane transform
+	std::vector<std::pair<ImVec2, float>> intersections;
 
-	glm::vec3 controller_direction = glm::column(glm::mat3_cast(in.aim_orientation), 2);
-
-	// Compute all vectors in the reference frame of the GUI plane
-	glm::vec3 ray_start = M * (in.aim_position - position_);
-	glm::vec3 ray_dir = M * controller_direction;
-
-	if (ray_dir.z > 0.0001f)
+	for (const auto & i: layers_)
 	{
-		glm::vec2 coord;
+		auto M = glm::transpose(glm::mat3_cast(i.orientation)); // world-to-plane transform
 
-		// ray_start + lambda × ray_dir ∈ imgui plane
-		// => ray_start.z + lambda × ray_dir.z = 0
-		float lambda = -ray_start.z / ray_dir.z;
+		glm::quat q;
+		if (std::abs(glm::length(in.aim_orientation) - 1) < 0.01)
+			q = in.aim_orientation;
+		else
+			q = i.orientation;
 
-		coord.x = ray_start.x + lambda * ray_dir.x;
-		coord.y = ray_start.y + lambda * ray_dir.y;
+		glm::vec3 controller_direction = glm::column(glm::mat3_cast(q), 2);
 
-		// Convert from mesh coordinates to imgui coordinates
-		coord = coord / scale_;
+		// Compute all vectors in the reference frame of the GUI plane
+		glm::vec3 ray_start = M * (in.aim_position - i.position);
+		glm::vec3 ray_dir = M * controller_direction;
 
-		if (fabs(coord.x) <= 0.5 && fabs(coord.y) <= 0.5)
-			return std::make_pair(ImVec2(
-			                              (0.5 + coord.x) * size.width,
-			                              (0.5 - coord.y) * size.height),
-			                      -lambda);
+		if (ray_dir.z > 0.0001f)
+		{
+			glm::vec2 coord;
+
+			// ray_start - distance × ray_dir ∈ imgui plane
+			// => ray_start.z - distance × ray_dir.z = 0
+			float distance = ray_start.z / ray_dir.z;
+
+			if (distance < 0)
+				continue;
+
+			coord.x = ray_start.x - distance * ray_dir.x;
+			coord.y = ray_start.y - distance * ray_dir.y;
+
+			// Convert from mesh coordinates to imgui coordinates
+			coord = coord / i.size;
+
+			if (fabs(coord.x) > 0.5 or fabs(coord.y) > 0.5)
+				continue;
+
+			intersections.emplace_back(ImVec2(
+			                                   (0.5 + coord.x) * i.vp_size.x + i.vp_origin.x,
+			                                   (0.5 - coord.y) * i.vp_size.y + i.vp_origin.y),
+			                           distance);
+		}
 	}
 
-	return {};
+	std::ranges::sort(intersections, [](auto & a, auto & b) { return a.second < b.second; });
+
+	return intersections;
 }
 
 imgui_context::imgui_frame & imgui_context::get_frame(vk::Image destination)
@@ -212,7 +228,7 @@ static const vk::DescriptorSetLayoutBinding layout_bindings{
         .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eFragment};
 
-imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, uint32_t queue_family_index, vk::raii::Queue & queue, XrSpace world, std::span<controller> controllers_, xr::swapchain & swapchain, glm::vec2 size) :
+imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, uint32_t queue_family_index, vk::raii::Queue & queue, XrSpace world, std::span<controller> controllers_, xr::swapchain & swapchain, std::vector<viewport> layers) :
         physical_device(physical_device),
         device(device),
         queue_family_index(queue_family_index),
@@ -234,7 +250,8 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
         command_buffers(swapchain.images().size()),
         size(swapchain.extent().width, swapchain.extent().height),
         format(swapchain.format()),
-        scale_(size.x, size.y),
+        // scale_(size.x, size.y),
+        layers_(std::move(layers)),
         swapchain(swapchain),
         context(ImGui::CreateContext()),
         plot_context(ImPlot::CreateContext()),
@@ -289,6 +306,7 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 
 	style.WindowBorderSize = 0;
 	style.DisabledAlpha = 0.2;
+	style.Colors[ImGuiCol_ModalWindowDimBg] = {0, 0, 0, 0};
 }
 
 void imgui_context::add_chars(std::string_view sv)
@@ -523,6 +541,34 @@ void imgui_context::initialize_fonts()
 	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
+std::optional<ImVec2> imgui_context::get_pointer_position_in_imgui_frame()
+{
+	if (pointer_position.empty())
+		return {};
+
+	for (auto [pos, distance]: pointer_position)
+	{
+		for (ImGuiWindow * window: context->Windows)
+		{
+			if (window->Hidden or not window->Active)
+				continue;
+
+			if (window->Pos.x > pos.x)
+				continue;
+			if (window->Pos.y > pos.y)
+				continue;
+			if (window->Pos.x + window->Size.x < pos.x)
+				continue;
+			if (window->Pos.y + window->Size.y < pos.y)
+				continue;
+
+			return pos;
+		}
+	}
+
+	return pointer_position.back().first;
+}
+
 void imgui_context::new_frame(XrTime display_time)
 {
 	ImGui::SetCurrentContext(context);
@@ -557,18 +603,20 @@ void imgui_context::new_frame(XrTime display_time)
 					        index_tip.pose.position.z};
 
 					// Use the GUI plane as orientation to have the finger point perpendicularly
-					// to the plane instead of following the finger direction
-					new_state.aim_orientation = orientation_;
+					// to the plane instead of following the finger direction.
+					// ray_plane_intersection() interprets a null quaternion as a request to use the layer
+					// orientation.
+					new_state.aim_orientation = glm::quat(0, 0, 0, 0);
 
 					new_state.active = true;
 					new_state.source = ImGuiMouseSource_VRHandTracking;
 					auto position_distance = ray_plane_intersection(new_state);
 
-					if (position_distance)
+					if (not position_distance.empty())
 					{
-						new_state.hover_distance = position_distance->second;
+						new_state.hover_distance = position_distance.front().second;
 
-						if (std::abs(position_distance->second) < 0.1f)
+						if (std::abs(position_distance.front().second) < 0.1f)
 							new_state.fingertip_hovered = true;
 						else
 							new_state.active = false;
@@ -653,11 +701,9 @@ void imgui_context::new_frame(XrTime display_time)
 		fingertip_touching = false;
 	}
 
-	std::optional<std::pair<ImVec2, float>> position_distance;
-
 	if (new_focused_controller != (size_t)-1)
 	{
-		position_distance = ray_plane_intersection(new_states[new_focused_controller]);
+		pointer_position = ray_plane_intersection(new_states[new_focused_controller]);
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
 		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
@@ -666,9 +712,9 @@ void imgui_context::new_frame(XrTime display_time)
 		bool last_touching = controllers[new_focused_controller].second.fingertip_touching;
 		fingertip_touching = new_states[new_focused_controller].fingertip_touching;
 
-		if (position_distance)
+		if (auto position = get_pointer_position_in_imgui_frame())
 		{
-			io.AddMousePosEvent(position_distance->first.x, position_distance->first.y);
+			io.AddMousePosEvent(position->x, position->y);
 
 			if (focused_change || (last_trigger || last_touching) != (button_pressed || fingertip_touching))
 			{
@@ -688,7 +734,7 @@ void imgui_context::new_frame(XrTime display_time)
 	}
 	else
 	{
-		position_distance = {};
+		pointer_position.clear();
 	}
 
 	focused_controller = new_focused_controller;
@@ -725,27 +771,6 @@ void imgui_context::new_frame(XrTime display_time)
 
 	ImGui::NewFrame();
 
-	ImDrawList * draw_list = ImGui::GetForegroundDrawList();
-
-	if (position_distance)
-	{
-		float distance_to_border = std::min({position_distance->first.x,
-		                                     size.width - position_distance->first.x,
-		                                     position_distance->first.y,
-		                                     size.height - position_distance->first.y});
-
-		float radius = 10; // std::clamp<float>(distance_to_border / 4, 0, 10);
-		float alpha = std::clamp<float>((distance_to_border - 10) / 50, 0, 0.8);
-
-		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
-		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
-
-		bool pressed = button_pressed || fingertip_touching;
-
-		draw_list->AddCircleFilled(position_distance->first, radius, pressed ? color_pressed : color_unpressed);
-		draw_list->AddCircle(position_distance->first, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
-	}
-
 #if WIVRN_SHOW_IMGUI_DEMO_WINDOW
 	if (show_demo_window)
 		ImGui::ShowDemoWindow(&show_demo_window);
@@ -755,12 +780,61 @@ void imgui_context::new_frame(XrTime display_time)
 	swapchain.wait();
 }
 
-XrCompositionLayerQuad imgui_context::end_frame()
+std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 {
 	vk::Image destination = swapchain.images()[image_index].image;
 
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
+
+	if (auto position = get_pointer_position_in_imgui_frame())
+	{
+		// Clip in the right plane
+		ImVec2 clip_rect_min(0, 0);
+		ImVec2 clip_rect_max(size.width, size.height);
+
+		for (auto & i: layers_)
+		{
+			if (position->x < i.vp_origin.x)
+				continue;
+			if (position->y < i.vp_origin.y)
+				continue;
+			if (position->x > i.vp_origin.x + i.vp_size.x)
+				continue;
+			if (position->y > i.vp_origin.y + i.vp_size.y)
+				continue;
+
+			clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+			clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+
+			break;
+		}
+
+		// TODO fix according to layers
+		float distance_to_border = std::min({position->x,
+		                                     size.width - position->x,
+		                                     position->y,
+		                                     size.height - position->y});
+
+		float radius = 10; // std::clamp<float>(distance_to_border / 4, 0, 10);
+		float alpha = std::clamp<float>((distance_to_border - 10) / 50, 0, 0.8);
+
+		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
+		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
+
+		bool pressed = button_pressed || fingertip_touching;
+
+		ImDrawList * draw_list = ImGui::GetForegroundDrawList();
+		draw_list->PushClipRect(clip_rect_min, clip_rect_max);
+		draw_list->AddCircleFilled(*position, radius, pressed ? color_pressed : color_unpressed);
+		draw_list->AddCircle(*position, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
+		draw_list->PopClipRect();
+	}
+
+	if (not context->OpenPopupStack.empty())
+	{
+		// TODO dim main window
+	}
 
 	ImGui::Render();
 
@@ -802,20 +876,49 @@ XrCompositionLayerQuad imgui_context::end_frame()
 
 	swapchain.release();
 
-	return XrCompositionLayerQuad{
-	        .type = XR_TYPE_COMPOSITION_LAYER_QUAD,
-	        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-	        .space = world,
-	        .eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
-	        .subImage = {
-	                .swapchain = swapchain,
-	                .imageRect = {
-	                        .offset = {0, 0},
-	                        .extent = {(int32_t)size.width, (int32_t)size.height}},
-	        },
-	        .pose = pose(),
-	        .size = scale(),
-	};
+	std::vector<XrCompositionLayerQuad> quads;
+	quads.reserve(layers_.size());
+
+	for (auto & i: layers_)
+	{
+		quads.push_back(XrCompositionLayerQuad{
+		        .type = XR_TYPE_COMPOSITION_LAYER_QUAD,
+		        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+		        .space = world,
+		        .eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
+		        .subImage = {
+		                .swapchain = swapchain,
+		                .imageRect = {
+		                        .offset = {
+		                                .x = i.vp_origin.x,
+		                                .y = i.vp_origin.y,
+		                        },
+		                        .extent = {
+		                                .width = i.vp_size.x,
+		                                .height = i.vp_size.y,
+		                        }},
+		        },
+		        .pose = {
+		                .orientation = {
+		                        .x = i.orientation.x,
+		                        .y = i.orientation.y,
+		                        .z = i.orientation.z,
+		                        .w = i.orientation.w,
+		                },
+		                .position = {
+		                        .x = i.position.x,
+		                        .y = i.position.y,
+		                        .z = i.position.z,
+		                },
+		        },
+		        .size = {
+		                .width = i.size.x,
+		                .height = i.size.y,
+		        },
+		});
+	}
+
+	return quads;
 }
 
 imgui_context::~imgui_context()
