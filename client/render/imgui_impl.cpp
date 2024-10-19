@@ -139,6 +139,14 @@ static bool in_window(ImGuiWindow * window, ImVec2 position)
 	return true;
 }
 
+static bool window_intersects_viewport(ImGuiWindow * window, imgui_context::viewport & viewport)
+{
+	ImRect w{window->Pos.x, window->Pos.y, window->Pos.x + window->Size.x, window->Pos.y + window->Size.y};
+	ImRect v(viewport.vp_origin.x, viewport.vp_origin.y, viewport.vp_origin.x + viewport.vp_size.x, viewport.vp_origin.y + viewport.vp_size.y);
+
+	return w.Overlaps(v);
+}
+
 static float distance_to_window(ImGuiWindow * window, ImVec2 position)
 {
 	if (window->Hidden or not window->Active)
@@ -912,6 +920,19 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 
 	for (auto & i: layers_)
 	{
+		bool visible = false;
+		for (ImGuiWindow * window: context->Windows)
+		{
+			if (window->Active and not window->Hidden and window_intersects_viewport(window, i))
+			{
+				visible = true;
+				break;
+			}
+		}
+
+		if (not visible)
+			continue;
+
 		quads.push_back(XrCompositionLayerQuad{
 		        .type = XR_TYPE_COMPOSITION_LAYER_QUAD,
 		        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
@@ -1043,11 +1064,5 @@ void imgui_context::set_current()
 
 bool imgui_context::is_modal_popup_shown() const
 {
-	for (ImGuiPopupData & popup: context->OpenPopupStack)
-	{
-		if (popup.Window->Flags & ImGuiWindowFlags_Modal)
-			return true;
-	}
-
-	return false;
+	return ImGui::GetTopMostAndVisiblePopupModal() != nullptr;
 }
