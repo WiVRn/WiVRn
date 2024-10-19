@@ -1,4 +1,3 @@
-
 if (GIT_DESC)
     configure_file(version.cpp.in version.cpp)
 else ()
@@ -13,6 +12,17 @@ else ()
         SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
         )
 endif()
+
+# Qt 6.7 changed qt_add_translations()
+try_compile(AT_LEAST_QT67 SOURCE_FROM_CONTENT check-qt-version.cpp "
+#include <QtGlobal>
+
+#if (QT_VERSION < QT_VERSION_CHECK(6, 7, 0))
+#error
+#endif
+
+int main() {}
+" LINK_LIBRARIES Qt6::Core)
 
 qt_add_executable(wivrn-dashboard
         main.cpp
@@ -33,8 +43,13 @@ qt_add_executable(wivrn-dashboard
         steam_app.h
         adb.cpp
         adb.h
-        ../wivrn-dashboard.qrc
         ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+)
+
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg PROPERTIES QT_RESOURCE_ALIAS "images/wivrn.svg")
+
+qt_add_resources(wivrn-dashboard wivrn-dashboard-resources PREFIX / FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg
 )
 
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml PROPERTIES INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/wivrn_qdbus_types.h")
@@ -55,12 +70,22 @@ target_link_libraries(wivrn-dashboard PRIVATE
         Qt6::Network
         nlohmann_json
 )
+
 if (WIVRN_CHECK_CAPSYSNICE)
     target_link_libraries(wivrn-dashboard PRIVATE PkgConfig::libcap)
 endif()
 
 file(GLOB TRANSLATION_FILES ${CMAKE_CURRENT_SOURCE_DIR}/wivrn_*.ts)
-qt_add_translations(wivrn-dashboard TS_FILES ${TRANSLATION_FILES})
+
+if (AT_LEAST_QT67)
+    qt_add_translations(wivrn-dashboard SOURCE_TARGETS wivrn-dashboard TS_FILES ${TRANSLATION_FILES})
+else()
+    qt_add_translations(wivrn-dashboard TS_FILES ${TRANSLATION_FILES})
+endif()
+
+# https://16bpp.net/blog/post/localizing-a-qt-app-or-anything-else-for-that-matter/, CMake Setup
+# https://gist.github.com/define-private-public/f01ff2f9bbb74eded144558a2e02966c#file-cmakelists-2-txt
+add_dependencies(wivrn-dashboard release_translations)
 
 install(TARGETS wivrn-dashboard)
 
