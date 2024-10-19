@@ -124,16 +124,21 @@ static bool in_window(ImGuiWindow * window, ImVec2 position)
 	if (window->Hidden or not window->Active)
 		return false;
 
-	if (window->Pos.x > position.x)
+	if (window->Pos.x > position.x or
+	    window->Pos.y > position.y or
+	    window->Pos.x + window->Size.x < position.x or
+	    window->Pos.y + window->Size.y < position.y)
 		return false;
 
-	if (window->Pos.y > position.y)
-		return false;
+	return true;
+}
 
-	if (window->Pos.x + window->Size.x < position.x)
-		return false;
-
-	if (window->Pos.y + window->Size.y < position.y)
+static bool in_viewport(const imgui_context::viewport & viewport, ImVec2 position)
+{
+	if (viewport.vp_origin.x > position.x or
+	    viewport.vp_origin.y > position.y or
+	    viewport.vp_origin.x + viewport.vp_size.x < position.x or
+	    viewport.vp_origin.y + viewport.vp_size.y < position.y)
 		return false;
 
 	return true;
@@ -685,22 +690,50 @@ void imgui_context::compute_pointer_position(imgui_context::controller_state & s
 		return;
 	}
 
-	// Intersections are sorted by distance: take the closest one
-	for (auto [position, distance]: intersections)
+	if (ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal())
 	{
-		for (ImGuiWindow * window: context->Windows)
+		// If there is a popup window, use the viewport of that window
+		for (auto & i: layers_)
 		{
-			if (in_window(window, position))
+			if (window_intersects_viewport(modal_popup, i))
 			{
-				state.hover_distance = distance;
-				state.pointer_position = position;
-				return;
+				for (auto [position, distance]: intersections)
+				{
+					if (in_viewport(i, position))
+					{
+						state.hover_distance = distance;
+						state.pointer_position = position;
+						return;
+					}
+				}
 			}
 		}
-	}
 
-	// If the pointer isn't in any window, take the farthest one
-	std::tie(state.pointer_position, state.hover_distance) = intersections.back();
+		state.hover_distance = std::numeric_limits<float>::infinity();
+		state.pointer_position = std::nullopt;
+	}
+	else
+	{
+		// Intersections are sorted by distance: take the closest one
+		for (auto [position, distance]: intersections)
+		{
+			for (ImGuiWindow * window: context->Windows)
+			{
+				if (not window->Active or window->Hidden)
+					continue;
+
+				if (in_window(window, position))
+				{
+					state.hover_distance = distance;
+					state.pointer_position = position;
+					return;
+				}
+			}
+		}
+
+		// If the pointer isn't in any window, take the farthest one
+		std::tie(state.pointer_position, state.hover_distance) = intersections.back();
+	}
 }
 
 void imgui_context::new_frame(XrTime display_time)
@@ -836,21 +869,47 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 		ImVec2 clip_rect_min(0, 0);
 		ImVec2 clip_rect_max(size.width, size.height);
 
-		for (auto & i: layers_)
+		// If there is a modal popup, only display the cursor in the viewport of the popup
+		ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal();
+		if (modal_popup)
 		{
-			if (position->x < i.vp_origin.x)
-				continue;
-			if (position->y < i.vp_origin.y)
-				continue;
-			if (position->x > i.vp_origin.x + i.vp_size.x)
-				continue;
-			if (position->y > i.vp_origin.y + i.vp_size.y)
-				continue;
+			for (auto & i: layers_)
+			{
+				if (window_intersects_viewport(modal_popup, i))
+				{
+					if (position->x < i.vp_origin.x or
+					    position->y < i.vp_origin.y or
+					    position->x > i.vp_origin.x + i.vp_size.x or
+					    position->y > i.vp_origin.y + i.vp_size.y)
+					{
+						// Cursor is not in the same viewport as the popup
+						clip_rect_min = ImVec2(0, 0);
+						clip_rect_max = ImVec2(0, 0);
+					}
+					else
+					{
+						clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+						clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+					}
+					break;
+				}
+			}
+		}
+		else
+		{
+			for (auto & i: layers_)
+			{
+				if (position->x < i.vp_origin.x or
+				    position->y < i.vp_origin.y or
+				    position->x > i.vp_origin.x + i.vp_size.x or
+				    position->y > i.vp_origin.y + i.vp_size.y)
+					continue;
 
-			clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
-			clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+				clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+				clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
 
-			break;
+				break;
+			}
 		}
 
 		// Compute the distance to the closest window
