@@ -35,6 +35,7 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <limits>
 #include <optional>
 #include <ranges>
 #include <spdlog/spdlog.h>
@@ -116,6 +117,50 @@ static void check_vk_result(VkResult result)
 		spdlog::error("Vulkan error in Dear ImGui: {}", vk::to_string((vk::Result)result));
 		abort();
 	}
+}
+
+static bool in_window(ImGuiWindow * window, ImVec2 position)
+{
+	if (window->Hidden or not window->Active)
+		return false;
+
+	if (window->Pos.x > position.x)
+		return false;
+
+	if (window->Pos.y > position.y)
+		return false;
+
+	if (window->Pos.x + window->Size.x < position.x)
+		return false;
+
+	if (window->Pos.y + window->Size.y < position.y)
+		return false;
+
+	return true;
+}
+
+static float distance_to_window(ImGuiWindow * window, ImVec2 position)
+{
+	if (window->Hidden or not window->Active)
+		return std::numeric_limits<float>::infinity();
+
+	float dx;
+	if (position.x < window->Pos.x)
+		dx = window->Pos.x - position.x;
+	else if (position.x > window->Pos.x + window->Size.x)
+		dx = position.x - (window->Pos.x + window->Size.x);
+	else
+		dx = 0;
+
+	float dy;
+	if (position.y < window->Pos.y)
+		dy = window->Pos.y - position.y;
+	else if (position.y > window->Pos.y + window->Size.y)
+		dy = position.y - (window->Pos.y + window->Size.y);
+	else
+		dy = 0;
+
+	return std::hypot(dx, dy);
 }
 
 std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
@@ -536,26 +581,6 @@ void imgui_context::initialize_fonts()
 	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
-static bool in_window(ImGuiWindow * window, ImVec2 position)
-{
-	if (window->Hidden or not window->Active)
-		return false;
-
-	if (window->Pos.x > position.x)
-		return false;
-
-	if (window->Pos.y > position.y)
-		return false;
-
-	if (window->Pos.x + window->Size.x < position.x)
-		return false;
-
-	if (window->Pos.y + window->Size.y < position.y)
-		return false;
-
-	return true;
-}
-
 std::vector<imgui_context::controller_state> imgui_context::read_controllers_state(XrTime display_time)
 {
 	float scroll_scale = io.DeltaTime * 3;
@@ -647,7 +672,7 @@ void imgui_context::compute_pointer_position(imgui_context::controller_state & s
 
 	if (intersections.empty())
 	{
-		state.hover_distance = 1e10;
+		state.hover_distance = std::numeric_limits<float>::infinity();
 		state.pointer_position = std::nullopt;
 		return;
 	}
@@ -685,7 +710,6 @@ void imgui_context::new_frame(XrTime display_time)
 	auto new_states = read_controllers_state(display_time);
 
 	// Set the currently active controller
-	// float closest_hover_distance = 1e10;
 	for (auto && [index, state]: utils::enumerate(new_states))
 	{
 		if (state.source == ImGuiMouseSource_VRController)
@@ -698,11 +722,8 @@ void imgui_context::new_frame(XrTime display_time)
 
 		if (state.source == ImGuiMouseSource_VRHandTracking)
 		{
-			if (state.fingertip_hovering /* and state.hover_distance < std::abs(closest_hover_distance)*/)
-			{
+			if (state.fingertip_hovering)
 				new_focused_controller = index;
-				// closest_hover_distance = state.hover_distance;
-			}
 		}
 	}
 
@@ -824,14 +845,15 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 			break;
 		}
 
-		// TODO use distance to edge of window
-		float distance_to_border = std::min({position->x,
-		                                     size.width - position->x,
-		                                     position->y,
-		                                     size.height - position->y});
+		// Compute the distance to the closest window
+		float distance = std::numeric_limits<float>::infinity();
+		for (ImGuiWindow * window: context->Windows)
+		{
+			distance = std::min(distance, distance_to_window(window, *position));
+		}
 
-		float radius = 10; // std::clamp<float>(distance_to_border / 4, 0, 10);
-		float alpha = std::clamp<float>((distance_to_border - 10) / 50, 0, 0.8);
+		float radius = 10;
+		float alpha = std::clamp<float>((40 - distance) / 50, 0, 0.8);
 
 		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
 		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
