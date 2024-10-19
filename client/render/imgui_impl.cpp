@@ -129,12 +129,7 @@ std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(cons
 	{
 		auto M = glm::transpose(glm::mat3_cast(i.orientation)); // world-to-plane transform
 
-		glm::quat q;
-		if (std::abs(glm::length(in.aim_orientation) - 1) < 0.01)
-			q = in.aim_orientation;
-		else
-			q = i.orientation;
-
+		glm::quat q = (in.source == ImGuiMouseSource_VRHandTracking) ? i.orientation : in.aim_orientation;
 		glm::vec3 controller_direction = glm::column(glm::mat3_cast(q), 2);
 
 		// Compute all vectors in the reference frame of the GUI plane
@@ -541,49 +536,34 @@ void imgui_context::initialize_fonts()
 	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
-std::optional<ImVec2> imgui_context::get_pointer_position_in_imgui_frame()
+static bool in_window(ImGuiWindow * window, ImVec2 position)
 {
-	if (pointer_position.empty())
-		return {};
+	if (window->Hidden or not window->Active)
+		return false;
 
-	for (auto [pos, distance]: pointer_position)
-	{
-		for (ImGuiWindow * window: context->Windows)
-		{
-			if (window->Hidden or not window->Active)
-				continue;
+	if (window->Pos.x > position.x)
+		return false;
 
-			if (window->Pos.x > pos.x)
-				continue;
-			if (window->Pos.y > pos.y)
-				continue;
-			if (window->Pos.x + window->Size.x < pos.x)
-				continue;
-			if (window->Pos.y + window->Size.y < pos.y)
-				continue;
+	if (window->Pos.y > position.y)
+		return false;
 
-			return pos;
-		}
-	}
+	if (window->Pos.x + window->Size.x < position.x)
+		return false;
 
-	return pointer_position.back().first;
+	if (window->Pos.y + window->Size.y < position.y)
+		return false;
+
+	return true;
 }
 
-void imgui_context::new_frame(XrTime display_time)
+std::vector<imgui_context::controller_state> imgui_context::read_controllers_state(XrTime display_time)
 {
-	ImGui::SetCurrentContext(context);
-	ImPlot::SetCurrentContext(plot_context);
-
-	if (last_display_time)
-		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
-	last_display_time = display_time;
-
 	float scroll_scale = io.DeltaTime * 3;
-
 	size_t new_focused_controller = focused_controller;
 
 	std::vector<controller_state> new_states;
 
+	// Get the hand/controller state from OpenXR
 	for (auto && [index, controller]: utils::enumerate(controllers))
 	{
 		auto & [ctrl, state] = controller;
@@ -601,33 +581,13 @@ void imgui_context::new_frame(XrTime display_time)
 					        index_tip.pose.position.x,
 					        index_tip.pose.position.y,
 					        index_tip.pose.position.z};
-
-					// Use the GUI plane as orientation to have the finger point perpendicularly
-					// to the plane instead of following the finger direction.
-					// ray_plane_intersection() interprets a null quaternion as a request to use the layer
-					// orientation.
-					new_state.aim_orientation = glm::quat(0, 0, 0, 0);
+					// aim_orientation is ignored by ray_plane_intersection() for hands
 
 					new_state.active = true;
 					new_state.source = ImGuiMouseSource_VRHandTracking;
-					auto position_distance = ray_plane_intersection(new_state);
-
-					if (not position_distance.empty())
-					{
-						new_state.hover_distance = position_distance.front().second;
-
-						if (std::abs(position_distance.front().second) < 0.1f)
-							new_state.fingertip_hovered = true;
-						else
-							new_state.active = false;
-
-						if (new_state.fingertip_hovered && (new_state.hover_distance < 0.02))
-							new_state.fingertip_touching = true;
-					}
-					else
-						new_state.hover_distance = 1e10;
 				}
 			}
+
 			continue;
 		}
 
@@ -638,52 +598,111 @@ void imgui_context::new_frame(XrTime display_time)
 			new_state.active = true;
 			new_state.aim_position = location->first;
 			new_state.aim_orientation = location->second;
-		}
 
-		if (ctrl.squeeze)
-		{
-			auto squeeze = application::read_action_float(ctrl.squeeze).value_or(std::pair{0, 0});
-			new_state.squeeze_value = squeeze.second;
+			if (ctrl.trigger)
+			{
+				auto trigger = application::read_action_float(ctrl.trigger).value_or(std::pair{0, 0});
+				new_state.trigger_value = trigger.second;
 
-			// TODO tunable
-			if (new_state.squeeze_value < 0.5)
-				new_state.squeeze_clicked = false;
-			else if (new_state.squeeze_value > 0.8)
-				new_state.squeeze_clicked = true;
-		}
+				// TODO tunable
+				/*if (new_state.trigger_value < 0.5)
+				        new_state.trigger_clicked = false;
+				else */
+				if (new_state.trigger_value > 0.8)
+					new_state.trigger_clicked = true;
+			}
 
-		if (ctrl.trigger)
-		{
-			auto trigger = application::read_action_float(ctrl.trigger).value_or(std::pair{0, 0});
-			new_state.trigger_value = trigger.second;
-
-			// TODO tunable
-			if (new_state.trigger_value < 0.5)
-				new_state.trigger_clicked = false;
-			else if (new_state.trigger_value > 0.8)
-				new_state.trigger_clicked = true;
-		}
-
-		if (ctrl.scroll)
-		{
-			if (auto act = application::read_action_vec2(ctrl.scroll); act)
-				new_state.scroll_value = {-act->second.x * scroll_scale, act->second.y * scroll_scale};
-			else
-				new_state.scroll_value = {0, 0};
+			if (ctrl.scroll)
+			{
+				if (auto act = application::read_action_vec2(ctrl.scroll); act)
+					new_state.scroll_value = {-act->second.x * scroll_scale, act->second.y * scroll_scale};
+				else
+					new_state.scroll_value = {0, 0};
+			}
 		}
 	}
 
-	float closest_hover_distance = 1e10;
-	for (auto && [index, new_state]: utils::enumerate(new_states))
+	// Compute the position in imgui frame according to the currently displayed windows (from the last frame)
+	for (auto & state: new_states)
 	{
-		if (std::abs(new_state.hover_distance) < closest_hover_distance && new_state.fingertip_hovered)
+		compute_pointer_position(state);
+
+		if (state.source == ImGuiMouseSource_VRHandTracking)
 		{
-			new_focused_controller = index;
-			closest_hover_distance = std::abs(new_state.hover_distance);
+			// TODO tunable
+			if (std::abs(state.hover_distance) < 0.1)
+				state.fingertip_hovering = true;
+
+			if (std::abs(state.hover_distance) < 0.02)
+				state.fingertip_touching = true;
 		}
-		else if (new_state.squeeze_clicked || new_state.trigger_clicked || glm::length(new_state.scroll_value) > 0.01f)
+	}
+
+	return new_states;
+}
+
+void imgui_context::compute_pointer_position(imgui_context::controller_state & state)
+{
+	auto intersections = ray_plane_intersection(state);
+
+	if (intersections.empty())
+	{
+		state.hover_distance = 1e10;
+		state.pointer_position = std::nullopt;
+		return;
+	}
+
+	// Intersections are sorted by distance: take the closest one
+	for (auto [position, distance]: intersections)
+	{
+		for (ImGuiWindow * window: context->Windows)
 		{
-			new_focused_controller = index;
+			if (in_window(window, position))
+			{
+				state.hover_distance = distance;
+				state.pointer_position = position;
+				return;
+			}
+		}
+	}
+
+	// If the pointer isn't in any window, take the farthest one
+	std::tie(state.pointer_position, state.hover_distance) = intersections.back();
+}
+
+void imgui_context::new_frame(XrTime display_time)
+{
+	ImGui::SetCurrentContext(context);
+	ImPlot::SetCurrentContext(plot_context);
+
+	if (last_display_time)
+		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
+	last_display_time = display_time;
+
+	size_t new_focused_controller = focused_controller;
+
+	// Uses the window list from last frame
+	auto new_states = read_controllers_state(display_time);
+
+	// Set the currently active controller
+	// float closest_hover_distance = 1e10;
+	for (auto && [index, state]: utils::enumerate(new_states))
+	{
+		if (state.source == ImGuiMouseSource_VRController)
+		{
+			if (state.trigger_clicked or glm::length(state.scroll_value) > 0.01f)
+			{
+				new_focused_controller = index;
+			}
+		}
+
+		if (state.source == ImGuiMouseSource_VRHandTracking)
+		{
+			if (state.fingertip_hovering /* and state.hover_distance < std::abs(closest_hover_distance)*/)
+			{
+				new_focused_controller = index;
+				// closest_hover_distance = state.hover_distance;
+			}
 		}
 	}
 
@@ -703,7 +722,6 @@ void imgui_context::new_frame(XrTime display_time)
 
 	if (new_focused_controller != (size_t)-1)
 	{
-		pointer_position = ray_plane_intersection(new_states[new_focused_controller]);
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
 		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
@@ -712,7 +730,7 @@ void imgui_context::new_frame(XrTime display_time)
 		bool last_touching = controllers[new_focused_controller].second.fingertip_touching;
 		fingertip_touching = new_states[new_focused_controller].fingertip_touching;
 
-		if (auto position = get_pointer_position_in_imgui_frame())
+		if (auto position = new_states[new_focused_controller].pointer_position)
 		{
 			io.AddMousePosEvent(position->x, position->y);
 
@@ -731,10 +749,6 @@ void imgui_context::new_frame(XrTime display_time)
 				io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 			}
 		}
-	}
-	else
-	{
-		pointer_position.clear();
 	}
 
 	focused_controller = new_focused_controller;
@@ -787,7 +801,7 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
 
-	if (auto position = get_pointer_position_in_imgui_frame())
+	if (auto position = controllers[focused_controller].second.pointer_position)
 	{
 		// Clip in the right plane
 		ImVec2 clip_rect_min(0, 0);
@@ -810,7 +824,7 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 			break;
 		}
 
-		// TODO fix according to layers
+		// TODO use distance to edge of window
 		float distance_to_border = std::min({position->x,
 		                                     size.width - position->x,
 		                                     position->y,
@@ -1005,7 +1019,13 @@ void imgui_context::set_current()
 	ImPlot::SetCurrentContext(plot_context);
 }
 
-bool imgui_context::is_popup_shown() const
+bool imgui_context::is_modal_popup_shown() const
 {
-	return not context->OpenPopupStack.empty();
+	for (ImGuiPopupData & popup: context->OpenPopupStack)
+	{
+		if (popup.Window->Flags & ImGuiWindowFlags_Modal)
+			return true;
+	}
+
+	return false;
 }

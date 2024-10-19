@@ -805,7 +805,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		for (auto & layer: imgui_layers)
 			layer.next = &layer_depth_test;
 
-		if (imgui_ctx->is_popup_shown() and composition_layer_color_scale_bias_supported)
+		if (imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported)
 		{
 			color_scale_bias.next = imgui_layers.front().next;
 			imgui_layers.front().next = &color_scale_bias;
@@ -824,7 +824,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		if (not composition_layer_depth_test_supported)
 			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
 
-		if (imgui_ctx->is_popup_shown() and composition_layer_color_scale_bias_supported)
+		if (imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported)
 		{
 			color_scale_bias.next = imgui_layers.front().next;
 			imgui_layers.front().next = &color_scale_bias;
