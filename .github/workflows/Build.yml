@@ -71,6 +71,27 @@ jobs:
         draft: true
         files: server-build-deps.tar.xz
 
+    - name: Prepare deb package
+      # TODO add postinst script for CAP_SYS_NICE
+      run: |
+        mkdir -p debpkg
+        DESTDIR=debpkg cmake --install ${{github.workspace}}/build
+
+    - uses: jiro4989/build-deb-action@v3
+      with:
+        package: wivrn-${{ matrix.cmake_preset }}
+        package_root: debpkg
+        maintainer: 'Test maintainer'
+        version: '0.20' # TODO get from git
+        arch: 'amd64'
+        desc: 'The WiVRn server (${{ matrix.cmake_preset }})'
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: wivrn-${{ matrix.cmake_preset }}-deb-package
+        path: '*.deb'
+
+
   build-server-flatpak:
     name: Linux server (flatpak)
     runs-on: ubuntu-latest
