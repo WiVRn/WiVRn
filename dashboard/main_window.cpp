@@ -292,9 +292,18 @@ void main_window::on_android_device_list_changed(const std::vector<adb::device> 
 		if (std::ranges::none_of(usb_actions, [&](const std::pair<const std::string, std::unique_ptr<QAction>> & x) { return x.first == device.serial(); }))
 		{
 			qDebug() << "Detected" << QString::fromStdString(device.serial());
+			for (auto & [key, value]: device.properties())
+			{
+				qDebug() << "    " << QString::fromStdString(key) << ":" << QString::fromStdString(value);
+			}
 
 			std::unique_ptr<QAction> device_action = std::make_unique<QAction>(this);
-			device_action->setText(QString::fromStdString(device.properties().at("model")));
+
+			if (auto model = device.properties().find("model"); model != device.properties().end())
+				device_action->setText(QString::fromStdString(model->second));
+			else
+				device_action->setText("Unknown model");
+
 			usb_device_menu->addAction(device_action.get());
 
 			device_action->setData(QString::fromStdString(device.serial()));
