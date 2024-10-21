@@ -47,9 +47,11 @@ qt_add_executable(wivrn-dashboard
 )
 
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg PROPERTIES QT_RESOURCE_ALIAS "images/wivrn.svg")
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../assets/wivrn.png PROPERTIES QT_RESOURCE_ALIAS "images/wivrn.png")
 
 qt_add_resources(wivrn-dashboard wivrn-dashboard-resources PREFIX / FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg
+    ${CMAKE_CURRENT_SOURCE_DIR}/../assets/wivrn.png
 )
 
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml PROPERTIES INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/wivrn_qdbus_types.h")

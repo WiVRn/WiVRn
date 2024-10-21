@@ -52,7 +52,7 @@ class main_window : public QMainWindow
 	settings * settings_window = nullptr;
 	wizard * wizard_window = nullptr;
 
-	QIcon icon{":/assets/wivrn.png"};
+	QIcon icon{":/images/wivrn.png"};
 	QSystemTrayIcon systray{icon};
 
 	QMenu systray_menu;
