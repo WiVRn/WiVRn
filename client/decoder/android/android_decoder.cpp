@@ -118,6 +118,9 @@ decoder::decoder(
 
 		media_codec.reset(AMediaCodec_createDecoderByType(mime(description.codec)));
 
+		if (not media_codec)
+			throw std::runtime_error(std::string("Cannot create decoder for MIME type ") + mime(description.codec));
+
 		char * codec_name;
 		check(AMediaCodec_getName(media_codec.get(), &codec_name), "AMediaCodec_getName");
 		spdlog::info("Created MediaCodec decoder \"{}\"", codec_name);
