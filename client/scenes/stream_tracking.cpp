@@ -191,7 +191,9 @@ void scenes::stream::tracking()
 	if (XrSpace palm = application::space(xr::spaces::palm_right))
 		spaces.emplace_back(device_id::RIGHT_PALM, palm);
 
-	if (application::get_eye_gaze_supported())
+	const auto & config = application::get_config();
+
+	if (config.check_feature(feature::eye_gaze))
 		spaces.push_back({device_id::EYE_GAZE, application::space(xr::spaces::eye_gaze)});
 
 	XrSpace view_space = application::space(xr::spaces::view);
@@ -203,6 +205,9 @@ void scenes::stream::tracking()
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::hand_tracking> hands;
 	int skip_samples = 0;
+
+	const bool hand_tracking = config.check_feature(feature::hand_tracking);
+	const bool face_tracking = config.check_feature(feature::face_tracking);
 
 	while (not exiting)
 	{
@@ -259,7 +264,7 @@ void scenes::stream::tracking()
 							packet.device_poses.push_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
-					if (application::get_hand_tracking_supported())
+					if (hand_tracking)
 					{
 						if (control.enabled[size_t(tid::left_hand)])
 							hands.emplace_back(
@@ -276,7 +281,7 @@ void scenes::stream::tracking()
 							        locate_hands(application::get_right_hand(), world_space, t0 + Δt));
 					}
 
-					if (application::get_fb_face_tracking2_supported() and control.enabled[size_t(tid::face)])
+					if (face_tracking and control.enabled[size_t(tid::face)])
 					{
 						application::get_fb_face_tracker2().get_weights(t0 + Δt, packet.face.emplace());
 					}

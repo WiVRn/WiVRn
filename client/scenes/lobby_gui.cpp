@@ -390,6 +390,17 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 	}
 	{
+		ImGui::BeginDisabled(not application::get_hand_tracking_supported());
+		bool enabled = config.check_feature(feature::hand_tracking);
+		if (ImGui::Checkbox(_S("Enable hand tracking"), &enabled))
+		{
+			config.set_feature(feature::hand_tracking, enabled);
+			config.save();
+		}
+		vibrate_on_hover();
+		ImGui::EndDisabled();
+	}
+	{
 		ImGui::BeginDisabled(not application::get_eye_gaze_supported());
 		bool enabled = config.check_feature(feature::eye_gaze);
 		if (ImGui::Checkbox(_S("Enable eye tracking"), &enabled))
@@ -822,7 +833,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	{
 		feature f;
 		const char * icon_enabled;
-		const char * icon_disabled;
+		const char * icon_disabled = ICON_FA_SLASH;
 		bool enabled;
 		float w;
 	};
@@ -833,6 +844,14 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	        .icon_enabled = ICON_FA_MICROPHONE,
 	        .icon_disabled = ICON_FA_MICROPHONE_SLASH,
 	});
+
+	if (application::get_hand_tracking_supported())
+	{
+		items.push_back({
+		        .f = feature::hand_tracking,
+		        .icon_enabled = ICON_FA_HAND,
+		});
+	}
 
 	if (application::get_eye_gaze_supported())
 	{
@@ -870,11 +889,19 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		ImGui::PushStyleColor(ImGuiCol_Text, i.enabled ? ImGui::GetColorU32(ImGuiCol_Text) : IM_COL32(255, 0, 0, 255));
 		if (&i != &items.front())
 			ImGui::SameLine();
+		auto pos = ImGui::GetCursorPos();
 		if (ImGui::Button(i.enabled ? i.icon_enabled : i.icon_disabled))
 		{
 			// button doesn't alter the bool
 			config.set_feature(i.f, not i.enabled);
 			config.save();
+		}
+		if (i.icon_disabled == std::string_view(ICON_FA_SLASH) and not i.enabled)
+		{
+			auto save = ImGui::GetCursorPos();
+			ImGui::SetCursorPos(pos + ImGui::GetStyle().FramePadding);
+			ImGui::Text("%s", i.icon_enabled);
+			ImGui::SetCursorPos(save);
 		}
 		vibrate_on_hover();
 		ImGui::PopStyleColor(2);

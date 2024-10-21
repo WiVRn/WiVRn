@@ -159,6 +159,8 @@ const char * permission_name(feature f)
 	{
 		case feature::microphone:
 			return "android.permission.RECORD_AUDIO";
+		case feature::hand_tracking:
+			return nullptr;
 		case feature::eye_gaze:
 			switch (guess_model())
 			{

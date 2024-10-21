@@ -171,7 +171,7 @@ wivrn_controller::wivrn_controller(int hand_id,
 
 	base->name = XRT_DEVICE_TOUCH_CONTROLLER;
 	base->orientation_tracking_supported = true;
-	base->hand_tracking_supported = true;
+	base->hand_tracking_supported = cnx->get_info().hand_tracking;
 	base->position_tracking_supported = true;
 
 	base->tracking_origin = hmd->tracking_origin;
@@ -214,7 +214,7 @@ wivrn_controller::wivrn_controller(int hand_id,
 	SET_INPUT(THUMBREST_TOUCH);
 
 	inputs[WIVRN_CONTROLLER_HAND_TRACKER].name = hand_id == 0 ? XRT_INPUT_GENERIC_HAND_TRACKING_LEFT : XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT;
-	inputs[WIVRN_CONTROLLER_HAND_TRACKER].active = true;
+	inputs[WIVRN_CONTROLLER_HAND_TRACKER].active = hand_tracking_supported;
 
 	inputs[WIVRN_CONTROLLER_PALM_POSE].name = XRT_INPUT_GENERIC_PALM_POSE;
 	inputs[WIVRN_CONTROLLER_PALM_POSE].active = cnx->get_info().palm_pose;

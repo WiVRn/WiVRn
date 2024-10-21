@@ -123,7 +123,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	if (info.available_refresh_rates.empty())
 		spdlog::warn("Unable to detect refresh rates");
 
-	info.hand_tracking = application::get_hand_tracking_supported();
+	info.hand_tracking = config.check_feature(feature::hand_tracking);
 	info.eye_gaze = config.check_feature(feature::eye_gaze);
 	info.face_tracking2_fb = config.check_feature(feature::face_tracking);
 	info.palm_pose = application::space(xr::spaces::palm_left) or application::space(xr::spaces::palm_right);
