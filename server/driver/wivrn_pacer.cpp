@@ -30,7 +30,7 @@ static const size_t num_wait_times = 100;
 // How many samples of wait time are required to use them
 static const size_t min_wait_times = 50;
 
-static const int64_t margin_ns = 1'000'000;
+static const int64_t margin_ns = 3'000'000;
 static const int64_t slop_ns = 500'000;
 
 void wivrn_pacer::set_stream_count(size_t count)
@@ -68,12 +68,13 @@ void wivrn_pacer::predict(
 	// snap to phase
 	predicted_client_render = (predicted_client_render / frame_duration_ns) * frame_duration_ns + client_render_phase_ns;
 
-	if (now + mean_wake_up_to_present_ns + safe_present_to_decoded_ns + margin_ns > predicted_client_render)
+	if (now + mean_wake_up_to_present_ns + safe_present_to_decoded_ns > predicted_client_render)
 		predicted_client_render += frame_duration_ns * ((now + mean_wake_up_to_present_ns + safe_present_to_decoded_ns - predicted_client_render) / frame_duration_ns);
 
 	out_predicted_display_time_ns = predicted_client_render + mean_render_to_display_ns;
 	out_desired_present_time_ns = predicted_client_render - safe_present_to_decoded_ns;
-	out_wake_up_time_ns = out_desired_present_time_ns - mean_wake_up_to_present_ns - margin_ns;
+	out_wake_up_time_ns = out_desired_present_time_ns - mean_wake_up_to_present_ns + margin_ns; // we should be awoken early by the application
+	last_wake_up_ns = out_wake_up_time_ns;
 
 	last_ns = predicted_client_render;
 
@@ -149,7 +150,6 @@ void wivrn_pacer::mark_timing_point(
 	{
 		//! Woke up after sleeping in wait frame.
 		case COMP_TARGET_TIMING_POINT_WAKE_UP:
-			last_wake_up_ns = when_ns;
 			return;
 
 		//! Began CPU side work for GPU.
