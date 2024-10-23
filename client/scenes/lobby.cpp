@@ -946,6 +946,7 @@ void scenes::lobby::on_focused()
 	                .size = {0.6, 0.2},
 	                .vp_origin = {1500, 500},
 	                .vp_size = {1500, 500},
+	                .always_show_cursor = true,
 	        },
 	};
 

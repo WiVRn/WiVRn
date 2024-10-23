@@ -280,8 +280,40 @@ static std::string to_utf8(char32_t c)
 // 	return upper;
 // }
 
+// Reimplemented because ImGui::IsWindowHovered() returns false if a popup is open
+bool virtual_keyboard::is_window_hovered()
+{
+	int i = 0;
+	ImGuiContext & g = *GImGui;
+
+	if (not ImGui::IsMouseHoveringRect(g.CurrentWindow->Pos, g.CurrentWindow->Pos + g.CurrentWindow->Size))
+		return false;
+
+	// Ignore any window below the keyboard
+	while (g.Windows[i] != g.CurrentWindow and i < g.Windows.Size)
+		i++;
+
+	// Cannot find the keyboard window
+	if (i >= g.Windows.Size)
+		return false;
+
+	// Skip the keyboard window
+	i++;
+
+	// Check if another window is over the keyboard
+	while (i < g.Windows.Size)
+	{
+		if (ImGui::IsMouseHoveringRect(g.Windows[i]->Pos, g.Windows[i]->Pos + g.Windows[i]->Size))
+			return false;
+
+		i++;
+	}
+
+	return true;
+}
+
 // Mostly copied from ImGui::ButtonBehavior, massively simplified for the keyboard use case, don't take focus when clicked
-bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags)
+bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool window_hovered, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags)
 {
 	ImGuiContext & g = *GImGui;
 
@@ -294,8 +326,7 @@ bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool * out
 	}
 
 	bool pressed = false;
-	bool hovered = g.HoveredWindow == g.CurrentWindow and ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
-	// ImGui::ItemHoverable;
+	bool hovered = window_hovered and ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
 
 	// Mouse handling
 	if (hovered)
@@ -351,7 +382,7 @@ bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool * out
 	return pressed;
 }
 
-bool virtual_keyboard::draw_single_key(const key & k, int key_id, ImVec2 size_arg, bool & hovered)
+bool virtual_keyboard::draw_single_key(const key & k, int key_id, ImVec2 size_arg, bool window_hovered, bool & hovered)
 {
 	std::string key_label;
 
@@ -403,7 +434,7 @@ bool virtual_keyboard::draw_single_key(const key & k, int key_id, ImVec2 size_ar
 		flags |= ImGuiButtonFlags_Repeat;
 
 	bool held;
-	bool pressed = button_behavior(bb, id, &hovered, &held, flags);
+	bool pressed = button_behavior(bb, id, window_hovered, &hovered, &held, flags);
 
 	// Render
 	bool active = (held and hovered) or (is_shift and current_case_mode == case_mode::caps_lock);
@@ -413,7 +444,6 @@ bool virtual_keyboard::draw_single_key(const key & k, int key_id, ImVec2 size_ar
 	ImGui::RenderNavHighlight(bb, id);
 	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
 
-	// ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, key_label.c_str(), nullptr, &label_size, style.ButtonTextAlign, &bb);
 	ImGui::RenderTextClippedEx(
 	        g.CurrentWindow->DrawList,
 	        bb.Min + style.FramePadding,
@@ -526,6 +556,8 @@ void virtual_keyboard::display(ImGuiID & hovered_id)
 	ImVec2 row_position = ImGui::GetCursorPos();
 	int id = 0;
 
+	bool window_hovered = is_window_hovered();
+
 	for (const auto & row: layout)
 	{
 		ImVec2 key_position = row_position;
@@ -542,7 +574,7 @@ void virtual_keyboard::display(ImGuiID & hovered_id)
 				ImGui::SetCursorPos(key_position);
 
 				bool is_hovered;
-				if (draw_single_key(key, id++, ImVec2{base_key_width * key.width - style.ItemSpacing.x, key_height}, is_hovered))
+				if (draw_single_key(key, id++, ImVec2{base_key_width * key.width - style.ItemSpacing.x, key_height}, window_hovered, is_hovered))
 				{
 					switch ((int)key.key) // cast to int to avoid -Werror=switch
 					{
@@ -573,7 +605,7 @@ void virtual_keyboard::display(ImGuiID & hovered_id)
 
 	ImGui::SetCursorPos(row_position);
 
-	if (ImGui::IsWindowHovered())
+	if (is_window_hovered())
 	{
 		ImGui::GetIO().MouseDown[0] = false;
 		ImGui::GetIO().MouseClicked[0] = false;

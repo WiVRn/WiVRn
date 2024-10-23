@@ -98,6 +98,8 @@ public:
 		glm::ivec2 vp_origin;
 		glm::ivec2 vp_size;
 
+		bool always_show_cursor = false; // Show the cursor in this viewport even if there is a modal popup elsewhere (eg. this is a virtual keyboard)
+
 		ImVec2 vp_center() const
 		{
 			return ImVec2(vp_origin.x + int(vp_size.x / 2), vp_origin.y + int(vp_size.y / 2));

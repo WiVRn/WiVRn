@@ -54,9 +54,10 @@ public:
 	};
 
 private:
-	bool button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags = 0);
-	bool draw_single_key(const key & k, int key_id, ImVec2 size_arg, bool & hovered);
+	bool button_behavior(const ImRect & bb, ImGuiID id, bool window_hovered, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags = 0);
+	bool draw_single_key(const key & k, int key_id, ImVec2 size_arg, bool window_hovered, bool & hovered);
 	void press_single_key(const key & k);
+	bool is_window_hovered();
 
 	ImGuiID active_id = 0;
 	float held_duration = 0;

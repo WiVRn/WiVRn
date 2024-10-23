@@ -122,11 +122,12 @@ void scenes::lobby::gui_connecting()
 
 void scenes::lobby::gui_new_server()
 {
-	const ImVec2 button_size(220, 80);
-
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
 	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {10, 10});
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
+
+	const ImVec2 button_size(220, 80);
 
 	ImGui::BeginTable("table", 2);
 
@@ -139,6 +140,8 @@ void scenes::lobby::gui_new_server()
 	ImGui::Text("%s", _S("Displayed name"));
 
 	ImGui::TableNextColumn();
+	if (ImGui::IsWindowAppearing())
+		ImGui::SetKeyboardFocusHere();
 	ImGui::InputText("##Name", add_server_window_prettyname, sizeof(add_server_window_prettyname));
 	vibrate_on_hover();
 
@@ -162,26 +165,27 @@ void scenes::lobby::gui_new_server()
 
 	ImGui::EndTable();
 
-	ImGui::Checkbox("TCP only", &add_server_tcp_only);
+	ImGui::Checkbox(_S("TCP only"), &add_server_tcp_only);
 	vibrate_on_hover();
 
 	auto top_left = ImGui::GetWindowContentRegionMin();
 	auto bottom_right = ImGui::GetWindowContentRegionMax();
 
 	ImGui::SetCursorPosX(top_left.x);
-	if (ImGui::Button("Cancel", button_size))
+	if (ImGui::Button(_S("Cancel"), button_size))
 	{
 		current_tab = tab::server_list;
 		strcpy(add_server_window_prettyname, "");
 		strcpy(add_server_window_hostname, "");
 		add_server_window_port = wivrn::default_port;
 		add_server_tcp_only = false;
+		ImGui::CloseCurrentPopup();
 	}
 	vibrate_on_hover();
 
 	ImGui::SameLine(bottom_right.x - button_size.x);
 
-	if (ImGui::Button("Save", button_size))
+	if (ImGui::Button(_S("Save"), button_size))
 	{
 		current_tab = tab::server_list;
 		configuration::server_data data{
@@ -202,10 +206,11 @@ void scenes::lobby::gui_new_server()
 		strcpy(add_server_window_hostname, "");
 		add_server_window_port = wivrn::default_port;
 		add_server_tcp_only = false;
+		ImGui::CloseCurrentPopup();
 	}
 	vibrate_on_hover();
 
-	ImGui::PopStyleVar(3);
+	ImGui::PopStyleVar(4); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_CellPadding, ImGuiStyleVar_FramePadding
 }
 
 void scenes::lobby::gui_server_list()
@@ -240,18 +245,18 @@ void scenes::lobby::gui_server_list()
 	for (const auto & [name, cookie]: sorted_cookies)
 	{
 		configuration::server_data & data = config.servers.at(cookie);
-		bool is_selected = (cookie == selected_item);
+		// bool is_selected = (cookie == selected_item);
 
 		ImGui::SetCursorPos(pos);
 
-		ImGui::SetNextItemAllowOverlap();
+		// ImGui::SetNextItemAllowOverlap();
 
 		// TODO custom widget
-		if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
-			selected_item = cookie;
+		// if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
+		// 	selected_item = cookie;
 
 		if (data.manual)
-			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 25));
+			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 25)); // FIXME compute the position correctly
 		else
 			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
 		ImGui::Text("%s", name.c_str());
@@ -271,7 +276,7 @@ void scenes::lobby::gui_server_list()
 		// ImGui::SetTooltip("Tooltip");
 		// }
 
-		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x - style.WindowPadding.x, pos.y + (list_item_height - button_size.y) / 2);
+		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x, pos.y + (list_item_height - button_size.y) / 2);
 
 		button_position.x -= button_size.x + style.WindowPadding.x;
 		ImGui::SetCursorPos(button_position);
@@ -347,6 +352,14 @@ void scenes::lobby::gui_server_list()
 	if (ImGui::BeginPopupModal("connecting", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		gui_connecting();
+		ImGui::EndPopup();
+	}
+
+	ImGui::SetNextWindowSize({800, 0});
+	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+	if (ImGui::BeginPopupModal("add server", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		gui_new_server();
 		ImGui::EndPopup();
 	}
 	ImGui::PopStyleVar(3);
@@ -625,8 +638,10 @@ static bool RadioButtonWithoutCheckBox(const std::string & label, T * v, T v_but
 	return pressed;
 }
 
-static void ScrollWhenDraggingOnVoid(ImVec2 delta)
+static void ScrollWhenDraggingOnVoid()
 {
+	ImVec2 delta{0.0f, -ImGui::GetIO().MouseDelta.y};
+
 	// https://github.com/ocornut/imgui/issues/3379#issuecomment-1678718752
 	ImGuiContext & g = *ImGui::GetCurrentContext();
 	ImGuiWindow * window = g.CurrentWindow;
@@ -847,8 +862,6 @@ static const char * get_face_icon(XrTime predicted_display_time)
 
 void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 {
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
-
 	const float win_width = ImGui::GetWindowSize().x;
 	float text_width = 0;
 	auto & config = application::get_config();
@@ -931,8 +944,6 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
 	}
-
-	ImGui::PopStyleVar();
 }
 
 void scenes::lobby::gui_keyboard()
@@ -958,7 +969,6 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 	if (ImGui::GetIO().WantTextInput)
 	{
 		ImGui::SetNextWindowPos(imgui_ctx->layers()[2].vp_center(), ImGuiCond_Always, {0.5, 0.5});
-
 		gui_keyboard();
 	}
 
@@ -975,18 +985,22 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 20, 0));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
+		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 		ImGui::SetCursorPosY(20);
 
 		switch (current_tab)
 		{
 			case tab::server_list:
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
+				if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add server"))
+					ImGui::OpenPopup("add server");
+				vibrate_on_hover();
+				ImGui::SameLine();
 				draw_features_status(predicted_display_time);
-				gui_server_list();
-				break;
+				ImGui::PopStyleVar();
 
-			case tab::new_server:
-				gui_new_server();
+				gui_server_list();
 				break;
 
 			case tab::settings:
@@ -1014,23 +1028,18 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 
 		ImGui::Dummy(ImVec2(0, 20));
 
-		ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
-		ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y));
+		ScrollWhenDraggingOnVoid();
 		ImGui::EndChild();
-		ImGui::PopStyleVar(); // ImGuiStyleVar_FrameRounding
+		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
 	}
 
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(0, 0, 0, 255));
 	ImGui::SetCursorPos(style.WindowPadding);
-
 	{
 		ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
 		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list"), &current_tab, tab::server_list, {TabWidth, 0});
-		vibrate_on_hover();
-
-		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("New server"), &current_tab, tab::new_server, {TabWidth, 0});
 		vibrate_on_hover();
 
 		RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});

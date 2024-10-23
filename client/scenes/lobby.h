@@ -101,7 +101,6 @@ class lobby : public scene_impl<lobby>
 	enum class tab
 	{
 		server_list,
-		new_server,
 		settings,
 		about,
 		licenses,

@@ -692,10 +692,10 @@ void imgui_context::compute_pointer_position(imgui_context::controller_state & s
 
 	if (ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal())
 	{
-		// If there is a popup window, use the viewport of that window
+		// If there is a popup window, use the viewport of that window or the virtual keyboard
 		for (auto & i: layers_)
 		{
-			if (window_intersects_viewport(modal_popup, i))
+			if (window_intersects_viewport(modal_popup, i) or i.always_show_cursor)
 			{
 				for (auto [position, distance]: intersections)
 				{
@@ -860,30 +860,34 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 	{
 		// Clip in the right plane
 		ImVec2 clip_rect_min(0, 0);
-		ImVec2 clip_rect_max(size.width, size.height);
+		ImVec2 clip_rect_max(0, 0);
 
-		// If there is a modal popup, only display the cursor in the viewport of the popup
-		ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal();
-		if (modal_popup)
+		// If there is a modal popup, only display the cursor in the viewport of the popup or on the virtual keyboard
+		if (ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal())
 		{
 			for (auto & i: layers_)
 			{
-				if (window_intersects_viewport(modal_popup, i))
+				// The cursor is over the virtual keyboard
+				if (i.always_show_cursor and
+				    position->x >= i.vp_origin.x and
+				    position->y >= i.vp_origin.y and
+				    position->x <= i.vp_origin.x + i.vp_size.x and
+				    position->y <= i.vp_origin.y + i.vp_size.y)
 				{
-					if (position->x < i.vp_origin.x or
-					    position->y < i.vp_origin.y or
-					    position->x > i.vp_origin.x + i.vp_size.x or
-					    position->y > i.vp_origin.y + i.vp_size.y)
-					{
-						// Cursor is not in the same viewport as the popup
-						clip_rect_min = ImVec2(0, 0);
-						clip_rect_max = ImVec2(0, 0);
-					}
-					else
-					{
-						clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
-						clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
-					}
+					clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+					clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+					break;
+				}
+
+				// The cursor is in the same viewport as the popup
+				if (window_intersects_viewport(modal_popup, i) and
+				    position->x >= i.vp_origin.x and
+				    position->y >= i.vp_origin.y and
+				    position->x <= i.vp_origin.x + i.vp_size.x and
+				    position->y <= i.vp_origin.y + i.vp_size.y)
+				{
+					clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+					clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
 					break;
 				}
 			}
