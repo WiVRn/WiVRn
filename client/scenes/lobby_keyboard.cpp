@@ -144,32 +144,24 @@ virtual_keyboard::layout azerty = {
 
 virtual_keyboard::layout digits = {
         {
-                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"1"},
                 {1, u"2"},
                 {1, u"3"},
-                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
-        }, // 12
+        }, // 3
         {
-                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"4"},
                 {1, u"5"},
                 {1, u"6"},
-                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
-        }, // 12
+        }, // 3
         {
-                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"7"},
                 {1, u"8"},
                 {1, u"9"},
-                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
-        }, // 12
+        }, // 3
         {
-                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {2, u"0"},
                 {1, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT, virtual_keyboard::key_flag_repeat},
-                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
-        } // 12
+        } // 3
 };
 
 // // See https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fallback/main.qml
@@ -481,21 +473,33 @@ void virtual_keyboard::press_single_key(const key & k)
 	}
 }
 
-void virtual_keyboard::display(ImVec2 size, ImGuiID & hovered_id)
+void virtual_keyboard::display(ImGuiID & hovered_id)
 {
 	ImGuiStyle & style = ImGui::GetStyle();
 
-	auto & layout = [&]() -> auto & {
-		if (ImGuiInputTextState * input_state = ImGui::GetInputTextState(ImGui::GetCurrentContext()->ActiveId);
-		    input_state and (input_state->Flags & ImGuiInputTextFlags_CharsDecimal) != 0)
-			return digits;
-		else if (symbols_shown)
-			return symbols;
-		else
-			return *layouts[current_layout];
-	}();
+	ImGuiInputTextState * input_state = ImGui::GetInputTextState(ImGui::GetCurrentContext()->ActiveId);
+	bool want_digits = input_state and (input_state->Flags & ImGuiInputTextFlags_CharsDecimal) != 0;
 
-	// Compute keys size
+	auto & layout = want_digits ? digits : symbols_shown ? symbols
+	                                                     : *layouts[current_layout];
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 16);
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {8, 8});
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
+	if (want_digits)
+		ImGui::SetNextWindowSize({350, 400});
+	else
+		ImGui::SetNextWindowSize({1400, 400});
+
+	ImGui::Begin("VirtualKeyboard", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoFocusOnClick);
+
+	ImVec2 size = ImGui::GetWindowSize();
+	ImVec2 padding = ImGui::GetStyle().WindowPadding;
+	size = {size.x - 2 * padding.x, size.y - 2 * padding.y};
+
+	// Compute keys size;
 	float key_height = [&]() {
 		int N = layout.size();
 
@@ -568,4 +572,14 @@ void virtual_keyboard::display(ImVec2 size, ImGuiID & hovered_id)
 	row_position.y -= style.ItemSpacing.y;
 
 	ImGui::SetCursorPos(row_position);
+
+	if (ImGui::IsWindowHovered())
+	{
+		ImGui::GetIO().MouseDown[0] = false;
+		ImGui::GetIO().MouseClicked[0] = false;
+	}
+
+	ImGui::End();
+	ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+	ImGui::PopStyleVar(4);  // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_FrameRounding
 }

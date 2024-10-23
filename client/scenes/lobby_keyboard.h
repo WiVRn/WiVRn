@@ -66,5 +66,5 @@ private:
 	bool symbols_shown = false;
 
 public:
-	void display(ImVec2 size, ImGuiID & hovered);
+	void display(ImGuiID & hovered);
 };

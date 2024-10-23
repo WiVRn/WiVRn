@@ -930,9 +930,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 
 void scenes::lobby::gui_keyboard()
 {
-	ImVec2 size = ImGui::GetWindowSize();
-	ImVec2 padding = ImGui::GetStyle().WindowPadding;
-	keyboard.display({size.x - 2 * padding.x, size.y - 2 * padding.y}, hovered_item);
+	keyboard.display(hovered_item);
 }
 
 std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_display_time)
@@ -952,25 +950,9 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 
 	if (ImGui::GetIO().WantTextInput)
 	{
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {8, 8});
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
 		ImGui::SetNextWindowPos(imgui_ctx->layers()[2].vp_center(), ImGuiCond_Always, {0.5, 0.5});
-		ImGui::SetNextWindowSize({1400, 400});
-		ImGui::Begin("VirtualKeyboard", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoFocusOnClick);
 
 		gui_keyboard();
-
-		if (ImGui::IsWindowHovered())
-		{
-			ImGui::GetIO().MouseDown[0] = false;
-			ImGui::GetIO().MouseClicked[0] = false;
-		}
-
-		ImGui::End();
-		ImGui::PopStyleColor(); // ImGuiCol_WindowBg
-		ImGui::PopStyleVar(3);  // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_FrameRounding
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
