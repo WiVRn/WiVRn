@@ -250,7 +250,10 @@ void scenes::lobby::gui_server_list()
 		if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
 			selected_item = cookie;
 
-		ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
+		if (data.manual)
+			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 25));
+		else
+			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
 		ImGui::Text("%s", name.c_str());
 
 		if (!data.manual)
