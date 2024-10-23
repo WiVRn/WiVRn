@@ -112,12 +112,15 @@ void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position
 	auto q = glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
 	auto M = glm::mat3_cast(q); // plane-to-world transform
 
+	// Main window
 	imgui_ctx->layers()[0].position = new_gui_position;
 	imgui_ctx->layers()[0].orientation = q;
 
+	// Popup
 	imgui_ctx->layers()[1].position = new_gui_position + M * glm::vec3(0, 0, 0.05);
 	imgui_ctx->layers()[1].orientation = q;
 
+	// Keyboard
 	imgui_ctx->layers()[2].position = new_gui_position + M * glm::vec3(0, -0.3, 0.1);
 	imgui_ctx->layers()[2].orientation = q * glm::quat(cos(keyboard_pitch / 2), sin(keyboard_pitch / 2), 0, 0);
 }
