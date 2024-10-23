@@ -856,79 +856,85 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
 
-	if (auto position = controllers[focused_controller].second.pointer_position)
+	for (auto & controller: controllers)
 	{
-		// Clip in the right plane
-		ImVec2 clip_rect_min(0, 0);
-		ImVec2 clip_rect_max(0, 0);
-
-		// If there is a modal popup, only display the cursor in the viewport of the popup or on the virtual keyboard
-		if (ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal())
+		if (auto position = controller.second.pointer_position)
 		{
-			for (auto & i: layers_)
-			{
-				// The cursor is over the virtual keyboard
-				if (i.always_show_cursor and
-				    position->x >= i.vp_origin.x and
-				    position->y >= i.vp_origin.y and
-				    position->x <= i.vp_origin.x + i.vp_size.x and
-				    position->y <= i.vp_origin.y + i.vp_size.y)
-				{
-					clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
-					clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
-					break;
-				}
+			// Clip in the right plane
+			ImVec2 clip_rect_min(0, 0);
+			ImVec2 clip_rect_max(0, 0);
 
-				// The cursor is in the same viewport as the popup
-				if (window_intersects_viewport(modal_popup, i) and
-				    position->x >= i.vp_origin.x and
-				    position->y >= i.vp_origin.y and
-				    position->x <= i.vp_origin.x + i.vp_size.x and
-				    position->y <= i.vp_origin.y + i.vp_size.y)
+			// If there is a modal popup, only display the cursor in the viewport of the popup or on the virtual keyboard
+			if (ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal())
+			{
+				for (auto & i: layers_)
 				{
+					// The cursor is over the virtual keyboard
+					if (i.always_show_cursor and
+					    position->x >= i.vp_origin.x and
+					    position->y >= i.vp_origin.y and
+					    position->x <= i.vp_origin.x + i.vp_size.x and
+					    position->y <= i.vp_origin.y + i.vp_size.y)
+					{
+						clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+						clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+						break;
+					}
+
+					// The cursor is in the same viewport as the popup
+					if (window_intersects_viewport(modal_popup, i) and
+					    position->x >= i.vp_origin.x and
+					    position->y >= i.vp_origin.y and
+					    position->x <= i.vp_origin.x + i.vp_size.x and
+					    position->y <= i.vp_origin.y + i.vp_size.y)
+					{
+						clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+						clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+						break;
+					}
+				}
+			}
+			else
+			{
+				for (auto & i: layers_)
+				{
+					if (position->x < i.vp_origin.x or
+					    position->y < i.vp_origin.y or
+					    position->x > i.vp_origin.x + i.vp_size.x or
+					    position->y > i.vp_origin.y + i.vp_size.y)
+						continue;
+
 					clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
 					clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+
 					break;
 				}
 			}
-		}
-		else
-		{
-			for (auto & i: layers_)
+
+			// Compute the distance to the closest window
+			float distance = std::numeric_limits<float>::infinity();
+			for (ImGuiWindow * window: context->Windows)
 			{
-				if (position->x < i.vp_origin.x or
-				    position->y < i.vp_origin.y or
-				    position->x > i.vp_origin.x + i.vp_size.x or
-				    position->y > i.vp_origin.y + i.vp_size.y)
-					continue;
-
-				clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
-				clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
-
-				break;
+				distance = std::min(distance, distance_to_window(window, *position));
 			}
+
+			float radius = 10;
+			float alpha = std::clamp<float>((40 - distance) / 50, 0, 0.8);
+
+			if (&controller != &controllers[focused_controller])
+				alpha /= 3;
+
+			ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
+			ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
+
+			bool pressed = controller.second.trigger_clicked || controller.second.fingertip_touching;
+
+			ImDrawList * draw_list = ImGui::GetForegroundDrawList();
+			draw_list->PushClipRect(clip_rect_min, clip_rect_max);
+			draw_list->AddCircleFilled(*position, radius, pressed ? color_pressed : color_unpressed);
+			draw_list->AddCircle(*position, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
+			draw_list->PopClipRect();
 		}
-
-		// Compute the distance to the closest window
-		float distance = std::numeric_limits<float>::infinity();
-		for (ImGuiWindow * window: context->Windows)
-		{
-			distance = std::min(distance, distance_to_window(window, *position));
-		}
-
-		float radius = 10;
-		float alpha = std::clamp<float>((40 - distance) / 50, 0, 0.8);
-
-		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
-		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
-
-		bool pressed = button_pressed || fingertip_touching;
-
-		ImDrawList * draw_list = ImGui::GetForegroundDrawList();
-		draw_list->PushClipRect(clip_rect_min, clip_rect_max);
-		draw_list->AddCircleFilled(*position, radius, pressed ? color_pressed : color_unpressed);
-		draw_list->AddCircle(*position, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
-		draw_list->PopClipRect();
 	}
 
 	ImGui::Render();
