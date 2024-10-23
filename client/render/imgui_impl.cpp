@@ -27,6 +27,7 @@
 #include "vulkan/vulkan_enums.hpp"
 #include "vulkan/vulkan_handles.hpp"
 #include "vulkan/vulkan_to_string.hpp"
+#include "xr/space.h"
 #include <algorithm>
 #include <backends/imgui_impl_vulkan.h>
 #include <boost/locale.hpp>
@@ -185,28 +186,31 @@ std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(cons
 
 	for (const auto & i: layers_)
 	{
+		if (i.space != xr::spaces::world)
+			continue;
+
 		auto M = glm::transpose(glm::mat3_cast(i.orientation)); // world-to-plane transform
 
 		glm::quat q = (in.source == ImGuiMouseSource_VRHandTracking) ? i.orientation : in.aim_orientation;
-		glm::vec3 controller_direction = glm::column(glm::mat3_cast(q), 2);
+		glm::vec3 controller_direction = -glm::column(glm::mat3_cast(q), 2); // The aim direction is -Z
 
 		// Compute all vectors in the reference frame of the GUI plane
 		glm::vec3 ray_start = M * (in.aim_position - i.position);
 		glm::vec3 ray_dir = M * controller_direction;
 
-		if (ray_dir.z > 0.0001f)
+		if (ray_dir.z < -0.0001f)
 		{
 			glm::vec2 coord;
 
-			// ray_start - distance × ray_dir ∈ imgui plane
-			// => ray_start.z - distance × ray_dir.z = 0
-			float distance = ray_start.z / ray_dir.z;
+			// ray_start + distance × ray_dir ∈ imgui plane
+			// => ray_start.z + distance × ray_dir.z = 0
+			float distance = -ray_start.z / ray_dir.z;
 
 			if (distance < 0)
 				continue;
 
-			coord.x = ray_start.x - distance * ray_dir.x;
-			coord.y = ray_start.y - distance * ray_dir.y;
+			coord.x = ray_start.x + distance * ray_dir.x;
+			coord.y = ray_start.y + distance * ray_dir.y;
 
 			// Convert from mesh coordinates to imgui coordinates
 			coord = coord / i.size;
@@ -224,6 +228,22 @@ std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(cons
 	std::ranges::sort(intersections, [](auto & a, auto & b) { return a.second < b.second; });
 
 	return intersections;
+}
+
+glm::vec3 imgui_context::rw_from_vp(const ImVec2 & position)
+{
+	for (auto & i: layers_)
+	{
+		if (not in_viewport(i, position))
+			continue;
+
+		return i.position + glm::mat3_cast(i.orientation) * glm::vec3{
+		                                                            ((position.x - i.vp_origin.x) / i.vp_size.x - 0.5) * i.size.x,
+		                                                            (-(position.y - i.vp_origin.y) / i.vp_size.y + 0.5) * i.size.y,
+		                                                            0};
+	}
+
+	return {};
 }
 
 imgui_context::imgui_frame & imgui_context::get_frame(vk::Image destination)
@@ -691,10 +711,13 @@ void imgui_context::compute_pointer_position(imgui_context::controller_state & s
 
 	if (ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal())
 	{
-		// If there is a popup window, use the viewport of that window
+		// If there is a popup window, use the viewport of that window or the virtual keyboard
 		for (auto & i: layers_)
 		{
-			if (window_intersects_viewport(modal_popup, i))
+			if (i.space != xr::spaces::world)
+				continue;
+
+			if (window_intersects_viewport(modal_popup, i) or i.always_show_cursor)
 			{
 				for (auto [position, distance]: intersections)
 				{
@@ -773,35 +796,22 @@ void imgui_context::new_frame(XrTime display_time)
 	if (focused_controller != (size_t)-1)
 		io.AddMouseSourceEvent(new_states[focused_controller].source);
 
-	if (focused_change && controllers[focused_controller].second.trigger_clicked)
-	{
-		// Focused controller changed: end the current click
-		io.AddMouseButtonEvent(0, false);
-		button_pressed = false;
-		fingertip_touching = false;
-	}
-
 	if (new_focused_controller != (size_t)-1)
 	{
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
-		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
 		button_pressed = new_states[new_focused_controller].trigger_clicked;
-
-		bool last_touching = controllers[new_focused_controller].second.fingertip_touching;
 		fingertip_touching = new_states[new_focused_controller].fingertip_touching;
+
+		// Focused controller changed: end the current click for this frame
+		io.AddMouseButtonEvent(0, (button_pressed or fingertip_touching) and not focused_change);
 
 		if (auto position = new_states[new_focused_controller].pointer_position)
 		{
 			io.AddMousePosEvent(position->x, position->y);
-			io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 
 			if (glm::length(scroll) > 0.01f)
 				io.AddMouseWheelEvent(scroll.x, scroll.y);
-		}
-		else
-		{
-			io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 		}
 	}
 
@@ -848,82 +858,95 @@ void imgui_context::new_frame(XrTime display_time)
 	swapchain.wait();
 }
 
-std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
+std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 {
 	vk::Image destination = swapchain.images()[image_index].image;
 
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
 
-	if (auto position = controllers[focused_controller].second.pointer_position)
+	for (auto & controller: controllers)
 	{
-		// Clip in the right plane
-		ImVec2 clip_rect_min(0, 0);
-		ImVec2 clip_rect_max(size.width, size.height);
-
-		// If there is a modal popup, only display the cursor in the viewport of the popup
-		ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal();
-		if (modal_popup)
+		if (auto position = controller.second.pointer_position)
 		{
-			for (auto & i: layers_)
+			// Clip in the right plane
+			ImVec2 clip_rect_min(0, 0);
+			ImVec2 clip_rect_max(0, 0);
+
+			// If there is a modal popup, only display the cursor in the viewport of the popup or on the virtual keyboard
+			if (ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal())
 			{
-				if (window_intersects_viewport(modal_popup, i))
+				for (auto & i: layers_)
+				{
+					if (i.space != xr::spaces::world)
+						continue;
+
+					// The cursor is over the virtual keyboard
+					if (i.always_show_cursor and
+					    position->x >= i.vp_origin.x and
+					    position->y >= i.vp_origin.y and
+					    position->x <= i.vp_origin.x + i.vp_size.x and
+					    position->y <= i.vp_origin.y + i.vp_size.y)
+					{
+						clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+						clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+						break;
+					}
+
+					// The cursor is in the same viewport as the popup
+					if (window_intersects_viewport(modal_popup, i) and
+					    position->x >= i.vp_origin.x and
+					    position->y >= i.vp_origin.y and
+					    position->x <= i.vp_origin.x + i.vp_size.x and
+					    position->y <= i.vp_origin.y + i.vp_size.y)
+					{
+						clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+						clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+						break;
+					}
+				}
+			}
+			else
+			{
+				for (auto & i: layers_)
 				{
 					if (position->x < i.vp_origin.x or
 					    position->y < i.vp_origin.y or
 					    position->x > i.vp_origin.x + i.vp_size.x or
 					    position->y > i.vp_origin.y + i.vp_size.y)
-					{
-						// Cursor is not in the same viewport as the popup
-						clip_rect_min = ImVec2(0, 0);
-						clip_rect_max = ImVec2(0, 0);
-					}
-					else
-					{
-						clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
-						clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
-					}
+						continue;
+
+					clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
+					clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
+
 					break;
 				}
 			}
-		}
-		else
-		{
-			for (auto & i: layers_)
+
+			// Compute the distance to the closest window
+			float distance = std::numeric_limits<float>::infinity();
+			for (ImGuiWindow * window: context->Windows)
 			{
-				if (position->x < i.vp_origin.x or
-				    position->y < i.vp_origin.y or
-				    position->x > i.vp_origin.x + i.vp_size.x or
-				    position->y > i.vp_origin.y + i.vp_size.y)
-					continue;
-
-				clip_rect_min = ImVec2(i.vp_origin.x + 1, i.vp_origin.y + 1);
-				clip_rect_max = ImVec2(i.vp_origin.x + i.vp_size.x, i.vp_origin.y + i.vp_size.y);
-
-				break;
+				distance = std::min(distance, distance_to_window(window, *position));
 			}
+
+			float radius = 10;
+			float alpha = std::clamp<float>((40 - distance) / 50, 0, 0.8);
+
+			if (&controller != &controllers[focused_controller])
+				alpha /= 3;
+
+			ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
+			ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
+
+			bool pressed = controller.second.trigger_clicked || controller.second.fingertip_touching;
+
+			ImDrawList * draw_list = ImGui::GetForegroundDrawList();
+			draw_list->PushClipRect(clip_rect_min, clip_rect_max);
+			draw_list->AddCircleFilled(*position, radius, pressed ? color_pressed : color_unpressed);
+			draw_list->AddCircle(*position, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
+			draw_list->PopClipRect();
 		}
-
-		// Compute the distance to the closest window
-		float distance = std::numeric_limits<float>::infinity();
-		for (ImGuiWindow * window: context->Windows)
-		{
-			distance = std::min(distance, distance_to_window(window, *position));
-		}
-
-		float radius = 10;
-		float alpha = std::clamp<float>((40 - distance) / 50, 0, 0.8);
-
-		ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
-		ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
-
-		bool pressed = button_pressed || fingertip_touching;
-
-		ImDrawList * draw_list = ImGui::GetForegroundDrawList();
-		draw_list->PushClipRect(clip_rect_min, clip_rect_max);
-		draw_list->AddCircleFilled(*position, radius, pressed ? color_pressed : color_unpressed);
-		draw_list->AddCircle(*position, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
-		draw_list->PopClipRect();
 	}
 
 	ImGui::Render();
@@ -966,7 +989,7 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 
 	swapchain.release();
 
-	std::vector<XrCompositionLayerQuad> quads;
+	std::vector<std::pair<int, XrCompositionLayerQuad>> quads;
 	quads.reserve(layers_.size());
 
 	for (auto & i: layers_)
@@ -984,41 +1007,43 @@ std::vector<XrCompositionLayerQuad> imgui_context::end_frame()
 		if (not visible)
 			continue;
 
-		quads.push_back(XrCompositionLayerQuad{
-		        .type = XR_TYPE_COMPOSITION_LAYER_QUAD,
-		        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-		        .space = world,
-		        .eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
-		        .subImage = {
-		                .swapchain = swapchain,
-		                .imageRect = {
-		                        .offset = {
-		                                .x = i.vp_origin.x,
-		                                .y = i.vp_origin.y,
+		quads.emplace_back(
+		        i.z_index,
+		        XrCompositionLayerQuad{
+		                .type = XR_TYPE_COMPOSITION_LAYER_QUAD,
+		                .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+		                .space = application::space(i.space),
+		                .eyeVisibility = XrEyeVisibility::XR_EYE_VISIBILITY_BOTH,
+		                .subImage = {
+		                        .swapchain = swapchain,
+		                        .imageRect = {
+		                                .offset = {
+		                                        .x = i.vp_origin.x,
+		                                        .y = i.vp_origin.y,
+		                                },
+		                                .extent = {
+		                                        .width = i.vp_size.x,
+		                                        .height = i.vp_size.y,
+		                                }},
+		                },
+		                .pose = {
+		                        .orientation = {
+		                                .x = i.orientation.x,
+		                                .y = i.orientation.y,
+		                                .z = i.orientation.z,
+		                                .w = i.orientation.w,
 		                        },
-		                        .extent = {
-		                                .width = i.vp_size.x,
-		                                .height = i.vp_size.y,
-		                        }},
-		        },
-		        .pose = {
-		                .orientation = {
-		                        .x = i.orientation.x,
-		                        .y = i.orientation.y,
-		                        .z = i.orientation.z,
-		                        .w = i.orientation.w,
+		                        .position = {
+		                                .x = i.position.x,
+		                                .y = i.position.y,
+		                                .z = i.position.z,
+		                        },
 		                },
-		                .position = {
-		                        .x = i.position.x,
-		                        .y = i.position.y,
-		                        .z = i.position.z,
+		                .size = {
+		                        .width = i.size.x,
+		                        .height = i.size.y,
 		                },
-		        },
-		        .size = {
-		                .width = i.size.x,
-		                .height = i.size.y,
-		        },
-		});
+		        });
 	}
 
 	return quads;
@@ -1116,4 +1141,15 @@ void imgui_context::set_current()
 bool imgui_context::is_modal_popup_shown() const
 {
 	return ImGui::GetTopMostAndVisiblePopupModal() != nullptr;
+}
+
+imgui_context::viewport & imgui_context::layer(ImVec2 position)
+{
+	for (auto & layer: layers_)
+	{
+		if (in_viewport(layer, position))
+			return layer;
+	}
+
+	return layers_.front();
 }

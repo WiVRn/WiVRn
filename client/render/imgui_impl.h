@@ -20,6 +20,7 @@
 
 #include "wivrn_config.h"
 #include "xr/hand_tracker.h"
+#include "xr/space.h"
 #include "xr/swapchain.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -90,6 +91,7 @@ public:
 	struct viewport
 	{
 		// Position of this viewport in the world
+		xr::spaces space; // Must be world to allow the cursor to work
 		glm::vec3 position;
 		glm::quat orientation;
 		glm::vec2 size;
@@ -97,6 +99,10 @@ public:
 		// Position of this viewport in the swapchain image
 		glm::ivec2 vp_origin;
 		glm::ivec2 vp_size;
+
+		bool always_show_cursor = false; // Show the cursor in this viewport even if there is a modal popup elsewhere (eg. this is a virtual keyboard)
+
+		int z_index = 0;
 
 		ImVec2 vp_center() const
 		{
@@ -160,7 +166,6 @@ private:
 	void initialize_fonts();
 
 	std::vector<controller_state> read_controllers_state(XrTime display_time);
-	void compute_pointer_position(controller_state & state);
 
 public:
 	imgui_context(
@@ -179,8 +184,10 @@ public:
 		return layers_;
 	}
 
+	viewport & layer(ImVec2 position);
+
 	void new_frame(XrTime display_time);
-	std::vector<XrCompositionLayerQuad> end_frame();
+	std::vector<std::pair<int, XrCompositionLayerQuad>> end_frame();
 
 	ImFont * large_font;
 	size_t get_focused_controller() const
@@ -188,7 +195,11 @@ public:
 		return focused_controller;
 	}
 
-	std::vector<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state & in) const;
+	std::vector<std::pair<ImVec2, float>> ray_plane_intersection(const controller_state & in) const;
+	void compute_pointer_position(controller_state & state);
+
+	// Convert position from viewport coordinates to real-world
+	glm::vec3 rw_from_vp(const ImVec2 & position);
 
 	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
 	ImTextureID load_texture(const std::string & filename);

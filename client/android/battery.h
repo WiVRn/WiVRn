@@ -19,48 +19,31 @@
 
 #pragma once
 
-#include "hardware.h"
-#include "wivrn_discover.h"
+#include <chrono>
+#include <memory>
+#include <optional>
 
-#include <map>
-#include <mutex>
-#include <string>
-
-namespace xr
-{
-class system;
-}
-
-class configuration
+class battery
 {
 public:
-	struct server_data
+	struct status
 	{
-		bool autoconnect;
-		bool manual;
-		bool visible;
-		bool compatible;
-
-		wivrn_discover::service service;
+		std::optional<float> charge = std::nullopt;
+		bool charging = false;
 	};
 
-	std::map<std::string, server_data> servers;
-	float preferred_refresh_rate = 0;
-	float resolution_scale = 1.4;
-	bool show_performance_metrics = false;
-	bool passthrough_enabled = false;
-
-	std::string virtual_keyboard_layout = "QWERTY";
-
-	bool check_feature(feature f) const;
-	void set_feature(feature f, bool state);
-
 private:
-	mutable std::mutex mutex;
-	std::map<feature, bool> features;
+	struct pimpl;
+	std::unique_ptr<pimpl> p;
+
+	const std::chrono::seconds battery_check_interval = std::chrono::seconds{2};
+
+	std::chrono::steady_clock::time_point next_battery_check = std::chrono::steady_clock::now();
+	status last_status;
 
 public:
-	configuration(xr::system &);
+	battery();
+	~battery();
 
-	void save();
+	status get();
 };

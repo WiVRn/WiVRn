@@ -39,6 +39,10 @@
 #include "render/scene_renderer.h"
 #include "utils/async.h"
 
+#ifdef __ANDROID__
+#include "android/battery.h"
+#endif
+
 class wivrn_session;
 
 namespace scenes
@@ -79,8 +83,9 @@ class lobby : public scene_impl<lobby>
 	ImGuiID hovered_item;
 
 	std::vector<xr::swapchain> swapchains_lobby;
+	std::vector<xr::swapchain> swapchains_lobby_depth;
 	std::vector<xr::swapchain> swapchains_controllers;
-	std::vector<xr::swapchain> swapchains_depth;
+	std::vector<xr::swapchain> swapchains_controllers_depth;
 	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
 	vk::Format depth_format;
@@ -90,18 +95,23 @@ class lobby : public scene_impl<lobby>
 
 	void update_server_list();
 
-	std::vector<XrCompositionLayerQuad> draw_gui(XrTime predicted_display_time);
+	std::vector<std::pair<int, XrCompositionLayerQuad>> draw_gui(XrTime predicted_display_time);
 
 	XrAction recenter_left_action = XR_NULL_HANDLE;
 	XrAction recenter_right_action = XR_NULL_HANDLE;
+	std::optional<glm::vec3> gui_recenter_position;
 	std::optional<float> gui_recenter_distance;
 	bool recenter_gui = true;
 	void move_gui(glm::vec3 head_position, glm::vec3 new_gui_position);
+	void tooltip(std::string_view text);
+
+#ifdef __ANDROID__
+	battery battery_tracker;
+#endif
 
 	enum class tab
 	{
 		server_list,
-		new_server,
 		settings,
 		about,
 		licenses,
@@ -130,7 +140,7 @@ class lobby : public scene_impl<lobby>
 	void connect(const configuration::server_data & data);
 
 	std::optional<glm::vec3> check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & joints);
-	std::optional<glm::vec3> check_recenter_action(XrTime predicted_display_time);
+	std::optional<glm::vec3> check_recenter_action(XrTime predicted_display_time, glm::vec3 head_position);
 	std::optional<glm::vec3> check_recenter_gui(glm::vec3 head_position, glm::quat head_orientation);
 
 public:

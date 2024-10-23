@@ -32,11 +32,14 @@
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
 #include "xr/passthrough.h"
+#include "xr/space.h"
+#include <algorithm>
 #include <glm/gtc/matrix_access.hpp>
 
 #include "wivrn_discover.h"
 #include <cstdint>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/matrix.hpp>
 #include <magic_enum.hpp>
 #include <ranges>
 #include <simdjson.h>
@@ -101,15 +104,21 @@ static const std::array supported_depth_formats{
         vk::Format::eX8D24UnormPack32,
 };
 
-void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
+static glm::quat compute_gui_orientation(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
 	const float gui_pitch = -0.2;
-	const float keyboard_pitch = -0.6;
 	glm::vec3 gui_direction = new_gui_position - head_position;
 
 	float gui_yaw = atan2(gui_direction.x, gui_direction.z) + M_PI;
 
-	auto q = glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
+	return glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
+}
+
+void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
+{
+	const float keyboard_pitch = -0.6;
+
+	auto q = compute_gui_orientation(head_position, new_gui_position);
 	auto M = glm::mat3_cast(q); // plane-to-world transform
 
 	// Main window
@@ -198,6 +207,8 @@ scenes::lobby::lobby()
 	strcpy(add_server_window_hostname, "");
 	add_server_window_port = wivrn::default_port;
 	add_server_tcp_only = false;
+
+	keyboard.set_layout(application::get_config().virtual_keyboard_layout);
 }
 
 static std::string ip_address_to_string(const in_addr & addr)
@@ -424,7 +435,7 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(const std::array<
 	return std::nullopt;
 }
 
-std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_display_time)
+std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_display_time, glm::vec3 head_position)
 {
 	std::optional<std::pair<glm::vec3, glm::quat>> aim;
 
@@ -440,31 +451,69 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 
 	if (aim)
 	{
-		if (not gui_recenter_distance)
+		if (not gui_recenter_position or not gui_recenter_distance)
 		{
-			auto intersection = imgui_ctx->ray_plane_intersection({
+			// First frame where the recenter action is active
+			imgui_context::controller_state state{
 			        .active = true,
 			        .aim_position = aim->first,
 			        .aim_orientation = aim->second,
-			});
+			};
 
-			if (not intersection.empty())
+			imgui_ctx->compute_pointer_position(state);
+
+			if (state.pointer_position)
 			{
-				gui_recenter_distance = std::clamp(intersection.front().second, 0.05f, 1.f);
-				spdlog::info("recentering at {}m", intersection.front().second);
+				auto M = glm::mat3_cast(imgui_ctx->layers()[0].orientation);
+
+				// Pointer position in world
+				glm::vec3 world_pointer_position = imgui_ctx->rw_from_vp(*state.pointer_position);
+
+				// Pointer position in GUI
+				gui_recenter_position = glm::transpose(M) * (world_pointer_position - imgui_ctx->layers()[0].position);
+				gui_recenter_distance = glm::length(state.aim_position - world_pointer_position);
 			}
 			else
 			{
+				gui_recenter_position = glm::vec3(0, 0, 0);
 				gui_recenter_distance = 0.3;
 			}
 		}
-		const auto & v = aim->first;
-		const auto & q = aim->second;
-		return v + q * glm::vec3(0, 0, -*gui_recenter_distance);
+		else
+		{
+			// Subsequent frames: find the GUI position that gives the correct world pointer position
+			glm::vec3 controller_direction = -glm::column(glm::mat3_cast(aim->second), 2);
+			glm::vec3 wanted_world_pointer_position = aim->first + controller_direction * *gui_recenter_distance;
+
+			// I'm sure there's an analytical solution but I can't be bothered to write it so
+			// let's use a gradient descent instead
+			auto f = [&](glm::vec3 new_gui_position) {
+				auto q = compute_gui_orientation(head_position, new_gui_position);
+				auto M = glm::mat3_cast(q); // plane-to-world transform
+
+				glm::vec3 world_pointer_position = new_gui_position + M * *gui_recenter_position;
+
+				return world_pointer_position - wanted_world_pointer_position;
+			};
+
+			// One step is usually enough, the solution will continuously improve in the next frames
+			glm::vec3 gui_position = imgui_ctx->layers()[0].position;
+			float eps = 0.01;
+			glm::vec3 obj = f(gui_position);
+			glm::vec3 obj_dx = (f(gui_position + glm::vec3(eps, 0, 0)) - obj) / eps;
+			glm::vec3 obj_dy = (f(gui_position + glm::vec3(0, eps, 0)) - obj) / eps;
+			glm::vec3 obj_dz = (f(gui_position + glm::vec3(0, 0, eps)) - obj) / eps;
+
+			glm::mat3 jacobian{obj_dx, obj_dy, obj_dz};
+
+			gui_position -= glm::inverse(jacobian) * obj;
+
+			return gui_position;
+		}
 	}
 	else
 	{
-		gui_recenter_distance.reset();
+		gui_recenter_position.reset();
 	}
 
 	return std::nullopt;
@@ -610,14 +659,24 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	imgui_ctx->set_current();
 	if (!async_session.valid() && !next_scene && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 	{
-		const auto & servers = application::get_config().servers;
-		for (auto && [cookie, data]: servers)
+		if (auto intent = application::get_intent())
 		{
-			if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible && autoconnect_enabled)
+			connect(configuration::server_data{
+			        .manual = true,
+			        .service = *intent,
+			});
+		}
+		else
+		{
+			const auto & servers = application::get_config().servers;
+			for (auto && [cookie, data]: servers)
 			{
-				autoconnect_enabled = false;
-				connect(data);
-				break;
+				if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible && autoconnect_enabled)
+				{
+					autoconnect_enabled = false;
+					connect(data);
+					break;
+				}
 			}
 		}
 	}
@@ -644,8 +703,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	if (head_position)
 		new_gui_position = check_recenter_gui(head_position->first, head_position->second);
 
-	if (!new_gui_position)
-		new_gui_position = check_recenter_action(frame_state.predictedDisplayTime);
+	if (!new_gui_position and head_position)
+		new_gui_position = check_recenter_action(frame_state.predictedDisplayTime, head_position->first);
 
 	if (application::get_hand_tracking_supported())
 	{
@@ -685,33 +744,46 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		move_gui(head_position->first, *new_gui_position);
 	}
 
-	std::vector<XrCompositionLayerQuad> imgui_layers = draw_gui(frame_state.predictedDisplayTime);
+	std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_layers = draw_gui(frame_state.predictedDisplayTime);
 
 	assert(renderer);
 	renderer->start_frame();
 
 	std::vector<XrCompositionLayerProjectionView> lobby_layer_views;
-	std::vector<XrCompositionLayerDepthInfoKHR> depthinfo_layer_views;
-	std::vector<XrCompositionLayerDepthTestFB> depthtest_layer_views;
+	std::vector<XrCompositionLayerDepthInfoKHR> lobby_depth_layer_views;
 	std::vector<XrCompositionLayerProjectionView> controllers_layer_views;
+	std::vector<XrCompositionLayerDepthInfoKHR> controllers_depth_layer_views;
+
+	std::array<float, 4> clear_color;
+
+	lobby_handle->visible = not application::get_config().passthrough_enabled;
+
+	if (application::get_config().passthrough_enabled)
+		clear_color = {0, 0, 0, 0};
+	else
+		clear_color = {0, 0.25, 0.5, 1};
 
 	if (composition_layer_depth_test_supported)
 	{
-		std::array<float, 4> clear_color;
-
-		lobby_handle->visible = not application::get_config().passthrough_enabled;
-
-		if (application::get_config().passthrough_enabled)
-			clear_color = {0, 0, 0, 0};
-		else
-			clear_color = {0, 0.25, 0.5, 1};
-
-		std::tie(lobby_layer_views, depthinfo_layer_views) = render_layer(views, swapchains_lobby, swapchains_depth, *renderer, *lobby_scene, clear_color);
-
-		for (auto [color, depth]: std::views::zip(lobby_layer_views, depthinfo_layer_views))
-		{
+		std::tie(lobby_layer_views, lobby_depth_layer_views) = render_layer(
+		        views,
+		        swapchains_lobby,
+		        swapchains_lobby_depth,
+		        *renderer,
+		        *lobby_scene,
+		        clear_color);
+		for (auto [color, depth]: std::views::zip(lobby_layer_views, lobby_depth_layer_views))
 			color.next = &depth;
-		}
+
+		std::tie(controllers_layer_views, controllers_depth_layer_views) = render_layer(
+		        views,
+		        swapchains_controllers,
+		        swapchains_controllers_depth,
+		        *renderer,
+		        *controllers_scene,
+		        {0, 0, 0, 0});
+		for (auto [color, depth]: std::views::zip(controllers_layer_views, controllers_depth_layer_views))
+			color.next = &depth;
 
 		renderer->end_frame();
 
@@ -719,23 +791,36 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		for (auto & swapchain: swapchains_lobby)
 			swapchain.release();
 
-		for (auto & swapchain: swapchains_depth)
+		for (auto & swapchain: swapchains_lobby_depth)
+			swapchain.release();
+
+		for (auto & swapchain: swapchains_controllers)
+			swapchain.release();
+
+		for (auto & swapchain: swapchains_controllers_depth)
 			swapchain.release();
 	}
 	else
 	{
-		if (not application::get_config().passthrough_enabled)
-			lobby_layer_views = render_layer(views, swapchains_lobby, *renderer, *lobby_scene, {0, 0.25, 0.5, 1});
+		lobby_layer_views = render_layer(
+		        views,
+		        swapchains_lobby,
+		        *renderer,
+		        *lobby_scene,
+		        clear_color);
 
-		controllers_layer_views = render_layer(views, swapchains_controllers, *renderer, *controllers_scene, {0, 0, 0, 0});
+		controllers_layer_views = render_layer(
+		        views,
+		        swapchains_controllers,
+		        *renderer,
+		        *controllers_scene,
+		        {0, 0, 0, 0});
+
 		renderer->end_frame();
 
 		// After end_frame because the command buffers are submitted in end_frame
-		if (not application::get_config().passthrough_enabled)
-		{
-			for (auto & swapchain: swapchains_lobby)
-				swapchain.release();
-		}
+		for (auto & swapchain: swapchains_lobby)
+			swapchain.release();
 
 		for (auto & swapchain: swapchains_controllers)
 			swapchain.release();
@@ -743,7 +828,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	XrCompositionLayerProjection lobby_layer{
 	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
-	        .layerFlags = 0,
+	        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
 	        .space = world_space,
 	        .viewCount = (uint32_t)lobby_layer_views.size(),
 	        .views = lobby_layer_views.data(),
@@ -758,7 +843,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	};
 
 	XrEnvironmentBlendMode blend_mode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-	std::vector<XrCompositionLayerBaseHeader *> layers_base;
+	std::vector<std::pair<int, XrCompositionLayerBaseHeader *>> layers_with_z_index;
 
 	if (application::get_config().passthrough_enabled)
 	{
@@ -771,7 +856,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 			                blend_mode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
 		                },
 		                [&](auto & p) {
-			                layers_base.push_back(p.layer());
+			                layers_with_z_index.emplace_back(-2, p.layer());
 		                }},
 		        passthrough);
 	}
@@ -793,54 +878,51 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	        },
 	};
 
+	// Add XrCompositionLayerDepthTestFB to lobby_layer and imgui_layer
+	// The sky in the lobby layer and the passthrough layer have the same depth, so the operation must be:
+	// - LESS when passthrough is enabled (to avoid overwriting the passthrough)
+	// - LESS_OR_EQUAL when passthrough is disabled (so that the sky is visible)
+	XrCompositionLayerDepthTestFB layer_depth_test{
+	        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_TEST_FB,
+	        .next = nullptr,
+	        .depthMask = true,
+	        .compareOp = application::get_config().passthrough_enabled ? XR_COMPARE_OP_LESS_FB : XR_COMPARE_OP_LESS_OR_EQUAL_FB,
+	};
+
+	// if (composition_layer_depth_test_supported or not application::get_config().passthrough_enabled)
+	layers_with_z_index.emplace_back(-1, reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
+
+	for (auto & [z_index, layer]: imgui_layers)
+		layers_with_z_index.emplace_back(z_index, reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
+
+	layers_with_z_index.emplace_back(1000, reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
+
 	if (composition_layer_depth_test_supported)
 	{
-		layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
-
-		for (auto & layer: imgui_layers)
-			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
-
-		// Add XrCompositionLayerDepthTestFB to lobby_layer and imgui_layer
-		// The sky in the lobby layer and the passthrough layer have the same depth, so the operation must be:
-		// - LESS when passthrough is enabled (to avoid overwriting the passthrough)
-		// - LESS_OR_EQUAL when passthrough is disabled (so that the sky is visible)
-		XrCompositionLayerDepthTestFB layer_depth_test{
-		        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_TEST_FB,
-		        .next = nullptr,
-		        .depthMask = true,
-		        .compareOp = application::get_config().passthrough_enabled ? XR_COMPARE_OP_LESS_FB : XR_COMPARE_OP_LESS_OR_EQUAL_FB};
-
 		lobby_layer.next = &layer_depth_test;
-		for (auto & layer: imgui_layers)
+
+		for (auto & [z_index, layer]: imgui_layers)
+		{
 			layer.next = &layer_depth_test;
-
-		if (imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported)
-		{
-			color_scale_bias.next = imgui_layers.front().next;
-			imgui_layers.front().next = &color_scale_bias;
 		}
 
-		session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
+		controllers_layer.next = &layer_depth_test;
 	}
-	else
+
+	if (imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported)
 	{
-		if (not application::get_config().passthrough_enabled)
-			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
-
-		for (auto & layer: imgui_layers)
-			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
-
-		if (not composition_layer_depth_test_supported)
-			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
-
-		if (imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported)
-		{
-			color_scale_bias.next = imgui_layers.front().next;
-			imgui_layers.front().next = &color_scale_bias;
-		}
-
-		session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
+		color_scale_bias.next = imgui_layers.front().second.next;
+		imgui_layers.front().second.next = &color_scale_bias;
 	}
+
+	std::ranges::stable_sort(layers_with_z_index);
+
+	std::vector<XrCompositionLayerBaseHeader *> layers;
+	layers.reserve(layers_with_z_index.size());
+	for (auto & [z_index, layer]: layers_with_z_index)
+		layers.push_back(layer);
+
+	session.end_frame(frame_state.predictedDisplayTime, layers, blend_mode);
 }
 
 void scenes::lobby::on_focused()
@@ -853,11 +935,10 @@ void scenes::lobby::on_focused()
 	uint32_t height = views[0].recommendedImageRectHeight;
 
 	swapchains_lobby.reserve(views.size());
+	swapchains_controllers.reserve(views.size());
 
 	if (composition_layer_depth_test_supported)
-		swapchains_depth.reserve(views.size());
-	else
-		swapchains_controllers.reserve(views.size());
+		swapchains_lobby_depth.reserve(views.size());
 
 	for ([[maybe_unused]] auto view: views)
 	{
@@ -865,10 +946,13 @@ void scenes::lobby::on_focused()
 		assert(view.recommendedImageRectHeight == height);
 
 		swapchains_lobby.emplace_back(session, device, swapchain_format, width, height);
+		swapchains_controllers.emplace_back(session, device, swapchain_format, width, height);
+
 		if (composition_layer_depth_test_supported)
-			swapchains_depth.emplace_back(session, device, depth_format, width, height);
-		else
-			swapchains_controllers.emplace_back(session, device, swapchain_format, width, height);
+		{
+			swapchains_lobby_depth.emplace_back(session, device, depth_format, width, height);
+			swapchains_controllers_depth.emplace_back(session, device, depth_format, width, height);
+		}
 	}
 
 	spdlog::info("Created lobby swapchains: {}x{}", width, height);
@@ -883,8 +967,7 @@ void scenes::lobby::on_focused()
 	lobby_handle = lobby_scene->new_node();
 	lobby_scene->import(loader("ground.gltf"), lobby_handle);
 
-	if (not composition_layer_depth_test_supported)
-		controllers_scene.emplace();
+	controllers_scene.emplace();
 
 	scene_data & controllers_scene_data = composition_layer_depth_test_supported ? *lobby_scene : *controllers_scene;
 	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, controllers_scene_data);
@@ -928,28 +1011,42 @@ void scenes::lobby::on_focused()
 		        });
 	}
 
+	// 0.4mm / pixel
 	std::vector<imgui_context::viewport> vps{
 	        {
 	                // Main window
+	                .space = xr::spaces::world,
 	                .size = {0.6, 0.4},
 	                .vp_origin = {0, 0},
 	                .vp_size = {1500, 1000},
 	        },
 	        {
 	                // Pop up window
-	                .size = {0.6, 0.2},
+	                .space = xr::spaces::world,
+	                .size = {0.6, 0.24},
 	                .vp_origin = {1500, 0},
-	                .vp_size = {1500, 500},
+	                .vp_size = {1500, 600},
 	        },
 	        {
 	                // Virtual keyboard
+	                .space = xr::spaces::world,
 	                .size = {0.6, 0.2},
-	                .vp_origin = {1500, 500},
+	                .vp_origin = {1500, 600},
 	                .vp_size = {1500, 500},
+	                .always_show_cursor = true,
 	        },
-	};
+	        {
+	                // Recenter tip
+	                .space = xr::spaces::view,
+	                .position = {0, -0.4, -1.0},
+	                .orientation = {1, 0, 0, 0},
+	                .size = {0.6, 0.12},
+	                .vp_origin = {0, 1000},
+	                .vp_size = {1500, 300},
+	                .z_index = 2000,
+	        }};
 
-	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 3000, 1000);
+	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 3000, 1300);
 
 	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, imgui_inputs, swapchain_imgui, vps);
 
@@ -1008,7 +1105,8 @@ void scenes::lobby::on_unfocused()
 	renderer.reset();
 	swapchains_lobby.clear();
 	swapchains_controllers.clear();
-	swapchains_depth.clear();
+	swapchains_lobby_depth.clear();
+	swapchains_controllers_depth.clear();
 	swapchain_imgui = xr::swapchain();
 	passthrough.emplace<std::monostate>();
 	multicast.reset();

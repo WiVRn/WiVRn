@@ -177,6 +177,9 @@ configuration::configuration(xr::system & system)
 		if (auto val = root["passthrough_enabled"]; val.is_bool())
 			passthrough_enabled = val.get_bool();
 
+		if (auto val = root["virtual_keyboard_layout"]; val.is_string())
+			virtual_keyboard_layout = val.get_string().value();
+
 		for (const auto & [i, name]: magic_enum::enum_entries<feature>())
 		{
 			if (auto val = root[name]; val.is_bool())
@@ -212,7 +215,7 @@ void configuration::save()
 
 	for (auto & [cookie, server_data]: servers)
 	{
-		if (server_data.autoconnect || server_data.manual)
+		if (server_data.autoconnect or server_data.manual)
 		{
 			ss << "{";
 			ss << "\"autoconnect\":" << std::boolalpha << server_data.autoconnect << ",";
@@ -240,5 +243,6 @@ void configuration::save()
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
+	json << ",\"virtual_keyboard_layout\":" << json_string(virtual_keyboard_layout);
 	json << "}";
 }

@@ -320,5 +320,9 @@ std::vector<XrCompositionLayerQuad> scenes::stream::plot_performance_metrics(XrT
 	}
 	ImGui::End();
 
-	return imgui_ctx->end_frame();
+	std::vector<XrCompositionLayerQuad> layers;
+	for (auto & layer: imgui_ctx->end_frame())
+		layers.push_back(layer.second);
+
+	return layers;
 }

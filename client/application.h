@@ -54,6 +54,10 @@
 
 class scene;
 
+#ifdef __ANDROID__
+extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj);
+#endif
+
 struct application_info
 {
 	std::string name = "Unnamed application";
@@ -70,6 +74,10 @@ struct application_info
 class application : public singleton<application>
 {
 	friend class scene;
+
+#ifdef __ANDROID__
+	friend __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj);
+#endif
 
 	application_info app_info;
 #ifdef __ANDROID__
@@ -140,8 +148,8 @@ class application : public singleton<application>
 
 	std::shared_ptr<wifi_lock> wifi;
 
-	std::string server_address;
-	bool server_tcp_only = false;
+	std::mutex server_intent_mutex;
+	std::optional<wivrn_discover::service> server_intent;
 
 	std::mutex scene_stack_lock;
 	std::vector<std::shared_ptr<scene>> scene_stack;
@@ -170,6 +178,8 @@ class application : public singleton<application>
 #ifndef NDEBUG
 	vk::raii::DebugReportCallbackEXT debug_report_callback = nullptr;
 #endif
+
+	void set_server_uri(std::string uri);
 
 public:
 	using singleton<application>::instance;
@@ -348,14 +358,14 @@ public:
 		return instance().vk_queue;
 	}
 
-	const std::string & get_server_address() const
+	static std::optional<wivrn_discover::service> get_intent()
 	{
-		return server_address;
-	}
+		std::unique_lock _{instance().server_intent_mutex};
 
-	const bool & get_server_tcp_only() const
-	{
-		return server_tcp_only;
+		std::optional<wivrn_discover::service> intent = instance().server_intent;
+		instance().server_intent.reset();
+
+		return intent;
 	}
 
 	static vk::raii::PhysicalDevice & get_physical_device()

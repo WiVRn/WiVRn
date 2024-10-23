@@ -21,12 +21,15 @@
 
 #include "application.h"
 #include "asset.h"
+#include "configuration.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "implot.h"
 #include "lobby.h"
 #include "stream.h"
 #include "version.h"
+#include <glm/gtc/quaternion.hpp>
+#include <ranges>
 #include <spdlog/fmt/fmt.h>
 #include <utils/strings.h>
 
@@ -63,6 +66,74 @@ static void CenterTextHV(const std::string & text)
 	ImGui::PopStyleVar();
 }
 
+static void display_recentering_tip(imgui_context & ctx, const std::string & tip)
+{
+	ImGui::PushFont(ctx.large_font);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
+	ImGui::SetNextWindowPos(ctx.layers()[3].vp_center(), ImGuiCond_Always, {0.5, 0.5});
+	ImGui::Begin("Recentering tip", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+
+	std::vector<std::string> lines = utils::split(tip);
+	std::vector<float> widths;
+	float max_width = 0;
+
+	for (auto & line: lines)
+	{
+		widths.push_back(ImGui::CalcTextSize(line.c_str()).x);
+		max_width = std::max(max_width, widths.back());
+	}
+
+	for (auto [width, line]: std::views::zip(widths, lines))
+	{
+		ImGui::Dummy({(max_width - width) / 2, 0});
+		ImGui::SameLine();
+		ImGui::TextUnformatted(line.data(), line.data() + line.size());
+	}
+
+	ImGui::End();
+	ImGui::PopStyleVar(2);
+	ImGui::PopFont();
+}
+
+void scenes::lobby::tooltip(std::string_view text)
+{
+	// FIXME: this is incorrect if we use the docking branch of imgui
+	ImGuiViewport * viewport = ImGui::GetMainViewport();
+	auto & layer = imgui_ctx->layer(ImGui::GetMousePos());
+	auto pos_backup = viewport->Pos;
+	auto size_backup = viewport->Size;
+	viewport->Pos = ImVec2(layer.vp_origin.x, layer.vp_origin.y);
+	viewport->Size = ImVec2(layer.vp_size.x, layer.vp_size.y);
+
+	ImVec2 pos{
+	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
+	        ImGui::GetItemRectMin().y - 10,
+	};
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {5, 5});
+
+	// Clamp position to avoid overflowing on the right
+	auto & style = ImGui::GetStyle();
+	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
+	const ImVec2 size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
+	pos.x = std::min(pos.x, viewport->Pos.x + viewport->Size.x - size.x / 2);
+
+	ImGui::SetNextWindowPos(pos, ImGuiCond_Always, {0.5, 1});
+	if (ImGui::BeginTooltip())
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
+		ImGui::TextUnformatted(text.data(), text.data() + text.size());
+		ImGui::PopStyleColor();
+		ImGui::EndTooltip();
+	}
+
+	ImGui::PopStyleVar();
+
+	viewport->Pos = pos_backup;
+	viewport->Size = size_backup;
+}
+
 void scenes::lobby::vibrate_on_hover()
 {
 	if (ImGui::IsItemHovered())
@@ -78,6 +149,8 @@ void scenes::lobby::gui_connecting()
 	{
 		if (next_scene->current_state() == scenes::stream::state::stalled)
 			status = _("Video stream interrupted");
+		else if (server_name == "")
+			status = fmt::format(_F("Connection ready\nStart a VR application on your computer"));
 		else
 			status = fmt::format(_F("Connection ready\nStart a VR application on {}"), server_name);
 	}
@@ -101,7 +174,10 @@ void scenes::lobby::gui_connecting()
 	ImGui::Dummy({1000, 1});
 
 	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH(fmt::format(_F("Connection to {}"), server_name));
+	if (server_name == "")
+		CenterTextH(fmt::format(_F("Connection")));
+	else
+		CenterTextH(fmt::format(_F("Connection to {}"), server_name));
 	ImGui::PopFont();
 
 	// ImGui::TextWrapped("%s", status.first.c_str());
@@ -122,12 +198,13 @@ void scenes::lobby::gui_connecting()
 
 void scenes::lobby::gui_new_server()
 {
-	const ImVec2 button_size(220, 80);
-
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
 	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {10, 10});
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 	ImGui::Dummy({1000, 1});
+
+	const ImVec2 button_size(220, 80);
 
 	ImGui::BeginTable("table", 2);
 
@@ -166,26 +243,27 @@ void scenes::lobby::gui_new_server()
 
 	ImGui::EndTable();
 
-	ImGui::Checkbox("TCP only", &add_server_tcp_only);
+	ImGui::Checkbox(_S("TCP only"), &add_server_tcp_only);
 	vibrate_on_hover();
 
 	auto top_left = ImGui::GetWindowContentRegionMin();
 	auto bottom_right = ImGui::GetWindowContentRegionMax();
 
 	ImGui::SetCursorPosX(top_left.x);
-	if (ImGui::Button("Cancel", button_size))
+	if (ImGui::Button(_S("Cancel"), button_size))
 	{
 		current_tab = tab::server_list;
 		strcpy(add_server_window_prettyname, "");
 		strcpy(add_server_window_hostname, "");
 		add_server_window_port = wivrn::default_port;
 		add_server_tcp_only = false;
+		ImGui::CloseCurrentPopup();
 	}
 	vibrate_on_hover();
 
 	ImGui::SameLine(bottom_right.x - button_size.x);
 
-	if (ImGui::Button("Save", button_size))
+	if (ImGui::Button(_S("Save"), button_size))
 	{
 		current_tab = tab::server_list;
 		configuration::server_data data{
@@ -206,10 +284,11 @@ void scenes::lobby::gui_new_server()
 		strcpy(add_server_window_hostname, "");
 		add_server_window_port = wivrn::default_port;
 		add_server_tcp_only = false;
+		ImGui::CloseCurrentPopup();
 	}
 	vibrate_on_hover();
 
-	ImGui::PopStyleVar(3);
+	ImGui::PopStyleVar(4); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_CellPadding, ImGuiStyleVar_FramePadding
 }
 
 void scenes::lobby::gui_server_list()
@@ -244,17 +323,20 @@ void scenes::lobby::gui_server_list()
 	for (const auto & [name, cookie]: sorted_cookies)
 	{
 		configuration::server_data & data = config.servers.at(cookie);
-		bool is_selected = (cookie == selected_item);
+		// bool is_selected = (cookie == selected_item);
 
 		ImGui::SetCursorPos(pos);
 
-		ImGui::SetNextItemAllowOverlap();
+		// ImGui::SetNextItemAllowOverlap();
 
 		// TODO custom widget
-		if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
-			selected_item = cookie;
+		// if (ImGui::Selectable(("##" + cookie).c_str(), is_selected, ImGuiSelectableFlags_None, ImVec2(0, list_item_height)))
+		// 	selected_item = cookie;
 
-		ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
+		if (data.manual)
+			ImGui::SetCursorPos(ImVec2(pos.x, pos.y + 25)); // FIXME compute the position correctly
+		else
+			ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
 		ImGui::Text("%s", name.c_str());
 
 		if (!data.manual)
@@ -266,13 +348,7 @@ void scenes::lobby::gui_server_list()
 			vibrate_on_hover();
 		}
 
-		// TODO
-		// if (ImGui::IsItemHovered())
-		// {
-		// ImGui::SetTooltip("Tooltip");
-		// }
-
-		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x - style.WindowPadding.x, pos.y + (list_item_height - button_size.y) / 2);
+		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x, pos.y + (list_item_height - button_size.y) / 2);
 
 		button_position.x -= button_size.x + style.WindowPadding.x;
 		ImGui::SetCursorPos(button_position);
@@ -302,9 +378,9 @@ void scenes::lobby::gui_server_list()
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 		{
 			if (!data.compatible && !data.manual)
-				ImGui::SetTooltip("%s", _S("Incompatible server version"));
+				tooltip(_("Incompatible server version"));
 			else if (!data.visible && !data.manual)
-				ImGui::SetTooltip("%s", _S("Server not available"));
+				tooltip(_("Server not available"));
 		}
 
 		ImGui::PopStyleColor(3);
@@ -348,6 +424,14 @@ void scenes::lobby::gui_server_list()
 	if (ImGui::BeginPopupModal("connecting", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		gui_connecting();
+		ImGui::EndPopup();
+	}
+
+	ImGui::SetNextWindowSize({800, 0});
+	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+	if (ImGui::BeginPopupModal("add server", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		gui_new_server();
 		ImGui::EndPopup();
 	}
 	ImGui::PopStyleVar(3);
@@ -459,7 +543,7 @@ void scenes::lobby::gui_settings()
 		config.save();
 	vibrate_on_hover();
 	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("%s", _S("Overlay can be toggled by pressing both thumbsticks"));
+		tooltip(_("Overlay can be toggled by pressing both thumbsticks"));
 
 	ImGui::PopStyleVar();
 
@@ -626,21 +710,29 @@ static bool RadioButtonWithoutCheckBox(const std::string & label, T * v, T v_but
 	return pressed;
 }
 
-static void ScrollWhenDraggingOnVoid(ImVec2 delta)
+static void ScrollWhenDraggingOnVoid()
 {
+	ImVec2 delta{0.0f, -ImGui::GetIO().MouseDelta.y};
+
 	// https://github.com/ocornut/imgui/issues/3379#issuecomment-1678718752
 	ImGuiContext & g = *ImGui::GetCurrentContext();
 	ImGuiWindow * window = g.CurrentWindow;
 	bool hovered = false;
 	bool held = false;
+	static bool held_prev = false;
+
+	// Don't drag for the first frame because the current controller might have just changed and have a large delta
+
 	ImGuiID id = window->GetID("##scrolldraggingoverlay");
 	ImGui::KeepAliveID(id);
 	if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
 		ImGui::ButtonBehavior(window->Rect(), id, &hovered, &held, ImGuiButtonFlags_MouseButtonLeft);
-	if (held && delta.x != 0.0f)
+	if (held and held_prev and delta.x != 0.0f)
 		ImGui::SetScrollX(window, window->Scroll.x + delta.x);
-	if (held && delta.y != 0.0f)
+	if (held and held_prev and delta.y != 0.0f)
 		ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+
+	held_prev = held;
 }
 
 static auto face_weights()
@@ -848,13 +940,15 @@ static const char * get_face_icon(XrTime predicted_display_time)
 
 void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 {
-	const float win_width = ImGui::GetWindowSize().x;
+	const float win_width = ImGui::GetContentRegionAvail().x;
 	float text_width = 0;
 	auto & config = application::get_config();
 
 	struct item
 	{
 		feature f;
+		std::string tooltip_enabled;
+		std::string tooltip_disabled;
 		const char * icon_enabled;
 		const char * icon_disabled = ICON_FA_SLASH;
 		bool enabled;
@@ -864,6 +958,8 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 
 	items.push_back({
 	        .f = feature::microphone,
+	        .tooltip_enabled = _("Microphone is enabled"),
+	        .tooltip_disabled = _("Microphone is disabled"),
 	        .icon_enabled = ICON_FA_MICROPHONE,
 	        .icon_disabled = ICON_FA_MICROPHONE_SLASH,
 	});
@@ -872,6 +968,8 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	{
 		items.push_back({
 		        .f = feature::hand_tracking,
+		        .tooltip_enabled = _("Hand tracking is enabled"),
+		        .tooltip_disabled = _("Hand tracking is disabled"),
 		        .icon_enabled = ICON_FA_HAND,
 		});
 	}
@@ -880,6 +978,8 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	{
 		items.push_back({
 		        .f = feature::eye_gaze,
+		        .tooltip_enabled = _("Eye tracking is enabled"),
+		        .tooltip_disabled = _("Eye tracking is disabled"),
 		        .icon_enabled = ICON_FA_EYE,
 		        .icon_disabled = ICON_FA_EYE_SLASH,
 		});
@@ -889,6 +989,8 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	{
 		items.push_back({
 		        .f = feature::face_tracking,
+		        .tooltip_enabled = _("Face tracking is enabled"),
+		        .tooltip_disabled = _("Face tracking is disabled"),
 		        .icon_enabled = get_face_icon(predicted_display_time),
 		        .icon_disabled = ICON_FA_FACE_MEH_BLANK,
 		});
@@ -904,6 +1006,13 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	const ImGuiStyle & style = ImGui::GetStyle();
 	text_width += items.size() * style.FramePadding.x * 2;
 
+	// New server button
+	if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add server"))
+		ImGui::OpenPopup("add server");
+	vibrate_on_hover();
+	ImGui::SameLine();
+
+	// Enabled features
 	ImGui::SetCursorPosX((win_width - text_width) / 2);
 	for (auto & i: items)
 	{
@@ -919,25 +1028,121 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 			config.set_feature(i.f, not i.enabled);
 			config.save();
 		}
+
+		vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			tooltip(i.enabled ? i.tooltip_enabled : i.tooltip_disabled);
+
 		if (i.icon_disabled == std::string_view(ICON_FA_SLASH) and not i.enabled)
 		{
-			auto save = ImGui::GetCursorPos();
+			auto save = ImGui::GetCurrentWindow()->DC;
 			ImGui::SetCursorPos(pos + ImGui::GetStyle().FramePadding);
 			ImGui::Text("%s", i.icon_enabled);
-			ImGui::SetCursorPos(save);
+			ImGui::GetCurrentWindow()->DC = save;
 		}
-		vibrate_on_hover();
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
 	}
+
+	float PrevLineSize = ImGui::GetCurrentWindow()->DC.PrevLineSize.y;
+	float PrevLineTextBaseOffset = ImGui::GetCurrentWindow()->DC.PrevLineTextBaseOffset;
+
+#ifdef __ANDROID__
+	// Battery status
+	auto status = battery_tracker.get();
+
+	const char * battery_icon = nullptr;
+	if (status.charge)
+	{
+		int icon_nr;
+
+		if (status.charging)
+		{
+			if (*status.charge > 0.995)
+				icon_nr = 5;
+			else
+				icon_nr = application::now() / 500'000'000 % 5;
+		}
+		else
+			icon_nr = std::round((*status.charge) * 4);
+
+		switch (icon_nr)
+		{
+			case 0:
+				battery_icon = ICON_FA_BATTERY_EMPTY;
+				break;
+			case 1:
+				battery_icon = ICON_FA_BATTERY_QUARTER;
+				break;
+			case 2:
+				battery_icon = ICON_FA_BATTERY_HALF;
+				break;
+			case 3:
+				battery_icon = ICON_FA_BATTERY_THREE_QUARTERS;
+				break;
+			case 4:
+				battery_icon = ICON_FA_BATTERY_FULL;
+				break;
+			case 5:
+				battery_icon = ICON_FA_PLUG;
+		}
+
+		ImGui::SameLine();
+
+		// Always use the longest width for layout
+		float max_battery_width = ImGui::CalcTextSize(ICON_FA_BATTERY_FULL "100%").x;
+		ImVec4 battery_color = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+
+		if (*status.charge < 0.2)
+			battery_color = ImVec4(1, 0, 0, 1);
+
+		ImGui::SetCursorPosX(win_width - max_battery_width - style.WindowPadding.x);
+		ImGui::TextColored(battery_color, "%s %d%%", battery_icon, (int)std::round(*status.charge * 100));
+	}
+#endif
+
+	ImGui::Dummy({0, 15});
 }
 
 void scenes::lobby::gui_keyboard()
 {
 	keyboard.display(hovered_item);
+
+	auto & config = application::get_config();
+
+	if (keyboard.get_layout() != config.virtual_keyboard_layout)
+	{
+		config.virtual_keyboard_layout = keyboard.get_layout();
+		config.save();
+	}
 }
 
-std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_display_time)
+static bool is_gui_visible(imgui_context & ctx, XrTime predicted_display_time)
+{
+	// Get the GUI position in the view reference frame
+	if (auto pos = application::locate_controller(application::space(xr::spaces::world), application::space(xr::spaces::view), predicted_display_time))
+	{
+		glm::vec3 view_gui_position = pos->first + pos->second * ctx.layers()[0].position;
+
+		float gui_distance = glm::length(view_gui_position);
+		glm::vec3 direction = view_gui_position / gui_distance;
+
+		if (view_gui_position.z > 0 or view_gui_position.z < -1.5)
+			return false;
+
+		if (std::abs(direction.x) > 0.8)
+			return false;
+
+		if (std::abs(direction.y) > 0.8)
+			return false;
+
+		return true;
+	}
+
+	return true;
+}
+
+std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTime predicted_display_time)
 {
 	for (const auto & [key, server]: application::get_config().servers)
 	{
@@ -955,7 +1160,6 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 	if (ImGui::GetIO().WantTextInput)
 	{
 		ImGui::SetNextWindowPos(imgui_ctx->layers()[2].vp_center(), ImGuiCond_Always, {0.5, 0.5});
-
 		gui_keyboard();
 	}
 
@@ -972,18 +1176,18 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 20, 0));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
+		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 		ImGui::SetCursorPosY(20);
 
 		switch (current_tab)
 		{
 			case tab::server_list:
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 				draw_features_status(predicted_display_time);
-				gui_server_list();
-				break;
+				ImGui::PopStyleVar();
 
-			case tab::new_server:
-				gui_new_server();
+				gui_server_list();
 				break;
 
 			case tab::settings:
@@ -1011,23 +1215,18 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 
 		ImGui::Dummy(ImVec2(0, 20));
 
-		ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
-		ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y));
+		ScrollWhenDraggingOnVoid();
 		ImGui::EndChild();
-		ImGui::PopStyleVar(); // ImGuiStyleVar_FrameRounding
+		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
 	}
 
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(0, 0, 0, 255));
 	ImGui::SetCursorPos(style.WindowPadding);
-
 	{
 		ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
 		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list"), &current_tab, tab::server_list, {TabWidth, 0});
-		vibrate_on_hover();
-
-		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("New server"), &current_tab, tab::new_server, {TabWidth, 0});
 		vibrate_on_hover();
 
 		RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});
@@ -1050,6 +1249,14 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 	ImGui::End();
 	ImGui::PopStyleColor(); // ImGuiCol_WindowBg
 	ImGui::PopStyleVar(2);  // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ScrollbarSize
+
+	if (not is_gui_visible(*imgui_ctx, predicted_display_time))
+	{
+		if (application::get_hand_tracking_supported())
+			display_recentering_tip(*imgui_ctx, _("Press A or X or put your palm up\nto move the main window"));
+		else
+			display_recentering_tip(*imgui_ctx, _("Press A or X to move the main window"));
+	}
 
 	if (hovered_item != last_hovered && hovered_item != 0)
 	{

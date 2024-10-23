@@ -20,7 +20,7 @@
 #pragma once
 
 #include "imgui.h"
-#include <string_view>
+#include <string>
 #include <vector>
 
 struct ImRect;
@@ -38,14 +38,20 @@ public:
 	struct key
 	{
 		float width;
-		const std::u16string_view characters;
-		ImGuiKey key = ImGuiKey_None;
-		const char * glyph = nullptr;
+		std::string characters_lower;
+		std::string characters_upper;
+		ImGuiKey keycode = ImGuiKey_None;
+		std::string glyph_lower;
+		std::string glyph_upper;
 		key_flags flag = key_flag_none;
+
+		key(float width, std::string_view characters, ImGuiKey keycode = ImGuiKey_None, key_flags flag = key_flag_none);
+		key(float width);
 	};
 
 	using layout = std::vector<std::vector<key>>;
 
+private:
 	enum class case_mode
 	{
 		lower,
@@ -53,10 +59,18 @@ public:
 		caps_lock
 	};
 
-private:
-	bool button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags = 0);
-	bool draw_single_key(const key & k, int key_id, ImVec2 size_arg, bool & hovered);
+	struct key_status
+	{
+		bool hovered = false;
+		bool held = false;
+		bool pressed = false;
+		float hold_duration = 0;
+	};
+
+	key_status button_behavior(const ImRect & bb, ImGuiID id, bool window_hovered, ImGuiButtonFlags flags = 0);
+	key_status draw_single_key(const key & k, int key_id, ImVec2 size_arg, bool window_hovered);
 	void press_single_key(const key & k);
+	bool is_window_hovered();
 
 	ImGuiID active_id = 0;
 	float held_duration = 0;
@@ -67,4 +81,6 @@ private:
 
 public:
 	void display(ImGuiID & hovered);
+	const std::string_view get_layout() const;
+	void set_layout(std::string_view layout_name);
 };

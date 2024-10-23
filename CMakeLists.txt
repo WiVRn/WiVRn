@@ -219,6 +219,7 @@ FetchContent_Declare(imgui         EXCLUDE_FROM_ALL SYSTEM URL https://github.co
 )
 # Use the docking branch of imgui to use multi-viewport
 # FetchContent_Declare(imgui         EXCLUDE_FROM_ALL URL https://github.com/ocornut/imgui/archive/ce0d0ac8298ce164b5d862577e8b087d92f6e90e.zip)
+FetchContent_Declare(uni-algo      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/uni-algo/uni-algo/archive/v1.2.0.tar.gz)
 
 # Server dependencies
 FetchContent_Declare(monado

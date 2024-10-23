@@ -949,6 +949,54 @@ std::pair<XrAction, XrActionType> application::get_action(const std::string & re
 	return {};
 }
 
+#ifdef __ANDROID__
+extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_MainActivity_onNewIntent(JNIEnv * env, jobject instance, jobject intent_obj)
+{
+	jni::jni_thread::setup_thread(env);
+	jni::object<"android/content/Intent"> intent{intent_obj};
+
+	if (auto data_string = intent.call<jni::string>("getDataString"))
+	{
+		spdlog::info("Received intent {}", (std::string)data_string);
+		application::instance().set_server_uri(data_string);
+	}
+}
+#endif
+
+void application::set_server_uri(std::string uri)
+{
+	std::string server_address;
+	bool server_tcp_only = false;
+
+	if (uri.starts_with("wivrn://"))
+	{
+		server_address = uri.substr(strlen("wivrn://"));
+	}
+	else if (uri.starts_with("wivrn+tcp://"))
+	{
+		server_address = uri.substr(strlen("wivrn+tcp://"));
+		server_tcp_only = true;
+	}
+
+	auto colon = server_address.rfind(":");
+	int port = wivrn::default_port;
+	if (colon != std::string::npos)
+	{
+		port = std::stoi(server_address.substr(colon + 1));
+		server_address = server_address.substr(0, colon);
+	}
+
+	{
+		std::unique_lock _{server_intent_mutex};
+		server_intent = wivrn_discover::service{
+		        .name = "",
+		        .hostname = server_address,
+		        .port = port,
+		        .tcp_only = server_tcp_only,
+		};
+	}
+}
+
 application::application(application_info info) :
         app_info(std::move(info))
 
@@ -964,21 +1012,10 @@ application::application(application_info info) :
 
 		// Get the intent, to handle wivrn://uri
 		auto intent = act.call<jni::object<"android/content/Intent">>("getIntent");
-		std::string data_string;
-		if (auto data_string_jni = intent.call<jni::string>("getDataString"))
+		if (auto data_string = intent.call<jni::string>("getDataString"))
 		{
-			data_string = data_string_jni;
-		}
-
-		if (data_string.starts_with("wivrn://"))
-		{
-			server_address = data_string.substr(strlen("wivrn://"));
-		}
-
-		if (data_string.starts_with("wivrn+tcp://"))
-		{
-			server_address = data_string.substr(strlen("wivrn+tcp://"));
-			server_tcp_only = true;
+			spdlog::info("Started with intent {}", (std::string)data_string);
+			set_server_uri(data_string);
 		}
 
 		auto files_dir = ctx.call<jni::object<"java/io/File">>("getFilesDir");

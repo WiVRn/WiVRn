@@ -7,7 +7,7 @@ set(KTX_FEATURE_LOADTEST_APPS OFF)
 
 set(FASTGLTF_COMPILE_AS_CPP20 ON)
 
-FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb libktx implot)
+FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb libktx implot uni-algo)
 
 if (NOT BOOST_FOUND)
     FetchContent_MakeAvailable(boost)
@@ -90,6 +90,8 @@ target_compile_features(wivrn-imgui PRIVATE cxx_std_23)
 target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
 
 target_link_libraries(wivrn wivrn-imgui)
+
+target_link_libraries(wivrn uni-algo)
 
 target_compile_features(wivrn PRIVATE cxx_std_23)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")

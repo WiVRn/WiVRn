@@ -24,6 +24,7 @@
 #include <thread>
 
 #ifdef __ANDROID__
+#include "android/battery.h"
 #include "android/jnipp.h"
 #endif
 
@@ -159,22 +160,8 @@ void scenes::stream::tracking()
 #ifdef __ANDROID__
 	// Runtime may use JNI and needs the thread to be attached
 	application::instance().setup_jni();
-	jni::object<""> act(application::native_app()->activity->clazz);
-	auto app = act.call<jni::object<"android/app/Application">>("getApplication");
-	auto ctx = app.call<jni::object<"android/content/Context">>("getApplicationContext");
 
-	jni::string filter_jstr("android.intent.action.BATTERY_CHANGED");
-	jni::string level_jstr("level");
-	jni::string scale_jstr("scale");
-	jni::string plugged_jstr("plugged");
-	jni::Int default_jint(-1);
-
-	auto receiver_jobj = jni::object<"android/content/BroadcastReceiver">(NULL);
-	auto filter_jobj = jni::new_object<"android/content/IntentFilter">(filter_jstr);
-
-	auto register_receiver = jni::klass("android/content/Context")
-	                                 .method<jni::object<"android/content/Intent">>("registerReceiver", receiver_jobj, filter_jobj);
-	auto get_int_extra = jni::klass("android/content/Intent").method<jni::Int>("getIntExtra", level_jstr, default_jint);
+	battery battery_tracker;
 
 	XrTime next_battery_check = 0;
 	const XrDuration battery_check_interval = 30'000'000'000; // 30s
@@ -313,24 +300,13 @@ void scenes::stream::tracking()
 			if (next_battery_check < now and control.enabled[size_t(tid::battery)])
 			{
 				timer t2(instance);
-				from_headset::battery battery{};
-				auto intent = ctx.call<jni::object<"android/content/Intent">>(register_receiver, receiver_jobj, filter_jobj);
-				if (intent)
-				{
-					auto level_jint = intent.call<jni::Int>(get_int_extra, level_jstr, default_jint);
-					auto scale_jint = intent.call<jni::Int>(get_int_extra, scale_jstr, default_jint);
 
-					if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
-					{
-						battery.present = true;
-						battery.charge = (float)(level_jint.value) / (float)(scale_jint.value);
-					}
-
-					auto plugged_jint = intent.call<jni::Int>(get_int_extra, plugged_jstr, default_jint);
-					battery.charging = plugged_jint && plugged_jint.value > 0;
-				}
-
-				network_session->send_stream(battery);
+				auto status = battery_tracker.get();
+				network_session->send_stream(from_headset::battery{
+				        .charge = status.charge.value_or(-1),
+				        .present = status.charge.has_value(),
+				        .charging = status.charging,
+				});
 
 				next_battery_check = now + battery_check_interval;
 				XrDuration battery_dur = t2.count();
