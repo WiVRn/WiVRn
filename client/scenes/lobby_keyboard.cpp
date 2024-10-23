@@ -41,7 +41,7 @@ static const ImGuiKey key_symbols_letter = (ImGuiKey)(ImGuiKey_NamedKey_END + 2)
 // See https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fallback/main.qml
 virtual_keyboard::layout qwerty = {
         {
-                {0.5, u"", ImGuiKey_None, "", false},
+                {0.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"q"},
                 {1, u"w"},
                 {1, u"eéèêë"},
@@ -52,10 +52,10 @@ virtual_keyboard::layout qwerty = {
                 {1, u"iîïīĩiìí"},
                 {1, u"oœøõôöòó"},
                 {1, u"p"},
-                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT},
+                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT, virtual_keyboard::key_flag_repeat},
         }, // 12
         {
-                {1, u"", ImGuiKey_None, "", false},
+                {1, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"aaäåãâàá"},
                 {1, u"sšsşś"},
                 {1, u"ddđď"},
@@ -65,10 +65,10 @@ virtual_keyboard::layout qwerty = {
                 {1, u"j"},
                 {1, u"k"},
                 {1, u"lĺŀłļľl"},
-                {2, u"", ImGuiKey_None, "", false},
+                {2, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
         }, // 12
         {
-                {1.5, u"", ImGuiKey_LeftShift, ICON_FA_CHEVRON_UP},
+                {1.5, u"", ImGuiKey_LeftShift},
                 {1, u"zzžż"},
                 {1, u"x"},
                 {1, u"cçcċčć"},
@@ -79,21 +79,21 @@ virtual_keyboard::layout qwerty = {
                 {1, u","},
                 {1, u"."},
                 // {1, u"-"},
-                {1.5, u"", ImGuiKey_RightShift, ICON_FA_CHEVRON_UP},
+                {1.5, u"", ImGuiKey_RightShift},
         }, // 12
         {
-                {2, u"", ImGuiKey_None, "", false},
+                {2, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"", key_symbols_letter, "?123"},
                 {1, u"", key_layout, ICON_FA_GLOBE},
                 {5, u" "},
-                {3, u"", ImGuiKey_None, "", false},
+                {3, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
         } // 12
 };
 
 // See https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fr_FR/main.qml
 virtual_keyboard::layout azerty = {
         {
-                {0.5, u"", ImGuiKey_None, "", false},
+                {0.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"aàâæ"},
                 {1, u"z"},
                 {1, u"eéèêë"},
@@ -104,10 +104,10 @@ virtual_keyboard::layout azerty = {
                 {1, u"iîï"},
                 {1, u"oôœ"},
                 {1, u"p"},
-                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT},
+                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT, virtual_keyboard::key_flag_repeat},
         }, // 12
         {
-                {1, u"", ImGuiKey_None, "", false},
+                {1, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"q"},
                 {1, u"s"},
                 {1, u"d"},
@@ -118,10 +118,10 @@ virtual_keyboard::layout azerty = {
                 {1, u"k"},
                 {1, u"l"},
                 {1, u"m"},
-                {1, u"", ImGuiKey_None, "", false},
+                {1, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
         }, // 12
         {
-                {1.5, u"", ImGuiKey_LeftShift, ICON_FA_CHEVRON_UP},
+                {1.5, u"", ImGuiKey_LeftShift},
                 {1, u"w"},
                 {1, u"x"},
                 {1, u"cç"},
@@ -131,14 +131,14 @@ virtual_keyboard::layout azerty = {
                 {1, u","},
                 {1, u"."},
                 {1, u"-"},
-                {1.5, u"", ImGuiKey_RightShift, ICON_FA_CHEVRON_UP},
+                {1.5, u"", ImGuiKey_RightShift},
         }, // 12
         {
-                {2, u"", ImGuiKey_None, "", false},
+                {2, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"", key_symbols_letter, "?123"},
                 {1, u"", key_layout, ICON_FA_GLOBE},
                 {5, u" "},
-                {3, u"", ImGuiKey_None, "", false},
+                {3, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
         } // 12
 };
 
@@ -150,7 +150,7 @@ std::array layouts = {&qwerty, &azerty};
 
 virtual_keyboard::layout symbols = {
         {
-                {0.5, u"", ImGuiKey_None, "", false},
+                {0.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"1"},
                 {1, u"2"},
                 {1, u"3"},
@@ -161,10 +161,10 @@ virtual_keyboard::layout symbols = {
                 {1, u"8"},
                 {1, u"9"},
                 {1, u"0"},
-                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT},
+                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT, virtual_keyboard::key_flag_repeat},
         }, // 12
         {
-                {1, u"", ImGuiKey_None, "", false},
+                {1, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
                 {1, u"@"},
                 {1, u"#"},
                 {1, u"%"},
@@ -175,11 +175,11 @@ virtual_keyboard::layout symbols = {
                 {1, u"+"},
                 {1, u"("},
                 {1, u")"},
-                {1, u"", ImGuiKey_None, "", false},
+                {1, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
         }, // 12
         {
-                {1.5, u"", ImGuiKey_None, "", false},
-                {1, u"", ImGuiKey_None, "1/2", false},
+                {1.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+                {1, u"", ImGuiKey_None, "1/2", virtual_keyboard::key_flag_hidden},
                 {1, u"\""},
                 {1, u"<"},
                 {1, u">"},
@@ -188,13 +188,13 @@ virtual_keyboard::layout symbols = {
                 {1, u"/"},
                 {1, u"!"},
                 {1, u"?"},
-                {1.5, u"", ImGuiKey_None, "", false},
+                {1.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
         }, // 12
         {
                 {1, u"", key_symbols_letter, "ABC"},
                 {1, u"", key_layout, ICON_FA_GLOBE},
                 {5, u" "},
-                {3, u"", ImGuiKey_None, "", false},
+                {3, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
         },
 };
 
@@ -259,17 +259,17 @@ static std::string to_utf8(char32_t c)
 // }
 
 // Mostly copied from ImGui::ButtonBehavior, massively simplified for the keyboard use case, don't take focus when clicked
-bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held)
+bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags)
 {
-	static ImGuiID ActiveId;
 	ImGuiContext & g = *GImGui;
 
-	ImGuiButtonFlags flags;
-
-	if (g.IO.MouseSource == ImGuiMouseSource_VRHandTracking)
-		flags = ImGuiButtonFlags_PressedOnClick;
-	else
-		flags = ImGuiButtonFlags_PressedOnClickRelease;
+	if ((flags & ImGuiButtonFlags_PressedOnMask_) == 0)
+	{
+		if (g.IO.MouseSource == ImGuiMouseSource_VRHandTracking)
+			flags |= ImGuiButtonFlags_PressedOnClick;
+		else
+			flags |= ImGuiButtonFlags_PressedOnClickRelease;
+	}
 
 	bool pressed = false;
 	bool hovered = g.HoveredWindow == g.CurrentWindow and ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
@@ -282,9 +282,11 @@ bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool * out
 		bool mouse_button_clicked = ImGui::IsMouseClicked(0, ImGuiInputFlags_None, id);
 
 		// Process initial action
-		if (mouse_button_clicked && ActiveId != id)
+		if (mouse_button_clicked && active_id != id)
 		{
-			ActiveId = id;
+			active_id = id;
+			held_duration = 0;
+
 			if (flags & ImGuiButtonFlags_PressedOnClick)
 				pressed = true;
 		}
@@ -292,16 +294,29 @@ bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool * out
 
 	// Process while held
 	bool held = false;
-	if (ActiveId == id)
+	if (active_id == id)
 	{
 		if (ImGui::IsMouseDown(0, id))
+		{
 			held = true;
+
+			float prev_held_duration = held_duration;
+			held_duration += g.IO.DeltaTime;
+			if (flags & ImGuiButtonFlags_Repeat and held_duration > g.IO.KeyRepeatDelay)
+			{
+				int n1 = (prev_held_duration - g.IO.KeyRepeatDelay) / g.IO.KeyRepeatRate;
+				int n2 = (held_duration - g.IO.KeyRepeatDelay) / g.IO.KeyRepeatRate;
+
+				if (n2 != n1)
+					pressed = true;
+			}
+		}
 		else
 		{
 			if (hovered && (flags & ImGuiButtonFlags_PressedOnClickRelease))
 				pressed = true;
 
-			ActiveId = 0;
+			active_id = 0;
 		}
 	}
 
@@ -360,8 +375,13 @@ bool virtual_keyboard::draw_single_key(const key & k, int key_id, ImVec2 size_ar
 	if (!ImGui::ItemAdd(bb, id))
 		return false;
 
+	ImGuiButtonFlags flags = ImGuiButtonFlags_None;
+
+	if (k.flag & key_flag_repeat)
+		flags |= ImGuiButtonFlags_Repeat;
+
 	bool held;
-	bool pressed = button_behavior(bb, id, &hovered, &held);
+	bool pressed = button_behavior(bb, id, &hovered, &held, flags);
 
 	// Render
 	bool active = (held and hovered) or (is_shift and current_case_mode == case_mode::caps_lock);
@@ -475,7 +495,7 @@ void virtual_keyboard::display(ImVec2 size, ImGuiID & hovered_id)
 
 		for (const auto & key: row)
 		{
-			if (key.visible)
+			if (!(key.flag & key_flag_hidden))
 			{
 				ImGui::SetCursorPos(key_position);
 

@@ -28,13 +28,20 @@ struct ImRect;
 class virtual_keyboard
 {
 public:
+	enum key_flags
+	{
+		key_flag_none = 0,
+		key_flag_hidden = 1 << 0,
+		key_flag_repeat = 1 << 1,
+	};
+
 	struct key
 	{
 		float width;
 		const std::u16string_view characters;
 		ImGuiKey key = ImGuiKey_None;
 		const char * glyph = nullptr;
-		bool visible = true;
+		key_flags flag = key_flag_none;
 	};
 
 	using layout = std::vector<std::vector<key>>;
@@ -47,12 +54,14 @@ public:
 	};
 
 private:
-	bool button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held);
+	bool button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags = 0);
 	bool draw_single_key(const key & k, int key_id, ImVec2 size_arg, bool & hovered);
 	void press_single_key(const key & k);
 
-	case_mode current_case_mode = case_mode::lower;
+	ImGuiID active_id = 0;
+	float held_duration = 0;
 
+	case_mode current_case_mode = case_mode::lower;
 	int current_layout = 0;
 	bool symbols_shown = false;
 
