@@ -847,6 +847,8 @@ static const char * get_face_icon(XrTime predicted_display_time)
 
 void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 {
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
+
 	const float win_width = ImGui::GetWindowSize().x;
 	float text_width = 0;
 	auto & config = application::get_config();
@@ -929,6 +931,8 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
 	}
+
+	ImGui::PopStyleVar();
 }
 
 void scenes::lobby::gui_keyboard()
