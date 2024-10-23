@@ -53,6 +53,7 @@ class lobby : public scene_impl<lobby>
 	char add_server_window_prettyname[200];
 	char add_server_window_hostname[200];
 	int add_server_window_port;
+	bool add_server_tcp_only;
 
 	utils::future<std::unique_ptr<wivrn_session>, std::string> async_session;
 	std::optional<std::string> async_error;
@@ -116,7 +117,7 @@ class lobby : public scene_impl<lobby>
 	void draw_features_status(XrTime predicted_display_time);
 	void gui_connecting();
 	void gui_server_list();
-	void gui_add_server();
+	void gui_new_server();
 	void gui_settings();
 	void gui_about();
 	void gui_licenses();

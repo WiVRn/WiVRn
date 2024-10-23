@@ -142,6 +142,36 @@ virtual_keyboard::layout azerty = {
         } // 12
 };
 
+virtual_keyboard::layout digits = {
+        {
+                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+                {1, u"1"},
+                {1, u"2"},
+                {1, u"3"},
+                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+        }, // 12
+        {
+                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+                {1, u"4"},
+                {1, u"5"},
+                {1, u"6"},
+                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+        }, // 12
+        {
+                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+                {1, u"7"},
+                {1, u"8"},
+                {1, u"9"},
+                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+        }, // 12
+        {
+                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+                {2, u"0"},
+                {1, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT, virtual_keyboard::key_flag_repeat},
+                {4.5, u"", ImGuiKey_None, "", virtual_keyboard::key_flag_hidden},
+        } // 12
+};
+
 // // See https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fallback/main.qml
 // virtual_keyboard::layout qwertz = {
 // };
@@ -455,7 +485,15 @@ void virtual_keyboard::display(ImVec2 size, ImGuiID & hovered_id)
 {
 	ImGuiStyle & style = ImGui::GetStyle();
 
-	auto & layout = symbols_shown ? symbols : *layouts[current_layout];
+	auto & layout = [&]() -> auto & {
+		if (ImGuiInputTextState * input_state = ImGui::GetInputTextState(ImGui::GetCurrentContext()->ActiveId);
+		    input_state and (input_state->Flags & ImGuiInputTextFlags_CharsDecimal) != 0)
+			return digits;
+		else if (symbols_shown)
+			return symbols;
+		else
+			return *layouts[current_layout];
+	}();
 
 	// Compute keys size
 	float key_height = [&]() {
