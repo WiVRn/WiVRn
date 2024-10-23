@@ -97,6 +97,11 @@ public:
 		// Position of this viewport in the swapchain image
 		glm::ivec2 vp_origin;
 		glm::ivec2 vp_size;
+
+		ImVec2 vp_center() const
+		{
+			return ImVec2(vp_origin.x + int(vp_size.x / 2), vp_origin.y + int(vp_size.y / 2));
+		}
 	};
 
 private:

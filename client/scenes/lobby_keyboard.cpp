@@ -19,101 +19,184 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
+#include <cctype>
+#include <limits>
+#include <spdlog/spdlog.h>
+#include <string_view>
+#include <unicode/uchar.h>
+
+#include "IconsFontAwesome6.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "lobby.h"
+#include "lobby_keyboard.h"
 
-#include <cwchar>
-#include <ranges>
-#include <unicode/uchar.h> // u_toupper
+// #include <stdexcept>
+// #include <cwchar>
+// #include <ranges>
+// #include <unicode/ustring.h> // u_strToUpper
 
-struct key
-{
-	float width;
-	const std::u32string_view characters;
-	ImGuiKey key = ImGuiKey_None;
-	bool visible = true;
+static const ImGuiKey key_layout = (ImGuiKey)(ImGuiKey_NamedKey_END + 1);
+static const ImGuiKey key_symbols_letter = (ImGuiKey)(ImGuiKey_NamedKey_END + 2);
+
+// See https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fallback/main.qml
+virtual_keyboard::layout qwerty = {
+        {
+                {0.5, u"", ImGuiKey_None, "", false},
+                {1, u"q"},
+                {1, u"w"},
+                {1, u"eéèêë"},
+                {1, u"rŕrř"},
+                {1, u"tţtŧť"},
+                {1, u"yÿyýŷ"},
+                {1, u"uűūũûüuùú"},
+                {1, u"iîïīĩiìí"},
+                {1, u"oœøõôöòó"},
+                {1, u"p"},
+                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT},
+        }, // 12
+        {
+                {1, u"", ImGuiKey_None, "", false},
+                {1, u"aaäåãâàá"},
+                {1, u"sšsşś"},
+                {1, u"ddđď"},
+                {1, u"f"},
+                {1, u"gġgģĝğ"},
+                {1, u"h"},
+                {1, u"j"},
+                {1, u"k"},
+                {1, u"lĺŀłļľl"},
+                {2, u"", ImGuiKey_None, "", false},
+        }, // 12
+        {
+                {1.5, u"", ImGuiKey_LeftShift, ICON_FA_CHEVRON_UP},
+                {1, u"zzžż"},
+                {1, u"x"},
+                {1, u"cçcċčć"},
+                {1, u"v"},
+                {1, u"b"},
+                {1, u"nņńnň"},
+                {1, u"m"},
+                {1, u","},
+                {1, u"."},
+                // {1, u"-"},
+                {1.5, u"", ImGuiKey_RightShift, ICON_FA_CHEVRON_UP},
+        }, // 12
+        {
+                {2, u"", ImGuiKey_None, "", false},
+                {1, u"", key_symbols_letter, "?123"},
+                {1, u"", key_layout, ICON_FA_GLOBE},
+                {5, u" "},
+                {3, u"", ImGuiKey_None, "", false},
+        } // 12
 };
 
-using keyboard_layout = std::vector<std::vector<key>>;
+// See https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fr_FR/main.qml
+virtual_keyboard::layout azerty = {
+        {
+                {0.5, u"", ImGuiKey_None, "", false},
+                {1, u"aàâæ"},
+                {1, u"z"},
+                {1, u"eéèêë"},
+                {1, u"r"},
+                {1, u"t"},
+                {1, u"yÿ"},
+                {1, u"uùûü"},
+                {1, u"iîï"},
+                {1, u"oôœ"},
+                {1, u"p"},
+                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT},
+        }, // 12
+        {
+                {1, u"", ImGuiKey_None, "", false},
+                {1, u"q"},
+                {1, u"s"},
+                {1, u"d"},
+                {1, u"f"},
+                {1, u"g"},
+                {1, u"h"},
+                {1, u"j"},
+                {1, u"k"},
+                {1, u"l"},
+                {1, u"m"},
+                {1, u"", ImGuiKey_None, "", false},
+        }, // 12
+        {
+                {1.5, u"", ImGuiKey_LeftShift, ICON_FA_CHEVRON_UP},
+                {1, u"w"},
+                {1, u"x"},
+                {1, u"cç"},
+                {1, u"v"},
+                {1, u"b"},
+                {1, u"n"},
+                {1, u","},
+                {1, u"."},
+                {1, u"-"},
+                {1.5, u"", ImGuiKey_RightShift, ICON_FA_CHEVRON_UP},
+        }, // 12
+        {
+                {2, u"", ImGuiKey_None, "", false},
+                {1, u"", key_symbols_letter, "?123"},
+                {1, u"", key_layout, ICON_FA_GLOBE},
+                {5, u" "},
+                {3, u"", ImGuiKey_None, "", false},
+        } // 12
+};
 
-keyboard_layout azerty = {
-        {
-                {1, U"aàâæ"},
-                {1, U"z"},
-                {1, U"eéèêë"},
-                {1, U"r"},
-                {1, U"t"},
-                {1, U"yÿ"},
-                {1, U"uùûü"},
-                {1, U"iîï"},
-                {1, U"oôœ"},
-                {1, U"p"},
-                {2, U"", ImGuiKey_Backslash},
-        },
-        {
-                {1, U"q"},
-                {1, U"s"},
-                {1, U"d"},
-                {1, U"f"},
-                {1, U"g"},
-                {1, U"h"},
-                {1, U"j"},
-                {1, U"k"},
-                {1, U"l"},
-                {1, U"m"},
-        },
-        {
-                {2, U"", ImGuiKey_LeftShift},
-                {1, U"w"},
-                {1, U"x"},
-                {1, U"cç"},
-                {1, U"v"},
-                {1, U"b"},
-                {1, U"n"},
-                {1, U",?"},
-                {1, U";."},
-                {1, U":/"},
-                {1, U"!§"},
-        }};
+// // See https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fallback/main.qml
+// virtual_keyboard::layout qwertz = {
+// };
 
-keyboard_layout symbols = {
+std::array layouts = {&qwerty, &azerty};
+
+virtual_keyboard::layout symbols = {
         {
-                {1, U"1"},
-                {1, U"2"},
-                {1, U"3"},
-                {1, U"4"},
-                {1, U"5"},
-                {1, U"6"},
-                {1, U"7"},
-                {1, U"8"},
-                {1, U"9"},
-                {1, U"0"},
+                {0.5, u"", ImGuiKey_None, "", false},
+                {1, u"1"},
+                {1, u"2"},
+                {1, u"3"},
+                {1, u"4"},
+                {1, u"5"},
+                {1, u"6"},
+                {1, u"7"},
+                {1, u"8"},
+                {1, u"9"},
+                {1, u"0"},
+                {1.5, u"", ImGuiKey_Backspace, ICON_FA_DELETE_LEFT},
+        }, // 12
+        {
+                {1, u"", ImGuiKey_None, "", false},
+                {1, u"@"},
+                {1, u"#"},
+                {1, u"%"},
+                {1, u"&"},
+                {1, u"*"},
+                {1, u"_"},
+                {1, u"-"},
+                {1, u"+"},
+                {1, u"("},
+                {1, u")"},
+                {1, u"", ImGuiKey_None, "", false},
+        }, // 12
+        {
+                {1.5, u"", ImGuiKey_None, "", false},
+                {1, u"", ImGuiKey_None, "1/2", false},
+                {1, u"\""},
+                {1, u"<"},
+                {1, u">"},
+                {1, u"'"},
+                {1, u":"},
+                {1, u"/"},
+                {1, u"!"},
+                {1, u"?"},
+                {1.5, u"", ImGuiKey_None, "", false},
+        }, // 12
+        {
+                {1, u"", key_symbols_letter, "ABC"},
+                {1, u"", key_layout, ICON_FA_GLOBE},
+                {5, u" "},
+                {3, u"", ImGuiKey_None, "", false},
         },
-        {
-                {1, U"@"},
-                {1, U"#"},
-                {1, U"%"},
-                {1, U"&"},
-                {1, U"*"},
-                {1, U"_"},
-                {1, U"-"},
-                {1, U"+"},
-                {1, U"("},
-                {1, U")"},
-        },
-        {
-                {1, U"\""},
-                {1, U"<"},
-                {1, U">"},
-                {1, U"'"},
-                {1, U"*"},
-                {1, U":"},
-                {1, U"/"},
-                {1, U"!"},
-                {1, U"?"},
-                {1, U""},
-        }};
+};
 
 static std::string to_utf8(char32_t c)
 {
@@ -145,228 +228,250 @@ static std::string to_utf8(char32_t c)
 	return s;
 }
 
-static bool button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held, ImGuiButtonFlags flags)
+// static std::string to_utf8(std::u16string_view str)
+// {
+// 	std::string s;
+// 	for(char16_t c: str)
+// 		s += to_utf8(c);
+//
+// 	return s;
+// }
+//
+// static std::u16string str_to_upper(std::u16string_view text)
+// {
+// 	UErrorCode err = U_ZERO_ERROR;
+//
+// 	size_t size = u_strToUpper(nullptr, 0, text.data(), text.size(), "" /* locale*/, &err);
+//
+// 	if (U_FAILURE(err))
+// 		throw std::runtime_error(std::string("u_strToUpper: ") + u_errorName(err));
+//
+// 	std::u16string upper;
+// 	upper.resize(size);
+//
+// 	err = U_ZERO_ERROR;
+// 	u_strToUpper(nullptr, 0, text.data(), text.size(), "" /* locale*/, &err);
+//
+// 	if (U_FAILURE(err))
+// 		throw std::runtime_error(std::string("u_strToUpper: ") + u_errorName(err));
+//
+// 	return upper;
+// }
+
+// Mostly copied from ImGui::ButtonBehavior, massively simplified for the keyboard use case, don't take focus when clicked
+bool virtual_keyboard::button_behavior(const ImRect & bb, ImGuiID id, bool * out_hovered, bool * out_held)
 {
-	// ImGuiContext & g = *GImGui;
-	// ImGuiWindow * window = ImGui::GetCurrentWindow();
-	//
-	// // Default behavior inherited from item flags
-	// // Note that _both_ ButtonFlags and ItemFlags are valid sources, so copy one into the item_flags and only check that.
-	// ImGuiItemFlags item_flags = (g.LastItemData.ID == id ? g.LastItemData.InFlags : g.CurrentItemFlags);
-	// if (flags & ImGuiButtonFlags_AllowOverlap)
-	// 	item_flags |= ImGuiItemFlags_AllowOverlap;
-	// if (flags & ImGuiButtonFlags_Repeat)
-	// 	item_flags |= ImGuiItemFlags_ButtonRepeat;
+	static ImGuiID ActiveId;
+	ImGuiContext & g = *GImGui;
+
+	ImGuiButtonFlags flags;
+
+	if (g.IO.MouseSource == ImGuiMouseSource_VRHandTracking)
+		flags = ImGuiButtonFlags_PressedOnClick;
+	else
+		flags = ImGuiButtonFlags_PressedOnClickRelease;
 
 	bool pressed = false;
-	// bool hovered = ImGui::ItemHoverable(bb, id, item_flags);
-	//
-	// // Mouse handling
-	// const ImGuiID test_owner_id = (flags & ImGuiButtonFlags_NoTestKeyOwner) ? ImGuiKeyOwner_Any : id;
-	// if (hovered)
-	// {
-	// 	// Poll mouse buttons
-	// 	// - 'mouse_button_clicked' is generally carried into ActiveIdMouseButton when setting ActiveId.
-	// 	// - Technically we only need some values in one code path, but since this is gated by hovered test this is fine.
-	// 	int mouse_button_clicked = -1;
-	// 	int mouse_button_released = -1;
-	// 	for (int button = 0; button < 3; button++)
-	// 		if (flags & (ImGuiButtonFlags_MouseButtonLeft << button)) // Handle ImGuiButtonFlags_MouseButtonRight and ImGuiButtonFlags_MouseButtonMiddle here.
-	// 		{
-	// 			if (ImGui::IsMouseClicked(button, test_owner_id) && mouse_button_clicked == -1)
-	// 			{
-	// 				mouse_button_clicked = button;
-	// 			}
-	// 			if (ImGui::IsMouseReleased(button, test_owner_id) && mouse_button_released == -1)
-	// 			{
-	// 				mouse_button_released = button;
-	// 			}
-	// 		}
-	//
-	// 	// Process initial action
-	// 	if (!(flags & ImGuiButtonFlags_NoKeyModifiers) || (!g.IO.KeyCtrl && !g.IO.KeyShift && !g.IO.KeyAlt))
-	// 	{
-	// 		if (mouse_button_clicked != -1 && g.ActiveId != id)
-	// 		{
-	// 			if (!(flags & ImGuiButtonFlags_NoSetKeyOwner))
-	// 				ImGui::SetKeyOwner(ImGui::MouseButtonToKey(mouse_button_clicked), id);
-	// 			if (flags & (ImGuiButtonFlags_PressedOnClickRelease | ImGuiButtonFlags_PressedOnClickReleaseAnywhere))
-	// 			{
-	// 				// ImGui::SetActiveID(id, window);
-	// 				g.ActiveIdMouseButton = mouse_button_clicked;
-	// 				if (!(flags & ImGuiButtonFlags_NoNavFocus))
-	// 					ImGui::SetFocusID(id, window);
-	// 				ImGui::FocusWindow(window);
-	// 			}
-	// 			if ((flags & ImGuiButtonFlags_PressedOnClick) || ((flags & ImGuiButtonFlags_PressedOnDoubleClick) && g.IO.MouseClickedCount[mouse_button_clicked] == 2))
-	// 			{
-	// 				pressed = true;
-	// 				// if (flags & ImGuiButtonFlags_NoHoldingActiveId)
-	// 				//     ImGui::ClearActiveID();
-	// 				// else
-	// 				//     ImGui::SetActiveID(id, window); // Hold on ID
-	// 				if (!(flags & ImGuiButtonFlags_NoNavFocus))
-	// 					ImGui::SetFocusID(id, window);
-	// 				g.ActiveIdMouseButton = mouse_button_clicked;
-	// 				ImGui::FocusWindow(window);
-	// 			}
-	// 		}
-	// 		if (flags & ImGuiButtonFlags_PressedOnRelease)
-	// 		{
-	// 			if (mouse_button_released != -1)
-	// 			{
-	// 				const bool has_repeated_at_least_once = (item_flags & ImGuiItemFlags_ButtonRepeat) && g.IO.MouseDownDurationPrev[mouse_button_released] >= g.IO.KeyRepeatDelay; // Repeat mode trumps on release behavior
-	// 				if (!has_repeated_at_least_once)
-	// 					pressed = true;
-	// 				if (!(flags & ImGuiButtonFlags_NoNavFocus))
-	// 					ImGui::SetFocusID(id, window);
-	// 				// ImGui::ClearActiveID();
-	// 			}
-	// 		}
-	//
-	// 		// 'Repeat' mode acts when held regardless of _PressedOn flags (see table above).
-	// 		// Relies on repeat logic of IsMouseClicked() but we may as well do it ourselves if we end up exposing finer RepeatDelay/RepeatRate settings.
-	// 		if (g.ActiveId == id && (item_flags & ImGuiItemFlags_ButtonRepeat))
-	// 			if (g.IO.MouseDownDuration[g.ActiveIdMouseButton] > 0.0f && ImGui::IsMouseClicked(g.ActiveIdMouseButton, test_owner_id, ImGuiInputFlags_Repeat))
-	// 				pressed = true;
-	// 	}
-	//
-	// 	if (pressed)
-	// 		g.NavDisableHighlight = true;
-	// }
-	//
-	// // Process while held
-	// bool held = false;
-	// if (g.ActiveId == id)
-	// {
-	// 	if (g.ActiveIdSource == ImGuiInputSource_Mouse)
-	// 	{
-	// 		if (g.ActiveIdIsJustActivated)
-	// 			g.ActiveIdClickOffset = g.IO.MousePos - bb.Min;
-	//
-	// 		const int mouse_button = g.ActiveIdMouseButton;
-	// 		if (mouse_button == -1)
-	// 		{
-	// 			// Fallback for the rare situation were g.ActiveId was set programmatically or from another widget (e.g. #6304).
-	// 			// ImGui::ClearActiveID();
-	// 		}
-	// 		else if (ImGui::IsMouseDown(mouse_button, test_owner_id))
-	// 		{
-	// 			held = true;
-	// 		}
-	// 		else
-	// 		{
-	// 			bool release_in = hovered && (flags & ImGuiButtonFlags_PressedOnClickRelease) != 0;
-	// 			bool release_anywhere = (flags & ImGuiButtonFlags_PressedOnClickReleaseAnywhere) != 0;
-	// 			if ((release_in || release_anywhere) && !g.DragDropActive)
-	// 			{
-	// 				// Report as pressed when releasing the mouse (this is the most common path)
-	// 				bool is_double_click_release = (flags & ImGuiButtonFlags_PressedOnDoubleClick) && g.IO.MouseReleased[mouse_button] && g.IO.MouseClickedLastCount[mouse_button] == 2;
-	// 				bool is_repeating_already = (item_flags & ImGuiItemFlags_ButtonRepeat) && g.IO.MouseDownDurationPrev[mouse_button] >= g.IO.KeyRepeatDelay; // Repeat mode trumps <on release>
-	// 				bool is_button_avail_or_owned = ImGui::TestKeyOwner(ImGui::MouseButtonToKey(mouse_button), test_owner_id);
-	// 				if (!is_double_click_release && !is_repeating_already && is_button_avail_or_owned)
-	// 					pressed = true;
-	// 			}
-	// 			// ImGui::ClearActiveID();
-	// 		}
-	// 		if (!(flags & ImGuiButtonFlags_NoNavFocus))
-	// 			g.NavDisableHighlight = true;
-	// 	}
-	// 	else if (g.ActiveIdSource == ImGuiInputSource_Keyboard || g.ActiveIdSource == ImGuiInputSource_Gamepad)
-	// 	{
-	// 		// When activated using Nav, we hold on the ActiveID until activation button is released
-	// 		// if (g.NavActivateDownId != id)
-	// 		//     ImGui::ClearActiveID();
-	// 	}
-	// 	if (pressed)
-	// 		g.ActiveIdHasBeenPressedBefore = true;
-	// }
-	//
-	// if (out_hovered)
-	// 	*out_hovered = hovered;
-	// if (out_held)
-	// 	*out_held = held;
+	bool hovered = g.HoveredWindow == g.CurrentWindow and ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
+	// ImGui::ItemHoverable;
+
+	// Mouse handling
+	if (hovered)
+	{
+		// Changed wrt original imgui: only 1 button is present
+		bool mouse_button_clicked = ImGui::IsMouseClicked(0, ImGuiInputFlags_None, id);
+
+		// Process initial action
+		if (mouse_button_clicked && ActiveId != id)
+		{
+			ActiveId = id;
+			if (flags & ImGuiButtonFlags_PressedOnClick)
+				pressed = true;
+		}
+	}
+
+	// Process while held
+	bool held = false;
+	if (ActiveId == id)
+	{
+		if (ImGui::IsMouseDown(0, id))
+			held = true;
+		else
+		{
+			if (hovered && (flags & ImGuiButtonFlags_PressedOnClickRelease))
+				pressed = true;
+
+			ActiveId = 0;
+		}
+	}
+
+	if (out_hovered)
+		*out_hovered = hovered;
+
+	if (out_held)
+		*out_held = held;
 
 	return pressed;
 }
 
-static void draw_single_key(const key & k, int key_id, ImVec2 size_arg)
+bool virtual_keyboard::draw_single_key(const key & k, int key_id, ImVec2 size_arg, bool & hovered)
 {
-	std::string label = k.characters == U"" ? "" : to_utf8(k.characters[0]);
-	label += "##virtual_keyboard_key_" + std::to_string(key_id);
+	std::string key_label;
 
-	// ImGui::Button(label.c_str(), size);
+	bool is_shift = k.key == ImGuiKey_LeftShift or k.key == ImGuiKey_RightShift;
 
-	int flags = (int)ImGuiButtonFlags_PressedOnClickRelease | (int)ImGuiButtonFlags_MouseButtonLeft | (int)ImGuiButtonFlags_NoNavFocus;
+	if (k.characters.empty())
+	{
+		if (is_shift)
+			key_label = (current_case_mode == case_mode::lower) ? ICON_FA_CHEVRON_UP : ICON_FA_CIRCLE_CHEVRON_UP;
+		else
+			key_label = k.glyph;
+	}
+	else if (current_case_mode == case_mode::lower)
+	{
+		key_label = to_utf8(k.characters[0]);
+	}
+	else
+	{
+		// FIXME: use ICU
+		key_label = to_utf8(/*u_*/ towupper(k.characters[0]));
+	}
+
+	std::string key_label_id;
+	if (k.characters.empty())
+		key_label_id = "virtual_keyboard_key_" + std::to_string(k.key);
+	else
+		key_label_id = "virtual_keyboard_" + to_utf8(k.characters[0]);
 
 	ImGuiWindow * window = ImGui::GetCurrentWindow();
 	if (window->SkipItems)
-		return /*false*/;
+		return false;
 
 	ImGuiContext & g = *GImGui;
 	const ImGuiStyle & style = g.Style;
-	const ImGuiID id = window->GetID(label.c_str());
-	const ImVec2 label_size = ImGui::CalcTextSize(label.c_str(), NULL, true);
+	const ImGuiID id = window->GetID(key_label_id.c_str());
+	const ImVec2 label_size = ImGui::CalcTextSize(key_label.c_str(), key_label.c_str() + key_label.size(), false /* Don't hide text after # */);
 
 	ImVec2 pos = window->DC.CursorPos;
-	if ((flags & ImGuiButtonFlags_AlignTextBaseLine) && style.FramePadding.y < window->DC.CurrLineTextBaseOffset) // Try to vertically align buttons that are smaller/have no padding so that text baseline matches (bit hacky, since it shouldn't be a flag)
-		pos.y += window->DC.CurrLineTextBaseOffset - style.FramePadding.y;
 	ImVec2 size = ImGui::CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
 
 	const ImRect bb(pos, pos + size);
 	ImGui::ItemSize(size, style.FramePadding.y);
 	if (!ImGui::ItemAdd(bb, id))
-		return /*false*/;
+		return false;
 
-	bool hovered, held;
-	[[maybe_unused]] bool pressed = button_behavior(bb, id, &hovered, &held, flags);
+	bool held;
+	bool pressed = button_behavior(bb, id, &hovered, &held);
 
 	// Render
-	const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered
-	                                                                                         : ImGuiCol_Button);
+	bool active = (held and hovered) or (is_shift and current_case_mode == case_mode::caps_lock);
+
+	const ImU32 col = ImGui::GetColorU32(active ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered
+	                                                                              : ImGuiCol_Button);
 	ImGui::RenderNavHighlight(bb, id);
 	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
 
-	// if (g.LogEnabled)
-	// LogSetNextTextDecoration("[", "]");
-	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label.c_str(), NULL, &label_size, style.ButtonTextAlign, &bb);
+	// ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, key_label.c_str(), nullptr, &label_size, style.ButtonTextAlign, &bb);
+	ImGui::RenderTextClippedEx(
+	        g.CurrentWindow->DrawList,
+	        bb.Min + style.FramePadding,
+	        bb.Max - style.FramePadding,
+	        key_label.c_str(),
+	        key_label.c_str() + key_label.size(),
+	        &label_size,
+	        style.ButtonTextAlign,
+	        &bb);
 
-	// Automatically close popups
-	// if (pressed && !(flags & ImGuiButtonFlags_DontClosePopups) && (window->Flags & ImGuiWindowFlags_Popup))
-	//    CloseCurrentPopup();
+	if (pressed)
+	{
+		press_single_key(k);
+	}
 
-	// IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
-	// return pressed;
+	return pressed;
 }
 
-void scenes::lobby::gui_keyboard(ImVec2 size)
+void virtual_keyboard::press_single_key(const key & k)
 {
-	const keyboard_layout & layout = azerty;
+	if (k.key == ImGuiKey_LeftShift or k.key == ImGuiKey_RightShift)
+	{
+		switch (current_case_mode)
+		{
+			case case_mode::lower:
+				current_case_mode = case_mode::upper;
+				break;
+			case case_mode::upper:
+				current_case_mode = case_mode::caps_lock;
+				break;
+			case case_mode::caps_lock:
+				current_case_mode = case_mode::lower;
+				break;
+		}
+	}
+	else if (k.key != ImGuiKey_None)
+	{
+		ImGui::GetIO().AddKeyEvent(k.key, true);
+		ImGui::GetIO().AddKeyEvent(k.key, false);
+	}
+	else if (not k.characters.empty())
+	{
+		switch (current_case_mode)
+		{
+			case case_mode::lower:
+				ImGui::GetIO().AddInputCharactersUTF8(to_utf8(k.characters[0]).c_str());
+				break;
 
-	int nb_rows = layout.size();
+			case case_mode::upper:
+				current_case_mode = case_mode::lower;
+				[[fallthrough]];
 
-	ImVec2 position = ImGui::GetCursorPos();
+			case case_mode::caps_lock:
+				ImGui::GetIO().AddInputCharactersUTF8(to_utf8(towupper(k.characters[0])).c_str());
+				break;
+		}
+	}
+}
+
+void virtual_keyboard::display(ImVec2 size, ImGuiID & hovered_id)
+{
 	ImGuiStyle & style = ImGui::GetStyle();
 
-	std::vector<float> keys_width;
+	auto & layout = symbols_shown ? symbols : *layouts[current_layout];
 
-	// Size of a key including margin, scaled by the key width later
-	ImVec2 key_size{FLT_MAX, (size.y + style.FramePadding.y) / nb_rows};
+	// Compute keys size
+	float key_height = [&]() {
+		int N = layout.size();
+
+		// size.y == N * key_height + (N - 1) * ItemSpacing.y
+		return (size.y - (N - 1) * style.ItemSpacing.y) / N;
+	}();
+
+	float base_key_width = std::numeric_limits<float>::max();
 	for (const auto & row: layout)
 	{
+		// key.width is scaled by base_key_width to get the real width of the key:
+		// key_width = base_key_width * key.width - ItemSpacing.x
+
+		// size.x == sum(key_width) + (N - 1) * ItemSpacing.x
+		//        == base_key_width * sum(key.width) - ItemSpacing.x
+
 		float total_width = 0;
 		for (auto & key: row)
 			total_width += key.width;
-		keys_width.push_back(total_width);
 
-		float key_width = (size.x + style.FramePadding.x) / total_width;
-		key_size.x = std::min(key_size.x, key_width);
+		base_key_width = std::min(base_key_width, (size.x + style.ItemSpacing.x) / total_width);
 	}
 
+	ImVec2 row_position = ImGui::GetCursorPos();
 	int id = 0;
-	for (const auto & [row, width]: std::views::zip(layout, keys_width))
+
+	for (const auto & row: layout)
 	{
-		ImVec2 key_position = position;
+		ImVec2 key_position = row_position;
+
+		// Align right
+		key_position.x += size.x + style.ItemSpacing.x;
+		for (auto & key: row)
+			key_position.x -= base_key_width * key.width;
 
 		for (const auto & key: row)
 		{
@@ -374,14 +479,35 @@ void scenes::lobby::gui_keyboard(ImVec2 size)
 			{
 				ImGui::SetCursorPos(key_position);
 
-				draw_single_key(key, id++, ImVec2{key_size.x * key.width - style.FramePadding.x, key_size.y - style.FramePadding.y});
+				bool is_hovered;
+				if (draw_single_key(key, id++, ImVec2{base_key_width * key.width - style.ItemSpacing.x, key_height}, is_hovered))
+				{
+					switch ((int)key.key) // cast to int to avoid -Werror=switch
+					{
+						case key_layout:
+							current_layout = (current_layout + 1) % layouts.size();
+							break;
+
+						case key_symbols_letter:
+							symbols_shown = not symbols_shown;
+							break;
+
+						default:
+							break;
+					}
+				}
+
+				if (is_hovered)
+					hovered_id = ImGui::GetItemID();
 			}
 
-			key_position.x += key_size.x * key.width;
+			key_position.x += base_key_width * key.width;
 		}
 
-		position.y += key_size.y;
+		row_position.y += key_height + style.ItemSpacing.y;
 	}
 
-	ImGui::SetCursorPos(position);
+	row_position.y -= style.ItemSpacing.y;
+
+	ImGui::SetCursorPos(row_position);
 }

@@ -161,7 +161,7 @@ void scenes::lobby::gui_add_server()
 	//     https://github.com/qt/qtvirtualkeyboard/blob/dev/src/layouts/fr_FR/main.qml
 	//     https://doc.qt.io/qt-6/qtvirtualkeyboard-layouts.html
 
-	gui_keyboard(ImVec2(1000, 280));
+	// gui_keyboard(ImVec2(1000, 280));
 
 	auto top_left = ImGui::GetWindowContentRegionMin();
 	auto bottom_right = ImGui::GetWindowContentRegionMax();
@@ -912,6 +912,13 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	}
 }
 
+void scenes::lobby::gui_keyboard()
+{
+	ImVec2 size = ImGui::GetWindowSize();
+	ImVec2 padding = ImGui::GetStyle().WindowPadding;
+	keyboard.display({size.x - 2 * padding.x, size.y - 2 * padding.y}, hovered_item);
+}
+
 std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_display_time)
 {
 	for (const auto & [key, server]: application::get_config().servers)
@@ -927,11 +934,34 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 	auto last_hovered = hovered_item;
 	hovered_item = 0;
 
+	if (ImGui::GetIO().WantTextInput)
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {8, 8});
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 8);
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
+		ImGui::SetNextWindowPos(imgui_ctx->layers()[2].vp_center(), ImGuiCond_Always, {0.5, 0.5});
+		ImGui::SetNextWindowSize({1400, 400});
+		ImGui::Begin("VirtualKeyboard", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoFocusOnClick);
+
+		gui_keyboard();
+
+		if (ImGui::IsWindowHovered())
+		{
+			ImGui::GetIO().MouseDown[0] = false;
+			ImGui::GetIO().MouseClicked[0] = false;
+		}
+
+		ImGui::End();
+		ImGui::PopStyleColor(); // ImGuiCol_WindowBg
+		ImGui::PopStyleVar(3);  // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_FrameRounding
+	}
+
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 30);
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
 
-	ImGui::SetNextWindowPos({50, 50});
+	ImGui::SetNextWindowPos(imgui_ctx->layers()[0].vp_center(), ImGuiCond_Always, {0.5, 0.5});
 	ImGui::SetNextWindowSize({1400, 900});
 
 	ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);

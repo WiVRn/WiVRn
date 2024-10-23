@@ -24,6 +24,7 @@
 #include "render/scene_data.h"
 #include "scene.h"
 #include "scenes/hand_model.h"
+#include "scenes/lobby_keyboard.h"
 #include "wifi_lock.h"
 #include "wivrn_discover.h"
 #include <vulkan/vulkan_raii.hpp>
@@ -110,6 +111,8 @@ class lobby : public scene_impl<lobby>
 	tab last_current_tab = tab::server_list;
 	ImTextureID about_picture;
 
+	virtual_keyboard keyboard;
+
 	void draw_features_status(XrTime predicted_display_time);
 	void gui_connecting();
 	void gui_server_list();
@@ -117,7 +120,7 @@ class lobby : public scene_impl<lobby>
 	void gui_settings();
 	void gui_about();
 	void gui_licenses();
-	void gui_keyboard(ImVec2 size);
+	void gui_keyboard();
 
 	void setup_passthrough();
 
