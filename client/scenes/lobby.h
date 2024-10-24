@@ -39,6 +39,10 @@
 #include "render/scene_renderer.h"
 #include "utils/async.h"
 
+#ifdef __ANDROID__
+#include "android/battery.h"
+#endif
+
 class wivrn_session;
 
 namespace scenes
@@ -98,6 +102,10 @@ class lobby : public scene_impl<lobby>
 	std::optional<float> gui_recenter_distance;
 	bool recenter_gui = true;
 	void move_gui(glm::vec3 head_position, glm::vec3 new_gui_position);
+
+#ifdef __ANDROID__
+	battery battery_tracker;
+#endif
 
 	enum class tab
 	{

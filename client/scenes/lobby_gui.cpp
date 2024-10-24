@@ -924,6 +924,13 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	const ImGuiStyle & style = ImGui::GetStyle();
 	text_width += items.size() * style.FramePadding.x * 2;
 
+	// New server button
+	if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add server"))
+		ImGui::OpenPopup("add server");
+	vibrate_on_hover();
+	ImGui::SameLine();
+
+	// Enabled features
 	ImGui::SetCursorPosX((win_width - text_width) / 2);
 	for (auto & i: items)
 	{
@@ -950,6 +957,43 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
 	}
+
+#ifdef __ANDROID__
+	// Battery status
+	auto status = battery_tracker.get();
+
+	const char * battery_icon = nullptr;
+	if (status.charge)
+	{
+		int icon_nr = status.charging ? (application::now() / 500'000'000 % 5) : std::round((*status.charge) * 4);
+
+		switch (icon_nr)
+		{
+			case 0:
+				battery_icon = ICON_FA_BATTERY_EMPTY;
+				break;
+			case 1:
+				battery_icon = ICON_FA_BATTERY_QUARTER;
+				break;
+			case 2:
+				battery_icon = ICON_FA_BATTERY_HALF;
+				break;
+			case 3:
+				battery_icon = ICON_FA_BATTERY_THREE_QUARTERS;
+				break;
+			case 4:
+				battery_icon = ICON_FA_BATTERY_FULL;
+				break;
+		}
+
+		ImGui::SameLine();
+
+		// Always use the longest width for layout
+		float max_battery_width = ImGui::CalcTextSize(ICON_FA_BATTERY_FULL "100%").x;
+		ImGui::SetCursorPosX(win_width - max_battery_width - style.FramePadding.x);
+		ImGui::Text("%s %d%%", battery_icon, (int)std::round(*status.charge * 100));
+	}
+#endif
 }
 
 void scenes::lobby::gui_keyboard()
@@ -999,10 +1043,6 @@ std::vector<XrCompositionLayerQuad> scenes::lobby::draw_gui(XrTime predicted_dis
 		{
 			case tab::server_list:
 				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
-				if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add server"))
-					ImGui::OpenPopup("add server");
-				vibrate_on_hover();
-				ImGui::SameLine();
 				draw_features_status(predicted_display_time);
 				ImGui::PopStyleVar();
 
