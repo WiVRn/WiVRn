@@ -868,7 +868,7 @@ static const char * get_face_icon(XrTime predicted_display_time)
 
 void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 {
-	const float win_width = ImGui::GetWindowSize().x;
+	const float win_width = ImGui::GetContentRegionAvail().x;
 	float text_width = 0;
 	auto & config = application::get_config();
 
