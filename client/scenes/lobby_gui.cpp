@@ -647,14 +647,20 @@ static void ScrollWhenDraggingOnVoid()
 	ImGuiWindow * window = g.CurrentWindow;
 	bool hovered = false;
 	bool held = false;
+	static bool held_prev = false;
+
+	// Don't drag for the first frame because the current controller might have just changed and have a large delta
+
 	ImGuiID id = window->GetID("##scrolldraggingoverlay");
 	ImGui::KeepAliveID(id);
 	if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
 		ImGui::ButtonBehavior(window->Rect(), id, &hovered, &held, ImGuiButtonFlags_MouseButtonLeft);
-	if (held && delta.x != 0.0f)
+	if (held and held_prev and delta.x != 0.0f)
 		ImGui::SetScrollX(window, window->Scroll.x + delta.x);
-	if (held && delta.y != 0.0f)
+	if (held and held_prev and delta.y != 0.0f)
 		ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+
+	held_prev = held;
 }
 
 static auto face_weights()

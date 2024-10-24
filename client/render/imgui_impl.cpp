@@ -774,35 +774,22 @@ void imgui_context::new_frame(XrTime display_time)
 	if (focused_controller != (size_t)-1)
 		io.AddMouseSourceEvent(new_states[focused_controller].source);
 
-	if (focused_change && controllers[focused_controller].second.trigger_clicked)
-	{
-		// Focused controller changed: end the current click
-		io.AddMouseButtonEvent(0, false);
-		button_pressed = false;
-		fingertip_touching = false;
-	}
-
 	if (new_focused_controller != (size_t)-1)
 	{
 		auto scroll = new_states[new_focused_controller].scroll_value;
 
-		bool last_trigger = controllers[new_focused_controller].second.trigger_clicked;
 		button_pressed = new_states[new_focused_controller].trigger_clicked;
-
-		bool last_touching = controllers[new_focused_controller].second.fingertip_touching;
 		fingertip_touching = new_states[new_focused_controller].fingertip_touching;
+
+		// Focused controller changed: end the current click for this frame
+		io.AddMouseButtonEvent(0, (button_pressed or fingertip_touching) and not focused_change);
 
 		if (auto position = new_states[new_focused_controller].pointer_position)
 		{
 			io.AddMousePosEvent(position->x, position->y);
-			io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 
 			if (glm::length(scroll) > 0.01f)
 				io.AddMouseWheelEvent(scroll.x, scroll.y);
-		}
-		else
-		{
-			io.AddMouseButtonEvent(0, button_pressed || fingertip_touching);
 		}
 	}
 
