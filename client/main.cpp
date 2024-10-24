@@ -19,7 +19,6 @@
 
 #include "application.h"
 #include "scenes/lobby.h"
-#include "scenes/stream.h"
 #include "spdlog/spdlog.h"
 
 #include <arpa/inet.h>
@@ -51,30 +50,6 @@ void real_main()
 		info.version = VK_MAKE_VERSION(1, 0, 0);
 		application app(info);
 
-		std::string server_address = app.get_server_address();
-		if (not server_address.empty())
-		{
-			auto colon = server_address.rfind(":");
-			int port = wivrn::default_port;
-			if (colon != std::string::npos)
-			{
-				port = std::stoi(server_address.substr(colon + 1));
-				server_address = server_address.substr(0, colon);
-			}
-			auto & config = application::get_config();
-			config.servers["wivrn://"] = configuration::server_data{
-			        .autoconnect = true,
-			        .manual = true,
-			        .visible = true,
-			        .compatible = true,
-			        .service = {
-			                .name = app.get_server_address(),
-			                .hostname = server_address,
-			                .port = port,
-			                .tcp_only = app.get_server_tcp_only(),
-			        },
-			};
-		}
 		app.push_scene<scenes::lobby>();
 
 		app.run();

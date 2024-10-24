@@ -63,6 +63,12 @@ public:
 		inst.vm->AttachCurrentThread(&inst.jni_env, nullptr);
 	}
 
+	static void setup_thread(JNIEnv * env)
+	{
+		auto & inst = instance();
+		inst.jni_env = env;
+	}
+
 	static void detach()
 	{
 		instance() = jni_thread();

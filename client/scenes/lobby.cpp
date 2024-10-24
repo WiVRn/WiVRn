@@ -655,14 +655,24 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	imgui_ctx->set_current();
 	if (!async_session.valid() && !next_scene && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 	{
-		const auto & servers = application::get_config().servers;
-		for (auto && [cookie, data]: servers)
+		if (auto intent = application::get_intent())
 		{
-			if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible && autoconnect_enabled)
+			connect(configuration::server_data{
+			        .manual = true,
+			        .service = *intent,
+			});
+		}
+		else
+		{
+			const auto & servers = application::get_config().servers;
+			for (auto && [cookie, data]: servers)
 			{
-				autoconnect_enabled = false;
-				connect(data);
-				break;
+				if (data.visible && (data.autoconnect || force_autoconnect) && data.compatible && autoconnect_enabled)
+				{
+					autoconnect_enabled = false;
+					connect(data);
+					break;
+				}
 			}
 		}
 	}
