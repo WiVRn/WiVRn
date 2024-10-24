@@ -37,6 +37,7 @@
 #include "wivrn_discover.h"
 #include <cstdint>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/matrix.hpp>
 #include <magic_enum.hpp>
 #include <ranges>
 #include <simdjson.h>
@@ -101,15 +102,21 @@ static const std::array supported_depth_formats{
         vk::Format::eX8D24UnormPack32,
 };
 
-void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
+static glm::quat compute_gui_orientation(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
 	const float gui_pitch = -0.2;
-	const float keyboard_pitch = -0.6;
 	glm::vec3 gui_direction = new_gui_position - head_position;
 
 	float gui_yaw = atan2(gui_direction.x, gui_direction.z) + M_PI;
 
-	auto q = glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
+	return glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
+}
+
+void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
+{
+	const float keyboard_pitch = -0.6;
+
+	auto q = compute_gui_orientation(head_position, new_gui_position);
 	auto M = glm::mat3_cast(q); // plane-to-world transform
 
 	// Main window
@@ -424,7 +431,7 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(const std::array<
 	return std::nullopt;
 }
 
-std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_display_time)
+std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_display_time, glm::vec3 head_position)
 {
 	std::optional<std::pair<glm::vec3, glm::quat>> aim;
 
@@ -440,31 +447,69 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 
 	if (aim)
 	{
-		if (not gui_recenter_distance)
+		if (not gui_recenter_position or not gui_recenter_distance)
 		{
-			auto intersection = imgui_ctx->ray_plane_intersection({
+			// First frame where the recenter action is active
+			imgui_context::controller_state state{
 			        .active = true,
 			        .aim_position = aim->first,
 			        .aim_orientation = aim->second,
-			});
+			};
 
-			if (not intersection.empty())
+			imgui_ctx->compute_pointer_position(state);
+
+			if (state.pointer_position)
 			{
-				gui_recenter_distance = std::clamp(intersection.front().second, 0.05f, 1.f);
-				spdlog::info("recentering at {}m", intersection.front().second);
+				auto M = glm::mat3_cast(imgui_ctx->layers()[0].orientation);
+
+				// Pointer position in world
+				glm::vec3 world_pointer_position = imgui_ctx->rw_from_vp(*state.pointer_position);
+
+				// Pointer position in GUI
+				gui_recenter_position = glm::transpose(M) * (world_pointer_position - imgui_ctx->layers()[0].position);
+				gui_recenter_distance = glm::length(state.aim_position - world_pointer_position);
 			}
 			else
 			{
+				gui_recenter_position = glm::vec3(0, 0, 0);
 				gui_recenter_distance = 0.3;
 			}
 		}
-		const auto & v = aim->first;
-		const auto & q = aim->second;
-		return v + q * glm::vec3(0, 0, -*gui_recenter_distance);
+		else
+		{
+			// Subsequent frames: find the GUI position that gives the correct world pointer position
+			glm::vec3 controller_direction = -glm::column(glm::mat3_cast(aim->second), 2);
+			glm::vec3 wanted_world_pointer_position = aim->first + controller_direction * *gui_recenter_distance;
+
+			// I'm sure there's an analytical solution but I can't be bothered to write it so
+			// let's use a gradient descent instead
+			auto f = [&](glm::vec3 new_gui_position) {
+				auto q = compute_gui_orientation(head_position, new_gui_position);
+				auto M = glm::mat3_cast(q); // plane-to-world transform
+
+				glm::vec3 world_pointer_position = new_gui_position + M * *gui_recenter_position;
+
+				return world_pointer_position - wanted_world_pointer_position;
+			};
+
+			// One step is usually enough, the solution will continuously improve in the next frames
+			glm::vec3 gui_position = imgui_ctx->layers()[0].position;
+			float eps = 0.01;
+			glm::vec3 obj = f(gui_position);
+			glm::vec3 obj_dx = (f(gui_position + glm::vec3(eps, 0, 0)) - obj) / eps;
+			glm::vec3 obj_dy = (f(gui_position + glm::vec3(0, eps, 0)) - obj) / eps;
+			glm::vec3 obj_dz = (f(gui_position + glm::vec3(0, 0, eps)) - obj) / eps;
+
+			glm::mat3 jacobian{obj_dx, obj_dy, obj_dz};
+
+			gui_position -= glm::inverse(jacobian) * obj;
+
+			return gui_position;
+		}
 	}
 	else
 	{
-		gui_recenter_distance.reset();
+		gui_recenter_position.reset();
 	}
 
 	return std::nullopt;
@@ -644,8 +689,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	if (head_position)
 		new_gui_position = check_recenter_gui(head_position->first, head_position->second);
 
-	if (!new_gui_position)
-		new_gui_position = check_recenter_action(frame_state.predictedDisplayTime);
+	if (!new_gui_position and head_position)
+		new_gui_position = check_recenter_action(frame_state.predictedDisplayTime, head_position->first);
 
 	if (application::get_hand_tracking_supported())
 	{

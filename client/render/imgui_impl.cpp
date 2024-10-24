@@ -226,6 +226,22 @@ std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(cons
 	return intersections;
 }
 
+glm::vec3 imgui_context::rw_from_vp(const ImVec2 & position)
+{
+	for (auto & i: layers_)
+	{
+		if (not in_viewport(i, position))
+			continue;
+
+		return i.position + glm::mat3_cast(i.orientation) * glm::vec3{
+		                                                            ((position.x - i.vp_origin.x) / i.vp_size.x - 0.5) * i.size.x,
+		                                                            (-(position.y - i.vp_origin.y) / i.vp_size.y + 0.5) * i.size.y,
+		                                                            0};
+	}
+
+	return {};
+}
+
 imgui_context::imgui_frame & imgui_context::get_frame(vk::Image destination)
 {
 	for (auto & i: frames)

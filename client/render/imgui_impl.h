@@ -162,7 +162,6 @@ private:
 	void initialize_fonts();
 
 	std::vector<controller_state> read_controllers_state(XrTime display_time);
-	void compute_pointer_position(controller_state & state);
 
 public:
 	imgui_context(
@@ -191,7 +190,11 @@ public:
 		return focused_controller;
 	}
 
-	std::vector<std::pair<ImVec2, float>> ray_plane_intersection(const imgui_context::controller_state & in) const;
+	std::vector<std::pair<ImVec2, float>> ray_plane_intersection(const controller_state & in) const;
+	void compute_pointer_position(controller_state & state);
+
+	// Convert position from viewport coordinates to real-world
+	glm::vec3 rw_from_vp(const ImVec2 & position);
 
 	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
 	ImTextureID load_texture(const std::string & filename);
