@@ -78,6 +78,8 @@ void scenes::lobby::gui_connecting()
 	{
 		if (next_scene->current_state() == scenes::stream::state::stalled)
 			status = _("Video stream interrupted");
+		else if (server_name.starts_with("127.0.0."))
+			status = fmt::format(_F("Connection ready\nStart a VR application on your computer"));
 		else
 			status = fmt::format(_F("Connection ready\nStart a VR application on {}"), server_name);
 	}
@@ -101,7 +103,10 @@ void scenes::lobby::gui_connecting()
 	ImGui::Dummy({1000, 1});
 
 	ImGui::PushFont(imgui_ctx->large_font);
-	CenterTextH(fmt::format(_F("Connection to {}"), server_name));
+	if (server_name.starts_with("127.0.0."))
+		CenterTextH(fmt::format(_F("Connection to your computer")));
+	else
+		CenterTextH(fmt::format(_F("Connection to {}"), server_name));
 	ImGui::PopFont();
 
 	// ImGui::TextWrapped("%s", status.first.c_str());
@@ -220,6 +225,10 @@ void scenes::lobby::gui_server_list()
 	std::multimap<std::string, std::string> sorted_cookies;
 	for (auto && [cookie, data]: config.servers)
 	{
+		// Don't display local connections (e.g. USB)
+		if (data.service.hostname.starts_with("127.0.0."))
+			continue;
+
 		sorted_cookies.emplace(data.service.name, cookie);
 	}
 
