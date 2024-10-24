@@ -1,0 +1,79 @@
+From 065d19654cc4d23dadcd587d70f5f84b3a890b76 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Thu, 24 Oct 2024 16:45:22 +0200
+Subject: [PATCH 2/2] c/multi: try to sync for early wake
+
+---
+ .../compositor/multi/comp_multi_compositor.c  | 15 +++++++++++-
+ src/xrt/compositor/multi/comp_multi_system.c  | 24 +++++++++++++++++--
+ 2 files changed, 36 insertions(+), 3 deletions(-)
+
+diff --git a/src/xrt/compositor/multi/comp_multi_compositor.c b/src/xrt/compositor/multi/comp_multi_compositor.c
+index 61802a347..8b69a0c27 100644
+--- a/src/xrt/compositor/multi/comp_multi_compositor.c
++++ b/src/xrt/compositor/multi/comp_multi_compositor.c
+@@ -234,7 +234,20 @@ wait_for_scheduled_free(struct multi_compositor *mc)
+ 	os_mutex_unlock(&mc->slot_lock);
+ 	os_mutex_unlock(&mc->msc->list_and_timing_lock);
+ 
+-	pthread_kill(mc->msc->oth.thread, SIGUSR1);
++	bool done = true;
++	os_mutex_lock(&mc->msc->list_and_timing_lock);
++	for (int k = 0; k < MULTI_MAX_CLIENTS && done; ++k) {
++		struct multi_compositor *m = mc->msc->clients[k];
++		if (m == NULL)
++			continue;
++		os_mutex_lock(&m->slot_lock);
++		if (!time_is_within_half_ms(m->scheduled.data.display_time_ns, m->slot_next_frame_display))
++			done = false;
++		os_mutex_unlock(&m->slot_lock);
++	}
++	os_mutex_unlock(&mc->msc->list_and_timing_lock);
++	if (done)
++		pthread_kill(mc->msc->oth.thread, SIGUSR1);
+ }
+ 
+ static void *
+diff --git a/src/xrt/compositor/multi/comp_multi_system.c b/src/xrt/compositor/multi/comp_multi_system.c
+index 913a525b3..2bc82ffa5 100644
+--- a/src/xrt/compositor/multi/comp_multi_system.c
++++ b/src/xrt/compositor/multi/comp_multi_system.c
+@@ -531,13 +531,33 @@ multi_main_loop(struct multi_system_compositor *msc)
+ 		wait_frame(&sleeper, xc, frame_id, wake_up_time_ns);
+ 
+ 		int64_t now_ns = os_monotonic_get_ns();
+-		if (now_ns < wake_up_time_ns)
+-			U_LOG_D("early wake by %ldns", wake_up_time_ns - now_ns);
+ 		int64_t diff_ns = predicted_display_time_ns - MAX(wake_up_time_ns, now_ns);
+ 
+ 		// Now we know the diff, broadcast to pacers.
+ 		broadcast_timings_to_pacers(msc, predicted_display_time_ns, predicted_display_period_ns, diff_ns);
+ 
++		bool frames_ready = false;
++		while (now_ns < wake_up_time_ns && !frames_ready) {
++			frames_ready = true;
++			os_mutex_lock(&msc->list_and_timing_lock);
++			for (size_t k = 0; k < MULTI_MAX_CLIENTS; k++) {
++				struct multi_compositor *mc = msc->clients[k];
++				if (mc == NULL)
++					continue;
++				os_mutex_lock(&mc->slot_lock);
++
++				if (!time_is_greater_then_or_within_half_ms(predicted_display_time_ns,
++				                                            mc->scheduled.data.display_time_ns)) {
++					frames_ready = false;
++				}
++				os_mutex_unlock(&mc->slot_lock);
++			}
++			os_mutex_unlock(&msc->list_and_timing_lock);
++			if (!frames_ready)
++				os_nanosleep(100000);
++			now_ns = os_monotonic_get_ns();
++		}
++
+ 		xrt_comp_begin_frame(xc, frame_id);
+ 
+ 		// Make sure that the clients doesn't go away while we transfer layers.
+-- 
+2.47.0
+
