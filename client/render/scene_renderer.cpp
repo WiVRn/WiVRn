@@ -160,7 +160,31 @@ static std::array layout_bindings_1{
         vk::DescriptorSetLayoutBinding{
                 .binding = 0,
                 .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = 5,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        },
+        vk::DescriptorSetLayoutBinding{
+                .binding = 1,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        },
+        vk::DescriptorSetLayoutBinding{
+                .binding = 2,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        },
+        vk::DescriptorSetLayoutBinding{
+                .binding = 3,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        },
+        vk::DescriptorSetLayoutBinding{
+                .binding = 4,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eFragment,
         },
         vk::DescriptorSetLayoutBinding{
@@ -583,8 +607,8 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                        .rasterizationSamples = MSAA_SAMPLES,
 	                }},
 	                .DepthStencilState = {vk::PipelineDepthStencilStateCreateInfo{
-	                        .depthTestEnable = true,
-	                        .depthWriteEnable = true,
+	                        .depthTestEnable = info.depth_test_enable,
+	                        .depthWriteEnable = info.depth_write_enable,
 	                        .depthCompareOp = vk::CompareOp::eGreater,
 	                        .depthBoundsTestEnable = false,
 	                        .minDepthBounds = 0.0f,
@@ -593,10 +617,10 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                .ColorBlendState = {vk::PipelineColorBlendStateCreateInfo{}},
 	                .ColorBlendAttachments = {vk::PipelineColorBlendAttachmentState{
 	                        .blendEnable = info.blend_enable,
-	                        .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+	                        .srcColorBlendFactor = vk::BlendFactor::eOne,
 	                        .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
 	                        .colorBlendOp = vk::BlendOp::eAdd,
-	                        .srcAlphaBlendFactor = vk::BlendFactor::eSrcAlpha,
+	                        .srcAlphaBlendFactor = vk::BlendFactor::eOne,
 	                        .dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
 	                        .alphaBlendOp = vk::BlendOp::eAdd,
 	                        .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA}},
@@ -726,13 +750,42 @@ void scene_renderer::update_material_descriptor_set(scene_data::material & mater
 	        .range = sizeof(scene_data::material::gpu_data),
 	};
 
+	// Write each descriptor separately because the HTC XR Elite needs it for some reason
 	std::array write_ds{
 	        vk::WriteDescriptorSet{
 	                .dstSet = ds,
 	                .dstBinding = 0,
-	                .descriptorCount = (uint32_t)write_ds_image.size(),
+	                .descriptorCount = 1,
 	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
 	                .pImageInfo = write_ds_image.data(),
+	        },
+	        vk::WriteDescriptorSet{
+	                .dstSet = ds,
+	                .dstBinding = 1,
+	                .descriptorCount = 1,
+	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+	                .pImageInfo = write_ds_image.data() + 1,
+	        },
+	        vk::WriteDescriptorSet{
+	                .dstSet = ds,
+	                .dstBinding = 2,
+	                .descriptorCount = 1,
+	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+	                .pImageInfo = write_ds_image.data() + 2,
+	        },
+	        vk::WriteDescriptorSet{
+	                .dstSet = ds,
+	                .dstBinding = 3,
+	                .descriptorCount = 1,
+	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+	                .pImageInfo = write_ds_image.data() + 3,
+	        },
+	        vk::WriteDescriptorSet{
+	                .dstSet = ds,
+	                .dstBinding = 4,
+	                .descriptorCount = 1,
+	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+	                .pImageInfo = write_ds_image.data() + 4,
 	        },
 	        vk::WriteDescriptorSet{
 	                .dstSet = ds,

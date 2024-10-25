@@ -21,6 +21,7 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <render/scene_data.h>
+#include <span>
 #include <variant>
 #include <openxr/openxr.h>
 
@@ -59,9 +60,11 @@ struct input_profile
 
 	std::vector<visual_response> responses;
 	std::vector<std::pair<XrSpace, node_handle>> model_handles;
+	node_handle left_ray;
+	node_handle right_ray;
 
-	input_profile(const std::filesystem::path & json_profile, scene_loader & loader, scene_data & scene);
+	input_profile(const std::filesystem::path & json_profile, scene_loader & loader, scene_data & scene_controllers, scene_data & scene_rays);
 
 	// application::poll_actions() must have been called before
-	void apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right);
+	void apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits);
 };

@@ -20,7 +20,10 @@
 
 #include "application.h"
 #include "asset.h"
+#include "hardware.h"
+#include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <limits>
 #include <magic_enum.hpp>
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
@@ -130,7 +133,7 @@ struct json_visual_response
 };
 } // namespace
 
-input_profile::input_profile(const std::filesystem::path & json_profile, scene_loader & loader, scene_data & scene)
+input_profile::input_profile(const std::filesystem::path & json_profile, scene_loader & loader, scene_data & scene_controllers, scene_data & scene_rays)
 {
 	std::string json = asset(json_profile);
 
@@ -206,7 +209,7 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 
 	for (auto && [layout, model]: models)
 	{
-		node_handle root_node = scene.new_node();
+		node_handle root_node = scene_controllers.new_node();
 		root_node->name = layout;
 
 		XrSpace space;
@@ -214,12 +217,38 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 			space = application::space(xr::spaces::grip_left);
 		else if (layout == "right")
 			space = application::space(xr::spaces::grip_right);
+		else if (layout == "left_aim")
+			space = application::space(xr::spaces::aim_left);
+		else if (layout == "right_aim")
+			space = application::space(xr::spaces::aim_right);
 		else
 			continue;
 
 		model_handles.emplace_back(space, root_node);
 
-		scene.import(std::move(model), root_node);
+		scene_controllers.import(std::move(model), root_node);
+	}
+
+	for (simdjson::dom::key_value_pair layout: simdjson::dom::object(root["layouts"]))
+	{
+		XrSpace space;
+		if (layout.key == "left")
+			space = application::space(xr::spaces::aim_left);
+		else if (layout.key == "right")
+			space = application::space(xr::spaces::aim_right);
+		else
+			continue;
+
+		node_handle root_node = scene_rays.new_node();
+		root_node->name = (std::string)layout.key + "_ray";
+		model_handles.emplace_back(space, root_node);
+
+		scene_rays.import(loader(controller_ray_model_name()), root_node);
+
+		if (layout.key == "left")
+			left_ray = root_node;
+		else if (layout.key == "right")
+			right_ray = root_node;
 	}
 
 	for (auto & json_response: json_responses)
@@ -272,7 +301,7 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 			}
 		}
 
-		response.target.node = scene.find_node(controller_root_node, json_response.target_node);
+		response.target.node = scene_controllers.find_node(controller_root_node, json_response.target_node);
 		response.target.state = json_response.state;
 	}
 }
@@ -288,17 +317,39 @@ static void apply_visual_response(node_handle node, input_profile::node_state_vi
 	node->visible = value > 0.5;
 }
 
-void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right)
+static float compute_ray_size(glm::vec3 ray_start, glm::quat ray_orientation, glm::vec4 limit_plane)
+{
+	glm::vec3 ray_direction = -glm::column(glm::mat3_cast(ray_orientation), 2); // The aim direction is -Z
+
+	// ray_start + distance × ray_direction ∈ limit_plane
+	// => dot(limit_plane, ray_start + distance × ray_direction) = 0
+	//    dot(limit_plane, ray_start) + distance × dot(limit_plane, ray_direction) = 0
+
+	float dot1 = glm::dot(limit_plane, glm::vec4(ray_direction, 0));
+	float dot2 = glm::dot(limit_plane, glm::vec4(ray_start, 1));
+
+	// Starting behind the plane
+	if (dot2 < 0)
+		return -1;
+
+	// Pointing away from the plane
+	if (dot1 > 0)
+		return std::numeric_limits<float>::infinity();
+
+	return -dot2 / dot1;
+}
+
+void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits)
 {
 	for (auto && [space, node]: model_handles)
 	{
-		if (space == application::space(xr::spaces::grip_left) && hide_left)
+		if ((space == application::space(xr::spaces::grip_left) or space == application::space(xr::spaces::aim_left)) and hide_left)
 		{
 			node->visible = false;
 			continue;
 		}
 
-		if (space == application::space(xr::spaces::grip_right) && hide_right)
+		if ((space == application::space(xr::spaces::grip_right) or space == application::space(xr::spaces::aim_right)) and hide_right)
 		{
 			node->visible = false;
 			continue;
@@ -314,6 +365,30 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bo
 		{
 			node->visible = false;
 		}
+	}
+
+	if (left_ray)
+	{
+		float size = 0.8; // Maximum ray length
+		for (glm::vec4 plane: pointer_limits)
+			size = std::min(size, compute_ray_size(left_ray->position, left_ray->orientation, plane));
+
+		if (size > 0)
+			left_ray->scale.z = size;
+		else
+			left_ray->visible = false;
+	}
+
+	if (right_ray)
+	{
+		float size = 0.8; // Maximum ray length
+		for (glm::vec4 plane: pointer_limits)
+			size = std::min(size, compute_ray_size(right_ray->position, right_ray->orientation, plane));
+
+		if (size > 0)
+			right_ray->scale.z = size;
+		else
+			right_ray->visible = false;
 	}
 
 	for (auto & response: responses)

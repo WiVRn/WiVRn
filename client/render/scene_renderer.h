@@ -44,6 +44,8 @@ struct pipeline_info
 	vk::FrontFace front_face = vk::FrontFace::eClockwise;
 	vk::PrimitiveTopology topology = vk::PrimitiveTopology::eTriangleList;
 	bool blend_enable = false;
+	bool depth_test_enable = true;
+	bool depth_write_enable = true;
 
 	// Specialization constants data
 	int32_t nb_texcoords = 2;

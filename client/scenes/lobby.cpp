@@ -623,6 +623,27 @@ template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 } // namespace
 
+// Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
+static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
+{
+	glm::quat q{
+	        pose.orientation.w,
+	        pose.orientation.x,
+	        pose.orientation.y,
+	        pose.orientation.z,
+	};
+
+	glm::vec3 p{
+	        pose.position.x,
+	        pose.position.y,
+	        pose.position.z,
+	};
+
+	glm::vec3 normal = glm::column(glm::mat3_cast(q), 2);
+
+	return glm::vec4(normal, -glm::dot(p, normal) - margin);
+}
+
 void scenes::lobby::render(const XrFrameState & frame_state)
 {
 	if (async_session.valid() && async_session.poll() == utils::future_status::ready)
@@ -737,14 +758,19 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		}
 	}
 
-	input->apply(world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller);
-
 	if (head_position && new_gui_position)
 	{
 		move_gui(head_position->first, *new_gui_position);
 	}
 
 	std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_layers = draw_gui(frame_state.predictedDisplayTime);
+
+	// Get the planes that limit the ray size from the composition layers
+	std::vector<glm::vec4> ray_limits;
+	for (auto & [z_index, layer]: imgui_layers)
+		ray_limits.push_back(compute_ray_limits(layer.pose));
+
+	input->apply(world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller, ray_limits);
 
 	assert(renderer);
 	renderer->start_frame();
@@ -970,7 +996,12 @@ void scenes::lobby::on_focused()
 	controllers_scene.emplace();
 
 	scene_data & controllers_scene_data = composition_layer_depth_test_supported ? *lobby_scene : *controllers_scene;
-	input = input_profile("controllers/" + choose_webxr_profile() + "/profile.json", loader, controllers_scene_data);
+	input = input_profile(
+	        "controllers/" + choose_webxr_profile() + "/profile.json",
+	        loader,
+	        controllers_scene_data,
+	        *controllers_scene);
+
 	spdlog::info("Loaded input profile {}", input->id);
 
 	if (application::get_hand_tracking_supported())

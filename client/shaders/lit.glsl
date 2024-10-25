@@ -171,13 +171,13 @@ void main()
 
 	vec3 light = ambient + diffuse /*+ specular*/;
 
-	vec4 c = texture(base_color, fract(texcoord[0])) * vec4(light, 1.0);
+	vec4 bc = material.base_color_factor * texture(base_color, fract(texcoord[0])) * vec4(light, 1.0);
+
+	vec4 ec = material.base_emissive_factor * texture(emissive, fract(texcoord[0]));
 
 	float fog = clamp((length(frag_pos) - fog_min_dist) / (fog_max_dist - fog_min_dist), 0.0, 1.0);
 
-	c = mix(c, fog_color, fog);
-
-// 	vec4 c = vec4(1,1,1,1);
+	bc = mix(bc + ec, fog_color, fog);
 
 // 	if (alpha_cutout && c.a <= 0.5)
 // 		discard;
@@ -187,12 +187,12 @@ void main()
 		ivec2 tmp = ivec2(gl_FragCoord.xy) % 4;
 		float dither_thd = dither_pattern[tmp.x][tmp.y];
 
-		vec4 color = c * 255.0f;
+		vec4 color = bc * 255.0f;
 
 		bvec4 tmp2 = greaterThan(fract(color), vec4(dither_thd, dither_thd, dither_thd, dither_thd));
 		out_color = (ceil(color) + vec4(tmp2)) / 255.0;
 	}
 	else
-		out_color = c;
+		out_color = bc;
 }
 #endif
