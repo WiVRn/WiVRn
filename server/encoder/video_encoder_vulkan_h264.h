@@ -39,6 +39,7 @@ class video_encoder_vulkan_h264 : public video_encoder_vulkan
 	vk::VideoEncodeH264PictureInfoKHR picture_info;
 
 	StdVideoEncodeH264ReferenceListsInfo reference_lists_info;
+	StdVideoEncodeH264RefListModEntry ref_mod;
 
 	std::vector<StdVideoEncodeH264ReferenceInfo> dpb_std_info;
 	std::vector<vk::VideoEncodeH264DpbSlotInfoKHR> dpb_std_slots;
@@ -51,7 +52,7 @@ class video_encoder_vulkan_h264 : public video_encoder_vulkan
 protected:
 	std::vector<void *> setup_slot_info(size_t dpb_size) override;
 
-	void * encode_info_next(uint32_t frame_num, size_t slot, const std::vector<vk::VideoReferenceSlotInfoKHR> &) override;
+	void * encode_info_next(uint32_t frame_num, size_t slot, const std::optional<vk::VideoReferenceSlotInfoKHR> &) override;
 	virtual vk::ExtensionProperties std_header_version() override;
 
 	void send_idr_data() override;

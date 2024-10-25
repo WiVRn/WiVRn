@@ -416,16 +416,19 @@ void wivrn::video_encoder_vulkan::present_image(bool idr, vk::Image src_yuv, vk:
 		session_initialized = true;
 	}
 
-	std::vector<vk::VideoReferenceSlotInfoKHR> ref_slots;
-	for (size_t i = 0; i < dpb_slots.size(); ++i)
+	std::optional<vk::VideoReferenceSlotInfoKHR> ref_slot;
+	for (size_t i = 1; i < dpb_slots.size(); ++i)
 	{
-		auto & x = dpb_slots[(i + slot) % dpb_slots.size()];
+		auto & x = dpb_slots[(dpb_slots.size() + slot - i) % dpb_slots.size()];
 		if (x.slotIndex >= 0 and x.slotIndex != slot)
-			ref_slots.push_back(x);
+		{
+			ref_slot = x;
+			break;
+		}
 	}
 
 	vk::VideoEncodeInfoKHR encode_info{
-	        .pNext = encode_info_next(frame_num, slot, ref_slots),
+	        .pNext = encode_info_next(frame_num, slot, ref_slot),
 	        .dstBuffer = output_buffer,
 	        .dstBufferOffset = 0,
 	        .dstBufferRange = output_buffer_size,
@@ -433,8 +436,8 @@ void wivrn::video_encoder_vulkan::present_image(bool idr, vk::Image src_yuv, vk:
 	                               .baseArrayLayer = 0,
 	                               .imageViewBinding = image_view},
 	        .pSetupReferenceSlot = &dpb_slots[slot],
-	        .referenceSlotCount = uint32_t(ref_slots.size()),
-	        .pReferenceSlots = ref_slots.data(),
+	        .referenceSlotCount = uint32_t(ref_slot ? 1 : 0),
+	        .pReferenceSlots = &*ref_slot,
 	};
 
 	command_buffer.beginQuery(*query_pool, 0, {});

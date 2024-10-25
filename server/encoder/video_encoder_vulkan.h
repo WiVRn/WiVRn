@@ -63,7 +63,7 @@ class video_encoder_vulkan : public VideoEncoder
 	vk::VideoEncodeRateControlLayerInfoKHR rate_control_layer;
 
 protected:
-	const uint8_t num_dpb_slots = 2;
+	const uint8_t num_dpb_slots = 5;
 	std::optional<vk::VideoEncodeRateControlInfoKHR> rate_control;
 
 	video_encoder_vulkan(wivrn_vk_bundle & vk, vk::Rect2D rect, vk::VideoEncodeCapabilitiesKHR encode_caps, float fps, uint64_t bitrate);
@@ -80,7 +80,7 @@ protected:
 	virtual void send_idr_data() = 0;
 
 	virtual std::vector<void *> setup_slot_info(size_t dpb_size) = 0;
-	virtual void * encode_info_next(uint32_t frame_num, size_t slot, const std::vector<vk::VideoReferenceSlotInfoKHR> & reference_slot) = 0;
+	virtual void * encode_info_next(uint32_t frame_num, size_t slot, const std::optional<vk::VideoReferenceSlotInfoKHR> & reference_slot) = 0;
 	virtual vk::ExtensionProperties std_header_version() = 0;
 
 public:

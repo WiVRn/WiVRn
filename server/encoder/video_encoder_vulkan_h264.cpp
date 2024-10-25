@@ -236,7 +236,7 @@ void wivrn::video_encoder_vulkan_h264::send_idr_data()
 	SendData(data, false);
 }
 
-void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, size_t slot, const std::vector<vk::VideoReferenceSlotInfoKHR> & ref_slots)
+void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, size_t slot, const std::optional<vk::VideoReferenceSlotInfoKHR> & ref_slot)
 {
 	slice_header = {
 	        .flags =
@@ -246,8 +246,8 @@ void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, si
 	                        .reserved = 0,
 	                },
 	        .first_mb_in_slice = 0,
-	        .slice_type = ref_slots.empty() ? STD_VIDEO_H264_SLICE_TYPE_I
-	                                        : STD_VIDEO_H264_SLICE_TYPE_P,
+	        .slice_type = ref_slot ? STD_VIDEO_H264_SLICE_TYPE_P
+	                               : STD_VIDEO_H264_SLICE_TYPE_I,
 	        .slice_alpha_c0_offset_div2 = 0,
 	        .slice_beta_offset_div2 = 0,
 	        .slice_qp_delta = 0,
@@ -281,13 +281,13 @@ void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, si
 	std::ranges::fill(reference_lists_info.RefPicList0, STD_VIDEO_H264_NO_REFERENCE_PICTURE);
 	std::ranges::fill(reference_lists_info.RefPicList1, STD_VIDEO_H264_NO_REFERENCE_PICTURE);
 
-	for (size_t i = 0; i < ref_slots.size(); ++i)
-		reference_lists_info.RefPicList0[i] = ref_slots[i].slotIndex;
-
+	if (ref_slot)
+		reference_lists_info.RefPicList0[0] = ref_slot->slotIndex;
+	const uint32_t frame_num_mask = ((1 << (sps.log2_max_frame_num_minus4 + 4)) - 1);
 	std_picture_info = {
 	        .flags =
 	                {
-	                        .IdrPicFlag = uint32_t(ref_slots.empty() ? 1 : 0),
+	                        .IdrPicFlag = uint32_t(ref_slot ? 0 : 1),
 	                        .is_reference = 1,
 	                        .no_output_of_prior_pics_flag = 0,
 	                        .long_term_reference_flag = 0,
@@ -297,9 +297,9 @@ void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, si
 	        .seq_parameter_set_id = 0,
 	        .pic_parameter_set_id = 0,
 	        .idr_pic_id = idr_id,
-	        .primary_pic_type = ref_slots.empty() ? STD_VIDEO_H264_PICTURE_TYPE_IDR
-	                                              : STD_VIDEO_H264_PICTURE_TYPE_P,
-	        .frame_num = frame_num & ((1 << (sps.log2_max_frame_num_minus4 + 4)) - 1),
+	        .primary_pic_type = ref_slot ? STD_VIDEO_H264_PICTURE_TYPE_P
+	                                     : STD_VIDEO_H264_PICTURE_TYPE_IDR,
+	        .frame_num = frame_num & frame_num_mask,
 	        .PicOrderCnt = int32_t((2 * frame_num) & ((1 << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1)),
 	        .temporal_id = 0,
 	        .reserved1 = {},
@@ -312,14 +312,26 @@ void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, si
 	        .generatePrefixNalu = false, // check if useful, check if supported
 	};
 
-	{
-		auto & i = dpb_std_info[slot];
-		i.primary_pic_type = std_picture_info.primary_pic_type;
-		i.FrameNum = std_picture_info.frame_num;
-		i.PicOrderCnt = std_picture_info.PicOrderCnt;
-	}
+	auto & i = dpb_std_info[slot];
+	i.primary_pic_type = std_picture_info.primary_pic_type;
+	i.FrameNum = std_picture_info.frame_num;
+	i.PicOrderCnt = std_picture_info.PicOrderCnt;
 
-	if (ref_slots.empty())
+	if (ref_slot)
+	{
+		auto ref_frame = dpb_std_info[ref_slot->slotIndex].FrameNum;
+		if ((ref_frame + 1) % frame_num_mask != i.FrameNum)
+		{
+			reference_lists_info.flags.ref_pic_list_modification_flag_l0 = 1;
+			reference_lists_info.refList0ModOpCount = 1;
+			reference_lists_info.pRefList0ModOperations = &ref_mod;
+			ref_mod = {
+			        .modification_of_pic_nums_idc = STD_VIDEO_H264_MODIFICATION_OF_PIC_NUMS_IDC_SHORT_TERM_ADD,
+			        .abs_diff_pic_num_minus1 = uint16_t(1 + i.FrameNum - ref_frame),
+			};
+		}
+	}
+	else
 		++idr_id;
 
 	return &picture_info;
