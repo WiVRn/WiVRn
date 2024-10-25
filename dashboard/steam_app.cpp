@@ -54,7 +54,22 @@ std::vector<steam_app> steam_apps(const std::string & locale)
 {
 	std::vector<steam_app> apps;
 
-	nlohmann::json json = nlohmann::json::parse(read_vr_manifest());
+	auto manifest = read_vr_manifest();
+	if (manifest.empty())
+	{
+		return apps;
+	}
+
+	nlohmann::json json;
+	try
+	{
+		json = nlohmann::json::parse(manifest);
+	}
+	catch (std::exception & e)
+	{
+		std::cerr << e.what() << std::endl;
+		return apps;
+	}
 
 	for (auto & i: json["applications"])
 	{
