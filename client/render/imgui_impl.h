@@ -60,6 +60,8 @@ public:
 	struct controller
 	{
 		XrSpace aim;
+		std::pair<glm::vec3, glm::quat> offset;
+
 		XrAction trigger; // XR_ACTION_TYPE_FLOAT_INPUT
 		XrAction squeeze; // XR_ACTION_TYPE_FLOAT_INPUT
 		XrAction scroll;  // XR_ACTION_TYPE_VECTOR2F_INPUT

@@ -212,15 +212,15 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 		node_handle root_node = scene_controllers.new_node();
 		root_node->name = layout;
 
-		XrSpace space;
+		xr::spaces space;
 		if (layout == "left")
-			space = application::space(xr::spaces::grip_left);
+			space = xr::spaces::grip_left;
 		else if (layout == "right")
-			space = application::space(xr::spaces::grip_right);
+			space = xr::spaces::grip_right;
 		else if (layout == "left_aim")
-			space = application::space(xr::spaces::aim_left);
+			space = xr::spaces::aim_left;
 		else if (layout == "right_aim")
-			space = application::space(xr::spaces::aim_right);
+			space = xr::spaces::aim_right;
 		else
 			continue;
 
@@ -231,11 +231,11 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 
 	for (simdjson::dom::key_value_pair layout: simdjson::dom::object(root["layouts"]))
 	{
-		XrSpace space;
+		xr::spaces space;
 		if (layout.key == "left")
-			space = application::space(xr::spaces::aim_left);
+			space = xr::spaces::aim_left;
 		else if (layout.key == "right")
-			space = application::space(xr::spaces::aim_right);
+			space = xr::spaces::aim_right;
 		else
 			continue;
 
@@ -304,6 +304,8 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 		response.target.node = scene_controllers.find_node(controller_root_node, json_response.target_node);
 		response.target.state = json_response.state;
 	}
+
+	offset.fill({{0, 0, 0}, {1, 0, 0, 0}});
 }
 
 static void apply_visual_response(node_handle node, std::pair<input_profile::node_state_transform, input_profile::node_state_transform> transforms, float value)
@@ -343,23 +345,28 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bo
 {
 	for (auto && [space, node]: model_handles)
 	{
-		if ((space == application::space(xr::spaces::grip_left) or space == application::space(xr::spaces::aim_left)) and hide_left)
+		if ((space == xr::spaces::grip_left or space == xr::spaces::aim_left) and hide_left)
 		{
 			node->visible = false;
 			continue;
 		}
 
-		if ((space == application::space(xr::spaces::grip_right) or space == application::space(xr::spaces::aim_right)) and hide_right)
+		if ((space == xr::spaces::grip_right or space == xr::spaces::aim_right) and hide_right)
 		{
 			node->visible = false;
 			continue;
 		}
 
-		if (auto location = application::locate_controller(space, world_space, predicted_display_time); location)
+		if (auto location = application::locate_controller(application::space(space), world_space, predicted_display_time); location)
 		{
 			node->visible = true;
-			node->position = location->first;
-			node->orientation = location->second;
+
+			assert((int)space >= 0);
+			assert((int)space < offset.size());
+			auto & [p, q] = offset[space];
+
+			node->position = location->first + glm::mat3_cast(location->second * q) * p;
+			node->orientation = location->second * q;
 		}
 		else
 		{

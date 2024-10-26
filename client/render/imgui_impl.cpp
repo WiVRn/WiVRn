@@ -653,8 +653,8 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 		if (auto location = application::locate_controller(ctrl.aim, world, display_time))
 		{
 			new_state.active = true;
-			new_state.aim_position = location->first;
-			new_state.aim_orientation = location->second;
+			new_state.aim_position = location->first + glm::mat3_cast(location->second * ctrl.offset.second) * ctrl.offset.first;
+			new_state.aim_orientation = location->second * ctrl.offset.second;
 
 			if (ctrl.trigger)
 			{

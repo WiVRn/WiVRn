@@ -61,39 +61,6 @@ scenes::lobby::~lobby()
 		renderer->wait_idle();
 }
 
-static std::string choose_webxr_profile()
-{
-#ifndef __ANDROID__
-	const char * controller = std::getenv("WIVRN_CONTROLLER");
-	if (controller && strcmp(controller, ""))
-		return controller;
-#endif
-
-	switch (guess_model())
-	{
-		case model::oculus_quest:
-			return "oculus-touch-v2";
-		case model::oculus_quest_2:
-			return "oculus-touch-v3";
-		case model::meta_quest_pro:
-			return "meta-quest-touch-pro";
-		case model::meta_quest_3:
-			return "meta-quest-touch-plus";
-		case model::pico_neo_3:
-			return "pico-neo3";
-		case model::pico_4:
-			return "pico-4";
-		case model::htc_vive_focus_3:
-		case model::htc_vive_xr_elite:
-			return "htc-vive-focus-3";
-		case model::lynx_r1:
-		case model::unknown:
-			return "generic-trigger-squeeze";
-	}
-
-	__builtin_unreachable();
-}
-
 static const std::array supported_color_formats = {
         vk::Format::eR8G8B8A8Srgb,
         vk::Format::eB8G8R8A8Srgb,
@@ -758,6 +725,41 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		}
 	}
 
+#if WIVRN_CLIENT_DEBUG_MENU
+	if (display_debug_axes)
+	{
+		const xr::spaces left = display_grip_instead_of_aim ? xr::spaces::grip_left : xr::spaces::aim_left;
+		const xr::spaces right = display_grip_instead_of_aim ? xr::spaces::grip_right : xr::spaces::aim_right;
+
+		if (hide_left_controller)
+			xyz_axes_left_controller->visible = false;
+		else if (auto location = application::locate_controller(application::space(left), world_space, frame_state.predictedDisplayTime))
+		{
+			xyz_axes_left_controller->visible = true;
+			xyz_axes_left_controller->position = location->first;
+			xyz_axes_left_controller->orientation = location->second;
+		}
+		else
+			xyz_axes_left_controller->visible = false;
+
+		if (hide_right_controller)
+			xyz_axes_right_controller->visible = false;
+		else if (auto location = application::locate_controller(application::space(right), world_space, frame_state.predictedDisplayTime))
+		{
+			xyz_axes_right_controller->visible = true;
+			xyz_axes_right_controller->position = location->first;
+			xyz_axes_right_controller->orientation = location->second;
+		}
+		else
+			xyz_axes_right_controller->visible = false;
+	}
+	else
+	{
+		xyz_axes_left_controller->visible = false;
+		xyz_axes_right_controller->visible = false;
+	}
+#endif
+
 	if (head_position && new_gui_position)
 	{
 		move_gui(head_position->first, *new_gui_position);
@@ -996,13 +998,42 @@ void scenes::lobby::on_focused()
 	controllers_scene.emplace();
 
 	scene_data & controllers_scene_data = composition_layer_depth_test_supported ? *lobby_scene : *controllers_scene;
+
+	auto profile = controller_name();
 	input = input_profile(
-	        "controllers/" + choose_webxr_profile() + "/profile.json",
+	        "controllers/" + profile + "/profile.json",
 	        loader,
 	        controllers_scene_data,
 	        *controllers_scene);
 
 	spdlog::info("Loaded input profile {}", input->id);
+
+	for (auto i: {xr::spaces::aim_left, xr::spaces::aim_right, xr::spaces::grip_left, xr::spaces::grip_right})
+	{
+		auto [p, q] = input->offset[i] = controller_offset(controller_name(), i);
+
+		auto rot = glm::degrees(glm::eulerAngles(q));
+		spdlog::info("Initializing offset of space {} to ({}, {}, {}) mm, ({}, {}, {})°",
+		             magic_enum::enum_name(i),
+		             1000 * p.x,
+		             1000 * p.y,
+		             1000 * p.z,
+		             rot.x,
+		             rot.y,
+		             rot.z);
+	}
+
+#if WIVRN_CLIENT_DEBUG_MENU
+	offset_position = input->offset[xr::spaces::grip_left].first;
+	offset_orientation = glm::degrees(glm::eulerAngles(input->offset[xr::spaces::grip_left].second));
+	ray_offset = input->offset[xr::spaces::aim_left].first.z;
+
+	xyz_axes_left_controller = controllers_scene_data.new_node();
+	controllers_scene_data.import(loader("xyz-arrows.glb"), xyz_axes_left_controller);
+
+	xyz_axes_right_controller = controllers_scene_data.new_node();
+	controllers_scene_data.import(loader("xyz-arrows.glb"), xyz_axes_right_controller);
+#endif
 
 	if (application::get_hand_tracking_supported())
 	{
@@ -1016,12 +1047,14 @@ void scenes::lobby::on_focused()
 	std::vector imgui_inputs{
 	        imgui_context::controller{
 	                .aim = get_action_space("left_aim"),
+	                .offset = input->offset[xr::spaces::aim_left],
 	                .trigger = get_action("left_trigger").first,
 	                .squeeze = get_action("left_squeeze").first,
 	                .scroll = get_action("left_scroll").first,
 	        },
 	        imgui_context::controller{
 	                .aim = get_action_space("right_aim"),
+	                .offset = input->offset[xr::spaces::aim_right],
 	                .trigger = get_action("right_trigger").first,
 	                .squeeze = get_action("right_squeeze").first,
 	                .scroll = get_action("right_scroll").first,

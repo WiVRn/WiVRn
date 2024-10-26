@@ -45,6 +45,7 @@ option(WIVRN_FEATURE_STEAMVR_LIGHTHOUSE "Enable SteamVR Lighthouse driver" OFF)
 option(WIVRN_CHECK_CAPSYSNICE "Check if CAP_SYS_NICE is available at startup" ON)
 
 option(WIVRN_SHOW_IMGUI_DEMO_WINDOW "Show the Dear ImGui demo window in the client" OFF)
+option(WIVRN_CLIENT_DEBUG_MENU "Enable the debug menu in the client" OFF)
 
 option(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH OFF)
 

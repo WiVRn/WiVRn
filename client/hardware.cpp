@@ -233,6 +233,42 @@ std::string controller_name()
 	__builtin_unreachable();
 }
 
+std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::spaces space)
+{
+	if (profile == "oculus-touch-v2")
+		switch (space)
+		{
+			case xr::spaces::grip_left:
+			case xr::spaces::grip_right:
+				return {{0, -0.006, -0.025}, glm::angleAxis(glm::radians(-15.f), glm::vec3{1, 0, 0})};
+
+			case xr::spaces::aim_left:
+				return {{-0.010, 0, 0.025}, {1, 0, 0, 0}};
+
+			case xr::spaces::aim_right:
+				return {{0.010, 0, 0.025}, {1, 0, 0, 0}};
+
+			default:
+				break;
+		}
+	else if (profile == "htc-vive-focus-3")
+		switch (space)
+		{
+			case xr::spaces::grip_left:
+			case xr::spaces::grip_right:
+				return {{0, 0.007, -0.030}, {1, 0, 0, 0}};
+
+			case xr::spaces::aim_left:
+			case xr::spaces::aim_right:
+				return {{0, -0.025, 0.005}, {1, 0, 0, 0}};
+
+			default:
+				break;
+		}
+
+	return {{0, 0, 0}, {1, 0, 0, 0}};
+}
+
 std::string controller_ray_model_name()
 {
 	switch (guess_model())

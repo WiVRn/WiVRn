@@ -20,9 +20,11 @@
 
 #include <filesystem>
 #include <glm/glm.hpp>
+#include <magic_enum_containers.hpp>
 #include <render/scene_data.h>
 #include <span>
 #include <variant>
+#include <xr/space.h>
 #include <openxr/openxr.h>
 
 struct input_profile
@@ -59,9 +61,11 @@ struct input_profile
 	std::string id;
 
 	std::vector<visual_response> responses;
-	std::vector<std::pair<XrSpace, node_handle>> model_handles;
+	std::vector<std::pair<xr::spaces, node_handle>> model_handles;
 	node_handle left_ray;
 	node_handle right_ray;
+
+	magic_enum::containers::array<xr::spaces, std::pair<glm::vec3, glm::quat>> offset;
 
 	input_profile(const std::filesystem::path & json_profile, scene_loader & loader, scene_data & scene_controllers, scene_data & scene_rays);
 

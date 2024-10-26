@@ -26,6 +26,7 @@
 #include "scenes/hand_model.h"
 #include "scenes/lobby_keyboard.h"
 #include "wifi_lock.h"
+#include "wivrn_config.h"
 #include "wivrn_discover.h"
 #include <vulkan/vulkan_raii.hpp>
 
@@ -93,6 +94,17 @@ class lobby : public scene_impl<lobby>
 	xr::passthrough passthrough;
 	XrViewConfigurationView stream_view;
 
+#if WIVRN_CLIENT_DEBUG_MENU
+	// GUI debug
+	node_handle xyz_axes_left_controller;
+	node_handle xyz_axes_right_controller;
+	bool display_debug_axes = false;
+	bool display_grip_instead_of_aim = false;
+	glm::vec3 offset_position{};
+	glm::vec3 offset_orientation{};
+	float ray_offset{};
+#endif
+
 	void update_server_list();
 
 	std::vector<std::pair<int, XrCompositionLayerQuad>> draw_gui(XrTime predicted_display_time);
@@ -113,6 +125,9 @@ class lobby : public scene_impl<lobby>
 	{
 		server_list,
 		settings,
+#if WIVRN_CLIENT_DEBUG_MENU
+		debug,
+#endif
 		about,
 		licenses,
 		exit
@@ -129,6 +144,7 @@ class lobby : public scene_impl<lobby>
 	void gui_server_list();
 	void gui_new_server();
 	void gui_settings();
+	void gui_debug();
 	void gui_about();
 	void gui_licenses();
 	void gui_keyboard();

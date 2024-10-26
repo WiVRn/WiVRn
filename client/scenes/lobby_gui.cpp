@@ -602,6 +602,68 @@ void scenes::lobby::gui_settings()
 	}
 }
 
+#if WIVRN_CLIENT_DEBUG_MENU
+void scenes::lobby::gui_debug()
+{
+	ImGui::GetIO().ConfigDragClickToInputText = true;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
+
+	ImGui::Checkbox("Display debug axes", &display_debug_axes);
+	vibrate_on_hover();
+
+	if (display_debug_axes)
+	{
+		ImGui::Checkbox("Display grip instead of aim", &display_grip_instead_of_aim);
+		vibrate_on_hover();
+	}
+
+	ImGui::SetNextItemWidth(140);
+	ImGui::DragFloat("##offset x", &offset_position.x, 0.0001);
+	vibrate_on_hover();
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(140);
+	ImGui::DragFloat("##offset y", &offset_position.y, 0.0001);
+	vibrate_on_hover();
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(140);
+	ImGui::DragFloat("Position", &offset_position.z, 0.0001);
+	vibrate_on_hover();
+
+	ImGui::SameLine();
+	if (ImGui::Button("Reset##position"))
+		offset_position = {0, 0, 0};
+	vibrate_on_hover();
+
+	ImGui::SetNextItemWidth(140);
+	ImGui::DragFloat("##offset roll", &offset_orientation.x, 0.01);
+	vibrate_on_hover();
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(140);
+	ImGui::DragFloat("##offset pitch", &offset_orientation.y, 0.01);
+	vibrate_on_hover();
+
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(140);
+	ImGui::DragFloat("Rotation", &offset_orientation.z, 0.01);
+	vibrate_on_hover();
+
+	ImGui::SameLine();
+	if (ImGui::Button("Reset##orientation"))
+		offset_orientation = {0, 0, 0};
+	vibrate_on_hover();
+
+	ImGui::SetNextItemWidth(140);
+	ImGui::DragFloat("Ray offset", &ray_offset, 0.0001);
+	vibrate_on_hover();
+
+	ImGui::PopStyleVar();
+}
+#endif
+
 void scenes::lobby::gui_about()
 {
 	ImGui::PushFont(imgui_ctx->large_font);
@@ -1194,6 +1256,12 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				gui_settings();
 				break;
 
+#if WIVRN_CLIENT_DEBUG_MENU
+			case tab::debug:
+				gui_debug();
+				break;
+#endif
+
 			case tab::about:
 				gui_about();
 				break;
@@ -1232,6 +1300,11 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});
 		vibrate_on_hover();
 
+#if WIVRN_CLIENT_DEBUG_MENU
+		RadioButtonWithoutCheckBox(ICON_FA_BUG_SLASH "  " + _("Debug"), &current_tab, tab::debug, {TabWidth, 0});
+		vibrate_on_hover();
+#endif
+
 		ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 3 * ImGui::GetCurrentContext()->FontSize - 6 * style.FramePadding.y - 2 * style.ItemSpacing.y - style.WindowPadding.y);
 		RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About"), &current_tab, tab::about, {TabWidth, 0});
 		vibrate_on_hover();
@@ -1264,6 +1337,24 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		if (controller < haptic_output.size())
 			application::haptic_start(haptic_output[controller], XR_NULL_PATH, 10'000'000, 1000, 1);
 	}
+
+#if WIVRN_CLIENT_DEBUG_MENU
+	{
+		input->offset[xr::spaces::grip_left].first = offset_position;
+		input->offset[xr::spaces::grip_right].first = offset_position;
+
+		glm::quat qx = glm::quat(std::cos(offset_orientation.x * M_PI / 360), sin(offset_orientation.x * M_PI / 360), 0, 0);
+		glm::quat qy = glm::quat(std::cos(offset_orientation.y * M_PI / 360), 0, sin(offset_orientation.y * M_PI / 360), 0);
+		glm::quat qz = glm::quat(std::cos(offset_orientation.z * M_PI / 360), 0, 0, sin(offset_orientation.z * M_PI / 360));
+		glm::quat q = qz * qy * qx;
+
+		input->offset[xr::spaces::grip_left].second = q;
+		input->offset[xr::spaces::grip_right].second = q;
+
+		input->offset[xr::spaces::aim_left].first.z = ray_offset;
+		input->offset[xr::spaces::aim_right].first.z = ray_offset;
+	}
+#endif
 
 	return imgui_ctx->end_frame();
 }

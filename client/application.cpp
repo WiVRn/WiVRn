@@ -359,6 +359,28 @@ VkBool32 application::vulkan_debug_report_callback(
 	return VK_FALSE;
 }
 
+std::string parse_driver_sersion(const vk::PhysicalDeviceProperties & p)
+{
+	// See https://github.com/SaschaWillems/vulkan.gpuinfo.org/blob/1e6ca6e3c0763daabd6a101b860ab4354a07f5d3/functions.php#L294
+	switch (p.vendorID)
+	{
+		case 0x10de: // nvidia
+			return fmt::format(
+			        "{}.{}.{}.{}",
+			        (p.driverVersion >> 22) & 0x3ff,
+			        (p.driverVersion >> 14) & 0xff,
+			        (p.driverVersion >> 6) & 0xff,
+			        p.driverVersion & 0x3f);
+
+		default:
+			return fmt::format(
+			        "{}.{}.{}",
+			        VK_VERSION_MAJOR(p.driverVersion),
+			        VK_VERSION_MINOR(p.driverVersion),
+			        VK_VERSION_PATCH(p.driverVersion));
+	}
+}
+
 void application::initialize_vulkan()
 {
 	auto graphics_requirements = xr_system_id.graphics_requirements();
@@ -493,8 +515,10 @@ void application::initialize_vulkan()
 			vk_device_extensions.push_back(it->data());
 	}
 
-	vk::PhysicalDeviceProperties prop = vk_physical_device.getProperties();
-	spdlog::info("Initializing Vulkan with device {}", prop.deviceName.data());
+	spdlog::info("Initializing Vulkan with device {}", physical_device_properties.deviceName.data());
+	spdlog::info("    Vendor ID: 0x{:04x}", physical_device_properties.vendorID);
+	spdlog::info("    Device ID: 0x{:04x}", physical_device_properties.deviceID);
+	spdlog::info("    Driver version: {}", parse_driver_sersion(physical_device_properties));
 
 	std::vector<vk::QueueFamilyProperties> queue_properties = vk_physical_device.getQueueFamilyProperties();
 
