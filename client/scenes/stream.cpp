@@ -311,7 +311,7 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 						decoders[i].latest_frames,
 						[&left](auto & right)
 						{
-							return left->feedback.frame_index == right->feedback.frame_index;
+							return right and left->feedback.frame_index == right->feedback.frame_index;
 						});
 				});
 			// clang-format on
