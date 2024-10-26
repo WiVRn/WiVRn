@@ -601,11 +601,12 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 
 	cn->wivrn_bundle->device.resetFences(*cn->psc.fence);
 	psc_image.status = pseudo_swapchain::status_t::encoding;
+	auto info = cn->pacer.present_to_info(desired_present_time_ns);
 
 	for (auto & encoder: cn->encoders)
 	{
 #if WIVRN_USE_VULKAN_ENCODE
-		encoder->present_image(psc_image.image, video_command_buffer, *cn->psc.images[index].video_fence);
+		encoder->present_image(psc_image.image, video_command_buffer, *cn->psc.images[index].video_fence, info.frame_id);
 #endif
 		encoder->present_image(psc_image.image, command_buffer);
 	}
@@ -654,7 +655,6 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 
 	auto & view_info = cn->psc.view_info;
 	view_info.foveation = cn->cnx.get_foveation_parameters();
-	auto info = cn->pacer.present_to_info(desired_present_time_ns);
 	view_info.display_time = cn->cnx.get_offset().to_headset(info.predicted_display_time);
 	for (int eye = 0; eye < 2; ++eye)
 	{
@@ -787,21 +787,17 @@ void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, con
 	if (not o)
 		return;
 	pacer.on_feedback(feedback, o);
-	if (not feedback.sent_to_decoder)
-	{
-		if (encoders.size() < feedback.stream_index)
-			return;
-		encoders[feedback.stream_index]->SyncNeeded();
-	}
+	if (psc.status & 1)
+		return;
+	if (feedback.stream_index < encoders.size())
+		encoders[feedback.stream_index]->on_feedback(feedback);
 }
 
 void wivrn_comp_target::reset_encoders()
 {
 	pacer.reset();
 	for (auto & encoder: encoders)
-	{
-		encoder->SyncNeeded();
-	}
+		encoder->reset();
 	cnx.send_control(desc);
 }
 

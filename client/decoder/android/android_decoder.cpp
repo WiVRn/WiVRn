@@ -232,7 +232,6 @@ void decoder::frame_completed(wivrn::from_headset::feedback & feedback, const wi
 	}
 
 	// nothing required for decoder, mediacodec will callback when done
-	feedback.sent_to_decoder = application::now();
 	frame_infos.push(frame_info{
 	        .feedback = feedback,
 	        .timing_info = timing_info,

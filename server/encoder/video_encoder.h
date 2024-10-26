@@ -115,10 +115,10 @@ public:
 
 	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf);
 	// for vulkan video (command buffer is on a video queue)
-	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence fence);
+	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence fence, uint64_t frame_index);
 
-	// The other end lost a frame and needs to resynchronize
-	void SyncNeeded();
+	virtual void on_feedback(const from_headset::feedback &);
+	virtual void reset();
 
 	void Encode(wivrn_session & cnx,
 	            const to_headset::video_stream_data_shard::view_info_t & view_info,
@@ -128,7 +128,7 @@ protected:
 	// called on present to submit command buffers for the image.
 	virtual void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) {};
 	// for vulkan video (command buffer is on a video queue)
-	virtual void present_image(bool idr, vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence, uint8_t slot) {};
+	virtual void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence, uint8_t slot, uint64_t frame_index) {};
 	// called when command buffer finished executing
 	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) = 0;
 

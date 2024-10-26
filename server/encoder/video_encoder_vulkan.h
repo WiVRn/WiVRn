@@ -45,9 +45,17 @@ class video_encoder_vulkan : public VideoEncoder
 	std::array<vk::Fence, num_slots> fences;
 
 	image_allocation dpb_image;
-	std::vector<vk::raii::ImageView> dpb_image_views;
-	std::vector<vk::VideoPictureResourceInfoKHR> dpb_resource;
-	std::vector<vk::VideoReferenceSlotInfoKHR> dpb_slots;
+
+	struct dpb_item
+	{
+		vk::raii::ImageView image_view;
+		vk::VideoPictureResourceInfoKHR resource;
+		vk::VideoReferenceSlotInfoKHR & info;
+		uint64_t frame_index = -1;
+	};
+
+	std::vector<dpb_item> dpb;
+	std::vector<vk::VideoReferenceSlotInfoKHR> dpb_info;
 
 	std::vector<vk::raii::DeviceMemory> mem;
 
@@ -56,6 +64,7 @@ class video_encoder_vulkan : public VideoEncoder
 	        const vk::PhysicalDeviceVideoFormatInfoKHR &);
 
 	uint32_t frame_num = 0;
+	std::atomic<uint64_t> last_ack = 0;
 	bool session_initialized = false;
 	const vk::Rect2D rect;
 	const float fps;
@@ -80,11 +89,12 @@ protected:
 	virtual void send_idr_data() = 0;
 
 	virtual std::vector<void *> setup_slot_info(size_t dpb_size) = 0;
-	virtual void * encode_info_next(uint32_t frame_num, size_t slot, const std::optional<vk::VideoReferenceSlotInfoKHR> & reference_slot) = 0;
+	virtual void * encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> reference_slot) = 0;
 	virtual vk::ExtensionProperties std_header_version() = 0;
 
 public:
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
-	void present_image(bool idr, vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence, uint8_t slot) override;
+	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence, uint8_t slot, uint64_t frame_index) override;
+	void on_feedback(const from_headset::feedback &) override;
 };
 } // namespace wivrn

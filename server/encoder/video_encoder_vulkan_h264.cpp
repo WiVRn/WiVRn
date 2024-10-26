@@ -236,7 +236,7 @@ void wivrn::video_encoder_vulkan_h264::send_idr_data()
 	SendData(data, false);
 }
 
-void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, size_t slot, const std::optional<vk::VideoReferenceSlotInfoKHR> & ref_slot)
+void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> ref_slot)
 {
 	slice_header = {
 	        .flags =
@@ -282,7 +282,7 @@ void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, si
 	std::ranges::fill(reference_lists_info.RefPicList1, STD_VIDEO_H264_NO_REFERENCE_PICTURE);
 
 	if (ref_slot)
-		reference_lists_info.RefPicList0[0] = ref_slot->slotIndex;
+		reference_lists_info.RefPicList0[0] = *ref_slot;
 	const uint32_t frame_num_mask = ((1 << (sps.log2_max_frame_num_minus4 + 4)) - 1);
 	std_picture_info = {
 	        .flags =
@@ -319,15 +319,18 @@ void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, si
 
 	if (ref_slot)
 	{
-		auto ref_frame = dpb_std_info[ref_slot->slotIndex].FrameNum;
-		if ((ref_frame + 1) % frame_num_mask != i.FrameNum)
+		auto ref_frame = dpb_std_info[*ref_slot].FrameNum;
+		if (((ref_frame + 1) & frame_num_mask) != i.FrameNum)
 		{
 			reference_lists_info.flags.ref_pic_list_modification_flag_l0 = 1;
-			reference_lists_info.refList0ModOpCount = 1;
-			reference_lists_info.pRefList0ModOperations = &ref_mod;
-			ref_mod = {
-			        .modification_of_pic_nums_idc = STD_VIDEO_H264_MODIFICATION_OF_PIC_NUMS_IDC_SHORT_TERM_ADD,
-			        .abs_diff_pic_num_minus1 = uint16_t(1 + i.FrameNum - ref_frame),
+			reference_lists_info.refList0ModOpCount = ref_mod.size();
+			reference_lists_info.pRefList0ModOperations = ref_mod.data();
+			ref_mod[0] = {
+			        .modification_of_pic_nums_idc = STD_VIDEO_H264_MODIFICATION_OF_PIC_NUMS_IDC_SHORT_TERM_SUBTRACT,
+			        .abs_diff_pic_num_minus1 = uint16_t(uint16_t(i.FrameNum - ref_frame - 1) & frame_num_mask),
+			};
+			ref_mod[1] = {
+			        .modification_of_pic_nums_idc = STD_VIDEO_H264_MODIFICATION_OF_PIC_NUMS_IDC_END,
 			};
 		}
 	}

@@ -218,7 +218,13 @@ VideoEncoder::~VideoEncoder()
 		shared_sender->wait_idle(this);
 }
 
-void VideoEncoder::SyncNeeded()
+void VideoEncoder::on_feedback(const from_headset::feedback & feedback)
+{
+	if (not feedback.sent_to_decoder)
+		sync_needed = true;
+}
+
+void VideoEncoder::reset()
 {
 	sync_needed = true;
 }
@@ -233,9 +239,9 @@ void VideoEncoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd
 	next_present = (next_present + 1) % num_slots;
 }
 
-void VideoEncoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & video_cmd_buf, vk::Fence fence)
+void VideoEncoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & video_cmd_buf, vk::Fence fence, uint64_t frame_index)
 {
-	present_image(sync_needed.load(), y_cbcr, video_cmd_buf, fence, next_present);
+	present_image(y_cbcr, video_cmd_buf, fence, next_present, frame_index);
 }
 
 void VideoEncoder::Encode(wivrn_session & cnx,
