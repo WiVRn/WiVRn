@@ -188,6 +188,7 @@ pid_t app_pid;
 
 bool quitting_main_loop;
 bool do_fork;
+bool avahi_publish;
 
 guint listener_watch;
 
@@ -636,7 +637,8 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	g_source_unref(control_listener);
 
 	// Initialize avahi publisher
-	start_publishing();
+	if (avahi_publish)
+		start_publishing();
 
 	// Initialize listener
 	start_listening();
@@ -681,6 +683,7 @@ int main(int argc, char * argv[])
 	app.add_option("-f", config_file, "configuration file")->option_text("FILE")->check(CLI::ExistingFile);
 	auto no_instructions = app.add_flag("--no-instructions")->group("");
 	auto no_fork = app.add_flag("--no-fork")->description("disable fork to serve connection")->group("Debug");
+	auto no_publish = app.add_flag("--no-publish-service")->description("disable publishing the service through avahi");
 #if WIVRN_USE_SYSTEMD
 	// --application should only be used from wivrn-application unit file
 	auto app_flag = app.add_flag("--application")->group("");
@@ -690,6 +693,7 @@ int main(int argc, char * argv[])
 	CLI11_PARSE(app, argc, argv);
 
 	do_fork = not *no_fork;
+	avahi_publish = not *no_publish;
 
 	if (not config_file.empty())
 		configuration::set_config_file(config_file);
