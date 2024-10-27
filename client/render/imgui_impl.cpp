@@ -21,6 +21,7 @@
 
 #include "application.h"
 #include "asset.h"
+#include "constants.h"
 #include "image_loader.h"
 #include "openxr/openxr.h"
 #include "utils/ranges.h"
@@ -206,7 +207,7 @@ std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(cons
 			// => ray_start.z + distance × ray_dir.z = 0
 			float distance = -ray_start.z / ray_dir.z;
 
-			if (distance < -0.1)
+			if (distance < constants::gui::min_pointer_distance)
 				continue;
 
 			coord.x = ray_start.x + distance * ray_dir.x;
@@ -292,7 +293,7 @@ static const std::array pool_sizes =
         {
                 vk::DescriptorPoolSize{
                         .type = vk::DescriptorType::eCombinedImageSampler,
-                        .descriptorCount = 100,
+                        .descriptorCount = constants::gui::nb_combined_image_samplers,
                 }};
 
 static const vk::DescriptorSetLayoutBinding layout_bindings{
@@ -456,7 +457,7 @@ static std::vector<std::string> find_font(ImFontGlyphRangesBuilder glyph_range_b
 
 	static FcConfig * config = FcInitLoadConfigAndFonts();
 
-	FcPattern * pattern = FcNameParse((const FcChar8 *)"Noto Sans");
+	FcPattern * pattern = FcNameParse((const FcChar8 *)constants::gui::font_name);
 	if (!pattern)
 		throw std::runtime_error("Failed to create Fontconfig pattern");
 
@@ -587,15 +588,15 @@ void imgui_context::initialize_fonts()
 		for (auto & font: fonts)
 		{
 			spdlog::info("Using font {}", font, application::get_messages_info().language);
-			io.Fonts->AddFontFromFileTTF(font.c_str(), 30, &config, glyph_ranges.Data);
+			io.Fonts->AddFontFromFileTTF(font.c_str(), constants::gui::font_size_small, &config, glyph_ranges.Data);
 			config.MergeMode = true;
 		}
 
 		config.MergeMode = true;
 		config.GlyphMinAdvanceX = 40; // Use if you want to make the icon monospaced
 		static const ImWchar icon_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
-		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(font_awesome_regular.data()), font_awesome_regular.size(), 30, &config, icon_ranges);
-		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(font_awesome_solid.data()), font_awesome_solid.size(), 30, &config, icon_ranges);
+		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(font_awesome_regular.data()), font_awesome_regular.size(), constants::gui::font_size_small, &config, icon_ranges);
+		io.Fonts->AddFontFromMemoryTTF(const_cast<std::byte *>(font_awesome_solid.data()), font_awesome_solid.size(), constants::gui::font_size_small, &config, icon_ranges);
 	}
 
 	{
@@ -603,7 +604,7 @@ void imgui_context::initialize_fonts()
 		config.FontDataOwnedByAtlas = false;
 		for (auto & font: fonts)
 		{
-			large_font = io.Fonts->AddFontFromFileTTF(font.c_str(), 75, &config, glyph_ranges.Data);
+			large_font = io.Fonts->AddFontFromFileTTF(font.c_str(), constants::gui::font_size_large, &config, glyph_ranges.Data);
 			config.MergeMode = true;
 		}
 	}
@@ -615,7 +616,7 @@ void imgui_context::initialize_fonts()
 
 std::vector<imgui_context::controller_state> imgui_context::read_controllers_state(XrTime display_time)
 {
-	float scroll_scale = io.DeltaTime * 3;
+	float scroll_scale = io.DeltaTime * constants::gui::scroll_ratio;
 	size_t new_focused_controller = focused_controller;
 
 	std::vector<controller_state> new_states;
@@ -665,7 +666,7 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 				/*if (new_state.trigger_value < 0.5)
 				        new_state.trigger_clicked = false;
 				else */
-				if (new_state.trigger_value > 0.8)
+				if (new_state.trigger_value > constants::gui::trigger_click_thd)
 					new_state.trigger_clicked = true;
 			}
 
@@ -686,11 +687,10 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 
 		if (state.source == ImGuiMouseSource_VRHandTracking)
 		{
-			// TODO tunable
-			if (state.hover_distance < 0.15)
+			if (state.hover_distance < constants::gui::fingertip_distance_hovering_thd)
 				state.fingertip_hovering = true;
 
-			if (state.hover_distance < 0.05)
+			if (state.hover_distance < constants::gui::fingertip_distance_touching_thd)
 				state.fingertip_touching = true;
 		}
 	}
@@ -777,7 +777,7 @@ void imgui_context::new_frame(XrTime display_time)
 	{
 		if (state.source == ImGuiMouseSource_VRController)
 		{
-			if (state.trigger_clicked or glm::length(state.scroll_value) > 0.01f)
+			if (state.trigger_clicked or glm::length(state.scroll_value) > constants::gui::scroll_value_thd)
 			{
 				new_focused_controller = index;
 			}
@@ -810,7 +810,7 @@ void imgui_context::new_frame(XrTime display_time)
 		{
 			io.AddMousePosEvent(position->x, position->y);
 
-			if (glm::length(scroll) > 0.01f)
+			if (glm::length(scroll) > constants::gui::scroll_value_thd)
 				io.AddMouseWheelEvent(scroll.x, scroll.y);
 		}
 	}
@@ -930,21 +930,22 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 				distance = std::min(distance, distance_to_window(window, *position));
 			}
 
-			float radius = 10;
-			float alpha = std::clamp<float>((40 - distance) / 50, 0, 0.8);
+			float alpha = std::clamp<float>(1 - distance / constants::gui::pointer_fading_distance, 0, 1);
 
-			if (&controller != &controllers[focused_controller])
-				alpha /= 3;
+			if (&controller == &controllers[focused_controller])
+				alpha *= constants::gui::pointer_alpha;
+			else
+				alpha *= constants::gui::pointer_alpha_disabled;
 
-			ImU32 color_pressed = ImGui::GetColorU32(ImVec4(0, 0.2, 1, alpha));
-			ImU32 color_unpressed = ImGui::GetColorU32(ImVec4(1, 1, 1, alpha));
+			ImU32 color_pressed = ImGui::GetColorU32(constants::gui::pointer_color_pressed, alpha);
+			ImU32 color_unpressed = ImGui::GetColorU32(constants::gui::pointer_color_unpressed, alpha);
 
 			bool pressed = controller.second.trigger_clicked || controller.second.fingertip_touching;
 
 			ImDrawList * draw_list = ImGui::GetForegroundDrawList();
 			draw_list->PushClipRect(clip_rect_min, clip_rect_max);
-			draw_list->AddCircleFilled(*position, radius, pressed ? color_pressed : color_unpressed);
-			draw_list->AddCircle(*position, radius * 1.2, ImGui::GetColorU32(ImVec4(0, 0, 0, alpha)), 0, radius * 0.4);
+			draw_list->AddCircleFilled(*position, constants::gui::pointer_radius_in, pressed ? color_pressed : color_unpressed);
+			draw_list->AddCircle(*position, constants::gui::pointer_radius_out, ImGui::GetColorU32(constants::gui::pointer_color_border, alpha), 0, constants::gui::pointer_thickness);
 			draw_list->PopClipRect();
 		}
 	}

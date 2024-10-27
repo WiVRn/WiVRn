@@ -19,6 +19,7 @@
 
 #include "lobby.h"
 #include "application.h"
+#include "constants.h"
 #include "glm/geometric.hpp"
 #include "hardware.h"
 #include "imgui.h"
@@ -73,7 +74,8 @@ static const std::array supported_depth_formats{
 
 static glm::quat compute_gui_orientation(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
-	const float gui_pitch = -0.2;
+	using constants::lobby::gui_pitch;
+
 	glm::vec3 gui_direction = new_gui_position - head_position;
 
 	float gui_yaw = atan2(gui_direction.x, gui_direction.z) + M_PI;
@@ -83,7 +85,9 @@ static glm::quat compute_gui_orientation(glm::vec3 head_position, glm::vec3 new_
 
 void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
-	const float keyboard_pitch = -0.6;
+	using constants::lobby::keyboard_pitch;
+	using constants::lobby::keyboard_position;
+	using constants::lobby::popup_position;
 
 	auto q = compute_gui_orientation(head_position, new_gui_position);
 	auto M = glm::mat3_cast(q); // plane-to-world transform
@@ -93,11 +97,11 @@ void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position
 	imgui_ctx->layers()[0].orientation = q;
 
 	// Popup
-	imgui_ctx->layers()[1].position = new_gui_position + M * glm::vec3(0, 0, 0.05);
+	imgui_ctx->layers()[1].position = new_gui_position + M * popup_position;
 	imgui_ctx->layers()[1].orientation = q;
 
 	// Keyboard
-	imgui_ctx->layers()[2].position = new_gui_position + M * glm::vec3(0, -0.3, 0.1);
+	imgui_ctx->layers()[2].position = new_gui_position + M * keyboard_position;
 	imgui_ctx->layers()[2].orientation = q * glm::quat(cos(keyboard_pitch / 2), sin(keyboard_pitch / 2), 0, 0);
 }
 
@@ -394,9 +398,9 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(const std::array<
 	glm::quat q{o.w, o.x, o.y, o.z};
 	glm::vec3 v{p.x, p.y, p.z};
 
-	if (glm::dot(q * glm::vec3(0, 1, 0), glm::vec3(0, -1, 0)) > 0.8)
+	if (glm::dot(q * glm::vec3(0, 1, 0), glm::vec3(0, -1, 0)) > constants::lobby::recenter_cosangle_min)
 	{
-		return v + glm::vec3(0, 0.3, 0) + q * glm::vec3(0, 0, -0.2);
+		return v + glm::vec3(0, constants::lobby::recenter_distance_up, 0) + q * glm::vec3(0, 0, -constants::lobby::recenter_distance_front);
 	}
 
 	return std::nullopt;
@@ -443,7 +447,7 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 			else
 			{
 				gui_recenter_position = glm::vec3(0, 0, 0);
-				gui_recenter_distance = 0.3;
+				gui_recenter_distance = constants::lobby::recenter_action_distance;
 			}
 		}
 		else
@@ -488,14 +492,12 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 
 std::optional<glm::vec3> scenes::lobby::check_recenter_gui(glm::vec3 head_position, glm::quat head_orientation)
 {
-	const float gui_distance = 0.50;
-
 	glm::vec3 head_direction = -glm::column(glm::mat3_cast(head_orientation), 2);
 
 	if (recenter_gui)
 	{
 		recenter_gui = false;
-		glm::vec3 new_gui_position = head_position + gui_distance * head_direction;
+		glm::vec3 new_gui_position = head_position + constants::lobby::initial_gui_distance * head_direction;
 		new_gui_position.y = head_position.y - 0.1;
 		return new_gui_position;
 	}
@@ -528,12 +530,10 @@ static std::pair<std::vector<XrCompositionLayerProjectionView>, std::vector<XrCo
 		if (depth_swapchain)
 			depth_swapchain.wait();
 
-		float zn = 0.02;
-
 		frames.push_back({
 		        .destination = color_swapchain.images()[color_image_index].image,
 		        .depth_buffer = depth_swapchain ? depth_swapchain.images()[depth_image_index].image : vk::Image{},
-		        .projection = projection_matrix(view.fov, zn),
+		        .projection = projection_matrix(view.fov, constants::lobby::near_plane),
 		        .view = view_matrix(view.pose),
 		});
 
@@ -562,7 +562,7 @@ static std::pair<std::vector<XrCompositionLayerProjectionView>, std::vector<XrCo
 		        .minDepth = 0,
 		        .maxDepth = 1,
 		        .nearZ = std::numeric_limits<float>::infinity(),
-		        .farZ = zn,
+		        .farZ = constants::lobby::near_plane,
 		});
 	}
 
@@ -789,7 +789,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	if (application::get_config().passthrough_enabled)
 		clear_color = {0, 0, 0, 0};
 	else
-		clear_color = {0, 0.25, 0.5, 1};
+		clear_color = constants::lobby::sky_color;
 
 	if (composition_layer_depth_test_supported)
 	{
@@ -884,7 +884,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 			                blend_mode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
 		                },
 		                [&](auto & p) {
-			                layers_with_z_index.emplace_back(-2, p.layer());
+			                layers_with_z_index.emplace_back(constants::lobby::zindex_passthrough, p.layer());
 		                }},
 		        passthrough);
 	}
@@ -892,18 +892,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	// Dimming settings if a popup window is displayed
 	XrCompositionLayerColorScaleBiasKHR color_scale_bias{
 	        .type = XR_TYPE_COMPOSITION_LAYER_COLOR_SCALE_BIAS_KHR,
-	        .colorScale = {
-	                .r = 0.5,
-	                .g = 0.5,
-	                .b = 0.5,
-	                .a = 1,
-	        },
-	        .colorBias = {
-	                .r = 0.25,
-	                .g = 0.25,
-	                .b = 0.25,
-	                .a = 0,
-	        },
+	        .colorScale = constants::lobby::dimming_scale,
+	        .colorBias = constants::lobby::dimming_bias,
 	};
 
 	// Add XrCompositionLayerDepthTestFB to lobby_layer and imgui_layer
@@ -918,12 +908,12 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	};
 
 	// if (composition_layer_depth_test_supported or not application::get_config().passthrough_enabled)
-	layers_with_z_index.emplace_back(-1, reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
+	layers_with_z_index.emplace_back(constants::lobby::zindex_lobby, reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
 
 	for (auto & [z_index, layer]: imgui_layers)
 		layers_with_z_index.emplace_back(z_index, reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 
-	layers_with_z_index.emplace_back(1000, reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
+	layers_with_z_index.emplace_back(constants::lobby::zindex_controllers, reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
 
 	if (composition_layer_depth_test_supported)
 	{
@@ -1083,6 +1073,7 @@ void scenes::lobby::on_focused()
 	                .size = {0.6, 0.4},
 	                .vp_origin = {0, 0},
 	                .vp_size = {1500, 1000},
+	                .z_index = constants::lobby::zindex_gui,
 	        },
 	        {
 	                // Pop up window
@@ -1090,6 +1081,7 @@ void scenes::lobby::on_focused()
 	                .size = {0.6, 0.24},
 	                .vp_origin = {1500, 0},
 	                .vp_size = {1500, 600},
+	                .z_index = constants::lobby::zindex_gui,
 	        },
 	        {
 	                // Virtual keyboard
@@ -1098,6 +1090,7 @@ void scenes::lobby::on_focused()
 	                .vp_origin = {1500, 600},
 	                .vp_size = {1500, 500},
 	                .always_show_cursor = true,
+	                .z_index = constants::lobby::zindex_gui,
 	        },
 	        {
 	                // Recenter tip
@@ -1107,7 +1100,7 @@ void scenes::lobby::on_focused()
 	                .size = {0.6, 0.12},
 	                .vp_origin = {0, 1000},
 	                .vp_size = {1500, 300},
-	                .z_index = 2000,
+	                .z_index = constants::lobby::zindex_recenter_tip,
 	        }};
 
 	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 3000, 1300);

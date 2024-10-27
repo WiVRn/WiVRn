@@ -22,6 +22,7 @@
 #include "application.h"
 #include "asset.h"
 #include "configuration.h"
+#include "constants.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "implot.h"
@@ -69,7 +70,7 @@ static void CenterTextHV(const std::string & text)
 static void display_recentering_tip(imgui_context & ctx, const std::string & tip)
 {
 	ImGui::PushFont(ctx.large_font);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::SetNextWindowPos(ctx.layers()[3].vp_center(), ImGuiCond_Always, {0.5, 0.5});
 	ImGui::Begin("Recentering tip", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
@@ -108,10 +109,10 @@ void scenes::lobby::tooltip(std::string_view text)
 
 	ImVec2 pos{
 	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
-	        ImGui::GetItemRectMin().y - 10,
+	        ImGui::GetItemRectMin().y - constants::style::tooltip_distance,
 	};
 
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {5, 5});
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
 
 	// Clamp position to avoid overflowing on the right
 	auto & style = ImGui::GetStyle();
@@ -142,7 +143,7 @@ void scenes::lobby::vibrate_on_hover()
 
 void scenes::lobby::gui_connecting()
 {
-	const ImVec2 button_size(220, 80);
+	using constants::style::button_size;
 
 	std::string status;
 	if (next_scene)
@@ -198,13 +199,13 @@ void scenes::lobby::gui_connecting()
 
 void scenes::lobby::gui_new_server()
 {
+	using constants::style::button_size;
+
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
 	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {10, 10});
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 	ImGui::Dummy({1000, 1});
-
-	const ImVec2 button_size(220, 80);
 
 	ImGui::BeginTable("table", 2);
 
@@ -293,6 +294,8 @@ void scenes::lobby::gui_new_server()
 
 void scenes::lobby::gui_server_list()
 {
+	using constants::style::button_size;
+
 	auto & config = application::get_config();
 	// Build an index of the cookies sorted by server name
 	std::multimap<std::string, std::string> sorted_cookies;
@@ -301,7 +304,6 @@ void scenes::lobby::gui_server_list()
 		sorted_cookies.emplace(data.service.name, cookie);
 	}
 
-	const ImVec2 button_size(220, 80);
 	const float list_item_height = 100;
 	auto & style = ImGui::GetStyle();
 
@@ -418,9 +420,9 @@ void scenes::lobby::gui_server_list()
 	const auto & popup_layer = imgui_ctx->layers()[1];
 	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
 	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20, 20));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
 	if (ImGui::BeginPopupModal("connecting", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		gui_connecting();
