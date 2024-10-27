@@ -292,12 +292,7 @@ virtual_keyboard::key_status virtual_keyboard::button_behavior(const ImRect & bb
 	ImGuiContext & g = *GImGui;
 
 	if ((flags & ImGuiButtonFlags_PressedOnMask_) == 0)
-	{
-		if (g.IO.MouseSource == ImGuiMouseSource_VRHandTracking)
-			flags |= ImGuiButtonFlags_PressedOnClick;
-		else
-			flags |= ImGuiButtonFlags_PressedOnClickRelease;
-	}
+		flags |= ImGuiButtonFlags_PressedOnClickRelease;
 
 	bool pressed = false;
 	bool hovered = window_hovered and ImGui::IsMouseHoveringRect(bb.Min, bb.Max);

@@ -206,7 +206,7 @@ std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(cons
 			// => ray_start.z + distance × ray_dir.z = 0
 			float distance = -ray_start.z / ray_dir.z;
 
-			if (distance < 0)
+			if (distance < -0.1)
 				continue;
 
 			coord.x = ray_start.x + distance * ray_dir.x;
@@ -687,10 +687,10 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 		if (state.source == ImGuiMouseSource_VRHandTracking)
 		{
 			// TODO tunable
-			if (std::abs(state.hover_distance) < 0.1)
+			if (state.hover_distance < 0.15)
 				state.fingertip_hovering = true;
 
-			if (std::abs(state.hover_distance) < 0.02)
+			if (state.hover_distance < 0.05)
 				state.fingertip_touching = true;
 		}
 	}
