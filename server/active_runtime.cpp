@@ -53,15 +53,26 @@ std::filesystem::path active_runtime::manifest_path()
 	return std::filesystem::path(WIVRN_INSTALL_PREFIX) / install_location;
 }
 
+static std::filesystem::path backup_name(std::filesystem::path file)
+{
+	file += ".wivrn-backup";
+	return file;
+}
+
+static void move_file(const std::filesystem::path & from, const std::filesystem::path & to)
+{
+	if (not std::filesystem::exists(from))
+		return;
+	std::filesystem::rename(from, to);
+}
+
 active_runtime::active_runtime() :
         active_runtime_json(xdg_config_home() / "openxr/1/active_runtime.json"), pid(getpid())
 {
 	try
 	{
-		if (std::filesystem::exists(active_runtime_json))
-			return;
-
 		std::filesystem::create_directories(active_runtime_json.parent_path());
+		move_file(active_runtime_json, backup_name(active_runtime_json));
 
 		std::filesystem::create_symlink(manifest_path(), active_runtime_json);
 
@@ -80,6 +91,7 @@ active_runtime::~active_runtime()
 		if (pid == getpid() && to_be_deleted)
 		{
 			std::filesystem::remove(active_runtime_json);
+			move_file(backup_name(active_runtime_json), active_runtime_json);
 		}
 	}
 	catch (std::exception & e)
