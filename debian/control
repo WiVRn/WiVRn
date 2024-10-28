@@ -1,0 +1,62 @@
+Source: wivrn
+Section: net
+Priority: optional
+Maintainer: Guillaume Meunier <guillaume.meunier@centraliens.net>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake (>= 3.25),
+ pkg-config,
+ glslang-tools,
+ libavahi-client-dev,
+ libavahi-glib-dev,
+ libavcodec-dev,
+ libavfilter-dev,
+ libavutil-dev,
+ libbsd-dev,
+ libboost-all-dev,
+ libcap-dev,
+ libcjson-dev,
+ libcli11-dev,
+ libeigen3-dev,
+ libgl-dev,
+ libgl1-mesa-dev,
+ libglu1-mesa-dev,
+ libglx-dev,
+ libpipewire-0.3-dev,
+ libpulse-dev,
+ libswscale-dev,
+ libsystemd-dev,
+ libudev-dev,
+ libva-dev,
+ libvulkan-dev (>= 1.3.261),
+ libwayland-dev,
+ libx11-xcb-dev,
+ libx264-dev,
+ libxcb-randr0-dev,
+ libxrandr-dev,
+ mesa-common-dev,
+ nlohmann-json3-dev,
+ policykit-1,
+ qt6-base-dev,
+ qt6-tools-dev,
+ xz-utils
+Standards-Version: 4.6.2
+Homepage: https://wivrn.github.io
+#Vcs-Browser: https://salsa.debian.org/debian/wivrn
+#Vcs-Git: https://salsa.debian.org/debian/wivrn.git
+
+Package: wivrn
+Architecture: any
+Multi-Arch: foreign
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: OpenXR streaming application to a standalone headset
+ WiVRn wirelessly connects a standalone VR headset to a Linu
+ computer. You can then play PCVR games on the headset while
+ processing is done on the computer.
+ .
+ It supports a wide range of headsets such as Quest 1 / 2 / Pro / 3,
+ Pico Neo 3 / 4, HTC Vive Focus 3, HTC Vive XR elite and most
+ other Android based headsets.

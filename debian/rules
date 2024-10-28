@@ -1,0 +1,44 @@
+#!/usr/bin/make -f
+
+# See debhelper(7) (uncomment to enable).
+# Output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+
+# See FEATURE AREAS in dpkg-buildflags(1).
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# See ENVIRONMENT in dpkg-buildflags(1).
+# Package maintainers to append CFLAGS.
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# Package maintainers to append LDFLAGS.
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+
+%:
+	dh $@
+
+
+# dh_make generated override targets.
+# This is an example for Cmake (see <https://bugs.debian.org/641051>).
+override_dh_auto_configure:
+	dh_auto_configure --              \
+	-DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	-DWIVRN_BUILD_CLIENT=OFF          \
+	-DWIVRN_BUILD_SERVER=ON           \
+	-DWIVRN_BUILD_DASHBOARD=ON        \
+	-DWIVRN_BUILD_DISSECTOR=OFF       \
+	-DWIVRN_USE_VAAPI=ON              \
+	-DWIVRN_USE_VULKAN_ENCODE=OFF     \
+	-DWIVRN_USE_X264=ON               \
+	-DWIVRN_USE_NVENC=ON              \
+	-DWIVRN_USE_SYSTEMD=ON            \
+	-DWIVRN_USE_SYSTEM_BOOST=ON       \
+	-DWIVRN_USE_PULSEAUDIO=ON         \
+	-DWIVRN_USE_PIPEWIRE=ON           \
+	-DWIVRN_WERROR=OFF                \
+	-DFETCHCONTENT_BASE_DIR=$(shell pwd)
+
+# Don't add the ldconfig trigger
+override_dh_makeshlibs:
+	dh_makeshlibs  --no-scripts

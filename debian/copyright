@@ -1,0 +1,81 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: <https://www.github.com/WiVRn/WiVRn/>
+Upstream-Name: WiVRn
+
+Files:
+ *
+Copyright:
+ 2022-2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ 2022-2024  Patrick Nicolas <patricknicolas@laposte.net>
+ 2024  galister <galister@librevr.org>
+License: GPL-3.0+
+
+Files:
+ debian/*
+Copyright:
+ 2024 Guillaume Meunier <guillaume.meunier@centraliens.net>
+License: GPL-3.0+
+
+Files:
+ external/ffnvcodec/dynlink_cuda.h
+ external/ffnvcodec/dynlink_cuviddec.h
+ external/ffnvcodec/dynlink_loader.h
+ external/ffnvcodec/dynlink_nvcuvid.h
+ external/ffnvcodec/nvEncodeAPI.h
+Copyright:
+ 2010-2021 NVIDIA Corporation
+
+Files:
+ external/IconsFontAwesome6.h
+Copyright:
+ 2017 Juliette Foucaut and Doug Binks
+License: zlib
+
+Files:
+ assets/Font Awesome 6*.otf
+License: SIL Open Font License
+
+Files:
+ assets/controllers/*
+License: W3C Software and Document License
+
+Files:
+ assets/WoodFloor051*
+License: CC0
+Copyright:
+ 2017 - 2024 Lennart Demes
+
+Files:
+ external/magic_enum*.hpp
+Copyright:
+ 2019 - 2023 Daniil Goncharov <neargye@gmail.com>
+License: MIT
+
+Files:
+ external/mdns.h
+Copyright:
+ 2017 Mattias Jansson
+License: Public-Domain
+
+Files:
+ external/vk_mem_alloc.h
+Copyright:
+ 2017-2022 Advanced Micro Devices, Inc. All rights reserved.
+
+
+License: GPL-3.0+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <https://www.gnu.org/licenses/>.
+Comment:
+ On Debian systems, the complete text of the GNU General
+ Public License version 3 can be found in "/usr/share/common-licenses/GPL-3".

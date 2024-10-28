@@ -274,10 +274,71 @@ jobs:
         chmod +x ovr-platform-util
         ./ovr-platform-util upload-quest-build --app-id 7959676140827574 --token $OCULUS_TOKEN --apk apk/WiVRn-standard-oculus.apk --channel ALPHA --age-group TEENS_AND_ADULTS --draft --debug_symbols_dir debug/ --debug-symbols-pattern '*.so'
 
+  build-ubuntu:
+    name: Build Ubuntu package
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: ['ubuntu-24.04']
+    runs-on: ${{ matrix.distro }}
+    steps:
+
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: wivrn
+
+    - name: Download monado
+      run: |
+        MONADO_COMMIT=$(grep -zo "FetchContent_Declare(monado[^)]*)" wivrn/CMakeLists.txt | sed -ze "s/^.*GIT_TAG *\([^ )]*\).*$/\1/" | tr -d '\0')
+        wget https://gitlab.freedesktop.org/monado/monado/-/archive/$MONADO_COMMIT/monado-$MONADO_COMMIT.tar.gz
+
+        mkdir wivrn/monado-src
+        tar xzf monado-*.tar.gz --strip-components=1 -C wivrn/monado-src
+
+    - name: Patch monado
+      working-directory: wivrn/monado-src
+      run: ../patches/apply.sh ../patches/monado
+
+    - name: Edit changelog
+      if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
+      working-directory: wivrn/debian
+      run: |
+        mv changelog changelog.orig
+        echo "wivrn ("$(git describe --tags | sed s/^v//)") "$(lsb_release -c -s)"; urgency=medium"        >  changelog
+        echo ""                                                                                            >> changelog
+        echo "  * Nightly build"                                                                           >> changelog
+        echo ""                                                                                            >> changelog
+        echo " -- github-actions <41898282+github-actions@users.noreply.github.com>  "$(date -R)           >> changelog
+        echo ""                                                                                            >> changelog
+        cat changelog.orig |sed s/unstable/$(lsb_release -c -s)/ >> changelog
+        cat changelog
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev policykit-1 libboost-all-dev librsvg2-bin dpkg-dev pkg-config debhelper-compat build-essential lintian cmake
+
+    - name: Build package
+      working-directory: wivrn
+      run: dpkg-buildpackage --build=binary --no-sign
+
+    - name: Publish package
+      uses: actions/upload-artifact@v4
+      with:
+        name: wivrn-${{ matrix.distro }}
+        path: |
+          *.deb
+          *.ddeb
+
+    - name: Check package
+      working-directory: wivrn
+      run: lintian --fail-on error | sed -e s/^W:/::warning::/ -e s/^E:/::error::/
+
   release:
     name: Create release
     runs-on: ubuntu-22.04
-    needs: [build-server, build-android, build-test-client, build-dissector, build-server-flatpak]
+    needs: [build-server, build-android, build-test-client, build-dissector, build-server-flatpak, build-ubuntu]
     if: success() && startsWith(github.ref, 'refs/tags/')
 
     steps:
@@ -306,6 +367,12 @@ jobs:
         name: wivrn-server-x86_64
         path: flatpak
 
+    - name: Download artifacts (deb)
+      uses: actions/download-artifact@v4
+      with:
+        name: wivrn-ubuntu-24.04
+        path: ubuntu
+
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
@@ -315,6 +382,7 @@ jobs:
         files: |
           apk/*.apk
           flatpak/*.flatpak
+          ubuntu/*.deb
 
     - name: Update flatpak manifest for flathub
       run: |
