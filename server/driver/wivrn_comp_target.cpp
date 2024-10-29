@@ -134,6 +134,8 @@ static void create_encoders(wivrn_comp_target * cn)
 #if WIVRN_USE_VULKAN_ENCODE
 	if (std::ranges::any_of(cn->settings, [](const auto & item) { return item.encoder_name == encoder_vulkan; }))
 	{
+		if (vk->encode_queue == nullptr)
+			throw std::runtime_error("Vulkan video encoder was requested, but it is not supported by device or driver");
 		auto & device = cn->wivrn_bundle->device;
 		cn->psc.video_command_pool = device.createCommandPool({
 		        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
