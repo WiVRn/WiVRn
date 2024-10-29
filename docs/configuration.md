@@ -41,12 +41,17 @@ All the provided encoders are put into groups, groups are executed concurrently 
 ### `encoder`
 Default value: `nvenc` if Nvidia GPU and compiled with nvenc, `vaapi` for all other GPU when compiled with ffmpeg, else `x264`.
 
-Identifier of the encoder, one of `x264` (software encoding), `nvenc` (Nvidia hardware encoding), `vaapi` (AMD/Intel hardware encoding)
+Identifier of the encoder, one of
+* `x264`: software encoding
+* `nvenc`: Nvidia hardware encoding
+* `vaapi`: AMD/Intel hardware encoding
+* `vulkan`: experimental, for any GPU that supports vulkan video encode
 
 ### `codec`
 Default value: `av1` if supported by both headset and hardware encoder, else `h265`.
 
-One of `h264`, `h265` or `av1`. If using `x264` encoder, value is ignored and `h264` is used. `av1` is only supported on `vaapi` encoder.
+One of `h264`, `h265` or `av1`.
+Not all encoders support every codec, `x264` and `vulkan` only support `h264`, `nvenc` only `h264` and `h265`
 
 ### `width`, `height`, `offset_x`, `offset_y` (advanced)
 Default values: full image (`width` = 1, `height` = 1, `offset_x` = 0, `offset_y` = 0)
@@ -54,7 +59,7 @@ Default values: full image (`width` = 1, `height` = 1, `offset_x` = 0, `offset_y
 Specifies the portion of the video to encode: all values are in 0, 1 range. Left eye image ranges from x 0 to x 0.5 and y 0 to 1, Rigth eye is x from 0.5 to 1 and y 0 to 1.
 
 ### `group` (very advanced)
-Default value: One value for each encoder type (nvenc, vaapi, x264).
+Default value: One value for each encoder type (nvenc, vaapi, vulkan, x264).
 
 Identifier (number) of the encoder group. Encoders with the same identifier are executed sequentially, in the order they are defined in the configuration. Encoders with different identifiers are executed concurrently.
 Default setting will have all encoders of a given type execute sequentially, and different types in parallel.

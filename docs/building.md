@@ -8,8 +8,8 @@ WiVRn requires avahi-client, eigen3, gettext, libpulse, libsystemd, nlohmann_jso
 
 It also requires at least one encoder:
 
- * For vaapi (AMD/Intel), it requires ffmpeg with vaapi and libdrm support, as well as vaapi drivers for the GPU
  * For nvenc (Nvidia), it requires cuda and nvidia driver
+ * For vaapi (AMD/Intel), it requires ffmpeg with vaapi and libdrm support, as well as vaapi drivers for the GPU
  * For x264 (software encoding), it requires libx264
 
 Some distributions such as Fedora don't ship h264 and h265 encoders and need specific repositories.
@@ -24,9 +24,10 @@ cmake --build build-server
 
 It is possible to force specific encoders, by adding options
 ```
--DWIVRN_USE_VAAPI=ON
--DWIVRN_USE_X264=ON
 -DWIVRN_USE_NVENC=ON
+-DWIVRN_USE_VAAPI=ON
+-DWIVRN_USE_VULKAN_ENCODE=ON
+-DWIVRN_USE_X264=ON
 ```
 
 Force specific audio backends
