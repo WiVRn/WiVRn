@@ -276,6 +276,7 @@ jobs:
 
   build-ubuntu:
     name: Build Ubuntu package
+    if: ${{ vars.APK_ONLY == '' }}
     strategy:
       fail-fast: false
       matrix:
