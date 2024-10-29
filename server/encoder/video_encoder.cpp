@@ -110,6 +110,8 @@ std::unique_ptr<VideoEncoder> VideoEncoder::Create(
 {
 	using namespace std::string_literals;
 	std::unique_ptr<VideoEncoder> res;
+	settings.range = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
+	settings.color_model = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
 	if (settings.encoder_name == encoder_vulkan)
 	{
 #if WIVRN_USE_VULKAN_ENCODE

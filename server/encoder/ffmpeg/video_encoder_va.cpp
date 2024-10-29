@@ -217,8 +217,6 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk, wivrn::encoder_settings
 	encoder_ctx->colorspace = AVCOL_SPC_BT709;
 	encoder_ctx->color_trc = AVCOL_TRC_BT709;
 	encoder_ctx->color_primaries = AVCOL_PRI_BT709;
-	settings.range = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
-	settings.color_model = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
 	encoder_ctx->max_b_frames = 0;
 	encoder_ctx->bit_rate = settings.bitrate;
 	encoder_ctx->gop_size = std::numeric_limits<decltype(encoder_ctx->gop_size)>::max();

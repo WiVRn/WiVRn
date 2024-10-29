@@ -224,8 +224,6 @@ VideoEncoderNvenc::VideoEncoderNvenc(wivrn_vk_bundle & vk, encoder_settings & se
 		case video_codec::av1:
 			break;
 	}
-	settings.range = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
-	settings.color_model = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
 
 	NV_ENC_INITIALIZE_PARAMS params2{
 	        .version = NV_ENC_INITIALIZE_PARAMS_VER,

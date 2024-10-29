@@ -130,10 +130,8 @@ VideoEncoderX264::VideoEncoderX264(
 
 	// colour definitions, actually ignored by decoder
 	param.vui.b_fullrange = 1;
-	settings.range = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
 	param.vui.i_colorprim = 1; // BT.709
 	param.vui.i_colmatrix = 1; // BT.709
-	settings.color_model = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
 	param.vui.i_transfer = 13; // sRGB
 
 	param.vui.i_sar_width = settings.width;
