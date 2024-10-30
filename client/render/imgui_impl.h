@@ -168,6 +168,7 @@ private:
 	void initialize_fonts();
 
 	std::vector<controller_state> read_controllers_state(XrTime display_time);
+	size_t choose_focused_controller(const std::vector<controller_state> & new_states) const;
 
 public:
 	imgui_context(

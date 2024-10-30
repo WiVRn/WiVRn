@@ -758,6 +758,44 @@ void imgui_context::compute_pointer_position(imgui_context::controller_state & s
 	}
 }
 
+size_t imgui_context::choose_focused_controller(const std::vector<controller_state> & new_states) const
+{
+	// If only one controller points at a GUI layer, select it
+	size_t new_focused_controller = (size_t)-1;
+	size_t count = 0;
+	for (auto && [index, state]: utils::enumerate(new_states))
+	{
+		if (state.pointer_position)
+		{
+			count++;
+			new_focused_controller = index;
+		}
+	}
+
+	if (count == 1)
+		return new_focused_controller;
+
+	// If there is a rising edge on a trigger, select the controller
+	assert(controllers.size() == new_states.size());
+	for (size_t index = 0, size = controllers.size(); index < size; ++index)
+	{
+		const auto & old_state = controllers[index].second;
+		const auto & new_state = new_states[index];
+
+		bool old_click = (old_state.source == ImGuiMouseSource_VRController and old_state.trigger_clicked) or
+		                 (old_state.source == ImGuiMouseSource_VRHandTracking and old_state.fingertip_touching);
+
+		bool new_click = (new_state.source == ImGuiMouseSource_VRController and new_state.trigger_clicked) or
+		                 (new_state.source == ImGuiMouseSource_VRHandTracking and new_state.fingertip_touching);
+
+		if (not old_click and new_click)
+			return index;
+	}
+
+	// Else, keep the last controller active
+	return focused_controller;
+}
+
 void imgui_context::new_frame(XrTime display_time)
 {
 	ImGui::SetCurrentContext(context);
@@ -767,28 +805,11 @@ void imgui_context::new_frame(XrTime display_time)
 		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
 	last_display_time = display_time;
 
-	size_t new_focused_controller = focused_controller;
-
 	// Uses the window list from last frame
 	auto new_states = read_controllers_state(display_time);
 
 	// Set the currently active controller
-	for (auto && [index, state]: utils::enumerate(new_states))
-	{
-		if (state.source == ImGuiMouseSource_VRController)
-		{
-			if (state.trigger_clicked or glm::length(state.scroll_value) > constants::gui::scroll_value_thd)
-			{
-				new_focused_controller = index;
-			}
-		}
-
-		if (state.source == ImGuiMouseSource_VRHandTracking)
-		{
-			if (state.fingertip_hovering)
-				new_focused_controller = index;
-		}
-	}
+	size_t new_focused_controller = choose_focused_controller(new_states);
 
 	bool focused_change = new_focused_controller != focused_controller && focused_controller != (size_t)-1;
 
