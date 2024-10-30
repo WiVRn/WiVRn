@@ -220,7 +220,7 @@ FetchContent_Declare(imgui         EXCLUDE_FROM_ALL SYSTEM URL https://github.co
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
     # The flatpak manifest is updated automatically
-    GIT_TAG          d7089f182b0514e13554e99512d63e69c30523c5
+    GIT_TAG          cef70d03ca749225af0de57824270ad708bd828a
     PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${CMAKE_CURRENT_LIST_DIR}/patches/monado/
     EXCLUDE_FROM_ALL
     )
