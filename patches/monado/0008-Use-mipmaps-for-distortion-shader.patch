@@ -1,6 +1,6 @@
-From 5c4caf876ba70ecc2a37099c87ff711fd149824b Mon Sep 17 00:00:00 2001
-From: Patrick Nicolas <patricknicolas@laposte.net>
-Date: Sun, 11 Aug 2024 13:03:46 +0200
+From 025bce6ca5480cf6f67256eacf39ce4d5973c4ba Mon Sep 17 00:00:00 2001
+From: galister <3123227-galister@users.noreply.gitlab.com>
+Date: Thu, 31 Oct 2024 04:37:27 +0900
 Subject: [PATCH] Use mipmaps for distortion shader
 
 ---
@@ -42,10 +42,10 @@ Subject: [PATCH] Use mipmaps for distortion shader
  create mode 100644 src/xrt/compositor/util/comp_mipmap.h
 
 diff --git a/src/external/CMakeLists.txt b/src/external/CMakeLists.txt
-index 0385d7e42..baf5bbeb4 100644
+index 0705627ae..51f89714f 100644
 --- a/src/external/CMakeLists.txt
 +++ b/src/external/CMakeLists.txt
-@@ -187,3 +187,26 @@ add_library(xrt-external-vdf INTERFACE)
+@@ -211,3 +211,26 @@ add_library(xrt-external-vdf INTERFACE)
  target_include_directories(
  	xrt-external-vdf SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/valve-file-vdf
  	)
@@ -1673,10 +1673,10 @@ index 000000000..524a74120
 +               srgbFromLinear(arg.b), alpha);
 +}
 diff --git a/src/xrt/auxiliary/vk/vk_helpers.c b/src/xrt/auxiliary/vk/vk_helpers.c
-index f7086b489..b61e42e10 100644
+index 91157c91e..84f7b82c5 100644
 --- a/src/xrt/auxiliary/vk/vk_helpers.c
 +++ b/src/xrt/auxiliary/vk/vk_helpers.c
-@@ -1310,6 +1310,7 @@ vk_create_sampler(struct vk_bundle *vk, VkSamplerAddressMode clamp_mode, VkSampl
+@@ -1328,6 +1328,7 @@ vk_create_sampler(struct vk_bundle *vk, VkSamplerAddressMode clamp_mode, VkSampl
  	    .addressModeW = clamp_mode,
  	    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
  	    .unnormalizedCoordinates = VK_FALSE,
@@ -1716,7 +1716,7 @@ index f1c54ed4d..3bc9302f7 100644
  	target_include_directories(comp_util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
  endif()
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 7dc8ae182..e59988b7c 100644
+index 58ad49f75..6887fdf8d 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
 @@ -366,6 +366,9 @@ renderer_build_rendering_target_resources(struct comp_renderer *r,
@@ -1820,10 +1820,10 @@ index 7dc8ae182..e59988b7c 100644
  		if (layer_count == 0) {
  			crss->views[i].used = false;
 diff --git a/src/xrt/compositor/main/comp_settings.c b/src/xrt/compositor/main/comp_settings.c
-index 4b2106a7d..41fa02d47 100644
+index 7aad08906..0fb1da013 100644
 --- a/src/xrt/compositor/main/comp_settings.c
 +++ b/src/xrt/compositor/main/comp_settings.c
-@@ -35,6 +35,7 @@ DEBUG_GET_ONCE_BOOL_OPTION(xcb_fullscreen, "XRT_COMPOSITOR_XCB_FULLSCREEN", fals
+@@ -30,6 +30,7 @@ DEBUG_GET_ONCE_BOOL_OPTION(xcb_fullscreen, "XRT_COMPOSITOR_XCB_FULLSCREEN", fals
  DEBUG_GET_ONCE_NUM_OPTION(xcb_display, "XRT_COMPOSITOR_XCB_DISPLAY", -1)
  DEBUG_GET_ONCE_NUM_OPTION(default_framerate, "XRT_COMPOSITOR_DEFAULT_FRAMERATE", 60)
  DEBUG_GET_ONCE_BOOL_OPTION(compute, "XRT_COMPOSITOR_COMPUTE", USE_COMPUTE_DEFAULT)
@@ -1831,7 +1831,7 @@ index 4b2106a7d..41fa02d47 100644
  // clang-format on
  
  static inline void
-@@ -86,6 +87,8 @@ comp_settings_init(struct comp_settings *s, struct xrt_device *xdev)
+@@ -81,6 +82,8 @@ comp_settings_init(struct comp_settings *s, struct xrt_device *xdev)
  
  		// Untested: Super constrained platforms.
  		add_format(s, VK_FORMAT_A1R5G5B5_UNORM_PACK16);
@@ -1840,7 +1840,7 @@ index 4b2106a7d..41fa02d47 100644
  	} else {
  #if defined(XRT_OS_ANDROID)
  		/*
-@@ -114,6 +117,9 @@ comp_settings_init(struct comp_settings *s, struct xrt_device *xdev)
+@@ -109,6 +112,9 @@ comp_settings_init(struct comp_settings *s, struct xrt_device *xdev)
  
  		// Seen as the only sRGB format on some NVIDIA cards.
  		add_format(s, VK_FORMAT_A8B8G8R8_SRGB_PACK32);
@@ -1851,10 +1851,10 @@ index 4b2106a7d..41fa02d47 100644
  
  	s->display = debug_get_num_option_xcb_display();
 diff --git a/src/xrt/compositor/main/comp_settings.h b/src/xrt/compositor/main/comp_settings.h
-index dcb479a51..8c36902d5 100644
+index 2766b9228..b3d20c451 100644
 --- a/src/xrt/compositor/main/comp_settings.h
 +++ b/src/xrt/compositor/main/comp_settings.h
-@@ -108,6 +108,9 @@ struct comp_settings
+@@ -107,6 +107,9 @@ struct comp_settings
  
  	//! Try to choose the mode with this index for direct mode
  	int desired_mode;
@@ -1865,7 +1865,7 @@ index dcb479a51..8c36902d5 100644
  
  /*!
 diff --git a/src/xrt/compositor/render/render_compute.c b/src/xrt/compositor/render/render_compute.c
-index dadb35ddc..6976ee25c 100644
+index 4e9c7b90d..e7831fa89 100644
 --- a/src/xrt/compositor/render/render_compute.c
 +++ b/src/xrt/compositor/render/render_compute.c
 @@ -315,6 +315,17 @@ render_compute_init(struct render_compute *crc, struct render_resources *r)
@@ -1886,7 +1886,7 @@ index dadb35ddc..6976ee25c 100644
  	return true;
  }
  
-@@ -378,6 +389,9 @@ render_compute_close(struct render_compute *crc)
+@@ -378,6 +389,9 @@ render_compute_fini(struct render_compute *crc)
  	struct vk_bundle *vk = vk_from_crc(crc);
  
  	// Reclaimed by vkResetDescriptorPool.
@@ -1897,7 +1897,7 @@ index dadb35ddc..6976ee25c 100644
  	for (uint32_t i = 0; i < ARRAY_SIZE(crc->layer_descriptor_sets); i++) {
  		crc->layer_descriptor_sets[i] = VK_NULL_HANDLE;
 diff --git a/src/xrt/compositor/render/render_gfx.c b/src/xrt/compositor/render/render_gfx.c
-index bc84ca72e..2a5741cf2 100644
+index 96abb3d3f..37867347e 100644
 --- a/src/xrt/compositor/render/render_gfx.c
 +++ b/src/xrt/compositor/render/render_gfx.c
 @@ -941,9 +941,11 @@ render_gfx_target_resources_init(struct render_gfx_target_resources *rtr,
@@ -1915,7 +1915,7 @@ index bc84ca72e..2a5741cf2 100644
  	U_ZERO(rtr);
  }
 diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
-index f1a7a941a..9fe5207b5 100644
+index 15e2ecd3a..03eb7e033 100644
 --- a/src/xrt/compositor/render/render_interface.h
 +++ b/src/xrt/compositor/render/render_interface.h
 @@ -64,6 +64,11 @@ extern "C" {
@@ -1967,7 +1967,7 @@ index f1a7a941a..9fe5207b5 100644
  };
  
  /*!
-@@ -1110,6 +1131,9 @@ struct render_compute
+@@ -1116,6 +1137,9 @@ struct render_compute
  	 * @ref render_compute_projection, and @ref render_compute_clear.
  	 */
  	VkDescriptorSet shared_descriptor_set;
@@ -2334,10 +2334,10 @@ index 000000000..e5d3c670d
 +}
 +#endif
 diff --git a/src/xrt/compositor/util/comp_render.h b/src/xrt/compositor/util/comp_render.h
-index 653cc0e3d..da717aa91 100644
+index 175c40063..7d8cf6d2a 100644
 --- a/src/xrt/compositor/util/comp_render.h
 +++ b/src/xrt/compositor/util/comp_render.h
-@@ -93,6 +93,11 @@ struct comp_render_view_data
+@@ -125,6 +125,11 @@ struct comp_render_view_data
  	{
  		//! Only used on compute path.
  		VkImageView unorm_view;
@@ -2349,7 +2349,7 @@ index 653cc0e3d..da717aa91 100644
  	} cs;
  };
  
-@@ -159,6 +164,7 @@ comp_render_gfx_add_view(struct comp_render_dispatch_data *data,
+@@ -297,6 +302,7 @@ comp_render_gfx_add_view(struct comp_render_dispatch_data *data,
                           const struct xrt_normalized_rect *layer_norm_rect,
                           VkImage image,
                           VkImageView srgb_view,
@@ -2357,8 +2357,8 @@ index 653cc0e3d..da717aa91 100644
                           const struct xrt_matrix_2x2 *vertex_rot,
                           const struct render_viewport_data *target_viewport_data)
  {
-@@ -181,6 +187,8 @@ comp_render_gfx_add_view(struct comp_render_dispatch_data *data,
- 
+@@ -314,6 +320,8 @@ comp_render_gfx_add_view(struct comp_render_dispatch_data *data,
+ 	// TODO why is the one in data not used instead
  	view->gfx.rtr = rtr;
  	view->gfx.vertex_rot = *vertex_rot;
 +
@@ -2366,7 +2366,7 @@ index 653cc0e3d..da717aa91 100644
  }
  
  /*!
-@@ -246,6 +254,8 @@ comp_render_cs_add_view(struct comp_render_dispatch_data *data,
+@@ -436,6 +444,8 @@ comp_render_cs_add_view(struct comp_render_dispatch_data *data,
                          VkImage image,
                          VkImageView srgb_view,
                          VkImageView unorm_view,
@@ -2374,9 +2374,9 @@ index 653cc0e3d..da717aa91 100644
 +                        int mip_count,
                          const struct render_viewport_data *target_viewport_data)
  {
- 	uint32_t i = data->view_count++;
-@@ -266,6 +276,8 @@ comp_render_cs_add_view(struct comp_render_dispatch_data *data,
- 	view->target_viewport_data = *target_viewport_data;
+ 	struct comp_render_view_data *view = comp_render_dispatch_add_view( //
+@@ -450,6 +460,8 @@ comp_render_cs_add_view(struct comp_render_dispatch_data *data,
+ 	    target_viewport_data);
  
  	view->cs.unorm_view = unorm_view;
 +	view->cs.mip_count = mip_count;
@@ -2385,7 +2385,7 @@ index 653cc0e3d..da717aa91 100644
  
  /*!
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index 25e4a17b4..fe5a480de 100644
+index 341629c71..499bed5f9 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
 @@ -25,6 +25,7 @@
@@ -2396,7 +2396,7 @@ index 25e4a17b4..fe5a480de 100644
  #include "util/comp_render.h"
  #include "util/comp_render_helpers.h"
  #include "util/comp_base.h"
-@@ -356,6 +357,92 @@ do_cs_clear(struct render_compute *crc, const struct comp_render_dispatch_data *
+@@ -352,6 +353,92 @@ do_cs_clear(struct render_compute *crc, const struct comp_render_dispatch_data *
  	    target_viewport_datas);  // views
  }
  
@@ -2489,7 +2489,7 @@ index 25e4a17b4..fe5a480de 100644
  static void
  do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_render_dispatch_data *d)
  {
-@@ -372,6 +459,8 @@ do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_rend
+@@ -368,6 +455,8 @@ do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_rend
  	struct xrt_normalized_rect src_norm_rects[XRT_MAX_VIEWS];
  
  	for (uint32_t i = 0; i < d->view_count; i++) {
@@ -2498,7 +2498,7 @@ index 25e4a17b4..fe5a480de 100644
  		// Data to be filled in.
  		struct render_viewport_data viewport_data;
  		VkImageView src_image_view;
-@@ -753,6 +842,8 @@ comp_render_cs_dispatch(struct render_compute *crc,
+@@ -745,6 +834,8 @@ comp_render_cs_dispatch(struct render_compute *crc,
  		    vds,                    // vds
  		    d);                     // d
  	} else if (layer_count > 0) {
@@ -2553,7 +2553,7 @@ index 68c7cafbd..0b40254f7 100644
  	}
  }
 diff --git a/src/xrt/compositor/util/comp_scratch.c b/src/xrt/compositor/util/comp_scratch.c
-index bab03a97d..4f2a0d46a 100644
+index 48bfda7c7..1d892a31b 100644
 --- a/src/xrt/compositor/util/comp_scratch.c
 +++ b/src/xrt/compositor/util/comp_scratch.c
 @@ -16,7 +16,7 @@
@@ -2768,5 +2768,5 @@ index 44849c20e..f8c891e49 100644
  void
  comp_scratch_stereo_images_free(struct comp_scratch_stereo_images *cssi, struct vk_bundle *vk);
 -- 
-2.44.2
+2.45.2
 
