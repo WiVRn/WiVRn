@@ -301,6 +301,11 @@
                   <string>x264 (software encoding)</string>
                  </property>
                 </item>
+                <item>
+                 <property name="text">
+                  <string>vulkan (Vulkan Video)</string>
+                 </property>
+                </item>
                </widget>
               </item>
               <item row="1" column="1">
