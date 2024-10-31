@@ -19,31 +19,12 @@
 
 #pragma once
 
-#include <chrono>
-#include <memory>
 #include <optional>
 
-class battery
+struct battery_status
 {
-public:
-	struct status
-	{
-		std::optional<float> charge = std::nullopt;
-		bool charging = false;
-	};
-
-private:
-	struct pimpl;
-	std::unique_ptr<pimpl> p;
-
-	const std::chrono::seconds battery_check_interval = std::chrono::seconds{2};
-
-	std::chrono::steady_clock::time_point next_battery_check = std::chrono::steady_clock::now();
-	status last_status;
-
-public:
-	battery();
-	~battery();
-
-	status get();
+	std::optional<float> charge = std::nullopt;
+	bool charging = false;
 };
+
+battery_status get_battery_status();

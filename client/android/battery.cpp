@@ -19,70 +19,48 @@
 
 #include "battery.h"
 #include "android/jnipp.h"
-#include "application.h"
 
-#include <chrono>
+#include <mutex>
+#include <spdlog/spdlog.h>
 
-using Application = jni::object<"android/app/Application">;
-using BroadcastReceiver = jni::object<"android/content/BroadcastReceiver">;
-using Context = jni::object<"android/content/Context">;
-using Intent = jni::object<"android/content/Intent">;
-using IntentFilter = jni::object<"android/content/IntentFilter">;
-using Object = jni::object<"">;
-
-struct battery::pimpl
+namespace
 {
-	Object act{application::native_app()->activity->clazz};
-	Application app = act.call<Application>("getApplication");
-	Context ctx = app.call<Context>("getApplicationContext");
+std::mutex last_status_lock;
+battery_status last_status;
+} // namespace
 
-	jni::string filter_jstr{"android.intent.action.BATTERY_CHANGED"};
+battery_status get_battery_status()
+{
+	std::unique_lock _{last_status_lock};
+	return last_status;
+}
+
+extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_BroadcastReceiver_onReceive(JNIEnv * env, jobject instance, jobject ctxt_obj, jobject intent_obj)
+{
+	jni::jni_thread::setup_thread(env);
+	jni::object<"android/content/Intent"> intent{intent_obj};
+
 	jni::string level_jstr{"level"};
 	jni::string scale_jstr{"scale"};
 	jni::string plugged_jstr{"plugged"};
 	jni::Int default_jint{-1};
 
-	BroadcastReceiver receiver = BroadcastReceiver{nullptr};
-	IntentFilter filter = jni::new_object<"android/content/IntentFilter">(filter_jstr);
-
-	jmethodID register_receiver = jni::klass("android/content/Context").method<Intent>("registerReceiver", receiver, filter);
-
 	jmethodID get_int_extra = jni::klass("android/content/Intent").method<jni::Int>("getIntExtra", level_jstr, default_jint);
-};
 
-battery::battery()
-{
-	application::instance().setup_jni();
+	auto level_jint = intent.call<jni::Int>(get_int_extra, level_jstr, default_jint);
+	auto scale_jint = intent.call<jni::Int>(get_int_extra, scale_jstr, default_jint);
+	auto plugged_jint = intent.call<jni::Int>(get_int_extra, plugged_jstr, default_jint);
 
-	p = std::make_unique<pimpl>();
-}
-
-battery::~battery() {}
-
-battery::status battery::get()
-{
-	if (auto now = std::chrono::steady_clock::now(); now > next_battery_check)
 	{
-		next_battery_check = now + battery_check_interval;
+		std::unique_lock _{last_status_lock};
+		if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
+			last_status.charge = (float)(level_jint.value) / (float)(scale_jint.value);
+		else
+			last_status.charge = std::nullopt;
 
-		auto intent = p->ctx.call<Intent>(p->register_receiver, p->receiver, p->filter);
-		if (intent)
-		{
-			auto level_jint = intent.call<jni::Int>(p->get_int_extra, p->level_jstr, p->default_jint);
-			auto scale_jint = intent.call<jni::Int>(p->get_int_extra, p->scale_jstr, p->default_jint);
-
-			if (level_jint && level_jint.value >= 0 && scale_jint && scale_jint.value >= 0)
-				last_status.charge = (float)(level_jint.value) / (float)(scale_jint.value);
-			else
-				last_status.charge = std::nullopt;
-
-			auto plugged_jint = intent.call<jni::Int>(p->get_int_extra, p->plugged_jstr, p->default_jint);
-			last_status.charging = plugged_jint && plugged_jint.value > 0;
-		}
-
-		auto duration = std::chrono::steady_clock::now() - now;
-		spdlog::info("Battery check took: {} µs", std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
+		last_status.charging = plugged_jint && plugged_jint.value > 0;
 	}
 
-	return last_status;
+	if (level_jint and scale_jint and plugged_jint)
+		spdlog::info("Received ACTION_BATTERY_CHANGED: level {}%, plugged {}", *last_status.charge * 100, last_status.charging);
 }

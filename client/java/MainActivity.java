@@ -2,8 +2,6 @@ package org.meumeu.wivrn;
 
 public class MainActivity extends android.app.NativeActivity
 {
-	public static native void sendMessageFromJava(String msg, String arg);
-
 	static
 	{
 		System.loadLibrary("wivrn");
@@ -14,4 +12,16 @@ public class MainActivity extends android.app.NativeActivity
 
 	@Override
 	public native void onNewIntent(android.content.Intent intent);
+
+	private android.content.BroadcastReceiver BatteryInfoReceiver = null;
+
+	@Override
+	protected void onCreate(android.os.Bundle savedInstanceState)
+	{
+		super.onCreate(savedInstanceState);
+
+		this.BatteryInfoReceiver = new BroadcastReceiver();
+
+		this.registerReceiver(this.BatteryInfoReceiver, new android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED));
+	}
 }

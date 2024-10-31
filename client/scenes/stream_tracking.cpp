@@ -161,8 +161,6 @@ void scenes::stream::tracking()
 	// Runtime may use JNI and needs the thread to be attached
 	application::instance().setup_jni();
 
-	battery battery_tracker;
-
 	XrTime next_battery_check = 0;
 	const XrDuration battery_check_interval = 30'000'000'000; // 30s
 #endif
@@ -301,7 +299,7 @@ void scenes::stream::tracking()
 			{
 				timer t2(instance);
 
-				auto status = battery_tracker.get();
+				auto status = get_battery_status();
 				network_session->send_stream(from_headset::battery{
 				        .charge = status.charge.value_or(-1),
 				        .present = status.charge.has_value(),

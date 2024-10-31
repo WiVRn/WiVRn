@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "android/battery.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "application.h"
@@ -1113,7 +1114,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 
 #ifdef __ANDROID__
 	// Battery status
-	auto status = battery_tracker.get();
+	auto status = get_battery_status();
 
 	const char * battery_icon = nullptr;
 	if (status.charge)
