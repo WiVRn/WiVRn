@@ -46,6 +46,7 @@ const std::vector<std::pair<int, std::string>> encoder_ids{
         {1, "nvenc"},
         {2, "vaapi"},
         {3, "x264"},
+        {4, "vulkan"},
 };
 
 const std::vector<std::pair<int, std::string>> codec_ids{
@@ -73,6 +74,9 @@ const std::vector<std::pair<int, int>> compatible_combos{
         {2, 3},
         // x264
         {3, 1},
+        // vulkan
+        {4, 1},
+        // {4, 2},
 };
 
 int encoder_id_from_string(std::string_view s)
