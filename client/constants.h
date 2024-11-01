@@ -47,7 +47,7 @@ constexpr float trigger_click_thd = 0.8;
 
 // Thresholds on the distance between the fingertip and GUI layers
 constexpr float fingertip_distance_hovering_thd = 0.15;
-constexpr float fingertip_distance_touching_thd = 0.05;
+constexpr float fingertip_distance_touching_thd = 0.0;
 
 // Minimum scroll value to enable a controller
 constexpr float scroll_value_thd = 0.01;
