@@ -31,6 +31,8 @@ finish-args:
   - --talk-name=org.kde.StatusNotifierWatcher
   # Run processes outside of sandbox
   - --talk-name=org.freedesktop.Flatpak
+  # Inhibit sleeping while a session is active
+  - --system-talk-name=org.freedesktop.login1
 
 cleanup:
   - /lib/pkgconfig

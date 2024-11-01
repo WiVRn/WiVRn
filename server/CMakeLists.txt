@@ -65,6 +65,7 @@ add_executable(wivrn-server
 		avahi_publisher.cpp
 		hostname.cpp
 		main.cpp
+		sleep_inhibitor.cpp
 		start_application.cpp
 		target_instance_wivrn.cpp
 		wivrn_ipc.cpp

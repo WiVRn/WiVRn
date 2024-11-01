@@ -6,6 +6,7 @@
  */
 
 #include "openxr/openxr.h"
+#include "sleep_inhibitor.h"
 #include "util/u_trace_marker.h"
 
 #include "active_runtime.h"
@@ -198,6 +199,7 @@ WivrnServer * dbus_server;
  */
 std::optional<active_runtime> runtime_setter;
 std::optional<avahi_publisher> publisher;
+std::optional<sleep_inhibitor> inhibitor;
 
 gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data);
 void stop_listening();
@@ -446,16 +448,19 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 		if (std::holds_alternative<wivrn::from_headset::headset_info_packet>(*packet))
 		{
 			on_headset_info_packet(std::get<wivrn::from_headset::headset_info_packet>(*packet));
+			inhibitor.emplace();
 			wivrn_server_set_headset_connected(dbus_server, true);
 		}
 		else if (std::holds_alternative<from_monado::headsdet_connected>(*packet))
 		{
 			stop_publishing();
+			inhibitor.emplace();
 			wivrn_server_set_headset_connected(dbus_server, true);
 		}
 		else if (std::holds_alternative<from_monado::headsdet_disconnected>(*packet))
 		{
 			start_publishing();
+			inhibitor.reset();
 			wivrn_server_set_headset_connected(dbus_server, false);
 		}
 	}
