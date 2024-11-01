@@ -19,6 +19,7 @@
 #include "settings.h"
 
 #include "escape_string.h"
+#include "gui_config.h"
 #include "rectangle_partitionner.h"
 #include "steam_app.h"
 #include "ui_settings.h"
@@ -152,6 +153,20 @@ settings::settings(wivrn_server * server_interface) :
 
 	fill_steam_games_list();
 	load_settings();
+
+	auto encoders = qobject_cast<QStandardItemModel *>(ui->encoder->model());
+#if !WIVRN_USE_NVENC
+	encoders->item(1)->setEnabled(false);
+#endif
+#if !WIVRN_USE_VAAPI
+	encoders->item(2)->setEnabled(false);
+#endif
+#if !WIVRN_USE_X264
+	encoders->item(3)->setEnabled(false);
+#endif
+#if !WIVRN_USE_VULKAN_ENCODE
+	encoders->item(4)->setEnabled(false);
+#endif
 
 	ui->partitionner->set_paint([&](QPainter & painter, QRect rect, const QVariant & data, int index, bool selected) {
 		QPalette palette = QApplication::palette();
