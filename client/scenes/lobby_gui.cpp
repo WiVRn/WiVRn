@@ -545,6 +545,8 @@ void scenes::lobby::gui_settings()
 			config.save();
 		}
 		vibrate_on_hover();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+			tooltip(_("This feature is not supported by your headset"));
 		ImGui::EndDisabled();
 	}
 	{
@@ -556,6 +558,8 @@ void scenes::lobby::gui_settings()
 			config.save();
 		}
 		vibrate_on_hover();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+			tooltip(_("This feature is not supported by your headset"));
 		ImGui::EndDisabled();
 	}
 	{
@@ -567,6 +571,8 @@ void scenes::lobby::gui_settings()
 			config.save();
 		}
 		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+			tooltip(_("This feature is not supported by your headset"));
 		vibrate_on_hover();
 	}
 
@@ -577,6 +583,8 @@ void scenes::lobby::gui_settings()
 		config.save();
 	}
 	vibrate_on_hover();
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+		tooltip(_("This feature is not supported by your headset"));
 	ImGui::EndDisabled();
 
 	if (ImGui::Checkbox(_S("Show performance metrics"), &config.show_performance_metrics))
