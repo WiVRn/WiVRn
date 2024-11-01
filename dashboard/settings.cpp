@@ -270,6 +270,11 @@ void settings::on_encoder_settings_changed()
 		status += tr("Not all headsets and GPUs support AV1\n");
 	}
 
+	if (encoder == 4 /* vulkan */)
+	{
+		status += tr("Vulkan Video encoder is experimental\n");
+	}
+
 	ui->partitionner->set_rectangles_data(ui->partitionner->selected_index(), QVariant::fromValue(std::pair(encoder, codec)));
 
 	ui->message->setText(status);

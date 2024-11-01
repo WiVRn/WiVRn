@@ -226,12 +226,17 @@
         <translation>Manual</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="381"/>
+        <location filename="settings.ui" line="306"/>
+        <source>vulkan (Vulkan Video)</source>
+        <translation>vulkan (Vulkan Video)</translation>
+    </message>
+    <message>
+        <location filename="settings.ui" line="386"/>
         <source>Application to start when a headset connects</source>
         <translation>Application to start when a headset connects</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="458"/>
+        <location filename="settings.ui" line="463"/>
         <source>Path</source>
         <translation>Path</translation>
     </message>
@@ -266,13 +271,13 @@
     </message>
     <message>
         <location filename="settings.ui" line="282"/>
-        <location filename="settings.ui" line="315"/>
+        <location filename="settings.ui" line="320"/>
         <source>No encoder selected</source>
         <translation>No encoder selected</translation>
     </message>
     <message>
         <location filename="settings.ui" line="286"/>
-        <location filename="settings.ui" line="319"/>
+        <location filename="settings.ui" line="324"/>
         <source>Auto</source>
         <translation>Auto</translation>
     </message>
@@ -283,7 +288,7 @@
         <translation>Automatic</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="569"/>
+        <location filename="settings.ui" line="574"/>
         <source>A stronger foveation makes the image sharper in the center than in the periphery and makes the decoding faster. This is better for fast paced games.
 
 A weaker foveation gives a uniform sharpness in the whole image.
@@ -303,17 +308,17 @@ The recommended values are between 20% and 50% for headsets without eye tracking
         <translation>Automatic</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="544"/>
+        <location filename="settings.ui" line="549"/>
         <source>WiVRn settings</source>
         <translation>WiVRn settings</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="364"/>
+        <location filename="settings.ui" line="369"/>
         <source>Codec</source>
         <translation>Codec</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="487"/>
+        <location filename="settings.ui" line="492"/>
         <source> Mbit/s</source>
         <translation> Mbit/s</translation>
     </message>
@@ -331,7 +336,7 @@ The recommended values are between 20% and 50% for headsets without eye tracking
         <translation>Browse</translation>
     </message>
     <message>
-        <location filename="settings.ui" line="432"/>
+        <location filename="settings.ui" line="437"/>
         <source> %</source>
         <translation> %</translation>
     </message>
@@ -465,60 +470,60 @@ The recommended values are between 20% and 50% for headsets without eye tracking
         <translation>&amp;Exit</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="355"/>
+        <location filename="main_window.cpp" line="364"/>
         <source>You have to restart the WiVRn server to use the CAP_SYS_NICE capability.
 Do you want to restart it now?</source>
         <translation>You have to restart the WiVRn server to use the CAP_SYS_NICE capability.
 Do you want to restart it now?</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="359"/>
+        <location filename="main_window.cpp" line="368"/>
         <source>This will disconnect the currently connected headset.</source>
         <translation>This will disconnect the currently connected headset.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="362"/>
+        <location filename="main_window.cpp" line="371"/>
         <source>Restart WiVRn</source>
         <translation>Restart WiVRn</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="380"/>
+        <location filename="main_window.cpp" line="389"/>
         <source>Cannot start setcap: %1</source>
         <translation>Cannot start setcap: %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="446"/>
+        <location filename="main_window.cpp" line="455"/>
         <source>%1 ⨯ %2</source>
         <translation>%1 ⨯ %2</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="453"/>
-        <location filename="main_window.cpp" line="460"/>
+        <location filename="main_window.cpp" line="462"/>
+        <location filename="main_window.cpp" line="469"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="465"/>
-        <location filename="main_window.cpp" line="470"/>
-        <location filename="main_window.cpp" line="487"/>
+        <location filename="main_window.cpp" line="474"/>
+        <location filename="main_window.cpp" line="479"/>
+        <location filename="main_window.cpp" line="496"/>
         <source>Supported</source>
         <translation>Supported</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="465"/>
-        <location filename="main_window.cpp" line="470"/>
-        <location filename="main_window.cpp" line="487"/>
+        <location filename="main_window.cpp" line="474"/>
+        <location filename="main_window.cpp" line="479"/>
+        <location filename="main_window.cpp" line="496"/>
         <source>Not supported</source>
         <translation>Not supported</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="477"/>
+        <location filename="main_window.cpp" line="486"/>
         <source>Left eye: %1° ⨯ %2°, right eye: %3° ⨯ %4°</source>
         <translation>Left eye: %1° ⨯ %2°, right eye: %3° ⨯ %4°</translation>
     </message>
     <message numerus="yes">
-        <location filename="main_window.cpp" line="496"/>
-        <location filename="main_window.cpp" line="507"/>
+        <location filename="main_window.cpp" line="505"/>
+        <location filename="main_window.cpp" line="516"/>
         <source>%n channel(s), %1 Hz</source>
         <oldsource>%1 channel(s), %2 Hz</oldsource>
         <translation>
@@ -527,13 +532,13 @@ Do you want to restart it now?</translation>
         </translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="498"/>
-        <location filename="main_window.cpp" line="509"/>
+        <location filename="main_window.cpp" line="507"/>
+        <location filename="main_window.cpp" line="518"/>
         <source>N/A</source>
         <translation>N/A</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="673"/>
+        <location filename="main_window.cpp" line="682"/>
         <source>The WiVRn app is not installed on your headset.</source>
         <translation>The WiVRn app is not installed on your headset.</translation>
     </message>
@@ -548,33 +553,33 @@ Do you want to install it?</translation>
         <translation type="obsolete">WiVRn</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="570"/>
+        <location filename="main_window.cpp" line="579"/>
         <source>Failed to start</source>
         <translation>Failed to start</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="573"/>
+        <location filename="main_window.cpp" line="582"/>
         <source>Crashed</source>
         <translation>Crashed</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="576"/>
+        <location filename="main_window.cpp" line="585"/>
         <source>Time out</source>
         <translation>Time out</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="579"/>
+        <location filename="main_window.cpp" line="588"/>
         <source>Read error</source>
         <translation>Read error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="582"/>
+        <location filename="main_window.cpp" line="591"/>
         <source>Write error</source>
         <oldsource>write error</oldsource>
         <translation>Write error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="585"/>
+        <location filename="main_window.cpp" line="594"/>
         <source>Unknown error</source>
         <translation>Unknown error</translation>
     </message>
@@ -583,14 +588,14 @@ Do you want to install it?</translation>
         <translation type="vanished">Server error</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="591"/>
+        <location filename="main_window.cpp" line="600"/>
         <source>Failed to start server:
 %1</source>
         <translation>Failed to start server:
 %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="533"/>
+        <location filename="main_window.cpp" line="542"/>
         <source>Unknown error (%1), check logs</source>
         <translation>Unknown error (%1), check logs</translation>
     </message>
@@ -610,35 +615,35 @@ Do you want to install it?</translation>
         <translation>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="422"/>
+        <location filename="main_window.cpp" line="431"/>
         <source>Connected</source>
         <translation>Connected</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="427"/>
+        <location filename="main_window.cpp" line="436"/>
         <source>Not connected</source>
         <translation>Not connected</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="544"/>
+        <location filename="main_window.cpp" line="553"/>
         <source>Cannot connect to avahi, make sure avahi-daemon service is started</source>
         <oldsource>Cannot connect to avahi, make sure avahi_daemon.service is started</oldsource>
         <translation>Cannot connect to avahi, make sure avahi-daemon service is started</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="541"/>
+        <location filename="main_window.cpp" line="550"/>
         <source>Insufficient system resources</source>
         <translation>Insufficient system resources</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="550"/>
+        <location filename="main_window.cpp" line="559"/>
         <source>Server crashed:
 %1</source>
         <translation>Server crashed:
 %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="612"/>
+        <location filename="main_window.cpp" line="621"/>
         <source>Timeout starting server</source>
         <translation>Timeout starting server</translation>
     </message>
@@ -646,38 +651,43 @@ Do you want to install it?</translation>
 <context>
     <name>settings</name>
     <message>
-        <location filename="settings.cpp" line="420"/>
+        <location filename="settings.cpp" line="433"/>
         <source>Invalid settings</source>
         <translation>Invalid settings</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="420"/>
+        <location filename="settings.cpp" line="433"/>
         <source>The encoder configuration is invalid, the default values will be restored.</source>
         <translation>The encoder configuration is invalid, the default values will be restored.</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="193"/>
-        <location filename="settings.cpp" line="476"/>
+        <location filename="settings.cpp" line="201"/>
         <source>None</source>
         <comment>Game selection combo box</comment>
         <translation>None</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="194"/>
-        <location filename="settings.cpp" line="477"/>
+        <location filename="settings.cpp" line="202"/>
         <source>Custom...</source>
         <comment>Game selection combo box</comment>
         <translation>Custom...</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="262"/>
+        <location filename="settings.cpp" line="270"/>
         <source>Not all headsets and GPUs support AV1
 </source>
         <translation>Not all headsets and GPUs support AV1
 </translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="293"/>
+        <location filename="settings.cpp" line="275"/>
+        <source>Vulkan Video encoder is experimental
+</source>
+        <translation>Vulkan Video encoder is experimental
+</translation>
+    </message>
+    <message>
+        <location filename="settings.cpp" line="306"/>
         <source>Select game</source>
         <translation>Select game</translation>
     </message>
