@@ -10,7 +10,7 @@ sed -i 's/charset=CHARSET/charset=UTF-8/g' $WIVRN_POT
 for i in $(find client/locale -name wivrn.po)
 do
 	echo Updating $i
-	msgmerge --quiet --update $i $WIVRN_POT
+	msgmerge --quiet --no-fuzzy-matching --update $i $WIVRN_POT
 done
 
 rm $WIVRN_POT

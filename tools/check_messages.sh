@@ -21,7 +21,7 @@ do
 	then
 		RC=1
 
-		echo ::error file=$i::$i is not up to date
+		echo ::warning file=$i::$i is not up to date
 	fi
 done
 
@@ -40,7 +40,7 @@ do
 	then
 		RC=1
 
-		echo ::error file=$i::$i is not up to date
+		echo ::warning file=$i::$i is not up to date
 	fi
 
 	rm $i.new
