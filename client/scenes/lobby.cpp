@@ -924,7 +924,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 		for (auto & [z_index, layer]: imgui_layers)
 		{
-			layer.next = &layer_depth_test;
+			if (z_index != constants::lobby::zindex_recenter_tip)
+				layer.next = &layer_depth_test;
 		}
 
 		controllers_layer.next = &layer_depth_test;
