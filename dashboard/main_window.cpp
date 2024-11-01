@@ -629,6 +629,10 @@ void main_window::on_action_settings()
 	assert(not settings_window);
 
 	settings_window = new settings(server_interface);
+	connect(settings_window, &QDialog::finished, this, [&]() {
+		settings_window->deleteLater();
+		settings_window = nullptr;
+	});
 	settings_window->exec();
 }
 
