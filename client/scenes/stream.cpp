@@ -483,7 +483,6 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			i.blit_pipeline_layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
 
 			vk::pipeline_builder pipeline_info{
-			        .flags = {},
 			        .Stages = {{
 			                           .stage = vk::ShaderStageFlagBits::eVertex,
 			                           .module = *vertex_shader,
@@ -496,15 +495,11 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			                           .pName = "main",
 			                           .pSpecializationInfo = &frag_specialization_info,
 			                   }},
-			        .VertexInputState = {.flags = {}},
 			        .VertexBindingDescriptions = {},
 			        .VertexAttributeDescriptions = {},
 			        .InputAssemblyState = {{
 			                .topology = vk::PrimitiveTopology::eTriangleStrip,
 			        }},
-			        .ViewportState = {.flags = {}},
-			        .Viewports = {{}},
-			        .Scissors = {{}},
 			        .RasterizationState = {{
 			                .polygonMode = vk::PolygonMode::eFill,
 			                .lineWidth = 1,
@@ -512,9 +507,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			        .MultisampleState = {{
 			                .rasterizationSamples = vk::SampleCountFlagBits::e1,
 			        }},
-			        .ColorBlendState = {.flags = {}},
 			        .ColorBlendAttachments = {{.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB}},
-			        .DynamicState = {.flags = {}},
 			        .DynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor},
 			        .layout = *i.blit_pipeline_layout,
 			        .renderPass = *blit_render_pass,

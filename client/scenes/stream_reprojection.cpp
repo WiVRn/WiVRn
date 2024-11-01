@@ -294,17 +294,11 @@ stream_reprojection::stream_reprojection(
 	                        .pSpecializationInfo = &specialization_info,
 	                },
 	        },
-	        .VertexInputState = {
-	                .flags = {},
-	        },
 	        .VertexBindingDescriptions = {},
 	        .VertexAttributeDescriptions = {},
 	        .InputAssemblyState = {{
 	                .topology = vk::PrimitiveTopology::eTriangleList,
 	        }},
-	        .ViewportState = {
-	                .flags = {},
-	        },
 	        .Viewports = {{
 	                .x = 0,
 	                .y = 0,

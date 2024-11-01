@@ -20,10 +20,11 @@
 #version 450
 
 layout (constant_id = 0) const int nb_texcoords = 2;
-layout (constant_id = 1) const int nb_clipping = 1;
-layout (constant_id = 2) const bool dithering = true;
-layout (constant_id = 3) const bool alpha_cutout = false;
-layout (constant_id = 4) const bool skinning = false;
+layout (constant_id = 1) const bool dithering = true;
+layout (constant_id = 2) const bool alpha_cutout = false;
+layout (constant_id = 3) const bool skinning = false;
+
+const int nb_clipping = 4;
 
 const float fog_min_dist = 20.0;
 const float fog_max_dist = 35.0;
@@ -36,7 +37,6 @@ layout(set = 0, binding = 0) uniform scene_ssbo
 	vec4 light_position;
 	vec4 ambient_color;
 	vec4 light_color;
-// 	vec4 clipping_plane[8];
 } scene;
 
 layout(set = 0, binding = 1) uniform mesh_ssbo
@@ -44,6 +44,7 @@ layout(set = 0, binding = 1) uniform mesh_ssbo
 	mat4 model;
 	mat4 modelview;
 	mat4 modelviewproj;
+	vec4 clipping_plane[nb_clipping];
 } mesh;
 
 layout(set = 0, binding = 2) uniform joints_ssbo
@@ -105,12 +106,14 @@ layout(location = 0) out vec4 out_color;
 // Shader code
 #ifdef VERT_SHADER
 
-// out float gl_ClipDistance[8];
-// out float gl_CullDistance[8];
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_ClipDistance[nb_clipping];
+};
 
 void main()
 {
-
 	for(int i = 0; i < nb_texcoords; i++)
 		texcoord[i] = in_texcoord[i];
 
@@ -133,11 +136,11 @@ void main()
 	frag_pos = mesh.modelview * vec4(in_position, 1.0);
 	light_pos = scene.view * scene.light_position;
 
-// 	for(int i = 0; i < nb_clipping; i++)
-// 	{
-// 		gl_ClipDistance[i] = dot(scene.clipping_plane[i], frag_pos);
-// 		gl_CullDistance[i] = dot(scene.clipping_plane[i], frag_pos);
-// 	}
+	for(int i = 0; i < nb_clipping; i++)
+	{
+		gl_ClipDistance[i] = dot(mesh.clipping_plane[i], mesh.model * vec4(in_position, 1.0));
+	}
+
 }
 
 #endif

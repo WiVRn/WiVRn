@@ -62,6 +62,7 @@ struct input_profile
 
 	std::vector<visual_response> responses;
 	std::vector<std::pair<xr::spaces, node_handle>> model_handles;
+
 	node_handle left_ray;
 	node_handle right_ray;
 

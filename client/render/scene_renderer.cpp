@@ -533,21 +533,16 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	        },
 	        vk::SpecializationMapEntry{
 	                .constantID = 1,
-	                .offset = offsetof(pipeline_info, nb_clipping),
-	                .size = sizeof(int32_t),
-	        },
-	        vk::SpecializationMapEntry{
-	                .constantID = 2,
 	                .offset = offsetof(pipeline_info, dithering),
 	                .size = sizeof(VkBool32),
 	        },
 	        vk::SpecializationMapEntry{
-	                .constantID = 3,
+	                .constantID = 2,
 	                .offset = offsetof(pipeline_info, alpha_cutout),
 	                .size = sizeof(VkBool32),
 	        },
 	        vk::SpecializationMapEntry{
-	                .constantID = 4,
+	                .constantID = 3,
 	                .offset = offsetof(pipeline_info, skinning),
 	                .size = sizeof(VkBool32),
 	        }};
@@ -624,7 +619,6 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                        .dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
 	                        .alphaBlendOp = vk::BlendOp::eAdd,
 	                        .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA}},
-	                .DynamicState = {},
 	                .layout = *pipeline_layout,
 	                .renderPass = *renderpass,
 	                .subpass = 0,
@@ -912,7 +906,7 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 
 			vk::DeviceSize instance_ubo_offset = resources.uniform_buffer_offset;
 			instance_gpu_data & object_ubo = *reinterpret_cast<instance_gpu_data *>(ubo + resources.uniform_buffer_offset);
-			resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(frame_gpu_data));
+			resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data));
 
 			vk::DeviceSize joints_ubo_offset = 0;
 			if (!node.joints.empty())
@@ -931,6 +925,7 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 			object_ubo.model = transform;
 			object_ubo.modelview = frame.view * transform;
 			object_ubo.modelviewproj = viewproj * transform;
+			object_ubo.clipping_planes = node.clipping_planes;
 
 			for (scene_data::primitive & primitive: mesh.primitives)
 			{

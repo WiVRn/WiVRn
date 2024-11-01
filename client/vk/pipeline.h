@@ -33,14 +33,12 @@ public:
 
 	std::vector<vk::PipelineShaderStageCreateInfo> Stages;
 
-	vk::PipelineVertexInputStateCreateInfo VertexInputState;
 	std::vector<vk::VertexInputBindingDescription> VertexBindingDescriptions;
 	std::vector<vk::VertexInputAttributeDescription> VertexAttributeDescriptions;
 
 	std::optional<vk::PipelineInputAssemblyStateCreateInfo> InputAssemblyState;
 	std::optional<vk::PipelineTessellationStateCreateInfo> TessellationState;
 
-	vk::PipelineViewportStateCreateInfo ViewportState; // Automatically filled
 	std::vector<vk::Viewport> Viewports = {};
 	std::vector<vk::Rect2D> Scissors = {};
 
@@ -51,8 +49,12 @@ public:
 	vk::PipelineColorBlendStateCreateInfo ColorBlendState;
 	std::vector<vk::PipelineColorBlendAttachmentState> ColorBlendAttachments;
 
-	vk::PipelineDynamicStateCreateInfo DynamicState;
 	std::vector<vk::DynamicState> DynamicStates;
+
+	// Automatically filled
+	vk::PipelineVertexInputStateCreateInfo VertexInputState;
+	vk::PipelineViewportStateCreateInfo ViewportState;
+	vk::PipelineDynamicStateCreateInfo DynamicState;
 
 	vk::PipelineLayout layout;
 	vk::RenderPass renderPass = {};

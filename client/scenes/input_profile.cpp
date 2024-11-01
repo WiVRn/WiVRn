@@ -23,7 +23,6 @@
 #include "hardware.h"
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <limits>
 #include <magic_enum.hpp>
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
@@ -319,26 +318,39 @@ static void apply_visual_response(node_handle node, input_profile::node_state_vi
 	node->visible = value > 0.5;
 }
 
-static float compute_ray_size(glm::vec3 ray_start, glm::quat ray_orientation, glm::vec4 limit_plane)
+static void set_clipping_planes(node_handle node, std::span<glm::vec4> clipping_planes)
 {
-	glm::vec3 ray_direction = -glm::column(glm::mat3_cast(ray_orientation), 2); // The aim direction is -Z
+	if (not node)
+		return;
 
-	// ray_start + distance × ray_direction ∈ limit_plane
-	// => dot(limit_plane, ray_start + distance × ray_direction) = 0
-	//    dot(limit_plane, ray_start) + distance × dot(limit_plane, ray_direction) = 0
+	// If the ray starts on the wrong side of the GUI, hide it entirely
+	// This assumes the node is a child of the root node
+	for (glm::vec4 & plane: clipping_planes)
+	{
+		if (glm::dot(plane, glm::vec4(node->position, 1)) < 0)
+		{
+			node->visible = false;
+			return;
+		}
+	}
 
-	float dot1 = glm::dot(limit_plane, glm::vec4(ray_direction, 0));
-	float dot2 = glm::dot(limit_plane, glm::vec4(ray_start, 1));
+	node->visible = true;
 
-	// Starting behind the plane
-	if (dot2 < 0)
-		return -1;
+	for (auto child_node: node.children())
+	{
+		size_t nb_clipping_planes = std::min(child_node->clipping_planes.size(), clipping_planes.size());
 
-	// Pointing away from the plane
-	if (dot1 > 0)
-		return std::numeric_limits<float>::infinity();
+		auto copy_results = std::ranges::copy_n(
+		        clipping_planes.begin(),
+		        nb_clipping_planes,
+		        child_node->clipping_planes.begin());
 
-	return -dot2 / dot1;
+		// Disable the remaining clipping planes
+		std::ranges::fill_n(
+		        copy_results.out,
+		        child_node->clipping_planes.size() - nb_clipping_planes,
+		        glm::vec4(0, 0, 0, 1));
+	}
 }
 
 void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits)
@@ -374,29 +386,8 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bo
 		}
 	}
 
-	if (left_ray)
-	{
-		float size = 0.8; // Maximum ray length
-		for (glm::vec4 plane: pointer_limits)
-			size = std::min(size, compute_ray_size(left_ray->position, left_ray->orientation, plane));
-
-		if (size > 0)
-			left_ray->scale.z = size;
-		else
-			left_ray->visible = false;
-	}
-
-	if (right_ray)
-	{
-		float size = 0.8; // Maximum ray length
-		for (glm::vec4 plane: pointer_limits)
-			size = std::min(size, compute_ray_size(right_ray->position, right_ray->orientation, plane));
-
-		if (size > 0)
-			right_ray->scale.z = size;
-		else
-			right_ray->visible = false;
-	}
+	set_clipping_planes(left_ray, pointer_limits);
+	set_clipping_planes(right_ray, pointer_limits);
 
 	for (auto & response: responses)
 	{

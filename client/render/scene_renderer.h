@@ -49,7 +49,6 @@ struct pipeline_info
 
 	// Specialization constants data
 	int32_t nb_texcoords = 2;
-	int32_t nb_clipping = 1;
 	VkBool32 dithering = true;
 	VkBool32 alpha_cutout = false;
 	VkBool32 skinning = false;
@@ -151,6 +150,7 @@ class scene_renderer
 		glm::mat4 model;
 		glm::mat4 modelview;
 		glm::mat4 modelviewproj;
+		std::array<glm::vec4, 4> clipping_planes;
 	};
 
 	struct per_frame_resources

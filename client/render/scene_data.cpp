@@ -722,6 +722,7 @@ public:
 			unsorted_objects[index].scale = glm::make_vec3(TRS.scale.data());
 			unsorted_objects[index].visible = true;
 			unsorted_objects[index].name = gltf_node.name;
+			std::ranges::fill(unsorted_objects[index].clipping_planes, glm::vec4{0, 0, 0, 1});
 		}
 
 		return unsorted_objects;
@@ -938,6 +939,35 @@ node_handle scene_data::find_node(node_handle root, std::string_view name)
 
 	// TODO custom exception
 	throw std::runtime_error("Node " + std::string(name) + " not found");
+}
+
+std::vector<node_handle> scene_data::find_children(node_handle root)
+{
+	assert(root.id < scene_nodes.size());
+	assert(root.scene == this);
+
+	std::vector<bool> flag(scene_nodes.size(), false);
+
+	flag[root.id] = true;
+
+	std::vector<node_handle> nodes;
+
+	for (size_t index = root.id; index < scene_nodes.size(); index++)
+	{
+		size_t parent = scene_nodes[index].parent_id;
+
+		if (parent == node::root_id)
+			continue;
+
+		if (!flag[parent])
+			continue;
+
+		nodes.emplace_back(index, this);
+
+		flag[index] = true;
+	}
+
+	return nodes;
 }
 
 std::shared_ptr<scene_data::material> scene_data::find_material(std::string_view name)

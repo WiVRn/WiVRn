@@ -770,7 +770,10 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	// Get the planes that limit the ray size from the composition layers
 	std::vector<glm::vec4> ray_limits;
 	for (auto & [z_index, layer]: imgui_layers)
-		ray_limits.push_back(compute_ray_limits(layer.pose));
+	{
+		if (z_index != constants::lobby::zindex_recenter_tip)
+			ray_limits.push_back(compute_ray_limits(layer.pose));
+	}
 
 	input->apply(world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller, ray_limits);
 
