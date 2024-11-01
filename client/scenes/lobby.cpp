@@ -174,11 +174,6 @@ scenes::lobby::lobby()
 	else
 		spdlog::info("Composition layer color scale/bias NOT supported");
 
-	strcpy(add_server_window_prettyname, "");
-	strcpy(add_server_window_hostname, "");
-	add_server_window_port = wivrn::default_port;
-	add_server_tcp_only = false;
-
 	keyboard.set_layout(application::get_config().virtual_keyboard_layout);
 }
 

@@ -51,10 +51,11 @@ class lobby : public scene_impl<lobby>
 	std::optional<wivrn_discover> discover;
 	wifi_lock::multicast multicast;
 
-	char add_server_window_prettyname[200];
-	char add_server_window_hostname[200];
-	int add_server_window_port;
-	bool add_server_tcp_only;
+	std::string add_server_window_prettyname;
+	std::string add_server_window_hostname;
+	int add_server_window_port = wivrn::default_port;
+	bool add_server_tcp_only = false;
+	std::string add_server_cookie;
 
 	utils::future<std::unique_ptr<wivrn_session>, std::string> async_session;
 	std::optional<std::string> async_error;

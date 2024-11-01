@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "android/battery.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 
+#include "android/battery.h"
 #include "application.h"
 #include "asset.h"
 #include "configuration.h"
@@ -30,6 +30,7 @@
 #include "lobby.h"
 #include "stream.h"
 #include "version.h"
+#include <cassert>
 #include <glm/gtc/quaternion.hpp>
 #include <ranges>
 #include <spdlog/fmt/fmt.h>
@@ -66,6 +67,24 @@ static void CenterTextHV(const std::string & text)
 		ImGui::Text("%s", i.c_str());
 	}
 	ImGui::PopStyleVar();
+}
+
+static void InputText(const char * label, std::string & text, const ImVec2 & size, ImGuiInputTextFlags flags)
+{
+	auto callback = [](ImGuiInputTextCallbackData * data) -> int {
+		std::string & text = *reinterpret_cast<std::string *>(data->UserData);
+
+		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+		{
+			assert(text.data() == data->Buf);
+			text.resize(data->BufTextLen);
+			data->Buf = text.data();
+		}
+
+		return 0;
+	};
+
+	ImGui::InputTextEx(label, nullptr, text.data(), text.size(), size, flags | ImGuiInputTextFlags_CallbackResize, callback, &text);
 }
 
 static void display_recentering_tip(imgui_context & ctx, const std::string & tip)
@@ -222,7 +241,7 @@ void scenes::lobby::gui_new_server()
 	ImGui::TableNextColumn();
 	if (ImGui::IsWindowAppearing())
 		ImGui::SetKeyboardFocusHere();
-	ImGui::InputTextEx("##Name", nullptr, add_server_window_prettyname, sizeof(add_server_window_prettyname), {ImGui::GetContentRegionAvail().x, 0}, 0);
+	InputText("##Name", add_server_window_prettyname, {ImGui::GetContentRegionAvail().x, 0}, 0);
 	vibrate_on_hover();
 
 	ImGui::TableNextRow();
@@ -231,7 +250,7 @@ void scenes::lobby::gui_new_server()
 	ImGui::Text("%s", _S("Address"));
 
 	ImGui::TableNextColumn();
-	ImGui::InputTextEx("##Hostname", nullptr, add_server_window_hostname, sizeof(add_server_window_hostname), {ImGui::GetContentRegionAvail().x, 0}, 0);
+	InputText("##Hostname", add_server_window_hostname, {ImGui::GetContentRegionAvail().x, 0}, 0);
 	vibrate_on_hover();
 
 	ImGui::TableNextRow();
@@ -255,10 +274,11 @@ void scenes::lobby::gui_new_server()
 	if (ImGui::Button(_S("Cancel"), button_size))
 	{
 		current_tab = tab::server_list;
-		strcpy(add_server_window_prettyname, "");
-		strcpy(add_server_window_hostname, "");
+		add_server_window_prettyname = "";
+		add_server_window_hostname = "";
 		add_server_window_port = wivrn::default_port;
 		add_server_tcp_only = false;
+		add_server_cookie = "";
 		ImGui::CloseCurrentPopup();
 	}
 	vibrate_on_hover();
@@ -279,13 +299,17 @@ void scenes::lobby::gui_new_server()
 		};
 
 		auto & config = application::get_config();
+		if (add_server_cookie != "")
+			config.servers.erase(add_server_cookie);
+
 		config.servers.emplace("manual-" + data.service.name, data);
 		config.save();
 
-		strcpy(add_server_window_prettyname, "");
-		strcpy(add_server_window_hostname, "");
+		add_server_window_prettyname = "";
+		add_server_window_hostname = "";
 		add_server_window_port = wivrn::default_port;
 		add_server_tcp_only = false;
+		add_server_cookie = "";
 		ImGui::CloseCurrentPopup();
 	}
 	vibrate_on_hover();
@@ -296,6 +320,7 @@ void scenes::lobby::gui_new_server()
 void scenes::lobby::gui_server_list()
 {
 	using constants::style::button_size;
+	using constants::style::icon_button_size;
 
 	auto & config = application::get_config();
 	// Build an index of the cookies sorted by server name
@@ -389,19 +414,31 @@ void scenes::lobby::gui_server_list()
 		ImGui::PopStyleColor(3);
 		ImGui::EndDisabled();
 
-		button_position.x -= button_size.x + style.WindowPadding.x + 20;
 		if (data.manual)
 		{
+			button_position.x -= icon_button_size.x + style.WindowPadding.x + 10;
 			ImGui::SetCursorPos(button_position);
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
 
-			if (ImGui::Button((_("Remove") + "##" + cookie).c_str(), button_size))
+			if (ImGui::Button((ICON_FA_TRASH_CAN "##remove-" + cookie).c_str(), icon_button_size))
 				cookie_to_remove = cookie;
 			vibrate_on_hover();
-
 			ImGui::PopStyleColor(3);
+
+			button_position.x -= icon_button_size.x + style.WindowPadding.x + 10;
+			ImGui::SetCursorPos(button_position);
+			if (ImGui::Button((ICON_FA_PENCIL "##edit-" + cookie).c_str(), icon_button_size))
+			{
+				add_server_cookie = cookie;
+				add_server_window_prettyname = data.service.name;
+				add_server_window_hostname = data.service.hostname;
+				add_server_window_port = data.service.port;
+				add_server_tcp_only = data.service.tcp_only;
+				ImGui::OpenPopup("add or edit server");
+			}
+			vibrate_on_hover();
 		}
 
 		pos.y += 120;
@@ -432,7 +469,7 @@ void scenes::lobby::gui_server_list()
 
 	ImGui::SetNextWindowSize({800, 0});
 	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
-	if (ImGui::BeginPopupModal("add server", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	if (ImGui::BeginPopupModal("add or edit server", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		gui_new_server();
 		ImGui::EndPopup();
@@ -1072,8 +1109,8 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	text_width += items.size() * style.FramePadding.x * 2;
 
 	// New server button
-	if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add server"))
-		ImGui::OpenPopup("add server");
+	if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add or edit server"))
+		ImGui::OpenPopup("add or edit server");
 	vibrate_on_hover();
 	ImGui::SameLine();
 

@@ -115,6 +115,7 @@ constexpr ImVec2 tooltip_padding = {5, 5};
 constexpr float tooltip_distance = 10;
 
 constexpr ImVec2 button_size = {220, 80};
+constexpr ImVec2 icon_button_size = {80, 80};
 constexpr float connection_popup_width = 1000;
 
 } // namespace constants::style
