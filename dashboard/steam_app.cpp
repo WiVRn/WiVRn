@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <string>
 
 namespace
 {
@@ -90,7 +91,11 @@ std::vector<steam_app> steam_apps(const std::string & locale)
 
 				const char prefix[] = "steam.app.";
 				if (app_key.starts_with(prefix))
-					app.url = "steam://rungameid/" + app_key.substr(strlen(prefix));
+				{
+					// ¯\_(ツ)_/¯
+					uint64_t appkey = stoll(app_key.substr(strlen(prefix)));
+					app.url = "steam://rungameid/" + std::to_string((appkey << 32) + 0x2000000);
+				}
 			}
 
 			if (app.url != "")
