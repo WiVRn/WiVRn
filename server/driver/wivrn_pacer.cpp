@@ -89,7 +89,7 @@ void wivrn_pacer::predict(
 void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, const clock_offset & offset)
 {
 	std::lock_guard lock(mutex);
-	if (feedback.stream_index >= streams.size() or feedback.times_displayed > 1)
+	if (feedback.stream_index >= streams.size() or feedback.times_displayed > 1 or not feedback.blitted)
 		return;
 
 	auto & when = in_flight_frames[feedback.frame_index % in_flight_frames.size()];
