@@ -42,7 +42,7 @@ namespace wivrn
 // TODO: size independent bitrate
 static const uint64_t default_bitrate = 50'000'000;
 
-// #define WIVRN_SPLIT_ENCODERS 1
+#define WIVRN_SPLIT_ENCODERS 1
 
 static bool is_nvidia(vk::PhysicalDevice physical_device)
 {
@@ -240,7 +240,7 @@ static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk
 		                .codec = base.codec,
 		        },
 		        {
-		                .name = encoder_vaapi,
+		                .name = base.name,
 		                .width = 0.5,
 		                .offset_x = 0.5,
 		                .group = 0,
