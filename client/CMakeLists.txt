@@ -207,7 +207,7 @@ foreach(PO_DIR IN LISTS PO_DIRS)
 endforeach()
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
-    COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_charset.py ${PO_FILES} > ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_charset.py ${PO_FILES} > ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
     DEPENDS ${PO_FILES})
 
 add_custom_target(translations ALL DEPENDS ${MO_FILES} ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
