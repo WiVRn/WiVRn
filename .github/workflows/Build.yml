@@ -282,13 +282,23 @@ jobs:
         retention-days: 30
 
     - name: Push to Oculus store
-      if: ${{ matrix.buildtype == 'Oculus' && startsWith(github.ref, 'refs/tags/') }}
+      if: ${{ matrix.buildtype == 'Oculus' && (startsWith(github.ref, 'refs/tags/') || github.branch == 'master') }}
       env:
         OCULUS_TOKEN: ${{ secrets.OCULUS_TOKEN }}
       run: |
         curl -L 'https://www.oculus.com/download_app/?id=5159709737372459' -o ovr-platform-util
         chmod +x ovr-platform-util
-        ./ovr-platform-util upload-quest-build --app-id 7959676140827574 --token $OCULUS_TOKEN --apk apk/WiVRn-standard-oculus.apk --channel ALPHA --age-group TEENS_AND_ADULTS --draft --debug_symbols_dir debug/ --debug-symbols-pattern '*.so'
+
+        if [ ${{ github.ref_type }} = 'tag' ]
+        then
+              CHANNEL=RC
+              IS_DRAFT=--draft
+        else
+              CHANNEL=NIGHTLY
+              IS_DRAFT=
+        fi
+
+        ./ovr-platform-util upload-quest-build --app-id 7959676140827574 --token $OCULUS_TOKEN --apk apk/WiVRn-standard-oculus.apk --channel $CHANNEL --age-group TEENS_AND_ADULTS $IS_DRAFT --debug_symbols_dir debug/ --debug-symbols-pattern '*.so'
 
   build-ubuntu:
     name: Build Ubuntu package
