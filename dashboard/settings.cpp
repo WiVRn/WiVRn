@@ -154,7 +154,7 @@ settings::settings(wivrn_server * server_interface) :
 	fill_steam_games_list();
 	load_settings();
 
-	auto encoders = qobject_cast<QStandardItemModel *>(ui->encoder->model());
+	auto encoders = dynamic_cast<QStandardItemModel *>(ui->encoder->model());
 #if !WIVRN_USE_NVENC
 	encoders->item(1)->setEnabled(false);
 #endif
@@ -227,7 +227,7 @@ void settings::on_selected_encoder_changed()
 {
 	int encoder = ui->encoder->currentIndex();
 
-	QStandardItemModel * model = qobject_cast<QStandardItemModel *>(ui->codec->model());
+	QStandardItemModel * model = dynamic_cast<QStandardItemModel *>(ui->codec->model());
 	assert(model);
 
 	for (int i = 0, n = model->rowCount(); i < n; i++)
