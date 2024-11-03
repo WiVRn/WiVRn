@@ -177,6 +177,10 @@ if (WIVRN_BUILD_DASHBOARD)
     set(CMAKE_AUTOUIC ON)
 endif()
 
+if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_DASHBOARD)
+    find_program(RSVG_CONVERT rsvg-convert REQUIRED)
+endif()
+
 if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
     pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavcodec libavutil libswscale libavfilter)
     find_package(Fontconfig REQUIRED)

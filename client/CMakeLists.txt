@@ -247,7 +247,7 @@ set(IMG_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../images)
 set(AST_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../assets)
 
 add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn.png
-    COMMAND rsvg-convert ${IMG_SRC_DIR}/wivrn.svg -w 540 -h 540 -o ${ASSETS_DIR}/wivrn.png ${RSVG_OPTS}
+    COMMAND ${RSVG_CONVERT} ${IMG_SRC_DIR}/wivrn.svg -w 540 -h 540 -o ${ASSETS_DIR}/wivrn.png ${RSVG_OPTS}
     DEPENDS ${IMG_SRC_DIR}/wivrn.svg ${WIVRN_CSS_ABS})
 
 add_custom_target(assets ALL DEPENDS

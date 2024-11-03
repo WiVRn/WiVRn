@@ -47,7 +47,7 @@ qt_add_executable(wivrn-dashboard
 )
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png
-    COMMAND rsvg-convert ${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg -w 540 -h 540 -o ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png
+    COMMAND ${RSVG_CONVERT} ${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg -w 540 -h 540 -o ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../images/wivrn.svg)
 
 add_custom_target(dashboard-assets ALL DEPENDS
