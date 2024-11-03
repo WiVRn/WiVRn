@@ -702,7 +702,7 @@ void main_window::start_server()
 
 	server_process->setProcessChannelMode(QProcess::ForwardedChannels);
 
-	server_process->start(server_path());
+	server_process->start(server_path(), QApplication::arguments().mid(1));
 	server_process_timeout->start();
 
 	ui->button_start->setEnabled(false);
