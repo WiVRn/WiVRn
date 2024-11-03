@@ -22,6 +22,7 @@
 #include "util/u_logging.h"
 #include "wivrn_ipc.h"
 #include <arpa/inet.h>
+#include <chrono>
 #include <poll.h>
 
 using namespace std::chrono_literals;

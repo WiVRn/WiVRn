@@ -69,6 +69,9 @@ endif()
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Git)
+if (NOT ANDROID)
+    find_package(OpenSSL REQUIRED)
+endif()
 include(VulkanVersion)
 
 if (WIVRN_USE_SYSTEM_BOOST STREQUAL "AUTO")
@@ -218,6 +221,7 @@ endif()
 # Common dependencies
 FetchContent_Declare(boostpfr      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/boostorg/pfr/archive/refs/tags/2.2.0.tar.gz)
 FetchContent_Declare(boost         EXCLUDE_FROM_ALL SYSTEM URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz)
+
 # Client dependencies
 FetchContent_Declare(simdjson      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/simdjson/simdjson/archive/refs/tags/v3.10.1.tar.gz)
 FetchContent_Declare(fastgltf      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/spnda/fastgltf/archive/refs/tags/v0.7.1.tar.gz)
