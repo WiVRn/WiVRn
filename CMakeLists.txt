@@ -80,6 +80,7 @@ elseif(WIVRN_USE_SYSTEM_BOOST STREQUAL "ON")
 endif()
 
 if (WIVRN_BUILD_SERVER)
+    find_program(GDBUS_CODEGEN gdbus-codegen REQUIRED)
     if (Vulkan_VERSION  VERSION_LESS "1.3.261")
         message(FATAL_ERROR "Vulkan version must be at least 1.3.261, found ${Vulkan_VERSION}")
     endif()

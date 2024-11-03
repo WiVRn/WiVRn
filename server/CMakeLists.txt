@@ -162,7 +162,7 @@ endif()
 
 # Generate dbus interface code as a separate target to avoid warnings in generated code
 add_custom_command(OUTPUT wivrn_server_dbus.c wivrn_server_dbus.h
-		   COMMAND gdbus-codegen ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml --interface-prefix io.github.wivrn --generate-c-code wivrn_server_dbus --c-namespace Wivrn
+		   COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml --interface-prefix io.github.wivrn --generate-c-code wivrn_server_dbus --c-namespace Wivrn
 		   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml)
 add_custom_target(wivrn-server-dbus-codegen ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.c ${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.h)
 add_library(wivrn-server-dbus STATIC
