@@ -500,6 +500,10 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			        .InputAssemblyState = {{
 			                .topology = vk::PrimitiveTopology::eTriangleStrip,
 			        }},
+			        // With vk::DynamicState::eViewport, vk::DynamicState::eScissor the number of viewports
+			        // and scissors is still used, put a vector with one element
+			        .Viewports = {{}},
+			        .Scissors = {{}},
 			        .RasterizationState = {{
 			                .polygonMode = vk::PolygonMode::eFill,
 			                .lineWidth = 1,
