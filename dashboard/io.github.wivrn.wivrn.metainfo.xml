@@ -73,16 +73,7 @@
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.21</url>
 			<description>
 				<ul>
-					<li>Fixed multiple dashboard issues
-						<ul>
-							<li>Missing tray icon</li>
-							<li>Uncaught exception if the model property is not set on the android device</li>
-							<li>Uncaught exception if the Steam app manifest does not exist</li>
-							<li>Assertion failure when the settings window is opened a second time</li>
-							<li>Avoid double error message if the server fails to start</li>
-							<li>Correctly set the app id for non-Steam games that are added in the Steam library</li>
-						</ul>
-					</li>
+					<li>Fixed multiple dashboard issues</li>
 					<li>Improved compositor pacing</li>
 					<li>Changed default encoder configuration</li>
 					<li>Inhibit sleeping while a session is active</li>
