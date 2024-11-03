@@ -470,11 +470,18 @@ public:
 		if (it != images.end())
 			return it->second;
 
-		auto [image_data, mime_type] = visit_source(gltf.images[index].data);
-		auto image = do_load_image(physical_device, device, queue, cb_pool, image_data, srgb);
+		try
+		{
+			auto [image_data, mime_type] = visit_source(gltf.images[index].data);
+			auto image = do_load_image(physical_device, device, queue, cb_pool, image_data, srgb);
 
-		images.emplace(index, image);
-		return image;
+			images.emplace(index, image);
+			return image;
+		}
+		catch (...)
+		{
+			return nullptr;
+		}
 	}
 
 	std::vector<std::shared_ptr<scene_data::texture>> load_all_textures()
