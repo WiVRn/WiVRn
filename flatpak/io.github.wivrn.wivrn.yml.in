@@ -222,4 +222,4 @@ modules:
           -
           - trap cleanup EXIT INT TERM HUP
           -
-          - wivrn-dashboard
+          - wivrn-dashboard "$@"
