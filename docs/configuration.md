@@ -48,7 +48,7 @@ Identifier of the encoder, one of
 * `vulkan`: experimental, for any GPU that supports vulkan video encode
 
 ### `codec`
-Default value: `av1` if supported by both headset and hardware encoder, else `h265`.
+Default value: first supported by both headset and encoder of `av1`, `h264`, `h265`.
 
 One of `h264`, `h265` or `av1`.
 Not all encoders support every codec, `x264` and `vulkan` only support `h264`, `nvenc` only `h264` and `h265`

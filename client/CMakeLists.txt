@@ -66,7 +66,6 @@ endif()
 ##############################################################################
 # Main sources
 #
-target_compile_features(wivrn PRIVATE cxx_std_23)
 target_compile_definitions(wivrn PRIVATE "XR_USE_TIMESPEC=1")
 
 set_target_properties(wivrn PROPERTIES CXX_VISIBILITY_PRESET hidden)

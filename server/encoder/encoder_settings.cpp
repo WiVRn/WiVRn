@@ -35,6 +35,7 @@
 #endif
 #if WIVRN_USE_VAAPI
 #include "ffmpeg/video_encoder_va.h"
+#include <libavutil/ffversion.h>
 #endif
 
 namespace wivrn
@@ -117,6 +118,21 @@ static void check_scale(std::string_view encoder_name, video_codec codec, uint16
 }
 
 #if WIVRN_USE_VAAPI
+
+static constexpr auto ffmpeg_version()
+{
+	std::array<int, 3> result;
+	std::string_view version = FFMPEG_VERSION;
+	for (auto & item: result)
+	{
+		auto dot = version.find(".");
+		auto number = version.substr(0, dot);
+		version = version.substr(dot + 1);
+		std::from_chars(number.begin(), number.end(), item);
+	}
+	return result;
+}
+
 static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & codecs)
 {
 	VideoEncoderFFMPEG::mute_logs mute;
@@ -132,6 +148,14 @@ static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & b
 	};
 	for (auto codec: codecs)
 	{
+		if constexpr (ffmpeg_version()[0] < 6)
+		{
+			if (codec == wivrn::video_codec::h264)
+			{
+				U_LOG_W("Skip h264 on ffmpeg < 6 due to poor performance");
+				continue;
+			}
+		}
 		try
 		{
 			s.codec = codec;

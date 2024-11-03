@@ -537,8 +537,15 @@ static bool hardware_accelerated(AMediaCodec * media_codec)
 std::vector<wivrn::video_codec> decoder::supported_codecs()
 {
 	std::vector<wivrn::video_codec> result;
+	// Make sure we update this code when codecs are changed
+	static_assert(magic_enum::enum_count<wivrn::video_codec>() == 3);
 
-	for (auto codec: std::ranges::reverse_view(magic_enum::enum_values<wivrn::video_codec>()))
+	// In order or preference, from preferred to least preferred
+	for (auto codec: {
+	             wivrn::video_codec::av1,
+	             wivrn::video_codec::h264,
+	             wivrn::video_codec::h265,
+	     })
 	{
 		AMediaCodec_ptr media_codec(AMediaCodec_createDecoderByType(mime(codec)));
 
