@@ -1,3 +1,20 @@
+wivrn (0.21-1) unstable; urgency=medium
+
+  * Fixed multiple dashboard issues
+    - Missing tray icon
+    - Uncaught exception if the model property is not set on the android device
+    - Uncaught exception if the Steam app manifest does not exist
+    - Assertion failure when the settings window is opened a second time
+    - Avoid double error message if the server fails to start
+    - Correctly set the app id for non-Steam games that are added in the Steam library
+  * Improved compositor pacing
+  * Changed default encoder configuration
+  * Inhibit sleeping while a session is active
+  * Avahi publication is now optional
+  * Always set the active runtime even if there was already one
+
+ -- Guillaume Meunier <guillaume.meunier@centraliens.net>  Sun, 03 Nov 2024 14:35:12 +0100
+
 wivrn (0.20-1) unstable; urgency=medium
 
   * Initial release.
