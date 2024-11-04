@@ -457,9 +457,11 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::Com
 	        .dstBuffer = output_buffer,
 	        .dstBufferOffset = 0,
 	        .dstBufferRange = output_buffer_size,
-	        .srcPictureResource = {.codedExtent = rect.extent,
-	                               .baseArrayLayer = 0,
-	                               .imageViewBinding = image_view},
+	        .srcPictureResource = {
+	                .codedOffset = rect.offset,
+	                .codedExtent = rect.extent,
+	                .baseArrayLayer = 0,
+	                .imageViewBinding = image_view},
 	        .pSetupReferenceSlot = &slot->info,
 	};
 	if (ref_slot)
