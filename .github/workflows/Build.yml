@@ -282,7 +282,7 @@ jobs:
         retention-days: 30
 
     - name: Push to Oculus store
-      if: ${{ matrix.buildtype == 'Oculus' && (startsWith(github.ref, 'refs/tags/') || github.branch == 'master') }}
+      if: ${{ matrix.buildtype == 'Oculus' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master') }}
       env:
         OCULUS_TOKEN: ${{ secrets.OCULUS_TOKEN }}
       run: |
