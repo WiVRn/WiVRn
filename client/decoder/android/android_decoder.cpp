@@ -476,6 +476,16 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 void decoder::on_media_error(AMediaCodec *, void * userdata, media_status_t error, int32_t actionCode, const char * detail)
 {
 	spdlog::warn("Mediacodec error: {}", detail);
+
+	if (error == AMEDIA_ERROR_MALFORMED)
+	{
+		// Send an empty feedback packet, encoder will know we are lost
+		auto self = (decoder *)userdata;
+		if (auto scene = self->weak_scene.lock())
+			scene->send_feedback(
+			        wivrn::from_headset::feedback{
+			                .stream_index = self->stream_index});
+	}
 }
 void decoder::on_media_format_changed(AMediaCodec *, void * userdata, AMediaFormat *)
 {
