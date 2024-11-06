@@ -24,6 +24,13 @@
 
 namespace wivrn
 {
+
+namespace flatpak::section
+{
+inline const char * instance = "Instance";
+inline const char * session_bus_policy = "Session Bus Policy";
+}; // namespace flatpak::section
+
 bool is_flatpak();
-std::optional<std::string> flatpak_key(std::string key);
+std::optional<std::string> flatpak_key(std::string section, std::string key);
 } // namespace wivrn

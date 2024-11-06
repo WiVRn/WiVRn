@@ -31,7 +31,7 @@ std::filesystem::path active_runtime::manifest_path()
 {
 	const std::filesystem::path install_location = "share/openxr/1/openxr_wivrn.json";
 	// Check if in a flatpak
-	if (auto path = flatpak_key("app-path"))
+	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
 		return *path / install_location.relative_path();
 
 	// Check if running from build directory

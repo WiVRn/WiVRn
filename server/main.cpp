@@ -133,7 +133,7 @@ void display_child_status(int wstatus, const std::string & name)
 
 static std::filesystem::path flatpak_app_path()
 {
-	if (auto value = flatpak_key("app-path"))
+	if (auto value = flatpak_key(flatpak::section::instance, "app-path"))
 	{
 		std::filesystem::path path = *value;
 		while (path != "" and path != path.parent_path() and path.filename() != "io.github.wivrn.wivrn")

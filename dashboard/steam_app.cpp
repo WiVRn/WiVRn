@@ -35,7 +35,7 @@ std::string read_vr_manifest()
 
 	std::filesystem::path vrmanifest = std::string{home ? home : ""} + "/.steam/steam/config/steamapps.vrmanifest";
 
-	if (wivrn::flatpak_key("org.freedesktop.Flatpak") == "talk")
+	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
 	{
 		QProcess flatpak_spawn;
 		flatpak_spawn.start("flatpak-spawn", {"--host", "cat", QString::fromStdString(vrmanifest)});

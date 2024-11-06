@@ -29,14 +29,19 @@ bool wivrn::is_flatpak()
 	return std::filesystem::exists(info_path);
 }
 
-std::optional<std::string> wivrn::flatpak_key(std::string key)
+std::optional<std::string> wivrn::flatpak_key(std::string section, std::string key)
 {
+	section = "[" + section + "]";
 	key += "=";
 	std::string line;
 	std::ifstream info(info_path);
+	bool in_section = false;
 	while (std::getline(info, line))
 	{
-		if (line.starts_with(key))
+		if (line.starts_with("["))
+			in_section = section == line;
+
+		if (in_section and line.starts_with(key))
 			return line.substr(key.size());
 	}
 	return {};
