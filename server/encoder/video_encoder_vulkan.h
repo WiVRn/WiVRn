@@ -45,6 +45,7 @@ class video_encoder_vulkan : public video_encoder
 	std::array<vk::Fence, num_slots> fences;
 
 	image_allocation dpb_image;
+	image_allocation tmp_image; // Used if we have an offset in the image to encode
 
 	struct dpb_item
 	{
@@ -99,6 +100,7 @@ protected:
 
 public:
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
+	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) override;
 	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence, uint8_t slot, uint64_t frame_index) override;
 	void on_feedback(const from_headset::feedback &) override;
 };
