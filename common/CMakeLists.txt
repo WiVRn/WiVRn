@@ -23,6 +23,12 @@ endif()
 
 configure_file(wivrn_config.h.in wivrn_config.h)
 
+add_library(wivrn-common-base STATIC
+    utils/xdg_base_directory.cpp
+    utils/flatpak.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+)
+
 add_library(wivrn-common STATIC
     wivrn_sockets.cpp
     utils/xdg_base_directory.cpp
@@ -30,7 +36,6 @@ add_library(wivrn-common STATIC
     vk/error_category.cpp
     vk/vk_allocator.cpp
     vk/vk_mem_alloc.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
 )
 
 if(ANDROID)
@@ -55,8 +60,7 @@ else()
     target_link_libraries(wivrn-common PUBLIC Vulkan::Headers)
 endif()
 
-target_link_libraries(wivrn-common PUBLIC Boost::pfr wivrn-external)
+target_include_directories(wivrn-common-base PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(wivrn-common PUBLIC Boost::pfr wivrn-external wivrn-common-base)
 target_compile_features(wivrn-common PRIVATE cxx_std_20)
 target_compile_definitions(wivrn-common PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
-
-target_include_directories(wivrn-common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})

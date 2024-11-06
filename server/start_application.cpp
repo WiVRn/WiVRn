@@ -9,8 +9,8 @@
 #include "start_application.h"
 
 #include "driver/configuration.h"
+#include "utils/flatpak.h"
 
-#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <stdlib.h>
@@ -235,7 +235,7 @@ int wivrn::exec_application(configuration config)
 	std::string executable;
 	std::vector<std::string> args;
 
-	if (std::filesystem::exists("/.flatpak-info"))
+	if (is_flatpak())
 	{
 		executable = "flatpak-spawn";
 		args.push_back("flatpak-spawn");

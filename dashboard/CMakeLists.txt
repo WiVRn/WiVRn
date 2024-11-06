@@ -1,18 +1,3 @@
-if (GIT_DESC)
-    configure_file(version.cpp.in version.cpp)
-else ()
-    add_custom_target(wivrn-dashboard-version ALL
-        COMMAND ${CMAKE_COMMAND}
-            -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
-            -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
-            -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.cpp
-            -D CMAKE_PROJECT_VERSION=${CMAKE_PROJECT_VERSION}
-            -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
-        BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
-        SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
-        )
-endif()
-
 # Qt 6.7 changed qt_add_translations()
 try_compile(AT_LEAST_QT67 SOURCE_FROM_CONTENT check-qt-version.cpp "
 #include <QtGlobal>
@@ -43,7 +28,6 @@ qt_add_executable(wivrn-dashboard
         steam_app.h
         adb.cpp
         adb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
 )
 
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png
@@ -81,6 +65,7 @@ target_link_libraries(wivrn-dashboard PRIVATE
         Qt6::DBus
         Qt6::Network
         nlohmann_json
+        wivrn-common-base
 )
 
 if (WIVRN_CHECK_CAPSYSNICE)

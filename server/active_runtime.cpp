@@ -18,10 +18,10 @@
  */
 
 #include "active_runtime.h"
+#include "utils/flatpak.h"
 #include "utils/xdg_base_directory.h"
 #include "wivrn_config.h"
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 
 namespace wivrn
@@ -31,17 +31,8 @@ std::filesystem::path active_runtime::manifest_path()
 {
 	const std::filesystem::path install_location = "share/openxr/1/openxr_wivrn.json";
 	// Check if in a flatpak
-	if (std::filesystem::exists("/.flatpak-info"))
-	{
-		const std::string key("app-path=");
-		std::string line;
-		std::ifstream info("/.flatpak-info");
-		while (std::getline(info, line))
-		{
-			if (line.starts_with(key))
-				return line.substr(key.size()) / install_location.relative_path();
-		}
-	}
+	if (auto path = flatpak_key("app-path"))
+		return *path / install_location.relative_path();
 
 	// Check if running from build directory
 	auto exe = std::filesystem::read_symlink("/proc/self/exe");

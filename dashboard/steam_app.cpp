@@ -17,6 +17,7 @@
  */
 
 #include "steam_app.h"
+#include "utils/flatpak.h"
 #include <QProcess>
 #include <algorithm>
 #include <cassert>
@@ -34,7 +35,7 @@ std::string read_vr_manifest()
 
 	std::filesystem::path vrmanifest = std::string{home ? home : ""} + "/.steam/steam/config/steamapps.vrmanifest";
 
-	if (std::filesystem::exists("/.flatpak-info"))
+	if (wivrn::is_flatpak())
 	{
 		QProcess flatpak_spawn;
 		flatpak_spawn.start("flatpak-spawn", {"--host", "cat", QString::fromStdString(vrmanifest)});

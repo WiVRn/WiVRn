@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "version.h"
+#pragma once
+
+#include <optional>
+#include <string>
 
 namespace wivrn
 {
-const char git_version[] = "@GIT_DESC@";
-const char git_commit[] = "@GIT_COMMIT@";
+bool is_flatpak();
+std::optional<std::string> flatpak_key(std::string key);
 } // namespace wivrn

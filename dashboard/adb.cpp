@@ -18,6 +18,8 @@
 
 #include "adb.h"
 
+#include "utils/flatpak.h"
+
 #include <QDebug>
 #include <QProcess>
 #include <chrono>
@@ -31,7 +33,7 @@ std::unique_ptr<QProcess> escape_sandbox(const std::string & executable, Args &&
 	auto process = std::make_unique<QProcess>();
 	QStringList args;
 
-	if (std::filesystem::exists("/.flatpak-info"))
+	if (wivrn::is_flatpak())
 	{
 		process->setProgram("flatpak-spawn");
 		args.push_back("--host");

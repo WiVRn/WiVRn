@@ -14,7 +14,9 @@
 #include "driver/configuration.h"
 #include "exit_codes.h"
 #include "hostname.h"
+#include "protocol_version.h"
 #include "start_application.h"
+#include "utils/flatpak.h"
 #include "version.h"
 #include "wivrn_config.h"
 #include "wivrn_ipc.h"
@@ -131,19 +133,13 @@ void display_child_status(int wstatus, const std::string & name)
 
 static std::filesystem::path flatpak_app_path()
 {
-	const std::string key("app-path=");
-	std::string line;
-	std::ifstream info("/.flatpak-info");
-	while (std::getline(info, line))
+	if (auto value = flatpak_key("app-path"))
 	{
-		if (line.starts_with(key))
-		{
-			std::filesystem::path path = line.substr(key.size());
-			while (path != "" and path != path.parent_path() and path.filename() != "io.github.wivrn.wivrn")
-				path = path.parent_path();
+		std::filesystem::path path = *value;
+		while (path != "" and path != path.parent_path() and path.filename() != "io.github.wivrn.wivrn")
+			path = path.parent_path();
 
-			return path;
-		}
+		return path;
 	}
 
 	return "/";
@@ -154,7 +150,7 @@ static std::string steam_command()
 	std::string pressure_vessel_filesystems_rw = "$XDG_RUNTIME_DIR/" XRT_IPC_MSG_SOCK_FILENAME;
 
 	// Check if in a flatpak
-	if (std::filesystem::exists("/.flatpak-info"))
+	if (is_flatpak())
 	{
 		std::string app_path = flatpak_app_path().string();
 		// /usr and /var are remapped by steam

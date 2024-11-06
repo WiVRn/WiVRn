@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +17,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "flatpak.h"
 
-namespace wivrn
+#include <filesystem>
+#include <fstream>
+
+static const std::filesystem::path info_path = "/.flatpak-info";
+
+bool wivrn::is_flatpak()
 {
-extern const char git_version[];
-extern const char git_commit[];
-} // namespace wivrn
+	return std::filesystem::exists(info_path);
+}
+
+std::optional<std::string> wivrn::flatpak_key(std::string key)
+{
+	key += "=";
+	std::string line;
+	std::ifstream info(info_path);
+	while (std::getline(info, line))
+	{
+		if (line.starts_with(key))
+			return line.substr(key.size());
+	}
+	return {};
+}
