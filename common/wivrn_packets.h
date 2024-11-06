@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cstdint>
 #include <netinet/in.h>
+#include <openssl/aes.h>
 #include <optional>
 #include <span>
 #include <variant>
@@ -97,6 +98,11 @@ struct audio_data
 
 namespace from_headset
 {
+struct crypto_handshake
+{
+	std::string public_key; // In PEM format
+	std::string name;
+};
 
 struct headset_info_packet
 {
@@ -255,11 +261,16 @@ struct battery
 	bool charging;
 };
 
-using packets = std::variant<headset_info_packet, feedback, audio_data, handshake, tracking, trackings, hand_tracking, inputs, timesync_response, battery>;
+using packets = std::variant<crypto_handshake, headset_info_packet, feedback, audio_data, handshake, tracking, trackings, hand_tracking, inputs, timesync_response, battery>;
 } // namespace from_headset
 
 namespace to_headset
 {
+struct crypto_handshake
+{
+	std::string public_key; // In PEM format
+	bool pin_required;
+};
 
 struct handshake
 {
@@ -274,6 +285,7 @@ struct foveation_parameter_item
 	float a;
 	float b;
 };
+
 struct foveation_parameter
 {
 	foveation_parameter_item x;
@@ -404,8 +416,6 @@ struct tracking_control
 	std::array<bool, size_t(id::last) + 1> enabled;
 };
 
-using packets = std::variant<handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query, tracking_control>;
-
+using packets = std::variant<crypto_handshake, handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query, tracking_control>;
 } // namespace to_headset
-
 } // namespace wivrn

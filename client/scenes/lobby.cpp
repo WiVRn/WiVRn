@@ -31,13 +31,17 @@
 #include "stream.h"
 #include "utils/overloaded.h"
 #include "wivrn_client.h"
+#include "wivrn_sockets.h"
 #include "xr/passthrough.h"
 #include "xr/space.h"
 #include <algorithm>
+#include <chrono>
+#include <condition_variable>
 #include <glm/gtc/matrix_access.hpp>
 
 #include "wivrn_discover.h"
 #include <cstdint>
+#include <fstream>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/matrix.hpp>
 #include <magic_enum.hpp>
@@ -45,6 +49,7 @@
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
 #include <string>
+#include <sys/poll.h>
 #include <utils/ranges.h>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -52,6 +57,8 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+
+using namespace std::chrono_literals;
 
 static bool force_autoconnect = false;
 
@@ -174,6 +181,19 @@ scenes::lobby::lobby()
 		spdlog::info("Composition layer color scale/bias NOT supported");
 
 	keyboard.set_layout(application::get_config().virtual_keyboard_layout);
+
+	const auto keypair_path = application::get_config_path() / "private_key.pem";
+	try
+	{
+		std::ifstream f{keypair_path};
+		keypair = crypto::key::from_private_key(std::string{(std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>()});
+	}
+	catch (...)
+	{
+		keypair = crypto::key::generate_x448_keypair();
+		std::ofstream{keypair_path} << keypair.private_key();
+		spdlog::info("Generated X448 keypair");
+	}
 }
 
 static std::string ip_address_to_string(const in_addr & addr)
@@ -190,7 +210,7 @@ static std::string ip_address_to_string(const in6_addr & addr)
 	return buf;
 }
 
-std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service service, bool manual_connection)
+std::unique_ptr<wivrn_session> scenes::lobby::connect_to_session(wivrn_discover::service service, bool manual_connection)
 {
 	if (!manual_connection)
 	{
@@ -244,21 +264,75 @@ std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service servic
 	}
 
 	std::string error;
-	for (const auto & address: service.addresses)
+	for (const std::variant<in_addr, in6_addr> & address: service.addresses)
 	{
 		std::string address_string = std::visit([](auto & address) {
 			return ip_address_to_string(address);
 		},
 		                                        address);
 
+		struct connection_cancelled
+		{};
+
 		try
 		{
-			spdlog::debug("Trying address {}", address_string);
+			spdlog::debug("Connection to {}", address_string);
 
-			return std::visit([port = service.port, tcp_only = service.tcp_only](auto & address) {
-				return std::make_unique<wivrn_session>(address, port, tcp_only);
+			return std::visit([this, port = service.port, tcp_only = service.tcp_only](auto & address) {
+				return std::make_unique<wivrn_session>(address, port, tcp_only, keypair, [&](int fd) {
+					auto request = pin_request.lock();
+					request->pin_requested = true;
+					request->pin_cancelled = false;
+					request->pin = "";
+					pin_buffer = "";
+
+					while (not request.wait_for(500ms, [&]() { return request->pin != "" or request->pin_cancelled; }))
+					{
+						pollfd fds{};
+						fds.events = POLLRDHUP;
+						fds.fd = fd;
+
+						int r = ::poll(&fds, 1, 0);
+
+						if (r < 0)
+						{
+							request->pin_requested = false;
+							throw std::system_error(errno, std::system_category());
+						}
+
+						if (fds.revents & (POLLHUP | POLLERR))
+						{
+							request->pin_requested = false;
+							throw std::runtime_error("Error on control socket");
+						}
+
+						if (fds.revents & POLLRDHUP)
+						{
+							request->pin_requested = false;
+							throw socket_shutdown{};
+						}
+					}
+
+					request->pin_requested = false;
+
+					if (request->pin_cancelled)
+						throw connection_cancelled{};
+
+					return request->pin;
+				});
 			},
 			                  address);
+		}
+		catch (connection_cancelled)
+		{
+			spdlog::info("Connection cancelled");
+			return nullptr;
+		}
+		catch (handshake_error & e)
+		{
+			spdlog::warn("Error during handshake to {} ({}): {}", service.hostname, address_string, e.what());
+			std::string txt = fmt::format(_F("Cannot connect to {} ({}): {}"), service.hostname, address_string, e.what());
+			throw std::runtime_error(txt);
 		}
 		catch (std::exception & e)
 		{
@@ -376,7 +450,7 @@ void scenes::lobby::connect(const configuration::server_data & data)
 	async_error.reset();
 
 	async_session = utils::async<std::unique_ptr<wivrn_session>, std::string>(
-	        [](auto token, wivrn_discover::service service, bool manual) {
+	        [this](auto token, wivrn_discover::service service, bool manual) {
 		        token.set_progress(_("Waiting for connection"));
 		        return connect_to_session(service, manual);
 	        },

@@ -1,7 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2023  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2023  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +16,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
 
-#include <cstdint>
-#include <memory>
+#include "secrets.h"
+#include <cstring>
+#include <type_traits>
 
-namespace wivrn
+secrets::secrets(crypto::key & my_key, crypto::key & peer_key, const std::string & pin)
 {
+	std::vector<uint8_t> dh = crypto::key::diffie_hellman(my_key, peer_key);
+	std::vector<uint8_t> secret = crypto::argon2(pin, "saltsalt", dh, sizeof(*this));
 
-// Intended to be the last element of a serializable type
-// contains the data referenced by spans
-struct data_holder
-{
-	std::shared_ptr<uint8_t[]> c;
-};
-
-} // namespace wivrn
+	static_assert(std::is_standard_layout_v<secrets>);
+	static_assert(std::has_unique_object_representations_v<secrets>);
+	memcpy(this, secret.data(), secret.size());
+}

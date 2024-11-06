@@ -301,7 +301,6 @@ struct pulse_device : public audio_device
 		// use buffers of up to 2ms
 		// read buffers must be smaller than buffer size on client or we will discard chunks often
 		const size_t buffer_size = (desc.speaker->sample_rate * sample_size * 2) / 1000;
-		wivrn::audio_data packet;
 		std::vector<uint8_t> buffer(buffer_size, 0);
 		size_t remainder = 0;
 
@@ -338,12 +337,13 @@ struct pulse_device : public audio_device
 					size += remainder;              // full size of available data
 					remainder = size % sample_size; // data to keep for next iteration
 					size -= remainder;              // size of data to send
-					packet.payload = std::span<uint8_t>(buffer.begin(), size);
-					packet.timestamp = session.get_offset().to_headset(os_monotonic_get_ns());
 
 					try
 					{
-						session.send_control(packet);
+						session.send_control(wivrn::audio_data{
+						        .timestamp = session.get_offset().to_headset(os_monotonic_get_ns()),
+						        .payload = std::span<uint8_t>(buffer.begin(), size),
+						});
 					}
 					catch (std::exception & e)
 					{

@@ -17,14 +17,13 @@
 #include <assert.h>
 
 #include "driver/wivrn_session.h"
+#include "wivrn_ipc.h"
 
 /*
  *
  * Internal functions.
  *
  */
-
-extern std::unique_ptr<wivrn::TCP> tcp;
 
 static xrt_result_t
 wivrn_instance_create_system(struct xrt_instance * xinst,
@@ -41,13 +40,12 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 
 	struct xrt_system_compositor * xsysc = NULL;
 	auto res = wivrn::wivrn_session::create_session(
-	        std::move(*tcp),
+	        std::move(connection),
 	        *u_sys,
 	        out_xsysd,
 	        out_xspovrs,
 	        out_xsysc);
 	u_system_set_system_compositor(u_sys, *out_xsysc);
-	tcp.reset();
 	return res;
 }
 

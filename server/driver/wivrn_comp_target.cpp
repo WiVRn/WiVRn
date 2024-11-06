@@ -124,7 +124,7 @@ static void create_encoders(wivrn_comp_target * cn)
 	assert(cn->wivrn_bundle);
 	cn->psc.status = 0;
 
-	auto & desc = cn->desc;
+	to_headset::video_stream_description & desc = cn->desc;
 	desc.width = cn->width;
 	desc.height = cn->height;
 	desc.foveation = cn->cnx.set_foveated_size(desc.width, desc.height);
@@ -148,7 +148,7 @@ static void create_encoders(wivrn_comp_target * cn)
 		std::string name = "encoder " + std::to_string(group);
 		pthread_setname_np(thread.native_handle(), name.c_str());
 	}
-	cn->cnx.send_control(desc);
+	cn->cnx.send_control(to_headset::video_stream_description{desc});
 }
 
 static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags flags)
@@ -746,7 +746,7 @@ void wivrn_comp_target::reset_encoders()
 	pacer.reset();
 	for (auto & encoder: encoders)
 		encoder->reset();
-	cnx.send_control(desc);
+	cnx.send_control(to_headset::video_stream_description{desc});
 }
 
 void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveation_parameter, 2> foveation)

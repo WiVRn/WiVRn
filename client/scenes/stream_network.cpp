@@ -71,10 +71,10 @@ void scenes::stream::operator()(to_headset::video_stream_description && desc)
 
 void scenes::stream::operator()(to_headset::timesync_query && query)
 {
-	from_headset::timesync_response response{};
-	response.query = query.query;
-	response.response = instance.now();
-	network_session->send_stream(response);
+	network_session->send_stream(from_headset::timesync_response{
+	        .query = query.query,
+	        .response = instance.now(),
+	});
 }
 
 void scenes::stream::operator()(audio_data && data)
@@ -87,7 +87,7 @@ void scenes::stream::send_feedback(const wivrn::from_headset::feedback & feedbac
 {
 	try
 	{
-		network_session->send_control(feedback);
+		network_session->send_control(wivrn::from_headset::feedback{feedback});
 	}
 	catch (std::exception & e)
 	{

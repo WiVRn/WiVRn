@@ -18,12 +18,13 @@
  */
 
 #include "wivrn_ipc.h"
+#include "driver/wivrn_connection.h"
 
 #include <algorithm>
 #include <sys/mman.h>
 #include <sys/wait.h>
 
-std::unique_ptr<wivrn::TCP> tcp;
+std::unique_ptr<wivrn::wivrn_connection> connection;
 
 struct cleanup_function
 {

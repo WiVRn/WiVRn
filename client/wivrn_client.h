@@ -19,11 +19,22 @@
 
 #pragma once
 
+#include "crypto.h"
 #include "wivrn_packets.h"
 #include "wivrn_sockets.h"
+#include <chrono>
 #include <poll.h>
 
 using namespace wivrn;
+
+class handshake_error : public std::exception
+{
+	std::string message;
+
+public:
+	const char * what() const noexcept override;
+	handshake_error(std::string_view message);
+};
 
 class wivrn_session
 {
@@ -36,13 +47,13 @@ private:
 	stream_socket_t stream;
 
 	template <typename T>
-	void handshake(T address, bool tcp_only);
+	void handshake(T address, bool tcp_only, crypto::key & headset_keypair, std::function<std::string(int fd)> pin_enter);
 
 public:
 	std::variant<in_addr, in6_addr> address;
 
-	wivrn_session(in6_addr address, int port, bool tcp_only);
-	wivrn_session(in_addr address, int port, bool tcp_only);
+	wivrn_session(in6_addr address, int port, bool tcp_only, crypto::key & headset_keypair, std::function<std::string(int fd)> pin_enter);
+	wivrn_session(in_addr address, int port, bool tcp_only, crypto::key & headset_keypair, std::function<std::string(int fd)> pin_enter);
 	wivrn_session(const wivrn_session &) = delete;
 	wivrn_session & operator=(const wivrn_session &) = delete;
 
@@ -53,24 +64,12 @@ public:
 	}
 
 	template <typename T>
-	void serialize_control(serialization_packet & p, const T & data)
-	{
-		control.serialize<T>(p, data);
-	}
-
-	template <typename T>
 	void send_stream(T && packet)
 	{
 		if (stream)
 			stream.send(std::forward<T>(packet));
 		else
 			control.send(std::forward<T>(packet));
-	}
-
-	template <typename T>
-	void serialize_stream(serialization_packet & p, const T & data)
-	{
-		stream.serialize<T>(p, data);
 	}
 
 	template <typename T>

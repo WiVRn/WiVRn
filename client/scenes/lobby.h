@@ -21,16 +21,19 @@
 
 #include "asset.h"
 #include "configuration.h"
+#include "crypto.h"
 #include "render/scene_data.h"
 #include "scene.h"
 #include "scenes/hand_model.h"
 #include "scenes/lobby_keyboard.h"
+#include "utils/thread_safe.h"
 #include "wifi_lock.h"
 #include "wivrn_config.h"
 #include "wivrn_discover.h"
 #include <vulkan/vulkan_raii.hpp>
 
 #include "xr/system.h"
+#include <chrono>
 #include <optional>
 #include <vector>
 
@@ -130,6 +133,16 @@ class lobby : public scene_impl<lobby>
 
 	virtual_keyboard keyboard;
 
+	struct pin_request_data
+	{
+		bool pin_requested = false;
+		bool pin_cancelled = false;
+		std::string pin;
+	};
+
+	thread_safe_notifyable<pin_request_data> pin_request;
+	std::string pin_buffer;
+
 	void draw_features_status(XrTime predicted_display_time);
 	void gui_connecting();
 	void gui_server_list();
@@ -145,10 +158,13 @@ class lobby : public scene_impl<lobby>
 	void vibrate_on_hover();
 
 	void connect(const configuration::server_data & data);
+	std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service service, bool manual_connection);
 
 	std::optional<glm::vec3> check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & joints);
 	std::optional<glm::vec3> check_recenter_action(XrTime predicted_display_time, glm::vec3 head_position);
 	std::optional<glm::vec3> check_recenter_gui(glm::vec3 head_position, glm::quat head_orientation);
+
+	crypto::key keypair;
 
 public:
 	virtual ~lobby();

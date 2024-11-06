@@ -340,7 +340,7 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 		shard.payload = {begin, next};
 		try
 		{
-			cnx->send_stream(shard);
+			cnx->send_stream(to_headset::video_stream_data_shard{shard});
 		}
 		catch (...)
 		{

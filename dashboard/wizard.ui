@@ -441,6 +441,28 @@
         </widget>
        </item>
        <item>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Use the following PIN to connect your headset:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_pin">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string notr="true">000000</string>
+         </property>
+         <property name="margin">
+          <number>12</number>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QLabel" name="label_10">
          <property name="text">
           <string>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</string>

@@ -47,6 +47,7 @@ public:
 	Q_PROPERTY(bool serverRunning READ isServerRunning NOTIFY serverRunningChanged)
 	Q_PROPERTY(bool headsetConnected READ isHeadsetConnected NOTIFY headsetConnectedChanged)
 	Q_PROPERTY(QString jsonConfiguration READ jsonConfiguration WRITE setJsonConfiguration)
+	Q_PROPERTY(QString pin READ pin NOTIFY pinChanged)
 
 	// Headset information, valid only if HeadsetConnected is true
 	Q_PROPERTY(QSize recommendedEyeSize READ recommendedEyeSize NOTIFY recommendedEyeSizeChanged)
@@ -82,6 +83,11 @@ public:
 	}
 
 	void setJsonConfiguration(QString);
+
+	QString pin() const
+	{
+		return m_pin;
+	}
 
 	QSize recommendedEyeSize() const
 	{
@@ -163,6 +169,8 @@ private:
 	bool m_serverRunning{};
 	bool m_headsetConnected{};
 	QString m_jsonConfiguration{};
+	QString m_pin{};
+
 	QSize m_recommendedEyeSize{};
 	std::vector<float> m_availableRefreshRates{};
 	float m_preferredRefreshRate{};
@@ -180,6 +188,7 @@ private:
 Q_SIGNALS:
 	void serverRunningChanged(bool);
 	void headsetConnectedChanged(bool);
+	void pinChanged(QString);
 
 	void recommendedEyeSizeChanged(QSize);
 	void availableRefreshRatesChanged(const std::vector<float> &);

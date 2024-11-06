@@ -125,6 +125,11 @@ wizard::wizard() :
 	});
 	ui->label_steam_command->setText(server->steamCommand());
 
+	connect(server, &wivrn_server::pinChanged, this, [this](QString value) {
+		ui->label_pin->setText(value);
+	});
+	ui->label_pin->setText(server->pin());
+
 	setPixmap(WatermarkPixmap, QPixmap(":/images/wivrn.svg"));
 	for (const headset & i: headsets_info)
 	{

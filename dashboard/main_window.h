@@ -100,6 +100,7 @@ private:
 	void on_speaker_changed();
 	void on_supported_codecs_changed(QStringList value);
 	void on_steam_command_changed(QString value);
+	void on_pin_changed(QString value);
 
 	void on_android_device_list_changed(const std::vector<adb::device> &);
 

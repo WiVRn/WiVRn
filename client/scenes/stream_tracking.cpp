@@ -337,7 +337,7 @@ void scenes::stream::tracking()
 					wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
 			}
 
-			network_session->send_stream(std::span(packets));
+			network_session->send_stream(std::move(packets));
 
 			t0 += tracking_period;
 		}

@@ -31,9 +31,11 @@
 #include "stream.h"
 #include "version.h"
 #include <cassert>
+#include <chrono>
 #include <glm/gtc/quaternion.hpp>
 #include <ranges>
 #include <spdlog/fmt/fmt.h>
+#include <string>
 #include <utils/strings.h>
 
 #include "IconsFontAwesome6.h"
@@ -165,56 +167,97 @@ void scenes::lobby::gui_connecting()
 {
 	using constants::style::button_size;
 
-	std::string status;
-	if (next_scene)
+	ImVec2 size{600, 0};
+
+	auto pin_request = this->pin_request.lock();
+
+	std::string button_label = _("Cancel");
+
+	if (pin_request->pin_requested)
 	{
-		if (next_scene->current_state() == scenes::stream::state::stalled)
-			status = _("Video stream interrupted");
-		else if (server_name == "")
-			status = fmt::format(_F("Connection ready\nStart a VR application on your computer"));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {30, 30});
+		ImGui::PushFont(imgui_ctx->large_font);
+		ImGui::Text("%s", _S("Enter the PIN"));
+		if (ImGui::IsWindowAppearing())
+			ImGui::SetKeyboardFocusHere();
+		InputText("##PIN", pin_buffer, size, ImGuiInputTextFlags_CharsDecimal);
+		ImGui::PopFont();
+
+		ImGui::BeginDisabled(pin_buffer.size() != 6);
+		if (ImGui::Button("OK", button_size))
+		{
+			pin_request->pin = pin_buffer;
+			pin_request->pin_requested = false;
+			pin_request.notify_one();
+		}
+		vibrate_on_hover();
+		ImGui::EndDisabled();
+
+		ImGui::SameLine();
+		ImGui::Dummy({size.x - 2 * button_size.x - 2 * ImGui::GetStyle().ItemSpacing.x, 0});
+
+		ImGui::SameLine();
+		if (ImGui::Button(button_label.c_str(), button_size))
+		{
+			async_session.cancel();
+			next_scene.reset();
+			pin_request->pin_cancelled = true;
+			pin_request.notify_one();
+
+			ImGui::CloseCurrentPopup();
+		}
+		vibrate_on_hover();
+		ImGui::PopStyleVar(); // ItemSpacing
+	}
+	else
+	{
+		std::string status;
+		if (next_scene)
+		{
+			if (next_scene->current_state() == scenes::stream::state::stalled)
+				status = _("Video stream interrupted");
+			else if (server_name == "")
+				status = fmt::format(_F("Connection ready\nStart a VR application on your computer"));
+			else
+				status = fmt::format(_F("Connection ready\nStart a VR application on {}"), server_name);
+		}
+		else if (async_session.valid())
+			status = async_session.get_progress();
+		else if (async_error)
+			status = *async_error;
 		else
-			status = fmt::format(_F("Connection ready\nStart a VR application on {}"), server_name);
+		{
+			ImGui::CloseCurrentPopup();
+			return;
+		}
+
+		if (async_error)
+			button_label = _("Close");
+
+		ImGui::Dummy({1000, 1});
+
+		ImGui::PushFont(imgui_ctx->large_font);
+		if (server_name == "")
+			CenterTextH(fmt::format(_F("Connection")));
+		else
+			CenterTextH(fmt::format(_F("Connection to {}"), server_name));
+		ImGui::PopFont();
+
+		// ImGui::TextWrapped("%s", status.first.c_str());
+		ImGui::Text("%s", status.c_str());
+
+		ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
+
+		if (ImGui::Button(button_label.c_str(), button_size))
+		{
+			async_session.cancel();
+			next_scene.reset();
+			pin_request->pin_cancelled = true;
+
+			ImGui::CloseCurrentPopup();
+		}
+		vibrate_on_hover();
 	}
-	else if (async_session.valid())
-		status = async_session.get_progress();
-	else if (async_error)
-		status = *async_error;
-	else
-	{
-		ImGui::CloseCurrentPopup();
-		return;
-	}
-
-	std::string button_label;
-
-	if (async_error)
-		button_label = _("Close");
-	else
-		button_label = _("Cancel");
-
-	ImGui::Dummy({1000, 1});
-
-	ImGui::PushFont(imgui_ctx->large_font);
-	if (server_name == "")
-		CenterTextH(fmt::format(_F("Connection")));
-	else
-		CenterTextH(fmt::format(_F("Connection to {}"), server_name));
-	ImGui::PopFont();
-
-	// ImGui::TextWrapped("%s", status.first.c_str());
-	ImGui::Text("%s", status.c_str());
-
-	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
-
-	if (ImGui::Button(button_label.c_str(), button_size))
-	{
-		async_session.cancel();
-
-		next_scene.reset();
-
-		ImGui::CloseCurrentPopup();
-	}
-	vibrate_on_hover();
 }
 
 void scenes::lobby::gui_new_server()
@@ -457,7 +500,7 @@ void scenes::lobby::gui_server_list()
 
 	const auto & popup_layer = imgui_ctx->layers()[1];
 	const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
-	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::window_rounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);

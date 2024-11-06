@@ -79,64 +79,65 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	std::shared_ptr<stream> self{new stream};
 	self->network_session = std::move(network_session);
 
-	from_headset::headset_info_packet info{};
+	self->network_session->send_control([&]() {
+		from_headset::headset_info_packet info{};
 
-	auto view = self->system.view_configuration_views(self->viewconfig)[0];
-	view = override_view(view, guess_model());
+		auto view = self->system.view_configuration_views(self->viewconfig)[0];
+		view = override_view(view, guess_model());
 
-	auto resolution_scale = application::get_config().resolution_scale;
+		auto resolution_scale = application::get_config().resolution_scale;
 
-	view.recommendedImageRectWidth *= resolution_scale;
-	view.recommendedImageRectHeight *= resolution_scale;
+		view.recommendedImageRectWidth *= resolution_scale;
+		view.recommendedImageRectHeight *= resolution_scale;
 
-	info.recommended_eye_width = view.recommendedImageRectWidth;
-	info.recommended_eye_height = view.recommendedImageRectHeight;
+		info.recommended_eye_width = view.recommendedImageRectWidth;
+		info.recommended_eye_height = view.recommendedImageRectHeight;
 
-	auto [flags, views] = self->session.locate_views(
-	        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-	        self->instance.now(),
-	        application::space(xr::spaces::view));
+		auto [flags, views] = self->session.locate_views(
+		        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
+		        self->instance.now(),
+		        application::space(xr::spaces::view));
 
-	assert(views.size() == info.fov.size());
+		assert(views.size() == info.fov.size());
 
-	for (auto [i, j]: std::views::zip(views, info.fov))
-	{
-		j = i.fov;
-	}
+		for (auto [i, j]: std::views::zip(views, info.fov))
+		{
+			j = i.fov;
+		}
 
-	const auto & config = application::get_config();
+		const auto & config = application::get_config();
 
-	if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
-	{
-		info.available_refresh_rates = self->session.get_refresh_rates();
-		if (std::ranges::find(info.available_refresh_rates, config.preferred_refresh_rate) != info.available_refresh_rates.end())
-			info.preferred_refresh_rate = config.preferred_refresh_rate;
-		else
-			info.preferred_refresh_rate = self->session.get_current_refresh_rate();
-	}
+		if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
+		{
+			info.available_refresh_rates = self->session.get_refresh_rates();
+			if (std::ranges::find(info.available_refresh_rates, config.preferred_refresh_rate) != info.available_refresh_rates.end())
+				info.preferred_refresh_rate = config.preferred_refresh_rate;
+			else
+				info.preferred_refresh_rate = self->session.get_current_refresh_rate();
+		}
 
-	if (info.preferred_refresh_rate == 0)
-	{
-		spdlog::warn("Unable to detect preferred refresh rate, using {}", guessed_fps);
-		info.preferred_refresh_rate = guessed_fps;
-	}
+		if (info.preferred_refresh_rate == 0)
+		{
+			spdlog::warn("Unable to detect preferred refresh rate, using {}", guessed_fps);
+			info.preferred_refresh_rate = guessed_fps;
+		}
 
-	if (info.available_refresh_rates.empty())
-		spdlog::warn("Unable to detect refresh rates");
+		if (info.available_refresh_rates.empty())
+			spdlog::warn("Unable to detect refresh rates");
 
-	info.hand_tracking = config.check_feature(feature::hand_tracking);
-	info.eye_gaze = config.check_feature(feature::eye_gaze);
-	info.face_tracking2_fb = config.check_feature(feature::face_tracking);
-	info.palm_pose = application::space(xr::spaces::palm_left) or application::space(xr::spaces::palm_right);
-	info.passthrough = self->system.passthrough_supported() != xr::system::passthrough_type::no_passthrough;
+		info.hand_tracking = config.check_feature(feature::hand_tracking);
+		info.eye_gaze = config.check_feature(feature::eye_gaze);
+		info.face_tracking2_fb = config.check_feature(feature::face_tracking);
+		info.palm_pose = application::space(xr::spaces::palm_left) or application::space(xr::spaces::palm_right);
+		info.passthrough = self->system.passthrough_supported() != xr::system::passthrough_type::no_passthrough;
 
-	audio::get_audio_description(info);
-	if (not(config.check_feature(feature::microphone)))
-		info.microphone = {};
+		audio::get_audio_description(info);
+		if (not(config.check_feature(feature::microphone)))
+			info.microphone = {};
 
-	info.supported_codecs = decoder_impl::supported_codecs();
-
-	self->network_session->send_control(info);
+		info.supported_codecs = decoder_impl::supported_codecs();
+		return info;
+	}());
 
 	self->network_thread = utils::named_thread("network_thread", &stream::process_packets, self.get());
 
@@ -835,21 +836,26 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	// Network operations may be blocking, do them once everything was submitted
 	{
+		// Keep a copy of the feedback packets as they can be modified if they're encrypted
+		std::vector<from_headset::feedback> feedbacks;
 		std::vector<serialization_packet> packets;
+
+		feedbacks.reserve(current_blit_handles.size());
 		packets.reserve(current_blit_handles.size());
+
 		for (const auto & handle: current_blit_handles)
 		{
 			if (handle)
 			{
 				auto & packet = packets.emplace_back();
-				wivrn_session::control_socket_t::serialize(packet, handle->feedback);
+				wivrn_session::control_socket_t::serialize(packet, feedbacks.emplace_back(handle->feedback));
 			}
 		}
 		if (not packets.empty())
 		{
 			try
 			{
-				network_session->send_control(std::span(packets));
+				network_session->send_control(std::move(packets));
 			}
 			catch (std::exception & e)
 			{

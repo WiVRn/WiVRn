@@ -102,6 +102,11 @@ void wivrn_server::on_server_properties_changed(const QString & interface_name, 
 		m_jsonConfiguration = changed_properties["JsonConfiguration"].toString();
 	}
 
+	if (changed_properties.contains("Pin"))
+	{
+		pinChanged(m_pin = changed_properties["Pin"].toString());
+	}
+
 	if (changed_properties.contains("RecommendedEyeSize"))
 	{
 		const auto arg = qvariant_cast<QDBusArgument>(changed_properties["RecommendedEyeSize"]);

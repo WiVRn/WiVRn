@@ -32,7 +32,7 @@ static void handle_event_from_main_loop(to_monado::disconnect)
 
 std::unique_ptr<wivrn::TCP> wivrn::accept_connection(int watch_fd, std::function<bool()> quit)
 {
-	wivrn_ipc_socket_monado->send(from_monado::headsdet_disconnected{});
+	wivrn_ipc_socket_monado->send(from_monado::headset_disconnected{});
 
 	wivrn::TCPListener listener(wivrn::default_port);
 
@@ -55,7 +55,7 @@ std::unique_ptr<wivrn::TCP> wivrn::accept_connection(int watch_fd, std::function
 
 		if (fds[1].revents & POLLIN)
 		{
-			wivrn_ipc_socket_monado->send(from_monado::headsdet_connected{});
+			wivrn_ipc_socket_monado->send(from_monado::headset_connected{});
 			return std::make_unique<wivrn::TCP>(listener.accept().first);
 		}
 

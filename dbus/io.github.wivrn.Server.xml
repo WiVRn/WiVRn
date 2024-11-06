@@ -28,6 +28,13 @@
 	<interface name="io.github.wivrn.Server">
 		<method name="Disconnect"/>
 		<method name="Quit"/>
+		<method name="RevokeKey">
+			<arg type="s" name="PublicKey"/>
+		</method>
+		<method name="RenameKey">
+			<arg type="s" name="PublicKey"/>
+			<arg type="s" name="Name"/>
+		</method>
 
 		<property name="HeadsetConnected"      type="b" access="read"/>
 		<property name="SteamCommand"          type="s" access="read"/>
@@ -52,5 +59,11 @@
 		<property name="EyeGaze"               type="b" access="read"/>
 		<property name="FaceTracking"          type="b" access="read"/>
 		<property name="SupportedCodecs"       type="as" access="read"/>
+
+		<property name="Pin"                   type="s" access="read"/>
+		<property name="KnownKeys"             type="a(ss)" access="read">
+			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;std::pair&lt;QString,QString&gt;&gt;"/>
+			<!-- first: name, second: public key -->
+		</property>
 	</interface>
 </node>

@@ -138,6 +138,9 @@ main_window::main_window()
 	connect(server_interface, &wivrn_server::supportedCodecsChanged, this, &main_window::on_supported_codecs_changed);
 	connect(server_interface, &wivrn_server::steamCommandChanged, this, &main_window::on_steam_command_changed);
 
+	connect(server_interface, &wivrn_server::pinChanged, this, &main_window::on_pin_changed);
+	on_pin_changed(server_interface->pin());
+
 	connect(ui->button_start, &QPushButton::clicked, this, &main_window::start_server);
 	connect(ui->button_stop, &QPushButton::clicked, this, &main_window::stop_server);
 	connect(ui->button_settings, &QPushButton::clicked, this, &main_window::on_action_settings);
@@ -167,6 +170,9 @@ main_window::main_window()
 #else
 	ui->banner_capsysnice->hide();
 #endif
+
+	// TODO implement this
+	ui->button_known_headsets->hide();
 
 	retranslate();
 }
@@ -526,6 +532,12 @@ void main_window::on_supported_codecs_changed(QStringList value)
 void main_window::on_steam_command_changed(QString value)
 {
 	ui->label_steam_command->setText(value);
+}
+
+void main_window::on_pin_changed(QString value)
+{
+	ui->widget_authentication->setVisible(value != "");
+	ui->label_pin->setText(value);
 }
 
 void main_window::on_server_finished(int exit_code, QProcess::ExitStatus status)

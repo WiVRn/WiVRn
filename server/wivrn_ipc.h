@@ -27,16 +27,22 @@
 #include <stdint.h>
 #include <variant>
 
-extern std::unique_ptr<wivrn::TCP> tcp;
+namespace wivrn
+{
+class wivrn_connection;
+}
+
+extern std::unique_ptr<wivrn::wivrn_connection> connection;
 
 namespace from_monado
 {
-struct headsdet_connected
-{};
-struct headsdet_disconnected
+struct headset_connected
 {};
 
-using packets = std::variant<wivrn::from_headset::headset_info_packet, headsdet_connected, headsdet_disconnected>;
+struct headset_disconnected
+{};
+
+using packets = std::variant<wivrn::from_headset::headset_info_packet, headset_connected, headset_disconnected>;
 } // namespace from_monado
 
 namespace to_monado
@@ -51,9 +57,9 @@ extern std::optional<wivrn::typed_socket<wivrn::UnixDatagram, to_monado::packets
 
 std::optional<to_monado::packets> receive_from_main();
 template <typename T>
-void send_to_main(T && packet)
+void send_to_main(T packet)
 {
-	wivrn_ipc_socket_monado->send(std::forward<T>(packet));
+	wivrn_ipc_socket_monado->send(std::move(packet));
 }
 
 void init_cleanup_functions();

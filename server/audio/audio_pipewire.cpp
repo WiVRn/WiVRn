@@ -305,15 +305,14 @@ void pipewire_device::speaker_process(void * self_v)
 	if (not data.data)
 		return;
 
-	audio_data packet{
-	        .timestamp = self->session.get_offset().to_headset(os_monotonic_get_ns()),
-	        .payload = std::span(
-	                (uint8_t *)data.data + data.chunk->offset,
-	                data.chunk->size),
-	};
 	try
 	{
-		self->session.send_control(packet);
+		self->session.send_control(audio_data{
+		        .timestamp = self->session.get_offset().to_headset(os_monotonic_get_ns()),
+		        .payload = std::span(
+		                (uint8_t *)data.data + data.chunk->offset,
+		                data.chunk->size),
+		});
 	}
 	catch (std::exception & e)
 	{

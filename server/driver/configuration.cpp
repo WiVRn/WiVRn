@@ -17,16 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <filesystem>
-#include <fstream>
 #define JSON_DISABLE_ENUM_SERIALIZATION 1
 #ifdef JSON_DIAGNOSTICS
 #undef JSON_DIAGNOSTICS
 #endif
 #define JSON_DIAGNOSTICS 1
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <nlohmann/json.hpp>
 #include <random>
 #include <stdlib.h>
+#include <string>
 
 #include "util/u_logging.h"
 
@@ -34,6 +36,7 @@
 #include "utils/xdg_base_directory.h"
 
 static std::filesystem::path config_file = xdg_config_home() / "wivrn" / "config.json";
+static std::filesystem::path known_keys_file = xdg_config_home() / "wivrn" / "known_keys.json";
 static std::filesystem::path cookie_file = xdg_config_home() / "wivrn" / "cookie";
 
 namespace wivrn
@@ -181,4 +184,96 @@ std::string server_cookie()
 		return buffer;
 	}
 }
+
+std::vector<headset_key> known_keys()
+{
+	if (not std::filesystem::exists(known_keys_file))
+		return {};
+
+	try
+	{
+		std::ifstream file(known_keys_file);
+		std::vector<headset_key> keys;
+		auto json = nlohmann::json::parse(file);
+
+		for (const auto & key: json)
+		{
+			keys.emplace_back(key["key"], key["name"]);
+		}
+
+		return keys;
+	}
+	catch (const std::exception & e)
+	{
+		U_LOG_E("Invalid key file: %s", e.what());
+		return {};
+	}
+}
+
+static void save_keys(const std::vector<headset_key> & keys)
+{
+	nlohmann::json json;
+
+	for (const auto & key: keys)
+	{
+		json.push_back(nlohmann::json{
+		        {"key", key.public_key},
+		        {"name", key.name},
+		});
+	}
+
+	std::string json_str = json.dump();
+
+	std::filesystem::path known_keys_file_new = known_keys_file;
+	known_keys_file_new += ".new";
+
+	std::ofstream file(known_keys_file_new);
+	file.write(json_str.data(), json_str.size());
+
+	std::error_code ec;
+	std::filesystem::rename(known_keys_file_new, known_keys_file, ec);
+
+	if (ec)
+		U_LOG_E("Failed to save keys: %s", ec.message().c_str());
+}
+
+void add_known_key(headset_key key)
+{
+	std::vector<headset_key> keys = known_keys();
+
+	if (key.name == "")
+		key.name = "Unknown headset";
+
+	int n = 1;
+	std::string original_name = key.name;
+	while (std::ranges::any_of(keys, [&](const headset_key & k) { return k.name == key.name; }))
+	{
+		key.name = original_name + " (" + std::to_string(++n) + ")";
+	}
+
+	keys.push_back(key);
+
+	save_keys(keys);
+}
+
+void remove_known_key(const std::string & key)
+{
+	std::vector<headset_key> keys = known_keys();
+	std::erase_if(keys, [&](const headset_key & k) { return k.public_key == key; });
+
+	save_keys(keys);
+}
+
+void rename_known_key(headset_key key)
+{
+	std::vector<headset_key> keys = known_keys();
+	for (headset_key & k: keys)
+	{
+		if (k.public_key == key.public_key)
+			k.name = key.name;
+	}
+
+	save_keys(keys);
+}
+
 } // namespace wivrn

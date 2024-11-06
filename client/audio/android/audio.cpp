@@ -127,14 +127,12 @@ int32_t wivrn::android::audio::microphone_data_cb(AAudioStream * stream, void * 
 
 	size_t frame_size = AAudioStream_getChannelCount(stream) * sizeof(uint16_t);
 
-	wivrn::audio_data packet{
-	        .timestamp = self->instance.now(),
-	        .payload = std::span(audio_data, frame_size * num_frames),
-	};
-
 	try
 	{
-		self->session.send_control(packet);
+		self->session.send_control(wivrn::audio_data{
+		        .timestamp = self->instance.now(),
+		        .payload = std::span(audio_data, frame_size * num_frames),
+		});
 	}
 	catch (...)
 	{

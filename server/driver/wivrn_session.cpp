@@ -122,24 +122,16 @@ bool wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id,
 	return changed;
 }
 
-wivrn::wivrn_session::wivrn_session(wivrn::TCP && tcp, u_system & system) :
+wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system & system) :
         xrt_system_devices{
                 .get_roles = [](xrt_system_devices * self, xrt_system_roles * out_roles) { return ((wivrn_session *)self)->get_roles(out_roles); },
                 .feature_inc = [](xrt_system_devices * self, xrt_device_feature_type f) { return ((wivrn_session *)self)->feature_inc(f); },
                 .feature_dec = [](xrt_system_devices * self, xrt_device_feature_type f) { return ((wivrn_session *)self)->feature_dec(f); },
                 .destroy = [](xrt_system_devices * self) { delete ((wivrn_session *)self); },
         },
-        connection(std::move(tcp)),
-        info([](wivrn_connection & connection) {
-	        std::optional<wivrn::from_headset::packets> control;
-	        while (not(control = connection.poll_control(-1)))
-	        {
-		        // FIXME: timeout
-	        }
-	        return std::get<from_headset::headset_info_packet>(*control);
-        }(connection)),
+        connection(std::move(connection)),
         xrt_system(system),
-        hmd(this, info),
+        hmd(this, get_info()),
         left_hand(0, &hmd, this),
         right_hand(1, &hmd, this)
 {
@@ -150,7 +142,7 @@ wivrn::wivrn_session::wivrn_session(wivrn::TCP && tcp, u_system & system) :
 		        "WiVRn(microphone)",
 		        "wivrn.sink",
 		        "WiVRn",
-		        info,
+		        get_info(),
 		        *this);
 		if (audio_handle)
 			send_control(audio_handle->description());
@@ -198,14 +190,14 @@ wivrn::wivrn_session::wivrn_session(wivrn::TCP && tcp, u_system & system) :
 		}
 	}
 #endif
-	if (info.eye_gaze || is_forced_extension("EXT_eye_gaze_interaction"))
+	if (get_info().eye_gaze || is_forced_extension("EXT_eye_gaze_interaction"))
 	{
 		eye_tracker = std::make_unique<wivrn_eye_tracker>(&hmd);
 		foveation = std::make_unique<wivrn_foveation>();
 		static_roles.eyes = eye_tracker.get();
 		xdevs[xdev_count++] = eye_tracker.get();
 	}
-	if (info.face_tracking2_fb || is_forced_extension("FB_face_tracking2"))
+	if (get_info().face_tracking2_fb || is_forced_extension("FB_face_tracking2"))
 	{
 		fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(&hmd, *this);
 		static_roles.face = fb_face2_tracker.get();
@@ -234,10 +226,10 @@ wivrn::wivrn_session::wivrn_session(wivrn::TCP && tcp, u_system & system) :
 
 wivrn_session::~wivrn_session()
 {
-	connection.shutdown();
+	connection->shutdown();
 }
 
-xrt_result_t wivrn::wivrn_session::create_session(wivrn::TCP && tcp,
+xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connection> connection,
                                                   u_system & system,
                                                   xrt_system_devices ** out_xsysd,
                                                   xrt_space_overseer ** out_xspovrs,
@@ -246,7 +238,7 @@ xrt_result_t wivrn::wivrn_session::create_session(wivrn::TCP && tcp,
 	std::unique_ptr<wivrn_session> self;
 	try
 	{
-		self.reset(new wivrn_session(std::move(tcp), system));
+		self.reset(new wivrn_session(std::move(connection), system));
 	}
 	catch (std::exception & e)
 	{
@@ -254,9 +246,9 @@ xrt_result_t wivrn::wivrn_session::create_session(wivrn::TCP && tcp,
 		return XRT_ERROR_DEVICE_CREATION_FAILED;
 	}
 
-	send_to_main(self->info);
+	send_to_main(self->get_info());
 
-	wivrn_comp_target_factory ctf(*self, self->info.preferred_refresh_rate);
+	wivrn_comp_target_factory ctf(*self, self->get_info().preferred_refresh_rate);
 	auto xret = comp_main_create_system_compositor(&self->hmd, &ctf, out_xsysc);
 	if (xret != XRT_SUCCESS)
 	{
@@ -294,7 +286,7 @@ clock_offset wivrn_session::get_offset()
 
 bool wivrn_session::connected()
 {
-	return connection.is_active();
+	return connection->is_active();
 }
 
 void wivrn_session::operator()(from_headset::headset_info_packet &&)
@@ -379,7 +371,7 @@ void wivrn_session::set_enabled(to_headset::tracking_control::id id, bool enable
 void wivrn_session::set_enabled(device_id id, bool enabled)
 {
 	if (tracking_control.set_enabled(to_tracking_control(id), enabled) and enabled)
-		tracking_control.send(connection, true);
+		tracking_control.send(*connection, true);
 }
 
 void wivrn_session::operator()(from_headset::feedback && feedback)
@@ -426,9 +418,9 @@ void wivrn_session::run(std::stop_token stop)
 	{
 		try
 		{
-			offset_est.request_sample(connection);
-			tracking_control.send(connection);
-			connection.poll(*this, 20);
+			offset_est.request_sample(*connection);
+			tracking_control.send(*connection);
+			connection->poll(*this, 20);
 		}
 		catch (const std::exception & e)
 		{
@@ -504,17 +496,18 @@ void wivrn_session::reconnect()
 	if (not tcp)
 		exit(0);
 
+	struct no_client_connected
+	{};
+
 	try
 	{
 		offset_est.reset();
-		connection.reset(std::move(*tcp));
-		std::optional<wivrn::from_headset::packets> control;
-		while (not(control = connection.poll_control(100)))
-		{
-			// FIXME: timeout
-			quit_if_no_client(xrt_system);
-		}
-		const auto & info = std::get<from_headset::headset_info_packet>(*control);
+		connection->reset(std::move(*tcp), [this]() {
+			if (quit_if_no_client(xrt_system))
+				throw no_client_connected{};
+		});
+
+		// const auto & info = connection->info();
 		// FIXME: ensure new client is compatible
 
 		comp_target->reset_encoders();
@@ -528,6 +521,11 @@ void wivrn_session::reconnect()
 		{
 			U_LOG_W("Failed to notify session state change");
 		}
+	}
+	catch (no_client_connected)
+	{
+		U_LOG_I("No OpenXR application connected");
+		exit(0);
 	}
 	catch (const std::exception & e)
 	{

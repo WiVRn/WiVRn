@@ -60,7 +60,7 @@ void scenes::stream::read_actions()
 	}
 	try
 	{
-		network_session->send_stream(inputs);
+		network_session->send_stream(std::move(inputs));
 	}
 	catch (std::exception & e)
 	{
