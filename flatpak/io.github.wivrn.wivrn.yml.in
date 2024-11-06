@@ -208,9 +208,6 @@ modules:
           -         rm -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
           - fi
           -
-          - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-          - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-          -
           - cleanup() {
           -         rm -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
           -         if [ -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup ]
@@ -220,6 +217,7 @@ modules:
           -         trap - EXIT
           - '}'
           -
-          - trap cleanup EXIT INT TERM HUP
+          - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath && trap cleanup EXIT INT TERM HUP
+          - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
           -
           - wivrn-dashboard "$@"
