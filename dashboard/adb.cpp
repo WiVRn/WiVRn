@@ -33,7 +33,7 @@ std::unique_ptr<QProcess> escape_sandbox(const std::string & executable, Args &&
 	auto process = std::make_unique<QProcess>();
 	QStringList args;
 
-	if (wivrn::is_flatpak())
+	if (wivrn::flatpak_key("org.freedesktop.Flatpak") == "talk")
 	{
 		process->setProgram("flatpak-spawn");
 		args.push_back("--host");

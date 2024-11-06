@@ -235,7 +235,7 @@ int wivrn::exec_application(configuration config)
 	std::string executable;
 	std::vector<std::string> args;
 
-	if (is_flatpak())
+	if (flatpak_key("org.freedesktop.Flatpak") == "talk")
 	{
 		executable = "flatpak-spawn";
 		args.push_back("flatpak-spawn");
