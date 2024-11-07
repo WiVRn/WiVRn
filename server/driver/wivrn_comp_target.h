@@ -71,7 +71,6 @@ struct pseudo_swapchain
 	// Data to be encoded
 	vk::raii::Fence fence = nullptr;
 	vk::raii::CommandBuffer command_buffer = nullptr;
-	vk::raii::Semaphore present_done_sem = nullptr;
 
 	int64_t frame_index;
 	to_headset::video_stream_data_shard::view_info_t view_info{};

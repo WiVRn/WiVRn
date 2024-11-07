@@ -63,7 +63,7 @@ class video_encoder_x264 : public video_encoder
 public:
 	video_encoder_x264(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);
 
-	bool present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
+	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 
 	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;
 

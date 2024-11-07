@@ -191,20 +191,34 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	}
 
 	// Output buffer
+	for (auto & item: slot_data)
 	{
 		// very conservative bound
-		output_buffer_size = rect.extent.width * rect.extent.height * 3;
+		size_t output_buffer_size = rect.extent.width * rect.extent.height * 3;
 		output_buffer_size = align(output_buffer_size, video_caps.minBitstreamBufferSizeAlignment);
-		output_buffer = buffer_allocation(
+		item.output_buffer = buffer_allocation(
 		        vk.device,
 		        {.pNext = &video_profile_list,
 		         .size = output_buffer_size,
-		         .usage = vk::BufferUsageFlagBits::eVideoEncodeDstKHR,
+		         .usage = vk::BufferUsageFlagBits::eVideoEncodeDstKHR | vk::BufferUsageFlagBits::eTransferSrc,
 		         .sharingMode = vk::SharingMode::eExclusive},
 		        {
-		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO,
 		        });
+
+		if (not(item.output_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+		{
+			item.host_buffer = buffer_allocation(
+			        vk.device,
+			        {.size = output_buffer_size,
+			         .usage = vk::BufferUsageFlagBits::eTransferDst,
+			         .sharingMode = vk::SharingMode::eExclusive},
+			        {
+			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+			                .usage = VMA_MEMORY_USAGE_AUTO,
+			        });
+		}
 	}
 
 	// video session
@@ -318,9 +332,12 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		});
 	}
 
-	// fence
+	// fence, semaphore
 	for (auto & item: slot_data)
+	{
 		item.fence = vk.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
+		item.wait_sem = vk.device.createSemaphore({});
+	}
 
 	// query pool
 	{
@@ -352,9 +369,27 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		auto command_buffers = vk.device.allocateCommandBuffers(
 		        {.commandPool = *video_command_pool,
 		         .commandBufferCount = num_slots});
+
 		for (size_t i = 0; i < num_slots; ++i)
-		{
 			slot_data[i].video_cmd_buf = std::move(command_buffers[i]);
+
+		auto properties = vk.physical_device.getQueueFamilyProperties().at(vk.encode_queue_family_index);
+		if (not(properties.queueFlags & vk::QueueFlagBits::eTransfer))
+		{
+			transfer_command_pool = vk.device.createCommandPool(
+			        vk::CommandPoolCreateInfo{
+			                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+			                .queueFamilyIndex = vk.queue_family_index,
+			        });
+
+			auto command_buffers = vk.device.allocateCommandBuffers(
+			        {.commandPool = *transfer_command_pool,
+			         .commandBufferCount = num_slots});
+			for (size_t i = 0; i < num_slots; ++i)
+			{
+				slot_data[i].sem = vk.device.createSemaphore({});
+				slot_data[i].transfer_cmd_buf = std::move(command_buffers[i]);
+			}
 		}
 	}
 }
@@ -390,13 +425,16 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(bo
 		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
 	}
 
+	auto & item = slot_data[encode_slot];
+	void * mapped = item.host_buffer ? item.host_buffer.map() : item.output_buffer.map();
+
 	return data{
 	        .encoder = this,
-	        .span = std::span(((uint8_t *)output_buffer.map()) + feedback[0], feedback[1]),
+	        .span = std::span(((uint8_t *)mapped) + feedback[0], feedback[1]),
 	};
 }
 
-bool wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t encode_slot, uint64_t frame_index)
+std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t encode_slot, uint64_t frame_index)
 {
 	auto & video_cmd_buf = slot_data[encode_slot].video_cmd_buf;
 	video_cmd_buf.reset();
@@ -414,7 +452,7 @@ bool wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::raii::Comm
 		        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
 		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
 		        .dstAccessMask = vk::AccessFlagBits2::eVideoEncodeReadKHR,
-		        .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+		        .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
 		        .srcQueueFamilyIndex = vk.queue_family_index,
 		        .dstQueueFamilyIndex = vk.encode_queue_family_index,
@@ -651,9 +689,9 @@ bool wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::raii::Comm
 
 	vk::VideoEncodeInfoKHR encode_info{
 	        .pNext = encode_info_next(frame_num, slot_index, ref_slot ? std::make_optional(ref_slot->info.slotIndex) : std::nullopt),
-	        .dstBuffer = output_buffer,
+	        .dstBuffer = slot_data[encode_slot].output_buffer,
 	        .dstBufferOffset = 0,
-	        .dstBufferRange = output_buffer_size,
+	        .dstBufferRange = slot_data[encode_slot].output_buffer.info().size,
 	        .srcPictureResource = {
 	                .codedExtent = rect.extent,
 	                .baseArrayLayer = 0,
@@ -667,32 +705,118 @@ bool wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::raii::Comm
 	video_cmd_buf.encodeVideoKHR(encode_info);
 	video_cmd_buf.endQuery(*query_pool, 0);
 	video_cmd_buf.endVideoCodingKHR(vk::VideoEndCodingInfoKHR{});
+
+	auto & slot_item = slot_data[encode_slot];
+	// When output buffer is not visible, we have to issue a transfer operation
+	if (slot_item.host_buffer)
+	{
+		// encode queue may not allow transfer commands
+		if (*slot_item.transfer_cmd_buf)
+		{
+			vk::BufferMemoryBarrier2 barrier{
+			        .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+			        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
+			        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+			        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
+			        .srcQueueFamilyIndex = vk.encode_queue_family_index,
+			        .dstQueueFamilyIndex = vk.queue_family_index,
+			        .buffer = slot_data[encode_slot].output_buffer,
+			        .size = vk::WholeSize,
+			};
+			video_cmd_buf.pipelineBarrier2({
+			        .bufferMemoryBarrierCount = 1,
+			        .pBufferMemoryBarriers = &barrier,
+			});
+
+			auto & cmd_buf = slot_item.transfer_cmd_buf;
+
+			cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+			cmd_buf.pipelineBarrier2({
+			        .bufferMemoryBarrierCount = 1,
+			        .pBufferMemoryBarriers = &barrier,
+			});
+
+			cmd_buf.copyBuffer(
+			        slot_item.output_buffer,
+			        slot_item.host_buffer,
+			        vk::BufferCopy{
+			                .size = slot_item.output_buffer.info().size,
+			        });
+
+			cmd_buf.end();
+		}
+		else
+		{
+			vk::BufferMemoryBarrier2 barrier{
+			        .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+			        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
+			        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+			        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
+			        .srcQueueFamilyIndex = vk.encode_queue_family_index,
+			        .dstQueueFamilyIndex = vk.encode_queue_family_index,
+			        .buffer = slot_data[encode_slot].output_buffer,
+			};
+			video_cmd_buf.pipelineBarrier2({
+			        .bufferMemoryBarrierCount = 1,
+			        .pBufferMemoryBarriers = &barrier,
+			});
+
+			video_cmd_buf.copyBuffer(
+			        slot_item.output_buffer,
+			        slot_item.host_buffer,
+			        vk::BufferCopy{
+			                .size = vk::WholeSize,
+			        });
+		}
+	}
+
 	video_cmd_buf.end();
 
 	++frame_num;
 
 	// If we encode directly from the source, request a transition to video queue
-	return encode_direct;
+	return {encode_direct, slot_item.wait_sem};
 }
 
-void wivrn::video_encoder_vulkan::post_submit(vk::Semaphore sem, uint8_t slot)
+void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 {
+	// Issue encode command, and if necessary transfer command
 	vk.device.resetFences(*slot_data[slot].fence);
-	vk::SemaphoreSubmitInfo sem_info{
-	        .semaphore = sem,
+	vk::SemaphoreSubmitInfo wait_sem_info{
+	        .semaphore = *slot_data[slot].wait_sem,
 	        .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
 	};
-
+	vk::SemaphoreSubmitInfo sem_info{
+	        .semaphore = slot_data[slot].sem,
+	        .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+	};
 	vk::CommandBufferSubmitInfo cmd_info{
 	        .commandBuffer = slot_data[slot].video_cmd_buf,
 	};
+	bool need_transfer = *slot_data[slot].transfer_cmd_buf;
+
 	vk.encode_queue.submit2(vk::SubmitInfo2{
 	                                .waitSemaphoreInfoCount = 1,
-	                                .pWaitSemaphoreInfos = &sem_info,
+	                                .pWaitSemaphoreInfos = &wait_sem_info,
 	                                .commandBufferInfoCount = 1,
 	                                .pCommandBufferInfos = &cmd_info,
+	                                .signalSemaphoreInfoCount = need_transfer ? 1u : 0,
+	                                .pSignalSemaphoreInfos = &sem_info,
 	                        },
-	                        *slot_data[slot].fence);
+	                        need_transfer ? nullptr : *slot_data[slot].fence);
+	if (need_transfer)
+	{
+		vk::CommandBufferSubmitInfo cmd_info{
+		        .commandBuffer = slot_data[slot].transfer_cmd_buf,
+		};
+		vk.queue.submit2(vk::SubmitInfo2{
+		                         .waitSemaphoreInfoCount = 1,
+		                         .pWaitSemaphoreInfos = &sem_info,
+		                         .commandBufferInfoCount = 1,
+		                         .pCommandBufferInfos = &cmd_info,
+		                 },
+		                 *slot_data[slot].fence);
+	}
 }
 
 void wivrn::video_encoder_vulkan::on_feedback(const from_headset::feedback & feedback)

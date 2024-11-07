@@ -284,7 +284,6 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 		                .queueFamilyIndex = vk->queue_family_index,
 		        });
-		cn->psc.present_done_sem = vk::raii::Semaphore(cn->wivrn_bundle->device, vk::SemaphoreCreateInfo{});
 	}
 	catch (std::exception & e)
 	{
@@ -541,11 +540,15 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	const bool do_alpha = cn->c->base.layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND;
 
 	bool need_queue_transfer = false;
+	std::vector<vk::Semaphore> present_done_sem;
 	for (auto & encoder: cn->encoders)
 	{
 		if (encoder->channels == to_headset::video_stream_description::channels_t::alpha and not do_alpha)
 			continue;
-		need_queue_transfer |= encoder->present_image(psc_image.image, command_buffer, info.frame_id);
+		auto [transfer, sem] = encoder->present_image(psc_image.image, command_buffer, info.frame_id);
+		need_queue_transfer |= transfer;
+		if (sem)
+			present_done_sem.push_back(sem);
 	}
 
 	if (need_queue_transfer)
@@ -571,7 +574,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		        {},
 		        {},
 		        barrier);
-		submit_info.setSignalSemaphores(*cn->psc.present_done_sem);
+		submit_info.setSignalSemaphores(present_done_sem);
 	}
 	command_buffer.end();
 	submit_info.setCommandBuffers(*command_buffer);
@@ -583,7 +586,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		{
 			if (encoder->channels == to_headset::video_stream_description::channels_t::alpha and not do_alpha)
 				continue;
-			encoder->post_submit(cn->psc.present_done_sem);
+			encoder->post_submit();
 		}
 	}
 

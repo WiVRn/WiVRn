@@ -188,6 +188,13 @@ public:
 	{
 		return create_info;
 	}
+
+	auto properties() const
+	{
+		VkMemoryPropertyFlags result;
+		vmaGetAllocationMemoryProperties(vk_allocator::instance(), allocation, &result);
+		return result;
+	}
 };
 
 using buffer_allocation = basic_allocation<vk::Buffer>;

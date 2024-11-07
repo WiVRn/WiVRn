@@ -328,7 +328,7 @@ video_encoder_nvenc::~video_encoder_nvenc()
 		fn.nvEncDestroyEncoder(session_handle);
 }
 
-bool video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
+std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
 {
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
@@ -371,7 +371,7 @@ bool video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::raii::CommandBuffe
 	                        .height = rect.extent.height / 2,
 	                        .depth = 1,
 	                }});
-	return false;
+	return {false, nullptr};
 }
 
 std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)

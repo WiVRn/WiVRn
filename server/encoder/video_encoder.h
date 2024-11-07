@@ -115,8 +115,9 @@ public:
 	virtual ~video_encoder();
 
 	// return value: true if image should be transitioned to queue and layout for vulkan video encode
-	bool present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index);
-	void post_submit(vk::Semaphore);
+	// semaphore to be signaled by the compositor
+	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index);
+	void post_submit();
 
 	virtual void on_feedback(const from_headset::feedback &);
 	virtual void reset();
@@ -127,9 +128,9 @@ public:
 
 protected:
 	// called on present to submit command buffers for the image.
-	virtual bool present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) = 0;
+	virtual std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) = 0;
 	// called after command buffer passed in present_image was submitted
-	virtual void post_submit(vk::Semaphore, uint8_t slot) {}
+	virtual void post_submit(uint8_t slot) {}
 	// called when command buffer finished executing
 	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) = 0;
 

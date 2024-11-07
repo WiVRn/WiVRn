@@ -232,7 +232,7 @@ void video_encoder::reset()
 	sync_needed = true;
 }
 
-bool video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index)
+std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index)
 {
 	// Wait for encoder to be done
 	present_slot = (present_slot + 1) % num_slots;
@@ -241,9 +241,9 @@ bool video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cm
 	return present_image(y_cbcr, cmd_buf, present_slot, frame_index);
 }
 
-void video_encoder::post_submit(vk::Semaphore sem)
+void video_encoder::post_submit()
 {
-	post_submit(sem, present_slot);
+	post_submit(present_slot);
 }
 
 void video_encoder::encode(wivrn_session & cnx,
