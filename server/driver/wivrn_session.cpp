@@ -20,11 +20,9 @@
 #include "wivrn_session.h"
 
 #include "accept_connection.h"
-#include "driver/xrt_cast.h"
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
 #include "main/comp_target.h"
-#include "math/m_api.h"
 #include "util/u_builders.h"
 #include "util/u_logging.h"
 #include "util/u_system.h"
@@ -258,6 +256,7 @@ xrt_result_t wivrn::wivrn_session::create_session(wivrn::TCP && tcp,
 	        self->xdevs,
 	        self->xdev_count,
 	        false,
+	        false,
 	        out_xspovrs);
 	self->space_overseer = *out_xspovrs;
 
@@ -295,37 +294,9 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 {
 	if (tracking.state_flags & from_headset::tracking::state_flags::recentered)
 	{
-		for (const auto & pose: tracking.device_poses)
-		{
-			if (pose.device != device_id::HEAD)
-				continue;
-
-			xrt_pose offset;
-			auto tracking_origin = static_cast<xrt_device &>(hmd).tracking_origin;
-			space_overseer->get_reference_space_offset(space_overseer, xrt_reference_space_type::XRT_SPACE_REFERENCE_TYPE_STAGE, &offset);
-
-			xrt_vec3 hmd_pos = xrt_cast(pose.pose.position);
-			xrt_quat hmd_quat = xrt_cast(pose.pose.orientation);
-			xrt_vec3 unit_z = XRT_VEC3_UNIT_Z;
-			xrt_vec3 unit_y = XRT_VEC3_UNIT_Y;
-
-			xrt_vec3 hmd_z;
-			math_quat_rotate_vec3(&hmd_quat, &unit_z, &hmd_z);
-
-			float angle_y = atan2(unit_z.x, unit_z.z) - atan2(hmd_z.x, hmd_z.z);
-
-			xrt_quat new_orientation;
-			math_quat_from_angle_vector(-angle_y, &unit_y, &new_orientation);
-			offset.orientation = new_orientation;
-			offset.position.x = hmd_pos.x;
-			offset.position.z = hmd_pos.z;
-
-			auto res = space_overseer->set_reference_space_offset(space_overseer, xrt_reference_space_type::XRT_SPACE_REFERENCE_TYPE_STAGE, &offset);
-			if (res != XRT_SUCCESS)
-				U_LOG_W("could not recenter: offset failed to apply!");
-
-			break;
-		}
+		U_LOG_I("recentering requested");
+		if (XRT_SUCCESS != xrt_space_overseer_recenter_local_spaces(space_overseer))
+			U_LOG_W("failed to recenter local spaces");
 	}
 
 	auto offset = offset_est.get_offset();

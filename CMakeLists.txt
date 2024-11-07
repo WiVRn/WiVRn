@@ -232,7 +232,7 @@ FetchContent_Declare(uni-algo      EXCLUDE_FROM_ALL SYSTEM URL https://github.co
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
     # The flatpak manifest is updated automatically
-    GIT_TAG          cef70d03ca749225af0de57824270ad708bd828a
+    GIT_TAG          8aea7b8691061bbc01c37808e3f3d55b47797fa6
     PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${CMAKE_CURRENT_LIST_DIR}/patches/monado/
     EXCLUDE_FROM_ALL
     )
