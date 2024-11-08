@@ -60,11 +60,7 @@ See [Server](#server-pc) for the server compile options.
 # Client (headset)
 
 #### Build dependencies
-As Arch package names: git pkgconf glslang cmake jre17-openjdk librsvg cli11
-
-Additionally, you will also need to build and install [KTX-Software](https://github.com/KhronosGroup/KTX-Software) for the `toktx` tool.
-For arch at the time of writing the AUR package was broken. You can easily follow the [`BUILDING`](https://github.com/KhronosGroup/KTX-Software/blob/main/BUILDING.md#gnulinux) guide.
-You might need to install the [`shaderc`](https://archlinux.org/packages/extra/x86_64/shaderc/) package to get the `glslc` package first.
+As Arch package names: git pkgconf glslang cmake jre17-openjdk librsvg cli11 ktx_software-git ([AUR](https://aur.archlinux.org/packages/ktx_software-git))
 
 #### Android environment
 Download [sdkmanager](https://developer.android.com/tools/sdkmanager) commandline tool and extract it to any directory.
