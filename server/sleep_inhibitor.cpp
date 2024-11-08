@@ -24,8 +24,6 @@
 
 sleep_inhibitor::sleep_inhibitor()
 {
-	std::cerr << "Inhibiting sleep" << std::endl;
-
 	GError * error = nullptr;
 	GDBusProxy * proxy = g_dbus_proxy_new_for_bus_sync(
 	        G_BUS_TYPE_SYSTEM,
@@ -69,8 +67,6 @@ sleep_inhibitor::sleep_inhibitor()
 		return;
 	}
 
-	std::cerr << "Received variant type " << g_variant_get_type_string(output) << std::endl;
-
 	int fd_index;
 	g_variant_get(output, "(h)", &fd_index);
 
@@ -82,16 +78,12 @@ sleep_inhibitor::sleep_inhibitor()
 
 	g_free(fds);
 
-	std::cerr << "File descriptor " << fd << std::endl;
-
 	g_variant_unref(output);
 	g_object_unref(fd_list);
 }
 
 sleep_inhibitor::~sleep_inhibitor()
 {
-	std::cerr << "Uninhibiting sleep" << std::endl;
-
 	if (fd >= 0)
 		close(fd);
 }
