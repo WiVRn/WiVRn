@@ -882,10 +882,14 @@ struct serialization_traits<data_holder>
 };
 
 template <typename T>
-constexpr uint64_t serialization_type_hash()
+constexpr uint64_t serialization_type_hash(int revision)
 {
 	details::hash_context h;
 	serialization_traits<T>::type_hash(h);
+
+	if (revision)
+		h.feed(revision);
+
 	return h.hash;
 }
 
