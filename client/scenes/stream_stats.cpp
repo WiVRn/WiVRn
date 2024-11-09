@@ -160,7 +160,7 @@ std::vector<XrCompositionLayerQuad> scenes::stream::plot_performance_metrics(XrT
 	        plot(_("GPU time"), {{_("Reproject"), &global_metric::gpu_time},
 		                     {_("Blit"),      &global_metric::gpu_barrier}},  "s"),
 
-	        plot(("Network"),  {{_("Download"),  &global_metric::bandwidth_rx},
+	        plot(_("Network"), {{_("Download"),  &global_metric::bandwidth_rx},
 	                            {_("Upload"),    &global_metric::bandwidth_tx}}, "bit/s"),
 	        // clang-format on
 	};
