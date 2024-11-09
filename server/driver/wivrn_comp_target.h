@@ -60,11 +60,7 @@ struct pseudo_swapchain
 		vk::raii::ImageView image_view_y = nullptr;
 		vk::raii::ImageView image_view_cbcr = nullptr;
 		status_t status;
-		vk::raii::CommandBuffer video_command_buffer = nullptr;
-		vk::raii::Fence video_fence = nullptr;
 	};
-	vk::raii::Semaphore video_sem = nullptr;
-	vk::raii::CommandPool video_command_pool = nullptr;
 	std::vector<item> images;
 
 	// bitmask of encoder status, first bit to request exit, then one bit per thread:
@@ -75,6 +71,7 @@ struct pseudo_swapchain
 	// Data to be encoded
 	vk::raii::Fence fence = nullptr;
 	vk::raii::CommandBuffer command_buffer = nullptr;
+	vk::raii::Semaphore present_done_sem = nullptr;
 
 	int64_t frame_index;
 	to_headset::video_stream_data_shard::view_info_t view_info{};

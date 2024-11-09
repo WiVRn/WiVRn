@@ -79,8 +79,8 @@ public:
 private:
 	std::mutex mutex;
 	std::array<std::atomic<bool>, num_slots> busy = {false, false};
-	uint8_t next_present = 0;
-	uint8_t next_encode = 0;
+	uint8_t present_slot = 0;
+	uint8_t encode_slot = 0;
 
 	// temporary data
 	wivrn_session * cnx;
@@ -114,22 +114,22 @@ public:
 	video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, bool async_send);
 	virtual ~video_encoder();
 
-	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf);
-	// for vulkan video (command buffer is on a video queue)
-	void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence fence, uint64_t frame_index);
+	// return value: true if image should be transitioned to queue and layout for vulkan video encode
+	bool present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index);
+	void post_submit(vk::Semaphore);
 
 	virtual void on_feedback(const from_headset::feedback &);
 	virtual void reset();
 
-	void Encode(wivrn_session & cnx,
+	void encode(wivrn_session & cnx,
 	            const to_headset::video_stream_data_shard::view_info_t & view_info,
 	            uint64_t frame_index);
 
 protected:
 	// called on present to submit command buffers for the image.
-	virtual void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot) {};
-	// for vulkan video (command buffer is on a video queue)
-	virtual void present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, vk::Fence, uint8_t slot, uint64_t frame_index) {};
+	virtual bool present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) = 0;
+	// called after command buffer passed in present_image was submitted
+	virtual void post_submit(vk::Semaphore, uint8_t slot) {}
 	// called when command buffer finished executing
 	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) = 0;
 

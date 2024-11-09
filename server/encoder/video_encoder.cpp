@@ -232,26 +232,26 @@ void video_encoder::reset()
 	sync_needed = true;
 }
 
-void video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf)
+bool video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index)
 {
 	// Wait for encoder to be done
-	busy[next_present].wait(true);
-
-	busy[next_present] = true;
-	present_image(y_cbcr, cmd_buf, next_present);
-	next_present = (next_present + 1) % num_slots;
+	present_slot = (present_slot + 1) % num_slots;
+	busy[present_slot].wait(true);
+	busy[present_slot] = true;
+	return present_image(y_cbcr, cmd_buf, present_slot, frame_index);
 }
 
-void video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & video_cmd_buf, vk::Fence fence, uint64_t frame_index)
+void video_encoder::post_submit(vk::Semaphore sem)
 {
-	present_image(y_cbcr, video_cmd_buf, fence, next_present, frame_index);
+	post_submit(sem, present_slot);
 }
 
-void video_encoder::Encode(wivrn_session & cnx,
+void video_encoder::encode(wivrn_session & cnx,
                            const to_headset::video_stream_data_shard::view_info_t & view_info,
                            uint64_t frame_index)
 {
-	assert(busy[next_encode].load());
+	encode_slot = (encode_slot + 1) % num_slots;
+	assert(busy[encode_slot].load());
 	if (shared_sender)
 		shared_sender->wait_idle(this);
 	this->cnx = &cnx;
@@ -284,7 +284,7 @@ void video_encoder::Encode(wivrn_session & cnx,
 	std::exception_ptr ex;
 	try
 	{
-		auto data = encode(idr, target_timestamp, next_encode);
+		auto data = encode(idr, target_timestamp, encode_slot);
 		cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 		if (data)
 		{
@@ -297,9 +297,8 @@ void video_encoder::Encode(wivrn_session & cnx,
 	{
 		ex = std::current_exception();
 	}
-	busy[next_encode] = false;
-	busy[next_encode].notify_all();
-	next_encode = (next_encode + 1) % num_slots;
+	busy[encode_slot] = false;
+	busy[encode_slot].notify_all();
 	if (ex)
 		std::rethrow_exception(ex);
 }

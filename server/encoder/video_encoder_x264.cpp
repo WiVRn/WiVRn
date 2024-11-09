@@ -183,7 +183,7 @@ video_encoder_x264::video_encoder_x264(
 	}
 }
 
-void video_encoder_x264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot)
+bool video_encoder_x264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
 {
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
@@ -225,6 +225,7 @@ void video_encoder_x264::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer
 	                        .height = rect.extent.height / 2,
 	                        .depth = 1,
 	                }});
+	return false;
 }
 
 std::optional<video_encoder::data> video_encoder_x264::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)

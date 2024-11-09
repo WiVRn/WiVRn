@@ -318,6 +318,10 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		});
 	}
 
+	// fence
+	for (auto & item: slot_data)
+		item.fence = vk.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
+
 	// query pool
 	{
 		vk::StructureChain query_pool_create = {
@@ -335,6 +339,23 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		};
 
 		query_pool = vk.device.createQueryPool(query_pool_create.get());
+	}
+
+	// command pools
+	{
+		video_command_pool = vk.device.createCommandPool(
+		        vk::CommandPoolCreateInfo{
+		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+		                .queueFamilyIndex = vk.encode_queue_family_index,
+		        });
+
+		auto command_buffers = vk.device.allocateCommandBuffers(
+		        {.commandPool = *video_command_pool,
+		         .commandBufferCount = num_slots});
+		for (size_t i = 0; i < num_slots; ++i)
+		{
+			slot_data[i].video_cmd_buf = std::move(command_buffers[i]);
+		}
 	}
 }
 
@@ -356,7 +377,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(bo
 	if (idr)
 		send_idr_data();
 
-	if (auto res = vk.device.waitForFences(fences[encode_slot], true, 1'000'000'000);
+	if (auto res = vk.device.waitForFences(*slot_data[encode_slot].fence, true, 1'000'000'000);
 	    res != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("wait for fences: " + vk::to_string(res));
@@ -375,109 +396,132 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(bo
 	};
 }
 
-void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot)
+bool wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t encode_slot, uint64_t frame_index)
 {
-	// If we encode from top left corner, no need to perform a copy
-	if (rect.offset == vk::Offset2D{0, 0})
-		return;
+	auto & video_cmd_buf = slot_data[encode_slot].video_cmd_buf;
+	video_cmd_buf.reset();
+	video_cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-	vk::ImageMemoryBarrier barrier{
-	        .srcAccessMask = vk::AccessFlagBits::eNone,
-	        .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
-	        .oldLayout = vk::ImageLayout::eUndefined,
-	        .newLayout = vk::ImageLayout::eTransferDstOptimal,
-	        .image = tmp_image,
-	        .subresourceRange = {
-	                .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                .levelCount = 1,
-	                .baseArrayLayer = slot,
-	                .layerCount = 1,
-	        },
-	};
+	// If we encode from top left corner, encode from the source image directly
+	bool encode_direct = rect.offset == vk::Offset2D{0, 0};
 
-	cmd_buf.pipelineBarrier(
-	        vk::PipelineStageFlagBits::eNone,
-	        vk::PipelineStageFlagBits::eTransfer,
-	        vk::DependencyFlags{},
-	        {},
-	        {},
-	        barrier);
+	vk::Image src_yuv = encode_direct ? y_cbcr : tmp_image;
 
-	cmd_buf.copyImage(
-	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
-	        tmp_image,
-	        vk::ImageLayout::eTransferDstOptimal,
-	        {
-	                vk::ImageCopy{
-	                        .srcSubresource = {
-	                                .aspectMask = vk::ImageAspectFlagBits::ePlane0,
-	                                .baseArrayLayer = 0,
-	                                .layerCount = 1,
-	                        },
-	                        .srcOffset = {
-	                                .x = rect.offset.x,
-	                                .y = rect.offset.y,
-	                                .z = 0,
-	                        },
-	                        .dstSubresource = {
-	                                .aspectMask = vk::ImageAspectFlagBits::ePlane0,
-	                                .baseArrayLayer = slot,
-	                                .layerCount = 1,
-	                        },
-	                        .extent = {
-	                                .width = rect.extent.width,
-	                                .height = rect.extent.height,
-	                                .depth = 1,
-	                        },
-	                },
-	                vk::ImageCopy{
-	                        .srcSubresource = {
-	                                .aspectMask = vk::ImageAspectFlagBits::ePlane1,
-	                                .baseArrayLayer = 0,
-	                                .layerCount = 1,
-	                        },
-	                        .srcOffset = {
-	                                .x = rect.offset.x / 2,
-	                                .y = rect.offset.y / 2,
-	                                .z = 0,
-	                        },
-	                        .dstSubresource = {
-	                                .aspectMask = vk::ImageAspectFlagBits::ePlane1,
-	                                .baseArrayLayer = slot,
-	                                .layerCount = 1,
-	                        },
-	                        .extent = {
-	                                .width = rect.extent.width / 2,
-	                                .height = rect.extent.height / 2,
-	                                .depth = 1,
-	                        },
-	                },
-	        });
-
-	barrier.srcAccessMask = barrier.dstAccessMask;
-	barrier.dstAccessMask = vk::AccessFlagBits::eNone;
-	barrier.srcQueueFamilyIndex = vk.queue_family_index;
-	barrier.dstQueueFamilyIndex = vk.encode_queue_family_index;
-	barrier.oldLayout = barrier.newLayout;
-	barrier.newLayout = vk::ImageLayout::eVideoEncodeSrcKHR;
-
-	cmd_buf.pipelineBarrier(
-	        vk::PipelineStageFlagBits::eTransfer,
-	        vk::PipelineStageFlagBits::eNone,
-	        vk::DependencyFlags{},
-	        {},
-	        {},
-	        barrier);
-}
-
-void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::CommandBuffer & command_buffer, vk::Fence fence, uint8_t encode_slot, uint64_t frame_index)
-{
-	fences[encode_slot] = fence;
-	if (rect.offset != vk::Offset2D{0, 0})
+	if (encode_direct)
 	{
-		src_yuv = vk::Image(tmp_image);
+		vk::ImageMemoryBarrier2 video_barrier{
+		        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
+		        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
+		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
+		        .dstAccessMask = vk::AccessFlagBits2::eVideoEncodeReadKHR,
+		        .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
+		        .srcQueueFamilyIndex = vk.queue_family_index,
+		        .dstQueueFamilyIndex = vk.encode_queue_family_index,
+		        .image = src_yuv,
+		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+		                             .baseMipLevel = 0,
+		                             .levelCount = 1,
+		                             .baseArrayLayer = 0,
+		                             .layerCount = 2},
+		};
+		video_cmd_buf.pipelineBarrier2({
+		        .imageMemoryBarrierCount = 1,
+		        .pImageMemoryBarriers = &video_barrier,
+		});
+	}
+	else
+	{
 		image_view_template.subresourceRange.baseArrayLayer = encode_slot;
+
+		vk::ImageMemoryBarrier barrier{
+		        .srcAccessMask = vk::AccessFlagBits::eNone,
+		        .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
+		        .oldLayout = vk::ImageLayout::eUndefined,
+		        .newLayout = vk::ImageLayout::eTransferDstOptimal,
+		        .image = tmp_image,
+		        .subresourceRange = {
+		                .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                .levelCount = 1,
+		                .baseArrayLayer = encode_slot,
+		                .layerCount = 1,
+		        },
+		};
+
+		cmd_buf.pipelineBarrier(
+		        vk::PipelineStageFlagBits::eNone,
+		        vk::PipelineStageFlagBits::eTransfer,
+		        vk::DependencyFlags{},
+		        {},
+		        {},
+		        barrier);
+
+		cmd_buf.copyImage(
+		        y_cbcr,
+		        vk::ImageLayout::eTransferSrcOptimal,
+		        tmp_image,
+		        vk::ImageLayout::eTransferDstOptimal,
+		        {
+		                vk::ImageCopy{
+		                        .srcSubresource = {
+		                                .aspectMask = vk::ImageAspectFlagBits::ePlane0,
+		                                .baseArrayLayer = 0,
+		                                .layerCount = 1,
+		                        },
+		                        .srcOffset = {
+		                                .x = rect.offset.x,
+		                                .y = rect.offset.y,
+		                                .z = 0,
+		                        },
+		                        .dstSubresource = {
+		                                .aspectMask = vk::ImageAspectFlagBits::ePlane0,
+		                                .baseArrayLayer = encode_slot,
+		                                .layerCount = 1,
+		                        },
+		                        .extent = {
+		                                .width = rect.extent.width,
+		                                .height = rect.extent.height,
+		                                .depth = 1,
+		                        },
+		                },
+		                vk::ImageCopy{
+		                        .srcSubresource = {
+		                                .aspectMask = vk::ImageAspectFlagBits::ePlane1,
+		                                .baseArrayLayer = 0,
+		                                .layerCount = 1,
+		                        },
+		                        .srcOffset = {
+		                                .x = rect.offset.x / 2,
+		                                .y = rect.offset.y / 2,
+		                                .z = 0,
+		                        },
+		                        .dstSubresource = {
+		                                .aspectMask = vk::ImageAspectFlagBits::ePlane1,
+		                                .baseArrayLayer = encode_slot,
+		                                .layerCount = 1,
+		                        },
+		                        .extent = {
+		                                .width = rect.extent.width / 2,
+		                                .height = rect.extent.height / 2,
+		                                .depth = 1,
+		                        },
+		                },
+		        });
+
+		barrier.srcAccessMask = barrier.dstAccessMask;
+		barrier.dstAccessMask = vk::AccessFlagBits::eNone;
+		barrier.srcQueueFamilyIndex = vk.queue_family_index;
+		barrier.dstQueueFamilyIndex = vk.encode_queue_family_index;
+		barrier.oldLayout = barrier.newLayout;
+		barrier.newLayout = vk::ImageLayout::eVideoEncodeSrcKHR;
+
+		cmd_buf.pipelineBarrier(
+		        vk::PipelineStageFlagBits::eTransfer,
+		        vk::PipelineStageFlagBits::eNone,
+		        vk::DependencyFlags{},
+		        {},
+		        {},
+		        barrier);
 
 		vk::ImageMemoryBarrier2 video_barrier{
 		        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
@@ -495,7 +539,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::Com
 		                             .baseArrayLayer = encode_slot,
 		                             .layerCount = 1},
 		};
-		command_buffer.pipelineBarrier2({
+		video_cmd_buf.pipelineBarrier2({
 		        .imageMemoryBarrierCount = 1,
 		        .pImageMemoryBarriers = &video_barrier,
 		});
@@ -510,7 +554,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::Com
 		image_view = *image_views.emplace(src_yuv, vk.device.createImageView(image_view_template)).first->second;
 	}
 
-	command_buffer.resetQueryPool(*query_pool, 0, 1);
+	video_cmd_buf.resetQueryPool(*query_pool, 0, 1);
 
 	auto slot = std::ranges::min_element(
 	        dpb,
@@ -560,7 +604,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::Com
 	slot->frame_index = frame_index;
 	slot->info.pPictureResource = &slot->resource;
 
-	command_buffer.beginVideoCodingKHR({
+	video_cmd_buf.beginVideoCodingKHR({
 	        .pNext = (session_initialized and rate_control) ? &rate_control.value() : nullptr,
 	        .videoSession = *video_session,
 	        .videoSessionParameters = *video_session_parameters,
@@ -581,7 +625,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::Com
 			control_info.flags |= vk::VideoCodingControlFlagBitsKHR::eEncodeRateControl;
 			control_info.pNext = &rate_control.value();
 		}
-		command_buffer.controlVideoCodingKHR(control_info);
+		video_cmd_buf.controlVideoCodingKHR(control_info);
 
 		// Set decoded picture buffer to correct layout
 		vk::ImageMemoryBarrier2 dpb_barrier{
@@ -598,7 +642,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::Com
 		                             .baseArrayLayer = 0,
 		                             .layerCount = uint32_t(dpb.size())},
 		};
-		command_buffer.pipelineBarrier2({
+		video_cmd_buf.pipelineBarrier2({
 		        .imageMemoryBarrierCount = 1,
 		        .pImageMemoryBarriers = &dpb_barrier,
 		});
@@ -619,13 +663,36 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image src_yuv, vk::raii::Com
 	if (ref_slot)
 		encode_info.setReferenceSlots(ref_slot->info);
 
-	command_buffer.beginQuery(*query_pool, 0, {});
-	command_buffer.encodeVideoKHR(encode_info);
-	command_buffer.endQuery(*query_pool, 0);
-	command_buffer.endVideoCodingKHR(vk::VideoEndCodingInfoKHR{});
-	command_buffer.end();
+	video_cmd_buf.beginQuery(*query_pool, 0, {});
+	video_cmd_buf.encodeVideoKHR(encode_info);
+	video_cmd_buf.endQuery(*query_pool, 0);
+	video_cmd_buf.endVideoCodingKHR(vk::VideoEndCodingInfoKHR{});
+	video_cmd_buf.end();
 
 	++frame_num;
+
+	// If we encode directly from the source, request a transition to video queue
+	return encode_direct;
+}
+
+void wivrn::video_encoder_vulkan::post_submit(vk::Semaphore sem, uint8_t slot)
+{
+	vk.device.resetFences(*slot_data[slot].fence);
+	vk::SemaphoreSubmitInfo sem_info{
+	        .semaphore = sem,
+	        .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+	};
+
+	vk::CommandBufferSubmitInfo cmd_info{
+	        .commandBuffer = slot_data[slot].video_cmd_buf,
+	};
+	vk.encode_queue.submit2(vk::SubmitInfo2{
+	                                .waitSemaphoreInfoCount = 1,
+	                                .pWaitSemaphoreInfos = &sem_info,
+	                                .commandBufferInfoCount = 1,
+	                                .pCommandBufferInfos = &cmd_info,
+	                        },
+	                        *slot_data[slot].fence);
 }
 
 void wivrn::video_encoder_vulkan::on_feedback(const from_headset::feedback & feedback)
