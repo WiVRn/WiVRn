@@ -551,6 +551,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 			present_done_sem.push_back(sem);
 	}
 
+#if WIVRN_USE_VULKAN_ENCODE
 	if (need_queue_transfer)
 	{
 		vk::ImageMemoryBarrier barrier{
@@ -576,6 +577,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		        barrier);
 		submit_info.setSignalSemaphores(present_done_sem);
 	}
+#endif
 	command_buffer.end();
 	submit_info.setCommandBuffers(*command_buffer);
 
