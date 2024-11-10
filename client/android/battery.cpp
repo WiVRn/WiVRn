@@ -62,5 +62,5 @@ extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_Bro
 	}
 
 	if (level_jint and scale_jint and plugged_jint)
-		spdlog::info("Received ACTION_BATTERY_CHANGED: level {}%, plugged {}", *last_status.charge * 100, last_status.charging);
+		spdlog::debug("Received ACTION_BATTERY_CHANGED: level {}%, plugged {}", *last_status.charge * 100, last_status.charging);
 }
