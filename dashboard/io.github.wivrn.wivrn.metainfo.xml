@@ -63,6 +63,7 @@
 	<url type="homepage">https://wivrn.github.io</url>
 	<url type="vcs-browser">https://www.github.com/WiVRn/WiVRn</url>
 	<url type="bugtracker">https://github.com/WiVRn/WiVRn/issues</url>
+	<url type="donation">https://opencollective.com/wivrn</url>
 
 	<icon type="stock">io.github.wivrn.wivrn</icon>
 
