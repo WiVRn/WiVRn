@@ -145,8 +145,8 @@ video_encoder_nvenc::video_encoder_nvenc(
         bitrate(settings.bitrate)
 {
 	std::tie(cuda_fn, nvenc_fn, fn, cuda, session_handle) = init();
-	settings.video_width += 32 - settings.video_width % 32;
-	settings.video_height += 32 - settings.video_height % 32;
+	assert(settings.width % 32 == 0);
+	assert(settings.height % 32 == 0);
 	rect = vk::Rect2D{
 	        .offset = {
 	                .x = settings.offset_x,
@@ -157,8 +157,6 @@ video_encoder_nvenc::video_encoder_nvenc(
 	                .height = settings.height,
 	        },
 	};
-	height = settings.video_height;
-	width = settings.video_width;
 
 	uint32_t count;
 	std::vector<GUID> presets;
@@ -251,7 +249,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	NVENC_CHECK(fn.nvEncCreateBitstreamBuffer(session_handle, &params3));
 	bitstreamBuffer = params3.bitstreamBuffer;
 
-	vk::DeviceSize buffer_size = width * settings.video_height * 3 / 2;
+	vk::DeviceSize buffer_size = rect.extent.width * settings.video_height * 3 / 2;
 
 	vk::StructureChain buffer_create_info{
 	        vk::BufferCreateInfo{
@@ -313,7 +311,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 		        .resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR,
 		        .width = settings.video_width,
 		        .height = settings.video_height,
-		        .pitch = width,
+		        .pitch = rect.extent.width,
 		        .resourceToRegister = (void *)frame,
 		        .bufferFormat = NV_ENC_BUFFER_FORMAT_NV12,
 		        .bufferUsage = NV_ENC_INPUT_IMAGE,
@@ -337,7 +335,7 @@ void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::raii::CommandBuffe
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        *in[slot].yuv,
 	        vk::BufferImageCopy{
-	                .bufferRowLength = width,
+	                .bufferRowLength = rect.extent.width,
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
 	                        .baseArrayLayer = uint32_t(channels),
@@ -357,8 +355,8 @@ void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::raii::CommandBuffe
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        *in[slot].yuv,
 	        vk::BufferImageCopy{
-	                .bufferOffset = width * height,
-	                .bufferRowLength = uint32_t(width / 2),
+	                .bufferOffset = rect.extent.width * rect.extent.height,
+	                .bufferRowLength = uint32_t(rect.extent.width / 2),
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
 	                        .baseArrayLayer = uint32_t(channels),
@@ -388,7 +386,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 	        .version = NV_ENC_PIC_PARAMS_VER,
 	        .inputWidth = rect.extent.width,
 	        .inputHeight = rect.extent.height,
-	        .inputPitch = width,
+	        .inputPitch = rect.extent.width,
 	        .encodePicFlags = uint32_t(idr ? NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS : 0),
 	        .frameIdx = 0,
 	        .inputTimeStamp = 0,

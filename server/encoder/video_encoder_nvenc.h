@@ -58,8 +58,6 @@ private:
 	};
 	std::array<in_t, num_slots> in;
 
-	uint32_t width;
-	uint32_t height;
 	float fps;
 	int bitrate;
 
