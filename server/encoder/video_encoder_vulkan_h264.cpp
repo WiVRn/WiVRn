@@ -130,7 +130,7 @@ wivrn::video_encoder_vulkan_h264::video_encoder_vulkan_h264(
                                 .deblocking_filter_control_present_flag = 0,
                                 .weighted_pred_flag = 0,
                                 .bottom_field_pic_order_in_frame_present_flag = 0,
-                                .entropy_coding_mode_flag = 1,
+                                .entropy_coding_mode_flag = 0,
                                 .pic_scaling_matrix_present_flag = 0,
                         },
                 .seq_parameter_set_id = 0,
