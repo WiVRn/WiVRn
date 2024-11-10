@@ -229,7 +229,7 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 #endif
 
 	if (not config.codec)
-		config.codec = h265;
+		config.codec = h264;
 }
 
 static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs)
