@@ -220,6 +220,9 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 	}
 #endif
 
+	if (config.name == encoder_vulkan and not config.codec)
+		config.codec = h264;
+
 #if WIVRN_USE_X264
 	if (config.name == encoder_x264)
 		config.codec = h264;
