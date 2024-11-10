@@ -281,10 +281,9 @@ static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk
 	return {base};
 }
 
-static void make_even(uint16_t & value, uint16_t max)
+static uint16_t align(uint16_t value, uint16_t alignment)
 {
-	value += value % 2;
-	value = std::min(value, max);
+	return ((value + alignment - 1) / alignment) * alignment;
 }
 
 std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
@@ -332,10 +331,8 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		            scale);
 	}
 
-	width *= scale[0];
-	width += width % 2;
-	height *= scale[1];
-	height += height % 2;
+	width = align(width * scale[0], 64);
+	height = align(height * scale[1], 64);
 
 	std::vector<wivrn::encoder_settings> res;
 	std::unordered_map<std::string, int> groups;
@@ -355,14 +352,12 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		settings.channels = to_headset::video_stream_description::channels_t::colour;
 		settings.subsampling = 1;
 		settings.encoder_name = encoder.name;
-		settings.width = std::ceil(encoder.width.value_or(1) * width);
-		settings.height = std::ceil(encoder.height.value_or(1) * height);
+		settings.width = align(std::ceil(encoder.width.value_or(1) * width), 32);
+		settings.height = align(std::ceil(encoder.height.value_or(1) * height), 32);
 		settings.video_width = settings.width;
 		settings.video_height = settings.height;
-		settings.offset_x = std::ceil(encoder.offset_x.value_or(0) * width);
-		settings.offset_y = std::ceil(encoder.offset_y.value_or(0) * height);
-		make_even(settings.width, width - settings.offset_x);
-		make_even(settings.height, height - settings.offset_y);
+		settings.offset_x = align(std::ceil(encoder.offset_x.value_or(0) * width), 32);
+		settings.offset_y = align(std::ceil(encoder.offset_y.value_or(0) * height), 32);
 		settings.codec = *encoder.codec;
 		if (encoder.group)
 			settings.group = *encoder.group;
@@ -389,8 +384,8 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		settings.encoder_name = encoder.name;
 		settings.width = width / settings.subsampling;
 		settings.height = height / settings.subsampling;
-		settings.width += settings.width % 2;
-		settings.height += settings.height % 2;
+		assert(settings.width % 32 == 0);
+		assert(settings.height % 32 == 0);
 		settings.video_width = settings.width;
 		settings.video_height = settings.height;
 		settings.codec = *encoder.codec;
