@@ -352,12 +352,14 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		settings.channels = to_headset::video_stream_description::channels_t::colour;
 		settings.subsampling = 1;
 		settings.encoder_name = encoder.name;
-		settings.width = align(std::ceil(encoder.width.value_or(1) * width), 32);
-		settings.height = align(std::ceil(encoder.height.value_or(1) * height), 32);
-		settings.video_width = settings.width;
-		settings.video_height = settings.height;
 		settings.offset_x = align(std::ceil(encoder.offset_x.value_or(0) * width), 32);
 		settings.offset_y = align(std::ceil(encoder.offset_y.value_or(0) * height), 32);
+		settings.width = align(std::ceil(encoder.width.value_or(1) * width), 32);
+		settings.height = align(std::ceil(encoder.height.value_or(1) * height), 32);
+		settings.width = std::min<uint16_t>(settings.width, width - settings.offset_x);
+		settings.height = std::min<uint16_t>(settings.height, height - settings.offset_y);
+		settings.video_width = settings.width;
+		settings.video_height = settings.height;
 		settings.codec = *encoder.codec;
 		if (encoder.group)
 			settings.group = *encoder.group;
