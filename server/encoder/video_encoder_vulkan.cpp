@@ -350,7 +350,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		vk::StructureChain query_pool_create = {
 		        vk::QueryPoolCreateInfo{
 		                .queryType = vk::QueryType::eVideoEncodeFeedbackKHR,
-		                .queryCount = 1,
+		                .queryCount = num_slots,
 
 		        },
 		        vk::QueryPoolVideoEncodeFeedbackCreateInfoKHR{
@@ -417,22 +417,22 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(bo
 {
 	if (idr)
 		send_idr_data();
+	auto & slot_item = slot_data[encode_slot];
 
-	if (auto res = vk.device.waitForFences(*slot_data[encode_slot].fence, true, 1'000'000'000);
+	if (auto res = vk.device.waitForFences(*slot_item.fence, true, 1'000'000'000);
 	    res != vk::Result::eSuccess)
 	{
 		throw std::runtime_error("wait for fences: " + vk::to_string(res));
 	}
 
 	// Feedback = offset / size / has overrides
-	auto [res, feedback] = query_pool.getResults<uint32_t>(0, 1, 3 * sizeof(uint32_t), 0, vk::QueryResultFlagBits::eWait);
+	auto [res, feedback] = query_pool.getResults<uint32_t>(encode_slot, 1, 3 * sizeof(uint32_t), 0, vk::QueryResultFlagBits::eWait);
 	if (res != vk::Result::eSuccess)
 	{
 		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
 	}
 
-	auto & item = slot_data[encode_slot];
-	void * mapped = item.host_buffer ? item.host_buffer.map() : item.output_buffer.map();
+	void * mapped = slot_item.host_buffer ? slot_item.host_buffer.map() : slot_item.output_buffer.map();
 
 	return data{
 	        .encoder = this,
@@ -442,7 +442,8 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(bo
 
 std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t encode_slot, uint64_t frame_index)
 {
-	auto & video_cmd_buf = slot_data[encode_slot].video_cmd_buf;
+	auto & slot_item = slot_data[encode_slot];
+	auto & video_cmd_buf = slot_item.video_cmd_buf;
 	video_cmd_buf.reset();
 	video_cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
@@ -595,10 +596,10 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        .imageMemoryBarrierCount = 1,
 		        .pImageMemoryBarriers = &video_barrier,
 		});
-		image_view = slot_data[encode_slot].view;
+		image_view = slot_item.view;
 	}
 
-	video_cmd_buf.resetQueryPool(*query_pool, 0, 1);
+	video_cmd_buf.resetQueryPool(*query_pool, encode_slot, 1);
 
 	auto slot = std::ranges::min_element(
 	        dpb,
@@ -695,9 +696,9 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 
 	vk::VideoEncodeInfoKHR encode_info{
 	        .pNext = encode_info_next(frame_num, slot_index, ref_slot ? std::make_optional(ref_slot->info.slotIndex) : std::nullopt),
-	        .dstBuffer = slot_data[encode_slot].output_buffer,
+	        .dstBuffer = slot_item.output_buffer,
 	        .dstBufferOffset = 0,
-	        .dstBufferRange = slot_data[encode_slot].output_buffer.info().size,
+	        .dstBufferRange = slot_item.output_buffer.info().size,
 	        .srcPictureResource = {
 	                .codedExtent = rect.extent,
 	                .baseArrayLayer = 0,
@@ -707,12 +708,11 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	if (ref_slot)
 		encode_info.setReferenceSlots(ref_slot->info);
 
-	video_cmd_buf.beginQuery(*query_pool, 0, {});
+	video_cmd_buf.beginQuery(*query_pool, encode_slot, {});
 	video_cmd_buf.encodeVideoKHR(encode_info);
-	video_cmd_buf.endQuery(*query_pool, 0);
+	video_cmd_buf.endQuery(*query_pool, encode_slot);
 	video_cmd_buf.endVideoCodingKHR(vk::VideoEndCodingInfoKHR{});
 
-	auto & slot_item = slot_data[encode_slot];
 	// When output buffer is not visible, we have to issue a transfer operation
 	if (slot_item.host_buffer)
 	{
@@ -726,7 +726,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 			        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
 			        .srcQueueFamilyIndex = vk.encode_queue_family_index,
 			        .dstQueueFamilyIndex = vk.queue_family_index,
-			        .buffer = slot_data[encode_slot].output_buffer,
+			        .buffer = slot_item.output_buffer,
 			        .size = vk::WholeSize,
 			};
 			video_cmd_buf.pipelineBarrier2({
@@ -760,7 +760,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 			        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
 			        .srcQueueFamilyIndex = vk.encode_queue_family_index,
 			        .dstQueueFamilyIndex = vk.encode_queue_family_index,
-			        .buffer = slot_data[encode_slot].output_buffer,
+			        .buffer = slot_item.output_buffer,
 			};
 			video_cmd_buf.pipelineBarrier2({
 			        .bufferMemoryBarrierCount = 1,
@@ -786,20 +786,21 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 
 void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 {
+	auto & slot_item = slot_data[slot];
+	const bool need_transfer = *slot_item.transfer_cmd_buf;
 	// Issue encode command, and if necessary transfer command
-	vk.device.resetFences(*slot_data[slot].fence);
+	vk.device.resetFences(*slot_item.fence);
 	vk::SemaphoreSubmitInfo wait_sem_info{
-	        .semaphore = *slot_data[slot].wait_sem,
+	        .semaphore = *slot_item.wait_sem,
 	        .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
 	};
 	vk::SemaphoreSubmitInfo sem_info{
-	        .semaphore = slot_data[slot].sem,
+	        .semaphore = slot_item.sem,
 	        .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
 	};
 	vk::CommandBufferSubmitInfo cmd_info{
-	        .commandBuffer = slot_data[slot].video_cmd_buf,
+	        .commandBuffer = slot_item.video_cmd_buf,
 	};
-	bool need_transfer = *slot_data[slot].transfer_cmd_buf;
 
 	vk.encode_queue.submit2(vk::SubmitInfo2{
 	                                .waitSemaphoreInfoCount = 1,
@@ -809,11 +810,11 @@ void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 	                                .signalSemaphoreInfoCount = need_transfer ? 1u : 0,
 	                                .pSignalSemaphoreInfos = &sem_info,
 	                        },
-	                        need_transfer ? nullptr : *slot_data[slot].fence);
+	                        need_transfer ? nullptr : *slot_item.fence);
 	if (need_transfer)
 	{
 		vk::CommandBufferSubmitInfo cmd_info{
-		        .commandBuffer = slot_data[slot].transfer_cmd_buf,
+		        .commandBuffer = slot_item.transfer_cmd_buf,
 		};
 		vk.queue.submit2(vk::SubmitInfo2{
 		                         .waitSemaphoreInfoCount = 1,
@@ -821,7 +822,7 @@ void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 		                         .commandBufferInfoCount = 1,
 		                         .pCommandBufferInfos = &cmd_info,
 		                 },
-		                 *slot_data[slot].fence);
+		                 *slot_item.fence);
 	}
 }
 
