@@ -254,29 +254,29 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 
 	if (rect.offset != vk::Offset2D{0, 0})
 	{
-		tmp_image = image_allocation(
-		        vk.device, {
-		                           .pNext = &video_profile_list,
-		                           .imageType = vk::ImageType::e2D,
-		                           .format = picture_format.format,
-		                           .extent = {
-		                                   .width = rect.extent.width,
-		                                   .height = rect.extent.height,
-		                                   .depth = 1,
-		                           },
-		                           .mipLevels = 1,
-		                           .arrayLayers = num_slots,
-		                           .samples = vk::SampleCountFlagBits::e1,
-		                           .tiling = vk::ImageTiling::eOptimal,
-		                           .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eVideoEncodeSrcKHR,
-		                           .sharingMode = vk::SharingMode::eExclusive,
-		                   },
-		        {
-		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        });
-		image_view_template.image = vk::Image(tmp_image);
 		for (size_t i = 0; i < num_slots; ++i)
 		{
+			slot_data[i].tmp_image = image_allocation(
+			        vk.device, {
+			                           .pNext = &video_profile_list,
+			                           .imageType = vk::ImageType::e2D,
+			                           .format = picture_format.format,
+			                           .extent = {
+			                                   .width = rect.extent.width,
+			                                   .height = rect.extent.height,
+			                                   .depth = 1,
+			                           },
+			                           .mipLevels = 1,
+			                           .arrayLayers = num_slots,
+			                           .samples = vk::SampleCountFlagBits::e1,
+			                           .tiling = vk::ImageTiling::eOptimal,
+			                           .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eVideoEncodeSrcKHR,
+			                           .sharingMode = vk::SharingMode::eExclusive,
+			                   },
+			        {
+			                .usage = VMA_MEMORY_USAGE_AUTO,
+			        });
+			image_view_template.image = vk::Image(slot_data[i].tmp_image);
 			image_view_template.subresourceRange.baseArrayLayer = i;
 			slot_data[i].view = vk.device.createImageView(image_view_template);
 		}
@@ -450,7 +450,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	// If we encode from top left corner, encode from the source image directly
 	bool encode_direct = rect.offset == vk::Offset2D{0, 0};
 
-	vk::Image src_yuv = encode_direct ? y_cbcr : tmp_image;
+	vk::Image src_yuv = encode_direct ? y_cbcr : slot_item.tmp_image;
 	vk::ImageView image_view;
 
 	if (encode_direct)
@@ -492,11 +492,11 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
 		        .oldLayout = vk::ImageLayout::eUndefined,
 		        .newLayout = vk::ImageLayout::eTransferDstOptimal,
-		        .image = tmp_image,
+		        .image = slot_item.tmp_image,
 		        .subresourceRange = {
 		                .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                .levelCount = 1,
-		                .baseArrayLayer = encode_slot,
+		                .baseArrayLayer = 0,
 		                .layerCount = 1,
 		        },
 		};
@@ -512,7 +512,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		cmd_buf.copyImage(
 		        y_cbcr,
 		        vk::ImageLayout::eTransferSrcOptimal,
-		        tmp_image,
+		        slot_item.tmp_image,
 		        vk::ImageLayout::eTransferDstOptimal,
 		        {
 		                vk::ImageCopy{
@@ -528,7 +528,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		                        },
 		                        .dstSubresource = {
 		                                .aspectMask = vk::ImageAspectFlagBits::ePlane0,
-		                                .baseArrayLayer = encode_slot,
+		                                .baseArrayLayer = 0,
 		                                .layerCount = 1,
 		                        },
 		                        .extent = {
@@ -550,7 +550,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		                        },
 		                        .dstSubresource = {
 		                                .aspectMask = vk::ImageAspectFlagBits::ePlane1,
-		                                .baseArrayLayer = encode_slot,
+		                                .baseArrayLayer = 0,
 		                                .layerCount = 1,
 		                        },
 		                        .extent = {
@@ -585,7 +585,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
 		        .srcQueueFamilyIndex = vk.queue_family_index,
 		        .dstQueueFamilyIndex = vk.encode_queue_family_index,
-		        .image = tmp_image,
+		        .image = slot_item.tmp_image,
 		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
 		                             .baseMipLevel = 0,
 		                             .levelCount = 1,
@@ -702,7 +702,8 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	        .srcPictureResource = {
 	                .codedExtent = rect.extent,
 	                .baseArrayLayer = 0,
-	                .imageViewBinding = image_view},
+	                .imageViewBinding = image_view,
+	        },
 	        .pSetupReferenceSlot = &slot->info,
 	};
 	if (ref_slot)

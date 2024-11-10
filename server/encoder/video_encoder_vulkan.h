@@ -43,6 +43,7 @@ class video_encoder_vulkan : public video_encoder
 	std::unordered_map<VkImage, vk::raii::ImageView> image_views; // for input images
 	struct slot_item
 	{
+		image_allocation tmp_image; // Used if we have an offset in the image to encode
 		vk::raii::CommandBuffer video_cmd_buf = nullptr;
 		vk::raii::CommandBuffer transfer_cmd_buf = nullptr;
 		vk::raii::Semaphore wait_sem = nullptr;
@@ -55,7 +56,6 @@ class video_encoder_vulkan : public video_encoder
 	std::array<slot_item, num_slots> slot_data;
 
 	image_allocation dpb_image;
-	image_allocation tmp_image; // Used if we have an offset in the image to encode
 
 	struct dpb_item
 	{
