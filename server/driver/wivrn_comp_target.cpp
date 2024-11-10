@@ -575,8 +575,8 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		        {},
 		        {},
 		        barrier);
-		submit_info.setSignalSemaphores(present_done_sem);
 	}
+	submit_info.setSignalSemaphores(present_done_sem);
 #endif
 	command_buffer.end();
 	submit_info.setCommandBuffers(*command_buffer);
