@@ -127,30 +127,6 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		                         vk::to_string(picture_format.format) +
 		                         " for encoder input image");
 
-	if (rect.offset != vk::Offset2D{0, 0})
-	{
-		tmp_image = image_allocation(
-		        vk.device, {
-		                           .pNext = &video_profile_list,
-		                           .imageType = vk::ImageType::e2D,
-		                           .format = picture_format.format,
-		                           .extent = {
-		                                   .width = rect.extent.width,
-		                                   .height = rect.extent.height,
-		                                   .depth = 1,
-		                           },
-		                           .mipLevels = 1,
-		                           .arrayLayers = num_slots,
-		                           .samples = vk::SampleCountFlagBits::e1,
-		                           .tiling = vk::ImageTiling::eOptimal,
-		                           .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eVideoEncodeSrcKHR,
-		                           .sharingMode = vk::SharingMode::eExclusive,
-		                   },
-		        {
-		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        });
-	}
-
 	// Decode picture buffer (DPB) images
 	vk::VideoFormatPropertiesKHR reference_picture_format = select_video_format(
 	        vk.physical_device,
@@ -275,6 +251,36 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	                             .baseArrayLayer = uint32_t(channels),
 	                             .layerCount = 1},
 	};
+
+	if (rect.offset != vk::Offset2D{0, 0})
+	{
+		tmp_image = image_allocation(
+		        vk.device, {
+		                           .pNext = &video_profile_list,
+		                           .imageType = vk::ImageType::e2D,
+		                           .format = picture_format.format,
+		                           .extent = {
+		                                   .width = rect.extent.width,
+		                                   .height = rect.extent.height,
+		                                   .depth = 1,
+		                           },
+		                           .mipLevels = 1,
+		                           .arrayLayers = num_slots,
+		                           .samples = vk::SampleCountFlagBits::e1,
+		                           .tiling = vk::ImageTiling::eOptimal,
+		                           .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eVideoEncodeSrcKHR,
+		                           .sharingMode = vk::SharingMode::eExclusive,
+		                   },
+		        {
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		        });
+		image_view_template.image = vk::Image(tmp_image);
+		for (size_t i = 0; i < num_slots; ++i)
+		{
+			image_view_template.subresourceRange.baseArrayLayer = i;
+			slot_data[i].view = vk.device.createImageView(image_view_template);
+		}
+	}
 
 	// DPB slot info
 	{
@@ -444,6 +450,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	bool encode_direct = rect.offset == vk::Offset2D{0, 0};
 
 	vk::Image src_yuv = encode_direct ? y_cbcr : tmp_image;
+	vk::ImageView image_view;
 
 	if (encode_direct)
 	{
@@ -467,11 +474,18 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        .imageMemoryBarrierCount = 1,
 		        .pImageMemoryBarriers = &video_barrier,
 		});
+
+		auto it = image_views.find(src_yuv);
+		if (it != image_views.end())
+			image_view = *it->second;
+		else
+		{
+			image_view_template.image = src_yuv;
+			image_view = *image_views.emplace(src_yuv, vk.device.createImageView(image_view_template)).first->second;
+		}
 	}
 	else
 	{
-		image_view_template.subresourceRange.baseArrayLayer = encode_slot;
-
 		vk::ImageMemoryBarrier barrier{
 		        .srcAccessMask = vk::AccessFlagBits::eNone,
 		        .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -503,7 +517,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		                vk::ImageCopy{
 		                        .srcSubresource = {
 		                                .aspectMask = vk::ImageAspectFlagBits::ePlane0,
-		                                .baseArrayLayer = 0,
+		                                .baseArrayLayer = uint32_t(channels),
 		                                .layerCount = 1,
 		                        },
 		                        .srcOffset = {
@@ -525,7 +539,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		                vk::ImageCopy{
 		                        .srcSubresource = {
 		                                .aspectMask = vk::ImageAspectFlagBits::ePlane1,
-		                                .baseArrayLayer = 0,
+		                                .baseArrayLayer = uint32_t(channels),
 		                                .layerCount = 1,
 		                        },
 		                        .srcOffset = {
@@ -581,15 +595,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        .imageMemoryBarrierCount = 1,
 		        .pImageMemoryBarriers = &video_barrier,
 		});
-	}
-	auto it = image_views.find(src_yuv);
-	vk::ImageView image_view;
-	if (it != image_views.end())
-		image_view = *it->second;
-	else
-	{
-		image_view_template.image = src_yuv;
-		image_view = *image_views.emplace(src_yuv, vk.device.createImageView(image_view_template)).first->second;
+		image_view = slot_data[encode_slot].view;
 	}
 
 	video_cmd_buf.resetQueryPool(*query_pool, 0, 1);

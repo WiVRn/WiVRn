@@ -48,6 +48,7 @@ class video_encoder_vulkan : public video_encoder
 		vk::raii::Semaphore wait_sem = nullptr;
 		vk::raii::Semaphore sem = nullptr;
 		vk::raii::Fence fence = nullptr;
+		vk::raii::ImageView view = nullptr;
 		buffer_allocation output_buffer;
 		buffer_allocation host_buffer;
 	};
