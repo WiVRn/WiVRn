@@ -60,7 +60,7 @@ See [Server](#server-pc) for the server compile options.
 # Client (headset)
 
 #### Build dependencies
-As Arch package names: git pkgconf glslang cmake jre17-openjdk librsvg cli11 ktx_software-git ([AUR](https://aur.archlinux.org/packages/ktx_software-git))
+As Arch package names: git pkgconf glslang cmake jre17-temurin librsvg cli11 ktx_software-git ([AUR](https://aur.archlinux.org/packages/ktx_software-git))
 
 #### Android environment
 Download [sdkmanager](https://developer.android.com/tools/sdkmanager) commandline tool and extract it to any directory.
@@ -91,7 +91,7 @@ Once you have generated the keys, the apk will be automatically signed at build 
 From the main directory.
 ```bash
 export ANDROID_HOME=~/Android
-export JAVA_HOME=/usr/lib/jvm/openjdk-bin-17/
+export JAVA_HOME=/usr/lib/jvm/java-17-temurin/
 
 ./gradlew assembleStandardRelease
 ```
