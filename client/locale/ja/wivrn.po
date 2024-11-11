@@ -257,15 +257,19 @@ msgstr "ＡまたはＸボタンを押してウィンドウを移動"
 msgid "Reproject"
 msgstr "リプロジェクション"
 
-#: client/scenes/stream_stats.cpp:144
+#: client/scenes/stream_stats.cpp:161
 msgid "Blit"
 msgstr "レンダー"
 
-#: client/scenes/stream_stats.cpp:146
+#: client/scenes/stream_stats.cpp:163
+msgid "Network"
+msgstr "ネットワーク"
+
+#: client/scenes/stream_stats.cpp:163
 msgid "Download"
 msgstr "ダウンロード"
 
-#: client/scenes/stream_stats.cpp:147
+#: client/scenes/stream_stats.cpp:164
 msgid "Upload"
 msgstr "アップロード"
 
