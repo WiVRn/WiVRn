@@ -265,6 +265,16 @@ std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::
 			default:
 				break;
 		}
+	else if (profile == "pico-4")
+		switch (space)
+		{
+			case xr::spaces::grip_left:
+			case xr::spaces::grip_right:
+				return {{0, -0.030, -0.040}, glm::angleAxis(glm::radians(-35.f), glm::vec3{1, 0, 0})};
+
+			default:
+				break;
+		}
 
 	return {{0, 0, 0}, {1, 0, 0, 0}};
 }
