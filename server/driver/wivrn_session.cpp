@@ -221,6 +221,11 @@ wivrn::wivrn_session::wivrn_session(wivrn::TCP && tcp, u_system & system) :
 		roles.gamepad_profile = xdevs[roles.gamepad]->name;
 }
 
+wivrn_session::~wivrn_session()
+{
+	connection.shutdown();
+}
+
 xrt_result_t wivrn::wivrn_session::create_session(wivrn::TCP && tcp,
                                                   u_system & system,
                                                   xrt_system_devices ** out_xsysd,

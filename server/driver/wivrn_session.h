@@ -115,6 +115,8 @@ class wivrn_session : public xrt_system_devices
 	wivrn_session(TCP && tcp, u_system &);
 
 public:
+	~wivrn_session();
+
 	static xrt_result_t create_session(TCP && tcp,
 	                                   u_system & system,
 	                                   xrt_system_devices ** out_xsysd,

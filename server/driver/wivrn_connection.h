@@ -50,6 +50,7 @@ public:
 		return active;
 	}
 	void reset(TCP && tcp);
+	void shutdown();
 
 	template <typename T>
 	void send_control(T && packet)

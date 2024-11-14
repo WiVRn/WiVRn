@@ -150,6 +150,14 @@ void wivrn::wivrn_connection::reset(TCP && tcp)
 	init();
 }
 
+void wivrn::wivrn_connection::shutdown()
+{
+	if (stream)
+		::shutdown(stream.get_fd(), SHUT_RDWR);
+	if (control)
+		::shutdown(control.get_fd(), SHUT_RDWR);
+}
+
 std::optional<wivrn::from_headset::packets> wivrn::wivrn_connection::poll_control(int timeout)
 {
 	pollfd fds{};
