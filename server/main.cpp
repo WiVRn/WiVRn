@@ -357,6 +357,8 @@ void stop_listening()
 
 void start_publishing()
 {
+	if (not avahi_publish)
+		return;
 	if (publisher)
 		return;
 
@@ -638,8 +640,7 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	g_source_unref(control_listener);
 
 	// Initialize avahi publisher
-	if (avahi_publish)
-		start_publishing();
+	start_publishing();
 
 	// Initialize listener
 	start_listening();
