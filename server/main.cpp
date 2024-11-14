@@ -256,8 +256,6 @@ void start_server()
 			close(stdin_pipe_fds[1]);
 		}
 
-		setenv("LISTEN_PID", std::to_string(getpid()).c_str(), true);
-
 		// In most cases there is no server-side reprojection and
 		// there is no need for oversampling.
 		setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", false);
@@ -316,7 +314,6 @@ void kill_app()
 
 void kill_server()
 {
-	// FIXME: server doesn't listen on stdin when used in socket activation mode
 	// Write to the server's stdin to make it quit
 	char buffer[] = "\n";
 	if (write(stdin_pipe_fds[1], &buffer, strlen(buffer)) < 0)
