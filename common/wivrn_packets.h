@@ -235,7 +235,7 @@ struct timesync_response
 struct feedback
 {
 	uint64_t frame_index;
-	uint8_t stream_index; // 0-127 for yuv, 128-255 for alpha
+	uint8_t stream_index;
 
 	// Timestamps
 	XrTime received_first_packet;
@@ -332,7 +332,6 @@ public:
 		end_of_frame = 1 << 2,
 	};
 	// Identifier of stream in video_stream_description
-	// elements > 127 are for alpha
 	uint8_t stream_item_idx;
 	// Counter increased for each frame
 	uint64_t frame_idx;
