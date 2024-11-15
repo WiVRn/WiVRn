@@ -131,13 +131,14 @@ struct pipewire_device : public audio_device
 			};
 			const spa_pod * param = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &info);
 
-			pw_stream_connect(
-			        speaker.get(),
-			        PW_DIRECTION_INPUT,
-			        PW_ID_ANY,
-			        pw_stream_flags(PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS),
-			        &param,
-			        1);
+			if (pw_stream_connect(
+			            speaker.get(),
+			            PW_DIRECTION_INPUT,
+			            PW_ID_ANY,
+			            pw_stream_flags(PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS),
+			            &param,
+			            1) < 0)
+				throw std::runtime_error("failed to connect speaker stream");
 			U_LOG_I("pipewire speaker stream created");
 		}
 
@@ -178,13 +179,14 @@ struct pipewire_device : public audio_device
 			};
 			const spa_pod * param = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &info);
 
-			pw_stream_connect(
-			        microphone.get(),
-			        PW_DIRECTION_OUTPUT,
-			        PW_ID_ANY,
-			        pw_stream_flags(PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS),
-			        &param,
-			        1);
+			if (pw_stream_connect(
+			            microphone.get(),
+			            PW_DIRECTION_OUTPUT,
+			            PW_ID_ANY,
+			            pw_stream_flags(PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS),
+			            &param,
+			            1) < 0)
+				throw std::runtime_error("failed to connect microphone stream");
 			U_LOG_I("pipewire microphone stream created");
 		}
 
