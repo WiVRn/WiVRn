@@ -155,7 +155,15 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
-		info.face_tracking2_fb = config.check_feature(feature::face_tracking);
+
+		if (config.check_feature(feature::face_tracking))
+		{
+			if (application::get_fb_face_tracking2_supported())
+				info.face_tracking = from_headset::face_type::fb2;
+			else if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
+				info.face_tracking = from_headset::face_type::htc;
+		}
+
 		info.palm_pose = application::space(xr::spaces::palm_left) or application::space(xr::spaces::palm_right);
 		info.passthrough = self->system.passthrough_supported() != xr::system::passthrough_type::no_passthrough;
 		info.system_name = std::string(self->system.properties().systemName);

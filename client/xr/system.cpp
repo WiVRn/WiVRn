@@ -123,6 +123,24 @@ XrSystemFaceTrackingProperties2FB xr::system::fb_face_tracking2_properties() con
 	return face_tracking_prop;
 }
 
+XrSystemFacialTrackingPropertiesHTC xr::system::htc_face_tracking_properties() const
+{
+	if (!id)
+		throw std::invalid_argument("this");
+
+	XrSystemFacialTrackingPropertiesHTC face_tracking_prop{
+	        .type = XR_TYPE_SYSTEM_FACIAL_TRACKING_PROPERTIES_HTC,
+	};
+
+	XrSystemProperties prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &face_tracking_prop,
+	};
+	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+	return face_tracking_prop;
+}
+
 xr::system::passthrough_type xr::system::passthrough_supported() const
 {
 	if (utils::contains(environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))

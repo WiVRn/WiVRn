@@ -41,6 +41,7 @@ namespace wivrn
 {
 class wivrn_eye_tracker;
 class wivrn_fb_face2_tracker;
+class wivrn_htc_face_tracker;
 class wivrn_foveation;
 class wivrn_foveation_renderer;
 struct audio_device;
@@ -104,6 +105,7 @@ class wivrn_session : public xrt_system_devices
 	wivrn_controller right_hand;
 	std::unique_ptr<wivrn_eye_tracker> eye_tracker;
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
+	std::unique_ptr<wivrn_htc_face_tracker> htc_face_tracker;
 	std::unique_ptr<wivrn_foveation> foveation;
 	wivrn_comp_target * comp_target;
 

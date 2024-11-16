@@ -130,6 +130,13 @@ struct visibility_mask_changed
 	uint8_t view_index;
 };
 
+enum face_type : uint8_t
+{
+	none,
+	fb2,
+	htc,
+};
+
 struct headset_info_packet
 {
 	uint32_t recommended_eye_width;
@@ -146,9 +153,9 @@ struct headset_info_packet
 	std::array<XrFovf, 2> fov;
 	bool hand_tracking;
 	bool eye_gaze;
-	bool face_tracking2_fb;
 	bool palm_pose;
 	bool passthrough;
+	face_type face_tracking;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 	std::string system_name;
 };
@@ -208,6 +215,15 @@ struct tracking
 		bool is_eye_following_blendshapes_valid;
 	};
 	std::optional<fb_face2> face;
+
+	struct htc_face
+	{
+		std::array<float, XR_FACIAL_EXPRESSION_EYE_COUNT_HTC> eye;
+		std::array<float, XR_FACIAL_EXPRESSION_LIP_COUNT_HTC> lip;
+		bool eye_active;
+		bool lip_active;
+	};
+	std::optional<htc_face> face_htc;
 };
 
 struct trackings
