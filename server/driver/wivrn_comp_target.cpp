@@ -148,7 +148,6 @@ static void create_encoders(wivrn_comp_target * cn)
 		std::string name = "encoder " + std::to_string(group);
 		pthread_setname_np(thread.native_handle(), name.c_str());
 	}
-	cn->pacer.set_stream_count(cn->encoders.size());
 	cn->cnx.send_control(desc);
 }
 

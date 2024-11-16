@@ -55,23 +55,21 @@ private:
 
 	int64_t last_wake_up_ns = 0;
 
-	// Client wait time for each decoder
-	struct stream_data
+	struct frame_time
 	{
-		// server present to client decoded
-		std::vector<int64_t> times;
-		size_t next_times_index = 0;
+		int64_t frame_id = -1;
+		XrTime present = 0;
+		XrTime decoded = 0;
 	};
-	std::vector<stream_data> streams;
+	std::vector<frame_time> frame_times;
 
 	std::array<frame_info, 4> in_flight_frames;
 
 public:
 	wivrn_pacer(uint64_t frame_duration) :
-	        frame_duration_ns(frame_duration)
+	        frame_duration_ns(frame_duration),
+	        frame_times(5000)
 	{}
-
-	void set_stream_count(size_t count);
 
 	void predict(
 	        int64_t & out_frame_id,

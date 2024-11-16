@@ -20,26 +20,14 @@
 #include "wivrn_pacer.h"
 #include "driver/clock_offset.h"
 #include "os/os_time.h"
+#include <algorithm>
 #include <cmath>
 
 namespace wivrn
 {
 
-// How many samples of wait time to store per decoder
-static const size_t num_wait_times = 100;
-// How many samples of wait time are required to use them
-static const size_t min_wait_times = 50;
-
 static const int64_t margin_ns = 3'000'000;
 static const int64_t slop_ns = 500'000;
-
-void wivrn_pacer::set_stream_count(size_t count)
-{
-	std::lock_guard lock(mutex);
-	streams.resize(count);
-	for (auto & stream: streams)
-		stream.times.reserve(num_wait_times);
-}
 
 template <typename T>
 static T lerp_mod(T a, T b, double t, T mod)
@@ -89,50 +77,39 @@ void wivrn_pacer::predict(
 
 void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, const clock_offset & offset)
 {
-	std::lock_guard lock(mutex);
-	if (feedback.stream_index >= streams.size() or feedback.times_displayed > 1 or not feedback.blitted)
+	if (feedback.times_displayed > 1 or not feedback.blitted)
 		return;
 
+	std::lock_guard lock(mutex);
 	auto & when = in_flight_frames[feedback.frame_index % in_flight_frames.size()];
 	if (when.frame_id != feedback.frame_index)
 		return;
 
-	auto & stream = streams[feedback.stream_index];
-	if (stream.times.size() < num_wait_times)
-		stream.times.push_back(offset.from_headset(feedback.received_from_decoder) - when.present_ns);
-	else
+	auto & times = frame_times[feedback.frame_index % frame_times.size()];
+	if (times.frame_id != feedback.frame_index)
 	{
-		stream.times[stream.next_times_index] = offset.from_headset(feedback.received_from_decoder) - when.present_ns;
-		stream.next_times_index = (stream.next_times_index + 1) % num_wait_times;
+		times.frame_id = feedback.frame_index;
+		times.present = when.present_ns;
+		times.decoded = 0;
 	}
+	times.decoded = std::max(times.decoded, offset.from_headset(feedback.received_from_decoder));
 
 	if (feedback.stream_index == 0)
 	{
-		int64_t safe_time = 0;
-		for (const auto & stream: streams)
+		if (feedback.stream_index % 100 == 0)
 		{
-			if (stream.times.size() >= min_wait_times)
+			std::vector<XrDuration> samples;
+			samples.reserve(frame_times.size());
+			for (const auto & time: frame_times)
 			{
-				double mean_time = 0;
-				double time_variance = 0;
-
-				// https://en.wikipedia.org/wiki/Standard_deviation#Rapid_calculation_methods
-				for (size_t i = 0; i < stream.times.size(); ++i)
-				{
-					int64_t t = stream.times[i];
-					double prev_mean = mean_time;
-					mean_time += (t - mean_time) / (i + 1);
-					time_variance += (t - prev_mean) * (t - mean_time);
-				}
-
-				time_variance /= (stream.times.size() - 1);
-				double time_std_dev = std::sqrt(time_variance);
-
-				safe_time = std::max<int64_t>(safe_time, mean_time + 3 * time_std_dev);
+				if (time.decoded > time.present)
+					samples.push_back(time.decoded - time.present);
 			}
+			auto it = samples.begin() + (samples.size() * 995) / 1000;
+
+			std::ranges::nth_element(samples, it);
+			safe_present_to_decoded_ns = *it + 1'000'000;
 		}
-		if (safe_time > 0 and safe_time < 100'000'000)
-			safe_present_to_decoded_ns = std::lerp(safe_present_to_decoded_ns, safe_time, 0.1);
 
 		client_render_phase_ns = lerp_mod<int64_t>(client_render_phase_ns, offset.from_headset(feedback.blitted) % frame_duration_ns, 0.1, frame_duration_ns);
 	}
@@ -182,11 +159,7 @@ wivrn_pacer::frame_info wivrn_pacer::present_to_info(int64_t present)
 void wivrn_pacer::reset()
 {
 	std::lock_guard lock(mutex);
-	for (auto & stream: streams)
-	{
-		stream.times.clear();
-		stream.next_times_index = 0;
-	}
+	std::ranges::fill(frame_times, frame_time{});
 	in_flight_frames = {};
 }
 } // namespace wivrn
