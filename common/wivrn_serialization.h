@@ -807,7 +807,7 @@ struct serialization_traits<std::variant<T...>>
 
 	static size_t size(const std::variant<T...> & value)
 	{
-		return 1 + std::visit([](const auto & x) { return serialized_size(x); });
+		return 1 + std::visit([](const auto & x) { return serialized_size(x); }, value);
 	}
 };
 
