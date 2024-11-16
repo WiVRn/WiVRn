@@ -782,7 +782,7 @@ void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & inf
 
 	wivrn_server_set_hand_tracking(dbus_server, info.hand_tracking);
 	wivrn_server_set_eye_gaze(dbus_server, info.eye_gaze);
-	wivrn_server_set_face_tracking(dbus_server, info.face_tracking2_fb);
+	wivrn_server_set_face_tracking(dbus_server, info.face_tracking != wivrn::from_headset::face_type::none);
 
 	std::vector<const char *> codecs;
 	static const std::map<video_codec, const char *> codec_names = {
