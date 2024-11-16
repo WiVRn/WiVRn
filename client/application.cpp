@@ -779,6 +779,7 @@ void application::initialize()
 	opt_extensions.push_back(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
 	opt_extensions.push_back(XR_HTC_PASSTHROUGH_EXTENSION_NAME);
+	opt_extensions.push_back(XR_HTC_FACIAL_TRACKING_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_FACE_TRACKING2_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_PALM_POSE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
@@ -850,6 +851,15 @@ void application::initialize()
 		fb_face_tracking2_supported = fb_face2_properties.supportsVisualFaceTracking;
 	}
 
+	if (utils::contains(xr_extensions, XR_HTC_FACIAL_TRACKING_EXTENSION_NAME))
+	{
+		XrSystemFacialTrackingPropertiesHTC htc_face_properties = xr_system_id.htc_face_tracking_properties();
+		spdlog::info("    HTC eye tracking support: {}", (bool)htc_face_properties.supportEyeFacialTracking);
+		spdlog::info("    HTC lip tracking support: {}", (bool)htc_face_properties.supportLipFacialTracking);
+		htc_face_tracking_eye_supported = htc_face_properties.supportEyeFacialTracking;
+		htc_face_tracking_lip_supported = htc_face_properties.supportLipFacialTracking;
+	}
+
 	switch (xr_system_id.passthrough_supported())
 	{
 		case xr::system::passthrough_type::no_passthrough:
@@ -903,6 +913,16 @@ void application::initialize()
 	if (fb_face_tracking2_supported)
 	{
 		fb_face_tracker2 = xr_session.create_fb_face_tracker2();
+	}
+
+	if (htc_face_tracking_eye_supported)
+	{
+		htc_face_tracker_eye = xr_session.create_htc_face_tracker(XR_FACIAL_TRACKING_TYPE_EYE_DEFAULT_HTC);
+	}
+
+	if (htc_face_tracking_lip_supported)
+	{
+		htc_face_tracker_lip = xr_session.create_htc_face_tracker(XR_FACIAL_TRACKING_TYPE_LIP_DEFAULT_HTC);
 	}
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;

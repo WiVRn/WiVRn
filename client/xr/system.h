@@ -63,6 +63,7 @@ public:
 	XrSystemHandTrackingPropertiesEXT hand_tracking_properties() const;
 	XrSystemEyeGazeInteractionPropertiesEXT eye_gaze_interaction_properties() const;
 	XrSystemFaceTrackingProperties2FB fb_face_tracking2_properties() const;
+	XrSystemFacialTrackingPropertiesHTC htc_face_tracking_properties() const;
 	passthrough_type passthrough_supported() const;
 
 	XrGraphicsRequirementsVulkan2KHR graphics_requirements() const;

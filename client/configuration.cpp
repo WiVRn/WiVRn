@@ -104,9 +104,16 @@ bool configuration::check_feature(feature f) const
 					return false;
 				break;
 			case feature::face_tracking:
-				if (not application::get_fb_face_tracking2_supported())
-					return false;
-				break;
+				switch (guess_model())
+				{
+					case model::htc_vive_focus_3:
+					case model::htc_vive_xr_elite:
+						if (not(application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported()))
+							return false;
+					default:
+						if (not application::get_fb_face_tracking2_supported())
+							return false;
+				}
 		}
 	}
 #ifdef __ANDROID__

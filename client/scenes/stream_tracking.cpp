@@ -19,6 +19,7 @@
 
 #include "application.h"
 #include "stream.h"
+#include "wivrn_packets.h"
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -192,7 +193,14 @@ void scenes::stream::tracking()
 	int skip_samples = 0;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
-	const bool face_tracking = config.check_feature(feature::face_tracking);
+	from_headset::face_type face_tracking = from_headset::face_type::none;
+	if (config.check_feature(feature::face_tracking))
+	{
+		if (application::get_fb_face_tracking2_supported())
+			face_tracking = from_headset::face_type::fb2;
+		else if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
+			face_tracking = from_headset::face_type::htc;
+	}
 
 	while (not exiting)
 	{
@@ -266,9 +274,25 @@ void scenes::stream::tracking()
 							        locate_hands(application::get_right_hand(), world_space, t0 + Δt));
 					}
 
-					if (face_tracking and control.enabled[size_t(tid::face)])
+					if (control.enabled[size_t(tid::face)])
 					{
-						application::get_fb_face_tracker2().get_weights(t0 + Δt, packet.face.emplace());
+						switch (face_tracking)
+						{
+							case wivrn::from_headset::face_type::none:
+								break;
+							case wivrn::from_headset::face_type::fb2:
+								application::get_fb_face_tracker2().get_weights(t0 + Δt, packet.face.emplace());
+								break;
+							case wivrn::from_headset::face_type::htc:
+								auto face_htc = packet.face_htc.emplace();
+								face_htc.eye_active = false;
+								face_htc.lip_active = false;
+								if (application::get_htc_face_tracking_eye_supported())
+									application::get_htc_face_tracker_eye().get_weights(t0 + Δt, face_htc);
+								if (application::get_htc_face_tracking_lip_supported())
+									application::get_htc_face_tracker_lip().get_weights(t0 + Δt, face_htc);
+								break;
+						}
 					}
 				}
 				catch (const std::system_error & e)

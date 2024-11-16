@@ -83,6 +83,7 @@ add_executable(wivrn-server
 		driver/wivrn_controller.cpp
 		driver/wivrn_eye_tracker.cpp
 		driver/wivrn_fb_face2_tracker.cpp
+		driver/wivrn_htc_face_tracker.cpp
 		driver/wivrn_foveation.cpp
 		driver/pose_list.cpp
 		driver/view_list.cpp

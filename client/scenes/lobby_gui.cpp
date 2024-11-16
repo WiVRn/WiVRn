@@ -1106,6 +1106,17 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
+	if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
+	{
+		items.push_back({
+		        .f = feature::face_tracking,
+		        .tooltip_enabled = _("Face tracking is enabled"),
+		        .tooltip_disabled = _("Face tracking is disabled"),
+		        .icon_enabled = ICON_FA_FACE_KISS_WINK_HEART,
+		        .icon_disabled = ICON_FA_FACE_MEH_BLANK,
+		});
+	}
+
 	// Get statuses
 	for (auto & i: items)
 	{
