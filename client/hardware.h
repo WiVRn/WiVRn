@@ -31,6 +31,7 @@ enum class model
 	oculus_quest_2,
 	meta_quest_pro,
 	meta_quest_3,
+	meta_quest_3s,
 	pico_neo_3,
 	pico_4,
 	htc_vive_focus_3,

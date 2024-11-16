@@ -62,6 +62,8 @@ static model guess_model_()
 		return model::meta_quest_pro;
 	if (device == "eureka")
 		return model::meta_quest_3;
+	if (device == "panther")
+		return model::meta_quest_3s;
 	if (model == "Lynx-R1")
 		return model::lynx_r1;
 
@@ -113,6 +115,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 		case model::oculus_quest:
 			return scale_view(view, 1440);
 		case model::oculus_quest_2:
+		case model::meta_quest_3s:
 			return scale_view(view, 1832);
 		case model::meta_quest_pro:
 			return scale_view(view, 1800);
@@ -143,6 +146,7 @@ bool need_srgb_conversion(model m)
 		case model::oculus_quest_2:
 		case model::meta_quest_pro:
 		case model::meta_quest_3:
+		case model::meta_quest_3s:
 		case model::pico_neo_3:
 		case model::pico_4:
 		case model::htc_vive_focus_3:
@@ -168,6 +172,7 @@ const char * permission_name(feature f)
 				case model::oculus_quest_2:
 				case model::meta_quest_pro:
 				case model::meta_quest_3:
+				case model::meta_quest_3s:
 					return "com.oculus.permission.EYE_TRACKING";
 				case model::pico_neo_3:
 				case model::pico_4:
@@ -186,6 +191,7 @@ const char * permission_name(feature f)
 				case model::oculus_quest_2:
 				case model::meta_quest_pro:
 				case model::meta_quest_3:
+				case model::meta_quest_3s:
 					return "com.oculus.permission.FACE_TRACKING";
 				case model::pico_neo_3:
 				case model::pico_4:
@@ -217,6 +223,7 @@ std::string controller_name()
 		case model::meta_quest_pro:
 			return "meta-quest-touch-pro";
 		case model::meta_quest_3:
+		case model::meta_quest_3s:
 			return "meta-quest-touch-plus";
 		case model::pico_neo_3:
 			return "pico-neo3";
