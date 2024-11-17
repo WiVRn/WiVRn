@@ -37,14 +37,14 @@ class wivrn_connection
 	typed_socket<TCP, from_headset::packets, to_headset::packets> control;
 	typed_socket<UDP, from_headset::packets, to_headset::packets> stream;
 	std::atomic<bool> active = false;
-	std::string pin;
+	std::optional<std::string> pin;
 
 	wivrn::from_headset::headset_info_packet info_packet;
 
 	void init(std::stop_token stop_token, std::function<void()> tick = []() {});
 
 public:
-	wivrn_connection(std::stop_token stop_token, const std::string & pin, TCP && tcp);
+	wivrn_connection(std::stop_token stop_token, std::optional<std::string> pin, TCP && tcp);
 	wivrn_connection(const wivrn_connection &) = delete;
 	wivrn_connection & operator=(const wivrn_connection &) = delete;
 

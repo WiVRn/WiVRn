@@ -204,7 +204,8 @@ bool avahi_publish;
 
 guint listener_watch;
 
-std::string pin;
+bool disable_encryption;
+std::optional<std::string> pin;
 
 WivrnServer * dbus_server;
 
@@ -521,16 +522,23 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 
 void choose_pin()
 {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_int_distribution<> distrib(0, 999999);
+	if (disable_encryption)
+	{
+		std::cerr << "Encryption is disabled" << std::endl;
+	}
+	else
+	{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_int_distribution<> distrib(0, 999999);
 
-	char buffer[7];
-	snprintf(buffer, 7, "%06d", distrib(gen));
-	pin = buffer;
-	std::cerr << "PIN code: " << pin << std::endl;
+		char buffer[7];
+		snprintf(buffer, 7, "%06d", distrib(gen));
+		pin = buffer;
+		std::cerr << "PIN code: " << *pin << std::endl;
 
-	wivrn_server_set_pin(dbus_server, buffer);
+		wivrn_server_set_pin(dbus_server, buffer);
+	}
 }
 
 gboolean on_handle_disconnect(WivrnServer * skeleton,
@@ -806,6 +814,7 @@ int main(int argc, char * argv[])
 	auto no_instructions = app.add_flag("--no-instructions")->group("");
 	auto no_fork = app.add_flag("--no-fork")->description("disable fork to serve connection")->group("Debug");
 	auto no_publish = app.add_flag("--no-publish-service")->description("disable publishing the service through avahi");
+	auto no_encrypt = app.add_flag("--no-encrypt")->description("disable encryption")->group("Debug");
 #if WIVRN_USE_SYSTEMD
 	// --application should only be used from wivrn-application unit file
 	auto app_flag = app.add_flag("--application")->group("");
@@ -816,6 +825,7 @@ int main(int argc, char * argv[])
 
 	do_fork = not *no_fork;
 	avahi_publish = not *no_publish;
+	disable_encryption = (bool)*no_encrypt;
 
 	if (not config_file.empty())
 		configuration::set_config_file(config_file);

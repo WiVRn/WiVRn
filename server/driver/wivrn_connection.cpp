@@ -50,7 +50,7 @@ static std::string clean_key(std::string key)
 	return key;
 }
 
-wivrn::wivrn_connection::wivrn_connection(std::stop_token stop_token, const std::string & pin, TCP && tcp) :
+wivrn::wivrn_connection::wivrn_connection(std::stop_token stop_token, std::optional<std::string> pin, TCP && tcp) :
         control(std::move(tcp)),
         stream(-1),
         pin(pin)
@@ -158,25 +158,36 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 
 	// Wait for client to send handshake packet
 	auto crypto_handshake = std::get<from_headset::crypto_handshake>(receive(10s).first);
-	crypto::key headset_key = crypto::key::from_public_key(crypto_handshake.public_key);
 
+	crypto::key headset_key = crypto::key::from_public_key(crypto_handshake.public_key);
 	bool is_public_key_known = std::ranges::any_of(
 	        wivrn::known_keys(),
 	        [key = clean_key(crypto_handshake.public_key)](const wivrn::headset_key & k) {
 		        return k.public_key == key;
 	        });
 
-	// Generate an ephemeral key pair just for exchanging the AES key
-	crypto::key server_key = crypto::key::generate_x448_keypair();
+	if (pin)
+	{
+		// Generate an ephemeral key pair just for exchanging the AES key
+		crypto::key server_key = crypto::key::generate_x448_keypair();
 
-	control.send(to_headset::crypto_handshake{
-	        .public_key = server_key.public_key(),
-	        .pin_required = not is_public_key_known,
-	});
+		control.send(to_headset::crypto_handshake{
+		        .public_key = server_key.public_key(),
+		        .pin_required = not is_public_key_known,
+		});
 
-	secrets s{server_key, headset_key, is_public_key_known ? "000000" : pin};
-	control.set_aes_key_and_ivs(s.control_key, s.control_iv_from_headset, s.control_iv_to_headset);
-	stream.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_from_headset, s.stream_iv_header_to_headset);
+		secrets s{server_key, headset_key, is_public_key_known ? "000000" : *pin};
+		control.set_aes_key_and_ivs(s.control_key, s.control_iv_from_headset, s.control_iv_to_headset);
+		stream.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_from_headset, s.stream_iv_header_to_headset);
+	}
+	else
+	{
+		// Encryption and authentication are disabled
+		control.send(to_headset::crypto_handshake{
+		        .public_key = "",
+		        .pin_required = false,
+		});
+	}
 
 	// Wait for confirmation that the client has set up encryption
 	if (not std::holds_alternative<from_headset::crypto_handshake>(receive().first))
@@ -208,7 +219,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 
 	active = true;
 
-	if (not is_public_key_known)
+	if (pin and not is_public_key_known)
 		wivrn::add_known_key({
 		        .public_key = clean_key(headset_key.public_key()),
 		        .name = crypto_handshake.name,

@@ -99,26 +99,44 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 
 	to_headset::crypto_handshake crypto_handshake = std::get<to_headset::crypto_handshake>(receive(10s));
 
-	crypto::key server_key = crypto::key::from_public_key(crypto_handshake.public_key);
-
-	const std::string pin = crypto_handshake.pin_required ? pin_enter(control.get_fd()) : "000000";
-
-	spdlog::info("Using pin \"{}\"", pin);
-
-	secrets s{headset_keypair, server_key, pin};
-	control.set_aes_key_and_ivs(s.control_key, s.control_iv_to_headset, s.control_iv_from_headset);
-
-	// Confirm that encryption is set up
-	send_control(from_headset::crypto_handshake{});
-
-	to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
-	if (h.stream_port > 0 && !tcp_only)
+	if (crypto_handshake.public_key != "")
 	{
-		stream = decltype(stream)();
+		crypto::key server_key = crypto::key::from_public_key(crypto_handshake.public_key);
 
-		stream.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_to_headset, s.stream_iv_header_from_headset);
-		stream.connect(address, h.stream_port);
-		init_stream(stream);
+		const std::string pin = crypto_handshake.pin_required ? pin_enter(control.get_fd()) : "000000";
+
+		spdlog::info("Using pin \"{}\"", pin);
+
+		secrets s{headset_keypair, server_key, pin};
+		control.set_aes_key_and_ivs(s.control_key, s.control_iv_to_headset, s.control_iv_from_headset);
+
+		// Confirm that encryption is set up
+		send_control(from_headset::crypto_handshake{});
+
+		to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
+		if (h.stream_port > 0 && !tcp_only)
+		{
+			stream = decltype(stream)();
+
+			stream.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_to_headset, s.stream_iv_header_from_headset);
+			stream.connect(address, h.stream_port);
+			init_stream(stream);
+		}
+	}
+	else
+	{
+		spdlog::info("Encryption is disabled on server");
+
+		send_control(from_headset::crypto_handshake{});
+
+		to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
+		if (h.stream_port > 0 && !tcp_only)
+		{
+			stream = decltype(stream)();
+
+			stream.connect(address, h.stream_port);
+			init_stream(stream);
+		}
 	}
 
 	// may be on control socket if forced TCP
