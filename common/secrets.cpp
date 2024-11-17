@@ -24,7 +24,7 @@
 secrets::secrets(crypto::key & my_key, crypto::key & peer_key, const std::string & pin)
 {
 	std::vector<uint8_t> dh = crypto::key::diffie_hellman(my_key, peer_key);
-	std::vector<uint8_t> secret = crypto::argon2(pin, "saltsalt", dh, sizeof(*this));
+	std::vector<uint8_t> secret = crypto::pbkdf2(pin, "saltsalt", dh, sizeof(*this));
 
 	static_assert(std::is_standard_layout_v<secrets>);
 	static_assert(std::has_unique_object_representations_v<secrets>);

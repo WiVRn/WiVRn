@@ -182,6 +182,6 @@ public:
 };
 
 // Salt must be at least 8 characters
-std::vector<uint8_t> argon2(std::string pass, std::string salt, std::span<uint8_t> secret, size_t size);
+std::vector<uint8_t> pbkdf2(std::string pass, std::string salt, std::span<uint8_t> secret, size_t size);
 
 } // namespace crypto

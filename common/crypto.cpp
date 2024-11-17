@@ -25,7 +25,6 @@
 #include <openssl/kdf.h>
 #include <openssl/params.h>
 #include <openssl/pem.h>
-// #include <openssl/thread.h>
 #include <stdexcept>
 #include <string>
 
@@ -506,27 +505,16 @@ void decrypt_context::decrypt_in_place(std::span<std::span<uint8_t>> text)
 	}
 }
 
-std::vector<uint8_t> argon2(std::string pass, std::string salt, std::span<uint8_t> secret, size_t size)
+std::vector<uint8_t> pbkdf2(std::string pass, std::string salt, std::span<uint8_t> secret, size_t size)
 {
-	/* argon2 params, please refer to RFC9106 for recommended defaults */
-	uint32_t lanes = 2;
-	uint32_t threads = 2;
-	uint32_t memcost = 65536;
-
-	// if (OSSL_set_max_threads(nullptr, threads) != 1)
-	// 	throw_openssl_error();
-
 	std::array params{
-	        OSSL_PARAM_construct_uint32(OSSL_KDF_PARAM_THREADS, &threads),
-	        OSSL_PARAM_construct_uint32(OSSL_KDF_PARAM_ARGON2_LANES, &lanes),
-	        OSSL_PARAM_construct_uint32(OSSL_KDF_PARAM_ARGON2_MEMCOST, &memcost),
 	        OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SALT, salt.data(), salt.size()),
 	        OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_PASSWORD, pass.data(), pass.size()),
 	        OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SECRET, secret.data(), secret.size()),
 	        OSSL_PARAM_construct_end(),
 	};
 
-	details::kdf_context kdf{"ARGON2I"};
+	details::kdf_context kdf{"PBKDF2"};
 
 	std::vector<uint8_t> result;
 	result.resize(size);
