@@ -18,10 +18,7 @@
  */
 
 #define JSON_DISABLE_ENUM_SERIALIZATION 1
-#ifdef JSON_DIAGNOSTICS
-#undef JSON_DIAGNOSTICS
-#endif
-#define JSON_DIAGNOSTICS 1
+
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -216,7 +213,7 @@ static void save_keys(const std::vector<headset_key> & keys)
 
 	for (const auto & key: keys)
 	{
-		json.push_back(nlohmann::json{
+		json.push_back({
 		        {"key", key.public_key},
 		        {"name", key.name},
 		});

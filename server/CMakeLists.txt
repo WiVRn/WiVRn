@@ -199,6 +199,8 @@ target_link_libraries(
 		nlohmann_json::nlohmann_json
 	)
 
+target_compile_definitions(wivrn-server PRIVATE JSON_DIAGNOSTICS=1)
+
 configure_file(dist/wivrn.service.in wivrn.service)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn.service
 	DESTINATION lib/systemd/user/)

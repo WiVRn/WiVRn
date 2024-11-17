@@ -68,6 +68,8 @@ target_link_libraries(wivrn-dashboard PRIVATE
         wivrn-common-base
 )
 
+target_compile_definitions(wivrn-dashboard PRIVATE JSON_DIAGNOSTICS=1)
+
 if (WIVRN_CHECK_CAPSYSNICE)
     target_link_libraries(wivrn-dashboard PRIVATE PkgConfig::libcap)
 endif()
