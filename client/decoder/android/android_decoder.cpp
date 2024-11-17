@@ -94,7 +94,7 @@ decoder::decoder(
 	              description.video_width,
 	              description.video_height,
 	              AIMAGE_FORMAT_PRIVATE,
-	              AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE,
+	              AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_CPU_WRITE_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE,
 	              scenes::stream::image_buffer_size + 4 /* maxImages */,
 	              &ir),
 	      "AImageReader_newWithUsage");
