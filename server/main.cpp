@@ -148,17 +148,26 @@ static std::filesystem::path flatpak_app_path()
 static std::string steam_command()
 {
 	std::string pressure_vessel_filesystems_rw = "$XDG_RUNTIME_DIR/" XRT_IPC_MSG_SOCK_FILENAME;
+	std::string vr_override;
 
 	// Check if in a flatpak
 	if (is_flatpak())
 	{
 		std::string app_path = flatpak_app_path().string();
 		// /usr and /var are remapped by steam
-		if (app_path.starts_with("/usr") or app_path.starts_with("/var"))
+		if (app_path.starts_with("/var"))
 			pressure_vessel_filesystems_rw += ":" + app_path;
 	}
+	else if (auto p = active_runtime::opencomposite_path().string(); not p.empty())
+	{
+		// /usr cannot be shared in pressure vessel container
+		if (p.starts_with("/usr"))
+			vr_override = " VR_OVERRIDE=/run/host" + p;
+		else if (p.starts_with("/var"))
+			pressure_vessel_filesystems_rw += ":" + p;
+	}
 
-	std::string command = "PRESSURE_VESSEL_FILESYSTEMS_RW=" + pressure_vessel_filesystems_rw + " %command%";
+	std::string command = "PRESSURE_VESSEL_FILESYSTEMS_RW=" + pressure_vessel_filesystems_rw + vr_override + " %command%";
 
 	if (auto p = active_runtime::manifest_path().string(); p.starts_with("/usr"))
 		command = "XR_RUNTIME_JSON=/run/host" + p + " " + command;

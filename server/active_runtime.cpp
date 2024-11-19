@@ -46,17 +46,23 @@ std::filesystem::path active_runtime::manifest_path()
 	return std::filesystem::path(WIVRN_INSTALL_PREFIX) / install_location;
 }
 
+std::filesystem::path active_runtime::opencomposite_path()
+{
+	std::filesystem::path OpenComposite = "OpenComposite";
+	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
+		return *path / OpenComposite;
+	for (auto path: std::ranges::split_view(std::string_view(OPENCOMPOSITE_SEARCH_PATH), std::string_view(":")))
+	{
+		if (auto res = std::string_view(path) / OpenComposite; std::filesystem::exists(res))
+			return res;
+	}
+	return {};
+}
+
 static std::filesystem::path backup_name(std::filesystem::path file)
 {
 	file += ".wivrn-backup";
 	return file;
-}
-
-static std::filesystem::path find_opencomposite()
-{
-	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
-		return *path + "/OpenComposite";
-	return {};
 }
 
 static void move_file(const std::filesystem::path & from, const std::filesystem::path & to)
@@ -85,7 +91,7 @@ active_runtime::active_runtime() :
 
 	try
 	{
-		auto opencomposite = find_opencomposite();
+		auto opencomposite = opencomposite_path();
 		if (not opencomposite.empty())
 		{
 			std::filesystem::path openvr_manifest = xdg_config_home() / "openvr/openvrpaths.vrpath";
