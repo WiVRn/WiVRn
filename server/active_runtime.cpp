@@ -22,7 +22,9 @@
 #include "utils/xdg_base_directory.h"
 #include "wivrn_config.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 
 namespace wivrn
 {
@@ -50,6 +52,13 @@ static std::filesystem::path backup_name(std::filesystem::path file)
 	return file;
 }
 
+static std::filesystem::path find_opencomposite()
+{
+	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
+		return *path + "/OpenComposite";
+	return {};
+}
+
 static void move_file(const std::filesystem::path & from, const std::filesystem::path & to)
 {
 	if (not std::filesystem::exists(from))
@@ -73,13 +82,38 @@ active_runtime::active_runtime() :
 	{
 		std::cerr << "Cannot set active OpenXR runtime: " << e.what() << std::endl;
 	}
+
+	try
+	{
+		auto opencomposite = find_opencomposite();
+		if (not opencomposite.empty())
+		{
+			std::filesystem::path openvr_manifest = xdg_config_home() / "openvr/openvrpaths.vrpath";
+			std::filesystem::create_directories(openvr_manifest.parent_path());
+			move_file(openvr_manifest, backup_name(openvr_manifest));
+
+			nlohmann::json manifest;
+			manifest["runtime"] = {opencomposite.string()};
+			manifest["version"] = 1;
+			std::ofstream manifest_file(openvr_manifest.c_str());
+			manifest_file.exceptions(std::ofstream::failbit);
+			manifest_file << manifest;
+			this->openvr_manifest = openvr_manifest;
+		}
+	}
+	catch (std::exception & e)
+	{
+		std::cerr << "Cannot set active OpenXR runtime: " << e.what() << std::endl;
+	}
 }
 
 active_runtime::~active_runtime()
 {
+	if (pid != getpid())
+		return;
 	try
 	{
-		if (pid == getpid() && to_be_deleted)
+		if (to_be_deleted)
 		{
 			std::filesystem::remove(active_runtime_json);
 			move_file(backup_name(active_runtime_json), active_runtime_json);
@@ -88,6 +122,19 @@ active_runtime::~active_runtime()
 	catch (std::exception & e)
 	{
 		std::cerr << "Cannot unset active OpenXR runtime: " << e.what() << std::endl;
+	}
+
+	try
+	{
+		if (not openvr_manifest.empty())
+		{
+			std::filesystem::remove(openvr_manifest);
+			move_file(backup_name(openvr_manifest), openvr_manifest);
+		}
+	}
+	catch (std::exception & e)
+	{
+		std::cerr << "Cannot unset active OpenVR runtime: " << e.what() << std::endl;
 	}
 }
 } // namespace wivrn

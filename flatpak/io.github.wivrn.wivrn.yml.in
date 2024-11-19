@@ -3,7 +3,7 @@ id: io.github.wivrn.wivrn
 runtime: org.kde.Platform
 runtime-version: '6.7'
 sdk: org.kde.Sdk
-command: launch-wivrn-dashboard
+command: wivrn-dashboard
 
 finish-args:
   # X11 + XShm access
@@ -179,9 +179,6 @@ modules:
       - type: shell
         commands:
          - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado
-      - type: shell
-        commands:
-         - sed -i "s,Exec=.*$,Exec=${FLATPAK_DEST}/bin/launch-wivrn-dashboard," dashboard/io.github.wivrn.wivrn.desktop.in
 
   - name: opencomposite
     buildsystem: cmake-ninja
@@ -192,32 +189,3 @@ modules:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
         tag: 402aff64a7f60dc142fd50d0da6ae5214cdfdc49
-
-  - name: launcher
-    buildsystem: simple
-    build-commands:
-      - install -Dm755 launch-wivrn-dashboard.sh ${FLATPAK_DEST}/bin/launch-wivrn-dashboard
-    sources:
-      - type: script
-        dest-filename: launch-wivrn-dashboard.sh
-        commands:
-          - if [ -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath ]
-          - then
-          -         mv $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
-          - else
-          -         rm -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup
-          - fi
-          -
-          - cleanup() {
-          -         rm -f $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-          -         if [ -f $XDG_CONFIG_HOME/openvrpaths.vrpath-backup ]
-          -         then
-          -                 mv $XDG_CONFIG_HOME/openvrpaths.vrpath-backup $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-          -         fi
-          -         trap - EXIT
-          - '}'
-          -
-          - sed -ne 's#app-path=\(.*\)#{"runtime":["\1/OpenComposite"],"version":1}#p' /.flatpak-info > $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath && trap cleanup EXIT INT TERM HUP
-          - chmod -w $XDG_CONFIG_HOME/openvr/openvrpaths.vrpath
-          -
-          - wivrn-dashboard "$@"
