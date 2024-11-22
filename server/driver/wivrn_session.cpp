@@ -90,6 +90,14 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	}
 };
 
+bool is_forced_extension(const char * ext_name)
+{
+	const char * val = std::getenv("WIVRN_FORCE_EXTENSIONS");
+	if (not val)
+		return false;
+	return strstr(val, ext_name);
+}
+
 void wivrn::tracking_control_t::send(wivrn_connection & connection)
 {
 	if (std::chrono::steady_clock::now() < next_sample)
@@ -186,15 +194,14 @@ wivrn::wivrn_session::wivrn_session(wivrn::TCP && tcp, u_system & system) :
 		}
 	}
 #endif
-
-	if (info.eye_gaze)
+	if (info.eye_gaze || is_forced_extension("EXT_eye_gaze_interaction"))
 	{
 		eye_tracker = std::make_unique<wivrn_eye_tracker>(&hmd);
 		foveation = std::make_unique<wivrn_foveation>();
 		static_roles.eyes = eye_tracker.get();
 		xdevs[xdev_count++] = eye_tracker.get();
 	}
-	if (info.face_tracking2_fb)
+	if (info.face_tracking2_fb || is_forced_extension("FB_face_tracking2"))
 	{
 		fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(&hmd, *this);
 		static_roles.face = fb_face2_tracker.get();
