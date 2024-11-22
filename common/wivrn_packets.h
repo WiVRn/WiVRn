@@ -38,7 +38,7 @@ namespace wivrn
 // Default port for server to listen, both TCP and UDP
 static const int default_port = 9757;
 
-static constexpr int protocol_revision = 0;
+static constexpr int protocol_revision = 1;
 
 enum class device_id : uint8_t
 {
@@ -396,8 +396,9 @@ struct tracking_control
 		right_hand,
 		face,
 		battery,
+		microphone,
 
-		last = battery,
+		last = microphone,
 	};
 	std::chrono::nanoseconds offset;
 	std::array<bool, size_t(id::last) + 1> enabled;

@@ -72,6 +72,8 @@ public:
 
 	void operator()(wivrn::audio_data &&);
 
+	void set_mic_sate(bool running);
+
 	static void get_audio_description(wivrn::from_headset::headset_info_packet & info);
 };
 } // namespace wivrn::android
