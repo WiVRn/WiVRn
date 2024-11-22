@@ -1,0 +1,57 @@
+From a2f0862083a73423addc05ed8347c8e039adf346 Mon Sep 17 00:00:00 2001
+From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+Date: Sat, 23 Nov 2024 02:42:12 +0900
+Subject: [PATCH 1/1] change environment blend mode selection logic
+
+---
+ src/xrt/compositor/multi/comp_multi_system.c | 26 +++++++++++++-------
+ 1 file changed, 17 insertions(+), 9 deletions(-)
+
+diff --git a/src/xrt/compositor/multi/comp_multi_system.c b/src/xrt/compositor/multi/comp_multi_system.c
+index b06b03a58..dfbd36ed0 100644
+--- a/src/xrt/compositor/multi/comp_multi_system.c
++++ b/src/xrt/compositor/multi/comp_multi_system.c
+@@ -230,23 +230,31 @@ find_active_blend_mode(struct multi_compositor **overlay_sorted_clients, size_t
+ 	if (overlay_sorted_clients == NULL)
+ 		return XRT_BLEND_MODE_OPAQUE;
+ 
+-	const struct multi_compositor *first_visible = NULL;
++	enum xrt_blend_mode chosen_mode = 0;
+ 	for (size_t k = 0; k < size; ++k) {
+ 		const struct multi_compositor *mc = overlay_sorted_clients[k];
+ 		assert(mc != NULL);
+ 
+-		// if a focused client is found just return, "first_visible" has lower priority and can be ignored.
+-		if (mc->state.focused) {
+-			assert(mc->state.visible);
+-			return mc->delivered.data.env_blend_mode;
++		if (!mc->state.visible) {
++			continue;
++		}
++
++		// if any uses opaque, use opaque
++		if (mc->delivered.data.env_blend_mode == XRT_BLEND_MODE_OPAQUE) {
++			return XRT_BLEND_MODE_OPAQUE;
+ 		}
+ 
+-		if (first_visible == NULL && mc->state.visible) {
+-			first_visible = mc;
++		// if all use the same mode, use that mode
++		if (chosen_mode == 0) {
++			chosen_mode = mc->delivered.data.env_blend_mode;
++		} else if (chosen_mode != mc->delivered.data.env_blend_mode) {
++			// TODO: account for the case of mixed ALPHA_BLEND and ADDITIVE
++			return XRT_BLEND_MODE_OPAQUE;
+ 		}
+ 	}
+-	if (first_visible != NULL)
+-		return first_visible->delivered.data.env_blend_mode;
++	if (chosen_mode != 0)
++		return chosen_mode;
++	// no visible clients
+ 	return XRT_BLEND_MODE_OPAQUE;
+ }
+ 
+-- 
+2.45.2
+
