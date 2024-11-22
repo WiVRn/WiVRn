@@ -144,7 +144,8 @@ class lobby : public scene_impl<lobby>
 	std::string pin_buffer;
 
 	void draw_features_status(XrTime predicted_display_time);
-	void gui_connecting();
+	void gui_connecting(locked_notifiable<pin_request_data> & request);
+	void gui_enter_pin(locked_notifiable<pin_request_data> & request);
 	void gui_server_list();
 	void gui_new_server();
 	void gui_settings();

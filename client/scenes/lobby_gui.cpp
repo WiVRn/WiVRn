@@ -135,6 +135,7 @@ void scenes::lobby::tooltip(std::string_view text)
 	};
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::tooltip_rounding);
 
 	// Clamp position to avoid overflowing on the right
 	auto & style = ImGui::GetStyle();
@@ -151,7 +152,7 @@ void scenes::lobby::tooltip(std::string_view text)
 		ImGui::EndTooltip();
 	}
 
-	ImGui::PopStyleVar();
+	ImGui::PopStyleVar(2);
 
 	viewport->Pos = pos_backup;
 	viewport->Size = size_backup;
@@ -163,101 +164,148 @@ void scenes::lobby::vibrate_on_hover()
 		hovered_item = ImGui::GetItemID();
 }
 
-void scenes::lobby::gui_connecting()
+void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_request)
 {
 	using constants::style::button_size;
 
-	ImVec2 size{600, 0};
+	std::string close_button_label = _("Cancel");
 
-	auto pin_request = this->pin_request.lock();
-
-	std::string button_label = _("Cancel");
-
-	if (pin_request->pin_requested)
+	std::string status;
+	if (next_scene)
 	{
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {30, 30});
-		ImGui::PushFont(imgui_ctx->large_font);
-		ImGui::Text("%s", _S("Enter the PIN"));
-		if (ImGui::IsWindowAppearing())
-			ImGui::SetKeyboardFocusHere();
-		InputText("##PIN", pin_buffer, size, ImGuiInputTextFlags_CharsDecimal);
-		ImGui::PopFont();
-
-		ImGui::BeginDisabled(pin_buffer.size() != 6);
-		if (ImGui::Button("OK", button_size))
-		{
-			pin_request->pin = pin_buffer;
-			pin_request->pin_requested = false;
-			pin_request.notify_one();
-		}
-		vibrate_on_hover();
-		ImGui::EndDisabled();
-
-		ImGui::SameLine();
-		ImGui::Dummy({size.x - 2 * button_size.x - 2 * ImGui::GetStyle().ItemSpacing.x, 0});
-
-		ImGui::SameLine();
-		if (ImGui::Button(button_label.c_str(), button_size))
-		{
-			async_session.cancel();
-			next_scene.reset();
-			pin_request->pin_cancelled = true;
-			pin_request.notify_one();
-
-			ImGui::CloseCurrentPopup();
-		}
-		vibrate_on_hover();
-		ImGui::PopStyleVar(); // ItemSpacing
+		if (next_scene->current_state() == scenes::stream::state::stalled)
+			status = _("Video stream interrupted");
+		else if (server_name == "")
+			status = fmt::format(_F("Connection ready\nStart a VR application on your computer"));
+		else
+			status = fmt::format(_F("Connection ready\nStart a VR application on {}"), server_name);
 	}
+	else if (async_session.valid())
+		status = async_session.get_progress();
+	else if (async_error)
+		status = *async_error;
 	else
 	{
-		std::string status;
-		if (next_scene)
-		{
-			if (next_scene->current_state() == scenes::stream::state::stalled)
-				status = _("Video stream interrupted");
-			else if (server_name == "")
-				status = fmt::format(_F("Connection ready\nStart a VR application on your computer"));
-			else
-				status = fmt::format(_F("Connection ready\nStart a VR application on {}"), server_name);
-		}
-		else if (async_session.valid())
-			status = async_session.get_progress();
-		else if (async_error)
-			status = *async_error;
-		else
-		{
-			ImGui::CloseCurrentPopup();
-			return;
-		}
-
-		if (async_error)
-			button_label = _("Close");
-
-		ImGui::Dummy({1000, 1});
-
-		ImGui::PushFont(imgui_ctx->large_font);
-		if (server_name == "")
-			CenterTextH(fmt::format(_F("Connection")));
-		else
-			CenterTextH(fmt::format(_F("Connection to {}"), server_name));
-		ImGui::PopFont();
-
-		// ImGui::TextWrapped("%s", status.first.c_str());
-		ImGui::Text("%s", status.c_str());
-
-		ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
-
-		if (ImGui::Button(button_label.c_str(), button_size))
-		{
-			async_session.cancel();
-			next_scene.reset();
-			pin_request->pin_cancelled = true;
-
-			ImGui::CloseCurrentPopup();
-		}
-		vibrate_on_hover();
+		ImGui::CloseCurrentPopup();
+		return;
 	}
+
+	if (async_error)
+		close_button_label = _("Close");
+
+	ImGui::Dummy({1000, 1});
+
+	ImGui::PushFont(imgui_ctx->large_font);
+	if (server_name == "")
+		CenterTextH(fmt::format(_F("Connection")));
+	else
+		CenterTextH(fmt::format(_F("Connection to {}"), server_name));
+	ImGui::PopFont();
+
+	// ImGui::TextWrapped("%s", status.first.c_str());
+	ImGui::Text("%s", status.c_str());
+
+	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
+
+	if (ImGui::Button(close_button_label.c_str(), button_size))
+	{
+		async_session.cancel();
+		next_scene.reset();
+
+		pin_request->pin_cancelled = true;
+
+		ImGui::CloseCurrentPopup();
+	}
+	vibrate_on_hover();
+}
+
+void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_request)
+{
+	const int pin_size = 6;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, constants::style::pin_entry_item_spacing);
+	ImGui::PushFont(imgui_ctx->large_font);
+
+	const auto & style = ImGui::GetStyle();
+	const auto window = ImGui::GetCurrentWindow();
+
+	const std::string displayed_text = pin_buffer == "" ? _("PIN") : pin_buffer;
+
+	const ImGuiID id = window->GetID("PIN");
+	const ImVec2 label_size = ImGui::CalcTextSize(displayed_text.c_str(), nullptr, true);
+	const ImVec2 size = {constants::style::pin_entry_popup_width, label_size.y + style.FramePadding.y * 2.0f};
+
+	const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size);
+
+	ImGui::ItemSize(size, style.FramePadding.y);
+	if (!ImGui::ItemAdd(bb, id))
+		return;
+
+	const ImU32 col = ImGui::GetColorU32(ImGuiCol_FrameBg);
+	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+
+	ImGui::BeginDisabled(pin_buffer == "");
+	const ImVec2 alignment = pin_buffer == "" ? ImVec2{0.5, 0.5} : ImVec2{0, 0.5};
+	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, displayed_text.c_str(), nullptr, &label_size, alignment, &bb);
+	ImGui::EndDisabled();
+
+	ImGui::PopFont();
+	if (ImGui::IsItemHovered())
+		tooltip(_("Input the PIN displayed on the dashboard"));
+
+	ImGui::BeginDisabled(pin_buffer.size() == pin_size);
+	for (int i = 1; i <= 9;)
+	{
+		for (int j = 0; j < 3; j++, i++)
+		{
+			char button_text[2];
+			sprintf(button_text, "%d", i);
+			if (ImGui::Button(button_text, constants::style::pin_entry_key_size))
+				pin_buffer += button_text;
+			vibrate_on_hover();
+
+			if (j < 2)
+				ImGui::SameLine();
+		}
+	}
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
+	if (ImGui::Button(ICON_FA_RECTANGLE_XMARK, constants::style::pin_entry_key_size))
+	{
+		async_session.cancel();
+		next_scene.reset();
+		pin_request->pin_cancelled = true;
+		pin_request.notify_one();
+
+		ImGui::CloseCurrentPopup();
+	}
+	vibrate_on_hover();
+	ImGui::PopStyleColor(3);
+
+	ImGui::SameLine();
+	if (ImGui::Button("0", constants::style::pin_entry_key_size))
+		pin_buffer += "0";
+	vibrate_on_hover();
+	ImGui::EndDisabled();
+
+	ImGui::SameLine();
+	ImGui::BeginDisabled(pin_buffer.size() == 0);
+	if (ImGui::Button(ICON_FA_DELETE_LEFT, constants::style::pin_entry_key_size))
+		pin_buffer.resize(pin_buffer.size() - 1);
+	vibrate_on_hover();
+	ImGui::EndDisabled();
+
+	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
+
+	if (pin_buffer.size() == pin_size)
+	{
+		pin_request->pin = pin_buffer;
+		pin_request->pin_requested = false;
+		pin_request.notify_one();
+	}
+	vibrate_on_hover();
 }
 
 void scenes::lobby::gui_new_server()
@@ -495,7 +543,7 @@ void scenes::lobby::gui_server_list()
 	}
 
 	// Check if an automatic connection has started
-	if ((async_session.valid() || next_scene) && !ImGui::IsPopupOpen("connecting"))
+	if ((async_session.valid() || next_scene) and not ImGui::IsPopupOpen("connecting"))
 		ImGui::OpenPopup("connecting");
 
 	const auto & popup_layer = imgui_ctx->layers()[1];
@@ -506,7 +554,11 @@ void scenes::lobby::gui_server_list()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
 	if (ImGui::BeginPopupModal("connecting", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		gui_connecting();
+		auto pin_request = this->pin_request.lock();
+		if (pin_request->pin_requested)
+			gui_enter_pin(pin_request);
+		else
+			gui_connecting(pin_request);
 		ImGui::EndPopup();
 	}
 

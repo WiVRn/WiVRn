@@ -31,15 +31,14 @@
 #include "stream.h"
 #include "utils/overloaded.h"
 #include "wivrn_client.h"
+#include "wivrn_discover.h"
 #include "wivrn_sockets.h"
 #include "xr/passthrough.h"
 #include "xr/space.h"
-#include <algorithm>
-#include <chrono>
-#include <condition_variable>
 #include <glm/gtc/matrix_access.hpp>
 
-#include "wivrn_discover.h"
+#include <algorithm>
+#include <chrono> // IWYU pragma: keep
 #include <cstdint>
 #include <fstream>
 #include <glm/gtc/quaternion.hpp>
@@ -50,7 +49,6 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <sys/poll.h>
-#include <utils/ranges.h>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <arpa/inet.h>
@@ -1139,16 +1137,16 @@ void scenes::lobby::on_focused()
 	        {
 	                // Pop up window
 	                .space = xr::spaces::world,
-	                .size = {0.6, 0.24},
+	                .size = {0.6, 0.28},
 	                .vp_origin = {1500, 0},
-	                .vp_size = {1500, 600},
+	                .vp_size = {1500, 700},
 	                .z_index = constants::lobby::zindex_gui,
 	        },
 	        {
 	                // Virtual keyboard
 	                .space = xr::spaces::world,
 	                .size = {0.6, 0.2},
-	                .vp_origin = {1500, 600},
+	                .vp_origin = {1500, 700},
 	                .vp_size = {1500, 500},
 	                .always_show_cursor = true,
 	                .z_index = constants::lobby::zindex_gui,
