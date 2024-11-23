@@ -63,13 +63,6 @@ sd_bus_message_ptr call_method(const sd_bus_ptr & bus, const char * member, cons
 	return sd_bus_message_ptr(msg);
 }
 
-void stop_server()
-{
-	call_method(get_user_bus(),
-	            "Quit",
-	            "");
-}
-
 void enroll(int duration)
 {
 	if (duration == 0)
@@ -92,6 +85,20 @@ void enroll(int duration)
 
 		std::cout << "PIN: " << pin << std::endl;
 	}
+}
+
+void stop_server()
+{
+	call_method(get_user_bus(),
+	            "Quit",
+	            "");
+}
+
+void disconnect()
+{
+	call_method(get_user_bus(),
+	            "Disconnect",
+	            "");
 }
 
 int main(int argc, char ** argv)
@@ -119,6 +126,9 @@ int main(int argc, char ** argv)
 
 	app.add_subcommand("stop-server", "Stop wivrn-server process")
 	        ->callback(stop_server);
+
+	app.add_subcommand("disconnect", "Disconnect headset")
+	        ->callback(disconnect);
 
 	try
 	{
