@@ -213,6 +213,9 @@ install(FILES dist/firewalld-wivrn.xml
 install(TARGETS wivrn-server)
 
 set_target_properties(${RUNTIME_TARGET} PROPERTIES EXCLUDE_FROM_ALL FALSE)
+set_target_properties(monado PROPERTIES OUTPUT_NAME "monado_wivrn")
+# Workaround as generate_openxr_runtime_manifest_at_install uses target name as library path
+add_library(monado_wivrn ALIAS monado)
 
 set(_extra_args)
 if(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH)
@@ -226,7 +229,7 @@ generate_openxr_runtime_manifest_at_install(
 	RUNTIME_TARGET ${RUNTIME_TARGET}
 	DESTINATION share/openxr/1
 	RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}/wivrn
-	LIBMONADO monado
+	LIBMONADO monado_wivrn
 	)
 
 install(TARGETS ${RUNTIME_TARGET} monado
