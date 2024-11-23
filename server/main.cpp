@@ -29,10 +29,11 @@
 
 #include <CLI/CLI.hpp>
 #include <avahi-glib/glib-watch.h>
-#include <chrono>
+#include <chrono> // IWYU pragma: keep
 #include <filesystem>
 #include <iostream>
 #include <iterator>
+#include <libnotify/notification.h>
 #include <memory>
 #include <poll.h>
 #include <random>
@@ -45,6 +46,7 @@
 #include <gio/gio.h>
 #include <glib-unix.h>
 #include <glib.h>
+#include <libnotify/notify.h>
 
 #include <shared/ipc_protocol.h>
 #include <util/u_file.h>
@@ -209,6 +211,7 @@ guint listener_watch;
 wivrn_connection::encryption_state enc_state = wivrn_connection::encryption_state::enabled;
 guint enroll_timeout;
 std::string pin;
+NotifyNotification * pin_notification;
 
 WivrnServer * dbus_server;
 
@@ -530,6 +533,14 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 
 void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 {
+	// TODO translate the notifications
+	if (pin_notification)
+	{
+		notify_notification_close(pin_notification, nullptr);
+		g_object_unref(G_OBJECT(pin_notification));
+		pin_notification = nullptr;
+	}
+
 	switch (new_enc_state)
 	{
 		case wivrn_connection::encryption_state::disabled:
@@ -537,6 +548,9 @@ void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 			std::cerr << "Encryption is disabled" << std::endl;
 			wivrn_server_set_enroll_enabled(dbus_server, false);
 			wivrn_server_set_encryption_enabled(dbus_server, false);
+
+			notify_notification_set_timeout(pin_notification, NOTIFY_EXPIRES_NEVER);
+			notify_notification_show(pin_notification, nullptr);
 			break;
 
 		case wivrn_connection::encryption_state::enabled:
@@ -558,7 +572,11 @@ void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 			wivrn_server_set_enroll_enabled(dbus_server, true);
 			wivrn_server_set_encryption_enabled(dbus_server, true);
 
-			// TODO desktop notification
+			// Desktop notification
+			pin_notification = notify_notification_new("PIN", pin.c_str(), "dialog-password");
+			notify_notification_set_timeout(pin_notification, NOTIFY_EXPIRES_NEVER);
+			// TODO: notify_notification_set_image_from_pixbuf
+			notify_notification_show(pin_notification, nullptr);
 
 			break;
 	}
@@ -628,12 +646,26 @@ gboolean on_handle_enroll_headset(WivrnServer * skeleton, GDBusMethodInvocation 
 	if (enroll_timeout)
 		g_source_remove(enroll_timeout);
 
-	enroll_timeout = g_timeout_add(120'000, [](void *) {
-		enroll_timeout = 0;
-		set_encryption_state(wivrn_connection::encryption_state::enabled);
-		return G_SOURCE_REMOVE; }, nullptr);
+	int timeout_secs;
+	GVariant * args = g_dbus_method_invocation_get_parameters(invocation);
+	g_variant_get_child(args, 0, "i", &timeout_secs);
+
+	if (timeout_secs > 0)
+	{
+		enroll_timeout = g_timeout_add(timeout_secs * 1000, [](void *) {
+			enroll_timeout = 0;
+			set_encryption_state(wivrn_connection::encryption_state::enabled);
+			return G_SOURCE_REMOVE; }, nullptr);
+	}
 
 	g_dbus_method_invocation_return_value(invocation, g_variant_new("(s)", pin.c_str()));
+	return G_SOURCE_CONTINUE;
+}
+
+gboolean on_handle_disable_enroll_headset(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
+{
+	set_encryption_state(wivrn_connection::encryption_state::enabled);
+	g_dbus_method_invocation_return_value(invocation, nullptr);
 	return G_SOURCE_CONTINUE;
 }
 
@@ -746,10 +778,17 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	                 NULL);
 
 	if (enc_state != wivrn_connection::encryption_state::disabled)
+	{
 		g_signal_connect(dbus_server,
 		                 "handle-enroll-headset",
 		                 G_CALLBACK(on_handle_enroll_headset),
 		                 NULL);
+
+		g_signal_connect(dbus_server,
+		                 "handle-disable-enroll-headset",
+		                 G_CALLBACK(on_handle_disable_enroll_headset),
+		                 NULL);
+	}
 
 	wivrn_server_set_steam_command(dbus_server, steam_command().c_str());
 
@@ -844,10 +883,14 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	               nullptr,
 	               nullptr);
 
+	// Initialize libnotify
+	notify_init("WiVRn");
+
 	// Main loop
 	g_main_loop_run(main_loop);
 
 	// Cleanup
+	notify_uninit();
 	runtime_setter.reset();
 	stop_publishing();
 	stop_listening();

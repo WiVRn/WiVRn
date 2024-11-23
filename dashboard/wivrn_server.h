@@ -38,6 +38,13 @@ class wivrn_server : public QObject
 	QDBusPendingCallWatcher * get_all_properties_call_watcher = nullptr;
 
 public:
+	struct HeadsetKey
+	{
+		QString public_key;
+		QString name;
+	};
+	using HeadsetKeys = std::vector<HeadsetKey>;
+
 	wivrn_server(QObject * parent = nullptr);
 	wivrn_server(const wivrn_server &) = delete;
 	wivrn_server & operator=(const wivrn_server &) = delete;
@@ -47,7 +54,16 @@ public:
 	Q_PROPERTY(bool serverRunning READ isServerRunning NOTIFY serverRunningChanged)
 	Q_PROPERTY(bool headsetConnected READ isHeadsetConnected NOTIFY headsetConnectedChanged)
 	Q_PROPERTY(QString jsonConfiguration READ jsonConfiguration WRITE setJsonConfiguration)
+
+	// Authentication
 	Q_PROPERTY(QString pin READ pin NOTIFY pinChanged)
+	Q_PROPERTY(HeadsetKeys knownKeys READ knownKeys NOTIFY knownKeysChanged)
+	Q_PROPERTY(bool enrollEnabled READ isEnrollEnabled NOTIFY enrollEnabledChanged)
+	Q_PROPERTY(bool encryptionEnabled READ isEncryptionEnabled NOTIFY encryptionEnabledChanged)
+	void revoke_key(QString public_key);
+	void rename_key(QString public_key, QString name);
+	QString enroll_headset(int timeout_secs = 120);
+	void disable_enroll_headset();
 
 	// Headset information, valid only if HeadsetConnected is true
 	Q_PROPERTY(QSize recommendedEyeSize READ recommendedEyeSize NOTIFY recommendedEyeSizeChanged)
@@ -87,6 +103,21 @@ public:
 	QString pin() const
 	{
 		return m_pin;
+	}
+
+	HeadsetKeys knownKeys() const
+	{
+		return m_knownKeys;
+	}
+
+	bool isEnrollEnabled() const
+	{
+		return m_isEnrollEnabled;
+	}
+
+	bool isEncryptionEnabled() const
+	{
+		return m_isEncryptionEnabled;
 	}
 
 	QSize recommendedEyeSize() const
@@ -169,7 +200,11 @@ private:
 	bool m_serverRunning{};
 	bool m_headsetConnected{};
 	QString m_jsonConfiguration{};
+
 	QString m_pin{};
+	HeadsetKeys m_knownKeys;
+	bool m_isEnrollEnabled{};
+	bool m_isEncryptionEnabled{};
 
 	QSize m_recommendedEyeSize{};
 	std::vector<float> m_availableRefreshRates{};
@@ -189,6 +224,9 @@ Q_SIGNALS:
 	void serverRunningChanged(bool);
 	void headsetConnectedChanged(bool);
 	void pinChanged(QString);
+	void knownKeysChanged(HeadsetKeys);
+	void enrollEnabledChanged(bool);
+	void encryptionEnabledChanged(bool);
 
 	void recommendedEyeSizeChanged(QSize);
 	void availableRefreshRatesChanged(const std::vector<float> &);

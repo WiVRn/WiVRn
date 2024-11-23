@@ -125,10 +125,8 @@ wizard::wizard() :
 	});
 	ui->label_steam_command->setText(server->steamCommand());
 
-	connect(server, &wivrn_server::pinChanged, this, [this](QString value) {
-		ui->label_pin->setText(value);
-	});
-	ui->label_pin->setText(server->pin());
+	connect(server, &wivrn_server::pinChanged, this, &wizard::on_pin_changed);
+	on_pin_changed(server->pin());
 
 	setPixmap(WatermarkPixmap, QPixmap(":/images/wivrn.svg"));
 	for (const headset & i: headsets_info)
@@ -404,6 +402,10 @@ void wizard::on_page_changed(int id)
 			button(WizardButton::CustomButton1)->setText(tr("Skip"));
 			setButtonLayout({QWizard::Stretch, QWizard::BackButton, QWizard::NextButton, QWizard::CustomButton1, QWizard::CancelButton});
 			on_headset_connected_changed(server->isHeadsetConnected());
+
+			if (not server->isEnrollEnabled())
+				server->enroll_headset(-1);
+
 			return;
 
 		case wizard_page::start_game:
@@ -456,6 +458,8 @@ void wizard::retranslate()
 
 wizard::~wizard()
 {
+	server->disable_enroll_headset();
+
 	delete ui;
 	ui = nullptr;
 }
@@ -691,6 +695,22 @@ void wizard::on_headset_connected_changed(bool connected)
 		button(NextButton)->setEnabled(connected);
 		ui->widget_troubleshoot->setHidden(connected);
 	}
+}
+
+void wizard::on_pin_changed(QString pin)
+{
+	if (pin == "")
+	{
+		ui->label_pin_1->setVisible(false);
+		ui->label_pin_2->setVisible(false);
+	}
+	else
+	{
+		ui->label_pin_1->setVisible(true);
+		ui->label_pin_2->setVisible(true);
+	}
+
+	ui->label_pin_2->setText(pin);
 }
 
 #include "moc_wizard.cpp"

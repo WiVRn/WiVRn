@@ -441,14 +441,14 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_3">
+        <widget class="QLabel" name="label_pin_1">
          <property name="text">
           <string>Use the following PIN to connect your headset:</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="label_pin">
+        <widget class="QLabel" name="label_pin_2">
          <property name="font">
           <font>
            <pointsize>14</pointsize>

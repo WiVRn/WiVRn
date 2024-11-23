@@ -174,6 +174,7 @@ target_include_directories(wivrn-server-dbus PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 add_dependencies(wivrn-server-dbus wivrn-server-dbus-codegen)
 target_link_libraries(wivrn-server-dbus PUBLIC PkgConfig::glib2)
 target_link_libraries(wivrn-server PUBLIC wivrn-server-dbus)
+target_link_libraries(wivrn-server PUBLIC PkgConfig::libnotify)
 
 include(CompileGLSL)
 

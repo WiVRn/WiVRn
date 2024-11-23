@@ -49,9 +49,6 @@ class main_window : public QMainWindow
 	Ui::MainWindow * ui = nullptr;
 	wivrn_server * server_interface = nullptr;
 
-	settings * settings_window = nullptr;
-	wizard * wizard_window = nullptr;
-
 	QIcon icon{":/images/wivrn.png"};
 	QSystemTrayIcon systray{icon};
 

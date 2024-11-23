@@ -640,22 +640,12 @@ void main_window::on_server_start_timeout()
 
 void main_window::on_action_settings()
 {
-	assert(not settings_window);
-
-	settings_window = new settings(server_interface);
-	connect(settings_window, &QDialog::finished, this, [&]() {
-		settings_window->deleteLater();
-		settings_window = nullptr;
-	});
-	settings_window->exec();
+	settings{server_interface}.exec();
 }
 
 void main_window::on_action_wizard()
 {
-	assert(not wizard_window);
-
-	wizard_window = new wizard;
-	wizard_window->exec();
+	wizard{}.exec();
 }
 
 void main_window::on_action_usb(const std::string & serial)

@@ -100,4 +100,6 @@ public:
 	void update_welcome_page();
 	void on_headset_connected_changed(bool);
 	void on_custom_button_clicked(int which);
+
+	void on_pin_changed(QString pin);
 };
