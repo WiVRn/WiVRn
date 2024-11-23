@@ -27,6 +27,7 @@ option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the V
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
 option(WIVRN_BUILD_DASHBOARD "Build WiVRn dashboard" OFF)
+option(WIVRN_BUILD_WIVRNCTL "Build wivrnctl" ON)
 option(WIVRN_BUILD_DISSECTOR "Build Wireshark dissector" OFF)
 option(WIVRN_WERROR "Treat warnings as errors" OFF)
 
@@ -218,6 +219,11 @@ if (WIVRN_BUILD_DISSECTOR)
         find_package(OpenXR 1.0.34 REQUIRED)
     endif()
     find_package(Wireshark REQUIRED)
+endif()
+
+if (WIVRN_BUILD_WIVRNCTL)
+    find_package(CLI11 REQUIRED)
+    pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
 endif()
 
 # Common dependencies

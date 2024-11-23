@@ -35,7 +35,7 @@ static int get_service_pid(const std::string & service_name, pid_t & pid)
 
 	int ret = 0;
 
-	// Connect to the system bus
+	// Connect to the session bus
 	ret = sd_bus_open_user(&bus);
 	if (ret < 0)
 	{
