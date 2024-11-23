@@ -68,9 +68,10 @@ public:
 		{
 		}
 	}
-	void send(wivrn_connection & connection);
+	void send(wivrn_connection & connection, bool now = false);
 
-	void set_enabled(to_headset::tracking_control::id id, bool enabled);
+	// Return true if value changed
+	bool set_enabled(to_headset::tracking_control::id id, bool enabled);
 };
 
 class wivrn_session : public xrt_system_devices
@@ -135,11 +136,7 @@ public:
 		tracking_control.add(off);
 	}
 
-	void set_enabled(to_headset::tracking_control::id id, bool enabled)
-	{
-		tracking_control.set_enabled(id, enabled);
-	}
-
+	void set_enabled(to_headset::tracking_control::id id, bool enabled);
 	void set_enabled(device_id id, bool enabled);
 
 	void operator()(from_headset::handshake &&) {}

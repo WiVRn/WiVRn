@@ -98,24 +98,28 @@ bool is_forced_extension(const char * ext_name)
 	return strstr(val, ext_name);
 }
 
-void wivrn::tracking_control_t::send(wivrn_connection & connection)
+void wivrn::tracking_control_t::send(wivrn_connection & connection, bool now)
 {
-	if (std::chrono::steady_clock::now() < next_sample)
+	std::lock_guard lock(mutex);
+	if (std::chrono::steady_clock::now() < next_sample and not now)
 		return;
 
 	connection.send_stream(to_headset::tracking_control{
 	        .offset = std::chrono::nanoseconds(max.exchange(0)),
 	        .enabled = enabled,
 	});
-	next_sample += std::chrono::seconds(1);
+	if (not now)
+		next_sample += std::chrono::seconds(1);
 }
 
-void wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id, bool enabled)
+bool wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id, bool enabled)
 {
 	std::lock_guard lock(mutex);
-	if (enabled != this->enabled[size_t(id)])
+	bool changed = enabled != this->enabled[size_t(id)];
+	if (changed)
 		U_LOG_I("%s tracking: %s", std::string(magic_enum::enum_name(id)).c_str(), enabled ? "enabled" : "disabled");
 	this->enabled[size_t(id)] = enabled;
+	return changed;
 }
 
 wivrn::wivrn_session::wivrn_session(wivrn::TCP && tcp, u_system & system) :
@@ -367,9 +371,15 @@ static auto to_tracking_control(device_id id)
 	__builtin_unreachable();
 }
 
+void wivrn_session::set_enabled(to_headset::tracking_control::id id, bool enabled)
+{
+	tracking_control.set_enabled(id, enabled);
+}
+
 void wivrn_session::set_enabled(device_id id, bool enabled)
 {
-	tracking_control.set_enabled(to_tracking_control(id), enabled);
+	if (tracking_control.set_enabled(to_tracking_control(id), enabled) and enabled)
+		tracking_control.send(connection, true);
 }
 
 void wivrn_session::operator()(from_headset::feedback && feedback)
