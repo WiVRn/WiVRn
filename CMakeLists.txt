@@ -50,7 +50,11 @@ set(WIVRN_CSS "${CMAKE_SOURCE_DIR}/images/wivrn-local.css" CACHE STRING "Stylesh
 option(WIVRN_SHOW_IMGUI_DEMO_WINDOW "Show the Dear ImGui demo window in the client" OFF)
 option(WIVRN_CLIENT_DEBUG_MENU "Enable the debug menu in the client" OFF)
 
-option(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH OFF)
+set(WIVRN_OPENXR_MANIFEST_TYPE_VALUES relative absolute filename)
+set(WIVRN_OPENXR_MANIFEST_TYPE "relative" CACHE STRING "How to reference libraries in OpenXR manifest: ${WIVRN_OPENXR_MANIFEST_TYPE_VALUES}")
+if (NOT WIVRN_OPENXR_MANIFEST_TYPE IN_LIST WIVRN_OPENXR_MANIFEST_TYPE_VALUES)
+    message(FATAL_ERROR "WIVRN_OPENXR_MANIFEST_TYPE must be one of ${WIVRN_OPENXR_MANIFEST_TYPE_VALUES}")
+endif()
 
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
 

@@ -218,9 +218,9 @@ set_target_properties(monado PROPERTIES OUTPUT_NAME "monado_wivrn")
 add_library(monado_wivrn ALIAS monado)
 
 set(_extra_args)
-if(WIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH)
+if (WIVRN_OPENXR_MANIFEST_TYPE STREQUAL "absolute")
 	set(_extra_args ABSOLUTE_RUNTIME_PATH)
-else()
+elseif (WIVRN_OPENXR_MANIFEST_TYPE STREQUAL "relative")
 	set(_extra_args RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${CMAKE_INSTALL_LIBDIR}/wivrn)
 endif()
 
