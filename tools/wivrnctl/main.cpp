@@ -72,17 +72,26 @@ void stop_server()
 
 void enroll(int duration)
 {
-	auto pin_msg = call_method(get_user_bus(),
-	                           "EnrollHeadset",
-	                           "i",
-	                           duration * 60);
+	if (duration == 0)
+	{
+		call_method(get_user_bus(),
+		            "DisableEnrollHeadset",
+		            "");
+	}
+	else
+	{
+		auto pin_msg = call_method(get_user_bus(),
+		                           "EnrollHeadset",
+		                           "i",
+		                           duration * 60);
 
-	const char * pin;
-	int ret = sd_bus_message_read(pin_msg.get(), "s", &pin);
-	if (ret < 0)
-		throw std::system_error(-ret, std::system_category(), "Failed to read PIN");
+		const char * pin;
+		int ret = sd_bus_message_read(pin_msg.get(), "s", &pin);
+		if (ret < 0)
+			throw std::system_error(-ret, std::system_category(), "Failed to read PIN");
 
-	std::cout << "PIN: " << pin << std::endl;
+		std::cout << "PIN: " << pin << std::endl;
+	}
 }
 
 int main(int argc, char ** argv)
