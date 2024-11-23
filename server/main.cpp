@@ -29,6 +29,7 @@
 
 #include <CLI/CLI.hpp>
 #include <avahi-glib/glib-watch.h>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
@@ -60,6 +61,7 @@ extern "C"
 }
 
 using namespace wivrn;
+using namespace std::chrono_literals;
 
 static std::unique_ptr<TCPListener> listener;
 std::optional<wivrn::typed_socket<wivrn::UnixDatagram, from_monado::packets, to_monado::packets>> wivrn_ipc_socket_main_loop;
@@ -204,8 +206,9 @@ bool avahi_publish;
 
 guint listener_watch;
 
-bool disable_encryption;
-std::optional<std::string> pin;
+wivrn_connection::encryption_state enc_state = wivrn_connection::encryption_state::enabled;
+guint enroll_timeout;
+std::string pin;
 
 WivrnServer * dbus_server;
 
@@ -219,7 +222,7 @@ gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data);
 void stop_listening();
 void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & info);
 void expose_known_keys_on_dbus();
-void choose_pin();
+void set_encryption_state(wivrn_connection::encryption_state new_enc_state);
 
 void start_publishing();
 void stop_publishing();
@@ -442,6 +445,9 @@ gboolean headset_connected_success(void *)
 	assert(connection_thread);
 	connection_thread.reset();
 
+	if (enc_state == wivrn_connection::encryption_state::enroll)
+		set_encryption_state(wivrn_connection::encryption_state::enabled);
+
 	init_cleanup_functions();
 
 	std::cout << "Client connected" << std::endl;
@@ -471,14 +477,14 @@ gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data)
 	assert(not connection_thread);
 	assert(listener);
 
-	wivrn::TCP tcp = listener->accept().first;
+	TCP tcp = listener->accept().first;
 	stop_listening();
 	stop_publishing();
 
-	connection_thread.emplace([](std::stop_token stop_token, wivrn::TCP && tcp) {
+	connection_thread.emplace([](std::stop_token stop_token, TCP && tcp, std::string pin, wivrn_connection::encryption_state enc_state) {
 		try
 		{
-			connection = std::make_unique<wivrn::wivrn_connection>(stop_token, pin, std::move(tcp));
+			connection = std::make_unique<wivrn_connection>(stop_token, enc_state, pin, std::move(tcp));
 			g_main_context_invoke(nullptr, &headset_connected_success, nullptr);
 		}
 		catch (std::exception & e)
@@ -487,7 +493,9 @@ gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data)
 			g_main_context_invoke(nullptr, &headset_connected_failed, nullptr);
 		}
 	},
-	                          std::move(tcp));
+	                          std::move(tcp),
+	                          pin,
+	                          enc_state);
 
 	return G_SOURCE_CONTINUE;
 }
@@ -520,25 +528,43 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 	return G_SOURCE_CONTINUE;
 }
 
-void choose_pin()
+void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 {
-	if (disable_encryption)
+	switch (new_enc_state)
 	{
-		std::cerr << "Encryption is disabled" << std::endl;
-	}
-	else
-	{
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_int_distribution<> distrib(0, 999999);
+		case wivrn_connection::encryption_state::disabled:
+			pin = "";
+			std::cerr << "Encryption is disabled" << std::endl;
+			wivrn_server_set_enroll_enabled(dbus_server, false);
+			wivrn_server_set_encryption_enabled(dbus_server, false);
+			break;
 
-		char buffer[7];
-		snprintf(buffer, 7, "%06d", distrib(gen));
-		pin = buffer;
-		std::cerr << "PIN code: " << *pin << std::endl;
+		case wivrn_connection::encryption_state::enabled:
+			pin = "";
+			std::cerr << "Encryption is enabled" << std::endl;
+			wivrn_server_set_enroll_enabled(dbus_server, false);
+			wivrn_server_set_encryption_enabled(dbus_server, true);
+			break;
 
-		wivrn_server_set_pin(dbus_server, buffer);
+		case wivrn_connection::encryption_state::enroll:
+			std::random_device rd;
+			std::mt19937 gen(rd());
+			std::uniform_int_distribution<> distrib(0, 999999);
+
+			char buffer[7];
+			snprintf(buffer, 7, "%06d", distrib(gen));
+			pin = buffer;
+			std::cerr << "Encryption is enabled, to add a new headset use PIN code: " << pin << std::endl;
+			wivrn_server_set_enroll_enabled(dbus_server, true);
+			wivrn_server_set_encryption_enabled(dbus_server, true);
+
+			// TODO desktop notification
+
+			break;
 	}
+
+	enc_state = new_enc_state;
+	wivrn_server_set_pin(dbus_server, pin.c_str());
 }
 
 gboolean on_handle_disconnect(WivrnServer * skeleton,
@@ -547,6 +573,7 @@ gboolean on_handle_disconnect(WivrnServer * skeleton,
 {
 	wivrn_ipc_socket_main_loop->send(to_monado::disconnect{});
 
+	g_dbus_method_invocation_return_value(invocation, nullptr);
 	return G_SOURCE_CONTINUE;
 }
 
@@ -555,6 +582,7 @@ gboolean on_handle_quit(WivrnServer * skeleton, GDBusMethodInvocation * invocati
 	quitting_main_loop = true;
 	update_fsm();
 
+	g_dbus_method_invocation_return_value(invocation, nullptr);
 	return G_SOURCE_CONTINUE;
 }
 
@@ -570,6 +598,7 @@ gboolean on_handle_revoke_key(WivrnServer * skeleton, GDBusMethodInvocation * in
 	g_free(publickey);
 
 	expose_known_keys_on_dbus();
+	g_dbus_method_invocation_return_value(invocation, nullptr);
 	return G_SOURCE_CONTINUE;
 }
 
@@ -588,6 +617,23 @@ gboolean on_handle_rename_key(WivrnServer * skeleton, GDBusMethodInvocation * in
 	g_free(name);
 
 	expose_known_keys_on_dbus();
+	g_dbus_method_invocation_return_value(invocation, nullptr);
+	return G_SOURCE_CONTINUE;
+}
+
+gboolean on_handle_enroll_headset(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
+{
+	set_encryption_state(wivrn_connection::encryption_state::enroll);
+
+	if (enroll_timeout)
+		g_source_remove(enroll_timeout);
+
+	enroll_timeout = g_timeout_add(120'000, [](void *) {
+		enroll_timeout = 0;
+		set_encryption_state(wivrn_connection::encryption_state::enabled);
+		return G_SOURCE_REMOVE; }, nullptr);
+
+	g_dbus_method_invocation_return_value(invocation, g_variant_new("(s)", pin.c_str()));
 	return G_SOURCE_CONTINUE;
 }
 
@@ -699,6 +745,12 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	                 G_CALLBACK(on_handle_rename_key),
 	                 NULL);
 
+	if (enc_state != wivrn_connection::encryption_state::disabled)
+		g_signal_connect(dbus_server,
+		                 "handle-enroll-headset",
+		                 G_CALLBACK(on_handle_enroll_headset),
+		                 NULL);
+
 	wivrn_server_set_steam_command(dbus_server, steam_command().c_str());
 
 	on_headset_info_packet({});
@@ -707,7 +759,7 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	std::string config{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 
 	wivrn_server_set_json_configuration(dbus_server, config.c_str());
-	choose_pin();
+
 	expose_known_keys_on_dbus();
 
 	g_signal_connect(dbus_server, "notify::json-configuration", G_CALLBACK(on_json_configuration), NULL);
@@ -716,6 +768,11 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	                                 connection,
 	                                 "/io/github/wivrn/Server",
 	                                 NULL);
+
+	if (enc_state != wivrn_connection::encryption_state::disabled and known_keys().empty())
+		set_encryption_state(wivrn_connection::encryption_state::enroll);
+	else
+		set_encryption_state(enc_state);
 }
 
 } // namespace
@@ -825,7 +882,10 @@ int main(int argc, char * argv[])
 
 	do_fork = not *no_fork;
 	avahi_publish = not *no_publish;
-	disable_encryption = (bool)*no_encrypt;
+	if (*no_encrypt)
+		enc_state = wivrn_connection::encryption_state::disabled;
+	else if (known_keys().empty())
+		enc_state = wivrn_connection::encryption_state::enroll;
 
 	if (not config_file.empty())
 		configuration::set_config_file(config_file);

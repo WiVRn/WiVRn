@@ -34,17 +34,27 @@ namespace wivrn
 {
 class wivrn_connection
 {
+public:
+	enum class encryption_state
+	{
+		disabled,
+		enabled,
+		enroll,
+	};
+
+private:
 	typed_socket<TCP, from_headset::packets, to_headset::packets> control;
 	typed_socket<UDP, from_headset::packets, to_headset::packets> stream;
 	std::atomic<bool> active = false;
-	std::optional<std::string> pin;
+	std::string pin;
+	encryption_state state;
 
 	wivrn::from_headset::headset_info_packet info_packet;
 
 	void init(std::stop_token stop_token, std::function<void()> tick = []() {});
 
 public:
-	wivrn_connection(std::stop_token stop_token, std::optional<std::string> pin, TCP && tcp);
+	wivrn_connection(std::stop_token stop_token, encryption_state state, std::string pin, TCP && tcp);
 	wivrn_connection(const wivrn_connection &) = delete;
 	wivrn_connection & operator=(const wivrn_connection &) = delete;
 

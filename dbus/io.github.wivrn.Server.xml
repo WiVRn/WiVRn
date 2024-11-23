@@ -35,6 +35,9 @@
 			<arg type="s" name="PublicKey"/>
 			<arg type="s" name="Name"/>
 		</method>
+		<method name="EnrollHeadset">
+			<arg type="s" name="Pin" direction="out"/>
+		</method>
 
 		<property name="HeadsetConnected"      type="b" access="read"/>
 		<property name="SteamCommand"          type="s" access="read"/>
@@ -65,5 +68,7 @@
 			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;std::pair&lt;QString,QString&gt;&gt;"/>
 			<!-- first: name, second: public key -->
 		</property>
+		<property name="EnrollEnabled"         type="b" access="read"/>
+		<property name="EncryptionEnabled"     type="b" access="read"/>
 	</interface>
 </node>
