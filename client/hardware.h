@@ -49,6 +49,7 @@ enum class feature
 };
 
 model guess_model();
+std::string model_name();
 
 XrViewConfigurationView override_view(XrViewConfigurationView, model);
 

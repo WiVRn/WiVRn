@@ -95,6 +95,18 @@ model guess_model()
 	return m;
 }
 
+std::string model_name()
+{
+#ifdef __ANDROID__
+	const auto manufacturer = get_property("ro.product.manufacturer");
+	const auto model = get_property("ro.product.model");
+
+	return manufacturer + " " + model;
+#else
+	return "Unknown headset";
+#endif
+}
+
 static XrViewConfigurationView scale_view(XrViewConfigurationView view, uint32_t width)
 {
 	double ratio = double(width) / view.recommendedImageRectWidth;

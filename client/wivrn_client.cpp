@@ -18,6 +18,7 @@
  */
 
 #include "wivrn_client.h"
+#include "hardware.h"
 #include "secrets.h"
 #include "spdlog/common.h"
 #include "wivrn_packets.h"
@@ -95,7 +96,10 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 		}
 	};
 
-	send_control(from_headset::crypto_handshake{.public_key = headset_keypair.public_key()});
+	send_control(from_headset::crypto_handshake{
+	        .public_key = headset_keypair.public_key(),
+	        .name = model_name(),
+	});
 
 	to_headset::crypto_handshake crypto_handshake = std::get<to_headset::crypto_handshake>(receive(10s));
 
