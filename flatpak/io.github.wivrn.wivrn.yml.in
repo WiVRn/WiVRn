@@ -146,6 +146,19 @@ modules:
     cleanup:
       - '*'
 
+  - name: libnotify
+    buildsystem: meson
+    config-opts:
+      - -Dtests=false
+      - -Dintrospection=disabled
+      - -Dman=false
+      - -Dgtk_doc=false
+      - -Ddocbook_docs=disabled
+    sources:
+    - type: git
+      url: https://gitlab.gnome.org/GNOME/libnotify.git
+      tag: 0.8.3
+
   - name: wivrn
     buildsystem: cmake-ninja
     config-opts:

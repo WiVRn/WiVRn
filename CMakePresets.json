@@ -17,6 +17,7 @@
 				"WIVRN_BUILD_SERVER": "OFF",
 				"WIVRN_BUILD_DASHBOARD": "OFF",
 				"WIVRN_BUILD_DISSECTOR": "OFF",
+				"WIVRN_BUILD_WIVRNCTL": "OFF",
 				"WIVRN_USE_VAAPI": "ON",
 				"WIVRN_USE_VULKAN_ENCODE": "ON",
 				"WIVRN_USE_X264": "ON",
@@ -55,7 +56,8 @@
 			"inherits": "base",
 			"binaryDir": "${sourceDir}/build-server",
 			"cacheVariables": {
-				"WIVRN_BUILD_SERVER": "ON"
+				"WIVRN_BUILD_SERVER": "ON",
+				"WIVRN_BUILD_WIVRNCTL": "ON"
 			}
 		},
 		{

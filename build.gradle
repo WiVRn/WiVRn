@@ -85,6 +85,7 @@ android {
                           '-DWIVRN_USE_SYSTEM_FREETYPE=OFF',
                           '-DWIVRN_BUILD_CLIENT=ON',
                           '-DWIVRN_BUILD_SERVER=OFF',
+                          '-DWIVRN_BUILD_WIVRNCTL=OFF',
                           '-DWIVRN_BUILD_DASHBOARD=OFF',
                           '-DWIVRN_WERROR=ON',
                           '-DWIVRN_SHOW_IMGUI_DEMO_WINDOW=' + showImguiDemo,
