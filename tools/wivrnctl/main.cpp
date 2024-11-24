@@ -63,6 +63,20 @@ sd_bus_message_ptr call_method(const sd_bus_ptr & bus, const char * member, cons
 	return sd_bus_message_ptr(msg);
 }
 
+sd_bus_message_ptr get_property(const sd_bus_ptr & bus, const char * member, const char * signature)
+{
+	sd_bus_error error = SD_BUS_ERROR_NULL;
+	sd_bus_message * msg = nullptr;
+	int ret = sd_bus_get_property(bus.get(), destination, path, interface, member, &error, &msg, signature);
+	if (ret < 0)
+	{
+		std::runtime_error e(std::string("read property ") + member + " failed: " + error.message);
+		sd_bus_error_free(&error);
+		throw e;
+	}
+	return sd_bus_message_ptr(msg);
+}
+
 void enroll(int duration)
 {
 	if (duration == 0)
@@ -84,6 +98,48 @@ void enroll(int duration)
 			throw std::system_error(-ret, std::system_category(), "Failed to read PIN");
 
 		std::cout << "PIN: " << pin << std::endl;
+	}
+}
+
+void list_enrolled(bool show_keys)
+{
+	auto msg = get_property(get_user_bus(),
+	                        "KnownKeys",
+	                        "a(ss)");
+
+	int ret = sd_bus_message_enter_container(msg.get(), 'a', "(ss)");
+	if (ret < 0)
+		throw std::system_error(-ret, std::system_category(), "Failed to get enrolled headsets");
+
+	std::vector<std::pair<std::string, std::string>> values;
+	while (true)
+	{
+		char * name;
+		char * key;
+		int ret = sd_bus_message_read(msg.get(), "(ss)", &name, &key);
+		if (ret == 0)
+			break;
+		if (ret < 0)
+			throw std::system_error(-ret, std::system_category(), "Failed to get enrolled headset details");
+
+		values.emplace_back(name, key);
+	}
+	size_t width = 0;
+	if (show_keys)
+	{
+		for (const auto & [name, key]: values)
+			width = std::max(width, name.length());
+		width += 1;
+	}
+	std::cout << "Enrolled headsets:" << std::endl;
+	for (const auto & [name, key]: values)
+	{
+		if (width > 0)
+			std::cout << std::left << std::setw(width);
+		std::cout << name;
+		if (show_keys)
+			std::cout << key;
+		std::cout << std::endl;
 	}
 }
 
@@ -123,6 +179,12 @@ int main(int argc, char ** argv)
 	                                                   ""))
 	                        ->default_val(2)
 	                        ->option_text("INT|unlimited");
+
+	bool show_keys = false;
+	auto list_command = app.add_subcommand("list-enrolled", "List headsets allowed to connect")
+	                            ->callback([&]() { list_enrolled(show_keys); });
+
+	list_command->add_flag("--keys, -k", show_keys, "Show public keys");
 
 	app.add_subcommand("stop-server", "Stop wivrn-server process")
 	        ->callback(stop_server);
