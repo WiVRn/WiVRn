@@ -555,7 +555,9 @@ void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 
 		case wivrn_connection::encryption_state::enabled:
 			pin = "";
-			std::cerr << "Encryption is enabled" << std::endl;
+			if (enc_state != wivrn_connection::encryption_state::enabled)
+				std::cerr << "Headset pairing is disabled" << std::endl;
+
 			wivrn_server_set_enroll_enabled(dbus_server, false);
 			wivrn_server_set_encryption_enabled(dbus_server, true);
 			break;
@@ -568,7 +570,7 @@ void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 			char buffer[7];
 			snprintf(buffer, 7, "%06d", distrib(gen));
 			pin = buffer;
-			std::cerr << "Encryption is enabled, to add a new headset use PIN code: " << pin << std::endl;
+			std::cerr << "To pair a new headset use PIN code: " << pin << std::endl;
 			wivrn_server_set_enroll_enabled(dbus_server, true);
 			wivrn_server_set_encryption_enabled(dbus_server, true);
 
@@ -927,8 +929,6 @@ int main(int argc, char * argv[])
 	avahi_publish = not *no_publish;
 	if (*no_encrypt)
 		enc_state = wivrn_connection::encryption_state::disabled;
-	else if (known_keys().empty())
-		enc_state = wivrn_connection::encryption_state::enroll;
 
 	if (not config_file.empty())
 		configuration::set_config_file(config_file);
