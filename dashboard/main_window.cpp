@@ -27,17 +27,24 @@
 
 #include <chrono>
 #include <cmath>
+#include <fstream>
 
 #include "adb.h"
 #include "gui_config.h"
 #include "settings.h"
 #include "ui_main_window.h"
+#include "utils/flatpak.h"
+#include "utils/strings.h"
+#include "utils/xdg_base_directory.h"
 #include "wivrn_server.h"
 #include "wizard.h"
 
 #if WIVRN_CHECK_CAPSYSNICE
 #include <sys/capability.h>
 #endif
+
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 Q_LOGGING_CATEGORY(wivrn_log_category, "wivrn")
 
@@ -73,6 +80,121 @@ static bool server_has_cap_sys_nice()
 	return value == CAP_SET;
 }
 #endif
+
+std::vector<std::filesystem::path> layer_dirs()
+{
+	// See https://vulkan.lunarg.com/doc/view/latest/linux/loader_and_layer_interface.html#user-content-linux-layer-discovery
+	std::vector<std::filesystem::path> dirs;
+
+	dirs.push_back(xdg_config_home() / "vulkan/implicit_layer.d");
+
+	for (auto dir: xdg_config_dirs())
+		dirs.push_back(dir / "vulkan/implicit_layer.d");
+
+	dirs.push_back("/etc/vulkan/implicit_layer.d");
+
+	dirs.push_back(xdg_data_home() / "vulkan/implicit_layer.d");
+
+	for (auto dir: xdg_data_dirs())
+		dirs.push_back(dir / "vulkan/implicit_layer.d");
+
+	return dirs;
+}
+
+static std::string read_file(const std::filesystem::path & path)
+{
+	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
+	{
+		QProcess flatpak_spawn;
+		flatpak_spawn.start("flatpak-spawn", {"--host", "cat", QString::fromStdString(path)});
+		flatpak_spawn.waitForFinished();
+		return flatpak_spawn.readAllStandardOutput().toStdString();
+	}
+	else
+	{
+		std::ifstream f(path);
+		std::istreambuf_iterator<char> begin{f}, end;
+
+		return {begin, end};
+	}
+}
+
+static std::vector<std::filesystem::path> list_files(const std::vector<std::filesystem::path> & dirs)
+{
+	std::vector<std::filesystem::path> files;
+
+	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
+	{
+		QProcess flatpak_spawn;
+		QStringList args{"--host", "find"};
+		for (const std::filesystem::path & dir: dirs)
+			args.push_back(QString::fromStdString(dir));
+		args.push_back("-name");
+		args.push_back("*.json");
+
+		flatpak_spawn.start("flatpak-spawn", args);
+		flatpak_spawn.waitForFinished();
+
+		qDebug() << args;
+
+		for (const std::string & file: utils::split(flatpak_spawn.readAllStandardOutput().toStdString()))
+		{
+			if (file != "")
+				files.push_back(file);
+		}
+	}
+	else
+	{
+		for (const std::filesystem::path & dir: dirs)
+		{
+			try
+			{
+				for (auto const & dir_entry: std::filesystem::directory_iterator{dir})
+				{
+					if (dir_entry.path().extension() != ".json")
+						continue;
+
+					files.push_back(dir / dir_entry.path());
+				}
+			}
+			catch (...)
+			{
+				// Ignore non existing directories
+			}
+		}
+	}
+
+	return files;
+}
+
+static bool nvidia_layer_missing()
+{
+	vk::raii::Context context;
+
+	vk::ApplicationInfo app_info{"WiVRn dashboard", 1, "No engine", 1, VK_API_VERSION_1_0};
+	vk::InstanceCreateInfo instance_info{vk::InstanceCreateFlags{0}, &app_info};
+	vk::raii::Instance vulkan{context, instance_info};
+
+	// Check if an nvidia GPU is present
+	if (not std::ranges::any_of(vulkan.enumeratePhysicalDevices(), [](vk::raii::PhysicalDevice & device) { return device.getProperties().vendorID == 0x10de; }))
+		return false;
+
+	// Check if the monado vulkan layer is present
+	for (auto file: list_files(layer_dirs()))
+	{
+		try
+		{
+			nlohmann::json json = nlohmann::json::parse(read_file(file));
+			if (json["layer"]["name"] == "VK_LAYER_MND_enable_timeline_semaphore")
+				return false;
+		}
+		catch (...)
+		{
+		}
+	}
+
+	return true;
+}
 
 main_window::main_window()
 {
@@ -138,8 +260,14 @@ main_window::main_window()
 	connect(server_interface, &wivrn_server::supportedCodecsChanged, this, &main_window::on_supported_codecs_changed);
 	connect(server_interface, &wivrn_server::steamCommandChanged, this, &main_window::on_steam_command_changed);
 
+	connect(server_interface, &wivrn_server::encryptionEnabledChanged, ui->widget_authentication, &QWidget::setVisible);
 	connect(server_interface, &wivrn_server::pinChanged, this, &main_window::on_pin_changed);
 	on_pin_changed(server_interface->pin());
+
+	connect(server_interface, &wivrn_server::enrollEnabledChanged, ui->button_cancel_pairing, &QWidget::setVisible);
+	connect(server_interface, &wivrn_server::enrollEnabledChanged, ui->button_pair_headset, &QWidget::setHidden);
+	connect(ui->button_cancel_pairing, &QPushButton::clicked, server_interface, &wivrn_server::disable_enroll_headset);
+	connect(ui->button_pair_headset, &QPushButton::clicked, server_interface, &wivrn_server::enroll_headset);
 
 	connect(ui->button_start, &QPushButton::clicked, this, &main_window::start_server);
 	connect(ui->button_stop, &QPushButton::clicked, this, &main_window::stop_server);
@@ -161,8 +289,7 @@ main_window::main_window()
 	on_android_device_list_changed(adb_service.devices());
 
 #if WIVRN_CHECK_CAPSYSNICE
-	QIcon icon = QIcon::fromTheme("dialog-information");
-	ui->banner_capsysnice_icon->setPixmap(icon.pixmap(ui->banner_capsysnice_dismiss->height()));
+	ui->banner_capsysnice_icon->setPixmap(QIcon::fromTheme("dialog-information").pixmap(ui->banner_capsysnice_dismiss->height()));
 	connect(ui->banner_capsysnice_text, &QLabel::linkActivated, this, &main_window::on_banner_capsysnice);
 
 	if (server_has_cap_sys_nice())
@@ -170,6 +297,10 @@ main_window::main_window()
 #else
 	ui->banner_capsysnice->hide();
 #endif
+
+	ui->banner_nvidia_layer_icon->setPixmap(QIcon::fromTheme("dialog-information").pixmap(ui->banner_nvidia_layer_dismiss->height()));
+	if (not nvidia_layer_missing())
+		ui->banner_nvidia_layer->hide();
 
 	// TODO implement this
 	ui->button_known_headsets->hide();
@@ -536,8 +667,10 @@ void main_window::on_steam_command_changed(QString value)
 
 void main_window::on_pin_changed(QString value)
 {
-	ui->widget_authentication->setVisible(value != "");
-	ui->label_pin->setText(value);
+	if (value == "")
+		ui->label_pin->setText("");
+	else
+		ui->label_pin->setText(tr("To pair your headset use the following PIN: %1").arg(value));
 }
 
 void main_window::on_server_finished(int exit_code, QProcess::ExitStatus status)
@@ -563,7 +696,7 @@ void main_window::on_server_finished(int exit_code, QProcess::ExitStatus status)
 				error_message = tr("Insufficient system resources");
 				break;
 			case 4:
-				error_message = tr("Cannot connect to avahi, make sure avahi-daemon service is started");
+				error_message = tr("Cannot connect to avahi, make sure avahi-daemon service is started with \"disable-user-service-publishing\" set to no");
 				break;
 		}
 

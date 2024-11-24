@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>898</width>
-    <height>757</height>
+    <width>895</width>
+    <height>842</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,11 +18,11 @@
     <normaloff>:/images/wivrn.svg</normaloff>:/images/wivrn.svg</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,1,0">
+   <layout class="QVBoxLayout" name="verticalLayout_2">
     <item>
      <widget class="QFrame" name="banner_capsysnice">
       <property name="styleSheet">
-       <string notr="true">#banner_capsysnice
+       <string notr="true">.QFrame
 {
 background-color: rgb(255, 170, 127);
 border: 1px solid rgb(255, 127, 127);
@@ -49,6 +49,44 @@ border-radius: 5px;
        </item>
        <item>
         <widget class="QPushButton" name="banner_capsysnice_dismiss">
+         <property name="icon">
+          <iconset theme="window-close"/>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QFrame" name="banner_nvidia_layer">
+      <property name="styleSheet">
+       <string notr="true">.QFrame
+{
+background-color: rgb(255, 170, 127);
+border: 1px solid rgb(255, 127, 127);
+border-radius: 5px;
+}</string>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::Box</enum>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="0,1,0">
+       <item>
+        <widget class="QLabel" name="banner_nvidia_layer_icon">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="banner_nvidia_layer_text">
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Monado NVIDIA layer is not installed.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="banner_nvidia_layer_dismiss">
          <property name="icon">
           <iconset theme="window-close"/>
          </property>
@@ -179,56 +217,7 @@ border-radius: 5px;
               </layout>
              </item>
              <item>
-              <layout class="QHBoxLayout" name="layout_authentication" stretch=""/>
-             </item>
-             <item>
-              <widget class="QWidget" name="widget_authentication" native="true">
-               <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="0,1,0">
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QLabel" name="label_16">
-                  <property name="font">
-                   <font>
-                    <pointsize>14</pointsize>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>PIN:</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="label_pin">
-                  <property name="font">
-                   <font>
-                    <pointsize>14</pointsize>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string notr="true">000000</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="button_known_headsets">
-                  <property name="text">
-                   <string>Known headsets</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
+              <layout class="QHBoxLayout" name="layout_authentication"/>
              </item>
              <item>
               <spacer name="verticalSpacer">
@@ -359,6 +348,57 @@ border-radius: 5px;
           </widget>
          </item>
         </layout>
+       </item>
+       <item>
+        <widget class="QWidget" name="widget_authentication" native="true">
+         <layout class="QHBoxLayout" name="horizontalLayout_8" stretch="1,0,0,0">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="label_pin">
+            <property name="font">
+             <font>
+              <pointsize>14</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string notr="true">label_pin</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="button_pair_headset">
+            <property name="text">
+             <string>Pair headset</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="button_cancel_pairing">
+            <property name="text">
+             <string>Cancel</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="button_known_headsets">
+            <property name="text">
+             <string>Known headsets</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="label_how_to_connect">
@@ -613,12 +653,28 @@ border-radius: 5px;
    <slot>hide()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>837</x>
-     <y>31</y>
+     <x>881</x>
+     <y>44</y>
     </hint>
     <hint type="destinationlabel">
-     <x>799</x>
-     <y>54</y>
+     <x>805</x>
+     <y>51</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>banner_nvidia_layer_dismiss</sender>
+   <signal>clicked()</signal>
+   <receiver>banner_nvidia_layer</receiver>
+   <slot>hide()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>869</x>
+     <y>82</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>852</x>
+     <y>102</y>
     </hint>
    </hints>
   </connection>

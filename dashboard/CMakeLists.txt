@@ -66,6 +66,7 @@ target_link_libraries(wivrn-dashboard PRIVATE
         Qt6::Network
         nlohmann_json
         wivrn-common-base
+        Vulkan::Vulkan
 )
 
 target_compile_definitions(wivrn-dashboard PRIVATE JSON_DIAGNOSTICS=1)

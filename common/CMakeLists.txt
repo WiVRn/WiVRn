@@ -26,6 +26,7 @@ configure_file(wivrn_config.h.in wivrn_config.h)
 add_library(wivrn-common-base STATIC
     utils/xdg_base_directory.cpp
     utils/flatpak.cpp
+    utils/strings.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
 )
 
@@ -34,6 +35,7 @@ add_library(wivrn-common STATIC
     secrets.cpp
     wivrn_sockets.cpp
     utils/xdg_base_directory.cpp
+    utils/strings.cpp
     vk/allocation.cpp
     vk/error_category.cpp
     vk/vk_allocator.cpp

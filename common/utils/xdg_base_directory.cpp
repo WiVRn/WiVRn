@@ -17,27 +17,74 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "strings.h"
 #include <cstdlib>
 #include <filesystem>
 
 std::filesystem::path xdg_config_home()
 {
-	const char * xdg_config_home = std::getenv("XDG_CONFIG_HOME");
-	if (xdg_config_home)
+	if (const char * xdg_config_home = std::getenv("XDG_CONFIG_HOME"))
 		return xdg_config_home;
-	const char * home = std::getenv("HOME");
-	if (home)
+
+	if (const char * home = std::getenv("HOME"))
 		return std::filesystem::path(home) / ".config";
+
 	return ".";
 }
 
 std::filesystem::path xdg_cache_home()
 {
-	const char * xdg_cache_home = std::getenv("XDG_CACHE_HOME");
-	if (xdg_cache_home)
+	if (const char * xdg_cache_home = std::getenv("XDG_CACHE_HOME"))
 		return xdg_cache_home;
-	const char * home = std::getenv("HOME");
-	if (home)
+
+	if (const char * home = std::getenv("HOME"))
 		return std::filesystem::path(home) / ".cache";
+
 	return ".";
+}
+
+std::filesystem::path xdg_data_home()
+{
+	if (const char * xdg_data_home = std::getenv("XDG_DATA_HOME"))
+		return xdg_data_home;
+
+	if (const char * home = std::getenv("HOME"))
+		return std::filesystem::path(home) / ".local/share";
+
+	return ".";
+}
+
+std::vector<std::filesystem::path> xdg_config_dirs()
+{
+	std::vector<std::filesystem::path> paths;
+
+	if (const char * xdg_config_dirs = std::getenv("XDG_CONFIG_DIRS"))
+	{
+		for (const auto & path: utils::split(xdg_config_dirs, ":"))
+			paths.push_back(path);
+	}
+	else
+	{
+		paths.push_back("/etc/xdg");
+	}
+
+	return paths;
+}
+
+std::vector<std::filesystem::path> xdg_data_dirs()
+{
+	std::vector<std::filesystem::path> paths;
+
+	if (const char * xdg_config_dirs = std::getenv("XDG_DATA_DIRS"))
+	{
+		for (const auto & path: utils::split(xdg_config_dirs, ":"))
+			paths.push_back(path);
+	}
+	else
+	{
+		paths.push_back("/usr/local/share");
+		paths.push_back("/usr/share");
+	}
+
+	return paths;
 }

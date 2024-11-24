@@ -20,6 +20,10 @@
 #pragma once
 
 #include <filesystem>
+#include <vector>
 
 std::filesystem::path xdg_config_home();
 std::filesystem::path xdg_cache_home();
+std::filesystem::path xdg_data_home();
+std::vector<std::filesystem::path> xdg_config_dirs();
+std::vector<std::filesystem::path> xdg_data_dirs();
