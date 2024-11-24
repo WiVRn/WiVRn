@@ -44,6 +44,7 @@ set(XRT_HAVE_SDL2                    OFF)
 set(XRT_HAVE_OPENCV                  OFF)
 set(XRT_HAVE_DBUS                    OFF)
 set(XRT_HAVE_LIBUDEV                 OFF)
+set(XRT_HAVE_ONNXRUNTIME             OFF)
 
 set(XRT_HAVE_SYSTEMD ${WIVRN_USE_SYSTEMD})
 set(XRT_INSTALL_SYSTEMD_UNIT_FILES   OFF)
