@@ -81,7 +81,10 @@ border-radius: 5px;
        <item>
         <widget class="QLabel" name="banner_nvidia_layer_text">
          <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The Monado NVIDIA layer is not installed.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The &lt;a href=&quot;https://github.com/WiVRn/WiVRn/issues/180&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;Monado NVIDIA layer&lt;/span&gt;&lt;/a&gt; is not installed.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="openExternalLinks">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
