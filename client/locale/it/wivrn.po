@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-11-10 21:08+0100\n"
+"POT-Creation-Date: 2024-11-25 17:56+0100\n"
 "PO-Revision-Date: 2024-10-15 20:16+0100\n"
 "Last-Translator: Albano Battistella <albanobattistella@gmail.com>\n"
 "Language: Italian\n"
@@ -10,38 +10,42 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: client/scenes/lobby.cpp:142
+#: client/scenes/lobby.cpp:147
 msgid "No supported swapchain format"
 msgstr "Nessun formato swapchain supportato"
 
-#: client/scenes/lobby.cpp:209
+#: client/scenes/lobby.cpp:227
 msgid "Incompatible WiVRn server: no protocol field in TXT"
 msgstr "Server WiVRn incompatibile: nessun campo protocollo in TXT"
 
-#: client/scenes/lobby.cpp:212
+#: client/scenes/lobby.cpp:230
 #, c++-format
 msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
 msgstr "Protocollo server WiVRn incompatibile (client: {}, server: {})"
 
-#: client/scenes/lobby.cpp:227
+#: client/scenes/lobby.cpp:245
 #, c++-format
 msgid "Cannot resolve hostname: {}"
 msgstr "Impossibile risolvere il nome host: {}"
 
-#: client/scenes/lobby.cpp:266
+#: client/scenes/lobby.cpp:332 client/scenes/lobby.cpp:338
 #, c++-format
 msgid "Cannot connect to {} ({}): {}"
 msgstr "Impossibile connettersi a {} ({}): {}"
 
-#: client/scenes/lobby.cpp:380
+#: client/scenes/lobby.cpp:452
 msgid "Waiting for connection"
 msgstr "In attesa di connessione"
 
-#: client/scenes/lobby_gui.cpp:172
+#: client/scenes/lobby_gui.cpp:171 client/scenes/lobby_gui.cpp:365
+msgid "Cancel"
+msgstr "Annulla"
+
+#: client/scenes/lobby_gui.cpp:177
 msgid "Video stream interrupted"
 msgstr "Flusso video interrotto"
 
-#: client/scenes/lobby_gui.cpp:174
+#: client/scenes/lobby_gui.cpp:179
 msgid ""
 "Connection ready\n"
 "Start a VR application on your computer"
@@ -49,7 +53,7 @@ msgstr ""
 "Connessione pronta\n"
 "Avvia un'applicazione VR sul computer"
 
-#: client/scenes/lobby_gui.cpp:176
+#: client/scenes/lobby_gui.cpp:181
 #, c++-format
 msgid ""
 "Connection ready\n"
@@ -58,44 +62,48 @@ msgstr ""
 "Connessione pronta\n"
 "Avvia un'applicazione VR su {}"
 
-#: client/scenes/lobby_gui.cpp:191
+#: client/scenes/lobby_gui.cpp:194
 msgid "Close"
 msgstr "Chiudi"
 
-#: client/scenes/lobby_gui.cpp:193 client/scenes/lobby_gui.cpp:274
-msgid "Cancel"
-msgstr "Annulla"
-
-#: client/scenes/lobby_gui.cpp:199
+#: client/scenes/lobby_gui.cpp:200
 msgid "Connection"
 msgstr "Connessione"
 
-#: client/scenes/lobby_gui.cpp:201
+#: client/scenes/lobby_gui.cpp:202
 #, c++-format
 msgid "Connection to {}"
 msgstr "Connessione a {}"
 
-#: client/scenes/lobby_gui.cpp:239
+#: client/scenes/lobby_gui.cpp:232
+msgid "PIN"
+msgstr "PIN"
+
+#: client/scenes/lobby_gui.cpp:254
+msgid "Input the PIN displayed on the dashboard"
+msgstr "Digitare il PIN visibile sul server"
+
+#: client/scenes/lobby_gui.cpp:330
 msgid "Name"
 msgstr "Nome"
 
-#: client/scenes/lobby_gui.cpp:250
+#: client/scenes/lobby_gui.cpp:341
 msgid "Address"
 msgstr "Indirizzo"
 
-#: client/scenes/lobby_gui.cpp:259
+#: client/scenes/lobby_gui.cpp:350
 msgid "Port"
 msgstr "Porta"
 
-#: client/scenes/lobby_gui.cpp:267
+#: client/scenes/lobby_gui.cpp:358
 msgid "TCP only"
 msgstr "Solo TCP"
 
-#: client/scenes/lobby_gui.cpp:288
+#: client/scenes/lobby_gui.cpp:379
 msgid "Save"
 msgstr "Salva"
 
-#: client/scenes/lobby_gui.cpp:341
+#: client/scenes/lobby_gui.cpp:432
 msgid ""
 "Start a WiVRn server on your\n"
 "local network"
@@ -103,147 +111,147 @@ msgstr ""
 "Avvia un server WiVRn sulla\n"
 "rete locale"
 
-#: client/scenes/lobby_gui.cpp:373
+#: client/scenes/lobby_gui.cpp:464
 msgid "Autoconnect"
 msgstr "Connessione automatica"
 
-#: client/scenes/lobby_gui.cpp:399
+#: client/scenes/lobby_gui.cpp:490
 msgid "Connect"
 msgstr "Connetti"
 
-#: client/scenes/lobby_gui.cpp:409
+#: client/scenes/lobby_gui.cpp:500
 msgid "Incompatible server version"
 msgstr "Versione del server incompatibile"
 
-#: client/scenes/lobby_gui.cpp:411
+#: client/scenes/lobby_gui.cpp:502
 msgid "Server not available"
 msgstr "Server non disponibile"
 
-#: client/scenes/lobby_gui.cpp:493
+#: client/scenes/lobby_gui.cpp:588
 msgid "Refresh rate"
 msgstr "Frequenza di aggiornamento"
 
-#: client/scenes/lobby_gui.cpp:515
+#: client/scenes/lobby_gui.cpp:610
 msgid "Resolution scale"
 msgstr "Scala di risoluzione"
 
-#: client/scenes/lobby_gui.cpp:515 client/scenes/lobby_gui.cpp:519
+#: client/scenes/lobby_gui.cpp:610 client/scenes/lobby_gui.cpp:614
 #, c++-format
 msgid "{} - {}x{} per eye"
 msgstr "{} - {}x{} per occhio"
 
-#: client/scenes/lobby_gui.cpp:532
+#: client/scenes/lobby_gui.cpp:627
 msgid "Enable microphone"
 msgstr "Attiva il microfono"
 
-#: client/scenes/lobby_gui.cpp:542
+#: client/scenes/lobby_gui.cpp:637
 msgid "Enable hand tracking"
 msgstr "Abilita il tracciamento delle mani"
 
-#: client/scenes/lobby_gui.cpp:549 client/scenes/lobby_gui.cpp:562
-#: client/scenes/lobby_gui.cpp:575 client/scenes/lobby_gui.cpp:587
+#: client/scenes/lobby_gui.cpp:644 client/scenes/lobby_gui.cpp:657
+#: client/scenes/lobby_gui.cpp:670 client/scenes/lobby_gui.cpp:682
 msgid "This feature is not supported by your headset"
 msgstr "Questa funzionalità non è supportata dal visore"
 
-#: client/scenes/lobby_gui.cpp:555
+#: client/scenes/lobby_gui.cpp:650
 msgid "Enable eye tracking"
 msgstr "Abilita il tracciamento oculare"
 
-#: client/scenes/lobby_gui.cpp:568
+#: client/scenes/lobby_gui.cpp:663
 msgid "Enable face tracking"
 msgstr "Abilita il tracciamento facciale"
 
-#: client/scenes/lobby_gui.cpp:580
+#: client/scenes/lobby_gui.cpp:675
 msgid "Enable video passthrough in lobby"
 msgstr "Abilita la visualizzazione reale in ingresso"
 
-#: client/scenes/lobby_gui.cpp:590
+#: client/scenes/lobby_gui.cpp:685
 msgid "Show performance metrics"
 msgstr "Mostra metriche delle prestazioni"
 
-#: client/scenes/lobby_gui.cpp:594
+#: client/scenes/lobby_gui.cpp:689
 msgid "Overlay can be toggled by pressing both thumbsticks"
 msgstr "È possibile alternare la visualizzazione premendo entrambi i joystick"
 
-#: client/scenes/lobby_gui.cpp:624 client/scenes/lobby_gui.cpp:632
+#: client/scenes/lobby_gui.cpp:719 client/scenes/lobby_gui.cpp:727
 #: client/scenes/stream_stats.cpp:158
 msgid "CPU time"
 msgstr "Tempo CPU"
 
-#: client/scenes/lobby_gui.cpp:628
+#: client/scenes/lobby_gui.cpp:723
 msgid "CPU time [ms]"
 msgstr "Tempo CPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:638 client/scenes/lobby_gui.cpp:646
+#: client/scenes/lobby_gui.cpp:733 client/scenes/lobby_gui.cpp:741
 #: client/scenes/stream_stats.cpp:160
 msgid "GPU time"
 msgstr "Tempo GPU"
 
-#: client/scenes/lobby_gui.cpp:642
+#: client/scenes/lobby_gui.cpp:737
 msgid "GPU time [ms]"
 msgstr "Tempo GPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:732 client/scenes/lobby_gui.cpp:1360
+#: client/scenes/lobby_gui.cpp:827 client/scenes/lobby_gui.cpp:1455
 msgid "Licenses"
 msgstr "Licenze"
 
-#: client/scenes/lobby_gui.cpp:1071
+#: client/scenes/lobby_gui.cpp:1166
 msgid "Microphone is enabled"
 msgstr "Microfono attivo"
 
-#: client/scenes/lobby_gui.cpp:1072
+#: client/scenes/lobby_gui.cpp:1167
 msgid "Microphone is disabled"
 msgstr "Microfono disattivato"
 
-#: client/scenes/lobby_gui.cpp:1081
+#: client/scenes/lobby_gui.cpp:1176
 msgid "Hand tracking is enabled"
 msgstr "Tracciamento delle mani attivo"
 
-#: client/scenes/lobby_gui.cpp:1082
+#: client/scenes/lobby_gui.cpp:1177
 msgid "Hand tracking is disabled"
 msgstr "Tracciamento delle mani disattivato"
 
-#: client/scenes/lobby_gui.cpp:1091
+#: client/scenes/lobby_gui.cpp:1186
 msgid "Eye tracking is enabled"
 msgstr "Tracciamento oculare attivo"
 
-#: client/scenes/lobby_gui.cpp:1092
+#: client/scenes/lobby_gui.cpp:1187
 msgid "Eye tracking is disabled"
 msgstr "Tracciamento oculare disattivato"
 
-#: client/scenes/lobby_gui.cpp:1102
+#: client/scenes/lobby_gui.cpp:1197
 msgid "Face tracking is enabled"
 msgstr "Tracciamento facciale attivato"
 
-#: client/scenes/lobby_gui.cpp:1103
+#: client/scenes/lobby_gui.cpp:1198
 msgid "Face tracking is disabled"
 msgstr "Tracciamento facciale disattivato"
 
-#: client/scenes/lobby_gui.cpp:1120
+#: client/scenes/lobby_gui.cpp:1215
 msgid "Add server"
 msgstr "Aggiungi server"
 
-#: client/scenes/lobby_gui.cpp:1345
+#: client/scenes/lobby_gui.cpp:1440
 msgid "Server list"
 msgstr "Elenco dei server"
 
-#: client/scenes/lobby_gui.cpp:1348
+#: client/scenes/lobby_gui.cpp:1443
 msgid "Settings"
 msgstr "Impostazioni"
 
-#: client/scenes/lobby_gui.cpp:1352
+#: client/scenes/lobby_gui.cpp:1447
 msgid "Debug"
 msgstr "Debug"
 
-#: client/scenes/lobby_gui.cpp:1357
+#: client/scenes/lobby_gui.cpp:1452
 msgid "About"
 msgstr "Informazioni"
 
-#: client/scenes/lobby_gui.cpp:1363
+#: client/scenes/lobby_gui.cpp:1458
 msgid "Exit"
 msgstr "Esci"
 
-#: client/scenes/lobby_gui.cpp:1377
+#: client/scenes/lobby_gui.cpp:1472
 msgid ""
 "Press A or X or put your palm up\n"
 "to move the main window"
@@ -251,7 +259,7 @@ msgstr ""
 "Premi A, X o punta il palmo della mano verso l'alto\n"
 "per spostare la finestra principale"
 
-#: client/scenes/lobby_gui.cpp:1379
+#: client/scenes/lobby_gui.cpp:1474
 msgid "Press A or X to move the main window"
 msgstr "Premi A o X per spostare la finestra principale"
 
