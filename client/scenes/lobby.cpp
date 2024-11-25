@@ -29,6 +29,7 @@
 #include "render/scene_data.h"
 #include "render/scene_renderer.h"
 #include "stream.h"
+#include "utils/i18n.h"
 #include "utils/overloaded.h"
 #include "wivrn_client.h"
 #include "wivrn_discover.h"

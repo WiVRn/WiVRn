@@ -33,7 +33,6 @@
 #include <atomic>
 #include <boost/locale/generator.hpp>
 #include <boost/locale/gnu_gettext.hpp>
-#include <boost/locale/message.hpp>
 #include <chrono>
 #include <filesystem>
 #include <glm/glm.hpp>
@@ -47,10 +46,6 @@
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <openxr/openxr_reflection.h>
-
-#define _(x) boost::locale::gettext(x)
-#define _F(x) fmt::runtime(boost::locale::gettext(x))
-#define _S(x) boost::locale::gettext(x).c_str()
 
 class scene;
 

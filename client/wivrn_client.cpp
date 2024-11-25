@@ -21,9 +21,9 @@
 #include "hardware.h"
 #include "secrets.h"
 #include "spdlog/common.h"
+#include "utils/i18n.h"
 #include "wivrn_packets.h"
 #include <arpa/inet.h>
-#include <boost/locale/gnu_gettext.hpp>
 #include <ifaddrs.h>
 #include <linux/ipv6.h>
 #include <net/if.h>
@@ -93,7 +93,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 			}
 
 			if (std::chrono::steady_clock::now() >= timeout_abs)
-				throw std::runtime_error(boost::locale::gettext("Timeout"));
+				throw std::runtime_error(_("Timeout"));
 		}
 	};
 
@@ -151,7 +151,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 
 		case to_headset::crypto_handshake::crypto_state::enroll_disabled:
 			spdlog::info("Pairing is disabled on server");
-			throw std::runtime_error(boost::locale::gettext("Pairing is disabled on server"));
+			throw std::runtime_error(_("Pairing is disabled on server"));
 	}
 
 	// may be on control socket if forced TCP
@@ -167,7 +167,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 		}
 
 		if (std::chrono::steady_clock::now() >= timeout)
-			throw std::runtime_error(boost::locale::gettext("Timeout"));
+			throw std::runtime_error(_("Timeout"));
 
 		// If using stream socket, the handshake might be lost
 		if (stream)

@@ -24,6 +24,7 @@
 #include "application.h"
 #include "imgui_internal.h"
 #include "implot.h"
+#include "utils/i18n.h"
 #include "utils/ranges.h"
 #include <cmath>
 #include <limits>

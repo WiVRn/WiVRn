@@ -29,6 +29,7 @@
 #include "implot.h"
 #include "lobby.h"
 #include "stream.h"
+#include "utils/i18n.h"
 #include "version.h"
 #include <cassert>
 #include <chrono>
