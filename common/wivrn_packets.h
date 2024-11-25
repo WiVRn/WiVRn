@@ -39,7 +39,7 @@ namespace wivrn
 // Default port for server to listen, both TCP and UDP
 static const int default_port = 9757;
 
-static constexpr int protocol_revision = 1;
+static constexpr int protocol_revision = 0;
 
 enum class device_id : uint8_t
 {
@@ -266,10 +266,19 @@ using packets = std::variant<crypto_handshake, headset_info_packet, feedback, au
 
 namespace to_headset
 {
+
 struct crypto_handshake
 {
+	enum class crypto_state : uint8_t
+	{
+		encryption_disabled,
+		pin_needed,
+		client_already_known,
+		enroll_disabled,
+	};
+
 	std::string public_key; // In PEM format
-	bool pin_required;
+	crypto_state state;
 };
 
 struct handshake

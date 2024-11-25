@@ -23,6 +23,7 @@
 #include "spdlog/common.h"
 #include "wivrn_packets.h"
 #include <arpa/inet.h>
+#include <boost/locale/gnu_gettext.hpp>
 #include <ifaddrs.h>
 #include <linux/ipv6.h>
 #include <net/if.h>
@@ -47,7 +48,7 @@ const char * handshake_error::what() const noexcept
 }
 
 handshake_error::handshake_error(std::string_view message) :
-        message("Handshake error: " + std::string{message}) {}
+        message(message) {}
 
 namespace
 {
@@ -92,7 +93,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 			}
 
 			if (std::chrono::steady_clock::now() >= timeout_abs)
-				throw std::runtime_error("Timeout");
+				throw std::runtime_error(boost::locale::gettext("Timeout"));
 		}
 	};
 
@@ -103,44 +104,54 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 
 	to_headset::crypto_handshake crypto_handshake = std::get<to_headset::crypto_handshake>(receive(10s));
 
-	if (crypto_handshake.public_key != "")
+	std::string pin = "000000";
+	switch (crypto_handshake.state)
 	{
-		crypto::key server_key = crypto::key::from_public_key(crypto_handshake.public_key);
+		case to_headset::crypto_handshake::crypto_state::encryption_disabled: {
+			spdlog::info("Encryption is disabled on server");
 
-		const std::string pin = crypto_handshake.pin_required ? pin_enter(control.get_fd()) : "000000";
+			send_control(from_headset::crypto_handshake{});
 
-		spdlog::info("Using pin \"{}\"", pin);
+			to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
+			if (h.stream_port > 0 && !tcp_only)
+			{
+				stream = decltype(stream)();
 
-		secrets s{headset_keypair, server_key, pin};
-		control.set_aes_key_and_ivs(s.control_key, s.control_iv_to_headset, s.control_iv_from_headset);
-
-		// Confirm that encryption is set up
-		send_control(from_headset::crypto_handshake{});
-
-		to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
-		if (h.stream_port > 0 && !tcp_only)
-		{
-			stream = decltype(stream)();
-
-			stream.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_to_headset, s.stream_iv_header_from_headset);
-			stream.connect(address, h.stream_port);
-			init_stream(stream);
+				stream.connect(address, h.stream_port);
+				init_stream(stream);
+			}
+			break;
 		}
-	}
-	else
-	{
-		spdlog::info("Encryption is disabled on server");
 
-		send_control(from_headset::crypto_handshake{});
+		case to_headset::crypto_handshake::crypto_state::pin_needed:
+			pin = pin_enter(control.get_fd());
+			[[fallthrough]];
 
-		to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
-		if (h.stream_port > 0 && !tcp_only)
-		{
-			stream = decltype(stream)();
+		case to_headset::crypto_handshake::crypto_state::client_already_known: {
+			spdlog::info("Using pin \"{}\"", pin);
 
-			stream.connect(address, h.stream_port);
-			init_stream(stream);
+			crypto::key server_key = crypto::key::from_public_key(crypto_handshake.public_key);
+			secrets s{headset_keypair, server_key, pin};
+			control.set_aes_key_and_ivs(s.control_key, s.control_iv_to_headset, s.control_iv_from_headset);
+
+			// Confirm that encryption is set up
+			send_control(from_headset::crypto_handshake{});
+
+			to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
+			if (h.stream_port > 0 && !tcp_only)
+			{
+				stream = decltype(stream)();
+
+				stream.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_to_headset, s.stream_iv_header_from_headset);
+				stream.connect(address, h.stream_port);
+				init_stream(stream);
+			}
+			break;
 		}
+
+		case to_headset::crypto_handshake::crypto_state::enroll_disabled:
+			spdlog::info("Pairing is disabled on server");
+			throw std::runtime_error(boost::locale::gettext("Pairing is disabled on server"));
 	}
 
 	// may be on control socket if forced TCP
@@ -156,7 +167,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 		}
 
 		if (std::chrono::steady_clock::now() >= timeout)
-			throw std::runtime_error("Failed to establish connection");
+			throw std::runtime_error(boost::locale::gettext("Timeout"));
 
 		// If using stream socket, the handshake might be lost
 		if (stream)

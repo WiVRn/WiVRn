@@ -172,15 +172,18 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 		case encryption_state::disabled:
 			// Encryption and authentication are disabled
 			control.send(to_headset::crypto_handshake{
-			        .public_key = "",
-			        .pin_required = false,
+			        .state = to_headset::crypto_handshake::crypto_state::encryption_disabled,
 			});
 			break;
 
 		case encryption_state::enabled:
 			if (not is_public_key_known)
-				// TODO send error message to the client
+			{
+				control.send(to_headset::crypto_handshake{
+				        .state = to_headset::crypto_handshake::crypto_state::enroll_disabled,
+				});
 				throw std::runtime_error("Client not known and enroll is disabled");
+			}
 
 			[[fallthrough]];
 
@@ -190,7 +193,9 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 
 			control.send(to_headset::crypto_handshake{
 			        .public_key = server_key.public_key(),
-			        .pin_required = not is_public_key_known,
+			        .state = is_public_key_known
+			                         ? to_headset::crypto_handshake::crypto_state::client_already_known
+			                         : to_headset::crypto_handshake::crypto_state::pin_needed,
 			});
 
 			secrets s{server_key, headset_key, is_public_key_known ? "000000" : pin};
