@@ -161,6 +161,7 @@ void wivrn::android::audio::build_microphone(AAudioStreamBuilder * builder, int3
 	aaudio_result_t result = AAudioStreamBuilder_openStream(builder, &microphone);
 	if (result != AAUDIO_OK)
 		spdlog::error("Cannot create input stream: {}", AAudio_convertResultToText(result));
+	mic_running = false;
 	// Microphone is started manually by a tracking_control packet
 }
 
@@ -280,6 +281,9 @@ void wivrn::android::audio::set_mic_sate(bool running)
 	if (not microphone)
 		return;
 
+	auto old = mic_running.exchange(running);
+	if (old == running)
+		return;
 	if (running)
 		AAudioStream_requestStart(microphone);
 	else

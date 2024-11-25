@@ -56,6 +56,7 @@ class audio
 	std::atomic<bool> speaker_stop_ack = false;
 	AAudioStreamStruct * microphone = nullptr;
 	std::atomic<bool> microphone_stop_ack = false;
+	std::atomic<bool> mic_running = false;
 
 	wivrn_session & session;
 	xr::instance & instance;
