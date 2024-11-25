@@ -3,7 +3,7 @@
 cd $(dirname $0)/..
 
 WIVRN_POT=$(mktemp)
-xgettext --keyword=_:1,1t --keyword=_S:1,1t --keyword=_F:1,1t client/**/*.cpp --output=$WIVRN_POT --package-name=WiVRn
+xgettext --keyword=_:1,1t --keyword=_S:1,1t --keyword=_F:1,1t $(find client/ -name "*.cpp") --output=$WIVRN_POT --package-name=WiVRn
 sed -i 's/charset=CHARSET/charset=UTF-8/g' $WIVRN_POT
 
 RC=0
