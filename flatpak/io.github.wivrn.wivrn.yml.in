@@ -178,7 +178,7 @@ modules:
         dest: deps/monado-src
       - type: shell
         commands:
-         - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado
+         - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado/*
 
   - name: opencomposite
     buildsystem: cmake-ninja

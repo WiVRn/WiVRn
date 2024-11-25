@@ -324,7 +324,7 @@ jobs:
 
     - name: Patch monado
       working-directory: wivrn/monado-src
-      run: ../patches/apply.sh ../patches/monado
+      run: ../patches/apply.sh ../patches/monado/*
 
     - name: Edit changelog (nightly)
       if: ${{ ! startsWith(github.ref, 'refs/tags/') }}

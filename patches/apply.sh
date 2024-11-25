@@ -5,12 +5,12 @@ if [ -d ".git" ] ; then
 	git config user.name > /dev/null || git config user.name "no name"
 	git config --local commit.gpgsign false
 	git checkout .
-	exec git am "$@"/*
+	exec git am "$@"
 fi
 
 # There is no reliable way to apply a patch and succeed if it was
 # already applied. Just ignore errors...
-for f in "$@"/* ; do
+for f in "$@" ; do
 	patch -p1 --forward < "$f"
 done
 
