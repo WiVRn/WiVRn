@@ -4,48 +4,48 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="main_window.ui" line="105"/>
+        <location filename="main_window.ui" line="146"/>
         <source>Start</source>
         <translation>Démarrer</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="172"/>
+        <location filename="main_window.ui" line="213"/>
         <source>Stop</source>
         <translation>Arrêter</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="162"/>
+        <location filename="main_window.ui" line="203"/>
         <source>Settings</source>
         <translation>Paramètres</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="197"/>
+        <location filename="main_window.ui" line="241"/>
         <source>For Steam games, set the launch options to:</source>
         <oldsource>For Steam games, set the command to:</oldsource>
         <translation>Pour les jeux Steam, définir les options de lancement à&#x202f;:</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="215"/>
+        <location filename="main_window.ui" line="259"/>
         <source>Copy to clipboard</source>
         <translation>Copier dans le presse-papier</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="289"/>
+        <location filename="main_window.ui" line="333"/>
         <source>Disconnect</source>
         <translation>Déconnecter</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="354"/>
+        <location filename="main_window.ui" line="449"/>
         <source>Field of view</source>
         <translation>Champ de vue</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="375"/>
+        <location filename="main_window.ui" line="470"/>
         <source>Microphone</source>
         <translation>Microphone</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="347"/>
+        <location filename="main_window.ui" line="442"/>
         <source>Speaker</source>
         <translation>Haut-parleur</translation>
     </message>
@@ -60,98 +60,118 @@
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Le serveur n&apos;a pas la capacité CAP_SYS_NICE. Cliquez &lt;a href=&quot;setcap&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;ici&lt;/span&gt;&lt;/a&gt; pour la donner.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="63"/>
+        <location filename="main_window.ui" line="84"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The &lt;a href=&quot;https://github.com/WiVRn/WiVRn/issues/180&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;Monado NVIDIA layer&lt;/span&gt;&lt;/a&gt; is not installed.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Le &lt;a href=&quot;https://github.com/WiVRn/WiVRn/issues/180&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;layer Monado NVIDIA&lt;/span&gt;&lt;/a&gt; n&apos;est pas installé.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="main_window.ui" line="104"/>
         <source>Server status</source>
         <oldsource>Server</oldsource>
         <translation>État du serveur</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="98"/>
+        <location filename="main_window.ui" line="139"/>
         <source>Stopped</source>
         <translation>Arrêté</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="155"/>
+        <location filename="main_window.ui" line="196"/>
         <source>Running</source>
         <translation>Démarré</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="275"/>
+        <location filename="main_window.ui" line="319"/>
         <source>Connect by USB</source>
         <translation>Connexion par USB</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="333"/>
+        <location filename="main_window.ui" line="385"/>
+        <source>Pair headset</source>
+        <translation>Appairer le casque</translation>
+    </message>
+    <message>
+        <location filename="main_window.ui" line="392"/>
+        <source>Cancel</source>
+        <translation>Annuler</translation>
+    </message>
+    <message>
+        <location filename="main_window.ui" line="399"/>
+        <source>Known headsets</source>
+        <translation>Casques connus</translation>
+    </message>
+    <message>
+        <location filename="main_window.ui" line="428"/>
         <source>Eye gaze tracking</source>
         <translation>Suivi des yeux</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="396"/>
+        <location filename="main_window.ui" line="491"/>
         <source>Hand tracking</source>
         <translation>Suivi des mains</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="389"/>
+        <location filename="main_window.ui" line="484"/>
         <source>Supported codecs</source>
         <translation>Codecs supportés</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="410"/>
+        <location filename="main_window.ui" line="505"/>
         <source>Face tracking</source>
         <translation>Suivi du visage</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="382"/>
+        <location filename="main_window.ui" line="477"/>
         <source>Available refresh rates</source>
         <translation>Taux de rafraîchissment disponibles</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="340"/>
+        <location filename="main_window.ui" line="435"/>
         <source>Eye resolution</source>
         <translation>Résolution par œil</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="403"/>
+        <location filename="main_window.ui" line="498"/>
         <source>Preferred refresh rate</source>
         <translation>Taux de rafraîchisement préféré</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="549"/>
+        <location filename="main_window.ui" line="644"/>
         <source>&amp;Exit</source>
         <translation>&amp;Quitter</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="533"/>
+        <location filename="main_window.ui" line="628"/>
         <source>&amp;Show</source>
         <translation>&amp;Afficher</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="255"/>
+        <location filename="main_window.ui" line="299"/>
         <source>Headset status</source>
         <translation>État du casque</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="282"/>
+        <location filename="main_window.ui" line="326"/>
         <source>Wizard</source>
         <translation>Assistant</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="299"/>
+        <location filename="main_window.ui" line="343"/>
         <source>Details</source>
         <translation>Détails</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="507"/>
+        <location filename="main_window.ui" line="602"/>
         <source>About</source>
         <translation>À propos</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="517"/>
+        <location filename="main_window.ui" line="612"/>
         <source>Exit</source>
         <translation>Quitter</translation>
     </message>
     <message>
-        <location filename="main_window.ui" line="541"/>
+        <location filename="main_window.ui" line="636"/>
         <source>&amp;Hide</source>
         <translation>&amp;Cacher</translation>
     </message>
@@ -167,7 +187,7 @@
 <context>
     <name>QWizard</name>
     <message>
-        <location filename="wizard.cpp" line="332"/>
+        <location filename="wizard.cpp" line="335"/>
         <source>&amp;Next &gt;</source>
         <comment>do not translate, the QWizard translation will be used</comment>
         <translation type="unfinished"></translation>
@@ -416,7 +436,7 @@ Les valeurs recommandées sont entre 20% et 50% pour les casques sans suivi des 
         <translation type="vanished">Exécutez la commande suivante pour installer le client:</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="523"/>
+        <location filename="wizard.ui" line="545"/>
         <source>Copy to clipboard</source>
         <translation>Copier dans le presse-papier</translation>
     </message>
@@ -432,21 +452,26 @@ Les valeurs recommandées sont entre 20% et 50% pour les casques sans suivi des 
     </message>
     <message>
         <location filename="wizard.ui" line="446"/>
+        <source>Use the following PIN to connect your headset:</source>
+        <translation>Utilisez ce code PIN pour connecter votre casque&#xa0;:</translation>
+    </message>
+    <message>
+        <location filename="wizard.ui" line="468"/>
         <source>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</source>
         <translation>Si le serveur n&apos;est pas visible ou que la connexion échoue, vérifiez que les ports 5353 (UDP) et 9757 (TCP et UDP) sont ouverts dans votre pare-feu.</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="473"/>
+        <location filename="wizard.ui" line="495"/>
         <source>Finished</source>
         <translation>Terminé</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="498"/>
+        <location filename="wizard.ui" line="520"/>
         <source>You can now start an OpenXR application on this computer.</source>
         <translation>Vous pouvez maintenant démarrer une application OpenXR sur cet ordinateur.</translation>
     </message>
     <message>
-        <location filename="wizard.ui" line="505"/>
+        <location filename="wizard.ui" line="527"/>
         <source>For Steam games, set the launch options to:</source>
         <oldsource>For Steam games, set the command to:</oldsource>
         <translation>Pour les jeux Steam, définir les options de lancement à&#x202f;:</translation>
@@ -455,75 +480,75 @@ Les valeurs recommandées sont entre 20% et 50% pour les casques sans suivi des 
 <context>
     <name>main_window</name>
     <message>
-        <location filename="main_window.cpp" line="214"/>
+        <location filename="main_window.cpp" line="357"/>
         <source>&amp;Show GUI</source>
         <translation>&amp;Afficher la GUI</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="215"/>
+        <location filename="main_window.cpp" line="358"/>
         <source>&amp;Hide GUI</source>
         <translation>&amp;Cacher la GUI</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="216"/>
+        <location filename="main_window.cpp" line="359"/>
         <source>&amp;Exit</source>
         <translation>&amp;Quitter</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="364"/>
+        <location filename="main_window.cpp" line="507"/>
         <source>You have to restart the WiVRn server to use the CAP_SYS_NICE capability.
 Do you want to restart it now?</source>
         <translation>Vous devez redémarrer le serveur WiVRn pour utiliser la capacité CAP_SYS_NICE.
 Voulez-vous le redémarrer maintenant?</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="368"/>
+        <location filename="main_window.cpp" line="511"/>
         <source>This will disconnect the currently connected headset.</source>
         <translation>Cela va déconnecter le casque actuellement connecté.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="371"/>
+        <location filename="main_window.cpp" line="514"/>
         <source>Restart WiVRn</source>
         <translation>Redémarrer WiVRn</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="389"/>
+        <location filename="main_window.cpp" line="532"/>
         <source>Cannot start setcap: %1</source>
         <translation>Impossible de démarrer setcap: %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="455"/>
+        <location filename="main_window.cpp" line="598"/>
         <source>%1 ⨯ %2</source>
         <translation>%1 ⨯ %2</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="462"/>
-        <location filename="main_window.cpp" line="469"/>
+        <location filename="main_window.cpp" line="605"/>
+        <location filename="main_window.cpp" line="612"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="474"/>
-        <location filename="main_window.cpp" line="479"/>
-        <location filename="main_window.cpp" line="496"/>
+        <location filename="main_window.cpp" line="617"/>
+        <location filename="main_window.cpp" line="622"/>
+        <location filename="main_window.cpp" line="639"/>
         <source>Supported</source>
         <translation>Supporté</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="474"/>
-        <location filename="main_window.cpp" line="479"/>
-        <location filename="main_window.cpp" line="496"/>
+        <location filename="main_window.cpp" line="617"/>
+        <location filename="main_window.cpp" line="622"/>
+        <location filename="main_window.cpp" line="639"/>
         <source>Not supported</source>
         <translation>Non supporté</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="486"/>
+        <location filename="main_window.cpp" line="629"/>
         <source>Left eye: %1° ⨯ %2°, right eye: %3° ⨯ %4°</source>
         <translation>Œil gauche: %1° ⨯ %2°, œil droit: %3° ⨯ %4°</translation>
     </message>
     <message numerus="yes">
-        <location filename="main_window.cpp" line="505"/>
-        <location filename="main_window.cpp" line="516"/>
+        <location filename="main_window.cpp" line="648"/>
+        <location filename="main_window.cpp" line="659"/>
         <source>%n channel(s), %1 Hz</source>
         <oldsource>%1 channel(s), %2 Hz</oldsource>
         <translation>
@@ -532,13 +557,23 @@ Voulez-vous le redémarrer maintenant?</translation>
         </translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="507"/>
-        <location filename="main_window.cpp" line="518"/>
+        <location filename="main_window.cpp" line="650"/>
+        <location filename="main_window.cpp" line="661"/>
         <source>N/A</source>
         <translation>Non disponible</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="682"/>
+        <location filename="main_window.cpp" line="679"/>
+        <source>To pair your headset use the following PIN: %1</source>
+        <translation>Pour connecter votre casque utilisez ce code PIN&#xa0;: %1</translation>
+    </message>
+    <message>
+        <location filename="main_window.cpp" line="705"/>
+        <source>Cannot connect to avahi, make sure avahi-daemon service is started with &quot;disable-user-service-publishing&quot; set to no</source>
+        <translation>Impossible de se connecter à avahi, vérifiez que le service avahi-daemon est démarré avec «&#xa0;disable-user-service-publishing&#xa0;» à «&#xa0;no&#xa0;»</translation>
+    </message>
+    <message>
+        <location filename="main_window.cpp" line="829"/>
         <source>The WiVRn app is not installed on your headset.</source>
         <translation>L&apos;application WiVRn n&apos;est pas installée sur votre casque.</translation>
     </message>
@@ -553,33 +588,33 @@ Voulez-vous l&apos;installer&#xa0;?</translation>
         <translation type="obsolete">WiVRn</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="579"/>
+        <location filename="main_window.cpp" line="732"/>
         <source>Failed to start</source>
         <translation>Impossible de démarrer</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="582"/>
+        <location filename="main_window.cpp" line="735"/>
         <source>Crashed</source>
         <translation>Planté</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="585"/>
+        <location filename="main_window.cpp" line="738"/>
         <source>Time out</source>
         <translation>Délai d&apos;attente dépassé</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="588"/>
+        <location filename="main_window.cpp" line="741"/>
         <source>Read error</source>
         <translation>Erreur de lecture</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="591"/>
+        <location filename="main_window.cpp" line="744"/>
         <source>Write error</source>
         <oldsource>write error</oldsource>
         <translation>Erreur d&apos;écriture</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="594"/>
+        <location filename="main_window.cpp" line="747"/>
         <source>Unknown error</source>
         <translation>Erreur inconnue</translation>
     </message>
@@ -588,62 +623,61 @@ Voulez-vous l&apos;installer&#xa0;?</translation>
         <translation type="vanished">Erreur du serveur</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="600"/>
+        <location filename="main_window.cpp" line="753"/>
         <source>Failed to start server:
 %1</source>
         <translation>Impossible de démarrer le serveur:
 %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="542"/>
+        <location filename="main_window.cpp" line="694"/>
         <source>Unknown error (%1), check logs</source>
         <translation>Erreur inconnue (%1), vérifier les logs</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="269"/>
+        <location filename="main_window.cpp" line="412"/>
         <source>No device detected</source>
         <translation>Aucun périphérique détecté</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="212"/>
+        <location filename="main_window.cpp" line="355"/>
         <source>Start the WiVRn app on your headset and connect to &quot;%1&quot;.</source>
         <translation>Démarrez l&apos;application WiVRn sur votre casque et connectez-vous à «&#xa0;%1&#xa0;».</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="212"/>
+        <location filename="main_window.cpp" line="355"/>
         <source>If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.</source>
         <translation>Si le serveur n&apos;est pas visible ou que la connexion échoue, vérifiez que les ports 5353 (UDP) et 9757 (TCP et UDP) sont ouverts dans votre pare-feu.</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="431"/>
+        <location filename="main_window.cpp" line="574"/>
         <source>Connected</source>
         <translation>Connecté</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="436"/>
+        <location filename="main_window.cpp" line="579"/>
         <source>Not connected</source>
         <translation>Non connecté</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="553"/>
         <source>Cannot connect to avahi, make sure avahi-daemon service is started</source>
         <oldsource>Cannot connect to avahi, make sure avahi_daemon.service is started</oldsource>
-        <translation>Impossible de se connecter à avahi, vérifiez que le service avahi-daemon est démarré</translation>
+        <translation type="vanished">Impossible de se connecter à avahi, vérifiez que le service avahi-daemon est démarré</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="550"/>
+        <location filename="main_window.cpp" line="702"/>
         <source>Insufficient system resources</source>
         <translation>Ressources système insuffisantes</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="559"/>
+        <location filename="main_window.cpp" line="711"/>
         <source>Server crashed:
 %1</source>
         <translation>Le serveur a planté:
 %1</translation>
     </message>
     <message>
-        <location filename="main_window.cpp" line="621"/>
+        <location filename="main_window.cpp" line="774"/>
         <source>Timeout starting server</source>
         <translation>Délai d&apos;attente dépassé lors du démarrage du serveur</translation>
     </message>
@@ -651,43 +685,43 @@ Voulez-vous l&apos;installer&#xa0;?</translation>
 <context>
     <name>settings</name>
     <message>
-        <location filename="settings.cpp" line="433"/>
+        <location filename="settings.cpp" line="449"/>
         <source>Invalid settings</source>
         <translation>Paramètres invalides</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="433"/>
+        <location filename="settings.cpp" line="449"/>
         <source>The encoder configuration is invalid, the default values will be restored.</source>
         <translation>La configuration des encodeurs est invalide, les valeurs par défaut seront restaurées.</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="201"/>
+        <location filename="settings.cpp" line="217"/>
         <source>None</source>
         <comment>Game selection combo box</comment>
         <translation>Aucun</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="202"/>
+        <location filename="settings.cpp" line="218"/>
         <source>Custom...</source>
         <comment>Game selection combo box</comment>
         <translation>Personnalisé...</translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="270"/>
+        <location filename="settings.cpp" line="286"/>
         <source>Not all headsets and GPUs support AV1
 </source>
         <translation>Tous les casques et GPUs ne supportent pas AV1
 </translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="275"/>
+        <location filename="settings.cpp" line="291"/>
         <source>Vulkan Video encoder is experimental
 </source>
         <translation>L&apos;encodeur Vulkan Vidéo est expérimental
 </translation>
     </message>
     <message>
-        <location filename="settings.cpp" line="306"/>
+        <location filename="settings.cpp" line="322"/>
         <source>Select game</source>
         <translation>Choisir un jeu</translation>
     </message>
@@ -695,86 +729,86 @@ Voulez-vous l&apos;installer&#xa0;?</translation>
 <context>
     <name>wizard</name>
     <message>
-        <location filename="wizard.cpp" line="330"/>
-        <location filename="wizard.cpp" line="370"/>
+        <location filename="wizard.cpp" line="333"/>
+        <location filename="wizard.cpp" line="373"/>
         <source>Download</source>
         <translation>Télécharger</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="139"/>
+        <location filename="wizard.cpp" line="142"/>
         <source>Other</source>
         <translation>Autre</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="155"/>
+        <location filename="wizard.cpp" line="158"/>
         <source>This is not a tagged release.</source>
         <translation>Ce n&apos;est pas une version taguée.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="157"/>
-        <location filename="wizard.cpp" line="217"/>
+        <location filename="wizard.cpp" line="160"/>
+        <location filename="wizard.cpp" line="220"/>
         <source>If you install the headset app from the store, it might not be compatible with this server.</source>
         <translation>Si vous installez l&apos;application du casque depuis le store, il risque de ne pas être compatible avec ce serveur.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="159"/>
-        <location filename="wizard.cpp" line="219"/>
+        <location filename="wizard.cpp" line="162"/>
+        <location filename="wizard.cpp" line="222"/>
         <source>If you install the headset app manually, this wizard will download the version that matches the dashboard.</source>
         <translation>Si vous installez l&apos;application du casque manuellement, l&apos;assistant va télécharger la version correspondant au tableau de bord.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="210"/>
+        <location filename="wizard.cpp" line="213"/>
         <source>This is the latest WiVRn release.</source>
         <translation>Ceci est la dernière version de WiVRn.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="215"/>
+        <location filename="wizard.cpp" line="218"/>
         <source>A new release is available (%1 → %2).</source>
         <translation>Une nouvelle version est disponible (%1 → %2).</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="225"/>
+        <location filename="wizard.cpp" line="228"/>
         <source>Cannot get latest release: %1</source>
         <translation>Impossible de récupérer la dernière version: %1</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="245"/>
+        <location filename="wizard.cpp" line="248"/>
         <source>There is no precompiled APK for this version.</source>
         <translation>Il n&apos;y a pas d&apos;APK précompilé pour cette version.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="247"/>
+        <location filename="wizard.cpp" line="250"/>
         <source>Follow the &lt;a href=&quot;https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#2980b9;&quot;&gt;documentation&lt;/span&gt;&lt;/a&gt; to build your own client.</source>
         <translation>Suivez la &lt;a href=&quot;https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset&quot;&gt;&lt;span style=&quot;text-decoration: underline; color:#2980b9;&quot;&gt;documentation&lt;/span&gt;&lt;/a&gt; pour compiler votre propre client.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="280"/>
+        <location filename="wizard.cpp" line="283"/>
         <source>Cannot get APK information: %1</source>
         <translation>Impossible de récupérer les informations sur l&apos;APK: %1</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="303"/>
+        <location filename="wizard.cpp" line="306"/>
         <source>How?</source>
         <translation>Comment&#xa0;?</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="371"/>
-        <location filename="wizard.cpp" line="399"/>
+        <location filename="wizard.cpp" line="374"/>
+        <location filename="wizard.cpp" line="402"/>
         <source>Skip</source>
         <translation>Passer</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="448"/>
+        <location filename="wizard.cpp" line="455"/>
         <source>Start the WiVRn app on your headset and connect to &quot;%1&quot;.</source>
         <translation>Démarrez l&apos;application WiVRn sur votre casque et connectez-vous à «&#xa0;%1&#xa0;».</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="582"/>
+        <location filename="wizard.cpp" line="591"/>
         <source>No device detected.</source>
         <translation>Aucun périphérique détecté.</translation>
     </message>
     <message numerus="yes">
-        <location filename="wizard.cpp" line="584"/>
+        <location filename="wizard.cpp" line="593"/>
         <source>%n device(s) detected.</source>
         <translation>
             <numerusform>%n périphérique détecté.</numerusform>
@@ -794,7 +828,7 @@ Voulez-vous l&apos;installer&#xa0;?</translation>
         <translation type="vanished">WiVRn</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="532"/>
+        <location filename="wizard.cpp" line="541"/>
         <source>Error downloading the client:
 %1</source>
         <translation>Erreur lors du téléchargement du client&#xa0;:
@@ -806,12 +840,12 @@ Voulez-vous l&apos;installer&#xa0;?</translation>
         <translation type="vanished">Erreur lors du téléchargement :%1</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="682"/>
+        <location filename="wizard.cpp" line="691"/>
         <source>The headset is connected.</source>
         <translation>Le casque est connecté.</translation>
     </message>
     <message>
-        <location filename="wizard.cpp" line="684"/>
+        <location filename="wizard.cpp" line="693"/>
         <source>The headset is not connected.</source>
         <translation>Le casque n&apos;est pas connecté.</translation>
     </message>
