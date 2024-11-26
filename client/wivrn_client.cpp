@@ -127,7 +127,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 			pin = pin_enter(control.get_fd());
 			[[fallthrough]];
 
-		case to_headset::crypto_handshake::crypto_state::client_already_known: {
+		case to_headset::crypto_handshake::crypto_state::client_already_paired: {
 			spdlog::info("Using pin \"{}\"", pin);
 
 			crypto::key server_key = crypto::key::from_public_key(crypto_handshake.public_key);
@@ -149,7 +149,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 			break;
 		}
 
-		case to_headset::crypto_handshake::crypto_state::enroll_disabled:
+		case to_headset::crypto_handshake::crypto_state::pairing_disabled:
 			spdlog::info("Pairing is disabled on server");
 			throw std::runtime_error(_("Pairing is disabled on server"));
 	}

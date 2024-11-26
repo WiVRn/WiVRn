@@ -403,8 +403,8 @@ void wizard::on_page_changed(int id)
 			setButtonLayout({QWizard::Stretch, QWizard::BackButton, QWizard::NextButton, QWizard::CustomButton1, QWizard::CancelButton});
 			on_headset_connected_changed(server->isHeadsetConnected());
 
-			if (not server->isEnrollEnabled())
-				server->enroll_headset(-1);
+			if (not server->isPairingEnabled())
+				server->enable_pairing(-1);
 
 			return;
 
@@ -458,7 +458,7 @@ void wizard::retranslate()
 
 wizard::~wizard()
 {
-	server->disable_enroll_headset();
+	server->disable_pairing();
 
 	delete ui;
 	ui = nullptr;

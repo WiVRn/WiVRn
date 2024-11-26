@@ -209,7 +209,7 @@ bool avahi_publish;
 guint listener_watch;
 
 wivrn_connection::encryption_state enc_state = wivrn_connection::encryption_state::enabled;
-guint enroll_timeout;
+guint pairing_timeout;
 std::string pin;
 NotifyNotification * pin_notification;
 
@@ -448,7 +448,7 @@ gboolean headset_connected_success(void *)
 	assert(connection_thread);
 	connection_thread.reset();
 
-	if (enc_state == wivrn_connection::encryption_state::enroll)
+	if (enc_state == wivrn_connection::encryption_state::pairing)
 		set_encryption_state(wivrn_connection::encryption_state::enabled);
 
 	init_cleanup_functions();
@@ -546,7 +546,7 @@ void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 		case wivrn_connection::encryption_state::disabled:
 			pin = "";
 			std::cerr << "Encryption is disabled" << std::endl;
-			wivrn_server_set_enroll_enabled(dbus_server, false);
+			wivrn_server_set_pairing_enabled(dbus_server, false);
 			wivrn_server_set_encryption_enabled(dbus_server, false);
 
 			notify_notification_set_timeout(pin_notification, NOTIFY_EXPIRES_NEVER);
@@ -558,11 +558,11 @@ void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 			if (enc_state != wivrn_connection::encryption_state::enabled)
 				std::cerr << "Headset pairing is disabled" << std::endl;
 
-			wivrn_server_set_enroll_enabled(dbus_server, false);
+			wivrn_server_set_pairing_enabled(dbus_server, false);
 			wivrn_server_set_encryption_enabled(dbus_server, true);
 			break;
 
-		case wivrn_connection::encryption_state::enroll:
+		case wivrn_connection::encryption_state::pairing:
 			std::random_device rd;
 			std::mt19937 gen(rd());
 			std::uniform_int_distribution<> distrib(0, 999999);
@@ -571,7 +571,7 @@ void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 			snprintf(buffer, 7, "%06d", distrib(gen));
 			pin = buffer;
 			std::cerr << "To pair a new headset use PIN code: " << pin << std::endl;
-			wivrn_server_set_enroll_enabled(dbus_server, true);
+			wivrn_server_set_pairing_enabled(dbus_server, true);
 			wivrn_server_set_encryption_enabled(dbus_server, true);
 
 			// Desktop notification
@@ -641,12 +641,12 @@ gboolean on_handle_rename_key(WivrnServer * skeleton, GDBusMethodInvocation * in
 	return G_SOURCE_CONTINUE;
 }
 
-gboolean on_handle_enroll_headset(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
+gboolean on_handle_enable_pairing(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
 {
-	set_encryption_state(wivrn_connection::encryption_state::enroll);
+	set_encryption_state(wivrn_connection::encryption_state::pairing);
 
-	if (enroll_timeout)
-		g_source_remove(enroll_timeout);
+	if (pairing_timeout)
+		g_source_remove(pairing_timeout);
 
 	int timeout_secs;
 	GVariant * args = g_dbus_method_invocation_get_parameters(invocation);
@@ -654,8 +654,8 @@ gboolean on_handle_enroll_headset(WivrnServer * skeleton, GDBusMethodInvocation 
 
 	if (timeout_secs > 0)
 	{
-		enroll_timeout = g_timeout_add(timeout_secs * 1000, [](void *) {
-			enroll_timeout = 0;
+		pairing_timeout = g_timeout_add(timeout_secs * 1000, [](void *) {
+			pairing_timeout = 0;
 			set_encryption_state(wivrn_connection::encryption_state::enabled);
 			return G_SOURCE_REMOVE; }, nullptr);
 	}
@@ -664,7 +664,7 @@ gboolean on_handle_enroll_headset(WivrnServer * skeleton, GDBusMethodInvocation 
 	return G_SOURCE_CONTINUE;
 }
 
-gboolean on_handle_disable_enroll_headset(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
+gboolean on_handle_disable_pairing(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
 {
 	set_encryption_state(wivrn_connection::encryption_state::enabled);
 	g_dbus_method_invocation_return_value(invocation, nullptr);
@@ -782,13 +782,13 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	if (enc_state != wivrn_connection::encryption_state::disabled)
 	{
 		g_signal_connect(dbus_server,
-		                 "handle-enroll-headset",
-		                 G_CALLBACK(on_handle_enroll_headset),
+		                 "handle-enable-pairing",
+		                 G_CALLBACK(on_handle_enable_pairing),
 		                 NULL);
 
 		g_signal_connect(dbus_server,
-		                 "handle-disable-enroll-headset",
-		                 G_CALLBACK(on_handle_disable_enroll_headset),
+		                 "handle-disable-pairing",
+		                 G_CALLBACK(on_handle_disable_pairing),
 		                 NULL);
 	}
 
@@ -811,7 +811,7 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	                                 NULL);
 
 	if (enc_state != wivrn_connection::encryption_state::disabled and known_keys().empty())
-		set_encryption_state(wivrn_connection::encryption_state::enroll);
+		set_encryption_state(wivrn_connection::encryption_state::pairing);
 	else
 		set_encryption_state(enc_state);
 }

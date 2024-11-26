@@ -35,11 +35,11 @@
 			<arg type="s" name="PublicKey"/>
 			<arg type="s" name="Name"/>
 		</method>
-		<method name="EnrollHeadset">
+		<method name="EnablePairing">
 			<arg type="i" name="TimeoutSecs"/>
 			<arg type="s" name="Pin" direction="out"/>
 		</method>
-		<method name="DisableEnrollHeadset"/>
+		<method name="DisablePairing"/>
 
 		<property name="HeadsetConnected"      type="b" access="read"/>
 		<property name="SteamCommand"          type="s" access="read"/>
@@ -70,7 +70,7 @@
 			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;std::pair&lt;QString,QString&gt;&gt;"/>
 			<!-- first: name, second: public key -->
 		</property>
-		<property name="EnrollEnabled"         type="b" access="read"/>
+		<property name="PairingEnabled"        type="b" access="read"/>
 		<property name="EncryptionEnabled"     type="b" access="read"/>
 	</interface>
 </node>

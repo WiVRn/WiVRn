@@ -39,7 +39,7 @@ public:
 	{
 		disabled,
 		enabled,
-		enroll,
+		pairing,
 	};
 
 private:

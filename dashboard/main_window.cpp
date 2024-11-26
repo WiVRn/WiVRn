@@ -264,10 +264,10 @@ main_window::main_window()
 	connect(server_interface, &wivrn_server::pinChanged, this, &main_window::on_pin_changed);
 	on_pin_changed(server_interface->pin());
 
-	connect(server_interface, &wivrn_server::enrollEnabledChanged, ui->button_cancel_pairing, &QWidget::setVisible);
-	connect(server_interface, &wivrn_server::enrollEnabledChanged, ui->button_pair_headset, &QWidget::setHidden);
-	connect(ui->button_cancel_pairing, &QPushButton::clicked, server_interface, &wivrn_server::disable_enroll_headset);
-	connect(ui->button_pair_headset, &QPushButton::clicked, server_interface, &wivrn_server::enroll_headset);
+	connect(server_interface, &wivrn_server::pairingEnabledChanged, ui->button_cancel_pairing, &QWidget::setVisible);
+	connect(server_interface, &wivrn_server::pairingEnabledChanged, ui->button_pair_headset, &QWidget::setHidden);
+	connect(ui->button_cancel_pairing, &QPushButton::clicked, server_interface, &wivrn_server::disable_pairing);
+	connect(ui->button_pair_headset, &QPushButton::clicked, server_interface, &wivrn_server::enable_pairing);
 
 	connect(ui->button_start, &QPushButton::clicked, this, &main_window::start_server);
 	connect(ui->button_stop, &QPushButton::clicked, this, &main_window::stop_server);

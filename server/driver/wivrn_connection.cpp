@@ -180,21 +180,21 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 			if (not is_public_key_known)
 			{
 				control.send(to_headset::crypto_handshake{
-				        .state = to_headset::crypto_handshake::crypto_state::enroll_disabled,
+				        .state = to_headset::crypto_handshake::crypto_state::pairing_disabled,
 				});
-				throw std::runtime_error("Client not known and enroll is disabled");
+				throw std::runtime_error("Client not known and pairing is disabled");
 			}
 
 			[[fallthrough]];
 
-		case encryption_state::enroll:
+		case encryption_state::pairing:
 			// Generate an ephemeral key pair just for exchanging the AES key
 			crypto::key server_key = crypto::key::generate_x448_keypair();
 
 			control.send(to_headset::crypto_handshake{
 			        .public_key = server_key.public_key(),
 			        .state = is_public_key_known
-			                         ? to_headset::crypto_handshake::crypto_state::client_already_known
+			                         ? to_headset::crypto_handshake::crypto_state::client_already_paired
 			                         : to_headset::crypto_handshake::crypto_state::pin_needed,
 			});
 
@@ -234,7 +234,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 
 	active = true;
 
-	if (state == encryption_state::enroll and not is_public_key_known)
+	if (state == encryption_state::pairing and not is_public_key_known)
 		wivrn::add_known_key({
 		        .public_key = clean_key(headset_key.public_key()),
 		        .name = crypto_handshake.name,

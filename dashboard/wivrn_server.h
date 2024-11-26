@@ -58,12 +58,12 @@ public:
 	// Authentication
 	Q_PROPERTY(QString pin READ pin NOTIFY pinChanged)
 	Q_PROPERTY(HeadsetKeys knownKeys READ knownKeys NOTIFY knownKeysChanged)
-	Q_PROPERTY(bool enrollEnabled READ isEnrollEnabled NOTIFY enrollEnabledChanged)
+	Q_PROPERTY(bool pairingEnabled READ isPairingEnabled NOTIFY pairingEnabledChanged)
 	Q_PROPERTY(bool encryptionEnabled READ isEncryptionEnabled NOTIFY encryptionEnabledChanged)
 	void revoke_key(QString public_key);
 	void rename_key(QString public_key, QString name);
-	QString enroll_headset(int timeout_secs = 120);
-	void disable_enroll_headset();
+	QString enable_pairing(int timeout_secs = 120);
+	void disable_pairing();
 
 	// Headset information, valid only if HeadsetConnected is true
 	Q_PROPERTY(QSize recommendedEyeSize READ recommendedEyeSize NOTIFY recommendedEyeSizeChanged)
@@ -110,9 +110,9 @@ public:
 		return m_knownKeys;
 	}
 
-	bool isEnrollEnabled() const
+	bool isPairingEnabled() const
 	{
-		return m_isEnrollEnabled;
+		return m_isPairingEnabled;
 	}
 
 	bool isEncryptionEnabled() const
@@ -203,7 +203,7 @@ private:
 
 	QString m_pin{};
 	HeadsetKeys m_knownKeys;
-	bool m_isEnrollEnabled{};
+	bool m_isPairingEnabled{};
 	bool m_isEncryptionEnabled{};
 
 	QSize m_recommendedEyeSize{};
@@ -225,7 +225,7 @@ Q_SIGNALS:
 	void headsetConnectedChanged(bool);
 	void pinChanged(QString);
 	void knownKeysChanged(HeadsetKeys);
-	void enrollEnabledChanged(bool);
+	void pairingEnabledChanged(bool);
 	void encryptionEnabledChanged(bool);
 
 	void recommendedEyeSizeChanged(QSize);

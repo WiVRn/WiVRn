@@ -77,18 +77,18 @@ sd_bus_message_ptr get_property(const sd_bus_ptr & bus, const char * member, con
 	return sd_bus_message_ptr(msg);
 }
 
-void enroll(int duration)
+void pair(int duration)
 {
 	if (duration == 0)
 	{
 		call_method(get_user_bus(),
-		            "DisableEnrollHeadset",
+		            "DisablePairing",
 		            "");
 	}
 	else
 	{
 		auto pin_msg = call_method(get_user_bus(),
-		                           "EnrollHeadset",
+		                           "EnablePairing",
 		                           "i",
 		                           duration * 60);
 
@@ -101,7 +101,7 @@ void enroll(int duration)
 	}
 }
 
-void list_enrolled(bool show_keys)
+void list_paired(bool show_keys)
 {
 	auto msg = get_property(get_user_bus(),
 	                        "KnownKeys",
@@ -109,7 +109,7 @@ void list_enrolled(bool show_keys)
 
 	int ret = sd_bus_message_enter_container(msg.get(), 'a', "(ss)");
 	if (ret < 0)
-		throw std::system_error(-ret, std::system_category(), "Failed to get enrolled headsets");
+		throw std::system_error(-ret, std::system_category(), "Failed to get paired headsets");
 
 	std::vector<std::pair<std::string, std::string>> values;
 	while (true)
@@ -120,7 +120,7 @@ void list_enrolled(bool show_keys)
 		if (ret == 0)
 			break;
 		if (ret < 0)
-			throw std::system_error(-ret, std::system_category(), "Failed to get enrolled headset details");
+			throw std::system_error(-ret, std::system_category(), "Failed to get paired headset details");
 
 		values.emplace_back(name, key);
 	}
@@ -131,7 +131,7 @@ void list_enrolled(bool show_keys)
 			width = std::max(width, name.length());
 		width += 1;
 	}
-	std::cout << "Enrolled headsets:" << std::endl;
+	std::cout << "Paired headsets:" << std::endl;
 	for (const auto & [name, key]: values)
 	{
 		if (width > 0)
@@ -163,11 +163,11 @@ int main(int argc, char ** argv)
 
 	app.require_subcommand(1);
 
-	int enroll_duration;
-	auto enroll_command = app.add_subcommand("enroll", "Allow a new headset to connect")
-	                              ->callback([&]() { return enroll(enroll_duration); });
-	auto duration = enroll_command
-	                        ->add_option("--duration,-d", enroll_duration, "Duration in minutes to allow new connections")
+	int pairing_duration;
+	auto pair_command = app.add_subcommand("pair", "Allow a new headset to connect")
+	                            ->callback([&]() { return pair(pairing_duration); });
+	auto duration = pair_command
+	                        ->add_option("--duration,-d", pairing_duration, "Duration in minutes to allow new connections")
 	                        ->transform(CLI::Validator([](std::string & input) {
 		                        if (input.starts_with("-"))
 			                        throw CLI::ValidationError("duration must be positive");
@@ -181,8 +181,8 @@ int main(int argc, char ** argv)
 	                        ->option_text("INT|unlimited");
 
 	bool show_keys = false;
-	auto list_command = app.add_subcommand("list-enrolled", "List headsets allowed to connect")
-	                            ->callback([&]() { list_enrolled(show_keys); });
+	auto list_command = app.add_subcommand("list-paired", "List headsets allowed to connect")
+	                            ->callback([&]() { list_paired(show_keys); });
 
 	list_command->add_flag("--keys, -k", show_keys, "Show public keys");
 

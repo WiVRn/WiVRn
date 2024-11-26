@@ -26,6 +26,7 @@
 #include <openssl/aes.h>
 #include <optional>
 #include <span>
+#include <string>
 #include <variant>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -273,8 +274,8 @@ struct crypto_handshake
 	{
 		encryption_disabled,
 		pin_needed,
-		client_already_known,
-		enroll_disabled,
+		client_already_paired,
+		pairing_disabled,
 	};
 
 	std::string public_key; // In PEM format

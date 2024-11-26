@@ -129,9 +129,9 @@ void wivrn_server::on_server_properties_changed(const QString & interface_name, 
 		knownKeysChanged(m_knownKeys);
 	}
 
-	if (changed_properties.contains("EnrollEnabled"))
+	if (changed_properties.contains("PairingEnabled"))
 	{
-		enrollEnabledChanged(m_isEnrollEnabled = changed_properties["EnrollEnabled"].toBool());
+		pairingEnabledChanged(m_isPairingEnabled = changed_properties["PairingEnabled"].toBool());
 	}
 
 	if (changed_properties.contains("EncryptionEnabled"))
@@ -252,14 +252,14 @@ void wivrn_server::rename_key(QString public_key, QString name)
 	server_interface->RenameKey(public_key, name);
 }
 
-QString wivrn_server::enroll_headset(int timeout_secs)
+QString wivrn_server::enable_pairing(int timeout_secs)
 {
-	return server_interface->EnrollHeadset(timeout_secs).value();
+	return server_interface->EnablePairing(timeout_secs).value();
 }
 
-void wivrn_server::disable_enroll_headset()
+void wivrn_server::disable_pairing()
 {
-	server_interface->DisableEnrollHeadset();
+	server_interface->DisablePairing();
 }
 
 QString wivrn_server::hostname()
