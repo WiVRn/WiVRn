@@ -73,6 +73,14 @@ msgstr "接続"
 msgid "Connection to {}"
 msgstr "{}に接続中"
 
+#: client/scenes/lobby_gui.cpp:233
+msgid "PIN"
+msgstr "暗証番号"
+
+#: client/scenes/lobby_gui.cpp:255
+msgid "Input the PIN displayed on the dashboard"
+msgstr "パソコンで表示された暗証番号を入力してください"
+
 #: client/scenes/lobby_gui.cpp:239
 msgid "Name"
 msgstr "表示名"
@@ -313,3 +321,11 @@ msgstr "予測時間"
 #: client/scenes/stream_stats.cpp:319
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "「Motion-to-photon」推定遅延 {}ミリ秒"
+
+#: client/wivrn_client.cpp:96 client/wivrn_client.cpp:170
+msgid "Timeout"
+msgstr "タイムアウト"
+
+#: client/wivrn_client.cpp:154
+msgid "Pairing is disabled on server"
+msgstr "このサーバーではペアリングが無効です"
