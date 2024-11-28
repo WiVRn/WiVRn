@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.16\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-06-20 10:33+0900\n"
+"POT-Creation-Date: 2024-11-28 08:53+0100\n"
 "PO-Revision-Date: 2024-06-20 10:33+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language: Japanese\n"
@@ -10,38 +10,42 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: client/scenes/lobby.cpp:143
+#: client/scenes/lobby.cpp:148
 msgid "No supported swapchain format"
 msgstr "互換性のあるスワップチェーンは見つからなかった"
 
-#: client/scenes/lobby.cpp:178
+#: client/scenes/lobby.cpp:228
 msgid "Incompatible WiVRn server: no protocol field in TXT"
 msgstr "互換性のないサーバー（プロトコルのフィールドは欠落）"
 
-#: client/scenes/lobby.cpp:181
+#: client/scenes/lobby.cpp:231
 #, c++-format
 msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
 msgstr "互換性のないサーバー（クライエント{}、サーバー{}）"
 
-#: client/scenes/lobby.cpp:196
+#: client/scenes/lobby.cpp:246
 #, c++-format
 msgid "Cannot resolve hostname: {}"
 msgstr "ホスト名解決に失敗：{}"
 
-#: client/scenes/lobby.cpp:235
+#: client/scenes/lobby.cpp:333 client/scenes/lobby.cpp:339
 #, c++-format
 msgid "Cannot connect to {} ({}): {}"
 msgstr "{}に接続できませんでした：({}) {}"
 
-#: client/scenes/lobby.cpp:347
+#: client/scenes/lobby.cpp:453
 msgid "Waiting for connection"
 msgstr "接続を待っています"
 
-#: client/scenes/lobby_gui.cpp:172
+#: client/scenes/lobby_gui.cpp:172 client/scenes/lobby_gui.cpp:366
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: client/scenes/lobby_gui.cpp:178
 msgid "Video stream interrupted"
 msgstr "動画ストリームは中断しました"
 
-#: client/scenes/lobby_gui.cpp:174
+#: client/scenes/lobby_gui.cpp:180
 msgid ""
 "Connection ready\n"
 "Start a VR application on your computer"
@@ -49,7 +53,8 @@ msgstr ""
 "接続に成功しました\n"
 "パソコンでVRアプリを起動して下さい"
 
-#: client/scenes/lobby_gui.cpp:176
+#: client/scenes/lobby_gui.cpp:182
+#, c++-format
 msgid ""
 "Connection ready\n"
 "Start a VR application on {}"
@@ -57,19 +62,16 @@ msgstr ""
 "接続に成功しました\n"
 "{}でVRアプリを起動して下さい"
 
-#: client/scenes/lobby_gui.cpp:101
+#: client/scenes/lobby_gui.cpp:195
 msgid "Close"
 msgstr "やめる"
 
-#: client/scenes/lobby_gui.cpp:193 client/scenes/lobby_gui.cpp:274
-msgid "Cancel"
-msgstr "キャンセル"
-
-#: client/scenes/lobby_gui.cpp:199
+#: client/scenes/lobby_gui.cpp:201
 msgid "Connection"
 msgstr "接続"
 
-#: client/scenes/lobby_gui.cpp:201
+#: client/scenes/lobby_gui.cpp:203
+#, c++-format
 msgid "Connection to {}"
 msgstr "{}に接続中"
 
@@ -81,27 +83,27 @@ msgstr "暗証番号"
 msgid "Input the PIN displayed on the dashboard"
 msgstr "パソコンで表示された暗証番号を入力してください"
 
-#: client/scenes/lobby_gui.cpp:239
+#: client/scenes/lobby_gui.cpp:331
 msgid "Name"
 msgstr "表示名"
 
-#: client/scenes/lobby_gui.cpp:250
+#: client/scenes/lobby_gui.cpp:342
 msgid "Address"
 msgstr "アドレス"
 
-#: client/scenes/lobby_gui.cpp:259
+#: client/scenes/lobby_gui.cpp:351
 msgid "Port"
 msgstr "ポート番号"
 
-#: client/scenes/lobby_gui.cpp:267
+#: client/scenes/lobby_gui.cpp:359
 msgid "TCP only"
 msgstr "TCPのみを使用"
 
-#: client/scenes/lobby_gui.cpp:288
+#: client/scenes/lobby_gui.cpp:380
 msgid "Save"
 msgstr "保存する"
 
-#: client/scenes/lobby_gui.cpp:341
+#: client/scenes/lobby_gui.cpp:433
 msgid ""
 "Start a WiVRn server on your\n"
 "local network"
@@ -109,147 +111,147 @@ msgstr ""
 "ローカルネットワークでWiVRnサーバーを\n"
 "起動してみて下さい"
 
-#: client/scenes/lobby_gui.cpp:247
+#: client/scenes/lobby_gui.cpp:465
 msgid "Autoconnect"
 msgstr "自動接続"
 
-#: client/scenes/lobby_gui.cpp:279
+#: client/scenes/lobby_gui.cpp:491
 msgid "Connect"
 msgstr "接続する"
 
-#: client/scenes/lobby_gui.cpp:289
+#: client/scenes/lobby_gui.cpp:501
 msgid "Incompatible server version"
 msgstr "互換性のないサーバーです"
 
-#: client/scenes/lobby_gui.cpp:411
+#: client/scenes/lobby_gui.cpp:503
 msgid "Server not available"
 msgstr "サーバーは利用不可です"
 
-#: client/scenes/lobby_gui.cpp:493
+#: client/scenes/lobby_gui.cpp:589
 msgid "Refresh rate"
 msgstr "リフレッシュレート"
 
-#: client/scenes/lobby_gui.cpp:371
+#: client/scenes/lobby_gui.cpp:611
 msgid "Resolution scale"
 msgstr "解像度"
 
-#: client/scenes/lobby_gui.cpp:371 client/scenes/lobby_gui.cpp:375
+#: client/scenes/lobby_gui.cpp:611 client/scenes/lobby_gui.cpp:615
 #, c++-format
 msgid "{} - {}x{} per eye"
 msgstr "{} - 目あたり{}x{}"
 
-#: client/scenes/lobby_gui.cpp:385
+#: client/scenes/lobby_gui.cpp:628
 msgid "Enable microphone"
 msgstr "マイクを有効する"
 
-#: client/scenes/lobby_gui.cpp:542
+#: client/scenes/lobby_gui.cpp:638
 msgid "Enable hand tracking"
 msgstr "ハンドトラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:549 client/scenes/lobby_gui.cpp:562
-#: client/scenes/lobby_gui.cpp:575 client/scenes/lobby_gui.cpp:587
+#: client/scenes/lobby_gui.cpp:645 client/scenes/lobby_gui.cpp:658
+#: client/scenes/lobby_gui.cpp:671 client/scenes/lobby_gui.cpp:683
 msgid "This feature is not supported by your headset"
 msgstr "デバイスはこの機能をサポートしていません"
 
-#: client/scenes/lobby_gui.cpp:555
+#: client/scenes/lobby_gui.cpp:651
 msgid "Enable eye tracking"
 msgstr "アイトラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:406
+#: client/scenes/lobby_gui.cpp:664
 msgid "Enable face tracking"
 msgstr "顔トラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:416
+#: client/scenes/lobby_gui.cpp:676
 msgid "Enable video passthrough in lobby"
 msgstr "ロビーでパススルーを有効する"
 
-#: client/scenes/lobby_gui.cpp:422
+#: client/scenes/lobby_gui.cpp:686
 msgid "Show performance metrics"
 msgstr "パフォーマンスグラフを表示する"
 
-#: client/scenes/lobby_gui.cpp:426
+#: client/scenes/lobby_gui.cpp:690
 msgid "Overlay can be toggled by pressing both thumbsticks"
 msgstr "両方のサムスティックを同時に押すことで切り替え可能"
 
-#: client/scenes/lobby_gui.cpp:456 client/scenes/lobby_gui.cpp:464
-#: client/scenes/stream_stats.cpp:141
+#: client/scenes/lobby_gui.cpp:720 client/scenes/lobby_gui.cpp:728
+#: client/scenes/stream_stats.cpp:159
 msgid "CPU time"
 msgstr "CPU使用時間"
 
-#: client/scenes/lobby_gui.cpp:460
+#: client/scenes/lobby_gui.cpp:724
 msgid "CPU time [ms]"
 msgstr "CPU使用時間、ミリ秒"
 
-#: client/scenes/lobby_gui.cpp:470 client/scenes/lobby_gui.cpp:478
-#: client/scenes/stream_stats.cpp:143
+#: client/scenes/lobby_gui.cpp:734 client/scenes/lobby_gui.cpp:742
+#: client/scenes/stream_stats.cpp:161
 msgid "GPU time"
 msgstr "GPU使用時間"
 
-#: client/scenes/lobby_gui.cpp:474
+#: client/scenes/lobby_gui.cpp:738
 msgid "GPU time [ms]"
 msgstr "GPU使用時間、ミリ秒"
 
-#: client/scenes/lobby_gui.cpp:732 client/scenes/lobby_gui.cpp:1360
+#: client/scenes/lobby_gui.cpp:828 client/scenes/lobby_gui.cpp:1456
 msgid "Licenses"
 msgstr "ライセンス"
 
-#: client/scenes/lobby_gui.cpp:1071
+#: client/scenes/lobby_gui.cpp:1167
 msgid "Microphone is enabled"
 msgstr "マイクは有効です"
 
-#: client/scenes/lobby_gui.cpp:1072
+#: client/scenes/lobby_gui.cpp:1168
 msgid "Microphone is disabled"
 msgstr "マイクは無効です"
 
-#: client/scenes/lobby_gui.cpp:1081
+#: client/scenes/lobby_gui.cpp:1177
 msgid "Hand tracking is enabled"
 msgstr "ハンドトラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1082
+#: client/scenes/lobby_gui.cpp:1178
 msgid "Hand tracking is disabled"
 msgstr "ハンドラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1091
+#: client/scenes/lobby_gui.cpp:1187
 msgid "Eye tracking is enabled"
 msgstr "アイトラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1092
+#: client/scenes/lobby_gui.cpp:1188
 msgid "Eye tracking is disabled"
 msgstr "アイトラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1102
+#: client/scenes/lobby_gui.cpp:1198
 msgid "Face tracking is enabled"
 msgstr "顔トラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1103
+#: client/scenes/lobby_gui.cpp:1199
 msgid "Face tracking is disabled"
 msgstr "フェーストラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1120
+#: client/scenes/lobby_gui.cpp:1216
 msgid "Add server"
 msgstr "サーバーを追加する"
 
-#: client/scenes/lobby_gui.cpp:1345
+#: client/scenes/lobby_gui.cpp:1441
 msgid "Server list"
 msgstr "サーバー"
 
-#: client/scenes/lobby_gui.cpp:1348
+#: client/scenes/lobby_gui.cpp:1444
 msgid "Settings"
 msgstr "設定"
 
-#: client/scenes/lobby_gui.cpp:1352
+#: client/scenes/lobby_gui.cpp:1448
 msgid "Debug"
 msgstr "デバッグ"
 
-#: client/scenes/lobby_gui.cpp:1357
+#: client/scenes/lobby_gui.cpp:1453
 msgid "About"
 msgstr "WiVRnについて"
 
-#: client/scenes/lobby_gui.cpp:1363
+#: client/scenes/lobby_gui.cpp:1459
 msgid "Exit"
 msgstr "完了"
 
-#: client/scenes/lobby_gui.cpp:1377
+#: client/scenes/lobby_gui.cpp:1473
 msgid ""
 "Press A or X or put your palm up\n"
 "to move the main window"
@@ -257,68 +259,69 @@ msgstr ""
 "ウィンドウを移動するには、手のひらを上に向けるか、\n"
 "ＡまたはＢボタンを押しましょう"
 
-#: client/scenes/lobby_gui.cpp:1379
+#: client/scenes/lobby_gui.cpp:1475
 msgid "Press A or X to move the main window"
 msgstr "ＡまたはＸボタンを押してウィンドウを移動"
 
-#: client/scenes/stream_stats.cpp:150
+#: client/scenes/stream_stats.cpp:161
 msgid "Reproject"
 msgstr "リプロジェクション"
 
-#: client/scenes/stream_stats.cpp:161
+#: client/scenes/stream_stats.cpp:162
 msgid "Blit"
 msgstr "レンダー"
 
-#: client/scenes/stream_stats.cpp:163
+#: client/scenes/stream_stats.cpp:164
 msgid "Network"
 msgstr "ネットワーク"
 
-#: client/scenes/stream_stats.cpp:163
+#: client/scenes/stream_stats.cpp:164
 msgid "Download"
 msgstr "ダウンロード"
 
-#: client/scenes/stream_stats.cpp:164
+#: client/scenes/stream_stats.cpp:165
 msgid "Upload"
 msgstr "アップロード"
 
-#: client/scenes/stream_stats.cpp:216
+#: client/scenes/stream_stats.cpp:234
 #, c++-format
 msgid "Decoder {}"
 msgstr "デコーダー {}"
 
-#: client/scenes/stream_stats.cpp:230
+#: client/scenes/stream_stats.cpp:246
 msgid "Timings [ms]"
 msgstr "タイミング、ミリ秒"
 
-#: client/scenes/stream_stats.cpp:285
+#: client/scenes/stream_stats.cpp:306
 msgid "Encode"
 msgstr "動画エンコード"
 
-#: client/scenes/stream_stats.cpp:286
+#: client/scenes/stream_stats.cpp:307
 msgid "Send"
 msgstr "送信"
 
-#: client/scenes/stream_stats.cpp:274
+#: client/scenes/stream_stats.cpp:308
 msgid "Receive"
 msgstr "受信"
 
-#: client/scenes/stream_stats.cpp:275
+#: client/scenes/stream_stats.cpp:309
 msgid "Decode"
 msgstr "デコード"
 
-#: client/scenes/stream_stats.cpp:276
+#: client/scenes/stream_stats.cpp:310
 msgid "Blitted"
 msgstr "レンダー"
 
-#: client/scenes/stream_stats.cpp:299
+#: client/scenes/stream_stats.cpp:311
 msgid "Displayed"
 msgstr "表示"
 
-#: client/scenes/stream_stats.cpp:301
+#: client/scenes/stream_stats.cpp:312
 msgid "Predicted"
 msgstr "予測時間"
 
-#: client/scenes/stream_stats.cpp:319
+#: client/scenes/stream_stats.cpp:330
+#, c++-format
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "「Motion-to-photon」推定遅延 {}ミリ秒"
 
