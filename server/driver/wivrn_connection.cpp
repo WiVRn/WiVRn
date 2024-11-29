@@ -226,6 +226,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 	else
 	{
 		// No stream socket
+		stream = decltype(stream)(-1);
 	}
 
 	control.send(to_headset::handshake{.stream_port = port});
