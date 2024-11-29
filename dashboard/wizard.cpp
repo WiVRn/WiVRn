@@ -460,6 +460,10 @@ wizard::~wizard()
 {
 	server->disable_pairing();
 
+	// android_devices_changed can be emitted when adb_service is destroyed, disconnect it before destroying
+	// the GUI
+	disconnect(&adb_service, &adb::android_devices_changed, this, &wizard::on_android_device_list_changed);
+
 	delete ui;
 	ui = nullptr;
 }

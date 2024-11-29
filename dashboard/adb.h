@@ -90,6 +90,9 @@ private:
 
 public:
 	adb();
+	adb(const adb &) = delete;
+	adb & operator=(const adb &) = delete;
+
 	const std::vector<adb::device> & devices() const
 	{
 		return _android_devices;
