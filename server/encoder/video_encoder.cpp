@@ -260,7 +260,7 @@ void video_encoder::encode(wivrn_session & cnx,
 	// Throttle idr to prevent overloading the decoder
 	if (idr and frame_index < last_idr_frame + idr_throttle)
 	{
-		U_LOG_D("Throttle IDR: stream %d frame %ld", stream_idx, frame_index);
+		U_LOG_D("Throttle IDR: stream %" PRIu8 " frame %" PRIu64, stream_idx, frame_index);
 		sync_needed = true;
 		idr = false;
 	}

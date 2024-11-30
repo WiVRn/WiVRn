@@ -268,7 +268,7 @@ void pipewire_device::mic_process(void * self_v)
 		if (not tmp)
 			break;
 		self->mic_buffer_size_bytes -= tmp->payload.size_bytes();
-		U_LOG_D("Audio sync: discard %ld bytes", tmp->payload.size_bytes());
+		U_LOG_D("Audio sync: discard %zd bytes", tmp->payload.size_bytes());
 	}
 }
 

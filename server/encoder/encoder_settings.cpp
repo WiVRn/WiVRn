@@ -93,12 +93,12 @@ void print_encoders(const std::vector<wivrn::encoder_settings> & encoders)
 		std::string codec(magic_enum::enum_name(encoder.codec));
 		U_LOG_I("\t%s (%s)", encoder.encoder_name.c_str(), codec.c_str());
 		U_LOG_I("\tchannels: %s", std::string(magic_enum::enum_name(encoder.channels)).c_str());
-		U_LOG_I("\tsize:%dx%d offset:%dx%d",
+		U_LOG_I("\tsize:%" PRIu16 "x%" PRIu16 " offset:%" PRIu16 "x%" PRIu16,
 		        encoder.width,
 		        encoder.height,
 		        encoder.offset_x,
 		        encoder.offset_y);
-		U_LOG_I("\tbitrate: %ldMbit/s", encoder.bitrate / 1'000'000);
+		U_LOG_I("\tbitrate: %" PRIu64 "Mbit/s", encoder.bitrate / 1'000'000);
 	}
 }
 

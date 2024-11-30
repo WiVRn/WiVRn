@@ -66,10 +66,10 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
 
 	if (encode_caps.rateControlModes & (vk::VideoEncodeRateControlModeFlagBitsKHR::eCbr | vk::VideoEncodeRateControlModeFlagBitsKHR::eVbr))
 	{
-		U_LOG_D("Maximum bitrate: %ld", encode_caps.maxBitrate / 1'000'000);
+		U_LOG_D("Maximum bitrate: %" PRIu64, encode_caps.maxBitrate / 1'000'000);
 		if (encode_caps.maxBitrate < settings.bitrate)
 		{
-			U_LOG_W("Configured bitrate %ldMB/s is higher than max supported %ld",
+			U_LOG_W("Configured bitrate %" PRIu64 "MB/s is higher than max supported %" PRIu64,
 			        settings.bitrate / 1'000'000,
 			        encode_caps.maxBitrate / 1'000'000);
 		}

@@ -69,7 +69,7 @@ void clock_offset_estimator::add_sample(const wivrn::from_headset::timesync_resp
 		// packets with too high latency are likely to be retransmitted
 		if (sample.received - sample.query > 3 * latency)
 		{
-			U_LOG_D("drop packet for latency %ldµs > %ldµs", (sample.received - sample.query) / 1000, latency / 1000);
+			U_LOG_D("drop packet for latency %" PRIi64 "µs > %" PRIi64 "µs", (sample.received - sample.query) / 1000, latency / 1000);
 			return;
 		}
 
@@ -125,7 +125,7 @@ void clock_offset_estimator::add_sample(const wivrn::from_headset::timesync_resp
 	offset.stable = std::abs((b - (double)offset.b)) < 20'000'000;
 
 	offset.b = b;
-	U_LOG_D("clock relations: headset = x+b where b=%ldµs", offset.b / 1000);
+	U_LOG_D("clock relations: headset = x+b where b=%" PRIu64 "µs", offset.b / 1000);
 }
 
 clock_offset clock_offset_estimator::get_offset()

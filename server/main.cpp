@@ -384,7 +384,7 @@ void start_publishing()
 		return;
 
 	char protocol_string[17];
-	sprintf(protocol_string, "%016lx", wivrn::protocol_version);
+	sprintf(protocol_string, "%016" PRIx64, wivrn::protocol_version);
 	std::map<std::string, std::string> TXT = {
 	        {"protocol", protocol_string},
 	        {"version", wivrn::git_version},
