@@ -25,7 +25,7 @@
 #include <utility>
 #include <vk_mem_alloc.h>
 
-std::pair<vk::raii::Buffer, VmaAllocation> basic_allocation_traits<VkBuffer>::create(
+std::pair<vk::raii::Buffer, VmaAllocation> basic_allocation_traits<vk::Buffer>::create(
         vk::raii::Device & device,
         const CreateInfo & buffer_info,
         const VmaAllocationCreateInfo & alloc_info)
@@ -40,7 +40,7 @@ std::pair<vk::raii::Buffer, VmaAllocation> basic_allocation_traits<VkBuffer>::cr
 	return std::pair<vk::raii::Buffer, VmaAllocation>{vk::raii::Buffer{device, tmp}, allocation};
 }
 
-void basic_allocation_traits<VkBuffer>::destroy(
+void basic_allocation_traits<vk::Buffer>::destroy(
         vk::raii::Buffer & buffer,
         VmaAllocation allocation,
         void * mapped)
@@ -50,7 +50,7 @@ void basic_allocation_traits<VkBuffer>::destroy(
 	if (mapped)
 		vmaUnmapMemory(allocator, allocation);
 
-	vmaDestroyBuffer(allocator, buffer.release(), allocation);
+	vmaDestroyBuffer(allocator, VkBuffer(buffer.release()), allocation);
 }
 
 void * basic_allocation_traits_base::map(VmaAllocation allocation)
@@ -69,7 +69,7 @@ void basic_allocation_traits_base::unmap(VmaAllocation allocation)
 	vmaUnmapMemory(allocator, allocation);
 }
 
-std::pair<vk::raii::Image, VmaAllocation> basic_allocation_traits<VkImage>::create(
+std::pair<vk::raii::Image, VmaAllocation> basic_allocation_traits<vk::Image>::create(
         vk::raii::Device & device,
         const CreateInfo & image_info,
         const VmaAllocationCreateInfo & alloc_info)
@@ -84,7 +84,7 @@ std::pair<vk::raii::Image, VmaAllocation> basic_allocation_traits<VkImage>::crea
 	return std::pair<vk::raii::Image, VmaAllocation>{vk::raii::Image{device, tmp}, allocation};
 }
 
-void basic_allocation_traits<VkImage>::destroy(
+void basic_allocation_traits<vk::Image>::destroy(
         vk::raii::Image & image,
         VmaAllocation allocation,
         void * mapped)
@@ -94,5 +94,5 @@ void basic_allocation_traits<VkImage>::destroy(
 	if (mapped)
 		vmaUnmapMemory(allocator, allocation);
 
-	vmaDestroyImage(allocator, image.release(), allocation);
+	vmaDestroyImage(allocator, VkImage(image.release()), allocation);
 }

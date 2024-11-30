@@ -36,7 +36,7 @@ struct basic_allocation_traits_base
 };
 
 template <>
-struct basic_allocation_traits<VkBuffer> : basic_allocation_traits_base
+struct basic_allocation_traits<vk::Buffer> : basic_allocation_traits_base
 {
 	using CreateInfo = vk::BufferCreateInfo;
 	using NativeCreateInfo = CreateInfo::NativeType;
@@ -54,7 +54,7 @@ struct basic_allocation_traits<VkBuffer> : basic_allocation_traits_base
 };
 
 template <>
-struct basic_allocation_traits<VkImage> : basic_allocation_traits_base
+struct basic_allocation_traits<vk::Image> : basic_allocation_traits_base
 {
 	using CreateInfo = vk::ImageCreateInfo;
 	using NativeCreateInfo = CreateInfo::NativeType;
@@ -76,7 +76,7 @@ class basic_allocation
 {
 public:
 	using CType = T::CType;
-	using traits = basic_allocation_traits<CType>;
+	using traits = basic_allocation_traits<T>;
 	using CreateInfo = traits::CreateInfo;
 	using NativeCreateInfo = CreateInfo::NativeType;
 	using RaiiType = traits::RaiiType;
@@ -95,7 +95,7 @@ public:
 
 	operator CType()
 	{
-		return *resource;
+		return CType(*resource);
 	}
 
 	operator bool() const

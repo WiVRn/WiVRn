@@ -250,8 +250,8 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                                           .layerCount = 2,
 		                                                   },
 		                                           });
-		cn->images[i].view = *item.image_view_y;
-		cn->images[i].view_cbcr = *item.image_view_cbcr;
+		cn->images[i].view = VkImageView(*item.image_view_y);
+		cn->images[i].view_cbcr = VkImageView(*item.image_view_cbcr);
 	}
 
 	cn->psc.fence = vk::raii::Fence(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
@@ -505,7 +505,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	struct vk_bundle * vk = get_vk(cn);
 	auto res = cn->wivrn_bundle->device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
 
-	vk::Semaphore wait_semaphore = cn->semaphores.render_complete;
+	vk::Semaphore wait_semaphore(cn->semaphores.render_complete);
 	vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eTransfer;
 	vk::SubmitInfo submit_info{
 	        .waitSemaphoreCount = 1,

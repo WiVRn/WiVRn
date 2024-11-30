@@ -476,7 +476,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        .pImageMemoryBarriers = &video_barrier,
 		});
 
-		auto it = image_views.find(src_yuv);
+		auto it = image_views.find(VkImage(src_yuv));
 		if (it != image_views.end())
 			image_view = *it->second;
 		else

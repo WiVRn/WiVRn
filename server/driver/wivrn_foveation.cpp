@@ -163,7 +163,7 @@ void wivrn_foveation_renderer::render_distortion_images(std::array<to_headset::f
 	                             .layerCount = 1},
 	});
 	for (size_t i = 0; i < im_barriers.size(); ++i)
-		im_barriers[i].image = images[i];
+		im_barriers[i].image = vk::Image(images[i]);
 
 	cmd_buf.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eTopOfPipe,
@@ -180,11 +180,11 @@ void wivrn_foveation_renderer::render_distortion_images(std::array<to_headset::f
 
 		std::array image_info{
 		        vk::DescriptorImageInfo{
-		                .imageView = image_views[eye],
+		                .imageView = vk::ImageView(image_views[eye]),
 		                .imageLayout = vk::ImageLayout::eGeneral,
 		        },
 		        vk::DescriptorImageInfo{
-		                .imageView = image_views[eye + 2],
+		                .imageView = vk::ImageView(image_views[eye + 2]),
 		                .imageLayout = vk::ImageLayout::eGeneral,
 		        },
 		};
