@@ -22,6 +22,8 @@
 #include "utils/ring_buffer.h"
 #include "wivrn_packets.h"
 #include <atomic>
+#include <mutex>
+#include <thread>
 
 struct AAudioStreamStruct;
 struct AAudioStreamBuilderStruct;
@@ -43,8 +45,9 @@ class audio
 	static void microphone_error_cb(AAudioStreamStruct *, void *, int32_t);
 	static void speaker_error_cb(AAudioStreamStruct *, void *, int32_t);
 
-	static void recreate_stream(audio *, AAudioStreamStruct *);
+	void recreate_stream(AAudioStreamStruct *);
 
+	// must own the mutex to call the method
 	void build_microphone(AAudioStreamBuilderStruct *, int32_t, int32_t);
 	void build_speaker(AAudioStreamBuilderStruct *, int32_t, int32_t);
 
@@ -61,7 +64,9 @@ class audio
 	wivrn_session & session;
 	xr::instance & instance;
 
+	std::mutex mutex;
 	std::atomic<bool> exiting = false;
+	std::thread recreate_thread;
 
 	void exit();
 
