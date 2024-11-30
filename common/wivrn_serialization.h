@@ -21,6 +21,7 @@
 
 #include "boost/pfr/core.hpp"
 #include "boost/pfr/tuple_size.hpp"
+#include "smp.h"
 #include <array>
 #include <boost/pfr.hpp>
 #include <chrono>
@@ -900,6 +901,35 @@ struct serialization_traits<data_holder>
 	static size_t size(const data_holder &)
 	{
 		return 0;
+	}
+};
+
+template <>
+struct serialization_traits<crypto::bignum>
+{
+	static constexpr void type_hash(details::hash_context & h)
+	{
+		h.feed("bignum");
+	}
+
+	static void serialize(const crypto::bignum & value, serialization_packet & packet)
+	{
+		serialization_traits<std::string>::serialize(value.to_data(), packet);
+	}
+
+	static crypto::bignum deserialize(deserialization_packet & packet)
+	{
+		return crypto::bignum::from_data(serialization_traits<std::string>::deserialize(packet));
+	}
+
+	static bool consteval is_trivially_serializable()
+	{
+		return false;
+	}
+
+	static size_t size(const crypto::bignum & value)
+	{
+		return 2 + value.data_size();
 	}
 };
 

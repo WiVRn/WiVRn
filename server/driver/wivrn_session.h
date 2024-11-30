@@ -139,6 +139,8 @@ public:
 	void set_enabled(device_id id, bool enabled);
 
 	void operator()(from_headset::crypto_handshake &&) {}
+	void operator()(from_headset::pin_check_1 &&) {}
+	void operator()(from_headset::pin_check_3 &&) {}
 	void operator()(from_headset::headset_info_packet &&);
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::trackings &&);

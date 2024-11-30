@@ -32,6 +32,7 @@
 #include <vulkan/vulkan_core.h>
 #include <openxr/openxr.h>
 
+#include "smp.h"
 #include "wivrn_serialization_types.h"
 
 namespace wivrn
@@ -103,6 +104,16 @@ struct crypto_handshake
 {
 	std::string public_key; // In PEM format
 	std::string name;
+};
+
+struct pin_check_1
+{
+	crypto::smp::msg1 message;
+};
+
+struct pin_check_3
+{
+	crypto::smp::msg3 message;
 };
 
 struct headset_info_packet
@@ -262,7 +273,7 @@ struct battery
 	bool charging;
 };
 
-using packets = std::variant<crypto_handshake, headset_info_packet, feedback, audio_data, handshake, tracking, trackings, hand_tracking, inputs, timesync_response, battery>;
+using packets = std::variant<crypto_handshake, pin_check_1, pin_check_3, headset_info_packet, feedback, audio_data, handshake, tracking, trackings, hand_tracking, inputs, timesync_response, battery>;
 } // namespace from_headset
 
 namespace to_headset
@@ -280,6 +291,16 @@ struct crypto_handshake
 
 	std::string public_key; // In PEM format
 	crypto_state state;
+};
+
+struct pin_check_2
+{
+	crypto::smp::msg2 message;
+};
+
+struct pin_check_4
+{
+	crypto::smp::msg4 message;
 };
 
 struct handshake
@@ -426,6 +447,6 @@ struct tracking_control
 	std::array<bool, size_t(id::last) + 1> enabled;
 };
 
-using packets = std::variant<crypto_handshake, handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query, tracking_control>;
+using packets = std::variant<crypto_handshake, pin_check_2, pin_check_4, handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query, tracking_control>;
 } // namespace to_headset
 } // namespace wivrn

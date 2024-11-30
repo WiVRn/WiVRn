@@ -32,6 +32,7 @@ add_library(wivrn-common-base STATIC
 
 add_library(wivrn-common STATIC
     crypto.cpp
+    smp.cpp
     secrets.cpp
     wivrn_sockets.cpp
     utils/xdg_base_directory.cpp

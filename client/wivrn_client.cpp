@@ -20,6 +20,7 @@
 #include "wivrn_client.h"
 #include "hardware.h"
 #include "secrets.h"
+#include "smp.h"
 #include "spdlog/common.h"
 #include "utils/i18n.h"
 #include "wivrn_packets.h"
@@ -125,6 +126,31 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 
 		case to_headset::crypto_handshake::crypto_state::pin_needed:
 			pin = pin_enter(control.get_fd());
+
+			// Check the PIN
+			try
+			{
+				crypto::smp pin_check;
+
+				auto msg1 = pin_check.step1(pin);
+				send_control(from_headset::pin_check_1{msg1});
+
+				auto msg2 = std::get<to_headset::pin_check_2>(receive(10s)).message;
+
+				auto msg3 = pin_check.step3(msg2);
+				send_control(from_headset::pin_check_3{msg3});
+
+				auto msg4 = std::get<to_headset::pin_check_4>(receive(10s)).message;
+				bool pin_match = pin_check.step5(msg4);
+
+				if (not pin_match)
+					throw std::runtime_error(_("Incorrect PIN"));
+			}
+			catch (crypto::smp_cheated &)
+			{
+				throw std::runtime_error(_("Unable to check PIN"));
+			}
+
 			[[fallthrough]];
 
 		case to_headset::crypto_handshake::crypto_state::client_already_paired: {

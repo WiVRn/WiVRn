@@ -20,6 +20,7 @@
 #include "wivrn_connection.h"
 #include "configuration.h"
 #include "secrets.h"
+#include "smp.h"
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include <algorithm>
@@ -197,6 +198,32 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 			                         ? to_headset::crypto_handshake::crypto_state::client_already_paired
 			                         : to_headset::crypto_handshake::crypto_state::pin_needed,
 			});
+
+			if (not is_public_key_known)
+			{
+				try
+				{
+					// Check the PIN
+					crypto::smp pin_check;
+
+					auto msg1 = std::get<from_headset::pin_check_1>(receive(10s).first).message;
+
+					auto msg2 = pin_check.step2(msg1, pin);
+					control.send(to_headset::pin_check_2{msg2});
+
+					auto msg3 = std::get<from_headset::pin_check_3>(receive(10s).first).message;
+
+					auto [msg4, pin_match] = pin_check.step4(msg3);
+					control.send(to_headset::pin_check_4{msg4});
+
+					if (not pin_match)
+						throw std::runtime_error("Incorrect PIN");
+				}
+				catch (crypto::smp_cheated &)
+				{
+					throw std::runtime_error("Unable to check PIN");
+				}
+			}
 
 			secrets s{server_key, headset_key, is_public_key_known ? "000000" : pin};
 			control.set_aes_key_and_ivs(s.control_key, s.control_iv_from_headset, s.control_iv_to_headset);
