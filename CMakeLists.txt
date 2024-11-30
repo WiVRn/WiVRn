@@ -39,7 +39,8 @@ auto_option(WIVRN_USE_X264 "Enable x264 software encoder" AUTO)
 auto_option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" AUTO)
 auto_option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" AUTO)
 
-set(OPENCOMPOSITE_SEARCH_PATH "/usr/local/lib:/usr/lib:/opt" CACHE STRING "List of places to search for OpenComposite, separated by :")
+set(OPENCOMPOSITE_SEARCH_PATH "/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite"
+    CACHE STRING "List of places to search for OpenComposite, separated by :")
 
 option(WIVRN_FEATURE_RENDERDOC "Support renderdoc" OFF)
 option(WIVRN_FEATURE_SOLARXR "Enable SolarXR driver" OFF)
