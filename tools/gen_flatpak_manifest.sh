@@ -28,7 +28,7 @@ cd $(dirname $0)
 GIT_TAG=$(git describe --exact-match --tags 2>/dev/null || true)
 GIT_SHA=$(git rev-parse HEAD)
 GIT_COMMIT=$(git describe --exact-match --tags 2>/dev/null || git rev-parse HEAD)
-GIT_DESC=$(git describe --tags)
+GIT_DESC=$(git describe --tags --always)
 
 MONADO_COMMIT=$(grep -zo "FetchContent_Declare(monado[^)]*)" ../CMakeLists.txt | sed -ze "s/^.*GIT_TAG *\([^ )]*\).*$/\1/" | tr -d '\0')
 BOOSTPFR_URL=$(grep -zo "FetchContent_Declare(boostpfr[^)]*)" ../CMakeLists.txt | sed -ze "s/^.*URL *\([^ )]*\).*$/\1/" | tr -d '\0')

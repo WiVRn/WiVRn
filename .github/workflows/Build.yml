@@ -224,7 +224,7 @@ jobs:
 
     - name: Build
       run: |
-        VERSION=$(git describe --tags)
+        VERSION=$(git describe --tags --always)
         if [ ${{ matrix.buildtype }} = 'Oculus' ]
         then
           SUFFIX=""
@@ -331,13 +331,13 @@ jobs:
       working-directory: wivrn/debian
       run: |
         mv changelog changelog.orig
-        echo "wivrn ("$(git describe --tags | sed s/^v//)") "$(lsb_release -c -s)"; urgency=medium"        >  changelog
-        echo ""                                                                                            >> changelog
-        echo "  * Nightly build"                                                                           >> changelog
-        echo ""                                                                                            >> changelog
-        echo " -- github-actions <41898282+github-actions@users.noreply.github.com>  "$(date -R)           >> changelog
-        echo ""                                                                                            >> changelog
-        cat changelog.orig | sed s/unstable/$(lsb_release -c -s)/ >> changelog
+        echo "wivrn ("$( (git describe --tags || echo 0) | sed s/^v//)") "$(lsb_release -c -s)"; urgency=medium" >  changelog
+        echo ""                                                                                                  >> changelog
+        echo "  * Nightly build"                                                                                 >> changelog
+        echo ""                                                                                                  >> changelog
+        echo " -- github-actions <41898282+github-actions@users.noreply.github.com>  "$(date -R)                 >> changelog
+        echo ""                                                                                                  >> changelog
+        cat changelog.orig | sed s/unstable/$(lsb_release -c -s)/                                                >> changelog
         cat changelog
 
     - name: Edit changelog (release)
