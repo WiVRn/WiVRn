@@ -231,14 +231,16 @@ void wivrn::android::audio::speaker_error_cb(AAudioStream * stream, void * userd
 {
 	auto self = (wivrn::android::audio *)userdata;
 	spdlog::warn("Speaker stream interrupted: {}", AAudio_convertResultToText(error));
-	self->recreate_stream(stream);
+	if (error == AAUDIO_ERROR_DISCONNECTED)
+		self->recreate_stream(stream);
 }
 
 void wivrn::android::audio::microphone_error_cb(AAudioStream * stream, void * userdata, aaudio_result_t error)
 {
 	auto self = (wivrn::android::audio *)userdata;
 	spdlog::warn("Microphone stream interrupted: {}", AAudio_convertResultToText(error));
-	self->recreate_stream(stream);
+	if (error == AAUDIO_ERROR_DISCONNECTED)
+		self->recreate_stream(stream);
 }
 
 wivrn::android::audio::audio(const wivrn::to_headset::audio_stream_description & desc, wivrn_session & session, xr::instance & instance) :
