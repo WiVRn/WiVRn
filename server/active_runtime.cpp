@@ -72,16 +72,16 @@ static void move_file(const std::filesystem::path & from, const std::filesystem:
 }
 
 active_runtime::active_runtime() :
-        active_runtime_json(xdg_config_home() / "openxr/1/active_runtime.json"), pid(getpid())
+        pid(getpid())
 {
 	try
 	{
+		std::filesystem::path active_runtime_json = xdg_config_home() / "openxr/1/active_runtime.json";
 		std::filesystem::create_directories(active_runtime_json.parent_path());
 		move_file(active_runtime_json, backup_name(active_runtime_json));
 
 		std::filesystem::create_symlink(manifest_path(), active_runtime_json);
-
-		to_be_deleted = true;
+		this->active_runtime_json = active_runtime_json;
 	}
 	catch (std::exception & e)
 	{
@@ -119,7 +119,7 @@ active_runtime::~active_runtime()
 		return;
 	try
 	{
-		if (to_be_deleted)
+		if (not active_runtime_json.empty())
 		{
 			std::filesystem::remove(active_runtime_json);
 			move_file(backup_name(active_runtime_json), active_runtime_json);
