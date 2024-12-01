@@ -17,7 +17,10 @@
  */
 
 #include <CLI/CLI.hpp>
+#include <format>
+#include <ranges>
 #include <systemd/sd-bus.h>
+#include <type_traits>
 
 struct deleter
 {
@@ -77,6 +80,75 @@ sd_bus_message_ptr get_property(const sd_bus_ptr & bus, const char * member, con
 	return sd_bus_message_ptr(msg);
 }
 
+template <typename Rng, typename value_type = std::remove_cvref_t<decltype(*std::declval<Rng>().begin())>>
+void print_table(const std::array<std::string, std::tuple_size_v<value_type>> & header, const Rng & data)
+{
+	constexpr int Columns = std::tuple_size_v<value_type>;
+
+	std::array<size_t, Columns> column_size{};
+
+	for (auto [size, label]: std::views::zip(column_size, header))
+	{
+		size = std::max(size, label.size());
+	}
+
+	std::vector<std::array<std::string, Columns>> lines;
+	for (const auto & line: data)
+	{
+		std::array<std::string, Columns> & line_str = lines.emplace_back();
+
+		std::apply([&](auto &&... args) {int col = 0; ((line_str[col++] = std::format("{}", args)), ...); }, line);
+
+		for (auto [size, label]: std::views::zip(column_size, line_str))
+		{
+			size = std::max(size, label.size());
+		}
+	}
+
+	std::cout << "\e[1m";
+	for (auto [size, label]: std::views::zip(column_size, header))
+	{
+		std::cout << std::left << std::setw(size) << label << " ";
+	}
+	std::cout << "\e[0m\n";
+
+	for (const auto & line: lines)
+	{
+		for (auto [size, label]: std::views::zip(column_size, line))
+		{
+			std::cout << std::left << std::setw(size) << label << " ";
+		}
+		std::cout << "\n";
+	}
+}
+
+std::vector<std::pair<std::string, std::string>> get_keys(const sd_bus_ptr & bus)
+{
+	auto msg = get_property(bus,
+	                        "KnownKeys",
+	                        "a(ss)");
+
+	int ret = sd_bus_message_enter_container(msg.get(), 'a', "(ss)");
+	if (ret < 0)
+		throw std::system_error(-ret, std::system_category(), "Failed to get paired headsets");
+
+	std::vector<std::pair<std::string, std::string>> values;
+	while (true)
+	{
+		char * name;
+		char * key;
+		int ret = sd_bus_message_read(msg.get(), "(ss)", &name, &key);
+		if (ret == 0)
+			break;
+		if (ret < 0)
+			throw std::system_error(-ret, std::system_category(), "Failed to get paired headset details");
+
+		values.emplace_back(name, key);
+	}
+
+	return values;
+}
+
 void pair(int duration)
 {
 	if (duration == 0)
@@ -101,60 +173,53 @@ void pair(int duration)
 	}
 }
 
+void unpair(int headset_id)
+{
+	auto bus = get_user_bus();
+	auto values = get_keys(bus);
+
+	if (headset_id < 1 or headset_id > values.size())
+		throw std::runtime_error(std::format("Invalid headset number: {}", headset_id));
+
+	call_method(bus, "RevokeKey", "s", values.at(headset_id - 1).second.c_str());
+}
+
 void list_paired(bool show_keys)
 {
-	auto msg = get_property(get_user_bus(),
-	                        "KnownKeys",
-	                        "a(ss)");
+	auto values = get_keys(get_user_bus());
 
-	int ret = sd_bus_message_enter_container(msg.get(), 'a', "(ss)");
-	if (ret < 0)
-		throw std::system_error(-ret, std::system_category(), "Failed to get paired headsets");
-
-	std::vector<std::pair<std::string, std::string>> values;
-	while (true)
+	if (values.empty())
 	{
-		char * name;
-		char * key;
-		int ret = sd_bus_message_read(msg.get(), "(ss)", &name, &key);
-		if (ret == 0)
-			break;
-		if (ret < 0)
-			throw std::system_error(-ret, std::system_category(), "Failed to get paired headset details");
-
-		values.emplace_back(name, key);
+		std::cout << "No paired headset" << std::endl;
 	}
-	size_t width = 0;
-	if (show_keys)
+	else
 	{
-		for (const auto & [name, key]: values)
-			width = std::max(width, name.length());
-		width += 1;
-	}
-	std::cout << "Paired headsets:" << std::endl;
-	for (const auto & [name, key]: values)
-	{
-		if (width > 0)
-			std::cout << std::left << std::setw(width);
-		std::cout << name;
 		if (show_keys)
-			std::cout << key;
-		std::cout << std::endl;
+			print_table({"", "Headset name", "Public key"}, std::views::zip(std::views::iota(1), values | std::views::elements<0>, values | std::views::elements<1>));
+		else
+			print_table({"", "Headset name"}, std::views::zip(std::views::iota(1), values | std::views::elements<0>));
 	}
+}
+
+void rename(int headset_id, const std::string & headset_name)
+{
+	auto bus = get_user_bus();
+	auto values = get_keys(bus);
+
+	if (headset_id < 1 or headset_id > values.size())
+		throw std::runtime_error(std::format("Invalid headset number: {}", headset_id));
+
+	call_method(bus, "RenameKey", "ss", values.at(headset_id - 1).second.c_str(), headset_name.c_str());
 }
 
 void stop_server()
 {
-	call_method(get_user_bus(),
-	            "Quit",
-	            "");
+	call_method(get_user_bus(), "Quit", "");
 }
 
 void disconnect()
 {
-	call_method(get_user_bus(),
-	            "Disconnect",
-	            "");
+	call_method(get_user_bus(), "Disconnect", "");
 }
 
 int main(int argc, char ** argv)
@@ -179,6 +244,17 @@ int main(int argc, char ** argv)
 	                                                   ""))
 	                        ->default_val(2)
 	                        ->option_text("INT|unlimited");
+
+	int headset_id;
+	auto unpair_command = app.add_subcommand("unpair", "Remove a headset")
+	                              ->callback([&]() { return unpair(headset_id); });
+	unpair_command->add_option("HEADSET", headset_id, "Headset ID from the list-paired subcommand")->required();
+
+	std::string headset_name;
+	auto rename_command = app.add_subcommand("rename", "Rename a headset")
+	                              ->callback([&]() { return rename(headset_id, headset_name); });
+	rename_command->add_option("HEADSET", headset_id, "Headset ID from the list-paired subcommand")->required();
+	rename_command->add_option("NAME", headset_name, "New headset name")->required();
 
 	bool show_keys = false;
 	auto list_command = app.add_subcommand("list-paired", "List headsets allowed to connect")
