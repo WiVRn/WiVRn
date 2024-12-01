@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-11-25 22:40+0100\n"
+"POT-Creation-Date: 2024-12-02 00:12+0100\n"
 "PO-Revision-Date: 2024-10-15 20:16+0100\n"
 "Last-Translator: Albano Battistella <albanobattistella@gmail.com>\n"
 "Language: Italian\n"
@@ -325,10 +325,18 @@ msgstr "Previsto"
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "Latenza stimata da movimento a fotoni: {}ms"
 
-#: client/wivrn_client.cpp:96 client/wivrn_client.cpp:170
+#: client/wivrn_client.cpp:97 client/wivrn_client.cpp:196
 msgid "Timeout"
 msgstr "Timeout"
 
-#: client/wivrn_client.cpp:154
+#: client/wivrn_client.cpp:147
+msgid "Incorrect PIN"
+msgstr "PIN errato"
+
+#: client/wivrn_client.cpp:151
+msgid "Unable to check PIN"
+msgstr "Impossibile verificare il PIN"
+
+#: client/wivrn_client.cpp:180
 msgid "Pairing is disabled on server"
 msgstr "L'associazione è disattivata sul server"
