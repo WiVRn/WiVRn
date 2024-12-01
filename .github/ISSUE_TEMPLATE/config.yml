@@ -1,0 +1,7 @@
+issue_templates:
+  - name: Bug Report
+    about: Create a report to help us improve WiVRn.
+  - name: Feature Request
+    about: Suggest an enhancement or new feature for WiVRn.
+  - name: Other
+    about: Use this template for anything else that doesn't fit into the above categories.

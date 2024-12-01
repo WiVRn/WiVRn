@@ -1,0 +1,92 @@
+name: Bug Report
+description: Create a report to help us improve WiVRn.
+title: "[Bug]: "
+labels:
+  - bug
+
+body:
+  - type: input
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Please describe the bug here...
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: Provide the steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+
+  - type: input
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: Please describe what you expected to happen.
+
+  - type: input
+    attributes:
+      label: WiVRn Version
+      description: Provide the version or commit hash of WiVRn.
+      placeholder: Version or commit
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Server Config
+      description: Provide the content of `config.json` for the server.
+      placeholder: Add the content of config.json here...
+
+  - type: textarea
+    attributes:
+      label: Server Logs
+      description: Provide the `wivrn-server` output.
+      placeholder: Add the output of the wivrn-server here...
+
+  - type: dropdown
+    id: gpu
+    attributes:
+      label: What GPU did the bug occur on?
+      options:
+        - NVIDIA
+        - AMD
+        - Intel
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Vulkan Info
+      description: Provide the output of `vulkaninfo` command.
+      placeholder: Add the output of vulkaninfo command here...
+
+  - type: dropdown
+    id: hmd
+    attributes:
+      label: What HMD did the bug occur on?
+      options:
+        - Quest
+        - Quest 2
+        - Quest Pro
+        - Quest 3
+        - Quest 3S
+        - Pico 4
+        - Pico Neo 3
+        - HTC Vive Focus 3
+        - HTC Vive XR Elite
+        - Lynx R1
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: ADB Logs
+      description: Provide the output of `adb logcat` command.
+      placeholder: Add the output of adb logcat command here...

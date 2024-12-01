@@ -1,0 +1,7 @@
+name: Other
+description: Use this template for anything else
+
+body:
+  - type: textarea
+    attributes:
+      label: Add a description
