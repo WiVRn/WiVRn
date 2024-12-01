@@ -1,0 +1,12 @@
+diff '--color=auto' -ru boostpfr-src/include/boost/pfr/detail/fields_count.hpp boostpfr-src.new/include/boost/pfr/detail/fields_count.hpp
+--- boostpfr-src/include/boost/pfr/detail/fields_count.hpp	2024-12-01 09:48:39.376617081 +0100
++++ boostpfr-src.new/include/boost/pfr/detail/fields_count.hpp	2024-12-01 09:46:36.850666519 +0100
+@@ -240,7 +240,7 @@
+ 
+ template <class T, std::size_t N>
+ constexpr auto detect_fields_count_dispatch(size_t_<N>, long, int) noexcept
+-    -> decltype(sizeof(T{}))
++    -> std::size_t
+ {
+     constexpr std::size_t middle = N / 2 + 1;
+     return detail::detect_fields_count<T, 0, middle>(detail::multi_element_range{}, 1L);
