@@ -1,0 +1,30 @@
+name: Feature Request
+description: Suggest an enhancement or new feature for WiVRn.
+title: "[Feature Request]: "
+labels:
+  - enhancement
+
+body:
+  - type: input
+    attributes:
+      label: Feature description
+      description: A clear description of what the feature should do.
+      placeholder: Please describe the feature here...
+
+  - type: textarea
+    attributes:
+      label: Reason for the feature
+      description: Provide a clear explanation of why this feature should be added.
+      placeholder: Describe why this feature is needed and how it will improve the project.
+
+  - type: textarea
+    attributes:
+      label: Proposed implementation
+      description: Add any information on how you think the feature should be implemented.
+      placeholder: Provide implementation details or ideas for the feature.
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any extra details, such as use cases, examples, or relevant information.
+      placeholder: Add any other context, screenshots, or relevant details to help us understand the feature request.
