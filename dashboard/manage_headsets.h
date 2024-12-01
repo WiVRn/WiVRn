@@ -18,41 +18,34 @@
 
 #pragma once
 
+#include "wivrn_server.h"
 #include <QDialog>
-#include <nlohmann/json.hpp>
+#include <QStandardItem>
 
 namespace Ui
 {
-class Settings;
+class ManageHeadsets;
 }
-class wivrn_server;
+class IoGithubWivrnServerInterface;
+class OrgFreedesktopDBusPropertiesInterface;
 
-class settings : public QDialog
+class settings;
+class wivrn_server;
+class wizard;
+
+class manage_headsets : public QDialog
 {
 	Q_OBJECT
 
-	Ui::Settings * ui;
+	Ui::ManageHeadsets * ui;
 	wivrn_server * server_interface;
 
-	nlohmann::json json_doc;
-
-	void selected_rectangle_changed(int);
-
 public:
-	settings(wivrn_server * server_interface);
-	~settings();
+	manage_headsets(wivrn_server * server_interface);
 
 private:
-	void on_encoder_settings_changed();
-	void on_selected_encoder_changed();
-	void on_selected_game_changed(int index);
-	void on_browse_game();
-	void load_settings();
-	void save_settings();
-	void restore_defaults();
-
-	void fill_steam_games_list();
-
-	void set_application(const std::vector<std::string> & app);
-	std::vector<std::string> application();
+	void update_headet_list(const std::vector<wivrn_server::HeadsetKey> & keys);
+	void on_selection_changed();
+	void on_remove_selected();
+	void on_rename_selected(QStandardItem * item);
 };

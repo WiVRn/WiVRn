@@ -31,6 +31,7 @@
 
 #include "adb.h"
 #include "gui_config.h"
+#include "manage_headsets.h"
 #include "settings.h"
 #include "ui_main_window.h"
 #include "utils/flatpak.h"
@@ -268,6 +269,7 @@ main_window::main_window()
 	connect(server_interface, &wivrn_server::pairingEnabledChanged, ui->button_pair_headset, &QWidget::setHidden);
 	connect(ui->button_cancel_pairing, &QPushButton::clicked, server_interface, &wivrn_server::disable_pairing);
 	connect(ui->button_pair_headset, &QPushButton::clicked, server_interface, &wivrn_server::enable_pairing);
+	connect(ui->button_manage_headsets, &QPushButton::clicked, this, &main_window::on_action_manage_headsets);
 
 	connect(ui->button_start, &QPushButton::clicked, this, &main_window::start_server);
 	connect(ui->button_stop, &QPushButton::clicked, this, &main_window::stop_server);
@@ -301,9 +303,6 @@ main_window::main_window()
 	ui->banner_nvidia_layer_icon->setPixmap(QIcon::fromTheme("dialog-information").pixmap(ui->banner_nvidia_layer_dismiss->height()));
 	if (not nvidia_layer_missing())
 		ui->banner_nvidia_layer->hide();
-
-	// TODO implement this
-	ui->button_known_headsets->hide();
 
 	retranslate();
 }
@@ -779,6 +778,11 @@ void main_window::on_action_settings()
 void main_window::on_action_wizard()
 {
 	wizard{}.exec();
+}
+
+void main_window::on_action_manage_headsets()
+{
+	manage_headsets{server_interface}.exec();
 }
 
 void main_window::on_action_usb(const std::string & serial)

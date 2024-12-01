@@ -394,9 +394,9 @@ border-radius: 5px;
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="button_known_headsets">
+           <widget class="QPushButton" name="button_manage_headsets">
             <property name="text">
-             <string>Known headsets</string>
+             <string>Manage headsets</string>
             </property>
            </widget>
           </item>

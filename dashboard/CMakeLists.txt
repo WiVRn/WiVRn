@@ -14,6 +14,9 @@ qt_add_executable(wivrn-dashboard
         main_window.cpp
         main_window.h
         main_window.ui
+        manage_headsets.cpp
+        manage_headsets.h
+        manage_headsets.ui
         settings.cpp
         settings.h
         settings.ui

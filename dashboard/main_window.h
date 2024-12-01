@@ -103,6 +103,7 @@ private:
 
 	void on_action_settings();
 	void on_action_wizard();
+	void on_action_manage_headsets();
 	void on_action_usb(const std::string & serial);
 	void start_server();
 	void stop_server();
