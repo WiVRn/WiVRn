@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   formatting-check:
     name: Formatting check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ vars.APK_ONLY == '' }}
     strategy:
       fail-fast: false

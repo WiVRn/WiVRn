@@ -87,7 +87,7 @@ jobs:
 
   release:
     name: Create APK release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build-android-only
     if: ${{ vars.APK_ONLY != '' }}
 

@@ -72,7 +72,7 @@ jobs:
 
   build-server-flatpak:
     name: Linux server (flatpak)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ vars.APK_ONLY == '' }}
     container:
       image: bilelmoussaoui/flatpak-github-actions:freedesktop-23.08
@@ -448,7 +448,7 @@ jobs:
 
   sync_fork_downstream:
     name: Sync fork downstream
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build-server, build-android]
     if: ${{ vars.APK_ONLY == '' }} && github.branch == 'master'
     steps:

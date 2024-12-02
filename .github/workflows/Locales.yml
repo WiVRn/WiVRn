@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   locale-check:
     name: Locale check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ vars.APK_ONLY == '' }}
     steps:
     - uses: actions/checkout@v4
