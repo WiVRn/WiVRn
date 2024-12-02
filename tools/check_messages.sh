@@ -10,18 +10,11 @@ RC=0
 
 for i in $(find client/locale -name wivrn.po)
 do
-	msgmerge --quiet --no-fuzzy-matching $i $WIVRN_POT --output-file=$i.new
-
-	pot_creation_date=$(grep -o "POT-Creation-Date: [-0-9:+ ]*" $i)
-	sed -i "s/POT-Creation-Date: [-0-9:+ ]*/$pot_creation_date/" $i.new
-
-	diff -U 3 -I '#.*' $i $i.new
+	tools/check_po.py $WIVRN_POT $i
 
 	if [ $? != 0 ]
 	then
 		RC=1
-
-		echo ::warning file=$i::$i is not up to date
 	fi
 done
 
