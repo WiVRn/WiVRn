@@ -51,6 +51,9 @@ static std::string clean_key(std::string key)
 	return key;
 }
 
+wivrn::incorrect_pin::incorrect_pin() :
+        std::runtime_error("Incorrect PIN") {}
+
 wivrn::wivrn_connection::wivrn_connection(std::stop_token stop_token, encryption_state state, std::string pin, TCP && tcp) :
         control(std::move(tcp)),
         stream(-1),
@@ -217,7 +220,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 					control.send(to_headset::pin_check_4{msg4});
 
 					if (not pin_match)
-						throw std::runtime_error("Incorrect PIN");
+						throw incorrect_pin{};
 				}
 				catch (crypto::smp_cheated &)
 				{

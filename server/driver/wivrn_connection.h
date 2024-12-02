@@ -32,6 +32,12 @@
 
 namespace wivrn
 {
+class incorrect_pin : public std::runtime_error
+{
+public:
+	incorrect_pin();
+};
+
 class wivrn_connection
 {
 public:

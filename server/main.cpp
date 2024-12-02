@@ -214,6 +214,10 @@ guint pairing_timeout;
 std::string pin;
 NotifyNotification * pin_notification;
 
+// Delay until the next connection is allowed, increased after each incorrect attempt
+const std::chrono::milliseconds default_delay_next_try = 10ms;
+std::chrono::milliseconds delay_next_try = default_delay_next_try;
+
 WivrnServer * dbus_server;
 
 /* TODO: Document FSM
@@ -427,9 +431,11 @@ void update_fsm()
 		{
 			runtime_setter.reset();
 
-			start_listening();
-			start_publishing();
-			wivrn_server_set_headset_connected(dbus_server, false);
+			g_timeout_add(delay_next_try.count(), [](void *) {
+				start_listening();
+				start_publishing();
+				wivrn_server_set_headset_connected(dbus_server, false);
+				return G_SOURCE_REMOVE; }, 0);
 		}
 	}
 }
@@ -462,6 +468,8 @@ gboolean headset_connected_success(void *)
 	start_server();
 	start_app();
 
+	delay_next_try = default_delay_next_try;
+
 	connection.reset();
 	return G_SOURCE_REMOVE;
 }
@@ -470,6 +478,18 @@ gboolean headset_connected_failed(void *)
 {
 	assert(connection_thread);
 	connection_thread.reset();
+
+	update_fsm();
+	return G_SOURCE_REMOVE;
+}
+
+gboolean headset_connected_incorrect_pin(void *)
+{
+	assert(connection_thread);
+	connection_thread.reset();
+
+	delay_next_try = 2 * delay_next_try;
+	std::cout << "Waiting " << delay_next_try << " until the next attempt is allowed" << std::endl;
 
 	update_fsm();
 	return G_SOURCE_REMOVE;
@@ -491,6 +511,11 @@ gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data)
 		{
 			connection = std::make_unique<wivrn_connection>(stop_token, enc_state, pin, std::move(tcp));
 			g_main_context_invoke(nullptr, &headset_connected_success, nullptr);
+		}
+		catch (wivrn::incorrect_pin &)
+		{
+			std::cerr << "Incorrect PIN" << std::endl;
+			g_main_context_invoke(nullptr, &headset_connected_incorrect_pin, nullptr);
 		}
 		catch (std::exception & e)
 		{
