@@ -253,7 +253,7 @@ file(GLOB MONADO_PATCHES CONFIGURE_DEPENDS patches/monado/*)
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado
     # The flatpak manifest is updated automatically
-    GIT_TAG          6a26019aba14b52832ea6ae1766392a3b620f4ff
+    GIT_TAG aa2b0f9f1d638becd6bb9ca3c357ac2561a36b07
     PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${MONADO_PATCHES}
     EXCLUDE_FROM_ALL
 )
