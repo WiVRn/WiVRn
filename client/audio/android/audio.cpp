@@ -128,11 +128,14 @@ int32_t wivrn::android::audio::microphone_data_cb(AAudioStream * stream, void * 
 
 	size_t frame_size = AAudioStream_getChannelCount(stream) * sizeof(uint16_t);
 
+	// Copy data because we encrypt in-place, we don't want to write on the input data
+	thread_local std::vector<uint8_t> data_copy;
+	data_copy.assign(audio_data, audio_data + frame_size * num_frames);
 	try
 	{
 		self->session.send_control(wivrn::audio_data{
 		        .timestamp = self->instance.now(),
-		        .payload = std::span(audio_data, frame_size * num_frames),
+		        .payload = std::span(data_copy),
 		});
 	}
 	catch (...)
