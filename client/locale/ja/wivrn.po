@@ -325,10 +325,18 @@ msgstr "予測時間"
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "「Motion-to-photon」推定遅延 {}ミリ秒"
 
-#: client/wivrn_client.cpp:96 client/wivrn_client.cpp:170
+#: client/wivrn_client.cpp:97 client/wivrn_client.cpp:196
 msgid "Timeout"
 msgstr "タイムアウト"
 
-#: client/wivrn_client.cpp:154
+#: client/wivrn_client.cpp:147
+msgid "Incorrect PIN"
+msgstr "識別番号に誤りがありました"
+
+#: client/wivrn_client.cpp:151
+msgid "Unable to check PIN"
+msgstr "暗証番号を確認できませんでした"
+
+#: client/wivrn_client.cpp:180
 msgid "Pairing is disabled on server"
 msgstr "このサーバーではペアリングが無効です"
