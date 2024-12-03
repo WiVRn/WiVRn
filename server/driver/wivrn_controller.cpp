@@ -132,10 +132,14 @@ static xrt_binding_profile wivrn_binding_profiles[] = {
 
 static void wivrn_controller_destroy(xrt_device * xdev);
 
-static void wivrn_controller_get_tracked_pose(xrt_device * xdev,
-                                              xrt_input_name name,
-                                              int64_t at_timestamp_ns,
-                                              xrt_space_relation * out_relation);
+static xrt_result_t wivrn_controller_get_tracked_pose(xrt_device * xdev,
+                                                      xrt_input_name name,
+                                                      int64_t at_timestamp_ns,
+                                                      xrt_space_relation * out_relation)
+{
+	*out_relation = static_cast<wivrn_controller *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
+	return XRT_SUCCESS;
+}
 
 static void wivrn_controller_get_hand_tracking(xrt_device * xdev,
                                                xrt_input_name name,
@@ -402,14 +406,6 @@ void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value *
 static void wivrn_controller_destroy(xrt_device * xdev)
 {
 	static_cast<wivrn_controller *>(xdev)->unregister();
-}
-
-static void wivrn_controller_get_tracked_pose(xrt_device * xdev,
-                                              xrt_input_name name,
-                                              int64_t at_timestamp_ns,
-                                              xrt_space_relation * out_relation)
-{
-	*out_relation = static_cast<wivrn_controller *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
 }
 
 static void wivrn_controller_get_hand_tracking(xrt_device * xdev,

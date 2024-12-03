@@ -46,10 +46,14 @@ static xrt_result_t wivrn_hmd_update_inputs(xrt_device * xdev)
 	return XRT_SUCCESS;
 }
 
-static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
-                                       xrt_input_name name,
-                                       int64_t at_timestamp_ns,
-                                       xrt_space_relation * out_relation);
+static xrt_result_t wivrn_hmd_get_tracked_pose(xrt_device * xdev,
+                                               xrt_input_name name,
+                                               int64_t at_timestamp_ns,
+                                               xrt_space_relation * out_relation)
+{
+	*out_relation = static_cast<wivrn_hmd *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
+	return XRT_SUCCESS;
+}
 
 static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      const xrt_vec3 * default_eye_relation,
@@ -414,14 +418,6 @@ void wivrn_hmd::set_foveation_center(std::array<xrt_vec2, 2> center)
 static void wivrn_hmd_destroy(xrt_device * xdev)
 {
 	static_cast<wivrn_hmd *>(xdev)->unregister();
-}
-
-static void wivrn_hmd_get_tracked_pose(xrt_device * xdev,
-                                       xrt_input_name name,
-                                       int64_t at_timestamp_ns,
-                                       xrt_space_relation * out_relation)
-{
-	*out_relation = static_cast<wivrn_hmd *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
 }
 
 static void wivrn_hmd_get_view_poses(xrt_device * xdev,

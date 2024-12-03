@@ -42,10 +42,14 @@ static xrt_result_t wivrn_eye_tracker_update_inputs(xrt_device * xdev)
 	return XRT_SUCCESS;
 }
 
-static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
-                                               xrt_input_name name,
-                                               int64_t at_timestamp_ns,
-                                               xrt_space_relation * out_relation);
+static xrt_result_t wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
+                                                       xrt_input_name name,
+                                                       int64_t at_timestamp_ns,
+                                                       xrt_space_relation * out_relation)
+{
+	*out_relation = static_cast<wivrn_eye_tracker *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
+	return XRT_SUCCESS;
+}
 
 wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd) :
         xrt_device{}, gaze(device_id::EYE_GAZE)
@@ -104,11 +108,4 @@ static void wivrn_eye_tracker_destroy(xrt_device * xdev)
 {
 }
 
-static void wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
-                                               xrt_input_name name,
-                                               int64_t at_timestamp_ns,
-                                               xrt_space_relation * out_relation)
-{
-	*out_relation = static_cast<wivrn_eye_tracker *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
-}
 } // namespace wivrn
