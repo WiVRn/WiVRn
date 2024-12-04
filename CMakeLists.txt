@@ -224,7 +224,7 @@ endif()
 
 if (WIVRN_BUILD_WIVRNCTL)
     find_package(CLI11 REQUIRED)
-    pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
+    pkg_search_module(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd libelogind)
 endif()
 
 # Common dependencies
