@@ -66,7 +66,8 @@ static std::filesystem::path backup_name(std::filesystem::path file)
 
 static void move_file(const std::filesystem::path & from, const std::filesystem::path & to)
 {
-	if (not std::filesystem::exists(from))
+	auto from_status = std::filesystem::symlink_status(from);
+	if (from_status.type() == std::filesystem::file_type::not_found)
 		return;
 	std::filesystem::rename(from, to);
 }
