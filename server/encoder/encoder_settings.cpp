@@ -131,9 +131,11 @@ static constexpr auto ffmpeg_version()
 	for (auto & item: result)
 	{
 		auto dot = version.find(".");
-		auto number = version.substr(0, dot);
+		auto number = version.substr(version.find_first_of("0123456789"), dot);
 		version = version.substr(dot + 1);
-		std::from_chars(number.begin(), number.end(), item);
+		auto res = std::from_chars(number.begin(), number.end(), item);
+		if (res.ec != std::errc{})
+			throw std::invalid_argument("Failed to parse FFMPEG_VERSION " FFMPEG_VERSION);
 	}
 	return result;
 }
