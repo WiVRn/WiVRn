@@ -89,7 +89,6 @@ class wivrn_session : public xrt_system_devices
 	        .right = -1,
 	        .gamepad = -1,
 	};
-	std::array<xrt_reference, XRT_DEVICE_FEATURE_MAX_ENUM> feature_use{};
 
 	wivrn_hmd hmd;
 	wivrn_controller left_hand;

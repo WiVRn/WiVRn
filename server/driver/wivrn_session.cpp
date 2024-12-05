@@ -542,37 +542,27 @@ xrt_result_t wivrn_session::get_roles(xrt_system_roles * out_roles)
 
 xrt_result_t wivrn_session::feature_inc(xrt_device_feature_type type)
 {
-	if (type >= XRT_DEVICE_FEATURE_MAX_ENUM)
-		return XRT_ERROR_FEATURE_NOT_SUPPORTED;
-
-	// If it wasn't zero nothing to do.
-	if (!xrt_reference_inc_and_was_zero(&feature_use[type]))
-		return XRT_SUCCESS;
-
-	if (type == XRT_DEVICE_FEATURE_HAND_TRACKING_LEFT)
-		return xrt_device_begin_feature(static_roles.hand_tracking.left, type);
-	else if (type == XRT_DEVICE_FEATURE_HAND_TRACKING_RIGHT)
-		return xrt_device_begin_feature(static_roles.hand_tracking.right, type);
-	else if (type == XRT_DEVICE_FEATURE_EYE_TRACKING)
-		return xrt_device_begin_feature(static_roles.eyes, type);
-	return XRT_ERROR_FEATURE_NOT_SUPPORTED;
+	switch (type)
+	{
+		case XRT_DEVICE_FEATURE_HAND_TRACKING_LEFT:
+		case XRT_DEVICE_FEATURE_HAND_TRACKING_RIGHT:
+		case XRT_DEVICE_FEATURE_EYE_TRACKING:
+			return XRT_SUCCESS;
+		default:
+			return XRT_ERROR_FEATURE_NOT_SUPPORTED;
+	}
 }
 
 xrt_result_t wivrn_session::feature_dec(xrt_device_feature_type type)
 {
-	if (type >= XRT_DEVICE_FEATURE_MAX_ENUM)
-		return XRT_ERROR_FEATURE_NOT_SUPPORTED;
-
-	// If it is not zero we are done.
-	if (!xrt_reference_dec_and_is_zero(&feature_use[type]))
-		return XRT_SUCCESS;
-
-	if (type == XRT_DEVICE_FEATURE_HAND_TRACKING_LEFT)
-		return xrt_device_end_feature(static_roles.hand_tracking.left, type);
-	else if (type == XRT_DEVICE_FEATURE_HAND_TRACKING_RIGHT)
-		return xrt_device_end_feature(static_roles.hand_tracking.right, type);
-	else if (type == XRT_DEVICE_FEATURE_EYE_TRACKING)
-		return xrt_device_end_feature(static_roles.eyes, type);
-	return XRT_ERROR_FEATURE_NOT_SUPPORTED;
+	switch (type)
+	{
+		case XRT_DEVICE_FEATURE_HAND_TRACKING_LEFT:
+		case XRT_DEVICE_FEATURE_HAND_TRACKING_RIGHT:
+		case XRT_DEVICE_FEATURE_EYE_TRACKING:
+			return XRT_SUCCESS;
+		default:
+			return XRT_ERROR_FEATURE_NOT_SUPPORTED;
+	}
 }
 } // namespace wivrn
