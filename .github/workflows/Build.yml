@@ -228,7 +228,11 @@ jobs:
         if [ ${{ matrix.buildtype }} = 'Oculus' ]
         then
           SUFFIX=""
-          VERSION_CODE=$(git rev-list --count HEAD)
+          VERSION_CODE=$(( 2 * $(git rev-list --count HEAD) ))
+          if [ ${{ github.ref_type }} = 'tag' ]
+          then
+                VERSION_CODE=$(( $VERSION_CODE + 1 ))
+          fi
 
           CSS=images/wivrn-release.css
           APPNAME=WiVRn
