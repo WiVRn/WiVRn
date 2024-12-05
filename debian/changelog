@@ -1,3 +1,12 @@
+wivrn (0.22-1) unstable; urgency=medium
+
+  * Passthrough streaming support
+  * Fully encrypted connection
+  * Improved compositor pacing
+  * Add wivrnctl utility to control server
+
+ -- Patrick Nicolas <patricknicolas@laposte.net>  Thu, 05 Dec 2024 22:20:41 +0100
+
 wivrn (0.21-1) unstable; urgency=medium
 
   * Fixed multiple dashboard issues
