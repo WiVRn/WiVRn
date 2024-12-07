@@ -180,7 +180,7 @@ if (WIVRN_BUILD_SERVER)
 endif()
 
 if (WIVRN_BUILD_DASHBOARD)
-    find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets DBus Network LinguistTools)
+    find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Gui Widgets DBus Network LinguistTools)
     find_package(nlohmann_json REQUIRED)
     if (WIVRN_CHECK_CAPSYSNICE)
         pkg_check_modules(libcap REQUIRED IMPORTED_TARGET libcap)
@@ -283,7 +283,7 @@ if (WIVRN_BUILD_SERVER)
 endif()
 
 if (WIVRN_BUILD_DASHBOARD)
-    add_subdirectory(dashboard)
+    add_subdirectory(dashboard-qml)
     set_target_properties(wivrn-dashboard PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/server)
 endif()
 

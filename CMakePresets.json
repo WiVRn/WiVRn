@@ -38,7 +38,8 @@
 				"WIVRN_BUILD_CLIENT": "ON",
 				"WIVRN_BUILD_SERVER": "ON",
 				"WIVRN_BUILD_DASHBOARD": "ON",
-				"WIVRN_BUILD_DISSECTOR": "ON"
+				"WIVRN_BUILD_DISSECTOR": "ON",
+				"QT_QML_GENERATE_QMLLS_INI": "ON"
 			}
 		},
 		{
@@ -66,7 +67,8 @@
 			"inherits": "base",
 			"binaryDir": "${sourceDir}/build-dashboard",
 			"cacheVariables": {
-				"WIVRN_BUILD_DASHBOARD": "ON"
+				"WIVRN_BUILD_DASHBOARD": "ON",
+				"QT_QML_GENERATE_QMLLS_INI": "ON"
 			}
 		},
 		{
