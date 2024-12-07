@@ -139,6 +139,7 @@ WiVRn uses the following software:
 - [HarfBuzz](https://harfbuzz.github.io/)
 - [Monado](https://monado.freedesktop.org/)
 - [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on Nvidia
+- [qCoro](https://qcoro.dev/)
 - [Qt 6](https://www.qt.io/) optional, for the dashboard
 - [spdlog](https://github.com/gabime/spdlog)
 - [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)

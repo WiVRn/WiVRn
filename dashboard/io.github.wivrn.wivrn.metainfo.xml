@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+	<id>io.github.wivrn.wivrn</id>
+	<name>WiVRn server</name>
+	<metadata_license>FSFAP</metadata_license>
+	<project_license>GPL-3.0-or-later</project_license>
+	<summary>Play your PC VR games on a standalone headset</summary>
+	<description>
+		<p>WiVRn allows you to run your VR games from your PC and play them from a standalone headset.</p>
+
+		<p>You will need to install the WiVRn client on your headset from the Meta Store or by following the wizard in the application.</p>
+
+		<p>Supported headsets:</p>
+		<ul>
+			<li>Meta Quest 1</li>
+			<li>Meta Quest 2</li>
+			<li>Meta Quest 3</li>
+			<li>Meta Quest 3S</li>
+			<li>Meta Quest Pro</li>
+			<li>Pico Neo 4</li>
+			<li>HTC Vive Focus 3</li>
+			<li>HTC Vive XR Elite</li>
+		</ul>
+		<p>Features:</p>
+		<ul>
+			<li>Supports OpenXR and OpenVR applications</li>
+			<li>Controller tracking, hand tracking, eye gaze tracking (if supported by the headset)</li>
+			<li>Audio streaming and microphone</li>
+			<li>Video streaming with H264 / HEVC / AV1 compression</li>
+			<li>Hardware accelerated compression with VAAPI or NVENC</li>
+			<li>Software compression with x264</li>
+		</ul>
+	</description>
+	<developer id="io.github.wivrn.wivrn">
+		<name>Guillaume Meunier, Patrick Nicolas et al</name>
+	</developer>
+	<branding>
+		<color type="primary" scheme_preference="light">#F6F5F5</color>
+		<color type="primary" scheme_preference="dark">#424242</color>
+	</branding>
+
+	<launchable type="desktop-id">io.github.wivrn.wivrn.desktop</launchable>
+
+	<categories>
+		<category>Game</category>
+		<category>Network</category>
+	</categories>
+
+	<screenshots>
+		<screenshot type="default">
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-2-orig.png</image>
+			<caption>Dashboard</caption>
+		</screenshot>
+		<screenshot>
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-1-orig.png</image>
+			<caption>Wizard</caption>
+		</screenshot>
+		<screenshot>
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-3-orig.png</image>
+			<caption>Settings</caption>
+		</screenshot>
+	</screenshots>
+
+	<url type="homepage">https://wivrn.github.io</url>
+	<url type="vcs-browser">https://www.github.com/WiVRn/WiVRn</url>
+	<url type="bugtracker">https://github.com/WiVRn/WiVRn/issues</url>
+	<url type="donation">https://opencollective.com/wivrn</url>
+
+	<icon type="stock">io.github.wivrn.wivrn</icon>
+
+	<content_rating type="oars-1.1" />
+
+	<releases>
+		<release version="0.21" date="2024-11-03">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.21</url>
+			<description>
+				<ul>
+					<li>Fixed multiple dashboard issues</li>
+					<li>Improved compositor pacing</li>
+					<li>Changed default encoder configuration</li>
+					<li>Inhibit sleeping while a session is active</li>
+					<li>Avahi publication is now optional</li>
+					<li>Always set the active runtime even if there was already one</li>
+				</ul>
+			</description>
+		</release>
+
+		<release version="0.20" date="2024-10-14">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.20</url>
+			<description>
+				<ul>
+					<li>Added server dashboard</li>
+					<li>Added optional SolarXR support</li>
+					<li>Network latency improvements</li>
+					<li>More accurate frame pacing</li>
+					<li>Smarter default configuration</li>
+				</ul>
+			</description>
+		</release>
+
+		<release version="0.19.1" date="2024-09-21">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.19.1</url>
+			<description>
+				<ul>
+					<li>Fix possible crash when requesting Android permissions on client</li>
+				</ul>
+			</description>
+		</release>
+
+		<release version="0.19" date="2024-09-19">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.19</url>
+			<description>
+				<ul>
+					<li>Added support for eye-tracked foveation</li>
+					<li>Added support for FB_face_tracking2</li>
+					<li>More fluid experience with improved frame and input pacing</li>
+					<li>AV1 support with VAAPI</li>
+					<li>Reduced aliasing with high foveation</li>
+					<li>Improved server and client performance</li>
+				</ul>
+			</description>
+		</release>
+
+		<release version="0.18" date="2024-08-13">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.18</url>
+			<description>
+				<ul>
+					<li>The standard APK is now compatible with Pico headsets</li>
+					<li>Fixes for position on start and reconnect</li>
+					<li>Support for EXT_eye_gaze_interaction by @galister</li>
+					<li>Better support for libmonado, now discoverable in manifest</li>
+					<li>Server can now be distributed as a flatpak</li>
+				</ul>
+			</description>
+		</release>
+
+		<release version="0.17" date="2024-07-14">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.17</url>
+			<description>
+				<ul>
+					<li>Add systemd hardening options by @Pandapip1</li>
+					<li>update monado to 24.0.0 by @galister</li>
+					<li>Update building doc by @SanyaNya</li>
+					<li>Multiple tweaks for controller tracking, audio resync</li>
+					<li>Minor performance improvements</li>
+				</ul>
+			</description>
+		</release>
+	</releases>
+</component>

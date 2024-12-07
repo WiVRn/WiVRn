@@ -2,37 +2,54 @@
 
 cd $(dirname $0)/..
 
-WIVRN_POT=$(mktemp)
-xgettext --keyword=_:1,1t --keyword=_S:1,1t --keyword=_F:1,1t $(find client/ -name "*.cpp" | sort) --output=$WIVRN_POT --package-name=WiVRn
-sed -i 's/charset=CHARSET/charset=UTF-8/g' $WIVRN_POT
+WIVRN_CLIENT_POT=$(mktemp)
+WIVRN_DASHBOARD_POT=$(mktemp)
+
+xgettext \
+	--c++ --from-code=UTF-8                       \
+	--keyword=_:1,1t                              \
+	--keyword=_S:1,1t                             \
+	--keyword=_F:1,1t                             \
+	--output=$WIVRN_CLIENT_POT                    \
+	--package-name=WiVRn                          \
+	$(find client/ -name "*.cpp" | sort)
+
+xgettext \
+	--c++ --kde --from-code=UTF-8                 \
+	--keyword=i18n:1                              \
+	--keyword=i18nc:1c,2                          \
+	--keyword=i18np:1,2                           \
+	--keyword=i18ncp:1c,2,3                       \
+	--output=$WIVRN_DASHBOARD_POT                 \
+	--package-name=WiVRn-dashboard                \
+	$(find dashboard-qml/ -name "*.qml" -o -name "*.cpp" | sort)
+
+sed -i 's/charset=CHARSET/charset=UTF-8/g' $WIVRN_CLIENT_POT $WIVRN_DASHBOARD_POT
 
 RC=0
 
 for i in locale/*
 do
-	tools/check_po.py $WIVRN_POT $i/wivrn.po $(basename $i)
-	if [ $? != 0 ]
+	if [ -f $i/wivrn.po ]
 	then
-		RC=1
+		tools/check_po.py $WIVRN_CLIENT_POT $i/wivrn.po $(basename $i)
+		if [ $? != 0 ]
+		then
+			RC=1
+		fi
+	fi
+
+	if [ -f $i/wivrn-dashboard.po ]
+	then
+		tools/check_po.py $WIVRN_DASHBOARD_POT $i/wivrn-dashboard.po $(basename $i)
+
+		if [ $? != 0 ]
+		then
+			RC=1
+		fi
 	fi
 done
 
-for i in $(find dashboard -name "wivrn_*.ts")
-do
-	cp $i $i.bak
-	lupdate -silent dashboard/*.{cpp,ui} -ts $i
-	mv $i $i.new
-	mv $i.bak $i
-
-	diff -U 3 -I '.*<location.*/>' $i $i.new
-
-	if [ $? != 0 ]
-	then
-		RC=1
-	fi
-
-	rm $i.new
-done
-
+rm $WIVRN_CLIENT_POT $WIVRN_DASHBOARD_POT
 
 exit $RC
