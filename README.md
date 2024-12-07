@@ -92,6 +92,11 @@ If the server list is empty in the headset app:
 - If you have a firewall, check that port 9757 (UDP and TCP) is open
 - The server and client must be compatible:
 
+## How do I see server logs when using the dashboard?
+
+```
+journalctl -f --no-hostname -u io.github.wivrn.wivrn.desktop
+```
 
 
 # Credits
