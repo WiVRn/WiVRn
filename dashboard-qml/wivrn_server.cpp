@@ -174,6 +174,9 @@ void wivrn_server::on_server_dbus_unregistered()
 	if (isHeadsetConnected())
 		headsetConnectedChanged(m_headsetConnected = false);
 
+	if (isPairingEnabled())
+		pairingEnabledChanged(m_isPairingEnabled = false);
+
 	if (serverStatus() == Status::Restarting)
 		start_server();
 }

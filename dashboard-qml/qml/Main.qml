@@ -1,4 +1,3 @@
-// Includes relevant modules used by the QML
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
@@ -16,14 +15,17 @@ Kirigami.ApplicationWindow {
 
     property bool server_started: WivrnServer.serverStatus == WivrnServer.Started
 
-    // contextDrawer: Kirigami.ContextDrawer {}
-
     Connections {
         target: WivrnServer
         function onCapSysNiceChanged(value) {
             if (WivrnServer.serverStatus != WivrnServer.Stopped)
-                restart_capsysnice.visible = true
+                restart_capsysnice.visible = true;
         }
+    }
+
+    Component.onCompleted: {
+        if (WivrnServer.serverStatus == WivrnServer.Stopped)
+            WivrnServer.start_server();
     }
 
     pageStack.initialPage: Kirigami.ScrollablePage {
@@ -53,10 +55,9 @@ Kirigami.ApplicationWindow {
                     Kirigami.Action {
                         text: i18n("Restart now")
                         onTriggered: {
-                            WivrnServer.restart_server()
-                            restart_capsysnice.visible = false
+                            WivrnServer.restart_server();
+                            restart_capsysnice.visible = false;
                         }
-
                     }
                 ]
             }
@@ -89,11 +90,11 @@ Kirigami.ApplicationWindow {
                         visible: root.server_started
                         text: "Stop"
                         Layout.alignment: Qt.AlignCenter
-                        onClicked: function() {
-                            WivrnServer.stop_server()
+                        onClicked: function () {
+                            WivrnServer.stop_server();
 
-                            while(root.pageStack.depth > 1)
-                                root.pageStack.pop(null);
+                            while (root.pageStack.depth > 1)
+                                root.pageStack.pop();
                         }
                     }
 
@@ -104,7 +105,17 @@ Kirigami.ApplicationWindow {
                         onClicked: WivrnServer.start_server()
                     }
                 }
+
             }
+
+            Controls.Label {
+                font.pixelSize: 22
+                text: "Use this PIN to pair your headset: %1".arg(WivrnServer.pin)
+                visible: WivrnServer.pairingEnabled
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
 
         }
         actions: [
@@ -112,185 +123,16 @@ Kirigami.ApplicationWindow {
                 text: "Headsets"
                 icon.name: "user-home-symbolic"
                 // onTriggered: root.showPassiveNotification("Action 1 clicked")
-                onTriggered: root.pageStack.push(headsets)
+                onTriggered: root.pageStack.push(Qt.resolvedUrl("Headsets.qml"))
                 enabled: root.server_started && root.pageStack.depth == 1
             },
             Kirigami.Action {
                 text: "Settings"
                 icon.name: "settings-configure-symbolic"
                 // onTriggered: root.showPassiveNotification("Action 2 clicked")
-                onTriggered: root.pageStack.push(settings)
+                onTriggered: root.pageStack.push(Qt.resolvedUrl("Settings.qml"))
                 enabled: root.server_started && root.pageStack.depth == 1
             }
         ]
     }
-
-    Component {
-        id: headsets
-        Kirigami.Page {
-
-        }
-    }
-
-    Component {
-        id: settings
-        Kirigami.ScrollablePage {
-            ColumnLayout {
-                anchors.fill: parent
-                Kirigami.FormLayout {
-                    Kirigami.Separator {
-                        Kirigami.FormData.isSection: true
-                        Kirigami.FormData.label: "Application"
-                    }
-
-                    GridLayout {
-                        Kirigami.FormData.label: "Application to start when a headset connects:"
-                        Kirigami.FormData.labelAlignment: Qt.AlignTop
-                        columns: 2
-
-                        Controls.ComboBox {
-                            Layout.columnSpan: 2
-                        }
-
-                        Controls.TextField {
-                        }
-
-                        Controls.Button {
-                            text: "Browse"
-                        }
-                    }
-
-                    Kirigami.Separator {
-                        Kirigami.FormData.isSection: true
-                        Kirigami.FormData.label: "Foveation"
-                    }
-
-                    Controls.Label {
-                        text: "A stronger foveation makes the image sharper in the center than in the periphery and makes the decoding faster. This is better for fast paced games.\n\nA weaker foveation gives a uniform sharpness in the whole image.\n\nThe recommended values are between 20% and 50% for headsets without eye tracking and between 50% and 70% for headsets with eye tracking."
-                        wrapMode: Text.WordWrap
-                        Layout.fillWidth: true
-                    }
-
-                    ColumnLayout {
-                        Kirigami.FormData.label: "Foveation strength"
-                        Kirigami.FormData.labelAlignment: Qt.AlignTop
-                        Controls.RadioButton {
-                            checked: true
-                            text: "Automatic"
-                            id: auto_foveation
-                        }
-                        Controls.RadioButton {
-                            text: "Manual"
-                            id: manual_foveation
-                        }
-                    }
-
-                    GridLayout {
-                        enabled: manual_foveation.checked
-                        columns: 4
-
-                        Controls.Slider {
-                            id: x
-                            Layout.columnSpan: 3
-                            from: 0
-                            to: 80
-                            stepSize: 1
-                        }
-
-                        Controls.Label {
-                            text: x.value + "%"
-                        }
-
-                        // RowLayout {
-                            Controls.Label {
-                                text: "Weaker"
-                            }
-                            Item {
-                                // spacer item
-                                Layout.fillWidth: true
-                                // Layout.fillHeight: true
-                            }
-                            Controls.Label {
-                                text: "Stronger"
-                            }
-                        // }
-                    }
-
-                    Kirigami.Separator {
-                        Kirigami.FormData.isSection: true
-                        Kirigami.FormData.label: "Bitrate"
-                    }
-
-                    Controls.SpinBox {
-                        from: 1
-                        to: 200
-
-                        textFromValue: (value, locale) => qsTr("%1 Mbit/s").arg(value)
-                        valueFromText: (text, locale) => Number.fromLocaleString(locale, text.replace("Mbit/s", ""))
-                    }
-
-                    Kirigami.Separator {
-                        Kirigami.FormData.isSection: true
-                        Kirigami.FormData.label: "Encoder configuration"
-                    }
-
-                    Controls.RadioButton {
-                        checked: true
-                        text: "Automatic"
-                    }
-                    Controls.RadioButton {
-                        text: "Manual"
-                    }
-
-                    Controls.Label {
-                        text: "To add a new encoder, split an existing encoder by clicking near an edge.\nDrag an edge to resize or remove encoders."
-                    }
-
-                    // TODO partitioner
-                }
-
-                Item {
-                    // spacer item
-                    // Layout.fillWidth: true
-                    Layout.fillHeight: true
-                }
-
-                RowLayout {
-                    Controls.Button {
-                        text: "Pop!"
-                        onClicked: root.pageStack.pop()
-                    }
-                    Controls.Button {
-                        text: "Pop!"
-                        onClicked: root.pageStack.pop()
-                    }
-                }
-            }
-        }
-    }
-
-
-    // globalDrawer: Kirigami.GlobalDrawer {
-    //     title: "Global Drawer"
-    //     // titleIcon: "applications-graphics"
-    //     actions: [
-    //         Kirigami.Action {
-    //             text: "Kirigami Action 1"
-    //             icon.name: "user-home-symbolic"
-    //             // onTriggered: showPassiveNotification("Action 1 clicked")
-    //         },
-    //         Kirigami.Action {
-    //             text: "Kirigami Action 2"
-    //             icon.name: "settings-configure-symbolic"
-    //             // onTriggered: showPassiveNotification("Action 2 clicked")
-    //         },
-    //         Kirigami.Action {
-    //             text: i18n("Quit")
-    //             icon.name: "application-exit-symbolic"
-    //             shortcut: StandardKey.Quit
-    //             onTriggered: Qt.quit()
-    //         }
-    //     ]
-    // }
-
 }

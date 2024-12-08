@@ -34,6 +34,8 @@ add_executable(wivrn-dashboard
     main.cpp
     wivrn_server.cpp
     wivrn_qdbus_types.cpp
+    steam_apps.cpp
+    escape_string.cpp
 )
 
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml PROPERTIES INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/wivrn_qdbus_types.h")
@@ -46,6 +48,8 @@ qt_add_qml_module(wivrn-dashboard
     URI io.github.wivrn.wivrn
     QML_FILES
         qml/Main.qml
+        qml/Apps.qml
+        qml/Settings.qml
     RESOURCES
         ../images/wivrn.svg
 )
