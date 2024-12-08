@@ -227,6 +227,7 @@ int main(int argc, char ** argv)
 	CLI::App app;
 
 	app.require_subcommand(1);
+	app.failure_message(CLI::FailureMessage::help);
 
 	int pairing_duration;
 	auto pair_command = app.add_subcommand("pair", "Allow a new headset to connect")
