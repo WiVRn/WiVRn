@@ -73,7 +73,7 @@ public:
 	Q_PROPERTY(Status serverStatus READ serverStatus NOTIFY serverStatusChanged)
 	Q_PROPERTY(bool capSysNice READ capSysNice NOTIFY capSysNiceChanged)
 	Q_PROPERTY(bool headsetConnected READ isHeadsetConnected NOTIFY headsetConnectedChanged)
-	Q_PROPERTY(QString jsonConfiguration READ jsonConfiguration WRITE setJsonConfiguration)
+	Q_PROPERTY(QString jsonConfiguration READ jsonConfiguration WRITE setJsonConfiguration NOTIFY jsonConfigurationChanged)
 	Q_INVOKABLE void start_server();
 	Q_INVOKABLE void stop_server();
 	Q_INVOKABLE void restart_server();
@@ -253,6 +253,7 @@ Q_SIGNALS:
 	void serverStatusChanged(Status);
 	void capSysNiceChanged(bool);
 	void headsetConnectedChanged(bool);
+	void jsonConfigurationChanged(QString);
 	void pinChanged(QString);
 	void knownKeysChanged(headset_keys);
 	void pairingEnabledChanged(bool);

@@ -250,7 +250,7 @@ void wivrn_server::on_server_properties_changed(const QString & interface_name, 
 
 	if (changed_properties.contains("JsonConfiguration"))
 	{
-		m_jsonConfiguration = changed_properties["JsonConfiguration"].toString();
+		jsonConfigurationChanged(m_jsonConfiguration = changed_properties["JsonConfiguration"].toString());
 	}
 
 	if (changed_properties.contains("Pin"))
@@ -391,6 +391,7 @@ void wivrn_server::on_server_properties_changed(const QString & interface_name, 
 void wivrn_server::setJsonConfiguration(QString new_configuration)
 {
 	server_interface->setJsonConfiguration(m_jsonConfiguration = new_configuration);
+	jsonConfigurationChanged(new_configuration);
 }
 
 void wivrn_server::revoke_key(QString public_key)

@@ -18,8 +18,9 @@
 
 #pragma once
 
-#include <QList>
 #include <QString>
+#include <string>
+#include <vector>
 
-QString escape_string(const QStringList & app);
-QStringList unescape_string(const QString & app_string);
+QString escape_string(const std::vector<std::string> & app);
+std::vector<std::string> unescape_string(const QString & app_string);

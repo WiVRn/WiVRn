@@ -123,14 +123,14 @@ Kirigami.ApplicationWindow {
                 text: "Headsets"
                 icon.name: "user-home-symbolic"
                 // onTriggered: root.showPassiveNotification("Action 1 clicked")
-                onTriggered: root.pageStack.push(Qt.resolvedUrl("Headsets.qml"))
+                onTriggered: root.pageStack.push(Qt.resolvedUrl("HeadsetsPage.qml"))
                 enabled: root.server_started && root.pageStack.depth == 1
             },
             Kirigami.Action {
                 text: "Settings"
                 icon.name: "settings-configure-symbolic"
                 // onTriggered: root.showPassiveNotification("Action 2 clicked")
-                onTriggered: root.pageStack.push(Qt.resolvedUrl("Settings.qml"))
+                onTriggered: root.pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
                 enabled: root.server_started && root.pageStack.depth == 1
             }
         ]

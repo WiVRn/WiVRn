@@ -18,13 +18,13 @@
 
 #include "escape_string.h"
 
-QString escape_string(const QStringList & app)
+QString escape_string(const std::vector<std::string> & app)
 {
-	QStringView escaped_chars = uR"( '"\)";
-	QString app_string;
-	for (const QString & i: app)
+	std::string_view escaped_chars = R"( '"\)";
+	std::string app_string;
+	for (const std::string & i: app)
 	{
-		for (QChar c: i)
+		for (char c: i)
 		{
 			if (not escaped_chars.contains(c))
 			{
@@ -41,18 +41,18 @@ QString escape_string(const QStringList & app)
 	}
 	app_string.resize(app_string.size() - 1);
 
-	return app_string;
+	return QString::fromStdString(app_string);
 }
 
-QStringList unescape_string(const QString & app_string)
+std::vector<std::string> unescape_string(const QString & app_string)
 {
-	QStringList app;
+	std::vector<std::string> app;
 	app.emplace_back();
 
 	bool seen_backslash = false;
 	bool seen_single_quote = false;
 	bool seen_double_quote = false;
-	for (auto c: app_string)
+	for (auto c: app_string.toStdString())
 	{
 		if (seen_backslash)
 		{
@@ -79,7 +79,7 @@ QStringList unescape_string(const QString & app_string)
 		}
 		else
 		{
-			switch (c.unicode())
+			switch (c)
 			{
 				case '\\':
 					seen_backslash = true;
