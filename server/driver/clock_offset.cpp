@@ -125,7 +125,7 @@ void clock_offset_estimator::add_sample(const wivrn::from_headset::timesync_resp
 	offset.stable = std::abs((b - (double)offset.b)) < 20'000'000;
 
 	offset.b = b;
-	U_LOG_D("clock relations: headset = x+b where b=%" PRIu64 "µs", offset.b / 1000);
+	U_LOG_T("clock relations: headset = x+b where b=%" PRIu64 "µs", offset.b / 1000);
 }
 
 clock_offset clock_offset_estimator::get_offset()

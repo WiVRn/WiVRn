@@ -65,7 +65,7 @@ protected:
 			// keep only one sample if the clock_offset is unreliable
 			if (not offset)
 			{
-				U_LOG_D("not using history: clock_offset not stable");
+				U_LOG_T("not using history: clock_offset not stable");
 				data.clear();
 				data.emplace_back(sample, produced, t);
 				return active;
