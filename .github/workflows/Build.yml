@@ -19,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        cmake_preset: ['server', 'server-no-systemd', 'server-no-system-boost', 'dashboard']
+        cmake_preset: ['server', 'server-no-systemd', 'server-no-system-boost']
 
     steps:
     - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
 
     - name: Install dependencies
       run: >
-        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev policykit-1 libboost-all-dev librsvg2-bin libssl-dev libnotify-dev
+        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev libboost-all-dev librsvg2-bin libssl-dev libnotify-dev
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@286ed76c72de45dbf50c515779cf4ca2f6aa3944
       with:
@@ -53,7 +53,7 @@ jobs:
     - name: Package build dependencies
       if: ${{ matrix.cmake_preset == 'server' }}
       # For easier packaging, build dependencies are made available as a separate archive
-      run: (cd build/_deps/ ; tar --create --xz *-src) > server-build-deps.tar.xz
+      run: (cd ${{github.workspace}}/build/_deps/ ; tar --create --xz *-src) > ${{github.workspace}}/server-build-deps.tar.xz
 
     - name: Build
       # Build your program with the given configuration
@@ -74,6 +74,39 @@ jobs:
         generate_release_notes: true
         draft: true
         files: server-build-deps.tar.xz
+
+  build-dashboard:
+    name: Linux dashboard
+    runs-on: ubuntu-24.04
+    container: ubuntu:oracular
+    if: ${{ vars.APK_ONLY == '' }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install dependencies
+      run: >
+        apt-get update && apt-get install --yes libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev  libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev qt6-base-dev qt6-tools-dev libcap-dev policykit-1 libboost-all-dev librsvg2-bin libssl-dev libnotify-dev qt6-declarative-dev extra-cmake-modules libkirigami-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev jq sudo cmake gcc g++ git
+# runtime: qml6-module-qtqml-workerscript qml6-module-qtquick-dialogs
+    - name: Prepare Vulkan SDK
+      uses: humbletim/setup-vulkan-sdk@286ed76c72de45dbf50c515779cf4ca2f6aa3944
+      with:
+        vulkan-query-version: 1.3.283.0
+        vulkan-components: Vulkan-Headers
+        vulkan-use-cache: true
+
+    - name: Configure CMake
+      run: >
+        cmake -B ${{github.workspace}}/build
+        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        -DCMAKE_INSTALL_PREFIX=/usr
+        --preset dashboard
+
+    - name: Build
+      # Build your program with the given configuration
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
 
   build-server-flatpak:
     name: Linux server (flatpak)
@@ -105,7 +138,7 @@ jobs:
     - name: Publish artifact
       uses: actions/upload-artifact@v4
       with:
-        name: wivrn-server-x86_64
+        name: wivrn-flatpak-x86_64
         path: wivrn-server.flatpak
 
   build-test-client:
@@ -398,9 +431,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: ['ubuntu-24.04']
-    runs-on: ${{ matrix.distro }}
+        distro: ['oracular', 'plucky']
+    runs-on: ubuntu-24.04
+    container: ubuntu:${{ matrix.distro }}
     steps:
+
+    - name: Install dependencies
+      run: |
+        apt update
+        apt install --yes libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev policykit-1 libboost-all-dev librsvg2-bin dpkg-dev pkg-config debhelper-compat build-essential lintian cmake libnotify-dev qt6-declarative-dev extra-cmake-modules libkirigami-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev jq sudo cmake gcc g++ git wget libssl-dev
 
     - uses: actions/checkout@v4
       with:
@@ -424,26 +463,21 @@ jobs:
       working-directory: wivrn/debian
       run: |
         mv changelog changelog.orig
-        echo "wivrn ("$( (git describe --tags || echo 0) | sed s/^v//)") "$(lsb_release -c -s)"; urgency=medium" >  changelog
+        echo "wivrn ("$( (git describe --tags || echo 0) | sed s/^v//)") "${{ matrix.distro }}"; urgency=medium" >  changelog
         echo ""                                                                                                  >> changelog
         echo "  * Nightly build"                                                                                 >> changelog
         echo ""                                                                                                  >> changelog
         echo " -- github-actions <41898282+github-actions@users.noreply.github.com>  "$(date -R)                 >> changelog
         echo ""                                                                                                  >> changelog
-        cat changelog.orig | sed s/unstable/$(lsb_release -c -s)/                                                >> changelog
+        cat changelog.orig | sed s/unstable/${{ matrix.distro }}/                                                >> changelog
         cat changelog
 
     - name: Edit changelog (release)
       if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
       working-directory: wivrn/debian
       run: |
-        sed -i s/unstable/$(lsb_release -c -s)/ changelog
+        sed -i s/unstable/${{ matrix.distro }}/ changelog
         cat changelog
-
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev policykit-1 libboost-all-dev librsvg2-bin dpkg-dev pkg-config debhelper-compat build-essential lintian cmake libnotify-dev
 
     - name: Build package
       working-directory: wivrn
@@ -464,7 +498,7 @@ jobs:
   release:
     name: Create release
     runs-on: ubuntu-22.04
-    needs: [build-server, build-android, build-test-client, build-dissector, build-server-flatpak, build-ubuntu]
+    needs: [build-server, build-android, build-test-client, build-dissector, build-server-flatpak, build-ubuntu, build-dashboard]
     if: success() && startsWith(github.ref, 'refs/tags/')
 
     steps:
