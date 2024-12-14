@@ -34,7 +34,6 @@ struct clock_offset;
 class wivrn_pacer
 {
 public:
-	const uint64_t frame_duration_ns;
 	struct frame_info
 	{
 		int64_t frame_id;
@@ -44,6 +43,7 @@ public:
 
 private:
 	std::mutex mutex;
+	uint64_t frame_duration_ns;
 	int64_t last_ns = 0;
 	int64_t frame_id = 0;
 
@@ -70,6 +70,8 @@ public:
 	        frame_duration_ns(frame_duration),
 	        frame_times(5000)
 	{}
+
+	void set_frame_duration(uint64_t frame_duration);
 
 	void predict(
 	        int64_t & out_frame_id,

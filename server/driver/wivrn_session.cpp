@@ -56,9 +56,8 @@ namespace wivrn
 struct wivrn_comp_target_factory : public comp_target_factory
 {
 	wivrn_session & session;
-	float fps;
 
-	wivrn_comp_target_factory(wivrn_session & session, float fps) :
+	wivrn_comp_target_factory(wivrn_session & session) :
 	        comp_target_factory{
 	                .name = "WiVRn",
 	                .identifier = "wivrn",
@@ -71,8 +70,7 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	                .optional_device_extension_count = wivrn_comp_target::wanted_device_extensions.size(),
 	                .detect = wivrn_comp_target_factory::detect,
 	                .create_target = wivrn_comp_target_factory::create_target},
-	        session(session),
-	        fps(fps)
+	        session(session)
 	{
 	}
 
@@ -84,7 +82,7 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	static bool create_target(const struct comp_target_factory * ctf, struct comp_compositor * c, struct comp_target ** out_ct)
 	{
 		auto self = (wivrn_comp_target_factory *)ctf;
-		self->session.comp_target = new wivrn_comp_target(self->session, c, self->fps);
+		self->session.comp_target = new wivrn_comp_target(self->session, c);
 		*out_ct = self->session.comp_target;
 		return true;
 	}
@@ -248,7 +246,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 
 	send_to_main(self->get_info());
 
-	wivrn_comp_target_factory ctf(*self, self->get_info().preferred_refresh_rate);
+	wivrn_comp_target_factory ctf(*self);
 	auto xret = comp_main_create_system_compositor(&self->hmd, &ctf, out_xsysc);
 	if (xret != XRT_SUCCESS)
 	{
@@ -442,6 +440,11 @@ void wivrn_session::run(std::stop_token stop)
 	}
 }
 
+xrt_result_t wivrn_session::push_event(const xrt_session_event & event)
+{
+	return xrt_session_event_sink_push(&xrt_system.broadcast, &event);
+}
+
 std::array<to_headset::foveation_parameter, 2> wivrn_session::set_foveated_size(uint32_t width, uint32_t height)
 {
 	auto p = hmd.set_foveated_size(width, height);
@@ -497,7 +500,7 @@ void wivrn_session::reconnect()
 	                .focused = false,
 	        },
 	};
-	auto result = xrt_session_event_sink_push(&xrt_system.broadcast, &event);
+	auto result = push_event(event);
 	if (result != XRT_SUCCESS)
 	{
 		U_LOG_W("Failed to notify session state change");
