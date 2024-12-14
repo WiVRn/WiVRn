@@ -41,6 +41,12 @@ static T lerp_mod(T a, T b, double t, T mod)
 	return T(std::lerp(a, b, t)) % mod;
 }
 
+void wivrn_pacer::set_frame_duration(uint64_t frame_duration_ns)
+{
+	std::lock_guard lock(mutex);
+	this->frame_duration_ns = frame_duration_ns;
+}
+
 void wivrn_pacer::predict(
         int64_t & frame_id,
         int64_t & out_wake_up_time_ns,
@@ -160,6 +166,5 @@ void wivrn_pacer::reset()
 {
 	std::lock_guard lock(mutex);
 	std::ranges::fill(frame_times, frame_time{});
-	in_flight_frames = {};
 }
 } // namespace wivrn

@@ -1,0 +1,153 @@
+From f7c4c235b2d85f6e4d553b1359f1674008d2a571 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sat, 14 Dec 2024 15:24:26 +0100
+Subject: [PATCH] xrt/compositor: forward refresh rate functions to comp target
+
+Compositor target may implement get/request methods to query available
+refresh rates, the current one and request a change.
+---
+ src/xrt/compositor/main/comp_compositor.c | 26 +++++++--
+ src/xrt/compositor/main/comp_target.h     | 69 +++++++++++++++++++++++
+ 2 files changed, 89 insertions(+), 6 deletions(-)
+
+diff --git a/src/xrt/compositor/main/comp_compositor.c b/src/xrt/compositor/main/comp_compositor.c
+index aad4b590f..8be4c92c4 100644
+--- a/src/xrt/compositor/main/comp_compositor.c
++++ b/src/xrt/compositor/main/comp_compositor.c
+@@ -335,8 +335,11 @@ compositor_get_display_refresh_rate(struct xrt_compositor *xc, float *out_displa
+ #else
+ 	struct comp_compositor *c = comp_compositor(xc);
+ 
+-	//! @todo: Implement the method to change display refresh rate.
+-	*out_display_refresh_rate_hz = (float)(1. / time_ns_to_s(c->settings.nominal_frame_interval_ns));
++	if (c->target->get_refresh_rate) {
++		return comp_target_get_refresh_rate(c->target, out_display_refresh_rate_hz);
++	} else {
++		*out_display_refresh_rate_hz = (float)(1. / time_ns_to_s(c->settings.nominal_frame_interval_ns));
++	}
+ #endif
+ 
+ 	return XRT_SUCCESS;
+@@ -363,7 +366,14 @@ compositor_request_display_refresh_rate(struct xrt_compositor *xc, float display
+ 	}
+ 	dlclose(android_handle);
+ #else
+-	// Currently not implemented on other platforms.
++	struct comp_compositor *c = comp_compositor(xc);
++	if (c->target->request_refresh_rate) {
++		xrt_result_t result = comp_target_request_refresh_rate(c->target, display_refresh_rate_hz);
++		// Assume refresh rate change is immediate
++		if (result == XRT_SUCCESS)
++			c->settings.nominal_frame_interval_ns = U_TIME_1S_IN_NS / display_refresh_rate_hz;
++		return result;
++	}
+ #endif
+ 	return XRT_SUCCESS;
+ }
+@@ -1159,9 +1169,13 @@ comp_main_create_system_compositor(struct xrt_device *xdev,
+ 		sys_info->refresh_rates_hz[i] = metrics.refresh_rates[i];
+ 	}
+ #else
+-	//! @todo: Query all supported refresh rates of the current mode
+-	sys_info->refresh_rate_count = 1;
+-	sys_info->refresh_rates_hz[0] = (float)(1. / time_ns_to_s(c->settings.nominal_frame_interval_ns));
++	if (c->target->get_refresh_rates) {
++		comp_target_get_refresh_rates(c->target, &sys_info->refresh_rate_count, sys_info->refresh_rates_hz);
++	} else {
++		//! @todo: Query all supported refresh rates of the current mode
++		sys_info->refresh_rate_count = 1;
++		sys_info->refresh_rates_hz[0] = (float)(1. / time_ns_to_s(c->settings.nominal_frame_interval_ns));
++	}
+ #endif // XRT_OS_ANDROID
+ 
+ 	// Needs to be delayed until after compositor's u_var has been setup.
+diff --git a/src/xrt/compositor/main/comp_target.h b/src/xrt/compositor/main/comp_target.h
+index 8a94607d4..33f4b7517 100644
+--- a/src/xrt/compositor/main/comp_target.h
++++ b/src/xrt/compositor/main/comp_target.h
+@@ -292,6 +292,33 @@ struct comp_target
+ 	 */
+ 	void (*set_title)(struct comp_target *ct, const char *title);
+ 
++	/*!
++	 * Get the available refresh rates for the compositor target
++	 *
++	 * @param ct               The compositor target.
++	 * @param count            The number or refresh rates.
++	 * @param refresh_rates_hz The refresh rates, in Hz. Must be allocated by caller, and have at least
++	 * XRT_MAX_SUPPORTED_REFRESH_RATES elements
++	 */
++	xrt_result_t (*get_refresh_rates)(struct comp_target *ct, uint32_t *count, float *refresh_rates_hz);
++
++	/*!
++	 * Get the current refresh rate for the compositor target
++	 *
++	 * @param ct                           The compositor target.
++	 * @param out_display_refresh_rate_hz  The current refresh rate, in Hz
++	 */
++	xrt_result_t (*get_refresh_rate)(struct comp_target *ct, float *out_display_refresh_rate_hz);
++
++	/*!
++	 * Get the current refresh rate for the compositor target
++	 *
++	 * @param ct                      The compositor target.
++	 * @param display_refresh_rate_hz The requested refresh rate, in Hz.
++	 */
++	xrt_result_t (*request_refresh_rate)(struct comp_target *ct, float display_refresh_rate_hz);
++
++
+ 	/*!
+ 	 * Destroys this target.
+ 	 */
+@@ -550,6 +577,48 @@ comp_target_set_title(struct comp_target *ct, const char *title)
+ 	ct->set_title(ct, title);
+ }
+ 
++/*!
++ * @copydoc comp_target::get_refresh_rates
++ *
++ * @public @memberof comp_target
++ * @ingroup comp_main
++ */
++static inline xrt_result_t
++comp_target_get_refresh_rates(struct comp_target *ct, uint32_t *count, float *rates)
++{
++	COMP_TRACE_MARKER();
++
++	return ct->get_refresh_rates(ct, count, rates);
++}
++
++/*!
++ * @copydoc comp_target::get_refresh_rate
++ *
++ * @public @memberof comp_target
++ * @ingroup comp_main
++ */
++static inline xrt_result_t
++comp_target_get_refresh_rate(struct comp_target *ct, float *out_display_refresh_rate_hz)
++{
++	COMP_TRACE_MARKER();
++
++	return ct->get_refresh_rate(ct, out_display_refresh_rate_hz);
++}
++
++/*!
++ * @copydoc comp_target::get_refresh_rate
++ *
++ * @public @memberof comp_target
++ * @ingroup comp_main
++ */
++static inline xrt_result_t
++comp_target_request_refresh_rate(struct comp_target *ct, float ratedisplay_refresh_rate_hz)
++{
++	COMP_TRACE_MARKER();
++
++	return ct->request_refresh_rate(ct, ratedisplay_refresh_rate_hz);
++}
++
+ /*!
+  * @copydoc comp_target::destroy
+  *
+-- 
+2.47.1
+

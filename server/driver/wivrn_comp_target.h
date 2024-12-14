@@ -78,12 +78,11 @@ struct pseudo_swapchain
 
 struct wivrn_comp_target : public comp_target
 {
+	to_headset::video_stream_description desc{};
 	wivrn_pacer pacer;
 
 	std::optional<wivrn_vk_bundle> wivrn_bundle;
 	vk::raii::CommandPool command_pool = nullptr;
-
-	float fps;
 
 	int64_t current_frame_id = 0;
 
@@ -95,14 +94,13 @@ struct wivrn_comp_target : public comp_target
 	static std::vector<const char *> wanted_device_extensions;
 
 	std::vector<encoder_settings> settings;
-	to_headset::video_stream_description desc{};
 	std::list<std::jthread> encoder_threads;
 	std::vector<std::shared_ptr<video_encoder>> encoders;
 
 	wivrn::wivrn_session & cnx;
 	std::unique_ptr<wivrn_foveation_renderer> foveation_renderer = nullptr;
 
-	wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c, float fps);
+	wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c);
 	~wivrn_comp_target();
 
 	void on_feedback(const from_headset::feedback &, const clock_offset &);

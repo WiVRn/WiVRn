@@ -34,6 +34,7 @@
 #include <vulkan/vulkan_handles.hpp>
 
 #include "xrt/xrt_config_build.h" // IWYU pragma: keep
+#include "xrt/xrt_session.h"
 #ifdef XRT_FEATURE_RENDERDOC
 #include "renderdoc_app.h"
 #endif
@@ -711,6 +712,44 @@ static VkResult comp_wivrn_update_timings(struct comp_target * ct)
 static void comp_wivrn_set_title(struct comp_target * ct, const char * title)
 {}
 
+static xrt_result_t comp_wivrn_get_refresh_rates(struct comp_target * ct, uint32_t * count, float * refresh_rates_hz)
+{
+	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+	const auto & rates = cn->cnx.get_info().available_refresh_rates;
+	*count = std::min<uint32_t>(rates.size(), XRT_MAX_SUPPORTED_REFRESH_RATES);
+	std::copy_n(rates.begin(), *count, refresh_rates_hz);
+	return XRT_SUCCESS;
+}
+
+static xrt_result_t comp_wivrn_get_refresh_rate(struct comp_target * ct, float * refresh_rate_hz)
+{
+	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+	*refresh_rate_hz = cn->desc.fps;
+	return XRT_SUCCESS;
+}
+
+static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, float refresh_rate_hz)
+{
+	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+	if (refresh_rate_hz == 0.0f)
+		refresh_rate_hz = cn->cnx.get_info().preferred_refresh_rate;
+
+	auto from = cn->desc.fps;
+	cn->desc.fps = refresh_rate_hz;
+	cn->pacer.set_frame_duration(U_TIME_1S_IN_NS / refresh_rate_hz);
+	cn->cnx.send_control(decltype(cn->desc)(cn->desc));
+	cn->cnx.push_event(
+	        {
+	                .display = {
+	                        .type = XRT_SESSION_EVENT_DISPLAY_REFRESH_RATE_CHANGE,
+	                        .from_display_refresh_rate_hz = from,
+	                        .to_display_refresh_rate_hz = refresh_rate_hz,
+	                },
+	        });
+	cn->reset_encoders();
+	return XRT_SUCCESS;
+}
+
 wivrn_comp_target::~wivrn_comp_target()
 {
 	if (wivrn_bundle)
@@ -770,27 +809,30 @@ void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveatio
 	}
 }
 
-wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c, float fps) :
-        comp_target{},
-        pacer(U_TIME_1S_IN_NS / fps),
+wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c) :
+        comp_target{
+                .c = c,
+                .init_pre_vulkan = comp_wivrn_init_pre_vulkan,
+                .init_post_vulkan = comp_wivrn_init_post_vulkan,
+                .check_ready = comp_wivrn_check_ready,
+                .create_images = comp_wivrn_create_images,
+                .has_images = comp_wivrn_has_images,
+                .acquire = comp_wivrn_acquire,
+                .present = comp_wivrn_present,
+                .flush = comp_wivrn_flush,
+                .calc_frame_pacing = comp_wivrn_calc_frame_pacing,
+                .mark_timing_point = comp_wivrn_mark_timing_point,
+                .update_timings = comp_wivrn_update_timings,
+                .info_gpu = comp_wivrn_info_gpu,
+                .set_title = comp_wivrn_set_title,
+                .get_refresh_rates = comp_wivrn_get_refresh_rates,
+                .get_refresh_rate = comp_wivrn_get_refresh_rate,
+                .request_refresh_rate = comp_wivrn_request_refresh_rate,
+                .destroy = comp_wivrn_destroy,
+        },
+        desc{.fps = cnx.get_info().preferred_refresh_rate},
+        pacer(U_TIME_1S_IN_NS / desc.fps),
         cnx(cnx)
 {
-	check_ready = comp_wivrn_check_ready;
-	create_images = comp_wivrn_create_images;
-	has_images = comp_wivrn_has_images;
-	acquire = comp_wivrn_acquire;
-	present = comp_wivrn_present;
-	calc_frame_pacing = comp_wivrn_calc_frame_pacing;
-	mark_timing_point = comp_wivrn_mark_timing_point;
-	update_timings = comp_wivrn_update_timings;
-	info_gpu = comp_wivrn_info_gpu;
-	destroy = comp_wivrn_destroy;
-	init_pre_vulkan = comp_wivrn_init_pre_vulkan;
-	init_post_vulkan = comp_wivrn_init_post_vulkan;
-	set_title = comp_wivrn_set_title;
-	flush = comp_wivrn_flush;
-	this->fps = fps;
-	desc.fps = fps;
-	this->c = c;
 }
 } // namespace wivrn

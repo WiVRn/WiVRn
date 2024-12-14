@@ -35,6 +35,7 @@
 struct u_system;
 struct xrt_space_overseer;
 struct xrt_system_compositor;
+union xrt_session_event;
 
 namespace wivrn
 {
@@ -165,6 +166,8 @@ public:
 	{
 		connection->send_control(std::forward<T>(packet));
 	}
+
+	xrt_result_t push_event(const xrt_session_event &);
 
 	std::array<to_headset::foveation_parameter, 2> set_foveated_size(uint32_t width, uint32_t height);
 	std::array<to_headset::foveation_parameter, 2> get_foveation_parameters();
