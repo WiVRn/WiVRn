@@ -737,7 +737,6 @@ static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, flo
 	auto from = cn->desc.fps;
 	cn->desc.fps = refresh_rate_hz;
 	cn->pacer.set_frame_duration(U_TIME_1S_IN_NS / refresh_rate_hz);
-	cn->cnx.send_control(decltype(cn->desc)(cn->desc));
 	cn->cnx.push_event(
 	        {
 	                .display = {
@@ -746,7 +745,7 @@ static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, flo
 	                        .to_display_refresh_rate_hz = refresh_rate_hz,
 	                },
 	        });
-	cn->reset_encoders();
+	cn->cnx.send_control(to_headset::video_stream_description{cn->desc});
 	return XRT_SUCCESS;
 }
 
