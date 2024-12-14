@@ -935,6 +935,37 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 {
 	std::unique_lock lock(decoder_mutex);
 
+	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
+	{
+		try
+		{
+			session.set_refresh_rate(description.fps);
+		}
+		catch (std::exception & e)
+		{
+			spdlog::warn("Failed to set refresh rate to {}: {}", description.fps, e.what());
+		}
+	}
+
+	if (std::ranges::equal(description.items, video_stream_description->items, [](const auto & a, const auto & b) {
+		    // clang-format off
+			return a.width == b.width
+				and a.height == b.height
+				and a.video_width == b.video_width
+				and a.offset_x == b.offset_x
+				and a.offset_y == b.offset_y
+				and a.codec == b.codec
+				and a.channels == b.channels
+				and a.subsampling == b.subsampling
+				and a.range == b.range
+				and a.color_model == b.color_model;
+			//clang-format on
+				}))
+	{
+		video_stream_description = description;
+		return;
+	}
+
 	decoders.clear();
 
 	if (description.items.empty())
@@ -1046,18 +1077,6 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		                .poolSizeCount = 1,
 		                .pPoolSizes = &pool_size,
 		        });
-	}
-
-	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
-	{
-		try
-		{
-			session.set_refresh_rate(description.fps);
-		}
-		catch (std::exception & e)
-		{
-			spdlog::warn("Failed to set refresh rate to {}: {}", description.fps, e.what());
-		}
 	}
 
 	for (const auto & [stream_index, item]: utils::enumerate(description.items))
