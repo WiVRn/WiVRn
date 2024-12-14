@@ -411,6 +411,18 @@ void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
 	auto result = xrt_session_event_sink_push(&xrt_system.broadcast, &event);
 }
 
+void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
+{
+	push_event(
+	        {
+	                .display = {
+	                        .type = XRT_SESSION_EVENT_DISPLAY_REFRESH_RATE_CHANGE,
+	                        .from_display_refresh_rate_hz = event.from,
+	                        .to_display_refresh_rate_hz = event.to,
+	                },
+	        });
+}
+
 void wivrn_session::operator()(audio_data && data)
 {
 	if (audio_handle)

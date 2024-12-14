@@ -1180,10 +1180,21 @@ scene::meta & scenes::stream::get_meta_scene()
 	return m;
 }
 
-void scenes::stream::on_reference_space_changed(XrReferenceSpaceType space, XrTime when)
+void scenes::stream::on_xr_event(const xr::event& event)
 {
-	if (space == XrReferenceSpaceType::XR_REFERENCE_SPACE_TYPE_LOCAL)
+	switch (event.header.type)
 	{
-		recenter_requested = true;
+		case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
+			if (event.space_changed_pending.referenceSpaceType== XrReferenceSpaceType::XR_REFERENCE_SPACE_TYPE_LOCAL)
+				recenter_requested = true;
+			break;
+		case XR_TYPE_EVENT_DATA_DISPLAY_REFRESH_RATE_CHANGED_FB:
+			network_session->send_control(from_headset::refresh_rate_changed{
+					.from = event.refresh_rate_changed.fromDisplayRefreshRate,
+					.to = event.refresh_rate_changed.toDisplayRefreshRate,
+					});
+			break;
+		default:
+			break;
 	}
 }

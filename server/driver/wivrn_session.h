@@ -151,6 +151,7 @@ public:
 	void operator()(from_headset::feedback &&);
 	void operator()(from_headset::battery &&);
 	void operator()(from_headset::visibility_mask_changed &&);
+	void operator()(from_headset::refresh_rate_changed &&);
 	void operator()(audio_data &&);
 
 	void operator()(to_monado::disconnect &&);

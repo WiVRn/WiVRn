@@ -20,6 +20,7 @@
 #pragma once
 
 #include "xr/actionset.h"
+#include "xr/instance.h"
 #include "xr/session.h"
 #include "xr/swapchain.h"
 
@@ -105,9 +106,7 @@ public:
 
 	void set_focused(bool status);
 	virtual void render(const XrFrameState &) = 0;
-	virtual void on_interaction_profile_changed();
-	virtual void on_reference_space_changed(XrReferenceSpaceType space, XrTime);
-	virtual void on_session_state_changed(XrSessionState state);
+	virtual void on_xr_event(const xr::event &);
 };
 
 template <typename T>

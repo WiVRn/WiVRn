@@ -33,7 +33,6 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "xr/system.h"
-#include <chrono>
 #include <optional>
 #include <vector>
 
@@ -174,8 +173,7 @@ public:
 	void render(const XrFrameState &) override;
 	void on_unfocused() override;
 	void on_focused() override;
-	void on_session_state_changed(XrSessionState state) override;
-	void on_reference_space_changed(XrReferenceSpaceType, XrTime) override;
+	void on_xr_event(const xr::event &) override;
 
 	static meta & get_meta_scene();
 };
