@@ -303,7 +303,8 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		auto stream = handle->feedback.stream_index;
 		if (stream < decoders.size())
 		{
-			assert(decoder == decoders[stream].decoder.get());
+			if (decoder != decoders[stream].decoder.get())
+				return;
 			handle->feedback.received_from_decoder = application::now();
 			std::swap(handle, decoders[stream].latest_frames[handle->feedback.frame_index % decoders[stream].latest_frames.size()]);
 		}
@@ -663,7 +664,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	// Blit images from the decoders
 	for (auto [i, blit_handle]: std::views::zip(decoders, current_blit_handles))
 	{
-		if (not blit_handle)
+		if (not blit_handle or not *i.blit_pipeline)
 			continue;
 
 		blit_handle->feedback.blitted = application::now();
