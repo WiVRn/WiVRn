@@ -287,7 +287,28 @@ struct battery
 	bool charging;
 };
 
-using packets = std::variant<crypto_handshake, pin_check_1, pin_check_3, headset_info_packet, feedback, audio_data, handshake, tracking, trackings, hand_tracking, inputs, timesync_response, battery, visibility_mask_changed>;
+struct refresh_rate_changed
+{
+	float from;
+	float to;
+};
+
+using packets = std::variant<
+        crypto_handshake,
+        pin_check_1,
+        pin_check_3,
+        headset_info_packet,
+        feedback,
+        audio_data,
+        handshake,
+        tracking,
+        trackings,
+        hand_tracking,
+        inputs,
+        timesync_response,
+        battery,
+        visibility_mask_changed,
+        refresh_rate_changed>;
 } // namespace from_headset
 
 namespace to_headset

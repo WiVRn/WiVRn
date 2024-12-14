@@ -55,6 +55,4 @@ void scene::set_focused(bool status)
 
 void scene::on_unfocused() {}
 void scene::on_focused() {}
-void scene::on_interaction_profile_changed() {}
-void scene::on_reference_space_changed(XrReferenceSpaceType, XrTime) {}
-void scene::on_session_state_changed(XrSessionState) {}
+void scene::on_xr_event(const xr::event &) {}

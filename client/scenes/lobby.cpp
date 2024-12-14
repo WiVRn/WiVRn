@@ -1212,16 +1212,21 @@ void scenes::lobby::on_unfocused()
 	multicast.reset();
 }
 
-void scenes::lobby::on_session_state_changed(XrSessionState state)
+void scenes::lobby::on_xr_event(const xr::event & event)
 {
-	if (state == XR_SESSION_STATE_STOPPING)
-		discover.reset();
-	recenter_gui = true;
-}
-
-void scenes::lobby::on_reference_space_changed(XrReferenceSpaceType, XrTime)
-{
-	recenter_gui = true;
+	switch (event.header.type)
+	{
+		case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED:
+			if (event.state_changed.state == XR_SESSION_STATE_STOPPING)
+				discover.reset();
+			recenter_gui = true;
+			break;
+		case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
+			recenter_gui = true;
+			break;
+		default:
+			break;
+	}
 }
 
 scene::meta & scenes::lobby::get_meta_scene()

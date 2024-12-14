@@ -914,8 +914,6 @@ void application::initialize()
 
 	initialize_actions();
 
-	interaction_profile_changed();
-
 	gen.add_messages_domain("wivrn");
 	std::locale loc = gen("");
 
@@ -1429,25 +1427,6 @@ void application::session_state_changed(XrSessionState new_state, XrTime timesta
 		default:
 			break;
 	}
-
-	if (std::shared_ptr<scene> s = current_scene())
-		s->on_session_state_changed(new_state);
-}
-
-void application::interaction_profile_changed()
-{
-	if (std::shared_ptr<scene> s = current_scene())
-	{
-		s->on_interaction_profile_changed();
-	}
-}
-
-void application::reference_space_changed(XrReferenceSpaceType referenceSpaceType, XrTime timestamp, std::optional<XrPosef> poseInPreviousSpace)
-{
-	if (std::shared_ptr<scene> s = current_scene())
-	{
-		s->on_reference_space_changed(referenceSpaceType, timestamp);
-	}
 }
 
 void application::poll_events()
@@ -1461,27 +1440,9 @@ void application::poll_events()
 				exit_requested = true;
 			}
 			break;
-			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED: {
-				if (e.interaction_profile_changed.session == xr_session)
-					interaction_profile_changed();
-				else
-					spdlog::error("Received XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED for "
-					              "unknown session");
-			}
-			break;
-			case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING: {
-				if (e.space_changed_pending.session == xr_session)
-				{
-					if (e.space_changed_pending.poseValid)
-						reference_space_changed(e.space_changed_pending.referenceSpaceType, e.space_changed_pending.changeTime, e.space_changed_pending.poseInPreviousSpace);
-					else
-						reference_space_changed(e.space_changed_pending.referenceSpaceType, e.space_changed_pending.changeTime);
-				}
-				else
-					spdlog::error("Received XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING for "
-					              "unknown session");
-			}
-			break;
+			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
+			case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
+				break;
 			case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED: {
 				if (e.state_changed.session == xr_session)
 					session_state_changed(e.state_changed.state, e.state_changed.time);
@@ -1512,5 +1473,7 @@ void application::poll_events()
 				spdlog::info("Received event type {}", xr::to_string(e.header.type));
 				break;
 		}
+		if (std::shared_ptr<scene> s = current_scene())
+			s->on_xr_event(e);
 	}
 }

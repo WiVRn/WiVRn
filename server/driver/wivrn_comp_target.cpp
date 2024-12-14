@@ -34,7 +34,6 @@
 #include <vulkan/vulkan_handles.hpp>
 
 #include "xrt/xrt_config_build.h" // IWYU pragma: keep
-#include "xrt/xrt_session.h"
 #ifdef XRT_FEATURE_RENDERDOC
 #include "renderdoc_app.h"
 #endif
@@ -734,17 +733,8 @@ static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, flo
 	if (refresh_rate_hz == 0.0f)
 		refresh_rate_hz = cn->cnx.get_info().preferred_refresh_rate;
 
-	auto from = cn->desc.fps;
 	cn->desc.fps = refresh_rate_hz;
 	cn->pacer.set_frame_duration(U_TIME_1S_IN_NS / refresh_rate_hz);
-	cn->cnx.push_event(
-	        {
-	                .display = {
-	                        .type = XRT_SESSION_EVENT_DISPLAY_REFRESH_RATE_CHANGE,
-	                        .from_display_refresh_rate_hz = from,
-	                        .to_display_refresh_rate_hz = refresh_rate_hz,
-	                },
-	        });
 	cn->cnx.send_control(to_headset::video_stream_description{cn->desc});
 	return XRT_SUCCESS;
 }
