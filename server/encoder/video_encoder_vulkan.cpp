@@ -762,6 +762,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 			        .srcQueueFamilyIndex = vk.encode_queue_family_index,
 			        .dstQueueFamilyIndex = vk.encode_queue_family_index,
 			        .buffer = slot_item.output_buffer,
+			        .size = vk::WholeSize,
 			};
 			video_cmd_buf.pipelineBarrier2({
 			        .bufferMemoryBarrierCount = 1,
