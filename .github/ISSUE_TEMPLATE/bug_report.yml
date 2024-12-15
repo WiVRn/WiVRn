@@ -5,7 +5,7 @@ labels:
   - bug
 
 body:
-  - type: input
+  - type: textarea
     attributes:
       label: Describe the bug
       description: A clear and concise description of what the bug is.
@@ -63,7 +63,7 @@ body:
   - type: textarea
     attributes:
       label: Vulkan Info
-      description: Provide the output of `vulkaninfo` command.
+      description: Provide the output of `vulkaninfo --summary` command.
       placeholder: Add the output of vulkaninfo command here...
 
   - type: dropdown
