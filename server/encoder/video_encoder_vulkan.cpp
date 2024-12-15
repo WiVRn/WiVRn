@@ -238,7 +238,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 
 	// input image view
 	image_view_template_next = {
-	        .usage = picture_format.imageUsageFlags,
+	        .usage = vk::ImageUsageFlagBits::eVideoEncodeSrcKHR,
 	};
 	image_view_template = {
 	        .pNext = &image_view_template_next,
