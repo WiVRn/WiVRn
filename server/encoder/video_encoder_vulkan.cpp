@@ -772,7 +772,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 			        slot_item.output_buffer,
 			        slot_item.host_buffer,
 			        vk::BufferCopy{
-			                .size = vk::WholeSize,
+			                .size = slot_item.output_buffer.info().size,
 			        });
 		}
 	}
