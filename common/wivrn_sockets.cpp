@@ -407,7 +407,10 @@ void wivrn::UDP::send_raw(serialization_packet && packet)
 	}
 
 	for (const auto & span: data)
+	{
 		iovecs.emplace_back(span.data(), span.size());
+		bytes_sent_ += span.size();
+	}
 
 	if (::writev(fd, iovecs.data(), iovecs.size()) < 0)
 		throw std::system_error{errno, std::generic_category()};
@@ -445,6 +448,7 @@ void wivrn::UDP::send_many_raw(std::vector<serialization_packet> && packets)
 		for (const auto & span: data)
 		{
 			iovecs.emplace_back(span.data(), span.size_bytes());
+			bytes_sent_ += span.size();
 		}
 
 		if (encrypted)
