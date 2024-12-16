@@ -187,6 +187,7 @@ void scenes::stream::tracking()
 	const XrDuration dt = 100'000;          // Wake up 0.1ms before measuring the position
 
 	XrTime t0 = instance.now();
+	XrTime last_hand_sample = t0;
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::hand_tracking> hands;
 	int skip_samples = 0;
@@ -249,8 +250,11 @@ void scenes::stream::tracking()
 							packet.device_poses.push_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
-					if (hand_tracking)
+					// Hand tracking data are very large, send fewer samples than other items
+					if (hand_tracking and t0 >= last_hand_sample + period and
+					    (Δt == 0 or Δt >= prediction - 2 * period))
 					{
+						last_hand_sample = t0;
 						if (control.enabled[size_t(tid::left_hand)])
 							hands.emplace_back(
 							        t0,
