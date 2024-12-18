@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-12-02 00:12+0100\n"
+"POT-Creation-Date: 2024-12-18 23:08+0100\n"
 "PO-Revision-Date: 2024-10-15 20:16+0100\n"
 "Last-Translator: Albano Battistella <albanobattistella@gmail.com>\n"
 "Language: Italian\n"
@@ -131,127 +131,132 @@ msgstr "Server non disponibile"
 msgid "Refresh rate"
 msgstr "Frequenza di aggiornamento"
 
-#: client/scenes/lobby_gui.cpp:611
+#: client/scenes/lobby_gui.cpp:610
 msgid "Resolution scale"
 msgstr "Scala di risoluzione"
 
-#: client/scenes/lobby_gui.cpp:611 client/scenes/lobby_gui.cpp:615
+#: client/scenes/lobby_gui.cpp:610 client/scenes/lobby_gui.cpp:614
 #, c++-format
-msgid "{} - {}x{} per eye"
-msgstr "{} - {}x{} per occhio"
+msgid "{}% - {}x{} per eye"
+msgstr "{}% - {}x{} per occhio"
 
-#: client/scenes/lobby_gui.cpp:628
+#: client/scenes/lobby_gui.cpp:627
+#, c++-format
+msgid "Resolution larger than {}x{} may not be supported by the headset"
+msgstr "Le risoluzioni superiori a {}x{} potrebbero non essere supportate dal visore"
+
+#: client/scenes/lobby_gui.cpp:633
 msgid "Enable microphone"
 msgstr "Attiva il microfono"
 
-#: client/scenes/lobby_gui.cpp:638
+#: client/scenes/lobby_gui.cpp:643
 msgid "Enable hand tracking"
 msgstr "Abilita il tracciamento delle mani"
 
-#: client/scenes/lobby_gui.cpp:645 client/scenes/lobby_gui.cpp:658
-#: client/scenes/lobby_gui.cpp:671 client/scenes/lobby_gui.cpp:683
+#: client/scenes/lobby_gui.cpp:650 client/scenes/lobby_gui.cpp:663
+#: client/scenes/lobby_gui.cpp:676 client/scenes/lobby_gui.cpp:688
 msgid "This feature is not supported by your headset"
 msgstr "Questa funzionalità non è supportata dal visore"
 
-#: client/scenes/lobby_gui.cpp:651
+#: client/scenes/lobby_gui.cpp:656
 msgid "Enable eye tracking"
 msgstr "Abilita il tracciamento oculare"
 
-#: client/scenes/lobby_gui.cpp:664
+#: client/scenes/lobby_gui.cpp:669
 msgid "Enable face tracking"
 msgstr "Abilita il tracciamento facciale"
 
-#: client/scenes/lobby_gui.cpp:676
+#: client/scenes/lobby_gui.cpp:681
 msgid "Enable video passthrough in lobby"
 msgstr "Abilita la visualizzazione reale in ingresso"
 
-#: client/scenes/lobby_gui.cpp:686
+#: client/scenes/lobby_gui.cpp:691
 msgid "Show performance metrics"
 msgstr "Mostra metriche delle prestazioni"
 
-#: client/scenes/lobby_gui.cpp:690
+#: client/scenes/lobby_gui.cpp:695
 msgid "Overlay can be toggled by pressing both thumbsticks"
 msgstr "È possibile alternare la visualizzazione premendo entrambi i joystick"
 
-#: client/scenes/lobby_gui.cpp:720 client/scenes/lobby_gui.cpp:728
+#: client/scenes/lobby_gui.cpp:725 client/scenes/lobby_gui.cpp:733
 #: client/scenes/stream_stats.cpp:159
 msgid "CPU time"
 msgstr "Tempo CPU"
 
-#: client/scenes/lobby_gui.cpp:724
+#: client/scenes/lobby_gui.cpp:729
 msgid "CPU time [ms]"
 msgstr "Tempo CPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:734 client/scenes/lobby_gui.cpp:742
+#: client/scenes/lobby_gui.cpp:739 client/scenes/lobby_gui.cpp:747
 #: client/scenes/stream_stats.cpp:161
 msgid "GPU time"
 msgstr "Tempo GPU"
 
-#: client/scenes/lobby_gui.cpp:738
+#: client/scenes/lobby_gui.cpp:743
 msgid "GPU time [ms]"
 msgstr "Tempo GPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:828 client/scenes/lobby_gui.cpp:1456
+#: client/scenes/lobby_gui.cpp:833 client/scenes/lobby_gui.cpp:1461
 msgid "Licenses"
 msgstr "Licenze"
 
-#: client/scenes/lobby_gui.cpp:1167
+#: client/scenes/lobby_gui.cpp:1172
 msgid "Microphone is enabled"
 msgstr "Microfono attivo"
 
-#: client/scenes/lobby_gui.cpp:1168
+#: client/scenes/lobby_gui.cpp:1173
 msgid "Microphone is disabled"
 msgstr "Microfono disattivato"
 
-#: client/scenes/lobby_gui.cpp:1177
+#: client/scenes/lobby_gui.cpp:1182
 msgid "Hand tracking is enabled"
 msgstr "Tracciamento delle mani attivo"
 
-#: client/scenes/lobby_gui.cpp:1178
+#: client/scenes/lobby_gui.cpp:1183
 msgid "Hand tracking is disabled"
 msgstr "Tracciamento delle mani disattivato"
 
-#: client/scenes/lobby_gui.cpp:1187
+#: client/scenes/lobby_gui.cpp:1192
 msgid "Eye tracking is enabled"
 msgstr "Tracciamento oculare attivo"
 
-#: client/scenes/lobby_gui.cpp:1188
+#: client/scenes/lobby_gui.cpp:1193
 msgid "Eye tracking is disabled"
 msgstr "Tracciamento oculare disattivato"
 
-#: client/scenes/lobby_gui.cpp:1198
+#: client/scenes/lobby_gui.cpp:1203
 msgid "Face tracking is enabled"
 msgstr "Tracciamento facciale attivato"
 
-#: client/scenes/lobby_gui.cpp:1199
+#: client/scenes/lobby_gui.cpp:1204
 msgid "Face tracking is disabled"
 msgstr "Tracciamento facciale disattivato"
 
-#: client/scenes/lobby_gui.cpp:1216
+#: client/scenes/lobby_gui.cpp:1221
 msgid "Add server"
 msgstr "Aggiungi server"
 
-#: client/scenes/lobby_gui.cpp:1441
+#: client/scenes/lobby_gui.cpp:1446
 msgid "Server list"
 msgstr "Elenco dei server"
 
-#: client/scenes/lobby_gui.cpp:1444
+#: client/scenes/lobby_gui.cpp:1449
 msgid "Settings"
 msgstr "Impostazioni"
 
-#: client/scenes/lobby_gui.cpp:1448
+#: client/scenes/lobby_gui.cpp:1453
 msgid "Debug"
 msgstr "Debug"
 
-#: client/scenes/lobby_gui.cpp:1453
+#: client/scenes/lobby_gui.cpp:1458
 msgid "About"
 msgstr "Informazioni"
 
-#: client/scenes/lobby_gui.cpp:1459
+#: client/scenes/lobby_gui.cpp:1464
 msgid "Exit"
 msgstr "Esci"
 
-#: client/scenes/lobby_gui.cpp:1473
+#: client/scenes/lobby_gui.cpp:1478
 msgid ""
 "Press A or X or put your palm up\n"
 "to move the main window"
@@ -259,7 +264,7 @@ msgstr ""
 "Premi A, X o punta il palmo della mano verso l'alto\n"
 "per spostare la finestra principale"
 
-#: client/scenes/lobby_gui.cpp:1475
+#: client/scenes/lobby_gui.cpp:1480
 msgid "Press A or X to move the main window"
 msgstr "Premi A o X per spostare la finestra principale"
 

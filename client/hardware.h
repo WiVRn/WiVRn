@@ -51,7 +51,7 @@ enum class feature
 model guess_model();
 std::string model_name();
 
-XrViewConfigurationView override_view(XrViewConfigurationView, model);
+XrViewConfigurationView override_view(XrViewConfigurationView, model = guess_model());
 
 bool need_srgb_conversion(model);
 

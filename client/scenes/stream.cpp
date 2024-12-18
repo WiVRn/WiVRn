@@ -1046,12 +1046,14 @@ void scenes::stream::setup_reprojection_swapchain()
 	for (auto view: views)
 	{
 		XrExtent2Di extent{
-		        .width = std::min<int32_t>(view.maxImageRectWidth, swapchain_width),
-		        .height = std::min<int32_t>(view.maxImageRectHeight, swapchain_height),
+		        .width = int32_t(swapchain_width),
+		        .height = int32_t(swapchain_height),
 		};
 		swapchains.emplace_back(session, device, swapchain_format, extent.width, extent.height);
 
 		spdlog::info("Created stream swapchain {}: {}x{}", swapchains.size(), extent.width, extent.height);
+		if (extent.width > view.maxImageRectWidth or extent.height > view.maxImageRectHeight)
+			spdlog::warn("Swapchain size larger than maximum {}x{}", view.maxImageRectWidth, view.maxImageRectHeight);
 	}
 
 	spdlog::info("Initializing reprojector");

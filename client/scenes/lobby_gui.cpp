@@ -604,23 +604,28 @@ void scenes::lobby::gui_settings()
 	}
 
 	{
-		const auto available_scales = {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
 		const auto current = config.resolution_scale;
 		const auto width = stream_view.recommendedImageRectWidth;
 		const auto height = stream_view.recommendedImageRectHeight;
-		if (ImGui::BeginCombo(_S("Resolution scale"), fmt::format(_F("{} - {}x{} per eye"), current, (int)(width * current), (int)(height * current)).c_str()))
+		if (ImGui::BeginCombo(_S("Resolution scale"), fmt::format(_F("{}% - {}x{} per eye"), int(current * 100), int(width * current), int(height * current)).c_str()))
 		{
-			for (float scale: available_scales)
+			for (int scale = 50; scale <= 200; scale += 10)
 			{
-				if (ImGui::Selectable(fmt::format(_F("{} - {}x{} per eye"), scale, (int)(width * scale), (int)(height * scale)).c_str(), scale == current, ImGuiSelectableFlags_SelectOnRelease) and scale != current)
+				if (ImGui::Selectable(fmt::format(_F("{}% - {}x{} per eye"), scale, (width * scale) / 100, (height * scale) / 100).c_str(), scale == current, ImGuiSelectableFlags_SelectOnRelease) and scale != current)
 				{
-					config.resolution_scale = scale;
+					config.resolution_scale = scale * 0.01;
 					config.save();
 				}
 			}
 			ImGui::EndCombo();
 		}
 		vibrate_on_hover();
+		if (width * config.resolution_scale > stream_view.maxImageRectWidth or height * config.resolution_scale > stream_view.maxImageRectHeight)
+		{
+			ImGui::TextColored(ImColor(0xf9, 0x73, 0x06) /*orange*/, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::SameLine();
+			ImGui::Text("%s", fmt::format(_F("Resolution larger than {}x{} may not be supported by the headset"), stream_view.maxImageRectWidth, stream_view.maxImageRectHeight).c_str());
+		}
 	}
 
 	{
