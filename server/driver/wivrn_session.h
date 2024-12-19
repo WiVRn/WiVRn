@@ -143,6 +143,7 @@ public:
 	void operator()(from_headset::headset_info_packet &&);
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::trackings &&);
+	void operator()(const from_headset::space_change &);
 	void operator()(const from_headset::tracking &);
 	void operator()(from_headset::hand_tracking &&);
 	void operator()(from_headset::inputs &&);

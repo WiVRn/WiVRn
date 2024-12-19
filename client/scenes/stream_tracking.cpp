@@ -133,6 +133,36 @@ static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT
 		return std::nullopt;
 }
 
+static std::vector<from_headset::space_change> space_change_events(std::atomic<int32_t> recenter_requested, XrSession session)
+{
+	auto recentered = recenter_requested.exchange(0);
+	std::vector<from_headset::space_change> out_vec;
+
+	if (recentered & XR_REFERENCE_SPACE_TYPE_LOCAL)
+	{
+		from_headset::space_change space_change{
+		        .reference_space_type = XR_REFERENCE_SPACE_TYPE_LOCAL,
+		        .extent{},
+		};
+		out_vec.push_back(space_change);
+	}
+
+	if (recentered & XR_REFERENCE_SPACE_TYPE_STAGE)
+	{
+		from_headset::space_change space_change{
+		        .reference_space_type = XR_REFERENCE_SPACE_TYPE_STAGE,
+		        .extent{},
+		};
+
+		XrExtent2Df extent{};
+		auto result = xrGetReferenceSpaceBoundsRect(session, space_change.reference_space_type, &extent);
+		if (result == XR_SUCCESS)
+			space_change.extent = extent;
+
+		out_vec.push_back(space_change);
+	}
+}
+
 static bool enabled(const to_headset::tracking_control & control, device_id id)
 {
 	switch (id)
@@ -241,10 +271,6 @@ void scenes::stream::tracking()
 
 					packet.view_flags = flags;
 
-					packet.state_flags = 0;
-					if (recenter_requested.exchange(false))
-						packet.state_flags = wivrn::from_headset::tracking::recentered;
-
 					packet.device_poses.clear();
 					for (auto [device, space]: spaces)
 					{
@@ -342,6 +368,8 @@ void scenes::stream::tracking()
 				if (i.joints)
 					wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
 			}
+			for (const auto & i: space_change_events(recenter_requested, session))
+				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
 
 			network_session->send_stream(std::move(packets));
 

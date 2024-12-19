@@ -155,11 +155,6 @@ struct tracking
 		position_tracked = 1 << 5
 	};
 
-	enum state_flags : uint8_t
-	{
-		recentered = 1 << 0,
-	};
-
 	struct pose
 	{
 		XrPosef pose;
@@ -179,8 +174,6 @@ struct tracking
 	XrTime production_timestamp;
 	XrTime timestamp;
 	XrViewStateFlags view_flags;
-
-	uint8_t state_flags;
 
 	std::array<view, 2> views;
 	std::vector<pose> device_poses;
@@ -273,7 +266,13 @@ struct battery
 	bool charging;
 };
 
-using packets = std::variant<crypto_handshake, pin_check_1, pin_check_3, headset_info_packet, feedback, audio_data, handshake, tracking, trackings, hand_tracking, inputs, timesync_response, battery>;
+struct space_change
+{
+	XrReferenceSpaceType reference_space_type;
+	std::optional<XrExtent2Df> extent;
+};
+
+using packets = std::variant<crypto_handshake, pin_check_1, pin_check_3, headset_info_packet, feedback, audio_data, handshake, tracking, trackings, hand_tracking, inputs, timesync_response, battery, space_change>;
 } // namespace from_headset
 
 namespace to_headset

@@ -1121,8 +1121,7 @@ scene::meta & scenes::stream::get_meta_scene()
 
 void scenes::stream::on_reference_space_changed(XrReferenceSpaceType space, XrTime when)
 {
-	if (space == XrReferenceSpaceType::XR_REFERENCE_SPACE_TYPE_LOCAL)
-	{
-		recenter_requested = true;
-	}
+	if (space != XR_REFERENCE_SPACE_TYPE_LOCAL && space != XR_REFERENCE_SPACE_TYPE_STAGE)
+		return;
+	recenter_requested |= space;
 }

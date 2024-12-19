@@ -298,15 +298,38 @@ void wivrn_session::operator()(from_headset::trackings && tracking)
 	for (auto & item: tracking.items)
 		(*this)(item);
 }
-void wivrn_session::operator()(const from_headset::tracking & tracking)
+void wivrn_session::operator()(const from_headset::space_change & space)
 {
-	if (tracking.state_flags & from_headset::tracking::state_flags::recentered)
+	if (space.reference_space_type == XR_REFERENCE_SPACE_TYPE_LOCAL)
 	{
-		U_LOG_I("recentering requested");
+		U_LOG_I("LOCAL recenter requested");
 		if (XRT_SUCCESS != xrt_space_overseer_recenter_local_spaces(space_overseer))
 			U_LOG_W("failed to recenter local spaces");
 	}
+	else if (space.reference_space_type == XR_REFERENCE_SPACE_TYPE_STAGE)
+	{
+		auto extent = space.extent.value_or(XrExtent2Df{});
 
+		// TODO make extent retrievable via xrt_compositor::get_reference_bounds_rect
+
+		U_LOG_I("STAGE space changed, extent: (%f, %f)", extent.width, extent.height);
+		xrt_session_event xse{
+		        .ref_change{
+		                .event_type = XRT_SESSION_EVENT_REFERENCE_SPACE_CHANGE_PENDING,
+		                .ref_type = XRT_SPACE_REFERENCE_TYPE_STAGE,
+		                .timestamp_ns = os_monotonic_get_ns(),
+		                .pose_in_previous_space = XRT_POSE_IDENTITY,
+		                .pose_valid = false,
+		        }};
+		auto result = xrt_session_event_sink_push(&xrt_system.broadcast, &xse);
+		if (result != XRT_SUCCESS)
+		{
+			U_LOG_W("Failed to notify STAGE space change");
+		}
+	}
+}
+void wivrn_session::operator()(const from_headset::tracking & tracking)
+{
 	auto offset = offset_est.get_offset();
 
 	hmd.update_tracking(tracking, offset);
