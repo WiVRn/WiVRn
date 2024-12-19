@@ -808,10 +808,11 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	};
 
 	std::vector<XrCompositionLayerQuad> imgui_layers;
-	if (imgui_ctx and plots_visible)
+	if (imgui_ctx)
 	{
 		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
-		imgui_layers = plot_performance_metrics(frame_state.predictedDisplayTime);
+		if (plots_visible)
+			imgui_layers = plot_performance_metrics(frame_state.predictedDisplayTime);
 	}
 
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
