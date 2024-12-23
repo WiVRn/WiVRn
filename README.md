@@ -19,6 +19,7 @@ We recommend using the flatpak package from Flathub:
 
 Alternatively, packages are available:
 - [AUR for Arch](https://aur.archlinux.org/packages/wivrn-dashboard)
+- [Fedora](https://packages.fedoraproject.org/pkgs/wivrn/wivrn/)
 - [Guru for Gentoo](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn).
 
 
