@@ -401,6 +401,18 @@ void wivrn_session::operator()(from_headset::battery && battery)
 	hmd.update_battery(battery);
 }
 
+void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
+{
+	hmd.update_visibility_mask(mask);
+	xrt_session_event event{
+	        .mask_change = {
+	                .type = XRT_SESSION_EVENT_VISIBILITY_MASK_CHANGE,
+	                .view_index = mask.view_index,
+	        },
+	};
+	auto result = xrt_session_event_sink_push(&xrt_system.broadcast, &event);
+}
+
 void wivrn_session::operator()(audio_data && data)
 {
 	if (audio_handle)

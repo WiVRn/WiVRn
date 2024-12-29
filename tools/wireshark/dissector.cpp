@@ -140,7 +140,10 @@ constexpr auto type_name()
 	constexpr size_t pos = sv3.rfind("::");
 	constexpr size_t pos2 = pos == std::string_view::npos ? 0 : (pos + 2);
 
-	constexpr std::string_view sv4 = sv3.substr(pos2);
+	constexpr size_t pos3 = sv3.find_first_of(", ");
+
+	constexpr std::string_view sv4 = sv3.substr(pos2,
+	                                            pos3 == std::string_view::npos ? pos3 : pos3 - pos2);
 
 	return fixed_string<sv4.size() + 1>(sv4);
 }

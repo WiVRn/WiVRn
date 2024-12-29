@@ -69,10 +69,38 @@ static const std::unordered_map<std::string, device_id> device_ids = {
 };
 // clang-format on
 
-static const std::array supported_formats =
-        {
-                vk::Format::eR8G8B8A8Srgb,
-                vk::Format::eB8G8R8A8Srgb};
+static const std::array supported_formats = {
+        vk::Format::eR8G8B8A8Srgb,
+        vk::Format::eB8G8R8A8Srgb,
+};
+
+static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::instance & inst, xr::session & session, int view)
+{
+	assert(inst.has_extension(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME));
+	static auto xrGetVisibilityMaskKHR = inst.get_proc<PFN_xrGetVisibilityMaskKHR>("xrGetVisibilityMaskKHR");
+
+	from_headset::visibility_mask_changed::masks res{};
+	for (auto [type, mask]: utils::enumerate(res))
+	{
+		XrVisibilityMaskKHR xr_mask{
+		        .type = XR_TYPE_VISIBILITY_MASK_KHR,
+		};
+		CHECK_XR(xrGetVisibilityMaskKHR(session, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, view, XrVisibilityMaskTypeKHR(type + 1), &xr_mask));
+		mask.vertices.resize(xr_mask.vertexCountOutput);
+		mask.indices.resize(xr_mask.indexCountOutput);
+		xr_mask = {
+		        .type = XR_TYPE_VISIBILITY_MASK_KHR,
+		        .vertexCapacityInput = uint32_t(mask.vertices.size()),
+		        .vertices = mask.vertices.data(),
+		        .indexCapacityInput = uint32_t(mask.indices.size()),
+		        .indices = mask.indices.data(),
+		};
+		CHECK_XR(xrGetVisibilityMaskKHR(session, XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, view, XrVisibilityMaskTypeKHR(type + 1), &xr_mask));
+		mask.vertices.resize(xr_mask.vertexCountOutput);
+		mask.indices.resize(xr_mask.indexCountOutput);
+	}
+	return res;
+}
 
 std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps)
 {
@@ -138,6 +166,16 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		info.supported_codecs = decoder_impl::supported_codecs();
 		return info;
 	}());
+
+	if (self->instance.has_extension(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME))
+	{
+		for (uint8_t view = 0; view < view_count; ++view)
+		{
+			self->network_session->send_control(from_headset::visibility_mask_changed{
+			        .data = get_visibility_mask(self->instance, self->session, view),
+			        .view_index = view});
+		}
+	}
 
 	self->network_thread = utils::named_thread("network_thread", &stream::process_packets, self.get());
 

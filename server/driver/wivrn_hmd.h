@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "utils/thread_safe.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_tracking.h"
 
@@ -50,9 +51,13 @@ class wivrn_hmd : public xrt_device
 	std::array<to_headset::foveation_parameter, 2> foveation_parameters{};
 	from_headset::battery battery{};
 
+	thread_safe<std::array<std::optional<from_headset::visibility_mask_changed::masks>, 2>> visibility_mask;
+
 	wivrn::wivrn_session * cnx;
 
 	static bool wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_index, float u, float v, xrt_uv_triplet * result);
+
+	static xrt_result_t get_visibility_mask(xrt_device * xdev, xrt_visibility_mask_type, uint32_t view_index, xrt_visibility_mask **);
 
 public:
 	wivrn_hmd(wivrn::wivrn_session * cnx,
@@ -85,5 +90,7 @@ public:
 	{
 		return foveation_parameters;
 	}
+
+	void update_visibility_mask(const from_headset::visibility_mask_changed &);
 };
 } // namespace wivrn

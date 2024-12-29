@@ -190,6 +190,32 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 	return true;
 }
 
+xrt_result_t wivrn_hmd::get_visibility_mask(xrt_device * xdev, xrt_visibility_mask_type type, uint32_t view_index, xrt_visibility_mask ** mask)
+{
+	static_assert(sizeof(uint32_t) == sizeof(decltype(from_headset::visibility_mask_changed::mask::indices)::value_type));
+	static_assert(sizeof(xrt_vec2) == sizeof(decltype(from_headset::visibility_mask_changed::mask::vertices)::value_type));
+	auto self = (wivrn_hmd *)xdev;
+	type = xrt_visibility_mask_type((unsigned int)type - 1); // enum values start at 1
+	const auto visibility_mask = self->visibility_mask.lock();
+	if (type >= from_headset::visibility_mask_changed::num_types or view_index >= 2 or not(*visibility_mask)[view_index])
+	{
+		*mask = (xrt_visibility_mask *)calloc(1, sizeof(xrt_visibility_mask));
+		return XRT_SUCCESS;
+	}
+	const auto & in_mask = (*(*visibility_mask)[view_index])[int(type)];
+	size_t index_size = in_mask.indices.size() * sizeof(uint32_t);
+	size_t vertex_size = in_mask.vertices.size() * sizeof(xrt_vec2);
+	*mask = (xrt_visibility_mask *)calloc(1, sizeof(xrt_visibility_mask) + index_size + vertex_size);
+	**mask = {
+	        .type = type,
+	        .index_count = uint32_t(in_mask.indices.size()),
+	        .vertex_count = uint32_t(in_mask.vertices.size()),
+	};
+	memcpy(xrt_visibility_mask_get_indices(*mask), in_mask.indices.data(), index_size);
+	memcpy(xrt_visibility_mask_get_vertices(*mask), in_mask.vertices.data(), vertex_size);
+	return XRT_SUCCESS;
+}
+
 wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
                      const from_headset::headset_info_packet & info) :
         xrt_device{}, cnx(cnx)
@@ -203,6 +229,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	base->get_tracked_pose = wivrn_hmd_get_tracked_pose;
 	base->get_view_poses = wivrn_hmd_get_view_poses;
 	base->get_battery_status = wivrn_hmd_get_battery_status;
+	base->get_visibility_mask = get_visibility_mask;
 	base->destroy = wivrn_hmd_destroy;
 	name = XRT_DEVICE_GENERIC_HMD;
 	device_type = XRT_DEVICE_TYPE_HMD;
@@ -407,6 +434,13 @@ void wivrn_hmd::set_foveation_center(std::array<xrt_vec2, 2> center)
 			        solve_foveation(foveation_parameters[i].y.scale, foveation_parameters[i].y.center);
 		}
 	}
+}
+
+void wivrn_hmd::update_visibility_mask(const from_headset::visibility_mask_changed & mask)
+{
+	assert(mask.view_index < 2);
+	auto m = visibility_mask.lock();
+	m->at(mask.view_index) = mask.data;
 }
 
 /*

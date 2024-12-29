@@ -784,6 +784,7 @@ void application::initialize()
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME);
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
+	opt_extensions.push_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
 
 	for (const auto & i: interaction_profiles)
 	{
