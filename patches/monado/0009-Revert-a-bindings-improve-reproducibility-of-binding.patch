@@ -1,16 +1,17 @@
-From 6f4e55637aa6b09dc262cad4771ba8361031bad5 Mon Sep 17 00:00:00 2001
+From 13276b4d709c6c8e89844170eac1d67ae4ed5af6 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
-Date: Tue, 31 Dec 2024 10:53:47 +0100
+Date: Tue, 31 Dec 2024 11:01:12 +0100
 Subject: [PATCH 09/10] Revert "a/bindings: improve reproducibility of bindings
+ generation"
 
 This reverts commit d2fbd3ce8d962e4a46351df0f34f14de71871e00.
 ---
- src/xrt/auxiliary/bindings/bindings.py        | 37 +++++++++++--------
+ src/xrt/auxiliary/bindings/bindings.py        | 41 +++++++++++--------
  .../auxiliary/bindings/steamvr_profiles.py    |  2 +-
- 2 files changed, 22 insertions(+), 17 deletions(-)
+ 2 files changed, 24 insertions(+), 19 deletions(-)
 
 diff --git a/src/xrt/auxiliary/bindings/bindings.py b/src/xrt/auxiliary/bindings/bindings.py
-index f66b269ee..aac18db93 100755
+index 3039629ef..28d4395ff 100755
 --- a/src/xrt/auxiliary/bindings/bindings.py
 +++ b/src/xrt/auxiliary/bindings/bindings.py
 @@ -7,7 +7,8 @@ bindings."""
@@ -55,7 +56,25 @@ index f66b269ee..aac18db93 100755
  
                  # Oculus Touch a,b/x,y components only exist on one controller
                  if "side" in json_subpath and "/user/hand/" + json_subpath["side"] != subaction_path:
-@@ -365,8 +370,8 @@ class Profile:
+@@ -262,7 +267,7 @@ class Identifier:
+         self.components = component_list
+         self.dpad = dpad
+         return
+-    
++
+ 
+ class FeatureSet:
+     """An AND of requirements (versions and/or extensions) under which a binding becomes available"""
+@@ -317,7 +322,7 @@ class Availability:
+         if not optimize:
+             self.feature_sets = set(feature_sets)
+             return
+-            
++
+         self.feature_sets = set()
+         for feature_set in feature_sets:
+             self.add_in_place(feature_set)
+@@ -460,8 +465,8 @@ class Profile:
      def __update_component_list(self):
          self.components = []
          for identifier in self.identifiers:
@@ -64,9 +83,9 @@ index f66b269ee..aac18db93 100755
 +            for component in identifier.components:
 +                self.components.append(component)
  
- 
- oxr_verify_extension_status_struct_name = "oxr_verify_extension_status"
-@@ -390,8 +395,8 @@ class Bindings:
+     def availability(self):
+         result = Availability(feature_sets=[])
+@@ -499,8 +504,8 @@ class Bindings:
  
      def __init__(self, json_root):
          """Construct a bindings from a dictionary of profiles."""
@@ -77,7 +96,7 @@ index f66b269ee..aac18db93 100755
          self.__set_parent_profile_refs()
          self.__mine_for_diamond_errors()
  
-@@ -417,7 +422,7 @@ class Bindings:
+@@ -526,7 +531,7 @@ class Bindings:
          if profile.name in parent_path_set:
              return True
          parent_path_set.append(profile.name)
@@ -86,28 +105,34 @@ index f66b269ee..aac18db93 100755
              if self.__has_diamonds(parent, parent_path_set):
                  return True
          return False
-@@ -463,9 +468,9 @@ def write_verify_switch_body(f, dict_of_lists, profile, profile_name, ext_name,
+@@ -572,7 +577,7 @@ def write_verify_switch_body(f, dict_of_lists, profile, profile_name, tab_char):
      Input is a file to write the code into, a dict where keys are length and
      the values are lists of strings of that length. And a suffix if any."""
      f.write(f"{tab_char}\tswitch (length) {{\n")
 -    for length in sorted(dict_of_lists.keys()):
 +    for length in dict_of_lists.keys():
          f.write(f"{tab_char}\tcase {str(length)}:\n\t\t{tab_char}")
--        for path in sorted(dict_of_lists[length]):
-+        for path in dict_of_lists[length]:
+         for path in sorted(dict_of_lists[length]):
              f.write(if_strcmp.format(exttab=tab_char, check=path))
-         f.write(f"{{\n{tab_char}\t\t\tbreak;\n{tab_char}\t\t}}\n")
-     f.write(f"{tab_char}\tdefault: break;\n{tab_char}\t}}\n")
-@@ -509,7 +514,7 @@ def write_verify_func_body(f, profile, dict_name):
-         profile, dict_name), profile, profile.name, profile.extension_name)
+@@ -613,7 +618,7 @@ def write_verify_func_switch(f, dict_of_lists, profile, profile_name, availabili
+             closing.append(f'{tab_char}}}\n#endif // {ext_defines}\n')
+ 
+         write_verify_switch_body(f, dict_of_lists, profile, profile_name, tab_char)
+-        
++
+         for closer in reversed(closing):
+             f.write(closer)
+ 
+@@ -624,7 +629,7 @@ def write_verify_func_body(f, profile, dict_name, availability):
+         profile, dict_name), profile, profile.name, availability)
      if profile.parent_profiles is None:
          return
 -    for pp in sorted(profile.parent_profiles, key=attrgetter("name")):
 +    for pp in profile.parent_profiles:
-         write_verify_func_body(f, pp, dict_name)
+         write_verify_func_body(f, pp, dict_name, availability.intersection(pp.availability()))
  
  
-@@ -717,7 +722,7 @@ def generate_bindings_c(file, b):
+@@ -832,7 +837,7 @@ def generate_bindings_c(file, b):
      f.write('{\n')
      f.write('\tswitch(input)\n')
      f.write('\t{\n')
@@ -116,7 +141,7 @@ index f66b269ee..aac18db93 100755
          f.write(f'\tcase {input}: return "{input}";\n')
      f.write(f'\tdefault: return "UNKNOWN";\n')
      f.write('\t}\n')
-@@ -726,7 +731,7 @@ def generate_bindings_c(file, b):
+@@ -841,7 +846,7 @@ def generate_bindings_c(file, b):
      f.write('enum xrt_input_name\n')
      f.write('xrt_input_name_enum(const char *input)\n')
      f.write('{\n')
@@ -125,7 +150,7 @@ index f66b269ee..aac18db93 100755
          f.write(f'\tif(strcmp("{input}", input) == 0) return {input};\n')
      f.write(f'\treturn XRT_INPUT_GENERIC_TRACKER_POSE;\n')
      f.write('}\n')
-@@ -736,7 +741,7 @@ def generate_bindings_c(file, b):
+@@ -851,7 +856,7 @@ def generate_bindings_c(file, b):
      f.write('{\n')
      f.write('\tswitch(output)\n')
      f.write('\t{\n')
@@ -134,7 +159,7 @@ index f66b269ee..aac18db93 100755
          f.write(f'\tcase {output}: return "{output}";\n')
      f.write(f'\tdefault: return "UNKNOWN";\n')
      f.write('\t}\n')
-@@ -745,7 +750,7 @@ def generate_bindings_c(file, b):
+@@ -860,7 +865,7 @@ def generate_bindings_c(file, b):
      f.write('enum xrt_output_name\n')
      f.write('xrt_output_name_enum(const char *output)\n')
      f.write('{\n')
