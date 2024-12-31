@@ -1,7 +1,7 @@
-From 025bce6ca5480cf6f67256eacf39ce4d5973c4ba Mon Sep 17 00:00:00 2001
+From ea2831655ecc6e91ee896ea3a6809ba9ec0946dc Mon Sep 17 00:00:00 2001
 From: galister <3123227-galister@users.noreply.gitlab.com>
 Date: Thu, 31 Oct 2024 04:37:27 +0900
-Subject: [PATCH] Use mipmaps for distortion shader
+Subject: [PATCH 06/10] Use mipmaps for distortion shader
 
 ---
  src/external/CMakeLists.txt                   |  23 +
@@ -1673,10 +1673,10 @@ index 000000000..524a74120
 +               srgbFromLinear(arg.b), alpha);
 +}
 diff --git a/src/xrt/auxiliary/vk/vk_helpers.c b/src/xrt/auxiliary/vk/vk_helpers.c
-index 91157c91e..84f7b82c5 100644
+index 62f505391..80193f1ab 100644
 --- a/src/xrt/auxiliary/vk/vk_helpers.c
 +++ b/src/xrt/auxiliary/vk/vk_helpers.c
-@@ -1328,6 +1328,7 @@ vk_create_sampler(struct vk_bundle *vk, VkSamplerAddressMode clamp_mode, VkSampl
+@@ -1382,6 +1382,7 @@ vk_create_sampler(struct vk_bundle *vk, VkSamplerAddressMode clamp_mode, VkSampl
  	    .addressModeW = clamp_mode,
  	    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
  	    .unnormalizedCoordinates = VK_FALSE,
@@ -2768,5 +2768,5 @@ index 44849c20e..f8c891e49 100644
  void
  comp_scratch_stereo_images_free(struct comp_scratch_stereo_images *cssi, struct vk_bundle *vk);
 -- 
-2.45.2
+2.47.1
 

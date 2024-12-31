@@ -1,7 +1,12 @@
-From 1f781690a7d24551c18a6696f8c6a141cc3565c0 Mon Sep 17 00:00:00 2001
+From 0cca641c15aecc8b0e19f590df193f229e0a1061 Mon Sep 17 00:00:00 2001
 From: galister <3123227-galister@users.noreply.gitlab.com>
 Date: Mon, 19 Aug 2024 18:51:45 +0900
-Subject: [PATCH] c/render: Add storage usage to distortion mesh
+Subject: [PATCH 04/10] c/render: Add storage usage to distortion mesh
+
+---
+ src/xrt/compositor/render/render_distortion.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
 diff --git a/src/xrt/compositor/render/render_distortion.c b/src/xrt/compositor/render/render_distortion.c
 index 031f74ad5..1255f2616 100644
 --- a/src/xrt/compositor/render/render_distortion.c
@@ -15,3 +20,6 @@ index 031f74ad5..1255f2616 100644
  	    &device_memory,                                               // out_device_memory
  	    &image);                                                      // out_image
  	VK_CHK_AND_RET(ret, "vk_create_image_simple");
+-- 
+2.47.1
+

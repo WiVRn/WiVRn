@@ -1,7 +1,7 @@
-From b277706d65c3acbd92c4ed7e73c31f12cb3e470c Mon Sep 17 00:00:00 2001
+From 2378f91b0aa2c610a670812304c152b198ab18f1 Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 17 Jun 2024 04:32:36 +0000
-Subject: [PATCH] d/solarxr: Add SolarXR WebSockets driver
+Subject: [PATCH 08/10] d/solarxr: Add SolarXR WebSockets driver
 
 ---
  CMakeLists.txt                                |   3 +
@@ -26,7 +26,7 @@ Subject: [PATCH] d/solarxr: Add SolarXR WebSockets driver
  create mode 100644 src/xrt/drivers/solarxr/websocket.h
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 74d0bd7f9..22b5f7c7a 100644
+index d2fb15f62..f6880e6c5 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -333,6 +333,7 @@ option_with_deps(XRT_BUILD_DRIVER_VIVE "Enable driver for HTC Vive, Vive Pro, Va
@@ -37,7 +37,7 @@ index 74d0bd7f9..22b5f7c7a 100644
  option(XRT_BUILD_DRIVER_SIMULATED "Enable simulated driver" ON)
  
  option(XRT_BUILD_SAMPLES "Enable compiling sample code implementations that will not be linked into any final targets" ON)
-@@ -429,6 +430,7 @@ list(
+@@ -430,6 +431,7 @@ list(
  	"TWRAP"
  	"XREAL_AIR"
  	"STEAMVR_LIGHTHOUSE"
@@ -45,7 +45,7 @@ index 74d0bd7f9..22b5f7c7a 100644
  	)
  
  # Package name needs to be known by the native code itself.
-@@ -653,6 +655,7 @@ message(STATUS "#    DRIVER_VIVE:                 ${XRT_BUILD_DRIVER_VIVE}")
+@@ -655,6 +657,7 @@ message(STATUS "#    DRIVER_VIVE:                 ${XRT_BUILD_DRIVER_VIVE}")
  message(STATUS "#    DRIVER_WMR:                  ${XRT_BUILD_DRIVER_WMR}")
  message(STATUS "#    DRIVER_XREAL_AIR:            ${XRT_BUILD_DRIVER_XREAL_AIR}")
  message(STATUS "#    DRIVER_STEAMVR_LIGHTHOUSE:   ${XRT_BUILD_DRIVER_STEAMVR_LIGHTHOUSE}")
@@ -2303,7 +2303,7 @@ index 2c66ad303..26d96aa14 100644
  }
  
 diff --git a/src/xrt/targets/common/target_builder_steamvr.c b/src/xrt/targets/common/target_builder_steamvr.c
-index 814656519..f0b7de8a0 100644
+index 86376d773..295feb0bb 100644
 --- a/src/xrt/targets/common/target_builder_steamvr.c
 +++ b/src/xrt/targets/common/target_builder_steamvr.c
 @@ -34,6 +34,10 @@
@@ -2334,5 +2334,5 @@ index 814656519..f0b7de8a0 100644
  	 * Space overseer.
  	 */
 -- 
-2.47.0
+2.47.1
 

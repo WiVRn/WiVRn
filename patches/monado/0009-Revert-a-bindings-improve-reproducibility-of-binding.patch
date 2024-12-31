@@ -1,8 +1,7 @@
-From a7ed0665c0a8f668d429f1e0ace03e25842b658b Mon Sep 17 00:00:00 2001
+From 6f4e55637aa6b09dc262cad4771ba8361031bad5 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
-Date: Thu, 31 Oct 2024 23:16:09 +0100
-Subject: [PATCH] Revert "a/bindings: improve reproducibility of bindings
- generation"
+Date: Tue, 31 Dec 2024 10:53:47 +0100
+Subject: [PATCH 09/10] Revert "a/bindings: improve reproducibility of bindings
 
 This reverts commit d2fbd3ce8d962e4a46351df0f34f14de71871e00.
 ---
@@ -11,7 +10,7 @@ This reverts commit d2fbd3ce8d962e4a46351df0f34f14de71871e00.
  2 files changed, 22 insertions(+), 17 deletions(-)
 
 diff --git a/src/xrt/auxiliary/bindings/bindings.py b/src/xrt/auxiliary/bindings/bindings.py
-index 56cbc43e6..d10255962 100755
+index f66b269ee..aac18db93 100755
 --- a/src/xrt/auxiliary/bindings/bindings.py
 +++ b/src/xrt/auxiliary/bindings/bindings.py
 @@ -7,7 +7,8 @@ bindings."""
@@ -92,12 +91,12 @@ index 56cbc43e6..d10255962 100755
      the values are lists of strings of that length. And a suffix if any."""
      f.write(f"{tab_char}\tswitch (length) {{\n")
 -    for length in sorted(dict_of_lists.keys()):
-+    for length in dict_of_lists:
-         f.write(f"{tab_char}\tcase {str(length)}:\n\t\t")
++    for length in dict_of_lists.keys():
+         f.write(f"{tab_char}\tcase {str(length)}:\n\t\t{tab_char}")
 -        for path in sorted(dict_of_lists[length]):
 +        for path in dict_of_lists[length]:
              f.write(if_strcmp.format(exttab=tab_char, check=path))
-         f.write(f"{tab_char}{{\n{tab_char}\t\t\tbreak;\n{tab_char}\t\t}}\n")
+         f.write(f"{{\n{tab_char}\t\t\tbreak;\n{tab_char}\t\t}}\n")
      f.write(f"{tab_char}\tdefault: break;\n{tab_char}\t}}\n")
 @@ -509,7 +514,7 @@ def write_verify_func_body(f, profile, dict_name):
          profile, dict_name), profile, profile.name, profile.extension_name)
@@ -158,5 +157,5 @@ index f54a303f9..abcbfabe6 100644
          f.close()
  
 -- 
-2.47.0
+2.47.1
 
