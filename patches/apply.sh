@@ -4,6 +4,7 @@ if [ -d ".git" ] ; then
 	git config user.email > /dev/null || git config user.email "git-am@invalid"
 	git config user.name > /dev/null || git config user.name "no name"
 	git config --local commit.gpgsign false
+	git am --abort 2> /dev/null
 	git checkout .
 	exec git am "$@"
 fi
