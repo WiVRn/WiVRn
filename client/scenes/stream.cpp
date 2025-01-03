@@ -1194,6 +1194,12 @@ void scenes::stream::on_xr_event(const xr::event& event)
 					.to = event.refresh_rate_changed.toDisplayRefreshRate,
 					});
 			break;
+		case XR_TYPE_EVENT_DATA_VISIBILITY_MASK_CHANGED_KHR:
+			network_session->send_control(from_headset::visibility_mask_changed{
+					.data = get_visibility_mask(instance, session, event.visibility_mask_changed.viewIndex),
+					.view_index = uint8_t(event.visibility_mask_changed.viewIndex),
+					});
+			break;
 		default:
 			break;
 	}
