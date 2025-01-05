@@ -260,7 +260,7 @@ void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, si
 	        .slice_qp_delta = 0,
 	        .reserved1 = 0,
 	        .cabac_init_idc = STD_VIDEO_H264_CABAC_INIT_IDC_0,
-	        .disable_deblocking_filter_idc = STD_VIDEO_H264_DISABLE_DEBLOCKING_FILTER_IDC_ENABLED,
+	        .disable_deblocking_filter_idc = STD_VIDEO_H264_DISABLE_DEBLOCKING_FILTER_IDC_DISABLED,
 	        .pWeightTable = nullptr,
 	};
 	nalu_slice_info = vk::VideoEncodeH264NaluSliceInfoKHR{
