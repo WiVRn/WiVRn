@@ -209,7 +209,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 					// Check the PIN
 					crypto::smp pin_check;
 
-					auto msg1 = std::get<from_headset::pin_check_1>(receive(10s).first).message;
+					auto msg1 = std::get<from_headset::pin_check_1>(receive(2min).first).message;
 
 					auto msg2 = pin_check.step2(msg1, pin);
 					control.send(to_headset::pin_check_2{msg2});
