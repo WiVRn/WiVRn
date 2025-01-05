@@ -327,7 +327,15 @@ void wivrn::android::audio::get_audio_description(wivrn::from_headset::headset_i
 	}
 
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
+
+	AAudioStreamBuilder_setSampleRate(builder, 48'000);
 	result = AAudioStreamBuilder_openStream(builder, &stream);
+
+	if (result != AAUDIO_OK)
+	{
+		AAudioStreamBuilder_setSampleRate(builder, AAUDIO_UNSPECIFIED);
+		result = AAudioStreamBuilder_openStream(builder, &stream);
+	}
 
 	if (result == AAUDIO_OK)
 	{
