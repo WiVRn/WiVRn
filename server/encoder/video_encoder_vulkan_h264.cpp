@@ -79,7 +79,7 @@ wivrn::video_encoder_vulkan_h264::video_encoder_vulkan_h264(
         sps{
                 .flags =
                         {
-                                .constraint_set0_flag = 1,
+                                .constraint_set0_flag = 0,
                                 .constraint_set1_flag = 1,
                                 .constraint_set2_flag = 0,
                                 .constraint_set3_flag = 0,

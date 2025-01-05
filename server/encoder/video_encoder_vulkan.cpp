@@ -84,8 +84,8 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
 	rate_control = vk::VideoEncodeRateControlInfoKHR{
 	        .layerCount = 1,
 	        .pLayers = &rate_control_layer,
-	        .virtualBufferSizeInMs = 5'000,
-	        .initialVirtualBufferSizeInMs = 4'000,
+	        .virtualBufferSizeInMs = 1'000,
+	        .initialVirtualBufferSizeInMs = 500,
 	};
 
 	if (encode_caps.rateControlModes & vk::VideoEncodeRateControlModeFlagBitsKHR::eCbr)
