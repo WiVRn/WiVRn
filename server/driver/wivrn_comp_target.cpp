@@ -611,6 +611,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		{
 			const auto & proj = cn->c->base.layer_accum.layers[0].data.proj;
 			view_info.pose[eye] = xrt_cast(proj.v[eye].pose);
+			view_info.fov[eye] = xrt_cast(proj.v[eye].fov);
 		}
 		else
 		{
