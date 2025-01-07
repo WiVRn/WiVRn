@@ -734,9 +734,7 @@ static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, flo
 	if (refresh_rate_hz == 0.0f)
 		refresh_rate_hz = cn->cnx.get_info().preferred_refresh_rate;
 
-	cn->desc.fps = refresh_rate_hz;
-	cn->pacer.set_frame_duration(U_TIME_1S_IN_NS / refresh_rate_hz);
-	cn->cnx.send_control(to_headset::video_stream_description{cn->desc});
+	cn->cnx.send_control(to_headset::refresh_rate_change{.fps = refresh_rate_hz});
 	return XRT_SUCCESS;
 }
 
@@ -797,6 +795,12 @@ void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveatio
 		scoped_lock lock(c->base.vk.queue_mutex);
 		wivrn_bundle->queue.submit(submit_info);
 	}
+}
+
+void wivrn_comp_target::set_refresh_rate(float refresh_rate_hz)
+{
+	desc.fps = refresh_rate_hz;
+	pacer.set_frame_duration(U_TIME_1S_IN_NS / refresh_rate_hz);
 }
 
 wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c) :

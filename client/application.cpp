@@ -882,17 +882,14 @@ void application::initialize()
 	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
 	config.emplace(xr_system_id);
-	if (xr_instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
+	try
 	{
-		try
-		{
-			xr_session.set_refresh_rate(config->preferred_refresh_rate);
-		}
-		catch (std::exception & e)
-		{
-			spdlog::warn("failed to set refresh rate to {}: {}", config->preferred_refresh_rate, e.what());
-			config->preferred_refresh_rate = 0;
-		}
+		xr_session.set_refresh_rate(config->preferred_refresh_rate);
+	}
+	catch (std::exception & e)
+	{
+		spdlog::warn("failed to set refresh rate to {}: {}", config->preferred_refresh_rate, e.what());
+		config->preferred_refresh_rate = 0;
 	}
 
 	if (hand_tracking_supported)

@@ -482,6 +482,23 @@ struct tracking_control
 	std::array<bool, size_t(id::last) + 1> enabled;
 };
 
-using packets = std::variant<crypto_handshake, pin_check_2, pin_check_4, handshake, audio_stream_description, video_stream_description, audio_data, video_stream_data_shard, haptics, timesync_query, tracking_control>;
+struct refresh_rate_change
+{
+	float fps;
+};
+
+using packets = std::variant<
+        crypto_handshake,
+        pin_check_2,
+        pin_check_4,
+        handshake,
+        audio_stream_description,
+        video_stream_description,
+        audio_data,
+        video_stream_data_shard,
+        haptics,
+        timesync_query,
+        tracking_control,
+        refresh_rate_change>;
 } // namespace to_headset
 } // namespace wivrn

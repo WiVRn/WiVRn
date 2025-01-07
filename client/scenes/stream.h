@@ -141,6 +141,7 @@ public:
 	void render(const XrFrameState &) override;
 	void on_focused() override;
 	void on_unfocused() override;
+	void on_xr_event(const xr::event &) override;
 
 	void operator()(to_headset::crypto_handshake &&) {};
 	void operator()(to_headset::pin_check_2 &&) {};
@@ -152,6 +153,7 @@ public:
 	void operator()(to_headset::tracking_control &&);
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
+	void operator()(to_headset::refresh_rate_change &&);
 	void operator()(audio_data &&);
 
 	void push_blit_handle(wivrn::shard_accumulator * decoder, std::shared_ptr<wivrn::shard_accumulator::blit_handle> handle);
@@ -240,6 +242,5 @@ private:
 
 	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
 	std::vector<XrCompositionLayerQuad> plot_performance_metrics(XrTime predicted_display_time);
-	void on_xr_event(const xr::event &) override;
 };
 } // namespace scenes

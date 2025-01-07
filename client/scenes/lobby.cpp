@@ -1227,6 +1227,8 @@ void scenes::lobby::on_xr_event(const xr::event & event)
 		default:
 			break;
 	}
+	if (next_scene)
+		next_scene->on_xr_event(event);
 }
 
 scene::meta & scenes::lobby::get_meta_scene()

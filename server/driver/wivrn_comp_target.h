@@ -107,6 +107,8 @@ struct wivrn_comp_target : public comp_target
 	void reset_encoders();
 
 	void render_dynamic_foveation(std::array<to_headset::foveation_parameter, 2> foveation);
+
+	void set_refresh_rate(float);
 };
 
 } // namespace wivrn

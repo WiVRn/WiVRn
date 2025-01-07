@@ -413,6 +413,7 @@ void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
 
 void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
 {
+	comp_target->set_refresh_rate(event.to);
 	push_event(
 	        {
 	                .display = {

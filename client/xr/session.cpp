@@ -299,7 +299,8 @@ std::vector<float> xr::session::get_refresh_rates()
 
 void xr::session::set_refresh_rate(float refresh_rate)
 {
-	assert(inst->has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME));
+	if (not inst->has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
+		return;
 	static auto xrRequestDisplayRefreshRateFB = inst->get_proc<PFN_xrRequestDisplayRefreshRateFB>("xrRequestDisplayRefreshRateFB");
 
 	if (xrRequestDisplayRefreshRateFB)

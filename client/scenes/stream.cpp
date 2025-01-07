@@ -933,39 +933,16 @@ void scenes::stream::exit()
 
 void scenes::stream::setup(const to_headset::video_stream_description & description)
 {
+	try
+	{
+		session.set_refresh_rate(description.fps);
+	}
+	catch (std::exception & e)
+	{
+		spdlog::warn("Failed to set refresh rate to {}: {}", description.fps, e.what());
+	}
+
 	std::unique_lock lock(decoder_mutex);
-
-	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
-	{
-		try
-		{
-			session.set_refresh_rate(description.fps);
-		}
-		catch (std::exception & e)
-		{
-			spdlog::warn("Failed to set refresh rate to {}: {}", description.fps, e.what());
-		}
-	}
-
-	if (std::ranges::equal(description.items, video_stream_description->items, [](const auto & a, const auto & b) {
-		    // clang-format off
-			return a.width == b.width
-				and a.height == b.height
-				and a.video_width == b.video_width
-				and a.offset_x == b.offset_x
-				and a.offset_y == b.offset_y
-				and a.codec == b.codec
-				and a.channels == b.channels
-				and a.subsampling == b.subsampling
-				and a.range == b.range
-				and a.color_model == b.color_model;
-			//clang-format on
-				}))
-	{
-		video_stream_description = description;
-		return;
-	}
-
 	decoders.clear();
 
 	if (description.items.empty())
@@ -1180,25 +1157,25 @@ scene::meta & scenes::stream::get_meta_scene()
 	return m;
 }
 
-void scenes::stream::on_xr_event(const xr::event& event)
+void scenes::stream::on_xr_event(const xr::event & event)
 {
 	switch (event.header.type)
 	{
 		case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
-			if (event.space_changed_pending.referenceSpaceType== XrReferenceSpaceType::XR_REFERENCE_SPACE_TYPE_LOCAL)
+			if (event.space_changed_pending.referenceSpaceType == XrReferenceSpaceType::XR_REFERENCE_SPACE_TYPE_LOCAL)
 				recenter_requested = true;
 			break;
 		case XR_TYPE_EVENT_DATA_DISPLAY_REFRESH_RATE_CHANGED_FB:
 			network_session->send_control(from_headset::refresh_rate_changed{
-					.from = event.refresh_rate_changed.fromDisplayRefreshRate,
-					.to = event.refresh_rate_changed.toDisplayRefreshRate,
-					});
+			        .from = event.refresh_rate_changed.fromDisplayRefreshRate,
+			        .to = event.refresh_rate_changed.toDisplayRefreshRate,
+			});
 			break;
 		case XR_TYPE_EVENT_DATA_VISIBILITY_MASK_CHANGED_KHR:
 			network_session->send_control(from_headset::visibility_mask_changed{
-					.data = get_visibility_mask(instance, session, event.visibility_mask_changed.viewIndex),
-					.view_index = uint8_t(event.visibility_mask_changed.viewIndex),
-					});
+			        .data = get_visibility_mask(instance, session, event.visibility_mask_changed.viewIndex),
+			        .view_index = uint8_t(event.visibility_mask_changed.viewIndex),
+			});
 			break;
 		default:
 			break;
