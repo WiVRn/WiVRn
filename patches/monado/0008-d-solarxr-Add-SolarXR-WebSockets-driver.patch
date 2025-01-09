@@ -1,4 +1,4 @@
-From 2378f91b0aa2c610a670812304c152b198ab18f1 Mon Sep 17 00:00:00 2001
+From bd657db515a3cec38debcc404077053118849a9c Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 17 Jun 2024 04:32:36 +0000
 Subject: [PATCH 08/10] d/solarxr: Add SolarXR WebSockets driver
@@ -2303,7 +2303,7 @@ index 2c66ad303..26d96aa14 100644
  }
  
 diff --git a/src/xrt/targets/common/target_builder_steamvr.c b/src/xrt/targets/common/target_builder_steamvr.c
-index 86376d773..295feb0bb 100644
+index 7b70e6b7c..f9af2722a 100644
 --- a/src/xrt/targets/common/target_builder_steamvr.c
 +++ b/src/xrt/targets/common/target_builder_steamvr.c
 @@ -34,6 +34,10 @@
@@ -2317,7 +2317,7 @@ index 86376d773..295feb0bb 100644
  #ifndef XRT_BUILD_DRIVER_STEAMVR_LIGHTHOUSE
  #error "This builder requires the SteamVR Lighthouse driver"
  #endif
-@@ -153,6 +157,15 @@ steamvr_open_system(struct xrt_builder *xb,
+@@ -151,6 +155,15 @@ steamvr_open_system(struct xrt_builder *xb,
  	svrb->right_ht = u_system_devices_get_ht_device_right(xsysd);
  	xsysd->static_roles.hand_tracking.right = svrb->right_ht;
  
@@ -2334,5 +2334,5 @@ index 86376d773..295feb0bb 100644
  	 * Space overseer.
  	 */
 -- 
-2.47.1
+2.48.0
 

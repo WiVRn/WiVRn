@@ -1,4 +1,4 @@
-From 13276b4d709c6c8e89844170eac1d67ae4ed5af6 Mon Sep 17 00:00:00 2001
+From 9e0dc33f7b1895e084e70b0b18d84510eb6e0219 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 31 Dec 2024 11:01:12 +0100
 Subject: [PATCH 09/10] Revert "a/bindings: improve reproducibility of bindings
@@ -182,5 +182,5 @@ index f54a303f9..abcbfabe6 100644
          f.close()
  
 -- 
-2.47.1
+2.48.0
 

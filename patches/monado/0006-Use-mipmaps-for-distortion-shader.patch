@@ -1,4 +1,4 @@
-From ea2831655ecc6e91ee896ea3a6809ba9ec0946dc Mon Sep 17 00:00:00 2001
+From 752c0d28ca770d9a4d5f301351898082d5f747af Mon Sep 17 00:00:00 2001
 From: galister <3123227-galister@users.noreply.gitlab.com>
 Date: Thu, 31 Oct 2024 04:37:27 +0900
 Subject: [PATCH 06/10] Use mipmaps for distortion shader
@@ -21,12 +21,12 @@ Subject: [PATCH 06/10] Use mipmaps for distortion shader
  src/xrt/compositor/render/render_gfx.c        |   6 +-
  src/xrt/compositor/render/render_interface.h  |  24 +
  src/xrt/compositor/render/render_resources.c  | 130 ++-
- src/xrt/compositor/render/render_shaders.c    |  25 +-
+ src/xrt/compositor/render/render_shaders.c    |  24 +-
  src/xrt/compositor/shaders/distortion.comp    |  39 +-
  src/xrt/compositor/util/comp_mipmap.cpp       |  25 +
  src/xrt/compositor/util/comp_mipmap.h         |  22 +
  src/xrt/compositor/util/comp_render.h         |  12 +
- src/xrt/compositor/util/comp_render_cs.c      |  91 ++
+ src/xrt/compositor/util/comp_render_cs.c      |  92 ++
  src/xrt/compositor/util/comp_render_helpers.h |  26 +-
  src/xrt/compositor/util/comp_scratch.c        |  69 +-
  src/xrt/compositor/util/comp_scratch.h        |   7 +-
@@ -1716,7 +1716,7 @@ index f1c54ed4d..3bc9302f7 100644
  	target_include_directories(comp_util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
  endif()
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 58ad49f75..6887fdf8d 100644
+index bd07a7744..104f761bf 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
 @@ -366,6 +366,9 @@ renderer_build_rendering_target_resources(struct comp_renderer *r,
@@ -1752,30 +1752,30 @@ index 58ad49f75..6887fdf8d 100644
  		struct xrt_normalized_rect layer_norm_rect = {.x = 0.0f, .y = 0.0f, .w = 1.0f, .h = 1.0f};
  
 -		comp_render_gfx_add_view( //
--		    &data,                // data
--		    &world_poses[i],      // world_pose
--		    &eye_poses[i],        // eye_pose
--		    &fovs[i],             // fov
--		    rsci_rtr,             // rtr
--		    &layer_viewport_data, // layer_viewport_data
--		    &layer_norm_rect,     // layer_norm_rect
--		    rsci->image,          // image
--		    rsci->srgb_view,      // srgb_view
--		    &vertex_rots[i],      // vertex_rot
+-		    &data,                //
+-		    &world_poses[i],      //
+-		    &eye_poses[i],        //
+-		    &fovs[i],             //
+-		    rsci_rtr,             //
+-		    &layer_viewport_data, //
+-		    &layer_norm_rect,     //
+-		    rsci->image,          //
+-		    rsci->srgb_view,      //
+-		    &vertex_rots[i],      //
 -		    &viewport_datas[i]);  // target_viewport_data
-+		comp_render_gfx_add_view(          //
-+		    &data,                         // data
-+		    &world_poses[i],               // world_pose
-+		    &eye_poses[i],                 // eye_pose
-+		    &fovs[i],                      // fov
-+		    rsci_rtr,                      // rtr
-+		    &layer_viewport_data,          // layer_viewport_data
-+		    &layer_norm_rect,              // layer_norm_rect
-+		    rsci->image,                   // image
-+		    rsci->srgb_view,               // srgb_view
-+		    scratch_view->info.mip_count,  // mip_count
-+		    &vertex_rots[i],               // vertex_rot
-+		    &viewport_datas[i]);           // target_viewport_data
++		comp_render_gfx_add_view(         //
++		    &data,                        //
++		    &world_poses[i],              //
++		    &eye_poses[i],                //
++		    &fovs[i],                     //
++		    rsci_rtr,                     //
++		    &layer_viewport_data,         //
++		    &layer_norm_rect,             //
++		    rsci->image,                  //
++		    rsci->srgb_view,              //
++		    scratch_view->info.mip_count, //
++		    &vertex_rots[i],              //
++		    &viewport_datas[i]);          // target_viewport_data
  
  		if (layer_count == 0) {
  			crss->views[i].used = false;
@@ -1793,28 +1793,28 @@ index 58ad49f75..6887fdf8d 100644
  		struct xrt_normalized_rect layer_norm_rect = {.x = 0.0f, .y = 0.0f, .w = 1.0f, .h = 1.0f};
  
 -		comp_render_cs_add_view(  //
--		    &data,                // data
--		    &world_poses[i],      // world_pose
--		    &eye_poses[i],        // eye_pose
--		    &fovs[i],             // fov
--		    &layer_viewport_data, // layer_viewport_data
--		    &layer_norm_rect,     // layer_norm_rect
--		    rsci->image,          // image
--		    rsci->srgb_view,      // srgb_view
--		    rsci->unorm_view,     // unorm_view
+-		    &data,                //
+-		    &world_poses[i],      //
+-		    &eye_poses[i],        //
+-		    &fovs[i],             //
+-		    &layer_viewport_data, //
+-		    &layer_norm_rect,     //
+-		    rsci->image,          //
+-		    rsci->srgb_view,      //
+-		    rsci->unorm_view,     //
 -		    &views[i]);           // target_viewport_data
 +		comp_render_cs_add_view(          //
-+		    &data,                        // data
-+		    &world_poses[i],              // world_pose
-+		    &eye_poses[i],                // eye_pose
-+		    &fovs[i],                     // fov
-+		    &layer_viewport_data,         // layer_viewport_data
-+		    &layer_norm_rect,             // layer_norm_rect
-+		    rsci->image,                  // image
-+		    rsci->srgb_view,              // srgb_view
-+		    rsci->unorm_view,             // unorm_view
-+		    rsci->mip_views,              // mip_views
-+		    scratch_view->info.mip_count, // mip_count
++		    &data,                        //
++		    &world_poses[i],              //
++		    &eye_poses[i],                //
++		    &fovs[i],                     //
++		    &layer_viewport_data,         //
++		    &layer_norm_rect,             //
++		    rsci->image,                  //
++		    rsci->srgb_view,              //
++		    rsci->unorm_view,             //
++		    rsci->mip_views,              //
++		    scratch_view->info.mip_count, //
 +		    &views[i]);                   // target_viewport_data
  
  		if (layer_count == 0) {
@@ -1865,44 +1865,44 @@ index 2766b9228..b3d20c451 100644
  
  /*!
 diff --git a/src/xrt/compositor/render/render_compute.c b/src/xrt/compositor/render/render_compute.c
-index 4e9c7b90d..e7831fa89 100644
+index 27b1953cf..131b97066 100644
 --- a/src/xrt/compositor/render/render_compute.c
 +++ b/src/xrt/compositor/render/render_compute.c
-@@ -315,6 +315,17 @@ render_compute_init(struct render_compute *crc, struct render_resources *r)
+@@ -315,6 +315,17 @@ render_compute_init(struct render_compute *render, struct render_resources *r)
  
- 	VK_NAME_DESCRIPTOR_SET(vk, crc->shared_descriptor_set, "render_compute shared descriptor set");
+ 	VK_NAME_DESCRIPTOR_SET(vk, render->shared_descriptor_set, "render_compute shared descriptor set");
  
-+	for (uint32_t i = 0; i < ARRAY_SIZE(crc->mip_descriptor_set); ++i) {
++	for (uint32_t i = 0; i < ARRAY_SIZE(render->mip_descriptor_set); ++i) {
 +		ret = vk_create_descriptor_set(              //
 +		    vk,                                      // vk_bundle
 +		    r->compute.descriptor_pool,              // descriptor_pool
 +		    r->compute.mipmap.descriptor_set_layout, // descriptor_set_layout
-+		    &crc->mip_descriptor_set[i]);            // descriptor_set
++		    &render->mip_descriptor_set[i]);         // descriptor_set
 +		VK_CHK_WITH_RET(ret, "vk_create_descriptor_set", false);
-+		VK_NAME_DESCRIPTOR_SET(vk, crc->mip_descriptor_set[i], "render_compute mipmap descriptor set");
++		VK_NAME_DESCRIPTOR_SET(vk, render->mip_descriptor_set[i], "render_compute mipmap descriptor set");
 +	}
 +
 +
  	return true;
  }
  
-@@ -378,6 +389,9 @@ render_compute_fini(struct render_compute *crc)
- 	struct vk_bundle *vk = vk_from_crc(crc);
+@@ -377,6 +388,9 @@ render_compute_fini(struct render_compute *render)
  
- 	// Reclaimed by vkResetDescriptorPool.
-+	for (uint32_t i = 0; i < ARRAY_SIZE(crc->mip_descriptor_set); i++) {
-+		crc->mip_descriptor_set[i] = VK_NULL_HANDLE;
+ 	struct vk_bundle *vk = vk_from_render(render);
+ 
++	for (uint32_t i = 0; i < ARRAY_SIZE(render->mip_descriptor_set); i++) {
++		render->mip_descriptor_set[i] = VK_NULL_HANDLE;
 +	}
- 	crc->shared_descriptor_set = VK_NULL_HANDLE;
- 	for (uint32_t i = 0; i < ARRAY_SIZE(crc->layer_descriptor_sets); i++) {
- 		crc->layer_descriptor_sets[i] = VK_NULL_HANDLE;
+ 	// Reclaimed by vkResetDescriptorPool.
+ 	render->shared_descriptor_set = VK_NULL_HANDLE;
+ 	for (uint32_t i = 0; i < ARRAY_SIZE(render->layer_descriptor_sets); i++) {
 diff --git a/src/xrt/compositor/render/render_gfx.c b/src/xrt/compositor/render/render_gfx.c
-index 96abb3d3f..37867347e 100644
+index d1a155e1d..a06ac2ba1 100644
 --- a/src/xrt/compositor/render/render_gfx.c
 +++ b/src/xrt/compositor/render/render_gfx.c
-@@ -941,9 +941,11 @@ render_gfx_target_resources_init(struct render_gfx_target_resources *rtr,
+@@ -942,9 +942,11 @@ render_gfx_target_resources_init(struct render_gfx_target_resources *rtr,
  void
- render_gfx_target_resources_close(struct render_gfx_target_resources *rtr)
+ render_gfx_target_resources_fini(struct render_gfx_target_resources *rtr)
  {
 -	struct vk_bundle *vk = vk_from_rtr(rtr);
 +	if (rtr->r) {
@@ -1915,12 +1915,12 @@ index 96abb3d3f..37867347e 100644
  	U_ZERO(rtr);
  }
 diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
-index 15e2ecd3a..03eb7e033 100644
+index d5d2bc4cb..aab965e0c 100644
 --- a/src/xrt/compositor/render/render_interface.h
 +++ b/src/xrt/compositor/render/render_interface.h
 @@ -64,6 +64,11 @@ extern "C" {
  #define RENDER_MAX_IMAGES_SIZE (RENDER_MAX_LAYERS * XRT_MAX_VIEWS)
- #define RENDER_MAX_IMAGES_COUNT (RENDER_MAX_LAYERS * r->view_count)
+ #define RENDER_MAX_IMAGES_COUNT(RENDER_RESOURCES) (RENDER_MAX_LAYERS * RENDER_RESOURCES->view_count)
  
 +/*!
 + * Max number of mip levels for distortion calculation
@@ -1959,7 +1959,7 @@ index 15e2ecd3a..03eb7e033 100644
  	} compute;
  
  	struct
-@@ -639,6 +659,7 @@ struct render_scratch_color_image
+@@ -645,6 +665,7 @@ struct render_scratch_color_image
  	VkImage image;
  	VkImageView srgb_view;
  	VkImageView unorm_view;
@@ -1967,7 +1967,7 @@ index 15e2ecd3a..03eb7e033 100644
  };
  
  /*!
-@@ -1116,6 +1137,9 @@ struct render_compute
+@@ -1176,6 +1197,9 @@ struct render_compute
  	 * @ref render_compute_projection, and @ref render_compute_clear.
  	 */
  	VkDescriptorSet shared_descriptor_set;
@@ -1978,7 +1978,7 @@ index 15e2ecd3a..03eb7e033 100644
  
  /*!
 diff --git a/src/xrt/compositor/render/render_resources.c b/src/xrt/compositor/render/render_resources.c
-index 959685794..9ae017001 100644
+index ccc6f10cf..b9b8d4a22 100644
 --- a/src/xrt/compositor/render/render_resources.c
 +++ b/src/xrt/compositor/render/render_resources.c
 @@ -287,6 +287,45 @@ create_compute_distortion_descriptor_set_layout(struct vk_bundle *vk,
@@ -2057,25 +2057,25 @@ index 959685794..9ae017001 100644
  	rsci->device_memory = device_memory;
  	rsci->image = image;
  	rsci->srgb_view = srgb_view;
-@@ -831,13 +893,14 @@ render_resources_init(struct render_resources *r,
+@@ -829,13 +891,14 @@ render_resources_init(struct render_resources *r,
  
  	const uint32_t compute_descriptor_count = //
  	    1 +                                   // Shared/distortion run(s).
--	    RENDER_MAX_LAYER_RUNS_COUNT;          // Layer shader run(s).
-+	    RENDER_MAX_LAYER_RUNS_COUNT +         // Layer shader run(s).
+-	    RENDER_MAX_LAYER_RUNS_COUNT(r);       // Layer shader run(s).
++	    RENDER_MAX_LAYER_RUNS_COUNT(r) +      // Layer shader run(s).
 +	    XRT_MAX_VIEWS;                        // Mipmap
  
  	struct vk_descriptor_pool_info compute_pool_info = {
  	    .uniform_per_descriptor_count = 1,
  	    // layer images
--	    .sampler_per_descriptor_count = r->compute.layer.image_array_size + RENDER_DISTORTION_IMAGES_COUNT,
+-	    .sampler_per_descriptor_count = r->compute.layer.image_array_size + RENDER_DISTORTION_IMAGES_COUNT(r),
 -	    .storage_image_per_descriptor_count = 1,
-+	    .sampler_per_descriptor_count = r->compute.layer.image_array_size + RENDER_DISTORTION_IMAGES_COUNT + 1,
++	    .sampler_per_descriptor_count = r->compute.layer.image_array_size + RENDER_DISTORTION_IMAGES_COUNT(r) + 1,
 +	    .storage_image_per_descriptor_count = 1 + COMP_MAX_MIP_LEVELS,
  	    .storage_buffer_per_descriptor_count = 0,
  	    .descriptor_count = compute_descriptor_count,
  	    .freeable = false,
-@@ -1036,6 +1099,62 @@ render_resources_init(struct render_resources *r,
+@@ -1034,6 +1097,62 @@ render_resources_init(struct render_resources *r,
  	    &r->compute.clear.ubo); // buffer
  	VK_CHK_WITH_RET(ret, "render_buffer_map", false);
  
@@ -2138,7 +2138,7 @@ index 959685794..9ae017001 100644
  
  	/*
  	 * Compute distortion textures, not created until later.
-@@ -1131,6 +1250,11 @@ render_resources_close(struct render_resources *r)
+@@ -1129,6 +1248,11 @@ render_resources_fini(struct render_resources *r)
  
  	D(Pipeline, r->compute.clear.pipeline);
  
@@ -2147,11 +2147,11 @@ index 959685794..9ae017001 100644
 +	D(Pipeline, r->compute.mipmap.general_pipeline);
 +	D(PipelineLayout, r->compute.mipmap.pipeline_layout);
 +
- 	render_distortion_images_close(r);
- 	render_buffer_close(vk, &r->compute.clear.ubo);
+ 	render_distortion_images_fini(r);
+ 	render_buffer_fini(vk, &r->compute.clear.ubo);
  	for (uint32_t i = 0; i < r->view_count; i++) {
 diff --git a/src/xrt/compositor/render/render_shaders.c b/src/xrt/compositor/render/render_shaders.c
-index 12a66b533..a6fb4353b 100644
+index b6bae2690..02847ca45 100644
 --- a/src/xrt/compositor/render/render_shaders.c
 +++ b/src/xrt/compositor/render/render_shaders.c
 @@ -39,6 +39,8 @@
@@ -2163,7 +2163,7 @@ index 12a66b533..a6fb4353b 100644
  
  #if defined(__GNUC__)
  #pragma GCC diagnostic pop
-@@ -51,22 +53,24 @@
+@@ -51,22 +53,23 @@
   *
   */
  
@@ -2184,7 +2184,7 @@ index 12a66b533..a6fb4353b 100644
 +		                           &s->VAR); /* out       */                                                   \
  		if (ret != VK_SUCCESS) {                                                                               \
  			VK_ERROR(vk, "Failed to load shader '" #SHADER "'");                                           \
- 			render_shaders_close(s, vk);                                                                   \
+ 			render_shaders_fini(s, vk);                                                                    \
  			return false;                                                                                  \
  		}                                                                                                      \
 -		VK_NAME_SHADER_MODULE(vk, s->SHADER, #SHADER);                                                         \
@@ -2192,11 +2192,10 @@ index 12a66b533..a6fb4353b 100644
  	} while (false)
  
 +#define LOAD(SHADER) LOAD_NAME(SHADER, shaders_##SHADER)
-+
  
  /*
   *
-@@ -109,6 +113,9 @@ render_shaders_load(struct render_shaders *s, struct vk_bundle *vk)
+@@ -109,6 +112,9 @@ render_shaders_load(struct render_shaders *s, struct vk_bundle *vk)
  
  	LOAD(distortion_comp);
  
@@ -2206,7 +2205,7 @@ index 12a66b533..a6fb4353b 100644
  	LOAD(mesh_vert);
  	LOAD(mesh_frag);
  
-@@ -131,6 +138,8 @@ render_shaders_close(struct render_shaders *s, struct vk_bundle *vk)
+@@ -131,6 +137,8 @@ render_shaders_fini(struct render_shaders *s, struct vk_bundle *vk)
  	D(ShaderModule, s->blit_comp);
  	D(ShaderModule, s->clear_comp);
  	D(ShaderModule, s->distortion_comp);
@@ -2334,7 +2333,7 @@ index 000000000..e5d3c670d
 +}
 +#endif
 diff --git a/src/xrt/compositor/util/comp_render.h b/src/xrt/compositor/util/comp_render.h
-index 175c40063..7d8cf6d2a 100644
+index 579b91413..e6fd072be 100644
 --- a/src/xrt/compositor/util/comp_render.h
 +++ b/src/xrt/compositor/util/comp_render.h
 @@ -125,6 +125,11 @@ struct comp_render_view_data
@@ -2366,7 +2365,7 @@ index 175c40063..7d8cf6d2a 100644
  }
  
  /*!
-@@ -436,6 +444,8 @@ comp_render_cs_add_view(struct comp_render_dispatch_data *data,
+@@ -469,6 +477,8 @@ comp_render_cs_add_view(struct comp_render_dispatch_data *data,
                          VkImage image,
                          VkImageView srgb_view,
                          VkImageView unorm_view,
@@ -2375,7 +2374,7 @@ index 175c40063..7d8cf6d2a 100644
                          const struct render_viewport_data *target_viewport_data)
  {
  	struct comp_render_view_data *view = comp_render_dispatch_add_view( //
-@@ -450,6 +460,8 @@ comp_render_cs_add_view(struct comp_render_dispatch_data *data,
+@@ -483,6 +493,8 @@ comp_render_cs_add_view(struct comp_render_dispatch_data *data,
  	    target_viewport_data);
  
  	view->cs.unorm_view = unorm_view;
@@ -2385,7 +2384,7 @@ index 175c40063..7d8cf6d2a 100644
  
  /*!
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index 341629c71..499bed5f9 100644
+index dbc2fec7e..fc11a0521 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
 @@ -25,6 +25,7 @@
@@ -2396,8 +2395,8 @@ index 341629c71..499bed5f9 100644
  #include "util/comp_render.h"
  #include "util/comp_render_helpers.h"
  #include "util/comp_base.h"
-@@ -352,6 +353,92 @@ do_cs_clear(struct render_compute *crc, const struct comp_render_dispatch_data *
- 	    target_viewport_datas);  // views
+@@ -328,6 +329,92 @@ do_cs_quad_layer(const struct comp_layer *layer,
+ 	*out_cur_image = cur_image;
  }
  
 +static void
@@ -2487,28 +2486,29 @@ index 341629c71..499bed5f9 100644
 +}
 +
  static void
- do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_render_dispatch_data *d)
+ crc_clear_output(struct render_compute *render, const struct comp_render_dispatch_data *d)
  {
-@@ -368,6 +455,8 @@ do_cs_distortion_from_scratch(struct render_compute *crc, const struct comp_rend
+@@ -374,6 +461,8 @@ crc_distortion_after_squash(struct render_compute *render, const struct comp_ren
  	struct xrt_normalized_rect src_norm_rects[XRT_MAX_VIEWS];
  
  	for (uint32_t i = 0; i < d->view_count; i++) {
-+		fill_mip_levels(crc->r, &d->views[i], crc->mip_descriptor_set[i]);
++		fill_mip_levels(render->r, &d->views[i], render->mip_descriptor_set[i]);
 +
  		// Data to be filled in.
- 		struct render_viewport_data viewport_data;
  		VkImageView src_image_view;
-@@ -745,6 +834,8 @@ comp_render_cs_dispatch(struct render_compute *crc,
- 		    vds,                    // vds
- 		    d);                     // d
- 	} else if (layer_count > 0) {
+ 		struct render_viewport_data viewport_data;
+@@ -762,6 +851,9 @@ comp_render_cs_dispatch(struct render_compute *render,
+ 			U_LOG_W("Wanted fast path but no projection layer, falling back to layer squasher.");
+ 		}
+ 
 +		if (d->views[0].cs.mip_count != 1)
 +			transition_to = VK_IMAGE_LAYOUT_GENERAL;
- 		comp_render_cs_layers( //
- 		    crc,               //
- 		    layers,            //
++
+ 		/*
+ 		 * Layer squashing.
+ 		 */
 diff --git a/src/xrt/compositor/util/comp_render_helpers.h b/src/xrt/compositor/util/comp_render_helpers.h
-index 68c7cafbd..0b40254f7 100644
+index aa5de56c2..bbf295c0a 100644
 --- a/src/xrt/compositor/util/comp_render_helpers.h
 +++ b/src/xrt/compositor/util/comp_render_helpers.h
 @@ -145,10 +145,10 @@ cmd_barrier_view_images(struct vk_bundle *vk,
@@ -2768,5 +2768,5 @@ index 44849c20e..f8c891e49 100644
  void
  comp_scratch_stereo_images_free(struct comp_scratch_stereo_images *cssi, struct vk_bundle *vk);
 -- 
-2.47.1
+2.48.0
 
