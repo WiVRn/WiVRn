@@ -32,27 +32,32 @@ namespace
 	return vk::raii::Queue(device, family_index, index);
 }
 
-VkBool32 message_callback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                          VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-                          const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
-                          void * pUserData)
+VkBool32 message_callback(
+#if VK_HEADER_VERSION >= 304
+        vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        vk::DebugUtilsMessageTypeFlagsEXT messageTypes,
+        const vk::DebugUtilsMessengerCallbackDataEXT * pCallbackData,
+#else
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+        const VkDebugUtilsMessengerCallbackDataEXT * pCallbackData,
+#endif
+        void * pUserData)
 {
 	u_logging_level level = U_LOGGING_ERROR;
-	switch (messageSeverity)
+	switch (vk::DebugUtilsMessageSeverityFlagBitsEXT(messageSeverity))
 	{
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+		case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
 			level = U_LOGGING_DEBUG;
 			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+		case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
 			level = U_LOGGING_INFO;
 			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+		case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
 			level = U_LOGGING_WARN;
 			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+		case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
 			level = U_LOGGING_ERROR;
-			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT:
 			break;
 	}
 	U_LOG(level, "%s", pCallbackData->pMessage);
