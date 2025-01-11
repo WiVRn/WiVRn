@@ -91,6 +91,7 @@ android {
                           '-DWIVRN_SHOW_IMGUI_DEMO_WINDOW=' + showImguiDemo,
                           '-DWIVRN_CSS=' + css
                 resValue "string", "app_name", project.hasProperty('wivrn_app_name') ? project.wivrn_app_name : "WiVRn Local"
+                targets "wivrn"
             }
         }
     }
