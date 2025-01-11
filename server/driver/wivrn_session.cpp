@@ -318,12 +318,73 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 		fb_face2_tracker->update_tracking(tracking, offset);
 }
 
+static std::ofstream donne_moi_un_csv(std::string path)
+{
+	std::ofstream f(path);
+
+	f << "production_timestamp,";
+	f << "timestamp,";
+	for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
+	{
+		f << "[" << i << "].pose.orientation.w,";
+		f << "[" << i << "].pose.orientation.x,";
+		f << "[" << i << "].pose.orientation.y,";
+		f << "[" << i << "].pose.orientation.z,";
+		f << "[" << i << "].pose.position.x,";
+		f << "[" << i << "].pose.position.y,";
+		f << "[" << i << "].pose.position.z,";
+		f << "[" << i << "].linear_velocity.x,";
+		f << "[" << i << "].linear_velocity.y,";
+		f << "[" << i << "].linear_velocity.z,";
+		f << "[" << i << "].angular_velocity.x,";
+		f << "[" << i << "].angular_velocity.y,";
+		f << "[" << i << "].angular_velocity.z,";
+		f << "[" << i << "].radius,";
+		f << "[" << i << "].flags,";
+	}
+
+	f << std::endl;
+
+	return f;
+}
+
 void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 {
 	auto offset = offset_est.get_offset();
 
 	left_hand.update_hand_tracking(hand_tracking, offset);
 	right_hand.update_hand_tracking(hand_tracking, offset);
+
+	static std::ofstream left_hand = donne_moi_un_csv("left_hand.csv");
+	static std::ofstream right_hand = donne_moi_un_csv("right_hand.csv");
+
+	std::ofstream & current_hand = hand_tracking.hand == from_headset::hand_tracking::left ? left_hand : right_hand;
+
+	current_hand << hand_tracking.production_timestamp << ",";
+	current_hand << hand_tracking.timestamp << ",";
+	if (hand_tracking.joints)
+	{
+		for (auto & joint: *hand_tracking.joints)
+		{
+			current_hand << joint.pose.orientation.w << ",";
+			current_hand << joint.pose.orientation.x << ",";
+			current_hand << joint.pose.orientation.y << ",";
+			current_hand << joint.pose.orientation.z << ",";
+			current_hand << joint.pose.position.x << ",";
+			current_hand << joint.pose.position.y << ",";
+			current_hand << joint.pose.position.z << ",";
+			current_hand << joint.linear_velocity.x << ",";
+			current_hand << joint.linear_velocity.y << ",";
+			current_hand << joint.linear_velocity.z << ",";
+			current_hand << joint.angular_velocity.x << ",";
+			current_hand << joint.angular_velocity.y << ",";
+			current_hand << joint.angular_velocity.z << ",";
+			current_hand << joint.radius << ",";
+			current_hand << (int)joint.flags << ",";
+		}
+	}
+
+	current_hand << std::endl;
 }
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {

@@ -375,7 +375,9 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
 	if (not joints.update_tracking(tracking, offset))
-		cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, false);
+	{
+	}
+	// cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, false);
 }
 
 void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)
