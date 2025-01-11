@@ -20,6 +20,7 @@
 #include "wivrn_session.h"
 
 #include "accept_connection.h"
+#include "hand_kinematics.h"
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
 #include "main/comp_target.h"
@@ -386,6 +387,37 @@ void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 
 	current_hand << std::endl;
 }
+
+void wivrn_session::operator()(from_headset::packed_hand_tracking && packed_hand_tracking)
+{
+	auto offset = offset_est.get_offset();
+
+	switch (packed_hand_tracking.hand)
+	{
+		case from_headset::packed_hand_tracking::left:
+			left_hand.update_packed_hand_tracking(packed_hand_tracking, offset);
+			return;
+
+		case from_headset::packed_hand_tracking::right:
+			right_hand.update_packed_hand_tracking(packed_hand_tracking, offset);
+			return;
+	}
+}
+
+void wivrn_session::operator()(from_headset::hand_tracking_constants && hand_tracking_constants)
+{
+	switch (hand_tracking_constants.hand)
+	{
+		case from_headset::hand_tracking_constants::left:
+			left_hand.update_packed_hand_tracking(hand_tracking_constants);
+			return;
+
+		case from_headset::hand_tracking_constants::right:
+			right_hand.update_packed_hand_tracking(hand_tracking_constants);
+			return;
+	}
+}
+
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
 	auto offset = get_offset();

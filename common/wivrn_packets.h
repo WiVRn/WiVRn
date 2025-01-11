@@ -32,6 +32,7 @@
 #include <vulkan/vulkan_core.h>
 #include <openxr/openxr.h>
 
+#include "hand_kinematics.h"
 #include "smp.h"
 #include "wivrn_serialization_types.h"
 
@@ -247,6 +248,34 @@ struct hand_tracking
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
 };
 
+struct packed_hand_tracking
+{
+	enum hand_id : uint8_t
+	{
+		left,
+		right,
+	};
+
+	XrTime production_timestamp;
+	XrTime timestamp;
+	hand_id hand;
+	bool velocity_valid;
+	hand_kinematics::packed_pose pose;
+};
+
+struct hand_tracking_constants
+{
+	enum hand_id : uint8_t
+	{
+		left,
+		right,
+	};
+
+	hand_id hand;
+	hand_kinematics::pose_constants constants;
+	std::array<uint16_t, XR_HAND_JOINT_COUNT_EXT> radius; // 10th of mm
+};
+
 struct inputs
 {
 	struct input_value
@@ -304,6 +333,8 @@ using packets = std::variant<
         tracking,
         trackings,
         hand_tracking,
+        packed_hand_tracking,
+        hand_tracking_constants,
         inputs,
         timesync_response,
         battery,

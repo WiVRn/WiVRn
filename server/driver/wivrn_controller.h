@@ -39,6 +39,7 @@ class wivrn_controller : public xrt_device
 	pose_list aim;
 	pose_list palm;
 	hand_joints_list joints;
+	from_headset::hand_tracking_constants hand_constants;
 
 	std::vector<xrt_input> inputs_staging;
 	std::vector<xrt_input> inputs_array;
@@ -64,6 +65,8 @@ public:
 
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	void update_hand_tracking(const from_headset::hand_tracking &, const clock_offset &);
+	void update_packed_hand_tracking(const from_headset::packed_hand_tracking &, const clock_offset &);
+	void update_packed_hand_tracking(const from_headset::hand_tracking_constants &);
 
 private:
 	void set_inputs(device_id input_id, float value, int64_t last_change_time);

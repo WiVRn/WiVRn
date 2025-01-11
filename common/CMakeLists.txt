@@ -6,6 +6,12 @@ else()
     FetchContent_MakeAvailable(boostpfr)
 endif()
 
+if(ANDROID)
+    set(EIGEN_BUILD_DOC OFF)
+    set(BUILD_TESTING OFF)
+    FetchContent_MakeAvailable(eigen)
+endif()
+
 if (GIT_DESC)
     configure_file(version.cpp.in version.cpp)
 else ()
@@ -35,6 +41,7 @@ add_library(wivrn-common STATIC
     smp.cpp
     secrets.cpp
     wivrn_sockets.cpp
+    hand_kinematics.cpp
     utils/xdg_base_directory.cpp
     utils/strings.cpp
     vk/allocation.cpp
@@ -107,6 +114,6 @@ else()
 endif()
 
 target_include_directories(wivrn-common-base PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(wivrn-common PUBLIC Boost::pfr OpenSSL::Crypto wivrn-external wivrn-common-base)
+target_link_libraries(wivrn-common PUBLIC Boost::pfr OpenSSL::Crypto Eigen3::Eigen wivrn-external wivrn-common-base)
 target_compile_features(wivrn-common PRIVATE cxx_std_20)
 target_compile_definitions(wivrn-common PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)

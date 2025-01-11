@@ -72,6 +72,7 @@ find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Git)
 if (NOT ANDROID)
+    find_package(Eigen3 REQUIRED)
     find_package(OpenSSL REQUIRED)
 endif()
 include(VulkanVersion)
@@ -230,6 +231,7 @@ endif()
 # Common dependencies
 FetchContent_Declare(boostpfr      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/boostorg/pfr/archive/refs/tags/2.2.0.tar.gz)
 FetchContent_Declare(boost         EXCLUDE_FROM_ALL SYSTEM URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz)
+FetchContent_Declare(eigen         EXCLUDE_FROM_ALL SYSTEM URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.bz2)
 
 # Client dependencies
 FetchContent_Declare(simdjson      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/simdjson/simdjson/archive/refs/tags/v3.10.1.tar.gz)

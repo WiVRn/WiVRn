@@ -18,9 +18,11 @@
  */
 
 #include "wivrn_controller.h"
+#include "hand_kinematics.h"
 #include "wivrn_session.h"
 
 #include "util/u_logging.h"
+#include <ranges>
 #include <stdio.h>
 
 #include "xrt/xrt_defines.h"
@@ -374,10 +376,71 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 
 void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
-	if (not joints.update_tracking(tracking, offset))
-	{
-	}
+	// if (not joints.update_tracking(tracking, offset))
 	// cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, false);
+}
+
+void wivrn_controller::update_packed_hand_tracking(const from_headset::packed_hand_tracking & packed_hand_tracking, const clock_offset & offset)
+{
+	auto id = device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER ? from_headset::packed_hand_tracking::left
+	                                                              : from_headset::packed_hand_tracking::right;
+
+	if (id != packed_hand_tracking.hand)
+		return;
+
+	from_headset::hand_tracking tracking{
+	        .production_timestamp = packed_hand_tracking.production_timestamp,
+	        .timestamp = packed_hand_tracking.timestamp,
+	        .hand = (from_headset::hand_tracking::hand_id)packed_hand_tracking.hand,
+	};
+
+	hand_kinematics hand;
+	auto unpacked = hand.unpack(hand_constants.constants, packed_hand_tracking.pose);
+	tracking.joints.emplace();
+
+	uint8_t flags = from_headset::hand_tracking::flags::orientation_valid |
+	                from_headset::hand_tracking::flags::orientation_tracked |
+	                from_headset::hand_tracking::flags::position_valid |
+	                from_headset::hand_tracking::flags::position_tracked;
+
+	if (packed_hand_tracking.velocity_valid)
+		flags |= from_headset::hand_tracking::flags::angular_velocity_valid | from_headset::hand_tracking::flags::linear_velocity_valid;
+
+	for (auto [i, j, k]: std::views::zip(*tracking.joints, unpacked, hand_constants.radius))
+	{
+		i.flags = flags;
+		i.radius = k;
+		i.pose.position.x = j.position[0];
+		i.pose.position.y = j.position[1];
+		i.pose.position.z = j.position[2];
+		i.pose.orientation.x = j.rotation[0];
+		i.pose.orientation.y = j.rotation[1];
+		i.pose.orientation.z = j.rotation[2];
+		i.pose.orientation.w = j.rotation[3];
+
+		if (packed_hand_tracking.velocity_valid)
+		{
+			i.linear_velocity.x = j.linear_velocity[0];
+			i.linear_velocity.y = j.linear_velocity[1];
+			i.linear_velocity.z = j.linear_velocity[2];
+			i.angular_velocity.x = j.angular_velocity[0];
+			i.angular_velocity.y = j.angular_velocity[1];
+			i.angular_velocity.z = j.angular_velocity[2];
+		}
+	}
+
+	if (not joints.update_tracking(tracking, offset))
+		cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, false);
+}
+
+void wivrn_controller::update_packed_hand_tracking(const from_headset::hand_tracking_constants & hand_tracking_constants)
+{
+	auto id = device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER ? from_headset::hand_tracking_constants::left
+	                                                              : from_headset::hand_tracking_constants::right;
+
+	if (id == hand_tracking_constants.hand)
+
+		hand_constants = hand_tracking_constants;
 }
 
 void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)

@@ -18,7 +18,9 @@
  */
 
 #include "application.h"
+#include "hand_kinematics.h"
 #include "stream.h"
+#include "wivrn_packets.h"
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -158,6 +160,61 @@ static bool enabled(const to_headset::tracking_control & control, device_id id)
 	__builtin_unreachable();
 }
 
+static void pack_hand_data(std::vector<from_headset::packed_hand_tracking> & packed_hands,
+                           std::pair<int, from_headset::hand_tracking_constants> & constants,
+                           const std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> & pose,
+                           uint64_t production_timestamp,
+                           uint64_t timestamp,
+                           from_headset::packed_hand_tracking::hand_id hand_id)
+{
+	if (!pose)
+		return;
+
+	hand_kinematics hk;
+	hand_kinematics::pose p;
+	for (auto [i, j]: std::views::zip(*pose, p))
+	{
+		j.position[0] = i.pose.position.x;
+		j.position[1] = i.pose.position.y;
+		j.position[2] = i.pose.position.z;
+		j.rotation[0] = i.pose.orientation.x;
+		j.rotation[1] = i.pose.orientation.y;
+		j.rotation[2] = i.pose.orientation.z;
+		j.rotation[3] = i.pose.orientation.w;
+		j.linear_velocity[0] = i.linear_velocity.x;
+		j.linear_velocity[1] = i.linear_velocity.y;
+		j.linear_velocity[2] = i.linear_velocity.z;
+		j.angular_velocity[0] = i.angular_velocity.x;
+		j.angular_velocity[1] = i.angular_velocity.y;
+		j.angular_velocity[2] = i.angular_velocity.z;
+	}
+
+	// TODO average constants over several frames and send them less often
+
+	auto [consts, packed_pose] = hk.pack(p);
+	hk.apply_ik(consts, packed_pose, p);
+
+	packed_hands.emplace_back(
+	        production_timestamp,
+	        timestamp,
+	        hand_id,
+	        true,
+	        packed_pose);
+
+	// TODO average using floats
+	for (auto [i, j]: std::views::zip(*pose, constants.second.radius))
+	{
+		j = (i.radius + j * constants.first) / (constants.first + 1);
+	}
+
+	for (auto [i, j]: std::views::zip(consts, constants.second.constants))
+	{
+		j = (i + j * constants.first) / (constants.first + 1);
+	}
+
+	constants.first++;
+}
+
 void scenes::stream::tracking()
 {
 #ifdef __ANDROID__
@@ -192,6 +249,11 @@ void scenes::stream::tracking()
 	XrTime last_hand_sample = t0;
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::hand_tracking> hands;
+	std::vector<from_headset::packed_hand_tracking> packed_hands;
+
+	std::pair<int, from_headset::hand_tracking_constants> hand_constants_left;
+	std::pair<int, from_headset::hand_tracking_constants> hand_constants_right;
+
 	int skip_samples = 0;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
@@ -203,6 +265,13 @@ void scenes::stream::tracking()
 		{
 			tracking.clear();
 			hands.clear();
+			packed_hands.clear();
+
+			hand_constants_left = std::pair<int, from_headset::hand_tracking_constants>{};
+			hand_constants_right = std::pair<int, from_headset::hand_tracking_constants>{};
+
+			hand_constants_left.second.hand = from_headset::hand_tracking_constants::left;
+			hand_constants_right.second.hand = from_headset::hand_tracking_constants::right;
 
 			XrTime now = instance.now();
 			if (now < t0)
@@ -258,18 +327,28 @@ void scenes::stream::tracking()
 					{
 						last_hand_sample = t0;
 						if (control.enabled[size_t(tid::left_hand)])
+						{
+							auto pose = locate_hands(application::get_left_hand(), world_space, t0 + Δt);
 							hands.emplace_back(
 							        t0,
 							        t0 + Δt,
 							        from_headset::hand_tracking::left,
-							        locate_hands(application::get_left_hand(), world_space, t0 + Δt));
+							        pose);
+
+							pack_hand_data(packed_hands, hand_constants_left, pose, t0, t0 + Δt, from_headset::packed_hand_tracking::left);
+						}
 
 						if (control.enabled[size_t(tid::right_hand)])
+						{
+							auto pose = locate_hands(application::get_right_hand(), world_space, t0 + Δt);
 							hands.emplace_back(
 							        t0,
 							        t0 + Δt,
 							        from_headset::hand_tracking::right,
-							        locate_hands(application::get_right_hand(), world_space, t0 + Δt));
+							        pose);
+
+							pack_hand_data(packed_hands, hand_constants_right, pose, t0, t0 + Δt, from_headset::packed_hand_tracking::right);
+						}
 					}
 
 					if (face_tracking and control.enabled[size_t(tid::face)])
@@ -334,13 +413,28 @@ void scenes::stream::tracking()
 			}
 
 			std::vector<serialization_packet> packets;
-			packets.reserve(merged_tracking.size() + hands.size());
+			packets.reserve(merged_tracking.size() + hands.size() + packed_hands.size() + 2);
+
 			for (const auto & i: merged_tracking)
-				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
-			for (const auto & i: hands)
 			{
-				if (i.joints)
-					wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+			}
+
+			// for (const auto & i: hands)
+			// {
+			// 	if (i.joints)
+			// 		wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+			// }
+
+			if (not packed_hands.empty())
+			{
+				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), hand_constants_left.second);
+				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), hand_constants_right.second);
+			}
+
+			for (const auto & i: packed_hands)
+			{
+				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
 			}
 
 			network_session->send_stream(std::move(packets));
