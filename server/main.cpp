@@ -847,9 +847,9 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 
 int inner_main(int argc, char * argv[], bool show_instructions)
 {
+	std::cerr << "WiVRn " << wivrn::git_version << " starting" << std::endl;
 	if (show_instructions)
 	{
-		std::cerr << "WiVRn " << wivrn::git_version << " starting" << std::endl;
 		std::cerr << "For Steam games, set command to " << steam_command() << std::endl;
 	}
 
