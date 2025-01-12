@@ -716,8 +716,16 @@ static xrt_result_t comp_wivrn_get_refresh_rates(struct comp_target * ct, uint32
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 	const auto & rates = cn->cnx.get_info().available_refresh_rates;
-	*count = std::min<uint32_t>(rates.size(), XRT_MAX_SUPPORTED_REFRESH_RATES);
-	std::copy_n(rates.begin(), *count, refresh_rates_hz);
+	if (rates.empty())
+	{
+		*count = 1;
+		*refresh_rates_hz = cn->cnx.get_info().preferred_refresh_rate;
+	}
+	else
+	{
+		*count = std::min<uint32_t>(rates.size(), XRT_MAX_SUPPORTED_REFRESH_RATES);
+		std::copy_n(rates.begin(), *count, refresh_rates_hz);
+	}
 	return XRT_SUCCESS;
 }
 
