@@ -140,6 +140,11 @@ msgstr "Escala de resolución"
 msgid "%d%% - {}x{} per eye"
 msgstr "%d%% - {}x{} por ojo"
 
+#: client/scenes/lobby_gui.cpp:621
+#, c++-format
+msgid "Resolution larger than {}x{} may not be supported by the headset"
+msgstr "La resolución mayor que {}x{} podría no ser compatible con el visor"
+
 #: client/scenes/lobby_gui.cpp:628
 msgid "Enable microphone"
 msgstr "Activar micrófono"
