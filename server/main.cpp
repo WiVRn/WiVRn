@@ -843,6 +843,36 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 		set_encryption_state(enc_state);
 }
 
+auto create_dbus_connection()
+{
+	// When process has cap_sys_nice, DBUS_SESSION_BUS_ADDRESS is ignored by gdbus
+	GError * error = nullptr;
+	if (const char * bus_address = getenv("DBUS_SESSION_BUS_ADDRESS"))
+	{
+		auto connection = g_dbus_connection_new_for_address_sync(
+		        bus_address,
+		        GDBusConnectionFlags(G_DBUS_CONNECTION_FLAGS_MESSAGE_BUS_CONNECTION | G_DBUS_CONNECTION_FLAGS_AUTHENTICATION_CLIENT),
+		        nullptr,
+		        nullptr,
+		        &error);
+		if (error)
+		{
+			auto msg = std::string("Failed to connect to dbus at ") + bus_address + ": " + error->message;
+			g_error_free(error);
+			throw std::runtime_error(msg);
+		}
+		return connection;
+	}
+	auto connection = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error);
+	if (error)
+	{
+		auto msg = std::string("Failed to connect to session bus: ") + error->message;
+		g_error_free(error);
+		throw std::runtime_error(msg);
+	}
+	return connection;
+}
+
 } // namespace
 
 int inner_main(int argc, char * argv[], bool show_instructions)
@@ -903,14 +933,14 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	g_unix_signal_add(SIGTERM, &sigint, (void *)SIGTERM);
 
 	// Add dbus server
-	g_bus_own_name(G_BUS_TYPE_SESSION,
-	               "io.github.wivrn.Server",
-	               G_BUS_NAME_OWNER_FLAGS_NONE,
-	               nullptr,
-	               on_name_acquired,
-	               nullptr,
-	               nullptr,
-	               nullptr);
+	auto connection = create_dbus_connection();
+	g_bus_own_name_on_connection(connection,
+	                             "io.github.wivrn.Server",
+	                             G_BUS_NAME_OWNER_FLAGS_NONE,
+	                             on_name_acquired,
+	                             nullptr,
+	                             nullptr,
+	                             nullptr);
 
 	// Initialize libnotify
 	notify_init("WiVRn");
