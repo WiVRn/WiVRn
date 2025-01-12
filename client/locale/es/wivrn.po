@@ -135,10 +135,10 @@ msgstr "Frecuencia de actualización"
 msgid "Resolution scale"
 msgstr "Escala de resolución"
 
-#: client/scenes/lobby_gui.cpp:611 client/scenes/lobby_gui.cpp:615
+#: client/scenes/lobby_gui.cpp:611
 #, c++-format
-msgid "{} - {}x{} per eye"
-msgstr "{} - {}x{} por ojo"
+msgid "%d%% - {}x{} per eye"
+msgstr "%d%% - {}x{} por ojo"
 
 #: client/scenes/lobby_gui.cpp:628
 msgid "Enable microphone"

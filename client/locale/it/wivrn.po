@@ -135,10 +135,10 @@ msgstr "Frequenza di aggiornamento"
 msgid "Resolution scale"
 msgstr "Scala di risoluzione"
 
-#: client/scenes/lobby_gui.cpp:610 client/scenes/lobby_gui.cpp:614
+#: client/scenes/lobby_gui.cpp:611
 #, c++-format
-msgid "{}% - {}x{} per eye"
-msgstr "{}% - {}x{} per occhio"
+msgid "%d%% - {}x{} per eye"
+msgstr "%d%% - {}x{} per occhio"
 
 #: client/scenes/lobby_gui.cpp:627
 #, c++-format
