@@ -63,6 +63,23 @@ If using Wine/Proton, it will probe for OpenVR at startup, so even for OpenXR ap
 
 When you start the server through flatpak, it will automatically configure the current OpenVR to use OpenComposite.
 
+### Steam Flatpak
+
+If you're using the Steam Flatpak, you'll need to grant read only access to the following paths:
+
+```bash
+flatpak override --user \
+  --filesystem=xdg-run/wivrn:ro \
+  --filesystem=xdg-data/flatpak/app/io.github.wivrn.wivrn:ro \
+  --filesystem=xdg-config/openxr:ro \
+  com.valvesoftware.Steam
+```
+
+Then create a symlink for the OpenXR configuration file (the directory `~/.var/app/com.valvesoftware.Steam/.config/openxr` will need to be created if it doesn't already exist):
+
+```bash
+ln -s ~/.config/openxr/1 ~/.var/app/com.valvesoftware.Steam/.config/openxr/1
+```
 
 ### Audio
 When the headset is connected, WiVRn will create a virtual output device named WiVRn. It is not selected as default and you should either assign the application to the device when it is running, or mark it as default. To do so you can use `pavucontrol` or your desktop environment's configuration panel. Please note that in `pavucontrol` it will appear as a virtual device.
