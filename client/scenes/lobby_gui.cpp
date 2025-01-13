@@ -608,7 +608,7 @@ void scenes::lobby::gui_settings()
 		const auto width = stream_view.recommendedImageRectWidth;
 		const auto height = stream_view.recommendedImageRectHeight;
 		auto intScale = int(current * 100);
-		if (ImGui::SliderInt(_S("Resolution scale"), &intScale, 50, 500, fmt::format(_F("%d%% - {}x{} per eye"), int(width * current), int(height * current)).c_str()))
+		if (ImGui::SliderInt(_S("Resolution scale"), &intScale, 50, 350, fmt::format(_F("%d%% - {}x{} per eye"), int(width * current), int(height * current)).c_str()))
 		{
 			config.resolution_scale = intScale * 0.01;
 			config.save();
