@@ -150,6 +150,7 @@ struct headset_info_packet
 	bool palm_pose;
 	bool passthrough;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
+	std::string system_name;
 };
 
 struct handshake

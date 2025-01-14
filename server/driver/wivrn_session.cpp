@@ -220,6 +220,8 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		roles.right_profile = xdevs[roles.right]->name;
 	if (roles.gamepad >= 0)
 		roles.gamepad_profile = xdevs[roles.gamepad]->name;
+
+	memcpy(xrt_system.base.properties.name, get_info().system_name.c_str(), get_info().system_name.length());
 }
 
 wivrn_session::~wivrn_session()
