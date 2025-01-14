@@ -583,14 +583,19 @@ void scenes::lobby::gui_settings()
 	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 	{
 		const auto & refresh_rates = session.get_refresh_rates();
-		float current = session.get_current_refresh_rate();
 		if (not refresh_rates.empty())
 		{
-			if (ImGui::BeginCombo(_S("Refresh rate"), fmt::format("{}", current).c_str()))
+			if (ImGui::BeginCombo(_S("Refresh rate"), config.preferred_refresh_rate ? fmt::format("{}", config.preferred_refresh_rate).c_str() : _S("No preference")))
 			{
+				if (ImGui::Selectable(_S("No preference"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
+				{
+					session.set_refresh_rate(0);
+					config.preferred_refresh_rate = 0;
+					config.save();
+				}
 				for (float rate: refresh_rates)
 				{
-					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == current, ImGuiSelectableFlags_SelectOnRelease) and rate != current)
+					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.preferred_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
 					{
 						session.set_refresh_rate(rate);
 						config.preferred_refresh_rate = rate;
