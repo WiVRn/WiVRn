@@ -40,6 +40,7 @@
 #include <cmath>
 #include <magic_enum.hpp>
 #include <stdexcept>
+#include <string.h>
 #include <vulkan/vulkan.h>
 
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
@@ -221,7 +222,11 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	if (roles.gamepad >= 0)
 		roles.gamepad_profile = xdevs[roles.gamepad]->name;
 
-	memcpy(xrt_system.base.properties.name, get_info().system_name.c_str(), get_info().system_name.length());
+	if (auto system_name = get_info().system_name; !system_name.empty())
+	{
+		system_name += " on WiVRn";
+		strlcpy(xrt_system.base.properties.name, system_name.c_str(), std::size(xrt_system.base.properties.name));
+	}
 }
 
 wivrn_session::~wivrn_session()
