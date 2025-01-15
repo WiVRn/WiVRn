@@ -19,6 +19,8 @@
 
 #include "hardware.h"
 
+#include <cstdlib>
+#include <glm/ext/quaternion_trigonometric.hpp>
 #include <stdexcept>
 #include <string>
 
@@ -254,6 +256,34 @@ std::string controller_name()
 
 std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::spaces space)
 {
+#ifndef __ANDROID__
+	if (const char * offset = [space]() -> const char * {
+		    switch (space)
+		    {
+			    case xr::spaces::grip_left:
+				    return std::getenv("WIVRN_GRIP_LEFT_OFFSET");
+			    case xr::spaces::grip_right:
+				    return std::getenv("WIVRN_GRIP_RIGHT_OFFSET");
+			    case xr::spaces::aim_left:
+				    return std::getenv("WIVRN_AIM_LEFT_OFFSET");
+			    case xr::spaces::aim_right:
+				    return std::getenv("WIVRN_AIM_RIGHT_OFFSET");
+			    default:
+				    return nullptr;
+		    }
+	    }())
+	{
+		float x, y, z, yaw, pitch, roll;
+		if (sscanf(offset, "%f %f %f %f %f %f", &x, &y, &z, &yaw, &pitch, &roll) == 6)
+		{
+			return {{x, y, z},
+			        glm::angleAxis(glm::radians(yaw), glm::vec3{0, 1, 0}) *
+			                glm::angleAxis(glm::radians(pitch), glm::vec3{1, 0, 0}) *
+			                glm::angleAxis(glm::radians(roll), glm::vec3{0, 0, 1})};
+		}
+	}
+#endif
+
 	if (profile == "oculus-touch-v2")
 		switch (space)
 		{

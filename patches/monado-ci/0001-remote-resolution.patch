@@ -1,0 +1,20 @@
+diff --git a/src/xrt/drivers/remote/r_hmd.c b/src/xrt/drivers/remote/r_hmd.c
+index be23acbdc..610d35864 100644
+--- a/src/xrt/drivers/remote/r_hmd.c
++++ b/src/xrt/drivers/remote/r_hmd.c
+@@ -167,11 +167,11 @@ r_hmd_create(struct r_hub *r)
+ 	// Setup info.
+ 	bool ret = true;
+ 	struct u_device_simple_info info;
+-	info.display.w_pixels = 1920;
+-	info.display.h_pixels = 1080;
+-	info.display.w_meters = 0.13f;
++	info.display.w_pixels = 5120;
++	info.display.h_pixels = 1440;
++	info.display.w_meters = 0.26f;
+ 	info.display.h_meters = 0.07f;
+-	info.lens_horizontal_separation_meters = 0.13f / 2.0f;
++	info.lens_horizontal_separation_meters = 0.26f / 2.0f;
+ 	info.lens_vertical_position_meters = 0.07f / 2.0f;
+ 
+ 	if (rh->r->view_count == 1) {
