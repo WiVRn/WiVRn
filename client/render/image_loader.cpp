@@ -18,9 +18,12 @@
  */
 
 #include "image_loader.h"
+#include "wivrn_config.h"
 
 #include <cstdint>
+#if WIVRN_USE_LIBKTX
 #include <ktxvulkan.h>
+#endif
 #include <memory>
 #include <span>
 #include <spdlog/spdlog.h>
@@ -48,6 +51,7 @@ struct image_resources
 	vk::raii::ImageView image_view = nullptr;
 };
 
+#if WIVRN_USE_LIBKTX
 struct ktx_image_resources
 {
 	ktxVulkanTexture ktx_texture;
@@ -63,6 +67,7 @@ struct ktx_image_resources
 		ktxVulkanTexture_Destruct(&ktx_texture, device, nullptr);
 	}
 };
+#endif
 
 template <typename T>
 constexpr vk::Format formats[4] = {vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined};
@@ -160,13 +165,17 @@ image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::D
         queue(queue),
         cb_pool(cb_pool)
 {
+#if WIVRN_USE_LIBKTX
 	vdi = ktxVulkanDeviceInfo_Create(*physical_device, *device, *queue, *cb_pool, nullptr);
+#endif
 }
 
 image_loader::~image_loader()
 {
+#if WIVRN_USE_LIBKTX
 	if (vdi)
 		ktxVulkanDeviceInfo_Destroy(vdi);
+#endif
 }
 
 void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format)
@@ -397,6 +406,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 
 void image_loader::do_load_ktx(std::span<const std::byte> bytes)
 {
+#if WIVRN_USE_LIBKTX
 	ktxTexture * texture;
 	ktxVulkanTexture vk_texture;
 
@@ -451,6 +461,9 @@ void image_loader::do_load_ktx(std::span<const std::byte> bytes)
 	};
 
 	image_view = std::shared_ptr<vk::raii::ImageView>(r, &r->image_view);
+#else
+	throw std::runtime_error("Compiled without KTX support");
+#endif
 }
 
 static constexpr bool starts_with(std::span<const std::byte> data, std::span<const uint8_t> prefix)

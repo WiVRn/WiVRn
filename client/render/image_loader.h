@@ -21,6 +21,7 @@
 
 #include "vk/allocation.h"
 #include "vk/fwd.h"
+#include "wivrn_config.h"
 #include <cstddef>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -29,7 +30,9 @@
 #include <span>
 #include <vulkan/vulkan.hpp>
 
+#if WIVRN_USE_LIBKTX
 struct ktxVulkanDeviceInfo;
+#endif
 
 struct image_loader
 {
@@ -71,7 +74,9 @@ struct image_loader
 	~image_loader();
 
 private:
+#if WIVRN_USE_LIBKTX
 	ktxVulkanDeviceInfo * vdi = nullptr;
+#endif
 
 	vk::raii::Device & device;
 	vk::raii::Queue & queue;

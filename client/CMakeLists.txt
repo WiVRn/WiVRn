@@ -7,7 +7,11 @@ set(KTX_FEATURE_LOADTEST_APPS OFF)
 
 set(FASTGLTF_COMPILE_AS_CPP20 ON)
 
-FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb libktx implot uni-algo)
+FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo)
+
+if (WIVRN_USE_LIBKTX)
+    FetchContent_MakeAvailable(libktx)
+endif()
 
 if (NOT BOOST_FOUND)
     FetchContent_MakeAvailable(boost)
@@ -84,7 +88,12 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb ktx_read Boost::locale)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb Boost::locale)
+
+if (WIVRN_USE_LIBKTX)
+    target_link_libraries(wivrn ktx_read)
+endif()
+
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
 target_compile_definitions(wivrn PRIVATE -DGLM_ENABLE_EXPERIMENTAL)
