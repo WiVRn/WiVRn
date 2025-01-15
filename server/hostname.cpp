@@ -14,6 +14,7 @@ static std::string _hostname()
 	if (!con)
 	{
 		U_LOG_W("Failed to connect to system bus: %s", error->message);
+		g_error_free(error);
 	}
 	else
 	{
@@ -32,7 +33,11 @@ static std::string _hostname()
 			                                                &error);
 
 			if (error)
+			{
+				g_error_free(error);
+				error = NULL;
 				continue;
+			}
 
 			GVariant * property_value;
 			g_variant_get(result, "(v)", &property_value);
