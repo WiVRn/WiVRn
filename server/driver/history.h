@@ -76,17 +76,12 @@ protected:
 		}
 
 		// Discard outdated predictions
-		if (t != produced)
+		for (auto it = data.begin(); it != data.end();)
 		{
-			for (auto it = data.begin(); it != data.end();)
-			{
-				if (it->at_timestamp_ns == it->produced_timestamp // not a prediction
-				    or it->produced_timestamp >= produced         // recent prediction
-				    or it->at_timestamp_ns > t + 1'000'000)       // we don't have far enough data yet
-					++it;
-				else
-					it = data.erase(it);
-			}
+			if (std::abs(it->at_timestamp_ns - t) < 2'000'000 and it->produced_timestamp < produced)
+				it = data.erase(it);
+			else
+				++it;
 		}
 
 		// Insert the new sample
