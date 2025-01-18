@@ -154,6 +154,30 @@ const float dither_pattern[4][4] = {
 	{ 0.9375f, 0.4375f, 0.8125f, 0.3125}
 };
 
+vec4 one_over_d_linear_to_srgb(vec4 color)
+{
+	/* Linear to sRGB is:
+	 *
+	 * if (x <= 0.00031308)
+	 *     return 12.92 * x;
+	 * else
+	 *     return 1.055*pow(x, 1.0 / 2.4) - 0.055;
+	 *
+	 * Its derivative is:
+	 * if (x <= 0.00031308)
+	 *     return 12.92;
+	 * else
+	 *     return (1.055 / 2.4) * pow(x, -1.4 / 2.4);
+	 *
+	 */
+
+	// Alpha is not converted to sRGB
+	vec3 tmp1 = vec3(1.0 / 12.92, 1.0 / 12.92, 1.0 / 12.92);
+	vec3 tmp2 = (2.4 / 1.055) * vec3(pow(color.r, 1.4 / 2.4), pow(color.g, 1.4 / 2.4), pow(color.b, 1.4 / 2.4));
+
+	return vec4(mix(tmp1, tmp2, vec3(greaterThan(color.rgb, vec3(0.00031308, 0.00031308, 0.00031308)))), 1.0);
+}
+
 void main()
 {
 	vec3 light_dir = normalize(light_pos.xyz - frag_pos.xyz * light_pos.w);
@@ -188,12 +212,9 @@ void main()
 	if (dithering)
 	{
 		ivec2 tmp = ivec2(gl_FragCoord.xy) % 4;
-		float dither_thd = dither_pattern[tmp.x][tmp.y];
+		float dither_thd = 1.0f - dither_pattern[tmp.x][tmp.y];
 
-		vec4 color = bc * 255.0f;
-
-		bvec4 tmp2 = greaterThan(fract(color), vec4(dither_thd, dither_thd, dither_thd, dither_thd));
-		out_color = (ceil(color) + vec4(tmp2)) / 255.0;
+		out_color = bc + one_over_d_linear_to_srgb(bc) * vec4(dither_thd, dither_thd, dither_thd, dither_thd) / 255.0f;
 	}
 	else
 		out_color = bc;
