@@ -1,4 +1,4 @@
-From 752c0d28ca770d9a4d5f301351898082d5f747af Mon Sep 17 00:00:00 2001
+From 3f6883949ac235cc1e3f1ef8480ad08bd25da503 Mon Sep 17 00:00:00 2001
 From: galister <3123227-galister@users.noreply.gitlab.com>
 Date: Thu, 31 Oct 2024 04:37:27 +0900
 Subject: [PATCH 06/10] Use mipmaps for distortion shader
@@ -14,7 +14,7 @@ Subject: [PATCH 06/10] Use mipmaps for distortion shader
  .../nvpro_pyramid/srgba8_mipmap_preamble.glsl | 128 +++
  src/xrt/auxiliary/vk/vk_helpers.c             |   1 +
  src/xrt/compositor/CMakeLists.txt             |   6 +-
- src/xrt/compositor/main/comp_renderer.c       |  60 +-
+ src/xrt/compositor/main/comp_renderer.c       |  58 +-
  src/xrt/compositor/main/comp_settings.c       |   6 +
  src/xrt/compositor/main/comp_settings.h       |   3 +
  src/xrt/compositor/render/render_compute.c    |  14 +
@@ -30,7 +30,7 @@ Subject: [PATCH 06/10] Use mipmaps for distortion shader
  src/xrt/compositor/util/comp_render_helpers.h |  26 +-
  src/xrt/compositor/util/comp_scratch.c        |  69 +-
  src/xrt/compositor/util/comp_scratch.h        |   7 +-
- 26 files changed, 2072 insertions(+), 75 deletions(-)
+ 26 files changed, 2071 insertions(+), 74 deletions(-)
  create mode 100644 src/external/nvpro_pyramid/CMakeLists.txt
  create mode 100644 src/external/nvpro_pyramid/LICENSE
  create mode 100644 src/external/nvpro_pyramid/nvpro_pyramid.glsl
@@ -1716,7 +1716,7 @@ index f1c54ed4d..3bc9302f7 100644
  	target_include_directories(comp_util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
  endif()
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index bd07a7744..104f761bf 100644
+index bd07a7744..112d14e32 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
 @@ -366,6 +366,9 @@ renderer_build_rendering_target_resources(struct comp_renderer *r,
@@ -1779,15 +1779,6 @@ index bd07a7744..104f761bf 100644
  
  		if (layer_count == 0) {
  			crss->views[i].used = false;
-@@ -984,7 +992,7 @@ dispatch_compute(struct comp_renderer *r,
- 	// Basics
- 	const struct comp_layer *layers = c->base.layer_accum.layers;
- 	uint32_t layer_count = c->base.layer_accum.layer_count;
--	bool fast_path = c->base.frame_params.one_projection_layer_fast_path;
-+	bool fast_path = c->base.frame_params.one_projection_layer_fast_path && r->settings->mip_levels == 1;
- 	bool do_timewarp = !c->debug.atw_off;
- 
- 	// Device view information.
 @@ -1037,17 +1045,19 @@ dispatch_compute(struct comp_renderer *r,
  		// Scratch image covers the whole image.
  		struct xrt_normalized_rect layer_norm_rect = {.x = 0.0f, .y = 0.0f, .w = 1.0f, .h = 1.0f};
