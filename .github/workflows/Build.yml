@@ -183,9 +183,9 @@ jobs:
         sleep 10
         export WAYLAND_DISPLAY=$(cd "${XDG_RUNTIME_DIR}" && ls -tr wayland* | tail -1)
 
-        for LANG in en $(basename -a ${{github.workspace}}/client/locale/*)
+        for LANG in en $(basename -a ${{github.workspace}}/locale/*)
         do
-        mkdir ${LANG}
+          mkdir ${LANG}
           ${{github.workspace}}/build/bin/wivrn &
           WIVRN_PID=$!
           sleep 10

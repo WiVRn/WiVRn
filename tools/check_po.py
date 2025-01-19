@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('ref', type=pathlib.Path)
 parser.add_argument('file', type=pathlib.Path)
+parser.add_argument('lang', type=str)
 
 args = parser.parse_args()
 
@@ -18,25 +19,23 @@ po_ref = polib.pofile(args.ref)
 
 po_file = polib.pofile(args.file)
 entries = [i.msgid for i in po_file.translated_entries()]
-language = po_file.metadata['Language']
 
-def flagize(str_in):
-	str_out = ''
-	for i in str_in:
-		str_out += chr(ord(i) + ord('🇦') - ord('A'))
-	return str_out
-
-flags = {
-	'Spanish': flagize('ES'),
-	'French': flagize('FR'),
-	'Italian': flagize('IT'),
-	'Japanese': flagize('JP')
+# Map language code to a country flag
+countries = {
+	'es': 'es',
+	'fr': 'fr',
+	'it': 'it',
+	'ja': 'jp'
 }
 
-if language in flags:
-	flag = flags[language]
+if args.lang in countries:
+	country = countries[args.lang]
 else:
-	flag = ''
+	country = args.lang
+
+flag = ''
+for i in country.upper():
+	flag += chr(ord(i) + ord('🇦') - ord('A'))
 
 missing = 0
 for i in po_ref:
@@ -46,6 +45,4 @@ for i in po_ref:
 			print(f"::warning file={args.file}::{flag} Translation for {repr(i.msgid)} is missing")
 
 if missing > 0:
-	print(f"::warning file={args.file}::{flag} {missing} missing translation(s) in {language}")
-
 	sys.exit(1)

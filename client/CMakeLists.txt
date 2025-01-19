@@ -19,6 +19,7 @@ endif()
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
+include(I18n)
 
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
@@ -186,43 +187,8 @@ endif()
 ##############################################################################
 # Internationalization
 #
-find_program(GETTEXT_MSGFMT_COMMAND msgfmt REQUIRED)
-
-set(MO_FILES)
-set(PO_FILES)
-file(GLOB PO_DIRS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/locale/*")
-foreach(PO_DIR IN LISTS PO_DIRS)
-    cmake_path(GET PO_DIR FILENAME LANG)
-
-    if(ANDROID)
-        set(MO_DIR ${CMAKE_ANDROID_ASSETS_DIRECTORIES}/locale/${LANG}/LC_MESSAGES)
-    else()
-        set(MO_DIR ${CMAKE_CURRENT_BINARY_DIR}/locale/${LANG}/LC_MESSAGES)
-    endif()
-
-    set(MO_FILE ${MO_DIR}/wivrn.mo)
-    set(PO_FILE ${PO_DIR}/wivrn.po)
-
-    add_custom_command(OUTPUT ${MO_FILE}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${MO_DIR}
-        COMMAND ${GETTEXT_MSGFMT_COMMAND} ${PO_FILE} -o ${MO_FILE}
-        DEPENDS ${PO_FILE})
-
-    set(MO_FILES ${MO_FILES} ${MO_FILE})
-    set(PO_FILES ${PO_FILES} ${PO_FILE})
-
-    install(FILES ${MO_FILE} DESTINATION ${CMAKE_INSTALL_DATADIR}/locale/${LANG}/LC_MESSAGES)
-endforeach()
-
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
-    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/../tools/extract_charset.py ${PO_FILES} > ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp
-    DEPENDS ${PO_FILES})
-
-add_custom_target(translations ALL DEPENDS ${MO_FILES} ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
-add_dependencies(wivrn translations)
-target_sources(wivrn PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/glyph_set.cpp)
-
-
+create_mo_files(wivrn wivrn "${CMAKE_CURRENT_SOURCE_DIR}/../locale")
+create_glyphset(wivrn wivrn "${CMAKE_CURRENT_SOURCE_DIR}/../locale")
 
 ##############################################################################
 # License files

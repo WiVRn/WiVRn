@@ -8,17 +8,14 @@ sed -i 's/charset=CHARSET/charset=UTF-8/g' $WIVRN_POT
 
 RC=0
 
-for i in $(find client/locale -name wivrn.po)
+for i in locale/*
 do
-	tools/check_po.py $WIVRN_POT $i
-
+	tools/check_po.py $WIVRN_POT $i/wivrn.po $(basename $i)
 	if [ $? != 0 ]
 	then
 		RC=1
 	fi
 done
-
-rm $WIVRN_POT
 
 for i in $(find dashboard -name "wivrn_*.ts")
 do
@@ -32,8 +29,6 @@ do
 	if [ $? != 0 ]
 	then
 		RC=1
-
-		echo ::warning file=$i::$i is not up to date
 	fi
 
 	rm $i.new
