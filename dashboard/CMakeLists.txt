@@ -9,6 +9,7 @@ include(KDECMakeSettings)
 # include(KDECompilerSettings NO_POLICY_SCOPE)
 include(ECMFindQmlModule)
 include(ECMQmlModule)
+include(I18n)
 
 find_package(Qt6 REQUIRED COMPONENTS
     Core
@@ -96,8 +97,5 @@ if (WIVRN_CHECK_CAPSYSNICE)
 endif()
 
 install(TARGETS wivrn-dashboard ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
-ki18n_install(${CMAKE_CURRENT_SOURCE_DIR}/../locale)
 
-# install(PROGRAMS org.kde.tutorial.desktop DESTINATION ${KDE_INSTALL_APPDIR})
-
-# feature_summary(WHAT ALL INCLUDE_QUIET_PACKAGES FATAL_ON_MISSING_REQUIRED_PACKAGES)
+create_mo_files(wivrn-dashboard wivrn-dashboard "${CMAKE_CURRENT_SOURCE_DIR}/../locale")
