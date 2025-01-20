@@ -21,7 +21,7 @@
 #include "details/enumerate.h"
 #include "session.h"
 
-xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count)
+xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size)
 {
 	assert(sample_count == 1);
 
@@ -51,7 +51,7 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 	        .width = (uint32_t)width,
 	        .height = (uint32_t)height,
 	        .faceCount = 1,
-	        .arraySize = 1,
+	        .arraySize = array_size,
 	        .mipCount = 1,
 	};
 

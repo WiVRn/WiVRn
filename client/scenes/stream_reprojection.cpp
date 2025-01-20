@@ -31,7 +31,9 @@
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
-struct stream_reprojection::uniform
+namespace
+{
+struct uniform
 {
 	// Foveation parameters
 	alignas(8) glm::vec2 a;
@@ -39,18 +41,21 @@ struct stream_reprojection::uniform
 	alignas(8) glm::vec2 lambda;
 	alignas(8) glm::vec2 xc;
 };
+} // namespace
 
 const int nb_reprojection_vertices = 128;
 
 stream_reprojection::stream_reprojection(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
-        std::vector<vk::Image> input_images_,
+        vk::Image input_image_,
+        uint32_t view_count,
         std::vector<vk::Image> output_images_,
         vk::Extent2D extent,
         vk::Format format,
         const wivrn::to_headset::video_stream_description & description) :
-        input_images(std::move(input_images_)),
+        view_count(view_count),
+        input_image(input_image_),
         output_images(std::move(output_images_)),
         extent(extent)
 {
@@ -81,11 +86,11 @@ stream_reprojection::stream_reprojection(
 
 	sampler = vk::raii::Sampler(device, sampler_info);
 
-	size_t uniform_size = sizeof(uniform) + properties.limits.minUniformBufferOffsetAlignment - 1;
+	uniform_size = sizeof(uniform) + properties.limits.minUniformBufferOffsetAlignment - 1;
 	uniform_size = uniform_size - uniform_size % properties.limits.minUniformBufferOffsetAlignment;
 
 	vk::BufferCreateInfo create_info{
-	        .size = uniform_size * input_images.size(),
+	        .size = uniform_size * view_count,
 	        .usage = vk::BufferUsageFlagBits::eUniformBuffer,
 	        .sharingMode = vk::SharingMode::eExclusive,
 	};
@@ -95,9 +100,6 @@ stream_reprojection::stream_reprojection(
 	};
 
 	buffer = buffer_allocation(device, create_info, alloc_info);
-	void * data = buffer.map();
-	for (size_t i = 0; i < input_images.size(); i++)
-		ubo.push_back(reinterpret_cast<uniform *>(reinterpret_cast<uintptr_t>(data) + i * uniform_size));
 
 	// Create VkDescriptorSetLayout
 	std::array layout_binding{
@@ -123,30 +125,28 @@ stream_reprojection::stream_reprojection(
 	std::array pool_size{
 	        vk::DescriptorPoolSize{
 	                .type = vk::DescriptorType::eCombinedImageSampler,
-	                .descriptorCount = (uint32_t)input_images.size(),
+	                .descriptorCount = (uint32_t)view_count,
 	        },
 	        vk::DescriptorPoolSize{
 	                .type = vk::DescriptorType::eUniformBuffer,
-	                .descriptorCount = (uint32_t)input_images.size(),
+	                .descriptorCount = (uint32_t)view_count,
 	        },
 	};
 
-	vk::DescriptorPoolCreateInfo pool_info;
-	pool_info.flags = vk::DescriptorPoolCreateFlags{};
-	pool_info.maxSets = input_images.size();
-	pool_info.setPoolSizes(pool_size);
+	vk::DescriptorPoolCreateInfo pool_info{
+	        .maxSets = view_count,
+	        .poolSizeCount = pool_size.size(),
+	        .pPoolSizes = pool_size.data(),
+	};
 
 	descriptor_pool = vk::raii::DescriptorPool(device, pool_info);
 
 	// Create image views and descriptor sets
-	input_image_views.reserve(input_images.size());
-	descriptor_sets.reserve(input_images.size());
-	VkDeviceSize offset = 0;
-	for (vk::Image image: input_images)
+	for (uint32_t view = 0; view < view_count; ++view)
 	{
 		vk::ImageViewCreateInfo iv_info{
-		        .image = image,
-		        .viewType = vk::ImageViewType::e2D,
+		        .image = input_image,
+		        .viewType = vk::ImageViewType::e2DArray,
 		        .format = vk::Format::eA8B8G8R8SrgbPack32,
 		        .components = {
 		                .r = vk::ComponentSwizzle::eIdentity,
@@ -158,12 +158,12 @@ stream_reprojection::stream_reprojection(
 		                .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                .baseMipLevel = 0,
 		                .levelCount = 1,
-		                .baseArrayLayer = 0,
+		                .baseArrayLayer = view,
 		                .layerCount = 1,
 		        },
 		};
 
-		input_image_views.emplace_back(device, iv_info);
+		vk::ImageView input_image_view = *input_image_views.emplace_back(device, iv_info);
 
 		vk::DescriptorSetAllocateInfo ds_info{
 		        .descriptorPool = *descriptor_pool,
@@ -171,24 +171,23 @@ stream_reprojection::stream_reprojection(
 		        .pSetLayouts = &*descriptor_set_layout,
 		};
 
-		descriptor_sets.push_back(device.allocateDescriptorSets(ds_info)[0].release());
+		auto descriptor_set = descriptor_sets.emplace_back(device.allocateDescriptorSets(ds_info)[0].release());
 
 		vk::DescriptorImageInfo image_info{
 		        .sampler = *sampler,
-		        .imageView = *input_image_views.back(),
+		        .imageView = input_image_view,
 		        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 
 		vk::DescriptorBufferInfo buffer_info{
 		        .buffer = buffer,
-		        .offset = offset,
+		        .offset = uniform_size * view,
 		        .range = sizeof(uniform),
 		};
-		offset += uniform_size;
 
 		std::array write{
 		        vk::WriteDescriptorSet{
-		                .dstSet = descriptor_sets.back(),
+		                .dstSet = descriptor_set,
 		                .dstBinding = 0,
 		                .dstArrayElement = 0,
 		                .descriptorCount = 1,
@@ -196,7 +195,7 @@ stream_reprojection::stream_reprojection(
 		                .pImageInfo = &image_info,
 		        },
 		        vk::WriteDescriptorSet{
-		                .dstSet = descriptor_sets.back(),
+		                .dstSet = descriptor_set,
 		                .dstBinding = 1,
 		                .dstArrayElement = 0,
 		                .descriptorCount = 1,
@@ -228,11 +227,16 @@ stream_reprojection::stream_reprojection(
 	};
 	subpass.setColorAttachments(color_ref);
 
-	vk::RenderPassCreateInfo renderpass_info;
-	renderpass_info.setAttachments(attachment);
-	renderpass_info.setSubpasses(subpass);
+	vk::StructureChain renderpass_info{
+	        vk::RenderPassCreateInfo{
+	                .attachmentCount = 1,
+	                .pAttachments = &attachment,
+	                .subpassCount = 1,
+	                .pSubpasses = &subpass,
+	        },
+	};
 
-	renderpass = vk::raii::RenderPass(device, renderpass_info);
+	renderpass = vk::raii::RenderPass(device, renderpass_info.get());
 
 	// Create graphics pipeline
 	vk::raii::ShaderModule vertex_shader = load_shader(device, "reprojection.vert");
@@ -330,74 +334,70 @@ stream_reprojection::stream_reprojection(
 	pipeline = vk::raii::Pipeline(device, application::get_pipeline_cache(), pipeline_info);
 
 	// Create image views and framebuffers
-	output_image_views.reserve(output_images.size());
-	framebuffers.reserve(output_images.size());
+	output_image_views.reserve(output_images.size() * view_count);
+	framebuffers.reserve(output_images.size() * view_count);
 	for (vk::Image image: output_images)
 	{
-		vk::ImageViewCreateInfo iv_info{
-		        .image = image,
-		        .viewType = vk::ImageViewType::e2D,
-		        .format = format,
-		        .components = {
-		                .r = vk::ComponentSwizzle::eIdentity,
-		                .g = vk::ComponentSwizzle::eIdentity,
-		                .b = vk::ComponentSwizzle::eIdentity,
-		                .a = vk::ComponentSwizzle::eIdentity,
-		        },
-		        .subresourceRange = {
-		                .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                .baseMipLevel = 0,
-		                .levelCount = 1,
-		                .baseArrayLayer = 0,
-		                .layerCount = 1,
-		        },
-		};
+		for (uint32_t view = 0; view < view_count; ++view)
+		{
+			vk::ImageViewCreateInfo iv_info{
+			        .image = image,
+			        .viewType = vk::ImageViewType::e2DArray,
+			        .format = format,
+			        .components = {
+			                .r = vk::ComponentSwizzle::eIdentity,
+			                .g = vk::ComponentSwizzle::eIdentity,
+			                .b = vk::ComponentSwizzle::eIdentity,
+			                .a = vk::ComponentSwizzle::eIdentity,
+			        },
+			        .subresourceRange = {
+			                .aspectMask = vk::ImageAspectFlagBits::eColor,
+			                .baseMipLevel = 0,
+			                .levelCount = 1,
+			                .baseArrayLayer = view,
+			                .layerCount = 1,
+			        },
+			};
 
-		output_image_views.emplace_back(device, iv_info);
+			output_image_views.emplace_back(device, iv_info);
 
-		vk::FramebufferCreateInfo fb_create_info{
-		        .renderPass = *renderpass,
-		        .width = extent.width,
-		        .height = extent.height,
-		        .layers = 1,
-		};
-		fb_create_info.setAttachments(*output_image_views.back());
+			vk::FramebufferCreateInfo fb_create_info{
+			        .renderPass = *renderpass,
+			        .width = extent.width,
+			        .height = extent.height,
+			        .layers = 1,
+			};
+			fb_create_info.setAttachments(*output_image_views.back());
 
-		framebuffers.emplace_back(device, fb_create_info);
+			framebuffers.emplace_back(device, fb_create_info);
+		}
 	}
 }
 
-void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, int source, int destination)
+void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, int destination)
 {
-	if (source < 0 || source >= (int)input_images.size())
-		throw std::runtime_error("Invalid source image index");
 	if (destination < 0 || destination >= (int)output_images.size())
 		throw std::runtime_error("Invalid destination image index");
 
-	if (foveation_parameters[source].x.scale < 1)
+	for (size_t view = 0; view < view_count; ++view)
 	{
-		ubo[source]->a.x = foveation_parameters[source].x.a;
-		ubo[source]->b.x = foveation_parameters[source].x.b;
-		ubo[source]->lambda.x = foveation_parameters[source].x.scale / foveation_parameters[source].x.a;
-		ubo[source]->xc.x = foveation_parameters[source].x.center;
-	}
+		auto & ubo = *reinterpret_cast<uniform *>(reinterpret_cast<uintptr_t>(buffer.map()) + view * uniform_size);
+		if (foveation_parameters[view].x.scale < 1)
+		{
+			ubo.a.x = foveation_parameters[view].x.a;
+			ubo.b.x = foveation_parameters[view].x.b;
+			ubo.lambda.x = foveation_parameters[view].x.scale / foveation_parameters[view].x.a;
+			ubo.xc.x = foveation_parameters[view].x.center;
+		}
 
-	if (foveation_parameters[source].y.scale < 1)
-	{
-		ubo[source]->a.y = foveation_parameters[source].y.a;
-		ubo[source]->b.y = foveation_parameters[source].y.b;
-		ubo[source]->lambda.y = foveation_parameters[source].y.scale / foveation_parameters[source].y.a;
-		ubo[source]->xc.y = foveation_parameters[source].y.center;
+		if (foveation_parameters[view].y.scale < 1)
+		{
+			ubo.a.y = foveation_parameters[view].y.a;
+			ubo.b.y = foveation_parameters[view].y.b;
+			ubo.lambda.y = foveation_parameters[view].y.scale / foveation_parameters[view].y.a;
+			ubo.xc.y = foveation_parameters[view].y.center;
+		}
 	}
-
-	vk::RenderPassBeginInfo begin_info{
-	        .renderPass = *renderpass,
-	        .framebuffer = *framebuffers[destination],
-	        .renderArea = {
-	                .offset = {0, 0},
-	                .extent = extent,
-	        },
-	};
 
 	command_buffer.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eTopOfPipe,
@@ -414,15 +414,27 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 	                .subresourceRange = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .levelCount = 1,
-	                        .layerCount = 1,
+	                        .layerCount = view_count,
 	                },
 	        });
 
-	command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
-	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-	command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, descriptor_sets[source], {});
-	command_buffer.draw(6 * nb_reprojection_vertices * nb_reprojection_vertices, 1, 0, 0);
-	command_buffer.endRenderPass();
+	for (size_t view = 0; view < view_count; ++view)
+	{
+		vk::RenderPassBeginInfo begin_info{
+		        .renderPass = *renderpass,
+		        .framebuffer = *framebuffers[destination * view_count + view],
+		        .renderArea = {
+		                .offset = {0, 0},
+		                .extent = extent,
+		        },
+		};
+
+		command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
+		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+		command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, descriptor_sets[view], {});
+		command_buffer.draw(6 * nb_reprojection_vertices * nb_reprojection_vertices, 1, 0, 0);
+		command_buffer.endRenderPass();
+	}
 }
 
 void stream_reprojection::set_foveation(std::array<wivrn::to_headset::foveation_parameter, 2> foveation)

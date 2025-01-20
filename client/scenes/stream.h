@@ -72,15 +72,6 @@ private:
 	std::mutex frames_mutex;
 	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> common_frame(XrTime display_time);
 
-	struct renderpass_output
-	{
-		vk::Extent2D size;
-		vk::Format format;
-		image_allocation image;
-		vk::raii::ImageView image_view = nullptr;
-		vk::raii::Framebuffer frame_buffer = nullptr;
-	};
-
 	std::unique_ptr<wivrn_session> network_session;
 	std::atomic<bool> exiting = false;
 	std::thread network_thread;
@@ -99,7 +90,16 @@ private:
 	vk::raii::DescriptorPool blit_descriptor_pool = nullptr;
 	vk::raii::RenderPass blit_render_pass = nullptr;
 
-	std::array<renderpass_output, view_count> decoder_output{};
+	vk::Extent2D decoder_out_size;
+	vk::Format decoder_out_format;
+	image_allocation decoder_out_image;
+
+	struct renderpass_output
+	{
+		vk::raii::ImageView image_view = nullptr;
+		vk::raii::Framebuffer frame_buffer = nullptr;
+	};
+	std::array<renderpass_output, view_count> decoder_output;
 
 	std::optional<stream_reprojection> reprojector;
 
@@ -119,7 +119,7 @@ private:
 
 	state state_ = state::initializing;
 
-	std::vector<xr::swapchain> swapchains;
+	xr::swapchain swapchain;
 	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
 
