@@ -2,54 +2,61 @@
 function(compile_glsl_aux shader_stage shader_name glsl_filename output)
 
     string(TOUPPER ${shader_stage} shader_stage_upper)
+    cmake_path(REPLACE_FILENAME output "${shader_name}.spv" OUTPUT_VARIABLE SPV_FILE)
+
+    file(APPEND ${output} "\
+{ \"${shader_name}\", {
+#include \"${shader_name}.spv\"
+}},
+")
 
     add_custom_command(
-            OUTPUT ${output}
-            COMMAND echo "{ \"${shader_name}\", {"         >> ${output}
-            COMMAND echo "#include \"${shader_name}.spv\"" >> ${output}
-            COMMAND echo "}},"                             >> ${output}
+        OUTPUT "${SPV_FILE}"
+        COMMAND Vulkan::glslangValidator -V -S ${shader_stage} -D${shader_stage_upper}_SHADER ${in_file} -x -o "${SPV_FILE}"
+        DEPENDS "${glsl_filename}"
+        VERBATIM
+    )
 
-            COMMAND Vulkan::glslangValidator -V -S ${shader_stage} -D${shader_stage_upper}_SHADER ${in_file} -x -o ${shader_name}.spv
-            DEPENDS ${glsl_filename}
-            VERBATIM
-            APPEND
-        )
+    get_source_file_property(deps "${output}" OBJECT_DEPENDS)
+    if (deps)
+        set(deps "${deps};")
+    else()
+        set(deps "")
+    endif()
+    set_source_files_properties(${output} OBJECT_DEPENDS "${deps}${SPV_FILE}")
 
 endfunction()
 
 
 
-function(wivrn_compile_glsl target_name)
+function(wivrn_compile_glsl target)
 
-    add_custom_command(
-                OUTPUT ${target_name}_shaders.cpp
-                COMMAND echo "#include <cstdint>"                                              >  ${target_name}_shaders.cpp
-                COMMAND echo "#include <map>"                                                  >> ${target_name}_shaders.cpp
-                COMMAND echo "#include <vector>"                                               >> ${target_name}_shaders.cpp
-                COMMAND echo "#include <string>"                                               >> ${target_name}_shaders.cpp
-                COMMAND echo "extern const std::map<std::string, std::vector<uint32_t>> shaders = {"  >> ${target_name}_shaders.cpp
-                VERBATIM)
+    cmake_path(APPEND OUTPUT "${CMAKE_CURRENT_BINARY_DIR}" "${target}_shaders.cpp")
+
+    file(WRITE ${OUTPUT} "\
+#include <cstdint>
+#include <map>
+#include <vector>
+#include <string>
+extern const std::map<std::string, std::vector<uint32_t>> shaders = {
+")
 
     foreach(in_file IN LISTS ARGN)
         if (in_file MATCHES "\.\(vert|frag|tesc|tese|geom|comp\)\.glsl$")
             set(shader_stage ${CMAKE_MATCH_1})
             cmake_path(GET in_file STEM LAST_ONLY shader_name)
-            compile_glsl_aux(${shader_stage} ${shader_name} ${in_file} ${target_name}_shaders.cpp)
+            compile_glsl_aux(${shader_stage} ${shader_name} ${in_file} ${OUTPUT})
         else()
             cmake_path(GET in_file STEM LAST_ONLY shader_name)
-            compile_glsl_aux(vert ${shader_name}.vert ${in_file} ${target_name}_shaders.cpp)
-            compile_glsl_aux(frag ${shader_name}.frag ${in_file} ${target_name}_shaders.cpp)
+            compile_glsl_aux(vert ${shader_name}.vert ${in_file} ${OUTPUT})
+            compile_glsl_aux(frag ${shader_name}.frag ${in_file} ${OUTPUT})
         endif()
 
 
     endforeach()
 
-    add_custom_command(
-                OUTPUT ${target_name}_shaders.cpp
-                COMMAND echo "};"  >> ${target_name}_shaders.cpp
-                APPEND
-                VERBATIM)
+    file(APPEND ${OUTPUT} "};")
 
-    target_sources(${target_name} PRIVATE ${target_name}_shaders.cpp)
+    target_sources(${target} PRIVATE ${OUTPUT})
 
 endfunction()
