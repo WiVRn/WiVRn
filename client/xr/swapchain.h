@@ -51,7 +51,7 @@ private:
 
 public:
 	swapchain() = default;
-	swapchain(session &, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count = 1);
+	swapchain(session &, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count = 1, uint32_t array_size = 1);
 
 	int32_t width() const
 	{

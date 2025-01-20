@@ -485,7 +485,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	if (state_ == state::stalled)
 		application::pop_scene();
 
-	assert(not swapchains.empty());
+	assert(swapchain);
 	for (auto & i: decoders)
 	{
 		if (auto sampler = i.decoder->sampler(); sampler and not *i.blit_pipeline)
@@ -643,14 +643,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	session.begin_frame();
 
+	int image_index = swapchain.acquire();
+	swapchain.wait();
 	std::array<int, view_count> image_indices;
-	for (size_t swapchain_index = 0; swapchain_index < view_count; swapchain_index++)
-	{
-		int image_index = swapchains[swapchain_index].acquire();
-		swapchains[swapchain_index].wait();
-
-		image_indices[swapchain_index] = image_index;
-	}
 
 	command_buffer.reset();
 
@@ -732,7 +727,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		                .framebuffer = *out.frame_buffer,
 		                .renderArea = {
 		                        .offset = {0, 0},
-		                        .extent = out.size,
+		                        .extent = decoder_out_size,
 		                },
 		                .clearValueCount = 0,
 		        },
@@ -762,10 +757,10 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			        .maxDepth = 1,
 			};
 
-			x0 = std::clamp<int>(x0, 0, out.size.width);
-			x1 = std::clamp<int>(x1, 0, out.size.width);
-			y0 = std::clamp<int>(y0, 0, out.size.height);
-			y1 = std::clamp<int>(y1, 0, out.size.height);
+			x0 = std::clamp<int>(x0, 0, decoder_out_size.width);
+			x1 = std::clamp<int>(x1, 0, decoder_out_size.width);
+			y0 = std::clamp<int>(y0, 0, decoder_out_size.height);
+			y1 = std::clamp<int>(y1, 0, decoder_out_size.height);
 
 			vk::Rect2D scissor{
 			        .offset = {.x = x0, .y = y0},
@@ -784,18 +779,14 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			command_buffer.draw(3, 1, 0, 0);
 		}
 		command_buffer.endRenderPass();
-		x_offset += out.size.width;
+		x_offset += decoder_out_size.width;
 	}
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 	reprojector->set_foveation(foveation);
 
 	// Unfoveate the image to the real pose
-	for (size_t view = 0; view < view_count; view++)
-	{
-		size_t destination_index = view * swapchains[0].images().size() + image_indices[view];
-		reprojector->reproject(command_buffer, view, destination_index);
-	}
+	reprojector->reproject(command_buffer, image_index);
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 2);
 
@@ -827,25 +818,25 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	else
 		session.disable_passthrough();
 
-	for (size_t swapchain_index = 0; swapchain_index < view_count; swapchain_index++)
+	swapchain.release();
+	for (uint32_t view = 0; view < view_count; view++)
 	{
-		swapchains[swapchain_index].release();
-
-		layer_view[swapchain_index] =
+		layer_view[view] =
 		        {
 		                .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-		                .pose = pose[swapchain_index],
-		                .fov = fov[swapchain_index],
+		                .pose = pose[view],
+		                .fov = fov[view],
 
 		                .subImage = {
-		                        .swapchain = swapchains[swapchain_index],
+		                        .swapchain = swapchain,
 		                        .imageRect = {
 		                                .offset = {0, 0},
 		                                .extent = {
-		                                        swapchains[swapchain_index].width(),
-		                                        swapchains[swapchain_index].height(),
+		                                        swapchain.width(),
+		                                        swapchain.height(),
 		                                },
 		                        },
+		                        .imageArrayIndex = view,
 		                },
 		        };
 	}
@@ -999,20 +990,17 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	}
 
 	// Create outputs for the decoders
-	vk::Extent3D decoder_out_size{video_width, video_height, 1};
-	for (size_t i = 0; i < view_count; i++)
+	decoder_out_size = vk::Extent2D{video_width, video_height};
 	{
-		decoder_output[i].format = vk::Format::eA8B8G8R8SrgbPack32;
-		decoder_output[i].size.width = video_width;
-		decoder_output[i].size.height = video_height;
+		decoder_out_format = vk::Format::eA8B8G8R8SrgbPack32;
 
 		vk::ImageCreateInfo image_info{
 		        .flags = vk::ImageCreateFlags{},
 		        .imageType = vk::ImageType::e2D,
 		        .format = vk::Format::eA8B8G8R8SrgbPack32,
-		        .extent = decoder_out_size,
+		        .extent = {video_width, video_height, 1},
 		        .mipLevels = 1,
-		        .arrayLayers = 1,
+		        .arrayLayers = view_count,
 		        .samples = vk::SampleCountFlagBits::e1,
 		        .tiling = vk::ImageTiling::eOptimal,
 		        .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eColorAttachment,
@@ -1024,10 +1012,10 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		        .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		};
 
-		decoder_output[i].image = image_allocation{device, image_info, alloc_info};
+		decoder_out_image = image_allocation{device, image_info, alloc_info};
 
 		vk::ImageViewCreateInfo image_view_info{
-		        .image = vk::Image{decoder_output[i].image},
+		        .image = vk::Image{decoder_out_image},
 		        .viewType = vk::ImageViewType::e2D,
 		        .format = vk::Format::eA8B8G8R8SrgbPack32,
 		        .components = {},
@@ -1040,18 +1028,24 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		        },
 		};
 
-		decoder_output[i].image_view = vk::raii::ImageView(device, image_view_info);
+		for (uint32_t view = 0; view < view_count; ++view)
+		{
+			auto & output = decoder_output[view];
 
-		decoder_output[i].frame_buffer = vk::raii::Framebuffer(
-		        device,
-		        vk::FramebufferCreateInfo{
-		                .renderPass = *blit_render_pass,
-		                .attachmentCount = 1,
-		                .pAttachments = &*decoder_output[i].image_view,
-		                .width = decoder_out_size.width,
-		                .height = decoder_out_size.height,
-		                .layers = 1,
-		        });
+			image_view_info.subresourceRange.baseArrayLayer = view;
+			output.image_view = vk::raii::ImageView(device, image_view_info);
+
+			output.frame_buffer = vk::raii::Framebuffer(
+			        device,
+			        vk::FramebufferCreateInfo{
+			                .renderPass = *blit_render_pass,
+			                .attachmentCount = 1,
+			                .pAttachments = &*output.image_view,
+			                .width = decoder_out_size.width,
+			                .height = decoder_out_size.height,
+			                .layers = 1,
+			        });
+		}
 	}
 
 	{
@@ -1083,7 +1077,6 @@ void scenes::stream::setup_reprojection_swapchain()
 	std::unique_lock lock(decoder_mutex);
 	device.waitIdle();
 
-	swapchains.clear();
 	const uint32_t video_width = video_stream_description->width / view_count;
 	const uint32_t video_height = video_stream_description->height;
 	const uint32_t swapchain_width = video_width / video_stream_description->foveation[0].x.scale;
@@ -1091,36 +1084,21 @@ void scenes::stream::setup_reprojection_swapchain()
 
 	auto views = system.view_configuration_views(viewconfig);
 
-	swapchains.reserve(views.size());
+	swapchain = xr::swapchain(session, device, swapchain_format, swapchain_width, swapchain_height, 1, views.size());
+	spdlog::info("Created stream swapchain: {}x{}", swapchain.width(), swapchain.height());
 	for (auto view: views)
 	{
-		XrExtent2Di extent{
-		        .width = int32_t(swapchain_width),
-		        .height = int32_t(swapchain_height),
-		};
-		swapchains.emplace_back(session, device, swapchain_format, extent.width, extent.height);
-
-		spdlog::info("Created stream swapchain {}: {}x{}", swapchains.size(), extent.width, extent.height);
-		if (extent.width > view.maxImageRectWidth or extent.height > view.maxImageRectHeight)
+		if (swapchain.width() > view.maxImageRectWidth or swapchain.height() > view.maxImageRectHeight)
 			spdlog::warn("Swapchain size larger than maximum {}x{}", view.maxImageRectWidth, view.maxImageRectHeight);
 	}
 
 	spdlog::info("Initializing reprojector");
-	vk::Extent2D extent = {(uint32_t)swapchains[0].width(), (uint32_t)swapchains[0].height()};
+	vk::Extent2D extent = {(uint32_t)swapchain.width(), (uint32_t)swapchain.height()};
 	std::vector<vk::Image> swapchain_images;
-	for (auto & swapchain: swapchains)
-	{
-		for (auto & image: swapchain.images())
-			swapchain_images.push_back(image.image);
-	}
+	for (auto & image: swapchain.images())
+		swapchain_images.push_back(image.image);
 
-	std::vector<vk::Image> images;
-	for (renderpass_output & i: decoder_output)
-	{
-		images.push_back(i.image);
-	}
-
-	reprojector.emplace(device, physical_device, images, swapchain_images, extent, swapchains[0].format(), *video_stream_description);
+	reprojector.emplace(device, physical_device, decoder_out_image, 2, swapchain_images, extent, swapchain.format(), *video_stream_description);
 }
 
 scene::meta & scenes::stream::get_meta_scene()

@@ -543,7 +543,6 @@ void application::initialize_vulkan()
 
 	vk::PhysicalDeviceFeatures device_features{
 	        .shaderClipDistance = true,
-	        // .samplerAnisotropy = true,
 	};
 
 	vk::StructureChain device_create_info{

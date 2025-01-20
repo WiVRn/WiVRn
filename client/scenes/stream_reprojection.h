@@ -26,11 +26,10 @@
 
 class stream_reprojection
 {
-	struct uniform;
-
+	const uint32_t view_count;
 	// Uniform buffer
 	buffer_allocation buffer;
-	std::vector<uniform *> ubo;
+	size_t uniform_size;
 
 	// Graphic pipeline
 	vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
@@ -39,9 +38,9 @@ class stream_reprojection
 	vk::raii::RenderPass renderpass = nullptr;
 	vk::raii::Pipeline pipeline = nullptr;
 
-	// Source images
+	// Source image
 	vk::raii::Sampler sampler = nullptr;
-	std::vector<vk::Image> input_images;
+	vk::Image input_image;
 	std::vector<vk::raii::ImageView> input_image_views;
 	std::vector<vk::DescriptorSet> descriptor_sets;
 
@@ -58,7 +57,8 @@ public:
 	stream_reprojection(
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
-	        std::vector<vk::Image> input_images,
+	        vk::Image input_image,
+	        uint32_t view_count,
 	        std::vector<vk::Image> output_images,
 	        vk::Extent2D extent,
 	        vk::Format format,
@@ -68,7 +68,6 @@ public:
 
 	void reproject(
 	        vk::raii::CommandBuffer & command_buffer,
-	        int source,
 	        int destination);
 
 	void set_foveation(std::array<wivrn::to_headset::foveation_parameter, 2> foveation);
