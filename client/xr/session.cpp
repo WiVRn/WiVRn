@@ -304,7 +304,10 @@ void xr::session::set_refresh_rate(float refresh_rate)
 	static auto xrRequestDisplayRefreshRateFB = inst->get_proc<PFN_xrRequestDisplayRefreshRateFB>("xrRequestDisplayRefreshRateFB");
 
 	if (xrRequestDisplayRefreshRateFB)
-		CHECK_XR(xrRequestDisplayRefreshRateFB(id, refresh_rate));
+	{
+		if (auto res = xrRequestDisplayRefreshRateFB(id, refresh_rate); res != XR_SUCCESS)
+			spdlog::warn("Refresh rate change failed: {}", xr::to_string(res));
+	}
 }
 
 void xr::session::sync_actions(std::span<XrActionSet> action_sets)
