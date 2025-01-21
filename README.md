@@ -116,6 +116,12 @@ If the server list is empty in the headset app:
 journalctl -f --no-hostname -u io.github.wivrn.wivrn.desktop
 ```
 
+# Contributing
+
+## Translations
+
+See [translating](docs/translating.md) for procedure.
+
 
 # Credits
 WiVRn uses the following software:
