@@ -37,6 +37,7 @@
 			"cacheVariables": {
 				"WIVRN_BUILD_CLIENT": "ON",
 				"WIVRN_BUILD_SERVER": "ON",
+				"WIVRN_BUILD_WIVRNCTL": "ON",
 				"WIVRN_BUILD_DASHBOARD": "ON",
 				"WIVRN_BUILD_DISSECTOR": "ON"
 			}
@@ -112,24 +113,6 @@
 			"binaryDir": "${sourceDir}/build-server-no-system-boost",
 			"cacheVariables": {
 				"WIVRN_USE_SYSTEM_BOOST": "OFF"
-			}
-		},
-		{
-			"name": "client-no-system-boost",
-			"displayName": "Client only (no system Boost)",
-			"inherits": "client",
-			"binaryDir": "${sourceDir}/build-client-no-system-boost",
-			"cacheVariables": {
-				"WIVRN_USE_SYSTEM_BOOST": "OFF"
-			}
-		},
-		{
-			"name": "client-no-system-freetype",
-			"displayName": "Client only (no system freetype/harfbuzz)",
-			"inherits": "client",
-			"binaryDir": "${sourceDir}/build-client-no-system-freetype",
-			"cacheVariables": {
-				"WIVRN_USE_SYSTEM_FREETYPE": "OFF"
 			}
 		},
 		{

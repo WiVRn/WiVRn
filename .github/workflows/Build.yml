@@ -29,7 +29,6 @@ jobs:
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
-        key: linux-server
         create-symlink: true
 
     - name: Install dependencies
@@ -114,10 +113,6 @@ jobs:
     runs-on: ubuntu-24.04
     if: ${{ vars.APK_ONLY == '' }}
 
-    strategy:
-      matrix:
-        cmake_preset: ['client', 'client-no-system-boost', 'client-no-system-freetype']
-
     steps:
     - uses: actions/checkout@v4
       with:
@@ -126,13 +121,12 @@ jobs:
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
-        key: linux-client
         create-symlink: true
 
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@286ed76c72de45dbf50c515779cf4ca2f6aa3944
       with:
-        vulkan-query-version: 1.3.268.0
+        vulkan-query-version: 1.3.283.0
         vulkan-components: Vulkan-Headers
         vulkan-use-cache: true
 
@@ -140,32 +134,36 @@ jobs:
       run: >
         sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev libxcb-glx0-dev gettext libfontconfig-dev libboost-all-dev librsvg2-bin libssl-dev sway grim mesa-vulkan-drivers wayland-protocols fonts-noto-cjk
 
+    - name: install server dependencies
+      run: >
+        sudo apt-get update && sudo apt-get install libavahi-glib-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev policykit-1 libnotify-dev
+
     - name: Configure CMake
       run: >
         cmake -B ${{github.workspace}}/build
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         -DCMAKE_INSTALL_PREFIX=/usr
-        --preset ${{ matrix.cmake_preset }}
+        --preset everything
+        -DWIVRN_BUILD_DASHBOARD=OFF
+        -DWIVRN_BUILD_DISSECTOR=OFF
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Build Monado
-      if: matrix.cmake_preset == 'client'
+      # Disable XRT_FEATURE_OPENXR_VISIBILITY_MASK because of https://gitlab.freedesktop.org/monado/monado/-/issues/480
       run: |
         mkdir monado
         curl https://gitlab.freedesktop.org/Meumeu/monado/-/archive/5bdb51697685320e3f5d494210f25fb2967c9fc3/monado-main.tar.gz | tar -xz -C monado --strip-components=1
         patch --directory=${{github.workspace}}/monado --strip=1 < ${{github.workspace}}/patches/monado-ci/0001-remote-resolution.patch
 
         DRIVERS=$(grep -oE "XRT_BUILD_DRIVER_[A-Z0-9_]*" monado/CMakeLists.txt | sort -u  | grep -v XRT_BUILD_DRIVER_REMOTE | sed 's/\(.*\)/-D\1=OFF/')
-        cmake monado -B ${{github.workspace}}/build-monado -DCMAKE_BUILD_TYPE=Release -DXRT_FEATURE_SERVICE_SYSTEMD=OFF -DXRT_FEATURE_SERVICE=OFF -DXRT_BUILD_DRIVER_REMOTE=ON -DXRT_MODULE_COMPOSITOR_MAIN=ON -DXRT_HAVE_WAYLAND=ON $DRIVERS -DXRT_MODULE_MONADO_REMOTECTL=ON -DBUILD_TESTING=OFF
+        cmake monado -B ${{github.workspace}}/build-monado -DCMAKE_BUILD_TYPE=Release -DXRT_FEATURE_SERVICE_SYSTEMD=OFF -DXRT_FEATURE_SERVICE=OFF -DXRT_BUILD_DRIVER_REMOTE=ON -DXRT_MODULE_COMPOSITOR_MAIN=ON -DXRT_HAVE_WAYLAND=ON $DRIVERS -DXRT_MODULE_MONADO_REMOTECTL=ON -DBUILD_TESTING=OFF -DXRT_FEATURE_OPENXR_VISIBILITY_MASK=OFF
 
         cmake --build ${{github.workspace}}/build-monado
 
-        ls -l ${{github.workspace}}/build-monado/src/xrt/targets/remotectl/monado-remotectl
-
     - name: Take screenshots
-      if: matrix.cmake_preset == 'client'
+      continue-on-error: true
       env:
         WLR_BACKENDS: headless
         WLR_RENDERER: pixman
@@ -183,9 +181,23 @@ jobs:
         sleep 10
         export WAYLAND_DISPLAY=$(cd "${XDG_RUNTIME_DIR}" && ls -tr wayland* | tail -1)
 
+        ${{github.workspace}}/build/server/wivrn-server --no-encrypt --no-publish-service &
+        WIVRN_SERVER_PID=$!
+
+        mkdir -p ~/.config/wivrn
+        echo '{"servers": [{"autoconnect": false, "manual": true, "pretty_name": "Deep Thought", "hostname": "localhost", "port": 9757, "tcp_only": false, "cookie": ""}]}' > ~/.config/wivrn/client.json.in
+
         for LANG in en $(basename -a ${{github.workspace}}/locale/*)
         do
           mkdir ${LANG}
+
+          if [ ${LANG} = fr ]
+          then
+                cat ~/.config/wivrn/client.json.in | jq .virtual_keyboard_layout=\"AZERTY\" > ~/.config/wivrn/client.json
+          else
+                cat ~/.config/wivrn/client.json.in | jq .virtual_keyboard_layout=\"QWERTY\" > ~/.config/wivrn/client.json
+          fi
+
           ${{github.workspace}}/build/bin/wivrn &
           WIVRN_PID=$!
           sleep 10
@@ -194,8 +206,10 @@ jobs:
           wait $WIVRN_PID || true
         done
 
+        killall wivrn-server
+        wait $WIVRN_SERVER_PID || true
+
     - name: Upload screenshots
-      if: matrix.cmake_preset == 'client'
       uses: actions/upload-artifact@v4
       with:
         name: Screenshots
