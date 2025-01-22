@@ -176,11 +176,16 @@ if(USE_ANDROID_VALIDATION_LAYER)
     target_link_libraries(wivrn vvl1 vvl2) # Hack to get gradle to package the validation layer in the APK
 endif()
 
+
+##############################################################################
+# Assets
+#
 if(ANDROID)
     set(ASSETS_DIR ${CMAKE_ANDROID_ASSETS_DIRECTORIES})
 else()
-    set(ASSETS_DIR ${CMAKE_CURRENT_BINARY_DIR}/assets)
+    set(ASSETS_DIR ${CMAKE_CURRENT_BINARY_DIR}/share/wivrn/assets)
     file(MAKE_DIRECTORY ${ASSETS_DIR})
+    install(DIRECTORY "${ASSETS_DIR}" DESTINATION "${CMAKE_INSTALL_DATADIR}/wivrn")
 endif()
 
 
@@ -190,14 +195,11 @@ endif()
 create_mo_files(wivrn wivrn "${CMAKE_CURRENT_SOURCE_DIR}/../locale")
 create_glyphset(wivrn wivrn "${CMAKE_CURRENT_SOURCE_DIR}/../locale")
 
+
 ##############################################################################
 # License files
 #
-if(ANDROID)
-    set(LICENSES_DIR "${CMAKE_ANDROID_ASSETS_DIRECTORIES}/licenses")
-else()
-    set(LICENSES_DIR "${CMAKE_CURRENT_BINARY_DIR}/licenses")
-endif()
+set(LICENSES_DIR "${ASSETS_DIR}/licenses")
 
 file(MAKE_DIRECTORY "${LICENSES_DIR}")
 file(COPY_FILE "${CMAKE_SOURCE_DIR}/COPYING" "${LICENSES_DIR}/WiVRn")
@@ -206,9 +208,6 @@ file(COPY_FILE "${CMAKE_SOURCE_DIR}/LICENSE-OFL-1.1" "${LICENSES_DIR}/FontAwesom
 if (OPENXR_SOURCE_DIR)
     file(COPY_FILE "${OPENXR_SOURCE_DIR}/LICENSE" "${LICENSES_DIR}/openxr-loader")
 endif()
-
-install(DIRECTORY "${LICENSES_DIR}" DESTINATION "${CMAKE_INSTALL_DATADIR}/wivrn")
-
 
 
 ##############################################################################
@@ -274,9 +273,7 @@ if(NOT ANDROID)
     add_dependencies(wivrn assets-builddir)
 
     set_target_properties(wivrn PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/share/wivrn)
-    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/assets ${CMAKE_BINARY_DIR}/share/wivrn/assets SYMBOLIC)
-    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/locale ${CMAKE_BINARY_DIR}/share/locale       SYMBOLIC)
+    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/share ${CMAKE_BINARY_DIR}/share SYMBOLIC)
 
     install(DIRECTORY "${ASSETS_DIR}" DESTINATION ${CMAKE_INSTALL_DATADIR}/wivrn)
 endif()
