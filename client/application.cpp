@@ -297,8 +297,13 @@ static XrActionType guess_action_type(const std::string & name)
 }
 
 VkBool32 application::vulkan_debug_report_callback(
-        VkDebugReportFlagsEXT flags,
+#if VK_HEADER_VERSION >= 304
+        vk::DebugReportFlagsEXT flags_,
+        vk::DebugReportObjectTypeEXT objectType,
+#else
+        VkDebugReportFlagsEXT flags_,
         VkDebugReportObjectTypeEXT objectType,
+#endif
         uint64_t object,
         size_t location,
         int32_t messageCode,
@@ -312,22 +317,14 @@ VkBool32 application::vulkan_debug_report_callback(
 
 	spdlog::level::level_enum level = spdlog::level::info;
 
-	if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
-	{
+	if (vk::DebugReportFlagsEXT flags(flags_); flags & vk::DebugReportFlagBitsEXT::eInformation)
 		level = spdlog::level::info;
-	}
-	else if (flags & (VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT))
-	{
+	else if (flags & (vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::ePerformanceWarning))
 		level = spdlog::level::warn;
-	}
-	else if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
-	{
+	else if (flags & vk::DebugReportFlagBitsEXT::eError)
 		level = spdlog::level::err;
-	}
-	else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
-	{
+	else if (flags & vk::DebugReportFlagBitsEXT::eDebug)
 		level = spdlog::level::debug;
-	}
 
 	// for(const std::string& s: utils::split(pMessage, "|"))
 	// spdlog::log(level, s);
