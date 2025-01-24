@@ -205,7 +205,7 @@ pid_t app_pid;
 bool quitting_main_loop;
 bool do_fork;
 bool do_active_runtime;
-bool avahi_publish;
+wivrn::service_publication publication;
 
 guint listener_watch;
 
@@ -384,19 +384,25 @@ void stop_listening()
 
 void start_publishing()
 {
-	if (not avahi_publish)
-		return;
-	if (publisher)
-		return;
+	switch (publication)
+	{
+		case wivrn::service_publication::none:
+			return;
 
-	char protocol_string[17];
-	sprintf(protocol_string, "%016" PRIx64, wivrn::protocol_version);
-	std::map<std::string, std::string> TXT = {
-	        {"protocol", protocol_string},
-	        {"version", wivrn::git_version},
-	        {"cookie", server_cookie()},
-	};
-	publisher.emplace(poll_api, hostname(), "_wivrn._tcp", wivrn::default_port, TXT);
+		case wivrn::service_publication::avahi: {
+			if (publisher)
+				return;
+
+			char protocol_string[17];
+			sprintf(protocol_string, "%016" PRIx64, wivrn::protocol_version);
+			std::map<std::string, std::string> TXT = {
+			        {"protocol", protocol_string},
+			        {"version", wivrn::git_version},
+			        {"cookie", server_cookie()},
+			};
+			publisher.emplace(poll_api, hostname(), "_wivrn._tcp", wivrn::default_port, TXT);
+		}
+	}
 }
 
 void stop_publishing()
@@ -985,12 +991,16 @@ int main(int argc, char * argv[])
 
 	do_active_runtime = not *no_active_runtime;
 	do_fork = not *no_fork;
-	avahi_publish = not *no_publish;
 	if (*no_encrypt)
 		enc_state = wivrn_connection::encryption_state::disabled;
 
 	if (not config_file.empty())
 		configuration::set_config_file(config_file);
+
+	if (*no_publish)
+		publication = wivrn::service_publication::none;
+	else
+		publication = configuration::read_user_configuration().publication;
 
 #if WIVRN_USE_SYSTEMD
 	if (*app_flag)

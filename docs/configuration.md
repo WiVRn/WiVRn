@@ -170,3 +170,10 @@ If `false` or unset, WiVRn will use both TCP and UDP.
 	"tcp_only": true
 }
 ```
+
+## `publish-service`
+Default value: `avahi`
+
+How to publish the service over the network, `avahi` or null.
+
+If set to null, service will not be published and address has to be entered manually on the headset.

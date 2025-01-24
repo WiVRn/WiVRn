@@ -50,6 +50,15 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
                 {av1, "AV1"},
         })
 
+NLOHMANN_JSON_SERIALIZE_ENUM(
+        service_publication,
+        {
+                {service_publication(-1), ""},
+                {service_publication::none, nullptr},
+                {service_publication::none, "none"},
+                {service_publication::avahi, "avahi"},
+        })
+
 void configuration::set_config_file(const std::filesystem::path & path)
 {
 	config_file = path;
@@ -93,44 +102,47 @@ configuration configuration::read_user_configuration()
 	{
 		auto json = nlohmann::json::parse(file);
 
-		if (json.contains("scale"))
+		if (auto it = json.find("scale"); it != json.end())
 		{
-			if (json["scale"].is_number())
-				result.scale = std::array<double, 2>{json["scale"], json["scale"]};
+			if (it->is_number())
+				result.scale = std::array<double, 2>{*it, *it};
 			else
-				result.scale = json["scale"];
+				result.scale = *it;
 		}
 
-		if (json.contains("bitrate"))
-		{
-			result.bitrate = json["bitrate"];
-		}
+		if (auto it = json.find("bitrate"); it != json.end())
+			result.bitrate = *it;
 
-		if (json.contains("encoders"))
+		if (auto it = json.find("encoders"); it != json.end())
 		{
-			for (const auto & encoder: json["encoders"])
+			for (const auto & encoder: *it)
 				result.encoders.push_back(parse_encoder(encoder));
 		}
 
-		if (json.contains("encoder-passthrough"))
-			result.encoder_passthrough = parse_encoder(json["encoder-passthrough"]);
+		if (auto it = json.find("encoder-passthrough"); it != json.end())
+			result.encoder_passthrough = parse_encoder(*it);
 
-		if (json.contains("application"))
+		if (auto it = json.find("application"); it != json.end())
 		{
-			if (json["application"].is_string())
-				result.application.push_back(json["application"]);
+			if (it->is_string())
+				result.application.push_back(*it);
 			else
 			{
-				for (const auto & i: json["application"])
-				{
+				for (const auto & i: *it)
 					result.application.push_back(i);
-				}
 			}
 		}
 
-		if (json.contains("tcp_only"))
+		if (auto it = json.find("tcp-only"); it != json.end())
+			result.tcp_only = *it;
+		else if (auto it = json.find("tcp_only"); it != json.end())
+			result.tcp_only = *it;
+
+		if (auto it = json.find("publish-service"); it != json.end())
 		{
-			result.tcp_only = json["tcp_only"];
+			result.publication = *it;
+			if (result.publication == service_publication(-1))
+				throw std::runtime_error("invalid service publication " + it->get<std::string>());
 		}
 	}
 	catch (const std::exception & e)

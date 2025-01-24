@@ -29,6 +29,13 @@
 
 namespace wivrn
 {
+
+enum class service_publication
+{
+	none,
+	avahi,
+};
+
 struct configuration
 {
 	struct encoder
@@ -50,6 +57,7 @@ struct configuration
 	std::optional<std::array<double, 2>> scale;
 	std::vector<std::string> application;
 	bool tcp_only = false;
+	service_publication publication = service_publication::avahi;
 
 	static void set_config_file(const std::filesystem::path &);
 	static const std::filesystem::path & get_config_file();
