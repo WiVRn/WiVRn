@@ -89,7 +89,7 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb Boost::locale)
+target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb Boost::url Boost::locale)
 
 if (WIVRN_USE_LIBKTX)
     target_link_libraries(wivrn ktx_read)

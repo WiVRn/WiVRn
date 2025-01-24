@@ -277,12 +277,12 @@ std::unique_ptr<wivrn_session> scenes::lobby::connect_to_session(wivrn_discover:
 		{
 			spdlog::debug("Connection to {}", address_string);
 
-			return std::visit([this, port = service.port, tcp_only = service.tcp_only](auto & address) {
-				return std::make_unique<wivrn_session>(address, port, tcp_only, keypair, [&](int fd) {
+			return std::visit([this, &service](auto & address) {
+				return std::make_unique<wivrn_session>(address, service.port, service.tcp_only, keypair, [&](int fd) {
 					auto request = pin_request.lock();
 					request->pin_requested = true;
 					request->pin_cancelled = false;
-					request->pin = "";
+					request->pin = service.pin;
 					pin_buffer = "";
 
 					while (not request.wait_for(500ms, [&]() { return request->pin != "" or request->pin_cancelled; }))
@@ -705,6 +705,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	{
 		if (auto intent = application::get_intent())
 		{
+			pin_request.lock()->pin = intent->pin;
 			connect(configuration::server_data{
 			        .manual = true,
 			        .service = *intent,

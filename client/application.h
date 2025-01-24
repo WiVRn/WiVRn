@@ -355,7 +355,7 @@ public:
 	{
 		std::unique_lock _{instance().server_intent_mutex};
 
-		std::optional<wivrn_discover::service> intent = instance().server_intent;
+		auto intent = instance().server_intent;
 		instance().server_intent.reset();
 
 		return intent;

@@ -33,6 +33,7 @@
 #include "xr/xr.h"
 #include <algorithm>
 #include <boost/locale.hpp>
+#include <boost/url/parse.hpp>
 #include <chrono>
 #include <ctype.h>
 #include <exception>
@@ -975,37 +976,33 @@ extern "C" __attribute__((visibility("default"))) void Java_org_meumeu_wivrn_Mai
 }
 #endif
 
+static bool is_tcp_scheme(boost::core::string_view scheme)
+{
+	if (scheme.empty() or scheme == "wivrn")
+		return false;
+	if (scheme == "wivrn+tcp")
+		return true;
+	throw std::runtime_error("invalid URI scheme " + std::string(scheme));
+}
+
 void application::set_server_uri(std::string uri)
 {
-	std::string server_address;
-	bool server_tcp_only = false;
-
-	if (uri.starts_with("wivrn://"))
-	{
-		server_address = uri.substr(strlen("wivrn://"));
-	}
-	else if (uri.starts_with("wivrn+tcp://"))
-	{
-		server_address = uri.substr(strlen("wivrn+tcp://"));
-		server_tcp_only = true;
-	}
-
-	auto colon = server_address.rfind(":");
-	int port = wivrn::default_port;
-	if (colon != std::string::npos)
-	{
-		port = std::stoi(server_address.substr(colon + 1));
-		server_address = server_address.substr(0, colon);
-	}
+	auto parse_result = boost::urls::parse_uri(uri);
+	if (parse_result.has_error())
+		throw boost::system::system_error(parse_result.error(), "failed to parse uri");
+	if (not parse_result.has_value())
+		throw std::runtime_error("failed to parse uri, empty result");
 
 	{
 		std::unique_lock _{server_intent_mutex};
-		server_intent = wivrn_discover::service{
-		        .name = "",
-		        .hostname = server_address,
-		        .port = port,
-		        .tcp_only = server_tcp_only,
-		};
+		server_intent =
+		        wivrn_discover::service{
+		                .name = "",
+		                .hostname = parse_result->host(),
+		                .port = parse_result->has_port() ? parse_result->port_number() : wivrn::default_port,
+		                .tcp_only = is_tcp_scheme(parse_result->scheme()),
+		                .pin = parse_result->password(),
+		        };
 	}
 }
 
@@ -1027,7 +1024,14 @@ application::application(application_info info) :
 		if (auto data_string = intent.call<jni::string>("getDataString"))
 		{
 			spdlog::info("Started with intent {}", (std::string)data_string);
-			set_server_uri(data_string);
+			try
+			{
+				set_server_uri(data_string);
+			}
+			catch (std::exception & e)
+			{
+				spdlog::warn("failed to set server uri: {}", e.what());
+			}
 		}
 
 		auto files_dir = ctx.call<jni::object<"java/io/File">>("getFilesDir");

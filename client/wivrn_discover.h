@@ -24,6 +24,7 @@ public:
 		std::vector<std::variant<in_addr, in6_addr>> addresses;
 		std::map<std::string, std::string> txt;
 		std::chrono::steady_clock::time_point ttl;
+		std::string pin;
 	};
 
 	static inline const std::chrono::milliseconds poll_min_time{500};
