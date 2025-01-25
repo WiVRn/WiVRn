@@ -92,10 +92,15 @@ if(ANDROID)
     if (NOT EXISTS ${CMAKE_BINARY_DIR}/openssl/lib/libcrypto.so)
         execute_process(
             COMMAND ${CMAKE_COMMAND} -E env ANDROID_NDK_ROOT=${CMAKE_ANDROID_NDK} PATH=${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin:$ENV{PATH} make -j${CMAKE_BUILD_PARALLEL_LEVEL}
-            COMMAND ${CMAKE_COMMAND} -E env ANDROID_NDK_ROOT=${CMAKE_ANDROID_NDK} PATH=${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin:$ENV{PATH} make install_sw
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/openssl-src
             OUTPUT_FILE ${CMAKE_BINARY_DIR}/openssl-make-out
             ERROR_FILE ${CMAKE_BINARY_DIR}/openssl-make-err
+        )
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} -E env ANDROID_NDK_ROOT=${CMAKE_ANDROID_NDK} PATH=${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin:$ENV{PATH} make install_sw
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/openssl-src
+            OUTPUT_FILE ${CMAKE_BINARY_DIR}/openssl-install-out
+            ERROR_FILE ${CMAKE_BINARY_DIR}/openssl-install-err
         )
     endif()
 
