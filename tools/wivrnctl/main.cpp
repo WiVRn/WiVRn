@@ -105,12 +105,12 @@ void print_table(const std::array<std::string, std::tuple_size_v<value_type>> & 
 		}
 	}
 
-	std::cout << "\e[1m";
+	std::cout << "\033[1m";
 	for (auto [size, label]: std::views::zip(column_size, header))
 	{
 		std::cout << std::left << std::setw(size) << label << " ";
 	}
-	std::cout << "\e[0m\n";
+	std::cout << "\033[0m\n";
 
 	for (const auto & line: lines)
 	{
@@ -173,7 +173,7 @@ void pair(int duration)
 	}
 }
 
-void unpair(int headset_id)
+void unpair(size_t headset_id)
 {
 	auto bus = get_user_bus();
 	auto values = get_keys(bus);
@@ -201,7 +201,7 @@ void list_paired(bool show_keys)
 	}
 }
 
-void rename(int headset_id, const std::string & headset_name)
+void rename(size_t headset_id, const std::string & headset_name)
 {
 	auto bus = get_user_bus();
 	auto values = get_keys(bus);
@@ -246,7 +246,7 @@ int main(int argc, char ** argv)
 	                        ->default_val(2)
 	                        ->option_text("INT|unlimited");
 
-	int headset_id;
+	size_t headset_id;
 	auto unpair_command = app.add_subcommand("unpair", "Remove a headset")
 	                              ->callback([&]() { return unpair(headset_id); });
 	unpair_command->add_option("HEADSET", headset_id, "Headset ID from the list-paired subcommand")->required();
