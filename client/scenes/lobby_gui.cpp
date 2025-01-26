@@ -200,7 +200,7 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 	if (server_name == "")
 		CenterTextH(fmt::format(_F("Connection")));
 	else
-		CenterTextH(fmt::format(_F("Connection to {}"), server_name));
+		CenterTextH(fmt::format(_F("Connected to {}"), server_name));
 	ImGui::PopFont();
 
 	// ImGui::TextWrapped("%s", status.first.c_str());
