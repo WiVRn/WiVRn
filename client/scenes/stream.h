@@ -89,6 +89,8 @@ private:
 	std::atomic<bool> recenter_requested = false;
 	std::atomic<XrDuration> display_time_phase = 0;
 	std::atomic<XrDuration> display_time_period = 0;
+	XrTime last_display_time = 0;
+	std::atomic<XrDuration> real_display_period = 0;
 	std::optional<std::thread> tracking_thread;
 
 	std::shared_mutex decoder_mutex;
