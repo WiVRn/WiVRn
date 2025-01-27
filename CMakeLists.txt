@@ -259,8 +259,9 @@ FetchContent_Declare(spdlog        EXCLUDE_FROM_ALL SYSTEM URL https://github.co
                                    URL_HASH SHA256=1586508029a7d0670dfcb2d97575dcdc242d3868a259742b69f100801ab4e16b)
 FetchContent_Declare(stb           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.zip
                                    URL_HASH SHA256=b7f476902bbef1b30f8ecc2d9d95c459c32302c8b559d09b589b5955463b7af8)
-FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/v4.3.0.tar.gz
-                                   URL_HASH SHA256=d892b5951cba9e938bae29eaee56a948174846c33616225eb92b6235029419b4)
+FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM
+                                   GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software
+                                   GIT_TAG 91ace88675ac59a97e55d0378a6602a9ae6b98bd)
 FetchContent_Declare(implot        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/epezent/implot/archive/refs/tags/v0.16.tar.gz
                                    URL_HASH SHA256=961df327d8a756304d1b0a67316eebdb1111d13d559f0d3415114ec0eb30abd1)
 file(GLOB IMGUI_PATCHES CONFIGURE_DEPENDS patches/imgui/*)
