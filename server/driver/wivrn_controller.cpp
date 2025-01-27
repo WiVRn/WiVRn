@@ -21,7 +21,10 @@
 #include "wivrn_session.h"
 
 #include "util/u_logging.h"
+#include <magic_enum.hpp>
 #include <stdio.h>
+
+#include <fstream>
 
 #include "xrt/xrt_defines.h"
 
@@ -153,6 +156,62 @@ static xrt_result_t wivrn_controller_update_inputs(xrt_device * xdev)
 {
 	static_cast<wivrn_controller *>(xdev)->update_inputs();
 	return XRT_SUCCESS;
+}
+
+namespace
+{
+struct xrt_space_relation_csv_header
+{};
+} // namespace
+
+static std::ostream & operator<<(std::ostream & out, const xrt_space_relation_csv_header &)
+{
+	for (auto [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
+	{
+		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
+		{
+			name = name.substr(strlen("XRT_SPACE_RELATION_"));
+			name = name.substr(0, name.size() - strlen("_BIT"));
+			out << name << ",";
+		}
+	}
+	out << "x,y,z,";
+	out << "qw,qx,qy,qz";
+	return out;
+}
+
+static std::ostream & operator<<(std::ostream & out, const xrt_space_relation & rel)
+{
+	const auto & pos = rel.pose.position;
+	const auto & o = rel.pose.orientation;
+	for (const auto & [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
+	{
+		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
+			out << bool(rel.relation_flags & value) << ',';
+	}
+	out << pos.x << ',' << pos.y << ',' << pos.z << ',';
+	out << o.w << ',' << o.x << ',' << o.y << ',' << o.z;
+	return out;
+}
+
+static std::mutex tracking_dump_mutex;
+static std::ofstream & tracking_dump()
+{
+	static auto res = [] {
+		std::ofstream res;
+		if (auto wivrn_dump = std::getenv("WIVRN_DUMP_TRACKING"))
+		{
+			res.open(wivrn_dump);
+			res << "device_id,"
+			       "now_ns,"
+			       "timestamp_ns,"
+			       "extrapolation_ns,"
+			       "receive/get,"
+			    << xrt_space_relation_csv_header{} << std::endl;
+		}
+		return res;
+	}();
+	return res;
 }
 
 wivrn_controller::wivrn_controller(int hand_id,
@@ -341,6 +400,27 @@ xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, int64
 			return {};
 	}
 	cnx->add_predict_offset(extrapolation_time);
+	if (auto & out = tracking_dump())
+	{
+		std::lock_guard lock{tracking_dump_mutex};
+		auto device = [&] {
+		switch (name)
+		{
+			case XRT_INPUT_TOUCH_AIM_POSE: return aim.device;
+			case XRT_INPUT_TOUCH_GRIP_POSE: return grip.device;
+			case XRT_INPUT_GENERIC_PALM_POSE: return palm.device;
+			default:
+				assert(false);
+				__builtin_unreachable();
+		} }();
+		out << magic_enum::enum_name(device) << ','
+		    << os_monotonic_get_ns() << ','
+		    << at_timestamp_ns << ','
+		    << extrapolation_time.count() << ','
+		    << "g,"
+		    << res << std::endl;
+		;
+	}
 	return res;
 }
 
@@ -370,6 +450,21 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 		cnx->set_enabled(grip.device, false);
 	if (not palm.update_tracking(tracking, offset))
 		cnx->set_enabled(palm.device, false);
+	if (auto & out = tracking_dump(); out and offset)
+	{
+		std::lock_guard lock{tracking_dump_mutex};
+		auto now = os_monotonic_get_ns();
+		for (const auto & pose: tracking.device_poses)
+		{
+			if (pose.device == aim.device or pose.device == grip.device or pose.device == palm.device)
+				out << magic_enum::enum_name(pose.device) << ','
+				    << now << ','
+				    << offset.from_headset(tracking.timestamp) << ','
+				    << tracking.timestamp - tracking.production_timestamp << ','
+				    << "r,"
+				    << pose_list::convert_pose(pose) << std::endl;
+		}
+	}
 }
 
 void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
