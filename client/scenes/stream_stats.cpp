@@ -327,7 +327,7 @@ std::vector<XrCompositionLayerQuad> scenes::stream::plot_performance_metrics(XrT
 	ImPlot::PopStyleColor(5);
 	{
 		std::lock_guard lock(tracking_control_mutex);
-		ImGui::Text("%s", fmt::format(_F("Estimated motion to photons latency: {}ms"), std::chrono::duration_cast<std::chrono::milliseconds>(tracking_control.offset).count()).c_str());
+		ImGui::Text("%s", fmt::format(_F("Estimated motion to photons latency: {}ms"), std::chrono::duration_cast<std::chrono::milliseconds>(tracking_control.max_offset).count()).c_str());
 	}
 	ImGui::End();
 

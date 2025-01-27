@@ -50,6 +50,7 @@ struct wivrn_comp_target_factory;
 class tracking_control_t
 {
 	using T = std::chrono::nanoseconds::rep;
+	std::atomic<T> min;
 	std::atomic<T> max;
 	std::chrono::steady_clock::time_point next_sample;
 	std::mutex mutex;
@@ -67,6 +68,13 @@ public:
 		T prev = max;
 		while (prev < sample and max.compare_exchange_weak(prev, sample))
 		{
+		}
+		if (sample > 0)
+		{
+			prev = min;
+			while (prev > sample and min.compare_exchange_weak(prev, sample))
+			{
+			}
 		}
 	}
 	void send(wivrn_connection & connection, bool now = false);

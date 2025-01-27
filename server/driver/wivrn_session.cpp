@@ -104,7 +104,8 @@ void wivrn::tracking_control_t::send(wivrn_connection & connection, bool now)
 		return;
 
 	connection.send_stream(to_headset::tracking_control{
-	        .offset = std::chrono::nanoseconds(max.exchange(0)),
+	        .min_offset = std::chrono::nanoseconds(min.exchange(80'000'000)),
+	        .max_offset = std::chrono::nanoseconds(max.exchange(0)),
 	        .enabled = enabled,
 	});
 	if (not now)

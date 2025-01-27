@@ -483,7 +483,8 @@ struct tracking_control
 
 		last = microphone,
 	};
-	std::chrono::nanoseconds offset;
+	std::chrono::nanoseconds min_offset;
+	std::chrono::nanoseconds max_offset;
 	std::array<bool, size_t(id::last) + 1> enabled;
 };
 

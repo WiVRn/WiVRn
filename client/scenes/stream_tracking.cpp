@@ -192,7 +192,6 @@ void scenes::stream::tracking()
 	XrTime last_hand_sample = t0;
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::hand_tracking> hands;
-	int skip_samples = 0;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
 	const bool face_tracking = config.check_feature(feature::face_tracking);
@@ -220,9 +219,11 @@ void scenes::stream::tracking()
 				control = tracking_control;
 			}
 
-			XrDuration prediction = std::clamp<XrDuration>(control.offset.count(), 0, 80'000'000);
+			XrDuration prediction = std::clamp<XrDuration>(control.max_offset.count(), 0, 80'000'000);
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
-			for (XrDuration Δt = 0; Δt <= prediction + period / 2; Δt += period, ++samples)
+			for (XrDuration Δt = display_time_phase - t0 % period + (control.min_offset.count() / period) * period;
+			     Δt <= prediction + period / 2;
+			     Δt += period, ++samples)
 			{
 				auto & packet = tracking.emplace_back();
 				packet.production_timestamp = t0;
@@ -283,22 +284,11 @@ void scenes::stream::tracking()
 					    e.code().value() != XR_ERROR_TIME_INVALID)
 						throw;
 				}
-
-				// Make sure predictions are phase-synced with display time
-				if (Δt == 0 and prediction)
-				{
-					Δt = display_time_phase - t0 % period + skip_samples * period;
-				}
 			}
 
 			XrDuration busy_time = t.count();
 			// Target: polling between 1 and 5ms, with 20% busy time
 			tracking_period = std::clamp<XrDuration>(std::lerp(tracking_period, busy_time * 5, 0.2), min_tracking_period, max_tracking_period);
-
-			if (samples and busy_time / samples > 2'000'000)
-			{
-				skip_samples = busy_time / 2'000'000;
-			}
 
 #ifdef __ANDROID__
 			if (next_battery_check < now and control.enabled[size_t(tid::battery)])
@@ -363,4 +353,5 @@ void scenes::stream::operator()(to_headset::tracking_control && packet)
 		audio_handle->set_mic_sate(packet.enabled[m]);
 
 	tracking_control = packet;
+	tracking_control.min_offset = std::min(tracking_control.min_offset, tracking_control.max_offset);
 }
