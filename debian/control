@@ -41,6 +41,7 @@ Build-Depends:
  policykit-1,
  qt6-base-dev,
  qt6-tools-dev,
+ qcoro-qt6-dev,
  xz-utils
 Standards-Version: 4.6.2
 Homepage: https://wivrn.github.io

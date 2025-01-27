@@ -159,6 +159,16 @@ modules:
       url: https://gitlab.gnome.org/GNOME/libnotify.git
       tag: 0.8.3
 
+  - name: qcoro
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DQCORO_BUILD_EXAMPLES=OFF
+      - -DQCORO_BUILD_TESTING=OFF
+    sources:
+    - type: git
+      url: https://github.com/qcoro/qcoro.git
+      tag: v0.11.0
+
   - name: wivrn
     buildsystem: cmake-ninja
     config-opts:
