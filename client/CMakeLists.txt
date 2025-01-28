@@ -64,6 +64,8 @@ else()
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
+
+    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/share ${CMAKE_BINARY_DIR}/share SYMBOLIC)
 endif()
 
 
@@ -273,7 +275,6 @@ if(NOT ANDROID)
     add_dependencies(wivrn assets-builddir)
 
     set_target_properties(wivrn PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-    file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/share ${CMAKE_BINARY_DIR}/share SYMBOLIC)
 
     install(DIRECTORY "${ASSETS_DIR}" DESTINATION ${CMAKE_INSTALL_DATADIR}/wivrn)
 endif()
