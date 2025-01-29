@@ -221,22 +221,17 @@ static std::ofstream & tracking_dump()
 
 static auto make_palm(int hand_id, bool palm_pose)
 {
-	std::optional<std::array<float, 3>> grip_surface = configuration::read_user_configuration().grip_surface;
-	if (palm_pose && !grip_surface)
-	{
-		return pose_list((hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM));
-	}
-	else if (grip_surface)
+	if (auto grip_surface = configuration::read_user_configuration().grip_surface)
 	{
 		std::array<float, 3> angles = grip_surface.value();
 		float deg_2_rad = std::numbers::pi / 180.0;
-		xrt_vec3 rotation_angles = xrt_vec3{angles[0] * deg_2_rad, angles[1] * deg_2_rad, angles[2] * deg_2_rad};
+		xrt_vec3 rotation_angles{angles[0] * deg_2_rad, angles[1] * deg_2_rad, angles[2] * deg_2_rad};
 		xrt_quat rotation_quat = XRT_QUAT_IDENTITY;
 		math_quat_from_euler_angles(&rotation_angles, &rotation_quat);
 
-		return pose_list((hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP), rotation_quat);
+		return pose_list(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP, rotation_quat);
 	}
-	return pose_list((hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM));
+	return pose_list(hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM);
 }
 
 wivrn_controller::wivrn_controller(int hand_id,

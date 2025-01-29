@@ -36,7 +36,7 @@ public:
 	static xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t);
 	static xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, int64_t ta, int64_t tb, int64_t t);
 
-	pose_list(wivrn::device_id id, xrt_quat rotation_quat = xrt_quat{0.0, 0.0, 0.0, 1.0}) :
+	pose_list(wivrn::device_id id, xrt_quat rotation_quat = XRT_QUAT_IDENTITY) :
 	        device(id),
 	        rotation_offset(rotation_quat) {}
 
