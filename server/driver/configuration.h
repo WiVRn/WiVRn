@@ -55,6 +55,7 @@ struct configuration
 	std::optional<encoder> encoder_passthrough;
 	std::optional<int> bitrate;
 	std::optional<std::array<double, 2>> scale;
+	std::optional<std::array<float, 3>> grip_surface;
 	std::vector<std::string> application;
 	bool tcp_only = false;
 	service_publication publication = service_publication::avahi;

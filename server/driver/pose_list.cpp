@@ -18,6 +18,7 @@
  */
 
 #include "pose_list.h"
+#include "math/m_api.h"
 #include "math/m_eigen_interop.hpp"
 #include "math/m_space.h"
 #include "math/m_vec3.h"
@@ -69,7 +70,9 @@ bool pose_list::update_tracking(const from_headset::tracking & tracking, const c
 		if (pose.device != device)
 			continue;
 
-		return add_sample(tracking.production_timestamp, tracking.timestamp, convert_pose(pose), offset);
+		xrt_space_relation new_pose = convert_pose(pose);
+		math_quat_rotate(&new_pose.pose.orientation, &rotation_offset, &new_pose.pose.orientation);
+		return add_sample(tracking.production_timestamp, tracking.timestamp, new_pose, offset);
 	}
 	return true;
 }

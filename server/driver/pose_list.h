@@ -31,12 +31,14 @@ class pose_list : public history<pose_list, xrt_space_relation>
 {
 public:
 	const wivrn::device_id device;
+	const xrt_quat rotation_offset;
 
 	static xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t);
 	static xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, int64_t ta, int64_t tb, int64_t t);
 
-	pose_list(wivrn::device_id id) :
-	        device(id) {}
+	pose_list(wivrn::device_id id, xrt_quat rotation_quat = xrt_quat{0.0, 0.0, 0.0, 1.0}) :
+	        device(id),
+	        rotation_offset(rotation_quat) {}
 
 	bool update_tracking(const wivrn::from_headset::tracking &, const clock_offset & offset);
 

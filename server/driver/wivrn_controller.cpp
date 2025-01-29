@@ -18,10 +18,15 @@
  */
 
 #include "wivrn_controller.h"
+#include "configuration.h"
+#include "math/m_api.h"
 #include "wivrn_session.h"
 
 #include "util/u_logging.h"
+#include <array>
 #include <magic_enum.hpp>
+#include <numbers>
+#include <optional>
 #include <stdio.h>
 
 #include <fstream>
@@ -214,13 +219,33 @@ static std::ofstream & tracking_dump()
 	return res;
 }
 
+static auto make_palm(int hand_id, bool palm_pose)
+{
+	std::optional<std::array<float, 3>> grip_surface = configuration::read_user_configuration().grip_surface;
+	if (palm_pose && !grip_surface)
+	{
+		return pose_list((hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM));
+	}
+	else if (grip_surface)
+	{
+		std::array<float, 3> angles = grip_surface.value();
+		float deg_2_rad = std::numbers::pi / 180.0;
+		xrt_vec3 rotation_angles = xrt_vec3{angles[0] * deg_2_rad, angles[1] * deg_2_rad, angles[2] * deg_2_rad};
+		xrt_quat rotation_quat = XRT_QUAT_IDENTITY;
+		math_quat_from_euler_angles(&rotation_angles, &rotation_quat);
+
+		return pose_list((hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP), rotation_quat);
+	}
+	return pose_list((hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM));
+}
+
 wivrn_controller::wivrn_controller(int hand_id,
                                    xrt_device * hmd,
                                    wivrn::wivrn_session * cnx) :
         xrt_device{},
         grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
         aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM),
-        palm(hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM),
+        palm(make_palm(hand_id, cnx->get_info().palm_pose)),
         joints(hand_id),
         cnx(cnx)
 {
@@ -280,7 +305,7 @@ wivrn_controller::wivrn_controller(int hand_id,
 	inputs[WIVRN_CONTROLLER_HAND_TRACKER].active = hand_tracking_supported;
 
 	inputs[WIVRN_CONTROLLER_PALM_POSE].name = XRT_INPUT_GENERIC_PALM_POSE;
-	inputs[WIVRN_CONTROLLER_PALM_POSE].active = cnx->get_info().palm_pose;
+	inputs[WIVRN_CONTROLLER_PALM_POSE].active = cnx->get_info().palm_pose or palm.device == grip.device;
 
 	output_count = 1;
 	outputs = &haptic_output;

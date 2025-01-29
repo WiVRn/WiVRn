@@ -110,6 +110,11 @@ configuration configuration::read_user_configuration()
 				result.scale = *it;
 		}
 
+		if (auto it = json.find("grip-surface"); it != json.end())
+		{
+			result.grip_surface = *it;
+		}
+
 		if (auto it = json.find("bitrate"); it != json.end())
 			result.bitrate = *it;
 
