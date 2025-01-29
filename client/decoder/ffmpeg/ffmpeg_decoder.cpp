@@ -166,7 +166,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 	this->frame_index = frame_index;
 }
 
-void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, const wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
+void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
 {
 	spdlog::trace("ffmpeg decoder:frame_completed {}", frame_index);
 	AVPacket packet{};
@@ -183,7 +183,7 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 		if (res == AVERROR(EAGAIN))
 		{
 			spdlog::warn("EAGAIN in avcodec_send_packet");
-			frame_completed(feedback, timing_info, view_info);
+			frame_completed(feedback, view_info);
 		}
 	}
 	if (res < 0)
@@ -223,7 +223,6 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 
 	auto handle = std::make_shared<decoder::blit_handle>(
 	        feedback,
-	        timing_info,
 	        view_info,
 	        decoded_images[index].image_view,
 	        (vk::Image)decoded_images[index].image,

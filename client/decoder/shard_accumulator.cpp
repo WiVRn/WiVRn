@@ -194,6 +194,10 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	current.feedback.received_last_packet = application::now();
 	current.feedback.sent_to_decoder = current.feedback.received_last_packet;
 	data_shard::timing_info_t timing_info = data_shards.back()->timing_info.value_or(data_shard::timing_info_t{});
+	current.feedback.encode_begin = timing_info.encode_begin;
+	current.feedback.encode_end = timing_info.encode_end;
+	current.feedback.send_begin = timing_info.send_begin;
+	current.feedback.send_end = timing_info.send_end;
 
 	if (not data_shards.front()->view_info)
 	{
@@ -202,7 +206,7 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	}
 
 	// Try to extract a frame
-	decoder->frame_completed(current.feedback, timing_info, *data_shards.front()->view_info);
+	decoder->frame_completed(current.feedback, *data_shards.front()->view_info);
 
 	send_feedback(current.feedback);
 

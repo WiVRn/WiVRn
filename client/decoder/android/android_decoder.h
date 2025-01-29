@@ -71,7 +71,6 @@ public:
 			void operator()(AImage *);
 		};
 		wivrn::from_headset::feedback feedback;
-		wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 		vk::raii::ImageView & image_view;
 		vk::Image image = nullptr;
@@ -123,7 +122,6 @@ private:
 	struct frame_info
 	{
 		wivrn::from_headset::feedback feedback;
-		wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 	};
 	utils::sync_queue<frame_info> frame_infos;
@@ -157,7 +155,6 @@ public:
 
 	void frame_completed(
 	        wivrn::from_headset::feedback & feedback,
-	        const wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info,
 	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 
 	const auto & desc() const

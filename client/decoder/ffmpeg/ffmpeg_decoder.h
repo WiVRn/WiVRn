@@ -52,7 +52,6 @@ public:
 	struct blit_handle
 	{
 		wivrn::from_headset::feedback feedback;
-		wivrn::to_headset::video_stream_data_shard::timing_info_t timing_info;
 		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 		vk::raii::ImageView & image_view;
 		vk::Image image = nullptr;
@@ -109,7 +108,6 @@ public:
 
 	void frame_completed(
 	        const wivrn::from_headset::feedback & feedback,
-	        const wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info,
 	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
 
 	const auto & desc() const

@@ -109,11 +109,11 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 	if (decoder_metrics.size() != active_handles.size())
 		decoder_metrics.resize(active_handles.size());
 
-	auto min_encode_begin = std::numeric_limits<decltype(active_handles[0]->timing_info.encode_begin)>::max();
+	auto min_encode_begin = std::numeric_limits<decltype(active_handles[0]->feedback.encode_begin)>::max();
 	for (const auto & bh: active_handles)
 	{
 		if (bh)
-			min_encode_begin = std::min(min_encode_begin, bh->timing_info.encode_begin);
+			min_encode_begin = std::min(min_encode_begin, bh->feedback.encode_begin);
 	}
 
 	for (auto && [metrics, bh]: std::views::zip(decoder_metrics, active_handles))
@@ -125,10 +125,10 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 
 		// clang-format off
 		metrics[metrics_offset] = bh ? decoder_metric{
-			.encode_begin          = (bh->timing_info.encode_begin       - min_encode_begin) * 1e-9f,
-			.encode_end            = (bh->timing_info.encode_end         - min_encode_begin) * 1e-9f,
-			.send_begin            = (bh->timing_info.send_begin         - min_encode_begin) * 1e-9f,
-			.send_end              = (bh->timing_info.send_end           - min_encode_begin) * 1e-9f,
+			.encode_begin          = (bh->feedback.encode_begin          - min_encode_begin) * 1e-9f,
+			.encode_end            = (bh->feedback.encode_end            - min_encode_begin) * 1e-9f,
+			.send_begin            = (bh->feedback.send_begin            - min_encode_begin) * 1e-9f,
+			.send_end              = (bh->feedback.send_end              - min_encode_begin) * 1e-9f,
 			.received_first_packet = (bh->feedback.received_first_packet - min_encode_begin) * 1e-9f,
 			.received_last_packet  = (bh->feedback.received_last_packet  - min_encode_begin) * 1e-9f,
 			.sent_to_decoder       = (bh->feedback.sent_to_decoder       - min_encode_begin) * 1e-9f,

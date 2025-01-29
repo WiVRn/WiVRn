@@ -271,6 +271,10 @@ struct feedback
 	uint8_t stream_index;
 
 	// Timestamps
+	XrTime encode_begin;
+	XrTime encode_end;
+	XrTime send_begin;
+	XrTime send_end;
 	XrTime received_first_packet;
 	XrTime received_last_packet;
 	XrTime sent_to_decoder;

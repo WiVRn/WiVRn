@@ -222,7 +222,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 	current_input_buffer = input_buffer{};
 }
 
-void decoder::frame_completed(wivrn::from_headset::feedback & feedback, const wivrn::to_headset::video_stream_data_shard::timing_info_t & timing_info, const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
+void decoder::frame_completed(wivrn::from_headset::feedback & feedback, const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
 {
 	if (not media_codec)
 	{
@@ -234,7 +234,6 @@ void decoder::frame_completed(wivrn::from_headset::feedback & feedback, const wi
 	// nothing required for decoder, mediacodec will callback when done
 	frame_infos.push(frame_info{
 	        .feedback = feedback,
-	        .timing_info = timing_info,
 	        .view_info = view_info,
 	});
 }
@@ -283,7 +282,6 @@ void decoder::on_image_available(AImageReader * reader)
 
 		auto handle = std::make_shared<decoder::blit_handle>(
 		        info->feedback,
-		        info->timing_info,
 		        info->view_info,
 		        vk_data->image_view,
 		        *vk_data->vimage,
