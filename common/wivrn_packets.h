@@ -215,6 +215,13 @@ struct trackings
 	std::vector<tracking> items;
 };
 
+struct derived_pose
+{
+	device_id source;
+	device_id target;
+	XrPosef relation;
+};
+
 struct hand_tracking
 {
 	enum flags : uint8_t
@@ -308,6 +315,7 @@ using packets = std::variant<
         handshake,
         tracking,
         trackings,
+        derived_pose,
         hand_tracking,
         inputs,
         timesync_response,

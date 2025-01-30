@@ -19,6 +19,7 @@
 
 #include "wivrn_controller.h"
 #include "configuration.h"
+#include "driver/xrt_cast.h"
 #include "math/m_api.h"
 #include "wivrn_session.h"
 
@@ -219,28 +220,13 @@ static std::ofstream & tracking_dump()
 	return res;
 }
 
-static auto make_palm(int hand_id, bool palm_pose)
-{
-	if (auto grip_surface = configuration::read_user_configuration().grip_surface)
-	{
-		std::array<float, 3> angles = grip_surface.value();
-		float deg_2_rad = std::numbers::pi / 180.0;
-		xrt_vec3 rotation_angles{angles[0] * deg_2_rad, angles[1] * deg_2_rad, angles[2] * deg_2_rad};
-		xrt_quat rotation_quat = XRT_QUAT_IDENTITY;
-		math_quat_from_euler_angles(&rotation_angles, &rotation_quat);
-
-		return pose_list(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP, rotation_quat);
-	}
-	return pose_list(hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM);
-}
-
 wivrn_controller::wivrn_controller(int hand_id,
                                    xrt_device * hmd,
                                    wivrn::wivrn_session * cnx) :
         xrt_device{},
         grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
         aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM),
-        palm(make_palm(hand_id, cnx->get_info().palm_pose)),
+        palm(hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM),
         joints(hand_id),
         cnx(cnx)
 {
@@ -300,7 +286,20 @@ wivrn_controller::wivrn_controller(int hand_id,
 	inputs[WIVRN_CONTROLLER_HAND_TRACKER].active = hand_tracking_supported;
 
 	inputs[WIVRN_CONTROLLER_PALM_POSE].name = XRT_INPUT_GENERIC_PALM_POSE;
-	inputs[WIVRN_CONTROLLER_PALM_POSE].active = cnx->get_info().palm_pose or palm.device == grip.device;
+	inputs[WIVRN_CONTROLLER_PALM_POSE].active = cnx->get_info().palm_pose;
+
+	if (auto grip_surface = configuration::read_user_configuration().grip_surface)
+	{
+		std::array<float, 3> angles = grip_surface.value();
+		float deg_2_rad = std::numbers::pi / 180.0;
+		xrt_vec3 rotation_angles{angles[0] * deg_2_rad, angles[1] * deg_2_rad, angles[2] * deg_2_rad};
+		xrt_pose offset = XRT_POSE_IDENTITY;
+		math_quat_from_euler_angles(&rotation_angles, &offset.orientation);
+
+		palm.set_derived(&grip, offset, true);
+		cnx->set_enabled(palm.device, false);
+		inputs[WIVRN_CONTROLLER_PALM_POSE].active = true;
+	}
 
 	output_count = 1;
 	outputs = &haptic_output;
@@ -401,19 +400,20 @@ xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, int64
 {
 	std::chrono::nanoseconds extrapolation_time;
 	xrt_space_relation res;
+	device_id device;
 	switch (name)
 	{
 		case XRT_INPUT_TOUCH_AIM_POSE:
-			std::tie(extrapolation_time, res) = aim.get_at(at_timestamp_ns);
-			cnx->set_enabled(aim.device, true);
+			std::tie(extrapolation_time, res, device) = aim.get_pose_at(at_timestamp_ns);
+			cnx->set_enabled(device, true);
 			break;
 		case XRT_INPUT_TOUCH_GRIP_POSE:
-			std::tie(extrapolation_time, res) = grip.get_at(at_timestamp_ns);
-			cnx->set_enabled(grip.device, true);
+			std::tie(extrapolation_time, res, device) = grip.get_pose_at(at_timestamp_ns);
+			cnx->set_enabled(device, true);
 			break;
 		case XRT_INPUT_GENERIC_PALM_POSE:
-			std::tie(extrapolation_time, res) = palm.get_at(at_timestamp_ns);
-			cnx->set_enabled(palm.device, true);
+			std::tie(extrapolation_time, res, device) = palm.get_pose_at(at_timestamp_ns);
+			cnx->set_enabled(device, true);
 			break;
 		default:
 			U_LOG_W("Unknown input name requested");
@@ -459,6 +459,26 @@ std::pair<xrt_hand_joint_set, int64_t> wivrn_controller::get_hand_tracking(xrt_i
 		default:
 			U_LOG_W("Unknown input name requested");
 			return {};
+	}
+}
+
+void wivrn_controller::set_derived_pose(const from_headset::derived_pose & derived)
+{
+	auto list = [this](device_id id) -> pose_list * {
+		for (auto item: {&grip, &aim, &palm})
+		{
+			if (item->device == id)
+				return item;
+		}
+		return nullptr;
+	};
+	auto source = list(derived.source);
+	auto target = list(derived.target);
+	if (source and target)
+	{
+		target->set_derived(source, xrt_cast(derived.relation));
+		if (source != target)
+			cnx->set_enabled(derived.target, false);
 	}
 }
 

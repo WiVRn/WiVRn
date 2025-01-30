@@ -198,6 +198,8 @@ void scenes::stream::tracking()
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
 	const bool face_tracking = config.check_feature(feature::face_tracking);
 
+	on_interaction_profile_changed({});
+
 	while (not exiting)
 	{
 		try
@@ -367,4 +369,51 @@ void scenes::stream::operator()(to_headset::tracking_control && packet)
 
 	tracking_control = packet;
 	tracking_control.min_offset = std::min(tracking_control.min_offset, tracking_control.max_offset);
+}
+
+void scenes::stream::on_interaction_profile_changed(const XrEventDataInteractionProfileChanged & event)
+{
+	auto now = instance.now();
+	for (auto [target, space]: {
+	             std::tuple{device_id::LEFT_AIM, application::space(xr::spaces::aim_left)},
+	             {device_id::LEFT_PALM, application::space(xr::spaces::palm_left)},
+	             {device_id::RIGHT_AIM, application::space(xr::spaces::aim_right)},
+	             {device_id::RIGHT_PALM, application::space(xr::spaces::palm_right)},
+	     })
+	{
+		device_id source;
+		XrSpace source_space = XR_NULL_HANDLE;
+		switch (target)
+		{
+			case device_id::LEFT_AIM:
+			case device_id::LEFT_PALM:
+				source = device_id::LEFT_GRIP;
+				source_space = application::space(xr::spaces::grip_left);
+				break;
+			case device_id::RIGHT_AIM:
+			case device_id::RIGHT_PALM:
+				source = device_id::RIGHT_GRIP;
+				source_space = application::space(xr::spaces::grip_right);
+				break;
+			default:
+				continue;
+		}
+		auto pose = locate_space(target, space, source_space, now);
+
+		if (pose.flags & from_headset::tracking::position_valid and pose.flags & from_headset::tracking::orientation_valid)
+		{
+			network_session->send_control(from_headset::derived_pose{
+			        .source = source,
+			        .target = target,
+			        .relation = pose.pose,
+			});
+		}
+		else
+		{
+			network_session->send_control(from_headset::derived_pose{
+			        .source = target,
+			        .target = target,
+			});
+		}
+	}
 }

@@ -326,6 +326,12 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 		fb_face2_tracker->update_tracking(tracking, offset);
 }
 
+void wivrn_session::operator()(from_headset::derived_pose && derived)
+{
+	left_hand.set_derived_pose(derived);
+	right_hand.set_derived_pose(derived);
+}
+
 void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 {
 	auto offset = offset_est.get_offset();

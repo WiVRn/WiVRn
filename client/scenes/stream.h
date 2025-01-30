@@ -179,6 +179,8 @@ private:
 	void tracking();
 	void read_actions();
 
+	void on_interaction_profile_changed(const XrEventDataInteractionProfileChanged &);
+
 	void setup(const to_headset::video_stream_description &);
 	void setup_reprojection_swapchain();
 	void exit();

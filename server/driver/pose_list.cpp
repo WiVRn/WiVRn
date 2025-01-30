@@ -65,16 +65,45 @@ xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xr
 
 bool pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
+	std::shared_lock lock(derived_mutex);
+	if (source)
+		return false;
+
 	for (const auto & pose: tracking.device_poses)
 	{
 		if (pose.device != device)
 			continue;
 
-		xrt_space_relation new_pose = convert_pose(pose);
-		math_quat_rotate(&new_pose.pose.orientation, &rotation_offset, &new_pose.pose.orientation);
-		return add_sample(tracking.production_timestamp, tracking.timestamp, new_pose, offset);
+		return add_sample(tracking.production_timestamp, tracking.timestamp, convert_pose(pose), offset);
 	}
 	return true;
+}
+
+void pose_list::set_derived(pose_list * source, xrt_pose offset, bool force)
+{
+	std::lock_guard lock(derived_mutex);
+	if (derive_forced and not force)
+		return;
+	// TODO: check for loops?
+	if (source == this)
+		this->source = nullptr;
+	else
+		this->source = source;
+	this->offset = offset;
+	this->derive_forced = force;
+}
+
+std::tuple<std::chrono::nanoseconds, xrt_space_relation, device_id> pose_list::get_pose_at(XrTime at_timestamp_ns)
+{
+	std::shared_lock lock(derived_mutex);
+	if (source)
+	{
+		auto res = source->get_pose_at(at_timestamp_ns);
+		math_pose_transform(&std::get<1>(res).pose, &offset, &std::get<1>(res).pose);
+		return res;
+	}
+
+	return std::tuple_cat(get_at(at_timestamp_ns), std::make_tuple(device));
 }
 
 xrt_space_relation pose_list::convert_pose(const from_headset::tracking::pose & pose)

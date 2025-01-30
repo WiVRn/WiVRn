@@ -1180,6 +1180,9 @@ void scenes::stream::on_xr_event(const xr::event & event)
 			        .view_index = uint8_t(event.visibility_mask_changed.viewIndex),
 			});
 			break;
+		case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
+			on_interaction_profile_changed(event.interaction_profile_changed);
+			break;
 		default:
 			break;
 	}
