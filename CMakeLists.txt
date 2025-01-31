@@ -44,7 +44,7 @@ set(OPENCOMPOSITE_SEARCH_PATH "/usr/local/lib/OpenComposite:/usr/lib/OpenComposi
     CACHE STRING "List of places to search for OpenComposite, separated by :")
 
 option(WIVRN_FEATURE_RENDERDOC "Support renderdoc" OFF)
-option(WIVRN_FEATURE_SOLARXR "Enable SolarXR driver" OFF)
+set(WIVRN_FEATURE_SOLARXR OFF) # Will be added back when merged in upstream Monado
 option(WIVRN_FEATURE_STEAMVR_LIGHTHOUSE "Enable SteamVR Lighthouse driver" OFF)
 
 option(WIVRN_CHECK_CAPSYSNICE "Check if CAP_SYS_NICE is available at startup" ON)
