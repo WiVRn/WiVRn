@@ -72,6 +72,7 @@ flatpak override --user \
   --filesystem=xdg-run/wivrn:ro \
   --filesystem=xdg-data/flatpak/app/io.github.wivrn.wivrn:ro \
   --filesystem=xdg-config/openxr:ro \
+  --filesystem=xdg-config/openvr:ro \
   com.valvesoftware.Steam
 ```
 
