@@ -110,7 +110,7 @@ active_runtime::active_runtime() :
 	}
 	catch (std::exception & e)
 	{
-		std::cerr << "Cannot set active OpenXR runtime: " << e.what() << std::endl;
+		std::cerr << "Cannot set active OpenVR runtime: " << e.what() << std::endl;
 	}
 }
 
