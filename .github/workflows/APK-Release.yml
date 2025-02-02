@@ -21,6 +21,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
+        # Checkout from upstream instead of WiVRn-APK to ensure the GIT_DESC variable is set correctly
+        repository: 'WiVRn/WiVRn'
+        ref: ${{ github.sha }}
         fetch-depth: 0
 
     - name: set up JDK
