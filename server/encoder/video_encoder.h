@@ -33,6 +33,8 @@
 #include <thread>
 #include <vulkan/vulkan_raii.hpp>
 
+#define BITRATE_UNCHANGED 0
+
 namespace wivrn
 {
 
@@ -75,6 +77,7 @@ public:
 	const uint8_t stream_idx;
 	const to_headset::video_stream_description::channels_t channels;
 	static const uint8_t num_slots = 2;
+	const double bitrate_multiplier;
 
 private:
 	std::mutex mutex;
@@ -111,7 +114,7 @@ public:
 	static std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> get_create_image_info(const std::vector<encoder_settings> &);
 #endif
 
-	video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, bool async_send);
+	video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, double bitrate_multiplier, bool async_send);
 	virtual ~video_encoder();
 
 	// return value: true if image should be transitioned to queue and layout for vulkan video encode
@@ -121,12 +124,15 @@ public:
 
 	virtual void on_feedback(const from_headset::feedback &);
 	virtual void reset();
+	virtual void set_bitrate(int bitrate_bps);
 
 	void encode(wivrn_session & cnx,
 	            const to_headset::video_stream_data_shard::view_info_t & view_info,
 	            uint64_t frame_index);
 
 protected:
+	std::atomic_int pending_bitrate;
+
 	// called on present to submit command buffers for the image.
 	virtual std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) = 0;
 	// called after command buffer passed in present_image was submitted

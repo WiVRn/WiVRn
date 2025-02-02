@@ -59,7 +59,7 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
         float fps,
         uint8_t stream_idx,
         const encoder_settings & settings) :
-        video_encoder(stream_idx, settings.channels, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect), fps(fps)
+        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect), fps(fps)
 {
 	// Initialize Rate control
 	U_LOG_D("Supported rate control modes: %s", vk::to_string(encode_caps.rateControlModes).c_str());
@@ -691,6 +691,27 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        .pImageMemoryBarriers = &dpb_barrier,
 		});
 		session_initialized = true;
+	}
+
+	if (auto bitrate = pending_bitrate.exchange(BITRATE_UNCHANGED); bitrate and rate_control)
+	{
+		rate_control_layer.averageBitrate = std::min<uint64_t>(bitrate, encode_caps.maxBitrate);
+		switch (rate_control->rateControlMode)
+		{
+			case vk::VideoEncodeRateControlModeFlagBitsKHR::eCbr:
+				rate_control_layer.maxBitrate = rate_control_layer.averageBitrate;
+				break;
+			case vk::VideoEncodeRateControlModeFlagBitsKHR::eVbr:
+				rate_control_layer.maxBitrate = std::min(2 * rate_control_layer.averageBitrate, encode_caps.maxBitrate);
+				break;
+			default:
+				break;
+		}
+		video_cmd_buf.controlVideoCodingKHR(
+		        vk::VideoCodingControlInfoKHR{
+		                .pNext = &rate_control.value(),
+		                .flags = vk::VideoCodingControlFlagBitsKHR::eEncodeRateControl,
+		        });
 	}
 
 	vk::VideoEncodeInfoKHR encode_info{

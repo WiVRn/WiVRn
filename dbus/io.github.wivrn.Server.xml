@@ -40,6 +40,9 @@
 			<arg type="s" name="Pin" direction="out"/>
 		</method>
 		<method name="DisablePairing"/>
+		<method name="SetBitrate">
+			<arg type="i" name="BitrateBps"/>
+		</method>
 
 		<property name="HeadsetConnected"      type="b" access="read"/>
 		<property name="SteamCommand"          type="s" access="read"/>

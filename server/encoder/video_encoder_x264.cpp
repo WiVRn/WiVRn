@@ -19,6 +19,7 @@
 
 #include "video_encoder_x264.h"
 
+#include "encoder/video_encoder.h"
 #include "encoder_settings.h"
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
@@ -90,7 +91,7 @@ video_encoder_x264::video_encoder_x264(
         encoder_settings & settings,
         float fps,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings.channels, false)
+        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, false)
 {
 	if (settings.codec != h264)
 	{
@@ -230,6 +231,13 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 
 std::optional<video_encoder::data> video_encoder_x264::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
+	if (auto bitrate = pending_bitrate.exchange(BITRATE_UNCHANGED))
+	{
+		U_LOG_E("Reconfigure X264 encoder");
+		idr = true;
+		param.rc.i_bitrate = bitrate / 1000;
+		x264_encoder_reconfig(enc, &param);
+	}
 	int num_nal;
 	x264_nal_t * nal;
 	auto & pic = in[slot].pic;

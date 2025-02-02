@@ -23,6 +23,7 @@
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
+#include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_results.h"
 #include "xrt/xrt_system.h"
@@ -164,6 +165,7 @@ public:
 	void operator()(audio_data &&);
 
 	void operator()(to_monado::disconnect &&);
+	void operator()(to_monado::set_bitrate &&);
 
 	template <typename T>
 	void send_stream(T && packet)

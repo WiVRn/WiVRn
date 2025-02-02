@@ -30,6 +30,7 @@
 #include <CLI/CLI.hpp>
 #include <avahi-glib/glib-watch.h>
 #include <chrono> // IWYU pragma: keep
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
@@ -674,6 +675,22 @@ gboolean on_handle_rename_key(WivrnServer * skeleton, GDBusMethodInvocation * in
 	return G_SOURCE_CONTINUE;
 }
 
+gboolean on_handle_set_bitrate(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
+{
+	GVariant * args = g_dbus_method_invocation_get_parameters(invocation);
+
+	int32_t bitrate_bps;
+	g_variant_get_child(args, 0, "i", &bitrate_bps);
+
+	if (bitrate_bps > 0)
+	{
+		wivrn_ipc_socket_main_loop->send(to_monado::set_bitrate{bitrate_bps});
+	}
+
+	g_dbus_method_invocation_return_value(invocation, nullptr);
+	return G_SOURCE_CONTINUE;
+}
+
 gboolean on_handle_enable_pairing(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
 {
 	set_encryption_state(wivrn_connection::encryption_state::pairing);
@@ -810,6 +827,11 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	g_signal_connect(dbus_server,
 	                 "handle-rename-key",
 	                 G_CALLBACK(on_handle_rename_key),
+	                 NULL);
+
+	g_signal_connect(dbus_server,
+	                 "handle-set-bitrate",
+	                 G_CALLBACK(on_handle_set_bitrate),
 	                 NULL);
 
 	if (enc_state != wivrn_connection::encryption_state::disabled)

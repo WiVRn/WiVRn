@@ -208,9 +208,10 @@ std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> video_encod
 
 static const uint64_t idr_throttle = 100;
 
-video_encoder::video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, bool async_send) :
+video_encoder::video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, double bitrate_multiplier, bool async_send) :
         stream_idx(stream_idx),
         channels(channels),
+        bitrate_multiplier(bitrate_multiplier),
         last_idr_frame(-idr_throttle),
         shared_sender(async_send ? sender::get() : nullptr)
 {}
@@ -230,6 +231,11 @@ void video_encoder::on_feedback(const from_headset::feedback & feedback)
 void video_encoder::reset()
 {
 	sync_needed = true;
+}
+
+void video_encoder::set_bitrate(int bitrate_bps)
+{
+	pending_bitrate = bitrate_bps;
 }
 
 std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index)
