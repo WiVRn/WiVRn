@@ -70,7 +70,6 @@ Kirigami.ScrollablePage {
                 columns: 3
 
                 Controls.Label {
-                    // TextInput {
                     Layout.fillWidth: true
                     Layout.column: 0
                     Layout.row: 0

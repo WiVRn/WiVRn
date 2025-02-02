@@ -13,8 +13,10 @@ Kirigami.ScrollablePage {
 
     flickable.interactive: false
 
+    Component.onCompleted: ApkInstaller.refreshLatestVersion()
+
     Kirigami.CardsListView {
-        model: Adb
+        model: ApkInstaller.apkAvailable ? Adb : []
         delegate: DeviceCard {
             id: device_card
             required property string serial
@@ -34,7 +36,24 @@ Kirigami.ScrollablePage {
 
             visible: parent.count == 0
 
-            text: Adb.adbInstalled ? i18n("Connect a headset and make sure developper mode is enabled.") : i18n("ADB is not installed.")
+            text: {
+                if (ApkInstaller.busy && !ApkInstaller.apkAvailable)
+                    return i18n("Checking latest release...");
+                else if (!ApkInstaller.apkAvailable)
+                    return i18n("No precompiled APK is available for this version.");
+                else if (!Adb.adbInstalled)
+                    return i18n("ADB is not installed.");
+                else
+                    return i18n("Connect a headset and make sure developper mode is enabled.");
+            }
+            explanation: {
+                if (!ApkInstaller.busy && !ApkInstaller.apkAvailable)
+                    return i18n("Follow the instructions in the <a href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset\">documentation</a> to build your own client.");
+                else
+                    return "";
+            }
+
+            onLinkActivated: (link) => Qt.openUrlExternally(link)
         }
     }
 

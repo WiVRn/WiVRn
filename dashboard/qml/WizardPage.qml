@@ -189,15 +189,27 @@ Kirigami.ScrollablePage {
 
             BetterLabel {
                 Layout.fillWidth: true
-                text: i18n("No precompiled APK is available for this version. Follow the instructions in the <a href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset\">documentation</a> to build your own client.")
-                visible: !ApkInstaller.apkAvailable
+                text: i18n("Checking latest release...")
+                visible: ApkInstaller.busy && !ApkInstaller.apkAvailable
+            }
+
+            BetterLabel {
+                Layout.fillWidth: true
+                text: i18n("No precompiled APK is available for this version.")
+                visible: !ApkInstaller.busy && !ApkInstaller.apkAvailable
+            }
+
+            BetterLabel {
+                Layout.fillWidth: true
+                text: i18n("Follow the instructions in the <a href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset\">documentation</a> to build your own client.")
+                visible: !ApkInstaller.busy && !ApkInstaller.apkAvailable
             }
 
             Controls.Label {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 text: i18n("ADB is not installed")
-                visible: device_list.count == 0 && !Adb.adbInstalled
+                visible: device_list.count == 0 && !Adb.adbInstalled && ApkInstaller.apkAvailable
             }
 
             // TODO link to adb/udev rules depending on the distribution
@@ -216,7 +228,7 @@ Kirigami.ScrollablePage {
 
             Repeater {
                 id: device_list
-                model: Adb
+                model: ApkInstaller.apkAvailable ? Adb : []
                 delegate: DeviceCard {
                     id: device_card
                     required property string serial
@@ -228,7 +240,6 @@ Kirigami.ScrollablePage {
                     serial_number: device_card.serial
                     is_wivrn_installed: device_card.isWivrnInstalled
                 }
-                visible: ApkInstaller.apkAvailable
             }
 
             Item {

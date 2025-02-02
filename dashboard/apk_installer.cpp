@@ -53,8 +53,7 @@ QCoro::Task<> apk_installer::doRefreshLatestVersion()
 	m_apkUrl = QUrl{};
 
 	busyChanged(m_busy = true);
-	if (m_latestVersion != "")
-		latestVersionChanged(m_latestVersion = "");
+	latestVersionChanged(m_latestVersion = "");
 
 	std::unique_ptr<QNetworkReply> reply{co_await manager.get(QNetworkRequest{QUrl{"https://api.github.com/repos/WiVRn/WiVRn/releases/latest"}})};
 
