@@ -98,4 +98,16 @@ endif()
 
 install(TARGETS wivrn-dashboard ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 
+install(FILES io.github.wivrn.wivrn.metainfo.xml
+	DESTINATION share/metainfo
+)
+
+install(FILES ../images/wivrn.svg
+	DESTINATION share/icons/hicolor/scalable/apps
+	RENAME io.github.wivrn.wivrn.svg
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/io.github.wivrn.wivrn.desktop
+	DESTINATION share/applications
+)
+
 create_mo_files(wivrn-dashboard wivrn-dashboard "${CMAKE_CURRENT_SOURCE_DIR}/../locale")

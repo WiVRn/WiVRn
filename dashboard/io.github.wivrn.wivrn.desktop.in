@@ -5,4 +5,4 @@ GenericName=WiVRn dashboard
 Exec=@CMAKE_INSTALL_PREFIX@/bin/wivrn-dashboard
 Icon=io.github.wivrn.wivrn
 Type=Application
-Categories=Network;Game
+Categories=Network
