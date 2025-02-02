@@ -22,7 +22,7 @@ xgettext \
 	--keyword=i18ncp:1c,2,3              \
 	--output=$WIVRN_DASHBOARD_POT        \
 	--package-name=WiVRn-dashboard       \
-	$(find dashboard-qml/ -name "*.qml" -o -name "*.cpp" | sort)
+	$(find dashboard/ -name "*.qml" -o -name "*.cpp" | sort)
 
 sed -i 's/charset=CHARSET/charset=UTF-8/g' $WIVRN_CLIENT_POT $WIVRN_DASHBOARD_POT
 

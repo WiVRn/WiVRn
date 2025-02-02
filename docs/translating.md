@@ -2,8 +2,6 @@
 
 The headset application and the server dashboard are translated, contributions are welcome to improve and extend them.
 
-This document only describes headset application translation, the dashboard is being rewritten, please wait before contributing translations for it.
-
 # Required software
 You only need `gettext` and a text editor, you can optionally use a graphical editor such as [GNOME Translation Editor](https://wiki.gnome.org/Apps/Gtranslator/) or [Lokalize](https://apps.kde.org/lokalize/).
 
