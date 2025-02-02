@@ -35,6 +35,7 @@ struct encoder_settings : public to_headset::video_stream_description::item
 	// encoder identifier, such as nvenc, vaapi or x264
 	std::string encoder_name;
 	uint64_t bitrate;                           // bit/s
+	double bitrate_multiplier;                  // encoder bitrate / global bitrate
 	std::map<std::string, std::string> options; // additional encoder-specific configuration
 	// encoders in the same group are executed in sequence
 	int group = 0;

@@ -21,6 +21,7 @@
 
 #include "driver/wivrn_session.h"
 #include "encoder/video_encoder.h"
+#include "util/u_logging.h"
 #include "utils/scoped_lock.h"
 #include "wivrn_foveation.h"
 
@@ -782,6 +783,17 @@ void wivrn_comp_target::reset_encoders()
 	for (auto & encoder: encoders)
 		encoder->reset();
 	cnx.send_control(to_headset::video_stream_description{desc});
+}
+
+void wivrn_comp_target::set_bitrate(int bitrate_bps)
+{
+	for (auto & encoder: encoders)
+	{
+		// Alpha will have multiplier of 0 and will be left unchanged.
+		auto encoder_bps = (int)(bitrate_bps * encoder->bitrate_multiplier);
+		U_LOG_D("Encoder %d bitrate: %d", encoder->stream_idx, encoder_bps);
+		encoder->set_bitrate(encoder_bps);
+	}
 }
 
 void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveation_parameter, 2> foveation)

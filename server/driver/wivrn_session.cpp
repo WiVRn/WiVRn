@@ -449,6 +449,11 @@ void wivrn_session::operator()(to_monado::disconnect &&)
 	throw std::runtime_error("Disconnecting as requested by main loop");
 }
 
+void wivrn_session::operator()(to_monado::set_bitrate && data)
+{
+	comp_target->set_bitrate(data.bitrate_bps);
+}
+
 void wivrn_session::run(std::stop_token stop)
 {
 	while (not stop.stop_requested())

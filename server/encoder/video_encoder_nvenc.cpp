@@ -139,7 +139,7 @@ video_encoder_nvenc::video_encoder_nvenc(
         encoder_settings & settings,
         float fps,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings.channels, true),
+        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true),
         vk(vk),
         fps(fps),
         bitrate(settings.bitrate)

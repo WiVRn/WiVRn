@@ -76,7 +76,8 @@ static void split_bitrate(std::vector<wivrn::encoder_settings> & encoders, uint6
 
 	for (auto & encoder: encoders)
 	{
-		encoder.bitrate = encoder.bitrate * bitrate / total_weight;
+		encoder.bitrate_multiplier = encoder.bitrate / total_weight;
+		encoder.bitrate = encoder.bitrate_multiplier * bitrate;
 	}
 }
 

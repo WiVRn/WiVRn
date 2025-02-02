@@ -105,6 +105,7 @@ struct wivrn_comp_target : public comp_target
 
 	void on_feedback(const from_headset::feedback &, const clock_offset &);
 	void reset_encoders();
+	void set_bitrate(int bitrate_bps);
 
 	void render_dynamic_foveation(std::array<to_headset::foveation_parameter, 2> foveation);
 

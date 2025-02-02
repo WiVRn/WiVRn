@@ -30,6 +30,11 @@ static void handle_event_from_main_loop(to_monado::disconnect)
 	// Ignore disconnect request when no headset is connected
 }
 
+static void handle_event_from_main_loop(to_monado::set_bitrate)
+{
+	// Ignore bitrate request when no headset is connected
+}
+
 std::unique_ptr<wivrn::TCP> wivrn::accept_connection(int watch_fd, std::function<bool()> quit)
 {
 	wivrn_ipc_socket_monado->send(from_monado::headset_disconnected{});

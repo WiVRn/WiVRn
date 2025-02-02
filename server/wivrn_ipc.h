@@ -50,7 +50,12 @@ namespace to_monado
 struct disconnect
 {};
 
-using packets = std::variant<disconnect>;
+struct set_bitrate
+{
+	int32_t bitrate_bps;
+};
+
+using packets = std::variant<disconnect, set_bitrate>;
 } // namespace to_monado
 
 extern std::optional<wivrn::typed_socket<wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;

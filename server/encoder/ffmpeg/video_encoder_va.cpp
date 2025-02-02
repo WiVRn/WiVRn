@@ -135,7 +135,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
                                    wivrn::encoder_settings & settings,
                                    float fps,
                                    uint8_t stream_idx) :
-        video_encoder_ffmpeg(stream_idx, settings.channels),
+        video_encoder_ffmpeg(stream_idx, settings.channels, settings.bitrate_multiplier),
         synchronization2(vk.vk.features.synchronization_2)
 {
 	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device, settings.device);

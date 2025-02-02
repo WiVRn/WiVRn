@@ -68,6 +68,14 @@ bool video_encoder_ffmpeg::once = set_log_level();
 
 std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot)
 {
+	if (auto bitrate = pending_bitrate.exchange(BITRATE_UNCHANGED))
+	{
+		U_LOG_E("Reconfigure FFMPEG encoder");
+		idr = true;
+		encoder_ctx->bit_rate = bitrate;
+		encoder_ctx->rc_max_rate = bitrate;
+	}
+
 	push_frame(idr, target_timestamp, slot);
 	std::shared_ptr<AVPacket> enc_pkt(av_packet_alloc(), [](AVPacket * d) { av_packet_free(&d); });
 	int err = avcodec_receive_packet(encoder_ctx.get(), enc_pkt.get());
