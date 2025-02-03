@@ -20,6 +20,7 @@
 
 #include <QDBusPendingCallWatcher>
 #include <QDBusServiceWatcher>
+#include <QDateTime>
 #include <QObject>
 #include <QProcess>
 #include <QSize>
@@ -39,9 +40,12 @@ class headset
 	QML_ELEMENT
 	Q_PROPERTY(QString name READ name WRITE setName)
 	Q_PROPERTY(QString publicKey READ publicKey WRITE setPublicKey)
+	Q_PROPERTY(bool hasLastConnection READ hasLastConnection)
+	Q_PROPERTY(QDateTime lastConnection READ lastConnection WRITE setLastConnection)
 
 	QString m_name;
 	QString m_publicKey;
+	QDateTime m_lastConnection;
 
 public:
 	headset() = default;
@@ -49,6 +53,9 @@ public:
 	headset(headset &&) = default;
 	headset & operator=(const headset &) = default;
 	headset & operator=(headset &&) = default;
+	headset(QString name, QString publicKey, QDateTime lastConnection) :
+	        m_name(name), m_publicKey(publicKey), m_lastConnection(lastConnection) {}
+
 	headset(QString name, QString publicKey) :
 	        m_name(name), m_publicKey(publicKey) {}
 
@@ -62,6 +69,16 @@ public:
 		return m_publicKey;
 	}
 
+	QDateTime lastConnection() const
+	{
+		return m_lastConnection;
+	}
+
+	bool hasLastConnection() const
+	{
+		return !m_lastConnection.isNull();
+	}
+
 	void setName(QString value)
 	{
 		m_name = value;
@@ -70,6 +87,11 @@ public:
 	void setPublicKey(QString value)
 	{
 		m_publicKey = value;
+	}
+
+	void setLastConnection(QDateTime value)
+	{
+		m_lastConnection = value;
 	}
 };
 

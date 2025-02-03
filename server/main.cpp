@@ -724,12 +724,16 @@ void on_json_configuration(WivrnServer * server, const GParamSpec * pspec, gpoin
 
 void expose_known_keys_on_dbus()
 {
-	GVariantBuilder * builder = g_variant_builder_new(G_VARIANT_TYPE("a(ss)"));
+	GVariantBuilder * builder = g_variant_builder_new(G_VARIANT_TYPE("a(ssx)"));
 	for (const auto & i: known_keys())
 	{
-		g_variant_builder_add(builder, "(ss)", i.name.c_str(), i.public_key.c_str());
+		g_variant_builder_add(builder,
+		                      "(ssx)",
+		                      i.name.c_str(),
+		                      i.public_key.c_str(),
+		                      i.last_connection ? std::chrono::duration_cast<std::chrono::seconds>((*i.last_connection).time_since_epoch()).count() : 0);
 	}
-	GVariant * value = g_variant_new("a(ss)", builder);
+	GVariant * value = g_variant_new("a(ssx)", builder);
 	g_variant_builder_unref(builder);
 	wivrn_server_set_known_keys(dbus_server, value);
 }
@@ -989,8 +993,8 @@ int main(int argc, char * argv[])
 
 	CLI11_PARSE(app, argc, argv);
 
-	do_active_runtime = not *no_active_runtime;
-	do_fork = not *no_fork;
+	do_active_runtime = not * no_active_runtime;
+	do_fork = not * no_fork;
 	if (*no_encrypt)
 		enc_state = wivrn_connection::encryption_state::disabled;
 
@@ -1008,7 +1012,7 @@ int main(int argc, char * argv[])
 #endif
 	try
 	{
-		return inner_main(argc, argv, not *no_instructions);
+		return inner_main(argc, argv, not*no_instructions);
 	}
 	catch (std::system_error & e)
 	{
