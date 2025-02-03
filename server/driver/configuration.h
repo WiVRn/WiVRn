@@ -20,6 +20,7 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <filesystem>
 #include <map>
 #include <optional>
@@ -72,11 +73,13 @@ struct headset_key
 {
 	std::string public_key;
 	std::string name;
+	std::optional<std::chrono::system_clock::time_point> last_connection;
 };
 
 std::vector<headset_key> known_keys();
 void add_known_key(headset_key key);
 void remove_known_key(const std::string & key);
 void rename_known_key(headset_key key);
+void update_last_connection_timestamp(const std::string & key);
 
 } // namespace wivrn

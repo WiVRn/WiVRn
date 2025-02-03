@@ -17,6 +17,7 @@
  */
 
 #include <CLI/CLI.hpp>
+#include <chrono>
 #include <format>
 #include <ranges>
 #include <systemd/sd-bus.h>
@@ -32,6 +33,13 @@ struct deleter
 	{
 		sd_bus_message_unref(p);
 	}
+};
+
+struct headset
+{
+	std::string name;
+	std::string public_key;
+	std::optional<std::chrono::system_clock::time_point> last_connection;
 };
 
 using sd_bus_ptr = std::unique_ptr<sd_bus, deleter>;
@@ -135,28 +143,34 @@ void print_table(const std::array<std::string, std::tuple_size_v<value_type>> & 
 	}
 }
 
-std::vector<std::pair<std::string, std::string>> get_keys(const sd_bus_ptr & bus)
+std::vector<headset> get_keys(const sd_bus_ptr & bus)
 {
 	auto msg = get_property(bus,
 	                        "KnownKeys",
-	                        "a(ss)");
+	                        "a(ssx)");
 
-	int ret = sd_bus_message_enter_container(msg.get(), 'a', "(ss)");
+	int ret = sd_bus_message_enter_container(msg.get(), 'a', "(ssx)");
 	if (ret < 0)
 		throw std::system_error(-ret, std::system_category(), "Failed to get paired headsets");
 
-	std::vector<std::pair<std::string, std::string>> values;
+	std::vector<headset> values;
 	while (true)
 	{
 		char * name;
 		char * key;
-		int ret = sd_bus_message_read(msg.get(), "(ss)", &name, &key);
+		int64_t timestamp;
+		int ret = sd_bus_message_read(msg.get(), "(ssx)", &name, &key, &timestamp);
 		if (ret == 0)
 			break;
 		if (ret < 0)
 			throw std::system_error(-ret, std::system_category(), "Failed to get paired headset details");
 
-		values.emplace_back(name, key);
+		std::optional<std::chrono::system_clock::time_point> last_connection;
+
+		if (timestamp)
+			last_connection = std::chrono::system_clock::from_time_t(timestamp);
+
+		values.emplace_back(name, key, last_connection);
 	}
 
 	return values;
@@ -194,7 +208,37 @@ void unpair(size_t headset_id)
 	if (headset_id < 1 or headset_id > values.size())
 		throw std::runtime_error(std::format("Invalid headset number: {}", headset_id));
 
-	call_method(bus, "RevokeKey", "s", values.at(headset_id - 1).second.c_str());
+	call_method(bus, "RevokeKey", "s", values.at(headset_id - 1).public_key.c_str());
+}
+
+template <typename T, typename U>
+auto member(T U::* x)
+{
+	return std::views::transform([x](const auto & y) { return y.*x; });
+}
+
+std::string relative_timestamp(std::optional<std::chrono::system_clock::time_point> t)
+{
+	static const auto now = std::chrono::system_clock::now();
+
+	if (!t)
+		return "Unknown";
+
+	auto how_long_ago = std::chrono::duration_cast<std::chrono::seconds>(now - *t).count();
+
+	if (how_long_ago < 0)
+		return std::format("{}", *t);
+
+	if (how_long_ago < 2 * 60)
+		return std::format("{} seconds ago", how_long_ago);
+
+	if (how_long_ago < 2 * 3600)
+		return std::format("{:.0f} minutes ago", how_long_ago / 60.);
+
+	if (how_long_ago < 2 * 86400)
+		return std::format("{:.0f} hours ago", how_long_ago / 3600.);
+
+	return std::format("{:.0f} days ago", how_long_ago / 86400.);
 }
 
 void list_paired(bool show_keys)
@@ -208,9 +252,16 @@ void list_paired(bool show_keys)
 	else
 	{
 		if (show_keys)
-			print_table({"", "Headset name", "Public key"}, std::views::zip(std::views::iota(1), values | std::views::elements<0>, values | std::views::elements<1>));
+			print_table({"", "Headset name", "Last connection", "Public key"},
+			            std::views::zip(std::views::iota(1),
+			                            values | member(&headset::name),
+			                            values | std::views::transform([](const headset & h) { return relative_timestamp(h.last_connection); }),
+			                            values | member(&headset::public_key)));
 		else
-			print_table({"", "Headset name"}, std::views::zip(std::views::iota(1), values | std::views::elements<0>));
+			print_table({"", "Headset name", "Last connection"},
+			            std::views::zip(std::views::iota(1),
+			                            values | member(&headset::name),
+			                            values | std::views::transform([](const headset & h) { return relative_timestamp(h.last_connection); })));
 	}
 }
 
@@ -222,7 +273,7 @@ void rename(size_t headset_id, const std::string & headset_name)
 	if (headset_id < 1 or headset_id > values.size())
 		throw std::runtime_error(std::format("Invalid headset number: {}", headset_id));
 
-	call_method(bus, "RenameKey", "ss", values.at(headset_id - 1).second.c_str(), headset_name.c_str());
+	call_method(bus, "RenameKey", "ss", values.at(headset_id - 1).public_key.c_str(), headset_name.c_str());
 }
 
 void stop_server()

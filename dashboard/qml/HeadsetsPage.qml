@@ -1,5 +1,5 @@
 pragma ComponentBehavior: Bound
-
+import QtQml
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
@@ -12,6 +12,28 @@ Kirigami.ScrollablePage {
     title: i18n("Headsets")
 
     // flickable.interactive: false
+
+    property date now: new Date()
+
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: headsets.now = new Date();
+    }
+
+    function fuzzy_relative_date(then) {
+        var time_difference = (headsets.now.getTime() - then.getTime()) / 1000;
+
+        if (time_difference < 60)
+            return i18np("Last connection: %1 second ago", "Last connection: %1 seconds ago", Math.round(time_difference));
+        if (time_difference < 3600)
+            return i18np("Last connection: %1 minute ago", "Last connection: %1 minutes ago", Math.round(time_difference / 60));
+        if (time_difference < 86400)
+            return i18np("Last connection: %1 hour ago", "Last connection: %1 hours ago", Math.round(time_difference / 3600));
+
+        return i18np("Last connection: %1 day ago", "Last connection: %1 days ago", Math.round(time_difference / 86400));
+    }
 
     Kirigami.PromptDialog {
         id: rename_headset
@@ -32,7 +54,7 @@ Kirigami.ScrollablePage {
             Kirigami.Action {
                 text: i18n("Cancel")
                 icon.name: "dialog-cancel"
-                onTriggered: rename_headset.close();
+                onTriggered: rename_headset.close()
             }
         ]
         ColumnLayout {
@@ -62,6 +84,8 @@ Kirigami.ScrollablePage {
             id: headset
             required property string name
             required property string publicKey
+            required property bool hasLastConnection
+            required property date lastConnection
 
             contentItem: GridLayout {
                 id: delegate_layout
@@ -83,8 +107,7 @@ Kirigami.ScrollablePage {
                     Layout.column: 0
                     Layout.row: 1
                     wrapMode: Text.WordWrap
-                    // text: "Last connection: unknown"
-                    text: ""
+                    text: headset.hasLastConnection ? headsets.fuzzy_relative_date(headset.lastConnection) : ""
                 }
 
                 Controls.Button {

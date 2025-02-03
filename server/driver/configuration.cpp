@@ -20,6 +20,8 @@
 #define JSON_DISABLE_ENUM_SERIALIZATION 1
 
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -204,6 +206,36 @@ std::string server_cookie()
 	}
 }
 
+std::string to_iso8601(std::chrono::system_clock::time_point timestamp)
+{
+	// Truncate to an integer number of seconds to be parsable by strptime
+	auto t = std::chrono::time_point_cast<std::chrono::seconds>(timestamp);
+
+#if __cpp_lib_chrono >= 201907L
+	return std::format("{:%FT%H:%M:%S%z}", std::chrono::zoned_time{std::chrono::current_zone(), t});
+#else
+	return std::format("{:%FT%H:%M:%S%z}", t);
+#endif
+}
+
+template <typename T>
+std::string to_iso8601(std::chrono::zoned_time<T> timestamp)
+{
+	return std::format("{:%FT%H:%M:%S%z}", timestamp);
+}
+
+std::optional<std::chrono::system_clock::time_point> from_iso8601(const std::string & timestamp)
+{
+	tm t;
+	if (strptime(timestamp.c_str(), "%FT%H:%M:%S%z", &t) == nullptr)
+		return std::nullopt;
+
+	// Convert from local time to UTC
+	t.tm_sec += t.tm_gmtoff;
+
+	return std::chrono::system_clock::from_time_t(mktime(&t));
+}
+
 std::vector<headset_key> known_keys()
 {
 	if (not std::filesystem::exists(known_keys_file))
@@ -217,7 +249,15 @@ std::vector<headset_key> known_keys()
 
 		for (const auto & key: json)
 		{
-			keys.emplace_back(key["key"], key["name"]);
+			headset_key k{
+			        .public_key = key["key"],
+			        .name = key["name"],
+			};
+
+			if (key.contains("last_connection"))
+				k.last_connection = from_iso8601(key["last_connection"]);
+
+			keys.push_back(k);
 		}
 
 		return keys;
@@ -235,10 +275,13 @@ static void save_keys(const std::vector<headset_key> & keys)
 
 	for (const auto & key: keys)
 	{
-		nlohmann::json key_json;
-		key_json["key"] = key.public_key;
-		key_json["name"] = key.name;
-		json.push_back(key_json);
+		nlohmann::json json_key;
+		json_key["key"] = key.public_key;
+		json_key["name"] = key.name;
+		if (key.last_connection)
+			json_key["last_connection"] = to_iso8601(*key.last_connection);
+
+		json.push_back(json_key);
 	}
 
 	std::string json_str = json.dump();
@@ -260,6 +303,7 @@ void add_known_key(headset_key key)
 {
 	std::vector<headset_key> keys = known_keys();
 
+	key.last_connection = std::chrono::system_clock::now();
 	if (key.name == "")
 		key.name = "Unknown headset";
 
@@ -286,13 +330,24 @@ void remove_known_key(const std::string & key)
 void rename_known_key(headset_key key)
 {
 	std::vector<headset_key> keys = known_keys();
-	for (headset_key & k: keys)
-	{
-		if (k.public_key == key.public_key)
-			k.name = key.name;
-	}
+
+	auto key_iter = std::ranges::find(keys, key.public_key, &headset_key::public_key);
+	if (key_iter != keys.end())
+		key_iter->name = key.name;
 
 	save_keys(keys);
+}
+
+void update_last_connection_timestamp(const std::string & key)
+{
+	std::vector<headset_key> keys = known_keys();
+
+	auto key_iter = std::ranges::find(keys, key, &headset_key::public_key);
+	if (key_iter != keys.end())
+	{
+		key_iter->last_connection = std::chrono::system_clock::now();
+		save_keys(keys);
+	}
 }
 
 } // namespace wivrn

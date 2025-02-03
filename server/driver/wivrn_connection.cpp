@@ -275,6 +275,8 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 		        .public_key = clean_key(headset_key.public_key()),
 		        .name = crypto_handshake.name,
 		});
+	else if (state != encryption_state::disabled)
+		wivrn::update_last_connection_timestamp(clean_key(headset_key.public_key()));
 }
 
 void wivrn::wivrn_connection::reset(TCP && tcp, std::function<void()> tick)
