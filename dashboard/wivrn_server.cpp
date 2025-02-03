@@ -348,10 +348,15 @@ void wivrn_server::on_server_properties_changed(const QString & interface_name, 
 			keys.beginStructure();
 			QString public_key;
 			QString name;
-			keys >> name >> public_key;
+			qlonglong last_connection_timestamp;
+			keys >> name >> public_key >> last_connection_timestamp;
 			keys.endStructure();
 
-			m_knownKeys.push_back(headset{name, public_key});
+			headset h{name, public_key};
+			if (last_connection_timestamp)
+				h.setLastConnection(QDateTime::fromSecsSinceEpoch(last_connection_timestamp));
+
+			m_knownKeys.push_back(h);
 		}
 		keys.endArray();
 

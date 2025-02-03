@@ -67,9 +67,9 @@
 		<property name="SupportedCodecs"       type="as" access="read"/>
 
 		<property name="Pin"                   type="s" access="read"/>
-		<property name="KnownKeys"             type="a(ss)" access="read">
-			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;std::pair&lt;QString,QString&gt;&gt;"/>
-			<!-- first: name, second: public key -->
+		<property name="KnownKeys"             type="a(ssx)" access="read">
+			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;std::tuple&lt;QString,QString,uint64_t&gt;&gt;"/>
+			<!-- first: name, second: public key, third: last connection timestamp (seconds since epoch, or 0) -->
 		</property>
 		<property name="PairingEnabled"        type="b" access="read"/>
 		<property name="EncryptionEnabled"     type="b" access="read"/>
