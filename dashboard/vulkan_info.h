@@ -36,11 +36,11 @@ class vulkan_info : public QObject
 
 	Q_PROPERTY(QString driverId READ driverId CONSTANT)
 	Q_PROPERTY(QString driverVersion READ driverVersion CONSTANT)
-	Q_PROPERTY(int driverVersionCode READ driverVersionCode CONSTANT)
+	Q_PROPERTY(uint32_t driverVersionCode READ driverVersionCode CONSTANT)
 
 	QString m_driverId;
 	QString m_driverVersion;
-	int m_driverVersionCode;
+	uint32_t m_driverVersionCode;
 
 	vk::raii::PhysicalDevice & choose_device(std::vector<vk::raii::PhysicalDevice> & devices);
 	void set_info(vk::raii::PhysicalDevice & device);
@@ -58,7 +58,7 @@ public:
 		return m_driverVersion;
 	}
 
-	int driverVersionCode() const
+	uint32_t driverVersionCode() const
 	{
 		return m_driverVersionCode;
 	}
