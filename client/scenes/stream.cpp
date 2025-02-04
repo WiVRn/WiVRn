@@ -1071,7 +1071,8 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 void scenes::stream::setup_reprojection_swapchain()
 {
-	std::unique_lock lock(decoder_mutex);
+	std::scoped_lock lock(application::instance().render_mutex, decoder_mutex);
+	device.waitIdle();
 
 	swapchains.clear();
 	const uint32_t video_width = video_stream_description->width / view_count;
