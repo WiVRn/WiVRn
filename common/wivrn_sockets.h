@@ -123,7 +123,7 @@ public:
 	deserialization_packet receive_pending();
 	std::pair<wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();
 	void send_raw(serialization_packet && packet);
-	void send_many_raw(std::vector<serialization_packet> && packets);
+	void send_many_raw(std::span<serialization_packet> packets);
 
 	void connect(in6_addr address, int port);
 	void connect(in_addr address, int port);
@@ -158,7 +158,7 @@ public:
 	deserialization_packet receive_raw();
 	deserialization_packet receive_pending();
 	void send_raw(serialization_packet && packet);
-	void send_many_raw(std::vector<serialization_packet> && packets);
+	void send_many_raw(std::span<serialization_packet> packets);
 
 	void set_aes_key_and_ivs(std::span<std::uint8_t, 16> key, std::span<std::uint8_t, 16> recv_iv, std::span<std::uint8_t, 16> send_iv);
 };
@@ -256,13 +256,9 @@ public:
 		this->send_raw(std::move(p));
 	}
 
-	void send(std::vector<serialization_packet> && packets)
+	void send(std::span<serialization_packet> packets)
 	{
-		thread_local std::vector<serialization_packet> data;
-		data.clear();
-		for (serialization_packet & packet: packets)
-			data.emplace_back(packet);
-		this->send_many_raw(std::move(data));
+		this->send_many_raw(packets);
 	}
 };
 

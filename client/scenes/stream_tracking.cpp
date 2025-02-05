@@ -268,7 +268,7 @@ void scenes::stream::tracking()
 					for (auto [device, space]: spaces)
 					{
 						if (enabled(control, device))
-							packet.device_poses.push_back(locate_space(device, space, world_space, t0 + Δt));
+							packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
 					// Hand tracking data are very large, send fewer samples than other items
@@ -338,20 +338,28 @@ void scenes::stream::tracking()
 					current_size = 0;
 				}
 				current_size += size;
-				merged_tracking.back().items.push_back(std::move(item));
+				merged_tracking.back().items.emplace_back(std::move(item));
 			}
 
-			packets.clear();
-			packets.reserve(merged_tracking.size() + hands.size());
+			packets.resize(std::max(packets.size(), merged_tracking.size() + hands.size()));
+			size_t packet_count = 0;
 			for (const auto & i: merged_tracking)
-				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+			{
+				auto & packet = packets[packet_count++];
+				packet.clear();
+				wivrn_session::stream_socket_t::serialize(packet, i);
+			}
 			for (const auto & i: hands)
 			{
 				if (i.joints)
-					wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
+				{
+					auto & packet = packets[packet_count++];
+					packet.clear();
+					wivrn_session::stream_socket_t::serialize(packet, i);
+				}
 			}
 
-			network_session->send_stream(std::move(packets));
+			network_session->send_stream(std::span(packets.data(), packet_count));
 
 			for (auto & item: merged_tracking)
 				std::ranges::move(item.items, std::back_inserter(tracking_pool));

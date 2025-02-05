@@ -898,7 +898,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		{
 			try
 			{
-				network_session->send_control(std::move(packets));
+				network_session->send_control(std::span(packets));
 			}
 			catch (std::exception & e)
 			{

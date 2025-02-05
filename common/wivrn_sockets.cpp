@@ -416,7 +416,7 @@ void wivrn::UDP::send_raw(serialization_packet && packet)
 		throw std::system_error{errno, std::generic_category()};
 }
 
-void wivrn::UDP::send_many_raw(std::vector<serialization_packet> && packets)
+void wivrn::UDP::send_many_raw(std::span<serialization_packet> packets)
 {
 	thread_local std::vector<iovec> iovecs;
 	thread_local std::vector<mmsghdr> mmsgs;
@@ -605,7 +605,7 @@ void wivrn::TCP::send_raw(serialization_packet && packet)
 	}
 }
 
-void wivrn::TCP::send_many_raw(std::vector<serialization_packet> && packets)
+void wivrn::TCP::send_many_raw(std::span<serialization_packet> packets)
 {
 	thread_local std::vector<iovec> iovecs;
 	thread_local std::vector<uint16_t> sizes;
