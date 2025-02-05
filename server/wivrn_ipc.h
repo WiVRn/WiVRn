@@ -42,7 +42,12 @@ struct headset_connected
 struct headset_disconnected
 {};
 
-using packets = std::variant<wivrn::from_headset::headset_info_packet, headset_connected, headset_disconnected>;
+struct bitrate_changed
+{
+	uint32_t bitrate_bps;
+};
+
+using packets = std::variant<wivrn::from_headset::headset_info_packet, headset_connected, headset_disconnected, bitrate_changed>;
 } // namespace from_monado
 
 namespace to_monado
@@ -52,7 +57,7 @@ struct disconnect
 
 struct set_bitrate
 {
-	int32_t bitrate_bps;
+	uint32_t bitrate_bps;
 };
 
 using packets = std::variant<disconnect, set_bitrate>;

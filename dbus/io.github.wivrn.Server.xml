@@ -40,13 +40,11 @@
 			<arg type="s" name="Pin" direction="out"/>
 		</method>
 		<method name="DisablePairing"/>
-		<method name="SetBitrate">
-			<arg type="i" name="BitrateBps"/>
-		</method>
 
 		<property name="HeadsetConnected"      type="b" access="read"/>
 		<property name="SteamCommand"          type="s" access="read"/>
 		<property name="JsonConfiguration"     type="s" access="readwrite"/>
+		<property name="Bitrate"               type="u" access="readwrite"/>
 
 		<!-- Data from the headset info packet -->
 		<property name="RecommendedEyeSize"    type="(uu)" access="read">
