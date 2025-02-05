@@ -80,6 +80,19 @@ sd_bus_message_ptr get_property(const sd_bus_ptr & bus, const char * member, con
 	return sd_bus_message_ptr(msg);
 }
 
+template <typename... Args>
+void set_property(const sd_bus_ptr & bus, const char * member, const char * signature, Args &&... args)
+{
+	sd_bus_error error = SD_BUS_ERROR_NULL;
+	int ret = sd_bus_set_property(bus.get(), destination, path, interface, member, &error, signature, std::forward<Args>(args)...);
+	if (ret < 0)
+	{
+		std::runtime_error e(std::string("read property ") + member + " failed: " + error.message);
+		sd_bus_error_free(&error);
+		throw e;
+	}
+}
+
 template <typename Rng, typename value_type = std::remove_cvref_t<decltype(*std::declval<Rng>().begin())>>
 void print_table(const std::array<std::string, std::tuple_size_v<value_type>> & header, const Rng & data)
 {
@@ -226,7 +239,7 @@ void set_bitrate(std::string bitrate_str)
 {
 	auto suffix = bitrate_str.back();
 
-	int32_t bitrate = -1;
+	uint32_t bitrate = 0;
 	size_t str_len = bitrate_str.size();
 
 	switch (std::tolower(suffix))
@@ -251,16 +264,16 @@ void set_bitrate(std::string bitrate_str)
 	}
 	catch (std::exception & e)
 	{
-		bitrate = -1;
+		bitrate = 0;
 	}
 
-	if (bitrate < 0)
+	if (bitrate == 0)
 	{
 		std::cerr << "Invalid bitrate value. Valid examples: 50M, 50000K, 50000000" << std::endl;
 		return;
 	}
 
-	call_method(get_user_bus(), "SetBitrate", "i", bitrate);
+	set_property(get_user_bus(), "Bitrate", "u", bitrate);
 }
 
 int main(int argc, char ** argv)

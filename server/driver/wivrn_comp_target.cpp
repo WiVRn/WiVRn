@@ -132,8 +132,11 @@ static void create_encoders(wivrn_comp_target * cn)
 
 	std::map<int, std::vector<std::shared_ptr<video_encoder>>> thread_params;
 
+	uint32_t bitrate = 0;
+
 	for (auto & settings: cn->settings)
 	{
+		bitrate += settings.bitrate;
 		uint8_t stream_index = cn->encoders.size();
 		auto & encoder = cn->encoders.emplace_back(
 		        video_encoder::create(*cn->wivrn_bundle, settings, stream_index, desc.width, desc.height, desc.fps));
@@ -141,6 +144,7 @@ static void create_encoders(wivrn_comp_target * cn)
 
 		thread_params[settings.group].emplace_back(encoder);
 	}
+	wivrn_ipc_socket_monado->send(from_monado::bitrate_changed{bitrate});
 
 	for (auto & [group, params]: thread_params)
 	{

@@ -558,6 +558,9 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 			                   inhibitor.reset();
 			                   wivrn_server_set_headset_connected(dbus_server, false);
 		                   },
+		                   [&](const from_monado::bitrate_changed & value) {
+			                   wivrn_server_set_bitrate(dbus_server, value.bitrate_bps);
+		                   },
 		           },
 		           *packet);
 	}
@@ -675,22 +678,6 @@ gboolean on_handle_rename_key(WivrnServer * skeleton, GDBusMethodInvocation * in
 	return G_SOURCE_CONTINUE;
 }
 
-gboolean on_handle_set_bitrate(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
-{
-	GVariant * args = g_dbus_method_invocation_get_parameters(invocation);
-
-	int32_t bitrate_bps;
-	g_variant_get_child(args, 0, "i", &bitrate_bps);
-
-	if (bitrate_bps > 0)
-	{
-		wivrn_ipc_socket_main_loop->send(to_monado::set_bitrate{bitrate_bps});
-	}
-
-	g_dbus_method_invocation_return_value(invocation, nullptr);
-	return G_SOURCE_CONTINUE;
-}
-
 gboolean on_handle_enable_pairing(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
 {
 	set_encryption_state(wivrn_connection::encryption_state::pairing);
@@ -719,6 +706,13 @@ gboolean on_handle_disable_pairing(WivrnServer * skeleton, GDBusMethodInvocation
 	set_encryption_state(wivrn_connection::encryption_state::enabled);
 	g_dbus_method_invocation_return_value(invocation, nullptr);
 	return G_SOURCE_CONTINUE;
+}
+
+void on_bitrate(WivrnServer * server, const GParamSpec * pspec, gpointer data)
+{
+	auto bitrate = wivrn_server_get_bitrate(server);
+	if (bitrate > 0)
+		wivrn_ipc_socket_main_loop->send(to_monado::set_bitrate{bitrate});
 }
 
 void on_json_configuration(WivrnServer * server, const GParamSpec * pspec, gpointer data)
@@ -829,11 +823,6 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	                 G_CALLBACK(on_handle_rename_key),
 	                 NULL);
 
-	g_signal_connect(dbus_server,
-	                 "handle-set-bitrate",
-	                 G_CALLBACK(on_handle_set_bitrate),
-	                 NULL);
-
 	if (enc_state != wivrn_connection::encryption_state::disabled)
 	{
 		g_signal_connect(dbus_server,
@@ -859,6 +848,7 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	expose_known_keys_on_dbus();
 
 	g_signal_connect(dbus_server, "notify::json-configuration", G_CALLBACK(on_json_configuration), NULL);
+	g_signal_connect(dbus_server, "notify::bitrate", G_CALLBACK(on_bitrate), NULL);
 
 	g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(dbus_server),
 	                                 connection,
