@@ -141,6 +141,11 @@ video_encoder_x264::video_encoder_x264(
 	param.vui.i_sar_height = settings.height;
 	param.rc.i_rc_method = X264_RC_ABR;
 	param.rc.i_bitrate = settings.bitrate / 1000; // x264 uses kbit/s
+	param.rc.i_vbv_max_bitrate = param.rc.i_bitrate;
+	param.rc.i_vbv_buffer_size = param.rc.i_bitrate / fps * 1.1;
+
+	x264_param_apply_profile(&param, "main");
+
 	enc = x264_encoder_open(&param);
 	if (not enc)
 	{
@@ -233,10 +238,13 @@ std::optional<video_encoder::data> video_encoder_x264::encode(bool idr, std::chr
 {
 	if (auto bitrate = pending_bitrate.exchange(BITRATE_UNCHANGED))
 	{
-		U_LOG_E("Reconfigure X264 encoder");
-		idr = true;
+		auto fps_mul = param.i_fps_num / (float)param.i_fps_den;
 		param.rc.i_bitrate = bitrate / 1000;
+		param.rc.i_vbv_buffer_size = param.rc.i_bitrate / fps_mul * 1.1;
+		param.rc.i_vbv_max_bitrate = param.rc.i_bitrate;
+		U_LOG_W("set bitrate: %d", param.rc.i_bitrate);
 		x264_encoder_reconfig(enc, &param);
+		idr = true;
 	}
 	int num_nal;
 	x264_nal_t * nal;
