@@ -158,6 +158,16 @@ static bool enabled(const to_headset::tracking_control & control, device_id id)
 	__builtin_unreachable();
 }
 
+template <typename T>
+static T & from_pool(std::vector<T> & container, std::vector<T> & pool)
+{
+	if (pool.empty())
+		return container.emplace_back();
+	auto & result = container.emplace_back(std::move(pool.back()));
+	pool.pop_back();
+	return result;
+}
+
 void scenes::stream::tracking()
 {
 #ifdef __ANDROID__
@@ -193,7 +203,11 @@ void scenes::stream::tracking()
 	XrTime t0 = instance.now();
 	XrTime last_hand_sample = t0;
 	std::vector<from_headset::tracking> tracking;
+	std::vector<from_headset::tracking> tracking_pool; // pre-allocated objects
 	std::vector<from_headset::hand_tracking> hands;
+
+	std::vector<from_headset::trackings> merged_tracking;
+	std::vector<serialization_packet> packets;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
 	const bool face_tracking = config.check_feature(feature::face_tracking);
@@ -229,7 +243,7 @@ void scenes::stream::tracking()
 			     Δt <= prediction + period / 2;
 			     Δt += period, ++samples)
 			{
-				auto & packet = tracking.emplace_back();
+				auto & packet = from_pool(tracking, tracking_pool);
 				packet.production_timestamp = t0;
 				packet.timestamp = t0 + Δt;
 
@@ -313,8 +327,8 @@ void scenes::stream::tracking()
 			}
 #endif
 
-			std::vector<from_headset::trackings> merged_tracking(1);
-			size_t current_size = 0;
+			merged_tracking.clear();
+			size_t current_size = 1400;
 			for (auto & item: tracking)
 			{
 				size_t size = serialized_size(item);
@@ -327,7 +341,7 @@ void scenes::stream::tracking()
 				merged_tracking.back().items.push_back(std::move(item));
 			}
 
-			std::vector<serialization_packet> packets;
+			packets.clear();
 			packets.reserve(merged_tracking.size() + hands.size());
 			for (const auto & i: merged_tracking)
 				wivrn_session::stream_socket_t::serialize(packets.emplace_back(), i);
@@ -338,6 +352,9 @@ void scenes::stream::tracking()
 			}
 
 			network_session->send_stream(std::move(packets));
+
+			for (auto & item: merged_tracking)
+				std::ranges::move(item.items, std::back_inserter(tracking_pool));
 
 			if (period_adjust == 0)
 			{
