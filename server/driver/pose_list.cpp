@@ -110,35 +110,24 @@ std::tuple<std::chrono::nanoseconds, xrt_space_relation, device_id> pose_list::g
 	return std::tuple_cat(get_at(at_timestamp_ns), std::make_tuple(device));
 }
 
+static xrt_space_relation_flags convert_flags(uint8_t flags)
+{
+	static_assert(int(from_headset::tracking::position_valid) == XRT_SPACE_RELATION_POSITION_VALID_BIT);
+	static_assert(int(from_headset::tracking::orientation_valid) == XRT_SPACE_RELATION_ORIENTATION_VALID_BIT);
+	static_assert(int(from_headset::tracking::linear_velocity_valid) == XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT);
+	static_assert(int(from_headset::tracking::angular_velocity_valid) == XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT);
+	static_assert(int(from_headset::tracking::orientation_tracked) == XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
+	static_assert(int(from_headset::tracking::position_tracked) == XRT_SPACE_RELATION_POSITION_TRACKED_BIT);
+	return xrt_space_relation_flags(flags);
+}
+
 xrt_space_relation pose_list::convert_pose(const from_headset::tracking::pose & pose)
 {
-	xrt_space_relation res{};
-
-	res.pose = xrt_cast(pose.pose);
-	res.angular_velocity = xrt_cast(pose.angular_velocity);
-	res.linear_velocity = xrt_cast(pose.linear_velocity);
-
-	int flags = 0;
-	if (pose.flags & from_headset::tracking::position_valid)
-		flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
-
-	if (pose.flags & from_headset::tracking::orientation_valid)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
-
-	if (pose.flags & from_headset::tracking::linear_velocity_valid)
-		flags |= XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT;
-
-	if (pose.flags & from_headset::tracking::angular_velocity_valid)
-		flags |= XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT;
-
-	if (pose.flags & from_headset::tracking::position_tracked)
-		flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
-
-	if (pose.flags & from_headset::tracking::orientation_tracked)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
-
-	res.relation_flags = (xrt_space_relation_flags)flags;
-
-	return res;
+	return xrt_space_relation{
+	        .relation_flags = convert_flags(pose.flags),
+	        .pose = xrt_cast(pose.pose),
+	        .linear_velocity = xrt_cast(pose.linear_velocity),
+	        .angular_velocity = xrt_cast(pose.angular_velocity),
+	};
 }
 } // namespace wivrn
