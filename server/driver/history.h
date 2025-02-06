@@ -21,17 +21,15 @@
 
 #include "clock_offset.h"
 #include "os/os_time.h"
-#include "util/u_logging.h"
 #include <algorithm>
 #include <cstddef>
-#include <list>
 #include <mutex>
 #include <openxr/openxr.h>
 
 namespace wivrn
 {
 
-template <typename Derived, typename Data, XrDuration extrapolation = 0, size_t MaxSamples = 10>
+template <typename Derived, typename Data, size_t MaxSamples = 10>
 class history
 {
 	struct TimedData : public Data
@@ -39,9 +37,9 @@ class history
 		XrTime produced_timestamp;
 		XrTime at_timestamp_ns;
 	};
+	std::array<TimedData, MaxSamples> data{};
 
 	std::mutex mutex;
-	std::list<TimedData> data;
 	XrTime last_request;
 	XrTime last_produced;
 
@@ -59,43 +57,26 @@ protected:
 		bool active = produced - last_request < 1'000'000'000;
 		last_produced = std::max(produced, last_produced);
 
-		// Discard outdated data, packets could be reordered
-		if (not data.empty())
+		TimedData * target = data.data();
+		if (offset)
 		{
-			// keep only one sample if the clock_offset is unreliable
-			if (not offset)
+			for (auto & item: data)
 			{
-				U_LOG_T("not using history: clock_offset not stable");
-				data.clear();
-				data.emplace_back(sample, produced, t);
-				return active;
+				// Discard reordered packets
+				if (item.produced_timestamp > produced)
+					return active;
+
+				if (std::abs(item.at_timestamp_ns - t) < 2'000'000)
+				{
+					target = &item;
+					break;
+				}
+
+				if (item.at_timestamp_ns < target->at_timestamp_ns)
+					target = &item;
 			}
-
-			if (data.back().produced_timestamp > produced)
-				return active;
 		}
-
-		// Discard outdated predictions
-		for (auto it = data.begin(); it != data.end();)
-		{
-			if (std::abs(it->at_timestamp_ns - t) < 2'000'000 and it->produced_timestamp < produced)
-				it = data.erase(it);
-			else
-				++it;
-		}
-
-		// Insert the new sample
-		auto it = std::lower_bound(data.begin(), data.end(), t, [](TimedData & sample, int64_t t) { return sample.at_timestamp_ns < t; });
-		if (it == data.end())
-			data.emplace_back(sample, produced, t);
-		else if (it->at_timestamp_ns == t)
-			*it = TimedData(sample, produced, t);
-		else
-			data.emplace(it, sample, produced, t);
-
-		while (data.size() > MaxSamples)
-			data.pop_front();
-
+		*target = TimedData(sample, produced, t);
 		return active;
 	}
 
@@ -107,57 +88,39 @@ public:
 
 		last_request = os_monotonic_get_ns();
 
-		if (data.empty())
-		{
-			return {};
-		}
+		TimedData * before = nullptr;
+		TimedData * after = nullptr;
 
-		if (at_timestamp_ns - data.back().at_timestamp_ns > 1'000'000'000)
+		for (auto & item: data)
 		{
-			// stale data
-			data.clear();
-			return {};
-		}
-
-		if (data.size() == 1)
-		{
-			return {ex, data.front()};
-		}
-
-		if (data.front().at_timestamp_ns > at_timestamp_ns)
-		{
-			if constexpr (extrapolation)
+			if (not item.at_timestamp_ns)
+				continue;
+			if (item.at_timestamp_ns < at_timestamp_ns)
 			{
-				auto second = data.begin();
-				auto first = second++;
-				at_timestamp_ns = std::max(at_timestamp_ns, data.front().at_timestamp_ns - extrapolation);
-				return {ex, Derived::extrapolate(*first, *second, first->at_timestamp_ns, second->at_timestamp_ns, at_timestamp_ns)};
+				if (not before or before->at_timestamp_ns < item.at_timestamp_ns)
+					before = &item;
 			}
 			else
-				return {ex, data.front()};
-		}
-
-		for (auto after = data.begin(), before = after++; after != data.end(); before = after++)
-		{
-			if (after->at_timestamp_ns > at_timestamp_ns)
 			{
-				float t = float(after->at_timestamp_ns - at_timestamp_ns) /
-				          (after->at_timestamp_ns - before->at_timestamp_ns);
-				return {ex, Derived::interpolate(*before, *after, t)};
+				if (not after or after->at_timestamp_ns > item.at_timestamp_ns)
+					after = &item;
 			}
 		}
 
-		if constexpr (extrapolation)
+		if (before and after)
 		{
-			auto prev = data.rbegin();
-			auto last = prev++;
-			at_timestamp_ns = std::min(at_timestamp_ns, data.back().at_timestamp_ns + extrapolation);
-			return {ex, Derived::extrapolate(*prev, *last, prev->at_timestamp_ns, last->at_timestamp_ns, at_timestamp_ns)};
+			float t = float(after->at_timestamp_ns - at_timestamp_ns) /
+			          (after->at_timestamp_ns - before->at_timestamp_ns);
+			return {ex, Derived::interpolate(*before, *after, t)};
 		}
-		else
-		{
-			return {ex, data.back()};
-		}
+
+		if (before)
+			return {ex, *before};
+
+		if (after)
+			return {ex, *after};
+
+		return {};
 	}
 };
 } // namespace wivrn
