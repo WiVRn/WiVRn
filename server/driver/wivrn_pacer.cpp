@@ -128,7 +128,6 @@ void wivrn_pacer::mark_timing_point(
         int64_t frame_id,
         int64_t when_ns)
 {
-	std::lock_guard lock(mutex);
 	switch (point)
 	{
 		//! Woke up after sleeping in wait frame.
@@ -146,7 +145,10 @@ void wivrn_pacer::mark_timing_point(
 		//! Just after submitting work to the GPU.
 		case COMP_TARGET_TIMING_POINT_SUBMIT_END:
 			if (when_ns > last_wake_up_ns and when_ns < last_wake_up_ns + 100'000'000)
+			{
+				std::lock_guard lock(mutex);
 				mean_wake_up_to_present_ns = std::lerp(mean_wake_up_to_present_ns, when_ns - last_wake_up_ns, 0.1);
+			}
 	}
 }
 
