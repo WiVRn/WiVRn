@@ -23,7 +23,7 @@
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 
-#include <shared_mutex>
+#include <atomic>
 
 namespace wivrn
 {
@@ -31,10 +31,9 @@ struct clock_offset;
 
 class pose_list : public history<pose_list, xrt_space_relation>
 {
-	std::shared_mutex derived_mutex;
-	pose_list * source = nullptr;
+	std::atomic<pose_list *> source = nullptr;
 	xrt_pose offset;
-	bool derive_forced = false;
+	std::atomic_bool derive_forced = false;
 
 public:
 	const wivrn::device_id device;

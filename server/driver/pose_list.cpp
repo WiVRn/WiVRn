@@ -65,7 +65,6 @@ xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xr
 
 bool pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	std::shared_lock lock(derived_mutex);
 	if (source)
 		return false;
 
@@ -81,22 +80,27 @@ bool pose_list::update_tracking(const from_headset::tracking & tracking, const c
 
 void pose_list::set_derived(pose_list * source, xrt_pose offset, bool force)
 {
-	std::lock_guard lock(derived_mutex);
-	if (derive_forced and not force)
+	if (force)
+	{
+		derive_forced = true;
+	}
+	else if (derive_forced)
+	{
 		return;
+	}
 	// TODO: check for loops?
 	if (source == this)
 		this->source = nullptr;
 	else
+	{
+		this->offset = offset;
 		this->source = source;
-	this->offset = offset;
-	this->derive_forced = force;
+	}
 }
 
 std::tuple<std::chrono::nanoseconds, xrt_space_relation, device_id> pose_list::get_pose_at(XrTime at_timestamp_ns)
 {
-	std::shared_lock lock(derived_mutex);
-	if (source)
+	if (auto source = this->source.load())
 	{
 		auto res = source->get_pose_at(at_timestamp_ns);
 		math_pose_transform(&std::get<1>(res).pose, &offset, &std::get<1>(res).pose);
