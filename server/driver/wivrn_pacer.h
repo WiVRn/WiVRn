@@ -21,9 +21,11 @@
 
 #include "wivrn_packets.h"
 
+#include <condition_variable>
 #include <cstdint>
 #include <main/comp_target.h>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 namespace wivrn
@@ -63,13 +65,16 @@ private:
 	};
 	std::vector<frame_time> frame_times;
 
+	std::mutex compute_mutex;
+	std::condition_variable compute_cv;
+	std::vector<frame_time> frame_times_compute;
+	std::jthread worker;
+
 	std::array<frame_info, 4> in_flight_frames;
 
 public:
-	wivrn_pacer(uint64_t frame_duration) :
-	        frame_duration_ns(frame_duration),
-	        frame_times(5000)
-	{}
+	wivrn_pacer(uint64_t frame_duration);
+	~wivrn_pacer();
 
 	void set_frame_duration(uint64_t frame_duration);
 

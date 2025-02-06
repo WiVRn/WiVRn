@@ -41,6 +41,42 @@ static T lerp_mod(T a, T b, double t, T mod)
 	return T(std::lerp(a, b, t)) % mod;
 }
 
+wivrn_pacer::wivrn_pacer(uint64_t frame_duration) :
+        frame_duration_ns(frame_duration),
+        frame_times(5000),
+        frame_times_compute(frame_times),
+        worker([this](std::stop_token t) {
+	        std::vector<XrDuration> samples;
+	        while (not t.stop_requested())
+	        {
+		        samples.clear();
+		        int64_t res = 0;
+		        {
+			        std::unique_lock lock(compute_mutex);
+			        compute_cv.wait(lock);
+			        for (const auto & time: frame_times_compute)
+			        {
+				        if (time.decoded > time.present)
+					        samples.push_back(time.decoded - time.present);
+			        }
+			        auto it = samples.begin() + (samples.size() * 995) / 1000;
+
+			        std::ranges::nth_element(samples, it);
+			        res = *it + 1'000'000;
+		        }
+
+		        std::unique_lock lock(mutex);
+		        safe_present_to_decoded_ns = res;
+	        }
+        })
+{}
+
+wivrn_pacer::~wivrn_pacer()
+{
+	worker.request_stop();
+	compute_cv.notify_all();
+}
+
 void wivrn_pacer::set_frame_duration(uint64_t frame_duration_ns)
 {
 	std::lock_guard lock(mutex);
@@ -104,17 +140,9 @@ void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, co
 	{
 		if (feedback.stream_index % 100 == 0)
 		{
-			std::vector<XrDuration> samples;
-			samples.reserve(frame_times.size());
-			for (const auto & time: frame_times)
-			{
-				if (time.decoded > time.present)
-					samples.push_back(time.decoded - time.present);
-			}
-			auto it = samples.begin() + (samples.size() * 995) / 1000;
-
-			std::ranges::nth_element(samples, it);
-			safe_present_to_decoded_ns = *it + 1'000'000;
+			std::unique_lock lock(compute_mutex);
+			std::swap(frame_times, frame_times_compute);
+			compute_cv.notify_all();
 		}
 
 		client_render_phase_ns = lerp_mod<int64_t>(client_render_phase_ns, offset.from_headset(feedback.blitted) % frame_duration_ns, 0.1, frame_duration_ns);
