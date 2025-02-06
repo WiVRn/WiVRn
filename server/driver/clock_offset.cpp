@@ -33,7 +33,7 @@ void clock_offset_estimator::reset()
 	std::lock_guard lock(mutex);
 	sample_index = 0;
 	samples.clear();
-	offset = clock_offset();
+	b = 0;
 	next_sample = {};
 	sample_interval = std::chrono::milliseconds(10);
 }
@@ -96,7 +96,9 @@ void clock_offset_estimator::add_sample(const wivrn::from_headset::timesync_resp
 
 	if (samples.size() < num_samples)
 	{
-		offset.b = y0 - x0;
+		int64_t b = y0 - x0;
+		b &= ~int64_t(1);
+		this->b = b;
 		return;
 	}
 
@@ -122,16 +124,24 @@ void clock_offset_estimator::add_sample(const wivrn::from_headset::timesync_resp
 	double b = y0 + (mean_y - mean_x) - x0;
 
 	// b changed less than 20ms
-	offset.stable = std::abs((b - (double)offset.b)) < 20'000'000;
+	bool stable = std::abs((b - (double)this->b)) < 20'000'000;
 
-	offset.b = b;
-	U_LOG_T("clock relations: headset = x+b where b=%" PRIu64 "µs", offset.b / 1000);
+	int64_t new_b = b;
+	if (stable)
+		new_b |= 1;
+	else
+		new_b &= ~int64_t(1);
+	this->b = new_b;
+	U_LOG_T("clock relations: headset = x+b where b=%" PRIu64 "µs", new_b / 1000);
 }
 
 clock_offset clock_offset_estimator::get_offset()
 {
-	std::lock_guard lock(mutex);
-	return offset;
+	auto b = this->b.load();
+	return clock_offset{
+	        .b = b,
+	        .stable = bool(b & 1),
+	};
 }
 
 XrTime clock_offset::from_headset(XrTime ts) const

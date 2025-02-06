@@ -59,7 +59,7 @@ class clock_offset_estimator
 	std::mutex mutex;
 	std::vector<sample> samples;
 	size_t sample_index = 0;
-	clock_offset offset;
+	std::atomic<int64_t> b = 0; // lest significant bit == stable
 
 	std::chrono::steady_clock::time_point next_sample{};
 	std::atomic<std::chrono::milliseconds> sample_interval = std::chrono::milliseconds(10);
