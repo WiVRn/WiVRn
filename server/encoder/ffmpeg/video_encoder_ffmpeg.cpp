@@ -70,7 +70,6 @@ std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(bool idr,
 {
 	if (auto bitrate = pending_bitrate.exchange(BITRATE_UNCHANGED))
 	{
-		U_LOG_E("Reconfigure FFMPEG encoder");
 		idr = true;
 		encoder_ctx->bit_rate = bitrate;
 		encoder_ctx->rc_max_rate = bitrate;
