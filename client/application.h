@@ -154,9 +154,6 @@ class application : public singleton<application>
 	boost::locale::generator gen;
 	boost::locale::gnu_gettext::messages_info messages_info;
 
-public:
-	std::mutex render_mutex;
-
 private:
 	void loop();
 

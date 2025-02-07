@@ -1170,7 +1170,6 @@ void application::loop()
 			}
 			scene->set_focused(true);
 
-			std::lock_guard lock(render_mutex);
 			XrFrameState framestate = xr_session.wait_frame();
 
 			auto t1 = std::chrono::steady_clock::now();
