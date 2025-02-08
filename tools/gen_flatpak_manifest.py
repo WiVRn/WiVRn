@@ -47,14 +47,17 @@ if __name__ == "__main__":
 
     try:
         git_commit = subprocess.check_output(
-                ["git", "describe", "--exact-match", "--tags"]
+                ["git", "describe", "--exact-match", "--tags"],
+                cwd=root
                 ).decode().strip()
     except subprocess.CalledProcessError:
         git_commit = subprocess.check_output(
-                ["git", "rev-parse", "HEAD"]
+                ["git", "rev-parse", "HEAD"],
+                cwd=root
                 ).decode().strip()
     git_desc = subprocess.check_output(
-                ["git", "describe", "--tags", "--always"]
+                ["git", "describe", "--tags", "--always"],
+                cwd=root
                 ).decode().strip()
 
     if args.git or args.gitlocal:
