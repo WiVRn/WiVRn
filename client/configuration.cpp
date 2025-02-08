@@ -107,6 +107,7 @@ bool configuration::check_feature(feature f) const
 				switch (guess_model())
 				{
 					case model::htc_vive_focus_3:
+					case model::htc_vive_focus_vision:
 						[[fallthrough]];
 					case model::htc_vive_xr_elite:
 						if (not(application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported()))

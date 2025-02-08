@@ -82,6 +82,9 @@ static model guess_model_()
 		if (model == "VIVE Focus 3")
 			return model::htc_vive_focus_3;
 
+		if (model == "VIVE Focus Vision")
+			return model::htc_vive_focus_vision;
+
 		if (model == "VIVE XR Series")
 			return model::htc_vive_xr_elite;
 	}
@@ -140,6 +143,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 		case model::pico_4:
 			return scale_view(view, 2160);
 		case model::htc_vive_focus_3:
+		case model::htc_vive_focus_vision:
 			return scale_view(view, 2448);
 		case model::htc_vive_xr_elite:
 			return scale_view(view, 1920);
@@ -164,6 +168,7 @@ bool need_srgb_conversion(model m)
 		case model::pico_neo_3:
 		case model::pico_4:
 		case model::htc_vive_focus_3:
+		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
 		case model::unknown:
 			return true;
@@ -192,6 +197,7 @@ const char * permission_name(feature f)
 				case model::pico_4:
 					return "com.picovr.permission.EYE_TRACKING";
 				case model::htc_vive_focus_3:
+				case model::htc_vive_focus_vision:
 				case model::htc_vive_xr_elite:
 				case model::lynx_r1:
 				case model::unknown:
@@ -210,6 +216,7 @@ const char * permission_name(feature f)
 				case model::pico_neo_3:
 				case model::pico_4:
 				case model::htc_vive_focus_3:
+				case model::htc_vive_focus_vision:
 				case model::htc_vive_xr_elite:
 				case model::lynx_r1:
 				case model::unknown:
@@ -244,6 +251,7 @@ std::string controller_name()
 		case model::pico_4:
 			return "pico-4";
 		case model::htc_vive_focus_3:
+		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
 			return "htc-vive-focus-3";
 		case model::lynx_r1:
@@ -333,6 +341,7 @@ std::string controller_ray_model_name()
 	switch (guess_model())
 	{
 		case model::htc_vive_focus_3:
+		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
 			// XR Elite's runtime always assume alpha is unpremultiplied in the composition layers
 			// Assume it's the same for all HTC headsets
