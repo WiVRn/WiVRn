@@ -523,7 +523,7 @@ jobs:
     - name: Download artifacts (flatpak)
       uses: actions/download-artifact@v4
       with:
-        name: wivrn-server-x86_64
+        name: wivrn-flatpak-x86_64
         path: flatpak
 
     - name: Download artifacts (deb)
