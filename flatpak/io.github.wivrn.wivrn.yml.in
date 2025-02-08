@@ -213,4 +213,4 @@ modules:
     sources:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
-        tag: 6573b9aa8966da3c0ec603689eb88c83d35cf6f1
+        tag: d37c9e7a4bc41f2b636282064eb39efb9e50d48b
