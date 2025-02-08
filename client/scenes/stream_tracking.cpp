@@ -309,7 +309,7 @@ void scenes::stream::tracking()
 								application::get_fb_face_tracker2().get_weights(t0 + Δt, packet.face.emplace());
 								break;
 							case wivrn::from_headset::face_type::htc:
-								auto face_htc = packet.face_htc.emplace();
+								auto & face_htc = packet.face_htc.emplace();
 								face_htc.eye_active = false;
 								face_htc.lip_active = false;
 								if (application::get_htc_face_tracking_eye_supported())

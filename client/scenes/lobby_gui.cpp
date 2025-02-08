@@ -663,7 +663,7 @@ void scenes::lobby::gui_settings()
 		ImGui::EndDisabled();
 	}
 	{
-		ImGui::BeginDisabled(not application::get_fb_face_tracking2_supported());
+		ImGui::BeginDisabled(not(application::get_fb_face_tracking2_supported() or application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported()));
 		bool enabled = config.check_feature(feature::face_tracking);
 		if (ImGui::Checkbox(_S("Enable face tracking"), &enabled))
 		{
