@@ -1,3 +1,15 @@
+wivrn (0.23-1) unstable; urgency=medium
+
+  * New dashboard, built on Kirigami
+  * Improved controller tracking
+  * Forward visibility mask and framerate change (OpenXR features)
+  * H.264 Vulkan video encode works on Radeon
+  * Face tracking support on HTC headsets
+  * Allow updating bitrate at runtime, works on vulkan video and x264 only
+  * Various performance improvements
+
+ -- Patrick Nicolas <patricknicolas@laposte.net>  Sat, 08 Feb 2025 11:40:41 +0100
+
 wivrn (0.22-1) unstable; urgency=medium
 
   * Passthrough streaming support

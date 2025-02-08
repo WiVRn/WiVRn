@@ -69,6 +69,20 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="0.23" date="2025-02-08">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.23</url>
+			<description>
+				<ul>
+					<li>New dashboard, built on Kirigami</li>
+					<li>Improved controller tracking</li>
+					<li>Forward visibility mask and framerate change (OpenXR features)</li>
+					<li>H.264 Vulkan video encode works on Radeon</li>
+					<li>Face tracking support on HTC headsets</li>
+					<li>Allow updating bitrate at runtime, works on vulkan video and x264 only</li>
+					<li>Various performance improvements</li>
+				</ul>
+			</description>
+		</release>
 		<release version="0.22" date="2024-12-05">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.22</url>
 			<description>
