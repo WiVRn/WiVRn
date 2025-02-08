@@ -526,12 +526,6 @@ jobs:
         name: wivrn-flatpak-x86_64
         path: flatpak
 
-    - name: Download artifacts (deb)
-      uses: actions/download-artifact@v4
-      with:
-        name: wivrn-ubuntu-24.04
-        path: ubuntu
-
     - name: Release
       uses: softprops/action-gh-release@v2
       with:
@@ -541,8 +535,6 @@ jobs:
         files: |
           apk/*.apk
           flatpak/*.flatpak
-          ubuntu/*.deb
-          ubuntu/*.ddeb
 
     - name: Update flatpak manifest for flathub
       run: |
