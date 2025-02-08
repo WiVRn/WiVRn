@@ -54,6 +54,8 @@ wivrn_pacer::wivrn_pacer(uint64_t frame_duration) :
 		        {
 			        std::unique_lock lock(compute_mutex);
 			        compute_cv.wait(lock);
+			        if (samples.empty())
+				        continue;
 			        for (const auto & time: frame_times_compute)
 			        {
 				        if (time.decoded > time.present)
