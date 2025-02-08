@@ -48,7 +48,8 @@ if __name__ == "__main__":
     try:
         git_commit = subprocess.check_output(
                 ["git", "describe", "--exact-match", "--tags"],
-                cwd=root
+                cwd=root,
+                stderr=subprocess.DEVNULL
                 ).decode().strip()
     except subprocess.CalledProcessError:
         git_commit = subprocess.check_output(
