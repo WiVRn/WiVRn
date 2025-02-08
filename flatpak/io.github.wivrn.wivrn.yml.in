@@ -214,3 +214,7 @@ modules:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
         tag: d37c9e7a4bc41f2b636282064eb39efb9e50d48b
+      - type: shell
+        commands:
+          # we can't have inline patches apparently
+          - sed 's/.section .rodata/.section .note.GNU-stack,"",@progbits\n.section .rodata/' -i OpenOVR/Misc/resources_linux.s
