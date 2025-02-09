@@ -123,12 +123,12 @@ jobs:
     - name: Create the flatpak manifest
       run: |
         git config --global --add safe.directory $(pwd)
-        tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git > io.github.wivrn.wivrn.yml
+        tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git > flatpak/io.github.wivrn.wivrn.yml
 
     # TODO: replace with version > v6.3 when it's released
     - uses: flatpak/flatpak-github-actions/flatpak-builder@b8be6bc0ede43cb3a2cc55895654312b14f84a0d
       with:
-        manifest-path: io.github.wivrn.wivrn.yml
+        manifest-path: flatpak/io.github.wivrn.wivrn.yml
         bundle: wivrn-server.flatpak
         upload-artifact: false
 
@@ -139,6 +139,15 @@ jobs:
       with:
         name: wivrn-flatpak-x86_64
         path: wivrn-server.flatpak
+
+    - name: Debug bundle
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: flatpak-debug
+        path: .flatpak-builder
+        include-hidden-files: true
+        retention-days: 1
 
   build-test-client:
     name: Linux client
@@ -550,9 +559,10 @@ jobs:
 
         git config --global --add safe.directory $(pwd)
         ../wivrn/tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git > io.github.wivrn.wivrn.yml
+        cp ../wivrn/flatpak/ct-ng.config .
 
         git checkout -b $WIVRN_TAG
-        git add io.github.wivrn.wivrn.yml
+        git add io.github.wivrn.wivrn.yml ct-ng.config
         git commit -m "Version "$WIVRN_TAG
         git push --set-upstream origin $WIVRN_TAG
 
