@@ -183,10 +183,15 @@ if (WIVRN_BUILD_SERVER)
 endif()
 
 if (WIVRN_BUILD_DASHBOARD)
-    find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Gui Widgets DBus Network LinguistTools)
+    find_package(Qt6 REQUIRED COMPONENTS Core Quick Test Gui QuickControls2 Widgets Network)
+
+    find_package(ECM 5.115 REQUIRED NO_MODULE)
+    list(APPEND CMAKE_MODULE_PATH "${ECM_MODULE_PATH}")
+
+    find_package(KF6 REQUIRED COMPONENTS Kirigami I18n CoreAddons QQC2DesktopStyle IconThemes)
+    find_package(KF6Kirigami)
     find_package(nlohmann_json REQUIRED)
     find_package(QCoro6 REQUIRED COMPONENTS Core Network Qml)
-    find_package(KF6Kirigami)
     qcoro_enable_coroutines()
 
     if (WIVRN_CHECK_CAPSYSNICE)

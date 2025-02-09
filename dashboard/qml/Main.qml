@@ -319,15 +319,13 @@ Kirigami.ApplicationWindow {
                 onTriggered: root.pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
                 visible: root.pageStack.depth == 1
                 enabled: root.server_started
-            }/*,
+            },
             Kirigami.Action {
                 text: i18n("Troubleshoot")
                 icon.name: "help-contents-symbolic"
                 onTriggered: root.pageStack.push(Qt.resolvedUrl("TroubleshootPage.qml"))
                 enabled: root.server_started && root.pageStack.depth == 1
-            }*/
-
-
+            }
         ]
     }
 
