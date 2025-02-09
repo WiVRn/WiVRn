@@ -59,7 +59,7 @@ QCoro::Task<> apk_installer::doRefreshLatestVersion()
 
 	if (auto error = reply->error(); error != QNetworkReply::NetworkError::NoError)
 	{
-		qWarning() << "Cannot get version information" << error;
+		qWarning() << "Cannot get version information from https://api.github.com/repos/WiVRn/WiVRn/releases/latest:" << error;
 	}
 	else
 	{
@@ -84,7 +84,7 @@ QCoro::Task<> apk_installer::doRefreshLatestVersion()
 
 	if (auto error = reply->error(); error != QNetworkReply::NoError)
 	{
-		qWarning() << "Cannot get release metadata" << error;
+		qWarning() << "Cannot get release metadata from" << metadata_url.toString() << ":" << error;
 	}
 	else
 	{
