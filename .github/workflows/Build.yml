@@ -559,10 +559,10 @@ jobs:
 
         git config --global --add safe.directory $(pwd)
         ../wivrn/tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git > io.github.wivrn.wivrn.yml
-        cp ../wivrn/flatpak/ct-ng.config .
+        cp ../wivrn/flatpak/*.config .
 
         git checkout -b $WIVRN_TAG
-        git add io.github.wivrn.wivrn.yml ct-ng.config
+        git add io.github.wivrn.wivrn.yml *.config
         git commit -m "Version "$WIVRN_TAG
         git push --set-upstream origin $WIVRN_TAG
 

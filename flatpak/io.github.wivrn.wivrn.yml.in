@@ -110,8 +110,15 @@ modules:
       url: https://ftpmirror.gnu.org/gnu/glibc/glibc-2.35.tar.xz
       sha256: 5123732f6b67ccd319305efd399971d58592122bcc2a6518a1bd2510dd0cf52e
     - type: file
-      path: ct-ng.config
+      path: ct-ng-x86_64.config
       dest-filename: .config
+      only-arches:
+          - x86_64
+    - type: file
+      path: ct-ng-aarch64.config
+      dest-filename: .config
+      only-arches:
+          - aarch64
     buildsystem: simple
     build-commands:
       - env -u CXXFLAGS -u CFLAGS -u CPLUS_INCLUDE_PATH -u C_INCLUDE_PATH -u LD_LIBRARY_PATH CT_PREFIX=/app TAR_OPTIONS=--no-same-owner ct-ng build
@@ -245,12 +252,20 @@ modules:
     build-options:
       cflags: -idirafter/usr/include
       cxxflags: -idirafter/usr/include
-      ldflags: -L/usr/lib/x86_64-linux-gnu/
+      arch:
+        aarch64:
+          ldflags: -L/usr/lib/aarch64-linux-gnu
+          env:
+            CC: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc
+            CXX: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++
+        x86_64:
+          ldflags: -L/usr/lib/x86_64-linux-gnu
+          env:
+            CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
+            CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
     config-opts:
       - -DUSE_SYSTEM_OPENXR=OFF
       - -DUSE_SYSTEM_GLM=OFF
-      - -DCMAKE_C_COMPILER=/app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
-      - -DCMAKE_CXX_COMPILER=/app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
     sources:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
@@ -263,9 +278,21 @@ modules:
   - name: wivrn-library
     buildsystem: cmake-ninja
     build-options:
-      cflags: -idirafter/usr/include -idirafter/usr/lib/x86_64-linux-gnu/include/
-      cxxflags: -idirafter/usr/include -idirafter/usr/lib/x86_64-linux-gnu/include/
-      ldflags: -L/usr/lib/x86_64-linux-gnu/ -Wl,--warn-unresolved-symbols
+      arch:
+        aarch64:
+          ldflags: -L/usr/lib/aarch64-linux-gnu -Wl,--warn-unresolved-symbols
+          cflags: -idirafter/usr/include -idirafter/usr/lib/aarch64-linux-gnu/include/
+          cxxflags: -idirafter/usr/include -idirafter/usr/lib/aarch64-linux-gnu/include/
+          env:
+            CC: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc
+            CXX: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++
+        x86_64:
+          ldflags: -L/usr/lib/x86_64-linux-gnu -Wl,--warn-unresolved-symbols
+          cflags: -idirafter/usr/include -idirafter/usr/lib/x86_64-linux-gnu/include/
+          cxxflags: -idirafter/usr/include -idirafter/usr/lib/x86_64-linux-gnu/include/
+          env:
+            CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
+            CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
     config-opts:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DWIVRN_BUILD_CLIENT=OFF
@@ -278,8 +305,6 @@ modules:
       - -DFETCHCONTENT_BASE_DIR=deps
       - -DGIT_DESC=WIVRN_GIT_DESC
       - -DGIT_COMMIT=WIVRN_GIT_COMMIT
-      - -DCMAKE_C_COMPILER=/app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
-      - -DCMAKE_CXX_COMPILER=/app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
       - -Wno-dev
     sources:
       - WIVRN_SRC1
