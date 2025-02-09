@@ -61,184 +61,190 @@ set(XRT_OXR_RUNTIME_SUFFIX        "wivrn"          CACHE STRING "OpenXR client l
 
 FetchContent_MakeAvailable(monado)
 
-add_executable(wivrn-server
-		accept_connection.cpp
-		active_runtime.cpp
-		avahi_publisher.cpp
-		hostname.cpp
-		main.cpp
-		sleep_inhibitor.cpp
-		start_application.cpp
-		target_instance_wivrn.cpp
-		wivrn_ipc.cpp
+if (WIVRN_BUILD_SERVER)
+	add_executable(wivrn-server
+			accept_connection.cpp
+			active_runtime.cpp
+			avahi_publisher.cpp
+			hostname.cpp
+			main.cpp
+			sleep_inhibitor.cpp
+			start_application.cpp
+			target_instance_wivrn.cpp
+			wivrn_ipc.cpp
 
-		audio/audio_setup.cpp
+			audio/audio_setup.cpp
 
-		encoder/encoder_settings.cpp
-		encoder/video_encoder.cpp
+			encoder/encoder_settings.cpp
+			encoder/video_encoder.cpp
 
-		driver/clock_offset.cpp
-		driver/configuration.cpp
-		driver/wivrn_hmd.cpp
-		driver/wivrn_pacer.cpp
-		driver/wivrn_comp_target.cpp
-		driver/wivrn_controller.cpp
-		driver/wivrn_eye_tracker.cpp
-		driver/wivrn_fb_face2_tracker.cpp
-		driver/wivrn_htc_face_tracker.cpp
-		driver/wivrn_foveation.cpp
-		driver/pose_list.cpp
-		driver/view_list.cpp
-		driver/hand_joints_list.cpp
-		driver/wivrn_session.cpp
-		driver/wivrn_connection.cpp
-		driver/xrt_cast.cpp
+			driver/clock_offset.cpp
+			driver/configuration.cpp
+			driver/wivrn_hmd.cpp
+			driver/wivrn_pacer.cpp
+			driver/wivrn_comp_target.cpp
+			driver/wivrn_controller.cpp
+			driver/wivrn_eye_tracker.cpp
+			driver/wivrn_fb_face2_tracker.cpp
+			driver/wivrn_htc_face_tracker.cpp
+			driver/wivrn_foveation.cpp
+			driver/pose_list.cpp
+			driver/view_list.cpp
+			driver/hand_joints_list.cpp
+			driver/wivrn_session.cpp
+			driver/wivrn_connection.cpp
+			driver/xrt_cast.cpp
 
-		utils/wivrn_vk_bundle.cpp
+			utils/wivrn_vk_bundle.cpp
 
-		${WIVRN_SHADER_HEADERS}
-	)
-target_compile_features(wivrn-server PRIVATE cxx_std_20)
-target_compile_definitions(wivrn-server PRIVATE VULKAN_HPP_NO_CONSTRUCTORS)
-
-target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
-target_include_directories(wivrn-server PRIVATE .)
-
-target_link_libraries(wivrn-server PRIVATE CLI11::CLI11 xrt-external-renderdoc)
-
-if (WIVRN_FEATURE_STEAMVR_LIGHTHOUSE)
-	target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/drivers/steamvr_lh/)
-	target_link_libraries(wivrn-server PRIVATE drv_steamvr_lh)
-endif()
-
-if (WIVRN_FEATURE_SOLARXR)
-	target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/drivers/solarxr/)
-	target_link_libraries(wivrn-server PRIVATE drv_solarxr)
-endif()
-
-if(WIVRN_USE_NVENC)
-        target_sources(wivrn-server PRIVATE encoder/video_encoder_nvenc.cpp)
-endif()
-
-if(WIVRN_USE_VAAPI)
-        target_sources(
-                wivrn-server
-                PRIVATE encoder/ffmpeg/video_encoder_ffmpeg.cpp
-                        encoder/ffmpeg/video_encoder_va.cpp
-                        encoder/ffmpeg/ffmpeg_helper.cpp
-                )
-        target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV PkgConfig::LIBDRM)
-endif()
-
-if(WIVRN_USE_VULKAN_ENCODE)
-        target_sources(wivrn-server PRIVATE
-		encoder/video_encoder_vulkan.cpp
-		encoder/video_encoder_vulkan_h264.cpp
-		#encoder/video_encoder_vulkan_h265.cpp
+			${WIVRN_SHADER_HEADERS}
 		)
-endif()
+	target_compile_features(wivrn-server PRIVATE cxx_std_20)
+	target_compile_definitions(wivrn-server PRIVATE VULKAN_HPP_NO_CONSTRUCTORS)
 
-if(WIVRN_USE_X264)
-        target_sources(wivrn-server PRIVATE encoder/video_encoder_x264.cpp)
-        target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)
-endif()
+	target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/compositor/)
+	target_include_directories(wivrn-server PRIVATE .)
 
-if(WIVRN_USE_SYSTEMD)
-        target_link_libraries(wivrn-server PRIVATE PkgConfig::SYSTEMD)
-endif()
+	target_link_libraries(wivrn-server PRIVATE CLI11::CLI11 xrt-external-renderdoc)
 
-if(WIVRN_USE_PIPEWIRE)
-	target_sources(
+	if (WIVRN_FEATURE_STEAMVR_LIGHTHOUSE)
+		target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/drivers/steamvr_lh/)
+		target_link_libraries(wivrn-server PRIVATE drv_steamvr_lh)
+	endif()
+
+	if (WIVRN_FEATURE_SOLARXR)
+		target_include_directories(wivrn-server SYSTEM PRIVATE ${monado_SOURCE_DIR}/src/xrt/drivers/solarxr/)
+		target_link_libraries(wivrn-server PRIVATE drv_solarxr)
+	endif()
+
+	if(WIVRN_USE_NVENC)
+		target_sources(wivrn-server PRIVATE encoder/video_encoder_nvenc.cpp)
+	endif()
+
+	if(WIVRN_USE_VAAPI)
+		target_sources(
+			wivrn-server
+			PRIVATE encoder/ffmpeg/video_encoder_ffmpeg.cpp
+				encoder/ffmpeg/video_encoder_va.cpp
+				encoder/ffmpeg/ffmpeg_helper.cpp
+			)
+		target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV PkgConfig::LIBDRM)
+	endif()
+
+	if(WIVRN_USE_VULKAN_ENCODE)
+		target_sources(wivrn-server PRIVATE
+			encoder/video_encoder_vulkan.cpp
+			encoder/video_encoder_vulkan_h264.cpp
+			#encoder/video_encoder_vulkan_h265.cpp
+			)
+	endif()
+
+	if(WIVRN_USE_X264)
+		target_sources(wivrn-server PRIVATE encoder/video_encoder_x264.cpp)
+		target_link_libraries(wivrn-server PRIVATE PkgConfig::X264)
+	endif()
+
+	if(WIVRN_USE_SYSTEMD)
+		target_link_libraries(wivrn-server PRIVATE PkgConfig::SYSTEMD)
+	endif()
+
+	if(WIVRN_USE_PIPEWIRE)
+		target_sources(
+			wivrn-server
+			PRIVATE audio/audio_pipewire.cpp
+			)
+		target_link_libraries(wivrn-server PRIVATE PkgConfig::libpipewire)
+	endif()
+
+	if(WIVRN_USE_PULSEAUDIO)
+		target_sources(
+			wivrn-server
+			PRIVATE audio/audio_pulse.cpp
+			)
+		target_link_libraries(wivrn-server PRIVATE PkgConfig::libpulse)
+	endif()
+
+	# Generate dbus interface code as a separate target to avoid warnings in generated code
+	add_custom_command(OUTPUT wivrn_server_dbus.c wivrn_server_dbus.h
+			   COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml --interface-prefix io.github.wivrn --generate-c-code wivrn_server_dbus --c-namespace Wivrn
+			   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml)
+	add_custom_target(wivrn-server-dbus-codegen ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.c ${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.h)
+	add_library(wivrn-server-dbus STATIC
+		${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.c
+		${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.h
+		)
+	target_include_directories(wivrn-server-dbus PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+	add_dependencies(wivrn-server-dbus wivrn-server-dbus-codegen)
+	target_link_libraries(wivrn-server-dbus PUBLIC PkgConfig::glib2)
+	target_link_libraries(wivrn-server PUBLIC wivrn-server-dbus)
+	target_link_libraries(wivrn-server PUBLIC PkgConfig::libnotify)
+
+	include(CompileGLSL)
+
+	file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "shaders/*.glsl")
+	target_sources(wivrn-server PRIVATE ${VULKAN_SHADERS})
+	wivrn_compile_glsl(wivrn-server ${VULKAN_SHADERS})
+
+	target_link_libraries(
 		wivrn-server
-		PRIVATE audio/audio_pipewire.cpp
+		PRIVATE
+			aux_os
+			aux_util
+			aux_vk
+			comp_main
+			ipc_server
+			xrt-external-openxr
+			xrt-interfaces
+
+			PkgConfig::AVAHI
+			Eigen3::Eigen
+			wivrn-common
+			wivrn-external
+			nlohmann_json::nlohmann_json
 		)
-	target_link_libraries(wivrn-server PRIVATE PkgConfig::libpipewire)
+
+	target_compile_definitions(wivrn-server PRIVATE JSON_DIAGNOSTICS=1)
+
+	configure_file(dist/wivrn.service.in wivrn.service)
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn.service
+		DESTINATION lib/systemd/user/)
+
+	configure_file(dist/wivrn-application.service.in wivrn-application.service)
+	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn-application.service
+		DESTINATION lib/systemd/user/)
+
+	install(FILES dist/firewalld-wivrn.xml
+		RENAME wivrn.xml
+		DESTINATION lib/firewalld/services)
+
+	install(TARGETS wivrn-server)
 endif()
 
-if(WIVRN_USE_PULSEAUDIO)
-	target_sources(
-		wivrn-server
-		PRIVATE audio/audio_pulse.cpp
+if (WIVRN_BUILD_SERVER_LIBRARY)
+	set_target_properties(${RUNTIME_TARGET} PROPERTIES EXCLUDE_FROM_ALL FALSE)
+	set_target_properties(monado PROPERTIES EXCLUDE_FROM_ALL FALSE)
+
+	set(_extra_args)
+	if (WIVRN_OPENXR_MANIFEST_TYPE STREQUAL "absolute")
+		set(_extra_args ABSOLUTE_RUNTIME_PATH)
+	elseif (WIVRN_OPENXR_MANIFEST_TYPE STREQUAL "relative")
+		set(_extra_args RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${CMAKE_INSTALL_LIBDIR}/wivrn)
+	endif()
+
+	set_target_properties(monado PROPERTIES OUTPUT_NAME "monado_wivrn")
+	# Workaround as generate_openxr_runtime_manifest_at_install uses target name as library path
+	add_library(monado_wivrn ALIAS monado)
+
+	generate_openxr_runtime_manifest_at_install(
+		${_extra_args}
+		RUNTIME_TARGET ${RUNTIME_TARGET}
+		DESTINATION share/openxr/1
+		RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}/wivrn
+		LIBMONADO monado_wivrn
 		)
-	target_link_libraries(wivrn-server PRIVATE PkgConfig::libpulse)
+
+	install(TARGETS ${RUNTIME_TARGET} monado
+		LIBRARY
+		DESTINATION ${CMAKE_INSTALL_LIBDIR}/wivrn
+		COMPONENT Runtime)
 endif()
-
-# Generate dbus interface code as a separate target to avoid warnings in generated code
-add_custom_command(OUTPUT wivrn_server_dbus.c wivrn_server_dbus.h
-		   COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml --interface-prefix io.github.wivrn --generate-c-code wivrn_server_dbus --c-namespace Wivrn
-		   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/io.github.wivrn.Server.xml)
-add_custom_target(wivrn-server-dbus-codegen ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.c ${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.h)
-add_library(wivrn-server-dbus STATIC
-	${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.c
-	${CMAKE_CURRENT_BINARY_DIR}/wivrn_server_dbus.h
-	)
-target_include_directories(wivrn-server-dbus PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-add_dependencies(wivrn-server-dbus wivrn-server-dbus-codegen)
-target_link_libraries(wivrn-server-dbus PUBLIC PkgConfig::glib2)
-target_link_libraries(wivrn-server PUBLIC wivrn-server-dbus)
-target_link_libraries(wivrn-server PUBLIC PkgConfig::libnotify)
-
-include(CompileGLSL)
-
-file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "shaders/*.glsl")
-target_sources(wivrn-server PRIVATE ${VULKAN_SHADERS})
-wivrn_compile_glsl(wivrn-server ${VULKAN_SHADERS})
-
-target_link_libraries(
-	wivrn-server
-	PRIVATE
-		aux_os
-		aux_util
-		aux_vk
-		comp_main
-		ipc_server
-		xrt-external-openxr
-		xrt-interfaces
-
-		PkgConfig::AVAHI
-		Eigen3::Eigen
-		wivrn-common
-		wivrn-external
-		nlohmann_json::nlohmann_json
-	)
-
-target_compile_definitions(wivrn-server PRIVATE JSON_DIAGNOSTICS=1)
-
-configure_file(dist/wivrn.service.in wivrn.service)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn.service
-	DESTINATION lib/systemd/user/)
-
-configure_file(dist/wivrn-application.service.in wivrn-application.service)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn-application.service
-	DESTINATION lib/systemd/user/)
-
-install(FILES dist/firewalld-wivrn.xml
-	RENAME wivrn.xml
-	DESTINATION lib/firewalld/services)
-
-install(TARGETS wivrn-server)
-
-set_target_properties(${RUNTIME_TARGET} PROPERTIES EXCLUDE_FROM_ALL FALSE)
-set_target_properties(monado PROPERTIES OUTPUT_NAME "monado_wivrn")
-# Workaround as generate_openxr_runtime_manifest_at_install uses target name as library path
-add_library(monado_wivrn ALIAS monado)
-
-set(_extra_args)
-if (WIVRN_OPENXR_MANIFEST_TYPE STREQUAL "absolute")
-	set(_extra_args ABSOLUTE_RUNTIME_PATH)
-elseif (WIVRN_OPENXR_MANIFEST_TYPE STREQUAL "relative")
-	set(_extra_args RUNTIME_DIR_RELATIVE_TO_MANIFEST ../../../${CMAKE_INSTALL_LIBDIR}/wivrn)
-endif()
-
-generate_openxr_runtime_manifest_at_install(
-	${_extra_args}
-	RUNTIME_TARGET ${RUNTIME_TARGET}
-	DESTINATION share/openxr/1
-	RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}/wivrn
-	LIBMONADO monado_wivrn
-	)
-
-install(TARGETS ${RUNTIME_TARGET} monado
-	LIBRARY
-	DESTINATION ${CMAKE_INSTALL_LIBDIR}/wivrn
-	COMPONENT Runtime)

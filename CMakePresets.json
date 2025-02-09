@@ -15,6 +15,7 @@
 				"CMAKE_BUILD_TYPE": "Debug",
 				"WIVRN_BUILD_CLIENT": "OFF",
 				"WIVRN_BUILD_SERVER": "OFF",
+				"WIVRN_BUILD_SERVER_LIBRARY": "OFF",
 				"WIVRN_BUILD_DASHBOARD": "OFF",
 				"WIVRN_BUILD_DISSECTOR": "OFF",
 				"WIVRN_BUILD_WIVRNCTL": "OFF",
@@ -37,6 +38,7 @@
 			"cacheVariables": {
 				"WIVRN_BUILD_CLIENT": "ON",
 				"WIVRN_BUILD_SERVER": "ON",
+				"WIVRN_BUILD_SERVER_LIBRARY": "ON",
 				"WIVRN_BUILD_WIVRNCTL": "ON",
 				"WIVRN_BUILD_DASHBOARD": "ON",
 				"WIVRN_BUILD_DISSECTOR": "ON",
@@ -59,6 +61,7 @@
 			"binaryDir": "${sourceDir}/build-server",
 			"cacheVariables": {
 				"WIVRN_BUILD_SERVER": "ON",
+				"WIVRN_BUILD_SERVER_LIBRARY": "ON",
 				"WIVRN_BUILD_WIVRNCTL": "ON"
 			}
 		},
