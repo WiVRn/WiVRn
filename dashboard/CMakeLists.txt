@@ -1,35 +1,10 @@
-# cmake_minimum_required(VERSION 3.20)
-# project(kirigami-tutorial)
-
-find_package(ECM 5.115 REQUIRED NO_MODULE)
-list(APPEND CMAKE_MODULE_PATH "${ECM_MODULE_PATH}")
-
 include(KDEInstallDirs)
 include(KDECMakeSettings)
-# include(KDECompilerSettings NO_POLICY_SCOPE)
 include(ECMFindQmlModule)
 include(ECMQmlModule)
 include(I18n)
 
-find_package(Qt6 REQUIRED COMPONENTS
-    Core
-    Quick
-    Test
-    Gui
-    QuickControls2
-    Widgets
-)
-
-find_package(KF6 REQUIRED COMPONENTS
-    Kirigami
-    I18n
-    CoreAddons
-    QQC2DesktopStyle
-    IconThemes
-)
-
 ecm_find_qmlmodule(org.kde.kirigami REQUIRED)
-
 
 add_executable(wivrn-dashboard
     main.cpp
@@ -65,8 +40,12 @@ qt_add_qml_module(wivrn-dashboard
         qml/ConnectUsbDialog.qml
         qml/SelectGame.qml
         qml/SteamLaunchOptions.qml
+        qml/TroubleshootPage.qml
+        qml/TroubleshootCard.qml
     RESOURCES
         ../images/wivrn.svg
+        qml/Discord.svg
+        qml/Github.svg
 )
 
 
