@@ -230,10 +230,10 @@ static void save_keys(const std::vector<headset_key> & keys)
 
 	for (const auto & key: keys)
 	{
-		json.push_back({
-		        {"key", key.public_key},
-		        {"name", key.name},
-		});
+		nlohmann::json key_json;
+		key_json["key"] = key.public_key;
+		key_json["name"] = key.name;
+		json.push_back(key_json);
 	}
 
 	std::string json_str = json.dump();
