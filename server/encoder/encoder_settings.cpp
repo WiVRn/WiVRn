@@ -180,6 +180,35 @@ static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & b
 }
 #endif
 
+#if WIVRN_USE_NVENC
+static bool probe_nvenc(wivrn_vk_bundle & bundle)
+{
+	static bool res = [&]() {
+	encoder_settings s{
+	        {
+	                .width = 800,
+	                .height = 600,
+	                .video_width = 800,
+	                .video_height = 600,
+	                .codec = h264,
+	        },
+	        encoder_nvenc,
+	        default_bitrate,
+	};
+	try
+	{
+		video_encoder_nvenc test(bundle, s, 60, 0);
+		return true;
+	}
+	catch (std::exception & e)
+	{
+		U_LOG_W("nvenc not supported: %s", e.what());
+		return false;
+	} }();
+	return res;
+}
+#endif
+
 static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs, configuration::encoder & config)
 {
 	if (config.name.empty())
@@ -187,14 +216,20 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 		if (is_nvidia(*bundle.physical_device))
 		{
 #if WIVRN_USE_NVENC
-			config.name = encoder_nvenc;
-#elif WIVRN_USE_X264
-			U_LOG_W("nvidia GPU detected, but nvenc support not compiled");
-			config.name = encoder_x264;
-			config.codec = h264;
+			if (probe_nvenc(bundle))
+				config.name = encoder_nvenc;
+			else
 #else
-			U_LOG_E("no suitable encoder available (compile with x264 or nvenc support)");
+			U_LOG_W("nvidia GPU detected, but nvenc support not compiled");
 #endif
+			{
+#if WIVRN_USE_X264
+				config.name = encoder_x264;
+				config.codec = h264;
+#else
+				U_LOG_E("no suitable encoder available (compile with x264 or nvenc support)");
+#endif
+			}
 		}
 		else
 		{
