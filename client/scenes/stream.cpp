@@ -242,6 +242,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	                .queryCount = size_gpu_timestamps,
 	        });
 
+	self->wifi = application::get_wifi_lock().get_wifi_lock();
 	return self;
 }
 
@@ -277,7 +278,6 @@ void scenes::stream::on_focused()
 		plots_toggle_2 = get_action("plots_toggle_2").first;
 	}
 
-	wifi = application::get_wifi_lock().get_wifi_lock();
 	assert(video_stream_description);
 	setup_reprojection_swapchain();
 }
@@ -286,7 +286,6 @@ void scenes::stream::on_unfocused()
 {
 	imgui_ctx.reset();
 	swapchain_imgui = xr::swapchain();
-	wifi.reset();
 }
 
 scenes::stream::~stream()
