@@ -145,6 +145,10 @@ Default value: unset
 
 Json object of additional options to pass directly to ffmpeg `avcodec_open2`'s `option` parameter.
 
+## `encoder-passthrough`
+
+The single encoder used for passthrough (transparency), contains the same elements as the other encoders, except for width/height and offsets.
+
 ## `application`
 Default value: unset
 
