@@ -824,6 +824,8 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		                }},
 		        session.get_passthrough());
 	}
+	else
+		session.disable_passthrough();
 
 	for (size_t swapchain_index = 0; swapchain_index < view_count; swapchain_index++)
 	{
