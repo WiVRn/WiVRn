@@ -29,7 +29,6 @@ class stream_reprojection
 	const uint32_t view_count;
 	// Uniform buffer
 	buffer_allocation buffer;
-	size_t uniform_size;
 
 	// Graphic pipeline
 	vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
@@ -41,8 +40,8 @@ class stream_reprojection
 	// Source image
 	vk::raii::Sampler sampler = nullptr;
 	vk::Image input_image;
-	std::vector<vk::raii::ImageView> input_image_views;
-	std::vector<vk::DescriptorSet> descriptor_sets;
+	vk::raii::ImageView input_image_view = nullptr;
+	vk::DescriptorSet descriptor_set;
 
 	// Destination images
 	std::vector<vk::Image> output_images;

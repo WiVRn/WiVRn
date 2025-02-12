@@ -99,7 +99,7 @@ private:
 		vk::raii::ImageView image_view = nullptr;
 		vk::raii::Framebuffer frame_buffer = nullptr;
 	};
-	std::array<renderpass_output, view_count> decoder_output;
+	std::vector<renderpass_output> decoder_output;
 
 	std::optional<stream_reprojection> reprojector;
 

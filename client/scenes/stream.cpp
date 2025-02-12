@@ -1030,9 +1030,9 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 		for (uint32_t view = 0; view < view_count; ++view)
 		{
-			auto & output = decoder_output[view];
-
 			image_view_info.subresourceRange.baseArrayLayer = view;
+
+			auto & output = decoder_output.emplace_back();
 			output.image_view = vk::raii::ImageView(device, image_view_info);
 
 			output.frame_buffer = vk::raii::Framebuffer(

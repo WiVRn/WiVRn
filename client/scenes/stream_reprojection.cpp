@@ -61,8 +61,6 @@ stream_reprojection::stream_reprojection(
 {
 	foveation_parameters = description.foveation;
 
-	vk::PhysicalDeviceProperties properties = physical_device.getProperties();
-
 	vk::SamplerCreateInfo sampler_info{
 	        .magFilter = vk::Filter::eLinear,
 	        .minFilter = vk::Filter::eLinear,
@@ -86,11 +84,8 @@ stream_reprojection::stream_reprojection(
 
 	sampler = vk::raii::Sampler(device, sampler_info);
 
-	uniform_size = sizeof(uniform) + properties.limits.minUniformBufferOffsetAlignment - 1;
-	uniform_size = uniform_size - uniform_size % properties.limits.minUniformBufferOffsetAlignment;
-
 	vk::BufferCreateInfo create_info{
-	        .size = uniform_size * view_count,
+	        .size = sizeof(uniform) * view_count,
 	        .usage = vk::BufferUsageFlagBits::eUniformBuffer,
 	        .sharingMode = vk::SharingMode::eExclusive,
 	};
@@ -133,16 +128,14 @@ stream_reprojection::stream_reprojection(
 	        },
 	};
 
-	vk::DescriptorPoolCreateInfo pool_info{
-	        .maxSets = view_count,
-	        .poolSizeCount = pool_size.size(),
-	        .pPoolSizes = pool_size.data(),
-	};
+	vk::DescriptorPoolCreateInfo pool_info;
+	pool_info.flags = vk::DescriptorPoolCreateFlags{};
+	pool_info.maxSets = 1;
+	pool_info.setPoolSizes(pool_size);
 
 	descriptor_pool = vk::raii::DescriptorPool(device, pool_info);
 
 	// Create image views and descriptor sets
-	for (uint32_t view = 0; view < view_count; ++view)
 	{
 		vk::ImageViewCreateInfo iv_info{
 		        .image = input_image,
@@ -158,12 +151,12 @@ stream_reprojection::stream_reprojection(
 		                .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                .baseMipLevel = 0,
 		                .levelCount = 1,
-		                .baseArrayLayer = view,
-		                .layerCount = 1,
+		                .baseArrayLayer = 0,
+		                .layerCount = view_count,
 		        },
 		};
 
-		vk::ImageView input_image_view = *input_image_views.emplace_back(device, iv_info);
+		input_image_view = vk::raii::ImageView(device, iv_info);
 
 		vk::DescriptorSetAllocateInfo ds_info{
 		        .descriptorPool = *descriptor_pool,
@@ -171,18 +164,17 @@ stream_reprojection::stream_reprojection(
 		        .pSetLayouts = &*descriptor_set_layout,
 		};
 
-		auto descriptor_set = descriptor_sets.emplace_back(device.allocateDescriptorSets(ds_info)[0].release());
+		descriptor_set = device.allocateDescriptorSets(ds_info)[0].release();
 
 		vk::DescriptorImageInfo image_info{
 		        .sampler = *sampler,
-		        .imageView = input_image_view,
+		        .imageView = *input_image_view,
 		        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 
 		vk::DescriptorBufferInfo buffer_info{
 		        .buffer = buffer,
-		        .offset = uniform_size * view,
-		        .range = sizeof(uniform),
+		        .range = sizeof(uniform) * view_count,
 		};
 
 		std::array write{
@@ -227,12 +219,18 @@ stream_reprojection::stream_reprojection(
 	};
 	subpass.setColorAttachments(color_ref);
 
+	uint32_t view_mask = (1 << view_count) - 1; // bits 0..view_count set to 1
+
 	vk::StructureChain renderpass_info{
 	        vk::RenderPassCreateInfo{
 	                .attachmentCount = 1,
 	                .pAttachments = &attachment,
 	                .subpassCount = 1,
 	                .pSubpasses = &subpass,
+	        },
+	        vk::RenderPassMultiviewCreateInfoKHR{
+	                .subpassCount = 1,
+	                .pViewMasks = &view_mask,
 	        },
 	};
 
@@ -334,43 +332,40 @@ stream_reprojection::stream_reprojection(
 	pipeline = vk::raii::Pipeline(device, application::get_pipeline_cache(), pipeline_info);
 
 	// Create image views and framebuffers
-	output_image_views.reserve(output_images.size() * view_count);
-	framebuffers.reserve(output_images.size() * view_count);
+	output_image_views.reserve(output_images.size());
+	framebuffers.reserve(output_images.size());
 	for (vk::Image image: output_images)
 	{
-		for (uint32_t view = 0; view < view_count; ++view)
-		{
-			vk::ImageViewCreateInfo iv_info{
-			        .image = image,
-			        .viewType = vk::ImageViewType::e2DArray,
-			        .format = format,
-			        .components = {
-			                .r = vk::ComponentSwizzle::eIdentity,
-			                .g = vk::ComponentSwizzle::eIdentity,
-			                .b = vk::ComponentSwizzle::eIdentity,
-			                .a = vk::ComponentSwizzle::eIdentity,
-			        },
-			        .subresourceRange = {
-			                .aspectMask = vk::ImageAspectFlagBits::eColor,
-			                .baseMipLevel = 0,
-			                .levelCount = 1,
-			                .baseArrayLayer = view,
-			                .layerCount = 1,
-			        },
-			};
+		vk::ImageViewCreateInfo iv_info{
+		        .image = image,
+		        .viewType = vk::ImageViewType::e2DArray,
+		        .format = format,
+		        .components = {
+		                .r = vk::ComponentSwizzle::eIdentity,
+		                .g = vk::ComponentSwizzle::eIdentity,
+		                .b = vk::ComponentSwizzle::eIdentity,
+		                .a = vk::ComponentSwizzle::eIdentity,
+		        },
+		        .subresourceRange = {
+		                .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                .baseMipLevel = 0,
+		                .levelCount = 1,
+		                .baseArrayLayer = 0,
+		                .layerCount = view_count,
+		        },
+		};
 
-			output_image_views.emplace_back(device, iv_info);
+		output_image_views.emplace_back(device, iv_info);
 
-			vk::FramebufferCreateInfo fb_create_info{
-			        .renderPass = *renderpass,
-			        .width = extent.width,
-			        .height = extent.height,
-			        .layers = 1,
-			};
-			fb_create_info.setAttachments(*output_image_views.back());
+		vk::FramebufferCreateInfo fb_create_info{
+		        .renderPass = *renderpass,
+		        .width = extent.width,
+		        .height = extent.height,
+		        .layers = 1,
+		};
+		fb_create_info.setAttachments(*output_image_views.back());
 
-			framebuffers.emplace_back(device, fb_create_info);
-		}
+		framebuffers.emplace_back(device, fb_create_info);
 	}
 }
 
@@ -379,25 +374,34 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 	if (destination < 0 || destination >= (int)output_images.size())
 		throw std::runtime_error("Invalid destination image index");
 
+	auto ubo = (uniform *)buffer.map();
 	for (size_t view = 0; view < view_count; ++view)
 	{
-		auto & ubo = *reinterpret_cast<uniform *>(reinterpret_cast<uintptr_t>(buffer.map()) + view * uniform_size);
 		if (foveation_parameters[view].x.scale < 1)
 		{
-			ubo.a.x = foveation_parameters[view].x.a;
-			ubo.b.x = foveation_parameters[view].x.b;
-			ubo.lambda.x = foveation_parameters[view].x.scale / foveation_parameters[view].x.a;
-			ubo.xc.x = foveation_parameters[view].x.center;
+			ubo[view].a.x = foveation_parameters[view].x.a;
+			ubo[view].b.x = foveation_parameters[view].x.b;
+			ubo[view].lambda.x = foveation_parameters[view].x.scale / foveation_parameters[view].x.a;
+			ubo[view].xc.x = foveation_parameters[view].x.center;
 		}
 
 		if (foveation_parameters[view].y.scale < 1)
 		{
-			ubo.a.y = foveation_parameters[view].y.a;
-			ubo.b.y = foveation_parameters[view].y.b;
-			ubo.lambda.y = foveation_parameters[view].y.scale / foveation_parameters[view].y.a;
-			ubo.xc.y = foveation_parameters[view].y.center;
+			ubo[view].a.y = foveation_parameters[view].y.a;
+			ubo[view].b.y = foveation_parameters[view].y.b;
+			ubo[view].lambda.y = foveation_parameters[view].y.scale / foveation_parameters[view].y.a;
+			ubo[view].xc.y = foveation_parameters[view].y.center;
 		}
 	}
+
+	vk::RenderPassBeginInfo begin_info{
+	        .renderPass = *renderpass,
+	        .framebuffer = *framebuffers[destination],
+	        .renderArea = {
+	                .offset = {0, 0},
+	                .extent = extent,
+	        },
+	};
 
 	command_buffer.pipelineBarrier(
 	        vk::PipelineStageFlagBits::eTopOfPipe,
@@ -418,23 +422,11 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 	                },
 	        });
 
-	for (size_t view = 0; view < view_count; ++view)
-	{
-		vk::RenderPassBeginInfo begin_info{
-		        .renderPass = *renderpass,
-		        .framebuffer = *framebuffers[destination * view_count + view],
-		        .renderArea = {
-		                .offset = {0, 0},
-		                .extent = extent,
-		        },
-		};
-
-		command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
-		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
-		command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, descriptor_sets[view], {});
-		command_buffer.draw(6 * nb_reprojection_vertices * nb_reprojection_vertices, 1, 0, 0);
-		command_buffer.endRenderPass();
-	}
+	command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
+	command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
+	command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, descriptor_set, {});
+	command_buffer.draw(6 * nb_reprojection_vertices * nb_reprojection_vertices, 1, 0, 0);
+	command_buffer.endRenderPass();
 }
 
 void stream_reprojection::set_foveation(std::array<wivrn::to_headset::foveation_parameter, 2> foveation)

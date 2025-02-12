@@ -18,37 +18,45 @@
  */
 
 #version 450
+#extension GL_EXT_multiview : require
 
 layout (constant_id = 0) const bool use_foveation_x = false;
 layout (constant_id = 1) const bool use_foveation_y = false;
 layout (constant_id = 2) const int nb_x = 64;
 layout (constant_id = 3) const int nb_y = 64;
+layout (constant_id = 4) const int nb_views = 2;
 
-layout(set = 0, binding = 1) uniform UniformBufferObject
+struct foveation_params
 {
 	vec2 a;
 	vec2 b;
 	vec2 lambda;
 	vec2 xc;
+};
+
+layout(set = 0, binding = 1) uniform UniformBufferObject
+{
+	foveation_params views[nb_views];
 }
 ubo;
 
 vec2 unfoveate(vec2 uv)
 {
 	uv = 2 * uv - 1;
+	foveation_params p = ubo.views[gl_ViewIndex];
 	if (use_foveation_x && use_foveation_y)
 	{
-		uv = ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc;
+		uv = p.lambda * tan(p.a * uv + p.b) + p.xc;
 	}
 	else
 	{
 		if (use_foveation_x)
 		{
-			uv.x = (ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc).y;
+			uv.x = (p.lambda * tan(p.a * uv + p.b) + p.xc).y;
 		}
 		if (use_foveation_y)
 		{
-			uv.y = (ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc).y;
+			uv.y = (p.lambda * tan(p.a * uv + p.b) + p.xc).y;
 		}
 	}
 	return uv;
@@ -75,7 +83,7 @@ void main()
 #endif
 
 #ifdef FRAG_SHADER
-layout(set = 0, binding = 0) uniform sampler2D texSampler;
+layout(set = 0, binding = 0) uniform sampler2DArray texSampler;
 
 layout(location = 0) in vec2 inUV;
 
@@ -83,7 +91,7 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-	outColor = texture(texSampler, inUV).rgba;
+	outColor = texture(texSampler, vec3(inUV, gl_ViewIndex)).rgba;
 
 }
 #endif
