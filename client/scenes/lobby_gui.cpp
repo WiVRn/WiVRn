@@ -637,6 +637,17 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 	}
 	{
+		ImGui::BeginDisabled(not config.check_feature(feature::microphone));
+		if (ImGui::Checkbox(_S("Unprocessed Microphone Audio"), &config.mic_unprocessed_audio))
+		{
+			config.save();
+		}
+		vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			tooltip(_("Force disable audio filters, such as noise cancellation"));
+		ImGui::EndDisabled();
+	}
+	{
 		ImGui::BeginDisabled(not application::get_hand_tracking_supported());
 		bool enabled = config.check_feature(feature::hand_tracking);
 		if (ImGui::Checkbox(_S("Enable hand tracking"), &enabled))

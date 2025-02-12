@@ -19,6 +19,7 @@
 
 #include "audio.h"
 
+#include "application.h"
 #include "utils/named_thread.h"
 #include "wivrn_client.h"
 #include "xr/instance.h"
@@ -157,6 +158,10 @@ void wivrn::android::audio::build_microphone(AAudioStreamBuilder * builder, int3
 	AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
 	AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
 	AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+	if (application::get_config().mic_unprocessed_audio)
+	{
+		AAudioStreamBuilder_setInputPreset(builder, AAUDIO_INPUT_PRESET_UNPROCESSED);
+	}
 
 	AAudioStreamBuilder_setDataCallback(builder, &microphone_data_cb, this);
 	AAudioStreamBuilder_setErrorCallback(builder, &microphone_error_cb, this);

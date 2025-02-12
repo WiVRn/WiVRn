@@ -188,6 +188,9 @@ configuration::configuration(xr::system & system)
 		if (auto val = root["passthrough_enabled"]; val.is_bool())
 			passthrough_enabled = val.get_bool();
 
+		if (auto val = root["mic_unprocessed_audio"]; val.is_bool())
+			mic_unprocessed_audio = val.get_bool();
+
 		if (auto val = root["virtual_keyboard_layout"]; val.is_string())
 			virtual_keyboard_layout = val.get_string().value();
 
@@ -252,6 +255,7 @@ void configuration::save()
 		json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate;
 	json << ",\"resolution_scale\":" << resolution_scale;
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
+	json << ",\"mic_unprocessed_audio\":" << std::boolalpha << mic_unprocessed_audio;
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
 	json << ",\"virtual_keyboard_layout\":" << json_string(virtual_keyboard_layout);

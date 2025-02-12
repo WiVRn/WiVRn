@@ -49,6 +49,7 @@ public:
 	float resolution_scale = 1.4;
 	bool show_performance_metrics = false;
 	bool passthrough_enabled = false;
+	bool mic_unprocessed_audio = false;
 
 	std::string virtual_keyboard_layout = "QWERTY";
 
