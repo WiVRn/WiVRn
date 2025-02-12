@@ -38,7 +38,6 @@ Build-Depends:
  libxrandr-dev,
  mesa-common-dev,
  nlohmann-json3-dev,
- policykit-1,
  qt6-base-dev,
  qt6-tools-dev,
  qcoro-qt6-dev,
