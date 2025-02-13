@@ -527,13 +527,13 @@ void wivrn_session::dump_time(const std::string & event, uint64_t frame, int64_t
 
 static bool quit_if_no_client(u_system & xrt_system)
 {
-	scoped_lock lock(xrt_system.sessions.mutex);
-	if (xrt_system.sessions.count == 0)
 	{
-		U_LOG_I("No OpenXR client connected, exiting");
-		exit(0);
+		scoped_lock lock(xrt_system.sessions.mutex);
+		if (xrt_system.sessions.count)
+			return false;
 	}
-	return false;
+	U_LOG_I("No OpenXR client connected, exiting");
+	exit(0);
 }
 
 void wivrn_session::reconnect()
