@@ -333,6 +333,11 @@ jobs:
         else
           echo "available=false" >> $GITHUB_OUTPUT;
         fi
+        if [[ "${{ secrets.OCULUS_TOKEN }}" != '' ]]; then
+          echo "oculus-token=true" >> $GITHUB_OUTPUT;
+        else
+          echo "oculus-token=false" >> $GITHUB_OUTPUT;
+        fi
 
     - name: Secrets
       if: ${{ github.event_name != 'pull_request' && steps.secret-check.outputs.available == 'true' }}
@@ -415,7 +420,7 @@ jobs:
         retention-days: 30
 
     - name: Push to Oculus store
-      if: ${{ matrix.buildtype == 'Oculus' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master') }}
+      if: ${{ matrix.buildtype == 'Oculus' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master') && steps.secret-check.outputs.oculus-token == 'true' }}
       env:
         OCULUS_TOKEN: ${{ secrets.OCULUS_TOKEN }}
       run: |
