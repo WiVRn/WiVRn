@@ -638,6 +638,7 @@ void scenes::lobby::gui_settings()
 	}
 	{
 		ImGui::BeginDisabled(not config.check_feature(feature::microphone));
+		ImGui::Indent();
 		if (ImGui::Checkbox(_S("Unprocessed Microphone Audio"), &config.mic_unprocessed_audio))
 		{
 			config.save();
@@ -645,6 +646,7 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			tooltip(_("Force disable audio filters, such as noise cancellation"));
+		ImGui::Unindent();
 		ImGui::EndDisabled();
 	}
 	{
