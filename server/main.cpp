@@ -168,7 +168,7 @@ static std::string steam_command()
 		if (app_path.starts_with("/var"))
 			pressure_vessel_filesystems_rw += ":" + app_path;
 	}
-	else if (auto p = active_runtime::opencomposite_path().string(); not p.empty())
+	else if (auto p = active_runtime::openvr_compat_path().string(); not p.empty())
 	{
 		// /usr cannot be shared in pressure vessel container
 		if (p.starts_with("/usr"))

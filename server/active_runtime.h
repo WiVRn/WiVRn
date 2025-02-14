@@ -37,6 +37,6 @@ public:
 	~active_runtime();
 
 	static std::filesystem::path manifest_path();
-	static std::filesystem::path opencomposite_path();
+	static std::filesystem::path openvr_compat_path();
 };
 } // namespace wivrn
