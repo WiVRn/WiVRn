@@ -41,8 +41,8 @@ auto_option(WIVRN_USE_X264 "Enable x264 software encoder" AUTO)
 auto_option(WIVRN_USE_PIPEWIRE "Enable pipewire backend" AUTO)
 auto_option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" AUTO)
 
-set(OPENCOMPOSITE_SEARCH_PATH "/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite"
-    CACHE STRING "List of places to search for OpenComposite, separated by :")
+set(OVR_COMPAT_SEARCH_PATH "/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite:/opt/xrizer"
+    CACHE STRING "List of places to search for the OpenVR compatibility layer, separated by :")
 
 option(WIVRN_FEATURE_RENDERDOC "Support renderdoc" OFF)
 set(WIVRN_FEATURE_SOLARXR OFF) # Will be added back when merged in upstream Monado
