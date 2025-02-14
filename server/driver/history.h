@@ -115,7 +115,11 @@ public:
 		}
 
 		if (before)
+		{
+			if (at_timestamp_ns > before->at_timestamp_ns + U_TIME_1S_IN_NS)
+				return {};
 			return {ex, *before};
+		}
 
 		if (after)
 			return {ex, *after};
