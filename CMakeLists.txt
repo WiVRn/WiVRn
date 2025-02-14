@@ -44,6 +44,7 @@ auto_option(WIVRN_USE_PULSEAUDIO "Enable pulseaudio backend" AUTO)
 set(OPENCOMPOSITE_SEARCH_PATH "/usr/local/lib/OpenComposite:/usr/lib/OpenComposite:/opt/OpenComposite:/opt/opencomposite"
     CACHE STRING "List of places to search for OpenComposite, separated by :")
 
+option(WIVRN_FEATURE_DEBUG_GUI "Enable Monado debug GUI" OFF)
 option(WIVRN_FEATURE_RENDERDOC "Support renderdoc" OFF)
 set(WIVRN_FEATURE_SOLARXR OFF) # Will be added back when merged in upstream Monado
 option(WIVRN_FEATURE_STEAMVR_LIGHTHOUSE "Enable SteamVR Lighthouse driver" OFF)
