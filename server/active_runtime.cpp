@@ -46,11 +46,11 @@ std::filesystem::path active_runtime::manifest_path()
 	return std::filesystem::path(WIVRN_INSTALL_PREFIX) / install_location;
 }
 
-std::filesystem::path active_runtime::opencomposite_path()
+std::filesystem::path active_runtime::openvr_compat_path()
 {
 	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
 		return std::filesystem::path(*path) / "OpenComposite";
-	for (auto path: std::ranges::split_view(std::string_view(OPENCOMPOSITE_SEARCH_PATH), std::string_view(":")))
+	for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
 	{
 		if (auto res = std::string_view(path); std::filesystem::exists(res))
 			return res;
@@ -91,15 +91,15 @@ active_runtime::active_runtime() :
 
 	try
 	{
-		auto opencomposite = opencomposite_path();
-		if (not opencomposite.empty())
+		auto ovr_compat = openvr_compat_path();
+		if (not ovr_compat.empty())
 		{
 			std::filesystem::path openvr_manifest = xdg_config_home() / "openvr/openvrpaths.vrpath";
 			std::filesystem::create_directories(openvr_manifest.parent_path());
 			move_file(openvr_manifest, backup_name(openvr_manifest));
 
 			nlohmann::json manifest;
-			manifest["runtime"] = {opencomposite.string()};
+			manifest["runtime"] = {ovr_compat.string()};
 			manifest["version"] = 1;
 			std::ofstream manifest_file(openvr_manifest.c_str());
 			manifest_file.exceptions(std::ofstream::failbit);
