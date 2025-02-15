@@ -1,7 +1,7 @@
 # kate: syntax yaml
 id: io.github.wivrn.wivrn
 runtime: org.kde.Platform
-runtime-version: '6.7'
+runtime-version: '6.8'
 sdk: org.kde.Sdk
 command: wivrn-dashboard
 separate-locales: false
@@ -46,6 +46,7 @@ cleanup:
   - /lib/systemd
   - '*.a'
   - '*.la'
+  - '*.cmake'
 
 modules:
   - name: crosstool
@@ -254,12 +255,12 @@ modules:
       cxxflags: -idirafter/usr/include
       arch:
         aarch64:
-          ldflags: -L/usr/lib/aarch64-linux-gnu
+          ldflags: -L/usr/lib/aarch64-linux-gnu -Wl,--warn-unresolved-symbols
           env:
             CC: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc
             CXX: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++
         x86_64:
-          ldflags: -L/usr/lib/x86_64-linux-gnu
+          ldflags: -L/usr/lib/x86_64-linux-gnu -Wl,--warn-unresolved-symbols
           env:
             CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
             CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
@@ -278,6 +279,9 @@ modules:
   - name: wivrn-library
     buildsystem: cmake-ninja
     build-options:
+      # org.kde.Platform//6.8 sets _FORTIFY_SOURCE=3 but gcc 11 only supports _FORTIFY_SOURCE=2
+      cflags: -Wp,-U_FORTIFY_SOURCE -Wp,-D_FORTIFY_SOURCE=2
+      cxxflags: -Wp,-U_FORTIFY_SOURCE -Wp,-D_FORTIFY_SOURCE=2
       arch:
         aarch64:
           ldflags: -L/usr/lib/aarch64-linux-gnu -Wl,--warn-unresolved-symbols
