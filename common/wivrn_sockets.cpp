@@ -421,6 +421,10 @@ void wivrn::UDP::send_many_raw(std::span<serialization_packet> packets)
 	thread_local std::vector<iovec> iovecs;
 	thread_local std::vector<mmsghdr> mmsgs;
 	thread_local std::vector<uint64_t> iv_counters;
+
+	if (packets.empty())
+		return;
+
 	iovecs.clear();
 	mmsgs.clear();
 	iv_counters.clear();
@@ -610,6 +614,10 @@ void wivrn::TCP::send_many_raw(std::span<serialization_packet> packets)
 	thread_local std::vector<iovec> iovecs;
 	thread_local std::vector<uint16_t> sizes;
 	thread_local std::vector<std::span<uint8_t>> spans;
+
+	if (packets.empty())
+		return;
+
 	iovecs.clear();
 	sizes.clear();
 	spans.clear();
