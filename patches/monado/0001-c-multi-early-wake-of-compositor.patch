@@ -1,13 +1,13 @@
-From 8d44d268112e01e5403bf4f343398c0d089575c3 Mon Sep 17 00:00:00 2001
+From a0e439f723394452ab79a09c04df5135c3613d11 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
-Subject: [PATCH 01/10] c/multi: early wake of compositor
+Subject: [PATCH 01/13] c/multi: early wake of compositor
 
 ---
- .../compositor/multi/comp_multi_compositor.c  | 14 ++++++++++
+ .../compositor/multi/comp_multi_compositor.c  | 14 +++++++++
  src/xrt/compositor/multi/comp_multi_private.h |  4 +++
- src/xrt/compositor/multi/comp_multi_system.c  | 26 +++++++++++++++----
- 3 files changed, 39 insertions(+), 5 deletions(-)
+ src/xrt/compositor/multi/comp_multi_system.c  | 30 ++++++++++++++-----
+ 3 files changed, 41 insertions(+), 7 deletions(-)
 
 diff --git a/src/xrt/compositor/multi/comp_multi_compositor.c b/src/xrt/compositor/multi/comp_multi_compositor.c
 index 2895ccb0f..0c940cb3a 100644
@@ -51,7 +51,7 @@ index 3351defa4..e8f0c8295 100644
  	{
  		int64_t predicted_display_time_ns;
 diff --git a/src/xrt/compositor/multi/comp_multi_system.c b/src/xrt/compositor/multi/comp_multi_system.c
-index b06b03a58..b7d2c2174 100644
+index b06b03a58..249e07d7d 100644
 --- a/src/xrt/compositor/multi/comp_multi_system.c
 +++ b/src/xrt/compositor/multi/comp_multi_system.c
 @@ -23,6 +23,8 @@
@@ -63,7 +63,7 @@ index b06b03a58..b7d2c2174 100644
  #ifdef XRT_OS_LINUX
  #include "util/u_linux.h"
  #endif
-@@ -392,15 +394,25 @@ broadcast_timings_to_pacers(struct multi_system_compositor *msc,
+@@ -392,17 +394,24 @@ broadcast_timings_to_pacers(struct multi_system_compositor *msc,
  }
  
  static void
@@ -77,6 +77,8 @@ index b06b03a58..b7d2c2174 100644
 -
  	int64_t now_ns = os_monotonic_get_ns();
  
+-	// Signal that we woke up.
+-	xrt_comp_mark_frame(xc, frame_id, XRT_COMPOSITOR_FRAME_POINT_WOKE, now_ns);
 +	// Lets hope its not to late.
 +	bool fuzzy_in_the_past = time_is_less_then_or_within_range(wake_up_time_ns, now_ns, U_TIME_1MS_IN_NS);
 +
@@ -88,11 +90,10 @@ index b06b03a58..b7d2c2174 100644
 +		pthread_cond_clockwait(&msc->wake_cond.cond, &msc->wake_mutex.mutex, CLOCK_MONOTONIC, &wake_ts);
 +		os_mutex_unlock(&msc->wake_mutex);
 +	}
-+
- 	// Signal that we woke up.
- 	xrt_comp_mark_frame(xc, frame_id, XRT_COMPOSITOR_FRAME_POINT_WOKE, now_ns);
  }
-@@ -525,10 +537,10 @@ multi_main_loop(struct multi_system_compositor *msc)
+ 
+ static void
+@@ -525,10 +534,13 @@ multi_main_loop(struct multi_system_compositor *msc)
  		broadcast_timings_to_clients(msc, predicted_display_time_ns);
  
  		// Now we can wait.
@@ -101,6 +102,9 @@ index b06b03a58..b7d2c2174 100644
  
  		int64_t now_ns = os_monotonic_get_ns();
 -		int64_t diff_ns = predicted_display_time_ns - now_ns;
++		// Signal that we woke up.
++		xrt_comp_mark_frame(xc, frame_id, XRT_COMPOSITOR_FRAME_POINT_WOKE, now_ns);
++
 +		int64_t diff_ns = predicted_display_time_ns - MAX(wake_up_time_ns, now_ns);
  
  		// Now we know the diff, broadcast to pacers.
@@ -124,5 +128,5 @@ index b06b03a58..b7d2c2174 100644
  	//! @todo Make the clients not go from IDLE to READY before we have completed a first frame.
  	// Make sure there is at least some sort of valid frame data here.
 -- 
-2.48.0
+2.48.1
 
