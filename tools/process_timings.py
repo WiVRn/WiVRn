@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import pandas
 import csv
+import typing
 
 class Frame:
     def __init__(self, num):
@@ -20,32 +22,18 @@ class Frame:
     def flag(self, stream, flag):
         self.flags[stream if stream != 255 else None] = flag
 
-    def duration(self, begin="wake_up", end="display", stream=None, begin_selector=min, end_selector=max):
-        try:
-            if stream is None:
-                streams = list(self.streams.values())
-            else:
-                streams = [self.streams[stream]]
-            if begin in self.events:
-                t0 = self.events[begin]
-            else:
-                t0 = begin_selector([s[begin] for s in streams])
-            if end in self.events:
-                t1 = self.events[end]
-            else:
-                t1 = end_selector([s[end] for s in streams])
-            return (t1 - t0)/1_000_000
-        except (KeyError, ValueError):
-            return None
-
-
-def read(file, skip=0, duration_ms=-1):
+def read(file: typing.TextIO) -> pandas.DataFrame:
     timings = csv.reader(file)
 
     origin = None
     frames = []
+    streams = 0
     for event, frame, timestamp, stream, *extra in timings:
-        frame = int(frame) - skip
+
+        if event == "event":
+            continue
+
+        frame = int(frame)
 
         if frame < 0:
             continue
@@ -58,10 +46,10 @@ def read(file, skip=0, duration_ms=-1):
         if not timestamp:
             continue
 
-        timestamp -= origin
+        if stream != 255:
+            streams = max(streams, stream)
 
-        if duration_ms > 0 and timestamp > duration_ms * 1_000_000:
-            continue
+        timestamp -= origin
 
         while len(frames) < frame + 1:
             frames.append(Frame(len(frames)))
@@ -69,12 +57,24 @@ def read(file, skip=0, duration_ms=-1):
         frames[frame].set(event, timestamp, stream)
         for x in extra:
             frames[frame].flag(stream, x)
-    return frames
 
-def durations(frames, stream=None, flag=None, *args, **kwargs):
-    def filter(frame):
-        if flag is None:
-            return True
-        return flag in frame.flags.get(stream, ())
-    res = [frame.duration(*args, stream=stream, **kwargs) for frame in frames if filter(frame)]
-    return [d for d in res if d is not None]
+    common_cols = ["wake_up", "begin", "submit"]
+    stream_cols = ["encode_begin", "encode_end", "send_begin", "send_end", "receive_begin", "receive_end", "decode_begin", "decode_end", "blit", "display"]
+
+    columns = ["frame"] + common_cols + stream_cols
+    for i in range(streams + 1):
+        columns += [f"{c}_{i}" for c in stream_cols]
+
+    result = pandas.DataFrame(columns=columns)
+    for f in frames:
+        row = [f.num] + [f.events.get(c, 0) for c in common_cols]
+        for col in stream_cols:
+            op = min if col.endswith("_begin") else max
+            items = [s[col] for s in f.streams.values() if col in s]
+            row.append(op(items) if items else 0)
+
+        for i in range(streams + 1):
+            row += [f.streams.get(i, {}).get(c, 0) for c in stream_cols]
+
+        result.loc[len(result)] = row
+    return result
