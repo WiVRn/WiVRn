@@ -34,11 +34,10 @@ class wifi_lock : public std::enable_shared_from_this<wifi_lock>
 	wifi_lock(decltype(multicast_), decltype(wifi_));
 
 	void print_wifi();
-	void acquire_wifi();
-	void release_wifi();
 	void print_multicast();
-	void acquire_multicast();
-	void release_multicast();
+
+	std::weak_ptr<void> multicast_weak;
+	std::weak_ptr<void> wifi_weak;
 
 public:
 	static std::shared_ptr<wifi_lock> make_wifi_lock(jobject activity);

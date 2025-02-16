@@ -58,19 +58,6 @@ void wifi_lock::print_wifi()
 		spdlog::info("WifiLock low latency released");
 }
 
-void wifi_lock::acquire_wifi()
-{
-	std::lock_guard lock(mutex);
-	wifi_.call<void>("acquire");
-	print_wifi();
-}
-void wifi_lock::release_wifi()
-{
-	std::lock_guard lock(mutex);
-	wifi_.call<void>("release");
-	print_wifi();
-}
-
 void wifi_lock::print_multicast()
 {
 	if (multicast_.call<jni::Bool>("isHeld"))
@@ -79,30 +66,43 @@ void wifi_lock::print_multicast()
 		spdlog::info("MulticastLock released");
 }
 
-void wifi_lock::acquire_multicast()
-{
-	std::lock_guard lock(mutex);
-	multicast_.call<void>("acquire");
-	print_multicast();
-}
-void wifi_lock::release_multicast()
-{
-	std::lock_guard lock(mutex);
-	multicast_.call<void>("release");
-	print_multicast();
-}
-
 std::shared_ptr<void> wifi_lock::get_wifi_lock()
 {
-	acquire_wifi();
+	std::lock_guard lock(mutex);
+	if (auto l = wifi_weak.lock())
+		return l;
+
+	wifi_.call<void>("acquire");
+	print_wifi();
+
 	// The shared pointer has a separate reference counter: destructor only calls a method
-	return std::shared_ptr<void>(this, [self = shared_from_this()](void *) { self->release_wifi(); });
+	auto res = std::shared_ptr<void>(
+	        this,
+	        [self = shared_from_this()](void *) {
+	std::lock_guard lock(self->mutex);
+	self->wifi_.call<void>("release");
+	self->print_wifi(); });
+	wifi_weak = res;
+	return res;
 }
 std::shared_ptr<void> wifi_lock::get_multicast_lock()
 {
-	acquire_multicast();
+	std::lock_guard lock(mutex);
+	if (auto l = multicast_weak.lock())
+		return l;
+
+	multicast_.call<void>("acquire");
+	print_multicast();
+
 	// The shared pointer has a separate reference counter: destructor only calls a method
-	return std::shared_ptr<void>(this, [self = shared_from_this()](void *) { self->release_multicast(); });
+	auto res = std::shared_ptr<void>(
+	        this,
+	        [self = shared_from_this()](void *) {
+	std::lock_guard lock(self->mutex);
+	self->multicast_.call<void>("release");
+	self->print_multicast(); });
+	multicast_weak = res;
+	return res;
 }
 
 #else
