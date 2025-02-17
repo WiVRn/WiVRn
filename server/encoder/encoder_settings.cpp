@@ -187,9 +187,9 @@ static bool probe_nvenc(wivrn_vk_bundle & bundle)
 	encoder_settings s{
 	        {
 	                .width = 800,
-	                .height = 600,
+	                .height = 608,
 	                .video_width = 800,
-	                .video_height = 600,
+	                .video_height = 608,
 	                .codec = h264,
 	        },
 	        encoder_nvenc,
