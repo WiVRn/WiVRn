@@ -140,7 +140,7 @@ void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, co
 
 	if (feedback.stream_index == 0)
 	{
-		if (feedback.stream_index % 100 == 0)
+		if (feedback.frame_index % 100 == 0)
 		{
 			std::unique_lock lock(compute_mutex);
 			std::swap(frame_times, frame_times_compute);
