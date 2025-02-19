@@ -113,9 +113,9 @@ private:
 	{
 		XrAction action;
 		XrPath path;
-		std::atomic<float> amplitude;
+		float amplitude;
 	};
-	std::array<haptics_action, 2> haptics_actions;
+	std::unordered_multimap<device_id, haptics_action> haptics_actions;
 	std::vector<std::tuple<device_id, XrAction, XrActionType>> input_actions;
 
 	state state_ = state::initializing;

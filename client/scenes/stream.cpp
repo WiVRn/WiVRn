@@ -242,11 +242,28 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	self->fence = self->device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
 
 	// Look up the XrActions for haptics
-	self->haptics_actions[0].action = application::get_action("/user/hand/left/output/haptic").first;
-	self->haptics_actions[0].path = application::string_to_path("/user/hand/left");
+	for (auto [id, path, output]: {
+	             std::tuple(device_id::LEFT_CONTROLLER_HAPTIC, "/user/hand/left", "/output/haptic"),
+	             std::tuple(device_id::RIGHT_CONTROLLER_HAPTIC, "/user/hand/right", "/output/haptic"),
 
-	self->haptics_actions[1].action = application::get_action("/user/hand/right/output/haptic").first;
-	self->haptics_actions[1].path = application::string_to_path("/user/hand/right");
+	             std::tuple(device_id::LEFT_TRIGGER_HAPTIC, "/user/hand/left", "/output/haptic_trigger"),
+	             std::tuple(device_id::RIGHT_TRIGGER_HAPTIC, "/user/hand/right", "/output/haptic_trigger"),
+	             std::tuple(device_id::LEFT_TRIGGER_HAPTIC, "/user/hand/left", "/output/haptic_trigger_fb"),
+	             std::tuple(device_id::RIGHT_TRIGGER_HAPTIC, "/user/hand/right", "/output/haptic_trigger_fb"),
+
+	             std::tuple(device_id::LEFT_THUMB_HAPTIC, "/user/hand/left", "/output/haptic_thumb"),
+	             std::tuple(device_id::RIGHT_THUMB_HAPTIC, "/user/hand/right", "/output/haptic_thumb"),
+	             std::tuple(device_id::LEFT_THUMB_HAPTIC, "/user/hand/left", "/output/haptic_thumb_fb"),
+	             std::tuple(device_id::RIGHT_THUMB_HAPTIC, "/user/hand/right", "/output/haptic_thumb_fb")})
+	{
+		if (auto action = application::get_action(std::string(path) + output); action.first)
+		{
+			self->haptics_actions.emplace(id, haptics_action{
+			                                          .action = action.first,
+			                                          .path = application::string_to_path(path),
+			                                  });
+		}
+	}
 
 	// Look up the XrActions for input
 	for (const auto & [action, action_type, name]: application::inputs())

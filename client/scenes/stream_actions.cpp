@@ -70,23 +70,20 @@ void scenes::stream::read_actions()
 
 void scenes::stream::operator()(to_headset::haptics && haptics)
 {
-	size_t i;
-	if (haptics.id == device_id::LEFT_CONTROLLER_HAPTIC)
-		i = 0;
-	else if (haptics.id == device_id::RIGHT_CONTROLLER_HAPTIC)
-		i = 1;
-	else
-		return;
+	auto range = haptics_actions.equal_range(haptics.id);
+	for (auto it = range.first; it != range.second; ++it)
+	{
+		XrAction action = it->second.action;
+		float old = it->second.amplitude;
+		it->second.amplitude = old;
+		// Some runtimes may be slow to process actions
+		// Skip it if not necessary
+		if (old == 0 and haptics.amplitude == 0)
+			continue;
 
-	XrAction action = haptics_actions[i].action;
-	float old = haptics_actions[i].amplitude.exchange(haptics.amplitude);
-	// Some runtimes may be slow to process actions
-	// Skip it if not necessary
-	if (old == 0 and haptics.amplitude == 0)
-		return;
-
-	if (haptics.amplitude > 0)
-		application::haptic_start(action, XR_NULL_PATH, haptics.duration.count(), haptics.frequency, std::min(1.0f, haptics.amplitude));
-	else
-		application::haptic_stop(action, XR_NULL_PATH);
+		if (haptics.amplitude > 0)
+			application::haptic_start(action, XR_NULL_PATH, haptics.duration.count(), haptics.frequency, std::min(1.0f, haptics.amplitude));
+		else
+			application::haptic_stop(action, XR_NULL_PATH);
+	}
 }
