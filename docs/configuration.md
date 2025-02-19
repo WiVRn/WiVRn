@@ -51,7 +51,7 @@ Identifier of the encoder, one of
 Default value: first supported by both headset and encoder of `av1`, `h264`, `h265`.
 
 One of `h264`, `h265` or `av1`.
-Not all encoders support every codec, `x264` and `vulkan` only support `h264`, `nvenc` only `h264` and `h265`
+Not all encoders support every codec, `x264` and `vulkan` only support `h264`.
 
 ### `width`, `height`, `offset_x`, `offset_y` (advanced)
 Default values: full image (`width` = 1, `height` = 1, `offset_x` = 0, `offset_y` = 0)

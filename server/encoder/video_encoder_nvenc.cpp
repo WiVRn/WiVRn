@@ -129,7 +129,7 @@ static auto encode_guid(video_codec codec)
 		case h265:
 			return NV_ENC_CODEC_HEVC_GUID;
 		case av1:
-			throw std::runtime_error("AV1 not implemented on nvenc");
+			return NV_ENC_CODEC_AV1_GUID;
 	}
 	throw std::out_of_range("Invalid codec " + std::to_string(codec));
 }
@@ -176,6 +176,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 			break;
 
 		case video_codec::av1:
+			printf("%d AV1 presets\n", count);
 			break;
 	}
 
@@ -225,6 +226,9 @@ video_encoder_nvenc::video_encoder_nvenc(
 			params.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
 			break;
 		case video_codec::av1:
+			params.encodeCodecConfig.av1Config.repeatSeqHdr = 1;
+			params.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
+			params.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			break;
 	}
 
@@ -241,8 +245,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .enableEncodeAsync = 0,
 	        .enablePTD = 1,
 	        .encodeConfig = &params,
-		.tuningInfo = tuningInfo
-	};
+	        .tuningInfo = tuningInfo};
 	NVENC_CHECK(fn.nvEncInitializeEncoder(session_handle, &params2));
 
 	NV_ENC_CREATE_BITSTREAM_BUFFER params3{

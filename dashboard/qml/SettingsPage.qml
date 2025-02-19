@@ -223,7 +223,7 @@ Kirigami.ScrollablePage {
                         {
                             name: "nvenc",
                             label: i18n("nvenc (NVIDIA GPUs)"),
-                            codecs: "auto,h264,h265"
+                            codecs: "auto,h264,h265,av1"
                         },
                         {
                             name: "vaapi",
