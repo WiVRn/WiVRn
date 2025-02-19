@@ -49,10 +49,6 @@ class wivrn_controller : public xrt_device
 public:
 	wivrn_controller(int hand_id, xrt_device * hmd, wivrn::wivrn_session * cnx);
 
-	void unregister()
-	{
-		cnx = nullptr;
-	}
 	void update_inputs();
 
 	xrt_space_relation get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns);
@@ -65,11 +61,5 @@ public:
 	void set_derived_pose(const from_headset::derived_pose &);
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	void update_hand_tracking(const from_headset::hand_tracking &, const clock_offset &);
-
-	// return true if changed
-	bool set_interaction_profile(interaction_profile);
-
-private:
-	void set_inputs(device_id input_id, float value, int64_t last_change_time);
 };
 } // namespace wivrn
