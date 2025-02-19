@@ -188,19 +188,20 @@ video_encoder_nvenc::video_encoder_nvenc(
 	// NV_ENC_PRESET_P7_GUID;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-	auto presetGUID = NV_ENC_PRESET_LOW_LATENCY_HQ_GUID;
+	auto presetGUID = NV_ENC_PRESET_P4_GUID;
+	NV_ENC_TUNING_INFO tuningInfo = NV_ENC_TUNING_INFO_LOW_LATENCY;
 #pragma GCC diagnostic pop
 	NV_ENC_PRESET_CONFIG preset_config{
 	        .version = NV_ENC_PRESET_CONFIG_VER,
 	        .presetCfg = {
 	                .version = NV_ENC_CONFIG_VER,
 	        }};
-	NVENC_CHECK(fn.nvEncGetEncodePresetConfig(session_handle, encodeGUID, presetGUID, &preset_config));
+	NVENC_CHECK(fn.nvEncGetEncodePresetConfigEx(session_handle, encodeGUID, presetGUID, tuningInfo, &preset_config));
 
 	NV_ENC_CONFIG params = preset_config.presetCfg;
 
 	// Bitrate control
-	params.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR_LOWDELAY_HQ;
+	params.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR;
 	params.rcParams.averageBitRate = bitrate;
 	params.rcParams.maxBitRate = bitrate;
 	params.rcParams.vbvBufferSize = bitrate / fps;
@@ -240,6 +241,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .enableEncodeAsync = 0,
 	        .enablePTD = 1,
 	        .encodeConfig = &params,
+		.tuningInfo = tuningInfo
 	};
 	NVENC_CHECK(fn.nvEncInitializeEncoder(session_handle, &params2));
 
