@@ -1,7 +1,7 @@
 /*
  * This copyright notice applies to this header file only:
  *
- * Copyright (c) 2010-2021 NVIDIA Corporation
+ * Copyright (c) 2010-2024 NVIDIA Corporation
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -28,7 +28,7 @@
 /********************************************************************************************************************/
 //! \file nvcuvid.h
 //!   NVDECODE API provides video decoding interface to NVIDIA GPU devices.
-//! \date 2015-2020
+//! \date 2015-2024
 //!  This file contains the interface constants, structure definitions and function prototypes.
 /********************************************************************************************************************/
 
@@ -41,6 +41,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#define MAX_CLOCK_TS 3
 
 /***********************************************/
 //!
@@ -77,6 +78,106 @@ typedef enum {
     cudaAudioCodec_LPCM,            /**< PCM Audio                  */
     cudaAudioCodec_AAC,             /**< AAC Audio                  */
 } cudaAudioCodec;
+
+/************************************************************************/
+//! \ingroup STRUCTS
+//! \struct TIMECODESET
+//! Used to store Time code set extracted from H264 and HEVC codecs
+/************************************************************************/
+typedef struct _TIMECODESET
+{
+    unsigned int time_offset_value;
+    unsigned short n_frames;
+    unsigned char clock_timestamp_flag;
+    unsigned char units_field_based_flag;
+    unsigned char counting_type;
+    unsigned char full_timestamp_flag;
+    unsigned char discontinuity_flag;
+    unsigned char cnt_dropped_flag;
+    unsigned char seconds_value;
+    unsigned char minutes_value;
+    unsigned char hours_value;
+    unsigned char seconds_flag;
+    unsigned char minutes_flag;
+    unsigned char hours_flag;
+    unsigned char time_offset_length;
+    unsigned char reserved;
+} TIMECODESET;
+
+/************************************************************************/
+//! \ingroup STRUCTS
+//! \struct TIMECODE
+//! Used to extract Time code in H264 and HEVC codecs
+/************************************************************************/
+typedef struct _TIMECODE
+{
+    TIMECODESET time_code_set[MAX_CLOCK_TS];
+    unsigned char num_clock_ts;
+} TIMECODE;
+
+/**********************************************************************************/
+//! \ingroup STRUCTS
+//! \struct SEIMASTERINGDISPLAYINFO
+//! Used to extract mastering display color volume SEI in H264 and HEVC codecs
+/**********************************************************************************/
+typedef struct _SEIMASTERINGDISPLAYINFO
+{
+    unsigned short display_primaries_x[3];
+    unsigned short display_primaries_y[3];
+    unsigned short white_point_x;
+    unsigned short white_point_y;
+    unsigned int max_display_mastering_luminance;
+    unsigned int min_display_mastering_luminance;
+} SEIMASTERINGDISPLAYINFO;
+
+/**********************************************************************************/
+//! \ingroup STRUCTS
+//! \struct SEICONTENTLIGHTLEVELINFO
+//! Used to extract content light level info SEI in H264 and HEVC codecs
+/**********************************************************************************/
+typedef struct _SEICONTENTLIGHTLEVELINFO
+{
+    unsigned short max_content_light_level;
+    unsigned short max_pic_average_light_level;
+    unsigned int reserved;
+} SEICONTENTLIGHTLEVELINFO;
+
+/**********************************************************************************/
+//! \ingroup STRUCTS
+//! \struct TIMECODEMPEG2
+//! Used to extract Time code in MPEG2 codec
+/**********************************************************************************/
+typedef struct _TIMECODEMPEG2
+{
+    unsigned char drop_frame_flag;
+    unsigned char time_code_hours;
+    unsigned char time_code_minutes;
+    unsigned char marker_bit;
+    unsigned char time_code_seconds;
+    unsigned char time_code_pictures;
+} TIMECODEMPEG2;
+
+/**********************************************************************************/
+//! \ingroup STRUCTS
+//! \struct SEIALTERNATIVETRANSFERCHARACTERISTICS
+//! Used to extract alternative transfer characteristics SEI in H264 and HEVC codecs
+/**********************************************************************************/
+typedef struct _SEIALTERNATIVETRANSFERCHARACTERISTICS
+{
+    unsigned char preferred_transfer_characteristics;
+} SEIALTERNATIVETRANSFERCHARACTERISTICS;
+
+/**********************************************************************************/
+//! \ingroup STRUCTS
+//! \struct CUSEIMESSAGE;
+//! Used in CUVIDSEIMESSAGEINFO structure
+/**********************************************************************************/
+typedef struct _CUSEIMESSAGE
+{
+    unsigned char sei_message_type; /**< OUT: SEI Message Type      */
+    unsigned char reserved[3];
+    unsigned int sei_message_size;  /**< OUT: SEI Message Size      */
+} CUSEIMESSAGE;
 
 /************************************************************************************************/
 //! \ingroup STRUCTS
@@ -167,6 +268,19 @@ typedef struct
         unsigned char CodecReserved[1024];
     };
 } CUVIDOPERATINGPOINTINFO;
+
+/**********************************************************************************/
+//! \ingroup STRUCTS
+//! \struct CUVIDSEIMESSAGEINFO
+//! Used in cuvidParseVideoData API with PFNVIDSEIMSGCALLBACK pfnGetSEIMsg
+/**********************************************************************************/
+typedef struct _CUVIDSEIMESSAGEINFO
+{
+    void *pSEIData;                 /**< OUT: SEI Message Data      */
+    CUSEIMESSAGE *pSEIMessage;      /**< OUT: SEI Message Info      */
+    unsigned int sei_message_count; /**< OUT: SEI Message Count     */
+    unsigned int picIdx;            /**< OUT: SEI Message Pic Index */
+} CUVIDSEIMESSAGEINFO;
 
 /****************************************************************/
 //! \ingroup STRUCTS
@@ -366,11 +480,13 @@ typedef struct _CUVIDPARSERDISPINFO
 //! PFNVIDDECODECALLBACK   : 0: fail, >=1: succeeded
 //! PFNVIDDISPLAYCALLBACK  : 0: fail, >=1: succeeded
 //! PFNVIDOPPOINTCALLBACK  : <0: fail, >=0: succeeded (bit 0-9: OperatingPoint, bit 10-10: outputAllLayers, bit 11-30: reserved)
+//! PFNVIDSEIMSGCALLBACK   : 0: fail, >=1: succeeded
 /***********************************************************************************************************************/
 typedef int (CUDAAPI *PFNVIDSEQUENCECALLBACK)(void *, CUVIDEOFORMAT *);
 typedef int (CUDAAPI *PFNVIDDECODECALLBACK)(void *, CUVIDPICPARAMS *);
 typedef int (CUDAAPI *PFNVIDDISPLAYCALLBACK)(void *, CUVIDPARSERDISPINFO *);
 typedef int (CUDAAPI *PFNVIDOPPOINTCALLBACK)(void *, CUVIDOPERATINGPOINTINFO*);
+typedef int (CUDAAPI *PFNVIDSEIMSGCALLBACK) (void *, CUVIDSEIMESSAGEINFO *);
 
 /**************************************/
 //! \ingroup STRUCTS
@@ -395,7 +511,8 @@ typedef struct _CUVIDPARSERPARAMS
     PFNVIDDISPLAYCALLBACK pfnDisplayPicture;    /**< IN: Called whenever a picture is ready to be displayed (display order)  */
     PFNVIDOPPOINTCALLBACK pfnGetOperatingPoint; /**< IN: Called from AV1 sequence header to get operating point of a AV1
                                                          scalable bitstream                                                  */
-    void *pvReserved2[6];                       /**< Reserved for future use - set to NULL                                   */
+    PFNVIDSEIMSGCALLBACK pfnGetSEIMsg;          /**< IN: Called when all SEI messages are parsed for particular frame        */
+    void *pvReserved2[5];                       /**< Reserved for future use - set to NULL                                   */
     CUVIDEOFORMATEX *pExtVideoInfo;             /**< IN: [Optional] sequence header data from system layer                   */
 } CUVIDPARSERPARAMS;
 

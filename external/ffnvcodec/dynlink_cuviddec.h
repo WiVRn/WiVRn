@@ -1,7 +1,7 @@
 /*
  * This copyright notice applies to this header file only:
  *
- * Copyright (c) 2010-2021 NVIDIA Corporation
+ * Copyright (c) 2010-2024 NVIDIA Corporation
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -40,8 +40,8 @@
 #endif
 #endif
 
-#define NVDECAPI_MAJOR_VERSION 11
-#define NVDECAPI_MINOR_VERSION 1
+#define NVDECAPI_MAJOR_VERSION 12
+#define NVDECAPI_MINOR_VERSION 2
 
 #define NVDECAPI_VERSION (NVDECAPI_MAJOR_VERSION | (NVDECAPI_MINOR_VERSION << 24))
 
@@ -1113,7 +1113,6 @@ typedef CUresult CUDAAPI tcuvidMapVideoFrame(CUvideodecoder hDecoder, int nPicId
 typedef CUresult CUDAAPI tcuvidUnmapVideoFrame(CUvideodecoder hDecoder, unsigned int DevPtr);
 #endif
 
-#if defined(_WIN64) || defined(__LP64__) || defined(__x86_64) || defined(AMD64) || defined(_M_AMD64)
 /****************************************************************************************************************************/
 //! \fn CUresult CUDAAPI cuvidMapVideoFrame64(CUvideodecoder hDecoder, int nPicIdx, unsigned long long *pDevPtr,
 //!                                           unsigned int * pPitch, CUVIDPROCPARAMS *pVPP);
@@ -1133,7 +1132,7 @@ typedef CUresult CUDAAPI tcuvidUnmapVideoFrame64(CUvideodecoder hDecoder, unsign
 #define tcuvidMapVideoFrame      tcuvidMapVideoFrame64
 #define tcuvidUnmapVideoFrame    tcuvidUnmapVideoFrame64
 #endif
-#endif
+
 
 
 /********************************************************************************************************************/

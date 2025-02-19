@@ -359,6 +359,14 @@ typedef struct CUDA_EXTERNAL_SEMAPHORE_SIGNAL_PARAMS_st {
 
 typedef CUDA_EXTERNAL_SEMAPHORE_SIGNAL_PARAMS CUDA_EXTERNAL_SEMAPHORE_WAIT_PARAMS;
 
+typedef struct CUDA_ARRAY_DESCRIPTOR_st {
+    size_t Width;
+    size_t Height;
+
+    CUarray_format Format;
+    unsigned int NumChannels;
+} CUDA_ARRAY_DESCRIPTOR;
+
 typedef struct CUDA_ARRAY3D_DESCRIPTOR_st {
     size_t Width;
     size_t Height;
@@ -393,21 +401,34 @@ typedef struct CUeglFrame_st {
     CUarray_format cuFormat;
 } CUeglFrame;
 
+#define CU_STREAM_DEFAULT      0
 #define CU_STREAM_NON_BLOCKING 1
-#define CU_EVENT_BLOCKING_SYNC 1
+
+#define CU_EVENT_DEFAULT        0
+#define CU_EVENT_BLOCKING_SYNC  1
 #define CU_EVENT_DISABLE_TIMING 2
+
+#define CU_EVENT_WAIT_DEFAULT  0
+#define CU_EVENT_WAIT_EXTERNAL 1
+
 #define CU_TRSF_READ_AS_INTEGER 1
 
 typedef void CUDAAPI CUstreamCallback(CUstream hStream, CUresult status, void *userdata);
 
 typedef CUresult CUDAAPI tcuInit(unsigned int Flags);
+typedef CUresult CUDAAPI tcuDriverGetVersion(int *driverVersion);
 typedef CUresult CUDAAPI tcuDeviceGetCount(int *count);
 typedef CUresult CUDAAPI tcuDeviceGet(CUdevice *device, int ordinal);
 typedef CUresult CUDAAPI tcuDeviceGetAttribute(int *pi, CUdevice_attribute attrib, CUdevice dev);
 typedef CUresult CUDAAPI tcuDeviceGetName(char *name, int len, CUdevice dev);
 typedef CUresult CUDAAPI tcuDeviceGetUuid(CUuuid *uuid, CUdevice dev);
+typedef CUresult CUDAAPI tcuDeviceGetUuid_v2(CUuuid *uuid, CUdevice dev);
+typedef CUresult CUDAAPI tcuDeviceGetLuid(char* luid, unsigned int* deviceNodeMask, CUdevice dev);
+typedef CUresult CUDAAPI tcuDeviceGetByPCIBusId(CUdevice* dev, const char* pciBusId);
+typedef CUresult CUDAAPI tcuDeviceGetPCIBusId(char* pciBusId, int len, CUdevice dev);
 typedef CUresult CUDAAPI tcuDeviceComputeCapability(int *major, int *minor, CUdevice dev);
 typedef CUresult CUDAAPI tcuCtxCreate_v2(CUcontext *pctx, unsigned int flags, CUdevice dev);
+typedef CUresult CUDAAPI tcuCtxGetCurrent(CUcontext *pctx);
 typedef CUresult CUDAAPI tcuCtxSetLimit(CUlimit limit, size_t value);
 typedef CUresult CUDAAPI tcuCtxPushCurrent_v2(CUcontext pctx);
 typedef CUresult CUDAAPI tcuCtxPopCurrent_v2(CUcontext *pctx);
@@ -442,6 +463,7 @@ typedef CUresult CUDAAPI tcuStreamQuery(CUstream hStream);
 typedef CUresult CUDAAPI tcuStreamSynchronize(CUstream hStream);
 typedef CUresult CUDAAPI tcuStreamDestroy_v2(CUstream hStream);
 typedef CUresult CUDAAPI tcuStreamAddCallback(CUstream hStream, CUstreamCallback *callback, void *userdata, unsigned int flags);
+typedef CUresult CUDAAPI tcuStreamWaitEvent(CUstream hStream, CUevent hEvent, unsigned int flags);
 typedef CUresult CUDAAPI tcuEventCreate(CUevent *phEvent, unsigned int flags);
 typedef CUresult CUDAAPI tcuEventDestroy_v2(CUevent hEvent);
 typedef CUresult CUDAAPI tcuEventSynchronize(CUevent hEvent);
@@ -480,6 +502,7 @@ typedef CUresult CUDAAPI tcuDestroyExternalSemaphore(CUexternalSemaphore extSem)
 typedef CUresult CUDAAPI tcuSignalExternalSemaphoresAsync(const CUexternalSemaphore* extSemArray, const CUDA_EXTERNAL_SEMAPHORE_SIGNAL_PARAMS* paramsArray, unsigned int numExtSems, CUstream stream);
 typedef CUresult CUDAAPI tcuWaitExternalSemaphoresAsync(const CUexternalSemaphore* extSemArray, const CUDA_EXTERNAL_SEMAPHORE_WAIT_PARAMS* paramsArray, unsigned int numExtSems, CUstream stream);
 
+typedef CUresult CUDAAPI tcuArrayCreate(CUarray *pHandle, const CUDA_ARRAY_DESCRIPTOR* pAllocateArray);
 typedef CUresult CUDAAPI tcuArray3DCreate(CUarray *pHandle, const CUDA_ARRAY3D_DESCRIPTOR* pAllocateArray);
 typedef CUresult CUDAAPI tcuArrayDestroy(CUarray hArray);
 
