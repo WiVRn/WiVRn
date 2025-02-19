@@ -501,24 +501,28 @@ wivrn::deserialization_packet wivrn::TCP::receive_raw()
 		capacity_left = new_size - data.size_bytes();
 	}
 
-	ssize_t received_size = recv(fd, &*data.end(), capacity_left, MSG_DONTWAIT);
-
-	if (received_size < 0)
-		throw std::system_error{errno, std::generic_category()};
-
-	if (received_size == 0)
-		throw socket_shutdown{};
-
-	bytes_received_ += received_size;
-
-	if (decrypter)
+	if (capacity_left > 0)
 	{
-		std::span<uint8_t> received_data{&*data.end(), (size_t)received_size};
-		decrypter.decrypt_in_place(received_data);
+		ssize_t received_size = recv(fd, &*data.end(), capacity_left, MSG_DONTWAIT);
+
+		if (received_size < 0)
+			throw std::system_error{errno, std::generic_category()};
+
+		if (received_size == 0)
+			throw socket_shutdown{};
+
+		bytes_received_ += received_size;
+
+		if (decrypter)
+		{
+			std::span<uint8_t> received_data{&*data.end(), (size_t)received_size};
+			decrypter.decrypt_in_place(received_data);
+		}
+
+		data = std::span(data.data(), data.size() + received_size);
+		capacity_left -= received_size;
 	}
 
-	data = std::span(data.data(), data.size() + received_size);
-	capacity_left -= received_size;
 	if (data.size_bytes() < sizeof(uint16_t))
 		return {};
 
