@@ -671,8 +671,8 @@ wivrn_controller::wivrn_controller(int hand_id,
 			device_type = XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER;
 
 			// Print name.
-			strcpy(str, "WiVRn HMD left hand controller");
-			strcpy(serial, "WiVRn HMD left hand controller");
+			strcpy(str, "WiVRn left controller");
+			strcpy(serial, "WiVRn left controller");
 
 			break;
 
@@ -680,8 +680,8 @@ wivrn_controller::wivrn_controller(int hand_id,
 			device_type = XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER;
 
 			// Print name.
-			strcpy(str, "WiVRn HMD right hand controller");
-			strcpy(serial, "WiVRn HMD right hand controller");
+			strcpy(str, "WiVRn right controller");
+			strcpy(serial, "WiVRn right controller");
 
 			break;
 
