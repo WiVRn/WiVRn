@@ -155,8 +155,6 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		throw;
 	}
 
-	static_roles.head = xdevs[xdev_count++] = &hmd;
-
 	if (hmd.face_tracking_supported)
 		static_roles.face = &hmd;
 
@@ -226,6 +224,8 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 			static_roles.body = solar_devs[i];
 	}
 #endif
+
+	static_roles.head = xdevs[xdev_count++] = &hmd;
 
 	if (roles.left >= 0)
 		roles.left_profile = xdevs[roles.left]->name;
