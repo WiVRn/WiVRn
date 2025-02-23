@@ -34,6 +34,7 @@ enum class model
 	meta_quest_3s,
 	pico_neo_3,
 	pico_4,
+	pico_4s,
 	htc_vive_focus_3,
 	htc_vive_xr_elite,
 	htc_vive_focus_vision,

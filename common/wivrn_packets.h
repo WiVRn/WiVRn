@@ -142,6 +142,13 @@ enum class interaction_profile : uint8_t
 	meta_touch_controller_quest_2,
 	samsung_odyssey_controller,
 	valve_index_controller,
+	// out-of-order to preserve enum ordinals
+	// otherwise this will force non-p4u users
+	// to update both their client and server
+	// for a feature they won't use
+	//
+	// TODO: order this correctly when the next major update comes around
+	bd_pico4s_controller,
 };
 
 enum video_codec

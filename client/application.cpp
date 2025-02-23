@@ -421,6 +421,48 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/squeeze/value",
                 }},
         interaction_profile{
+                "/interaction_profiles/bytedance/pico4s_controller",
+                {"XR_BD_controller_interaction"},
+                {
+                        "/user/hand/left/output/haptic",
+                        "/user/hand/right/output/haptic",
+
+                        "/user/hand/left/input/grip/pose",
+                        "/user/hand/left/input/aim/pose",
+
+                        "/user/hand/right/input/grip/pose",
+                        "/user/hand/right/input/aim/pose",
+
+                        "/user/hand/left/input/x/click",
+                        "/user/hand/left/input/x/touch",
+                        "/user/hand/left/input/y/click",
+                        "/user/hand/left/input/y/touch",
+                        "/user/hand/left/input/menu/click",
+                        "/user/hand/left/input/system/click",
+                        "/user/hand/left/input/trigger/click",
+                        "/user/hand/left/input/trigger/value",
+                        "/user/hand/left/input/trigger/touch",
+                        "/user/hand/left/input/thumbstick",
+                        "/user/hand/left/input/thumbstick/click",
+                        "/user/hand/left/input/thumbstick/touch",
+                        "/user/hand/left/input/squeeze/click",
+                        "/user/hand/left/input/squeeze/value",
+
+                        "/user/hand/right/input/a/click",
+                        "/user/hand/right/input/a/touch",
+                        "/user/hand/right/input/b/click",
+                        "/user/hand/right/input/b/touch",
+                        "/user/hand/right/input/system/click",
+                        "/user/hand/right/input/trigger/click",
+                        "/user/hand/right/input/trigger/value",
+                        "/user/hand/right/input/trigger/touch",
+                        "/user/hand/right/input/thumbstick",
+                        "/user/hand/right/input/thumbstick/click",
+                        "/user/hand/right/input/thumbstick/touch",
+                        "/user/hand/right/input/squeeze/click",
+                        "/user/hand/right/input/squeeze/value",
+                }},
+        interaction_profile{
                 "/interaction_profiles/htc/vive_focus3_controller",
                 {"XR_HTC_vive_focus3_controller_interaction"},
                 {
