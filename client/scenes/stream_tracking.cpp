@@ -490,6 +490,7 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 			DO_PROFILE(khr, simple_controller)
 			DO_PROFILE(bd, pico_neo3_controller)
 			DO_PROFILE(bd, pico4_controller)
+			DO_PROFILE(bd, pico4s_controller)
 			DO_PROFILE(bd, pico_g3_controller)
 			DO_PROFILE(google, daydream_controller)
 			DO_PROFILE(hp, mixed_reality_controller)

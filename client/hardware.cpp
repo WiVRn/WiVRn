@@ -74,6 +74,9 @@ static model guess_model_()
 		if (model == "Pico Neo 3")
 			return model::pico_neo_3;
 
+		if (model == "A9210")
+			return model::pico_4s;
+
 		spdlog::info("manufacturer={}, model={}, device={} assuming Pico 4", manufacturer, model, device);
 		return model::pico_4;
 	}
@@ -141,6 +144,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 		case model::pico_neo_3:
 			return scale_view(view, 1832);
 		case model::pico_4:
+		case model::pico_4s:
 			return scale_view(view, 2160);
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
@@ -167,6 +171,7 @@ bool need_srgb_conversion(model m)
 		case model::meta_quest_3s:
 		case model::pico_neo_3:
 		case model::pico_4:
+		case model::pico_4s:
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
@@ -195,6 +200,7 @@ const char * permission_name(feature f)
 					return "com.oculus.permission.EYE_TRACKING";
 				case model::pico_neo_3:
 				case model::pico_4:
+				case model::pico_4s:
 					return "com.picovr.permission.EYE_TRACKING";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
@@ -215,6 +221,7 @@ const char * permission_name(feature f)
 					return "com.oculus.permission.FACE_TRACKING";
 				case model::pico_neo_3:
 				case model::pico_4:
+				case model::pico_4s:
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
 				case model::htc_vive_xr_elite:
@@ -250,6 +257,8 @@ std::string controller_name()
 			return "pico-neo3";
 		case model::pico_4:
 			return "pico-4";
+		case model::pico_4s:
+			return "pico-4s";
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
@@ -322,7 +331,7 @@ std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::
 			default:
 				break;
 		}
-	else if (profile == "pico-4")
+	else if (profile == "pico-4" || profile == "pico-4s")
 		switch (space)
 		{
 			case xr::spaces::grip_left:
