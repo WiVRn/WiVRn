@@ -319,12 +319,12 @@ static xrt_device_name get_name(interaction_profile profile)
 			return XRT_DEVICE_INVALID;
 		case interaction_profile::khr_simple_controller:
 			return XRT_DEVICE_SIMPLE_CONTROLLER;
-		case interaction_profile::bd_pico_neo3_controller:
+		case interaction_profile::bytedance_pico_neo3_controller:
 			return XRT_DEVICE_PICO_NEO3_CONTROLLER;
-		case interaction_profile::bd_pico4_controller:
-		case interaction_profile::bd_pico4s_controller:
+		case interaction_profile::bytedance_pico4_controller:
+		case interaction_profile::bytedance_pico4s_controller:
 			return XRT_DEVICE_PICO4_CONTROLLER;
-		case interaction_profile::bd_pico_g3_controller:
+		case interaction_profile::bytedance_pico_g3_controller:
 			return XRT_DEVICE_PICO_G3_CONTROLLER;
 		case interaction_profile::google_daydream_controller:
 			return XRT_DEVICE_DAYDREAM;
