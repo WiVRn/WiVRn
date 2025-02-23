@@ -1,0 +1,65 @@
+From a2f80c1c92619ad57516e24539047d4d30d8cca7 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 23 Feb 2025 11:12:14 +0100
+Subject: [PATCH] ipc: Initialize hmd data from static role
+
+Make sure the xdev used to read the hmd part is the one from head static
+role. This fixes issues in case more than one hmd is available.
+---
+ src/xrt/ipc/server/ipc_server_process.c | 33 ++++++++++++-------------
+ 1 file changed, 16 insertions(+), 17 deletions(-)
+
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index 6b6da45a4..21796fb08 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -357,23 +357,6 @@ init_shm(struct ipc_server *s)
+ 		isdev->stage_supported = xdev->stage_supported;
+ 		isdev->battery_status_supported = xdev->battery_status_supported;
+ 
+-		// Is this a HMD?
+-		if (xdev->hmd != NULL) {
+-			// set view count
+-			ism->hmd.view_count = xdev->hmd->view_count;
+-			for (uint32_t view = 0; view < xdev->hmd->view_count; ++view) {
+-				ism->hmd.views[view].display.w_pixels = xdev->hmd->views[view].display.w_pixels;
+-				ism->hmd.views[view].display.h_pixels = xdev->hmd->views[view].display.h_pixels;
+-			}
+-
+-			for (size_t i = 0; i < xdev->hmd->blend_mode_count; i++) {
+-				// Not super necessary, we also do this assert in oxr_system.c
+-				assert(u_verify_blend_mode_valid(xdev->hmd->blend_modes[i]));
+-				ism->hmd.blend_modes[i] = xdev->hmd->blend_modes[i];
+-			}
+-			ism->hmd.blend_mode_count = xdev->hmd->blend_mode_count;
+-		}
+-
+ 		// Setup the tracking origin.
+ 		isdev->tracking_origin_index = (uint32_t)-1;
+ 		for (uint32_t k = 0; k < XRT_SYSTEM_MAX_DEVICES; k++) {
+@@ -428,6 +411,22 @@ init_shm(struct ipc_server *s)
+ 		}
+ 	}
+ 
++	// Setup the HMD
++	// set view count
++	assert(s->xsysd->static_roles.head->hmd);
++	ism->hmd.view_count = s->xsysd->static_roles.head->hmd->view_count;
++	for (uint32_t view = 0; view < s->xsysd->static_roles.head->hmd->view_count; ++view) {
++		ism->hmd.views[view].display.w_pixels = s->xsysd->static_roles.head->hmd->views[view].display.w_pixels;
++		ism->hmd.views[view].display.h_pixels = s->xsysd->static_roles.head->hmd->views[view].display.h_pixels;
++	}
++
++	for (size_t i = 0; i < s->xsysd->static_roles.head->hmd->blend_mode_count; i++) {
++		// Not super necessary, we also do this assert in oxr_system.c
++		assert(u_verify_blend_mode_valid(s->xsysd->static_roles.head->hmd->blend_modes[i]));
++		ism->hmd.blend_modes[i] = s->xsysd->static_roles.head->hmd->blend_modes[i];
++	}
++	ism->hmd.blend_mode_count = s->xsysd->static_roles.head->hmd->blend_mode_count;
++
+ 	// Finally tell the client how many devices we have.
+ 	s->ism->isdev_count = count;
+ 
+-- 
+2.48.1
+
