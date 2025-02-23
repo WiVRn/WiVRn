@@ -597,9 +597,7 @@ wivrn_controller::wivrn_controller(int hand_id,
 
 	SET_INPUT(TOUCH, AIM_POSE);
 	SET_INPUT(TOUCH, GRIP_POSE);
-
-	inputs[WIVRN_CONTROLLER_PALM_POSE].name = XRT_INPUT_GENERIC_PALM_POSE;
-	inputs[WIVRN_CONTROLLER_PALM_POSE].active = cnx->get_info().palm_pose;
+	SET_INPUT(GENERIC, PALM_POSE);
 
 	if (auto grip_surface = configuration::read_user_configuration().grip_surface)
 	{
@@ -611,7 +609,11 @@ wivrn_controller::wivrn_controller(int hand_id,
 
 		palm.set_derived(&grip, offset, true);
 		cnx->set_enabled(palm.device, false);
-		inputs[WIVRN_CONTROLLER_PALM_POSE].active = true;
+	}
+	else if (not cnx->get_info().palm_pose)
+	{
+		palm.set_derived(&grip, XRT_POSE_IDENTITY, false);
+		cnx->set_enabled(palm.device, false);
 	}
 
 	if (hand_id == 0)
