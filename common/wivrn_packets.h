@@ -41,7 +41,7 @@ namespace wivrn
 // Default port for server to listen, both TCP and UDP
 static const int default_port = 9757;
 
-static constexpr int protocol_revision = 0;
+static constexpr int protocol_revision = 1;
 
 enum class device_id : uint8_t
 {
@@ -121,9 +121,10 @@ enum class interaction_profile : uint8_t
 {
 	none,
 	khr_simple_controller,
-	bd_pico_neo3_controller,
-	bd_pico4_controller,
-	bd_pico_g3_controller,
+	bytedance_pico_neo3_controller,
+	bytedance_pico4_controller,
+	bytedance_pico4s_controller,
+	bytedance_pico_g3_controller,
 	google_daydream_controller,
 	hp_mixed_reality_controller,
 	htc_vive_controller,
@@ -142,13 +143,6 @@ enum class interaction_profile : uint8_t
 	meta_touch_controller_quest_2,
 	samsung_odyssey_controller,
 	valve_index_controller,
-	// out-of-order to preserve enum ordinals
-	// otherwise this will force non-p4u users
-	// to update both their client and server
-	// for a feature they won't use
-	//
-	// TODO: order this correctly when the next major update comes around
-	bd_pico4s_controller,
 };
 
 enum video_codec
