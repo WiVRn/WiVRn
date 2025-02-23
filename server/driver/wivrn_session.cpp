@@ -363,8 +363,8 @@ static xrt_device_name get_name(interaction_profile profile)
 }
 void wivrn_session::operator()(from_headset::trackings && tracking)
 {
-	auto left = get_name(tracking.interaction_profiles[0]);
-	auto right = get_name(tracking.interaction_profiles[1]);
+	auto left = xdevs[roles.left] == &left_hand ? get_name(tracking.interaction_profiles[0]) : XRT_DEVICE_INVALID;
+	auto right = xdevs[roles.right] == &right_hand ? get_name(tracking.interaction_profiles[1]) : XRT_DEVICE_INVALID;
 	if (left != roles.left_profile or right != roles.right_profile)
 	{
 		U_LOG_I("Updating interaction profiles: from \n"
