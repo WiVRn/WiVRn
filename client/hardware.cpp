@@ -256,9 +256,8 @@ std::string controller_name()
 		case model::pico_neo_3:
 			return "pico-neo3";
 		case model::pico_4:
+		case model::pico_4s: // TODO: split when we have the pico-4s 3d model
 			return "pico-4";
-		case model::pico_4s:
-			return "pico-4s";
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
