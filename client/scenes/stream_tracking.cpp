@@ -488,10 +488,10 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 			auto profile = session.get_current_interaction_profile(path[i]);
 			spdlog::info("interaction profile for {}: {}", path[i], profile);
 			DO_PROFILE(khr, simple_controller)
-			DO_PROFILE(bd, pico_neo3_controller)
-			DO_PROFILE(bd, pico4_controller)
-			DO_PROFILE(bd, pico4s_controller)
-			DO_PROFILE(bd, pico_g3_controller)
+			DO_PROFILE(bytedance, pico_neo3_controller)
+			DO_PROFILE(bytedance, pico4_controller)
+			DO_PROFILE(bytedance, pico4s_controller)
+			DO_PROFILE(bytedance, pico_g3_controller)
 			DO_PROFILE(google, daydream_controller)
 			DO_PROFILE(hp, mixed_reality_controller)
 			DO_PROFILE(htc, vive_controller)
