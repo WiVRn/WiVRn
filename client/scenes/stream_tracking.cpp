@@ -20,6 +20,7 @@
 #include "application.h"
 #include "stream.h"
 #include "wivrn_packets.h"
+#include "xr/htc_xr_tracker.h"
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -305,6 +306,26 @@ void scenes::stream::tracking()
 					{
 						if (enabled(control, device))
 							packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
+					}
+
+					if (application::get_ultimate_trackers_supported())
+					{
+						for (uint8_t i = 0; i < size(xr::xr_tracker_spaces); i++)
+						{
+							XrSpace space = xr::xr_tracker_spaces[i];
+							XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION};
+							xrLocateSpace(space, world_space, t0 + Δt, &location);
+							// If location and orientation is invalid, the tracker is disconnected. Don't send it in that case.
+							if (location.locationFlags == (XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT))
+							{
+								auto new_tracker = wivrn::from_headset::tracking::extra_tracker{
+								        .id = i,
+								        .pose = location.pose,
+								        .role = xr::xr_tracker_get_roles_enum(instance, session)[i],
+								};
+								packet.extra_trackers.emplace_back(new_tracker);
+							}
+						}
 					}
 
 					// Hand tracking data are very large, send fewer samples than other items

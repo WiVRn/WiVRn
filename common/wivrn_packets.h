@@ -269,6 +269,31 @@ struct tracking
 	std::array<view, 2> views;
 	std::vector<pose> device_poses;
 
+	enum tracker_role : uint8_t
+	{
+		generic_tracked,
+		chest,
+		waist,
+		left_elbow,
+		right_elbow,
+		left_wrist,
+		right_wrist,
+		left_knee,
+		right_knee,
+		left_ankle,
+		right_ankle,
+		left_foot,
+		right_foot
+	};
+
+	struct extra_tracker {
+		uint8_t id;
+		XrPosef pose;
+		tracker_role role;
+	};
+
+	std::vector<extra_tracker> extra_trackers;
+
 	struct fb_face2
 	{
 		std::array<float, XR_FACE_EXPRESSION2_COUNT_FB> weights;
@@ -565,6 +590,7 @@ struct tracking_control
 		right_palm,
 		left_hand,
 		right_hand,
+		extra_trackers,
 		face,
 		battery,
 		microphone,
