@@ -189,8 +189,8 @@ video_encoder_nvenc::video_encoder_nvenc(
 	// NV_ENC_PRESET_P7_GUID;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-	auto presetGUID = NV_ENC_PRESET_P4_GUID;
-	NV_ENC_TUNING_INFO tuningInfo = NV_ENC_TUNING_INFO_LOW_LATENCY;
+	auto presetGUID = NV_ENC_PRESET_P1_GUID;
+	NV_ENC_TUNING_INFO tuningInfo = NV_ENC_TUNING_INFO_ULTRA_LOW_LATENCY;
 #pragma GCC diagnostic pop
 	NV_ENC_PRESET_CONFIG preset_config{
 	        .version = NV_ENC_PRESET_CONFIG_VER,
@@ -207,6 +207,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	params.rcParams.maxBitRate = bitrate;
 	params.rcParams.vbvBufferSize = bitrate / fps;
 	params.rcParams.vbvInitialDelay = bitrate / fps;
+	params.rcParams.multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION;
 
 	params.gopLength = NVENC_INFINITE_GOPLENGTH;
 	params.frameIntervalP = 1;
