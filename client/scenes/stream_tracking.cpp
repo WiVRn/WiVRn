@@ -308,7 +308,7 @@ void scenes::stream::tracking()
 							packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
-					if (application::get_ultimate_trackers_supported())
+					if (control.enabled[size_t(tid::extra_trackers)])
 					{
 						for (uint8_t i = 0; i < size(xr::xr_tracker_spaces); i++)
 						{

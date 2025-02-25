@@ -116,6 +116,10 @@ bool configuration::check_feature(feature f) const
 							return false;
 						break;
 				}
+			case feature::motion_tracking:
+				if (not application::get_ultimate_trackers_supported())
+					return false;
+				break;
 		}
 	}
 #ifdef __ANDROID__
