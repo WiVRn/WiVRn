@@ -741,9 +741,9 @@ void scenes::lobby::gui_settings()
 	}
 
 	{
-		ImGui::BeginDisabled(not application::get_ultimate_trackers_supported());
+		ImGui::BeginDisabled(not application::get_vive_xr_trackers_supported());
 		bool enabled = config.check_feature(feature::motion_tracking);
-		if (ImGui::Checkbox(_S("Enable motion tracking"), &enabled))
+		if (ImGui::Checkbox(_S("Enable VIVE Trackers"), &enabled))
 		{
 			config.set_feature(feature::motion_tracking, enabled);
 			config.save();
@@ -1444,12 +1444,12 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (application::get_ultimate_trackers_supported())
+	if (application::get_vive_xr_trackers_supported())
 		{
 			items.push_back({
 			        .f = feature::motion_tracking,
-			        .tooltip_enabled = _("Motion tracking is enabled"),
-			        .tooltip_disabled = _("Motion tracking is disabled"),
+			        .tooltip_enabled = _("Vive Trackers are enabled"),
+			        .tooltip_disabled = _("Vive Trackers are disabled"),
 			        .icon_enabled = ICON_FA_PERSON_WALKING,
 			        .icon_disabled = ICON_FA_PERSON,
 			});

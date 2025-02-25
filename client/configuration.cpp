@@ -117,7 +117,7 @@ bool configuration::check_feature(feature f) const
 						break;
 				}
 			case feature::motion_tracking:
-				if (not application::get_ultimate_trackers_supported())
+				if (not application::get_vive_xr_trackers_supported())
 					return false;
 				break;
 		}

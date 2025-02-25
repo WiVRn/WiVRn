@@ -308,7 +308,7 @@ void scenes::stream::tracking()
 							packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
-					if (control.enabled[size_t(tid::extra_trackers)])
+					if (control.enabled[size_t(tid::motion_trackers)])
 					{
 						for (uint8_t i = 0; i < size(xr::xr_tracker_spaces); i++)
 						{
@@ -318,12 +318,12 @@ void scenes::stream::tracking()
 							// If location and orientation is invalid, the tracker is disconnected. Don't send it in that case.
 							if (location.locationFlags == (XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT))
 							{
-								auto new_tracker = wivrn::from_headset::tracking::extra_tracker{
+								auto new_tracker = wivrn::from_headset::tracking::motion_tracker{
 								        .id = i,
 								        .pose = location.pose,
 								        .role = xr::xr_tracker_get_roles_enum(instance, session)[i],
 								};
-								packet.extra_trackers.emplace_back(new_tracker);
+								packet.motion_trackers.emplace_back(new_tracker);
 							}
 						}
 					}

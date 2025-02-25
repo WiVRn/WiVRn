@@ -1154,7 +1154,7 @@ void application::initialize()
 
 	if (utils::contains(xr_extensions, "XR_HTC_vive_xr_tracker_interaction") and utils::contains(xr_extensions, "XR_HTC_path_enumeration"))
 	{
-		ultimate_trackers_supported = true;
+		vive_xr_trackers_supported = true;
 	}
 
 	switch (xr_system_id.passthrough_supported())
