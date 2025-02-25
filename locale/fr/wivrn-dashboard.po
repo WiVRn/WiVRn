@@ -478,10 +478,10 @@ msgstr "AV1"
 #, kde-format
 msgid ""
 "For Steam games, right click on the game in Steam, go in Properties > "
-"Shortcut and paste this in \"Launch options\":"
+"General and paste this in \"Launch options\":"
 msgstr ""
 "Pour les jeux Steam, faites un clic droit sur le jeu dans Steam, allez dans "
-"Propriétés > Raccourci et collez ceci dans « Options de lancement » :"
+"Propriétés > Général et collez ceci dans « Options de lancement » :"
 
 #: dashboard/qml/SteamLaunchOptions.qml:20
 #, kde-format

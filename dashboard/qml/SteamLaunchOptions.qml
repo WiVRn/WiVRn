@@ -5,7 +5,7 @@ import io.github.wivrn.wivrn
 
 ColumnLayout {
     Controls.Label {
-        text: i18n("For Steam games, right click on the game in Steam, go in Properties > Shortcut and paste this in \"Launch options\":")
+        text: i18n("For Steam games, right click on the game in Steam, go in Properties > General and paste this in \"Launch options\":")
         wrapMode: Text.WordWrap
         Layout.fillWidth: true
     }
