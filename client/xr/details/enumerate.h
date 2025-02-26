@@ -82,12 +82,18 @@ template <typename T, typename F, typename... Args>
 void enumerate(F f, std::conditional_t<std::is_same_v<T, char>, std::string, std::vector<T>> & data, Args &&... args)
 {
 	uint32_t count;
-	XrResult result = f(std::forward<Args>(args)..., data.size(), &count, reinterpret_cast<typename structure_traits<T>::base *>(data.data()));
+	uint32_t capacity = data.size();
+	// For strings, add the null byte as capacity
+	if (std::is_same_v<T, char> and capacity)
+		capacity++;
+	XrResult result = f(std::forward<Args>(args)..., capacity, &count, reinterpret_cast<typename structure_traits<T>::base *>(data.data()));
 
 	if (result == XR_ERROR_SIZE_INSUFFICIENT or (data.empty() and XR_SUCCEEDED(result)))
 	{
 		if constexpr (structure_type<T> != XR_TYPE_UNKNOWN)
 			data.resize(count, T{.type = structure_type<T>});
+		else if constexpr (std::is_same_v<T, char>)
+			data.resize(count - 1); // count includes the null terminator
 		else
 			data.resize(count);
 		return enumerate<T>(f, data, std::forward<Args>(args)...);
