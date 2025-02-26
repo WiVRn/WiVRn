@@ -1105,7 +1105,7 @@ void scenes::lobby::on_focused()
 	xyz_axes_right_controller = controllers_scene_data.new_node();
 	controllers_scene_data.import(loader("xyz-arrows.glb"), xyz_axes_right_controller);
 
-	for (int i = 0; i < xr::xr_tracker_spaces.size(); i++ )
+	for (int i = 0; i < xr::xr_tracker_spaces.size(); i++)
 	{
 		xyz_axes_trackers.emplace_back(controllers_scene_data.new_node());
 		controllers_scene_data.import(loader("xyz-arrows.glb"), xyz_axes_trackers[i]);

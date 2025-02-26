@@ -101,6 +101,10 @@ bool configuration::check_feature(feature f) const
 				if (not application::get_eye_gaze_supported())
 					return false;
 				break;
+			case feature::motion_tracking:
+				if (not application::get_vive_xr_trackers_supported())
+					return false;
+				break;
 			case feature::face_tracking:
 				switch (guess_model())
 				{
@@ -116,10 +120,6 @@ bool configuration::check_feature(feature f) const
 							return false;
 						break;
 				}
-			case feature::motion_tracking:
-				if (not application::get_vive_xr_trackers_supported())
-					return false;
-				break;
 		}
 	}
 #ifdef __ANDROID__

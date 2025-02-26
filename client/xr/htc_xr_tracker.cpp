@@ -21,6 +21,7 @@
 #include "xr/details/enumerate.h"
 #include "xr/instance.h"
 #include "xr/session.h"
+#include <optional>
 #include <spdlog/spdlog.h>
 #include <openxr/openxr.h>
 
@@ -51,17 +52,14 @@ std::vector<XrPath> xr::xr_tracker_get_paths(instance & inst, XrPath user_path)
 	        .interactionProfile = tracker_profile,
 	        .userPath = user_path};
 
-	auto xr_tracker_paths = xr::details::enumerate<XrPath>(xrEnumeratePathsForInteractionProfileHTC, inst, enum_info);
-
-	return xr_tracker_paths;
+	return xr::details::enumerate<XrPath>(xrEnumeratePathsForInteractionProfileHTC, inst, enum_info);
 }
 
 std::vector<std::string> xr::xr_tracker_get_roles(instance & inst, session & session)
 {
-	auto tracker_paths = xr_tracker_get_paths(inst);
 	std::vector<std::string> tracker_roles;
 
-	for (auto & path: tracker_paths)
+	for (auto & path: xr_tracker_get_paths(inst))
 	{
 		auto name_info = XrInputSourceLocalizedNameGetInfo{
 		        .type = XR_TYPE_INPUT_SOURCE_LOCALIZED_NAME_GET_INFO,
@@ -69,9 +67,7 @@ std::vector<std::string> xr::xr_tracker_get_roles(instance & inst, session & ses
 		        .sourcePath = path,
 		        .whichComponents = XR_INPUT_SOURCE_LOCALIZED_NAME_USER_PATH_BIT};
 
-		auto role_name = xr::details::enumerate<char>(xrGetInputSourceLocalizedName, session, &name_info);
-		tracker_roles.emplace_back(role_name);
-
+		tracker_roles.emplace_back(xr::details::enumerate<char>(xrGetInputSourceLocalizedName, session, &name_info));
 	}
 
 	return tracker_roles;
@@ -79,10 +75,9 @@ std::vector<std::string> xr::xr_tracker_get_roles(instance & inst, session & ses
 
 std::vector<wivrn::from_headset::tracking::tracker_role> xr::xr_tracker_get_roles_enum(instance & inst, session & session)
 {
-	auto tracker_roles = xr_tracker_get_roles(inst, session);
 	std::vector<wivrn::from_headset::tracking::tracker_role> tracker_enums;
 
-	for (auto & role: tracker_roles)
+	for (auto & role: xr_tracker_get_roles(inst, session))
 	{
 		if (role == "Chest")
 			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::chest);

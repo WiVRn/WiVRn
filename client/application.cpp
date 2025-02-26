@@ -919,16 +919,11 @@ void application::initialize_actions()
 		// Dynamically add VIVE XR Trackers to the profile if available
 		if (utils::contains(profile.required_extensions, "XR_HTC_vive_xr_tracker_interaction"))
 		{
-			auto xr_tracker_user_paths = xr::xr_tracker_get_paths(xr_instance);
-			if (!xr_tracker_user_paths.empty())
+			for (const auto & user_path: xr::xr_tracker_get_paths(xr_instance))
 			{
-				for (auto user_path: xr_tracker_user_paths)
+				for (const auto & input_path: xr::xr_tracker_get_paths(xr_instance, user_path))
 				{
-					auto xr_tracker_input_paths = xr::xr_tracker_get_paths(xr_instance, user_path);
-					for (auto input_path: xr_tracker_input_paths)
-					{
-						profile.input_sources.push_back(path_to_string(user_path) + path_to_string(input_path));
-					}
+					profile.input_sources.push_back(path_to_string(user_path) + path_to_string(input_path));
 				}
 			}
 		}
