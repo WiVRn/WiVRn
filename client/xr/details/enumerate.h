@@ -79,6 +79,27 @@ template <typename T>
 constexpr inline XrStructureType structure_type = structure_traits<T>::type;
 
 template <typename T, typename F, typename... Args>
+void enumerate(F f, std::conditional_t<std::is_same_v<T, char>, std::string, std::vector<T>> & data, Args &&... args)
+{
+	uint32_t count;
+	XrResult result = f(std::forward<Args>(args)..., data.size(), &count, reinterpret_cast<typename structure_traits<T>::base *>(data.data()));
+
+	if (result == XR_ERROR_SIZE_INSUFFICIENT or (data.empty() and XR_SUCCEEDED(result)))
+	{
+		if constexpr (structure_type<T> != XR_TYPE_UNKNOWN)
+			data.resize(count, T{.type = structure_type<T>});
+		else
+			data.resize(count);
+		return enumerate<T>(f, data, std::forward<Args>(args)...);
+	}
+
+	if (not XR_SUCCEEDED(result))
+		throw std::system_error(result, xr::error_category(), "enumerating " + type_name<T>());
+
+	data.resize(count - std::is_same_v<T, char>);
+}
+
+template <typename T, typename F, typename... Args>
 auto enumerate(F f, Args &&... args) -> auto
 {
 	using array_type = std::conditional_t<std::is_same_v<T, char>, std::string, std::vector<T>>;
@@ -104,46 +125,6 @@ auto enumerate(F f, Args &&... args) -> auto
 			default_value.type = structure_type<T>;
 			array.resize(count, default_value);
 		}
-		result = f(std::forward<Args>(args)..., count, &count, reinterpret_cast<typename structure_traits<T>::base *>(array.data()));
-	}
-
-	if (!XR_SUCCEEDED(result))
-	{
-		throw std::system_error(result, xr::error_category(), "enumerating " + type_name<T>());
-	}
-
-	return array;
-}
-
-template <typename T, typename F, typename... Args>
-auto enumerate2(F f, uint32_t count, Args &&... args) -> auto
-{
-	assert(count);
-	using array_type = std::conditional_t<std::is_same_v<T, char>, std::string, std::vector<T>>;
-	T default_value{};
-	uint32_t size_offset = 0;
-	if constexpr (std::is_same_v<T, char>)
-	{
-		size_offset = 1;
-	}
-	else if constexpr (structure_type<T> != XR_TYPE_UNKNOWN)
-	{
-		default_value.type = structure_type<T>;
-	}
-	array_type array(count - size_offset, default_value);
-
-	XrResult result = f(std::forward<Args>(args)..., count, &count, reinterpret_cast<typename structure_traits<T>::base *>(array.data()));
-
-	if (XR_SUCCEEDED(result))
-	{
-		assert(count >= size_offset);
-		array.resize(count - size_offset, default_value);
-		return array;
-	}
-	if (result == XR_ERROR_SIZE_INSUFFICIENT)
-	{
-		assert(count >= size_offset);
-		array.resize(count - size_offset, default_value);
 		result = f(std::forward<Args>(args)..., count, &count, reinterpret_cast<typename structure_traits<T>::base *>(array.data()));
 	}
 

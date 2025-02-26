@@ -207,6 +207,7 @@ void scenes::stream::tracking()
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::tracking> tracking_pool; // pre-allocated objects
 	std::vector<from_headset::hand_tracking> hands;
+	std::vector<XrView> views;
 
 	std::vector<from_headset::trackings> merged_tracking;
 	std::vector<serialization_packet> packets;
@@ -258,7 +259,7 @@ void scenes::stream::tracking()
 
 				try
 				{
-					auto [flags, views] = session.locate_views(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, t0 + Δt, view_space);
+					packet.view_flags = session.locate_views(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, t0 + Δt, view_space, views);
 					assert(views.size() == packet.views.size());
 
 					for (auto [i, j]: std::views::zip(views, packet.views))
@@ -266,8 +267,6 @@ void scenes::stream::tracking()
 						j.pose = i.pose;
 						j.fov = i.fov;
 					}
-
-					packet.view_flags = flags;
 
 					packet.state_flags = 0;
 					if (recenter_requested.exchange(false))

@@ -196,9 +196,10 @@ void xr::session::end_session()
 	CHECK_XR(xrEndSession(id));
 }
 
-std::pair<XrViewStateFlags, std::vector<XrView>> xr::session::locate_views(XrViewConfigurationType view_config_type,
-                                                                           XrTime display_time,
-                                                                           XrSpace space)
+XrViewStateFlags xr::session::locate_views(XrViewConfigurationType view_config_type,
+                                           XrTime display_time,
+                                           XrSpace space,
+                                           std::vector<XrView> & views)
 {
 	XrViewLocateInfo view_locate_info{
 	        .type = XR_TYPE_VIEW_LOCATE_INFO,
@@ -211,9 +212,17 @@ std::pair<XrViewStateFlags, std::vector<XrView>> xr::session::locate_views(XrVie
 	        .type = XR_TYPE_VIEW_STATE,
 	};
 
-	auto views = details::enumerate2<XrView>(xrLocateViews, 2, id, &view_locate_info, &view_state);
+	details::enumerate<XrView>(xrLocateViews, views, id, &view_locate_info, &view_state);
 
-	return {view_state.viewStateFlags, views};
+	return view_state.viewStateFlags;
+}
+
+std::pair<XrViewStateFlags, std::vector<XrView>> xr::session::locate_views(XrViewConfigurationType view_config_type,
+                                                                           XrTime display_time,
+                                                                           XrSpace space)
+{
+	std::vector<XrView> views(2, XrView{.type = XR_TYPE_VIEW});
+	return {locate_views(view_config_type, display_time, space, views), std::move(views)};
 }
 
 std::string xr::session::get_current_interaction_profile(const std::string & path)

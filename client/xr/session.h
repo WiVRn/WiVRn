@@ -66,6 +66,11 @@ public:
 	                                                              XrTime display_time,
 	                                                              XrSpace space);
 
+	XrViewStateFlags locate_views(XrViewConfigurationType view_config_type,
+	                              XrTime display_time,
+	                              XrSpace space,
+	                              std::vector<XrView> & views);
+
 	std::string get_current_interaction_profile(const std::string & path);
 	void attach_actionsets(const std::vector<XrActionSet> & actionsets);
 	std::vector<std::string> sources_for_action(XrAction a);
