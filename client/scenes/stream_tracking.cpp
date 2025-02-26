@@ -451,6 +451,8 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 			default:
 				continue;
 		}
+		if (not(source_space and space))
+			continue;
 		auto pose = locate_space(target, space, source_space, now);
 
 		if (pose.flags & from_headset::tracking::position_valid and pose.flags & from_headset::tracking::orientation_valid)
