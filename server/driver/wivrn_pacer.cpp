@@ -50,7 +50,6 @@ wivrn_pacer::wivrn_pacer(uint64_t frame_duration) :
 	        while (not t.stop_requested())
 	        {
 		        samples.clear();
-		        int64_t res = 0;
 		        {
 			        std::unique_lock lock(compute_mutex);
 			        compute_cv.wait(lock);
@@ -59,16 +58,14 @@ wivrn_pacer::wivrn_pacer(uint64_t frame_duration) :
 				        if (time.decoded > time.present)
 					        samples.push_back(time.decoded - time.present);
 			        }
-			        if (samples.empty())
-				        continue;
-			        auto it = samples.begin() + (samples.size() * 995) / 1000;
-
-			        std::ranges::nth_element(samples, it);
-			        res = *it + 1'000'000;
 		        }
+		        if (samples.empty())
+			        continue;
+		        auto it = samples.begin() + (samples.size() * 995) / 1000;
+		        std::ranges::nth_element(samples, it);
 
 		        std::unique_lock lock(mutex);
-		        safe_present_to_decoded_ns = res;
+		        safe_present_to_decoded_ns = *it + 1'000'000;
 	        }
         })
 {}
