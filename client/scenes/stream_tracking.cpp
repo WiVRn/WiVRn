@@ -26,7 +26,6 @@
 
 #ifdef __ANDROID__
 #include "android/battery.h"
-#include "android/jnipp.h"
 #endif
 
 using tid = to_headset::tracking_control::id;
@@ -169,6 +168,32 @@ static T & from_pool(std::vector<T> & container, std::vector<T> & pool)
 	return result;
 }
 
+static xr::spaces device_to_space(device_id id)
+{
+	switch (id)
+	{
+		case device_id::HEAD:
+			return xr::spaces::view;
+		case device_id::EYE_GAZE:
+			return xr::spaces::eye_gaze;
+		case device_id::LEFT_AIM:
+			return xr::spaces::aim_left;
+		case device_id::LEFT_GRIP:
+			return xr::spaces::grip_left;
+		case device_id::LEFT_PALM:
+			return xr::spaces::palm_left;
+		case device_id::RIGHT_AIM:
+			return xr::spaces::aim_right;
+		case device_id::RIGHT_GRIP:
+			return xr::spaces::grip_right;
+		case device_id::RIGHT_PALM:
+			return xr::spaces::palm_right;
+		default:
+			assert(false);
+			__builtin_unreachable();
+	}
+}
+
 void scenes::stream::tracking()
 {
 #ifdef __ANDROID__
@@ -179,17 +204,20 @@ void scenes::stream::tracking()
 	const XrDuration battery_check_interval = 30'000'000'000; // 30s
 #endif
 
-	std::vector<std::pair<device_id, XrSpace>> spaces = {
-	        {device_id::HEAD, application::space(xr::spaces::view)},
-	        {device_id::LEFT_AIM, application::space(xr::spaces::aim_left)},
-	        {device_id::LEFT_GRIP, application::space(xr::spaces::grip_left)},
-	        {device_id::RIGHT_AIM, application::space(xr::spaces::aim_right)},
-	        {device_id::RIGHT_GRIP, application::space(xr::spaces::grip_right)}};
-
-	if (XrSpace palm = application::space(xr::spaces::palm_left))
-		spaces.emplace_back(device_id::LEFT_PALM, palm);
-	if (XrSpace palm = application::space(xr::spaces::palm_right))
-		spaces.emplace_back(device_id::RIGHT_PALM, palm);
+	std::vector<std::pair<device_id, XrSpace>> spaces;
+	for (auto id: {
+	             device_id::HEAD,
+	             device_id::LEFT_AIM,
+	             device_id::LEFT_GRIP,
+	             device_id::LEFT_PALM,
+	             device_id::RIGHT_AIM,
+	             device_id::RIGHT_GRIP,
+	             device_id::RIGHT_PALM,
+	     })
+	{
+		if (XrSpace space = application::space(device_to_space(id)))
+			spaces.emplace_back(id, space);
+	}
 
 	const auto & config = application::get_config();
 
@@ -423,51 +451,92 @@ void scenes::stream::operator()(to_headset::tracking_control && packet)
 	tracking_control.min_offset = std::min(tracking_control.min_offset, tracking_control.max_offset);
 }
 
+static device_id derived_from(device_id target)
+{
+	switch (target)
+	{
+		case device_id::LEFT_AIM:
+		case device_id::LEFT_PALM:
+			return device_id::LEFT_GRIP;
+		case device_id::RIGHT_AIM:
+		case device_id::RIGHT_PALM:
+			return device_id::RIGHT_GRIP;
+		default:
+			assert(false);
+			__builtin_unreachable();
+	}
+}
+
 void scenes::stream::on_interaction_profile_changed(const XrEventDataInteractionProfileChanged &)
 {
 	auto now = instance.now();
-	for (auto [target, space]: {
-	             std::tuple{device_id::LEFT_AIM, application::space(xr::spaces::aim_left)},
-	             {device_id::LEFT_PALM, application::space(xr::spaces::palm_left)},
-	             {device_id::RIGHT_AIM, application::space(xr::spaces::aim_right)},
-	             {device_id::RIGHT_PALM, application::space(xr::spaces::palm_right)},
+	for (device_id target: {
+	             device_id::LEFT_AIM,
+	             device_id::LEFT_PALM,
+	             device_id::RIGHT_AIM,
+	             device_id::RIGHT_PALM,
 	     })
 	{
-		device_id source;
-		XrSpace source_space = XR_NULL_HANDLE;
-		switch (target)
-		{
-			case device_id::LEFT_AIM:
-			case device_id::LEFT_PALM:
-				source = device_id::LEFT_GRIP;
-				source_space = application::space(xr::spaces::grip_left);
-				break;
-			case device_id::RIGHT_AIM:
-			case device_id::RIGHT_PALM:
-				source = device_id::RIGHT_GRIP;
-				source_space = application::space(xr::spaces::grip_right);
-				break;
-			default:
-				continue;
-		}
-		if (not(source_space and space))
-			continue;
-		auto pose = locate_space(target, space, source_space, now);
+		auto source = derived_from(target);
+		auto source_space = application::space(device_to_space(source));
+		auto target_space = application::space(device_to_space(target));
 
-		if (pose.flags & from_headset::tracking::position_valid and pose.flags & from_headset::tracking::orientation_valid)
+		if (not(source_space and target_space))
 		{
-			network_session->send_control(from_headset::derived_pose{
-			        .source = source,
-			        .target = target,
-			        .relation = pose.pose,
-			});
+			// This may happen if the runtime does not support palm ext
+			// check if we have a device specific offset
+			switch (guess_model())
+			{
+				case model::oculus_quest:
+				case model::oculus_quest_2:
+				case model::meta_quest_pro:
+				case model::meta_quest_3:
+				case model::meta_quest_3s:
+					switch (target)
+					{
+						case device_id::LEFT_PALM:
+						case device_id::RIGHT_PALM: {
+							glm::quat q(glm::vec3(glm::radians(-60.), 0, 0));
+							network_session->send_control(from_headset::derived_pose{
+							        .source = source,
+							        .target = target,
+							        .relation = {
+							                .orientation = {
+							                        .x = q.x,
+							                        .y = q.y,
+							                        .z = q.z,
+							                        .w = q.w,
+							                },
+							        },
+							});
+						}
+						break;
+						default:
+							break;
+					}
+				default:
+					break;
+			}
 		}
 		else
 		{
-			network_session->send_control(from_headset::derived_pose{
-			        .source = target,
-			        .target = target,
-			});
+			if (auto pose = locate_space(target, target_space, source_space, now);
+			    pose.flags & from_headset::tracking::position_valid and pose.flags & from_headset::tracking::orientation_valid)
+			{
+				network_session->send_control(from_headset::derived_pose{
+				        .source = source,
+				        .target = target,
+				        .relation = pose.pose,
+				});
+			}
+			else
+			{
+				// source == target means that the pose cannot be derived
+				network_session->send_control(from_headset::derived_pose{
+				        .source = target,
+				        .target = target,
+				});
+			}
 		}
 	}
 
