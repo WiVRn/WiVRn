@@ -120,7 +120,7 @@ If the server list is empty in the headset app:
       adb reverse tcp:9757 tcp:9757
       adb shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" org.meumeu.wivrn
       ```
-   - Depending on your install type, you may need to replace `org.meumeu.wivrn` (meta store install) with:
+   - Depending on your install type, you may need to replace `org.meumeu.wivrn` (Meta Store install) with:
       - `org.meumeu.wivrn.github` for releases on Github
       - `org.meumeu.wivrn.github.nighly` for Github nigthlies (wirvn-apk repository)
       - `org.meumeu.wivrn.github.testing` for Github CI builds
