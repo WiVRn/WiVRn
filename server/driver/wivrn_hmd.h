@@ -60,6 +60,7 @@ class wivrn_hmd : public xrt_device
 	static xrt_result_t get_visibility_mask(xrt_device * xdev, xrt_visibility_mask_type, uint32_t view_index, xrt_visibility_mask **);
 
 public:
+	using base = xrt_device;
 	wivrn_hmd(wivrn::wivrn_session * cnx,
 	          const from_headset::headset_info_packet & info);
 	void unregister()
@@ -67,7 +68,7 @@ public:
 		cnx = nullptr;
 	}
 
-	xrt_space_relation get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns);
+	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation *);
 	void get_view_poses(const xrt_vec3 * default_eye_relation,
 	                    int64_t at_timestamp_ns,
 	                    uint32_t view_count,

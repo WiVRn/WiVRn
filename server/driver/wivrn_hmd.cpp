@@ -25,6 +25,7 @@
 
 #include "util/u_device.h"
 #include "util/u_logging.h"
+#include "utils/method.h"
 
 #include "xrt_cast.h"
 #include <algorithm>
@@ -39,15 +40,6 @@ namespace wivrn
 {
 
 static void wivrn_hmd_destroy(xrt_device * xdev);
-
-static xrt_result_t wivrn_hmd_get_tracked_pose(xrt_device * xdev,
-                                               xrt_input_name name,
-                                               int64_t at_timestamp_ns,
-                                               xrt_space_relation * out_relation)
-{
-	*out_relation = static_cast<wivrn_hmd *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
-	return XRT_SUCCESS;
-}
 
 static void wivrn_hmd_get_view_poses(xrt_device * xdev,
                                      const xrt_vec3 * default_eye_relation,
@@ -220,7 +212,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	base->tracking_origin = &tracking_origin;
 
 	base->update_inputs = [](xrt_device *) { return XRT_SUCCESS; };
-	base->get_tracked_pose = wivrn_hmd_get_tracked_pose;
+	base->get_tracked_pose = method_pointer<&wivrn_hmd::get_tracked_pose>;
 	base->get_view_poses = wivrn_hmd_get_view_poses;
 	base->get_battery_status = wivrn_hmd_get_battery_status;
 	base->get_visibility_mask = get_visibility_mask;
@@ -276,7 +268,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	hmd->distortion.fov[1] = xrt_cast(info.fov[1]);
 }
 
-xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns)
+xrt_result_t wivrn_hmd::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * res)
 {
 	if (name != XRT_INPUT_GENERIC_HEAD_POSE)
 	{
@@ -284,9 +276,10 @@ xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, int64_t at_t
 		return {};
 	}
 
-	auto [extrapolation_time, res] = views.get_at(at_timestamp_ns);
+	auto [extrapolation_time, view] = views.get_at(at_timestamp_ns);
+	*res = view.relation;
 	cnx->add_predict_offset(extrapolation_time);
-	return res.relation;
+	return XRT_SUCCESS;
 }
 
 void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
