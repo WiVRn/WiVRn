@@ -27,6 +27,7 @@
 #include "decoder/shard_accumulator.h"
 #include "hardware.h"
 #include "spdlog/spdlog.h"
+#include "utils/contains.h"
 #include "utils/named_thread.h"
 #include "utils/ranges.h"
 #include "vk/pipeline.h"
@@ -183,20 +184,15 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 		{
 			info.available_refresh_rates = self->session.get_refresh_rates();
-			if (std::ranges::find(info.available_refresh_rates, config.preferred_refresh_rate) != info.available_refresh_rates.end())
+			if (utils::contains(info.available_refresh_rates, config.preferred_refresh_rate))
 				info.preferred_refresh_rate = config.preferred_refresh_rate;
-			else
-				info.preferred_refresh_rate = self->session.get_current_refresh_rate();
-		}
-
-		if (info.preferred_refresh_rate == 0)
-		{
-			spdlog::warn("Unable to detect preferred refresh rate, using {}", guessed_fps);
-			info.preferred_refresh_rate = guessed_fps;
 		}
 
 		if (info.available_refresh_rates.empty())
+		{
 			spdlog::warn("Unable to detect refresh rates");
+			info.available_refresh_rates = {guessed_fps};
+		}
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);

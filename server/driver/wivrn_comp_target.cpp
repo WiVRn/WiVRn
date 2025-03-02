@@ -75,6 +75,13 @@ static inline struct vk_bundle * get_vk(struct wivrn_comp_target * cn)
 	return &cn->c->base.vk;
 }
 
+static float get_default_rate(const from_headset::headset_info_packet & info)
+{
+	if (info.preferred_refresh_rate)
+		return info.preferred_refresh_rate;
+	return info.available_refresh_rates.back();
+}
+
 #ifdef XRT_FEATURE_RENDERDOC
 static auto renderdoc()
 {
@@ -721,16 +728,8 @@ static xrt_result_t comp_wivrn_get_refresh_rates(struct comp_target * ct, uint32
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 	const auto & rates = cn->cnx.get_info().available_refresh_rates;
-	if (rates.empty())
-	{
-		*count = 1;
-		*refresh_rates_hz = cn->cnx.get_info().preferred_refresh_rate;
-	}
-	else
-	{
-		*count = std::min<uint32_t>(rates.size(), XRT_MAX_SUPPORTED_REFRESH_RATES);
-		std::copy_n(rates.begin(), *count, refresh_rates_hz);
-	}
+	*count = std::min<uint32_t>(rates.size(), XRT_MAX_SUPPORTED_REFRESH_RATES);
+	std::copy_n(rates.begin(), *count, refresh_rates_hz);
 	return XRT_SUCCESS;
 }
 
@@ -745,7 +744,7 @@ static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, flo
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 	if (refresh_rate_hz == 0.0f)
-		refresh_rate_hz = cn->cnx.get_info().preferred_refresh_rate;
+		refresh_rate_hz = get_default_rate(cn->cnx.get_info());
 
 	cn->cnx.send_control(to_headset::refresh_rate_change{.fps = refresh_rate_hz});
 	return XRT_SUCCESS;
@@ -852,9 +851,10 @@ wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_com
                 .request_refresh_rate = comp_wivrn_request_refresh_rate,
                 .destroy = comp_wivrn_destroy,
         },
-        desc{.fps = cnx.get_info().preferred_refresh_rate},
+        desc{.fps = get_default_rate(cnx.get_info())},
         pacer(U_TIME_1S_IN_NS / desc.fps),
         cnx(cnx)
 {
+	c->frame_interval_ns = U_TIME_1S_IN_NS / desc.fps;
 }
 } // namespace wivrn
