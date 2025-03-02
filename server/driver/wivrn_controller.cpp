@@ -488,12 +488,6 @@ static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_outpu
 	static_cast<wivrn_controller *>(xdev)->set_output(name, value);
 }
 
-static xrt_result_t wivrn_controller_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_controller *>(xdev)->update_inputs();
-	return XRT_SUCCESS;
-}
-
 namespace
 {
 struct xrt_space_relation_csv_header
@@ -564,7 +558,7 @@ wivrn_controller::wivrn_controller(int hand_id,
                 .orientation_tracking_supported = true,
                 .position_tracking_supported = true,
                 .hand_tracking_supported = cnx->get_info().hand_tracking,
-                .update_inputs = wivrn_controller_update_inputs,
+                .update_inputs = method_pointer<&wivrn_controller::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_controller::get_tracked_pose>,
                 .get_hand_tracking = wivrn_controller_get_hand_tracking,
                 .set_output = wivrn_controller_set_output,
@@ -683,10 +677,11 @@ wivrn_controller::wivrn_controller(int hand_id,
 	}
 }
 
-void wivrn_controller::update_inputs()
+xrt_result_t wivrn_controller::update_inputs()
 {
 	std::lock_guard _{mutex};
 	inputs_array = inputs_staging;
+	return XRT_SUCCESS;
 }
 
 void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clock_offset & clock_offset)
