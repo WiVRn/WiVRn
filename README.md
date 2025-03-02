@@ -117,12 +117,16 @@ An issue tracking Wired WiVRn can be found [here](https://github.com/WiVRn/WiVRn
 
 - Make sure the WiVRn Server is installed and running on your computer
 - Make sure you have the WiVRn app installed on your headset
-- After starting the "WiVRn Server" on your computer and ensuring your device is connected to your PC via cable, run the following in your terminal:
+- After starting the "WiVRn Server" on your computer and ensuring your device is connected to your PC via cable, run the following in your terminal (Note: using `adb` on some devices may require developer mode to be enabled):
    - ```bash
       adb reverse tcp:9757 tcp:9757
       adb shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" org.meumeu.wivrn
       ```
-   - Note: using `adb` on some devices may require developer mode to be enabled. Replace `org.meumeu.wivrn` with `org.meumeu.wivrn.github` if you downloaded the apk from the GitHub release.
+   - Depending on your install type, you may need to replace `org.meumeu.wivrn` (meta store install) with:
+      - `org.meumeu.wivrn.github` for releases on Github
+      - `org.meumeu.wivrn.github.nighly` for Github nigthlies (wirvn-apk repository)
+      - `org.meumeu.wivrn.github.testing` for Github CI builds
+      - `org.meumeu.wivrn.local` for developer builds
 - Your computer should be automatically paired and the device will show "Connection ready. Start a VR application on **your computer's name**".
 
 ## How do I see server logs when using the dashboard?
