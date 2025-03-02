@@ -40,12 +40,6 @@ namespace wivrn
 
 static void wivrn_hmd_destroy(xrt_device * xdev);
 
-static xrt_result_t wivrn_hmd_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_hmd *>(xdev)->update_inputs();
-	return XRT_SUCCESS;
-}
-
 static xrt_result_t wivrn_hmd_get_tracked_pose(xrt_device * xdev,
                                                xrt_input_name name,
                                                int64_t at_timestamp_ns,
@@ -225,7 +219,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	base->hmd = &hmd_parts;
 	base->tracking_origin = &tracking_origin;
 
-	base->update_inputs = wivrn_hmd_update_inputs;
+	base->update_inputs = [](xrt_device *) { return XRT_SUCCESS; };
 	base->get_tracked_pose = wivrn_hmd_get_tracked_pose;
 	base->get_view_poses = wivrn_hmd_get_view_poses;
 	base->get_battery_status = wivrn_hmd_get_battery_status;
@@ -280,11 +274,6 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	// FOV from headset info packet
 	hmd->distortion.fov[0] = xrt_cast(info.fov[0]);
 	hmd->distortion.fov[1] = xrt_cast(info.fov[1]);
-}
-
-void wivrn_hmd::update_inputs()
-{
-	// Empty
 }
 
 xrt_space_relation wivrn_hmd::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns)
