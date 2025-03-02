@@ -474,11 +474,6 @@ static xrt_binding_profile wivrn_binding_profiles[] = {
 
 static void wivrn_controller_destroy(xrt_device * xdev) {};
 
-static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_output_name name, const union xrt_output_value * value)
-{
-	static_cast<wivrn_controller *>(xdev)->set_output(name, value);
-}
-
 namespace
 {
 struct xrt_space_relation_csv_header
@@ -552,7 +547,7 @@ wivrn_controller::wivrn_controller(int hand_id,
                 .update_inputs = method_pointer<&wivrn_controller::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_controller::get_tracked_pose>,
                 .get_hand_tracking = method_pointer<&wivrn_controller::get_hand_tracking>,
-                .set_output = wivrn_controller_set_output,
+                .set_output = method_pointer<&wivrn_controller::set_output>,
                 .destroy = wivrn_controller_destroy,
         },
         grip(hand_id == 0 ? device_id::LEFT_GRIP : device_id::RIGHT_GRIP),
