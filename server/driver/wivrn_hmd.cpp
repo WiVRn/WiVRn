@@ -188,36 +188,27 @@ xrt_result_t wivrn_hmd::get_visibility_mask(xrt_visibility_mask_type type, uint3
 
 wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
                      const from_headset::headset_info_packet & info) :
-        xrt_device{}, cnx(cnx)
+        xrt_device{
+                .name = XRT_DEVICE_GENERIC_HMD,
+                .device_type = XRT_DEVICE_TYPE_HMD,
+                .str = "WiVRn HMD",
+                .serial = "WiVRn HMD",
+                .hmd = &hmd_parts,
+                .tracking_origin = &tracking_origin,
+                .input_count = 1,
+                .inputs = &pose_input,
+                .orientation_tracking_supported = true,
+                .position_tracking_supported = true,
+                .battery_status_supported = true,
+                .update_inputs = [](xrt_device *) { return XRT_SUCCESS; },
+                .get_tracked_pose = method_pointer<&wivrn_hmd::get_tracked_pose>,
+                .get_view_poses = method_pointer<&wivrn_hmd::get_view_poses>,
+                .get_visibility_mask = method_pointer<&wivrn_hmd::get_visibility_mask>,
+                .get_battery_status = method_pointer<&wivrn_hmd::get_battery_status>,
+                .destroy = [](xrt_device *) {},
+        },
+        cnx(cnx)
 {
-	xrt_device * base = this;
-
-	base->hmd = &hmd_parts;
-	base->tracking_origin = &tracking_origin;
-
-	base->update_inputs = [](xrt_device *) { return XRT_SUCCESS; };
-	base->get_tracked_pose = method_pointer<&wivrn_hmd::get_tracked_pose>;
-	base->get_view_poses = method_pointer<&wivrn_hmd::get_view_poses>;
-	base->get_battery_status = method_pointer<&wivrn_hmd::get_battery_status>;
-	base->get_visibility_mask = method_pointer<&wivrn_hmd::get_visibility_mask>;
-	base->destroy = [](xrt_device *) {};
-	name = XRT_DEVICE_GENERIC_HMD;
-	device_type = XRT_DEVICE_TYPE_HMD;
-	orientation_tracking_supported = true;
-	// hand_tracking_supported = true;
-	battery_status_supported = true;
-	position_tracking_supported = true;
-
-	// Print name.
-	strcpy(str, "WiVRn HMD");
-	strcpy(serial, "WiVRn HMD");
-
-	// Setup input.
-	pose_input.name = XRT_INPUT_GENERIC_HEAD_POSE;
-	pose_input.active = true;
-	inputs = &pose_input;
-	input_count = 1;
-
 	const auto config = configuration::read_user_configuration();
 
 	auto eye_width = info.recommended_eye_width;

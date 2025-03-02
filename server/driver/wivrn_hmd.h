@@ -37,7 +37,10 @@ class wivrn_hmd : public xrt_device
 {
 	std::mutex mutex;
 
-	xrt_input pose_input{};
+	xrt_input pose_input{
+	        .active = true,
+	        .name = XRT_INPUT_GENERIC_HEAD_POSE,
+	};
 	xrt_hmd_parts hmd_parts{};
 	xrt_tracking_origin tracking_origin{
 	        .name = "WiVRn origin",
