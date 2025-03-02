@@ -111,6 +111,22 @@ If the server list is empty in the headset app:
 - If you have a firewall, check that port 9757 (UDP and TCP) is open
 - The server and client must be compatible:
 
+## How do I use a wired connection?
+
+- Make sure the WiVRn Server is installed and running on your computer
+- Make sure you have the WiVRn app installed on your headset
+- After starting the "WiVRn Server" on your computer and ensuring your device is connected to your PC via cable, run the following in your terminal (Note: using `adb` on some devices may require developer mode to be enabled):
+   - ```bash
+      adb reverse tcp:9757 tcp:9757
+      adb shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" org.meumeu.wivrn
+      ```
+   - Depending on your install type, you may need to replace `org.meumeu.wivrn` (Meta Store install) with:
+      - `org.meumeu.wivrn.github` for [releases](https://github.com/WiVRn/WiVRn/releases) on Github
+      - `org.meumeu.wivrn.github.nighly` for Github nightlies (wirvn-apk [repository](https://github.com/WiVRn/WiVRn-APK/releases))
+      - `org.meumeu.wivrn.github.testing` for Github CI builds
+      - `org.meumeu.wivrn.local` for developer builds
+- You can now continue the pairing process as documented in the running section.
+
 ## How do I see server logs when using the dashboard?
 
 ```
