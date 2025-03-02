@@ -226,7 +226,6 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	hmd->distortion.preferred = XRT_DISTORTION_MODEL_NONE;
 	hmd->screens[0].w_pixels = eye_width * 2;
 	hmd->screens[0].h_pixels = eye_height;
-	hmd->screens[0].nominal_frame_interval_ns = 1000000000 / info.preferred_refresh_rate;
 
 	// Left
 	hmd->views[0].display.w_pixels = eye_width;

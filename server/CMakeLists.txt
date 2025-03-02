@@ -85,6 +85,7 @@ if (WIVRN_BUILD_SERVER)
 			encoder/encoder_settings.cpp
 			encoder/video_encoder.cpp
 
+			driver/app_pacer.cpp
 			driver/clock_offset.cpp
 			driver/configuration.cpp
 			driver/wivrn_hmd.cpp

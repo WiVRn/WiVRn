@@ -20,6 +20,7 @@
 #pragma once
 
 #include "clock_offset.h"
+#include "driver/app_pacer.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
@@ -89,6 +90,7 @@ class wivrn_session : public xrt_system_devices
 {
 	friend wivrn_comp_target_factory;
 	std::unique_ptr<wivrn_connection> connection;
+	pacing_app_factory app_pacers;
 
 	u_system & xrt_system;
 	xrt_space_overseer * space_overseer;
