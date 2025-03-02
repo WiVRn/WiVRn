@@ -111,6 +111,20 @@ If the server list is empty in the headset app:
 - If you have a firewall, check that port 9757 (UDP and TCP) is open
 - The server and client must be compatible:
 
+## How do I use a wired connection?
+
+An issue tracking Wired WiVRn can be found [here](https://github.com/WiVRn/WiVRn/issues/30), but the current method is:
+
+- Make sure the WiVRn Server is installed and running on your computer
+- Make sure you have the WiVRn app installed on your headset
+- After starting the "WiVRn Server" on your computer and ensuring your device is connected to your PC via cable, run the following in your terminal:
+   - ```bash
+      adb reverse tcp:9757 tcp:9757
+      adb shell am start -a android.intent.action.VIEW -d "wivrn+tcp://localhost" org.meumeu.wivrn
+      ```
+   - Note: using `adb` on some devices may require developer mode to be enabled. Replace `org.meumeu.wivrn` with `org.meumeu.wivrn.github` if you downloaded the apk from the GitHub release.
+- Your computer should be automatically paired and the device will show "Connection ready. Start a VR application on **your computer's name**".
+
 ## How do I see server logs when using the dashboard?
 
 ```
