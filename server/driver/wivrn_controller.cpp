@@ -474,15 +474,6 @@ static xrt_binding_profile wivrn_binding_profiles[] = {
 
 static void wivrn_controller_destroy(xrt_device * xdev) {};
 
-static void wivrn_controller_get_hand_tracking(xrt_device * xdev,
-                                               xrt_input_name name,
-                                               int64_t desired_timestamp_ns,
-                                               xrt_hand_joint_set * out_value,
-                                               int64_t * out_timestamp_ns)
-{
-	std::tie(*out_value, *out_timestamp_ns) = static_cast<wivrn_controller *>(xdev)->get_hand_tracking(name, desired_timestamp_ns);
-}
-
 static void wivrn_controller_set_output(struct xrt_device * xdev, enum xrt_output_name name, const union xrt_output_value * value)
 {
 	static_cast<wivrn_controller *>(xdev)->set_output(name, value);
@@ -560,7 +551,7 @@ wivrn_controller::wivrn_controller(int hand_id,
                 .hand_tracking_supported = cnx->get_info().hand_tracking,
                 .update_inputs = method_pointer<&wivrn_controller::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_controller::get_tracked_pose>,
-                .get_hand_tracking = wivrn_controller_get_hand_tracking,
+                .get_hand_tracking = method_pointer<&wivrn_controller::get_hand_tracking>,
                 .set_output = wivrn_controller_set_output,
                 .destroy = wivrn_controller_destroy,
         },
@@ -782,21 +773,22 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 	return XRT_SUCCESS;
 }
 
-std::pair<xrt_hand_joint_set, int64_t> wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns)
+void wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns, xrt_hand_joint_set * out_value, int64_t * out_timestamp_ns)
 {
 	switch (name)
 	{
 		case XRT_INPUT_GENERIC_HAND_TRACKING_LEFT:
 		case XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT: {
-			auto [extrapolation_time, data] = joints.get_at(desired_timestamp_ns);
+			*out_timestamp_ns = desired_timestamp_ns;
+			std::chrono::nanoseconds extrapolation_time;
+			std::tie(extrapolation_time, *out_value) = joints.get_at(desired_timestamp_ns);
 			cnx->add_predict_offset(extrapolation_time);
 			cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, true);
-			return {data, desired_timestamp_ns};
+			return;
 		}
 
 		default:
 			U_LOG_W("Unknown input name requested %d", int(name));
-			return {};
 	}
 }
 
