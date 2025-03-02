@@ -38,6 +38,7 @@
 #include "wivrn_ipc.h"
 
 #include "wivrn_packets.h"
+#include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
 #include <cmath>
 #include <magic_enum.hpp>
@@ -243,6 +244,11 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 
 wivrn_session::~wivrn_session()
 {
+	for (size_t i = 0; i < ARRAY_SIZE(xdevs); i++)
+	{
+		xrt_device_destroy(&xdevs[i]);
+	}
+
 	connection->shutdown();
 }
 
