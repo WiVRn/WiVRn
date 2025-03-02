@@ -39,8 +39,6 @@
 namespace wivrn
 {
 
-static void wivrn_hmd_destroy(xrt_device * xdev);
-
 static double foveate(double a, double b, double λ, double c, double x)
 {
 	// In order to save encoding, transmit and decoding time, only a portion of the image is encoded in full resolution.
@@ -202,7 +200,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	base->get_view_poses = method_pointer<&wivrn_hmd::get_view_poses>;
 	base->get_battery_status = method_pointer<&wivrn_hmd::get_battery_status>;
 	base->get_visibility_mask = method_pointer<&wivrn_hmd::get_visibility_mask>;
-	base->destroy = wivrn_hmd_destroy;
+	base->destroy = [](xrt_device *) {};
 	name = XRT_DEVICE_GENERIC_HMD;
 	device_type = XRT_DEVICE_TYPE_HMD;
 	orientation_tracking_supported = true;
@@ -408,16 +406,5 @@ void wivrn_hmd::update_visibility_mask(const from_headset::visibility_mask_chang
 	assert(mask.view_index < 2);
 	auto m = visibility_mask.lock();
 	m->at(mask.view_index) = mask.data;
-}
-
-/*
- *
- * Functions
- *
- */
-
-static void wivrn_hmd_destroy(xrt_device * xdev)
-{
-	static_cast<wivrn_hmd *>(xdev)->unregister();
 }
 } // namespace wivrn

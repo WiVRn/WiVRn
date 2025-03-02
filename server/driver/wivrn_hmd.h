@@ -63,10 +63,6 @@ public:
 	using base = xrt_device;
 	wivrn_hmd(wivrn::wivrn_session * cnx,
 	          const from_headset::headset_info_packet & info);
-	void unregister()
-	{
-		cnx = nullptr;
-	}
 
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation *);
 	void get_view_poses(const xrt_vec3 * default_eye_relation,
