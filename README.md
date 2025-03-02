@@ -113,8 +113,6 @@ If the server list is empty in the headset app:
 
 ## How do I use a wired connection?
 
-An issue tracking Wired WiVRn can be found [here](https://github.com/WiVRn/WiVRn/issues/30), but the current method is:
-
 - Make sure the WiVRn Server is installed and running on your computer
 - Make sure you have the WiVRn app installed on your headset
 - After starting the "WiVRn Server" on your computer and ensuring your device is connected to your PC via cable, run the following in your terminal (Note: using `adb` on some devices may require developer mode to be enabled):
@@ -127,7 +125,7 @@ An issue tracking Wired WiVRn can be found [here](https://github.com/WiVRn/WiVRn
       - `org.meumeu.wivrn.github.nighly` for Github nigthlies (wirvn-apk repository)
       - `org.meumeu.wivrn.github.testing` for Github CI builds
       - `org.meumeu.wivrn.local` for developer builds
-- Your computer should be automatically paired and the device will show "Connection ready. Start a VR application on **your computer's name**".
+- You can now continue the pairing process as documented in the running section.
 
 ## How do I see server logs when using the dashboard?
 
