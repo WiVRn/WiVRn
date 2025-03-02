@@ -21,6 +21,7 @@
 #include "configuration.h"
 #include "driver/xrt_cast.h"
 #include "math/m_api.h"
+#include "utils/method.h"
 #include "wivrn_session.h"
 
 #include "util/u_logging.h"
@@ -473,15 +474,6 @@ static xrt_binding_profile wivrn_binding_profiles[] = {
 
 static void wivrn_controller_destroy(xrt_device * xdev) {};
 
-static xrt_result_t wivrn_controller_get_tracked_pose(xrt_device * xdev,
-                                                      xrt_input_name name,
-                                                      int64_t at_timestamp_ns,
-                                                      xrt_space_relation * out_relation)
-{
-	*out_relation = static_cast<wivrn_controller *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
-	return XRT_SUCCESS;
-}
-
 static void wivrn_controller_get_hand_tracking(xrt_device * xdev,
                                                xrt_input_name name,
                                                int64_t desired_timestamp_ns,
@@ -573,7 +565,7 @@ wivrn_controller::wivrn_controller(int hand_id,
                 .position_tracking_supported = true,
                 .hand_tracking_supported = cnx->get_info().hand_tracking,
                 .update_inputs = wivrn_controller_update_inputs,
-                .get_tracked_pose = wivrn_controller_get_tracked_pose,
+                .get_tracked_pose = method_pointer<&wivrn_controller::get_tracked_pose>,
                 .get_hand_tracking = wivrn_controller_get_hand_tracking,
                 .set_output = wivrn_controller_set_output,
                 .destroy = wivrn_controller_destroy,
@@ -748,23 +740,22 @@ void wivrn_controller::set_inputs(const from_headset::inputs & inputs, const clo
 	}
 }
 
-xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns)
+xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * res)
 {
 	std::chrono::nanoseconds extrapolation_time;
-	xrt_space_relation res;
 	device_id device;
 	switch (name)
 	{
 		case XRT_INPUT_TOUCH_AIM_POSE:
-			std::tie(extrapolation_time, res, device) = aim.get_pose_at(at_timestamp_ns);
+			std::tie(extrapolation_time, *res, device) = aim.get_pose_at(at_timestamp_ns);
 			cnx->set_enabled(device, true);
 			break;
 		case XRT_INPUT_TOUCH_GRIP_POSE:
-			std::tie(extrapolation_time, res, device) = grip.get_pose_at(at_timestamp_ns);
+			std::tie(extrapolation_time, *res, device) = grip.get_pose_at(at_timestamp_ns);
 			cnx->set_enabled(device, true);
 			break;
 		case XRT_INPUT_GENERIC_PALM_POSE:
-			std::tie(extrapolation_time, res, device) = palm.get_pose_at(at_timestamp_ns);
+			std::tie(extrapolation_time, *res, device) = palm.get_pose_at(at_timestamp_ns);
 			cnx->set_enabled(device, true);
 			break;
 		default:
@@ -790,10 +781,10 @@ xrt_space_relation wivrn_controller::get_tracked_pose(xrt_input_name name, int64
 		    << at_timestamp_ns << ','
 		    << extrapolation_time.count() << ','
 		    << "g,"
-		    << res << std::endl;
+		    << *res << std::endl;
 		;
 	}
-	return res;
+	return XRT_SUCCESS;
 }
 
 std::pair<xrt_hand_joint_set, int64_t> wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns)

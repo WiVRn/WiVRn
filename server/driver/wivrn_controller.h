@@ -47,11 +47,12 @@ class wivrn_controller : public xrt_device
 	wivrn::wivrn_session * cnx;
 
 public:
+	using base = xrt_device;
 	wivrn_controller(int hand_id, xrt_device * hmd, wivrn::wivrn_session * cnx);
 
 	void update_inputs();
 
-	xrt_space_relation get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns);
+	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 	std::pair<xrt_hand_joint_set, int64_t> get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns);
 
 	void set_output(xrt_output_name name, const xrt_output_value * value);
