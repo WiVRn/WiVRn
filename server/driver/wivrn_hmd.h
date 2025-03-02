@@ -75,8 +75,7 @@ public:
 	                    xrt_space_relation * out_head_relation,
 	                    xrt_fov * out_fovs,
 	                    xrt_pose * out_poses);
-	xrt_result_t get_battery_status(struct xrt_device * xdev,
-	                                bool * out_present,
+	xrt_result_t get_battery_status(bool * out_present,
 	                                bool * out_charging,
 	                                float * out_charge);
 

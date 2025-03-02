@@ -41,11 +41,6 @@ namespace wivrn
 
 static void wivrn_hmd_destroy(xrt_device * xdev);
 
-static xrt_result_t wivrn_hmd_get_battery_status(struct xrt_device * xdev,
-                                                 bool * out_present,
-                                                 bool * out_charging,
-                                                 float * out_charge);
-
 static double foveate(double a, double b, double λ, double c, double x)
 {
 	// In order to save encoding, transmit and decoding time, only a portion of the image is encoded in full resolution.
@@ -206,7 +201,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	base->update_inputs = [](xrt_device *) { return XRT_SUCCESS; };
 	base->get_tracked_pose = method_pointer<&wivrn_hmd::get_tracked_pose>;
 	base->get_view_poses = method_pointer<&wivrn_hmd::get_view_poses>;
-	base->get_battery_status = wivrn_hmd_get_battery_status;
+	base->get_battery_status = method_pointer<&wivrn_hmd::get_battery_status>;
 	base->get_visibility_mask = get_visibility_mask;
 	base->destroy = wivrn_hmd_destroy;
 	name = XRT_DEVICE_GENERIC_HMD;
@@ -322,8 +317,7 @@ void wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
 	}
 }
 
-xrt_result_t wivrn_hmd::get_battery_status(struct xrt_device * xdev,
-                                           bool * out_present,
+xrt_result_t wivrn_hmd::get_battery_status(bool * out_present,
                                            bool * out_charging,
                                            float * out_charge)
 {
@@ -426,13 +420,5 @@ void wivrn_hmd::update_visibility_mask(const from_headset::visibility_mask_chang
 static void wivrn_hmd_destroy(xrt_device * xdev)
 {
 	static_cast<wivrn_hmd *>(xdev)->unregister();
-}
-
-static xrt_result_t wivrn_hmd_get_battery_status(struct xrt_device * xdev,
-                                                 bool * out_present,
-                                                 bool * out_charging,
-                                                 float * out_charge)
-{
-	return static_cast<wivrn_hmd *>(xdev)->get_battery_status(xdev, out_present, out_charging, out_charge);
 }
 } // namespace wivrn
