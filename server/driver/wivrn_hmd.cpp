@@ -41,14 +41,6 @@ namespace wivrn
 
 static void wivrn_hmd_destroy(xrt_device * xdev);
 
-static void wivrn_hmd_get_view_poses(xrt_device * xdev,
-                                     const xrt_vec3 * default_eye_relation,
-                                     int64_t at_timestamp_ns,
-                                     uint32_t view_count,
-                                     xrt_space_relation * out_head_relation,
-                                     xrt_fov * out_fovs,
-                                     xrt_pose * out_poses);
-
 static xrt_result_t wivrn_hmd_get_battery_status(struct xrt_device * xdev,
                                                  bool * out_present,
                                                  bool * out_charging,
@@ -213,7 +205,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 
 	base->update_inputs = [](xrt_device *) { return XRT_SUCCESS; };
 	base->get_tracked_pose = method_pointer<&wivrn_hmd::get_tracked_pose>;
-	base->get_view_poses = wivrn_hmd_get_view_poses;
+	base->get_view_poses = method_pointer<&wivrn_hmd::get_view_poses>;
 	base->get_battery_status = wivrn_hmd_get_battery_status;
 	base->get_visibility_mask = get_visibility_mask;
 	base->destroy = wivrn_hmd_destroy;
@@ -434,17 +426,6 @@ void wivrn_hmd::update_visibility_mask(const from_headset::visibility_mask_chang
 static void wivrn_hmd_destroy(xrt_device * xdev)
 {
 	static_cast<wivrn_hmd *>(xdev)->unregister();
-}
-
-static void wivrn_hmd_get_view_poses(xrt_device * xdev,
-                                     const xrt_vec3 * default_eye_relation,
-                                     int64_t at_timestamp_ns,
-                                     uint32_t view_count,
-                                     xrt_space_relation * out_head_relation,
-                                     xrt_fov * out_fovs,
-                                     xrt_pose * out_poses)
-{
-	static_cast<wivrn_hmd *>(xdev)->get_view_poses(default_eye_relation, at_timestamp_ns, view_count, out_head_relation, out_fovs, out_poses);
 }
 
 static xrt_result_t wivrn_hmd_get_battery_status(struct xrt_device * xdev,
