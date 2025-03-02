@@ -57,7 +57,7 @@ class wivrn_hmd : public xrt_device
 
 	static bool wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_index, float u, float v, xrt_uv_triplet * result);
 
-	static xrt_result_t get_visibility_mask(xrt_device * xdev, xrt_visibility_mask_type, uint32_t view_index, xrt_visibility_mask **);
+	xrt_result_t get_visibility_mask(xrt_visibility_mask_type, uint32_t view_index, xrt_visibility_mask **);
 
 public:
 	using base = xrt_device;

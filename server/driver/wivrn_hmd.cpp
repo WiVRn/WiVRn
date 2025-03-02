@@ -163,13 +163,12 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 	return true;
 }
 
-xrt_result_t wivrn_hmd::get_visibility_mask(xrt_device * xdev, xrt_visibility_mask_type type, uint32_t view_index, xrt_visibility_mask ** mask)
+xrt_result_t wivrn_hmd::get_visibility_mask(xrt_visibility_mask_type type, uint32_t view_index, xrt_visibility_mask ** mask)
 {
 	static_assert(sizeof(uint32_t) == sizeof(decltype(from_headset::visibility_mask_changed::mask::indices)::value_type));
 	static_assert(sizeof(xrt_vec2) == sizeof(decltype(from_headset::visibility_mask_changed::mask::vertices)::value_type));
-	auto self = (wivrn_hmd *)xdev;
 	type = xrt_visibility_mask_type((unsigned int)type - 1); // enum values start at 1
-	const auto visibility_mask = self->visibility_mask.lock();
+	const auto visibility_mask = this->visibility_mask.lock();
 	if (type >= from_headset::visibility_mask_changed::num_types or view_index >= 2 or not(*visibility_mask)[view_index])
 	{
 		*mask = (xrt_visibility_mask *)calloc(1, sizeof(xrt_visibility_mask));
@@ -202,7 +201,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 	base->get_tracked_pose = method_pointer<&wivrn_hmd::get_tracked_pose>;
 	base->get_view_poses = method_pointer<&wivrn_hmd::get_view_poses>;
 	base->get_battery_status = method_pointer<&wivrn_hmd::get_battery_status>;
-	base->get_visibility_mask = get_visibility_mask;
+	base->get_visibility_mask = method_pointer<&wivrn_hmd::get_visibility_mask>;
 	base->destroy = wivrn_hmd_destroy;
 	name = XRT_DEVICE_GENERIC_HMD;
 	device_type = XRT_DEVICE_TYPE_HMD;
