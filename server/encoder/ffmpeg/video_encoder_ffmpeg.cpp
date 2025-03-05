@@ -68,11 +68,16 @@ bool video_encoder_ffmpeg::once = set_log_level();
 
 std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot)
 {
-	if (auto bitrate = pending_bitrate.exchange(BITRATE_UNCHANGED))
+	if (auto bitrate = pending_bitrate.exchange(0))
 	{
 		idr = true;
 		encoder_ctx->bit_rate = bitrate;
 		encoder_ctx->rc_max_rate = bitrate;
+	}
+	if (auto framerate = pending_framerate.exchange(0))
+	{
+		idr = true;
+		encoder_ctx->framerate = AVRational{.num = int(framerate * 1000), .den = 1000};
 	}
 
 	push_frame(idr, target_timestamp, slot);

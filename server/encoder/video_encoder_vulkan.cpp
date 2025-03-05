@@ -59,7 +59,7 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
         float fps,
         uint8_t stream_idx,
         const encoder_settings & settings) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect), fps(fps)
+        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect)
 {
 	// Initialize Rate control
 	U_LOG_D("Supported rate control modes: %s", vk::to_string(encode_caps.rateControlModes).c_str());
@@ -693,7 +693,8 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		session_initialized = true;
 	}
 
-	if (auto bitrate = pending_bitrate.exchange(BITRATE_UNCHANGED); bitrate and rate_control)
+	bool update_rate_control = false;
+	if (auto bitrate = pending_bitrate.exchange(0); bitrate and rate_control)
 	{
 		rate_control_layer.averageBitrate = std::min<uint64_t>(bitrate, encode_caps.maxBitrate);
 		switch (rate_control->rateControlMode)
@@ -707,12 +708,20 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 			default:
 				break;
 		}
+		update_rate_control = true;
+	}
+	if (auto framerate = pending_framerate.exchange(0); framerate and rate_control)
+	{
+		rate_control_layer.frameRateNumerator = uint32_t(framerate * 1'000'000);
+		rate_control_layer.frameRateDenominator = 1'000'000;
+		update_rate_control = true;
+	}
+	if (update_rate_control)
 		video_cmd_buf.controlVideoCodingKHR(
 		        vk::VideoCodingControlInfoKHR{
 		                .pNext = &rate_control.value(),
 		                .flags = vk::VideoCodingControlFlagBitsKHR::eEncodeRateControl,
 		        });
-	}
 
 	vk::VideoEncodeInfoKHR encode_info{
 	        .pNext = encode_info_next(frame_num, slot_index, ref_slot ? std::make_optional(ref_slot->info.slotIndex) : std::nullopt),

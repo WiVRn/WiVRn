@@ -238,6 +238,11 @@ void video_encoder::set_bitrate(int bitrate_bps)
 	pending_bitrate = bitrate_bps;
 }
 
+void video_encoder::set_framerate(float framerate)
+{
+	pending_framerate = framerate;
+}
+
 std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index)
 {
 	// Wait for encoder to be done

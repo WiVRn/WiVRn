@@ -78,7 +78,6 @@ class video_encoder_vulkan : public video_encoder
 	std::atomic<uint64_t> last_ack = 0;
 	bool session_initialized = false;
 	const vk::Rect2D rect;
-	const float fps;
 
 	vk::VideoEncodeRateControlLayerInfoKHR rate_control_layer;
 
