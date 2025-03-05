@@ -101,6 +101,9 @@ private:
 
 	std::shared_ptr<sender> shared_sender;
 
+protected:
+	std::atomic_int pending_bitrate;
+
 public:
 	static std::unique_ptr<video_encoder> create(
 	        wivrn_vk_bundle &,
@@ -124,14 +127,11 @@ public:
 
 	virtual void on_feedback(const from_headset::feedback &);
 	virtual void reset();
-	virtual void set_bitrate(int bitrate_bps);
+	void set_bitrate(int bitrate_bps);
 
 	void encode(wivrn_session & cnx,
 	            const to_headset::video_stream_data_shard::view_info_t & view_info,
 	            uint64_t frame_index);
-
-protected:
-	std::atomic_int pending_bitrate;
 
 	// called on present to submit command buffers for the image.
 	virtual std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) = 0;
