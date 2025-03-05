@@ -236,13 +236,23 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 
 std::optional<video_encoder::data> video_encoder_x264::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
-	if (auto bitrate = pending_bitrate.exchange(BITRATE_UNCHANGED))
+	bool reconfigure = false;
+	if (auto framerate = pending_framerate.exchange(0))
 	{
+		reconfigure = true;
+		param.i_fps_num = framerate * 1'000'000;
+		param.i_fps_den = 1'000'000;
+	}
+	if (auto bitrate = pending_bitrate.exchange(0))
+	{
+		reconfigure = true;
 		auto fps_mul = param.i_fps_num / (float)param.i_fps_den;
 		param.rc.i_bitrate = bitrate / 1000;
 		param.rc.i_vbv_buffer_size = param.rc.i_bitrate / fps_mul * 1.1;
 		param.rc.i_vbv_max_bitrate = param.rc.i_bitrate;
-		U_LOG_W("set bitrate: %d", param.rc.i_bitrate);
+	}
+	if (reconfigure)
+	{
 		x264_encoder_reconfig(enc, &param);
 		idr = true;
 	}

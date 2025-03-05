@@ -826,6 +826,8 @@ void wivrn_comp_target::set_refresh_rate(float refresh_rate_hz)
 	desc.fps = refresh_rate_hz;
 	c->frame_interval_ns = U_TIME_1S_IN_NS / refresh_rate_hz;
 	pacer.set_frame_duration(c->frame_interval_ns);
+	for (auto & encoder: encoders)
+		encoder->set_framerate(refresh_rate_hz);
 }
 
 wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c) :

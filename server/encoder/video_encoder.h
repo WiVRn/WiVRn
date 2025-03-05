@@ -33,8 +33,6 @@
 #include <thread>
 #include <vulkan/vulkan_raii.hpp>
 
-#define BITRATE_UNCHANGED 0
-
 namespace wivrn
 {
 
@@ -103,6 +101,7 @@ private:
 
 protected:
 	std::atomic_int pending_bitrate;
+	std::atomic<float> pending_framerate;
 
 public:
 	static std::unique_ptr<video_encoder> create(
@@ -128,6 +127,7 @@ public:
 	virtual void on_feedback(const from_headset::feedback &);
 	virtual void reset();
 	void set_bitrate(int bitrate_bps);
+	void set_framerate(float framerate);
 
 	void encode(wivrn_session & cnx,
 	            const to_headset::video_stream_data_shard::view_info_t & view_info,
