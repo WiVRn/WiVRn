@@ -1,0 +1,366 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the WiVRn package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: WiVRn\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-03-07 15:04+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: client/scenes/lobby.cpp:148
+msgid "No supported swapchain format"
+msgstr "不支援的交換鏈格式"
+
+#: client/scenes/lobby.cpp:228
+msgid "Incompatible WiVRn server: no protocol field in TXT"
+msgstr "不相容的 WiVRn 伺服器: TXT 中沒有協議欄位"
+
+#: client/scenes/lobby.cpp:231
+#, c++-format
+msgid "Incompatible WiVRn server protocol (client: {}, server: {})"
+msgstr "不相容的 WiVRn 伺服器協議（用戶端: {}，伺服器: {}）"
+
+#: client/scenes/lobby.cpp:246
+#, c++-format
+msgid "Cannot resolve hostname: {}"
+msgstr "無法解析主機名稱: {}"
+
+#: client/scenes/lobby.cpp:333 client/scenes/lobby.cpp:339
+#, c++-format
+msgid "Cannot connect to {} ({}): {}"
+msgstr "無法連線至 {} ({}): {}"
+
+#: client/scenes/lobby.cpp:453
+msgid "Waiting for connection"
+msgstr "等待連線"
+
+#: client/scenes/lobby_gui.cpp:172 client/scenes/lobby_gui.cpp:366
+msgid "Cancel"
+msgstr "取消"
+
+#: client/scenes/lobby_gui.cpp:178
+msgid "Video stream interrupted"
+msgstr "影片串流中斷"
+
+#: client/scenes/lobby_gui.cpp:180
+msgid ""
+"Connection ready\n"
+"Start a VR application on your computer"
+msgstr ""
+"連線已就緒\n"
+"請在您的電腦上啟動 VR 應用程式"
+
+#: client/scenes/lobby_gui.cpp:182
+#, c++-format
+msgid ""
+"Connection ready\n"
+"Start a VR application on {}"
+msgstr ""
+"連線已就緒\n"
+"請在 {} 上啟動 VR 應用程式"
+
+#: client/scenes/lobby_gui.cpp:195
+msgid "Close"
+msgstr "關閉"
+
+#: client/scenes/lobby_gui.cpp:201
+msgid "Connection"
+msgstr "連線"
+
+#: client/scenes/lobby_gui.cpp:203
+#, c++-format
+msgid "Connection to {}"
+msgstr "連線至 {}"
+
+#: client/scenes/lobby_gui.cpp:233
+msgid "PIN"
+msgstr "PIN"
+
+#: client/scenes/lobby_gui.cpp:255
+msgid "Input the PIN displayed on the dashboard"
+msgstr "請輸入控制面板上顯示的 PIN 碼"
+
+#: client/scenes/lobby_gui.cpp:331
+msgid "Name"
+msgstr "名"
+
+#: client/scenes/lobby_gui.cpp:342
+msgid "Address"
+msgstr "位址"
+
+#: client/scenes/lobby_gui.cpp:351
+msgid "Port"
+msgstr "連接埠"
+
+#: client/scenes/lobby_gui.cpp:359
+msgid "TCP only"
+msgstr "僅限 TCP"
+
+#: client/scenes/lobby_gui.cpp:380
+msgid "Save"
+msgstr "儲存"
+
+#: client/scenes/lobby_gui.cpp:433
+msgid ""
+"Start a WiVRn server on your\n"
+"local network"
+msgstr ""
+"在您的區域網路中啟動\n"
+"WiVRn 伺服器"
+
+#: client/scenes/lobby_gui.cpp:465
+msgid "Autoconnect"
+msgstr "自動連線"
+
+#: client/scenes/lobby_gui.cpp:491
+msgid "Connect"
+msgstr "連線"
+
+#: client/scenes/lobby_gui.cpp:501
+msgid "Incompatible server version"
+msgstr "伺服器版本不相容"
+
+#: client/scenes/lobby_gui.cpp:503
+msgid "Server not available"
+msgstr "無法使用伺服器"
+
+#: client/scenes/lobby_gui.cpp:588
+msgid "Refresh rate"
+msgstr "刷新率"
+
+#: client/scenes/lobby_gui.cpp:588 client/scenes/lobby_gui.cpp:590
+msgid "No preference"
+msgstr "無偏好"
+
+#: client/scenes/lobby_gui.cpp:616
+msgid "Resolution scale"
+msgstr "解析度縮放比例"
+
+#: client/scenes/lobby_gui.cpp:616
+#, c-format, c++-format
+msgid "%d%% - {}x{} per eye"
+msgstr "%d%% - 每眼 {}x{}"
+
+#: client/scenes/lobby_gui.cpp:626
+#, c++-format
+msgid "Resolution larger than {}x{} may not be supported by the headset"
+msgstr "解析度高於 {}x{} 可能不被頭戴式裝置支援"
+
+#: client/scenes/lobby_gui.cpp:632
+msgid "Enable microphone"
+msgstr "啟用麥克風"
+
+#: client/scenes/lobby_gui.cpp:642
+msgid "Unprocessed Microphone Audio"
+msgstr "未處理的麥克風音訊"
+
+#: client/scenes/lobby_gui.cpp:648
+msgid "Force disable audio filters, such as noise cancellation"
+msgstr "強制停用音訊濾波器，例如降噪"
+
+#: client/scenes/lobby_gui.cpp:655
+msgid "Enable hand tracking"
+msgstr "啟用手部追蹤"
+
+#: client/scenes/lobby_gui.cpp:662 client/scenes/lobby_gui.cpp:675
+#: client/scenes/lobby_gui.cpp:688 client/scenes/lobby_gui.cpp:700
+msgid "This feature is not supported by your headset"
+msgstr "您的頭戴式裝置不支援此功能"
+
+#: client/scenes/lobby_gui.cpp:668
+msgid "Enable eye tracking"
+msgstr "啟用眼球追蹤"
+
+#: client/scenes/lobby_gui.cpp:681
+msgid "Enable face tracking"
+msgstr "啟用臉部追蹤"
+
+#: client/scenes/lobby_gui.cpp:693
+msgid "Enable video passthrough in lobby"
+msgstr "在待機區啟用影像穿透 (Passthrough)"
+
+#: client/scenes/lobby_gui.cpp:703
+msgid "Show performance metrics"
+msgstr "顯示效能指標"
+
+#: client/scenes/lobby_gui.cpp:707
+msgid "Overlay can be toggled by pressing both thumbsticks"
+msgstr "同時按下兩個拇指搖桿可以切換覆蓋層"
+
+#: client/scenes/lobby_gui.cpp:737 client/scenes/lobby_gui.cpp:745
+#: client/scenes/stream_stats.cpp:159
+msgid "CPU time"
+msgstr "CPU 時間"
+
+#: client/scenes/lobby_gui.cpp:741
+msgid "CPU time [ms]"
+msgstr "CPU 時間 [ms]"
+
+#: client/scenes/lobby_gui.cpp:751 client/scenes/lobby_gui.cpp:759
+#: client/scenes/stream_stats.cpp:161
+msgid "GPU time"
+msgstr "GPU 時間"
+
+#: client/scenes/lobby_gui.cpp:755
+msgid "GPU time [ms]"
+msgstr "GPU 時間 [ms]"
+
+#: client/scenes/lobby_gui.cpp:845 client/scenes/lobby_gui.cpp:1484
+msgid "Licenses"
+msgstr "授權資訊"
+
+#: client/scenes/lobby_gui.cpp:1184
+msgid "Microphone is enabled"
+msgstr "麥克風已啟用"
+
+#: client/scenes/lobby_gui.cpp:1185
+msgid "Microphone is disabled"
+msgstr "麥克風已停用"
+
+#: client/scenes/lobby_gui.cpp:1194
+msgid "Hand tracking is enabled"
+msgstr "手部追蹤已啟用"
+
+#: client/scenes/lobby_gui.cpp:1195
+msgid "Hand tracking is disabled"
+msgstr "手部追蹤已停用"
+
+#: client/scenes/lobby_gui.cpp:1204
+msgid "Eye tracking is enabled"
+msgstr "眼球追蹤已啟用"
+
+#: client/scenes/lobby_gui.cpp:1205
+msgid "Eye tracking is disabled"
+msgstr "眼球追蹤已停用"
+
+#: client/scenes/lobby_gui.cpp:1215 client/scenes/lobby_gui.cpp:1226
+msgid "Face tracking is enabled"
+msgstr "臉部追蹤已啟用"
+
+#: client/scenes/lobby_gui.cpp:1216 client/scenes/lobby_gui.cpp:1227
+msgid "Face tracking is disabled"
+msgstr "臉部追蹤已停用"
+
+#: client/scenes/lobby_gui.cpp:1244
+msgid "Add server"
+msgstr "新增伺服器"
+
+#: client/scenes/lobby_gui.cpp:1469
+msgid "Server list"
+msgstr "伺服器列表"
+
+#: client/scenes/lobby_gui.cpp:1472
+msgid "Settings"
+msgstr "設定"
+
+#: client/scenes/lobby_gui.cpp:1476
+msgid "Debug"
+msgstr "偵錯"
+
+#: client/scenes/lobby_gui.cpp:1481
+msgid "About"
+msgstr "關於"
+
+#: client/scenes/lobby_gui.cpp:1487
+msgid "Exit"
+msgstr "離開"
+
+#: client/scenes/lobby_gui.cpp:1501
+msgid ""
+"Press A or X or put your palm up\n"
+"to move the main window"
+msgstr ""
+"按下 A 或 X 鍵，或將手掌向上\n"
+"即可移動主視窗"
+
+#: client/scenes/lobby_gui.cpp:1503
+msgid "Press A or X to move the main window"
+msgstr "按下 A 或 X 鍵即可移動主視窗"
+
+#: client/scenes/stream_stats.cpp:161
+msgid "Reproject"
+msgstr "重新投影"
+
+#: client/scenes/stream_stats.cpp:162
+msgid "Blit"
+msgstr "貼圖"
+
+#: client/scenes/stream_stats.cpp:164
+msgid "Network"
+msgstr "網路"
+
+#: client/scenes/stream_stats.cpp:164
+msgid "Download"
+msgstr "下載"
+
+#: client/scenes/stream_stats.cpp:165
+msgid "Upload"
+msgstr "上傳"
+
+#: client/scenes/stream_stats.cpp:234
+#, c++-format
+msgid "Decoder {}"
+msgstr "解碼器 {}"
+
+#: client/scenes/stream_stats.cpp:246
+msgid "Timings [ms]"
+msgstr "時間資訊 [ms]"
+
+#: client/scenes/stream_stats.cpp:306
+msgid "Encode"
+msgstr "編碼"
+
+#: client/scenes/stream_stats.cpp:307
+msgid "Send"
+msgstr "傳送"
+
+#: client/scenes/stream_stats.cpp:308
+msgid "Receive"
+msgstr "接收"
+
+#: client/scenes/stream_stats.cpp:309
+msgid "Decode"
+msgstr "解碼"
+
+#: client/scenes/stream_stats.cpp:310
+msgid "Blitted"
+msgstr "已貼圖"
+
+#: client/scenes/stream_stats.cpp:311
+msgid "Displayed"
+msgstr "已顯示"
+
+#: client/scenes/stream_stats.cpp:312
+msgid "Predicted"
+msgstr "已預測"
+
+#: client/scenes/stream_stats.cpp:330
+#, c++-format
+msgid "Estimated motion to photons latency: {}ms"
+msgstr "估計運動到光子的延遲: {}毫秒"
+
+#: client/wivrn_client.cpp:97 client/wivrn_client.cpp:196
+msgid "Timeout"
+msgstr "逾時"
+
+#: client/wivrn_client.cpp:147
+msgid "Incorrect PIN"
+msgstr "PIN 碼錯誤"
+
+#: client/wivrn_client.cpp:151
+msgid "Unable to check PIN"
+msgstr "無法驗證 PIN 碼"
+
+#: client/wivrn_client.cpp:180
+msgid "Pairing is disabled on server"
+msgstr "伺服器上已停用配對"
