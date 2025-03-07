@@ -552,18 +552,17 @@ void imgui_context::initialize_fonts()
 	ImWchar default_ranges[] = {0x20, 0x7f, 0xa0, 0xff, 0};
 	glyph_range_builder.AddRanges(default_ranges);
 
-	for (auto language = application::get_messages_info().language; language != ""; language = language.substr(0, language.size() - 1))
 	{
-		auto it = glyph_set_per_language.find(language);
+		const auto & locale = application::get_messages_info();
+		auto it = glyph_set_per_language.find(locale.language + "_" + locale.country);
 		if (it == glyph_set_per_language.end())
-			continue;
+			it = glyph_set_per_language.find(locale.language);
 
-		for (ImWchar c: it->second)
+		if (it != glyph_set_per_language.end())
 		{
-			glyph_range_builder.AddChar(c);
+			for (ImWchar c: it->second)
+				glyph_range_builder.AddChar(c);
 		}
-
-		break;
 	}
 
 	glyph_range_builder.BuildRanges(&glyph_ranges);
