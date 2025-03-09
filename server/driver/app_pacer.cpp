@@ -111,8 +111,10 @@ void app_pacer::predict(int64_t now_ns,
 
 	// no need to lock, called in same thread as writes
 	auto min_ready = now_ns + cpu_time + gpu_time + compositor_time;
+	// The ideal display time: one frame after the last
+	auto display_time = last_display_time + period;
 
-	if (cpu_time > period or gpu_time > period)
+	if (cpu_time > period or gpu_time > period or (display_time < min_ready and min_ready < display_time + period))
 	{
 		// We are limited by app time, don't wait
 		*out_wake_up_time = now_ns;
@@ -123,8 +125,6 @@ void app_pacer::predict(int64_t now_ns,
 	}
 	else
 	{
-		auto display_time = last_display_time + period;
-
 		// Ensure display time is achievable
 		while (display_time < min_ready)
 			display_time += period;
