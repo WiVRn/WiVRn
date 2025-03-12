@@ -32,6 +32,7 @@ class app_pacer : public u_pacing_app
 {
 	pacing_app_factory & parent;
 	int64_t frame_id = 0;
+	int64_t compositor_display_time = 0;
 	int64_t last_display_time = 0;
 	int64_t period = 10'000'000;
 
@@ -112,26 +113,28 @@ void app_pacer::predict(int64_t now_ns,
 	// no need to lock, called in same thread as writes
 	auto min_ready = now_ns + cpu_time + gpu_time + compositor_time;
 	// The ideal display time: one frame after the last
-	auto display_time = last_display_time + period;
+	last_display_time += period;
+	// Sync phase with compositor
+	last_display_time = compositor_display_time + period * ((period / 2 + last_display_time - compositor_display_time) / period);
 
-	if (cpu_time > period or gpu_time > period or (display_time < min_ready and min_ready < display_time + period))
+	if (cpu_time > period or gpu_time > period or (min_ready > last_display_time and min_ready < last_display_time + period))
 	{
 		// We are limited by app time, don't wait
 		*out_wake_up_time = now_ns;
 		*out_predicted_display_period = period; // FIXME: may be more than one frame
+		while (last_display_time < min_ready)
+			last_display_time += period;
 		*out_predicted_display_time = last_display_time;
-		while (*out_predicted_display_time < min_ready)
-			*out_predicted_display_time += period;
 	}
 	else
 	{
 		// Ensure display time is achievable
-		while (display_time < min_ready)
-			display_time += period;
+		while (last_display_time < min_ready)
+			last_display_time += period;
 
-		*out_predicted_display_time = display_time;
+		*out_predicted_display_time = last_display_time;
 		*out_predicted_display_period = period;
-		*out_wake_up_time = display_time - (cpu_time + gpu_time + compositor_time + U_TIME_1MS_IN_NS);
+		*out_wake_up_time = last_display_time - (cpu_time + gpu_time + compositor_time + U_TIME_1MS_IN_NS);
 	}
 }
 
@@ -172,7 +175,7 @@ void app_pacer::info(int64_t predicted_display_time_ns,
                      int64_t predicted_display_period_ns,
                      int64_t extra_ns)
 {
-	last_display_time = predicted_display_time_ns;
+	compositor_display_time = predicted_display_time_ns;
 	period = predicted_display_period_ns;
 	compositor_time = std::max<int64_t>(0, extra_ns);
 }
