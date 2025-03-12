@@ -563,13 +563,12 @@ struct refresh_rate_adjuster
 
 		// Maximum refresh rate the application can reach
 		auto app_rate = float(U_TIME_1S_IN_NS) / pacers.get_frame_time();
-		app_rate *= 0.95; // add some margin
 		// Get the highest rate reachable by the application
 		// If none can be reached, set it to the maximum
 		auto requested = info.available_refresh_rates.back();
 		for (auto rate: info.available_refresh_rates)
 		{
-			if (rate < app_rate)
+			if (rate < app_rate * (rate == last ? 1. : 0.9))
 				requested = rate;
 		}
 		if (requested != last)
