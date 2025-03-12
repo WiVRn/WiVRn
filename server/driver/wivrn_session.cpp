@@ -584,19 +584,14 @@ struct refresh_rate_adjuster
 
 void wivrn_session::run(std::stop_token stop)
 {
-	std::chrono::seconds refresh_rate_adjust_period(10);
-	auto refresh_rate_adjust = std::chrono::steady_clock::now() + refresh_rate_adjust_period;
-	const auto & rates = get_info().available_refresh_rates;
-	bool adjust_refresh = get_info().preferred_refresh_rate == 0 and rates.size() > 1;
+	refresh_rate_adjuster refresh(get_info(), app_pacers);
 	while (not stop.stop_requested())
 	{
 		try
 		{
 			offset_est.request_sample(*connection);
 			tracking_control.send(*connection);
-			if (adjust_refresh and std::chrono::steady_clock::now() > refresh_rate_adjust)
-			{
-			}
+			refresh.adjust(*connection);
 			connection->poll(*this, 20);
 		}
 		catch (const std::exception & e)
