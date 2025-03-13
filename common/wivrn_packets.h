@@ -270,28 +270,10 @@ struct tracking
 	std::array<view, 2> views;
 	std::vector<pose> device_poses;
 
-	enum tracker_role : uint8_t
-	{
-		generic_tracked,
-		chest,
-		waist,
-		left_elbow,
-		right_elbow,
-		left_wrist,
-		right_wrist,
-		left_knee,
-		right_knee,
-		left_ankle,
-		right_ankle,
-		left_foot,
-		right_foot
-	};
-
 	struct motion_tracker
 	{
-		uint8_t id;
+		uint8_t tracker_id;
 		XrPosef pose;
-		tracker_role role;
 	};
 
 	std::vector<motion_tracker> motion_trackers;

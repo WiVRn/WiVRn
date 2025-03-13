@@ -310,22 +310,8 @@ void scenes::stream::tracking()
 
 					if (control.enabled[size_t(tid::motion_trackers)])
 					{
-						for (uint8_t i = 0; i < size(xr::xr_tracker_spaces); i++)
-						{
-							XrSpace space = xr::xr_tracker_spaces[i];
-							XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION};
-							xrLocateSpace(space, world_space, t0 + Δt, &location);
-							// If location and orientation is invalid, the tracker is disconnected. Don't send it in that case.
-							if (location.locationFlags == (XR_SPACE_LOCATION_ORIENTATION_VALID_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT))
-							{
-								auto new_tracker = wivrn::from_headset::tracking::motion_tracker{
-								        .id = i,
-								        .pose = location.pose,
-								        .role = xr::xr_tracker_get_roles_enum(instance, session)[i],
-								};
-								packet.motion_trackers.emplace_back(new_tracker);
-							}
-						}
+						xr::xr_tracker_fill_packet(instance, session, t0 + Δt, world_space, xr::vive_xr_trackers);
+						packet.motion_trackers = xr::vive_xr_trackers;
 					}
 
 					// Hand tracking data are very large, send fewer samples than other items
@@ -607,5 +593,10 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 			spdlog::warn("Failed to get current interation profile: {}", e.what());
 		}
 		interaction_profiles[i] = interaction_profile::none;
+	}
+
+	if (application::get_config().check_feature(feature::motion_tracking))
+	{
+		xr::xr_tracker_prepare_packet(instance, session, xr::vive_xr_trackers);
 	}
 }

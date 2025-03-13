@@ -17,11 +17,11 @@
  */
 
 #include "htc_xr_tracker.h"
+#include "space.h"
 #include "wivrn_packets.h"
 #include "xr/details/enumerate.h"
 #include "xr/instance.h"
 #include "xr/session.h"
-#include <optional>
 #include <spdlog/spdlog.h>
 #include <openxr/openxr.h>
 
@@ -30,7 +30,8 @@
 // https://hub.vive.com/apidoc/api/VIVE.OpenXR.Tracker.ViveXRTracker.html
 // https://hub.vive.com/apidoc/api/VIVE.OpenXR.VivePathEnumerationHelper.xrEnumeratePathsForInteractionProfileHTCDelegate.html
 
-std::vector<xr::space> xr::xr_tracker_spaces;
+std::vector<xr::space> xr::vive_xr_tracker_spaces;
+std::vector<wivrn::from_headset::tracking::motion_tracker> xr::vive_xr_trackers;
 
 // Obtains a vector of user paths from the VUT interaction profile.
 // Passing a user_path will give input paths for that specific user path
@@ -73,39 +74,52 @@ std::vector<std::string> xr::xr_tracker_get_roles(instance & inst, session & ses
 	return tracker_roles;
 }
 
-std::vector<wivrn::from_headset::tracking::tracker_role> xr::xr_tracker_get_roles_enum(instance & inst, session & session)
+std::vector<bool> xr::xr_tracker_get_active(instance & inst, session & session)
 {
-	std::vector<wivrn::from_headset::tracking::tracker_role> tracker_enums;
+	std::vector<bool> is_active;
 
 	for (auto & role: xr_tracker_get_roles(inst, session))
 	{
-		if (role == "Chest")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::chest);
-		else if (role == "Waist")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::waist);
-		else if (role == "Left Elbow")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::left_elbow);
-		else if (role == "Right Elbow")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::right_elbow);
-		else if (role == "Left Wrist")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::left_wrist);
-		else if (role == "Right Wrist")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::right_wrist);
-		else if (role == "Left Knee")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::left_knee);
-		else if (role == "Right Knee")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::right_knee);
-		else if (role == "Left Ankle")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::left_ankle);
-		else if (role == "Right Ankle")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::right_ankle);
-		else if (role == "Left Foot")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::left_foot);
-		else if (role == "Right Foot")
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::right_foot);
+		// Any tracker with an _ in its role name is probably inactive.
+		if (role.contains("_"))
+			is_active.emplace_back(false);
 		else
-			tracker_enums.emplace_back(wivrn::from_headset::tracking::tracker_role::generic_tracked);
+			is_active.emplace_back(true);
 	}
 
-	return tracker_enums;
+	return is_active;
+}
+
+// Prepare the packet beforehand. We'll run this every time the interaction profile changes
+void xr::xr_tracker_prepare_packet(instance & inst, session & session, std::vector<wivrn::from_headset::tracking::motion_tracker> & trackers)
+{
+	trackers.clear();
+	auto active_trackers = xr::xr_tracker_get_active(inst, session);
+
+	for (uint8_t i = 0; i < xr::vive_xr_tracker_spaces.size(); i++)
+	{
+		if (active_trackers[i])
+		{
+			trackers.emplace_back(
+			        wivrn::from_headset::tracking::motion_tracker{
+			                .tracker_id = i});
+		}
+	}
+}
+
+// Fill the packet with poses
+void xr::xr_tracker_fill_packet(
+        instance & inst,
+        session & session,
+        XrTime time,
+        XrSpace reference,
+        std::vector<wivrn::from_headset::tracking::motion_tracker> & trackers)
+{
+	XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION};
+
+	for (auto tracker: trackers)
+	{
+		xrLocateSpace(xr::vive_xr_tracker_spaces[tracker.tracker_id], reference, time, &location);
+		tracker.pose = location.pose;
+	}
 }
