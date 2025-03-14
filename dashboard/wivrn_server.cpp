@@ -91,7 +91,22 @@ wivrn_server::~wivrn_server()
 
 std::unique_ptr<QFile> get_server_log_file()
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
 	QString state_path = QStandardPaths::writableLocation(QStandardPaths::StateLocation);
+#else
+	QProcessEnvironment env;
+	QString state_path = env.value("XDG_STATE_HOME", env.value("HOME") + "/.local/state");
+
+	// https://github.com/qt/qtbase/blob/dev/src/corelib/io/qstandardpaths_unix.cpp#L27
+	const QString org = QCoreApplication::organizationName();
+	if (!org.isEmpty())
+		state_path += u'/' + org;
+
+	const QString appName = QCoreApplication::applicationName();
+	if (!appName.isEmpty())
+		state_path += u'/' + appName;
+
+#endif
 	QDir{}.mkpath(state_path);
 
 	QFileInfoList files = QDir{state_path}.entryInfoList({"server_logs_*.txt"}, QDir::Files, QDir::Name);
