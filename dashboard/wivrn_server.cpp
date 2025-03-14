@@ -22,7 +22,7 @@
 #include "wivrn_server_dbus.h"
 #include <QApplication>
 #include <QClipboard>
-#include <QCoroNetworkReply>
+#include <QDesktopServices>
 #include <QtLogging>
 #include <cassert>
 #include <memory>
@@ -49,10 +49,6 @@ static bool has_cap_sys_nice()
 
 	if (not caps)
 		return false;
-
-	// char * cap_text = cap_to_text(caps, nullptr);
-	// qDebug() << "Server capabilities:" << cap_text;
-	// cap_free(cap_text);
 
 	cap_flag_value_t value{};
 	if (cap_get_flag(caps, CAP_SYS_NICE, CAP_EFFECTIVE, &value) < 0)
@@ -93,28 +89,64 @@ wivrn_server::~wivrn_server()
 	}
 }
 
+std::unique_ptr<QFile> get_server_log_file()
+{
+	QString state_path = QStandardPaths::writableLocation(QStandardPaths::StateLocation);
+	QDir{}.mkpath(state_path);
+
+	QFileInfoList files = QDir{state_path}.entryInfoList({"server_logs_*.txt"}, QDir::Files, QDir::Name);
+	while (files.size() >= 10)
+	{
+		qDebug() << "Removing log file" << files.front().absoluteFilePath();
+		QFile{files.front().absoluteFilePath()}.remove();
+
+		files.pop_front();
+	}
+
+	std::unique_ptr<QFile> log_file = std::make_unique<QFile>(state_path + "/server_logs_" + QDateTime::currentDateTime().toString(Qt::ISODate) + ".txt");
+	log_file->open(QFile::WriteOnly | QFile::Truncate);
+
+	qDebug() << "Saving logs in" << log_file->fileName();
+
+	return log_file;
+}
+
 void wivrn_server::start_server()
 {
 	switch (serverStatus())
 	{
+		case Status::FailedToStart:
 		case Status::Stopped:
 			serverStatusChanged(m_serverStatus = Status::Starting);
 			[[fallthrough]];
 
-		case Status::Restarting:
-			assert(server_process == nullptr);
+		case Status::Restarting: {
+			server_process = new QProcess(this);
 
-			server_process = std::make_unique<QProcess>();
+			server_process->setProcessChannelMode(QProcess::MergedChannels);
+			server_output.clear();
+			server_log_file = get_server_log_file();
 
-			// connect(server_process, &QProcess::finished, this, &main_window::on_server_finished);
-			// connect(server_process, &QProcess::errorOccurred, this, &main_window::on_server_error_occurred);
+			connect(server_process, &QProcess::readyReadStandardOutput, this, &wivrn_server::on_server_ready_read_standard_output);
+			connect(server_process, &QProcess::finished, this, [this, p = server_process]() {
+				p->deleteLater();
 
-			server_process->setProcessChannelMode(QProcess::ForwardedChannels);
+				if (server_process == p)
+				{
+					server_process = nullptr;
+
+					if (m_serverStatus == Status::Starting)
+					{
+						qDebug() << "Server finished before registering on dbus";
+						serverStatusChanged(m_serverStatus = Status::FailedToStart);
+					}
+				}
+			});
 
 			server_process->start(server_path(), QApplication::arguments().mid(1));
-			// server_process_timeout->start();
+		}
 
-			break;
+		break;
 
 		case Status::Starting:
 		case Status::Started:
@@ -147,6 +179,46 @@ void wivrn_server::restart_server()
 		qWarning() << "restart_server: unexpected status " << std::string(magic_enum::enum_name(serverStatus()));
 }
 
+void wivrn_server::on_server_ready_read_standard_output()
+{
+	QByteArray output = server_process->readAllStandardOutput();
+
+	qsizetype index;
+	do
+	{
+		index = output.indexOf('\n');
+		QString line;
+
+		if (index >= 0)
+		{
+			line = QString::fromLatin1(output.first(index + 1));
+			output.remove(0, index + 1);
+		}
+		else
+		{
+			line = QString::fromLatin1(output);
+			output.clear();
+		}
+
+		if (server_output.empty() or server_output.back().endsWith("\n"))
+		{
+			// Start a new line
+			QString timestamp = QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
+
+			server_output.push_back("[" + timestamp + "] " + line);
+			server_log_file->write(("[" + timestamp + "] " + line).toLatin1());
+		}
+		else
+		{
+			server_output.back() += line;
+			server_log_file->write(line.toLatin1());
+		}
+	} while (index >= 0 and output.size() > 0);
+	server_log_file->flush();
+
+	serverLogsChanged(serverLogs());
+}
+
 void wivrn_server::on_server_dbus_registered()
 {
 	serverStatusChanged(m_serverStatus = Status::Started);
@@ -171,7 +243,7 @@ void wivrn_server::on_server_dbus_unregistered()
 		serverStatusChanged(m_serverStatus = Status::Stopped);
 
 	if (server_process)
-		server_process.release()->deleteLater();
+		server_process = nullptr;
 
 	if (server_interface)
 		server_interface.release()->deleteLater();
@@ -230,75 +302,14 @@ void wivrn_server::grant_cap_sys_nice()
 #endif
 }
 
-// static std::vector<std::filesystem::path> list_files(const std::vector<std::filesystem::path> & dirs)
-// {
-// 	std::vector<std::filesystem::path> files;
-//
-// 	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
-// 	{
-// 		QProcess flatpak_spawn;
-// 		QStringList args{"--host", "find"};
-// 		for (const std::filesystem::path & dir: dirs)
-// 			args.push_back(QString::fromStdString(dir));
-// 		args.push_back("-name");
-// 		args.push_back("*.json");
-//
-// 		flatpak_spawn.start("flatpak-spawn", args);
-// 		flatpak_spawn.waitForFinished();
-//
-// 		qDebug() << args;
-//
-// 		for (const std::string & file: utils::split(flatpak_spawn.readAllStandardOutput().toStdString()))
-// 		{
-// 			if (file != "")
-// 				files.push_back(file);
-// 		}
-// 	}
-// 	else
-// 	{
-// 		for (const std::filesystem::path & dir: dirs)
-// 		{
-// 			try
-// 			{
-// 				for (auto const & dir_entry: std::filesystem::directory_iterator{dir})
-// 				{
-// 					if (dir_entry.path().extension() != ".json")
-// 						continue;
-//
-// 					files.push_back(dir / dir_entry.path());
-// 				}
-// 			}
-// 			catch (...)
-// 			{
-// 				// Ignore non existing directories
-// 			}
-// 		}
-// 	}
-//
-// 	return files;
-// }
-//
-// static std::string read_file(const std::filesystem::path & path)
-// {
-// 	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
-// 	{
-// 		QProcess flatpak_spawn;
-// 		flatpak_spawn.start("flatpak-spawn", {"--host", "cat", QString::fromStdString(path)});
-// 		flatpak_spawn.waitForFinished();
-// 		return flatpak_spawn.readAllStandardOutput().toStdString();
-// 	}
-// 	else
-// 	{
-// 		std::ifstream f(path);
-// 		std::istreambuf_iterator<char> begin{f}, end;
-//
-// 		return {begin, end};
-// 	}
-// }
-
-// QString wivrn_server::apkUrl() const
-// {
-// }
+void wivrn_server::open_server_logs()
+{
+	if (server_log_file)
+	{
+		qDebug() << "Opening" << server_log_file->fileName();
+		QDesktopServices::openUrl(QUrl::fromLocalFile(server_log_file->fileName()));
+	}
+}
 
 void wivrn_server::refresh_server_properties()
 {

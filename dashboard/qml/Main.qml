@@ -1,7 +1,6 @@
 import QtCore as Core
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Dialogs as Dialogs
 import QtQuick.Controls as Controls
 import Qt.labs.platform
 import org.kde.kirigami as Kirigami
@@ -31,8 +30,10 @@ Kirigami.ApplicationWindow {
     Core.Settings {
         id: settings
         property alias first_run: root.first_run
+        property alias last_run_version: root.last_run_version
     }
     property bool first_run: true
+    property string last_run_version
 
     width: 900
     height: 800
@@ -51,8 +52,13 @@ Kirigami.ApplicationWindow {
         function onServerStatusChanged(value) {
             var started = value == WivrnServer.Started;
 
+            // Only set the switch value if it has changed, to avoid loops
             if (switch_running.checked != started)
                 switch_running.checked = started;
+
+            // Set the visible property here because dismissing the message removes the binding
+            if (value == WivrnServer.FailedToStart)
+                message_failed_to_start.visible = true;
         }
 
         function onPairingEnabledChanged(value) {
@@ -74,12 +80,14 @@ Kirigami.ApplicationWindow {
         if (WivrnServer.serverStatus == WivrnServer.Stopped)
             WivrnServer.start_server();
 
-        console.log("Settings at " + settings.location);
-        if (root.first_run)
-        {
+        if (root.first_run) {
             console.log("First run");
             root.pageStack.push(Qt.resolvedUrl("WizardPage.qml"));
             root.first_run = false;
+        }
+
+        if (root.last_run_version != ApkInstaller.currentVersion) {
+            root.last_run_version = ApkInstaller.currentVersion;
         }
     }
 
@@ -125,14 +133,6 @@ Kirigami.ApplicationWindow {
 
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
-                text: i18n("ADB is not installed.")
-                type: Kirigami.MessageType.Information
-                showCloseButton: true
-                visible: !Adb.adbInstalled
-            }
-
-            Kirigami.InlineMessage {
-                Layout.fillWidth: true
                 text: i18n("NVIDIA GPUs require at least driver version 565.77, current version is %1", VulkanInfo.driverVersion)
                 type: Kirigami.MessageType.Error
                 showCloseButton: true
@@ -151,6 +151,21 @@ Kirigami.ApplicationWindow {
                 type: Kirigami.MessageType.Warning
                 showCloseButton: true
                 visible: VulkanInfo.driverId == "AmdProprietary" || VulkanInfo.driverId == "AmdOpenSource"
+            }
+
+            Kirigami.InlineMessage {
+                id: message_failed_to_start
+                Layout.fillWidth: true
+                text: i18n("Server failed to start")
+                type: Kirigami.MessageType.Error
+                showCloseButton: true
+                // visible: WivrnServer.serverStatus == WivrnServer.FailedToStart
+                actions: [
+                    Kirigami.Action {
+                        text: i18n("Open server logs")
+                        onTriggered: WivrnServer.open_server_logs()
+                    }
+                ]
             }
 
             // RowLayout {
@@ -222,8 +237,18 @@ Kirigami.ApplicationWindow {
                         Layout.column: 0
                         text: i18n("Connect by USB")
                         onClicked: select_usb_device.connect()
-                        enabled: root.server_started && Adb.adbInstalled && !WivrnServer.headsetConnected && select_usb_device.connected_headset_count > 0
+                        enabled: root.server_started && Adb.adbInstalled && select_usb_device.connected_headset_count > 0
                         visible: !WivrnServer.headsetConnected
+
+                        Controls.ToolTip.visible: root.server_started && hovered
+                        Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
+                        Controls.ToolTip.text: {
+                            if (!Adb.adbInstalled)
+                                return i18n("ADB is not installed.");
+                            if (select_usb_device.connected_headset_count == 0)
+                                return i18n("No headset is connected or your headset is not in developer mode.");
+                            return "";
+                        }
                     }
 
                     Controls.Button {
@@ -297,6 +322,13 @@ Kirigami.ApplicationWindow {
                 onTriggered: root.pageStack.push(Qt.resolvedUrl("ApkInstallPage.qml"))
                 visible: root.pageStack.depth == 1
                 enabled: root.server_started && Adb.adbInstalled
+                tooltip: {
+                    if (!root.server_started)
+                        return "";
+                    if (!Adb.adbInstalled)
+                        return i18n("ADB is not installed.");
+                    return "";
+                }
             },
             // Kirigami.Action {
             //     text: i18n("Statistics")
@@ -324,7 +356,7 @@ Kirigami.ApplicationWindow {
                 text: i18n("Troubleshoot")
                 icon.name: "help-contents-symbolic"
                 onTriggered: root.pageStack.push(Qt.resolvedUrl("TroubleshootPage.qml"))
-                enabled: root.server_started && root.pageStack.depth == 1
+                enabled: root.pageStack.depth == 1
             }
         ]
     }
