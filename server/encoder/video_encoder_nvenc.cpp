@@ -165,28 +165,6 @@ video_encoder_nvenc::video_encoder_nvenc(
 	presets.resize(count);
 	NVENC_CHECK(fn.nvEncGetEncodePresetGUIDs(session_handle, encodeGUID, presets.data(), count, &count));
 
-	switch (settings.codec)
-	{
-		case video_codec::h264:
-			printf("%d H264 presets\n", count);
-			break;
-
-		case video_codec::h265:
-			printf("%d HEVC presets\n", count);
-			break;
-
-		case video_codec::av1:
-			printf("%d AV1 presets\n", count);
-			break;
-	}
-
-	for (GUID & i: presets)
-	{
-		printf("  Preset {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n", i.Data1, i.Data2, i.Data3, i.Data4[0], i.Data4[1], i.Data4[2], i.Data4[3], i.Data4[4], i.Data4[5], i.Data4[6], i.Data4[7]);
-	}
-
-	// auto presetGUID = codec == video_codec::h264 ? NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID :
-	// NV_ENC_PRESET_P7_GUID;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	auto presetGUID = NV_ENC_PRESET_P4_GUID;

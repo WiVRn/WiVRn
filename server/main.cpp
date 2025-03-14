@@ -449,7 +449,7 @@ void update_fsm()
 
 int sigint(void * sig_nr)
 {
-	std::cout << strsignal((uintptr_t)sig_nr) << std::endl;
+	std::cerr << strsignal((uintptr_t)sig_nr) << std::endl;
 
 	quitting_main_loop = true;
 
@@ -468,7 +468,7 @@ gboolean headset_connected_success(void *)
 
 	init_cleanup_functions();
 
-	std::cout << "Client connected" << std::endl;
+	std::cerr << "Client connected" << std::endl;
 
 	expose_known_keys_on_dbus();
 
@@ -496,7 +496,7 @@ gboolean headset_connected_incorrect_pin(void *)
 	connection_thread.reset();
 
 	delay_next_try = 2 * delay_next_try;
-	std::cout << "Waiting " << delay_next_try << " until the next attempt is allowed" << std::endl;
+	std::cerr << "Waiting " << delay_next_try << " until the next attempt is allowed" << std::endl;
 
 	update_fsm();
 	return G_SOURCE_REMOVE;
