@@ -98,7 +98,7 @@ void avahi_publisher::avahi_entry_group_callback(
 	switch (state)
 	{
 		case AVAHI_ENTRY_GROUP_ESTABLISHED:
-			std::cout << "Service published: " << self->name << std::endl;
+			std::cerr << "Service published: " << self->name << std::endl;
 		case AVAHI_ENTRY_GROUP_FAILURE:
 		case AVAHI_ENTRY_GROUP_REGISTERING:
 		case AVAHI_ENTRY_GROUP_UNCOMMITED:

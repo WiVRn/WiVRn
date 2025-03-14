@@ -59,10 +59,10 @@ void unload_module(pa_context * ctx, uint32_t id)
 	std::promise<void> p;
 	wrap_lambda cb = [&p, id](pa_context *, int success) {
 		if (not success)
-			std::cout << "failed to unload pulseaudio module " << id
+			std::cerr << "failed to unload pulseaudio module " << id
 			          << std::endl;
 		else
-			std::cout << "pulseaudio module " << id << " unloaded"
+			std::cerr << "pulseaudio module " << id << " unloaded"
 			          << std::endl;
 		p.set_value();
 	};
@@ -279,7 +279,7 @@ struct pulse_device : public audio_device
 			}
 			catch (const std::exception & e)
 			{
-				std::cout << "failed to depublish pulseaudio modules: "
+				std::cerr << "failed to depublish pulseaudio modules: "
 				          << e.what() << std::endl;
 			}
 		}
