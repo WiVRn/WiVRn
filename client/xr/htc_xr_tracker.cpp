@@ -30,8 +30,45 @@
 // https://hub.vive.com/apidoc/api/VIVE.OpenXR.Tracker.ViveXRTracker.html
 // https://hub.vive.com/apidoc/api/VIVE.OpenXR.VivePathEnumerationHelper.xrEnumeratePathsForInteractionProfileHTCDelegate.html
 
-std::vector<xr::space> xr::vive_xr_tracker_spaces;
-std::vector<wivrn::from_headset::tracking::motion_tracker> xr::vive_xr_trackers;
+std::vector<xr::vive_xr_tracker> xr::vive_xr_trackers;
+
+xr::vive_xr_tracker::vive_xr_tracker(uint8_t id, xr::space s)
+{
+	tracker_id = id;
+	std::swap(s, space);
+	is_active = false;
+}
+
+uint8_t xr::vive_xr_tracker::get_id()
+{
+	return tracker_id;
+}
+
+XrPosef xr::vive_xr_tracker::get_pose(instance & inst, session & session, XrTime time, XrSpace & reference)
+{
+	XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION};
+	xrLocateSpace(space, reference, time, &location);
+	return location.pose;
+};
+
+xr::space * xr::vive_xr_tracker::get_space()
+{
+	return &space;
+};
+
+void xr::vive_xr_tracker::set_active(instance & inst, session & session)
+{
+	// Any tracker with an _ in its role name is probably inactive.
+	if (xr_tracker_get_roles(inst, session)[tracker_id].contains("_"))
+		is_active = false;
+	else
+		is_active = true;
+}
+
+bool xr::vive_xr_tracker::get_active()
+{
+	return is_active;
+}
 
 // Obtains a vector of user paths from the VUT interaction profile.
 // Passing a user_path will give input paths for that specific user path
@@ -74,52 +111,21 @@ std::vector<std::string> xr::xr_tracker_get_roles(instance & inst, session & ses
 	return tracker_roles;
 }
 
-std::vector<bool> xr::xr_tracker_get_active(instance & inst, session & session)
-{
-	std::vector<bool> is_active;
-
-	for (auto & role: xr_tracker_get_roles(inst, session))
-	{
-		// Any tracker with an _ in its role name is probably inactive.
-		if (role.contains("_"))
-			is_active.emplace_back(false);
-		else
-			is_active.emplace_back(true);
-	}
-
-	return is_active;
-}
-
-// Prepare the packet beforehand. We'll run this every time the interaction profile changes
-void xr::xr_tracker_prepare_packet(instance & inst, session & session, std::vector<wivrn::from_headset::tracking::motion_tracker> & trackers)
-{
-	trackers.clear();
-	auto active_trackers = xr::xr_tracker_get_active(inst, session);
-
-	for (uint8_t i = 0; i < xr::vive_xr_tracker_spaces.size(); i++)
-	{
-		if (active_trackers[i])
-		{
-			trackers.emplace_back(
-			        wivrn::from_headset::tracking::motion_tracker{
-			                .tracker_id = i});
-		}
-	}
-}
-
 // Fill the packet with poses
-void xr::xr_tracker_fill_packet(
+std::vector<wivrn::from_headset::tracking::motion_tracker> xr::xr_tracker_compose_packet(
         instance & inst,
         session & session,
         XrTime time,
-        XrSpace reference,
-        std::vector<wivrn::from_headset::tracking::motion_tracker> & trackers)
+        XrSpace & reference,
+        std::vector<xr::vive_xr_tracker> & trackers)
 {
-	XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION};
-
-	for (auto tracker: trackers)
+	std::vector<wivrn::from_headset::tracking::motion_tracker> packet;
+	for (auto & tracker: trackers)
 	{
-		xrLocateSpace(xr::vive_xr_tracker_spaces[tracker.tracker_id], reference, time, &location);
-		tracker.pose = location.pose;
+		if (tracker.get_active())
+		{
+			packet.emplace_back(wivrn::from_headset::tracking::motion_tracker{.tracker_id = tracker.get_id(), .pose = tracker.get_pose(inst, session, time, reference)});
+		}
 	}
+	return packet;
 }

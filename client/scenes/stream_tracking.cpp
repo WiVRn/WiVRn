@@ -310,8 +310,7 @@ void scenes::stream::tracking()
 
 					if (control.enabled[size_t(tid::motion_trackers)])
 					{
-						xr::xr_tracker_fill_packet(instance, session, t0 + Δt, world_space, xr::vive_xr_trackers);
-						packet.motion_trackers = xr::vive_xr_trackers;
+						packet.motion_trackers = xr::xr_tracker_compose_packet(instance, session, t0 + Δt, world_space, xr::vive_xr_trackers);
 					}
 
 					// Hand tracking data are very large, send fewer samples than other items
@@ -595,8 +594,8 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 		interaction_profiles[i] = interaction_profile::none;
 	}
 
-	if (application::get_config().check_feature(feature::motion_tracking))
+	for (auto & tracker: xr::vive_xr_trackers)
 	{
-		xr::xr_tracker_prepare_packet(instance, session, xr::vive_xr_trackers);
+		tracker.set_active(instance, session);
 	}
 }

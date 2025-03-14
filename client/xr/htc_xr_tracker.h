@@ -22,6 +22,7 @@
 #include "xr/instance.h"
 #include "xr/session.h"
 #include "xr/space.h"
+#include <cstdint>
 #include <vector>
 #include <openxr/openxr.h>
 
@@ -35,15 +36,27 @@ typedef struct XrPathsForInteractionProfileEnumerateInfoHTC
 	XrPath userPath;
 } XrPathsForInteractionProfileEnumerateInfoHTC;
 
-extern std::vector<xr::space> vive_xr_tracker_spaces;
-extern std::vector<wivrn::from_headset::tracking::motion_tracker> vive_xr_trackers;
+class vive_xr_tracker
+{
+	uint8_t tracker_id;
+	bool is_active;
+	xr::space space;
+
+public:
+	vive_xr_tracker(uint8_t id, xr::space s);
+	uint8_t get_id();
+	XrPosef get_pose(instance & inst, session & session, XrTime time, XrSpace & reference);
+	void set_active(instance & inst, session & session);
+	bool get_active();
+	xr::space * get_space();
+};
+
+extern std::vector<xr::vive_xr_tracker> vive_xr_trackers;
 
 typedef XrResult(XRAPI_PTR * PFN_xrEnumeratePathsForInteractionProfileHTC)(XrInstance instance, XrPathsForInteractionProfileEnumerateInfoHTC createInfo, uint32_t pathCapacityInput, uint32_t * pathCountOutput, XrPath * paths);
 extern PFN_xrEnumeratePathsForInteractionProfileHTC xrEnumeratePathsForInteractionProfileHTC;
 
 std::vector<XrPath> xr_tracker_get_paths(instance & inst, XrPath user_path = XR_NULL_PATH);
 std::vector<std::string> xr_tracker_get_roles(instance & inst, session & session);
-std::vector<bool> xr_tracker_get_active(instance & inst, session & session);
-void xr_tracker_prepare_packet(instance & inst, session & session, std::vector<wivrn::from_headset::tracking::motion_tracker> & trackers);
-void xr_tracker_fill_packet(instance & inst, session & session, XrTime time, XrSpace reference, std::vector<wivrn::from_headset::tracking::motion_tracker> & trackers);
+std::vector<wivrn::from_headset::tracking::motion_tracker> xr_tracker_compose_packet(instance & inst, session & session, XrTime time, XrSpace & reference, std::vector<xr::vive_xr_tracker> & trackers);
 } // namespace xr

@@ -974,7 +974,7 @@ void application::initialize_actions()
 		else if (name == "/user/hand/left/input/palm_ext/pose")
 			spaces[size_t(xr::spaces::palm_left)] = xr_session.create_action_space(a);
 		else if (name.contains("/input/entity_htc/pose"))
-			xr::vive_xr_tracker_spaces.emplace_back(xr_session.create_action_space(a));
+			xr::vive_xr_trackers.emplace_back(xr::vive_xr_tracker(xr::vive_xr_trackers.size(), xr_session.create_action_space(a)));
 	}
 
 	// Build an action set for each scene
