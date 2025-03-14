@@ -72,6 +72,11 @@ Kirigami.ScrollablePage {
             text: i18n("Ask on Discord")
             icon.source: Qt.resolvedUrl("Discord.svg")
             onTriggered: Qt.openUrlExternally("https://discord.gg/EHAYe3tTYa")
+        },
+        Kirigami.Action {
+            text: i18n("Open server logs")
+            icon.name: "viewlog-symbolic"
+            onTriggered: WivrnServer.open_server_logs()
         }
     ]
 

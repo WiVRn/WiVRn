@@ -21,9 +21,7 @@
 #include <QCoroCore>
 #include <QCoroQmlTask>
 #include <QNetworkAccessManager>
-#include <QNetworkReply>
 #include <QObject>
-#include <QProcess>
 #include <QtCore>
 #include <QtQml/qqmlregistration.h>
 

@@ -106,7 +106,7 @@ class wivrn_server : public QObject
 	QDBusServiceWatcher dbus_watcher;
 	std::unique_ptr<QDBusPendingCallWatcher> get_all_properties_call_watcher;
 
-	std::unique_ptr<QProcess> server_process;
+	QProcess * server_process;
 	std::unique_ptr<QProcess> setcap_process;
 
 public:
@@ -117,6 +117,7 @@ public:
 
 	enum class Status
 	{
+		FailedToStart,
 		Stopped,
 		Started,
 		Stopping,
@@ -131,10 +132,12 @@ public:
 	Q_PROPERTY(bool capSysNice READ capSysNice NOTIFY capSysNiceChanged)
 	Q_PROPERTY(bool headsetConnected READ isHeadsetConnected NOTIFY headsetConnectedChanged)
 	Q_PROPERTY(QString jsonConfiguration READ jsonConfiguration WRITE setJsonConfiguration NOTIFY jsonConfigurationChanged)
+	Q_PROPERTY(QString serverLogs READ serverLogs NOTIFY serverLogsChanged)
 	Q_INVOKABLE void start_server();
 	Q_INVOKABLE void stop_server();
 	Q_INVOKABLE void restart_server();
 	Q_INVOKABLE void grant_cap_sys_nice();
+	Q_INVOKABLE void open_server_logs();
 
 	// Authentication
 	Q_PROPERTY(QString pin READ pin NOTIFY pinChanged)
@@ -273,6 +276,11 @@ public:
 
 	QString hostname();
 
+	QString serverLogs()
+	{
+		return server_output.join("");
+	}
+
 	Q_INVOKABLE void disconnect_headset();
 	Q_INVOKABLE void copy_steam_command();
 
@@ -280,6 +288,11 @@ private:
 	void on_server_dbus_registered();
 	void on_server_dbus_unregistered();
 	void on_server_properties_changed(const QString & interface_name, const QVariantMap & changed_properties, const QStringList & invalidated_properties);
+
+	void on_server_ready_read_standard_output();
+
+	std::unique_ptr<QFile> server_log_file;
+	QStringList server_output;
 
 	void refresh_server_properties();
 
@@ -331,4 +344,5 @@ Q_SIGNALS:
 	void speakerSampleRateChanged(int);
 	void supportedCodecsChanged(QStringList);
 	void steamCommandChanged(QString);
+	void serverLogsChanged(QString);
 };
