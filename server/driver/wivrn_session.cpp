@@ -579,6 +579,11 @@ struct refresh_rate_adjuster
 		}
 		next += period;
 	}
+
+	void reset()
+	{
+		last = 0;
+	}
 };
 
 void wivrn_session::run(std::stop_token stop)
@@ -597,6 +602,7 @@ void wivrn_session::run(std::stop_token stop)
 		{
 			U_LOG_E("Exception in network thread: %s", e.what());
 			reconnect();
+			refresh.reset();
 		}
 	}
 }
