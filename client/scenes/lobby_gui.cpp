@@ -259,8 +259,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 	{
 		for (int j = 0; j < 3; j++, i++)
 		{
-			char button_text[2];
-			sprintf(button_text, "%d", i);
+			char button_text[] = {char('0' + i), 0};
 			if (ImGui::Button(button_text, constants::style::pin_entry_key_size))
 				pin_buffer += button_text;
 			vibrate_on_hover();
