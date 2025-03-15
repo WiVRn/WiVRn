@@ -743,6 +743,7 @@ static xrt_result_t comp_wivrn_get_current_refresh_rate(struct comp_target * ct,
 static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, float refresh_rate_hz)
 {
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
+	cn->requested_refresh_rate = refresh_rate_hz;
 	if (refresh_rate_hz == 0.0f)
 		refresh_rate_hz = get_default_rate(cn->cnx.get_info());
 

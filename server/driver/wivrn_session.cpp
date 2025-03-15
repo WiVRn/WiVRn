@@ -595,7 +595,8 @@ void wivrn_session::run(std::stop_token stop)
 		{
 			offset_est.request_sample(*connection);
 			tracking_control.send(*connection);
-			refresh.adjust(*connection);
+			if (comp_target->requested_refresh_rate == 0)
+				refresh.adjust(*connection);
 			connection->poll(*this, 20);
 		}
 		catch (const std::exception & e)

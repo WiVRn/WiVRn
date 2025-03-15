@@ -100,6 +100,8 @@ struct wivrn_comp_target : public comp_target
 	wivrn::wivrn_session & cnx;
 	std::unique_ptr<wivrn_foveation_renderer> foveation_renderer = nullptr;
 
+	std::atomic<float> requested_refresh_rate;
+
 	wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c);
 	~wivrn_comp_target();
 
