@@ -71,14 +71,7 @@ void scenes::stream::operator()(to_headset::video_stream_description && desc)
 
 void scenes::stream::operator()(to_headset::refresh_rate_change && rate)
 {
-	try
-	{
-		session.set_refresh_rate(rate.fps);
-	}
-	catch (std::exception & e)
-	{
-		spdlog::warn("Failed to set refresh rate to {}: {}", rate.fps, e.what());
-	}
+	session.set_refresh_rate(rate.fps);
 }
 
 void scenes::stream::operator()(to_headset::timesync_query && query)

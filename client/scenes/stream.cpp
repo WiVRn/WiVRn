@@ -994,14 +994,7 @@ void scenes::stream::exit()
 
 void scenes::stream::setup(const to_headset::video_stream_description & description)
 {
-	try
-	{
-		session.set_refresh_rate(description.fps);
-	}
-	catch (std::exception & e)
-	{
-		spdlog::warn("Failed to set refresh rate to {}: {}", description.fps, e.what());
-	}
+	session.set_refresh_rate(description.fps);
 
 	std::unique_lock lock(decoder_mutex);
 	decoders.clear();
@@ -1134,14 +1127,7 @@ void scenes::stream::setup_reprojection_swapchain()
 {
 	std::unique_lock lock(decoder_mutex);
 	device.waitIdle();
-	try
-	{
-		session.set_refresh_rate(video_stream_description->fps);
-	}
-	catch (std::exception & e)
-	{
-		spdlog::warn("Failed to set refresh rate to {}: {}", video_stream_description->fps, e.what());
-	}
+	session.set_refresh_rate(video_stream_description->fps);
 
 	const uint32_t video_width = video_stream_description->width / view_count;
 	const uint32_t video_height = video_stream_description->height;
