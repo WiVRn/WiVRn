@@ -1134,6 +1134,14 @@ void scenes::stream::setup_reprojection_swapchain()
 {
 	std::unique_lock lock(decoder_mutex);
 	device.waitIdle();
+	try
+	{
+		session.set_refresh_rate(video_stream_description->fps);
+	}
+	catch (std::exception & e)
+	{
+		spdlog::warn("Failed to set refresh rate to {}: {}", video_stream_description->fps, e.what());
+	}
 
 	const uint32_t video_width = video_stream_description->width / view_count;
 	const uint32_t video_height = video_stream_description->height;
