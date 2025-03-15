@@ -1210,7 +1210,6 @@ void scenes::lobby::on_unfocused()
 	swapchains_lobby_depth.clear();
 	swapchains_controllers_depth.clear();
 	swapchain_imgui = xr::swapchain();
-	session.disable_passthrough();
 	multicast.reset();
 }
 
