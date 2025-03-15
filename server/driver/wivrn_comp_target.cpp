@@ -823,6 +823,7 @@ void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveatio
 
 void wivrn_comp_target::set_refresh_rate(float refresh_rate_hz)
 {
+	U_LOG_I("Refresh rate change from %.0f to %.0f", desc.fps, refresh_rate_hz);
 	desc.fps = refresh_rate_hz;
 	c->frame_interval_ns = U_TIME_1S_IN_NS / refresh_rate_hz;
 	pacer.set_frame_duration(c->frame_interval_ns);
