@@ -3,6 +3,9 @@ id: io.github.wivrn.wivrn
 runtime: org.kde.Platform
 runtime-version: '6.8'
 sdk: org.kde.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.llvm18
 command: wivrn-dashboard
 separate-locales: false
 
@@ -271,6 +274,36 @@ modules:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
         tag: aa25936e3884b0da5862280c7ec523e3f3e0c7ae
+
+  - name: xrizer
+    buildsystem: simple
+    build-options:
+      build-args:
+        - --share=network
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm18/bin
+      cflags: -idirafter/usr/include
+      cxxflags: -idirafter/usr/include
+      arch:
+        aarch64:
+          ldflags: -L/usr/lib/aarch64-linux-gnu -Wl,--warn-unresolved-symbols
+          env:
+            CC: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc
+            CXX: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++
+            RUSTFLAGS: -C linker=/app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc
+        x86_64:
+          ldflags: -L/usr/lib/x86_64-linux-gnu -Wl,--warn-unresolved-symbols
+          env:
+            CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
+            CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
+            RUSTFLAGS: -C linker=/app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
+    build-commands:
+      - cargo xbuild --release
+      - mkdir /app/xrizer
+      - cp -rL target/release/bin/ /app/xrizer/
+    sources:
+      - type: git
+        url: https://github.com/Supreeeme/xrizer.git
+        tag: 31433a84ead43d801808226dccbf1f93c97777e7
 
   - name: wivrn-library
     buildsystem: cmake-ninja
