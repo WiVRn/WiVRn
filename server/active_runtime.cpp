@@ -49,7 +49,7 @@ std::filesystem::path active_runtime::manifest_path()
 std::filesystem::path active_runtime::openvr_compat_path()
 {
 	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
-		return std::filesystem::path(*path) / "OpenComposite";
+		return std::filesystem::path(*path) / "xrizer";
 	for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
 	{
 		if (auto res = std::string_view(path); std::filesystem::exists(res))
