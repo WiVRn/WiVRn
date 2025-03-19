@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-19 16:08+0100\n"
+"POT-Creation-Date: 2025-03-19 16:28+0100\n"
 "PO-Revision-Date: 2024-05-20 13:00+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language: French\n"
@@ -133,6 +133,7 @@ msgid "Refresh rate"
 msgstr "Taux de rafraichissement"
 
 #: client/scenes/lobby_gui.cpp:588 client/scenes/lobby_gui.cpp:590
+msgctxt "automatic refresh rate"
 msgid "Automatic"
 msgstr "Automatique"
 

@@ -585,9 +585,9 @@ void scenes::lobby::gui_settings()
 		if (not refresh_rates.empty())
 		{
 			float active_rate = config.preferred_refresh_rate.value_or(refresh_rates.back());
-			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? fmt::format("{}", active_rate).c_str() : _S("Automatic")))
+			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? fmt::format("{}", active_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
 			{
-				if (ImGui::Selectable(_S("Automatic"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
+				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
 				{
 					session.set_refresh_rate(0);
 					config.preferred_refresh_rate = 0;
