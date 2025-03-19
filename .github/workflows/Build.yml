@@ -125,8 +125,7 @@ jobs:
         git config --global --add safe.directory $(pwd)
         tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git > flatpak/io.github.wivrn.wivrn.yml
 
-    # TODO: replace with version > v6.3 when it's released
-    - uses: flatpak/flatpak-github-actions/flatpak-builder@b8be6bc0ede43cb3a2cc55895654312b14f84a0d
+    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.4
       with:
         manifest-path: flatpak/io.github.wivrn.wivrn.yml
         bundle: wivrn-server.flatpak
