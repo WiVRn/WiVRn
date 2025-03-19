@@ -130,6 +130,7 @@ jobs:
         manifest-path: flatpak/io.github.wivrn.wivrn.yml
         bundle: wivrn-server.flatpak
         upload-artifact: false
+        restore-cache: false
 
     # Upload manually instead of using flatpak/flatpak-github-actions/flatpak-builder because
     # it uses upload-artifact@v3
