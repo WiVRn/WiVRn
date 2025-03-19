@@ -554,6 +554,8 @@ struct refresh_rate_adjuster
 	        pacers(pacers),
 	        info(info)
 	{
+		if (enabled)
+			U_LOG_I("Automatic refresh rate adjustment enabled");
 	}
 
 	void adjust(wivrn_connection & cnx)
