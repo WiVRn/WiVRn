@@ -584,14 +584,17 @@ void scenes::lobby::gui_settings()
 		const auto & refresh_rates = session.get_refresh_rates();
 		if (not refresh_rates.empty())
 		{
-			if (ImGui::BeginCombo(_S("Refresh rate"), config.preferred_refresh_rate ? fmt::format("{}", config.preferred_refresh_rate).c_str() : _S("No preference")))
+			float active_rate = config.preferred_refresh_rate.value_or(refresh_rates.back());
+			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? fmt::format("{}", active_rate).c_str() : _S("Automatic")))
 			{
-				if (ImGui::Selectable(_S("No preference"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
+				if (ImGui::Selectable(_S("Automatic"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
 				{
 					session.set_refresh_rate(0);
 					config.preferred_refresh_rate = 0;
 					config.save();
 				}
+				if (ImGui::IsItemHovered())
+					tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
 				for (float rate: refresh_rates)
 				{
 					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.preferred_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))

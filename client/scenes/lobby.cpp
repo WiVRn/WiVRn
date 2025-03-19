@@ -1177,7 +1177,7 @@ void scenes::lobby::on_focused()
 		about_picture = imgui_ctx->load_texture("wivrn.png");
 	}
 	setup_passthrough();
-	session.set_refresh_rate(application::get_config().preferred_refresh_rate);
+	session.set_refresh_rate(application::get_config().preferred_refresh_rate.value_or(0));
 	multicast = application::get_wifi_lock().get_multicast_lock();
 }
 

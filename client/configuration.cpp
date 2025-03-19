@@ -209,7 +209,7 @@ configuration::configuration(xr::system & system)
 
 		// Restore default configuration
 		servers.clear();
-		preferred_refresh_rate = 0;
+		preferred_refresh_rate.reset();
 		resolution_scale = 1.4;
 		show_performance_metrics = false;
 		passthrough_enabled = system.passthrough_supported() == xr::system::passthrough_type::color;
@@ -251,8 +251,8 @@ void configuration::save()
 
 	json << "{\"servers\":[" << servers_str << "],"
 	     << "\"show_performance_metrics\":" << std::boolalpha << show_performance_metrics;
-	if (preferred_refresh_rate != 0.)
-		json << ",\"preferred_refresh_rate\":" << preferred_refresh_rate;
+	if (preferred_refresh_rate)
+		json << ",\"preferred_refresh_rate\":" << *preferred_refresh_rate;
 	json << ",\"resolution_scale\":" << resolution_scale;
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
 	json << ",\"mic_unprocessed_audio\":" << std::boolalpha << mic_unprocessed_audio;

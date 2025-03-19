@@ -24,6 +24,7 @@
 
 #include <map>
 #include <mutex>
+#include <optional>
 #include <string>
 
 namespace xr
@@ -45,7 +46,7 @@ public:
 	};
 
 	std::map<std::string, server_data> servers;
-	float preferred_refresh_rate = 0;
+	std::optional<float> preferred_refresh_rate;
 	float resolution_scale = 1.4;
 	bool show_performance_metrics = false;
 	bool passthrough_enabled = false;

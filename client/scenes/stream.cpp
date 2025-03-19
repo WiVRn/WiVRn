@@ -184,14 +184,24 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 		{
 			info.available_refresh_rates = self->session.get_refresh_rates();
-			if (utils::contains(info.available_refresh_rates, config.preferred_refresh_rate))
-				info.preferred_refresh_rate = config.preferred_refresh_rate;
+			// I can't find anythin in specification the ensures it won't be empty
+			if (not info.available_refresh_rates.empty())
+			{
+				if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(info.available_refresh_rates, *config.preferred_refresh_rate)))
+					info.preferred_refresh_rate = *config.preferred_refresh_rate;
+				else
+				{
+					// Default to highest refresh rate
+					info.preferred_refresh_rate = info.available_refresh_rates.back();
+				}
+			}
 		}
 
 		if (info.available_refresh_rates.empty())
 		{
 			spdlog::warn("Unable to detect refresh rates");
 			info.available_refresh_rates = {guessed_fps};
+			info.preferred_refresh_rate = guessed_fps;
 		}
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
