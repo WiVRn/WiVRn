@@ -149,6 +149,11 @@ configuration configuration::read_user_configuration()
 			if (result.publication == service_publication(-1))
 				throw std::runtime_error("invalid service publication " + it->get<std::string>());
 		}
+
+		if (auto it = json.find("openvr-compat-path"); it != json.end())
+		{
+			result.openvr_compat_path = *it;
+		}
 	}
 	catch (const std::exception & e)
 	{

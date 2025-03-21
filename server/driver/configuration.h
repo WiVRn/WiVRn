@@ -59,6 +59,7 @@ struct configuration
 	std::vector<std::string> application;
 	bool tcp_only = false;
 	service_publication publication = service_publication::avahi;
+	std::optional<std::string> openvr_compat_path;
 
 	static void set_config_file(const std::filesystem::path &);
 	static const std::filesystem::path & get_config_file();

@@ -989,6 +989,7 @@ int main(int argc, char * argv[])
 	std::string config_file;
 	app.add_option("-f", config_file, "configuration file")->option_text("FILE")->check(CLI::ExistingFile);
 	auto no_active_runtime = app.add_flag("--no-manage-active-runtime")->description("don't set the active runtime on connection");
+	auto early_active_runtime = app.add_flag("--early-active-runtime")->description("forcibly manages the active runtime even if no headset present");
 	auto no_instructions = app.add_flag("--no-instructions")->group("");
 	auto no_fork = app.add_flag("--no-fork")->description("disable fork to serve connection")->group("Debug");
 	auto no_publish = app.add_flag("--no-publish-service")->description("disable publishing the service through avahi");
@@ -1001,7 +1002,14 @@ int main(int argc, char * argv[])
 
 	CLI11_PARSE(app, argc, argv);
 
-	do_active_runtime = not *no_active_runtime;
+	if (early_active_runtime)
+	{
+		do_active_runtime = false;
+		runtime_setter.emplace();
+	}
+	else
+		do_active_runtime = not *no_active_runtime;
+
 	do_fork = not *no_fork;
 	if (*no_encrypt)
 		enc_state = wivrn_connection::encryption_state::disabled;
