@@ -181,3 +181,12 @@ Default value: `avahi`
 How to publish the service over the network, `avahi` or null.
 
 If set to null, service will not be published and address has to be entered manually on the headset.
+
+## `openvr-compat-path`
+Default value: unset
+
+Provides the path to the directory of an OpenVR compatibility tool (such as OpenComposite).
+
+If unset, WiVRn will autodetect the path of such a tool as usual (see [the SteamVR guide](./steamvr.md)).
+
+If set to an empty string, it is assumed detection failed ; the OpenVR configuration will not be modified and the pressure-vessel configuration won't be adjusted.
