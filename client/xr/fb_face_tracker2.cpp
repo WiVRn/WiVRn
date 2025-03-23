@@ -56,8 +56,14 @@ void xr::fb_face_tracker2::get_weights(XrTime time, wivrn::from_headset::trackin
 	        .confidences = out_expressions.confidences.data(),
 	};
 
-	CHECK_XR(xrGetFaceExpressionWeights2FB(id, &info, &expression_weights));
-
-	out_expressions.is_valid = expression_weights.isValid;
-	out_expressions.is_eye_following_blendshapes_valid = expression_weights.isEyeFollowingBlendshapesValid;
+	if (XR_SUCCEEDED(xrGetFaceExpressionWeights2FB(id, &info, &expression_weights)))
+	{
+		out_expressions.is_valid = expression_weights.isValid;
+		out_expressions.is_eye_following_blendshapes_valid = expression_weights.isEyeFollowingBlendshapesValid;
+	}
+	else
+	{
+		out_expressions.is_valid = false;
+		out_expressions.is_eye_following_blendshapes_valid = false;
+	}
 }
