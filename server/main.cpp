@@ -1002,7 +1002,7 @@ int main(int argc, char * argv[])
 
 	CLI11_PARSE(app, argc, argv);
 
-	if (early_active_runtime)
+	if (*early_active_runtime)
 	{
 		do_active_runtime = false;
 		runtime_setter.emplace();
