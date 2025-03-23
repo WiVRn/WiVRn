@@ -701,7 +701,7 @@ void wivrn_session::reconnect()
 
 		event.state.visible = true;
 		event.state.focused = true;
-		result = xrt_session_event_sink_push(&xrt_system.broadcast, &event);
+		result = push_event(event);
 		if (result != XRT_SUCCESS)
 		{
 			U_LOG_W("Failed to notify session state change");
