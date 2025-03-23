@@ -1002,6 +1002,9 @@ int main(int argc, char * argv[])
 
 	CLI11_PARSE(app, argc, argv);
 
+	if (not config_file.empty())
+		configuration::set_config_file(config_file);
+
 	if (*early_active_runtime)
 	{
 		do_active_runtime = false;
@@ -1013,9 +1016,6 @@ int main(int argc, char * argv[])
 	do_fork = not *no_fork;
 	if (*no_encrypt)
 		enc_state = wivrn_connection::encryption_state::disabled;
-
-	if (not config_file.empty())
-		configuration::set_config_file(config_file);
 
 	if (*no_publish)
 		publication = wivrn::service_publication::none;
