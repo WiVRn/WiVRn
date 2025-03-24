@@ -62,6 +62,8 @@ See [Server](#server-pc) for the server compile options.
 #### Build dependencies
 As Arch package names: git pkgconf glslang cmake jdk17-temurin librsvg cli11 ktx_software-git ([AUR](https://aur.archlinux.org/packages/ktx_software-git))
 
+OpenSSL build dependencies are also needed, as described [here](https://github.com/openssl/openssl/blob/master/INSTALL.md#prerequisites), in particular perl 5.
+
 #### Android environment
 Download [sdkmanager](https://developer.android.com/tools/sdkmanager) commandline tool and extract it to any directory.
 Create your `ANDROID_HOME` directory, for instance `~/Android`.
