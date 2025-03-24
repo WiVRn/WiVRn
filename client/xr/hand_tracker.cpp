@@ -46,7 +46,7 @@ xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandT
 	}
 	if (hand_id == XrHandEXT::XR_HAND_RIGHT_EXT)
 	{
-		offset_angle= glm::radians(90.0f);
+		offset_angle = glm::radians(90.0f);
 	}
 
 	static auto xrCreateHandTrackerEXT = inst.get_proc<PFN_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT");
