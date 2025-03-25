@@ -77,7 +77,7 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	if (!locations.isActive)
 		return std::nullopt;
 
-	float offset_angle;
+	float offset_angle = 0;
 
 	// check if we have a device that needs a thumb offset
 	switch (guess_model())
@@ -94,7 +94,6 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 			break;
 
 		default:
-			offset_angle = 0.0f;
 			break;
 	}
 
