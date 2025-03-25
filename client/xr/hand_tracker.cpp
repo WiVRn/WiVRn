@@ -41,7 +41,6 @@ xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandT
 	xrLocateHandJointsEXT = inst.get_proc<PFN_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
 	xrDestroyHandTrackerEXT = inst.get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
 	CHECK_XR(xrCreateHandTrackerEXT(session, &info, &id));
-
 }
 
 std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::hand_tracker::locate(XrSpace space, XrTime time)
@@ -78,8 +77,6 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	if (!locations.isActive)
 		return std::nullopt;
 	
-	
-
 	float offset_angle;
 
 	// check if we have a device that needs a thumb offset

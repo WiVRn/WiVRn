@@ -33,7 +33,7 @@ XrResult destroy_hand_tracker(XrHandTrackerEXT);
 class hand_tracker : public utils::handle<XrHandTrackerEXT, destroy_hand_tracker>
 {
 	PFN_xrLocateHandJointsEXT xrLocateHandJointsEXT{};
-
+	
 public:
 	hand_tracker() = default;
 	hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info);
@@ -44,6 +44,6 @@ public:
 
 	static bool check_flags(const std::array<joint, XR_HAND_JOINT_COUNT_EXT> & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity);
 private:
-	const XrHandEXT hand_id;
+	XrHandEXT hand_id;
 };
 } // namespace xr
