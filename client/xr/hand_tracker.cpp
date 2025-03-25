@@ -100,6 +100,8 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 			case model::meta_quest_3:
 			case model::meta_quest_pro:
 			case model::meta_quest_3s:
+			case model::oculus_quest:
+			case model::oculus_quest_2:
 				if (hand_id == XR_HAND_LEFT_EXT)
 					offset_angle = glm::radians(-90.0f);
 				else if (hand_id == XR_HAND_RIGHT_EXT)
