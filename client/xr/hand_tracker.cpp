@@ -92,26 +92,28 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	if (!locations.isActive)
 		return std::nullopt;
 
+
+	switch (guess_model())
+	{
+		case model::meta_quest_3:
+		case model::meta_quest_pro:
+		case model::meta_quest_3s:
+		case model::oculus_quest:
+		case model::oculus_quest_2:
+			if (hand_id == XR_HAND_LEFT_EXT)
+				offset_angle = glm::radians(-90.0f);
+			else if (hand_id == XR_HAND_RIGHT_EXT)
+				offset_angle = glm::radians(90.0f);
+			break;
+		
+		default:
+			offset_angle = 0.0f;
+			break;
+	}
+
 	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints;
 	for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 	{
-		switch (guess_model())
-		{
-			case model::meta_quest_3:
-			case model::meta_quest_pro:
-			case model::meta_quest_3s:
-			case model::oculus_quest:
-			case model::oculus_quest_2:
-				if (hand_id == XR_HAND_LEFT_EXT)
-					offset_angle = glm::radians(-90.0f);
-				else if (hand_id == XR_HAND_RIGHT_EXT)
-					offset_angle = glm::radians(90.0f);
-				break;
-			
-			default:
-				offset_angle = 0.0f;
-				break;
-		}
 
 		if (i >= XR_HAND_JOINT_THUMB_METACARPAL_EXT && i <= XR_HAND_JOINT_THUMB_TIP_EXT)
 		{
