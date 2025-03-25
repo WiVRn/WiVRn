@@ -91,8 +91,8 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 
 	if (!locations.isActive)
 		return std::nullopt;
-
-
+	
+	
 	switch (guess_model())
 	{
 		case model::meta_quest_3:
@@ -117,7 +117,6 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 
 		if (i >= XR_HAND_JOINT_THUMB_METACARPAL_EXT && i <= XR_HAND_JOINT_THUMB_TIP_EXT)
 		{
-
 			// Need to convert the XrQuaternionf to a glm::quat to use glm::rotate
 			glm::quat q(
 				joints_pos[i].pose.orientation.w,
@@ -133,13 +132,9 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 				.z = offset_rotation.z,
 				.w = offset_rotation.w,
 			};
+		}
 
-			joints[i] = {joints_pos[i], joints_vel[i]};
-		}
-		else
-		{
-			joints[i] = {joints_pos[i], joints_vel[i]};
-		}
+		joints[i] = {joints_pos[i], joints_vel[i]};
 
 	}
 
