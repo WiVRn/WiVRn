@@ -585,9 +585,6 @@ void set_encryption_state(wivrn_connection::encryption_state new_enc_state)
 			std::cerr << "Encryption is disabled" << std::endl;
 			wivrn_server_set_pairing_enabled(dbus_server, false);
 			wivrn_server_set_encryption_enabled(dbus_server, false);
-
-			notify_notification_set_timeout(pin_notification, NOTIFY_EXPIRES_NEVER);
-			notify_notification_show(pin_notification, nullptr);
 			break;
 
 		case wivrn_connection::encryption_state::enabled:
