@@ -36,25 +36,14 @@ XrResult xr::destroy_hand_tracker(XrHandTrackerEXT id)
 	return xrDestroyHandTrackerEXT(id);
 }
 
-xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info)
+xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info): 
+	hand_id(info.hand)
 {
-	hand_id = info.hand;
-	
-	if (hand_id == XrHandEXT::XR_HAND_LEFT_EXT)
-	{
-		offset_angle = glm::radians(-90.0f);
-	}
-	if (hand_id == XrHandEXT::XR_HAND_RIGHT_EXT)
-	{
-		offset_angle = glm::radians(90.0f);
-	}
-
 	static auto xrCreateHandTrackerEXT = inst.get_proc<PFN_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT");
 	assert(xrCreateHandTrackerEXT);
 	xrLocateHandJointsEXT = inst.get_proc<PFN_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
 	xrDestroyHandTrackerEXT = inst.get_proc<PFN_xrDestroyHandTrackerEXT>("xrDestroyHandTrackerEXT");
 	CHECK_XR(xrCreateHandTrackerEXT(session, &info, &id));
-
 
 }
 
@@ -93,6 +82,10 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 		return std::nullopt;
 	
 	
+
+	float offset_angle;
+
+	// check if we have a device that needs a thumb offset
 	switch (guess_model())
 	{
 		case model::meta_quest_3:

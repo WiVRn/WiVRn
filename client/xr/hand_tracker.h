@@ -44,7 +44,6 @@ public:
 
 	static bool check_flags(const std::array<joint, XR_HAND_JOINT_COUNT_EXT> & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity);
 private:
-	XrHandEXT hand_id;
-	float offset_angle;
+	const XrHandEXT hand_id;
 };
 } // namespace xr
