@@ -23,10 +23,7 @@
 #include "xr/session.h"
 #include <cassert>
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_transform.inl>
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include "hardware.h"
 
 static PFN_xrDestroyHandTrackerEXT xrDestroyHandTrackerEXT{};
