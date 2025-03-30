@@ -270,7 +270,7 @@ modules:
     sources:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
-        tag: 578a1a5c57204e7db31299351c8e312ead9ba7c4
+        tag: aa25936e3884b0da5862280c7ec523e3f3e0c7ae
 
   - name: wivrn-library
     buildsystem: cmake-ninja
