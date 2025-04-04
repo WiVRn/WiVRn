@@ -69,6 +69,18 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="0.24" date="2025-04-04">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.24</url>
+			<description>
+				<ul>
+					<li>Improved framerate for applications that can't reach the target refresh rate</li>
+					<li>Optional auto-selection of refresh rate based on application performance</li>
+					<li>AV1 support for nvenc</li>
+					<li>Improved nvenc parameters, for better quality and lower latency</li>
+					<li>Expose the actual controller on PC side, with fallback to Oculus Touch</li>
+				</ul>
+			</description>
+		</release>
 		<release version="0.23" date="2025-02-08">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.23</url>
 			<description>

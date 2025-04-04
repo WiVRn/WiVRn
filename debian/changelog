@@ -1,3 +1,13 @@
+wivrn (0.24-1) unstable; urgency=medium
+
+  * Improved framerate for applications that can't reach the target refresh rate
+  * Optional auto-selection of refresh rate based on application performance
+  * AV1 support for nvenc
+  * Improved nvenc parameters, for better quality and lower latency
+  * Expose the actual controller on PC side, with fallback to Oculus Touch
+
+ -- Patrick Nicolas <patricknicolas@laposte.net>  Fri, 04 Apr 2025 18:52:05 +0200
+
 wivrn (0.23-1) unstable; urgency=medium
 
   * New dashboard, built on Kirigami
