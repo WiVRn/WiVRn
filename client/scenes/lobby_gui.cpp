@@ -691,6 +691,20 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 	}
 
+	{
+		ImGui::BeginDisabled(not application::get_vive_xr_trackers_supported());
+		bool enabled = config.check_feature(feature::motion_tracking);
+		if (ImGui::Checkbox(_S("Enable VIVE Trackers"), &enabled))
+		{
+			config.set_feature(feature::motion_tracking, enabled);
+			config.save();
+		}
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+			tooltip(_("This feature is not supported by your headset"));
+		vibrate_on_hover();
+	}
+
 	ImGui::BeginDisabled(passthrough_supported == xr::system::passthrough_type::no_passthrough);
 	if (ImGui::Checkbox(_S("Enable video passthrough in lobby"), &config.passthrough_enabled))
 	{
@@ -1231,6 +1245,17 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		        .icon_disabled = ICON_FA_FACE_MEH_BLANK,
 		});
 	}
+
+	if (application::get_vive_xr_trackers_supported())
+		{
+			items.push_back({
+			        .f = feature::motion_tracking,
+			        .tooltip_enabled = _("Vive Trackers are enabled"),
+			        .tooltip_disabled = _("Vive Trackers are disabled"),
+			        .icon_enabled = ICON_FA_PERSON_WALKING,
+			        .icon_disabled = ICON_FA_PERSON,
+			});
+		}
 
 	// Get statuses
 	for (auto & i: items)
