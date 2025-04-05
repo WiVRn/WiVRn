@@ -383,17 +383,17 @@ void xr::session::enable_passthrough(xr::system & system)
 	if (system.passthrough_supported() == xr::system::passthrough_type::no_passthrough)
 		return;
 
-	if (utils::contains(system.environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))
-	{
-		passthrough.emplace<xr::passthrough_alpha_blend>();
-	}
-	else if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
+	if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
 	{
 		passthrough.emplace<xr::passthrough_fb>(*inst, *this);
 	}
 	else if (utils::contains(application::get_xr_extensions(), XR_HTC_PASSTHROUGH_EXTENSION_NAME))
 	{
 		passthrough.emplace<xr::passthrough_htc>(*inst, *this);
+	}
+	else if (utils::contains(system.environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))
+	{
+		passthrough.emplace<xr::passthrough_alpha_blend>();
 	}
 }
 
