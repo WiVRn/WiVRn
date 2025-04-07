@@ -19,7 +19,9 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
+#ifdef __ANDROID__
 #include "android/battery.h"
+#endif
 #include "application.h"
 #include "asset.h"
 #include "configuration.h"
@@ -607,6 +609,24 @@ void scenes::lobby::gui_settings()
 				ImGui::EndCombo();
 			}
 			vibrate_on_hover();
+
+			if (config.preferred_refresh_rate == 0 and refresh_rates.size() > 2)
+			{
+				float min_rate = config.minimum_refresh_rate.value_or(refresh_rates.front());
+				if (ImGui::BeginCombo(_S("Minimum refresh rate"), fmt::format("{}", min_rate).c_str()))
+				{
+					for (float rate: refresh_rates | std::views::take(refresh_rates.size() - 1))
+					{
+						if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.minimum_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
+						{
+							config.minimum_refresh_rate = rate;
+							config.save();
+						}
+					}
+					ImGui::EndCombo();
+				}
+				vibrate_on_hover();
+			}
 		}
 	}
 
