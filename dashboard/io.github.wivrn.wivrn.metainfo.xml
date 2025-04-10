@@ -69,6 +69,17 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="0.24.1" date="2025-04-10">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.24.1</url>
+			<description>
+				<ul>
+					<li>Workaround for broken passthrough on Quest V76</li>
+					<li>Disable split encoder on nvenc by default</li>
+					<li>New option to set the minimum refresh rate in automatic mode</li>
+					<li>Brazilian Portuguese translation</li>
+				</ul>
+			</description>
+		</release>
 		<release version="0.24" date="2025-04-04">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.24</url>
 			<description>
