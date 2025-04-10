@@ -26,7 +26,8 @@ countries = {
 	'fr': 'fr',
 	'it': 'it',
 	'ja': 'jp',
-	'zh_TW': 'tw'
+	'zh_TW': 'tw',
+    'pt_BR': 'br'
 }
 
 if args.lang in countries:

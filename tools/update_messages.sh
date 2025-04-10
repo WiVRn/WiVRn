@@ -27,7 +27,7 @@ xgettext \
 
 sed -i 's/charset=CHARSET/charset=UTF-8/g' $WIVRN_CLIENT_POT $WIVRN_DASHBOARD_POT
 
-LANGS="es fr it ja zh_TW"
+LANGS="es fr it ja zh_TW pt_BR"
 
 for i in $LANGS
 do
