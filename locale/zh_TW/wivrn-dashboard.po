@@ -565,7 +565,7 @@ msgstr ""
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
 msgid "I cannot see my computer in the WiVRn app"
-msgstr ""
+msgstr "我在 WiVRn 應用程式中看不到我的電腦。"
 
 #: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:378
 #, kde-format
