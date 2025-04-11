@@ -145,8 +145,16 @@ void scenes::lobby::tooltip(std::string_view text)
 	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
 	const ImVec2 size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
 	pos.x = std::min(pos.x, viewport->Pos.x + viewport->Size.x - size.x / 2);
+	ImVec2 pivot = {0.5, 1};
 
-	ImGui::SetNextWindowPos(pos, ImGuiCond_Always, {0.5, 1});
+	// Move tooltip below the item if it overflows on the top
+	if (pos.y - size.y <= viewport->Pos.y)
+	{
+		pos.y = ImGui::GetItemRectMax().y + constants::style::tooltip_distance;
+		pivot.y = 0;
+	}
+
+	ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
 	if (ImGui::BeginTooltip())
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
@@ -635,7 +643,13 @@ void scenes::lobby::gui_settings()
 		const auto width = stream_view.recommendedImageRectWidth;
 		const auto height = stream_view.recommendedImageRectHeight;
 		auto intScale = int(current * 100);
-		if (ImGui::SliderInt(_S("Resolution scale"), &intScale, 50, 350, fmt::format(_F("%d%% - {}x{} per eye"), int(width * current), int(height * current)).c_str()))
+		const auto slider = ImGui::SliderInt(
+		        _("Resolution scale").append("##resolution_scale").c_str(),
+		        &intScale,
+		        50,
+		        350,
+		        fmt::format(_F("%d%% - {}x{} per eye"), int(width * current), int(height * current)).c_str());
+		if (slider)
 		{
 			config.resolution_scale = intScale * 0.01;
 			config.save();
@@ -785,6 +799,90 @@ void scenes::lobby::gui_settings()
 	}
 }
 
+void scenes::lobby::gui_post_processing()
+{
+	auto & config = application::get_config();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
+
+	{
+		// SGSR
+		{
+			if (ImGui::Checkbox(_S("Enable Snapdragon Game Super Resolution"), &config.sgsr.enabled))
+			{
+				config.save();
+			}
+			vibrate_on_hover();
+			if (ImGui::IsItemHovered())
+			{
+				tooltip(_("Client-side upscaling and sharpening, adds a performance cost on the headset"));
+			}
+		}
+
+		{
+			ImGui::BeginDisabled(not config.sgsr.enabled);
+			ImGui::Indent();
+			{
+				const auto current = config.sgsr.upscaling_factor;
+				const auto width = stream_view.recommendedImageRectWidth * config.resolution_scale;
+				const auto height = stream_view.recommendedImageRectHeight * config.resolution_scale;
+				auto intScale = int(current * 100);
+				const auto slider = ImGui::SliderInt(
+				        _("Upscaling factor").append("##upscaling_factor").c_str(),
+				        &intScale,
+				        100,
+				        200,
+				        fmt::format(_F("%d%% - {}x{} per eye"), int(width * current), int(height * current)).c_str());
+				if (slider)
+				{
+					config.sgsr.upscaling_factor = intScale * 0.01;
+					config.save();
+				}
+				vibrate_on_hover();
+				if (width * current > stream_view.maxImageRectWidth or height * current > stream_view.maxImageRectHeight)
+				{
+					ImGui::TextColored(ImColor(0xf9, 0x73, 0x06) /*orange*/, ICON_FA_TRIANGLE_EXCLAMATION);
+					ImGui::SameLine();
+					ImGui::Text("%s", fmt::format(_F("Resolution larger than {}x{} may not be supported by the headset"), stream_view.maxImageRectWidth, stream_view.maxImageRectHeight).c_str());
+				}
+			}
+			{
+				if (ImGui::Checkbox(_S("Use edge direction"), &config.sgsr.use_edge_direction))
+				{
+					config.save();
+				}
+				vibrate_on_hover();
+				if (ImGui::IsItemHovered())
+					tooltip(_("Adds an additional performance cost"));
+			}
+			{
+				const float current = config.sgsr.edge_threshold;
+				int intScale = int(current);
+				if (ImGui::SliderInt(_S("Edge threshold"), &intScale, 1, 16, "%d.0"))
+				{
+					config.sgsr.edge_threshold = float(intScale);
+					config.save();
+				}
+				vibrate_on_hover();
+				if (ImGui::IsItemHovered())
+					tooltip(fmt::format(_F("Recommended: {:.1f}"), 4.0));
+			}
+			{
+				if (ImGui::SliderFloat(_S("Edge sharpness"), &config.sgsr.edge_sharpness, 1.0, 2.0, "%.2f"))
+				{
+					config.save();
+				}
+				vibrate_on_hover();
+				if (ImGui::IsItemHovered())
+					tooltip(fmt::format(_F("Recommended: {:.1f}"), 2.0));
+			}
+			ImGui::Unindent();
+			ImGui::EndDisabled();
+		}
+	}
+	ImGui::PopStyleVar();
+}
+
 #if WIVRN_CLIENT_DEBUG_MENU
 void scenes::lobby::gui_debug()
 {
@@ -867,7 +965,7 @@ void scenes::lobby::gui_licenses()
 	ImGui::Text("%s", _("Licenses").c_str());
 	ImGui::PopFont();
 
-	const auto components = {"WiVRn", "FontAwesome", "openxr-loader", "simdjson"};
+	const auto components = {"WiVRn", "FontAwesome", "openxr-loader", "simdjson", "SGSR"};
 	if (not license)
 	{
 		selected_item = *components.begin();
@@ -1450,6 +1548,10 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				gui_settings();
 				break;
 
+			case tab::post_processing:
+				gui_post_processing();
+				break;
+
 #if WIVRN_CLIENT_DEBUG_MENU
 			case tab::debug:
 				gui_debug();
@@ -1492,6 +1594,9 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		vibrate_on_hover();
 
 		RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});
+		vibrate_on_hover();
+
+		RadioButtonWithoutCheckBox(ICON_FA_WAND_MAGIC_SPARKLES "  " + _("Post-processing"), &current_tab, tab::post_processing, {TabWidth, 0});
 		vibrate_on_hover();
 
 #if WIVRN_CLIENT_DEBUG_MENU

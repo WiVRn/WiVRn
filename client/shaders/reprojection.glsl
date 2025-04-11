@@ -19,6 +19,8 @@
 
 #version 450
 
+#ifdef VERT_SHADER
+
 layout (constant_id = 0) const bool use_foveation_x = false;
 layout (constant_id = 1) const bool use_foveation_y = false;
 layout (constant_id = 2) const int nb_x = 64;
@@ -32,6 +34,12 @@ layout(set = 0, binding = 1) uniform UniformBufferObject
 	vec2 xc;
 }
 ubo;
+
+layout(location = 0) out vec2 outUV;
+
+vec2 positions[6] = vec2[](
+	vec2(0, 0), vec2(1, 0), vec2(0, 1),
+	vec2(1, 0), vec2(0, 1), vec2(1, 1));
 
 vec2 unfoveate(vec2 uv)
 {
@@ -54,14 +62,6 @@ vec2 unfoveate(vec2 uv)
 	return uv;
 }
 
-#ifdef VERT_SHADER
-
-vec2 positions[6] = vec2[](
-	vec2(0, 0), vec2(1, 0), vec2(0, 1),
-	vec2(1, 0), vec2(0, 1), vec2(1, 1));
-
-layout(location = 0) out vec2 outUV;
-
 void main()
 {
 	vec2 quad_size = 1 / vec2(nb_x, nb_y);
@@ -75,6 +75,7 @@ void main()
 #endif
 
 #ifdef FRAG_SHADER
+
 layout(set = 0, binding = 0) uniform sampler2D texSampler;
 
 layout(location = 0) in vec2 inUV;
@@ -83,8 +84,7 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-	outColor = texture(texSampler, inUV).rgba;
-
+    outColor = texture(texSampler, inUV).rgba;
 }
-#endif
 
+#endif

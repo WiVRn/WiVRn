@@ -82,6 +82,17 @@ set right rotation 0.4 0 0 0.9
 sleep 1
 exec grim -g "0,0 2560x1440" ${LANG}/screenshot-04-settings.png
 
+# Post-processing
+set right direction -1.95 1.45 -1
+sleep 1
+set right trigger_value 1
+sleep 1
+set right trigger_value 0
+sleep 1
+set right rotation 0.4 0 0 0.9
+sleep 1
+exec grim -g "0,0 2560x1440" ${LANG}/screenshot-07-post-processing.png
+
 # About
 set right direction -2.4 0.45 -1
 sleep 1

@@ -3,6 +3,7 @@
 .cache/
 .gradle/
 _deps/
+.idea/
 
 build/
 build-*/

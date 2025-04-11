@@ -118,6 +118,7 @@ class lobby : public scene_impl<lobby>
 	{
 		server_list,
 		settings,
+		post_processing,
 #if WIVRN_CLIENT_DEBUG_MENU
 		debug,
 #endif
@@ -148,6 +149,7 @@ class lobby : public scene_impl<lobby>
 	void gui_server_list();
 	void gui_new_server();
 	void gui_settings();
+	void gui_post_processing();
 	void gui_debug();
 	void gui_about();
 	void gui_licenses();
