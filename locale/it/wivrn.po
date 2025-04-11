@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-09 23:49+0200\n"
+"POT-Creation-Date: 2025-04-11 20:21+0200\n"
 "PO-Revision-Date: 2024-10-15 20:16+0100\n"
 "Last-Translator: Albano Battistella <albanobattistella@gmail.com>\n"
 "Language: Italian\n"
@@ -37,9 +37,9 @@ msgstr "Impossibile connettersi a {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "In attesa di connessione"
 
-#: client/scenes/lobby_gui.cpp:174 client/scenes/lobby_gui.cpp:367
-msgid "Cancel"
-msgstr "Annulla"
+#: client/scenes/lobby_gui.cpp:174
+msgid "Disconnect"
+msgstr "Sconnetti"
 
 #: client/scenes/lobby_gui.cpp:180
 msgid "Video stream interrupted"
@@ -98,6 +98,10 @@ msgstr "Porta"
 #: client/scenes/lobby_gui.cpp:360
 msgid "TCP only"
 msgstr "Solo TCP"
+
+#: client/scenes/lobby_gui.cpp:367
+msgid "Cancel"
+msgstr "Annulla"
 
 #: client/scenes/lobby_gui.cpp:381
 msgid "Save"

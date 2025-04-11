@@ -194,7 +194,7 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 {
 	using constants::style::button_size;
 
-	std::string close_button_label = _("Cancel");
+	std::string close_button_label = _("Disconnect");
 
 	std::string status;
 	if (next_scene)

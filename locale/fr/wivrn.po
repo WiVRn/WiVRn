@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-13 16:50+0200\n"
+"POT-Creation-Date: 2025-04-15 12:05+0200\n"
 "PO-Revision-Date: 2024-05-20 13:00+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language: French\n"
@@ -53,9 +53,9 @@ msgctxt "openxr_post_processing"
 msgid "Disabled"
 msgstr "Désactivé"
 
-#: client/scenes/lobby_gui.cpp:197 client/scenes/lobby_gui.cpp:390
-msgid "Cancel"
-msgstr "Annuler"
+#: client/scenes/lobby_gui.cpp:197
+msgid "Disconnect"
+msgstr "Déconnecter"
 
 #: client/scenes/lobby_gui.cpp:203
 msgid "Video stream interrupted"
@@ -114,6 +114,10 @@ msgstr "Port"
 #: client/scenes/lobby_gui.cpp:383
 msgid "TCP only"
 msgstr "TCP seulement"
+
+#: client/scenes/lobby_gui.cpp:390
+msgid "Cancel"
+msgstr "Annuler"
 
 #: client/scenes/lobby_gui.cpp:404
 msgid "Save"
