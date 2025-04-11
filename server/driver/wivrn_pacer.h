@@ -70,7 +70,7 @@ private:
 	std::vector<frame_time> frame_times_compute;
 	std::jthread worker;
 
-	std::array<frame_info, 4> in_flight_frames;
+	std::array<frame_info, 8> in_flight_frames;
 
 public:
 	wivrn_pacer(uint64_t frame_duration);
