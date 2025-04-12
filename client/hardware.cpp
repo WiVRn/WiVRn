@@ -230,6 +230,8 @@ const char * permission_name(feature f)
 					return nullptr;
 			}
 			__builtin_unreachable();
+		case feature::motion_tracking:
+			return nullptr;
 	}
 	__builtin_unreachable();
 }
