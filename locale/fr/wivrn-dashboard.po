@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-14 16:29+0100\n"
+"POT-Creation-Date: 2025-03-25 21:15+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language: French\n"
@@ -11,47 +11,47 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: dashboard/apk_installer.cpp:175
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "Téléchargement de l'APK : %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:177
+#: dashboard/apk_installer.cpp:169
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "Téléchargement de l'APK : %1 MB"
 
-#: dashboard/apk_installer.cpp:186
+#: dashboard/apk_installer.cpp:178
 #, kde-format
 msgid "Download cancelled"
 msgstr "Téléchargement annulé"
 
-#: dashboard/apk_installer.cpp:202
+#: dashboard/apk_installer.cpp:194
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "Impossible de télécharger l'APK : %1"
 
-#: dashboard/apk_installer.cpp:225
+#: dashboard/apk_installer.cpp:217
 #, kde-format
 msgid "Installing APK"
 msgstr "Installation de l'APK"
 
-#: dashboard/apk_installer.cpp:229
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "adb n'a pas pu démarrer : %1"
 
-#: dashboard/apk_installer.cpp:239
+#: dashboard/apk_installer.cpp:231
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb a quitté de façon anormale : %1"
 
-#: dashboard/apk_installer.cpp:247
+#: dashboard/apk_installer.cpp:239
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "La commande 'adb install' a échoué : code de retour %1"
 
-#: dashboard/apk_installer.cpp:252
+#: dashboard/apk_installer.cpp:244
 #, kde-format
 msgid "Installation successful"
 msgstr "Installation réussie"
@@ -592,9 +592,9 @@ msgid ""
 "</p><ul><li>The headset app version is in the \"About\" page</li><li>The "
 "server version is <b>%1</b></li></ul>"
 msgstr ""
-"<p>La version de l'application sur le casque et le serveur doivent correspondre."
-"</p><ul><li>La version de l'application sur le casque est dans la page « À propos »"
-"</li><li>La version du serveur est <b>%1</b></li></ul>"
+"<p>La version de l'application sur le casque et le serveur doivent "
+"correspondre.</p><ul><li>La version de l'application sur le casque est dans "
+"la page « À propos »</li><li>La version du serveur est <b>%1</b></li></ul>"
 
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format

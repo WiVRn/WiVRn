@@ -65,6 +65,14 @@ public:
 	};
 	sgsr_settings sgsr{};
 
+	// XR_FB_composition_layer_settings extension flags
+	struct openxr_post_processing_settings
+	{
+		XrCompositionLayerSettingsFlagsFB super_sampling = 0;
+		XrCompositionLayerSettingsFlagsFB sharpening = 0;
+	};
+	openxr_post_processing_settings openxr_post_processing{};
+
 	std::string virtual_keyboard_layout = "QWERTY";
 
 	bool check_feature(feature f) const;
@@ -75,6 +83,7 @@ private:
 	std::map<feature, bool> features;
 
 	void parse_sgsr_options(simdjson::simdjson_result<simdjson::dom::object> root);
+	void parse_openxr_post_processing_options(simdjson::simdjson_result<simdjson::dom::object> root);
 
 public:
 	configuration(xr::system &);

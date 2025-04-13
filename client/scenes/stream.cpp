@@ -924,6 +924,17 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	        .views = layer_view.data(),
 	};
 
+	XrCompositionLayerSettingsFB settings;
+	const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
+	if ((openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
+	{
+		settings = {
+		        .type = XR_TYPE_COMPOSITION_LAYER_SETTINGS_FB,
+		        .layerFlags = openxr_post_processing.sharpening | openxr_post_processing.super_sampling,
+		};
+		layer.next = &settings;
+	}
+
 	std::vector<XrCompositionLayerQuad> imgui_layers;
 	if (imgui_ctx)
 	{
