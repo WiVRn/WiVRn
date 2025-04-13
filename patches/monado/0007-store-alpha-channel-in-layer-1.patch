@@ -1,7 +1,7 @@
-From d5337b1e4811aef804057e26d67aace90adc36e8 Mon Sep 17 00:00:00 2001
+From b40c83a38d13fe511c9dceadeb23dd4fd2cc77f4 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Nov 2024 13:40:00 +0100
-Subject: [PATCH 08/11] store alpha channel in layer 1
+Subject: [PATCH 07/10] store alpha channel in layer 1
 
 ---
  src/xrt/compositor/shaders/clear.comp      |  4 ++--
@@ -29,7 +29,7 @@ index 036da401a..db8e5178e 100644
 +	imageStore(target, ivec3(offset.x + ix, offset.y + iy, 0), colour);
  }
 diff --git a/src/xrt/compositor/shaders/distortion.comp b/src/xrt/compositor/shaders/distortion.comp
-index 461aeb4ec..237221a54 100644
+index e1dd1cb58..9ce46fe6f 100644
 --- a/src/xrt/compositor/shaders/distortion.comp
 +++ b/src/xrt/compositor/shaders/distortion.comp
 @@ -18,7 +18,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
@@ -50,7 +50,7 @@ index 461aeb4ec..237221a54 100644
  
  const mat3 color_space = mat3(
  // clang-format off
-@@ -142,6 +142,7 @@ void main()
+@@ -122,6 +122,7 @@ void main()
  	ivec2 offset = ivec2(ubo.views[iz].xy);
  	ivec2 extent = ivec2(ubo.views[iz].zw);
  	vec2 cbcrs[4];
@@ -58,7 +58,7 @@ index 461aeb4ec..237221a54 100644
  	for (int k = 0; k < 2; k += 1) {
  		uint iy = gl_GlobalInvocationID.y * 2 + k;
  		for (int j = 0; j < 2; j += 1) {
-@@ -156,15 +157,16 @@ void main()
+@@ -136,15 +137,16 @@ void main()
  			uv = transform_uv(uv, iz);
  
  			// Sample the source
@@ -78,7 +78,7 @@ index 461aeb4ec..237221a54 100644
  			}
  		}
  	}
-@@ -172,5 +174,9 @@ void main()
+@@ -152,5 +154,9 @@ void main()
  		return;
  	}
  	vec2 cbcr = mix(mix(cbcrs[0], cbcrs[1], 0.5), mix(cbcrs[2], cbcrs[3], 0.5), 0.5);
