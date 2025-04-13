@@ -288,9 +288,6 @@ void start_server(configuration config)
 		// there is no need for oversampling.
 		setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", false);
 
-		// Enable mipmaps for distortion
-		setenv("XRT_DISTORTION_MIP_LEVELS", "0", false);
-
 		// FIXME: synchronization fails on gfx pipeline
 		setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
 

@@ -52,13 +52,6 @@ static double foveate(double a, double b, double λ, double c, double x)
 	// df⁻¹(x)/dx = 1/scale for x = c
 }
 
-static double foveate_lod(double a, double b, double /*λ*/, double /*c*/, double x)
-{
-	// derivate of foveate * scale
-	// bias it to favor sharper image
-	return std::max(0., log2(1 / (cos(a * x + b) * cos(a * x + b)) - 0.5));
-}
-
 static std::tuple<float, float> solve_foveation(float λ, float c)
 {
 	// Compute a and b for the foveation function such that:
@@ -122,20 +115,17 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 	// result is in the input coordinates (from the application)
 	const auto & param = ((wivrn_hmd *)xdev)->foveation_parameters[view_index];
 	xrt_vec2 out;
-	xrt_vec2 lod;
 
 	if (param.x.scale < 1)
 	{
 		u = 2 * u - 1;
 
 		out.x = foveate(param.x.a, param.x.b, param.x.scale, param.x.center, u);
-		lod.x = foveate_lod(param.x.a, param.x.b, param.x.scale, param.x.center, u);
 		out.x = std::clamp<float>((1 + out.x) / 2, 0, 1);
 	}
 	else
 	{
 		out.x = u;
-		lod.x = 0;
 	}
 
 	if (param.y.scale < 1)
@@ -143,19 +133,15 @@ bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_in
 		v = 2 * v - 1;
 
 		out.y = foveate(param.y.a, param.y.b, param.y.scale, param.y.center, v);
-		lod.y = foveate_lod(param.y.a, param.y.b, param.y.scale, param.y.center, v);
 		out.y = std::clamp<float>((1 + out.y) / 2, 0, 1);
 	}
 	else
 	{
 		out.y = v;
-		lod.y = 0;
 	}
 
-	U_LOG_D("distortion parameters: %f %f (%f %f)", lod.x, lod.y, u, v);
-
 	result->r = out;
-	result->g = lod;
+	result->g = out;
 	result->b = out;
 
 	return true;

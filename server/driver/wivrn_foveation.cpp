@@ -52,15 +52,11 @@ static const std::array pool_sizes =
         {
                 vk::DescriptorPoolSize{
                         .type = vk::DescriptorType::eStorageImage,
-                        .descriptorCount = 4,
+                        .descriptorCount = 2,
                 }};
 
 static const std::array<vk::DescriptorSetLayoutBinding, 2> layout_bindings{
         vk::DescriptorSetLayoutBinding{.binding = 0,
-                                       .descriptorType = vk::DescriptorType::eStorageImage,
-                                       .descriptorCount = 1,
-                                       .stageFlags = vk::ShaderStageFlagBits::eCompute},
-        vk::DescriptorSetLayoutBinding{.binding = 1,
                                        .descriptorType = vk::DescriptorType::eStorageImage,
                                        .descriptorCount = 1,
                                        .stageFlags = vk::ShaderStageFlagBits::eCompute},
@@ -178,33 +174,19 @@ void wivrn_foveation_renderer::render_distortion_images(std::array<to_headset::f
 	{
 		// Descriptor set
 
-		std::array image_info{
-		        vk::DescriptorImageInfo{
-		                .imageView = vk::ImageView(image_views[eye]),
-		                .imageLayout = vk::ImageLayout::eGeneral,
-		        },
-		        vk::DescriptorImageInfo{
-		                .imageView = vk::ImageView(image_views[eye + 2]),
-		                .imageLayout = vk::ImageLayout::eGeneral,
-		        },
+		vk::DescriptorImageInfo image_info{
+		        .imageView = vk::ImageView(image_views[eye]),
+		        .imageLayout = vk::ImageLayout::eGeneral,
 		};
-		vk.device.updateDescriptorSets({
-		                                       vk::WriteDescriptorSet{
-		                                               .dstSet = ds[eye],
-		                                               .dstBinding = 0,
-		                                               .descriptorCount = 1,
-		                                               .descriptorType = vk::DescriptorType::eStorageImage,
-		                                               .pImageInfo = &image_info[0],
-		                                       },
-		                                       vk::WriteDescriptorSet{
-		                                               .dstSet = ds[eye],
-		                                               .dstBinding = 1,
-		                                               .descriptorCount = 1,
-		                                               .descriptorType = vk::DescriptorType::eStorageImage,
-		                                               .pImageInfo = &image_info[1],
-		                                       },
-		                               },
-		                               nullptr);
+		vk.device.updateDescriptorSets(
+		        vk::WriteDescriptorSet{
+		                .dstSet = ds[eye],
+		                .dstBinding = 0,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eStorageImage,
+		                .pImageInfo = &image_info,
+		        },
+		        nullptr);
 
 		auto foveation = foveations[eye];
 
