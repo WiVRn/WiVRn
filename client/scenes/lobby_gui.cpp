@@ -888,7 +888,7 @@ void scenes::lobby::gui_post_processing()
 			if (ImGui::IsItemHovered())
 			{
 				if (application::get_openxr_post_processing_supported())
-					tooltip(_("On this headset, this setting has been fully superseded by the native Sharpening setting above.\nOnly enable if you know what you’re doing."));
+					tooltip(_("On this headset, this setting has been fully superseded by the native Sharpening setting above.\nOnly enable if you know what you're doing."));
 				else
 					tooltip(_("Client-side upscaling and sharpening, adds a performance cost on the headset"));
 			}
