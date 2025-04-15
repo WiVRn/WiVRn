@@ -111,7 +111,6 @@ active_runtime::active_runtime() :
 			std::ofstream manifest_file(openvr_manifest.c_str());
 			manifest_file.exceptions(std::ofstream::failbit);
 			manifest_file << manifest;
-			std::filesystem::permissions(openvr_manifest, std::filesystem::perms(0400), std::filesystem::perm_options::replace);
 			this->openvr_manifest = openvr_manifest;
 		}
 	}
