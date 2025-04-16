@@ -42,6 +42,7 @@ class adb : public QAbstractListModel
 	Q_PROPERTY(bool adbInstalled READ adbInstalled NOTIFY adbInstalledChanged)
 
 	bool m_adb_installed = false;
+	QString m_path;
 	std::vector<device> m_android_devices;
 
 	QCoro::Task<> on_poll_devices_timeout();
@@ -72,6 +73,8 @@ public:
 	}
 
 	QVariant data(const QModelIndex & index, int role) const override;
+
+	Q_INVOKABLE void setPath(QString path);
 
 protected:
 	QHash<int, QByteArray> roleNames() const override;

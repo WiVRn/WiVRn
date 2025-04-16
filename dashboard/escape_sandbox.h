@@ -22,22 +22,11 @@
 #include <QProcess>
 #include <string>
 
-template <typename... Args>
-std::unique_ptr<QProcess> escape_sandbox(const std::string & executable, Args &&... args_orig)
+template <typename U, typename... Args>
+std::unique_ptr<QProcess> escape_sandbox(U && executable, Args &&... args_orig)
 {
 	auto process = std::make_unique<QProcess>();
 	QStringList args;
-
-	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
-	{
-		process->setProgram("flatpak-spawn");
-		args.push_back("--host");
-		args.push_back(QString::fromStdString(executable));
-	}
-	else
-	{
-		process->setProgram(QString::fromStdString(executable));
-	}
 
 	auto to_QString = [](const auto & s) {
 		using T = std::decay_t<std::remove_cv_t<std::remove_reference_t<decltype(s)>>>;
@@ -49,6 +38,17 @@ std::unique_ptr<QProcess> escape_sandbox(const std::string & executable, Args &&
 		if constexpr (std::is_same_v<T, std::string>)
 			return QString::fromStdString(s);
 	};
+
+	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
+	{
+		process->setProgram("flatpak-spawn");
+		args.push_back("--host");
+		args.push_back(to_QString(executable));
+	}
+	else
+	{
+		process->setProgram(to_QString(executable));
+	}
 
 	(args.push_back(to_QString(args_orig)), ...);
 

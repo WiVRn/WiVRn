@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-25 21:15+0100\n"
+"POT-Creation-Date: 2025-04-17 19:30+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language: French\n"
@@ -331,7 +331,7 @@ msgstr "Assistant"
 msgid "Install the app"
 msgstr "Installer l'appli"
 
-#: dashboard/qml/Main.qml:349 dashboard/qml/SettingsPage.qml:12
+#: dashboard/qml/Main.qml:349 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "Paramètres"
@@ -359,23 +359,23 @@ msgctxt "browse a file to choose the application to start"
 msgid "Browse"
 msgstr "Parcourir"
 
-#: dashboard/qml/SettingsPage.qml:31
+#: dashboard/qml/SettingsPage.qml:40
 #, kde-format
 msgctxt "automatic foveation setup"
 msgid "Manual foveation"
 msgstr "Fovéation manuelle"
 
-#: dashboard/qml/SettingsPage.qml:37
+#: dashboard/qml/SettingsPage.qml:46
 #, kde-format
 msgid "Foveation strength:"
 msgstr "Intensité de fovéation :"
 
-#: dashboard/qml/SettingsPage.qml:53
+#: dashboard/qml/SettingsPage.qml:62
 #, kde-format
 msgid "%1 %"
 msgstr "%1 %"
 
-#: dashboard/qml/SettingsPage.qml:59
+#: dashboard/qml/SettingsPage.qml:68
 #, kde-format
 msgid ""
 "A stronger foveation makes the image sharper in the center than in the "
@@ -394,65 +394,65 @@ msgstr ""
 "Les valeurs recommandées sont entre 20% et 50% pour les casques sans suivi "
 "des yeux et entre 50% et 70% pour les casques avec suivi des yeux."
 
-#: dashboard/qml/SettingsPage.qml:65
+#: dashboard/qml/SettingsPage.qml:74
 #, kde-format
 msgctxt "weaker foveation"
 msgid "Weaker"
 msgstr "Faible"
 
-#: dashboard/qml/SettingsPage.qml:76
+#: dashboard/qml/SettingsPage.qml:85
 #, kde-format
 msgctxt "stronger foveation"
 msgid "Stronger"
 msgstr "Fort"
 
-#: dashboard/qml/SettingsPage.qml:86
+#: dashboard/qml/SettingsPage.qml:95
 #, kde-format
 msgid "Bitrate:"
 msgstr "Débit :"
 
-#: dashboard/qml/SettingsPage.qml:90 dashboard/qml/SettingsPage.qml:92
+#: dashboard/qml/SettingsPage.qml:99 dashboard/qml/SettingsPage.qml:101
 #, kde-format
 msgctxt "bitrate"
 msgid "%1 Mbit/s"
 msgstr "%1 Mbit/s"
 
-#: dashboard/qml/SettingsPage.qml:102
+#: dashboard/qml/SettingsPage.qml:111
 #, kde-format
 msgid "Encoder layout:"
 msgstr "Disposition :"
 
-#: dashboard/qml/SettingsPage.qml:105
+#: dashboard/qml/SettingsPage.qml:114
 #, kde-format
 msgctxt "encoder preset"
 msgid "Automatic"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:109
+#: dashboard/qml/SettingsPage.qml:118
 #, kde-format
 msgctxt "encoder preset"
 msgid "Manual"
 msgstr "Manuelle"
 
-#: dashboard/qml/SettingsPage.qml:113
+#: dashboard/qml/SettingsPage.qml:122
 #, kde-format
 msgctxt "encoder preset"
 msgid "Default preset"
 msgstr "Configuration prédéfinie : par défaut"
 
-#: dashboard/qml/SettingsPage.qml:136
+#: dashboard/qml/SettingsPage.qml:145
 #, kde-format
 msgctxt "encoder preset"
 msgid "Low latency preset"
 msgstr "Configuration prédéfinie : basse latence"
 
-#: dashboard/qml/SettingsPage.qml:161
+#: dashboard/qml/SettingsPage.qml:170
 #, kde-format
 msgctxt "encoder preset"
 msgid "Safe preset"
 msgstr "Configuration prédéfinie : sure"
 
-#: dashboard/qml/SettingsPage.qml:184
+#: dashboard/qml/SettingsPage.qml:193
 #, kde-format
 msgid ""
 "To add a new encoder, split an existing encoder by clicking near an edge.\n"
@@ -462,68 +462,84 @@ msgstr ""
 "d'un bord.\n"
 "Déplacez un bord pour redimensionner ou supprimer un encodeur."
 
-#: dashboard/qml/SettingsPage.qml:211
+#: dashboard/qml/SettingsPage.qml:220
 #, kde-format
 msgid "Encoder:"
 msgstr "Encodeur :"
 
-#: dashboard/qml/SettingsPage.qml:220
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:225
+#: dashboard/qml/SettingsPage.qml:234
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (GPUs NVIDIA)"
 
-#: dashboard/qml/SettingsPage.qml:230
+#: dashboard/qml/SettingsPage.qml:239
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (GPUs AMD et Intel)"
 
-#: dashboard/qml/SettingsPage.qml:235
+#: dashboard/qml/SettingsPage.qml:244
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (encodage logiciel)"
 
-#: dashboard/qml/SettingsPage.qml:240
+#: dashboard/qml/SettingsPage.qml:249
 #, kde-format
 msgid "Vulkan (Vulkan Video)"
 msgstr "Vulkan (Vulkan Vidéo)"
 
-#: dashboard/qml/SettingsPage.qml:263
+#: dashboard/qml/SettingsPage.qml:272
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr ""
 "\"Automatique\" utilisera l'accélération matérielle si elle est disponible"
 
-#: dashboard/qml/SettingsPage.qml:269
+#: dashboard/qml/SettingsPage.qml:278
 #, kde-format
 msgid "Codec:"
 msgstr "Codec :"
 
-#: dashboard/qml/SettingsPage.qml:276
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:280
+#: dashboard/qml/SettingsPage.qml:289
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:284
+#: dashboard/qml/SettingsPage.qml:293
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:288
+#: dashboard/qml/SettingsPage.qml:297
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
+
+#: dashboard/qml/SettingsPage.qml:323
+#, kde-format
+msgid "Custom adb location"
+msgstr "Spécifier l'emplacement d'adb"
+
+#: dashboard/qml/SettingsPage.qml:334
+#, kde-format
+msgid "Adb location:"
+msgstr "Emplacement d'adb"
+
+#: dashboard/qml/SettingsPage.qml:343
+#, kde-format
+msgctxt "browse a file to choose the adb binary"
+msgid "Browse"
+msgstr "Parcourir"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format

@@ -1,8 +1,10 @@
 pragma ComponentBehavior: Bound
 
+import QtCore as Core
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls as Controls
+import QtQuick.Dialogs as Dialogs
 import org.kde.kirigami as Kirigami
 
 import io.github.wivrn.wivrn
@@ -16,6 +18,13 @@ Kirigami.ScrollablePage {
     Settings {
         id: config
     }
+
+    Core.Settings {
+        property alias adb_custom: settings.adb_custom
+        property alias adb_location: settings.adb_location
+    }
+    property bool adb_custom
+    property string adb_location
 
     ColumnLayout {
         id: column
@@ -302,6 +311,40 @@ Kirigami.ScrollablePage {
                     enabled: encoder_combo.model[encoder_combo.currentIndex].codecs.split(",").includes(name)
                 }
             }
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+            }
+
+            Controls.CheckBox {
+                id: adb_custom
+                Layout.row: 0
+                Layout.column: 0
+                text: i18n("Custom adb location")
+            }
+
+            Dialogs.FileDialog {
+                id: adb_browse
+                onAccepted: {
+                    adb_location.text = new URL(selectedFile).pathname;
+                }
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: i18n("Adb location:")
+                Layout.fillWidth: true
+                enabled: adb_custom.checked
+                Controls.TextField {
+                    id: adb_location
+                    placeholderText: settings.adb
+                    Layout.fillWidth: true
+                }
+                Controls.Button {
+                    text: i18nc("browse a file to choose the adb binary", "Browse")
+                    onClicked: adb_browse.open()
+                }
+            }
+
         }
 
         Item {
@@ -335,6 +378,9 @@ Kirigami.ScrollablePage {
         config.bitrate = bitrate.value * 1000000;
         config.scale = manual_foveation.checked ? 1 - scale_slider.value / 100.0 : -1;
         config.manualEncoders = encoder_layout.currentIndex > 0;
+        settings.adb_custom = adb_custom.checked;
+        settings.adb_location = adb_location.text;
+        Adb.setPath(adb_custom.checked ? adb_location.text : "adb");
     }
 
     function load() {
@@ -354,6 +400,9 @@ Kirigami.ScrollablePage {
             // auto_encoders.checked = true;
             encoder_layout.currentIndex = 0;
         }
+
+        adb_custom.checked = settings.adb_custom;
+        adb_location.text = settings.adb_location;
     }
 
     Shortcut {

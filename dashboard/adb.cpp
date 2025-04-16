@@ -23,6 +23,7 @@
 #include <QCoroQmlTask>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QSettings>
 #include <algorithm>
 #include <vector>
 
@@ -30,12 +31,20 @@ using namespace std::chrono_literals;
 
 adb::adb()
 {
-	QTimer::singleShot(0, this, &adb::checkIfAdbIsInstalled);
+	QSettings settings;
+	if (settings.value("adb_custom").toBool())
+		setPath(settings.value("adb_location").toString());
+	else
+		setPath("adb");
 }
 
 QCoro::Task<> adb::checkIfAdbIsInstalled()
 {
-	auto which_adb = escape_sandbox("which", "adb");
+	std::unique_ptr<QProcess> which_adb;
+	if (m_path == "adb")
+		which_adb = escape_sandbox("which", "adb");
+	else
+		which_adb = escape_sandbox("test", "-x", m_path);
 	which_adb->setProcessChannelMode(QProcess::ForwardedErrorChannel);
 	auto co_which_adb = qCoro(*which_adb);
 
@@ -44,7 +53,10 @@ QCoro::Task<> adb::checkIfAdbIsInstalled()
 
 	if (which_adb->exitStatus() == QProcess::NormalExit and which_adb->exitCode() == 0)
 	{
-		qDebug() << "adb found at" << QString{which_adb->readAllStandardOutput()}.trimmed();
+		if (m_path == "adb")
+			qDebug() << "adb found at" << QString{which_adb->readAllStandardOutput()}.trimmed();
+		else
+			qDebug() << "adb found at" << m_path << "(custom path)";
 
 		if (!m_adb_installed)
 		{
@@ -68,14 +80,14 @@ QCoro::Task<> adb::on_poll_devices_timeout()
 {
 	if (m_android_devices.empty())
 	{
-		auto wait_for_usb_device = escape_sandbox("adb", "wait-for-usb-device");
+		auto wait_for_usb_device = escape_sandbox(m_path, "wait-for-usb-device");
 		auto co_wait_for_usb_device = qCoro(*wait_for_usb_device);
 
 		co_await co_wait_for_usb_device.start();
 		co_await co_wait_for_usb_device.waitForFinished(-1);
 	}
 
-	auto adb_devices = escape_sandbox("adb", "devices");
+	auto adb_devices = escape_sandbox(m_path, "devices");
 	adb_devices->setProcessChannelMode(QProcess::ForwardedErrorChannel);
 	auto co_adb_devices = qCoro(*adb_devices);
 
@@ -147,7 +159,7 @@ QCoro::Task<> adb::add_device(QString serial)
 {
 	device new_dev{.serial = serial};
 
-	auto list_packages = escape_sandbox("adb", "-s", serial, "shell", "pm", "list", "packages");
+	auto list_packages = escape_sandbox(m_path, "-s", serial, "shell", "pm", "list", "packages");
 	list_packages->setProcessChannelMode(QProcess::ForwardedErrorChannel);
 
 	auto co_list_packages = qCoro(*list_packages);
@@ -172,7 +184,7 @@ QCoro::Task<> adb::add_device(QString serial)
 		}
 	}
 
-	auto getprop = escape_sandbox("adb", "-s", new_dev.serial, "shell", "getprop");
+	auto getprop = escape_sandbox(m_path, "-s", new_dev.serial, "shell", "getprop");
 	getprop->setProcessChannelMode(QProcess::ForwardedErrorChannel);
 
 	auto co_get_prop = qCoro(*getprop);
@@ -277,6 +289,12 @@ QVariant adb::data(const QModelIndex & index, int role) const
 }
 // END
 
+void adb::setPath(QString path)
+{
+	m_path = path;
+	QTimer::singleShot(0, this, &adb::checkIfAdbIsInstalled);
+}
+
 QCoro::QmlTask adb::startUsbConnection(QString serial, QString pin)
 {
 	return doStartUsbConnection(serial, pin);
@@ -289,7 +307,7 @@ QCoro::Task<> adb::doStartUsbConnection(QString serial, QString pin)
 	if (it == m_android_devices.end())
 		co_return;
 
-	auto adb_reverse = escape_sandbox("adb", "-s", serial, "reverse", "tcp:9757", "tcp:9757");
+	auto adb_reverse = escape_sandbox(m_path, "-s", serial, "reverse", "tcp:9757", "tcp:9757");
 	adb_reverse->setProcessChannelMode(QProcess::ForwardedChannels);
 	auto co_process = qCoro(*adb_reverse);
 
@@ -304,7 +322,7 @@ QCoro::Task<> adb::doStartUsbConnection(QString serial, QString pin)
 
 	QString uri = pin == "" ? "wivrn+tcp://127.0.0.1:9757" : "wivrn+tcp://:" + pin + "@127.0.0.1:9757";
 
-	auto adb_start_activity = escape_sandbox("adb", "-s", serial, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", uri, it->app);
+	auto adb_start_activity = escape_sandbox(m_path, "-s", serial, "shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", uri, it->app);
 	adb_start_activity->setProcessChannelMode(QProcess::ForwardedChannels);
 	auto co_adb_start_activity = qCoro(*adb_start_activity);
 
