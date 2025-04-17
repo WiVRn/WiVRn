@@ -235,8 +235,8 @@ modules:
       - -Ddocbook_docs=disabled
     sources:
     - type: git
-      url: https://gitlab.gnome.org/GNOME/libnotify.git
-      tag: 0.8.3
+      url: https://github.com/GNOME/libnotify.git
+      tag: 131aad01ff5f563b4863becbb6ed84dac6e75d5a
 
   - name: qcoro
     buildsystem: cmake-ninja
