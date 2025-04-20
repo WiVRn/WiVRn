@@ -140,24 +140,28 @@ msgstr "HMD"
 msgid "Last connection: %1 second ago"
 msgid_plural "Last connection: %1 seconds ago"
 msgstr[0] "前回の接続: %1 秒前"
+msgstr[1] "前回の接続: %1 秒前"
 
 #: dashboard/qml/HeadsetsPage.qml:31
 #, fuzzy, kde-format
 msgid "Last connection: %1 minute ago"
 msgid_plural "Last connection: %1 minutes ago"
 msgstr[0] "前回の接続: %1 分前"
+msgstr[1] "前回の接続: %1 分前"
 
 #: dashboard/qml/HeadsetsPage.qml:33
 #, fuzzy, kde-format
 msgid "Last connection: %1 hour ago"
 msgid_plural "Last connection: %1 hours ago"
 msgstr[0] "前回の接続: %1 時間前"
+msgstr[1] "前回の接続: %1 時間前"
 
 #: dashboard/qml/HeadsetsPage.qml:35
 #, fuzzy, kde-format
 msgid "Last connection: %1 day ago"
 msgid_plural "Last connection: %1 days ago"
 msgstr[0] "前回の接続: %1 日前"
+msgstr[1] "前回の接続: %1 日前"
 
 #: dashboard/qml/HeadsetsPage.qml:40
 #, kde-format
