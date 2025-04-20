@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-10 07:14+0900\n"
+"POT-Creation-Date: 2025-04-20 17:32+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language: Japanese\n"
@@ -95,8 +95,8 @@ msgid ""
 "master/docs/building.md#client-headset\">documentation</a> to build your own "
 "client."
 msgstr ""
-"自分でクライエントをビルドするには、<a href=\"https://github.com/WiVRn/WiVRn/blob/"
-"master/docs/building.md#client-headset\">マニュアル</a>をご覧ください。"
+"自分でクライエントをビルドするには、<a href=\"https://github.com/WiVRn/WiVRn/"
+"blob/master/docs/building.md#client-headset\">マニュアル</a>をご覧ください。"
 
 #: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetStatsPage.qml:36
 #: dashboard/qml/HeadsetsPage.qml:183 dashboard/qml/TroubleshootPage.qml:59
@@ -136,24 +136,28 @@ msgid "Headsets"
 msgstr "HMD"
 
 #: dashboard/qml/HeadsetsPage.qml:29
-#, kde-format
+#, fuzzy, kde-format
 msgid "Last connection: %1 second ago"
-msgstr "前回の接続: %1 秒前"
+msgid_plural "Last connection: %1 seconds ago"
+msgstr[0] "前回の接続: %1 秒前"
 
 #: dashboard/qml/HeadsetsPage.qml:31
-#, kde-format
+#, fuzzy, kde-format
 msgid "Last connection: %1 minute ago"
-msgstr "前回の接続: %1 分前"
+msgid_plural "Last connection: %1 minutes ago"
+msgstr[0] "前回の接続: %1 分前"
 
 #: dashboard/qml/HeadsetsPage.qml:33
-#, kde-format
+#, fuzzy, kde-format
 msgid "Last connection: %1 hour ago"
-msgstr "前回の接続: %1 時間前"
+msgid_plural "Last connection: %1 hours ago"
+msgstr[0] "前回の接続: %1 時間前"
 
 #: dashboard/qml/HeadsetsPage.qml:35
-#, kde-format
+#, fuzzy, kde-format
 msgid "Last connection: %1 day ago"
-msgstr "前回の接続: %1 日前"
+msgid_plural "Last connection: %1 days ago"
+msgstr[0] "前回の接続: %1 日前"
 
 #: dashboard/qml/HeadsetsPage.qml:40
 #, kde-format
@@ -237,7 +241,9 @@ msgstr "今すぐ再起動する"
 #, kde-format
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
-msgstr "NVIDIAの場合は、GPUドライバー・バージョン565.77以上が必要です。現バージョン：%1"
+msgstr ""
+"NVIDIAの場合は、GPUドライバー・バージョン565.77以上が必要です。現バージョン："
+"%1"
 
 #: dashboard/qml/Main.qml:142
 #, kde-format
@@ -316,7 +322,7 @@ msgstr "セットアップウィザード"
 msgid "Install the app"
 msgstr "アプリをインストール"
 
-#: dashboard/qml/Main.qml:349 dashboard/qml/SettingsPage.qml:12
+#: dashboard/qml/Main.qml:349 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "設定"
@@ -344,23 +350,23 @@ msgctxt "browse a file to choose the application to start"
 msgid "Browse"
 msgstr "検索"
 
-#: dashboard/qml/SettingsPage.qml:31
+#: dashboard/qml/SettingsPage.qml:40
 #, kde-format
 msgctxt "automatic foveation setup"
 msgid "Manual foveation"
 msgstr "マニュアル・フォビエーション"
 
-#: dashboard/qml/SettingsPage.qml:37
+#: dashboard/qml/SettingsPage.qml:46
 #, kde-format
 msgid "Foveation strength:"
 msgstr "フォビエーションの強さ"
 
-#: dashboard/qml/SettingsPage.qml:53
+#: dashboard/qml/SettingsPage.qml:62
 #, kde-format
 msgid "%1 %"
 msgstr "%1 %"
 
-#: dashboard/qml/SettingsPage.qml:59
+#: dashboard/qml/SettingsPage.qml:68
 #, kde-format
 msgid ""
 "A stronger foveation makes the image sharper in the center than in the "
@@ -372,143 +378,159 @@ msgid ""
 "The recommended values are between 20% and 50% for headsets without eye "
 "tracking and between 50% and 70% for headsets with eye tracking."
 msgstr ""
-"強めのフォビエーションの場合は、周辺部よりも中心部のほうが鮮明となり、"
-"デコーディングは早くなります。低遅延を必要とするゲームに有効"
-"となります。\n"
+"強めのフォビエーションの場合は、周辺部よりも中心部のほうが鮮明となり、デコー"
+"ディングは早くなります。低遅延を必要とするゲームに有効となります。\n"
 "\n"
 "弱めのフォビエーションの場合は、画面全体が同じ鮮明度となります。\n"
 "\n"
-"お勧めの設定は、アイトラッキングを対応したHMDの場合は20%~50%、"
-"アイトラッキングを対応しないHMDの場合は50%~70%です。"
+"お勧めの設定は、アイトラッキングを対応したHMDの場合は20%~50%、アイトラッキン"
+"グを対応しないHMDの場合は50%~70%です。"
 
-#: dashboard/qml/SettingsPage.qml:65
+#: dashboard/qml/SettingsPage.qml:74
 #, kde-format
 msgctxt "weaker foveation"
 msgid "Weaker"
 msgstr "弱"
 
-#: dashboard/qml/SettingsPage.qml:76
+#: dashboard/qml/SettingsPage.qml:85
 #, kde-format
 msgctxt "stronger foveation"
 msgid "Stronger"
 msgstr "強"
 
-#: dashboard/qml/SettingsPage.qml:86
+#: dashboard/qml/SettingsPage.qml:95
 #, kde-format
 msgid "Bitrate:"
 msgstr "ビットレート"
 
-#: dashboard/qml/SettingsPage.qml:90 dashboard/qml/SettingsPage.qml:92
+#: dashboard/qml/SettingsPage.qml:99 dashboard/qml/SettingsPage.qml:101
 #, kde-format
 msgctxt "bitrate"
 msgid "%1 Mbit/s"
 msgstr "%1 Mbps"
 
-#: dashboard/qml/SettingsPage.qml:102
+#: dashboard/qml/SettingsPage.qml:111
 #, kde-format
 msgid "Encoder layout:"
 msgstr "エンコーダー・レイアウト"
 
-#: dashboard/qml/SettingsPage.qml:105
+#: dashboard/qml/SettingsPage.qml:114
 #, kde-format
 msgctxt "encoder preset"
 msgid "Automatic"
 msgstr "自動"
 
-#: dashboard/qml/SettingsPage.qml:109
+#: dashboard/qml/SettingsPage.qml:118
 #, kde-format
 msgctxt "encoder preset"
 msgid "Manual"
 msgstr "マニュアル"
 
-#: dashboard/qml/SettingsPage.qml:113
+#: dashboard/qml/SettingsPage.qml:122
 #, kde-format
 msgctxt "encoder preset"
 msgid "Default preset"
 msgstr "デフォルト・プリセット"
 
-#: dashboard/qml/SettingsPage.qml:136
+#: dashboard/qml/SettingsPage.qml:145
 #, kde-format
 msgctxt "encoder preset"
 msgid "Low latency preset"
 msgstr "低遅延プリセット"
 
-#: dashboard/qml/SettingsPage.qml:161
+#: dashboard/qml/SettingsPage.qml:170
 #, kde-format
 msgctxt "encoder preset"
 msgid "Safe preset"
 msgstr "安定プリセット"
 
-#: dashboard/qml/SettingsPage.qml:184
+#: dashboard/qml/SettingsPage.qml:193
 #, kde-format
 msgid ""
 "To add a new encoder, split an existing encoder by clicking near an edge.\n"
 "Drag an edge to resize or remove encoders."
 msgstr ""
-"新しいエンコーダー追加するには、既存エンコーダの角をクリックして分割しましょう。\n"
+"新しいエンコーダー追加するには、既存エンコーダの角をクリックして分割しましょ"
+"う。\n"
 "角を引っ張って大きさの調整をできます。大きさゼロで削除となります。"
 
-#: dashboard/qml/SettingsPage.qml:211
+#: dashboard/qml/SettingsPage.qml:220
 #, kde-format
 msgid "Encoder:"
 msgstr "エンコーダー"
 
-#: dashboard/qml/SettingsPage.qml:220
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "自動"
 
-#: dashboard/qml/SettingsPage.qml:225
+#: dashboard/qml/SettingsPage.qml:234
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (NVIDIA GPU)"
 
-#: dashboard/qml/SettingsPage.qml:230
+#: dashboard/qml/SettingsPage.qml:239
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (AMDやIntel GPU)"
 
-#: dashboard/qml/SettingsPage.qml:235
+#: dashboard/qml/SettingsPage.qml:244
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (ソフトエンコード)"
 
-#: dashboard/qml/SettingsPage.qml:240
+#: dashboard/qml/SettingsPage.qml:249
 #, kde-format
 msgid "Vulkan (Vulkan Video)"
 msgstr "Vulkan (Vulkan Video)"
 
-#: dashboard/qml/SettingsPage.qml:263
+#: dashboard/qml/SettingsPage.qml:272
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "「自動」で当システムにとって最も安定した設定を使用します。"
 
-#: dashboard/qml/SettingsPage.qml:269
+#: dashboard/qml/SettingsPage.qml:278
 #, kde-format
 msgid "Codec:"
 msgstr "コーデック"
 
-#: dashboard/qml/SettingsPage.qml:276
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "自動"
 
-#: dashboard/qml/SettingsPage.qml:280
+#: dashboard/qml/SettingsPage.qml:289
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:284
+#: dashboard/qml/SettingsPage.qml:293
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:288
+#: dashboard/qml/SettingsPage.qml:297
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
+
+#: dashboard/qml/SettingsPage.qml:323
+#, kde-format
+msgid "Custom adb location"
+msgstr "特定なADBの場所"
+
+#: dashboard/qml/SettingsPage.qml:334
+#, kde-format
+msgid "Adb location:"
+msgstr "ADBの場所："
+
+#: dashboard/qml/SettingsPage.qml:343
+#, kde-format
+msgctxt "browse a file to choose the adb binary"
+msgid "Browse"
+msgstr "検索する"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
@@ -516,8 +538,8 @@ msgid ""
 "For Steam games, right click on the game in Steam, go in Properties > "
 "General and paste this in \"Launch options\":"
 msgstr ""
-"Steamゲームの場合は、ゲームに右クリックし、「プロパティ」・「一般」タブ・"
-"「起動オプション」に入力しましょう："
+"Steamゲームの場合は、ゲームに右クリックし、「プロパティ」・「一般」タブ・「起"
+"動オプション」に入力しましょう："
 
 #: dashboard/qml/SteamLaunchOptions.qml:20
 #, kde-format
@@ -573,11 +595,9 @@ msgid ""
 "</p><ul><li>The headset app version is in the \"About\" page</li><li>The "
 "server version is <b>%1</b></li></ul>"
 msgstr ""
-"<p>HMDアプリとサーバーのバージョンは一致していることが必要です。</p>"
-"<ul><li>HMDアプリのバージョンは「WiVRnについて」タブに確認できます。</li>"
-"<li>サーバーのバージョンは：<b>%1</b></li></ul>"
-
-
+"<p>HMDアプリとサーバーのバージョンは一致していることが必要です。</"
+"p><ul><li>HMDアプリのバージョンは「WiVRnについて」タブに確認できます。</"
+"li><li>サーバーのバージョンは：<b>%1</b></li></ul>"
 
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
@@ -590,8 +610,8 @@ msgid ""
 "If you have reinstalled the server or the client or if you want to connect "
 "another headset, you must enable pairing before connecting."
 msgstr ""
-"サーバーかクライエント更インストールした場合、または"
-"別のHMDを接続したい場合、ペアリングを有効化しましょう。"
+"サーバーかクライエント更インストールした場合、または別のHMDを接続したい場合、"
+"ペアリングを有効化しましょう。"
 
 #: dashboard/qml/TroubleshootPage.qml:33
 #, kde-format
@@ -650,8 +670,8 @@ msgid ""
 "This wizard will help you set up WiVRn on your headset and connect it to "
 "your computer."
 msgstr ""
-"このセットアップウィザードは、HMDにWiVRnをインストールし、パソコンに接続できるように"
-"ご案内します。"
+"このセットアップウィザードは、HMDにWiVRnをインストールし、パソコンに接続でき"
+"るようにご案内します。"
 
 #: dashboard/qml/WizardPage.qml:83 dashboard/qml/WizardPage.qml:258
 #: dashboard/qml/WizardPage.qml:307 dashboard/qml/WizardPage.qml:438
@@ -691,8 +711,8 @@ msgid ""
 "For the Quest 2, 3, 3S, and Pro, you can get the app from the <a "
 "href=\"https://www.meta.com/experiences/7959676140827574/\">Meta store</a>."
 msgstr ""
-"Quest 2、3、3S、Proの場合、<a href=\"https://www.meta.com/experiences/7959676140827574/\">"
-"Metaストア</a>にて配信中です。"
+"Quest 2、3、3S、Proの場合、<a href=\"https://www.meta.com/"
+"experiences/7959676140827574/\">Metaストア</a>にて配信中です。"
 
 #: dashboard/qml/WizardPage.qml:164
 #, kde-format
@@ -700,8 +720,8 @@ msgid ""
 "A newer release is available: %1 → %2, the client app on the Meta store may "
 "not be compatible."
 msgstr ""
-"アップデートがあります：%1 → %2。現在バージョンにMetaストア版のHMDアプリは"
-"対応しない可能性があります。"
+"アップデートがあります：%1 → %2。現在バージョンにMetaストア版のHMDアプリは対"
+"応しない可能性があります。"
 
 #: dashboard/qml/WizardPage.qml:171
 #, kde-format
@@ -748,8 +768,7 @@ msgstr "起動したいアプリを選択しましょう"
 msgid ""
 "The application you choose will be started automatically when you connect "
 "your headset."
-msgstr ""
-"接続すると、選択したアプリが自動的に起動します。"
+msgstr "接続すると、選択したアプリが自動的に起動します。"
 
 #: dashboard/qml/WizardPage.qml:344
 #, kde-format
@@ -762,7 +781,8 @@ msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
 "and enter PIN \"%2\"."
 msgstr ""
-"WiFiで接続するには、HMDのWiVRnアプリを使い、「%1」に接続し、暗証番号に「%2」を入れましょう。"
+"WiFiで接続するには、HMDのWiVRnアプリを使い、「%1」に接続し、暗証番号に「%2」"
+"を入れましょう。"
 
 #: dashboard/qml/WizardPage.qml:356
 #, kde-format
@@ -794,8 +814,7 @@ msgstr "HMDに接続しました。"
 msgid ""
 "To connect another headset, make sure pairing is enabled in the dashboard "
 "before connecting."
-msgstr ""
-"他のHMDを接続するには、ペアリングが有効なのかどうか確認しましょう。"
+msgstr "他のHMDを接続するには、ペアリングが有効なのかどうか確認しましょう。"
 
 #: dashboard/qml/WizardPage.qml:443 dashboard/qml/WizardPage.qml:480
 #, kde-format
