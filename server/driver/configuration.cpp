@@ -154,7 +154,10 @@ configuration configuration::read_user_configuration()
 
 		if (auto it = json.find("openvr-compat-path"); it != json.end())
 		{
-			result.openvr_compat_path = *it;
+			if (it->is_null())
+				result.openvr_compat_path = nullptr;
+			else
+				result.openvr_compat_path = *it;
 		}
 	}
 	catch (const std::exception & e)

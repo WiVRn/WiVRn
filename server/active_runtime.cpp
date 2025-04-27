@@ -20,6 +20,7 @@
 #include "active_runtime.h"
 #include "driver/configuration.h"
 #include "utils/flatpak.h"
+#include "utils/overloaded.h"
 #include "utils/xdg_base_directory.h"
 #include "wivrn_config.h"
 #include <filesystem>
@@ -49,20 +50,33 @@ std::filesystem::path active_runtime::manifest_path()
 
 std::filesystem::path active_runtime::openvr_compat_path()
 {
-	// config can override compat path (i.e. to debug changes to OpenComposite)
-	std::optional<std::string> path_override = configuration::read_user_configuration().openvr_compat_path;
-	if (path_override.has_value())
-		return std::filesystem::path(path_override.value());
+	return std::visit(
+	        utils::overloaded{
+	                [](std::monostate) {
+		                // no user configuration: return default
+		                std::optional<std::filesystem::path> flatpak_root = flatpak_key(flatpak::section::instance, "app-path");
+		                // flatpak default
+		                if (flatpak_root)
+			                return *flatpak_root / "OpenComposite";
 
-	// otherwise, prefer flatpak copy if present or otherwise try to find it on the system
-	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
-		return std::filesystem::path(*path) / "OpenComposite";
-	for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
-	{
-		if (auto res = std::string_view(path); std::filesystem::exists(res))
-			return res;
-	}
-	return {};
+		                for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
+		                {
+			                if (std::filesystem::path res = std::string_view(path); std::filesystem::exists(res))
+				                return res;
+		                }
+		                return std::filesystem::path();
+	                },
+	                [](const std::string & path) {
+		                // exlicit value, use it
+		                std::optional<std::filesystem::path> flatpak_root = flatpak_key(flatpak::section::instance, "app-path");
+		                return flatpak_root.value_or("") / path;
+	                },
+	                [](std::nullptr_t) {
+		                // explicit null, don't set any compat path
+		                return std::filesystem::path();
+	                },
+	        },
+	        configuration::read_user_configuration().openvr_compat_path);
 }
 
 static std::filesystem::path backup_name(std::filesystem::path file)
