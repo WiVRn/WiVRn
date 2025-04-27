@@ -94,7 +94,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 	else
 	{
 		stream = decltype(stream)();
-		stream.bind(port);
+		stream.bind(server_address);
 	}
 
 	auto receive = [&](std::optional<std::chrono::seconds> timeout = std::nullopt, bool allow_stream_socket = false) {

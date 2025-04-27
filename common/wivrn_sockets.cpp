@@ -80,14 +80,9 @@ wivrn::UDP::UDP(int fd)
 	this->fd = fd;
 }
 
-void wivrn::UDP::bind(int port)
+void wivrn::UDP::bind(sockaddr_in6 address)
 {
-	sockaddr_in6 bind_addr{};
-	bind_addr.sin6_family = AF_INET6;
-	bind_addr.sin6_addr = IN6ADDR_ANY_INIT;
-	bind_addr.sin6_port = htons(port);
-
-	if (::bind(fd, (sockaddr *)&bind_addr, sizeof(bind_addr)) < 0)
+	if (::bind(fd, (sockaddr *)&address, sizeof(address)) < 0)
 		throw std::system_error{errno, std::generic_category()};
 }
 
