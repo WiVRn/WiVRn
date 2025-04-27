@@ -19,6 +19,7 @@
 #include "settings.h"
 
 #include "escape_string.h"
+#include "utils/flatpak.h"
 #include "wivrn_server.h"
 #include <QList>
 #include <QObject>
@@ -211,6 +212,22 @@ void Settings::load(const wivrn_server * server)
 	{
 		set_application("");
 	}
+
+	// OpenVR compat library
+	try
+	{
+		if (auto it = json_doc.find("openvr-compat-path"); it != json_doc.end())
+		{
+			if (it->is_null())
+				set_openvr("-");
+			else
+				set_openvr(QString::fromStdString(*it));
+		}
+	}
+	catch (...)
+	{
+		set_openvr("");
+	}
 }
 
 void Settings::save(wivrn_server * server)
@@ -281,6 +298,13 @@ void Settings::save(wivrn_server * server)
 	if (application() != "")
 		json_doc["application"] = unescape_string(application());
 
+	if (openvr() == "-")
+		json_doc["openvr-compat-path"] = nullptr;
+	else if (openvr() == "")
+		json_doc.erase("openvr-compat-path");
+	else
+		json_doc["openvr-compat-path"] = openvr().toStdString();
+
 	server->setJsonConfiguration(QString::fromStdString(json_doc.dump(2)));
 }
 
@@ -316,6 +340,11 @@ void Settings::set_encoder_preset(QJSValue preset)
 
 	set_manualEncoders(true);
 	set_encoders(encoders);
+}
+
+bool Settings::flatpak() const
+{
+	return wivrn::is_flatpak();
 }
 
 #include "moc_settings.cpp"

@@ -336,12 +336,81 @@ Kirigami.ScrollablePage {
                 enabled: adb_custom.checked
                 Controls.TextField {
                     id: adb_location
-                    placeholderText: settings.adb
+                    placeholderText: settings.adb_location
                     Layout.fillWidth: true
                 }
                 Controls.Button {
                     text: i18nc("browse a file to choose the adb binary", "Browse")
                     onClicked: adb_browse.open()
+                }
+            }
+
+            ListModel {
+                id: openvr_libs
+
+                function init() {
+                    openvr_libs.append({
+                        "name": i18n("Default"),
+                        "value": "",
+                        "is_custom": false
+                    });
+
+                    if (config.flatpak) {
+                        openvr_libs.append({
+                            "name": i18n("xrizer"),
+                            "value": "xrizer",
+                            "is_custom": false
+                        });
+                        openvr_libs.append({
+                            "name": i18n("Open Composite"),
+                            "value": "OpenComposite",
+                            "is_custom": false
+                        });
+                    }
+
+                    openvr_libs.append({
+                        "name": i18nc("set a custom OpenVR compatibility library", "Custom"),
+                        "is_custom": true
+                    });
+
+                    openvr_libs.append({
+                        "name": i18n("Disabled"),
+                        "value": "-",
+                        "is_custom": false
+                    });
+                }
+            }
+
+            RowLayout {
+                Kirigami.FormData.label: i18n("OpenVR compatibility library:")
+                Layout.fillWidth: true
+                Controls.ComboBox {
+                    id: openvr_combobox
+                    Layout.columnSpan: 2
+                    textRole: "name"
+                    model: openvr_libs
+
+                    function load() {
+                        for(let i=0 ; i < openvr_libs.count; i++) {
+                            if (openvr_libs.get(i).value == config.openvr) {
+                                openvr_combobox.currentIndex = i;
+                                return;
+                            }
+                        }
+                        for(let i=0 ; i < openvr_libs.count; i++) {
+                            if (openvr_libs.get(i).is_custom) {
+                                openvr_text.text = config.openvr
+                                openvr_combobox.currentIndex = i;
+                                return;
+                            }
+                        }
+                    }
+                }
+                Controls.TextField {
+                    id: openvr_text
+                    placeholderText: i18n("Library path, excluding bin/linux64/vrclient.so") 
+                    visible: !!openvr_combobox.model.get(openvr_combobox.currentIndex)?.is_custom
+                    Layout.fillWidth: true
                 }
             }
 
@@ -370,6 +439,7 @@ Kirigami.ScrollablePage {
     }
 
     Component.onCompleted: {
+        openvr_libs.init()
         config.load(WivrnServer);
         settings.load();
     }
@@ -378,6 +448,12 @@ Kirigami.ScrollablePage {
         config.bitrate = bitrate.value * 1000000;
         config.scale = manual_foveation.checked ? 1 - scale_slider.value / 100.0 : -1;
         config.manualEncoders = encoder_layout.currentIndex > 0;
+        let openvr = openvr_combobox.model.get(openvr_combobox.currentIndex)
+        if (openvr.is_custom) {
+            config.openvr = openvr_text.text;
+        } else {
+            config.openvr = openvr.value
+        }
         settings.adb_custom = adb_custom.checked;
         settings.adb_location = adb_location.text;
         Adb.setPath(adb_custom.checked ? adb_location.text : "adb");
@@ -400,6 +476,7 @@ Kirigami.ScrollablePage {
             // auto_encoders.checked = true;
             encoder_layout.currentIndex = 0;
         }
+        openvr_combobox.load()
 
         adb_custom.checked = settings.adb_custom;
         adb_location.text = settings.adb_location;
