@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+import asyncio
+import json
 import os
 import re
 import subprocess
+from urllib.request import urlopen
+
+import flatpakcargogenerator
+import toml
 
 TEMPLATE = "flatpak/io.github.wivrn.wivrn.yml.in"
 
@@ -30,6 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("--git")
     parser.add_argument("--gitlocal", action="store_true")
     parser.add_argument("--dir", action="store_true")
+    parser.add_argument("--out", help="directory where to write manifest and additional files", default=".")
 
     args = parser.parse_args()
     if not (args.git or args.dir):
@@ -40,6 +47,16 @@ if __name__ == "__main__":
     cmake = CMakeFile(os.path.join(root, "CMakeLists.txt"))
     with open(os.path.join(root, TEMPLATE)) as f:
         template = f.read()
+
+    # Get dependencies for xrizer
+    xrizer_repo = "https://github.com/Supreeeme/xrizer"
+    xrizer_commit = re.findall(f"url: {xrizer_repo}.git[ \n]*tag: ([a-f0-9]*)", template)[0]
+    lock = urlopen(f"{xrizer_repo}/raw/{xrizer_commit}/Cargo.lock")
+    gen_src = asyncio.run(flatpakcargogenerator.generate_sources(
+            toml.loads(lock.read().decode())))
+    with open(os.path.join(args.out, "xrizer-gen-src.json"), "w") as f:
+        json.dump(gen_src, f, indent=4, sort_keys=False)
+
 
     monado_commit = cmake.get("monado", "GIT_TAG")
     boostpfr_url = cmake.get("boostpfr", "URL")
@@ -80,4 +97,5 @@ if __name__ == "__main__":
     template = template.replace("BOOSTPFR_SHA256", boostpfr_sha256)
     template = template.replace("MONADO_COMMIT", monado_commit)
 
-    print(template)
+    with open(os.path.join(args.out, "io.github.wivrn.wivrn.yml"), "w") as f:
+        f.write(template)

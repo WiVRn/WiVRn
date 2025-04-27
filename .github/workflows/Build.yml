@@ -112,7 +112,7 @@ jobs:
     runs-on: ubuntu-24.04
     if: ${{ vars.APK_ONLY == '' }}
     container:
-      image: bilelmoussaoui/flatpak-github-actions:freedesktop-23.08
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
       options: --privileged
 
     steps:
@@ -123,7 +123,8 @@ jobs:
     - name: Create the flatpak manifest
       run: |
         git config --global --add safe.directory $(pwd)
-        tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git > flatpak/io.github.wivrn.wivrn.yml
+        pip install toml aiohttp
+        tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git --out flatpak
 
     - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.4
       with:
@@ -545,17 +546,19 @@ jobs:
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --global user.name "github-actions[bot]"
 
+        apt install python-toml python-aiohttp
+
         cd flathub
         git remote add upstream https://github.com/flathub/io.github.wivrn.wivrn.git
         git fetch upstream
         git reset --hard upstream/master
 
         git config --global --add safe.directory $(pwd)
-        ../wivrn/tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git > io.github.wivrn.wivrn.yml
+        ../wivrn/tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git
         cp ../wivrn/flatpak/*.config .
 
         git checkout -b $WIVRN_TAG
-        git add io.github.wivrn.wivrn.yml *.config
+        git add io.github.wivrn.wivrn.yml xrizer-gen-src.json *.config
         git commit -m "Version "$WIVRN_TAG
         git push --set-upstream origin $WIVRN_TAG
 
