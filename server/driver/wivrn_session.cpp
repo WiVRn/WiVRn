@@ -34,7 +34,6 @@
 
 #include "audio/audio_setup.h"
 #include "wivrn_comp_target.h"
-#include "wivrn_config.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
 #include "wivrn_foveation.h"
@@ -194,13 +193,12 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
 	auto use_steamvr_lh = configuration().use_steamvr_lh || std::getenv("WIVRN_USE_STEAMVR_LH");
-	xrt_system_devices * lhdevs = NULL;
 
-	if (use_steamvr_lh && steamvr_lh_create_devices(nullptr, &lhdevs) == XRT_SUCCESS)
+	if (use_steamvr_lh && steamvr_lh_create_devices(nullptr, &lh_devices) == XRT_SUCCESS)
 	{
-		for (int i = 0; i < lhdevs->xdev_count; i++)
+		for (int i = 0; i < lh_devices->xdev_count; i++)
 		{
-			auto lhdev = lhdevs->xdevs[i];
+			auto lhdev = lh_devices->xdevs[i];
 			switch (lhdev->device_type)
 			{
 				case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
@@ -218,6 +216,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 			}
 			xdevs[xdev_count++] = lhdev;
 		}
+		num_lh_devices = lh_devices->xdev_count;
 	}
 #endif
 	if (get_info().eye_gaze || is_forced_extension("EXT_eye_gaze_interaction"))
@@ -917,6 +916,14 @@ void wivrn_session::run(std::stop_token stop)
 	{
 		try
 		{
+			if (num_lh_devices != lh_devices->xdev_count)
+			{
+				for (int i = num_lh_devices; i < lh_devices->xdev_count; i++)
+				{
+					xdevs[xdev_count++] = lh_devices->xdevs[num_lh_devices++];
+				}
+			}
+
 			offset_est.request_sample(*connection);
 			tracking_control.send(*connection);
 			{

@@ -141,6 +141,11 @@ class wivrn_session : public xrt_system_devices
 
 	std::jthread thread;
 
+#if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
+	xrt_system_devices * lh_devices;
+	size_t num_lh_devices;
+#endif
+
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
 
 public:
