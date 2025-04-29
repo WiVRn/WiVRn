@@ -1,0 +1,2156 @@
+From be59157b2ccdb2e4be18693ccfec2cfc2d19b676 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 25 Apr 2025 18:59:53 +0200
+Subject: [PATCH 01/11] xrt: add add_device function to struct
+ xrt_system_devices
+
+---
+ src/xrt/auxiliary/util/u_system_helpers.c |  8 ++++++++
+ src/xrt/drivers/remote/r_hub.c            |  7 +++++++
+ src/xrt/drivers/steamvr_lh/steamvr_lh.cpp |  7 +++++++
+ src/xrt/include/xrt/xrt_system.h          | 21 +++++++++++++++++++++
+ 4 files changed, 43 insertions(+)
+
+diff --git a/src/xrt/auxiliary/util/u_system_helpers.c b/src/xrt/auxiliary/util/u_system_helpers.c
+index ac38fb749..945779563 100644
+--- a/src/xrt/auxiliary/util/u_system_helpers.c
++++ b/src/xrt/auxiliary/util/u_system_helpers.c
+@@ -62,6 +62,12 @@ type_to_small_string(enum xrt_device_feature_type type)
+  *
+  */
+ 
++static xrt_result_t
++add_device(struct xrt_system_devices *xsysd, struct xrt_device *xdev)
++{
++	return XRT_ERROR_FEATURE_NOT_SUPPORTED;
++}
++
+ static void
+ destroy(struct xrt_system_devices *xsysd)
+ {
+@@ -158,6 +164,7 @@ struct u_system_devices *
+ u_system_devices_allocate(void)
+ {
+ 	struct u_system_devices *usysd = U_TYPED_CALLOC(struct u_system_devices);
++	usysd->base.add_device = add_device;
+ 	usysd->base.destroy = destroy;
+ 
+ 	return usysd;
+@@ -182,6 +189,7 @@ u_system_devices_static_allocate(void)
+ {
+ 	struct u_system_devices_static *usysds = U_TYPED_CALLOC(struct u_system_devices_static);
+ 	usysds->base.base.destroy = destroy;
++	usysds->base.base.add_device = add_device;
+ 	usysds->base.base.get_roles = get_roles;
+ 	usysds->base.base.feature_inc = feature_inc;
+ 	usysds->base.base.feature_dec = feature_dec;
+diff --git a/src/xrt/drivers/remote/r_hub.c b/src/xrt/drivers/remote/r_hub.c
+index f72e06a76..80cb9f3da 100644
+--- a/src/xrt/drivers/remote/r_hub.c
++++ b/src/xrt/drivers/remote/r_hub.c
+@@ -346,6 +346,12 @@ run_thread(void *ptr)
+ 	return NULL;
+ }
+ 
++static xrt_result_t
++r_hub_system_devices_add_device(struct xrt_system_devices *xsysd, struct xrt_device *xdev)
++{
++	return XRT_ERROR_FEATURE_NOT_SUPPORTED;
++}
++
+ static xrt_result_t
+ r_hub_system_devices_get_roles(struct xrt_system_devices *xsysd, struct xrt_system_roles *out_roles)
+ {
+@@ -413,6 +419,7 @@ r_create_devices(uint16_t port,
+ 	int ret;
+ 
+ 	r->base.destroy = r_hub_system_devices_destroy;
++	r->base.add_device = r_hub_system_devices_add_device;
+ 	r->base.get_roles = r_hub_system_devices_get_roles;
+ 	r->origin.type = XRT_TRACKING_TYPE_RGB;
+ 	r->origin.initial_offset = (struct xrt_pose)XRT_POSE_IDENTITY;
+diff --git a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+index 1ae446072..162474928 100644
+--- a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
++++ b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+@@ -703,6 +703,12 @@ Context::Log(const char *pchLogMessage)
+ }
+ // NOLINTEND(bugprone-easily-swappable-parameters)
+ 
++static xrt_result_t
++add_device(struct xrt_system_devices *xsysd, struct xrt_device *xdev)
++{
++	return XRT_ERROR_FEATURE_NOT_SUPPORTED;
++}
++
+ xrt_result_t
+ get_roles(struct xrt_system_devices *xsysd, struct xrt_system_roles *out_roles)
+ {
+@@ -829,6 +835,7 @@ steamvr_lh_create_devices(struct xrt_system_devices **out_xsysd)
+ 	xsysd = &svrs->base;
+ 
+ 	xsysd->destroy = destroy;
++	xsysd->add_device = add_device;
+ 	xsysd->get_roles = get_roles;
+ 
+ 	// Include the HMD
+diff --git a/src/xrt/include/xrt/xrt_system.h b/src/xrt/include/xrt/xrt_system.h
+index 995f71bc3..60058a30d 100644
+--- a/src/xrt/include/xrt/xrt_system.h
++++ b/src/xrt/include/xrt/xrt_system.h
+@@ -296,6 +296,14 @@ struct xrt_system_devices
+ 	} static_roles;
+ 
+ 
++	/*!
++	 * Add a device to the list of devices.
++	 *
++	 * @param xsysd Pointer to self
++	 * @param xdev  Device to add
++	 */
++	 xrt_result_t (*add_device)(struct xrt_system_devices *xsysd, struct xrt_device *xdev);
++
+ 	/*!
+ 	 * Function to get the dynamic input device roles from this system
+ 	 * devices, see @ref xrt_system_roles for more information.
+@@ -333,6 +341,19 @@ struct xrt_system_devices
+ 	void (*destroy)(struct xrt_system_devices *xsysd);
+ };
+ 
++/*!
++ * @copydoc xrt_system_devices::add_device
++ *
++ * Helper for calling through the function pointer.
++ *
++ * @public @memberof xrt_system_devices
++ */
++static inline xrt_result_t
++xrt_system_devices_add_device(struct xrt_system_devices *xsysd, struct xrt_device *xdev)
++{
++	return xsysd->add_device(xsysd, xdev);
++}
++
+ /*!
+  * @copydoc xrt_system_devices::get_roles
+  *
+-- 
+2.49.0
+
+
+From 5bffdacccc4e3b68474180f8db87343935b1a645 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 25 Apr 2025 22:02:57 +0200
+Subject: [PATCH 02/11] d/steamvr_lh: dynamically add devices to system device
+ list
+
+---
+ src/xrt/drivers/steamvr_lh/steamvr_lh.cpp | 83 ++++++++++++++++-------
+ 1 file changed, 59 insertions(+), 24 deletions(-)
+
+diff --git a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+index 162474928..47e95c77f 100644
+--- a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
++++ b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+@@ -47,6 +47,9 @@ struct steamvr_lh_system
+ 
+ 	//! Pointer to driver context
+ 	std::shared_ptr<Context> ctx;
++
++	// Roles from last call to get_roles
++	struct xrt_system_roles prev_roles;
+ };
+ 
+ struct steamvr_lh_system *svrs = U_TYPED_CALLOC(struct steamvr_lh_system);
+@@ -218,6 +221,7 @@ Context::setup_hmd(const char *serial, vr::ITrackedDeviceServerDriver *driver)
+ 
+ 	hmd_parts->display = display;
+ 	hmd->set_hmd_parts(std::move(hmd_parts));
++	xrt_system_devices_add_device(&svrs->base, hmd);
+ 	return true;
+ }
+ 
+@@ -262,6 +266,7 @@ Context::setup_controller(const char *serial, vr::ITrackedDeviceServerDriver *dr
+ 	default: break;
+ 	}
+ 
++	xrt_system_devices_add_device(&svrs->base, controller[device_idx]);
+ 	return true;
+ }
+ 
+@@ -706,12 +711,40 @@ Context::Log(const char *pchLogMessage)
+ static xrt_result_t
+ add_device(struct xrt_system_devices *xsysd, struct xrt_device *xdev)
+ {
+-	return XRT_ERROR_FEATURE_NOT_SUPPORTED;
++	if (xsysd->xdev_count + 1 > ARRAY_SIZE(xsysd->xdevs)) {
++		return XRT_ERROR_ALLOCATION;
++	}
++
++	if (xdev->device_type == XRT_DEVICE_TYPE_HMD) {
++		struct xrt_device *xdev0 = xsysd->xdevs[0];
++
++		if (xsysd->xdev_count >= 1 && xdev0 && xdev0->device_type == XRT_DEVICE_TYPE_HMD) {
++			xdev0 = NULL;
++			xsysd->xdev_count -= 1;
++		}
++
++		xsysd->xdevs[0] = xdev;
++
++		if (xsysd->xdev_count >= 1) {
++			if (xdev0) {
++				xsysd->xdevs[xsysd->xdev_count++] = xdev0;
++			}
++		} else {
++			xsysd->xdev_count = 1;
++		}
++	} else {
++		xsysd->xdevs[xsysd->xdev_count++] = xdev;
++	}
++
++	U_LOG_W("Device registered: %s (%s)", xdev->serial, xdev->str);
++	return XRT_SUCCESS;
+ }
+ 
+ xrt_result_t
+ get_roles(struct xrt_system_devices *xsysd, struct xrt_system_roles *out_roles)
+ {
++	struct steamvr_lh_system *svrs = (struct steamvr_lh_system *)xsysd;
++
+ 	bool update_gen = false;
+ 	int head, left, right, gamepad;
+ 
+@@ -721,18 +754,28 @@ get_roles(struct xrt_system_devices *xsysd, struct xrt_system_roles *out_roles)
+ 
+ 	u_device_assign_xdev_roles(xsysd->xdevs, xsysd->xdev_count, &head, &left, &right);
+ 
+-	if (left != out_roles->left || right != out_roles->right || gamepad != out_roles->gamepad) {
++	if (left != svrs->prev_roles.left || right != svrs->prev_roles.right || gamepad != svrs->prev_roles.gamepad) {
+ 		update_gen = true;
+ 	}
+ 
+ 	if (update_gen) {
+-		out_roles->generation_id++;
++		U_LOG_W("Roles updated: %d != %d || %d != %d || %d != %d",
++			out_roles->left, left,
++			out_roles->right, right,
++			out_roles->gamepad, gamepad
++		);
+ 
+-		out_roles->left = left;
+-		out_roles->right = right;
+-		out_roles->gamepad = gamepad;
++		svrs->prev_roles.generation_id++;
++		svrs->prev_roles.left = left;
++		svrs->prev_roles.right = right;
++		svrs->prev_roles.gamepad = gamepad;
+ 	}
+ 
++	out_roles->generation_id = svrs->prev_roles.generation_id;
++	out_roles->left = left;
++	out_roles->right = right;
++	out_roles->gamepad = gamepad;
++
+ 	return XRT_SUCCESS;
+ }
+ 
+@@ -808,6 +851,15 @@ steamvr_lh_create_devices(struct xrt_system_devices **out_xsysd)
+ 	if (debug_get_bool_option_lh_load_slimevr() &&
+ 	    !loadDriver("/drivers/slimevr/bin/linux64/driver_slimevr.so", false))
+ 		return xrt_result::XRT_ERROR_DEVICE_CREATION_FAILED;
++
++	struct xrt_system_devices *xsysd = NULL;
++	xsysd = &svrs->base;
++
++	xsysd->destroy = destroy;
++	xsysd->add_device = add_device;
++	xsysd->get_roles = get_roles;
++
++	svrs->prev_roles = XRT_SYSTEM_ROLES_INIT;
+ 	svrs->ctx = Context::create(STEAM_INSTALL_DIR, steamvr, std::move(drivers));
+ 	if (svrs->ctx == nullptr)
+ 		return xrt_result::XRT_ERROR_DEVICE_CREATION_FAILED;
+@@ -831,25 +883,8 @@ steamvr_lh_create_devices(struct xrt_system_devices **out_xsysd)
+ 		return xrt_result::XRT_ERROR_DEVICE_CREATION_FAILED;
+ 	}
+ 
+-	struct xrt_system_devices *xsysd = NULL;
+-	xsysd = &svrs->base;
+-
+-	xsysd->destroy = destroy;
+-	xsysd->add_device = add_device;
+-	xsysd->get_roles = get_roles;
+-
+-	// Include the HMD
+ 	if (svrs->ctx->hmd) {
+-		// Always have a head at index 0 and iterate dev count.
+-		xsysd->xdevs[xsysd->xdev_count] = svrs->ctx->hmd;
+-		xsysd->static_roles.head = xsysd->xdevs[xsysd->xdev_count++];
+-	}
+-
+-	// Include the controllers
+-	for (size_t i = 0; i < MAX_CONTROLLERS; i++) {
+-		if (svrs->ctx->controller[i]) {
+-			xsysd->xdevs[xsysd->xdev_count++] = svrs->ctx->controller[i];
+-		}
++		xsysd->static_roles.head = svrs->ctx->hmd;
+ 	}
+ 
+ 	*out_xsysd = xsysd;
+-- 
+2.49.0
+
+
+From 28950aee16343a6121f0cb423104b2747e79ae4c Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 25 Apr 2025 22:04:18 +0200
+Subject: [PATCH 03/11] ipc/server: factor out initialization of struct
+ ipc_shared_tracking_origin
+
+---
+ src/xrt/ipc/server/ipc_server_process.c | 28 ++++++++++++++++---------
+ 1 file changed, 18 insertions(+), 10 deletions(-)
+
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index 6f508cfb9..a4b09fcc1 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -281,6 +281,22 @@ handle_binding(struct ipc_shared_memory *ism,
+ 	*output_pair_index_ptr = output_pair_index;
+ }
+ 
++static void
++init_shm_tracking_origin(struct ipc_server *s, size_t i, size_t j)
++{
++	struct xrt_tracking_origin *xtrack = s->xtracks[i];
++
++	// The position of the tracking origin matches that in the
++	// server's memory.
++	assert(i < XRT_SYSTEM_MAX_DEVICES);
++
++	struct ipc_shared_memory *ism = s->ism;
++	struct ipc_shared_tracking_origin *itrack = &ism->itracks[j];
++	memcpy(itrack->name, xtrack->name, sizeof(itrack->name));
++	itrack->type = xtrack->type;
++	itrack->offset = xtrack->initial_offset;
++}
++
+ static int
+ init_shm(struct ipc_server *s)
+ {
+@@ -307,21 +323,13 @@ init_shm(struct ipc_server *s)
+ 	ism->startup_timestamp = os_monotonic_get_ns();
+ 
+ 	// Setup the tracking origins.
+-	count = 0;
++
+ 	for (size_t i = 0; i < XRT_SYSTEM_MAX_DEVICES; i++) {
+ 		struct xrt_tracking_origin *xtrack = s->xtracks[i];
+ 		if (xtrack == NULL) {
+ 			continue;
+ 		}
+-
+-		// The position of the tracking origin matches that in the
+-		// server's memory.
+-		assert(i < XRT_SYSTEM_MAX_DEVICES);
+-
+-		struct ipc_shared_tracking_origin *itrack = &ism->itracks[count++];
+-		memcpy(itrack->name, xtrack->name, sizeof(itrack->name));
+-		itrack->type = xtrack->type;
+-		itrack->offset = xtrack->initial_offset;
++		init_shm_tracking_origin(s, i, count++);
+ 	}
+ 
+ 	ism->itrack_count = count;
+-- 
+2.49.0
+
+
+From 4a6992a7facf93116e10e95f0e55c7d1a0f4d364 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 25 Apr 2025 23:27:27 +0200
+Subject: [PATCH 04/11] ipc/server: factor out initialization of struct
+ ipc_shared_device
+
+---
+ src/xrt/ipc/server/ipc_server_process.c | 160 +++++++++++++-----------
+ 1 file changed, 87 insertions(+), 73 deletions(-)
+
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index a4b09fcc1..3c45995d2 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -297,6 +297,87 @@ init_shm_tracking_origin(struct ipc_server *s, size_t i, size_t j)
+ 	itrack->offset = xtrack->initial_offset;
+ }
+ 
++static void
++init_shm_device(struct ipc_server *s, size_t i, size_t j, uint32_t *input_index, uint32_t *output_index,
++				uint32_t *binding_index, uint32_t *input_pair_index, uint32_t *output_pair_index)
++{
++	struct xrt_device *xdev = s->idevs[i].xdev;
++
++	struct ipc_shared_memory *ism = s->ism;
++	struct ipc_shared_device *isdev = &ism->isdevs[j];
++
++	isdev->name = xdev->name;
++	memcpy(isdev->str, xdev->str, sizeof(isdev->str));
++	memcpy(isdev->serial, xdev->serial, sizeof(isdev->serial));
++
++	isdev->orientation_tracking_supported = xdev->orientation_tracking_supported;
++	isdev->position_tracking_supported = xdev->position_tracking_supported;
++	isdev->device_type = xdev->device_type;
++	isdev->hand_tracking_supported = xdev->hand_tracking_supported;
++	isdev->force_feedback_supported = xdev->force_feedback_supported;
++	isdev->form_factor_check_supported = xdev->form_factor_check_supported;
++	isdev->eye_gaze_supported = xdev->eye_gaze_supported;
++	isdev->face_tracking_supported = xdev->face_tracking_supported;
++	isdev->body_tracking_supported = xdev->body_tracking_supported;
++	isdev->stage_supported = xdev->stage_supported;
++	isdev->battery_status_supported = xdev->battery_status_supported;
++	isdev->planes_supported = xdev->planes_supported;
++	isdev->plane_capability_flags = xdev->plane_capability_flags;
++
++	// Setup the tracking origin.
++	isdev->tracking_origin_index = (uint32_t)-1;
++	for (uint32_t k = 0; k < XRT_SYSTEM_MAX_DEVICES; k++) {
++		if (xdev->tracking_origin != s->xtracks[k]) {
++			continue;
++		}
++
++		isdev->tracking_origin_index = k;
++		break;
++	}
++
++	assert(isdev->tracking_origin_index != (uint32_t)-1);
++
++	// Initial update.
++	xrt_device_update_inputs(xdev);
++
++	// Bindings
++	uint32_t binding_start = *binding_index;
++	for (size_t k = 0; k < xdev->binding_profile_count; k++) {
++		handle_binding(ism, &xdev->binding_profiles[k], &ism->binding_profiles[(*binding_index)++],
++		               input_pair_index, output_pair_index);
++	}
++
++	// Setup the 'offsets' and number of bindings.
++	if (binding_start != *binding_index) {
++		isdev->binding_profile_count = *binding_index - binding_start;
++		isdev->first_binding_profile_index = binding_start;
++	}
++
++	// Copy the initial state and also count the number in inputs.
++	uint32_t input_start = *input_index;
++	for (size_t k = 0; k < xdev->input_count; k++) {
++		ism->inputs[(*input_index)++] = xdev->inputs[k];
++	}
++
++	// Setup the 'offsets' and number of inputs.
++	if (input_start != *input_index) {
++		isdev->input_count = *input_index - input_start;
++		isdev->first_input_index = input_start;
++	}
++
++	// Copy the initial state and also count the number in outputs.
++	uint32_t output_start = *output_index;
++	for (size_t k = 0; k < xdev->output_count; k++) {
++		ism->outputs[(*output_index)++] = xdev->outputs[k];
++	}
++
++	// Setup the 'offsets' and number of outputs.
++	if (output_start != *output_index) {
++		isdev->output_count = *output_index - output_start;
++		isdev->first_output_index = output_start;
++	}
++}
++
+ static int
+ init_shm(struct ipc_server *s)
+ {
+@@ -346,79 +427,8 @@ init_shm(struct ipc_server *s)
+ 		if (xdev == NULL) {
+ 			continue;
+ 		}
+-
+-		struct ipc_shared_device *isdev = &ism->isdevs[count++];
+-
+-		isdev->name = xdev->name;
+-		memcpy(isdev->str, xdev->str, sizeof(isdev->str));
+-		memcpy(isdev->serial, xdev->serial, sizeof(isdev->serial));
+-
+-		isdev->orientation_tracking_supported = xdev->orientation_tracking_supported;
+-		isdev->position_tracking_supported = xdev->position_tracking_supported;
+-		isdev->device_type = xdev->device_type;
+-		isdev->hand_tracking_supported = xdev->hand_tracking_supported;
+-		isdev->force_feedback_supported = xdev->force_feedback_supported;
+-		isdev->form_factor_check_supported = xdev->form_factor_check_supported;
+-		isdev->eye_gaze_supported = xdev->eye_gaze_supported;
+-		isdev->face_tracking_supported = xdev->face_tracking_supported;
+-		isdev->body_tracking_supported = xdev->body_tracking_supported;
+-		isdev->stage_supported = xdev->stage_supported;
+-		isdev->battery_status_supported = xdev->battery_status_supported;
+-		isdev->planes_supported = xdev->planes_supported;
+-		isdev->plane_capability_flags = xdev->plane_capability_flags;
+-
+-		// Setup the tracking origin.
+-		isdev->tracking_origin_index = (uint32_t)-1;
+-		for (uint32_t k = 0; k < XRT_SYSTEM_MAX_DEVICES; k++) {
+-			if (xdev->tracking_origin != s->xtracks[k]) {
+-				continue;
+-			}
+-
+-			isdev->tracking_origin_index = k;
+-			break;
+-		}
+-
+-		assert(isdev->tracking_origin_index != (uint32_t)-1);
+-
+-		// Initial update.
+-		xrt_device_update_inputs(xdev);
+-
+-		// Bindings
+-		uint32_t binding_start = binding_index;
+-		for (size_t k = 0; k < xdev->binding_profile_count; k++) {
+-			handle_binding(ism, &xdev->binding_profiles[k], &ism->binding_profiles[binding_index++],
+-			               &input_pair_index, &output_pair_index);
+-		}
+-
+-		// Setup the 'offsets' and number of bindings.
+-		if (binding_start != binding_index) {
+-			isdev->binding_profile_count = binding_index - binding_start;
+-			isdev->first_binding_profile_index = binding_start;
+-		}
+-
+-		// Copy the initial state and also count the number in inputs.
+-		uint32_t input_start = input_index;
+-		for (size_t k = 0; k < xdev->input_count; k++) {
+-			ism->inputs[input_index++] = xdev->inputs[k];
+-		}
+-
+-		// Setup the 'offsets' and number of inputs.
+-		if (input_start != input_index) {
+-			isdev->input_count = input_index - input_start;
+-			isdev->first_input_index = input_start;
+-		}
+-
+-		// Copy the initial state and also count the number in outputs.
+-		uint32_t output_start = output_index;
+-		for (size_t k = 0; k < xdev->output_count; k++) {
+-			ism->outputs[output_index++] = xdev->outputs[k];
+-		}
+-
+-		// Setup the 'offsets' and number of outputs.
+-		if (output_start != output_index) {
+-			isdev->output_count = output_index - output_start;
+-			isdev->first_output_index = output_start;
+-		}
++		init_shm_device(s, i, count++, &input_index, &output_index, &binding_index,
++		                &input_pair_index, &output_pair_index);
+ 	}
+ 
+ 	// Setup the HMD
+@@ -657,6 +667,10 @@ flush_state_to_all_clients_locked(struct ipc_server *s)
+ static void
+ update_server_state_locked(struct ipc_server *s)
+ {
++	/*ret = init_idev(s, i);
++	ret = init_tracking_origin(s, i);
++	ret = init_shm_tracking_origin(s, i);*/
++
+ 	// if our client that is set to active is still active,
+ 	// and it is the same as our last active client, we can
+ 	// early-out, as no events need to be sent
+-- 
+2.49.0
+
+
+From 8bee464761fda715b2156f02cb1100f5de926ca3 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 25 Apr 2025 23:40:10 +0200
+Subject: [PATCH 05/11] ipc/server: factor out initialization of shm roles
+
+---
+ src/xrt/ipc/server/ipc_server_process.c | 19 +++++++++++++------
+ 1 file changed, 13 insertions(+), 6 deletions(-)
+
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index 3c45995d2..4d01b2782 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -378,6 +378,18 @@ init_shm_device(struct ipc_server *s, size_t i, size_t j, uint32_t *input_index,
+ 	}
+ }
+ 
++static void
++init_shm_roles(struct ipc_server *s)
++{
++	struct ipc_shared_memory *ism = s->ism;
++	ism->roles.head = find_xdev_index(s, s->xsysd->static_roles.head);
++	ism->roles.eyes = find_xdev_index(s, s->xsysd->static_roles.eyes);
++	ism->roles.face = find_xdev_index(s, s->xsysd->static_roles.face);
++	ism->roles.body = find_xdev_index(s, s->xsysd->static_roles.body);
++	ism->roles.hand_tracking.left = find_xdev_index(s, s->xsysd->static_roles.hand_tracking.left);
++	ism->roles.hand_tracking.right = find_xdev_index(s, s->xsysd->static_roles.hand_tracking.right);
++}
++
+ static int
+ init_shm(struct ipc_server *s)
+ {
+@@ -451,12 +463,7 @@ init_shm(struct ipc_server *s)
+ 	s->ism->isdev_count = count;
+ 
+ 	// Assign all of the roles.
+-	ism->roles.head = find_xdev_index(s, s->xsysd->static_roles.head);
+-	ism->roles.eyes = find_xdev_index(s, s->xsysd->static_roles.eyes);
+-	ism->roles.face = find_xdev_index(s, s->xsysd->static_roles.face);
+-	ism->roles.body = find_xdev_index(s, s->xsysd->static_roles.body);
+-	ism->roles.hand_tracking.left = find_xdev_index(s, s->xsysd->static_roles.hand_tracking.left);
+-	ism->roles.hand_tracking.right = find_xdev_index(s, s->xsysd->static_roles.hand_tracking.right);
++	init_shm_roles(s);
+ 
+ 	// Fill out git version info.
+ 	snprintf(s->ism->u_git_tag, IPC_VERSION_NAME_LEN, "%s", u_git_tag);
+-- 
+2.49.0
+
+
+From 56a5302885af6fecc430e7bb05a330e7437effa6 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sun, 27 Apr 2025 18:31:21 +0200
+Subject: [PATCH 06/11] xrt: add function to register a device with a space
+ overseer
+
+---
+ src/xrt/auxiliary/util/u_space_overseer.c     | 24 +++++++++++++++++++
+ src/xrt/include/xrt/xrt_space.h               | 23 ++++++++++++++++++
+ .../ipc/client/ipc_client_space_overseer.c    |  7 ++++++
+ 3 files changed, 54 insertions(+)
+
+diff --git a/src/xrt/auxiliary/util/u_space_overseer.c b/src/xrt/auxiliary/util/u_space_overseer.c
+index 55d680ecb..4e45f9ff6 100644
+--- a/src/xrt/auxiliary/util/u_space_overseer.c
++++ b/src/xrt/auxiliary/util/u_space_overseer.c
+@@ -1033,6 +1033,29 @@ unlock:
+ 	return xret;
+ }
+ 
++static xrt_result_t
++add_device(struct xrt_space_overseer *xso, struct xrt_device *xdev)
++{
++	struct u_space_overseer *uso = u_space_overseer(xso);
++	struct xrt_space *root = uso->base.semantic.root;
++	struct xrt_tracking_origin *torig = xdev->tracking_origin;
++	uint64_t key = (uint64_t)(intptr_t)torig;
++	struct xrt_space *xs = NULL;
++
++	void *ptr = NULL;
++	u_hashmap_int_find(uso->xto_map, key, &ptr);
++
++	if (ptr != NULL) {
++		xs = (struct xrt_space *)ptr;
++	} else {
++		u_space_overseer_create_offset_space(uso, root, &torig->initial_offset, &xs);
++		u_hashmap_int_insert(uso->xto_map, key, xs);
++	}
++
++	u_space_overseer_link_space_to_device(uso, xs, xdev);
++	return XRT_SUCCESS;
++}
++
+ static void
+ destroy(struct xrt_space_overseer *xso)
+ {
+@@ -1089,6 +1112,7 @@ u_space_overseer_create(struct xrt_session_event_sink *broadcast)
+ 	uso->base.set_tracking_origin_offset = set_tracking_origin_offset;
+ 	uso->base.get_reference_space_offset = get_reference_space_offset;
+ 	uso->base.set_reference_space_offset = set_reference_space_offset;
++	uso->base.add_device = add_device;
+ 	uso->base.destroy = destroy;
+ 	uso->broadcast = broadcast;
+ 
+diff --git a/src/xrt/include/xrt/xrt_space.h b/src/xrt/include/xrt/xrt_space.h
+index 81593e9de..7a8af9455 100644
+--- a/src/xrt/include/xrt/xrt_space.h
++++ b/src/xrt/include/xrt/xrt_space.h
+@@ -303,6 +303,15 @@ struct xrt_space_overseer
+ 	                                   struct xrt_space **out_local_space,
+ 	                                   struct xrt_space **out_local_floor_space);
+ 
++	/*!
++	 * Register a new device.
++	 *
++	 * @param[in] xso The space overseer.
++	 * @param[in] xdev The device to add to the space overseer.
++	 */
++	xrt_result_t (*add_device)(struct xrt_space_overseer *xso,
++	                           struct xrt_device *xdev);
++
+ 	/*!
+ 	 * Destroy function.
+ 	 *
+@@ -515,6 +524,20 @@ xrt_space_overseer_create_local_space(struct xrt_space_overseer *xso,
+ 	return xso->create_local_space(xso, out_local_space, out_local_floor_space);
+ }
+ 
++/*!
++ * @copydoc xrt_space_overseer::add_device
++ *
++ * Helper for calling through the function pointer.
++ *
++ * @public @memberof xrt_space_overseer
++ */
++static inline xrt_result_t
++xrt_space_overseer_add_device(struct xrt_space_overseer *xso,
++                              struct xrt_device *xdev)
++{
++	return xso->add_device(xso, xdev);
++}
++
+ /*!
+  * Helper for calling through the function pointer: does a null check and sets
+  * xc_ptr to null if freed.
+diff --git a/src/xrt/ipc/client/ipc_client_space_overseer.c b/src/xrt/ipc/client/ipc_client_space_overseer.c
+index a6abd8d35..fe403e980 100644
+--- a/src/xrt/ipc/client/ipc_client_space_overseer.c
++++ b/src/xrt/ipc/client/ipc_client_space_overseer.c
+@@ -314,6 +314,13 @@ set_reference_space_offset(struct xrt_space_overseer *xso,
+ 	return ipc_call_space_set_reference_space_offset(icspo->ipc_c, type, offset);
+ }
+ 
++static xrt_result_t
++add_device(struct xrt_space_overseer *xso,
++           struct xrt_device *xdev)
++{
++	return XRT_ERROR_NOT_IMPLEMENTED;
++}
++
+ static void
+ destroy(struct xrt_space_overseer *xso)
+ {
+-- 
+2.49.0
+
+
+From 103777eacf1df8f2dd18e75e9404f5bdbae08c95 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sun, 27 Apr 2025 18:53:38 +0200
+Subject: [PATCH 07/11] ipc/server: factor out initialization of a single
+ tracking origin
+
+---
+ src/xrt/ipc/server/ipc_server_process.c | 33 +++++++++++++++----------
+ 1 file changed, 20 insertions(+), 13 deletions(-)
+
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index 4d01b2782..154fcde92 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -214,6 +214,25 @@ teardown_all(struct ipc_server *s)
+ 	os_mutex_destroy(&s->global_state.lock);
+ }
+ 
++static void
++init_tracking_origin(struct ipc_server *s, size_t i)
++{
++	struct xrt_device *xdev = s->idevs[i].xdev;
++	struct xrt_tracking_origin *xtrack = xdev->tracking_origin;
++	assert(xtrack != NULL);
++	size_t index = 0;
++
++	for (; index < XRT_SYSTEM_MAX_DEVICES; index++) {
++		if (s->xtracks[index] == NULL) {
++			s->xtracks[index] = xtrack;
++			break;
++		}
++		if (s->xtracks[index] == xtrack) {
++			break;
++		}
++	}
++}
++
+ static int
+ init_tracking_origins(struct ipc_server *s)
+ {
+@@ -223,19 +242,7 @@ init_tracking_origins(struct ipc_server *s)
+ 			continue;
+ 		}
+ 
+-		struct xrt_tracking_origin *xtrack = xdev->tracking_origin;
+-		assert(xtrack != NULL);
+-		size_t index = 0;
+-
+-		for (; index < XRT_SYSTEM_MAX_DEVICES; index++) {
+-			if (s->xtracks[index] == NULL) {
+-				s->xtracks[index] = xtrack;
+-				break;
+-			}
+-			if (s->xtracks[index] == xtrack) {
+-				break;
+-			}
+-		}
++		init_tracking_origin(s, i);
+ 	}
+ 
+ 	return 0;
+-- 
+2.49.0
+
+
+From 3e090acf7141a83a62b6ca1a528aec1414c45f82 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sun, 27 Apr 2025 18:54:51 +0200
+Subject: [PATCH 08/11] ipc/server: update shm data when a device is hotplugged
+
+---
+ src/xrt/ipc/server/ipc_server.h         |   8 ++
+ src/xrt/ipc/server/ipc_server_handler.c |   1 +
+ src/xrt/ipc/server/ipc_server_process.c | 151 ++++++++++++++++++++++++
+ 3 files changed, 160 insertions(+)
+
+diff --git a/src/xrt/ipc/server/ipc_server.h b/src/xrt/ipc/server/ipc_server.h
+index d8860ed9f..d996659fe 100644
+--- a/src/xrt/ipc/server/ipc_server.h
++++ b/src/xrt/ipc/server/ipc_server.h
+@@ -427,6 +427,14 @@ ipc_server_activate_session(volatile struct ipc_client_state *ics);
+ void
+ ipc_server_deactivate_session(volatile struct ipc_client_state *ics);
+ 
++/*!
++ * Called by client threads to update the global device list.
++ *
++ * @ingroup ipc_server
++ */
++void
++ipc_server_update_devices(struct ipc_server *s);
++
+ /*!
+  * Called by client threads to recalculate active client.
+  *
+diff --git a/src/xrt/ipc/server/ipc_server_handler.c b/src/xrt/ipc/server/ipc_server_handler.c
+index c7f537753..3ea2f0485 100644
+--- a/src/xrt/ipc/server/ipc_server_handler.c
++++ b/src/xrt/ipc/server/ipc_server_handler.c
+@@ -396,6 +396,7 @@ ipc_handle_session_poll_events(volatile struct ipc_client_state *ics, union xrt_
+ 		return XRT_ERROR_IPC_SESSION_NOT_CREATED;
+ 	}
+ 
++	ipc_server_update_devices(ics->server);
+ 	return xrt_session_poll_events(ics->xs, out_xse);
+ }
+ 
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index 154fcde92..f8f8b34de 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -678,6 +678,144 @@ flush_state_to_all_clients_locked(struct ipc_server *s)
+ 	}
+ }
+ 
++static void
++update_space_overseer(struct ipc_server *s)
++{
++	uint32_t count = 0;
++	for (size_t i = 0; i < XRT_SYSTEM_MAX_DEVICES; i++) {
++		struct xrt_device *xdev = s->xsysd->xdevs[i];
++		if (xdev == NULL) {
++			continue;
++		}
++		count++;
++	}
++	if (count > s->ism->isdev_count) {
++		uint32_t n = 0;
++		for (size_t i = 0; i < XRT_SYSTEM_MAX_DEVICES; i++) {
++			struct xrt_device *xdev = s->xsysd->xdevs[i];
++			if (xdev == NULL) {
++				continue;
++			}
++			n++;
++			if (n <= s->ism->itrack_count) {
++				continue;
++			}
++			xrt_space_overseer_add_device(s->xso, xdev);
++		}
++	}
++}
++
++static void
++update_shm_tracking_origins(struct ipc_server *s)
++{
++	/*U_LOG_IFL_W(U_LOGGING_WARN, "update_shm_tracking_origins");*/
++	uint32_t count = 0;
++	for (size_t i = 0; i < XRT_SYSTEM_MAX_DEVICES; i++) {
++		struct xrt_tracking_origin *xtrack = s->xtracks[i];
++		if (xtrack == NULL) {
++			continue;
++		}
++		count++;
++	}
++	if (count > s->ism->itrack_count) {
++		U_LOG_IFL_W(U_LOGGING_WARN, "Updating shm origins!");
++
++		uint32_t n = 0;
++		for (size_t i = 0; i < XRT_SYSTEM_MAX_DEVICES; i++) {
++			struct xrt_tracking_origin *xtrack = s->xtracks[i];
++			if (xtrack == NULL) {
++				continue;
++			}
++			n++;
++			if (n <= s->ism->itrack_count) {
++				continue;
++			}
++			init_tracking_origin(s, i);
++			init_shm_tracking_origin(s, i, n - 1);
++		}
++		s->ism->itrack_count = count;
++	}
++}
++
++static void
++update_shm_devices(struct ipc_server *s)
++{
++	/*U_LOG_IFL_W(U_LOGGING_WARN, "update_shm_devices");*/
++	uint32_t count = 0;
++	for (size_t i = 0; i < XRT_SYSTEM_MAX_DEVICES; i++) {
++		struct xrt_device *xdev = s->xsysd->xdevs[i];
++		if (xdev == NULL) {
++			continue;
++		}
++		count++;
++	}
++	if (count > s->ism->isdev_count) {
++		U_LOG_IFL_W(U_LOGGING_WARN, "Updating shm devs!");
++
++		uint32_t input_index = 0;
++		uint32_t output_index = 0;
++		uint32_t binding_index = 0;
++		uint32_t input_pair_index = 0;
++		uint32_t output_pair_index = 0;
++
++		struct ipc_shared_memory *ism = s->ism;
++		for (size_t i = 0, k = 0; i < XRT_SYSTEM_MAX_DEVICES; i++) {
++			struct xrt_device *xdev = s->idevs[i].xdev;
++			if (xdev == NULL) {
++				continue;
++			}
++			struct ipc_shared_device *isdev = &ism->isdevs[k++];
++
++			uint32_t input_end = isdev->first_input_index + isdev->input_count;
++			if (input_end > input_index) {
++				input_index = input_end;
++			}
++
++			uint32_t output_end = isdev->first_output_index + isdev->output_count;
++			if (output_end > output_index) {
++				output_index = output_end;
++			}
++
++			uint32_t bindings_end = isdev->first_binding_profile_index + isdev->binding_profile_count;
++			if (bindings_end > binding_index) {
++				binding_index = bindings_end;
++			}
++
++			uint32_t binding_index = isdev->first_binding_profile_index;
++			for (size_t k = 0; k < xdev->binding_profile_count; k++) {
++				struct ipc_shared_binding_profile *isbp = &ism->binding_profiles[binding_index++];
++
++				uint32_t input_pairs_end = isbp->input_count + isbp->first_input_index;
++				if (input_pairs_end > input_pair_index) {
++					input_pair_index = input_pairs_end;
++				}
++
++				uint32_t output_pairs_end = isbp->output_count + isbp->first_output_index;
++				if (output_pairs_end > output_pair_index) {
++					output_pair_index = output_pairs_end;
++				}
++			}
++		}
++
++		uint32_t n = 0;
++		for (size_t i = 0; i < XRT_SYSTEM_MAX_DEVICES; i++) {
++			struct xrt_device *xdev = s->xsysd->xdevs[i];
++			if (xdev == NULL) {
++				continue;
++			}
++			n++;
++			if (n <= s->ism->isdev_count) {
++				continue;
++			}
++			init_idev(&s->idevs[i], xdev);
++			init_shm_device(s, i, n - 1, &input_index, &output_index, &binding_index,
++			                &input_pair_index, &output_pair_index);
++		}
++		s->ism->isdev_count = count;
++		init_shm_roles(s);
++	}
++}
++
+ static void
+ update_server_state_locked(struct ipc_server *s)
+ {
+@@ -917,6 +1055,19 @@ ipc_server_deactivate_session(volatile struct ipc_client_state *ics)
+ 	os_mutex_unlock(&s->global_state.lock);
+ }
+ 
++void
++ipc_server_update_devices(struct ipc_server *s)
++{
++	// Multiple threads could call this at the same time.
++	os_mutex_lock(&s->global_state.lock);
++
++	update_space_overseer(s);
++	update_shm_tracking_origins(s);
++	update_shm_devices(s);
++
++	os_mutex_unlock(&s->global_state.lock);
++}
++
+ void
+ ipc_server_update_state(struct ipc_server *s)
+ {
+-- 
+2.49.0
+
+
+From b0c715f812107261c8eae487243a9c0a8aff28ac Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 28 Apr 2025 06:30:46 +0200
+Subject: [PATCH 09/11] ipc/client: create struct ipc_client_system_devices
+ during instance creation
+
+---
+ src/xrt/ipc/client/ipc_client_instance.c | 130 ++++++++++++-----------
+ 1 file changed, 66 insertions(+), 64 deletions(-)
+
+diff --git a/src/xrt/ipc/client/ipc_client_instance.c b/src/xrt/ipc/client/ipc_client_instance.c
+index ded7d1cc8..9f3b622f7 100644
+--- a/src/xrt/ipc/client/ipc_client_instance.c
++++ b/src/xrt/ipc/client/ipc_client_instance.c
+@@ -81,8 +81,7 @@ struct ipc_client_instance
+ 	struct xrt_tracking_origin *xtracks[XRT_SYSTEM_MAX_DEVICES];
+ 	size_t xtrack_count;
+ 
+-	struct xrt_device *xdevs[XRT_SYSTEM_MAX_DEVICES];
+-	size_t xdev_count;
++	struct xrt_system_devices *xsysd;
+ 
+ #ifdef XRT_OS_ANDROID
+ 	struct android_instance_base android;
+@@ -151,35 +150,9 @@ ipc_client_instance_create_system(struct xrt_instance *xinst,
+ 	assert(*out_xsysd == NULL);
+ 	assert(out_xsysc == NULL || *out_xsysc == NULL);
+ 
+-	struct xrt_system_devices *xsysd = NULL;
++	struct xrt_system_devices *xsysd = ii->xsysd;
+ 	struct xrt_system_compositor *xsysc = NULL;
+ 
+-	// Allocate a helper xrt_system_devices struct.
+-	xsysd = ipc_client_system_devices_create(&ii->ipc_c);
+-
+-	// Take the devices from this instance.
+-	for (uint32_t i = 0; i < ii->xdev_count; i++) {
+-		xsysd->xdevs[i] = ii->xdevs[i];
+-		ii->xdevs[i] = NULL;
+-	}
+-	xsysd->xdev_count = ii->xdev_count;
+-	ii->xdev_count = 0;
+-
+-#define SET_ROLE(ROLE)                                                                                                 \
+-	do {                                                                                                           \
+-		int32_t index = ii->ipc_c.ism->roles.ROLE;                                                             \
+-		xsysd->static_roles.ROLE = index >= 0 ? xsysd->xdevs[index] : NULL;                                    \
+-	} while (false)
+-
+-	SET_ROLE(head);
+-	SET_ROLE(eyes);
+-	SET_ROLE(face);
+-	SET_ROLE(body);
+-	SET_ROLE(hand_tracking.left);
+-	SET_ROLE(hand_tracking.right);
+-
+-#undef SET_ROLE
+-
+ 	// Done here now.
+ 	if (out_xsysc == NULL) {
+ 		goto out;
+@@ -258,6 +231,67 @@ ipc_client_instance_destroy(struct xrt_instance *xinst)
+  *
+  */
+ 
++static void
++ipc_client_instance_update_devices(struct ipc_client_instance *ii)
++{
++	struct ipc_shared_memory *ism = ii->ipc_c.ism;
++	struct xrt_system_devices *xsysd = ii->xsysd;
++
++	if (ii->xtrack_count < ism->itrack_count) {
++		struct xrt_tracking_origin *xtrack = NULL;
++		U_LOG_IFL_W(U_LOGGING_WARN, "Updating shm tracking origins!");
++
++		for (uint32_t i = ii->xtrack_count; i < ism->itrack_count; i++) {
++			xtrack = U_TYPED_CALLOC(struct xrt_tracking_origin);
++
++			memcpy(xtrack->name, ism->itracks[i].name, sizeof(xtrack->name));
++
++			xtrack->type = ism->itracks[i].type;
++			xtrack->initial_offset = ism->itracks[i].offset;
++			ii->xtracks[i] = xtrack;
++
++			u_var_add_root(xtrack, "Tracking origin", true);
++			u_var_add_ro_text(xtrack, xtrack->name, "name");
++			u_var_add_pose(xtrack, &xtrack->initial_offset, "offset");
++		}
++
++		ii->xtrack_count = ism->itrack_count;
++	}
++
++	if (xsysd->xdev_count < ism->isdev_count) {
++		struct xrt_tracking_origin *xtrack = NULL;
++		U_LOG_IFL_W(U_LOGGING_WARN, "Updating shm devs!");
++
++		for (uint32_t i = xsysd->xdev_count; i < ism->isdev_count; i++) {
++			struct ipc_shared_device *isdev = &ism->isdevs[i];
++			xtrack = ii->xtracks[isdev->tracking_origin_index];
++
++			if (isdev->name == XRT_DEVICE_GENERIC_HMD) {
++				xsysd->xdevs[i] = ipc_client_hmd_create(&ii->ipc_c, xtrack, i);
++			} else {
++				xsysd->xdevs[i] = ipc_client_device_create(&ii->ipc_c, xtrack, i);
++			}
++		}
++
++		xsysd->xdev_count = ism->isdev_count;
++	}
++
++#define SET_ROLE(ROLE)                                                                                                 \
++	do {                                                                                                           \
++		int32_t index = ii->ipc_c.ism->roles.ROLE;                                                             \
++		xsysd->static_roles.ROLE = index >= 0 ? xsysd->xdevs[index] : NULL;                                    \
++	} while (false)
++
++	SET_ROLE(head);
++	SET_ROLE(eyes);
++	SET_ROLE(face);
++	SET_ROLE(body);
++	SET_ROLE(hand_tracking.left);
++	SET_ROLE(hand_tracking.right);
++
++#undef SET_ROLE
++}
++
+ /*!
+  * Constructor for xrt_instance IPC client proxy.
+  *
+@@ -293,42 +327,10 @@ ipc_instance_create(const struct xrt_instance_info *i_info, struct xrt_instance
+ 		return xret;
+ 	}
+ 
+-	uint32_t count = 0;
+-	struct xrt_tracking_origin *xtrack = NULL;
+-	struct ipc_shared_memory *ism = ii->ipc_c.ism;
+-
+-	// Query the server for how many tracking origins it has.
+-	count = 0;
+-	for (uint32_t i = 0; i < ism->itrack_count; i++) {
+-		xtrack = U_TYPED_CALLOC(struct xrt_tracking_origin);
+-
+-		memcpy(xtrack->name, ism->itracks[i].name, sizeof(xtrack->name));
+-
+-		xtrack->type = ism->itracks[i].type;
+-		xtrack->initial_offset = ism->itracks[i].offset;
+-		ii->xtracks[count++] = xtrack;
+-
+-		u_var_add_root(xtrack, "Tracking origin", true);
+-		u_var_add_ro_text(xtrack, xtrack->name, "name");
+-		u_var_add_pose(xtrack, &xtrack->initial_offset, "offset");
+-	}
+-
+-	ii->xtrack_count = count;
+-
+-	// Query the server for how many devices it has.
+-	count = 0;
+-	for (uint32_t i = 0; i < ism->isdev_count; i++) {
+-		struct ipc_shared_device *isdev = &ism->isdevs[i];
+-		xtrack = ii->xtracks[isdev->tracking_origin_index];
+-
+-		if (isdev->name == XRT_DEVICE_GENERIC_HMD) {
+-			ii->xdevs[count++] = ipc_client_hmd_create(&ii->ipc_c, xtrack, i);
+-		} else {
+-			ii->xdevs[count++] = ipc_client_device_create(&ii->ipc_c, xtrack, i);
+-		}
+-	}
++		// Allocate a helper xrt_system_devices struct.
++	ii->xsysd = ipc_client_system_devices_create(&ii->ipc_c);
+ 
+-	ii->xdev_count = count;
++	ipc_client_instance_update_devices(ii);
+ 
+ 	ii->base.startup_timestamp = ii->ipc_c.ism->startup_timestamp;
+ 
+-- 
+2.49.0
+
+
+From 0c6eeeeeebc5a0b72e9f92e5cba14989680b8333 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 28 Apr 2025 06:31:52 +0200
+Subject: [PATCH 10/11] ipc/client: update client-side device list when list in
+ shm changes
+
+---
+ src/xrt/ipc/client/ipc_client.h           |  6 ++++--
+ src/xrt/ipc/client/ipc_client_instance.c  |  4 ++--
+ src/xrt/ipc/client/ipc_client_interface.h |  4 ++++
+ src/xrt/ipc/client/ipc_client_session.c   |  7 ++++++-
+ src/xrt/ipc/client/ipc_client_system.c    | 10 +++++++---
+ 5 files changed, 23 insertions(+), 8 deletions(-)
+
+diff --git a/src/xrt/ipc/client/ipc_client.h b/src/xrt/ipc/client/ipc_client.h
+index 0ba9ea70d..5bf777edb 100644
+--- a/src/xrt/ipc/client/ipc_client.h
++++ b/src/xrt/ipc/client/ipc_client.h
+@@ -147,6 +147,7 @@
+  */
+ 
+ struct xrt_compositor_native;
++struct ipc_client_instance;
+ 
+ 
+ /*!
+@@ -243,7 +244,8 @@ struct xrt_device *
+ ipc_client_device_create(struct ipc_connection *ipc_c, struct xrt_tracking_origin *xtrack, uint32_t device_id);
+ 
+ struct xrt_system *
+-ipc_client_system_create(struct ipc_connection *ipc_c, struct xrt_system_compositor *xsysc);
++ipc_client_system_create(struct ipc_client_instance *ii, struct ipc_connection *ipc_c,
++                         struct xrt_system_compositor *xsysc);
+ 
+ struct xrt_space_overseer *
+ ipc_client_space_overseer_create(struct ipc_connection *ipc_c);
+@@ -252,4 +254,4 @@ struct xrt_system_devices *
+ ipc_client_system_devices_create(struct ipc_connection *ipc_c);
+ 
+ struct xrt_session *
+-ipc_client_session_create(struct ipc_connection *ipc_c);
++ipc_client_session_create(struct ipc_client_instance *ii, struct ipc_connection *ipc_c);
+diff --git a/src/xrt/ipc/client/ipc_client_instance.c b/src/xrt/ipc/client/ipc_client_instance.c
+index 9f3b622f7..166eeb26a 100644
+--- a/src/xrt/ipc/client/ipc_client_instance.c
++++ b/src/xrt/ipc/client/ipc_client_instance.c
+@@ -170,7 +170,7 @@ ipc_client_instance_create_system(struct xrt_instance *xinst,
+ 	}
+ 
+ out:
+-	*out_xsys = ipc_client_system_create(&ii->ipc_c, xsysc);
++	*out_xsys = ipc_client_system_create(ii, &ii->ipc_c, xsysc);
+ 	*out_xsysd = xsysd;
+ 	*out_xso = ipc_client_space_overseer_create(&ii->ipc_c);
+ 
+@@ -231,7 +231,7 @@ ipc_client_instance_destroy(struct xrt_instance *xinst)
+  *
+  */
+ 
+-static void
++void
+ ipc_client_instance_update_devices(struct ipc_client_instance *ii)
+ {
+ 	struct ipc_shared_memory *ism = ii->ipc_c.ism;
+diff --git a/src/xrt/ipc/client/ipc_client_interface.h b/src/xrt/ipc/client/ipc_client_interface.h
+index d97e65f92..309e769db 100644
+--- a/src/xrt/ipc/client/ipc_client_interface.h
++++ b/src/xrt/ipc/client/ipc_client_interface.h
+@@ -15,9 +15,13 @@ extern "C" {
+ #endif
+ 
+ 
++struct ipc_client_instance;
+ struct xrt_instance;
+ struct xrt_instance_info;
+ 
++void
++ipc_client_instance_update_devices(struct ipc_client_instance *ii);
++
+ /*!
+  * Create a IPC client instance, connects to a IPC server.
+  *
+diff --git a/src/xrt/ipc/client/ipc_client_session.c b/src/xrt/ipc/client/ipc_client_session.c
+index 9eda07be6..baa814a72 100644
+--- a/src/xrt/ipc/client/ipc_client_session.c
++++ b/src/xrt/ipc/client/ipc_client_session.c
+@@ -10,6 +10,7 @@
+ #include "xrt/xrt_defines.h"
+ #include "xrt/xrt_session.h"
+ 
++#include "ipc_client_interface.h"
+ #include "ipc_client_generated.h"
+ 
+ 
+@@ -23,6 +24,7 @@ struct ipc_client_session
+ {
+ 	struct xrt_session base;
+ 
++	struct ipc_client_instance *ii;
+ 	struct ipc_connection *ipc_c;
+ };
+ 
+@@ -52,6 +54,8 @@ ipc_client_session_poll_events(struct xrt_session *xs, union xrt_session_event *
+ 	struct ipc_client_session *ics = ipc_session(xs);
+ 	xrt_result_t xret;
+ 
++	ipc_client_instance_update_devices(ics->ii);
++
+ 	xret = ipc_call_session_poll_events(ics->ipc_c, out_xse);
+ 	IPC_CHK_ALWAYS_RET(ics->ipc_c, xret, "ipc_call_session_poll_events");
+ }
+@@ -85,11 +89,12 @@ ipc_client_session_destroy(struct xrt_session *xs)
+  */
+ 
+ struct xrt_session *
+-ipc_client_session_create(struct ipc_connection *ipc_c)
++ipc_client_session_create(struct ipc_client_instance *ii, struct ipc_connection *ipc_c)
+ {
+ 	struct ipc_client_session *ics = U_TYPED_CALLOC(struct ipc_client_session);
+ 	ics->base.poll_events = ipc_client_session_poll_events;
+ 	ics->base.destroy = ipc_client_session_destroy;
++	ics->ii = ii;
+ 	ics->ipc_c = ipc_c;
+ 
+ 	return &ics->base;
+diff --git a/src/xrt/ipc/client/ipc_client_system.c b/src/xrt/ipc/client/ipc_client_system.c
+index 3ec5f8ef1..d53ec19c3 100644
+--- a/src/xrt/ipc/client/ipc_client_system.c
++++ b/src/xrt/ipc/client/ipc_client_system.c
+@@ -25,6 +25,8 @@ struct ipc_client_system
+ {
+ 	struct xrt_system base;
+ 
++	struct ipc_client_instance *ii;
++
+ 	struct ipc_connection *ipc_c;
+ 
+ 	struct xrt_system_compositor *xsysc;
+@@ -55,7 +57,7 @@ create_headless(struct ipc_client_system *icsys, const struct xrt_session_info *
+ 	    false);                     // create_native_compositor
+ 	IPC_CHK_AND_RET(icsys->ipc_c, xret, "ipc_call_session_create");
+ 
+-	struct xrt_session *xs = ipc_client_session_create(icsys->ipc_c);
++	struct xrt_session *xs = ipc_client_session_create(icsys->ii, icsys->ipc_c);
+ 	assert(xs != NULL);
+ 
+ 	*out_xs = xs;
+@@ -80,7 +82,7 @@ create_with_comp(struct ipc_client_system *icsys,
+ 	    out_xcn);                               //
+ 	IPC_CHK_AND_RET(icsys->ipc_c, xret, "ipc_client_create_native_compositor");
+ 
+-	struct xrt_session *xs = ipc_client_session_create(icsys->ipc_c);
++	struct xrt_session *xs = ipc_client_session_create(icsys->ii, icsys->ipc_c);
+ 	assert(xs != NULL);
+ 
+ 	*out_xs = xs;
+@@ -132,7 +134,8 @@ ipc_client_system_destroy(struct xrt_system *xsys)
+  */
+ 
+ struct xrt_system *
+-ipc_client_system_create(struct ipc_connection *ipc_c, struct xrt_system_compositor *xsysc)
++ipc_client_system_create(struct ipc_client_instance *ii, struct ipc_connection *ipc_c,
++                         struct xrt_system_compositor *xsysc)
+ {
+ 	struct ipc_client_system *icsys = U_TYPED_CALLOC(struct ipc_client_system);
+ 	xrt_result_t xret = ipc_call_system_get_properties(ipc_c, &icsys->base.properties);
+@@ -143,6 +146,7 @@ ipc_client_system_create(struct ipc_connection *ipc_c, struct xrt_system_composi
+ 
+ 	icsys->base.create_session = ipc_client_system_create_session;
+ 	icsys->base.destroy = ipc_client_system_destroy;
++	icsys->ii = ii;
+ 	icsys->ipc_c = ipc_c;
+ 	icsys->xsysc = xsysc;
+ 
+-- 
+2.49.0
+
+
+From 3fb796f1daa1547ea294a0329c6adcf8bdafba59 Mon Sep 17 00:00:00 2001
+From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
+Date: Tue, 29 Apr 2025 21:14:56 +0900
+Subject: [PATCH 11/11] hand crap
+
+---
+ src/xrt/drivers/steamvr_lh/device.cpp         | 358 +++++++++++++-----
+ src/xrt/drivers/steamvr_lh/device.hpp         |  30 +-
+ .../drivers/steamvr_lh/interfaces/context.hpp |  19 +-
+ src/xrt/drivers/steamvr_lh/steamvr_lh.cpp     |  95 +++--
+ 4 files changed, 347 insertions(+), 155 deletions(-)
+
+diff --git a/src/xrt/drivers/steamvr_lh/device.cpp b/src/xrt/drivers/steamvr_lh/device.cpp
+index 2d6bd81d8..40de96ebf 100644
+--- a/src/xrt/drivers/steamvr_lh/device.cpp
++++ b/src/xrt/drivers/steamvr_lh/device.cpp
+@@ -9,6 +9,8 @@
+ 
+ #include <functional>
+ #include <cstring>
++#include <numbers>
++#include <openvr_driver.h>
+ #include <thread>
+ #include <algorithm>
+ 
+@@ -41,10 +43,47 @@ struct InputClass
+ 	xrt_device_name name;
+ 	const std::vector<xrt_input_name> poses;
+ 	const std::unordered_map<std::string_view, xrt_input_name> non_poses;
+-	const std::unordered_map<std::string_view, IndexFinger> finger_curls;
+ };
+ 
+ namespace {
++using namespace std::string_view_literals;
++// From https://github.com/ValveSoftware/openvr/blob/master/docs/Driver_API_Documentation.md#bone-structure
++enum HandSkeletonBone : int32_t
++{
++	eBone_Root = 0,
++	eBone_Wrist,
++	eBone_Thumb0,
++	eBone_Thumb1,
++	eBone_Thumb2,
++	eBone_Thumb3,
++	eBone_IndexFinger0,
++	eBone_IndexFinger1,
++	eBone_IndexFinger2,
++	eBone_IndexFinger3,
++	eBone_IndexFinger4,
++	eBone_MiddleFinger0,
++	eBone_MiddleFinger1,
++	eBone_MiddleFinger2,
++	eBone_MiddleFinger3,
++	eBone_MiddleFinger4,
++	eBone_RingFinger0,
++	eBone_RingFinger1,
++	eBone_RingFinger2,
++	eBone_RingFinger3,
++	eBone_RingFinger4,
++	eBone_PinkyFinger0,
++	eBone_PinkyFinger1,
++	eBone_PinkyFinger2,
++	eBone_PinkyFinger3,
++	eBone_PinkyFinger4,
++	eBone_Aux_Thumb,
++	eBone_Aux_IndexFinger,
++	eBone_Aux_MiddleFinger,
++	eBone_Aux_RingFinger,
++	eBone_Aux_PinkyFinger,
++	eBone_Count
++};
++
+ // Adding support for a new controller is a simple as adding it here.
+ // The key for the map needs to be the name of input profile as indicated by the lighthouse driver.
+ const std::unordered_map<std::string_view, InputClass> controller_classes{
+@@ -55,6 +94,7 @@ const std::unordered_map<std::string_view, InputClass> controller_classes{
+             {
+                 XRT_INPUT_VIVE_GRIP_POSE,
+                 XRT_INPUT_VIVE_AIM_POSE,
++                XRT_INPUT_GENERIC_PALM_POSE,
+             },
+             {
+                 {"/input/application_menu/click", XRT_INPUT_VIVE_MENU_CLICK},
+@@ -66,9 +106,6 @@ const std::unordered_map<std::string_view, InputClass> controller_classes{
+                 {"/input/grip/click", XRT_INPUT_VIVE_SQUEEZE_CLICK},
+                 {"/input/trackpad", XRT_INPUT_VIVE_TRACKPAD},
+             },
+-            {
+-                // No fingers on this controller type
+-            },
+         },
+     },
+     {
+@@ -78,6 +115,7 @@ const std::unordered_map<std::string_view, InputClass> controller_classes{
+             {
+                 XRT_INPUT_INDEX_GRIP_POSE,
+                 XRT_INPUT_INDEX_AIM_POSE,
++                XRT_INPUT_GENERIC_PALM_POSE,
+             },
+             {
+                 {"/input/system/click", XRT_INPUT_INDEX_SYSTEM_CLICK},
+@@ -98,12 +136,6 @@ const std::unordered_map<std::string_view, InputClass> controller_classes{
+                 {"/input/trackpad/touch", XRT_INPUT_INDEX_TRACKPAD_TOUCH},
+                 {"/input/trackpad", XRT_INPUT_INDEX_TRACKPAD},
+             },
+-            {
+-                {"/input/finger/index", IndexFinger::Index},
+-                {"/input/finger/middle", IndexFinger::Middle},
+-                {"/input/finger/ring", IndexFinger::Ring},
+-                {"/input/finger/pinky", IndexFinger::Pinky},
+-            },
+         },
+     },
+     {
+@@ -120,9 +152,6 @@ const std::unordered_map<std::string_view, InputClass> controller_classes{
+                 {"/input/trigger/click", XRT_INPUT_VIVE_TRACKER_TRIGGER_CLICK},
+                 {"/input/thumb/click", XRT_INPUT_VIVE_TRACKER_TRACKPAD_CLICK},
+             },
+-            {
+-                // No fingers on this controller type
+-            },
+         },
+     },
+     {
+@@ -139,9 +168,6 @@ const std::unordered_map<std::string_view, InputClass> controller_classes{
+                 {"/input/trigger/click", XRT_INPUT_VIVE_TRACKER_TRIGGER_CLICK},
+                 {"/input/thumb/click", XRT_INPUT_VIVE_TRACKER_TRACKPAD_CLICK},
+             },
+-            {
+-                // No fingers on this controller type
+-            },
+         },
+     },
+ };
+@@ -162,6 +188,14 @@ device_bouncer(struct xrt_device *xdev, Args... args)
+ 	auto *dev = static_cast<DeviceType *>(xdev);
+ 	return std::invoke(Func, dev, args...);
+ }
++
++xrt_pose
++bone_to_pose(const vr::VRBoneTransform_t &bone)
++{
++	return xrt_pose{xrt_quat{bone.orientation.x, bone.orientation.y, bone.orientation.z, bone.orientation.w},
++	                xrt_vec3{bone.position.v[0], bone.position.v[1], bone.position.v[2]}};
++}
++
+ } // namespace
+ 
+ HmdDevice::HmdDevice(const DeviceBuilder &builder) : Device(builder)
+@@ -189,6 +223,9 @@ ControllerDevice::ControllerDevice(vr::PropertyContainerHandle_t handle, const D
+ 	SETUP_MEMBER_FUNC(set_output);
+ 	SETUP_MEMBER_FUNC(get_hand_tracking);
+ #undef SETUP_MEMBER_FUNC
++
++	this->inputs_map["/skeleton/hand/left"] = &hand_tracking_inputs[XRT_HAND_LEFT];
++	this->inputs_map["/skeleton/hand/right"] = &hand_tracking_inputs[XRT_HAND_RIGHT];
+ }
+ 
+ Device::~Device()
+@@ -224,14 +261,6 @@ Device::Device(const DeviceBuilder &builder) : xrt_device({}), ctx(builder.ctx),
+ 	init_chaperone(builder.steam_install);
+ }
+ 
+-void
+-ControllerDevice::set_hand_tracking_hand(xrt_input_name name)
+-{
+-	if (has_index_hand_tracking) {
+-		inputs_map["HAND"]->name = name;
+-	}
+-}
+-
+ // NOTE: No operations that would force inputs_vec or finger_inputs_vec to reallocate (such as insertion)
+ // should be done after this function is called, otherwise the pointers in inputs_map/finger_inputs_map
+ // would be invalidated.
+@@ -253,19 +282,6 @@ ControllerDevice::set_input_class(const InputClass *input_class)
+ 		inputs_map.insert({path, &inputs_vec.back()});
+ 	}
+ 
+-	has_index_hand_tracking = debug_get_bool_option_lh_emulate_hand() && !input_class->finger_curls.empty();
+-	if (has_index_hand_tracking) {
+-		finger_inputs_vec.reserve(input_class->finger_curls.size());
+-		for (const auto &[path, finger] : input_class->finger_curls) {
+-			assert(finger_inputs_vec.capacity() >= finger_inputs_vec.size() + 1);
+-			finger_inputs_vec.push_back({0, finger, 0.f});
+-			finger_inputs_map.insert({path, &finger_inputs_vec.back()});
+-		}
+-		assert(inputs_vec.capacity() >= inputs_vec.size() + 1);
+-		inputs_vec.push_back({true, 0, XRT_INPUT_GENERIC_HAND_TRACKING_LEFT, {}});
+-		inputs_map.insert({std::string_view("HAND"), &inputs_vec.back()});
+-	}
+-
+ 	this->inputs = inputs_vec.data();
+ 	this->input_count = inputs_vec.size();
+ }
+@@ -284,59 +300,216 @@ ControllerDevice::get_xrt_hand()
+ 	}
+ }
+ 
+-const std::vector<std::string> FACE_BUTTONS = {
+-    "/input/system/touch", "/input/a/touch", "/input/b/touch", "/input/thumbstick/touch", "/input/trackpad/touch",
+-};
++void
++ControllerDevice::set_active_hand(xrt_hand hand)
++{
++	this->skeleton_hand = hand;
++}
++
++namespace {
++xrt_quat
++from_euler_angles(float x, float y, float z)
++{
++	const xrt_vec3 v{x, y, z};
++	xrt_quat out;
++	math_quat_from_euler_angles(&v, &out);
++	return out;
++}
++
++constexpr float pi = std::numbers::pi_v<float>;
++constexpr float frac_pi_2 = pi / 2.0f;
++
++// OpenVR skeletal poses are defined with the palms facing each other, but OpenXR
++// hand tracking is defined with the palms facing down. These per hand rotations
++// are necessary to translate to what OpenXR expects.
++const xrt_quat right_hand_rotate = from_euler_angles(0.0f, frac_pi_2, 0.0f);
++const xrt_quat left_hand_rotate = from_euler_angles(0.0f, frac_pi_2, pi);
++
++xrt_quat
++right_wrist_rotate_init()
++{
++	const xrt_quat rot1 = from_euler_angles(0.0f, 0.0f, frac_pi_2);
++	const xrt_quat rot2 = from_euler_angles(0.0f, pi, 0.0f);
++	xrt_quat ret;
++	math_quat_rotate(&rot1, &rot2, &ret);
++	return ret;
++}
++xrt_quat
++left_wrist_rotate_init()
++{
++	const xrt_quat rot1 = from_euler_angles(pi, 0.0f, 0.0f);
++	const xrt_quat rot2 = from_euler_angles(0.0f, 0.0f, -frac_pi_2);
++	xrt_quat ret;
++	math_quat_rotate(&rot1, &rot2, &ret);
++	return ret;
++}
++
++const xrt_quat right_wrist_rotate = right_wrist_rotate_init();
++const xrt_quat left_wrist_rotate = left_wrist_rotate_init();
++
++xrt_pose
++generate_palm_pose(const xrt_pose &metacarpal_pose, const xrt_pose &proximal_pose)
++{
++	// OpenVR doesn't provide a palm joint, but the OpenXR palm is in the middle of
++	// the metacarpal and proximal bones of the middle finger,
++	// so we'll interpolate between them to generate it.
++	xrt_pose pose;
++	math_pose_interpolate(&metacarpal_pose, &proximal_pose, 0.5, &pose);
++	// Use metacarpal orientation, because the palm shouldn't really rotate
++	pose.orientation = metacarpal_pose.orientation;
++	return pose;
++}
++
++} // namespace
+ 
+ void
+-ControllerDevice::update_hand_tracking(int64_t desired_timestamp_ns, struct xrt_hand_joint_set *out)
++ControllerDevice::set_skeleton(std::span<const vr::VRBoneTransform_t> bones,
++                               xrt_hand hand,
++                               bool is_simulated,
++                               const char *path)
+ {
+-	if (!has_index_hand_tracking)
++	assert(transforms.size() == eBone_Count);
++	generate_palm_pose_offset(bones, hand);
++	if (!is_simulated && debug_get_bool_option_lh_emulate_hand()) {
++		assert(inputs_vec.capacity() >= inputs_vec.size() + 1);
++		const xrt_input_name tracker_name = (hand == XRT_HAND_RIGHT) ? XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT
++		                                                             : XRT_INPUT_GENERIC_HAND_TRACKING_LEFT;
++		inputs_vec.push_back({true, 0, tracker_name, {}});
++		inputs_map.insert({path, &inputs_vec.back()});
++		this->input_count = inputs_vec.size();
++		has_hand_tracking = true;
++	}
++}
++
++void
++ControllerDevice::generate_palm_pose_offset(std::span<const vr::VRBoneTransform_t> bones, xrt_hand hand)
++{
++	// The palm pose offset is generated from the OpenVR provided skeleton.
++	// https://github.com/ValveSoftware/openvr/blob/master/docs/Driver_API_Documentation.md#notes-on-the-skeleton
++
++	xrt_pose root = bone_to_pose(bones[eBone_Root]);
++	xrt_pose wrist = bone_to_pose(bones[eBone_Wrist]);
++	xrt_pose metacarpal = bone_to_pose(bones[eBone_MiddleFinger0]);
++	xrt_pose proximal = bone_to_pose(bones[eBone_MiddleFinger1]);
++
++	// The skeleton pose is given with the Root bone as origin.
++	// To convert from this, according to OpenVR docs we transform the wrist
++	// and then counter-transform the metacarpals
++	xrt_pose root_inv;
++	math_pose_invert(&root, &root_inv);
++	math_pose_transform(&root_inv, &wrist, &wrist);
++	math_pose_transform(&root, &metacarpal, &metacarpal);
++	math_pose_transform(&wrist, &metacarpal, &metacarpal);
++	math_pose_transform(&metacarpal, &proximal, &proximal);
++
++	xrt_pose palm_offset = generate_palm_pose(metacarpal, proximal);
++	xrt_quat palm_rotate = from_euler_angles(0.0f, 0.0f, frac_pi_2);
++
++	switch (hand) {
++	case XRT_HAND_LEFT: {
++		math_quat_rotate(&palm_offset.orientation, &left_hand_rotate, &palm_offset.orientation);
++		math_quat_invert(&palm_rotate, &palm_rotate);
++		break;
++	}
++	case XRT_HAND_RIGHT: {
++		math_quat_rotate(&palm_offset.orientation, &right_hand_rotate, &palm_offset.orientation);
++		break;
++	}
++	}
++	math_quat_rotate(&palm_offset.orientation, &palm_rotate, &palm_offset.orientation);
++
++	// For controllers like the Vive Wands which can be in any hand, it will store both the left hand
++	// and the right hand skeletons, so we need to store both.
++	palm_offsets[hand] = palm_offset;
++}
++
++void
++ControllerDevice::update_skeleton_transforms(std::span<const vr::VRBoneTransform_t> bones)
++{
++	if (!has_hand_tracking) {
+ 		return;
+-	float index = 0.f;
+-	float middle = 0.f;
+-	float ring = 0.f;
+-	float pinky = 0.f;
+-	float thumb = 0.f;
+-	for (auto fi : finger_inputs_vec) {
+-		switch (fi.finger) {
+-		case IndexFinger::Index: index = fi.value; break;
+-		case IndexFinger::Middle: middle = fi.value; break;
+-		case IndexFinger::Ring: ring = fi.value; break;
+-		case IndexFinger::Pinky: pinky = fi.value; break;
+-		default: break;
+-		}
+ 	}
+-	for (const auto &name : FACE_BUTTONS) {
+-		auto *input = get_input_from_name(name);
+-		if (input && input->value.boolean) {
+-			thumb = 1.f;
+-			break;
+-		}
++
++	assert(transforms.size() == eBone_Count);
++
++	xrt_hand_joint_set joint_set;
++	int64_t ts;
++	if (!m_relation_history_get_latest(relation_hist, &ts, &joint_set.hand_pose)) {
++		return;
++	}
++	joint_set.is_active = true;
++	auto &joints = joint_set.values.hand_joint_set_default;
++
++	xrt_pose root = bone_to_pose(bones[eBone_Root]);
++	xrt_pose wrist = bone_to_pose(bones[eBone_Wrist]);
++
++	// Here we're doing the same transformation as seen in set_skeleton.
++	xrt_pose root_inv;
++	math_pose_invert(&root, &root_inv);
++	math_pose_transform(&root_inv, &wrist, &wrist);
++
++	constexpr auto valid_flags = (enum xrt_space_relation_flags)(
++	    XRT_SPACE_RELATION_POSITION_VALID_BIT | XRT_SPACE_RELATION_ORIENTATION_VALID_BIT |
++	    XRT_SPACE_RELATION_POSITION_TRACKED_BIT | XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
++
++	xrt_pose wrist_xr = wrist;
++
++	switch (skeleton_hand) {
++	case XRT_HAND_LEFT: {
++		math_quat_rotate(&wrist_xr.orientation, &left_wrist_rotate, &wrist_xr.orientation);
++		break;
++	}
++	case XRT_HAND_RIGHT: {
++		math_quat_rotate(&wrist_xr.orientation, &right_wrist_rotate, &wrist_xr.orientation);
++		break;
+ 	}
+-	auto curl_values = u_hand_tracking_curl_values{pinky, ring, middle, index, thumb};
++	}
++
++	joints[XRT_HAND_JOINT_WRIST].relation.pose = wrist_xr;
++	joints[XRT_HAND_JOINT_WRIST].relation.relation_flags = valid_flags;
+ 
+-	struct xrt_space_relation hand_relation = {};
+-	m_relation_history_get(relation_hist, desired_timestamp_ns, &hand_relation);
++	xrt_pose parent_pose;
++	for (int joint = XRT_HAND_JOINT_THUMB_METACARPAL; joint <= XRT_HAND_JOINT_LITTLE_TIP; ++joint) {
++		// Luckily openvr and openxr joint values match
++		xrt_pose pose = bone_to_pose(bones[joint]);
++		joints[joint].relation.relation_flags = valid_flags;
+ 
+-	u_hand_sim_simulate_for_valve_index_knuckles(&curl_values, get_xrt_hand(), &hand_relation, out);
++		if (u_hand_joint_is_metacarpal((xrt_hand_joint)joint)) {
++			// Counter transform metacarpals
++			math_pose_transform(&root, &pose, &pose);
++			math_pose_transform(&wrist, &pose, &pose);
++		} else {
++			math_pose_transform(&parent_pose, &pose, &pose);
++		}
+ 
+-	struct xrt_relation_chain chain = {};
++		parent_pose = pose;
+ 
+-	struct xrt_pose pose_offset = XRT_POSE_IDENTITY;
+-	vive_poses_get_pose_offset(name, device_type, inputs_map["HAND"]->name, &pose_offset);
++		// Rotate joint to OpenXR orientation
++		switch (skeleton_hand) {
++		case XRT_HAND_LEFT: math_quat_rotate(&pose.orientation, &left_hand_rotate, &pose.orientation); break;
++		case XRT_HAND_RIGHT: math_quat_rotate(&pose.orientation, &right_hand_rotate, &pose.orientation); break;
++		}
++		joints[joint].relation.pose = pose;
++	}
+ 
+-	m_relation_chain_push_pose(&chain, &pose_offset);
+-	m_relation_chain_push_relation(&chain, &hand_relation);
+-	m_relation_chain_resolve(&chain, &out->hand_pose);
++	joints[XRT_HAND_JOINT_PALM].relation.relation_flags = valid_flags;
++	joints[XRT_HAND_JOINT_PALM].relation.pose =
++	    generate_palm_pose(joints[XRT_HAND_JOINT_MIDDLE_METACARPAL].relation.pose,
++	                       joints[XRT_HAND_JOINT_MIDDLE_PROXIMAL].relation.pose);
++
++	u_hand_joints_apply_joint_width(&joint_set);
++	this->joint_set = joint_set;
+ }
+ 
+ xrt_input *
+ Device::get_input_from_name(const std::string_view name)
+ {
++	static const std::array ignore_inputs = {"/input/finger/index"sv, "/input/finger/middle"sv,
++	                                         "/input/finger/ring"sv, "/input/finger/pinky"sv,
++	                                         "/input/grip/touch"sv};
++
+ 	// Return nullptr without any other output to suppress a pile of useless warnings found below.
+-	if (name == "/input/finger/index" || name == "/input/finger/middle" || name == "/input/finger/ring" ||
+-	    name == "/input/finger/pinky") {
++	if (std::ranges::find(ignore_inputs, name) != std::ranges::end(ignore_inputs)) {
+ 		return nullptr;
+ 	}
+ 	auto input = inputs_map.find(name);
+@@ -386,29 +559,18 @@ Device::update_inputs()
+ 	return XRT_SUCCESS;
+ }
+ 
+-IndexFingerInput *
+-ControllerDevice::get_finger_from_name(const std::string_view name)
+-{
+-	auto finger = finger_inputs_map.find(name);
+-	if (finger == finger_inputs_map.end()) {
+-		DEV_WARN("requested unknown finger name %s for device %s", std::string(name).c_str(), serial);
+-		return nullptr;
+-	}
+-	return finger->second;
+-}
+-
+ void
+ ControllerDevice::get_hand_tracking(enum xrt_input_name name,
+                                     int64_t desired_timestamp_ns,
+                                     struct xrt_hand_joint_set *out_value,
+                                     int64_t *out_timestamp_ns)
+ {
+-	if (!has_index_hand_tracking)
++	if (!has_hand_tracking) {
+ 		return;
+-	update_hand_tracking(desired_timestamp_ns, out_value);
+-	out_value->is_active = true;
+-	hand_tracking_timestamp = desired_timestamp_ns;
+-	*out_timestamp_ns = hand_tracking_timestamp;
++	}
++
++	*out_value = joint_set;
++	*out_timestamp_ns = desired_timestamp_ns;
+ }
+ 
+ void
+@@ -444,8 +606,18 @@ ControllerDevice::get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns
+ 	Device::get_pose(at_timestamp_ns, &rel);
+ 
+ 	xrt_pose pose_offset = XRT_POSE_IDENTITY;
+-	vive_poses_get_pose_offset(input_class->name, device_type, name, &pose_offset);
+ 
++	if (name == XRT_INPUT_GENERIC_PALM_POSE) {
++		if (!palm_offsets[skeleton_hand].has_value()) {
++			DEV_ERR("%s hand skeleton has not been initialized",
++			        skeleton_hand == XRT_HAND_LEFT ? "left" : "right");
++			*out_relation = XRT_SPACE_RELATION_ZERO;
++			return XRT_SUCCESS;
++		}
++		pose_offset = *palm_offsets[skeleton_hand];
++	} else {
++		vive_poses_get_pose_offset(input_class->name, device_type, name, &pose_offset);
++	}
+ 	xrt_relation_chain relchain = {};
+ 
+ 	m_relation_chain_push_pose(&relchain, &pose_offset);
+@@ -844,7 +1016,7 @@ ControllerDevice::handle_property_write(const vr::PropertyWrite_t &prop)
+ 		const std::string_view name = {static_cast<char *>(prop.pvBuffer), prop.unBufferSize};
+ 		if (name == "SlimeVR Virtual Tracker\0"sv) {
+ 			static const InputClass input_class = {
+-			    XRT_DEVICE_VIVE_TRACKER, {XRT_INPUT_GENERIC_TRACKER_POSE}, {}, {}};
++			    XRT_DEVICE_VIVE_TRACKER, {XRT_INPUT_GENERIC_TRACKER_POSE}, {}};
+ 			this->name = input_class.name;
+ 			set_input_class(&input_class);
+ 			this->manufacturer = name.substr(0, name.find_first_of(' '));
+@@ -864,12 +1036,12 @@ ControllerDevice::handle_property_write(const vr::PropertyWrite_t &prop)
+ 		}
+ 		case vr::TrackedControllerRole_RightHand: {
+ 			this->device_type = XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER;
+-			set_hand_tracking_hand(XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT);
++			set_active_hand(XRT_HAND_RIGHT);
+ 			break;
+ 		}
+ 		case vr::TrackedControllerRole_LeftHand: {
+ 			this->device_type = XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER;
+-			set_hand_tracking_hand(XRT_INPUT_GENERIC_HAND_TRACKING_LEFT);
++			set_active_hand(XRT_HAND_LEFT);
+ 			break;
+ 		}
+ 		case vr::TrackedControllerRole_OptOut: {
+diff --git a/src/xrt/drivers/steamvr_lh/device.hpp b/src/xrt/drivers/steamvr_lh/device.hpp
+index 6bd3de993..fb8eb4db0 100644
+--- a/src/xrt/drivers/steamvr_lh/device.hpp
++++ b/src/xrt/drivers/steamvr_lh/device.hpp
+@@ -11,12 +11,16 @@
+ #include <vector>
+ #include <memory>
+ #include <unordered_map>
++#include <span>
++#include <array>
++#include <optional>
+ 
+ #include <condition_variable>
+ #include <mutex>
+ 
+ #include "interfaces/context.hpp"
+ #include "math/m_relation_history.h"
++#include "xrt/xrt_defines.h"
+ #include "xrt/xrt_device.h"
+ #include "openvr_driver.h"
+ 
+@@ -171,9 +175,6 @@ public:
+ 	xrt_result_t
+ 	get_tracked_pose(xrt_input_name name, uint64_t at_timestamp_ns, xrt_space_relation *out_relation) override;
+ 
+-	IndexFingerInput *
+-	get_finger_from_name(std::string_view name);
+-
+ 	void
+ 	get_hand_tracking(enum xrt_input_name name,
+ 	                  int64_t desired_timestamp_ns,
+@@ -184,22 +185,29 @@ public:
+ 	get_xrt_hand();
+ 
+ 	void
+-	update_hand_tracking(int64_t desired_timestamp_ns, struct xrt_hand_joint_set *out);
++	update_skeleton_transforms(std::span<const vr::VRBoneTransform_t> bones);
++
++	void
++	set_skeleton(std::span<const vr::VRBoneTransform_t> bones, xrt_hand hand, bool is_simulated, const char *path);
++
++	void
++	set_active_hand(xrt_hand hand);
+ 
+ protected:
+ 	void
+ 	set_input_class(const InputClass *input_class);
+ 
++	void
++	generate_palm_pose_offset(std::span<const vr::VRBoneTransform_t> bones, xrt_hand hand);
++
+ private:
+ 	vr::VRInputComponentHandle_t haptic_handle{0};
+ 	std::unique_ptr<xrt_output> output{nullptr};
+-	bool has_index_hand_tracking{false};
+-	std::vector<IndexFingerInput> finger_inputs_vec;
+-	std::unordered_map<std::string_view, IndexFingerInput *> finger_inputs_map;
+-	uint64_t hand_tracking_timestamp;
+-
+-	void
+-	set_hand_tracking_hand(xrt_input_name name);
++	bool has_hand_tracking{false};
++	xrt_hand skeleton_hand = XRT_HAND_LEFT;
++	std::array<std::optional<xrt_pose>, 2> palm_offsets;
++	std::array<xrt_input, 2> hand_tracking_inputs{};
++	xrt_hand_joint_set joint_set{};
+ 
+ 	void
+ 	handle_property_write(const vr::PropertyWrite_t &prop) override;
+diff --git a/src/xrt/drivers/steamvr_lh/interfaces/context.hpp b/src/xrt/drivers/steamvr_lh/interfaces/context.hpp
+index 4ef6116e2..e27c2c092 100644
+--- a/src/xrt/drivers/steamvr_lh/interfaces/context.hpp
++++ b/src/xrt/drivers/steamvr_lh/interfaces/context.hpp
+@@ -28,24 +28,9 @@
+ 
+ #include "xrt/xrt_tracking.h"
+ 
+-enum IndexFinger
+-{
+-	Invalid = -1,
+-	Index = 1,
+-	Middle,
+-	Ring,
+-	Pinky,
+-};
+-
+-struct IndexFingerInput
+-{
+-	int64_t timestamp;
+-	IndexFinger finger;
+-	float value;
+-};
+-
+ struct xrt_input;
+ class Device;
++class ControllerDevice;
+ class Context final : public xrt_tracking_origin,
+                       public vr::IVRDriverContext,
+                       public vr::IVRServerDriverHost,
+@@ -67,7 +52,6 @@ class Context final : public xrt_tracking_origin,
+ 
+ 	std::vector<vr::VRInputComponentHandle_t> handles;
+ 	std::unordered_map<vr::VRInputComponentHandle_t, xrt_input *> handle_to_input;
+-	std::unordered_map<vr::VRInputComponentHandle_t, IndexFingerInput *> handle_to_finger;
+ 	struct Vec2Components
+ 	{
+ 		vr::VRInputComponentHandle_t x;
+@@ -75,6 +59,7 @@ class Context final : public xrt_tracking_origin,
+ 	};
+ 	std::unordered_map<vr::VRInputComponentHandle_t, Vec2Components *> vec2_inputs;
+ 	std::unordered_map<xrt_input *, std::unique_ptr<Vec2Components>> vec2_input_to_components;
++	std::unordered_map<vr::VRInputComponentHandle_t, ControllerDevice *> skeleton_to_controller;
+ 
+ 	struct Event
+ 	{
+diff --git a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+index 47e95c77f..975d137ed 100644
+--- a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
++++ b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+@@ -455,18 +455,10 @@ Context::create_component_common(vr::PropertyContainerHandle_t container,
+ 		return vr::VRInputError_InvalidHandle;
+ 	}
+ 	if (xrt_input *input = device->get_input_from_name(name); input) {
+-		CTX_DEBUG("creating component %s", name);
++		CTX_DEBUG("creating component %s for %p", name, (void *)device);
+ 		vr::VRInputComponentHandle_t handle = new_handle();
+ 		handle_to_input[handle] = input;
+ 		*pHandle = handle;
+-	} else if (device != hmd) {
+-		auto *controller = static_cast<ControllerDevice *>(device);
+-		if (IndexFingerInput *finger = controller->get_finger_from_name(name); finger) {
+-			CTX_DEBUG("creating finger component %s", name);
+-			vr::VRInputComponentHandle_t handle = new_handle();
+-			handle_to_finger[handle] = finger;
+-			*pHandle = handle;
+-		}
+ 	}
+ 	return vr::VRInputError_None;
+ }
+@@ -569,21 +561,6 @@ Context::UpdateScalarComponent(vr::VRInputComponentHandle_t ulComponent, float f
+ 		} else {
+ 			input->value.vec1.x = fNewValue;
+ 		}
+-	} else {
+-		if (ulComponent != vr::k_ulInvalidInputComponentHandle) {
+-			if (auto finger_input = handle_to_finger.find(ulComponent);
+-			    finger_input != handle_to_finger.end() && finger_input->second) {
+-				auto now = std::chrono::steady_clock::now();
+-				std::chrono::duration<double, std::chrono::seconds::period> offset_dur(fTimeOffset);
+-				std::chrono::duration offset = (now + offset_dur).time_since_epoch();
+-				int64_t timestamp =
+-				    std::chrono::duration_cast<std::chrono::nanoseconds>(offset).count();
+-				finger_input->second->timestamp = timestamp;
+-				finger_input->second->value = fNewValue;
+-			} else {
+-				CTX_WARN("Unmapped component %" PRIu64, ulComponent);
+-			}
+-		}
+ 	}
+ 	return vr::VRInputError_None;
+ }
+@@ -625,6 +602,33 @@ Context::CreateSkeletonComponent(vr::PropertyContainerHandle_t ulContainer,
+                                  uint32_t unGripLimitTransformCount,
+                                  vr::VRInputComponentHandle_t *pHandle)
+ {
++	std::string_view path(pchSkeletonPath); // should be /skeleton/hand/left or /skeleton/hand/right
++	std::string_view skeleton_pfx("/skeleton/hand/");
++	if (!path.starts_with(skeleton_pfx)) {
++		CTX_ERR("Got invalid skeleton path: %s", std::string(path).c_str());
++		return vr::VRInputError_InvalidSkeleton;
++	}
++
++	if (auto ret = create_component_common(ulContainer, pchSkeletonPath, pHandle); ret != vr::VRInputError_None) {
++		return ret;
++	}
++
++	auto *device = static_cast<ControllerDevice *>(prop_container_to_device(ulContainer));
++	path.remove_prefix(skeleton_pfx.size());
++	xrt_hand hand;
++	if (path == "left") {
++		hand = XRT_HAND_LEFT;
++	} else if (path == "right") {
++		hand = XRT_HAND_RIGHT;
++	} else {
++		CTX_ERR("Got invalid skeleton path suffix: %s", std::string(path).c_str());
++		return vr::VRInputError_InvalidSkeleton;
++	}
++
++	device->set_skeleton(std::span(pGripLimitTransforms, unGripLimitTransformCount), hand,
++	                     eSkeletalTrackingLevel == vr::VRSkeletalTracking_Estimated, pchSkeletonPath);
++	skeleton_to_controller[*pHandle] = device;
++
+ 	return vr::VRInputError_None;
+ }
+ 
+@@ -634,6 +638,22 @@ Context::UpdateSkeletonComponent(vr::VRInputComponentHandle_t ulComponent,
+                                  const vr::VRBoneTransform_t *pTransforms,
+                                  uint32_t unTransformCount)
+ {
++	if (eMotionRange != vr::VRSkeletalMotionRange_WithoutController) {
++		return vr::VRInputError_None;
++	}
++
++	if (!update_component_common(ulComponent, 0)) {
++		return vr::VRInputError_InvalidHandle;
++	}
++
++	auto *device = skeleton_to_controller[ulComponent];
++	if (!device) {
++		CTX_ERR("Got unknown component handle %lu", ulComponent);
++		return vr::VRInputError_InvalidHandle;
++	}
++
++	device->update_skeleton_transforms(std::span(pTransforms, unTransformCount));
++
+ 	return vr::VRInputError_None;
+ }
+ 
+@@ -759,22 +779,29 @@ get_roles(struct xrt_system_devices *xsysd, struct xrt_system_roles *out_roles)
+ 	}
+ 
+ 	if (update_gen) {
+-		U_LOG_W("Roles updated: %d != %d || %d != %d || %d != %d",
+-			out_roles->left, left,
+-			out_roles->right, right,
+-			out_roles->gamepad, gamepad
+-		);
++		U_LOG_W("Roles updated: %d != %d || %d != %d || %d != %d", out_roles->left, left, out_roles->right,
++		        right, out_roles->gamepad, gamepad);
+ 
+ 		svrs->prev_roles.generation_id++;
+ 		svrs->prev_roles.left = left;
+ 		svrs->prev_roles.right = right;
+ 		svrs->prev_roles.gamepad = gamepad;
+-	}
+ 
+-	out_roles->generation_id = svrs->prev_roles.generation_id;
+-	out_roles->left = left;
+-	out_roles->right = right;
+-	out_roles->gamepad = gamepad;
++		out_roles->generation_id = svrs->prev_roles.generation_id;
++		out_roles->left = left;
++		out_roles->right = right;
++		out_roles->gamepad = gamepad;
++
++		if (left != XRT_DEVICE_ROLE_UNASSIGNED) {
++			auto *left_dev = static_cast<ControllerDevice *>(xsysd->xdevs[left]);
++			left_dev->set_active_hand(XRT_HAND_LEFT);
++		}
++
++		if (right != XRT_DEVICE_ROLE_UNASSIGNED) {
++			auto *right_dev = static_cast<ControllerDevice *>(xsysd->xdevs[right]);
++			right_dev->set_active_hand(XRT_HAND_RIGHT);
++		}
++	}
+ 
+ 	return XRT_SUCCESS;
+ }
+-- 
+2.49.0
+

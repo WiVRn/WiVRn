@@ -21,6 +21,7 @@
 
 #include "clock_offset.h"
 #include "driver/app_pacer.h"
+#include "wivrn_config.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
 #include "wivrn_hmd.h"
@@ -29,6 +30,7 @@
 #include "xrt/xrt_results.h"
 #include "xrt/xrt_system.h"
 #include <atomic>
+#include <cstddef>
 #include <fstream>
 #include <memory>
 #include <mutex>
@@ -129,6 +131,11 @@ class wivrn_session : public xrt_system_devices
 	std::shared_ptr<audio_device> audio_handle;
 
 	std::jthread thread;
+
+#if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
+	xrt_system_devices * lh_devices;
+	size_t num_lh_devices;
+#endif
 
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
 
