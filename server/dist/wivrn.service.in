@@ -19,3 +19,6 @@ ProtectSystem=strict
 RemoveIPC=true
 RestrictNamespaces=true
 RestrictSUIDSGID=true
+
+[Install]
+WantedBy=default.target
