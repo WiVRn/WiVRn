@@ -17,6 +17,7 @@
  */
 
 #include "htc_xr_tracker.h"
+#include "application.h"
 #include "space.h"
 #include "wivrn_packets.h"
 #include "xr/details/enumerate.h"
@@ -30,19 +31,8 @@
 // https://hub.vive.com/apidoc/api/VIVE.OpenXR.Tracker.ViveXRTracker.html
 // https://hub.vive.com/apidoc/api/VIVE.OpenXR.VivePathEnumerationHelper.xrEnumeratePathsForInteractionProfileHTCDelegate.html
 
-std::vector<xr::vive_xr_tracker> xr::vive_xr_trackers;
-
-xr::vive_xr_tracker::vive_xr_tracker(uint8_t id, xr::space s)
-{
-	tracker_id = id;
-	std::swap(s, space);
-	is_active = false;
-}
-
-uint8_t xr::vive_xr_tracker::get_id()
-{
-	return tracker_id;
-}
+xr::vive_xr_tracker::vive_xr_tracker(uint8_t id, xr::space s) :
+        space(std::move(s)), id(id) {}
 
 XrPosef xr::vive_xr_tracker::get_pose(instance & inst, session & session, XrTime time, XrSpace & reference)
 {
@@ -56,13 +46,9 @@ xr::space * xr::vive_xr_tracker::get_space()
 	return &space;
 };
 
-void xr::vive_xr_tracker::set_active(instance & inst, session & session)
+void xr::vive_xr_tracker::set_active(bool active)
 {
-	// Any tracker with an _ in its role name is probably inactive.
-	if (xr_tracker_get_roles(inst, session)[tracker_id].contains("_"))
-		is_active = false;
-	else
-		is_active = true;
+	is_active = active;
 }
 
 bool xr::vive_xr_tracker::get_active()
@@ -70,14 +56,26 @@ bool xr::vive_xr_tracker::get_active()
 	return is_active;
 }
 
+void xr::xr_tracker_update_active(instance & inst, session & session)
+{
+	auto roles = xr_tracker_get_roles(inst, session);
+	auto & trackers = application::get_vive_xr_trackers();
+	for (auto & tracker: trackers)
+	{
+		// Any tracker with an _ in its role name is probably inactive.
+		if (roles[tracker.id].contains("_"))
+			tracker.set_active(false);
+		else
+			tracker.set_active(true);
+	}
+};
+
 // Obtains a vector of user paths from the VUT interaction profile.
 // Passing a user_path will give input paths for that specific user path
 std::vector<XrPath> xr::xr_tracker_get_paths(instance & inst, XrPath user_path)
 {
-	xr::PFN_xrEnumeratePathsForInteractionProfileHTC xrEnumeratePathsForInteractionProfileHTC = inst.get_proc<xr::PFN_xrEnumeratePathsForInteractionProfileHTC>("xrEnumeratePathsForInteractionProfileHTC");
-
 	if (!xrEnumeratePathsForInteractionProfileHTC)
-		return {};
+		xrEnumeratePathsForInteractionProfileHTC = inst.get_proc<xr::PFN_xrEnumeratePathsForInteractionProfileHTC>("xrEnumeratePathsForInteractionProfileHTC");
 
 	XrPath tracker_profile = inst.string_to_path("/interaction_profiles/htc/vive_xr_tracker");
 
@@ -116,7 +114,7 @@ std::vector<wivrn::from_headset::tracking::motion_tracker> xr::xr_tracker_compos
         instance & inst,
         session & session,
         XrTime time,
-        XrSpace & reference,
+        XrSpace reference,
         std::vector<xr::vive_xr_tracker> & trackers)
 {
 	std::vector<wivrn::from_headset::tracking::motion_tracker> packet;
@@ -124,7 +122,7 @@ std::vector<wivrn::from_headset::tracking::motion_tracker> xr::xr_tracker_compos
 	{
 		if (tracker.get_active())
 		{
-			packet.emplace_back(wivrn::from_headset::tracking::motion_tracker{.tracker_id = tracker.get_id(), .pose = tracker.get_pose(inst, session, time, reference)});
+			packet.emplace_back(wivrn::from_headset::tracking::motion_tracker{.id = tracker.id, .pose = tracker.get_pose(inst, session, time, reference)});
 		}
 	}
 	return packet;

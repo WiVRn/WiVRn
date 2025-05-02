@@ -272,7 +272,7 @@ struct tracking
 
 	struct motion_tracker
 	{
-		uint8_t tracker_id;
+		uint8_t id;
 		XrPosef pose;
 	};
 

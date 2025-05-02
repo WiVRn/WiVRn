@@ -816,7 +816,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		{
 			if (hide_extra_trackers)
 				xyz_axes_trackers[i]->visible = false;
-			else if (auto location = application::locate_controller(xr::vive_xr_trackers[i].get_space(), world_space, frame_state.predictedDisplayTime))
+			else if (auto location = application::locate_controller(*application::get_vive_xr_trackers()[i].get_space(), world_space, frame_state.predictedDisplayTime))
 			{
 				xyz_axes_trackers[i]->visible = true;
 				xyz_axes_trackers[i]->position = location->first;
@@ -1105,7 +1105,7 @@ void scenes::lobby::on_focused()
 	xyz_axes_right_controller = controllers_scene_data.new_node();
 	controllers_scene_data.import(loader("xyz-arrows.glb"), xyz_axes_right_controller);
 
-	for (int i = 0; i < xr::vive_xr_trackers.size(); i++)
+	for (int i = 0; i < application::get_vive_xr_trackers().size(); i++)
 	{
 		xyz_axes_trackers.emplace_back(controllers_scene_data.new_node());
 		controllers_scene_data.import(loader("xyz-arrows.glb"), xyz_axes_trackers[i]);

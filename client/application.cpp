@@ -974,7 +974,7 @@ void application::initialize_actions()
 		else if (name == "/user/hand/left/input/palm_ext/pose")
 			spaces[size_t(xr::spaces::palm_left)] = xr_session.create_action_space(a);
 		else if (name.contains("/input/entity_htc/pose"))
-			xr::vive_xr_trackers.emplace_back(xr::vive_xr_tracker(xr::vive_xr_trackers.size(), xr_session.create_action_space(a)));
+			vive_xr_trackers.emplace_back(xr::vive_xr_tracker(vive_xr_trackers.size(), xr_session.create_action_space(a)));
 	}
 
 	// Build an action set for each scene
@@ -1743,6 +1743,11 @@ void application::poll_events()
 			}
 			break;
 			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
+				if (application::get_vive_xr_trackers_supported())
+				{
+					xr::xr_tracker_update_active(xr_instance, xr_session);
+				}
+				break;
 			case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
 				break;
 			case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED: {
