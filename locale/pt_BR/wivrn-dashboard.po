@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-17 19:35+0200\n"
-"PO-Revision-Date: 2025-04-19 20:29+0200\n"
+"POT-Creation-Date: 2025-04-29 19:40+0200\n"
+"PO-Revision-Date: 2025-05-05 21:15+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Lokalize 24.12.3\n"
+"X-Generator: Lokalize 25.04.0\n"
 
 #: dashboard/apk_installer.cpp:167
 #, kde-format
@@ -545,6 +545,42 @@ msgstr "Caminho do adb:"
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Navegar"
+
+#: dashboard/qml/SettingsPage.qml:353
+#, kde-format
+msgid "Default"
+msgstr "Default"
+
+#: dashboard/qml/SettingsPage.qml:360
+#, kde-format
+msgid "xrizer"
+msgstr "xrizer"
+
+#: dashboard/qml/SettingsPage.qml:365
+#, kde-format
+msgid "Open Composite"
+msgstr "Open Composite"
+
+#: dashboard/qml/SettingsPage.qml:372
+#, kde-format
+msgctxt "set a custom OpenVR compatibility library"
+msgid "Custom"
+msgstr "Personalizado"
+
+#: dashboard/qml/SettingsPage.qml:377
+#, kde-format
+msgid "Disabled"
+msgstr "Desabilitado"
+
+#: dashboard/qml/SettingsPage.qml:385
+#, kde-format
+msgid "OpenVR compatibility library:"
+msgstr "Biblioteca de compatibilidade OpenVR:"
+
+#: dashboard/qml/SettingsPage.qml:411
+#, kde-format
+msgid "Library path, excluding bin/linux64/vrclient.so"
+msgstr "Caminho da biblioteca, excluindo bin/linux64/vrclient.so"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
