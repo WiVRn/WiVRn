@@ -5,6 +5,7 @@ msgstr ""
 "POT-Creation-Date: 2025-04-20 17:32+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
+"Language-Team: Japanese <>\n"
 "Language: Japanese\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -136,32 +137,28 @@ msgid "Headsets"
 msgstr "HMD"
 
 #: dashboard/qml/HeadsetsPage.qml:29
-#, fuzzy, kde-format
+#, kde-format
 msgid "Last connection: %1 second ago"
 msgid_plural "Last connection: %1 seconds ago"
 msgstr[0] "前回の接続: %1 秒前"
-msgstr[1] "前回の接続: %1 秒前"
 
 #: dashboard/qml/HeadsetsPage.qml:31
-#, fuzzy, kde-format
+#, kde-format
 msgid "Last connection: %1 minute ago"
 msgid_plural "Last connection: %1 minutes ago"
 msgstr[0] "前回の接続: %1 分前"
-msgstr[1] "前回の接続: %1 分前"
 
 #: dashboard/qml/HeadsetsPage.qml:33
-#, fuzzy, kde-format
+#, kde-format
 msgid "Last connection: %1 hour ago"
 msgid_plural "Last connection: %1 hours ago"
 msgstr[0] "前回の接続: %1 時間前"
-msgstr[1] "前回の接続: %1 時間前"
 
 #: dashboard/qml/HeadsetsPage.qml:35
-#, fuzzy, kde-format
+#, kde-format
 msgid "Last connection: %1 day ago"
 msgid_plural "Last connection: %1 days ago"
 msgstr[0] "前回の接続: %1 日前"
-msgstr[1] "前回の接続: %1 日前"
 
 #: dashboard/qml/HeadsetsPage.qml:40
 #, kde-format
