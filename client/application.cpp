@@ -1149,6 +1149,7 @@ void application::initialize()
 
 	if (utils::contains(xr_extensions, "XR_HTC_vive_xr_tracker_interaction") and utils::contains(xr_extensions, "XR_HTC_path_enumeration"))
 	{
+		spdlog::info("    HTC XR tracker support: true");
 		vive_xr_trackers_supported = true;
 	}
 
@@ -1742,12 +1743,13 @@ void application::poll_events()
 				exit_requested = true;
 			}
 			break;
-			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
+			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED: {
 				if (application::get_vive_xr_trackers_supported())
 				{
 					xr::xr_tracker_update_active(xr_instance, xr_session);
 				}
-				break;
+			}
+			break;
 			case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
 				break;
 			case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED: {

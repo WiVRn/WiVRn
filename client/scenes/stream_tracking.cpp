@@ -593,6 +593,4 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 		}
 		interaction_profiles[i] = interaction_profile::none;
 	}
-
-	xr::xr_tracker_update_active(instance, session);
 }

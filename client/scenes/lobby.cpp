@@ -34,7 +34,6 @@
 #include "wivrn_client.h"
 #include "wivrn_discover.h"
 #include "wivrn_sockets.h"
-#include "xr/htc_xr_tracker.h"
 #include "xr/passthrough.h"
 #include "xr/space.h"
 #include <glm/gtc/matrix_access.hpp>

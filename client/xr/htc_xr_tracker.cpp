@@ -75,7 +75,11 @@ void xr::xr_tracker_update_active(instance & inst, session & session)
 std::vector<XrPath> xr::xr_tracker_get_paths(instance & inst, XrPath user_path)
 {
 	if (!xrEnumeratePathsForInteractionProfileHTC)
+	{
 		xrEnumeratePathsForInteractionProfileHTC = inst.get_proc<xr::PFN_xrEnumeratePathsForInteractionProfileHTC>("xrEnumeratePathsForInteractionProfileHTC");
+		if (!xrEnumeratePathsForInteractionProfileHTC)
+			return {};
+	}
 
 	XrPath tracker_profile = inst.string_to_path("/interaction_profiles/htc/vive_xr_tracker");
 
