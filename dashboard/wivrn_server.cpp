@@ -89,7 +89,7 @@ wivrn_server::~wivrn_server()
 	}
 }
 
-std::unique_ptr<QFile> get_server_log_file()
+QString get_server_log_dir()
 {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
 	QString state_path = QStandardPaths::writableLocation(QStandardPaths::StateLocation);
@@ -108,6 +108,13 @@ std::unique_ptr<QFile> get_server_log_file()
 
 #endif
 	QDir{}.mkpath(state_path);
+
+	return state_path;
+}
+
+std::unique_ptr<QFile> get_server_log_file()
+{
+	QString state_path = get_server_log_dir();
 
 	QFileInfoList files = QDir{state_path}.entryInfoList({"server_logs_*.txt"}, QDir::Files, QDir::Name);
 	while (files.size() >= 10)
@@ -319,11 +326,9 @@ void wivrn_server::grant_cap_sys_nice()
 
 void wivrn_server::open_server_logs()
 {
-	if (server_log_file)
-	{
-		qDebug() << "Opening" << server_log_file->fileName();
-		QDesktopServices::openUrl(QUrl::fromLocalFile(server_log_file->fileName()));
-	}
+	QString path = get_server_log_dir();
+	qDebug() << "Opening" << path;
+	QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 }
 
 void wivrn_server::refresh_server_properties()
