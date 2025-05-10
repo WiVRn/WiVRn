@@ -120,6 +120,11 @@ static const std::array supported_formats = {
         vk::Format::eB8G8R8A8Srgb,
 };
 
+static const std::array supported_depth_formats{
+        vk::Format::eD32Sfloat,
+        vk::Format::eX8D24UnormPack32,
+};
+
 static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::instance & inst, xr::session & session, int view)
 {
 	assert(inst.has_extension(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME));
@@ -289,26 +294,19 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		self->input_actions.emplace_back(it->second, action, action_type);
 	}
 
-	self->swapchain_format = vk::Format::eUndefined;
 	spdlog::info("Supported swapchain formats:");
 
-	for (auto format: self->session.get_swapchain_formats())
-	{
+	const auto & formats = self->session.get_swapchain_formats();
+	for (auto format: formats)
 		spdlog::info("    {}", vk::to_string(format));
-	}
-	for (auto format: self->session.get_swapchain_formats())
+
+	if (auto format = std::ranges::find_first_of(formats, supported_formats); format != formats.end())
 	{
-		if (std::find(supported_formats.begin(), supported_formats.end(), format) != supported_formats.end())
-		{
-			self->swapchain_format = format;
-			break;
-		}
+		spdlog::info("Using format {}", vk::to_string(*format));
+		self->swapchain_format = *format;
 	}
-
-	if (self->swapchain_format == vk::Format::eUndefined)
+	else
 		throw std::runtime_error("No supported swapchain format");
-
-	spdlog::info("Using format {}", vk::to_string(self->swapchain_format));
 
 	self->query_pool = vk::raii::QueryPool(
 	        self->device,
@@ -355,6 +353,7 @@ void scenes::stream::on_focused()
 
 	assert(video_stream_description);
 	setup_reprojection_swapchain();
+	setup_depth_swapchain();
 }
 
 void scenes::stream::on_unfocused()
@@ -894,11 +893,27 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		session.disable_passthrough();
 
 	swapchain.release();
+	XrCompositionLayerDepthInfoKHR depth{
+	        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR,
+	        .subImage = {
+	                .swapchain = fake_depth,
+	                .imageRect = {
+	                        .offset = {},
+	                        .extent = fake_depth.extent(),
+	                },
+	                .imageArrayIndex = 0,
+	        },
+	        .minDepth = 0,
+	        .maxDepth = 1,
+	        .nearZ = std::numeric_limits<float>::infinity(),
+	        .farZ = 0.1,
+	};
 	for (uint32_t view = 0; view < view_count; view++)
 	{
 		layer_view[view] =
 		        {
 		                .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
+		                .next = fake_depth ? &depth : nullptr,
 		                .pose = pose[view],
 		                .fov = fov[view],
 
@@ -1188,6 +1203,92 @@ void scenes::stream::setup_reprojection_swapchain()
 		swapchain_images.push_back(image.image);
 
 	reprojector.emplace(device, physical_device, decoder_out_image, 2, swapchain_images, extent, swapchain.format(), *video_stream_description);
+}
+
+void scenes::stream::setup_depth_swapchain()
+{
+	if (not instance.has_extension(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME))
+	{
+		spdlog::info("Depth extension not available");
+		return;
+	}
+
+	const auto & formats = session.get_swapchain_formats();
+	if (auto format = std::ranges::find_first_of(formats, supported_depth_formats); format != formats.end())
+	{
+		for (auto flags: {XR_SWAPCHAIN_CREATE_STATIC_IMAGE_BIT, {}})
+		{
+			try
+			{
+				fake_depth = xr::swapchain(
+				        session,
+				        device,
+				        {
+				                .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
+				                .createFlags = flags,
+				                .usageFlags = XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT,
+				                .format = static_cast<VkFormat>(*format),
+				                .sampleCount = 1,
+				                .width = 1,
+				                .height = 1,
+				                .faceCount = 1,
+				                .arraySize = 1,
+				                .mipCount = 1,
+				        });
+				auto id = fake_depth.acquire();
+				auto img = fake_depth.images()[id].image;
+				command_buffer.reset();
+				command_buffer.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+				command_buffer.pipelineBarrier(
+				        vk::PipelineStageFlagBits::eAllCommands,
+				        vk::PipelineStageFlagBits::eAllCommands,
+				        {},
+				        {},
+				        {},
+				        vk::ImageMemoryBarrier{
+				                .srcAccessMask = vk::AccessFlagBits::eNone,
+				                .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+				                .oldLayout = vk::ImageLayout::eUndefined,
+				                .newLayout = vk::ImageLayout::eGeneral,
+				                .image = img,
+				                .subresourceRange = {
+				                        .aspectMask = vk::ImageAspectFlagBits::eDepth,
+				                        .levelCount = 1,
+				                        .layerCount = 1,
+				                },
+				        });
+				command_buffer.clearDepthStencilImage(
+				        img,
+				        vk::ImageLayout::eGeneral,
+				        vk::ClearDepthStencilValue{.depth = 1},
+				        vk::ImageSubresourceRange{
+				                .aspectMask = vk::ImageAspectFlagBits::eDepth,
+				                .levelCount = 1,
+				                .layerCount = 1,
+				        });
+				command_buffer.end();
+				fake_depth.wait();
+				queue.submit(vk::SubmitInfo{
+				                     .commandBufferCount = 1,
+				                     .pCommandBuffers = &*command_buffer,
+				             },
+				             *fence);
+				if (device.waitForFences(*fence, true, UINT64_MAX) == vk::Result::eTimeout)
+					throw std::runtime_error("Vulkan fence timeout");
+				fake_depth.release();
+				break;
+			}
+			catch (std::system_error & e)
+			{
+				// The runtime may not support static images, and will return unsupported in that case
+				if (e.code() != std::error_code(XR_ERROR_FEATURE_UNSUPPORTED, xr::error_category()))
+				{
+					spdlog::info("Failed to create depth swapchain: {}", e.what());
+					break;
+				}
+			}
+		}
+	}
 }
 
 scene::meta & scenes::stream::get_meta_scene()

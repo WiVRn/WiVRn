@@ -121,6 +121,7 @@ private:
 	state state_ = state::initializing;
 
 	xr::swapchain swapchain;
+	xr::swapchain fake_depth;
 	xr::swapchain swapchain_imgui;
 	vk::Format swapchain_format;
 
@@ -184,6 +185,7 @@ private:
 
 	void setup(const to_headset::video_stream_description &);
 	void setup_reprojection_swapchain();
+	void setup_depth_swapchain();
 	void exit();
 
 	vk::raii::QueryPool query_pool = nullptr;

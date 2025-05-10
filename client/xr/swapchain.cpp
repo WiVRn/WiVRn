@@ -21,12 +21,9 @@
 #include "details/enumerate.h"
 #include "session.h"
 
-xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size)
+static XrSwapchainCreateInfo make_info(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size)
 {
-	assert(sample_count == 1);
-
 	XrSwapchainUsageFlags usage_flags;
-
 	switch (format)
 	{
 		case vk::Format::eD16Unorm:
@@ -42,7 +39,7 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 			break;
 	}
 
-	XrSwapchainCreateInfo create_info{
+	return {
 	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
 	        .createFlags = 0,
 	        .usageFlags = usage_flags,
@@ -54,12 +51,22 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 	        .arraySize = array_size,
 	        .mipCount = 1,
 	};
+}
 
-	width_ = width;
-	height_ = height;
-	sample_count_ = sample_count;
-	format_ = format;
+xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size) :
+        xr::swapchain(s, device, make_info(format, width, height, sample_count, array_size))
+{
+}
 
+xr::swapchain::swapchain(xr::session & s,
+                         vk::raii::Device & device,
+                         XrSwapchainCreateInfo create_info) :
+        width_(create_info.width),
+        height_(create_info.height),
+        sample_count_(create_info.sampleCount),
+        format_(vk::Format(create_info.format))
+{
+	assert(sample_count_ == 1);
 	CHECK_XR(xrCreateSwapchain(s, &create_info, &id));
 
 	std::vector<XrSwapchainImageVulkanKHR> array =
@@ -73,7 +80,7 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 		vk::ImageViewCreateInfo iv_create_info{
 		        .image = array[i].image,
 		        .viewType = vk::ImageViewType::e2D,
-		        .format = format,
+		        .format = format_,
 		        .components = {},
 		        .subresourceRange = {
 		                .aspectMask = vk::ImageAspectFlagBits::eColor,
