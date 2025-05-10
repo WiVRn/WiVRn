@@ -766,6 +766,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 
 			auto & cmd_buf = slot_item.transfer_cmd_buf;
 
+			cmd_buf.reset();
 			cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 			cmd_buf.pipelineBarrier2({
 			        .bufferMemoryBarrierCount = 1,
@@ -818,7 +819,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 {
 	auto & slot_item = slot_data[slot];
-	const bool need_transfer = *slot_item.transfer_cmd_buf;
+	const bool need_transfer = *slot_item.transfer_cmd_buf and slot_item.host_buffer;
 	// Issue encode command, and if necessary transfer command
 	vk.device.resetFences(*slot_item.fence);
 	vk::SemaphoreSubmitInfo wait_sem_info{
