@@ -311,22 +311,28 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 
 			auto & image = (i == 0 ? luma : chroma);
 			image = vk.device.createImage(image_create_info.get());
-		}
-		// objects == memory
-		for (int i = 0; i < desc->nb_objects; ++i)
-		{
-			auto memory_props = vk.device.getMemoryFdPropertiesKHR(vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT, desc->objects[i].fd);
+
+			auto [req, ded_req] = vk.device.getImageMemoryRequirements2<vk::MemoryRequirements2, vk::MemoryDedicatedRequirements>({.image = image});
+
+			const auto & object = desc->objects[desc->layers[i].planes[0].object_index];
+			auto memory_props = vk.device.getMemoryFdPropertiesKHR(vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT, object.fd);
 
 			vk::StructureChain alloc_info{
 			        vk::MemoryAllocateInfo{
-			                .allocationSize = desc->objects[i].size,
+			                .allocationSize = req.memoryRequirements.size,
 			                .memoryTypeIndex = vk.get_memory_type(memory_props.memoryTypeBits, {}),
 			        },
 			        vk::ImportMemoryFdInfoKHR{
 			                .handleType = vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT,
-			                .fd = dup(desc->objects[i].fd),
+			                .fd = dup(object.fd),
+			        },
+			        vk::MemoryDedicatedAllocateInfo{
+			                .image = image,
 			        },
 			};
+			if (not(ded_req.prefersDedicatedAllocation or ded_req.requiresDedicatedAllocation))
+				alloc_info.unlink<vk::MemoryDedicatedAllocateInfo>();
+
 			try
 			{
 				mem.emplace_back(vk.device, alloc_info.get());
@@ -359,7 +365,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 					        {
 					                .pNext = signal_p ? &plane_info.back() : nullptr,
 					                .image = *((i == 0) ? luma : chroma),
-					                .memory = *mem[desc->layers[i].planes[j].object_index],
+					                .memory = *mem[i],
 					                .memoryOffset = has_modifiers ? 0 : (vk::DeviceSize)desc->layers[i].planes[j].offset,
 					        });
 				}
