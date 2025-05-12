@@ -44,6 +44,7 @@
     <uses-permission android:name="com.oculus.permission.EYE_TRACKING" />
     <uses-permission android:name="com.picovr.permission.EYE_TRACKING" />
     <uses-permission android:name="com.oculus.permission.FACE_TRACKING" />
+    <uses-permission android:name="com.picovr.permission.FACE_TRACKING" />
 
     <!-- Required for XR_FB_render_model -->
     <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="false" />
@@ -70,6 +71,7 @@
         <meta-data android:name="pvr.app.type" android:value="vr" />
         <meta-data android:name="pvr.sdk.version" android:value="OpenXR" />
         <meta-data android:name="picovr.software.eye_tracking" android:value="true" />
+        <meta-data android:name="picovr.software.face_tracking" android:value="true" />
         <meta-data android:name="com.oculus.intent.category.VR" android:value="vr_only"/>
         <meta-data android:name="com.oculus.supportedDevices" android:value="${ComOculusSupportedDevices}"/> <!-- "quest2|questpro|quest3" on Oculus Store, "all" otherwise -->
         <meta-data android:name="com.oculus.vr.focusaware" android:value="true"/>

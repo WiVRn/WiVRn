@@ -30,6 +30,7 @@
 #include "hand_tracker.h"
 #include "htc_face_tracker.h"
 #include "passthrough.h"
+#include "pico_face_tracker.h"
 #include "space.h"
 
 namespace xr
@@ -52,6 +53,7 @@ public:
 	hand_tracker create_hand_tracker(XrHandEXT hand, XrHandJointSetEXT hand_joint_set = XR_HAND_JOINT_SET_DEFAULT_EXT);
 	fb_face_tracker2 create_fb_face_tracker2();
 	htc_face_tracker create_htc_face_tracker(XrFacialTrackingTypeHTC);
+	pico_face_tracker create_pico_face_tracker();
 
 	std::vector<vk::Format> get_swapchain_formats() const;
 
