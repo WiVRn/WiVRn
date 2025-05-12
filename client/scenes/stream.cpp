@@ -220,6 +220,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 				info.face_tracking = from_headset::face_type::fb2;
 			else if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
 				info.face_tracking = from_headset::face_type::htc;
+			else if (application::get_pico_face_tracking_supported())
+				info.face_tracking = from_headset::face_type::pico;
 		}
 
 		info.palm_pose = application::space(xr::spaces::palm_left) or application::space(xr::spaces::palm_right);

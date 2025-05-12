@@ -34,6 +34,7 @@
 
 #include "smp.h"
 #include "wivrn_serialization_types.h"
+#include "xr/pico_eye_types.h"
 
 namespace wivrn
 {
@@ -197,6 +198,7 @@ enum face_type : uint8_t
 	none,
 	fb2,
 	htc,
+	pico,
 };
 
 struct headset_info_packet
@@ -286,6 +288,13 @@ struct tracking
 		bool lip_active;
 	};
 	std::optional<htc_face> face_htc;
+
+	struct pico_face
+	{
+		std::array<float, XR_BLEND_SHAPE_COUNT_PICO> weights;
+		bool is_valid;
+	};
+	std::optional<pico_face> face_pico;
 };
 
 struct trackings

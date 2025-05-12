@@ -136,6 +136,12 @@ xr::htc_face_tracker xr::session::create_htc_face_tracker(XrFacialTrackingTypeHT
 	CHECK_XR(xrCreateFacialTrackerHTC(id, &create_info, &ft));
 	return {*inst, ft, facialTrackingType};
 }
+
+xr::pico_face_tracker xr::session::create_pico_face_tracker()
+{
+	return {*inst, *this};
+}
+
 std::vector<vk::Format> xr::session::get_swapchain_formats() const
 {
 	std::vector<vk::Format> formats;
