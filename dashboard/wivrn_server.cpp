@@ -19,6 +19,7 @@
 #include "wivrn_server.h"
 #include "gui_config.h"
 #include "magic_enum.hpp"
+#include "utils/flatpak.h"
 #include "wivrn_server_dbus.h"
 #include <QApplication>
 #include <QClipboard>
@@ -552,6 +553,27 @@ QString wivrn_server::hostname()
 	}();
 
 	return _hostname;
+}
+
+QString wivrn_server::host_path(QString path)
+{
+	if (not wivrn::is_flatpak())
+		return path;
+
+	QDBusInterface docs("org.freedesktop.portal.Documents", "/org/freedesktop/portal/documents", "org.freedesktop.portal.Documents", QDBusConnection::sessionBus());
+	if (not docs.isValid())
+		return path;
+
+	QString id = QFileInfo(path).dir().dirName();
+	[[maybe_unused]] static auto r = qDBusRegisterMetaType<QMap<QString, QByteArray>>();
+	QDBusReply<QMap<QString, QByteArray>> res = docs.call("GetHostPaths", QStringList(id));
+	if ((not res.isValid()) or res.value().empty())
+		return path;
+
+	path = res.value().first();
+	if (path.endsWith('\0'))
+		path.chop(1);
+	return path;
 }
 
 void wivrn_server::disconnect_headset()

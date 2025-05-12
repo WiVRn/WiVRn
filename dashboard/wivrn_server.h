@@ -167,6 +167,9 @@ public:
 	// hostnamed
 	Q_PROPERTY(QString hostname READ hostname CONSTANT)
 
+	// flatpak API
+	Q_INVOKABLE QString host_path(QString path);
+
 	Status serverStatus() const
 	{
 		return m_serverStatus;

@@ -55,7 +55,7 @@ ColumnLayout {
     Dialogs.FileDialog {
         id: app_browse
         onAccepted: {
-            app_text.text = new URL(selectedFile).pathname;
+            app_text.text = WivrnServer.host_path(new URL(selectedFile).pathname);
             select_game.save();
         }
     }
