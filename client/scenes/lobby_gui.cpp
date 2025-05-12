@@ -727,7 +727,7 @@ void scenes::lobby::gui_settings()
 		ImGui::EndDisabled();
 	}
 	{
-		ImGui::BeginDisabled(not(application::get_fb_face_tracking2_supported() or application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported()));
+		ImGui::BeginDisabled(not(application::get_fb_face_tracking2_supported() or application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported() or application::get_pico_face_tracking_supported()));
 		bool enabled = config.check_feature(feature::face_tracking);
 		if (ImGui::Checkbox(_S("Enable face tracking"), &enabled))
 		{
@@ -1419,7 +1419,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
+	if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported() or application::get_pico_face_tracking_supported())
 	{
 		items.push_back({
 		        .f = feature::face_tracking,
