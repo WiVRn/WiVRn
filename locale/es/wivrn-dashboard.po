@@ -582,7 +582,7 @@ msgstr "Librería de compatibilidad para OpenVR:"
 #: dashboard/qml/SettingsPage.qml:411
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
-msgstr "Ruta de librería, excluyendo bin/linux64/vrclient.so "
+msgstr "Ruta de librería, excluyendo bin/linux64/vrclient.so"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format

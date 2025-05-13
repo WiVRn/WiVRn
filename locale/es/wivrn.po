@@ -304,8 +304,8 @@ msgid "Adds an additional performance cost"
 msgstr "Añade un coste de rendimiento adicional"
 
 #: client/scenes/lobby_gui.cpp:941
-msgid "Umbral del borde"
-msgstr ""
+msgid "Edge threshold"
+msgstr "Umbral del borde"
 
 #: client/scenes/lobby_gui.cpp:948 client/scenes/lobby_gui.cpp:957
 #, c++-format
