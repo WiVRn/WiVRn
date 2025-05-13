@@ -82,6 +82,7 @@ QCoro::Task<> adb::on_poll_devices_timeout()
 	{
 		auto wait_for_usb_device = escape_sandbox(m_path, "wait-for-usb-device");
 		auto co_wait_for_usb_device = qCoro(*wait_for_usb_device);
+		QObject::connect(this, &QObject::destroyed, wait_for_usb_device.get(), &QProcess::terminate);
 
 		co_await co_wait_for_usb_device.start();
 		co_await co_wait_for_usb_device.waitForFinished(-1);
