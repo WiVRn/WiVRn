@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-13 21:31+0200\n"
+"POT-Creation-Date: 2025-04-29 19:40+0200\n"
 "PO-Revision-Date: 2025-05-05 21:15+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
@@ -106,8 +106,8 @@ msgstr ""
 "docs/building.md#client-headset\">documentação</a> para construir seu "
 "próprio cliente."
 
-#: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetsPage.qml:183
-#: dashboard/qml/HeadsetStatsPage.qml:36 dashboard/qml/TroubleshootPage.qml:59
+#: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetStatsPage.qml:36
+#: dashboard/qml/HeadsetsPage.qml:183 dashboard/qml/TroubleshootPage.qml:59
 #, kde-format
 msgctxt "go back to the home page"
 msgid "Back"
@@ -132,6 +132,11 @@ msgstr "Reinstalar WiVRn"
 #, kde-format
 msgid "Install WiVRn"
 msgstr "Instalar WiVRn"
+
+#: dashboard/qml/HeadsetStatsPage.qml:12
+#, kde-format
+msgid "Headset statistics"
+msgstr "Estatísticas do headset"
 
 #: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:342
 #, kde-format
@@ -223,11 +228,6 @@ msgstr "Habilitar pareamento"
 #, kde-format
 msgid "Pair a new headset"
 msgstr "Parear um novo headset"
-
-#: dashboard/qml/HeadsetStatsPage.qml:12
-#, kde-format
-msgid "Headset statistics"
-msgstr "Estatísticas do headset"
 
 #: dashboard/qml/Main.qml:103
 #, kde-format
