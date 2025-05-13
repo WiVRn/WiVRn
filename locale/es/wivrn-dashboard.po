@@ -111,7 +111,7 @@ msgstr ""
 #, kde-format
 msgctxt "go back to the home page"
 msgid "Back"
-msgstr "Volver a la página de inicio"
+msgstr "Volver"
 
 #: dashboard/qml/ConnectUsbDialog.qml:11
 #, kde-format
@@ -446,19 +446,19 @@ msgstr "Manual"
 #, kde-format
 msgctxt "encoder preset"
 msgid "Default preset"
-msgstr "Predeterminado"
+msgstr "Preajuste predeterminado"
 
 #: dashboard/qml/SettingsPage.qml:145
 #, kde-format
 msgctxt "encoder preset"
 msgid "Low latency preset"
-msgstr "Predeterminado de baja latencia"
+msgstr "Preajuste de baja latencia"
 
 #: dashboard/qml/SettingsPage.qml:170
 #, kde-format
 msgctxt "encoder preset"
 msgid "Safe preset"
-msgstr "Predeterminado seguro"
+msgstr "Preajuste seguro"
 
 #: dashboard/qml/SettingsPage.qml:193
 #, kde-format
@@ -546,7 +546,7 @@ msgstr "Ruta de adb:"
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
-msgstr "busca un archivo para elegir el binario de adb"
+msgstr "Explorar"
 
 #: dashboard/qml/SettingsPage.qml:353
 #, kde-format
@@ -567,7 +567,7 @@ msgstr "Open Composite"
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
-msgstr "define una librería de compatibilidad de OpenVR personalizada"
+msgstr "Personalizado"
 
 #: dashboard/qml/SettingsPage.qml:377
 #, kde-format
