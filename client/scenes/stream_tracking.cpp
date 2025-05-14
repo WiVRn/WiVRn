@@ -336,10 +336,10 @@ void scenes::stream::tracking()
 							case wivrn::from_headset::face_type::none:
 								break;
 							case wivrn::from_headset::face_type::fb2:
-								application::get_fb_face_tracker2().get_weights(t0 + Δt, packet.face.emplace());
+								application::get_fb_face_tracker2().get_weights(t0 + Δt, packet.face.emplace<wivrn::from_headset::tracking::fb_face2>());
 								break;
 							case wivrn::from_headset::face_type::htc: {
-								auto & face_htc = packet.face_htc.emplace();
+								auto & face_htc = packet.face.emplace<wivrn::from_headset::tracking::htc_face>();
 								face_htc.eye_active = false;
 								face_htc.lip_active = false;
 								if (application::get_htc_face_tracking_eye_supported())
@@ -349,7 +349,7 @@ void scenes::stream::tracking()
 								break;
 							}
 							case wivrn::from_headset::face_type::pico:
-								application::get_pico_face_tracker().get_weights(t0 + Δt, packet.face_pico.emplace());
+								application::get_pico_face_tracker().get_weights(t0 + Δt, packet.face.emplace<wivrn::from_headset::tracking::pico_face>());
 								break;
 						}
 					}

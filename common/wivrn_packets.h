@@ -278,7 +278,6 @@ struct tracking
 		bool is_valid;
 		bool is_eye_following_blendshapes_valid;
 	};
-	std::optional<fb_face2> face;
 
 	struct htc_face
 	{
@@ -287,14 +286,14 @@ struct tracking
 		bool eye_active;
 		bool lip_active;
 	};
-	std::optional<htc_face> face_htc;
 
 	struct pico_face
 	{
 		std::array<float, XR_BLEND_SHAPE_COUNT_PICO> weights;
 		bool is_valid;
 	};
-	std::optional<pico_face> face_pico;
+
+	std::variant<std::monostate, fb_face2, htc_face, pico_face> face;
 };
 
 struct trackings
