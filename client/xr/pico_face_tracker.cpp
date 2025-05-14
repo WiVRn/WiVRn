@@ -50,7 +50,13 @@ void xr::pico_face_tracker::get_weights(XrTime time, wivrn::from_headset::tracki
 
 	XrFaceTrackingDataPICO face_tracking{.time = 0};
 
-	CHECK_XR(xrGetFaceTrackingDataPICO(s, time, XR_GET_FACE_DATA_DEFAULT_PICO, &face_tracking));
+	if (auto res = xrGetFaceTrackingDataPICO(s, time, XR_GET_FACE_DATA_DEFAULT_PICO, &face_tracking); res != XR_SUCCESS)
+	{
+		spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}", xr::to_string(res));
+		out_expressions.is_valid = false;
+		return;
+	}
+
 	std::copy_n(face_tracking.blendShapeWeight, std::size(face_tracking.blendShapeWeight), out_expressions.weights.data());
 	out_expressions.is_valid = face_tracking.time != 0;
 }
