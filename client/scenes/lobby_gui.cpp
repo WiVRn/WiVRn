@@ -757,6 +757,14 @@ void scenes::lobby::gui_settings()
 	if (ImGui::IsItemHovered())
 		tooltip(_("Overlay can be toggled by pressing both thumbsticks"));
 
+#if WIVRN_CLIENT_PRIDE
+	if (ImGui::Checkbox(_S("Enable pride flag"), &config.pride_flag_enabled))
+		config.save();
+	vibrate_on_hover();
+	if (ImGui::IsItemHovered())
+		tooltip(_("Toggles the change of logo during June"));
+#endif
+
 	ImGui::PopStyleVar();
 
 	if (config.show_performance_metrics)

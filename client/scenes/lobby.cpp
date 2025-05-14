@@ -1168,13 +1168,21 @@ void scenes::lobby::on_focused()
 
 	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, imgui_inputs, swapchain_imgui, vps);
 
-	#if WIVRN_CLIENT_PRIDE
-	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	auto tm = std::localtime(&t);
-	std::string image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";
-	#else
+#if WIVRN_CLIENT_PRIDE
+	std::string image;
+	if (application::get_config().pride_flag_enabled)
+	{
+		auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		auto tm = std::localtime(&t);
+		image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";
+	}
+	else
+	{
+		image = "wivrn";
+	}
+#else
 	std::string image = "wivrn";
-	#endif
+#endif
 	try
 	{
 		about_picture = imgui_ctx->load_texture(image + ".ktx2");

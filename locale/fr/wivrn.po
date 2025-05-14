@@ -224,6 +224,14 @@ msgstr "Afficher les métriques de performances"
 msgid "Overlay can be toggled by pressing both thumbsticks"
 msgstr "L'affichage peut être basculé en appuyant sur les deux joysticks"
 
+#: client/scenes/lobby_gui.cpp:761
+msgid "Enable pride flag"
+msgstr "Activer le logo LGBT"
+
+#: client/scenes/lobby_gui.cpp:765
+msgid "Toggles the change of logo during June"
+msgstr "Bascule le changement du logo pendant le mois de Juin"
+
 #: client/scenes/lobby_gui.cpp:788 client/scenes/lobby_gui.cpp:796
 #: client/scenes/stream_stats.cpp:159
 msgid "CPU time"

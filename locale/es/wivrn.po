@@ -210,6 +210,14 @@ msgstr "Mostrar métricas de rendimiento"
 msgid "Overlay can be toggled by pressing both thumbsticks"
 msgstr "Puedes alternar la superposición presionando ambos joysticks"
 
+#: client/scenes/lobby_gui.cpp:761
+msgid "Enable pride flag"
+msgstr "Activa el logo del orgullo"
+
+#: client/scenes/lobby_gui.cpp:765
+msgid "Toggles the change of logo during June"
+msgstr "Activa el cambio de logo durante Junio"
+
 #: client/scenes/lobby_gui.cpp:759 client/scenes/lobby_gui.cpp:767
 #: client/scenes/stream_stats.cpp:159
 msgid "CPU time"

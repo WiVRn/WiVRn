@@ -229,6 +229,14 @@ msgstr "顯示效能指標"
 msgid "Overlay can be toggled by pressing both thumbsticks"
 msgstr "同時按下兩個拇指搖桿可以切換覆蓋層"
 
+#: client/scenes/lobby_gui.cpp:761
+msgid "Enable pride flag"
+msgstr "啟用驕傲旗幟"
+
+#: client/scenes/lobby_gui.cpp:765
+msgid "Toggles the change of logo during June"
+msgstr "切換6月期間的標誌變更"
+
 #: client/scenes/lobby_gui.cpp:788 client/scenes/lobby_gui.cpp:796
 #: client/scenes/stream_stats.cpp:159
 msgid "CPU time"

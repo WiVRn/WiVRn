@@ -53,6 +53,7 @@ public:
 	bool show_performance_metrics = false;
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
+	bool pride_flag_enabled = true;
 
 	// Snapdragon Game Super Resolution
 	struct sgsr_settings

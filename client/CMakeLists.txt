@@ -231,11 +231,16 @@ if(WIVRN_CLIENT_PRIDE)
         DEPENDS ${IMG_SRC_DIR}/wivrn-pride.svg ${WIVRN_CSS_ABS})
 endif()
 
-add_custom_target(assets ALL DEPENDS
-        ${ASSETS_DIR}/wivrn.png
-        if(WIVRN_CLIENT_PRIDE)
+if(WIVRN_CLIENT_PRIDE)
+    add_custom_target(assets ALL DEPENDS
+            ${ASSETS_DIR}/wivrn.png
             ${ASSETS_DIR}/wivrn-pride.png
-        endif())
+    )
+else()
+    add_custom_target(assets ALL DEPENDS
+            ${ASSETS_DIR}/wivrn.png
+    )
+endif()
 add_dependencies(wivrn assets)
 
 if(ANDROID)
@@ -257,13 +262,19 @@ if(ANDROID)
         COMMAND ${CMAKE_COMMAND} -E copy ${ASSETS_DIR}/wivrn.png ${ASSETS_DIR}/vr_splash.png
         DEPENDS ${ASSETS_DIR}/wivrn.png)
 
-    add_custom_target(assets-android ALL DEPENDS
-        ${ASSETS_DIR}/wivrn.ktx2
-        if(WIVRN_CLIENT_PRIDE)
+    if(WIVRN_CLIENT_PRIDE)
+        add_custom_target(assets-android ALL DEPENDS
+            ${ASSETS_DIR}/wivrn.ktx2
             ${ASSETS_DIR}/wivrn-pride.ktx2
-        endif()
-        ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2
-        ${ASSETS_DIR}/vr_splash.png)
+            ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2
+            ${ASSETS_DIR}/vr_splash.png)
+    else()
+        add_custom_target(assets-android ALL DEPENDS
+            ${ASSETS_DIR}/wivrn.ktx2
+            ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2
+            ${ASSETS_DIR}/vr_splash.png)
+    endif()
+
 
     add_dependencies(assets-android assets)
     add_dependencies(wivrn assets-android)
