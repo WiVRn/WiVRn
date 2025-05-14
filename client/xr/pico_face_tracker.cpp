@@ -32,6 +32,7 @@ xr::pico_face_tracker::pico_face_tracker(instance & inst, session & s_) :
 	xrStartEyeTrackingPICO = inst.get_proc<PFN_xrStartEyeTrackingPICO>("xrStartEyeTrackingPICO");
 	xrStopEyeTrackingPICO = inst.get_proc<PFN_xrStopEyeTrackingPICO>("xrStopEyeTrackingPICO");
 	xrSetTrackingModePICO = inst.get_proc<PFN_xrSetTrackingModePICO>("xrSetTrackingModePICO");
+	xrGetFaceTrackingStatePICO = inst.get_proc<PFN_xrGetFaceTrackingStatePICO>("xrGetFaceTrackingStatePICO");
 	xrGetFaceTrackingDataPICO = inst.get_proc<PFN_xrGetFaceTrackingDataPICO>("xrGetFaceTrackingDataPICO");
 
 	CHECK_XR(xrStartEyeTrackingPICO(s));
@@ -52,7 +53,13 @@ void xr::pico_face_tracker::get_weights(XrTime time, wivrn::from_headset::tracki
 
 	if (auto res = xrGetFaceTrackingDataPICO(s, time, XR_GET_FACE_DATA_DEFAULT_PICO, &face_tracking); res != XR_SUCCESS)
 	{
-		spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}", xr::to_string(res));
+		XrTrackingModeFlagsPICO mode;
+		XrTrackingStateCodePICO code;
+
+		if (xrGetFaceTrackingStatePICO(s, &mode, &code) == XR_SUCCESS)
+			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}, tracking mode state {}, flags {}", xr::to_string(res), xr::to_string(code), mode);
+		else
+			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}", xr::to_string(res));
 		out_expressions.is_valid = false;
 		return;
 	}

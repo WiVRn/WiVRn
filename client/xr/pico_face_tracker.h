@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "utils/handle.h"
 #include "wivrn_packets.h"
 #include "xr/pico_eye_types.h"
+#include "xr/pico_eye_types_reflection.h"
 #include <openxr/openxr.h>
 
 namespace xr
@@ -34,6 +34,7 @@ class pico_face_tracker
 	PFN_xrStartEyeTrackingPICO xrStartEyeTrackingPICO{};
 	PFN_xrStopEyeTrackingPICO xrStopEyeTrackingPICO{};
 	PFN_xrSetTrackingModePICO xrSetTrackingModePICO{};
+	PFN_xrGetFaceTrackingStatePICO xrGetFaceTrackingStatePICO{};
 	PFN_xrGetFaceTrackingDataPICO xrGetFaceTrackingDataPICO{};
 
 	XrSession s;
