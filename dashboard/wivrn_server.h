@@ -95,6 +95,34 @@ public:
 	}
 };
 
+class OpenVRCompat
+{
+	Q_GADGET
+	QML_VALUE_TYPE(openVRCompat)
+	QML_ELEMENT
+	Q_PROPERTY(QString name READ name CONSTANT)
+	Q_PROPERTY(QString path READ path CONSTANT)
+
+	QString m_name;
+	QString m_path;
+
+public:
+	OpenVRCompat() = default;
+	OpenVRCompat(QString name, QString path) :
+	        m_name(name), m_path(path) {}
+
+	// localized name of the compat layer (can be the path)
+	QString name() const
+	{
+		return m_name;
+	}
+
+	QString path() const
+	{
+		return m_path;
+	}
+};
+
 class wivrn_server : public QObject
 {
 	Q_OBJECT
@@ -169,6 +197,9 @@ public:
 
 	// flatpak API
 	Q_INVOKABLE QString host_path(QString path);
+
+	// System information
+	Q_PROPERTY(QList<OpenVRCompat> openVRCompat READ openVRCompat CONSTANT)
 
 	Status serverStatus() const
 	{
@@ -283,6 +314,8 @@ public:
 	{
 		return server_output.join("");
 	}
+
+	QList<OpenVRCompat> openVRCompat() const;
 
 	Q_INVOKABLE void disconnect_headset();
 	Q_INVOKABLE void copy_steam_command();

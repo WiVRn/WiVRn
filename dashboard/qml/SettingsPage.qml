@@ -354,16 +354,11 @@ Kirigami.ScrollablePage {
                         "value": "",
                         "is_custom": false
                     });
-
-                    if (config.flatpak) {
+                    var libs = WivrnServer.openVRCompat;
+                    for (var i = 0; i < libs.length; i++) {
                         openvr_libs.append({
-                            "name": i18n("xrizer"),
-                            "value": "xrizer",
-                            "is_custom": false
-                        });
-                        openvr_libs.append({
-                            "name": i18n("Open Composite"),
-                            "value": "OpenComposite",
+                            "name": libs[i].name,
+                            "value": libs[i].path,
                             "is_custom": false
                         });
                     }

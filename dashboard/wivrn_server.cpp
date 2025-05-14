@@ -21,6 +21,7 @@
 #include "magic_enum.hpp"
 #include "utils/flatpak.h"
 #include "wivrn_server_dbus.h"
+#include <KLocalization>
 #include <QApplication>
 #include <QClipboard>
 #include <QDesktopServices>
@@ -574,6 +575,23 @@ QString wivrn_server::host_path(QString path)
 	if (path.endsWith('\0'))
 		path.chop(1);
 	return path;
+}
+
+QList<OpenVRCompat> wivrn_server::openVRCompat() const
+{
+	if (wivrn::is_flatpak())
+		return {
+		        OpenVRCompat(i18n("xrizer"), "xrizer"),
+		        OpenVRCompat(i18n("Open Composite"), "OpenComposite"),
+		};
+
+	QList<OpenVRCompat> result;
+	for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
+	{
+		if (std::filesystem::path fs = std::string_view(path); std::filesystem::exists(fs))
+			result.push_back(OpenVRCompat(QString::fromStdString(fs.string()), QString::fromStdString(fs.string())));
+	}
+	return result;
 }
 
 void wivrn_server::disconnect_headset()
