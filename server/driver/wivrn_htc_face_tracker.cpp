@@ -84,15 +84,15 @@ void wivrn_htc_face_tracker::update_inputs()
 
 void wivrn_htc_face_tracker::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	if (not(tracking.face_htc))
+	auto * face = std::get_if<from_headset::tracking::htc_face>(&tracking.face);
+	if (not face)
 		return;
-	const auto & face = *tracking.face_htc;
 
 	wivrn_htc_face_data data{
-	        .eye = face.eye,
-	        .lip = face.lip,
-	        .eye_active = face.eye_active,
-	        .lip_active = face.lip_active};
+	        .eye = face->eye,
+	        .lip = face->lip,
+	        .eye_active = face->eye_active,
+	        .lip_active = face->lip_active};
 
 	if (not face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset))
 		cnx.set_enabled(to_headset::tracking_control::id::face, false);
