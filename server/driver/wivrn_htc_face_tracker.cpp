@@ -40,17 +40,17 @@ namespace wivrn
 wivrn_htc_face_tracker::wivrn_htc_face_tracker(xrt_device * hmd,
                                                wivrn::wivrn_session & cnx) :
         xrt_device{
-				.name = XRT_DEVICE_HTC_FACE_TRACKING,
-				.device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
-				.str = "WiVRn HTC Face Tracker",
-				.serial = "WiVRn HTC Face Tracker",
-				.tracking_origin = hmd->tracking_origin,
-				.face_tracking_supported = true,
-				.update_inputs = method_pointer<&wivrn_htc_face_tracker::update_inputs>,
-				.get_face_tracking = method_pointer<&wivrn_htc_face_tracker::get_face_tracking>,
-				.destroy = [](xrt_device *) {},
-		},
-		cnx(cnx)
+                .name = XRT_DEVICE_HTC_FACE_TRACKING,
+                .device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
+                .str = "WiVRn HTC Face Tracker",
+                .serial = "WiVRn HTC Face Tracker",
+                .tracking_origin = hmd->tracking_origin,
+                .face_tracking_supported = true,
+                .update_inputs = method_pointer<&wivrn_htc_face_tracker::update_inputs>,
+                .get_face_tracking = method_pointer<&wivrn_htc_face_tracker::get_face_tracking>,
+                .destroy = [](xrt_device *) {},
+        },
+        cnx(cnx)
 {
 	// Setup input.
 	inputs_array[0].name = XRT_INPUT_HTC_EYE_FACE_TRACKING;
