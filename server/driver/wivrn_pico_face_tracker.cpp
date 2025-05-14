@@ -25,6 +25,7 @@
 #include "wivrn_session.h"
 
 #include "util/u_logging.h"
+#include "utils/method.h"
 #include "xr/pico_eye_types.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
@@ -39,36 +40,21 @@
 namespace wivrn
 {
 
-static void wivrn_pico_face_tracker_destroy(xrt_device * xdev);
-
-static xrt_result_t wivrn_pico_face_tracker_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_pico_face_tracker *>(xdev)->update_inputs();
-	return XRT_SUCCESS;
-}
-
-static xrt_result_t wivrn_pico_face_tracker_get_face_tracking(struct xrt_device * xdev,
-                                                              enum xrt_input_name facial_expression_type,
-                                                              int64_t at_timestamp_ns,
-                                                              struct xrt_facial_expression_set * out_value);
-
 wivrn_pico_face_tracker::wivrn_pico_face_tracker(xrt_device * hmd,
                                                  wivrn::wivrn_session & cnx) :
-        xrt_device{}, cnx(cnx)
+        xrt_device{
+                .name = XRT_DEVICE_FB_FACE_TRACKING2,
+                .device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
+                .str = "WiVRn Pico Face Tracker (as FB v2)",
+                .serial = "WiVRn Pico Face Tracker",
+                .tracking_origin = hmd->tracking_origin,
+                .face_tracking_supported = true,
+                .update_inputs = method_pointer<&wivrn_pico_face_tracker::update_inputs>,
+                .get_face_tracking = method_pointer<&wivrn_pico_face_tracker::get_face_tracking>,
+                .destroy = [](xrt_device *) {},
+        },
+        cnx(cnx)
 {
-	xrt_device * base = this;
-	base->tracking_origin = hmd->tracking_origin;
-	base->get_face_tracking = wivrn_pico_face_tracker_get_face_tracking;
-	base->update_inputs = wivrn_pico_face_tracker_update_inputs;
-	base->destroy = wivrn_pico_face_tracker_destroy;
-	name = XRT_DEVICE_FB_FACE_TRACKING2;
-	device_type = XRT_DEVICE_TYPE_FACE_TRACKER;
-	face_tracking_supported = true;
-
-	// Print name.
-	strcpy(str, "WiVRn Pico Face Tracker (as FB v2)");
-	strcpy(serial, "WiVRn Pico Face Tracker");
-
 	// Setup input.
 	face_input.name = XRT_INPUT_FB_FACE_TRACKING2_VISUAL;
 	face_input.active = true;
@@ -76,9 +62,9 @@ wivrn_pico_face_tracker::wivrn_pico_face_tracker(xrt_device * hmd,
 	input_count = 1;
 }
 
-void wivrn_pico_face_tracker::update_inputs()
+xrt_result_t wivrn_pico_face_tracker::update_inputs()
 {
-	// Empty
+	return XRT_SUCCESS;
 }
 
 void wivrn_pico_face_tracker::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
@@ -202,23 +188,5 @@ xrt_result_t wivrn_pico_face_tracker::get_face_tracking(enum xrt_input_name faci
 	}
 
 	return XRT_ERROR_NOT_IMPLEMENTED;
-}
-
-/*
- *
- * Functions
- *
- */
-
-static void wivrn_pico_face_tracker_destroy(xrt_device * xdev)
-{
-}
-
-static xrt_result_t wivrn_pico_face_tracker_get_face_tracking(struct xrt_device * xdev,
-                                                              enum xrt_input_name facial_expression_type,
-                                                              int64_t at_timestamp_ns,
-                                                              struct xrt_facial_expression_set * inout_value)
-{
-	return static_cast<wivrn_pico_face_tracker *>(xdev)->get_face_tracking(facial_expression_type, at_timestamp_ns, inout_value);
 }
 } // namespace wivrn
