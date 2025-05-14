@@ -43,17 +43,17 @@ namespace wivrn
 wivrn_pico_face_tracker::wivrn_pico_face_tracker(xrt_device * hmd,
                                                  wivrn::wivrn_session & cnx) :
         xrt_device{
-				.name = XRT_DEVICE_FB_FACE_TRACKING2,
-				.device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
-				.str = "WiVRn Pico Face Tracker (as FB v2)",
-				.serial = "WiVRn Pico Face Tracker",
-				.tracking_origin = hmd->tracking_origin,
-				.face_tracking_supported = true,
-				.update_inputs = method_pointer<&wivrn_pico_face_tracker::update_inputs>,
-				.get_face_tracking = method_pointer<&wivrn_pico_face_tracker::get_face_tracking>,
-				.destroy = [](xrt_device *) {},
-		},
-		cnx(cnx)
+                .name = XRT_DEVICE_FB_FACE_TRACKING2,
+                .device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
+                .str = "WiVRn Pico Face Tracker (as FB v2)",
+                .serial = "WiVRn Pico Face Tracker",
+                .tracking_origin = hmd->tracking_origin,
+                .face_tracking_supported = true,
+                .update_inputs = method_pointer<&wivrn_pico_face_tracker::update_inputs>,
+                .get_face_tracking = method_pointer<&wivrn_pico_face_tracker::get_face_tracking>,
+                .destroy = [](xrt_device *) {},
+        },
+        cnx(cnx)
 {
 	// Setup input.
 	face_input.name = XRT_INPUT_FB_FACE_TRACKING2_VISUAL;

@@ -40,17 +40,17 @@ namespace wivrn
 wivrn_fb_face2_tracker::wivrn_fb_face2_tracker(xrt_device * hmd,
                                                wivrn::wivrn_session & cnx) :
         xrt_device{
-				.name = XRT_DEVICE_FB_FACE_TRACKING2,
-				.device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
-				.str = "WiVRn FB v2 Face Tracker",
-				.serial = "WiVRn FB v2 Face Tracker",
-				.tracking_origin = hmd->tracking_origin,
-				.face_tracking_supported = true,
-				.update_inputs = method_pointer<&wivrn_fb_face2_tracker::update_inputs>,
-				.get_face_tracking = method_pointer<&wivrn_fb_face2_tracker::get_face_tracking>,
-				.destroy = [](xrt_device *) {},
-		},
-		cnx(cnx)
+                .name = XRT_DEVICE_FB_FACE_TRACKING2,
+                .device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
+                .str = "WiVRn FB v2 Face Tracker",
+                .serial = "WiVRn FB v2 Face Tracker",
+                .tracking_origin = hmd->tracking_origin,
+                .face_tracking_supported = true,
+                .update_inputs = method_pointer<&wivrn_fb_face2_tracker::update_inputs>,
+                .get_face_tracking = method_pointer<&wivrn_fb_face2_tracker::get_face_tracking>,
+                .destroy = [](xrt_device *) {},
+        },
+        cnx(cnx)
 {
 	// Setup input.
 	face_input.name = XRT_INPUT_FB_FACE_TRACKING2_VISUAL;
