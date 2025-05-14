@@ -408,7 +408,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: ${{ matrix.buildtype != 'Oculus' }}
       with:
-        name: apk-${{ matrix.hmd }}-${{ (steps.secret-check.outputs.available == 'true' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
+        name: apk-${{ matrix.hmd }}-${{ (steps.secret-check.outputs.available == 'false' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
         path: apk/*.apk
         retention-days: 30
 
