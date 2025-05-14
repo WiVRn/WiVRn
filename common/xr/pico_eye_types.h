@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// See https://pico.crx.moe/docs/pico-openxr/eye-gaze-interaction and https://pico.crx.moe/docs/pico-openxr/eye-tracking.
+
 #pragma once
 
 #include <openxr/openxr.h>
