@@ -84,14 +84,15 @@ void wivrn_pico_face_tracker::update_inputs()
 void wivrn_pico_face_tracker::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	static std::array<float, XR_FACE_CONFIDENCE2_COUNT_FB> confidences{1.0, 1.0};
-	if (not(tracking.face_pico and tracking.face_pico->is_valid))
+
+	auto * face = std::get_if<from_headset::tracking::pico_face>(&tracking.face);
+	if (not(face and face->is_valid))
 		return;
-	const auto & face = *tracking.face_pico;
 
 	std::array<float, XR_FACE_EXPRESSION2_COUNT_FB> weights{};
 
 #define MAP_EXPRESSION(fb, pico) \
-	weights[fb] = face.weights[pico];
+	weights[fb] = face->weights[pico];
 
 	// Map the blendshapes.
 	MAP_EXPRESSION(XR_FACE_EXPRESSION2_BROW_LOWERER_L_FB, XR_BS_BROWDOWN_L_PICO);
@@ -170,8 +171,8 @@ void wivrn_pico_face_tracker::update_tracking(const from_headset::tracking & tra
 	wivrn_fb_face2_data data{
 	        .weights = weights,
 	        .confidences = confidences,
-	        .is_valid = face.is_valid,
-	        .is_eye_following_blendshapes_valid = face.is_valid,
+	        .is_valid = face->is_valid,
+	        .is_eye_following_blendshapes_valid = face->is_valid,
 	};
 
 	if (not face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset))
