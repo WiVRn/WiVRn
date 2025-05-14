@@ -198,10 +198,8 @@ configuration::configuration(xr::system & system)
 		if (auto val = root["mic_unprocessed_audio"]; val.is_bool())
 			mic_unprocessed_audio = val.get_bool();
 
-#ifdef WIVRN_CLIENT_PRIDE
 		if (auto val = root["pride_flag_enabled"]; val.is_bool())
 			pride_flag_enabled = val.get_bool();
-#endif
 
 		if (auto val = root["virtual_keyboard_layout"]; val.is_string())
 			virtual_keyboard_layout = val.get_string().value();
@@ -228,6 +226,7 @@ configuration::configuration(xr::system & system)
 		openxr_post_processing = {};
 		show_performance_metrics = false;
 		passthrough_enabled = system.passthrough_supported() == xr::system::passthrough_type::color;
+
 #ifdef WIVRN_CLIENT_PRIDE
 		pride_flag_enabled = true;
 #endif
@@ -328,9 +327,7 @@ void configuration::save()
 	write_openxr_post_processing(json, openxr_post_processing);
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
 	json << ",\"mic_unprocessed_audio\":" << std::boolalpha << mic_unprocessed_audio;
-#ifdef WIVRN_CLIENT_PRIDE
 	json << ",\"pride_flag_enabled\":" << std::boolalpha << pride_flag_enabled;
-#endif
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
 	json << ",\"virtual_keyboard_layout\":" << json_string(virtual_keyboard_layout);
