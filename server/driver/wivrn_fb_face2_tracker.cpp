@@ -80,15 +80,15 @@ void wivrn_fb_face2_tracker::update_inputs()
 
 void wivrn_fb_face2_tracker::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	if (not(tracking.face and tracking.face->is_valid))
+	auto * face = std::get_if<from_headset::tracking::fb_face2>(&tracking.face);
+	if (not(face and face->is_valid))
 		return;
-	const auto & face = *tracking.face;
 
 	wivrn_fb_face2_data data{
-	        .weights = face.weights,
-	        .confidences = face.confidences,
-	        .is_valid = face.is_valid,
-	        .is_eye_following_blendshapes_valid = face.is_eye_following_blendshapes_valid,
+	        .weights = face->weights,
+	        .confidences = face->confidences,
+	        .is_valid = face->is_valid,
+	        .is_eye_following_blendshapes_valid = face->is_eye_following_blendshapes_valid,
 	};
 
 	if (not face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset))
