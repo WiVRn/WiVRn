@@ -106,7 +106,7 @@ class wivrn_server : public QObject
 	QDBusServiceWatcher dbus_watcher;
 	std::unique_ptr<QDBusPendingCallWatcher> get_all_properties_call_watcher;
 
-	QProcess * server_process;
+	QProcess * server_process = nullptr;
 	std::unique_ptr<QProcess> setcap_process;
 
 public:
