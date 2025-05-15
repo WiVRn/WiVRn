@@ -40,7 +40,7 @@ xr::pico_face_tracker::pico_face_tracker(instance & inst, session & s_) :
 }
 xr::pico_face_tracker::~pico_face_tracker()
 {
-	if (auto res = xrStopEyeTrackingPICO(s, XR_TRACKING_MODE_FACE_BIT_PICO); res != XR_SUCCESS)
+	if (auto res = xrStopEyeTrackingPICO(s, XR_TRACKING_MODE_FACE_BIT_PICO); !XR_SUCCEEDED(res))
 		spdlog::warn("Failed to deactivate face tracking: {}", xr::to_string(res));
 }
 
@@ -56,10 +56,11 @@ void xr::pico_face_tracker::get_weights(XrTime time, wivrn::from_headset::tracki
 		XrTrackingModeFlagsPICO mode;
 		XrTrackingStateCodePICO code;
 
-		if (xrGetFaceTrackingStatePICO(s, &mode, &code) == XR_SUCCESS)
+		auto state_res = xrGetFaceTrackingStatePICO(s, &mode, &code);
+		if (XR_SUCCEEDED(state_res))
 			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}, tracking mode state {}, flags {}", xr::to_string(res), xr::to_string(code), mode);
 		else
-			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}", xr::to_string(res));
+			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}, unable to get face tracking state: {}", xr::to_string(res), xr::to_string(state_res));
 		out_expressions.is_valid = false;
 		return;
 	}
