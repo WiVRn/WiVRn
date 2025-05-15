@@ -71,16 +71,25 @@ static model guess_model_()
 
 	if (manufacturer == "Pico")
 	{
-		if (model == "Pico Neo 3")
+		const auto pico_model = get_property("pxr.vendorhw.product.model");
+		spdlog::info("    pxr.vendorhw.product.model = \"{}\":", pico_model);
+
+		if (pico_model == "Pico Neo 3")
 			return model::pico_neo_3;
 
-		if (model == "A9210")
+		if (pico_model == "PICO 4")
+			return model::pico_4;
+
+		if (pico_model == "PICO 4 Ultra")
 			return model::pico_4s;
 
-		if (model == "A8110")
+		if (pico_model == "PICO 4 Pro")
 			return model::pico_4_pro;
 
-		spdlog::info("manufacturer={}, model={}, device={} assuming Pico 4", manufacturer, model, device);
+		if (pico_model == "PICO 4 Enterprise")
+			return model::pico_4_enterprise;
+
+		spdlog::info("manufacturer={}, model={}, device={}, pico_model={} assuming Pico 4", manufacturer, model, device, pico_model);
 		return model::pico_4;
 	}
 	if (manufacturer == "HTC")
@@ -149,6 +158,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 		case model::pico_4:
 		case model::pico_4s:
 		case model::pico_4_pro:
+		case model::pico_4_enterprise:
 			return scale_view(view, 2160);
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
@@ -177,6 +187,7 @@ bool need_srgb_conversion(model m)
 		case model::pico_4:
 		case model::pico_4s:
 		case model::pico_4_pro:
+		case model::pico_4_enterprise:
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
@@ -207,6 +218,7 @@ const char * permission_name(feature f)
 				case model::pico_4:
 				case model::pico_4s:
 				case model::pico_4_pro:
+				case model::pico_4_enterprise:
 					return "com.picovr.permission.EYE_TRACKING";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
@@ -229,6 +241,7 @@ const char * permission_name(feature f)
 				case model::pico_4:
 				case model::pico_4s:
 				case model::pico_4_pro:
+				case model::pico_4_enterprise:
 					return "com.picovr.permission.FACE_TRACKING";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
@@ -266,6 +279,7 @@ std::string controller_name()
 		case model::pico_4:
 		case model::pico_4s: // TODO: split when we have the pico-4s 3d model
 		case model::pico_4_pro:
+		case model::pico_4_enterprise:
 			return "pico-4";
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
