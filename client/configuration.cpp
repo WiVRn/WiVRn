@@ -111,6 +111,11 @@ bool configuration::check_feature(feature f) const
 						if (not(application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported()))
 							return false;
 						break;
+					case model::pico_4_pro:
+					case model::pico_4_enterprise:
+						if (not application::get_pico_face_tracking_supported())
+							return false;
+						break;
 					default:
 						if (not application::get_fb_face_tracking2_supported())
 							return false;

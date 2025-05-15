@@ -26,6 +26,8 @@
 #include "swapchain.h"
 #include "system.h"
 #include "xr/check.h"
+#include "xr/pico_eye_types.h"
+#include "xr/pico_eye_types_reflection.h"
 
 #include <cstddef>
 #include <string>
@@ -55,6 +57,8 @@ XR_ENUM_STR(XrEyeVisibility);
 XR_ENUM_STR(XrSessionState);
 XR_ENUM_STR(XrObjectType);
 XR_ENUM_STR(XrStructureType);
+
+XR_ENUM_STR(XrTrackingStateCodePICO);
 
 std::string to_string(XrVersion version);
 

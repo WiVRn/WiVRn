@@ -24,6 +24,7 @@
 #include "wivrn_session.h"
 
 #include "util/u_logging.h"
+#include "utils/method.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_results.h"
@@ -36,36 +37,21 @@
 namespace wivrn
 {
 
-static void wivrn_htc_face_tracker_destroy(xrt_device * xdev);
-
-static xrt_result_t wivrn_htc_face_tracker_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_htc_face_tracker *>(xdev)->update_inputs();
-	return XRT_SUCCESS;
-}
-
-static xrt_result_t wivrn_htc_face_tracker_get_face_tracking(struct xrt_device * xdev,
-                                                             enum xrt_input_name facial_expression_type,
-                                                             int64_t at_timestamp_ns,
-                                                             struct xrt_facial_expression_set * out_value);
-
 wivrn_htc_face_tracker::wivrn_htc_face_tracker(xrt_device * hmd,
                                                wivrn::wivrn_session & cnx) :
-        xrt_device{}, cnx(cnx)
+        xrt_device{
+                .name = XRT_DEVICE_HTC_FACE_TRACKING,
+                .device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
+                .str = "WiVRn HTC Face Tracker",
+                .serial = "WiVRn HTC Face Tracker",
+                .tracking_origin = hmd->tracking_origin,
+                .face_tracking_supported = true,
+                .update_inputs = method_pointer<&wivrn_htc_face_tracker::update_inputs>,
+                .get_face_tracking = method_pointer<&wivrn_htc_face_tracker::get_face_tracking>,
+                .destroy = [](xrt_device *) {},
+        },
+        cnx(cnx)
 {
-	xrt_device * base = this;
-	base->tracking_origin = hmd->tracking_origin;
-	base->get_face_tracking = wivrn_htc_face_tracker_get_face_tracking;
-	base->update_inputs = wivrn_htc_face_tracker_update_inputs;
-	base->destroy = wivrn_htc_face_tracker_destroy;
-	name = XRT_DEVICE_HTC_FACE_TRACKING;
-	device_type = XRT_DEVICE_TYPE_FACE_TRACKER;
-	face_tracking_supported = true;
-
-	// Print name.
-	strcpy(str, "WiVRn HTC Face Tracker");
-	strcpy(serial, "WiVRn HTC Face Tracker");
-
 	// Setup input.
 	inputs_array[0].name = XRT_INPUT_HTC_EYE_FACE_TRACKING;
 	inputs_array[0].active = true;
@@ -77,22 +63,22 @@ wivrn_htc_face_tracker::wivrn_htc_face_tracker(xrt_device * hmd,
 	input_count = inputs_array.size();
 }
 
-void wivrn_htc_face_tracker::update_inputs()
+xrt_result_t wivrn_htc_face_tracker::update_inputs()
 {
-	// Empty
+	return XRT_SUCCESS;
 }
 
 void wivrn_htc_face_tracker::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	if (not(tracking.face_htc))
+	auto * face = std::get_if<from_headset::tracking::htc_face>(&tracking.face);
+	if (not face)
 		return;
-	const auto & face = *tracking.face_htc;
 
 	wivrn_htc_face_data data{
-	        .eye = face.eye,
-	        .lip = face.lip,
-	        .eye_active = face.eye_active,
-	        .lip_active = face.lip_active};
+	        .eye = face->eye,
+	        .lip = face->lip,
+	        .eye_active = face->eye_active,
+	        .lip_active = face->lip_active};
 
 	if (not face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset))
 		cnx.set_enabled(to_headset::tracking_control::id::face, false);
@@ -132,23 +118,5 @@ xrt_result_t wivrn_htc_face_tracker::get_face_tracking(enum xrt_input_name facia
 	}
 
 	return XRT_ERROR_NOT_IMPLEMENTED;
-}
-
-/*
- *
- * Functions
- *
- */
-
-static void wivrn_htc_face_tracker_destroy(xrt_device * xdev)
-{
-}
-
-static xrt_result_t wivrn_htc_face_tracker_get_face_tracking(struct xrt_device * xdev,
-                                                             enum xrt_input_name facial_expression_type,
-                                                             int64_t at_timestamp_ns,
-                                                             struct xrt_facial_expression_set * inout_value)
-{
-	return static_cast<wivrn_htc_face_tracker *>(xdev)->get_face_tracking(facial_expression_type, at_timestamp_ns, inout_value);
 }
 } // namespace wivrn
