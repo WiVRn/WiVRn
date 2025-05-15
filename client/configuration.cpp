@@ -112,6 +112,7 @@ bool configuration::check_feature(feature f) const
 							return false;
 						break;
 					case model::pico_4_pro:
+					case model::pico_4_enterprise:
 						if (not application::get_pico_face_tracking_supported())
 							return false;
 						break;
