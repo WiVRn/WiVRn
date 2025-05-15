@@ -1419,7 +1419,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported() or application::get_pico_face_tracking_supported())
+	if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
 	{
 		items.push_back({
 		        .f = feature::face_tracking,
@@ -1427,6 +1427,19 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		        .tooltip_disabled = _("Face tracking is disabled"),
 		        .icon_enabled = ICON_FA_FACE_KISS_WINK_HEART,
 		        .icon_disabled = ICON_FA_FACE_MEH_BLANK,
+		});
+	}
+
+	if (application::get_pico_face_tracking_supported())
+	{
+		from_headset::tracking::pico_face face{};
+		application::get_pico_face_tracker().get_weights(predicted_display_time, face);
+
+		items.push_back({
+				.f = feature::face_tracking,
+				.tooltip_enabled = _("Face tracking is enabled"),
+				.tooltip_disabled = _("Face tracking is disabled"),
+				.icon_enabled = face.is_valid ? ICON_FA_FACE_KISS_WINK_HEART : ICON_FA_FACE_MEH_BLANK,
 		});
 	}
 
