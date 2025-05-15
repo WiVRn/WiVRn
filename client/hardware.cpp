@@ -76,7 +76,7 @@ static model guess_model_()
 
 		if (pico_model == "Pico Neo 3")
 			return model::pico_neo_3;
-		
+
 		if (pico_model == "PICO 4")
 			return model::pico_4;
 
