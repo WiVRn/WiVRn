@@ -242,6 +242,7 @@ void scenes::stream::tracking()
 	std::vector<serialization_packet> packets;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
+	const bool motion_tracking = config.check_feature(feature::motion_tracking);
 	from_headset::face_type face_tracking = from_headset::face_type::none;
 	if (config.check_feature(feature::face_tracking))
 	{
@@ -308,7 +309,7 @@ void scenes::stream::tracking()
 							packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
-					if (control.enabled[size_t(tid::motion_trackers)])
+					if (motion_tracking and control.enabled[size_t(tid::motion_trackers)])
 					{
 						packet.motion_trackers = xr::xr_tracker_compose_packet(instance, session, t0 + Δt, world_space, application::get_vive_xr_trackers());
 					}
