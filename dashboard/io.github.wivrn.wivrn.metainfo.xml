@@ -69,6 +69,16 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="0.25" date="2025-05-18">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.25</url>
+			<description>
+				<ul>
+					<li>Client-side post-processing (sharpening)</li>
+					<li>Configurable OpenVR compatibility library and path to adb</li>
+					<li>Include xrizer in flatpak release</li>
+				</ul>
+			</description>
+		</release>
 		<release version="0.24.1" date="2025-04-10">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.24.1</url>
 			<description>
