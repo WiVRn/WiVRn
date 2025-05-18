@@ -312,7 +312,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 			auto & image = (i == 0 ? luma : chroma);
 			image = vk.device.createImage(image_create_info.get());
 
-			auto [req, ded_req] = vk.device.getImageMemoryRequirements2<vk::MemoryRequirements2, vk::MemoryDedicatedRequirements>({.image = image});
+			auto [req, ded_req] = vk.device.getImageMemoryRequirements2<vk::MemoryRequirements2, vk::MemoryDedicatedRequirements>({.image = *image});
 
 			const auto & object = desc->objects[desc->layers[i].planes[0].object_index];
 			auto memory_props = vk.device.getMemoryFdPropertiesKHR(vk::ExternalMemoryHandleTypeFlagBits::eDmaBufEXT, object.fd);
@@ -327,7 +327,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 			                .fd = dup(object.fd),
 			        },
 			        vk::MemoryDedicatedAllocateInfo{
-			                .image = image,
+			                .image = *image,
 			        },
 			};
 			if (not(ded_req.prefersDedicatedAllocation or ded_req.requiresDedicatedAllocation))
