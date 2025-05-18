@@ -51,7 +51,7 @@ def main():
     tree = ET.parse(args.metainfo)
 
     if args.nightly:
-        version = subprocess.check_output(["git", "describe", "--tags"]).decode().strip()
+        version = subprocess.check_output(["git", "describe", "--tags", "--always"]).decode().strip()
         version = version[1:] # remove the initial "v"
         write_entry(
                 out=args.out,
