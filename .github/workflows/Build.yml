@@ -510,10 +510,21 @@ jobs:
         fetch-depth: 0
         path: wivrn
 
+    - name: Check for FLATHUB_TOKEN
+      id: flathub-token-check
+      shell: bash
+      run: |
+        if [[ "${{ secrets.FLATHUB_TOKEN}}" != '' ]]; then
+          echo "available=true" >> $GITHUB_OUTPUT;
+        else
+          echo "available=false" >> $GITHUB_OUTPUT;
+        fi
+
     - uses: actions/checkout@v4
+      if: ${{ steps.flathub-token-check.outputs.available == 'true' }}
       with:
         fetch-depth: 0
-        repository: WiVRn/io.github.wivrn.wivrn
+        repository: ${{ github.repository_owner }}/io.github.wivrn.wivrn
         path: flathub
         token: ${{ secrets.FLATHUB_TOKEN }}
 
@@ -541,6 +552,7 @@ jobs:
           flatpak/*.flatpak
 
     - name: Update flatpak manifest for flathub
+      if: ${{ steps.flathub-token-check.outputs.available == 'true' }}
       run: |
         WIVRN_TAG=$(echo $GITHUB_REF | sed -E -e "s,refs/[^/]*/v?,,")
 
@@ -568,8 +580,9 @@ jobs:
     - name: Update release branch
       run: |
         cd wivrn
-        git fetch origin release
-        git push origin HEAD:release
+        if git fetch origin release; then
+          git push origin HEAD:release
+        fi
 
   sync_fork_downstream:
     name: Sync fork downstream
