@@ -316,6 +316,22 @@ Kirigami.ScrollablePage {
                 Kirigami.FormData.isSection: true
             }
 
+            Kirigami.Heading {
+                text: i18n("Advanced options")
+                level: 1
+                type: Kirigami.Heading.Type.Primary
+            }
+            Controls.CheckBox {
+                id: debug_gui
+                text: i18n("Enable debug window")
+                visible: config.debug_gui_supported
+            }
+            Controls.CheckBox {
+                id: steamvr_lh
+                text: i18n("Enable SteamVR tracked devices support")
+                visible: config.steamvr_lh_supported
+            }
+
             Controls.CheckBox {
                 id: adb_custom
                 Layout.row: 0
@@ -452,6 +468,9 @@ Kirigami.ScrollablePage {
         settings.adb_custom = adb_custom.checked;
         settings.adb_location = adb_location.text;
         Adb.setPath(adb_custom.checked ? adb_location.text : "adb");
+
+        config.debugGui = debug_gui.checked;
+        config.steamVrLh = steamvr_lh.checked;
     }
 
     function load() {
@@ -471,6 +490,10 @@ Kirigami.ScrollablePage {
             // auto_encoders.checked = true;
             encoder_layout.currentIndex = 0;
         }
+
+        debug_gui.checked = config.debugGui;
+        steamvr_lh.checked = config.steamVrLh;
+
         openvr_combobox.load()
 
         adb_custom.checked = settings.adb_custom;

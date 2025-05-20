@@ -19,6 +19,7 @@
 #include "settings.h"
 
 #include "escape_string.h"
+#include "gui_config.h"
 #include "utils/flatpak.h"
 #include "wivrn_server.h"
 #include <QList>
@@ -213,6 +214,25 @@ void Settings::load(const wivrn_server * server)
 		set_application("");
 	}
 
+	// Advanced options (debug window, steamvr_lh)
+	try
+	{
+		set_debugGui(json_doc.value("debug-gui", false));
+	}
+	catch (...)
+	{
+		set_debugGui(false);
+	}
+
+	try
+	{
+		set_steamVrLh(json_doc.value("use-steamvr-lh", false));
+	}
+	catch (...)
+	{
+		set_steamVrLh(false);
+	}
+
 	// OpenVR compat library
 	try
 	{
@@ -298,6 +318,9 @@ void Settings::save(wivrn_server * server)
 	if (application() != "")
 		json_doc["application"] = unescape_string(application());
 
+	json_doc["debug-gui"] = debugGui();
+	json_doc["use-steamvr-lh"] = steamVrLh();
+
 	if (openvr() == "-")
 		json_doc["openvr-compat-path"] = nullptr;
 	else if (openvr() == "")
@@ -315,6 +338,8 @@ void Settings::restore_defaults()
 	set_bitrate(50'000'000);
 	set_scale(-1);
 	set_application("");
+	set_debugGui(false);
+	set_steamVrLh(false);
 	set_tcpOnly(false);
 }
 
@@ -345,6 +370,23 @@ void Settings::set_encoder_preset(QJSValue preset)
 bool Settings::flatpak() const
 {
 	return wivrn::is_flatpak();
+}
+
+bool Settings::debug_gui() const
+{
+#if WIVRN_FEATURE_DEBUG_GUI
+	return true;
+#else
+	return false;
+#endif
+}
+bool Settings::steamvr_lh() const
+{
+#if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
+	return true;
+#else
+	return false;
+#endif
 }
 
 #include "moc_settings.cpp"

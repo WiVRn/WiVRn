@@ -59,6 +59,8 @@ struct configuration
 	std::optional<std::array<double, 2>> scale;
 	std::optional<std::array<float, 3>> grip_surface;
 	std::vector<std::string> application;
+	bool debug_gui = false;
+	bool use_steamvr_lh = false;
 	bool tcp_only = false;
 	service_publication publication = service_publication::avahi;
 

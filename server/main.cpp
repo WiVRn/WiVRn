@@ -49,6 +49,7 @@
 #include <glib.h>
 #include <libnotify/notify.h>
 
+#include <server/ipc_server_interface.h>
 #include <shared/ipc_protocol.h>
 #include <util/u_file.h>
 
@@ -57,9 +58,6 @@ U_TRACE_TARGET_SETUP(U_TRACE_WHICH_SERVICE)
 
 extern "C"
 {
-	int
-	ipc_server_main(int argc, char * argv[]);
-
 	int listen_socket = -1;
 }
 
@@ -267,7 +265,7 @@ void start_app()
 	}
 }
 
-void start_server()
+void start_server(configuration config)
 {
 	server_pid = do_fork ? fork() : 0;
 
@@ -298,9 +296,20 @@ void start_server()
 
 		setenv("AMD_DEBUG", "lowlatencyenc", false);
 
+		ipc_server_main_info server_info{
+		        .udgci = {
+		                .window_title = "WiVRn",
+#if WIVRN_FEATURE_DEBUG_GUI
+		                .open = config.debug_gui ? U_DEBUG_GUI_OPEN_ALWAYS : U_DEBUG_GUI_OPEN_AUTO,
+#else
+		                .open = U_DEBUG_GUI_OPEN_NEVER,
+#endif
+		        },
+		};
+
 		try
 		{
-			exit(ipc_server_main(0, 0 /*argc, argv*/));
+			exit(ipc_server_main(0, 0, &server_info /*argc, argv, ismi*/));
 		}
 		catch (std::exception & e)
 		{
@@ -472,7 +481,7 @@ gboolean headset_connected_success(void *)
 
 	expose_known_keys_on_dbus();
 
-	start_server();
+	start_server(configuration::read_user_configuration());
 	start_app();
 
 	delay_next_try = default_delay_next_try;

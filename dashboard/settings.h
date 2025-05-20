@@ -122,10 +122,14 @@ class Settings : public QObject
 	Q_PROPERTY(int bitrate READ bitrate WRITE set_bitrate NOTIFY bitrateChanged)
 	Q_PROPERTY(float scale READ scale WRITE set_scale NOTIFY scaleChanged)
 	Q_PROPERTY(QString application READ application WRITE set_application NOTIFY applicationChanged)
+	Q_PROPERTY(bool debugGui READ debugGui WRITE set_debugGui NOTIFY debugGuiChanged)
+	Q_PROPERTY(bool steamVrLh READ steamVrLh WRITE set_steamVrLh NOTIFY steamVrLhChanged)
 	Q_PROPERTY(bool tcpOnly READ tcpOnly WRITE set_tcpOnly NOTIFY tcpOnlyChanged)
 	Q_PROPERTY(QString openvr READ openvr WRITE set_openvr NOTIFY openvrChanged)
 
 	Q_PROPERTY(bool flatpak READ flatpak CONSTANT)
+	Q_PROPERTY(bool debug_gui_supported READ debug_gui CONSTANT)
+	Q_PROPERTY(bool steamvr_lh_supported READ steamvr_lh CONSTANT)
 
 	SETTER_GETTER_NOTIFY(bool, manualEncoders)
 	SETTER_GETTER_NOTIFY(std::vector<encoder>, encoders)
@@ -133,6 +137,8 @@ class Settings : public QObject
 	SETTER_GETTER_NOTIFY(int, bitrate)
 	SETTER_GETTER_NOTIFY(float, scale)
 	SETTER_GETTER_NOTIFY(QString, application)
+	SETTER_GETTER_NOTIFY(bool, debugGui)
+	SETTER_GETTER_NOTIFY(bool, steamVrLh)
 	SETTER_GETTER_NOTIFY(bool, tcpOnly)
 	SETTER_GETTER_NOTIFY(QString, openvr)
 
@@ -146,6 +152,8 @@ public:
 	Q_INVOKABLE void set_encoder_preset(QJSValue preset);
 
 	bool flatpak() const;
+	bool debug_gui() const;
+	bool steamvr_lh() const;
 
 	static std::optional<encoder::encoder_name> encoder_id_from_string(std::string_view s);
 	static std::optional<encoder::video_codec> codec_id_from_string(std::string_view s);

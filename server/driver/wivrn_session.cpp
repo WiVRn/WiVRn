@@ -20,6 +20,7 @@
 #include "wivrn_session.h"
 
 #include "accept_connection.h"
+#include "configuration.h"
 #include "driver/app_pacer.h"
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
@@ -169,7 +170,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	static_roles.hand_tracking.right = xdevs[xdev_count++] = &right_hand;
 
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
-	auto use_steamvr_lh = std::getenv("WIVRN_USE_STEAMVR_LH");
+	auto use_steamvr_lh = configuration::read_user_configuration().use_steamvr_lh || std::getenv("WIVRN_USE_STEAMVR_LH");
 	xrt_system_devices * lhdevs = NULL;
 
 	if (use_steamvr_lh && steamvr_lh_create_devices(&lhdevs) == XRT_SUCCESS)

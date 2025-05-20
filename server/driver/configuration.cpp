@@ -140,6 +140,12 @@ configuration configuration::read_user_configuration()
 			}
 		}
 
+		if (auto it = json.find("debug-gui"); it != json.end())
+			result.debug_gui = *it;
+
+		if (auto it = json.find("use-steamvr-lh"); it != json.end())
+			result.use_steamvr_lh = *it;
+
 		if (auto it = json.find("tcp-only"); it != json.end())
 			result.tcp_only = *it;
 		else if (auto it = json.find("tcp_only"); it != json.end())
