@@ -310,6 +310,8 @@ video_encoder_nvenc::~video_encoder_nvenc()
 {
 	if (session_handle)
 		fn.nvEncDestroyEncoder(session_handle);
+	if (cuda)
+		cuda_fn->cuCtxDestroy(cuda);
 }
 
 std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
