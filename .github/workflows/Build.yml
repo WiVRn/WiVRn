@@ -470,7 +470,10 @@ jobs:
 
     - name: Patch monado
       working-directory: wivrn/monado-src
-      run: ../patches/apply.sh ../patches/monado/*
+      run: >
+        for p in ../patches/monado/*; do
+          patch -p1 --fuzz=0 --forward < "$p"
+        done
 
     - name: Edit changelog
       working-directory: wivrn
