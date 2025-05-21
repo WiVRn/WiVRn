@@ -150,6 +150,18 @@ jobs:
         include-hidden-files: true
         retention-days: 1
 
+  nix-test:
+    name: Test Nix package and devshell
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - uses: cachix/install-nix-action@v31
+    - run: nix flake check
+    - run: nix build
+
   build-test-client:
     name: Linux client
     runs-on: ubuntu-24.04
