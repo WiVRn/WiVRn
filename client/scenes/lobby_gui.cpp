@@ -1436,10 +1436,10 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		application::get_pico_face_tracker().get_weights(predicted_display_time, face);
 
 		items.push_back({
-				.f = feature::face_tracking,
-				.tooltip_enabled = _("Face tracking is enabled"),
-				.tooltip_disabled = _("Face tracking is disabled"),
-				.icon_enabled = face.is_valid ? ICON_FA_FACE_KISS_WINK_HEART : ICON_FA_FACE_MEH_BLANK,
+		        .f = feature::face_tracking,
+		        .tooltip_enabled = _("Face tracking is enabled"),
+		        .tooltip_disabled = _("Face tracking is disabled"),
+		        .icon_enabled = face.is_valid ? ICON_FA_FACE_KISS_WINK_HEART : ICON_FA_FACE_MEH_BLANK,
 		});
 	}
 
