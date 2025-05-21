@@ -190,3 +190,17 @@ Provides the path to the directory of an OpenVR compatibility tool (such as Open
 If unset, WiVRn will autodetect the path of such a tool as usual (see [the SteamVR guide](./steamvr.md)).
 
 If set to an null, WiVRn will not manage the OpenVR configuration.
+
+## `debug-gui`
+Default value: `false`
+
+Only available when built with `WIVRN_FEATURE_DEBUG_GUI`.
+
+Enables the Monado debug gui.
+
+## `use-steamvr-lh`
+Default value: `false`
+
+Only available when built with `WIVRN_FEATURE_STEAMVR_LIGHTHOUSE`
+
+Enables the driver to load SteamVR Lighthouse devices.
