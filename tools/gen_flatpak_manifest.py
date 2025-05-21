@@ -58,7 +58,7 @@ if __name__ == "__main__":
         json.dump(gen_src, f, indent=4, sort_keys=False)
 
 
-    monado_commit = cmake.get("monado", "GIT_TAG")
+    monado_commit = open(os.path.join(root, "monado-rev")).read()
     boostpfr_url = cmake.get("boostpfr", "URL")
     boostpfr_sha256 = cmake.get("boostpfr", "URL_HASH").split("=")[-1]
 
