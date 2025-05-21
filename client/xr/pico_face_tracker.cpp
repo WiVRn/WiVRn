@@ -22,6 +22,7 @@
 #include "spdlog/spdlog.h"
 #include "wivrn_packets.h"
 #include "xr/instance.h"
+#include "xr/pico_eye_types.h"
 #include "xr/session.h"
 #include "xr/xr.h"
 #include <openxr/openxr.h>
@@ -61,6 +62,18 @@ void xr::pico_face_tracker::get_weights(XrTime time, wivrn::from_headset::tracki
 			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}, tracking mode state {}, flags {}", xr::to_string(res), xr::to_string(code), mode);
 		else
 			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}, unable to get face tracking state: {}", xr::to_string(res), xr::to_string(state_res));
+
+		if (auto res = xrStartEyeTrackingPICO(s); !XR_SUCCEEDED(res))
+		{
+			spdlog::warn("Failed to start eye tracking: {}", xr::to_string(res));
+			goto exit;
+		}
+		if (auto res = xrSetTrackingModePICO(s, XR_TRACKING_MODE_FACE_BIT_PICO); !XR_SUCCEEDED(res))
+		{
+			spdlog::warn("Failed to set tracking mode: {}", xr::to_string(res));
+		}
+
+exit:
 		out_expressions.is_valid = false;
 		return;
 	}
