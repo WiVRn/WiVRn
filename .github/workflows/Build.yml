@@ -474,7 +474,7 @@ jobs:
 
     - name: Download monado
       run: |
-        MONADO_COMMIT=$(grep -zo "FetchContent_Declare(monado[^)]*)" wivrn/CMakeLists.txt | sed -ze "s/^.*GIT_TAG *\([^ )]*\).*$/\1/" | tr -d '\0')
+        MONADO_COMMIT=$(cat wivrn/monado-rev)
         wget https://gitlab.freedesktop.org/monado/monado/-/archive/$MONADO_COMMIT/monado-$MONADO_COMMIT.tar.gz
 
         mkdir wivrn/monado-src

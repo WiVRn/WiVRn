@@ -22,17 +22,8 @@
           version = "next";
 
           # Because src is just a folder path and not a set from a fetcher, it doesn't need to be unpacked, so having a postUnpack throws an error.
+          # We also don't need the check since we read the revision from the monado-rev file.
           postUnpack = null;
-          prePatch = ''
-            ourMonadoRev="${finalAttrs.monado.src.rev}"
-            theirMonadoRev=$(sed -n '/FetchContent_Declare(monado/,/)/p' CMakeLists.txt | grep "GIT_TAG" | awk '{print $2}')
-            if [ ! "$theirMonadoRev" == "$ourMonadoRev" ]; then
-              echo "Our Monado source revision doesn't match CMakeLists.txt." >&2
-              echo "  theirs: $theirMonadoRev" >&2
-              echo "    ours: $ourMonadoRev" >&2
-              return 1
-            fi
-          '';
 
           monado = pkgs.applyPatches {
             inherit (oldAttrs.monado) patches postPatch;
@@ -40,7 +31,8 @@
               inherit (oldAttrs.monado.src) owner repo;
               domain = "gitlab.freedesktop.org";
               # Keep in sync with CMakeLists.txt monado rev
-              rev = "2a6932d46dad9aa957205e8a47ec2baa33041076";
+              rev = builtins.readFile ./monado-rev;
+              # Nix will output the correct hash when it doesn't match
               hash = "sha256-Bus9GTNC4+nOSwN8pUsMaFsiXjlpHYioQfBLxbQEF+0=";
             };
           };
