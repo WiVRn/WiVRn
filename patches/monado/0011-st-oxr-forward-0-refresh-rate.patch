@@ -1,17 +1,17 @@
-From b9bef34f0362677d2a58c0b2b331c98e2f74f9b2 Mon Sep 17 00:00:00 2001
+From f3dbf64ec2a45ac0e44a5d017b66d12fd8d63e77 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
-Subject: [PATCH] st/oxr: forward 0 refresh rate
+Subject: [PATCH 11/11] st/oxr: forward 0 refresh rate
 
 ---
  src/xrt/state_trackers/oxr/oxr_api_session.c | 6 +-----
  1 file changed, 1 insertion(+), 5 deletions(-)
 
 diff --git a/src/xrt/state_trackers/oxr/oxr_api_session.c b/src/xrt/state_trackers/oxr/oxr_api_session.c
-index c84806bde..955019957 100644
+index df8ec96b7..cbc542130 100644
 --- a/src/xrt/state_trackers/oxr/oxr_api_session.c
 +++ b/src/xrt/state_trackers/oxr/oxr_api_session.c
-@@ -644,15 +644,11 @@ oxr_xrRequestDisplayRefreshRateFB(XrSession session, float displayRefreshRate)
+@@ -645,15 +645,11 @@ oxr_xrRequestDisplayRefreshRateFB(XrSession session, float displayRefreshRate)
  	OXR_VERIFY_SESSION_AND_INIT_LOG(&log, session, sess, "xrRequestDisplayRefreshRateFB");
  	OXR_VERIFY_SESSION_NOT_LOST(&log, sess);
  
@@ -29,5 +29,5 @@ index c84806bde..955019957 100644
  		if ((int)(displayRefreshRate * 100.0f) == (int)(sess->sys->xsysc->info.refresh_rates_hz[i] * 100.0f)) {
  			found = true;
 -- 
-2.48.1
+2.49.0
 

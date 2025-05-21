@@ -1,7 +1,7 @@
-From cf75548500d8aff912f2e63d68e0ea3628941bf8 Mon Sep 17 00:00:00 2001
+From 30eb60e3716c0bb0df118f4b36eb1820c567ee5b Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 07/10] Convert to YCbCr in Monado
+Subject: [PATCH 07/11] Convert to YCbCr in Monado
 
 ---
  src/xrt/compositor/main/comp_renderer.c      |   6 +-
@@ -15,7 +15,7 @@ Subject: [PATCH 07/10] Convert to YCbCr in Monado
  8 files changed, 186 insertions(+), 85 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 104f761bf..3b3439d5a 100644
+index 89982e654..55aaed69e 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
 @@ -1009,7 +1009,8 @@ dispatch_compute(struct comp_renderer *r,
@@ -715,5 +715,5 @@ index fc11a0521..3db6c8d2e 100644
  		    d->do_timewarp);             //
  	}
 -- 
-2.48.0
+2.49.0
 

@@ -1,7 +1,7 @@
-From a0e439f723394452ab79a09c04df5135c3613d11 Mon Sep 17 00:00:00 2001
+From e18311e2b207f784cdd48ab6faf3834f912a1f8d Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
-Subject: [PATCH 01/13] c/multi: early wake of compositor
+Subject: [PATCH 01/11] c/multi: early wake of compositor
 
 ---
  .../compositor/multi/comp_multi_compositor.c  | 14 +++++++++
@@ -10,7 +10,7 @@ Subject: [PATCH 01/13] c/multi: early wake of compositor
  3 files changed, 41 insertions(+), 7 deletions(-)
 
 diff --git a/src/xrt/compositor/multi/comp_multi_compositor.c b/src/xrt/compositor/multi/comp_multi_compositor.c
-index 2895ccb0f..0c940cb3a 100644
+index d19eda4ff..b9fcd0ca6 100644
 --- a/src/xrt/compositor/multi/comp_multi_compositor.c
 +++ b/src/xrt/compositor/multi/comp_multi_compositor.c
 @@ -231,7 +231,21 @@ wait_for_scheduled_free(struct multi_compositor *mc)
@@ -128,5 +128,5 @@ index b06b03a58..249e07d7d 100644
  	//! @todo Make the clients not go from IDLE to READY before we have completed a first frame.
  	// Make sure there is at least some sort of valid frame data here.
 -- 
-2.48.1
+2.49.0
 

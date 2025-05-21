@@ -1,7 +1,7 @@
-From e17739a88a15ac26dfe9ccb9ffc97ff029fa7764 Mon Sep 17 00:00:00 2001
+From d5337b1e4811aef804057e26d67aace90adc36e8 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Nov 2024 13:40:00 +0100
-Subject: [PATCH 10/10] store alpha channel in layer 1
+Subject: [PATCH 08/11] store alpha channel in layer 1
 
 ---
  src/xrt/compositor/shaders/clear.comp      |  4 ++--
@@ -90,5 +90,5 @@ index 461aeb4ec..237221a54 100644
 +	imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), alpha);
  }
 -- 
-2.48.0
+2.49.0
 

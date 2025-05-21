@@ -1,7 +1,7 @@
-From edd3447b25387908acbe005f1cbee5f17bae0260 Mon Sep 17 00:00:00 2001
+From 644f84e916d40d6341de91687a3dc9b0eecd13a4 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Thu, 27 Feb 2025 22:45:36 +0100
-Subject: [PATCH] c/main: allow custom pacing app factory
+Subject: [PATCH 10/11] c/main: allow custom pacing app factory
 
 ---
  src/xrt/compositor/main/comp_compositor.c     | 10 ++++++----
@@ -78,5 +78,5 @@ index 617561c37..e10ba8358 100644
  #else
  	if (!use_null) {
 -- 
-2.48.1
+2.49.0
 

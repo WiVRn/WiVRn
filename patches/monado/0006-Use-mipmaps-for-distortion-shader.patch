@@ -1,7 +1,7 @@
-From 3f6883949ac235cc1e3f1ef8480ad08bd25da503 Mon Sep 17 00:00:00 2001
+From 5f506fb48a7dc284bb64598617bed6d8d481b662 Mon Sep 17 00:00:00 2001
 From: galister <3123227-galister@users.noreply.gitlab.com>
 Date: Thu, 31 Oct 2024 04:37:27 +0900
-Subject: [PATCH 06/10] Use mipmaps for distortion shader
+Subject: [PATCH 06/11] Use mipmaps for distortion shader
 
 ---
  src/external/CMakeLists.txt                   |  23 +
@@ -42,10 +42,10 @@ Subject: [PATCH 06/10] Use mipmaps for distortion shader
  create mode 100644 src/xrt/compositor/util/comp_mipmap.h
 
 diff --git a/src/external/CMakeLists.txt b/src/external/CMakeLists.txt
-index 0705627ae..51f89714f 100644
+index 6b1566e42..570d1a30f 100644
 --- a/src/external/CMakeLists.txt
 +++ b/src/external/CMakeLists.txt
-@@ -211,3 +211,26 @@ add_library(xrt-external-vdf INTERFACE)
+@@ -215,3 +215,26 @@ add_library(xrt-external-vdf INTERFACE)
  target_include_directories(
  	xrt-external-vdf SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/valve-file-vdf
  	)
@@ -1673,7 +1673,7 @@ index 000000000..524a74120
 +               srgbFromLinear(arg.b), alpha);
 +}
 diff --git a/src/xrt/auxiliary/vk/vk_helpers.c b/src/xrt/auxiliary/vk/vk_helpers.c
-index 62f505391..80193f1ab 100644
+index 3aebad12a..7e6630d4d 100644
 --- a/src/xrt/auxiliary/vk/vk_helpers.c
 +++ b/src/xrt/auxiliary/vk/vk_helpers.c
 @@ -1382,6 +1382,7 @@ vk_create_sampler(struct vk_bundle *vk, VkSamplerAddressMode clamp_mode, VkSampl
@@ -1716,7 +1716,7 @@ index f1c54ed4d..3bc9302f7 100644
  	target_include_directories(comp_util PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
  endif()
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index bd07a7744..112d14e32 100644
+index 6df4d2b29..89982e654 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
 @@ -366,6 +366,9 @@ renderer_build_rendering_target_resources(struct comp_renderer *r,
@@ -2499,10 +2499,10 @@ index dbc2fec7e..fc11a0521 100644
  		 * Layer squashing.
  		 */
 diff --git a/src/xrt/compositor/util/comp_render_helpers.h b/src/xrt/compositor/util/comp_render_helpers.h
-index aa5de56c2..bbf295c0a 100644
+index 8fa3af8f0..4e525be5a 100644
 --- a/src/xrt/compositor/util/comp_render_helpers.h
 +++ b/src/xrt/compositor/util/comp_render_helpers.h
-@@ -145,10 +145,10 @@ cmd_barrier_view_images(struct vk_bundle *vk,
+@@ -149,10 +149,10 @@ cmd_barrier_view_images(struct vk_bundle *vk,
                          VkPipelineStageFlags src_stage_mask,
                          VkPipelineStageFlags dst_stage_mask)
  {
@@ -2515,7 +2515,7 @@ index aa5de56c2..bbf295c0a 100644
  	    .baseArrayLayer = 0,
  	    .layerCount = 1,
  	};
-@@ -172,16 +172,16 @@ cmd_barrier_view_images(struct vk_bundle *vk,
+@@ -176,17 +176,17 @@ cmd_barrier_view_images(struct vk_bundle *vk,
  			continue;
  		}
  
@@ -2543,6 +2543,7 @@ index aa5de56c2..bbf295c0a 100644
 +		    all_color_level_subresource_range); // subresource_range
  	}
  }
+ 
 diff --git a/src/xrt/compositor/util/comp_scratch.c b/src/xrt/compositor/util/comp_scratch.c
 index 48bfda7c7..1d892a31b 100644
 --- a/src/xrt/compositor/util/comp_scratch.c
@@ -2759,5 +2760,5 @@ index 44849c20e..f8c891e49 100644
  void
  comp_scratch_stereo_images_free(struct comp_scratch_stereo_images *cssi, struct vk_bundle *vk);
 -- 
-2.48.0
+2.49.0
 

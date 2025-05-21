@@ -1,14 +1,14 @@
-From 6321ad3eee7d4a8b304a36de008d8fb8359f3dfe Mon Sep 17 00:00:00 2001
+From dffeb683c92b6ab2fbbf240817e4087a134d997f Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 19 Feb 2025 10:13:36 +0100
-Subject: [PATCH] st/oxr: bind to dynamic role's profile
+Subject: [PATCH 09/11] st/oxr: bind to dynamic role's profile
 
 ---
  src/xrt/state_trackers/oxr/oxr_binding.c | 17 +++++++++++++++++
  1 file changed, 17 insertions(+)
 
 diff --git a/src/xrt/state_trackers/oxr/oxr_binding.c b/src/xrt/state_trackers/oxr/oxr_binding.c
-index eb8bb5489..b04977a8b 100644
+index 07378d7b3..83a7b241d 100644
 --- a/src/xrt/state_trackers/oxr/oxr_binding.c
 +++ b/src/xrt/state_trackers/oxr/oxr_binding.c
 @@ -380,6 +380,23 @@ oxr_find_profile_for_device(struct oxr_logger *log,
@@ -36,5 +36,5 @@ index eb8bb5489..b04977a8b 100644
  	oxr_get_profile_for_device_name(log, sess, xdev->name, out_p);
  	if (*out_p != NULL) {
 -- 
-2.48.1
+2.49.0
 
