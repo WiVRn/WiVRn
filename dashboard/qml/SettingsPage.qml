@@ -326,10 +326,15 @@ Kirigami.ScrollablePage {
                 text: i18n("Enable debug window")
                 visible: config.debug_gui_supported
             }
-            Controls.CheckBox {
-                id: steamvr_lh
-                text: i18n("Enable SteamVR tracked devices support")
+            RowLayout {
                 visible: config.steamvr_lh_supported
+                Controls.CheckBox {
+                    id: steamvr_lh
+                    text: i18n("Enable SteamVR tracked devices support")
+                }
+                Kirigami.ContextualHelpButton {
+                    toolTipText: i18n("Load Lighthouse based controllers and trackers, requires SteamVR to be installed and devices to be powered on when connecting to WiVRn.")
+                }
             }
 
             Controls.CheckBox {
