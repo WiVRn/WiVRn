@@ -27,6 +27,8 @@
 #include "util/u_logging.h"
 #include "utils/method.h"
 #include "xr/pico_eye_types.h"
+#include "xr/pico_eye_types_reflection.h"
+#include "xr/to_string.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_results.h"
@@ -74,6 +76,13 @@ void wivrn_pico_face_tracker::update_tracking(const from_headset::tracking & tra
 	auto * face = std::get_if<from_headset::tracking::pico_face>(&tracking.face);
 	if (not(face and face->is_valid))
 		return;
+
+	// for debugging purposes
+	U_LOG_D("pico face tracking blendshapes:");
+	for (auto i = 0; i <= XR_BS_TONGUEOUT_PICO; i++)
+	{
+		U_LOG_D("    %s: %f", xr::to_string(static_cast<XrBlendShapeIndexPICO>(i)), face->weights[i]);
+	}
 
 	std::array<float, XR_FACE_EXPRESSION2_COUNT_FB> weights{};
 

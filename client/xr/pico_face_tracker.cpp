@@ -73,7 +73,7 @@ void xr::pico_face_tracker::get_weights(XrTime time, wivrn::from_headset::tracki
 			spdlog::warn("Failed to set tracking mode: {}", xr::to_string(res));
 		}
 
-exit:
+	exit:
 		out_expressions.is_valid = false;
 		return;
 	}
