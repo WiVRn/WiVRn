@@ -217,6 +217,7 @@ struct headset_info_packet
 	bool eye_gaze;
 	bool palm_pose;
 	bool passthrough;
+	bool motion_tracking;
 	face_type face_tracking;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 	std::string system_name;
@@ -268,6 +269,14 @@ struct tracking
 
 	std::array<view, 2> views;
 	std::vector<pose> device_poses;
+
+	struct motion_tracker
+	{
+		uint8_t id;
+		XrPosef pose;
+	};
+
+	std::vector<motion_tracker> motion_trackers;
 
 	struct fb_face2
 	{
@@ -565,6 +574,7 @@ struct tracking_control
 		right_palm,
 		left_hand,
 		right_hand,
+		motion_trackers,
 		face,
 		battery,
 		microphone,

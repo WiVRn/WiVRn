@@ -24,6 +24,7 @@
 #include "xr/fb_face_tracker2.h"
 #include "xr/hand_tracker.h"
 #include "xr/htc_face_tracker.h"
+#include "xr/htc_xr_tracker.h"
 #ifdef __ANDROID__
 #include <android_native_app_glue.h>
 #endif
@@ -136,6 +137,9 @@ class application : public singleton<application>
 	bool eye_gaze_supported = false;
 
 	bool openxr_post_processing_supported = false;
+
+	bool vive_xr_trackers_supported = false;
+	std::vector<xr::vive_xr_tracker> vive_xr_trackers;
 
 	bool session_running = false;
 	bool session_focused = false;
@@ -446,6 +450,11 @@ public:
 		return instance().openxr_post_processing_supported;
 	}
 
+	static bool get_vive_xr_trackers_supported()
+	{
+		return instance().vive_xr_trackers_supported;
+	}
+
 	static xr::hand_tracker & get_left_hand()
 	{
 		return instance().left_hand;
@@ -469,6 +478,11 @@ public:
 	static xr::htc_face_tracker & get_htc_face_tracker_lip()
 	{
 		return instance().htc_face_tracker_lip;
+	}
+
+	static std::vector<xr::vive_xr_tracker> & get_vive_xr_trackers()
+	{
+		return instance().vive_xr_trackers;
 	}
 
 	static const std::vector<std::string> & get_xr_extensions()

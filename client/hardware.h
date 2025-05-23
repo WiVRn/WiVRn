@@ -48,6 +48,7 @@ enum class feature
 	hand_tracking,
 	eye_gaze,
 	face_tracking,
+	motion_tracking
 };
 
 model guess_model();
