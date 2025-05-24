@@ -38,7 +38,6 @@
 #include "wivrn_foveation.h"
 #include "wivrn_htc_face_tracker.h"
 #include "wivrn_ipc.h"
-#include "wivrn_pico_face_tracker.h"
 
 #include "wivrn_packets.h"
 #include "xrt/xrt_device.h"
@@ -203,23 +202,19 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		static_roles.eyes = eye_tracker.get();
 		xdevs[xdev_count++] = eye_tracker.get();
 	}
-	if (get_info().face_tracking == wivrn::from_headset::face_type::fb2 || is_forced_extension("FB_face_tracking2"))
+
+	auto face = get_info().face_tracking;
+	if (face == from_headset::face_type::fb2 || face == from_headset::face_type::pico || is_forced_extension("FB_face_tracking2"))
 	{
 		fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(&hmd, *this);
 		static_roles.face = fb_face2_tracker.get();
 		xdevs[xdev_count++] = fb_face2_tracker.get();
 	}
-	if (get_info().face_tracking == wivrn::from_headset::face_type::htc || is_forced_extension("HTC_facial_tracking"))
+	if (face == wivrn::from_headset::face_type::htc || is_forced_extension("HTC_facial_tracking"))
 	{
 		htc_face_tracker = std::make_unique<wivrn_htc_face_tracker>(&hmd, *this);
 		static_roles.face = htc_face_tracker.get();
 		xdevs[xdev_count++] = htc_face_tracker.get();
-	}
-	if (get_info().face_tracking == wivrn::from_headset::face_type::pico || is_forced_extension("PICO_eye_tracking"))
-	{
-		pico_face_tracker = std::make_unique<wivrn_pico_face_tracker>(&hmd, *this);
-		static_roles.face = pico_face_tracker.get();
-		xdevs[xdev_count++] = pico_face_tracker.get();
 	}
 
 #if WIVRN_FEATURE_SOLARXR
@@ -418,8 +413,6 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 		fb_face2_tracker->update_tracking(tracking, offset);
 	else if (htc_face_tracker)
 		htc_face_tracker->update_tracking(tracking, offset);
-	else if (pico_face_tracker)
-		pico_face_tracker->update_tracking(tracking, offset);
 }
 
 void wivrn_session::operator()(from_headset::derived_pose && derived)

@@ -287,13 +287,7 @@ struct tracking
 		bool lip_active;
 	};
 
-	struct pico_face
-	{
-		std::array<float, XR_BLEND_SHAPE_COUNT_PICO> weights;
-		bool is_valid;
-	};
-
-	std::variant<std::monostate, fb_face2, htc_face, pico_face> face;
+	std::variant<std::monostate, fb_face2, htc_face> face;
 };
 
 struct trackings

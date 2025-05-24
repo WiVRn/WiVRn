@@ -44,6 +44,6 @@ public:
 	pico_face_tracker(instance & inst, session & s);
 	~pico_face_tracker();
 
-	void get_weights(XrTime time, struct wivrn::from_headset::tracking::pico_face & out_expressions);
+	void get_weights(XrTime time, struct wivrn::from_headset::tracking::fb_face2 & out_expressions);
 };
 } // namespace xr

@@ -349,7 +349,7 @@ void scenes::stream::tracking()
 								break;
 							}
 							case wivrn::from_headset::face_type::pico:
-								application::get_pico_face_tracker().get_weights(t0 + Δt, packet.face.emplace<wivrn::from_headset::tracking::pico_face>());
+								application::get_pico_face_tracker().get_weights(t0 + Δt, packet.face.emplace<wivrn::from_headset::tracking::fb_face2>());
 								break;
 						}
 					}
