@@ -251,6 +251,23 @@ modules:
       url: https://github.com/qcoro/qcoro.git
       tag: v0.11.0
 
+  - name: openxr
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DBUILD_API_LAYERS=OFF
+      - -DBUILD_TESTING=OFF
+      - -DBUILD_TESTS=OFF
+      - -DBUILD_WITH_SYSTEM_JSONCPP=OFF
+    sources:
+      - type: git
+        url: https://github.com/KhronosGroup/OpenXR-SDK-Source.git
+        tag: f17d5eac9d88987a194c8f18c829add447298d36
+      - type: shell
+        commands:
+          - sed 's/sys.path.append(/sys.path.insert(0,/' -i ./specification/scripts/jinja_helpers.py
+    cleanup:
+      - '*'
+
   - name: opencomposite
     buildsystem: cmake-ninja
     build-options:
@@ -274,6 +291,27 @@ modules:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
         tag: 538639b86c5c71223f11040b09479e5c0a83078c
+
+  - name: vapor
+    buildsystem: cmake-ninja
+    build-options:
+      cflags: -Wp,-U_FORTIFY_SOURCE -Wp,-D_FORTIFY_SOURCE=2 -idirafter/usr/include
+      cxxflags: -Wp,-U_FORTIFY_SOURCE -Wp,-D_FORTIFY_SOURCE=2 -idirafter/usr/include
+      arch:
+        aarch64:
+          ldflags: -L/usr/lib/aarch64-linux-gnu -Wl,--warn-unresolved-symbols
+          env:
+            CC: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc
+            CXX: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++
+        x86_64:
+          ldflags: -L/usr/lib/x86_64-linux-gnu -Wl,--warn-unresolved-symbols
+          env:
+            CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
+            CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
+    sources:
+      - type: git
+        url: https://github.com/micheal65536/VapoR.git
+        tag: e6f5ee412144c9b93056ffe9f819a08399ba14b6
 
   - name: xrizer
     buildsystem: simple
