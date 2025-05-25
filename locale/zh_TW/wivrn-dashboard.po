@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-11 16:16+0800\n"
+"POT-Creation-Date: 2025-05-25 23:48+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -101,8 +101,8 @@ msgid ""
 "master/docs/building.md#client-headset\">documentation</a> to build your own "
 "client."
 msgstr ""
-"請按照 <a href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/building."
-"md#client-headset\">文件</a>中的說明建置您自己的用戶端。"
+"請按照 <a href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/"
+"building.md#client-headset\">文件</a>中的說明建置您自己的用戶端。"
 
 #: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetsPage.qml:183
 #: dashboard/qml/HeadsetStatsPage.qml:36 dashboard/qml/TroubleshootPage.qml:59
@@ -523,54 +523,44 @@ msgstr "H.265"
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:323
+#: dashboard/qml/SettingsPage.qml:344
 #, kde-format
 msgid "Custom adb location"
 msgstr "自訂 adb 位置"
 
-#: dashboard/qml/SettingsPage.qml:334
+#: dashboard/qml/SettingsPage.qml:355
 #, kde-format
 msgid "Adb location:"
 msgstr "adb 位置："
 
-#: dashboard/qml/SettingsPage.qml:343
+#: dashboard/qml/SettingsPage.qml:364
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "瀏覽"
 
-#: dashboard/qml/SettingsPage.qml:353
+#: dashboard/qml/SettingsPage.qml:374
 #, kde-format
 msgid "Default"
 msgstr "預設"
 
-#: dashboard/qml/SettingsPage.qml:360
-#, kde-format
-msgid "xrizer"
-msgstr "xrizer"
-
-#: dashboard/qml/SettingsPage.qml:365
-#, kde-format
-msgid "Open Composite"
-msgstr "Open Composite"
-
-#: dashboard/qml/SettingsPage.qml:372
+#: dashboard/qml/SettingsPage.qml:388
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "自訂"
 
-#: dashboard/qml/SettingsPage.qml:377
+#: dashboard/qml/SettingsPage.qml:393
 #, kde-format
 msgid "Disabled"
 msgstr "已停用"
 
-#: dashboard/qml/SettingsPage.qml:385
+#: dashboard/qml/SettingsPage.qml:401
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR 相容性函式庫："
 
-#: dashboard/qml/SettingsPage.qml:411
+#: dashboard/qml/SettingsPage.qml:427
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "函式庫路徑，不包含 bin/linux64/vrclient.so"
@@ -863,3 +853,18 @@ msgstr "完成"
 #, kde-format
 msgid "Finished"
 msgstr "已完成"
+
+#: dashboard/wivrn_server.cpp:584
+#, kde-format
+msgid "xrizer"
+msgstr "xrizer"
+
+#: dashboard/wivrn_server.cpp:585
+#, kde-format
+msgid "Open Composite"
+msgstr "Open Composite"
+
+#: dashboard/wivrn_server.cpp:586
+#, kde-format
+msgid "VapoR"
+msgstr "VapoR"

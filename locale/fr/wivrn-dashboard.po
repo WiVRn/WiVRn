@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-22 18:25+0200\n"
+"POT-Creation-Date: 2025-05-25 23:48+0200\n"
 "PO-Revision-Date: 2025-05-22 18:33+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
@@ -916,3 +916,8 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#: dashboard/wivrn_server.cpp:586
+#, kde-format
+msgid "VapoR"
+msgstr "VapoR"

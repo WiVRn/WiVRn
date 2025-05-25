@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-29 19:40+0200\n"
+"POT-Creation-Date: 2025-05-25 23:48+0200\n"
 "PO-Revision-Date: 2025-05-05 21:15+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
@@ -106,8 +106,8 @@ msgstr ""
 "docs/building.md#client-headset\">documentação</a> para construir seu "
 "próprio cliente."
 
-#: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetStatsPage.qml:36
-#: dashboard/qml/HeadsetsPage.qml:183 dashboard/qml/TroubleshootPage.qml:59
+#: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetsPage.qml:183
+#: dashboard/qml/HeadsetStatsPage.qml:36 dashboard/qml/TroubleshootPage.qml:59
 #, kde-format
 msgctxt "go back to the home page"
 msgid "Back"
@@ -132,11 +132,6 @@ msgstr "Reinstalar WiVRn"
 #, kde-format
 msgid "Install WiVRn"
 msgstr "Instalar WiVRn"
-
-#: dashboard/qml/HeadsetStatsPage.qml:12
-#, kde-format
-msgid "Headset statistics"
-msgstr "Estatísticas do headset"
 
 #: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:342
 #, kde-format
@@ -228,6 +223,11 @@ msgstr "Habilitar pareamento"
 #, kde-format
 msgid "Pair a new headset"
 msgstr "Parear um novo headset"
+
+#: dashboard/qml/HeadsetStatsPage.qml:12
+#, kde-format
+msgid "Headset statistics"
+msgstr "Estatísticas do headset"
 
 #: dashboard/qml/Main.qml:103
 #, kde-format
@@ -530,54 +530,44 @@ msgstr "H.265"
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:323
+#: dashboard/qml/SettingsPage.qml:344
 #, kde-format
 msgid "Custom adb location"
 msgstr "Caminho personalizado do adb"
 
-#: dashboard/qml/SettingsPage.qml:334
+#: dashboard/qml/SettingsPage.qml:355
 #, kde-format
 msgid "Adb location:"
 msgstr "Caminho do adb:"
 
-#: dashboard/qml/SettingsPage.qml:343
+#: dashboard/qml/SettingsPage.qml:364
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Navegar"
 
-#: dashboard/qml/SettingsPage.qml:353
+#: dashboard/qml/SettingsPage.qml:374
 #, kde-format
 msgid "Default"
 msgstr "Default"
 
-#: dashboard/qml/SettingsPage.qml:360
-#, kde-format
-msgid "xrizer"
-msgstr "xrizer"
-
-#: dashboard/qml/SettingsPage.qml:365
-#, kde-format
-msgid "Open Composite"
-msgstr "Open Composite"
-
-#: dashboard/qml/SettingsPage.qml:372
+#: dashboard/qml/SettingsPage.qml:388
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SettingsPage.qml:377
+#: dashboard/qml/SettingsPage.qml:393
 #, kde-format
 msgid "Disabled"
 msgstr "Desabilitado"
 
-#: dashboard/qml/SettingsPage.qml:385
+#: dashboard/qml/SettingsPage.qml:401
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Biblioteca de compatibilidade OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:411
+#: dashboard/qml/SettingsPage.qml:427
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Caminho da biblioteca, excluindo bin/linux64/vrclient.so"
@@ -886,3 +876,18 @@ msgstr "Terminar"
 #, kde-format
 msgid "Finished"
 msgstr "Terminado"
+
+#: dashboard/wivrn_server.cpp:584
+#, kde-format
+msgid "xrizer"
+msgstr "xrizer"
+
+#: dashboard/wivrn_server.cpp:585
+#, kde-format
+msgid "Open Composite"
+msgstr "Open Composite"
+
+#: dashboard/wivrn_server.cpp:586
+#, kde-format
+msgid "VapoR"
+msgstr "VapoR"
