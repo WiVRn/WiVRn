@@ -34,11 +34,36 @@
 xr::vive_xr_tracker::vive_xr_tracker(uint8_t id, xr::space s) :
         space(std::move(s)), id(id) {}
 
-XrPosef xr::vive_xr_tracker::get_pose(instance & inst, session & session, XrTime time, XrSpace & reference)
+wivrn::from_headset::tracking::pose xr::vive_xr_tracker::get_pose(instance & inst, session & session, XrTime time, XrSpace & reference)
 {
-	XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION};
+	XrSpaceVelocity velocity{.type = XR_TYPE_SPACE_VELOCITY};
+	XrSpaceLocation location{.type = XR_TYPE_SPACE_LOCATION, .next = &velocity};
 	xrLocateSpace(space, reference, time, &location);
-	return location.pose;
+	wivrn::from_headset::tracking::pose res{
+	    .pose = location.pose,
+		.linear_velocity = velocity.linearVelocity,
+		.angular_velocity = velocity.angularVelocity,
+		.flags = 0
+	};
+	if (location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+		res.flags |= wivrn::from_headset::tracking::orientation_valid;
+
+	if (location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+		res.flags |= wivrn::from_headset::tracking::position_valid;
+
+	if (velocity.velocityFlags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
+		res.flags |= wivrn::from_headset::tracking::linear_velocity_valid;
+
+	if (velocity.velocityFlags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
+		res.flags |= wivrn::from_headset::tracking::angular_velocity_valid;
+
+	if (location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+		res.flags |= wivrn::from_headset::tracking::orientation_tracked;
+
+	if (location.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+		res.flags |= wivrn::from_headset::tracking::position_tracked;
+
+	return res;
 };
 
 xr::space * xr::vive_xr_tracker::get_space()
@@ -126,7 +151,10 @@ std::vector<wivrn::from_headset::tracking::motion_tracker> xr::xr_tracker_compos
 	{
 		if (tracker.get_active())
 		{
-			packet.emplace_back(wivrn::from_headset::tracking::motion_tracker{.id = tracker.id, .pose = tracker.get_pose(inst, session, time, reference)});
+			packet.emplace_back(
+			        wivrn::from_headset::tracking::motion_tracker{
+			                .id = tracker.id,
+			                .tracker_pose = tracker.get_pose(inst, session, time, reference)});
 		}
 	}
 	return packet;

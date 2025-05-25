@@ -213,7 +213,12 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
-		info.motion_tracking = config.check_feature(feature::motion_tracking);
+		if (config.check_feature(feature::motion_tracking)) {
+		    for (auto & tracker: application::get_vive_xr_trackers()) {
+				if (tracker.get_active())
+				    info.motion_tracking++;
+			}
+		}
 
 		if (config.check_feature(feature::face_tracking))
 		{

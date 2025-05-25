@@ -45,7 +45,7 @@ public:
 	const uint8_t id;
 
 	vive_xr_tracker(uint8_t id, xr::space s);
-	XrPosef get_pose(instance & inst, session & session, XrTime time, XrSpace & reference);
+	wivrn::from_headset::tracking::pose get_pose(instance & inst, session & session, XrTime time, XrSpace & reference);
 	void set_active(bool active);
 	bool get_active();
 	xr::space * get_space();

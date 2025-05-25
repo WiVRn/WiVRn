@@ -109,6 +109,7 @@ static input_data map_input(device_id id)
 		case device_id::RIGHT_TRIGGER_HAPTIC:
 		case device_id::LEFT_THUMB_HAPTIC:
 		case device_id::RIGHT_THUMB_HAPTIC:
+		case device_id::GENERIC_TRACKER:
 			break;
 		case device_id::LEFT_GRIP:
 			return {WIVRN_CONTROLLER_GRIP_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
