@@ -153,7 +153,7 @@ stream_reprojection::stream_reprojection(
 	{
 		vk::ImageViewCreateInfo iv_info{
 		        .image = input_image,
-		        .viewType = vk::ImageViewType::e2DArray,
+		        .viewType = vk::ImageViewType::e2D,
 		        .format = vk::Format::eA8B8G8R8SrgbPack32,
 		        .components = {
 		                .r = vk::ComponentSwizzle::eIdentity,
