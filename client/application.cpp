@@ -1356,11 +1356,7 @@ application::application(application_info info) :
 		}
 	};
 
-#ifdef __ANDROID__
 	wifi = wifi_lock::make_wifi_lock(app_info.native_app->activity->clazz);
-#else
-	wifi = std::make_shared<wifi_lock>();
-#endif
 
 	// Initialize the loader for this platform
 	PFN_xrInitializeLoaderKHR initializeLoader = nullptr;
@@ -1376,6 +1372,7 @@ application::application(application_info info) :
 	}
 
 #else
+	wifi = std::make_shared<wifi_lock>();
 	config_path = xdg_config_home() / "wivrn";
 	cache_path = xdg_cache_home() / "wivrn";
 #endif
