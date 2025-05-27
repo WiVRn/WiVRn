@@ -6,7 +6,7 @@ if [ -d ".git" ] ; then
 	git config --local commit.gpgsign false
 	git am --abort 2> /dev/null
 	git checkout .
-	exec git am "$@"
+	exec git am --committer-date-is-author-date "$@"
 fi
 
 # There is no reliable way to apply a patch and succeed if it was
