@@ -20,6 +20,7 @@
 #include "application.h"
 #include "stream.h"
 #include "wivrn_packets.h"
+#include "xr/htc_xr_tracker.h"
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -241,6 +242,7 @@ void scenes::stream::tracking()
 	std::vector<serialization_packet> packets;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
+	const bool motion_tracking = config.check_feature(feature::motion_tracking);
 	from_headset::face_type face_tracking = from_headset::face_type::none;
 	if (config.check_feature(feature::face_tracking))
 	{
@@ -305,6 +307,11 @@ void scenes::stream::tracking()
 					{
 						if (enabled(control, device))
 							packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
+					}
+
+					if (motion_tracking and control.enabled[size_t(tid::motion_trackers)])
+					{
+						packet.motion_trackers = xr::xr_tracker_compose_packet(instance, session, t0 + Δt, world_space, application::get_vive_xr_trackers());
 					}
 
 					// Hand tracking data are very large, send fewer samples than other items
