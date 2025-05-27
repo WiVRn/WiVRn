@@ -1,9 +1,9 @@
 #!/bin/sh
 
 if [ -d ".git" ] ; then
-	git config user.email > /dev/null || git config user.email "git-am@invalid"
-	git config user.name > /dev/null || git config user.name "no name"
-	git config --local commit.gpgsign false
+	git config --worktree user.email "git-am@invalid"
+	git config --worktree user.name "no name"
+	git config --worktree commit.gpgsign false
 	git am --abort 2> /dev/null
 	git checkout .
 	exec git am --committer-date-is-author-date "$@"
