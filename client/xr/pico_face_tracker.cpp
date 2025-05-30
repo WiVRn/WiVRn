@@ -25,7 +25,9 @@
 #include "xr/pico_eye_types.h"
 #include "xr/session.h"
 #include "xr/to_string.h"
+
 #include <cstring>
+#include <stdexcept>
 #include <openxr/openxr.h>
 
 xr::pico_face_tracker::pico_face_tracker(instance & inst, session & s_) :
@@ -36,14 +38,31 @@ xr::pico_face_tracker::pico_face_tracker(instance & inst, session & s_) :
 	xrSetTrackingModePICO = inst.get_proc<PFN_xrSetTrackingModePICO>("xrSetTrackingModePICO");
 	xrGetFaceTrackingStatePICO = inst.get_proc<PFN_xrGetFaceTrackingStatePICO>("xrGetFaceTrackingStatePICO");
 	xrGetFaceTrackingDataPICO = inst.get_proc<PFN_xrGetFaceTrackingDataPICO>("xrGetFaceTrackingDataPICO");
-
-	CHECK_XR(xrStartEyeTrackingPICO(s));
-	CHECK_XR(xrSetTrackingModePICO(s, XR_TRACKING_MODE_FACE_BIT_PICO));
 }
 xr::pico_face_tracker::~pico_face_tracker()
 {
+	if (started)
+		stop();
+}
+
+void xr::pico_face_tracker::start()
+{
+	if (started)
+		throw std::invalid_argument("face tracking already started");
+
+	CHECK_XR(xrStartEyeTrackingPICO(s));
+	CHECK_XR(xrSetTrackingModePICO(s, XR_TRACKING_MODE_FACE_BIT_PICO));
+	started = true;
+}
+void xr::pico_face_tracker::stop()
+{
+	if (!started)
+		throw std::invalid_argument("face tracking not started");
+
 	if (auto res = xrStopEyeTrackingPICO(s, XR_TRACKING_MODE_FACE_BIT_PICO); !XR_SUCCEEDED(res))
 		spdlog::warn("Failed to deactivate face tracking: {}", xr::to_string(res));
+
+	started = false;
 }
 
 void xr::pico_face_tracker::get_weights(XrTime time, wivrn::from_headset::tracking::fb_face2 & out_expressions)

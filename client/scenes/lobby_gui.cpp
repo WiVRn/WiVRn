@@ -1344,12 +1344,7 @@ static const char * get_face_icon(XrTime predicted_display_time)
 {
 	static const auto w = face_weights();
 	wivrn::from_headset::tracking::fb_face2 expression;
-	if (application::get_fb_face_tracking2_supported())
-		application::get_fb_face_tracker2().get_weights(predicted_display_time, expression);
-	else if (application::get_pico_face_tracking_supported())
-		application::get_pico_face_tracker().get_weights(predicted_display_time, expression);
-	else
-		__builtin_unreachable();
+	application::get_fb_face_tracker2().get_weights(predicted_display_time, expression);
 
 	if (not expression.is_valid)
 		return ICON_FA_FACE_MEH;
@@ -1413,7 +1408,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (application::get_fb_face_tracking2_supported() or application::get_pico_face_tracking_supported())
+	if (application::get_fb_face_tracking2_supported())
 	{
 		items.push_back({
 		        .f = feature::face_tracking,
@@ -1424,7 +1419,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
+	if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported() or application::get_pico_face_tracking_supported())
 	{
 		items.push_back({
 		        .f = feature::face_tracking,
