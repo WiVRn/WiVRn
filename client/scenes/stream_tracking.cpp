@@ -249,7 +249,13 @@ void scenes::stream::tracking()
 		else if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
 			face_tracking = from_headset::face_type::htc;
 		else if (application::get_pico_face_tracking_supported())
+		{
 			face_tracking = from_headset::face_type::pico;
+			// We can't start the face tracking on application initialisation like we do for
+			// other face trackers due to a Pico runtime bug where face tracking freezes when
+			// the headset is taken off or the application is quit.
+			application::get_pico_face_tracker().start();
+		}
 	}
 
 	on_interaction_profile_changed({});
@@ -444,6 +450,9 @@ void scenes::stream::tracking()
 			exit();
 		}
 	}
+
+	if (face_tracking == from_headset::face_type::pico)
+		application::get_pico_face_tracker().stop();
 }
 
 void scenes::stream::operator()(to_headset::tracking_control && packet)
