@@ -24,6 +24,7 @@
 #include "wivrn_session.h"
 
 #include "util/u_logging.h"
+#include "utils/method.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_results.h"
@@ -36,36 +37,21 @@
 namespace wivrn
 {
 
-static void wivrn_fb_face2_tracker_destroy(xrt_device * xdev);
-
-static xrt_result_t wivrn_fb_face2_tracker_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_fb_face2_tracker *>(xdev)->update_inputs();
-	return XRT_SUCCESS;
-}
-
-static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device * xdev,
-                                                             enum xrt_input_name facial_expression_type,
-                                                             int64_t at_timestamp_ns,
-                                                             struct xrt_facial_expression_set * out_value);
-
 wivrn_fb_face2_tracker::wivrn_fb_face2_tracker(xrt_device * hmd,
                                                wivrn::wivrn_session & cnx) :
-        xrt_device{}, cnx(cnx)
+        xrt_device{
+                .name = XRT_DEVICE_FB_FACE_TRACKING2,
+                .device_type = XRT_DEVICE_TYPE_FACE_TRACKER,
+                .str = "WiVRn FB v2 Face Tracker",
+                .serial = "WiVRn FB v2 Face Tracker",
+                .tracking_origin = hmd->tracking_origin,
+                .face_tracking_supported = true,
+                .update_inputs = method_pointer<&wivrn_fb_face2_tracker::update_inputs>,
+                .get_face_tracking = method_pointer<&wivrn_fb_face2_tracker::get_face_tracking>,
+                .destroy = [](xrt_device *) {},
+        },
+        cnx(cnx)
 {
-	xrt_device * base = this;
-	base->tracking_origin = hmd->tracking_origin;
-	base->get_face_tracking = wivrn_fb_face2_tracker_get_face_tracking;
-	base->update_inputs = wivrn_fb_face2_tracker_update_inputs;
-	base->destroy = wivrn_fb_face2_tracker_destroy;
-	name = XRT_DEVICE_FB_FACE_TRACKING2;
-	device_type = XRT_DEVICE_TYPE_FACE_TRACKER;
-	face_tracking_supported = true;
-
-	// Print name.
-	strcpy(str, "WiVRn FB v2 Face Tracker");
-	strcpy(serial, "WiVRn FB v2 Face Tracker");
-
 	// Setup input.
 	face_input.name = XRT_INPUT_FB_FACE_TRACKING2_VISUAL;
 	face_input.active = true;
@@ -73,22 +59,22 @@ wivrn_fb_face2_tracker::wivrn_fb_face2_tracker(xrt_device * hmd,
 	input_count = 1;
 }
 
-void wivrn_fb_face2_tracker::update_inputs()
+xrt_result_t wivrn_fb_face2_tracker::update_inputs()
 {
-	// Empty
+	return XRT_SUCCESS;
 }
 
 void wivrn_fb_face2_tracker::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	if (not(tracking.face and tracking.face->is_valid))
+	auto * face = std::get_if<from_headset::tracking::fb_face2>(&tracking.face);
+	if (not(face and face->is_valid))
 		return;
-	const auto & face = *tracking.face;
 
 	wivrn_fb_face2_data data{
-	        .weights = face.weights,
-	        .confidences = face.confidences,
-	        .is_valid = face.is_valid,
-	        .is_eye_following_blendshapes_valid = face.is_eye_following_blendshapes_valid,
+	        .weights = face->weights,
+	        .confidences = face->confidences,
+	        .is_valid = face->is_valid,
+	        .is_eye_following_blendshapes_valid = face->is_eye_following_blendshapes_valid,
 	};
 
 	if (not face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset))
@@ -118,23 +104,5 @@ xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facia
 	}
 
 	return XRT_ERROR_NOT_IMPLEMENTED;
-}
-
-/*
- *
- * Functions
- *
- */
-
-static void wivrn_fb_face2_tracker_destroy(xrt_device * xdev)
-{
-}
-
-static xrt_result_t wivrn_fb_face2_tracker_get_face_tracking(struct xrt_device * xdev,
-                                                             enum xrt_input_name facial_expression_type,
-                                                             int64_t at_timestamp_ns,
-                                                             struct xrt_facial_expression_set * inout_value)
-{
-	return static_cast<wivrn_fb_face2_tracker *>(xdev)->get_face_tracking(facial_expression_type, at_timestamp_ns, inout_value);
 }
 } // namespace wivrn

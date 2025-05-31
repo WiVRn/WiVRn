@@ -202,13 +202,15 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		static_roles.eyes = eye_tracker.get();
 		xdevs[xdev_count++] = eye_tracker.get();
 	}
-	if (get_info().face_tracking == wivrn::from_headset::face_type::fb2 || is_forced_extension("FB_face_tracking2"))
+
+	auto face = get_info().face_tracking;
+	if (face == from_headset::face_type::fb2 || face == from_headset::face_type::pico || is_forced_extension("FB_face_tracking2"))
 	{
 		fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(&hmd, *this);
 		static_roles.face = fb_face2_tracker.get();
 		xdevs[xdev_count++] = fb_face2_tracker.get();
 	}
-	if (get_info().face_tracking == wivrn::from_headset::face_type::htc || is_forced_extension("HTC_facial_tracking"))
+	if (face == wivrn::from_headset::face_type::htc || is_forced_extension("HTC_facial_tracking"))
 	{
 		htc_face_tracker = std::make_unique<wivrn_htc_face_tracker>(&hmd, *this);
 		static_roles.face = htc_face_tracker.get();
