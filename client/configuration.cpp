@@ -121,6 +121,18 @@ bool configuration::check_feature(feature f) const
 							return false;
 						break;
 				}
+				break;
+			case feature::body_tracking:
+				switch (guess_model())
+				{
+					case model::meta_quest_3:
+					case model::meta_quest_3s:
+						if (not application::get_fb_body_tracking_supported())
+							return false;
+					default:
+						break;
+				}
+				break;
 		}
 	}
 #ifdef __ANDROID__

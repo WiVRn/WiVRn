@@ -258,6 +258,18 @@ void scenes::stream::tracking()
 		}
 	}
 
+	enum {
+		body_none,
+		body_fb,
+		body_pico,
+	} body_tracking = body_none;
+
+	if (config.check_feature(feature::body_tracking))
+	{
+		if (application::get_fb_body_tracking_supported())
+			body_tracking = body_fb;
+	}
+
 	on_interaction_profile_changed({});
 
 	while (not exiting)
@@ -357,6 +369,21 @@ void scenes::stream::tracking()
 							case wivrn::from_headset::face_type::pico:
 								application::get_pico_face_tracker().get_weights(t0 + Δt, packet.face.emplace<wivrn::from_headset::tracking::fb_face2>());
 								break;
+						}
+					}
+
+					if (control.enabled[size_t(tid::generic_tracker)])
+					{
+						switch (body_tracking)
+						{
+							case body_none:
+								break;
+							case body_fb:
+								application::get_fb_body_tracker().locate_spaces(t0 + Δt, packet.device_poses, world_space);
+								break;
+							case body_pico:
+								// TODO
+								__builtin_unreachable();
 						}
 					}
 				}

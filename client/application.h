@@ -25,6 +25,7 @@
 #include "xr/hand_tracker.h"
 #include "xr/htc_face_tracker.h"
 #include "xr/pico_face_tracker.h"
+#include "xr/fb_body_tracker.h"
 #ifdef __ANDROID__
 #include <android_native_app_glue.h>
 #endif
@@ -136,6 +137,10 @@ class application : public singleton<application>
 
 	bool pico_face_tracking_supported = false;
 	xr::pico_face_tracker pico_face_tracker;
+
+	bool fb_body_tracking_supported = false;
+	xr::fb_body_tracker fb_body_tracker;
+	bool pico_body_tracking_supported = false;
 
 	bool eye_gaze_supported = false;
 
@@ -445,6 +450,11 @@ public:
 		return instance().pico_face_tracking_supported;
 	}
 
+	static bool get_fb_body_tracking_supported()
+	{
+		return instance().fb_body_tracking_supported;
+	}
+
 	static bool get_eye_gaze_supported()
 	{
 		return instance().eye_gaze_supported;
@@ -483,6 +493,11 @@ public:
 	static xr::pico_face_tracker & get_pico_face_tracker()
 	{
 		return instance().pico_face_tracker;
+	}
+
+	static xr::fb_body_tracker & get_fb_body_tracker()
+	{
+		return instance().fb_body_tracker;
 	}
 
 	static const std::vector<std::string> & get_xr_extensions()

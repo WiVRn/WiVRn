@@ -23,6 +23,7 @@
 #include "driver/app_pacer.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
+#include "wivrn_generic_tracker.h"
 #include "wivrn_hmd.h"
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
@@ -33,6 +34,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 struct u_system;
 struct xrt_space_overseer;
@@ -110,6 +112,7 @@ class wivrn_session : public xrt_system_devices
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::unique_ptr<wivrn_htc_face_tracker> htc_face_tracker;
 	std::unique_ptr<wivrn_foveation> foveation;
+	std::vector<std::unique_ptr<wivrn_generic_tracker>> generic_trackers;
 	wivrn_comp_target * comp_target;
 
 	clock_offset_estimator offset_est;

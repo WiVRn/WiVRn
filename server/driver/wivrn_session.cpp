@@ -42,6 +42,7 @@
 #include "wivrn_packets.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
+#include <chrono>
 #include <cmath>
 #include <magic_enum.hpp>
 #include <stdexcept>
@@ -215,6 +216,20 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		htc_face_tracker = std::make_unique<wivrn_htc_face_tracker>(&hmd, *this);
 		static_roles.face = htc_face_tracker.get();
 		xdevs[xdev_count++] = htc_face_tracker.get();
+	}
+
+	if (auto num_trackers = get_info().num_generic_trackers; num_trackers > 0)
+	{
+		generic_trackers.clear();
+		generic_trackers.reserve(num_trackers);
+		U_LOG_I("Creating %d generic trackers", num_trackers);
+
+		for (int i = 1; i <= num_trackers; ++i)
+		{
+			auto dev = std::make_unique<wivrn_generic_tracker>(i, &hmd, *this);
+			xdevs[xdev_count++] = dev.get();
+			generic_trackers.push_back(std::move(dev));
+		}
 	}
 
 #if WIVRN_FEATURE_SOLARXR
@@ -413,6 +428,29 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 		fb_face2_tracker->update_tracking(tracking, offset);
 	else if (htc_face_tracker)
 		htc_face_tracker->update_tracking(tracking, offset);
+
+	auto num_trackers = std::count_if(tracking.device_poses.cbegin(), tracking.device_poses.cend(), [](const from_headset::tracking::pose & p) { return p.device == device_id::GENERIC_TRACKER; });
+	if (num_trackers == generic_trackers.size())
+	{
+		// the generic trackers should always be at end of poses list
+		auto tracker = std::find_if(tracking.device_poses.cbegin(), tracking.device_poses.cend(), [](auto & p) { return p.device == device_id::GENERIC_TRACKER; });
+		assert(tracker != tracking.device_poses.cend());
+		for (size_t i = 0; i < num_trackers; ++i, ++tracker)
+		{
+			generic_trackers[i]->update_tracking(tracking, *tracker, offset);
+		}
+	}
+	else
+	{
+		static std::chrono::steady_clock::time_point last_log{ std::chrono::nanoseconds(0) };
+		auto now = std::chrono::steady_clock::now();
+		// rate limit it because the log gets annoying when i'm trying to debug
+		if (now - last_log > std::chrono::milliseconds(100))
+		{
+			U_LOG_W("[rate limited] Generic tracker count mismatch! Expected %" PRIu64 " poses, got %" PRIu64 " poses", generic_trackers.size(), num_trackers);
+			last_log = now;
+		}
+	}
 }
 
 void wivrn_session::operator()(from_headset::derived_pose && derived)

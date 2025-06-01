@@ -23,6 +23,8 @@
 #include "details/enumerate.h"
 #include "openxr/openxr.h"
 #include "utils/contains.h"
+#include "xr/fb_body_tracker.h"
+//#include "xr/pico_body_tracker.h"
 #include "xr/instance.h"
 #include "xr/system.h"
 #include <ranges>
@@ -141,6 +143,40 @@ xr::pico_face_tracker xr::session::create_pico_face_tracker()
 {
 	return {*inst, *this};
 }
+
+xr::fb_body_tracker xr::session::create_fb_body_tracker()
+{
+	XrBodyTrackerCreateInfoFB create_info{
+			.type = XR_TYPE_BODY_TRACKER_CREATE_INFO_FB,
+			.next = nullptr,
+			.bodyJointSet = XR_BODY_JOINT_SET_DEFAULT_FB,
+	};
+
+	XrBodyTrackerFB bt;
+
+	auto xrCreateBodyTrackerFB = inst->get_proc<PFN_xrCreateBodyTrackerFB>("xrCreateBodyTrackerFB");
+	assert(xrCreateBodyTrackerFB);
+
+	CHECK_XR(xrCreateBodyTrackerFB(id, &create_info, &bt));
+	return {*inst, bt};
+}
+
+/*xr::pico_body_tracker xr::session::create_pico_body_tracker()
+{
+	XrBodyTrackerCreateInfoBD create_info{
+			.type = XR_TYPE_BODY_TRACKER_CREATE_INFO_BD,
+			.next = nullptr,
+			.jointSet = XR_BODY_JOINT_SET_FULL_BODY_JOINTS_BD,
+	};
+
+	XrBodyTrackerBD bt;
+
+	auto xrCreateBodyTrackerBD = inst->get_proc<PFN_xrCreateBodyTrackerBD>("xrCreateBodyTrackerBD");
+	assert(xrCreateBodyTrackerBD);
+
+	CHECK_XR(xrCreateBodyTrackerBD(id, &create_info, &bt));
+	return {*inst, bt};
+}*/
 
 std::vector<vk::Format> xr::session::get_swapchain_formats() const
 {
