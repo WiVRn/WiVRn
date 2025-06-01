@@ -258,6 +258,26 @@ void scenes::stream::tracking()
 		}
 	}
 
+	enum
+	{
+		body_none,
+		body_fb,
+		body_pico,
+	} body_tracking = body_none;
+
+	if (config.check_feature(feature::body_tracking))
+	{
+		if (application::get_fb_body_tracking_supported())
+		{
+			body_tracking = body_fb;
+			// We start the tracker on connection because there are togglable settings.
+			// TODO handle reconnection?
+			application::get_fb_body_tracker().start(config.fb_lower_body);
+		}
+		else if (application::get_pico_body_tracking_supported())
+			body_tracking = body_pico;
+	}
+
 	on_interaction_profile_changed({});
 
 	while (not exiting)
@@ -359,6 +379,21 @@ void scenes::stream::tracking()
 								break;
 						}
 					}
+
+					if (control.enabled[size_t(tid::generic_tracker)])
+					{
+						switch (body_tracking)
+						{
+							case body_none:
+								break;
+							case body_fb:
+								application::get_fb_body_tracker().locate_spaces(t0 + Δt, packet.device_poses, world_space);
+								break;
+							case body_pico:
+								application::get_pico_body_tracker().locate_spaces(t0 + Δt, packet.device_poses, world_space);
+								break;
+						}
+					}
 				}
 				catch (const std::system_error & e)
 				{
@@ -453,6 +488,9 @@ void scenes::stream::tracking()
 
 	if (face_tracking == from_headset::face_type::pico)
 		application::get_pico_face_tracker().stop();
+
+	if (body_tracking == body_fb)
+		application::get_fb_body_tracker().stop();
 }
 
 void scenes::stream::operator()(to_headset::tracking_control && packet)

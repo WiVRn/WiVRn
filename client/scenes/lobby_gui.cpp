@@ -740,6 +740,49 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 	}
 
+	{
+		ImGui::BeginDisabled(not(application::get_fb_body_tracking_supported() or application::get_pico_body_tracking_supported()));
+		bool enabled = config.check_feature(feature::body_tracking);
+		if (ImGui::Checkbox(_S("Enable body tracking"), &enabled))
+		{
+			config.set_feature(feature::body_tracking, enabled);
+			config.save();
+		}
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+		{
+			if (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)
+			{
+				tooltip(_("This feature is not supported by your headset"));
+			}
+			else
+			{
+				if (application::get_fb_body_tracking_supported())
+					tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings, otherwise estimated joint positions will be used"));
+				else if (application::get_pico_body_tracking_supported())
+				{
+					tooltip(_("Uses the Pico Motion Trackers to track body joint positions"));
+				}
+			}
+		}
+
+		vibrate_on_hover();
+	}
+	if (application::get_fb_body_tracking_supported())
+	{
+		ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
+		ImGui::Indent();
+		if (ImGui::Checkbox(_S("Enable lower body tracking"), &config.fb_lower_body))
+		{
+			config.save();
+		}
+		vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			tooltip(_("Estimate lower body joint positions using Generative Legs, requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
+		ImGui::Unindent();
+		ImGui::EndDisabled();
+	}
+
 	ImGui::BeginDisabled(passthrough_supported == xr::system::passthrough_type::no_passthrough);
 	if (ImGui::Checkbox(_S("Enable video passthrough in lobby"), &config.passthrough_enabled))
 	{
@@ -1430,6 +1473,16 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
+	if (application::get_fb_body_tracking_supported() or application::get_pico_body_tracking_supported())
+	{
+		items.push_back({
+		        .f = feature::body_tracking,
+		        .tooltip_enabled = _("Body tracking is enabled"),
+		        .tooltip_disabled = _("Body tracking is disabled"),
+		        .icon_enabled = ICON_FA_PERSON,
+		});
+	}
+
 	// Get statuses
 	for (auto & i: items)
 	{
@@ -1456,7 +1509,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		if (&i != &items.front())
 			ImGui::SameLine();
 		auto pos = ImGui::GetCursorPos();
-		if (ImGui::Button(i.enabled ? i.icon_enabled : i.icon_disabled))
+		if (ImGui::Button(fmt::format("{}##{}", i.enabled ? i.icon_enabled : i.icon_disabled, i.icon_enabled).c_str()))
 		{
 			// button doesn't alter the bool
 			config.set_feature(i.f, not i.enabled);
