@@ -36,13 +36,11 @@ xr::pico_face_tracker::pico_face_tracker(instance & inst, session & s_) :
 	xrStartEyeTrackingPICO = inst.get_proc<PFN_xrStartEyeTrackingPICO>("xrStartEyeTrackingPICO");
 	xrStopEyeTrackingPICO = inst.get_proc<PFN_xrStopEyeTrackingPICO>("xrStopEyeTrackingPICO");
 	xrSetTrackingModePICO = inst.get_proc<PFN_xrSetTrackingModePICO>("xrSetTrackingModePICO");
-	xrGetFaceTrackingStatePICO = inst.get_proc<PFN_xrGetFaceTrackingStatePICO>("xrGetFaceTrackingStatePICO");
 	xrGetFaceTrackingDataPICO = inst.get_proc<PFN_xrGetFaceTrackingDataPICO>("xrGetFaceTrackingDataPICO");
 }
 xr::pico_face_tracker::~pico_face_tracker()
 {
-	if (started)
-		stop();
+	stop();
 }
 
 void xr::pico_face_tracker::start()
@@ -57,7 +55,7 @@ void xr::pico_face_tracker::start()
 void xr::pico_face_tracker::stop()
 {
 	if (!started)
-		throw std::invalid_argument("face tracking not started");
+		return;
 
 	if (auto res = xrStopEyeTrackingPICO(s, XR_TRACKING_MODE_FACE_BIT_PICO); !XR_SUCCEEDED(res))
 		spdlog::warn("Failed to deactivate face tracking: {}", xr::to_string(res));
@@ -67,44 +65,22 @@ void xr::pico_face_tracker::stop()
 
 void xr::pico_face_tracker::get_weights(XrTime time, wivrn::from_headset::tracking::fb_face2 & out_expressions)
 {
-	if (!xrGetFaceTrackingDataPICO)
+	out_expressions.is_valid = false;
+	out_expressions.is_eye_following_blendshapes_valid = false;
+
+	if (!started or !xrGetFaceTrackingDataPICO)
 		return;
 
 	XrFaceTrackingDataPICO face_tracking{.time = 0};
 
-	if (auto res = xrGetFaceTrackingDataPICO(s, time, XR_GET_FACE_DATA_DEFAULT_PICO, &face_tracking); res != XR_SUCCESS)
+	if (auto res = xrGetFaceTrackingDataPICO(s, time, XR_GET_FACE_DATA_DEFAULT_PICO, &face_tracking); !XR_SUCCEEDED(res))
 	{
-		XrTrackingModeFlagsPICO mode;
-		XrTrackingStateCodePICO code;
-
-		auto state_res = xrGetFaceTrackingStatePICO(s, &mode, &code);
-		if (XR_SUCCEEDED(state_res))
-			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}, tracking mode state {}, flags {}", xr::to_string(res), xr::to_string(code), mode);
-		else
-			spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}, unable to get face tracking state: {}", xr::to_string(res), xr::to_string(state_res));
-
-		if (auto res = xrStartEyeTrackingPICO(s); !XR_SUCCEEDED(res))
-		{
-			spdlog::warn("Failed to start eye tracking: {}", xr::to_string(res));
-			goto exit;
-		}
-		if (auto res = xrSetTrackingModePICO(s, XR_TRACKING_MODE_FACE_BIT_PICO); !XR_SUCCEEDED(res))
-		{
-			spdlog::warn("Failed to set tracking mode: {}", xr::to_string(res));
-		}
-
-	exit:
-		out_expressions.is_valid = false;
-		out_expressions.is_eye_following_blendshapes_valid = false;
+		spdlog::warn("Unable to get face tracking data: xrGetFaceTrackingDataPICO returned {}", xr::to_string(res));
 		return;
 	}
 
 	if (face_tracking.time == 0)
-	{
-		out_expressions.is_valid = false;
-		out_expressions.is_eye_following_blendshapes_valid = false;
 		return;
-	}
 
 #define MAP_EXPRESSION(fb, pico) \
 	out_expressions.weights[fb] = face_tracking.blendShapeWeight[pico];
