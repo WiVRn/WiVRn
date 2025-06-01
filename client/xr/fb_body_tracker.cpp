@@ -36,8 +36,7 @@ xr::fb_body_tracker::fb_body_tracker(instance & inst, XrBodyTrackerFB h)
 
 void xr::fb_body_tracker::locate_spaces(XrTime time, std::vector<wivrn::from_headset::tracking::pose> & out_poses, XrSpace reference)
 {
-    if (!xrLocateBodyJointsFB)
-        return;
+    assert(xrLocateBodyJointsFB);
 
     XrBodyJointsLocateInfoFB locate_info{
             .type = XR_TYPE_BODY_JOINTS_LOCATE_INFO_FB,
@@ -57,6 +56,17 @@ void xr::fb_body_tracker::locate_spaces(XrTime time, std::vector<wivrn::from_hea
     if (auto res = xrLocateBodyJointsFB(id, &locate_info, &joint_locations); !XR_SUCCEEDED(res))
     {
         spdlog::warn("xrLocateBodyJointsFB returned {}", xr::to_string(res));
+
+        // fill in poses
+        for (size_t i = 0; i < joint_whitelist.size(); ++i)
+        {
+            wivrn::from_headset::tracking::pose pose{
+                .pose = {},
+                .device = wivrn::device_id::GENERIC_TRACKER,
+                .flags = 0,
+            };
+            out_poses.push_back(std::move(pose));
+        }
         return;
     }
 
