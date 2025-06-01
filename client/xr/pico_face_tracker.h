@@ -34,7 +34,6 @@ class pico_face_tracker
 	PFN_xrStartEyeTrackingPICO xrStartEyeTrackingPICO{};
 	PFN_xrStopEyeTrackingPICO xrStopEyeTrackingPICO{};
 	PFN_xrSetTrackingModePICO xrSetTrackingModePICO{};
-	PFN_xrGetFaceTrackingStatePICO xrGetFaceTrackingStatePICO{};
 	PFN_xrGetFaceTrackingDataPICO xrGetFaceTrackingDataPICO{};
 
 	XrSession s;
