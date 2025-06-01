@@ -116,6 +116,7 @@ enum class device_id : uint8_t
 	RIGHT_TRACKPAD_FORCE,    // /user/hand/right/input/trackpad/force
 	RIGHT_STYLUS_FORCE,      // /user/hand/right/input/stylus_fb/force
 	EYE_GAZE,                // /user/eyes_ext/input/gaze_ext/pose
+	GENERIC_TRACKER,
 };
 
 enum class interaction_profile : uint8_t
@@ -220,6 +221,7 @@ struct headset_info_packet
 	bool palm_pose;
 	bool passthrough;
 	face_type face_tracking;
+	uint32_t num_generic_trackers;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 	std::string system_name;
 };
@@ -571,6 +573,7 @@ struct tracking_control
 		left_hand,
 		right_hand,
 		face,
+		generic_tracker,
 		battery,
 		microphone,
 

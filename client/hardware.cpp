@@ -251,6 +251,15 @@ const char * permission_name(feature f)
 					return nullptr;
 			}
 			__builtin_unreachable();
+		case feature::body_tracking:
+			switch (guess_model())
+			{
+				case model::meta_quest_3:
+				case model::meta_quest_3s:
+					return "com.oculus.permission.BODY_TRACKING";
+				default:
+					return nullptr;
+			}
 	}
 	__builtin_unreachable();
 }

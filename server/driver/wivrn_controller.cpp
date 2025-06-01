@@ -234,6 +234,7 @@ static input_data map_input(device_id id)
 			return {WIVRN_CONTROLLER_THUMBREST_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
 		case device_id::RIGHT_STYLUS_FORCE:
 			return {WIVRN_CONTROLLER_STYLUS_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
+		default:
 			break;
 	}
 	throw std::range_error("bad input id " + std::to_string((int)id));

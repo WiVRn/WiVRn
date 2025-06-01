@@ -33,6 +33,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 struct u_system;
 struct xrt_space_overseer;
@@ -44,6 +45,7 @@ namespace wivrn
 class wivrn_eye_tracker;
 class wivrn_fb_face2_tracker;
 class wivrn_htc_face_tracker;
+class wivrn_generic_tracker;
 struct audio_device;
 struct wivrn_comp_target;
 struct wivrn_comp_target_factory;
@@ -80,6 +82,7 @@ public:
 	}
 	void send(wivrn_connection & connection, bool now = false);
 
+	bool get_enabled(to_headset::tracking_control::id id);
 	// Return true if value changed
 	bool set_enabled(to_headset::tracking_control::id id, bool enabled);
 };
@@ -108,6 +111,7 @@ class wivrn_session : public xrt_system_devices
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::unique_ptr<wivrn_htc_face_tracker> htc_face_tracker;
 	std::shared_ptr<wivrn_comp_target> comp_target;
+	std::vector<std::unique_ptr<wivrn_generic_tracker>> generic_trackers;
 
 	clock_offset_estimator offset_est;
 
