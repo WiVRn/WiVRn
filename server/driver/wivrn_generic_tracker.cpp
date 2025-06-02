@@ -116,9 +116,8 @@ wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_
         cnx(cnx)
 {
     auto unique_name = std::format("WiVRn Generic Tracker #{}", index);
-    strlcpy(this->str, unique_name.c_str(), std::size(this->str) - 1);
-    str[std::size(str) - 1] = '\0';
-    strlcpy(this->serial, str, std::size(this->serial));
+    strlcpy(str, unique_name.c_str(), std::size(str));
+    strlcpy(serial, unique_name.c_str(), std::size(serial));
 
     pose_input.name = XRT_INPUT_GENERIC_TRACKER_POSE;
     pose_input.active = true;
