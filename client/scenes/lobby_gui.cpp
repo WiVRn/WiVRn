@@ -1465,7 +1465,6 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 				.tooltip_enabled = _("Body tracking is enabled"),
 				.tooltip_disabled = _("Body tracking is disabled"),
 				.icon_enabled = ICON_FA_PERSON,
-				.icon_disabled = ICON_FA_PERSON_CIRCLE_MINUS,
 		});
 	}
 
@@ -1495,7 +1494,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		if (&i != &items.front())
 			ImGui::SameLine();
 		auto pos = ImGui::GetCursorPos();
-		if (ImGui::Button(i.enabled ? i.icon_enabled : i.icon_disabled))
+		if (ImGui::Button(fmt::format("{}##{}", i.enabled ? i.icon_enabled : i.icon_disabled, i.icon_enabled).c_str()))
 		{
 			// button doesn't alter the bool
 			config.set_feature(i.f, not i.enabled);
