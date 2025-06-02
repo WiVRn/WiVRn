@@ -22,7 +22,7 @@
 #include "wivrn_packets.h"
 
 #include <openxr/openxr.h>
-#include "xr/fb_face_tracker2.h"
+#include "xr/meta_body_tracking_full_body.h"
 #include <vector>
 
 namespace xr
@@ -37,14 +37,20 @@ class fb_body_tracker : public utils::handle<XrBodyTrackerFB, destroy_fb_body_tr
     PFN_xrLocateBodyJointsFB xrLocateBodyJointsFB{};
 public:
     static constexpr std::array joint_whitelist{
-        XR_BODY_JOINT_HIPS_FB,
-        XR_BODY_JOINT_CHEST_FB,
-        XR_BODY_JOINT_LEFT_SHOULDER_FB,
-        XR_BODY_JOINT_RIGHT_SHOULDER_FB,
-        XR_BODY_JOINT_LEFT_ARM_UPPER_FB,
-        XR_BODY_JOINT_RIGHT_ARM_UPPER_FB,
-        XR_BODY_JOINT_LEFT_ARM_LOWER_FB,
-        XR_BODY_JOINT_RIGHT_ARM_LOWER_FB,
+        XR_FULL_BODY_JOINT_HIPS_META,
+        XR_FULL_BODY_JOINT_CHEST_META,
+        XR_FULL_BODY_JOINT_LEFT_ARM_UPPER_META,
+        XR_FULL_BODY_JOINT_RIGHT_ARM_UPPER_META,
+        XR_FULL_BODY_JOINT_LEFT_ARM_LOWER_META,
+        XR_FULL_BODY_JOINT_RIGHT_ARM_LOWER_META,
+
+        XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META,
+        XR_FULL_BODY_JOINT_RIGHT_UPPER_LEG_META,
+        XR_FULL_BODY_JOINT_LEFT_LOWER_LEG_META,
+        XR_FULL_BODY_JOINT_RIGHT_LOWER_LEG_META,
+
+        XR_FULL_BODY_JOINT_LEFT_FOOT_TRANSVERSE_META,
+        XR_FULL_BODY_JOINT_RIGHT_FOOT_TRANSVERSE_META,
     };
 
     fb_body_tracker() = default;

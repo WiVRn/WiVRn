@@ -24,6 +24,7 @@
 #include "openxr/openxr.h"
 #include "utils/contains.h"
 #include "xr/fb_body_tracker.h"
+#include "xr/meta_body_tracking_full_body.h"
 //#include "xr/pico_body_tracker.h"
 #include "xr/instance.h"
 #include "xr/system.h"
@@ -149,7 +150,7 @@ xr::fb_body_tracker xr::session::create_fb_body_tracker()
 	XrBodyTrackerCreateInfoFB create_info{
 			.type = XR_TYPE_BODY_TRACKER_CREATE_INFO_FB,
 			.next = nullptr,
-			.bodyJointSet = XR_BODY_JOINT_SET_DEFAULT_FB,
+			.bodyJointSet = XR_BODY_JOINT_SET_FULL_BODY_META,
 	};
 
 	XrBodyTrackerFB bt;

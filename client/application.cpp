@@ -31,7 +31,8 @@
 #include "wifi_lock.h"
 #include "xr/actionset.h"
 #include "xr/check.h"
-#include "xr/pico_eye_types.h"
+#include "xr/meta_body_tracking_full_body.h"
+#include "xr/meta_body_tracking_fidelity.h"
 #include "xr/xr.h"
 #include <algorithm>
 #include <boost/locale.hpp>
@@ -1042,6 +1043,8 @@ void application::initialize()
 	opt_extensions.push_back(XR_HTC_FACIAL_TRACKING_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_FACE_TRACKING2_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_BODY_TRACKING_EXTENSION_NAME);
+	opt_extensions.push_back(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME);
+	opt_extensions.push_back(XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME);
 	//opt_extensions.push_back(XR_BD_BODY_TRACKING_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_PALM_POSE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
@@ -1143,7 +1146,7 @@ void application::initialize()
 		htc_face_tracking_lip_supported = htc_face_properties.supportLipFacialTracking;
 	}
 
-	if (utils::contains(xr_extensions, XR_FB_BODY_TRACKING_EXTENSION_NAME))
+	if (utils::contains_all(xr_extensions, std::array{XR_FB_BODY_TRACKING_EXTENSION_NAME, XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME, XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME}))
 	{
 		XrSystemBodyTrackingPropertiesFB fb_body_properties = xr_system_id.fb_body_tracking_properties();
 		spdlog::info("    FB body tracking support: {}", (bool)fb_body_properties.supportsBodyTracking);

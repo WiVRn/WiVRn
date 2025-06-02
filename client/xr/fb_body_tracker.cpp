@@ -18,6 +18,8 @@
 
 #include "fb_body_tracker.h"
 #include "spdlog/spdlog.h"
+#include "xr/meta_body_tracking_full_body.h"
+#include "xr/meta_body_tracking_fidelity.h"
 #include "xr/xr.h"
 #include <openxr/openxr.h>
 
@@ -32,6 +34,8 @@ xr::fb_body_tracker::fb_body_tracker(instance & inst, XrBodyTrackerFB h)
 {
     id = h;
     xrLocateBodyJointsFB = inst.get_proc<PFN_xrLocateBodyJointsFB>("xrLocateBodyJointsFB");
+
+    CHECK_XR(inst.get_proc<PFN_xrRequestBodyTrackingFidelityMETA>("xrRequestBodyTrackingFidelityMETA")(id, XR_BODY_TRACKING_FIDELITY_HIGH_META));
 }
 
 void xr::fb_body_tracker::locate_spaces(XrTime time, std::vector<wivrn::from_headset::tracking::pose> & out_poses, XrSpace reference)
@@ -45,7 +49,7 @@ void xr::fb_body_tracker::locate_spaces(XrTime time, std::vector<wivrn::from_hea
             .time = time,
     };
 
-    std::array<XrBodyJointLocationFB, XR_BODY_JOINT_COUNT_FB> joints{};
+    std::array<XrBodyJointLocationFB, XR_FULL_BODY_JOINT_COUNT_META> joints{};
     XrBodyJointLocationsFB joint_locations{
             .type = XR_TYPE_BODY_JOINT_LOCATIONS_FB,
             .next = nullptr,
