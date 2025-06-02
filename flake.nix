@@ -5,10 +5,11 @@
   outputs = inputs@{ nixpkgs, flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [ "x86_64-linux" ];
-      perSystem = { pkgs, ... }: let
+      perSystem = { lib, pkgs, ... }: let
         # Tools used for development work (clangd, clang-format)
         devTools = with pkgs; [
           clang-tools
+          gdb
         ];
         # Extra build inputs not yet in the nixpkgs recipe.
         # Should be submitted to nixpkgs on release
@@ -17,13 +18,15 @@
           sdl2-compat
         ];
 
-        package = pkgs.wivrn.overrideAttrs (finalAttrs: oldAttrs: {
+        package = pkgs.enableDebugging (pkgs.wivrn.overrideAttrs (finalAttrs: oldAttrs: {
           src = ./.;
           version = "next";
 
           # Because src is just a folder path and not a set from a fetcher, it doesn't need to be unpacked, so having a postUnpack throws an error.
           # We also don't need the check since we read the revision from the monado-rev file.
           postUnpack = null;
+
+          separateDebugInfo = false;
 
           monado = pkgs.applyPatches {
             inherit (oldAttrs.monado) patches postPatch;
@@ -39,7 +42,11 @@
           };
 
           buildInputs = oldAttrs.buildInputs ++ extraBuildInputs;
-        });
+
+          cmakeFlags = (oldAttrs.cmakeFlags or [ ]) ++ [
+            (lib.cmakeFeature "CMAKE_BUILD_TYPE" "Debug")
+          ];
+        }));
       in {
         packages.default = package;
         devShells.default = package.overrideAttrs (oldAttrs: {
