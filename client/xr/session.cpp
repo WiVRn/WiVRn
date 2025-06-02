@@ -147,19 +147,7 @@ xr::pico_face_tracker xr::session::create_pico_face_tracker()
 
 xr::fb_body_tracker xr::session::create_fb_body_tracker()
 {
-	XrBodyTrackerCreateInfoFB create_info{
-			.type = XR_TYPE_BODY_TRACKER_CREATE_INFO_FB,
-			.next = nullptr,
-			.bodyJointSet = XR_BODY_JOINT_SET_FULL_BODY_META,
-	};
-
-	XrBodyTrackerFB bt;
-
-	auto xrCreateBodyTrackerFB = inst->get_proc<PFN_xrCreateBodyTrackerFB>("xrCreateBodyTrackerFB");
-	assert(xrCreateBodyTrackerFB);
-
-	CHECK_XR(xrCreateBodyTrackerFB(id, &create_info, &bt));
-	return {*inst, bt};
+	return {*inst, *this};
 }
 
 /*xr::pico_body_tracker xr::session::create_pico_body_tracker()

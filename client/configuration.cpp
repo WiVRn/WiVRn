@@ -215,6 +215,9 @@ configuration::configuration(xr::system & system)
 		if (auto val = root["mic_unprocessed_audio"]; val.is_bool())
 			mic_unprocessed_audio = val.get_bool();
 
+		if (auto val = root["fb_lower_body"]; val.is_bool())
+			fb_lower_body = val.get_bool();
+
 		if (auto val = root["virtual_keyboard_layout"]; val.is_string())
 			virtual_keyboard_layout = val.get_string().value();
 
@@ -337,6 +340,7 @@ void configuration::save()
 	write_openxr_post_processing(json, openxr_post_processing);
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;
 	json << ",\"mic_unprocessed_audio\":" << std::boolalpha << mic_unprocessed_audio;
+	json << ",\"fb_lower_body\":" << std::boolalpha << fb_lower_body;
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
 	json << ",\"virtual_keyboard_layout\":" << json_string(virtual_keyboard_layout);

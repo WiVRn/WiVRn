@@ -739,6 +739,7 @@ void scenes::lobby::gui_settings()
 			tooltip(_("This feature is not supported by your headset"));
 		vibrate_on_hover();
 	}
+
 	{
 		ImGui::BeginDisabled(not(application::get_fb_body_tracking_supported()));
 		bool enabled = config.check_feature(feature::body_tracking);
@@ -751,6 +752,20 @@ void scenes::lobby::gui_settings()
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
 			tooltip(_("This feature is not supported by your headset"));
 		vibrate_on_hover();
+	}
+	if (application::get_fb_body_tracking_supported())
+	{
+		ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
+		ImGui::Indent();
+		if (ImGui::Checkbox(_S("Enable lower body tracking"), &config.fb_lower_body))
+		{
+			config.save();
+		}
+		vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			tooltip(_("Estimate lower body joint positions using Generative Legs"));
+		ImGui::Unindent();
+		ImGui::EndDisabled();
 	}
 
 	ImGui::BeginDisabled(passthrough_supported == xr::system::passthrough_type::no_passthrough);

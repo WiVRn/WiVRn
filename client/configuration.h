@@ -54,6 +54,8 @@ public:
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
 
+	bool fb_lower_body = false;
+
 	// Snapdragon Game Super Resolution
 	struct sgsr_settings
 	{
