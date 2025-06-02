@@ -43,6 +43,14 @@
 
           buildInputs = oldAttrs.buildInputs ++ extraBuildInputs;
 
+          dontWrapQtApps = true;
+
+          preFixup = ''
+            wrapQtApp "$out/bin/wivrn-dashboard" \
+              --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.vulkan-loader ]}
+          '';
+          postFixup = null;
+
           cmakeFlags = (oldAttrs.cmakeFlags or [ ]) ++ [
             (lib.cmakeFeature "CMAKE_BUILD_TYPE" "Debug")
           ];
