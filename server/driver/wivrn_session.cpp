@@ -434,11 +434,11 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 	else if (htc_face_tracker)
 		htc_face_tracker->update_tracking(tracking, offset);
 
-	auto num_trackers = std::count_if(tracking.device_poses.cbegin(), tracking.device_poses.cend(), [](const from_headset::tracking::pose & p) { return p.device == device_id::GENERIC_TRACKER; });
+	auto num_trackers = std::ranges::count(tracking.device_poses, device_id::GENERIC_TRACKER, &from_headset::tracking::pose::device);
 	if (num_trackers == generic_trackers.size())
 	{
 		// the generic trackers should always be at end of poses list
-		auto tracker = std::find_if(tracking.device_poses.cbegin(), tracking.device_poses.cend(), [](auto & p) { return p.device == device_id::GENERIC_TRACKER; });
+		auto tracker = std::ranges::find(tracking.device_poses, device_id::GENERIC_TRACKER, &from_headset::tracking::pose::device);
 		assert(tracker != tracking.device_poses.cend());
 		for (size_t i = 0; i < num_trackers; ++i, ++tracker)
 		{
