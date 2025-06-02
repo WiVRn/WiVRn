@@ -118,6 +118,11 @@ void wivrn::tracking_control_t::send(wivrn_connection & connection, bool now)
 		next_sample += std::chrono::seconds(1);
 }
 
+bool wivrn::tracking_control_t::get_enabled(to_headset::tracking_control::id id)
+{
+	std::lock_guard lock(mutex);
+	return this->enabled[size_t(id)];
+}
 bool wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id, bool enabled)
 {
 	std::lock_guard lock(mutex);
@@ -440,7 +445,7 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 			generic_trackers[i]->update_tracking(tracking, *tracker, offset);
 		}
 	}
-	else
+	else if (tracking_control.get_enabled(to_headset::tracking_control::id::generic_tracker))
 	{
 		static std::chrono::steady_clock::time_point last_log{ std::chrono::nanoseconds(0) };
 		auto now = std::chrono::steady_clock::now();

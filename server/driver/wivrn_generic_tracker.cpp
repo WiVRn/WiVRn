@@ -148,7 +148,8 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 
 void wivrn_generic_tracker::update_tracking(const from_headset::tracking & tracking, const from_headset::tracking::pose & pose, const clock_offset & offset)
 {
-    if (not poses.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset))
-        cnx.set_enabled(to_headset::tracking_control::id::generic_tracker, false);
+	// TODO: Right now we ignore the return value, because if the pose of one of the trackers is not requested for a while, all of them get deactivated, which isn't ideal.
+    poses.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
+	// cnx.set_enabled(to_headset::tracking_control::id::generic_tracker, false);
 }
 } // namespace wivrn

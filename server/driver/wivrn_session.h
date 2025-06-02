@@ -84,6 +84,7 @@ public:
 	}
 	void send(wivrn_connection & connection, bool now = false);
 
+	bool get_enabled(to_headset::tracking_control::id id);
 	// Return true if value changed
 	bool set_enabled(to_headset::tracking_control::id id, bool enabled);
 };
