@@ -759,12 +759,10 @@ void scenes::lobby::gui_settings()
 			{
 				if (application::get_fb_body_tracking_supported())
 					tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings, otherwise estimated joint positions will be used"));
-				/*
-				else if (application::get_bd_body_tracking_supported())
+				else if (application::get_pico_body_tracking_supported())
 				{
 					tooltip(_("Uses the Pico Motion Trackers to track body joint positions"));
 				}
-				*/
 			}
 		}
 
