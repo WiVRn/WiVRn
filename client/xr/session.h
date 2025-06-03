@@ -26,12 +26,12 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 
+#include "fb_body_tracker.h"
 #include "fb_face_tracker2.h"
 #include "hand_tracker.h"
 #include "htc_face_tracker.h"
-#include "fb_body_tracker.h"
-#include "pico_body_tracker.h"
 #include "passthrough.h"
+#include "pico_body_tracker.h"
 #include "pico_face_tracker.h"
 #include "space.h"
 

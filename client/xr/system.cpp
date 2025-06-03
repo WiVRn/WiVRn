@@ -147,12 +147,12 @@ XrSystemBodyTrackingPropertiesFB xr::system::fb_body_tracking_properties() const
 		throw std::invalid_argument("this");
 
 	XrSystemBodyTrackingPropertiesFB body_tracking_prop{
-			.type = XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_FB,
+	        .type = XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_FB,
 	};
 
 	XrSystemProperties prop{
-			.type = XR_TYPE_SYSTEM_PROPERTIES,
-			.next = &body_tracking_prop,
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &body_tracking_prop,
 	};
 	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
 

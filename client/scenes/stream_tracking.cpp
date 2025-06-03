@@ -365,8 +365,8 @@ void scenes::stream::tracking()
 						if (control.enabled[size_t(tid::generic_tracker)])
 						{
 							auto & body_packet = body.emplace_back(from_headset::body_tracking{
-								.production_timestamp = t0,
-								.timestamp = t0 + Δt,
+							        .production_timestamp = t0,
+							        .timestamp = t0 + Δt,
 							});
 							switch (body_tracking)
 							{

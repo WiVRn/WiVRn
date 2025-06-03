@@ -23,8 +23,8 @@
 #include "xr/meta_body_tracking_fidelity.h"
 #include "xr/meta_body_tracking_full_body.h"
 #include <array>
-#include <openxr/openxr.h>
 #include <optional>
+#include <openxr/openxr.h>
 
 namespace xr
 {

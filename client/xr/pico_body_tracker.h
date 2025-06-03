@@ -22,8 +22,8 @@
 #include "wivrn_packets.h"
 
 #include <array>
-#include <openxr/openxr.h>
 #include <optional>
+#include <openxr/openxr.h>
 
 namespace xr
 {

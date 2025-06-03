@@ -24,8 +24,8 @@
 #include "openxr/openxr.h"
 #include "utils/contains.h"
 #include "xr/fb_body_tracker.h"
-#include "xr/pico_body_tracker.h"
 #include "xr/instance.h"
+#include "xr/pico_body_tracker.h"
 #include "xr/system.h"
 #include <ranges>
 #include <vulkan/vulkan.h>
@@ -152,9 +152,9 @@ xr::fb_body_tracker xr::session::create_fb_body_tracker()
 xr::pico_body_tracker xr::session::create_pico_body_tracker()
 {
 	XrBodyTrackerCreateInfoBD create_info{
-			.type = XR_TYPE_BODY_TRACKER_CREATE_INFO_BD,
-			.next = nullptr,
-			.jointSet = XR_BODY_JOINT_SET_FULL_BODY_JOINTS_BD,
+	        .type = XR_TYPE_BODY_TRACKER_CREATE_INFO_BD,
+	        .next = nullptr,
+	        .jointSet = XR_BODY_JOINT_SET_FULL_BODY_JOINTS_BD,
 	};
 
 	XrBodyTrackerBD bt;

@@ -422,7 +422,7 @@ using packets = std::variant<
         trackings,
         derived_pose,
         hand_tracking,
-		body_tracking,
+        body_tracking,
         inputs,
         timesync_response,
         battery,
