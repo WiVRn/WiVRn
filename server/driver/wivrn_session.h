@@ -44,8 +44,6 @@ namespace wivrn
 class wivrn_eye_tracker;
 class wivrn_fb_face2_tracker;
 class wivrn_htc_face_tracker;
-class wivrn_foveation;
-class wivrn_foveation_renderer;
 struct audio_device;
 struct wivrn_comp_target;
 struct wivrn_comp_target_factory;
@@ -109,8 +107,7 @@ class wivrn_session : public xrt_system_devices
 	std::unique_ptr<wivrn_eye_tracker> eye_tracker;
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::unique_ptr<wivrn_htc_face_tracker> htc_face_tracker;
-	std::unique_ptr<wivrn_foveation> foveation;
-	wivrn_comp_target * comp_target;
+	std::shared_ptr<wivrn_comp_target> comp_target;
 
 	clock_offset_estimator offset_est;
 
@@ -142,6 +139,11 @@ public:
 	{
 		return connection->info();
 	};
+
+	wivrn_hmd & get_hmd()
+	{
+		return hmd;
+	}
 
 	void add_predict_offset(std::chrono::nanoseconds off)
 	{
@@ -185,13 +187,7 @@ public:
 
 	xrt_result_t push_event(const xrt_session_event &);
 
-	std::array<to_headset::foveation_parameter, 2> set_foveated_size(uint32_t width, uint32_t height);
-	std::array<to_headset::foveation_parameter, 2> get_foveation_parameters();
-	bool apply_dynamic_foveation();
-	bool has_dynamic_foveation()
-	{
-		return (bool)foveation;
-	}
+	void set_foveated_size(uint32_t width, uint32_t height);
 
 	void dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream = -1, const char * extra = "");
 

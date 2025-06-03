@@ -51,14 +51,11 @@ class wivrn_hmd : public xrt_device
 	};
 
 	view_list views;
-	std::array<to_headset::foveation_parameter, 2> foveation_parameters{};
 	from_headset::battery battery{};
 
 	thread_safe<std::array<std::optional<from_headset::visibility_mask_changed::masks>, 2>> visibility_mask;
 
 	wivrn::wivrn_session * cnx;
-
-	static bool wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_index, float u, float v, xrt_uv_triplet * result);
 
 	xrt_result_t get_visibility_mask(xrt_visibility_mask_type, uint32_t view_index, xrt_visibility_mask **);
 
@@ -66,6 +63,8 @@ public:
 	using base = xrt_device;
 	wivrn_hmd(wivrn::wivrn_session * cnx,
 	          const from_headset::headset_info_packet & info);
+
+	void set_foveated_size(uint32_t width, uint32_t height);
 
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation *);
 	void get_view_poses(const xrt_vec3 * default_eye_relation,
@@ -80,15 +79,6 @@ public:
 
 	void update_battery(const from_headset::battery &);
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
-
-	decltype(foveation_parameters) set_foveated_size(uint32_t width, uint32_t height);
-	void set_foveation_center(std::array<xrt_vec2, 2> center);
-
-	std::array<to_headset::foveation_parameter, 2> get_foveation_parameters()
-	{
-		return foveation_parameters;
-	}
-
 	void update_visibility_mask(const from_headset::visibility_mask_changed &);
 };
 } // namespace wivrn

@@ -21,56 +21,15 @@
 
 #ifdef VERT_SHADER
 
-layout (constant_id = 0) const bool use_foveation_x = false;
-layout (constant_id = 1) const bool use_foveation_y = false;
-layout (constant_id = 2) const int nb_x = 64;
-layout (constant_id = 3) const int nb_y = 64;
-
-layout(set = 0, binding = 1) uniform UniformBufferObject
-{
-	vec2 a;
-	vec2 b;
-	vec2 lambda;
-	vec2 xc;
-}
-ubo;
+layout (location = 0) in vec2 vPosition;
+layout (location = 1) in vec2 vUV;
 
 layout(location = 0) out vec2 outUV;
 
-vec2 positions[6] = vec2[](
-	vec2(0, 0), vec2(1, 0), vec2(0, 1),
-	vec2(1, 0), vec2(0, 1), vec2(1, 1));
-
-vec2 unfoveate(vec2 uv)
-{
-	uv = 2 * uv - 1;
-	if (use_foveation_x && use_foveation_y)
-	{
-		uv = ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc;
-	}
-	else
-	{
-		if (use_foveation_x)
-		{
-			uv.x = (ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc).y;
-		}
-		if (use_foveation_y)
-		{
-			uv.y = (ubo.lambda * tan(ubo.a * uv + ubo.b) + ubo.xc).y;
-		}
-	}
-	return uv;
-}
-
 void main()
 {
-	vec2 quad_size = 1 / vec2(nb_x, nb_y);
-	int cell_id = gl_VertexIndex / 6;
-
-	vec2 top_left = quad_size * vec2(cell_id % nb_x, cell_id / nb_x);
-	outUV = top_left + positions[gl_VertexIndex % 6] * quad_size;
-
-	gl_Position = vec4(unfoveate(outUV), 0.0, 1.0);
+	gl_Position = vec4(vPosition, 0.0, 1.0);
+	outUV = vUV;
 }
 #endif
 

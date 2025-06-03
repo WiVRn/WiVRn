@@ -1,7 +1,7 @@
-From b40c83a38d13fe511c9dceadeb23dd4fd2cc77f4 Mon Sep 17 00:00:00 2001
+From 2be6264cd7091d593cfec71b7952ff2409ceae4d Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Nov 2024 13:40:00 +0100
-Subject: [PATCH 07/10] store alpha channel in layer 1
+Subject: [PATCH 07/11] store alpha channel in layer 1
 
 ---
  src/xrt/compositor/shaders/clear.comp      |  4 ++--

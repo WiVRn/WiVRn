@@ -28,8 +28,6 @@
 #include "utils/method.h"
 
 #include "xrt_cast.h"
-#include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <stdio.h>
 #include <openxr/openxr.h>
@@ -38,114 +36,6 @@
 
 namespace wivrn
 {
-
-static double foveate(double a, double b, double λ, double c, double x)
-{
-	// In order to save encoding, transmit and decoding time, only a portion of the image is encoded in full resolution.
-	// on each axis, foveated coordinates are defined by the following formula.
-	return λ / a * tan(a * x + b) + c;
-	// a and b are defined such as:
-	// edges of the image are not moved
-	// f(-1) = -1
-	// f( 1) =  1
-	// the function also enforces pixel ratio 1:1 at fovea
-	// df⁻¹(x)/dx = 1/scale for x = c
-}
-
-static std::tuple<float, float> solve_foveation(float λ, float c)
-{
-	// Compute a and b for the foveation function such that:
-	//   foveate(a, b, scale, c, -1) = -1   (eq. 1)
-	//   foveate(a, b, scale, c,  1) =  1   (eq. 2)
-	//
-	// Use eq. 2 to express a as function of b, then replace in eq. 1
-	// equation that needs to be null is:
-	auto b = [λ, c](double a) { return atan(a * (1 - c) / λ) - a; };
-	auto eq = [λ, c](double a) { return atan(a * (1 - c) / λ) + atan(a * (1 + c) / λ) - 2 * a; }; // (eq. 3)
-
-	// function starts positive, reaches a maximum then decreases to -∞
-	double a0 = 0;
-	// Find a negative value by computing eq(2^n)
-	double a1 = 1;
-	while (eq(a1) > 0)
-		a1 *= 2;
-
-	// last computed values for f(a0) and f(a1)
-	std::optional<double> f_a0;
-	double f_a1 = eq(a1);
-
-	int n = 0;
-	double a = 0;
-	while (std::abs(a1 - a0) > 0.0000001 && n++ < 100)
-	{
-		if (not f_a0)
-		{
-			// use binary search
-			a = 0.5 * (a0 + a1);
-			double val = eq(a);
-			if (val > 0)
-			{
-				a0 = a;
-				f_a0 = val;
-			}
-			else
-			{
-				a1 = a;
-				f_a1 = val;
-			}
-		}
-		else
-		{
-			// f(a1) is always defined
-			// when f(a0) is defined, use secant method
-			a = a1 - f_a1 * (a1 - a0) / (f_a1 - *f_a0);
-			a0 = a1;
-			a1 = a;
-			f_a0 = f_a1;
-			f_a1 = eq(a);
-		}
-	}
-
-	return {a, b(a)};
-}
-
-bool wivrn_hmd::wivrn_hmd_compute_distortion(xrt_device * xdev, uint32_t view_index, float u, float v, xrt_uv_triplet * result)
-{
-	// u,v are in the output coordinates (sent to the encoder)
-	// result is in the input coordinates (from the application)
-	const auto & param = ((wivrn_hmd *)xdev)->foveation_parameters[view_index];
-	xrt_vec2 out;
-
-	if (param.x.scale < 1)
-	{
-		u = 2 * u - 1;
-
-		out.x = foveate(param.x.a, param.x.b, param.x.scale, param.x.center, u);
-		out.x = std::clamp<float>((1 + out.x) / 2, 0, 1);
-	}
-	else
-	{
-		out.x = u;
-	}
-
-	if (param.y.scale < 1)
-	{
-		v = 2 * v - 1;
-
-		out.y = foveate(param.y.a, param.y.b, param.y.scale, param.y.center, v);
-		out.y = std::clamp<float>((1 + out.y) / 2, 0, 1);
-	}
-	else
-	{
-		out.y = v;
-	}
-
-	result->r = out;
-	result->g = out;
-	result->b = out;
-
-	return true;
-}
 
 xrt_result_t wivrn_hmd::get_visibility_mask(xrt_visibility_mask_type type, uint32_t view_index, xrt_visibility_mask ** mask)
 {
@@ -304,14 +194,10 @@ xrt_result_t wivrn_hmd::get_battery_status(bool * out_present,
 	return XRT_SUCCESS;
 }
 
-decltype(wivrn_hmd::foveation_parameters) wivrn_hmd::set_foveated_size(uint32_t width, uint32_t height)
+void wivrn_hmd::set_foveated_size(uint32_t width, uint32_t height)
 {
 	assert(width % 2 == 0);
 	uint32_t eye_width = width / 2;
-	std::array<double, 2> scale{
-	        double(eye_width) / hmd->views[0].display.w_pixels,
-	        double(height) / hmd->views[0].display.h_pixels,
-	};
 
 	hmd->screens[0].w_pixels = width;
 	hmd->screens[0].h_pixels = height;
@@ -324,56 +210,6 @@ decltype(wivrn_hmd::foveation_parameters) wivrn_hmd::set_foveated_size(uint32_t 
 
 		view.viewport.w_pixels = eye_width;
 		view.viewport.h_pixels = height;
-
-		foveation_parameters[i].x.scale = scale[0];
-		foveation_parameters[i].y.scale = scale[1];
-
-		const auto & fov = hmd->distortion.fov[i];
-		float l = tan(fov.angle_left);
-		float r = tan(fov.angle_right);
-		float t = tan(fov.angle_up);
-		float b = tan(fov.angle_down);
-		if (scale[0] < 1)
-		{
-			float cu = (r + l) / (l - r);
-			foveation_parameters[i].x.center = cu;
-
-			std::tie(foveation_parameters[i].x.a, foveation_parameters[i].x.b) = solve_foveation(scale[0], cu);
-		}
-
-		if (scale[1] < 1)
-		{
-			float cv = (t + b) / (t - b);
-			foveation_parameters[i].y.center = cv;
-
-			std::tie(foveation_parameters[i].y.a, foveation_parameters[i].y.b) = solve_foveation(scale[1], cv);
-		}
-	}
-
-	// Distortion information
-	compute_distortion = wivrn_hmd_compute_distortion;
-	hmd->distortion.models = XRT_DISTORTION_MODEL_COMPUTE;
-	hmd->distortion.preferred = XRT_DISTORTION_MODEL_COMPUTE;
-	return foveation_parameters;
-}
-
-void wivrn_hmd::set_foveation_center(std::array<xrt_vec2, 2> center)
-{
-	for (int i = 0; i < 2; ++i)
-	{
-		foveation_parameters[i].x.center = center[i].x;
-		foveation_parameters[i].y.center = center[i].y;
-
-		if (foveation_parameters[i].x.scale < 1)
-		{
-			std::tie(foveation_parameters[i].x.a, foveation_parameters[i].x.b) =
-			        solve_foveation(foveation_parameters[i].x.scale, foveation_parameters[i].x.center);
-		}
-		if (foveation_parameters[i].y.scale < 1)
-		{
-			std::tie(foveation_parameters[i].y.a, foveation_parameters[i].y.b) =
-			        solve_foveation(foveation_parameters[i].y.scale, foveation_parameters[i].y.center);
-		}
 	}
 }
 

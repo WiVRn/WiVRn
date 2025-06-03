@@ -20,7 +20,6 @@
 #include "wivrn_session.h"
 
 #include "accept_connection.h"
-#include "configuration.h"
 #include "driver/app_pacer.h"
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
@@ -35,20 +34,19 @@
 #include "wivrn_config.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
-#include "wivrn_foveation.h"
 #include "wivrn_htc_face_tracker.h"
 #include "wivrn_ipc.h"
 
 #include "wivrn_packets.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
-#include <cmath>
 #include <magic_enum.hpp>
 #include <stdexcept>
 #include <string.h>
 #include <vulkan/vulkan.h>
 
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
+#include "configuration.h"
 #include "steamvr_lh_interface.h"
 #endif
 
@@ -88,8 +86,9 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	static bool create_target(const struct comp_target_factory * ctf, struct comp_compositor * c, struct comp_target ** out_ct)
 	{
 		auto self = (wivrn_comp_target_factory *)ctf;
-		self->session.comp_target = new wivrn_comp_target(self->session, c);
-		*out_ct = self->session.comp_target;
+		self->session.comp_target = std::make_shared<wivrn_comp_target>(self->session, c);
+		self->session.comp_target->self = self->session.comp_target;
+		*out_ct = self->session.comp_target.get();
 		return true;
 	}
 };
@@ -198,7 +197,6 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	if (get_info().eye_gaze || is_forced_extension("EXT_eye_gaze_interaction"))
 	{
 		eye_tracker = std::make_unique<wivrn_eye_tracker>(&hmd);
-		foveation = std::make_unique<wivrn_foveation>();
 		static_roles.eyes = eye_tracker.get();
 		xdevs[xdev_count++] = eye_tracker.get();
 	}
@@ -406,8 +404,9 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 	right_hand.update_tracking(tracking, offset);
 	if (eye_tracker)
 		eye_tracker->update_tracking(tracking, offset);
-	if (foveation)
-		foveation->update_tracking(tracking, offset);
+	assert(comp_target);
+	assert(comp_target->foveation);
+	comp_target->foveation->update_tracking(tracking, offset);
 
 	if (fb_face2_tracker)
 		fb_face2_tracker->update_tracking(tracking, offset);
@@ -618,29 +617,9 @@ xrt_result_t wivrn_session::push_event(const xrt_session_event & event)
 	return xrt_session_event_sink_push(&xrt_system.broadcast, &event);
 }
 
-std::array<to_headset::foveation_parameter, 2> wivrn_session::set_foveated_size(uint32_t width, uint32_t height)
+void wivrn_session::set_foveated_size(uint32_t width, uint32_t height)
 {
-	auto p = hmd.set_foveated_size(width, height);
-
-	if (foveation)
-		foveation->set_initial_parameters(p);
-
-	return p;
-}
-
-bool wivrn_session::apply_dynamic_foveation()
-{
-	if (!foveation)
-		return false;
-
-	hmd.set_foveation_center(foveation->get_center());
-	comp_target->render_dynamic_foveation(hmd.get_foveation_parameters());
-	return true;
-}
-
-std::array<to_headset::foveation_parameter, 2> wivrn_session::get_foveation_parameters()
-{
-	return hmd.get_foveation_parameters();
+	hmd.set_foveated_size(width, height);
 }
 
 void wivrn_session::dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream, const char * extra)

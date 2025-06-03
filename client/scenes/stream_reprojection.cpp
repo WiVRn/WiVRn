@@ -20,30 +20,24 @@
 #include "stream_reprojection.h"
 #include "application.h"
 #include "utils/contains.h"
+#include "utils/ranges.h"
 #include "vk/allocation.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
 #include <array>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace
+struct stream_reprojection::vertex
 {
-struct uniform
-{
-	// Foveation parameters
-	alignas(8) glm::vec2 a;
-	alignas(8) glm::vec2 b;
-	alignas(8) glm::vec2 lambda;
-	alignas(8) glm::vec2 xc;
+	// output image position
+	alignas(8) glm::vec2 position;
+	// input texture coordinates
+	alignas(8) glm::vec2 uv;
 };
-} // namespace
-
-const int nb_reprojection_vertices = 128;
 
 struct SgsrSpecializationConstants
 {
@@ -52,24 +46,47 @@ struct SgsrSpecializationConstants
 	float edge_sharpness;
 };
 
+void stream_reprojection::ensure_vertices(size_t num_vertices)
+{
+	vk::BufferCreateInfo create_info{
+	        .size = num_vertices * sizeof(vertex) * view_count,
+	        .usage = vk::BufferUsageFlagBits::eVertexBuffer,
+	        .sharingMode = vk::SharingMode::eExclusive,
+	};
+
+	if (create_info.size <= buffer.info().size)
+		return;
+
+	VmaAllocationCreateInfo alloc_info{
+	        .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	};
+
+	buffer = buffer_allocation(device, create_info, alloc_info);
+	vertices_size = num_vertices * sizeof(vertex);
+}
+
+stream_reprojection::vertex * stream_reprojection::get_vertices(size_t view)
+{
+	assert(buffer);
+	return reinterpret_cast<vertex *>(reinterpret_cast<uintptr_t>(buffer.map()) + view * vertices_size);
+}
+
 stream_reprojection::stream_reprojection(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
         vk::Image input_image_,
+        vk::Extent2D input_extent,
         uint32_t view_count,
         std::vector<vk::Image> output_images_,
-        vk::Extent2D extent,
-        vk::Format format,
-        const wivrn::to_headset::video_stream_description & description) :
+        vk::Extent2D output_extent,
+        vk::Format format) :
         view_count(view_count),
+        device(device),
         input_image(input_image_),
+        input_extent(input_extent),
         output_images(std::move(output_images_)),
-        extent(extent)
+        output_extent(output_extent)
 {
-	foveation_parameters = description.foveation;
-
-	vk::PhysicalDeviceProperties properties = physical_device.getProperties();
-
 	vk::SamplerCreateInfo sampler_info{
 	        .magFilter = vk::Filter::eLinear,
 	        .minFilter = vk::Filter::eLinear,
@@ -93,35 +110,12 @@ stream_reprojection::stream_reprojection(
 
 	sampler = vk::raii::Sampler(device, sampler_info);
 
-	uniform_size = sizeof(uniform) + properties.limits.minUniformBufferOffsetAlignment - 1;
-	uniform_size = uniform_size - uniform_size % properties.limits.minUniformBufferOffsetAlignment;
-
-	vk::BufferCreateInfo create_info{
-	        .size = uniform_size * view_count,
-	        .usage = vk::BufferUsageFlagBits::eUniformBuffer,
-	        .sharingMode = vk::SharingMode::eExclusive,
-	};
-
-	VmaAllocationCreateInfo alloc_info{
-	        .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	};
-
-	buffer = buffer_allocation(device, create_info, alloc_info);
-
 	// Create VkDescriptorSetLayout
-	std::array layout_binding{
-	        vk::DescriptorSetLayoutBinding{
-	                .binding = 0,
-	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	                .descriptorCount = 1,
-	                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-	        },
-	        vk::DescriptorSetLayoutBinding{
-	                .binding = 1,
-	                .descriptorType = vk::DescriptorType::eUniformBuffer,
-	                .descriptorCount = 1,
-	                .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
-	        },
+	vk::DescriptorSetLayoutBinding layout_binding{
+	        .binding = 0,
+	        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+	        .descriptorCount = 1,
+	        .stageFlags = vk::ShaderStageFlagBits::eFragment,
 	};
 
 	vk::DescriptorSetLayoutCreateInfo layout_info;
@@ -132,10 +126,6 @@ stream_reprojection::stream_reprojection(
 	std::array pool_size{
 	        vk::DescriptorPoolSize{
 	                .type = vk::DescriptorType::eCombinedImageSampler,
-	                .descriptorCount = (uint32_t)view_count,
-	        },
-	        vk::DescriptorPoolSize{
-	                .type = vk::DescriptorType::eUniformBuffer,
 	                .descriptorCount = (uint32_t)view_count,
 	        },
 	};
@@ -186,13 +176,7 @@ stream_reprojection::stream_reprojection(
 		        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		};
 
-		vk::DescriptorBufferInfo buffer_info{
-		        .buffer = buffer,
-		        .offset = uniform_size * view,
-		        .range = sizeof(uniform),
-		};
-
-		std::array write{
+		device.updateDescriptorSets(
 		        vk::WriteDescriptorSet{
 		                .dstSet = descriptor_set,
 		                .dstBinding = 0,
@@ -201,17 +185,7 @@ stream_reprojection::stream_reprojection(
 		                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
 		                .pImageInfo = &image_info,
 		        },
-		        vk::WriteDescriptorSet{
-		                .dstSet = descriptor_set,
-		                .dstBinding = 1,
-		                .dstArrayElement = 0,
-		                .descriptorCount = 1,
-		                .descriptorType = vk::DescriptorType::eUniformBuffer,
-		                .pBufferInfo = &buffer_info,
-		        },
-		};
-
-		device.updateDescriptorSets(write, {});
+		        {});
 	}
 
 	// Create renderpass
@@ -247,40 +221,6 @@ stream_reprojection::stream_reprojection(
 
 	// Vertex shader
 	vk::raii::ShaderModule vertex_shader = load_shader(device, "reprojection.vert");
-
-	int vertex_specialization_constants[] = {
-	        foveation_parameters[0].x.scale < 1,
-	        foveation_parameters[0].y.scale < 1,
-	        nb_reprojection_vertices,
-	        nb_reprojection_vertices,
-	};
-
-	std::array vertex_specialization_constants_desc{
-	        vk::SpecializationMapEntry{
-	                .constantID = 0,
-	                .offset = 0,
-	                .size = sizeof(int),
-	        },
-	        vk::SpecializationMapEntry{
-	                .constantID = 1,
-	                .offset = sizeof(int),
-	                .size = sizeof(int),
-	        },
-	        vk::SpecializationMapEntry{
-	                .constantID = 2,
-	                .offset = 2 * sizeof(int),
-	                .size = sizeof(int),
-	        },
-	        vk::SpecializationMapEntry{
-	                .constantID = 3,
-	                .offset = 3 * sizeof(int),
-	                .size = sizeof(int),
-	        },
-	};
-
-	vk::SpecializationInfo vertex_specialization_info;
-	vertex_specialization_info.setMapEntries(vertex_specialization_constants_desc);
-	vertex_specialization_info.setData<int>(vertex_specialization_constants);
 
 	// Fragment shader
 	std::string fragment_shader_name = "reprojection.frag";
@@ -337,7 +277,6 @@ stream_reprojection::stream_reprojection(
 	                        .stage = vk::ShaderStageFlagBits::eVertex,
 	                        .module = *vertex_shader,
 	                        .pName = "main",
-	                        .pSpecializationInfo = &vertex_specialization_info,
 	                },
 	                {
 	                        .stage = vk::ShaderStageFlagBits::eFragment,
@@ -346,22 +285,41 @@ stream_reprojection::stream_reprojection(
 	                        .pSpecializationInfo = &fragment_specialization_info,
 	                },
 	        },
-	        .VertexBindingDescriptions = {},
-	        .VertexAttributeDescriptions = {},
+	        .VertexBindingDescriptions = {
+	                {
+	                        .binding = 0,
+	                        .stride = sizeof(vertex),
+	                        .inputRate = vk::VertexInputRate::eVertex,
+	                },
+	        },
+	        .VertexAttributeDescriptions = {
+	                {
+	                        .location = 0,
+	                        .binding = 0,
+	                        .format = vk::Format::eR32G32Sfloat,
+	                        .offset = offsetof(vertex, position),
+	                },
+	                {
+	                        .location = 1,
+	                        .binding = 0,
+	                        .format = vk::Format::eR32G32Sfloat,
+	                        .offset = offsetof(vertex, uv),
+	                },
+	        },
 	        .InputAssemblyState = {{
-	                .topology = vk::PrimitiveTopology::eTriangleList,
+	                .topology = vk::PrimitiveTopology::eTriangleStrip,
 	        }},
 	        .Viewports = {{
 	                .x = 0,
 	                .y = 0,
-	                .width = (float)extent.width,
-	                .height = (float)extent.height,
+	                .width = (float)output_extent.width,
+	                .height = (float)output_extent.height,
 	                .minDepth = 0,
 	                .maxDepth = 1,
 	        }},
 	        .Scissors = {{
 	                .offset = {.x = 0, .y = 0},
-	                .extent = extent,
+	                .extent = output_extent,
 	        }},
 	        .RasterizationState = {{
 	                .polygonMode = vk::PolygonMode::eFill,
@@ -411,8 +369,8 @@ stream_reprojection::stream_reprojection(
 
 			vk::FramebufferCreateInfo fb_create_info{
 			        .renderPass = *renderpass,
-			        .width = extent.width,
-			        .height = extent.height,
+			        .width = output_extent.width,
+			        .height = output_extent.height,
 			        .layers = 1,
 			};
 			fb_create_info.setAttachments(*output_image_views.back());
@@ -422,28 +380,82 @@ stream_reprojection::stream_reprojection(
 	}
 }
 
-void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, int destination)
+static size_t required_vertices(const wivrn::to_headset::foveation_parameter & p)
+{
+	// strips are constructed like this:
+	// 0 2 4
+	// 1 3 5 5*
+	// there is one such line per value in y
+	// the last element is repeated to break the line
+	return (2 * (p.x.size() + 1) + 1) * p.y.size();
+}
+
+std::vector<XrExtent2Di> stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer,
+                                                        const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
+                                                        int destination)
 {
 	if (destination < 0 || destination >= (int)output_images.size())
 		throw std::runtime_error("Invalid destination image index");
 
+	ensure_vertices(std::max(required_vertices(foveation[0]), required_vertices(foveation[1])));
+	std::vector<XrExtent2Di> out_extents(view_count, XrExtent2Di{});
+
 	for (size_t view = 0; view < view_count; ++view)
 	{
-		auto & ubo = *reinterpret_cast<uniform *>(reinterpret_cast<uintptr_t>(buffer.map()) + view * uniform_size);
-		if (foveation_parameters[view].x.scale < 1)
+		auto vertices = get_vertices(view);
+		const auto & [px, py] = foveation[view];
+		assert(px.size() % 2 == 1);
+		assert(py.size() % 2 == 1);
+		const int n_ratio_y = (py.size() - 1) / 2;
+		const int n_ratio_x = (px.size() - 1) / 2;
+
+		for (auto [ix, n_out_x]: utils::enumerate_range(px))
 		{
-			ubo.a.x = foveation_parameters[view].x.a;
-			ubo.b.x = foveation_parameters[view].x.b;
-			ubo.lambda.x = foveation_parameters[view].x.scale / foveation_parameters[view].x.a;
-			ubo.xc.x = foveation_parameters[view].x.center;
+			// number of output pixels per source pixels
+			const int ratio_x = std::abs(n_ratio_x - int(ix)) + 1;
+			out_extents[view].width += ratio_x * n_out_x;
 		}
 
-		if (foveation_parameters[view].y.scale < 1)
+		glm::vec2 in(0), out(0); // pixel coordinates
+		glm::vec2 in_pixel_size(1. / input_extent.width,
+		                        1. / input_extent.height);
+		glm::vec2 out_pixel_size(2. / output_extent.width,
+		                         2. / output_extent.height);
+		for (auto [iy, n_out_y]: utils::enumerate_range(py))
 		{
-			ubo.a.y = foveation_parameters[view].y.a;
-			ubo.b.y = foveation_parameters[view].y.b;
-			ubo.lambda.y = foveation_parameters[view].y.scale / foveation_parameters[view].y.a;
-			ubo.xc.y = foveation_parameters[view].y.center;
+			// number of output pixels per source pixels
+			const int ratio_y = std::abs(n_ratio_y - int(iy)) + 1;
+			out_extents[view].height += ratio_y * n_out_y;
+			in.x = 0;
+			out.x = 0;
+			for (auto [ix, n_out_x]: utils::enumerate_range(px))
+			{
+				const int ratio_x = std::abs(n_ratio_x - int(ix)) + 1;
+				*vertices++ = {
+				        .position = out * out_pixel_size - glm::vec2(1),
+				        .uv = in * in_pixel_size,
+				};
+				*vertices++ = {
+				        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size - glm::vec2(1),
+				        .uv = (in + glm::vec2(0, n_out_y)) * in_pixel_size,
+				};
+				in.x += n_out_x;
+				out.x += n_out_x * ratio_x;
+			}
+			*vertices++ = {
+			        .position = out * out_pixel_size - glm::vec2(1),
+			        .uv = in * in_pixel_size,
+			};
+			*vertices++ = {
+			        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size - glm::vec2(1),
+			        .uv = (in + glm::vec2(0, n_out_y)) * in_pixel_size,
+			};
+			*vertices++ = {
+			        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size - glm::vec2(1),
+			        .uv = (in + glm::vec2(0, n_out_y)) * in_pixel_size,
+			};
+			in.y += n_out_y;
+			out.y += n_out_y * ratio_y;
 		}
 	}
 
@@ -473,19 +485,16 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer, in
 		        .framebuffer = *framebuffers[destination * view_count + view],
 		        .renderArea = {
 		                .offset = {0, 0},
-		                .extent = extent,
+		                .extent = output_extent,
 		        },
 		};
 
 		command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline);
 		command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *layout, 0, descriptor_sets[view], {});
-		command_buffer.draw(6 * nb_reprojection_vertices * nb_reprojection_vertices, 1, 0, 0);
+		command_buffer.bindVertexBuffers(0, vk::Buffer(buffer), vertices_size * view);
+		command_buffer.draw(required_vertices(foveation[view]), 1, 0, 0);
 		command_buffer.endRenderPass();
 	}
-}
-
-void stream_reprojection::set_foveation(std::array<wivrn::to_headset::foveation_parameter, 2> foveation)
-{
-	foveation_parameters = foveation;
+	return out_extents;
 }

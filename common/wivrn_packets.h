@@ -439,18 +439,20 @@ struct handshake
 	int stream_port;
 };
 
-struct foveation_parameter_item
-{
-	float center;
-	float scale;
-	float a;
-	float b;
-};
-
 struct foveation_parameter
 {
-	foveation_parameter_item x;
-	foveation_parameter_item y;
+	// The number of source pixels for each ratio,
+	// the middle one is 1:1
+	//
+	// how to read it:
+	// 1, 4, 5, 3, 1 means:
+	// the first output pixel has 3 source pixels
+	// the 4 that come after have 2 source pixels
+	// then 5 with 1 source pixel
+	// 3 with 2 source pixels
+	// 1 with 3 source pixels
+	std::vector<uint16_t> x;
+	std::vector<uint16_t> y;
 };
 
 struct audio_stream_description
@@ -490,7 +492,8 @@ struct video_stream_description
 	uint16_t width;
 	uint16_t height;
 	float fps;
-	std::array<foveation_parameter, 2> foveation;
+	uint16_t defoveated_width;
+	uint16_t defoveated_height;
 	std::vector<item> items;
 };
 

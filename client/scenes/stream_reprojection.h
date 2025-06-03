@@ -26,10 +26,13 @@
 
 class stream_reprojection
 {
+	struct vertex;
 	const uint32_t view_count;
-	// Uniform buffer
+	// Vertex buffer
 	buffer_allocation buffer;
-	size_t uniform_size;
+	size_t vertices_size = 0;
+
+	vk::raii::Device & device;
 
 	// Graphic pipeline
 	vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
@@ -43,32 +46,32 @@ class stream_reprojection
 	vk::Image input_image;
 	std::vector<vk::raii::ImageView> input_image_views;
 	std::vector<vk::DescriptorSet> descriptor_sets;
+	vk::Extent2D input_extent;
 
 	// Destination images
 	std::vector<vk::Image> output_images;
 	std::vector<vk::raii::ImageView> output_image_views;
 	std::vector<vk::raii::Framebuffer> framebuffers;
-	vk::Extent2D extent;
+	vk::Extent2D output_extent;
 
-	// Foveation
-	std::array<wivrn::to_headset::foveation_parameter, 2> foveation_parameters;
+	void ensure_vertices(size_t num_vertices);
+	vertex * get_vertices(size_t view);
 
 public:
 	stream_reprojection(
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
 	        vk::Image input_image,
+	        vk::Extent2D input_extent,
 	        uint32_t view_count,
 	        std::vector<vk::Image> output_images,
-	        vk::Extent2D extent,
-	        vk::Format format,
-	        const wivrn::to_headset::video_stream_description & description);
+	        vk::Extent2D output_extent,
+	        vk::Format format);
 
 	stream_reprojection(const stream_reprojection &) = delete;
 
-	void reproject(
+	std::vector<XrExtent2Di> reproject(
 	        vk::raii::CommandBuffer & command_buffer,
+	        const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
 	        int destination);
-
-	void set_foveation(std::array<wivrn::to_headset::foveation_parameter, 2> foveation);
 };

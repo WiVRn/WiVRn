@@ -1,6 +1,7 @@
 /*
  * WiVRn VR streaming
  * Copyright (C) 2024  galister <galister@librevr.org>
+ * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +19,14 @@
 
 #pragma once
 
+#include "vk/allocation.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
+#include "xrt/xrt_device.h"
 
 #include <vulkan/vulkan_raii.hpp>
+
+struct render_resources;
 
 namespace wivrn
 {
@@ -29,39 +34,46 @@ namespace wivrn
 struct clock_offset;
 struct wivrn_vk_bundle;
 
-// Calculates the center parameter from the received eye tracking data.
 class wivrn_foveation
 {
 	std::mutex mutex;
 
-	std::array<xrt_vec2, 2> center_offset = {};
+	const size_t foveated_width; // per eye
+	const size_t foveated_height;
+
 	std::array<from_headset::tracking::view, 2> views = {};
-	xrt_quat last_gaze = {};
+	xrt_quat gaze = {};
+	std::array<to_headset::foveation_parameter, 2> params;
+
+	vk::raii::CommandPool command_pool;
+	vk::raii::CommandBuffer cmd;
+	buffer_allocation host_buffer;
+	vk::Buffer gpu_buffer = nullptr;
+
+	// parameters used for last computation
+	struct P
+	{
+		xrt_quat gaze = {};
+		bool flip_y = false;
+		xrt_rect src[2] = {};
+		xrt_fov fovs[2] = {};
+	};
+	P last;
+
+	void compute_params(
+	        xrt_rect src[2],
+	        const xrt_fov fovs[2]);
 
 public:
-	wivrn_foveation() {}
+	wivrn_foveation(wivrn_vk_bundle &, const xrt_hmd_parts &);
 
-	void set_initial_parameters(std::array<to_headset::foveation_parameter, 2> p);
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
-	std::array<xrt_vec2, 2> get_center();
-};
+	std::array<to_headset::foveation_parameter, 2> get_parameters();
 
-// Renders foveation parameters to Monado's distortion images using a compute shader
-class wivrn_foveation_renderer
-{
-	wivrn_vk_bundle & vk;
-
-	vk::raii::DescriptorPool dp = nullptr;
-	vk::raii::DescriptorSetLayout ds_layout = nullptr;
-	vk::raii::PipelineLayout layout = nullptr;
-	vk::raii::Pipeline pipeline = nullptr;
-	std::array<vk::DescriptorSet, 2> ds;
-
-public:
-	wivrn_foveation_renderer(wivrn_vk_bundle & vk, vk::raii::CommandPool & cmd_pool);
-
-	vk::raii::CommandBuffer cmd_buf = nullptr;
-
-	void render_distortion_images(std::array<to_headset::foveation_parameter, 2> foveation_arr, const VkImage * images, const VkImageView * image_views);
+	vk::CommandBuffer update_foveation_buffer(
+	        vk::Buffer target,
+	        bool flip_y,
+	        xrt_rect src[2],
+	        xrt_fov fovs[2]);
 };
 } // namespace wivrn

@@ -860,10 +860,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	}
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
-	reprojector->set_foveation(foveation);
 
-	// Unfoveate the image to the real pose
-	reprojector->reproject(command_buffer, image_index);
+	// defoveate the image
+	auto extents = reprojector->reproject(command_buffer, foveation, image_index);
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 2);
 
@@ -908,10 +907,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		                        .swapchain = swapchain,
 		                        .imageRect = {
 		                                .offset = {0, 0},
-		                                .extent = {
-		                                        swapchain.width(),
-		                                        swapchain.height(),
-		                                },
+		                                .extent = extents[view],
 		                        },
 		                        .imageArrayIndex = view,
 		                },
@@ -1161,8 +1157,8 @@ void scenes::stream::setup_reprojection_swapchain()
 
 	const uint32_t video_width = video_stream_description->width / view_count;
 	const uint32_t video_height = video_stream_description->height;
-	uint32_t swapchain_width = video_width / video_stream_description->foveation[0].x.scale;
-	uint32_t swapchain_height = video_height / video_stream_description->foveation[0].y.scale;
+	uint32_t swapchain_width = video_stream_description->defoveated_width / view_count;
+	uint32_t swapchain_height = video_stream_description->defoveated_height;
 
 	const configuration::sgsr_settings sgsr = application::get_config().sgsr;
 	if (sgsr.enabled)
@@ -1189,7 +1185,15 @@ void scenes::stream::setup_reprojection_swapchain()
 	for (auto & image: swapchain.images())
 		swapchain_images.push_back(image.image);
 
-	reprojector.emplace(device, physical_device, decoder_out_image, 2, swapchain_images, extent, swapchain.format(), *video_stream_description);
+	reprojector.emplace(
+	        device,
+	        physical_device,
+	        decoder_out_image,
+	        vk::Extent2D{.width = video_width, .height = video_height},
+	        2,
+	        swapchain_images,
+	        extent,
+	        swapchain.format());
 }
 
 scene::meta & scenes::stream::get_meta_scene()

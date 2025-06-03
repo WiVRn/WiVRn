@@ -109,6 +109,9 @@ static void destroy_images(struct wivrn_comp_target * cn)
 	if (cn->images == nullptr)
 		return;
 
+	if (cn->wivrn_bundle)
+		cn->wivrn_bundle->device.waitIdle();
+
 	cn->psc.status = 1;
 	cn->psc.status.notify_all();
 	cn->encoder_threads.clear();
@@ -135,7 +138,9 @@ static void create_encoders(wivrn_comp_target * cn)
 	to_headset::video_stream_description & desc = cn->desc;
 	desc.width = cn->width;
 	desc.height = cn->height;
-	desc.foveation = cn->cnx.set_foveated_size(desc.width, desc.height);
+	const auto & hmd = cn->cnx.get_hmd().hmd;
+	desc.defoveated_width = hmd->views[0].display.w_pixels * 2;
+	desc.defoveated_height = hmd->views[0].display.h_pixels;
 
 	std::map<int, std::vector<std::shared_ptr<video_encoder>>> thread_params;
 
@@ -316,11 +321,8 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		U_LOG_E("Failed to create video encoder: %s", e.what());
 		return false;
 	}
-
-	if (cn->cnx.has_dynamic_foveation())
-	{
-		cn->foveation_renderer = std::make_unique<wivrn_foveation_renderer>(*cn->wivrn_bundle, cn->command_pool);
-	}
+	cn->cnx.set_foveated_size(cn->c->settings.preferred.width, cn->c->settings.preferred.height);
+	cn->foveation.emplace(*cn->wivrn_bundle, *cn->cnx.get_hmd().hmd);
 
 	return true;
 }
@@ -609,7 +611,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 #endif
 
 	auto & view_info = cn->psc.view_info;
-	view_info.foveation = cn->cnx.get_foveation_parameters();
+	view_info.foveation = cn->foveation->get_parameters();
 	view_info.display_time = cn->cnx.get_offset().to_headset(info.predicted_display_time);
 	if (view_info.alpha != do_alpha)
 		cn->pacer.reset();
@@ -651,16 +653,47 @@ static void comp_wivrn_flush(struct comp_target * ct)
 		r->StartFrameCapture(NULL, NULL);
 #endif
 
+	vk::CommandBuffer cmd;
 	// apply foveation for current frame
-	if (cn->cnx.apply_dynamic_foveation())
-		// foveation renderer already signaled the semaphore; nothing to do
-		return;
+	if (cn->c->base.frame_params.one_projection_layer_fast_path)
+	{
+		const auto & data = cn->c->base.layer_accum.layers[0].data;
+		const auto & hmd = cn->cnx.get_hmd().hmd;
+		xrt_rect rect[] = {data.proj.v[0].sub.rect, data.proj.v[1].sub.rect};
+		xrt_fov fov[] = {data.proj.v[0].fov, data.proj.v[1].fov};
+		cmd = cn->foveation->update_foveation_buffer(
+		        ct->c->nr.distortion.buffer,
+		        data.flip_y,
+		        rect,
+		        fov);
+	}
+	else
+	{
+		const auto & hmd = cn->cnx.get_hmd().hmd;
+		xrt_rect rect[] = {
+		        {.extent = {
+		                 .w = int(hmd->views[0].display.w_pixels),
+		                 .h = int(hmd->views[0].display.h_pixels),
+		         }},
+		        {.extent = {
+		                 .w = int(hmd->views[1].display.w_pixels),
+		                 .h = int(hmd->views[1].display.h_pixels),
+		         }},
+		};
+		cmd = cn->foveation->update_foveation_buffer(
+		        ct->c->nr.distortion.buffer,
+		        false,
+		        rect,
+		        hmd->distortion.fov);
+	}
 
 	struct vk_bundle * vk = get_vk(cn);
 
 	vk::Semaphore sem(cn->semaphores.present_complete);
 
 	vk::SubmitInfo submit_info{
+	        .commandBufferCount = cmd ? 1u : 0,
+	        .pCommandBuffers = &cmd,
 	        .signalSemaphoreCount = 1,
 	        .pSignalSemaphores = &sem,
 	};
@@ -753,14 +786,14 @@ static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, flo
 
 wivrn_comp_target::~wivrn_comp_target()
 {
-	if (wivrn_bundle)
-		wivrn_bundle->device.waitIdle();
 	destroy_images(this);
 }
 
 static void comp_wivrn_destroy(struct comp_target * ct)
 {
-	delete (struct wivrn_comp_target *)ct;
+	auto cn = (struct wivrn_comp_target *)ct;
+	destroy_images(cn);
+	cn->self = nullptr;
 }
 
 static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, int64_t gpu_start_ns, int64_t gpu_end_ns, int64_t when_ns)
@@ -797,27 +830,6 @@ void wivrn_comp_target::set_bitrate(int bitrate_bps)
 		auto encoder_bps = (int)(bitrate_bps * encoder->bitrate_multiplier);
 		U_LOG_D("Encoder %d bitrate: %d", encoder->stream_idx, encoder_bps);
 		encoder->set_bitrate(encoder_bps);
-	}
-}
-
-void wivrn_comp_target::render_dynamic_foveation(std::array<to_headset::foveation_parameter, 2> foveation)
-{
-	assert(foveation_renderer);
-
-	vk::Semaphore sem(semaphores.present_complete);
-
-	vk::SubmitInfo submit_info{
-	        .commandBufferCount = 1,
-	        .pCommandBuffers = &*foveation_renderer->cmd_buf,
-	        .signalSemaphoreCount = 1,
-	        .pSignalSemaphores = &sem,
-	};
-
-	foveation_renderer->render_distortion_images(foveation, c->nr.distortion.images, c->nr.distortion.image_views);
-
-	{
-		scoped_lock lock(c->base.vk.queue_mutex);
-		wivrn_bundle->queue.submit(submit_info);
 	}
 }
 
