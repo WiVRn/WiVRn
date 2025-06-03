@@ -104,8 +104,8 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 	for (int i = 0; i < joint_whitelist.size(); i++)
 	{
 		auto joint = joint_whitelist[i];
-		if (!full_body && joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META)
-			break;
+		if (!full_body && (joint == XR_FULL_BODY_JOINT_HIPS_META || joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META))
+			continue;
 
 		auto joint_pose = joints[joint];
 		wivrn::from_headset::body_tracking::pose pose{
