@@ -273,6 +273,8 @@ void scenes::stream::tracking()
 			// TODO handle reconnection?
 			application::get_fb_body_tracker().start(config.fb_lower_body);
 		}
+		else if (application::get_pico_body_tracking_supported())
+			body_tracking = body_pico;
 	}
 
 	on_interaction_profile_changed({});
@@ -387,8 +389,8 @@ void scenes::stream::tracking()
 								application::get_fb_body_tracker().locate_spaces(t0 + Δt, packet.device_poses, world_space);
 								break;
 							case body_pico:
-								// TODO
-								__builtin_unreachable();
+								application::get_pico_body_tracker().locate_spaces(t0 + Δt, packet.device_poses, world_space);
+								break;
 						}
 					}
 				}

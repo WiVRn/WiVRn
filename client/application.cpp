@@ -1045,7 +1045,7 @@ void application::initialize()
 	opt_extensions.push_back(XR_FB_BODY_TRACKING_EXTENSION_NAME);
 	opt_extensions.push_back(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME);
 	opt_extensions.push_back(XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME);
-	//opt_extensions.push_back(XR_BD_BODY_TRACKING_EXTENSION_NAME);
+	opt_extensions.push_back(XR_BD_BODY_TRACKING_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_PALM_POSE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME);
@@ -1153,12 +1153,12 @@ void application::initialize()
 		fb_body_tracking_supported = fb_body_properties.supportsBodyTracking;
 	}
 
-	/*if (utils::contains(xr_extensions, XR_BD_BODY_TRACKING_EXTENSION_NAME))
+	if (utils::contains(xr_extensions, XR_BD_BODY_TRACKING_EXTENSION_NAME))
 	{
 		XrSystemBodyTrackingPropertiesBD bd_body_properties = xr_system_id.bd_body_tracking_properties();
 		spdlog::info("    PICO body tracking support: {}", (bool)bd_body_properties.supportsBodyTracking);
 		pico_body_tracking_supported = bd_body_properties.supportsBodyTracking;
-	}*/
+	}
 
 	if (utils::contains(xr_extensions, XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME))
 	{
@@ -1227,6 +1227,11 @@ void application::initialize()
 	if (fb_body_tracking_supported)
 	{
 		fb_body_tracker = xr_session.create_fb_body_tracker();
+	}
+
+	if (pico_body_tracking_supported)
+	{
+		pico_body_tracker = xr_session.create_pico_body_tracker();
 	}
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;

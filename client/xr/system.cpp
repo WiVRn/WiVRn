@@ -159,7 +159,7 @@ XrSystemBodyTrackingPropertiesFB xr::system::fb_body_tracking_properties() const
 	return body_tracking_prop;
 }
 
-/*XrSystemBodyTrackingPropertiesBD xr::system::bd_body_tracking_properties() const
+XrSystemBodyTrackingPropertiesBD xr::system::bd_body_tracking_properties() const
 {
 	if (!id)
 		throw std::invalid_argument("this");
@@ -175,7 +175,7 @@ XrSystemBodyTrackingPropertiesFB xr::system::fb_body_tracking_properties() const
 	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
 
 	return body_tracking_prop;
-}*/
+}
 
 xr::system::passthrough_type xr::system::passthrough_supported() const
 {

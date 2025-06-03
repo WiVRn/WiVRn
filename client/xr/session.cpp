@@ -25,7 +25,7 @@
 #include "utils/contains.h"
 #include "xr/fb_body_tracker.h"
 #include "xr/meta_body_tracking_full_body.h"
-//#include "xr/pico_body_tracker.h"
+#include "xr/pico_body_tracker.h"
 #include "xr/instance.h"
 #include "xr/system.h"
 #include <ranges>
@@ -150,7 +150,7 @@ xr::fb_body_tracker xr::session::create_fb_body_tracker()
 	return {*inst, *this};
 }
 
-/*xr::pico_body_tracker xr::session::create_pico_body_tracker()
+xr::pico_body_tracker xr::session::create_pico_body_tracker()
 {
 	XrBodyTrackerCreateInfoBD create_info{
 			.type = XR_TYPE_BODY_TRACKER_CREATE_INFO_BD,
@@ -165,7 +165,7 @@ xr::fb_body_tracker xr::session::create_fb_body_tracker()
 
 	CHECK_XR(xrCreateBodyTrackerBD(id, &create_info, &bt));
 	return {*inst, bt};
-}*/
+}
 
 std::vector<vk::Format> xr::session::get_swapchain_formats() const
 {
