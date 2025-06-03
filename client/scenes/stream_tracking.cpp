@@ -258,7 +258,8 @@ void scenes::stream::tracking()
 		}
 	}
 
-	enum {
+	enum
+	{
 		body_none,
 		body_fb,
 		body_pico,

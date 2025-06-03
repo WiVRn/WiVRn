@@ -24,7 +24,6 @@
 #include "openxr/openxr.h"
 #include "utils/contains.h"
 #include "xr/fb_body_tracker.h"
-#include "xr/meta_body_tracking_full_body.h"
 #include "xr/pico_body_tracker.h"
 #include "xr/instance.h"
 #include "xr/system.h"

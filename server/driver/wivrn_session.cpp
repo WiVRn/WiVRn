@@ -447,7 +447,7 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 	}
 	else if (tracking_control.get_enabled(to_headset::tracking_control::id::generic_tracker))
 	{
-		static std::chrono::steady_clock::time_point last_log{ std::chrono::nanoseconds(0) };
+		static std::chrono::steady_clock::time_point last_log{std::chrono::nanoseconds(0)};
 		auto now = std::chrono::steady_clock::now();
 		// rate limit it because the log gets annoying when i'm trying to debug
 		if (now - last_log > std::chrono::milliseconds(100))

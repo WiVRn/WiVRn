@@ -21,8 +21,8 @@
 #include "utils/handle.h"
 #include "wivrn_packets.h"
 
-#include <openxr/openxr.h>
 #include <vector>
+#include <openxr/openxr.h>
 
 namespace xr
 {
@@ -33,25 +33,25 @@ XrResult destroy_pico_body_tracker(XrBodyTrackerBD);
 
 class pico_body_tracker : public utils::handle<XrBodyTrackerBD, destroy_pico_body_tracker>
 {
-    PFN_xrLocateBodyJointsBD xrLocateBodyJointsBD{};
+	PFN_xrLocateBodyJointsBD xrLocateBodyJointsBD{};
 
 public:
-    static constexpr std::array joint_whitelist{
-        XR_BODY_JOINT_PELVIS_BD,
-        XR_BODY_JOINT_LEFT_SHOULDER_BD,
-        XR_BODY_JOINT_RIGHT_SHOULDER_BD,
-        XR_BODY_JOINT_LEFT_ELBOW_BD,
-        XR_BODY_JOINT_RIGHT_ELBOW_BD,
-        
-        XR_BODY_JOINT_LEFT_KNEE_BD,
-        XR_BODY_JOINT_RIGHT_KNEE_BD,
-        XR_BODY_JOINT_LEFT_FOOT_BD,
-        XR_BODY_JOINT_RIGHT_FOOT_BD,
-    };
+	static constexpr std::array joint_whitelist{
+	        XR_BODY_JOINT_PELVIS_BD,
+	        XR_BODY_JOINT_LEFT_SHOULDER_BD,
+	        XR_BODY_JOINT_RIGHT_SHOULDER_BD,
+	        XR_BODY_JOINT_LEFT_ELBOW_BD,
+	        XR_BODY_JOINT_RIGHT_ELBOW_BD,
 
-    pico_body_tracker() = default;
-    pico_body_tracker(instance & inst, XrBodyTrackerBD h);
+	        XR_BODY_JOINT_LEFT_KNEE_BD,
+	        XR_BODY_JOINT_RIGHT_KNEE_BD,
+	        XR_BODY_JOINT_LEFT_FOOT_BD,
+	        XR_BODY_JOINT_RIGHT_FOOT_BD,
+	};
 
-    void locate_spaces(XrTime time, std::vector<wivrn::from_headset::tracking::pose> & out_poses, XrSpace reference);
+	pico_body_tracker() = default;
+	pico_body_tracker(instance & inst, XrBodyTrackerBD h);
+
+	void locate_spaces(XrTime time, std::vector<wivrn::from_headset::tracking::pose> & out_poses, XrSpace reference);
 };
 } // namespace xr

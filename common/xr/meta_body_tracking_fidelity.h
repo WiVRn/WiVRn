@@ -1,3 +1,4 @@
+// clang-format off
 #pragma once
 
 #include <openxr/openxr.h>
@@ -36,3 +37,5 @@ XRAPI_ATTR XrResult XRAPI_CALL xrRequestBodyTrackingFidelityMETA(
     const XrBodyTrackingFidelityMETA            fidelity);
 #endif /* XR_EXTENSION_PROTOTYPES */
 #endif /* !XR_NO_PROTOTYPES */
+
+// clang-format on

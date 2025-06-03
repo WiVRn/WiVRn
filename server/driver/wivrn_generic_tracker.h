@@ -43,17 +43,18 @@ public:
 
 class wivrn_generic_tracker : public xrt_device
 {
-    tracker_pose_list poses;
-    xrt_input pose_input;
+	tracker_pose_list poses;
+	xrt_input pose_input;
 
-    wivrn_session & cnx;
+	wivrn_session & cnx;
+
 public:
-    using base = xrt_device;
-    wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_session & cnx);
+	using base = xrt_device;
+	wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_session & cnx);
 
-    xrt_result_t update_inputs();
-    xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
+	xrt_result_t update_inputs();
+	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 
-    void update_tracking(const from_headset::tracking & tracking, const from_headset::tracking::pose & pose, const clock_offset & offset);
+	void update_tracking(const from_headset::tracking & tracking, const from_headset::tracking::pose & pose, const clock_offset & offset);
 };
 } // namespace wivrn

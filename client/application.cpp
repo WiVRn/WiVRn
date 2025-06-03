@@ -31,8 +31,8 @@
 #include "wifi_lock.h"
 #include "xr/actionset.h"
 #include "xr/check.h"
-#include "xr/meta_body_tracking_full_body.h"
 #include "xr/meta_body_tracking_fidelity.h"
+#include "xr/meta_body_tracking_full_body.h"
 #include "xr/xr.h"
 #include <algorithm>
 #include <boost/locale.hpp>

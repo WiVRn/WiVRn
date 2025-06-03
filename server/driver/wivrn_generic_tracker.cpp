@@ -103,52 +103,52 @@ xrt_space_relation tracker_pose_list::convert_pose(const from_headset::tracking:
 
 wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_session & cnx) :
         xrt_device{
-            .name = XRT_DEVICE_VIVE_TRACKER,
-            .device_type = XRT_DEVICE_TYPE_GENERIC_TRACKER,
-            .hmd = nullptr,
-            .tracking_origin = hmd->tracking_origin,
-            .orientation_tracking_supported = true,
-            .position_tracking_supported = true,
-            .update_inputs = method_pointer<&wivrn_generic_tracker::update_inputs>,
-            .get_tracked_pose = method_pointer<&wivrn_generic_tracker::get_tracked_pose>,
-            .destroy = [](xrt_device *) {},
+                .name = XRT_DEVICE_VIVE_TRACKER,
+                .device_type = XRT_DEVICE_TYPE_GENERIC_TRACKER,
+                .hmd = nullptr,
+                .tracking_origin = hmd->tracking_origin,
+                .orientation_tracking_supported = true,
+                .position_tracking_supported = true,
+                .update_inputs = method_pointer<&wivrn_generic_tracker::update_inputs>,
+                .get_tracked_pose = method_pointer<&wivrn_generic_tracker::get_tracked_pose>,
+                .destroy = [](xrt_device *) {},
         },
         cnx(cnx)
 {
-    auto unique_name = std::format("WiVRn Generic Tracker #{}", index);
-    strlcpy(str, unique_name.c_str(), std::size(str));
-    strlcpy(serial, unique_name.c_str(), std::size(serial));
+	auto unique_name = std::format("WiVRn Generic Tracker #{}", index);
+	strlcpy(str, unique_name.c_str(), std::size(str));
+	strlcpy(serial, unique_name.c_str(), std::size(serial));
 
-    pose_input.name = XRT_INPUT_GENERIC_TRACKER_POSE;
-    pose_input.active = true;
+	pose_input.name = XRT_INPUT_GENERIC_TRACKER_POSE;
+	pose_input.active = true;
 
-    inputs = &pose_input;
-    input_count = 1;
+	inputs = &pose_input;
+	input_count = 1;
 }
 
 xrt_result_t wivrn_generic_tracker::update_inputs()
 {
-    return XRT_SUCCESS;
+	return XRT_SUCCESS;
 }
 xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * res)
 {
-    std::chrono::nanoseconds extrapolation_time;
+	std::chrono::nanoseconds extrapolation_time;
 
-    if (name == XRT_INPUT_GENERIC_TRACKER_POSE)
-    {
-        std::tie(extrapolation_time, *res) = poses.get_pose_at(at_timestamp_ns);
+	if (name == XRT_INPUT_GENERIC_TRACKER_POSE)
+	{
+		std::tie(extrapolation_time, *res) = poses.get_pose_at(at_timestamp_ns);
 
-        cnx.set_enabled(to_headset::tracking_control::id::generic_tracker, true);
-        cnx.add_predict_offset(extrapolation_time);
-        return XRT_SUCCESS;
-    }
-    return XRT_ERROR_NOT_IMPLEMENTED;
+		cnx.set_enabled(to_headset::tracking_control::id::generic_tracker, true);
+		cnx.add_predict_offset(extrapolation_time);
+		return XRT_SUCCESS;
+	}
+	return XRT_ERROR_NOT_IMPLEMENTED;
 }
 
 void wivrn_generic_tracker::update_tracking(const from_headset::tracking & tracking, const from_headset::tracking::pose & pose, const clock_offset & offset)
 {
 	// TODO: Right now we ignore the return value, because if the pose of one of the trackers is not requested for a while, all of them get deactivated, which isn't ideal.
-    poses.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
+	poses.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
 	// cnx.set_enabled(to_headset::tracking_control::id::generic_tracker, false);
 }
 } // namespace wivrn

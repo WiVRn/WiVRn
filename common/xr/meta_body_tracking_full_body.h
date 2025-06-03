@@ -1,3 +1,4 @@
+// clang-format off
 #pragma once
 
 #include <openxr/openxr.h>
@@ -103,3 +104,5 @@ typedef struct XrSystemPropertiesBodyTrackingFullBodyMETA {
     void* XR_MAY_ALIAS    next;
     XrBool32              supportsFullBodyTracking;
 } XrSystemPropertiesBodyTrackingFullBodyMETA;
+
+// clang-format on

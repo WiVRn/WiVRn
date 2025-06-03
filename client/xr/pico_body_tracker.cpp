@@ -25,75 +25,75 @@ static PFN_xrDestroyBodyTrackerBD xrDestroyBodyTrackerBD{};
 
 XrResult xr::destroy_pico_body_tracker(XrBodyTrackerBD id)
 {
-    return xrDestroyBodyTrackerBD(id);
+	return xrDestroyBodyTrackerBD(id);
 }
 
 xr::pico_body_tracker::pico_body_tracker(instance & inst, XrBodyTrackerBD h)
 {
-    id = h;
-    xrLocateBodyJointsBD = inst.get_proc<PFN_xrLocateBodyJointsBD>("xrLocateBodyJointsBD");
+	id = h;
+	xrLocateBodyJointsBD = inst.get_proc<PFN_xrLocateBodyJointsBD>("xrLocateBodyJointsBD");
 }
 
 void xr::pico_body_tracker::locate_spaces(XrTime time, std::vector<wivrn::from_headset::tracking::pose> & out_poses, XrSpace reference)
 {
-    auto fill_poses = [&]() {
-        for (auto _ : joint_whitelist)
-        {
-            wivrn::from_headset::tracking::pose pose{
-                .pose = {},
-                .device = wivrn::device_id::GENERIC_TRACKER,
-                .flags = 0,
-            };
-            out_poses.push_back(std::move(pose));
-        }
-    };
+	auto fill_poses = [&]() {
+		for (auto _: joint_whitelist)
+		{
+			wivrn::from_headset::tracking::pose pose{
+			        .pose = {},
+			        .device = wivrn::device_id::GENERIC_TRACKER,
+			        .flags = 0,
+			};
+			out_poses.push_back(std::move(pose));
+		}
+	};
 
-    if (!xrLocateBodyJointsBD)
-    {
-        fill_poses();
-        return;
-    }
+	if (!xrLocateBodyJointsBD)
+	{
+		fill_poses();
+		return;
+	}
 
-    XrBodyJointsLocateInfoBD locate_info{
-            .type = XR_TYPE_BODY_JOINTS_LOCATE_INFO_BD,
-            .next = nullptr,
-            .baseSpace = reference,
-            .time = time,
-    };
+	XrBodyJointsLocateInfoBD locate_info{
+	        .type = XR_TYPE_BODY_JOINTS_LOCATE_INFO_BD,
+	        .next = nullptr,
+	        .baseSpace = reference,
+	        .time = time,
+	};
 
-    std::array<XrBodyJointLocationBD, XR_BODY_JOINT_COUNT_BD> joints{};
-    XrBodyJointLocationsBD joint_locations{
-            .type = XR_TYPE_BODY_JOINT_LOCATIONS_BD,
-            .next = nullptr,
-            .jointLocationCount = joints.size(),
-            .jointLocations = joints.data(),
-    };
+	std::array<XrBodyJointLocationBD, XR_BODY_JOINT_COUNT_BD> joints{};
+	XrBodyJointLocationsBD joint_locations{
+	        .type = XR_TYPE_BODY_JOINT_LOCATIONS_BD,
+	        .next = nullptr,
+	        .jointLocationCount = joints.size(),
+	        .jointLocations = joints.data(),
+	};
 
-    if (auto res = xrLocateBodyJointsBD(id, &locate_info, &joint_locations); !XR_SUCCEEDED(res))
-    {
-        spdlog::warn("Unable to get body joints: xrLocateBodyJointsBD returned {}", xr::to_string(res));
-        fill_poses();
-        return;
-    }
+	if (auto res = xrLocateBodyJointsBD(id, &locate_info, &joint_locations); !XR_SUCCEEDED(res))
+	{
+		spdlog::warn("Unable to get body joints: xrLocateBodyJointsBD returned {}", xr::to_string(res));
+		fill_poses();
+		return;
+	}
 
-    for (auto & joint : joint_whitelist)
-    {
-        auto & joint_location = joints[joint];
-        wivrn::from_headset::tracking::pose pose{
-            .pose = joint_location.pose,
-            .device = wivrn::device_id::GENERIC_TRACKER,
-            .flags = 0,
-        };
+	for (auto & joint: joint_whitelist)
+	{
+		auto & joint_location = joints[joint];
+		wivrn::from_headset::tracking::pose pose{
+		        .pose = joint_location.pose,
+		        .device = wivrn::device_id::GENERIC_TRACKER,
+		        .flags = 0,
+		};
 
-        if (joint_location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-            pose.flags |= wivrn::from_headset::tracking::position_valid;
-        if (joint_location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-            pose.flags |= wivrn::from_headset::tracking::orientation_valid;
-        if (joint_location.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-            pose.flags |= wivrn::from_headset::tracking::position_tracked;
-        if (joint_location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-            pose.flags |= wivrn::from_headset::tracking::orientation_tracked;
+		if (joint_location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+			pose.flags |= wivrn::from_headset::tracking::position_valid;
+		if (joint_location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+			pose.flags |= wivrn::from_headset::tracking::orientation_valid;
+		if (joint_location.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+			pose.flags |= wivrn::from_headset::tracking::position_tracked;
+		if (joint_location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+			pose.flags |= wivrn::from_headset::tracking::orientation_tracked;
 
-        out_poses.push_back(std::move(pose));
-    }
+		out_poses.push_back(std::move(pose));
+	}
 }

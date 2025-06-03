@@ -21,11 +21,11 @@
 
 #include "configuration.h"
 #include "wifi_lock.h"
+#include "xr/fb_body_tracker.h"
 #include "xr/fb_face_tracker2.h"
 #include "xr/hand_tracker.h"
 #include "xr/htc_face_tracker.h"
 #include "xr/pico_face_tracker.h"
-#include "xr/fb_body_tracker.h"
 #ifdef __ANDROID__
 #include <android_native_app_glue.h>
 #endif

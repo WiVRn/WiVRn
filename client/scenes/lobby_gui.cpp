@@ -1478,10 +1478,10 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	if (application::get_fb_body_tracking_supported())
 	{
 		items.push_back({
-				.f = feature::body_tracking,
-				.tooltip_enabled = _("Body tracking is enabled"),
-				.tooltip_disabled = _("Body tracking is disabled"),
-				.icon_enabled = ICON_FA_PERSON,
+		        .f = feature::body_tracking,
+		        .tooltip_enabled = _("Body tracking is enabled"),
+		        .tooltip_disabled = _("Body tracking is disabled"),
+		        .icon_enabled = ICON_FA_PERSON,
 		});
 	}
 
