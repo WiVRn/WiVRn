@@ -34,11 +34,11 @@ public:
 
 	tracker_pose_list() = default;
 
-	bool update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::tracking::pose & pose, const clock_offset & offset);
+	bool update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::body_tracking::pose & pose, const clock_offset & offset);
 
 	std::pair<std::chrono::nanoseconds, xrt_space_relation> get_pose_at(XrTime at_timestamp_ns);
 
-	static xrt_space_relation convert_pose(const wivrn::from_headset::tracking::pose &);
+	static xrt_space_relation convert_pose(const wivrn::from_headset::body_tracking::pose &);
 };
 
 class wivrn_generic_tracker : public xrt_device
@@ -55,6 +55,6 @@ public:
 	xrt_result_t update_inputs();
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 
-	void update_tracking(const from_headset::tracking & tracking, const from_headset::tracking::pose & pose, const clock_offset & offset);
+	void update_tracking(const from_headset::body_tracking & tracking, const from_headset::body_tracking::pose & pose, const clock_offset & offset);
 };
 } // namespace wivrn

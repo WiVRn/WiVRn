@@ -70,7 +70,7 @@ xrt_space_relation tracker_pose_list::extrapolate(const xrt_space_relation & a, 
 	return res;
 }
 
-bool tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::tracking::pose & pose, const clock_offset & offset)
+bool tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::body_tracking::pose & pose, const clock_offset & offset)
 {
 	return add_sample(produced_timestamp, timestamp, convert_pose(pose), offset);
 }
@@ -82,22 +82,27 @@ std::pair<std::chrono::nanoseconds, xrt_space_relation> tracker_pose_list::get_p
 
 static xrt_space_relation_flags convert_flags(uint8_t flags)
 {
-	static_assert(int(from_headset::tracking::position_valid) == XRT_SPACE_RELATION_POSITION_VALID_BIT);
-	static_assert(int(from_headset::tracking::orientation_valid) == XRT_SPACE_RELATION_ORIENTATION_VALID_BIT);
-	static_assert(int(from_headset::tracking::linear_velocity_valid) == XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT);
-	static_assert(int(from_headset::tracking::angular_velocity_valid) == XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT);
-	static_assert(int(from_headset::tracking::orientation_tracked) == XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
-	static_assert(int(from_headset::tracking::position_tracked) == XRT_SPACE_RELATION_POSITION_TRACKED_BIT);
-	return xrt_space_relation_flags(flags);
+	std::underlying_type_t<xrt_space_relation_flags> out_flags = 0;
+	if (flags & from_headset::body_tracking::orientation_valid)
+		out_flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
+	if (flags & from_headset::body_tracking::position_valid)
+		out_flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
+
+	if (flags & from_headset::body_tracking::orientation_tracked)
+		out_flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
+	if (flags & from_headset::body_tracking::position_tracked)
+		out_flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
+
+	return xrt_space_relation_flags(out_flags);
 }
 
-xrt_space_relation tracker_pose_list::convert_pose(const from_headset::tracking::pose & pose)
+xrt_space_relation tracker_pose_list::convert_pose(const from_headset::body_tracking::pose & pose)
 {
 	return xrt_space_relation{
 	        .relation_flags = convert_flags(pose.flags),
 	        .pose = xrt_cast(pose.pose),
-	        .linear_velocity = xrt_cast(pose.linear_velocity),
-	        .angular_velocity = xrt_cast(pose.angular_velocity),
+	        .linear_velocity = {},
+	        .angular_velocity = {},
 	};
 }
 
@@ -145,7 +150,7 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 	return XRT_ERROR_NOT_IMPLEMENTED;
 }
 
-void wivrn_generic_tracker::update_tracking(const from_headset::tracking & tracking, const from_headset::tracking::pose & pose, const clock_offset & offset)
+void wivrn_generic_tracker::update_tracking(const from_headset::body_tracking & tracking, const from_headset::body_tracking::pose & pose, const clock_offset & offset)
 {
 	// TODO: Right now we ignore the return value, because if the pose of one of the trackers is not requested for a while, all of them get deactivated, which isn't ideal.
 	poses.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
