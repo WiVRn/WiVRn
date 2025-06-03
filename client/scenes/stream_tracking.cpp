@@ -274,7 +274,7 @@ void scenes::stream::tracking()
 			body_tracking = body_fb;
 			// We start the tracker on connection because there are togglable settings.
 			// TODO handle reconnection?
-			application::get_fb_body_tracker().start(config.fb_lower_body);
+			application::get_fb_body_tracker().start(config.fb_lower_body, config.fb_hip);
 		}
 		else if (application::get_pico_body_tracking_supported())
 			body_tracking = body_pico;

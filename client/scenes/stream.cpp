@@ -231,8 +231,12 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 			if (application::get_fb_body_tracking_supported())
 			{
 				auto num_trackers = config.fb_lower_body
-				                            ? xr::fb_body_tracker::joint_whitelist.size()
-				                            : std::ranges::count_if(xr::fb_body_tracker::joint_whitelist, [](auto & joint) { return joint < XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META; });
+				                            ? std::ranges::count_if(xr::fb_body_tracker::joint_whitelist, [&config](auto joint) {
+					                              return config.fb_hip || joint != XR_FULL_BODY_JOINT_HIPS_META;
+				                              })
+				                            : std::ranges::count_if(xr::fb_body_tracker::joint_whitelist, [](auto joint) {
+					                              return joint != XR_FULL_BODY_JOINT_HIPS_META && joint < XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META;
+				                              });
 				info.num_generic_trackers = num_trackers;
 			}
 			else if (application::get_pico_body_tracking_supported())

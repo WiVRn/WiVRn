@@ -758,11 +758,9 @@ void scenes::lobby::gui_settings()
 			else
 			{
 				if (application::get_fb_body_tracking_supported())
-					tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings, otherwise estimated joint positions will be used"));
+					tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise estimated joint positions will be used"));
 				else if (application::get_pico_body_tracking_supported())
-				{
 					tooltip(_("Uses the Pico Motion Trackers to track body joint positions"));
-				}
 			}
 		}
 
@@ -778,7 +776,18 @@ void scenes::lobby::gui_settings()
 		}
 		vibrate_on_hover();
 		if (ImGui::IsItemHovered())
-			tooltip(_("Estimate lower body joint positions using Generative Legs, requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
+			tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
+
+		ImGui::BeginDisabled(not config.fb_lower_body);
+		if (ImGui::Checkbox(_S("Enable hip tracking"), &config.fb_hip))
+		{
+			config.save();
+		}
+		vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			tooltip(_("Only takes affect with lower body tracking enabled\nMay be desired when using another source of hip tracking"));
+		ImGui::EndDisabled();
+
 		ImGui::Unindent();
 		ImGui::EndDisabled();
 	}

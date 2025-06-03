@@ -41,6 +41,7 @@ class fb_body_tracker
 	PFN_xrDestroyBodyTrackerFB xrDestroyBodyTrackerFB{};
 
 	bool full_body{};
+	bool hip{};
 
 public:
 	static constexpr std::array joint_whitelist{
@@ -62,7 +63,7 @@ public:
 	fb_body_tracker(instance & inst, session & s);
 	~fb_body_tracker();
 
-	void start(bool lower_body);
+	void start(bool lower_body, bool hip);
 	void stop();
 
 	std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> locate_spaces(XrTime time, XrSpace reference);

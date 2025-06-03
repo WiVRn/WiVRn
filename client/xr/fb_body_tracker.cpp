@@ -37,10 +37,11 @@ xr::fb_body_tracker::~fb_body_tracker()
 	stop();
 }
 
-void xr::fb_body_tracker::start(bool full_body)
+void xr::fb_body_tracker::start(bool full_body, bool hip)
 {
 	assert(xrCreateBodyTrackerFB);
 	this->full_body = full_body;
+	this->hip = hip;
 
 	XrBodyTrackerCreateInfoFB create_info{
 	        .type = XR_TYPE_BODY_TRACKER_CREATE_INFO_FB,
@@ -100,11 +101,14 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 	}
 
 	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> poses{};
+	int num_poses = 0;
 	for (int i = 0; i < joint_whitelist.size(); i++)
 	{
 		auto joint = joint_whitelist[i];
-		if (!full_body && joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META)
-			break;
+		if (!full_body && (joint == XR_FULL_BODY_JOINT_HIPS_META || joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META))
+			continue;
+		if (!hip && joint == XR_FULL_BODY_JOINT_HIPS_META)
+			continue;
 
 		auto joint_pose = joints[joint];
 		wivrn::from_headset::body_tracking::pose pose{
@@ -121,7 +125,7 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 		if (joint_pose.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
 			pose.flags |= wivrn::from_headset::body_tracking::position_tracked;
 
-		poses[i] = std::move(pose);
+		poses[num_poses++] = std::move(pose);
 	}
 	return poses;
 }
