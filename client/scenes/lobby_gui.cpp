@@ -749,8 +749,25 @@ void scenes::lobby::gui_settings()
 			config.save();
 		}
 		ImGui::EndDisabled();
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-			tooltip(_("This feature is not supported by your headset"));
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+		{
+			if (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)
+			{
+				tooltip(_("This feature is not supported by your headset"));
+			}
+			else
+			{
+				if (application::get_fb_body_tracking_supported())
+					tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings, otherwise estimated joint positions will be used"));
+				/*
+				else if (application::get_bd_body_tracking_supported())
+				{
+					tooltip(_("Uses the Pico Motion Trackers to track body joint positions"));
+				}
+				*/
+			}
+		}
+
 		vibrate_on_hover();
 	}
 	if (application::get_fb_body_tracking_supported())
@@ -763,7 +780,7 @@ void scenes::lobby::gui_settings()
 		}
 		vibrate_on_hover();
 		if (ImGui::IsItemHovered())
-			tooltip(_("Estimate lower body joint positions using Generative Legs"));
+			tooltip(_("Estimate lower body joint positions using Generative Legs, requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
 		ImGui::Unindent();
 		ImGui::EndDisabled();
 	}
