@@ -166,6 +166,7 @@ public:
 	void operator()(const from_headset::tracking &);
 	void operator()(from_headset::derived_pose &&);
 	void operator()(from_headset::hand_tracking &&);
+	void operator()(from_headset::body_tracking &&);
 	void operator()(from_headset::inputs &&);
 	void operator()(from_headset::timesync_response &&);
 	void operator()(from_headset::feedback &&);

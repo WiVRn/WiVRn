@@ -21,7 +21,8 @@
 #include "wivrn_packets.h"
 
 #include "xr/meta_body_tracking_fidelity.h"
-#include <vector>
+#include <array>
+#include <optional>
 #include <openxr/openxr.h>
 
 namespace xr
@@ -64,6 +65,6 @@ public:
 	void start(bool lower_body);
 	void stop();
 
-	void locate_spaces(XrTime time, std::vector<wivrn::from_headset::tracking::pose> & out_poses, XrSpace reference);
+	std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> locate_spaces(XrTime time, XrSpace reference);
 };
 } // namespace xr

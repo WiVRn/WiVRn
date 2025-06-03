@@ -232,9 +232,11 @@ void scenes::stream::tracking()
 
 	XrTime t0 = instance.now();
 	XrTime last_hand_sample = t0;
+	XrTime last_body_sample = t0;
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::tracking> tracking_pool; // pre-allocated objects
 	std::vector<from_headset::hand_tracking> hands;
+	std::vector<from_headset::body_tracking> body;
 	std::vector<XrView> views;
 
 	std::vector<from_headset::trackings> merged_tracking;
@@ -286,6 +288,7 @@ void scenes::stream::tracking()
 		{
 			tracking.clear();
 			hands.clear();
+			body.clear();
 
 			XrTime now = instance.now();
 			if (now < t0)
@@ -355,6 +358,30 @@ void scenes::stream::tracking()
 							        locate_hands(application::get_right_hand(), world_space, t0 + Δt));
 					}
 
+					if (body_tracking != body_none and t0 >= last_body_sample + period and
+					    (Δt == 0 or Δt >= prediction - 2 * period))
+					{
+						last_body_sample = t0;
+						if (control.enabled[size_t(tid::generic_tracker)])
+						{
+							auto & body_packet = body.emplace_back(from_headset::body_tracking{
+							        .production_timestamp = t0,
+							        .timestamp = t0 + Δt,
+							});
+							switch (body_tracking)
+							{
+								case body_none:
+									__builtin_unreachable();
+								case body_fb:
+									body_packet.poses = application::get_fb_body_tracker().locate_spaces(t0 + Δt, world_space);
+									break;
+								case body_pico:
+									body_packet.poses = application::get_pico_body_tracker().locate_spaces(t0 + Δt, world_space);
+									break;
+							}
+						}
+					}
+
 					if (control.enabled[size_t(tid::face)])
 					{
 						switch (face_tracking)
@@ -376,21 +403,6 @@ void scenes::stream::tracking()
 							}
 							case wivrn::from_headset::face_type::pico:
 								application::get_pico_face_tracker().get_weights(t0 + Δt, packet.face.emplace<wivrn::from_headset::tracking::fb_face2>());
-								break;
-						}
-					}
-
-					if (control.enabled[size_t(tid::generic_tracker)])
-					{
-						switch (body_tracking)
-						{
-							case body_none:
-								break;
-							case body_fb:
-								application::get_fb_body_tracker().locate_spaces(t0 + Δt, packet.device_poses, world_space);
-								break;
-							case body_pico:
-								application::get_pico_body_tracker().locate_spaces(t0 + Δt, packet.device_poses, world_space);
 								break;
 						}
 					}
@@ -443,7 +455,7 @@ void scenes::stream::tracking()
 				merged_tracking.back().items.emplace_back(std::move(item));
 			}
 
-			packets.resize(std::max(packets.size(), merged_tracking.size() + hands.size()));
+			packets.resize(std::max(packets.size(), merged_tracking.size() + hands.size() + body.size()));
 			size_t packet_count = 0;
 			for (const auto & i: merged_tracking)
 			{
@@ -454,6 +466,15 @@ void scenes::stream::tracking()
 			for (const auto & i: hands)
 			{
 				if (i.joints)
+				{
+					auto & packet = packets[packet_count++];
+					packet.clear();
+					wivrn_session::stream_socket_t::serialize(packet, i);
+				}
+			}
+			for (const auto & i: body)
+			{
+				if (i.poses)
 				{
 					auto & packet = packets[packet_count++];
 					packet.clear();

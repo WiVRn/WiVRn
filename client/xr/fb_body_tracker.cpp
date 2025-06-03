@@ -22,6 +22,8 @@
 #include "xr/xr.h"
 #include <openxr/openxr.h>
 
+static_assert(xr::pico_body_tracker::joint_whitelist.size() <= wivrn::from_headset::body_tracking::max_tracked_poses);
+
 xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s) :
         s(s)
 {
@@ -61,26 +63,11 @@ void xr::fb_body_tracker::stop()
 		CHECK_XR(xrDestroyBodyTrackerFB(std::exchange(handle, nullptr)));
 }
 
-void xr::fb_body_tracker::locate_spaces(XrTime time, std::vector<wivrn::from_headset::tracking::pose> & out_poses, XrSpace reference)
+std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> xr::fb_body_tracker::locate_spaces(XrTime time, XrSpace reference)
 {
-	auto fill_poses = [&]() {
-		for (auto joint: joint_whitelist)
-		{
-			if (!full_body && joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META)
-				return;
-
-			wivrn::from_headset::tracking::pose pose{
-			        .pose = {},
-			        .device = wivrn::device_id::GENERIC_TRACKER,
-			        .flags = 0,
-			};
-			out_poses.push_back(std::move(pose));
-		}
-	};
 	if (!handle)
 	{
-		fill_poses();
-		return;
+		return std::nullopt;
 	}
 
 	assert(xrLocateBodyJointsFB);
@@ -103,40 +90,38 @@ void xr::fb_body_tracker::locate_spaces(XrTime time, std::vector<wivrn::from_hea
 	if (auto res = xrLocateBodyJointsFB(handle, &locate_info, &joint_locations); !XR_SUCCEEDED(res))
 	{
 		spdlog::warn("xrLocateBodyJointsFB returned {}", xr::to_string(res));
-
-		fill_poses();
-		return;
+		return std::nullopt;
 	}
 
 	if (!joint_locations.isActive)
 	{
 		spdlog::warn("Body tracker is not active.");
-		fill_poses();
-		return;
+		return std::nullopt;
 	}
 
-	for (auto joint: joint_whitelist)
+	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> poses{};
+	for (int i = 0; i < joint_whitelist.size(); i++)
 	{
+		auto joint = joint_whitelist[i];
 		if (!full_body && joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META)
-			return;
+			break;
 
 		auto joint_pose = joints[joint];
-		wivrn::from_headset::tracking::pose pose{
+		wivrn::from_headset::body_tracking::pose pose{
 		        .pose = joint_pose.pose,
-		        .device = wivrn::device_id::GENERIC_TRACKER,
 		        .flags = 0,
 		};
 
-		if (joint_pose.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-			pose.flags |= wivrn::from_headset::tracking::position_valid;
 		if (joint_pose.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-			pose.flags |= wivrn::from_headset::tracking::orientation_valid;
-		if (joint_pose.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-			pose.flags |= wivrn::from_headset::tracking::position_tracked;
+			pose.flags |= wivrn::from_headset::body_tracking::orientation_valid;
+		if (joint_pose.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+			pose.flags |= wivrn::from_headset::body_tracking::position_valid;
 		if (joint_pose.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-			pose.flags |= wivrn::from_headset::tracking::orientation_tracked;
+			pose.flags |= wivrn::from_headset::body_tracking::orientation_tracked;
+		if (joint_pose.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+			pose.flags |= wivrn::from_headset::body_tracking::position_tracked;
 
-		out_poses.push_back(std::move(pose));
+		poses[i] = std::move(pose);
 	}
-	return;
+	return poses;
 }
