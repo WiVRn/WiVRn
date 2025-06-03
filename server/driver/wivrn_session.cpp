@@ -433,29 +433,6 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 		fb_face2_tracker->update_tracking(tracking, offset);
 	else if (htc_face_tracker)
 		htc_face_tracker->update_tracking(tracking, offset);
-
-	auto num_trackers = std::ranges::count(tracking.device_poses, device_id::GENERIC_TRACKER, &from_headset::tracking::pose::device);
-	if (num_trackers == generic_trackers.size())
-	{
-		// the generic trackers should always be at end of poses list
-		auto tracker = std::ranges::find(tracking.device_poses, device_id::GENERIC_TRACKER, &from_headset::tracking::pose::device);
-		assert(tracker != tracking.device_poses.cend());
-		for (size_t i = 0; i < num_trackers; ++i, ++tracker)
-		{
-			generic_trackers[i]->update_tracking(tracking, *tracker, offset);
-		}
-	}
-	else if (tracking_control.get_enabled(to_headset::tracking_control::id::generic_tracker))
-	{
-		static std::chrono::steady_clock::time_point last_log{std::chrono::nanoseconds(0)};
-		auto now = std::chrono::steady_clock::now();
-		// rate limit it because the log gets annoying when i'm trying to debug
-		if (now - last_log > std::chrono::milliseconds(100))
-		{
-			U_LOG_W("[rate limited] Generic tracker count mismatch! Expected %" PRIu64 " poses, got %" PRIu64 " poses", generic_trackers.size(), num_trackers);
-			last_log = now;
-		}
-	}
 }
 
 void wivrn_session::operator()(from_headset::derived_pose && derived)
@@ -470,6 +447,19 @@ void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)
 
 	left_hand.update_hand_tracking(hand_tracking, offset);
 	right_hand.update_hand_tracking(hand_tracking, offset);
+}
+void wivrn_session::operator()(from_headset::body_tracking && body_tracking)
+{
+	auto offset = offset_est.get_offset();
+
+	for (int i = 0; i < generic_trackers.size(); i++)
+	{
+		auto pose = body_tracking.poses ? body_tracking.poses->at(i) : from_headset::body_tracking::pose{
+		                                                                       .pose = {},
+		                                                                       .flags = 0,
+		                                                               };
+		generic_trackers[i]->update_tracking(body_tracking, pose, offset);
+	}
 }
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
