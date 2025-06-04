@@ -117,13 +117,15 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 		};
 
 		if (joint_pose.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+		{
 			pose.flags |= wivrn::from_headset::body_tracking::orientation_valid;
-		if (joint_pose.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-			pose.flags |= wivrn::from_headset::body_tracking::position_valid;
-		if (joint_pose.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
 			pose.flags |= wivrn::from_headset::body_tracking::orientation_tracked;
-		if (joint_pose.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+		}
+		if (joint_pose.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+		{
+			pose.flags |= wivrn::from_headset::body_tracking::position_valid;
 			pose.flags |= wivrn::from_headset::body_tracking::position_tracked;
+		}
 
 		poses[num_poses++] = std::move(pose);
 	}
