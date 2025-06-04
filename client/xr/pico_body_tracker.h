@@ -39,8 +39,6 @@ class pico_body_tracker : public utils::handle<XrBodyTrackerBD, destroy_pico_bod
 public:
 	static constexpr std::array joint_whitelist{
 	        XR_BODY_JOINT_PELVIS_BD,
-	        XR_BODY_JOINT_LEFT_SHOULDER_BD,
-	        XR_BODY_JOINT_RIGHT_SHOULDER_BD,
 	        XR_BODY_JOINT_LEFT_ELBOW_BD,
 	        XR_BODY_JOINT_RIGHT_ELBOW_BD,
 

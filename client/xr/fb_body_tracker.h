@@ -47,8 +47,6 @@ public:
 	static constexpr std::array joint_whitelist{
 	        XR_FULL_BODY_JOINT_HIPS_META,
 	        XR_FULL_BODY_JOINT_CHEST_META,
-	        XR_FULL_BODY_JOINT_LEFT_ARM_UPPER_META,
-	        XR_FULL_BODY_JOINT_RIGHT_ARM_UPPER_META,
 	        XR_FULL_BODY_JOINT_LEFT_ARM_LOWER_META,
 	        XR_FULL_BODY_JOINT_RIGHT_ARM_LOWER_META,
 
