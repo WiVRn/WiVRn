@@ -129,6 +129,15 @@ bool configuration::check_feature(feature f) const
 					case model::meta_quest_3s:
 						if (not application::get_fb_body_tracking_supported())
 							return false;
+						break;
+					case model::pico_neo_3:
+					case model::pico_4:
+					case model::pico_4s:
+					case model::pico_4_pro:
+					case model::pico_4_enterprise:
+						if (not application::get_pico_body_tracking_supported())
+							return false;
+						break;
 					default:
 						break;
 				}

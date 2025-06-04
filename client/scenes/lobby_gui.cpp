@@ -741,7 +741,7 @@ void scenes::lobby::gui_settings()
 	}
 
 	{
-		ImGui::BeginDisabled(not(application::get_fb_body_tracking_supported()));
+		ImGui::BeginDisabled(not(application::get_fb_body_tracking_supported() or application::get_pico_body_tracking_supported()));
 		bool enabled = config.check_feature(feature::body_tracking);
 		if (ImGui::Checkbox(_S("Enable body tracking"), &enabled))
 		{
@@ -1471,7 +1471,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (application::get_fb_body_tracking_supported())
+	if (application::get_fb_body_tracking_supported() or application::get_pico_body_tracking_supported())
 	{
 		items.push_back({
 		        .f = feature::body_tracking,
