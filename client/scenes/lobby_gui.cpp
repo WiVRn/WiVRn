@@ -777,6 +777,17 @@ void scenes::lobby::gui_settings()
 		vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
+
+		ImGui::BeginDisabled(not config.fb_lower_body);
+		if (ImGui::Checkbox(_S("Enable hip tracking"), &config.fb_hip))
+		{
+			config.save();
+		}
+		vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			tooltip(_("Only takes affect with lower body tracking enabled\nMay be desired when using another source of hip tracking"));
+		ImGui::EndDisabled();
+
 		ImGui::Unindent();
 		ImGui::EndDisabled();
 	}
