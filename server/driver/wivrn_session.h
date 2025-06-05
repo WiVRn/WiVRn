@@ -113,7 +113,9 @@ class wivrn_session : public xrt_system_devices
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::unique_ptr<wivrn_htc_face_tracker> htc_face_tracker;
 	std::unique_ptr<wivrn_foveation> foveation;
-	std::vector<std::unique_ptr<wivrn_generic_tracker>> generic_trackers;
+	uint32_t num_generic_trackers;
+	std::array<std::unique_ptr<wivrn_generic_tracker>, from_headset::body_tracking::max_tracked_poses> generic_trackers;
+	std::array<bool, from_headset::body_tracking::max_tracked_poses> enabled_trackers;
 	wivrn_comp_target * comp_target;
 
 	clock_offset_estimator offset_est;
@@ -154,6 +156,7 @@ public:
 
 	void set_enabled(to_headset::tracking_control::id id, bool enabled);
 	void set_enabled(device_id id, bool enabled);
+	void set_tracker_enabled(int index, bool enabled);
 
 	void operator()(from_headset::crypto_handshake &&) {}
 	void operator()(from_headset::pin_check_1 &&) {}
