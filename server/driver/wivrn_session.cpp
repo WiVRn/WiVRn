@@ -456,7 +456,7 @@ void wivrn_session::operator()(from_headset::body_tracking && body_tracking)
 {
 	auto offset = offset_est.get_offset();
 
-	for (int i = 0; i < generic_trackers.size(); i++)
+	for (int i = 0; i < num_generic_trackers; i++)
 	{
 		auto pose = body_tracking.poses ? body_tracking.poses->at(i) : from_headset::body_tracking::pose{
 		                                                                       .pose = {},
