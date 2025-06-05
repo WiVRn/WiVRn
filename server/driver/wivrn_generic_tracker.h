@@ -47,6 +47,7 @@ class wivrn_generic_tracker : public xrt_device
 	xrt_input pose_input;
 
 	wivrn_session & cnx;
+	int index;
 
 public:
 	using base = xrt_device;
