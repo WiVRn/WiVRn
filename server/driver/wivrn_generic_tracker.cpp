@@ -133,13 +133,17 @@ wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_
 	input_count = 1;
 }
 
-#define XRT_INPUT_NAME_CASE(NAME, VALUE) case VALUE: return #NAME;
+#define XRT_INPUT_NAME_CASE(NAME, VALUE) \
+	case VALUE:                      \
+		return #NAME;
 
 const char * input_name_str(xrt_input_name name)
 {
 	switch (name)
 	{
-		XRT_INPUT_LIST(XRT_INPUT_NAME_CASE) default: return "Unknown";
+		XRT_INPUT_LIST(XRT_INPUT_NAME_CASE)
+		default:
+			return "Unknown";
 	}
 }
 
