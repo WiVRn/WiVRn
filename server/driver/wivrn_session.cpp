@@ -41,6 +41,7 @@
 #include "wivrn_packets.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
+#include <algorithm>
 #include <chrono>
 #include <magic_enum.hpp>
 #include <stdexcept>
@@ -127,8 +128,10 @@ bool wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id,
 {
 	std::lock_guard lock(mutex);
 	bool changed = enabled != this->enabled[size_t(id)];
-	if (changed)
-		U_LOG_I("%s tracking: %s", std::string(magic_enum::enum_name(id)).c_str(), enabled ? "enabled" : "disabled");
+	if (!changed)
+		return false;
+
+	U_LOG_I("%s tracking: %s", std::string(magic_enum::enum_name(id)).c_str(), enabled ? "enabled" : "disabled");
 	this->enabled[size_t(id)] = enabled;
 	return changed;
 }
@@ -222,17 +225,18 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		xdevs[xdev_count++] = htc_face_tracker.get();
 	}
 
-	if (auto num_trackers = get_info().num_generic_trackers; num_trackers > 0)
+	num_generic_trackers = get_info().num_generic_trackers;
+	enabled_trackers.fill(false);
+	if (num_generic_trackers > 0)
 	{
-		generic_trackers.clear();
-		generic_trackers.reserve(num_trackers);
-		U_LOG_I("Creating %d generic trackers", num_trackers);
+		U_LOG_I("Creating %d generic trackers", num_generic_trackers);
 
-		for (int i = 1; i <= num_trackers; ++i)
+		for (int i = 0; i < num_generic_trackers; ++i)
 		{
 			auto dev = std::make_unique<wivrn_generic_tracker>(i, &hmd, *this);
 			xdevs[xdev_count++] = dev.get();
-			generic_trackers.push_back(std::move(dev));
+			generic_trackers[i] = std::move(dev);
+			enabled_trackers[i] = true;
 		}
 	}
 
@@ -452,7 +456,7 @@ void wivrn_session::operator()(from_headset::body_tracking && body_tracking)
 {
 	auto offset = offset_est.get_offset();
 
-	for (int i = 0; i < generic_trackers.size(); i++)
+	for (int i = 0; i < num_generic_trackers; i++)
 	{
 		auto pose = body_tracking.poses ? body_tracking.poses->at(i) : from_headset::body_tracking::pose{
 		                                                                       .pose = {},
@@ -505,6 +509,14 @@ void wivrn_session::set_enabled(to_headset::tracking_control::id id, bool enable
 void wivrn_session::set_enabled(device_id id, bool enabled)
 {
 	if (tracking_control.set_enabled(to_tracking_control(id), enabled) and enabled)
+		tracking_control.send(*connection, true);
+}
+void wivrn_session::set_tracker_enabled(int index, bool enabled)
+{
+	assert(index < std::size(enabled_trackers));
+	enabled_trackers[index] = enabled;
+	bool keep_active = std::ranges::any_of(enabled_trackers, [](bool b) { return b; });
+	if (tracking_control.set_enabled(to_headset::tracking_control::id::generic_tracker, keep_active))
 		tracking_control.send(*connection, true);
 }
 

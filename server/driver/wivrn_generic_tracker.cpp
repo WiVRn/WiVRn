@@ -119,9 +119,10 @@ wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_
                 .get_tracked_pose = method_pointer<&wivrn_generic_tracker::get_tracked_pose>,
                 .destroy = [](xrt_device *) {},
         },
-        cnx(cnx)
+        cnx(cnx),
+        index(index)
 {
-	auto unique_name = std::format("WiVRn Generic Tracker #{}", index);
+	auto unique_name = std::format("WiVRn Generic Tracker #{}", index + 1);
 	strlcpy(str, unique_name.c_str(), std::size(str));
 	strlcpy(serial, unique_name.c_str(), std::size(serial));
 
@@ -158,7 +159,7 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 	{
 		std::tie(extrapolation_time, *res) = poses.get_pose_at(at_timestamp_ns);
 
-		cnx.set_enabled(to_headset::tracking_control::id::generic_tracker, true);
+		cnx.set_tracker_enabled(index, true);
 		cnx.add_predict_offset(extrapolation_time);
 		return XRT_SUCCESS;
 	}
@@ -169,8 +170,7 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 
 void wivrn_generic_tracker::update_tracking(const from_headset::body_tracking & tracking, const from_headset::body_tracking::pose & pose, const clock_offset & offset)
 {
-	// TODO: Right now we ignore the return value, because if the pose of one of the trackers is not requested for a while, all of them get deactivated, which isn't ideal.
-	poses.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
-	// cnx.set_enabled(to_headset::tracking_control::id::generic_tracker, false);
+	if (!poses.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset))
+		cnx.set_tracker_enabled(index, false);
 }
 } // namespace wivrn
