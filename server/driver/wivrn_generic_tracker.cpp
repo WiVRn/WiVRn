@@ -120,7 +120,7 @@ wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_
                 .destroy = [](xrt_device *) {},
         },
         cnx(cnx),
-		index(index)
+        index(index)
 {
 	auto unique_name = std::format("WiVRn Generic Tracker #{}", index + 1);
 	strlcpy(str, unique_name.c_str(), std::size(str));
