@@ -351,7 +351,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 
 	uint64_t bitrate = config.bitrate.value_or(default_bitrate);
 	std::array<double, 2> default_scale;
-	default_scale.fill(info.eye_gaze ? 0.35 : 0.5);
+	default_scale.fill(info.eye_gaze ? 0.4 : 0.5);
 	auto scale = config.scale.value_or(default_scale);
 
 	check_scale(config.encoder_passthrough->name,
