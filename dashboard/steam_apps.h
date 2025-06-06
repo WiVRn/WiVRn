@@ -25,7 +25,6 @@ class steamApp
 {
 	Q_GADGET
 	QML_VALUE_TYPE(steamApp)
-	QML_ELEMENT
 	Q_PROPERTY(QString name READ name WRITE setName)
 	Q_PROPERTY(QString imagePath READ imagePath WRITE setImagePath)
 	Q_PROPERTY(QString command READ command WRITE setCommand)

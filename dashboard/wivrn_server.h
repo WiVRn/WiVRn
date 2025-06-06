@@ -37,7 +37,6 @@ class headset
 {
 	Q_GADGET
 	QML_VALUE_TYPE(headset)
-	QML_ELEMENT
 	Q_PROPERTY(QString name READ name WRITE setName)
 	Q_PROPERTY(QString publicKey READ publicKey WRITE setPublicKey)
 	Q_PROPERTY(bool hasLastConnection READ hasLastConnection)
