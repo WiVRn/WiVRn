@@ -105,8 +105,6 @@ if (WIVRN_BUILD_SERVER)
 			driver/xrt_cast.cpp
 
 			utils/wivrn_vk_bundle.cpp
-
-			${WIVRN_SHADER_HEADERS}
 		)
 	target_compile_features(wivrn-server PRIVATE cxx_std_20)
 	target_compile_definitions(wivrn-server PRIVATE VULKAN_HPP_NO_CONSTRUCTORS)
@@ -187,12 +185,6 @@ if (WIVRN_BUILD_SERVER)
 	target_link_libraries(wivrn-server-dbus PUBLIC PkgConfig::glib2)
 	target_link_libraries(wivrn-server PUBLIC wivrn-server-dbus)
 	target_link_libraries(wivrn-server PUBLIC PkgConfig::libnotify)
-
-	include(CompileGLSL)
-
-	file(GLOB VULKAN_SHADERS CONFIGURE_DEPENDS "shaders/*.glsl")
-	target_sources(wivrn-server PRIVATE ${VULKAN_SHADERS})
-	wivrn_compile_glsl(wivrn-server ${VULKAN_SHADERS})
 
 	target_link_libraries(
 		wivrn-server
