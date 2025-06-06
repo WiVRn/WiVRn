@@ -10,9 +10,9 @@
         devTools = with pkgs; [
           clang-tools
           gdb
+          ktx-tools
         ];
         # Extra build inputs not yet in the nixpkgs recipe.
-        # Should be submitted to nixpkgs on release
         extraBuildInputs = with pkgs; [
           # XRT_FEATURE_DEBUG_GUI requires SDL2
           sdl2-compat
