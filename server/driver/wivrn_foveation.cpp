@@ -155,18 +155,18 @@ static xrt_vec2 yaw_pitch(xrt_quat q)
 	        pitch};
 }
 
+static float angles_to_center(float e, float l, float r)
+{
+	return (e - l) / (r - l) * 2 - 1;
+}
+
 void fill_param_2d(
-        float angle_min,
-        float angle_max,
+        float c,
         size_t foveated_dim,
         size_t source_dim,
         std::vector<uint16_t> & out)
 {
 	float scale = float(foveated_dim) / source_dim;
-	const float l = tan(angle_min);
-	const float r = tan(angle_max);
-	// FIXME: use tan_center
-	float c = (r + l) / (l - r);
 	auto [a, b] = solve_foveation(scale, c);
 
 	uint16_t last = 0;
@@ -211,16 +211,20 @@ void wivrn_foveation::compute_params(
 {
 	std::lock_guard lock(mutex);
 
-	xrt_vec2 tan_center{};
+	xrt_vec2 tan_center[2]{};
 	if (gaze.x != 0 or gaze.y != 0 or gaze.z != 0 or gaze.w != 0)
 	{
 		auto e = yaw_pitch(gaze);
 		for (size_t i = 0; i < 2; ++i)
 		{
-			(void)e;
-			// TODO: implement
-			// uvs[i].x = (e.x - views[i].fov.angleLeft) / (views[i].fov.angleRight - views[i].fov.angleLeft) * 2 - 1 + center_offset[i].x;
-			// uvs[i].y = (e.y - views[i].fov.angleDown) / (views[i].fov.angleUp - views[i].fov.angleDown) * 2 - 1 + center_offset[i].y;
+			xrt_quat view_quat{
+			        .x = views[i].pose.orientation.x,
+			        .y = views[i].pose.orientation.y,
+			        .z = views[i].pose.orientation.z,
+			        .w = views[i].pose.orientation.w};
+			auto view = yaw_pitch(view_quat);
+			tan_center[i].x = angles_to_center(e.x - view.x, views[i].fov.angleLeft, views[i].fov.angleRight);
+			tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown);
 		}
 	}
 
@@ -228,11 +232,11 @@ void wivrn_foveation::compute_params(
 	{
 		const auto & fov = fovs[i];
 		if (foveated_width < src[i].extent.w)
-			fill_param_2d(fov.angle_left, fov.angle_right, foveated_width, src[i].extent.w, params[i].x);
+			fill_param_2d(tan_center[i].x, foveated_width, src[i].extent.w, params[i].x);
 		else
 			params[i].x = {uint16_t(src[i].extent.w)};
 		if (foveated_height < src[i].extent.h)
-			fill_param_2d(fov.angle_up, fov.angle_down, foveated_height, src[i].extent.h, params[i].y);
+			fill_param_2d(tan_center[i].y, foveated_height, src[i].extent.h, params[i].y);
 		else
 			params[i].y = {uint16_t(src[i].extent.h)};
 	}
