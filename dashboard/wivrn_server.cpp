@@ -577,19 +577,19 @@ QString wivrn_server::host_path(QString path)
 	return path;
 }
 
-QList<OpenVRCompat> wivrn_server::openVRCompat() const
+QList<openVRCompatLib> wivrn_server::openVRCompat() const
 {
 	if (wivrn::is_flatpak())
 		return {
-		        OpenVRCompat(i18n("xrizer"), "xrizer"),
-		        OpenVRCompat(i18n("Open Composite"), "OpenComposite"),
+		        openVRCompatLib(i18n("xrizer"), "xrizer"),
+		        openVRCompatLib(i18n("Open Composite"), "OpenComposite"),
 		};
 
-	QList<OpenVRCompat> result;
+	QList<openVRCompatLib> result;
 	for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
 	{
 		if (std::filesystem::path fs = std::string_view(path); std::filesystem::exists(fs))
-			result.push_back(OpenVRCompat(QString::fromStdString(fs.string()), QString::fromStdString(fs.string())));
+			result.push_back(openVRCompatLib(QString::fromStdString(fs.string()), QString::fromStdString(fs.string())));
 	}
 	return result;
 }

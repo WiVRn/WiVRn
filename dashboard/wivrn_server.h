@@ -95,7 +95,7 @@ public:
 	}
 };
 
-class OpenVRCompat
+class openVRCompatLib
 {
 	Q_GADGET
 	QML_VALUE_TYPE(openVRCompat)
@@ -107,8 +107,8 @@ class OpenVRCompat
 	QString m_path;
 
 public:
-	OpenVRCompat() = default;
-	OpenVRCompat(QString name, QString path) :
+	openVRCompatLib() = default;
+	openVRCompatLib(QString name, QString path) :
 	        m_name(name), m_path(path) {}
 
 	// localized name of the compat layer (can be the path)
@@ -199,7 +199,7 @@ public:
 	Q_INVOKABLE QString host_path(QString path);
 
 	// System information
-	Q_PROPERTY(QList<OpenVRCompat> openVRCompat READ openVRCompat CONSTANT)
+	Q_PROPERTY(QList<openVRCompatLib> openVRCompat READ openVRCompat CONSTANT)
 
 	Status serverStatus() const
 	{
@@ -315,7 +315,7 @@ public:
 		return server_output.join("");
 	}
 
-	QList<OpenVRCompat> openVRCompat() const;
+	QList<openVRCompatLib> openVRCompat() const;
 
 	Q_INVOKABLE void disconnect_headset();
 	Q_INVOKABLE void copy_steam_command();
