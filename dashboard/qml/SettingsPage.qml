@@ -301,7 +301,6 @@ Kirigami.ScrollablePage {
                 onCurrentIndexChanged: partitionner.codec = model[currentIndex].name
 
                 delegate: Controls.ItemDelegate {
-                    required property int index
                     required property string label
                     required property string name
 
