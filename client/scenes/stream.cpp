@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "utils/overloaded.h"
+#include "xr/fb_body_tracker.h"
 #define GLM_FORCE_RADIANS
 
 #include "stream.h"
@@ -222,6 +223,24 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 				info.face_tracking = from_headset::face_type::htc;
 			else if (application::get_pico_face_tracking_supported())
 				info.face_tracking = from_headset::face_type::pico;
+		}
+
+		info.num_generic_trackers = 0;
+		if (config.check_feature(feature::body_tracking))
+		{
+			if (application::get_fb_body_tracking_supported())
+			{
+				auto num_trackers = config.fb_lower_body
+				                            ? std::ranges::count_if(xr::fb_body_tracker::joint_whitelist, [&config](auto joint) {
+					                              return config.fb_hip || joint != XR_FULL_BODY_JOINT_HIPS_META;
+				                              })
+				                            : std::ranges::count_if(xr::fb_body_tracker::joint_whitelist, [](auto joint) {
+					                              return joint != XR_FULL_BODY_JOINT_HIPS_META && joint < XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META;
+				                              });
+				info.num_generic_trackers = num_trackers;
+			}
+			else if (application::get_pico_body_tracking_supported())
+				info.num_generic_trackers = xr::pico_body_tracker::joint_whitelist.size();
 		}
 
 		info.palm_pose = application::space(xr::spaces::palm_left) or application::space(xr::spaces::palm_right);

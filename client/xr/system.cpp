@@ -141,6 +141,42 @@ XrSystemFacialTrackingPropertiesHTC xr::system::htc_face_tracking_properties() c
 	return face_tracking_prop;
 }
 
+XrSystemBodyTrackingPropertiesFB xr::system::fb_body_tracking_properties() const
+{
+	if (!id)
+		throw std::invalid_argument("this");
+
+	XrSystemBodyTrackingPropertiesFB body_tracking_prop{
+	        .type = XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_FB,
+	};
+
+	XrSystemProperties prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &body_tracking_prop,
+	};
+	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+	return body_tracking_prop;
+}
+
+XrSystemBodyTrackingPropertiesBD xr::system::bd_body_tracking_properties() const
+{
+	if (!id)
+		throw std::invalid_argument("this");
+
+	XrSystemBodyTrackingPropertiesBD body_tracking_prop{
+	        .type = XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_BD,
+	};
+
+	XrSystemProperties prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &body_tracking_prop,
+	};
+	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+	return body_tracking_prop;
+}
+
 xr::system::passthrough_type xr::system::passthrough_supported() const
 {
 	if (utils::contains(environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))

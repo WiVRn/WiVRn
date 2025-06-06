@@ -1,12 +1,15 @@
 *~
 .cxx/
 .cache/
+.direnv/
 .gradle/
 _deps/
 .idea/
+.vscode/
 
 build/
 build-*/
+**/result
 
 *.so
 a.out

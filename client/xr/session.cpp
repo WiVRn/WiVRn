@@ -23,7 +23,9 @@
 #include "details/enumerate.h"
 #include "openxr/openxr.h"
 #include "utils/contains.h"
+#include "xr/fb_body_tracker.h"
 #include "xr/instance.h"
+#include "xr/pico_body_tracker.h"
 #include "xr/system.h"
 #include <ranges>
 #include <vulkan/vulkan.h>
@@ -140,6 +142,28 @@ xr::htc_face_tracker xr::session::create_htc_face_tracker(XrFacialTrackingTypeHT
 xr::pico_face_tracker xr::session::create_pico_face_tracker()
 {
 	return {*inst, *this};
+}
+
+xr::fb_body_tracker xr::session::create_fb_body_tracker()
+{
+	return {*inst, *this};
+}
+
+xr::pico_body_tracker xr::session::create_pico_body_tracker()
+{
+	XrBodyTrackerCreateInfoBD create_info{
+	        .type = XR_TYPE_BODY_TRACKER_CREATE_INFO_BD,
+	        .next = nullptr,
+	        .jointSet = XR_BODY_JOINT_SET_FULL_BODY_JOINTS_BD,
+	};
+
+	XrBodyTrackerBD bt;
+
+	auto xrCreateBodyTrackerBD = inst->get_proc<PFN_xrCreateBodyTrackerBD>("xrCreateBodyTrackerBD");
+	assert(xrCreateBodyTrackerBD);
+
+	CHECK_XR(xrCreateBodyTrackerBD(id, &create_info, &bt));
+	return {*inst, bt};
 }
 
 std::vector<vk::Format> xr::session::get_swapchain_formats() const

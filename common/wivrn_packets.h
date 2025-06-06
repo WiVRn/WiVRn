@@ -220,6 +220,7 @@ struct headset_info_packet
 	bool palm_pose;
 	bool passthrough;
 	face_type face_tracking;
+	uint32_t num_generic_trackers;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 	std::string system_name;
 };
@@ -337,6 +338,28 @@ struct hand_tracking
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
 };
 
+struct body_tracking
+{
+	inline static const size_t max_tracked_poses = 16;
+	enum flags : uint8_t
+	{
+		orientation_valid = 1 << 0,
+		position_valid = 1 << 1,
+		orientation_tracked = 1 << 2,
+		position_tracked = 1 << 3,
+	};
+	struct pose
+	{
+		XrPosef pose{};
+		// maybe add velocity?
+		uint8_t flags{0};
+	};
+
+	XrTime production_timestamp;
+	XrTime timestamp;
+	std::optional<std::array<pose, max_tracked_poses>> poses;
+};
+
 struct inputs
 {
 	struct input_value
@@ -399,6 +422,7 @@ using packets = std::variant<
         trackings,
         derived_pose,
         hand_tracking,
+        body_tracking,
         inputs,
         timesync_response,
         battery,
@@ -568,6 +592,7 @@ struct tracking_control
 		left_hand,
 		right_hand,
 		face,
+		generic_tracker,
 		battery,
 		microphone,
 
