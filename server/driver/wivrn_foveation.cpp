@@ -223,7 +223,9 @@ void wivrn_foveation::compute_params(
 			        .z = views[i].pose.orientation.z,
 			        .w = views[i].pose.orientation.w};
 			auto view = yaw_pitch(view_quat);
-			tan_center[i].x = angles_to_center(e.x - view.x, views[i].fov.angleLeft, views[i].fov.angleRight);
+
+			auto converge_angle = std::copysign(std::atan(std::abs(views[i].pose.position.x) / CONVERGENCE_DIST_M), views[i].pose.position.x);
+			tan_center[i].x = angles_to_center(e.x - view.x - converge_angle, views[i].fov.angleLeft, views[i].fov.angleRight);
 			tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown);
 		}
 	}
