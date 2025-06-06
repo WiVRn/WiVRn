@@ -6,4 +6,3 @@ Type=simple
 ExecStart=@CMAKE_INSTALL_PREFIX@/bin/wivrn-server --application
 Restart=on-failure
 RestartSec=0
-PrivateTmp=true
