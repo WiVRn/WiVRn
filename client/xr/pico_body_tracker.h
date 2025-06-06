@@ -28,7 +28,6 @@
 namespace xr
 {
 class instance;
-class session;
 
 XrResult destroy_pico_body_tracker(XrBodyTrackerBD);
 
