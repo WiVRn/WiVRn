@@ -39,9 +39,7 @@ xr::pico_body_tracker::pico_body_tracker(instance & inst, XrBodyTrackerBD h)
 std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> xr::pico_body_tracker::locate_spaces(XrTime time, XrSpace reference)
 {
 	if (!xrLocateBodyJointsBD)
-	{
 		return std::nullopt;
-	}
 
 	XrBodyJointsLocateInfoBD locate_info{
 	        .type = XR_TYPE_BODY_JOINTS_LOCATE_INFO_BD,
@@ -67,22 +65,22 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> poses{};
 	for (int i = 0; i < joint_whitelist.size(); i++)
 	{
-		auto & joint_location = joints[joint_whitelist[i]];
+		const auto & joint_loc = joints[joint_whitelist[i]];
 		wivrn::from_headset::body_tracking::pose pose{
-		        .pose = joint_location.pose,
+		        .pose = joint_loc.pose,
 		        .flags = 0,
 		};
 
-		if (joint_location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
 			pose.flags |= wivrn::from_headset::body_tracking::orientation_valid;
-		if (joint_location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
 			pose.flags |= wivrn::from_headset::body_tracking::position_valid;
-		if (joint_location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
 			pose.flags |= wivrn::from_headset::body_tracking::orientation_tracked;
-		if (joint_location.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
 			pose.flags |= wivrn::from_headset::body_tracking::position_tracked;
 
-		poses[i] = std::move(pose);
+		poses[i] = pose;
 	}
 	return poses;
 }
