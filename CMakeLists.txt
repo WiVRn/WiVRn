@@ -284,6 +284,7 @@ FetchContent_Declare(uni-algo      EXCLUDE_FROM_ALL SYSTEM URL https://github.co
                                    URL_HASH SHA256=f2a1539cd8635bc6088d05144a73ecfe7b4d74ee0361fabed6f87f9f19e74ca9)
 
 file(GLOB MONADO_PATCHES CONFIGURE_DEPENDS patches/monado/*)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS monado-rev)
 file(READ monado-rev MONADO_REV)
 # Server dependencies
 FetchContent_Declare(monado
