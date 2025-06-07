@@ -769,7 +769,7 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 	return XRT_SUCCESS;
 }
 
-void wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns, xrt_hand_joint_set * out_value, int64_t * out_timestamp_ns)
+xrt_result_t wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns, xrt_hand_joint_set * out_value, int64_t * out_timestamp_ns)
 {
 	switch (name)
 	{
@@ -780,12 +780,13 @@ void wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t desired_ti
 			std::tie(extrapolation_time, *out_value) = joints.get_at(desired_timestamp_ns);
 			cnx->add_predict_offset(extrapolation_time);
 			cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, true);
-			return;
+			return XRT_SUCCESS;
 		}
 
 		default:
 			U_LOG_W("Unknown input name requested %d", int(name));
 	}
+	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
 void wivrn_controller::set_derived_pose(const from_headset::derived_pose & derived)

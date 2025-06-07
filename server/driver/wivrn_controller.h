@@ -53,7 +53,7 @@ public:
 	xrt_result_t update_inputs();
 
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
-	void get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns, xrt_hand_joint_set * out_value, int64_t * out_timestamp_ns);
+	xrt_result_t get_hand_tracking(xrt_input_name name, int64_t desired_timestamp_ns, xrt_hand_joint_set * out_value, int64_t * out_timestamp_ns);
 
 	void set_output(xrt_output_name name, const xrt_output_value * value);
 
