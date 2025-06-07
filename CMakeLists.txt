@@ -285,7 +285,7 @@ FetchContent_Declare(uni-algo      EXCLUDE_FROM_ALL SYSTEM URL https://github.co
 
 file(GLOB MONADO_PATCHES CONFIGURE_DEPENDS patches/monado/*)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS monado-rev)
-file(READ monado-rev MONADO_REV)
+file(STRINGS monado-rev MONADO_REV)
 # Server dependencies
 FetchContent_Declare(monado
     GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado.git
