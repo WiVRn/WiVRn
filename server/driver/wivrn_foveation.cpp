@@ -160,6 +160,13 @@ static float angles_to_center(float e, float l, float r)
 	return (e - l) / (r - l) * 2 - 1;
 }
 
+static float convergence_angle(float eye_x, float gaze_yaw)
+{
+	const float c = 0.5; // simutaled convergence distance
+	auto b = c * std::sin(gaze_yaw) - eye_x;
+	return std::asin(b / c);
+}
+
 void fill_param_2d(
         float c,
         size_t foveated_dim,
@@ -224,9 +231,11 @@ void wivrn_foveation::compute_params(
 			        .w = views[i].pose.orientation.w};
 			auto view = yaw_pitch(view_quat);
 
-			auto converge_angle = std::copysign(std::atan(std::abs(views[i].pose.position.x) / CONVERGENCE_DIST_M), views[i].pose.position.x);
-			tan_center[i].x = angles_to_center(e.x - view.x - converge_angle, views[i].fov.angleLeft, views[i].fov.angleRight);
-			tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown);
+			auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
+			tan_center[i].x = angles_to_center(view.x + angle_x, views[i].fov.angleLeft, views[i].fov.angleRight);
+
+			auto offset_y = (views[i].fov.angleDown + views[i].fov.angleUp) / 2;
+			tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown) + offset_y;
 		}
 	}
 

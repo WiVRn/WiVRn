@@ -28,8 +28,6 @@
 
 struct render_resources;
 
-#define CONVERGENCE_DIST_M 1.5
-
 namespace wivrn
 {
 
