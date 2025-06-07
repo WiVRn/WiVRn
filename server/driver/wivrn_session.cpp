@@ -169,7 +169,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 
 	static_roles.head = xdevs[xdev_count++] = &hmd;
 
-	if (hmd.face_tracking_supported)
+	if (hmd.supported.face_tracking)
 		static_roles.face = &hmd;
 
 	roles.left = xdev_count;

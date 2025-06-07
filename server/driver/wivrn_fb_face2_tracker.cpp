@@ -45,18 +45,21 @@ wivrn_fb_face2_tracker::wivrn_fb_face2_tracker(xrt_device * hmd,
                 .str = "WiVRn FB v2 Face Tracker",
                 .serial = "WiVRn FB v2 Face Tracker",
                 .tracking_origin = hmd->tracking_origin,
-                .face_tracking_supported = true,
+                .input_count = 1,
+                .inputs = &face_input,
+                .supported = {
+                        .face_tracking = true,
+                },
                 .update_inputs = method_pointer<&wivrn_fb_face2_tracker::update_inputs>,
                 .get_face_tracking = method_pointer<&wivrn_fb_face2_tracker::get_face_tracking>,
                 .destroy = [](xrt_device *) {},
         },
+        face_input{
+                .active = true,
+                .name = XRT_INPUT_FB_FACE_TRACKING2_VISUAL,
+        },
         cnx(cnx)
 {
-	// Setup input.
-	face_input.name = XRT_INPUT_FB_FACE_TRACKING2_VISUAL;
-	face_input.active = true;
-	inputs = &face_input;
-	input_count = 1;
 }
 
 xrt_result_t wivrn_fb_face2_tracker::update_inputs()

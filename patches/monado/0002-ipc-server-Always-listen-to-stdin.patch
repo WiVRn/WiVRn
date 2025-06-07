@@ -1,4 +1,4 @@
-From 3a8d64c0f569425e2f07b4c2a7803c9bfbc224df Mon Sep 17 00:00:00 2001
+From 0bbc60f44d226a4da375bbca774ddb6804815ad9 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 2 Apr 2024 17:14:42 +0200
 Subject: [PATCH 02/11] ipc/server: Always listen to stdin

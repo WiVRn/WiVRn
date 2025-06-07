@@ -113,8 +113,10 @@ wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_
                 .device_type = XRT_DEVICE_TYPE_GENERIC_TRACKER,
                 .hmd = nullptr,
                 .tracking_origin = hmd->tracking_origin,
-                .orientation_tracking_supported = true,
-                .position_tracking_supported = true,
+                .supported = {
+                        .orientation_tracking = true,
+                        .position_tracking = true,
+                },
                 .update_inputs = method_pointer<&wivrn_generic_tracker::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_generic_tracker::get_tracked_pose>,
                 .destroy = [](xrt_device *) {},
