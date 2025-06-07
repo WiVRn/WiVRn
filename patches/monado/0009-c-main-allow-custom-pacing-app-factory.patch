@@ -1,4 +1,4 @@
-From a906c4d2bc48306a60cd38ceef7dda9d3c7ab0ab Mon Sep 17 00:00:00 2001
+From b6289de166fc95aea2b350ddb8f3c3ddaacefd99 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Thu, 27 Feb 2025 22:45:36 +0100
 Subject: [PATCH 09/11] c/main: allow custom pacing app factory

@@ -52,28 +52,27 @@ static xrt_result_t wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
 }
 
 wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd) :
-        xrt_device{}, gaze(device_id::EYE_GAZE)
+        xrt_device{
+                .name = XRT_DEVICE_EYE_GAZE_INTERACTION,
+                .device_type = XRT_DEVICE_TYPE_EYE_TRACKER,
+                .str = "WiVRn Eye Tracker",
+                .serial = "WiVRn Eye Tracker",
+                .tracking_origin = hmd->tracking_origin,
+                .input_count = 1,
+                .inputs = &gaze_input,
+                .supported = {
+                        .eye_gaze = true,
+                },
+                .update_inputs = wivrn_eye_tracker_update_inputs,
+                .get_tracked_pose = wivrn_eye_tracker_get_tracked_pose,
+                .destroy = wivrn_eye_tracker_destroy,
+        },
+        gaze_input{
+                .active = true,
+                .name = XRT_INPUT_GENERIC_EYE_GAZE_POSE,
+        },
+        gaze(device_id::EYE_GAZE)
 {
-	xrt_device * base = this;
-	base->tracking_origin = hmd->tracking_origin;
-
-	base->update_inputs = wivrn_eye_tracker_update_inputs;
-	base->get_tracked_pose = wivrn_eye_tracker_get_tracked_pose;
-	base->destroy = wivrn_eye_tracker_destroy;
-	name = XRT_DEVICE_EYE_GAZE_INTERACTION;
-	device_type = XRT_DEVICE_TYPE_EYE_TRACKER;
-	eye_gaze_supported = true;
-
-	// Print name.
-	strcpy(str, "WiVRn Eye Tracker");
-	strcpy(serial, "WiVRn Eye Tracker");
-
-	gaze_input.active = true;
-	gaze_input.name = XRT_INPUT_GENERIC_EYE_GAZE_POSE;
-
-	// Setup input.
-	inputs = &gaze_input;
-	input_count = 1;
 }
 
 void wivrn_eye_tracker::update_inputs()

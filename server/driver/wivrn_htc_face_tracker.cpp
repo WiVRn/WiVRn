@@ -45,20 +45,27 @@ wivrn_htc_face_tracker::wivrn_htc_face_tracker(xrt_device * hmd,
                 .str = "WiVRn HTC Face Tracker",
                 .serial = "WiVRn HTC Face Tracker",
                 .tracking_origin = hmd->tracking_origin,
-                .face_tracking_supported = true,
+                .supported = {
+                        .face_tracking = true,
+                },
                 .update_inputs = method_pointer<&wivrn_htc_face_tracker::update_inputs>,
                 .get_face_tracking = method_pointer<&wivrn_htc_face_tracker::get_face_tracking>,
                 .destroy = [](xrt_device *) {},
         },
+        inputs_array{
+                {
+                        {
+                                .active = true,
+                                .name = XRT_INPUT_HTC_EYE_FACE_TRACKING,
+                        },
+                        {
+                                .active = true,
+                                .name = XRT_INPUT_HTC_LIP_FACE_TRACKING,
+                        },
+                },
+        },
         cnx(cnx)
 {
-	// Setup input.
-	inputs_array[0].name = XRT_INPUT_HTC_EYE_FACE_TRACKING;
-	inputs_array[0].active = true;
-
-	inputs_array[1].name = XRT_INPUT_HTC_LIP_FACE_TRACKING;
-	inputs_array[1].active = true;
-
 	inputs = inputs_array.data();
 	input_count = inputs_array.size();
 }
