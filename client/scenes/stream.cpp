@@ -882,6 +882,13 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	// defoveate the image
 	auto extents = reprojector->reproject(command_buffer, foveation, image_index);
+	for (size_t i = 0; i < view_count; ++i)
+	{
+		extents[i] = {
+		        .width = std::min(extents[i].width, swapchain.width()),
+		        .height = std::min(extents[i].height, swapchain.height()),
+		};
+	}
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 2);
 
