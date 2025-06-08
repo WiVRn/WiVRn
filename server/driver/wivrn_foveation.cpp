@@ -233,9 +233,7 @@ void wivrn_foveation::compute_params(
 
 			auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
 			tan_center[i].x = angles_to_center(view.x + angle_x, views[i].fov.angleLeft, views[i].fov.angleRight);
-
-			auto offset_y = (views[i].fov.angleDown + views[i].fov.angleUp) / 2;
-			tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown) + offset_y;
+			tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown);
 		}
 	}
 
@@ -247,7 +245,10 @@ void wivrn_foveation::compute_params(
 		else
 			params[i].x = {uint16_t(src[i].extent.w)};
 		if (foveated_height < src[i].extent.h)
-			fill_param_2d(tan_center[i].y, foveated_height, src[i].extent.h, params[i].y);
+		{
+			auto offset_y = (views[i].fov.angleDown + views[i].fov.angleUp) / 2;
+			fill_param_2d(tan_center[i].y + offset_y, foveated_height, src[i].extent.h, params[i].y);
+		}
 		else
 			params[i].y = {uint16_t(src[i].extent.h)};
 	}
