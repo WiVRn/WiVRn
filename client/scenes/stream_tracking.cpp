@@ -272,8 +272,9 @@ void scenes::stream::tracking()
 		if (application::get_fb_body_tracking_supported())
 		{
 			body_tracking = body_fb;
-			// We start the tracker on connection because there are togglable settings.
-			// TODO handle reconnection?
+			// We start the tracker on connection because there are toggleable settings.
+			// TODO maybe handle reconnection better, if the settings are changed the tracker count will mismatch and stuff might break
+			application::get_fb_body_tracker().stop();
 			application::get_fb_body_tracker().start(config.fb_lower_body, config.fb_hip);
 		}
 		else if (application::get_pico_body_tracking_supported())
@@ -509,9 +510,6 @@ void scenes::stream::tracking()
 
 	if (face_tracking == from_headset::face_type::pico)
 		application::get_pico_face_tracker().stop();
-
-	if (body_tracking == body_fb)
-		application::get_fb_body_tracker().stop();
 }
 
 void scenes::stream::operator()(to_headset::tracking_control && packet)
