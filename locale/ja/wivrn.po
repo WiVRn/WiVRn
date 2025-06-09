@@ -240,7 +240,7 @@ msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings"
 msgstr ""
-"下半身に計算された疑似トラッキングを使用する。"
+"下半身に計算された疑似トラッキングを使用する。\n"
 "Quest設定・動きのトラッキング・ジェスチャーコントロールとボディトラッキング"
 "を有効する必要がある。"
 
