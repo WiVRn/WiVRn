@@ -67,12 +67,12 @@ public:
 	void set_foveated_size(uint32_t width, uint32_t height);
 
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation *);
-	void get_view_poses(const xrt_vec3 * default_eye_relation,
-	                    int64_t at_timestamp_ns,
-	                    uint32_t view_count,
-	                    xrt_space_relation * out_head_relation,
-	                    xrt_fov * out_fovs,
-	                    xrt_pose * out_poses);
+	xrt_result_t get_view_poses(const xrt_vec3 * default_eye_relation,
+	                            int64_t at_timestamp_ns,
+	                            uint32_t view_count,
+	                            xrt_space_relation * out_head_relation,
+	                            xrt_fov * out_fovs,
+	                            xrt_pose * out_poses);
 	xrt_result_t get_battery_status(bool * out_present,
 	                                bool * out_charging,
 	                                float * out_charge);
