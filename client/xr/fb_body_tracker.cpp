@@ -58,10 +58,12 @@ void xr::fb_body_tracker::start(bool full_body, bool hip)
 }
 void xr::fb_body_tracker::stop()
 {
-	assert(xrDestroyBodyTrackerFB);
 	full_body = false;
 	if (handle)
+	{
+		assert(xrDestroyBodyTrackerFB);
 		CHECK_XR(xrDestroyBodyTrackerFB(std::exchange(handle, nullptr)));
+	}
 }
 
 std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> xr::fb_body_tracker::locate_spaces(XrTime time, XrSpace reference)
