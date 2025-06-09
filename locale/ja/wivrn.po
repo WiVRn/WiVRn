@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.16\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-20 17:32+0900\n"
+"POT-Creation-Date: 2025-06-09 19:04+0900\n"
 "PO-Revision-Date: 2024-06-20 10:33+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language: Japanese\n"
@@ -171,12 +171,12 @@ msgstr "最低リフレッシュレート"
 msgid "Resolution scale"
 msgstr "解像度"
 
-#: client/scenes/lobby_gui.cpp:666 client/scenes/lobby_gui.cpp:915
+#: client/scenes/lobby_gui.cpp:666 client/scenes/lobby_gui.cpp:967
 #, c-format, c++-format
 msgid "%d%% - {}x{} per eye"
 msgstr "%d%% - 目あたり{}x{}"
 
-#: client/scenes/lobby_gui.cpp:677 client/scenes/lobby_gui.cpp:926
+#: client/scenes/lobby_gui.cpp:677 client/scenes/lobby_gui.cpp:978
 #, c++-format
 msgid "Resolution larger than {}x{} may not be supported by the headset"
 msgstr ""
@@ -199,7 +199,8 @@ msgid "Enable hand tracking"
 msgstr "ハンドトラッキングを有効する"
 
 #: client/scenes/lobby_gui.cpp:713 client/scenes/lobby_gui.cpp:726
-#: client/scenes/lobby_gui.cpp:739 client/scenes/lobby_gui.cpp:751
+#: client/scenes/lobby_gui.cpp:739 client/scenes/lobby_gui.cpp:756
+#: client/scenes/lobby_gui.cpp:803
 msgid "This feature is not supported by your headset"
 msgstr "デバイスはこの機能をサポートしていません"
 
@@ -211,45 +212,89 @@ msgstr "アイトラッキングを有効する"
 msgid "Enable face tracking"
 msgstr "顔トラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:744
+#: client/scenes/lobby_gui.cpp:746
+msgid "Enable body tracking"
+msgstr "ボディラッキングを有効する"
+
+#: client/scenes/lobby_gui.cpp:761
+msgid ""
+"Requires 'Hand and body tracking' to be enabled in the Quest movement "
+"tracking settings,\n"
+"otherwise body data will be guessed from controller and headset positions"
+msgstr ""
+"Quest設定・動きのトラッキング・ジェスチャーコントロールとボディトラッキング"
+"を有効する必要がある。\n"
+"そうでなければ、トラッキングデータはHMDとコントローラーの情報から推測されることになる。"
+
+#: client/scenes/lobby_gui.cpp:763
+msgid "Uses the Pico Motion Trackers to track body joint positions"
+msgstr "Pico Motion Trackerによるフルボディトラッキング"
+
+#: client/scenes/lobby_gui.cpp:773
+msgid "Enable lower body tracking"
+msgstr "下半身トラッキングを有効する"
+
+#: client/scenes/lobby_gui.cpp:779
+msgid ""
+"Estimate lower body joint positions using Generative Legs\n"
+"Requires 'Hand and body tracking' to be enabled in the Quest movement "
+"tracking settings"
+msgstr ""
+"下半身に計算された疑似トラッキングを使用する。"
+"Quest設定・動きのトラッキング・ジェスチャーコントロールとボディトラッキング"
+"を有効する必要がある。\n"
+
+#: client/scenes/lobby_gui.cpp:782
+msgid "Enable hip tracking"
+msgstr "腰のトラッキングを有効する"
+
+#: client/scenes/lobby_gui.cpp:788
+msgid ""
+"Only takes affect with lower body tracking enabled\n"
+"May be desired when using another source of hip tracking"
+msgstr ""
+"下半身トラッキングが有効な場合に使用可能。"
+"腰トラッカーを持ってる方は無効にしましょう。"
+
+#: client/scenes/lobby_gui.cpp:796
 msgid "Enable video passthrough in lobby"
 msgstr "ロビーでパススルーを有効する"
 
-#: client/scenes/lobby_gui.cpp:754
+#: client/scenes/lobby_gui.cpp:806
 msgid "Show performance metrics"
 msgstr "パフォーマンスグラフを表示する"
 
-#: client/scenes/lobby_gui.cpp:758
+#: client/scenes/lobby_gui.cpp:810
 msgid "Overlay can be toggled by pressing both thumbsticks"
 msgstr "両方のサムスティックを同時に押すことで切り替え可能"
 
-#: client/scenes/lobby_gui.cpp:788 client/scenes/lobby_gui.cpp:796
+#: client/scenes/lobby_gui.cpp:840 client/scenes/lobby_gui.cpp:848
 #: client/scenes/stream_stats.cpp:159
 msgid "CPU time"
 msgstr "CPU使用時間"
 
-#: client/scenes/lobby_gui.cpp:792
+#: client/scenes/lobby_gui.cpp:844
 msgid "CPU time [ms]"
 msgstr "CPU使用時間、ミリ秒"
 
-#: client/scenes/lobby_gui.cpp:802 client/scenes/lobby_gui.cpp:810
+#: client/scenes/lobby_gui.cpp:854 client/scenes/lobby_gui.cpp:862
 #: client/scenes/stream_stats.cpp:161
 msgid "GPU time"
 msgstr "GPU使用時間"
 
-#: client/scenes/lobby_gui.cpp:806
+#: client/scenes/lobby_gui.cpp:858
 msgid "GPU time [ms]"
 msgstr "GPU使用時間、ミリ秒"
 
-#: client/scenes/lobby_gui.cpp:825
+#: client/scenes/lobby_gui.cpp:877
 msgid "OpenXR post-processing"
 msgstr "OpenXRポストエフェクト"
 
-#: client/scenes/lobby_gui.cpp:829
+#: client/scenes/lobby_gui.cpp:881
 msgid "Supersampling"
 msgstr "スーパーサンプリング"
 
-#: client/scenes/lobby_gui.cpp:849
+#: client/scenes/lobby_gui.cpp:901
 msgid ""
 "Reduce flicker for high contrast edges.\n"
 "Useful when the input resolution is high compared to the headset display"
@@ -257,11 +302,11 @@ msgstr ""
 "コントラストが高い部分のギザギザを低減する。\n"
 "ストリームの解像度は、HMDの解像度より高い場合は有用です。"
 
-#: client/scenes/lobby_gui.cpp:854
+#: client/scenes/lobby_gui.cpp:906
 msgid "Sharpening"
 msgstr "シャープ"
 
-#: client/scenes/lobby_gui.cpp:874
+#: client/scenes/lobby_gui.cpp:926
 msgid ""
 "Improve clarity of high contrast edges and counteract blur.\n"
 "Useful when the input resolution is low compared to the headset display"
@@ -269,115 +314,123 @@ msgstr ""
 "ぼかしを低減し、コントラストが高い部分の鮮明度を向上する。\n"
 "ストリームの解像度は、HMDの解像度より低い場合に有用です。"
 
-#: client/scenes/lobby_gui.cpp:883
+#: client/scenes/lobby_gui.cpp:935
 msgid "Enable Snapdragon Game Super Resolution"
 msgstr "Snapdragon Game Super Resolutionを有効する"
 
-#: client/scenes/lobby_gui.cpp:891
+#: client/scenes/lobby_gui.cpp:943
 msgid ""
 "On this headset, this setting has been fully superseded by the native "
 "Sharpening setting above.\n"
 "Only enable if you know what you're doing."
 msgstr ""
-"この設定は、使用中のHMDでは非推奨です。"
-"OpenXRの方法を使用してください。"
+"この設定は、使用中のHMDでは非推奨です。OpenXRの方法を使用してください。"
 
-#: client/scenes/lobby_gui.cpp:893
+#: client/scenes/lobby_gui.cpp:945
 msgid ""
 "Client-side upscaling and sharpening, adds a performance cost on the headset"
 msgstr ""
-"HMD側のアップスケーリングやシャープニングを使用する場合、要求性能が上がります。"
+"HMD側のアップスケーリングやシャープニングを使用する場合、要求性能が上がりま"
+"す。"
 
-#: client/scenes/lobby_gui.cpp:911
+#: client/scenes/lobby_gui.cpp:963
 msgid "Upscaling factor"
 msgstr "アップスケーリング係数"
 
-#: client/scenes/lobby_gui.cpp:930
+#: client/scenes/lobby_gui.cpp:982
 msgid "Use edge direction"
 msgstr "エッジ方向を使用する"
 
-#: client/scenes/lobby_gui.cpp:936
+#: client/scenes/lobby_gui.cpp:988
 msgid "Adds an additional performance cost"
 msgstr "HMDに対する要求性能が上がります。"
 
-#: client/scenes/lobby_gui.cpp:941
+#: client/scenes/lobby_gui.cpp:993
 msgid "Edge threshold"
 msgstr "エッジのしきい値"
 
-#: client/scenes/lobby_gui.cpp:948 client/scenes/lobby_gui.cpp:957
+#: client/scenes/lobby_gui.cpp:1000 client/scenes/lobby_gui.cpp:1009
 #, c++-format
 msgid "Recommended: {:.1f}"
 msgstr "推奨値：{:.1f}"
 
-#: client/scenes/lobby_gui.cpp:951
+#: client/scenes/lobby_gui.cpp:1003
 msgid "Edge sharpness"
 msgstr "エッジのシャープ"
 
-#: client/scenes/lobby_gui.cpp:1045 client/scenes/lobby_gui.cpp:1691
+#: client/scenes/lobby_gui.cpp:1097 client/scenes/lobby_gui.cpp:1753
 msgid "Licenses"
 msgstr "ライセンス"
 
-#: client/scenes/lobby_gui.cpp:1384
+#: client/scenes/lobby_gui.cpp:1436
 msgid "Microphone is enabled"
 msgstr "マイクは有効です"
 
-#: client/scenes/lobby_gui.cpp:1385
+#: client/scenes/lobby_gui.cpp:1437
 msgid "Microphone is disabled"
 msgstr "マイクは無効です"
 
-#: client/scenes/lobby_gui.cpp:1394
+#: client/scenes/lobby_gui.cpp:1446
 msgid "Hand tracking is enabled"
 msgstr "ハンドトラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1395
+#: client/scenes/lobby_gui.cpp:1447
 msgid "Hand tracking is disabled"
 msgstr "ハンドラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1404
+#: client/scenes/lobby_gui.cpp:1456
 msgid "Eye tracking is enabled"
 msgstr "アイトラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1405
+#: client/scenes/lobby_gui.cpp:1457
 msgid "Eye tracking is disabled"
 msgstr "アイトラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1415 client/scenes/lobby_gui.cpp:1426
+#: client/scenes/lobby_gui.cpp:1467 client/scenes/lobby_gui.cpp:1478
 msgid "Face tracking is enabled"
 msgstr "顔トラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1416 client/scenes/lobby_gui.cpp:1427
+#: client/scenes/lobby_gui.cpp:1468 client/scenes/lobby_gui.cpp:1479
 msgid "Face tracking is disabled"
 msgstr "フェーストラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1444
+#: client/scenes/lobby_gui.cpp:1489
+msgid "Body tracking is enabled"
+msgstr "ボディトラッキングは有効です"
+
+#: client/scenes/lobby_gui.cpp:1490
+msgid "Body tracking is disabled"
+msgstr "ボディトラッキングは無効です"
+
+#: client/scenes/lobby_gui.cpp:1506
 msgid "Add server"
 msgstr "サーバーを追加する"
 
-#: client/scenes/lobby_gui.cpp:1673
+#: client/scenes/lobby_gui.cpp:1735
 msgid "Server list"
 msgstr "サーバー"
 
-#: client/scenes/lobby_gui.cpp:1676
+#: client/scenes/lobby_gui.cpp:1738
 msgid "Settings"
 msgstr "設定"
 
-#: client/scenes/lobby_gui.cpp:1679
+#: client/scenes/lobby_gui.cpp:1741
 msgid "Post-processing"
 msgstr "ポストエフェクト"
 
-#: client/scenes/lobby_gui.cpp:1683
+#: client/scenes/lobby_gui.cpp:1745
 msgid "Debug"
 msgstr "デバッグ"
 
-#: client/scenes/lobby_gui.cpp:1688
+#: client/scenes/lobby_gui.cpp:1750
 msgid "About"
 msgstr "WiVRnについて"
 
-#: client/scenes/lobby_gui.cpp:1694
+#: client/scenes/lobby_gui.cpp:1756
 msgid "Exit"
 msgstr "完了"
 
-#: client/scenes/lobby_gui.cpp:1708
+#: client/scenes/lobby_gui.cpp:1770
 msgid ""
 "Press A or X or put your palm up\n"
 "to move the main window"
@@ -385,7 +438,7 @@ msgstr ""
 "ウィンドウを移動するには、手のひらを上に向けるか、\n"
 "ＡまたはＢボタンを押しましょう"
 
-#: client/scenes/lobby_gui.cpp:1710
+#: client/scenes/lobby_gui.cpp:1772
 msgid "Press A or X to move the main window"
 msgstr "ＡまたはＸボタンを押してウィンドウを移動"
 

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-22 03:31+0900\n"
+"POT-Creation-Date: 2025-06-09 19:04+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -517,22 +517,22 @@ msgstr "H.265"
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:320
+#: dashboard/qml/SettingsPage.qml:319
 #, kde-format
 msgid "Advanced options"
 msgstr "詳細設定"
 
-#: dashboard/qml/SettingsPage.qml:326
+#: dashboard/qml/SettingsPage.qml:325
 #, kde-format
 msgid "Enable debug window"
 msgstr "デバッグ・ウィンドウを表示する"
 
-#: dashboard/qml/SettingsPage.qml:333
+#: dashboard/qml/SettingsPage.qml:332
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "SteamVR・ライトハウス・トラッキング"
 
-#: dashboard/qml/SettingsPage.qml:336
+#: dashboard/qml/SettingsPage.qml:335
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -545,44 +545,44 @@ msgstr ""
 "すべてのデバイスの電源が入ってからHMDを接続しましょう。\n"
 "キャリブレーションはmotocなどのソフトウェアで行います。"
 
-#: dashboard/qml/SettingsPage.qml:344
+#: dashboard/qml/SettingsPage.qml:343
 #, kde-format
 msgid "Custom adb location"
 msgstr "特定なADBの場所"
 
-#: dashboard/qml/SettingsPage.qml:355
+#: dashboard/qml/SettingsPage.qml:354
 #, kde-format
 msgid "Adb location:"
 msgstr "ADBの場所："
 
-#: dashboard/qml/SettingsPage.qml:364
+#: dashboard/qml/SettingsPage.qml:363
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "検索する"
 
-#: dashboard/qml/SettingsPage.qml:374
+#: dashboard/qml/SettingsPage.qml:373
 #, kde-format
 msgid "Default"
 msgstr "デフォルト"
 
-#: dashboard/qml/SettingsPage.qml:388
+#: dashboard/qml/SettingsPage.qml:387
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "カスタム"
 
-#: dashboard/qml/SettingsPage.qml:393
+#: dashboard/qml/SettingsPage.qml:392
 #, kde-format
 msgid "Disabled"
 msgstr "無し"
 
-#: dashboard/qml/SettingsPage.qml:401
+#: dashboard/qml/SettingsPage.qml:400
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR実装ライブラリー"
 
-#: dashboard/qml/SettingsPage.qml:427
+#: dashboard/qml/SettingsPage.qml:426
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "ライブラリーの場所（bin/linux64/vrclient.so 無し）"
