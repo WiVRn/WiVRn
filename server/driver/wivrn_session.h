@@ -180,6 +180,7 @@ public:
 
 	void operator()(to_monado::disconnect &&);
 	void operator()(to_monado::set_bitrate &&);
+	void operator()(to_monado::toggle_performance_graph &&);
 
 	template <typename T>
 	void send_stream(T && packet)

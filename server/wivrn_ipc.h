@@ -60,7 +60,10 @@ struct set_bitrate
 	uint32_t bitrate_bps;
 };
 
-using packets = std::variant<disconnect, set_bitrate>;
+struct toggle_performance_graph
+{};
+
+using packets = std::variant<disconnect, set_bitrate, toggle_performance_graph>;
 } // namespace to_monado
 
 extern std::optional<wivrn::typed_socket<wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;

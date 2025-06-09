@@ -342,33 +342,40 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	return self;
 }
 
+void scenes::stream::setup_imgui()
+{
+	swapchain_imgui = xr::swapchain(
+	        session,
+	        device,
+	        swapchain_format,
+	        1500,
+	        1000);
+
+	imgui_context::viewport vp{
+	        .space = xr::spaces::view,
+	        .position = {0, 0, -1},
+	        .orientation = {1, 0, 0, 0},
+	        .size = {1.0, 0.6666},
+	        .vp_origin = {0, 0},
+	        .vp_size = {1500, 1000},
+	};
+
+	imgui_ctx.emplace(physical_device,
+	                  device,
+	                  queue_family_index,
+	                  queue,
+	                  std::span<imgui_context::controller>{},
+	                  swapchain_imgui,
+	                  std::vector{vp});
+}
+
 void scenes::stream::on_focused()
 {
 	if (application::get_config().show_performance_metrics)
 	{
-		swapchain_imgui = xr::swapchain(
-		        session,
-		        device,
-		        swapchain_format,
-		        1500,
-		        1000);
+		setup_imgui();
 
-		imgui_context::viewport vp{
-		        .space = xr::spaces::view,
-		        .position = {0, 0, -1},
-		        .orientation = {1, 0, 0, 0},
-		        .size = {1.0, 0.6666},
-		        .vp_origin = {0, 0},
-		        .vp_size = {1500, 1000},
-		};
-
-		imgui_ctx.emplace(physical_device,
-		                  device,
-		                  queue_family_index,
-		                  queue,
-		                  std::span<imgui_context::controller>{},
-		                  swapchain_imgui,
-		                  std::vector{vp});
+		plots_visible = true;
 
 		plots_toggle_1 = get_action("plots_toggle_1").first;
 		plots_toggle_2 = get_action("plots_toggle_2").first;
@@ -952,17 +959,21 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		layer.next = &settings;
 	}
 
+	bool plots_rendered = plots_visible;
+	if (plots_rendered && !imgui_ctx)
+		setup_imgui(); // force-shown by server
+
 	std::vector<XrCompositionLayerQuad> imgui_layers;
 	if (imgui_ctx)
 	{
 		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
-		if (plots_visible)
+		if (plots_rendered)
 			imgui_layers = plot_performance_metrics(frame_state.predictedDisplayTime);
 	}
 
 	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
 
-	if (imgui_ctx and plots_visible)
+	if (imgui_ctx and plots_rendered)
 	{
 		for (auto & layer: imgui_layers)
 			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
@@ -1025,7 +1036,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		XrActionStateBoolean state_2{XR_TYPE_ACTION_STATE_BOOLEAN};
 		CHECK_XR(xrGetActionStateBoolean(session, &get_info, &state_2));
 
-		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
+		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync) and application::get_config().show_performance_metrics)
 			plots_visible = not plots_visible;
 	}
 

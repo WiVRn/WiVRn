@@ -588,6 +588,11 @@ void wivrn_session::operator()(to_monado::set_bitrate && data)
 	comp_target->set_bitrate(data.bitrate_bps);
 }
 
+void wivrn_session::operator()(to_monado::toggle_performance_graph &&)
+{
+	send_control(to_headset::toggle_performance_graph{});
+}
+
 struct refresh_rate_adjuster
 {
 	std::chrono::seconds period{10};
