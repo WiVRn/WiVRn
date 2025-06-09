@@ -242,7 +242,7 @@ msgid ""
 msgstr ""
 "下半身に計算された疑似トラッキングを使用する。"
 "Quest設定・動きのトラッキング・ジェスチャーコントロールとボディトラッキング"
-"を有効する必要がある。\n"
+"を有効する必要がある。"
 
 #: client/scenes/lobby_gui.cpp:782
 msgid "Enable hip tracking"
