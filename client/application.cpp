@@ -1226,8 +1226,6 @@ void application::initialize()
 	if (fb_body_tracking_supported)
 	{
 		fb_body_tracker = xr_session.create_fb_body_tracker();
-		// HACK: always have an active body tracker so the quest runtime doesn't blow up (crash in random functions, controllers not working)
-		fb_body_tracker.start(false, false);
 	}
 
 	if (pico_body_tracking_supported)

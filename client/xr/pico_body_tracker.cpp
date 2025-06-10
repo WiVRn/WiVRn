@@ -63,9 +63,10 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 	}
 
 	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> poses{};
-	for (int i = 0; i < joint_whitelist.size(); i++)
+	int num_poses = 0;
+	for (auto joint: joint_whitelist)
 	{
-		const auto & joint_loc = joints[joint_whitelist[i]];
+		const auto & joint_loc = joints[joint];
 		wivrn::from_headset::body_tracking::pose pose{
 		        .pose = joint_loc.pose,
 		        .flags = 0,
@@ -80,7 +81,7 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
 			pose.flags |= wivrn::from_headset::body_tracking::position_tracked;
 
-		poses[i] = pose;
+		poses[num_poses++] = pose;
 	}
 	return poses;
 }

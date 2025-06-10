@@ -20,9 +20,23 @@
 #include "spdlog/spdlog.h"
 #include "xr/meta_body_tracking_fidelity.h"
 #include "xr/xr.h"
+#include <ranges>
 #include <openxr/openxr.h>
 
-static_assert(xr::pico_body_tracker::joint_whitelist.size() <= wivrn::from_headset::body_tracking::max_tracked_poses);
+static_assert(xr::fb_body_tracker::joint_whitelist.size() <= wivrn::from_headset::body_tracking::max_tracked_poses);
+
+std::vector<XrFullBodyJointMETA> xr::fb_body_tracker::get_whitelisted_joints(bool full_body, bool hip)
+{
+	auto whitelisted_joints = std::ranges::filter_view(xr::fb_body_tracker::joint_whitelist, [=](auto joint) {
+		if (!full_body && (joint == XR_FULL_BODY_JOINT_HIPS_META || joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META))
+			return false;
+		if (!hip && joint == XR_FULL_BODY_JOINT_HIPS_META)
+			return false;
+
+		return true;
+	});
+	return {whitelisted_joints.begin(), whitelisted_joints.end()};
+}
 
 xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s) :
         s(s)
@@ -55,10 +69,13 @@ void xr::fb_body_tracker::start(bool full_body, bool hip)
 
 	// Enable IOBT.
 	CHECK_XR(xrRequestBodyTrackingFidelityMETA(handle, XR_BODY_TRACKING_FIDELITY_HIGH_META));
+
+	whitelisted_joints = get_whitelisted_joints(full_body, hip);
 }
 void xr::fb_body_tracker::stop()
 {
 	full_body = false;
+	hip = false;
 	if (handle)
 	{
 		assert(xrDestroyBodyTrackerFB);
@@ -102,14 +119,8 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 
 	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> poses{};
 	int num_poses = 0;
-	for (int i = 0; i < joint_whitelist.size(); i++)
+	for (auto joint: whitelisted_joints)
 	{
-		auto joint = joint_whitelist[i];
-		if (!full_body && (joint == XR_FULL_BODY_JOINT_HIPS_META || joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META))
-			continue;
-		if (!hip && joint == XR_FULL_BODY_JOINT_HIPS_META)
-			continue;
-
 		const auto & joint_loc = joints[joint];
 		wivrn::from_headset::body_tracking::pose pose{
 		        .pose = joint_loc.pose,

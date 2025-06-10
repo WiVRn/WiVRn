@@ -42,6 +42,7 @@ class fb_body_tracker
 
 	bool full_body{};
 	bool hip{};
+	std::vector<XrFullBodyJointMETA> whitelisted_joints{};
 
 public:
 	static constexpr std::array joint_whitelist{
@@ -56,6 +57,7 @@ public:
 	        XR_FULL_BODY_JOINT_LEFT_FOOT_TRANSVERSE_META,
 	        XR_FULL_BODY_JOINT_RIGHT_FOOT_TRANSVERSE_META,
 	};
+	static std::vector<XrFullBodyJointMETA> get_whitelisted_joints(bool full_body, bool hip);
 
 	fb_body_tracker() = default;
 	fb_body_tracker(instance & inst, session & s);
