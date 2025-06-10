@@ -82,12 +82,13 @@ class video_encoder_vulkan : public video_encoder
 	vk::VideoEncodeRateControlLayerInfoKHR rate_control_layer;
 
 protected:
-	const uint8_t num_dpb_slots = 16;
+	const uint8_t num_dpb_slots;
 	std::optional<vk::VideoEncodeRateControlInfoKHR> rate_control;
 
 	video_encoder_vulkan(wivrn_vk_bundle & vk,
 	                     vk::Rect2D rect,
-	                     vk::VideoEncodeCapabilitiesKHR encode_caps,
+	                     const vk::VideoCapabilitiesKHR & video_caps,
+	                     const vk::VideoEncodeCapabilitiesKHR & encode_caps,
 	                     float fps,
 	                     uint8_t stream_idx,
 	                     const encoder_settings & settings);

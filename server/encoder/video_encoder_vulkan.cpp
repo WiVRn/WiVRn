@@ -55,11 +55,12 @@ vk::VideoFormatPropertiesKHR wivrn::video_encoder_vulkan::select_video_format(
 wivrn::video_encoder_vulkan::video_encoder_vulkan(
         wivrn_vk_bundle & vk,
         vk::Rect2D rect,
-        vk::VideoEncodeCapabilitiesKHR in_encode_caps,
+        const vk::VideoCapabilitiesKHR & video_caps,
+        const vk::VideoEncodeCapabilitiesKHR & in_encode_caps,
         float fps,
         uint8_t stream_idx,
         const encoder_settings & settings) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect)
+        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect), num_dpb_slots(video_caps.maxDpbSlots)
 {
 	// Initialize Rate control
 	U_LOG_D("Supported rate control modes: %s", vk::to_string(encode_caps.rateControlModes).c_str());
@@ -211,7 +212,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		                .maxCodedExtent = rect.extent,
 		                .referencePictureFormat = reference_picture_format.format,
 		                .maxDpbSlots = num_dpb_slots,
-		                .maxActiveReferencePictures = uint32_t(num_dpb_slots - 1),
+		                .maxActiveReferencePictures = 2,
 		                .pStdHeaderVersion = &std_header_version,
 		        });
 
