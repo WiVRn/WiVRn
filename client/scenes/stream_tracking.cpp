@@ -272,8 +272,9 @@ void scenes::stream::tracking()
 		if (application::get_fb_body_tracking_supported())
 		{
 			body_tracking = body_fb;
-			// We start the tracker on connection because there are toggleable settings.
-			// TODO maybe handle reconnection better, if the settings are changed the tracker count will mismatch and stuff might break
+			// TODO maybe handle reconnection better, if the settings are changed since
+			// last connection to running server, the tracker count will mismatch and
+			// stuff might break
 			application::get_fb_body_tracker().stop();
 			application::get_fb_body_tracker().start(config.fb_lower_body, config.fb_hip);
 		}
