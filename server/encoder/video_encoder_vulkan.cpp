@@ -60,10 +60,20 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
         float fps,
         uint8_t stream_idx,
         const encoder_settings & settings) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect), num_dpb_slots(video_caps.maxDpbSlots)
+        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true),
+        vk(vk),
+        encode_caps(patch_capabilities(in_encode_caps)),
+        rect(rect),
+        num_dpb_slots(std::min(video_caps.maxDpbSlots, 16u))
 {
 	// Initialize Rate control
 	U_LOG_D("Supported rate control modes: %s", vk::to_string(encode_caps.rateControlModes).c_str());
+
+	U_LOG_D("video caps:\n"
+	        "\t maxDpbSlots: %d\n"
+	        "\t maxActiveReferencePictures: %d",
+	        video_caps.maxDpbSlots,
+	        video_caps.maxActiveReferencePictures);
 
 	if (encode_caps.rateControlModes & (vk::VideoEncodeRateControlModeFlagBitsKHR::eCbr | vk::VideoEncodeRateControlModeFlagBitsKHR::eVbr))
 	{
