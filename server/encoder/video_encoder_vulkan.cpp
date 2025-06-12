@@ -165,6 +165,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		        {
 		                .usage = VMA_MEMORY_USAGE_AUTO,
 		        });
+		vk.name(vk::Image(dpb_image), "vulkan encoder DPB image");
 	}
 
 	// Output buffer
@@ -183,6 +184,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO,
 		        });
+		vk.name(vk::Buffer(item.output_buffer), "vulkan encode output buffer");
 
 		if (not(item.output_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 		{
@@ -195,6 +197,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
 			                .usage = VMA_MEMORY_USAGE_AUTO,
 			        });
+			vk.name(vk::Buffer(item.host_buffer), "vulkan encode host buffer");
 		}
 	}
 
@@ -278,8 +281,10 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			        {
 			                .usage = VMA_MEMORY_USAGE_AUTO,
 			        });
+			vk.name(vk::Image(slot_data[i].tmp_image), "vulkan encoder temporary image");
 			image_view_template.image = vk::Image(slot_data[i].tmp_image);
 			slot_data[i].view = vk.device.createImageView(image_view_template);
+			vk.name(slot_data[i].view, "vulkan encoder temporary image view");
 		}
 	}
 
@@ -317,6 +322,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			                .image_view = vk.device.createImageView(img_view_create_info),
 			                .info = dpb_info[i],
 			        });
+			vk.name(dpb.back().image_view, "vulkan encoder dpb view");
 		}
 	}
 
@@ -344,6 +350,8 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	{
 		item.fence = vk.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
 		item.wait_sem = vk.device.createSemaphore({});
+		vk.name(item.fence, "vulkan encoder fence");
+		vk.name(item.fence, "vulkan encoder semaphore");
 	}
 
 	// query pool
@@ -363,6 +371,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		};
 
 		query_pool = vk.device.createQueryPool(query_pool_create.get());
+		vk.name(query_pool, "vulkan encoder query pool");
 	}
 
 	// command pools
@@ -372,13 +381,17 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 		                .queueFamilyIndex = vk.encode_queue_family_index,
 		        });
+		vk.name(query_pool, "vulkan encoder video command pool");
 
 		auto command_buffers = vk.device.allocateCommandBuffers(
 		        {.commandPool = *video_command_pool,
 		         .commandBufferCount = num_slots});
 
 		for (size_t i = 0; i < num_slots; ++i)
+		{
 			slot_data[i].video_cmd_buf = std::move(command_buffers[i]);
+			vk.name(slot_data[i].video_cmd_buf, "vulkan encoder video command buffer");
+		}
 
 		auto properties = vk.physical_device.getQueueFamilyProperties().at(vk.encode_queue_family_index);
 		if (not(properties.queueFlags & vk::QueueFlagBits::eTransfer))
@@ -388,6 +401,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 			                .queueFamilyIndex = vk.queue_family_index,
 			        });
+			vk.name(transfer_command_pool, "vulkan encoder transfer command pool");
 
 			auto command_buffers = vk.device.allocateCommandBuffers(
 			        {.commandPool = *transfer_command_pool,
@@ -396,6 +410,8 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			{
 				slot_data[i].sem = vk.device.createSemaphore({});
 				slot_data[i].transfer_cmd_buf = std::move(command_buffers[i]);
+				vk.name(slot_data[i].sem, "vulkan encoder transfer semaphore");
+				vk.name(slot_data[i].transfer_cmd_buf, "vulkan encoder transfer command buffer");
 			}
 		}
 	}
