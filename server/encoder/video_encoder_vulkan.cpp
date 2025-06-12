@@ -23,6 +23,9 @@
 #include <iostream>
 #include <stdexcept>
 
+// as per h264 spec
+#define H246_MAX_DPB_SLOTS (uint32_t)16
+
 static uint32_t align(uint32_t value, uint32_t alignment)
 {
 	if (alignment == 0)
@@ -60,7 +63,7 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
         float fps,
         uint8_t stream_idx,
         const encoder_settings & settings) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect), num_dpb_slots(video_caps.maxDpbSlots)
+        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true), vk(vk), encode_caps(patch_capabilities(in_encode_caps)), rect(rect), num_dpb_slots(std::min(video_caps.maxDpbSlots, H246_MAX_DPB_SLOTS))
 {
 	// Initialize Rate control
 	U_LOG_D("Supported rate control modes: %s", vk::to_string(encode_caps.rateControlModes).c_str());
