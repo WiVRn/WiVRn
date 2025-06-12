@@ -189,10 +189,12 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 				case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
 					roles.left = xdev_count;
 					static_roles.hand_tracking.left = lhdev;
+					lh_hands[0] = xdev_count;
 					break;
 				case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER:
 					roles.right = xdev_count;
 					static_roles.hand_tracking.right = lhdev;
+					lh_hands[1] = xdev_count;
 					break;
 				default:
 					break;
@@ -401,10 +403,63 @@ static xrt_device_name get_name(interaction_profile profile)
 	}
 	throw std::runtime_error("invalid interaction profile id " + std::to_string(int(profile)));
 }
+
+xrt_device_name wivrn_session::lh_device_activity_check(size_t idx, xrt_device * fallback_xdev, int32_t * role, xrt_device ** ht_role, bool * dirty)
+{
+	const int orientation_bits = XRT_SPACE_RELATION_ORIENTATION_VALID_BIT | XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
+
+	if (lh_hands[idx] < 0)
+		return XRT_DEVICE_INVALID;
+
+	xrt_device * xdev = xdevs[lh_hands[idx]];
+	if (xdev->input_count == 0)
+		return XRT_DEVICE_INVALID;
+
+	xrt_input * grip_pose = &xdev->inputs[0]; // first input is always grip pose
+	xrt_space_relation out_relation = {};
+	int64_t now = os_monotonic_get_ns();
+	if (xdev->get_tracked_pose(xdev, grip_pose->name, now, &out_relation) != XRT_SUCCESS)
+		return XRT_DEVICE_INVALID;
+
+	if ((out_relation.relation_flags & orientation_bits) == orientation_bits)
+	{
+		if (*role != lh_hands[idx])
+		{
+			U_LOG_I("LH controller found: %s (%s)", xdev->str, xdev->serial);
+			*role = lh_hands[idx];
+			*dirty = true;
+		}
+		lh_last_seen[idx] = now;
+		return xdev->name;
+	}
+	else if (now - lh_last_seen[idx] > 1'000'000'000)
+	{
+		if (*role == lh_hands[idx])
+		{
+			U_LOG_I("LH controller lost: %s (%s)", xdev->str, xdev->serial);
+			for (int i = 0; i < xdev_count; i++)
+				if (xdevs[i] == fallback_xdev)
+				{
+					*role = i;
+					*dirty = true;
+					break;
+				}
+		}
+		return XRT_DEVICE_INVALID;
+	}
+	else
+		return xdev->name;
+}
+
 void wivrn_session::operator()(from_headset::trackings && tracking)
 {
-	auto left = xdevs[roles.left] == &left_hand ? get_name(tracking.interaction_profiles[0]) : XRT_DEVICE_INVALID;
-	auto right = xdevs[roles.right] == &right_hand ? get_name(tracking.interaction_profiles[1]) : XRT_DEVICE_INVALID;
+	bool dirty = false;
+
+	auto lh_left = lh_device_activity_check(0, &left_hand, &roles.left, &static_roles.hand_tracking.left, &dirty);
+	auto lh_right = lh_device_activity_check(1, &right_hand, &roles.right, &static_roles.hand_tracking.right, &dirty);
+
+	auto left = xdevs[roles.left] == &left_hand ? get_name(tracking.interaction_profiles[0]) : lh_left;
+	auto right = xdevs[roles.right] == &right_hand ? get_name(tracking.interaction_profiles[1]) : lh_right;
 	if (left != roles.left_profile or right != roles.right_profile)
 	{
 		U_LOG_I("Updating interaction profiles: from \n"
@@ -417,8 +472,11 @@ void wivrn_session::operator()(from_headset::trackings && tracking)
 		std::lock_guard lock(roles_mutex);
 		roles.left_profile = left;
 		roles.right_profile = right;
-		++roles.generation_id;
+		dirty = true;
 	}
+
+	if (dirty)
+		++roles.generation_id;
 
 	for (auto & item: tracking.items)
 		(*this)(item);
@@ -664,12 +722,21 @@ void wivrn_session::run(std::stop_token stop)
 	{
 		try
 		{
-			if (num_lh_devices != lh_devices->xdev_count)
+			for (int i = num_lh_devices; i < lh_devices->xdev_count; i++)
 			{
-				for (int i = num_lh_devices; i < lh_devices->xdev_count; i++)
+				xdevs[xdev_count] = lh_devices->xdevs[num_lh_devices++];
+				switch (xdevs[xdev_count]->device_type)
 				{
-					xdevs[xdev_count++] = lh_devices->xdevs[num_lh_devices++];
+					case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
+						lh_hands[0] = xdev_count;
+						break;
+					case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER:
+						lh_hands[1] = xdev_count;
+						break;
+					default:
+						break;
 				}
+				xdev_count++;
 			}
 
 			offset_est.request_sample(*connection);

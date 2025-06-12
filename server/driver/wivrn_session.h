@@ -135,6 +135,11 @@ class wivrn_session : public xrt_system_devices
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
 	xrt_system_devices * lh_devices;
 	size_t num_lh_devices;
+
+	int32_t lh_hands[2]{-1, -1};
+	int64_t lh_last_seen[2]{};
+
+	xrt_device_name lh_device_activity_check(size_t, xrt_device *, int32_t *, xrt_device **, bool *);
 #endif
 
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
