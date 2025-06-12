@@ -1,0 +1,57 @@
+From ddd4102bdafbb283e7dff2e5b14986a1516d1514 Mon Sep 17 00:00:00 2001
+From: galister <3123227-galister@users.noreply.gitlab.com>
+Date: Thu, 5 Jun 2025 16:44:17 +0900
+Subject: [PATCH 2/6] lh deadzones
+
+---
+ src/xrt/drivers/steamvr_lh/steamvr_lh.cpp | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+index bcf5a9b69..a8596ba1d 100644
+--- a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
++++ b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+@@ -36,6 +36,7 @@ namespace {
+ DEBUG_GET_ONCE_LOG_OPTION(lh_log, "LIGHTHOUSE_LOG", U_LOGGING_INFO)
+ DEBUG_GET_ONCE_BOOL_OPTION(lh_load_slimevr, "LH_LOAD_SLIMEVR", false)
+ DEBUG_GET_ONCE_NUM_OPTION(lh_discover_wait_ms, "LH_DISCOVER_WAIT_MS", 3000)
++DEBUG_GET_ONCE_FLOAT_OPTION(lh_stick_deadzone, "LH_STICK_DEADZONE", 0)
+ 
+ static constexpr size_t MAX_CONTROLLERS = 16;
+ 
+@@ -576,6 +577,20 @@ Context::CreateScalarComponent(vr::PropertyContainerHandle_t ulContainer,
+ 	return create_component_common(ulContainer, pchName, pHandle);
+ }
+ 
++float
++applyDeadzone(float value)
++{
++	float deadzone = debug_get_float_option_lh_stick_deadzone();
++	float sign = (value > 0.0f) ? 1.0f : -1.0f;
++	value = fabsf(value);
++	if (value <= deadzone) {
++		return 0.0f;
++	}
++
++	float adjusted = (value - deadzone) / (1.0f - deadzone);
++	return sign * adjusted;
++}
++
+ vr::EVRInputError
+ Context::UpdateScalarComponent(vr::VRInputComponentHandle_t ulComponent, float fNewValue, double fTimeOffset)
+ {
+@@ -584,9 +599,9 @@ Context::UpdateScalarComponent(vr::VRInputComponentHandle_t ulComponent, float f
+ 		if (XRT_GET_INPUT_TYPE(input->name) == XRT_INPUT_TYPE_VEC2_MINUS_ONE_TO_ONE) {
+ 			std::unique_ptr<Vec2Components> &components = vec2_input_to_components.at(input);
+ 			if (components->x == ulComponent) {
+-				input->value.vec2.x = fNewValue;
++				input->value.vec2.x = applyDeadzone(fNewValue);
+ 			} else if (components->y == ulComponent) {
+-				input->value.vec2.y = fNewValue;
++				input->value.vec2.y = applyDeadzone(fNewValue);
+ 			} else {
+ 				CTX_WARN("Attempted to update component with handle %" PRIu64
+ 				         " but it was neither the x nor y "
+-- 
+2.49.1
+

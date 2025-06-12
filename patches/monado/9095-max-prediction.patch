@@ -1,0 +1,46 @@
+From 2dd4f7cef0f9a4cdcaad3c2785acd871c506c417 Mon Sep 17 00:00:00 2001
+From: galister <22305755+galister@users.noreply.github.com>
+Date: Wed, 16 Jul 2025 22:05:11 +0900
+Subject: [PATCH 6/6] xrt: introduce XRT_MAX_PREDICTION_MS
+
+---
+ src/xrt/auxiliary/math/m_relation_history.cpp | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/xrt/auxiliary/math/m_relation_history.cpp b/src/xrt/auxiliary/math/m_relation_history.cpp
+index d7bf2769e..b57c3a8a7 100644
+--- a/src/xrt/auxiliary/math/m_relation_history.cpp
++++ b/src/xrt/auxiliary/math/m_relation_history.cpp
+@@ -21,6 +21,7 @@
+ #include "os/os_time.h"
+ #include "os/os_threading.h"
+ 
++#include "util/u_debug.h"
+ #include "util/u_logging.h"
+ #include "util/u_trace_marker.h"
+ #include "util/u_template_historybuf.hpp"
+@@ -34,9 +35,12 @@
+ #include <assert.h>
+ #include <mutex>
+ 
++
+ using namespace xrt::auxiliary::util;
+ namespace os = xrt::auxiliary::os;
+ 
++DEBUG_GET_ONCE_NUM_OPTION(xrt_max_prediction_ms, "XRT_MAX_PREDICTION_MS", 50)
++
+ struct relation_history_entry
+ {
+ 	struct xrt_space_relation relation;
+@@ -112,6 +116,8 @@ m_relation_history_get(const struct m_relation_history *rh,
+ 			// (pose-prediction)
+ 			// Output flags match the most recent buffer entry.
+ 			int64_t diff_prediction_ns = static_cast<int64_t>(at_timestamp_ns) - rh->impl.back().timestamp;
++			diff_prediction_ns =
++			    MIN(diff_prediction_ns, (int64_t)debug_get_num_option_xrt_max_prediction_ms() * 1'000'000);
+ 			double delta_s = time_ns_to_s(diff_prediction_ns);
+ 
+ 			U_LOG_T("Extrapolating %f s past the back of the buffer!", delta_s);
+-- 
+2.49.1
+

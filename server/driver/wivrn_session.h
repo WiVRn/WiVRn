@@ -22,6 +22,7 @@
 #include "clock_offset.h"
 #include "driver/app_pacer.h"
 #include "utils/thread_safe.h"
+#include "wivrn_config.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
 #include "wivrn_hand_interaction.h"
@@ -144,6 +145,9 @@ class wivrn_session : public xrt_system_devices
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
 	xrt_system_devices * lh_devices;
 	size_t num_lh_devices;
+
+	int32_t lh_hands[2]{-1, -1};
+	int64_t lh_last_seen[2]{};
 #endif
 
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
@@ -244,6 +248,8 @@ private:
 	xrt_result_t get_roles(xrt_system_roles * out_roles);
 	xrt_result_t feature_inc(xrt_device_feature_type type);
 	xrt_result_t feature_dec(xrt_device_feature_type type);
+
+	xrt_device_name lh_device_activity_check(size_t, xrt_device *, int32_t *, xrt_device **, xrt_device **, bool *);
 };
 
 } // namespace wivrn
