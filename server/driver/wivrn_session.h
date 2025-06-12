@@ -32,8 +32,8 @@
 #include <fstream>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
-#include <vector>
 
 struct u_system;
 struct xrt_space_overseer;
@@ -113,7 +113,9 @@ class wivrn_session : public xrt_system_devices
 	uint32_t num_generic_trackers;
 	std::array<std::unique_ptr<wivrn_generic_tracker>, from_headset::body_tracking::max_tracked_poses> generic_trackers;
 	std::array<bool, from_headset::body_tracking::max_tracked_poses> enabled_trackers;
-	std::shared_ptr<wivrn_comp_target> comp_target;
+
+	std::shared_mutex comp_target_mutex;
+	wivrn_comp_target * comp_target;
 
 	clock_offset_estimator offset_est;
 
@@ -145,6 +147,8 @@ public:
 	{
 		return connection->info();
 	};
+
+	void unset_comp_target();
 
 	wivrn_hmd & get_hmd()
 	{

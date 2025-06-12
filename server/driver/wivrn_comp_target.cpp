@@ -798,8 +798,8 @@ wivrn_comp_target::~wivrn_comp_target()
 static void comp_wivrn_destroy(struct comp_target * ct)
 {
 	auto cn = (struct wivrn_comp_target *)ct;
-	destroy_images(cn);
-	cn->self = nullptr;
+	cn->cnx.unset_comp_target();
+	delete cn;
 }
 
 static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, int64_t gpu_start_ns, int64_t gpu_end_ns, int64_t when_ns)

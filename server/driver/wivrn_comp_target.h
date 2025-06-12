@@ -78,7 +78,6 @@ struct pseudo_swapchain
 
 struct wivrn_comp_target : public comp_target
 {
-	std::shared_ptr<wivrn_comp_target> self;
 	to_headset::video_stream_description desc{};
 	wivrn_pacer pacer;
 

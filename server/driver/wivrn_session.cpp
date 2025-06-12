@@ -89,9 +89,8 @@ struct wivrn_comp_target_factory : public comp_target_factory
 	static bool create_target(const struct comp_target_factory * ctf, struct comp_compositor * c, struct comp_target ** out_ct)
 	{
 		auto self = (wivrn_comp_target_factory *)ctf;
-		self->session.comp_target = std::make_shared<wivrn_comp_target>(self->session, c);
-		self->session.comp_target->self = self->session.comp_target;
-		*out_ct = self->session.comp_target.get();
+		self->session.comp_target = new wivrn_comp_target(self->session, c);
+		*out_ct = self->session.comp_target;
 		return true;
 	}
 };
@@ -336,6 +335,12 @@ bool wivrn_session::connected()
 	return connection->is_active();
 }
 
+void wivrn_session::unset_comp_target()
+{
+	std::lock_guard lock(comp_target_mutex);
+	comp_target = nullptr;
+}
+
 void wivrn_session::operator()(from_headset::headset_info_packet &&)
 {
 	U_LOG_W("unexpected headset info packet, ignoring");
@@ -429,9 +434,11 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 	right_hand.update_tracking(tracking, offset);
 	if (eye_tracker)
 		eye_tracker->update_tracking(tracking, offset);
-	assert(comp_target);
-	assert(comp_target->foveation);
-	comp_target->foveation->update_tracking(tracking, offset);
+	{
+		std::shared_lock lock(comp_target_mutex);
+		if (comp_target)
+			comp_target->foveation->update_tracking(tracking, offset);
+	}
 
 	if (fb_face2_tracker)
 		fb_face2_tracker->update_tracking(tracking, offset);
@@ -522,11 +529,14 @@ void wivrn_session::set_tracker_enabled(int index, bool enabled)
 
 void wivrn_session::operator()(from_headset::feedback && feedback)
 {
-	assert(comp_target);
 	clock_offset o = offset_est.get_offset();
 	if (not o)
 		return;
-	comp_target->on_feedback(feedback, o);
+	{
+		std::shared_lock lock(comp_target_mutex);
+		if (comp_target)
+			comp_target->on_feedback(feedback, o);
+	}
 
 	if (feedback.received_first_packet)
 		dump_time("receive_begin", feedback.frame_index, o.from_headset(feedback.received_first_packet), feedback.stream_index);
@@ -561,7 +571,11 @@ void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
 
 void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
 {
-	comp_target->set_refresh_rate(event.to);
+	{
+		std::shared_lock lock(comp_target_mutex);
+		if (comp_target)
+			comp_target->set_refresh_rate(event.to);
+	}
 	push_event(
 	        {
 	                .display = {
@@ -585,7 +599,9 @@ void wivrn_session::operator()(to_monado::disconnect &&)
 
 void wivrn_session::operator()(to_monado::set_bitrate && data)
 {
-	comp_target->set_bitrate(data.bitrate_bps);
+	std::shared_lock lock(comp_target_mutex);
+	if (comp_target)
+		comp_target->set_bitrate(data.bitrate_bps);
 }
 
 struct refresh_rate_adjuster
@@ -645,8 +661,14 @@ void wivrn_session::run(std::stop_token stop)
 		{
 			offset_est.request_sample(*connection);
 			tracking_control.send(*connection);
-			if (comp_target->requested_refresh_rate == 0)
-				refresh.adjust(*connection);
+			{
+				std::shared_lock lock(comp_target_mutex);
+				if (comp_target)
+				{
+					if (comp_target->requested_refresh_rate == 0)
+						refresh.adjust(*connection);
+				}
+			}
 			connection->poll(*this, 20);
 		}
 		catch (const std::exception & e)
@@ -723,7 +745,11 @@ void wivrn_session::reconnect()
 		// const auto & info = connection->info();
 		// FIXME: ensure new client is compatible
 
-		comp_target->reset_encoders();
+		{
+			std::shared_lock lock(comp_target_mutex);
+			if (comp_target)
+				comp_target->reset_encoders();
+		}
 		if (audio_handle)
 			send_control(audio_handle->description());
 
