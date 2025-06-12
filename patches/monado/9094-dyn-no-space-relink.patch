@@ -1,0 +1,28 @@
+From cf5be913245733f062af3bcc0c9ca92070238e86 Mon Sep 17 00:00:00 2001
+From: galister <22305755+galister@users.noreply.github.com>
+Date: Thu, 12 Jun 2025 19:13:48 +0900
+Subject: [PATCH 5/6] do not relink space to device
+
+---
+ src/xrt/auxiliary/util/u_space_overseer.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/xrt/auxiliary/util/u_space_overseer.c b/src/xrt/auxiliary/util/u_space_overseer.c
+index 3f301319e..0abbb70da 100644
+--- a/src/xrt/auxiliary/util/u_space_overseer.c
++++ b/src/xrt/auxiliary/util/u_space_overseer.c
+@@ -1052,7 +1052,10 @@ add_device(struct xrt_space_overseer *xso, struct xrt_device *xdev)
+ 		u_hashmap_int_insert(uso->xto_map, key, xs);
+ 	}
+ 
+-	u_space_overseer_link_space_to_device(uso, xs, xdev);
++	ptr = NULL;
++	u_hashmap_int_find(uso->xdev_map, (uint64_t)(intptr_t)xdev, &ptr);
++	if (ptr == NULL)
++		u_space_overseer_link_space_to_device(uso, xs, xdev);
+ 	return XRT_SUCCESS;
+ }
+ 
+-- 
+2.49.1
+
