@@ -235,6 +235,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                .usage = VMA_MEMORY_USAGE_AUTO,
 		        });
 		cn->images[i].handle = image;
+		cn->wivrn_bundle->name(vk::Image(image), "comp target image");
 	}
 
 	for (uint32_t i = 0; i < cn->image_count; i++)
@@ -269,13 +270,17 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                           });
 		cn->images[i].view = VkImageView(*item.image_view_y);
 		cn->images[i].view_cbcr = VkImageView(*item.image_view_cbcr);
+		cn->wivrn_bundle->name(item.image_view_y, "comp target image view (y)");
+		cn->wivrn_bundle->name(item.image_view_cbcr, "comp target image view (CbCr)");
 	}
 
 	cn->psc.fence = vk::raii::Fence(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+	cn->wivrn_bundle->name(cn->psc.fence, "comp target fence");
 
 	cn->psc.command_buffer = std::move(device.allocateCommandBuffers(
 	        {.commandPool = *cn->command_pool,
 	         .commandBufferCount = 1})[0]);
+	cn->wivrn_bundle->name(cn->psc.command_buffer, "comp target command buffer");
 
 	return VK_SUCCESS;
 }
@@ -300,6 +305,7 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 		                .queueFamilyIndex = vk->queue_family_index,
 		        });
+		cn->wivrn_bundle->name(cn->command_pool, "comp target command pool");
 	}
 	catch (std::exception & e)
 	{

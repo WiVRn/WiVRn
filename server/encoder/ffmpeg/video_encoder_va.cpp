@@ -311,6 +311,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 
 			auto & image = (i == 0 ? luma : chroma);
 			image = vk.device.createImage(image_create_info.get());
+			vk.name(image, i == 0 ? "va encoder luma image" : "va encoder chroma image");
 
 			auto [req, ded_req] = vk.device.getImageMemoryRequirements2<vk::MemoryRequirements2, vk::MemoryDedicatedRequirements>({.image = *image});
 
@@ -336,6 +337,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 			try
 			{
 				mem.emplace_back(vk.device, alloc_info.get());
+				vk.name(mem.back(), "va encoder memory");
 			}
 			catch (...)
 			{
