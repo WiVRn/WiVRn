@@ -60,7 +60,7 @@ video_encoder::sender::sender() :
 		        }
 		        if (d and not d->span.empty())
 		        {
-			        d->encoder->SendData(d->span, true);
+			        d->encoder->SendData(d->span, true, d->prefer_control);
 			        std::unique_lock lock(mutex);
 			        pending.pop_front();
 			        cv.notify_all();
@@ -314,7 +314,7 @@ void video_encoder::encode(wivrn_session & cnx,
 		std::rethrow_exception(ex);
 }
 
-void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame)
+void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool control)
 {
 	std::lock_guard lock(mutex);
 	if (end_of_frame)
@@ -336,8 +336,7 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 	auto end = data.end();
 	while (begin != end)
 	{
-		const size_t view_info_size = sizeof(to_headset::video_stream_data_shard::view_info_t);
-		const size_t max_payload_size = to_headset::video_stream_data_shard::max_payload_size - (shard.view_info ? view_info_size : 0);
+		const size_t max_payload_size = to_headset::video_stream_data_shard::max_payload_size - serialized_size(shard.view_info);
 		auto next = std::min(end, begin + max_payload_size);
 		if (next == end)
 		{
@@ -351,7 +350,10 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame)
 		shard.payload = {begin, next};
 		try
 		{
-			cnx->send_stream(to_headset::video_stream_data_shard{shard});
+			if (control)
+				cnx->send_control(to_headset::video_stream_data_shard{shard});
+			else
+				cnx->send_stream(to_headset::video_stream_data_shard{shard});
 		}
 		catch (...)
 		{

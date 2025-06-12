@@ -53,6 +53,8 @@ protected:
 		video_encoder * encoder;
 		std::span<uint8_t> span;
 		std::shared_ptr<void> mem;
+		// true if data should be sent over reliable (TCP) socket
+		bool prefer_control = false;
 	};
 
 private:
@@ -140,7 +142,7 @@ public:
 	// called when command buffer finished executing
 	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) = 0;
 
-	void SendData(std::span<uint8_t> data, bool end_of_frame);
+	void SendData(std::span<uint8_t> data, bool end_of_frame, bool control = false);
 };
 
 } // namespace wivrn

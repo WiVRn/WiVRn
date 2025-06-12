@@ -416,9 +416,11 @@ std::vector<uint8_t> wivrn::video_encoder_vulkan::get_encoded_parameters(void * 
 
 std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t encode_slot)
 {
-	if (idr)
-		send_idr_data();
+	// we manage idrs ourselves
+	(void)idr;
 	auto & slot_item = slot_data[encode_slot];
+	if (slot_item.idr)
+		send_idr_data();
 
 	if (auto res = vk.device.waitForFences(*slot_item.fence, true, 1'000'000'000);
 	    res != vk::Result::eSuccess)
@@ -438,6 +440,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(bo
 	return data{
 	        .encoder = this,
 	        .span = std::span(((uint8_t *)mapped) + feedback[0], feedback[1]),
+	        .prefer_control = slot_item.idr,
 	};
 }
 
@@ -611,28 +614,12 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 
 	auto last_ack = this->last_ack.load();
 	dpb_item * ref_slot = nullptr;
-	for (size_t i = 0; i < dpb.size(); ++i)
+	for (auto & i: dpb)
 	{
-		if (dpb[i].frame_index == last_ack and dpb[i].info.slotIndex != -1)
+		if (i.frame_index == last_ack and i.info.slotIndex != -1)
 		{
-			ref_slot = &dpb[i];
+			ref_slot = &i;
 			break;
-		}
-	}
-
-	// Avoid sending many IDR in a row
-	if (frame_num < 100 and not ref_slot)
-	{
-		for (size_t i = 0; i < dpb.size(); ++i)
-		{
-			if (dpb[i].info.slotIndex != -1)
-			{
-				if (not ref_slot or ref_slot->frame_index < dpb[i].frame_index)
-				{
-					ref_slot = &dpb[i];
-					break;
-				}
-			}
 		}
 	}
 
@@ -645,6 +632,12 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 			slot.info.pPictureResource = nullptr;
 			slot.frame_index = -1;
 		}
+		slot_item.idr = true;
+		last_ack = frame_index;
+	}
+	else
+	{
+		slot_item.idr = false;
 	}
 	slot->frame_index = frame_index;
 	slot->info.pPictureResource = &slot->resource;
