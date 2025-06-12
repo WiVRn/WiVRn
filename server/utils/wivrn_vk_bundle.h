@@ -22,6 +22,7 @@
 #include "vk/vk_allocator.h"
 #include <cstdint>
 #include <span>
+#include <type_traits>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -53,6 +54,36 @@ struct raii_device : public vk::raii::Device
 	}
 };
 
+namespace details
+{
+template <typename T, typename U = void>
+struct vk_handle
+{
+	uint64_t operator()(const T & handle)
+	{
+		typename T::CType chandle = handle;
+		return uint64_t(chandle);
+	}
+};
+
+// vk::raii specialization
+template <typename T>
+struct vk_handle<T, std::void_t<typename T::CppType>>
+{
+	uint64_t operator()(const T & handle)
+	{
+		typename T::CType chandle = *handle;
+		return uint64_t(chandle);
+	}
+};
+} // namespace details
+
+template <typename T>
+uint64_t vk_handle(const T & handle)
+{
+	return details::vk_handle<T>{}(handle);
+}
+
 struct wivrn_vk_bundle
 {
 	vk_bundle & vk;
@@ -75,5 +106,14 @@ struct wivrn_vk_bundle
 	wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> requested_instance_extensions, std::span<const char *> requested_device_extensions);
 
 	uint32_t get_memory_type(uint32_t type_bits, vk::MemoryPropertyFlags memory_props);
+
+	template <typename T>
+	void name(const T & handle, const char * value)
+	{
+		return name(T::objectType, vk_handle(handle), value);
+	}
+
+private:
+	void name(vk::ObjectType, uint64_t handle, const char * value);
 };
 } // namespace wivrn

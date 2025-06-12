@@ -224,3 +224,14 @@ uint32_t wivrn::wivrn_vk_bundle::get_memory_type(uint32_t type_bits, vk::MemoryP
 	}
 	throw std::runtime_error("Failed to get memory type");
 }
+
+void wivrn::wivrn_vk_bundle::name(vk::ObjectType type, uint64_t handle, const char * value)
+{
+	if (not vk.has_EXT_debug_utils)
+		return;
+	device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT{
+	        .objectType = type,
+	        .objectHandle = handle,
+	        .pObjectName = value,
+	});
+}
