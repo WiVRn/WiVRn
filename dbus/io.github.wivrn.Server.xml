@@ -40,6 +40,7 @@
 			<arg type="s" name="Pin" direction="out"/>
 		</method>
 		<method name="DisablePairing"/>
+		<method name="TogglePerformanceGraph"/>
 
 		<property name="HeadsetConnected"      type="b" access="read"/>
 		<property name="SteamCommand"          type="s" access="read"/>

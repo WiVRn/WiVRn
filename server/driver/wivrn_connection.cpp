@@ -43,6 +43,11 @@ static void handle_event_from_main_loop(to_monado::set_bitrate)
 	// Ignore bitrate request when no headset is connected
 }
 
+static void handle_event_from_main_loop(to_monado::toggle_performance_graph)
+{
+	// Ignore this request when no headset is connected
+}
+
 static std::string clean_key(std::string key)
 {
 	static const std::regex header{"^-+BEGIN .*-+$", std::regex_constants::multiline};
