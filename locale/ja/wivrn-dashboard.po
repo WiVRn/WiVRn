@@ -310,7 +310,7 @@ msgstr "アプリ"
 
 #: dashboard/qml/Main.qml:295
 #, kde-format
-msgid "Steam informations"
+msgid "Steam information"
 msgstr "ストリーム情報"
 
 #: dashboard/qml/Main.qml:313

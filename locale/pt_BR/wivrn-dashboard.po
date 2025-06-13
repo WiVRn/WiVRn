@@ -322,7 +322,7 @@ msgstr "Aplicação"
 
 #: dashboard/qml/Main.qml:295
 #, kde-format
-msgid "Steam informations"
+msgid "Steam information"
 msgstr "Informações da Steam"
 
 #: dashboard/qml/Main.qml:313

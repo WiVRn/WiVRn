@@ -292,7 +292,7 @@ Kirigami.ApplicationWindow {
                 Kirigami.Heading {
                     level: 1
                     wrapMode: Text.WordWrap
-                    text: i18n("Steam informations")
+                    text: i18n("Steam information")
                     opacity: root.server_started
                     Layout.maximumHeight: root.server_started ? -1 : 0
                 }
