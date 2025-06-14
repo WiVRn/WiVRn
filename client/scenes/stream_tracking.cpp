@@ -264,6 +264,7 @@ void scenes::stream::tracking()
 	{
 		body_none,
 		body_fb,
+		body_htc,
 		body_pico,
 	} body_tracking = body_none;
 
@@ -278,6 +279,8 @@ void scenes::stream::tracking()
 			application::get_fb_body_tracker().stop();
 			application::get_fb_body_tracker().start(config.fb_lower_body, config.fb_hip);
 		}
+		else if (application::get_htc_body_tracking_supported())
+			body_tracking = body_htc;
 		else if (application::get_pico_body_tracking_supported())
 			body_tracking = body_pico;
 	}
@@ -376,6 +379,9 @@ void scenes::stream::tracking()
 									__builtin_unreachable();
 								case body_fb:
 									body_packet.poses = application::get_fb_body_tracker().locate_spaces(t0 + Δt, world_space);
+									break;
+								case body_htc:
+									body_packet.poses = application::get_htc_body_tracker().locate_spaces(t0 + Δt, world_space);
 									break;
 								case body_pico:
 									body_packet.poses = application::get_pico_body_tracker().locate_spaces(t0 + Δt, world_space);

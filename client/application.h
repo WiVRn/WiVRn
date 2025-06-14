@@ -24,6 +24,7 @@
 #include "xr/fb_body_tracker.h"
 #include "xr/fb_face_tracker2.h"
 #include "xr/hand_tracker.h"
+#include "xr/htc_body_tracker.h"
 #include "xr/htc_face_tracker.h"
 #include "xr/pico_face_tracker.h"
 #ifdef __ANDROID__
@@ -140,6 +141,8 @@ class application : public singleton<application>
 
 	bool fb_body_tracking_supported = false;
 	xr::fb_body_tracker fb_body_tracker;
+	bool htc_body_tracking_supported = false;
+	xr::htc_body_tracker htc_body_tracker;
 	bool pico_body_tracking_supported = false;
 	xr::pico_body_tracker pico_body_tracker;
 
@@ -456,6 +459,11 @@ public:
 		return instance().fb_body_tracking_supported;
 	}
 
+	static bool get_htc_body_tracking_supported()
+	{
+		return instance().htc_body_tracking_supported;
+	}
+
 	static bool get_pico_body_tracking_supported()
 	{
 		return instance().pico_body_tracking_supported;
@@ -504,6 +512,11 @@ public:
 	static xr::fb_body_tracker & get_fb_body_tracker()
 	{
 		return instance().fb_body_tracker;
+	}
+
+	static xr::htc_body_tracker & get_htc_body_tracker()
+	{
+		return instance().htc_body_tracker;
 	}
 
 	static xr::pico_body_tracker & get_pico_body_tracker()
