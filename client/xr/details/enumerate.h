@@ -26,6 +26,7 @@
 #include "utils/typename.h"
 #include "xr/check.h"
 #include <type_traits>
+#include <vector>
 #include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>

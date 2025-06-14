@@ -60,6 +60,7 @@
     <uses-feature android:name="wave.feature.handtracking" android:required="false" />
     <uses-feature android:name="wave.feature.eyetracking" android:required="false" />
     <uses-feature android:name="wave.feature.lipexpression" android:required="false" />
+    <uses-feature android:name="wave.feature.tracker" android:required="false" />
 
     <application
         android:allowBackup="false"
