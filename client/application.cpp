@@ -506,6 +506,11 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/thumbrest/touch",
                 }},
         interaction_profile{
+                "/interaction_profiles/htc/vive_xr_tracker",
+                {"XR_HTC_vive_xr_tracker_interaction", "XR_HTC_path_enumeration"},
+                {},
+        },
+        interaction_profile{
                 "/interaction_profiles/ext/eye_gaze_interaction",
                 {"XR_EXT_eye_gaze_interaction"},
                 {
@@ -921,6 +926,18 @@ void application::initialize_actions()
 			profile.input_sources.push_back("/user/hand/right/input/palm_ext/pose");
 		}
 
+		// Dynamically add VIVE XR Trackers to the profile if available
+		if (utils::contains(profile.required_extensions, XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME))
+		{
+			for (const auto & user_path: get_htc_body_tracker().get_paths())
+			{
+				for (const auto & input_path: get_htc_body_tracker().get_paths(user_path))
+				{
+					profile.input_sources.push_back(path_to_string(user_path) + path_to_string(input_path));
+				}
+			}
+		}
+
 		suggested_bindings.emplace(profile.profile_name, std::vector<XrActionSuggestedBinding>{});
 
 		for (const std::string & source: profile.input_sources)
@@ -957,6 +974,8 @@ void application::initialize_actions()
 			spaces[size_t(xr::spaces::palm_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/left/input/palm_ext/pose")
 			spaces[size_t(xr::spaces::palm_left)] = xr_session.create_action_space(a);
+		else if (name.contains("/input/entity_htc/pose"))
+			application::get_htc_body_tracker().add(xr_session.create_action_space(a));
 	}
 
 	// Build an action set for each scene
@@ -1040,6 +1059,8 @@ void application::initialize()
 	opt_extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
 	opt_extensions.push_back(XR_HTC_PASSTHROUGH_EXTENSION_NAME);
 	opt_extensions.push_back(XR_HTC_FACIAL_TRACKING_EXTENSION_NAME);
+	opt_extensions.push_back(XR_HTC_PATH_ENUMERATION_EXTENSION_NAME);
+	opt_extensions.push_back(XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_FACE_TRACKING2_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_BODY_TRACKING_EXTENSION_NAME);
 	opt_extensions.push_back(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME);
@@ -1152,6 +1173,12 @@ void application::initialize()
 		fb_body_tracking_supported = fb_body_properties.supportsBodyTracking;
 	}
 
+	if (utils::contains_all(xr_extensions, std::array{XR_HTC_PATH_ENUMERATION_EXTENSION_NAME, XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME}))
+	{
+		spdlog::info("    HTC body tracking support: true");
+		htc_body_tracking_supported = true;
+	}
+
 	if (utils::contains(xr_extensions, XR_BD_BODY_TRACKING_EXTENSION_NAME))
 	{
 		XrSystemBodyTrackingPropertiesBD bd_body_properties = xr_system_id.bd_body_tracking_properties();
@@ -1226,6 +1253,11 @@ void application::initialize()
 	if (fb_body_tracking_supported)
 	{
 		fb_body_tracker = xr_session.create_fb_body_tracker();
+	}
+
+	if (htc_body_tracking_supported)
+	{
+		htc_body_tracker = xr_session.create_htc_body_tracker();
 	}
 
 	if (pico_body_tracking_supported)
@@ -1767,7 +1799,13 @@ void application::poll_events()
 				exit_requested = true;
 			}
 			break;
-			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED:
+			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED: {
+				if (application::get_htc_body_tracking_supported())
+				{
+					application::get_htc_body_tracker().update_active();
+				}
+			}
+			break;
 			case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
 				break;
 			case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED: {

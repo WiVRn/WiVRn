@@ -18,6 +18,8 @@
  */
 #include "utils/overloaded.h"
 #include "xr/fb_body_tracker.h"
+#include "xr/htc_body_tracker.h"
+#include "xr/pico_body_tracker.h"
 #define GLM_FORCE_RADIANS
 
 #include "stream.h"
@@ -230,6 +232,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		{
 			if (application::get_fb_body_tracking_supported())
 				info.num_generic_trackers = xr::fb_body_tracker::get_whitelisted_joints(config.fb_lower_body, config.fb_hip).size();
+			else if (application::get_htc_body_tracking_supported())
+				info.num_generic_trackers = application::get_htc_body_tracker().count();
 			else if (application::get_pico_body_tracking_supported())
 				info.num_generic_trackers = xr::pico_body_tracker::joint_whitelist.size();
 		}

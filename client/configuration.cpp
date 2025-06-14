@@ -130,6 +130,12 @@ bool configuration::check_feature(feature f) const
 						if (not application::get_fb_body_tracking_supported())
 							return false;
 						break;
+					case model::htc_vive_focus_3:
+					case model::htc_vive_xr_elite:
+					case model::htc_vive_focus_vision:
+						if (not application::get_htc_body_tracking_supported())
+							return false;
+						break;
 					case model::pico_neo_3:
 					case model::pico_4:
 					case model::pico_4s:

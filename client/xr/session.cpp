@@ -24,6 +24,7 @@
 #include "openxr/openxr.h"
 #include "utils/contains.h"
 #include "xr/fb_body_tracker.h"
+#include "xr/htc_body_tracker.h"
 #include "xr/instance.h"
 #include "xr/pico_body_tracker.h"
 #include "xr/system.h"
@@ -145,6 +146,11 @@ xr::pico_face_tracker xr::session::create_pico_face_tracker()
 }
 
 xr::fb_body_tracker xr::session::create_fb_body_tracker()
+{
+	return {*inst, *this};
+}
+
+xr::htc_body_tracker xr::session::create_htc_body_tracker()
 {
 	return {*inst, *this};
 }
