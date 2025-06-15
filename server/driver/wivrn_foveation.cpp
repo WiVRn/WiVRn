@@ -259,7 +259,7 @@ wivrn_foveation::wivrn_foveation(wivrn_vk_bundle & bundle, const xrt_hmd_parts &
         foveated_height(hmd.screens[0].h_pixels),
         command_pool(bundle.device, vk::CommandPoolCreateInfo{.queueFamilyIndex = bundle.queue_family_index}),
         cmd(std::move(bundle.device.allocateCommandBuffers({
-                .commandPool = command_pool,
+                .commandPool = *command_pool,
                 .commandBufferCount = 1,
         })[0])),
         host_buffer(
