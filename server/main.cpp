@@ -711,6 +711,16 @@ gboolean on_handle_disable_pairing(WivrnServer * skeleton, GDBusMethodInvocation
 	return G_SOURCE_CONTINUE;
 }
 
+gboolean on_handle_toggle_performance_graph(WivrnServer * skeleton,
+                                            GDBusMethodInvocation * invocation,
+                                            gpointer user_data)
+{
+	wivrn_ipc_socket_main_loop->send(to_monado::toggle_performance_graph{});
+
+	g_dbus_method_invocation_return_value(invocation, nullptr);
+	return G_SOURCE_CONTINUE;
+}
+
 void on_bitrate(WivrnServer * server, const GParamSpec * pspec, gpointer data)
 {
 	auto bitrate = wivrn_server_get_bitrate(server);
@@ -818,6 +828,11 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 	g_signal_connect(dbus_server,
 	                 "handle-quit",
 	                 G_CALLBACK(on_handle_quit),
+	                 NULL);
+
+	g_signal_connect(dbus_server,
+	                 "handle-toggle-performance-graph",
+	                 G_CALLBACK(on_handle_toggle_performance_graph),
 	                 NULL);
 
 	g_signal_connect(dbus_server,
