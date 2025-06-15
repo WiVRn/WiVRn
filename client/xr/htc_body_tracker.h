@@ -40,7 +40,7 @@ public:
 	vive_xr_tracker(xr::space && s);
 	void set_active(bool active);
 	bool get_active() const;
-	xr::space * get_space();
+	XrSpace get_space() const;
 };
 
 class htc_body_tracker

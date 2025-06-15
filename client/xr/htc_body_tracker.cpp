@@ -38,9 +38,9 @@ bool xr::vive_xr_tracker::get_active() const
 {
 	return is_active;
 }
-xr::space * xr::vive_xr_tracker::get_space()
+XrSpace xr::vive_xr_tracker::get_space() const
 {
-	return &space;
+	return space;
 }
 
 static wivrn::from_headset::body_tracking::pose locate_space(XrSpace space, XrSpace reference, XrTime time)
@@ -79,7 +79,8 @@ static wivrn::from_headset::body_tracking::pose locate_space(XrSpace space, XrSp
 std::vector<std::string> xr::htc_body_tracker::get_roles()
 {
 	auto paths = get_paths();
-	std::vector<std::string> roles(paths.size());
+	std::vector<std::string> roles{};
+	roles.reserve(paths.size());
 
 	for (auto & path: paths)
 	{
@@ -146,7 +147,7 @@ std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_t
 		        .flags = 0,
 		};
 		if (tracker.get_active())
-			pose = locate_space(*tracker.get_space(), reference, time);
+			pose = locate_space(tracker.get_space(), reference, time);
 
 		poses[i] = pose;
 	}
