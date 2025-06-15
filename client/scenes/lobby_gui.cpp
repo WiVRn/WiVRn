@@ -763,12 +763,6 @@ void scenes::lobby::gui_settings()
 				                   [this](xr::fb_body_tracker &) {
 					                   tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
 				                   },
-				                   [this](xr::htc_body_tracker &) {
-					                   tooltip(_("Forwards positions of Vive Ultimate Trackers"));
-				                   },
-				                   [this](xr::pico_body_tracker &) {
-					                   tooltip(_("Uses the Pico Motion Trackers to track body joint positions"));
-				                   },
 				           },
 				           application::get_body_tracker());
 			}
