@@ -32,6 +32,7 @@
 #include "lobby.h"
 #include "stream.h"
 #include "utils/i18n.h"
+#include "utils/overloaded.h"
 #include "version.h"
 #include <cassert>
 #include <chrono>
@@ -741,7 +742,7 @@ void scenes::lobby::gui_settings()
 	}
 
 	{
-		ImGui::BeginDisabled(not(application::get_fb_body_tracking_supported() or application::get_htc_body_tracking_supported() or application::get_pico_body_tracking_supported()));
+		ImGui::BeginDisabled(not application::get_body_tracking_supported());
 		bool enabled = config.check_feature(feature::body_tracking);
 		if (ImGui::Checkbox(_S("Enable body tracking"), &enabled))
 		{
@@ -757,18 +758,25 @@ void scenes::lobby::gui_settings()
 			}
 			else
 			{
-				if (application::get_fb_body_tracking_supported())
-					tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
-				else if (application::get_htc_body_tracking_supported())
-					tooltip(_("Forwards positions of Vive Ultimate Trackers"));
-				else if (application::get_pico_body_tracking_supported())
-					tooltip(_("Uses the Pico Motion Trackers to track body joint positions"));
+				std::visit(utils::overloaded{
+				                   [](auto &) {},
+				                   [this](xr::fb_body_tracker &) {
+					                   tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
+				                   },
+				                   [this](xr::htc_body_tracker &) {
+					                   tooltip(_("Forwards positions of Vive Ultimate Trackers"));
+				                   },
+				                   [this](xr::pico_body_tracker &) {
+					                   tooltip(_("Uses the Pico Motion Trackers to track body joint positions"));
+				                   },
+				           },
+				           application::get_body_tracker());
 			}
 		}
 
 		vibrate_on_hover();
 	}
-	if (application::get_fb_body_tracking_supported())
+	if (std::holds_alternative<xr::fb_body_tracker>(application::get_body_tracker()))
 	{
 		ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
 		ImGui::Indent();
@@ -1484,7 +1492,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (application::get_fb_body_tracking_supported() or application::get_htc_body_tracking_supported() or application::get_pico_body_tracking_supported())
+	if (application::get_body_tracking_supported())
 	{
 		items.push_back({
 		        .f = feature::body_tracking,

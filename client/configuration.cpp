@@ -127,13 +127,13 @@ bool configuration::check_feature(feature f) const
 				{
 					case model::meta_quest_3:
 					case model::meta_quest_3s:
-						if (not application::get_fb_body_tracking_supported())
+						if (not std::holds_alternative<xr::fb_body_tracker>(application::get_body_tracker()))
 							return false;
 						break;
 					case model::htc_vive_focus_3:
 					case model::htc_vive_xr_elite:
 					case model::htc_vive_focus_vision:
-						if (not application::get_htc_body_tracking_supported())
+						if (not std::holds_alternative<xr::htc_body_tracker>(application::get_body_tracker()))
 							return false;
 						break;
 					case model::pico_neo_3:
@@ -141,7 +141,7 @@ bool configuration::check_feature(feature f) const
 					case model::pico_4s:
 					case model::pico_4_pro:
 					case model::pico_4_enterprise:
-						if (not application::get_pico_body_tracking_supported())
+						if (not std::holds_alternative<xr::pico_body_tracker>(application::get_body_tracker()))
 							return false;
 						break;
 					default:

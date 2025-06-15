@@ -26,6 +26,7 @@
 #include "xr/hand_tracker.h"
 #include "xr/htc_body_tracker.h"
 #include "xr/htc_face_tracker.h"
+#include "xr/pico_body_tracker.h"
 #include "xr/pico_face_tracker.h"
 #ifdef __ANDROID__
 #include <android_native_app_glue.h>
@@ -139,12 +140,7 @@ class application : public singleton<application>
 	bool pico_face_tracking_supported = false;
 	xr::pico_face_tracker pico_face_tracker;
 
-	bool fb_body_tracking_supported = false;
-	xr::fb_body_tracker fb_body_tracker;
-	bool htc_body_tracking_supported = false;
-	xr::htc_body_tracker htc_body_tracker;
-	bool pico_body_tracking_supported = false;
-	xr::pico_body_tracker pico_body_tracker;
+	std::variant<std::monostate, xr::fb_body_tracker, xr::htc_body_tracker, xr::pico_body_tracker> body_tracker;
 
 	bool eye_gaze_supported = false;
 
@@ -454,19 +450,9 @@ public:
 		return instance().pico_face_tracking_supported;
 	}
 
-	static bool get_fb_body_tracking_supported()
+	static bool get_body_tracking_supported()
 	{
-		return instance().fb_body_tracking_supported;
-	}
-
-	static bool get_htc_body_tracking_supported()
-	{
-		return instance().htc_body_tracking_supported;
-	}
-
-	static bool get_pico_body_tracking_supported()
-	{
-		return instance().pico_body_tracking_supported;
+		return !std::holds_alternative<std::monostate>(instance().body_tracker);
 	}
 
 	static bool get_eye_gaze_supported()
@@ -509,19 +495,9 @@ public:
 		return instance().pico_face_tracker;
 	}
 
-	static xr::fb_body_tracker & get_fb_body_tracker()
+	static auto & get_body_tracker()
 	{
-		return instance().fb_body_tracker;
-	}
-
-	static xr::htc_body_tracker & get_htc_body_tracker()
-	{
-		return instance().htc_body_tracker;
-	}
-
-	static xr::pico_body_tracker & get_pico_body_tracker()
-	{
-		return instance().pico_body_tracker;
+		return instance().body_tracker;
 	}
 
 	static const std::vector<std::string> & get_xr_extensions()
