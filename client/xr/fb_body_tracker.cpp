@@ -17,6 +17,7 @@
  */
 
 #include "fb_body_tracker.h"
+#include "application.h"
 #include "spdlog/spdlog.h"
 #include "xr/meta_body_tracking_fidelity.h"
 #include "xr/xr.h"
@@ -81,6 +82,11 @@ void xr::fb_body_tracker::stop()
 		assert(xrDestroyBodyTrackerFB);
 		CHECK_XR(xrDestroyBodyTrackerFB(std::exchange(handle, nullptr)));
 	}
+}
+size_t xr::fb_body_tracker::count() const
+{
+	const auto & config = application::get_config();
+	return get_whitelisted_joints(config.fb_lower_body, config.fb_hip).size();
 }
 
 std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> xr::fb_body_tracker::locate_spaces(XrTime time, XrSpace reference)

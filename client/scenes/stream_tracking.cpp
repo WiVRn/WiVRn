@@ -19,7 +19,9 @@
 
 #include "application.h"
 #include "stream.h"
+#include "utils/overloaded.h"
 #include "wivrn_packets.h"
+#include "xr/fb_body_tracker.h"
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
@@ -244,6 +246,7 @@ void scenes::stream::tracking()
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
 	from_headset::face_type face_tracking = from_headset::face_type::none;
+	const bool body_tracking = config.check_feature(feature::body_tracking);
 	if (config.check_feature(feature::face_tracking))
 	{
 		if (application::get_fb_face_tracking2_supported())
@@ -260,29 +263,17 @@ void scenes::stream::tracking()
 		}
 	}
 
-	enum
+	auto & body_tracker = application::get_body_tracker();
+	if (body_tracking)
 	{
-		body_none,
-		body_fb,
-		body_htc,
-		body_pico,
-	} body_tracking = body_none;
-
-	if (config.check_feature(feature::body_tracking))
-	{
-		if (application::get_fb_body_tracking_supported())
+		if (auto * body_fb = std::get_if<xr::fb_body_tracker>(&body_tracker))
 		{
-			body_tracking = body_fb;
 			// TODO maybe handle reconnection better, if the settings are changed since
 			// last connection to running server, the tracker count will mismatch and
 			// stuff might break
-			application::get_fb_body_tracker().stop();
-			application::get_fb_body_tracker().start(config.fb_lower_body, config.fb_hip);
+			body_fb->stop();
+			body_fb->start(config.fb_lower_body, config.fb_hip);
 		}
-		else if (application::get_htc_body_tracking_supported())
-			body_tracking = body_htc;
-		else if (application::get_pico_body_tracking_supported())
-			body_tracking = body_pico;
 	}
 
 	on_interaction_profile_changed({});
@@ -363,32 +354,26 @@ void scenes::stream::tracking()
 							        locate_hands(application::get_right_hand(), world_space, t0 + Δt));
 					}
 
-					if (body_tracking != body_none and t0 >= last_body_sample + period and
-					    (Δt == 0 or Δt >= prediction - 2 * period))
-					{
-						last_body_sample = t0;
-						if (control.enabled[size_t(tid::generic_tracker)])
-						{
-							auto & body_packet = body.emplace_back(from_headset::body_tracking{
-							        .production_timestamp = t0,
-							        .timestamp = t0 + Δt,
-							});
-							switch (body_tracking)
-							{
-								case body_none:
-									__builtin_unreachable();
-								case body_fb:
-									body_packet.poses = application::get_fb_body_tracker().locate_spaces(t0 + Δt, world_space);
-									break;
-								case body_htc:
-									body_packet.poses = application::get_htc_body_tracker().locate_spaces(t0 + Δt, world_space);
-									break;
-								case body_pico:
-									body_packet.poses = application::get_pico_body_tracker().locate_spaces(t0 + Δt, world_space);
-									break;
-							}
-						}
-					}
+					if (body_tracking)
+						std::visit(utils::overloaded{
+						                   [](std::monostate &) {},
+						                   [&](auto & b) {
+							                   if (t0 >= last_body_sample + period and
+							                       (Δt == 0 or Δt >= prediction - 2 * period))
+							                   {
+								                   last_body_sample = t0;
+								                   if (control.enabled[size_t(tid::generic_tracker)])
+								                   {
+									                   body.push_back(from_headset::body_tracking{
+									                           .production_timestamp = t0,
+									                           .timestamp = t0 + Δt,
+									                           .poses = b.locate_spaces(t0 + Δt, world_space),
+									                   });
+								                   }
+							                   }
+						                   },
+						           },
+						           body_tracker);
 
 					if (control.enabled[size_t(tid::face)])
 					{
