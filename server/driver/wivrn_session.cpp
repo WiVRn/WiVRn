@@ -230,6 +230,12 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	{
 		U_LOG_I("Creating %d generic trackers", num_generic_trackers);
 
+		if (num_generic_trackers > generic_trackers.size())
+			throw std::out_of_range(
+			        std::format("{} generic trackers is larger than maximum {}",
+			                    num_generic_trackers,
+			                    generic_trackers.size()));
+
 		for (int i = 0; i < num_generic_trackers; ++i)
 		{
 			auto dev = std::make_unique<wivrn_generic_tracker>(i, &hmd, *this);
