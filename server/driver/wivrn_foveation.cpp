@@ -391,7 +391,7 @@ vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
 	}
 
 	// Check if the last value is still valid
-	if (last.flip_y == flip_y and last.src[0] == source[0] and last.src[1] == source[1] and last.fovs[0] == fovs[0])
+	if (last.flip_y == flip_y and last.src[0] == source[0] and last.src[1] == source[1] and last.fovs[0] == fovs[0] and last.fovs[1] == fovs[1])
 	{
 		std::lock_guard lock(mutex);
 		if (last.gaze == gaze)
