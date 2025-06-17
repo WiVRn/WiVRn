@@ -446,16 +446,16 @@ std::vector<XrExtent2Di> stream_reprojection::reproject(vk::raii::CommandBuffer 
 			        .position = out * out_pixel_size - glm::vec2(1),
 			        .uv = in * in_pixel_size,
 			};
-			*vertices++ = {
-			        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size - glm::vec2(1),
-			        .uv = (in + glm::vec2(0, n_out_y)) * in_pixel_size,
-			};
-			*vertices++ = {
-			        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size - glm::vec2(1),
-			        .uv = (in + glm::vec2(0, n_out_y)) * in_pixel_size,
-			};
 			in.y += n_out_y;
 			out.y += n_out_y * ratio_y;
+			*vertices++ = {
+			        .position = out * out_pixel_size - glm::vec2(1),
+			        .uv = in * in_pixel_size,
+			};
+			*vertices++ = {
+			        .position = out * out_pixel_size - glm::vec2(1),
+			        .uv = in * in_pixel_size,
+			};
 		}
 	}
 
