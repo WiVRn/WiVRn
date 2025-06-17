@@ -34,7 +34,6 @@
 
 #include "smp.h"
 #include "wivrn_serialization_types.h"
-#include "xr/pico_eye_types.h"
 
 namespace wivrn
 {
@@ -42,7 +41,7 @@ namespace wivrn
 // Default port for server to listen, both TCP and UDP
 static const int default_port = 9757;
 
-static constexpr int protocol_revision = 2;
+static constexpr int protocol_revision = 0;
 
 enum class device_id : uint8_t
 {
@@ -165,6 +164,7 @@ namespace from_headset
 {
 struct crypto_handshake
 {
+	uint64_t protocol_version;
 	std::string public_key; // In PEM format
 	std::string name;
 };
@@ -441,6 +441,7 @@ struct crypto_handshake
 		pin_needed,
 		client_already_paired,
 		pairing_disabled,
+		incompatible_version,
 	};
 
 	std::string public_key; // In PEM format

@@ -19,6 +19,7 @@
 
 #include "wivrn_connection.h"
 #include "configuration.h"
+#include "protocol_version.h"
 #include "secrets.h"
 #include "smp.h"
 #include "wivrn_ipc.h"
@@ -168,6 +169,14 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 
 	// Wait for client to send handshake packet
 	auto crypto_handshake = std::get<from_headset::crypto_handshake>(receive(10s).first);
+
+	if (crypto_handshake.protocol_version != wivrn::protocol_version)
+	{
+		control.send(to_headset::crypto_handshake{
+		        .state = to_headset::crypto_handshake::crypto_state::incompatible_version,
+		});
+		throw std::runtime_error("Incompatible protocol version");
+	}
 
 	crypto::key headset_key = crypto::key::from_public_key(crypto_handshake.public_key);
 	bool is_public_key_known = std::ranges::any_of(
