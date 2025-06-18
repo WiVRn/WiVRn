@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-05-22 18:25+0200\n"
-"PO-Revision-Date: 2025-05-22 18:33+0200\n"
+"POT-Creation-Date: 2025-06-18 21:11+0200\n"
+"PO-Revision-Date: 2025-06-18 21:12+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
 "Language: French\n"
@@ -177,7 +177,7 @@ msgstr "Renommer"
 
 #: dashboard/qml/HeadsetsPage.qml:55 dashboard/qml/WizardPage.qml:38
 #: dashboard/qml/WizardPage.qml:88 dashboard/qml/WizardPage.qml:263
-#: dashboard/qml/WizardPage.qml:312 dashboard/qml/WizardPage.qml:396
+#: dashboard/qml/WizardPage.qml:326 dashboard/qml/WizardPage.qml:410
 #, kde-format
 msgid "Cancel"
 msgstr "Annuler"
@@ -300,7 +300,7 @@ msgstr "Appairage"
 msgid "PIN: %1"
 msgstr "PIN : %1"
 
-#: dashboard/qml/Main.qml:238 dashboard/qml/WizardPage.qml:359
+#: dashboard/qml/Main.qml:238 dashboard/qml/WizardPage.qml:373
 #, kde-format
 msgid "Connect by USB"
 msgstr "Connexion par USB"
@@ -530,22 +530,22 @@ msgstr "H.265"
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:320
+#: dashboard/qml/SettingsPage.qml:319
 #, kde-format
 msgid "Advanced options"
 msgstr "Paramètres avancés"
 
-#: dashboard/qml/SettingsPage.qml:326
+#: dashboard/qml/SettingsPage.qml:325
 #, kde-format
 msgid "Enable debug window"
 msgstr "Activer la fenêtre de débogage"
 
-#: dashboard/qml/SettingsPage.qml:333
+#: dashboard/qml/SettingsPage.qml:332
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Activer le support des manettes SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:336
+#: dashboard/qml/SettingsPage.qml:335
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -559,44 +559,44 @@ msgstr ""
 "WiVRn.\n"
 "Un utilitaire tiers tel que motoc est nécessaire pour la calibration."
 
-#: dashboard/qml/SettingsPage.qml:344
+#: dashboard/qml/SettingsPage.qml:343
 #, kde-format
 msgid "Custom adb location"
 msgstr "Spécifier l'emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:355
+#: dashboard/qml/SettingsPage.qml:354
 #, kde-format
 msgid "Adb location:"
 msgstr "Emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:364
+#: dashboard/qml/SettingsPage.qml:363
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Parcourir"
 
-#: dashboard/qml/SettingsPage.qml:374
+#: dashboard/qml/SettingsPage.qml:373
 #, kde-format
 msgid "Default"
 msgstr "Par défaut"
 
-#: dashboard/qml/SettingsPage.qml:388
+#: dashboard/qml/SettingsPage.qml:387
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: dashboard/qml/SettingsPage.qml:393
+#: dashboard/qml/SettingsPage.qml:392
 #, kde-format
 msgid "Disabled"
 msgstr "Désactivé"
 
-#: dashboard/qml/SettingsPage.qml:401
+#: dashboard/qml/SettingsPage.qml:400
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Compatibilité OpenVR :"
 
-#: dashboard/qml/SettingsPage.qml:427
+#: dashboard/qml/SettingsPage.qml:426
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Chemin de la bibliothèque, en enlevant bin/linux64/vrclient.so"
@@ -633,7 +633,7 @@ msgstr "Commande de lancement Steam copiée"
 msgid "I cannot find the WiVRn app on my headset"
 msgstr "Je ne trouve pas l'application WiVRn sur mon casque"
 
-#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:373
+#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:387
 #, kde-format
 msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
@@ -647,7 +647,7 @@ msgstr ""
 msgid "I cannot see my computer in the WiVRn app"
 msgstr "Je ne vois pas mon ordinateur dans l'application WiVRn"
 
-#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:378
+#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:392
 #, kde-format
 msgid ""
 "If the server is not visible or the connection fails, check that port 5353 "
@@ -701,7 +701,7 @@ msgstr "L'appairage est désactivé."
 msgid "I have no sound on my headset"
 msgstr "Je n'ai pas de son sur mon casque"
 
-#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:426
+#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:440
 #, kde-format
 msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
@@ -726,9 +726,9 @@ msgid "Getting started"
 msgstr "Commencer"
 
 #: dashboard/qml/WizardPage.qml:29 dashboard/qml/WizardPage.qml:78
-#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:302
-#: dashboard/qml/WizardPage.qml:386 dashboard/qml/WizardPage.qml:433
-#: dashboard/qml/WizardPage.qml:470
+#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:316
+#: dashboard/qml/WizardPage.qml:400 dashboard/qml/WizardPage.qml:447
+#: dashboard/qml/WizardPage.qml:484
 #, kde-format
 msgid "Back"
 msgstr "Retour"
@@ -748,8 +748,8 @@ msgstr ""
 "connecter à votre ordinateur."
 
 #: dashboard/qml/WizardPage.qml:83 dashboard/qml/WizardPage.qml:258
-#: dashboard/qml/WizardPage.qml:307 dashboard/qml/WizardPage.qml:438
-#: dashboard/qml/WizardPage.qml:475
+#: dashboard/qml/WizardPage.qml:321 dashboard/qml/WizardPage.qml:452
+#: dashboard/qml/WizardPage.qml:489
 #, kde-format
 msgid "Next"
 msgstr "Suivant"
@@ -849,12 +849,26 @@ msgstr ""
 "L'application que vous choisissez sera démarrée automatiquement quand vous "
 "connectez votre casque."
 
-#: dashboard/qml/WizardPage.qml:344
+#: dashboard/qml/WizardPage.qml:300
+#, kde-format
+msgid "Important information"
+msgstr "Informations importantes"
+
+#: dashboard/qml/WizardPage.qml:307
+#, kde-format
+msgid ""
+"WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
+"running."
+msgstr ""
+"WiVRn remplace entièrement SteamVR, il ne faut pas lancer SteamVR lorsque "
+"WiVRn est démarré."
+
+#: dashboard/qml/WizardPage.qml:358
 #, kde-format
 msgid "Start the WiVRn app on your headset"
 msgstr "Démarrez l'application WiVRn sur votre casque"
 
-#: dashboard/qml/WizardPage.qml:349
+#: dashboard/qml/WizardPage.qml:363
 #, kde-format
 msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
@@ -863,32 +877,32 @@ msgstr ""
 "Pour vous connecter en WiFi, démarrez l'application WiVRn sur votre casque, "
 "connectez-vous à « %1 » et entrez le PIN « %2 »."
 
-#: dashboard/qml/WizardPage.qml:356
+#: dashboard/qml/WizardPage.qml:370
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
 msgstr "Pour vous connecter en USB, cliquez sur « Connexion par USB »"
 
-#: dashboard/qml/WizardPage.qml:369
+#: dashboard/qml/WizardPage.qml:383
 #, kde-format
 msgid "Troubleshooting"
 msgstr "Dépannage"
 
-#: dashboard/qml/WizardPage.qml:391
+#: dashboard/qml/WizardPage.qml:405
 #, kde-format
 msgid "Skip"
 msgstr "Passer"
 
-#: dashboard/qml/WizardPage.qml:411
+#: dashboard/qml/WizardPage.qml:425
 #, kde-format
 msgid "Connection established"
 msgstr "Connexion établie"
 
-#: dashboard/qml/WizardPage.qml:416
+#: dashboard/qml/WizardPage.qml:430
 #, kde-format
 msgid "Your headset is now connected."
 msgstr "Votre casque est maintenant connecté."
 
-#: dashboard/qml/WizardPage.qml:421 dashboard/qml/WizardPage.qml:463
+#: dashboard/qml/WizardPage.qml:435 dashboard/qml/WizardPage.qml:477
 #, kde-format
 msgid ""
 "To connect another headset, make sure pairing is enabled in the dashboard "
@@ -897,12 +911,12 @@ msgstr ""
 "Pour connecter un autre casque, assurez-vous que l'appairage est activé dans "
 "le tableau de bord avant de vous connecter."
 
-#: dashboard/qml/WizardPage.qml:443 dashboard/qml/WizardPage.qml:480
+#: dashboard/qml/WizardPage.qml:457 dashboard/qml/WizardPage.qml:494
 #, kde-format
 msgid "Finish"
 msgstr "Finir"
 
-#: dashboard/qml/WizardPage.qml:458
+#: dashboard/qml/WizardPage.qml:472
 #, kde-format
 msgid "Finished"
 msgstr "Terminé"
