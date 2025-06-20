@@ -74,6 +74,11 @@ void scenes::stream::operator()(to_headset::refresh_rate_change && rate)
 	session.set_refresh_rate(rate.fps);
 }
 
+void scenes::stream::operator()(to_headset::toggle_performance_graph &&)
+{
+	plots_visible = !plots_visible;
+}
+
 void scenes::stream::operator()(to_headset::timesync_query && query)
 {
 	network_session->send_stream(from_headset::timesync_response{
