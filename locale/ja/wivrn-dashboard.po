@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-18 21:12+0200\n"
+"POT-Creation-Date: 2025-06-20 01:44+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -99,8 +99,8 @@ msgstr ""
 "自分でクライエントをビルドするには、<a href=\"https://github.com/WiVRn/WiVRn/"
 "blob/master/docs/building.md#client-headset\">マニュアル</a>をご覧ください。"
 
-#: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetsPage.qml:183
-#: dashboard/qml/HeadsetStatsPage.qml:36 dashboard/qml/TroubleshootPage.qml:59
+#: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetStatsPage.qml:36
+#: dashboard/qml/HeadsetsPage.qml:183 dashboard/qml/TroubleshootPage.qml:59
 #, kde-format
 msgctxt "go back to the home page"
 msgid "Back"
@@ -125,6 +125,11 @@ msgstr "WiVRnを再インストールする"
 #, kde-format
 msgid "Install WiVRn"
 msgstr "WiVRnをインストールする"
+
+#: dashboard/qml/HeadsetStatsPage.qml:12
+#, kde-format
+msgid "Headset statistics"
+msgstr "HMDの統計情報"
 
 #: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:342
 #, kde-format
@@ -211,11 +216,6 @@ msgstr "ペアリングを有効化する"
 #, kde-format
 msgid "Pair a new headset"
 msgstr "新しいHMDをペアリングする"
-
-#: dashboard/qml/HeadsetStatsPage.qml:12
-#, kde-format
-msgid "Headset statistics"
-msgstr "HMDの統計情報"
 
 #: dashboard/qml/Main.qml:103
 #, kde-format
@@ -766,8 +766,8 @@ msgid ""
 "For the Quest 2, 3, 3S, and Pro, you can get the app from the <a "
 "href=\"https://www.meta.com/experiences/7959676140827574/\">Meta store</a>."
 msgstr ""
-"Quest 2、3、3S、Proの場合、<a href=\"https://www.meta.com/experiences/"
-"7959676140827574/\">Metaストア</a>にて配信中です。"
+"Quest 2、3、3S、Proの場合、<a href=\"https://www.meta.com/"
+"experiences/7959676140827574/\">Metaストア</a>にて配信中です。"
 
 #: dashboard/qml/WizardPage.qml:164
 #, kde-format
@@ -835,9 +835,7 @@ msgstr "警告"
 msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
 "running."
-msgstr ""
-"WiVRnはSteamVRの変わりに使うものです。両方を同時に走らせないように気をつけま"
-"しょう。"
+msgstr "WiVRnはSteamVRの変わりに使うものです。両方を同時に走らせないように気をつけましょう。"
 
 #: dashboard/qml/WizardPage.qml:358
 #, kde-format
