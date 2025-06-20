@@ -284,9 +284,8 @@ void start_server(configuration config)
 			close(stdin_pipe_fds[1]);
 		}
 
-		// In most cases there is no server-side reprojection and
-		// there is no need for oversampling.
-		setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", false);
+		// foveation code does not allow oversampling
+		setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", true);
 
 		// FIXME: synchronization fails on gfx pipeline
 		setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
