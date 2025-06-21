@@ -43,7 +43,7 @@ public:
 
 	struct suggested_binding
 	{
-		std::string profile_name;
+		std::vector<std::string> profile_names;
 		std::vector<action_binding> paths;
 	};
 

@@ -1230,35 +1230,25 @@ scene::meta & scenes::stream::get_meta_scene()
 	        },
 	        .bindings = {
 	                suggested_binding{
-	                        "/interaction_profiles/oculus/touch_controller",
+	                        {
+	                                "/interaction_profiles/oculus/touch_controller",
+	                                "/interaction_profiles/facebook/touch_controller_pro",
+	                                "/interaction_profiles/meta/touch_pro_controller",
+	                                "/interaction_profiles/meta/touch_controller_plus",
+	                                "/interaction_profiles/meta/touch_plus_controller",
+	                                "/interaction_profiles/bytedance/pico_neo3_controller",
+	                                "/interaction_profiles/bytedance/pico4_controller",
+	                                "/interaction_profiles/htc/vive_focus3_controller",
+	                        },
 	                        {
 	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
 	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
 	                        },
 	                },
 	                suggested_binding{
-	                        "/interaction_profiles/bytedance/pico_neo3_controller",
 	                        {
-	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
-	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
+	                                "/interaction_profiles/khr/simple_controller",
 	                        },
-	                },
-	                suggested_binding{
-	                        "/interaction_profiles/bytedance/pico4_controller",
-	                        {
-	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
-	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
-	                        },
-	                },
-	                suggested_binding{
-	                        "/interaction_profiles/htc/vive_focus3_controller",
-	                        {
-	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
-	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
-	                        },
-	                },
-	                suggested_binding{
-	                        "/interaction_profiles/khr/simple_controller",
 	                        {},
 	                },
 	        },

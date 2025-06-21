@@ -131,7 +131,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/thumbrest/touch",
                 }},
         interaction_profile{
-                " /interaction_profiles/facebook/touch_controller_pro",
+                "/interaction_profiles/facebook/touch_controller_pro",
                 {"XR_FB_touch_controller_pro"},
                 {
                         "/user/hand/left/output/haptic",
@@ -185,7 +185,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/thumb_fb/proximity_fb",
                 }},
         interaction_profile{
-                " /interaction_profiles/meta/touch_pro_controller",
+                "/interaction_profiles/meta/touch_pro_controller",
                 {"XR_VERSION_1_1"},
                 {
                         "/user/hand/left/output/haptic",
@@ -241,7 +241,7 @@ static std::vector<interaction_profile> interaction_profiles{
 
                 }},
         interaction_profile{
-                " /interaction_profiles/meta/touch_controller_plus",
+                "/interaction_profiles/meta/touch_controller_plus",
                 {"XR_META_touch_controller_plus"},
                 {
                         "/user/hand/left/output/haptic",
@@ -289,7 +289,7 @@ static std::vector<interaction_profile> interaction_profiles{
 
                 }},
         interaction_profile{
-                " /interaction_profiles/meta/touch_plus_controller",
+                "/interaction_profiles/meta/touch_plus_controller",
                 {"XR_VERSION_1_1"},
                 {
                         "/user/hand/left/output/haptic",
@@ -999,20 +999,23 @@ void application::initialize_actions()
 
 		for (const scene::suggested_binding & j: i->bindings)
 		{
-			// Skip unsupported profiles
-			if (!suggested_bindings.contains(j.profile_name))
-				continue;
-
-			std::vector<XrActionSuggestedBinding> & xr_bindings = suggested_bindings[j.profile_name];
-
-			for (const scene::action_binding & k: j.paths)
+			for (const auto & profile: j.profile_names)
 			{
-				XrAction a = i->actions_by_name[k.action_name].first;
-				assert(a != XR_NULL_HANDLE);
+				// Skip unsupported profiles
+				if (!suggested_bindings.contains(profile))
+					continue;
 
-				xr_bindings.push_back(XrActionSuggestedBinding{
-				        .action = a,
-				        .binding = string_to_path(k.input_source)});
+				std::vector<XrActionSuggestedBinding> & xr_bindings = suggested_bindings[profile];
+
+				for (const scene::action_binding & k: j.paths)
+				{
+					XrAction a = i->actions_by_name[k.action_name].first;
+					assert(a != XR_NULL_HANDLE);
+
+					xr_bindings.push_back(XrActionSuggestedBinding{
+					        .action = a,
+					        .binding = string_to_path(k.input_source)});
+				}
 			}
 		}
 	}

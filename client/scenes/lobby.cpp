@@ -1256,7 +1256,17 @@ scene::meta & scenes::lobby::get_meta_scene()
 	        },
 	        .bindings = {
 	                suggested_binding{
-	                        "/interaction_profiles/oculus/touch_controller",
+	                        {
+	                                "/interaction_profiles/oculus/touch_controller",
+	                                "/interaction_profiles/facebook/touch_controller_pro",
+	                                "/interaction_profiles/meta/touch_pro_controller",
+	                                "/interaction_profiles/meta/touch_controller_plus",
+	                                "/interaction_profiles/meta/touch_plus_controller",
+	                                "/interaction_profiles/bytedance/pico_neo3_controller",
+	                                "/interaction_profiles/bytedance/pico4_controller",
+	                                "/interaction_profiles/bytedance/pico4s_controller",
+	                                "/interaction_profiles/htc/vive_focus3_controller",
+	                        },
 	                        {
 	                                {"left_aim", "/user/hand/left/input/aim/pose"},
 	                                {"left_trigger", "/user/hand/left/input/trigger/value"},
@@ -1274,79 +1284,9 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                        },
 	                },
 	                suggested_binding{
-	                        "/interaction_profiles/bytedance/pico_neo3_controller",
 	                        {
-	                                {"left_aim", "/user/hand/left/input/aim/pose"},
-	                                {"left_trigger", "/user/hand/left/input/trigger/value"},
-	                                {"left_squeeze", "/user/hand/left/input/squeeze/value"},
-	                                {"left_scroll", "/user/hand/left/input/thumbstick"},
-	                                {"left_haptic", "/user/hand/left/output/haptic"},
-	                                {"right_aim", "/user/hand/right/input/aim/pose"},
-	                                {"right_trigger", "/user/hand/right/input/trigger/value"},
-	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
-	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
-	                                {"right_haptic", "/user/hand/right/output/haptic"},
-
-	                                {"recenter_left", "/user/hand/left/input/x/click"},
-	                                {"recenter_right", "/user/hand/right/input/a/click"},
+	                                "/interaction_profiles/khr/simple_controller",
 	                        },
-	                },
-	                suggested_binding{
-	                        "/interaction_profiles/bytedance/pico4_controller",
-	                        {
-	                                {"left_aim", "/user/hand/left/input/aim/pose"},
-	                                {"left_trigger", "/user/hand/left/input/trigger/value"},
-	                                {"left_squeeze", "/user/hand/left/input/squeeze/value"},
-	                                {"left_scroll", "/user/hand/left/input/thumbstick"},
-	                                {"left_haptic", "/user/hand/left/output/haptic"},
-	                                {"right_aim", "/user/hand/right/input/aim/pose"},
-	                                {"right_trigger", "/user/hand/right/input/trigger/value"},
-	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
-	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
-	                                {"right_haptic", "/user/hand/right/output/haptic"},
-
-	                                {"recenter_left", "/user/hand/left/input/x/click"},
-	                                {"recenter_right", "/user/hand/right/input/a/click"},
-	                        },
-	                },
-	                suggested_binding{
-	                        "/interaction_profiles/bytedance/pico4s_controller",
-	                        {
-	                                {"left_aim", "/user/hand/left/input/aim/pose"},
-	                                {"left_trigger", "/user/hand/left/input/trigger/value"},
-	                                {"left_squeeze", "/user/hand/left/input/squeeze/value"},
-	                                {"left_scroll", "/user/hand/left/input/thumbstick"},
-	                                {"left_haptic", "/user/hand/left/output/haptic"},
-	                                {"right_aim", "/user/hand/right/input/aim/pose"},
-	                                {"right_trigger", "/user/hand/right/input/trigger/value"},
-	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
-	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
-	                                {"right_haptic", "/user/hand/right/output/haptic"},
-
-	                                {"recenter_left", "/user/hand/left/input/x/click"},
-	                                {"recenter_right", "/user/hand/right/input/a/click"},
-	                        },
-	                },
-	                suggested_binding{
-	                        "/interaction_profiles/htc/vive_focus3_controller",
-	                        {
-	                                {"left_aim", "/user/hand/left/input/aim/pose"},
-	                                {"left_trigger", "/user/hand/left/input/trigger/value"},
-	                                {"left_squeeze", "/user/hand/left/input/squeeze/value"},
-	                                {"left_scroll", "/user/hand/left/input/thumbstick"},
-	                                {"left_haptic", "/user/hand/left/output/haptic"},
-	                                {"right_aim", "/user/hand/right/input/aim/pose"},
-	                                {"right_trigger", "/user/hand/right/input/trigger/value"},
-	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
-	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
-	                                {"right_haptic", "/user/hand/right/output/haptic"},
-
-	                                {"recenter_left", "/user/hand/left/input/x/click"},
-	                                {"recenter_right", "/user/hand/right/input/a/click"},
-	                        },
-	                },
-	                suggested_binding{
-	                        "/interaction_profiles/khr/simple_controller",
 	                        {
 	                                {"left_aim", "/user/hand/left/input/aim/pose"},
 	                                {"left_trigger", "/user/hand/left/input/select/click"},
