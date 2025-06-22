@@ -627,7 +627,7 @@ index 9ce46fe6f..f3be617bd 100644
 +					colour += texelFetch(source[iz], ivec2(x, y), 0);
 +				}
 +			}
-+			colour /= (xmax - xmin) * (ymax - ymin);
++			colour /= (xmax - xmin) * (ymax - ymin); if (ymax - ymin == 1 && xmax - xmin == 1) colour += vec4(0.1, 0.1, 0.1, 0);
 +			colour.xyz = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
  
 -			int i = k * 2 + j;
