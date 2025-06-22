@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-20 19:23-0300\n"
-"PO-Revision-Date: 2025-06-21 21:48-0300\n"
+"PO-Revision-Date: 2025-06-21 21:52-0300\n"
 "Last-Translator: LuckShiba <LuckShiba@protonmail.com>\n"
 "Language-Team: Brazilian Portuguese\n"
 "Language: pt_BR\n"
@@ -75,7 +75,7 @@ msgid ""
 "Start a VR application on your computer"
 msgstr ""
 "Conexão pronta\n"
-"Inicie uma aplicação VR no seu computador"
+"Inicie um aplicativo VR no seu computador"
 
 #: client/scenes/lobby_gui.cpp:208
 #, c++-format
@@ -84,7 +84,7 @@ msgid ""
 "Start a VR application on {}"
 msgstr ""
 "Conexão pronta\n"
-"Inicie uma aplicação VR em {}"
+"Inicie um aplicativo VR em {}"
 
 #: client/scenes/lobby_gui.cpp:221
 msgid "Close"
@@ -169,7 +169,7 @@ msgid ""
 "Select refresh rate based on measured application performance.\n"
 "May cause flicker when a change happens."
 msgstr ""
-"Seleciona a taxa de atualização baseada no desempenho medido da aplicação.\n"
+"Seleciona a taxa de atualização baseada no desempenho medido do aplicativo.\n"
 "Pode causar oscilações quando uma alteração ocorrer."
 
 #: client/scenes/lobby_gui.cpp:640
