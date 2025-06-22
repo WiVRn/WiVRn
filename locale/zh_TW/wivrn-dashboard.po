@@ -536,7 +536,7 @@ msgstr "啟用偵錯視窗"
 #: dashboard/qml/SettingsPage.qml:332
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
-msgstr ""
+msgstr "啟用 SteamVR 追蹤裝置支援"
 
 #: dashboard/qml/SettingsPage.qml:335
 #, kde-format
@@ -546,6 +546,10 @@ msgid ""
 "Devices must be be powered on before connecting to WiVRn.\n"
 "An external tool such as motoc is needed for calibration."
 msgstr ""
+"允許使用 Lighthouse 基地台追蹤的控制器和追蹤器。\n"
+"需要安裝 SteamVR。\n"
+"裝置必須在連線到 WiVRn 之前開啟電源。\n"
+"校準需要額外工具，例如 motoc。"
 
 #: dashboard/qml/SettingsPage.qml:343
 #, kde-format
@@ -878,7 +882,7 @@ msgstr "您的頭戴式裝置現在已連線。"
 msgid ""
 "To connect another headset, make sure pairing is enabled in the dashboard "
 "before connecting."
-msgstr "要連接其他頭戴式裝置，請確保在連線之前在儀表板中啟用配對。"
+msgstr "如要連接其他頭戴式裝置，請確保在連線之前在儀表板中啟用配對。"
 
 #: dashboard/qml/WizardPage.qml:457 dashboard/qml/WizardPage.qml:494
 #, kde-format
