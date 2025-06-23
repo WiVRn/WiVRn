@@ -23,9 +23,56 @@
 #include <systemd/sd-bus.h>
 #include <thread>
 
-static int get_service_pid(const std::string & service_name, pid_t & pid)
+namespace
+{
+
+struct deleter
+{
+	void operator()(sd_bus * p)
+	{
+		sd_bus_unref(p);
+	}
+	void operator()(sd_bus_message * p)
+	{
+		sd_bus_message_unref(p);
+	}
+};
+
+using sd_bus_ptr = std::unique_ptr<sd_bus, deleter>;
+
+sd_bus_ptr get_user_bus()
 {
 	sd_bus * bus = nullptr;
+	int ret;
+	// reimplement sd_bus_open_user to honor the env variable
+	if (const char * bus_address = getenv("DBUS_SESSION_BUS_ADDRESS"))
+	{
+		if (ret = sd_bus_new(&bus); ret < 0)
+			throw std::system_error(-ret, std::system_category(), "failed to create dbus object");
+		sd_bus_ptr res(bus);
+
+		if (ret = sd_bus_set_address(bus, bus_address); ret < 0)
+			throw std::system_error(-ret, std::system_category(), std::string("failed to connect to dbus at address ") + bus_address);
+
+		if (ret = sd_bus_set_bus_client(bus, 1); ret < 0)
+			throw std::system_error(-ret, std::system_category(), std::string("failed to configure dbus at address ") + bus_address);
+		if (ret = sd_bus_set_trusted(bus, 1); ret < 0)
+			throw std::system_error(-ret, std::system_category(), std::string("failed to trust dbus at address ") + bus_address);
+
+		if (ret = sd_bus_start(bus); ret < 0)
+			throw std::system_error(-ret, std::system_category(), std::string("failed to start dbus connection ") + bus_address);
+
+		return res;
+	}
+	if (ret = sd_bus_open_user(&bus); ret < 0)
+		throw std::system_error(-ret, std::system_category(), "failed to connect to dbus");
+
+	return sd_bus_ptr(bus);
+}
+} // namespace
+
+static int get_service_pid(sd_bus * bus, const std::string & service_name, pid_t & pid)
+{
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message * msg = nullptr;
 	const char * destination = "org.freedesktop.systemd1";
@@ -34,14 +81,6 @@ static int get_service_pid(const std::string & service_name, pid_t & pid)
 	const char * member = "GetUnit";
 
 	int ret = 0;
-
-	// Connect to the session bus
-	ret = sd_bus_open_user(&bus);
-	if (ret < 0)
-	{
-		std::cerr << "Failed to connect to session bus: " << strerror(-ret) << std::endl;
-		return ret;
-	}
 
 	// Call the method
 	ret = sd_bus_call_method(bus, destination, path, interface, member, &error, &msg, "s", service_name.c_str());
@@ -71,13 +110,11 @@ static int get_service_pid(const std::string & service_name, pid_t & pid)
 finish:
 	sd_bus_error_free(&error);
 	sd_bus_message_unref(msg);
-	sd_bus_unref(bus);
 	return ret;
 }
 
-int start_service(const std::string & service_name)
+int start_service(sd_bus * bus, const std::string & service_name)
 {
-	sd_bus * bus = nullptr;
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message * msg = nullptr;
 	const char * destination = "org.freedesktop.systemd1";
@@ -86,18 +123,8 @@ int start_service(const std::string & service_name)
 	const char * member = "StartUnit";
 	const char * mode = "replace";
 
-	int ret = 0;
-
-	// Connect to the session bus
-	ret = sd_bus_open_user(&bus);
-	if (ret < 0)
-	{
-		std::cerr << "Failed to connect to session bus: " << strerror(-ret) << std::endl;
-		return ret;
-	}
-
 	// Call the method to start the service
-	ret = sd_bus_call_method(bus, destination, path, interface, member, &error, &msg, "ss", service_name.c_str(), mode);
+	int ret = sd_bus_call_method(bus, destination, path, interface, member, &error, &msg, "ss", service_name.c_str(), mode);
 	if (ret < 0)
 	{
 		std::cerr << "Failed to start service: " << error.message << std::endl;
@@ -107,13 +134,11 @@ int start_service(const std::string & service_name)
 finish:
 	sd_bus_error_free(&error);
 	sd_bus_message_unref(msg);
-	sd_bus_unref(bus);
 	return ret;
 }
 
-bool is_service_active(const std::string & service_name)
+bool is_service_active(sd_bus * bus, const std::string & service_name)
 {
-	sd_bus * bus = nullptr;
 	sd_bus_error error = SD_BUS_ERROR_NULL;
 	sd_bus_message * msg = nullptr;
 	const char * destination = "org.freedesktop.systemd1";
@@ -122,19 +147,9 @@ bool is_service_active(const std::string & service_name)
 	const char * member = "GetUnit";
 
 	bool is_active = false;
-	int ret = 0;
-
-	// Connect to the session bus
-	ret = sd_bus_open_user(&bus);
-	if (ret < 0)
-	{
-		std::cerr << "Failed to connect to session bus: " << strerror(-ret) << std::endl;
-		return false;
-	}
-
 	const char * object_path;
 	// Call the method
-	ret = sd_bus_call_method(bus, destination, path, interface, member, &error, &msg, "s", service_name.c_str());
+	int ret = sd_bus_call_method(bus, destination, path, interface, member, &error, &msg, "s", service_name.c_str());
 	if (ret < 0)
 	{
 		std::cerr << "Failed to issue method call: " << error.message << std::endl;
@@ -163,7 +178,6 @@ bool is_service_active(const std::string & service_name)
 finish:
 	sd_bus_error_free(&error);
 	sd_bus_message_unref(msg);
-	sd_bus_unref(bus);
 	return is_active;
 }
 
@@ -171,11 +185,12 @@ pid_t wivrn::start_unit_file()
 {
 	std::string service_name = "wivrn-application.service";
 	pid_t pid;
-	int ret = get_service_pid(service_name, pid);
+	auto bus = get_user_bus();
+	int ret = get_service_pid(bus.get(), service_name, pid);
 
 	if (ret < 0 || pid == 0)
 	{
-		ret = start_service(service_name);
+		ret = start_service(bus.get(), service_name);
 		if (ret < 0)
 		{
 			std::cerr << "Failed to start service " << service_name << std::endl;
@@ -183,13 +198,13 @@ pid_t wivrn::start_unit_file()
 		}
 
 		// Wait until the service is active
-		while (!is_service_active(service_name))
+		while (!is_service_active(bus.get(), service_name))
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 
 		// Try to get the PID again
-		ret = get_service_pid(service_name, pid);
+		ret = get_service_pid(bus.get(), service_name, pid);
 		if (ret < 0)
 		{
 			std::cerr << "Failed to get PID for service " << service_name << std::endl;

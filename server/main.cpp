@@ -246,7 +246,7 @@ void start_app()
 
 	assert(app_watch == 0);
 	assert(app_kill_watch == 0);
-	if (app_pid)
+	if (app_pid > 0)
 	{
 		app_watch = g_child_watch_add(app_pid, [](pid_t, int status, void *) {
 			display_child_status(status, "Application");
@@ -262,6 +262,8 @@ void start_app()
 	else
 	{
 		app_watch = 0;
+		if (app_pid < 0)
+			throw std::system_error(-app_pid, std::system_category());
 	}
 }
 
@@ -478,7 +480,14 @@ gboolean headset_connected_success(void *)
 	expose_known_keys_on_dbus();
 
 	start_server(configuration::read_user_configuration());
-	start_app();
+	try
+	{
+		start_app();
+	}
+	catch (std::exception & e)
+	{
+		std::cerr << "Failed to start application: " << e.what();
+	}
 
 	delay_next_try = default_delay_next_try;
 
