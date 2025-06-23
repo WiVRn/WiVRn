@@ -39,7 +39,7 @@ static int get_service_pid(const std::string & service_name, pid_t & pid)
 	ret = sd_bus_open_user(&bus);
 	if (ret < 0)
 	{
-		std::cerr << "Failed to connect to system bus: " << strerror(-ret) << std::endl;
+		std::cerr << "Failed to connect to session bus: " << strerror(-ret) << std::endl;
 		return ret;
 	}
 
@@ -88,11 +88,11 @@ int start_service(const std::string & service_name)
 
 	int ret = 0;
 
-	// Connect to the system bus
+	// Connect to the session bus
 	ret = sd_bus_open_user(&bus);
 	if (ret < 0)
 	{
-		std::cerr << "Failed to connect to system bus: " << strerror(-ret) << std::endl;
+		std::cerr << "Failed to connect to session bus: " << strerror(-ret) << std::endl;
 		return ret;
 	}
 
@@ -124,11 +124,11 @@ bool is_service_active(const std::string & service_name)
 	bool is_active = false;
 	int ret = 0;
 
-	// Connect to the system bus
+	// Connect to the session bus
 	ret = sd_bus_open_user(&bus);
 	if (ret < 0)
 	{
-		std::cerr << "Failed to connect to system bus: " << strerror(-ret) << std::endl;
+		std::cerr << "Failed to connect to session bus: " << strerror(-ret) << std::endl;
 		return false;
 	}
 
