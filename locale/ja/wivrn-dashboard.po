@@ -753,7 +753,7 @@ msgid ""
 "You can either install it from the Meta store or directly over USB."
 msgstr ""
 "WiVRnを使用するには、HMDにアプリをインストール必要があります。\n"
-"Metaストアからインストールするとも、USBで直接インストールすることもできます。"
+"Metaストアからインストールや、USBで直接インストールすることもできます。"
 
 #: dashboard/qml/WizardPage.qml:148
 #, kde-format
