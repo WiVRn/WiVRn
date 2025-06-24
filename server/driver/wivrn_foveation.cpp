@@ -139,6 +139,9 @@ static std::tuple<float, float> solve_foveation(float λ, float c)
 
 static xrt_vec2 yaw_pitch(xrt_quat q)
 {
+	if (q.x == 0 and q.y == 0 and q.z == 0 and q.w == 0)
+		return xrt_vec2{};
+
 	float sine_theta = std::clamp(-2.0f * (q.y * q.z - q.w * q.x), -1.0f, 1.0f);
 
 	float pitch = std::asin(sine_theta);
@@ -216,30 +219,20 @@ void wivrn_foveation::compute_params(
         xrt_rect src[2],
         const xrt_fov fovs[2])
 {
-	std::lock_guard lock(mutex);
-
 	xrt_vec2 tan_center[2]{};
-	if (gaze.x != 0 or gaze.y != 0 or gaze.z != 0 or gaze.w != 0)
+	auto e = yaw_pitch(gaze);
+	for (size_t i = 0; i < 2; ++i)
 	{
-		auto e = yaw_pitch(gaze);
-		for (size_t i = 0; i < 2; ++i)
-		{
-			xrt_quat view_quat{
-			        .x = views[i].pose.orientation.x,
-			        .y = views[i].pose.orientation.y,
-			        .z = views[i].pose.orientation.z,
-			        .w = views[i].pose.orientation.w};
-			auto view = yaw_pitch(view_quat);
+		xrt_quat view_quat{
+		        .x = views[i].pose.orientation.x,
+		        .y = views[i].pose.orientation.y,
+		        .z = views[i].pose.orientation.z,
+		        .w = views[i].pose.orientation.w};
+		auto view = yaw_pitch(view_quat);
 
-			auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
-			tan_center[i].x = angles_to_center(view.x + angle_x, views[i].fov.angleLeft, views[i].fov.angleRight);
-			tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown);
-		}
-	}
-	else
-	{
-		for (size_t i = 0; i < 2; ++i)
-			tan_center[i].x = angles_to_center(0, fovs[i].angle_left, fovs[i].angle_right);
+		auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
+		tan_center[i].x = angles_to_center(view.x + angle_x, views[i].fov.angleLeft, views[i].fov.angleRight);
+		tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown);
 	}
 
 	for (int i = 0; i < 2; ++i)
@@ -368,9 +361,25 @@ bool operator==(const xrt_quat & a, const xrt_quat & b)
 {
 	return a.x == b.x and a.y == b.y and a.z == b.z and a.w == b.w;
 }
+bool operator==(const XrQuaternionf & a, const XrQuaternionf & b)
+{
+	return a.x == b.x and a.y == b.y and a.z == b.z and a.w == b.w;
+}
 bool operator==(const xrt_fov & a, const xrt_fov & b)
 {
 	return a.angle_left == b.angle_left and a.angle_right == b.angle_right and a.angle_up == b.angle_up and a.angle_down == b.angle_down;
+}
+bool operator==(const XrFovf & a, const XrFovf & b)
+{
+	return a.angleLeft == b.angleLeft and a.angleRight == b.angleRight and a.angleUp == b.angleUp and a.angleDown == b.angleDown;
+}
+bool operator==(const XrVector3f & a, const XrVector3f & b)
+{
+	return a.x == b.x and a.y == b.y and a.z == b.z;
+}
+bool operator==(const wivrn::from_headset::tracking::view & a, const wivrn::from_headset::tracking::view & b)
+{
+	return a.fov == b.fov and a.pose.position == b.pose.position and a.pose.orientation == b.pose.orientation;
 }
 
 vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
@@ -392,17 +401,18 @@ vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
 
 	// Check if the last value is still valid
 	if (last.flip_y == flip_y and last.src[0] == source[0] and last.src[1] == source[1] and last.fovs[0] == fovs[0] and last.fovs[1] == fovs[1])
-	{
-		std::lock_guard lock(mutex);
-		if (last.gaze == gaze)
-			return nullptr;
-	}
+		return nullptr;
+
+	std::lock_guard lock(mutex);
+	if (last.gaze == gaze and last.views[0] == views[0] and last.views[1] == views[1])
+		return nullptr;
 
 	last = {
 	        .gaze = gaze,
 	        .flip_y = flip_y,
 	        .src = {source[0], source[1]},
 	        .fovs = {fovs[0], fovs[1]},
+	        .views = views,
 	};
 
 	compute_params(source, fovs);

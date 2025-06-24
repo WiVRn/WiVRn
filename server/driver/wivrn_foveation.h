@@ -57,9 +57,11 @@ class wivrn_foveation
 		bool flip_y = false;
 		xrt_rect src[2] = {};
 		xrt_fov fovs[2] = {};
+		std::array<from_headset::tracking::view, 2> views = {};
 	};
 	P last;
 
+	// must hold lock on mutex to call it
 	void compute_params(
 	        xrt_rect src[2],
 	        const xrt_fov fovs[2]);
