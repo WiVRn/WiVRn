@@ -41,7 +41,7 @@ Systemd service and pretty hostname support
 -DWIVRN_USE_SYSTEMD=ON
 ```
 
-Additionally, if your environment requires absolute paths inside the OpenXR runtime manifest, you can add `-DWIVRN_OPENXR_INSTALL_ABSOLUTE_RUNTIME_PATH=ON` to the build configuration.
+Additionally, if your environment requires absolute paths inside the OpenXR runtime manifest, you can add `-DWIVRN_OPENXR_MANIFEST_TYPE=absolute` to the build configuration.
 
 # Dashboard
 
