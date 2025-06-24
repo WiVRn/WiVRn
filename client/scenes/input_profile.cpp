@@ -334,8 +334,6 @@ static void set_clipping_planes(node_handle node, std::span<glm::vec4> clipping_
 		}
 	}
 
-	node->visible = true;
-
 	for (auto child_node: node.children())
 	{
 		size_t nb_clipping_planes = std::min(child_node->clipping_planes.size(), clipping_planes.size());
@@ -360,16 +358,12 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bo
 		if ((space == xr::spaces::grip_left or space == xr::spaces::aim_left) and hide_left)
 		{
 			node->visible = false;
-			continue;
 		}
-
-		if ((space == xr::spaces::grip_right or space == xr::spaces::aim_right) and hide_right)
+		else if ((space == xr::spaces::grip_right or space == xr::spaces::aim_right) and hide_right)
 		{
 			node->visible = false;
-			continue;
 		}
-
-		if (auto location = application::locate_controller(application::space(space), world_space, predicted_display_time); location)
+		else if (auto location = application::locate_controller(application::space(space), world_space, predicted_display_time); location)
 		{
 			node->visible = true;
 
