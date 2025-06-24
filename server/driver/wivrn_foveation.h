@@ -41,7 +41,12 @@ class wivrn_foveation
 	const size_t foveated_width; // per eye
 	const size_t foveated_height;
 
-	std::array<from_headset::tracking::view, 2> views = {};
+	// Natural vertical gaze angle
+	const float angle_offset;
+	// Optionally defined from environment variables
+	const float convergence_distance;
+
+	float eye_x[2] = {}; // eye x position
 	xrt_quat gaze = {};
 	std::array<to_headset::foveation_parameter, 2> params;
 
@@ -57,7 +62,7 @@ class wivrn_foveation
 		bool flip_y = false;
 		xrt_rect src[2] = {};
 		xrt_fov fovs[2] = {};
-		std::array<from_headset::tracking::view, 2> views = {};
+		float eye_x[2] = {};
 	};
 	P last;
 
