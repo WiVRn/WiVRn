@@ -170,7 +170,7 @@ static float convergence_angle(float eye_x, float gaze_yaw)
 	return std::asin(b / c);
 }
 
-void fill_param_2d(
+static void fill_param_2d(
         float c,
         size_t foveated_dim,
         size_t source_dim,
@@ -212,6 +212,32 @@ void fill_param_2d(
 	out.resize(count * 2 - 1);
 }
 
+static xrt_vec2 get_angle_offsets()
+{
+	if (const char * cvar = std::getenv("WIVRN_FOVEATION_OFFSET"))
+	{
+		std::string_view var(cvar);
+		auto pos = var.find(',');
+		if (pos == std::string_view::npos)
+			goto err;
+		xrt_vec2 res{};
+		auto e = std::from_chars(var.begin(), var.begin() + pos, res.x);
+		if (e.ec != std::errc())
+			goto err;
+		e = std::from_chars(var.begin() + pos + 1, var.end(), res.y);
+		if (e.ec != std::errc())
+			goto err;
+
+		res.x *= M_PI / 180;
+		res.y *= M_PI / 180;
+		return res;
+	}
+	return xrt_vec2{};
+err:
+	U_LOG_W("Malformed WIVRN_FOVEATION_OFFSET, must be \"<number>,<number>\"");
+	return xrt_vec2{};
+}
+
 namespace wivrn
 {
 
@@ -221,6 +247,7 @@ void wivrn_foveation::compute_params(
 {
 	xrt_vec2 tan_center[2]{};
 	auto e = yaw_pitch(gaze);
+	static xrt_vec2 angle_offset = get_angle_offsets();
 	for (size_t i = 0; i < 2; ++i)
 	{
 		xrt_quat view_quat{
@@ -231,8 +258,8 @@ void wivrn_foveation::compute_params(
 		auto view = yaw_pitch(view_quat);
 
 		auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
-		tan_center[i].x = angles_to_center(view.x + angle_x, views[i].fov.angleLeft, views[i].fov.angleRight);
-		tan_center[i].y = angles_to_center(-view.y - e.y, views[i].fov.angleUp, views[i].fov.angleDown);
+		tan_center[i].x = angles_to_center(view.x + angle_x + angle_offset.x * (i == 0 ? 1 : -1), views[i].fov.angleLeft, views[i].fov.angleRight);
+		tan_center[i].y = angles_to_center(-view.y - e.y + angle_offset.y, views[i].fov.angleUp, views[i].fov.angleDown);
 	}
 
 	for (int i = 0; i < 2; ++i)
