@@ -432,11 +432,15 @@ vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
 	}
 
 	// Check if the last value is still valid
-	if (last.flip_y == flip_y and last.src[0] == source[0] and last.src[1] == source[1] and last.fovs[0] == fovs[0] and last.fovs[1] == fovs[1])
-		return nullptr;
-
 	std::lock_guard lock(mutex);
-	if (last.gaze == gaze and last.views[0] == views[0] and last.views[1] == views[1])
+	if (last.flip_y == flip_y         //
+	    and last.src[0] == source[0]  //
+	    and last.src[1] == source[1]  //
+	    and last.fovs[0] == fovs[0]   //
+	    and last.fovs[1] == fovs[1]   //
+	    and last.gaze == gaze         //
+	    and last.views[0] == views[0] //
+	    and last.views[1] == views[1])
 		return nullptr;
 
 	last = {
