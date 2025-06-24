@@ -62,7 +62,12 @@ void render_distortion_images_fini(struct render_resources * r)
 	DF(Memory, r->distortion.device_memory);
 }
 
-static double foveate(double a, double b, double λ, double c, double x)
+// a, b: parameters computed by solve_foveation
+// λ: pixel ratio between full size and foveated image (in range ]0,1[)
+// c: coordinates in -1,1 range of the full size image where pixel ratio must be 1:1
+// x: coordinates in -1,1 range of the foveated image
+// result: full size image coordinates in -1,1 range
+static double defoveate(double a, double b, double λ, double c, double x)
 {
 	// In order to save encoding, transmit and decoding time, only a portion of the image is encoded in full resolution.
 	// on each axis, foveated coordinates are defined by the following formula.
@@ -160,6 +165,9 @@ static xrt_vec2 yaw_pitch(xrt_quat q)
 
 static float angles_to_center(float e, float l, float r)
 {
+	e = tan(e);
+	l = tan(l);
+	r = tan(r);
 	return (e - l) / (r - l) * 2 - 1;
 }
 
@@ -185,7 +193,7 @@ static void fill_param_2d(
 	for (size_t i = 1; i < foveated_dim; ++i)
 	{
 		double u = (i * 2.) / foveated_dim - 1;
-		auto f = foveate(a, b, scale, c, u);
+		auto f = defoveate(a, b, scale, c, u);
 		uint16_t n = std::clamp<uint16_t>((f * 0.5 + 0.5) * source_dim + 0.5, 0, source_dim);
 		assert(n > last);
 		size_t count = n - last;
@@ -245,11 +253,11 @@ void wivrn_foveation::compute_params(
         xrt_rect src[2],
         const xrt_fov fovs[2])
 {
-	xrt_vec2 tan_center[2]{};
 	auto e = yaw_pitch(gaze);
 	static xrt_vec2 angle_offset = get_angle_offsets();
 	for (size_t i = 0; i < 2; ++i)
 	{
+		const auto & fov = fovs[i];
 		xrt_quat view_quat{
 		        .x = views[i].pose.orientation.x,
 		        .y = views[i].pose.orientation.y,
@@ -257,22 +265,19 @@ void wivrn_foveation::compute_params(
 		        .w = views[i].pose.orientation.w};
 		auto view = yaw_pitch(view_quat);
 
-		auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
-		tan_center[i].x = angles_to_center(view.x + angle_x + angle_offset.x * (i == 0 ? 1 : -1), views[i].fov.angleLeft, views[i].fov.angleRight);
-		tan_center[i].y = angles_to_center(-view.y - e.y + angle_offset.y, views[i].fov.angleUp, views[i].fov.angleDown);
-	}
-
-	for (int i = 0; i < 2; ++i)
-	{
-		const auto & fov = fovs[i];
 		if (foveated_width < src[i].extent.w)
-			fill_param_2d(tan_center[i].x, foveated_width, src[i].extent.w, params[i].x);
+		{
+			auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
+			auto center = angles_to_center(view.x + angle_x + angle_offset.x * (i == 0 ? 1 : -1), fov.angle_left, fov.angle_right);
+			fill_param_2d(center, foveated_width, src[i].extent.w, params[i].x);
+		}
 		else
 			params[i].x = {uint16_t(src[i].extent.w)};
 		if (foveated_height < src[i].extent.h)
 		{
-			auto offset_y = (views[i].fov.angleDown + views[i].fov.angleUp) / 2;
-			fill_param_2d(tan_center[i].y + offset_y, foveated_height, src[i].extent.h, params[i].y);
+			auto view_center = (views[i].fov.angleDown + views[i].fov.angleUp) / 2;
+			auto center = angles_to_center(-view.y - e.y + angle_offset.y + view_center, fov.angle_up, fov.angle_down);
+			fill_param_2d(center, foveated_height, src[i].extent.h, params[i].y);
 		}
 		else
 			params[i].y = {uint16_t(src[i].extent.h)};
