@@ -142,10 +142,33 @@ static std::tuple<float, float> solve_foveation(float λ, float c)
 	return {a, b(a)};
 }
 
+static float get_angle_offset()
+{
+	if (const char * cvar = std::getenv("WIVRN_FOVEATION_OFFSET"))
+	{
+		std::string_view var(cvar);
+		float res;
+		auto e = std::from_chars(var.begin(), var.end(), res);
+		if (e.ec == std::errc())
+			return -res * M_PI / 180;
+		else
+			U_LOG_W("Malformed WIVRN_FOVEATION_OFFSET, must be a number (angle in °)");
+	}
+	return 0;
+}
+
+static bool is_zero_quat(xrt_quat q)
+{
+	return q.x == 0 and q.y == 0 and q.z == 0 and q.w == 0;
+}
+
 static xrt_vec2 yaw_pitch(xrt_quat q)
 {
-	if (q.x == 0 and q.y == 0 and q.z == 0 and q.w == 0)
-		return xrt_vec2{};
+	if (is_zero_quat(q))
+	{
+		// Add manual offset, useful if the default angle does not suit the user
+		return {0, get_angle_offset()};
+	}
 
 	float sine_theta = std::clamp(-2.0f * (q.y * q.z - q.w * q.x), -1.0f, 1.0f);
 
@@ -171,9 +194,25 @@ static float angles_to_center(float e, float l, float r)
 	return (e - l) / (r - l) * 2 - 1;
 }
 
+static float get_convergence_distance()
+{
+	if (const char * cvar = std::getenv("WIVRN_FOVEATION_DISTANCE"))
+	{
+		std::string_view var(cvar);
+		float res;
+		auto e = std::from_chars(var.begin(), var.end(), res);
+		if (e.ec == std::errc())
+			return res;
+		else
+			U_LOG_W("Malformed WIVRN_FOVEATION_DISTANCE, must be a number (distance in meters)");
+	}
+	// 1m by default
+	return 1;
+}
+
 static float convergence_angle(float eye_x, float gaze_yaw)
 {
-	const float c = 0.5; // simutaled convergence distance
+	static float c = get_convergence_distance();
 	auto b = c * std::sin(gaze_yaw) - eye_x;
 	return std::asin(b / c);
 }
@@ -219,33 +258,6 @@ static void fill_param_2d(
 		out.insert(out.end(), right.begin() + 1, right.end());
 	out.resize(count * 2 - 1);
 }
-
-static xrt_vec2 get_angle_offsets()
-{
-	if (const char * cvar = std::getenv("WIVRN_FOVEATION_OFFSET"))
-	{
-		std::string_view var(cvar);
-		auto pos = var.find(',');
-		if (pos == std::string_view::npos)
-			goto err;
-		xrt_vec2 res{};
-		auto e = std::from_chars(var.begin(), var.begin() + pos, res.x);
-		if (e.ec != std::errc())
-			goto err;
-		e = std::from_chars(var.begin() + pos + 1, var.end(), res.y);
-		if (e.ec != std::errc())
-			goto err;
-
-		res.x *= M_PI / 180;
-		res.y *= M_PI / 180;
-		return res;
-	}
-	return xrt_vec2{};
-err:
-	U_LOG_W("Malformed WIVRN_FOVEATION_OFFSET, must be \"<number>,<number>\"");
-	return xrt_vec2{};
-}
-
 namespace wivrn
 {
 
@@ -254,7 +266,6 @@ void wivrn_foveation::compute_params(
         const xrt_fov fovs[2])
 {
 	auto e = yaw_pitch(gaze);
-	static xrt_vec2 angle_offset = get_angle_offsets();
 	for (size_t i = 0; i < 2; ++i)
 	{
 		const auto & fov = fovs[i];
@@ -268,15 +279,21 @@ void wivrn_foveation::compute_params(
 		if (foveated_width < src[i].extent.w)
 		{
 			auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
-			auto center = angles_to_center(view.x + angle_x + angle_offset.x * (i == 0 ? 1 : -1), fov.angle_left, fov.angle_right);
+			auto center = angles_to_center(view.x + angle_x, fov.angle_left, fov.angle_right);
 			fill_param_2d(center, foveated_width, src[i].extent.w, params[i].x);
 		}
 		else
 			params[i].x = {uint16_t(src[i].extent.w)};
 		if (foveated_height < src[i].extent.h)
 		{
-			auto view_center = (views[i].fov.angleDown + views[i].fov.angleUp) / 2;
-			auto center = angles_to_center(-view.y - e.y + angle_offset.y + view_center, fov.angle_up, fov.angle_down);
+			auto angle_y = e.y;
+			if (is_zero_quat(gaze))
+			{
+				// Offset gaze towards the center of the fov if no eye tracking.
+				// Seems to work for most headsets, need to verify on some (HTC, Lynx)
+				angle_y -= (views[i].fov.angleDown + views[i].fov.angleUp);
+			}
+			auto center = angles_to_center(-view.y - angle_y, fov.angle_up, fov.angle_down);
 			fill_param_2d(center, foveated_height, src[i].extent.h, params[i].y);
 		}
 		else
