@@ -142,21 +142,6 @@ static std::tuple<float, float> solve_foveation(float λ, float c)
 	return {a, b(a)};
 }
 
-static float get_angle_offset()
-{
-	if (const char * cvar = std::getenv("WIVRN_FOVEATION_OFFSET"))
-	{
-		std::string_view var(cvar);
-		float res;
-		auto e = std::from_chars(var.begin(), var.end(), res);
-		if (e.ec == std::errc())
-			return -res * M_PI / 180;
-		else
-			U_LOG_W("Malformed WIVRN_FOVEATION_OFFSET, must be a number (angle in °)");
-	}
-	return 0;
-}
-
 static bool is_zero_quat(xrt_quat q)
 {
 	return q.x == 0 and q.y == 0 and q.z == 0 and q.w == 0;
@@ -166,8 +151,7 @@ static xrt_vec2 yaw_pitch(xrt_quat q)
 {
 	if (is_zero_quat(q))
 	{
-		// Add manual offset, useful if the default angle does not suit the user
-		return {0, get_angle_offset()};
+		return xrt_vec2{};
 	}
 
 	float sine_theta = std::clamp(-2.0f * (q.y * q.z - q.w * q.x), -1.0f, 1.0f);
@@ -194,27 +178,10 @@ static float angles_to_center(float e, float l, float r)
 	return (e - l) / (r - l) * 2 - 1;
 }
 
-static float get_convergence_distance()
+static float convergence_angle(float distance, float eye_x, float gaze_yaw)
 {
-	if (const char * cvar = std::getenv("WIVRN_FOVEATION_DISTANCE"))
-	{
-		std::string_view var(cvar);
-		float res;
-		auto e = std::from_chars(var.begin(), var.end(), res);
-		if (e.ec == std::errc())
-			return res;
-		else
-			U_LOG_W("Malformed WIVRN_FOVEATION_DISTANCE, must be a number (distance in meters)");
-	}
-	// 1m by default
-	return 1;
-}
-
-static float convergence_angle(float eye_x, float gaze_yaw)
-{
-	static float c = get_convergence_distance();
-	auto b = c * std::sin(gaze_yaw) - eye_x;
-	return std::asin(b / c);
+	auto b = distance * std::sin(gaze_yaw) - eye_x;
+	return std::asin(b / distance);
 }
 
 static void fill_param_2d(
@@ -258,6 +225,42 @@ static void fill_param_2d(
 		out.insert(out.end(), right.begin() + 1, right.end());
 	out.resize(count * 2 - 1);
 }
+
+static float get_angle_offset()
+{
+	if (const char * cvar = std::getenv("WIVRN_FOVEATION_OFFSET"))
+	{
+		std::string_view var(cvar);
+		float res;
+		auto e = std::from_chars(var.begin(), var.end(), res);
+		if (e.ec == std::errc())
+		{
+			// No clamping, we don’t know the range
+			// of actual values for all headsets for sure.
+			return -res * M_PI / 180;
+		}
+		else
+			U_LOG_W("Malformed WIVRN_FOVEATION_OFFSET, must be a number (angle in °)");
+	}
+	return 0;
+}
+
+static float get_convergence_distance()
+{
+	if (const char * cvar = std::getenv("WIVRN_FOVEATION_DISTANCE"))
+	{
+		std::string_view var(cvar);
+		float res;
+		auto e = std::from_chars(var.begin(), var.end(), res);
+		if (e.ec == std::errc())
+			return std::min(res, 0.05f);
+		else
+			U_LOG_W("Malformed WIVRN_FOVEATION_DISTANCE, must be a number (distance in meters)");
+	}
+	// 1m by default
+	return 1;
+}
+
 namespace wivrn
 {
 
@@ -278,7 +281,7 @@ void wivrn_foveation::compute_params(
 
 		if (foveated_width < src[i].extent.w)
 		{
-			auto angle_x = convergence_angle(views[i].pose.position.x, e.x);
+			auto angle_x = convergence_angle(convergence_distance, views[i].pose.position.x, e.x);
 			auto center = angles_to_center(view.x + angle_x, fov.angle_left, fov.angle_right);
 			fill_param_2d(center, foveated_width, src[i].extent.w, params[i].x);
 		}
@@ -292,6 +295,8 @@ void wivrn_foveation::compute_params(
 				// Offset gaze towards the center of the fov if no eye tracking.
 				// Seems to work for most headsets, need to verify on some (HTC, Lynx)
 				angle_y -= (views[i].fov.angleDown + views[i].fov.angleUp);
+				// Also add fixed offset, if request by user to modify the height of the fovea
+				angle_y += angle_offset;
 			}
 			auto center = angles_to_center(-view.y - angle_y, fov.angle_up, fov.angle_down);
 			fill_param_2d(center, foveated_height, src[i].extent.h, params[i].y);
@@ -304,6 +309,8 @@ void wivrn_foveation::compute_params(
 wivrn_foveation::wivrn_foveation(wivrn_vk_bundle & bundle, const xrt_hmd_parts & hmd) :
         foveated_width(hmd.screens[0].w_pixels / 2),
         foveated_height(hmd.screens[0].h_pixels),
+        angle_offset(get_angle_offset()),
+        convergence_distance(get_convergence_distance()),
         command_pool(bundle.device, vk::CommandPoolCreateInfo{.queueFamilyIndex = bundle.queue_family_index}),
         cmd(std::move(bundle.device.allocateCommandBuffers({
                 .commandPool = *command_pool,

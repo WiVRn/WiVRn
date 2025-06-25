@@ -41,6 +41,10 @@ class wivrn_foveation
 	const size_t foveated_width; // per eye
 	const size_t foveated_height;
 
+	// Optionally defined from environment variables
+	const float angle_offset;
+	const float convergence_distance;
+
 	std::array<from_headset::tracking::view, 2> views = {};
 	xrt_quat gaze = {};
 	std::array<to_headset::foveation_parameter, 2> params;
