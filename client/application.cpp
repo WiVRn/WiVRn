@@ -171,6 +171,7 @@ static std::vector<interaction_profile> interaction_profiles{
                         "/user/hand/right/input/b/click",
                         "/user/hand/right/input/b/touch",
                         "/user/hand/right/input/system/click",
+                        "/user/hand/right/input/squeeze/value",
                         "/user/hand/right/input/trigger/value",
                         "/user/hand/right/input/trigger/touch",
                         "/user/hand/right/input/thumbstick",
