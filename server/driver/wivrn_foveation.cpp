@@ -253,7 +253,7 @@ static float get_convergence_distance()
 		float res;
 		auto e = std::from_chars(var.begin(), var.end(), res);
 		if (e.ec == std::errc())
-			return std::min(res, 0.05f);
+			return std::max(res, 0.05f);
 		else
 			U_LOG_W("Malformed WIVRN_FOVEATION_DISTANCE, must be a number (distance in meters)");
 	}
