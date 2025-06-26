@@ -173,7 +173,11 @@ static float angles_to_center(float e, float l, float r)
 	e = tan(e);
 	l = tan(l);
 	r = tan(r);
-	return (e - l) / (r - l) * 2 - 1;
+	float res = (e - l) / (r - l) * 2 - 1;
+	// If the center isn't in the FoV, fallback to middle of image
+	if (res < -1 or res > 1 or std::isnan(res))
+		return 0;
+	return res;
 }
 
 static float convergence_angle(float distance, float eye_x, float gaze_yaw)
