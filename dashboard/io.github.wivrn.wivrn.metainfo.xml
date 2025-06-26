@@ -69,6 +69,19 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="25.6" date="2025-06-26">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.6</url>
+			<description>
+				<ul>
+					<li>Improved image clarity</li>
+					<li>Support for body tracking on Quest</li>
+					<li>Support for face tracking on Pico</li>
+					<li>Support for Vive ultimate trackers</li>
+					<li>Added some advanced configuration options on dashboard</li>
+					<li>Changed versioning scheme to year.month</li>
+				</ul>
+			</description>
+		</release>
 		<release version="0.25" date="2025-05-18">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v0.25</url>
 			<description>
