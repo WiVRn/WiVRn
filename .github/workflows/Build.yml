@@ -574,7 +574,7 @@ jobs:
         git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --global user.name "github-actions[bot]"
 
-        sudo apt-get install python-toml python-aiohttp
+        sudo apt-get install python3-toml python3-aiohttp
 
         cd flathub
         git remote add upstream https://github.com/flathub/io.github.wivrn.wivrn.git
