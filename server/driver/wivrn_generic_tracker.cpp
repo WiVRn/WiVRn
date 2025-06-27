@@ -136,20 +136,6 @@ wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_
 	input_count = 1;
 }
 
-#define XRT_INPUT_NAME_CASE(NAME, VALUE) \
-	case VALUE:                      \
-		return #NAME;
-
-const char * input_name_str(xrt_input_name name)
-{
-	switch (name)
-	{
-		XRT_INPUT_LIST(XRT_INPUT_NAME_CASE)
-		default:
-			return "Unknown";
-	}
-}
-
 xrt_result_t wivrn_generic_tracker::update_inputs()
 {
 	return XRT_SUCCESS;
@@ -167,7 +153,7 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 		return XRT_SUCCESS;
 	}
 
-	U_LOG_D("Unknown input name %s", input_name_str(name));
+	U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
 	return XRT_ERROR_NOT_IMPLEMENTED;
 }
 

@@ -88,7 +88,7 @@ xrt_space_relation wivrn_eye_tracker::get_tracked_pose(xrt_input_name name, int6
 		return relation;
 	}
 
-	U_LOG_E("Unknown input name");
+	U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
 	return {};
 }
 
