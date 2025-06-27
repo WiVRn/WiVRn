@@ -38,10 +38,12 @@ class wivrn_eye_tracker : public xrt_device
 	pose_list gaze;
 
 public:
+	using base = xrt_device;
 	wivrn_eye_tracker(xrt_device * hmd);
 
-	void update_inputs();
+	xrt_result_t update_inputs();
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
-	xrt_space_relation get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns);
+
+	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 };
 } // namespace wivrn

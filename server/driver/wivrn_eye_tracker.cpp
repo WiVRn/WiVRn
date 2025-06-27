@@ -25,6 +25,7 @@
 #include "xrt/xrt_device.h"
 
 #include "util/u_logging.h"
+#include "utils/method.h"
 
 #include <cmath>
 #include <cstdint>
@@ -33,23 +34,6 @@
 
 namespace wivrn
 {
-
-static void wivrn_eye_tracker_destroy(xrt_device * xdev);
-
-static xrt_result_t wivrn_eye_tracker_update_inputs(xrt_device * xdev)
-{
-	static_cast<wivrn_eye_tracker *>(xdev)->update_inputs();
-	return XRT_SUCCESS;
-}
-
-static xrt_result_t wivrn_eye_tracker_get_tracked_pose(xrt_device * xdev,
-                                                       xrt_input_name name,
-                                                       int64_t at_timestamp_ns,
-                                                       xrt_space_relation * out_relation)
-{
-	*out_relation = static_cast<wivrn_eye_tracker *>(xdev)->get_tracked_pose(name, at_timestamp_ns);
-	return XRT_SUCCESS;
-}
 
 wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd) :
         xrt_device{
@@ -63,9 +47,9 @@ wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd) :
                 .supported = {
                         .eye_gaze = true,
                 },
-                .update_inputs = wivrn_eye_tracker_update_inputs,
-                .get_tracked_pose = wivrn_eye_tracker_get_tracked_pose,
-                .destroy = wivrn_eye_tracker_destroy,
+                .update_inputs = method_pointer<&wivrn_eye_tracker::update_inputs>,
+                .get_tracked_pose = method_pointer<&wivrn_eye_tracker::get_tracked_pose>,
+                .destroy = [](xrt_device *) {},
         },
         gaze_input{
                 .active = true,
@@ -75,36 +59,26 @@ wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd) :
 {
 }
 
-void wivrn_eye_tracker::update_inputs()
+xrt_result_t wivrn_eye_tracker::update_inputs()
 {
-	// Empty
+	return XRT_SUCCESS;
 }
 
-xrt_space_relation wivrn_eye_tracker::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns)
+xrt_result_t wivrn_eye_tracker::get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation)
 {
 	if (name == XRT_INPUT_GENERIC_EYE_GAZE_POSE)
 	{
 		auto [_, relation] = gaze.get_at(at_timestamp_ns);
-		return relation;
+		*out_relation = relation;
+		return XRT_SUCCESS;
 	}
 
 	U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
-	return {};
+	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
 void wivrn_eye_tracker::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	gaze.update_tracking(tracking, offset);
 }
-
-/*
- *
- * Functions
- *
- */
-
-static void wivrn_eye_tracker_destroy(xrt_device * xdev)
-{
-}
-
 } // namespace wivrn
