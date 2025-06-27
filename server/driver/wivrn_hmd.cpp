@@ -124,8 +124,8 @@ xrt_result_t wivrn_hmd::get_tracked_pose(xrt_input_name name, int64_t at_timesta
 {
 	if (name != XRT_INPUT_GENERIC_HEAD_POSE)
 	{
-		U_LOG_E("Unknown input name");
-		return {};
+		U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
+		return XRT_ERROR_INPUT_UNSUPPORTED;
 	}
 
 	auto [extrapolation_time, view] = views.get_at(at_timestamp_ns);

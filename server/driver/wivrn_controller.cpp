@@ -741,8 +741,8 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 			cnx->set_enabled(device, true);
 			break;
 		default:
-			U_LOG_W("Unknown input name requested");
-			return {};
+			U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
+			return XRT_ERROR_INPUT_UNSUPPORTED;
 	}
 	cnx->add_predict_offset(extrapolation_time);
 	if (auto & out = tracking_dump())
@@ -784,9 +784,9 @@ xrt_result_t wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t de
 		}
 
 		default:
-			U_LOG_W("Unknown input name requested %d", int(name));
+			U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
+			return XRT_ERROR_INPUT_UNSUPPORTED;
 	}
-	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
 void wivrn_controller::set_derived_pose(const from_headset::derived_pose & derived)
