@@ -238,6 +238,7 @@ void scenes::stream::tracking()
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::tracking> tracking_pool; // pre-allocated objects
 	std::vector<from_headset::hand_tracking> hands;
+	std::array<bool, 2> should_skip_simple_controllers{};
 	std::vector<from_headset::body_tracking> body;
 	std::vector<XrView> views;
 
@@ -245,8 +246,22 @@ void scenes::stream::tracking()
 	std::vector<serialization_packet> packets;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
+	// Quest hand tracking creates a fake khr/simple_controller when hand tracking
+	// is enabled, let's not send it when hand tracking data is invalid
+	bool block_khr_simple_controller = false;
+	switch (guess_model())
+	{
+		case model::meta_quest_3:
+		case model::meta_quest_pro:
+		case model::meta_quest_3s:
+		case model::oculus_quest_2:
+			block_khr_simple_controller = hand_tracking;
+			break;
+		default:
+			break;
+	}
+
 	from_headset::face_type face_tracking = from_headset::face_type::none;
-	const bool body_tracking = config.check_feature(feature::body_tracking);
 	if (config.check_feature(feature::face_tracking))
 	{
 		if (application::get_fb_face_tracking2_supported())
@@ -263,6 +278,7 @@ void scenes::stream::tracking()
 		}
 	}
 
+	const bool body_tracking = config.check_feature(feature::body_tracking);
 	auto & body_tracker = application::get_body_tracker();
 	if (body_tracking)
 	{
@@ -327,31 +343,70 @@ void scenes::stream::tracking()
 					if (recenter_requested.exchange(false))
 						packet.state_flags = wivrn::from_headset::tracking::recentered;
 
-					packet.device_poses.clear();
-					for (auto [device, space]: spaces)
-					{
-						if (enabled(control, device))
-							packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
-					}
-
 					// Hand tracking data are very large, send fewer samples than other items
 					if (hand_tracking and t0 >= last_hand_sample + period and
 					    (Δt == 0 or Δt >= prediction - 2 * period))
 					{
 						last_hand_sample = t0;
 						if (control.enabled[size_t(tid::left_hand)])
+						{
+							auto joints = locate_hands(application::get_left_hand(), world_space, t0 + Δt);
+							should_skip_simple_controllers[0] = !joints.has_value();
 							hands.emplace_back(
 							        t0,
 							        t0 + Δt,
 							        from_headset::hand_tracking::left,
-							        locate_hands(application::get_left_hand(), world_space, t0 + Δt));
+							        joints);
+						}
+						else
+						{
+							should_skip_simple_controllers[0] = false;
+						}
 
 						if (control.enabled[size_t(tid::right_hand)])
+						{
+							auto joints = locate_hands(application::get_right_hand(), world_space, t0 + Δt);
+							should_skip_simple_controllers[1] = !joints.has_value();
 							hands.emplace_back(
 							        t0,
 							        t0 + Δt,
 							        from_headset::hand_tracking::right,
-							        locate_hands(application::get_right_hand(), world_space, t0 + Δt));
+							        joints);
+						}
+						else
+						{
+							should_skip_simple_controllers[1] = false;
+						}
+					}
+
+					packet.device_poses.clear();
+					for (auto [device, space]: spaces)
+					{
+						if (enabled(control, device))
+						{
+							switch (device)
+							{
+								case device_id::LEFT_AIM:
+								case device_id::LEFT_GRIP:
+								case device_id::LEFT_PALM:
+								case device_id::RIGHT_AIM:
+								case device_id::RIGHT_GRIP:
+								case device_id::RIGHT_PALM: {
+									const bool right = device > device_id::LEFT_PALM;
+									if (block_khr_simple_controller and interaction_profiles[right].load() == interaction_profile::khr_simple_controller and should_skip_simple_controllers[right])
+									{
+										packet.device_poses.emplace_back(from_headset::tracking::pose{
+										        .device = device,
+										});
+										continue;
+									}
+									[[fallthrough]];
+								}
+								default:
+									packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
+									break;
+							}
+						}
 					}
 
 					if (body_tracking)

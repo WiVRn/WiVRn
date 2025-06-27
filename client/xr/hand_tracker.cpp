@@ -77,6 +77,10 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	if (!locations.isActive)
 		return std::nullopt;
 
+	// bail if none of the joints are valid/tracked
+	if (!std::ranges::any_of(joints_pos, [](const auto & loc) { return loc.locationFlags != 0; }))
+		return std::nullopt;
+
 	float offset_angle = 0;
 
 	// check if we have a device that needs a thumb offset
