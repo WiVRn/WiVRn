@@ -291,7 +291,7 @@ void wivrn::android::audio::operator()(wivrn::audio_data && data)
 		buffer_size_bytes.fetch_add(size);
 }
 
-void wivrn::android::audio::set_mic_sate(bool running)
+void wivrn::android::audio::set_mic_state(bool running)
 {
 	if (not microphone)
 		return;

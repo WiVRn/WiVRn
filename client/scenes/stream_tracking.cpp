@@ -564,7 +564,7 @@ void scenes::stream::operator()(to_headset::tracking_control && packet)
 	std::lock_guard lock(tracking_control_mutex);
 	auto m = size_t(to_headset::tracking_control::id::microphone);
 	if (audio_handle)
-		audio_handle->set_mic_sate(packet.enabled[m]);
+		audio_handle->set_mic_state(packet.enabled[m]);
 
 	tracking_control = packet;
 	tracking_control.min_offset = std::min(tracking_control.min_offset, tracking_control.max_offset);

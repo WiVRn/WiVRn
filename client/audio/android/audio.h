@@ -78,7 +78,7 @@ public:
 
 	void operator()(wivrn::audio_data &&);
 
-	void set_mic_sate(bool running);
+	void set_mic_state(bool running);
 
 	static void get_audio_description(wivrn::from_headset::headset_info_packet & info);
 };
