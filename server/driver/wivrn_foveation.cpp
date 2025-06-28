@@ -278,15 +278,18 @@ void wivrn_foveation::compute_params(
 	{
 		const auto & fov = fovs[i];
 
-		if (foveated_width < src[i].extent.w)
+		size_t extent_w = std::abs(src[i].extent.w);
+		if (foveated_width < extent_w)
 		{
 			auto angle_x = convergence_angle(convergence_distance, eye_x[i], e.x);
 			auto center = angles_to_center(angle_x, fov.angle_left, fov.angle_right);
-			fill_param_2d(center, foveated_width, src[i].extent.w, params[i].x);
+			fill_param_2d(center, foveated_width, extent_w, params[i].x);
 		}
 		else
 			params[i].x = {uint16_t(src[i].extent.w)};
-		if (foveated_height < src[i].extent.h)
+
+		size_t extent_h = std::abs(src[i].extent.h);
+		if (foveated_height < extent_h)
 		{
 			auto angle_y = e.y;
 			if (is_zero_quat(gaze))
@@ -295,7 +298,7 @@ void wivrn_foveation::compute_params(
 				angle_y += angle_offset;
 			}
 			auto center = angles_to_center(-angle_y, fov.angle_up, fov.angle_down);
-			fill_param_2d(center, foveated_height, src[i].extent.h, params[i].y);
+			fill_param_2d(center, foveated_height, extent_h, params[i].y);
 		}
 		else
 			params[i].y = {uint16_t(src[i].extent.h)};
@@ -462,8 +465,35 @@ vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
 	auto ubo = (render_compute_distortion_foveation_data *)host_buffer.map();
 	for (size_t view = 0; view < 2; ++view)
 	{
-		fill_ubo(ubo->x + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, params[view].x, false, source[view].offset.w, source[view].extent.w, foveated_width);
-		fill_ubo(ubo->y + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, params[view].y, flip_y, source[view].offset.h, source[view].extent.h, foveated_height);
+		bool flip = false;
+		size_t offset, extent;
+
+		if (source[view].extent.w < 0)
+		{
+			flip = true;
+			offset = source[view].offset.w + source[view].extent.w;
+			extent = -source[view].extent.w;
+		}
+		else
+		{
+			offset = source[view].offset.w;
+			extent = source[view].extent.w;
+		}
+		fill_ubo(ubo->x + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, params[view].x, flip, offset, extent, foveated_width);
+
+		if (source[view].extent.h < 0)
+		{
+			flip = not flip_y;
+			offset = source[view].offset.h + source[view].extent.h;
+			extent = -source[view].extent.h;
+		}
+		else
+		{
+			flip = flip_y;
+			offset = source[view].offset.h;
+			extent = source[view].extent.h;
+		}
+		fill_ubo(ubo->y + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, params[view].y, flip, offset, extent, foveated_height);
 	}
 	return *cmd;
 }
