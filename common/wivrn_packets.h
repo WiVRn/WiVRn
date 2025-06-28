@@ -198,7 +198,6 @@ enum face_type : uint8_t
 	none,
 	fb2,
 	htc,
-	pico,
 };
 
 struct headset_info_packet

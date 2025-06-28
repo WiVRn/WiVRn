@@ -106,18 +106,17 @@ bool configuration::check_feature(feature f) const
 				{
 					case model::htc_vive_focus_3:
 					case model::htc_vive_focus_vision:
-						[[fallthrough]];
 					case model::htc_vive_xr_elite:
-						if (not(application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported()))
+						if (not std::holds_alternative<xr::htc_face_tracker>(application::get_face_tracker()))
 							return false;
 						break;
 					case model::pico_4_pro:
 					case model::pico_4_enterprise:
-						if (not application::get_pico_face_tracking_supported())
+						if (not std::holds_alternative<xr::pico_face_tracker>(application::get_face_tracker()))
 							return false;
 						break;
 					default:
-						if (not application::get_fb_face_tracking2_supported())
+						if (not std::holds_alternative<xr::fb_face_tracker2>(application::get_face_tracker()))
 							return false;
 						break;
 				}

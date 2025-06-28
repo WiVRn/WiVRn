@@ -123,21 +123,9 @@ xr::fb_face_tracker2 xr::session::create_fb_face_tracker2()
 	return {*inst, ft};
 }
 
-xr::htc_face_tracker xr::session::create_htc_face_tracker(XrFacialTrackingTypeHTC facialTrackingType)
+xr::htc_face_tracker xr::session::create_htc_face_tracker(bool eye, bool lip)
 {
-	XrFacialTrackerCreateInfoHTC create_info{
-	        .type = XR_TYPE_FACIAL_TRACKER_CREATE_INFO_HTC,
-	        .next = nullptr,
-	        .facialTrackingType = facialTrackingType,
-	};
-
-	XrFacialTrackerHTC ft;
-
-	auto xrCreateFacialTrackerHTC = inst->get_proc<PFN_xrCreateFacialTrackerHTC>("xrCreateFacialTrackerHTC");
-	assert(xrCreateFacialTrackerHTC);
-
-	CHECK_XR(xrCreateFacialTrackerHTC(id, &create_info, &ft));
-	return {*inst, ft, facialTrackingType};
+	return {*inst, *this, eye, lip};
 }
 
 xr::pico_face_tracker xr::session::create_pico_face_tracker()
