@@ -129,17 +129,7 @@ class application : public singleton<application>
 	xr::hand_tracker left_hand;
 	xr::hand_tracker right_hand;
 
-	bool fb_face_tracking2_supported = false;
-	xr::fb_face_tracker2 fb_face_tracker2;
-
-	bool htc_face_tracking_eye_supported = false;
-	xr::htc_face_tracker htc_face_tracker_eye;
-	bool htc_face_tracking_lip_supported = false;
-	xr::htc_face_tracker htc_face_tracker_lip;
-
-	bool pico_face_tracking_supported = false;
-	xr::pico_face_tracker pico_face_tracker;
-
+	std::variant<std::monostate, xr::fb_face_tracker2, xr::htc_face_tracker, xr::pico_face_tracker> face_tracker;
 	std::variant<std::monostate, xr::fb_body_tracker, xr::htc_body_tracker, xr::pico_body_tracker> body_tracker;
 
 	bool eye_gaze_supported = false;
@@ -430,24 +420,9 @@ public:
 		return instance().hand_tracking_supported;
 	}
 
-	static bool get_fb_face_tracking2_supported()
+	static bool get_face_tracking_supported()
 	{
-		return instance().fb_face_tracking2_supported;
-	}
-
-	static bool get_htc_face_tracking_eye_supported()
-	{
-		return instance().htc_face_tracking_eye_supported;
-	}
-
-	static bool get_htc_face_tracking_lip_supported()
-	{
-		return instance().htc_face_tracking_lip_supported;
-	}
-
-	static bool get_pico_face_tracking_supported()
-	{
-		return instance().pico_face_tracking_supported;
+		return !std::holds_alternative<std::monostate>(instance().face_tracker);
 	}
 
 	static bool get_body_tracking_supported()
@@ -475,24 +450,9 @@ public:
 		return instance().right_hand;
 	}
 
-	static xr::fb_face_tracker2 & get_fb_face_tracker2()
+	static auto & get_face_tracker()
 	{
-		return instance().fb_face_tracker2;
-	}
-
-	static xr::htc_face_tracker & get_htc_face_tracker_eye()
-	{
-		return instance().htc_face_tracker_eye;
-	}
-
-	static xr::htc_face_tracker & get_htc_face_tracker_lip()
-	{
-		return instance().htc_face_tracker_lip;
-	}
-
-	static xr::pico_face_tracker & get_pico_face_tracker()
-	{
-		return instance().pico_face_tracker;
+		return instance().face_tracker;
 	}
 
 	static auto & get_body_tracker()

@@ -18,6 +18,7 @@
  */
 #include "utils/overloaded.h"
 #include "xr/fb_body_tracker.h"
+#include "xr/fb_face_tracker2.h"
 #include "xr/htc_body_tracker.h"
 #include "xr/pico_body_tracker.h"
 #define GLM_FORCE_RADIANS
@@ -219,12 +220,21 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		if (config.check_feature(feature::face_tracking))
 		{
-			if (application::get_fb_face_tracking2_supported())
-				info.face_tracking = from_headset::face_type::fb2;
-			else if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
-				info.face_tracking = from_headset::face_type::htc;
-			else if (application::get_pico_face_tracking_supported())
-				info.face_tracking = from_headset::face_type::pico;
+			info.face_tracking = std::visit(utils::overloaded{
+			                                        [](std::monostate &) {
+				                                        return from_headset::face_type::none;
+			                                        },
+			                                        [](xr::fb_face_tracker2 &) {
+				                                        return from_headset::face_type::fb2;
+			                                        },
+			                                        [](xr::htc_face_tracker &) {
+				                                        return from_headset::face_type::htc;
+			                                        },
+			                                        [](xr::pico_face_tracker &) {
+				                                        return from_headset::face_type::fb2;
+			                                        },
+			                                },
+			                                application::get_face_tracker());
 		}
 
 		info.num_generic_trackers = 0;

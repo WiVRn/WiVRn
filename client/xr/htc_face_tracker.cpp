@@ -1,6 +1,7 @@
 /*
  * WiVRn VR streaming
  * Copyright (C) 2024  galister <galister@librevr.org>
+ * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,26 +20,50 @@
 #include "htc_face_tracker.h"
 #include "wivrn_packets.h"
 #include "xr/instance.h"
+#include "xr/session.h"
 #include <openxr/openxr.h>
 
-static PFN_xrDestroyFacialTrackerHTC xrDestroyFacialTrackerHTC{};
-
-XrResult xr::destroy_htc_face_tracker(XrFacialTrackerHTC id)
+xr::htc_face_tracker::htc_face_tracker(instance & inst, session & s, bool eye, bool lip) :
+        s(s)
 {
-	return xrDestroyFacialTrackerHTC(id);
-}
+	if (!eye && !lip)
+		return;
 
-xr::htc_face_tracker::htc_face_tracker(instance & inst, XrFacialTrackerHTC h, XrFacialTrackingTypeHTC facialTrackingTypeHTC)
-{
-	id = h;
+	xrCreateFacialTrackerHTC = inst.get_proc<PFN_xrCreateFacialTrackerHTC>("xrCreateFacialTrackerHTC");
 	xrGetFacialExpressionsHTC = inst.get_proc<PFN_xrGetFacialExpressionsHTC>("xrGetFacialExpressionsHTC");
 	xrDestroyFacialTrackerHTC = inst.get_proc<PFN_xrDestroyFacialTrackerHTC>("xrDestroyFacialTrackerHTC");
-	trackerType = facialTrackingTypeHTC;
+
+	XrFacialTrackerCreateInfoHTC create_info{
+	        .type = XR_TYPE_FACIAL_TRACKER_CREATE_INFO_HTC,
+	        .next = nullptr,
+	};
+
+	if (eye)
+	{
+		create_info.facialTrackingType = XR_FACIAL_TRACKING_TYPE_EYE_DEFAULT_HTC;
+		xrCreateFacialTrackerHTC(s, &create_info, &this->eye);
+	}
+	if (lip)
+	{
+		create_info.facialTrackingType = XR_FACIAL_TRACKING_TYPE_LIP_DEFAULT_HTC;
+		xrCreateFacialTrackerHTC(s, &create_info, &this->lip);
+	}
 }
 
-void xr::htc_face_tracker::get_weights(XrTime time, wivrn::from_headset::tracking::htc_face & out_expressions)
+xr::htc_face_tracker::~htc_face_tracker()
 {
-	if (!id || !xrGetFacialExpressionsHTC)
+	if (!xrDestroyFacialTrackerHTC)
+		return;
+
+	if (eye)
+		CHECK_XR(xrDestroyFacialTrackerHTC(std::exchange(eye, nullptr)));
+	if (lip)
+		CHECK_XR(xrDestroyFacialTrackerHTC(std::exchange(lip, nullptr)));
+}
+
+void xr::htc_face_tracker::get_weights(XrTime time, packet_type & out_expressions)
+{
+	if (!(eye || lip) || !xrGetFacialExpressionsHTC)
 		return;
 
 	XrFacialExpressionsHTC expressions{
@@ -47,25 +72,18 @@ void xr::htc_face_tracker::get_weights(XrTime time, wivrn::from_headset::trackin
 	        .sampleTime = time,
 	};
 
-	bool * is_active;
-
-	switch (trackerType)
+	if (eye)
 	{
-		case XR_FACIAL_TRACKING_TYPE_EYE_DEFAULT_HTC:
-			expressions.expressionCount = out_expressions.eye.size();
-			expressions.expressionWeightings = out_expressions.eye.data();
-			is_active = &out_expressions.eye_active;
-			break;
-		case XR_FACIAL_TRACKING_TYPE_LIP_DEFAULT_HTC:
-			expressions.expressionCount = out_expressions.lip.size();
-			expressions.expressionWeightings = out_expressions.lip.data();
-			is_active = &out_expressions.lip_active;
-			break;
-		default:
-			throw std::system_error(1, std::generic_category(), "htc_face_tracker with unknown trackerType");
+		expressions.expressionCount = out_expressions.eye.size();
+		expressions.expressionWeightings = out_expressions.eye.data();
+		CHECK_XR(xrGetFacialExpressionsHTC(eye, &expressions));
+		out_expressions.eye_active = expressions.isActive;
 	}
-
-	CHECK_XR(xrGetFacialExpressionsHTC(id, &expressions));
-
-	*is_active = expressions.isActive;
+	if (lip)
+	{
+		expressions.expressionCount = out_expressions.lip.size();
+		expressions.expressionWeightings = out_expressions.lip.data();
+		CHECK_XR(xrGetFacialExpressionsHTC(lip, &expressions));
+		out_expressions.lip_active = expressions.isActive;
+	}
 }

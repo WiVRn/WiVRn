@@ -1,6 +1,7 @@
 /*
  * WiVRn VR streaming
  * Copyright (C) 2024  galister <galister@librevr.org>
+ * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,19 +26,23 @@
 namespace xr
 {
 class instance;
+class session;
 
-XrResult destroy_htc_face_tracker(XrFacialTrackerHTC);
-
-class htc_face_tracker : public utils::handle<XrFacialTrackerHTC, destroy_htc_face_tracker>
+class htc_face_tracker
 {
+	XrSession s;
+	XrFacialTrackerHTC eye{};
+	XrFacialTrackerHTC lip{};
+	PFN_xrCreateFacialTrackerHTC xrCreateFacialTrackerHTC{};
 	PFN_xrGetFacialExpressionsHTC xrGetFacialExpressionsHTC{};
 	PFN_xrDestroyFacialTrackerHTC xrDestroyFacialTrackerHTC{};
-	XrFacialTrackingTypeHTC trackerType{};
 
 public:
+	using packet_type = wivrn::from_headset::tracking::htc_face;
 	htc_face_tracker() = default;
-	htc_face_tracker(instance & inst, XrFacialTrackerHTC h, XrFacialTrackingTypeHTC facialTrackingTypeHTC);
+	htc_face_tracker(instance & inst, session & s, bool eye, bool lip);
+	~htc_face_tracker();
 
-	void get_weights(XrTime time, struct wivrn::from_headset::tracking::htc_face & out_expressions);
+	void get_weights(XrTime time, packet_type & out_expressions);
 };
 } // namespace xr
