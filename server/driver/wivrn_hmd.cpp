@@ -154,7 +154,6 @@ xrt_result_t wivrn_hmd::get_presence(bool * out_presence)
 	if (!supported.presence)
 		return XRT_ERROR_NOT_IMPLEMENTED;
 
-	std::lock_guard lock(mutex);
 	*out_presence = presence;
 
 	return XRT_SUCCESS;
@@ -238,8 +237,7 @@ void wivrn_hmd::update_visibility_mask(const from_headset::visibility_mask_chang
 
 void wivrn_hmd::update_presence(bool presence)
 {
-	std::lock_guard lock(mutex);
-	U_LOG_D("Updating hmd presence to %s", presence ? "true" : "false");
+	U_LOG_I("Updating user presence to %s", presence ? "true" : "false");
 	this->presence = presence;
 }
 } // namespace wivrn

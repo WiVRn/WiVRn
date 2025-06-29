@@ -52,8 +52,8 @@ class wivrn_hmd : public xrt_device
 
 	view_list views;
 	from_headset::battery battery{};
-	bool presence{true};
 
+	std::atomic<bool> presence{true};
 	thread_safe<std::array<std::optional<from_headset::visibility_mask_changed::masks>, 2>> visibility_mask;
 
 	wivrn::wivrn_session * cnx;
