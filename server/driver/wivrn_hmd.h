@@ -53,6 +53,7 @@ class wivrn_hmd : public xrt_device
 	view_list views;
 	from_headset::battery battery{};
 
+	std::atomic<bool> presence{true};
 	thread_safe<std::array<std::optional<from_headset::visibility_mask_changed::masks>, 2>> visibility_mask;
 
 	wivrn::wivrn_session * cnx;
@@ -67,6 +68,7 @@ public:
 	void set_foveated_size(uint32_t width, uint32_t height);
 
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation *);
+	xrt_result_t get_presence(bool * out_presence);
 	xrt_result_t get_view_poses(const xrt_vec3 * default_eye_relation,
 	                            int64_t at_timestamp_ns,
 	                            uint32_t view_count,
@@ -80,5 +82,6 @@ public:
 	void update_battery(const from_headset::battery &);
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	void update_visibility_mask(const from_headset::visibility_mask_changed &);
+	void update_presence(bool presence);
 };
 } // namespace wivrn

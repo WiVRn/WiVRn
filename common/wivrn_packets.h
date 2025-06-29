@@ -217,6 +217,7 @@ struct headset_info_packet
 	std::array<XrFovf, 2> fov;
 	bool hand_tracking;
 	bool eye_gaze;
+	bool presence;
 	bool palm_pose;
 	bool passthrough;
 	face_type face_tracking;
@@ -410,6 +411,11 @@ struct refresh_rate_changed
 	float to;
 };
 
+struct user_presence_changed
+{
+	bool present;
+};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_1,
@@ -427,7 +433,8 @@ using packets = std::variant<
         timesync_response,
         battery,
         visibility_mask_changed,
-        refresh_rate_changed>;
+        refresh_rate_changed,
+        user_presence_changed>;
 } // namespace from_headset
 
 namespace to_headset

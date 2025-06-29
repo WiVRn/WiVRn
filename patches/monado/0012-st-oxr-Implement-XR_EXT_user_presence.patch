@@ -1,0 +1,396 @@
+From f5d8dd0fa74eb9497bd375c5693b0298880f5451 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Sat, 28 Jun 2025 20:01:46 -0500
+Subject: [PATCH] st/oxr: Implement XR_EXT_user_presence
+
+---
+ CMakeLists.txt                                |  2 ++
+ doc/changes/state_trackers/mr.2507.md         |  1 +
+ scripts/generate_oxr_ext_support.py           |  1 +
+ .../include/xrt/xrt_config_build.h.cmake_in   |  1 +
+ src/xrt/include/xrt/xrt_device.h              | 26 +++++++++++++++++++
+ src/xrt/include/xrt/xrt_session.h             | 15 ++++++++++-
+ src/xrt/ipc/client/ipc_client_xdev.c          | 13 ++++++++++
+ src/xrt/ipc/server/ipc_server_handler.c       |  7 +++++
+ src/xrt/ipc/shared/ipc_protocol.h             |  4 +--
+ src/xrt/ipc/shared/proto.json                 |  9 +++++++
+ src/xrt/state_trackers/oxr/oxr_event.c        | 19 ++++++++++++++
+ .../oxr/oxr_extension_support.h               | 12 +++++++++
+ src/xrt/state_trackers/oxr/oxr_objects.h      |  5 ++++
+ src/xrt/state_trackers/oxr/oxr_session.c      | 17 ++++++++++++
+ src/xrt/state_trackers/oxr/oxr_system.c       | 12 +++++++++
+ 15 files changed, 141 insertions(+), 3 deletions(-)
+ create mode 100644 doc/changes/state_trackers/mr.2507.md
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c84143343..765286b6e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -366,6 +366,7 @@ option(XRT_FEATURE_OPENXR_HEADLESS "Enable XR_MND_headless" ON)
+ option(XRT_FEATURE_OPENXR_OVERLAY "Enable XR_EXTX_overlay" ON)
+ option(XRT_FEATURE_OPENXR_PERFORMANCE_SETTINGS "Enable XR_EXT_performance_settings" OFF)
+ option(XRT_FEATURE_OPENXR_PLANE_DETECTION "Enable XR_EXT_plane_detection" OFF)
++option(XRT_FEATURE_OPENXR_USER_PRESENCE "Enable XR_EXT_user_presence" ON)
+ option(XRT_FEATURE_OPENXR_VISIBILITY_MASK "Enable XR_KHR_visibility_mask" ON)
+ option(XRT_FEATURE_OPENXR_VULKAN_SWAPCHAIN_FORMAT_LIST "Enable XR_KHR_vulkan_swapchain_format_list" ON)
+ option(XRT_FEATURE_OPENXR_XDEV_SPACE "Enable XR_MNDX_xdev_space" ON)
+@@ -627,6 +628,7 @@ message(STATUS "#    FEATURE_OPENXR_LAYER_FB_PASSTHROUGH:           ${XRT_FEATUR
+ message(STATUS "#    FEATURE_OPENXR_OVERLAY:                        ${XRT_FEATURE_OPENXR_OVERLAY}")
+ message(STATUS "#    FEATURE_OPENXR_PERFORMANCE_SETTINGS:           ${XRT_FEATURE_OPENXR_PERFORMANCE_SETTINGS}")
+ message(STATUS "#    FEATURE_OPENXR_PLANE_DETECTION:                ${XRT_FEATURE_OPENXR_PLANE_DETECTION}")
++message(STATUS "#    FEATURE_OPENXR_USER_PRESENCE:                  ${XRT_FEATURE_OPENXR_USER_PRESENCE}")
+ message(STATUS "#    FEATURE_OPENXR_SPACE_LOCAL_FLOOR:              ${XRT_FEATURE_OPENXR_SPACE_LOCAL_FLOOR}")
+ message(STATUS "#    FEATURE_OPENXR_SPACE_UNBOUNDED:                ${XRT_FEATURE_OPENXR_SPACE_UNBOUNDED}")
+ message(STATUS "#    FEATURE_OPENXR_VISIBILITY_MASK:                ${XRT_FEATURE_OPENXR_VISIBILITY_MASK}")
+diff --git a/doc/changes/state_trackers/mr.2507.md b/doc/changes/state_trackers/mr.2507.md
+new file mode 100644
+index 000000000..2525e6315
+--- /dev/null
++++ b/doc/changes/state_trackers/mr.2507.md
+@@ -0,0 +1 @@
++st/oxr: Implement XR_EXT_user_presence
+\ No newline at end of file
+diff --git a/scripts/generate_oxr_ext_support.py b/scripts/generate_oxr_ext_support.py
+index db7375ca1..258eb7afe 100755
+--- a/scripts/generate_oxr_ext_support.py
++++ b/scripts/generate_oxr_ext_support.py
+@@ -69,6 +69,7 @@ EXTENSIONS = (
+     ['XR_EXT_palm_pose', 'XRT_FEATURE_OPENXR_INTERACTION_EXT_PALM_POSE'],
+     ['XR_EXT_performance_settings', 'XRT_FEATURE_OPENXR_PERFORMANCE_SETTINGS'],
+     ['XR_EXT_samsung_odyssey_controller', 'XRT_FEATURE_OPENXR_INTERACTION_WINMR'],
++    ['XR_EXT_user_presence', 'XRT_FEATURE_OPENXR_USER_PRESENCE'],
+     ['XR_BD_controller_interaction', 'XRT_FEATURE_OPENXR_INTERACTION_BYTEDANCE'],
+     ['XR_FB_body_tracking', 'XRT_FEATURE_OPENXR_BODY_TRACKING_FB'],
+     ['XR_FB_composition_layer_alpha_blend', 'XRT_FEATURE_OPENXR_LAYER_FB_ALPHA_BLEND'],
+diff --git a/src/xrt/include/xrt/xrt_config_build.h.cmake_in b/src/xrt/include/xrt/xrt_config_build.h.cmake_in
+index 3c7051fe9..7694d8a23 100644
+--- a/src/xrt/include/xrt/xrt_config_build.h.cmake_in
++++ b/src/xrt/include/xrt/xrt_config_build.h.cmake_in
+@@ -69,6 +69,7 @@
+ #cmakedefine XRT_FEATURE_OPENXR_LAYER_FB_PASSTHROUGH
+ #cmakedefine XRT_FEATURE_OPENXR_OVERLAY
+ #cmakedefine XRT_FEATURE_OPENXR_PLANE_DETECTION
++#cmakedefine XRT_FEATURE_OPENXR_USER_PRESENCE
+ #cmakedefine XRT_FEATURE_OPENXR_SPACE_LOCAL_FLOOR
+ #cmakedefine XRT_FEATURE_OPENXR_SPACE_UNBOUNDED
+ #cmakedefine XRT_FEATURE_OPENXR_VISIBILITY_MASK
+diff --git a/src/xrt/include/xrt/xrt_device.h b/src/xrt/include/xrt/xrt_device.h
+index d1051d8a9..0d662ac6f 100644
+--- a/src/xrt/include/xrt/xrt_device.h
++++ b/src/xrt/include/xrt/xrt_device.h
+@@ -258,6 +258,7 @@ struct xrt_device_supported
+ 	bool position_tracking;
+ 	bool hand_tracking;
+ 	bool eye_gaze;
++	bool presence;
+ 	bool force_feedback;
+ 	bool ref_space_usage;
+ 	bool form_factor_check;
+@@ -451,6 +452,14 @@ struct xrt_device
+ 	 */
+ 	xrt_result_t (*get_output_limits)(struct xrt_device *xdev, struct xrt_output_limits *limits);
+ 
++	/*!
++	 * @brief Get current presence status of the device.
++	 * 
++	 * @param[in] xdev           The device.
++	 * @param[out] presence      The returned presence status.
++	 */
++	xrt_result_t (*get_presence)(struct xrt_device *xdev, bool *presence);
++
+ 	/*!
+ 	 * Begin a plane detection request
+ 	 *
+@@ -757,6 +766,23 @@ xrt_device_get_output_limits(struct xrt_device *xdev, struct xrt_output_limits *
+ 	}
+ }
+ 
++/*!
++ * Helper function for @ref xrt_device::get_presence.
++ *
++ * @copydoc xrt_device::get_presence
++ *
++ * @public @memberof xrt_device
++ */
++static inline xrt_result_t
++xrt_device_get_presence(struct xrt_device *xdev, bool *presence)
++{
++	if (xdev->get_presence) {
++		return xdev->get_presence(xdev, presence);
++	} else {
++		return XRT_ERROR_NOT_IMPLEMENTED;
++	}
++}
++
+ /*!
+  * Helper function for @ref xrt_device::begin_plane_detection.
+  *
+diff --git a/src/xrt/include/xrt/xrt_session.h b/src/xrt/include/xrt/xrt_session.h
+index a2c4c2ad9..b3cd8a324 100644
+--- a/src/xrt/include/xrt/xrt_session.h
++++ b/src/xrt/include/xrt/xrt_session.h
+@@ -63,7 +63,10 @@ enum xrt_session_event_type
+ 	XRT_SESSION_EVENT_PASSTHRU_STATE_CHANGE = 8,
+ 
+ 	// ! The visibility mask of given view has changed
+-	XRT_SESSION_EVENT_VISIBILITY_MASK_CHANGE = 9
++	XRT_SESSION_EVENT_VISIBILITY_MASK_CHANGE = 9,
++
++	//! User presence has changed (hmd may have been put on or removed)
++	XRT_SESSION_EVENT_USER_PRESENCE_CHANGE = 10,
+ };
+ 
+ /*!
+@@ -176,6 +179,15 @@ struct xrt_session_event_visibility_mask_change
+ 	uint32_t view_index;
+ };
+ 
++/*!
++ * User presence changed event
++ */
++struct xrt_session_event_user_presence_change
++{
++	enum xrt_session_event_type type;
++	bool is_user_present;
++};
++
+ /*!
+  * Union of all session events, used to return multiple events through one call.
+  * Each event struct must start with a @ref xrt_session_event_type field.
+@@ -194,6 +206,7 @@ union xrt_session_event {
+ 	struct xrt_session_event_perf_change performance;
+ 	struct xrt_session_event_passthrough_state_change passthru;
+ 	struct xrt_session_event_visibility_mask_change mask_change;
++	struct xrt_session_event_user_presence_change presence_change;
+ };
+ 
+ /*!
+diff --git a/src/xrt/ipc/client/ipc_client_xdev.c b/src/xrt/ipc/client/ipc_client_xdev.c
+index 9e012c269..81a74b3b6 100644
+--- a/src/xrt/ipc/client/ipc_client_xdev.c
++++ b/src/xrt/ipc/client/ipc_client_xdev.c
+@@ -127,6 +127,18 @@ ipc_client_xdev_get_body_joints(struct xrt_device *xdev,
+ 	IPC_CHK_ALWAYS_RET(icx->ipc_c, xret, "ipc_call_device_get_body_joints");
+ }
+ 
++static xrt_result_t
++ipc_client_xdev_get_presence(struct xrt_device *xdev, bool *presence)
++{
++	struct ipc_client_xdev *icx = ipc_client_xdev(xdev);
++
++	xrt_result_t xret = ipc_call_device_get_presence( //
++		icx->ipc_c,                                   //
++		icx->device_id,                               //
++		presence);                                    //
++	IPC_CHK_ALWAYS_RET(icx->ipc_c, xret, "ipc_call_device_get_presence");
++}
++
+ static void
+ ipc_client_xdev_set_output(struct xrt_device *xdev, enum xrt_output_name name, const struct xrt_output_value *value)
+ {
+@@ -371,6 +383,7 @@ ipc_client_xdev_init(struct ipc_client_xdev *icx,
+ 	icx->base.get_face_tracking = ipc_client_xdev_get_face_tracking;
+ 	icx->base.get_body_skeleton = ipc_client_xdev_get_body_skeleton;
+ 	icx->base.get_body_joints = ipc_client_xdev_get_body_joints;
++	icx->base.get_presence = ipc_client_xdev_get_presence;
+ 	icx->base.set_output = ipc_client_xdev_set_output;
+ 	icx->base.get_output_limits = ipc_client_xdev_get_output_limits;
+ 
+diff --git a/src/xrt/ipc/server/ipc_server_handler.c b/src/xrt/ipc/server/ipc_server_handler.c
+index ffa7eb94e..989e9260b 100644
+--- a/src/xrt/ipc/server/ipc_server_handler.c
++++ b/src/xrt/ipc/server/ipc_server_handler.c
+@@ -2245,6 +2245,13 @@ out:
+ 	return xret;
+ }
+ 
++xrt_result_t
++ipc_handle_device_get_presence(volatile struct ipc_client_state *ics, uint32_t id, bool *presence)
++{
++	struct xrt_device *xdev = get_xdev(ics, id);
++	return xrt_device_get_presence(xdev, presence);
++}
++
+ xrt_result_t
+ ipc_handle_device_set_output(volatile struct ipc_client_state *ics,
+                              uint32_t id,
+diff --git a/src/xrt/ipc/shared/ipc_protocol.h b/src/xrt/ipc/shared/ipc_protocol.h
+index 774a53069..57013f3a2 100644
+--- a/src/xrt/ipc/shared/ipc_protocol.h
++++ b/src/xrt/ipc/shared/ipc_protocol.h
+@@ -139,7 +139,7 @@ struct ipc_shared_device
+ 	struct xrt_device_supported supported;
+ };
+ 
+-static_assert(sizeof(struct ipc_shared_device) == 564,
++static_assert(sizeof(struct ipc_shared_device) == 568,
+               "invalid structure size, maybe different 32/64 bits sizes or padding");
+ 
+ /*!
+@@ -291,7 +291,7 @@ struct ipc_shared_memory
+ 	struct xrt_plane_detector_begin_info_ext plane_begin_info_ext;
+ };
+ 
+-static_assert(sizeof(struct ipc_shared_memory) == 6499920,
++static_assert(sizeof(struct ipc_shared_memory) == 6500048,
+               "invalid structure size, maybe different 32/64 bits sizes or padding");
+ 
+ /*!
+diff --git a/src/xrt/ipc/shared/proto.json b/src/xrt/ipc/shared/proto.json
+index b33e2957c..0c844a822 100644
+--- a/src/xrt/ipc/shared/proto.json
++++ b/src/xrt/ipc/shared/proto.json
+@@ -505,6 +505,15 @@
+ 		]
+ 	},
+ 
++	"device_get_presence": {
++		"in": [
++			{"name": "id", "type": "uint32_t"}
++		],
++		"out": [
++			{"name": "presence", "type": "bool"}
++		]
++	},
++
+ 	"device_set_output": {
+ 		"in": [
+ 			{"name": "id", "type": "uint32_t"},
+diff --git a/src/xrt/state_trackers/oxr/oxr_event.c b/src/xrt/state_trackers/oxr/oxr_event.c
+index 4f885ba4d..cb519e484 100644
+--- a/src/xrt/state_trackers/oxr/oxr_event.c
++++ b/src/xrt/state_trackers/oxr/oxr_event.c
+@@ -343,6 +343,25 @@ oxr_event_push_XrEventDataVisibilityMaskChangedKHR(struct oxr_logger *log,
+ }
+ #endif // OXR_HAVE_KHR_visibility_mask
+ 
++#ifdef OXR_HAVE_EXT_user_presence
++XrResult
++oxr_event_push_XrEventDataUserPresenceChangedEXT(struct oxr_logger *log, struct oxr_session *sess, bool isUserPresent)
++{
++	struct oxr_instance *inst = sess->sys->inst;
++	XrEventDataUserPresenceChangedEXT *changed;
++	struct oxr_event *event = NULL;
++
++	ALLOC(log, inst, &event, &changed);
++	changed->type = XR_TYPE_EVENT_DATA_USER_PRESENCE_CHANGED_EXT;
++	changed->session = oxr_session_to_openxr(sess);
++	changed->isUserPresent = isUserPresent;
++	event->result = XR_SUCCESS;
++	lock(inst);
++	push(inst, event);
++	unlock(inst);
++}
++#endif // OXR_HAVE_EXT_user_presence
++
+ XrResult
+ oxr_event_remove_session_events(struct oxr_logger *log, struct oxr_session *sess)
+ {
+diff --git a/src/xrt/state_trackers/oxr/oxr_extension_support.h b/src/xrt/state_trackers/oxr/oxr_extension_support.h
+index a178491fb..5d930918b 100644
+--- a/src/xrt/state_trackers/oxr/oxr_extension_support.h
++++ b/src/xrt/state_trackers/oxr/oxr_extension_support.h
+@@ -429,6 +429,17 @@
+ #endif
+ 
+ 
++/*
++ * XR_EXT_user_presence
++ */
++#if defined(XR_EXT_user_presence) && defined(XRT_FEATURE_OPENXR_USER_PRESENCE)
++#define OXR_HAVE_EXT_user_presence
++#define OXR_EXTENSION_SUPPORT_EXT_user_presence(_) _(EXT_user_presence, EXT_USER_PRESENCE)
++#else
++#define OXR_EXTENSION_SUPPORT_EXT_user_presence(_)
++#endif
++
++
+ /*
+  * XR_BD_controller_interaction
+  */
+@@ -853,6 +864,7 @@
+     OXR_EXTENSION_SUPPORT_EXT_palm_pose(_) \
+     OXR_EXTENSION_SUPPORT_EXT_performance_settings(_) \
+     OXR_EXTENSION_SUPPORT_EXT_samsung_odyssey_controller(_) \
++    OXR_EXTENSION_SUPPORT_EXT_user_presence(_) \
+     OXR_EXTENSION_SUPPORT_BD_controller_interaction(_) \
+     OXR_EXTENSION_SUPPORT_FB_body_tracking(_) \
+     OXR_EXTENSION_SUPPORT_FB_composition_layer_alpha_blend(_) \
+diff --git a/src/xrt/state_trackers/oxr/oxr_objects.h b/src/xrt/state_trackers/oxr/oxr_objects.h
+index e1b5c776a..10c3b31b5 100644
+--- a/src/xrt/state_trackers/oxr/oxr_objects.h
++++ b/src/xrt/state_trackers/oxr/oxr_objects.h
+@@ -2911,6 +2911,11 @@ struct oxr_plane_detector_ext
+ };
+ #endif // OXR_HAVE_EXT_plane_detection
+ 
++#ifdef OXR_HAVE_EXT_user_presence
++XrResult
++oxr_event_push_XrEventDataUserPresenceChangedEXT(struct oxr_logger *log, struct oxr_session *sess, bool isUserPresent);
++#endif // OXR_HAVE_EXT_user_presence
++
+ /*!
+  * @}
+  */
+diff --git a/src/xrt/state_trackers/oxr/oxr_session.c b/src/xrt/state_trackers/oxr/oxr_session.c
+index 5714f7a62..40a2fa630 100644
+--- a/src/xrt/state_trackers/oxr/oxr_session.c
++++ b/src/xrt/state_trackers/oxr/oxr_session.c
+@@ -257,6 +257,17 @@ oxr_session_begin(struct oxr_logger *log, struct oxr_session *sess, const XrSess
+ 
+ 		xrt_result_t xret = xrt_comp_begin_session(xc, &begin_session_info);
+ 		OXR_CHECK_XRET(log, sess, xret, xrt_comp_begin_session);
++
++#ifdef OXR_HAVE_EXT_user_presence
++		struct xrt_device *xdev = GET_XDEV_BY_ROLE(sess->sys, head);
++		if (extensions->EXT_user_presence && xdev->supported.presence) {
++			bool presence = false;
++			if (xrt_device_get_presence(xdev, &presence) == XRT_SUCCESS)
++				oxr_event_push_XrEventDataUserPresenceChangedEXT(log, sess, presence);
++			else
++				oxr_warn(log, "Call to xrt_device_get_presence failed.");
++		}
++#endif
+ 	} else {
+ 		// Headless, pretend we got event from the compositor.
+ 		sess->compositor_visible = true;
+@@ -480,7 +491,13 @@ oxr_session_poll(struct oxr_logger *log, struct oxr_session *sess)
+ #ifdef OXR_HAVE_KHR_visibility_mask
+ 			oxr_event_push_XrEventDataVisibilityMaskChangedKHR(log, sess, sess->sys->view_config_type,
+ 			                                                   xse.mask_change.view_index);
++			break;
+ #endif // OXR_HAVE_KHR_visibility_mask
++		case XRT_SESSION_EVENT_USER_PRESENCE_CHANGE:
++#ifdef OXR_HAVE_EXT_user_presence
++			oxr_event_push_XrEventDataUserPresenceChangedEXT(log, sess,
++			                                                 xse.presence_change.is_user_present);
++#endif // OXR_HAVE_EXT_user_presence
+ 			break;
+ 		default: U_LOG_W("unhandled event type! %d", xse.type); break;
+ 		}
+diff --git a/src/xrt/state_trackers/oxr/oxr_system.c b/src/xrt/state_trackers/oxr/oxr_system.c
+index 43fef66a2..9121112bd 100644
+--- a/src/xrt/state_trackers/oxr/oxr_system.c
++++ b/src/xrt/state_trackers/oxr/oxr_system.c
+@@ -528,6 +528,18 @@ oxr_system_get_properties(struct oxr_logger *log, struct oxr_system *sys, XrSyst
+ 	}
+ #endif // OXR_HAVE_EXT_plane_detection
+ 
++#ifdef OXR_HAVE_EXT_user_presence
++	XrSystemUserPresencePropertiesEXT *user_presence_props = NULL;
++	if (sys->inst->extensions.EXT_user_presence) {
++		user_presence_props = OXR_GET_OUTPUT_FROM_CHAIN(properties, XR_TYPE_SYSTEM_USER_PRESENCE_PROPERTIES_EXT,
++		                                                XrSystemUserPresencePropertiesEXT);
++	}
++
++	if (user_presence_props) {
++		user_presence_props->supportsUserPresence = xdev->supported.presence;
++	}
++#endif // OXR_HAVE_EXT_user_presence
++
+ #ifdef OXR_HAVE_META_body_tracking_full_body
+ 	XrSystemPropertiesBodyTrackingFullBodyMETA *full_body_tracking_meta_props = NULL;
+ 	if (sys->inst->extensions.META_body_tracking_full_body) {
+-- 
+2.49.0
+
