@@ -105,6 +105,24 @@ XrSystemEyeGazeInteractionPropertiesEXT xr::system::eye_gaze_interaction_propert
 	return eye_gaze_prop;
 }
 
+XrSystemUserPresencePropertiesEXT xr::system::user_presence_properties() const
+{
+	if (!id)
+		throw std::invalid_argument("this");
+
+	XrSystemUserPresencePropertiesEXT presence_prop{
+	        .type = XR_TYPE_SYSTEM_USER_PRESENCE_PROPERTIES_EXT,
+	};
+
+	XrSystemProperties prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &presence_prop,
+	};
+	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+	return presence_prop;
+}
+
 XrSystemFaceTrackingProperties2FB xr::system::fb_face_tracking2_properties() const
 {
 	if (!id)
