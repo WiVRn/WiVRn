@@ -69,6 +69,15 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="25.6.1" date="2025-06-29">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.6.1</url>
+			<description>
+				<ul>
+					<li>Fix crash in H3VR</li>
+					<li>Workaround controller positions on Meta headsets</li>
+				</ul>
+			</description>
+		</release>
 		<release version="25.6" date="2025-06-26">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.6</url>
 			<description>
