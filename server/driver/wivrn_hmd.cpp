@@ -76,10 +76,12 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
                 .supported = {
                         .orientation_tracking = true,
                         .position_tracking = true,
+                        .presence = info.presence,
                         .battery_status = true,
                 },
                 .update_inputs = [](xrt_device *) { return XRT_SUCCESS; },
                 .get_tracked_pose = method_pointer<&wivrn_hmd::get_tracked_pose>,
+                .get_presence = method_pointer<&wivrn_hmd::get_presence>,
                 .get_view_poses = method_pointer<&wivrn_hmd::get_view_poses>,
                 .get_visibility_mask = method_pointer<&wivrn_hmd::get_visibility_mask>,
                 .get_battery_status = method_pointer<&wivrn_hmd::get_battery_status>,
@@ -145,6 +147,13 @@ void wivrn_hmd::update_battery(const from_headset::battery & new_battery)
 	cnx->set_enabled(to_headset::tracking_control::id::battery, false);
 	std::lock_guard lock(mutex);
 	battery = new_battery;
+}
+
+xrt_result_t wivrn_hmd::get_presence(bool * out_presence)
+{
+	*out_presence = presence;
+
+	return XRT_SUCCESS;
 }
 
 xrt_result_t wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
@@ -221,5 +230,11 @@ void wivrn_hmd::update_visibility_mask(const from_headset::visibility_mask_chang
 	assert(mask.view_index < 2);
 	auto m = visibility_mask.lock();
 	m->at(mask.view_index) = mask.data;
+}
+
+void wivrn_hmd::update_presence(bool presence)
+{
+	U_LOG_I("Updating user presence to %s", presence ? "true" : "false");
+	this->presence = presence;
 }
 } // namespace wivrn
