@@ -1136,40 +1136,6 @@ void application::initialize()
 		XrSystemEyeGazeInteractionPropertiesEXT eye_gaze_properties = xr_system_id.eye_gaze_interaction_properties();
 		spdlog::info("    Eye gaze support: {}", (bool)eye_gaze_properties.supportsEyeGazeInteraction);
 		eye_gaze_supported = eye_gaze_properties.supportsEyeGazeInteraction;
-
-		if (eye_gaze_supported)
-		{
-			switch (guess_model())
-			{
-				case model::pico_4_pro:
-				case model::pico_4_enterprise:
-					pico_face_tracking_supported = true;
-					break;
-				default:
-					pico_face_tracking_supported = false;
-					break;
-			}
-		}
-		else
-			pico_face_tracking_supported = false;
-
-		spdlog::info("    PICO face tracking support: {}", (bool)pico_face_tracking_supported);
-	}
-
-	if (utils::contains(xr_extensions, XR_FB_FACE_TRACKING2_EXTENSION_NAME))
-	{
-		XrSystemFaceTrackingProperties2FB fb_face2_properties = xr_system_id.fb_face_tracking2_properties();
-		spdlog::info("    FB face tracking support: {}", (bool)fb_face2_properties.supportsVisualFaceTracking);
-		fb_face_tracking2_supported = fb_face2_properties.supportsVisualFaceTracking;
-	}
-
-	if (utils::contains(xr_extensions, XR_HTC_FACIAL_TRACKING_EXTENSION_NAME))
-	{
-		XrSystemFacialTrackingPropertiesHTC htc_face_properties = xr_system_id.htc_face_tracking_properties();
-		spdlog::info("    HTC eye tracking support: {}", (bool)htc_face_properties.supportEyeFacialTracking);
-		spdlog::info("    HTC lip tracking support: {}", (bool)htc_face_properties.supportLipFacialTracking);
-		htc_face_tracking_eye_supported = htc_face_properties.supportEyeFacialTracking;
-		htc_face_tracking_lip_supported = htc_face_properties.supportLipFacialTracking;
 	}
 
 	if (utils::contains(xr_extensions, XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME))
@@ -1216,24 +1182,34 @@ void application::initialize()
 		right_hand = xr_session.create_hand_tracker(XR_HAND_RIGHT_EXT);
 	}
 
-	if (fb_face_tracking2_supported)
+	if (utils::contains(xr_extensions, XR_FB_FACE_TRACKING2_EXTENSION_NAME))
 	{
-		fb_face_tracker2 = xr_session.create_fb_face_tracker2();
+		XrSystemFaceTrackingProperties2FB fb_face2_properties = xr_system_id.fb_face_tracking2_properties();
+		spdlog::info("    FB face tracking support: {}", (bool)fb_face2_properties.supportsVisualFaceTracking);
+		if (fb_face2_properties.supportsVisualFaceTracking)
+			face_tracker = xr_session.create_fb_face_tracker2();
 	}
 
-	if (htc_face_tracking_eye_supported)
+	if (std::holds_alternative<std::monostate>(face_tracker) && utils::contains(xr_extensions, XR_HTC_FACIAL_TRACKING_EXTENSION_NAME))
 	{
-		htc_face_tracker_eye = xr_session.create_htc_face_tracker(XR_FACIAL_TRACKING_TYPE_EYE_DEFAULT_HTC);
+		XrSystemFacialTrackingPropertiesHTC htc_face_properties = xr_system_id.htc_face_tracking_properties();
+		spdlog::info("    HTC eye tracking support: {}", (bool)htc_face_properties.supportEyeFacialTracking);
+		spdlog::info("    HTC lip tracking support: {}", (bool)htc_face_properties.supportLipFacialTracking);
+		face_tracker = xr_session.create_htc_face_tracker(htc_face_properties.supportEyeFacialTracking, htc_face_properties.supportLipFacialTracking);
 	}
 
-	if (htc_face_tracking_lip_supported)
+	if (std::holds_alternative<std::monostate>(face_tracker) && eye_gaze_supported)
 	{
-		htc_face_tracker_lip = xr_session.create_htc_face_tracker(XR_FACIAL_TRACKING_TYPE_LIP_DEFAULT_HTC);
-	}
-
-	if (pico_face_tracking_supported)
-	{
-		pico_face_tracker = xr_session.create_pico_face_tracker();
+		switch (guess_model())
+		{
+			case model::pico_4_pro:
+			case model::pico_4_enterprise:
+				spdlog::info("    PICO face tracking support: true");
+				face_tracker = xr_session.create_pico_face_tracker();
+				break;
+			default:
+				break;
+		}
 	}
 
 	if (utils::contains_all(xr_extensions, std::array{XR_FB_BODY_TRACKING_EXTENSION_NAME, XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME, XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME}))

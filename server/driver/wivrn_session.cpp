@@ -211,7 +211,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	}
 
 	auto face = get_info().face_tracking;
-	if (face == from_headset::face_type::fb2 || face == from_headset::face_type::pico || is_forced_extension("FB_face_tracking2"))
+	if (face == from_headset::face_type::fb2 || is_forced_extension("FB_face_tracking2"))
 	{
 		fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(&hmd, *this);
 		static_roles.face = fb_face2_tracker.get();

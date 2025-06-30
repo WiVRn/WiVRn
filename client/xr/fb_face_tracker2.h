@@ -34,9 +34,10 @@ class fb_face_tracker2 : public utils::handle<XrFaceTracker2FB, destroy_fb_face_
 	PFN_xrDestroyFaceTracker2FB xrDestroyFaceTracker2FB{};
 
 public:
+	using packet_type = wivrn::from_headset::tracking::fb_face2;
 	fb_face_tracker2() = default;
 	fb_face_tracker2(instance & inst, XrFaceTracker2FB h);
 
-	void get_weights(XrTime time, struct wivrn::from_headset::tracking::fb_face2 & out_expressions);
+	void get_weights(XrTime time, packet_type & out_expressions);
 };
 } // namespace xr

@@ -55,7 +55,7 @@ public:
 	space create_action_space(XrAction action, const XrPosef & pose = {{0, 0, 0, 1}, {0, 0, 0}});
 	hand_tracker create_hand_tracker(XrHandEXT hand, XrHandJointSetEXT hand_joint_set = XR_HAND_JOINT_SET_DEFAULT_EXT);
 	fb_face_tracker2 create_fb_face_tracker2();
-	htc_face_tracker create_htc_face_tracker(XrFacialTrackingTypeHTC);
+	htc_face_tracker create_htc_face_tracker(bool eye, bool lip);
 	pico_face_tracker create_pico_face_tracker();
 	fb_body_tracker create_fb_body_tracker();
 	htc_body_tracker create_htc_body_tracker();

@@ -40,12 +40,13 @@ class pico_face_tracker
 	bool started{};
 
 public:
+	using packet_type = wivrn::from_headset::tracking::fb_face2;
 	pico_face_tracker() = default;
 	pico_face_tracker(instance & inst, session & s);
 	~pico_face_tracker();
 
 	void start();
 	void stop();
-	void get_weights(XrTime time, struct wivrn::from_headset::tracking::fb_face2 & out_expressions);
+	void get_weights(XrTime time, packet_type & out_expressions);
 };
 } // namespace xr

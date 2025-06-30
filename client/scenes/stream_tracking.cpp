@@ -261,21 +261,15 @@ void scenes::stream::tracking()
 			break;
 	}
 
-	from_headset::face_type face_tracking = from_headset::face_type::none;
-	if (config.check_feature(feature::face_tracking))
+	const bool face_tracking = config.check_feature(feature::face_tracking);
+	auto & face_tracker = application::get_face_tracker();
+	if (face_tracking)
 	{
-		if (application::get_fb_face_tracking2_supported())
-			face_tracking = from_headset::face_type::fb2;
-		else if (application::get_htc_face_tracking_eye_supported() or application::get_htc_face_tracking_lip_supported())
-			face_tracking = from_headset::face_type::htc;
-		else if (application::get_pico_face_tracking_supported())
-		{
-			face_tracking = from_headset::face_type::pico;
-			// We can't start the face tracking on application initialisation like we do for
-			// other face trackers due to a Pico runtime bug where face tracking freezes when
-			// the headset is taken off or the application is quit.
-			application::get_pico_face_tracker().start();
-		}
+		// We can't start the face tracking on application initialisation like we do for
+		// other face trackers due to a Pico runtime bug where face tracking freezes when
+		// the headset is taken off or the application is quit.
+		if (auto * face_pico = std::get_if<xr::pico_face_tracker>(&face_tracker))
+			face_pico->start();
 	}
 
 	const bool body_tracking = config.check_feature(feature::body_tracking);
@@ -430,29 +424,15 @@ void scenes::stream::tracking()
 						           },
 						           body_tracker);
 
-					if (control.enabled[size_t(tid::face)])
+					if (face_tracking && control.enabled[size_t(tid::face)])
 					{
-						switch (face_tracking)
-						{
-							case wivrn::from_headset::face_type::none:
-								break;
-							case wivrn::from_headset::face_type::fb2:
-								application::get_fb_face_tracker2().get_weights(t0 + Δt, packet.face.emplace<wivrn::from_headset::tracking::fb_face2>());
-								break;
-							case wivrn::from_headset::face_type::htc: {
-								auto & face_htc = packet.face.emplace<wivrn::from_headset::tracking::htc_face>();
-								face_htc.eye_active = false;
-								face_htc.lip_active = false;
-								if (application::get_htc_face_tracking_eye_supported())
-									application::get_htc_face_tracker_eye().get_weights(t0 + Δt, face_htc);
-								if (application::get_htc_face_tracking_lip_supported())
-									application::get_htc_face_tracker_lip().get_weights(t0 + Δt, face_htc);
-								break;
-							}
-							case wivrn::from_headset::face_type::pico:
-								application::get_pico_face_tracker().get_weights(t0 + Δt, packet.face.emplace<wivrn::from_headset::tracking::fb_face2>());
-								break;
-						}
+						std::visit(utils::overloaded{
+						                   [](std::monostate &) {},
+						                   [&](auto & ft) {
+							                   ft.get_weights(t0 + Δt, packet.face.emplace<typename std::remove_reference_t<decltype(ft)>::packet_type>());
+						                   },
+						           },
+						           face_tracker);
 					}
 				}
 				catch (const std::system_error & e)
@@ -555,8 +535,8 @@ void scenes::stream::tracking()
 		}
 	}
 
-	if (face_tracking == from_headset::face_type::pico)
-		application::get_pico_face_tracker().stop();
+	if (auto * face_pico = std::get_if<xr::pico_face_tracker>(&face_tracker))
+		face_pico->stop();
 }
 
 void scenes::stream::operator()(to_headset::tracking_control && packet)
@@ -564,7 +544,7 @@ void scenes::stream::operator()(to_headset::tracking_control && packet)
 	std::lock_guard lock(tracking_control_mutex);
 	auto m = size_t(to_headset::tracking_control::id::microphone);
 	if (audio_handle)
-		audio_handle->set_mic_sate(packet.enabled[m]);
+		audio_handle->set_mic_state(packet.enabled[m]);
 
 	tracking_control = packet;
 	tracking_control.min_offset = std::min(tracking_control.min_offset, tracking_control.max_offset);
