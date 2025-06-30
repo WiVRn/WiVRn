@@ -41,7 +41,7 @@ namespace wivrn
 // Default port for server to listen, both TCP and UDP
 static const int default_port = 9757;
 
-static constexpr int protocol_revision = 0;
+static constexpr int protocol_revision = 1;
 
 enum class device_id : uint8_t
 {
