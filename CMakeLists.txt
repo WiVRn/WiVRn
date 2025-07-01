@@ -296,7 +296,9 @@ FetchContent_Declare(monado
 )
 
 add_subdirectory(external)
-add_subdirectory(common)
+if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_SERVER OR WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_DISSECTOR)
+    add_subdirectory(common)
+endif()
 
 if (WIVRN_BUILD_CLIENT)
     add_subdirectory(client)
