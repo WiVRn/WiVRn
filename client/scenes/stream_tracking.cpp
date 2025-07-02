@@ -246,20 +246,6 @@ void scenes::stream::tracking()
 	std::vector<serialization_packet> packets;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
-	// Quest hand tracking creates a fake khr/simple_controller when hand tracking
-	// is enabled, let's not send it when hand tracking data is invalid
-	bool block_khr_simple_controller = false;
-	switch (guess_model())
-	{
-		case model::meta_quest_3:
-		case model::meta_quest_pro:
-		case model::meta_quest_3s:
-		case model::oculus_quest_2:
-			block_khr_simple_controller = hand_tracking;
-			break;
-		default:
-			break;
-	}
 
 	const bool face_tracking = config.check_feature(feature::face_tracking);
 	auto & face_tracker = application::get_face_tracker();
@@ -345,31 +331,21 @@ void scenes::stream::tracking()
 						if (control.enabled[size_t(tid::left_hand)])
 						{
 							auto joints = locate_hands(application::get_left_hand(), world_space, t0 + Δt);
-							should_skip_simple_controllers[0] = !joints.has_value();
 							hands.emplace_back(
 							        t0,
 							        t0 + Δt,
 							        from_headset::hand_tracking::left,
 							        joints);
 						}
-						else
-						{
-							should_skip_simple_controllers[0] = false;
-						}
 
 						if (control.enabled[size_t(tid::right_hand)])
 						{
 							auto joints = locate_hands(application::get_right_hand(), world_space, t0 + Δt);
-							should_skip_simple_controllers[1] = !joints.has_value();
 							hands.emplace_back(
 							        t0,
 							        t0 + Δt,
 							        from_headset::hand_tracking::right,
 							        joints);
-						}
-						else
-						{
-							should_skip_simple_controllers[1] = false;
 						}
 					}
 
@@ -377,30 +353,7 @@ void scenes::stream::tracking()
 					for (auto [device, space]: spaces)
 					{
 						if (enabled(control, device))
-						{
-							switch (device)
-							{
-								case device_id::LEFT_AIM:
-								case device_id::LEFT_GRIP:
-								case device_id::LEFT_PALM:
-								case device_id::RIGHT_AIM:
-								case device_id::RIGHT_GRIP:
-								case device_id::RIGHT_PALM: {
-									const bool right = device > device_id::LEFT_PALM;
-									if (block_khr_simple_controller and interaction_profiles[right].load() == interaction_profile::khr_simple_controller and should_skip_simple_controllers[right])
-									{
-										packet.device_poses.emplace_back(from_headset::tracking::pose{
-										        .device = device,
-										});
-										continue;
-									}
-									[[fallthrough]];
-								}
-								default:
-									packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
-									break;
-							}
-						}
+							packet.device_poses.emplace_back(locate_space(device, space, world_space, t0 + Δt));
 					}
 
 					if (body_tracking)

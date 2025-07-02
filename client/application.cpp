@@ -929,6 +929,22 @@ void application::initialize_actions()
 	{
 		profile.available = utils::contains_all(xr_extensions, profile.required_extensions) and profile.min_version <= api_version and profile.max_version > api_version;
 
+		if (profile.profile_name.ends_with("khr/simple_controller"))
+		{
+			switch (guess_model())
+			{
+				// Quest hand tracking creates a fake khr/simple_controller when hand tracking
+				// is enabled, this messes with native hand tracking
+				case model::meta_quest_3:
+				case model::meta_quest_pro:
+				case model::meta_quest_3s:
+				case model::oculus_quest_2:
+					profile.available = false;
+				default:
+					break;
+			}
+		}
+
 		if (!profile.available)
 			continue;
 
