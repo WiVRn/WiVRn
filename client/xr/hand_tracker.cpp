@@ -18,13 +18,10 @@
  */
 
 #include "hand_tracker.h"
-#include "hardware.h"
 #include "xr/check.h"
 #include "xr/instance.h"
 #include "xr/session.h"
 #include <cassert>
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 static PFN_xrDestroyHandTrackerEXT xrDestroyHandTrackerEXT{};
 
@@ -33,8 +30,7 @@ XrResult xr::destroy_hand_tracker(XrHandTrackerEXT id)
 	return xrDestroyHandTrackerEXT(id);
 }
 
-xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info) :
-        hand_id(info.hand)
+xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info)
 {
 	static auto xrCreateHandTrackerEXT = inst.get_proc<PFN_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT");
 	assert(xrCreateHandTrackerEXT);
@@ -81,48 +77,9 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	if (!std::ranges::any_of(joints_pos, [](const auto & loc) { return loc.locationFlags != 0; }))
 		return std::nullopt;
 
-	float offset_angle = 0;
-
-	// check if we have a device that needs a thumb offset
-	switch (guess_model())
-	{
-		case model::meta_quest_3:
-		case model::meta_quest_pro:
-		case model::meta_quest_3s:
-		case model::oculus_quest:
-		case model::oculus_quest_2:
-			if (hand_id == XR_HAND_LEFT_EXT)
-				offset_angle = glm::radians(-90.0f);
-			else if (hand_id == XR_HAND_RIGHT_EXT)
-				offset_angle = glm::radians(90.0f);
-			break;
-
-		default:
-			break;
-	}
-
 	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints;
 	for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 	{
-		if (i >= XR_HAND_JOINT_THUMB_METACARPAL_EXT && i <= XR_HAND_JOINT_THUMB_TIP_EXT)
-		{
-			// Need to convert the XrQuaternionf to a glm::quat to use glm::rotate
-			glm::quat q(
-			        joints_pos[i].pose.orientation.w,
-			        joints_pos[i].pose.orientation.x,
-			        joints_pos[i].pose.orientation.y,
-			        joints_pos[i].pose.orientation.z);
-
-			glm::quat offset_rotation = glm::rotate(q, offset_angle, glm::vec3(0, 0, 1));
-
-			joints_pos[i].pose.orientation = {
-			        .x = offset_rotation.x,
-			        .y = offset_rotation.y,
-			        .z = offset_rotation.z,
-			        .w = offset_rotation.w,
-			};
-		}
-
 		joints[i] = {joints_pos[i], joints_vel[i]};
 	}
 
