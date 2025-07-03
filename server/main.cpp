@@ -479,7 +479,7 @@ gboolean headset_connected_success(void *)
 
 	expose_known_keys_on_dbus();
 
-	start_server(configuration::read_user_configuration());
+	start_server(configuration());
 	try
 	{
 		start_app();
@@ -855,9 +855,15 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 
 	on_headset_info_packet({});
 
-	std::ifstream file(configuration::get_config_file());
-	std::string config{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-
+	std::string config;
+	try
+	{
+		config = configuration::read_configuration().dump();
+	}
+	catch (std::exception & e)
+	{
+		std::cerr << "Invalid configuration: " << e.what() << std::endl;
+	}
 	wivrn_server_set_json_configuration(dbus_server, config.c_str());
 
 	expose_known_keys_on_dbus();
@@ -1035,11 +1041,11 @@ int main(int argc, char * argv[])
 	if (*no_publish)
 		publication = wivrn::service_publication::none;
 	else
-		publication = configuration::read_user_configuration().publication;
+		publication = configuration().publication;
 
 #if WIVRN_USE_SYSTEMD
 	if (*app_flag)
-		return exec_application(configuration::read_user_configuration());
+		return exec_application(configuration());
 #endif
 	try
 	{

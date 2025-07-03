@@ -330,14 +330,6 @@ static uint16_t align(uint16_t value, uint16_t alignment)
 std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
 {
 	configuration config;
-	try
-	{
-		config = configuration::read_user_configuration();
-	}
-	catch (const std::exception & e)
-	{
-		U_LOG_E("Failed to read encoder configuration: %s", e.what());
-	}
 	if (config.encoders.empty())
 		config.encoders = get_encoder_default_settings(bundle, info.supported_codecs);
 	if (not config.encoder_passthrough)

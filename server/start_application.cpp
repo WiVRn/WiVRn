@@ -219,7 +219,7 @@ pid_t wivrn::start_unit_file()
 
 pid_t wivrn::fork_application()
 {
-	auto config = configuration::read_user_configuration();
+	configuration config;
 
 	if (config.application.empty())
 		return 0;

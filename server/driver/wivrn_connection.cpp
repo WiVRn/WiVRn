@@ -88,7 +88,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 		throw std::system_error(errno, std::system_category(), "Cannot get client address");
 	}
 
-	if (configuration::read_user_configuration().tcp_only)
+	if (configuration().tcp_only)
 	{
 		port = -1;
 	}
