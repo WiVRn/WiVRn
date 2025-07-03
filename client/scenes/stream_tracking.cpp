@@ -114,22 +114,22 @@ public:
 	locate_spaces_functor(xr::instance & instance, XrSpace reference) :
 	        reference(reference)
 	{
-		if (instance.get_api_version() >= XR_MAKE_VERSION(1, 1, 0))
+		try
 		{
-			try
-			{
+			if (instance.get_api_version() >= XR_MAKE_VERSION(1, 1, 0))
 				locate_spaces = instance.get_proc<PFN_xrLocateSpaces>("xrLocateSpaces");
-			}
-			catch (std::exception & e)
-			{
-				spdlog::warn("Failed to load xrLocateSpaces function, fallback to xrLocateSpace");
-			}
+			else
+				locate_spaces = instance.get_proc<PFN_xrLocateSpacesKHR>("xrLocateSpacesKHR");
+		}
+		catch (std::exception & e)
+		{
+			spdlog::warn("Failed to load xrLocateSpaces function, fallback to xrLocateSpace");
 		}
 	}
 
 	void add_space(wivrn::device_id device, XrSpace space, XrTime t, std::vector<from_headset::tracking::pose> & out)
 	{
-		if (not locate_spaces)
+		if (locate_spaces)
 		{
 			// store, will be located later
 			devices.push_back(device);
