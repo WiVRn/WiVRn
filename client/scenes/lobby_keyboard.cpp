@@ -462,7 +462,7 @@ void virtual_keyboard::press_single_key(const key & k)
 	}
 }
 
-void virtual_keyboard::display(ImGuiID & hovered_id)
+void virtual_keyboard::display(imgui_context & ctx)
 {
 	ImGuiStyle & style = ImGui::GetStyle();
 
@@ -534,7 +534,7 @@ void virtual_keyboard::display(ImGuiID & hovered_id)
 
 				auto status = draw_single_key(key, id++, ImVec2{base_key_width * key.width - style.ItemSpacing.x, key_height}, window_hovered);
 				if (status.hovered)
-					hovered_id = ImGui::GetItemID();
+					ctx.set_hovered_item();
 			}
 
 			key_position.x += base_key_width * key.width;

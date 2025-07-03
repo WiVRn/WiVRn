@@ -21,6 +21,9 @@
 #include "application.h"
 #include "asset.h"
 #include "hardware.h"
+#include "render/scene_components.h"
+#include "xr/space.h"
+#include <entt/entt.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <magic_enum.hpp>
@@ -29,9 +32,47 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <variant>
+
+namespace components
+{
+namespace details
+{
+struct node_state_transform
+{
+	glm::vec3 position;
+	glm::quat orientation;
+};
+
+struct node_state_visibility
+{
+};
+
+using node_state = std::variant<std::pair<node_state_transform, node_state_transform>, node_state_visibility>;
+} // namespace details
+
+// Component added to nodes affected by actions
+struct visual_response
+{
+	XrAction action;
+	XrActionType type;
+	int axis; // Only if type is XR_ACTION_TYPE_VECTOR2F_INPUT
+	float bias;
+	float scale;
+
+	details::node_state state;
+};
+} // namespace components
 
 namespace
 {
+
+// Component added to nodes bound to an action space
+struct bound_space
+{
+	xr::spaces space;
+};
+
 // clang-format off
 const std::unordered_map<std::string, std::string> input_mappings = {
 	{"xr-standard-squeeze"   , "/input/squeeze/value"    },
@@ -125,14 +166,14 @@ struct json_visual_response
 	component_type type;
 	component_property property;
 	std::string target_node;
-	input_profile::node_state state;
+	components::details::node_state state;
 
 	// OpenXR component path
 	std::string component_subpath;
 };
 } // namespace
 
-input_profile::input_profile(const std::filesystem::path & json_profile, scene_loader & loader, scene_data & scene_controllers, scene_data & scene_rays)
+input_profile::input_profile(scene & scene, const std::filesystem::path & json_profile, uint32_t layer_mask_controller, uint32_t layer_mask_ray)
 {
 	std::string json = asset(json_profile);
 
@@ -141,17 +182,20 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 
 	id = std::string(root["profileId"]);
 
-	// Don't load them into the scene right now in case there is an exception
-	std::vector<std::pair<std::string, scene_data>> models;
+	std::vector<std::tuple<std::string, entt::entity, entt::registry>> models;
 	std::vector<json_visual_response> json_responses;
 
+	// Fill models with the different models to be loaded and their name ("left" or "right")
+	// Don't load them into the scene right now in case there is an exception
 	for (simdjson::dom::key_value_pair layout: simdjson::dom::object(root["layouts"]))
 	{
 		// TODO handle case where i.key is none and there is no left or right
 		// std::string user_path = "/user/hand/" + std::string(layout.key);
 		std::filesystem::path asset_path = json_profile.parent_path() / std::string(layout.value["assetPath"]);
 
-		scene_data & data = models.emplace_back(layout.key, loader(asset_path)).second;
+		// scene.load_gltf(asset_path);
+
+		entt::registry & data = std::get<2>(models.emplace_back(layout.key, entt::null, (*scene.loader)(asset_path)));
 
 		for (simdjson::dom::key_value_pair component: simdjson::dom::object(layout.value["components"]))
 		{
@@ -177,40 +221,38 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 				vr.component_subpath = component_subpath;
 
 				// Check if the node exists
-				data.find_node(vr.target_node);
+				find_node_by_name(data, vr.target_node);
 
 				auto node_property = parse_value_node_property(response.value["valueNodeProperty"]);
 				switch (node_property)
 				{
 					case value_node_property::transform: {
-						auto min_node = data.find_node(response.value["minNodeName"]);
-						auto max_node = data.find_node(response.value["maxNodeName"]);
+						auto min_node = data.get<components::node>(find_node_by_name(data, std::string(response.value["minNodeName"])));
+						auto max_node = data.get<components::node>(find_node_by_name(data, std::string(response.value["maxNodeName"])));
 
-						node_state_transform min{
-						        min_node->position,
-						        min_node->orientation};
+						components::details::node_state_transform min{
+						        min_node.position,
+						        min_node.orientation};
 
-						node_state_transform max{
-						        max_node->position,
-						        max_node->orientation};
+						components::details::node_state_transform max{
+						        max_node.position,
+						        max_node.orientation};
 
 						vr.state = std::make_pair(min, max);
 					}
 					break;
 
 					case value_node_property::visibility:
-						vr.state = node_state_visibility{};
+						vr.state = components::details::node_state_visibility{};
 						break;
 				}
 			}
 		}
 	}
 
-	for (auto && [layout, model]: models)
+	// Add all models in the scene
+	for (auto & [layout, entity, model]: models)
 	{
-		node_handle root_node = scene_controllers.new_node();
-		root_node->name = layout;
-
 		xr::spaces space;
 		if (layout == "left")
 			space = xr::spaces::grip_left;
@@ -223,9 +265,16 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 		else
 			continue;
 
-		model_handles.emplace_back(space, root_node);
+		entity = scene.world.create();
+		scene.world.emplace<bound_space>(entity, space);
+		scene.world.emplace<components::node>(entity, components::node{
+		                                                      .name = layout,
+		                                                      .layer_mask = layer_mask_controller,
+		                                              });
 
-		scene_controllers.import(std::move(model), root_node);
+		scene.loader->add_prefab(scene.world, std::move(model), entity);
+
+		spdlog::debug("Created entity {}", layout);
 	}
 
 	for (simdjson::dom::key_value_pair layout: simdjson::dom::object(root["layouts"]))
@@ -238,16 +287,16 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 		else
 			continue;
 
-		node_handle root_node = scene_rays.new_node();
-		root_node->name = (std::string)layout.key + "_ray";
-		model_handles.emplace_back(space, root_node);
+		auto && [entity, node] = scene.load_gltf(controller_ray_model_name(), layer_mask_ray);
+		node.name = (std::string)layout.key + "_ray";
+		spdlog::debug("Created entity {}", node.name);
 
-		scene_rays.import(loader(controller_ray_model_name()), root_node);
+		scene.world.emplace<bound_space>(entity, space);
 
 		if (layout.key == "left")
-			left_ray = root_node;
+			left_ray = entity;
 		else if (layout.key == "right")
-			right_ray = root_node;
+			right_ray = entity;
 	}
 
 	for (auto & json_response: json_responses)
@@ -264,7 +313,7 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 			continue;
 		}
 
-		auto & response = responses.emplace_back();
+		components::visual_response response;
 		response.action = action.first;
 		response.type = action.second;
 
@@ -289,101 +338,101 @@ input_profile::input_profile(const std::filesystem::path & json_profile, scene_l
 				break;
 		}
 
-		node_handle controller_root_node;
-		for (auto && [i, j]: model_handles)
+		entt::entity controller_entity = entt::null;
+		for (const auto & [layout, entity, model]: models)
 		{
-			if (j->name == json_response.layout)
+			if (layout == json_response.layout)
 			{
-				controller_root_node = j;
-				assert(controller_root_node->name == json_response.layout);
+				controller_entity = entity;
 				break;
 			}
 		}
 
-		response.target.node = scene_controllers.find_node(controller_root_node, json_response.target_node);
-		response.target.state = json_response.state;
+		response.state = json_response.state;
+
+		auto target = find_node_by_name(scene.world, json_response.target_node, controller_entity);
+		scene.world.emplace<components::visual_response>(target, response);
 	}
 
 	offset.fill({{0, 0, 0}, {1, 0, 0, 0}});
 }
 
-static void apply_visual_response(node_handle node, std::pair<input_profile::node_state_transform, input_profile::node_state_transform> transforms, float value)
+static void apply_visual_response(components::node & node, std::pair<components::details::node_state_transform, components::details::node_state_transform> transforms, float value)
 {
-	node->position = glm::mix(transforms.first.position, transforms.second.position, value);
-	node->orientation = glm::slerp(transforms.first.orientation, transforms.second.orientation, value);
+	node.position = glm::mix(transforms.first.position, transforms.second.position, value);
+	node.orientation = glm::slerp(transforms.first.orientation, transforms.second.orientation, value);
 }
 
-static void apply_visual_response(node_handle node, input_profile::node_state_visibility, float value)
+static void apply_visual_response(components::node & node, components::details::node_state_visibility, float value)
 {
-	node->visible = value > 0.5;
+	node.visible = value > 0.5;
 }
 
-static void set_clipping_planes(node_handle node, std::span<glm::vec4> clipping_planes)
+static void set_clipping_planes(entt::registry & scene, entt::entity entity, std::span<glm::vec4> clipping_planes)
 {
-	if (not node)
-		return;
-
 	// If the ray starts on the wrong side of the GUI, hide it entirely
 	// This assumes the node is a child of the root node
+	components::node & node = scene.get<components::node>(entity);
 	for (glm::vec4 & plane: clipping_planes)
 	{
-		if (glm::dot(plane, glm::vec4(node->position, 1)) < 0)
+		if (glm::dot(plane, glm::vec4(node.position, 1)) < 0)
 		{
-			node->visible = false;
+			scene.get<components::node>(entity).visible = false;
 			return;
 		}
 	}
 
-	for (auto child_node: node.children())
+	// Apply the clipping planes on direct children of the target entity
+	for (auto && [child_entity, child_node]: scene.view<components::node>().each())
 	{
-		size_t nb_clipping_planes = std::min(child_node->clipping_planes.size(), clipping_planes.size());
+		if (child_node.parent == entity)
+		{
+			size_t nb_clipping_planes = std::min(child_node.clipping_planes.size(), clipping_planes.size());
 
-		auto copy_results = std::ranges::copy_n(
-		        clipping_planes.begin(),
-		        nb_clipping_planes,
-		        child_node->clipping_planes.begin());
+			auto copy_results = std::ranges::copy_n(
+			        clipping_planes.begin(),
+			        nb_clipping_planes,
+			        child_node.clipping_planes.begin());
 
-		// Disable the remaining clipping planes
-		std::ranges::fill_n(
-		        copy_results.out,
-		        child_node->clipping_planes.size() - nb_clipping_planes,
-		        glm::vec4(0, 0, 0, 1));
+			// Disable the remaining clipping planes
+			std::ranges::fill_n(
+			        copy_results.out,
+			        child_node.clipping_planes.size() - nb_clipping_planes,
+			        glm::vec4(0, 0, 0, 1));
+		}
 	}
 }
 
-void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits)
+void input_profile::apply(entt::registry & scene, XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits)
 {
-	for (auto && [space, node]: model_handles)
+	for (auto && [entity, node, space]: scene.view<components::node, bound_space>().each())
 	{
-		if ((space == xr::spaces::grip_left or space == xr::spaces::aim_left) and hide_left)
+		if ((space.space == xr::spaces::grip_left or space.space == xr::spaces::aim_left) and hide_left)
 		{
-			node->visible = false;
+			node.visible = false;
 		}
-		else if ((space == xr::spaces::grip_right or space == xr::spaces::aim_right) and hide_right)
+		else if ((space.space == xr::spaces::grip_right or space.space == xr::spaces::aim_right) and hide_right)
 		{
-			node->visible = false;
+			node.visible = false;
 		}
-		else if (auto location = application::locate_controller(application::space(space), world_space, predicted_display_time); location)
+		else if (auto location = application::locate_controller(application::space(space.space), world_space, predicted_display_time); location)
 		{
-			node->visible = true;
+			node.visible = true;
 
-			assert((int)space >= 0);
-			assert((int)space < offset.size());
-			auto & [p, q] = offset[space];
+			assert((int)space.space >= 0);
+			assert((int)space.space < offset.size());
+			auto & [p, q] = offset[space.space];
 
-			node->position = location->first + glm::mat3_cast(location->second * q) * p;
-			node->orientation = location->second * q;
+			node.position = location->first + glm::mat3_cast(location->second * q) * p;
+			node.orientation = location->second * q;
 		}
 		else
 		{
-			node->visible = false;
+			node.visible = false;
 		}
 	}
 
-	set_clipping_planes(left_ray, pointer_limits);
-	set_clipping_planes(right_ray, pointer_limits);
-
-	for (auto & response: responses)
+	for (auto && [entity, node, response]: scene.view<components::node, components::visual_response>().each())
 	{
 		assert(response.action);
 
@@ -435,20 +484,16 @@ void input_profile::apply(XrSpace world_space, XrTime predicted_display_time, bo
 
 			if ((scaled_value < 0) || (scaled_value > 1))
 			{
-				std::string full_name = response.target.node->name;
-
-				for (auto i = response.target.node; i; i = i.parent())
-				{
-					full_name = i->name + "/" + full_name;
-				}
-
-				spdlog::warn("Out of range value {} (scaled to {}) for node {}", *value, scaled_value, full_name);
+				spdlog::warn("Out of range value {} (scaled to {}) for node {}", *value, scaled_value, get_node_name(scene, entity));
 			}
 
 			std::visit([&](auto & transform) {
-				apply_visual_response(response.target.node, transform, scaled_value);
+				apply_visual_response(node, transform, scaled_value);
 			},
-			           response.target.state);
+			           response.state);
 		}
 	}
+
+	set_clipping_planes(scene, left_ray, pointer_limits);
+	set_clipping_planes(scene, right_ray, pointer_limits);
 }

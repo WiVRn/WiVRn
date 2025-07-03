@@ -27,10 +27,12 @@
 #include "openxr/openxr.h"
 #include "protocol_version.h"
 #include "render/scene_data.h"
+#include "render/scene_loader.h"
 #include "render/scene_renderer.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
+#include "utils/ranges.h"
 #include "wivrn_client.h"
 #include "wivrn_discover.h"
 #include "wivrn_sockets.h"
@@ -110,12 +112,23 @@ void scenes::lobby::move_gui(glm::vec3 head_position, glm::vec3 new_gui_position
 	imgui_ctx->layers()[2].orientation = q * glm::quat(cos(keyboard_pitch / 2), sin(keyboard_pitch / 2), 0, 0);
 }
 
-scenes::lobby::lobby()
+scenes::lobby::lobby() :
+        scene_impl<lobby>(supported_color_formats, supported_depth_formats)
 {
+	spdlog::info("Using formats {} and {}", vk::to_string(swapchain_format), vk::to_string(depth_format));
+	// composition_layer_depth_test_supported = false;
+	if (composition_layer_depth_test_supported)
+		spdlog::info("Composition layer depth test supported");
+	else
+		spdlog::info("Composition layer depth test NOT supported");
+
+	if (composition_layer_color_scale_bias_supported)
+		spdlog::info("Composition layer color scale/bias supported");
+	else
+		spdlog::info("Composition layer color scale/bias NOT supported");
+
 	if (std::getenv("WIVRN_AUTOCONNECT"))
 		force_autoconnect = true;
-
-	passthrough_supported = system.passthrough_supported();
 
 	auto & servers = application::get_config().servers;
 	spdlog::info("{} known server(s):", servers.size());
@@ -123,61 +136,6 @@ scenes::lobby::lobby()
 	{
 		spdlog::info("    {}", i.second.service.name);
 	}
-
-	haptic_output[0] = get_action("left_haptic").first;
-	haptic_output[1] = get_action("right_haptic").first;
-
-	swapchain_format = vk::Format::eUndefined;
-	spdlog::info("Supported swapchain formats:");
-
-	for (auto format: session.get_swapchain_formats())
-	{
-		spdlog::info("    {}", vk::to_string(format));
-	}
-
-	for (auto format: session.get_swapchain_formats())
-	{
-		if (std::find(supported_color_formats.begin(), supported_color_formats.end(), format) != supported_color_formats.end())
-		{
-			swapchain_format = format;
-			break;
-		}
-	}
-
-	if (swapchain_format == vk::Format::eUndefined)
-		throw std::runtime_error(_("No supported swapchain format"));
-
-	auto views = system.view_configuration_views(viewconfig);
-	stream_view = override_view(views[0], guess_model());
-	uint32_t width = views[0].recommendedImageRectWidth;
-	uint32_t height = views[0].recommendedImageRectHeight;
-
-	depth_format = scene_renderer::find_usable_image_format(
-	        physical_device,
-	        supported_depth_formats,
-	        {
-	                width,
-	                height,
-	                1,
-	        },
-	        vk::ImageUsageFlagBits::eDepthStencilAttachment);
-
-	spdlog::info("Using formats {} and {}", vk::to_string(swapchain_format), vk::to_string(depth_format));
-
-	composition_layer_depth_test_supported =
-	        instance.has_extension(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME) and
-	        instance.has_extension(XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME);
-
-	if (composition_layer_depth_test_supported)
-		spdlog::info("Composition layer depth test supported");
-	else
-		spdlog::info("Composition layer depth test NOT supported");
-
-	composition_layer_color_scale_bias_supported = instance.has_extension(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
-	if (composition_layer_color_scale_bias_supported)
-		spdlog::info("Composition layer color scale/bias supported");
-	else
-		spdlog::info("Composition layer color scale/bias NOT supported");
 
 	keyboard.set_layout(application::get_config().virtual_keyboard_layout);
 
@@ -346,37 +304,6 @@ std::unique_ptr<wivrn_session> scenes::lobby::connect_to_session(wivrn_discover:
 	throw std::runtime_error(error);
 }
 
-static glm::mat4 projection_matrix(XrFovf fov, float zn = 0.02)
-{
-	float r = tan(fov.angleRight);
-	float l = tan(fov.angleLeft);
-	float t = tan(fov.angleUp);
-	float b = tan(fov.angleDown);
-
-	// reversed Z projection, infinite far plane
-
-	// clang-format off
-	return glm::mat4{
-		{ 2/(r-l),     0,            0,    0 },
-		{ 0,           2/(b-t),      0,    0 },
-		{ (l+r)/(r-l), (t+b)/(b-t),  0,   -1 },
-		{ 0,           0,            zn,   0 }
-	};
-	// clang-format on
-}
-
-static glm::mat4 view_matrix(XrPosef pose)
-{
-	XrQuaternionf q = pose.orientation;
-	XrVector3f pos = pose.position;
-
-	glm::mat4 inv_view_matrix = glm::mat4_cast(glm::quat(q.w, q.x, q.y, q.z));
-
-	inv_view_matrix = glm::translate(glm::mat4(1), glm::vec3(pos.x, pos.y, pos.z)) * inv_view_matrix;
-
-	return glm::inverse(inv_view_matrix);
-}
-
 void scenes::lobby::update_server_list()
 {
 	if (application::is_focused() && !discover)
@@ -476,19 +403,27 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(const std::array<
 std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_display_time, glm::vec3 head_position)
 {
 	std::optional<std::pair<glm::vec3, glm::quat>> aim;
+	glm::vec3 offset_position;
+	glm::quat offset_orientation;
 
 	if (application::read_action_bool(recenter_left_action).value_or(std::pair{0, false}).second)
 	{
 		aim = application::locate_controller(application::space(xr::spaces::aim_left), application::space(xr::spaces::world), predicted_display_time);
+		std::tie(offset_position, offset_orientation) = input->offset[xr::spaces::aim_left];
 	}
 
 	if (application::read_action_bool(recenter_right_action).value_or(std::pair{0, false}).second)
 	{
 		aim = application::locate_controller(application::space(xr::spaces::aim_right), application::space(xr::spaces::world), predicted_display_time);
+		std::tie(offset_position, offset_orientation) = input->offset[xr::spaces::aim_right];
 	}
 
 	if (aim)
 	{
+		// Handle controller offset
+		aim->first = aim->first + glm::mat3_cast(aim->second * offset_orientation) * offset_position;
+		aim->second = aim->second * offset_orientation;
+
 		if (not gui_recenter_position or not gui_recenter_distance)
 		{
 			// First frame where the recenter action is active
@@ -570,80 +505,6 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gui(glm::vec3 head_positi
 	}
 
 	return std::nullopt;
-}
-
-static std::pair<std::vector<XrCompositionLayerProjectionView>, std::vector<XrCompositionLayerDepthInfoKHR>> render_layer(
-        std::vector<XrView> & views,
-        std::vector<xr::swapchain> & color_swapchains,
-        std::vector<xr::swapchain> & depth_swapchains,
-        scene_renderer & renderer,
-        scene_data & data,
-        const std::array<float, 4> & clear_color)
-{
-	std::vector<scene_renderer::frame_info> frames;
-	frames.reserve(views.size());
-
-	std::vector<XrCompositionLayerProjectionView> proj_layer_views;
-	std::vector<XrCompositionLayerDepthInfoKHR> depth_layer_views;
-	proj_layer_views.reserve(views.size());
-	depth_layer_views.reserve(views.size());
-
-	for (auto && [view, color_swapchain, depth_swapchain]: std::views::zip(views, color_swapchains, depth_swapchains))
-	{
-		int color_image_index = color_swapchain.acquire();
-		color_swapchain.wait();
-
-		int depth_image_index = depth_swapchain ? depth_swapchain.acquire() : 0;
-		if (depth_swapchain)
-			depth_swapchain.wait();
-
-		frames.push_back({
-		        .destination = color_swapchain.images()[color_image_index].image,
-		        .depth_buffer = depth_swapchain ? depth_swapchain.images()[depth_image_index].image : vk::Image{},
-		        .projection = projection_matrix(view.fov, constants::lobby::near_plane),
-		        .view = view_matrix(view.pose),
-		});
-
-		proj_layer_views.push_back({
-		        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-		        .pose = view.pose,
-		        .fov = view.fov,
-		        .subImage = {
-		                .swapchain = color_swapchain,
-		                .imageRect = {
-		                        .offset = {0, 0},
-		                        .extent = color_swapchain.extent(),
-		                },
-		        },
-		});
-
-		depth_layer_views.push_back({
-		        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR,
-		        .subImage = {
-		                .swapchain = depth_swapchain,
-		                .imageRect = {
-		                        .offset = {0, 0},
-		                        .extent = depth_swapchain.extent(),
-		                },
-		        },
-		        .minDepth = 0,
-		        .maxDepth = 1,
-		        .nearZ = std::numeric_limits<float>::infinity(),
-		        .farZ = constants::lobby::near_plane,
-		});
-	}
-
-	renderer.render(data, clear_color, frames);
-
-	return {proj_layer_views, depth_layer_views};
-}
-
-static std::vector<XrCompositionLayerProjectionView> render_layer(std::vector<XrView> & views, std::vector<xr::swapchain> & color_swapchains, scene_renderer & renderer, scene_data & data, const std::array<float, 4> & clear_color)
-{
-	std::vector<xr::swapchain> depth_swapchains;
-	depth_swapchains.resize(color_swapchains.size());
-
-	return std::get<0>(render_layer(views, color_swapchains, depth_swapchains, renderer, data, clear_color));
 }
 
 // Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
@@ -737,7 +598,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	XrSpace world_space = application::space(xr::spaces::world);
 	auto [flags, views] = session.locate_views(viewconfig, frame_state.predictedDisplayTime, world_space);
-	assert(views.size() == swapchains_lobby.size());
+	// assert(views.size() == swapchains_lobby.size());
+	assert(views.size() == 2); // FIXME
 
 	bool hide_left_controller = false;
 	bool hide_right_controller = false;
@@ -753,74 +615,69 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	if (application::get_hand_tracking_supported())
 	{
-		if (left_hand)
-		{
-			auto & hand = application::get_left_hand();
-			auto joints = hand.locate(world_space, frame_state.predictedDisplayTime);
-			left_hand->apply(joints);
+		auto left = application::get_left_hand().locate(world_space, frame_state.predictedDisplayTime);
+		auto right = application::get_right_hand().locate(world_space, frame_state.predictedDisplayTime);
 
-			if (joints and xr::hand_tracker::check_flags(*joints, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
-			{
-				hide_left_controller = true;
-				if (!new_gui_position)
-					new_gui_position = check_recenter_gesture(*joints);
-			}
+		hand_model::apply(world, left, right);
+
+		if (left and xr::hand_tracker::check_flags(*left, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
+		{
+			hide_left_controller = true;
+			if (!new_gui_position)
+				new_gui_position = check_recenter_gesture(*left);
 		}
 
-		if (right_hand)
+		if (right and xr::hand_tracker::check_flags(*right, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
 		{
-			auto & hand = application::get_right_hand();
-			auto joints = hand.locate(world_space, frame_state.predictedDisplayTime);
-			right_hand->apply(joints);
-
-			if (joints and xr::hand_tracker::check_flags(*joints, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
-			{
-				hide_right_controller = true;
-				if (!new_gui_position)
-					new_gui_position = check_recenter_gesture(*joints);
-			}
+			hide_right_controller = true;
+			if (!new_gui_position)
+				new_gui_position = check_recenter_gesture(*right);
 		}
 	}
-
-#if WIVRN_CLIENT_DEBUG_MENU
-	if (display_debug_axes)
-	{
-		const xr::spaces left = display_grip_instead_of_aim ? xr::spaces::grip_left : xr::spaces::aim_left;
-		const xr::spaces right = display_grip_instead_of_aim ? xr::spaces::grip_right : xr::spaces::aim_right;
-
-		if (hide_left_controller)
-			xyz_axes_left_controller->visible = false;
-		else if (auto location = application::locate_controller(application::space(left), world_space, frame_state.predictedDisplayTime))
-		{
-			xyz_axes_left_controller->visible = true;
-			xyz_axes_left_controller->position = location->first;
-			xyz_axes_left_controller->orientation = location->second;
-		}
-		else
-			xyz_axes_left_controller->visible = false;
-
-		if (hide_right_controller)
-			xyz_axes_right_controller->visible = false;
-		else if (auto location = application::locate_controller(application::space(right), world_space, frame_state.predictedDisplayTime))
-		{
-			xyz_axes_right_controller->visible = true;
-			xyz_axes_right_controller->position = location->first;
-			xyz_axes_right_controller->orientation = location->second;
-		}
-		else
-			xyz_axes_right_controller->visible = false;
-	}
-	else
-	{
-		xyz_axes_left_controller->visible = false;
-		xyz_axes_right_controller->visible = false;
-	}
-#endif
 
 	if (head_position && new_gui_position)
 	{
 		move_gui(head_position->first, *new_gui_position);
 	}
+
+#if WIVRN_CLIENT_DEBUG_MENU
+	{
+		auto & left_node = world.get<components::node>(xyz_axes_left_controller);
+		auto & right_node = world.get<components::node>(xyz_axes_right_controller);
+		if (display_debug_axes)
+		{
+			const xr::spaces left = display_grip_instead_of_aim ? xr::spaces::grip_left : xr::spaces::aim_left;
+
+			if (hide_left_controller)
+				left_node.visible = false;
+			else if (auto location = application::locate_controller(application::space(left), world_space, frame_state.predictedDisplayTime))
+			{
+				left_node.visible = true;
+				left_node.position = location->first;
+				left_node.orientation = location->second;
+			}
+			else
+				left_node.visible = false;
+
+			const xr::spaces right = display_grip_instead_of_aim ? xr::spaces::grip_right : xr::spaces::aim_right;
+			if (hide_right_controller)
+				right_node.visible = false;
+			else if (auto location = application::locate_controller(application::space(right), world_space, frame_state.predictedDisplayTime))
+			{
+				right_node.visible = true;
+				right_node.position = location->first;
+				right_node.orientation = location->second;
+			}
+			else
+				right_node.visible = false;
+		}
+		else
+		{
+			left_node.visible = false;
+			right_node.visible = false;
+		}
+	}
+#endif
 
 	std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_layers = draw_gui(frame_state.predictedDisplayTime);
 
@@ -832,182 +689,65 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 			ray_limits.push_back(compute_ray_limits(layer.pose));
 	}
 
-	input->apply(world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller, ray_limits);
+	input->apply(world, world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller, ray_limits);
 
 	assert(renderer);
-	renderer->start_frame();
 
-	std::vector<XrCompositionLayerProjectionView> lobby_layer_views;
-	std::vector<XrCompositionLayerDepthInfoKHR> lobby_depth_layer_views;
-	std::vector<XrCompositionLayerProjectionView> controllers_layer_views;
-	std::vector<XrCompositionLayerDepthInfoKHR> controllers_depth_layer_views;
+	world.get<components::node>(lobby_entity).visible = not application::get_config().passthrough_enabled;
 
-	std::array<float, 4> clear_color;
+	render_start(application::get_config().passthrough_enabled, frame_state.predictedDisplayTime);
 
-	lobby_handle->visible = not application::get_config().passthrough_enabled;
-
-	if (application::get_config().passthrough_enabled)
-		clear_color = {0, 0, 0, 0};
-	else
-		clear_color = constants::lobby::sky_color;
+	const XrColor4f clear_color = application::get_config().passthrough_enabled ? XrColor4f{0, 0, 0, 0} : constants::lobby::sky_color;
+	render_world(
+	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+	        world_space,
+	        views,
+	        width,
+	        height,
+	        composition_layer_depth_test_supported,
+	        composition_layer_depth_test_supported ? layer_lobby | layer_controllers : layer_lobby,
+	        clear_color);
 
 	if (composition_layer_depth_test_supported)
+		set_depth_test(true, XR_COMPARE_OP_ALWAYS_FB);
+
+	bool dim_gui = imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported;
+	for (auto & [z_index, layer]: imgui_layers)
 	{
-		std::tie(lobby_layer_views, lobby_depth_layer_views) = render_layer(
-		        views,
-		        swapchains_lobby,
-		        swapchains_lobby_depth,
-		        *renderer,
-		        *lobby_scene,
-		        clear_color);
-		for (auto [color, depth]: std::views::zip(lobby_layer_views, lobby_depth_layer_views))
-			color.next = &depth;
+		if (z_index < constants::lobby::zindex_recenter_tip)
+		{
+			add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
 
-		std::tie(controllers_layer_views, controllers_depth_layer_views) = render_layer(
-		        views,
-		        swapchains_controllers,
-		        swapchains_controllers_depth,
-		        *renderer,
-		        *controllers_scene,
-		        {0, 0, 0, 0});
-		for (auto [color, depth]: std::views::zip(controllers_layer_views, controllers_depth_layer_views))
-			color.next = &depth;
+			if (dim_gui)
+				set_color_scale_bias(constants::lobby::dimming_scale, constants::lobby::dimming_bias);
 
-		renderer->end_frame();
+			if (composition_layer_depth_test_supported)
+				set_depth_test(true, XR_COMPARE_OP_LESS_OR_EQUAL_FB);
 
-		// After end_frame because the command buffers are submitted in end_frame
-		for (auto & swapchain: swapchains_lobby)
-			swapchain.release();
-
-		for (auto & swapchain: swapchains_lobby_depth)
-			swapchain.release();
-
-		for (auto & swapchain: swapchains_controllers)
-			swapchain.release();
-
-		for (auto & swapchain: swapchains_controllers_depth)
-			swapchain.release();
-	}
-	else
-	{
-		lobby_layer_views = render_layer(
-		        views,
-		        swapchains_lobby,
-		        *renderer,
-		        *lobby_scene,
-		        clear_color);
-
-		controllers_layer_views = render_layer(
-		        views,
-		        swapchains_controllers,
-		        *renderer,
-		        *controllers_scene,
-		        {0, 0, 0, 0});
-
-		renderer->end_frame();
-
-		// After end_frame because the command buffers are submitted in end_frame
-		for (auto & swapchain: swapchains_lobby)
-			swapchain.release();
-
-		for (auto & swapchain: swapchains_controllers)
-			swapchain.release();
+			dim_gui = false; // Only dim the main window
+		}
 	}
 
-	XrCompositionLayerProjection lobby_layer{
-	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
-	        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-	        .space = world_space,
-	        .viewCount = (uint32_t)lobby_layer_views.size(),
-	        .views = lobby_layer_views.data(),
-	};
+	render_world(
+	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+	        world_space,
+	        views,
+	        width,
+	        height,
+	        composition_layer_depth_test_supported,
+	        composition_layer_depth_test_supported ? layer_rays : layer_rays | layer_controllers,
+	        {0, 0, 0, 0});
 
-	XrCompositionLayerProjection controllers_layer{
-	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
-	        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-	        .space = world_space,
-	        .viewCount = (uint32_t)controllers_layer_views.size(),
-	        .views = controllers_layer_views.data(),
-	};
-
-	XrEnvironmentBlendMode blend_mode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-	std::vector<std::pair<int, XrCompositionLayerBaseHeader *>> layers_with_z_index;
-
-	if (application::get_config().passthrough_enabled)
-	{
-		std::visit(
-		        utils::overloaded{
-		                [&](std::monostate &) {
-			                assert(false);
-		                },
-		                [&](xr::passthrough_alpha_blend & p) {
-			                blend_mode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
-		                },
-		                [&](auto & p) {
-			                layers_with_z_index.emplace_back(constants::lobby::zindex_passthrough, p.layer());
-		                }},
-		        session.get_passthrough());
-	}
-
-	// Dimming settings if a popup window is displayed
-	XrCompositionLayerColorScaleBiasKHR color_scale_bias{
-	        .type = XR_TYPE_COMPOSITION_LAYER_COLOR_SCALE_BIAS_KHR,
-	        .colorScale = constants::lobby::dimming_scale,
-	        .colorBias = constants::lobby::dimming_bias,
-	};
-
-	// Add XrCompositionLayerDepthTestFB to lobby_layer and imgui_layer
-	// The sky in the lobby layer and the passthrough layer have the same depth, so the operation must be:
-	// - LESS when passthrough is enabled (to avoid overwriting the passthrough)
-	// - LESS_OR_EQUAL when passthrough is disabled (so that the sky is visible)
-	XrCompositionLayerDepthTestFB layer_depth_test{
-	        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_TEST_FB,
-	        .next = nullptr,
-	        .depthMask = true,
-	        .compareOp = application::get_config().passthrough_enabled ? XR_COMPARE_OP_LESS_FB : XR_COMPARE_OP_LESS_OR_EQUAL_FB,
-	};
-	XrCompositionLayerDepthTestFB layer_depth_test_bg{
-	        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_TEST_FB,
-	        .next = nullptr,
-	        .depthMask = true,
-	        .compareOp = XR_COMPARE_OP_ALWAYS_FB,
-	};
-
-	// if (composition_layer_depth_test_supported or not application::get_config().passthrough_enabled)
-	layers_with_z_index.emplace_back(constants::lobby::zindex_lobby, reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
+	if (composition_layer_depth_test_supported)
+		set_depth_test(true, XR_COMPARE_OP_LESS_OR_EQUAL_FB);
 
 	for (auto & [z_index, layer]: imgui_layers)
-		layers_with_z_index.emplace_back(z_index, reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
-
-	layers_with_z_index.emplace_back(constants::lobby::zindex_controllers, reinterpret_cast<XrCompositionLayerBaseHeader *>(&controllers_layer));
-
-	if (composition_layer_depth_test_supported)
 	{
-		lobby_layer.next = &layer_depth_test_bg;
-
-		for (auto & [z_index, layer]: imgui_layers)
-		{
-			if (z_index != constants::lobby::zindex_recenter_tip)
-				layer.next = &layer_depth_test;
-		}
-
-		controllers_layer.next = &layer_depth_test;
+		if (z_index == constants::lobby::zindex_recenter_tip)
+			add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
 	}
 
-	if (imgui_ctx->is_modal_popup_shown() and composition_layer_color_scale_bias_supported)
-	{
-		color_scale_bias.next = imgui_layers.front().second.next;
-		imgui_layers.front().second.next = &color_scale_bias;
-	}
-
-	std::ranges::stable_sort(layers_with_z_index);
-
-	std::vector<XrCompositionLayerBaseHeader *> layers;
-	layers.reserve(layers_with_z_index.size());
-	for (auto & [z_index, layer]: layers_with_z_index)
-		layers.push_back(layer);
-
-	session.end_frame(frame_state.predictedDisplayTime, layers, blend_mode);
+	render_end();
 }
 
 void scenes::lobby::on_focused()
@@ -1015,53 +755,25 @@ void scenes::lobby::on_focused()
 	recenter_gui = true;
 
 	auto views = system.view_configuration_views(viewconfig);
+	assert(views.size() == 2); // FIXME
 	stream_view = override_view(views[0], guess_model());
-	uint32_t width = views[0].recommendedImageRectWidth;
-	uint32_t height = views[0].recommendedImageRectHeight;
+	width = views[0].recommendedImageRectWidth;
+	height = views[0].recommendedImageRectHeight;
 
-	swapchains_lobby.reserve(views.size());
-	swapchains_controllers.reserve(views.size());
+	// assert(std::ranges::all_of(views, [width](const XrViewConfigurationView & view) { return view.recommendedImageRectWidth == width; }));
+	// assert(std::ranges::all_of(views, [height](const XrViewConfigurationView & view) { return view.recommendedImageRectHeight == height; }));
 
-	if (composition_layer_depth_test_supported)
-		swapchains_lobby_depth.reserve(views.size());
+	renderer.emplace(device, physical_device, queue, commandpool);
+	loader.emplace(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
 
-	for ([[maybe_unused]] auto view: views)
-	{
-		assert(view.recommendedImageRectWidth == width);
-		assert(view.recommendedImageRectHeight == height);
+	lobby_entity = load_gltf("ground.gltf", layer_lobby).first;
 
-		swapchains_lobby.emplace_back(session, device, swapchain_format, width, height);
-		swapchains_controllers.emplace_back(session, device, swapchain_format, width, height);
-
-		if (composition_layer_depth_test_supported)
-		{
-			swapchains_lobby_depth.emplace_back(session, device, depth_format, width, height);
-			swapchains_controllers_depth.emplace_back(session, device, depth_format, width, height);
-		}
-	}
-
-	spdlog::info("Created lobby swapchains: {}x{}", width, height);
-
-	vk::Extent2D output_size{width, height};
-
-	renderer.emplace(device, physical_device, queue, commandpool, output_size, swapchain_format, depth_format, 2, composition_layer_depth_test_supported);
-
-	scene_loader loader(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
-
-	lobby_scene.emplace();
-	lobby_handle = lobby_scene->new_node();
-	lobby_scene->import(loader("ground.gltf"), lobby_handle);
-
-	controllers_scene.emplace();
-
-	scene_data & controllers_scene_data = composition_layer_depth_test_supported ? *lobby_scene : *controllers_scene;
-
-	auto profile = controller_name();
-	input = input_profile(
+	std::string profile = controller_name();
+	input.emplace(
+	        *this,
 	        "controllers/" + profile + "/profile.json",
-	        loader,
-	        controllers_scene_data,
-	        *controllers_scene);
+	        layer_controllers,
+	        layer_rays);
 
 	spdlog::info("Loaded input profile {}", input->id);
 
@@ -1085,17 +797,14 @@ void scenes::lobby::on_focused()
 	offset_orientation = glm::degrees(glm::eulerAngles(input->offset[xr::spaces::grip_left].second));
 	ray_offset = input->offset[xr::spaces::aim_left].first.z;
 
-	xyz_axes_left_controller = controllers_scene_data.new_node();
-	controllers_scene_data.import(loader("xyz-arrows.glb"), xyz_axes_left_controller);
-
-	xyz_axes_right_controller = controllers_scene_data.new_node();
-	controllers_scene_data.import(loader("xyz-arrows.glb"), xyz_axes_right_controller);
+	xyz_axes_left_controller = load_gltf("xyz-arrows.glb", layer_controllers).first;
+	xyz_axes_right_controller = load_gltf("xyz-arrows.glb", layer_controllers).first;
 #endif
 
 	if (application::get_hand_tracking_supported())
 	{
-		left_hand.emplace("left-hand.glb", loader, controllers_scene_data);
-		right_hand.emplace("right-hand.glb", loader, controllers_scene_data);
+		hand_model::add_hand(*this, XR_HAND_LEFT_EXT, "left-hand.glb", layer_controllers);
+		hand_model::add_hand(*this, XR_HAND_RIGHT_EXT, "right-hand.glb", layer_controllers);
 	}
 
 	recenter_left_action = get_action("recenter_left").first;
@@ -1108,6 +817,7 @@ void scenes::lobby::on_focused()
 	                .trigger = get_action("left_trigger").first,
 	                .squeeze = get_action("left_squeeze").first,
 	                .scroll = get_action("left_scroll").first,
+	                .haptic_output = get_action("left_haptic").first,
 	        },
 	        imgui_context::controller{
 	                .aim = get_action_space("right_aim"),
@@ -1115,6 +825,7 @@ void scenes::lobby::on_focused()
 	                .trigger = get_action("right_trigger").first,
 	                .squeeze = get_action("right_squeeze").first,
 	                .scroll = get_action("right_scroll").first,
+	                .haptic_output = get_action("right_haptic").first,
 	        },
 	};
 	if (auto & hand = application::get_left_hand())
@@ -1206,18 +917,13 @@ void scenes::lobby::on_unfocused()
 
 	about_picture = nullptr;
 	imgui_ctx.reset();
-	lobby_scene.reset(); // Must be reset before the renderer so that the descriptor sets are freed before their pools
-	controllers_scene.reset();
+	world.clear(); // Must be cleared before the renderer so that the descriptor sets are freed before their pools
 
 	input.reset();
-	left_hand.reset();
-	right_hand.reset();
 
+	loader.reset();
 	renderer.reset();
-	swapchains_lobby.clear();
-	swapchains_controllers.clear();
-	swapchains_lobby_depth.clear();
-	swapchains_controllers_depth.clear();
+	clear_swapchains();
 	swapchain_imgui = xr::swapchain();
 	multicast.reset();
 }

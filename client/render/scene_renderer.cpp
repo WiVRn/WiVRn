@@ -21,7 +21,7 @@
 #include "application.h"
 #include "render/growable_descriptor_pool.h"
 #include "render/image_loader.h"
-#include "render/scene_data.h"
+#include "render/scene_components.h"
 #include "utils/alignment.h"
 #include "utils/fmt_glm.h"
 #include "utils/ranges.h"
@@ -29,6 +29,8 @@
 #include "vk/pipeline.h"
 #include "vk/shader.h"
 #include <boost/pfr/core.hpp>
+#include <entt/entity/entity.hpp>
+#include <entt/entt.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -37,6 +39,8 @@
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
+#include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
@@ -74,7 +78,7 @@ vk::Format scene_renderer::find_usable_image_format(
 	return vk::Format::eUndefined;
 }
 
-std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel)
+std::shared_ptr<renderer::texture> scene_renderer::create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel)
 {
 	vk::Format format;
 
@@ -99,12 +103,12 @@ std::shared_ptr<scene_data::texture> scene_renderer::create_default_texture(vk::
 
 	std::shared_ptr<vk::raii::ImageView> image_view = loader.image_view;
 
-	return std::make_shared<scene_data::texture>(image_view, sampler_info{});
+	return std::make_shared<renderer::texture>(image_view, renderer::sampler_info{});
 }
 
-std::shared_ptr<scene_data::material> scene_renderer::create_default_material(vk::raii::CommandPool & cb_pool)
+std::shared_ptr<renderer::material> scene_renderer::create_default_material(vk::raii::CommandPool & cb_pool)
 {
-	auto default_material = std::make_shared<scene_data::material>();
+	auto default_material = std::make_shared<renderer::material>();
 	default_material->name = "default";
 
 	default_material->base_color_texture = create_default_texture(cb_pool, {255, 255, 255, 255});
@@ -200,23 +204,14 @@ scene_renderer::scene_renderer(
         vk::raii::PhysicalDevice physical_device,
         vk::raii::Queue & queue,
         vk::raii::CommandPool & cb_pool,
-        vk::Extent2D output_size,
-        vk::Format output_format,
-        // std::span<vk::Format> depth_formats,
-        vk::Format depth_format,
-        int frames_in_flight,
-        bool keep_depth_buffer) :
+        int frames_in_flight) :
         physical_device(physical_device),
         device(device),
         physical_device_properties(physical_device.getProperties()),
         queue(queue),
-        output_size(output_size),
-        output_format(output_format),
-        depth_format(depth_format),
         layout_0(create_descriptor_set_layout(layout_bindings_0, vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR)),
         layout_1(create_descriptor_set_layout(layout_bindings_1)),
-        ds_pool_material(device, layout_1, layout_bindings_1, 100), // TODO tunable
-        keep_depth_buffer(keep_depth_buffer)
+        ds_pool_material(device, layout_1, layout_bindings_1, 100) // TODO tunable
 {
 	// Create the default material
 	default_material = create_default_material(cb_pool);
@@ -243,8 +238,6 @@ scene_renderer::scene_renderer(
 	                .queryCount = uint32_t(2 * frames_in_flight),
 	        });
 
-	renderpass = create_renderpass();
-
 	std::array layouts{*layout_0, *layout_1};
 	pipeline_layout = create_pipeline_layout(layouts);
 }
@@ -264,40 +257,40 @@ void scene_renderer::wait_idle()
 		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 }
 
-// #define MSAA_4x
+vk::raii::RenderPass & scene_renderer::get_renderpass(const renderpass_info & info)
+{
+	auto it = renderpasses.find(info);
+	if (it != renderpasses.end())
+		return it->second;
 
-#ifdef MSAA_4x
-#define MSAA_SAMPLES vk::SampleCountFlagBits::e4
-#else
-#define MSAA_SAMPLES vk::SampleCountFlagBits::e1
-#endif
+	return renderpasses.emplace(info, create_renderpass(info)).first->second;
+}
 
-vk::raii::RenderPass scene_renderer::create_renderpass()
+vk::raii::RenderPass scene_renderer::create_renderpass(const renderpass_info & info_)
 {
 	vk::RenderPassCreateInfo info;
 
 	std::array attachments = {
 	        vk::AttachmentDescription{
-	                .format = output_format,
-	                .samples = MSAA_SAMPLES,
+	                .format = info_.color_format,
+	                .samples = info_.msaa_samples,
 	                .loadOp = vk::AttachmentLoadOp::eClear,
 	                .storeOp = vk::AttachmentStoreOp::eStore,
 	                .initialLayout = vk::ImageLayout::eUndefined,
 	                .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
 	        },
 	        vk::AttachmentDescription{
-	                .format = depth_format,
-	                .samples = MSAA_SAMPLES,
+	                .format = info_.depth_format,
+	                .samples = info_.msaa_samples,
 	                .loadOp = vk::AttachmentLoadOp::eClear,
-	                .storeOp = keep_depth_buffer ? vk::AttachmentStoreOp::eStore : vk::AttachmentStoreOp::eDontCare,
+	                .storeOp = info_.keep_depth_buffer ? vk::AttachmentStoreOp::eStore : vk::AttachmentStoreOp::eDontCare,
 	                .stencilLoadOp = vk::AttachmentLoadOp::eClear,
 	                .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
 	                .initialLayout = vk::ImageLayout::eUndefined,
 	                .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
 	        },
-#ifdef MSAA_4x
 	        vk::AttachmentDescription{
-	                .format = output_format,
+	                .format = info_.color_format,
 	                .samples = vk::SampleCountFlagBits::e1,
 	                .loadOp = vk::AttachmentLoadOp::eDontCare,
 	                .storeOp = vk::AttachmentStoreOp::eStore,
@@ -306,10 +299,17 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	                .initialLayout = vk::ImageLayout::eUndefined,
 	                .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
 
-	        }
-#endif
-	};
-	info.setAttachments(attachments);
+	        }};
+
+	if (info_.msaa_samples != vk::SampleCountFlagBits::e1)
+	{
+		info.setAttachments(attachments);
+	}
+	else
+	{
+		info.setPAttachments(attachments.data());
+		info.setAttachmentCount(2);
+	}
 
 	vk::AttachmentReference color_attachment{
 	        .attachment = 0,
@@ -321,22 +321,22 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	        .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
 	};
 
-#ifdef MSAA_4x
+	// Only used if MSAA is enabled
 	vk::AttachmentReference resolve_attachment{
 	        .attachment = 2,
 	        .layout = vk::ImageLayout::eColorAttachmentOptimal,
 	};
-#endif
 
 	vk::SubpassDescription subpasses{
 	        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
 	        .colorAttachmentCount = 1,
 	        .pColorAttachments = &color_attachment,
-#ifdef MSAA_4x
-	        .pResolveAttachments = &resolve_attachment,
-#endif
 	        .pDepthStencilAttachment = &depth_attachment,
 	};
+
+	if (info_.msaa_samples != vk::SampleCountFlagBits::e1)
+		subpasses.pResolveAttachments = &resolve_attachment;
+
 	info.setSubpasses(subpasses);
 
 	std::array dependencies{
@@ -361,53 +361,53 @@ vk::raii::RenderPass scene_renderer::create_renderpass()
 	return vk::raii::RenderPass(device, info);
 }
 
-scene_renderer::output_image & scene_renderer::get_output_image_data(vk::Image output_color, vk::Image output_depth)
+scene_renderer::output_image & scene_renderer::get_output_image_data(const output_image_info & info)
 {
-	std::pair images{output_color, output_depth};
-	auto it = output_images.find(images);
+	auto it = output_images.find(info);
 	if (it != output_images.end())
 		return it->second;
 
-	return output_images.emplace(images, create_output_image_data(output_color, output_depth)).first->second;
+	return output_images.emplace(info, create_output_image_data(info)).first->second;
 }
 
-scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image output_color, vk::Image output_depth)
+scene_renderer::output_image scene_renderer::create_output_image_data(const output_image_info & info)
 {
 	output_image out;
 
 	// TODO: use image view from xr::swapchain
 	out.image_view = vk::raii::ImageView(
 	        device, vk::ImageViewCreateInfo{
-	                        .image = output_color,
+	                        .image = info.color,
 	                        .viewType = vk::ImageViewType::e2D,
-	                        .format = output_format,
+	                        .format = info.renderpass.color_format,
 	                        .components{},
 	                        .subresourceRange = {
 	                                .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                                .baseMipLevel = 0,
 	                                .levelCount = 1,
-	                                .baseArrayLayer = 0,
+	                                .baseArrayLayer = info.base_array_layer,
 	                                .layerCount = 1,
 	                        },
 	                });
 
 	// TODO: check requiredFlags
-	if (not output_depth)
+	if (not info.depth)
 		out.depth_buffer = image_allocation{
 		        device,
 		        vk::ImageCreateInfo{
 		                .imageType = vk::ImageType::e2D,
-		                .format = depth_format,
+		                .format = info.renderpass.depth_format,
 		                .extent = {
-		                        .width = output_size.width,
-		                        .height = output_size.height,
+		                        .width = info.output_size.width,
+		                        .height = info.output_size.height,
 		                        .depth = 1,
 		                },
 		                .mipLevels = 1,
 		                .arrayLayers = 1,
-		                .samples = MSAA_SAMPLES,
+		                .samples = info.renderpass.msaa_samples,
 		                .tiling = vk::ImageTiling::eOptimal,
-		                .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment},
+		                .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
+		        },
 		        VmaAllocationCreateInfo{
 		                .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO,
@@ -417,77 +417,87 @@ scene_renderer::output_image scene_renderer::create_output_image_data(vk::Image 
 	out.depth_view = vk::raii::ImageView(
 	        device,
 	        vk::ImageViewCreateInfo{
-	                .image = output_depth ? output_depth : out.depth_buffer,
+	                .image = info.depth ? info.depth : out.depth_buffer,
 	                .viewType = vk::ImageViewType::e2D,
-	                .format = depth_format,
+	                .format = info.renderpass.depth_format,
 	                .components{},
 	                .subresourceRange = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eDepth,
 	                        .baseMipLevel = 0,
 	                        .levelCount = 1,
-	                        .baseArrayLayer = 0,
+	                        .baseArrayLayer = info.depth ? info.base_array_layer : 0,
 	                        .layerCount = 1,
 	                },
 	        });
 
-#ifdef MSAA_4x
-	out.multisample_image = image_allocation{vk::ImageCreateInfo{
-	                                                 .imageType = vk::ImageType::e2D,
-	                                                 .format = output_format,
-	                                                 .extent = {
-	                                                         .width = output_size.width,
-	                                                         .height = output_size.height,
-	                                                         .depth = 1,
-	                                                 },
-	                                                 .mipLevels = 1,
-	                                                 .arrayLayers = 1,
-	                                                 .samples = MSAA_SAMPLES,
-	                                                 .tiling = vk::ImageTiling::eOptimal,
-	                                                 .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
-	                                         },
-	                                         VmaAllocationCreateInfo{
-	                                                 .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
-	                                                 .usage = VMA_MEMORY_USAGE_AUTO,
-	                                                 .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // TODO: check
-	                                                 .preferredFlags = VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
-	                                         }};
+	if (info.renderpass.msaa_samples != vk::SampleCountFlagBits::e1)
+	{
+		out.multisample_image = image_allocation{
+		        device,
+		        vk::ImageCreateInfo{
+		                .imageType = vk::ImageType::e2D,
+		                .format = info.renderpass.color_format,
+		                .extent = {
+		                        .width = info.output_size.width,
+		                        .height = info.output_size.height,
+		                        .depth = 1,
+		                },
+		                .mipLevels = 1,
+		                .arrayLayers = 1,
+		                .samples = info.renderpass.msaa_samples,
+		                .tiling = vk::ImageTiling::eOptimal,
+		                .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
+		        },
+		        VmaAllocationCreateInfo{
+		                .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		                .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, // TODO: check
+		                .preferredFlags = VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
+		        }};
 
-	out.multisample_view = vk::raii::ImageView(device, vk::ImageViewCreateInfo{
-	                                                           .image = out.multisample_image,
-	                                                           .viewType = vk::ImageViewType::e2D,
-	                                                           .format = output_format,
-	                                                           .components{},
-	                                                           .subresourceRange = {
-	                                                                   .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                                                                   .baseMipLevel = 0,
-	                                                                   .levelCount = 1,
-	                                                                   .baseArrayLayer = 0,
-	                                                                   .layerCount = 1,
-	                                                           },
-	                                                   });
-#endif
+		out.multisample_view = vk::raii::ImageView(
+		        device,
+		        vk::ImageViewCreateInfo{
+		                .image = out.multisample_image,
+		                .viewType = vk::ImageViewType::e2D,
+		                .format = info.renderpass.color_format,
+		                .components{},
+		                .subresourceRange = {
+		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                        .baseMipLevel = 0,
+		                        .levelCount = 1,
+		                        .baseArrayLayer = 0,
+		                        .layerCount = 1,
+		                },
+		        });
+	}
 
 	vk::FramebufferCreateInfo fb_info{
-	        .renderPass = *renderpass,
-	        .width = output_size.width,
-	        .height = output_size.height,
+	        .renderPass = *get_renderpass(info.renderpass),
+	        .width = info.output_size.width,
+	        .height = info.output_size.height,
 	        .layers = 1,
 	};
 
-#ifdef MSAA_4x
-	std::array attachments{
-	        vk::ImageView{*out.multisample_view},
-	        vk::ImageView{*out.depth_view},
-	        vk::ImageView{*out.image_view},
-	};
-#else
-	std::array attachments{
-	        vk::ImageView{*out.image_view},
-	        vk::ImageView{*out.depth_view},
-	};
-#endif
-	fb_info.setAttachments(attachments);
-	out.framebuffer = vk::raii::Framebuffer(device, fb_info);
+	if (info.renderpass.msaa_samples != vk::SampleCountFlagBits::e1)
+	{
+		std::array attachments{
+		        vk::ImageView{*out.multisample_view},
+		        vk::ImageView{*out.depth_view},
+		        vk::ImageView{*out.image_view},
+		};
+		fb_info.setAttachments(attachments);
+		out.framebuffer = vk::raii::Framebuffer(device, fb_info);
+	}
+	else
+	{
+		std::array attachments{
+		        vk::ImageView{*out.image_view},
+		        vk::ImageView{*out.depth_view},
+		};
+		fb_info.setAttachments(attachments);
+		out.framebuffer = vk::raii::Framebuffer(device, fb_info);
+	}
 
 	return out;
 }
@@ -518,7 +528,7 @@ vk::raii::PipelineLayout scene_renderer::create_pipeline_layout(std::span<vk::De
 
 vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 {
-	auto vertex_description = scene_data::vertex::describe();
+	auto vertex_description = renderer::vertex::describe();
 
 	spdlog::debug("Creating pipeline");
 
@@ -580,18 +590,8 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                        .topology = info.topology,
 	                        .primitiveRestartEnable = false,
 	                }},
-	                .Viewports = {vk::Viewport{
-	                        .x = 0,
-	                        .y = 0,
-	                        .width = (float)output_size.width,
-	                        .height = (float)output_size.height,
-	                        .minDepth = 0,
-	                        .maxDepth = 1,
-	                }},
-	                .Scissors = {vk::Rect2D{
-	                        .offset = {0, 0},
-	                        .extent = output_size,
-	                }},
+	                .Viewports = {vk::Viewport{}}, // Dynamic scissor / viewport but the count must be set
+	                .Scissors = {vk::Rect2D{}},
 	                .RasterizationState = {vk::PipelineRasterizationStateCreateInfo{
 	                        .polygonMode = vk::PolygonMode::eFill,
 	                        .cullMode = info.cull_mode,
@@ -599,7 +599,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                        .lineWidth = 1.0,
 	                }},
 	                .MultisampleState = {vk::PipelineMultisampleStateCreateInfo{
-	                        .rasterizationSamples = MSAA_SAMPLES,
+	                        .rasterizationSamples = info.renderpass.msaa_samples,
 	                }},
 	                .DepthStencilState = {vk::PipelineDepthStencilStateCreateInfo{
 	                        .depthTestEnable = info.depth_test_enable,
@@ -619,13 +619,17 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                        .dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
 	                        .alphaBlendOp = vk::BlendOp::eAdd,
 	                        .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA}},
+	                .DynamicStates = {
+	                        vk::DynamicState::eViewport,
+	                        vk::DynamicState::eScissor,
+	                },
 	                .layout = *pipeline_layout,
-	                .renderPass = *renderpass,
+	                .renderPass = *get_renderpass(info.renderpass),
 	                .subpass = 0,
 	        }};
 }
 
-vk::Sampler scene_renderer::get_sampler(const sampler_info & info)
+vk::Sampler scene_renderer::get_sampler(const renderer::sampler_info & info)
 {
 	auto it = samplers.find(info);
 	if (it != samplers.end())
@@ -715,14 +719,14 @@ scene_renderer::per_frame_resources & scene_renderer::current_frame()
 	return frame_resources[current_frame_index];
 }
 
-void scene_renderer::update_material_descriptor_set(scene_data::material & material)
+void scene_renderer::update_material_descriptor_set(renderer::material & material)
 {
 	if (!material.ds || material.ds.use_count() != 1)
 		material.ds = ds_pool_material.allocate();
 
 	vk::DescriptorSet ds = **material.ds;
 
-	auto f = [&](std::shared_ptr<scene_data::texture> & texture) {
+	auto f = [&](std::shared_ptr<renderer::texture> & texture) {
 		return vk::DescriptorImageInfo{
 		        .sampler = get_sampler(texture->sampler),
 		        .imageView = **texture->image_view,
@@ -741,7 +745,7 @@ void scene_renderer::update_material_descriptor_set(scene_data::material & mater
 	vk::DescriptorBufferInfo write_ds_buffer{
 	        .buffer = *material.buffer,
 	        .offset = material.offset,
-	        .range = sizeof(scene_data::material::gpu_data),
+	        .range = sizeof(renderer::material::gpu_data),
 	};
 
 	// Write each descriptor separately because the HTC XR Elite needs it for some reason
@@ -793,24 +797,74 @@ void scene_renderer::update_material_descriptor_set(scene_data::material & mater
 	device.updateDescriptorSets(write_ds, {});
 }
 
-// static void print_scene_hierarchy(const scene_data& scene, std::span<glm::mat4> model_matrices, size_t root = scene_data::node::root_id, int level = 0)
+static void print_scene_hierarchy(const entt::registry & scene, entt::entity root = entt::null, int level = 0)
+{
+	if (level == 0)
+		spdlog::info("Node hierarchy:");
+
+	for (auto && [entity, node]: scene.view<components::node>().each())
+	{
+		if (node.parent != root)
+			continue;
+
+		// glm::mat4 M = model_matrices[index];
+		// glm::vec4 pos = glm::column(M, 3);
+		// spdlog::info("{:{}} {} pos={}, rot={}, pos to root={}", "", level * 2, node.name, node.translation, node.rotation, glm::vec3(pos));
+
+		spdlog::info("{:{}} {} ({}, visible: {}, {})", "", level * 2, node.name, (int)entity, node.visible, node.global_visible);
+
+		print_scene_hierarchy(scene, entity, level + 1);
+	}
+	if (level == 0)
+		spdlog::info("---------------");
+}
+
+// Topological sort of all nodes
+// static std::vector<entt::entity> sort_nodes(entt::registry & scene)
 // {
-// 	for(const auto&& [index, node]: utils::enumerate(scene.scene_nodes))
+// 	std::vector<std::pair<entt::entity, entt::entity>> unsorted; // first: child, second: parent
+// 	std::unordered_set<entt::entity> processed;
+// 	std::vector<entt::entity> sorted;
+//
+// 	for(auto && [entity, node]: scene.view<components::node>().each())
 // 	{
-// 		if (node.parent_id != root)
-// 			continue;
-//
-// 		// glm::mat4 M = model_matrices[index];
-// 		// glm::vec4 pos = glm::column(M, 3);
-// 		// spdlog::info("{:{}} {} pos={}, rot={}, pos to root={}", "", level * 2, node.name, node.translation, node.rotation, glm::vec3(pos));
-//
-// 		spdlog::info("{:{}} {}", "", level * 2, node.name);
-//
-// 		print_scene_hierarchy(scene, model_matrices, index, level + 1);
+// 		if (scene.valid(node.parent))
+// 			unsorted.push_back({entity, node.parent});
+// 		else
+// 		{
+// 			processed.emplace(entity);
+// 			sorted.push_back(entity);
+// 		}
 // 	}
+//
+// 	while(not unsorted.empty())
+// 	{
+// 		for(auto it = unsorted.begin(); it != unsorted.end(); )
+// 		{
+// 			if (processed.contains(it->second))
+// 			{
+// 				processed.emplace(it->first);
+// 				sorted.push_back(it->first);
+// 				it = unsorted.erase(it);
+// 			}
+// 			else
+// 				++it;
+// 		}
+// 	}
+//
+// 	return sorted;
 // }
 
-void scene_renderer::render(scene_data & scene, const std::array<float, 4> & clear_color, std::span<frame_info> frames)
+void scene_renderer::render(
+        entt::registry & scene,
+        const std::array<float, 4> & clear_color,
+        uint32_t layer_mask,
+        vk::Extent2D output_size,
+        vk::Format color_format,
+        vk::Format depth_format,
+        vk::Image color_buffer,
+        vk::Image depth_buffer,
+        std::span<frame_info> frames)
 {
 	per_frame_resources & resources = current_frame();
 
@@ -826,41 +880,48 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 	        vk::ClearDepthStencilValue{0.0, 0},
 	};
 
-	auto vertex_layout = scene_data::vertex::describe();
-
-	std::vector<glm::mat4> transform_to_root(scene.scene_nodes.size());
-	std::vector<bool> reverse_side(scene.scene_nodes.size());
-	std::vector<bool> visible(scene.scene_nodes.size());
-
-	for (const auto & [index, object]: utils::enumerate(scene.scene_nodes))
+	// TODO once per frame, even if render is called several times
+	for (auto && [entity, node]: scene.view<components::node>().each())
 	{
-		glm::mat4 transform_to_parent = glm::translate(glm::mat4(1), object.position) * (glm::mat4)object.orientation * glm::scale(glm::mat4(1), object.scale);
-		float det = object.scale.x * object.scale.y * object.scale.z;
+		glm::mat4 transform_to_root{1.0}; // Identity
+		bool visible = true;
+		bool reverse_side = false;
+		uint32_t layers = -1;
 
-		if (object.parent_id == scene_data::node::root_id)
+		for (auto i = &node; i != nullptr and visible; i = scene.try_get<components::node>(i->parent))
 		{
-			transform_to_root[index] = transform_to_parent;
-			reverse_side[index] = det < 0;
-			visible[index] = object.visible;
+			float det = i->scale.x * i->scale.y * i->scale.z;
+			glm::mat4 transform_to_parent = glm::translate(glm::mat4(1), i->position) * (glm::mat4)i->orientation * glm::scale(glm::mat4(1), i->scale);
+
+			transform_to_root = transform_to_parent * transform_to_root;
+			reverse_side = reverse_side ^ (det < 0);
+			visible = visible and i->visible;
+			layers = layers bitand i->layer_mask;
 		}
-		else
-		{
-			size_t parent = object.parent_id;
-			assert(parent < index);
 
-			transform_to_root[index] = transform_to_root.at(parent) * transform_to_parent;
-
-			reverse_side[index] = reverse_side[parent] ^ (det < 0);
-
-			visible[index] = visible[parent] && object.visible;
-		}
+		node.transform_to_root = transform_to_root;
+		node.global_visible = visible;
+		node.reverse_side = reverse_side;
+		node.global_layer_mask = layers;
 	}
 
-	// print_scene_hierarchy(scene, transform_to_root);
+	// print_scene_hierarchy(scene);
 
 	for (const auto && [frame_index, frame]: utils::enumerate(frames))
 	{
-		scene_renderer::output_image & output = get_output_image_data(frame.destination, frame.depth_buffer);
+		scene_renderer::output_image & output = get_output_image_data(output_image_info{
+		        .renderpass = {
+		                .color_format = color_format,
+		                .depth_format = depth_format,
+		                .keep_depth_buffer = depth_buffer != vk::Image{},
+		                .msaa_samples = vk::SampleCountFlagBits::e1,
+		                // .msaa_samples = vk::SampleCountFlagBits::e4, // FIXME: MSAA does not work
+		        },
+		        .output_size = output_size,
+		        .color = color_buffer,
+		        .depth = depth_buffer,
+		        .base_array_layer = (uint32_t)frame_index,
+		});
 		glm::mat4 viewproj = frame.projection * frame.view;
 
 		vk::DeviceSize frame_ubo_offset = resources.uniform_buffer_offset;
@@ -873,12 +934,18 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 		// frame_ubo.ambient_color = glm::vec4(0.2,0.2,0.2,0); // TODO
 		// frame_ubo.light_color = glm::vec4(0.8,0.8,0.8,0); // TODO
 
-		frame_ubo.ambient_color = glm::vec4(0, 0, 0, 0);     // TODO
-		frame_ubo.light_color = glm::vec4(0.8, 0.8, 0.8, 0); // TODO
+		frame_ubo.ambient_color = glm::vec4(0.1, 0.1, 0.1, 0); // TODO
+		frame_ubo.light_color = glm::vec4(0.8, 0.8, 0.8, 0);   // TODO
 
 		frame_ubo.light_position = glm::vec4(1, 1, 1, 0); // TODO
 		frame_ubo.proj = frame.projection;
 		frame_ubo.view = frame.view;
+
+		vk::raii::RenderPass & renderpass = get_renderpass(renderpass_info{
+		        .color_format = color_format,
+		        .depth_format = depth_format,
+		        .keep_depth_buffer = depth_buffer != vk::Image{},
+		});
 
 		cb.beginRenderPass(
 		        vk::RenderPassBeginInfo{
@@ -893,17 +960,46 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 		        },
 		        vk::SubpassContents::eInline);
 
-		for (const auto & [index, node]: utils::enumerate(scene.scene_nodes))
+		// Accumulate all visible primitives
+		std::vector<std::tuple<bool, float, components::node *, renderer::primitive *>> primitives; // TODO keep it between frames
+		for (auto && [entity, node]: scene.view<components::node>().each())
 		{
-			if (!node.mesh_id)
+			if (not node.global_visible or not node.mesh or (node.global_layer_mask & layer_mask) == 0)
 				continue;
 
-			if (!visible[index])
-				continue;
+			// Position relative to the camera
+			glm::vec4 position = frame.view * node.transform_to_root * glm::vec4(0, 0, 0, 1);
 
-			scene_data::mesh & mesh = scene.meshes.at(*node.mesh_id);
-			glm::mat4 & transform = transform_to_root[index];
+			for (renderer::primitive & primitive: node.mesh->primitives)
+			{
+				renderer::material & material = primitive.material_ ? *primitive.material_ : *default_material;
+				primitives.emplace_back(material.blend_enable, position.z, &node, &primitive);
+			}
+		}
 
+		// Sort by blending / distance
+		// TODO add frustum culling
+		std::ranges::stable_sort(primitives, [](const auto & a, const auto & b) -> bool {
+			// Put the opaque objects first
+			if (std::get<0>(a) < std::get<0>(b))
+				return true;
+			if (std::get<0>(a) > std::get<0>(b))
+				return false;
+
+			// If blending is disabled (std::get<0> == false), put the closest objects first
+			// If blending is enabled (std::get<0> == true), put the farthest objeccts first
+			return std::get<0>(a) ^ (std::get<1>(a) > std::get<1>(b));
+		});
+
+		// TODO try to add a depth pre-pass
+		for (auto & [blend_enable, distance, node_ptr, primitive_ptr]: primitives)
+		{
+			components::node & node = *node_ptr;
+			renderer::primitive & primitive = *primitive_ptr;
+
+			glm::mat4 & transform = node.transform_to_root;
+
+			// TODO: reuse the UBO if another primitive of the same mesh has already been drawn
 			vk::DeviceSize instance_ubo_offset = resources.uniform_buffer_offset;
 			instance_gpu_data & object_ubo = *reinterpret_cast<instance_gpu_data *>(ubo + resources.uniform_buffer_offset);
 			resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data));
@@ -918,7 +1014,8 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 
 				for (auto && [idx, joint]: utils::enumerate(node.joints))
 				{
-					joint_matrices[idx] = glm::inverse(transform) * transform_to_root[joint.first] * joint.second;
+					glm::mat4 & joint_transform = scene.get<components::node>(joint.first).transform_to_root;
+					joint_matrices[idx] = glm::inverse(transform) * joint_transform * joint.second;
 				}
 			}
 
@@ -927,87 +1024,102 @@ void scene_renderer::render(scene_data & scene, const std::array<float, 4> & cle
 			object_ubo.modelviewproj = viewproj * transform;
 			object_ubo.clipping_planes = node.clipping_planes;
 
-			for (scene_data::primitive & primitive: mesh.primitives)
-			{
-				// Get the material
-				std::shared_ptr<scene_data::material> material = primitive.material_ ? primitive.material_ : default_material;
+			// Get the material
+			std::shared_ptr<renderer::material> material = primitive.material_ ? primitive.material_ : default_material;
 
-				if (material->ds_dirty || !material->ds)
-					update_material_descriptor_set(*material);
+			if (material->ds_dirty || !material->ds)
+				update_material_descriptor_set(*material);
 
-				// Get the pipeline
-				pipeline_info info{
-				        .shader_name = material->shader_name,
-				        .cull_mode = primitive.cull_mode,
-				        .front_face = primitive.front_face,
-				        .topology = primitive.topology,
-				        .blend_enable = material->blend_enable,
+			// Get the pipeline
+			pipeline_info info{
+			        .renderpass = {
+			                .color_format = color_format,
+			                .depth_format = depth_format,
+			                .keep_depth_buffer = depth_buffer != vk::Image{}},
+			        .shader_name = material->shader_name,
+			        .cull_mode = primitive.cull_mode,
+			        .front_face = primitive.front_face,
+			        .topology = primitive.topology,
+			        .blend_enable = material->blend_enable,
 
-				        .nb_texcoords = 2, // TODO
-				        .skinning = !node.joints.empty(),
-				};
+			        .nb_texcoords = 2, // TODO
+			        .skinning = !node.joints.empty(),
+			};
 
-				if (material->double_sided)
-					info.cull_mode = vk::CullModeFlagBits::eNone;
+			if (material->double_sided)
+				info.cull_mode = vk::CullModeFlagBits::eNone;
 
-				if (reverse_side[index])
-					info.front_face = reverse(info.front_face);
+			if (node.reverse_side)
+				info.front_face = reverse(info.front_face);
 
-				cb.bindPipeline(vk::PipelineBindPoint::eGraphics, *get_pipeline(info));
+			cb.bindPipeline(vk::PipelineBindPoint::eGraphics, *get_pipeline(info));
 
-				if (primitive.indexed)
-					cb.bindIndexBuffer(*mesh.buffer, primitive.index_offset, primitive.index_type);
+			cb.setViewport(0, vk::Viewport{
+			                          .x = 0,
+			                          .y = 0,
+			                          .width = (float)output_size.width,
+			                          .height = (float)output_size.height,
+			                          .minDepth = 0,
+			                          .maxDepth = 1,
+			                  });
 
-				cb.bindVertexBuffers(0, (vk::Buffer)*mesh.buffer, primitive.vertex_offset);
+			cb.setScissor(0, vk::Rect2D{
+			                         .offset = {0, 0},
+			                         .extent = output_size,
+			                 });
 
-				vk::DescriptorBufferInfo buffer_info_1{
-				        .buffer = resources.uniform_buffer,
-				        .offset = frame_ubo_offset,
-				        .range = sizeof(frame_gpu_data)
+			if (primitive.indexed)
+				cb.bindIndexBuffer(*node.mesh->buffer, primitive.index_offset, primitive.index_type);
 
-				};
-				vk::DescriptorBufferInfo buffer_info_2{
-				        .buffer = resources.uniform_buffer,
-				        .offset = instance_ubo_offset,
-				        .range = sizeof(instance_gpu_data)};
-				vk::DescriptorBufferInfo buffer_info_3{
-				        .buffer = resources.uniform_buffer,
-				        .offset = joints_ubo_offset,
-				        .range = sizeof(glm::mat4) * 32};
+			cb.bindVertexBuffers(0, (vk::Buffer)*node.mesh->buffer, primitive.vertex_offset);
 
-				std::array descriptors{
-				        vk::WriteDescriptorSet{
-				                .dstBinding = 0,
-				                .descriptorCount = 1,
-				                .descriptorType = vk::DescriptorType::eUniformBuffer,
-				                .pBufferInfo = &buffer_info_1,
-				        },
-				        vk::WriteDescriptorSet{
-				                .dstBinding = 1,
-				                .descriptorCount = 1,
-				                .descriptorType = vk::DescriptorType::eUniformBuffer,
-				                .pBufferInfo = &buffer_info_2,
-				        },
-				        vk::WriteDescriptorSet{
-				                .dstBinding = 2,
-				                .descriptorCount = 1,
-				                .descriptorType = vk::DescriptorType::eUniformBuffer,
-				                .pBufferInfo = &buffer_info_3,
-				        },
-				};
+			vk::DescriptorBufferInfo buffer_info_1{
+			        .buffer = resources.uniform_buffer,
+			        .offset = frame_ubo_offset,
+			        .range = sizeof(frame_gpu_data)
 
-				cb.pushDescriptorSetKHR(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptors);
+			};
+			vk::DescriptorBufferInfo buffer_info_2{
+			        .buffer = resources.uniform_buffer,
+			        .offset = instance_ubo_offset,
+			        .range = sizeof(instance_gpu_data)};
+			vk::DescriptorBufferInfo buffer_info_3{
+			        .buffer = resources.uniform_buffer,
+			        .offset = joints_ubo_offset,
+			        .range = sizeof(glm::mat4) * 32};
 
-				// Set 1: material
-				cb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 1, **material->ds, {});
+			std::array descriptors{
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 0,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eUniformBuffer,
+			                .pBufferInfo = &buffer_info_1,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 1,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eUniformBuffer,
+			                .pBufferInfo = &buffer_info_2,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 2,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eUniformBuffer,
+			                .pBufferInfo = &buffer_info_3,
+			        },
+			};
 
-				if (primitive.indexed)
-					cb.drawIndexed(primitive.index_count, 1, 0, 0, 0);
-				else
-					cb.draw(primitive.vertex_count, 1, 0, 0);
+			cb.pushDescriptorSetKHR(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptors);
 
-				resources.resources.push_back(material->ds);
-			}
+			// Set 1: material
+			cb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 1, **material->ds, {});
+
+			if (primitive.indexed)
+				cb.drawIndexed(primitive.index_count, 1, 0, 0, 0);
+			else
+				cb.draw(primitive.vertex_count, 1, 0, 0);
+
+			resources.resources.push_back(material->ds);
 		}
 		cb.endRenderPass();
 	}

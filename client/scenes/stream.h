@@ -119,7 +119,6 @@ private:
 
 	xr::swapchain swapchain;
 	xr::swapchain swapchain_imgui;
-	vk::Format swapchain_format;
 
 	std::optional<audio> audio_handle;
 
@@ -131,7 +130,7 @@ private:
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> current_blit_handles;
 
-	stream() = default;
+	stream();
 
 public:
 	~stream();

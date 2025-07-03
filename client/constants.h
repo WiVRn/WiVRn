@@ -91,7 +91,7 @@ constexpr float recenter_action_distance = 0.3;
 constexpr float initial_gui_distance = 0.5;
 
 // Skybox color
-constexpr std::array<float, 4> sky_color = {0, 0.25, 0.5, 1};
+constexpr XrColor4f sky_color = {0, 0.25, 0.5, 1};
 
 // Dimming scale/bias when a popup window is shown
 constexpr XrColor4f dimming_scale = {0.5, 0.5, 0.5, 1};

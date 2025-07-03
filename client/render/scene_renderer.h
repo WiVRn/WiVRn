@@ -24,7 +24,6 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-#include <map>
 #include <span>
 #include <unordered_map>
 #include <vector>
@@ -34,10 +33,22 @@
 #include "vk/allocation.h"
 
 #include "render/growable_descriptor_pool.h"
-#include "render/scene_data.h"
+#include "render/scene_components.h"
+
+struct renderpass_info
+{
+	vk::Format color_format;
+	vk::Format depth_format;
+	bool keep_depth_buffer;
+	vk::SampleCountFlagBits msaa_samples = vk::SampleCountFlagBits::e1;
+
+	bool operator==(const renderpass_info & other) const noexcept = default;
+};
 
 struct pipeline_info
 {
+	renderpass_info renderpass;
+
 	std::string shader_name;
 
 	vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eNone;
@@ -56,10 +67,34 @@ struct pipeline_info
 	bool operator==(const pipeline_info & other) const noexcept = default;
 };
 
+struct output_image_info
+{
+	renderpass_info renderpass;
+
+	vk::Extent2D output_size;
+	VkImage color;
+	VkImage depth;
+	uint32_t base_array_layer;
+
+	bool operator==(const output_image_info & other) const noexcept = default;
+};
+
 namespace std
 {
 template <>
+struct hash<renderpass_info> : utils::magic_hash<renderpass_info>
+{};
+
+template <>
 struct hash<pipeline_info> : utils::magic_hash<pipeline_info>
+{};
+
+template <>
+struct hash<vk::Extent2D> : utils::magic_hash<vk::Extent2D>
+{};
+
+template <>
+struct hash<output_image_info> : utils::magic_hash<output_image_info>
 {};
 } // namespace std
 
@@ -70,11 +105,6 @@ class scene_renderer
 	vk::PhysicalDeviceProperties physical_device_properties;
 	vk::raii::Queue & queue;
 
-	// Scene format
-	const vk::Extent2D output_size;
-	const vk::Format output_format;
-	const vk::Format depth_format;
-
 	// Destination images
 	struct output_image
 	{
@@ -84,26 +114,28 @@ class scene_renderer
 		image_allocation depth_buffer;
 		vk::raii::ImageView depth_view = nullptr;
 
-		// image_allocation multisample_image;
-		// vk::raii::ImageView multisample_view = nullptr;
+		image_allocation multisample_image;
+		vk::raii::ImageView multisample_view = nullptr;
 	};
 
 	// Initialization functions
-	output_image create_output_image_data(vk::Image output_color, vk::Image output_depth);
-	vk::raii::RenderPass create_renderpass();
+	output_image create_output_image_data(const output_image_info & info);
+	vk::raii::RenderPass create_renderpass(const renderpass_info & info);
 	vk::raii::PipelineLayout create_pipeline_layout(std::span<vk::DescriptorSetLayout> layouts);
 	vk::raii::Pipeline create_pipeline(const pipeline_info & info);
 
-	std::shared_ptr<scene_data::texture> create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel);
-	std::shared_ptr<scene_data::material> create_default_material(vk::raii::CommandPool & cb_pool);
+	std::shared_ptr<renderer::texture> create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel);
+	std::shared_ptr<renderer::material> create_default_material(vk::raii::CommandPool & cb_pool);
 	vk::raii::DescriptorSetLayout create_descriptor_set_layout(std::span<vk::DescriptorSetLayoutBinding> bindings, vk::DescriptorSetLayoutCreateFlags flags = {});
 
 	// Caches
-	std::/*unordered_*/ map<std::pair<VkImage, VkImage>, output_image> output_images; // TODO: use an unordered_map, create a hash for std::pair
+	std::unordered_map<renderpass_info, vk::raii::RenderPass> renderpasses;
+	std::unordered_map<output_image_info, output_image> output_images;
 	std::unordered_map<pipeline_info, vk::raii::Pipeline> pipelines;
 
-	output_image & get_output_image_data(vk::Image output_color, vk::Image output_depth);
+	output_image & get_output_image_data(const output_image_info & info);
 	vk::raii::Pipeline & get_pipeline(const pipeline_info & info);
+	vk::raii::RenderPass & get_renderpass(const renderpass_info & info);
 
 	vk::raii::DescriptorSetLayout layout_0; // Descriptor set 0: per-frame/view data (UBO) and per-instance data (UBO + SSBO)
 	vk::raii::DescriptorSetLayout layout_1; // Descriptor set 1: per-material data (5 combined image samplers and 1 uniform buffer)
@@ -114,11 +146,8 @@ class scene_renderer
 	vk::raii::PipelineLayout pipeline_layout = nullptr;
 
 	// Texture samplers
-	std::unordered_map<sampler_info, std::shared_ptr<vk::raii::Sampler>> samplers;
-	vk::Sampler get_sampler(const sampler_info & info);
-
-	// Render pass
-	vk::raii::RenderPass renderpass = nullptr;
+	std::unordered_map<renderer::sampler_info, std::shared_ptr<vk::raii::Sampler>> samplers;
+	vk::Sampler get_sampler(const renderer::sampler_info & info);
 
 	// Default material and textures
 	// This material has 1x1 textures with the following values:
@@ -134,7 +163,7 @@ class scene_renderer
 	//  roughness_factor     1.0
 	//  occlusion_strength   0.0
 	//  normal_scale         0.0
-	std::shared_ptr<scene_data::material> default_material;
+	std::shared_ptr<renderer::material> default_material;
 
 	struct frame_gpu_data
 	{
@@ -170,11 +199,10 @@ class scene_renderer
 	int current_frame_index;
 	vk::raii::QueryPool query_pool = nullptr;
 	double gpu_time_s = 0;
-	bool keep_depth_buffer = false;
 
 	per_frame_resources & current_frame();
 
-	void update_material_descriptor_set(scene_data::material & material);
+	void update_material_descriptor_set(renderer::material & material);
 
 public:
 	static vk::Format find_usable_image_format(
@@ -191,24 +219,27 @@ public:
 	        vk::raii::PhysicalDevice physical_device,
 	        vk::raii::Queue & queue,
 	        vk::raii::CommandPool & cb_pool,
-	        vk::Extent2D output_size,
-	        vk::Format output_format,
-	        vk::Format depth_format,
-	        int frames_in_flight = 2,
-	        bool keep_depth_buffer = false);
+	        int frames_in_flight = 2);
 
 	~scene_renderer();
 
 	struct frame_info
 	{
-		vk::Image destination;
-		vk::Image depth_buffer;
 		glm::mat4 projection;
 		glm::mat4 view;
 	};
 
 	void start_frame();
-	void render(scene_data & scene, const std::array<float, 4> & clear_color, std::span<frame_info> info);
+	void render(
+	        entt::registry & scene,
+	        const std::array<float, 4> & clear_color,
+	        uint32_t layer_mask,
+	        vk::Extent2D output_size,
+	        vk::Format output_format,
+	        vk::Format depth_format,
+	        vk::Image color_buffer,
+	        vk::Image depth_buffer,
+	        std::span<frame_info> info);
 	void end_frame();
 
 	double get_gpu_time() const
@@ -216,7 +247,7 @@ public:
 		return gpu_time_s;
 	}
 
-	std::shared_ptr<scene_data::material> get_default_material()
+	std::shared_ptr<renderer::material> get_default_material()
 	{
 		return default_material;
 	}
