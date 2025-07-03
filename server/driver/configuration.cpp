@@ -19,6 +19,8 @@
 
 #define JSON_DISABLE_ENUM_SERIALIZATION 1
 
+#include "configuration.h"
+
 #include <algorithm>
 #include <chrono>
 #include <ctime>
@@ -31,10 +33,10 @@
 
 #include "util/u_logging.h"
 
-#include "configuration.h"
 #include "utils/xdg_base_directory.h"
+#include "wivrn_config.h"
 
-static std::filesystem::path config_file = xdg_config_home() / "wivrn" / "config.json";
+static std::filesystem::path config_file;
 static std::filesystem::path known_keys_file = xdg_config_home() / "wivrn" / "known_keys.json";
 static std::filesystem::path cookie_file = xdg_config_home() / "wivrn" / "cookie";
 
@@ -65,10 +67,54 @@ void configuration::set_config_file(const std::filesystem::path & path)
 {
 	config_file = path;
 }
-
-const std::filesystem::path & configuration::get_config_file()
+std::filesystem::path configuration::get_config_file()
 {
+	if (config_file.empty())
+		return xdg_config_home() / "wivrn" / "config.json";
 	return config_file;
+}
+
+nlohmann::json configuration::read_configuration()
+{
+	if (config_file.empty())
+	{
+		nlohmann::json merged;
+		for (std::filesystem::path prefix: {
+		             std::filesystem::path(WIVRN_INSTALL_PREFIX "/share"),
+		             std::filesystem::path("/etc"),
+		             xdg_config_home(),
+		     })
+		{
+			auto path = prefix / "wivrn" / "config.json";
+			if (std::filesystem::exists(path))
+			{
+				try
+				{
+					for (const auto & [key, value]: nlohmann::json::parse(std::ifstream(path)).get<nlohmann::json::object_t>())
+					{
+						merged[key] = value;
+					}
+				}
+				catch (std::exception & e)
+				{
+					U_LOG_E("Invalid configuration file %s: %s", path.c_str(), e.what());
+				}
+			}
+		}
+		return merged;
+	}
+	else
+	{
+		try
+		{
+			return nlohmann::json::parse(std::ifstream(config_file));
+		}
+		catch (std::exception & e)
+		{
+			U_LOG_E("Invalid configuration file %s: %s", config_file.c_str(), e.what());
+			return nlohmann::json();
+		}
+	}
 }
 
 configuration::encoder parse_encoder(const nlohmann::json & item)
@@ -94,85 +140,78 @@ configuration::encoder parse_encoder(const nlohmann::json & item)
 	return e;
 }
 
-configuration configuration::read_user_configuration()
+configuration::configuration()
 {
-	configuration result;
-	if (not std::filesystem::exists(config_file))
-		return result;
-	std::ifstream file(config_file);
 	try
 	{
-		auto json = nlohmann::json::parse(file);
+		auto json = read_configuration();
 
 		if (auto it = json.find("scale"); it != json.end())
 		{
 			if (it->is_number())
-				result.scale = std::array<double, 2>{*it, *it};
+				scale = std::array<double, 2>{*it, *it};
 			else
-				result.scale = *it;
+				scale = *it;
 		}
 
 		if (auto it = json.find("grip-surface"); it != json.end())
 		{
-			result.grip_surface = *it;
+			grip_surface = *it;
 		}
 
 		if (auto it = json.find("bitrate"); it != json.end())
-			result.bitrate = *it;
+			bitrate = *it;
 
 		if (auto it = json.find("encoders"); it != json.end())
 		{
 			for (const auto & encoder: *it)
-				result.encoders.push_back(parse_encoder(encoder));
+				encoders.push_back(parse_encoder(encoder));
 		}
 
 		if (auto it = json.find("encoder-passthrough"); it != json.end())
-			result.encoder_passthrough = parse_encoder(*it);
+			encoder_passthrough = parse_encoder(*it);
 
 		if (auto it = json.find("application"); it != json.end())
 		{
 			if (it->is_string())
-				result.application.push_back(*it);
+				application.push_back(*it);
 			else
 			{
 				for (const auto & i: *it)
-					result.application.push_back(i);
+					application.push_back(i);
 			}
 		}
 
 		if (auto it = json.find("debug-gui"); it != json.end())
-			result.debug_gui = *it;
+			debug_gui = *it;
 
 		if (auto it = json.find("use-steamvr-lh"); it != json.end())
-			result.use_steamvr_lh = *it;
+			use_steamvr_lh = *it;
 
 		if (auto it = json.find("tcp-only"); it != json.end())
-			result.tcp_only = *it;
+			tcp_only = *it;
 		else if (auto it = json.find("tcp_only"); it != json.end())
-			result.tcp_only = *it;
+			tcp_only = *it;
 
 		if (auto it = json.find("publish-service"); it != json.end())
 		{
-			result.publication = *it;
-			if (result.publication == service_publication(-1))
+			publication = *it;
+			if (publication == service_publication(-1))
 				throw std::runtime_error("invalid service publication " + it->get<std::string>());
 		}
 
 		if (auto it = json.find("openvr-compat-path"); it != json.end())
 		{
 			if (it->is_null())
-				result.openvr_compat_path = nullptr;
+				openvr_compat_path = nullptr;
 			else
-				result.openvr_compat_path = *it;
+				openvr_compat_path = *it;
 		}
 	}
 	catch (const std::exception & e)
 	{
-		U_LOG_E("Invalid configuration file: %s", e.what());
-		return {};
+		U_LOG_E("Configuration file error: %s", e.what());
 	}
-
-	return result;
 }
 
 std::string server_cookie()

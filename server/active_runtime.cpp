@@ -76,7 +76,7 @@ std::filesystem::path active_runtime::openvr_compat_path()
 		                return std::filesystem::path();
 	                },
 	        },
-	        configuration::read_user_configuration().openvr_compat_path);
+	        configuration().openvr_compat_path);
 }
 
 static std::filesystem::path backup_name(std::filesystem::path file)

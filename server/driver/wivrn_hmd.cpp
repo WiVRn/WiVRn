@@ -89,7 +89,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
         },
         cnx(cnx)
 {
-	const auto config = configuration::read_user_configuration();
+	const auto config = configuration();
 
 	auto eye_width = info.recommended_eye_width;
 	eye_width = ((eye_width + 3) / 4) * 4;

@@ -23,6 +23,7 @@
 #include <chrono>
 #include <filesystem>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <variant>
@@ -68,8 +69,10 @@ struct configuration
 	std::variant<std::monostate, std::string, std::nullptr_t> openvr_compat_path;
 
 	static void set_config_file(const std::filesystem::path &);
-	static const std::filesystem::path & get_config_file();
-	static configuration read_user_configuration();
+	static std::filesystem::path get_config_file();
+
+	static nlohmann::json read_configuration();
+	configuration();
 };
 
 std::string server_cookie();

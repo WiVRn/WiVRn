@@ -572,7 +572,7 @@ wivrn_controller::wivrn_controller(int hand_id,
 	SET_INPUT(TOUCH, GRIP_POSE);
 	SET_INPUT(GENERIC, PALM_POSE);
 
-	if (auto grip_surface = configuration::read_user_configuration().grip_surface)
+	if (auto grip_surface = configuration().grip_surface)
 	{
 		std::array<float, 3> angles = grip_surface.value();
 		float deg_2_rad = std::numbers::pi / 180.0;
