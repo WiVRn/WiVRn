@@ -948,10 +948,17 @@ void application::initialize_actions()
 		if (!profile.available)
 			continue;
 
-		// Patch profile to add palm_ext
-		if (utils::contains(xr_extensions, XR_EXT_PALM_POSE_EXTENSION_NAME)               //
-		    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose") //
-		    and not utils::contains(profile.input_sources, "/user/hand/left/input/palm_ext/pose"))
+		// Patch profile to add grip_surface or palm_ext
+		if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or utils::contains(xr_extensions, XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
+		    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose")                                   //
+		    and not utils::contains(profile.input_sources, "/user/hand/left/input/grip_surface/pose"))
+		{
+			profile.input_sources.push_back("/user/hand/left/input/grip_surface/pose");
+			profile.input_sources.push_back("/user/hand/right/input/grip_surface/pose");
+		}
+		else if (utils::contains(xr_extensions, XR_EXT_PALM_POSE_EXTENSION_NAME)               //
+		         and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose") //
+		         and not utils::contains(profile.input_sources, "/user/hand/left/input/palm_ext/pose"))
 		{
 			profile.input_sources.push_back("/user/hand/left/input/palm_ext/pose");
 			profile.input_sources.push_back("/user/hand/right/input/palm_ext/pose");
@@ -995,16 +1002,16 @@ void application::initialize_actions()
 			spaces[size_t(xr::spaces::grip_left)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/left/input/aim/pose")
 			spaces[size_t(xr::spaces::aim_left)] = xr_session.create_action_space(a);
+		else if (name == "/user/hand/left/input/palm_ext/pose" or name == "/user/hand/left/input/grip_surface/pose")
+			spaces[size_t(xr::spaces::palm_left)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/right/input/grip/pose")
 			spaces[size_t(xr::spaces::grip_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/right/input/aim/pose")
 			spaces[size_t(xr::spaces::aim_right)] = xr_session.create_action_space(a);
+		else if (name == "/user/hand/right/input/palm_ext/pose" or name == "/user/hand/right/input/grip_surface/pose")
+			spaces[size_t(xr::spaces::palm_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/eyes_ext/input/gaze_ext/pose")
 			spaces[size_t(xr::spaces::eye_gaze)] = xr_session.create_action_space(a);
-		else if (name == "/user/hand/right/input/palm_ext/pose")
-			spaces[size_t(xr::spaces::palm_right)] = xr_session.create_action_space(a);
-		else if (name == "/user/hand/left/input/palm_ext/pose")
-			spaces[size_t(xr::spaces::palm_left)] = xr_session.create_action_space(a);
 		else if (name.contains("/input/entity_htc/pose") && htc_body)
 			htc_body->add(xr_session.create_action_space(a));
 	}
@@ -1087,8 +1094,9 @@ void application::initialize()
 
 	// Optional extensions
 	std::vector<std::string> opt_extensions;
-	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_KHR_LOCATE_SPACES_EXTENSION_NAME);
+	opt_extensions.push_back(XR_KHR_MAINTENANCE1_EXTENSION_NAME);
+	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_HAND_TRACKING_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
