@@ -124,7 +124,7 @@ jobs:
       run: |
         git config --global --add safe.directory $(pwd)
         pip install toml aiohttp
-        tools/gen_flatpak_manifest.py --git https://github.com/${{github.repository}}.git --out flatpak
+        tools/gen_flatpak_manifest.py --gitlocal --out flatpak
         cat flatpak/io.github.wivrn.wivrn.yml
 
     - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.4
