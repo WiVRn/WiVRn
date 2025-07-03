@@ -1088,6 +1088,7 @@ void application::initialize()
 	// Optional extensions
 	std::vector<std::string> opt_extensions;
 	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
+	opt_extensions.push_back(XR_KHR_LOCATE_SPACES_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_HAND_TRACKING_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
