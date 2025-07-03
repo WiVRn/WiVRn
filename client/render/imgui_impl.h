@@ -67,6 +67,8 @@ public:
 		XrAction scroll;  // XR_ACTION_TYPE_VECTOR2F_INPUT
 		// TODO: thresholds?
 
+		XrAction haptic_output;
+
 		xr::hand_tracker * hand = nullptr;
 	};
 
@@ -161,6 +163,9 @@ private:
 	ImVector<ImWchar> glyph_ranges;
 	bool glyph_range_dirty = true;
 
+	ImGuiID hovered_item = 0; // Hovered item in the current frame, reset at the beginning of the frame
+	ImGuiID hovered_item_prev = 0; // Hovered item at the previous frame
+
 #if WIVRN_SHOW_IMGUI_DEMO_WINDOW
 	bool show_demo_window = true;
 #endif
@@ -211,4 +216,7 @@ public:
 
 	void add_chars(std::string_view sv);
 	bool is_modal_popup_shown() const;
+
+	void vibrate_on_hover();
+	void set_hovered_item();
 };

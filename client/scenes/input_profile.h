@@ -18,58 +18,27 @@
 
 #pragma once
 
+#include "scene.h"
+#include <cstdint>
+#include <entt/fwd.hpp>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <magic_enum_containers.hpp>
-#include <render/scene_data.h>
 #include <span>
-#include <variant>
 #include <xr/space.h>
 #include <openxr/openxr.h>
 
 struct input_profile
 {
-	struct node_state_transform
-	{
-		glm::vec3 position;
-		glm::quat orientation;
-	};
-
-	struct node_state_visibility
-	{
-	};
-
-	using node_state = std::variant<std::pair<node_state_transform, node_state_transform>, node_state_visibility>;
-
-	struct node_target
-	{
-		node_handle node;
-		node_state state;
-	};
-
-	struct visual_response
-	{
-		XrAction action;
-		XrActionType type;
-		int axis; // Only if type is XR_ACTION_TYPE_VECTOR2F_INPUT
-		float bias;
-		float scale;
-
-		node_target target;
-	};
-
 	std::string id;
 
-	std::vector<visual_response> responses;
-	std::vector<std::pair<xr::spaces, node_handle>> model_handles;
-
-	node_handle left_ray;
-	node_handle right_ray;
+	entt::entity left_ray;
+	entt::entity right_ray;
 
 	magic_enum::containers::array<xr::spaces, std::pair<glm::vec3, glm::quat>> offset;
 
-	input_profile(const std::filesystem::path & json_profile, scene_loader & loader, scene_data & scene_controllers, scene_data & scene_rays);
+	input_profile(scene & scene, const std::filesystem::path & json_profile, uint32_t layer_mask_controller, uint32_t layer_mask_ray);
 
 	// application::poll_actions() must have been called before
-	void apply(XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits);
+	void apply(entt::registry & scene, XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits);
 };

@@ -114,6 +114,7 @@ out gl_PerVertex
 
 void main()
 {
+	// TODO: use base_color_texcoord et al instead of always using texcoord 0
 	for(int i = 0; i < nb_texcoords; i++)
 		texcoord[i] = in_texcoord[i];
 
@@ -205,9 +206,6 @@ void main()
 	float fog = clamp((length(frag_pos) - fog_min_dist) / (fog_max_dist - fog_min_dist), 0.0, 1.0);
 
 	bc = mix(bc + ec, fog_color, fog);
-
-// 	if (alpha_cutout && c.a <= 0.5)
-// 		discard;
 
 	if (dithering)
 	{

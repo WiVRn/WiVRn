@@ -22,9 +22,7 @@
 #include "asset.h"
 #include "configuration.h"
 #include "crypto.h"
-#include "render/scene_data.h"
 #include "scene.h"
-#include "scenes/hand_model.h"
 #include "scenes/lobby_keyboard.h"
 #include "utils/thread_safe.h"
 #include "wifi_lock.h"
@@ -33,13 +31,10 @@
 #include "wivrn_packets.h"
 #include <vulkan/vulkan_raii.hpp>
 
-#include "xr/system.h"
 #include <optional>
 #include <vector>
 
 #include "input_profile.h"
-#include "render/imgui_impl.h"
-#include "render/scene_renderer.h"
 #include "utils/async.h"
 
 class wivrn_session;
@@ -65,37 +60,27 @@ class lobby : public scene_impl<lobby>
 	std::string server_name;
 	bool autoconnect_enabled = true;
 
-	std::optional<scene_renderer> renderer;
-	std::optional<scene_data> lobby_scene;
-	std::optional<scene_data> controllers_scene;
 	std::optional<input_profile> input;
-	std::optional<hand_model> left_hand;
-	std::optional<hand_model> right_hand;
-	node_handle lobby_handle;
-	bool composition_layer_depth_test_supported;
-	bool composition_layer_color_scale_bias_supported;
+	entt::entity lobby_entity;
 
 	std::optional<imgui_context> imgui_ctx;
-	std::array<XrAction, 2> haptic_output;
 
 	std::string selected_item;
 	std::unique_ptr<asset> license;
-	ImGuiID hovered_item;
 
-	std::vector<xr::swapchain> swapchains_lobby;
-	std::vector<xr::swapchain> swapchains_lobby_depth;
-	std::vector<xr::swapchain> swapchains_controllers;
-	std::vector<xr::swapchain> swapchains_controllers_depth;
+	static inline const uint32_t layer_lobby = 1 << 0;
+	static inline const uint32_t layer_controllers = 1 << 1;
+	static inline const uint32_t layer_rays = 1 << 2;
+
+	uint32_t width;
+	uint32_t height;
 	xr::swapchain swapchain_imgui;
-	vk::Format swapchain_format;
-	vk::Format depth_format;
-	xr::system::passthrough_type passthrough_supported;
 	XrViewConfigurationView stream_view;
 
 #if WIVRN_CLIENT_DEBUG_MENU
 	// GUI debug
-	node_handle xyz_axes_left_controller;
-	node_handle xyz_axes_right_controller;
+	entt::entity xyz_axes_left_controller;
+	entt::entity xyz_axes_right_controller;
 	bool display_debug_axes = false;
 	bool display_grip_instead_of_aim = false;
 	glm::vec3 offset_position{};
@@ -157,8 +142,6 @@ class lobby : public scene_impl<lobby>
 	void gui_keyboard();
 
 	void setup_passthrough();
-
-	void vibrate_on_hover();
 
 	void connect(const configuration::server_data & data);
 	std::unique_ptr<wivrn_session> connect_to_session(wivrn_discover::service service, bool manual_connection);

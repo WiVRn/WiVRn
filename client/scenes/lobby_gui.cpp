@@ -185,12 +185,6 @@ void scenes::lobby::tooltip(std::string_view text)
 	viewport->Size = size_backup;
 }
 
-void scenes::lobby::vibrate_on_hover()
-{
-	if (ImGui::IsItemHovered())
-		hovered_item = ImGui::GetItemID();
-}
-
 void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_request)
 {
 	using constants::style::button_size;
@@ -243,7 +237,7 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 
 		ImGui::CloseCurrentPopup();
 	}
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 }
 
 void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_request)
@@ -288,7 +282,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 			char button_text[] = {char('0' + i), 0};
 			if (ImGui::Button(button_text, constants::style::pin_entry_key_size))
 				pin_buffer += button_text;
-			vibrate_on_hover();
+			imgui_ctx->vibrate_on_hover();
 
 			if (j < 2)
 				ImGui::SameLine();
@@ -307,20 +301,20 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 
 		ImGui::CloseCurrentPopup();
 	}
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
 	if (ImGui::Button("0", constants::style::pin_entry_key_size))
 		pin_buffer += "0";
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 	ImGui::EndDisabled();
 
 	ImGui::SameLine();
 	ImGui::BeginDisabled(pin_buffer.size() == 0);
 	if (ImGui::Button(ICON_FA_DELETE_LEFT, constants::style::pin_entry_key_size))
 		pin_buffer.resize(pin_buffer.size() - 1);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 	ImGui::EndDisabled();
 
 	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
@@ -331,7 +325,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 		pin_request->pin_requested = false;
 		pin_request.notify_one();
 	}
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 }
 
 void scenes::lobby::gui_new_server()
@@ -359,7 +353,7 @@ void scenes::lobby::gui_new_server()
 	if (ImGui::IsWindowAppearing())
 		ImGui::SetKeyboardFocusHere();
 	InputText("##Name", add_server_window_prettyname, {ImGui::GetContentRegionAvail().x, 0}, 0);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
@@ -368,7 +362,7 @@ void scenes::lobby::gui_new_server()
 
 	ImGui::TableNextColumn();
 	InputText("##Hostname", add_server_window_hostname, {ImGui::GetContentRegionAvail().x, 0}, 0);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
@@ -377,12 +371,12 @@ void scenes::lobby::gui_new_server()
 
 	ImGui::TableNextColumn();
 	ImGui::InputInt("##Port", &add_server_window_port, 1, 1, ImGuiInputTextFlags_CharsDecimal);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::EndTable();
 
 	ImGui::Checkbox(_S("TCP only"), &add_server_tcp_only);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	auto top_left = ImGui::GetWindowContentRegionMin();
 	auto bottom_right = ImGui::GetWindowContentRegionMax();
@@ -398,7 +392,7 @@ void scenes::lobby::gui_new_server()
 		add_server_cookie = "";
 		ImGui::CloseCurrentPopup();
 	}
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SameLine(bottom_right.x - button_size.x);
 
@@ -429,7 +423,7 @@ void scenes::lobby::gui_new_server()
 		add_server_cookie = "";
 		ImGui::CloseCurrentPopup();
 	}
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::PopStyleVar(4); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_CellPadding, ImGuiStyleVar_FramePadding
 }
@@ -490,7 +484,7 @@ void scenes::lobby::gui_server_list()
 			std::string label = _("Autoconnect") + "##" + cookie;
 			if (ImGui::Checkbox(label.c_str(), &data.autoconnect))
 				config.save();
-			vibrate_on_hover();
+			imgui_ctx->vibrate_on_hover();
 		}
 
 		ImVec2 button_position(ImGui::GetWindowContentRegionMax().x, pos.y + (list_item_height - button_size.y) / 2);
@@ -518,7 +512,7 @@ void scenes::lobby::gui_server_list()
 			connect(data);
 			ImGui::OpenPopup("connecting");
 		}
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 		{
@@ -541,7 +535,7 @@ void scenes::lobby::gui_server_list()
 
 			if (ImGui::Button((ICON_FA_TRASH_CAN "##remove-" + cookie).c_str(), icon_button_size))
 				cookie_to_remove = cookie;
-			vibrate_on_hover();
+			imgui_ctx->vibrate_on_hover();
 			ImGui::PopStyleColor(3);
 
 			button_position.x -= icon_button_size.x + style.WindowPadding.x + 10;
@@ -555,7 +549,7 @@ void scenes::lobby::gui_server_list()
 				add_server_tcp_only = data.service.tcp_only;
 				ImGui::OpenPopup("add or edit server");
 			}
-			vibrate_on_hover();
+			imgui_ctx->vibrate_on_hover();
 		}
 
 		pos.y += 120;
@@ -632,7 +626,7 @@ void scenes::lobby::gui_settings()
 				}
 				ImGui::EndCombo();
 			}
-			vibrate_on_hover();
+			imgui_ctx->vibrate_on_hover();
 
 			if (config.preferred_refresh_rate == 0 and refresh_rates.size() > 2)
 			{
@@ -649,7 +643,7 @@ void scenes::lobby::gui_settings()
 					}
 					ImGui::EndCombo();
 				}
-				vibrate_on_hover();
+				imgui_ctx->vibrate_on_hover();
 			}
 		}
 	}
@@ -670,7 +664,7 @@ void scenes::lobby::gui_settings()
 			config.resolution_scale = intScale * 0.01;
 			config.save();
 		}
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 		if (width * config.resolution_scale > stream_view.maxImageRectWidth or height * config.resolution_scale > stream_view.maxImageRectHeight)
 		{
 			ImGui::TextColored(ImColor(0xf9, 0x73, 0x06) /*orange*/, ICON_FA_TRIANGLE_EXCLAMATION);
@@ -686,7 +680,7 @@ void scenes::lobby::gui_settings()
 			config.set_feature(feature::microphone, enabled);
 			config.save();
 		}
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 	}
 	{
 		ImGui::BeginDisabled(not config.check_feature(feature::microphone));
@@ -695,7 +689,7 @@ void scenes::lobby::gui_settings()
 		{
 			config.save();
 		}
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			tooltip(_("Force disable audio filters, such as noise cancellation"));
 		ImGui::Unindent();
@@ -709,7 +703,7 @@ void scenes::lobby::gui_settings()
 			config.set_feature(feature::hand_tracking, enabled);
 			config.save();
 		}
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
 			tooltip(_("This feature is not supported by your headset"));
 		ImGui::EndDisabled();
@@ -722,7 +716,7 @@ void scenes::lobby::gui_settings()
 			config.set_feature(feature::eye_gaze, enabled);
 			config.save();
 		}
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
 			tooltip(_("This feature is not supported by your headset"));
 		ImGui::EndDisabled();
@@ -738,7 +732,7 @@ void scenes::lobby::gui_settings()
 		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
 			tooltip(_("This feature is not supported by your headset"));
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 	}
 
 	{
@@ -768,7 +762,7 @@ void scenes::lobby::gui_settings()
 			}
 		}
 
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 	}
 	if (std::holds_alternative<xr::fb_body_tracker>(application::get_body_tracker()))
 	{
@@ -778,7 +772,7 @@ void scenes::lobby::gui_settings()
 		{
 			config.save();
 		}
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
 
@@ -787,7 +781,7 @@ void scenes::lobby::gui_settings()
 		{
 			config.save();
 		}
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			tooltip(_("Only takes affect with lower body tracking enabled\nMay be desired when using another source of hip tracking"));
 		ImGui::EndDisabled();
@@ -802,14 +796,14 @@ void scenes::lobby::gui_settings()
 		setup_passthrough();
 		config.save();
 	}
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
 		tooltip(_("This feature is not supported by your headset"));
 	ImGui::EndDisabled();
 
 	if (ImGui::Checkbox(_S("Show performance metrics"), &config.show_performance_metrics))
 		config.save();
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 	if (ImGui::IsItemHovered())
 		tooltip(_("Overlay can be toggled by pressing both thumbsticks"));
 
@@ -895,11 +889,11 @@ void scenes::lobby::gui_post_processing()
 						config.openxr_post_processing.super_sampling = option;
 						config.save();
 					}
-					vibrate_on_hover();
+					imgui_ctx->vibrate_on_hover();
 				}
 				ImGui::EndCombo();
 			}
-			vibrate_on_hover();
+			imgui_ctx->vibrate_on_hover();
 			if (ImGui::IsItemHovered())
 			{
 				tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
@@ -920,11 +914,11 @@ void scenes::lobby::gui_post_processing()
 						config.openxr_post_processing.sharpening = option;
 						config.save();
 					}
-					vibrate_on_hover();
+					imgui_ctx->vibrate_on_hover();
 				}
 				ImGui::EndCombo();
 			}
-			vibrate_on_hover();
+			imgui_ctx->vibrate_on_hover();
 			if (ImGui::IsItemHovered())
 			{
 				tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
@@ -940,7 +934,7 @@ void scenes::lobby::gui_post_processing()
 			{
 				config.save();
 			}
-			vibrate_on_hover();
+			imgui_ctx->vibrate_on_hover();
 			if (ImGui::IsItemHovered())
 			{
 				if (application::get_openxr_post_processing_supported())
@@ -974,7 +968,7 @@ void scenes::lobby::gui_post_processing()
 					config.sgsr.upscaling_factor = intScale * 0.01;
 					config.save();
 				}
-				vibrate_on_hover();
+				imgui_ctx->vibrate_on_hover();
 				if (width * current > stream_view.maxImageRectWidth or height * current > stream_view.maxImageRectHeight)
 				{
 					ImGui::TextColored(ImColor(0xf9, 0x73, 0x06) /*orange*/, ICON_FA_TRIANGLE_EXCLAMATION);
@@ -987,7 +981,7 @@ void scenes::lobby::gui_post_processing()
 				{
 					config.save();
 				}
-				vibrate_on_hover();
+				imgui_ctx->vibrate_on_hover();
 				if (ImGui::IsItemHovered())
 					tooltip(_("Adds an additional performance cost"));
 			}
@@ -999,7 +993,7 @@ void scenes::lobby::gui_post_processing()
 					config.sgsr.edge_threshold = float(intScale);
 					config.save();
 				}
-				vibrate_on_hover();
+				imgui_ctx->vibrate_on_hover();
 				if (ImGui::IsItemHovered())
 					tooltip(fmt::format(_F("Recommended: {:.1f}"), 4.0));
 			}
@@ -1008,7 +1002,7 @@ void scenes::lobby::gui_post_processing()
 				{
 					config.save();
 				}
-				vibrate_on_hover();
+				imgui_ctx->vibrate_on_hover();
 				if (ImGui::IsItemHovered())
 					tooltip(fmt::format(_F("Recommended: {:.1f}"), 2.0));
 			}
@@ -1027,55 +1021,55 @@ void scenes::lobby::gui_debug()
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
 
 	ImGui::Checkbox("Display debug axes", &display_debug_axes);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	if (display_debug_axes)
 	{
 		ImGui::Checkbox("Display grip instead of aim", &display_grip_instead_of_aim);
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 	}
 
 	ImGui::SetNextItemWidth(140);
 	ImGui::DragFloat("##offset x", &offset_position.x, 0.0001);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(140);
 	ImGui::DragFloat("##offset y", &offset_position.y, 0.0001);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(140);
 	ImGui::DragFloat("Position", &offset_position.z, 0.0001);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SameLine();
 	if (ImGui::Button("Reset##position"))
 		offset_position = {0, 0, 0};
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SetNextItemWidth(140);
 	ImGui::DragFloat("##offset roll", &offset_orientation.x, 0.01);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(140);
 	ImGui::DragFloat("##offset pitch", &offset_orientation.y, 0.01);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(140);
 	ImGui::DragFloat("Rotation", &offset_orientation.z, 0.01);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SameLine();
 	if (ImGui::Button("Reset##orientation"))
 		offset_orientation = {0, 0, 0};
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::SetNextItemWidth(140);
 	ImGui::DragFloat("Ray offset", &ray_offset, 0.0001);
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::PopStyleVar();
 }
@@ -1134,7 +1128,7 @@ void scenes::lobby::gui_licenses()
 		}
 		ImGui::EndCombo();
 	}
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 	if (license)
 		ImGui::TextUnformatted((const char *)license->data(), (const char *)license->data() + license->size());
 }
@@ -1501,7 +1495,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	// New server button
 	if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add or edit server"))
 		ImGui::OpenPopup("add or edit server");
-	vibrate_on_hover();
+	imgui_ctx->vibrate_on_hover();
 	ImGui::SameLine();
 
 	// Enabled features
@@ -1521,7 +1515,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 			config.save();
 		}
 
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			tooltip(i.enabled ? i.tooltip_enabled : i.tooltip_disabled);
 
@@ -1598,7 +1592,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 
 void scenes::lobby::gui_keyboard()
 {
-	keyboard.display(hovered_item);
+	keyboard.display(*imgui_ctx);
 
 	auto & config = application::get_config();
 
@@ -1645,9 +1639,6 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	ImGuiStyle & style = ImGui::GetStyle();
 
 	const float TabWidth = 300;
-
-	auto last_hovered = hovered_item;
-	hovered_item = 0;
 
 	if (ImGui::GetIO().WantTextInput)
 	{
@@ -1729,28 +1720,28 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
 		RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list"), &current_tab, tab::server_list, {TabWidth, 0});
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 
 		RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 
 		RadioButtonWithoutCheckBox(ICON_FA_WAND_MAGIC_SPARKLES "  " + _("Post-processing"), &current_tab, tab::post_processing, {TabWidth, 0});
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 
 #if WIVRN_CLIENT_DEBUG_MENU
 		RadioButtonWithoutCheckBox(ICON_FA_BUG_SLASH "  " + _("Debug"), &current_tab, tab::debug, {TabWidth, 0});
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 #endif
 
 		ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 3 * ImGui::GetCurrentContext()->FontSize - 6 * style.FramePadding.y - 2 * style.ItemSpacing.y - style.WindowPadding.y);
 		RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About"), &current_tab, tab::about, {TabWidth, 0});
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 
 		RadioButtonWithoutCheckBox(ICON_FA_SCALE_BALANCED "  " + _("Licenses"), &current_tab, tab::licenses, {TabWidth, 0});
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 
 		RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Exit"), &current_tab, tab::exit, {TabWidth, 0});
-		vibrate_on_hover();
+		imgui_ctx->vibrate_on_hover();
 
 		ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
 		ImGui::EndChild();
@@ -1766,13 +1757,6 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 			display_recentering_tip(*imgui_ctx, _("Press A or X or put your palm up\nto move the main window"));
 		else
 			display_recentering_tip(*imgui_ctx, _("Press A or X to move the main window"));
-	}
-
-	if (hovered_item != last_hovered && hovered_item != 0)
-	{
-		size_t controller = imgui_ctx->get_focused_controller();
-		if (controller < haptic_output.size())
-			application::haptic_start(haptic_output[controller], XR_NULL_PATH, 10'000'000, 1000, 1);
 	}
 
 #if WIVRN_CLIENT_DEBUG_MENU

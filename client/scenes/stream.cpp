@@ -140,6 +140,11 @@ static const std::array supported_formats = {
         vk::Format::eB8G8R8A8Srgb,
 };
 
+scenes::stream::stream() :
+        scene_impl<stream>(supported_formats)
+{
+}
+
 static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::instance & inst, xr::session & session, int view)
 {
 	assert(inst.has_extension(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME));
@@ -340,25 +345,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		self->input_actions.emplace_back(it->second, action, action_type);
 	}
-
-	self->swapchain_format = vk::Format::eUndefined;
-	spdlog::info("Supported swapchain formats:");
-
-	for (auto format: self->session.get_swapchain_formats())
-	{
-		spdlog::info("    {}", vk::to_string(format));
-	}
-	for (auto format: self->session.get_swapchain_formats())
-	{
-		if (std::find(supported_formats.begin(), supported_formats.end(), format) != supported_formats.end())
-		{
-			self->swapchain_format = format;
-			break;
-		}
-	}
-
-	if (self->swapchain_format == vk::Format::eUndefined)
-		throw std::runtime_error("No supported swapchain format");
 
 	spdlog::info("Using format {}", vk::to_string(self->swapchain_format));
 
@@ -956,31 +942,18 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	vk::SubmitInfo submit_info;
 	submit_info.setCommandBuffers(*command_buffer);
 	queue.submit(submit_info, *fence);
+	swapchain.release();
 
-	XrEnvironmentBlendMode blend_mode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-	std::vector<XrCompositionLayerBaseHeader *> layers_base;
+	// std::vector<XrCompositionLayerBaseHeader *> layers_base;
 	std::vector<XrCompositionLayerProjectionView> layer_view(view_count);
 
 	if (use_alpha)
-	{
 		session.enable_passthrough(system);
-		std::visit(
-		        utils::overloaded{
-		                [&](std::monostate &) {
-			                assert(false);
-		                },
-		                [&](xr::passthrough_alpha_blend & p) {
-			                blend_mode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
-		                },
-		                [&](auto & p) {
-			                layers_base.push_back(p.layer());
-		                }},
-		        session.get_passthrough());
-	}
 	else
 		session.disable_passthrough();
 
-	swapchain.release();
+	render_start(use_alpha, frame_state.predictedDisplayTime);
+
 	for (uint32_t view = 0; view < view_count; view++)
 	{
 		layer_view[view] =
@@ -999,45 +972,33 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		                },
 		        };
 	}
+	add_projection_layer(
+	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+	        application::space(xr::spaces::world),
+	        std::move(layer_view));
 
-	XrCompositionLayerProjection layer{
-	        .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION,
-	        .layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-	        .space = application::space(xr::spaces::world),
-	        .viewCount = (uint32_t)layer_view.size(),
-	        .views = layer_view.data(),
-	};
-
-	XrCompositionLayerSettingsFB settings;
-	const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
-	if ((openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
-	{
-		settings = {
-		        .type = XR_TYPE_COMPOSITION_LAYER_SETTINGS_FB,
-		        .layerFlags = openxr_post_processing.sharpening | openxr_post_processing.super_sampling,
-		};
-		layer.next = &settings;
-	}
+	if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
+	    (openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
+		set_layer_settings(openxr_post_processing.sharpening | openxr_post_processing.super_sampling);
 
 	std::vector<XrCompositionLayerQuad> imgui_layers;
 	if (imgui_ctx)
 	{
 		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
 		if (plots_visible)
+		{
 			imgui_layers = plot_performance_metrics(frame_state.predictedDisplayTime);
-	}
 
-	layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
+			for (auto & layer: imgui_layers)
+				add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
 
-	if (imgui_ctx and plots_visible)
-	{
-		for (auto & layer: imgui_layers)
-			layers_base.push_back(reinterpret_cast<XrCompositionLayerBaseHeader *>(&layer));
+			// TODO render controllers/hands
+		}
 	}
 
 	try
 	{
-		session.end_frame(frame_state.predictedDisplayTime, layers_base, blend_mode);
+		render_end();
 	}
 	catch (std::system_error & e)
 	{

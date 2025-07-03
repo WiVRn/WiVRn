@@ -876,10 +876,20 @@ void imgui_context::new_frame(XrTime display_time)
 
 	image_index = swapchain.acquire();
 	swapchain.wait();
+
+	hovered_item_prev = hovered_item;
+	hovered_item = 0;
 }
 
 std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 {
+	if (hovered_item != hovered_item_prev && hovered_item != 0)
+	{
+		size_t controller = get_focused_controller();
+		if (auto haptic_output = controllers[controller].first.haptic_output; haptic_output != XR_NULL_HANDLE)
+			application::haptic_start(haptic_output, XR_NULL_PATH, 10'000'000, 1000, 1);
+	}
+
 	vk::Image destination = swapchain.images()[image_index].image;
 
 	ImGui::SetCurrentContext(context);
@@ -1068,6 +1078,17 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 	}
 
 	return quads;
+}
+
+void imgui_context::vibrate_on_hover()
+{
+	if (ImGui::IsItemHovered())
+		hovered_item = ImGui::GetItemID();
+}
+
+void imgui_context::set_hovered_item()
+{
+	hovered_item = ImGui::GetItemID();
 }
 
 imgui_context::~imgui_context()

@@ -7,7 +7,7 @@ set(KTX_FEATURE_LOADTEST_APPS OFF)
 
 set(FASTGLTF_COMPILE_AS_CPP20 ON)
 
-FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo)
+FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt)
 
 if (WIVRN_USE_LIBKTX)
     FetchContent_MakeAvailable(libktx)
@@ -140,6 +140,10 @@ target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
 target_link_libraries(wivrn wivrn-imgui)
 
 
+##############################################################################
+# EnTT
+#
+target_link_libraries(wivrn EnTT::EnTT)
 
 ##############################################################################
 # Vulkan Validation Layer

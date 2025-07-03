@@ -18,16 +18,20 @@
 
 #pragma once
 
+#include "scene.h"
 #include "xr/hand_tracker.h"
-#include <render/scene_data.h>
+#include <entt/fwd.hpp>
+#include <filesystem>
 #include <openxr/openxr.h>
 
-struct hand_model
+namespace hand_model
 {
-	node_handle root_node;
-	std::vector<node_handle> joints;
+void add_hand(scene & scene,
+              XrHandEXT hand,
+              const std::filesystem::path & gltf_path,
+              uint32_t layer_mask);
 
-	hand_model(const std::filesystem::path & gltf_path, scene_loader & loader, scene_data & scene);
-
-	void apply(const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & joints);
-};
+void apply(entt::registry & scene,
+           const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & left_hand,
+           const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & right_hand);
+}; // namespace hand_model

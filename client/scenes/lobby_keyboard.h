@@ -20,6 +20,7 @@
 #pragma once
 
 #include "imgui.h"
+#include "render/imgui_impl.h"
 #include <string>
 #include <vector>
 
@@ -80,7 +81,7 @@ private:
 	bool symbols_shown = false;
 
 public:
-	void display(ImGuiID & hovered);
+	void display(imgui_context & ctx);
 	const std::string_view get_layout() const;
 	void set_layout(std::string_view layout_name);
 };
