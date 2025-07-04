@@ -840,7 +840,7 @@ void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & 
 		cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, false);
 }
 
-void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)
+xrt_result_t wivrn_controller::set_output(xrt_output_name name, const xrt_output_value * value)
 {
 	device_id id;
 	const bool left = device_type == XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER;
@@ -856,7 +856,7 @@ void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value *
 			id = left ? device_id::LEFT_THUMB_HAPTIC : device_id::RIGHT_THUMB_HAPTIC;
 			break;
 		default:
-			return;
+			return XRT_ERROR_OUTPUT_UNSUPPORTED;
 	}
 
 	try
@@ -869,7 +869,8 @@ void wivrn_controller::set_output(xrt_output_name name, const xrt_output_value *
 	}
 	catch (...)
 	{
-		// Ignore errors
+		return XRT_ERROR_OUTPUT_REQUEST_FAILURE;
 	}
+	return XRT_SUCCESS;
 }
 } // namespace wivrn
