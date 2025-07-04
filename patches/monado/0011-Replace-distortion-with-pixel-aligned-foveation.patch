@@ -1,4 +1,4 @@
-From b659d6c6034b8714a014fc6a5819bb2556c6f0bb Mon Sep 17 00:00:00 2001
+From 89d5e71f70d70958e8c03a038ab4bc0fc262a455 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Mon, 2 Jun 2025 14:51:11 +0200
 Subject: [PATCH 11/11] Replace distortion with pixel-aligned foveation
@@ -13,7 +13,7 @@ Subject: [PATCH 11/11] Replace distortion with pixel-aligned foveation
  6 files changed, 76 insertions(+), 378 deletions(-)
 
 diff --git a/src/xrt/compositor/CMakeLists.txt b/src/xrt/compositor/CMakeLists.txt
-index f1c54ed4d..a2f7ba5cc 100644
+index 46834bde8..e76c69dd0 100644
 --- a/src/xrt/compositor/CMakeLists.txt
 +++ b/src/xrt/compositor/CMakeLists.txt
 @@ -115,7 +115,7 @@ if(XRT_HAVE_VULKAN)
@@ -652,23 +652,23 @@ index 9ce46fe6f..f3be617bd 100644
 -	imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), alpha);
  }
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index c06dda63d..a4934890f 100644
+index 29c645bff..322b0f761 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
-@@ -465,30 +465,15 @@ crc_distortion_fast_path(struct render_compute *render,
+@@ -466,30 +466,15 @@ crc_distortion_fast_path(struct render_compute *render,
  		world_poses[i] = world_pose;
  	}
  
 -	if (!d->do_timewarp) {
--		render_compute_projection(   //
--		    render,                  //
--		    src_samplers,            //
--		    src_image_views,         //
--		    src_norm_rects,          //
--		    d->cs.target_image,      //
--		    d->cs.target_unorm_view_y, //
--		    d->cs.target_unorm_view_cbcr, //
--		    target_viewport_datas);  //
+-		render_compute_projection(     //
+-		    render,                    //
+-		    src_samplers,              //
+-		    src_image_views,           //
+-		    src_norm_rects,            //
+-		    d->target.cs.image,        //
+-		    d->target.cs.storage_view_y, //
+-		    d->target.cs.storage_view_cbcr, //
+-		    target_viewport_datas);    //
 -	} else {
 -		render_compute_projection_timewarp( //
 -		    render,                         //
@@ -678,23 +678,23 @@ index c06dda63d..a4934890f 100644
 -		    src_poses,                      //
 -		    src_fovs,                       //
 -		    world_poses,                    //
--		    d->cs.target_image,             //
--		    d->cs.target_unorm_view_y,      //
--		    d->cs.target_unorm_view_cbcr,   //
+-		    d->target.cs.image,             //
+-		    d->target.cs.storage_view_y,    //
+-		    d->target.cs.storage_view_cbcr, //
 -		    target_viewport_datas);         //
 -	}
-+	render_compute_projection(        //
-+	    render,                       //
-+	    src_samplers,                 //
-+	    src_image_views,              //
-+	    src_norm_rects,               //
-+	    d->cs.target_image,           //
-+	    d->cs.target_unorm_view_y,    //
-+	    d->cs.target_unorm_view_cbcr, //
-+	    target_viewport_datas);       //
++	render_compute_projection(          //
++	    render,                         //
++	    src_samplers,                   //
++	    src_image_views,                //
++	    src_norm_rects,                 //
++	    d->target.cs.image,             //
++	    d->target.cs.storage_view_y,    //
++	    d->target.cs.storage_view_cbcr, //
++	    target_viewport_datas);         //
  }
  
  
 -- 
-2.49.0
+2.50.0
 

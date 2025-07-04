@@ -1,4 +1,4 @@
-From 52417118d51d284ab5c0cd3d2c9a93c487b66f5f Mon Sep 17 00:00:00 2001
+From a8d3eae0afd8b61aacc18824982c5b6066b5e4d6 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 06/11] Convert to YCbCr in Monado
@@ -11,14 +11,14 @@ Subject: [PATCH 06/11] Convert to YCbCr in Monado
  src/xrt/compositor/render/render_resources.c |  35 +++++--
  src/xrt/compositor/shaders/distortion.comp   |  62 +++++++----
  src/xrt/compositor/util/comp_render.h        |  12 ++-
- src/xrt/compositor/util/comp_render_cs.c     |  41 +++++---
- 8 files changed, 186 insertions(+), 92 deletions(-)
+ src/xrt/compositor/util/comp_render_cs.c     |  19 ++--
+ 8 files changed, 175 insertions(+), 81 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 6df4d2b29..ea581accd 100644
+index 06d1cb72a..80678b9f1 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -1001,7 +1001,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1022,7 +1022,8 @@ dispatch_compute(struct comp_renderer *r,
  
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
@@ -28,7 +28,7 @@ index 6df4d2b29..ea581accd 100644
  
  	// Target view information.
  	struct render_viewport_data views[XRT_MAX_VIEWS];
-@@ -1012,7 +1013,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1033,7 +1034,8 @@ dispatch_compute(struct comp_renderer *r,
  	comp_render_cs_initial_init( //
  	    &data,                   // data
  	    target_image,            // target_image
@@ -39,10 +39,10 @@ index 6df4d2b29..ea581accd 100644
  	    do_timewarp);            // do_timewarp
  
 diff --git a/src/xrt/compositor/main/comp_target.h b/src/xrt/compositor/main/comp_target.h
-index 876ff8cd9..924b4ea08 100644
+index 143d41639..98301d596 100644
 --- a/src/xrt/compositor/main/comp_target.h
 +++ b/src/xrt/compositor/main/comp_target.h
-@@ -61,7 +61,8 @@ enum comp_target_display_timing_usage
+@@ -62,7 +62,8 @@ enum comp_target_display_timing_usage
  struct comp_target_image
  {
  	VkImage handle;
@@ -584,40 +584,40 @@ index 08b44d4cf..e1dd1cb58 100644
 +	imageStore(chroma, ivec2(offset.xy/2 + gl_GlobalInvocationID.xy), vec4(cbcr.x, cbcr.y, 0, 0));
  }
 diff --git a/src/xrt/compositor/util/comp_render.h b/src/xrt/compositor/util/comp_render.h
-index 579b91413..ad1b960cd 100644
+index 0afe87393..550c014a0 100644
 --- a/src/xrt/compositor/util/comp_render.h
 +++ b/src/xrt/compositor/util/comp_render.h
-@@ -161,7 +161,8 @@ struct comp_render_dispatch_data
- 		VkImage target_image;
+@@ -189,7 +189,8 @@ struct comp_render_dispatch_data
+ 			VkImage image;
  
- 		//! Target image view for distortion.
--		VkImageView target_unorm_view;
-+		VkImageView target_unorm_view_y;
-+		VkImageView target_unorm_view_cbcr;
- 	} cs;
+ 			//! Target image view for distortion.
+-			VkImageView storage_view;
++			VkImageView storage_view_y;
++			VkImageView storage_view_cbcr;
+ 		} cs;
+ 	} target;
  };
- 
-@@ -424,7 +425,8 @@ comp_render_gfx_dispatch(struct render_gfx *render,
+@@ -465,7 +466,8 @@ comp_render_gfx_dispatch(struct render_gfx *render,
  static inline void
  comp_render_cs_initial_init(struct comp_render_dispatch_data *data,
                              VkImage target_image,
--                            VkImageView target_unorm_view,
-+                            VkImageView target_unorm_view_y,
-+                            VkImageView target_unorm_view_cbcr,
+-                            VkImageView target_storage_view,
++                            VkImageView target_storage_view_y,
++                            VkImageView target_storage_view_cbcr,
                              bool fast_path,
                              bool do_timewarp)
  {
-@@ -434,7 +436,8 @@ comp_render_cs_initial_init(struct comp_render_dispatch_data *data,
- 	data->do_timewarp = do_timewarp;
+@@ -476,7 +478,8 @@ comp_render_cs_initial_init(struct comp_render_dispatch_data *data,
  
- 	data->cs.target_image = target_image;
--	data->cs.target_unorm_view = target_unorm_view;
-+	data->cs.target_unorm_view_y = target_unorm_view_y;
-+	data->cs.target_unorm_view_cbcr = target_unorm_view_cbcr;
+ 	// When writing into the target.
+ 	data->target.cs.image = target_image;
+-	data->target.cs.storage_view = target_storage_view;
++	data->target.cs.storage_view_y = target_storage_view_y;
++	data->target.cs.storage_view_cbcr = target_storage_view_cbcr;
  }
  
  /*!
-@@ -522,7 +525,8 @@ comp_render_cs_layer(struct render_compute *render,
+@@ -565,7 +568,8 @@ comp_render_cs_layer(struct render_compute *render,
                       const struct xrt_pose *world_pose,
                       const struct xrt_pose *eye_pose,
                       const VkImage target_image,
@@ -628,72 +628,50 @@ index 579b91413..ad1b960cd 100644
                       bool do_timewarp);
  
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index dbc2fec7e..c06dda63d 100644
+index d9d9ea8a4..29c645bff 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
-@@ -343,11 +343,12 @@ crc_clear_output(struct render_compute *render, const struct comp_render_dispatc
- 	}
- 
- 
--	render_compute_clear(        //
--	    render,                  //
--	    d->cs.target_image,      //
--	    d->cs.target_unorm_view, // target_image_view
--	    target_viewport_datas);  // views
-+	render_compute_clear(             //
-+	    render,                       //
-+	    d->cs.target_image,           //
-+	    d->cs.target_unorm_view_y,    // target_image_view_y
-+	    d->cs.target_unorm_view_cbcr, // target_image_view_cbcr
-+	    target_viewport_datas);       // views
+@@ -347,7 +347,8 @@ crc_clear_output(struct render_compute *render, const struct comp_render_dispatc
+ 	render_compute_clear(          //
+ 	    render,                    //
+ 	    d->target.cs.image,        //
+-	    d->target.cs.storage_view, // target_image_view
++	    d->target.cs.storage_view_y, // target_image_view_y
++	    d->target.cs.storage_view_cbcr, // target_image_view_cbcr
+ 	    target_viewport_datas);    // views
  }
  
- /*
-@@ -391,14 +392,15 @@ crc_distortion_after_squash(struct render_compute *render, const struct comp_ren
- 		target_viewport_datas[i] = viewport_data;
- 	}
- 
--	render_compute_projection(   //
--	    render,                  //
--	    src_samplers,            //
--	    src_image_views,         //
--	    src_norm_rects,          //
--	    d->cs.target_image,      //
--	    d->cs.target_unorm_view, // target_image_view
--	    target_viewport_datas);  // views
-+	render_compute_projection(        //
-+	    render,                       //
-+	    src_samplers,                 //
-+	    src_image_views,              //
-+	    src_norm_rects,               //
-+	    d->cs.target_image,           //
-+	    d->cs.target_unorm_view_y,    // target_image_view_y
-+	    d->cs.target_unorm_view_cbcr, // target_image_view_cbcr
-+	    target_viewport_datas);       // views
+@@ -398,7 +399,8 @@ crc_distortion_after_squash(struct render_compute *render, const struct comp_ren
+ 	    src_image_views,           //
+ 	    src_norm_rects,            //
+ 	    d->target.cs.image,        //
+-	    d->target.cs.storage_view, // target_image_view
++	    d->target.cs.storage_view_y, // target_image_view_y
++	    d->target.cs.storage_view_cbcr, // target_image_view_cbcr
+ 	    target_viewport_datas);    // views
  }
  
- /// Fast path
-@@ -470,7 +472,8 @@ crc_distortion_fast_path(struct render_compute *render,
- 		    src_image_views,         //
- 		    src_norm_rects,          //
- 		    d->cs.target_image,      //
--		    d->cs.target_unorm_view, //
-+		    d->cs.target_unorm_view_y, //
-+		    d->cs.target_unorm_view_cbcr, //
- 		    target_viewport_datas);  //
+@@ -471,7 +473,8 @@ crc_distortion_fast_path(struct render_compute *render,
+ 		    src_image_views,           //
+ 		    src_norm_rects,            //
+ 		    d->target.cs.image,        //
+-		    d->target.cs.storage_view, //
++		    d->target.cs.storage_view_y, //
++		    d->target.cs.storage_view_cbcr, //
+ 		    target_viewport_datas);    //
  	} else {
  		render_compute_projection_timewarp( //
-@@ -482,7 +485,8 @@ crc_distortion_fast_path(struct render_compute *render,
+@@ -483,7 +486,8 @@ crc_distortion_fast_path(struct render_compute *render,
  		    src_fovs,                       //
  		    world_poses,                    //
- 		    d->cs.target_image,             //
--		    d->cs.target_unorm_view,        //
-+		    d->cs.target_unorm_view_y,      //
-+		    d->cs.target_unorm_view_cbcr,   //
+ 		    d->target.cs.image,             //
+-		    d->target.cs.storage_view,      //
++		    d->target.cs.storage_view_y,    //
++		    d->target.cs.storage_view_cbcr, //
  		    target_viewport_datas);         //
  	}
  }
-@@ -503,7 +507,8 @@ comp_render_cs_layer(struct render_compute *render,
+@@ -504,7 +508,8 @@ comp_render_cs_layer(struct render_compute *render,
                       const struct xrt_pose *world_pose,
                       const struct xrt_pose *eye_pose,
                       const VkImage target_image,
@@ -703,7 +681,7 @@ index dbc2fec7e..c06dda63d 100644
                       const struct render_viewport_data *target_view,
                       bool do_timewarp)
  {
-@@ -660,7 +665,8 @@ comp_render_cs_layer(struct render_compute *render,
+@@ -661,7 +666,8 @@ comp_render_cs_layer(struct render_compute *render,
  	    src_samplers,      //
  	    src_image_views,   //
  	    cur_image,         //
@@ -713,14 +691,14 @@ index dbc2fec7e..c06dda63d 100644
  	    target_view,       //
  	    do_timewarp);      //
  }
-@@ -696,6 +702,7 @@ comp_render_cs_layers(struct render_compute *render,
- 		    &view->eye_pose,             //
- 		    view->image,                 //
- 		    view->cs.unorm_view,         //
-+		    view->cs.unorm_view,         //
- 		    &view->layer_viewport_data,  //
- 		    d->do_timewarp);             //
+@@ -697,6 +703,7 @@ comp_render_cs_layers(struct render_compute *render,
+ 		    &view->eye_pose,              //
+ 		    view->squash.image,           //
+ 		    view->squash.cs.storage_view, //
++		    view->squash.cs.storage_view, //
+ 		    &view->squash.viewport_data,  //
+ 		    d->do_timewarp);              //
  	}
 -- 
-2.49.0
+2.50.0
 

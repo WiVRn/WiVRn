@@ -1,4 +1,4 @@
-From e92fb94901fc652bde712af1e90c14237ea26f8f Mon Sep 17 00:00:00 2001
+From 07084beafd9430561fbe5681398792282422dde6 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 19 Feb 2025 10:13:36 +0100
 Subject: [PATCH 08/11] st/oxr: bind to dynamic role's profile
@@ -36,5 +36,5 @@ index ce4c0cca1..8ba94dc55 100644
  	oxr_get_profile_for_device_name(log, sess, xdev->name, out_p);
  	if (*out_p != NULL) {
 -- 
-2.49.0
+2.50.0
 

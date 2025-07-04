@@ -1,4 +1,4 @@
-From 40c05c4cae8af77048580a83631aa51b0f48dfec Mon Sep 17 00:00:00 2001
+From 9d54ac2408a56556529de2f9173ffcd3d5775bd1 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Nov 2024 13:40:00 +0100
 Subject: [PATCH 07/11] store alpha channel in layer 1
@@ -90,5 +90,5 @@ index e1dd1cb58..9ce46fe6f 100644
 +	imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), alpha);
  }
 -- 
-2.49.0
+2.50.0
 
