@@ -44,7 +44,7 @@ Kirigami.ScrollablePage {
                 else if (!Adb.adbInstalled)
                     return i18n("ADB is not installed.");
                 else
-                    return i18n("Connect a headset and make sure developper mode is enabled.");
+                    return i18n("Connect a headset and make sure developer mode is enabled.");
             }
             explanation: {
                 if (!ApkInstaller.busy && !ApkInstaller.apkAvailable)

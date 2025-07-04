@@ -90,7 +90,7 @@ msgstr "ADB n'est pas installé."
 
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
-msgid "Connect a headset and make sure developper mode is enabled."
+msgid "Connect a headset and make sure developer mode is enabled."
 msgstr ""
 "Connecter un casque et assurez-vous que le mode développeur est activé."
 
@@ -756,7 +756,7 @@ msgstr "Suivant"
 
 #: dashboard/qml/WizardPage.qml:112
 #, kde-format
-msgid "How to enable developper mode"
+msgid "How to enable developer mode"
 msgstr "Comment activer le mode développeur"
 
 #: dashboard/qml/WizardPage.qml:119
@@ -829,7 +829,7 @@ msgstr "ADB n'est pas installé"
 msgid ""
 "<p>No headset detected. Make sure that:\n"
 "<ul><li>The ADB udev rules are installed</li><li>The headset is in <a "
-"href=\"#\">developper mode</a></li></ul></p>"
+"href=\"#\">developer mode</a></li></ul></p>"
 msgstr ""
 "<p>Aucun casque détecté. Assurez-vous que:\n"
 "<ul><li>Les règles udev sont installées</li><li>Le casque est en <a "

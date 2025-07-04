@@ -91,7 +91,7 @@ msgstr "未安裝 ADB"
 
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
-msgid "Connect a headset and make sure developper mode is enabled."
+msgid "Connect a headset and make sure developer mode is enabled."
 msgstr "連接頭戴式裝置並確認已啟用開發人員模式"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
@@ -741,7 +741,7 @@ msgstr "下一步"
 
 #: dashboard/qml/WizardPage.qml:112
 #, kde-format
-msgid "How to enable developper mode"
+msgid "How to enable developer mode"
 msgstr "如何啟用開發者模式"
 
 #: dashboard/qml/WizardPage.qml:119
@@ -808,7 +808,7 @@ msgstr "未安裝 ADB"
 msgid ""
 "<p>No headset detected. Make sure that:\n"
 "<ul><li>The ADB udev rules are installed</li><li>The headset is in <a "
-"href=\"#\">developper mode</a></li></ul></p>"
+"href=\"#\">developer mode</a></li></ul></p>"
 msgstr ""
 "<p>未偵測到頭戴式裝置。請確認:\n"
 "<ul><li>已安裝 ADB udev 規則</li><li>頭戴式裝置處於 <a href=\"#\">開發者模式"
