@@ -1,4 +1,4 @@
-From 685e9804eb0abe3fcd6da67ffbc180db35ca4e1d Mon Sep 17 00:00:00 2001
+From 8779248b08863b7a7dda3f9822cb9037372cbd3e Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Thu, 27 Feb 2025 22:45:36 +0100
 Subject: [PATCH 09/11] c/main: allow custom pacing app factory
@@ -10,10 +10,10 @@ Subject: [PATCH 09/11] c/main: allow custom pacing app factory
  3 files changed, 11 insertions(+), 5 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_compositor.c b/src/xrt/compositor/main/comp_compositor.c
-index 26c341385..36e3297f7 100644
+index eecb14c17..24d061627 100644
 --- a/src/xrt/compositor/main/comp_compositor.c
 +++ b/src/xrt/compositor/main/comp_compositor.c
-@@ -983,6 +983,7 @@ compositor_init_renderer(struct comp_compositor *c)
+@@ -984,6 +984,7 @@ compositor_init_renderer(struct comp_compositor *c)
  xrt_result_t
  comp_main_create_system_compositor(struct xrt_device *xdev,
                                     const struct comp_target_factory *ctf,
@@ -21,7 +21,7 @@ index 26c341385..36e3297f7 100644
                                     struct xrt_system_compositor **out_xsysc)
  {
  	COMP_TRACE_MARKER();
-@@ -1183,10 +1184,11 @@ comp_main_create_system_compositor(struct xrt_device *xdev,
+@@ -1184,10 +1185,11 @@ comp_main_create_system_compositor(struct xrt_device *xdev,
  	}
  
  	// Standard app pacer.
@@ -78,5 +78,5 @@ index 617561c37..e10ba8358 100644
  #else
  	if (!use_null) {
 -- 
-2.49.0
+2.50.0
 

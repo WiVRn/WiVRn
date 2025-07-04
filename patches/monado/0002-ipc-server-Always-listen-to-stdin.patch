@@ -1,4 +1,4 @@
-From dab0f39ec43bd1eb7d17d3bc32d1a2404cfa3702 Mon Sep 17 00:00:00 2001
+From 328076ce8b74e32e6e41c3a53de3e000a43720a4 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 2 Apr 2024 17:14:42 +0200
 Subject: [PATCH 02/11] ipc/server: Always listen to stdin
@@ -21,5 +21,5 @@ index d364fbed3..ad6b473b7 100644
  		// default.
  		// This polls stdin.
 -- 
-2.49.0
+2.50.0
 

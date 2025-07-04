@@ -1,4 +1,4 @@
-From cbb5662aacc68f28e6628c9fda86a156b08d63a9 Mon Sep 17 00:00:00 2001
+From 723732637613edd61b51039544ec69eaaddb8a69 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
 Subject: [PATCH 10/11] st/oxr: forward 0 refresh rate
@@ -29,5 +29,5 @@ index b3dac8c8a..27d80be9a 100644
  		if ((int)(displayRefreshRate * 100.0f) == (int)(sess->sys->xsysc->info.refresh_rates_hz[i] * 100.0f)) {
  			found = true;
 -- 
-2.49.0
+2.50.0
 
