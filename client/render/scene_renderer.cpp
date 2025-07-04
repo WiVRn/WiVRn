@@ -717,7 +717,7 @@ scene_renderer::per_frame_resources & scene_renderer::current_frame()
 
 void scene_renderer::update_material_descriptor_set(scene_data::material & material)
 {
-	if (!material.ds || !material.ds.unique())
+	if (!material.ds || material.ds.use_count() != 1)
 		material.ds = ds_pool_material.allocate();
 
 	vk::DescriptorSet ds = **material.ds;

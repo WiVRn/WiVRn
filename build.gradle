@@ -55,7 +55,7 @@ task "generatePngs"() {
 
 android {
     namespace "org.meumeu.wivrn"
-    ndkVersion "27.1.12297006"
+    ndkVersion "28.1.13356709"
 
     lint {
         disable += "ExpiredTargetSdkVersion"
