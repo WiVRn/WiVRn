@@ -313,6 +313,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	        &self->hmd,
 	        &self->left_hand,
 	        &self->right_hand,
+	        nullptr,
 	        self->xdevs,
 	        self->xdev_count,
 	        false,
