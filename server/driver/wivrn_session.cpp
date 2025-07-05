@@ -362,6 +362,8 @@ static xrt_device_name get_name(interaction_profile profile)
 			return XRT_DEVICE_INVALID;
 		case interaction_profile::khr_simple_controller:
 			return XRT_DEVICE_SIMPLE_CONTROLLER;
+		case interaction_profile::ext_hand_interaction_ext:
+			return XRT_DEVICE_EXT_HAND_INTERACTION;
 		case interaction_profile::bytedance_pico_neo3_controller:
 			return XRT_DEVICE_PICO_NEO3_CONTROLLER;
 		case interaction_profile::bytedance_pico4_controller:
@@ -504,12 +506,20 @@ static auto to_tracking_control(device_id id)
 			return tid::left_grip;
 		case device_id::LEFT_PALM:
 			return tid::left_palm;
+		case device_id::LEFT_PINCH_POSE:
+			return tid::left_pinch;
+		case device_id::LEFT_POKE:
+			return tid::left_poke;
 		case device_id::RIGHT_AIM:
 			return tid::right_aim;
 		case device_id::RIGHT_GRIP:
 			return tid::right_grip;
 		case device_id::RIGHT_PALM:
 			return tid::right_palm;
+		case device_id::RIGHT_PINCH_POSE:
+			return tid::right_pinch;
+		case device_id::RIGHT_POKE:
+			return tid::right_poke;
 		default:
 			break;
 	}
