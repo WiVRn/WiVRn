@@ -50,7 +50,6 @@ struct configuration
 		std::optional<double> offset_y;
 		std::optional<int> group;
 		std::optional<wivrn::video_codec> codec;
-		std::optional<bool> use_10bit;
 		std::map<std::string, std::string> options;
 		std::optional<std::string> device;
 	};
@@ -63,6 +62,7 @@ struct configuration
 	std::vector<std::string> application;
 	bool debug_gui = false;
 	bool use_steamvr_lh = false;
+	bool encode_10bit = false;
 	bool tcp_only = false;
 	service_publication publication = service_publication::avahi;
 
