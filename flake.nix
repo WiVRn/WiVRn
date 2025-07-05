@@ -56,7 +56,29 @@
           ];
         }));
       in {
-        packages.default = package;
+        packages = {
+          default = package;
+          dissector = package.overrideAttrs (oldAttrs: {
+            pname = "wivrn-dissector";
+            cmakeFlags = (lib.filter (flag: !(lib.hasPrefix "-DWIVRN_BUILD" flag)) oldAttrs.cmakeFlags) ++ [
+              (lib.cmakeBool "WIVRN_BUILD_CLIENT" false)
+              (lib.cmakeBool "WIVRN_BUILD_SERVER" false)
+              (lib.cmakeBool "WIVRN_BUILD_DASHBOARD" false)
+              (lib.cmakeBool "WIVRN_BUILD_WIVRNCTL" false)
+              (lib.cmakeBool "WIVRN_BUILD_DISSECTOR" true)
+            ];
+            buildInputs = oldAttrs.buildInputs ++ [
+              (pkgs.symlinkJoin {
+                name = "wireshark-dev-out-combined";
+                paths = [
+                  pkgs.wireshark.out
+                  pkgs.wireshark.dev
+                ];
+              })
+            ];
+            preFixup = null;
+          });
+        };
         devShells.default = package.overrideAttrs (oldAttrs: {
           nativeBuildInputs = oldAttrs.nativeBuildInputs ++ devTools;
         });
