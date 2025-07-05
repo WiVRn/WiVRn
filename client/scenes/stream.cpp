@@ -117,6 +117,21 @@ static const std::unordered_map<std::string, device_id> device_ids = {
 	{"/user/hand/right/input/trackpad/force",      device_id::RIGHT_TRACKPAD_FORCE},
 	{"/user/hand/right/input/stylus/force",        device_id::RIGHT_STYLUS_FORCE},
 	{"/user/hand/right/input/stylus_fb/force",     device_id::RIGHT_STYLUS_FORCE},
+
+	// XR_EXT_hand_interaction
+	{"/user/hand/left/input/pinch_ext/value",      device_id::LEFT_PINCH_VALUE},
+	{"/user/hand/left/input/pinch_ext/ready_ext",  device_id::LEFT_PINCH_READY},
+	{"/user/hand/left/input/aim_activate_ext/value",device_id::LEFT_AIM_ACTIVATE_VALUE},
+	{"/user/hand/left/input/aim_activate_ext/ready_ext",device_id::LEFT_AIM_ACTIVATE_READY},
+	{"/user/hand/left/input/grasp_ext/value",      device_id::LEFT_GRASP_VALUE},
+	{"/user/hand/left/input/grasp_ext/ready_ext",  device_id::LEFT_GRASP_READY},
+
+	{"/user/hand/right/input/pinch_ext/value",      device_id::RIGHT_PINCH_VALUE},
+	{"/user/hand/right/input/pinch_ext/ready_ext",  device_id::RIGHT_PINCH_READY},
+	{"/user/hand/right/input/aim_activate_ext/value",device_id::RIGHT_AIM_ACTIVATE_VALUE},
+	{"/user/hand/right/input/aim_activate_ext/ready_ext",device_id::RIGHT_AIM_ACTIVATE_READY},
+	{"/user/hand/right/input/grasp_ext/value",      device_id::RIGHT_GRASP_VALUE},
+	{"/user/hand/right/input/grasp_ext/ready_ext",  device_id::RIGHT_GRASP_READY},
 };
 // clang-format on
 

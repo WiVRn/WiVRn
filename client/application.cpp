@@ -518,6 +518,35 @@ static std::vector<interaction_profile> interaction_profiles{
                 },
         },
         interaction_profile{
+                .profile_name = "/interaction_profiles/ext/hand_interaction_ext",
+                .required_extensions = {"XR_EXT_hand_interaction"},
+                .input_sources = {
+                        "/user/hand/left/input/aim/pose",
+                        "/user/hand/left/input/grip/pose",
+
+                        "/user/hand/left/input/pinch_ext/pose",
+                        "/user/hand/left/input/pinch_ext/value",
+                        "/user/hand/left/input/pinch_ext/ready_ext",
+                        "/user/hand/left/input/poke_ext/pose",
+                        "/user/hand/left/input/aim_activate_ext/value",
+                        "/user/hand/left/input/aim_activate_ext/ready_ext",
+                        "/user/hand/left/input/grasp_ext/value",
+                        "/user/hand/left/input/grasp_ext/ready_ext",
+
+                        "/user/hand/right/input/aim/pose",
+                        "/user/hand/right/input/grip/pose",
+
+                        "/user/hand/right/input/pinch_ext/pose",
+                        "/user/hand/right/input/pinch_ext/value",
+                        "/user/hand/right/input/pinch_ext/ready_ext",
+                        "/user/hand/right/input/poke_ext/pose",
+                        "/user/hand/right/input/aim_activate_ext/value",
+                        "/user/hand/right/input/aim_activate_ext/ready_ext",
+                        "/user/hand/right/input/grasp_ext/value",
+                        "/user/hand/right/input/grasp_ext/ready_ext",
+                },
+        },
+        interaction_profile{
                 .profile_name = "/interaction_profiles/htc/vive_xr_tracker",
                 .required_extensions = {"XR_HTC_vive_xr_tracker_interaction", "XR_HTC_path_enumeration"},
         },
@@ -555,6 +584,9 @@ static const std::pair<std::string_view, XrActionType> action_suffixes[] =
 		{"/thumbstick", XR_ACTION_TYPE_VECTOR2F_INPUT},
 		{"/joystick",   XR_ACTION_TYPE_VECTOR2F_INPUT},
 		{"/trackball",  XR_ACTION_TYPE_VECTOR2F_INPUT},
+
+		// XR_EXT_hand_interaction
+		{"/ready_ext", XR_ACTION_TYPE_BOOLEAN_INPUT},
 
 		// Output paths
 		{"/haptic",           XR_ACTION_TYPE_VIBRATION_OUTPUT},
@@ -949,19 +981,41 @@ void application::initialize_actions()
 			continue;
 
 		// Patch profile to add grip_surface or palm_ext
-		if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or utils::contains(xr_extensions, XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
-		    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose")                                   //
-		    and not utils::contains(profile.input_sources, "/user/hand/left/input/grip_surface/pose"))
+		bool add_palms = true;
+		if (profile.profile_name.ends_with("ext/hand_interaction_ext"))
 		{
-			profile.input_sources.push_back("/user/hand/left/input/grip_surface/pose");
-			profile.input_sources.push_back("/user/hand/right/input/grip_surface/pose");
+			switch (guess_model())
+			{
+				// Quest breaks spec and does not support grip_surface for ext/hand_interaction_ext
+				case model::meta_quest_3:
+				case model::meta_quest_pro:
+				case model::meta_quest_3s:
+				case model::oculus_quest_2:
+				case model::oculus_quest:
+					add_palms = false;
+					break;
+				default:
+					break;
+			}
 		}
-		else if (utils::contains(xr_extensions, XR_EXT_PALM_POSE_EXTENSION_NAME)               //
-		         and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose") //
-		         and not utils::contains(profile.input_sources, "/user/hand/left/input/palm_ext/pose"))
+		if (add_palms)
 		{
-			profile.input_sources.push_back("/user/hand/left/input/palm_ext/pose");
-			profile.input_sources.push_back("/user/hand/right/input/palm_ext/pose");
+			if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or utils::contains(xr_extensions, XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
+			    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose")                                   //
+			    and not utils::contains(profile.input_sources, "/user/hand/left/input/grip_surface/pose"))
+			{
+				spdlog::info("Adding grip_surface/pose for interaction profile {}", profile.profile_name);
+				profile.input_sources.push_back("/user/hand/left/input/grip_surface/pose");
+				profile.input_sources.push_back("/user/hand/right/input/grip_surface/pose");
+			}
+			else if (utils::contains(xr_extensions, XR_EXT_PALM_POSE_EXTENSION_NAME)               //
+			         and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose") //
+			         and not utils::contains(profile.input_sources, "/user/hand/left/input/palm_ext/pose"))
+			{
+				spdlog::info("Adding palm_ext/pose for interaction profile {}", profile.profile_name);
+				profile.input_sources.push_back("/user/hand/left/input/palm_ext/pose");
+				profile.input_sources.push_back("/user/hand/right/input/palm_ext/pose");
+			}
 		}
 
 		// Dynamically add VIVE XR Trackers to the profile if available
@@ -1004,12 +1058,20 @@ void application::initialize_actions()
 			spaces[size_t(xr::spaces::aim_left)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/left/input/palm_ext/pose" or name == "/user/hand/left/input/grip_surface/pose")
 			spaces[size_t(xr::spaces::palm_left)] = xr_session.create_action_space(a);
+		else if (name == "/user/hand/left/input/pinch_ext/pose")
+			spaces[size_t(xr::spaces::pinch_left)] = xr_session.create_action_space(a);
+		else if (name == "/user/hand/left/input/poke_ext/pose")
+			spaces[size_t(xr::spaces::poke_left)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/right/input/grip/pose")
 			spaces[size_t(xr::spaces::grip_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/right/input/aim/pose")
 			spaces[size_t(xr::spaces::aim_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/hand/right/input/palm_ext/pose" or name == "/user/hand/right/input/grip_surface/pose")
 			spaces[size_t(xr::spaces::palm_right)] = xr_session.create_action_space(a);
+		else if (name == "/user/hand/right/input/pinch_ext/pose")
+			spaces[size_t(xr::spaces::pinch_right)] = xr_session.create_action_space(a);
+		else if (name == "/user/hand/right/input/poke_ext/pose")
+			spaces[size_t(xr::spaces::poke_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/eyes_ext/input/gaze_ext/pose")
 			spaces[size_t(xr::spaces::eye_gaze)] = xr_session.create_action_space(a);
 		else if (name.contains("/input/entity_htc/pose") && htc_body)
@@ -1098,6 +1160,7 @@ void application::initialize()
 	opt_extensions.push_back(XR_KHR_MAINTENANCE1_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_HAND_TRACKING_EXTENSION_NAME);
+	opt_extensions.push_back(XR_EXT_HAND_INTERACTION_EXTENSION_NAME);
 	opt_extensions.push_back(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
 	opt_extensions.push_back(XR_HTC_PASSTHROUGH_EXTENSION_NAME);
