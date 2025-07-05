@@ -268,9 +268,16 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	{
 		for (uint8_t view = 0; view < view_count; ++view)
 		{
-			self->network_session->send_control(from_headset::visibility_mask_changed{
-			        .data = get_visibility_mask(self->instance, self->session, view),
-			        .view_index = view});
+			try
+			{
+				self->network_session->send_control(from_headset::visibility_mask_changed{
+				        .data = get_visibility_mask(self->instance, self->session, view),
+				        .view_index = view});
+			}
+			catch (std::exception & e)
+			{
+				spdlog::warn("Failed to get visibility mask: ", e.what());
+			}
 		}
 	}
 
