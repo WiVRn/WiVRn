@@ -88,6 +88,8 @@
 
         <!-- https://developer.oculus.com/documentation/native/android/mobile-splash/ -->
         <meta-data android:name="com.oculus.ossplash" android:value="true"/>
+        <!-- https://developers.meta.com/horizon/documentation/native/android/mobile-passthrough-loading-screens -->
+        <meta-data android:name="com.oculus.ossplash.background" android:value="passthrough-contextual"/>
 
         <!-- The activity is the built-in NativeActivity framework class. -->
         <!-- launchMode is set to singleTask because there should never be multiple copies of the app running. -->
