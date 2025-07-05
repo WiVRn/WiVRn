@@ -293,8 +293,8 @@ static xrt_binding_output_pair simple_output_binding[] = {
 };
 
 static xrt_binding_input_pair hand_interaction_input_binding[] = {
-        {XRT_INPUT_HAND_GRIP_POSE, XRT_INPUT_HAND_GRIP_POSE},
-        {XRT_INPUT_HAND_AIM_POSE, XRT_INPUT_HAND_AIM_POSE},
+        {XRT_INPUT_HAND_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+        {XRT_INPUT_HAND_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
         {XRT_INPUT_HAND_PINCH_POSE, XRT_INPUT_HAND_PINCH_POSE},
 		{XRT_INPUT_HAND_PINCH_VALUE, XRT_INPUT_HAND_PINCH_VALUE},
 		{XRT_INPUT_HAND_PINCH_READY, XRT_INPUT_HAND_PINCH_READY},
@@ -813,11 +813,9 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 			break;
 		case XRT_INPUT_HAND_PINCH_POSE:
 			std::tie(extrapolation_time, *res, device) = pinch_ext.get_pose_at(at_timestamp_ns);
-			cnx->set_enabled(device, true);
 			break;
 		case XRT_INPUT_HAND_POKE_POSE:
 			std::tie(extrapolation_time, *res, device) = poke_ext.get_pose_at(at_timestamp_ns);
-			cnx->set_enabled(device, true);
 			break;
 		default:
 			U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
@@ -898,10 +896,8 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 		cnx->set_enabled(grip.device, false);
 	if (not palm.update_tracking(tracking, offset))
 		cnx->set_enabled(palm.device, false);
-	if (not pinch_ext.update_tracking(tracking, offset))
-		cnx->set_enabled(pinch_ext.device, false);
-	if (not poke_ext.update_tracking(tracking, offset))
-		cnx->set_enabled(poke_ext.device, false);
+	pinch_ext.update_tracking(tracking, offset);
+	poke_ext.update_tracking(tracking, offset);
 	if (auto & out = tracking_dump(); out and offset)
 	{
 		std::lock_guard lock{tracking_dump_mutex};

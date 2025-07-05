@@ -585,6 +585,9 @@ static const std::pair<std::string_view, XrActionType> action_suffixes[] =
 		{"/joystick",   XR_ACTION_TYPE_VECTOR2F_INPUT},
 		{"/trackball",  XR_ACTION_TYPE_VECTOR2F_INPUT},
 
+		// XR_EXT_hand_interaction
+		{"/ready_ext", XR_ACTION_TYPE_BOOLEAN_INPUT},
+
 		// Output paths
 		{"/haptic",           XR_ACTION_TYPE_VIBRATION_OUTPUT},
 		{"/haptic_trigger",   XR_ACTION_TYPE_VIBRATION_OUTPUT},
