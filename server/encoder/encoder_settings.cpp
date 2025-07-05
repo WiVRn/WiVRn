@@ -91,8 +91,11 @@ void print_encoders(const std::vector<wivrn::encoder_settings> & encoders)
 			group = encoder.group;
 			U_LOG_I("Group %d", group);
 		}
+
+		const char * suffix_10bit = encoder.use_10bit ? " 10-bit" : "";
+
 		std::string codec(magic_enum::enum_name(encoder.codec));
-		U_LOG_I("\t%s (%s)", encoder.encoder_name.c_str(), codec.c_str());
+		U_LOG_I("\t%s (%s%s)", encoder.encoder_name.c_str(), codec.c_str(), suffix_10bit);
 		U_LOG_I("\tchannels: %s", std::string(magic_enum::enum_name(encoder.channels)).c_str());
 		U_LOG_I("\tsize:%" PRIu16 "x%" PRIu16 " offset:%" PRIu16 "x%" PRIu16,
 		        encoder.width,
@@ -141,7 +144,7 @@ static constexpr auto ffmpeg_version()
 	return result;
 }
 
-static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & codecs)
+static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & codecs, bool use_10bit)
 {
 	video_encoder_ffmpeg::mute_logs mute;
 	encoder_settings s{
@@ -156,6 +159,12 @@ static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & b
 	};
 	for (auto codec: codecs)
 	{
+		if (codec == wivrn::video_codec::h264)
+		{
+			U_LOG_D("Will not use h264: 10-bit not supported");
+			continue;
+		}
+
 		if constexpr (ffmpeg_version()[0] < 6)
 		{
 			if (codec == wivrn::video_codec::h264)
@@ -209,14 +218,16 @@ static bool probe_nvenc(wivrn_vk_bundle & bundle)
 }
 #endif
 
-static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs, configuration::encoder & config)
+static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs, configuration::encoder & config, bool encode_10bit)
 {
 	if (config.name.empty())
 	{
 		if (is_nvidia(*bundle.physical_device))
 		{
 #if WIVRN_USE_NVENC
-			if (probe_nvenc(bundle))
+			if (encode_10bit)
+				U_LOG_W("cannot use nvenc due to missing 10-bit support (disable 10-bit to use nvenc)");
+			else if (probe_nvenc(bundle))
 				config.name = encoder_nvenc;
 			else
 #else
@@ -224,8 +235,13 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 #endif
 			{
 #if WIVRN_USE_X264
-				config.name = encoder_x264;
-				config.codec = h264;
+				if (encode_10bit)
+					U_LOG_E("no encoder found with 10-bit support (disable 10-bit to use x264)");
+				else
+				{
+					config.name = encoder_x264;
+					config.codec = h264;
+				}
 #else
 				U_LOG_E("no suitable encoder available (compile with x264 or nvenc support)");
 #endif
@@ -236,9 +252,14 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 #if WIVRN_USE_VAAPI
 			config.name = encoder_vaapi;
 #elif WIVRN_USE_X264
-			U_LOG_W("ffmpeg support not compiled, vaapi encoder not available");
-			config.name = encoder_x264;
-			config.codec = h264;
+			if (use_10bit)
+				U_LOG_E("no encoder found with 10-bit support (disable 10-bit to use x264)");
+			else
+			{
+				U_LOG_W("ffmpeg support not compiled, vaapi encoder not available");
+				config.name = encoder_x264;
+				config.codec = h264;
+			}
 #else
 			U_LOG_E("no suitable encoder available (compile with x264 or nvenc support)");
 #endif
@@ -248,32 +269,41 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 #if WIVRN_USE_VAAPI
 	if (config.name == encoder_vaapi and not config.codec)
 	{
-		config.codec = filter_codecs_vaapi(bundle, headset_codecs);
+		config.codec = filter_codecs_vaapi(bundle, headset_codecs, encode_10bit);
 		if (not config.codec)
 		{
-			U_LOG_W("Failed to initialize vaapi, fallback to software encoding");
-			config.name = encoder_x264;
-			config.codec = h264;
+#if WIVRN_USE_X264
+			if (encode_10bit)
+				U_LOG_E("Failed to initialize vaapi, but can't use x264 due to 10-bit (disable 10-bit to use x264)");
+			else
+			{
+				U_LOG_W("Failed to initialize vaapi, fallback to software encoding");
+				config.name = encoder_x264;
+				config.codec = h264;
+			}
+#else
+			U_LOG_E("Failed to initialize vaapi");
+#endif
 		}
 	}
 #endif
 
 	if (config.name == encoder_vulkan and not config.codec)
-		config.codec = h264;
+		config.codec = h264; // this will fail if 10-bit is enabled
 
 #if WIVRN_USE_X264
 	if (config.name == encoder_x264)
-		config.codec = h264;
+		config.codec = h264; // this will fail if 10-bit is enabled
 #endif
 
 	if (not config.codec)
-		config.codec = h264;
+		config.codec = encode_10bit ? h265 : h264;
 }
 
-static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs)
+static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs, bool encode_10bit)
 {
 	configuration::encoder base;
-	fill_defaults(bundle, headset_codecs, base);
+	fill_defaults(bundle, headset_codecs, base, encode_10bit);
 
 #ifdef WIVRN_SPLIT_ENCODERS
 	if (base.name != encoder_x264 and base.name != encoder_nvenc)
@@ -338,8 +368,9 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	{
 		U_LOG_E("Failed to read encoder configuration: %s", e.what());
 	}
+
 	if (config.encoders.empty())
-		config.encoders = get_encoder_default_settings(bundle, info.supported_codecs);
+		config.encoders = get_encoder_default_settings(bundle, info.supported_codecs, config.encode_10bit);
 	if (not config.encoder_passthrough)
 		config.encoder_passthrough.emplace();
 
@@ -347,7 +378,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	config.encoder_passthrough->height = 1;
 	config.encoder_passthrough->offset_x = 0;
 	config.encoder_passthrough->offset_y = 0;
-	fill_defaults(bundle, info.supported_codecs, *config.encoder_passthrough);
+	fill_defaults(bundle, info.supported_codecs, *config.encoder_passthrough, config.encode_10bit);
 
 	uint64_t bitrate = config.bitrate.value_or(default_bitrate);
 	std::array<double, 2> default_scale;
@@ -361,9 +392,11 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	            height / passthrough_subsampling,
 	            scale);
 
+	std::optional<bool> maybe_10bit{};
+
 	for (auto & encoder: config.encoders)
 	{
-		fill_defaults(bundle, info.supported_codecs, encoder);
+		fill_defaults(bundle, info.supported_codecs, encoder, config.encode_10bit);
 		assert(encoder.codec);
 		check_scale(encoder.name,
 		            *encoder.codec,
@@ -402,6 +435,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		settings.video_width = settings.width;
 		settings.video_height = settings.height;
 		settings.codec = *encoder.codec;
+		settings.use_10bit = config.encode_10bit;
 		if (encoder.group)
 			settings.group = *encoder.group;
 		else
@@ -432,6 +466,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		settings.video_width = settings.width;
 		settings.video_height = settings.height;
 		settings.codec = *encoder.codec;
+		settings.use_10bit = config.encode_10bit;
 		if (encoder.group)
 			settings.group = *encoder.group;
 		else

@@ -61,6 +61,7 @@ struct configuration
 	std::vector<std::string> application;
 	bool debug_gui = false;
 	bool use_steamvr_lh = false;
+	bool encode_10bit = false;
 	bool tcp_only = false;
 	service_publication publication = service_publication::avahi;
 

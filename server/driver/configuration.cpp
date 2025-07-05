@@ -146,6 +146,9 @@ configuration configuration::read_user_configuration()
 		if (auto it = json.find("use-steamvr-lh"); it != json.end())
 			result.use_steamvr_lh = *it;
 
+		if (auto it = json.find("encode_10bit"); it != json.end())
+			result.encode_10bit = *it;
+
 		if (auto it = json.find("tcp-only"); it != json.end())
 			result.tcp_only = *it;
 		else if (auto it = json.find("tcp_only"); it != json.end())
