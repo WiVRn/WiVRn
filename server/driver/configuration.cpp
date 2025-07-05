@@ -135,6 +135,7 @@ configuration::encoder parse_encoder(const nlohmann::json & item)
 	SET_IF(codec);
 	if (e.codec == wivrn::video_codec(-1))
 		throw std::runtime_error("invalid codec value " + item["codec"].get<std::string>());
+	SET_IF(use_10bit);
 	SET_IF(options);
 	SET_IF(device);
 	return e;
