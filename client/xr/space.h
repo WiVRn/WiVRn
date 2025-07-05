@@ -37,6 +37,11 @@ enum class spaces
 	aim_right,
 	palm_left,
 	palm_right,
+	// hand_interaction_ext
+	pinch_left,
+	pinch_right,
+	poke_left,
+	poke_right,
 
 	count
 };

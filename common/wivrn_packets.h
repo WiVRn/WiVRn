@@ -86,6 +86,14 @@ enum class device_id : uint8_t
 	LEFT_TRACKPAD_TOUCH,     // /user/hand/left/input/trackpad/touch
 	LEFT_TRACKPAD_FORCE,     // /user/hand/left/input/trackpad/force
 	LEFT_STYLUS_FORCE,       // /user/hand/left/input/stylus_fb/force
+	LEFT_PINCH_POSE,         // /user/hand/left/input/pinch_ext/pose
+	LEFT_PINCH_VALUE,        // /user/hand/left/input/pinch_ext/value
+	LEFT_PINCH_READY,        // /user/hand/left/input/pinch_ext/ready_ext
+	LEFT_POKE,               // /user/hand/left/input/poke_ext/pose
+	LEFT_AIM_ACTIVATE_VALUE, // /user/hand/left/input/aim_activate_ext/value
+	LEFT_AIM_ACTIVATE_READY, // /user/hand/left/input/aim_activate_ext/ready_ext
+	LEFT_GRASP_VALUE,        // /user/hand/left/input/grasp_ext/value
+	LEFT_GRASP_READY,        // /user/hand/left/input/grasp_ext/ready_ext
 	A_CLICK,                 // /user/hand/right/input/a/click
 	A_TOUCH,                 // /user/hand/right/input/a/touch
 	B_CLICK,                 // /user/hand/right/input/b/click
@@ -114,6 +122,14 @@ enum class device_id : uint8_t
 	RIGHT_TRACKPAD_TOUCH,    // /user/hand/right/input/trackpad/touch
 	RIGHT_TRACKPAD_FORCE,    // /user/hand/right/input/trackpad/force
 	RIGHT_STYLUS_FORCE,      // /user/hand/right/input/stylus_fb/force
+	RIGHT_PINCH_POSE,         // /user/hand/right/input/pinch_ext/pose
+	RIGHT_PINCH_VALUE,        // /user/hand/right/input/pinch_ext/value
+	RIGHT_PINCH_READY,        // /user/hand/right/input/pinch_ext/ready_ext
+	RIGHT_POKE,               // /user/hand/right/input/poke_ext/pose
+	RIGHT_AIM_ACTIVATE_VALUE, // /user/hand/right/input/aim_activate_ext/value
+	RIGHT_AIM_ACTIVATE_READY, // /user/hand/right/input/aim_activate_ext/ready_ext
+	RIGHT_GRASP_VALUE,        // /user/hand/right/input/grasp_ext/value
+	RIGHT_GRASP_READY,        // /user/hand/right/input/grasp_ext/ready_ext
 	EYE_GAZE,                // /user/eyes_ext/input/gaze_ext/pose
 };
 
@@ -121,6 +137,7 @@ enum class interaction_profile : uint8_t
 {
 	none,
 	khr_simple_controller,
+	ext_hand_interaction_ext,
 	bytedance_pico_neo3_controller,
 	bytedance_pico4_controller,
 	bytedance_pico4s_controller,
@@ -336,6 +353,38 @@ struct hand_tracking
 	XrTime timestamp;
 	hand_id hand;
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
+};
+
+struct hand_interaction
+{
+	enum flags : uint8_t
+	{
+		orientation_valid = 1 << 0,
+		position_valid = 1 << 1,
+		linear_velocity_valid = 1 << 2,
+		angular_velocity_valid = 1 << 3,
+		orientation_tracked = 1 << 4,
+		position_tracked = 1 << 5
+	};
+	enum hand_id : uint8_t
+	{
+		left,
+		right,
+	};
+	struct pose
+	{
+		XrPosef pose;
+		XrVector3f linear_velocity;
+		XrVector3f angular_velocity;
+		device_id device;
+		uint8_t flags;
+	};
+
+	XrTime production_timestamp;
+	XrTime timestamp;
+	hand_id hand;
+
+	pose pinch_pose;
 };
 
 struct body_tracking

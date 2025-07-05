@@ -39,6 +39,7 @@
 #include "wivrn_ipc.h"
 
 #include "wivrn_packets.h"
+#include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
 #include <algorithm>
@@ -361,6 +362,8 @@ static xrt_device_name get_name(interaction_profile profile)
 			return XRT_DEVICE_INVALID;
 		case interaction_profile::khr_simple_controller:
 			return XRT_DEVICE_SIMPLE_CONTROLLER;
+		case interaction_profile::ext_hand_interaction_ext:
+			return XRT_DEVICE_EXT_HAND_INTERACTION;
 		case interaction_profile::bytedance_pico_neo3_controller:
 			return XRT_DEVICE_PICO_NEO3_CONTROLLER;
 		case interaction_profile::bytedance_pico4_controller:
