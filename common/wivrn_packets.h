@@ -45,82 +45,99 @@ static constexpr int protocol_revision = 1;
 
 enum class device_id : uint8_t
 {
-	HEAD,                    // /user/head
-	LEFT_CONTROLLER_HAPTIC,  // /user/hand/left/output/haptic
-	RIGHT_CONTROLLER_HAPTIC, // /user/hand/right/output/haptic
-	LEFT_TRIGGER_HAPTIC,     // /user/hand/left/output/haptic_trigger
-	RIGHT_TRIGGER_HAPTIC,    // /user/hand/right/output/haptic_trigger
-	LEFT_THUMB_HAPTIC,       // /user/hand/left/output/haptic_thumb
-	RIGHT_THUMB_HAPTIC,      // /user/hand/right/output/haptic_thumb
-	LEFT_GRIP,               // /user/hand/left/input/grip/pose
-	LEFT_AIM,                // /user/hand/left/input/aim/pose
-	LEFT_PALM,               // /user/hand/left/palm_ext/pose
-	RIGHT_GRIP,              // /user/hand/right/input/grip/pose
-	RIGHT_AIM,               // /user/hand/right/input/aim/pose
-	RIGHT_PALM,              // /user/hand/right/palm_ext/pose
-	X_CLICK,                 // /user/hand/left/input/x/click
-	X_TOUCH,                 // /user/hand/left/input/x/touch
-	Y_CLICK,                 // /user/hand/left/input/y/click
-	Y_TOUCH,                 // /user/hand/left/input/y/touch
-	MENU_CLICK,              // /user/hand/left/input/menu/click
-	LEFT_SQUEEZE_CLICK,      // /user/hand/left/input/squeeze/click
-	LEFT_SQUEEZE_FORCE,      // /user/hand/left/input/squeeze/force
-	LEFT_SQUEEZE_VALUE,      // /user/hand/left/input/squeeze/value
-	LEFT_TRIGGER_CLICK,      // /user/hand/left/input/trigger/click
-	LEFT_TRIGGER_VALUE,      // /user/hand/left/input/trigger/value
-	LEFT_TRIGGER_TOUCH,      // /user/hand/left/input/trigger/touch
-	LEFT_TRIGGER_PROXIMITY,  // /user/hand/left/input/trigger/proximity
-	LEFT_TRIGGER_CURL,       // /user/hand/left/input/trigger/curl_fb
-	LEFT_TRIGGER_SLIDE,      // /user/hand/left/input/trigger/slide_fb
-	LEFT_TRIGGER_FORCE,      // /user/hand/left/input/trigger/force
-	LEFT_THUMBSTICK_X,       // /user/hand/left/input/thumbstick/x
-	LEFT_THUMBSTICK_Y,       // /user/hand/left/input/thumbstick/y
-	LEFT_THUMBSTICK_CLICK,   // /user/hand/left/input/thumbstick/click
-	LEFT_THUMBSTICK_TOUCH,   // /user/hand/left/input/thumbstick/touch
-	LEFT_THUMBREST_TOUCH,    // /user/hand/left/input/thumbrest/touch
-	LEFT_THUMBREST_FORCE,    // /user/hand/left/input/thumbrest/force
-	LEFT_THUMB_PROXIMITY,    // /user/hand/left/input/thumb_resting_surfaces/proximity
-	LEFT_TRACKPAD_X,         // /user/hand/left/input/trackpad/x
-	LEFT_TRACKPAD_Y,         // /user/hand/left/input/trackpad/y
-	LEFT_TRACKPAD_CLICK,     // /user/hand/left/input/trackpad/click
-	LEFT_TRACKPAD_TOUCH,     // /user/hand/left/input/trackpad/touch
-	LEFT_TRACKPAD_FORCE,     // /user/hand/left/input/trackpad/force
-	LEFT_STYLUS_FORCE,       // /user/hand/left/input/stylus_fb/force
-	A_CLICK,                 // /user/hand/right/input/a/click
-	A_TOUCH,                 // /user/hand/right/input/a/touch
-	B_CLICK,                 // /user/hand/right/input/b/click
-	B_TOUCH,                 // /user/hand/right/input/b/touch
-	SYSTEM_CLICK,            // /user/hand/right/input/system/click
-	RIGHT_SQUEEZE_CLICK,     // /user/hand/right/input/squeeze/click
-	RIGHT_SQUEEZE_FORCE,     // /user/hand/right/input/squeeze/force
-	RIGHT_SQUEEZE_VALUE,     // /user/hand/right/input/squeeze/value
-	RIGHT_TRIGGER_CLICK,     // /user/hand/right/input/trigger/click
-	RIGHT_TRIGGER_VALUE,     // /user/hand/right/input/trigger/value
-	RIGHT_TRIGGER_TOUCH,     // /user/hand/right/input/trigger/touch
-	RIGHT_TRIGGER_PROXIMITY, // /user/hand/right/input/trigger/proximity
-	RIGHT_TRIGGER_CURL,      // /user/hand/right/input/trigger/curl_fb
-	RIGHT_TRIGGER_SLIDE,     // /user/hand/right/input/trigger/slide_fb
-	RIGHT_TRIGGER_FORCE,     // /user/hand/right/input/trigger/force
-	RIGHT_THUMBSTICK_X,      // /user/hand/right/input/thumbstick/x
-	RIGHT_THUMBSTICK_Y,      // /user/hand/right/input/thumbstick/y
-	RIGHT_THUMBSTICK_CLICK,  // /user/hand/right/input/thumbstick/click
-	RIGHT_THUMBSTICK_TOUCH,  // /user/hand/right/input/thumbstick/touch
-	RIGHT_THUMBREST_TOUCH,   // /user/hand/right/input/thumbrest/touch
-	RIGHT_THUMBREST_FORCE,   // /user/hand/right/input/thumbrest/force
-	RIGHT_THUMB_PROXIMITY,   // /user/hand/right/input/thumb_resting_surfaces/proximity
-	RIGHT_TRACKPAD_X,        // /user/hand/right/input/trackpad/x
-	RIGHT_TRACKPAD_Y,        // /user/hand/right/input/trackpad/y
-	RIGHT_TRACKPAD_CLICK,    // /user/hand/right/input/trackpad/click
-	RIGHT_TRACKPAD_TOUCH,    // /user/hand/right/input/trackpad/touch
-	RIGHT_TRACKPAD_FORCE,    // /user/hand/right/input/trackpad/force
-	RIGHT_STYLUS_FORCE,      // /user/hand/right/input/stylus_fb/force
-	EYE_GAZE,                // /user/eyes_ext/input/gaze_ext/pose
+	HEAD,                     // /user/head
+	LEFT_CONTROLLER_HAPTIC,   // /user/hand/left/output/haptic
+	RIGHT_CONTROLLER_HAPTIC,  // /user/hand/right/output/haptic
+	LEFT_TRIGGER_HAPTIC,      // /user/hand/left/output/haptic_trigger
+	RIGHT_TRIGGER_HAPTIC,     // /user/hand/right/output/haptic_trigger
+	LEFT_THUMB_HAPTIC,        // /user/hand/left/output/haptic_thumb
+	RIGHT_THUMB_HAPTIC,       // /user/hand/right/output/haptic_thumb
+	LEFT_GRIP,                // /user/hand/left/input/grip/pose
+	LEFT_AIM,                 // /user/hand/left/input/aim/pose
+	LEFT_PALM,                // /user/hand/left/palm_ext/pose
+	RIGHT_GRIP,               // /user/hand/right/input/grip/pose
+	RIGHT_AIM,                // /user/hand/right/input/aim/pose
+	RIGHT_PALM,               // /user/hand/right/palm_ext/pose
+	X_CLICK,                  // /user/hand/left/input/x/click
+	X_TOUCH,                  // /user/hand/left/input/x/touch
+	Y_CLICK,                  // /user/hand/left/input/y/click
+	Y_TOUCH,                  // /user/hand/left/input/y/touch
+	MENU_CLICK,               // /user/hand/left/input/menu/click
+	LEFT_SQUEEZE_CLICK,       // /user/hand/left/input/squeeze/click
+	LEFT_SQUEEZE_FORCE,       // /user/hand/left/input/squeeze/force
+	LEFT_SQUEEZE_VALUE,       // /user/hand/left/input/squeeze/value
+	LEFT_TRIGGER_CLICK,       // /user/hand/left/input/trigger/click
+	LEFT_TRIGGER_VALUE,       // /user/hand/left/input/trigger/value
+	LEFT_TRIGGER_TOUCH,       // /user/hand/left/input/trigger/touch
+	LEFT_TRIGGER_PROXIMITY,   // /user/hand/left/input/trigger/proximity
+	LEFT_TRIGGER_CURL,        // /user/hand/left/input/trigger/curl_fb
+	LEFT_TRIGGER_SLIDE,       // /user/hand/left/input/trigger/slide_fb
+	LEFT_TRIGGER_FORCE,       // /user/hand/left/input/trigger/force
+	LEFT_THUMBSTICK_X,        // /user/hand/left/input/thumbstick/x
+	LEFT_THUMBSTICK_Y,        // /user/hand/left/input/thumbstick/y
+	LEFT_THUMBSTICK_CLICK,    // /user/hand/left/input/thumbstick/click
+	LEFT_THUMBSTICK_TOUCH,    // /user/hand/left/input/thumbstick/touch
+	LEFT_THUMBREST_TOUCH,     // /user/hand/left/input/thumbrest/touch
+	LEFT_THUMBREST_FORCE,     // /user/hand/left/input/thumbrest/force
+	LEFT_THUMB_PROXIMITY,     // /user/hand/left/input/thumb_resting_surfaces/proximity
+	LEFT_TRACKPAD_X,          // /user/hand/left/input/trackpad/x
+	LEFT_TRACKPAD_Y,          // /user/hand/left/input/trackpad/y
+	LEFT_TRACKPAD_CLICK,      // /user/hand/left/input/trackpad/click
+	LEFT_TRACKPAD_TOUCH,      // /user/hand/left/input/trackpad/touch
+	LEFT_TRACKPAD_FORCE,      // /user/hand/left/input/trackpad/force
+	LEFT_STYLUS_FORCE,        // /user/hand/left/input/stylus_fb/force
+	LEFT_PINCH_POSE,          // /user/hand/left/input/pinch_ext/pose
+	LEFT_PINCH_VALUE,         // /user/hand/left/input/pinch_ext/value
+	LEFT_PINCH_READY,         // /user/hand/left/input/pinch_ext/ready_ext
+	LEFT_POKE,                // /user/hand/left/input/poke_ext/pose
+	LEFT_AIM_ACTIVATE_VALUE,  // /user/hand/left/input/aim_activate_ext/value
+	LEFT_AIM_ACTIVATE_READY,  // /user/hand/left/input/aim_activate_ext/ready_ext
+	LEFT_GRASP_VALUE,         // /user/hand/left/input/grasp_ext/value
+	LEFT_GRASP_READY,         // /user/hand/left/input/grasp_ext/ready_ext
+	A_CLICK,                  // /user/hand/right/input/a/click
+	A_TOUCH,                  // /user/hand/right/input/a/touch
+	B_CLICK,                  // /user/hand/right/input/b/click
+	B_TOUCH,                  // /user/hand/right/input/b/touch
+	SYSTEM_CLICK,             // /user/hand/right/input/system/click
+	RIGHT_SQUEEZE_CLICK,      // /user/hand/right/input/squeeze/click
+	RIGHT_SQUEEZE_FORCE,      // /user/hand/right/input/squeeze/force
+	RIGHT_SQUEEZE_VALUE,      // /user/hand/right/input/squeeze/value
+	RIGHT_TRIGGER_CLICK,      // /user/hand/right/input/trigger/click
+	RIGHT_TRIGGER_VALUE,      // /user/hand/right/input/trigger/value
+	RIGHT_TRIGGER_TOUCH,      // /user/hand/right/input/trigger/touch
+	RIGHT_TRIGGER_PROXIMITY,  // /user/hand/right/input/trigger/proximity
+	RIGHT_TRIGGER_CURL,       // /user/hand/right/input/trigger/curl_fb
+	RIGHT_TRIGGER_SLIDE,      // /user/hand/right/input/trigger/slide_fb
+	RIGHT_TRIGGER_FORCE,      // /user/hand/right/input/trigger/force
+	RIGHT_THUMBSTICK_X,       // /user/hand/right/input/thumbstick/x
+	RIGHT_THUMBSTICK_Y,       // /user/hand/right/input/thumbstick/y
+	RIGHT_THUMBSTICK_CLICK,   // /user/hand/right/input/thumbstick/click
+	RIGHT_THUMBSTICK_TOUCH,   // /user/hand/right/input/thumbstick/touch
+	RIGHT_THUMBREST_TOUCH,    // /user/hand/right/input/thumbrest/touch
+	RIGHT_THUMBREST_FORCE,    // /user/hand/right/input/thumbrest/force
+	RIGHT_THUMB_PROXIMITY,    // /user/hand/right/input/thumb_resting_surfaces/proximity
+	RIGHT_TRACKPAD_X,         // /user/hand/right/input/trackpad/x
+	RIGHT_TRACKPAD_Y,         // /user/hand/right/input/trackpad/y
+	RIGHT_TRACKPAD_CLICK,     // /user/hand/right/input/trackpad/click
+	RIGHT_TRACKPAD_TOUCH,     // /user/hand/right/input/trackpad/touch
+	RIGHT_TRACKPAD_FORCE,     // /user/hand/right/input/trackpad/force
+	RIGHT_STYLUS_FORCE,       // /user/hand/right/input/stylus_fb/force
+	RIGHT_PINCH_POSE,         // /user/hand/right/input/pinch_ext/pose
+	RIGHT_PINCH_VALUE,        // /user/hand/right/input/pinch_ext/value
+	RIGHT_PINCH_READY,        // /user/hand/right/input/pinch_ext/ready_ext
+	RIGHT_POKE,               // /user/hand/right/input/poke_ext/pose
+	RIGHT_AIM_ACTIVATE_VALUE, // /user/hand/right/input/aim_activate_ext/value
+	RIGHT_AIM_ACTIVATE_READY, // /user/hand/right/input/aim_activate_ext/ready_ext
+	RIGHT_GRASP_VALUE,        // /user/hand/right/input/grasp_ext/value
+	RIGHT_GRASP_READY,        // /user/hand/right/input/grasp_ext/ready_ext
+	EYE_GAZE,                 // /user/eyes_ext/input/gaze_ext/pose
 };
 
 enum class interaction_profile : uint8_t
 {
 	none,
 	khr_simple_controller,
+	ext_hand_interaction_ext,
 	bytedance_pico_neo3_controller,
 	bytedance_pico4_controller,
 	bytedance_pico4s_controller,
@@ -600,9 +617,13 @@ struct tracking_control
 		left_aim,
 		left_grip,
 		left_palm,
+		left_pinch,
+		left_poke,
 		right_aim,
 		right_grip,
 		right_palm,
+		right_pinch,
+		right_poke,
 		left_hand,
 		right_hand,
 		face,
