@@ -321,24 +321,28 @@ void scenes::stream::tracking()
 			case device_id::HEAD:
 			case device_id::EYE_GAZE:
 				return true;
-			case device_id::LEFT_PINCH_POSE:
-			case device_id::LEFT_POKE:
-				return interaction_profiles[0].load() == interaction_profile::ext_hand_interaction_ext;
 			case device_id::LEFT_AIM:
 				return control.enabled[size_t(tid::left_aim)];
 			case device_id::LEFT_GRIP:
 				return control.enabled[size_t(tid::left_grip)];
 			case device_id::LEFT_PALM:
 				return control.enabled[size_t(tid::left_palm)];
-			case device_id::RIGHT_PINCH_POSE:
-			case device_id::RIGHT_POKE:
-				return interaction_profiles[1].load() == interaction_profile::ext_hand_interaction_ext;
+			case device_id::LEFT_PINCH_POSE:
+			case device_id::LEFT_POKE: {
+				const auto tracking_id = id == device_id::LEFT_PINCH_POSE ? tid::left_pinch : tid::left_poke;
+				return control.enabled[size_t(tracking_id)] and interaction_profiles[0].load() == interaction_profile::ext_hand_interaction_ext;
+			}
 			case device_id::RIGHT_AIM:
 				return control.enabled[size_t(tid::right_aim)];
 			case device_id::RIGHT_GRIP:
 				return control.enabled[size_t(tid::right_grip)];
 			case device_id::RIGHT_PALM:
 				return control.enabled[size_t(tid::right_palm)];
+			case device_id::RIGHT_PINCH_POSE:
+			case device_id::RIGHT_POKE: {
+				const auto tracking_id = id == device_id::RIGHT_PINCH_POSE ? tid::right_pinch : tid::right_poke;
+				return control.enabled[size_t(tracking_id)] and interaction_profiles[1].load() == interaction_profile::ext_hand_interaction_ext;
+			}
 			default:
 				break;
 		}

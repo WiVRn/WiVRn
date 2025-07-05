@@ -355,38 +355,6 @@ struct hand_tracking
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
 };
 
-struct hand_interaction
-{
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		linear_velocity_valid = 1 << 2,
-		angular_velocity_valid = 1 << 3,
-		orientation_tracked = 1 << 4,
-		position_tracked = 1 << 5
-	};
-	enum hand_id : uint8_t
-	{
-		left,
-		right,
-	};
-	struct pose
-	{
-		XrPosef pose;
-		XrVector3f linear_velocity;
-		XrVector3f angular_velocity;
-		device_id device;
-		uint8_t flags;
-	};
-
-	XrTime production_timestamp;
-	XrTime timestamp;
-	hand_id hand;
-
-	pose pinch_pose;
-};
-
 struct body_tracking
 {
 	inline static const size_t max_tracked_poses = 16;
@@ -645,9 +613,13 @@ struct tracking_control
 		left_aim,
 		left_grip,
 		left_palm,
+		left_pinch,
+		left_poke,
 		right_aim,
 		right_grip,
 		right_palm,
+		right_pinch,
+		right_poke,
 		left_hand,
 		right_hand,
 		face,
