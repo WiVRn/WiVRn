@@ -89,7 +89,6 @@ configuration::encoder parse_encoder(const nlohmann::json & item)
 	SET_IF(codec);
 	if (e.codec == wivrn::video_codec(-1))
 		throw std::runtime_error("invalid codec value " + item["codec"].get<std::string>());
-	SET_IF(use_10bit);
 	SET_IF(options);
 	SET_IF(device);
 	return e;
@@ -146,6 +145,9 @@ configuration configuration::read_user_configuration()
 
 		if (auto it = json.find("use-steamvr-lh"); it != json.end())
 			result.use_steamvr_lh = *it;
+
+		if (auto it = json.find("encode_10bit"); it != json.end())
+			result.encode_10bit = *it;
 
 		if (auto it = json.find("tcp-only"); it != json.end())
 			result.tcp_only = *it;
