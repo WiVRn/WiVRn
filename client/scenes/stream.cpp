@@ -218,7 +218,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
-		info.presence = self->instance.has_extension(XR_EXT_USER_PRESENCE_EXTENSION_NAME) && self->system.user_presence_properties().supportsUserPresence;
 
 		if (config.check_feature(feature::face_tracking))
 		{
@@ -1287,6 +1286,11 @@ void scenes::stream::on_xr_event(const xr::event & event)
 			network_session->send_control(from_headset::visibility_mask_changed{
 			        .data = get_visibility_mask(instance, session, event.visibility_mask_changed.viewIndex),
 			        .view_index = uint8_t(event.visibility_mask_changed.viewIndex),
+			});
+			break;
+		case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED:
+			network_session->send_control(from_headset::session_state_changed{
+			        .state = event.state_changed.state,
 			});
 			break;
 		case XR_TYPE_EVENT_DATA_USER_PRESENCE_CHANGED_EXT:
