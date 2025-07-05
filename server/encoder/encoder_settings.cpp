@@ -91,8 +91,11 @@ void print_encoders(const std::vector<wivrn::encoder_settings> & encoders)
 			group = encoder.group;
 			U_LOG_I("Group %d", group);
 		}
+
+		const char * suffix_10bit = encoder.use_10bit ? " 10-bit" : "";
+
 		std::string codec(magic_enum::enum_name(encoder.codec));
-		U_LOG_I("\t%s (%s)", encoder.encoder_name.c_str(), codec.c_str());
+		U_LOG_I("\t%s (%s%s)", encoder.encoder_name.c_str(), codec.c_str(), suffix_10bit);
 		U_LOG_I("\tchannels: %s", std::string(magic_enum::enum_name(encoder.channels)).c_str());
 		U_LOG_I("\tsize:%" PRIu16 "x%" PRIu16 " offset:%" PRIu16 "x%" PRIu16,
 		        encoder.width,
@@ -268,6 +271,9 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 
 	if (not config.codec)
 		config.codec = h264;
+
+	if (not config.use_10bit)
+		config.use_10bit = false;
 }
 
 static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs)
@@ -353,6 +359,8 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	            height / passthrough_subsampling,
 	            scale);
 
+	std::optional<bool> maybe_10bit{};
+
 	for (auto & encoder: config.encoders)
 	{
 		fill_defaults(bundle, info.supported_codecs, encoder);
@@ -362,6 +370,22 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		            std::ceil(encoder.width.value_or(1) * width),
 		            std::ceil(encoder.height.value_or(1) * height),
 		            scale);
+		if (maybe_10bit.has_value())
+		{
+			if (maybe_10bit.value() != encoder.use_10bit)
+				throw std::runtime_error("all encoders must use the same 10-bit setting");
+		}
+		else
+			maybe_10bit = *encoder.use_10bit;
+	}
+
+	// TODO: detach alpha into separate vkImage.
+	// for now, if the main encoder is 10-bit, we also force alpha to be 10-bit
+	if (maybe_10bit.value_or(false) && !*config.encoder_passthrough->use_10bit)
+	{
+		config.encoder_passthrough->name = config.encoders[0].name;
+		config.encoder_passthrough->codec = config.encoders[0].codec;
+		config.encoder_passthrough->use_10bit = true;
 	}
 
 	width = align(width * scale[0], 64);
@@ -394,6 +418,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		settings.video_width = settings.width;
 		settings.video_height = settings.height;
 		settings.codec = *encoder.codec;
+		settings.use_10bit = *encoder.use_10bit;
 		if (encoder.group)
 			settings.group = *encoder.group;
 		else
@@ -424,6 +449,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		settings.video_width = settings.width;
 		settings.video_height = settings.height;
 		settings.codec = *encoder.codec;
+		settings.use_10bit = *encoder.use_10bit;
 		if (encoder.group)
 			settings.group = *encoder.group;
 		else

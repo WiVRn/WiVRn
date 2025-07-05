@@ -179,6 +179,13 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 
 	auto format = vk::Format(cn->format);
 
+	bool is_10bit = format == vk::Format::eG10X6B10X6R10X62Plane420Unorm3Pack16;
+
+	std::array formats = {
+	        is_10bit ? vk::Format::eR10X6UnormPack16 : vk::Format::eR8Unorm,
+	        is_10bit ? vk::Format::eR10X6G10X6Unorm2Pack16 : vk::Format::eR8G8Unorm,
+	        format};
+
 	cn->images = U_TYPED_ARRAY_CALLOC(struct comp_target_image, cn->image_count);
 
 #if WIVRN_USE_VULKAN_ENCODE
@@ -193,11 +200,6 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 	cn->psc.images.resize(cn->image_count);
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
-		std::array formats = {
-		        vk::Format::eR8Unorm,
-		        vk::Format::eR8G8Unorm,
-		        format,
-		};
 		vk::ImageFormatListCreateInfo formats_info{
 		        .viewFormatCount = formats.size(),
 		        .pViewFormats = formats.data(),
@@ -249,7 +251,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                                .pNext = &usage,
 		                                                .image = item.image,
 		                                                .viewType = vk::ImageViewType::e2DArray,
-		                                                .format = vk::Format::eR8Unorm,
+		                                                .format = formats[0],
 		                                                .subresourceRange = {
 		                                                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
 		                                                        .levelCount = 1,
@@ -261,7 +263,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                                   .pNext = &usage,
 		                                                   .image = item.image,
 		                                                   .viewType = vk::ImageViewType::e2DArray,
-		                                                   .format = vk::Format::eR8G8Unorm,
+		                                                   .format = formats[1],
 		                                                   .subresourceRange = {
 		                                                           .aspectMask = vk::ImageAspectFlagBits::ePlane1,
 		                                                           .levelCount = 1,
@@ -407,8 +409,11 @@ static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_
 
 	target_init_semaphores(cn);
 
-	// FIXME: select preferred format
-	ct->format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+	if (cn->settings[0].use_10bit)
+		ct->format = VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16;
+	else
+		ct->format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+
 	ct->width = create_info->extent.width;
 	ct->height = create_info->extent.height;
 	ct->surface_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
