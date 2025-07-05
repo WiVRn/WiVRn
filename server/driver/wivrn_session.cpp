@@ -39,6 +39,7 @@
 #include "wivrn_ipc.h"
 
 #include "wivrn_packets.h"
+#include "xr/to_string.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
 #include <algorithm>
@@ -576,16 +577,60 @@ void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
 	auto result = xrt_session_event_sink_push(&xrt_system.broadcast, &event);
 }
 
-void wivrn_session::operator()(from_headset::user_presence_changed && event)
+void wivrn_session::operator()(from_headset::session_state_changed && event)
 {
-	hmd.update_presence(event.present);
+	U_LOG_I("Session state changed: %s", xr::to_string(event.state));
+	bool visible, focused;
+	bool changed = false;
+	switch (event.state)
+	{
+		case XR_SESSION_STATE_SYNCHRONIZED:
+			visible = false;
+			focused = false;
+			changed = hmd.update_presence(false, false);
+			break;
+		case XR_SESSION_STATE_VISIBLE:
+			visible = true;
+			focused = false;
+			changed = hmd.update_presence(true, false);
+			break;
+		case XR_SESSION_STATE_FOCUSED:
+			visible = true;
+			focused = true;
+			changed = hmd.update_presence(true, false);
+			break;
+		default:
+			return;
+	}
+
+	if (changed)
+	{
+		xrt_session_event_user_presence_change event = {
+		        .type = XRT_SESSION_EVENT_USER_PRESENCE_CHANGE,
+		};
+		hmd.get_presence(&event.is_user_present);
+		push_event({.presence_change = event});
+	}
+
 	push_event(
 	        {
-	                .presence_change = {
-	                        .type = XRT_SESSION_EVENT_USER_PRESENCE_CHANGE,
-	                        .is_user_present = event.present,
+	                .state = {
+	                        .type = XRT_SESSION_EVENT_STATE_CHANGE,
+	                        .visible = visible,
+	                        .focused = focused,
 	                },
 	        });
+}
+void wivrn_session::operator()(from_headset::user_presence_changed && event)
+{
+	if (hmd.update_presence(event.present, true))
+		push_event(
+		        {
+		                .presence_change = {
+		                        .type = XRT_SESSION_EVENT_USER_PRESENCE_CHANGE,
+		                        .is_user_present = event.present,
+		                },
+		        });
 }
 
 void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
