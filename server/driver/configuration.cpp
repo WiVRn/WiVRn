@@ -36,9 +36,21 @@
 #include "utils/xdg_base_directory.h"
 #include "wivrn_config.h"
 
+static auto resolve_path(std::filesystem::path path)
+{
+	std::error_code ec;
+	auto canonical = std::filesystem::canonical(path, ec);
+
+	// path doesn't exist
+	if (ec)
+		return path;
+
+	return canonical;
+}
+
 static std::filesystem::path config_file;
-static std::filesystem::path known_keys_file = xdg_config_home() / "wivrn" / "known_keys.json";
-static std::filesystem::path cookie_file = xdg_config_home() / "wivrn" / "cookie";
+static std::filesystem::path known_keys_file = resolve_path(xdg_config_home() / "wivrn" / "known_keys.json");
+static std::filesystem::path cookie_file = resolve_path(xdg_config_home() / "wivrn" / "cookie");
 
 namespace wivrn
 {
@@ -65,12 +77,12 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 
 void configuration::set_config_file(const std::filesystem::path & path)
 {
-	config_file = path;
+	config_file = resolve_path(path);
 }
 std::filesystem::path configuration::get_config_file()
 {
 	if (config_file.empty())
-		return xdg_config_home() / "wivrn" / "config.json";
+		return resolve_path(xdg_config_home() / "wivrn" / "config.json");
 	return config_file;
 }
 
@@ -85,7 +97,7 @@ nlohmann::json configuration::read_configuration()
 		             xdg_config_home(),
 		     })
 		{
-			auto path = prefix / "wivrn" / "config.json";
+			auto path = resolve_path(prefix / "wivrn" / "config.json");
 			if (std::filesystem::exists(path))
 			{
 				try
