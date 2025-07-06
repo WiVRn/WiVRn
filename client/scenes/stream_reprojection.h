@@ -70,8 +70,10 @@ public:
 
 	stream_reprojection(const stream_reprojection &) = delete;
 
-	std::vector<XrExtent2Di> reproject(
+	void reproject(
 	        vk::raii::CommandBuffer & command_buffer,
 	        const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
 	        int destination);
+
+	XrExtent2Di defoveated_size(const wivrn::to_headset::foveation_parameter &) const;
 };

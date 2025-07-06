@@ -390,15 +390,14 @@ static size_t required_vertices(const wivrn::to_headset::foveation_parameter & p
 	return (2 * (p.x.size() + 1) + 1) * p.y.size();
 }
 
-std::vector<XrExtent2Di> stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer,
-                                                        const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
-                                                        int destination)
+void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer,
+                                    const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
+                                    int destination)
 {
 	if (destination < 0 || destination >= (int)output_images.size())
 		throw std::runtime_error("Invalid destination image index");
 
 	ensure_vertices(std::max(required_vertices(foveation[0]), required_vertices(foveation[1])));
-	std::vector<XrExtent2Di> out_extents(view_count, XrExtent2Di{});
 
 	for (size_t view = 0; view < view_count; ++view)
 	{
@@ -409,13 +408,6 @@ std::vector<XrExtent2Di> stream_reprojection::reproject(vk::raii::CommandBuffer 
 		const int n_ratio_y = (py.size() - 1) / 2;
 		const int n_ratio_x = (px.size() - 1) / 2;
 
-		for (auto [ix, n_out_x]: utils::enumerate_range(px))
-		{
-			// number of output pixels per source pixels
-			const int ratio_x = std::abs(n_ratio_x - int(ix)) + 1;
-			out_extents[view].width += ratio_x * n_out_x;
-		}
-
 		glm::vec2 in(0), out(0); // pixel coordinates
 		glm::vec2 in_pixel_size(1. / input_extent.width,
 		                        1. / input_extent.height);
@@ -425,7 +417,6 @@ std::vector<XrExtent2Di> stream_reprojection::reproject(vk::raii::CommandBuffer 
 		{
 			// number of output pixels per source pixels
 			const int ratio_y = std::abs(n_ratio_y - int(iy)) + 1;
-			out_extents[view].height += ratio_y * n_out_y;
 			in.x = 0;
 			out.x = 0;
 			for (auto [ix, n_out_x]: utils::enumerate_range(px))
@@ -496,5 +487,25 @@ std::vector<XrExtent2Di> stream_reprojection::reproject(vk::raii::CommandBuffer 
 		command_buffer.draw(required_vertices(foveation[view]), 1, 0, 0);
 		command_buffer.endRenderPass();
 	}
-	return out_extents;
+}
+
+static uint16_t count_pixels(const std::vector<uint16_t> & param)
+{
+	uint16_t res = 0;
+	const int n_ratio = (param.size() - 1) / 2;
+	for (auto [i, n_out]: utils::enumerate_range(param))
+	{
+		// number of output pixels per source pixels
+		const int ratio = std::abs(n_ratio - int(i)) + 1;
+		res += ratio * n_out;
+	}
+	return res;
+}
+
+XrExtent2Di stream_reprojection::defoveated_size(const wivrn::to_headset::foveation_parameter & view) const
+{
+	return {
+	        count_pixels(view.x),
+	        count_pixels(view.y),
+	};
 }

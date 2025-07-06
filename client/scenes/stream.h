@@ -180,7 +180,7 @@ private:
 	void on_interaction_profile_changed(const XrEventDataInteractionProfileChanged &);
 
 	void setup(const to_headset::video_stream_description &);
-	void setup_reprojection_swapchain();
+	void setup_reprojection_swapchain(uint32_t width, uint32_t height);
 	void exit();
 
 	vk::raii::QueryPool query_pool = nullptr;
