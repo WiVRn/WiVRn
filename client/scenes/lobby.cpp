@@ -966,6 +966,12 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	        .depthMask = true,
 	        .compareOp = application::get_config().passthrough_enabled ? XR_COMPARE_OP_LESS_FB : XR_COMPARE_OP_LESS_OR_EQUAL_FB,
 	};
+	XrCompositionLayerDepthTestFB layer_depth_test_bg{
+	        .type = XR_TYPE_COMPOSITION_LAYER_DEPTH_TEST_FB,
+	        .next = nullptr,
+	        .depthMask = true,
+	        .compareOp = XR_COMPARE_OP_ALWAYS_FB,
+	};
 
 	// if (composition_layer_depth_test_supported or not application::get_config().passthrough_enabled)
 	layers_with_z_index.emplace_back(constants::lobby::zindex_lobby, reinterpret_cast<XrCompositionLayerBaseHeader *>(&lobby_layer));
@@ -977,7 +983,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	if (composition_layer_depth_test_supported)
 	{
-		lobby_layer.next = &layer_depth_test;
+		lobby_layer.next = &layer_depth_test_bg;
 
 		for (auto & [z_index, layer]: imgui_layers)
 		{
