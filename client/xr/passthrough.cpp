@@ -51,6 +51,7 @@ xr::passthrough_layer_fb::passthrough_layer_fb(instance & inst, session & s, con
 static XrPassthroughFB create_passthrough_fb(xr::instance & inst, xr::session & s)
 {
 	PFN_xrCreatePassthroughFB xrCreatePassthroughFB = inst.get_proc<PFN_xrCreatePassthroughFB>("xrCreatePassthroughFB");
+	xrDestroyPassthroughFB = inst.get_proc<PFN_xrDestroyPassthroughFB>("xrDestroyPassthroughFB");
 
 	XrPassthroughFB id;
 	XrPassthroughCreateInfoFB info{
@@ -71,7 +72,6 @@ xr::passthrough_fb::passthrough_fb(instance & inst, session & s) :
                                            .purpose = XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB,
                                    })
 {
-	xrDestroyPassthroughFB = inst.get_proc<PFN_xrDestroyPassthroughFB>("xrDestroyPassthroughFB");
 	xrPassthroughStartFB = inst.get_proc<PFN_xrPassthroughStartFB>("xrPassthroughStartFB");
 	xrPassthroughPauseFB = inst.get_proc<PFN_xrPassthroughPauseFB>("xrPassthroughPauseFB");
 	xrPassthroughLayerPauseFB = inst.get_proc<PFN_xrPassthroughLayerPauseFB>("xrPassthroughLayerPauseFB");
