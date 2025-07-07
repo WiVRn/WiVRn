@@ -131,5 +131,11 @@ public:
 
 		return {};
 	}
+	void reset()
+	{
+		std::lock_guard lock(mutex);
+		data.fill({});
+		last_request = os_monotonic_get_ns();
+	}
 };
 } // namespace wivrn
