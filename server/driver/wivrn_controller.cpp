@@ -39,6 +39,7 @@ namespace wivrn
 
 enum wivrn_controller_input_index
 {
+	WIVRN_CONTROLLER_INPUT_INVALID = -1,
 	WIVRN_CONTROLLER_AIM_POSE,
 	WIVRN_CONTROLLER_GRIP_POSE,
 	WIVRN_CONTROLLER_PALM_POSE,
@@ -77,14 +78,6 @@ enum wivrn_controller_input_index
 	WIVRN_CONTROLLER_TRACKPAD_FORCE,                     // /user/hand/XXXX/input/trackpad/force
 	WIVRN_CONTROLLER_TRACKPAD_TOUCH,                     // /user/hand/XXXX/input/trackpad/touch
 	WIVRN_CONTROLLER_STYLUS_FORCE,                       // /user/hand/XXXX/input/stylus_fb/force
-	WIVRN_CONTROLLER_PINCH_POSE,                         // /user/hand/XXXX/input/pinch_ext/pose
-	WIVRN_CONTROLLER_PINCH_VALUE,                        // /user/hand/XXXX/input/pinch_ext/value
-	WIVRN_CONTROLLER_PINCH_READY,                        // /user/hand/XXXX/input/pinch_ext/ready_ext
-	WIVRN_CONTROLLER_POKE_POSE,                          // /user/hand/XXXX/input/poke_ext/pose
-	WIVRN_CONTROLLER_AIM_ACTIVATE_VALUE,                 // /user/hand/XXXX/input/aim_activate_ext/value
-	WIVRN_CONTROLLER_AIM_ACTIVATE_READY,                 // /user/hand/XXXX/input/aim_activate_ext/ready_ext
-	WIVRN_CONTROLLER_GRASP_VALUE,                        // /user/hand/XXXX/input/grasp_ext/value
-	WIVRN_CONTROLLER_GRASP_READY,                        // /user/hand/XXXX/input/ready_ext/value
 
 	WIVRN_CONTROLLER_INPUT_COUNT
 };
@@ -242,43 +235,16 @@ static input_data map_input(device_id id)
 			return {WIVRN_CONTROLLER_THUMBREST_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
 		case device_id::RIGHT_STYLUS_FORCE:
 			return {WIVRN_CONTROLLER_STYLUS_FORCE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		// XR_EXT_hand_interaction
-		case device_id::LEFT_PINCH_POSE:
-			return {WIVRN_CONTROLLER_PINCH_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::LEFT_PINCH_VALUE:
-			return {WIVRN_CONTROLLER_PINCH_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::LEFT_PINCH_READY:
-			return {WIVRN_CONTROLLER_PINCH_READY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::RIGHT_PINCH_POSE:
-			return {WIVRN_CONTROLLER_PINCH_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		case device_id::RIGHT_PINCH_VALUE:
-			return {WIVRN_CONTROLLER_PINCH_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		case device_id::RIGHT_PINCH_READY:
-			return {WIVRN_CONTROLLER_PINCH_READY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		case device_id::LEFT_POKE:
-			return {WIVRN_CONTROLLER_POKE_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::RIGHT_POKE:
-			return {WIVRN_CONTROLLER_POKE_POSE, wivrn_input_type::POSE, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		case device_id::LEFT_AIM_ACTIVATE_VALUE:
-			return {WIVRN_CONTROLLER_AIM_ACTIVATE_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::LEFT_AIM_ACTIVATE_READY:
-			return {WIVRN_CONTROLLER_AIM_ACTIVATE_READY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::LEFT_GRASP_VALUE:
-			return {WIVRN_CONTROLLER_GRASP_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::LEFT_GRASP_READY:
-			return {WIVRN_CONTROLLER_GRASP_READY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER};
-		case device_id::RIGHT_AIM_ACTIVATE_VALUE:
-			return {WIVRN_CONTROLLER_AIM_ACTIVATE_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		case device_id::RIGHT_AIM_ACTIVATE_READY:
-			return {WIVRN_CONTROLLER_AIM_ACTIVATE_READY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		case device_id::RIGHT_GRASP_VALUE:
-			return {WIVRN_CONTROLLER_GRASP_VALUE, wivrn_input_type::FLOAT, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
-		case device_id::RIGHT_GRASP_READY:
-			return {WIVRN_CONTROLLER_GRASP_READY, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER};
 		default:
 			break;
 	}
-	throw std::range_error("bad input id " + std::to_string((int)id));
+	// If the headset supports hand_interaction_ext, upon switch
+	// to/from hand tracking we may get the inputs packet before
+	// the interaction profile change, so if we get a bad input
+	// just return an invalid index so we can ignore it
+	U_LOG_D("wivrn_controller: bad input id %s", std::string(magic_enum::enum_name(id)).c_str());
+	// the type here doesn't really matter
+	return {WIVRN_CONTROLLER_INPUT_INVALID, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_UNKNOWN};
 }
 
 static xrt_binding_input_pair simple_input_binding[] = {
@@ -290,19 +256,6 @@ static xrt_binding_input_pair simple_input_binding[] = {
 
 static xrt_binding_output_pair simple_output_binding[] = {
         {XRT_OUTPUT_NAME_SIMPLE_VIBRATION, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
-};
-
-static xrt_binding_input_pair hand_interaction_input_binding[] = {
-        {XRT_INPUT_HAND_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
-        {XRT_INPUT_HAND_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
-        {XRT_INPUT_HAND_PINCH_POSE, XRT_INPUT_HAND_PINCH_POSE},
-        {XRT_INPUT_HAND_PINCH_VALUE, XRT_INPUT_HAND_PINCH_VALUE},
-        {XRT_INPUT_HAND_PINCH_READY, XRT_INPUT_HAND_PINCH_READY},
-        {XRT_INPUT_HAND_POKE_POSE, XRT_INPUT_HAND_POKE_POSE},
-        {XRT_INPUT_HAND_AIM_ACTIVATE_READY, XRT_INPUT_HAND_AIM_ACTIVATE_READY},
-        {XRT_INPUT_HAND_AIM_ACTIVATE_VALUE, XRT_INPUT_HAND_AIM_ACTIVATE_VALUE},
-        {XRT_INPUT_HAND_GRASP_VALUE, XRT_INPUT_HAND_GRASP_VALUE},
-        {XRT_INPUT_HAND_GRASP_READY, XRT_INPUT_HAND_GRASP_READY},
 };
 
 static xrt_binding_input_pair index_input_binding[] = {
@@ -484,13 +437,6 @@ static xrt_binding_profile wivrn_binding_profiles[] = {
                 .output_count = std::size(simple_output_binding),
         },
         {
-                .name = XRT_DEVICE_EXT_HAND_INTERACTION,
-                .inputs = hand_interaction_input_binding,
-                .input_count = std::size(hand_interaction_input_binding),
-                .outputs = nullptr,
-                .output_count = 0,
-        },
-        {
                 .name = XRT_DEVICE_INDEX_CONTROLLER,
                 .inputs = index_input_binding,
                 .input_count = std::size(index_input_binding),
@@ -616,8 +562,6 @@ wivrn_controller::wivrn_controller(int hand_id,
         aim(hand_id == 0 ? device_id::LEFT_AIM : device_id::RIGHT_AIM),
         palm(hand_id == 0 ? device_id::LEFT_PALM : device_id::RIGHT_PALM),
         joints(hand_id),
-        pinch_ext(hand_id == 0 ? device_id::LEFT_PINCH_POSE : device_id::RIGHT_PINCH_POSE),
-        poke_ext(hand_id == 0 ? device_id::LEFT_POKE : device_id::RIGHT_POKE),
         inputs_array(input_count, xrt_input{}),
         cnx(cnx)
 {
@@ -670,14 +614,6 @@ wivrn_controller::wivrn_controller(int hand_id,
 		SET_INPUT(TOUCH, A_TOUCH);
 		SET_INPUT(TOUCH, B_TOUCH);
 	}
-	SET_INPUT(HAND, PINCH_POSE);
-	SET_INPUT(HAND, PINCH_VALUE);
-	SET_INPUT(HAND, PINCH_READY);
-	SET_INPUT(HAND, POKE_POSE);
-	SET_INPUT(HAND, AIM_ACTIVATE_VALUE);
-	SET_INPUT(HAND, AIM_ACTIVATE_READY);
-	SET_INPUT(HAND, GRASP_VALUE);
-	SET_INPUT(HAND, GRASP_READY);
 	SET_INPUT(VIVE_FOCUS3, SQUEEZE_CLICK);
 	SET_INPUT(INDEX, SQUEEZE_FORCE);
 	SET_INPUT(TOUCH, SQUEEZE_VALUE);
@@ -811,14 +747,6 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 			std::tie(extrapolation_time, *res, device) = palm.get_pose_at(at_timestamp_ns);
 			cnx->set_enabled(device, true);
 			break;
-		case XRT_INPUT_HAND_PINCH_POSE:
-			std::tie(extrapolation_time, *res, device) = pinch_ext.get_pose_at(at_timestamp_ns);
-			cnx->set_enabled(device, true);
-			break;
-		case XRT_INPUT_HAND_POKE_POSE:
-			std::tie(extrapolation_time, *res, device) = poke_ext.get_pose_at(at_timestamp_ns);
-			cnx->set_enabled(device, true);
-			break;
 		default:
 			U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
 			return XRT_ERROR_INPUT_UNSUPPORTED;
@@ -833,8 +761,6 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 			case XRT_INPUT_TOUCH_AIM_POSE: return aim.device;
 			case XRT_INPUT_TOUCH_GRIP_POSE: return grip.device;
 			case XRT_INPUT_GENERIC_PALM_POSE: return palm.device;
-			case XRT_INPUT_HAND_PINCH_POSE: return pinch_ext.device;
-			case XRT_INPUT_HAND_POKE_POSE: return poke_ext.device;
 			default:
 				assert(false);
 				__builtin_unreachable();
@@ -898,10 +824,6 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 		cnx->set_enabled(grip.device, false);
 	if (not palm.update_tracking(tracking, offset))
 		cnx->set_enabled(palm.device, false);
-	if (not pinch_ext.update_tracking(tracking, offset))
-		cnx->set_enabled(pinch_ext.device, false);
-	if (not poke_ext.update_tracking(tracking, offset))
-		cnx->set_enabled(poke_ext.device, false);
 	if (auto & out = tracking_dump(); out and offset)
 	{
 		std::lock_guard lock{tracking_dump_mutex};
@@ -957,5 +879,12 @@ xrt_result_t wivrn_controller::set_output(xrt_output_name name, const xrt_output
 		return XRT_ERROR_OUTPUT_REQUEST_FAILURE;
 	}
 	return XRT_SUCCESS;
+}
+
+void wivrn_controller::reset_history()
+{
+	grip.reset();
+	aim.reset();
+	palm.reset();
 }
 } // namespace wivrn

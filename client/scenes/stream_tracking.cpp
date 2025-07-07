@@ -315,7 +315,7 @@ void scenes::stream::tracking()
 		}
 	}
 
-	auto enabled = [this](const to_headset::tracking_control & control, device_id id) -> bool {
+	auto enabled = [](const to_headset::tracking_control & control, device_id id) -> bool {
 		switch (id)
 		{
 			case device_id::HEAD:
@@ -330,7 +330,7 @@ void scenes::stream::tracking()
 			case device_id::LEFT_PINCH_POSE:
 			case device_id::LEFT_POKE: {
 				const auto tracking_id = id == device_id::LEFT_PINCH_POSE ? tid::left_pinch : tid::left_poke;
-				return control.enabled[size_t(tracking_id)] and interaction_profiles[0].load() == interaction_profile::ext_hand_interaction_ext;
+				return control.enabled[size_t(tracking_id)];
 			}
 			case device_id::RIGHT_AIM:
 				return control.enabled[size_t(tid::right_aim)];
@@ -341,7 +341,7 @@ void scenes::stream::tracking()
 			case device_id::RIGHT_PINCH_POSE:
 			case device_id::RIGHT_POKE: {
 				const auto tracking_id = id == device_id::RIGHT_PINCH_POSE ? tid::right_pinch : tid::right_poke;
-				return control.enabled[size_t(tracking_id)] and interaction_profiles[1].load() == interaction_profile::ext_hand_interaction_ext;
+				return control.enabled[size_t(tracking_id)];
 			}
 			default:
 				break;
