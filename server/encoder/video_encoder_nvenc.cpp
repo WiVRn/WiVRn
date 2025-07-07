@@ -144,8 +144,8 @@ video_encoder_nvenc::video_encoder_nvenc(
         fps(fps),
         bitrate(settings.bitrate)
 {
-	if (settings.use_10bit)
-		throw std::runtime_error("nvenc encoder does not support 10-bit encoding");
+	if (settings.bit_depth != 8)
+		throw std::runtime_error("nvenc encoder only supports 8-bit encoding");
 
 	std::tie(cuda_fn, nvenc_fn, fn, cuda, session_handle) = init();
 	assert(settings.width % 32 == 0);

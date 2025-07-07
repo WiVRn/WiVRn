@@ -39,7 +39,7 @@ struct encoder_settings : public to_headset::video_stream_description::item
 	std::map<std::string, std::string> options; // additional encoder-specific configuration
 	// encoders in the same group are executed in sequence
 	int group = 0;
-	bool use_10bit;
+	int bit_depth;
 	std::optional<std::string> device;
 };
 

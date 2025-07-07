@@ -93,8 +93,8 @@ video_encoder_x264::video_encoder_x264(
         uint8_t stream_idx) :
         video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, false)
 {
-	if (settings.use_10bit)
-		throw std::runtime_error("x264 encoder does not support 10-bit encoding");
+	if (settings.bit_depth != 8)
+		throw std::runtime_error("x264 encoder only supports 8-bit encoding");
 
 	if (settings.codec != h264)
 	{
