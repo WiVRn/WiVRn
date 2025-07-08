@@ -652,6 +652,55 @@ static device_id derived_from(device_id target)
 
 void scenes::stream::on_interaction_profile_changed(const XrEventDataInteractionProfileChanged &)
 {
+	std::array path = {
+	        "/user/hand/left",
+	        "/user/hand/right",
+	};
+#define DO_PROFILE(vendor, name)                                                \
+	if (profile == "/interaction_profiles/" #vendor "/" #name)              \
+	{                                                                       \
+		interaction_profiles[i] = interaction_profile::vendor##_##name; \
+		continue;                                                       \
+	}
+
+	for (size_t i = 0; i < 2; ++i)
+	{
+		try
+		{
+			auto profile = session.get_current_interaction_profile(path[i]);
+			spdlog::info("interaction profile for {}: {}", path[i], profile);
+			DO_PROFILE(khr, simple_controller)
+			DO_PROFILE(ext, hand_interaction_ext)
+			DO_PROFILE(bytedance, pico_neo3_controller)
+			DO_PROFILE(bytedance, pico4_controller)
+			DO_PROFILE(bytedance, pico4s_controller)
+			DO_PROFILE(bytedance, pico_g3_controller)
+			DO_PROFILE(google, daydream_controller)
+			DO_PROFILE(hp, mixed_reality_controller)
+			DO_PROFILE(htc, vive_controller)
+			DO_PROFILE(htc, vive_cosmos_controller)
+			DO_PROFILE(htc, vive_focus3_controller)
+			DO_PROFILE(htc, vive_pro)
+			DO_PROFILE(ml, ml2_controller)
+			DO_PROFILE(microsoft, motion_controller)
+			DO_PROFILE(microsoft, xbox_controller)
+			DO_PROFILE(oculus, go_controller)
+			DO_PROFILE(oculus, touch_controller)
+			DO_PROFILE(meta, touch_pro_controller)
+			DO_PROFILE(meta, touch_plus_controller)
+			DO_PROFILE(meta, touch_controller_rift_cv1)
+			DO_PROFILE(meta, touch_controller_quest_1_rift_s)
+			DO_PROFILE(meta, touch_controller_quest_2)
+			DO_PROFILE(samsung, odyssey_controller)
+			DO_PROFILE(valve, index_controller)
+		}
+		catch (std::exception & e)
+		{
+			spdlog::warn("Failed to get current interaction profile: {}", e.what());
+		}
+		interaction_profiles[i] = interaction_profile::none;
+	}
+
 	auto now = instance.now();
 	for (device_id target: {
 	             device_id::LEFT_AIM,
@@ -660,6 +709,17 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 	             device_id::RIGHT_PALM,
 	     })
 	{
+		// don't do derived poses for hand interaction
+		const bool right = target >= device_id::RIGHT_GRIP && target <= device_id::RIGHT_PALM;
+		if (interaction_profiles[right].load() == interaction_profile::ext_hand_interaction_ext)
+		{
+			network_session->send_control(from_headset::derived_pose{
+			        .source = target,
+			        .target = target,
+			});
+			continue;
+		}
+
 		auto source = derived_from(target);
 		auto source_space = application::space(device_to_space(source));
 		auto target_space = application::space(device_to_space(target));
@@ -721,54 +781,5 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 				});
 			}
 		}
-	}
-
-	std::array path = {
-	        "/user/hand/left",
-	        "/user/hand/right",
-	};
-#define DO_PROFILE(vendor, name)                                                \
-	if (profile == "/interaction_profiles/" #vendor "/" #name)              \
-	{                                                                       \
-		interaction_profiles[i] = interaction_profile::vendor##_##name; \
-		continue;                                                       \
-	}
-
-	for (size_t i = 0; i < 2; ++i)
-	{
-		try
-		{
-			auto profile = session.get_current_interaction_profile(path[i]);
-			spdlog::info("interaction profile for {}: {}", path[i], profile);
-			DO_PROFILE(khr, simple_controller)
-			DO_PROFILE(ext, hand_interaction_ext)
-			DO_PROFILE(bytedance, pico_neo3_controller)
-			DO_PROFILE(bytedance, pico4_controller)
-			DO_PROFILE(bytedance, pico4s_controller)
-			DO_PROFILE(bytedance, pico_g3_controller)
-			DO_PROFILE(google, daydream_controller)
-			DO_PROFILE(hp, mixed_reality_controller)
-			DO_PROFILE(htc, vive_controller)
-			DO_PROFILE(htc, vive_cosmos_controller)
-			DO_PROFILE(htc, vive_focus3_controller)
-			DO_PROFILE(htc, vive_pro)
-			DO_PROFILE(ml, ml2_controller)
-			DO_PROFILE(microsoft, motion_controller)
-			DO_PROFILE(microsoft, xbox_controller)
-			DO_PROFILE(oculus, go_controller)
-			DO_PROFILE(oculus, touch_controller)
-			DO_PROFILE(meta, touch_pro_controller)
-			DO_PROFILE(meta, touch_plus_controller)
-			DO_PROFILE(meta, touch_controller_rift_cv1)
-			DO_PROFILE(meta, touch_controller_quest_1_rift_s)
-			DO_PROFILE(meta, touch_controller_quest_2)
-			DO_PROFILE(samsung, odyssey_controller)
-			DO_PROFILE(valve, index_controller)
-		}
-		catch (std::exception & e)
-		{
-			spdlog::warn("Failed to get current interaction profile: {}", e.what());
-		}
-		interaction_profiles[i] = interaction_profile::none;
 	}
 }
