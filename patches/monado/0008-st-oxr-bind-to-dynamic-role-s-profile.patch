@@ -1,40 +1,91 @@
-From 07084beafd9430561fbe5681398792282422dde6 Mon Sep 17 00:00:00 2001
+From a7fbfaf2407a805efa31b3e1a7f0565b46a9004e Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 19 Feb 2025 10:13:36 +0100
 Subject: [PATCH 08/11] st/oxr: bind to dynamic role's profile
 
 ---
- src/xrt/state_trackers/oxr/oxr_binding.c | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+ src/xrt/state_trackers/oxr/oxr_binding.c |  8 +++++---
+ src/xrt/state_trackers/oxr/oxr_input.c   | 19 +++++++++++++------
+ src/xrt/state_trackers/oxr/oxr_objects.h |  2 +-
+ 3 files changed, 19 insertions(+), 10 deletions(-)
 
 diff --git a/src/xrt/state_trackers/oxr/oxr_binding.c b/src/xrt/state_trackers/oxr/oxr_binding.c
-index ce4c0cca1..8ba94dc55 100644
+index ce4c0cca1..9645a507a 100644
 --- a/src/xrt/state_trackers/oxr/oxr_binding.c
 +++ b/src/xrt/state_trackers/oxr/oxr_binding.c
-@@ -488,6 +488,23 @@ oxr_find_profile_for_device(struct oxr_logger *log,
- 		return;
- 	}
+@@ -453,7 +453,7 @@ get_identifier_str_in_profile(struct oxr_logger *log,
+ 	return str;
+ }
  
-+	// Have bindings for the dynamic role's profile been suggested?
-+#define FIND_PROFILE(X)                                                                                                \
-+	{                                                                                                              \
-+		struct xrt_device *role_xdev = GET_XDEV_BY_ROLE(sess->sys, X);                                         \
-+		if (role_xdev == xdev) {                                                                               \
-+			enum xrt_device_name profile = GET_PROFILE_NAME_BY_ROLE(sess->sys, X);                         \
-+			oxr_get_profile_for_device_name(log, sess, profile, out_p);                                    \
-+			if (*out_p != NULL) {                                                                          \
-+				return;                                                                                \
-+			}                                                                                              \
+-void
++bool
+ oxr_get_profile_for_device_name(struct oxr_logger *log,
+                                 struct oxr_session *sess,
+                                 enum xrt_device_name name,
+@@ -465,10 +465,12 @@ oxr_get_profile_for_device_name(struct oxr_logger *log,
+ 	 */
+ 	for (uint32_t i = 0; i < ARRAY_SIZE(profile_templates); i++) {
+ 		if (name == profile_templates[i].name) {
+-			interaction_profile_find_in_session(log, sess, profile_templates[i].path_cache, out_p);
+-			return;
++			if (interaction_profile_find_in_session(log, sess, profile_templates[i].path_cache, out_p)) {
++				return true;
++			}
+ 		}
+ 	}
++	return false;
+ }
+ 
+ 
+diff --git a/src/xrt/state_trackers/oxr/oxr_input.c b/src/xrt/state_trackers/oxr/oxr_input.c
+index 3d8da24a9..7bd3e7678 100644
+--- a/src/xrt/state_trackers/oxr/oxr_input.c
++++ b/src/xrt/state_trackers/oxr/oxr_input.c
+@@ -800,18 +800,25 @@ oxr_find_profiles_from_roles(struct oxr_logger *log,
+ {
+ #define FIND_PROFILE(X)                                                                                                \
+ 	{                                                                                                              \
+-		struct xrt_device *xdev = GET_XDEV_BY_ROLE(sess->sys, X);                                              \
+-		if (xdev != NULL) {                                                                                    \
+-			oxr_find_profile_for_device(log, sess, xdev, &out_profiles->X);                                \
+-		} else {                                                                                               \
+-			oxr_get_profile_for_device_name(log, sess, GET_PROFILE_NAME_BY_ROLE(sess->sys, X),             \
+-			                                &out_profiles->X);                                             \
++		bool profile_found = false;                                                                            \
++		const enum xrt_device_name role_profile_name = GET_PROFILE_NAME_BY_ROLE(sess->sys, X);                 \
++		if (role_profile_name != XRT_DEVICE_INVALID) {                                                         \
++			profile_found =                                                                                \
++			    oxr_get_profile_for_device_name(log, sess, role_profile_name, &out_profiles->X);           \
 +		}                                                                                                      \
-+	}
-+	FIND_PROFILE(left);
-+	FIND_PROFILE(right);
-+	FIND_PROFILE(gamepad);
-+#undef FIND_PROFILE
++                                                                                                                       \
++		if (!profile_found) {                                                                                  \
++			struct xrt_device *xdev = GET_XDEV_BY_ROLE(sess->sys, X);                                      \
++			if (xdev != NULL) {                                                                            \
++				oxr_find_profile_for_device(log, sess, xdev, &out_profiles->X);                        \
++			}                                                                                              \
+ 		}                                                                                                      \
+ 	}
+ 	OXR_FOR_EACH_VALID_SUBACTION_PATH(FIND_PROFILE)
+ #undef FIND_PROFILE
+ }
+ 
 +
- 	// Have bindings for this device's interaction profile been suggested?
- 	oxr_get_profile_for_device_name(log, sess, xdev->name, out_p);
- 	if (*out_p != NULL) {
+ /*!
+  * @public @memberof oxr_action_attachment
+  */
+diff --git a/src/xrt/state_trackers/oxr/oxr_objects.h b/src/xrt/state_trackers/oxr/oxr_objects.h
+index c4d2bcbe3..f9f1ac5a8 100644
+--- a/src/xrt/state_trackers/oxr/oxr_objects.h
++++ b/src/xrt/state_trackers/oxr/oxr_objects.h
+@@ -651,7 +651,7 @@ oxr_find_profile_for_device(struct oxr_logger *log,
+                             struct xrt_device *xdev,
+                             struct oxr_interaction_profile **out_p);
+ 
+-void
++bool
+ oxr_get_profile_for_device_name(struct oxr_logger *log,
+                                 struct oxr_session *sess,
+                                 enum xrt_device_name name,
 -- 
-2.50.0
+2.50.1
 
