@@ -21,6 +21,10 @@
 #include "xr/fb_face_tracker2.h"
 #include "xr/htc_body_tracker.h"
 #include "xr/pico_body_tracker.h"
+#include "xr/space.h"
+#include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <magic_enum.hpp>
 #include <openxr/openxr.h>
 #define GLM_FORCE_RADIANS
 
@@ -135,13 +139,18 @@ static const std::unordered_map<std::string, device_id> device_ids = {
 };
 // clang-format on
 
-static const std::array supported_formats = {
+static const std::array supported_color_formats = {
         vk::Format::eR8G8B8A8Srgb,
         vk::Format::eB8G8R8A8Srgb,
 };
 
+static const std::array supported_depth_formats{
+        vk::Format::eD32Sfloat,
+        vk::Format::eX8D24UnormPack32,
+};
+
 scenes::stream::stream() :
-        scene_impl<stream>(supported_formats)
+        scene_impl<stream>(supported_color_formats, supported_depth_formats)
 {
 }
 
@@ -363,32 +372,84 @@ void scenes::stream::on_focused()
 {
 	if (application::get_config().show_performance_metrics)
 	{
+		auto views = system.view_configuration_views(viewconfig);
+		// stream_view = override_view(views[0], guess_model());
+		width = views[0].recommendedImageRectWidth;
+		height = views[0].recommendedImageRectHeight;
+
+		renderer.emplace(device, physical_device, queue, commandpool);
+		loader.emplace(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
+
+		std::string profile = controller_name();
+		input.emplace(
+		        *this,
+		        "controllers/" + profile + "/profile.json",
+		        layer_controllers,
+		        layer_rays);
+
+		spdlog::info("Loaded input profile {}", input->id);
+
+		for (auto i: {xr::spaces::aim_left, xr::spaces::aim_right, xr::spaces::grip_left, xr::spaces::grip_right})
+		{
+			auto [p, q] = input->offset[i] = controller_offset(controller_name(), i);
+
+			auto rot = glm::degrees(glm::eulerAngles(q));
+			spdlog::info("Initializing offset of space {} to ({}, {}, {}) mm, ({}, {}, {})°",
+			             magic_enum::enum_name(i),
+			             1000 * p.x,
+			             1000 * p.y,
+			             1000 * p.z,
+			             rot.x,
+			             rot.y,
+			             rot.z);
+		}
+
+		std::array imgui_inputs{
+		        imgui_context::controller{
+		                .aim = get_action_space("left_aim"),
+		                .offset = input->offset[xr::spaces::aim_left],
+		                .trigger = get_action("left_trigger").first,
+		                .squeeze = get_action("left_squeeze").first,
+		                .scroll = get_action("left_scroll").first,
+		                .haptic_output = get_action("left_haptic").first,
+		        },
+		        imgui_context::controller{
+		                .aim = get_action_space("right_aim"),
+		                .offset = input->offset[xr::spaces::aim_right],
+		                .trigger = get_action("right_trigger").first,
+		                .squeeze = get_action("right_squeeze").first,
+		                .scroll = get_action("right_scroll").first,
+		                .haptic_output = get_action("right_haptic").first,
+		        },
+		};
+
 		swapchain_imgui = xr::swapchain(
 		        session,
 		        device,
 		        swapchain_format,
-		        1500,
+		        1800,
 		        1000);
 
 		imgui_context::viewport vp{
-		        .space = xr::spaces::view,
-		        .position = {0, 0, -1},
-		        .orientation = {1, 0, 0, 0},
-		        .size = {1.0, 0.6666},
+		        .space = xr::spaces::world,
+		        // Position and orientation are set at each frame
+		        .size = {1.2, 0.6666},
 		        .vp_origin = {0, 0},
-		        .vp_size = {1500, 1000},
+		        .vp_size = {1800, 1000},
 		};
 
 		imgui_ctx.emplace(physical_device,
 		                  device,
 		                  queue_family_index,
 		                  queue,
-		                  std::span<imgui_context::controller>{},
+		                  imgui_inputs,
 		                  swapchain_imgui,
 		                  std::vector{vp});
 
 		plots_toggle_1 = get_action("plots_toggle_1").first;
 		plots_toggle_2 = get_action("plots_toggle_2").first;
+		recenter_left = get_action("recenter_left").first;
+		recenter_right = get_action("recenter_right").first;
 	}
 
 	assert(video_stream_description);
@@ -400,6 +461,14 @@ void scenes::stream::on_focused()
 
 void scenes::stream::on_unfocused()
 {
+	if (renderer)
+		renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
+	world.clear();                 // Must be cleared before the renderer so that the descriptor sets are freed before their pools
+	input.reset();
+	loader.reset();
+	renderer.reset();
+	clear_swapchains();
+
 	imgui_ctx.reset();
 	swapchain_imgui = xr::swapchain();
 }
@@ -569,6 +638,80 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 		return *it;
 	}
 	return nullptr;
+}
+
+// Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
+static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
+{
+	glm::quat q{
+	        pose.orientation.w,
+	        pose.orientation.x,
+	        pose.orientation.y,
+	        pose.orientation.z,
+	};
+
+	glm::vec3 p{
+	        pose.position.x,
+	        pose.position.y,
+	        pose.position.z,
+	};
+
+	glm::vec3 normal = glm::column(glm::mat3_cast(q), 2);
+
+	return glm::vec4(normal, -glm::dot(p, normal) - margin);
+}
+
+void scenes::stream::update_gui_position(xr::spaces controller)
+{
+	auto aim = application::locate_controller(
+	        application::space(controller),
+	        application::space(xr::spaces::view),
+	        predicted_display_time);
+
+	if (not aim)
+		return;
+
+	auto [offset_position, offset_orientation] = input->offset[controller];
+
+	auto head_controller_position = aim->first + glm::mat3_cast(aim->second * offset_orientation) * offset_position;
+	auto head_controller_orientation = aim->second * offset_orientation;
+	auto head_controller_direction = -glm::column(glm::mat3_cast(head_controller_orientation), 2);
+
+	if (not recentering_context)
+	{
+		// First frame of recentering: get the GUI position relative to the controller
+
+		// Compute the intersection of the ray with the GUI
+		auto gui_controller_direction = glm::conjugate(head_gui_orientation) * head_controller_direction;
+		auto gui_controller_position = glm::conjugate(head_gui_orientation) * (head_controller_position - head_gui_position);
+
+		float lambda = -gui_controller_position.z / gui_controller_direction.z;
+		auto gui_intersection = gui_controller_position + lambda * gui_controller_direction;
+
+		auto viewport_size = imgui_ctx->layers()[0].size;
+		if (std::isnan(lambda) or lambda < 0 or
+		    std::abs(gui_intersection.x) > viewport_size.x / 2 or
+		    std::abs(gui_intersection.y) > viewport_size.y / 2)
+		{
+			// Reset the relative GUI position if the ray does not intersect
+			recentering_context.emplace(controller, glm::vec3{0, 0, -1}, glm::quat{1, 0, 0, 0});
+		}
+		else
+		{
+			glm::vec3 controller_gui_position = glm::conjugate(head_controller_orientation) * (head_gui_position - head_controller_position);
+			glm::quat controller_gui_orientation = glm::conjugate(head_controller_orientation) * head_gui_orientation;
+
+			recentering_context.emplace(controller, controller_gui_position, controller_gui_orientation);
+		}
+	}
+	else
+	{
+		// Subsequent frames of recentering: keep the GUI locked to the controller
+		auto [_, controller_gui_position, controller_gui_orientation] = *recentering_context;
+
+		head_gui_position = head_controller_position + head_controller_orientation * controller_gui_position;
+		head_gui_orientation = head_controller_orientation * controller_gui_orientation;
+	}
 }
 
 void scenes::stream::render(const XrFrameState & frame_state)
@@ -944,8 +1087,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	queue.submit(submit_info, *fence);
 	swapchain.release();
 
-	// std::vector<XrCompositionLayerBaseHeader *> layers_base;
-	std::vector<XrCompositionLayerProjectionView> layer_view(view_count);
+	std::vector<XrCompositionLayerProjectionView> layer_view(view_count); // TODO array or inplace_vector
 
 	if (use_alpha)
 		session.enable_passthrough(system);
@@ -954,6 +1096,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	render_start(use_alpha, frame_state.predictedDisplayTime);
 
+	// Add the layer with the streamed content
 	for (uint32_t view = 0; view < view_count; view++)
 	{
 		layer_view[view] =
@@ -977,22 +1120,111 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	        application::space(xr::spaces::world),
 	        std::move(layer_view));
 
+	if (composition_layer_color_scale_bias_supported and imgui_ctx and gui_status == gui_status::interactable)
+		set_color_scale_bias({0.7, 0.7, 0.7, 1}, {0.15, 0.15, 0.15, 0});
+
 	if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
 	    (openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
 		set_layer_settings(openxr_post_processing.sharpening | openxr_post_processing.super_sampling);
 
-	std::vector<XrCompositionLayerQuad> imgui_layers;
 	if (imgui_ctx)
 	{
+		XrSpace world_space = application::space(xr::spaces::world);
+		std::vector<XrCompositionLayerQuad> imgui_layers; // TODO array or inplace_vector
 		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
-		if (plots_visible)
+		auto views = session.locate_views(viewconfig, frame_state.predictedDisplayTime, world_space).second;
+
+		imgui_ctx->set_controllers_enabled(gui_status == gui_status::interactable);
+		if (gui_status != gui_status::hidden)
+			imgui_layers = draw_gui(frame_state.predictedDisplayTime);
+
+		if (gui_status == gui_status::interactable)
 		{
-			imgui_layers = plot_performance_metrics(frame_state.predictedDisplayTime);
+			if (recentering_context)
+			{
+				xr::spaces controller = std::get<0>(*recentering_context);
+				bool state;
+				switch (controller)
+				{
+					case xr::spaces::aim_left:
+						state = application::read_action_bool(recenter_left).value_or(std::pair{0, false}).second;
+						break;
+					case xr::spaces::aim_right:
+						state = application::read_action_bool(recenter_right).value_or(std::pair{0, false}).second;
+						break;
+					default:
+						state = false;
+						break;
+				}
 
+				if (state)
+					update_gui_position(controller);
+				else
+					recentering_context.reset();
+			}
+			else if (auto state = application::read_action_bool(recenter_left); state and state->second)
+				update_gui_position(xr::spaces::aim_left);
+			else if (auto state = application::read_action_bool(recenter_right); state and state->second)
+				update_gui_position(xr::spaces::aim_right);
+			else
+				recentering_context.reset();
+
+			std::vector<glm::vec4> ray_limits; // TODO array or inplace_vector
 			for (auto & layer: imgui_layers)
-				add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
+			{
+				ray_limits.push_back(compute_ray_limits(layer.pose));
+			}
 
-			// TODO render controllers/hands
+			input->apply(world, world_space, frame_state.predictedDisplayTime, false, false, ray_limits);
+
+			// Add the layer with the controllers
+			if (composition_layer_depth_test_supported)
+			{
+				render_world(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+				             world_space,
+				             views,
+				             width,
+				             height,
+				             true,
+				             layer_controllers,
+				             {});
+				set_depth_test(true, XR_COMPARE_OP_ALWAYS_FB);
+			}
+		}
+
+		if (gui_status != gui_status::hidden)
+		{
+			// Lock the GUI position to the head
+			std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::space(xr::spaces::view), world_space, frame_state.predictedDisplayTime);
+			if (head_position)
+			{
+				glm::mat3 M = glm::mat3_cast(head_position->second);
+				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
+				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
+			}
+
+			// Add the layer with the GUI
+			for (auto & layer: imgui_layers)
+			{
+				add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
+				if (composition_layer_depth_test_supported)
+					set_depth_test(true, XR_COMPARE_OP_LESS_FB);
+			}
+		}
+
+		if (gui_status == gui_status::interactable)
+		{
+			// Add the layer with the controller rays
+			render_world(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+			             world_space,
+			             views,
+			             width,
+			             height,
+			             composition_layer_depth_test_supported,
+			             composition_layer_depth_test_supported ? layer_rays : layer_controllers | layer_rays,
+			             {});
+			if (composition_layer_depth_test_supported)
+				set_depth_test(true, XR_COMPARE_OP_LESS_FB);
 		}
 	}
 
@@ -1054,7 +1286,19 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		CHECK_XR(xrGetActionStateBoolean(session, &get_info, &state_2));
 
 		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
-			plots_visible = not plots_visible;
+		{
+			switch (gui_status)
+			{
+				case gui_status::hidden:
+				case gui_status::overlay_only:
+					gui_status = gui_status::interactable;
+					break;
+				case gui_status::interactable:
+					gui_status = gui_status::overlay_only;
+					current_tab = tab::stats;
+					break;
+			}
+		}
 	}
 
 	query_pool_filled = true;
@@ -1245,8 +1489,22 @@ scene::meta & scenes::stream::get_meta_scene()
 	static meta m{
 	        .name = "Stream",
 	        .actions = {
+	                {"left_aim", XR_ACTION_TYPE_POSE_INPUT},
+	                {"left_trigger", XR_ACTION_TYPE_FLOAT_INPUT},
+	                {"left_squeeze", XR_ACTION_TYPE_FLOAT_INPUT},
+	                {"left_scroll", XR_ACTION_TYPE_VECTOR2F_INPUT},
+	                {"left_haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
+	                {"right_aim", XR_ACTION_TYPE_POSE_INPUT},
+	                {"right_trigger", XR_ACTION_TYPE_FLOAT_INPUT},
+	                {"right_squeeze", XR_ACTION_TYPE_FLOAT_INPUT},
+	                {"right_scroll", XR_ACTION_TYPE_VECTOR2F_INPUT},
+	                {"right_haptic", XR_ACTION_TYPE_VIBRATION_OUTPUT},
+
 	                {"plots_toggle_1", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	                {"plots_toggle_2", XR_ACTION_TYPE_BOOLEAN_INPUT},
+
+	                {"recenter_left", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	                {"recenter_right", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	        },
 	        .bindings = {
 	                suggested_binding{
@@ -1261,6 +1519,20 @@ scene::meta & scenes::stream::get_meta_scene()
 	                                "/interaction_profiles/htc/vive_focus3_controller",
 	                        },
 	                        {
+	                                {"left_aim", "/user/hand/left/input/aim/pose"},
+	                                {"left_trigger", "/user/hand/left/input/trigger/value"},
+	                                {"left_squeeze", "/user/hand/left/input/squeeze/value"},
+	                                {"left_scroll", "/user/hand/left/input/thumbstick"},
+	                                {"left_haptic", "/user/hand/left/output/haptic"},
+	                                {"right_aim", "/user/hand/right/input/aim/pose"},
+	                                {"right_trigger", "/user/hand/right/input/trigger/value"},
+	                                {"right_squeeze", "/user/hand/right/input/squeeze/value"},
+	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
+	                                {"right_haptic", "/user/hand/right/output/haptic"},
+
+	                                {"recenter_left", "/user/hand/left/input/squeeze/value"},
+	                                {"recenter_right", "/user/hand/right/input/squeeze/value"},
+
 	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
 	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
 	                        },

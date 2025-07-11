@@ -23,10 +23,12 @@
 #include "decoder/shard_accumulator.h"
 #include "render/imgui_impl.h"
 #include "scene.h"
+#include "scenes/input_profile.h"
 #include "stream_reprojection.h"
 #include "wifi_lock.h"
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
+#include "xr/space.h"
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
@@ -122,10 +124,45 @@ private:
 
 	std::optional<audio> audio_handle;
 
+	std::optional<input_profile> input;
+	static inline const uint32_t layer_controllers = 1 << 0;
+	static inline const uint32_t layer_rays = 1 << 1;
+
+	// Size of the composition layer used for the controllers
+	uint32_t width;
+	uint32_t height;
+
 	std::optional<imgui_context> imgui_ctx;
-	bool plots_visible = true;
+	enum class gui_status
+	{
+		hidden,
+		overlay_only,
+		interactable
+	};
+	gui_status gui_status = gui_status::interactable;
 	XrAction plots_toggle_1 = XR_NULL_HANDLE;
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
+	XrAction recenter_left = XR_NULL_HANDLE;
+	XrAction recenter_right = XR_NULL_HANDLE;
+
+	// Position of the GUI relative to the view space, in view space axes
+	glm::vec3 head_gui_position{-0.1, -0.3, -1.2}; // Shift 10cm left by default so that the stats are centered accounting for the tab list
+	glm::quat head_gui_orientation{1, 0, 0, 0};
+
+	enum class tab
+	{
+		stats,
+		settings,
+		disconnect,
+
+		hide,
+	};
+
+	tab current_tab;
+
+	// Which controller is used for recentering and position of the GUI relative to the controller, in controller axes, during recentering
+	std::optional<std::tuple<xr::spaces, glm::vec3, glm::quat>> recentering_context;
+	void update_gui_position(xr::spaces controller);
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> current_blit_handles;
@@ -242,6 +279,8 @@ private:
 	int metrics_offset = 0;
 
 	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
-	std::vector<XrCompositionLayerQuad> plot_performance_metrics(XrTime predicted_display_time);
+	void gui_performance_metrics();
+	void gui_settings();
+	std::vector<XrCompositionLayerQuad> draw_gui(XrTime predicted_display_time);
 };
 } // namespace scenes

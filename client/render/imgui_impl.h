@@ -155,6 +155,7 @@ private:
 	XrSpace world;
 	size_t focused_controller = (size_t)-1;
 	XrTime last_display_time = 0;
+	bool controllers_enabled = true;
 
 	bool button_pressed = false;
 	bool fingertip_touching = false;
@@ -163,7 +164,7 @@ private:
 	ImVector<ImWchar> glyph_ranges;
 	bool glyph_range_dirty = true;
 
-	ImGuiID hovered_item = 0; // Hovered item in the current frame, reset at the beginning of the frame
+	ImGuiID hovered_item = 0;      // Hovered item in the current frame, reset at the beginning of the frame
 	ImGuiID hovered_item_prev = 0; // Hovered item at the previous frame
 
 #if WIVRN_SHOW_IMGUI_DEMO_WINDOW
@@ -219,4 +220,5 @@ public:
 
 	void vibrate_on_hover();
 	void set_hovered_item();
+	void set_controllers_enabled(bool value);
 };
