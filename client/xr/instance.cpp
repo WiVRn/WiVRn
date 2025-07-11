@@ -21,6 +21,7 @@
 
 #include "xr.h"
 #include "xr/details/enumerate.h"
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -114,6 +115,7 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 	spdlog::info("Available OpenXR extensions:");
 	bool debug_utils_found = false;
 	auto all_extensions = xr::instance::extensions();
+	std::ranges::sort(all_extensions, [](const char * a, const char * b) { return strcmp(a, b) < 0; }, &XrExtensionProperties::extensionName);
 	for (XrExtensionProperties & i: all_extensions)
 	{
 		spdlog::info("    {} (version {})", i.extensionName, i.extensionVersion);

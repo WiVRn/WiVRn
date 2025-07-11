@@ -727,9 +727,10 @@ void application::initialize_vulkan()
 	bool debug_utils_found = false;
 #endif
 	spdlog::info("Available Vulkan instance extensions:");
+	std::vector<std::pair<std::string, int>> extensions;
 	for (vk::ExtensionProperties & i: vk_context.enumerateInstanceExtensionProperties(nullptr))
 	{
-		spdlog::info("    {} (version {})", i.extensionName.data(), i.specVersion);
+		extensions.emplace_back(i.extensionName.data(), i.specVersion);
 
 #ifndef NDEBUG
 		if (!strcmp(i.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
@@ -739,6 +740,9 @@ void application::initialize_vulkan()
 			debug_utils_found = true;
 #endif
 	}
+	std::ranges::sort(extensions);
+	for (const auto & [extension_name, spec_version]: extensions)
+		spdlog::info("    {} (version {})", extension_name, spec_version);
 
 #ifndef NDEBUG
 	if (debug_utils_found && debug_report_found)
@@ -817,11 +821,16 @@ void application::initialize_vulkan()
 	vk_physical_device = xr_system_id.physical_device(vk_instance);
 	physical_device_properties = vk_physical_device.getProperties();
 
-	spdlog::info("Available Vulkan device extensions:");
+	extensions.clear();
 	for (vk::ExtensionProperties & i: vk_physical_device.enumerateDeviceExtensionProperties())
+		extensions.emplace_back(i.extensionName.data(), i.specVersion);
+	std::ranges::sort(extensions);
+
+	spdlog::info("Available Vulkan device extensions:");
+	for (const auto & [extension_name, spec_version]: extensions)
 	{
-		spdlog::info("    {}", i.extensionName.data());
-		if (auto it = optional_device_extensions.find(i.extensionName); it != optional_device_extensions.end())
+		spdlog::info("    {} (version {})", extension_name, spec_version);
+		if (auto it = optional_device_extensions.find(extension_name); it != optional_device_extensions.end())
 			vk_device_extensions.push_back(it->data());
 	}
 
