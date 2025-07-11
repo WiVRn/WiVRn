@@ -26,6 +26,7 @@
 #include "implot.h"
 #include "utils/i18n.h"
 #include "utils/ranges.h"
+#include <IconsFontAwesome6.h>
 #include <cmath>
 #include <limits>
 #include <ranges>
@@ -143,14 +144,60 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 	metrics_offset = (metrics_offset + 1) % global_metrics.size();
 }
 
-std::vector<XrCompositionLayerQuad> scenes::stream::plot_performance_metrics(XrTime predicted_display_time)
+// TODO move in separate file, factorize with lobby_gui.cpp
+static bool RadioButtonWithoutCheckBox(const std::string & label, bool active, ImVec2 size_arg)
 {
-	imgui_ctx->new_frame(predicted_display_time);
-	const ImGuiStyle & style = ImGui::GetStyle();
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
+	if (window->SkipItems)
+		return false;
 
-	ImGui::SetNextWindowPos({0, 0});
-	ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size);
-	ImGui::Begin("Performance metrics", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+	ImGuiContext & g = *GImGui;
+	const ImGuiStyle & style = g.Style;
+	const ImGuiID id = window->GetID(label.c_str());
+	const ImVec2 label_size = ImGui::CalcTextSize(label.c_str(), NULL, true);
+
+	const ImVec2 pos = window->DC.CursorPos;
+
+	ImVec2 size = ImGui::CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+
+	const ImRect bb(pos, pos + size);
+	ImGui::ItemSize(bb, style.FramePadding.y);
+	if (!ImGui::ItemAdd(bb, id))
+		return false;
+
+	bool hovered, held;
+	bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+
+	ImGuiCol_ col;
+	if ((held && hovered) || active)
+		col = ImGuiCol_ButtonActive;
+	else if (hovered)
+		col = ImGuiCol_ButtonHovered;
+	else
+		col = ImGuiCol_Button;
+
+	ImGui::RenderNavHighlight(bb, id);
+	ImGui::RenderFrame(bb.Min, bb.Max, ImGui::GetColorU32(col), true, style.FrameRounding);
+
+	ImVec2 TextAlign{0, 0.5f};
+	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label.c_str(), NULL, &label_size, TextAlign, &bb);
+
+	IMGUI_TEST_ENGINE_ITEM_INFO(id, label.c_str(), g.LastItemData.StatusFlags);
+	return pressed;
+}
+
+template <typename T>
+static bool RadioButtonWithoutCheckBox(const std::string & label, T & v, T v_button, ImVec2 size_arg)
+{
+	const bool pressed = RadioButtonWithoutCheckBox(label, v == v_button, size_arg);
+	if (pressed)
+		v = v_button;
+	return pressed;
+}
+
+void scenes::stream::gui_performance_metrics()
+{
+	const ImGuiStyle & style = ImGui::GetStyle();
 
 	ImVec2 window_size = ImGui::GetWindowSize() - ImVec2(2, 2) * style.WindowPadding;
 
@@ -174,7 +221,7 @@ std::vector<XrCompositionLayerQuad> scenes::stream::plot_performance_metrics(XrT
 
 	ImVec2 plot_size = ImVec2(
 	        window_size.x / n_cols - style.ItemSpacing.x * (n_cols - 1) / n_cols,
-	        (window_size.y - ImGui::GetCurrentContext()->FontSize - style.ItemSpacing.y) / n_rows - style.ItemSpacing.y * (n_rows - 1) / n_rows);
+	        (window_size.y - 2 * ImGui::GetCurrentContext()->FontSize - 2 * style.ItemSpacing.y) / n_rows - style.ItemSpacing.y * (n_rows - 1) / n_rows);
 
 	ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
 	ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
@@ -328,8 +375,170 @@ std::vector<XrCompositionLayerQuad> scenes::stream::plot_performance_metrics(XrT
 	{
 		std::lock_guard lock(tracking_control_mutex);
 		ImGui::Text("%s", fmt::format(_F("Estimated motion to photons latency: {}ms"), std::chrono::duration_cast<std::chrono::milliseconds>(tracking_control.max_offset).count()).c_str());
+
+		if (gui_status == gui_status::interactable)
+			ImGui::Text("%s", _S("Press both thumbsticks to return to the game, press the grip button to move the window"));
+		else
+			ImGui::Text("%s", _S("Press both thumbsticks to interact"));
+	}
+}
+
+std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag);
+void scenes::stream::gui_settings()
+{
+	auto & config = application::get_config();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
+
+	if (application::get_openxr_post_processing_supported())
+	{
+		ImGui::Text("%s", _S("OpenXR post-processing"));
+		ImGui::Indent();
+		{
+			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.super_sampling;
+			if (ImGui::BeginCombo(_S("Supersampling"), openxr_post_processing_flag_name(current).c_str()))
+			{
+				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
+				        0,
+				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB,
+				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB};
+				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
+				{
+					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
+					{
+						spdlog::info("Setting OpenXR super sampling to {}", openxr_post_processing_flag_name(option));
+						config.openxr_post_processing.super_sampling = option;
+						config.save();
+					}
+					imgui_ctx->vibrate_on_hover();
+				}
+				ImGui::EndCombo();
+			}
+			imgui_ctx->vibrate_on_hover();
+			if (ImGui::IsItemHovered())
+			{
+				// tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
+			}
+		}
+		{
+			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.sharpening;
+			if (ImGui::BeginCombo(_S("Sharpening"), openxr_post_processing_flag_name(current).c_str()))
+			{
+				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
+				        0,
+				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB,
+				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB};
+				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
+				{
+					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
+					{
+						spdlog::info("Setting OpenXR sharpening to {}", openxr_post_processing_flag_name(option));
+						config.openxr_post_processing.sharpening = option;
+						config.save();
+					}
+					imgui_ctx->vibrate_on_hover();
+				}
+				ImGui::EndCombo();
+			}
+			imgui_ctx->vibrate_on_hover();
+			if (ImGui::IsItemHovered())
+			{
+				// tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
+			}
+		}
+		ImGui::Unindent();
+	}
+	ImGui::PopStyleVar();
+}
+
+std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_display_time)
+{
+	const float TabWidth = 300;
+
+	const ImGuiStyle & style = ImGui::GetStyle();
+	imgui_ctx->new_frame(predicted_display_time);
+
+	bool interactable = gui_status == gui_status::interactable;
+
+	if (interactable)
+	{
+		ImGui::SetNextWindowPos({50, 50});
+		ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - ImVec2{100, 100});
+	}
+	else
+	{
+		ImGui::SetNextWindowPos({TabWidth + 50, 50});
+		ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - ImVec2{TabWidth + 100, 100});
+	}
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+	ImGui::Begin("Performance metrics", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+
+	if (interactable)
+		ImGui::SetCursorPos({TabWidth + 20, 20});
+	else
+		ImGui::SetCursorPos({20, 20});
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
+	ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
+	switch (current_tab)
+	{
+		case tab::stats:
+			gui_performance_metrics();
+			break;
+
+		case tab::settings:
+			gui_settings();
+			break;
+
+		case tab::disconnect:
+			// TODO disconnect correctly
+			// application::pop_scene();
+			break;
+
+		case tab::hide:
+			break;
+	}
+	ImGui::EndChild();
+	ImGui::PopStyleVar();
+
+	if (interactable)
+	{
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(0, 0, 0, 255));
+		ImGui::SetCursorPos(style.WindowPadding);
+		{
+			ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), current_tab, tab::stats, {TabWidth, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), current_tab, tab::settings, {TabWidth, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			int n_items_at_end = 2;
+			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - n_items_at_end * ImGui::GetCurrentContext()->FontSize - (n_items_at_end * 2) * style.FramePadding.y - (n_items_at_end - 1) * style.ItemSpacing.y - style.WindowPadding.y);
+
+			RadioButtonWithoutCheckBox(ICON_FA_EYE_SLASH "  " + _("Hide"), current_tab, tab::hide, {TabWidth, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Disconnect"), current_tab, tab::disconnect, {TabWidth, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
+			ImGui::EndChild();
+		}
+		ImGui::PopStyleColor(); // ImGuiCol_ChildBg
 	}
 	ImGui::End();
+	ImGui::PopStyleVar(2);
+
+	if (current_tab == tab::hide)
+	{
+		gui_status = gui_status::hidden;
+		current_tab = tab::stats;
+	}
 
 	std::vector<XrCompositionLayerQuad> layers;
 	for (auto & layer: imgui_ctx->end_frame())

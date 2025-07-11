@@ -627,6 +627,9 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 
 		controller_state & new_state = new_states.emplace_back();
 
+		if (not controllers_enabled)
+			continue;
+
 		if (ctrl.hand)
 		{
 			if (auto joints = ctrl.hand->locate(world, display_time))
@@ -1178,6 +1181,11 @@ void imgui_context::set_current()
 {
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);
+}
+
+void imgui_context::set_controllers_enabled(bool value)
+{
+	controllers_enabled = value;
 }
 
 bool imgui_context::is_modal_popup_shown() const
