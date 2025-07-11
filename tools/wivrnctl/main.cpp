@@ -286,6 +286,11 @@ void disconnect()
 	call_method(get_user_bus(), "Disconnect", "");
 }
 
+void toggle_performance_graph()
+{
+	call_method(get_user_bus(), "TogglePerformanceGraph", "");
+}
+
 void set_bitrate(std::string bitrate_str)
 {
 	auto suffix = bitrate_str.back();
@@ -373,6 +378,9 @@ int main(int argc, char ** argv)
 
 	app.add_subcommand("disconnect", "Disconnect headset")
 	        ->callback(disconnect);
+
+	app.add_subcommand("toggle-performance-graph", "Toggle the performance graph on the headset")
+	        ->callback(toggle_performance_graph);
 
 	std::string bitrate_str;
 	auto bitrate_command = app.add_subcommand("set-bitrate", "Set encoding bitrate");
