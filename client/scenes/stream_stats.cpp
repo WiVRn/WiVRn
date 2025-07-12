@@ -232,7 +232,7 @@ void scenes::stream::gui_performance_metrics()
 	int n = 0;
 	for (const auto & [title, subplots, unit]: plots)
 	{
-		if (ImPlot::BeginPlot(title.c_str(), plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(title.c_str(), plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText))
 		{
 			float min_v = 0;
 			float max_v = 0;
@@ -279,7 +279,7 @@ void scenes::stream::gui_performance_metrics()
 	for (auto && [index, metrics]: utils::enumerate(decoder_metrics))
 	{
 		std::string title = fmt::format(_F("Decoder {}"), std::to_string(index));
-		if (ImPlot::BeginPlot(title.c_str(), plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(title.c_str(), plot_size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMouseText))
 		{
 			float min_v = 0;
 			float max_v = compute_plot_max_value(&(metrics.data()->displayed), metrics.size(), sizeof(decoder_metric));

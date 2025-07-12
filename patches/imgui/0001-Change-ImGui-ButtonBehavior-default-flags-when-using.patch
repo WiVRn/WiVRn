@@ -1,4 +1,4 @@
-From 748060ccb60bdc3df47dc44f1b1dcb57dfd5b488 Mon Sep 17 00:00:00 2001
+From bf64125b461a33d9e67e9b6f3da2f0e0726cfb03 Mon Sep 17 00:00:00 2001
 From: Guillaume Meunier <guillaume.meunier@centraliens.net>
 Date: Wed, 16 Oct 2024 20:51:52 +0200
 Subject: [PATCH 1/2] Change ImGui::ButtonBehavior default flags when using
@@ -12,10 +12,10 @@ Subject: [PATCH 1/2] Change ImGui::ButtonBehavior default flags when using
  4 files changed, 14 insertions(+), 2 deletions(-)
 
 diff --git a/imgui.cpp b/imgui.cpp
-index 3bbaf018f..44eed7900 100644
+index 99819ffe..c1a16c42 100644
 --- a/imgui.cpp
 +++ b/imgui.cpp
-@@ -9969,7 +9969,7 @@ static const char* GetInputSourceName(ImGuiInputSource source)
+@@ -10140,7 +10140,7 @@ static const char* GetInputSourceName(ImGuiInputSource source)
  }
  static const char* GetMouseSourceName(ImGuiMouseSource source)
  {
@@ -25,10 +25,10 @@ index 3bbaf018f..44eed7900 100644
      return mouse_source_names[source];
  }
 diff --git a/imgui.h b/imgui.h
-index 77ca8e04f..647090b9e 100644
+index a2b2a1fa..64d5f758 100644
 --- a/imgui.h
 +++ b/imgui.h
-@@ -1838,6 +1838,8 @@ enum ImGuiMouseSource : int
+@@ -1935,6 +1935,8 @@ enum ImGuiMouseSource : int
      ImGuiMouseSource_Mouse = 0,         // Input is coming from an actual mouse.
      ImGuiMouseSource_TouchScreen,       // Input is coming from a touch screen (no hovering prior to initial press, less precise initial press aiming, dual-axis wheeling possible).
      ImGuiMouseSource_Pen,               // Input is coming from a pressure/magnetic pen (often used in conjunction with high-sampling rates).
@@ -38,12 +38,12 @@ index 77ca8e04f..647090b9e 100644
  };
  
 diff --git a/imgui_demo.cpp b/imgui_demo.cpp
-index 8df1755fb..69f200218 100644
+index 991676f7..b360e69e 100644
 --- a/imgui_demo.cpp
 +++ b/imgui_demo.cpp
-@@ -7350,6 +7350,11 @@ static void ShowDemoWindowInputs()
-             for (int i = 0; i < IM_ARRAYSIZE(io.MouseDown); i++) if (ImGui::IsMouseDown(i)) { ImGui::SameLine(); ImGui::Text("b%d (%.02f secs)", i, io.MouseDownDuration[i]); }
-             ImGui::Text("Mouse wheel: %.1f", io.MouseWheel);
+@@ -7768,6 +7768,11 @@ static void DemoWindowInputs()
+             ImGui::Text("Mouse clicked count:");
+             for (int i = 0; i < IM_ARRAYSIZE(io.MouseDown); i++) if (io.MouseClickedCount[i] > 0) { ImGui::SameLine(); ImGui::Text("b%d: %d", i, io.MouseClickedCount[i]); }
  
 +            const char* mouse_source_names[] = { "Mouse", "TouchScreen", "Pen", "VRHandTracking", "VRController" };
 +            IM_ASSERT(IM_ARRAYSIZE(mouse_source_names) == ImGuiMouseSource_COUNT && io.MouseSource >= 0 && io.MouseSource < ImGuiMouseSource_COUNT);
@@ -54,14 +54,14 @@ index 8df1755fb..69f200218 100644
              // displaying the data for old/new backends.
              // User code should never have to go through such hoops!
 diff --git a/imgui_widgets.cpp b/imgui_widgets.cpp
-index 322c0846c..26a8ffdcd 100644
+index a0c4f14f..11709bd1 100644
 --- a/imgui_widgets.cpp
 +++ b/imgui_widgets.cpp
-@@ -501,7 +501,12 @@ bool ImGui::ButtonBehavior(const ImRect& bb, ImGuiID id, bool* out_hovered, bool
+@@ -557,7 +557,12 @@ bool ImGui::ButtonBehavior(const ImRect& bb, ImGuiID id, bool* out_hovered, bool
  
      // Default behavior requires click + release inside bounding box
      if ((flags & ImGuiButtonFlags_PressedOnMask_) == 0)
--        flags |= ImGuiButtonFlags_PressedOnDefault_;
+-        flags |= (item_flags & ImGuiItemFlags_ButtonRepeat) ? ImGuiButtonFlags_PressedOnClick : ImGuiButtonFlags_PressedOnDefault_;
 +    {
 +        if (g.IO.MouseSource == ImGuiMouseSource_VRHandTracking)
 +            flags |= ImGuiButtonFlags_PressedOnClick;
@@ -69,8 +69,8 @@ index 322c0846c..26a8ffdcd 100644
 +            flags |= ImGuiButtonFlags_PressedOnDefault_;
 +    }
  
-     // Default behavior inherited from item flags
-     // Note that _both_ ButtonFlags and ItemFlags are valid sources, so copy one into the item_flags and only check that.
+     ImGuiWindow* backup_hovered_window = g.HoveredWindow;
+     const bool flatten_hovered_children = (flags & ImGuiButtonFlags_FlattenChildren) && g.HoveredWindow && g.HoveredWindow->RootWindow == window->RootWindow;
 -- 
-2.47.0
+2.50.0
 

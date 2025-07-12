@@ -915,7 +915,7 @@ void scenes::lobby::on_unfocused()
 
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 
-	about_picture = nullptr;
+	about_picture = 0;
 	imgui_ctx.reset();
 	world.clear(); // Must be cleared before the renderer so that the descriptor sets are freed before their pools
 
