@@ -95,7 +95,7 @@ static void InputText(const char * label, std::string & text, const ImVec2 & siz
 
 static void display_recentering_tip(imgui_context & ctx, const std::string & tip)
 {
-	ImGui::PushFont(ctx.large_font);
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::window_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2);
 	ImGui::SetNextWindowPos(ctx.layers()[3].vp_center(), ImGuiCond_Always, {0.5, 0.5});
@@ -216,7 +216,7 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 
 	ImGui::Dummy({1000, 1});
 
-	ImGui::PushFont(imgui_ctx->large_font);
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 	if (server_name == "")
 		CenterTextH(fmt::format(_F("Connection")));
 	else
@@ -245,7 +245,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 	const int pin_size = 6;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, constants::style::pin_entry_item_spacing);
-	ImGui::PushFont(imgui_ctx->large_font);
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 
 	const auto & style = ImGui::GetStyle();
 	const auto window = ImGui::GetCurrentWindow();
@@ -447,7 +447,7 @@ void scenes::lobby::gui_server_list()
 	std::string cookie_to_remove;
 	if (sorted_cookies.empty())
 	{
-		ImGui::PushFont(imgui_ctx->large_font);
+		ImGui::PushFont(nullptr, constants::gui::font_size_large);
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 0.5));
 		CenterTextHV(_("Start a WiVRn server on your\nlocal network"));
 		ImGui::PopStyleColor();
@@ -835,7 +835,7 @@ void scenes::lobby::gui_settings()
 		ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
 		ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
 
-		if (ImPlot::BeginPlot(_S("CPU time"), plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(_S("CPU time"), plot_size, ImPlotFlags_CanvasOnly))
 		{
 			auto col = ImPlot::GetColormapColor(0);
 
@@ -849,7 +849,7 @@ void scenes::lobby::gui_settings()
 
 		ImGui::SameLine();
 
-		if (ImPlot::BeginPlot(_S("GPU time"), plot_size, ImPlotFlags_CanvasOnly | ImPlotFlags_NoChild))
+		if (ImPlot::BeginPlot(_S("GPU time"), plot_size, ImPlotFlags_CanvasOnly))
 		{
 			auto col = ImPlot::GetColormapColor(1);
 
@@ -1077,7 +1077,7 @@ void scenes::lobby::gui_debug()
 
 void scenes::lobby::gui_about()
 {
-	ImGui::PushFont(imgui_ctx->large_font);
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 	CenterTextH(std::string("WiVRn ") + wivrn::git_version);
 	ImGui::PopFont();
 
@@ -1091,7 +1091,7 @@ void scenes::lobby::gui_about()
 
 void scenes::lobby::gui_licenses()
 {
-	ImGui::PushFont(imgui_ctx->large_font);
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 	ImGui::Text("%s", _("Licenses").c_str());
 	ImGui::PopFont();
 
@@ -1630,11 +1630,6 @@ static bool is_gui_visible(imgui_context & ctx, XrTime predicted_display_time)
 
 std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTime predicted_display_time)
 {
-	for (const auto & [key, server]: application::get_config().servers)
-	{
-		imgui_ctx->add_chars(server.service.name);
-	}
-
 	imgui_ctx->new_frame(predicted_display_time);
 	ImGuiStyle & style = ImGui::GetStyle();
 

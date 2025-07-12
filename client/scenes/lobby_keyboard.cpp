@@ -319,14 +319,14 @@ virtual_keyboard::key_status virtual_keyboard::button_behavior(const ImRect & bb
 
 			float prev_held_duration = held_duration;
 			held_duration += g.IO.DeltaTime;
-			if ((flags & ImGuiButtonFlags_Repeat) and held_duration > g.IO.KeyRepeatDelay)
-			{
-				int n1 = (prev_held_duration - g.IO.KeyRepeatDelay) / g.IO.KeyRepeatRate;
-				int n2 = (held_duration - g.IO.KeyRepeatDelay) / g.IO.KeyRepeatRate;
-
-				if (n2 != n1)
-					pressed = true;
-			}
+			// if ((flags & ImGuiButtonFlags_Repeat) and held_duration > g.IO.KeyRepeatDelay)
+			// {
+			// 	int n1 = (prev_held_duration - g.IO.KeyRepeatDelay) / g.IO.KeyRepeatRate;
+			// 	int n2 = (held_duration - g.IO.KeyRepeatDelay) / g.IO.KeyRepeatRate;
+			//
+			// 	if (n2 != n1)
+			// 		pressed = true;
+			// }
 		}
 		else
 		{
@@ -381,8 +381,8 @@ virtual_keyboard::key_status virtual_keyboard::draw_single_key(const key & k, in
 
 	ImGuiButtonFlags flags = ImGuiButtonFlags_None;
 
-	if (k.flag & key_flag_repeat)
-		flags |= ImGuiButtonFlags_Repeat;
+	// if (k.flag & key_flag_repeat)
+	// 	 flags |= ImGuiButtonFlags_Repeat;
 
 	auto status = button_behavior(bb, id, window_hovered, flags);
 

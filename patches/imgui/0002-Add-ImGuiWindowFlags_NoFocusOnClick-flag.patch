@@ -1,4 +1,4 @@
-From 265d4ef46317d87b8d22926e7ee99fda6e2b940d Mon Sep 17 00:00:00 2001
+From cdb8a40a9363019e33ecf9428cc2e1c6319aea1f Mon Sep 17 00:00:00 2001
 From: Guillaume Meunier <guillaume.meunier@centraliens.net>
 Date: Tue, 22 Oct 2024 15:09:14 +0200
 Subject: [PATCH 2/2] Add ImGuiWindowFlags_NoFocusOnClick flag
@@ -9,10 +9,10 @@ Subject: [PATCH 2/2] Add ImGuiWindowFlags_NoFocusOnClick flag
  2 files changed, 4 insertions(+)
 
 diff --git a/imgui.cpp b/imgui.cpp
-index 44eed7900..46f3ea877 100644
+index c1a16c42..115371b2 100644
 --- a/imgui.cpp
 +++ b/imgui.cpp
-@@ -4879,6 +4879,9 @@ void ImGui::UpdateMouseMovingWindowEndFrame()
+@@ -5134,6 +5134,9 @@ void ImGui::UpdateMouseMovingWindowEndFrame()
          // Handle the edge case of a popup being closed while clicking in its empty space.
          // If we try to focus it, FocusWindow() > ClosePopupsOverWindow() will accidentally close any parent popups because they are not linked together any more.
          ImGuiWindow* root_window = g.HoveredWindow ? g.HoveredWindow->RootWindow : NULL;
@@ -23,17 +23,17 @@ index 44eed7900..46f3ea877 100644
  
          if (root_window != NULL && !is_closed_popup)
 diff --git a/imgui.h b/imgui.h
-index 647090b9e..e9e453195 100644
+index 64d5f758..cff44a55 100644
 --- a/imgui.h
 +++ b/imgui.h
-@@ -1079,6 +1079,7 @@ enum ImGuiWindowFlags_
-     ImGuiWindowFlags_NoNavInputs            = 1 << 16,  // No gamepad/keyboard navigation within the window
-     ImGuiWindowFlags_NoNavFocus             = 1 << 17,  // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
+@@ -1161,6 +1161,7 @@ enum ImGuiWindowFlags_
+     ImGuiWindowFlags_NoNavInputs            = 1 << 16,  // No keyboard/gamepad navigation within the window
+     ImGuiWindowFlags_NoNavFocus             = 1 << 17,  // No focusing toward this window with keyboard/gamepad navigation (e.g. skipped by CTRL+TAB)
      ImGuiWindowFlags_UnsavedDocument        = 1 << 18,  // Display a dot next to the title. When used in a tab/docking context, tab is selected when clicking the X + closure is not assumed (will wait for user to stop submitting the tab). Otherwise closure is assumed when pressing the X, so if you keep submitting the tab may reappear at end of tab bar.
 +    ImGuiWindowFlags_NoFocusOnClick         = 1 << 19,  // Disable taking focus when clicked
      ImGuiWindowFlags_NoNav                  = ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoNavFocus,
      ImGuiWindowFlags_NoDecoration           = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse,
      ImGuiWindowFlags_NoInputs               = ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoNavInputs | ImGuiWindowFlags_NoNavFocus,
 -- 
-2.47.0
+2.50.0
 
