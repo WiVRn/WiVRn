@@ -137,6 +137,7 @@ private:
 	{
 		hidden,
 		overlay_only,
+		compact,
 		interactable
 	};
 	std::atomic<gui_status> gui_status = gui_status::interactable;
@@ -154,8 +155,6 @@ private:
 		stats,
 		settings,
 		disconnect,
-
-		hide,
 	};
 
 	tab current_tab;
@@ -222,8 +221,9 @@ private:
 	vk::raii::QueryPool query_pool = nullptr;
 	bool query_pool_filled = false;
 
-	uint64_t bytes_sent = 0;
+	// Used for plots
 	uint64_t bytes_received = 0;
+	uint64_t bytes_sent = 0;
 	float bandwidth_rx = 0;
 	float bandwidth_tx = 0;
 
@@ -278,8 +278,15 @@ private:
 	XrTime last_metric_time = 0;
 	int metrics_offset = 0;
 
+	// Used for compact view
+	float compact_bandwidth_rx = 0;
+	float compact_bandwidth_tx = 0;
+	float compact_cpu_time = 0;
+	float compact_gpu_time = 0;
+
 	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
 	void gui_performance_metrics();
+	void gui_compact_view();
 	void gui_settings();
 	std::vector<XrCompositionLayerQuad> draw_gui(XrTime predicted_display_time);
 };
