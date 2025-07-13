@@ -1138,6 +1138,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		if (gui_status != gui_status::hidden)
 			imgui_layers = draw_gui(frame_state.predictedDisplayTime);
 
+		// Display controllers and handle recentering
 		if (gui_status == gui_status::interactable)
 		{
 			if (recentering_context)
@@ -1192,6 +1193,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			}
 		}
 
+		// Display the GUI
 		if (gui_status != gui_status::hidden)
 		{
 			// Lock the GUI position to the head
@@ -1212,9 +1214,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			}
 		}
 
+		// Display the controller rays
 		if (gui_status == gui_status::interactable)
 		{
-			// Add the layer with the controller rays
 			render_world(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
 			             world_space,
 			             views,
@@ -1287,15 +1289,16 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
 		{
+			current_tab = tab::stats;
 			switch (gui_status)
 			{
 				case gui_status::hidden:
+				case gui_status::compact:
 				case gui_status::overlay_only:
 					gui_status = gui_status::interactable;
 					break;
 				case gui_status::interactable:
 					gui_status = gui_status::overlay_only;
-					current_tab = tab::stats;
 					break;
 			}
 		}
