@@ -25,39 +25,43 @@ void scenes::stream::read_actions()
 {
 	from_headset::inputs inputs;
 
-	for (const auto & [id, action, action_type]: input_actions)
+	if (gui_status != gui_status::interactable)
 	{
-		switch (action_type)
+		for (const auto & [id, action, action_type]: input_actions)
 		{
-			case XR_ACTION_TYPE_BOOLEAN_INPUT: {
-				auto value = application::read_action_bool(action);
-				if (value)
-					inputs.values.push_back({id, (float)value->second, value->first});
-			}
-			break;
-
-			case XR_ACTION_TYPE_FLOAT_INPUT: {
-				auto value = application::read_action_float(action);
-				if (value)
-					inputs.values.push_back({id, value->second, value->first});
-			}
-			break;
-
-			case XR_ACTION_TYPE_VECTOR2F_INPUT: {
-				auto value = application::read_action_vec2(action);
-				if (value)
-				{
-					inputs.values.push_back({id, value->second.x, value->first});
-					inputs.values.push_back({(device_id)((int)id + 1), value->second.y, value->first});
+			switch (action_type)
+			{
+				case XR_ACTION_TYPE_BOOLEAN_INPUT: {
+					auto value = application::read_action_bool(action);
+					if (value)
+						inputs.values.push_back({id, (float)value->second, value->first});
 				}
-			}
-			break;
-
-			case XR_ACTION_TYPE_POSE_INPUT:
-			default:
 				break;
+
+				case XR_ACTION_TYPE_FLOAT_INPUT: {
+					auto value = application::read_action_float(action);
+					if (value)
+						inputs.values.push_back({id, value->second, value->first});
+				}
+				break;
+
+				case XR_ACTION_TYPE_VECTOR2F_INPUT: {
+					auto value = application::read_action_vec2(action);
+					if (value)
+					{
+						inputs.values.push_back({id, value->second.x, value->first});
+						inputs.values.push_back({(device_id)((int)id + 1), value->second.y, value->first});
+					}
+				}
+				break;
+
+				case XR_ACTION_TYPE_POSE_INPUT:
+				default:
+					break;
+			}
 		}
 	}
+
 	try
 	{
 		network_session->send_stream(std::move(inputs));

@@ -139,7 +139,7 @@ private:
 		overlay_only,
 		interactable
 	};
-	gui_status gui_status = gui_status::interactable;
+	std::atomic<gui_status> gui_status = gui_status::interactable;
 	XrAction plots_toggle_1 = XR_NULL_HANDLE;
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
 	XrAction recenter_left = XR_NULL_HANDLE;
