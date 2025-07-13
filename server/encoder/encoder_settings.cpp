@@ -190,7 +190,7 @@ static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & b
 #endif
 
 #if WIVRN_USE_NVENC
-static bool probe_nvenc(wivrn_vk_bundle & bundle)
+static bool probe_nvenc(wivrn_vk_bundle & bundle, int bit_depth)
 {
 	static bool res = [&]() {
 	encoder_settings s{
@@ -204,6 +204,7 @@ static bool probe_nvenc(wivrn_vk_bundle & bundle)
 	        encoder_nvenc,
 	        default_bitrate,
 	};
+	s.bit_depth = bit_depth;
 	try
 	{
 		video_encoder_nvenc test(bundle, s, 60, 0);
@@ -225,9 +226,7 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 		if (is_nvidia(*bundle.physical_device))
 		{
 #if WIVRN_USE_NVENC
-			if (bit_depth != 8)
-				U_LOG_W("nvenc encoder does not support %d-bit encoding (set 8-bit to use nvenc)", bit_depth);
-			else if (probe_nvenc(bundle))
+			if (probe_nvenc(bundle, bit_depth))
 				config.name = encoder_nvenc;
 			else
 #else
