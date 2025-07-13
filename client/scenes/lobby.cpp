@@ -991,8 +991,8 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_scroll", "/user/hand/right/input/thumbstick"},
 	                                {"right_haptic", "/user/hand/right/output/haptic"},
 
-	                                {"recenter_left", "/user/hand/left/input/x/click"},
-	                                {"recenter_right", "/user/hand/right/input/a/click"},
+	                                {"recenter_left", "/user/hand/left/input/squeeze/value"},
+	                                {"recenter_right", "/user/hand/right/input/squeeze/value"},
 	                        },
 	                },
 	                suggested_binding{
