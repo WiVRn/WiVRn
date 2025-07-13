@@ -1754,9 +1754,9 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	if (not is_gui_visible(*imgui_ctx, predicted_display_time))
 	{
 		if (application::get_hand_tracking_supported())
-			display_recentering_tip(*imgui_ctx, _("Press A or X or put your palm up\nto move the main window"));
+			display_recentering_tip(*imgui_ctx, _("Press the grip button or put your palm up\nto move the main window"));
 		else
-			display_recentering_tip(*imgui_ctx, _("Press A or X to move the main window"));
+			display_recentering_tip(*imgui_ctx, _("Press the grip button to move the main window"));
 	}
 
 #if WIVRN_CLIENT_DEBUG_MENU
