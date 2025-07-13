@@ -87,6 +87,11 @@ void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std
 
 	float dt = (predicted_display_time - last_metric_time) * 1e-9f;
 
+	// Sometimes the render function can be called with almost the same predicted_display_time,
+	// which can cause issues with the bandwidth estimation.
+	if (dt < 0.001f)
+		return;
+
 	bandwidth_rx = 0.8 * bandwidth_rx + 0.2 * float(rx - bytes_received) / dt;
 	bandwidth_tx = 0.8 * bandwidth_tx + 0.2 * float(tx - bytes_sent) / dt;
 
