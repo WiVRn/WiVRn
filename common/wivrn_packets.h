@@ -430,9 +430,17 @@ struct session_state_changed
 {
 	XrSessionState state;
 };
+
 struct user_presence_changed
 {
 	bool present;
+};
+
+struct override_foveation_center
+{
+	bool enabled;
+	float pitch;
+	float distance;
 };
 
 using packets = std::variant<
@@ -454,7 +462,8 @@ using packets = std::variant<
         visibility_mask_changed,
         refresh_rate_changed,
         session_state_changed,
-        user_presence_changed>;
+        user_presence_changed,
+        override_foveation_center>;
 } // namespace from_headset
 
 namespace to_headset

@@ -138,26 +138,30 @@ private:
 		hidden,
 		overlay_only,
 		compact,
-		interactable
+		stats,
+		settings,
+		foveation_settings
 	};
-	std::atomic<gui_status> gui_status = gui_status::interactable;
+
+	bool is_gui_interactable() const;
+
+	std::atomic<gui_status> gui_status = gui_status::stats;
 	XrAction plots_toggle_1 = XR_NULL_HANDLE;
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
 	XrAction recenter_left = XR_NULL_HANDLE;
 	XrAction recenter_right = XR_NULL_HANDLE;
+	XrAction foveation_pitch = XR_NULL_HANDLE;
+	XrAction foveation_distance = XR_NULL_HANDLE;
+	XrAction foveation_ok = XR_NULL_HANDLE;
+	XrAction foveation_cancel = XR_NULL_HANDLE;
 
 	// Position of the GUI relative to the view space, in view space axes
 	glm::vec3 head_gui_position{-0.1, -0.3, -1.2}; // Shift 10cm left by default so that the stats are centered accounting for the tab list
 	glm::quat head_gui_orientation{1, 0, 0, 0};
 
-	enum class tab
-	{
-		stats,
-		settings,
-		disconnect,
-	};
-
-	tab current_tab;
+	bool override_foveation_enable;
+	float override_foveation_pitch; // The pitch is the opposite as the height displayed in the GUI
+	float override_foveation_distance;
 
 	// Which controller is used for recentering and position of the GUI relative to the controller, in controller axes, during recentering
 	std::optional<std::tuple<xr::spaces, glm::vec3, glm::quat>> recentering_context;
@@ -288,6 +292,7 @@ private:
 	void gui_performance_metrics();
 	void gui_compact_view();
 	void gui_settings();
-	std::vector<XrCompositionLayerQuad> draw_gui(XrTime predicted_display_time);
+	void gui_foveation_settings(float predicted_display_period);
+	std::vector<XrCompositionLayerQuad> draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);
 };
 } // namespace scenes

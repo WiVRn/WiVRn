@@ -209,46 +209,6 @@ static bool RadioButtonWithoutCheckBox(const std::string & label, T & v, U v_but
 	return pressed;
 }
 
-// TODO factorize with the tooltip function of the lobby
-static void tooltip(std::string_view text)
-{
-	// FIXME: this is incorrect if we use the docking branch of imgui
-	ImGuiViewport * viewport = ImGui::GetMainViewport();
-
-	ImVec2 pos{
-	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
-	        ImGui::GetItemRectMin().y - constants::style::tooltip_distance,
-	};
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::tooltip_rounding);
-
-	// Clamp position to avoid overflowing on the right
-	auto & style = ImGui::GetStyle();
-	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
-	const ImVec2 size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
-	pos.x = std::min(pos.x, viewport->Pos.x + viewport->Size.x - size.x / 2);
-	ImVec2 pivot = {0.5, 1};
-
-	// Move tooltip below the item if it overflows on the top
-	if (pos.y - size.y <= viewport->Pos.y)
-	{
-		pos.y = ImGui::GetItemRectMax().y + constants::style::tooltip_distance;
-		pivot.y = 0;
-	}
-
-	ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
-	if (ImGui::BeginTooltip())
-	{
-		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
-		ImGui::TextUnformatted(text.data(), text.data() + text.size());
-		ImGui::PopStyleColor();
-		ImGui::EndTooltip();
-	}
-
-	ImGui::PopStyleVar(2);
-}
-
 void scenes::stream::gui_performance_metrics()
 {
 	const ImGuiStyle & style = ImGui::GetStyle();
@@ -430,8 +390,8 @@ void scenes::stream::gui_performance_metrics()
 		std::lock_guard lock(tracking_control_mutex);
 		ImGui::Text("%s", fmt::format(_F("Estimated motion to photons latency: {}ms"), std::chrono::duration_cast<std::chrono::milliseconds>(tracking_control.max_offset).count()).c_str());
 
-		if (gui_status == gui_status::interactable)
-			ImGui::Text("%s", _S("Press both thumbsticks to return to the game, press the grip button to move the window"));
+		if (is_gui_interactable())
+			ImGui::Text("%s", _S("Press the grip button to move the window"));
 		else
 			ImGui::Text("%s", _S("Press both thumbsticks to interact"));
 	}
@@ -460,7 +420,7 @@ void scenes::stream::gui_compact_view()
 	}
 }
 
-std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag);
+std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag); // TODO declaration in a .h file
 void scenes::stream::gui_settings()
 {
 	auto & config = application::get_config();
@@ -494,7 +454,7 @@ void scenes::stream::gui_settings()
 			imgui_ctx->vibrate_on_hover();
 			if (ImGui::IsItemHovered())
 			{
-				tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
+				imgui_ctx->tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
 			}
 		}
 		{
@@ -520,15 +480,117 @@ void scenes::stream::gui_settings()
 			imgui_ctx->vibrate_on_hover();
 			if (ImGui::IsItemHovered())
 			{
-				tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
+				imgui_ctx->tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
 			}
 		}
 		ImGui::Unindent();
+
+		bool send_packet = false;
+		bool save_config = false;
+		ImGui::Text("%s", _S("Foveation center override"));
+		ImGui::Indent();
+		{
+			if (ImGui::Checkbox(_S("Enable"), &override_foveation_enable))
+			{
+				send_packet = true;
+				save_config = true;
+			}
+			imgui_ctx->vibrate_on_hover();
+
+			ImGui::BeginDisabled(!override_foveation_enable);
+			ImGui::Text("%s", fmt::format(_F("Height {:.1f} deg"), -override_foveation_pitch * 180 / M_PI).c_str());
+			ImGui::Text("%s", fmt::format(_F("Distance {:.2f} m"), override_foveation_distance).c_str());
+			if (ImGui::Button(_S("Default")))
+			{
+				override_foveation_distance = configuration{}.override_foveation_distance;
+				override_foveation_pitch = configuration{}.override_foveation_pitch;
+				send_packet = true;
+				save_config = true;
+			}
+			imgui_ctx->vibrate_on_hover();
+
+			ImGui::SameLine();
+
+			if (ImGui::Button(_S("Change")))
+				gui_status = gui_status::foveation_settings;
+			imgui_ctx->vibrate_on_hover();
+
+			ImGui::EndDisabled();
+		}
+		ImGui::Unindent();
+
+		if (send_packet)
+		{
+			network_session->send_control(from_headset::override_foveation_center{
+			        .enabled = override_foveation_enable,
+			        .pitch = override_foveation_pitch,
+			        .distance = override_foveation_distance,
+			});
+		}
+
+		if (save_config)
+		{
+			auto & config = application::get_config();
+			config.override_foveation_enable = override_foveation_enable;
+			config.override_foveation_pitch = override_foveation_pitch;
+			config.override_foveation_distance = override_foveation_distance;
+			config.save();
+		}
 	}
 	ImGui::PopStyleVar();
 }
 
-std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_display_time)
+void scenes::stream::gui_foveation_settings(float predicted_display_period)
+{
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
+	ImGui::Text("%s", _S("Use the thumbsticks to move the foveation center"));
+	ImGui::Text("%s", _S("Press A to save or B to cancel"));
+	ImGui::Text("%s", fmt::format(_F("Height {:.1f} deg"), -override_foveation_pitch * 180 / M_PI).c_str());
+	ImGui::Text("%s", fmt::format(_F("Distance {:.2f} m"), override_foveation_distance).c_str());
+	ImGui::PopFont();
+
+	// Maximum speed 1 rad/s
+	float delta_pitch = application::read_action_float(foveation_pitch).value_or(std::pair{0, 0}).second * predicted_display_period;
+
+	// Maximum speed 2m/s @ 1m
+	float delta_distance = std::exp(std::log(2) * application::read_action_float(foveation_distance).value_or(std::pair{0, 0}).second * predicted_display_period);
+
+	override_foveation_pitch = std::clamp<float>(override_foveation_pitch + delta_pitch, -M_PI / 3, M_PI / 3);
+	override_foveation_distance = std::clamp<float>(override_foveation_distance * delta_distance, 0.5, 100);
+
+	bool ok = application::read_action_bool(foveation_ok).value_or(std::pair{0, false}).second;
+	bool cancel = application::read_action_bool(foveation_cancel).value_or(std::pair{0, false}).second;
+
+	if (ok)
+	{
+		gui_status = gui_status::settings;
+
+		// Save settings
+		auto & config = application::get_config();
+		config.override_foveation_enable = true;
+		config.override_foveation_pitch = override_foveation_pitch;
+		config.override_foveation_distance = override_foveation_distance;
+		config.save();
+	}
+	else if (cancel)
+	{
+		gui_status = gui_status::settings;
+
+		// Restore settings
+		const auto & config = application::get_config();
+		override_foveation_enable = config.override_foveation_enable;
+		override_foveation_pitch = config.override_foveation_pitch;
+		override_foveation_distance = config.override_foveation_distance;
+	}
+
+	network_session->send_control(from_headset::override_foveation_center{
+	        .enabled = override_foveation_enable,
+	        .pitch = override_foveation_pitch,
+	        .distance = override_foveation_distance,
+	});
+}
+
+std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
 {
 	const float TabWidth = 300;
 	const ImVec2 MarginAroundWindow{50, 50};
@@ -536,25 +598,35 @@ std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_di
 	const ImGuiStyle & style = ImGui::GetStyle();
 	imgui_ctx->new_frame(predicted_display_time);
 
-	bool interactable = gui_status == gui_status::interactable;
-	bool compact = gui_status == gui_status::compact;
+	bool interactable = gui_status == gui_status::stats or gui_status == gui_status::settings;
+	bool compact = gui_status == gui_status::compact or gui_status == gui_status::foveation_settings;
 
 	ImVec2 content_size{ImGui::GetMainViewport()->Size - ImVec2{TabWidth, 0} - MarginAroundWindow * 2};
 	ImVec2 content_center = MarginAroundWindow + content_size / 2 + ImVec2{TabWidth, 0};
 
-	if (interactable)
+	switch (gui_status)
 	{
-		ImGui::SetNextWindowPos(MarginAroundWindow);
-		ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - MarginAroundWindow * 2);
-	}
-	else if (compact)
-	{
-		ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-	}
-	else
-	{
-		ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-		ImGui::SetNextWindowSize(content_size);
+		case gui_status::hidden:
+			break;
+
+		case gui_status::overlay_only:
+			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			ImGui::SetNextWindowSize(content_size);
+			break;
+
+		case gui_status::foveation_settings:
+			ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			break;
+
+		case gui_status::compact:
+			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			break;
+
+		case gui_status::stats:
+		case gui_status::settings:
+			ImGui::SetNextWindowPos(MarginAroundWindow);
+			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - MarginAroundWindow * 2);
+			break;
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0);
@@ -566,40 +638,47 @@ std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_di
 	else
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
-		ImGui::Begin("Performance metrics", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+		ImGui::Begin("Stream settings", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	}
-
-	if (interactable)
-		ImGui::SetCursorPos({TabWidth + 20, 20});
-	else if (not compact)
-		ImGui::SetCursorPos({20, 20});
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
-	if (compact)
-	{
-		gui_compact_view();
-	}
-	else
-	{
-		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
-		switch (current_tab)
-		{
-			case tab::stats:
-				gui_performance_metrics();
-				break;
 
-			case tab::settings:
-				gui_settings();
-				break;
+	switch (gui_status)
+	{
+		case gui_status::hidden:
+			break;
 
-			case tab::disconnect:
-				// TODO disconnect correctly
-				// application::pop_scene();
-				break;
-		}
-		ImGui::EndChild();
+		case gui_status::overlay_only:
+			ImGui::SetCursorPos({20, 20});
+			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
+			gui_performance_metrics();
+			ImGui::EndChild();
+			break;
+
+		case gui_status::compact:
+			gui_compact_view();
+			break;
+
+		case gui_status::stats:
+			ImGui::SetCursorPos({TabWidth + 20, 20});
+			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
+			gui_performance_metrics();
+			ImGui::EndChild();
+			break;
+
+		case gui_status::settings:
+			ImGui::SetCursorPos({TabWidth + 20, 20});
+			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
+			gui_settings();
+			ImGui::EndChild();
+			break;
+
+		case gui_status::foveation_settings:
+			gui_foveation_settings(predicted_display_period * 1.e-9f);
+			break;
 	}
+
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding
 
 	if (interactable)
@@ -610,22 +689,27 @@ std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_di
 			ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), current_tab, tab::stats, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), gui_status, gui_status::stats, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), current_tab, tab::settings, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), gui_status, gui_status::settings, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			int n_items_at_end = 3;
+			int n_items_at_end = 4;
 			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - n_items_at_end * ImGui::GetCurrentContext()->FontSize - (n_items_at_end * 2) * style.FramePadding.y - (n_items_at_end - 1) * style.ItemSpacing.y - style.WindowPadding.y);
 
 			RadioButtonWithoutCheckBox(ICON_FA_EYE_SLASH "  " + _("Hide"), gui_status, gui_status::hidden, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Overlay only"), gui_status, gui_status::overlay_only, {TabWidth, 0});
+			imgui_ctx->vibrate_on_hover();
+
 			RadioButtonWithoutCheckBox(ICON_FA_MINIMIZE "  " + _("Compact view"), gui_status, gui_status::compact, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Disconnect"), current_tab, tab::disconnect, {TabWidth, 0});
+			bool dummy = false;
+			if (RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Disconnect"), dummy, true, {TabWidth, 0}))
+				exit();
 			imgui_ctx->vibrate_on_hover();
 
 			ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding

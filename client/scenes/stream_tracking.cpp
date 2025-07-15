@@ -316,7 +316,7 @@ void scenes::stream::tracking()
 	}
 
 	auto enabled = [&](const to_headset::tracking_control & control, device_id id) -> bool {
-		if (gui_status == gui_status::interactable)
+		if (is_gui_interactable())
 		{
 			switch (id)
 			{

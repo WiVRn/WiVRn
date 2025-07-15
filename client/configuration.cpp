@@ -245,6 +245,15 @@ configuration::configuration(xr::system & system)
 
 		if (system.passthrough_supported() == xr::system::passthrough_type::no_passthrough)
 			passthrough_enabled = false;
+
+		if (auto val = root["override_foveation_enable"]; val.is_bool())
+			override_foveation_enable = val.get_bool();
+
+		if (auto val = root["override_foveation_pitch"]; val.is_double())
+			override_foveation_pitch = val.get_double();
+
+		if (auto val = root["override_foveation_distance"]; val.is_double())
+			override_foveation_distance = val.get_double();
 	}
 	catch (std::exception & e)
 	{
@@ -361,5 +370,8 @@ void configuration::save()
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
 	json << ",\"virtual_keyboard_layout\":" << json_string(virtual_keyboard_layout);
+	json << ",\"override_foveation_enable\":" << std::boolalpha << override_foveation_enable;
+	json << ",\"override_foveation_pitch\":" << override_foveation_pitch;
+	json << ",\"override_foveation_distance\":" << override_foveation_distance;
 	json << "}";
 }
