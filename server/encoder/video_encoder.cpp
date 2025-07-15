@@ -336,7 +336,7 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 	auto end = data.end();
 	while (begin != end)
 	{
-		const size_t max_payload_size = to_headset::video_stream_data_shard::max_payload_size - serialized_size(shard.view_info);
+		const size_t max_payload_size = std::max(0z, ssize_t(to_headset::video_stream_data_shard::max_payload_size) - ssize_t(serialized_size(shard.view_info)));
 		auto next = std::min(end, begin + max_payload_size);
 		if (next == end)
 		{
