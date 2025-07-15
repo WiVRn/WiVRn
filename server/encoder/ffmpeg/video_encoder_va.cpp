@@ -261,6 +261,11 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 	encoder_ctx->gop_size = std::numeric_limits<decltype(encoder_ctx->gop_size)>::max();
 	encoder_ctx->hw_frames_ctx = av_buffer_ref(vaapi_frame_ctx.get());
 
+	if (const char * compression_level = std::getenv("COMPRESSION_LEVEL"))
+	{
+		encoder_ctx->compression_level = std::atoi(compression_level);
+	}
+
 	err = avcodec_open2(encoder_ctx.get(), codec, &opts);
 	av_dict_free(&opts);
 	if (err < 0)
