@@ -90,7 +90,8 @@ modules:
       url: https://www.mpfr.org/mpfr-4.2.1/mpfr-4.2.1.tar.xz
       sha256: 277807353a6726978996945af13e52829e3abd7a9a5b7fb2793894e18f1fcbb2
     - type: file
-      url: https://libisl.sourceforge.io/isl-0.26.tar.xz
+      dest-filename: isl-0.26.tar.xz
+      url: https://sourceforge.net/projects/libisl/files/isl-0.26.tar.xz/download
       sha256: a0b5cb06d24f9fa9e77b55fabbe9a3c94a336190345c2555f9915bb38e976504
     - type: file
       url: https://www.multiprecision.org/downloads/mpc-1.3.1.tar.gz
