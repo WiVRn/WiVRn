@@ -215,4 +215,5 @@ public:
 	void vibrate_on_hover();
 	void set_hovered_item();
 	void set_controllers_enabled(bool value);
+	void tooltip(std::string_view text);
 };

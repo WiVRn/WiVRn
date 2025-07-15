@@ -138,53 +138,6 @@ std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB f
 	}
 }
 
-void scenes::lobby::tooltip(std::string_view text)
-{
-	// FIXME: this is incorrect if we use the docking branch of imgui
-	ImGuiViewport * viewport = ImGui::GetMainViewport();
-	auto & layer = imgui_ctx->layer(ImGui::GetMousePos());
-	auto pos_backup = viewport->Pos;
-	auto size_backup = viewport->Size;
-	viewport->Pos = ImVec2(layer.vp_origin.x, layer.vp_origin.y);
-	viewport->Size = ImVec2(layer.vp_size.x, layer.vp_size.y);
-
-	ImVec2 pos{
-	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
-	        ImGui::GetItemRectMin().y - constants::style::tooltip_distance,
-	};
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::tooltip_rounding);
-
-	// Clamp position to avoid overflowing on the right
-	auto & style = ImGui::GetStyle();
-	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
-	const ImVec2 size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
-	pos.x = std::min(pos.x, viewport->Pos.x + viewport->Size.x - size.x / 2);
-	ImVec2 pivot = {0.5, 1};
-
-	// Move tooltip below the item if it overflows on the top
-	if (pos.y - size.y <= viewport->Pos.y)
-	{
-		pos.y = ImGui::GetItemRectMax().y + constants::style::tooltip_distance;
-		pivot.y = 0;
-	}
-
-	ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
-	if (ImGui::BeginTooltip())
-	{
-		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
-		ImGui::TextUnformatted(text.data(), text.data() + text.size());
-		ImGui::PopStyleColor();
-		ImGui::EndTooltip();
-	}
-
-	ImGui::PopStyleVar(2);
-
-	viewport->Pos = pos_backup;
-	viewport->Size = size_backup;
-}
-
 void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_request)
 {
 	using constants::style::button_size;
@@ -272,7 +225,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 
 	ImGui::PopFont();
 	if (ImGui::IsItemHovered())
-		tooltip(_("Input the PIN displayed on the dashboard"));
+		imgui_ctx->tooltip(_("Input the PIN displayed on the dashboard"));
 
 	ImGui::BeginDisabled(pin_buffer.size() == pin_size);
 	for (int i = 1; i <= 9;)
@@ -517,9 +470,9 @@ void scenes::lobby::gui_server_list()
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 		{
 			if (!data.compatible && !data.manual)
-				tooltip(_("Incompatible server version"));
+				imgui_ctx->tooltip(_("Incompatible server version"));
 			else if (!data.visible && !data.manual)
-				tooltip(_("Server not available"));
+				imgui_ctx->tooltip(_("Server not available"));
 		}
 
 		ImGui::PopStyleColor(3);
@@ -614,7 +567,7 @@ void scenes::lobby::gui_settings()
 					config.save();
 				}
 				if (ImGui::IsItemHovered())
-					tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
+					imgui_ctx->tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
 				for (float rate: refresh_rates)
 				{
 					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.preferred_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
@@ -691,7 +644,7 @@ void scenes::lobby::gui_settings()
 		}
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
-			tooltip(_("Force disable audio filters, such as noise cancellation"));
+			imgui_ctx->tooltip(_("Force disable audio filters, such as noise cancellation"));
 		ImGui::Unindent();
 		ImGui::EndDisabled();
 	}
@@ -705,7 +658,7 @@ void scenes::lobby::gui_settings()
 		}
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-			tooltip(_("This feature is not supported by your headset"));
+			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
 		ImGui::EndDisabled();
 	}
 	{
@@ -718,7 +671,7 @@ void scenes::lobby::gui_settings()
 		}
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-			tooltip(_("This feature is not supported by your headset"));
+			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
 		ImGui::EndDisabled();
 	}
 	{
@@ -731,7 +684,7 @@ void scenes::lobby::gui_settings()
 		}
 		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-			tooltip(_("This feature is not supported by your headset"));
+			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
 		imgui_ctx->vibrate_on_hover();
 	}
 
@@ -748,14 +701,14 @@ void scenes::lobby::gui_settings()
 		{
 			if (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)
 			{
-				tooltip(_("This feature is not supported by your headset"));
+				imgui_ctx->tooltip(_("This feature is not supported by your headset"));
 			}
 			else
 			{
 				std::visit(utils::overloaded{
 				                   [](auto &) {},
 				                   [this](xr::fb_body_tracker &) {
-					                   tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
+					                   imgui_ctx->tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
 				                   },
 				           },
 				           application::get_body_tracker());
@@ -774,7 +727,7 @@ void scenes::lobby::gui_settings()
 		}
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
-			tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
+			imgui_ctx->tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
 
 		ImGui::BeginDisabled(not config.fb_lower_body);
 		if (ImGui::Checkbox(_S("Enable hip tracking"), &config.fb_hip))
@@ -783,7 +736,7 @@ void scenes::lobby::gui_settings()
 		}
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
-			tooltip(_("Only takes affect with lower body tracking enabled\nMay be desired when using another source of hip tracking"));
+			imgui_ctx->tooltip(_("Only takes affect with lower body tracking enabled\nMay be desired when using another source of hip tracking"));
 		ImGui::EndDisabled();
 
 		ImGui::Unindent();
@@ -798,14 +751,14 @@ void scenes::lobby::gui_settings()
 	}
 	imgui_ctx->vibrate_on_hover();
 	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-		tooltip(_("This feature is not supported by your headset"));
+		imgui_ctx->tooltip(_("This feature is not supported by your headset"));
 	ImGui::EndDisabled();
 
 	if (ImGui::Checkbox(_S("Show performance metrics"), &config.show_performance_metrics))
 		config.save();
 	imgui_ctx->vibrate_on_hover();
 	if (ImGui::IsItemHovered())
-		tooltip(_("Overlay can be toggled by pressing both thumbsticks"));
+		imgui_ctx->tooltip(_("Overlay can be toggled by pressing both thumbsticks"));
 
 	ImGui::PopStyleVar();
 
@@ -896,7 +849,7 @@ void scenes::lobby::gui_post_processing()
 			imgui_ctx->vibrate_on_hover();
 			if (ImGui::IsItemHovered())
 			{
-				tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
+				imgui_ctx->tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
 			}
 		}
 		{
@@ -921,7 +874,7 @@ void scenes::lobby::gui_post_processing()
 			imgui_ctx->vibrate_on_hover();
 			if (ImGui::IsItemHovered())
 			{
-				tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
+				imgui_ctx->tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
 			}
 		}
 		ImGui::Unindent();
@@ -938,9 +891,9 @@ void scenes::lobby::gui_post_processing()
 			if (ImGui::IsItemHovered())
 			{
 				if (application::get_openxr_post_processing_supported())
-					tooltip(_("On this headset, this setting has been fully superseded by the native Sharpening setting above.\nOnly enable if you know what you're doing."));
+					imgui_ctx->tooltip(_("On this headset, this setting has been fully superseded by the native Sharpening setting above.\nOnly enable if you know what you're doing."));
 				else
-					tooltip(_("Client-side upscaling and sharpening, adds a performance cost on the headset"));
+					imgui_ctx->tooltip(_("Client-side upscaling and sharpening, adds a performance cost on the headset"));
 			}
 			if (application::get_openxr_post_processing_supported())
 			{
@@ -983,7 +936,7 @@ void scenes::lobby::gui_post_processing()
 				}
 				imgui_ctx->vibrate_on_hover();
 				if (ImGui::IsItemHovered())
-					tooltip(_("Adds an additional performance cost"));
+					imgui_ctx->tooltip(_("Adds an additional performance cost"));
 			}
 			{
 				const float current = config.sgsr.edge_threshold;
@@ -995,7 +948,7 @@ void scenes::lobby::gui_post_processing()
 				}
 				imgui_ctx->vibrate_on_hover();
 				if (ImGui::IsItemHovered())
-					tooltip(fmt::format(_F("Recommended: {:.1f}"), 4.0));
+					imgui_ctx->tooltip(fmt::format(_F("Recommended: {:.1f}"), 4.0));
 			}
 			{
 				if (ImGui::SliderFloat(_S("Edge sharpness"), &config.sgsr.edge_sharpness, 1.0, 2.0, "%.2f"))
@@ -1004,7 +957,7 @@ void scenes::lobby::gui_post_processing()
 				}
 				imgui_ctx->vibrate_on_hover();
 				if (ImGui::IsItemHovered())
-					tooltip(fmt::format(_F("Recommended: {:.1f}"), 2.0));
+					imgui_ctx->tooltip(fmt::format(_F("Recommended: {:.1f}"), 2.0));
 			}
 			ImGui::Unindent();
 			ImGui::EndDisabled();
@@ -1517,7 +1470,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
-			tooltip(i.enabled ? i.tooltip_enabled : i.tooltip_disabled);
+			imgui_ctx->tooltip(i.enabled ? i.tooltip_enabled : i.tooltip_disabled);
 
 		if (i.icon_disabled == std::string_view(ICON_FA_SLASH) and not i.enabled)
 		{

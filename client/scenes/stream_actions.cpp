@@ -25,7 +25,7 @@ void scenes::stream::read_actions()
 {
 	from_headset::inputs inputs;
 
-	if (gui_status != gui_status::interactable)
+	if (not is_gui_interactable())
 	{
 		for (const auto & [id, action, action_type]: input_actions)
 		{

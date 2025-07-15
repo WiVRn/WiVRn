@@ -173,9 +173,9 @@ static float angles_to_center(float e, float l, float r)
 	e = tan(e);
 	l = tan(l);
 	r = tan(r);
-	float res = (e - l) / (r - l) * 2 - 1;
+	float res = std::clamp((e - l) / (r - l) * 2 - 1, -1.f, 1.f);
 	// If the center isn't in the FoV, fallback to middle of image
-	if (res < -1 or res > 1 or std::isnan(res))
+	if (std::isnan(res))
 		return 0;
 	return res;
 }
@@ -194,6 +194,7 @@ static void fill_param_2d(
 {
 	float scale = float(foveated_dim) / source_dim;
 	auto [a, b] = solve_foveation(scale, c);
+	U_LOG_I("solve_foveation(%.4f, %.4f) => %.4f, %.4f", scale, c, a, b);
 
 	uint16_t last = 0;
 	std::vector<uint16_t> left; // index 0: 1:1 ratio, then 2:1 etc.
@@ -274,6 +275,10 @@ void wivrn_foveation::compute_params(
         const xrt_fov fovs[2])
 {
 	auto e = yaw_pitch(gaze);
+
+	if (manual_foveation.enabled)
+		e.y = manual_foveation.pitch;
+
 	for (size_t i = 0; i < 2; ++i)
 	{
 		const auto & fov = fovs[i];
@@ -281,7 +286,8 @@ void wivrn_foveation::compute_params(
 		size_t extent_w = std::abs(src[i].extent.w);
 		if (foveated_width < extent_w)
 		{
-			auto angle_x = convergence_angle(convergence_distance, eye_x[i], e.x);
+			auto distance = manual_foveation.enabled ? manual_foveation.distance : convergence_distance;
+			auto angle_x = convergence_angle(distance, eye_x[i], e.x);
 			auto center = angles_to_center(angle_x, fov.angle_left, fov.angle_right);
 			fill_param_2d(center, foveated_width, extent_w, params[i].x);
 		}
@@ -292,7 +298,7 @@ void wivrn_foveation::compute_params(
 		if (foveated_height < extent_h)
 		{
 			auto angle_y = e.y;
-			if (is_zero_quat(gaze))
+			if (is_zero_quat(gaze) and not manual_foveation.enabled)
 			{
 				// Natural gaze is not straight forward, adjust the angle
 				angle_y += angle_offset;
@@ -371,6 +377,12 @@ void wivrn_foveation::update_tracking(const from_headset::tracking & tracking, c
 	}
 }
 
+void wivrn_foveation::update_foveation_center_override(const from_headset::override_foveation_center & center)
+{
+	std::lock_guard lock(mutex);
+	manual_foveation = center;
+}
+
 std::array<to_headset::foveation_parameter, 2> wivrn_foveation::get_parameters()
 {
 	std::lock_guard lock(mutex);
@@ -395,6 +407,7 @@ static void fill_ubo(
 		const int n_source = std::abs(n_ratio - int(i)) + 1;
 		for (size_t j = 0; j < n; ++j)
 		{
+			assert(count > 0);
 			if (flip)
 				ubo[1] = ubo[0] - n_source;
 			else
@@ -441,14 +454,17 @@ vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
 
 	// Check if the last value is still valid
 	std::lock_guard lock(mutex);
-	if (last.flip_y == flip_y                           //
-	    and last.src[0] == source[0]                    //
-	    and last.src[1] == source[1]                    //
-	    and last.fovs[0] == fovs[0]                     //
-	    and last.fovs[1] == fovs[1]                     //
-	    and last.gaze == gaze                           //
-	    and std::abs(last.eye_x[0] - eye_x[0]) < 0.0005 //
-	    and std::abs(last.eye_x[1] - eye_x[1]) < 0.0005 //
+	if (last.flip_y == flip_y                                                             //
+	    and last.src[0] == source[0]                                                      //
+	    and last.src[1] == source[1]                                                      //
+	    and last.fovs[0] == fovs[0]                                                       //
+	    and last.fovs[1] == fovs[1]                                                       //
+	    and (last.gaze == gaze or manual_foveation.enabled)                               // Ignore the gaze if foveation center is overridden
+	    and std::abs(last.eye_x[0] - eye_x[0]) < 0.0005                                   //
+	    and std::abs(last.eye_x[1] - eye_x[1]) < 0.0005                                   //
+	    and last.manual_foveation.enabled == manual_foveation.enabled                     //
+	    and std::abs(last.manual_foveation.pitch - manual_foveation.pitch) < 0.0005       //
+	    and std::abs(last.manual_foveation.distance - manual_foveation.distance) < 0.0005 //
 	)
 		return nullptr;
 
@@ -458,6 +474,7 @@ vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
 	        .src = {source[0], source[1]},
 	        .fovs = {fovs[0], fovs[1]},
 	        .eye_x = {eye_x[0], eye_x[1]},
+	        .manual_foveation = manual_foveation,
 	};
 
 	compute_params(source, fovs);

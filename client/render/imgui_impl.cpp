@@ -1103,3 +1103,50 @@ imgui_context::viewport & imgui_context::layer(ImVec2 position)
 
 	return layers_.front();
 }
+
+void imgui_context::tooltip(std::string_view text)
+{
+	// FIXME: this is incorrect if we use the docking branch of imgui
+	ImGuiViewport * viewport = ImGui::GetMainViewport();
+	auto & current_layer = layer(ImGui::GetMousePos());
+	auto pos_backup = viewport->Pos;
+	auto size_backup = viewport->Size;
+	viewport->Pos = ImVec2(current_layer.vp_origin.x, current_layer.vp_origin.y);
+	viewport->Size = ImVec2(current_layer.vp_size.x, current_layer.vp_size.y);
+
+	ImVec2 pos{
+	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
+	        ImGui::GetItemRectMin().y - constants::style::tooltip_distance,
+	};
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::tooltip_rounding);
+
+	// Clamp position to avoid overflowing on the right
+	auto & style = ImGui::GetStyle();
+	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
+	const ImVec2 size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
+	pos.x = std::min(pos.x, viewport->Pos.x + viewport->Size.x - size.x / 2);
+	ImVec2 pivot = {0.5, 1};
+
+	// Move tooltip below the item if it overflows on the top
+	if (pos.y - size.y <= viewport->Pos.y)
+	{
+		pos.y = ImGui::GetItemRectMax().y + constants::style::tooltip_distance;
+		pivot.y = 0;
+	}
+
+	ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
+	if (ImGui::BeginTooltip())
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
+		ImGui::TextUnformatted(text.data(), text.data() + text.size());
+		ImGui::PopStyleColor();
+		ImGui::EndTooltip();
+	}
+
+	ImGui::PopStyleVar(2);
+
+	viewport->Pos = pos_backup;
+	viewport->Size = size_backup;
+}

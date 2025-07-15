@@ -34,6 +34,7 @@
 #include "wivrn_config.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
+#include "wivrn_foveation.h"
 #include "wivrn_generic_tracker.h"
 #include "wivrn_htc_face_tracker.h"
 #include "wivrn_ipc.h"
@@ -500,6 +501,13 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 		fb_face2_tracker->update_tracking(tracking, offset);
 	else if (htc_face_tracker)
 		htc_face_tracker->update_tracking(tracking, offset);
+}
+
+void wivrn_session::operator()(from_headset::override_foveation_center && foveation_center)
+{
+	std::shared_lock lock(comp_target_mutex);
+	if (comp_target)
+		comp_target->foveation->update_foveation_center_override(foveation_center);
 }
 
 void wivrn_session::operator()(from_headset::derived_pose && derived)

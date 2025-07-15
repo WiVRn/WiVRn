@@ -48,6 +48,7 @@ class wivrn_foveation
 
 	float eye_x[2] = {}; // eye x position
 	xrt_quat gaze = {};
+	from_headset::override_foveation_center manual_foveation = {};
 	std::array<to_headset::foveation_parameter, 2> params;
 
 	vk::raii::CommandPool command_pool;
@@ -63,6 +64,8 @@ class wivrn_foveation
 		xrt_rect src[2] = {};
 		xrt_fov fovs[2] = {};
 		float eye_x[2] = {};
+
+		from_headset::override_foveation_center manual_foveation = {};
 	};
 	P last;
 
@@ -75,6 +78,7 @@ public:
 	wivrn_foveation(wivrn_vk_bundle &, const xrt_hmd_parts &);
 
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
+	void update_foveation_center_override(const from_headset::override_foveation_center &);
 	std::array<to_headset::foveation_parameter, 2> get_parameters();
 
 	vk::CommandBuffer update_foveation_buffer(

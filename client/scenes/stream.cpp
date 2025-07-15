@@ -310,6 +310,20 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		}
 	}
 
+	{
+		const auto & config = application::get_config();
+		self->override_foveation_enable = config.override_foveation_enable;
+		self->override_foveation_pitch = config.override_foveation_pitch;
+		self->override_foveation_distance = config.override_foveation_distance;
+
+		if (self->override_foveation_enable)
+			self->network_session->send_control(from_headset::override_foveation_center{
+			        .enabled = self->override_foveation_enable,
+			        .pitch = self->override_foveation_pitch,
+			        .distance = self->override_foveation_distance,
+			});
+	}
+
 	self->network_thread = utils::named_thread("network_thread", &stream::process_packets, self.get());
 
 	self->command_buffer = std::move(self->device.allocateCommandBuffers({
@@ -450,6 +464,10 @@ void scenes::stream::on_focused()
 		plots_toggle_2 = get_action("plots_toggle_2").first;
 		recenter_left = get_action("recenter_left").first;
 		recenter_right = get_action("recenter_right").first;
+		foveation_pitch = get_action("foveation_pitch").first;
+		foveation_distance = get_action("foveation_distance").first;
+		foveation_ok = get_action("foveation_ok").first;
+		foveation_cancel = get_action("foveation_cancel").first;
 	}
 
 	assert(video_stream_description);
@@ -712,6 +730,28 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 		head_gui_position = head_controller_position + head_controller_orientation * controller_gui_position;
 		head_gui_orientation = head_controller_orientation * controller_gui_orientation;
 	}
+}
+
+bool scenes::stream::is_gui_interactable() const
+{
+	if (not imgui_ctx)
+		return false;
+
+	switch (gui_status)
+	{
+		case gui_status::stats:
+		case gui_status::settings:
+		case gui_status::foveation_settings:
+			return true;
+
+		case gui_status::hidden:
+		case gui_status::overlay_only:
+		case gui_status::compact:
+			return false;
+	}
+
+	assert(false);
+	__builtin_unreachable();
 }
 
 void scenes::stream::render(const XrFrameState & frame_state)
@@ -1087,7 +1127,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	queue.submit(submit_info, *fence);
 	swapchain.release();
 
-	std::vector<XrCompositionLayerProjectionView> layer_view(view_count); // TODO array or inplace_vector
+	std::vector<XrCompositionLayerProjectionView> layer_view(view_count);
 
 	if (use_alpha)
 		session.enable_passthrough(system);
@@ -1120,7 +1160,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	        application::space(xr::spaces::world),
 	        std::move(layer_view));
 
-	if (composition_layer_color_scale_bias_supported and imgui_ctx and gui_status == gui_status::interactable)
+	bool interactable = is_gui_interactable();
+
+	if (composition_layer_color_scale_bias_supported and imgui_ctx and interactable)
 		set_color_scale_bias({0.7, 0.7, 0.7, 1}, {0.15, 0.15, 0.15, 0});
 
 	if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
@@ -1130,16 +1172,16 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	if (imgui_ctx)
 	{
 		XrSpace world_space = application::space(xr::spaces::world);
-		std::vector<XrCompositionLayerQuad> imgui_layers; // TODO array or inplace_vector
+		std::vector<XrCompositionLayerQuad> imgui_layers;
 		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
 		auto views = session.locate_views(viewconfig, frame_state.predictedDisplayTime, world_space).second;
 
-		imgui_ctx->set_controllers_enabled(gui_status == gui_status::interactable);
+		imgui_ctx->set_controllers_enabled(interactable);
 		if (gui_status != gui_status::hidden)
-			imgui_layers = draw_gui(frame_state.predictedDisplayTime);
+			imgui_layers = draw_gui(frame_state.predictedDisplayTime, frame_state.predictedDisplayPeriod);
 
 		// Display controllers and handle recentering
-		if (gui_status == gui_status::interactable)
+		if (interactable)
 		{
 			if (recentering_context)
 			{
@@ -1170,7 +1212,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			else
 				recentering_context.reset();
 
-			std::vector<glm::vec4> ray_limits; // TODO array or inplace_vector
+			std::vector<glm::vec4> ray_limits;
 			for (auto & layer: imgui_layers)
 			{
 				ray_limits.push_back(compute_ray_limits(layer.pose));
@@ -1200,9 +1242,18 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::space(xr::spaces::view), world_space, frame_state.predictedDisplayTime);
 			if (head_position)
 			{
-				glm::mat3 M = glm::mat3_cast(head_position->second);
-				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
-				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
+				if (gui_status == gui_status::foveation_settings)
+				{
+					glm::mat3 M = glm::mat3_cast(head_position->second);
+					imgui_ctx->layers()[0].orientation = head_position->second;
+					imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, -override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
+				}
+				else
+				{
+					glm::mat3 M = glm::mat3_cast(head_position->second);
+					imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
+					imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
+				}
 			}
 
 			// Add the layer with the GUI
@@ -1215,7 +1266,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		}
 
 		// Display the controller rays
-		if (gui_status == gui_status::interactable)
+		if (interactable)
 		{
 			render_world(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
 			             world_space,
@@ -1289,16 +1340,20 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
 		{
-			current_tab = tab::stats;
 			switch (gui_status)
 			{
 				case gui_status::hidden:
 				case gui_status::compact:
 				case gui_status::overlay_only:
-					gui_status = gui_status::interactable;
+					gui_status = gui_status::stats;
 					break;
-				case gui_status::interactable:
+
+				case gui_status::stats:
+				case gui_status::settings:
 					gui_status = gui_status::overlay_only;
+					break;
+
+				case gui_status::foveation_settings:
 					break;
 			}
 		}
@@ -1508,6 +1563,11 @@ scene::meta & scenes::stream::get_meta_scene()
 
 	                {"recenter_left", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	                {"recenter_right", XR_ACTION_TYPE_BOOLEAN_INPUT},
+
+	                {"foveation_pitch", XR_ACTION_TYPE_FLOAT_INPUT},
+	                {"foveation_distance", XR_ACTION_TYPE_FLOAT_INPUT},
+	                {"foveation_ok", XR_ACTION_TYPE_BOOLEAN_INPUT},
+	                {"foveation_cancel", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	        },
 	        .bindings = {
 	                suggested_binding{
@@ -1535,6 +1595,10 @@ scene::meta & scenes::stream::get_meta_scene()
 
 	                                {"recenter_left", "/user/hand/left/input/squeeze/value"},
 	                                {"recenter_right", "/user/hand/right/input/squeeze/value"},
+	                                {"foveation_pitch", "/user/hand/right/input/thumbstick/y"},
+	                                {"foveation_distance", "/user/hand/left/input/thumbstick/y"},
+	                                {"foveation_ok", "/user/hand/right/input/a/click"},
+	                                {"foveation_cancel", "/user/hand/right/input/b/click"},
 
 	                                {"plots_toggle_1", "/user/hand/left/input/thumbstick/click"},
 	                                {"plots_toggle_2", "/user/hand/right/input/thumbstick/click"},
