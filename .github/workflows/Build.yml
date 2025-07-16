@@ -244,7 +244,7 @@ jobs:
         WIVRN_SERVER_PID=$!
 
         mkdir -p ~/.config/wivrn
-        echo '{"servers": [{"autoconnect": false, "manual": true, "pretty_name": "Deep Thought", "hostname": "localhost", "port": 9757, "tcp_only": false, "cookie": ""}]}' > ~/.config/wivrn/client.json.in
+        echo '{"servers": [{"autoconnect": false, "manual": true, "pretty_name": "Deep Thought", "hostname": "localhost", "port": 9757, "tcp_only": false, "cookie": ""}], "first_run": false}' > ~/.config/wivrn/client.json.in
 
         for LANG in en $(basename -a ${{github.workspace}}/locale/*)
         do

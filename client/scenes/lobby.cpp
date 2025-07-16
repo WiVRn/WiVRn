@@ -21,18 +21,14 @@
 #include "application.h"
 #include "constants.h"
 #include "glm/geometric.hpp"
+#include "hand_model.h"
 #include "hardware.h"
 #include "imgui.h"
-#include "input_profile.h"
 #include "openxr/openxr.h"
 #include "protocol_version.h"
 #include "render/scene_data.h"
-#include "render/scene_loader.h"
-#include "render/scene_renderer.h"
 #include "stream.h"
 #include "utils/i18n.h"
-#include "utils/overloaded.h"
-#include "utils/ranges.h"
 #include "wivrn_client.h"
 #include "wivrn_discover.h"
 #include "wivrn_sockets.h"
@@ -40,9 +36,7 @@
 #include "xr/space.h"
 #include <glm/gtc/matrix_access.hpp>
 
-#include <algorithm>
 #include <chrono> // IWYU pragma: keep
-#include <cstdint>
 #include <fstream>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/matrix.hpp>
@@ -130,14 +124,19 @@ scenes::lobby::lobby() :
 	if (std::getenv("WIVRN_AUTOCONNECT"))
 		force_autoconnect = true;
 
-	auto & servers = application::get_config().servers;
+	auto & config = application::get_config();
+
+	auto & servers = config.servers;
 	spdlog::info("{} known server(s):", servers.size());
 	for (auto & i: servers)
 	{
 		spdlog::info("    {}", i.second.service.name);
 	}
 
-	keyboard.set_layout(application::get_config().virtual_keyboard_layout);
+	keyboard.set_layout(config.virtual_keyboard_layout);
+
+	if (config.first_run)
+		current_tab = tab::first_run;
 
 	const auto keypair_path = application::get_config_path() / "private_key.pem";
 	try
@@ -435,7 +434,7 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 
 			imgui_ctx->compute_pointer_position(state);
 
-			if (state.pointer_position)
+			if (state.pointer_position) // TODO: check that the pointer is inside an imgui window
 			{
 				auto M = glm::mat3_cast(imgui_ctx->layers()[0].orientation);
 

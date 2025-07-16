@@ -101,6 +101,7 @@ class lobby : public scene_impl<lobby>
 
 	enum class tab
 	{
+		first_run,
 		server_list,
 		settings,
 		post_processing,
@@ -114,6 +115,7 @@ class lobby : public scene_impl<lobby>
 
 	tab current_tab = tab::server_list;
 	tab last_current_tab = tab::server_list;
+	int optional_feature_index = 0; // Which step of the first run screen are we in
 	ImTextureID about_picture;
 
 	virtual_keyboard keyboard;
@@ -139,6 +141,7 @@ class lobby : public scene_impl<lobby>
 	void gui_about();
 	void gui_licenses();
 	void gui_keyboard();
+	void gui_first_run();
 
 	void setup_passthrough();
 
