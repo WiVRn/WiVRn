@@ -1122,11 +1122,11 @@ void imgui_context::tooltip(std::string_view text)
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::tooltip_rounding);
 
-	// Clamp position to avoid overflowing on the right
+	// Clamp position to avoid overflowing on the left or the right
 	auto & style = ImGui::GetStyle();
 	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
 	const ImVec2 size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
-	pos.x = std::min(pos.x, viewport->Pos.x + viewport->Size.x - size.x / 2);
+	pos.x = std::clamp<float>(pos.x, viewport->Pos.x + size.x / 2, viewport->Pos.x + viewport->Size.x - size.x / 2);
 	ImVec2 pivot = {0.5, 1};
 
 	// Move tooltip below the item if it overflows on the top

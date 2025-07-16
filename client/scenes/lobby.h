@@ -100,6 +100,7 @@ class lobby : public scene_impl<lobby>
 
 	enum class tab
 	{
+		first_run,
 		server_list,
 		settings,
 		post_processing,
@@ -138,6 +139,7 @@ class lobby : public scene_impl<lobby>
 	void gui_about();
 	void gui_licenses();
 	void gui_keyboard();
+	void gui_first_run();
 
 	void setup_passthrough();
 

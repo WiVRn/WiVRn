@@ -82,6 +82,8 @@ public:
 	float override_foveation_pitch = 10 * M_PI / 180;
 	float override_foveation_distance = 3;
 
+	bool first_run = true;
+
 	bool check_feature(feature f) const;
 	void set_feature(feature f, bool state);
 

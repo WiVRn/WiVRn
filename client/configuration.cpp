@@ -254,6 +254,9 @@ configuration::configuration(xr::system & system)
 
 		if (auto val = root["override_foveation_distance"]; val.is_double())
 			override_foveation_distance = val.get_double();
+
+		if (auto val = root["first_run"]; val.is_bool())
+			first_run = val.get_bool();
 	}
 	catch (std::exception & e)
 	{
@@ -373,5 +376,6 @@ void configuration::save()
 	json << ",\"override_foveation_enable\":" << std::boolalpha << override_foveation_enable;
 	json << ",\"override_foveation_pitch\":" << override_foveation_pitch;
 	json << ",\"override_foveation_distance\":" << override_foveation_distance;
+	json << ",\"first_run\":" << std::boolalpha << first_run;
 	json << "}";
 }
