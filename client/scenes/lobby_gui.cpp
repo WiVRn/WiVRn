@@ -1022,6 +1022,7 @@ void scenes::lobby::gui_debug()
 
 	if (ImGui::Button("Delete configuration file"))
 		std::filesystem::remove(application::get_config_path() / "client.json");
+	imgui_ctx->vibrate_on_hover();
 
 	ImGui::PopStyleVar();
 }
@@ -1043,19 +1044,9 @@ void scenes::lobby::gui_about()
 
 void scenes::lobby::gui_first_run()
 {
-	ImGui::PushFont(nullptr, constants::gui::font_size_large);
-	CenterTextH(_("Welcome to WiVRn"));
-	ImGui::PopFont();
-	ImGui::Dummy(ImVec2(0, 60));
-
 	float win_width = ImGui::GetWindowSize().x;
-	ImGui::SetCursorPosX(win_width / 3);
-
-	ImGui::Image(about_picture, {win_width / 3, win_width / 3});
-
-	ImGui::Text("%s", _S("The following features are optional:"));
-
 	auto & config = application::get_config();
+	const ImGuiStyle & style = ImGui::GetStyle();
 
 	struct item
 	{
@@ -1067,49 +1058,76 @@ void scenes::lobby::gui_first_run()
 	std::array optional_features{
 	        item{
 	                .f = feature::microphone,
-	                .text = _S("Enable microphone"),
+	                .text = _S("Enable the microphone?"),
 	                .supported = true,
 	        },
 	        item{
 	                .f = feature::eye_gaze,
-	                .text = _S("Enable eye tracking"),
+	                .text = _S("Enable eye tracking?"),
 	                .supported = application::get_eye_gaze_supported(),
 	        },
 	        item{
 	                .f = feature::face_tracking,
-	                .text = _S("Enable face tracking"),
+	                .text = _S("Enable face tracking?"),
 	                .supported = application::get_face_tracking_supported(),
 	        },
 	        item{
 	                .f = feature::body_tracking,
-	                .text = _S("Enable body tracking"),
+	                .text = _S("Enable body tracking?"),
 	                .supported = application::get_body_tracking_supported(),
 	        },
 	};
 
-	for (const auto & i: optional_features)
 	{
-		ImGui::BeginDisabled(not i.supported);
+		ImGui::PushFont(nullptr, constants::gui::font_size_large);
+		CenterTextH(_("Welcome to WiVRn"));
+		ImGui::PopFont();
+	}
 
-		bool enabled = i.supported and config.check_feature(i.f);
-		if (ImGui::Checkbox(i.text.c_str(), &enabled))
-			config.set_feature(i.f, enabled);
+	{
+		while (optional_feature_index < optional_features.size() and
+		       (not optional_features[optional_feature_index].supported or
+		        config.check_feature(optional_features[optional_feature_index].f)))
 
+			optional_feature_index++;
+
+		if (optional_feature_index == optional_features.size())
+		{
+			current_tab = tab::server_list;
+			config.first_run = false;
+			config.save();
+		}
+
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {15, 15});
+
+		CenterTextH(optional_features[optional_feature_index].text);
+
+		float button_width = 100;
+		float buttons_width = 2 * button_width + style.ItemSpacing.x;
+		ImGui::SetCursorPosX((win_width - buttons_width) / 2);
+
+		if (ImGui::Button(_S("Yes"), {button_width, 0}))
+		{
+			config.set_feature(optional_features[optional_feature_index].f, true);
+		}
 		imgui_ctx->vibrate_on_hover();
 
-		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
+		ImGui::SameLine();
+		if (ImGui::Button(_S("No"), {button_width, 0}))
+		{
+			config.set_feature(optional_features[optional_feature_index].f, false);
+			optional_feature_index++;
+		}
+		imgui_ctx->vibrate_on_hover();
+		ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
 
-		ImGui::EndDisabled();
+		if (optional_feature_index == optional_features.size())
+		{
+			current_tab = tab::server_list;
+			config.first_run = false;
+			config.save();
+		}
 	}
-
-	if (ImGui::Button(_S("Next")))
-	{
-		config.first_run = false;
-		config.save();
-		current_tab = tab::server_list;
-	}
-	imgui_ctx->vibrate_on_hover();
 }
 
 void scenes::lobby::gui_licenses()
@@ -1663,31 +1681,36 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		gui_keyboard();
 	}
 
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
 	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 30);
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(8, 8, 8, 224));
 
 	ImGui::SetNextWindowPos(imgui_ctx->layers()[0].vp_center(), ImGuiCond_Always, {0.5, 0.5});
-	ImGui::SetNextWindowSize({1400, 900});
-
-	ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
 	if (current_tab == tab::first_run)
-		ImGui::SetCursorPos({20, 0});
-	else
-		ImGui::SetCursorPos({TabWidth + 20, 0});
-
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
-		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
+		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
+		gui_first_run();
+		ImGui::End();
+		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
+	}
+	else
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
+		ImGui::SetNextWindowSize({1400, 900});
+		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+		ImGui::SetCursorPos({TabWidth + 20, 0});
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
+		ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0), 0);
 		ImGui::SetCursorPosY(20);
 
 		switch (current_tab)
 		{
 			case tab::first_run:
-				gui_first_run();
-				break;
+				__builtin_unreachable();
 
 			case tab::server_list:
 				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
@@ -1735,10 +1758,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ScrollWhenDraggingOnVoid();
 		ImGui::EndChild();
 		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
-	}
 
-	if (current_tab != tab::first_run)
-	{
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(0, 0, 0, 255));
 		ImGui::SetCursorPos(style.WindowPadding);
 		{
@@ -1773,11 +1793,12 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 			ImGui::EndChild();
 		}
 		ImGui::PopStyleColor(); // ImGuiCol_ChildBg
+		ImGui::End();
+		ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
 	}
 
-	ImGui::End();
 	ImGui::PopStyleColor(); // ImGuiCol_WindowBg
-	ImGui::PopStyleVar(2);  // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ScrollbarSize
+	ImGui::PopStyleVar();   // ImGuiStyleVar_ScrollbarSize
 
 	if (not is_gui_visible(*imgui_ctx, predicted_display_time))
 	{

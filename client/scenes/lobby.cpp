@@ -434,7 +434,7 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 
 			imgui_ctx->compute_pointer_position(state);
 
-			if (state.pointer_position)
+			if (state.pointer_position) // TODO: check that the pointer is inside an imgui window
 			{
 				auto M = glm::mat3_cast(imgui_ctx->layers()[0].orientation);
 
