@@ -23,7 +23,6 @@
 #include "configuration.h"
 #include "crypto.h"
 #include "scene.h"
-#include "scenes/hand_model.h"
 #include "scenes/lobby_keyboard.h"
 #include "utils/thread_safe.h"
 #include "wifi_lock.h"
