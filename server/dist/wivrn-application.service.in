@@ -1,8 +1,0 @@
-[Unit]
-Description=OpenXR streaming server
-
-[Service]
-Type=simple
-ExecStart=@CMAKE_INSTALL_PREFIX@/bin/wivrn-server --application
-Restart=on-failure
-RestartSec=0

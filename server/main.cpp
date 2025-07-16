@@ -1016,8 +1016,6 @@ int main(int argc, char * argv[])
 	auto no_publish = app.add_flag("--no-publish-service")->description("disable publishing the service through avahi");
 	auto no_encrypt = app.add_flag("--no-encrypt")->description("disable encryption")->group("Debug");
 #if WIVRN_USE_SYSTEMD
-	// --application should only be used from wivrn-application unit file
-	auto app_flag = app.add_flag("--application")->group("");
 	app.add_flag("--systemd", use_systemd, "use systemd to launch user-configured application");
 #endif
 
@@ -1043,10 +1041,6 @@ int main(int argc, char * argv[])
 	else
 		publication = configuration().publication;
 
-#if WIVRN_USE_SYSTEMD
-	if (*app_flag)
-		return exec_application(configuration());
-#endif
 	try
 	{
 		return inner_main(argc, argv, not *no_instructions);

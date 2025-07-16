@@ -38,7 +38,41 @@ struct deleter
 	}
 };
 
+struct raii_sd_bus_error
+{
+	sd_bus_error data = SD_BUS_ERROR_NULL;
+
+	auto operator&()
+	{
+		return &data;
+	}
+
+	~raii_sd_bus_error()
+	{
+		sd_bus_error_free(&data);
+	}
+};
+
 using sd_bus_ptr = std::unique_ptr<sd_bus, deleter>;
+using sd_msg_ptr = std::unique_ptr<sd_bus_message, deleter>;
+
+struct container
+{
+	container(sd_bus_message * msg, char type, const char * contents) :
+	        msg(msg)
+	{
+		int ret = sd_bus_message_open_container(msg, type, contents);
+		if (ret < 0)
+			throw std::system_error(-ret, std::system_category(), "sd_bus_message_open_container failed");
+	}
+	~container()
+	{
+		int ret = sd_bus_message_close_container(msg);
+		if (ret < 0)
+			std::cerr << "sd_bus_message_close_container failed" << std::endl;
+	}
+	sd_bus_message * msg;
+};
 
 sd_bus_ptr get_user_bus()
 {
@@ -113,28 +147,67 @@ finish:
 	return ret;
 }
 
-int start_service(sd_bus * bus, const std::string & service_name)
+std::string start_service(sd_bus * bus, const std::string & service_name, const wivrn::configuration & config)
 {
-	sd_bus_error error = SD_BUS_ERROR_NULL;
+	raii_sd_bus_error error;
 	sd_bus_message * msg = nullptr;
 	const char * destination = "org.freedesktop.systemd1";
 	const char * path = "/org/freedesktop/systemd1";
 	const char * interface = "org.freedesktop.systemd1.Manager";
-	const char * member = "StartUnit";
+	const char * member = "StartTransientUnit";
 	const char * mode = "replace";
 
-	// Call the method to start the service
-	int ret = sd_bus_call_method(bus, destination, path, interface, member, &error, &msg, "ss", service_name.c_str(), mode);
+	int ret = sd_bus_message_new_method_call(bus, &msg, destination, path, interface, member);
 	if (ret < 0)
+		throw std::system_error(-ret, std::system_category(), "sd_bus_message_new_method_call failed");
+	sd_msg_ptr raii_msg(msg);
+
+	// Name, mode
+	if (ret = sd_bus_message_append(msg, "ss", service_name.c_str(), mode); ret < 0)
+		throw std::system_error(-ret, std::system_category(), "sd_bus_message_append failed");
+
+	// Properties
 	{
-		std::cerr << "Failed to start service: " << error.message << std::endl;
-		goto finish;
+		container a(msg, 'a', "(sv)");
+		if (ret = sd_bus_message_append(msg, "(sv)", "Description", "s", "Application spawned by WiVRn"); ret < 0)
+			throw std::system_error(-ret, std::system_category(), "failed to set description");
+
+		container r(msg, 'r', "sv");
+		if (ret = sd_bus_message_append(msg, "s", "ExecStart"); ret < 0)
+			throw std::system_error(-ret, std::system_category(), "sd_bus_message_append failed");
+		container v(msg, 'v', "a(sasb)");
+		container a1(msg, 'a', "(sasb)");
+		container r1(msg, 'r', "sasb");
+		if (ret = sd_bus_message_append(msg, "s", config.application[0].c_str()); ret < 0)
+			throw std::system_error(-ret, std::system_category(), "sd_bus_message_append failed");
+
+		{
+			container a(msg, 'a', "s");
+			for (const auto & arg: config.application)
+			{
+				if (ret = sd_bus_message_append(msg, "s", arg.c_str()); ret < 0)
+					throw std::system_error(-ret, std::system_category(), "sd_bus_message_append failed");
+			}
+		}
+
+		if (ret = sd_bus_message_append(msg, "b", false); ret < 0)
+			throw std::system_error(-ret, std::system_category(), "sd_bus_message_append failed");
 	}
 
-finish:
-	sd_bus_error_free(&error);
-	sd_bus_message_unref(msg);
-	return ret;
+	// aux (empty)
+	if (ret = sd_bus_message_append(msg, "a(sa(sv))", 0); ret < 0)
+		throw std::system_error(-ret, std::system_category(), "sd_bus_message_append failed");
+
+	sd_bus_message * reply = nullptr;
+	if (ret = sd_bus_call(bus, msg, 0, &error, &reply); ret < 0)
+		throw std::system_error(-ret, std::system_category(), std::format("sd_bus_call failed: {}", error.data.message));
+	sd_msg_ptr raii_reply(reply);
+
+	char * object;
+	if (ret = sd_bus_message_read(reply, "o", &object); ret < 0)
+		throw std::system_error(-ret, std::system_category(), "sd_bus_message_read failed");
+
+	return object;
 }
 
 bool is_service_active(sd_bus * bus, const std::string & service_name)
@@ -183,19 +256,20 @@ finish:
 
 pid_t wivrn::start_unit_file()
 {
-	std::string service_name = "wivrn-application.service";
+	configuration config;
+
+	if (config.application.empty())
+		return 0;
+
+	std::string service_name = std::format("wivrn-application-{}.service", std::chrono::steady_clock::now().time_since_epoch().count());
 	pid_t pid;
 	auto bus = get_user_bus();
 	int ret = get_service_pid(bus.get(), service_name, pid);
 
 	if (ret < 0 || pid == 0)
 	{
-		ret = start_service(bus.get(), service_name);
-		if (ret < 0)
-		{
-			std::cerr << "Failed to start service " << service_name << std::endl;
-			return ret;
-		}
+		auto obj = start_service(bus.get(), service_name, config);
+		std::cout << "started service: " << obj << std::endl;
 
 		// Wait until the service is active
 		while (!is_service_active(bus.get(), service_name))
@@ -206,10 +280,7 @@ pid_t wivrn::start_unit_file()
 		// Try to get the PID again
 		ret = get_service_pid(bus.get(), service_name, pid);
 		if (ret < 0)
-		{
-			std::cerr << "Failed to get PID for service " << service_name << std::endl;
-			return ret;
-		}
+			throw std::system_error(-ret, std::system_category(), "failed to get application PID");
 	}
 
 	return pid;

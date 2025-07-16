@@ -212,10 +212,6 @@ if (WIVRN_BUILD_SERVER)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn.service
 		DESTINATION lib/systemd/user/)
 
-	configure_file(dist/wivrn-application.service.in wivrn-application.service)
-	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/wivrn-application.service
-		DESTINATION lib/systemd/user/)
-
 	install(FILES dist/firewalld-wivrn.xml
 		RENAME wivrn.xml
 		DESTINATION lib/firewalld/services)
