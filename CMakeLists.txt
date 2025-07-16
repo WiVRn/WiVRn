@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.28)
 project(WiVRn VERSION 0.0.0 LANGUAGES C CXX)
 
 # Set default for FetchContent projects
