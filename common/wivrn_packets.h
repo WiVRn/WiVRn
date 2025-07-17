@@ -643,6 +643,9 @@ struct refresh_rate_change
 	float fps;
 };
 
+struct toggle_performance_graph
+{};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_2,
@@ -655,6 +658,7 @@ using packets = std::variant<
         haptics,
         timesync_query,
         tracking_control,
-        refresh_rate_change>;
+        refresh_rate_change,
+        toggle_performance_graph>;
 } // namespace to_headset
 } // namespace wivrn
