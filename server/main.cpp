@@ -236,10 +236,10 @@ void stop_publishing();
 
 void update_fsm();
 
-void start_app()
+void start_app(const std::vector<std::string> & args)
 {
 #if WIVRN_USE_SYSTEMD
-	app_pid = use_systemd ? start_unit_file() : fork_application();
+	app_pid = use_systemd ? start_unit_file(args) : fork_application(args);
 #else
 	app_pid = fork_application();
 #endif
@@ -479,10 +479,11 @@ gboolean headset_connected_success(void *)
 
 	expose_known_keys_on_dbus();
 
-	start_server(configuration());
+	configuration c;
+	start_server(c);
 	try
 	{
-		start_app();
+		start_app(c.application);
 	}
 	catch (std::exception & e)
 	{

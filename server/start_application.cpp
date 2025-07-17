@@ -147,8 +147,9 @@ finish:
 	return ret;
 }
 
-std::string start_service(sd_bus * bus, const std::string & service_name, const wivrn::configuration & config)
+std::string start_service(sd_bus * bus, const std::string & service_name, const std::vector<std::string> & args)
 {
+	assert(not args.empty());
 	raii_sd_bus_error error;
 	sd_bus_message * msg = nullptr;
 	const char * destination = "org.freedesktop.systemd1";
@@ -178,12 +179,12 @@ std::string start_service(sd_bus * bus, const std::string & service_name, const 
 		container v(msg, 'v', "a(sasb)");
 		container a1(msg, 'a', "(sasb)");
 		container r1(msg, 'r', "sasb");
-		if (ret = sd_bus_message_append(msg, "s", config.application[0].c_str()); ret < 0)
+		if (ret = sd_bus_message_append(msg, "s", args[0].c_str()); ret < 0)
 			throw std::system_error(-ret, std::system_category(), "sd_bus_message_append failed");
 
 		{
 			container a(msg, 'a', "s");
-			for (const auto & arg: config.application)
+			for (const auto & arg: args)
 			{
 				if (ret = sd_bus_message_append(msg, "s", arg.c_str()); ret < 0)
 					throw std::system_error(-ret, std::system_category(), "sd_bus_message_append failed");
@@ -254,11 +255,9 @@ finish:
 	return is_active;
 }
 
-pid_t wivrn::start_unit_file()
+pid_t wivrn::start_unit_file(const std::vector<std::string> & args)
 {
-	configuration config;
-
-	if (config.application.empty())
+	if (args.empty())
 		return 0;
 
 	std::string service_name = std::format("wivrn-application-{}.service", std::chrono::steady_clock::now().time_since_epoch().count());
@@ -268,7 +267,7 @@ pid_t wivrn::start_unit_file()
 
 	if (ret < 0 || pid == 0)
 	{
-		auto obj = start_service(bus.get(), service_name, config);
+		auto obj = start_service(bus.get(), service_name, args);
 		std::cout << "started service: " << obj << std::endl;
 
 		// Wait until the service is active
@@ -288,59 +287,28 @@ pid_t wivrn::start_unit_file()
 
 #endif
 
-pid_t wivrn::fork_application()
+static int exec_application(std::vector<std::string> args)
 {
-	configuration config;
-
-	if (config.application.empty())
+	if (args.empty())
 		return 0;
 
-	pid_t application_pid = fork();
-	if (application_pid < 0)
-	{
-		throw std::system_error(errno, std::system_category(), "fork");
-	}
-
-	if (application_pid == 0)
-	{
-		// Start a new process group so that all processes started by the
-		// application can be signaled
-		setpgrp();
-
-		return exec_application(config);
-	}
-
-	return application_pid;
-}
-
-int wivrn::exec_application(configuration config)
-{
-	if (config.application.empty())
-		return 0;
-
-	std::string executable;
-	std::vector<std::string> args;
-
-	if (flatpak_key(flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
-	{
-		executable = "flatpak-spawn";
-		args.push_back("flatpak-spawn");
-		args.push_back("--host");
-	}
-	else
-	{
-		executable = config.application.front();
-	}
-
-	for (auto & arg: config.application)
-		args.push_back(arg.data());
-
+	std::vector<std::string> tmp;
 	std::vector<char *> argv;
-	argv.reserve(args.size());
+	argv.reserve(args.size() + 3);
 
-	for (auto & i: args)
-		argv.push_back(i.data());
+	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
+	{
+		tmp.push_back("flatpak-spawn");
+		tmp.push_back("--host");
+		for (auto & arg: tmp)
+			argv.push_back(arg.data());
+	}
+
+	for (auto & arg: args)
+		argv.push_back(arg.data());
 	argv.push_back(nullptr);
+
+	std::string executable = argv.front();
 
 	std::cerr << "Launching " << executable << std::endl;
 	std::cerr << "With args:" << std::endl;
@@ -354,4 +322,25 @@ int wivrn::exec_application(configuration config)
 
 	perror("Cannot start application");
 	exit(EXIT_FAILURE);
+}
+
+pid_t wivrn::fork_application(const std::vector<std::string> & args)
+{
+	if (args.empty())
+		return 0;
+
+	pid_t application_pid = fork();
+	if (application_pid < 0)
+		throw std::system_error(errno, std::system_category(), "fork");
+
+	if (application_pid == 0)
+	{
+		// Start a new process group so that all processes started by the
+		// application can be signaled
+		setpgrp();
+
+		return exec_application(args);
+	}
+
+	return application_pid;
 }
