@@ -23,10 +23,7 @@
 #include "details/enumerate.h"
 #include "openxr/openxr.h"
 #include "utils/contains.h"
-#include "xr/fb_body_tracker.h"
-#include "xr/htc_body_tracker.h"
 #include "xr/instance.h"
-#include "xr/pico_body_tracker.h"
 #include "xr/system.h"
 #include <ranges>
 #include <vulkan/vulkan.h>
@@ -99,65 +96,6 @@ xr::hand_tracker xr::session::create_hand_tracker(XrHandEXT hand, XrHandJointSet
 	                .hand = hand,
 	                .handJointSet = hand_joint_set,
 	        }};
-}
-
-xr::fb_face_tracker2 xr::session::create_fb_face_tracker2()
-{
-	XrFaceTrackingDataSource2FB data_sources[1];
-	data_sources[0] = XR_FACE_TRACKING_DATA_SOURCE2_VISUAL_FB;
-
-	XrFaceTrackerCreateInfo2FB create_info{
-	        .type = XR_TYPE_FACE_TRACKER_CREATE_INFO2_FB,
-	        .next = nullptr,
-	        .faceExpressionSet = XR_FACE_EXPRESSION_SET2_DEFAULT_FB,
-	        .requestedDataSourceCount = 1,
-	        .requestedDataSources = data_sources,
-	};
-
-	XrFaceTracker2FB ft;
-
-	auto xrCreateFaceTracker2FB = inst->get_proc<PFN_xrCreateFaceTracker2FB>("xrCreateFaceTracker2FB");
-	assert(xrCreateFaceTracker2FB);
-
-	CHECK_XR(xrCreateFaceTracker2FB(id, &create_info, &ft));
-	return {*inst, ft};
-}
-
-xr::htc_face_tracker xr::session::create_htc_face_tracker(bool eye, bool lip)
-{
-	return {*inst, *this, eye, lip};
-}
-
-xr::pico_face_tracker xr::session::create_pico_face_tracker()
-{
-	return {*inst, *this};
-}
-
-xr::fb_body_tracker xr::session::create_fb_body_tracker()
-{
-	return {*inst, *this};
-}
-
-xr::htc_body_tracker xr::session::create_htc_body_tracker()
-{
-	return {*inst, *this};
-}
-
-xr::pico_body_tracker xr::session::create_pico_body_tracker()
-{
-	XrBodyTrackerCreateInfoBD create_info{
-	        .type = XR_TYPE_BODY_TRACKER_CREATE_INFO_BD,
-	        .next = nullptr,
-	        .jointSet = XR_BODY_JOINT_SET_FULL_BODY_JOINTS_BD,
-	};
-
-	XrBodyTrackerBD bt;
-
-	auto xrCreateBodyTrackerBD = inst->get_proc<PFN_xrCreateBodyTrackerBD>("xrCreateBodyTrackerBD");
-	assert(xrCreateBodyTrackerBD);
-
-	CHECK_XR(xrCreateBodyTrackerBD(id, &create_info, &bt));
-	return {*inst, bt};
 }
 
 std::vector<vk::Format> xr::session::get_swapchain_formats() const

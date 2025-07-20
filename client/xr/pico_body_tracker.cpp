@@ -30,10 +30,19 @@ XrResult xr::destroy_pico_body_tracker(XrBodyTrackerBD id)
 	return xrDestroyBodyTrackerBD(id);
 }
 
-xr::pico_body_tracker::pico_body_tracker(instance & inst, XrBodyTrackerBD h)
+xr::pico_body_tracker::pico_body_tracker(instance & inst, session & s)
 {
-	id = h;
+	auto xrCreateBodyTrackerBD = inst.get_proc<PFN_xrCreateBodyTrackerBD>("xrCreateBodyTrackerBD");
 	xrLocateBodyJointsBD = inst.get_proc<PFN_xrLocateBodyJointsBD>("xrLocateBodyJointsBD");
+	assert(xrCreateBodyTrackerBD);
+
+	XrBodyTrackerCreateInfoBD create_info{
+	        .type = XR_TYPE_BODY_TRACKER_CREATE_INFO_BD,
+	        .next = nullptr,
+	        .jointSet = XR_BODY_JOINT_SET_FULL_BODY_JOINTS_BD,
+	};
+
+	CHECK_XR(xrCreateBodyTrackerBD(s, &create_info, &id));
 }
 
 size_t xr::pico_body_tracker::count() const
