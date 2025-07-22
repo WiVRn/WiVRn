@@ -15,52 +15,64 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #pragma once
 
+#include "start_application.h"
+
+#include <gio/gio.h>
+
 #include <functional>
-#include <glib.h>
+#include <memory>
 #include <string>
-#include <sys/types.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
+
+#include "systemd_manager.h"
+#include "systemd_unit.h"
 
 namespace wivrn
 {
 
-class children_manager
+// Start applications in transient units
+class systemd_units_manager : public children_manager
 {
-public:
-	virtual ~children_manager();
-
-	virtual void start_application(const std::vector<std::string> &) = 0;
-
-	virtual bool running() const = 0;
-
-	virtual void stop() = 0;
-};
-
-// Start applications using fork+exec
-class forked_children : public children_manager
-{
-	struct watches
+	struct deleter
 	{
-		guint child = 0;
-		guint kill = 0;
+		void operator()(systemdManager *);
+		void operator()(unitUnit *);
 	};
-	std::unordered_map<pid_t, watches> children;
+	GDBusConnection * connection;
+	std::unique_ptr<systemdManager, deleter> proxy;
+	std::unordered_map<std::string, std::string> jobs;
+	std::unordered_set<std::unique_ptr<unitUnit, deleter>> units;
+
 	std::function<void()> state_changed_cb;
 
 public:
-	forked_children(std::function<void()> state_changed_cb);
-	virtual ~forked_children();
+	systemd_units_manager(GDBusConnection * connection, std::function<void()> state_changed_cb);
 
+	// create and start the transient unit
 	void start_application(const std::vector<std::string> &) override;
 
 	// true if any unit started by this object is still running
 	bool running() const override;
 
 	void stop() override;
-};
 
-void display_child_status(int wstatus, const std::string & name);
+private:
+	static void on_job_removed(
+	        systemdManagerProxy * proxy,
+	        guint32 id,
+	        gchar * job,
+	        gchar * unit,
+	        gchar * result,
+	        void * self);
+
+	static void on_unit_result(
+	        unitUnit * proxy,
+	        const GParamSpec * pspec,
+	        void * self);
+};
 } // namespace wivrn

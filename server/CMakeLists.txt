@@ -188,6 +188,22 @@ if (WIVRN_BUILD_SERVER)
 	target_link_libraries(wivrn-server PUBLIC wivrn-server-dbus)
 	target_link_libraries(wivrn-server PUBLIC PkgConfig::libnotify)
 
+	if(WIVRN_USE_SYSTEMD)
+		add_custom_command(OUTPUT systemd_manager.c systemd_manager.h
+				   COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml --interface-prefix org.freedesktop.systemd1 --generate-c-code systemd_manager --c-namespace systemd
+				   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml )
+		add_custom_command(OUTPUT systemd_unit.c systemd_unit.h
+			COMMAND ${GDBUS_CODEGEN} ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Unit.xml --interface-prefix org.freedesktop.systemd1 --generate-c-code systemd_unit --c-namespace unit
+				   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../dbus/org.freedesktop.systemd1.Manager.xml )
+		target_sources(wivrn-server-dbus PRIVATE
+			${CMAKE_CURRENT_BINARY_DIR}/systemd_manager.c ${CMAKE_CURRENT_BINARY_DIR}/systemd_manager.h
+			${CMAKE_CURRENT_BINARY_DIR}/systemd_unit.c ${CMAKE_CURRENT_BINARY_DIR}/systemd_unit.h)
+		target_sources(
+			wivrn-server
+			PRIVATE start_systemd_unit.cpp
+			)
+	endif()
+
 	target_link_libraries(
 		wivrn-server
 		PRIVATE

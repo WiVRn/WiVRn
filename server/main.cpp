@@ -33,7 +33,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
-#include <iterator>
 #include <libnotify/notification.h>
 #include <memory>
 #include <poll.h>
@@ -52,6 +51,10 @@
 #include <server/ipc_server_interface.h>
 #include <shared/ipc_protocol.h>
 #include <util/u_file.h>
+
+#if WIVRN_USE_SYSTEMD
+#include "start_systemd_unit.h"
+#endif
 
 // Insert the on load constructor to init trace marker.
 U_TRACE_TARGET_SETUP(U_TRACE_WHICH_SERVICE)
@@ -124,21 +127,6 @@ int create_listen_socket()
 	return fd;
 }
 
-void display_child_status(int wstatus, const std::string & name)
-{
-	std::cerr << name << " exited, exit status " << WEXITSTATUS(wstatus);
-	if (WIFSIGNALED(wstatus))
-	{
-		std::cerr << ", received signal " << sigabbrev_np(WTERMSIG(wstatus)) << " ("
-		          << strsignal(WTERMSIG(wstatus)) << ")"
-		          << (WCOREDUMP(wstatus) ? ", core dumped" : "") << std::endl;
-	}
-	else
-	{
-		std::cerr << std::endl;
-	}
-}
-
 static std::filesystem::path flatpak_app_path()
 {
 	if (auto value = flatpak_key(flatpak::section::instance, "app-path"))
@@ -197,9 +185,7 @@ guint server_kill_watch;
 pid_t server_pid;
 std::optional<std::jthread> connection_thread;
 
-guint app_watch;
-guint app_kill_watch;
-pid_t app_pid;
+std::unique_ptr<children_manager> children;
 
 bool quitting_main_loop;
 bool do_fork;
@@ -235,37 +221,6 @@ void start_publishing();
 void stop_publishing();
 
 void update_fsm();
-
-void start_app(const std::vector<std::string> & args)
-{
-#if WIVRN_USE_SYSTEMD
-	app_pid = use_systemd ? start_unit_file(args) : fork_application(args);
-#else
-	app_pid = fork_application();
-#endif
-
-	assert(app_watch == 0);
-	assert(app_kill_watch == 0);
-	if (app_pid > 0)
-	{
-		app_watch = g_child_watch_add(app_pid, [](pid_t, int status, void *) {
-			display_child_status(status, "Application");
-			g_source_remove(app_watch);
-			if (app_kill_watch)
-				g_source_remove(app_kill_watch);
-
-			app_watch = 0;
-			app_kill_watch = 0;
-
-			update_fsm(); }, nullptr);
-	}
-	else
-	{
-		app_watch = 0;
-		if (app_pid < 0)
-			throw std::system_error(-app_pid, std::system_category());
-	}
-}
 
 void start_server(configuration config)
 {
@@ -339,17 +294,6 @@ void start_server(configuration config)
 		runtime_setter.emplace();
 }
 
-void kill_app()
-{
-	kill(-app_pid, SIGTERM);
-
-	// Send SIGKILL after 1s if it is still running
-	app_kill_watch = g_timeout_add(1000, [](void *) {
-		assert(app_pid > 0);
-		kill(-app_pid, SIGKILL);
-		return G_SOURCE_REMOVE; }, 0);
-}
-
 void kill_server()
 {
 	// Write to the server's stdin to make it quit
@@ -421,7 +365,7 @@ void stop_publishing()
 void update_fsm()
 {
 	bool server_running = server_watch != 0 or connection_thread;
-	bool app_running = app_watch != 0;
+	bool app_running = children->running();
 
 	if (quitting_main_loop)
 	{
@@ -431,15 +375,18 @@ void update_fsm()
 			kill_server();
 
 		if (app_running)
-			kill_app();
+			children->stop();
 
 		if (not server_running and not app_running)
+		{
+			children.reset(nullptr);
 			g_main_loop_quit(main_loop);
+		}
 	}
 	else
 	{
 		if (not server_running and app_running)
-			kill_app();
+			children->stop();
 
 		if (not server_running)
 		{
@@ -483,7 +430,7 @@ gboolean headset_connected_success(void *)
 	start_server(c);
 	try
 	{
-		start_app(c.application);
+		children->start_application(c.application);
 	}
 	catch (std::exception & e)
 	{
@@ -520,7 +467,7 @@ gboolean headset_connected_incorrect_pin(void *)
 gboolean headset_connected(gint fd, GIOCondition condition, gpointer user_data)
 {
 	assert(server_watch == 0);
-	assert(app_watch == 0);
+	assert(not children->running());
 	assert(not connection_thread);
 	assert(listener);
 
@@ -817,6 +764,17 @@ void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & inf
 
 void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer user_data)
 {
+#if WIVRN_USE_SYSTEMD
+	if (use_systemd)
+	{
+		children = std::make_unique<systemd_units_manager>(connection, update_fsm);
+	}
+	else
+#endif
+	{
+		children = std::make_unique<forked_children>(update_fsm);
+	}
+
 	dbus_server = wivrn_server_skeleton_new();
 
 	g_signal_connect(dbus_server,
