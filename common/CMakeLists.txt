@@ -31,6 +31,7 @@ add_library(wivrn-common-base STATIC
 )
 
 add_library(wivrn-common STATIC
+    application.cpp
     crypto.cpp
     smp.cpp
     secrets.cpp
@@ -42,6 +43,11 @@ add_library(wivrn-common STATIC
     vk/vk_allocator.cpp
     vk/vk_mem_alloc.cpp
 )
+
+add_executable(list-apps
+    test_application.cpp
+)
+target_link_libraries(list-apps wivrn-common)
 
 if(ANDROID)
     # The Vulkan headers in Android do not include the C++ headers, download them
