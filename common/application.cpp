@@ -19,6 +19,7 @@
 
 #include "application.h"
 
+#include "utils/flatpak.h"
 #include "utils/xdg_base_directory.h"
 
 #include <filesystem>
@@ -300,6 +301,11 @@ std::unordered_map<std::string, application> list_applications(bool include_stea
 	do_data_dir(xdg_data_home(), res);
 	for (auto && dir: xdg_data_dirs())
 		do_data_dir(std::move(dir), res);
+	if (wivrn::is_flatpak())
+	{
+		// Try to guess host data dirs
+		do_data_dir("/run/host/usr/share", res);
+	}
 
 	return res;
 }
