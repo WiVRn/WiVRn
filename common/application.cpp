@@ -21,10 +21,10 @@
 
 #include "utils/xdg_base_directory.h"
 
-#include <nlohmann/json.hpp>
-
 #include <filesystem>
 #include <fstream>
+#include <iostream>
+#include <nlohmann/json.hpp>
 
 namespace wivrn
 {
@@ -40,20 +40,24 @@ std::string read_file(const std::filesystem::path & path)
 	return {begin, end};
 }
 
-std::string read_vr_manifest()
+std::pair<std::string, std::string> read_vr_manifest()
 {
-	// try system Steam
+	// system Steam
 	auto manifest = read_file(xdg_data_home() / "Steam/config/steamapps.vrmanifest");
 	if (not manifest.empty())
-		return manifest;
+		return {"steam", manifest};
+
 	// Flatpak Steam
 	auto home = std::getenv("HOME");
-	return read_file(std::filesystem::path(home ? home : "") / ".var/app/com.valvesoftware.Steam/.steam/steam/config/steamapps.vrmanifest");
+	manifest = read_file(std::filesystem::path(home ? home : "") / ".var/app/com.valvesoftware.Steam/.steam/steam/config/steamapps.vrmanifest");
+	if (not manifest.empty())
+		return {"flatpak run com.valvesoftware.Steam", manifest};
+	return {};
 }
 
 void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 {
-	auto manifest = read_vr_manifest();
+	auto [command, manifest] = read_vr_manifest();
 	if (manifest.empty())
 		return;
 	nlohmann::json json = nlohmann::json::parse(manifest);
@@ -82,7 +86,7 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 
 			if (i["launch_type"] == "url")
 			{
-				app.exec = "steam " + (std::string)i["url"];
+				app.exec = command + " " + (std::string)i["url"];
 			}
 			else if (i["launch_type"] == "binary")
 			{
@@ -91,15 +95,16 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 				{
 					// ¯\_(ツ)_/¯
 					uint64_t appkey = stoll(app_key.substr(strlen(prefix)));
-					app.exec = "steam steam://rungameid/" + std::to_string((appkey << 32) + 0x2000000);
+					app.exec = command + " steam://rungameid/" + std::to_string((appkey << 32) + 0x2000000);
 				}
 			}
 
 			if (not app.exec.empty())
 				res[app_key] = std::move(app);
 		}
-		catch (std::exception &)
+		catch (std::exception & e)
 		{
+			std::cerr << "Failed to parse Steam VR manifest: " << e.what() << std::endl;
 		}
 	}
 }
