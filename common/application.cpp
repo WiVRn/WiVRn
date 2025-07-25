@@ -34,29 +34,21 @@ namespace
 
 std::string read_file(const std::filesystem::path & path)
 {
-#if 0
-	if (wivrn::flatpak_key(wivrn::flatpak::section::session_bus_policy, "org.freedesktop.Flatpak") == "talk")
-	{
-		QProcess flatpak_spawn;
-		flatpak_spawn.start("flatpak-spawn", {"--host", "cat", QString::fromStdString(vrmanifest)});
-		flatpak_spawn.waitForFinished();
-		return flatpak_spawn.readAllStandardOutput().toStdString();
-	}
-	else
-#endif
-	{
-		std::ifstream f(path);
-		std::istreambuf_iterator<char> begin{f}, end;
+	std::ifstream f(path);
+	std::istreambuf_iterator<char> begin{f}, end;
 
-		return {begin, end};
-	}
+	return {begin, end};
 }
 
 std::string read_vr_manifest()
 {
-	const char * home = getenv("HOME");
-
-	return read_file(std::string{home ? home : ""} + "/.steam/steam/config/steamapps.vrmanifest");
+	// try system Steam
+	auto manifest = read_file(xdg_data_home() / "Steam/config/steamapps.vrmanifest");
+	if (not manifest.empty())
+		return manifest;
+	// Flatpak Steam
+	auto home = std::getenv("HOME");
+	return read_file(std::filesystem::path(home ? home : "") / ".var/app/com.valvesoftware.Steam/.steam/steam/config/steamapps.vrmanifest");
 }
 
 void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
@@ -190,6 +182,17 @@ struct key_value
 		value = l.substr(pos);
 	}
 };
+
+bool contains(std::string_view entries, std::string_view val, char sep = ';')
+{
+	for (auto bounds: entries | std::views::split(sep))
+	{
+		if (std::string_view(bounds.begin(), bounds.end()) == val)
+			return true;
+	}
+	return false;
+}
+
 std::optional<application> do_desktop_entry(const std::filesystem::path & filename)
 {
 	auto data = read_file(filename);
@@ -200,9 +203,9 @@ std::optional<application> do_desktop_entry(const std::filesystem::path & filena
 	for (auto bounds: data | std::views::split('\n'))
 	{
 		std::string_view line(bounds.begin(), bounds.end());
-		key_value items(line);
-		if (items.key == "X-WiVRn-VR")
-			vr = items.value == "true";
+		key_value item(line);
+		if (item.key == "Categories")
+			vr = contains(item.value, "X-WiVRn-VR");
 	}
 	if (not vr)
 		return res;
@@ -220,18 +223,18 @@ std::optional<application> do_desktop_entry(const std::filesystem::path & filena
 		if (line.starts_with("[") and line != "[Desktop Entry]")
 			break;
 
-		key_value items(line);
-		if (items.key == "Type" and items.value != "Application")
+		key_value item(line);
+		if (item.key == "Type" and item.value != "Application")
 		{
 			res.reset();
 			return res;
 		}
-		if (items.key == "Name")
-			res->name.emplace(items.locale, unescape(items.value));
-		if (items.key == "Exec")
-			res->exec = unescape(items.value);
-		if (items.key == "Path")
-			res->path = unescape(items.value);
+		if (item.key == "Name")
+			res->name.emplace(item.locale, unescape(item.value));
+		if (item.key == "Exec")
+			res->exec = unescape(item.value);
+		if (item.key == "Path")
+			res->path = unescape(item.value);
 	}
 
 	if (res->exec.empty() or not res->name.contains(""))
