@@ -24,14 +24,14 @@ endif()
 configure_file(wivrn_config.h.in wivrn_config.h)
 
 add_library(wivrn-common-base STATIC
-    utils/xdg_base_directory.cpp
+    application.cpp
     utils/flatpak.cpp
     utils/strings.cpp
+    utils/xdg_base_directory.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
 )
 
 add_library(wivrn-common STATIC
-    application.cpp
     crypto.cpp
     smp.cpp
     secrets.cpp
@@ -44,10 +44,13 @@ add_library(wivrn-common STATIC
     vk/vk_mem_alloc.cpp
 )
 
-add_executable(list-apps
-    test_application.cpp
-)
-target_link_libraries(list-apps wivrn-common)
+if (TEST_APPS)
+    add_executable(list-apps
+        test_application.cpp
+    )
+
+    target_link_libraries(list-apps wivrn-common-base)
+endif()
 
 if(ANDROID)
     # The Vulkan headers in Android do not include the C++ headers, download them
