@@ -19,32 +19,10 @@
 
 #pragma once
 
-#include <sstream>
 #include <string>
 #include <vector>
 
 namespace utils
 {
-std::string trim(std::string input);
-
-template <typename T>
-std::string join(const std::vector<T> & vec, const std::string & sep = ", ")
-{
-	std::stringstream s;
-
-	if (!vec.empty())
-	{
-		s << vec[0];
-
-		for (size_t i = 1, n = vec.size(); i < n; i++)
-		{
-			s << sep << vec[i];
-		}
-	}
-
-	return s.str();
-}
-
 std::vector<std::string> split(const std::string & s, const std::string & sep = "\n");
-
 } // namespace utils

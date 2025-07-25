@@ -19,13 +19,6 @@
 
 #include "strings.h"
 
-std::string utils::trim(std::string input)
-{
-	input.resize(input.find_last_not_of("\n ") + 1);
-
-	return input;
-}
-
 std::vector<std::string> utils::split(const std::string & s, const std::string & sep)
 {
 	std::string::size_type i = 0;
