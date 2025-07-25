@@ -218,6 +218,7 @@ if (WIVRN_BUILD_SERVER)
 			PkgConfig::AVAHI
 			Eigen3::Eigen
 			wivrn-common
+			wivrn-common-server
 			wivrn-external
 			nlohmann_json::nlohmann_json
 		)

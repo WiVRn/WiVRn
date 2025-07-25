@@ -68,6 +68,7 @@ target_link_libraries(wivrn-dashboard
     QCoro::Network
     QCoro::Qml
     wivrn-common-base
+    wivrn-common-server
     wivrn-external
 )
 

@@ -23,20 +23,17 @@ endif()
 
 configure_file(wivrn_config.h.in wivrn_config.h)
 
-add_library(wivrn-common-base STATIC
-    application.cpp
-    utils/flatpak.cpp
+add_library(wivrn-common-base STATIC EXCLUDE_FROM_ALL
     utils/strings.cpp
     utils/xdg_base_directory.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
 )
 
-add_library(wivrn-common STATIC
+add_library(wivrn-common STATIC EXCLUDE_FROM_ALL
     crypto.cpp
     smp.cpp
     secrets.cpp
     wivrn_sockets.cpp
-    utils/xdg_base_directory.cpp
     utils/strings.cpp
     vk/allocation.cpp
     vk/error_category.cpp
@@ -44,12 +41,20 @@ add_library(wivrn-common STATIC
     vk/vk_mem_alloc.cpp
 )
 
-if (TEST_APPS)
-    add_executable(list-apps
-        test_application.cpp
+if (WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_SERVER)
+    add_library(wivrn-common-server STATIC EXCLUDE_FROM_ALL
+        utils/flatpak.cpp
+        application.cpp
     )
+    target_link_libraries(wivrn-common-server PRIVATE nlohmann_json::nlohmann_json PUBLIC wivrn-common-base)
 
-    target_link_libraries(list-apps wivrn-common-base)
+    if (WIVRN_BUILD_TEST)
+        add_executable(list-apps
+            test_application.cpp
+        )
+
+        target_link_libraries(list-apps wivrn-common-server)
+    endif()
 endif()
 
 if(ANDROID)
@@ -122,5 +127,4 @@ endif()
 
 target_include_directories(wivrn-common-base PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(wivrn-common PUBLIC Boost::pfr OpenSSL::Crypto wivrn-external wivrn-common-base)
-target_compile_features(wivrn-common PRIVATE cxx_std_20)
 target_compile_definitions(wivrn-common PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
