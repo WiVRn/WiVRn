@@ -40,6 +40,12 @@ std::string read_file(const std::filesystem::path & path)
 	return {begin, end};
 }
 
+std::filesystem::path home()
+{
+	auto home = std::getenv("HOME");
+	return home ? home : "";
+}
+
 std::pair<std::string, std::string> read_vr_manifest()
 {
 	// system Steam
@@ -47,9 +53,15 @@ std::pair<std::string, std::string> read_vr_manifest()
 	if (not manifest.empty())
 		return {"steam", manifest};
 
+	auto h = home();
+
+	// system Steam (accessed from flatpak)
+	manifest = read_file(h / ".local/share/Steam/config/steamapps.vrmanifest");
+	if (not manifest.empty())
+		return {"steam", manifest};
+
 	// Flatpak Steam
-	auto home = std::getenv("HOME");
-	manifest = read_file(std::filesystem::path(home ? home : "") / ".var/app/com.valvesoftware.Steam/.steam/steam/config/steamapps.vrmanifest");
+	manifest = read_file(h / ".var/app/com.valvesoftware.Steam/.steam/steam/config/steamapps.vrmanifest");
 	if (not manifest.empty())
 		return {"flatpak run com.valvesoftware.Steam", manifest};
 	return {};
