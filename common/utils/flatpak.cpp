@@ -23,10 +23,11 @@
 #include <fstream>
 
 static const std::filesystem::path info_path = "/.flatpak-info";
+static const bool is_flatpak_v = std::filesystem::exists(info_path);
 
 bool wivrn::is_flatpak()
 {
-	return std::filesystem::exists(info_path);
+	return is_flatpak_v;
 }
 
 std::optional<std::string> wivrn::flatpak_key(std::string section, std::string key)
