@@ -10,7 +10,7 @@ add_executable(wivrn-dashboard
     main.cpp
     wivrn_server.cpp
     wivrn_qdbus_types.cpp
-    steam_apps.cpp
+    apps.cpp
     escape_string.cpp
     settings.cpp
     rectangle_partitionner.cpp

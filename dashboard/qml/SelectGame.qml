@@ -12,24 +12,21 @@ ColumnLayout {
     Component.onCompleted: {
         apps.append({
             "name": i18nc("don't start an application automatically", "None"),
-            "image_path": "",
             "command": "",
             "is_custom": false
         });
 
         apps.append({
             "name": i18nc("choose a custom application to start", "Custom"),
-            "image_path": "",
             "command": "",
             "is_custom": true
         });
 
-        var steam_apps = SteamApps.apps;
-        for (var i = 0; i < steam_apps.length; i++) {
+        var vr_apps = Apps.apps;
+        for (var i = 0; i < vr_apps.length; i++) {
             apps.append({
-                "name": steam_apps[i].name,
-                "image_path": steam_apps[i].imagePath,
-                "command": steam_apps[i].command,
+                "name": vr_apps[i].name,
+                "command": vr_apps[i].command,
                 "is_custom": false
             });
         }
