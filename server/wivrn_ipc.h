@@ -47,7 +47,12 @@ struct bitrate_changed
 	uint32_t bitrate_bps;
 };
 
-using packets = std::variant<wivrn::from_headset::headset_info_packet, headset_connected, headset_disconnected, bitrate_changed>;
+using packets = std::variant<
+        wivrn::from_headset::headset_info_packet,
+        wivrn::from_headset::start_app,
+        headset_connected,
+        headset_disconnected,
+        bitrate_changed>;
 } // namespace from_monado
 
 namespace to_monado

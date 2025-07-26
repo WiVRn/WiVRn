@@ -5,6 +5,7 @@
  * @brief  Main file for WiVRn Monado service.
  */
 
+#include "application.h"
 #include "openxr/openxr.h"
 #include "sleep_inhibitor.h"
 #include "util/u_trace_marker.h"
@@ -509,6 +510,11 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 			                   on_headset_info_packet(std::get<wivrn::from_headset::headset_info_packet>(*packet));
 			                   inhibitor.emplace();
 			                   wivrn_server_set_headset_connected(dbus_server, true);
+		                   },
+		                   [&](const wivrn::from_headset::start_app & request) {
+			                   const auto & apps = list_applications();
+			                   if (auto it = apps.find(request.app_id); it != apps.end())
+				                   children->start_application(it->second.exec);
 		                   },
 		                   [&](const from_monado::headset_connected &) {
 			                   stop_publishing();

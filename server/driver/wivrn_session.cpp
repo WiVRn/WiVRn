@@ -742,6 +742,11 @@ void wivrn_session::operator()(from_headset::get_application_list && request)
 	send_control(std::move(response));
 }
 
+void wivrn_session::operator()(const from_headset::start_app & request)
+{
+	send_to_main(request);
+}
+
 void wivrn_session::operator()(audio_data && data)
 {
 	if (audio_handle)

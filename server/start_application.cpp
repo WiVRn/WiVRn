@@ -1,5 +1,6 @@
 /*
  * WiVRn VR streaming
+ * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
  * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -31,6 +32,73 @@ namespace wivrn
 {
 
 children_manager::~children_manager() {}
+
+static std::vector<std::string> unescape_string(const std::string & app_string)
+{
+	std::vector<std::string> app;
+	app.emplace_back();
+
+	bool seen_backslash = false;
+	bool seen_single_quote = false;
+	bool seen_double_quote = false;
+	for (auto c: app_string)
+	{
+		if (seen_backslash)
+		{
+			app.back() += c;
+			seen_backslash = false;
+		}
+		else if (seen_single_quote)
+		{
+			if (c == '\'')
+				seen_single_quote = false;
+			else if (c == '\\')
+				seen_backslash = true;
+			else
+				app.back() += c;
+		}
+		else if (seen_double_quote)
+		{
+			if (c == '"')
+				seen_double_quote = false;
+			else if (c == '\\')
+				seen_backslash = true;
+			else
+				app.back() += c;
+		}
+		else
+		{
+			switch (c)
+			{
+				case '\\':
+					seen_backslash = true;
+					break;
+				case '\'':
+					seen_single_quote = true;
+					break;
+				case '"':
+					seen_double_quote = true;
+					break;
+				case ' ':
+					if (app.back() != "")
+						app.emplace_back();
+					break;
+				default:
+					app.back() += c;
+			}
+		}
+	}
+
+	if (app.back() == "")
+		app.pop_back();
+
+	return app;
+}
+
+void children_manager::start_application(const std::string & exec)
+{
+	start_application(unescape_string(exec));
+}
 
 forked_children::forked_children(std::function<void()> state_changed_cb) :
         state_changed_cb(state_changed_cb) {}

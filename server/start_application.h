@@ -33,6 +33,7 @@ public:
 	virtual ~children_manager();
 
 	virtual void start_application(const std::vector<std::string> &) = 0;
+	void start_application(const std::string &);
 
 	virtual bool running() const = 0;
 

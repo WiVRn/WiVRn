@@ -450,6 +450,11 @@ struct get_application_list
 	std::string variant;
 };
 
+struct start_app
+{
+	std::string app_id;
+};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_1,
@@ -471,7 +476,8 @@ using packets = std::variant<
         session_state_changed,
         user_presence_changed,
         override_foveation_center,
-        get_application_list>;
+        get_application_list,
+        start_app>;
 } // namespace from_headset
 
 namespace to_headset
