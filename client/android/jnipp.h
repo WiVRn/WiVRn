@@ -85,6 +85,30 @@ struct Void
 	constexpr static const auto call_static_method = &_JNIEnv::CallStaticVoidMethod;
 };
 
+struct Int
+{
+	constexpr static auto static_field = &_JNIEnv::GetStaticIntField;
+	constexpr static const auto call_method = &_JNIEnv::CallIntMethod;
+	constexpr static const auto call_static_method = &_JNIEnv::CallStaticIntMethod;
+
+	static std::string type()
+	{
+		return "I";
+	}
+
+	int value;
+
+	int handle() const
+	{
+		return value;
+	}
+
+	operator int() const
+	{
+		return value;
+	}
+};
+
 namespace details
 {
 
@@ -137,6 +161,12 @@ template <>
 struct type_map<void>
 {
 	using type = jni::Void;
+};
+
+template <>
+struct type_map<int>
+{
+	using type = jni::Int;
 };
 
 template <typename T>
@@ -219,30 +249,6 @@ struct Bool
 	}
 
 	operator bool() const
-	{
-		return value;
-	}
-};
-
-struct Int
-{
-	constexpr static auto static_field = &_JNIEnv::GetStaticIntField;
-	constexpr static const auto call_method = &_JNIEnv::CallIntMethod;
-	constexpr static const auto call_static_method = &_JNIEnv::CallStaticIntMethod;
-
-	static std::string type()
-	{
-		return "I";
-	}
-
-	int value;
-
-	int handle() const
-	{
-		return value;
-	}
-
-	operator int() const
 	{
 		return value;
 	}
