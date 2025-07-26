@@ -44,4 +44,5 @@ public:
 	scene_loader(const scene_loader &) = default;
 
 	std::shared_ptr<entt::registry> operator()(const std::filesystem::path & gltf_path);
+	std::shared_ptr<entt::registry> operator()(std::span<const std::byte> data, const std::string & name = "", const std::filesystem::path & parent_path = "");
 };

@@ -516,9 +516,51 @@ std::shared_ptr<entt::registry> scene::load_gltf(const std::filesystem::path & p
 	return gltf_cache->load(path.native(), path);
 }
 
+std::shared_ptr<entt::registry> scene::load_gltf(std::span<const std::byte> data)
+{
+	return gltf_cache->load_uncached(data);
+}
+
 std::pair<entt::entity, components::node &> scene::add_gltf(const std::filesystem::path & path, uint32_t layer_mask)
 {
 	return add_gltf(load_gltf(path), layer_mask);
+}
+
+std::pair<entt::entity, components::node &> scene::add_gltf(std::span<const std::byte> data, uint32_t layer_mask)
+{
+	return add_gltf(load_gltf(data), layer_mask);
+}
+
+void scene::remove(entt::entity entity)
+{
+	std::vector to_be_removed{entity};
+
+	while (not to_be_removed.empty())
+	{
+		entt::entity parent = to_be_removed.back();
+		to_be_removed.pop_back();
+		spdlog::info("Destroying entity {}", (int)parent);
+		world.destroy(parent);
+
+		for (auto [e, node]: world.view<components::node>().each())
+		{
+			if (node.parent == parent)
+				to_be_removed.push_back(e);
+		}
+
+		for (auto [e, anim]: world.view<components::animation>().each())
+		{
+			if (std::ranges::any_of(anim.tracks,
+			                        [&](const auto & track) { return std::visit(
+				                                                  [&](const components::animation_track_base & track) {
+					                                                  return track.target == parent;
+				                                                  },
+				                                                  track); }))
+			{
+				to_be_removed.push_back(e);
+			}
+		}
+	}
 }
 
 void scene::on_unfocused() {}
