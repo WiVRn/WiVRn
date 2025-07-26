@@ -945,7 +945,7 @@ void scenes::lobby::on_unfocused()
 
 	about_picture = 0;
 	imgui_ctx.reset();
-	world.clear();
+	world = entt::registry{};
 
 	input.reset();
 	left_hand.reset();
