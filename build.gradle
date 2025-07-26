@@ -72,6 +72,7 @@ android {
         versionName = project.hasProperty('wivrn_version') ? wivrn_version : "1.0"
         versionCode = project.hasProperty('wivrn_versionCode') ? wivrn_versionCode.toInteger() : 1
         def showImguiDemo = project.hasProperty('wivrn_show_imgui_demo') ? wivrn_show_imgui_demo : 'OFF'
+        def showDebugMenu = project.hasProperty('wivrn_show_debug_menu') ? wivrn_show_debug_menu : 'OFF'
 
         externalNativeBuild {
             def css = project.hasProperty('wivrn_css') ? project.wivrn_css: "images/wivrn-local.css"
@@ -90,6 +91,7 @@ android {
                           '-DWIVRN_BUILD_DASHBOARD=OFF',
                           '-DWIVRN_WERROR=ON',
                           '-DWIVRN_SHOW_IMGUI_DEMO_WINDOW=' + showImguiDemo,
+                          '-DWIVRN_CLIENT_DEBUG_MENU=' + showDebugMenu,
                           '-DWIVRN_CSS=' + css
                 resValue "string", "app_name", project.hasProperty('wivrn_app_name') ? project.wivrn_app_name : "WiVRn Local"
             }
