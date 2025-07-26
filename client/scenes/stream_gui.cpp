@@ -31,9 +31,11 @@
 #include <IconsFontAwesome6.h>
 #include <chrono>
 #include <cmath>
+#include <glm/gtc/matrix_access.hpp>
 #include <limits>
 #include <ranges>
 #include <spdlog/spdlog.h>
+#include <openxr/openxr.h>
 
 namespace
 {
@@ -393,7 +395,7 @@ void scenes::stream::gui_performance_metrics()
 		if (is_gui_interactable())
 			ImGui::Text("%s", _S("Press the grip button to move the window"));
 		else
-			ImGui::Text("%s", _S("Press both thumbsticks to interact"));
+			ImGui::Text("%s", _S("Press both thumbsticks to display the GUI"));
 	}
 }
 
@@ -590,47 +592,133 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 	});
 }
 
-std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
+// Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
+static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
 {
-	const float TabWidth = 300;
-	const ImVec2 MarginAroundWindow{50, 50};
+	glm::quat q{
+	        pose.orientation.w,
+	        pose.orientation.x,
+	        pose.orientation.y,
+	        pose.orientation.z,
+	};
+
+	glm::vec3 p{
+	        pose.position.x,
+	        pose.position.y,
+	        pose.position.z,
+	};
+
+	glm::vec3 normal = glm::column(glm::mat3_cast(q), 2);
+
+	return glm::vec4(normal, -glm::dot(p, normal) - margin);
+}
+
+void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
+{
+	bool interactable = is_gui_interactable();
+	XrSpace world_space = application::space(xr::spaces::world);
+	auto views = session.locate_views(viewconfig, predicted_display_time, world_space).second;
+
+	imgui_ctx->set_controllers_enabled(interactable);
+
+	if (gui_status != last_gui_status)
+	{
+		last_gui_status = gui_status;
+		gui_status_last_change = predicted_display_time;
+
+		// Override session state if the GUI is interactable
+		if (not is_gui_interactable())
+			network_session->send_control(from_headset::session_state_changed{
+			        .state = application::get_session_state(),
+			});
+		else if (application::get_session_state() == XR_SESSION_STATE_FOCUSED)
+			network_session->send_control(from_headset::session_state_changed{
+			        .state = XR_SESSION_STATE_VISIBLE,
+			});
+	}
+
+	float alpha = 1;
+	if (gui_status == gui_status::hidden)
+	{
+		float t = (predicted_display_time - gui_status_last_change) * 1.e-9f;
+
+		alpha = std::clamp<float>(1 - (t - constants::stream::fade_delay) / constants::stream::fade_duration, 0, 1);
+
+		if (alpha == 0)
+			return;
+	}
+
+	// Lock the GUI position to the head, do it before displaying the GUI to avoid being off by one frame when gui_status changes
+	std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::space(xr::spaces::view), world_space, predicted_display_time);
+	if (head_position)
+	{
+		glm::mat3 M = glm::mat3_cast(head_position->second);
+		switch (gui_status)
+		{
+			case gui_status::foveation_settings:
+				imgui_ctx->layers()[0].orientation = head_position->second;
+				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, -override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
+				break;
+
+			case gui_status::hidden:
+				// Always use the same position for the GUI shortcut tip
+				imgui_ctx->layers()[0].orientation = head_position->second;
+				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0.0, -0.3, -1.2};
+				break;
+
+			case gui_status::overlay_only:
+			case gui_status::compact:
+			case gui_status::stats:
+			case gui_status::settings:
+				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
+				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
+				break;
+		}
+	}
+
+	const float tab_width = 300;
+	const ImVec2 margin_around_window{50, 50};
 
 	const ImGuiStyle & style = ImGui::GetStyle();
 	imgui_ctx->new_frame(predicted_display_time);
 
-	bool interactable = gui_status == gui_status::stats or gui_status == gui_status::settings;
-	bool compact = gui_status == gui_status::compact or gui_status == gui_status::foveation_settings;
+	ImVec2 content_size{ImGui::GetMainViewport()->Size - ImVec2{tab_width, 0} - margin_around_window * 2};
+	ImVec2 content_center = margin_around_window + content_size / 2 + ImVec2{tab_width, 0};
 
-	ImVec2 content_size{ImGui::GetMainViewport()->Size - ImVec2{TabWidth, 0} - MarginAroundWindow * 2};
-	ImVec2 content_center = MarginAroundWindow + content_size / 2 + ImVec2{TabWidth, 0};
-
+	bool display_tabs, always_auto_resize;
 	switch (gui_status)
 	{
-		case gui_status::hidden:
-			break;
-
 		case gui_status::overlay_only:
 			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			ImGui::SetNextWindowSize(content_size);
+			always_auto_resize = false;
+			display_tabs = false;
 			break;
 
+		case gui_status::hidden:
 		case gui_status::foveation_settings:
 			ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			always_auto_resize = true;
+			display_tabs = false;
 			break;
 
 		case gui_status::compact:
 			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			always_auto_resize = true;
+			display_tabs = false;
 			break;
 
 		case gui_status::stats:
 		case gui_status::settings:
-			ImGui::SetNextWindowPos(MarginAroundWindow);
-			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - MarginAroundWindow * 2);
+			ImGui::SetNextWindowPos(margin_around_window);
+			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - margin_around_window * 2);
+			always_auto_resize = false;
+			display_tabs = true;
 			break;
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0);
-	if (compact)
+	if (always_auto_resize)
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
 		ImGui::Begin("Compact view", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
@@ -647,6 +735,9 @@ std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_di
 	switch (gui_status)
 	{
 		case gui_status::hidden:
+			ImGui::PushFont(nullptr, constants::gui::font_size_large);
+			ImGui::Text("%s", _S("Press both thumbsticks to display the GUI"));
+			ImGui::PopFont();
 			break;
 
 		case gui_status::overlay_only:
@@ -661,14 +752,14 @@ std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_di
 			break;
 
 		case gui_status::stats:
-			ImGui::SetCursorPos({TabWidth + 20, 20});
+			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_performance_metrics();
 			ImGui::EndChild();
 			break;
 
 		case gui_status::settings:
-			ImGui::SetCursorPos({TabWidth + 20, 20});
+			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_settings();
 			ImGui::EndChild();
@@ -681,34 +772,34 @@ std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_di
 
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding
 
-	if (interactable)
+	if (display_tabs)
 	{
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(0, 0, 0, 255));
 		ImGui::SetCursorPos(style.WindowPadding);
 		{
-			ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
+			ImGui::BeginChild("Tabs", {tab_width, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), gui_status, gui_status::stats, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), gui_status, gui_status::stats, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), gui_status, gui_status::settings, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), gui_status, gui_status::settings, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			int n_items_at_end = 4;
 			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - n_items_at_end * ImGui::GetCurrentContext()->FontSize - (n_items_at_end * 2) * style.FramePadding.y - (n_items_at_end - 1) * style.ItemSpacing.y - style.WindowPadding.y);
 
-			RadioButtonWithoutCheckBox(ICON_FA_EYE_SLASH "  " + _("Hide"), gui_status, gui_status::hidden, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_EYE_SLASH "  " + _("Hide"), gui_status, gui_status::hidden, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Overlay only"), gui_status, gui_status::overlay_only, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Overlay only"), gui_status, gui_status::overlay_only, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_MINIMIZE "  " + _("Compact view"), gui_status, gui_status::compact, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_MINIMIZE "  " + _("Compact view"), gui_status, gui_status::compact, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			bool dummy = false;
-			if (RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Disconnect"), dummy, true, {TabWidth, 0}))
+			if (RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Disconnect"), dummy, true, {tab_width, 0}))
 				exit();
 			imgui_ctx->vibrate_on_hover();
 
@@ -720,9 +811,99 @@ std::vector<XrCompositionLayerQuad> scenes::stream::draw_gui(XrTime predicted_di
 	ImGui::End();
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_ChildBorderSize, ImGuiStyleVar_WindowPadding
 
-	std::vector<XrCompositionLayerQuad> layers;
-	for (auto & layer: imgui_ctx->end_frame())
-		layers.push_back(layer.second);
+	auto layers = imgui_ctx->end_frame();
 
-	return layers;
+	// Display controllers and handle recentering
+	if (interactable)
+	{
+		if (recentering_context)
+		{
+			xr::spaces controller = std::get<0>(*recentering_context);
+			bool state;
+			switch (controller)
+			{
+				case xr::spaces::aim_left:
+					state = application::read_action_bool(recenter_left).value_or(std::pair{0, false}).second;
+					break;
+				case xr::spaces::aim_right:
+					state = application::read_action_bool(recenter_right).value_or(std::pair{0, false}).second;
+					break;
+				default:
+					state = false;
+					break;
+			}
+
+			if (state)
+				update_gui_position(controller);
+			else
+				recentering_context.reset();
+		}
+		else if (auto state = application::read_action_bool(recenter_left); state and state->second)
+			update_gui_position(xr::spaces::aim_left);
+		else if (auto state = application::read_action_bool(recenter_right); state and state->second)
+			update_gui_position(xr::spaces::aim_right);
+		else
+			recentering_context.reset();
+
+		std::vector<glm::vec4> ray_limits;
+
+		for (auto [_, layer]: layers)
+			ray_limits.push_back(compute_ray_limits(layer.pose));
+
+		bool hide_left_controller = false;
+		bool hide_right_controller = false;
+
+		if (application::get_hand_tracking_supported())
+		{
+			auto left = application::get_left_hand().locate(world_space, predicted_display_time);
+			auto right = application::get_right_hand().locate(world_space, predicted_display_time);
+
+			if (left and xr::hand_tracker::check_flags(*left, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
+				hide_left_controller = true;
+
+			if (right and xr::hand_tracker::check_flags(*right, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
+				hide_right_controller = true;
+		}
+
+		input->apply(world, world_space, predicted_display_time, hide_left_controller, hide_right_controller, ray_limits);
+
+		// Add the layer with the controllers
+		if (composition_layer_depth_test_supported)
+		{
+			render_world(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+			             world_space,
+			             views,
+			             width,
+			             height,
+			             true,
+			             layer_controllers,
+			             {});
+			set_depth_test(true, XR_COMPARE_OP_ALWAYS_FB);
+		}
+	}
+
+	// Add the layer with the GUI
+	for (auto [_, layer]: layers)
+	{
+		add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
+		if (composition_layer_depth_test_supported)
+			set_depth_test(true, XR_COMPARE_OP_LESS_FB);
+		if (alpha < 1 and composition_layer_color_scale_bias_supported)
+			set_color_scale_bias({alpha, alpha, alpha, alpha}, {});
+	}
+
+	// Display the controller rays
+	if (interactable)
+	{
+		render_world(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+		             world_space,
+		             views,
+		             width,
+		             height,
+		             composition_layer_depth_test_supported,
+		             composition_layer_depth_test_supported ? layer_rays : layer_controllers | layer_rays,
+		             {});
+		if (composition_layer_depth_test_supported)
+			set_depth_test(true, XR_COMPARE_OP_LESS_FB);
+	}
 }

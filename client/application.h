@@ -476,6 +476,11 @@ public:
 		return *instance().config;
 	}
 
+	static XrSessionState get_session_state()
+	{
+		return instance().session_state;
+	}
+
 	static boost::locale::gnu_gettext::messages_info & get_messages_info()
 	{
 		return instance().messages_info;

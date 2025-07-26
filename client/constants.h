@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <array>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -104,6 +103,16 @@ constexpr int zindex_gui = 0;
 constexpr int zindex_controllers = 1;
 constexpr int zindex_recenter_tip = 2;
 } // namespace constants::lobby
+
+namespace constants::stream
+{
+constexpr float fade_delay = 3;
+constexpr float fade_duration = 0.25;
+
+// Dimming for the streamed video when the GUI is interactable
+constexpr float dimming_scale = 0.7;
+constexpr float dimming_bias = 0.15;
+} // namespace constants::stream
 
 namespace constants::style
 {

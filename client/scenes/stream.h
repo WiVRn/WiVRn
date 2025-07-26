@@ -145,7 +145,11 @@ private:
 
 	bool is_gui_interactable() const;
 
-	std::atomic<gui_status> gui_status = gui_status::stats;
+	std::atomic<gui_status> gui_status = gui_status::hidden;
+	enum gui_status last_gui_status = gui_status::hidden;
+	XrTime gui_status_last_change;
+	float dimming = 0;
+
 	XrAction plots_toggle_1 = XR_NULL_HANDLE;
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
 	XrAction recenter_left = XR_NULL_HANDLE;
@@ -293,6 +297,6 @@ private:
 	void gui_compact_view();
 	void gui_settings();
 	void gui_foveation_settings(float predicted_display_period);
-	std::vector<XrCompositionLayerQuad> draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);
+	void draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);
 };
 } // namespace scenes

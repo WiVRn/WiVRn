@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "constants.h"
 #include "utils/overloaded.h"
 #include "xr/fb_body_tracker.h"
 #include "xr/fb_face_tracker2.h"
@@ -384,91 +385,90 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 void scenes::stream::on_focused()
 {
-	if (application::get_config().show_performance_metrics)
+	gui_status_last_change = application::now();
+
+	auto views = system.view_configuration_views(viewconfig);
+	// stream_view = override_view(views[0], guess_model());
+	width = views[0].recommendedImageRectWidth;
+	height = views[0].recommendedImageRectHeight;
+
+	renderer.emplace(device, physical_device, queue, commandpool);
+	loader.emplace(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
+
+	std::string profile = controller_name();
+	input.emplace(
+	        *this,
+	        "controllers/" + profile + "/profile.json",
+	        layer_controllers,
+	        layer_rays);
+
+	spdlog::info("Loaded input profile {}", input->id);
+
+	for (auto i: {xr::spaces::aim_left, xr::spaces::aim_right, xr::spaces::grip_left, xr::spaces::grip_right})
 	{
-		auto views = system.view_configuration_views(viewconfig);
-		// stream_view = override_view(views[0], guess_model());
-		width = views[0].recommendedImageRectWidth;
-		height = views[0].recommendedImageRectHeight;
+		auto [p, q] = input->offset[i] = controller_offset(controller_name(), i);
 
-		renderer.emplace(device, physical_device, queue, commandpool);
-		loader.emplace(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
-
-		std::string profile = controller_name();
-		input.emplace(
-		        *this,
-		        "controllers/" + profile + "/profile.json",
-		        layer_controllers,
-		        layer_rays);
-
-		spdlog::info("Loaded input profile {}", input->id);
-
-		for (auto i: {xr::spaces::aim_left, xr::spaces::aim_right, xr::spaces::grip_left, xr::spaces::grip_right})
-		{
-			auto [p, q] = input->offset[i] = controller_offset(controller_name(), i);
-
-			auto rot = glm::degrees(glm::eulerAngles(q));
-			spdlog::info("Initializing offset of space {} to ({}, {}, {}) mm, ({}, {}, {})°",
-			             magic_enum::enum_name(i),
-			             1000 * p.x,
-			             1000 * p.y,
-			             1000 * p.z,
-			             rot.x,
-			             rot.y,
-			             rot.z);
-		}
-
-		std::array imgui_inputs{
-		        imgui_context::controller{
-		                .aim = get_action_space("left_aim"),
-		                .offset = input->offset[xr::spaces::aim_left],
-		                .trigger = get_action("left_trigger").first,
-		                .squeeze = get_action("left_squeeze").first,
-		                .scroll = get_action("left_scroll").first,
-		                .haptic_output = get_action("left_haptic").first,
-		        },
-		        imgui_context::controller{
-		                .aim = get_action_space("right_aim"),
-		                .offset = input->offset[xr::spaces::aim_right],
-		                .trigger = get_action("right_trigger").first,
-		                .squeeze = get_action("right_squeeze").first,
-		                .scroll = get_action("right_scroll").first,
-		                .haptic_output = get_action("right_haptic").first,
-		        },
-		};
-
-		swapchain_imgui = xr::swapchain(
-		        session,
-		        device,
-		        swapchain_format,
-		        1800,
-		        1000);
-
-		imgui_context::viewport vp{
-		        .space = xr::spaces::world,
-		        // Position and orientation are set at each frame
-		        .size = {1.2, 0.6666},
-		        .vp_origin = {0, 0},
-		        .vp_size = {1800, 1000},
-		};
-
-		imgui_ctx.emplace(physical_device,
-		                  device,
-		                  queue_family_index,
-		                  queue,
-		                  imgui_inputs,
-		                  swapchain_imgui,
-		                  std::vector{vp});
-
-		plots_toggle_1 = get_action("plots_toggle_1").first;
-		plots_toggle_2 = get_action("plots_toggle_2").first;
-		recenter_left = get_action("recenter_left").first;
-		recenter_right = get_action("recenter_right").first;
-		foveation_pitch = get_action("foveation_pitch").first;
-		foveation_distance = get_action("foveation_distance").first;
-		foveation_ok = get_action("foveation_ok").first;
-		foveation_cancel = get_action("foveation_cancel").first;
+		auto rot = glm::degrees(glm::eulerAngles(q));
+		spdlog::info("Initializing offset of space {} to ({}, {}, {}) mm, ({}, {}, {})°",
+		             magic_enum::enum_name(i),
+		             1000 * p.x,
+		             1000 * p.y,
+		             1000 * p.z,
+		             rot.x,
+		             rot.y,
+		             rot.z);
 	}
+
+	std::array imgui_inputs{
+	        imgui_context::controller{
+	                .aim = get_action_space("left_aim"),
+	                .offset = input->offset[xr::spaces::aim_left],
+	                .trigger = get_action("left_trigger").first,
+	                .squeeze = get_action("left_squeeze").first,
+	                .scroll = get_action("left_scroll").first,
+	                .haptic_output = get_action("left_haptic").first,
+	        },
+	        imgui_context::controller{
+	                .aim = get_action_space("right_aim"),
+	                .offset = input->offset[xr::spaces::aim_right],
+	                .trigger = get_action("right_trigger").first,
+	                .squeeze = get_action("right_squeeze").first,
+	                .scroll = get_action("right_scroll").first,
+	                .haptic_output = get_action("right_haptic").first,
+	        },
+	};
+
+	swapchain_imgui = xr::swapchain(
+	        session,
+	        device,
+	        swapchain_format,
+	        1800,
+	        1000);
+
+	imgui_context::viewport vp{
+	        .space = xr::spaces::world,
+	        // Position and orientation are set at each frame
+	        .size = {1.2, 0.6666},
+	        .vp_origin = {0, 0},
+	        .vp_size = {1800, 1000},
+	};
+
+	imgui_ctx.emplace(physical_device,
+	                  device,
+	                  queue_family_index,
+	                  queue,
+	                  imgui_inputs,
+	                  swapchain_imgui,
+	                  std::vector{vp});
+
+	plots_toggle_1 = get_action("plots_toggle_1").first;
+	plots_toggle_2 = get_action("plots_toggle_2").first;
+	recenter_left = get_action("recenter_left").first;
+	recenter_right = get_action("recenter_right").first;
+	foveation_pitch = get_action("foveation_pitch").first;
+	foveation_distance = get_action("foveation_distance").first;
+	foveation_ok = get_action("foveation_ok").first;
+	foveation_cancel = get_action("foveation_cancel").first;
 
 	assert(video_stream_description);
 	std::unique_lock lock(decoder_mutex);
@@ -479,9 +479,8 @@ void scenes::stream::on_focused()
 
 void scenes::stream::on_unfocused()
 {
-	if (renderer)
-		renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
-	world.clear();                 // Must be cleared before the renderer so that the descriptor sets are freed before their pools
+	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
+	world.clear();         // Must be cleared before the renderer so that the descriptor sets are freed before their pools
 	input.reset();
 	loader.reset();
 	renderer.reset();
@@ -658,27 +657,6 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 	return nullptr;
 }
 
-// Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
-static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
-{
-	glm::quat q{
-	        pose.orientation.w,
-	        pose.orientation.x,
-	        pose.orientation.y,
-	        pose.orientation.z,
-	};
-
-	glm::vec3 p{
-	        pose.position.x,
-	        pose.position.y,
-	        pose.position.z,
-	};
-
-	glm::vec3 normal = glm::column(glm::mat3_cast(q), 2);
-
-	return glm::vec4(normal, -glm::dot(p, normal) - margin);
-}
-
 void scenes::stream::update_gui_position(xr::spaces controller)
 {
 	auto aim = application::locate_controller(
@@ -734,9 +712,6 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 
 bool scenes::stream::is_gui_interactable() const
 {
-	if (not imgui_ctx)
-		return false;
-
 	switch (gui_status)
 	{
 		case gui_status::stats:
@@ -1160,126 +1135,29 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	        application::space(xr::spaces::world),
 	        std::move(layer_view));
 
-	bool interactable = is_gui_interactable();
+	if (composition_layer_color_scale_bias_supported)
+	{
+		if (is_gui_interactable())
+			dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
+		else
+			dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
 
-	if (composition_layer_color_scale_bias_supported and imgui_ctx and interactable)
-		set_color_scale_bias({0.7, 0.7, 0.7, 1}, {0.15, 0.15, 0.15, 0});
+		dimming = std::clamp<float>(dimming, 0, 1);
+		float x = dimming * dimming * (3 - 2 * dimming); // Easing function
+
+		float scale = std::lerp(1, constants::stream::dimming_scale, x);
+		float bias = std::lerp(0, constants::stream::dimming_bias, x);
+
+		set_color_scale_bias({scale, scale, scale, 1}, {bias, bias, bias, 0});
+	}
 
 	if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
 	    (openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
 		set_layer_settings(openxr_post_processing.sharpening | openxr_post_processing.super_sampling);
 
-	if (imgui_ctx)
-	{
-		XrSpace world_space = application::space(xr::spaces::world);
-		std::vector<XrCompositionLayerQuad> imgui_layers;
-		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
-		auto views = session.locate_views(viewconfig, frame_state.predictedDisplayTime, world_space).second;
+	accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
 
-		imgui_ctx->set_controllers_enabled(interactable);
-		if (gui_status != gui_status::hidden)
-			imgui_layers = draw_gui(frame_state.predictedDisplayTime, frame_state.predictedDisplayPeriod);
-
-		// Display controllers and handle recentering
-		if (interactable)
-		{
-			if (recentering_context)
-			{
-				xr::spaces controller = std::get<0>(*recentering_context);
-				bool state;
-				switch (controller)
-				{
-					case xr::spaces::aim_left:
-						state = application::read_action_bool(recenter_left).value_or(std::pair{0, false}).second;
-						break;
-					case xr::spaces::aim_right:
-						state = application::read_action_bool(recenter_right).value_or(std::pair{0, false}).second;
-						break;
-					default:
-						state = false;
-						break;
-				}
-
-				if (state)
-					update_gui_position(controller);
-				else
-					recentering_context.reset();
-			}
-			else if (auto state = application::read_action_bool(recenter_left); state and state->second)
-				update_gui_position(xr::spaces::aim_left);
-			else if (auto state = application::read_action_bool(recenter_right); state and state->second)
-				update_gui_position(xr::spaces::aim_right);
-			else
-				recentering_context.reset();
-
-			std::vector<glm::vec4> ray_limits;
-			for (auto & layer: imgui_layers)
-			{
-				ray_limits.push_back(compute_ray_limits(layer.pose));
-			}
-
-			input->apply(world, world_space, frame_state.predictedDisplayTime, false, false, ray_limits);
-
-			// Add the layer with the controllers
-			if (composition_layer_depth_test_supported)
-			{
-				render_world(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-				             world_space,
-				             views,
-				             width,
-				             height,
-				             true,
-				             layer_controllers,
-				             {});
-				set_depth_test(true, XR_COMPARE_OP_ALWAYS_FB);
-			}
-		}
-
-		// Display the GUI
-		if (gui_status != gui_status::hidden)
-		{
-			// Lock the GUI position to the head
-			std::optional<std::pair<glm::vec3, glm::quat>> head_position = application::locate_controller(application::space(xr::spaces::view), world_space, frame_state.predictedDisplayTime);
-			if (head_position)
-			{
-				if (gui_status == gui_status::foveation_settings)
-				{
-					glm::mat3 M = glm::mat3_cast(head_position->second);
-					imgui_ctx->layers()[0].orientation = head_position->second;
-					imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, -override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
-				}
-				else
-				{
-					glm::mat3 M = glm::mat3_cast(head_position->second);
-					imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
-					imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
-				}
-			}
-
-			// Add the layer with the GUI
-			for (auto & layer: imgui_layers)
-			{
-				add_quad_layer(layer.layerFlags, layer.space, layer.eyeVisibility, layer.subImage, layer.pose, layer.size);
-				if (composition_layer_depth_test_supported)
-					set_depth_test(true, XR_COMPARE_OP_LESS_FB);
-			}
-		}
-
-		// Display the controller rays
-		if (interactable)
-		{
-			render_world(XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
-			             world_space,
-			             views,
-			             width,
-			             height,
-			             composition_layer_depth_test_supported,
-			             composition_layer_depth_test_supported ? layer_rays : layer_controllers | layer_rays,
-			             {});
-			if (composition_layer_depth_test_supported)
-				set_depth_test(true, XR_COMPARE_OP_LESS_FB);
-		}
-	}
+	draw_gui(frame_state.predictedDisplayTime, frame_state.predictedDisplayPeriod);
 
 	try
 	{
@@ -1350,10 +1228,8 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 				case gui_status::stats:
 				case gui_status::settings:
-					gui_status = gui_status::overlay_only;
-					break;
-
 				case gui_status::foveation_settings:
+					gui_status = gui_status::hidden;
 					break;
 			}
 		}
@@ -1637,9 +1513,15 @@ void scenes::stream::on_xr_event(const xr::event & event)
 			});
 			break;
 		case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED:
-			network_session->send_control(from_headset::session_state_changed{
-			        .state = event.state_changed.state,
-			});
+			// Override session state if the GUI is interactable
+			if (event.state_changed.state == XR_SESSION_STATE_FOCUSED and is_gui_interactable())
+				network_session->send_control(from_headset::session_state_changed{
+				        .state = XR_SESSION_STATE_VISIBLE,
+				});
+			else
+				network_session->send_control(from_headset::session_state_changed{
+				        .state = event.state_changed.state,
+				});
 			break;
 		case XR_TYPE_EVENT_DATA_USER_PRESENCE_CHANGED_EXT:
 			network_session->send_control(from_headset::user_presence_changed{

@@ -205,9 +205,6 @@ configuration::configuration(xr::system & system)
 			servers.emplace(data.service.txt["cookie"], data);
 		}
 
-		if (auto val = root["show_performance_metrics"]; val.is_bool())
-			show_performance_metrics = val.get_bool();
-
 		if (auto val = root["preferred_refresh_rate"]; val.is_double())
 			preferred_refresh_rate = val.get_double();
 
@@ -269,7 +266,6 @@ configuration::configuration(xr::system & system)
 		resolution_scale = 1.4;
 		sgsr = {};
 		openxr_post_processing = {};
-		show_performance_metrics = false;
 		passthrough_enabled = system.passthrough_supported() == xr::system::passthrough_type::color;
 	}
 }
@@ -355,8 +351,7 @@ void configuration::save()
 
 	std::ofstream json(application::get_config_path() / "client.json");
 
-	json << "{\"servers\":[" << servers_str << "],"
-	     << "\"show_performance_metrics\":" << std::boolalpha << show_performance_metrics;
+	json << "{\"servers\":[" << servers_str << "]";
 	if (preferred_refresh_rate)
 		json << ",\"preferred_refresh_rate\":" << *preferred_refresh_rate;
 	if (minimum_refresh_rate)

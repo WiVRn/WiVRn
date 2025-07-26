@@ -50,7 +50,6 @@ public:
 	std::optional<float> preferred_refresh_rate;
 	std::optional<float> minimum_refresh_rate;
 	float resolution_scale = 1.4;
-	bool show_performance_metrics = false;
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
 

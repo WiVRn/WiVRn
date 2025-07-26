@@ -750,67 +750,7 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->tooltip(_("This feature is not supported by your headset"));
 	ImGui::EndDisabled();
 
-	if (ImGui::Checkbox(_S("Show performance metrics"), &config.show_performance_metrics))
-		config.save();
-	imgui_ctx->vibrate_on_hover();
-	if (ImGui::IsItemHovered())
-		imgui_ctx->tooltip(_("Overlay can be toggled by pressing both thumbsticks"));
-
-	ImGui::PopStyleVar();
-
-	if (config.show_performance_metrics)
-	{
-		float win_width = ImGui::GetWindowSize().x;
-		float win_height = ImGui::GetWindowSize().y;
-
-		ImVec2 plot_size{
-		        win_width / 2 - style.ItemSpacing.x / 2,
-		        win_height / 2};
-
-		static std::array<float, 300> cpu_time;
-		static std::array<float, 300> gpu_time;
-		static int offset = 0;
-
-		float min_v = 0;
-		float max_v = 20;
-
-		cpu_time[offset] = application::get_cpu_time().count() * 1.0e-6;
-		gpu_time[offset] = renderer->get_gpu_time() * 1'000;
-		offset = (offset + 1) % cpu_time.size();
-
-		ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
-		ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
-		ImPlot::PushStyleColor(ImPlotCol_AxisBg, IM_COL32(0, 0, 0, 0));
-		ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
-		ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
-
-		if (ImPlot::BeginPlot(_S("CPU time"), plot_size, ImPlotFlags_CanvasOnly))
-		{
-			auto col = ImPlot::GetColormapColor(0);
-
-			ImPlot::SetupAxes(nullptr, _S("CPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
-			ImPlot::SetupAxesLimits(0, cpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
-			ImPlot::SetNextLineStyle(col);
-			ImPlot::SetNextFillStyle(col, 0.25);
-			ImPlot::PlotLine(_S("CPU time"), cpu_time.data(), cpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
-			ImPlot::EndPlot();
-		}
-
-		ImGui::SameLine();
-
-		if (ImPlot::BeginPlot(_S("GPU time"), plot_size, ImPlotFlags_CanvasOnly))
-		{
-			auto col = ImPlot::GetColormapColor(1);
-
-			ImPlot::SetupAxes(nullptr, _S("GPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
-			ImPlot::SetupAxesLimits(0, gpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
-			ImPlot::SetNextLineStyle(col);
-			ImPlot::SetNextFillStyle(col, 0.25);
-			ImPlot::PlotLine(_S("GPU time"), gpu_time.data(), gpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
-			ImPlot::EndPlot();
-		}
-		ImPlot::PopStyleColor(5);
-	}
+	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
 }
 
 void scenes::lobby::gui_post_processing()
@@ -1023,6 +963,58 @@ void scenes::lobby::gui_debug()
 	if (ImGui::Button("Delete configuration file"))
 		std::filesystem::remove(application::get_config_path() / "client.json");
 	imgui_ctx->vibrate_on_hover();
+
+	float win_width = ImGui::GetWindowSize().x;
+	float win_height = ImGui::GetWindowSize().y;
+
+	ImGuiStyle & style = ImGui::GetStyle();
+	ImVec2 plot_size{
+	        win_width / 2 - style.ItemSpacing.x / 2,
+	        win_height / 2};
+
+	static std::array<float, 300> cpu_time;
+	static std::array<float, 300> gpu_time;
+	static int offset = 0;
+
+	float min_v = 0;
+	float max_v = 20;
+
+	cpu_time[offset] = application::get_cpu_time().count() * 1.0e-6;
+	gpu_time[offset] = renderer->get_gpu_time() * 1'000;
+	offset = (offset + 1) % cpu_time.size();
+
+	ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
+	ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
+	ImPlot::PushStyleColor(ImPlotCol_AxisBg, IM_COL32(0, 0, 0, 0));
+	ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
+	ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
+
+	if (ImPlot::BeginPlot(_S("CPU time"), plot_size, ImPlotFlags_CanvasOnly))
+	{
+		auto col = ImPlot::GetColormapColor(0);
+
+		ImPlot::SetupAxes(nullptr, _S("CPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
+		ImPlot::SetupAxesLimits(0, cpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
+		ImPlot::SetNextLineStyle(col);
+		ImPlot::SetNextFillStyle(col, 0.25);
+		ImPlot::PlotLine(_S("CPU time"), cpu_time.data(), cpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+		ImPlot::EndPlot();
+	}
+
+	ImGui::SameLine();
+
+	if (ImPlot::BeginPlot(_S("GPU time"), plot_size, ImPlotFlags_CanvasOnly))
+	{
+		auto col = ImPlot::GetColormapColor(1);
+
+		ImPlot::SetupAxes(nullptr, _S("GPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
+		ImPlot::SetupAxesLimits(0, gpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
+		ImPlot::SetNextLineStyle(col);
+		ImPlot::SetNextFillStyle(col, 0.25);
+		ImPlot::PlotLine(_S("GPU time"), gpu_time.data(), gpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+		ImPlot::EndPlot();
+	}
+	ImPlot::PopStyleColor(5);
 
 	ImGui::PopStyleVar();
 }
