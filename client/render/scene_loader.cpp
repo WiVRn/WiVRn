@@ -918,7 +918,7 @@ renderer::vertex::describe()
 	return desc;
 }
 
-std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::path & gltf_path)
+std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::byte> data, const std::string & name, const std::filesystem::path & parent_path)
 {
 	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
 	vk::raii::CommandPool cb_pool{device, vk::CommandPoolCreateInfo{
@@ -926,16 +926,12 @@ std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::
 	                                              .queueFamilyIndex = queue_family_index,
 	                                      }};
 
-	spdlog::debug("Loading {}", gltf_path.native());
-
-	asset asset_file(gltf_path);
-
-	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(asset_file.data(), asset_file.size());
+	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(data.data(), data.size());
 	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
 		throw std::system_error((int)error, fastgltf_error_category);
 
-	fastgltf::Asset asset = load_gltf_asset(data_buffer.get(), gltf_path.parent_path());
-	loader_context ctx(gltf_path.parent_path(), gltf_path, asset, physical_device, device, queue, cb_pool);
+	fastgltf::Asset asset = load_gltf_asset(data_buffer.get(), parent_path);
+	loader_context ctx(parent_path, name, asset, physical_device, device, queue, cb_pool);
 
 #ifndef NDEBUG
 	if (auto error = fastgltf::validate(asset); error != fastgltf::Error::None)
@@ -974,4 +970,17 @@ std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::
 		i->buffer = buffer;
 
 	return loaded_scene;
+}
+
+std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::path & gltf_path)
+{
+	spdlog::debug("Loading {}", gltf_path.native());
+
+	asset asset_file(gltf_path);
+
+	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(asset_file.data(), asset_file.size());
+	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
+		throw std::system_error((int)error, fastgltf_error_category);
+
+	return (*this)(asset_file, gltf_path.filename(), gltf_path.parent_path());
 }

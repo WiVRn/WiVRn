@@ -210,10 +210,12 @@ public:
 	entt::registry world;
 
 	std::shared_ptr<entt::registry> load_gltf(const std::filesystem::path & path);
+	std::shared_ptr<entt::registry> load_gltf(std::span<const std::byte> data);
 	std::pair<entt::entity, components::node &> add_gltf(std::shared_ptr<entt::registry> gltf, uint32_t layer_mask = -1);
 	std::pair<entt::entity, components::node &> add_gltf(const std::filesystem::path & path, uint32_t layer_mask = -1);
+	std::pair<entt::entity, components::node &> add_gltf(std::span<const std::byte> data, uint32_t layer_mask = -1);
 
-	void remove(entt::entity entity); // TODO
+	void remove(entt::entity entity);
 };
 
 template <typename T>
