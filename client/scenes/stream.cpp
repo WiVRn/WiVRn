@@ -312,6 +312,15 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	}
 
 	{
+		const auto & info = application::get_messages_info();
+		self->network_session->send_control(from_headset::get_application_list{
+		        .language = info.language,
+		        .country = info.country,
+		        .variant = info.variant,
+		});
+	}
+
+	{
 		const auto & config = application::get_config();
 		self->override_foveation_enable = config.override_foveation_enable;
 		self->override_foveation_pitch = config.override_foveation_pitch;

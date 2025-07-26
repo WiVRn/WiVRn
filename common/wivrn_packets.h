@@ -443,6 +443,13 @@ struct override_foveation_center
 	float distance;
 };
 
+struct get_application_list
+{
+	std::string language;
+	std::string country;
+	std::string variant;
+};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_1,
@@ -463,7 +470,8 @@ using packets = std::variant<
         refresh_rate_changed,
         session_state_changed,
         user_presence_changed,
-        override_foveation_center>;
+        override_foveation_center,
+        get_application_list>;
 } // namespace from_headset
 
 namespace to_headset
@@ -652,6 +660,19 @@ struct refresh_rate_change
 	float fps;
 };
 
+struct application_list
+{
+	std::string language;
+	std::string country;
+	std::string variant;
+	struct application
+	{
+		std::string id;
+		std::string name;
+	};
+	std::vector<application> applications;
+};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_2,
@@ -664,6 +685,7 @@ using packets = std::variant<
         haptics,
         timesync_query,
         tracking_control,
-        refresh_rate_change>;
+        refresh_rate_change,
+        application_list>;
 } // namespace to_headset
 } // namespace wivrn

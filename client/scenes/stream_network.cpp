@@ -19,7 +19,9 @@
 
 #include "stream.h"
 
+#ifdef __ANDROID__
 #include "application.h"
+#endif
 #include "utils/named_thread.h"
 #include <spdlog/spdlog.h>
 
@@ -98,4 +100,10 @@ void scenes::stream::send_feedback(const wivrn::from_headset::feedback & feedbac
 	{
 		spdlog::warn("Exception while sending feedback packet: {}", e.what());
 	}
+}
+
+void scenes::stream::operator()(to_headset::application_list && apps)
+{
+	auto locked = applications.lock();
+	*locked = std::move(apps);
 }

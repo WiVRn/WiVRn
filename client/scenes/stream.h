@@ -25,6 +25,7 @@
 #include "scene.h"
 #include "scenes/input_profile.h"
 #include "stream_reprojection.h"
+#include "utils/thread_safe.h"
 #include "wifi_lock.h"
 #include "wivrn_client.h"
 #include "wivrn_packets.h"
@@ -174,6 +175,9 @@ private:
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> current_blit_handles;
 
+	// Last application list received from server
+	thread_safe<to_headset::application_list> applications;
+
 	stream();
 
 public:
@@ -197,6 +201,7 @@ public:
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(to_headset::refresh_rate_change &&);
+	void operator()(to_headset::application_list &&);
 	void operator()(audio_data &&);
 
 	void push_blit_handle(wivrn::shard_accumulator * decoder, std::shared_ptr<wivrn::shard_accumulator::blit_handle> handle);

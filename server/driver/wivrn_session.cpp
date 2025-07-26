@@ -20,6 +20,7 @@
 #include "wivrn_session.h"
 
 #include "accept_connection.h"
+#include "application.h"
 #include "driver/app_pacer.h"
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
@@ -722,6 +723,23 @@ void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
 	                        .to_display_refresh_rate_hz = event.to,
 	                },
 	        });
+}
+
+void wivrn_session::operator()(from_headset::get_application_list && request)
+{
+	to_headset::application_list response{
+	        .language = std::move(request.language),
+	        .country = std::move(request.country),
+	        .variant = std::move(request.variant),
+	};
+	for (auto && [id, app]: list_applications())
+	{
+		response.applications.emplace_back(
+		        std::move(id),
+		        // FIXME: use locale
+		        app.name.at(""));
+	}
+	send_control(std::move(response));
 }
 
 void wivrn_session::operator()(audio_data && data)
