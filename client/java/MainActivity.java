@@ -13,6 +13,9 @@ public class MainActivity extends android.app.NativeActivity
 	@Override
 	public native void onNewIntent(android.content.Intent intent);
 
+	@Override
+	public native void onActivityResult(int requestCode, int resultCode, android.content.Intent data);
+
 	private android.content.BroadcastReceiver BatteryInfoReceiver = null;
 
 	@Override
