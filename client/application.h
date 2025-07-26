@@ -132,6 +132,8 @@ class application : public singleton<application>
 	bool session_running = false;
 	bool session_focused = false;
 	bool session_visible = false;
+	std::optional<std::chrono::steady_clock::time_point> timestamp_unsynchronized; // Timestamp when session_synchronized becomes false
+
 	bool debug_extensions_found = false;
 	std::vector<const char *> vk_device_extensions;
 	std::atomic<bool> exit_requested = false;
@@ -231,7 +233,7 @@ public:
 	{
 		return instance().actions;
 	}
-	static std::pair<XrAction, XrActionType> get_action(const std::string & name);
+	static std::pair<XrAction, XrActionType> get_action(std::string_view name);
 
 	static std::optional<std::pair<glm::vec3, glm::quat>> locate_controller(XrSpace space, XrSpace reference, XrTime time)
 	{

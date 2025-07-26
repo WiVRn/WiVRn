@@ -1369,7 +1369,7 @@ void application::load_locale()
 	std::locale::global(loc);
 }
 
-std::pair<XrAction, XrActionType> application::get_action(const std::string & requested_name)
+std::pair<XrAction, XrActionType> application::get_action(std::string_view requested_name)
 {
 	for (const auto & [action, type, name]: instance().actions)
 	{
@@ -1567,15 +1567,21 @@ void application::loop()
 	poll_events();
 
 	auto scene = current_scene();
-	if (!is_session_running())
+	if (not is_session_running())
 	{
-		if (scene)
+		if (not timestamp_unsynchronized)
+			timestamp_unsynchronized = std::chrono::steady_clock::now();
+
+		if (scene and std::chrono::steady_clock::now() - *timestamp_unsynchronized > 3s)
 			scene->set_focused(false);
+
 		// Throttle loop since xrWaitFrame won't be called.
 		std::this_thread::sleep_for(250ms);
 	}
 	else
 	{
+		timestamp_unsynchronized.reset();
+
 		if (scene)
 		{
 			poll_actions();
