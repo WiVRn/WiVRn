@@ -948,7 +948,7 @@ void scenes::lobby::on_unfocused()
 	default_icon = 0;
 	app_icons.clear();
 	imgui_ctx.reset();
-	world.clear();
+	world = entt::registry{};
 
 	input.reset();
 	left_hand.reset();
