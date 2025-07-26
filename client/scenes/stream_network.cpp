@@ -107,3 +107,10 @@ void scenes::stream::operator()(to_headset::application_list && apps)
 	auto locked = applications.lock();
 	*locked = std::move(apps);
 }
+
+void scenes::stream::start_application(std::string appid)
+{
+	network_session->send_control(wivrn::from_headset::start_app{
+	        .app_id = std::move(appid),
+	});
+}

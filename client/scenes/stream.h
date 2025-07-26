@@ -218,6 +218,13 @@ public:
 		return !exiting;
 	}
 
+	auto get_applications()
+	{
+		return applications.lock();
+	}
+
+	void start_application(std::string appid);
+
 	static meta & get_meta_scene();
 
 private:

@@ -43,6 +43,31 @@
 
 #include "IconsFontAwesome6.h"
 
+static void ScrollWhenDraggingOnVoid()
+{
+	ImVec2 delta{0.0f, -ImGui::GetIO().MouseDelta.y};
+
+	// https://github.com/ocornut/imgui/issues/3379#issuecomment-1678718752
+	ImGuiContext & g = *ImGui::GetCurrentContext();
+	ImGuiWindow * window = g.CurrentWindow;
+	bool hovered = false;
+	bool held = false;
+	static bool held_prev = false;
+
+	// Don't drag for the first frame because the current controller might have just changed and have a large delta
+
+	ImGuiID id = window->GetID("##scrolldraggingoverlay");
+	ImGui::KeepAliveID(id);
+	if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
+		ImGui::ButtonBehavior(window->Rect(), id, &hovered, &held, ImGuiButtonFlags_MouseButtonLeft);
+	if (held and held_prev and delta.x != 0.0f)
+		ImGui::SetScrollX(window, window->Scroll.x + delta.x);
+	if (held and held_prev and delta.y != 0.0f)
+		ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+
+	held_prev = held;
+}
+
 static void CenterTextH(const std::string & text)
 {
 	float win_width = ImGui::GetWindowSize().x;
@@ -146,12 +171,9 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 	std::string status;
 	if (next_scene)
 	{
-		if (next_scene->current_state() == scenes::stream::state::stalled)
-			status = _("Video stream interrupted");
-		else if (server_name == "")
-			status = fmt::format(_F("Connection ready\nStart a VR application on your computer"));
-		else
-			status = fmt::format(_F("Connection ready\nStart a VR application on {}"), server_name);
+		current_tab = tab::connected;
+		ImGui::CloseCurrentPopup();
+		return;
 	}
 	else if (async_session.valid())
 		status = async_session.get_progress();
@@ -278,6 +300,65 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 		pin_request.notify_one();
 	}
 	imgui_ctx->vibrate_on_hover();
+}
+
+void scenes::lobby::gui_connected()
+{
+	if (not next_scene)
+	{
+		current_tab = tab::server_list;
+		return;
+	}
+
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
+	if (server_name.empty())
+		CenterTextH(_("Connected to WiVRn server"));
+	else
+		CenterTextH(fmt::format(_F("Connected to {}"), server_name));
+	ImGui::PopFont();
+
+	auto disconnect = _("Disconnect");
+	auto disconnect_size = ImGui::CalcTextSize(disconnect.c_str());
+
+	auto apps = next_scene->get_applications();
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
+	if (apps->applications.empty())
+	{
+		CenterTextHV(_("Start an application on the server to start streaming."));
+	}
+	else
+	{
+		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, disconnect_size.y + 80), 0);
+		if (server_name.empty())
+			ImGui::Text("%s", _S("Start an application on your computer or select one to start streaming."));
+		else
+			ImGui::Text("%s", fmt::format(_F("Start an application on {} or select one to start streaming."), server_name).c_str());
+		for (const auto & app: apps->applications)
+		{
+			if (ImGui::Button(fmt::format(ICON_FA_PLAY "##{}", app.id).c_str()))
+				next_scene->start_application(app.id);
+			imgui_ctx->vibrate_on_hover();
+			ImGui::SameLine();
+			ImGui::Text("%s", app.name.c_str());
+		}
+		ScrollWhenDraggingOnVoid();
+		ImGui::EndChild();
+	}
+	ImGui::PopStyleVar();
+
+	ImGui::SetCursorPosX(ImGui::GetWindowSize().x - disconnect_size.x - 50);
+	ImGui::SetCursorPosY(ImGui::GetWindowSize().y - disconnect_size.y - 50);
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
+	if (ImGui::Button(disconnect.c_str()))
+	{
+		next_scene.reset();
+		current_tab = tab::server_list;
+	}
+	imgui_ctx->vibrate_on_hover();
+	ImGui::PopStyleColor(3);
 }
 
 void scenes::lobby::gui_new_server()
@@ -1212,31 +1293,6 @@ static bool RadioButtonWithoutCheckBox(const std::string & label, T * v, T v_but
 	return pressed;
 }
 
-static void ScrollWhenDraggingOnVoid()
-{
-	ImVec2 delta{0.0f, -ImGui::GetIO().MouseDelta.y};
-
-	// https://github.com/ocornut/imgui/issues/3379#issuecomment-1678718752
-	ImGuiContext & g = *ImGui::GetCurrentContext();
-	ImGuiWindow * window = g.CurrentWindow;
-	bool hovered = false;
-	bool held = false;
-	static bool held_prev = false;
-
-	// Don't drag for the first frame because the current controller might have just changed and have a large delta
-
-	ImGuiID id = window->GetID("##scrolldraggingoverlay");
-	ImGui::KeepAliveID(id);
-	if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
-		ImGui::ButtonBehavior(window->Rect(), id, &hovered, &held, ImGuiButtonFlags_MouseButtonLeft);
-	if (held and held_prev and delta.x != 0.0f)
-		ImGui::SetScrollX(window, window->Scroll.x + delta.x);
-	if (held and held_prev and delta.y != 0.0f)
-		ImGui::SetScrollY(window, window->Scroll.y + delta.y);
-
-	held_prev = held;
-}
-
 static auto face_weights()
 {
 	using weights = decltype(wivrn::from_headset::tracking::fb_face2{}.weights);
@@ -1685,6 +1741,17 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::End();
 		ImGui::PopStyleVar(4); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize
 	}
+	else if (current_tab == tab::connected)
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
+		ImGui::SetNextWindowSize({1400, 900});
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
+		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+		gui_connected();
+		ImGui::End();
+		ImGui::PopStyleVar(3); // ImGuiStyleVar_WindowPadding
+	}
 	else
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 0});
@@ -1700,6 +1767,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		switch (current_tab)
 		{
 			case tab::first_run:
+			case tab::connected:
 				__builtin_unreachable();
 
 			case tab::server_list:
