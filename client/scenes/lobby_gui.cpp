@@ -28,14 +28,12 @@
 #include "constants.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "implot.h"
 #include "lobby.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
 #include "version.h"
 #include <cassert>
-#include <chrono>
 #include <filesystem>
 #include <glm/gtc/quaternion.hpp>
 #include <ranges>
