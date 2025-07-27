@@ -37,15 +37,15 @@
 		}                                                         \
 	} while (0)
 
-#define NVENC_CHECK(x)                                                                                                    \
-	do                                                                                                                \
-	{                                                                                                                 \
-		NVENCSTATUS status = x;                                                                                   \
-		if (status != NV_ENC_SUCCESS)                                                                             \
-		{                                                                                                         \
-			U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, fn.nvEncGetLastErrorString(session_handle)); \
-			throw std::runtime_error("nvenc error");                                                          \
-		}                                                                                                         \
+#define NVENC_CHECK(x)                                                                                                                  \
+	do                                                                                                                              \
+	{                                                                                                                               \
+		NVENCSTATUS status = x;                                                                                                 \
+		if (status != NV_ENC_SUCCESS)                                                                                           \
+		{                                                                                                                       \
+			U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle)); \
+			throw std::runtime_error("nvenc error");                                                                        \
+		}                                                                                                                       \
 	} while (0)
 
 #define CU_CHECK(x)                                                                               \
@@ -55,7 +55,7 @@
 		if (status != CUDA_SUCCESS)                                                       \
 		{                                                                                 \
 			const char * error_string;                                                \
-			cuda_fn->cuGetErrorString(status, &error_string);                         \
+			shared_state->cuda_fn->cuGetErrorString(status, &error_string);           \
 			U_LOG_E("%s:%d: %s (%d)", __FILE__, __LINE__, error_string, (int)status); \
 			throw std::runtime_error(std::string("CUDA error: ") + error_string);     \
 		}                                                                                 \
@@ -63,62 +63,6 @@
 
 namespace wivrn
 {
-
-void video_encoder_nvenc::deleter::operator()(CudaFunctions * fn)
-{
-	cuda_free_functions(&fn);
-}
-void video_encoder_nvenc::deleter::operator()(NvencFunctions * fn)
-{
-	nvenc_free_functions(&fn);
-}
-
-static auto init()
-{
-	std::unique_ptr<CudaFunctions, video_encoder_nvenc::deleter> cuda_fn;
-	std::unique_ptr<NvencFunctions, video_encoder_nvenc::deleter> nvenc_fn;
-	void * session_handle;
-
-	{
-		CudaFunctions * tmp = nullptr;
-		if (cuda_load_functions(&tmp, nullptr))
-			throw std::runtime_error("Failed to load CUDA");
-		cuda_fn.reset(tmp);
-	}
-
-	{
-		NvencFunctions * tmp = nullptr;
-		if (nvenc_load_functions(&tmp, nullptr))
-			throw std::runtime_error("Failed to load nvenc");
-		nvenc_fn.reset(tmp);
-	}
-
-	CU_CHECK(cuda_fn->cuInit(0));
-
-	CUcontext cuda;
-	CU_CHECK(cuda_fn->cuCtxCreate(&cuda, 0, 0));
-
-	NV_ENCODE_API_FUNCTION_LIST fn{
-	        .version = NV_ENCODE_API_FUNCTION_LIST_VER,
-	};
-	NVENC_CHECK_NOENCODER(nvenc_fn->NvEncodeAPICreateInstance(&fn));
-
-	{
-		NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params{
-		        .version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
-		        .deviceType = NV_ENC_DEVICE_TYPE_CUDA,
-		        .device = cuda,
-		        .reserved = {},
-		        .apiVersion = NVENCAPI_VERSION,
-		        .reserved1 = {},
-		        .reserved2 = {},
-		};
-
-		NVENC_CHECK_NOENCODER(fn.nvEncOpenEncodeSessionEx(&params, &session_handle));
-	}
-
-	return std::make_tuple(std::move(cuda_fn), std::move(nvenc_fn), fn, cuda, session_handle);
-}
 
 static auto encode_guid(video_codec codec)
 {
@@ -141,13 +85,13 @@ video_encoder_nvenc::video_encoder_nvenc(
         uint8_t stream_idx) :
         video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true),
         vk(vk),
+        shared_state(video_encoder_nvenc_shared_state::get()),
         fps(fps),
         bitrate(settings.bitrate)
 {
 	if (settings.bit_depth != 8)
 		throw std::runtime_error("nvenc encoder only supports 8-bit encoding");
 
-	std::tie(cuda_fn, nvenc_fn, fn, cuda, session_handle) = init();
 	assert(settings.width % 32 == 0);
 	assert(settings.height % 32 == 0);
 	rect = vk::Rect2D{
@@ -161,12 +105,20 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        },
 	};
 
+	auto encodeGUID = encode_guid(settings.codec);
+	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params_ex = {
+	        .version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
+	        .deviceType = NV_ENC_DEVICE_TYPE_CUDA,
+	        .device = shared_state->cuda,
+	        .apiVersion = NVENCAPI_VERSION,
+	};
+	NVENC_CHECK_NOENCODER(shared_state->fn.nvEncOpenEncodeSessionEx(&params_ex, &session_handle));
+
 	uint32_t count;
 	std::vector<GUID> presets;
-	auto encodeGUID = encode_guid(settings.codec);
-	NVENC_CHECK(fn.nvEncGetEncodePresetCount(session_handle, encodeGUID, &count));
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetCount(session_handle, encodeGUID, &count));
 	presets.resize(count);
-	NVENC_CHECK(fn.nvEncGetEncodePresetGUIDs(session_handle, encodeGUID, presets.data(), count, &count));
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetGUIDs(session_handle, encodeGUID, presets.data(), count, &count));
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -178,7 +130,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .presetCfg = {
 	                .version = NV_ENC_CONFIG_VER,
 	        }};
-	NVENC_CHECK(fn.nvEncGetEncodePresetConfigEx(session_handle, encodeGUID, presetGUID, tuningInfo, &preset_config));
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetConfigEx(session_handle, encodeGUID, presetGUID, tuningInfo, &preset_config));
 
 	NV_ENC_CONFIG params = preset_config.presetCfg;
 
@@ -228,12 +180,12 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .enablePTD = 1,
 	        .encodeConfig = &params,
 	        .tuningInfo = tuningInfo};
-	NVENC_CHECK(fn.nvEncInitializeEncoder(session_handle, &params2));
+	NVENC_CHECK(shared_state->fn.nvEncInitializeEncoder(session_handle, &params2));
 
 	NV_ENC_CREATE_BITSTREAM_BUFFER params3{
 	        .version = NV_ENC_CREATE_BITSTREAM_BUFFER_VER,
 	};
-	NVENC_CHECK(fn.nvEncCreateBitstreamBuffer(session_handle, &params3));
+	NVENC_CHECK(shared_state->fn.nvEncCreateBitstreamBuffer(session_handle, &params3));
 	bitstreamBuffer = params3.bitstreamBuffer;
 
 	vk::DeviceSize buffer_size = rect.extent.width * settings.video_height * 3 / 2;
@@ -276,7 +228,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 		});
 
 		CUdeviceptr frame;
-		CU_CHECK(cuda_fn->cuCtxPushCurrent(cuda));
+		CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
 		{
 			CUexternalMemory extmem;
 			CUDA_EXTERNAL_MEMORY_HANDLE_DESC param{
@@ -285,14 +237,14 @@ video_encoder_nvenc::video_encoder_nvenc(
 			        .size = memory_req.size,
 			        .flags = 0,
 			};
-			CU_CHECK(cuda_fn->cuImportExternalMemory(&extmem, &param));
+			CU_CHECK(shared_state->cuda_fn->cuImportExternalMemory(&extmem, &param));
 
 			CUDA_EXTERNAL_MEMORY_BUFFER_DESC map_param{
 			        .offset = 0,
 			        .size = buffer_size,
 			        .flags = 0,
 			};
-			CU_CHECK(cuda_fn->cuExternalMemoryGetMappedBuffer(&frame, extmem, &map_param));
+			CU_CHECK(shared_state->cuda_fn->cuExternalMemoryGetMappedBuffer(&frame, extmem, &map_param));
 		}
 
 		NV_ENC_REGISTER_RESOURCE param3{
@@ -305,18 +257,16 @@ video_encoder_nvenc::video_encoder_nvenc(
 		        .bufferFormat = NV_ENC_BUFFER_FORMAT_NV12,
 		        .bufferUsage = NV_ENC_INPUT_IMAGE,
 		};
-		NVENC_CHECK(fn.nvEncRegisterResource(session_handle, &param3));
+		NVENC_CHECK(shared_state->fn.nvEncRegisterResource(session_handle, &param3));
 		i.nvenc_resource = param3.registeredResource;
 	}
-	CU_CHECK(cuda_fn->cuCtxPopCurrent(NULL));
+	CU_CHECK(shared_state->cuda_fn->cuCtxPopCurrent(NULL));
 }
 
 video_encoder_nvenc::~video_encoder_nvenc()
 {
 	if (session_handle)
-		fn.nvEncDestroyEncoder(session_handle);
-	if (cuda)
-		cuda_fn->cuCtxDestroy(cuda);
+		shared_state->fn.nvEncDestroyEncoder(session_handle);
 }
 
 std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
@@ -367,12 +317,12 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 
 std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
-	CU_CHECK(cuda_fn->cuCtxPushCurrent(cuda));
+	CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
 
 	NV_ENC_MAP_INPUT_RESOURCE param4{};
 	param4.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
 	param4.registeredResource = in[slot].nvenc_resource;
-	NVENC_CHECK(fn.nvEncMapInputResource(session_handle, &param4));
+	NVENC_CHECK(shared_state->fn.nvEncMapInputResource(session_handle, &param4));
 
 	NV_ENC_PIC_PARAMS param{
 	        .version = NV_ENC_PIC_PARAMS_VER,
@@ -387,30 +337,41 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 	        .bufferFmt = param4.mappedBufferFmt,
 	        .pictureStruct = NV_ENC_PIC_STRUCT_FRAME,
 	};
-	NVENC_CHECK(fn.nvEncEncodePicture(session_handle, &param));
+	NVENC_CHECK(shared_state->fn.nvEncEncodePicture(session_handle, &param));
 
 	NV_ENC_LOCK_BITSTREAM param2{
 	        .version = NV_ENC_LOCK_BITSTREAM_VER,
 	        .doNotWait = 0,
 	        .outputBitstream = bitstreamBuffer,
 	};
-	NVENC_CHECK(fn.nvEncLockBitstream(session_handle, &param2));
+	NVENC_CHECK(shared_state->fn.nvEncLockBitstream(session_handle, &param2));
 
-	CU_CHECK(cuda_fn->cuCtxPopCurrent(NULL));
+	CU_CHECK(shared_state->cuda_fn->cuCtxPopCurrent(NULL));
 	return data{
 	        .encoder = this,
 	        .span = std::span((uint8_t *)param2.bitstreamBufferPtr, param2.bitstreamSizeInBytes),
 	        .mem = std::shared_ptr<void>(param2.bitstreamBufferPtr, [this](void *) {
-		        NVENCSTATUS status = fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer);
+		        NVENCSTATUS status = shared_state->fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer);
 		        if (status != NV_ENC_SUCCESS)
-			        U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, fn.nvEncGetLastErrorString(session_handle));
+			        U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle));
 	        }),
 	};
 }
 
 std::array<int, 2> video_encoder_nvenc::get_max_size(video_codec codec)
 {
-	auto [cuda_fn, nvenc_fn, fn, cuda, session_handle] = init();
+	video_encoder_nvenc_shared_state state;
+	void * session_handle = nullptr;
+	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params_ex = {
+	        .version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
+	        .deviceType = NV_ENC_DEVICE_TYPE_CUDA,
+	        .device = state.cuda,
+	        .apiVersion = NVENCAPI_VERSION,
+	};
+	if (state.fn.nvEncOpenEncodeSessionEx(&params_ex, &session_handle) != NV_ENC_SUCCESS)
+	{
+		throw std::runtime_error("nvenc get_max_size: Failed to open session");
+	}
 	std::array<int, 2> result;
 	std::exception_ptr ex;
 	try
@@ -425,15 +386,21 @@ std::array<int, 2> video_encoder_nvenc::get_max_size(video_codec codec)
 			        .version = NV_ENC_CAPS_PARAM_VER,
 			        .capsToQuery = NV_ENC_CAPS_WIDTH_MAX,
 			};
-			NVENC_CHECK(fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_param, res));
+			NVENCSTATUS status = state.fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_param, res);
+			if (status != NV_ENC_SUCCESS)
+			{
+				throw std::runtime_error("nvenc get_max_size: failed to get caps");
+			}
 		}
 	}
 	catch (...)
 	{
 		ex = std::current_exception();
 	}
-	cuda_fn->cuCtxPopCurrent(NULL);
-	fn.nvEncDestroyEncoder(session_handle);
+	if (session_handle)
+	{
+		state.fn.nvEncDestroyEncoder(session_handle);
+	}
 	if (ex)
 		std::rethrow_exception(ex);
 	U_LOG_D("nvenc maximum encoded size: %dx%d", result[0], result[1]);

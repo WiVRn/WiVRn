@@ -20,6 +20,7 @@
 #pragma once
 
 #include "video_encoder.h"
+#include "video_encoder_nvenc_shared_state.h"
 #include <array>
 #include <ffnvcodec/dynlink_cuda.h>
 #include <ffnvcodec/dynlink_loader.h>
@@ -31,22 +32,13 @@ namespace wivrn
 
 class video_encoder_nvenc : public video_encoder
 {
-public:
-	struct deleter
-	{
-		void operator()(CudaFunctions * fn);
-		void operator()(NvencFunctions * fn);
-	};
-
 private:
 	wivrn_vk_bundle & vk;
 	// relevant part of the input image to encode
 	vk::Rect2D rect;
 
-	std::unique_ptr<CudaFunctions, deleter> cuda_fn;
-	std::unique_ptr<NvencFunctions, deleter> nvenc_fn;
-	NV_ENCODE_API_FUNCTION_LIST fn;
-	CUcontext cuda;
+	std::shared_ptr<video_encoder_nvenc_shared_state> shared_state;
+
 	void * session_handle = nullptr;
 	NV_ENC_OUTPUT_PTR bitstreamBuffer;
 
