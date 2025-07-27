@@ -395,7 +395,7 @@ void scenes::stream::gui_performance_metrics()
 		if (is_gui_interactable())
 			ImGui::Text("%s", _S("Press the grip button to move the window"));
 		else
-			ImGui::Text("%s", _S("Press both thumbsticks to display the GUI"));
+			ImGui::Text("%s", _S("Press both thumbsticks to display the WiVRn window"));
 	}
 }
 
@@ -675,7 +675,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			case gui_status::hidden:
 				// Always use the same position for the GUI shortcut tip
 				imgui_ctx->layers()[0].orientation = head_position->second;
-				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0.0, -0.3, -1.2};
+				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0.0, -0.4, -1.0};
 				break;
 
 			case gui_status::overlay_only:
@@ -747,9 +747,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	switch (gui_status)
 	{
 		case gui_status::hidden:
-			ImGui::PushFont(nullptr, constants::gui::font_size_large);
-			ImGui::Text("%s", _S("Press both thumbsticks to display the GUI"));
-			ImGui::PopFont();
+			ImGui::Text("%s", _S("Press both thumbsticks to display the WiVRn window"));
 			break;
 
 		case gui_status::overlay_only:
@@ -801,13 +799,13 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			int n_items_at_end = 4;
 			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - n_items_at_end * ImGui::GetCurrentContext()->FontSize - (n_items_at_end * 2) * style.FramePadding.y - (n_items_at_end - 1) * style.ItemSpacing.y - style.WindowPadding.y);
 
-			RadioButtonWithoutCheckBox(ICON_FA_EYE_SLASH "  " + _("Hide"), gui_status, gui_status::hidden, {tab_width, 0});
-			imgui_ctx->vibrate_on_hover();
-
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Overlay only"), gui_status, gui_status::overlay_only, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_CHART_LINE "  " + _("Statistics overlay"), gui_status, gui_status::overlay_only, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			RadioButtonWithoutCheckBox(ICON_FA_MINIMIZE "  " + _("Compact view"), gui_status, gui_status::compact, {tab_width, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			RadioButtonWithoutCheckBox(ICON_FA_XMARK "  " + _("Close"), gui_status, gui_status::hidden, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			bool dummy = false;
