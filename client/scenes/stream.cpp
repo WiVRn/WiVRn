@@ -1146,10 +1146,19 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	if (composition_layer_color_scale_bias_supported)
 	{
-		if (is_gui_interactable())
-			dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
-		else
-			dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
+		switch (gui_status)
+		{
+			case gui_status::hidden:
+			case gui_status::foveation_settings:
+			case gui_status::compact:
+			case gui_status::overlay_only:
+				dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
+				break;
+			case gui_status::stats:
+			case gui_status::settings:
+				dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
+				break;
+		}
 
 		dimming = std::clamp<float>(dimming, 0, 1);
 		float x = dimming * dimming * (3 - 2 * dimming); // Easing function

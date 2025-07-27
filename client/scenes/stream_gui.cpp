@@ -615,10 +615,22 @@ static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
 
 void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
 {
-	bool interactable = is_gui_interactable();
+	bool interactable = true;
 	XrSpace world_space = application::space(xr::spaces::world);
 	auto views = session.locate_views(viewconfig, predicted_display_time, world_space).second;
 
+	switch (gui_status)
+	{
+		case gui_status::hidden:
+		case gui_status::foveation_settings:
+		case gui_status::overlay_only:
+		case gui_status::compact:
+			interactable = false;
+			break;
+		case gui_status::stats:
+		case gui_status::settings:
+			break;
+	}
 	imgui_ctx->set_controllers_enabled(interactable);
 
 	if (gui_status != last_gui_status)
