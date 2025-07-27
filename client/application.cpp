@@ -882,8 +882,7 @@ void application::initialize_vulkan()
 	};
 
 	vk_device = xr_system_id.create_device(vk_physical_device, device_create_info.get());
-
-	vk_queue = vk_device.getQueue(vk_queue_family_index, 0);
+	*vk_queue.lock() = vk_device.getQueue(vk_queue_family_index, 0);
 
 	vk::PipelineCacheCreateInfo pipeline_cache_info;
 	std::vector<std::byte> pipeline_cache_bytes;

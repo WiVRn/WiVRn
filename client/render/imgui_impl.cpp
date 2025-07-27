@@ -297,7 +297,14 @@ static const std::array layout_bindings = {
                 .stageFlags = vk::ShaderStageFlagBits::eFragment,
         }};
 
-imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, uint32_t queue_family_index, vk::raii::Queue & queue, std::span<controller> controllers_, xr::swapchain & swapchain, std::vector<viewport> layers) :
+imgui_context::imgui_context(
+        vk::raii::PhysicalDevice physical_device,
+        vk::raii::Device & device,
+        uint32_t queue_family_index,
+        thread_safe<vk::raii::Queue> & queue,
+        std::span<controller> controllers_,
+        xr::swapchain & swapchain,
+        std::vector<viewport> layers) :
         physical_device(physical_device),
         device(device),
         queue_family_index(queue_family_index),
@@ -341,7 +348,7 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 	        .PhysicalDevice = *application::get_physical_device(),
 	        .Device = *application::get_device(),
 	        .QueueFamily = application::queue_family_index(),
-	        .Queue = *application::get_queue(),
+	        .Queue = *queue.get_unsafe(),
 	        .RenderPass = *renderpass,
 	        .MinImageCount = 2,
 	        .ImageCount = (uint32_t)swapchain.images().size(), // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
@@ -901,17 +908,21 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 	                           .pClearValues = &clear},
 	                   vk::SubpassContents::eInline);
 
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cb);
+	{
+		auto _ = queue.lock(); // ImGui_ImplVulkan_RenderDrawData uses the queue internally (in ImGui_ImplVulkan_UpdateTexture)
+		// TODO: patch imgui_impl_vulkan to accept a mutex
+		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *cb);
+	}
 
 	cb.endRenderPass();
 
 	cb.end();
 
-	queue.submit(vk::SubmitInfo{
-	                     .commandBufferCount = 1,
-	                     .pCommandBuffers = &*cb,
-	             },
-	             *fence);
+	queue.lock()->submit(vk::SubmitInfo{
+	                             .commandBufferCount = 1,
+	                             .pCommandBuffers = &*cb,
+	                     },
+	                     *fence);
 
 	swapchain.release();
 

@@ -89,7 +89,7 @@ protected:
 	vk::raii::Instance & vk_instance;
 	vk::raii::Device & device;
 	vk::raii::PhysicalDevice & physical_device;
-	vk::raii::Queue & queue;
+	thread_safe<vk::raii::Queue> & queue;
 	vk::raii::CommandPool & commandpool;
 	uint32_t queue_family_index;
 

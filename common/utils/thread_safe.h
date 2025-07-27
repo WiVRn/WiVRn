@@ -76,6 +76,16 @@ public:
 	{
 		return locked<T, Mutex>(value, mutex);
 	}
+
+	T & get_unsafe()
+	{
+		return value;
+	}
+
+	const T & get_unsafe() const
+	{
+		return value;
+	}
 };
 
 template <typename T>

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "utils/thread_safe.h"
 #include "vk/allocation.h"
 #include "vk/fwd.h"
 #include "wivrn_config.h"
@@ -31,7 +32,7 @@
 #include <vulkan/vulkan.hpp>
 
 #if WIVRN_USE_LIBKTX
-struct ktxVulkanDeviceInfo;
+#include <ktxvulkan.h>
 #endif
 
 struct image_loader
@@ -45,7 +46,10 @@ struct image_loader
 
 	uint32_t num_mipmaps;
 
-	image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool);
+	image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, thread_safe<vk::raii::Queue> & queue, vk::raii::CommandPool & cb_pool);
+	image_loader(const image_loader &) = delete;
+	image_loader & operator=(const image_loader &) = delete;
+	~image_loader();
 
 	// Load a PNG/JPEG/KTX2 file
 	void load(std::span<const std::byte> bytes, bool srgb);
@@ -71,15 +75,13 @@ struct image_loader
 		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
 	}
 
-	~image_loader();
-
 private:
 #if WIVRN_USE_LIBKTX
-	ktxVulkanDeviceInfo * vdi = nullptr;
+	ktxVulkanDeviceInfo vdi;
 #endif
 
 	vk::raii::Device & device;
-	vk::raii::Queue & queue;
+	thread_safe<vk::raii::Queue> & queue;
 	vk::raii::CommandPool & cb_pool;
 
 	buffer_allocation staging_buffer;

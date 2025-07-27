@@ -127,6 +127,7 @@ void xr::session::begin_frame()
 	        .type = XR_TYPE_FRAME_BEGIN_INFO,
 	};
 
+	auto lock = application::get_queue().lock();
 	CHECK_XR(xrBeginFrame(id, &begin_info));
 }
 
@@ -140,6 +141,7 @@ void xr::session::end_frame(XrTime display_time, const std::vector<XrComposition
 	        .layers = layers.data(),
 	};
 
+	auto lock = application::get_queue().lock();
 	CHECK_XR(xrEndFrame(id, &end_info));
 }
 

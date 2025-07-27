@@ -19,6 +19,7 @@
 #pragma once
 
 #include "render/growable_descriptor_pool.h"
+#include "utils/thread_safe.h"
 #include "wivrn_config.h"
 #include "xr/hand_tracker.h"
 #include "xr/space.h"
@@ -119,7 +120,7 @@ private:
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
 	uint32_t queue_family_index;
-	vk::raii::Queue & queue;
+	thread_safe<vk::raii::Queue> & queue;
 
 	vk::raii::Pipeline pipeline = nullptr;
 	vk::raii::DescriptorSetLayout ds_layout;
@@ -178,7 +179,7 @@ public:
 	        vk::raii::PhysicalDevice physical_device,
 	        vk::raii::Device & device,
 	        uint32_t queue_family_index,
-	        vk::raii::Queue & queue,
+	        thread_safe<vk::raii::Queue> & queue,
 	        std::span<controller> controllers,
 	        xr::swapchain & swapchain,
 	        std::vector<viewport> layers);

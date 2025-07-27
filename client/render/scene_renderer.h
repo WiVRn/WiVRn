@@ -34,6 +34,7 @@
 
 #include "render/growable_descriptor_pool.h"
 #include "render/scene_components.h"
+#include "utils/thread_safe.h"
 
 struct renderpass_info
 {
@@ -103,7 +104,7 @@ class scene_renderer
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
 	vk::PhysicalDeviceProperties physical_device_properties;
-	vk::raii::Queue & queue;
+	thread_safe<vk::raii::Queue> & queue;
 
 	// Destination images
 	struct output_image
@@ -217,7 +218,7 @@ public:
 	scene_renderer(
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice physical_device,
-	        vk::raii::Queue & queue,
+	        thread_safe<vk::raii::Queue> & queue,
 	        vk::raii::CommandPool & cb_pool,
 	        int frames_in_flight = 2);
 

@@ -22,17 +22,18 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "scene_components.h"
+#include "utils/thread_safe.h"
 
 class scene_loader
 {
 	vk::raii::Device & device;
 	vk::raii::PhysicalDevice physical_device;
-	vk::raii::Queue & queue;
+	thread_safe<vk::raii::Queue> & queue;
 	uint32_t queue_family_index;
 	std::shared_ptr<renderer::material> default_material;
 
 public:
-	scene_loader(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, vk::raii::Queue & queue, uint32_t queue_family_index, std::shared_ptr<renderer::material> default_material) :
+	scene_loader(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, thread_safe<vk::raii::Queue> & queue, uint32_t queue_family_index, std::shared_ptr<renderer::material> default_material) :
 	        device(device),
 	        physical_device(physical_device),
 	        queue(queue),

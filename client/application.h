@@ -19,7 +19,14 @@
 
 #pragma once
 
+#ifdef __ANDROID__
+#include <android_native_app_glue.h>
+#endif
+
 #include "configuration.h"
+#include "utils/singleton.h"
+#include "utils/thread_safe.h"
+#include "vk/vk_allocator.h"
 #include "wifi_lock.h"
 #include "xr/fb_body_tracker.h"
 #include "xr/fb_face_tracker2.h"
@@ -28,12 +35,6 @@
 #include "xr/htc_face_tracker.h"
 #include "xr/pico_body_tracker.h"
 #include "xr/pico_face_tracker.h"
-#ifdef __ANDROID__
-#include <android_native_app_glue.h>
-#endif
-
-#include "utils/singleton.h"
-#include "vk/vk_allocator.h"
 #include "xr/xr.h"
 #include <atomic>
 #include <boost/locale/generator.hpp>
@@ -105,7 +106,7 @@ class application : public singleton<application>
 	vk::raii::PhysicalDevice vk_physical_device = nullptr;
 	vk::raii::Device vk_device = nullptr;
 	uint32_t vk_queue_family_index;
-	vk::raii::Queue vk_queue = nullptr;
+	thread_safe<vk::raii::Queue> vk_queue = nullptr;
 	vk::raii::CommandPool vk_cmdpool = nullptr;
 	vk::raii::PipelineCache pipeline_cache = nullptr;
 	vk::PhysicalDeviceProperties physical_device_properties;
@@ -360,7 +361,7 @@ public:
 		return instance().vk_queue_family_index;
 	}
 
-	static vk::raii::Queue & get_queue()
+	static thread_safe<vk::raii::Queue> & get_queue()
 	{
 		return instance().vk_queue;
 	}

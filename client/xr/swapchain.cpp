@@ -18,6 +18,7 @@
  */
 
 #include "swapchain.h"
+#include "application.h"
 #include "details/enumerate.h"
 #include "session.h"
 
@@ -95,6 +96,7 @@ int xr::swapchain::acquire()
 	        .type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO,
 	};
 
+	auto lock = application::get_queue().lock();
 	CHECK_XR(xrAcquireSwapchainImage(id, &acquire_info, &index));
 
 	return index;
@@ -118,5 +120,6 @@ void xr::swapchain::release()
 	        .type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO,
 	};
 
+	auto lock = application::get_queue().lock();
 	CHECK_XR(xrReleaseSwapchainImage(id, &release_info));
 }

@@ -1108,7 +1108,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	command_buffer.end();
 	vk::SubmitInfo submit_info;
 	submit_info.setCommandBuffers(*command_buffer);
-	queue.submit(submit_info, *fence);
+	queue.lock()->submit(submit_info, *fence);
 	swapchain.release();
 
 	std::vector<XrCompositionLayerProjectionView> layer_view(view_count);

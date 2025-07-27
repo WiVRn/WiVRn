@@ -20,12 +20,14 @@
 #include "image_loader.h"
 #include "wivrn_config.h"
 
-#include <cstdint>
 #if WIVRN_USE_LIBKTX
 #include <ktxvulkan.h>
 #endif
+#include <chrono>
+#include <cstdint>
 #include <memory>
 #include <span>
+#include <spdlog/fmt/chrono.h>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <vulkan/vulkan_raii.hpp>
@@ -160,21 +162,20 @@ int bytes_per_pixel(vk::Format format)
 }
 } // namespace
 
-image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, vk::raii::Queue & queue, vk::raii::CommandPool & cb_pool) :
+image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, thread_safe<vk::raii::Queue> & queue, vk::raii::CommandPool & cb_pool) :
         device(device),
         queue(queue),
         cb_pool(cb_pool)
 {
 #if WIVRN_USE_LIBKTX
-	vdi = ktxVulkanDeviceInfo_Create(*physical_device, *device, *queue, *cb_pool, nullptr);
+	ktxVulkanDeviceInfo_Construct(&vdi, *physical_device, *device, *queue.get_unsafe(), *cb_pool, nullptr);
 #endif
 }
 
 image_loader::~image_loader()
 {
 #if WIVRN_USE_LIBKTX
-	if (vdi)
-		ktxVulkanDeviceInfo_Destroy(vdi);
+	ktxVulkanDeviceInfo_Destruct(&vdi);
 #endif
 }
 
@@ -381,7 +382,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	vk::SubmitInfo info;
 	info.setCommandBuffers(*cb);
 	auto fence = device.createFence(vk::FenceCreateInfo{});
-	queue.submit(info, *fence);
+	queue.lock()->submit(info, *fence);
 	if (auto result = device.waitForFences(*fence, true, 1'000'000'000); result != vk::Result::eSuccess)
 		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 
@@ -414,21 +415,28 @@ void image_loader::do_load_ktx(std::span<const std::byte> bytes)
 
 	if (err != KTX_SUCCESS)
 	{
-		spdlog::info("ktxTexture_CreateFromMemory: error {}", (int)err);
+		spdlog::warn("ktxTexture_CreateFromMemory: error {}", (int)err);
 		throw std::runtime_error("ktxTexture_CreateFromMemory");
 	}
 
 	if (ktxTexture_NeedsTranscoding(texture))
 	{
 		// TODO
+		spdlog::warn("ktxTexture_NeedsTranscoding");
+		throw std::runtime_error("ktxTexture_NeedsTranscoding");
 	}
 
-	err = ktxTexture_VkUploadEx(texture, vdi, &vk_texture, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	{
+		auto _ = queue.lock(); // ktxTexture_VkUploadEx uses the queue internally (in ktxTexture_VkUploadEx_WithSuballocator)
+		// TODO: patch vkloader.c to accept a mutex
+		err = ktxTexture_VkUploadEx(texture, &vdi, &vk_texture, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	}
+
 	if (err != KTX_SUCCESS)
 	{
 		// TODO try uncompressing the texture
 		ktxTexture_Destroy(texture);
-		spdlog::info("ktxTexture_CreateFromMemory: error {}", (int)err);
+		spdlog::warn("ktxTexture_CreateFromMemory: error {}", (int)err);
 		throw std::runtime_error("ktxTexture_VkUploadEx");
 	}
 

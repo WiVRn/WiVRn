@@ -260,7 +260,7 @@ fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 std::shared_ptr<vk::raii::ImageView> do_load_image(
         vk::raii::PhysicalDevice & physical_device,
         vk::raii::Device & device,
-        vk::raii::Queue & queue,
+        thread_safe<vk::raii::Queue> & queue,
         vk::raii::CommandPool & cb_pool,
         std::span<const std::byte> image_data,
         bool srgb)
@@ -316,7 +316,7 @@ class loader_context
 	fastgltf::Asset & gltf;
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
-	vk::raii::Queue & queue;
+	thread_safe<vk::raii::Queue> & queue;
 	vk::raii::CommandPool & cb_pool;
 
 	std::vector<asset> loaded_assets;
@@ -330,7 +330,7 @@ public:
 	               fastgltf::Asset & gltf,
 	               vk::raii::PhysicalDevice physical_device,
 	               vk::raii::Device & device,
-	               vk::raii::Queue & queue,
+	               thread_safe<vk::raii::Queue> & queue,
 	               vk::raii::CommandPool & cb_pool) :
 	        base_directory(base_directory),
 	        gltf(gltf),

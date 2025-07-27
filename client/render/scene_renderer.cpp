@@ -202,7 +202,7 @@ static std::array layout_bindings_1{
 scene_renderer::scene_renderer(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice physical_device,
-        vk::raii::Queue & queue,
+        thread_safe<vk::raii::Queue> & queue,
         vk::raii::CommandPool & cb_pool,
         int frames_in_flight) :
         physical_device(physical_device),
@@ -706,11 +706,11 @@ void scene_renderer::end_frame()
 	f.cb.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, current_frame_index * 2 + 1);
 	f.cb.end();
 
-	queue.submit(vk::SubmitInfo{
-	                     .commandBufferCount = 1,
-	                     .pCommandBuffers = &*f.cb,
-	             },
-	             *f.fence);
+	queue.lock()->submit(vk::SubmitInfo{
+	                             .commandBufferCount = 1,
+	                             .pCommandBuffers = &*f.cb,
+	                     },
+	                     *f.fence);
 	f.query_pool_filled = true;
 }
 
