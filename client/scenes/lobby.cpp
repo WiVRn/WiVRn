@@ -26,7 +26,6 @@
 #include "imgui.h"
 #include "openxr/openxr.h"
 #include "protocol_version.h"
-#include "render/scene_data.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "wivrn_client.h"
