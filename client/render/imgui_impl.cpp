@@ -1019,9 +1019,14 @@ imgui_context::~imgui_context()
 
 ImTextureID imgui_context::load_texture(const std::string & filename, vk::raii::Sampler && sampler)
 {
+	return load_texture(std::span<const std::byte>{asset{filename}}, std::move(sampler));
+}
+
+ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler)
+{
 	bool srgb = true;
 	image_loader loader(physical_device, device, queue, command_pool);
-	loader.load(asset{filename}, srgb);
+	loader.load(bytes, srgb);
 
 	vk::raii::DescriptorSet ds = std::move(device.allocateDescriptorSets({
 	        .descriptorPool = *descriptor_pool,
@@ -1055,6 +1060,21 @@ ImTextureID imgui_context::load_texture(const std::string & filename, vk::raii::
 	        });
 
 	return id;
+}
+
+ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes)
+{
+	return load_texture(
+	        bytes,
+	        vk::raii::Sampler{
+	                device,
+	                vk::SamplerCreateInfo{
+	                        .magFilter = vk::Filter::eLinear,
+	                        .minFilter = vk::Filter::eLinear,
+	                        .mipmapMode = vk::SamplerMipmapMode::eLinear,
+	                        .borderColor = vk::BorderColor::eFloatTransparentBlack,
+	                },
+	        });
 }
 
 ImTextureID imgui_context::load_texture(const std::string & filename)
