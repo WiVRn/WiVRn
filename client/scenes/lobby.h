@@ -118,6 +118,8 @@ class lobby : public scene_impl<lobby>
 	tab last_current_tab = tab::server_list;
 	int optional_feature_index = 0; // Which step of the first run screen are we in
 	ImTextureID about_picture;
+	ImTextureID default_icon;
+	std::unordered_map<std::string, ImTextureID> app_icons;
 
 	virtual_keyboard keyboard;
 

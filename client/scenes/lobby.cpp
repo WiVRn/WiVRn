@@ -895,6 +895,16 @@ void scenes::lobby::on_focused()
 	{
 		about_picture = imgui_ctx->load_texture(image + ".png");
 	}
+
+	try
+	{
+		default_icon = imgui_ctx->load_texture("default_icon.ktx2");
+	}
+	catch (...)
+	{
+		default_icon = imgui_ctx->load_texture("default_icon.png");
+	}
+
 	setup_passthrough();
 	session.set_refresh_rate(application::get_config().preferred_refresh_rate.value_or(0));
 	multicast = application::get_wifi_lock().get_multicast_lock();
@@ -915,6 +925,8 @@ void scenes::lobby::on_unfocused()
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 
 	about_picture = 0;
+	default_icon = 0;
+	app_icons.clear();
 	imgui_ctx.reset();
 	world.clear(); // Must be cleared before the renderer so that the descriptor sets are freed before their pools
 
