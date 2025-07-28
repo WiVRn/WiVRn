@@ -675,6 +675,7 @@ struct application_list
 	{
 		std::string id;
 		std::string name;
+		std::vector<std::byte> image; // In PNG
 	};
 	std::vector<application> applications;
 };

@@ -183,6 +183,11 @@ if (WIVRN_BUILD_SERVER)
     pkg_check_modules(libnotify REQUIRED IMPORTED_TARGET libnotify)
 endif()
 
+if (WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_SERVER)
+    pkg_check_modules(librsvg-2.0 REQUIRED IMPORTED_TARGET librsvg-2.0)
+    find_package(PNG)
+endif()
+
 if (WIVRN_BUILD_DASHBOARD)
     find_package(Qt6 REQUIRED COMPONENTS Core Quick Test Gui QuickControls2 Widgets Network)
 

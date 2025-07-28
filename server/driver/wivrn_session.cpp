@@ -737,7 +737,8 @@ void wivrn_session::operator()(from_headset::get_application_list && request)
 		response.applications.emplace_back(
 		        std::move(id),
 		        // FIXME: use locale
-		        app.name.at(""));
+		        app.name.at(""),
+		        app.image);
 	}
 	send_control(std::move(response));
 }

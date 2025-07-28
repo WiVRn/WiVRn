@@ -1,6 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2025  Guillaume Meunier <guillaume.meunier@centraliens.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,22 +18,34 @@
 
 #pragma once
 
-#include <optional>
-#include <string>
+#include <filesystem>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace wivrn
 {
-
-struct application
+class steam_app_info
 {
-	// localised names, with empty locale for default
-	std::unordered_map<std::string, std::string> name;
-	std::string exec;
-	std::vector<std::byte> image; // In PNG
-	std::optional<std::string> path;
-};
+public:
+	using info = std::unordered_map<std::string, std::variant<uint32_t, std::string_view>>;
 
-std::unordered_map<std::string, application> list_applications(bool include_steam = true);
+private:
+	std::vector<char> data;
+
+	std::unordered_map<int, info> app_data;
+
+public:
+	steam_app_info(std::filesystem::path path);
+	steam_app_info() = default;
+	steam_app_info(const steam_app_info &) = delete;
+	steam_app_info(steam_app_info &&) = default;
+	steam_app_info & operator=(const steam_app_info &) = delete;
+	steam_app_info & operator=(steam_app_info &&) = default;
+
+	const auto & get(int appid) const
+	{
+		return app_data.at(appid);
+	}
+};
 } // namespace wivrn
