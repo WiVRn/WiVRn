@@ -1,6 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2025  Guillaume Meunier <guillaume.meunier@centraliens.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,22 +18,11 @@
 
 #pragma once
 
+#include <filesystem>
 #include <optional>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 namespace wivrn
 {
-
-struct application
-{
-	// localised names, with empty locale for default
-	std::unordered_map<std::string, std::string> name;
-	std::string exec;
-	std::vector<std::byte> image; // In PNG
-	std::optional<std::string> path;
-};
-
-std::unordered_map<std::string, application> list_applications(bool include_steam = true);
-} // namespace wivrn
+std::optional<std::filesystem::path> xdg_icon_lookup(const std::string & icon_name, int size, int scale = 1);
+}

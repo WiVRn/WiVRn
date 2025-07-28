@@ -44,9 +44,12 @@ add_library(wivrn-common STATIC EXCLUDE_FROM_ALL
 if (WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_SERVER)
     add_library(wivrn-common-server STATIC EXCLUDE_FROM_ALL
         utils/flatpak.cpp
+        utils/xdg_icon_lookup.cpp
+        utils/steam_app_info.cpp
+        utils/load_icon.cpp
         application.cpp
     )
-    target_link_libraries(wivrn-common-server PRIVATE nlohmann_json::nlohmann_json PUBLIC wivrn-common-base)
+    target_link_libraries(wivrn-common-server PRIVATE nlohmann_json::nlohmann_json PNG::PNG PkgConfig::librsvg-2.0 PUBLIC wivrn-common-base)
 
     if (WIVRN_BUILD_TEST)
         add_executable(list-apps
