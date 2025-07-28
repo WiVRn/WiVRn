@@ -305,7 +305,7 @@ static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk
 	fill_defaults(bundle, headset_codecs, base, bit_depth);
 
 #ifdef WIVRN_SPLIT_ENCODERS
-	if (base.name != encoder_x264 and base.name != encoder_nvenc)
+	if (base.name != encoder_x264)
 	{
 		/* Split in 3 parts:
 		 *  +--------+--------+
