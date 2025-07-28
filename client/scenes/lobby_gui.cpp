@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "utils/ranges.h"
+#include <algorithm>
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #ifdef __ANDROID__
@@ -145,6 +147,54 @@ static void display_recentering_tip(imgui_context & ctx, const std::string & tip
 	ImGui::End();
 	ImGui::PopStyleVar(2);
 	ImGui::PopFont();
+}
+
+// Display a button with an image and a text centred horizontally
+static bool icon(const std::string & text, ImTextureRef tex_ref, const ImVec2 & image_size, ImGuiButtonFlags flags = 0, const ImVec2 & size_arg = ImVec2(0, 0), const ImVec2 & uv0 = ImVec2(0, 0), const ImVec2 & uv1 = ImVec2(1, 1), const ImVec4 & tint_col = ImVec4(1, 1, 1, 1))
+{
+	// Based on ImGui::ButtonEx and ImGui::ImageButtonEx
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
+	const ImGuiStyle & style = ImGui::GetStyle();
+
+	if (window->SkipItems)
+		return false;
+
+	const ImVec2 label_size = ImGui::CalcTextSize(text.c_str(), nullptr, true);
+
+	ImVec2 size = ImGui::CalcItemSize(
+	        size_arg,
+	        std::max(image_size.x, label_size.x) + style.FramePadding.x * 2.0f,
+	        image_size.y + style.ItemInnerSpacing.y + label_size.y + style.FramePadding.y * 2.0f);
+
+	const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size);
+
+	ImRect image_pos(
+	        {(bb.Min.x + bb.Max.x - image_size.x) / 2, bb.Min.y + style.FramePadding.y},
+	        {(bb.Min.x + bb.Max.x + image_size.x) / 2, bb.Min.y + style.FramePadding.y + image_size.y});
+
+	ImRect label_pos(
+	        {bb.Min.x + style.FramePadding.x, image_pos.Max.y + style.ItemInnerSpacing.y},
+	        {bb.Max.x - style.FramePadding.x, bb.Max.y - style.FramePadding.y});
+
+	ImGui::ItemSize(bb);
+
+	ImGuiID id = window->GetID(text.c_str());
+	if (!ImGui::ItemAdd(bb, id))
+		return false;
+
+	bool hovered, held;
+	bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
+
+	// Render
+	const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered
+	                                                                                         : ImGuiCol_Button);
+	ImGui::RenderNavCursor(bb, id);
+	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
+
+	window->DrawList->AddImage(tex_ref, image_pos.Min, image_pos.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
+	ImGui::RenderTextClipped(label_pos.Min, label_pos.Max, text.c_str(), NULL, &label_size, style.ButtonTextAlign, &bb);
+
+	return pressed;
 }
 
 std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag)
@@ -307,6 +357,11 @@ void scenes::lobby::gui_connected()
 	if (not next_scene)
 	{
 		current_tab = tab::server_list;
+
+		for (const auto & [app_id, app_icon]: app_icons)
+			imgui_ctx->free_texture(app_icon);
+		app_icons.clear();
+
 		return;
 	}
 
@@ -329,18 +384,54 @@ void scenes::lobby::gui_connected()
 	else
 	{
 		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, disconnect_size.y + 80), 0);
+
 		if (server_name.empty())
 			ImGui::Text("%s", _S("Start an application on your computer or select one to start streaming."));
 		else
 			ImGui::Text("%s", fmt::format(_F("Start an application on {} or select one to start streaming."), server_name).c_str());
-		for (const auto & app: apps->applications)
+
+		for (const auto [index, app]: utils::enumerate(apps->applications))
 		{
-			if (ImGui::Button(fmt::format(ICON_FA_PLAY "##{}", app.id).c_str()))
+			ImTextureID texture = [&]() -> ImTextureID {
+				if (app.image.empty())
+				{
+					return default_icon;
+				}
+				else
+				{
+					auto it = app_icons.find(app.id);
+					if (it == app_icons.end())
+					{
+						// TODO premultiply alpha
+						// TODO load textures in background
+						it = app_icons.emplace(app.id, imgui_ctx->load_texture(app.image)).first;
+					}
+					return it->second;
+				}
+			}();
+
+			ImGui::PushStyleColor(ImGuiCol_Button, 0);
+			if (icon(app.name + "##" + app.id, texture, {256, 256}, 0, {400, 0}))
 				next_scene->start_application(app.id);
 			imgui_ctx->vibrate_on_hover();
-			ImGui::SameLine();
-			ImGui::Text("%s", app.name.c_str());
+			ImGui::PopStyleColor(); // ImGuiCol_Button
+
+			if (index % 3 != 2)
+				ImGui::SameLine();
 		}
+
+		std::vector<std::pair<std::string, ImTextureID>> to_be_removed;
+		for (const auto & [app_id, app_icon]: app_icons)
+		{
+			if (not std::ranges::contains(apps->applications, app_id, &to_headset::application_list::application::id))
+				to_be_removed.emplace_back(app_id, app_icon);
+		}
+		for (const auto & [app_id, app_icon]: to_be_removed)
+		{
+			imgui_ctx->free_texture(app_icon);
+			app_icons.erase(app_id);
+		}
+
 		ScrollWhenDraggingOnVoid();
 		ImGui::EndChild();
 	}
