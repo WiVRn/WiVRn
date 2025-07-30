@@ -194,7 +194,6 @@ static void fill_param_2d(
 {
 	float scale = float(foveated_dim) / source_dim;
 	auto [a, b] = solve_foveation(scale, c);
-	U_LOG_I("solve_foveation(%.4f, %.4f) => %.4f, %.4f", scale, c, a, b);
 
 	uint16_t last = 0;
 	std::vector<uint16_t> left; // index 0: 1:1 ratio, then 2:1 etc.
