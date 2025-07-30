@@ -529,7 +529,7 @@ msgstr "グリップを握ってパネルを動かしましょう。"
 
 #: client/scenes/stream_gui.cpp:398 client/scenes/stream_gui.cpp:750
 msgid "Press both thumbsticks to display the WiVRn window"
-msgstr "両方のサムスティックを同時に押すことでWiVRn"
+msgstr "両方のサムスティックを同時に押すことで設定表示"
 
 #: client/scenes/stream_gui.cpp:420
 msgid "Motion to photon latency"
