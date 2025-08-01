@@ -1072,6 +1072,9 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 	                        .magFilter = vk::Filter::eLinear,
 	                        .minFilter = vk::Filter::eLinear,
 	                        .mipmapMode = vk::SamplerMipmapMode::eLinear,
+	                        .addressModeU = vk::SamplerAddressMode::eClampToEdge,
+	                        .addressModeV = vk::SamplerAddressMode::eClampToEdge,
+	                        .addressModeW = vk::SamplerAddressMode::eClampToEdge,
 	                        .borderColor = vk::BorderColor::eFloatTransparentBlack,
 	                },
 	        });
@@ -1087,6 +1090,9 @@ ImTextureID imgui_context::load_texture(const std::string & filename)
 	                        .magFilter = vk::Filter::eLinear,
 	                        .minFilter = vk::Filter::eLinear,
 	                        .mipmapMode = vk::SamplerMipmapMode::eLinear,
+	                        .addressModeU = vk::SamplerAddressMode::eClampToEdge,
+	                        .addressModeV = vk::SamplerAddressMode::eClampToEdge,
+	                        .addressModeW = vk::SamplerAddressMode::eClampToEdge,
 	                        .borderColor = vk::BorderColor::eFloatTransparentBlack,
 	                },
 	        });
