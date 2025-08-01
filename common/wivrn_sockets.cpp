@@ -471,14 +471,14 @@ wivrn::deserialization_packet wivrn::TCP::receive_raw()
 {
 	ssize_t expected_size;
 
-	if (data.size_bytes() < sizeof(uint16_t))
+	if (data.size_bytes() < sizeof(uint32_t))
 	{
-		expected_size = sizeof(uint16_t) - data.size_bytes();
+		expected_size = sizeof(uint32_t) - data.size_bytes();
 	}
 	else
 	{
-		uint32_t payload_size = *reinterpret_cast<uint16_t *>(data.data());
-		expected_size = payload_size + sizeof(uint16_t) - data.size_bytes();
+		uint32_t payload_size = *reinterpret_cast<uint32_t *>(data.data());
+		expected_size = payload_size + sizeof(uint32_t) - data.size_bytes();
 	}
 
 	if (expected_size > capacity_left)
@@ -518,35 +518,35 @@ wivrn::deserialization_packet wivrn::TCP::receive_raw()
 		capacity_left -= received_size;
 	}
 
-	if (data.size_bytes() < sizeof(uint16_t))
+	if (data.size_bytes() < sizeof(uint32_t))
 		return {};
 
-	uint32_t payload_size = *reinterpret_cast<uint16_t *>(data.data());
+	uint32_t payload_size = *reinterpret_cast<uint32_t *>(data.data());
 	if (payload_size == 0)
 		throw std::runtime_error("Invalid packet: 0 size");
 
-	if (data.size_bytes() < sizeof(uint16_t) + payload_size)
+	if (data.size_bytes() < sizeof(uint32_t) + payload_size)
 		return {};
 
-	auto span = data.subspan(sizeof(uint16_t), payload_size);
-	data = data.subspan(sizeof(uint16_t) + payload_size);
+	auto span = data.subspan(sizeof(uint32_t), payload_size);
+	data = data.subspan(sizeof(uint32_t) + payload_size);
 	return deserialization_packet{buffer, span};
 }
 
 wivrn::deserialization_packet wivrn::TCP::receive_pending()
 {
-	if (data.size_bytes() < sizeof(uint16_t))
+	if (data.size_bytes() < sizeof(uint32_t))
 		return {};
 
-	uint32_t payload_size = *reinterpret_cast<uint16_t *>(data.data());
+	uint32_t payload_size = *reinterpret_cast<uint32_t *>(data.data());
 	if (payload_size == 0)
 		throw std::runtime_error("Invalid packet: 0 size");
 
-	if (data.size_bytes() < sizeof(uint16_t) + payload_size)
+	if (data.size_bytes() < sizeof(uint32_t) + payload_size)
 		return {};
 
-	auto span = data.subspan(sizeof(uint16_t), payload_size);
-	data = data.subspan(sizeof(uint16_t) + payload_size);
+	auto span = data.subspan(sizeof(uint32_t), payload_size);
+	data = data.subspan(sizeof(uint32_t) + payload_size);
 	return deserialization_packet{buffer, span};
 }
 
@@ -557,7 +557,7 @@ void wivrn::TCP::send_raw(serialization_packet && packet)
 
 	std::vector<std::span<uint8_t>> & data = packet;
 
-	uint16_t size = 0;
+	uint32_t size = 0;
 	iovecs.emplace_back(&size, sizeof(size));
 	for (const auto & span: data)
 	{
@@ -611,7 +611,7 @@ void wivrn::TCP::send_raw(serialization_packet && packet)
 void wivrn::TCP::send_many_raw(std::span<serialization_packet> packets)
 {
 	thread_local std::vector<iovec> iovecs;
-	thread_local std::vector<uint16_t> sizes;
+	thread_local std::vector<uint32_t> sizes;
 	thread_local std::vector<std::span<uint8_t>> spans;
 
 	if (packets.empty())
