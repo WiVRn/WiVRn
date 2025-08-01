@@ -153,6 +153,7 @@ WiVRn uses the following software:
 - [FreeType](https://freetype.org/)
 - [glm](http://glm.g-truc.net/)
 - [HarfBuzz](https://harfbuzz.github.io/)
+- [librsvg](https://wiki.gnome.org/Projects/LibRsvg)
 - [Monado](https://monado.freedesktop.org/)
 - [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on Nvidia
 - [qCoro](https://qcoro.dev/)

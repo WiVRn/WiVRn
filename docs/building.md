@@ -4,7 +4,7 @@
 
 ## Dependencies
 
-WiVRn requires avahi-client, eigen3, gettext, libpulse, libsystemd, nlohmann_json.
+WiVRn requires avahi-client, eigen3, gettext, libpulse, libsystemd, nlohmann_json, librsvg2.
 
 It also requires at least one encoder:
 
