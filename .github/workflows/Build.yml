@@ -489,6 +489,13 @@ jobs:
           patch -p1 --fuzz=0 --forward < "$p"
         done
 
+    - name: Download stb
+      run: |
+        wget https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.tar.gz -O stb.tar.gz
+
+        mkdir wivrn/stb-src
+        tar xzf stb.tar.gz --strip-components=1 -C wivrn/stb-src
+
     - name: Edit changelog
       working-directory: wivrn
       run: >
