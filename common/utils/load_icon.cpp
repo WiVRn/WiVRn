@@ -269,7 +269,9 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 		if (magic == ICO_PNG_MAGIC)
 		{
 			// PNG file
-			return {std::from_range, best_entry.data};
+			std::vector<std::byte> png_data;
+			png_data.insert(png_data.end(), data.begin(), data.end());
+			return png_data;
 		}
 		else if (magic == 40)
 		{
