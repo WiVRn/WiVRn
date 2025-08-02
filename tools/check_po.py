@@ -44,7 +44,8 @@ for i in po_ref:
 	if not i.obsolete:
 		if not i.msgid in entries:
 			missing = missing + 1
-			print(f"::warning file={args.file}::{flag} Translation for {repr(i.msgid)} is missing")
+			print(f"::notice file={args.file}::{flag} Translation for {repr(i.msgid)} is missing")
 
 if missing > 0:
+	print(f"::warning file={args.file}::{flag} {missing} translations missing")
 	sys.exit(1)
