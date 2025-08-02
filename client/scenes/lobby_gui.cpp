@@ -383,12 +383,22 @@ void scenes::lobby::gui_connected()
 	}
 	else
 	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 0});
 		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, disconnect_size.y + 80), 0);
 
 		if (server_name.empty())
 			ImGui::Text("%s", _S("Start an application on your computer or select one to start streaming."));
 		else
 			ImGui::Text("%s", fmt::format(_F("Start an application on {} or select one to start streaming."), server_name).c_str());
+
+		float icon_width = 400;
+		float icon_spacing = ImGui::GetStyle().ItemSpacing.x;
+		float usable_window_width = ImGui::GetWindowSize().x - ImGui::GetCurrentWindow()->ScrollbarSizes.x;
+
+		int icons_per_line = (usable_window_width + icon_spacing) / (icon_width + icon_spacing);
+		float icon_line_width = icons_per_line * icon_width + (icons_per_line - 1) * icon_spacing;
+
+		ImGui::Indent((usable_window_width - icon_line_width) / 2);
 
 		for (const auto [index, app]: utils::enumerate(apps->applications))
 		{
@@ -411,7 +421,7 @@ void scenes::lobby::gui_connected()
 			}();
 
 			ImGui::PushStyleColor(ImGuiCol_Button, 0);
-			if (icon(app.name + "##" + app.id, texture, {256, 256}, 0, {400, 0}))
+			if (icon(app.name + "##" + app.id, texture, {256, 256}, 0, {icon_width, 0}))
 				next_scene->start_application(app.id);
 			imgui_ctx->vibrate_on_hover();
 			ImGui::PopStyleColor(); // ImGuiCol_Button
@@ -419,6 +429,7 @@ void scenes::lobby::gui_connected()
 			if (index % 3 != 2)
 				ImGui::SameLine();
 		}
+		ImGui::Unindent();
 
 		std::vector<std::pair<std::string, ImTextureID>> to_be_removed;
 		for (const auto & [app_id, app_icon]: app_icons)
@@ -434,6 +445,7 @@ void scenes::lobby::gui_connected()
 
 		ScrollWhenDraggingOnVoid();
 		ImGui::EndChild();
+		ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
 	}
 	ImGui::PopStyleVar();
 
@@ -449,7 +461,7 @@ void scenes::lobby::gui_connected()
 		current_tab = tab::server_list;
 	}
 	imgui_ctx->vibrate_on_hover();
-	ImGui::PopStyleColor(3);
+	ImGui::PopStyleColor(3); // ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive
 }
 
 void scenes::lobby::gui_new_server()
@@ -1834,14 +1846,14 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	}
 	else if (current_tab == tab::connected)
 	{
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 20});
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0, 20});
 		ImGui::SetNextWindowSize({1400, 900});
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 		gui_connected();
 		ImGui::End();
-		ImGui::PopStyleVar(3); // ImGuiStyleVar_WindowPadding
+		ImGui::PopStyleVar(3); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding, ImGuiStyleVar_FramePadding
 	}
 	else
 	{
