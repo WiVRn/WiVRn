@@ -4,20 +4,19 @@
 # SPDX-FileCopyrightText: 2025 Claudio Sampaio (Patola)
 # LuckShiba <LuckShiba@protonmail.com>, 2025.
 #
-# SPDX-FileCopyrightText: 2025 not <github.superglue094@slmail.me>
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-20 19:23-0300\n"
-"PO-Revision-Date: 2025-08-02 20:41+0200\n"
-"Last-Translator: not <github.superglue094@slmail.me>\n"
-"Language-Team: Brazilian Portuguese <kde-i18n-doc@kde.org>\n"
+"PO-Revision-Date: 2025-06-23 05:42-0300\n"
+"Last-Translator: LuckShiba <LuckShiba@protonmail.com>\n"
+"Language-Team: Brazilian Portuguese\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 25.04.3\n"
+"X-Generator: Gtranslator 48.0\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: client/scenes/lobby.cpp:148
@@ -86,29 +85,6 @@ msgid ""
 msgstr ""
 "Conexão pronta\n"
 "Inicie um aplicativo VR em {}"
-
-#: client/scenes/lobby_gui.cpp:315
-msgid "Connected to WiVRn server"
-msgstr "Conectado ao servidor WiVRn"
-
-#: client/scenes/lobby_gui.cpp:317
-#, c++-format
-msgid "Connected to {}"
-msgstr "Conectado a {}"
-
-#: client/scenes/lobby_gui.cpp:327
-msgid "Start an application on the server to start streaming."
-msgstr "Inicie um aplicativo no servidor para começar a transmitir."
-
-#: client/scenes/lobby_gui.cpp:333
-msgid "Start an application on your computer or select one to start streaming."
-msgstr ""
-"Inicie um aplicativo no seu computador ou selecione um para começar a transmitir."
-
-#: client/scenes/lobby_gui.cpp:335
-#, c++-format
-msgid "Start an application on {} or select one to start streaming."
-msgstr "Inicie um aplicativo em {} ou selecione um para começar a transmitir."
 
 #: client/scenes/lobby_gui.cpp:221
 msgid "Close"
@@ -360,34 +336,6 @@ msgstr ""
 "aumento de nitidez acima.\n"
 "Somente habilite se souber o que está fazendo."
 
-#: client/scenes/lobby_gui.cpp:1132
-msgid "Enable the microphone?"
-msgstr "Ativar o microfone?"
-
-#: client/scenes/lobby_gui.cpp:1137
-msgid "Enable eye tracking?"
-msgstr "Ativar rastreamento ocular?"
-
-#: client/scenes/lobby_gui.cpp:1142
-msgid "Enable face tracking?"
-msgstr "Ativar rastreamento facial?"
-
-#: client/scenes/lobby_gui.cpp:1147
-msgid "Enable body tracking?"
-msgstr "Ativar rastreamento corporal?"
-
-#: client/scenes/lobby_gui.cpp:1155
-msgid "Welcome to WiVRn"
-msgstr "Bem-vindo ao WiVRn"
-
-#: client/scenes/lobby_gui.cpp:1179
-msgid "Yes"
-msgstr "Sim"
-
-#: client/scenes/lobby_gui.cpp:1186
-msgid "No"
-msgstr "Não"
-
 #: client/scenes/lobby_gui.cpp:949
 msgid ""
 "Client-side upscaling and sharpening, adds a performance cost on the headset"
@@ -460,14 +408,6 @@ msgstr "O rastreamento facial está desativado"
 msgid "Body tracking is enabled"
 msgstr "O rastreamento corporal está ativado"
 
-#: client/scenes/lobby_gui.cpp:1864
-msgid "Press the grip button or put your palm up\nto move the main window"
-msgstr "Pressione o botão de agarrar ou levante a palma da mão\npara mover a janela principal"
-
-#: client/scenes/lobby_gui.cpp:1866
-msgid "Press the grip button to move the main window"
-msgstr "Pressione o botão de agarrar para mover a janela principal"
-
 #: client/scenes/lobby_gui.cpp:1494
 msgid "Body tracking is disabled"
 msgstr "O rastreamento corporal está desativado"
@@ -531,64 +471,6 @@ msgstr "Baixar"
 #: client/scenes/stream_stats.cpp:165
 msgid "Upload"
 msgstr "Enviar"
-
-#: client/scenes/stream_gui.cpp:396
-msgid "Press the grip button to move the window"
-msgstr "Pressione o botão de agarrar para mover a janela"
-
-#: client/scenes/stream_gui.cpp:398 client/scenes/stream_gui.cpp:750
-msgid "Press both thumbsticks to display the WiVRn window"
-msgstr "Pressione ambos os thumbsticks para mostrar a janela do WiVRn"
-
-#: client/scenes/stream_gui.cpp:420
-msgid "Motion to photon latency"
-msgstr "Latência de movimento para fóton"
-
-#: client/scenes/stream_gui.cpp:492
-msgid "Foveation center override"
-msgstr "Sobrescrever o centro de foveação"
-
-#: client/scenes/stream_gui.cpp:495
-msgid "Enable"
-msgstr "Ativar"
-
-#: client/scenes/stream_gui.cpp:503 client/scenes/stream_gui.cpp:550
-#, c++-format
-msgid "Height {:.1f} deg"
-msgstr "Altura {:.1f} deg"
-
-#: client/scenes/stream_gui.cpp:504 client/scenes/stream_gui.cpp:551
-#, c++-format
-msgid "Distance {:.2f} m"
-msgstr "Distância {:.2f} m"
-
-#: client/scenes/stream_gui.cpp:505
-msgid "Default"
-msgstr "Padrão"
-
-#: client/scenes/stream_gui.cpp:516
-msgid "Change"
-msgstr "Alterar"
-
-#: client/scenes/stream_gui.cpp:548
-msgid "Use the thumbsticks to move the foveation center"
-msgstr "Use os thumbsticks para mover o centro de foveação"
-
-#: client/scenes/stream_gui.cpp:549
-msgid "Press A to save or B to cancel"
-msgstr "Pressione A para salvar ou B para cancelar"
-
-#: client/scenes/stream_gui.cpp:793
-msgid "Stats"
-msgstr "Estatísticas"
-
-#: client/scenes/stream_gui.cpp:802
-msgid "Statistics overlay"
-msgstr "Sobreposição de estatísticas"
-
-#: client/scenes/stream_gui.cpp:805
-msgid "Compact view"
-msgstr "Visualização compacta"
 
 #: client/scenes/stream_stats.cpp:234
 #, c++-format
