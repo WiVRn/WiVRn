@@ -40,7 +40,7 @@ class growable_descriptor_pool
 	std::vector<pool> pools;
 
 public:
-	growable_descriptor_pool(vk::raii::Device & device, vk::raii::DescriptorSetLayout & layout, std::span<vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool = 100);
+	growable_descriptor_pool(vk::raii::Device & device, vk::raii::DescriptorSetLayout & layout, std::span<const vk::DescriptorSetLayoutBinding> bindings, int descriptorsets_per_pool = 100);
 
 	std::shared_ptr<vk::raii::DescriptorSet> allocate();
 };

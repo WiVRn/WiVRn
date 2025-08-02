@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "render/growable_descriptor_pool.h"
 #include "wivrn_config.h"
 #include "xr/hand_tracker.h"
 #include "xr/space.h"
@@ -46,7 +47,7 @@ class imgui_context
 	{
 		vk::raii::Sampler sampler;
 		std::shared_ptr<vk::raii::ImageView> image_view;
-		vk::raii::DescriptorSet descriptor_set;
+		std::shared_ptr<vk::raii::DescriptorSet> descriptor_set;
 	};
 
 public:
@@ -121,8 +122,8 @@ private:
 	vk::raii::Queue & queue;
 
 	vk::raii::Pipeline pipeline = nullptr;
-	vk::raii::DescriptorPool descriptor_pool;
 	vk::raii::DescriptorSetLayout ds_layout;
+	growable_descriptor_pool descriptor_pool;
 	vk::raii::RenderPass renderpass;
 	vk::raii::CommandPool command_pool;
 

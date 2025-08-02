@@ -289,32 +289,21 @@ imgui_context::imgui_frame & imgui_context::get_frame(vk::Image destination)
 	return frame;
 }
 
-static const std::array pool_sizes =
-        {
-                vk::DescriptorPoolSize{
-                        .type = vk::DescriptorType::eCombinedImageSampler,
-                        .descriptorCount = constants::gui::nb_combined_image_samplers,
-                }};
-
-static const vk::DescriptorSetLayoutBinding layout_bindings{
-        .binding = 0,
-        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eFragment};
+static const std::array layout_bindings = {
+        vk::DescriptorSetLayoutBinding{
+                .binding = 0,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        }};
 
 imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, uint32_t queue_family_index, vk::raii::Queue & queue, std::span<controller> controllers_, xr::swapchain & swapchain, std::vector<viewport> layers) :
         physical_device(physical_device),
         device(device),
         queue_family_index(queue_family_index),
         queue(queue),
-        descriptor_pool(device,
-                        vk::DescriptorPoolCreateInfo{
-                                .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-                                .maxSets = pool_sizes[0].descriptorCount,
-                                .poolSizeCount = pool_sizes.size(),
-                                .pPoolSizes = pool_sizes.data(),
-                        }),
-        ds_layout(device, vk::DescriptorSetLayoutCreateInfo{.bindingCount = 1, .pBindings = &layout_bindings}),
+        ds_layout(device, vk::DescriptorSetLayoutCreateInfo{.bindingCount = layout_bindings.size(), .pBindings = layout_bindings.data()}),
+        descriptor_pool(device, ds_layout, layout_bindings),
         renderpass(create_renderpass(device, swapchain.format(), true)),
         command_pool(device,
                      vk::CommandPoolCreateInfo{
@@ -353,13 +342,13 @@ imgui_context::imgui_context(vk::raii::PhysicalDevice physical_device, vk::raii:
 	        .Device = *application::get_device(),
 	        .QueueFamily = application::queue_family_index(),
 	        .Queue = *application::get_queue(),
-	        .DescriptorPool = *descriptor_pool,
 	        .RenderPass = *renderpass,
 	        .MinImageCount = 2,
 	        .ImageCount = (uint32_t)swapchain.images().size(), // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
 	        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 	        .PipelineCache = *application::get_pipeline_cache(),
 	        .Subpass = 0,
+	        .DescriptorPoolSize = 100,
 	        .Allocator = nullptr,
 	        .CheckVkResultFn = check_vk_result,
 	};
@@ -1028,11 +1017,7 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 	image_loader loader(physical_device, device, queue, command_pool);
 	loader.load(bytes, srgb);
 
-	vk::raii::DescriptorSet ds = std::move(device.allocateDescriptorSets({
-	        .descriptorPool = *descriptor_pool,
-	        .descriptorSetCount = 1,
-	        .pSetLayouts = &*ds_layout,
-	})[0]);
+	std::shared_ptr<vk::raii::DescriptorSet> ds = descriptor_pool.allocate();
 
 	vk::DescriptorImageInfo image_info{
 	        .sampler = *sampler,
@@ -1041,14 +1026,14 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 	};
 
 	vk::WriteDescriptorSet ds_write{
-	        .dstSet = *ds,
+	        .dstSet = **ds,
 	        .descriptorCount = 1,
 	        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
 	        .pImageInfo = &image_info};
 
 	device.updateDescriptorSets(ds_write, nullptr);
 
-	ImTextureID id = reinterpret_cast<ImTextureID>(VkDescriptorSet(*ds));
+	ImTextureID id = reinterpret_cast<ImTextureID>(VkDescriptorSet(**ds));
 
 	textures.emplace(
 	        id,

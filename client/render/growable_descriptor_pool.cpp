@@ -23,13 +23,41 @@
 
 struct descriptor_set
 {
-	growable_descriptor_pool & growable_pool;
+	growable_descriptor_pool * growable_pool;
 	vk::DescriptorPool pool;
 	vk::raii::DescriptorSet ds;
 
+	descriptor_set(const descriptor_set &) = delete;
+	descriptor_set & operator=(const descriptor_set &) = delete;
+
+	descriptor_set(growable_descriptor_pool * growable_pool,
+	               vk::DescriptorPool pool,
+	               vk::raii::DescriptorSet ds) :
+	        growable_pool(growable_pool),
+	        pool(pool),
+	        ds(std::move(ds))
+	{
+	}
+
+	descriptor_set(descriptor_set && other) :
+	        growable_pool(std::exchange(other.growable_pool, nullptr)),
+	        pool(other.pool),
+	        ds(std::move(other.ds))
+	{
+	}
+
+	descriptor_set & operator=(descriptor_set && other)
+	{
+		std::swap(*this, other);
+		return *this;
+	}
+
 	~descriptor_set()
 	{
-		for (auto & i: growable_pool.pools)
+		if (not growable_pool)
+			return;
+
+		for (auto & i: growable_pool->pools)
 		{
 			if (*i.descriptor_pool == pool)
 			{
@@ -43,7 +71,7 @@ struct descriptor_set
 growable_descriptor_pool::growable_descriptor_pool(
         vk::raii::Device & device,
         vk::raii::DescriptorSetLayout & layout,
-        std::span<vk::DescriptorSetLayoutBinding> bindings,
+        std::span<const vk::DescriptorSetLayoutBinding> bindings,
         int descriptorsets_per_pool) :
         device(device),
         layout_(nullptr),
@@ -84,7 +112,7 @@ std::shared_ptr<vk::raii::DescriptorSet> growable_descriptor_pool::allocate()
 			i.free_count--;
 			alloc_info.descriptorPool = *i.descriptor_pool;
 
-			auto ds = std::make_shared<descriptor_set>(*this, *i.descriptor_pool, std::move(device.allocateDescriptorSets(alloc_info)[0]));
+			auto ds = std::make_shared<descriptor_set>(this, *i.descriptor_pool, std::move(device.allocateDescriptorSets(alloc_info)[0]));
 
 			return std::shared_ptr<vk::raii::DescriptorSet>(ds, &ds->ds);
 		}
@@ -103,7 +131,7 @@ std::shared_ptr<vk::raii::DescriptorSet> growable_descriptor_pool::allocate()
 
 	alloc_info.descriptorPool = *pools.back().descriptor_pool;
 
-	auto ds = std::make_shared<descriptor_set>(*this, *pools.back().descriptor_pool, std::move(device.allocateDescriptorSets(alloc_info)[0]));
+	auto ds = std::make_shared<descriptor_set>(this, *pools.back().descriptor_pool, std::move(device.allocateDescriptorSets(alloc_info)[0]));
 
 	return std::shared_ptr<vk::raii::DescriptorSet>(ds, &ds->ds);
 }
