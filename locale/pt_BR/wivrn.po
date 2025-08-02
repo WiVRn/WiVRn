@@ -647,7 +647,3 @@ msgstr "Incapaz de verificar PIN"
 #: client/wivrn_client.cpp:182
 msgid "Pairing is disabled on server"
 msgstr "Pareamento está desabilitado no servidor"
-
-#: client/scenes/lobby_gui.cpp:1866
-msgid "Press the grip button to move the main window"
-msgstr "按住握把鈕來移動主視窗"
