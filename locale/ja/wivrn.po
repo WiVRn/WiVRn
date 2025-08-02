@@ -252,8 +252,8 @@ msgid ""
 "Only takes affect with lower body tracking enabled\n"
 "May be desired when using another source of hip tracking"
 msgstr ""
-"下半身トラッキングが有効な場合に使用可能。腰トラッカーを持ってる方は無効にし"
-"ましょう。"
+"下半身トラッキングが有効な場合に使用可能。\n"
+"腰トラッカーを持ってる方は無効にしましょう。"
 
 #: client/scenes/lobby_gui.cpp:822
 msgid "Enable video passthrough in lobby"
@@ -454,7 +454,7 @@ msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
 msgstr ""
-"メイン・パネルを動かすには、グリップを握るか、"
+"メイン・パネルを動かすには、グリップを握るか、\n"
 "手のひらを上向きにしましょう。"
 
 #: client/scenes/lobby_gui.cpp:1866
