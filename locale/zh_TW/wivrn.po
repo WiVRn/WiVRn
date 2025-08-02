@@ -1,17 +1,18 @@
+# SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the WiVRn package.
-# FIRST AUTHOR  Jayden Ha  <jayden@jaydenha.uk>, YEAR.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-# SPDX-FileCopyrightText: 2025 not <github.superglue094@slmail.me>
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-06-22 20:32+0800\n"
-"PO-Revision-Date: 2025-08-02 21:18+0200\n"
-"Last-Translator: not <github.superglue094@slmail.me>\n"
-"Language-Team: Traditional Chinese (Taiwan) <kde-i18n-doc@kde.org>\n"
-"Language: zh_TW\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Jayden Ha <jayden@jaydenha.uk>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -517,119 +518,3 @@ msgstr "無法驗證 PIN 碼"
 #: client/wivrn_client.cpp:182
 msgid "Pairing is disabled on server"
 msgstr "伺服器上已停用配對"
-
-#: client/scenes/lobby_gui.cpp:315
-msgid "Connected to WiVRn server"
-msgstr "已連接至 WiVRn 伺服器"
-
-#: client/scenes/lobby_gui.cpp:317
-#, c++-format
-msgid "Connected to {}"
-msgstr "已連接至 {}"
-
-#: client/scenes/lobby_gui.cpp:327
-msgid "Start an application on the server to start streaming."
-msgstr "請在伺服器上啟動應用程式以開始串流。"
-
-#: client/scenes/lobby_gui.cpp:333
-msgid "Start an application on your computer or select one to start streaming."
-msgstr "請在您的電腦上啟動應用程式或選擇一個以開始串流。"
-
-#: client/scenes/lobby_gui.cpp:335
-#, c++-format
-msgid "Start an application on {} or select one to start streaming."
-msgstr "請在 {} 上啟動應用程式或選擇一個以開始串流。"
-
-#: client/scenes/lobby_gui.cpp:1132
-msgid "Enable the microphone?"
-msgstr "啟用麥克風？"
-
-#: client/scenes/lobby_gui.cpp:1137
-msgid "Enable eye tracking?"
-msgstr "啟用眼動追蹤？"
-
-#: client/scenes/lobby_gui.cpp:1142
-msgid "Enable face tracking?"
-msgstr "啟用臉部追蹤？"
-
-#: client/scenes/lobby_gui.cpp:1147
-msgid "Enable body tracking?"
-msgstr "啟用身體追蹤？"
-
-#: client/scenes/lobby_gui.cpp:1155
-msgid "Welcome to WiVRn"
-msgstr "歡迎使用 WiVRn"
-
-#: client/scenes/lobby_gui.cpp:1179
-msgid "Yes"
-msgstr "是"
-
-#: client/scenes/lobby_gui.cpp:1186
-msgid "No"
-msgstr "否"
-
-#: client/scenes/lobby_gui.cpp:1864
-msgid "Press the grip button or put your palm up\nto move the main window"
-msgstr "請按握把按鈕或舉起手掌\n以移動主視窗"
-
-#: client/scenes/stream_gui.cpp:396
-msgid "Press the grip button to move the window"
-msgstr "請按握把按鈕以移動主視窗"
-
-#: client/scenes/stream_gui.cpp:420
-msgid "Motion to photon latency"
-msgstr "動作至光子延遲"
-
-#: client/scenes/stream_gui.cpp:492
-msgid "Foveation center override"
-msgstr "注視中心覆蓋"
-
-#: client/scenes/stream_gui.cpp:495
-msgid "Enable"
-msgstr "啟用"
-
-#: client/scenes/stream_gui.cpp:503 client/scenes/stream_gui.cpp:550
-#, c++-format
-msgid "Height {:.1f} deg"
-msgstr "高度 {:.1f} 度"
-
-#: client/scenes/stream_gui.cpp:504 client/scenes/stream_gui.cpp:551
-#, c++-format
-msgid "Distance {:.2f} m"
-msgstr "距離 {:.2f} 公尺"
-
-#: client/scenes/stream_gui.cpp:505
-msgid "Default"
-msgstr "預設"
-
-#: client/scenes/stream_gui.cpp:516
-msgid "Change"
-msgstr "變更"
-
-#: client/scenes/stream_gui.cpp:548
-msgid "Use the thumbsticks to move the foveation center"
-msgstr "使用搖桿移動注視中心"
-
-#: client/scenes/stream_gui.cpp:549
-msgid "Press A to save or B to cancel"
-msgstr "按 A 鍵儲存，按 B 鍵取消"
-
-#: client/scenes/stream_gui.cpp:793
-msgid "Stats"
-msgstr "統計"
-
-#: client/scenes/stream_gui.cpp:802
-msgid "Statistics overlay"
-msgstr "統計覆蓋層"
-
-#: client/scenes/stream_gui.cpp:805
-msgid "Compact view"
-msgstr "簡潔模式"
-
-#: client/scenes/stream_gui.cpp:398 client/scenes/stream_gui.cpp:750
-msgid "Press both thumbsticks to display the WiVRn window"
-msgstr "按下兩側拇指搖桿以顯示 WiVRn 視窗"
-
-#: client/scenes/lobby_gui.cpp:1866
-msgid "Press the grip button to move the main window"
-msgstr "按住握把鈕來移動主視窗"
