@@ -711,7 +711,7 @@ void imgui_context::new_frame(XrTime display_time)
 	ImPlot::SetCurrentContext(plot_context);
 
 	if (last_display_time)
-		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.1f);
+		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.0166f);
 	last_display_time = display_time;
 
 	// Uses the window list from last frame
@@ -741,7 +741,10 @@ void imgui_context::new_frame(XrTime display_time)
 			io.AddMousePosEvent(position->x, position->y);
 
 			if (glm::length(scroll) > constants::gui::scroll_value_thd)
-				io.AddMouseWheelEvent(scroll.x, scroll.y);
+			{
+				io.MouseWheel = scroll.y;
+				io.MouseWheelH = scroll.x;
+			}
 		}
 	}
 

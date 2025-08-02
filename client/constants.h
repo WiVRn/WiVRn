@@ -36,7 +36,7 @@ constexpr int font_size_small = 30;
 constexpr int font_size_large = 75;
 
 // Ratio between joystick position and scroll distance/s
-constexpr float scroll_ratio = 3;
+constexpr float scroll_ratio = 10;
 
 // Threshold on the trigger value to register a click
 constexpr float trigger_click_thd = 0.8;
