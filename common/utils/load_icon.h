@@ -23,5 +23,5 @@
 
 namespace wivrn
 {
-std::vector<std::byte> load_icon(const std::filesystem::path & filename, int size);
+const std::vector<std::byte> & load_icon(const std::filesystem::path & filename, int size);
 }

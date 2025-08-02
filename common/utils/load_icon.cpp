@@ -18,11 +18,13 @@
 
 #include "load_icon.h"
 
+#include <cairo.h>
 #include <fstream>
 #include <librsvg/rsvg.h>
 #include <limits>
 #include <png.h>
 #include <span>
+#include <unordered_map>
 
 namespace
 {
@@ -73,16 +75,45 @@ std::vector<std::byte> load_svg(const std::filesystem::path & filename, int size
 {
 	// TODO check if aspect ratio needs to be handled, dpi
 
+	struct deleter
+	{
+		void operator()(GFile * ptr)
+		{
+			g_object_unref(ptr);
+		}
+
+		void operator()(RsvgHandle * ptr)
+		{
+			g_object_unref(ptr);
+		}
+
+		void operator()(cairo_surface_t * ptr)
+		{
+			cairo_surface_destroy(ptr);
+		}
+
+		void operator()(cairo_t * ptr)
+		{
+			cairo_destroy(ptr);
+		}
+	};
+
+	using GFile_ptr = std::unique_ptr<GFile, deleter>;
+	using RsvgHandle_ptr = std::unique_ptr<RsvgHandle, deleter>;
+	using cairo_surface_t_ptr = std::unique_ptr<cairo_surface_t, deleter>;
+	using cairo_t_ptr = std::unique_ptr<cairo_t, deleter>;
+
 	GError * error{};
-	GFile * file = g_file_new_for_path(filename.c_str());
-	RsvgHandle * handle = rsvg_handle_new_from_gfile_sync(file, RSVG_HANDLE_FLAGS_NONE, nullptr, &error);
+	GFile_ptr file{g_file_new_for_path(filename.c_str())};
+
+	RsvgHandle_ptr handle{rsvg_handle_new_from_gfile_sync(file.get(), RSVG_HANDLE_FLAGS_NONE, nullptr, &error)};
 
 	// Create a Cairo image surface and a rendering context for it
-	cairo_surface_t * surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size);
-	cairo_t * cr = cairo_create(surface);
+	cairo_surface_t_ptr surface{cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size)};
+	cairo_t_ptr cr{cairo_create(surface.get())};
 
 	// Set the dots-per-inch
-	rsvg_handle_set_dpi(handle, 96.0);
+	rsvg_handle_set_dpi(handle.get(), 96.0);
 
 	// Render the handle scaled proportionally into that whole surface
 	RsvgRectangle viewport = {
@@ -92,11 +123,9 @@ std::vector<std::byte> load_svg(const std::filesystem::path & filename, int size
 	        .height = (double)size,
 	};
 
-	if (!rsvg_handle_render_document(handle, cr, &viewport, &error))
+	if (!rsvg_handle_render_document(handle.get(), cr.get(), &viewport, &error))
 	{
 		g_printerr("could not render: %s", error->message);
-		g_object_unref(handle);
-		g_object_unref(file);
 		return {};
 	}
 
@@ -112,16 +141,12 @@ std::vector<std::byte> load_svg(const std::filesystem::path & filename, int size
 		return CAIRO_STATUS_SUCCESS;
 	};
 
-	if (cairo_surface_write_to_png_stream(surface, cb, &png) != CAIRO_STATUS_SUCCESS)
+	if (cairo_surface_write_to_png_stream(surface.get(), cb, &png) != CAIRO_STATUS_SUCCESS)
 	{
 		g_printerr("could not write output file");
-		g_object_unref(handle);
-		g_object_unref(file);
 		return {};
 	}
 
-	g_object_unref(handle);
-	g_object_unref(file);
 	return png;
 }
 
@@ -389,30 +414,37 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 	return {};
 }
 
+std::unordered_map<std::filesystem::path, std::vector<std::byte>> icon_cache;
+
 } // namespace
 
-std::vector<std::byte> wivrn::load_icon(const std::filesystem::path & filename, int size)
+const std::vector<std::byte> & wivrn::load_icon(const std::filesystem::path & filename, int size)
 {
-	// TODO keep icons in cache
+	auto it = icon_cache.find(filename);
+	if (it != icon_cache.end())
+		return it->second;
+
+	std::vector<std::byte> icon;
 
 	if (filename.extension() == ".svg")
 	{
-		return load_svg(filename, size);
+		icon = load_svg(filename, size);
 	}
 	else if (filename.extension() == ".ico")
 	{
 		// Steam icon (Windows)
-		return load_ico(filename, size);
+		icon = load_ico(filename, size);
 	}
 	else if (filename.extension() == ".zip")
 	{
 		// Steam icon (Linux)
 		// TODO
-		return {};
 	}
 	else
 	{
 		// TODO read arbitrary format / rewrite as png
-		return load_file(filename);
+		icon = load_file(filename);
 	}
+
+	return icon_cache.emplace(filename, std::move(icon)).first->second;
 }
