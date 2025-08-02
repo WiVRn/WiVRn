@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-25 22:10+0200\n"
-"PO-Revision-Date: 2025-08-02 18:12+0200\n"
+"PO-Revision-Date: 2025-08-02 18:48+0200\n"
 "Last-Translator: not <github.superglue094@slmail.me>\n"
 "Language-Team: English <kde-i18n-doc@kde.org>\n"
 "Language: en_US\n"
@@ -101,9 +101,10 @@ msgid ""
 "master/docs/building.md#client-headset\">documentation</a> to build your own "
 "client."
 msgstr ""
-"Postupuj podľa pokynov v <a href=\"https://github.com/WiVRn/WiVRn/blob/master/"
-"docs/building.md#client-headset\">dokumentácii</a> na vytvorenie vlastného kli"
-"enta."
+"Postupuj podľa pokynov v <a href=\"https://github.com/WiVRn/WiVRn/blob/"
+"master/docs/building.md#client-headset\">dokumentácii</a> na vytvorenie vlastn"
+"ého "
+"klienta."
 
 #: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetsPage.qml:183
 #: dashboard/qml/HeadsetStatsPage.qml:36 dashboard/qml/TroubleshootPage.qml:59
@@ -254,7 +255,6 @@ msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
 msgstr ""
 "GPU od NVIDIA vyžadujú minimálne verziu ovládača 565.77, aktuálna verzia je %1"
-"."
 
 #: dashboard/qml/Main.qml:142
 #, kde-format
@@ -267,8 +267,8 @@ msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
 "Hardware encoding with vaapi does not work with AMDVLK and AMDGPU-PRO"
 msgstr ""
-"Pre GPU od AMD používaj ovládač Mesa (radv)."
-"Hardvérové kódovanie cez vaapi nefunguje s AMDVLK ani AMDGPU-PRO."
+"Pre GPU od AMD používaj ovládač Mesa (radv)\n"
+"Hardvérové kódovanie cez vaapi nefunguje s AMDVLK ani AMDGPU-PRO"
 
 #: dashboard/qml/Main.qml:159
 #, kde-format
@@ -498,7 +498,7 @@ msgstr "Vulkan (Vulkan Video)"
 #: dashboard/qml/SettingsPage.qml:272
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
-msgstr "„Auto“ použije hardvérovú akceleráciu, ak je dostupná"
+msgstr "\"Auto“ použije hardvérovú akceleráciu, ak je dostupná"
 
 #: dashboard/qml/SettingsPage.qml:278
 #, kde-format
@@ -549,9 +549,9 @@ msgid ""
 "Devices must be be powered on before connecting to WiVRn.\n"
 "An external tool such as motoc is needed for calibration."
 msgstr ""
-"Umožňuje používanie ovládačov a trackerov založených na systéme Lighthouse."
-"Vyžaduje nainštalovaný SteamVR."
-"Zariadenia musia byť zapnuté pred pripojením k WiVRn."
+"Umožňuje používanie ovládačov a trackerov založených na systéme Lighthouse.\n"
+"Vyžaduje nainštalovaný SteamVR.\n"
+"Zariadenia musia byť zapnuté pred pripojením k WiVRn.\n"
 "Na kalibráciu je potrebný externý nástroj ako motoc."
 
 #: dashboard/qml/SettingsPage.qml:343
@@ -602,8 +602,8 @@ msgid ""
 "For Steam games, right click on the game in Steam, go in Properties > "
 "General and paste this in \"Launch options\":"
 msgstr ""
-"Pre Steam hry klikni pravým tlačidlom na hru v Steame, otvor Vlastnosti > Všeo"
-"becné a vlož toto do „Spúšťacích parametrov“:"
+"Pre Steam hry klikni pravým tlačidlom na hru v Steame, otvor Vlastnosti > "
+"Všeo becné a vlož toto do \"Spúšťacích parametrov“:"
 
 #: dashboard/qml/SteamLaunchOptions.qml:20
 #, kde-format
@@ -664,8 +664,8 @@ msgid ""
 msgstr ""
 "<p>Verzia aplikácie v headsete a verzia servera na tvojom počítači sa musia zh"
 "odovať."
-"</p><ul><li>Verziu aplikácie nájdeš v časti „O aplikácii“</li><li>Verzia serve"
-"ra je <b>%1</b></li></ul>"
+"</p><ul><li>Verziu aplikácie nájdeš v časti „O aplikácii“</li><li>Verzia "
+"servera je <b>%1</b></li></ul>"
 
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
@@ -767,6 +767,7 @@ msgid ""
 "You can either install it from the Meta store or directly over USB."
 msgstr ""
 "Na používanie WiVRn je potrebné nainštalovať klientsku aplikáciu do headsetu."
+"\n"
 "Môžeš ju nainštalovať buď z Meta obchodu alebo priamo cez USB."
 
 #: dashboard/qml/WizardPage.qml:148
@@ -780,8 +781,8 @@ msgid ""
 "For the Quest 2, 3, 3S, and Pro, you can get the app from the <a "
 "href=\"https://www.meta.com/experiences/7959676140827574/\">Meta store</a>."
 msgstr ""
-"Pre Quest 2, 3, 3S a Pro si môžeš aplikáciu stiahnuť z <a href=\"https://www.m"
-"eta.com/experiences/7959676140827574/\">Meta obchodu</a>."
+"Pre Quest 2, 3, 3S a Pro si môžeš aplikáciu stiahnuť z <a "
+"href=\"https://www.meta.com/experiences/7959676140827574/\">Meta obchodu</a>."
 
 #: dashboard/qml/WizardPage.qml:164
 #, kde-format
@@ -815,7 +816,7 @@ msgstr "Nainštalovať cez USB"
 #: dashboard/qml/WizardPage.qml:211
 #, kde-format
 msgid "ADB is not installed"
-msgstr "ADB nie je nainštalované."
+msgstr "ADB nie je nainštalované"
 
 #: dashboard/qml/WizardPage.qml:219
 #, kde-format
@@ -852,7 +853,7 @@ msgid ""
 "running."
 msgstr ""
 "WiVRn úplne nahrádza SteamVR, preto by si SteamVR nemal spúšťať, keď beží WiVR"
-"n."
+"n"
 
 #: dashboard/qml/WizardPage.qml:358
 #, kde-format
@@ -865,13 +866,14 @@ msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
 "and enter PIN \"%2\"."
 msgstr ""
-"Na pripojenie cez Wi-Fi spusti aplikáciu WiVRn v headsete, pripoj sa k „%1“ a "
-"zadaj PIN „%2“."
+"Na pripojenie cez Wi-Fi spusti aplikáciu WiVRn v headsete, pripoj sa k \"%1“ a"
+" "
+"zadaj PIN \"%2“."
 
 #: dashboard/qml/WizardPage.qml:370
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
-msgstr "Pre pripojenie cez USB klikni na „Pripojiť cez USB“."
+msgstr "Pre pripojenie cez USB klikni na \"Pripojiť cez USB“."
 
 #: dashboard/qml/WizardPage.qml:383
 #, kde-format
