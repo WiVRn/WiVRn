@@ -28,9 +28,6 @@ namespace constants::gui
 // Minimum distance between a GUI layer and a fingertip/controller to register a click
 constexpr float min_pointer_distance = -0.1;
 
-// Number of combined image samplers in ImGui descriptor pool
-constexpr unsigned int nb_combined_image_samplers = 100;
-
 // Font to use (desktop only)
 constexpr const char font_name[] = "Noto Sans";
 
