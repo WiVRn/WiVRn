@@ -461,12 +461,8 @@ msgid "Body tracking is enabled"
 msgstr "O rastreamento corporal está ativado"
 
 #: client/scenes/lobby_gui.cpp:1864
-msgid ""
-"Press the grip button or put your palm up\n"
-"to move the main window\n"
-msgstr ""
-"Pressione o botão de agarrar ou levante a palma da mão\n"
-"para mover a janela principal\n"
+msgid "Press the grip button or put your palm up\nto move the main window"
+msgstr "Pressione o botão de agarrar ou levante a palma da mão\npara mover a janela principal"
 
 #: client/scenes/lobby_gui.cpp:1866
 msgid "Press the grip button to move the main window"
