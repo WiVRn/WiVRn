@@ -461,7 +461,7 @@ msgid ""
 "To add a new encoder, split an existing encoder by clicking near an edge.\n"
 "Drag an edge to resize or remove encoders."
 msgstr ""
-"Ak chceš pridať nový enkodér, rozdeľ existujúci kliknutím pri jeho okraji."
+"Ak chceš pridať nový enkodér, rozdeľ existujúci kliknutím pri jeho okraji.\n"
 "Potiahnutím okraja môžeš meniť veľkosť alebo enkodér odstrániť."
 
 #: dashboard/qml/SettingsPage.qml:220
