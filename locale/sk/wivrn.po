@@ -461,12 +461,8 @@ msgid "Exit"
 msgstr "Ukončiť"
 
 #: client/scenes/lobby_gui.cpp:1864
-msgid ""
-"Press the grip button or put your palm up\n"
-"to move the main window\n"
-msgstr ""
-"Stlačte tlačidlo grip alebo zdvihnite dlaň\n"
-"pre presunutie hlavného okna\n"
+msgid "Press the grip button or put your palm up\nto move the main window"
+msgstr "Stlačte tlačidlo grip alebo zdvihnite dlaň\npre presunutie hlavného okna"
 
 #: client/scenes/lobby_gui.cpp:1866
 msgid "Press the grip button to move the main window"
