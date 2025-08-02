@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-07-30 09:32+0200\n"
-"PO-Revision-Date: 2025-08-02 17:54+0200\n"
+"PO-Revision-Date: 2025-08-02 18:41+0200\n"
 "Last-Translator: not <github.superglue094@slmail.me>\n"
 "Language-Team: English <kde-i18n-doc@kde.org>\n"
 "Language: en_US\n"
@@ -138,7 +138,9 @@ msgstr "Uložiť"
 msgid ""
 "Start a WiVRn server on your\n"
 "local network"
-msgstr "Spustite WiVRn server vo svojej\n lokálnej sieti"
+msgstr ""
+"Spustite WiVRn server vo svojej\n"
+"lokálnej sieti"
 
 #: client/scenes/lobby_gui.cpp:517
 msgid "Autoconnect"
@@ -461,9 +463,10 @@ msgstr "Ukončiť"
 #: client/scenes/lobby_gui.cpp:1864
 msgid ""
 "Press the grip button or put your palm up\n"
-"to move the main window"
+"to move the main window\n"
 msgstr ""
-"Pre presunutie hlavného okna stlačte tlačidlo grip alebo zdvihnite dlaň\n"
+"Stlačte tlačidlo grip alebo zdvihnite dlaň\n"
+"pre presunutie hlavného okna\n"
 
 #: client/scenes/lobby_gui.cpp:1866
 msgid "Press the grip button to move the main window"
@@ -529,7 +532,7 @@ msgstr "Odhadovaný"
 #: client/scenes/stream_gui.cpp:393
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
-msgstr "Odhadovaná odozva od pohybu po zobrazenie: {} ms"
+msgstr "Odhadovaná odozva od pohybu po zobrazenie: {}ms"
 
 #: client/scenes/stream_gui.cpp:396
 msgid "Press the grip button to move the window"
@@ -554,7 +557,7 @@ msgstr "Povoliť"
 #: client/scenes/stream_gui.cpp:503 client/scenes/stream_gui.cpp:550
 #, c++-format
 msgid "Height {:.1f} deg"
-msgstr "Výška: {:.1f}"
+msgstr "Výška: {:.1f} deg"
 
 #: client/scenes/stream_gui.cpp:504 client/scenes/stream_gui.cpp:551
 #, c++-format
