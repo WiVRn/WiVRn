@@ -569,15 +569,11 @@ msgid "No"
 msgstr "否"
 
 #: client/scenes/lobby_gui.cpp:1864
-msgid ""
-"Press the grip button or put your palm up\n"
-"to move the main window\n"
-msgstr ""
-"請按握把按鈕或舉起手掌\n"
-"以移動主視窗\n"
+msgid "Press the grip button or put your palm up\nto move the main window"
+msgstr "請按握把按鈕或舉起手掌\n以移動主視窗"
 
 #: client/scenes/stream_gui.cpp:396
-msgid "Press the grip button to move the main window"
+msgid "Press the grip button to move the window"
 msgstr "請按握把按鈕以移動主視窗"
 
 #: client/scenes/stream_gui.cpp:420
@@ -629,3 +625,7 @@ msgstr "統計覆蓋層"
 #: client/scenes/stream_gui.cpp:805
 msgid "Compact view"
 msgstr "簡潔模式"
+
+#: client/scenes/stream_gui.cpp:398 client/scenes/stream_gui.cpp:750
+msgid "Press both thumbsticks to display the WiVRn window"
+msgstr "按下兩側拇指搖桿以顯示 WiVRn 視窗"
