@@ -144,6 +144,7 @@ msgid "Last connection: %1 second ago"
 msgid_plural "Last connection: %1 seconds ago"
 msgstr[0] "Posledné pripojenie: pred %1 sekundou"
 msgstr[1] "Posledné pripojenie: pred %1 sekundami"
+msgstr[2] "Posledné pripojenie: pred %1 sekundami"
 
 #: dashboard/qml/HeadsetsPage.qml:31
 #, kde-format
@@ -151,6 +152,7 @@ msgid "Last connection: %1 minute ago"
 msgid_plural "Last connection: %1 minutes ago"
 msgstr[0] "Posledné pripojenie: pred %1 minútou"
 msgstr[1] "Posledné pripojenie: pred %1 minútami"
+msgstr[2] "Posledné pripojenie: pred %1 minútami"
 
 #: dashboard/qml/HeadsetsPage.qml:33
 #, kde-format
@@ -158,6 +160,7 @@ msgid "Last connection: %1 hour ago"
 msgid_plural "Last connection: %1 hours ago"
 msgstr[0] "Posledné pripojenie: pred %1 hodinou"
 msgstr[1] "Posledné pripojenie: pred %1 hodinami"
+msgstr[2] "Posledné pripojenie: pred %1 hodinami"
 
 #: dashboard/qml/HeadsetsPage.qml:35
 #, kde-format
@@ -165,6 +168,7 @@ msgid "Last connection: %1 day ago"
 msgid_plural "Last connection: %1 days ago"
 msgstr[0] "Posledné pripojenie: pred %1 dňom"
 msgstr[1] "Posledné pripojenie: pred %1 dňami"
+msgstr[2] "Posledné pripojenie: pred %1 dňami"
 
 #: dashboard/qml/HeadsetsPage.qml:40
 #, kde-format
