@@ -22,12 +22,17 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
+#if 1
+#include "decoder/pyrowave/decoder.h"
+using decoder_impl = ::wivrn::decoder;
+#else
 #ifdef __ANDROID__
 #include "decoder/android/android_decoder.h"
 using decoder_impl = ::wivrn::android::decoder;
 #else
 #include "decoder/ffmpeg/ffmpeg_decoder.h"
 using decoder_impl = ::wivrn::ffmpeg::decoder;
+#endif
 #endif
 
 #include "wivrn_packets.h"

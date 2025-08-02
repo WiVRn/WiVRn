@@ -1,0 +1,33 @@
+#version 450
+// Copyright (c) 2025 Hans-Kristian Arntzen
+// SPDX-License-Identifier: MIT
+#extension GL_EXT_samplerless_texture_functions : require
+
+layout(set = 0, binding = 0) uniform texture2D uTex;
+layout(set = 0, binding = 1) writeonly uniform image2D uImage;
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+float power_to_db(float p)
+{
+    return max(10.0 * log2(p) / log2(10.0), -100.0);
+}
+
+void main()
+{
+    float input_power = 0.0;
+    const int Stride = 8;
+    for (int y = 0; y < Stride; y++)
+    {
+        for (int x = 0; x < Stride; x++)
+        {
+            if (any(notEqual(ivec4(gl_GlobalInvocationID.xy, x, y), ivec4(0))))
+            {
+                vec2 c = texelFetch(uTex, ivec2(gl_GlobalInvocationID.xy) * Stride + ivec2(x, y), 0).xy;
+                input_power += dot(c, c);
+            }
+        }
+    }
+
+    imageStore(uImage, ivec2(gl_GlobalInvocationID.xy), vec4(power_to_db(input_power)));
+}

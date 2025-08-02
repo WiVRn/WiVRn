@@ -70,6 +70,9 @@ static void split_bitrate(std::vector<wivrn::encoder_settings> & encoders, uint6
 			case wivrn::h265:
 			case wivrn::av1:
 				break;
+			case wivrn::pyrowave:
+				w *= 50;
+				break;
 		}
 		encoder.bitrate = w;
 		total_weight += w;
@@ -373,6 +376,21 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	config.encoder_passthrough->offset_x = 0;
 	config.encoder_passthrough->offset_y = 0;
 	fill_defaults(bundle, info.supported_codecs, *config.encoder_passthrough, config.bit_depth);
+
+	config.encoder_passthrough = {
+	        .name = encoder_pyrowave,
+	        .width = 1,
+	        .height = 1,
+	        .codec = video_codec::pyrowave,
+	};
+	config.encoders = {
+	        {
+	                .name = encoder_pyrowave,
+	                .width = 1,
+	                .height = 1,
+	                .codec = video_codec::pyrowave,
+	        },
+	};
 
 	uint64_t bitrate = config.bitrate.value_or(default_bitrate);
 	std::array<double, 2> default_scale;

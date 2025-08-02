@@ -1,0 +1,263 @@
+#version 450
+// Copyright (c) 2025 Hans-Kristian Arntzen
+// SPDX-License-Identifier: MIT
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_vote : require
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_KHR_shader_subgroup_shuffle_relative : require
+#extension GL_EXT_shader_8bit_storage : require
+#extension GL_EXT_shader_16bit_storage : require
+#extension GL_ARB_shading_language_include : require
+
+layout(local_size_x = 128) in;
+
+layout(set = 0, binding = 0) writeonly uniform image2DArray uDequantImg;
+
+layout(set = 0, binding = 1) readonly buffer PayloadOffsets
+{
+    uint data[];
+} payload_offsets;
+
+layout(set = 0, binding = 2) readonly buffer Payloads
+{
+    uint data[];
+} payload_data_u32;
+
+layout(set = 0, binding = 2) readonly buffer Payloads16
+{
+    uint16_t data[];
+} payload_data_u16;
+
+layout(set = 0, binding = 2) readonly buffer Payloads8
+{
+    uint8_t data[];
+} payload_data_u8;
+
+#include "dwt_swizzle.h"
+#include "dwt_quant_scale.h"
+#include "constants.h"
+
+layout(push_constant) uniform Registers
+{
+    ivec2 resolution;
+    int output_layer;
+    int block_offset_32x32;
+    int block_stride_32x32;
+} registers;
+
+mat2x4 decode_payload(uint code_word, uint q_bits, uint offset, uint block_index)
+{
+    bool empty_block = code_word == 0;
+    if (empty_block)
+        return mat2x4(vec4(0.0), vec4(0.0));
+
+    int bit_offset = 2 * int(block_index);
+
+    // First, we need to compute the offset that our 4x2 block starts on.
+    uint lsbs = code_word & 0x5555u;
+    uint msbs = code_word & 0xaaaau;
+    uint msbs_shift = msbs >> 1;
+    msbs |= msbs_shift;
+
+    uint byte_offset =
+        bitCount(bitfieldExtract(lsbs, 0, bit_offset)) +
+        bitCount(bitfieldExtract(msbs, 0, bit_offset)) +
+        q_bits * block_index + offset;
+
+    // Eagerly load the data to keep latency down.
+    // Also forces the descriptor to be loaded early.
+    uint payload = uint(payload_data_u8.data[byte_offset]);
+
+    uint local_control_word = bitfieldExtract(code_word, bit_offset, 2);
+    int decoded_abs[8] = int[8](0, 0, 0, 0, 0, 0, 0, 0);
+    int plane_iterations = int(q_bits + local_control_word);
+
+    for (int q = plane_iterations - 1; q >= 0; q--)
+    {
+        for (int b = 0; b < 8; b++)
+        {
+            int decoded = int(bitfieldExtract(payload, b, 1));
+            decoded_abs[b] = bitfieldInsert(decoded_abs[b], decoded, q, 1);
+        }
+        byte_offset++;
+        payload = uint(payload_data_u8.data[byte_offset]);
+    }
+
+    mat2x4 m;
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 2; j++)
+        {
+            float v = float(decoded_abs[i * 2 + j]);
+            if (v != 0.0)
+                v += 0.5;
+            m[j][i] = v;
+        }
+    }
+
+    return m;
+}
+
+shared uint shared_sign_offset;
+shared uint shared_plane_byte_offsets[16];
+shared uint shared_sign_scan[8];
+
+const int MaxScaleExp = 4;
+
+float decode_quant(uint quant_code)
+{
+    // Custom FP formulation for numbers in (0, 16) range.
+    int e = MaxScaleExp - int(quant_code >> 3);
+    int m = int(quant_code) & 0x7;
+    float inv_quant = (1.0 / (8.0 * 1024.0 * 1024.0)) * float((8 + m) * (1 << (20 + e)));
+    return inv_quant;
+}
+
+uint scan8(uint v)
+{
+    for (uint i = 1; i < gl_NumSubgroups; i *= 2)
+    {
+        uint up = subgroupShuffleUp(v, i);
+        v += gl_SubgroupInvocationID >= i ? up : 0;
+    }
+
+    return v;
+}
+
+void main()
+{
+    uint local_index = gl_SubgroupID * gl_SubgroupSize + gl_SubgroupInvocationID;
+
+    int block_index_32x32 = int(registers.block_offset_32x32 +
+        gl_WorkGroupID.y * registers.block_stride_32x32 +
+        gl_WorkGroupID.x);
+
+    uint block_local_index = bitfieldExtract(local_index, 0, 3);
+    uint block_x = bitfieldExtract(local_index, 3, 2);
+    uint block_y = bitfieldExtract(local_index, 5, 2);
+    uint linear_block = block_y * 4 + block_x;
+
+    // Each thread individually decodes 8 values.
+    ivec2 local_coord = unswizzle8x8(block_local_index << 3);
+
+    ivec2 coord = ivec2(gl_WorkGroupID.xy) * 32;
+    coord += 8 * ivec2(block_x, block_y);
+    coord += local_coord;
+
+    uint offset_u32 = payload_offsets.data[block_index_32x32];
+
+    if (offset_u32 == ~0u)
+    {
+        for (int j = 0; j < 2; j++)
+            for (int i = 0; i < 4; i++)
+                imageStore(uDequantImg, ivec3(coord + ivec2(i, j), registers.output_layer), vec4(0.0));
+        return;
+    }
+
+    uint ballot = payload_data_u32.data[offset_u32] & 0xffff;
+    uint q_code = payload_data_u32.data[offset_u32 + 1] & 0xff;
+
+    if (local_index < 16)
+    {
+        uint control_word = 0;
+        uint q_bits = 0;
+
+        if (bitfieldExtract(ballot, int(local_index), 1) != 0)
+        {
+            uint local_code_offset = bitCount(bitfieldExtract(ballot, 0, int(local_index)));
+            control_word = uint(payload_data_u16.data[offset_u32 * 2 + 4 + local_code_offset]);
+            q_bits = uint(payload_data_u8.data[offset_u32 * 4 + 8 + bitCount(ballot) * 2 + local_code_offset]) & 0xfu;
+        }
+
+        uint lsbs = control_word & 0x5555u;
+        uint msbs = control_word & 0xaaaau;
+        uint msbs_shift = msbs >> 1;
+        msbs |= msbs_shift;
+        uint byte_cost = bitCount(lsbs) + bitCount(msbs) + q_bits * 8;
+
+        uint byte_scan = offset_u32 * 4 + 8 + 3 * bitCount(ballot) + subgroupInclusiveAdd(byte_cost);
+        if (local_index == 15)
+            shared_sign_offset = 8 * byte_scan;
+        shared_plane_byte_offsets[local_index] = byte_scan - byte_cost;
+    }
+
+    barrier();
+
+    mat2x4 v;
+    int significant_count;
+
+    if (bitfieldExtract(ballot, int(linear_block), 1) != 0)
+    {
+        uint local_code_offset = bitCount(bitfieldExtract(ballot, 0, int(linear_block)));
+        uint control_word = uint(payload_data_u16.data[offset_u32 * 2 + 4 + local_code_offset]);
+        uint control_word2 = uint(payload_data_u8.data[offset_u32 * 4 + 8 + bitCount(ballot) * 2 + local_code_offset]);
+
+        v = decode_payload(control_word, control_word2 & 0xfu,
+            shared_plane_byte_offsets[linear_block], block_local_index);
+
+        significant_count = 0;
+        for (int j = 0; j < 2; j++)
+            for (int i = 0; i < 4; i++)
+                significant_count += int(v[j][i] != 0.0);
+
+        float q = decode_quant(q_code);
+        float inv_scale = q * decode_quant_scale(bitfieldExtract(control_word2, QUANT_SCALE_OFFSET - 16, QUANT_SCALE_BITS));
+
+        v *= inv_scale;
+    }
+    else
+    {
+        v = mat2x4(vec4(0.0), vec4(0.0));
+        significant_count = 0;
+    }
+
+    // Figure out how many significant coefficients we have.
+    int significant_scan = subgroupInclusiveAdd(significant_count);
+    if (gl_SubgroupInvocationID == gl_SubgroupSize - 1)
+        shared_sign_scan[gl_SubgroupID] = significant_scan;
+
+    barrier();
+
+    if (local_index < 8)
+        shared_sign_scan[local_index] = scan8(shared_sign_scan[local_index]);
+
+    barrier();
+
+    // Compute where we need to start reading sign bits from.
+    uint sign_offset = shared_sign_offset + significant_scan - significant_count;
+    if (gl_SubgroupID != 0)
+        sign_offset += shared_sign_scan[gl_SubgroupID - 1];
+
+    // Read out all sign bits we could possibly access per thread.
+    // On AMD at least, this 64-bit load should be vectorizable.
+    uint sign_word = payload_data_u32.data[sign_offset / 32 + 0];
+    uint sign_word_upper = payload_data_u32.data[sign_offset / 32 + 1];
+    uint masked_sign_offset = sign_offset & 31u;
+    if (masked_sign_offset != 0)
+    {
+        sign_word >>= masked_sign_offset;
+        sign_word |= sign_word_upper << (32 - masked_sign_offset);
+    }
+
+    int sign_counter = 0;
+
+    // Clock out the sign bits as needed.
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 2; j++)
+        {
+            if (v[j][i] != 0.0)
+            {
+                v[j][i] *= 1.0 - 2.0 * float(bitfieldExtract(sign_word, sign_counter, 1));
+                sign_counter++;
+            }
+        }
+    }
+
+    // Write output.
+    for (int j = 0; j < 2; j++)
+        for (int i = 0; i < 4; i++)
+            imageStore(uDequantImg, ivec3(coord + ivec2(i, j), registers.output_layer), vec4(v[j][i]));
+}
