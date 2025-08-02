@@ -22,12 +22,17 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
+#if 1
+#include "decoder/pyrowave/decoder.h"
+using decoder_impl = ::wivrn::decoder;
+#else
 #ifdef __ANDROID__
 #include "decoder/android/android_decoder.h"
 using decoder_impl = ::wivrn::android::decoder;
 #else
 #include "decoder/ffmpeg/ffmpeg_decoder.h"
 using decoder_impl = ::wivrn::ffmpeg::decoder;
+#endif
 #endif
 
 #include "wivrn_packets.h"
@@ -81,12 +86,13 @@ public:
 	explicit shard_accumulator(
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
+	        uint32_t vk_queue_family_index,
 	        xr::instance & instance,
 	        const wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        std::weak_ptr<scenes::stream> scene,
 	        uint8_t stream_index) :
-	        decoder(std::make_shared<decoder_impl>(device, physical_device, description, fps, stream_index, scene, this)),
+	        decoder(std::make_shared<decoder_impl>(device, physical_device, vk_queue_family_index, description, fps, stream_index, scene, this)),
 	        current(stream_index),
 	        next(stream_index),
 	        weak_scene(scene),

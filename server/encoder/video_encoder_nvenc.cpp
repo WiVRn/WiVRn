@@ -74,6 +74,8 @@ static auto encode_guid(video_codec codec)
 			return NV_ENC_CODEC_HEVC_GUID;
 		case av1:
 			return NV_ENC_CODEC_AV1_GUID;
+		case video_codec::pyrowave:
+			throw std::runtime_error("pyrowave is only supported by the specific encoder");
 	}
 	throw std::out_of_range("Invalid codec " + std::to_string(codec));
 }
@@ -164,6 +166,8 @@ video_encoder_nvenc::video_encoder_nvenc(
 			params.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
 			params.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			break;
+		case video_codec::pyrowave:
+			throw std::runtime_error("pyrowave is only supported by the specific encoder");
 	}
 
 	NV_ENC_INITIALIZE_PARAMS params2{

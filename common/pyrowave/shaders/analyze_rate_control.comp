@@ -1,0 +1,222 @@
+#version 450
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_KHR_shader_subgroup_vote : require
+#extension GL_KHR_shader_subgroup_shuffle_relative : require
+#extension GL_KHR_shader_subgroup_shuffle : require
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+#extension GL_ARB_shading_language_include : require
+
+#include "dwt_quant_scale.h"
+#include "constants.h"
+
+layout(local_size_x = 64) in;
+
+struct BlockMeta
+{
+    uint code_word;
+    uint offset;
+};
+
+struct RDOperation
+{
+    int quant;
+    uint block_offset_saving;
+};
+
+const int BLOCK_SPACE_SUBDIVISION = 16;
+
+layout(set = 0, binding = 0) buffer Buckets
+{
+    uint count;
+    uint consumed_payload;
+    layout(offset = 64) uint total_savings_per_bucket[128 * BLOCK_SPACE_SUBDIVISION];
+    RDOperation rdo_operations[];
+} buckets;
+
+struct QuantStats
+{
+    float16_t square_error;
+    uint16_t payload_cost;
+};
+
+struct BlockStats
+{
+    uint num_planes;
+    QuantStats errors[15];
+};
+
+layout(set = 0, binding = 1) readonly buffer SSBOBlockStats
+{
+    BlockStats stats[];
+} block_stats;
+
+layout(push_constant) uniform Registers
+{
+    ivec2 resolution;
+    ivec2 resolution_8x8_blocks;
+    int block_offset_8x8;
+    int block_stride_8x8;
+    int block_offset_32x32;
+    int block_stride_32x32;
+    uint total_wg_count;
+    uint num_blocks_aligned;
+    uint block_index_shamt;
+} registers;
+
+shared uint shared_rate_cost[16];
+shared float shared_distortion[16];
+shared uint shared_tmp[4];
+
+// Perform operations that cause lower distortion first.
+uint distortion_to_bucket_index(float d, float cost, float d_base, float cost_base)
+{
+    if (cost == cost_base)
+        return 0;
+
+    // Compress a large range into 64 possible buckets.
+    // Every band is ~1.5 dB.
+    // Greedily chase least added (weighted) distortion per byte removed from code stream.
+    float index = 60.0 + 2.0 * log2(max(d - d_base, 0.0) / (cost_base - cost));
+    return uint(max(index + 0.5, 0.0));
+}
+
+uint inclusive_max_clustered16(uint v)
+{
+    // Ensures that we never end up with a value > 127.
+    v = min(v, 128 - 16 + gl_SubgroupInvocationID);
+
+    for (uint i = 1; i < 16; i *= 2)
+    {
+        // Ensure monotonic progression for buckets.
+        // Separate every quant level out by at least one bucket.
+        uint up = subgroupShuffleUp(v, i) + i;
+        v = max(v, gl_SubgroupInvocationID >= i ? up : 0);
+    }
+
+    return v;
+}
+
+void emit_rdo_operations()
+{
+    float distortion;
+    float cost;
+
+    if (gl_SubgroupInvocationID < 16)
+    {
+        cost = float(shared_rate_cost[gl_SubgroupInvocationID]);
+        distortion = shared_distortion[gl_SubgroupInvocationID];
+    }
+    else
+    {
+        // Dummy values.
+        cost = float(shared_rate_cost[gl_SubgroupInvocationID]);
+        distortion = 1e30;
+    }
+
+    uint bucket_index = distortion_to_bucket_index(distortion, cost, shared_distortion[0], float(shared_rate_cost[0]));
+    if (gl_SubgroupInvocationID == 0)
+        bucket_index = 0;
+
+    // Constraints:
+    // bucket_index for Q1 must be less than bucket_index for Q2 if Q1 < Q2.
+    // If a high quant target sees very favorable RD, lower bucket indices for lower Q values.
+    uint inclusive_bucket_index = inclusive_max_clustered16(bucket_index);
+
+    if (gl_SubgroupInvocationID == 0)
+    {
+        uint unquantized_cost = shared_rate_cost[0];
+        atomicAdd(buckets.consumed_payload, unquantized_cost);
+    }
+    else if (gl_SubgroupInvocationID < 16)
+    {
+        uint saving = shared_rate_cost[gl_SubgroupInvocationID - 1] - shared_rate_cost[gl_SubgroupInvocationID];
+
+        if (saving != 0)
+        {
+            ivec2 block32x32_index = ivec2(gl_WorkGroupID.xy);
+            int block_index = registers.block_offset_32x32 +
+                block32x32_index.y * registers.block_stride_32x32 + block32x32_index.x;
+            uint subdivision = block_index >> registers.block_index_shamt;
+            atomicAdd(buckets.total_savings_per_bucket[inclusive_bucket_index * BLOCK_SPACE_SUBDIVISION + subdivision], saving);
+            buckets.rdo_operations[block_index + inclusive_bucket_index * registers.num_blocks_aligned] =
+                RDOperation(int(gl_SubgroupInvocationID), block_index | (saving << 16));
+        }
+    }
+}
+
+void main()
+{
+    // Each workgroup processes a 64x64 block and computes all possible rate wins for every potential quant rate.
+    uint index = gl_SubgroupInvocationID + gl_SubgroupSize * gl_SubgroupID;
+    ivec2 block32x32_index = ivec2(gl_WorkGroupID.xy);
+    ivec2 local_block_index = ivec2(bitfieldExtract(index, 0, 2), bitfieldExtract(index, 2, 2));
+    ivec2 block8x8_index = 4 * block32x32_index + local_block_index;
+
+    uint num_active_planes;
+
+    bool block8x8_in_range = all(lessThan(block8x8_index, registers.resolution_8x8_blocks));
+    int block_index_8x8 = registers.block_offset_8x8 +
+        registers.block_stride_8x8 * block8x8_index.y +
+        block8x8_index.x;
+
+    if (block8x8_in_range)
+        num_active_planes = block_stats.stats[block_index_8x8].num_planes;
+
+    uint bit_index = index >> 4;
+
+    for (uint i = bit_index; i < 16; i += 4)
+    {
+        float dist = 0.0;
+        uint cost = 0;
+
+        if (block8x8_in_range)
+        {
+            QuantStats stats = block_stats.stats[block_index_8x8].errors[min(i, num_active_planes)];
+            dist = float(stats.square_error);
+            cost = uint(stats.payload_cost);
+        }
+
+        // 16 bits to encode the control codes, 8 bits to encode Q bits + quant scale.
+        // Cost is encoded in terms of bits. 8x8 blocks are decoded in isolation.
+        if (cost != 0)
+            cost += 24;
+
+        if (gl_SubgroupSize == 16)
+        {
+            cost = subgroupAdd(cost);
+            dist = subgroupAdd(dist);
+        }
+        else
+        {
+            cost += subgroupShuffleXor(cost, 1);
+            cost += subgroupShuffleXor(cost, 2);
+            cost += subgroupShuffleXor(cost, 4);
+            cost += subgroupShuffleXor(cost, 8);
+
+            dist += subgroupShuffleXor(dist, 1);
+            dist += subgroupShuffleXor(dist, 2);
+            dist += subgroupShuffleXor(dist, 4);
+            dist += subgroupShuffleXor(dist, 8);
+        }
+
+        if ((index & 15u) == 0u)
+        {
+            // Need to encode a header.
+            // We can eliminate 32x32 blocks if everything decodes to 0.
+            if (cost != 0)
+                cost += 64;
+
+            // Each packet is aligned to 4 bytes for practical reasons.
+            shared_rate_cost[i] = (cost + 31) >> 5;
+            shared_distortion[i] = dist;
+        }
+    }
+
+    barrier();
+
+    if (gl_SubgroupID == 0)
+        emit_rdo_operations();
+}

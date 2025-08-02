@@ -45,7 +45,7 @@ if(ANDROID)
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "android/*.cpp"
         "audio/android/*.cpp"
-        "decoder/android/*.cpp"
+        #"decoder/android/*.cpp"
         )
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 else()
@@ -63,7 +63,7 @@ else()
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")
-    target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
+    #target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 
     file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/share ${CMAKE_BINARY_DIR}/share SYMBOLIC)
 endif()
@@ -80,6 +80,7 @@ set_target_properties(wivrn PROPERTIES CXX_VISIBILITY_PRESET hidden)
 file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
     "*.cpp"
     "decoder/*.cpp"
+    "decoder/pyrowave/*.cpp"
     "scenes/*.cpp"
     "utils/*.cpp"
     "vk/*.cpp"
@@ -89,7 +90,7 @@ file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
 
 file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
-wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
+wivrn_compile_glsl(wivrn SHADERS ${VULKAN_SHADERS})
 
 target_link_libraries(wivrn
     Boost::locale
@@ -106,6 +107,7 @@ target_link_libraries(wivrn
     Vulkan::Vulkan
     wivrn-common
     wivrn-external
+    pyrowave
 )
 
 if (WIVRN_USE_LIBKTX)
