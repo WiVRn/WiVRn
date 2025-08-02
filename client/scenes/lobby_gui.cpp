@@ -404,15 +404,12 @@ void scenes::lobby::gui_connected()
 		{
 			ImTextureID texture = [&]() -> ImTextureID {
 				if (app.image.empty())
-				{
 					return default_icon;
-				}
 				else
 				{
 					auto it = app_icons.find(app.id);
 					if (it == app_icons.end())
 					{
-						// TODO premultiply alpha
 						// TODO load textures in background
 						it = app_icons.emplace(app.id, imgui_ctx->load_texture(app.image)).first;
 					}

@@ -471,6 +471,41 @@ static constexpr bool starts_with(std::span<const std::byte> data, std::span<con
 	return data.size() >= prefix.size() && !memcmp(data.data(), prefix.data(), prefix.size());
 }
 
+template <typename T>
+void premultiply_alpha_aux(T * pixels, float alpha_scale, int width, int height)
+{
+	for (int i = 0, n = width * height; i < n; i++)
+	{
+		float alpha = pixels[4 * i + 3] * alpha_scale;
+
+		pixels[4 * i + 0] = pixels[4 * i + 0] * alpha;
+		pixels[4 * i + 1] = pixels[4 * i + 1] * alpha;
+		pixels[4 * i + 2] = pixels[4 * i + 2] * alpha;
+	}
+}
+
+static void premultiply_alpha(void * pixels, vk::Extent3D extent, vk::Format format)
+{
+	switch (format)
+	{
+		case vk::Format::eR8G8B8A8Srgb: // TODO: sRGB
+		case vk::Format::eR8G8B8A8Unorm:
+			premultiply_alpha_aux<uint8_t>((uint8_t *)pixels, 1. / 255., extent.width, extent.height);
+			break;
+
+		case vk::Format::eR16G16B16A16Unorm:
+			premultiply_alpha_aux<uint16_t>((uint16_t *)pixels, 1. / 65535., extent.width, extent.height);
+			break;
+
+		case vk::Format::eR32G32B32A32Sfloat:
+			premultiply_alpha_aux<float>((float *)pixels, 1, extent.width, extent.height);
+			break;
+
+		default:
+			break;
+	}
+}
+
 // Load a PNG/JPEG/KTX2 file
 void image_loader::load(std::span<const std::byte> bytes, bool srgb)
 {
@@ -516,6 +551,8 @@ void image_loader::load(std::span<const std::byte> bytes, bool srgb)
 		extent.width = w;
 		extent.height = h;
 		extent.depth = 1;
+
+		premultiply_alpha(pixels.get(), extent, format);
 
 		do_load_raw(pixels.get(), extent, format);
 	}
