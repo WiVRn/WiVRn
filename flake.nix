@@ -7,15 +7,18 @@
       systems = [ "x86_64-linux" ];
       perSystem = { lib, pkgs, ... }: let
         # Tools used for development work (clangd, clang-format)
-        devTools = with pkgs; [
-          clang-tools
-          gdb
-          ktx-tools
+        devTools = [
+          pkgs.clang-tools
+          pkgs.gdb
+          pkgs.ktx-tools
         ];
         # Extra build inputs not yet in the nixpkgs recipe.
-        extraBuildInputs = with pkgs; [
+        extraBuildInputs = [
           # XRT_FEATURE_DEBUG_GUI requires SDL2
-          sdl2-compat
+          pkgs.sdl2-compat
+
+          pkgs.librsvg
+          pkgs.libpng
         ];
 
         package = pkgs.enableDebugging (pkgs.wivrn.overrideAttrs (finalAttrs: oldAttrs: {
