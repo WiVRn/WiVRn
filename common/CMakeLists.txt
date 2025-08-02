@@ -47,6 +47,7 @@ if (WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_SERVER)
         utils/xdg_icon_lookup.cpp
         utils/steam_app_info.cpp
         utils/load_icon.cpp
+        utils/ini.cpp
         application.cpp
     )
     target_link_libraries(wivrn-common-server PRIVATE nlohmann_json::nlohmann_json PNG::PNG PkgConfig::librsvg-2.0 PUBLIC wivrn-common-base)

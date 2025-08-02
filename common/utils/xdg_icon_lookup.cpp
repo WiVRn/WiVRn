@@ -18,13 +18,14 @@
 
 #include "xdg_icon_lookup.h"
 
+#include "ini.h"
 #include "strings.h"
 #include "utils/flatpak.h"
 #include "xdg_base_directory.h"
 
 #include <algorithm>
-#include <boost/property_tree/ini_parser.hpp>
 #include <filesystem>
+#include <fstream>
 #include <limits>
 #include <optional>
 
@@ -98,8 +99,9 @@ struct icon_theme_dir
 	}
 };
 
-void find_icon_theme_dirs_helper(const std::vector<std::filesystem::path> & base_dirs, std::vector<icon_theme_dir> & dirs, std::vector<std::string> & themes, const std::string & theme)
+void find_icon_theme_dirs_helper(const std::vector<std::filesystem::path> & base_dirs, std::vector<icon_theme_dir> & dirs, std::vector<std::string> & themes, std::string theme)
 {
+	// Theme is passed by copy because the themes vector might be resized
 	for (const auto & base_dir: base_dirs)
 	{
 		const auto theme_dir = base_dir / "icons" / theme;
@@ -110,24 +112,24 @@ void find_icon_theme_dirs_helper(const std::vector<std::filesystem::path> & base
 
 		try
 		{
-			boost::property_tree::ptree index;
-			boost::property_tree::ini_parser::read_ini(index_theme, index);
+			std::ifstream file{index_theme};
+			wivrn::ini index{file};
 
-			for (const auto & inherited_theme: utils::split(index.get_optional<std::string>("Icon Theme.Inherits").value_or(""), ","))
+			for (const auto & inherited_theme: utils::split(index.get<std::string>("Icon Theme", "Inherits", ""), ","))
 			{
-				// if (not std::ranges::contains(themes, inherited_theme))
-				// themes.push_back(inherited_theme);
+				if (inherited_theme != "" and not std::ranges::contains(themes, inherited_theme))
+					themes.push_back(inherited_theme);
 			}
 
-			for (auto directory: utils::split(index.get<std::string>("Icon Theme.Directories"), ","))
+			for (auto directory: utils::split(index.get<std::string>("Icon Theme", "Directories", ""), ","))
 			{
-				int size = index.get<int>(directory + ".Size");
-				int scale = index.get_optional<int>(directory + ".Scale").value_or(1);
-				int min_size = index.get_optional<int>(directory + ".MinSize").value_or(size);
-				int max_size = index.get_optional<int>(directory + ".MaxSize").value_or(size);
-				int threshold = index.get_optional<int>(directory + ".Threshold").value_or(2);
+				int size = index.get<int>(directory, "Size");
+				int scale = index.get<int>(directory, "Scale", 1);
+				int min_size = index.get<int>(directory, "MinSize", size);
+				int max_size = index.get<int>(directory, "MaxSize", size);
+				int threshold = index.get<int>(directory, "Threshold", 2);
 
-				std::string type_str = index.get_optional<std::string>(directory + ".Type").value_or("Threshold");
+				std::string type_str = index.get<std::string>(directory, "Type", "Threshold");
 
 				icon_theme_type type = icon_theme_type::threshold;
 				if (type_str == "Fixed")
@@ -150,7 +152,6 @@ void find_icon_theme_dirs_helper(const std::vector<std::filesystem::path> & base
 		}
 		catch (std::exception & e)
 		{
-			// std::cerr << e.what() << std::endl;
 		}
 	}
 }
