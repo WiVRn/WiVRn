@@ -629,3 +629,7 @@ msgstr "簡潔模式"
 #: client/scenes/stream_gui.cpp:398 client/scenes/stream_gui.cpp:750
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "按下兩側拇指搖桿以顯示 WiVRn 視窗"
+
+#: client/scenes/lobby_gui.cpp:1866
+msgid "Press the grip button to move the main window"
+msgstr "按住握把鈕來移動主視窗"
