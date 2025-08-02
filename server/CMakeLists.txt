@@ -145,6 +145,12 @@ if (WIVRN_BUILD_SERVER)
 		target_link_libraries(wivrn-server PRIVATE PkgConfig::LIBAV PkgConfig::LIBDRM)
 	endif()
 
+	target_sources(
+		wivrn-server
+		PRIVATE encoder/video_encoder_pyrowave.cpp
+	)
+	target_link_libraries(wivrn-server PRIVATE pyrowave)
+
 	if(WIVRN_USE_VULKAN_ENCODE)
 		target_sources(wivrn-server PRIVATE
 			encoder/video_encoder_vulkan.cpp

@@ -1,0 +1,80 @@
+#version 450
+// Copyright (c) 2025 Hans-Kristian Arntzen
+// SPDX-License-Identifier: MIT
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_arithmetic : require
+#extension GL_KHR_shader_subgroup_shuffle_relative : require
+
+layout(local_size_x_id = 0) in;
+
+struct RDOperation
+{
+    int quant;
+    uint block_offset_saving;
+};
+
+const int BLOCK_SPACE_SUBDIVISION = 16;
+
+layout(set = 0, binding = 0) readonly buffer Buckets
+{
+    layout(offset = 4) int consumed_payload;
+    layout(offset = 64) int total_savings_per_bucket[128 * BLOCK_SPACE_SUBDIVISION];
+    RDOperation rdo_operations[];
+} buckets;
+
+layout(set = 0, binding = 1) buffer QuantList
+{
+    int data[];
+} quant_data;
+
+layout(push_constant) uniform Registers
+{
+    uint target_payload_size;
+    uint num_blocks_per_subdivision;
+} registers;
+
+void main()
+{
+    int required_savings_per_bucket = int(buckets.consumed_payload) - int(registers.target_payload_size);
+    if (gl_WorkGroupID.x != 0)
+    {
+        int prev_bucket_total = buckets.total_savings_per_bucket[gl_WorkGroupID.x - 1];
+        // This bucket is empty.
+        if (buckets.total_savings_per_bucket[gl_WorkGroupID.x] == prev_bucket_total)
+            return;
+
+        required_savings_per_bucket -= prev_bucket_total;
+    }
+    else
+    {
+        // This bucket is empty.
+        if (buckets.total_savings_per_bucket[gl_WorkGroupID.x] == 0)
+            return;
+    }
+
+    // If all previous buckets can complete the job, skip.
+    if (required_savings_per_bucket <= 0)
+        return;
+
+    uint total_saved = 0;
+
+    for (uint i = 0; i < registers.num_blocks_per_subdivision && total_saved < required_savings_per_bucket; i += gl_SubgroupSize)
+    {
+        RDOperation op = RDOperation(0, 0);
+        if (i + gl_SubgroupInvocationID < registers.num_blocks_per_subdivision)
+            op = buckets.rdo_operations[gl_WorkGroupID.x * registers.num_blocks_per_subdivision + i + gl_SubgroupInvocationID];
+
+        uint saving = bitfieldExtract(op.block_offset_saving, 16, 16);
+        uint block_offset = bitfieldExtract(op.block_offset_saving, 0, 16);
+
+        uint scan_saving = subgroupInclusiveAdd(saving);
+
+        bool should_apply_quant = total_saved + scan_saving - saving < required_savings_per_bucket;
+        if (should_apply_quant && saving != 0)
+            atomicMax(quant_data.data[block_offset], op.quant);
+
+        total_saved += subgroupBroadcast(scan_saving, gl_SubgroupSize - 1);
+    }
+}
+

@@ -69,6 +69,7 @@ std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
 #ifdef VK_KHR_video_encode_h265
         VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME,
 #endif
+        VK_KHR_8BIT_STORAGE_EXTENSION_NAME,
 };
 
 static void target_init_semaphores(struct wivrn_comp_target * cn);

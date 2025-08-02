@@ -1105,7 +1105,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		spdlog::info("Creating decoder size {}x{} offset {},{}", item.width, item.height, item.offset_x, item.offset_y);
 
 		decoders.push_back(accumulator_images{
-		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, item, description.fps, shared_from_this(), stream_index),
+		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, queue_family_index, instance, item, description.fps, shared_from_this(), stream_index),
 		});
 	}
 }

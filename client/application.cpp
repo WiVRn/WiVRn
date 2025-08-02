@@ -758,6 +758,10 @@ void application::initialize_vulkan()
 		spdlog::info("    {} (version {})", extension_name, spec_version);
 
 	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_16BIT_STORAGE_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
@@ -880,11 +884,22 @@ void application::initialize_vulkan()
 	                .pEnabledFeatures = &device_features,
 	        },
 	        vk::PhysicalDeviceFragmentShadingRateFeaturesKHR{},
-#ifdef __ANDROID__
 	        vk::PhysicalDeviceSamplerYcbcrConversionFeaturesKHR{
 	                .samplerYcbcrConversion = VK_TRUE,
 	        },
-#endif
+	        vk::PhysicalDevice8BitStorageFeatures{
+	                .storageBuffer8BitAccess = true,
+	        },
+	        vk::PhysicalDevice16BitStorageFeatures{
+	                .storageBuffer16BitAccess = true,
+	        },
+	        vk::PhysicalDeviceSubgroupSizeControlFeaturesEXT{
+	                .subgroupSizeControl = true,
+	                .computeFullSubgroups = true,
+	        },
+	        vk::PhysicalDeviceFloat16Int8FeaturesKHR{
+	                .shaderFloat16 = true,
+	        },
 	};
 
 	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and

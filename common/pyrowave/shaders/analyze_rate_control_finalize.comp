@@ -1,0 +1,39 @@
+#version 450
+
+layout(local_size_x = 512) in;
+
+const int BLOCK_SPACE_SUBDIVISION = 16;
+
+layout(set = 0, binding = 0) buffer Buckets
+{
+    layout(offset = 64) uvec4 total_savings_per_bucket[128 * BLOCK_SPACE_SUBDIVISION / 4];
+} buckets;
+
+shared uint shared_scan[512];
+
+void main()
+{
+    uvec4 v = buckets.total_savings_per_bucket[gl_LocalInvocationIndex];
+    v.y += v.x;
+    v.z += v.y;
+    v.w += v.z;
+    shared_scan[gl_LocalInvocationIndex] = v.w;
+
+    barrier();
+
+    for (uint step = 1u; step < gl_WorkGroupSize.x / 2u; step *= 2u)
+    {
+        barrier();
+
+        uint shuffled_up = 0;
+        if (gl_LocalInvocationIndex >= step)
+            shuffled_up = shared_scan[gl_LocalInvocationIndex - step];
+
+        barrier();
+
+        v += shuffled_up;
+        shared_scan[gl_LocalInvocationIndex] = v.w;
+    }
+
+    buckets.total_savings_per_bucket[gl_LocalInvocationIndex] = v;
+}
