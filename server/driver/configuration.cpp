@@ -64,6 +64,8 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
                 {h265, "hevc"},
                 {av1, "av1"},
                 {av1, "AV1"},
+                {pyrowave, "pyrowave"},
+                {pyrowave, "PyroWave"},
         })
 
 NLOHMANN_JSON_SERIALIZE_ENUM(
