@@ -498,7 +498,9 @@ static std::ostream & operator<<(std::ostream & out, const xrt_space_relation_cs
 		}
 	}
 	out << "x,y,z,";
-	out << "qw,qx,qy,qz";
+	out << "qw,qx,qy,qz,";
+	out << "vx,vy,vz,";
+	out << "avx,avy,avz";
 	return out;
 }
 
@@ -506,13 +508,17 @@ static std::ostream & operator<<(std::ostream & out, const xrt_space_relation & 
 {
 	const auto & pos = rel.pose.position;
 	const auto & o = rel.pose.orientation;
+	const auto & v = rel.linear_velocity;
+	const auto & av = rel.angular_velocity;
 	for (const auto & [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
 	{
 		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
 			out << bool(rel.relation_flags & value) << ',';
 	}
 	out << pos.x << ',' << pos.y << ',' << pos.z << ',';
-	out << o.w << ',' << o.x << ',' << o.y << ',' << o.z;
+	out << o.w << ',' << o.x << ',' << o.y << ',' << o.z << ',';
+	out << v.x << ',' << v.y << ',' << v.z << ',';
+	out << av.x << ',' << av.y << ',' << av.z;
 	return out;
 }
 
