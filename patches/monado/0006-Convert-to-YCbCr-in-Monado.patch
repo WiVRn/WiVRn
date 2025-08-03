@@ -1,7 +1,7 @@
-From a8d3eae0afd8b61aacc18824982c5b6066b5e4d6 Mon Sep 17 00:00:00 2001
+From 7f6f5743dd0c8d015050231079ee1d831ae614ba Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 06/11] Convert to YCbCr in Monado
+Subject: [PATCH] Convert to YCbCr in Monado
 
 ---
  src/xrt/compositor/main/comp_renderer.c      |   6 +-
@@ -53,7 +53,7 @@ index 143d41639..98301d596 100644
  
  /*!
 diff --git a/src/xrt/compositor/render/render_compute.c b/src/xrt/compositor/render/render_compute.c
-index 27b1953cf..fd04801d4 100644
+index 27b1953cf..23b65ba68 100644
 --- a/src/xrt/compositor/render/render_compute.c
 +++ b/src/xrt/compositor/render/render_compute.c
 @@ -66,8 +66,8 @@ calc_dispatch_dims_views(const struct render_viewport_data views[XRT_MAX_VIEWS],
@@ -250,7 +250,7 @@ index 27b1953cf..fd04801d4 100644
  	    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
  	    .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
 -	    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-+	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
++	    .newLayout = VK_IMAGE_LAYOUT_GENERAL,
  	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
@@ -282,7 +282,7 @@ index 27b1953cf..fd04801d4 100644
  	    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
  	    .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
 -	    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-+	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
++	    .newLayout = VK_IMAGE_LAYOUT_GENERAL,
  	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
@@ -314,7 +314,7 @@ index 27b1953cf..fd04801d4 100644
  	    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
  	    .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
 -	    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-+	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
++	    .newLayout = VK_IMAGE_LAYOUT_GENERAL,
  	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
@@ -700,5 +700,5 @@ index d9d9ea8a4..29c645bff 100644
  		    d->do_timewarp);              //
  	}
 -- 
-2.50.0
+2.50.1
 

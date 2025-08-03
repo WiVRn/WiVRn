@@ -1,0 +1,34 @@
+From 7287c346c9b03e019d86347694d30fbeb22a260e Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Aug 2025 12:26:53 +0200
+Subject: [PATCH 8/9] c/util: Ask for extension-defined features
+
+---
+ src/xrt/compositor/util/comp_vulkan.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/xrt/compositor/util/comp_vulkan.c b/src/xrt/compositor/util/comp_vulkan.c
+index 5618f4f78..dd1cb52c9 100644
+--- a/src/xrt/compositor/util/comp_vulkan.c
++++ b/src/xrt/compositor/util/comp_vulkan.c
+@@ -277,11 +277,17 @@ create_device(struct vk_bundle *vk, const struct comp_vulkan_arguments *vk_args)
+ 	struct vk_device_features device_features = {
+ 	    .shader_image_gather_extended = true,
+ 	    .shader_storage_image_write_without_format = true,
++	    .shader_float16 = true,
++	    .shader_int8 = true,
+ 	    .storage_buffer_8bit_access = true,
++	    .storage_buffer_16bit_access = true,
+ 	    .null_descriptor = only_compute_queue,
+ 	    .timeline_semaphore = vk_args->timeline_semaphore,
+ 	    .synchronization_2 = true,
+ 	    .present_wait = true,
++	    .subgroup_size_control = true,
++	    .compute_full_subgroups = true,
++	    .maintenance4 = true,
+ 	};
+ 
+ 	ret = vk_init_mutex(vk);
+-- 
+2.50.1
+

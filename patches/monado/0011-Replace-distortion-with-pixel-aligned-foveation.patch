@@ -1,7 +1,7 @@
-From 89d5e71f70d70958e8c03a038ab4bc0fc262a455 Mon Sep 17 00:00:00 2001
+From fbf021c537168b641d256e05907e911188fd5fbc Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Mon, 2 Jun 2025 14:51:11 +0200
-Subject: [PATCH 11/11] Replace distortion with pixel-aligned foveation
+Subject: [PATCH] Replace distortion with pixel-aligned foveation
 
 ---
  src/xrt/compositor/CMakeLists.txt            |   2 +-
@@ -26,7 +26,7 @@ index 46834bde8..e76c69dd0 100644
  		render/render_interface.h
  		render/render_resources.c
 diff --git a/src/xrt/compositor/render/render_compute.c b/src/xrt/compositor/render/render_compute.c
-index fd04801d4..5cd5a1726 100644
+index 2645de8c5..68ef0e8fb 100644
 --- a/src/xrt/compositor/render/render_compute.c
 +++ b/src/xrt/compositor/render/render_compute.c
 @@ -167,8 +167,8 @@ update_compute_shared_descriptor_set(struct vk_bundle *vk,
@@ -195,7 +195,7 @@ index fd04801d4..5cd5a1726 100644
 -	    .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
 -	    .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
 -	    .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
--	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+-	    .newLayout = VK_IMAGE_LAYOUT_GENERAL,
 -	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 -	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 -	    .image = target_image,
@@ -696,5 +696,5 @@ index 29c645bff..322b0f761 100644
  
  
 -- 
-2.50.0
+2.50.1
 
