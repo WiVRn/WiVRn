@@ -440,7 +440,17 @@ void scenes::lobby::gui_connected()
 						if (std::chrono::steady_clock::now() - t0 > 10ms)
 							return default_icon;
 
-						it = app_icons.emplace(app.id, imgui_ctx->load_texture(app.image)).first;
+						try
+						{
+							it = app_icons.emplace(app.id, imgui_ctx->load_texture(app.image)).first;
+						}
+						catch (std::exception & e)
+						{
+							spdlog::warn("Unable to load icon for \"{}\": {}", app.id, e.what());
+
+							app.image.clear();
+							return default_icon;
+						}
 					}
 					return it->second;
 				}
