@@ -36,6 +36,7 @@
 #include "version.h"
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <filesystem>
 #include <glm/gtc/quaternion.hpp>
 #include <ranges>
@@ -422,6 +423,7 @@ void scenes::lobby::gui_connected()
 
 		ImGui::Indent((usable_window_width - icon_line_width) / 2);
 
+		auto t0 = std::chrono::steady_clock::now();
 		for (const auto [index, app]: utils::enumerate(apps->applications))
 		{
 			ImTextureID texture = [&]() -> ImTextureID {
@@ -432,7 +434,10 @@ void scenes::lobby::gui_connected()
 					auto it = app_icons.find(app.id);
 					if (it == app_icons.end())
 					{
-						// TODO load textures in background
+						// Don't load too many textures at the same time to keep the GUI responsive
+						if (std::chrono::steady_clock::now() - t0 > 10ms)
+							return default_icon;
+
 						it = app_icons.emplace(app.id, imgui_ctx->load_texture(app.image)).first;
 					}
 					return it->second;
