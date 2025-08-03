@@ -235,6 +235,16 @@ modules:
     cleanup:
       - '*'
 
+  - name: glm
+    buildsystem: cmake-ninja
+    builddir: true
+    sources:
+    - type: git
+      url: https://github.com/g-truc/glm/
+      tag: 0af55ccecd98d4e5a8d1fad7de25ba429d60e863
+    cleanup:
+      - '*'
+
   - name: libnotify
     buildsystem: meson
     config-opts:
