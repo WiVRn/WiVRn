@@ -79,17 +79,14 @@ private:
 	std::weak_ptr<scenes::stream> weak_scene;
 	shard_accumulator * accumulator;
 
-	vk::raii::CommandPool command_pool;
-	vk::raii::CommandBuffer cmd_buf;
-	vk::raii::Fence fence;
-
 	PyroWave::Decoder dec;
 
 	struct pending_data
 	{
+		bool ready = false;
 		from_headset::feedback feedback;
 		to_headset::video_stream_data_shard::view_info_t view_info;
-		image * img = nullptr;
+		std::vector<std::vector<uint8_t>> packets;
 	};
 	thread_safe_notifyable<pending_data> pending;
 	std::thread worker;
@@ -135,6 +132,6 @@ public:
 
 private:
 	image * get_free();
-	void worker_function();
+	void worker_function(uint32_t vk_queue_family_index);
 };
 } // namespace wivrn

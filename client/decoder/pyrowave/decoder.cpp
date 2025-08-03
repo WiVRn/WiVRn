@@ -56,15 +56,6 @@ decoder::decoder(
         description(description),
         weak_scene(scene),
         accumulator(accumulator),
-        command_pool(device, vk::CommandPoolCreateInfo{
-                                     .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-                                     .queueFamilyIndex = vk_queue_family_index,
-                             }),
-        cmd_buf(std::move(device.allocateCommandBuffers(vk::CommandBufferAllocateInfo{
-                .commandPool = *command_pool,
-                .commandBufferCount = 1,
-        })[0])),
-        fence(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled}),
         dec(physical_device, device, description.width, description.height, PyroWave::ChromaSubsampling::Chroma420)
 {
 	std::array formats = {
@@ -133,7 +124,7 @@ decoder::decoder(
 		++i;
 	}
 
-	worker = std::thread([&] { worker_function(); });
+	worker = std::thread([&] { worker_function(vk_queue_family_index); });
 }
 
 decoder::~decoder()
@@ -146,76 +137,31 @@ decoder::~decoder()
 
 void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
-	if (data.size() == 1)
+	// FIXME: avoid copy
+	auto locked = pending.lock();
+	std::vector<uint8_t> * packet = nullptr;
+	for (auto & p: locked->packets)
 	{
-		dec.push_packet(data[0].data(), data[0].size());
-		return;
+		if (p.empty())
+		{
+			packet = &p;
+			break;
+		}
 	}
-	// FIXME: accept sparse data in push_packet
-	std::vector<uint8_t> flat;
+	if (packet == nullptr)
+		packet = &locked->packets.emplace_back();
 	for (const auto & i: data)
-		flat.insert(flat.end(), i.begin(), i.end());
-	dec.push_packet(flat.data(), flat.size());
+		packet->insert(packet->end(), i.begin(), i.end());
 }
 
 void decoder::frame_completed(
         const from_headset::feedback & feedback,
         const to_headset::video_stream_data_shard::view_info_t & view_info)
 {
-	auto item = get_free();
-	if (not item)
-	{
-		spdlog::warn("No image available in pool, discard frame");
-		dec.clear();
-		return;
-	}
-	std::array views{*item->view_y, *item->view_cb, *item->view_cr};
-	auto res = dec.device.waitForFences(*fence, true, UINT64_MAX);
-	if (res != vk::Result::eSuccess)
-		spdlog::warn("waitForFences failed");
 	auto locked = pending.lock();
-	dec.device.resetFences(*fence);
-	cmd_buf.reset();
-	cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-
-	if (item->current_layout != vk::ImageLayout::eGeneral)
-	{
-		item->current_layout = vk::ImageLayout::eGeneral;
-		vk::ImageMemoryBarrier barrier{
-		        .srcAccessMask = vk::AccessFlagBits::eNone,
-		        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
-		        .oldLayout = vk::ImageLayout::eUndefined,
-		        .newLayout = vk::ImageLayout::eGeneral,
-		        .image = item->image,
-		        .subresourceRange = {
-		                .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                .levelCount = 1,
-		                .layerCount = 1,
-		        },
-		};
-		cmd_buf.pipelineBarrier(
-		        vk::PipelineStageFlagBits::eAllCommands,
-		        vk::PipelineStageFlagBits::eTransfer,
-		        {},
-		        {},
-		        {},
-		        barrier);
-	}
-	dec.decode(cmd_buf, views);
-	cmd_buf.end();
-
-	application::get_queue().lock()->submit(
-	        vk::SubmitInfo{
-	                .commandBufferCount = 1,
-	                .pCommandBuffers = &*cmd_buf,
-	        },
-	        *fence);
-
-	*locked = {
-	        .feedback = feedback,
-	        .view_info = view_info,
-	        .img = item,
-	};
+	locked->ready = true;
+	locked->feedback = feedback;
+	locked->view_info = view_info;
 	locked.notify_all();
 }
 
@@ -229,14 +175,91 @@ decoder::image * decoder::get_free()
 	return nullptr;
 }
 
-void decoder::worker_function()
+void decoder::worker_function(uint32_t queue_family_index)
 {
+	auto & device = dec.device;
+	vk::raii::CommandPool command_pool(
+	        device,
+	        vk::CommandPoolCreateInfo{
+	                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+	                .queueFamilyIndex = queue_family_index,
+	        });
+	vk::raii::CommandBuffer cmd_buf(
+	        std::move(device.allocateCommandBuffers(vk::CommandBufferAllocateInfo{
+	                .commandPool = *command_pool,
+	                .commandBufferCount = 1,
+	        })[0]));
+	vk::raii::Fence fence(device, vk::FenceCreateInfo{});
+
+	from_headset::feedback feedback;
+	to_headset::video_stream_data_shard::view_info_t view_info;
+	decoder::image * item = nullptr;
+
 	while (not exiting)
 	{
-		auto locked = pending.lock();
-		locked.wait([&]() { return exiting or locked->img != nullptr; });
-		if (exiting)
-			return;
+		{
+			auto locked = pending.lock();
+			locked.wait([&]() { return exiting or locked->ready; });
+			if (exiting)
+				return;
+
+			feedback = locked->feedback;
+			view_info = locked->view_info;
+
+			item = get_free();
+			if (not item)
+			{
+				spdlog::warn("No image available in pool, discard frame");
+				continue;
+			}
+			std::array views{*item->view_y, *item->view_cb, *item->view_cr};
+
+			for (auto & packet: locked->packets)
+			{
+				if (not packet.empty())
+					dec.push_packet(packet.data(), packet.size());
+				packet.clear();
+			}
+
+			dec.device.resetFences(*fence);
+			cmd_buf.reset();
+			cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+			if (item->current_layout != vk::ImageLayout::eGeneral)
+			{
+				item->current_layout = vk::ImageLayout::eGeneral;
+				vk::ImageMemoryBarrier barrier{
+				        .srcAccessMask = vk::AccessFlagBits::eNone,
+				        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+				        .oldLayout = vk::ImageLayout::eUndefined,
+				        .newLayout = vk::ImageLayout::eGeneral,
+				        .image = item->image,
+				        .subresourceRange = {
+				                .aspectMask = vk::ImageAspectFlagBits::eColor,
+				                .levelCount = 1,
+				                .layerCount = 1,
+				        },
+				};
+				cmd_buf.pipelineBarrier(
+				        vk::PipelineStageFlagBits::eAllCommands,
+				        vk::PipelineStageFlagBits::eTransfer,
+				        {},
+				        {},
+				        {},
+				        barrier);
+			}
+			dec.decode(cmd_buf, views);
+			cmd_buf.end();
+
+			application::get_queue().lock()->submit(
+			        vk::SubmitInfo{
+			                .commandBufferCount = 1,
+			                .pCommandBuffers = &*cmd_buf,
+			        },
+			        *fence);
+
+			locked->ready = false;
+		}
 
 		try
 		{
@@ -248,16 +271,15 @@ void decoder::worker_function()
 			scene->push_blit_handle(
 			        accumulator,
 			        std::make_shared<blit_handle>(
-			                locked->feedback,
-			                locked->view_info,
-			                locked->img->view_full,
-			                locked->img->image,
-			                &locked->img->current_layout,
-			                locked->img->free));
+			                feedback,
+			                view_info,
+			                item->view_full,
+			                item->image,
+			                &item->current_layout,
+			                item->free));
 		}
 		catch (...)
 		{}
-		locked->img = nullptr;
 	}
 }
 
