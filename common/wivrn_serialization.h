@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -122,6 +123,13 @@ class deserialization_error : public std::runtime_error
 public:
 	deserialization_error(std::span<uint8_t> raw_data) :
 	        std::runtime_error("Deserialization error\n" + hexdump(raw_data)) {}
+};
+
+class serialization_error : public std::runtime_error
+{
+public:
+	serialization_error() :
+	        std::runtime_error("Serialization error") {}
 };
 
 class serialization_packet
@@ -547,6 +555,8 @@ struct serialization_traits<T, std::enable_if_t<std::is_aggregate_v<T> && !is_st
 template <>
 struct serialization_traits<std::string>
 {
+	using size_type = uint16_t;
+
 	static constexpr void type_hash(details::hash_context & h)
 	{
 		h.feed("string");
@@ -554,14 +564,17 @@ struct serialization_traits<std::string>
 
 	static void serialize(const std::string & value, serialization_packet & packet)
 	{
-		packet.serialize<uint16_t>(value.size());
+		if (value.size() > std::numeric_limits<size_type>::max())
+			throw serialization_error{};
+
+		packet.serialize<size_type>(value.size());
 		packet.write(value.data(), value.size());
 	}
 
 	static std::string deserialize(deserialization_packet & packet)
 	{
 		std::string value;
-		size_t size = packet.deserialize<uint16_t>();
+		size_t size = packet.deserialize<size_type>();
 
 		packet.check_remaining_size(size);
 
@@ -576,13 +589,15 @@ struct serialization_traits<std::string>
 	}
 	static size_t size(const std::string & value)
 	{
-		return sizeof(uint16_t) + value.size();
+		return sizeof(size_type) + value.size();
 	}
 };
 
 template <typename T>
 struct serialization_traits<std::vector<T>>
 {
+	using size_type = uint16_t;
+
 	static constexpr void type_hash(details::hash_context & h)
 	{
 		h.feed("vector<");
@@ -592,7 +607,10 @@ struct serialization_traits<std::vector<T>>
 
 	static void serialize(const std::vector<T> & value, serialization_packet & packet)
 	{
-		packet.serialize<uint16_t>(value.size());
+		if (value.size() > std::numeric_limits<size_type>::max())
+			throw serialization_error{};
+
+		packet.serialize<size_type>(value.size());
 
 		if constexpr (serialization_traits<T>::is_trivially_serializable())
 		{
@@ -608,7 +626,7 @@ struct serialization_traits<std::vector<T>>
 	static std::vector<T> deserialize(deserialization_packet & packet)
 	{
 		std::vector<T> value;
-		size_t size = packet.deserialize<uint16_t>();
+		size_t size = packet.deserialize<size_type>();
 
 		if constexpr (serialization_traits<T>::is_trivially_serializable())
 		{
@@ -635,10 +653,10 @@ struct serialization_traits<std::vector<T>>
 	static size_t size(const std::vector<T> & value)
 	{
 		if constexpr (is_trivially_serializable())
-			return sizeof(uint16_t) + value.size() * sizeof(T);
+			return sizeof(size_type) + value.size() * sizeof(T);
 		else
 		{
-			size_t res = sizeof(uint16_t);
+			size_t res = sizeof(size_type);
 			for (const auto & item: value)
 				res += serialized_size(item);
 			return res;
@@ -756,6 +774,9 @@ struct serialization_traits<std::array<T, N>>
 template <typename... T>
 struct serialization_traits<std::variant<T...>>
 {
+	using size_type = uint8_t;
+	static_assert(sizeof...(T) <= std::numeric_limits<size_type>::max() + 1);
+
 	template <typename U, typename... V>
 	static constexpr void type_list_hash(details::hash_context & h)
 	{
@@ -777,7 +798,7 @@ struct serialization_traits<std::variant<T...>>
 
 	static void serialize(const std::variant<T...> & value, serialization_packet & packet)
 	{
-		packet.serialize<uint8_t>(value.index());
+		packet.serialize<size_type>(value.index());
 		std::visit([&](const auto & x) { packet.serialize(x); }, value);
 	}
 
@@ -794,7 +815,7 @@ struct serialization_traits<std::variant<T...>>
 
 	static std::variant<T...> deserialize(deserialization_packet & packet)
 	{
-		uint8_t type_index = packet.deserialize<uint8_t>();
+		size_type type_index = packet.deserialize<size_type>();
 		if (type_index >= sizeof...(T))
 			throw deserialization_error(packet.initial_buffer);
 
@@ -807,7 +828,7 @@ struct serialization_traits<std::variant<T...>>
 
 	static size_t size(const std::variant<T...> & value)
 	{
-		return 1 + std::visit([](const auto & x) { return serialized_size(x); }, value);
+		return sizeof(size_type) + std::visit([](const auto & x) { return serialized_size(x); }, value);
 	}
 };
 
@@ -850,6 +871,8 @@ struct serialization_traits<std::chrono::duration<Rep, Period>>
 template <>
 struct serialization_traits<std::span<uint8_t>>
 {
+	using size_type = uint16_t;
+
 	static constexpr void type_hash(details::hash_context & h)
 	{
 		h.feed("span<uint8_t>");
@@ -857,22 +880,27 @@ struct serialization_traits<std::span<uint8_t>>
 
 	static void serialize(const std::span<uint8_t> & value, serialization_packet & packet)
 	{
-		packet.serialize<uint16_t>(value.size());
+		if (value.size() > std::numeric_limits<size_type>::max())
+			throw serialization_error{};
+
+		packet.serialize<size_type>(value.size());
 		packet.write(value);
 	}
 
 	static std::span<uint8_t> deserialize(deserialization_packet & packet)
 	{
-		size_t size = packet.deserialize<uint16_t>();
+		size_t size = packet.deserialize<size_type>();
 		return packet.read_span(size);
 	}
+
 	static bool consteval is_trivially_serializable()
 	{
 		return false;
 	}
+
 	static size_t size(const std::span<uint8_t> & x)
 	{
-		return 1 + x.size_bytes();
+		return sizeof(size_type) + x.size_bytes();
 	}
 };
 
@@ -929,7 +957,7 @@ struct serialization_traits<crypto::bignum>
 
 	static size_t size(const crypto::bignum & value)
 	{
-		return 2 + value.data_size();
+		return sizeof(serialization_traits<std::string>::size_type) + value.data_size();
 	}
 };
 
