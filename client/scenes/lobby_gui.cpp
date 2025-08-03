@@ -409,10 +409,12 @@ void scenes::lobby::gui_connected()
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 0});
 		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, disconnect_size.y + 80), 0);
 
+		ImGui::Indent(20);
 		if (server_name.empty())
 			ImGui::Text("%s", _S("Start an application on your computer or select one to start streaming."));
 		else
 			ImGui::Text("%s", fmt::format(_F("Start an application on {} or select one to start streaming."), server_name).c_str());
+		ImGui::Unindent();
 
 		float icon_width = 400;
 		float icon_spacing = ImGui::GetStyle().ItemSpacing.x;
