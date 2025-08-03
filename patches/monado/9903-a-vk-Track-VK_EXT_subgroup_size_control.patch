@@ -1,0 +1,64 @@
+From aaf5b46fc70f31edc96b3c81d05c9e5e30e8aeef Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Aug 2025 11:08:05 +0200
+Subject: [PATCH 3/9] a/vk: Track VK_EXT_subgroup_size_control
+
+---
+ scripts/generate_vk_helpers.py        | 1 +
+ src/xrt/auxiliary/vk/vk_bundle_init.c | 8 ++++++++
+ src/xrt/auxiliary/vk/vk_helpers.h     | 1 +
+ 3 files changed, 10 insertions(+)
+
+diff --git a/scripts/generate_vk_helpers.py b/scripts/generate_vk_helpers.py
+index 27a178854..ed9c6f400 100755
+--- a/scripts/generate_vk_helpers.py
++++ b/scripts/generate_vk_helpers.py
+@@ -318,6 +318,7 @@ DEVICE_EXTENSIONS_TO_CHECK = [
+     "VK_EXT_global_priority",
+     "VK_EXT_image_drm_format_modifier",
+     "VK_EXT_robustness2",
++    "VK_EXT_subgroup_size_control",
+     "VK_ANDROID_external_format_resolve",
+     "VK_GOOGLE_display_timing",
+ ]
+diff --git a/src/xrt/auxiliary/vk/vk_bundle_init.c b/src/xrt/auxiliary/vk/vk_bundle_init.c
+index 519c5da26..87293eed7 100644
+--- a/src/xrt/auxiliary/vk/vk_bundle_init.c
++++ b/src/xrt/auxiliary/vk/vk_bundle_init.c
+@@ -764,6 +764,7 @@ fill_in_has_device_extensions(struct vk_bundle *vk, struct u_string_list *ext_li
+ 	vk->has_EXT_global_priority = false;
+ 	vk->has_EXT_image_drm_format_modifier = false;
+ 	vk->has_EXT_robustness2 = false;
++	vk->has_EXT_subgroup_size_control = false;
+ 	vk->has_ANDROID_external_format_resolve = false;
+ 	vk->has_GOOGLE_display_timing = false;
+ 
+@@ -941,6 +942,13 @@ fill_in_has_device_extensions(struct vk_bundle *vk, struct u_string_list *ext_li
+ 		}
+ #endif // defined(VK_EXT_robustness2)
+ 
++#if defined(VK_EXT_subgroup_size_control)
++		if (strcmp(ext, VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME) == 0) {
++			vk->has_EXT_subgroup_size_control = true;
++			continue;
++		}
++#endif // defined(VK_EXT_subgroup_size_control)
++
+ #if defined(VK_ANDROID_external_format_resolve)
+ 		if (strcmp(ext, VK_ANDROID_EXTERNAL_FORMAT_RESOLVE_EXTENSION_NAME) == 0) {
+ 			vk->has_ANDROID_external_format_resolve = true;
+diff --git a/src/xrt/auxiliary/vk/vk_helpers.h b/src/xrt/auxiliary/vk/vk_helpers.h
+index 01bbf5aaf..852374ff3 100644
+--- a/src/xrt/auxiliary/vk/vk_helpers.h
++++ b/src/xrt/auxiliary/vk/vk_helpers.h
+@@ -152,6 +152,7 @@ struct vk_bundle
+ 	bool has_EXT_global_priority;
+ 	bool has_EXT_image_drm_format_modifier;
+ 	bool has_EXT_robustness2;
++	bool has_EXT_subgroup_size_control;
+ 	bool has_ANDROID_external_format_resolve;
+ 	bool has_GOOGLE_display_timing;
+ 	// end of GENERATED device extension code - do not modify - used by scripts
+-- 
+2.51.0
+

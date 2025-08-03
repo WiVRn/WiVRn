@@ -1,0 +1,117 @@
+From afe2f3302569d8bad3ab6b8cc568b497b4e86c58 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Aug 2025 11:35:05 +0200
+Subject: [PATCH 5/9] a/vk: Expose shader_float16_int8 device features
+
+---
+ src/xrt/auxiliary/vk/vk_bundle_init.c | 38 +++++++++++++++++++++++++++
+ src/xrt/auxiliary/vk/vk_helpers.h     |  2 ++
+ 2 files changed, 40 insertions(+)
+
+diff --git a/src/xrt/auxiliary/vk/vk_bundle_init.c b/src/xrt/auxiliary/vk/vk_bundle_init.c
+index 94a290a63..b97dd3f53 100644
+--- a/src/xrt/auxiliary/vk/vk_bundle_init.c
++++ b/src/xrt/auxiliary/vk/vk_bundle_init.c
+@@ -1143,6 +1143,13 @@ filter_device_features(struct vk_bundle *vk,
+ 	};
+ #endif
+ 
++#ifdef VK_KHR_shader_float16_int8
++	VkPhysicalDeviceShaderFloat16Int8FeaturesKHR shader_float16_int8 = {
++	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR,
++	    .pNext = NULL,
++	};
++#endif
++
+ 	VkPhysicalDeviceFeatures2 physical_device_features = {
+ 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+ 	    .pNext = NULL,
+@@ -1207,6 +1214,13 @@ filter_device_features(struct vk_bundle *vk,
+ 	}
+ #endif
+ 
++#ifdef VK_KHR_shader_float16_int8
++	if (vk->has_KHR_shader_float16_int8) {
++		vk_append_to_pnext_chain((VkBaseInStructure *)&physical_device_features,
++		                         (VkBaseInStructure *)&shader_float16_int8);
++	}
++#endif
++
+ 	vk->vkGetPhysicalDeviceFeatures2( //
+ 	    physical_device,              // physicalDevice
+ 	    &physical_device_features);   // pFeatures
+@@ -1251,6 +1265,11 @@ filter_device_features(struct vk_bundle *vk,
+ 	CHECK(ext_fmt_resolve, ext_fmt_resolve_info.externalFormatResolve);
+ #endif
+ 
++#ifdef VK_KHR_shader_float16_int8
++	CHECK(shader_float16, shader_float16_int8.shaderFloat16);
++	CHECK(shader_int8, shader_float16_int8.shaderInt8);
++#endif
++
+ 	CHECK(shader_image_gather_extended, physical_device_features.features.shaderImageGatherExtended);
+ 
+ 	CHECK(shader_storage_image_write_without_format,
+@@ -1265,6 +1284,8 @@ filter_device_features(struct vk_bundle *vk,
+ 	         "\n\tnull_descriptor: %i"
+ 	         "\n\tshader_image_gather_extended: %i"
+ 	         "\n\tshader_storage_image_write_without_format: %i"
++	         "\n\tshader_float16: %i"
++	         "\n\tshader_int8: %i"
+ 	         "\n\tstorage_buffer_8bit_access: %i"
+ 	         "\n\tstorage_buffer_16bit_access: %i"
+ 	         "\n\tsynchronization_2: %i"
+@@ -1274,6 +1295,8 @@ filter_device_features(struct vk_bundle *vk,
+ 	         device_features->null_descriptor,                           //
+ 	         device_features->shader_image_gather_extended,              //
+ 	         device_features->shader_storage_image_write_without_format, //
++	         device_features->shader_float16,                            //
++	         device_features->shader_int8,                               //
+ 	         device_features->storage_buffer_8bit_access,                //
+ 	         device_features->storage_buffer_16bit_access,               //
+ 	         device_features->synchronization_2,                         //
+@@ -1473,6 +1496,15 @@ vk_create_device(struct vk_bundle *vk,
+ 	};
+ #endif
+ 
++#ifdef VK_KHR_shader_float16_int8
++	VkPhysicalDeviceShaderFloat16Int8FeaturesKHR shader_float16_int8= {
++	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR,
++	    .pNext = NULL,
++	    .shaderFloat16 = device_features.shader_float16,
++	    .shaderInt8 = device_features.shader_int8,
++	};
++#endif
++
+ 	VkPhysicalDeviceFeatures enabled_features = {
+ 	    .shaderImageGatherExtended = device_features.shader_image_gather_extended,
+ 	    .shaderStorageImageWriteWithoutFormat = device_features.shader_storage_image_write_without_format,
+@@ -1545,6 +1577,12 @@ vk_create_device(struct vk_bundle *vk,
+ 	}
+ #endif
+ 
++#ifdef VK_KHR_shader_float16_int8
++	if (vk->has_KHR_shader_float16_int8) {
++		vk_append_to_pnext_chain((VkBaseInStructure *)&device_create_info, (VkBaseInStructure *)&shader_float16_int8);
++	}
++#endif
++
+ 	ret = vk->vkCreateDevice(vk->physical_device, &device_create_info, NULL, &vk->device);
+ 
+ 	u_string_list_destroy(&device_ext_list);
+diff --git a/src/xrt/auxiliary/vk/vk_helpers.h b/src/xrt/auxiliary/vk/vk_helpers.h
+index 54ab32dda..39bf9bb30 100644
+--- a/src/xrt/auxiliary/vk/vk_helpers.h
++++ b/src/xrt/auxiliary/vk/vk_helpers.h
+@@ -1030,6 +1030,8 @@ struct vk_device_features
+ {
+ 	bool shader_image_gather_extended;
+ 	bool shader_storage_image_write_without_format;
++	bool shader_float16;
++	bool shader_int8;
+ 	bool null_descriptor;
+ 	bool timeline_semaphore;
+ 	bool synchronization_2;
+-- 
+2.51.0
+

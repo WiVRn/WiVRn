@@ -1,0 +1,89 @@
+From 7eb0aa21713c844a3170015bd960e3ef622fb3a0 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Aug 2025 13:21:38 +0200
+Subject: [PATCH 9/9] vk: add support for ShaderInt16 feature
+
+---
+ src/xrt/auxiliary/vk/vk_bundle_init.c | 4 ++++
+ src/xrt/auxiliary/vk/vk_helpers.h     | 1 +
+ src/xrt/compositor/util/comp_vulkan.c | 1 +
+ src/xrt/compositor/util/comp_vulkan.h | 3 +++
+ 4 files changed, 9 insertions(+)
+
+diff --git a/src/xrt/auxiliary/vk/vk_bundle_init.c b/src/xrt/auxiliary/vk/vk_bundle_init.c
+index 3a47b9143..c0b6ef033 100644
+--- a/src/xrt/auxiliary/vk/vk_bundle_init.c
++++ b/src/xrt/auxiliary/vk/vk_bundle_init.c
+@@ -1308,6 +1308,7 @@ filter_device_features(struct vk_bundle *vk,
+ #endif
+ 
+ 	CHECK(shader_image_gather_extended, physical_device_features.features.shaderImageGatherExtended);
++	CHECK(shader_int16, physical_device_features.features.shaderInt16);
+ 
+ 	CHECK(shader_storage_image_write_without_format,
+ 	      physical_device_features.features.shaderStorageImageWriteWithoutFormat);
+@@ -1323,6 +1324,7 @@ filter_device_features(struct vk_bundle *vk,
+ 	         "\n\tshader_storage_image_write_without_format: %i"
+ 	         "\n\tshader_float16: %i"
+ 	         "\n\tshader_int8: %i"
++	         "\n\tshader_int16: %i"
+ 	         "\n\tstorage_buffer_8bit_access: %i"
+ 	         "\n\tstorage_buffer_16bit_access: %i"
+ 	         "\n\tsynchronization_2: %i"
+@@ -1337,6 +1339,7 @@ filter_device_features(struct vk_bundle *vk,
+ 	         device_features->shader_storage_image_write_without_format, //
+ 	         device_features->shader_float16,                            //
+ 	         device_features->shader_int8,                               //
++	         device_features->shader_int16,                              //
+ 	         device_features->storage_buffer_8bit_access,                //
+ 	         device_features->storage_buffer_16bit_access,               //
+ 	         device_features->synchronization_2,                         //
+@@ -1567,6 +1570,7 @@ vk_create_device(struct vk_bundle *vk,
+ 
+ 	VkPhysicalDeviceFeatures enabled_features = {
+ 	    .shaderImageGatherExtended = device_features.shader_image_gather_extended,
++	    .shaderInt16 = device_features.shader_int16,
+ 	    .shaderStorageImageWriteWithoutFormat = device_features.shader_storage_image_write_without_format,
+ 	};
+ 
+diff --git a/src/xrt/auxiliary/vk/vk_helpers.h b/src/xrt/auxiliary/vk/vk_helpers.h
+index f094c5dda..384d1f64e 100644
+--- a/src/xrt/auxiliary/vk/vk_helpers.h
++++ b/src/xrt/auxiliary/vk/vk_helpers.h
+@@ -1032,6 +1032,7 @@ struct vk_device_features
+ 	bool shader_storage_image_write_without_format;
+ 	bool shader_float16;
+ 	bool shader_int8;
++	bool shader_int16;
+ 	bool null_descriptor;
+ 	bool timeline_semaphore;
+ 	bool synchronization_2;
+diff --git a/src/xrt/compositor/util/comp_vulkan.c b/src/xrt/compositor/util/comp_vulkan.c
+index 1661cd68c..c05201e97 100644
+--- a/src/xrt/compositor/util/comp_vulkan.c
++++ b/src/xrt/compositor/util/comp_vulkan.c
+@@ -279,6 +279,7 @@ create_device(struct vk_bundle *vk, const struct comp_vulkan_arguments *vk_args)
+ 	    .shader_storage_image_write_without_format = true,
+ 	    .shader_float16 = true,
+ 	    .shader_int8 = true,
++	    .shader_int16 = vk_args->shader_int16,
+ 	    .storage_buffer_8bit_access = true,
+ 	    .storage_buffer_16bit_access = true,
+ 	    .null_descriptor = only_compute_queue,
+diff --git a/src/xrt/compositor/util/comp_vulkan.h b/src/xrt/compositor/util/comp_vulkan.h
+index deaafb45f..c53ad0ac8 100644
+--- a/src/xrt/compositor/util/comp_vulkan.h
++++ b/src/xrt/compositor/util/comp_vulkan.h
+@@ -52,6 +52,9 @@ struct comp_vulkan_arguments
+ 	//! Should we try to enable timeline semaphores if available
+ 	bool timeline_semaphore;
+ 
++	//! Should we try to enable shader int16 feature if available
++	bool shader_int16;
++
+ 	//! Vulkan physical device to be selected, -1 for auto.
+ 	int selected_gpu_index;
+ 
+-- 
+2.51.0
+
