@@ -455,11 +455,11 @@ msgstr "離開"
 msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
-msgstr ""
+msgstr "按下握把按鈕或手掌向上\n以移動主視窗"
 
 #: client/scenes/lobby_gui.cpp:1995
 msgid "Press the grip button to move the main window"
-msgstr ""
+msgstr "按下握把按鈕以移動主視窗"
 
 #: client/scenes/stream_gui.cpp:224
 msgid "Reproject"
