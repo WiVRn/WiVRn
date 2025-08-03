@@ -6,7 +6,6 @@
 #include <format>
 #include <glm/glm.hpp>
 #include <iostream>
-#include <print>
 #include <ranges>
 
 #define XSTR(s) STR(s)
@@ -413,7 +412,7 @@ bool Decoder::decode_packet(const BitstreamHeader * header)
 	}
 	else
 	{
-		std::println(std::cerr, "block_index {} is already decoded, skipping.", header->block_index);
+		std::cerr << "block_index " << header->block_index << " is already decoded, skipping." << std::endl;
 		return true;
 	}
 
@@ -421,7 +420,7 @@ bool Decoder::decode_packet(const BitstreamHeader * header)
 
 	if (sizeof(*header) / sizeof(uint32_t) > header->payload_words)
 	{
-		std::println(std::cerr, "payload_words is not large enough.");
+		std::cerr << "payload_words is not large enough." << std::endl;
 		return false;
 	}
 
@@ -445,13 +444,13 @@ bool Decoder::push_packet(const void * data_, size_t size)
 
 			if (sizeof(*header) > size)
 			{
-				std::print(std::cerr, "Parsing sequence header, but only {} bytes left to parse.", size);
+				std::cerr << "Parsing sequence header, but only " << size << " bytes left to parse." << std::endl;
 				return false;
 			}
 
 			if (seq->chroma_resolution != int(chroma))
 			{
-				std::print(std::cerr, "Chroma resolution mismatch!");
+				std::cerr << "Chroma resolution mismatch!" << std::endl;
 				return false;
 			}
 
@@ -459,7 +458,7 @@ bool Decoder::push_packet(const void * data_, size_t size)
 			if (last_seq != UINT32_MAX && diff > (SequenceCountMask / 2))
 			{
 				// All sequences in a packet must be the same.
-				std::print(std::cerr, "Backwards sequence detected, discarding.");
+				std::cerr << "Backwards sequence detected, discarding." << std::endl;
 				return true;
 			}
 
@@ -473,7 +472,7 @@ bool Decoder::push_packet(const void * data_, size_t size)
 			{
 				if (seq->width_minus_1 + 1 != width || seq->height_minus_1 + 1 != height)
 				{
-					std::print(std::cerr, "Dimension mismatch in seq packet, ({}, {}) != ({}, {})", seq->width_minus_1 + 1, seq->height_minus_1 + 1, width, height);
+					std::cerr << "Dimension mismatch in seq packet, (" << seq->width_minus_1 + 1 << ", " << seq->height_minus_1 + 1 << ") != (" << width << ", " << height << ")" << std::endl;
 					return false;
 				}
 
@@ -481,7 +480,7 @@ bool Decoder::push_packet(const void * data_, size_t size)
 			}
 			else
 			{
-				std::print(std::cerr, "Unrecognized sequence header mode {}.", seq->code);
+				std::cerr << "Unrecognized sequence header mode " << seq->code << "." << std::endl;
 				return false;
 			}
 
@@ -495,7 +494,7 @@ bool Decoder::push_packet(const void * data_, size_t size)
 
 		if (packet_size > size)
 		{
-			std::print(std::cerr, "Packet header states {} bytes, but only {} bytes left to parse.", packet_size, size);
+			std::cerr << "Packet header states " << packet_size << " bytes, but only " << size << " bytes left to parse." << std::endl;
 			return false;
 		}
 
@@ -511,7 +510,7 @@ bool Decoder::push_packet(const void * data_, size_t size)
 			if (diff > (SequenceCountMask / 2))
 			{
 				// All sequences in a packet must be the same.
-				std::print(std::cerr, "Backwards sequence detected, discarding.");
+				std::cerr << "Backwards sequence detected, discarding." << std::endl;
 				return true;
 			}
 			restart = diff != 0;
@@ -525,7 +524,7 @@ bool Decoder::push_packet(const void * data_, size_t size)
 
 		if (header->block_index >= uint32_t(block_count_32x32))
 		{
-			std::print(std::cerr, "block_index {} is out of bounds (>= {}).", header->block_index, block_count_32x32);
+			std::cerr << "block_index " << header->block_index << " is out of bounds (>= " << block_count_32x32 << ")." << std::endl;
 			return false;
 		}
 
@@ -538,7 +537,7 @@ bool Decoder::push_packet(const void * data_, size_t size)
 
 	if (size != 0)
 	{
-		std::print(std::cerr, "Did not consume packet completely.");
+		std::cerr << "Did not consume packet completely." << std::endl;
 		return false;
 	}
 
