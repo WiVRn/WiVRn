@@ -17,8 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "utils/ranges.h"
-#include <algorithm>
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #ifdef __ANDROID__
@@ -34,40 +32,64 @@
 #include "stream.h"
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
+#include "utils/ranges.h"
 #include "version.h"
+#include <algorithm>
 #include <cassert>
 #include <filesystem>
 #include <glm/gtc/quaternion.hpp>
 #include <ranges>
 #include <spdlog/fmt/fmt.h>
 #include <string>
+#include <utility>
 #include <utils/strings.h>
 
 #include "IconsFontAwesome6.h"
 
-static void ScrollWhenDraggingOnVoid()
+using namespace std::chrono_literals;
+
+// https://github.com/ocornut/imgui/issues/3379#issuecomment-2943903877
+static void ScrollWhenDragging()
 {
 	ImVec2 delta{0.0f, -ImGui::GetIO().MouseDelta.y};
+	const ImGuiMouseButton mouse_button = ImGuiMouseButton_Left;
 
-	// https://github.com/ocornut/imgui/issues/3379#issuecomment-1678718752
 	ImGuiContext & g = *ImGui::GetCurrentContext();
 	ImGuiWindow * window = g.CurrentWindow;
-	bool hovered = false;
-	bool held = false;
-	static bool held_prev = false;
-
-	// Don't drag for the first frame because the current controller might have just changed and have a large delta
-
 	ImGuiID id = window->GetID("##scrolldraggingoverlay");
 	ImGui::KeepAliveID(id);
-	if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
-		ImGui::ButtonBehavior(window->Rect(), id, &hovered, &held, ImGuiButtonFlags_MouseButtonLeft);
-	if (held and held_prev and delta.x != 0.0f)
-		ImGui::SetScrollX(window, window->Scroll.x + delta.x);
-	if (held and held_prev and delta.y != 0.0f)
-		ImGui::SetScrollY(window, window->Scroll.y + delta.y);
 
-	held_prev = held;
+	static int active_id;
+	static ImVec2 cumulated_delta;
+
+	bool HoveredIdAllowOverlap_backup = std::exchange(g.HoveredIdAllowOverlap, true);
+	bool ActiveIdAllowOverlap_backup = std::exchange(g.ActiveIdAllowOverlap, true);
+	if (active_id == 0 and ImGui::ItemHoverable(window->Rect(), 0, g.CurrentItemFlags) and ImGui::IsMouseClicked(mouse_button, ImGuiInputFlags_None, /*id*/ ImGuiKeyOwner_Any))
+	{
+		active_id = id;
+
+		// Don't scroll on the first step, in case the active controller just changed
+		delta = {};
+		cumulated_delta = {};
+	}
+
+	if (not g.IO.MouseDown[mouse_button])
+		active_id = 0;
+
+	if (active_id == id)
+	{
+		if (delta.x != 0.0f)
+			ImGui::SetScrollX(window, window->Scroll.x + delta.x);
+		if (delta.y != 0.0f)
+			ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+
+		cumulated_delta += delta;
+		if (std::max(std::abs(cumulated_delta.x), std::abs(cumulated_delta.y)) > 50)
+			ImGui::ClearActiveID();
+	}
+
+	g.HoveredIdAllowOverlap = HoveredIdAllowOverlap_backup;
+	g.ActiveIdAllowOverlap = ActiveIdAllowOverlap_backup;
 }
 
 static void CenterTextH(const std::string & text)
@@ -440,7 +462,7 @@ void scenes::lobby::gui_connected()
 			app_icons.erase(app_id);
 		}
 
-		ScrollWhenDraggingOnVoid();
+		ScrollWhenDragging();
 		ImGui::EndChild();
 		ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
 	}
@@ -1913,7 +1935,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 		ImGui::Dummy(ImVec2(0, 20));
 
-		ScrollWhenDraggingOnVoid();
+		ScrollWhenDragging();
 		ImGui::EndChild();
 		ImGui::PopStyleVar(2); // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowPadding
 
