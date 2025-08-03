@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-22 20:32+0800\n"
+"POT-Creation-Date: 2025-08-03 18:33+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Jayden Ha <jayden@jaydenha.uk>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -346,13 +346,13 @@ msgctxt "don't start an application automatically"
 msgid "None"
 msgstr "無"
 
-#: dashboard/qml/SelectGame.qml:21
+#: dashboard/qml/SelectGame.qml:20
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "自訂"
 
-#: dashboard/qml/SelectGame.qml:79
+#: dashboard/qml/SelectGame.qml:76
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
