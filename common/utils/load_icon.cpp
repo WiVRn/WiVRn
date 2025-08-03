@@ -61,13 +61,15 @@ T read(std::span<std::byte> & buffer)
 		return value;
 }
 
-std::span<std::byte> read(std::span<std::byte> & buffer, size_t size)
+template <typename T>
+        requires std::is_integral_v<T>
+std::span<T> read(std::span<std::byte> & buffer, size_t count)
 {
-	if (size > buffer.size())
+	if (count * sizeof(T) > buffer.size())
 		throw std::runtime_error{"File truncated"};
 
-	std::span<std::byte> value{buffer.data(), size};
-	buffer = buffer.subspan(size);
+	std::span<T> value{reinterpret_cast<T *>(buffer.data()), count};
+	buffer = buffer.subspan(count * sizeof(T));
 	return value;
 }
 
@@ -160,41 +162,40 @@ struct ico_file_entry
 	std::span<std::byte> data;
 };
 
-int rowstride(int width, int bpp)
+constexpr int rowstride(int width, int bpp)
 {
-	switch (bpp)
-	{
-		case 1:
-			if ((width % 32) == 0)
-				return width / 8;
-			else
-				return 4 * (width / 32 + 1);
-
-			// case 4:
-			// 	if ((width % 8) == 0)
-			// 		return width / 2;
-			// 	else
-			// 		return 4 * (width / 8 + 1);
-			//
-			// case 8:
-			// 	if ((width % 4) == 0)
-			// 		return width;
-			// 	else
-			// 		return 4 * (width / 4 + 1);
-
-		case 24:
-			if (((width * 3) % 4) == 0)
-				return width * 3;
-			else
-				return 4 * (width * 3 / 4 + 1);
-
-		case 32:
-			return width * 4;
-
-		default:
-			return 0;
-	}
+	int words_per_line = (width * bpp + 31) / 32;
+	return words_per_line * 4;
 }
+static_assert(rowstride(1, 1) == 4);
+static_assert(rowstride(8, 1) == 4);
+static_assert(rowstride(16, 1) == 4);
+static_assert(rowstride(32, 1) == 4);
+static_assert(rowstride(33, 1) == 8);
+
+static_assert(rowstride(1, 4) == 4);
+static_assert(rowstride(8, 4) == 4);
+static_assert(rowstride(16, 4) == 8);
+static_assert(rowstride(32, 4) == 16);
+static_assert(rowstride(33, 4) == 20);
+
+static_assert(rowstride(1, 8) == 4);
+static_assert(rowstride(8, 8) == 8);
+static_assert(rowstride(16, 8) == 16);
+static_assert(rowstride(32, 8) == 32);
+static_assert(rowstride(33, 8) == 36);
+
+static_assert(rowstride(1, 24) == 4);
+static_assert(rowstride(8, 24) == 24);
+static_assert(rowstride(16, 24) == 48);
+static_assert(rowstride(32, 24) == 96);
+static_assert(rowstride(33, 24) == 100);
+
+static_assert(rowstride(1, 32) == 4);
+static_assert(rowstride(8, 32) == 32);
+static_assert(rowstride(16, 32) == 64);
+static_assert(rowstride(32, 32) == 128);
+static_assert(rowstride(33, 32) == 132);
 
 std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size, int index = -1)
 {
@@ -228,8 +229,10 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 			auto size = read<uint32_t>(header);
 			auto offset = read<uint32_t>(header);
 
-			entry.data = std::span{ico}.subspan(offset, size);
+			if (offset + size > ico.size())
+				return {};
 
+			entry.data = std::span{ico}.subspan(offset, size);
 			if (entry.width == 0)
 				entry.width = 256;
 			if (entry.height == 0)
@@ -239,17 +242,13 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 			if (planes != 0 and planes != 1)
 				return {};
 
-			// Ignore 16bpp and less
-			if (entry.bpp < 24)
-				continue;
-
 			entries.push_back(entry);
 
 			max_bpp = std::max(max_bpp, entry.bpp);
 		}
 
-		const ico_file_entry & best_entry = index >= 0 ? entries.at(index) : [&]() {
-			const ico_file_entry * best_entry;
+		const ico_file_entry * best_entry = index >= 0 ? &entries.at(index) : [&]() {
+			const ico_file_entry * best_entry = nullptr;
 
 			// Look for the smallest multiple of the requested size
 			int criterion = std::numeric_limits<int>::max();
@@ -269,7 +268,7 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 				}
 			}
 			if (best_entry)
-				return *best_entry;
+				return best_entry;
 
 			// No multiple found: pick the largest icon
 			criterion = 0;
@@ -285,17 +284,41 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 					best_entry = &entry;
 				}
 			}
-			return *best_entry;
+			return best_entry;
 		}();
 
-		auto data = best_entry.data;
+		if (not best_entry)
+			return {};
+
+		auto data = best_entry->data;
 		auto magic = read<uint32_t>(data);
 
 		if (magic == ICO_PNG_MAGIC)
 		{
 			// PNG file
 			std::vector<std::byte> png_data;
-			png_data.insert(png_data.end(), data.begin(), data.end());
+
+			// The PNG magic has already been consumed, put it back
+			png_data.insert(png_data.end(), data.begin() - 4, data.end());
+
+			// Check if the PNG is valid
+			std::vector<uint8_t> pixels;
+			png_image png_ref{
+			        .version = PNG_IMAGE_VERSION,
+			        .format = PNG_FORMAT_BGRA,
+			};
+			if (not png_image_begin_read_from_memory(&png_ref, png_data.data(), png_data.size()))
+				return {};
+
+			pixels.resize(PNG_IMAGE_SIZE(png_ref));
+
+			if (!png_image_finish_read(&png_ref, nullptr, pixels.data(), 0, nullptr))
+			{
+				png_image_free(&png_ref);
+				return {};
+			}
+			png_image_free(&png_ref);
+
 			return png_data;
 		}
 		else if (magic == 40)
@@ -325,44 +348,45 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 			auto w = width;
 			auto h = height / 2;
 
-			// Don't bother supporting paletted icons
-			// std::vector<uint32_t> palette;
-			//
-			// if (bpp <= 8)
-			// {
-			// 	// Load the palette
-			// 	if (used_colors == 0)
-			// 		used_colors = 1 << bpp;
-			//
-			// 	palette.resize(used_colors);
-			// 	for (int i = 0; i < palette.size(); i++)
-			// 		palette[i] = read<uint32_t>(data);
-			// }
+			std::span<uint8_t> palette; // BGRX
+
+			if (bpp <= 16)
+			{
+				// Load the palette
+				if (used_colors == 0)
+					used_colors = 1 << bpp;
+
+				palette = read<uint8_t>(data, used_colors * 4);
+			}
 
 			size_t xor_stride = rowstride(w, bpp);
 			size_t and_stride = rowstride(w, 1);
 			size_t dst_stride = 4 * w;
 
-			std::span<std::byte> xor_map = read(data, xor_stride * h);
-			std::span<std::byte> and_map = read(data, and_stride * h);
+			std::span<uint8_t> xor_map = read<uint8_t>(data, xor_stride * h);
+			std::span<uint8_t> and_map = read<uint8_t>(data, and_stride * h);
 
 			std::vector<uint8_t> dest_buffer;
 			dest_buffer.resize(h * dst_stride);
 
 			switch (bpp)
 			{
-				case 24:
+				case 1:
 					for (int y = 0; y < h; y++)
 					{
-						uint8_t * src_xor_row = (uint8_t *)xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = (uint8_t *)and_map.data() + and_stride * y;
+						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						uint8_t * src_and_row = and_map.data() + and_stride * y;
 						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
 						for (int x = 0, i = 0; x < w; x++)
 						{
-							uint8_t b = *src_xor_row++; // Red
-							uint8_t g = *src_xor_row++; // Green
-							uint8_t r = *src_xor_row++; // Blue
+							int colour = (src_xor_row[x / 8] >> (7 - (x % 8))) & 0x1;
+							if (colour >= used_colors)
+								return {};
+
+							uint8_t b = palette[4 * colour + 0]; // Blue
+							uint8_t g = palette[4 * colour + 1]; // Green
+							uint8_t r = palette[4 * colour + 2]; // Red
 
 							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
 							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
@@ -373,6 +397,117 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 							*dst_row++ = a;
 						}
 					}
+					break;
+
+				case 4:
+					for (int y = 0; y < h; y++)
+					{
+						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+
+						for (int x = 0, i = 0; x < w; x++)
+						{
+							int colour = (src_xor_row[x / 2] >> (4 - 4 * (x % 2))) & 0xf;
+							if (colour >= used_colors)
+								return {};
+
+							uint8_t b = palette[4 * colour + 0]; // Blue
+							uint8_t g = palette[4 * colour + 1]; // Green
+							uint8_t r = palette[4 * colour + 2]; // Red
+
+							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
+
+							*dst_row++ = b;
+							*dst_row++ = g;
+							*dst_row++ = r;
+							*dst_row++ = a;
+						}
+					}
+					break;
+
+				case 8:
+					for (int y = 0; y < h; y++)
+					{
+						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+
+						for (int x = 0, i = 0; x < w; x++)
+						{
+							int colour = *src_xor_row++;
+							if (colour >= used_colors)
+								return {};
+
+							uint8_t b = palette[4 * colour + 0]; // Blue
+							uint8_t g = palette[4 * colour + 1]; // Green
+							uint8_t r = palette[4 * colour + 2]; // Red
+
+							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
+
+							*dst_row++ = b;
+							*dst_row++ = g;
+							*dst_row++ = r;
+							*dst_row++ = a;
+						}
+					}
+					break;
+
+				case 16:
+					for (int y = 0; y < h; y++)
+					{
+						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+
+						for (int x = 0, i = 0; x < w; x++)
+						{
+							int colour = (src_xor_row[1] << 8) | src_xor_row[0];
+							src_xor_row += 2;
+
+							if (colour >= used_colors)
+								return {};
+
+							uint8_t b = palette[4 * colour + 0]; // Blue
+							uint8_t g = palette[4 * colour + 1]; // Green
+							uint8_t r = palette[4 * colour + 2]; // Red
+
+							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
+
+							*dst_row++ = b;
+							*dst_row++ = g;
+							*dst_row++ = r;
+							*dst_row++ = a;
+						}
+					}
+					break;
+
+				case 24:
+					for (int y = 0; y < h; y++)
+					{
+						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+
+						for (int x = 0, i = 0; x < w; x++)
+						{
+							uint8_t b = *src_xor_row++; // Blue
+							uint8_t g = *src_xor_row++; // Green
+							uint8_t r = *src_xor_row++; // Red
+
+							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
+
+							*dst_row++ = b;
+							*dst_row++ = g;
+							*dst_row++ = r;
+							*dst_row++ = a;
+						}
+					}
+					break;
 
 				case 32:
 					for (int y = 0; y < h; y++)
