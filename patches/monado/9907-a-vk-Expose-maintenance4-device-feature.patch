@@ -1,0 +1,116 @@
+From c6bb866af34431bc0ae1f9ccbcc62145e4465738 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Aug 2025 12:40:14 +0200
+Subject: [PATCH 7/9] a/vk: Expose maintenance4 device feature
+
+---
+ src/xrt/auxiliary/vk/vk_bundle_init.c | 38 +++++++++++++++++++++++++--
+ src/xrt/auxiliary/vk/vk_helpers.h     |  1 +
+ 2 files changed, 37 insertions(+), 2 deletions(-)
+
+diff --git a/src/xrt/auxiliary/vk/vk_bundle_init.c b/src/xrt/auxiliary/vk/vk_bundle_init.c
+index bbc0b6ca5..3a47b9143 100644
+--- a/src/xrt/auxiliary/vk/vk_bundle_init.c
++++ b/src/xrt/auxiliary/vk/vk_bundle_init.c
+@@ -1089,6 +1089,13 @@ filter_device_features(struct vk_bundle *vk,
+ 	};
+ #endif
+ 
++#ifdef VK_KHR_maintenance4
++	VkPhysicalDeviceMaintenance4FeaturesKHR maintenance4 = {
++	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES_KHR,
++	    .pNext = NULL,
++	};
++#endif
++
+ #ifdef VK_KHR_8bit_storage
+ 	VkPhysicalDevice8BitStorageFeaturesKHR storage_8bit = {
+ 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR,
+@@ -1169,6 +1176,13 @@ filter_device_features(struct vk_bundle *vk,
+ 	}
+ #endif
+ 
++#ifdef VK_KHR_maintenance4
++	if (vk->has_KHR_maintenance4) {
++		vk_append_to_pnext_chain((VkBaseInStructure *)&physical_device_features,
++		                         (VkBaseInStructure *)&maintenance4);
++	}
++#endif
++
+ #ifdef VK_KHR_8bit_storage
+ 	if (vk->has_KHR_8bit_storage) {
+ 		vk_append_to_pnext_chain((VkBaseInStructure *)&physical_device_features,
+@@ -1250,6 +1264,10 @@ filter_device_features(struct vk_bundle *vk,
+ 	CHECK(null_descriptor, robust_info.nullDescriptor);
+ #endif
+ 
++#ifdef VK_KHR_maintenance4
++	CHECK(maintenance4, maintenance4.maintenance4);
++#endif
++
+ #ifdef VK_KHR_8bit_storage
+ 	CHECK(storage_buffer_8bit_access, storage_8bit.storageBuffer8BitAccess);
+ #endif
+@@ -1311,7 +1329,8 @@ filter_device_features(struct vk_bundle *vk,
+ 	         "\n\ttimeline_semaphore: %i"
+ 	         "\n\tvideo_maintenance_1: %i"
+ 	         "\n\tsubgroup_size_control: %i"
+-	         "\n\tcompute_full_subgroups: %i",                           //
++	         "\n\tcompute_full_subgroups: %i"
++	         "\n\tmaintenance4: %i",                                     //
+ 	         device_features->ext_fmt_resolve,                           //
+ 	         device_features->null_descriptor,                           //
+ 	         device_features->shader_image_gather_extended,              //
+@@ -1324,7 +1343,8 @@ filter_device_features(struct vk_bundle *vk,
+ 	         device_features->timeline_semaphore,                        //
+ 	         device_features->video_maintenance_1,                      //
+ 	         device_features->subgroup_size_control,                     //
+-	         device_features->compute_full_subgroups);                   //
++	         device_features->compute_full_subgroups,                    //
++	         device_features->maintenance4);                             //
+ }
+ 
+ 
+@@ -1455,6 +1475,14 @@ vk_create_device(struct vk_bundle *vk,
+ 	};
+ #endif
+ 
++#ifdef VK_KHR_maintenance4
++	VkPhysicalDeviceMaintenance4FeaturesKHR maintenance4 = {
++	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES_KHR,
++	    .pNext = NULL,
++	    .maintenance4 = device_features.maintenance4,
++	};
++#endif
++
+ #ifdef VK_KHR_8bit_storage
+ 	VkPhysicalDevice8BitStorageFeaturesKHR storage_8bit = {
+ 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR,
+@@ -1557,6 +1585,12 @@ vk_create_device(struct vk_bundle *vk,
+ 	}
+ #endif
+ 
++#ifdef VK_KHR_maintenance4
++	if (vk->has_KHR_maintenance4) {
++		vk_append_to_pnext_chain((VkBaseInStructure *)&device_create_info, (VkBaseInStructure *)&maintenance4);
++	}
++#endif
++
+ #ifdef VK_KHR_8bit_storage
+ 	if (vk->has_KHR_8bit_storage) {
+ 		vk_append_to_pnext_chain((VkBaseInStructure *)&device_create_info, (VkBaseInStructure *)&storage_8bit);
+diff --git a/src/xrt/auxiliary/vk/vk_helpers.h b/src/xrt/auxiliary/vk/vk_helpers.h
+index 1862aeb93..f094c5dda 100644
+--- a/src/xrt/auxiliary/vk/vk_helpers.h
++++ b/src/xrt/auxiliary/vk/vk_helpers.h
+@@ -1042,6 +1042,7 @@ struct vk_device_features
+ 	bool video_maintenance_1;
+ 	bool subgroup_size_control;
+ 	bool compute_full_subgroups;
++	bool maintenance4;
+ };
+ 
+ /*!
+-- 
+2.51.0
+

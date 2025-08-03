@@ -69,7 +69,12 @@ std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
 #ifdef VK_KHR_video_encode_h265
         VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME,
 #endif
+        // For PyroWave
+        VK_KHR_MAINTENANCE_4_EXTENSION_NAME,
         VK_KHR_8BIT_STORAGE_EXTENSION_NAME,
+        VK_KHR_16BIT_STORAGE_EXTENSION_NAME,
+        VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME,
+        VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
 };
 
 static void target_init_semaphores(struct wivrn_comp_target * cn);
@@ -208,7 +213,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 	                .arrayLayers = 2, // colour then alpha
 	                .samples = vk::SampleCountFlagBits::e1,
 	                .tiling = vk::ImageTiling::eOptimal,
-	                .usage = flags | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
+	                .usage = flags | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eSampled,
 	                .sharingMode = vk::SharingMode::eExclusive,
 	        },
 	        vk::ImageFormatListCreateInfo{

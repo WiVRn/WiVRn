@@ -1,0 +1,75 @@
+From afb032d16e4be7a5152660e905c8da26c4db0d54 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Aug 2025 11:07:14 +0200
+Subject: [PATCH 2/9] a/vk: Track VK_KHR_shader_float16_int8
+
+---
+ scripts/generate_vk_helpers.py        | 5 ++++-
+ src/xrt/auxiliary/vk/vk_bundle_init.c | 8 ++++++++
+ src/xrt/auxiliary/vk/vk_helpers.h     | 1 +
+ 3 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/generate_vk_helpers.py b/scripts/generate_vk_helpers.py
+index 4c8ab7fef..27a178854 100755
+--- a/scripts/generate_vk_helpers.py
++++ b/scripts/generate_vk_helpers.py
+@@ -307,6 +307,7 @@ DEVICE_EXTENSIONS_TO_CHECK = [
+     "VK_KHR_maintenance3",
+     "VK_KHR_maintenance4",
+     "VK_KHR_present_wait",
++    "VK_KHR_shader_float16_int8",
+     "VK_KHR_synchronization2",
+     "VK_KHR_timeline_semaphore",
+     "VK_KHR_video_maintenance1",
+@@ -449,7 +450,9 @@ def make_ext_member_name(ext: str):
+ 
+ def make_ext_name_define(ext: str):
+     str = ext.upper()
+-    str = re.sub("([0-9]+$)", r"_\1", str)
++    # number suffix shall be prefixed with "_"
++    # but INT8 must remain one word
++    str = re.sub("([0-7]+$)", r"_\1", str)
+ 
+     return "{}_EXTENSION_NAME".format(str)
+ 
+diff --git a/src/xrt/auxiliary/vk/vk_bundle_init.c b/src/xrt/auxiliary/vk/vk_bundle_init.c
+index 6987a9332..519c5da26 100644
+--- a/src/xrt/auxiliary/vk/vk_bundle_init.c
++++ b/src/xrt/auxiliary/vk/vk_bundle_init.c
+@@ -753,6 +753,7 @@ fill_in_has_device_extensions(struct vk_bundle *vk, struct u_string_list *ext_li
+ 	vk->has_KHR_maintenance3 = false;
+ 	vk->has_KHR_maintenance4 = false;
+ 	vk->has_KHR_present_wait = false;
++	vk->has_KHR_shader_float16_int8 = false;
+ 	vk->has_KHR_synchronization2 = false;
+ 	vk->has_KHR_timeline_semaphore = false;
+ 	vk->has_KHR_video_maintenance1 = false;
+@@ -863,6 +864,13 @@ fill_in_has_device_extensions(struct vk_bundle *vk, struct u_string_list *ext_li
+ 		}
+ #endif // defined(VK_KHR_present_wait)
+ 
++#if defined(VK_KHR_shader_float16_int8)
++		if (strcmp(ext, VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME) == 0) {
++			vk->has_KHR_shader_float16_int8 = true;
++			continue;
++		}
++#endif // defined(VK_KHR_shader_float16_int8)
++
+ #if defined(VK_KHR_synchronization2)
+ 		if (strcmp(ext, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME) == 0) {
+ 			vk->has_KHR_synchronization2 = true;
+diff --git a/src/xrt/auxiliary/vk/vk_helpers.h b/src/xrt/auxiliary/vk/vk_helpers.h
+index 8e2bce200..01bbf5aaf 100644
+--- a/src/xrt/auxiliary/vk/vk_helpers.h
++++ b/src/xrt/auxiliary/vk/vk_helpers.h
+@@ -141,6 +141,7 @@ struct vk_bundle
+ 	bool has_KHR_maintenance3;
+ 	bool has_KHR_maintenance4;
+ 	bool has_KHR_present_wait;
++	bool has_KHR_shader_float16_int8;
+ 	bool has_KHR_synchronization2;
+ 	bool has_KHR_timeline_semaphore;
+ 	bool has_KHR_video_maintenance1;
+-- 
+2.51.0
+

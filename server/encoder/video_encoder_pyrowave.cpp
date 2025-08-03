@@ -98,6 +98,7 @@ std::pair<bool, vk::Semaphore> video_encoder_pyrowave::present_image(vk::Image y
 		        vk::ImageViewCreateInfo{
 		                .image = y_cbcr,
 		                .viewType = vk::ImageViewType::e2D,
+		                .format = vk::Format::eR8Unorm,
 		                .subresourceRange = {
 		                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
 		                        .levelCount = 1,
@@ -108,6 +109,7 @@ std::pair<bool, vk::Semaphore> video_encoder_pyrowave::present_image(vk::Image y
 		        vk::ImageViewCreateInfo{
 		                .image = y_cbcr,
 		                .viewType = vk::ImageViewType::e2D,
+		                .format = vk::Format::eR8G8Unorm,
 		                .subresourceRange = {
 		                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
 		                        .levelCount = 1,
@@ -118,6 +120,7 @@ std::pair<bool, vk::Semaphore> video_encoder_pyrowave::present_image(vk::Image y
 		        vk::ImageViewCreateInfo{
 		                .image = y_cbcr,
 		                .viewType = vk::ImageViewType::e2D,
+		                .format = vk::Format::eR8G8Unorm,
 		                .components = {
 		                        .r = vk::ComponentSwizzle::eG,
 		                },

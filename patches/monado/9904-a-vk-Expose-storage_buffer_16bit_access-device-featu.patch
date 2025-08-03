@@ -1,0 +1,112 @@
+From 86810a1248c85a50b0735fa91703c1e182b226b1 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Aug 2025 11:18:13 +0200
+Subject: [PATCH 4/9] a/vk: Expose storage_buffer_16bit_access device feature
+
+---
+ src/xrt/auxiliary/vk/vk_bundle_init.c | 34 +++++++++++++++++++++++++++
+ src/xrt/auxiliary/vk/vk_helpers.h     |  1 +
+ 2 files changed, 35 insertions(+)
+
+diff --git a/src/xrt/auxiliary/vk/vk_bundle_init.c b/src/xrt/auxiliary/vk/vk_bundle_init.c
+index 87293eed7..94a290a63 100644
+--- a/src/xrt/auxiliary/vk/vk_bundle_init.c
++++ b/src/xrt/auxiliary/vk/vk_bundle_init.c
+@@ -1096,6 +1096,13 @@ filter_device_features(struct vk_bundle *vk,
+ 	};
+ #endif
+ 
++#ifdef VK_KHR_16bit_storage
++	VkPhysicalDevice16BitStorageFeaturesKHR storage_16bit = {
++	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
++	    .pNext = NULL,
++	};
++#endif
++
+ #ifdef VK_KHR_timeline_semaphore
+ 	VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timeline_semaphore_info = {
+ 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR,
+@@ -1155,6 +1162,13 @@ filter_device_features(struct vk_bundle *vk,
+ 	}
+ #endif
+ 
++#ifdef VK_KHR_16bit_storage
++	if (vk->has_KHR_16bit_storage) {
++		vk_append_to_pnext_chain((VkBaseInStructure *)&physical_device_features,
++		                         (VkBaseInStructure *)&storage_16bit);
++	}
++#endif
++
+ #ifdef VK_KHR_timeline_semaphore
+ 	if (vk->has_KHR_timeline_semaphore) {
+ 		vk_append_to_pnext_chain((VkBaseInStructure *)&physical_device_features,
+@@ -1212,6 +1226,10 @@ filter_device_features(struct vk_bundle *vk,
+ 	CHECK(storage_buffer_8bit_access, storage_8bit.storageBuffer8BitAccess);
+ #endif
+ 
++#ifdef VK_KHR_16bit_storage
++	CHECK(storage_buffer_16bit_access, storage_16bit.storageBuffer16BitAccess);
++#endif
++
+ #ifdef VK_KHR_timeline_semaphore
+ 	CHECK(timeline_semaphore, timeline_semaphore_info.timelineSemaphore);
+ #endif
+@@ -1248,6 +1266,7 @@ filter_device_features(struct vk_bundle *vk,
+ 	         "\n\tshader_image_gather_extended: %i"
+ 	         "\n\tshader_storage_image_write_without_format: %i"
+ 	         "\n\tstorage_buffer_8bit_access: %i"
++	         "\n\tstorage_buffer_16bit_access: %i"
+ 	         "\n\tsynchronization_2: %i"
+ 	         "\n\ttimeline_semaphore: %i"
+ 	         "\n\tvideo_maintenance_1: %i",                              //
+@@ -1256,6 +1275,7 @@ filter_device_features(struct vk_bundle *vk,
+ 	         device_features->shader_image_gather_extended,              //
+ 	         device_features->shader_storage_image_write_without_format, //
+ 	         device_features->storage_buffer_8bit_access,                //
++	         device_features->storage_buffer_16bit_access,               //
+ 	         device_features->synchronization_2,                         //
+ 	         device_features->timeline_semaphore,                        //
+ 	         device_features->video_maintenance_1);                      //
+@@ -1397,6 +1417,14 @@ vk_create_device(struct vk_bundle *vk,
+ 	};
+ #endif
+ 
++#ifdef VK_KHR_16bit_storage
++	VkPhysicalDevice16BitStorageFeaturesKHR storage_16bit = {
++	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR,
++	    .pNext = NULL,
++	    .storageBuffer16BitAccess = device_features.storage_buffer_16bit_access,
++	};
++#endif
++
+ #if VK_KHR_present_wait
+ 	VkPhysicalDevicePresentWaitFeaturesKHR present_wait = {
+ 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+@@ -1471,6 +1499,12 @@ vk_create_device(struct vk_bundle *vk,
+ 	}
+ #endif
+ 
++#ifdef VK_KHR_16bit_storage
++	if (vk->has_KHR_16bit_storage) {
++		vk_append_to_pnext_chain((VkBaseInStructure *)&device_create_info, (VkBaseInStructure *)&storage_16bit);
++	}
++#endif
++
+ #ifdef VK_KHR_present_id
+ 	if (vk->has_KHR_present_wait) {
+ 		vk_append_to_pnext_chain((VkBaseInStructure *)&device_create_info, (VkBaseInStructure *)&present_id);
+diff --git a/src/xrt/auxiliary/vk/vk_helpers.h b/src/xrt/auxiliary/vk/vk_helpers.h
+index 852374ff3..54ab32dda 100644
+--- a/src/xrt/auxiliary/vk/vk_helpers.h
++++ b/src/xrt/auxiliary/vk/vk_helpers.h
+@@ -1035,6 +1035,7 @@ struct vk_device_features
+ 	bool synchronization_2;
+ 	bool ext_fmt_resolve;
+ 	bool storage_buffer_8bit_access;
++	bool storage_buffer_16bit_access;
+ 	bool present_wait;
+ 	bool video_maintenance_1;
+ };
+-- 
+2.51.0
+

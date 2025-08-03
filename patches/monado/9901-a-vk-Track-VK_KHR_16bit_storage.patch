@@ -1,0 +1,84 @@
+From a0e6e57ba5952fae505e2c0004110f797d9d8557 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 3 Aug 2025 11:06:28 +0200
+Subject: [PATCH 1/9] a/vk: Track VK_KHR_16bit_storage
+
+---
+ scripts/generate_vk_helpers.py        | 7 +++----
+ src/xrt/auxiliary/vk/vk_bundle_init.c | 8 ++++++++
+ src/xrt/auxiliary/vk/vk_helpers.h     | 1 +
+ 3 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/scripts/generate_vk_helpers.py b/scripts/generate_vk_helpers.py
+index 80902193a..4c8ab7fef 100755
+--- a/scripts/generate_vk_helpers.py
++++ b/scripts/generate_vk_helpers.py
+@@ -5,6 +5,7 @@
+ 
+ from pathlib import Path
+ from typing import Callable, Iterable, List, Optional
++import re
+ 
+ 
+ def get_device_cmds():
+@@ -294,6 +295,7 @@ INSTANCE_EXTENSIONS_TO_CHECK = [
+ # Sorted KHR, EXT, Vendor, interally alphabetically
+ DEVICE_EXTENSIONS_TO_CHECK = [
+     "VK_KHR_8bit_storage",
++    "VK_KHR_16bit_storage",
+     "VK_KHR_external_fence_fd",
+     "VK_KHR_external_memory",
+     "VK_KHR_external_semaphore_fd",
+@@ -447,10 +449,7 @@ def make_ext_member_name(ext: str):
+ 
+ def make_ext_name_define(ext: str):
+     str = ext.upper()
+-    str = str.replace("1", "_1")
+-    str = str.replace("2", "_2")
+-    str = str.replace("3", "_3")
+-    str = str.replace("4", "_4")
++    str = re.sub("([0-9]+$)", r"_\1", str)
+ 
+     return "{}_EXTENSION_NAME".format(str)
+ 
+diff --git a/src/xrt/auxiliary/vk/vk_bundle_init.c b/src/xrt/auxiliary/vk/vk_bundle_init.c
+index 501cd6f3c..6987a9332 100644
+--- a/src/xrt/auxiliary/vk/vk_bundle_init.c
++++ b/src/xrt/auxiliary/vk/vk_bundle_init.c
+@@ -741,6 +741,7 @@ fill_in_has_device_extensions(struct vk_bundle *vk, struct u_string_list *ext_li
+ 	// beginning of GENERATED device extension code - do not modify - used by scripts
+ 	// Reset before filling out.
+ 	vk->has_KHR_8bit_storage = false;
++	vk->has_KHR_16bit_storage = false;
+ 	vk->has_KHR_external_fence_fd = false;
+ 	vk->has_KHR_external_memory = false;
+ 	vk->has_KHR_external_semaphore_fd = false;
+@@ -778,6 +779,13 @@ fill_in_has_device_extensions(struct vk_bundle *vk, struct u_string_list *ext_li
+ 		}
+ #endif // defined(VK_KHR_8bit_storage)
+ 
++#if defined(VK_KHR_16bit_storage)
++		if (strcmp(ext, VK_KHR_16BIT_STORAGE_EXTENSION_NAME) == 0) {
++			vk->has_KHR_16bit_storage = true;
++			continue;
++		}
++#endif // defined(VK_KHR_16bit_storage)
++
+ #if defined(VK_KHR_external_fence_fd)
+ 		if (strcmp(ext, VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME) == 0) {
+ 			vk->has_KHR_external_fence_fd = true;
+diff --git a/src/xrt/auxiliary/vk/vk_helpers.h b/src/xrt/auxiliary/vk/vk_helpers.h
+index 748c06dac..8e2bce200 100644
+--- a/src/xrt/auxiliary/vk/vk_helpers.h
++++ b/src/xrt/auxiliary/vk/vk_helpers.h
+@@ -129,6 +129,7 @@ struct vk_bundle
+ 
+ 	// beginning of GENERATED device extension code - do not modify - used by scripts
+ 	bool has_KHR_8bit_storage;
++	bool has_KHR_16bit_storage;
+ 	bool has_KHR_external_fence_fd;
+ 	bool has_KHR_external_memory;
+ 	bool has_KHR_external_semaphore_fd;
+-- 
+2.51.0
+
