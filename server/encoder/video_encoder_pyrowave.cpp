@@ -28,7 +28,7 @@ namespace wivrn
 video_encoder_pyrowave::video_encoder_pyrowave(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx) :
         video_encoder(stream_idx, settings.channels, 1, true),
         enc(vk.physical_device, vk.device, settings.width, settings.height, PyroWave::ChromaSubsampling::Chroma420),
-        encoded_size(settings.bitrate / fps)
+        encoded_size(settings.bitrate / (fps * 8))
 {
 	size_t meta_size = enc.get_meta_required_size();
 	meta_buf = buffer_allocation(
