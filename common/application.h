@@ -35,5 +35,5 @@ struct application
 	std::optional<std::string> path;
 };
 
-std::unordered_map<std::string, application> list_applications(bool include_steam = true);
+std::unordered_map<std::string, application> list_applications(bool include_steam = true, bool load_icons = true);
 } // namespace wivrn
