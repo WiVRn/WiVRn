@@ -156,6 +156,7 @@ public:
 			};
 			XrSpaceLocations spc_locations{
 			        .type = XR_TYPE_SPACE_LOCATIONS,
+			        .next = &spc_velocities,
 			        .locationCount = uint32_t(locations.size()),
 			        .locations = locations.data(),
 			};
