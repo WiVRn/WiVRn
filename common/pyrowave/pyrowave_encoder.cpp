@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <print>
 
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -1330,13 +1329,13 @@ bool Encoder::validate_bitstream(
 	auto * header = reinterpret_cast<const BitstreamHeader *>(bitstream_u32);
 	if (header->block_index != block_index)
 	{
-		std::println(std::cerr, "Mismatch in block index. header: {}, meta: {}", header->block_index, block_index);
+		std::cerr << "Mismatch in block index. header: " << header->block_index << ", meta: " << block_index << std::endl;
 		return false;
 	}
 
 	if (header->payload_words != meta[block_index].num_words)
 	{
-		std::println(std::cerr, "Mismatch in payload words, header: {}, meta: {}", header->payload_words, meta[block_index].num_words);
+		std::cerr << "Mismatch in payload words, header: " << header->payload_words << ", meta:}" << meta[block_index].num_words << std::endl;
 		return false;
 	}
 
@@ -1355,7 +1354,7 @@ bool Encoder::validate_bitstream(
 
 	if (offset > header->payload_words * 4)
 	{
-		std::println(std::cerr, "payload_words is not large enough.");
+		std::cerr << "payload_words is not large enough." << std::endl;
 		return false;
 	}
 
@@ -1385,13 +1384,7 @@ bool Encoder::validate_bitstream(
 		}
 		else
 		{
-			std::println(std::cerr,
-			             "block_index {}: 8x8 block is out of bounds. ({}, {}) >= ({}, {})",
-			             block_index,
-			             x,
-			             y,
-			             mapping.block_width_8x8,
-			             mapping.block_height_8x8);
+			std::cerr << "block_index " << block_index << ": 8x8 block is out of bounds. (" << x << ", " << y << ") >= (" << mapping.block_width_8x8 << ", " << mapping.block_height_8x8 << ")" << std::endl;
 			invalid_packet = true;
 		}
 	});
@@ -1406,7 +1399,7 @@ bool Encoder::validate_bitstream(
 
 	if (offset_words != header->payload_words)
 	{
-		std::println(std::cerr, "Block index {}, offset {} != {}", block_index, offset_words, header->payload_words);
+		std::cerr << "Block index " << block_index << ", offset " << offset_words << " != " << header->payload_words << std::endl;
 		return false;
 	}
 
