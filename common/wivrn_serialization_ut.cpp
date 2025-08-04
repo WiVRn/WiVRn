@@ -34,21 +34,21 @@ static_assert(hash(1234) == 0x1fabbdf10314a21d);
 static_assert(hash(-1234) == 0x77fa1c9653db5a84);
 static_assert(hash(0) == 0xaf63ad4c86019caf);
 
-static_assert(serialization_type_hash<bool>() == hash("uint8"));
-static_assert(serialization_type_hash<int>() == hash("int32"));
-static_assert(serialization_type_hash<float>() == hash("float32"));
-static_assert(serialization_type_hash<double>() == hash("float64"));
-static_assert(serialization_type_hash<std::chrono::nanoseconds>() == hash("duration<int64,1/1000000000>"));
-static_assert(serialization_type_hash<std::optional<int>>() == hash("optional<int32>"));
-static_assert(serialization_type_hash<std::vector<int>>() == hash("vector<int32>"));
-static_assert(serialization_type_hash<std::array<int, 42>>() == hash("array<int32,42>"));
-static_assert(serialization_type_hash<std::string>() == hash("string"));
-static_assert(serialization_type_hash<std::variant<int, float>>() == hash("variant<int32,float32>"));
+static_assert(serialization_type_hash<bool>(0) == hash("uint8"));
+static_assert(serialization_type_hash<int>(0) == hash("int32"));
+static_assert(serialization_type_hash<float>(0) == hash("float32"));
+static_assert(serialization_type_hash<double>(0) == hash("float64"));
+static_assert(serialization_type_hash<std::chrono::nanoseconds>(0) == hash("duration<int64,1/1000000000>"));
+static_assert(serialization_type_hash<std::optional<int>>(0) == hash("optional<int32>"));
+static_assert(serialization_type_hash<std::vector<int>>(0) == hash("vector<int32>"));
+static_assert(serialization_type_hash<std::array<int, 42>>(0) == hash("array<int32,42>"));
+static_assert(serialization_type_hash<std::string>(0) == hash("string"));
+static_assert(serialization_type_hash<std::variant<int, float>>(0) == hash("variant<int32,float32>"));
 
 struct test
 {
 	int x;
 	float y;
 };
-static_assert(serialization_type_hash<test>() == hash("structure{int32,float32}"));
+static_assert(serialization_type_hash<test>(0) == hash("structure{int32,float32}"));
 } // namespace
