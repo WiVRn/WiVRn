@@ -74,6 +74,10 @@ Kirigami.ApplicationWindow {
         //             root.pageStack.push(Qt.resolvedUrl("HeadsetStatsPage.qml"));
         //     }
         // }
+
+        function onJsonConfigurationChanged() {
+            config.load(WivrnServer);
+        }
     }
 
     Component.onCompleted: {
@@ -151,6 +155,14 @@ Kirigami.ApplicationWindow {
                 type: Kirigami.MessageType.Warning
                 showCloseButton: true
                 visible: VulkanInfo.driverId == "AmdProprietary" || VulkanInfo.driverId == "AmdOpenSource"
+            }
+
+            Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                text: i18n("No OpenVR compatibility detected, Steam games won't be able to load VR.\nInstall xrizer or OpenComposite.")
+                type: Kirigami.MessageType.Warning
+                showCloseButton: true
+                visible: WivrnServer.openVRCompat.length == 0 && config.openvr == ""
             }
 
             Kirigami.InlineMessage {

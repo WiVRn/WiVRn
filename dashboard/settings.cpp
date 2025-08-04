@@ -243,6 +243,10 @@ void Settings::load(const wivrn_server * server)
 			else
 				set_openvr(QString::fromStdString(*it));
 		}
+		else
+		{
+			set_openvr("");
+		}
 	}
 	catch (...)
 	{
