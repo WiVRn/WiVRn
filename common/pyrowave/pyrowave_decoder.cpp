@@ -85,33 +85,40 @@ Decoder::Decoder(vk::raii::PhysicalDevice & phys_dev, vk::raii::Device & device,
 
 	init_block_meta();
 	vk::BufferCreateInfo info{
+	        .size = block_count_32x32 * sizeof(uint32_t),
 	        .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
 	};
 
-	info.size = block_count_32x32 * sizeof(uint32_t);
-	dequant_offset_buffer = buffer_allocation(
-	        device,
-	        info,
-	        {
-	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-	                .usage = VMA_MEMORY_USAGE_AUTO,
-	        },
-	        "dequant_offset_buffer");
-	if (not(dequant_offset_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+	for (size_t i = 0; i < 2; ++i)
 	{
-		info.usage = vk::BufferUsageFlagBits::eTransferSrc;
-		dequant_staging = buffer_allocation(
+		input & data = i == 0 ? current : next;
+		data.dequant_offset_buffer = buffer_allocation(
 		        device,
 		        info,
 		        {
-		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO,
 		        },
-		        "dequant staging");
+		        std::format("dequant offset buffer {}", i));
+		if (data.dequant_offset_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		{
+			data.dequant_data = std::span((uint32_t *)data.dequant_offset_buffer.map(), block_count_32x32);
+		}
+		else
+		{
+			info.usage = vk::BufferUsageFlagBits::eTransferSrc;
+			data.dequant_staging = buffer_allocation(
+			        device,
+			        info,
+			        {
+			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+			                .usage = VMA_MEMORY_USAGE_AUTO,
+			        },
+			        std::format("dequant staging {}", i));
+			data.dequant_data = std::span((uint32_t *)data.dequant_staging.map(), block_count_32x32);
+		}
 	}
-	dequant_offset_buffer_cpu.resize(block_count_32x32);
 
-	payload_data_cpu.reserve(1024 * 1024);
 	clear();
 
 	// dequant pipeline
@@ -189,7 +196,7 @@ Decoder::Decoder(vk::raii::PhysicalDevice & phys_dev, vk::raii::Device & device,
 				};
 				std::array buffer_info{
 				        vk::DescriptorBufferInfo{
-				                .buffer = dequant_offset_buffer,
+				                .buffer = current.dequant_offset_buffer,
 				                .range = vk::WholeSize,
 				        },
 				};
@@ -336,79 +343,20 @@ Decoder::~Decoder()
 
 void Decoder::upload_payload(vk::raii::CommandBuffer & cmd)
 {
-	VkDeviceSize required_size = payload_data_cpu.size() * sizeof(uint32_t);
-
-	// Avoid edge case OOB access without robustness on the payload buffer during dequant.
-	VkDeviceSize required_size_padded = required_size + 16;
-
-	if (!payload_data || required_size_padded > payload_data.info().size)
-	{
-		vk::BufferCreateInfo info{
-		        .size = std::max<VkDeviceSize>(64 * 1024, required_size_padded * 2),
-		        .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst
-		        //| vk::BufferUsageFlagBits::eTransferSrc // DEBUG
-		        ,
-		};
-		payload_data = buffer_allocation(
-		        device,
-		        info,
-		        {
-		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        },
-		        "payload_data");
-
-		if (not(payload_data.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-		{
-			info.usage = vk::BufferUsageFlagBits::eTransferSrc;
-			payload_staging = buffer_allocation(
-			        device,
-			        info,
-			        {
-			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-			                .usage = VMA_MEMORY_USAGE_AUTO,
-			        },
-			        "payload_data staging");
-		}
-		for (auto & x: dequant_.ds)
-		{
-			for (auto ds: x)
-			{
-				vk::DescriptorBufferInfo info{
-				        .buffer = payload_data,
-				        .range = vk::WholeSize,
-				};
-
-				device.updateDescriptorSets(vk::WriteDescriptorSet{
-				                                    .dstSet = ds,
-				                                    .dstBinding = 2,
-				                                    .descriptorCount = 1,
-				                                    .descriptorType = vk::DescriptorType::eStorageBuffer,
-				                                    .pBufferInfo = &info,
-				                            },
-				                            {});
-			}
-		}
-	}
-
-	if (payload_staging)
-	{
-		std::ranges::copy(payload_data_cpu, (uint32_t *)payload_staging.map());
-		cmd.copyBuffer(payload_staging, payload_data, vk::BufferCopy{.size = required_size});
-	}
-	else
-	{
-		std::ranges::copy(payload_data_cpu, (uint32_t *)payload_data.map());
-	}
+	if (current.payload_staging)
+		cmd.copyBuffer(
+		        current.payload_staging,
+		        current.payload_data,
+		        vk::BufferCopy{.size = current.payload_words * sizeof(uint32_t)});
 }
 
 bool Decoder::decode_packet(const BitstreamHeader * header)
 {
-	auto & offset = dequant_offset_buffer_cpu[header->block_index];
+	auto & offset = next.dequant_data[header->block_index];
 	if (offset == UINT32_MAX)
 	{
 		decoded_blocks++;
-		offset = payload_data_cpu.size();
+		offset = next.payload_words;
 	}
 	else
 	{
@@ -424,10 +372,43 @@ bool Decoder::decode_packet(const BitstreamHeader * header)
 		return false;
 	}
 
-	payload_data_cpu.insert(
-	        payload_data_cpu.end(),
-	        payload_words,
-	        payload_words + header->payload_words);
+	vk::DeviceSize required_size = (next.payload_words + header->payload_words) * sizeof(uint32_t);
+	if (required_size > next.payload_data.info().size)
+	{
+		vk::DeviceSize required_size_padded = required_size + 16;
+		vk::BufferCreateInfo info{
+		        .size = std::max<VkDeviceSize>(64 * 1024, required_size_padded * 2),
+		        .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		};
+		buffer_allocation buf(
+		        device,
+		        info,
+		        {
+		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		        });
+		if (buf.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		{
+			memcpy(buf.map(), next.payload, next.payload_data.info().size);
+			next.payload = (uint32_t *)buf.map();
+		}
+		else
+		{
+			buffer_allocation staging(
+			        device,
+			        info,
+			        {
+			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+			                .usage = VMA_MEMORY_USAGE_AUTO,
+			        });
+			memcpy(staging.map(), next.payload, next.payload_data.info().size);
+			next.payload = (uint32_t *)staging.map();
+			std::swap(staging, next.payload_staging);
+		}
+		std::swap(buf, next.payload_data);
+	}
+	memcpy(next.payload + next.payload_words, payload_words, header->payload_words * sizeof(uint32_t));
+	next.payload_words += header->payload_words;
 	return true;
 }
 
@@ -757,24 +738,44 @@ bool Decoder::decode_is_ready(bool allow_partial_frame) const
 
 bool Decoder::decode(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 {
+	std::swap(next, current);
+	for (int level = 0; level < DecompositionLevels; level++)
+	{
+		for (int component = 0; component < NumComponents; component++)
+		{
+			std::array buffer_info{
+			        vk::DescriptorBufferInfo{
+			                .buffer = current.dequant_offset_buffer,
+			                .range = vk::WholeSize,
+			        },
+			        vk::DescriptorBufferInfo{
+			                .buffer = current.payload_data,
+			                .range = vk::WholeSize,
+			        },
+			};
+
+			device.updateDescriptorSets(
+			        vk::WriteDescriptorSet{
+			                .dstSet = dequant_.ds[component][level],
+			                .dstBinding = 1,
+			                .descriptorCount = buffer_info.size(),
+			                .descriptorType = vk::DescriptorType::eStorageBuffer,
+			                .pBufferInfo = buffer_info.data(),
+			        },
+			        {});
+		}
+	}
 	begin_label(cmd, "Decode uploads");
 	{
 		upload_payload(cmd);
 
-		if (dequant_staging)
-		{
-			std::ranges::copy(dequant_offset_buffer_cpu, (uint32_t *)dequant_staging.map());
+		if (current.dequant_staging)
 			cmd.copyBuffer(
-			        dequant_staging,
-			        dequant_offset_buffer,
+			        current.dequant_staging,
+			        current.dequant_offset_buffer,
 			        vk::BufferCopy{
-			                .size = dequant_offset_buffer_cpu.size() * sizeof(dequant_offset_buffer_cpu.front()),
+			                .size = vk::WholeSize,
 			        });
-		}
-		else
-		{
-			std::ranges::copy(dequant_offset_buffer_cpu, (uint32_t *)dequant_offset_buffer.map());
-		}
 
 		vk::MemoryBarrier barrier{
 		        .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
@@ -814,11 +815,11 @@ bool Decoder::decode(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 
 void Decoder::clear()
 {
-	std::fill(dequant_offset_buffer_cpu.begin(), dequant_offset_buffer_cpu.end(), UINT32_MAX);
+	std::ranges::fill(next.dequant_data, UINT32_MAX);
 	decoded_blocks = 0;
 	decoded_frame_for_current_sequence = false;
 	total_blocks_in_sequence = block_count_32x32;
-	payload_data_cpu.clear();
+	next.payload_words = 0;
 }
 
 } // namespace PyroWave

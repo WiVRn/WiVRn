@@ -3,9 +3,9 @@
 #pragma once
 
 #include <array>
+#include <span>
 #include <stddef.h>
 #include <stdint.h>
-#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
 #include "pyrowave_common.h"
@@ -23,14 +23,24 @@ class Decoder : public WaveletBuffers
 		vk::raii::Pipeline pipeline = nullptr;
 	};
 
-	buffer_allocation dequant_offset_buffer, payload_data, payload_staging, dequant_staging;
+	struct input
+	{
+		buffer_allocation dequant_offset_buffer;
+		buffer_allocation dequant_staging;
+		std::span<uint32_t> dequant_data;
+		buffer_allocation payload_data;
+		buffer_allocation payload_staging;
+		uint32_t * payload = nullptr;
+		size_t payload_words = 0;
+	};
+
+	input current; // Being consumed by the decoder
+	input next;    // For the following frame
 
 	pipeline dequant_;
 	pipeline idwt_;
 	vk::raii::Pipeline idwt_dcshift = nullptr;
 
-	std::vector<uint32_t> dequant_offset_buffer_cpu;
-	std::vector<uint32_t> payload_data_cpu;
 	int decoded_blocks = 0;
 	int total_blocks_in_sequence = 0;
 	uint32_t last_seq = UINT32_MAX;
