@@ -50,6 +50,8 @@ public:
 		vk::raii::ImageView & image_view;
 		vk::Image image = nullptr;
 		vk::ImageLayout * current_layout = nullptr;
+		vk::Semaphore semaphore = nullptr;
+		uint64_t & semaphore_val;
 
 		std::atomic_bool & free;
 
@@ -67,6 +69,8 @@ private:
 		vk::raii::ImageView view_cr = nullptr;
 		vk::ImageLayout current_layout = vk::ImageLayout::eUndefined;
 		std::atomic_bool free = true;
+		vk::raii::Semaphore semaphore = nullptr;
+		uint64_t semaphore_val = 0;
 	};
 
 	vk::raii::SamplerYcbcrConversion ycbcr_conversion;
