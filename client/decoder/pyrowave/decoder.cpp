@@ -124,6 +124,9 @@ decoder::decoder(
 		++i;
 	}
 
+	pending.lock()->input = std::make_unique<PyroWave::DecoderInput>(dec);
+	input_acc = std::make_unique<PyroWave::DecoderInput>(dec);
+
 	worker = std::thread([&] { worker_function(vk_queue_family_index); });
 }
 
@@ -137,32 +140,23 @@ decoder::~decoder()
 
 void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
-	// FIXME: avoid copy
-	auto locked = pending.lock();
-	std::vector<uint8_t> * packet = nullptr;
-	for (auto & p: locked->packets)
-	{
-		if (p.empty())
-		{
-			packet = &p;
-			break;
-		}
-	}
-	if (packet == nullptr)
-		packet = &locked->packets.emplace_back();
-	for (const auto & i: data)
-		packet->insert(packet->end(), i.begin(), i.end());
+	for (auto & item: data)
+		input_acc->push_data(item);
 }
 
 void decoder::frame_completed(
         const from_headset::feedback & feedback,
         const to_headset::video_stream_data_shard::view_info_t & view_info)
 {
-	auto locked = pending.lock();
-	locked->ready = true;
-	locked->feedback = feedback;
-	locked->view_info = view_info;
-	locked.notify_all();
+	{
+		auto locked = pending.lock();
+		std::swap(input_acc, locked->input);
+		locked->ready = true;
+		locked->feedback = feedback;
+		locked->view_info = view_info;
+		locked.notify_all();
+	}
+	input_acc->clear();
 }
 
 decoder::image * decoder::get_free()
@@ -193,7 +187,8 @@ void decoder::worker_function(uint32_t queue_family_index)
 
 	from_headset::feedback feedback;
 	to_headset::video_stream_data_shard::view_info_t view_info;
-	decoder::image * item = nullptr;
+
+	auto input = std::make_unique<PyroWave::DecoderInput>(dec);
 
 	while (not exiting)
 	{
@@ -206,60 +201,55 @@ void decoder::worker_function(uint32_t queue_family_index)
 			feedback = locked->feedback;
 			view_info = locked->view_info;
 
-			item = get_free();
-			if (not item)
-			{
-				spdlog::warn("No image available in pool, discard frame");
-				continue;
-			}
-			std::array views{*item->view_y, *item->view_cb, *item->view_cr};
-
-			for (auto & packet: locked->packets)
-			{
-				if (not packet.empty())
-					dec.push_packet(packet.data(), packet.size());
-				packet.clear();
-			}
-
-			dec.device.resetFences(*fence);
-			cmd_buf.reset();
-			cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-
-			if (item->current_layout != vk::ImageLayout::eGeneral)
-			{
-				item->current_layout = vk::ImageLayout::eGeneral;
-				vk::ImageMemoryBarrier barrier{
-				        .srcAccessMask = vk::AccessFlagBits::eNone,
-				        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
-				        .oldLayout = vk::ImageLayout::eUndefined,
-				        .newLayout = vk::ImageLayout::eGeneral,
-				        .image = item->image,
-				        .subresourceRange = {
-				                .aspectMask = vk::ImageAspectFlagBits::eColor,
-				                .levelCount = 1,
-				                .layerCount = 1,
-				        },
-				};
-				cmd_buf.pipelineBarrier(
-				        vk::PipelineStageFlagBits::eAllCommands,
-				        vk::PipelineStageFlagBits::eTransfer,
-				        {},
-				        {},
-				        {},
-				        barrier);
-			}
-			dec.decode(cmd_buf, views);
-			cmd_buf.end();
-
-			application::get_queue().lock()->submit(
-			        vk::SubmitInfo{
-			                .commandBufferCount = 1,
-			                .pCommandBuffers = &*cmd_buf,
-			        },
-			        *fence);
-
+			std::swap(locked->input, input);
+			locked->input->clear();
 			locked->ready = false;
 		}
+
+		auto item = get_free();
+		if (not item)
+		{
+			spdlog::warn("No image available in pool, discard frame");
+			continue;
+		}
+		std::array views{*item->view_y, *item->view_cb, *item->view_cr};
+
+		dec.device.resetFences(*fence);
+		cmd_buf.reset();
+		cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+		if (item->current_layout != vk::ImageLayout::eGeneral)
+		{
+			item->current_layout = vk::ImageLayout::eGeneral;
+			vk::ImageMemoryBarrier barrier{
+			        .srcAccessMask = vk::AccessFlagBits::eNone,
+			        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+			        .oldLayout = vk::ImageLayout::eUndefined,
+			        .newLayout = vk::ImageLayout::eGeneral,
+			        .image = item->image,
+			        .subresourceRange = {
+			                .aspectMask = vk::ImageAspectFlagBits::eColor,
+			                .levelCount = 1,
+			                .layerCount = 1,
+			        },
+			};
+			cmd_buf.pipelineBarrier(
+			        vk::PipelineStageFlagBits::eAllCommands,
+			        vk::PipelineStageFlagBits::eTransfer,
+			        {},
+			        {},
+			        {},
+			        barrier);
+		}
+		dec.decode(cmd_buf, *input, views);
+		cmd_buf.end();
+
+		application::get_queue().lock()->submit(
+		        vk::SubmitInfo{
+		                .commandBufferCount = 1,
+		                .pCommandBuffers = &*cmd_buf,
+		        },
+		        *fence);
 
 		try
 		{
