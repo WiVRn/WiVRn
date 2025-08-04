@@ -927,6 +927,25 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	command_buffer.end();
 	vk::SubmitInfo submit_info;
 	submit_info.setCommandBuffers(*command_buffer);
+	std::vector<vk::Semaphore> semaphores;
+	std::vector<uint64_t> semaphore_vals;
+	std::vector<vk::PipelineStageFlags> wait_stages;
+	for (auto b: current_blit_handles)
+	{
+		if (b and b->semaphore)
+		{
+			semaphores.push_back(b->semaphore);
+			semaphore_vals.push_back(b->semaphore_val);
+			wait_stages.push_back(vk::PipelineStageFlagBits::eFragmentShader);
+		}
+	}
+	submit_info.setWaitDstStageMask(wait_stages);
+	submit_info.setWaitSemaphores(semaphores);
+	vk::TimelineSemaphoreSubmitInfo sem_info{
+	        .waitSemaphoreValueCount = uint32_t(semaphore_vals.size()),
+	        .pWaitSemaphoreValues = semaphore_vals.data(),
+	};
+	submit_info.pNext = &sem_info;
 	queue.lock()->submit(submit_info, *fence);
 #if WIVRN_FEATURE_RENDERDOC
 	renderdoc_end(*vk_instance);

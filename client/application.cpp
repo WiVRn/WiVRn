@@ -762,6 +762,7 @@ void application::initialize_vulkan()
 	vk_device_extensions.push_back(VK_KHR_16BIT_STORAGE_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
@@ -899,6 +900,9 @@ void application::initialize_vulkan()
 	        },
 	        vk::PhysicalDeviceFloat16Int8FeaturesKHR{
 	                .shaderFloat16 = true,
+	        },
+	        vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR{
+	                .timelineSemaphore = true,
 	        },
 	};
 
