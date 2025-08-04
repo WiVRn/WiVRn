@@ -83,12 +83,13 @@ private:
 
 	struct pending_data
 	{
-		bool ready = false;
+		std::unique_ptr<PyroWave::DecoderInput> input;
 		from_headset::feedback feedback;
 		to_headset::video_stream_data_shard::view_info_t view_info;
-		std::vector<std::vector<uint8_t>> packets;
+		bool ready = false;
 	};
 	thread_safe_notifyable<pending_data> pending;
+	std::unique_ptr<PyroWave::DecoderInput> input_acc;
 	std::thread worker;
 	std::atomic_bool exiting = false;
 
