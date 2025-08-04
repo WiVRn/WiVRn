@@ -51,6 +51,211 @@ static vk::raii::DescriptorPool make_descriptor_pool(vk::raii::Device & device)
 	        }};
 }
 
+DecoderInput::DecoderInput(const Decoder & decoder) :
+        decoder(decoder)
+{
+	vk::BufferCreateInfo info{
+	        .size = decoder.block_count_32x32 * sizeof(uint32_t),
+	        .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+	};
+	dequant_offset_buffer = buffer_allocation(
+	        decoder.device,
+	        info,
+	        {
+	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+	                .usage = VMA_MEMORY_USAGE_AUTO,
+	        },
+	        "dequant offset buffer");
+	if (dequant_offset_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+	{
+		dequant_data = std::span((uint32_t *)dequant_offset_buffer.map(), decoder.block_count_32x32);
+	}
+	else
+	{
+		info.usage = vk::BufferUsageFlagBits::eTransferSrc;
+		dequant_staging = buffer_allocation(
+		        decoder.device,
+		        info,
+		        {
+		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		        },
+		        "dequant staging");
+		dequant_data = std::span((uint32_t *)dequant_staging.map(), decoder.block_count_32x32);
+	}
+
+	clear();
+}
+
+void DecoderInput::push_raw(const void * data, size_t size)
+{
+	vk::DeviceSize required_size = this->payload_size + size;
+	if (required_size > payload_data.info().size)
+	{
+		vk::DeviceSize required_size_padded = required_size + 16;
+		vk::BufferCreateInfo info{
+		        .size = std::max<VkDeviceSize>(64 * 1024, required_size_padded * 2),
+		        .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		};
+		buffer_allocation buf(
+		        decoder.device,
+		        info,
+		        {
+		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		        });
+		if (buf.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+		{
+			memcpy(buf.map(), payload, payload_data.info().size);
+			payload = (uint8_t *)buf.map();
+		}
+		else
+		{
+			buffer_allocation staging(
+			        decoder.device,
+			        info,
+			        {
+			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+			                .usage = VMA_MEMORY_USAGE_AUTO,
+			        });
+			memcpy(staging.map(), payload, payload_data.info().size);
+			payload = (uint8_t *)staging.map();
+			std::swap(staging, payload_staging);
+		}
+		std::swap(buf, payload_data);
+	}
+	memcpy(payload + this->payload_size, data, size);
+	this->payload_size += size;
+}
+
+void DecoderInput::clear()
+{
+	std::ranges::fill(dequant_data, UINT32_MAX);
+	decoded_blocks = 0;
+	total_blocks_in_sequence = decoder.block_count_32x32;
+	payload_size = 0;
+	header_size = 0;
+	packet_size = 0;
+}
+
+bool DecoderInput::push_data(std::span<const uint8_t> data)
+{
+	while (not data.empty())
+	{
+		if (header_size < sizeof(BitstreamHeader))
+		{
+			size_t s = std::min(data.size_bytes(), sizeof(BitstreamHeader) - header_size);
+			std::memcpy(((uint8_t *)&header) + header_size, data.data(), s);
+			header_size += s;
+			data = data.subspan(s);
+
+			if (header_size < sizeof(BitstreamHeader))
+				break;
+
+			if (not header.extended)
+			{
+				bool restart;
+
+				if (last_seq == UINT32_MAX)
+					restart = true;
+				else
+				{
+					uint8_t diff = (header.sequence - last_seq) & SequenceCountMask;
+					if (diff > (SequenceCountMask / 2))
+					{
+						// All sequences in a packet must be the same.
+						std::cerr << "Backwards sequence detected, discarding." << std::endl;
+						return true;
+					}
+					restart = diff != 0;
+				}
+
+				if (restart)
+				{
+					clear();
+					last_seq = header.sequence;
+				}
+
+				if (header.block_index >= uint32_t(decoder.block_count_32x32))
+				{
+					std::cerr << "block_index " << header.block_index << " is out of bounds (>= " << decoder.block_count_32x32 << ")." << std::endl;
+					return false;
+				}
+
+				auto & offset = dequant_data[header.block_index];
+				if (offset == UINT32_MAX)
+				{
+					decoded_blocks++;
+					assert(payload_size % sizeof(uint32_t) == 0);
+					offset = payload_size / sizeof(uint32_t);
+				}
+				else
+				{
+					std::cerr << "block_index " << header.block_index << " is already decoded, skipping." << std::endl;
+					return true;
+				}
+
+				push_raw(&header, sizeof(BitstreamHeader));
+				packet_size = header.payload_words * sizeof(uint32_t) - sizeof(BitstreamHeader);
+			}
+		}
+
+		if (header.extended != 0)
+		{
+			header_size = 0;
+			const auto & seq = reinterpret_cast<const BitstreamSequenceHeader &>(header);
+
+			if (seq.chroma_resolution != int(decoder.chroma))
+			{
+				std::cerr << "Chroma resolution mismatch!" << std::endl;
+				return false;
+			}
+
+			uint8_t diff = (header.sequence - last_seq) & SequenceCountMask;
+			if (last_seq != UINT32_MAX && diff > (SequenceCountMask / 2))
+			{
+				// All sequences in a packet must be the same.
+				std::cerr << "Backwards sequence detected, discarding." << std::endl;
+				return true;
+			}
+
+			if (last_seq == UINT32_MAX || diff != 0)
+			{
+				clear();
+				last_seq = header.sequence;
+			}
+
+			if (seq.code == BITSTREAM_EXTENDED_CODE_START_OF_FRAME)
+			{
+				if (seq.width_minus_1 + 1 != decoder.width || seq.height_minus_1 + 1 != decoder.height)
+				{
+					std::cerr << "Dimension mismatch in seq packet, (" << seq.width_minus_1 + 1 << ", " << seq.height_minus_1 + 1 << ") != (" << decoder.width << ", " << decoder.height << ")" << std::endl;
+					return false;
+				}
+
+				total_blocks_in_sequence = int(seq.total_blocks);
+			}
+			else
+			{
+				std::cerr << "Unrecognized sequence header mode " << seq.code << "." << std::endl;
+				return false;
+			}
+		}
+		else
+		{
+			size_t s = std::min(packet_size, data.size_bytes());
+			push_raw(data.data(), s);
+
+			data = data.subspan(s);
+			packet_size -= s;
+			if (packet_size == 0)
+				header_size = 0;
+		}
+	}
+
+	return true;
+}
+
 Decoder::Decoder(vk::raii::PhysicalDevice & phys_dev, vk::raii::Device & device, int width, int height, ChromaSubsampling chroma) :
         WaveletBuffers(device, width, height, chroma),
         ds_pool(make_descriptor_pool(device))
@@ -84,42 +289,6 @@ Decoder::Decoder(vk::raii::PhysicalDevice & phys_dev, vk::raii::Device & device,
 		throw std::runtime_error("Missing shaderFloat16 feature");
 
 	init_block_meta();
-	vk::BufferCreateInfo info{
-	        .size = block_count_32x32 * sizeof(uint32_t),
-	        .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-	};
-
-	for (size_t i = 0; i < 2; ++i)
-	{
-		input & data = i == 0 ? current : next;
-		data.dequant_offset_buffer = buffer_allocation(
-		        device,
-		        info,
-		        {
-		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        },
-		        std::format("dequant offset buffer {}", i));
-		if (data.dequant_offset_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-		{
-			data.dequant_data = std::span((uint32_t *)data.dequant_offset_buffer.map(), block_count_32x32);
-		}
-		else
-		{
-			info.usage = vk::BufferUsageFlagBits::eTransferSrc;
-			data.dequant_staging = buffer_allocation(
-			        device,
-			        info,
-			        {
-			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-			                .usage = VMA_MEMORY_USAGE_AUTO,
-			        },
-			        std::format("dequant staging {}", i));
-			data.dequant_data = std::span((uint32_t *)data.dequant_staging.map(), block_count_32x32);
-		}
-	}
-
-	clear();
 
 	// dequant pipeline
 	{
@@ -187,37 +356,20 @@ Decoder::Decoder(vk::raii::PhysicalDevice & phys_dev, vk::raii::Device & device,
 				        .pSetLayouts = &*dequant_.ds_layout,
 				})[0]
 				                                        .release();
-				std::array image_info{
-				        vk::DescriptorImageInfo{
-				                .sampler = *border_sampler,
-				                .imageView = *component_layer_views[component][level],
-				                .imageLayout = vk::ImageLayout::eGeneral,
-				        },
-				};
-				std::array buffer_info{
-				        vk::DescriptorBufferInfo{
-				                .buffer = current.dequant_offset_buffer,
-				                .range = vk::WholeSize,
-				        },
+				vk::DescriptorImageInfo image_info{
+				        .sampler = *border_sampler,
+				        .imageView = *component_layer_views[component][level],
+				        .imageLayout = vk::ImageLayout::eGeneral,
 				};
 
-				std::array descriptor_writes{
-				        vk::WriteDescriptorSet{
-				                .dstSet = dequant_.ds[component][level],
-				                .dstBinding = 0,
-				                .descriptorCount = image_info.size(),
-				                .descriptorType = vk::DescriptorType::eStorageImage,
-				                .pImageInfo = image_info.data(),
-				        },
-				        vk::WriteDescriptorSet{
-				                .dstSet = dequant_.ds[component][level],
-				                .dstBinding = 1,
-				                .descriptorCount = buffer_info.size(),
-				                .descriptorType = vk::DescriptorType::eStorageBuffer,
-				                .pBufferInfo = buffer_info.data(),
-				        },
-				};
-				device.updateDescriptorSets(descriptor_writes, {});
+				device.updateDescriptorSets(vk::WriteDescriptorSet{
+				                                    .dstSet = dequant_.ds[component][level],
+				                                    .dstBinding = 0,
+				                                    .descriptorCount = 1,
+				                                    .descriptorType = vk::DescriptorType::eStorageImage,
+				                                    .pImageInfo = &image_info,
+				                            },
+				                            {});
 			}
 		}
 	}
@@ -339,190 +491,6 @@ Decoder::Decoder(vk::raii::PhysicalDevice & phys_dev, vk::raii::Device & device,
 
 Decoder::~Decoder()
 {
-}
-
-void Decoder::upload_payload(vk::raii::CommandBuffer & cmd)
-{
-	if (current.payload_staging)
-		cmd.copyBuffer(
-		        current.payload_staging,
-		        current.payload_data,
-		        vk::BufferCopy{.size = current.payload_words * sizeof(uint32_t)});
-}
-
-bool Decoder::decode_packet(const BitstreamHeader * header)
-{
-	auto & offset = next.dequant_data[header->block_index];
-	if (offset == UINT32_MAX)
-	{
-		decoded_blocks++;
-		offset = next.payload_words;
-	}
-	else
-	{
-		std::cerr << "block_index " << header->block_index << " is already decoded, skipping." << std::endl;
-		return true;
-	}
-
-	auto * payload_words = reinterpret_cast<const uint32_t *>(header);
-
-	if (sizeof(*header) / sizeof(uint32_t) > header->payload_words)
-	{
-		std::cerr << "payload_words is not large enough." << std::endl;
-		return false;
-	}
-
-	vk::DeviceSize required_size = (next.payload_words + header->payload_words) * sizeof(uint32_t);
-	if (required_size > next.payload_data.info().size)
-	{
-		vk::DeviceSize required_size_padded = required_size + 16;
-		vk::BufferCreateInfo info{
-		        .size = std::max<VkDeviceSize>(64 * 1024, required_size_padded * 2),
-		        .usage = vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		};
-		buffer_allocation buf(
-		        device,
-		        info,
-		        {
-		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        });
-		if (buf.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-		{
-			memcpy(buf.map(), next.payload, next.payload_data.info().size);
-			next.payload = (uint32_t *)buf.map();
-		}
-		else
-		{
-			buffer_allocation staging(
-			        device,
-			        info,
-			        {
-			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-			                .usage = VMA_MEMORY_USAGE_AUTO,
-			        });
-			memcpy(staging.map(), next.payload, next.payload_data.info().size);
-			next.payload = (uint32_t *)staging.map();
-			std::swap(staging, next.payload_staging);
-		}
-		std::swap(buf, next.payload_data);
-	}
-	memcpy(next.payload + next.payload_words, payload_words, header->payload_words * sizeof(uint32_t));
-	next.payload_words += header->payload_words;
-	return true;
-}
-
-bool Decoder::push_packet(const void * data_, size_t size)
-{
-	auto * data = static_cast<const uint8_t *>(data_);
-	while (size >= sizeof(BitstreamHeader))
-	{
-		auto * header = reinterpret_cast<const BitstreamHeader *>(data);
-
-		if (header->extended != 0)
-		{
-			auto * seq = reinterpret_cast<const BitstreamSequenceHeader *>(header);
-
-			if (sizeof(*header) > size)
-			{
-				std::cerr << "Parsing sequence header, but only " << size << " bytes left to parse." << std::endl;
-				return false;
-			}
-
-			if (seq->chroma_resolution != int(chroma))
-			{
-				std::cerr << "Chroma resolution mismatch!" << std::endl;
-				return false;
-			}
-
-			uint8_t diff = (header->sequence - last_seq) & SequenceCountMask;
-			if (last_seq != UINT32_MAX && diff > (SequenceCountMask / 2))
-			{
-				// All sequences in a packet must be the same.
-				std::cerr << "Backwards sequence detected, discarding." << std::endl;
-				return true;
-			}
-
-			if (last_seq == UINT32_MAX || diff != 0)
-			{
-				clear();
-				last_seq = header->sequence;
-			}
-
-			if (seq->code == BITSTREAM_EXTENDED_CODE_START_OF_FRAME)
-			{
-				if (seq->width_minus_1 + 1 != width || seq->height_minus_1 + 1 != height)
-				{
-					std::cerr << "Dimension mismatch in seq packet, (" << seq->width_minus_1 + 1 << ", " << seq->height_minus_1 + 1 << ") != (" << width << ", " << height << ")" << std::endl;
-					return false;
-				}
-
-				total_blocks_in_sequence = int(seq->total_blocks);
-			}
-			else
-			{
-				std::cerr << "Unrecognized sequence header mode " << seq->code << "." << std::endl;
-				return false;
-			}
-
-			data += sizeof(*header);
-			size -= sizeof(*header);
-
-			continue;
-		}
-
-		size_t packet_size = header->payload_words * sizeof(uint32_t);
-
-		if (packet_size > size)
-		{
-			std::cerr << "Packet header states " << packet_size << " bytes, but only " << size << " bytes left to parse." << std::endl;
-			return false;
-		}
-
-		bool restart;
-
-		if (last_seq == UINT32_MAX)
-		{
-			restart = true;
-		}
-		else
-		{
-			uint8_t diff = (header->sequence - last_seq) & SequenceCountMask;
-			if (diff > (SequenceCountMask / 2))
-			{
-				// All sequences in a packet must be the same.
-				std::cerr << "Backwards sequence detected, discarding." << std::endl;
-				return true;
-			}
-			restart = diff != 0;
-		}
-
-		if (restart)
-		{
-			clear();
-			last_seq = header->sequence;
-		}
-
-		if (header->block_index >= uint32_t(block_count_32x32))
-		{
-			std::cerr << "block_index " << header->block_index << " is out of bounds (>= " << block_count_32x32 << ")." << std::endl;
-			return false;
-		}
-
-		if (!decode_packet(header))
-			return false;
-
-		data += packet_size;
-		size -= packet_size;
-	}
-
-	if (size != 0)
-	{
-		std::cerr << "Did not consume packet completely." << std::endl;
-		return false;
-	}
-
-	return true;
 }
 
 bool Decoder::dequant(vk::raii::CommandBuffer & cmd)
@@ -723,33 +691,19 @@ bool Decoder::idwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 	return true;
 }
 
-bool Decoder::decode_is_ready(bool allow_partial_frame) const
+bool Decoder::decode(vk::raii::CommandBuffer & cmd, DecoderInput & input, const ViewBuffers & views)
 {
-	if (decoded_frame_for_current_sequence)
-		return false;
-
-	// Need at least half of the frame decoded to accept, otherwise we assume the frame is complete garbage.
-	if (decoded_blocks < total_blocks_in_sequence)
-		if (!allow_partial_frame || decoded_blocks <= total_blocks_in_sequence / 2)
-			return false;
-
-	return true;
-}
-
-bool Decoder::decode(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
-{
-	std::swap(next, current);
 	for (int level = 0; level < DecompositionLevels; level++)
 	{
 		for (int component = 0; component < NumComponents; component++)
 		{
 			std::array buffer_info{
 			        vk::DescriptorBufferInfo{
-			                .buffer = current.dequant_offset_buffer,
+			                .buffer = input.dequant_offset_buffer,
 			                .range = vk::WholeSize,
 			        },
 			        vk::DescriptorBufferInfo{
-			                .buffer = current.payload_data,
+			                .buffer = input.payload_data,
 			                .range = vk::WholeSize,
 			        },
 			};
@@ -767,12 +721,16 @@ bool Decoder::decode(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 	}
 	begin_label(cmd, "Decode uploads");
 	{
-		upload_payload(cmd);
-
-		if (current.dequant_staging)
+		if (input.payload_staging)
 			cmd.copyBuffer(
-			        current.dequant_staging,
-			        current.dequant_offset_buffer,
+			        input.payload_staging,
+			        input.payload_data,
+			        vk::BufferCopy{.size = input.payload_size});
+
+		if (input.dequant_staging)
+			cmd.copyBuffer(
+			        input.dequant_staging,
+			        input.dequant_offset_buffer,
 			        vk::BufferCopy{
 			                .size = vk::WholeSize,
 			        });
@@ -809,17 +767,7 @@ bool Decoder::decode(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 	if (!idwt(cmd, views))
 		return false;
 
-	decoded_frame_for_current_sequence = true;
 	return true;
-}
-
-void Decoder::clear()
-{
-	std::ranges::fill(next.dequant_data, UINT32_MAX);
-	decoded_blocks = 0;
-	decoded_frame_for_current_sequence = false;
-	total_blocks_in_sequence = block_count_32x32;
-	next.payload_words = 0;
 }
 
 } // namespace PyroWave
