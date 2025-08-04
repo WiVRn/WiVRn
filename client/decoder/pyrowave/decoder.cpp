@@ -119,8 +119,18 @@ decoder::decoder(
 		view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::ePlane1;
 		item.view_cb = vk::raii::ImageView(device, view_info);
 		view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::ePlane2;
-
 		item.view_cr = vk::raii::ImageView(device, view_info);
+
+		item.semaphore = vk::raii::Semaphore(
+		        device,
+		        vk::StructureChain{
+		                vk::SemaphoreCreateInfo{},
+		                vk::SemaphoreTypeCreateInfo{
+		                        .semaphoreType = vk::SemaphoreType::eTimeline,
+		                },
+		        }
+		                .get());
+
 		++i;
 	}
 
@@ -242,22 +252,46 @@ void decoder::worker_function(uint32_t queue_family_index)
 			        barrier);
 		}
 		dec.decode(cmd_buf, *input, views);
+		{
+			vk::ImageMemoryBarrier barrier{
+			        .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
+			        .dstAccessMask = vk::AccessFlagBits::eMemoryRead,
+			        .oldLayout = vk::ImageLayout::eGeneral,
+			        .newLayout = vk::ImageLayout::eGeneral,
+			        .image = item->image,
+			        .subresourceRange = {
+			                .aspectMask = vk::ImageAspectFlagBits::eColor,
+			                .levelCount = 1,
+			                .layerCount = 1,
+			        },
+			};
+			cmd_buf.pipelineBarrier(
+			        vk::PipelineStageFlagBits::eComputeShader,
+			        vk::PipelineStageFlagBits::eFragmentShader,
+			        {},
+			        {},
+			        {},
+			        barrier);
+		}
 		cmd_buf.end();
 
 		application::get_queue().lock()->submit(
-		        vk::SubmitInfo{
-		                .commandBufferCount = 1,
-		                .pCommandBuffers = &*cmd_buf,
-		        },
+		        vk::StructureChain{
+		                vk::SubmitInfo{
+		                        .commandBufferCount = 1,
+		                        .pCommandBuffers = &*cmd_buf,
+		                        .signalSemaphoreCount = 1,
+		                        .pSignalSemaphores = &*item->semaphore,
+		                },
+		                vk::TimelineSemaphoreSubmitInfo{
+		                        .signalSemaphoreValueCount = 1,
+		                        .pSignalSemaphoreValues = &++item->semaphore_val,
+		                },
+		        }
+		                .get(),
 		        *fence);
 
-		try
-		{
-			auto res = dec.device.waitForFences(*fence, true, UINT64_MAX);
-			if (res != vk::Result::eSuccess)
-				spdlog::warn("waitForFences failed");
-
-			auto scene = weak_scene.lock();
+		if (auto scene = weak_scene.lock())
 			scene->push_blit_handle(
 			        accumulator,
 			        std::make_shared<blit_handle>(
@@ -266,7 +300,15 @@ void decoder::worker_function(uint32_t queue_family_index)
 			                item->view_full,
 			                item->image,
 			                &item->current_layout,
+			                *item->semaphore,
+			                item->semaphore_val,
 			                item->free));
+
+		try
+		{
+			auto res = dec.device.waitForFences(*fence, true, UINT64_MAX);
+			if (res != vk::Result::eSuccess)
+				spdlog::warn("waitForFences failed");
 		}
 		catch (...)
 		{}
