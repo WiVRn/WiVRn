@@ -169,35 +169,23 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 {
 	auto & data_shards = current.data;
 
-	// Don't send if there is missing data before the current shard
 	for (size_t idx = 0; idx < shard_idx; ++idx)
 		if (not data_shards[idx])
 			return;
 
-	// Find the beginning of the slice
-	size_t begin = shard_idx;
-	while (begin > 0 and not(data_shards[begin]->flags & video_stream_data_shard::start_of_slice))
-		--begin;
-	// And the end
-	size_t end = shard_idx;
-	for (;; ++end)
+	uint16_t last_idx = shard_idx + 1;
+	for (size_t size = data_shards.size();
+	     last_idx < size and data_shards[last_idx];
+	     ++last_idx)
 	{
-		// We don't have the end yet
-		if (end == data_shards.size() or not data_shards[end])
-			return;
-		if (data_shards[end]->flags & video_stream_data_shard::end_of_slice)
-			break;
 	}
 
-	if (not(data_shards[end]->flags & video_stream_data_shard::end_of_slice))
-		return;
-
 	std::vector<std::span<const uint8_t>> payload;
-	payload.reserve(1 + end - begin);
-	for (size_t idx = begin; idx <= end; ++idx)
+	payload.reserve(last_idx - shard_idx);
+	for (size_t idx = shard_idx; idx < last_idx; ++idx)
 		payload.emplace_back(data_shards[idx]->payload);
 
-	bool frame_complete = data_shards[end]->flags & video_stream_data_shard::end_of_frame;
+	bool frame_complete = last_idx == data_shards.size() and data_shards.back()->flags & video_stream_data_shard::end_of_frame;
 	decoder->push_data(payload, data_shards[shard_idx]->frame_idx, not frame_complete);
 
 	if (not frame_complete)
