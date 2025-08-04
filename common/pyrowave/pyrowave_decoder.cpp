@@ -136,6 +136,7 @@ void DecoderInput::clear()
 	payload_size = 0;
 	header_size = 0;
 	packet_size = 0;
+	last_seq = UINT32_MAX;
 }
 
 bool DecoderInput::push_data(std::span<const uint8_t> data)
