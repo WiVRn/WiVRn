@@ -195,10 +195,20 @@ void decoder::worker_function(uint32_t queue_family_index)
 	        })[0]));
 	vk::raii::Fence fence(device, vk::FenceCreateInfo{});
 
+	vk::raii::QueryPool qp(
+	        device, vk::QueryPoolCreateInfo{
+	                        .queryType = vk::QueryType::eTimestamp,
+	                        .queryCount = 2,
+	                });
+
 	from_headset::feedback feedback;
 	to_headset::video_stream_data_shard::view_info_t view_info;
 
 	auto input = std::make_unique<PyroWave::DecoderInput>(dec);
+
+	// Record the encode duration for the previous frame, that's the best we can do
+	XrDuration last_encode = 0;
+	float timestamp_period = application::get_physical_device_properties().limits.timestampPeriod;
 
 	while (not exiting)
 	{
@@ -215,6 +225,7 @@ void decoder::worker_function(uint32_t queue_family_index)
 			locked->input->clear();
 			locked->ready = false;
 		}
+		feedback.received_from_decoder = feedback.sent_to_decoder + last_encode;
 
 		auto item = get_free();
 		if (not item)
@@ -227,6 +238,8 @@ void decoder::worker_function(uint32_t queue_family_index)
 		dec.device.resetFences(*fence);
 		cmd_buf.reset();
 		cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+		cmd_buf.resetQueryPool(*qp, 0, 2);
+		cmd_buf.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 0);
 
 		if (item->current_layout != vk::ImageLayout::eGeneral)
 		{
@@ -273,6 +286,7 @@ void decoder::worker_function(uint32_t queue_family_index)
 			        {},
 			        barrier);
 		}
+		cmd_buf.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 1);
 		cmd_buf.end();
 
 		application::get_queue().lock()->submit(
@@ -309,6 +323,12 @@ void decoder::worker_function(uint32_t queue_family_index)
 			auto res = dec.device.waitForFences(*fence, true, UINT64_MAX);
 			if (res != vk::Result::eSuccess)
 				spdlog::warn("waitForFences failed");
+
+			std::array<uint64_t, 2> times;
+			res = (*device).getQueryPoolResults(
+			        *qp, 0, 2, sizeof(uint64_t) * 2, times.data(), sizeof(uint64_t), vk::QueryResultFlagBits::eWait | vk::QueryResultFlagBits::e64);
+			if (res == vk::Result::eSuccess)
+				last_encode = (times[1] - times[0]) * timestamp_period;
 		}
 		catch (...)
 		{}
