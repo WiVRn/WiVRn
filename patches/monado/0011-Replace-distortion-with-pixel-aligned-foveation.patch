@@ -1,4 +1,4 @@
-From 89d5e71f70d70958e8c03a038ab4bc0fc262a455 Mon Sep 17 00:00:00 2001
+From 6888508cb1ba85ffc23623c76bd479d1e5ab23a6 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Mon, 2 Jun 2025 14:51:11 +0200
 Subject: [PATCH 11/11] Replace distortion with pixel-aligned foveation
@@ -652,7 +652,7 @@ index 9ce46fe6f..f3be617bd 100644
 -	imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), alpha);
  }
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index 29c645bff..322b0f761 100644
+index b2d3ce10d..69429dc97 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
 @@ -466,30 +466,15 @@ crc_distortion_fast_path(struct render_compute *render,
@@ -696,5 +696,5 @@ index 29c645bff..322b0f761 100644
  
  
 -- 
-2.50.0
+2.50.1
 

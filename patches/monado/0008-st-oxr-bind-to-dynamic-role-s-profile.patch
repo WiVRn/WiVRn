@@ -1,4 +1,4 @@
-From a7fbfaf2407a805efa31b3e1a7f0565b46a9004e Mon Sep 17 00:00:00 2001
+From 35c2915478e736fa1013160fd320401a2a947535 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 19 Feb 2025 10:13:36 +0100
 Subject: [PATCH 08/11] st/oxr: bind to dynamic role's profile
