@@ -604,7 +604,8 @@ wivrn_controller::wivrn_controller(int hand_id,
 
 	if (hand_id == 0)
 	{
-		SET_INPUT(GENERIC, HAND_TRACKING_LEFT);
+		inputs[WIVRN_CONTROLLER_HAND_TRACKING_LEFT].name = XRT_INPUT_HT_UNOBSTRUCTED_LEFT;
+		inputs[WIVRN_CONTROLLER_HAND_TRACKING_LEFT].active = true;
 		SET_INPUT(TOUCH, MENU_CLICK);
 		SET_INPUT(TOUCH, X_CLICK);
 		SET_INPUT(TOUCH, Y_CLICK);
@@ -613,7 +614,8 @@ wivrn_controller::wivrn_controller(int hand_id,
 	}
 	else
 	{
-		SET_INPUT(GENERIC, HAND_TRACKING_RIGHT);
+		inputs[WIVRN_CONTROLLER_HAND_TRACKING_RIGHT].name = XRT_INPUT_HT_UNOBSTRUCTED_RIGHT;
+		inputs[WIVRN_CONTROLLER_HAND_TRACKING_RIGHT].active = true;
 		SET_INPUT(TOUCH, SYSTEM_CLICK);
 		SET_INPUT(TOUCH, A_CLICK);
 		SET_INPUT(TOUCH, B_CLICK);
@@ -786,8 +788,8 @@ xrt_result_t wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t de
 {
 	switch (name)
 	{
-		case XRT_INPUT_GENERIC_HAND_TRACKING_LEFT:
-		case XRT_INPUT_GENERIC_HAND_TRACKING_RIGHT: {
+		case XRT_INPUT_HT_UNOBSTRUCTED_LEFT:
+		case XRT_INPUT_HT_UNOBSTRUCTED_RIGHT: {
 			*out_timestamp_ns = desired_timestamp_ns;
 			std::chrono::nanoseconds extrapolation_time;
 			std::tie(extrapolation_time, *out_value) = joints.get_at(desired_timestamp_ns);
