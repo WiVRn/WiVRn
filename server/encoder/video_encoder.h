@@ -20,7 +20,6 @@
 #pragma once
 
 #include "driver/clock_offset.h"
-#include "wivrn_config.h"
 #include "wivrn_packets.h"
 
 #include <atomic>
@@ -113,10 +112,6 @@ public:
 	        int input_width,
 	        int input_height,
 	        float fps);
-
-#if WIVRN_USE_VULKAN_ENCODE
-	static std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> get_create_image_info(const std::vector<encoder_settings> &);
-#endif
 
 	video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, double bitrate_multiplier, bool async_send);
 	virtual ~video_encoder();

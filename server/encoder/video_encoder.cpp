@@ -180,32 +180,6 @@ std::unique_ptr<video_encoder> video_encoder::create(
 	return res;
 }
 
-#if WIVRN_USE_VULKAN_ENCODE
-std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> video_encoder::get_create_image_info(const std::vector<encoder_settings> & settings)
-{
-	std::pair<std::vector<vk::VideoProfileInfoKHR>, vk::ImageUsageFlags> result;
-	for (const auto & item: settings)
-	{
-		if (item.encoder_name == encoder_vulkan)
-		{
-			result.second |= vk::ImageUsageFlagBits::eVideoEncodeSrcKHR;
-			switch (item.codec)
-			{
-				case h264:
-					result.first.push_back(video_encoder_vulkan_h264::video_profile_info.get());
-					break;
-				case h265:
-					// result.first.push_back(video_encoder_vulkan_h265::video_profile_info.get());
-					break;
-				case av1:
-					throw std::runtime_error("av1 not supported for vulkan video encode");
-			}
-		}
-	}
-	return result;
-}
-#endif
-
 static const uint64_t idr_throttle = 100;
 
 video_encoder::video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, double bitrate_multiplier, bool async_send) :

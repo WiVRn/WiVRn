@@ -23,12 +23,14 @@
 #include "encoder/video_encoder.h"
 #include "util/u_logging.h"
 #include "utils/scoped_lock.h"
+#include "wivrn_config.h"
 #include "wivrn_foveation.h"
 
 #include "main/comp_compositor.h"
 #include "math/m_space.h"
 #include "xrt_cast.h"
 
+#include <algorithm>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
@@ -57,6 +59,9 @@ std::vector<const char *> wivrn_comp_target::wanted_device_extensions = {
 #endif
 #ifdef VK_KHR_video_encode_queue
         VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME,
+#endif
+#ifdef VK_KHR_video_maintenance1
+        VK_KHR_VIDEO_MAINTENANCE_1_EXTENSION_NAME,
 #endif
 #ifdef VK_KHR_video_encode_h264
         VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME,
@@ -188,54 +193,46 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 
 	cn->images = U_TYPED_ARRAY_CALLOC(struct comp_target_image, cn->image_count);
 
-#if WIVRN_USE_VULKAN_ENCODE
-	auto [video_profiles, encoder_flags] = video_encoder::get_create_image_info(cn->settings);
-
-	vk::VideoProfileListInfoKHR video_profile_list{
-	        .profileCount = uint32_t(video_profiles.size()),
-	        .pProfiles = video_profiles.data(),
+	vk::StructureChain image_info{
+	        vk::ImageCreateInfo{
+	                .flags = vk::ImageCreateFlagBits::eExtendedUsage | vk::ImageCreateFlagBits::eMutableFormat,
+	                .imageType = vk::ImageType::e2D,
+	                .format = format,
+	                .extent = {
+	                        .width = cn->width,
+	                        .height = cn->height,
+	                        .depth = 1,
+	                },
+	                .mipLevels = 1,
+	                .arrayLayers = 2, // colour then alpha
+	                .samples = vk::SampleCountFlagBits::e1,
+	                .tiling = vk::ImageTiling::eOptimal,
+	                .usage = flags | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
+	                .sharingMode = vk::SharingMode::eExclusive,
+	        },
+	        vk::ImageFormatListCreateInfo{
+	                .viewFormatCount = formats.size(),
+	                .pViewFormats = formats.data(),
+	        },
 	};
+#if WIVRN_USE_VULKAN_ENCODE
+	if (
+	        vk->features.video_maintenance_1 and
+	        std::ranges::any_of(
+	                cn->settings,
+	                [](const auto & item) { return item.encoder_name == encoder_vulkan //
+		                                       and item.offset_x == 0 and item.offset_y == 0; }))
+	{
+		image_info.get().flags |= vk::ImageCreateFlagBits::eVideoProfileIndependentKHR;
+		image_info.get().usage |= vk::ImageUsageFlagBits::eVideoEncodeSrcKHR;
+	}
 #endif
 
 	cn->psc.images.resize(cn->image_count);
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
-		vk::ImageFormatListCreateInfo formats_info{
-		        .viewFormatCount = formats.size(),
-		        .pViewFormats = formats.data(),
-		};
-
-#if WIVRN_USE_VULKAN_ENCODE
-		if (video_profile_list.profileCount)
-			formats_info.pNext = &video_profile_list;
-#endif
-
 		auto & image = cn->psc.images[i].image;
-		image = image_allocation(
-		        device, {
-		                        .pNext = &formats_info,
-		                        .flags = vk::ImageCreateFlagBits::eExtendedUsage | vk::ImageCreateFlagBits::eMutableFormat,
-		                        .imageType = vk::ImageType::e2D,
-		                        .format = format,
-		                        .extent = {
-		                                .width = cn->width,
-		                                .height = cn->height,
-		                                .depth = 1,
-		                        },
-		                        .mipLevels = 1,
-		                        .arrayLayers = 2, // colour then alpha
-		                        .samples = vk::SampleCountFlagBits::e1,
-		                        .tiling = vk::ImageTiling::eOptimal,
-		                        .usage = flags
-#if WIVRN_USE_VULKAN_ENCODE
-		                                 | encoder_flags
-#endif
-		                                 | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
-		                        .sharingMode = vk::SharingMode::eExclusive,
-		                },
-		        {
-		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        });
+		image = image_allocation(device, image_info.get(), {.usage = VMA_MEMORY_USAGE_AUTO});
 		cn->images[i].handle = image;
 		cn->wivrn_bundle->name(vk::Image(image), "comp target image");
 	}

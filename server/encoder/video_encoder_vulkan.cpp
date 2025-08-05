@@ -15,6 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "vk/vk_helpers.h"
+
 #include "video_encoder_vulkan.h"
 
 #include "encoder/encoder_settings.h"
@@ -266,7 +268,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	                             .layerCount = 1},
 	};
 
-	if (rect.offset != vk::Offset2D{0, 0})
+	if (rect.offset != vk::Offset2D{0, 0} or not vk.vk.features.video_maintenance_1)
 	{
 		image_view_template.subresourceRange.baseArrayLayer = 0;
 		for (size_t i = 0; i < num_slots; ++i)
@@ -478,7 +480,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	video_cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 	// If we encode from top left corner, encode from the source image directly
-	bool encode_direct = rect.offset == vk::Offset2D{0, 0};
+	bool encode_direct = not slot_item.tmp_image;
 
 	vk::ImageView image_view;
 
