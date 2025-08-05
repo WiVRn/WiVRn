@@ -1,7 +1,7 @@
-From dffbea9f32efb942d591aa3b1e2a1ac2ca02d204 Mon Sep 17 00:00:00 2001
+From 1bc74f74b613cce9d32c0f4bf16de70ddb7fb482 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Mon, 2 Jun 2025 14:51:11 +0200
-Subject: [PATCH 11/11] Replace distortion with pixel-aligned foveation
+Subject: [PATCH 10/10] Replace distortion with pixel-aligned foveation
 
 ---
  src/xrt/compositor/CMakeLists.txt            |   2 +-

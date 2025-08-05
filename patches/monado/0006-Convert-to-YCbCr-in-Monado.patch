@@ -1,7 +1,7 @@
-From a2cba2e362287fd7c7ad906ee8d5d8afb7449482 Mon Sep 17 00:00:00 2001
+From 437469e6a4de72ab69719cce92b841e4de19156f Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 06/11] Convert to YCbCr in Monado
+Subject: [PATCH 06/10] Convert to YCbCr in Monado
 
 ---
  src/xrt/compositor/main/comp_renderer.c       |   6 +-
