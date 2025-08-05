@@ -25,7 +25,7 @@
 
 Apps::Apps(QObject * parent)
 {
-	auto apps = wivrn::list_applications(true /* Include steam apps */, false /* Don't load icons */);
+	auto apps = wivrn::list_applications();
 
 	for (const auto & [id, app]: apps)
 	{

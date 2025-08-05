@@ -400,7 +400,7 @@ void scenes::lobby::gui_connected()
 
 	auto apps = next_scene->get_applications();
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
-	if (apps->applications.empty())
+	if (apps->empty())
 	{
 		CenterTextHV(_("Start an application on the server to start streaming."));
 	}
@@ -426,7 +426,7 @@ void scenes::lobby::gui_connected()
 		ImGui::Indent((usable_window_width - icon_line_width) / 2);
 
 		auto t0 = std::chrono::steady_clock::now();
-		for (const auto [index, app]: utils::enumerate(apps->applications))
+		for (const auto [index, app]: utils::enumerate(*apps))
 		{
 			ImTextureID texture = [&]() -> ImTextureID {
 				if (app.image.empty())
@@ -470,7 +470,7 @@ void scenes::lobby::gui_connected()
 		std::vector<std::pair<std::string, ImTextureID>> to_be_removed;
 		for (const auto & [app_id, app_icon]: app_icons)
 		{
-			if (not std::ranges::contains(apps->applications, app_id, &to_headset::application_list::application::id))
+			if (not std::ranges::contains(*apps, app_id, &scenes::stream::app::id))
 				to_be_removed.emplace_back(app_id, app_icon);
 		}
 		for (const auto & [app_id, app_icon]: to_be_removed)

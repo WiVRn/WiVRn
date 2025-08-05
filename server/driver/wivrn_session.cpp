@@ -28,6 +28,7 @@
 #include "util/u_builders.h"
 #include "util/u_logging.h"
 #include "util/u_system.h"
+#include "utils/load_icon.h"
 #include "utils/scoped_lock.h"
 
 #include "audio/audio_setup.h"
@@ -734,15 +735,30 @@ void wivrn_session::operator()(from_headset::get_application_list && request)
 	        .country = std::move(request.country),
 	        .variant = std::move(request.variant),
 	};
-	for (auto && [id, app]: list_applications())
+
+	auto apps = list_applications();
+
+	for (const auto & [id, app]: apps)
 	{
 		response.applications.emplace_back(
 		        std::move(id),
 		        // FIXME: use locale
-		        app.name.at(""),
-		        app.image);
+		        app.name.at(""));
 	}
 	send_control(std::move(response));
+
+	for (const auto & [id, app]: apps)
+	{
+		if (app.icon_path)
+		{
+			auto icon = load_icon(*app.icon_path, 256);
+
+			send_control(to_headset::application_icon{
+			        .id = id,
+			        .image = std::move(icon),
+			});
+		}
+	}
 }
 
 void wivrn_session::operator()(const from_headset::start_app & request)

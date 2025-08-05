@@ -21,6 +21,7 @@
 
 #include "audio/audio.h"
 #include "decoder/shard_accumulator.h"
+#include "imgui.h"
 #include "render/imgui_impl.h"
 #include "scene.h"
 #include "scenes/input_profile.h"
@@ -47,6 +48,13 @@ public:
 		stalled
 	};
 	static const size_t image_buffer_size = 3;
+
+	struct app
+	{
+		std::string id;
+		std::string name;
+		std::vector<std::byte> image;
+	};
 
 private:
 	static const size_t view_count = 2;
@@ -176,7 +184,7 @@ private:
 	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> current_blit_handles;
 
 	// Last application list received from server
-	thread_safe<to_headset::application_list> applications;
+	thread_safe<std::vector<app>> applications;
 
 	stream();
 
@@ -202,6 +210,7 @@ public:
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(to_headset::refresh_rate_change &&);
 	void operator()(to_headset::application_list &&);
+	void operator()(to_headset::application_icon &&);
 	void operator()(audio_data &&);
 
 	void push_blit_handle(wivrn::shard_accumulator * decoder, std::shared_ptr<wivrn::shard_accumulator::blit_handle> handle);

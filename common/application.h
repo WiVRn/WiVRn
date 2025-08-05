@@ -18,10 +18,10 @@
 
 #pragma once
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace wivrn
 {
@@ -31,9 +31,9 @@ struct application
 	// localised names, with empty locale for default
 	std::unordered_map<std::string, std::string> name;
 	std::string exec;
-	std::vector<std::byte> image; // In PNG
+	std::optional<std::filesystem::path> icon_path;
 	std::optional<std::string> path;
 };
 
-std::unordered_map<std::string, application> list_applications(bool include_steam = true, bool load_icons = true);
+std::unordered_map<std::string, application> list_applications();
 } // namespace wivrn
