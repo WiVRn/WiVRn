@@ -1,4 +1,4 @@
-From 851f5276b1cf1be5fccd3147e6b45e91de5ad053 Mon Sep 17 00:00:00 2001
+From a2cba2e362287fd7c7ad906ee8d5d8afb7449482 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 06/11] Convert to YCbCr in Monado
@@ -17,29 +17,29 @@ Subject: [PATCH 06/11] Convert to YCbCr in Monado
  10 files changed, 184 insertions(+), 86 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index f5227e02b..782ef0283 100644
+index c6f589466..0895ff694 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -1081,7 +1081,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -933,7 +933,8 @@ dispatch_compute(struct comp_renderer *r,
  
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
--	VkImageView target_image_view = r->c->target->images[r->acquired_buffer].view;
-+	VkImageView target_image_view_y = r->c->target->images[r->acquired_buffer].view;
-+	VkImageView target_image_view_cbcr = r->c->target->images[r->acquired_buffer].view_cbcr;
+-	VkImageView target_storage_view = r->c->target->images[r->acquired_buffer].view;
++	VkImageView target_storage_view_y = r->c->target->images[r->acquired_buffer].view;
++	VkImageView target_storage_view_cbcr = r->c->target->images[r->acquired_buffer].view_cbcr;
  
  	// Target view information.
- 	struct render_viewport_data views[XRT_MAX_VIEWS];
-@@ -1144,7 +1145,8 @@ dispatch_compute(struct comp_renderer *r,
- 	comp_render_cs_add_target( //
- 	    &data,                 // data
- 	    target_image,          // target_image
--	    target_image_view);    // target_unorm_view
-+	    target_image_view_y,   // target_unorm_view_y
-+	    target_image_view_cbcr);    // target_unorm_view_cbcr
+ 	struct render_viewport_data target_viewport_datas[XRT_MAX_VIEWS];
+@@ -949,7 +950,8 @@ dispatch_compute(struct comp_renderer *r,
+ 	    eye_poses,                       //
+ 	    fovs,                            //
+ 	    target_image,                    //
+-	    target_storage_view,             //
++	    target_storage_view_y,           //
++	    target_storage_view_cbcr,        //
+ 	    target_viewport_datas);          //
  
- 	// Start the compute pipeline.
- 	render_compute_begin(render);
+ 	// Everything is ready, submit to the queue.
 diff --git a/src/xrt/compositor/main/comp_target.h b/src/xrt/compositor/main/comp_target.h
 index 2122f46e7..53dcd631b 100644
 --- a/src/xrt/compositor/main/comp_target.h

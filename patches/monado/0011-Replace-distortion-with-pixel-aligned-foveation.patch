@@ -1,4 +1,4 @@
-From 0e1001f8a885140b239ce183c21171f5b1409e4b Mon Sep 17 00:00:00 2001
+From dffbea9f32efb942d591aa3b1e2a1ac2ca02d204 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Mon, 2 Jun 2025 14:51:11 +0200
 Subject: [PATCH 11/11] Replace distortion with pixel-aligned foveation
