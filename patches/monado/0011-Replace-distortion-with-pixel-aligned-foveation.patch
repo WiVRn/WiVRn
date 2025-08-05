@@ -1,4 +1,4 @@
-From 6888508cb1ba85ffc23623c76bd479d1e5ab23a6 Mon Sep 17 00:00:00 2001
+From 0e1001f8a885140b239ce183c21171f5b1409e4b Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Mon, 2 Jun 2025 14:51:11 +0200
 Subject: [PATCH 11/11] Replace distortion with pixel-aligned foveation
@@ -13,7 +13,7 @@ Subject: [PATCH 11/11] Replace distortion with pixel-aligned foveation
  6 files changed, 76 insertions(+), 378 deletions(-)
 
 diff --git a/src/xrt/compositor/CMakeLists.txt b/src/xrt/compositor/CMakeLists.txt
-index 46834bde8..e76c69dd0 100644
+index 1ba5ec438..f1defe77a 100644
 --- a/src/xrt/compositor/CMakeLists.txt
 +++ b/src/xrt/compositor/CMakeLists.txt
 @@ -115,7 +115,7 @@ if(XRT_HAVE_VULKAN)

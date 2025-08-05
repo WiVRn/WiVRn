@@ -1,18 +1,20 @@
-From 5fcfe965429f8c49b2b77f365de44935d4573a0c Mon Sep 17 00:00:00 2001
+From 851f5276b1cf1be5fccd3147e6b45e91de5ad053 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 06/11] Convert to YCbCr in Monado
 
 ---
- src/xrt/compositor/main/comp_renderer.c      |   6 +-
- src/xrt/compositor/main/comp_target.h        |   3 +-
- src/xrt/compositor/render/render_compute.c   | 104 +++++++++++++------
- src/xrt/compositor/render/render_interface.h |  15 ++-
- src/xrt/compositor/render/render_resources.c |  35 +++++--
- src/xrt/compositor/shaders/distortion.comp   |  62 +++++++----
- src/xrt/compositor/util/comp_render.h        |  11 +-
- src/xrt/compositor/util/comp_render_cs.c     |  19 ++--
- 8 files changed, 174 insertions(+), 81 deletions(-)
+ src/xrt/compositor/main/comp_renderer.c       |   6 +-
+ src/xrt/compositor/main/comp_target.h         |   3 +-
+ src/xrt/compositor/render/render_compute.c    | 104 ++++++++++++------
+ src/xrt/compositor/render/render_interface.h  |  15 ++-
+ src/xrt/compositor/render/render_resources.c  |  35 ++++--
+ src/xrt/compositor/shaders/distortion.comp    |  62 +++++++----
+ .../compositor/util/comp_high_level_render.c  |   6 +-
+ .../compositor/util/comp_high_level_render.h  |   9 +-
+ src/xrt/compositor/util/comp_render.h         |  11 +-
+ src/xrt/compositor/util/comp_render_cs.c      |  19 +++-
+ 10 files changed, 184 insertions(+), 86 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
 index f5227e02b..782ef0283 100644
@@ -583,6 +585,63 @@ index 08b44d4cf..e1dd1cb58 100644
 +	vec2 cbcr = mix(mix(cbcrs[0], cbcrs[1], 0.5), mix(cbcrs[2], cbcrs[3], 0.5), 0.5);
 +	imageStore(chroma, ivec2(offset.xy/2 + gl_GlobalInvocationID.xy), vec4(cbcr.x, cbcr.y, 0, 0));
  }
+diff --git a/src/xrt/compositor/util/comp_high_level_render.c b/src/xrt/compositor/util/comp_high_level_render.c
+index f1c9aa145..2e5e048a5 100644
+--- a/src/xrt/compositor/util/comp_high_level_render.c
++++ b/src/xrt/compositor/util/comp_high_level_render.c
+@@ -192,14 +192,16 @@ chl_frame_state_cs_set_views(struct chl_frame_state *frame_state,
+ void
+ chl_frame_state_cs_set_target(struct chl_frame_state *frame_state,
+                               VkImage target_image,
+-                              VkImageView target_storage_view,
++                              VkImageView target_storage_view_y,
++                              VkImageView target_storage_view_cbcr,
+                               const struct render_viewport_data views[XRT_MAX_VIEWS])
+ {
+ 	// Add the target info.
+ 	comp_render_cs_add_target( //
+ 	    &frame_state->data,    // data
+ 	    target_image,          // target_image
+-	    target_storage_view);  // target_unorm_view
++	    target_storage_view_y,
++	    target_storage_view_cbcr);  // target_unorm_view
+ 
+ 	for (uint32_t i = 0; i < frame_state->view_count; i++) {
+ 		// Which image of the scratch images for this view are we using.
+diff --git a/src/xrt/compositor/util/comp_high_level_render.h b/src/xrt/compositor/util/comp_high_level_render.h
+index 46edfd669..ba5f3f45f 100644
+--- a/src/xrt/compositor/util/comp_high_level_render.h
++++ b/src/xrt/compositor/util/comp_high_level_render.h
+@@ -187,7 +187,8 @@ chl_frame_state_cs_set_views(struct chl_frame_state *frame_state,
+ void
+ chl_frame_state_cs_set_target(struct chl_frame_state *frame_state,
+                               VkImage target_image,
+-                              VkImageView target_storage_view,
++                              VkImageView target_storage_view_y,
++                              VkImageView target_storage_view_cbcr,
+                               const struct render_viewport_data views[XRT_MAX_VIEWS]);
+ 
+ /*!
+@@ -204,7 +205,8 @@ chl_frame_state_cs_default_pipeline(struct chl_frame_state *frame_state,
+                                     const struct xrt_pose eye_poses[XRT_MAX_VIEWS],
+                                     const struct xrt_fov fovs[XRT_MAX_VIEWS],
+                                     VkImage target_image,
+-                                    VkImageView target_storage_view,
++                                    VkImageView target_storage_view_y,
++                                    VkImageView target_storage_view_cbcr,
+                                     const struct render_viewport_data target_viewport_datas[XRT_MAX_VIEWS])
+ {
+ 	chl_frame_state_cs_set_views( //
+@@ -217,7 +219,8 @@ chl_frame_state_cs_default_pipeline(struct chl_frame_state *frame_state,
+ 	chl_frame_state_cs_set_target( //
+ 	    frame_state,               //
+ 	    target_image,              //
+-	    target_storage_view,       //
++	    target_storage_view_y,     //
++	    target_storage_view_cbcr,  //
+ 	    target_viewport_datas);    //
+ 
+ 	// Start the compute pipeline.
 diff --git a/src/xrt/compositor/util/comp_render.h b/src/xrt/compositor/util/comp_render.h
 index 334464256..f4a9140a2 100644
 --- a/src/xrt/compositor/util/comp_render.h
