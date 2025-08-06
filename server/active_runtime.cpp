@@ -57,7 +57,7 @@ std::filesystem::path active_runtime::openvr_compat_path()
 		                std::optional<std::filesystem::path> flatpak_root = flatpak_key(flatpak::section::instance, "app-path");
 		                // flatpak default
 		                if (flatpak_root)
-			                return *flatpak_root / "OpenComposite";
+			                return *flatpak_root / "xrizer";
 
 		                for (auto path: std::ranges::split_view(std::string_view(OVR_COMPAT_SEARCH_PATH), std::string_view(":")))
 		                {
