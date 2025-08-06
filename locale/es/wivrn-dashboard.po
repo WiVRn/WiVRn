@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-25 22:10+0200\n"
-"PO-Revision-Date: 2025-06-20 19:47+0200\n"
+"POT-Creation-Date: 2025-08-04 09:40+0200\n"
+"PO-Revision-Date: 2025-08-06 19:20+0200\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -85,8 +85,8 @@ msgstr "Comprobando la última versión..."
 msgid "No precompiled APK is available for this version."
 msgstr "No hay ningún APK precompilado disponible para esta versión."
 
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:247
-#: dashboard/qml/Main.qml:329
+#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:259
+#: dashboard/qml/Main.qml:341
 #, kde-format
 msgid "ADB is not installed."
 msgstr "ADB no está instalado."
@@ -135,7 +135,7 @@ msgstr "Reinstalar WiVRn"
 msgid "Install WiVRn"
 msgstr "Instalar WiVRn"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:342
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:354
 #, kde-format
 msgid "Headsets"
 msgstr "Visores"
@@ -232,28 +232,28 @@ msgstr "Emparejar un nuevo visor"
 msgid "Headset statistics"
 msgstr "Estadísticas del visor"
 
-#: dashboard/qml/Main.qml:103
+#: dashboard/qml/Main.qml:107
 #, kde-format
 msgid "The server does not have CAP_SYS_NICE capabilities."
 msgstr "El servidor no tiene capacidades CAP_SYS_NICE."
 
-#: dashboard/qml/Main.qml:110
+#: dashboard/qml/Main.qml:114
 #, kde-format
 msgid "Fix it"
 msgstr "Arreglarlo"
 
-#: dashboard/qml/Main.qml:119
+#: dashboard/qml/Main.qml:123
 #, kde-format
 msgid "The CAP_SYS_NICE capability will be used when the server is restarted."
 msgstr "La capacidad CAP_SYS_NICE se utilizará cuando el servidor se reinicie."
 
-#: dashboard/qml/Main.qml:125
+#: dashboard/qml/Main.qml:129
 #, kde-format
 msgctxt "restart the server"
 msgid "Restart now"
 msgstr "Reiniciar ahora"
 
-#: dashboard/qml/Main.qml:136
+#: dashboard/qml/Main.qml:140
 #, kde-format
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
@@ -261,12 +261,12 @@ msgstr ""
 "Las GPU NVIDIA requieren al menos la versión 565.77 del controlador, la "
 "versión actual es %1"
 
-#: dashboard/qml/Main.qml:142
+#: dashboard/qml/Main.qml:146
 #, kde-format
 msgid "More info"
 msgstr "Más información"
 
-#: dashboard/qml/Main.qml:150
+#: dashboard/qml/Main.qml:154
 #, kde-format
 msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
@@ -275,76 +275,86 @@ msgstr ""
 "Usa el controlador Mesa (radv) para las GPU AMD\n"
 "La codificación por hardware con vaapi no funciona con AMDVLK y AMDGPU-PRO"
 
-#: dashboard/qml/Main.qml:159
+#: dashboard/qml/Main.qml:162
+#, kde-format
+msgid ""
+"No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
+"Install xrizer or OpenComposite."
+msgstr ""
+"Compatibilidad de OpenVR no detectada, los juegos de Steam no van a cargar "
+"en VR.\n"
+"Instala xrizer o OpenComposite."
+
+#: dashboard/qml/Main.qml:171
 #, kde-format
 msgid "Server failed to start"
 msgstr "El servidor no pudo iniciar"
 
-#: dashboard/qml/Main.qml:165 dashboard/qml/TroubleshootPage.qml:77
+#: dashboard/qml/Main.qml:177 dashboard/qml/TroubleshootPage.qml:77
 #, kde-format
 msgid "Open server logs"
 msgstr "Abrir registros del servidor"
 
-#: dashboard/qml/Main.qml:202
+#: dashboard/qml/Main.qml:214
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
 msgstr "En ejecución"
 
-#: dashboard/qml/Main.qml:217
+#: dashboard/qml/Main.qml:229
 #, kde-format
 msgctxt "whether pairing is enabled, displayed in front of a checkbox"
 msgid "Pairing"
 msgstr "Emparejando"
 
-#: dashboard/qml/Main.qml:230
+#: dashboard/qml/Main.qml:242
 #, kde-format
 msgid "PIN: %1"
 msgstr "PIN: %1"
 
-#: dashboard/qml/Main.qml:238 dashboard/qml/WizardPage.qml:373
+#: dashboard/qml/Main.qml:250 dashboard/qml/WizardPage.qml:373
 #, kde-format
 msgid "Connect by USB"
 msgstr "Conectar por USB"
 
-#: dashboard/qml/Main.qml:249
+#: dashboard/qml/Main.qml:261
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode."
 msgstr ""
 "No hay ningún visor conectado o tu visor no está en modo desarrollador."
 
-#: dashboard/qml/Main.qml:257
+#: dashboard/qml/Main.qml:269
 #, kde-format
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#: dashboard/qml/Main.qml:274
+#: dashboard/qml/Main.qml:286
 #, kde-format
 msgctxt "automatically started application"
 msgid "Application"
 msgstr "Aplicación"
 
-#: dashboard/qml/Main.qml:295
+#: dashboard/qml/Main.qml:307
 #, kde-format
 msgid "Steam information"
 msgstr "Información de Steam"
 
-#: dashboard/qml/Main.qml:313
+#: dashboard/qml/Main.qml:325
 #, kde-format
 msgid "Wizard"
 msgstr "Asistente"
 
-#: dashboard/qml/Main.qml:320
+#: dashboard/qml/Main.qml:332
 #, kde-format
 msgid "Install the app"
 msgstr "Instalar aplicación"
 
-#: dashboard/qml/Main.qml:349 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:361 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "Ajustes"
 
-#: dashboard/qml/Main.qml:356 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:368 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "Solucionar problemas"
