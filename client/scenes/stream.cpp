@@ -189,7 +189,11 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	self->network_session = std::move(network_session);
 
 	self->network_session->send_control([&]() {
-		from_headset::headset_info_packet info{};
+		from_headset::headset_info_packet info{
+		        .language = application::get_messages_info().language,
+		        .country = application::get_messages_info().country,
+		        .variant = application::get_messages_info().variant,
+		};
 
 		auto view = self->system.view_configuration_views(self->viewconfig)[0];
 		view = override_view(view, guess_model());

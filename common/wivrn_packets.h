@@ -239,6 +239,11 @@ struct headset_info_packet
 	uint32_t num_generic_trackers;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 	std::string system_name;
+
+	// Used for the application list
+	std::string language;
+	std::string country;
+	std::string variant;
 };
 
 struct handshake

@@ -172,6 +172,12 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		throw;
 	}
 
+	(*this)(from_headset::get_application_list{
+	        .language = get_info().language,
+	        .country = get_info().country,
+	        .variant = get_info().variant,
+	});
+
 	static_roles.head = xdevs[xdev_count++] = &hmd;
 
 	if (hmd.supported.face_tracking)
