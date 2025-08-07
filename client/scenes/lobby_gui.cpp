@@ -39,6 +39,7 @@
 #include <chrono>
 #include <filesystem>
 #include <glm/gtc/quaternion.hpp>
+#include <imspinner.h>
 #include <ranges>
 #include <spdlog/fmt/fmt.h>
 #include <string>
@@ -245,6 +246,7 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 	if (next_scene)
 	{
 		current_tab = tab::connected;
+		timestamp_start_application = 0;
 		ImGui::CloseCurrentPopup();
 		return;
 	}
@@ -375,7 +377,7 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 	imgui_ctx->vibrate_on_hover();
 }
 
-void scenes::lobby::gui_connected()
+void scenes::lobby::gui_connected(XrTime predicted_display_time)
 {
 	if (not next_scene)
 	{
@@ -406,8 +408,11 @@ void scenes::lobby::gui_connected()
 	}
 	else
 	{
+		bool app_starting = predicted_display_time - timestamp_start_application < 10'000'000'000;
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 0});
-		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, disconnect_size.y + 80), 0);
+		ImGui::BeginDisabled(app_starting);
+		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, disconnect_size.y + 80), 0, app_starting ? ImGuiWindowFlags_NoScrollWithMouse : 0);
 
 		ImGui::Indent(20);
 		if (server_name.empty())
@@ -458,7 +463,10 @@ void scenes::lobby::gui_connected()
 
 			ImGui::PushStyleColor(ImGuiCol_Button, 0);
 			if (icon(app.name + "##" + app.id, texture, {256, 256}, 0, {icon_width, 0}))
+			{
+				timestamp_start_application = predicted_display_time;
 				next_scene->start_application(app.id);
+			}
 			imgui_ctx->vibrate_on_hover();
 			ImGui::PopStyleColor(); // ImGuiCol_Button
 
@@ -481,12 +489,26 @@ void scenes::lobby::gui_connected()
 
 		ScrollWhenDragging();
 		ImGui::EndChild();
+		ImGui::EndDisabled();
+
+		if (app_starting)
+		{
+			ImGui::SetCursorPos(ImGui::GetWindowSize() / 2 - ImVec2{200, 200} - ImGui::GetStyle().FramePadding);
+			ImSpinner::SpinnerAng("App starting spinner",
+			                      200,                         // Radius
+			                      40,                          // Thickness
+			                      ImColor{1.f, 1.f, 1.f, 1.f}, // Colour
+			                      ImColor{1.f, 1.f, 1.f, 0.f}, // Background
+			                      6,                           // Velocity
+			                      0.75f * 2 * M_PI             // Angle
+			);
+		}
+
 		ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
 	}
 	ImGui::PopStyleVar();
 
-	ImGui::SetCursorPosX(ImGui::GetWindowSize().x - disconnect_size.x - 50);
-	ImGui::SetCursorPosY(ImGui::GetWindowSize().y - disconnect_size.y - 50);
+	ImGui::SetCursorPos(ImGui::GetWindowSize() - disconnect_size - ImVec2{50, 50});
 
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
@@ -1887,7 +1909,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 		ImGui::Begin("WiVRn", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-		gui_connected();
+		gui_connected(predicted_display_time);
 		ImGui::End();
 		ImGui::PopStyleVar(3); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding, ImGuiStyleVar_FramePadding
 	}

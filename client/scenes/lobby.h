@@ -30,6 +30,7 @@
 #include "wivrn_discover.h"
 #include "wivrn_packets.h"
 #include <vulkan/vulkan_raii.hpp>
+#include <openxr/openxr.h>
 
 #include <optional>
 #include <vector>
@@ -120,6 +121,7 @@ class lobby : public scene_impl<lobby>
 	ImTextureID about_picture;
 	ImTextureID default_icon;
 	std::unordered_map<std::string, ImTextureID> app_icons;
+	XrTime timestamp_start_application{};
 
 	virtual_keyboard keyboard;
 
@@ -136,7 +138,7 @@ class lobby : public scene_impl<lobby>
 	void draw_features_status(XrTime predicted_display_time);
 	void gui_connecting(locked_notifiable<pin_request_data> & request);
 	void gui_enter_pin(locked_notifiable<pin_request_data> & request);
-	void gui_connected();
+	void gui_connected(XrTime predicted_display_time);
 	void gui_server_list();
 	void gui_new_server();
 	void gui_settings();

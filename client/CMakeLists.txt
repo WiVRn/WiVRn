@@ -91,7 +91,22 @@ file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
 wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
 
-target_link_libraries(wivrn Vulkan::Vulkan spdlog::spdlog glm::glm fastgltf FreetypeHarfbuzz stb Boost::url Boost::locale)
+target_link_libraries(wivrn
+    Boost::locale
+    Boost::url
+    EnTT::EnTT
+    fastgltf
+    FreetypeHarfbuzz
+    glm::glm
+    imspinner
+    simdjson
+    spdlog::spdlog
+    stb
+    uni-algo
+    Vulkan::Vulkan
+    wivrn-common
+    wivrn-external
+)
 
 if (WIVRN_USE_LIBKTX)
     target_link_libraries(wivrn ktx_read)
@@ -106,10 +121,6 @@ target_include_directories(wivrn PRIVATE .)
 if(NOT ANDROID)
     install(TARGETS wivrn)
 endif()
-
-target_link_libraries(wivrn simdjson uni-algo wivrn-common wivrn-external)
-
-
 
 ##############################################################################
 # Dear ImGui
@@ -140,10 +151,6 @@ target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
 target_link_libraries(wivrn wivrn-imgui)
 
 
-##############################################################################
-# EnTT
-#
-target_link_libraries(wivrn EnTT::EnTT)
 
 ##############################################################################
 # Vulkan Validation Layer
