@@ -197,11 +197,13 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 			{
 				case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
 					roles.left = xdev_count;
-					static_roles.hand_tracking.unobstructed.left = lhdev; // FIXME: certainly wrong
+					static_roles.hand_tracking.unobstructed.left = nullptr;
+					static_roles.hand_tracking.conforming.left = lhdev;
 					break;
 				case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER:
 					roles.right = xdev_count;
-					static_roles.hand_tracking.unobstructed.right = lhdev; // FIXME: certainly wrong
+					static_roles.hand_tracking.unobstructed.right = nullptr;
+					static_roles.hand_tracking.conforming.right = lhdev;
 					break;
 				default:
 					break;
