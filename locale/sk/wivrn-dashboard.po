@@ -927,3 +927,12 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#: dashboard/qml/Main.qml:162
+#, kde-format
+msgid ""
+"No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
+"Install xrizer or OpenComposite."
+msgstr ""
+"Žiadna OpenVR kompatibilita nebola nájdená, Hry na steame nebude možné načítať do VRka.\n"
+"Nainštalujte xrizer alebo OpenComposite."
