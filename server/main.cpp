@@ -678,14 +678,18 @@ void on_json_configuration(WivrnServer * server, const GParamSpec * pspec, gpoin
 	std::filesystem::path config_new = config;
 	config_new += ".new";
 
-	std::ofstream file(config_new);
-	file.write(json, strlen(json));
+	{
+		std::ofstream file(config_new);
+		file.write(json, strlen(json));
+	}
 
 	std::error_code ec;
 	std::filesystem::rename(config_new, config, ec);
 
 	if (ec)
 		std::cerr << "Failed to save configuration: " << ec.message() << std::endl;
+
+	wivrn_server_set_steam_command(dbus_server, steam_command().c_str());
 }
 
 void expose_known_keys_on_dbus()
