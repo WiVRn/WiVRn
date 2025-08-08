@@ -18,7 +18,6 @@
 #include "hostname.h"
 #include "protocol_version.h"
 #include "start_application.h"
-#include "utils/flatpak.h"
 #include "utils/overloaded.h"
 #include "version.h"
 #include "wivrn_config.h"
@@ -128,46 +127,37 @@ int create_listen_socket()
 	return fd;
 }
 
-static std::filesystem::path flatpak_app_path()
+static bool pressure_vessel_openxr_support()
 {
-	if (auto value = flatpak_key(flatpak::section::instance, "app-path"))
-	{
-		std::filesystem::path path = *value;
-		while (path != "" and path != path.parent_path() and path.filename() != "io.github.wivrn.wivrn")
-			path = path.parent_path();
+	auto pv_var = std::getenv("PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES");
+	return pv_var and pv_var == std::string_view("1");
+}
 
-		return path;
-	}
-
-	return "/";
+static void append_delim(std::string & to, std::string_view what, char delim)
+{
+	if (not to.empty())
+		to += delim;
+	to += what;
 }
 
 static std::string steam_command()
 {
-	std::string pressure_vessel_filesystems_rw = "$XDG_RUNTIME_DIR/" XRT_IPC_MSG_SOCK_FILENAME;
-	std::string vr_override;
+	std::string command;
 
-	// Check if in a flatpak
-	if (is_flatpak())
-	{
-		std::string app_path = flatpak_app_path().string();
-		// /usr and /var are remapped by steam
-		if (app_path.starts_with("/var"))
-			pressure_vessel_filesystems_rw += ":" + app_path;
-	}
-	else if (auto p = active_runtime::openvr_compat_path().string(); not p.empty())
+	if (not pressure_vessel_openxr_support())
+		command = "PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1";
+
+	if (auto p = active_runtime::openvr_compat_path().string(); not p.empty())
 	{
 		// /usr cannot be shared in pressure vessel container
 		if (p.starts_with("/usr"))
-			vr_override = " VR_OVERRIDE=/run/host" + p;
+			append_delim(command, " VR_OVERRIDE=/run/host" + p, ' ');
 		else if (p.starts_with("/var"))
-			pressure_vessel_filesystems_rw += ":" + p;
+			append_delim(command, "PRESSURE_VESSEL_FILESYSTEMS_RW=" + p, ' ');
 	}
 
-	std::string command = "PRESSURE_VESSEL_FILESYSTEMS_RW=" + pressure_vessel_filesystems_rw + vr_override + " %command%";
-
-	if (auto p = active_runtime::manifest_path().string(); p.starts_with("/usr"))
-		command = "XR_RUNTIME_JSON=/run/host" + p + " " + command;
+	if (not command.empty())
+		command += " %command%";
 
 	return command;
 }
@@ -884,7 +874,8 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	std::cerr << "WiVRn " << wivrn::git_version << " starting" << std::endl;
 	if (show_instructions)
 	{
-		std::cerr << "For Steam games, set command to " << steam_command() << std::endl;
+		if (auto command = steam_command(); not command.empty())
+			std::cerr << "For Steam games, set command to " << command << std::endl;
 	}
 
 	std::filesystem::create_directories(socket_path().parent_path());
