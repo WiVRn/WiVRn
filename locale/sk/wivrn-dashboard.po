@@ -20,12 +20,12 @@ msgstr ""
 #: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
-msgstr "Sťahujem APK: %1 MB / %2 MB"
+msgstr "Sťahuje sa APK: %1 MB / %2 MB"
 
 #: dashboard/apk_installer.cpp:169
 #, kde-format
 msgid "Downloading APK: %1 MB"
-msgstr "Sťahujem APK: %1 MB"
+msgstr "Sťahuje sa APK: %1 MB"
 
 #: dashboard/apk_installer.cpp:178
 #, kde-format
@@ -35,12 +35,12 @@ msgstr "Sťahovanie zrušené"
 #: dashboard/apk_installer.cpp:194
 #, kde-format
 msgid "Cannot download APK: %1"
-msgstr "APK sa nedá stiahnuť: %1"
+msgstr "APK sa nedá stiahnúť: %1"
 
 #: dashboard/apk_installer.cpp:217
 #, kde-format
 msgid "Installing APK"
-msgstr "Inštalujem APK"
+msgstr "Inštaluje sa APK"
 
 #: dashboard/apk_installer.cpp:221
 #, kde-format
@@ -76,7 +76,7 @@ msgstr "Nainštaluj si aplikáciu WiVRn do headsetu"
 #: dashboard/qml/WizardPage.qml:192
 #, kde-format
 msgid "Checking latest release..."
-msgstr "Kontrolujem najnovšiu verziu…"
+msgstr "Kontroluje sa najnovšia verzia…"
 
 #: dashboard/qml/ApkInstallPage.qml:43 dashboard/qml/WizardPage.qml:198
 #, kde-format
@@ -369,12 +369,12 @@ msgstr "Prehľadať"
 #, kde-format
 msgctxt "automatic foveation setup"
 msgid "Manual foveation"
-msgstr "Manuálna foveation"
+msgstr "Manuálne foveovanie"
 
 #: dashboard/qml/SettingsPage.qml:46
 #, kde-format
 msgid "Foveation strength:"
-msgstr "Foveation sila"
+msgstr "Sila foveovania"
 
 #: dashboard/qml/SettingsPage.qml:62
 #, kde-format
@@ -927,3 +927,12 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#: dashboard/qml/Main.qml:162
+#, kde-format
+msgid ""
+"No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
+"Install xrizer or OpenComposite."
+msgstr ""
+"Žiadna OpenVR kompatibilita nebola nájdená, Hry na steame nebude možné načítať do VRka.\n"
+"Nainštalujte xrizer alebo OpenComposite."

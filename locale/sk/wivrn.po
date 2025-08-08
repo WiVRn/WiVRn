@@ -108,7 +108,7 @@ msgstr ""
 #: client/scenes/lobby_gui.cpp:335
 #, c++-format
 msgid "Start an application on {} or select one to start streaming."
-msgstr "Spustite aplikáciu na {} alebo vyberte jednu na začatie streamovania."
+msgstr "Spustite aplikáciu na {} alebo jednu vyberte pre začatie streamovania."
 
 #: client/scenes/lobby_gui.cpp:383
 msgid "Name"
