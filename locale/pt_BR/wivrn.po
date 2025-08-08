@@ -4,16 +4,14 @@
 # SPDX-FileCopyrightText: 2025 Claudio Sampaio (Patola)
 # LuckShiba <LuckShiba@protonmail.com>, 2025.
 #
-# SPDX-FileCopyrightText: 2025 myghi 63
-# SPDX-FileCopyrightText: 2025 myghi 63
-# SPDX-FileCopyrightText: 2025 myghi 63
 # SPDX-FileCopyrightText: 2025 myghi63 <myghi63@disroot.org>
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-04 10:49-0300\n"
-"PO-Revision-Date: 2025-08-08 11:55-0300\n"
+"PO-Revision-Date: 2025-08-08 13:27-0300\n"
 "Last-Translator: myghi63 <myghi63@disroot.org>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -384,7 +382,7 @@ msgstr "Habilitar o rastreamento corporal?"
 
 #: client/scenes/lobby_gui.cpp:1294
 msgid "Welcome to WiVRn"
-msgstr "Bem vindo ao WiVRn"
+msgstr "Bem vindo(a) ao WiVRn"
 
 #: client/scenes/lobby_gui.cpp:1318
 msgid "Yes"
