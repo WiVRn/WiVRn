@@ -9,6 +9,11 @@ if [ -d ".git" ] ; then
 	exec git am --committer-date-is-author-date "$@"
 fi
 
+if ! type patch 2> /dev/null ; then
+	echo "patch command not found" >&1
+	exit 1
+fi
+
 # There is no reliable way to apply a patch and succeed if it was
 # already applied. Just ignore errors...
 for f in "$@" ; do
