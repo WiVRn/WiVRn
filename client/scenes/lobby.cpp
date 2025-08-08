@@ -383,9 +383,18 @@ void scenes::lobby::connect(const configuration::server_data & data)
 	        data.manual);
 }
 
-std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(const std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & joints)
+std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(xr::spaces space, const std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> & joints)
 {
-	const auto & palm = joints[XR_HAND_JOINT_PALM_EXT].first;
+	if (recentering_context and std::get<0>(*recentering_context) != space)
+		return std::nullopt;
+
+	if (not joints)
+	{
+		recentering_context.reset();
+		return std::nullopt;
+	}
+
+	const auto & palm = (*joints)[XR_HAND_JOINT_PALM_EXT].first;
 	const auto & o = palm.pose.orientation;
 	const auto & p = palm.pose.position;
 	glm::quat q{o.w, o.x, o.y, o.z};
@@ -393,102 +402,130 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gesture(const std::array<
 
 	if (glm::dot(q * glm::vec3(0, 1, 0), glm::vec3(0, -1, 0)) > constants::lobby::recenter_cosangle_min)
 	{
+		recentering_context.emplace(space, glm::vec3{}, 0);
 		return v + glm::vec3(0, constants::lobby::recenter_distance_up, 0) + q * glm::vec3(0, 0, -constants::lobby::recenter_distance_front);
 	}
 
+	recentering_context.reset();
 	return std::nullopt;
 }
 
 std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_display_time, glm::vec3 head_position)
 {
-	std::optional<std::pair<glm::vec3, glm::quat>> aim;
-	glm::vec3 offset_position;
-	glm::quat offset_orientation;
+	xr::spaces controller;
+	glm::vec3 recenter_position;
+	float recenter_distance;
 
-	if (application::read_action_bool(recenter_left_action).value_or(std::pair{0, false}).second)
+	if (recentering_context)
 	{
-		aim = application::locate_controller(application::space(xr::spaces::aim_left), application::space(xr::spaces::world), predicted_display_time);
-		std::tie(offset_position, offset_orientation) = input->offset[xr::spaces::aim_left];
-	}
-
-	if (application::read_action_bool(recenter_right_action).value_or(std::pair{0, false}).second)
-	{
-		aim = application::locate_controller(application::space(xr::spaces::aim_right), application::space(xr::spaces::world), predicted_display_time);
-		std::tie(offset_position, offset_orientation) = input->offset[xr::spaces::aim_right];
-	}
-
-	if (aim)
-	{
-		// Handle controller offset
-		aim->first = aim->first + glm::mat3_cast(aim->second * offset_orientation) * offset_position;
-		aim->second = aim->second * offset_orientation;
-
-		if (not gui_recenter_position or not gui_recenter_distance)
+		controller = std::get<0>(*recentering_context);
+		bool state;
+		switch (controller)
 		{
-			// First frame where the recenter action is active
-			imgui_context::controller_state state{
-			        .active = true,
-			        .aim_position = aim->first,
-			        .aim_orientation = aim->second,
-			};
+			case xr::spaces::aim_left:
+				state = application::read_action_bool(recenter_left_action).value_or(std::pair{0, false}).second;
+				break;
 
-			imgui_ctx->compute_pointer_position(state);
+			case xr::spaces::aim_right:
+				state = application::read_action_bool(recenter_right_action).value_or(std::pair{0, false}).second;
+				break;
 
-			if (state.pointer_position) // TODO: check that the pointer is inside an imgui window
-			{
-				auto M = glm::mat3_cast(imgui_ctx->layers()[0].orientation);
+			default:
+				return std::nullopt;
+		}
 
-				// Pointer position in world
-				glm::vec3 world_pointer_position = imgui_ctx->rw_from_vp(*state.pointer_position);
+		if (not state)
+		{
+			recentering_context.reset();
+			return std::nullopt;
+		}
+	}
+	else if (auto state = application::read_action_bool(recenter_left_action); state and state->second)
+		controller = xr::spaces::aim_left;
+	else if (auto state = application::read_action_bool(recenter_right_action); state and state->second)
+		controller = xr::spaces::aim_right;
+	else
+		return std::nullopt;
 
-				// Pointer position in GUI
-				gui_recenter_position = glm::transpose(M) * (world_pointer_position - imgui_ctx->layers()[0].position);
-				gui_recenter_distance = glm::length(state.aim_position - world_pointer_position);
-			}
-			else
-			{
-				gui_recenter_position = glm::vec3(0, 0, 0);
-				gui_recenter_distance = constants::lobby::recenter_action_distance;
-			}
+	auto aim = application::locate_controller(application::space(controller), application::space(xr::spaces::world), predicted_display_time);
+
+	if (not aim)
+	{
+		// The controller cannot be located
+		recentering_context.reset();
+		return std::nullopt;
+	}
+
+	// Handle controller offset
+	auto [offset_position, offset_orientation] = input->offset[controller];
+	aim->first = aim->first + glm::mat3_cast(aim->second * offset_orientation) * offset_position;
+	aim->second = aim->second * offset_orientation;
+
+	if (not recentering_context)
+	{
+		// First frame of recentering
+		imgui_context::controller_state state{
+		        .active = true,
+		        .aim_position = aim->first,
+		        .aim_orientation = aim->second,
+		};
+
+		imgui_ctx->compute_pointer_position(state);
+
+		if (state.pointer_position) // TODO: check that the pointer is inside an imgui window
+		{
+			auto M = glm::mat3_cast(imgui_ctx->layers()[0].orientation);
+
+			// Pointer position in world
+			glm::vec3 world_pointer_position = imgui_ctx->rw_from_vp(*state.pointer_position);
+
+			// Pointer position in GUI
+			recenter_position = glm::transpose(M) * (world_pointer_position - imgui_ctx->layers()[0].position);
+			recenter_distance = glm::length(state.aim_position - world_pointer_position);
 		}
 		else
 		{
-			// Subsequent frames: find the GUI position that gives the correct world pointer position
-			glm::vec3 controller_direction = -glm::column(glm::mat3_cast(aim->second), 2);
-			glm::vec3 wanted_world_pointer_position = aim->first + controller_direction * *gui_recenter_distance;
-
-			// I'm sure there's an analytical solution but I can't be bothered to write it so
-			// let's use a gradient descent instead
-			auto f = [&](glm::vec3 new_gui_position) {
-				auto q = compute_gui_orientation(head_position, new_gui_position);
-				auto M = glm::mat3_cast(q); // plane-to-world transform
-
-				glm::vec3 world_pointer_position = new_gui_position + M * *gui_recenter_position;
-
-				return world_pointer_position - wanted_world_pointer_position;
-			};
-
-			// One step is usually enough, the solution will continuously improve in the next frames
-			glm::vec3 gui_position = imgui_ctx->layers()[0].position;
-			float eps = 0.01;
-			glm::vec3 obj = f(gui_position);
-			glm::vec3 obj_dx = (f(gui_position + glm::vec3(eps, 0, 0)) - obj) / eps;
-			glm::vec3 obj_dy = (f(gui_position + glm::vec3(0, eps, 0)) - obj) / eps;
-			glm::vec3 obj_dz = (f(gui_position + glm::vec3(0, 0, eps)) - obj) / eps;
-
-			glm::mat3 jacobian{obj_dx, obj_dy, obj_dz};
-
-			gui_position -= glm::inverse(jacobian) * obj;
-
-			return gui_position;
+			// Use the center of the GUI if the controller points outside of the GUI
+			recenter_position = glm::vec3(0, 0, 0);
+			recenter_distance = constants::lobby::recenter_action_distance;
 		}
+
+		recentering_context.emplace(controller, recenter_position, recenter_distance);
+		return std::nullopt;
 	}
 	else
 	{
-		gui_recenter_position.reset();
-	}
+		// Subsequent frames: find the GUI position that gives the correct world pointer position
+		std::tie(controller, recenter_position, recenter_distance) = *recentering_context;
 
-	return std::nullopt;
+		glm::vec3 controller_direction = -glm::column(glm::mat3_cast(aim->second), 2);
+		glm::vec3 wanted_world_pointer_position = aim->first + controller_direction * recenter_distance;
+
+		// I'm sure there's an analytical solution but I can't be bothered to write it so
+		// let's use a gradient descent instead
+		auto f = [&](glm::vec3 new_gui_position) {
+			auto q = compute_gui_orientation(head_position, new_gui_position);
+			auto M = glm::mat3_cast(q); // plane-to-world transform
+
+			glm::vec3 world_pointer_position = new_gui_position + M * recenter_position;
+
+			return world_pointer_position - wanted_world_pointer_position;
+		};
+
+		// One step is usually enough, the solution will continuously improve in the next frames
+		glm::vec3 gui_position = imgui_ctx->layers()[0].position;
+		float eps = 0.01;
+		glm::vec3 obj = f(gui_position);
+		glm::vec3 obj_dx = (f(gui_position + glm::vec3(eps, 0, 0)) - obj) / eps;
+		glm::vec3 obj_dy = (f(gui_position + glm::vec3(0, eps, 0)) - obj) / eps;
+		glm::vec3 obj_dz = (f(gui_position + glm::vec3(0, 0, eps)) - obj) / eps;
+
+		glm::mat3 jacobian{obj_dx, obj_dy, obj_dz};
+
+		gui_position -= glm::inverse(jacobian) * obj;
+
+		return gui_position;
+	}
 }
 
 std::optional<glm::vec3> scenes::lobby::check_recenter_gui(glm::vec3 head_position, glm::quat head_orientation)
@@ -620,18 +657,16 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		hand_model::apply(world, left, right);
 
 		if (left and xr::hand_tracker::check_flags(*left, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
-		{
 			hide_left_controller = true;
-			if (!new_gui_position)
-				new_gui_position = check_recenter_gesture(*left);
-		}
 
 		if (right and xr::hand_tracker::check_flags(*right, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
-		{
 			hide_right_controller = true;
-			if (!new_gui_position)
-				new_gui_position = check_recenter_gesture(*right);
-		}
+
+		if (not new_gui_position)
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, left);
+
+		if (not new_gui_position)
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, right);
 	}
 
 	if (head_position && new_gui_position)
