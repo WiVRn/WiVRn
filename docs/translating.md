@@ -5,7 +5,7 @@ The headset application and the server dashboard are translated, contributions a
 # Required software
 You only need `gettext` and a text editor, you can optionally use a graphical editor such as [GNOME Translation Editor](https://wiki.gnome.org/Apps/Gtranslator/) or [Lokalize](https://apps.kde.org/lokalize/).
 
-If using Lokalize, make sure to erase the "Default mailing list" in the settings, or it will write a KDE mailing list in the translation file and you will to manually remove it.
+If using Lokalize, make sure to erase the "Default mailing list" in the settings, or it will write a KDE mailing list in the translation file and you will have to manually remove it.
 
 # Adding a new language
 
