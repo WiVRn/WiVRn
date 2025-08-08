@@ -4,7 +4,8 @@
 # SPDX-FileCopyrightText: 2025 Claudio Sampaio (Patola)
 # LuckShiba <LuckShiba@protonmail.com>, 2025.
 #
-# SPDX-FileCopyrightText: 2025 myghi 63
+# SPDX-FileCopyrightText: 2025 myghi63 <myghi63@disroot.org>
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
