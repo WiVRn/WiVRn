@@ -2,13 +2,14 @@
 # This file is distributed under the same license as the WiVRn package.
 #
 # SPDX-FileCopyrightText: 2025 not <github.superglue094@slmail.me>
+# SPDX-FileCopyrightText: 2025 eps <eps@bwsal.org>
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-07-30 09:32+0200\n"
-"PO-Revision-Date: 2025-08-02 18:41+0200\n"
-"Last-Translator: not <github.superglue094@slmail.me>\n"
+"POT-Creation-Date: 2025-08-08 20:41+0200\n"
+"PO-Revision-Date: 2025-08-08 22:08+0200\n"
+"Last-Translator: eps <eps@bwsal.org>\n"
 "Language-Team: Slovak <>\n"
 "Language: sk\n"
 "MIME-Version: 1.0\n"
@@ -45,129 +46,129 @@ msgstr "Nie je možné sa pripojiť k {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Čaká sa na pripojenie"
 
-#: client/scenes/lobby_gui.cpp:156
+#: client/scenes/lobby_gui.cpp:230
 msgctxt "openxr_post_processing"
 msgid "Normal"
 msgstr "Normálna"
 
-#: client/scenes/lobby_gui.cpp:159
+#: client/scenes/lobby_gui.cpp:233
 msgctxt "openxr_post_processing"
 msgid "Quality"
 msgstr "Vyššia kvalita"
 
-#: client/scenes/lobby_gui.cpp:161
+#: client/scenes/lobby_gui.cpp:235
 msgctxt "openxr_post_processing"
 msgid "Disabled"
 msgstr "Vypnuté"
 
-#: client/scenes/lobby_gui.cpp:169 client/scenes/lobby_gui.cpp:320
+#: client/scenes/lobby_gui.cpp:243 client/scenes/lobby_gui.cpp:400
 #: client/scenes/stream_gui.cpp:812
 msgid "Disconnect"
 msgstr "Odpojiť"
 
-#: client/scenes/lobby_gui.cpp:189 client/scenes/stream_gui.cpp:808
+#: client/scenes/lobby_gui.cpp:264 client/scenes/stream_gui.cpp:808
 msgid "Close"
 msgstr "Zatvoriť"
 
-#: client/scenes/lobby_gui.cpp:195
+#: client/scenes/lobby_gui.cpp:270
 msgid "Connection"
 msgstr "Pripojenie"
 
-#: client/scenes/lobby_gui.cpp:197
+#: client/scenes/lobby_gui.cpp:272
 #, c++-format
 msgid "Connection to {}"
 msgstr "Pripojenie k {}"
 
-#: client/scenes/lobby_gui.cpp:227
+#: client/scenes/lobby_gui.cpp:302
 msgid "PIN"
 msgstr "PIN"
 
-#: client/scenes/lobby_gui.cpp:249
+#: client/scenes/lobby_gui.cpp:324
 msgid "Input the PIN displayed on the dashboard"
 msgstr "Zadajte PIN zobrazený v okne aplikácie"
 
-#: client/scenes/lobby_gui.cpp:315
+#: client/scenes/lobby_gui.cpp:395
 msgid "Connected to WiVRn server"
 msgstr "Pripojené k WiVRn serveru"
 
-#: client/scenes/lobby_gui.cpp:317
+#: client/scenes/lobby_gui.cpp:397
 #, c++-format
 msgid "Connected to {}"
 msgstr "Pripojené k {}"
 
-#: client/scenes/lobby_gui.cpp:327
+#: client/scenes/lobby_gui.cpp:407
 msgid "Start an application on the server to start streaming."
 msgstr "Na serveri spustite aplikáciu, aby sa začalo streamovanie."
 
-#: client/scenes/lobby_gui.cpp:333
+#: client/scenes/lobby_gui.cpp:419
 msgid "Start an application on your computer or select one to start streaming."
 msgstr ""
-"Na svojom počítači spustite aplikáciu alebo vyberte jednu na začatie streamova"
-"nia."
+"Na svojom počítači spustite aplikáciu alebo vyberte jednu na začatie "
+"streamovania."
 
-#: client/scenes/lobby_gui.cpp:335
+#: client/scenes/lobby_gui.cpp:421
 #, c++-format
 msgid "Start an application on {} or select one to start streaming."
 msgstr "Spustite aplikáciu na {} alebo jednu vyberte pre začatie streamovania."
 
-#: client/scenes/lobby_gui.cpp:383
+#: client/scenes/lobby_gui.cpp:544
 msgid "Name"
 msgstr "Názov"
 
-#: client/scenes/lobby_gui.cpp:394
+#: client/scenes/lobby_gui.cpp:555
 msgid "Address"
 msgstr "Adresa"
 
-#: client/scenes/lobby_gui.cpp:403
+#: client/scenes/lobby_gui.cpp:564
 msgid "Port"
 msgstr "Port"
 
-#: client/scenes/lobby_gui.cpp:411
+#: client/scenes/lobby_gui.cpp:572
 msgid "TCP only"
 msgstr "Iba TCP"
 
-#: client/scenes/lobby_gui.cpp:418
+#: client/scenes/lobby_gui.cpp:579
 msgid "Cancel"
 msgstr "Zrušiť"
 
-#: client/scenes/lobby_gui.cpp:432
+#: client/scenes/lobby_gui.cpp:593
 msgid "Save"
 msgstr "Uložiť"
 
-#: client/scenes/lobby_gui.cpp:485
+#: client/scenes/lobby_gui.cpp:646
 msgid ""
 "Start a WiVRn server on your\n"
 "local network"
 msgstr ""
-"Spustite WiVRn server vo svojej\n"
+"Spustite WiVRn server na svojej\n"
 "lokálnej sieti"
 
-#: client/scenes/lobby_gui.cpp:517
+#: client/scenes/lobby_gui.cpp:678
 msgid "Autoconnect"
 msgstr "Automatické pripojenie"
 
-#: client/scenes/lobby_gui.cpp:543
+#: client/scenes/lobby_gui.cpp:704
 msgid "Connect"
 msgstr "Pripojiť"
 
-#: client/scenes/lobby_gui.cpp:553 client/wivrn_client.cpp:186
+#: client/scenes/lobby_gui.cpp:714 client/wivrn_client.cpp:186
 msgid "Incompatible server version"
 msgstr "Verzia servera nie je kompatibilná"
 
-#: client/scenes/lobby_gui.cpp:555
+#: client/scenes/lobby_gui.cpp:716
 msgid "Server not available"
 msgstr "Server nie je dostupný"
 
-#: client/scenes/lobby_gui.cpp:641
+#: client/scenes/lobby_gui.cpp:802
 msgid "Refresh rate"
 msgstr "Obnovovacia frekvencia"
 
-#: client/scenes/lobby_gui.cpp:641 client/scenes/lobby_gui.cpp:643
+#: client/scenes/lobby_gui.cpp:802 client/scenes/lobby_gui.cpp:804
 msgctxt "automatic refresh rate"
 msgid "Automatic"
 msgstr "Automaticky"
 
-#: client/scenes/lobby_gui.cpp:650
+#: client/scenes/lobby_gui.cpp:811
 msgid ""
 "Select refresh rate based on measured application performance.\n"
 "May cause flicker when a change happens."
@@ -175,60 +176,60 @@ msgstr ""
 "Vyber obnovovaciu frekvenciu podľa výkonu aplikácie.\n"
 "Pri zmene sa môže obraz trochu trhať."
 
-#: client/scenes/lobby_gui.cpp:667
+#: client/scenes/lobby_gui.cpp:828
 msgid "Minimum refresh rate"
 msgstr "Minimálna obnovovacia frekvencia"
 
-#: client/scenes/lobby_gui.cpp:690
+#: client/scenes/lobby_gui.cpp:851
 msgid "Resolution scale"
 msgstr "Rozlíšenie"
 
-#: client/scenes/lobby_gui.cpp:694 client/scenes/lobby_gui.cpp:933
+#: client/scenes/lobby_gui.cpp:855 client/scenes/lobby_gui.cpp:1094
 #, c-format, c++-format
 msgid "%d%% - {}x{} per eye"
 msgstr "%d%% - {}x{} na oko"
 
-#: client/scenes/lobby_gui.cpp:705 client/scenes/lobby_gui.cpp:944
+#: client/scenes/lobby_gui.cpp:866 client/scenes/lobby_gui.cpp:1105
 #, c++-format
 msgid "Resolution larger than {}x{} may not be supported by the headset"
-msgstr "Rozlíšenie vyžšie ako {}x{} nemusí byť podporované vašim hedsetom"
+msgstr "Rozlíšenie vyžšie ako {}x{} nemusí byť podporované vašim headsetom"
 
-#: client/scenes/lobby_gui.cpp:711
+#: client/scenes/lobby_gui.cpp:872
 msgid "Enable microphone"
 msgstr "Zapnúť mikrofón"
 
-#: client/scenes/lobby_gui.cpp:720
+#: client/scenes/lobby_gui.cpp:881
 msgid "Unprocessed Microphone Audio"
-msgstr "Mikrofónu bez postrocesovaného zvuku"
+msgstr "Mikrofónu bez procesovaného zvuku"
 
-#: client/scenes/lobby_gui.cpp:726
+#: client/scenes/lobby_gui.cpp:887
 msgid "Force disable audio filters, such as noise cancellation"
 msgstr ""
 "Vynúťené vypnutie zvukových filtrov, ako napríklad potlačenie okolného hluku"
 
-#: client/scenes/lobby_gui.cpp:733
+#: client/scenes/lobby_gui.cpp:894
 msgid "Enable hand tracking"
 msgstr "Zapnúť sledovanie rúk"
 
-#: client/scenes/lobby_gui.cpp:739 client/scenes/lobby_gui.cpp:751
-#: client/scenes/lobby_gui.cpp:763 client/scenes/lobby_gui.cpp:779
-#: client/scenes/lobby_gui.cpp:829
+#: client/scenes/lobby_gui.cpp:900 client/scenes/lobby_gui.cpp:912
+#: client/scenes/lobby_gui.cpp:924 client/scenes/lobby_gui.cpp:940
+#: client/scenes/lobby_gui.cpp:990
 msgid "This feature is not supported by your headset"
-msgstr "Táto fíčura nieje podporovaná vašim hedsetom"
+msgstr "Táto funkcia nieje podporovaná vašim headsetom"
 
-#: client/scenes/lobby_gui.cpp:745
+#: client/scenes/lobby_gui.cpp:906
 msgid "Enable eye tracking"
 msgstr "Zapnúť sledovanie očí"
 
-#: client/scenes/lobby_gui.cpp:757
+#: client/scenes/lobby_gui.cpp:918
 msgid "Enable face tracking"
 msgstr "Zapnúť sledovanie tváre"
 
-#: client/scenes/lobby_gui.cpp:770
+#: client/scenes/lobby_gui.cpp:931
 msgid "Enable body tracking"
 msgstr "Zapnúť sledovanie tela"
 
-#: client/scenes/lobby_gui.cpp:786
+#: client/scenes/lobby_gui.cpp:947
 msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings,\n"
@@ -236,27 +237,27 @@ msgid ""
 msgstr ""
 "Je potrebné 'Hand and body tracking' aby bolo zapnuté v Quest movement "
 "tracking settings,\n"
-"inak dáta o pozícii tela budú odhadované podla pozície hedsetu a ovládačov"
+"inak dáta o pozícii tela budú odhadované podla pozície headsetu a ovládačov"
 
-#: client/scenes/lobby_gui.cpp:799
+#: client/scenes/lobby_gui.cpp:960
 msgid "Enable lower body tracking"
 msgstr "Zapnúť sledovanie spodnej části tela"
 
-#: client/scenes/lobby_gui.cpp:805
+#: client/scenes/lobby_gui.cpp:966
 msgid ""
 "Estimate lower body joint positions using Generative Legs\n"
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings"
 msgstr ""
 "Odhad polohy kĺbov dolnej časti tela pomocou Generative Legs\n"
-"Vyžaduje, aby bolo v nastaveniach Quest movement "
-"tracking povolené „Hand and body tracking“"
+"Vyžaduje, aby bolo v nastaveniach Quest movement tracking povolené „Hand and "
+"body tracking“"
 
-#: client/scenes/lobby_gui.cpp:808
+#: client/scenes/lobby_gui.cpp:969
 msgid "Enable hip tracking"
 msgstr "Povoliť sledovanie pása"
 
-#: client/scenes/lobby_gui.cpp:814
+#: client/scenes/lobby_gui.cpp:975
 msgid ""
 "Only takes affect with lower body tracking enabled\n"
 "May be desired when using another source of hip tracking"
@@ -264,207 +265,211 @@ msgstr ""
 "Platí len pri zapnutom sledovaní dolnej časti tela\n"
 "Môže byť vhodné, ak sa používa iný zdroj sledovania pása"
 
-#: client/scenes/lobby_gui.cpp:822
+#: client/scenes/lobby_gui.cpp:983
 msgid "Enable video passthrough in lobby"
 msgstr "Povoliť passthrough video v hlavnom menu"
 
-#: client/scenes/lobby_gui.cpp:843 client/scenes/stream_gui.cpp:434
+#: client/scenes/lobby_gui.cpp:1004 client/scenes/stream_gui.cpp:434
 msgid "OpenXR post-processing"
 msgstr "OpenXRPostprocesing"
 
-#: client/scenes/lobby_gui.cpp:847 client/scenes/stream_gui.cpp:438
+#: client/scenes/lobby_gui.cpp:1008 client/scenes/stream_gui.cpp:438
 msgid "Supersampling"
 msgstr "Supersampling"
 
-#: client/scenes/lobby_gui.cpp:867 client/scenes/stream_gui.cpp:459
+#: client/scenes/lobby_gui.cpp:1028 client/scenes/stream_gui.cpp:459
 msgid ""
 "Reduce flicker for high contrast edges.\n"
 "Useful when the input resolution is high compared to the headset display"
 msgstr ""
 "Zníženie blikania pri okrajoch z vysokým kontrastom.\n"
-"Užitočné, keď je vstupné rozlíšenie vysoké v porovnaní s displejom hedsetu"
+"Užitočné, keď je vstupné rozlíšenie vysoké v porovnaní s displejom headsetu"
 
-#: client/scenes/lobby_gui.cpp:872 client/scenes/stream_gui.cpp:464
+#: client/scenes/lobby_gui.cpp:1033 client/scenes/stream_gui.cpp:464
 msgid "Sharpening"
 msgstr "Ostrosť"
 
-#: client/scenes/lobby_gui.cpp:892 client/scenes/stream_gui.cpp:485
+#: client/scenes/lobby_gui.cpp:1053 client/scenes/stream_gui.cpp:485
 msgid ""
 "Improve clarity of high contrast edges and counteract blur.\n"
 "Useful when the input resolution is low compared to the headset display"
 msgstr ""
 "Zlepšuje jasnosť pri okrajoch z vysokým kontrastom a potlačuje rozmazanie.\n"
-"Užitočné, keď je vstupné rozlíšenie nízke v porovnaní s displejom hedsetu"
+"Užitočné, keď je vstupné rozlíšenie nízke v porovnaní s displejom headsetu"
 
-#: client/scenes/lobby_gui.cpp:901
+#: client/scenes/lobby_gui.cpp:1062
 msgid "Enable Snapdragon Game Super Resolution"
 msgstr "Zapnúť Snapdragon Game Super Resolution"
 
-#: client/scenes/lobby_gui.cpp:909
+#: client/scenes/lobby_gui.cpp:1070
 msgid ""
 "On this headset, this setting has been fully superseded by the native "
 "Sharpening setting above.\n"
 "Only enable if you know what you're doing."
 msgstr ""
-"V tomto headsete bolo toto nastavenie plne nahradené vyššie uvedeným natívnym"
-"nastavením doostrenia.\n"
+"V tomto headsete bolo toto nastavenie plne nahradené vyššie uvedeným "
+"natívnym nastavením doostrenia.\n"
 "Zapnite ho, len ak viete, čo robíte."
 
-#: client/scenes/lobby_gui.cpp:911
+#: client/scenes/lobby_gui.cpp:1072
 msgid ""
 "Client-side upscaling and sharpening, adds a performance cost on the headset"
 msgstr ""
-"Zvýšenie rozlíšenia a doostrenie na strane klienta zvyšuje náklady na výkon he"
-"dsetu"
+"Zvýšenie rozlíšenia a doostrenie na strane klienta zvyšuje náklady na výkon "
+"headsetu"
 
-#: client/scenes/lobby_gui.cpp:929
+#: client/scenes/lobby_gui.cpp:1090
 msgid "Upscaling factor"
 msgstr "Faktor upscalovania"
 
-#: client/scenes/lobby_gui.cpp:948
+#: client/scenes/lobby_gui.cpp:1109
 msgid "Use edge direction"
 msgstr "Použitie smeru okrajov"
 
-#: client/scenes/lobby_gui.cpp:954
+#: client/scenes/lobby_gui.cpp:1115
 msgid "Adds an additional performance cost"
 msgstr "Pridáva dodatočné náklady na výkon"
 
-#: client/scenes/lobby_gui.cpp:959
+#: client/scenes/lobby_gui.cpp:1120
 msgid "Edge threshold"
 msgstr "Hraničná hodnota okrajov"
 
-#: client/scenes/lobby_gui.cpp:966 client/scenes/lobby_gui.cpp:975
+#: client/scenes/lobby_gui.cpp:1127 client/scenes/lobby_gui.cpp:1136
 #, c++-format
 msgid "Recommended: {:.1f}"
 msgstr "Odporúčané: {:.1f}"
 
-#: client/scenes/lobby_gui.cpp:969
+#: client/scenes/lobby_gui.cpp:1130
 msgid "Edge sharpness"
 msgstr "Ostrosť okrajov"
 
-#: client/scenes/lobby_gui.cpp:1071 client/scenes/lobby_gui.cpp:1079
+#: client/scenes/lobby_gui.cpp:1232 client/scenes/lobby_gui.cpp:1240
 #: client/scenes/stream_gui.cpp:222 client/scenes/stream_gui.cpp:418
 msgid "CPU time"
 msgstr "CPU odozva"
 
-#: client/scenes/lobby_gui.cpp:1075
+#: client/scenes/lobby_gui.cpp:1236
 msgid "CPU time [ms]"
 msgstr "CPU odozva [ms]"
 
-#: client/scenes/lobby_gui.cpp:1085 client/scenes/lobby_gui.cpp:1093
+#: client/scenes/lobby_gui.cpp:1246 client/scenes/lobby_gui.cpp:1254
 #: client/scenes/stream_gui.cpp:224 client/scenes/stream_gui.cpp:419
 msgid "GPU time"
 msgstr "GPU odozva"
 
-#: client/scenes/lobby_gui.cpp:1089
+#: client/scenes/lobby_gui.cpp:1250
 msgid "GPU time [ms]"
 msgstr "GPU odozva [ms]"
 
-#: client/scenes/lobby_gui.cpp:1132
+#: client/scenes/lobby_gui.cpp:1293
 msgid "Enable the microphone?"
 msgstr "Zapnúť mikrofón?"
 
-#: client/scenes/lobby_gui.cpp:1137
+#: client/scenes/lobby_gui.cpp:1298
 msgid "Enable eye tracking?"
 msgstr "Povolenie sledovania očí?"
 
-#: client/scenes/lobby_gui.cpp:1142
+#: client/scenes/lobby_gui.cpp:1303
 msgid "Enable face tracking?"
 msgstr "Povolenie sledovania tváre?"
 
-#: client/scenes/lobby_gui.cpp:1147
+#: client/scenes/lobby_gui.cpp:1308
 msgid "Enable body tracking?"
 msgstr "Povoliť sledovanie tela?"
 
-#: client/scenes/lobby_gui.cpp:1155
+#: client/scenes/lobby_gui.cpp:1316
 msgid "Welcome to WiVRn"
 msgstr "Vitajte v WiVRn"
 
-#: client/scenes/lobby_gui.cpp:1179
+#: client/scenes/lobby_gui.cpp:1340
 msgid "Yes"
 msgstr "Áno"
 
-#: client/scenes/lobby_gui.cpp:1186
+#: client/scenes/lobby_gui.cpp:1347
 msgid "No"
 msgstr "Nie"
 
-#: client/scenes/lobby_gui.cpp:1205 client/scenes/lobby_gui.cpp:1844
+#: client/scenes/lobby_gui.cpp:1366 client/scenes/lobby_gui.cpp:2005
 msgid "Licenses"
 msgstr "Licencie"
 
-#: client/scenes/lobby_gui.cpp:1519
+#: client/scenes/lobby_gui.cpp:1680
 msgid "Microphone is enabled"
 msgstr "Mikrofón je zapnutý"
 
-#: client/scenes/lobby_gui.cpp:1520
+#: client/scenes/lobby_gui.cpp:1681
 msgid "Microphone is disabled"
 msgstr "Mikrofón je vypnutý"
 
-#: client/scenes/lobby_gui.cpp:1529
+#: client/scenes/lobby_gui.cpp:1690
 msgid "Hand tracking is enabled"
 msgstr "Sledovanie rúk je zapnuté"
 
-#: client/scenes/lobby_gui.cpp:1530
+#: client/scenes/lobby_gui.cpp:1691
 msgid "Hand tracking is disabled"
 msgstr "Sledovanie rúk je vypnuté"
 
-#: client/scenes/lobby_gui.cpp:1539
+#: client/scenes/lobby_gui.cpp:1700
 msgid "Eye tracking is enabled"
 msgstr "Sledovanie očí je zapnuté"
 
-#: client/scenes/lobby_gui.cpp:1540
+#: client/scenes/lobby_gui.cpp:1701
 msgid "Eye tracking is disabled"
 msgstr "Sledovanie očí je vypnuté"
 
-#: client/scenes/lobby_gui.cpp:1553
+#: client/scenes/lobby_gui.cpp:1714
 msgid "Face tracking is enabled"
 msgstr "Sledovanie tváre je zapnuté"
 
-#: client/scenes/lobby_gui.cpp:1554
+#: client/scenes/lobby_gui.cpp:1715
 msgid "Face tracking is disabled"
 msgstr "Sledovanie tváre je vypnuté"
 
-#: client/scenes/lobby_gui.cpp:1564
+#: client/scenes/lobby_gui.cpp:1725
 msgid "Body tracking is enabled"
 msgstr "Sledovanie tela je zapnuté"
 
-#: client/scenes/lobby_gui.cpp:1565
+#: client/scenes/lobby_gui.cpp:1726
 msgid "Body tracking is disabled"
 msgstr "Sledovanie tela je vypnuté"
 
-#: client/scenes/lobby_gui.cpp:1581
+#: client/scenes/lobby_gui.cpp:1742
 msgid "Add server"
 msgstr "Pridať server"
 
-#: client/scenes/lobby_gui.cpp:1826
+#: client/scenes/lobby_gui.cpp:1987
 msgid "Server list"
 msgstr "Zoznam serverov"
 
-#: client/scenes/lobby_gui.cpp:1829 client/scenes/stream_gui.cpp:796
+#: client/scenes/lobby_gui.cpp:1990 client/scenes/stream_gui.cpp:796
 msgid "Settings"
 msgstr "Nastavenia"
 
-#: client/scenes/lobby_gui.cpp:1832
+#: client/scenes/lobby_gui.cpp:1993
 msgid "Post-processing"
 msgstr "Postprocesing"
 
-#: client/scenes/lobby_gui.cpp:1836
+#: client/scenes/lobby_gui.cpp:1997
 msgid "Debug"
 msgstr "Ladenie"
 
-#: client/scenes/lobby_gui.cpp:1841
+#: client/scenes/lobby_gui.cpp:2002
 msgid "About"
 msgstr "O aplikácii"
 
-#: client/scenes/lobby_gui.cpp:1847
+#: client/scenes/lobby_gui.cpp:2008
 msgid "Exit"
 msgstr "Ukončiť"
 
-#: client/scenes/lobby_gui.cpp:1864
-msgid "Press the grip button or put your palm up\nto move the main window"
-msgstr "Stlačte tlačidlo grip alebo zdvihnite dlaň\npre presunutie hlavného okna"
+#: client/scenes/lobby_gui.cpp:2025
+msgid ""
+"Press the grip button or put your palm up\n"
+"to move the main window"
+msgstr ""
+"Stlačte tlačidlo grip alebo zdvihnite dlaň\n"
+"pre presunutie hlavného okna"
 
-#: client/scenes/lobby_gui.cpp:1866
+#: client/scenes/lobby_gui.cpp:2027
 msgid "Press the grip button to move the main window"
 msgstr "Pre presunutie hlavného okna stlačte grip"
 
@@ -574,7 +579,7 @@ msgstr "Pomocou joysticku nastavte foveation centrum"
 
 #: client/scenes/stream_gui.cpp:549
 msgid "Press A to save or B to cancel"
-msgstr "Stlač A pre uloženie alebo B pre zrušenie"
+msgstr "Stlačte A pre uloženie alebo B pre zrušenie"
 
 #: client/scenes/stream_gui.cpp:793
 msgid "Stats"
