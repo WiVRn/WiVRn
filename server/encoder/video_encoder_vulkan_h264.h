@@ -70,7 +70,5 @@ public:
 	                                                         uint8_t stream_idx);
 
 	std::vector<uint8_t> get_sps_pps();
-
-	static const vk::StructureChain<vk::VideoProfileInfoKHR, vk::VideoEncodeH264ProfileInfoKHR, vk::VideoEncodeUsageInfoKHR> video_profile_info;
 };
 } // namespace wivrn

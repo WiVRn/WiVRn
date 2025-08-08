@@ -169,6 +169,47 @@ std::vector<void *> wivrn::video_encoder_vulkan_h264::setup_slot_info(size_t dpb
 	return res;
 }
 
+auto get_video_caps(vk::raii::PhysicalDevice & phys_dev)
+{
+	vk::StructureChain video_profile_info{
+	        vk::VideoProfileInfoKHR{
+	                .videoCodecOperation =
+	                        vk::VideoCodecOperationFlagBitsKHR::eEncodeH264,
+	                .chromaSubsampling = vk::VideoChromaSubsamplingFlagBitsKHR::e420,
+	                .lumaBitDepth = vk::VideoComponentBitDepthFlagBitsKHR::e8,
+	                .chromaBitDepth = vk::VideoComponentBitDepthFlagBitsKHR::e8,
+	        },
+	        vk::VideoEncodeH264ProfileInfoKHR{
+	                .stdProfileIdc = STD_VIDEO_H264_PROFILE_IDC_BASELINE,
+	        },
+	        vk::VideoEncodeUsageInfoKHR{
+	                .videoUsageHints = vk::VideoEncodeUsageFlagBitsKHR::eStreaming,
+	                .videoContentHints = vk::VideoEncodeContentFlagBitsKHR::eRendered,
+	                .tuningMode = vk::VideoEncodeTuningModeKHR::eUltraLowLatency,
+	        }};
+
+	try
+	{
+		auto [video_caps, encode_caps, encode_h264_caps] =
+		        phys_dev.getVideoCapabilitiesKHR<
+		                vk::VideoCapabilitiesKHR,
+		                vk::VideoEncodeCapabilitiesKHR,
+		                vk::VideoEncodeH264CapabilitiesKHR>(video_profile_info.get());
+
+		return std::make_tuple(video_caps, encode_caps, encode_h264_caps, video_profile_info);
+	}
+	catch (...)
+	{}
+	// NVIDIA fails if the structure is there
+	video_profile_info.unlink<vk::VideoEncodeUsageInfoKHR>();
+	auto [video_caps, encode_caps, encode_h264_caps] =
+	        phys_dev.getVideoCapabilitiesKHR<
+	                vk::VideoCapabilitiesKHR,
+	                vk::VideoEncodeCapabilitiesKHR,
+	                vk::VideoEncodeH264CapabilitiesKHR>(video_profile_info.get());
+	return std::make_tuple(video_caps, encode_caps, encode_h264_caps, video_profile_info);
+}
+
 std::unique_ptr<wivrn::video_encoder_vulkan_h264> wivrn::video_encoder_vulkan_h264::create(
         wivrn_vk_bundle & vk,
         encoder_settings & settings,
@@ -186,14 +227,10 @@ std::unique_ptr<wivrn::video_encoder_vulkan_h264> wivrn::video_encoder_vulkan_h2
 	        },
 	};
 
-	auto [video_caps, encode_caps, encode_h264_caps] =
-	        vk.physical_device.getVideoCapabilitiesKHR<
-	                vk::VideoCapabilitiesKHR,
-	                vk::VideoEncodeCapabilitiesKHR,
-	                vk::VideoEncodeH264CapabilitiesKHR>(video_profile_info.get());
-
 	if (settings.bit_depth != 8)
 		throw std::runtime_error("h264 codec only supports 8-bit encoding");
+
+	auto [video_caps, encode_caps, encode_h264_caps, video_profile_info] = get_video_caps(vk.physical_device);
 
 	std::unique_ptr<video_encoder_vulkan_h264> self(new video_encoder_vulkan_h264(vk, rect, video_caps, encode_caps, fps, stream_idx, settings));
 
@@ -359,20 +396,3 @@ vk::ExtensionProperties wivrn::video_encoder_vulkan_h264::std_header_version()
 	       VK_STD_VULKAN_VIDEO_CODEC_H264_ENCODE_EXTENSION_NAME);
 	return std_header_version;
 }
-
-decltype(wivrn::video_encoder_vulkan_h264::video_profile_info) wivrn::video_encoder_vulkan_h264::video_profile_info = vk::StructureChain{
-        vk::VideoProfileInfoKHR{
-                .videoCodecOperation =
-                        vk::VideoCodecOperationFlagBitsKHR::eEncodeH264,
-                .chromaSubsampling = vk::VideoChromaSubsamplingFlagBitsKHR::e420,
-                .lumaBitDepth = vk::VideoComponentBitDepthFlagBitsKHR::e8,
-                .chromaBitDepth = vk::VideoComponentBitDepthFlagBitsKHR::e8,
-        },
-        vk::VideoEncodeH264ProfileInfoKHR{
-                .stdProfileIdc = STD_VIDEO_H264_PROFILE_IDC_BASELINE,
-        },
-        vk::VideoEncodeUsageInfoKHR{
-                .videoUsageHints = vk::VideoEncodeUsageFlagBitsKHR::eStreaming,
-                .videoContentHints = vk::VideoEncodeContentFlagBitsKHR::eRendered,
-                .tuningMode = vk::VideoEncodeTuningModeKHR::eUltraLowLatency,
-        }};
