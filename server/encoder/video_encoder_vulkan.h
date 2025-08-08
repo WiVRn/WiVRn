@@ -80,10 +80,9 @@ class video_encoder_vulkan : public video_encoder
 	bool session_initialized = false;
 	const vk::Rect2D rect;
 
-	vk::VideoEncodeRateControlLayerInfoKHR rate_control_layer;
-
 protected:
 	const uint8_t num_dpb_slots;
+	vk::VideoEncodeRateControlLayerInfoKHR rate_control_layer;
 	std::optional<vk::VideoEncodeRateControlInfoKHR> rate_control;
 
 	video_encoder_vulkan(wivrn_vk_bundle & vk,

@@ -264,6 +264,8 @@ std::unique_ptr<wivrn::video_encoder_vulkan_h264> wivrn::video_encoder_vulkan_h2
 		self->rate_control->pNext = &self->rate_control_h264;
 	}
 
+	self->rate_control_layer.pNext = &self->rate_control_layer_h264;
+
 	self->init(video_caps, video_profile_info.get(), &session_create_info, &h264_session_params);
 
 	return self;
