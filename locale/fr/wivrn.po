@@ -474,8 +474,7 @@ msgstr ""
 #: client/scenes/lobby_gui.cpp:1866
 msgid "Press the grip button to move the main window"
 msgstr ""
-"Serrez la gâchette latérale pour bouger la\n"
-"fenêtre principale"
+"Serrez la gâchette latérale pour bouger la fenêtre principale"
 
 #: client/scenes/stream_gui.cpp:224
 msgid "Reproject"
@@ -542,8 +541,7 @@ msgstr "Latence mouvement à photons estimée: {}ms"
 #: client/scenes/stream_gui.cpp:396
 msgid "Press the grip button to move the window"
 msgstr ""
-"Serrez la gâchette latérale pour bouger\n"
-"la fenêtre"
+"Serrez la gâchette latérale pour bouger la fenêtre"
 
 #: client/scenes/stream_gui.cpp:398 client/scenes/stream_gui.cpp:750
 msgid "Press both thumbsticks to display the WiVRn window"
