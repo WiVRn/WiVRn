@@ -33,7 +33,7 @@ jobs:
 
     - name: Install dependencies
       run: >
-        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev libboost-all-dev librsvg2-bin libssl-dev libnotify-dev librsvg2-dev
+        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev libboost-all-dev librsvg2-bin libssl-dev libnotify-dev librsvg2-dev libarchive-dev
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@286ed76c72de45dbf50c515779cf4ca2f6aa3944
       with:
@@ -87,7 +87,7 @@ jobs:
 
     - name: Install dependencies
       run: >
-        apt-get update && apt-get install --yes libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev  libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev qt6-base-dev qt6-tools-dev libcap-dev pkexec libboost-all-dev librsvg2-bin libssl-dev libnotify-dev qt6-declarative-dev extra-cmake-modules libkirigami-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev jq sudo cmake gcc g++ git qcoro-qt6-dev librsvg2-dev
+        apt-get update && apt-get install --yes libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev  libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev qt6-base-dev qt6-tools-dev libcap-dev pkexec libboost-all-dev librsvg2-bin libssl-dev libnotify-dev qt6-declarative-dev extra-cmake-modules libkirigami-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev jq sudo cmake gcc g++ git qcoro-qt6-dev librsvg2-dev libarchive-dev
 # runtime: qml6-module-qtqml-workerscript qml6-module-qtquick-dialogs
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@286ed76c72de45dbf50c515779cf4ca2f6aa3944
@@ -192,7 +192,7 @@ jobs:
 
     - name: install server dependencies
       run: >
-        sudo apt-get update && sudo apt-get install libavahi-glib-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev pkexec libnotify-dev librsvg2-dev
+        sudo apt-get update && sudo apt-get install libavahi-glib-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev pkexec libnotify-dev librsvg2-dev libarchive-dev
 
     - name: Configure CMake
       run: >
@@ -467,7 +467,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt update
-        apt install --yes libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev pkexec libboost-all-dev librsvg2-bin dpkg-dev pkg-config debhelper-compat build-essential lintian cmake libnotify-dev qt6-declarative-dev extra-cmake-modules libkirigami-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev jq sudo cmake gcc g++ git wget libssl-dev qcoro-qt6-dev librsvg2-dev
+        apt install --yes libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev pkexec libboost-all-dev librsvg2-bin dpkg-dev pkg-config debhelper-compat build-essential lintian cmake libnotify-dev qt6-declarative-dev extra-cmake-modules libkirigami-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev jq sudo cmake gcc g++ git wget libssl-dev qcoro-qt6-dev librsvg2-dev libarchive-dev
 
     - uses: actions/checkout@v4
       with:

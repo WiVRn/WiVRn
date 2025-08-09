@@ -19,6 +19,7 @@
 
           pkgs.librsvg
           pkgs.libpng
+          pkgs.libarchive
         ];
 
         package = pkgs.enableDebugging (pkgs.wivrn.overrideAttrs (finalAttrs: oldAttrs: {
