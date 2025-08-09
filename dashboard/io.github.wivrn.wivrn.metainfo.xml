@@ -69,6 +69,20 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="25.8" date="2025-08-10">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.8</url>
+			<description>
+				<ul>
+					<li>Add a screen to launch applications when the headset connects</li>
+					<li>Add a screen with many options during stream, which can be summoned by pressing both thumbsticks</li>
+					<li>Add XR_EXT_user_presence and XR_EXT_hand_interaction OpenXR extensions</li>
+					<li>Fix vulkan video encode and performances issues with multiple nvenc encoders on NVIDIA GPUs</li>
+					<li>Support 10-bit encoding on VAAPI for H.265 and AV1 codecs</li>
+					<li>Xrizer is now the default OpenVR compatibility layer (may be overriden by distribution packages)</li>
+					<li>Added Slovak and Turkish translations</li>
+				</ul>
+			</description>
+		</release>
 		<release version="25.6.1" date="2025-06-29">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.6.1</url>
 			<description>
