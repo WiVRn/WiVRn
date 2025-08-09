@@ -126,10 +126,7 @@ std::vector<std::byte> load_svg(const std::filesystem::path & filename, int size
 	};
 
 	if (!rsvg_handle_render_document(handle.get(), cr.get(), &viewport, &error))
-	{
-		g_printerr("could not render: %s", error->message);
-		return {};
-	}
+		throw std::runtime_error{std::string{"Could not render: "} + error->message};
 
 	// Write a PNG file
 	std::vector<std::byte> png;
@@ -143,11 +140,8 @@ std::vector<std::byte> load_svg(const std::filesystem::path & filename, int size
 		return CAIRO_STATUS_SUCCESS;
 	};
 
-	if (cairo_surface_write_to_png_stream(surface.get(), cb, &png) != CAIRO_STATUS_SUCCESS)
-	{
-		g_printerr("could not write output file");
-		return {};
-	}
+	if (auto status = cairo_surface_write_to_png_stream(surface.get(), cb, &png); status != CAIRO_STATUS_SUCCESS)
+		throw std::runtime_error{std::string{"Could not write output: "} + cairo_status_to_string(status)};
 
 	return png;
 }
@@ -201,352 +195,346 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 {
 	const uint32_t ICO_PNG_MAGIC = 0x474e5089;
 
-	try
+	auto ico = load_file(filename);
+
+	std::span header{ico};
+
+	auto reserved = read<uint16_t>(header);
+	auto resource_type = read<uint16_t>(header);
+	auto icon_count = read<uint16_t>(header);
+
+	if (reserved != 0 or resource_type != 1)
+		throw std::runtime_error{"Cannot read icon: " + filename.native()};
+
+	std::vector<ico_file_entry> entries;
+	int max_bpp = 0;
+
+	for (int i = 0; i < icon_count; i++)
 	{
-		auto ico = load_file(filename);
+		ico_file_entry entry;
+		entry.width = read<uint8_t>(header);
+		entry.height = read<uint8_t>(header);
+		auto num_colors = read<uint8_t>(header);
+		auto reserved = read<uint8_t>(header); // reserved
+		auto planes = read<uint16_t>(header);
+		entry.bpp = read<uint16_t>(header);
+		auto size = read<uint32_t>(header);
+		auto offset = read<uint32_t>(header);
 
-		std::span header{ico};
+		if (offset + size > ico.size())
+			throw std::runtime_error{"Cannot read icon: " + filename.native()};
 
-		auto reserved = read<uint16_t>(header);
-		auto resource_type = read<uint16_t>(header);
-		auto icon_count = read<uint16_t>(header);
+		entry.data = std::span{ico}.subspan(offset, size);
+		if (entry.width == 0)
+			entry.width = 256;
+		if (entry.height == 0)
+			entry.height = 256;
+		if (reserved != 0)
+			throw std::runtime_error{"Cannot read icon: " + filename.native()};
+		if (planes != 0 and planes != 1)
+			throw std::runtime_error{"Cannot read icon: " + filename.native()};
 
-		if (reserved != 0 or resource_type != 1)
-			return {};
+		entries.push_back(entry);
 
-		std::vector<ico_file_entry> entries;
-		int max_bpp = 0;
+		max_bpp = std::max(max_bpp, entry.bpp);
+	}
 
-		for (int i = 0; i < icon_count; i++)
+	const ico_file_entry * best_entry = index >= 0 ? &entries.at(index) : [&]() {
+		const ico_file_entry * best_entry = nullptr;
+
+		// Look for the smallest multiple of the requested size
+		int criterion = std::numeric_limits<int>::max();
+
+		for (const auto & entry: entries)
 		{
-			ico_file_entry entry;
-			entry.width = read<uint8_t>(header);
-			entry.height = read<uint8_t>(header);
-			auto num_colors = read<uint8_t>(header);
-			auto reserved = read<uint8_t>(header); // reserved
-			auto planes = read<uint16_t>(header);
-			entry.bpp = read<uint16_t>(header);
-			auto size = read<uint32_t>(header);
-			auto offset = read<uint32_t>(header);
+			if (entry.bpp != max_bpp)
+				continue;
 
-			if (offset + size > ico.size())
-				return {};
+			if (entry.width % size != 0 or entry.height % size != 0)
+				continue;
 
-			entry.data = std::span{ico}.subspan(offset, size);
-			if (entry.width == 0)
-				entry.width = 256;
-			if (entry.height == 0)
-				entry.height = 256;
-			if (reserved != 0)
-				return {};
-			if (planes != 0 and planes != 1)
-				return {};
-
-			entries.push_back(entry);
-
-			max_bpp = std::max(max_bpp, entry.bpp);
+			if (std::min(entry.width, entry.height) / size < criterion)
+			{
+				criterion = std::min(entry.width, entry.height);
+				best_entry = &entry;
+			}
 		}
-
-		const ico_file_entry * best_entry = index >= 0 ? &entries.at(index) : [&]() {
-			const ico_file_entry * best_entry = nullptr;
-
-			// Look for the smallest multiple of the requested size
-			int criterion = std::numeric_limits<int>::max();
-
-			for (const auto & entry: entries)
-			{
-				if (entry.bpp != max_bpp)
-					continue;
-
-				if (entry.width % size != 0 or entry.height % size != 0)
-					continue;
-
-				if (std::min(entry.width, entry.height) / size < criterion)
-				{
-					criterion = std::min(entry.width, entry.height);
-					best_entry = &entry;
-				}
-			}
-			if (best_entry)
-				return best_entry;
-
-			// No multiple found: pick the largest icon
-			criterion = 0;
-
-			for (const auto & entry: entries)
-			{
-				if (entry.bpp != max_bpp)
-					continue;
-
-				if (entry.width * entry.height > criterion)
-				{
-					criterion = entry.width * entry.height;
-					best_entry = &entry;
-				}
-			}
+		if (best_entry)
 			return best_entry;
-		}();
 
-		if (not best_entry)
+		// No multiple found: pick the largest icon
+		criterion = 0;
+
+		for (const auto & entry: entries)
+		{
+			if (entry.bpp != max_bpp)
+				continue;
+
+			if (entry.width * entry.height > criterion)
+			{
+				criterion = entry.width * entry.height;
+				best_entry = &entry;
+			}
+		}
+		return best_entry;
+	}();
+
+	if (not best_entry)
+		return {};
+
+	auto data = best_entry->data;
+	auto magic = read<uint32_t>(data);
+
+	if (magic == ICO_PNG_MAGIC)
+	{
+		// PNG file
+		std::vector<std::byte> png_data;
+
+		// The PNG magic has already been consumed, put it back
+		png_data.insert(png_data.end(), data.begin() - 4, data.end());
+
+		// Check if the PNG is valid
+		std::vector<uint8_t> pixels;
+		png_image png_ref{
+		        .version = PNG_IMAGE_VERSION,
+		        .format = PNG_FORMAT_BGRA,
+		};
+		if (not png_image_begin_read_from_memory(&png_ref, png_data.data(), png_data.size()))
+			throw std::runtime_error{"Cannot read icon: " + filename.native()};
+
+		pixels.resize(PNG_IMAGE_SIZE(png_ref));
+
+		if (!png_image_finish_read(&png_ref, nullptr, pixels.data(), 0, nullptr))
+		{
+			png_image_free(&png_ref);
+			throw std::runtime_error{"Cannot read icon: " + filename.native()};
+		}
+		png_image_free(&png_ref);
+
+		return png_data;
+	}
+	else if (magic == 40)
+	{
+		auto width = read<uint32_t>(data);       // Width of image in pixels
+		auto height = read<uint32_t>(data);      // Height of image in pixels
+		auto planes = read<uint16_t>(data);      // Must be 1
+		auto bpp = read<uint16_t>(data);         // 1, 4, 8, 16, 24, 32
+		auto compression = read<uint32_t>(data); // Must be 0 for icons
+		auto image_size = read<uint32_t>(data);  // Size of image (without this header)
+		auto x_res = read<uint32_t>(data);
+		auto y_res = read<uint32_t>(data);
+		auto used_colors = read<uint32_t>(data);
+		auto important_colors = read<uint32_t>(data);
+
+		if (planes != 1 or compression != 0)
 			return {};
 
-		auto data = best_entry->data;
-		auto magic = read<uint32_t>(data);
+		if (bpp != 1 and
+		    bpp != 4 and
+		    bpp != 8 and
+		    bpp != 16 and
+		    bpp != 24 and
+		    bpp != 32)
+			return {};
 
-		if (magic == ICO_PNG_MAGIC)
+		auto w = width;
+		auto h = height / 2;
+
+		std::span<uint8_t> palette; // BGRX
+
+		if (bpp <= 16)
 		{
-			// PNG file
-			std::vector<std::byte> png_data;
+			// Load the palette
+			if (used_colors == 0)
+				used_colors = 1 << bpp;
 
-			// The PNG magic has already been consumed, put it back
-			png_data.insert(png_data.end(), data.begin() - 4, data.end());
-
-			// Check if the PNG is valid
-			std::vector<uint8_t> pixels;
-			png_image png_ref{
-			        .version = PNG_IMAGE_VERSION,
-			        .format = PNG_FORMAT_BGRA,
-			};
-			if (not png_image_begin_read_from_memory(&png_ref, png_data.data(), png_data.size()))
-				return {};
-
-			pixels.resize(PNG_IMAGE_SIZE(png_ref));
-
-			if (!png_image_finish_read(&png_ref, nullptr, pixels.data(), 0, nullptr))
-			{
-				png_image_free(&png_ref);
-				return {};
-			}
-			png_image_free(&png_ref);
-
-			return png_data;
+			palette = read<uint8_t>(data, used_colors * 4);
 		}
-		else if (magic == 40)
+
+		size_t xor_stride = rowstride(w, bpp);
+		size_t and_stride = rowstride(w, 1);
+		size_t dst_stride = 4 * w;
+
+		std::span<uint8_t> xor_map = read<uint8_t>(data, xor_stride * h);
+		std::span<uint8_t> and_map = read<uint8_t>(data, and_stride * h);
+
+		std::vector<uint8_t> dest_buffer;
+		dest_buffer.resize(h * dst_stride);
+
+		switch (bpp)
 		{
-			auto width = read<uint32_t>(data);       // Width of image in pixels
-			auto height = read<uint32_t>(data);      // Height of image in pixels
-			auto planes = read<uint16_t>(data);      // Must be 1
-			auto bpp = read<uint16_t>(data);         // 1, 4, 8, 16, 24, 32
-			auto compression = read<uint32_t>(data); // Must be 0 for icons
-			auto image_size = read<uint32_t>(data);  // Size of image (without this header)
-			auto x_res = read<uint32_t>(data);
-			auto y_res = read<uint32_t>(data);
-			auto used_colors = read<uint32_t>(data);
-			auto important_colors = read<uint32_t>(data);
+			case 1:
+				for (int y = 0; y < h; y++)
+				{
+					uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+					uint8_t * src_and_row = and_map.data() + and_stride * y;
+					uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
-			if (planes != 1 or compression != 0)
-				return {};
-
-			if (bpp != 1 and
-			    bpp != 4 and
-			    bpp != 8 and
-			    bpp != 16 and
-			    bpp != 24 and
-			    bpp != 32)
-				return {};
-
-			auto w = width;
-			auto h = height / 2;
-
-			std::span<uint8_t> palette; // BGRX
-
-			if (bpp <= 16)
-			{
-				// Load the palette
-				if (used_colors == 0)
-					used_colors = 1 << bpp;
-
-				palette = read<uint8_t>(data, used_colors * 4);
-			}
-
-			size_t xor_stride = rowstride(w, bpp);
-			size_t and_stride = rowstride(w, 1);
-			size_t dst_stride = 4 * w;
-
-			std::span<uint8_t> xor_map = read<uint8_t>(data, xor_stride * h);
-			std::span<uint8_t> and_map = read<uint8_t>(data, and_stride * h);
-
-			std::vector<uint8_t> dest_buffer;
-			dest_buffer.resize(h * dst_stride);
-
-			switch (bpp)
-			{
-				case 1:
-					for (int y = 0; y < h; y++)
+					for (int x = 0, i = 0; x < w; x++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
-						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+						int colour = (src_xor_row[x / 8] >> (7 - (x % 8))) & 0x1;
+						if (colour >= used_colors)
+							return {};
 
-						for (int x = 0, i = 0; x < w; x++)
-						{
-							int colour = (src_xor_row[x / 8] >> (7 - (x % 8))) & 0x1;
-							if (colour >= used_colors)
-								return {};
+						uint8_t b = palette[4 * colour + 0]; // Blue
+						uint8_t g = palette[4 * colour + 1]; // Green
+						uint8_t r = palette[4 * colour + 2]; // Red
 
-							uint8_t b = palette[4 * colour + 0]; // Blue
-							uint8_t g = palette[4 * colour + 1]; // Green
-							uint8_t r = palette[4 * colour + 2]; // Red
+						// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+						uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
 
-							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
-							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
-
-							*dst_row++ = b;
-							*dst_row++ = g;
-							*dst_row++ = r;
-							*dst_row++ = a;
-						}
+						*dst_row++ = b;
+						*dst_row++ = g;
+						*dst_row++ = r;
+						*dst_row++ = a;
 					}
-					break;
+				}
+				break;
 
-				case 4:
-					for (int y = 0; y < h; y++)
+			case 4:
+				for (int y = 0; y < h; y++)
+				{
+					uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+					uint8_t * src_and_row = and_map.data() + and_stride * y;
+					uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+
+					for (int x = 0, i = 0; x < w; x++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
-						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+						int colour = (src_xor_row[x / 2] >> (4 - 4 * (x % 2))) & 0xf;
+						if (colour >= used_colors)
+							return {};
 
-						for (int x = 0, i = 0; x < w; x++)
-						{
-							int colour = (src_xor_row[x / 2] >> (4 - 4 * (x % 2))) & 0xf;
-							if (colour >= used_colors)
-								return {};
+						uint8_t b = palette[4 * colour + 0]; // Blue
+						uint8_t g = palette[4 * colour + 1]; // Green
+						uint8_t r = palette[4 * colour + 2]; // Red
 
-							uint8_t b = palette[4 * colour + 0]; // Blue
-							uint8_t g = palette[4 * colour + 1]; // Green
-							uint8_t r = palette[4 * colour + 2]; // Red
+						// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+						uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
 
-							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
-							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
-
-							*dst_row++ = b;
-							*dst_row++ = g;
-							*dst_row++ = r;
-							*dst_row++ = a;
-						}
+						*dst_row++ = b;
+						*dst_row++ = g;
+						*dst_row++ = r;
+						*dst_row++ = a;
 					}
-					break;
+				}
+				break;
 
-				case 8:
-					for (int y = 0; y < h; y++)
+			case 8:
+				for (int y = 0; y < h; y++)
+				{
+					uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+					uint8_t * src_and_row = and_map.data() + and_stride * y;
+					uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+
+					for (int x = 0, i = 0; x < w; x++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
-						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+						int colour = *src_xor_row++;
+						if (colour >= used_colors)
+							return {};
 
-						for (int x = 0, i = 0; x < w; x++)
-						{
-							int colour = *src_xor_row++;
-							if (colour >= used_colors)
-								return {};
+						uint8_t b = palette[4 * colour + 0]; // Blue
+						uint8_t g = palette[4 * colour + 1]; // Green
+						uint8_t r = palette[4 * colour + 2]; // Red
 
-							uint8_t b = palette[4 * colour + 0]; // Blue
-							uint8_t g = palette[4 * colour + 1]; // Green
-							uint8_t r = palette[4 * colour + 2]; // Red
+						// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+						uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
 
-							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
-							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
-
-							*dst_row++ = b;
-							*dst_row++ = g;
-							*dst_row++ = r;
-							*dst_row++ = a;
-						}
+						*dst_row++ = b;
+						*dst_row++ = g;
+						*dst_row++ = r;
+						*dst_row++ = a;
 					}
-					break;
+				}
+				break;
 
-				case 16:
-					for (int y = 0; y < h; y++)
+			case 16:
+				for (int y = 0; y < h; y++)
+				{
+					uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+					uint8_t * src_and_row = and_map.data() + and_stride * y;
+					uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+
+					for (int x = 0, i = 0; x < w; x++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
-						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+						int colour = (src_xor_row[1] << 8) | src_xor_row[0];
+						src_xor_row += 2;
 
-						for (int x = 0, i = 0; x < w; x++)
-						{
-							int colour = (src_xor_row[1] << 8) | src_xor_row[0];
-							src_xor_row += 2;
+						if (colour >= used_colors)
+							return {};
 
-							if (colour >= used_colors)
-								return {};
+						uint8_t b = palette[4 * colour + 0]; // Blue
+						uint8_t g = palette[4 * colour + 1]; // Green
+						uint8_t r = palette[4 * colour + 2]; // Red
 
-							uint8_t b = palette[4 * colour + 0]; // Blue
-							uint8_t g = palette[4 * colour + 1]; // Green
-							uint8_t r = palette[4 * colour + 2]; // Red
+						// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+						uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
 
-							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
-							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
-
-							*dst_row++ = b;
-							*dst_row++ = g;
-							*dst_row++ = r;
-							*dst_row++ = a;
-						}
+						*dst_row++ = b;
+						*dst_row++ = g;
+						*dst_row++ = r;
+						*dst_row++ = a;
 					}
-					break;
+				}
+				break;
 
-				case 24:
-					for (int y = 0; y < h; y++)
+			case 24:
+				for (int y = 0; y < h; y++)
+				{
+					uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+					uint8_t * src_and_row = and_map.data() + and_stride * y;
+					uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+
+					for (int x = 0, i = 0; x < w; x++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
-						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+						uint8_t b = *src_xor_row++; // Blue
+						uint8_t g = *src_xor_row++; // Green
+						uint8_t r = *src_xor_row++; // Red
 
-						for (int x = 0, i = 0; x < w; x++)
-						{
-							uint8_t b = *src_xor_row++; // Blue
-							uint8_t g = *src_xor_row++; // Green
-							uint8_t r = *src_xor_row++; // Red
+						// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
+						uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
 
-							// Get alpha from AND mask (0: opaque => 0xff, 1: transparent => 0)
-							uint8_t a = src_and_row[x / 8] & (1 << (7 - x % 8)) ? 0 : 0xff;
-
-							*dst_row++ = b;
-							*dst_row++ = g;
-							*dst_row++ = r;
-							*dst_row++ = a;
-						}
+						*dst_row++ = b;
+						*dst_row++ = g;
+						*dst_row++ = r;
+						*dst_row++ = a;
 					}
-					break;
+				}
+				break;
 
-				case 32:
-					for (int y = 0; y < h; y++)
-					{
-						uint8_t * src_xor_row = (uint8_t *)xor_map.data() + xor_stride * y;
-						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
+			case 32:
+				for (int y = 0; y < h; y++)
+				{
+					uint8_t * src_xor_row = (uint8_t *)xor_map.data() + xor_stride * y;
+					uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
-						memcpy(dst_row, src_xor_row, dst_stride);
-					}
-					break;
-			}
+					memcpy(dst_row, src_xor_row, dst_stride);
+				}
+				break;
+		}
 
-			png_image png{
-			        .version = PNG_IMAGE_VERSION,
-			        .width = w,
-			        .height = h,
-			        .format = PNG_FORMAT_BGRA,
-			};
+		png_image png{
+		        .version = PNG_IMAGE_VERSION,
+		        .width = w,
+		        .height = h,
+		        .format = PNG_FORMAT_BGRA,
+		};
 
-			std::vector<std::byte> png_data{65536};
-			png_alloc_size_t png_size = png_data.size();
+		std::vector<std::byte> png_data{65536};
+		png_alloc_size_t png_size = png_data.size();
+		png_image_write_to_memory(&png, png_data.data(), &png_size, false /* convert_to_8_bit*/, dest_buffer.data(), w * 4, nullptr);
+
+		if (png_size > png_data.size())
+		{
+			png_data.resize(png_size);
 			png_image_write_to_memory(&png, png_data.data(), &png_size, false /* convert_to_8_bit*/, dest_buffer.data(), w * 4, nullptr);
-
-			if (png_size > png_data.size())
-			{
-				png_data.resize(png_size);
-				png_image_write_to_memory(&png, png_data.data(), &png_size, false /* convert_to_8_bit*/, dest_buffer.data(), w * 4, nullptr);
-			}
-			else
-				png_data.resize(png_size);
-
-			return png_data;
 		}
-	}
-	catch (std::exception & e)
-	{
+		else
+			png_data.resize(png_size);
+
+		return png_data;
 	}
 
-	return {};
+	throw std::runtime_error{"Wrong magic number in " + filename.native()};
 }
 
 std::unordered_map<std::filesystem::path, std::vector<std::byte>> icon_cache;
@@ -556,7 +544,7 @@ std::unordered_map<std::filesystem::path, std::vector<std::byte>> icon_cache;
 const std::vector<std::byte> & wivrn::load_icon(const std::filesystem::path & filename, int size)
 {
 	auto it = icon_cache.find(filename);
-	if (it != icon_cache.end())
+	if (it != icon_cache.end() and not it->second.empty())
 		return it->second;
 
 	std::vector<std::byte> icon;

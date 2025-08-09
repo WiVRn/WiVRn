@@ -757,12 +757,19 @@ void wivrn_session::operator()(from_headset::get_application_list && request)
 	{
 		if (app.icon_path)
 		{
-			auto icon = load_icon(*app.icon_path, 256);
+			try
+			{
+				auto icon = load_icon(*app.icon_path, 256);
 
-			send_control(to_headset::application_icon{
-			        .id = id,
-			        .image = std::move(icon),
-			});
+				send_control(to_headset::application_icon{
+				        .id = id,
+				        .image = std::move(icon),
+				});
+			}
+			catch (std::exception & e)
+			{
+				U_LOG_W("Error loading icon %s: %s", app.icon_path->c_str(), e.what());
+			}
 		}
 	}
 }
