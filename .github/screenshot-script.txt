@@ -21,21 +21,21 @@ exec grim -g "0,0 2560x1440" ${LANG}/screenshot-01-list.png
 
 
 # Connect to the first server
-set right direction 0.2 1.42 -1
-sleep 1
-set right trigger_value 1
-sleep 1
-set right trigger_value 0
-sleep 5
-exec grim -g "0,0 2560x1440" ${LANG}/screenshot-02-connect.png
+#set right direction 0.2 1.42 -1
+#sleep 1
+#set right trigger_value 1
+#sleep 1
+#set right trigger_value 0
+#sleep 5
+#exec grim -g "0,0 2560x1440" ${LANG}/screenshot-02-connect.png
 
 # Cancel
-set right direction -0.3 1.25 -1
-sleep 1
-set right trigger_value 1
-sleep 1
-set right trigger_value 0
-sleep 1
+#set right direction -0.3 1.25 -1
+#sleep 1
+#set right trigger_value 1
+#sleep 1
+#set right trigger_value 0
+#sleep 1
 
 
 # Add server
