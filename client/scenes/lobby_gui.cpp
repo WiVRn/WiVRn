@@ -462,7 +462,7 @@ void scenes::lobby::gui_connected(XrTime predicted_display_time)
 			}();
 
 			ImGui::PushStyleColor(ImGuiCol_Button, 0);
-			if (icon(app.name + "##" + app.id, texture, {256, 256}, 0, {icon_width, 0}))
+			if (icon(app.name + "##" + app.id, texture, {256, 256}, ImGuiButtonFlags_PressedOnClickRelease, {icon_width, 0}))
 			{
 				timestamp_start_application = predicted_display_time;
 				next_scene->start_application(app.id);
