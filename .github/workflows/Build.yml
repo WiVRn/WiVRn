@@ -195,13 +195,21 @@ jobs:
         sudo apt-get update && sudo apt-get install libavahi-glib-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev pkexec libnotify-dev librsvg2-dev libarchive-dev
 
     - name: Configure CMake
-      run: >
-        cmake -B ${{github.workspace}}/build
-        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        -DCMAKE_INSTALL_PREFIX=/usr
-        --preset everything
-        -DWIVRN_BUILD_DASHBOARD=OFF
-        -DWIVRN_BUILD_DISSECTOR=OFF
+      run: |
+        if [ ${{ github.ref_type }} = 'tag' ]
+        then
+                CSS=images/wivrn-release.css
+        else
+                CSS=images/wivrn-nightly.css
+        fi
+
+        cmake -B ${{github.workspace}}/build \
+                -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+                -DCMAKE_INSTALL_PREFIX=/usr \
+                --preset everything \
+                -DWIVRN_BUILD_DASHBOARD=OFF \
+                -DWIVRN_BUILD_DISSECTOR=OFF \
+                -DWIVRN_CSS=$CSS
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
