@@ -18,6 +18,8 @@
 
 #include "load_icon.h"
 
+#include <archive.h>
+#include <archive_entry.h>
 #include <cairo.h>
 #include <fstream>
 #include <librsvg/rsvg.h>
@@ -537,6 +539,67 @@ std::vector<std::byte> load_ico(const std::filesystem::path & filename, int size
 	throw std::runtime_error{"Wrong magic number in " + filename.native()};
 }
 
+std::vector<std::byte> load_zip(const std::filesystem::path & filename, int size)
+{
+	std::unique_ptr<archive, decltype(&archive_read_free)> zip{archive_read_new(), &archive_read_free};
+
+	archive_read_support_filter_all(zip.get());
+	archive_read_support_format_all(zip.get());
+
+	if (auto rc = archive_read_open_filename(zip.get(), filename.c_str(), 1'000'000); rc != ARCHIVE_OK)
+		throw std::runtime_error{"Cannot open " + filename.native() + ": " + archive_error_string(zip.get())};
+
+	archive_entry * entry;
+	int width = 0;
+	int height = 0;
+	std::vector<std::byte> png;
+
+	while (archive_read_next_header(zip.get(), &entry) == ARCHIVE_OK)
+	{
+		printf("%s\n", archive_entry_pathname(entry));
+
+		std::vector<std::byte> buffer;
+		buffer.resize(archive_entry_size(entry));
+
+		if (auto status = archive_read_data(zip.get(), buffer.data(), buffer.size()); status < 0)
+			continue;
+
+		// Try reading the PNG
+		std::vector<uint8_t> pixels;
+		png_image png_ref{
+		        .version = PNG_IMAGE_VERSION,
+		        .format = PNG_FORMAT_BGRA,
+		};
+
+		if (not png_image_begin_read_from_memory(&png_ref, buffer.data(), buffer.size()))
+		{
+			png_image_free(&png_ref);
+			continue;
+		}
+
+		// Keep the largest icon only
+		if (png_ref.width * png_ref.height < width * height)
+			continue;
+
+		pixels.resize(PNG_IMAGE_SIZE(png_ref));
+
+		if (!png_image_finish_read(&png_ref, nullptr, pixels.data(), 0, nullptr))
+		{
+			png_image_free(&png_ref);
+			continue;
+		}
+
+		// PNG read successfully: keep it until we find a better one
+		width = png_ref.width;
+		height = png_ref.height;
+		png = std::move(buffer);
+
+		png_image_free(&png_ref);
+	}
+
+	return png;
+}
+
 std::unordered_map<std::filesystem::path, std::vector<std::byte>> icon_cache;
 
 } // namespace
@@ -561,7 +624,7 @@ const std::vector<std::byte> & wivrn::load_icon(const std::filesystem::path & fi
 	else if (filename.extension() == ".zip")
 	{
 		// Steam icon (Linux)
-		// TODO
+		icon = load_zip(filename, size);
 	}
 	else
 	{

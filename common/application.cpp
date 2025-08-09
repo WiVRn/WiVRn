@@ -84,7 +84,7 @@ steam_app_info read_steam_app_info(const std::filesystem::path & root)
 	return {};
 }
 
-std::filesystem::path find_steam_icon(const std::filesystem::path & root, int app_id, const steam_app_info & info)
+std::optional<std::filesystem::path> find_steam_icon(const std::filesystem::path & root, int app_id, const steam_app_info & info)
 {
 	const auto & app_info = info.get(app_id);
 
@@ -102,7 +102,7 @@ std::filesystem::path find_steam_icon(const std::filesystem::path & root, int ap
 
 	try
 	{
-		std::string icon{std::get<std::string_view>(app_info.at("common.LinuxClientIcon"))};
+		std::string icon{std::get<std::string_view>(app_info.at("common.linuxclienticon"))};
 
 		auto icon_path = root / "steam/games" / (icon + ".zip");
 
@@ -113,7 +113,7 @@ std::filesystem::path find_steam_icon(const std::filesystem::path & root, int ap
 	{
 	}
 
-	return {};
+	return std::nullopt;
 }
 
 void read_steam_vr_apps(std::unordered_map<std::string, application> & res)

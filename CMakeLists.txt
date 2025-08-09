@@ -185,6 +185,7 @@ endif()
 
 if (WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_SERVER)
     pkg_check_modules(librsvg-2.0 REQUIRED IMPORTED_TARGET librsvg-2.0)
+    find_package(LibArchive)
     find_package(PNG)
 endif()
 
