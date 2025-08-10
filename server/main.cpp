@@ -425,7 +425,7 @@ gboolean headset_connected_success(void *)
 	}
 	catch (std::exception & e)
 	{
-		std::cerr << "Failed to start application: " << e.what();
+		std::cerr << "Failed to start application: " << e.what() << std::endl;
 	}
 
 	delay_next_try = default_delay_next_try;

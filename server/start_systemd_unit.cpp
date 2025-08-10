@@ -19,6 +19,7 @@
 #include "start_systemd_unit.h"
 #include "systemd_manager.h"
 #include "systemd_unit.h"
+#include "utils/strings.h"
 #include <gio/gio.h>
 #include <glib-object.h>
 #include <iostream>
@@ -211,11 +212,10 @@ void systemd_units_manager::start_application(const std::vector<std::string> & a
 	variant_builder argv(G_VARIANT_TYPE("as"));
 	for (const auto & arg: args)
 		g_variant_builder_add(&argv, "s", arg.c_str());
-	auto exec_start =
-	        g_variant_new("(s@asb)",
-	                      args.front().c_str(),
-	                      g_variant_new("as", &argv),
-	                      false);
+	auto exec_start = g_variant_new("(s@asb)",
+	                                args.front().c_str(),
+	                                g_variant_new("as", &argv),
+	                                false);
 	g_variant_builder_add(&b,
 	                      "(sv)",
 	                      "ExecStart",
@@ -223,6 +223,17 @@ void systemd_units_manager::start_application(const std::vector<std::string> & a
 	                              nullptr,
 	                              &exec_start,
 	                              1));
+
+	if (auto path = std::getenv("PATH"))
+	{
+		variant_builder pathv(G_VARIANT_TYPE("as"));
+		for (auto item: utils::split(path, ":"))
+			g_variant_builder_add(&pathv, "s", item.c_str());
+		g_variant_builder_add(&b,
+		                      "(sv)",
+		                      "ExecSearchPath",
+		                      g_variant_new("as", &pathv));
+	}
 
 	auto properties = b.end();
 	auto aux = g_variant_new_array(G_VARIANT_TYPE("(sa(sv))"), nullptr, 0);
