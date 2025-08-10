@@ -15,4 +15,4 @@ jobs:
       run: |
         qtchooser -install qt6 $(which qmake6)
         export QT_SELECT=qt6
-        tools/check_messages.sh
+        tools/check_po.py
