@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys
 import polib
 import argparse
 import os
@@ -35,6 +34,9 @@ def flag(lang: str):
 		res += chr(ord(i) + ord('🇦') - ord('A'))
 	return res
 
+ISSUE_LABEL="localisation"
+ISSUE_TITLE="[{lang}] Missing translations"
+
 if __name__ == "__main__":
 	root = os.path.dirname(os.path.dirname(__file__))
 	locale_dir = os.path.join(root, "locale")
@@ -45,6 +47,9 @@ if __name__ == "__main__":
 		description='Check that all strings are translated in a .po file')
 
 	parser.add_argument('lang', type=str, nargs="*")
+	parser.add_argument('--github-repository')
+	parser.add_argument('--github-token')
+	parser.add_argument('--manage-issues', action="store_true")
 
 	args = parser.parse_args()
 
@@ -52,6 +57,11 @@ if __name__ == "__main__":
 		for d in sorted(os.listdir(locale_dir)):
 			if os.path.isdir(os.path.join(locale_dir, d)):
 				args.lang.append(d)
+
+	if args.manage_issues:
+		from github import Github, Auth
+		gh = Github(auth=Auth.Token(args.github_token))
+		repo = gh.get_repo(args.github_repository)
 
 	with tempfile.TemporaryDirectory() as tmpdir:
 		client_pot = os.path.join(tmpdir, "client.pot")
@@ -103,3 +113,20 @@ if __name__ == "__main__":
 
 				if missing > 0:
 					print(f"::warning file={po}::{flag(lang)} {missing} translations missing")
+
+					if args.manage_issues:
+						issues = [i for i in repo.get_issues(state="all", labels = [ISSUE_LABEL]) if i.title == ISSUE_TITLE.format(lang=lang)]
+						if not issues:
+							issue = repo.create_issue(
+									title=ISSUE_TITLE.format(lang=lang),
+									labels = [ISSUE_LABEL]
+									)
+						else:
+							for issue in issues:
+								if issue.state != "open":
+									issue.edit(state = "open")
+				else:
+					if args.manage_issues:
+						issues = [i for i in repo.get_issues(state="open", labels = [ISSUE_LABEL]) if i.title == ISSUE_TITLE.format(lang=lang)]
+						for issue in issues:
+								issue.edit(state = "closed")
