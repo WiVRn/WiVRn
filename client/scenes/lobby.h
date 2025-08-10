@@ -123,7 +123,7 @@ class lobby : public scene_impl<lobby>
 	ImTextureID about_picture;
 	ImTextureID default_icon;
 	std::unordered_map<std::string, ImTextureID> app_icons;
-	XrTime timestamp_start_application{};
+	std::optional<XrTime> timestamp_start_application;
 
 	virtual_keyboard keyboard;
 
