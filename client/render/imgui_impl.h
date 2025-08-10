@@ -36,6 +36,10 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 
+#if WIVRN_CLIENT_IMGUI_TEST
+#include "imgui_te_engine.h"
+#endif
+
 class imgui_context
 {
 	struct command_buffer
@@ -153,6 +157,11 @@ private:
 	ImPlotContext * plot_context;
 	ImGuiIO & io;
 
+#if WIVRN_CLIENT_IMGUI_TEST
+	ImGuiTestEngine * test_engine;
+	ImGuiTestEngineIO& test_io;
+#endif
+
 	std::vector<std::pair<controller, controller_state>> controllers;
 	XrSpace world;
 	size_t focused_controller = (size_t)-1;
@@ -220,4 +229,12 @@ public:
 	void set_hovered_item();
 	void set_controllers_enabled(bool value);
 	void tooltip(std::string_view text);
+
+
+#if WIVRN_CLIENT_IMGUI_TEST
+	auto * get_test_engine() const
+	{
+		return test_engine;
+	}
+#endif
 };

@@ -202,6 +202,7 @@ jobs:
         --preset everything
         -DWIVRN_BUILD_DASHBOARD=OFF
         -DWIVRN_BUILD_DISSECTOR=OFF
+        -DWIVRN_CLIENT_IMGUI_TEST=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -244,7 +245,7 @@ jobs:
         WIVRN_SERVER_PID=$!
 
         mkdir -p ~/.config/wivrn
-        echo '{"servers": [{"autoconnect": false, "manual": true, "pretty_name": "Deep Thought", "hostname": "localhost", "port": 9757, "tcp_only": false, "cookie": ""}], "first_run": false}' > ~/.config/wivrn/client.json.in
+        echo '{"servers": [{"autoconnect": false, "manual": true, "pretty_name": "Deep Thought", "hostname": "localhost", "port": 9757, "tcp_only": false, "cookie": "abc123"}], "first_run": false}' > ~/.config/wivrn/client.json.in
 
         for LANG in en $(basename -a ${{github.workspace}}/locale/*)
         do
@@ -257,12 +258,14 @@ jobs:
                 cat ~/.config/wivrn/client.json.in | jq .virtual_keyboard_layout=\"QWERTY\" > ~/.config/wivrn/client.json
           fi
 
-          ${{github.workspace}}/build/bin/wivrn &
-          WIVRN_PID=$!
-          sleep 10
-          ${{github.workspace}}/build-monado/src/xrt/targets/remotectl/monado-remotectl 127.0.0.1 4242 < ${{github.workspace}}/.github/screenshot-script.txt
-          killall wivrn
-          wait $WIVRN_PID || true
+          ${{github.workspace}}/build/bin/wivrn
+
+          # ${{github.workspace}}/build/bin/wivrn &
+          # WIVRN_PID=$!
+          # sleep 10
+          # ${{github.workspace}}/build-monado/src/xrt/targets/remotectl/monado-remotectl 127.0.0.1 4242 < ${{github.workspace}}/.github/screenshot-script.txt
+          # killall wivrn
+          # wait $WIVRN_PID || true
         done
 
         killall wivrn-server

@@ -17,6 +17,10 @@ if (NOT BOOST_FOUND)
     FetchContent_MakeAvailable(boost)
 endif()
 
+if(WIVRN_CLIENT_IMGUI_TEST)
+    FetchContent_MakeAvailable(imgui_test)
+endif()
+
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
 include(I18n)
@@ -145,11 +149,30 @@ target_compile_definitions(wivrn-imgui PUBLIC IMGUI_USE_WCHAR32)
 target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE)
 # target_compile_definitions(wivrn-imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
 # target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
+target_compile_definitions(wivrn-imgui PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
 target_compile_features(wivrn-imgui PRIVATE cxx_std_23)
 target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
 
-target_link_libraries(wivrn wivrn-imgui)
+if(WIVRN_CLIENT_IMGUI_TEST)
+    target_sources(wivrn-imgui PRIVATE
+        ${imgui_test_SOURCE_DIR}/imgui_test_engine/imgui_capture_tool.cpp
+        ${imgui_test_SOURCE_DIR}/imgui_test_engine/imgui_te_coroutine.cpp
+        ${imgui_test_SOURCE_DIR}/imgui_test_engine/imgui_te_exporters.cpp
+        ${imgui_test_SOURCE_DIR}/imgui_test_engine/imgui_te_ui.cpp
+        ${imgui_test_SOURCE_DIR}/imgui_test_engine/imgui_te_context.cpp
+        ${imgui_test_SOURCE_DIR}/imgui_test_engine/imgui_te_engine.cpp
+        ${imgui_test_SOURCE_DIR}/imgui_test_engine/imgui_te_perftool.cpp
+        ${imgui_test_SOURCE_DIR}/imgui_test_engine/imgui_te_utils.cpp
+    )
+    target_include_directories(wivrn-imgui PUBLIC ${imgui_test_SOURCE_DIR}/imgui_test_engine)
+    target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_TEST_ENGINE)
+    target_compile_definitions(wivrn-imgui PUBLIC IMGUI_TEST_ENGINE_ENABLE_CAPTURE=0)
+    target_compile_definitions(wivrn-imgui PUBLIC IMGUI_TEST_ENGINE_ENABLE_STD_FUNCTION=1)
+    target_compile_definitions(wivrn-imgui PUBLIC IMGUI_TEST_ENGINE_ENABLE_COROUTINE_STDTHREAD_IMPL=1)
 
+endif()
+
+target_link_libraries(wivrn wivrn-imgui)
 
 
 ##############################################################################

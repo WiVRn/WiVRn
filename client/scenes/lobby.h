@@ -89,6 +89,10 @@ class lobby : public scene_impl<lobby>
 	float ray_offset{};
 #endif
 
+#if WIVRN_CLIENT_IMGUI_TEST
+	ImGuiTest * imgui_test = nullptr;
+#endif
+
 	void update_server_list();
 
 	std::vector<std::pair<int, XrCompositionLayerQuad>> draw_gui(XrTime predicted_display_time);

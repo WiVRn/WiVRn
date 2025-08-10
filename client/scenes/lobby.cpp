@@ -24,6 +24,7 @@
 #include "hand_model.h"
 #include "hardware.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "openxr/openxr.h"
 #include "protocol_version.h"
 #include "render/scene_data.h"
@@ -34,6 +35,7 @@
 #include "wivrn_sockets.h"
 #include "xr/passthrough.h"
 #include "xr/space.h"
+#include <filesystem>
 #include <glm/gtc/matrix_access.hpp>
 
 #include <chrono> // IWYU pragma: keep
@@ -52,6 +54,11 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/wait.h>
+
+#if WIVRN_CLIENT_IMGUI_TEST
+#include "imgui_te_context.h"
+#endif
 
 using namespace std::chrono_literals;
 
@@ -918,6 +925,97 @@ void scenes::lobby::on_focused()
 	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 3000, 1300);
 
 	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, imgui_inputs, swapchain_imgui, vps);
+
+#if WIVRN_CLIENT_IMGUI_TEST
+	imgui_test = IM_REGISTER_TEST(imgui_ctx->get_test_engine(), "demo_tests", "test1");
+	imgui_test->TestFunc = [&](ImGuiTestContext * ctx) {
+		// ctx->SetRef("//WiVRn/Tabs_44AD403D");
+		// spdlog::info("RefID={:08x}", ctx->RefID);
+
+		// spdlog::info("GUI test: server list");
+		// ctx->ItemClick(ImHashStr("WiVRn/Tabs_44AD403D###tab-server-list"));
+		// ctx->ItemClick("//WiVRn\\/Main_804DD8C3/Display debug axes");
+
+		const auto& info = application::get_messages_info();
+		std::string lang = info.variant == "" ? info.language : info.language + "_" + info.variant;
+		std::filesystem::create_directories(lang);
+
+		auto screenshot = [&](const std::string& filename){
+			ctx->Yield(10);
+			pid_t pid = fork();
+			if (pid == 0)
+			{
+				// Child
+				execlp("/usr/bin/grim", "/usr/bin/grim", "-g", "0,0 2560x1440", (lang + "/" + filename).c_str(), nullptr);
+				exit(1);
+			}
+			else if (pid > 0)
+			{
+				// Parent
+				waitpid(pid, nullptr, 0);
+				ctx->Yield();
+			}
+		};
+
+
+		// Server list
+		ctx->ItemClick(ImHashStr("###tab-server-list", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
+		screenshot("01-server-list.png");
+
+		// Connect
+		int timeout = 200;
+		auto & servers = application::get_config().servers;
+		while (servers.empty() and timeout-- > 0)
+			ctx->Yield();
+
+		if (not servers.empty())
+		{
+			auto cookie = servers.begin()->first;
+			ctx->ItemClick(ImHashStr(("###connect-" + cookie).c_str(), 0, ImHashStr("WiVRn/Main_804DD8C3")));
+			screenshot("02-connected.png");
+
+			// Cancel
+			timeout = 200;
+			while (current_tab != tab::connected and timeout-- > 0)
+			{
+				spdlog::info("current_tab={}, timeout={}", (int)current_tab, timeout);
+				ctx->Yield();
+			}
+
+			ctx->ItemClick(ImHashStr("###disconnect", 0, ImHashStr("WiVRn")));
+			ctx->Yield();
+		}
+
+		// Add a server
+		ctx->ItemClick(ImHashStr("###add-server", 0, ImHashStr("WiVRn/Main_804DD8C3")));
+		screenshot("03-add-server.png");
+
+		// ctx->ItemClick("VirtualKeyboard/");
+		ctx->ItemClick(ImHashStr("###cancel", 0, ImHashStr("add or edit server")));
+		ctx->Yield();
+
+		ctx->ItemClick(ImHashStr("###tab-settings", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
+		screenshot("04-settings.png");
+
+		// Post-processing
+		ctx->ItemClick(ImHashStr("###tab-post-processing", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
+		screenshot("05-post-processing.png");
+
+		// About
+		ctx->ItemClick(ImHashStr("###tab-about", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
+		screenshot("06-about.png");
+
+		// Licenses
+		ctx->ItemClick(ImHashStr("###tab-licenses", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
+		screenshot("07-licenses.png");
+
+		ctx->ItemClick(ImHashStr("###exit", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
+
+		spdlog::info("Test log: {}", ctx->TestOutput->Log.Buffer.c_str());
+	};
+
+	ImGuiTestEngine_QueueTest(imgui_ctx->get_test_engine(), imgui_test);
+#endif
 
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);

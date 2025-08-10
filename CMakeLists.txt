@@ -55,6 +55,7 @@ set(WIVRN_CSS "${CMAKE_SOURCE_DIR}/images/wivrn-local.css" CACHE STRING "Stylesh
 
 option(WIVRN_SHOW_IMGUI_DEMO_WINDOW "Show the Dear ImGui demo window in the client" OFF)
 option(WIVRN_CLIENT_DEBUG_MENU "Enable the debug menu in the client" OFF)
+option(WIVRN_CLIENT_IMGUI_TEST "Enable Dear ImGui Tests/Automation Engine" OFF)
 
 set(WIVRN_OPENXR_MANIFEST_TYPE_VALUES relative absolute filename)
 set(WIVRN_OPENXR_MANIFEST_TYPE "relative" CACHE STRING "How to reference libraries in OpenXR manifest: ${WIVRN_OPENXR_MANIFEST_TYPE_VALUES}")
@@ -282,11 +283,15 @@ FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM
                                    GIT_TAG 91ace88675ac59a97e55d0378a6602a9ae6b98bd)
 FetchContent_Declare(implot        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/epezent/implot/archive/3da8bd34299965d3b0ab124df743fe3e076fa222.zip
                                    URL_HASH SHA256=e9b439a94aa6f09fcf12ed9c2cd784efe5e99e96242122aa683e690b29f7a59f)
+
+set(IMGUI_VERSION v1.92.1)
 file(GLOB IMGUI_PATCHES CONFIGURE_DEPENDS patches/imgui/*)
-FetchContent_Declare(imgui         EXCLUDE_FROM_ALL SYSTEM URL https://github.com/ocornut/imgui/archive/refs/tags/v1.92.1.tar.gz
+FetchContent_Declare(imgui         EXCLUDE_FROM_ALL SYSTEM URL https://github.com/ocornut/imgui/archive/refs/tags/${IMGUI_VERSION}.tar.gz
                                    URL_HASH SHA256=32c237c2abf67a2ffccaac17192f711d4a787554b4133187a153d49057d6109c
-                                   PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${IMGUI_PATCHES}
-)
+                                   PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${IMGUI_PATCHES})
+FetchContent_Declare(imgui_test    EXCLUDE_FROM_ALL SYSTEM URL https://github.com/ocornut/imgui_test_engine/archive/refs/tags/${IMGUI_VERSION}.tar.gz
+                                   URL_HASH SHA256=37b72896d504f9a949c8cd90a5e29ea58c475e9fa95baaa5adce9e42559e51a1)
+
 FetchContent_Declare(uni-algo      EXCLUDE_FROM_ALL SYSTEM URL https://github.com/uni-algo/uni-algo/archive/v1.2.0.tar.gz
                                    URL_HASH SHA256=f2a1539cd8635bc6088d05144a73ecfe7b4d74ee0361fabed6f87f9f19e74ca9)
 FetchContent_Declare(entt          EXCLUDE_FROM_ALL SYSTEM URL https://github.com/skypjack/entt/archive/refs/tags/v3.15.0.tar.gz

@@ -17,8 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define IMGUI_DEFINE_MATH_OPERATORS
-
 #ifdef __ANDROID__
 #include "android/battery.h"
 #endif
@@ -29,6 +27,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "lobby.h"
+#include "imgui_te_ui.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
@@ -513,7 +512,7 @@ void scenes::lobby::gui_connected(XrTime predicted_display_time)
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-	if (ImGui::Button(disconnect.c_str()))
+	if (ImGui::Button((disconnect + "###disconnect").c_str()))
 	{
 		next_scene.reset();
 		current_tab = tab::server_list;
@@ -576,7 +575,7 @@ void scenes::lobby::gui_new_server()
 	auto bottom_right = ImGui::GetWindowContentRegionMax();
 
 	ImGui::SetCursorPosX(top_left.x);
-	if (ImGui::Button(_S("Cancel"), button_size))
+	if (ImGui::Button((_("Cancel") + "###cancel").c_str(), button_size))
 	{
 		current_tab = tab::server_list;
 		add_server_window_prettyname = "";
@@ -701,7 +700,7 @@ void scenes::lobby::gui_server_list()
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.5f, 0.2f, 1.00f));
 		}
 
-		if (ImGui::Button((_("Connect") + "##" + cookie).c_str(), button_size))
+		if (ImGui::Button((_("Connect") + "###connect-" + cookie).c_str(), button_size))
 		{
 			connect(data);
 			ImGui::OpenPopup("connecting");
@@ -1203,6 +1202,15 @@ void scenes::lobby::gui_debug()
 	if (ImGui::Button("Delete configuration file"))
 		std::filesystem::remove(application::get_config_path() / "client.json");
 	imgui_ctx->vibrate_on_hover();
+
+#if WIVRN_CLIENT_IMGUI_TEST
+	if (ImGui::Button("Start imgui tests"))
+	{
+		ImGuiTestEngine_QueueTest(imgui_ctx->get_test_engine(), imgui_test);
+
+	}
+	imgui_ctx->vibrate_on_hover();
+#endif
 
 	float win_width = ImGui::GetWindowSize().x;
 	float win_height = ImGui::GetWindowSize().y;
@@ -1739,7 +1747,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	text_width += items.size() * style.FramePadding.x * 2;
 
 	// New server button
-	if (ImGui::Button(_S("Add server")) && !ImGui::IsPopupOpen("add or edit server"))
+	if (ImGui::Button((_("Add server") + "###add-server").c_str()) && !ImGui::IsPopupOpen("add or edit server"))
 		ImGui::OpenPopup("add or edit server");
 	imgui_ctx->vibrate_on_hover();
 	ImGui::SameLine();
@@ -1984,28 +1992,28 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 			ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list"), &current_tab, tab::server_list, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list") + "###tab-server-list", &current_tab, tab::server_list, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings") + "###tab-settings", &current_tab, tab::settings, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_WAND_MAGIC_SPARKLES "  " + _("Post-processing"), &current_tab, tab::post_processing, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_WAND_MAGIC_SPARKLES "  " + _("Post-processing") + "###tab-post-processing", &current_tab, tab::post_processing, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
 #if WIVRN_CLIENT_DEBUG_MENU
-			RadioButtonWithoutCheckBox(ICON_FA_BUG_SLASH "  " + _("Debug"), &current_tab, tab::debug, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_BUG_SLASH "  " + _("Debug") + "###tab-debug", &current_tab, tab::debug, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 #endif
 
 			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 3 * ImGui::GetCurrentContext()->FontSize - 6 * style.FramePadding.y - 2 * style.ItemSpacing.y - style.WindowPadding.y);
-			RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About"), &current_tab, tab::about, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About") + "###tab-about", &current_tab, tab::about, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_SCALE_BALANCED "  " + _("Licenses"), &current_tab, tab::licenses, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_SCALE_BALANCED "  " + _("Licenses") + "###tab-licenses", &current_tab, tab::licenses, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Exit"), &current_tab, tab::exit, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Exit") + "###exit", &current_tab, tab::exit, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
@@ -2044,6 +2052,11 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 		input->offset[xr::spaces::aim_right].first.z = ray_offset;
 	}
 #endif
+
+// #if WIVRN_CLIENT_IMGUI_TEST
+// 	ImGui::ShowDemoWindow();
+//         ImGuiTestEngine_ShowTestEngineWindows(imgui_ctx->get_test_engine(), nullptr);
+// #endif
 
 	return imgui_ctx->end_frame();
 }
