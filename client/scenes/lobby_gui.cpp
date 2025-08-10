@@ -246,7 +246,7 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 	if (next_scene)
 	{
 		current_tab = tab::connected;
-		timestamp_start_application = 0;
+		timestamp_start_application.reset();
 		ImGui::CloseCurrentPopup();
 		return;
 	}
@@ -408,7 +408,7 @@ void scenes::lobby::gui_connected(XrTime predicted_display_time)
 	}
 	else
 	{
-		bool app_starting = predicted_display_time - timestamp_start_application < 10'000'000'000;
+		bool app_starting = timestamp_start_application and (predicted_display_time - *timestamp_start_application < 10'000'000'000);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 0});
 		ImGui::BeginDisabled(app_starting);
