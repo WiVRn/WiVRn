@@ -17,7 +17,6 @@
  */
 
 #include "imgui_impl.h"
-#include "imgui_te_engine.h"
 #include "implot.h"
 
 #include "application.h"
@@ -52,6 +51,10 @@
 #include <android/system_fonts.h>
 #else
 #include <fontconfig/fontconfig.h>
+#endif
+
+#if WIVRN_CLIENT_IMGUI_TEST
+#include "imgui_te_engine.h"
 #endif
 
 /* Do not use:

@@ -936,11 +936,11 @@ void scenes::lobby::on_focused()
 		// ctx->ItemClick(ImHashStr("WiVRn/Tabs_44AD403D###tab-server-list"));
 		// ctx->ItemClick("//WiVRn\\/Main_804DD8C3/Display debug axes");
 
-		const auto& info = application::get_messages_info();
+		const auto & info = application::get_messages_info();
 		std::string lang = info.variant == "" ? info.language : info.language + "_" + info.variant;
 		std::filesystem::create_directories(lang);
 
-		auto screenshot = [&](const std::string& filename){
+		auto screenshot = [&](const std::string & filename) {
 			ctx->Yield(10);
 			pid_t pid = fork();
 			if (pid == 0)
@@ -957,10 +957,9 @@ void scenes::lobby::on_focused()
 			}
 		};
 
-
 		// Server list
 		ctx->ItemClick(ImHashStr("###tab-server-list", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
-		screenshot("01-server-list.png");
+		screenshot("screenshot-01-server-list.png");
 
 		// Connect
 		int timeout = 200;
@@ -972,7 +971,7 @@ void scenes::lobby::on_focused()
 		{
 			auto cookie = servers.begin()->first;
 			ctx->ItemClick(ImHashStr(("###connect-" + cookie).c_str(), 0, ImHashStr("WiVRn/Main_804DD8C3")));
-			screenshot("02-connected.png");
+			screenshot("screenshot-02-connected.png");
 
 			// Cancel
 			timeout = 200;
@@ -988,26 +987,26 @@ void scenes::lobby::on_focused()
 
 		// Add a server
 		ctx->ItemClick(ImHashStr("###add-server", 0, ImHashStr("WiVRn/Main_804DD8C3")));
-		screenshot("03-add-server.png");
+		screenshot("screenshot-03-add-server.png");
 
 		// ctx->ItemClick("VirtualKeyboard/");
 		ctx->ItemClick(ImHashStr("###cancel", 0, ImHashStr("add or edit server")));
 		ctx->Yield();
 
 		ctx->ItemClick(ImHashStr("###tab-settings", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
-		screenshot("04-settings.png");
+		screenshot("screenshot-04-settings.png");
 
 		// Post-processing
 		ctx->ItemClick(ImHashStr("###tab-post-processing", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
-		screenshot("05-post-processing.png");
+		screenshot("screenshot-05-post-processing.png");
 
 		// About
 		ctx->ItemClick(ImHashStr("###tab-about", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
-		screenshot("06-about.png");
+		screenshot("screenshot-06-about.png");
 
 		// Licenses
 		ctx->ItemClick(ImHashStr("###tab-licenses", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
-		screenshot("07-licenses.png");
+		screenshot("screenshot-07-licenses.png");
 
 		ctx->ItemClick(ImHashStr("###exit", 0, ImHashStr("WiVRn/Tabs_44AD403D")));
 

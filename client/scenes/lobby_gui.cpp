@@ -27,7 +27,6 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "lobby.h"
-#include "imgui_te_ui.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
@@ -44,6 +43,10 @@
 #include <string>
 #include <utility>
 #include <utils/strings.h>
+
+// #if WIVRN_CLIENT_IMGUI_TEST
+// #include "imgui_te_ui.h"
+// #endif
 
 #include "IconsFontAwesome6.h"
 
@@ -1207,7 +1210,6 @@ void scenes::lobby::gui_debug()
 	if (ImGui::Button("Start imgui tests"))
 	{
 		ImGuiTestEngine_QueueTest(imgui_ctx->get_test_engine(), imgui_test);
-
 	}
 	imgui_ctx->vibrate_on_hover();
 #endif
@@ -2053,10 +2055,10 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 	}
 #endif
 
-// #if WIVRN_CLIENT_IMGUI_TEST
-// 	ImGui::ShowDemoWindow();
-//         ImGuiTestEngine_ShowTestEngineWindows(imgui_ctx->get_test_engine(), nullptr);
-// #endif
+	// #if WIVRN_CLIENT_IMGUI_TEST
+	// 	ImGui::ShowDemoWindow();
+	// 	ImGuiTestEngine_ShowTestEngineWindows(imgui_ctx->get_test_engine(), nullptr);
+	// #endif
 
 	return imgui_ctx->end_frame();
 }

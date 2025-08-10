@@ -159,7 +159,7 @@ private:
 
 #if WIVRN_CLIENT_IMGUI_TEST
 	ImGuiTestEngine * test_engine;
-	ImGuiTestEngineIO& test_io;
+	ImGuiTestEngineIO & test_io;
 #endif
 
 	std::vector<std::pair<controller, controller_state>> controllers;
@@ -229,7 +229,6 @@ public:
 	void set_hovered_item();
 	void set_controllers_enabled(bool value);
 	void tooltip(std::string_view text);
-
 
 #if WIVRN_CLIENT_IMGUI_TEST
 	auto * get_test_engine() const
