@@ -969,6 +969,7 @@ int main(int argc, char * argv[])
 
 	std::string config_file;
 	app.add_option("-f", config_file, "configuration file")->option_text("FILE")->check(CLI::ExistingFile);
+	auto version_flag = app.add_flag("--version")->description("print version and exit");
 	auto no_active_runtime = app.add_flag("--no-manage-active-runtime")->description("don't set the active runtime on connection");
 	auto early_active_runtime = app.add_flag("--early-active-runtime")->description("forcibly manages the active runtime even if no headset present");
 	auto no_instructions = app.add_flag("--no-instructions")->group("");
@@ -980,6 +981,12 @@ int main(int argc, char * argv[])
 #endif
 
 	CLI11_PARSE(app, argc, argv);
+
+	if (*version_flag)
+	{
+		std::cout << "WiVRn version " << wivrn::git_version << std::endl;
+		return 0;
+	}
 
 	if (not config_file.empty())
 		configuration::set_config_file(config_file);
