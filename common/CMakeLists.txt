@@ -7,6 +7,7 @@ else()
 endif()
 
 if (GIT_DESC)
+    string(REGEX REPLACE "^v([0-9])" "\\1" GIT_DESC ${GIT_DESC})
     configure_file(version.cpp.in version.cpp)
 else ()
     add_custom_target(wivrn-version ALL
