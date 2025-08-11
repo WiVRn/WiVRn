@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-08-04 15:49+0200\n"
-"PO-Revision-Date: 2025-08-02 00:41+0200\n"
+"PO-Revision-Date: 2025-08-10 17:11+0200\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -470,7 +470,7 @@ msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
 msgstr ""
-"Pulsa el botón de agarre o pon tu palma apuntando hacia arriba\n"
+"Pulsa el botón de agarre o pon tu palma hacia arriba\n"
 "para mover la ventana principal"
 
 #: client/scenes/lobby_gui.cpp:2005
@@ -591,7 +591,7 @@ msgstr "Estadísticas"
 
 #: client/scenes/stream_gui.cpp:802
 msgid "Statistics overlay"
-msgstr "Superposición de las estadísticas"
+msgstr "Superponer estadísticas"
 
 #: client/scenes/stream_gui.cpp:805
 msgid "Compact view"
