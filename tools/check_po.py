@@ -95,7 +95,7 @@ if __name__ == "__main__":
 		dashboard_ref = polib.pofile(dashboard_pot)
 
 		for lang in args.lang:
-
+			lang_issues = 0
 			for po_ref, po in ((client_ref, os.path.join(locale_dir, lang, "wivrn.po")),
 				   (dashboard_ref, os.path.join(locale_dir, lang, "wivrn-dashboard.po"))):
 				if not os.path.exists(po):
@@ -110,23 +110,23 @@ if __name__ == "__main__":
 						if not i.msgid in entries:
 							missing = missing + 1
 							print(f"::notice file={po}::{flag(lang)} Translation for {repr(i.msgid)} is missing")
+				lang_issues += missing
 
 				if missing > 0:
 					print(f"::warning file={po}::{flag(lang)} {missing} translations missing")
 
-					if args.manage_issues:
-						issues = [i for i in repo.get_issues(state="all", labels = [ISSUE_LABEL]) if i.title == ISSUE_TITLE.format(lang=lang)]
-						if not issues:
-							issue = repo.create_issue(
-									title=ISSUE_TITLE.format(lang=lang),
-									labels = [ISSUE_LABEL]
-									)
-						else:
-							for issue in issues:
-								if issue.state != "open":
-									issue.edit(state = "open")
-				else:
-					if args.manage_issues:
-						issues = [i for i in repo.get_issues(state="open", labels = [ISSUE_LABEL]) if i.title == ISSUE_TITLE.format(lang=lang)]
+			if args.manage_issues:
+				issues = [i for i in repo.get_issues(state="all", labels = [ISSUE_LABEL]) if i.title == ISSUE_TITLE.format(lang=lang)]
+				if lang_issues > 0:
+					if issues:
 						for issue in issues:
-								issue.edit(state = "closed")
+							if issue.state != "open":
+								issue.edit(state="open")
+					else:
+						issue = repo.create_issue(
+								title=ISSUE_TITLE.format(lang=lang),
+								labels=[ISSUE_LABEL]
+								)
+				else:
+					for issue in issues:
+						issue.edit(state="closed")
