@@ -214,6 +214,9 @@ configuration::configuration(xr::system & system)
 		if (auto val = root["resolution_scale"]; val.is_double())
 			resolution_scale = val.get_double();
 
+		if (auto val = root["enable_stream_gui"]; val.is_bool())
+			enable_stream_gui = val.get_bool();
+
 		if (auto val = root["sgsr"]; val.is_object())
 			parse_sgsr_options(val.get_object());
 
@@ -365,6 +368,7 @@ void configuration::save()
 	json << ",\"mic_unprocessed_audio\":" << std::boolalpha << mic_unprocessed_audio;
 	json << ",\"fb_lower_body\":" << std::boolalpha << fb_lower_body;
 	json << ",\"fb_hip\":" << std::boolalpha << fb_hip;
+	json << ",\"enable_stream_gui\":" << std::boolalpha << enable_stream_gui;
 	for (auto & [key, value]: features)
 		json << "," << key << ":" << std::boolalpha << value;
 	json << ",\"virtual_keyboard_layout\":" << json_string(virtual_keyboard_layout);

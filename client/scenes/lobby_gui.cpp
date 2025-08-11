@@ -990,6 +990,13 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->tooltip(_("This feature is not supported by your headset"));
 	ImGui::EndDisabled();
 
+	{
+		ImGui::Checkbox(_S("Enable in-stream window"), &config.enable_stream_gui);
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Enables the configuration window to be shown while the game is streaming.\nIf enabled, the window is activated by pressing both thumbsticks."));
+	}
+
 	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
 }
 

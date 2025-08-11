@@ -465,8 +465,11 @@ void scenes::stream::on_focused()
 	                  swapchain_imgui,
 	                  std::vector{vp});
 
-	plots_toggle_1 = get_action("plots_toggle_1").first;
-	plots_toggle_2 = get_action("plots_toggle_2").first;
+	if (application::get_config().enable_stream_gui)
+	{
+		plots_toggle_1 = get_action("plots_toggle_1").first;
+		plots_toggle_2 = get_action("plots_toggle_2").first;
+	}
 	recenter_left = get_action("recenter_left").first;
 	recenter_right = get_action("recenter_right").first;
 	foveation_pitch = get_action("foveation_pitch").first;

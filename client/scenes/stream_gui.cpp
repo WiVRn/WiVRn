@@ -615,6 +615,8 @@ static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
 
 void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
 {
+	if (not(plots_toggle_1 and plots_toggle_2))
+		return;
 	bool interactable = true;
 	XrSpace world_space = application::space(xr::spaces::world);
 	auto views = session.locate_views(viewconfig, predicted_display_time, world_space).second;
