@@ -147,11 +147,24 @@ static xrt_binding_input_pair hand_interaction_input_binding[] = {
         {XRT_INPUT_HAND_GRASP_READY, XRT_INPUT_HAND_GRASP_READY},
 };
 
+static xrt_binding_input_pair simple_input_binding[] = {
+        {XRT_INPUT_SIMPLE_SELECT_CLICK, XRT_INPUT_HAND_PINCH_VALUE},
+        {XRT_INPUT_SIMPLE_GRIP_POSE, XRT_INPUT_HAND_GRIP_POSE},
+        {XRT_INPUT_SIMPLE_AIM_POSE, XRT_INPUT_HAND_AIM_POSE},
+};
+
 static xrt_binding_profile wivrn_binding_profiles[] = {
         {
                 .name = XRT_DEVICE_EXT_HAND_INTERACTION,
                 .inputs = hand_interaction_input_binding,
                 .input_count = std::size(hand_interaction_input_binding),
+                .outputs = nullptr,
+                .output_count = 0,
+        },
+        {
+                .name = XRT_DEVICE_SIMPLE_CONTROLLER,
+                .inputs = simple_input_binding,
+                .input_count = std::size(simple_input_binding),
                 .outputs = nullptr,
                 .output_count = 0,
         },
