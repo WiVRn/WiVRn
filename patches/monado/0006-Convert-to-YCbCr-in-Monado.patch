@@ -1,7 +1,7 @@
-From 437469e6a4de72ab69719cce92b841e4de19156f Mon Sep 17 00:00:00 2001
+From ec28b5726922e300dc05085a30150223c6a2183a Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 06/10] Convert to YCbCr in Monado
+Subject: [PATCH 06/13] Convert to YCbCr in Monado
 
 ---
  src/xrt/compositor/main/comp_renderer.c       |   6 +-
@@ -17,10 +17,10 @@ Subject: [PATCH 06/10] Convert to YCbCr in Monado
  10 files changed, 184 insertions(+), 86 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index c6f589466..0895ff694 100644
+index e45d33e22..d2518585c 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -933,7 +933,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -936,7 +936,8 @@ dispatch_compute(struct comp_renderer *r,
  
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
@@ -30,7 +30,7 @@ index c6f589466..0895ff694 100644
  
  	// Target view information.
  	struct render_viewport_data target_viewport_datas[XRT_MAX_VIEWS];
-@@ -949,7 +950,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -952,7 +953,8 @@ dispatch_compute(struct comp_renderer *r,
  	    eye_poses,                       //
  	    fovs,                            //
  	    target_image,                    //

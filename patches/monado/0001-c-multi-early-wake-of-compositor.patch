@@ -1,7 +1,7 @@
-From 18e184e504d9f55dbba3f02c87f96410b2ce04ab Mon Sep 17 00:00:00 2001
+From 483ce192460569020fa57522ee2bea99198dac2e Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
-Subject: [PATCH 01/10] c/multi: early wake of compositor
+Subject: [PATCH 01/13] c/multi: early wake of compositor
 
 ---
  .../compositor/multi/comp_multi_compositor.c  | 14 +++++++++
@@ -10,10 +10,10 @@ Subject: [PATCH 01/10] c/multi: early wake of compositor
  3 files changed, 41 insertions(+), 7 deletions(-)
 
 diff --git a/src/xrt/compositor/multi/comp_multi_compositor.c b/src/xrt/compositor/multi/comp_multi_compositor.c
-index 553565db4..789a2d042 100644
+index 94cea110e..88347a092 100644
 --- a/src/xrt/compositor/multi/comp_multi_compositor.c
 +++ b/src/xrt/compositor/multi/comp_multi_compositor.c
-@@ -232,7 +232,21 @@ wait_for_scheduled_free(struct multi_compositor *mc)
+@@ -236,7 +236,21 @@ wait_for_scheduled_free(struct multi_compositor *mc)
  	os_mutex_lock(&mc->slot_lock);
  	slot_move_and_clear_locked(mc, &mc->scheduled, &mc->progress);
  	os_mutex_unlock(&mc->slot_lock);

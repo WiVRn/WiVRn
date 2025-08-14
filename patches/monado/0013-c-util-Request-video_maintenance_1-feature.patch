@@ -1,7 +1,7 @@
-From b8e23426ec5ac97efdceaf2a319b9d5921e7b412 Mon Sep 17 00:00:00 2001
+From 8c874368dfaa363e088e91c05adf2a96f921671d Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 5 Aug 2025 16:01:59 +0200
-Subject: [PATCH 3/3] c/util: Request video_maintenance_1 feature
+Subject: [PATCH 13/13] c/util: Request video_maintenance_1 feature
 
 This will only be enabled if the VK_KHR_maintenance1 extension was
 requested.

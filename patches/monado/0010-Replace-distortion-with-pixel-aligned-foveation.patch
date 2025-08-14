@@ -1,21 +1,30 @@
-From 1bc74f74b613cce9d32c0f4bf16de70ddb7fb482 Mon Sep 17 00:00:00 2001
+From 624849b80a893d073f2315eca909afa823c0a345 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Mon, 2 Jun 2025 14:51:11 +0200
-Subject: [PATCH 10/10] Replace distortion with pixel-aligned foveation
+Subject: [PATCH 10/13] Replace distortion with pixel-aligned foveation
 
 ---
- src/xrt/compositor/CMakeLists.txt            |   2 +-
- src/xrt/compositor/render/render_compute.c   | 181 ++-----------------
+ src/xrt/compositor/CMakeLists.txt            |   4 +-
+ src/xrt/compositor/render/render_compute.c   | 185 ++-----------------
  src/xrt/compositor/render/render_interface.h |  33 ++--
- src/xrt/compositor/render/render_resources.c |  71 +-------
- src/xrt/compositor/shaders/distortion.comp   | 134 ++++----------
+ src/xrt/compositor/render/render_resources.c |  71 +------
+ src/xrt/compositor/shaders/distortion.comp   | 167 ++++++-----------
  src/xrt/compositor/util/comp_render_cs.c     |  33 +---
- 6 files changed, 76 insertions(+), 378 deletions(-)
+ 6 files changed, 101 insertions(+), 392 deletions(-)
 
 diff --git a/src/xrt/compositor/CMakeLists.txt b/src/xrt/compositor/CMakeLists.txt
-index 1ba5ec438..f1defe77a 100644
+index 1ba5ec438..eb068f5fc 100644
 --- a/src/xrt/compositor/CMakeLists.txt
 +++ b/src/xrt/compositor/CMakeLists.txt
+@@ -105,7 +105,7 @@ if(XRT_HAVE_VULKAN)
+ 	spirv_shaders(
+ 		SHADER_HEADERS
+ 		SPIRV_VERSION
+-		1.0 # Currently targeting Vulkan 1.0
++		1.3 # Currently targeting Vulkan 1.3
+ 		SOURCES
+ 		${SHADERS}
+ 		)
 @@ -115,7 +115,7 @@ if(XRT_HAVE_VULKAN)
  		${SHADER_HEADERS}
  		render/render_buffer.c
@@ -26,9 +35,20 @@ index 1ba5ec438..f1defe77a 100644
  		render/render_interface.h
  		render/render_resources.c
 diff --git a/src/xrt/compositor/render/render_compute.c b/src/xrt/compositor/render/render_compute.c
-index fd04801d4..5cd5a1726 100644
+index fd04801d4..44c3f0aee 100644
 --- a/src/xrt/compositor/render/render_compute.c
 +++ b/src/xrt/compositor/render/render_compute.c
+@@ -66,8 +66,8 @@ calc_dispatch_dims_views(const struct render_viewport_data views[XRT_MAX_VIEWS],
+ #undef IMAX
+ 
+ 	// Power of two divide and round up.
+-	w = uint_divide_and_round_up(w, 16);
+-	h = uint_divide_and_round_up(h, 16);
++	w = uint_divide_and_round_up(w, 8);
++	h = uint_divide_and_round_up(h, 8);
+ 
+ 	*out_w = w;
+ 	*out_h = h;
 @@ -167,8 +167,8 @@ update_compute_shared_descriptor_set(struct vk_bundle *vk,
                                       VkSampler src_samplers[XRT_MAX_VIEWS],
                                       VkImageView src_image_views[XRT_MAX_VIEWS],
@@ -478,10 +498,15 @@ index 5b9addd59..7d4d9cddb 100644
  
  	D(Pipeline, r->compute.clear.pipeline);
 diff --git a/src/xrt/compositor/shaders/distortion.comp b/src/xrt/compositor/shaders/distortion.comp
-index 9ce46fe6f..f3be617bd 100644
+index 9ce46fe6f..cd1828ac9 100644
 --- a/src/xrt/compositor/shaders/distortion.comp
 +++ b/src/xrt/compositor/shaders/distortion.comp
-@@ -7,17 +7,17 @@
+@@ -4,20 +4,22 @@
+ 
+ #version 460
+ #extension GL_GOOGLE_include_directive : require
++#extension GL_KHR_shader_subgroup_basic: require
++#extension GL_KHR_shader_subgroup_shuffle: require
  
  #include "srgb.inc.glsl"
  
@@ -507,7 +532,7 @@ index 9ce46fe6f..f3be617bd 100644
  layout(set = 0, binding = 2) uniform writeonly restrict image2DArray luma;
  layout(set = 0, binding = 3, std140) uniform restrict Config
  {
-@@ -41,109 +41,40 @@ vec3 rgb_to_ycbcr(vec3 color)
+@@ -41,122 +43,59 @@ vec3 rgb_to_ycbcr(vec3 color)
  	return transpose(color_space) * color + vec3(0, 0.5, 0.5);
  }
  
@@ -593,24 +618,13 @@ index 9ce46fe6f..f3be617bd 100644
  	ivec2 extent = ivec2(ubo.views[iz].zw);
 -	vec2 cbcrs[4];
 -	vec4 alpha;
-+	vec3 cbcra = vec3(0);
- 	for (int k = 0; k < 2; k += 1) {
- 		uint iy = gl_GlobalInvocationID.y * 2 + k;
-+		uint ymin = foveation.y[MAX_DIM * iz + iy];
-+		uint ymax = foveation.y[MAX_DIM * iz + iy + 1];
-+		if (ymin > ymax)
-+		{
-+			uint tmp = ymin;
-+			ymin = ymax;
-+			ymax = tmp;
-+		}
- 		for (int j = 0; j < 2; j += 1) {
- 			uint ix = gl_GlobalInvocationID.x * 2 + j;
- 
+-	for (int k = 0; k < 2; k += 1) {
+-		uint iy = gl_GlobalInvocationID.y * 2 + k;
+-		for (int j = 0; j < 2; j += 1) {
+-			uint ix = gl_GlobalInvocationID.x * 2 + j;
+-
 -			vec2 dist_uv = position_to_uv(extent, ix, iy);
-+			uint xmin = foveation.x[MAX_DIM * iz + ix];
-+			uint xmax = foveation.x[MAX_DIM * iz + ix + 1];
- 
+-
 -			vec2 uv = texture(distortion[iz + 0], dist_uv).xy;
 -			vec2 lod = texture(distortion[iz + 2], dist_uv).xy;
 -
@@ -621,35 +635,68 @@ index 9ce46fe6f..f3be617bd 100644
 -			vec4 colour = textureLod(source[iz], uv, mix(lod.x, lod.y, 0.5));
 -
 -			colour.rgb = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
-+			vec4 colour = vec4(0);
-+			for (uint y = ymin ; y < ymax; y += 1) {
-+				for (uint x = xmin ; x < xmax; x += 1) {
-+					colour += texelFetch(source[iz], ivec2(x, y), 0);
-+				}
-+			}
-+			colour /= (xmax - xmin) * (ymax - ymin);
-+			colour.xyz = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
++	uint iy = gl_GlobalInvocationID.y;
++	uint ymin = foveation.y[MAX_DIM * iz + iy];
++	uint ymax = foveation.y[MAX_DIM * iz + iy + 1];
++	if (ymin == ymax)
++		return;
++	if (ymin > ymax)
++	{
++		uint tmp = ymin;
++		ymin = ymax;
++		ymax = tmp;
++	}
++	uint ix = gl_GlobalInvocationID.x;
  
 -			int i = k * 2 + j;
 -			cbcrs[i] = colour.yz;
 -			alpha[i] = colour.a;
-+			cbcra.xy += colour.yz;
-+			cbcra.z += colour.a;
++	uint xmin = foveation.x[MAX_DIM * iz + ix];
++	uint xmax = foveation.x[MAX_DIM * iz + ix + 1];
++	if (xmin == xmax)
++		return;
  
- 			if (ix < extent.x && iy < extent.y) {
- 				imageStore(luma, ivec3(offset.x + ix, offset.y + iy, 0), vec4(colour.x));
-@@ -153,10 +84,7 @@ void main()
- 	if (gl_GlobalInvocationID.x >= extent.x || gl_GlobalInvocationID.y >= extent.y) {
- 		return;
+-			if (ix < extent.x && iy < extent.y) {
+-				imageStore(luma, ivec3(offset.x + ix, offset.y + iy, 0), vec4(colour.x));
+-			}
++	vec4 colour = vec4(0);
++	for (uint y = ymin ; y < ymax; y += 1) {
++		for (uint x = xmin ; x < xmax; x += 1) {
++			colour += texelFetch(source[iz], ivec2(x, y), 0);
+ 		}
+ 	}
+-	if (gl_GlobalInvocationID.x >= extent.x || gl_GlobalInvocationID.y >= extent.y) {
+-		return;
++	colour /= (xmax - xmin) * (ymax - ymin);
++	colour.xyz = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
++
++	imageStore(luma, ivec3(offset.x + ix, offset.y + iy, 0), vec4(colour.x));
++
++	vec4 sum = colour;
++	for (uint i = 0 ; i < gl_SubgroupSize; ++i)
++	{
++		uvec3 other = subgroupShuffle(gl_GlobalInvocationID, i);
++		vec4 c = subgroupShuffle(colour, i);
++		if (
++			other == gl_GlobalInvocationID + uvec3(1, 0, 0)
++			|| other == gl_GlobalInvocationID + uvec3(0, 1, 0)
++			|| other == gl_GlobalInvocationID + uvec3(1, 1, 0))
++		{
++			sum += c;
++		}
  	}
 -	vec2 cbcr = mix(mix(cbcrs[0], cbcrs[1], 0.5), mix(cbcrs[2], cbcrs[3], 0.5), 0.5);
 -	imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 0), vec4(cbcr.x, cbcr.y, 0, 0));
--
-+	imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 0), vec4(cbcra.x, cbcra.y, 0, 0) / 4);
-+	imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), vec4(cbcra.z, 0, 0, 0) / 4);
- 	imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), vec4(0.5, 0.5, 0, 0));
+ 
+-	imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), vec4(0.5, 0.5, 0, 0));
 -	alpha = vec4(mix(mix(alpha[0], alpha[1], 0.5), mix(alpha[2], alpha[3], 0.5), 0.5));
 -	imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy, 1), alpha);
++	if (ix %2 == 0 && iy %2 == 0)
++	{
++		imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy/2, 0), vec4(sum.y, sum.z, 0, 0) / 4);
++		imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy/2, 1), vec4(sum.w, 0, 0, 0) / 4);
++		imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy/2, 1), vec4(0.5, 0.5, 0, 0));
++	}
  }
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
 index b2d3ce10d..69429dc97 100644

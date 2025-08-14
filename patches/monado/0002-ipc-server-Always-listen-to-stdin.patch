@@ -1,7 +1,7 @@
-From b31b5aa4e7e890ae079ae2953a1ce3fc2e47b954 Mon Sep 17 00:00:00 2001
+From 642f328ff08872289082f591b393aa72cdfffe0a Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 2 Apr 2024 17:14:42 +0200
-Subject: [PATCH 02/10] ipc/server: Always listen to stdin
+Subject: [PATCH 02/13] ipc/server: Always listen to stdin
 
 ---
  src/xrt/ipc/server/ipc_server_mainloop_linux.c | 2 +-

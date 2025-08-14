@@ -1,7 +1,7 @@
-From 26d9345724a868304b9d3ca5b58fecef02493df3 Mon Sep 17 00:00:00 2001
+From 2300c7509699db2a59e4bd0eee33890a2d906156 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 5 Aug 2025 16:00:59 +0200
-Subject: [PATCH 2/3] a/vk: Expose video_maintenance_1 device feature
+Subject: [PATCH 12/13] a/vk: Expose video_maintenance_1 device feature
 
 ---
  src/xrt/auxiliary/vk/vk_bundle_init.c | 40 +++++++++++++++++++++++++--

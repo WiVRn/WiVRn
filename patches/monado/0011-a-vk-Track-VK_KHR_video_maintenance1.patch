@@ -1,7 +1,7 @@
-From 4905a1bd2a32d0cef4ade575021b17cf453632f0 Mon Sep 17 00:00:00 2001
+From 34699c38c4ebb5c968b4e1053ddbf48b31dbe72d Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 5 Aug 2025 15:51:48 +0200
-Subject: [PATCH 1/3] a/vk: Track VK_KHR_video_maintenance1
+Subject: [PATCH 11/13] a/vk: Track VK_KHR_video_maintenance1
 
 ---
  scripts/generate_vk_helpers.py        | 1 +
