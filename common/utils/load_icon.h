@@ -23,5 +23,13 @@
 
 namespace wivrn
 {
-const std::vector<std::byte> & load_icon(const std::filesystem::path & filename, int size);
-}
+struct icon
+{
+	int width;
+	int height;
+	int bpp;
+	std::vector<std::byte> png_data;
+};
+
+const std::vector<icon> & load_icon(const std::filesystem::path & filename);
+} // namespace wivrn
