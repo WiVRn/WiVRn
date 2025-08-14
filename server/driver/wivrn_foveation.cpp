@@ -389,7 +389,7 @@ std::array<to_headset::foveation_parameter, 2> wivrn_foveation::get_parameters()
 }
 
 static void fill_ubo(
-        uint32_t * ubo,
+        std::span<uint32_t> ubo,
         const std::vector<uint16_t> & params,
         bool flip,
         size_t offset,
@@ -398,9 +398,9 @@ static void fill_ubo(
 {
 	assert(params.size() % 2 == 1);
 	const int n_ratio = (params.size() - 1) / 2;
-	*ubo = offset;
+	ubo[0] = offset;
 	if (flip)
-		*ubo += size;
+		ubo[0] += size;
 	for (auto [i, n]: std::ranges::enumerate_view(params))
 	{
 		const int n_source = std::abs(n_ratio - int(i)) + 1;
@@ -411,12 +411,12 @@ static void fill_ubo(
 				ubo[1] = ubo[0] - n_source;
 			else
 				ubo[1] = ubo[0] + n_source;
-			++ubo;
+			ubo = ubo.subspan(1);
 			--count;
 		}
 	}
-	if (count > 0)
-		std::fill(ubo + 1, ubo + count + 1, *ubo);
+	if (not ubo.empty())
+		std::ranges::fill(ubo, ubo[0]);
 }
 
 template <typename T>
@@ -495,7 +495,7 @@ vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
 			offset = source[view].offset.w;
 			extent = source[view].extent.w;
 		}
-		fill_ubo(ubo->x + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, params[view].x, flip, offset, extent, foveated_width);
+		fill_ubo(std::span(ubo->x + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, RENDER_FOVEATION_BUFFER_DIMENSIONS), params[view].x, flip, offset, extent, foveated_width);
 
 		if (source[view].extent.h < 0)
 		{
@@ -509,7 +509,7 @@ vk::CommandBuffer wivrn_foveation::update_foveation_buffer(
 			offset = source[view].offset.h;
 			extent = source[view].extent.h;
 		}
-		fill_ubo(ubo->y + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, params[view].y, flip, offset, extent, foveated_height);
+		fill_ubo(std::span(ubo->y + view * RENDER_FOVEATION_BUFFER_DIMENSIONS, RENDER_FOVEATION_BUFFER_DIMENSIONS), params[view].y, flip, offset, extent, foveated_height);
 	}
 	return *cmd;
 }
