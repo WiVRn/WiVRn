@@ -21,7 +21,6 @@
 
 #include "audio/audio.h"
 #include "decoder/shard_accumulator.h"
-#include "imgui.h"
 #include "render/imgui_impl.h"
 #include "scene.h"
 #include "scenes/input_profile.h"
