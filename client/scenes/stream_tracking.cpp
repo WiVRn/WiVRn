@@ -433,11 +433,7 @@ void scenes::stream::tracking()
 			timer t(instance);
 			int samples = 0;
 
-			to_headset::tracking_control control;
-			{
-				std::lock_guard lock(tracking_control_mutex);
-				control = tracking_control;
-			}
+			auto control = *tracking_control.lock();
 
 			XrDuration prediction = std::clamp<XrDuration>(control.max_offset.count(), 0, 80'000'000);
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
@@ -636,13 +632,13 @@ void scenes::stream::tracking()
 
 void scenes::stream::operator()(to_headset::tracking_control && packet)
 {
-	std::lock_guard lock(tracking_control_mutex);
+	auto locked = tracking_control.lock();
 	auto m = size_t(to_headset::tracking_control::id::microphone);
 	if (audio_handle)
 		audio_handle->set_mic_state(packet.enabled[m]);
 
-	tracking_control = packet;
-	tracking_control.min_offset = std::min(tracking_control.min_offset, tracking_control.max_offset);
+	*locked = packet;
+	locked->min_offset = std::min(locked->min_offset, locked->max_offset);
 }
 
 static device_id derived_from(device_id target)
