@@ -101,8 +101,6 @@ private:
 	vk::raii::DescriptorPool blit_descriptor_pool = nullptr;
 	vk::raii::RenderPass blit_render_pass = nullptr;
 
-	vk::Extent2D decoder_out_size;
-	vk::Format decoder_out_format;
 	image_allocation decoder_out_image;
 
 	struct renderpass_output

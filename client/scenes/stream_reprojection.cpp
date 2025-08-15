@@ -74,16 +74,16 @@ stream_reprojection::vertex * stream_reprojection::get_vertices(size_t view)
 stream_reprojection::stream_reprojection(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
-        vk::Image input_image_,
-        vk::Extent2D input_extent,
-        uint32_t view_count,
+        image_allocation & input_image,
         std::vector<vk::Image> output_images_,
         vk::Extent2D output_extent,
         vk::Format format) :
-        view_count(view_count),
+        view_count(input_image.info().arrayLayers),
         device(device),
-        input_image(input_image_),
-        input_extent(input_extent),
+        input_extent{
+                .width = input_image.info().extent.width,
+                .height = input_image.info().extent.height,
+        },
         output_images(std::move(output_images_)),
         output_extent(output_extent)
 {
@@ -144,7 +144,7 @@ stream_reprojection::stream_reprojection(
 		vk::ImageViewCreateInfo iv_info{
 		        .image = input_image,
 		        .viewType = vk::ImageViewType::e2D,
-		        .format = vk::Format::eA8B8G8R8SrgbPack32,
+		        .format = input_image.info().format,
 		        .components = {
 		                .r = vk::ComponentSwizzle::eIdentity,
 		                .g = vk::ComponentSwizzle::eIdentity,

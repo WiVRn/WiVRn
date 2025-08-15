@@ -43,7 +43,6 @@ class stream_reprojection
 
 	// Source image
 	vk::raii::Sampler sampler = nullptr;
-	vk::Image input_image;
 	std::vector<vk::raii::ImageView> input_image_views;
 	std::vector<vk::DescriptorSet> descriptor_sets;
 	vk::Extent2D input_extent;
@@ -61,9 +60,7 @@ public:
 	stream_reprojection(
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
-	        vk::Image input_image,
-	        vk::Extent2D input_extent,
-	        uint32_t view_count,
+	        image_allocation & input_image,
 	        std::vector<vk::Image> output_images,
 	        vk::Extent2D output_extent,
 	        vk::Format format);

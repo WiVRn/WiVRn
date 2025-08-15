@@ -1008,6 +1008,10 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	uint16_t x_offset = 0;
 	for (auto & out: decoder_output)
 	{
+		vk::Extent2D decoder_out_size{
+		        .width = decoder_out_image.info().extent.width,
+		        .height = decoder_out_image.info().extent.height,
+		};
 		command_buffer.beginRenderPass(
 		        {
 		                .renderPass = *blit_render_pass,
@@ -1316,10 +1320,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 	}
 
 	// Create outputs for the decoders
-	decoder_out_size = vk::Extent2D{video_width, video_height};
 	{
-		decoder_out_format = vk::Format::eA8B8G8R8SrgbPack32;
-
 		vk::ImageCreateInfo image_info{
 		        .flags = vk::ImageCreateFlags{},
 		        .imageType = vk::ImageType::e2D,
@@ -1343,7 +1344,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		vk::ImageViewCreateInfo image_view_info{
 		        .image = vk::Image{decoder_out_image},
 		        .viewType = vk::ImageViewType::e2D,
-		        .format = vk::Format::eA8B8G8R8SrgbPack32,
+		        .format = image_info.format,
 		        .components = {},
 		        .subresourceRange = {
 		                .aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -1367,8 +1368,8 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 			                .renderPass = *blit_render_pass,
 			                .attachmentCount = 1,
 			                .pAttachments = &*output.image_view,
-			                .width = decoder_out_size.width,
-			                .height = decoder_out_size.height,
+			                .width = image_info.extent.width,
+			                .height = image_info.extent.height,
 			                .layers = 1,
 			        });
 		}
@@ -1435,8 +1436,6 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 	        device,
 	        physical_device,
 	        decoder_out_image,
-	        vk::Extent2D{.width = video_width, .height = video_height},
-	        2,
 	        swapchain_images,
 	        extent,
 	        swapchain.format());
