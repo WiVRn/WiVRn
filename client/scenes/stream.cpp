@@ -527,7 +527,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		}
 
 		if (state_ != state::streaming and std::ranges::all_of(decoders, [](accumulator_images & i) {
-			    return i.alpha() or not i.frames().empty();
+			    return i.alpha() or not i.empty();
 		    }))
 		{
 			state_ = state::streaming;
@@ -546,15 +546,14 @@ bool scenes::stream::accumulator_images::alpha() const
 	return decoder->desc().channels == wivrn::to_headset::video_stream_description::channels_t::alpha;
 }
 
-std::vector<uint64_t> scenes::stream::accumulator_images::frames() const
+bool scenes::stream::accumulator_images::empty() const
 {
-	std::vector<uint64_t> result;
 	for (const auto & frame: latest_frames)
 	{
 		if (frame)
-			result.push_back(frame->feedback.frame_index);
+			return false;
 	}
-	return result;
+	return true;
 }
 
 std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::common_frame(XrTime display_time)

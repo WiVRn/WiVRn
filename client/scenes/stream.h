@@ -67,12 +67,12 @@ private:
 		vk::DescriptorSet descriptor_set = nullptr;
 		vk::raii::PipelineLayout blit_pipeline_layout = nullptr;
 		vk::raii::Pipeline blit_pipeline = nullptr;
-		// latest frames from oldest to most recent
+		// latest frames, rolling buffer
 		std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, image_buffer_size> latest_frames;
 
 		std::shared_ptr<wivrn::shard_accumulator::blit_handle> frame(uint64_t id) const;
 		bool alpha() const;
-		std::vector<uint64_t> frames() const;
+		bool empty() const;
 	};
 
 	wifi_lock::wifi wifi;
