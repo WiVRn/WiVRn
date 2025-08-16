@@ -341,6 +341,7 @@ jobs:
         sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin gettext
         wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.3.2-Linux-x86_64.deb
+        npm install --global @gltf-transform/cli
 
     - name: Check for Secret availability
       id: secret-check
