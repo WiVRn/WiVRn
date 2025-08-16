@@ -322,7 +322,15 @@ class loader_context
 	std::vector<asset> loaded_assets;
 	asset & load_from_asset(const std::filesystem::path & path)
 	{
-		return loaded_assets.emplace_back(path);
+		try
+		{
+			return loaded_assets.emplace_back(path);
+		}
+		catch (std::exception & e)
+		{
+			spdlog::error("{}: error loading {}: {}", name, path.native(), e.what());
+			throw;
+		}
 	}
 
 public:
