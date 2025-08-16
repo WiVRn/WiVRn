@@ -125,7 +125,7 @@ class scene_renderer
 	vk::raii::PipelineLayout create_pipeline_layout(std::span<vk::DescriptorSetLayout> layouts);
 	vk::raii::Pipeline create_pipeline(const pipeline_info & info);
 
-	std::shared_ptr<renderer::texture> create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel);
+	std::shared_ptr<renderer::texture> create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel, const std::string & name);
 	std::shared_ptr<renderer::material> create_default_material(vk::raii::CommandPool & cb_pool);
 	vk::raii::DescriptorSetLayout create_descriptor_set_layout(std::span<vk::DescriptorSetLayoutBinding> bindings, vk::DescriptorSetLayoutCreateFlags flags = {});
 
