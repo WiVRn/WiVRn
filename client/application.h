@@ -357,6 +357,11 @@ public:
 		return instance().vk_instance;
 	}
 
+	static vk::raii::PhysicalDevice & get_physical_device()
+	{
+		return instance().vk_physical_device;
+	}
+
 	static xr::system & get_system()
 	{
 		return instance().xr_system_id;

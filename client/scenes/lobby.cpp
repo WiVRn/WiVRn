@@ -914,23 +914,14 @@ void scenes::lobby::on_focused()
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
 	std::string image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";
-	try
-	{
-		about_picture = imgui_ctx->load_texture(image + ".ktx2");
-	}
-	catch (...)
-	{
-		about_picture = imgui_ctx->load_texture(image + ".png");
-	}
 
-	try
-	{
-		default_icon = imgui_ctx->load_texture("default_icon.ktx2");
-	}
-	catch (...)
-	{
-		default_icon = imgui_ctx->load_texture("default_icon.png");
-	}
+#if WIVRN_USE_LIBKTX
+	about_picture = imgui_ctx->load_texture(image + ".ktx2");
+	default_icon = imgui_ctx->load_texture("default_icon.ktx2");
+#else
+	about_picture = imgui_ctx->load_texture(image + ".png");
+	default_icon = imgui_ctx->load_texture("default_icon.png");
+#endif
 
 	setup_passthrough();
 	session.set_refresh_rate(application::get_config().preferred_refresh_rate.value_or(0));
