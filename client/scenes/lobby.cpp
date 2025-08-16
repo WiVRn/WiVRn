@@ -799,7 +799,7 @@ void scenes::lobby::on_focused()
 	renderer.emplace(device, physical_device, queue, commandpool);
 	loader.emplace(device, physical_device, queue, queue_family_index, renderer->get_default_material());
 
-	lobby_entity = load_gltf("ground.gltf", layer_lobby).first;
+	lobby_entity = load_gltf("ground.glb", layer_lobby).first;
 
 	std::string profile = controller_name();
 	input.emplace(
@@ -913,14 +913,8 @@ void scenes::lobby::on_focused()
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
 	std::string image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";
-	try
-	{
-		about_picture = imgui_ctx->load_texture(image + ".ktx2");
-	}
-	catch (...)
-	{
-		about_picture = imgui_ctx->load_texture(image + ".png");
-	}
+
+	about_picture = imgui_ctx->load_texture(image + ".ktx2");
 
 	setup_passthrough();
 	session.set_refresh_rate(application::get_config().preferred_refresh_rate.value_or(0));

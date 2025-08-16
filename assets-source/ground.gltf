@@ -70,9 +70,6 @@
     "generator": "Aspose.3D 24.1.0",
     "version": "2.0"
   },
-  "extensionsUsed": [
-    "KHR_texture_basisu"
-  ],
   "buffers": [
     {
       "uri": "data:application/octet-stream;base64,AAABAAIAAwAEAAUAAAAAAAAAIMEAAAAAAAAgwQAAAAAAAIA/AAAAACUAgD8AAAAAAAAgwQAAAAAAACBBAACgQAAAgD8AAAAAJQCAPwAAAAAAACBBAAAAAAAAIMEAAAAAAACAwAAAAAAlAIA/AAAAAAAAIEEAAAAAAAAgQQAAoEAAAIDAAAAAACUAgD8AAAAAAAAgQQAAAAAAACDBAAAAAAAAgMAAAAAAJQCAPwAAAAAAACDBAAAAAAAAIEEAAKBAAACAPwAAAAAlAIA/AAAAAAAAAAA=",
@@ -82,9 +79,6 @@
   "images": [
     {
       "uri": "WoodFloor051_1K-JPG_Color.jpg"
-    },
-    {
-      "uri": "WoodFloor051_1K-JPG_Color.ktx2"
     }
   ],
   "bufferViews": [
@@ -129,12 +123,7 @@
   "textures": [
     {
       "sampler": 0,
-      "source": 0,
-      "extensions": {
-        "KHR_texture_basisu": {
-          "source": 1
-        }
-      }
+      "source": 0
     }
   ],
   "materials": [

@@ -7,11 +7,7 @@ set(KTX_FEATURE_LOADTEST_APPS OFF)
 
 set(FASTGLTF_COMPILE_AS_CPP20 ON)
 
-FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt)
-
-if (WIVRN_USE_LIBKTX)
-    FetchContent_MakeAvailable(libktx)
-endif()
+FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt libktx)
 
 if (NOT WIVRN_USE_SYSTEM_BOOST)
     FetchContent_MakeAvailable(boost)
@@ -19,6 +15,7 @@ endif()
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
+include(GenerateAssets)
 include(I18n)
 
 add_library(stb INTERFACE)
@@ -99,6 +96,7 @@ target_link_libraries(wivrn
     FreetypeHarfbuzz
     glm::glm
     imspinner
+    ktx_read
     simdjson
     spdlog::spdlog
     stb
@@ -107,10 +105,6 @@ target_link_libraries(wivrn
     wivrn-common
     wivrn-external
 )
-
-if (WIVRN_USE_LIBKTX)
-    target_link_libraries(wivrn ktx_read)
-endif()
 
 target_compile_definitions(wivrn PRIVATE -DXR_USE_GRAPHICS_API_VULKAN)
 target_compile_definitions(wivrn PRIVATE -DVMA_STATS_STRING_ENABLED=0)
@@ -224,61 +218,34 @@ endif()
 
 
 ##############################################################################
-# Generate assets from SVGs
+# Generate assets
 #
 file(REAL_PATH ${WIVRN_CSS} WIVRN_CSS_ABS BASE_DIRECTORY "${CMAKE_SOURCE_DIR}")
-set(RSVG_OPTS "--stylesheet=${WIVRN_CSS_ABS}")
 
-set(IMG_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../images)
-set(AST_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../assets)
+set(IMAGES_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../images)
+set(ASSETS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../assets-source)
 
-add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn.png
-    COMMAND ${RSVG_CONVERT} ${IMG_SRC_DIR}/wivrn.svg -w 540 -h 540 -o ${ASSETS_DIR}/wivrn.png ${RSVG_OPTS}
-    DEPENDS ${IMG_SRC_DIR}/wivrn.svg ${WIVRN_CSS_ABS})
+wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn.svg       DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png       WIDTH 540 HEIGHT 540 CSS ${WIVRN_CSS_ABS})
+wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn-pride.svg DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/wivrn-pride.png WIDTH 540 HEIGHT 540 CSS ${WIVRN_CSS_ABS})
 
-add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn-pride.png
-    COMMAND ${RSVG_CONVERT} ${IMG_SRC_DIR}/wivrn-pride.svg -w 540 -h 540 -o ${ASSETS_DIR}/wivrn-pride.png ${RSVG_OPTS}
-    DEPENDS ${IMG_SRC_DIR}/wivrn-pride.svg ${WIVRN_CSS_ABS})
+wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png                 DESTINATION ${ASSETS_DIR}/wivrn.ktx2                          TARGET wivrn)
+wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/wivrn-pride.png           DESTINATION ${ASSETS_DIR}/wivrn-pride.ktx2                    TARGET wivrn)
+wivrn_generate_ktx(        SOURCE ${ASSETS_SRC_DIR}/default_icon.png                    DESTINATION ${ASSETS_DIR}/default_icon.ktx2                   TARGET wivrn)
+wivrn_gltf_transform_uastc(SOURCE ${ASSETS_SRC_DIR}/ground.glb                          DESTINATION ${ASSETS_DIR}/ground.glb                          TARGET wivrn ZSTD 20)
+wivrn_webxr_controller(    SOURCE ${ASSETS_SRC_DIR}/controllers/generic-trigger-squeeze DESTINATION ${ASSETS_DIR}/controllers/generic-trigger-squeeze TARGET wivrn)
+wivrn_webxr_controller(    SOURCE ${ASSETS_SRC_DIR}/controllers/htc-vive-focus-3        DESTINATION ${ASSETS_DIR}/controllers/htc-vive-focus-3        TARGET wivrn)
+wivrn_webxr_controller(    SOURCE ${ASSETS_SRC_DIR}/controllers/meta-quest-touch-plus   DESTINATION ${ASSETS_DIR}/controllers/meta-quest-touch-plus   TARGET wivrn)
+wivrn_webxr_controller(    SOURCE ${ASSETS_SRC_DIR}/controllers/meta-quest-touch-pro    DESTINATION ${ASSETS_DIR}/controllers/meta-quest-touch-pro    TARGET wivrn)
+wivrn_webxr_controller(    SOURCE ${ASSETS_SRC_DIR}/controllers/oculus-touch-v2         DESTINATION ${ASSETS_DIR}/controllers/oculus-touch-v2         TARGET wivrn)
+wivrn_webxr_controller(    SOURCE ${ASSETS_SRC_DIR}/controllers/oculus-touch-v3         DESTINATION ${ASSETS_DIR}/controllers/oculus-touch-v3         TARGET wivrn)
+wivrn_webxr_controller(    SOURCE ${ASSETS_SRC_DIR}/controllers/pico-4                  DESTINATION ${ASSETS_DIR}/controllers/pico-4                  TARGET wivrn)
+wivrn_webxr_controller(    SOURCE ${ASSETS_SRC_DIR}/controllers/pico-neo3               DESTINATION ${ASSETS_DIR}/controllers/pico-neo3               TARGET wivrn)
 
-add_custom_target(assets ALL DEPENDS
-    ${ASSETS_DIR}/wivrn.png
-    ${ASSETS_DIR}/wivrn-pride.png
-)
 
-add_dependencies(wivrn assets)
-
+# Add the VR splash screen (only used on Quest)
 if(ANDROID)
-    find_program(TOKTX toktx REQUIRED)
-    add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn.ktx2
-        COMMAND ${TOKTX} --encode astc --astc_blk_d 4x4 --astc_quality 100 --genmipmap ${ASSETS_DIR}/wivrn.ktx2 ${ASSETS_DIR}/wivrn.png
-        DEPENDS ${ASSETS_DIR}/wivrn.png)
-    add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn-pride.ktx2
-        COMMAND ${TOKTX} --encode astc --astc_blk_d 4x4 --astc_quality 100 --genmipmap ${ASSETS_DIR}/wivrn-pride.ktx2 ${ASSETS_DIR}/wivrn-pride.png
-        DEPENDS ${ASSETS_DIR}/wivrn-pride.png)
-
-    add_custom_command(OUTPUT ${ASSETS_DIR}/default_icon.ktx2
-        COMMAND ${TOKTX} --encode astc --astc_blk_d 4x4 --astc_quality 100 --genmipmap ${ASSETS_DIR}/default_icon.ktx2 ${AST_SRC_DIR}/default_icon.png
-        DEPENDS ${AST_SRC_DIR}/default_icon.png)
-
-    add_custom_command(OUTPUT ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2
-        COMMAND ${TOKTX} --encode astc --astc_blk_d 12x12 --astc_quality 100 --genmipmap ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2 ${AST_SRC_DIR}/WoodFloor051_1K-JPG_Color.jpg
-        DEPENDS ${AST_SRC_DIR}/WoodFloor051_1K-JPG_Color.jpg)
-
-    add_custom_command(OUTPUT ${ASSETS_DIR}/vr_splash.png
-        COMMAND ${CMAKE_COMMAND} -E copy ${ASSETS_DIR}/wivrn.png ${ASSETS_DIR}/vr_splash.png
-        DEPENDS ${ASSETS_DIR}/wivrn.png)
-
-    add_custom_target(assets-android ALL DEPENDS
-        ${ASSETS_DIR}/wivrn.ktx2
-        ${ASSETS_DIR}/wivrn-pride.ktx2
-        ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2
-        ${ASSETS_DIR}/vr_splash.png
-    )
-    add_dependencies(assets-android assets)
-    add_dependencies(wivrn assets-android)
+    wivrn_copy_file(SOURCE ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png DESTINATION ${ASSETS_DIR}/vr_splash.png TARGET wivrn)
 endif()
-
-
 
 ##############################################################################
 # Copy the assets to be able to find them when started from the build

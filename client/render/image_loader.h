@@ -22,73 +22,70 @@
 #include "utils/thread_safe.h"
 #include "vk/allocation.h"
 #include "vk/fwd.h"
-#include "wivrn_config.h"
 #include <cstddef>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-#include <memory>
+#include <ktxvulkan.h>
 #include <span>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
-#if WIVRN_USE_LIBKTX
-#include <ktxvulkan.h>
-#endif
+struct loaded_image
+{
+	image_allocation image;
+	vk::raii::ImageView image_view;
+
+	vk::Format format;
+	vk::Extent3D extent;
+	uint32_t num_mipmaps;
+	vk::ImageViewType image_view_type;
+};
 
 struct image_loader
 {
-	vk::Image image;
-	vk::Format format;
-	vk::Extent3D extent;
-	vk::ImageViewType image_view_type;
-
-	std::shared_ptr<vk::raii::ImageView> image_view;
-
-	uint32_t num_mipmaps;
-
 	image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, thread_safe<vk::raii::Queue> & queue, vk::raii::CommandPool & cb_pool);
 	image_loader(const image_loader &) = delete;
 	image_loader & operator=(const image_loader &) = delete;
 	~image_loader();
 
 	// Load a PNG/JPEG/KTX2 file
-	void load(std::span<const std::byte> bytes, bool srgb);
+	loaded_image load(std::span<const std::byte> bytes, bool srgb, const std::string & name = "");
 
 	// Load raw pixel data
-	void load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format);
+	loaded_image load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format, const std::string & name = "");
 
 	template <typename T>
-	void load(std::span<T> pixels, vk::Extent3D extent, vk::Format format)
+	loaded_image load(std::span<T> pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "")
 	{
-		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
+		return load(pixels.data(), pixels.size() * sizeof(T), extent, format, name);
 	}
 
 	template <typename T, size_t N>
-	void load(const std::array<T, N> & pixels, vk::Extent3D extent, vk::Format format)
+	loaded_image load(const std::array<T, N> & pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "")
 	{
-		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
+		return load(pixels.data(), pixels.size() * sizeof(T), extent, format, name);
 	}
 
 	template <typename T>
-	void load(const std::vector<T> & pixels, vk::Extent3D extent, vk::Format format)
+	loaded_image load(const std::vector<T> & pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "")
 	{
-		load(pixels.data(), pixels.size() * sizeof(T), extent, format);
+		return load(pixels.data(), pixels.size() * sizeof(T), extent, format, name);
 	}
 
 private:
-#if WIVRN_USE_LIBKTX
 	ktxVulkanDeviceInfo vdi;
-#endif
-
 	vk::raii::Device & device;
 	thread_safe<vk::raii::Queue> & queue;
 	vk::raii::CommandPool & cb_pool;
 
+	std::vector<std::pair<vk::Format, ktx_transcode_fmt_e>> supported_srgb_formats;
+	std::vector<std::pair<vk::Format, ktx_transcode_fmt_e>> supported_linear_formats;
+
 	buffer_allocation staging_buffer;
 
-	void do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format);
+	loaded_image do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format, const std::string & name);
 
-	void do_load_ktx(std::span<const std::byte> bytes);
-
-	void create_image_view();
+	loaded_image do_load_image(std::span<const std::byte> bytes, bool srgb, const std::string & name);
+	loaded_image do_load_ktx(std::span<const std::byte> bytes, bool srgb, const std::string & name);
 };

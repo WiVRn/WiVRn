@@ -1034,20 +1034,21 @@ imgui_context::~imgui_context()
 
 ImTextureID imgui_textures::load_texture(const std::string & filename, vk::raii::Sampler && sampler)
 {
-	return load_texture(std::span<const std::byte>{asset{filename}}, std::move(sampler));
+	return load_texture(std::span<const std::byte>{asset{filename}}, std::move(sampler), filename);
 }
 
-ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler)
+ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name)
 {
 	bool srgb = true;
+	// TODO: reuse the image loader
 	image_loader loader(physical_device, device, queue, command_pool);
-	loader.load(bytes, srgb);
+	auto image = loader.load(bytes, srgb, name);
 
 	std::shared_ptr<vk::raii::DescriptorSet> ds = descriptor_pool.allocate();
 
 	vk::DescriptorImageInfo image_info{
 	        .sampler = *sampler,
-	        .imageView = **loader.image_view,
+	        .imageView = *image.image_view,
 	        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 	};
 
@@ -1065,15 +1066,14 @@ ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & byte
 	        id,
 	        texture_data{
 	                .sampler = std::move(sampler),
-	                // .image = std::move(loader.image),
-	                .image_view = std::move(loader.image_view),
+	                .image = std::move(image),
 	                .descriptor_set = std::move(ds),
 	        });
 
 	return id;
 }
 
-ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes)
+ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, const std::string & name)
 {
 	return load_texture(
 	        bytes,
@@ -1088,7 +1088,8 @@ ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & byte
 	                        .addressModeW = vk::SamplerAddressMode::eClampToEdge,
 	                        .borderColor = vk::BorderColor::eFloatTransparentBlack,
 	                },
-	        });
+	        },
+	        name);
 }
 
 ImTextureID imgui_textures::load_texture(const std::string & filename)
