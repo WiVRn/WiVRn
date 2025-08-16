@@ -210,8 +210,8 @@ public:
 
 	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
 	ImTextureID load_texture(const std::string & filename);
-	ImTextureID load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler);
-	ImTextureID load_texture(const std::span<const std::byte> & bytes);
+	ImTextureID load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name = "");
+	ImTextureID load_texture(const std::span<const std::byte> & bytes, const std::string & name = "");
 	void free_texture(ImTextureID);
 	void set_current();
 

@@ -1022,15 +1022,15 @@ imgui_context::~imgui_context()
 
 ImTextureID imgui_context::load_texture(const std::string & filename, vk::raii::Sampler && sampler)
 {
-	return load_texture(std::span<const std::byte>{asset{filename}}, std::move(sampler));
+	return load_texture(std::span<const std::byte>{asset{filename}}, std::move(sampler), filename);
 }
 
-ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler)
+ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name)
 {
 	bool srgb = true;
 	// TODO: reuse the image loader
 	image_loader loader(physical_device, device, queue, command_pool);
-	auto image = loader.load(bytes, srgb);
+	auto image = loader.load(bytes, srgb, name);
 
 	std::shared_ptr<vk::raii::DescriptorSet> ds = descriptor_pool.allocate();
 
@@ -1061,7 +1061,7 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 	return id;
 }
 
-ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes)
+ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes, const std::string & name)
 {
 	return load_texture(
 	        bytes,
@@ -1076,7 +1076,8 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 	                        .addressModeW = vk::SamplerAddressMode::eClampToEdge,
 	                        .borderColor = vk::BorderColor::eFloatTransparentBlack,
 	                },
-	        });
+	        },
+	        name);
 }
 
 ImTextureID imgui_context::load_texture(const std::string & filename)
