@@ -800,7 +800,7 @@ void scenes::lobby::on_focused()
 	renderer.emplace(device, physical_device, queue, commandpool);
 	loader.emplace(device, physical_device, queue, queue_family_index, renderer->get_default_material());
 
-	lobby_entity = load_gltf("ground.gltf", layer_lobby).first;
+	lobby_entity = load_gltf("ground.glb", layer_lobby).first;
 
 	std::string profile = controller_name();
 	input.emplace(
