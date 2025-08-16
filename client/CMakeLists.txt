@@ -251,19 +251,19 @@ if(WIVRN_USE_LIBKTX)
     find_program(TOKTX toktx REQUIRED)
     add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn.ktx2
         # COMMAND ${TOKTX} --encode astc --astc_blk_d 4x4 --astc_quality 100 --genmipmap ${ASSETS_DIR}/wivrn.ktx2 ${ASSETS_DIR}/wivrn.png
-        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap ${ASSETS_DIR}/wivrn.ktx2 ${ASSETS_DIR}/wivrn.png
+        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap --zcmp 20 ${ASSETS_DIR}/wivrn.ktx2 ${ASSETS_DIR}/wivrn.png
         DEPENDS ${ASSETS_DIR}/wivrn.png)
     add_custom_command(OUTPUT ${ASSETS_DIR}/wivrn-pride.ktx2
-        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap ${ASSETS_DIR}/wivrn-pride.ktx2 ${ASSETS_DIR}/wivrn-pride.png
+        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap --zcmp 20 ${ASSETS_DIR}/wivrn-pride.ktx2 ${ASSETS_DIR}/wivrn-pride.png
         DEPENDS ${ASSETS_DIR}/wivrn-pride.png)
 
     add_custom_command(OUTPUT ${ASSETS_DIR}/default_icon.ktx2
-        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap ${ASSETS_DIR}/default_icon.ktx2 ${AST_SRC_DIR}/default_icon.png
+        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap --zcmp 20 ${ASSETS_DIR}/default_icon.ktx2 ${AST_SRC_DIR}/default_icon.png
         DEPENDS ${AST_SRC_DIR}/default_icon.png)
 
     add_custom_command(OUTPUT ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2
         # COMMAND ${TOKTX} --encode astc --astc_blk_d 12x12 --astc_quality 100 --genmipmap ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2 ${AST_SRC_DIR}/WoodFloor051_1K-JPG_Color.jpg
-        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2 ${AST_SRC_DIR}/WoodFloor051_1K-JPG_Color.jpg
+        COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap --zcmp 20 ${ASSETS_DIR}/WoodFloor051_1K-JPG_Color.ktx2 ${AST_SRC_DIR}/WoodFloor051_1K-JPG_Color.jpg
         DEPENDS ${AST_SRC_DIR}/WoodFloor051_1K-JPG_Color.jpg)
 
     add_custom_target(assets-ktx ALL DEPENDS
