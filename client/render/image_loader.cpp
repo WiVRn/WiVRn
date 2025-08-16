@@ -18,18 +18,21 @@
  */
 
 #include "image_loader.h"
-#include "wivrn_config.h"
 
-#if WIVRN_USE_LIBKTX
-#include <ktxvulkan.h>
-#endif
+#include "application.h"
+#include "utils/thread_safe.h"
+#include "vk/allocation.h"
+#include "vk/vk_allocator.h"
 #include <chrono>
 #include <cstdint>
+#include <ktx.h>
+#include <ktxvulkan.h>
 #include <memory>
 #include <span>
 #include <spdlog/fmt/chrono.h>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include <tuple>
 #include <vulkan/vulkan_raii.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -48,28 +51,146 @@ namespace
 {
 struct image_resources
 {
-	image_allocation allocation;
-	vk::Image image;
+	image_allocation image;
 	vk::raii::ImageView image_view = nullptr;
 };
 
-#if WIVRN_USE_LIBKTX
-struct ktx_image_resources
+class KTXTexture2
 {
-	ktxVulkanTexture ktx_texture;
-	VkDevice device;
-	vk::Image image;
-	vk::raii::ImageView image_view = nullptr;
+private:
+	ktxTexture2 * handle_ = nullptr;
 
-	ktx_image_resources() = default;
-	ktx_image_resources(const ktx_image_resources &) = delete;
-	ktx_image_resources & operator=(const ktx_image_resources &) = delete;
-	~ktx_image_resources()
+public:
+	KTXTexture2() = default;
+
+	explicit KTXTexture2(ktxTexture2 * handle) :
+	        handle_{handle} {}
+
+	KTXTexture2(const KTXTexture2 &) = delete;
+	KTXTexture2 & operator=(const KTXTexture2 &) = delete;
+
+	KTXTexture2(KTXTexture2 && other) noexcept :
+	        handle_{other.handle_}
 	{
-		ktxVulkanTexture_Destruct(&ktx_texture, device, nullptr);
+		other.handle_ = nullptr;
+	}
+
+	KTXTexture2 & operator=(KTXTexture2 && other) &
+	{
+		std::swap(handle_, other.handle_);
+		return *this;
+	}
+
+	~KTXTexture2()
+	{
+		if (handle_)
+		{
+			ktxTexture_Destroy(ktxTexture(handle_));
+			handle_ = nullptr;
+		}
+	}
+
+	ktxTexture2 ** operator&()
+	{
+		return &handle_;
+	}
+
+	operator ktxTexture2 *()
+	{
+		return handle_;
+	}
+
+	ktxTexture2 * operator->() const
+	{
+		return handle_;
 	}
 };
-#endif
+
+namespace libktx_vma_glue
+{
+thread_safe<std::map<uint64_t, VmaAllocation>> allocations;
+
+uint64_t add(VmaAllocation allocation)
+{
+	auto allocs = allocations.lock();
+
+	uint64_t allocation_id = allocs->empty() ? 1 : (allocs->rbegin()->first + 1);
+	allocs->emplace(allocation_id, allocation);
+	return allocation_id;
+}
+
+VmaAllocation find(uint64_t allocation_id)
+{
+	auto allocs = allocations.lock();
+	auto iter = allocs->find(allocation_id);
+	assert(iter != allocs->end());
+
+	return iter->second;
+}
+
+VmaAllocation release(uint64_t allocation_id)
+{
+	auto allocs = allocations.lock();
+	auto iter = allocs->find(allocation_id);
+	assert(iter != allocs->end());
+
+	VmaAllocation allocation = iter->second;
+	allocs->erase(iter);
+	return allocation;
+}
+
+VmaAllocation remove(uint64_t allocation_id)
+{
+	auto allocs = allocations.lock();
+	auto iter = allocs->find(allocation_id);
+	assert(iter != allocs->end());
+
+	auto allocation = iter->second;
+	allocs->erase(iter);
+
+	return allocation;
+}
+
+ktxVulkanTexture_subAllocatorCallbacks suballocator_callbacks{
+        // Adapted from https://github.com/KhronosGroup/KTX-Software/blob/main/tests/loadtests/vkloadtests/VulkanLoadTestSample.cpp
+        .allocMemFuncPtr = [](VkMemoryAllocateInfo * allocation_info, VkMemoryRequirements * memory_requirements, uint64_t * number_of_pages) -> uint64_t {
+	        VmaAllocationCreateInfo info{};
+
+	        static const vk::PhysicalDeviceMemoryProperties memory_properties = application::instance().get_physical_device().getMemoryProperties();
+
+	        if ((memory_properties.memoryTypes[allocation_info->memoryTypeIndex].propertyFlags & vk::MemoryPropertyFlagBits::eHostVisible) ||
+	            (memory_properties.memoryTypes[allocation_info->memoryTypeIndex].propertyFlags & vk::MemoryPropertyFlagBits::eHostCoherent))
+	        {
+		        info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		        info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+	        }
+	        else
+	        {
+		        info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	        }
+
+	        VmaAllocation allocation;
+	        VkResult result = vmaAllocateMemory(vk_allocator::instance(), memory_requirements, &info, &allocation, nullptr);
+	        if (result != VK_SUCCESS)
+		        return 0;
+
+	        return add(allocation);
+        },
+        .bindBufferFuncPtr = [](VkBuffer buffer, uint64_t allocation_id) -> VkResult { return vmaBindBufferMemory(vk_allocator::instance(), find(allocation_id), buffer); },
+        .bindImageFuncPtr = [](VkImage image, uint64_t allocation_id) -> VkResult { return vmaBindImageMemory(vk_allocator::instance(), find(allocation_id), image); },
+        .memoryMapFuncPtr = [](uint64_t allocation_id, uint64_t, VkDeviceSize * map_length, void ** data) -> VkResult {
+	        auto allocation = find(allocation_id);
+
+	        VmaAllocationInfo info{};
+	        vmaGetAllocationInfo(vk_allocator::instance(), allocation, &info);
+
+	        *map_length = info.size;
+	        return vmaMapMemory(vk_allocator::instance(), allocation, data);
+        },
+        .memoryUnmapFuncPtr = [](uint64_t allocation_id, uint64_t) { vmaUnmapMemory(vk_allocator::instance(), find(allocation_id)); },
+        .freeMemFuncPtr = [](uint64_t allocation_id) { vmaFreeMemory(vk_allocator::instance(), remove(allocation_id)); },
+};
+} // namespace libktx_vma_glue
 
 template <typename T>
 constexpr vk::Format formats[4] = {vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined};
@@ -167,19 +288,37 @@ image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::D
         queue(queue),
         cb_pool(cb_pool)
 {
-#if WIVRN_USE_LIBKTX
 	ktxVulkanDeviceInfo_Construct(&vdi, *physical_device, *device, *queue.get_unsafe(), *cb_pool, nullptr);
-#endif
+
+	std::array<std::tuple<vk::Format, ktx_transcode_fmt_e, bool>, 6> formats{{
+	        {vk::Format::eAstc4x4SrgbBlock, KTX_TTF_ASTC_4x4_RGBA, true},
+	        {vk::Format::eAstc4x4UnormBlock, KTX_TTF_ASTC_4x4_RGBA, false},
+	        {vk::Format::eBc7SrgbBlock, KTX_TTF_BC7_RGBA, true},
+	        {vk::Format::eBc7UnormBlock, KTX_TTF_BC7_RGBA, false},
+	        {vk::Format::eR8G8B8A8Srgb, KTX_TTF_RGBA32, true},
+	        {vk::Format::eR8G8B8Unorm, KTX_TTF_RGBA32, false},
+	}};
+
+	for (auto [vk_format, ktx_format, srgb]: formats)
+	{
+		auto prop = physical_device.getFormatProperties(vk_format);
+
+		if (prop.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImage)
+		{
+			if (srgb)
+				supported_srgb_formats.emplace_back(vk_format, ktx_format);
+			else
+				supported_linear_formats.emplace_back(vk_format, ktx_format);
+		}
+	}
 }
 
 image_loader::~image_loader()
 {
-#if WIVRN_USE_LIBKTX
 	ktxVulkanDeviceInfo_Destruct(&vdi);
-#endif
 }
 
-void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format)
+loaded_image image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format, const std::string & name)
 {
 	auto cb = std::move(device.allocateCommandBuffers({
 	        .commandPool = *cb_pool,
@@ -191,14 +330,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 
 	assert(format != vk::Format::eUndefined);
 
-	this->format = format;
-	this->extent = extent;
-	if (extent.depth > 1)
-		image_view_type = vk::ImageViewType::e3D;
-	else
-		image_view_type = vk::ImageViewType::e2D;
-
-	num_mipmaps = std::floor(std::log2(std::max(extent.width, extent.height))) + 1;
+	uint32_t num_mipmaps = std::floor(std::log2(std::max(extent.width, extent.height))) + 1;
 
 	size_t byte_size = extent.width * extent.height * extent.depth * bytes_per_pixel(format);
 
@@ -212,14 +344,13 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
 	                .usage = VMA_MEMORY_USAGE_AUTO,
 	        },
-	        "image_loader::do_load (staging)"};
+	        name + " (staging)"};
 
 	memcpy(staging_buffer.map(), pixels, byte_size);
 	staging_buffer.unmap();
 
 	// Allocate image
-	auto r = std::make_shared<image_resources>();
-	r->allocation = image_allocation{
+	image_allocation image{
 	        device,
 	        vk::ImageCreateInfo{
 	                .imageType = vk::ImageType::e2D,
@@ -235,9 +366,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	                .flags = 0,
 	                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
 	        },
-	        "image_loader::do_load"};
-
-	r->image = (vk::Image)r->allocation;
+	        name};
 
 	// Transition all mipmap levels layout to eTransferDstOptimal
 	cb.pipelineBarrier(
@@ -251,7 +380,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	                .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
 	                .oldLayout = vk::ImageLayout::eUndefined,
 	                .newLayout = vk::ImageLayout::eTransferDstOptimal,
-	                .image = r->image,
+	                .image = image,
 	                .subresourceRange = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .baseMipLevel = 0,
@@ -264,7 +393,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	// Copy image data
 	cb.copyBufferToImage(
 	        staging_buffer,
-	        r->image,
+	        image,
 	        vk::ImageLayout::eTransferDstOptimal,
 	        vk::BufferImageCopy{
 	                .bufferOffset = 0,
@@ -300,7 +429,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 		                .dstAccessMask = vk::AccessFlagBits::eShaderRead,
 		                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
 		                .newLayout = vk::ImageLayout::eTransferSrcOptimal,
-		                .image = r->image,
+		                .image = image,
 		                .subresourceRange = {
 		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                        .baseMipLevel = level - 1,
@@ -312,9 +441,9 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 
 		// Blit level n-1 to level n
 		cb.blitImage(
-		        r->image,
+		        image,
 		        vk::ImageLayout::eTransferSrcOptimal,
-		        r->image,
+		        image,
 		        vk::ImageLayout::eTransferDstOptimal,
 		        vk::ImageBlit{
 		                .srcSubresource = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = level - 1, .baseArrayLayer = 0, .layerCount = 1},
@@ -342,7 +471,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 		                .dstAccessMask = vk::AccessFlagBits::eShaderRead,
 		                .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
 		                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		                .image = r->image,
+		                .image = image,
 		                .subresourceRange = {
 		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                        .baseMipLevel = level - 1,
@@ -368,7 +497,7 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	                .dstAccessMask = vk::AccessFlagBits::eShaderRead,
 	                .oldLayout = vk::ImageLayout::eTransferDstOptimal,
 	                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-	                .image = r->image,
+	                .image = image,
 	                .subresourceRange = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .baseMipLevel = num_mipmaps - 1,
@@ -386,10 +515,16 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	if (auto result = device.waitForFences(*fence, true, 1'000'000'000); result != vk::Result::eSuccess)
 		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 
-	r->image_view = vk::raii::ImageView{
+	vk::ImageViewType image_view_type;
+	if (extent.depth > 1)
+		image_view_type = vk::ImageViewType::e3D;
+	else
+		image_view_type = vk::ImageViewType::e2D;
+
+	vk::raii::ImageView image_view{
 	        device,
 	        vk::ImageViewCreateInfo{
-	                .image = r->image,
+	                .image = image,
 	                .viewType = image_view_type,
 	                .format = format,
 	                .subresourceRange = {
@@ -402,76 +537,79 @@ void image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::For
 	        },
 	};
 
-	image_view = std::shared_ptr<vk::raii::ImageView>(r, &r->image_view);
+	return loaded_image{
+	        .image = std::move(image),
+	        .image_view = std::move(image_view),
+	        .format = format,
+	        .extent = extent,
+	        .num_mipmaps = num_mipmaps,
+	        .image_view_type = image_view_type,
+	};
 }
 
-void image_loader::do_load_ktx(std::span<const std::byte> bytes)
+loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool srgb, const std::string & name)
 {
-#if WIVRN_USE_LIBKTX
-	ktxTexture * texture;
+	KTXTexture2 texture{};
+	// KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT checks that the file is compatible with the KHR_texture_basisu glTF extension
+	// ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture);
+	ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), 0, &texture);
+	// ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT | KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture);
+
+	if (err != KTX_SUCCESS)
+	{
+		spdlog::warn("ktxTexture2_CreateFromMemory: error {}", ktxErrorString(err));
+		throw std::runtime_error("ktxTexture2_CreateFromMemory");
+	}
+
+	if (ktxTexture2_NeedsTranscoding(texture))
+	{
+		auto format = srgb ? supported_srgb_formats.front() : supported_linear_formats.front();
+
+		auto t0 = std::chrono::steady_clock::now();
+		if (ktxTexture2_TranscodeBasis(texture, format.second, 0) != KTX_SUCCESS)
+		{
+			spdlog::warn("ktxTexture2_TranscodeBasis: error {}", ktxErrorString(err));
+			throw std::runtime_error("ktxTexture2_TranscodeBasis");
+		}
+		auto dt = std::chrono::steady_clock::now() - t0;
+		spdlog::debug("{}: transcoded to {} in {}", name, vk::to_string(format.first), std::chrono::duration_cast<std::chrono::microseconds>(dt));
+	}
+
 	ktxVulkanTexture vk_texture;
-
-	ktxResult err = ktxTexture_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), /*KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT*/ 0, &texture);
-
-	if (err != KTX_SUCCESS)
 	{
-		spdlog::warn("ktxTexture_CreateFromMemory: error {}", (int)err);
-		throw std::runtime_error("ktxTexture_CreateFromMemory");
-	}
+		auto _ = queue.lock(); // ktxTexture2_VkUploadEx uses the queue internally (in ktxTexture_VkUploadEx_WithSuballocator)
 
-	if (ktxTexture_NeedsTranscoding(texture))
-	{
-		// TODO
-		spdlog::warn("ktxTexture_NeedsTranscoding");
-		throw std::runtime_error("ktxTexture_NeedsTranscoding");
-	}
-
-	{
-		auto _ = queue.lock(); // ktxTexture_VkUploadEx uses the queue internally (in ktxTexture_VkUploadEx_WithSuballocator)
 		// TODO: patch vkloader.c to accept a mutex
-		err = ktxTexture_VkUploadEx(texture, &vdi, &vk_texture, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		err = ktxTexture2_VkUploadEx_WithSuballocator(texture, &vdi, &vk_texture, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &libktx_vma_glue::suballocator_callbacks);
 	}
 
 	if (err != KTX_SUCCESS)
 	{
-		// TODO try uncompressing the texture
-		ktxTexture_Destroy(texture);
-		spdlog::warn("ktxTexture_CreateFromMemory: error {}", (int)err);
-		throw std::runtime_error("ktxTexture_VkUploadEx");
+		spdlog::warn("ktxTexture2_VkUploadEx: {}", ktxErrorString(err));
+		throw std::runtime_error("ktxTexture2_VkUploadEx");
 	}
 
-	format = vk::Format(vk_texture.imageFormat);
-	extent = vk::Extent3D(texture->baseWidth, texture->baseHeight, texture->baseDepth);
-	image_view_type = vk::ImageViewType(vk_texture.viewType);
-	num_mipmaps = texture->numLevels;
-
-	ktxTexture_Destroy(texture);
-
-	auto r = std::make_shared<ktx_image_resources>();
-
-	r->ktx_texture = vk_texture;
-	r->device = *device;
-	r->image = vk::Image(vk_texture.image);
-	r->image_view = vk::raii::ImageView{
-	        device,
-	        vk::ImageViewCreateInfo{
-	                .image = r->image,
-	                .viewType = image_view_type,
-	                .format = format,
-	                .subresourceRange = {
-	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                        .baseMipLevel = 0,
-	                        .levelCount = num_mipmaps,
-	                        .baseArrayLayer = 0,
-	                        .layerCount = 1,
-	                },
-	        },
+	return loaded_image{
+	        .image{libktx_vma_glue::release(vk_texture.allocationId), device, vk_texture.image, name}, // Take over ownership of vk_texture, do not call ktxTexture2_destruct
+	        .image_view{
+	                device,
+	                vk::ImageViewCreateInfo{
+	                        .image = vk_texture.image,
+	                        .viewType = vk::ImageViewType(vk_texture.viewType),
+	                        .format = vk::Format(vk_texture.imageFormat),
+	                        .subresourceRange = {
+	                                .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                                .baseMipLevel = 0,
+	                                .levelCount = texture->numLevels,
+	                                .baseArrayLayer = 0,
+	                                .layerCount = 1,
+	                        },
+	                }},
+	        .format = vk::Format(vk_texture.imageFormat),
+	        .extent{vk::Extent3D(texture->baseWidth, texture->baseHeight, texture->baseDepth)},
+	        .num_mipmaps = texture->numLevels,
+	        .image_view_type = vk::ImageViewType(vk_texture.viewType),
 	};
-
-	image_view = std::shared_ptr<vk::raii::ImageView>(r, &r->image_view);
-#else
-	throw std::runtime_error("Compiled without KTX support");
-#endif
 }
 
 static constexpr bool starts_with(std::span<const std::byte> data, std::span<const uint8_t> prefix)
@@ -514,67 +652,67 @@ static void premultiply_alpha(void * pixels, vk::Extent3D extent, vk::Format for
 	}
 }
 
+loaded_image image_loader::do_load_image(std::span<const std::byte> bytes, bool srgb, const std::string & name)
+{
+	const stbi_uc * image_data = (const stbi_uc *)bytes.data();
+	size_t image_size = bytes.size();
+
+	int w, h, num_channels, channels_in_file;
+	stbi_ptr pixels;
+
+	if (!stbi_info_from_memory(image_data, image_size, &w, &h, &num_channels))
+		throw std::runtime_error("Unsupported image format");
+
+	assert(num_channels >= 1 && num_channels <= 4);
+
+	if (num_channels == 3)
+		num_channels = 4;
+
+	vk::Format format;
+	if (stbi_is_hdr_from_memory(image_data, image_size))
+	{
+		pixels = stbi_ptr(stbi_loadf_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
+		format = get_format<float>(num_channels);
+	}
+	else if (stbi_is_16_bit_from_memory(image_data, image_size))
+	{
+		pixels = stbi_ptr(stbi_load_16_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
+		format = get_format<uint16_t>(num_channels);
+	}
+	else
+	{
+		pixels = stbi_ptr(stbi_load_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
+		format = srgb ? get_format_srgb(num_channels) : get_format<uint8_t>(num_channels);
+	}
+
+	vk::Extent3D extent{
+	        .width = uint32_t(w),
+	        .height = uint32_t(h),
+	        .depth = 1,
+	};
+
+	premultiply_alpha(pixels.get(), extent, format);
+
+	return do_load_raw(pixels.get(), extent, format, name);
+}
+
 // Load a PNG/JPEG/KTX2 file
-void image_loader::load(std::span<const std::byte> bytes, bool srgb)
+loaded_image image_loader::load(std::span<const std::byte> bytes, bool srgb, const std::string & name)
 {
 	const uint8_t ktx1_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 	const uint8_t ktx2_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 
 	if (starts_with(bytes, ktx1_magic) || starts_with(bytes, ktx2_magic))
-	{
-		do_load_ktx(bytes);
-	}
+		return do_load_ktx(bytes, srgb, name);
 	else
-	{
-		const stbi_uc * image_data = (const stbi_uc *)bytes.data();
-		size_t image_size = bytes.size();
-
-		int w, h, num_channels, channels_in_file;
-		stbi_ptr pixels;
-
-		if (!stbi_info_from_memory(image_data, image_size, &w, &h, &num_channels))
-			throw std::runtime_error("Unsupported image format");
-
-		assert(num_channels >= 1 && num_channels <= 4);
-
-		if (num_channels == 3)
-			num_channels = 4;
-
-		if (stbi_is_hdr_from_memory(image_data, image_size))
-		{
-			pixels = stbi_ptr(stbi_loadf_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
-			format = get_format<float>(num_channels);
-		}
-		else if (stbi_is_16_bit_from_memory(image_data, image_size))
-		{
-			pixels = stbi_ptr(stbi_load_16_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
-			format = get_format<uint16_t>(num_channels);
-		}
-		else
-		{
-			pixels = stbi_ptr(stbi_load_from_memory(image_data, image_size, &w, &h, &channels_in_file, num_channels));
-			format = srgb ? get_format_srgb(num_channels) : get_format<uint8_t>(num_channels);
-		}
-
-		extent.width = w;
-		extent.height = h;
-		extent.depth = 1;
-
-		premultiply_alpha(pixels.get(), extent, format);
-
-		do_load_raw(pixels.get(), extent, format);
-	}
+		return do_load_image(bytes, srgb, name);
 }
 
 // Load raw pixel data
-void image_loader::load(const void * pixels, size_t size, vk::Extent3D extent_, vk::Format format_)
+loaded_image image_loader::load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format, const std::string & name)
 {
-	extent = extent_;
-	format = format_;
-	image_view_type = vk::ImageViewType::e2D;
-
 	if (size < extent.width * extent.height * extent.depth * bytes_per_pixel(format))
 		throw std::invalid_argument("size");
 
-	do_load_raw(pixels, extent_, format_);
+	return do_load_raw(pixels, extent, format, name);
 }
