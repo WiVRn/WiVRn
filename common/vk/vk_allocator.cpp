@@ -20,7 +20,8 @@
 #include "vk_allocator.h"
 #include "vk/check.h"
 
-vk_allocator::vk_allocator(const VmaAllocatorCreateInfo & info)
+vk_allocator::vk_allocator(const VmaAllocatorCreateInfo & info, bool has_debug_utils) :
+        has_debug_utils(has_debug_utils)
 {
 	CHECK_VK(vmaCreateAllocator(&info, &handle));
 }

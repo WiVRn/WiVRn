@@ -168,7 +168,8 @@ video_encoder_x264::video_encoder_x264(
 		        {
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        });
+		        },
+		        "x264 luma buffer");
 		i.chroma = buffer_allocation(
 		        vk.device, {
 		                           .size = vk::DeviceSize(settings.video_width * settings.video_height / 2),
@@ -177,9 +178,8 @@ video_encoder_x264::video_encoder_x264(
 		        {
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        });
-		vk.name(vk::Buffer(i.luma), "x264 luma buffer");
-		vk.name(vk::Buffer(i.chroma), "x264 chroma buffer");
+		        },
+		        "x264 chroma buffer");
 
 		auto & pic = i.pic;
 		x264_picture_init(&pic);

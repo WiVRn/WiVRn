@@ -131,6 +131,12 @@ public:
 		std::tie(resource, allocation) = traits::create(device, create_info, alloc_info);
 
 		vmaSetAllocationName(vk_allocator::instance(), allocation, name.c_str());
+		if (vk_allocator::instance().has_debug_utils)
+			device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT{
+			        .objectType = T::objectType,
+			        .objectHandle = uint64_t(CType(*resource)),
+			        .pObjectName = name.c_str(),
+			});
 	}
 
 	basic_allocation(const basic_allocation &) = delete;

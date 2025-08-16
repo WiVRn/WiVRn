@@ -83,11 +83,12 @@ wivrn::wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> 
         physical_device(instance, vk.physical_device),
         device(physical_device, vk.device),
         allocator({
-                .physicalDevice = vk.physical_device,
-                .device = vk.device,
-                .instance = vk.instance,
-                .vulkanApiVersion = VK_MAKE_VERSION(1, 3, 0), // FIXME: sync with wivrn_session.cpp
-        }),
+                          .physicalDevice = vk.physical_device,
+                          .device = vk.device,
+                          .instance = vk.instance,
+                          .vulkanApiVersion = VK_MAKE_VERSION(1, 3, 0), // FIXME: sync with wivrn_session.cpp
+                  },
+                  vk.has_EXT_debug_utils),
         queue(device, vk.queue_family_index, vk.queue_index),
         queue_family_index(vk.queue_family_index),
 #ifdef VK_KHR_video_encode_queue

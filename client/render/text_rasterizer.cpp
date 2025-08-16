@@ -139,46 +139,42 @@ text_rasterizer::text_rasterizer(vk::raii::Device & device, vk::raii::PhysicalDe
 
 image_allocation text_rasterizer::create_image(vk::Extent2D size)
 {
-	image_allocation alloc{device,
-	                       vk::ImageCreateInfo{
-	                               .imageType = vk::ImageType::e2D,
-	                               .format = text::format,
-	                               .extent = {
-	                                       .width = size.width,
-	                                       .height = size.height,
-	                                       .depth = 1,
-	                               },
-	                               .mipLevels = 1,
-	                               .arrayLayers = 1,
-	                               .samples = vk::SampleCountFlagBits::e1,
-	                               .tiling = vk::ImageTiling::eOptimal,
-	                               .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
-	                               .sharingMode = vk::SharingMode::eExclusive,
-	                               .initialLayout = vk::ImageLayout::eUndefined,
-	                       },
-	                       VmaAllocationCreateInfo{
-	                               .flags = 0,
-	                               .usage = VMA_MEMORY_USAGE_AUTO,
-	                       }};
-
-	application::set_debug_reports_name<vk::Image>(alloc, "text_rasterizer image");
-	return alloc;
+	return {device,
+	        vk::ImageCreateInfo{
+	                .imageType = vk::ImageType::e2D,
+	                .format = text::format,
+	                .extent = {
+	                        .width = size.width,
+	                        .height = size.height,
+	                        .depth = 1,
+	                },
+	                .mipLevels = 1,
+	                .arrayLayers = 1,
+	                .samples = vk::SampleCountFlagBits::e1,
+	                .tiling = vk::ImageTiling::eOptimal,
+	                .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst,
+	                .sharingMode = vk::SharingMode::eExclusive,
+	                .initialLayout = vk::ImageLayout::eUndefined,
+	        },
+	        VmaAllocationCreateInfo{
+	                .flags = 0,
+	                .usage = VMA_MEMORY_USAGE_AUTO,
+	        },
+	        "text_rasterizer image"};
 }
 
 buffer_allocation text_rasterizer::create_buffer(size_t size)
 {
-	buffer_allocation alloc{device,
-	                        vk::BufferCreateInfo{
-	                                .size = size,
-	                                .usage = vk::BufferUsageFlagBits::eTransferSrc,
-	                        },
-	                        VmaAllocationCreateInfo{
-	                                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-	                                .usage = VMA_MEMORY_USAGE_AUTO,
-	                        }};
-	application::set_debug_reports_name<vk::Buffer>(alloc, "text_rasterizer buffer");
-
-	return alloc;
+	return {device,
+	        vk::BufferCreateInfo{
+	                .size = size,
+	                .usage = vk::BufferUsageFlagBits::eTransferSrc,
+	        },
+	        VmaAllocationCreateInfo{
+	                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+	                .usage = VMA_MEMORY_USAGE_AUTO,
+	        },
+	        "text_rasterizer buffer"};
 }
 
 text_rasterizer::~text_rasterizer()

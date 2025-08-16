@@ -902,10 +902,16 @@ void application::initialize_vulkan()
 	pipeline_cache = vk::raii::PipelineCache(vk_device, pipeline_cache_info);
 
 	allocator.emplace(VmaAllocatorCreateInfo{
-	        .physicalDevice = *vk_physical_device,
-	        .device = *vk_device,
-	        .instance = *vk_instance,
-	});
+	                          .physicalDevice = *vk_physical_device,
+	                          .device = *vk_device,
+	                          .instance = *vk_instance,
+	                  },
+#ifndef NDEBUG
+	                  debug_utils_found
+#else
+	                  false
+#endif
+	);
 }
 
 void application::log_views()

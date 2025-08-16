@@ -232,9 +232,12 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 	for (uint32_t i = 0; i < cn->image_count; i++)
 	{
 		auto & image = cn->psc.images[i].image;
-		image = image_allocation(device, image_info.get(), {.usage = VMA_MEMORY_USAGE_AUTO});
+		image = image_allocation(
+		        device,
+		        image_info.get(),
+		        {.usage = VMA_MEMORY_USAGE_AUTO},
+		        std::format("comp target image {}", i));
 		cn->images[i].handle = image;
-		cn->wivrn_bundle->name(vk::Image(image), "comp target image");
 	}
 
 	for (uint32_t i = 0; i < cn->image_count; i++)

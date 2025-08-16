@@ -335,7 +335,6 @@ wivrn_foveation::wivrn_foveation(wivrn_vk_bundle & bundle, const xrt_hmd_parts &
 		                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
 		        },
 		        "foveation staging buffer");
-		bundle.name(vk::Buffer(host_buffer), "foveation staging buffer");
 	}
 	bundle.name(command_pool, "foveation command pool");
 	bundle.name(cmd, "foveation command buffer");

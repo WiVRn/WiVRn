@@ -176,8 +176,8 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		        img_create_info,
 		        {
 		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        });
-		vk.name(vk::Image(dpb_image), "vulkan encoder DPB image");
+		        },
+		        "vulkan encoder DPB image");
 	}
 
 	// Output buffer
@@ -195,8 +195,8 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		        {
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO,
-		        });
-		vk.name(vk::Buffer(item.output_buffer), "vulkan encode output buffer");
+		        },
+		        "vulkan encode output buffer");
 
 		if (not(item.output_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 		{
@@ -208,8 +208,8 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			        {
 			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
 			                .usage = VMA_MEMORY_USAGE_AUTO,
-			        });
-			vk.name(vk::Buffer(item.host_buffer), "vulkan encode host buffer");
+			        },
+			        "vulkan encode host buffer");
 		}
 	}
 
@@ -292,8 +292,8 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			                   },
 			        {
 			                .usage = VMA_MEMORY_USAGE_AUTO,
-			        });
-			vk.name(vk::Image(slot_data[i].tmp_image), "vulkan encoder temporary image");
+			        },
+			        "vulkan encoder temporary image");
 			image_view_template.image = vk::Image(slot_data[i].tmp_image);
 			slot_data[i].view = vk.device.createImageView(image_view_template);
 			vk.name(slot_data[i].view, "vulkan encoder temporary image view");
