@@ -125,7 +125,7 @@ public:
 		std::tie(resource, allocation) = traits::create(device, create_info, alloc_info);
 	}
 
-	basic_allocation(vk::raii::Device & device, const CreateInfo & create_info, VmaAllocationCreateInfo alloc_info, const std::string & name) :
+	basic_allocation(vk::raii::Device & device, const CreateInfo & create_info, const VmaAllocationCreateInfo & alloc_info, const std::string & name) :
 	        create_info(create_info)
 	{
 		std::tie(resource, allocation) = traits::create(device, create_info, alloc_info);
@@ -135,6 +135,54 @@ public:
 			device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT{
 			        .objectType = T::objectType,
 			        .objectHandle = uint64_t(CType(*resource)),
+			        .pObjectName = name.c_str(),
+			});
+	}
+
+	basic_allocation(VmaAllocation allocation, RaiiType && resource) :
+	        allocation(allocation), resource(std::move(resource))
+	{}
+
+	basic_allocation(VmaAllocation allocation, vk::raii::Device & device, RaiiType::CppType resource) :
+	        allocation(allocation), resource(RaiiType{device, resource})
+	{}
+
+	basic_allocation(VmaAllocation allocation, vk::raii::Device & device, RaiiType::CType resource) :
+	        allocation(allocation), resource(RaiiType{device, resource})
+	{}
+
+	basic_allocation(VmaAllocation allocation, vk::raii::Device & device, RaiiType && resource, const std::string & name) :
+	        allocation(allocation), resource(std::move(resource))
+	{
+		vmaSetAllocationName(vk_allocator::instance(), allocation, name.c_str());
+		if (vk_allocator::instance().has_debug_utils)
+			device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT{
+			        .objectType = T::objectType,
+			        .objectHandle = uint64_t(CType(*resource)),
+			        .pObjectName = name.c_str(),
+			});
+	}
+
+	basic_allocation(VmaAllocation allocation, vk::raii::Device & device, RaiiType::CppType resource, const std::string & name) :
+	        allocation(allocation), resource(RaiiType{device, resource})
+	{
+		vmaSetAllocationName(vk_allocator::instance(), allocation, name.c_str());
+		if (vk_allocator::instance().has_debug_utils)
+			device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT{
+			        .objectType = T::objectType,
+			        .objectHandle = uint64_t(CType(*resource)),
+			        .pObjectName = name.c_str(),
+			});
+	}
+
+	basic_allocation(VmaAllocation allocation, vk::raii::Device & device, RaiiType::CType resource, const std::string & name) :
+	        allocation(allocation), resource(RaiiType{device, resource})
+	{
+		vmaSetAllocationName(vk_allocator::instance(), allocation, name.c_str());
+		if (vk_allocator::instance().has_debug_utils)
+			device.setDebugUtilsObjectNameEXT(vk::DebugUtilsObjectNameInfoEXT{
+			        .objectType = T::objectType,
+			        .objectHandle = uint64_t(resource),
 			        .pObjectName = name.c_str(),
 			});
 	}
@@ -182,6 +230,13 @@ public:
 
 		traits::unmap(allocation);
 		mapped = nullptr;
+	}
+
+	vk::DeviceSize size() const
+	{
+		VmaAllocationInfo info{};
+		vmaGetAllocationInfo(vk_allocator::instance(), allocation, &info);
+		return info.size;
 	}
 
 	template <typename U = uint8_t>
