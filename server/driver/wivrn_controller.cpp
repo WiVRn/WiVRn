@@ -37,6 +37,8 @@
 namespace wivrn
 {
 
+namespace
+{
 enum wivrn_controller_input_index
 {
 	WIVRN_CONTROLLER_INPUT_INVALID = -1,
@@ -98,7 +100,7 @@ struct input_data
 	xrt_device_type device;
 };
 
-static input_data map_input(device_id id)
+input_data map_input(device_id id)
 {
 	switch (id)
 	{
@@ -247,18 +249,18 @@ static input_data map_input(device_id id)
 	return {WIVRN_CONTROLLER_INPUT_INVALID, wivrn_input_type::BOOL, XRT_DEVICE_TYPE_UNKNOWN};
 }
 
-static xrt_binding_input_pair simple_input_binding[] = {
+xrt_binding_input_pair simple_input_binding[] = {
         {XRT_INPUT_SIMPLE_SELECT_CLICK, XRT_INPUT_TOUCH_TRIGGER_VALUE},
         {XRT_INPUT_SIMPLE_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
         {XRT_INPUT_SIMPLE_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
         {XRT_INPUT_SIMPLE_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
 };
 
-static xrt_binding_output_pair simple_output_binding[] = {
+xrt_binding_output_pair simple_output_binding[] = {
         {XRT_OUTPUT_NAME_SIMPLE_VIBRATION, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
-static xrt_binding_input_pair index_input_binding[] = {
+xrt_binding_input_pair index_input_binding[] = {
         {XRT_INPUT_INDEX_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
         {XRT_INPUT_INDEX_SYSTEM_TOUCH, XRT_INPUT_INDEX_SYSTEM_TOUCH},
         {XRT_INPUT_INDEX_A_CLICK, XRT_INPUT_TOUCH_A_CLICK},
@@ -280,11 +282,11 @@ static xrt_binding_input_pair index_input_binding[] = {
         {XRT_INPUT_INDEX_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
 };
 
-static xrt_binding_output_pair index_output_binding[] = {
+xrt_binding_output_pair index_output_binding[] = {
         {XRT_OUTPUT_NAME_INDEX_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
-static xrt_binding_input_pair focus3_input_binding[] = {
+xrt_binding_input_pair focus3_input_binding[] = {
         {XRT_INPUT_VIVE_FOCUS3_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
         {XRT_INPUT_VIVE_FOCUS3_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
         {XRT_INPUT_VIVE_FOCUS3_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
@@ -305,11 +307,11 @@ static xrt_binding_input_pair focus3_input_binding[] = {
         {XRT_INPUT_VIVE_FOCUS3_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
 };
 
-static xrt_binding_output_pair focus3_output_binding[] = {
+xrt_binding_output_pair focus3_output_binding[] = {
         {XRT_OUTPUT_NAME_VIVE_FOCUS3_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
-static xrt_binding_input_pair touch_pro_input_binding[] = {
+xrt_binding_input_pair touch_pro_input_binding[] = {
         {XRT_INPUT_TOUCH_PRO_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
         {XRT_INPUT_TOUCH_PRO_X_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
         {XRT_INPUT_TOUCH_PRO_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
@@ -337,13 +339,13 @@ static xrt_binding_input_pair touch_pro_input_binding[] = {
         {XRT_INPUT_TOUCH_PRO_STYLUS_FORCE, XRT_INPUT_TOUCH_PRO_STYLUS_FORCE},
 };
 
-static xrt_binding_output_pair touch_pro_output_binding[] = {
+xrt_binding_output_pair touch_pro_output_binding[] = {
         {XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
         {XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_THUMB, XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_THUMB},
         {XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_TRIGGER, XRT_OUTPUT_NAME_TOUCH_PRO_HAPTIC_TRIGGER},
 };
 
-static xrt_binding_input_pair touch_plus_input_binding[] = {
+xrt_binding_input_pair touch_plus_input_binding[] = {
         {XRT_INPUT_TOUCH_PLUS_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
         {XRT_INPUT_TOUCH_PLUS_X_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
         {XRT_INPUT_TOUCH_PLUS_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
@@ -370,11 +372,11 @@ static xrt_binding_input_pair touch_plus_input_binding[] = {
         {XRT_INPUT_TOUCH_PLUS_TRIGGER_SLIDE, XRT_INPUT_TOUCH_PRO_TRIGGER_SLIDE},
 };
 
-static xrt_binding_output_pair touch_plus_output_binding[] = {
+xrt_binding_output_pair touch_plus_output_binding[] = {
         {XRT_OUTPUT_NAME_TOUCH_PLUS_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
-static xrt_binding_input_pair pico_neo3_input_binding[] = {
+xrt_binding_input_pair pico_neo3_input_binding[] = {
         {XRT_INPUT_PICO_NEO3_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
         {XRT_INPUT_PICO_NEO3_X_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
         {XRT_INPUT_PICO_NEO3_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
@@ -397,11 +399,11 @@ static xrt_binding_input_pair pico_neo3_input_binding[] = {
         {XRT_INPUT_PICO_NEO3_B_TOUCH, XRT_INPUT_TOUCH_B_TOUCH},
 };
 
-static xrt_binding_output_pair pico_neo3_output_binding[] = {
+xrt_binding_output_pair pico_neo3_output_binding[] = {
         {XRT_OUTPUT_NAME_PICO_NEO3_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
-static xrt_binding_input_pair pico4_input_binding[] = {
+xrt_binding_input_pair pico4_input_binding[] = {
         {XRT_INPUT_PICO4_X_CLICK, XRT_INPUT_TOUCH_X_CLICK},
         {XRT_INPUT_PICO4_X_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
         {XRT_INPUT_PICO4_Y_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
@@ -424,11 +426,11 @@ static xrt_binding_input_pair pico4_input_binding[] = {
         {XRT_INPUT_PICO4_MENU_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
 };
 
-static xrt_binding_output_pair pico4_output_binding[] = {
+xrt_binding_output_pair pico4_output_binding[] = {
         {XRT_OUTPUT_NAME_PICO4_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
-static xrt_binding_profile wivrn_binding_profiles[] = {
+xrt_binding_profile wivrn_binding_profiles[] = {
         {
                 .name = XRT_DEVICE_SIMPLE_CONTROLLER,
                 .inputs = simple_input_binding,
@@ -480,13 +482,10 @@ static xrt_binding_profile wivrn_binding_profiles[] = {
         },
 };
 
-namespace
-{
 struct xrt_space_relation_csv_header
 {};
-} // namespace
 
-static std::ostream & operator<<(std::ostream & out, const xrt_space_relation_csv_header &)
+std::ostream & operator<<(std::ostream & out, const xrt_space_relation_csv_header &)
 {
 	for (auto [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
 	{
@@ -503,44 +502,7 @@ static std::ostream & operator<<(std::ostream & out, const xrt_space_relation_cs
 	out << "avx,avy,avz";
 	return out;
 }
-
-static std::ostream & operator<<(std::ostream & out, const xrt_space_relation & rel)
-{
-	const auto & pos = rel.pose.position;
-	const auto & o = rel.pose.orientation;
-	const auto & v = rel.linear_velocity;
-	const auto & av = rel.angular_velocity;
-	for (const auto & [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
-	{
-		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
-			out << bool(rel.relation_flags & value) << ',';
-	}
-	out << pos.x << ',' << pos.y << ',' << pos.z << ',';
-	out << o.w << ',' << o.x << ',' << o.y << ',' << o.z << ',';
-	out << v.x << ',' << v.y << ',' << v.z << ',';
-	out << av.x << ',' << av.y << ',' << av.z;
-	return out;
-}
-
-static std::mutex tracking_dump_mutex;
-static std::ofstream & tracking_dump()
-{
-	static auto res = [] {
-		std::ofstream res;
-		if (auto wivrn_dump = std::getenv("WIVRN_DUMP_TRACKING"))
-		{
-			res.open(wivrn_dump);
-			res << "device_id,"
-			       "now_ns,"
-			       "timestamp_ns,"
-			       "extrapolation_ns,"
-			       "receive/get,"
-			    << xrt_space_relation_csv_header{} << std::endl;
-		}
-		return res;
-	}();
-	return res;
-}
+} // namespace
 
 wivrn_controller::wivrn_controller(int hand_id,
                                    xrt_device * hmd,
@@ -760,9 +722,8 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 			return XRT_ERROR_INPUT_UNSUPPORTED;
 	}
 	cnx->add_predict_offset(extrapolation_time);
-	if (auto & out = tracking_dump())
+	if (auto out = tracking_dump())
 	{
-		std::lock_guard lock{tracking_dump_mutex};
 		auto device = [&] {
 		switch (name)
 		{
@@ -773,12 +734,12 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 				assert(false);
 				__builtin_unreachable();
 		} }();
-		out << magic_enum::enum_name(device) << ','
-		    << os_monotonic_get_ns() << ','
-		    << at_timestamp_ns << ','
-		    << extrapolation_time.count() << ','
-		    << "g,"
-		    << *res << std::endl;
+		*out->lock() << magic_enum::enum_name(device) << ','
+		             << os_monotonic_get_ns() << ','
+		             << at_timestamp_ns << ','
+		             << extrapolation_time.count() << ','
+		             << "g,"
+		             << *res << std::endl;
 		;
 	}
 	return XRT_SUCCESS;
@@ -832,19 +793,19 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 		cnx->set_enabled(grip.device, false);
 	if (not palm.update_tracking(tracking, offset))
 		cnx->set_enabled(palm.device, false);
-	if (auto & out = tracking_dump(); out and offset)
+	if (auto out = tracking_dump(); out and offset)
 	{
-		std::lock_guard lock{tracking_dump_mutex};
+		auto locked = out->lock();
 		auto now = os_monotonic_get_ns();
 		for (const auto & pose: tracking.device_poses)
 		{
 			if (pose.device == aim.device or pose.device == grip.device or pose.device == palm.device)
-				out << magic_enum::enum_name(pose.device) << ','
-				    << now << ','
-				    << offset.from_headset(tracking.timestamp) << ','
-				    << tracking.timestamp - tracking.production_timestamp << ','
-				    << "r,"
-				    << pose_list::convert_pose(pose) << std::endl;
+				*locked << magic_enum::enum_name(pose.device) << ','
+				        << now << ','
+				        << offset.from_headset(tracking.timestamp) << ','
+				        << tracking.timestamp - tracking.production_timestamp << ','
+				        << "r,"
+				        << pose_list::convert_pose(pose) << std::endl;
 		}
 	}
 }
@@ -895,4 +856,44 @@ void wivrn_controller::reset_history()
 	aim.reset();
 	palm.reset();
 }
+
+thread_safe<std::ofstream> * wivrn_controller::tracking_dump()
+{
+	static std::unique_ptr<thread_safe<std::ofstream>> res = [] {
+		if (auto wivrn_dump = std::getenv("WIVRN_DUMP_TRACKING"))
+		{
+			U_LOG_I("Controller tracking dump enabled: %s", wivrn_dump);
+			std::ofstream res;
+			res.open(wivrn_dump);
+			res << "device_id,"
+			       "now_ns,"
+			       "timestamp_ns,"
+			       "extrapolation_ns,"
+			       "receive/get,"
+			    << xrt_space_relation_csv_header{} << std::endl;
+
+			return std::make_unique<thread_safe<std::ofstream>>(std::move(res));
+		}
+		return std::unique_ptr<thread_safe<std::ofstream>>();
+	}();
+	return res.get();
+}
 } // namespace wivrn
+
+std::ostream & operator<<(std::ostream & out, const xrt_space_relation & rel)
+{
+	const auto & pos = rel.pose.position;
+	const auto & o = rel.pose.orientation;
+	const auto & v = rel.linear_velocity;
+	const auto & av = rel.angular_velocity;
+	for (const auto & [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
+	{
+		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
+			out << bool(rel.relation_flags & value) << ',';
+	}
+	out << pos.x << ',' << pos.y << ',' << pos.z << ',';
+	out << o.w << ',' << o.x << ',' << o.y << ',' << o.z << ',';
+	out << v.x << ',' << v.y << ',' << v.z << ',';
+	out << av.x << ',' << av.y << ',' << av.z;
+	return out;
+}
