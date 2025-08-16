@@ -1028,14 +1028,15 @@ ImTextureID imgui_context::load_texture(const std::string & filename, vk::raii::
 ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler)
 {
 	bool srgb = true;
+	// TODO: reuse the image loader
 	image_loader loader(physical_device, device, queue, command_pool);
-	loader.load(bytes, srgb);
+	auto image = loader.load(bytes, srgb);
 
 	std::shared_ptr<vk::raii::DescriptorSet> ds = descriptor_pool.allocate();
 
 	vk::DescriptorImageInfo image_info{
 	        .sampler = *sampler,
-	        .imageView = **loader.image_view,
+	        .imageView = *image.image_view,
 	        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 	};
 
@@ -1053,8 +1054,7 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 	        id,
 	        texture_data{
 	                .sampler = std::move(sampler),
-	                // .image = std::move(loader.image),
-	                .image_view = std::move(loader.image_view),
+	                .image = std::move(image),
 	                .descriptor_set = std::move(ds),
 	        });
 

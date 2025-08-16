@@ -922,14 +922,14 @@ void scenes::lobby::on_focused()
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
 	std::string image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";
-	try
-	{
-		about_picture = imgui_ctx->load_texture(image + ".ktx2");
-	}
-	catch (...)
-	{
-		about_picture = imgui_ctx->load_texture(image + ".png");
-	}
+	// try
+	// {
+	about_picture = imgui_ctx->load_texture(image + ".ktx2");
+	// }
+	// catch (...)
+	// {
+	// 	about_picture = imgui_ctx->load_texture(image + ".png");
+	// }
 
 	try
 	{

@@ -257,37 +257,30 @@ fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 		return fastgltf::MimeType::None;
 }
 
-std::shared_ptr<vk::raii::ImageView> do_load_image(
+loaded_image do_load_image(
         vk::raii::PhysicalDevice & physical_device,
         vk::raii::Device & device,
         thread_safe<vk::raii::Queue> & queue,
         vk::raii::CommandPool & cb_pool,
         std::span<const std::byte> image_data,
-        bool srgb)
+        bool srgb,
+        const std::pmr::string & name)
 {
 	switch (guess_mime_type(image_data))
 	{
 		case fastgltf::MimeType::JPEG:
 		case fastgltf::MimeType::PNG:
 		case fastgltf::MimeType::KTX2: {
-			try
-			{
-				image_loader loader(physical_device, device, queue, cb_pool);
-				loader.load(image_data, srgb);
+			// TODO reuse image loader
+			image_loader loader(physical_device, device, queue, cb_pool);
+			auto image = loader.load(image_data, srgb, name.c_str());
 
-				spdlog::debug("Loaded image {}x{}, format {}, {} mipmaps", loader.extent.width, loader.extent.height, vk::to_string(loader.format), loader.num_mipmaps);
-				return loader.image_view;
-			}
-			catch (std::exception & e)
-			{
-				spdlog::info("Cannot load image: {}", e.what());
-				return {};
-			}
+			spdlog::debug("Loaded image {}, {}x{}, format {}, {} mipmaps", name, image.extent.width, image.extent.height, vk::to_string(image.format), image.num_mipmaps);
+			return image;
 		}
 
 		default:
-			spdlog::error("Unsupported image MIME type");
-			return {};
+			throw std::runtime_error{"Unsupported image MIME type"};
 	}
 }
 // END
@@ -313,6 +306,7 @@ fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::fi
 class loader_context
 {
 	std::filesystem::path base_directory;
+	std::string name;
 	fastgltf::Asset & gltf;
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
@@ -327,12 +321,14 @@ class loader_context
 
 public:
 	loader_context(std::filesystem::path base_directory,
+	               std::string name,
 	               fastgltf::Asset & gltf,
 	               vk::raii::PhysicalDevice physical_device,
 	               vk::raii::Device & device,
 	               thread_safe<vk::raii::Queue> & queue,
 	               vk::raii::CommandPool & cb_pool) :
-	        base_directory(base_directory),
+	        base_directory(std::move(base_directory)),
+	        name(std::move(name)),
 	        gltf(gltf),
 	        physical_device(physical_device),
 	        device(device),
@@ -416,24 +412,17 @@ public:
 	}
 
 	std::unordered_map<int, std::shared_ptr<vk::raii::ImageView>> images;
-	std::shared_ptr<vk::raii::ImageView> load_image(int index, bool srgb)
+	std::shared_ptr<vk::raii::ImageView> load_image(int index, bool srgb, const std::pmr::string & name)
 	{
 		auto it = images.find(index);
 		if (it != images.end())
 			return it->second;
 
-		try
-		{
-			auto [image_data, mime_type] = visit_source(gltf.images[index].data);
-			auto image = do_load_image(physical_device, device, queue, cb_pool, image_data, srgb);
+		auto [image_data, mime_type] = visit_source(gltf.images[index].data);
 
-			images.emplace(index, image);
-			return image;
-		}
-		catch (...)
-		{
-			return nullptr;
-		}
+		auto image_ptr = std::make_shared<loaded_image>(do_load_image(physical_device, device, queue, cb_pool, image_data, srgb, name));
+
+		return std::shared_ptr<vk::raii::ImageView>(image_ptr, &image_ptr->image_view);
 	}
 
 	std::vector<std::shared_ptr<renderer::texture>> load_all_textures()
@@ -457,16 +446,21 @@ public:
 			auto & texture_ref = *textures.emplace_back(std::make_shared<renderer::texture>());
 
 			if (gltf_texture.samplerIndex)
-			{
-				fastgltf::Sampler & sampler = gltf.samplers.at(*gltf_texture.samplerIndex);
-				texture_ref.sampler = convert(sampler);
-			}
+				texture_ref.sampler = convert(gltf.samplers.at(*gltf_texture.samplerIndex));
+
+			std::vector<std::string> errors;
 
 			if (gltf_texture.basisuImageIndex)
 			{
-				texture_ref.image_view = load_image(*gltf_texture.basisuImageIndex, srgb);
-				if (texture_ref.image_view)
+				try
+				{
+					texture_ref.image_view = load_image(*gltf_texture.basisuImageIndex, srgb, gltf_texture.name);
 					continue;
+				}
+				catch (std::exception & e)
+				{
+					errors.push_back(std::format("Cannot load image {}: {}", *gltf_texture.basisuImageIndex, e.what()));
+				}
 			}
 
 			// if (gltf_texture.ddsImageIndex)
@@ -481,10 +475,21 @@ public:
 
 			if (gltf_texture.imageIndex)
 			{
-				texture_ref.image_view = load_image(*gltf_texture.imageIndex, srgb);
-				if (texture_ref.image_view)
+				try
+				{
+					texture_ref.image_view = load_image(*gltf_texture.imageIndex, srgb, gltf_texture.name);
 					continue;
+				}
+				catch (std::exception & e)
+				{
+					errors.push_back(std::format("Cannot load image {}: {}", *gltf_texture.imageIndex, e.what()));
+					spdlog::warn("Cannot load image {}", gltf_texture.name);
+				}
 			}
+
+			spdlog::error("{}: cannot load texture {}:", name, gltf_texture.name);
+			for (auto & error: errors)
+				spdlog::error("    {}", error);
 
 			throw std::runtime_error("Unsupported image type");
 		}
@@ -515,7 +520,6 @@ public:
 			// Copy the default material, without references to its buffer or descriptor set
 			auto & material_ref = *materials.emplace_back(std::make_shared<renderer::material>(default_material));
 			material_ref.name = gltf_material.name;
-			spdlog::info("Loading material \"{}\"", material_ref.name);
 			material_ref.buffer.reset();
 			material_ref.ds.reset();
 
@@ -699,7 +703,8 @@ public:
 
 } // namespace
 
-renderer::vertex::description renderer::vertex::describe()
+renderer::vertex::description
+renderer::vertex::describe()
 {
 	renderer::vertex::description desc;
 
@@ -759,7 +764,7 @@ entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
 	data_buffer.copyBytes(reinterpret_cast<const uint8_t *>(asset_file.data()), asset_file.size());
 
 	fastgltf::Asset asset = load_gltf_asset(data_buffer, gltf_path.parent_path());
-	loader_context ctx(gltf_path.parent_path(), asset, physical_device, device, queue, cb_pool);
+	loader_context ctx(gltf_path.parent_path(), gltf_path, asset, physical_device, device, queue, cb_pool);
 
 #ifndef NDEBUG
 	if (auto error = fastgltf::validate(asset); error != fastgltf::Error::None)

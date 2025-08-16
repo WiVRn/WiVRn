@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "image_loader.h"
 #include "render/growable_descriptor_pool.h"
 #include "utils/thread_safe.h"
 #include "wivrn_config.h"
@@ -47,7 +48,7 @@ class imgui_context
 	struct texture_data
 	{
 		vk::raii::Sampler sampler;
-		std::shared_ptr<vk::raii::ImageView> image_view;
+		loaded_image image;
 		std::shared_ptr<vk::raii::DescriptorSet> descriptor_set;
 	};
 
