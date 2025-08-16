@@ -134,7 +134,7 @@ static std::vector<interaction_profile> interaction_profiles{
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/facebook/touch_controller_pro",
-                .required_extensions = {"XR_FB_touch_controller_pro"},
+                .required_extensions = {XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME},
                 .max_version = XR_MAKE_VERSION(1, 1, 0),
                 .input_sources = {
                         "/user/hand/left/output/haptic",
@@ -247,7 +247,7 @@ static std::vector<interaction_profile> interaction_profiles{
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/meta/touch_controller_plus",
-                .required_extensions = {"XR_META_touch_controller_plus"},
+                .required_extensions = {XR_META_TOUCH_CONTROLLER_PLUS_EXTENSION_NAME},
                 .max_version = XR_MAKE_VERSION(1, 1, 0),
                 .input_sources = {
                         "/user/hand/left/output/haptic",
@@ -348,7 +348,7 @@ static std::vector<interaction_profile> interaction_profiles{
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/bytedance/pico_neo3_controller",
-                .required_extensions = {"XR_BD_controller_interaction"},
+                .required_extensions = {XR_BD_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -391,7 +391,7 @@ static std::vector<interaction_profile> interaction_profiles{
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/bytedance/pico4_controller",
-                .required_extensions = {"XR_BD_controller_interaction"},
+                .required_extensions = {XR_BD_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -434,7 +434,7 @@ static std::vector<interaction_profile> interaction_profiles{
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/bytedance/pico4s_controller",
-                .required_extensions = {"XR_BD_controller_interaction"},
+                .required_extensions = {XR_BD_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -477,7 +477,7 @@ static std::vector<interaction_profile> interaction_profiles{
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/htc/vive_focus3_controller",
-                .required_extensions = {"XR_HTC_vive_focus3_controller_interaction"},
+                .required_extensions = {XR_HTC_VIVE_FOCUS3_CONTROLLER_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -519,7 +519,7 @@ static std::vector<interaction_profile> interaction_profiles{
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/ext/hand_interaction_ext",
-                .required_extensions = {"XR_EXT_hand_interaction"},
+                .required_extensions = {XR_EXT_HAND_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
                         "/user/hand/left/input/aim/pose",
                         "/user/hand/left/input/grip/pose",
@@ -548,11 +548,14 @@ static std::vector<interaction_profile> interaction_profiles{
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/htc/vive_xr_tracker",
-                .required_extensions = {"XR_HTC_vive_xr_tracker_interaction", "XR_HTC_path_enumeration"},
+                .required_extensions = {
+                        XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME,
+                        XR_HTC_PATH_ENUMERATION_EXTENSION_NAME,
+                },
         },
         interaction_profile{
                 .profile_name = "/interaction_profiles/ext/eye_gaze_interaction",
-                .required_extensions = {"XR_EXT_eye_gaze_interaction"},
+                .required_extensions = {XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME},
                 .input_sources = {
                         "/user/eyes_ext/input/gaze_ext/pose",
                 },
