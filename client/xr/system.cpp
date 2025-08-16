@@ -41,6 +41,9 @@ xr::system::system(xr::instance & inst, XrFormFactor formfactor)
 	CHECK_XR(xrGetSystem(inst, &system_info, &id));
 
 	assert(id != XR_NULL_SYSTEM_ID);
+
+	if (inst.has_extension(XR_EXT_HAND_TRACKING_EXTENSION_NAME))
+		hand_tracking_supported_ = hand_tracking_properties().supportsHandTracking;
 }
 
 XrGraphicsRequirementsVulkan2KHR xr::system::graphics_requirements() const
@@ -234,6 +237,11 @@ xr::system::passthrough_type xr::system::passthrough_supported() const
 	}
 
 	return passthrough_type::no_passthrough;
+}
+
+bool xr::system::hand_tracking_supported() const
+{
+	return hand_tracking_supported_;
 }
 
 vk::raii::PhysicalDevice xr::system::physical_device(vk::raii::Instance & vulkan) const

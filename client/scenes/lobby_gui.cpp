@@ -889,7 +889,7 @@ void scenes::lobby::gui_settings()
 		ImGui::EndDisabled();
 	}
 	{
-		ImGui::BeginDisabled(not application::get_hand_tracking_supported());
+		ImGui::BeginDisabled(not system.hand_tracking_supported());
 		bool enabled = config.check_feature(feature::hand_tracking);
 		if (ImGui::Checkbox(_S("Enable hand tracking"), &enabled))
 		{
@@ -1690,7 +1690,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 	        .icon_disabled = ICON_FA_MICROPHONE_SLASH,
 	});
 
-	if (application::get_hand_tracking_supported())
+	if (system.hand_tracking_supported())
 	{
 		items.push_back({
 		        .f = feature::hand_tracking,
@@ -2028,7 +2028,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 
 	if (not is_gui_visible(*imgui_ctx, predicted_display_time))
 	{
-		if (application::get_hand_tracking_supported())
+		if (system.hand_tracking_supported())
 			display_recentering_tip(*imgui_ctx, _("Press the grip button or put your palm up\nto move the main window"));
 		else
 			display_recentering_tip(*imgui_ctx, _("Press the grip button to move the main window"));

@@ -649,10 +649,10 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	if (!new_gui_position and head_position)
 		new_gui_position = check_recenter_action(frame_state.predictedDisplayTime, head_position->first);
 
-	if (application::get_hand_tracking_supported())
+	if (left_hand and right_hand)
 	{
-		auto left = application::get_left_hand().locate(world_space, frame_state.predictedDisplayTime);
-		auto right = application::get_right_hand().locate(world_space, frame_state.predictedDisplayTime);
+		auto left = left_hand->locate(world_space, frame_state.predictedDisplayTime);
+		auto right = right_hand->locate(world_space, frame_state.predictedDisplayTime);
 
 		hand_model::apply(world, left, right);
 
@@ -835,12 +835,6 @@ void scenes::lobby::on_focused()
 	xyz_axes_right_controller = load_gltf("xyz-arrows.glb", layer_controllers).first;
 #endif
 
-	if (application::get_hand_tracking_supported())
-	{
-		hand_model::add_hand(*this, XR_HAND_LEFT_EXT, "left-hand.glb", layer_controllers);
-		hand_model::add_hand(*this, XR_HAND_RIGHT_EXT, "right-hand.glb", layer_controllers);
-	}
-
 	recenter_left_action = get_action("recenter_left").first;
 	recenter_right_action = get_action("recenter_right").first;
 
@@ -862,19 +856,15 @@ void scenes::lobby::on_focused()
 	                .haptic_output = get_action("right_haptic").first,
 	        },
 	};
-	if (auto & hand = application::get_left_hand())
+
+	if (system.hand_tracking_supported())
 	{
-		imgui_inputs.push_back(
-		        {
-		                .hand = &hand,
-		        });
-	}
-	if (auto & hand = application::get_right_hand())
-	{
-		imgui_inputs.push_back(
-		        {
-		                .hand = &hand,
-		        });
+		left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
+		right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
+		hand_model::add_hand(*this, XR_HAND_LEFT_EXT, "left-hand.glb", layer_controllers);
+		hand_model::add_hand(*this, XR_HAND_RIGHT_EXT, "right-hand.glb", layer_controllers);
+		imgui_inputs.push_back({.hand = &*left_hand});
+		imgui_inputs.push_back({.hand = &*right_hand});
 	}
 
 	// 0.4mm / pixel
@@ -966,6 +956,8 @@ void scenes::lobby::on_unfocused()
 	world.clear(); // Must be cleared before the renderer so that the descriptor sets are freed before their pools
 
 	input.reset();
+	left_hand.reset();
+	right_hand.reset();
 
 	loader.reset();
 	renderer.reset();

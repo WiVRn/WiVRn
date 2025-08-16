@@ -129,6 +129,8 @@ private:
 
 	std::optional<audio> audio_handle;
 
+	std::optional<xr::hand_tracker> left_hand;
+	std::optional<xr::hand_tracker> right_hand;
 	std::optional<input_profile> input;
 	static inline const uint32_t layer_controllers = 1 << 0;
 	static inline const uint32_t layer_rays = 1 << 1;

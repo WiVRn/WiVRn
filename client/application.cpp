@@ -1236,12 +1236,7 @@ void application::initialize()
 	spdlog::info("        Orientation tracking: {}", (bool)properties.trackingProperties.orientationTracking);
 	spdlog::info("        Position tracking: {}", (bool)properties.trackingProperties.positionTracking);
 
-	if (utils::contains(xr_extensions, XR_EXT_HAND_TRACKING_EXTENSION_NAME))
-	{
-		XrSystemHandTrackingPropertiesEXT hand_tracking_properties = xr_system_id.hand_tracking_properties();
-		spdlog::info("    Hand tracking support: {}", (bool)hand_tracking_properties.supportsHandTracking);
-		hand_tracking_supported = hand_tracking_properties.supportsHandTracking;
-	}
+	spdlog::info("    Hand tracking support: {}", xr_system_id.hand_tracking_supported());
 
 	if (utils::contains(xr_extensions, XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME))
 	{
@@ -1287,12 +1282,6 @@ void application::initialize()
 	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
 	config.emplace(xr_system_id);
-
-	if (hand_tracking_supported)
-	{
-		left_hand = xr_session.create_hand_tracker(XR_HAND_LEFT_EXT);
-		right_hand = xr_session.create_hand_tracker(XR_HAND_RIGHT_EXT);
-	}
 
 	if (utils::contains(xr_extensions, XR_FB_FACE_TRACKING2_EXTENSION_NAME))
 	{

@@ -385,6 +385,8 @@ void scenes::stream::tracking()
 	std::vector<serialization_packet> packets;
 
 	const bool hand_tracking = config.check_feature(feature::hand_tracking);
+	std::optional<xr::hand_tracker> left_hand;
+	std::optional<xr::hand_tracker> right_hand;
 
 	const bool face_tracking = config.check_feature(feature::face_tracking);
 	auto & face_tracker = application::get_face_tracker();
@@ -435,6 +437,22 @@ void scenes::stream::tracking()
 
 			auto control = *tracking_control.lock();
 
+			if (control.enabled[size_t(tid::left_hand)])
+			{
+				if (not left_hand and system.hand_tracking_supported())
+					left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
+			}
+			else
+				left_hand.reset();
+
+			if (control.enabled[size_t(tid::right_hand)])
+			{
+				if (not right_hand and system.hand_tracking_supported())
+					right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
+			}
+			else
+				right_hand.reset();
+
 			XrDuration prediction = std::clamp<XrDuration>(control.max_offset.count(), 0, 80'000'000);
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
 			for (XrDuration Δt = display_time_phase - t0 % period + (control.min_offset.count() / period) * period;
@@ -465,9 +483,9 @@ void scenes::stream::tracking()
 					    (Δt == 0 or Δt >= prediction - 2 * period))
 					{
 						last_hand_sample = t0;
-						if (control.enabled[size_t(tid::left_hand)])
+						if (left_hand)
 						{
-							auto joints = locate_hands(application::get_left_hand(), world_space, t0 + Δt);
+							auto joints = locate_hands(*left_hand, world_space, t0 + Δt);
 							hands.emplace_back(
 							        t0,
 							        t0 + Δt,
@@ -475,9 +493,9 @@ void scenes::stream::tracking()
 							        joints);
 						}
 
-						if (control.enabled[size_t(tid::right_hand)])
+						if (right_hand)
 						{
-							auto joints = locate_hands(application::get_right_hand(), world_space, t0 + Δt);
+							auto joints = locate_hands(*right_hand, world_space, t0 + Δt);
 							hands.emplace_back(
 							        t0,
 							        t0 + Δt,

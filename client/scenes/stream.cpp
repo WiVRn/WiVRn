@@ -493,6 +493,8 @@ void scenes::stream::on_unfocused()
 	loader.reset();
 	renderer.reset();
 	clear_swapchains();
+	left_hand.reset();
+	right_hand.reset();
 
 	imgui_ctx.reset();
 	swapchain_imgui = xr::swapchain();

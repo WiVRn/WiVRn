@@ -94,7 +94,7 @@ bool configuration::check_feature(feature f) const
 			case feature::microphone:
 				break;
 			case feature::hand_tracking:
-				if (not application::get_hand_tracking_supported())
+				if (not application::get_system().hand_tracking_supported())
 					return false;
 				break;
 			case feature::eye_gaze:
@@ -182,7 +182,7 @@ void configuration::set_feature(feature f, bool state)
 configuration::configuration(xr::system & system)
 {
 	passthrough_enabled = system.passthrough_supported() == xr::system::passthrough_type::color;
-	features[feature::hand_tracking] = application::get_hand_tracking_supported();
+	features[feature::hand_tracking] = system.hand_tracking_supported();
 	try
 	{
 		simdjson::dom::parser parser;

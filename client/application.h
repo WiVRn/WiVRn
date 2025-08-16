@@ -126,10 +126,6 @@ class application : public singleton<application>
 	xr::actionset xr_actionset;
 	std::vector<std::tuple<XrAction, XrActionType, std::string>> actions;
 
-	bool hand_tracking_supported = false;
-	xr::hand_tracker left_hand;
-	xr::hand_tracker right_hand;
-
 	std::variant<std::monostate, xr::fb_face_tracker2, xr::htc_face_tracker, xr::pico_face_tracker> face_tracker;
 	std::variant<std::monostate, xr::fb_body_tracker, xr::htc_body_tracker, xr::pico_body_tracker> body_tracker;
 
@@ -396,6 +392,11 @@ public:
 		return instance().vk_instance;
 	}
 
+	static xr::system & get_system()
+	{
+		return instance().xr_system_id;
+	}
+
 	static vk::raii::PipelineCache & get_pipeline_cache()
 	{
 		return instance().pipeline_cache;
@@ -416,11 +417,6 @@ public:
 		return instance().last_scene_cpu_time;
 	}
 
-	static bool get_hand_tracking_supported()
-	{
-		return instance().hand_tracking_supported;
-	}
-
 	static bool get_face_tracking_supported()
 	{
 		return !std::holds_alternative<std::monostate>(instance().face_tracker);
@@ -439,16 +435,6 @@ public:
 	static bool get_openxr_post_processing_supported()
 	{
 		return instance().openxr_post_processing_supported;
-	}
-
-	static xr::hand_tracker & get_left_hand()
-	{
-		return instance().left_hand;
-	}
-
-	static xr::hand_tracker & get_right_hand()
-	{
-		return instance().right_hand;
 	}
 
 	static auto & get_face_tracker()

@@ -645,6 +645,19 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			break;
 	}
 	imgui_ctx->set_controllers_enabled(interactable);
+	if (interactable)
+	{
+		if (system.hand_tracking_supported())
+		{
+			left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
+			right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
+		}
+	}
+	else
+	{
+		left_hand.reset();
+		right_hand.reset();
+	}
 
 	if (gui_status != last_gui_status)
 	{
@@ -876,10 +889,10 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		bool hide_left_controller = false;
 		bool hide_right_controller = false;
 
-		if (application::get_hand_tracking_supported())
+		if (left_hand and right_hand)
 		{
-			auto left = application::get_left_hand().locate(world_space, predicted_display_time);
-			auto right = application::get_right_hand().locate(world_space, predicted_display_time);
+			auto left = left_hand->locate(world_space, predicted_display_time);
+			auto right = right_hand->locate(world_space, predicted_display_time);
 
 			if (left and xr::hand_tracker::check_flags(*left, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
 				hide_left_controller = true;

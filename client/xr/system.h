@@ -36,6 +36,7 @@ class system
 {
 	instance * inst = nullptr;
 	XrSystemId id = XR_NULL_SYSTEM_ID;
+	bool hand_tracking_supported_ = false;
 
 public:
 	enum class passthrough_type
@@ -68,6 +69,7 @@ public:
 	XrSystemBodyTrackingPropertiesFB fb_body_tracking_properties() const;
 	XrSystemBodyTrackingPropertiesBD bd_body_tracking_properties() const;
 	passthrough_type passthrough_supported() const;
+	bool hand_tracking_supported() const;
 
 	XrGraphicsRequirementsVulkan2KHR graphics_requirements() const;
 	vk::raii::PhysicalDevice physical_device(vk::raii::Instance & vulkan) const;

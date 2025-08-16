@@ -66,6 +66,9 @@ class lobby : public scene_impl<lobby>
 
 	std::optional<imgui_context> imgui_ctx;
 
+	std::optional<xr::hand_tracker> left_hand;
+	std::optional<xr::hand_tracker> right_hand;
+
 	std::string selected_item;
 	std::unique_ptr<asset> license;
 
