@@ -1099,6 +1099,13 @@ ImTextureID imgui_context::load_texture(const std::string & filename)
 
 void imgui_context::free_texture(ImTextureID texture)
 {
+	// Make sure we are done using the texture
+	std::vector<vk::Fence> fences;
+	for (auto & f: command_buffers)
+		fences.push_back(*f.fence);
+	if (auto result = device.waitForFences(fences, true, 1'000'000'000); result != vk::Result::eSuccess)
+		spdlog::error("vkWaitForfences: {}", vk::to_string(result));
+
 	textures.erase(texture);
 }
 
