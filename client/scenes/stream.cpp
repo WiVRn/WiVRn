@@ -42,6 +42,7 @@
 #include "utils/ranges.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
+#include "vk/specialization_constants.h"
 #include "wivrn_packets.h"
 #include <algorithm>
 #include <mutex>
@@ -804,51 +805,19 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 			const auto & description = i.decoder->desc();
 			vk::Extent2D image_size = i.decoder->image_size();
-			std::array useful_size{
-			        float(description.width) / image_size.width,
-			        float(description.height) / image_size.height,
-			};
 			spdlog::info("useful size: {}x{} with buffer {}x{}",
 			             description.width,
 			             description.height,
 			             image_size.width,
 			             image_size.height);
 
-			std::array specialization_constants_desc{
-			        vk::SpecializationMapEntry{
-			                .constantID = 0,
-			                .offset = 0,
-			                .size = sizeof(float),
-			        },
-			        vk::SpecializationMapEntry{
-			                .constantID = 1,
-			                .offset = sizeof(float),
-			                .size = sizeof(float),
-			        }};
+			auto vert_constants = make_specialization_constants(
+			        float(description.width) / image_size.width,
+			        float(description.height) / image_size.height);
 
-			vk::SpecializationInfo vert_specialization_info;
-			vert_specialization_info.setMapEntries(specialization_constants_desc);
-			vert_specialization_info.setData<float>(useful_size);
-
-			std::array<VkBool32, 2> constants = {
-			        need_srgb_conversion(guess_model()),
-			        i.alpha(),
-			};
-			std::array frag_specialization_constant_desc = {
-			        vk::SpecializationMapEntry{
-			                .constantID = 0,
-			                .offset = 0,
-			                .size = sizeof(constants[0]),
-			        },
-			        vk::SpecializationMapEntry{
-			                .constantID = 1,
-			                .offset = sizeof(constants[0]),
-			                .size = sizeof(constants[1]),
-			        },
-			};
-			vk::SpecializationInfo frag_specialization_info;
-			frag_specialization_info.setMapEntries(frag_specialization_constant_desc);
-			frag_specialization_info.setData<VkBool32>(constants);
+			auto frag_constants = make_specialization_constants(
+			        VkBool32(need_srgb_conversion(guess_model())),
+			        VkBool32(i.alpha()));
 
 			// Create graphics pipeline
 			vk::raii::ShaderModule vertex_shader = load_shader(device, "stream.vert");
@@ -866,13 +835,13 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			                           .stage = vk::ShaderStageFlagBits::eVertex,
 			                           .module = *vertex_shader,
 			                           .pName = "main",
-			                           .pSpecializationInfo = &vert_specialization_info,
+			                           .pSpecializationInfo = vert_constants,
 			                   },
 			                   {
 			                           .stage = vk::ShaderStageFlagBits::eFragment,
 			                           .module = *fragment_shader,
 			                           .pName = "main",
-			                           .pSpecializationInfo = &frag_specialization_info,
+			                           .pSpecializationInfo = frag_constants,
 			                   }},
 			        .VertexBindingDescriptions = {},
 			        .VertexAttributeDescriptions = {},

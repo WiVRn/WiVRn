@@ -28,6 +28,7 @@
 #include "vk/allocation.h"
 #include "vk/pipeline.h"
 #include "vk/shader.h"
+#include "vk/specialization_constants.h"
 #include <boost/pfr/core.hpp>
 #include <entt/entity/entity.hpp>
 #include <entt/entt.hpp>
@@ -535,34 +536,11 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	auto vertex_shader = load_shader(device, info.shader_name + ".vert");
 	auto fragment_shader = load_shader(device, info.shader_name + ".frag");
 
-	std::array specialization_constants_desc{
-	        vk::SpecializationMapEntry{
-	                .constantID = 0,
-	                .offset = offsetof(pipeline_info, nb_texcoords),
-	                .size = sizeof(int32_t),
-	        },
-	        vk::SpecializationMapEntry{
-	                .constantID = 1,
-	                .offset = offsetof(pipeline_info, dithering),
-	                .size = sizeof(VkBool32),
-	        },
-	        vk::SpecializationMapEntry{
-	                .constantID = 2,
-	                .offset = offsetof(pipeline_info, alpha_cutout),
-	                .size = sizeof(VkBool32),
-	        },
-	        vk::SpecializationMapEntry{
-	                .constantID = 3,
-	                .offset = offsetof(pipeline_info, skinning),
-	                .size = sizeof(VkBool32),
-	        }};
-
-	vk::SpecializationInfo specialization{
-	        .mapEntryCount = specialization_constants_desc.size(),
-	        .pMapEntries = specialization_constants_desc.data(),
-	        .dataSize = sizeof(pipeline_info),
-	        .pData = &info,
-	};
+	auto specialization = make_specialization_constants(
+	        int32_t(info.nb_texcoords),
+	        VkBool32(info.dithering),
+	        VkBool32(info.alpha_cutout),
+	        VkBool32(info.skinning));
 
 	return vk::raii::Pipeline{
 	        device,
@@ -573,14 +551,14 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                                .stage = vk::ShaderStageFlagBits::eVertex,
 	                                .module = *vertex_shader,
 	                                .pName = "main",
-	                                .pSpecializationInfo = &specialization,
+	                                .pSpecializationInfo = specialization,
 
 	                        },
 	                        vk::PipelineShaderStageCreateInfo{
 	                                .stage = vk::ShaderStageFlagBits::eFragment,
 	                                .module = *fragment_shader,
 	                                .pName = "main",
-	                                .pSpecializationInfo = &specialization,
+	                                .pSpecializationInfo = specialization,
 
 	                        },
 	                },
@@ -797,7 +775,7 @@ void scene_renderer::update_material_descriptor_set(renderer::material & materia
 	device.updateDescriptorSets(write_ds, {});
 }
 
-static void print_scene_hierarchy(const entt::registry & scene, entt::entity root = entt::null, int level = 0)
+[[maybe_unused]] static void print_scene_hierarchy(const entt::registry & scene, entt::entity root = entt::null, int level = 0)
 {
 	if (level == 0)
 		spdlog::info("Node hierarchy:");
