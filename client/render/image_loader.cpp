@@ -19,16 +19,14 @@
 
 #include "image_loader.h"
 
-#if WIVRN_USE_LIBKTX
-#include <ktx.h>
-#include <ktxvulkan.h>
-#endif
 #include "application.h"
 #include "utils/thread_safe.h"
 #include "vk/allocation.h"
 #include "vk/vk_allocator.h"
 #include <chrono>
 #include <cstdint>
+#include <ktx.h>
+#include <ktxvulkan.h>
 #include <memory>
 #include <span>
 #include <spdlog/fmt/chrono.h>
@@ -57,15 +55,14 @@ struct image_resources
 	vk::raii::ImageView image_view = nullptr;
 };
 
-#if WIVRN_USE_LIBKTX
-class KTXTexture2 final
+class KTXTexture2
 {
 private:
 	ktxTexture2 * handle_ = nullptr;
 
 public:
-	explicit KTXTexture2(std::nullptr_t) :
-	        handle_{nullptr} {}
+	KTXTexture2() = default;
+
 	explicit KTXTexture2(ktxTexture2 * handle) :
 	        handle_{handle} {}
 
@@ -80,41 +77,30 @@ public:
 
 	KTXTexture2 & operator=(KTXTexture2 && other) &
 	{
-		handle_ = other.handle_;
-		other.handle_ = nullptr;
+		std::swap(handle_, other.handle_);
 		return *this;
 	}
 
 	~KTXTexture2()
 	{
-		if (handle_ != nullptr)
+		if (handle_)
 		{
 			ktxTexture_Destroy(ktxTexture(handle_));
 			handle_ = nullptr;
 		}
 	}
 
-	inline ktxTexture2 * handle() const
-	{
-		return handle_;
-	}
-
-	inline ktxTexture2 ** pHandle()
+	ktxTexture2 ** operator&()
 	{
 		return &handle_;
 	}
 
-	/*implicit*/ inline operator ktxTexture *()
-	{
-		return ktxTexture(handle_);
-	}
-
-	/*implicit*/ inline operator ktxTexture2 *()
+	operator ktxTexture2 *()
 	{
 		return handle_;
 	}
 
-	inline ktxTexture2 * operator->() const
+	ktxTexture2 * operator->() const
 	{
 		return handle_;
 	}
@@ -205,7 +191,6 @@ ktxVulkanTexture_subAllocatorCallbacks suballocator_callbacks{
         .freeMemFuncPtr = [](uint64_t allocation_id) { vmaFreeMemory(vk_allocator::instance(), remove(allocation_id)); },
 };
 } // namespace libktx_vma_glue
-#endif
 
 template <typename T>
 constexpr vk::Format formats[4] = {vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined, vk::Format::eUndefined};
@@ -303,7 +288,6 @@ image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::D
         queue(queue),
         cb_pool(cb_pool)
 {
-#if WIVRN_USE_LIBKTX
 	ktxVulkanDeviceInfo_Construct(&vdi, *physical_device, *device, *queue.get_unsafe(), *cb_pool, nullptr);
 
 	std::array<std::tuple<vk::Format, ktx_transcode_fmt_e, bool>, 6> formats{{
@@ -327,14 +311,11 @@ image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::D
 				supported_linear_formats.emplace_back(vk_format, ktx_format);
 		}
 	}
-#endif
 }
 
 image_loader::~image_loader()
 {
-#if WIVRN_USE_LIBKTX
 	ktxVulkanDeviceInfo_Destruct(&vdi);
-#endif
 }
 
 loaded_image image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format, const std::string & name)
@@ -568,12 +549,11 @@ loaded_image image_loader::do_load_raw(const void * pixels, vk::Extent3D extent,
 
 loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool srgb, const std::string & name)
 {
-#if WIVRN_USE_LIBKTX
+	KTXTexture2 texture{};
 	// KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT checks that the file is compatible with the KHR_texture_basisu glTF extension
-	KTXTexture2 texture{nullptr};
-	// ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, texture.pHandle());
-	ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), 0, texture.pHandle());
-	// ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT | KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, texture.pHandle());
+	// ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture);
+	ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), 0, &texture);
+	// ktxResult err = ktxTexture2_CreateFromMemory(reinterpret_cast<const uint8_t *>(bytes.data()), bytes.size(), KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT | KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture);
 
 	if (err != KTX_SUCCESS)
 	{
@@ -630,9 +610,6 @@ loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool sr
 	        .num_mipmaps = texture->numLevels,
 	        .image_view_type = vk::ImageViewType(vk_texture.viewType),
 	};
-#else
-	throw std::runtime_error("Compiled without KTX support");
-#endif
 }
 
 static constexpr bool starts_with(std::span<const std::byte> data, std::span<const uint8_t> prefix)

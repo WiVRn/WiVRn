@@ -12,6 +12,9 @@ function(wivrn_generate_ktx)
 
     cmake_parse_arguments(PARSE_ARGV 0 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
 
+    cmake_path(GET arg_DESTINATION PARENT_PATH DEST_DIR)
+    file(MAKE_DIRECTORY ${DEST_DIR})
+
     add_custom_command(OUTPUT ${arg_DESTINATION}
         COMMAND ${TOKTX} --encode uastc --uastc_quality 4 --genmipmap --zcmp 20 ${arg_DESTINATION} ${arg_SOURCE}
         DEPENDS ${arg_SOURCE})
@@ -42,6 +45,9 @@ function(wivrn_rasterize_svg)
         set(RSVG_OPTS ${RSVG_OPTS} --stylesheet ${arg_CSS})
     endif()
 
+    cmake_path(GET arg_DESTINATION PARENT_PATH DEST_DIR)
+    file(MAKE_DIRECTORY ${DEST_DIR})
+
     add_custom_command(OUTPUT ${arg_DESTINATION}
        COMMAND ${RSVG_CONVERT} ${arg_SOURCE} ${RSVG_OPTS} -o ${arg_DESTINATION}
        DEPENDS ${arg_SOURCE} ${arg_CSS})
@@ -62,6 +68,9 @@ function(wivrn_gltf_transform_uastc)
     if (DEFINED arg_ZSTD)
         set(ARGS ${ARGS} --zstd ${arg_ZSTD})
     endif()
+
+    cmake_path(GET arg_DESTINATION PARENT_PATH DEST_DIR)
+    file(MAKE_DIRECTORY ${DEST_DIR})
 
     add_custom_command(OUTPUT ${arg_DESTINATION}
         COMMAND ${GLTF_TRANSFORM} uastc ${ARGS} ${arg_SOURCE} ${arg_DESTINATION}
@@ -87,6 +96,9 @@ function(wivrn_gltf_transform_resize)
         set(ARGS ${ARGS} --height ${arg_HEIGHT})
     endif()
 
+    cmake_path(GET arg_DESTINATION PARENT_PATH DEST_DIR)
+    file(MAKE_DIRECTORY ${DEST_DIR})
+
     add_custom_command(OUTPUT ${arg_DESTINATION}
         COMMAND ${GLTF_TRANSFORM} resize ${ARGS} ${arg_SOURCE} ${arg_DESTINATION}
         DEPENDS ${arg_SOURCE})
@@ -102,6 +114,9 @@ function(wivrn_copy_file)
     set(multiValueArgs)
 
     cmake_parse_arguments(PARSE_ARGV 0 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
+
+    cmake_path(GET arg_DESTINATION PARENT_PATH DEST_DIR)
+    file(MAKE_DIRECTORY ${DEST_DIR})
 
     add_custom_command(OUTPUT ${arg_DESTINATION}
         COMMAND ${CMAKE_COMMAND} -E copy ${arg_SOURCE} ${arg_DESTINATION}
