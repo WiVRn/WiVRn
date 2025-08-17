@@ -22,18 +22,14 @@
 #include "utils/thread_safe.h"
 #include "vk/allocation.h"
 #include "vk/fwd.h"
-#include "wivrn_config.h"
 #include <cstddef>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
+#include <ktxvulkan.h>
 #include <span>
 #include <vector>
 #include <vulkan/vulkan.hpp>
-
-#if WIVRN_USE_LIBKTX
-#include <ktxvulkan.h>
-#endif
 
 struct loaded_image
 {
@@ -78,17 +74,13 @@ struct image_loader
 	}
 
 private:
-#if WIVRN_USE_LIBKTX
 	ktxVulkanDeviceInfo vdi;
-#endif
 	vk::raii::Device & device;
 	thread_safe<vk::raii::Queue> & queue;
 	vk::raii::CommandPool & cb_pool;
 
-#if WIVRN_USE_LIBKTX
 	std::vector<std::pair<vk::Format, ktx_texture_transcode_fmt_e>> supported_srgb_formats;
 	std::vector<std::pair<vk::Format, ktx_texture_transcode_fmt_e>> supported_linear_formats;
-#endif
 
 	buffer_allocation staging_buffer;
 
