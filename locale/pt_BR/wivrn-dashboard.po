@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-04 04:40-0300\n"
+"POT-Creation-Date: 2025-08-09 22:47+0200\n"
 "PO-Revision-Date: 2025-08-08 11:56-0300\n"
 "Last-Translator: myghi63 <myghi63@disroot.org>\n"
 "Language: pt_BR\n"
@@ -87,7 +87,7 @@ msgid "No precompiled APK is available for this version."
 msgstr "Nenhum APK pré-compilado está disponível para esta versão."
 
 #: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:259
-#: dashboard/qml/Main.qml:341
+#: dashboard/qml/Main.qml:342
 #, kde-format
 msgid "ADB is not installed."
 msgstr "ADB não está instalado."
@@ -136,7 +136,7 @@ msgstr "Reinstalar WiVRn"
 msgid "Install WiVRn"
 msgstr "Instalar WiVRn"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:354
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:355
 #, kde-format
 msgid "Headsets"
 msgstr "Headsets"
@@ -181,7 +181,7 @@ msgstr "Renomear"
 
 #: dashboard/qml/HeadsetsPage.qml:55 dashboard/qml/WizardPage.qml:38
 #: dashboard/qml/WizardPage.qml:88 dashboard/qml/WizardPage.qml:263
-#: dashboard/qml/WizardPage.qml:326 dashboard/qml/WizardPage.qml:410
+#: dashboard/qml/WizardPage.qml:327 dashboard/qml/WizardPage.qml:411
 #, kde-format
 msgid "Cancel"
 msgstr "Cancelar"
@@ -280,8 +280,8 @@ msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
 "Install xrizer or OpenComposite."
 msgstr ""
-"Nenhuma compatibilidade com OpenVR foi detectada. Os jogos do Steam não conseg"
-"uirão carregar em VR.\n"
+"Nenhuma compatibilidade com OpenVR foi detectada. Os jogos do Steam não "
+"conseguirão carregar em VR.\n"
 "Instale o xrizer ou o OpenComposite."
 
 #: dashboard/qml/Main.qml:171
@@ -311,7 +311,7 @@ msgstr "Pareando"
 msgid "PIN: %1"
 msgstr "PIN: %1"
 
-#: dashboard/qml/Main.qml:250 dashboard/qml/WizardPage.qml:373
+#: dashboard/qml/Main.qml:250 dashboard/qml/WizardPage.qml:374
 #, kde-format
 msgid "Connect by USB"
 msgstr "Conectar pela USB"
@@ -338,22 +338,22 @@ msgstr "Aplicativo"
 msgid "Steam information"
 msgstr "Informações da Steam"
 
-#: dashboard/qml/Main.qml:325
+#: dashboard/qml/Main.qml:326
 #, kde-format
 msgid "Wizard"
 msgstr "Assistente"
 
-#: dashboard/qml/Main.qml:332
+#: dashboard/qml/Main.qml:333
 #, kde-format
 msgid "Install the app"
 msgstr "Instalar o aplicativo"
 
-#: dashboard/qml/Main.qml:361 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:362 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "Ajustes"
 
-#: dashboard/qml/Main.qml:368 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:369 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "Resolver problemas"
@@ -645,7 +645,7 @@ msgstr "Comando de lançamento da Steam copiado"
 msgid "I cannot find the WiVRn app on my headset"
 msgstr "Não consigo encontrar o aplicativo do WiVRn no meu headset"
 
-#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:387
+#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:388
 #, kde-format
 msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
@@ -659,7 +659,7 @@ msgstr ""
 msgid "I cannot see my computer in the WiVRn app"
 msgstr "Não consigo ver meu computador no aplicativo do WiVRn"
 
-#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:392
+#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:393
 #, kde-format
 msgid ""
 "If the server is not visible or the connection fails, check that port 5353 "
@@ -713,7 +713,7 @@ msgstr "Pareamento está atualmente desativado."
 msgid "I have no sound on my headset"
 msgstr "Eu não tenho som no meu headset"
 
-#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:440
+#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:441
 #, kde-format
 msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
@@ -738,9 +738,9 @@ msgid "Getting started"
 msgstr "Começando"
 
 #: dashboard/qml/WizardPage.qml:29 dashboard/qml/WizardPage.qml:78
-#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:316
-#: dashboard/qml/WizardPage.qml:400 dashboard/qml/WizardPage.qml:447
-#: dashboard/qml/WizardPage.qml:484
+#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:317
+#: dashboard/qml/WizardPage.qml:401 dashboard/qml/WizardPage.qml:448
+#: dashboard/qml/WizardPage.qml:485
 #, kde-format
 msgid "Back"
 msgstr "Voltar"
@@ -760,8 +760,8 @@ msgstr ""
 "ao seu computador."
 
 #: dashboard/qml/WizardPage.qml:83 dashboard/qml/WizardPage.qml:258
-#: dashboard/qml/WizardPage.qml:321 dashboard/qml/WizardPage.qml:452
-#: dashboard/qml/WizardPage.qml:489
+#: dashboard/qml/WizardPage.qml:322 dashboard/qml/WizardPage.qml:453
+#: dashboard/qml/WizardPage.qml:490
 #, kde-format
 msgid "Next"
 msgstr "Próximo"
@@ -860,12 +860,12 @@ msgstr ""
 "O aplicativo que você escolher será iniciado automaticamente quando você "
 "conectar seu headset."
 
-#: dashboard/qml/WizardPage.qml:300
+#: dashboard/qml/WizardPage.qml:301
 #, kde-format
 msgid "Important information"
 msgstr "Informação importante"
 
-#: dashboard/qml/WizardPage.qml:307
+#: dashboard/qml/WizardPage.qml:308
 #, kde-format
 msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
@@ -874,12 +874,12 @@ msgstr ""
 "O WiVRn substitui o SteamVR completamente, você não deve iniciar o SteamVR "
 "enquanto o WiVRn estiver rodando."
 
-#: dashboard/qml/WizardPage.qml:358
+#: dashboard/qml/WizardPage.qml:359
 #, kde-format
 msgid "Start the WiVRn app on your headset"
 msgstr "Iniciar o aplicativo do WiVRn no seu headset"
 
-#: dashboard/qml/WizardPage.qml:363
+#: dashboard/qml/WizardPage.qml:364
 #, kde-format
 msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
@@ -888,32 +888,32 @@ msgstr ""
 "Para conectar pelo WiFi, inicie o aplicativo do WiVRn no seu headset, "
 "conecte a \"%1\" e entre o PIN \"%2\"."
 
-#: dashboard/qml/WizardPage.qml:370
+#: dashboard/qml/WizardPage.qml:371
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
 msgstr "Para conectar pela USB, clique em \"Conectar pela USB\"."
 
-#: dashboard/qml/WizardPage.qml:383
+#: dashboard/qml/WizardPage.qml:384
 #, kde-format
 msgid "Troubleshooting"
 msgstr "Resolver problemas"
 
-#: dashboard/qml/WizardPage.qml:405
+#: dashboard/qml/WizardPage.qml:406
 #, kde-format
 msgid "Skip"
 msgstr "Pular"
 
-#: dashboard/qml/WizardPage.qml:425
+#: dashboard/qml/WizardPage.qml:426
 #, kde-format
 msgid "Connection established"
 msgstr "Conexão estabelecida"
 
-#: dashboard/qml/WizardPage.qml:430
+#: dashboard/qml/WizardPage.qml:431
 #, kde-format
 msgid "Your headset is now connected."
 msgstr "Seu headset está conectado agora."
 
-#: dashboard/qml/WizardPage.qml:435 dashboard/qml/WizardPage.qml:477
+#: dashboard/qml/WizardPage.qml:436 dashboard/qml/WizardPage.qml:478
 #, kde-format
 msgid ""
 "To connect another headset, make sure pairing is enabled in the dashboard "
@@ -922,22 +922,22 @@ msgstr ""
 "Para conectar outro headset, se assegure que o pareamento esteja habilitado "
 "no painel antes de conectar."
 
-#: dashboard/qml/WizardPage.qml:457 dashboard/qml/WizardPage.qml:494
+#: dashboard/qml/WizardPage.qml:458 dashboard/qml/WizardPage.qml:495
 #, kde-format
 msgid "Finish"
 msgstr "Terminar"
 
-#: dashboard/qml/WizardPage.qml:472
+#: dashboard/qml/WizardPage.qml:473
 #, kde-format
 msgid "Finished"
 msgstr "Terminado"
 
-#: dashboard/wivrn_server.cpp:584
+#: dashboard/wivrn_server.cpp:592
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:585
+#: dashboard/wivrn_server.cpp:593
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"

@@ -5,20 +5,22 @@
 # LuckShiba <LuckShiba@protonmail.com>, 2025.
 #
 # SPDX-FileCopyrightText: 2025 myghi63 <myghi63@disroot.org>
+# Claudio Sampaio <patola@gmail.com>, 2025.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-04 10:49-0300\n"
-"PO-Revision-Date: 2025-08-08 13:27-0300\n"
-"Last-Translator: myghi63 <myghi63@disroot.org>\n"
+"POT-Creation-Date: 2025-08-16 14:15+0200\n"
+"PO-Revision-Date: 2025-08-17 20:58+0200\n"
+"Last-Translator: Claudio Sampaio <patola@gmail.com>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Lokalize 25.04.3\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Gtranslator 48.0\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Language-Team: Brazilian Portuguese\n"
 
 #: client/scene.cpp:74
 msgid "No supported swapchain format"
@@ -47,95 +49,96 @@ msgstr "Incapaz de conectar a {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Aguardando conexão"
 
-#: client/scenes/lobby_gui.cpp:229
+#: client/scenes/lobby_gui.cpp:230
 msgctxt "openxr_post_processing"
 msgid "Normal"
 msgstr "Normal"
 
-#: client/scenes/lobby_gui.cpp:232
+#: client/scenes/lobby_gui.cpp:233
 msgctxt "openxr_post_processing"
 msgid "Quality"
 msgstr "Qualidade"
 
-#: client/scenes/lobby_gui.cpp:234
+#: client/scenes/lobby_gui.cpp:235
 msgctxt "openxr_post_processing"
 msgid "Disabled"
 msgstr "Desabilitado"
 
-#: client/scenes/lobby_gui.cpp:242 client/scenes/lobby_gui.cpp:398
-#: client/scenes/stream_gui.cpp:812
+#: client/scenes/lobby_gui.cpp:243 client/scenes/lobby_gui.cpp:400
+#: client/scenes/stream_gui.cpp:825
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#: client/scenes/lobby_gui.cpp:262 client/scenes/stream_gui.cpp:808
+#: client/scenes/lobby_gui.cpp:264 client/scenes/stream_gui.cpp:821
 msgid "Close"
 msgstr "Fechar"
 
-#: client/scenes/lobby_gui.cpp:268
+#: client/scenes/lobby_gui.cpp:270
 msgid "Connection"
 msgstr "Conexão"
 
-#: client/scenes/lobby_gui.cpp:270
+#: client/scenes/lobby_gui.cpp:272
 #, c++-format
 msgid "Connection to {}"
 msgstr "Conexão a {}"
 
-#: client/scenes/lobby_gui.cpp:300
+#: client/scenes/lobby_gui.cpp:302
 msgid "PIN"
 msgstr "PIN"
 
-#: client/scenes/lobby_gui.cpp:322
+#: client/scenes/lobby_gui.cpp:324
 msgid "Input the PIN displayed on the dashboard"
 msgstr "Entre o PIN mostrado no painel"
 
-#: client/scenes/lobby_gui.cpp:393
+#: client/scenes/lobby_gui.cpp:395
 msgid "Connected to WiVRn server"
 msgstr "Conectado ao servidor WiVRn"
 
-#: client/scenes/lobby_gui.cpp:395
+#: client/scenes/lobby_gui.cpp:397
 #, c++-format
 msgid "Connected to {}"
 msgstr "Conectado a {}"
 
-#: client/scenes/lobby_gui.cpp:405
+#: client/scenes/lobby_gui.cpp:407
 msgid "Start an application on the server to start streaming."
 msgstr "Abra um aplicativo no servidor para iniciar o streaming."
 
-#: client/scenes/lobby_gui.cpp:414
+#: client/scenes/lobby_gui.cpp:419
 msgid "Start an application on your computer or select one to start streaming."
 msgstr ""
-"Abra um aplicativo no seu computador ou selecione um para iniciar o streaming."
+"Abra um aplicativo no seu computador ou selecione um para iniciar o "
+"streaming."
 
-#: client/scenes/lobby_gui.cpp:416
+#: client/scenes/lobby_gui.cpp:421
 #, c++-format
 msgid "Start an application on {} or select one to start streaming."
 msgstr "Abra um aplicativo em {} ou selecione um para iniciar o streaming."
 
-#: client/scenes/lobby_gui.cpp:522
+#: client/scenes/lobby_gui.cpp:544
 msgid "Name"
 msgstr "Nome"
 
-#: client/scenes/lobby_gui.cpp:533
+#: client/scenes/lobby_gui.cpp:555
 msgid "Address"
 msgstr "Endereço"
 
-#: client/scenes/lobby_gui.cpp:542
+#: client/scenes/lobby_gui.cpp:564
 msgid "Port"
 msgstr "Porta"
 
-#: client/scenes/lobby_gui.cpp:550
+#: client/scenes/lobby_gui.cpp:572
 msgid "TCP only"
 msgstr "TCP somente"
 
-#: client/scenes/lobby_gui.cpp:557
+#: client/scenes/lobby_gui.cpp:579
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: client/scenes/lobby_gui.cpp:571
+#: client/scenes/lobby_gui.cpp:593
 msgid "Save"
 msgstr "Salvar"
 
-#: client/scenes/lobby_gui.cpp:624
+#: client/scenes/lobby_gui.cpp:646
 msgid ""
 "Start a WiVRn server on your\n"
 "local network"
@@ -143,32 +146,32 @@ msgstr ""
 "Inicie um servidor WiVRn em sua\n"
 "rede local"
 
-#: client/scenes/lobby_gui.cpp:656
+#: client/scenes/lobby_gui.cpp:678
 msgid "Autoconnect"
 msgstr "Autoconectar"
 
-#: client/scenes/lobby_gui.cpp:682
+#: client/scenes/lobby_gui.cpp:704
 msgid "Connect"
 msgstr "Conectar"
 
-#: client/scenes/lobby_gui.cpp:692 client/wivrn_client.cpp:186
+#: client/scenes/lobby_gui.cpp:714 client/wivrn_client.cpp:186
 msgid "Incompatible server version"
 msgstr "Versão de servidor incompatível"
 
-#: client/scenes/lobby_gui.cpp:694
+#: client/scenes/lobby_gui.cpp:716
 msgid "Server not available"
 msgstr "Servidor não disponível"
 
-#: client/scenes/lobby_gui.cpp:780
+#: client/scenes/lobby_gui.cpp:802
 msgid "Refresh rate"
 msgstr "Taxa de atualização"
 
-#: client/scenes/lobby_gui.cpp:780 client/scenes/lobby_gui.cpp:782
+#: client/scenes/lobby_gui.cpp:802 client/scenes/lobby_gui.cpp:804
 msgctxt "automatic refresh rate"
 msgid "Automatic"
 msgstr "Automático"
 
-#: client/scenes/lobby_gui.cpp:789
+#: client/scenes/lobby_gui.cpp:811
 msgid ""
 "Select refresh rate based on measured application performance.\n"
 "May cause flicker when a change happens."
@@ -176,60 +179,60 @@ msgstr ""
 "Seleciona a taxa de atualização baseada no desempenho medido do aplicativo.\n"
 "Pode causar oscilações quando uma alteração ocorrer."
 
-#: client/scenes/lobby_gui.cpp:806
+#: client/scenes/lobby_gui.cpp:828
 msgid "Minimum refresh rate"
 msgstr "Taxa de atualização mínima"
 
-#: client/scenes/lobby_gui.cpp:829
+#: client/scenes/lobby_gui.cpp:851
 msgid "Resolution scale"
 msgstr "Escala de resolução"
 
-#: client/scenes/lobby_gui.cpp:833 client/scenes/lobby_gui.cpp:1072
+#: client/scenes/lobby_gui.cpp:855 client/scenes/lobby_gui.cpp:1101
 #, c-format, c++-format
 msgid "%d%% - {}x{} per eye"
 msgstr "%d%% - {}x{} por olho"
 
-#: client/scenes/lobby_gui.cpp:844 client/scenes/lobby_gui.cpp:1083
+#: client/scenes/lobby_gui.cpp:866 client/scenes/lobby_gui.cpp:1112
 #, c++-format
 msgid "Resolution larger than {}x{} may not be supported by the headset"
 msgstr "Resolução maior que {}x{} pode não ser suportada pelo headset"
 
-#: client/scenes/lobby_gui.cpp:850
+#: client/scenes/lobby_gui.cpp:872
 msgid "Enable microphone"
 msgstr "Ativar microfone"
 
-#: client/scenes/lobby_gui.cpp:859
+#: client/scenes/lobby_gui.cpp:881
 msgid "Unprocessed Microphone Audio"
 msgstr "Áudio Não-processado de Microfone"
 
-#: client/scenes/lobby_gui.cpp:865
+#: client/scenes/lobby_gui.cpp:887
 msgid "Force disable audio filters, such as noise cancellation"
 msgstr ""
 "Força a desativação de filtros de áudio tais como cancelamento de ruído"
 
-#: client/scenes/lobby_gui.cpp:872
+#: client/scenes/lobby_gui.cpp:894
 msgid "Enable hand tracking"
 msgstr "Ativar rastreamento de mãos"
 
-#: client/scenes/lobby_gui.cpp:878 client/scenes/lobby_gui.cpp:890
-#: client/scenes/lobby_gui.cpp:902 client/scenes/lobby_gui.cpp:918
-#: client/scenes/lobby_gui.cpp:968
+#: client/scenes/lobby_gui.cpp:900 client/scenes/lobby_gui.cpp:912
+#: client/scenes/lobby_gui.cpp:924 client/scenes/lobby_gui.cpp:940
+#: client/scenes/lobby_gui.cpp:990
 msgid "This feature is not supported by your headset"
 msgstr "Este recurso não é suportado pelo seu headset"
 
-#: client/scenes/lobby_gui.cpp:884
+#: client/scenes/lobby_gui.cpp:906
 msgid "Enable eye tracking"
 msgstr "Ativar rastreamento ocular"
 
-#: client/scenes/lobby_gui.cpp:896
+#: client/scenes/lobby_gui.cpp:918
 msgid "Enable face tracking"
 msgstr "Ativar rastreamento facial"
 
-#: client/scenes/lobby_gui.cpp:909
+#: client/scenes/lobby_gui.cpp:931
 msgid "Enable body tracking"
 msgstr "Ativar rastreamento corporal"
 
-#: client/scenes/lobby_gui.cpp:925
+#: client/scenes/lobby_gui.cpp:947
 msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings,\n"
@@ -241,11 +244,11 @@ msgstr ""
 "estimados\n"
 "com base nas posições do controle e do headset."
 
-#: client/scenes/lobby_gui.cpp:938
+#: client/scenes/lobby_gui.cpp:960
 msgid "Enable lower body tracking"
 msgstr "Ativar rastreamento corporal inferior"
 
-#: client/scenes/lobby_gui.cpp:944
+#: client/scenes/lobby_gui.cpp:966
 msgid ""
 "Estimate lower body joint positions using Generative Legs\n"
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
@@ -256,11 +259,11 @@ msgstr ""
 "Requer que 'Rastreamento corporal e das mãos' esteja ativado nas\n"
 "configurações de Rastreamento de Movimento do Quest"
 
-#: client/scenes/lobby_gui.cpp:947
+#: client/scenes/lobby_gui.cpp:969
 msgid "Enable hip tracking"
 msgstr "Ativar rastreamento de quadril"
 
-#: client/scenes/lobby_gui.cpp:953
+#: client/scenes/lobby_gui.cpp:975
 msgid ""
 "Only takes affect with lower body tracking enabled\n"
 "May be desired when using another source of hip tracking"
@@ -268,19 +271,32 @@ msgstr ""
 "Só tem efeito com o rastreamento corporal inferior ativado\n"
 "Pode ser desejado ao usar outra fonte de rastreamento de quadril"
 
-#: client/scenes/lobby_gui.cpp:961
+#: client/scenes/lobby_gui.cpp:983
 msgid "Enable video passthrough in lobby"
 msgstr "Habilitar repassagem de vídeo no lobby"
 
-#: client/scenes/lobby_gui.cpp:982 client/scenes/stream_gui.cpp:434
+#: client/scenes/lobby_gui.cpp:994
+msgid "Enable in-stream window"
+msgstr "Habilitar janela na stream"
+
+#: client/scenes/lobby_gui.cpp:997
+msgid ""
+"Enables the configuration window to be shown while the game is streaming.\n"
+"If enabled, the window is activated by pressing both thumbsticks."
+msgstr ""
+"Habilita que a janela de configuração seja vista enquanto o jogo está sendo "
+"streamado.\n"
+"Se habilitado, a janela é ativada clicando os dois joysticks simultaneamente."
+
+#: client/scenes/lobby_gui.cpp:1011 client/scenes/stream_gui.cpp:445
 msgid "OpenXR post-processing"
 msgstr "Pós-processamento OpenXR"
 
-#: client/scenes/lobby_gui.cpp:986 client/scenes/stream_gui.cpp:438
+#: client/scenes/lobby_gui.cpp:1015 client/scenes/stream_gui.cpp:449
 msgid "Supersampling"
 msgstr "Supersampling"
 
-#: client/scenes/lobby_gui.cpp:1006 client/scenes/stream_gui.cpp:459
+#: client/scenes/lobby_gui.cpp:1035 client/scenes/stream_gui.cpp:470
 msgid ""
 "Reduce flicker for high contrast edges.\n"
 "Useful when the input resolution is high compared to the headset display"
@@ -288,11 +304,11 @@ msgstr ""
 "Reduz flicker para arestas de alto contraste.\n"
 "Útil quando a resolução de entrada é alta comparada ao display do headset"
 
-#: client/scenes/lobby_gui.cpp:1011 client/scenes/stream_gui.cpp:464
+#: client/scenes/lobby_gui.cpp:1040 client/scenes/stream_gui.cpp:475
 msgid "Sharpening"
 msgstr "Aumento de nitidez"
 
-#: client/scenes/lobby_gui.cpp:1031 client/scenes/stream_gui.cpp:485
+#: client/scenes/lobby_gui.cpp:1060 client/scenes/stream_gui.cpp:496
 msgid ""
 "Improve clarity of high contrast edges and counteract blur.\n"
 "Useful when the input resolution is low compared to the headset display"
@@ -300,11 +316,11 @@ msgstr ""
 "Melhora a clareza de arestas de alto contraste e minimiza o desfoque.\n"
 "Útil quando a resolução de entrada é baixa comparada ao display do headset"
 
-#: client/scenes/lobby_gui.cpp:1040
+#: client/scenes/lobby_gui.cpp:1069
 msgid "Enable Snapdragon Game Super Resolution"
 msgstr "Habilitar Snapdragon Game Super Resolution"
 
-#: client/scenes/lobby_gui.cpp:1048
+#: client/scenes/lobby_gui.cpp:1077
 msgid ""
 "On this headset, this setting has been fully superseded by the native "
 "Sharpening setting above.\n"
@@ -314,157 +330,157 @@ msgstr ""
 "aumento de nitidez acima.\n"
 "Somente habilite se souber o que está fazendo."
 
-#: client/scenes/lobby_gui.cpp:1050
+#: client/scenes/lobby_gui.cpp:1079
 msgid ""
 "Client-side upscaling and sharpening, adds a performance cost on the headset"
 msgstr ""
 "Upscaling e aumento de nitidez do lado do cliente, acrescenta um custo de "
 "desempenho no headset"
 
-#: client/scenes/lobby_gui.cpp:1068
+#: client/scenes/lobby_gui.cpp:1097
 msgid "Upscaling factor"
 msgstr "Fator de upscaling"
 
-#: client/scenes/lobby_gui.cpp:1087
+#: client/scenes/lobby_gui.cpp:1116
 msgid "Use edge direction"
 msgstr "Usar direção da aresta"
 
-#: client/scenes/lobby_gui.cpp:1093
+#: client/scenes/lobby_gui.cpp:1122
 msgid "Adds an additional performance cost"
 msgstr "Acrescenta um custo de desempenho"
 
-#: client/scenes/lobby_gui.cpp:1098
+#: client/scenes/lobby_gui.cpp:1127
 msgid "Edge threshold"
 msgstr "Limite da aresta"
 
-#: client/scenes/lobby_gui.cpp:1105 client/scenes/lobby_gui.cpp:1114
+#: client/scenes/lobby_gui.cpp:1134 client/scenes/lobby_gui.cpp:1143
 #, c++-format
 msgid "Recommended: {:.1f}"
 msgstr "Recomenadado: {:.1f}"
 
-#: client/scenes/lobby_gui.cpp:1108
+#: client/scenes/lobby_gui.cpp:1137
 msgid "Edge sharpness"
 msgstr "Nitidez da aresta"
 
-#: client/scenes/lobby_gui.cpp:1210 client/scenes/lobby_gui.cpp:1218
-#: client/scenes/stream_gui.cpp:222 client/scenes/stream_gui.cpp:418
+#: client/scenes/lobby_gui.cpp:1239 client/scenes/lobby_gui.cpp:1247
+#: client/scenes/stream_gui.cpp:222 client/scenes/stream_gui.cpp:424
 msgid "CPU time"
 msgstr "Tempo de CPU"
 
-#: client/scenes/lobby_gui.cpp:1214
+#: client/scenes/lobby_gui.cpp:1243
 msgid "CPU time [ms]"
 msgstr "Tempo de CPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:1224 client/scenes/lobby_gui.cpp:1232
-#: client/scenes/stream_gui.cpp:224 client/scenes/stream_gui.cpp:419
+#: client/scenes/lobby_gui.cpp:1253 client/scenes/lobby_gui.cpp:1261
+#: client/scenes/stream_gui.cpp:224 client/scenes/stream_gui.cpp:425
 msgid "GPU time"
 msgstr "Tempo de GPU"
 
-#: client/scenes/lobby_gui.cpp:1228
+#: client/scenes/lobby_gui.cpp:1257
 msgid "GPU time [ms]"
 msgstr "Tempo de GPU [ms]"
 
-#: client/scenes/lobby_gui.cpp:1271
+#: client/scenes/lobby_gui.cpp:1300
 msgid "Enable the microphone?"
 msgstr "Habilitar o microfone?"
 
-#: client/scenes/lobby_gui.cpp:1276
+#: client/scenes/lobby_gui.cpp:1305
 msgid "Enable eye tracking?"
 msgstr "Habilitar o rastreamento ocular?"
 
-#: client/scenes/lobby_gui.cpp:1281
+#: client/scenes/lobby_gui.cpp:1310
 msgid "Enable face tracking?"
 msgstr "Habilitar o rastreamento facial?"
 
-#: client/scenes/lobby_gui.cpp:1286
+#: client/scenes/lobby_gui.cpp:1315
 msgid "Enable body tracking?"
 msgstr "Habilitar o rastreamento corporal?"
 
-#: client/scenes/lobby_gui.cpp:1294
+#: client/scenes/lobby_gui.cpp:1323
 msgid "Welcome to WiVRn"
 msgstr "Bem vindo(a) ao WiVRn"
 
-#: client/scenes/lobby_gui.cpp:1318
+#: client/scenes/lobby_gui.cpp:1347
 msgid "Yes"
 msgstr "Sim"
 
-#: client/scenes/lobby_gui.cpp:1325
+#: client/scenes/lobby_gui.cpp:1354
 msgid "No"
 msgstr "Não"
 
-#: client/scenes/lobby_gui.cpp:1344 client/scenes/lobby_gui.cpp:1983
+#: client/scenes/lobby_gui.cpp:1373 client/scenes/lobby_gui.cpp:2012
 msgid "Licenses"
 msgstr "Licenças"
 
-#: client/scenes/lobby_gui.cpp:1658
+#: client/scenes/lobby_gui.cpp:1687
 msgid "Microphone is enabled"
 msgstr "O microfone está ativado"
 
-#: client/scenes/lobby_gui.cpp:1659
+#: client/scenes/lobby_gui.cpp:1688
 msgid "Microphone is disabled"
 msgstr "O microfone está desativado"
 
-#: client/scenes/lobby_gui.cpp:1668
+#: client/scenes/lobby_gui.cpp:1697
 msgid "Hand tracking is enabled"
 msgstr "O rastreamento de mãos está ativado"
 
-#: client/scenes/lobby_gui.cpp:1669
+#: client/scenes/lobby_gui.cpp:1698
 msgid "Hand tracking is disabled"
 msgstr "O rastreamento de mãos está desativado"
 
-#: client/scenes/lobby_gui.cpp:1678
+#: client/scenes/lobby_gui.cpp:1707
 msgid "Eye tracking is enabled"
 msgstr "O rastreamento ocular está ativado"
 
-#: client/scenes/lobby_gui.cpp:1679
+#: client/scenes/lobby_gui.cpp:1708
 msgid "Eye tracking is disabled"
 msgstr "O rastreamento ocular está desativado"
 
-#: client/scenes/lobby_gui.cpp:1692
+#: client/scenes/lobby_gui.cpp:1721
 msgid "Face tracking is enabled"
 msgstr "O rastreamento facial está ativado"
 
-#: client/scenes/lobby_gui.cpp:1693
+#: client/scenes/lobby_gui.cpp:1722
 msgid "Face tracking is disabled"
 msgstr "O rastreamento facial está desativado"
 
-#: client/scenes/lobby_gui.cpp:1703
+#: client/scenes/lobby_gui.cpp:1732
 msgid "Body tracking is enabled"
 msgstr "O rastreamento corporal está ativado"
 
-#: client/scenes/lobby_gui.cpp:1704
+#: client/scenes/lobby_gui.cpp:1733
 msgid "Body tracking is disabled"
 msgstr "O rastreamento corporal está desativado"
 
-#: client/scenes/lobby_gui.cpp:1720
+#: client/scenes/lobby_gui.cpp:1749
 msgid "Add server"
 msgstr "Adicionar servidor"
 
-#: client/scenes/lobby_gui.cpp:1965
+#: client/scenes/lobby_gui.cpp:1994
 msgid "Server list"
 msgstr "Lista de servidores"
 
-#: client/scenes/lobby_gui.cpp:1968 client/scenes/stream_gui.cpp:796
+#: client/scenes/lobby_gui.cpp:1997 client/scenes/stream_gui.cpp:809
 msgid "Settings"
 msgstr "Ajustes"
 
-#: client/scenes/lobby_gui.cpp:1971
+#: client/scenes/lobby_gui.cpp:2000
 msgid "Post-processing"
 msgstr "Pós-processamento"
 
-#: client/scenes/lobby_gui.cpp:1975
+#: client/scenes/lobby_gui.cpp:2004
 msgid "Debug"
 msgstr "Depurar"
 
-#: client/scenes/lobby_gui.cpp:1980
+#: client/scenes/lobby_gui.cpp:2009
 msgid "About"
 msgstr "Sobre"
 
-#: client/scenes/lobby_gui.cpp:1986
+#: client/scenes/lobby_gui.cpp:2015
 msgid "Exit"
 msgstr "Sair"
 
-#: client/scenes/lobby_gui.cpp:2003
+#: client/scenes/lobby_gui.cpp:2032
 msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
@@ -472,7 +488,7 @@ msgstr ""
 "Pressione o botão de aderência ou coloque a palma da mão para cima\n"
 "para mover a janela principal"
 
-#: client/scenes/lobby_gui.cpp:2005
+#: client/scenes/lobby_gui.cpp:2034
 msgid "Press the grip button to move the main window"
 msgstr "Pressione o botão de aderência para mover a janela principal"
 
@@ -488,11 +504,11 @@ msgstr "Blit"
 msgid "Network"
 msgstr "Rede"
 
-#: client/scenes/stream_gui.cpp:227 client/scenes/stream_gui.cpp:416
+#: client/scenes/stream_gui.cpp:227 client/scenes/stream_gui.cpp:422
 msgid "Download"
 msgstr "Baixar"
 
-#: client/scenes/stream_gui.cpp:228 client/scenes/stream_gui.cpp:417
+#: client/scenes/stream_gui.cpp:228 client/scenes/stream_gui.cpp:423
 msgid "Upload"
 msgstr "Enviar"
 
@@ -533,66 +549,66 @@ msgstr "Mostrado"
 msgid "Predicted"
 msgstr "Previsto"
 
-#: client/scenes/stream_gui.cpp:393
+#: client/scenes/stream_gui.cpp:395
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "Movimento estimado para a latência de fótons: {}ms"
 
-#: client/scenes/stream_gui.cpp:396
+#: client/scenes/stream_gui.cpp:402
 msgid "Press the grip button to move the window"
 msgstr "Pressione o botão de aderência para mover a janela"
 
-#: client/scenes/stream_gui.cpp:398 client/scenes/stream_gui.cpp:750
+#: client/scenes/stream_gui.cpp:404 client/scenes/stream_gui.cpp:763
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "Pressione ambos os thumbsticks para mostrar a janela do WiVRn"
 
-#: client/scenes/stream_gui.cpp:420
+#: client/scenes/stream_gui.cpp:426
 msgid "Motion to photon latency"
 msgstr "Latência (de movimento para fótons)"
 
-#: client/scenes/stream_gui.cpp:492
+#: client/scenes/stream_gui.cpp:503
 msgid "Foveation center override"
 msgstr "Ajuste do centro de foveação"
 
-#: client/scenes/stream_gui.cpp:495
+#: client/scenes/stream_gui.cpp:506
 msgid "Enable"
 msgstr "Habilitar"
 
-#: client/scenes/stream_gui.cpp:503 client/scenes/stream_gui.cpp:550
+#: client/scenes/stream_gui.cpp:514 client/scenes/stream_gui.cpp:561
 #, c++-format
 msgid "Height {:.1f} deg"
 msgstr "Altura {:.1f} graus"
 
-#: client/scenes/stream_gui.cpp:504 client/scenes/stream_gui.cpp:551
+#: client/scenes/stream_gui.cpp:515 client/scenes/stream_gui.cpp:562
 #, c++-format
 msgid "Distance {:.2f} m"
 msgstr "Distância {:.2f} m"
 
-#: client/scenes/stream_gui.cpp:505
+#: client/scenes/stream_gui.cpp:516
 msgid "Default"
 msgstr "Padrão"
 
-#: client/scenes/stream_gui.cpp:516
+#: client/scenes/stream_gui.cpp:527
 msgid "Change"
 msgstr "Modificar"
 
-#: client/scenes/stream_gui.cpp:548
+#: client/scenes/stream_gui.cpp:559
 msgid "Use the thumbsticks to move the foveation center"
 msgstr "Use os thumbsticks para mover o centro da foveação"
 
-#: client/scenes/stream_gui.cpp:549
+#: client/scenes/stream_gui.cpp:560
 msgid "Press A to save or B to cancel"
 msgstr "Pressione A para salvar ou B para cancelar"
 
-#: client/scenes/stream_gui.cpp:793
+#: client/scenes/stream_gui.cpp:806
 msgid "Stats"
 msgstr "Estatísticas"
 
-#: client/scenes/stream_gui.cpp:802
+#: client/scenes/stream_gui.cpp:815
 msgid "Statistics overlay"
 msgstr "Overlay de estatísticas"
 
-#: client/scenes/stream_gui.cpp:805
+#: client/scenes/stream_gui.cpp:818
 msgid "Compact view"
 msgstr "Visualização compacta"
 
