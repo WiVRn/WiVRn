@@ -867,6 +867,8 @@ void scenes::lobby::on_focused()
 		imgui_inputs.push_back({.hand = &*right_hand});
 	}
 
+	face_tracker = xr::make_face_tracker(instance, system, session);
+
 	// 0.4mm / pixel
 	std::vector<imgui_context::viewport> vps{
 	        {
@@ -958,6 +960,7 @@ void scenes::lobby::on_unfocused()
 	input.reset();
 	left_hand.reset();
 	right_hand.reset();
+	face_tracker.emplace<std::monostate>();
 
 	loader.reset();
 	renderer.reset();

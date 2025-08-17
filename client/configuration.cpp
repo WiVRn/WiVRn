@@ -20,6 +20,7 @@
 #include "configuration.h"
 #include "application.h"
 
+#include "xr/face_tracker.h"
 #include <fstream>
 #include <magic_enum.hpp>
 
@@ -82,6 +83,10 @@ bool configuration::check_feature(feature f) const
 	{
 		std::lock_guard lock(mutex);
 
+		auto & instance = application::get_instance();
+		auto & system = application::get_system();
+		auto & session = application::get_session();
+
 		auto it = features.find(f);
 		if (it == features.end())
 			return false;
@@ -94,7 +99,7 @@ bool configuration::check_feature(feature f) const
 			case feature::microphone:
 				break;
 			case feature::hand_tracking:
-				if (not application::get_system().hand_tracking_supported())
+				if (not system.hand_tracking_supported())
 					return false;
 				break;
 			case feature::eye_gaze:
@@ -102,24 +107,8 @@ bool configuration::check_feature(feature f) const
 					return false;
 				break;
 			case feature::face_tracking:
-				switch (guess_model())
-				{
-					case model::htc_vive_focus_3:
-					case model::htc_vive_focus_vision:
-					case model::htc_vive_xr_elite:
-						if (not std::holds_alternative<xr::htc_face_tracker>(application::get_face_tracker()))
-							return false;
-						break;
-					case model::pico_4_pro:
-					case model::pico_4_enterprise:
-						if (not std::holds_alternative<xr::pico_face_tracker>(application::get_face_tracker()))
-							return false;
-						break;
-					default:
-						if (not std::holds_alternative<xr::fb_face_tracker2>(application::get_face_tracker()))
-							return false;
-						break;
-				}
+				if (xr::face_tracker_supported(instance, system) == xr::face_tracker_type::none)
+					return false;
 				break;
 			case feature::body_tracking:
 				switch (guess_model())

@@ -18,6 +18,7 @@
  */
 #include "constants.h"
 #include "utils/overloaded.h"
+#include "xr/face_tracker.h"
 #include "xr/fb_body_tracker.h"
 #include "xr/fb_face_tracker2.h"
 #include "xr/htc_body_tracker.h"
@@ -256,21 +257,19 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		if (config.check_feature(feature::face_tracking))
 		{
-			info.face_tracking = std::visit(utils::overloaded{
-			                                        [](std::monostate &) {
-				                                        return from_headset::face_type::none;
-			                                        },
-			                                        [](xr::fb_face_tracker2 &) {
-				                                        return from_headset::face_type::fb2;
-			                                        },
-			                                        [](xr::htc_face_tracker &) {
-				                                        return from_headset::face_type::htc;
-			                                        },
-			                                        [](xr::pico_face_tracker &) {
-				                                        return from_headset::face_type::fb2;
-			                                        },
-			                                },
-			                                application::get_face_tracker());
+			switch (xr::face_tracker_supported(self->instance, self->system))
+			{
+				case xr::face_tracker_type::none:
+					info.face_tracking = from_headset::face_type::none;
+					break;
+				case xr::face_tracker_type::fb:
+				case xr::face_tracker_type::pico:
+					info.face_tracking = from_headset::face_type::fb2;
+					break;
+				case xr::face_tracker_type::htc:
+					info.face_tracking = from_headset::face_type::htc;
+					break;
+			}
 		}
 
 		info.num_generic_trackers = 0;

@@ -1,7 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2024  galister <galister@librevr.org>
- * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
+ * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,23 +18,30 @@
 
 #pragma once
 
-#include "wivrn_packets.h"
-#include <openxr/openxr.h>
+#include "fb_face_tracker2.h"
+#include "htc_face_tracker.h"
+#include "pico_face_tracker.h"
+
+#include <variant>
 
 namespace xr
 {
+
 class instance;
-class session;
+class system;
 
-class pico_face_tracker
+enum class face_tracker_type
 {
-	struct impl;
-	std::shared_ptr<impl> i;
-
-public:
-	using packet_type = wivrn::from_headset::tracking::fb_face2;
-	pico_face_tracker(instance & inst, session & s);
-
-	void get_weights(XrTime time, packet_type & out_expressions);
+	none,
+	fb,
+	htc,
+	pico,
 };
+
+using face_tracker = std::variant<std::monostate, xr::fb_face_tracker2, xr::htc_face_tracker, xr::pico_face_tracker>;
+
+face_tracker_type face_tracker_supported(xr::instance &, xr::system &);
+
+face_tracker make_face_tracker(xr::instance &, xr::system &, xr::session &);
+
 } // namespace xr

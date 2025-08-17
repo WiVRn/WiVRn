@@ -21,6 +21,7 @@
 #include "stream.h"
 #include "utils/overloaded.h"
 #include "wivrn_packets.h"
+#include "xr/face_tracker.h"
 #include "xr/fb_body_tracker.h"
 #include <magic_enum.hpp>
 #include <ranges>
@@ -389,15 +390,7 @@ void scenes::stream::tracking()
 	std::optional<xr::hand_tracker> right_hand;
 
 	const bool face_tracking = config.check_feature(feature::face_tracking);
-	auto & face_tracker = application::get_face_tracker();
-	if (face_tracking)
-	{
-		// We can't start the face tracking on application initialisation like we do for
-		// other face trackers due to a Pico runtime bug where face tracking freezes when
-		// the headset is taken off or the application is quit.
-		if (auto * face_pico = std::get_if<xr::pico_face_tracker>(&face_tracker))
-			face_pico->start();
-	}
+	xr::face_tracker face_tracker;
 
 	const bool body_tracking = config.check_feature(feature::body_tracking);
 	auto & body_tracker = application::get_body_tracker();
@@ -452,6 +445,14 @@ void scenes::stream::tracking()
 			}
 			else
 				right_hand.reset();
+
+			if (face_tracking and control.enabled[size_t(tid::face)])
+			{
+				if (std::holds_alternative<std::monostate>(face_tracker))
+					face_tracker = xr::make_face_tracker(instance, system, session);
+			}
+			else
+				face_tracker.emplace<std::monostate>();
 
 			XrDuration prediction = std::clamp<XrDuration>(control.max_offset.count(), 0, 80'000'000);
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
@@ -533,16 +534,13 @@ void scenes::stream::tracking()
 						           },
 						           body_tracker);
 
-					if (face_tracking && control.enabled[size_t(tid::face)])
-					{
-						std::visit(utils::overloaded{
-						                   [](std::monostate &) {},
-						                   [&](auto & ft) {
-							                   ft.get_weights(t0 + Δt, packet.face.emplace<typename std::remove_reference_t<decltype(ft)>::packet_type>());
-						                   },
-						           },
-						           face_tracker);
-					}
+					std::visit(utils::overloaded{
+					                   [](std::monostate &) {},
+					                   [&](auto & ft) {
+						                   ft.get_weights(t0 + Δt, packet.face.emplace<typename std::remove_reference_t<decltype(ft)>::packet_type>());
+					                   },
+					           },
+					           face_tracker);
 				}
 				catch (const std::system_error & e)
 				{
@@ -643,9 +641,6 @@ void scenes::stream::tracking()
 			exit();
 		}
 	}
-
-	if (auto * face_pico = std::get_if<xr::pico_face_tracker>(&face_tracker))
-		face_pico->stop();
 }
 
 void scenes::stream::operator()(to_headset::tracking_control && packet)

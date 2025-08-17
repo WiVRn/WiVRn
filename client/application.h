@@ -29,12 +29,9 @@
 #include "vk/vk_allocator.h"
 #include "wifi_lock.h"
 #include "xr/fb_body_tracker.h"
-#include "xr/fb_face_tracker2.h"
 #include "xr/hand_tracker.h"
 #include "xr/htc_body_tracker.h"
-#include "xr/htc_face_tracker.h"
 #include "xr/pico_body_tracker.h"
-#include "xr/pico_face_tracker.h"
 #include "xr/xr.h"
 #include <atomic>
 #include <boost/locale/generator.hpp>
@@ -126,7 +123,6 @@ class application : public singleton<application>
 	xr::actionset xr_actionset;
 	std::vector<std::tuple<XrAction, XrActionType, std::string>> actions;
 
-	std::variant<std::monostate, xr::fb_face_tracker2, xr::htc_face_tracker, xr::pico_face_tracker> face_tracker;
 	std::variant<std::monostate, xr::fb_body_tracker, xr::htc_body_tracker, xr::pico_body_tracker> body_tracker;
 
 	bool eye_gaze_supported = false;
@@ -392,9 +388,19 @@ public:
 		return instance().vk_instance;
 	}
 
+	static xr::instance & get_instance()
+	{
+		return instance().xr_instance;
+	}
+
 	static xr::system & get_system()
 	{
 		return instance().xr_system_id;
+	}
+
+	static xr::session & get_session()
+	{
+		return instance().xr_session;
 	}
 
 	static vk::raii::PipelineCache & get_pipeline_cache()
@@ -417,11 +423,6 @@ public:
 		return instance().last_scene_cpu_time;
 	}
 
-	static bool get_face_tracking_supported()
-	{
-		return !std::holds_alternative<std::monostate>(instance().face_tracker);
-	}
-
 	static bool get_body_tracking_supported()
 	{
 		return !std::holds_alternative<std::monostate>(instance().body_tracker);
@@ -435,11 +436,6 @@ public:
 	static bool get_openxr_post_processing_supported()
 	{
 		return instance().openxr_post_processing_supported;
-	}
-
-	static auto & get_face_tracker()
-	{
-		return instance().face_tracker;
 	}
 
 	static auto & get_body_tracker()

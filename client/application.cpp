@@ -1286,37 +1286,6 @@ void application::initialize()
 
 	config.emplace(xr_system_id);
 
-	if (utils::contains(xr_extensions, XR_FB_FACE_TRACKING2_EXTENSION_NAME))
-	{
-		XrSystemFaceTrackingProperties2FB fb_face2_properties = xr_system_id.fb_face_tracking2_properties();
-		spdlog::info("    FB face tracking support: {}", (bool)fb_face2_properties.supportsVisualFaceTracking);
-		if (fb_face2_properties.supportsVisualFaceTracking)
-			face_tracker.emplace<xr::fb_face_tracker2>(xr_instance, xr_session);
-	}
-
-	if (std::holds_alternative<std::monostate>(face_tracker) && utils::contains(xr_extensions, XR_HTC_FACIAL_TRACKING_EXTENSION_NAME))
-	{
-		XrSystemFacialTrackingPropertiesHTC htc_face_properties = xr_system_id.htc_face_tracking_properties();
-		spdlog::info("    HTC eye tracking support: {}", (bool)htc_face_properties.supportEyeFacialTracking);
-		spdlog::info("    HTC lip tracking support: {}", (bool)htc_face_properties.supportLipFacialTracking);
-		if (htc_face_properties.supportEyeFacialTracking || htc_face_properties.supportLipFacialTracking)
-			face_tracker.emplace<xr::htc_face_tracker>(xr_instance, xr_session, htc_face_properties.supportEyeFacialTracking, htc_face_properties.supportLipFacialTracking);
-	}
-
-	if (std::holds_alternative<std::monostate>(face_tracker) && eye_gaze_supported)
-	{
-		switch (guess_model())
-		{
-			case model::pico_4_pro:
-			case model::pico_4_enterprise:
-				spdlog::info("    PICO face tracking support: true");
-				face_tracker.emplace<xr::pico_face_tracker>(xr_instance, xr_session);
-				break;
-			default:
-				break;
-		}
-	}
-
 	if (utils::contains_all(xr_extensions, std::array{XR_FB_BODY_TRACKING_EXTENSION_NAME, XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME, XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME}))
 	{
 		XrSystemBodyTrackingPropertiesFB fb_body_properties = xr_system_id.fb_body_tracking_properties();
