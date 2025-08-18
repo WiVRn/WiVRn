@@ -721,15 +721,13 @@ void application::initialize_vulkan()
 		spdlog::info("Using Vulkan validation layer");
 		layers.push_back("VK_LAYER_KHRONOS_validation");
 	}
+	bool debug_report_found = false;
+	bool debug_utils_found = false;
 #endif
 
 	std::vector<const char *> instance_extensions{};
 	std::unordered_set<std::string_view> optional_device_extensions{};
 
-#ifndef NDEBUG
-	bool debug_report_found = false;
-	bool debug_utils_found = false;
-#endif
 	spdlog::info("Available Vulkan instance extensions:");
 	std::vector<std::pair<std::string, int>> extensions;
 	for (vk::ExtensionProperties & i: vk_context.enumerateInstanceExtensionProperties(nullptr))
@@ -738,25 +736,22 @@ void application::initialize_vulkan()
 
 #ifndef NDEBUG
 		if (!strcmp(i.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME))
+		{
 			debug_report_found = true;
+			instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+		}
 
-		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+		if (!strcmp(i.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) and
+		    guess_model() != model::oculus_quest) // Quest 1 lies, the extension won't load
+		{
 			debug_utils_found = true;
+			instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		}
 #endif
 	}
 	std::ranges::sort(extensions);
 	for (const auto & [extension_name, spec_version]: extensions)
 		spdlog::info("    {} (version {})", extension_name, spec_version);
-
-#ifndef NDEBUG
-	if (debug_utils_found && debug_report_found)
-	{
-		// debug_extensions_found = true;
-		// spdlog::info("Using debug extensions");
-		instance_extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-		// instance_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-	}
-#endif
 
 	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
