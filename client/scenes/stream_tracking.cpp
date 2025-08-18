@@ -379,7 +379,6 @@ void scenes::stream::tracking()
 	std::vector<from_headset::tracking> tracking;
 	std::vector<from_headset::tracking> tracking_pool; // pre-allocated objects
 	std::vector<from_headset::hand_tracking> hands;
-	std::array<bool, 2> should_skip_simple_controllers{};
 	std::vector<from_headset::body_tracking> body;
 	std::vector<XrView> views;
 
