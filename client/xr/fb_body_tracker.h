@@ -31,9 +31,7 @@ namespace xr
 class instance;
 class session;
 
-XrResult destroy_fb_body_tracker(XrBodyTrackerFB);
-
-class fb_body_tracker : public utils::handle<XrBodyTrackerFB, destroy_fb_body_tracker>
+class fb_body_tracker : public utils::handle<XrBodyTrackerFB>
 {
 	PFN_xrRequestBodyTrackingFidelityMETA xrRequestBodyTrackingFidelityMETA{};
 	PFN_xrLocateBodyJointsFB xrLocateBodyJointsFB{};

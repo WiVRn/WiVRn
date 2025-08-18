@@ -30,9 +30,7 @@ namespace xr
 class instance;
 class session;
 
-XrResult destroy_pico_body_tracker(XrBodyTrackerBD);
-
-class pico_body_tracker : public utils::handle<XrBodyTrackerBD, destroy_pico_body_tracker>
+class pico_body_tracker : public utils::handle<XrBodyTrackerBD>
 {
 	PFN_xrLocateBodyJointsBD xrLocateBodyJointsBD{};
 
@@ -48,7 +46,6 @@ public:
 	        XR_BODY_JOINT_RIGHT_FOOT_BD,
 	};
 
-	pico_body_tracker() = default;
 	pico_body_tracker(instance & inst, session & s);
 
 	std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> locate_spaces(XrTime time, XrSpace reference);

@@ -23,18 +23,11 @@
 #include <cstdint>
 #include <openxr/openxr.h>
 
-static PFN_xrDestroyFaceTracker2FB xrDestroyFaceTracker2FB{};
-
-XrResult xr::destroy_fb_face_tracker2(XrFaceTracker2FB id)
-{
-	return xrDestroyFaceTracker2FB(id);
-}
-
-xr::fb_face_tracker2::fb_face_tracker2(instance & inst, session & s)
+xr::fb_face_tracker2::fb_face_tracker2(instance & inst, session & s) :
+        handle(inst.get_proc<PFN_xrDestroyFaceTracker2FB>("xrDestroyFaceTracker2FB"))
 {
 	auto xrCreateFaceTracker2FB = inst.get_proc<PFN_xrCreateFaceTracker2FB>("xrCreateFaceTracker2FB");
 	xrGetFaceExpressionWeights2FB = inst.get_proc<PFN_xrGetFaceExpressionWeights2FB>("xrGetFaceExpressionWeights2FB");
-	xrDestroyFaceTracker2FB = inst.get_proc<PFN_xrDestroyFaceTracker2FB>("xrDestroyFaceTracker2FB");
 	assert(xrCreateFaceTracker2FB);
 
 	XrFaceTrackingDataSource2FB data_sources[1];

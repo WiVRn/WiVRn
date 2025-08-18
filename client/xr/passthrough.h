@@ -28,17 +28,13 @@ namespace xr
 class instance;
 class session;
 
-XrResult destroy_passthrough_layer_fb(XrPassthroughLayerFB);
-XrResult destroy_passthrough_fb(XrPassthroughFB);
-XrResult destroy_passthrough_htc(XrPassthroughHTC);
-
-class passthrough_layer_fb : public utils::handle<XrPassthroughLayerFB, destroy_passthrough_layer_fb>
+class passthrough_layer_fb : public utils::handle<XrPassthroughLayerFB>
 {
 public:
 	passthrough_layer_fb(instance &, session &, const XrPassthroughLayerCreateInfoFB &);
 };
 
-class passthrough_fb : public utils::handle<XrPassthroughFB, destroy_passthrough_fb>
+class passthrough_fb : public utils::handle<XrPassthroughFB>
 {
 	PFN_xrPassthroughStartFB xrPassthroughStartFB{};
 	PFN_xrPassthroughPauseFB xrPassthroughPauseFB{};
@@ -59,7 +55,7 @@ public:
 	}
 };
 
-class passthrough_htc : public utils::handle<XrPassthroughHTC, destroy_passthrough_htc>
+class passthrough_htc : public utils::handle<XrPassthroughHTC>
 {
 	XrCompositionLayerPassthroughHTC composition_layer;
 

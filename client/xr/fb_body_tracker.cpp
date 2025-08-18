@@ -27,13 +27,6 @@
 
 static_assert(xr::fb_body_tracker::joint_whitelist.size() <= wivrn::from_headset::body_tracking::max_tracked_poses);
 
-static PFN_xrDestroyBodyTrackerFB xrDestroyBodyTrackerFB{};
-
-XrResult xr::destroy_fb_body_tracker(XrBodyTrackerFB id)
-{
-	return xrDestroyBodyTrackerFB(id);
-}
-
 std::vector<XrFullBodyJointMETA> xr::fb_body_tracker::get_whitelisted_joints(bool full_body, bool hip)
 {
 	auto whitelisted_joints = std::ranges::filter_view(xr::fb_body_tracker::joint_whitelist, [=](auto joint) {
@@ -48,13 +41,13 @@ std::vector<XrFullBodyJointMETA> xr::fb_body_tracker::get_whitelisted_joints(boo
 }
 
 xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s, bool full_body, bool hip) :
+        handle(inst.get_proc<PFN_xrDestroyBodyTrackerFB>("xrDestroyBodyTrackerFB")),
         xrRequestBodyTrackingFidelityMETA(inst.get_proc<PFN_xrRequestBodyTrackingFidelityMETA>("xrRequestBodyTrackingFidelityMETA")),
         xrLocateBodyJointsFB(inst.get_proc<PFN_xrLocateBodyJointsFB>("xrLocateBodyJointsFB")),
         full_body(full_body),
         hip(hip)
 {
 	auto xrCreateBodyTrackerFB = inst.get_proc<PFN_xrCreateBodyTrackerFB>("xrCreateBodyTrackerFB");
-	xrDestroyBodyTrackerFB = inst.get_proc<PFN_xrDestroyBodyTrackerFB>("xrDestroyBodyTrackerFB");
 
 	XrBodyTrackerCreateInfoFB create_info{
 	        .type = XR_TYPE_BODY_TRACKER_CREATE_INFO_FB,

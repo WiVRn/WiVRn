@@ -23,27 +23,9 @@
 #include "xr/check.h"
 #include "xr/instance.h"
 
-static PFN_xrDestroyPassthroughLayerFB xrDestroyPassthroughLayerFB{};
-static PFN_xrDestroyPassthroughFB xrDestroyPassthroughFB{};
-static PFN_xrDestroyPassthroughHTC xrDestroyPassthroughHTC{};
-
-XrResult xr::destroy_passthrough_layer_fb(XrPassthroughLayerFB id)
+xr::passthrough_layer_fb::passthrough_layer_fb(instance & inst, session & s, const XrPassthroughLayerCreateInfoFB & info) :
+        handle(inst.get_proc<PFN_xrDestroyPassthroughLayerFB>("xrDestroyPassthroughLayerFB"))
 {
-	return xrDestroyPassthroughLayerFB(id);
-}
-XrResult xr::destroy_passthrough_fb(XrPassthroughFB id)
-{
-	return xrDestroyPassthroughFB(id);
-}
-XrResult xr::destroy_passthrough_htc(XrPassthroughHTC id)
-{
-	return xrDestroyPassthroughHTC(id);
-}
-
-xr::passthrough_layer_fb::passthrough_layer_fb(instance & inst, session & s, const XrPassthroughLayerCreateInfoFB & info)
-{
-	xrDestroyPassthroughLayerFB = inst.get_proc<PFN_xrDestroyPassthroughLayerFB>("xrDestroyPassthroughLayerFB");
-
 	PFN_xrCreatePassthroughLayerFB xrCreatePassthroughLayerFB = inst.get_proc<PFN_xrCreatePassthroughLayerFB>("xrCreatePassthroughLayerFB");
 	CHECK_XR(xrCreatePassthroughLayerFB(s, &info, &id));
 }
@@ -51,7 +33,6 @@ xr::passthrough_layer_fb::passthrough_layer_fb(instance & inst, session & s, con
 static XrPassthroughFB create_passthrough_fb(xr::instance & inst, xr::session & s)
 {
 	PFN_xrCreatePassthroughFB xrCreatePassthroughFB = inst.get_proc<PFN_xrCreatePassthroughFB>("xrCreatePassthroughFB");
-	xrDestroyPassthroughFB = inst.get_proc<PFN_xrDestroyPassthroughFB>("xrDestroyPassthroughFB");
 
 	XrPassthroughFB id;
 	XrPassthroughCreateInfoFB info{
@@ -64,7 +45,7 @@ static XrPassthroughFB create_passthrough_fb(xr::instance & inst, xr::session & 
 }
 
 xr::passthrough_fb::passthrough_fb(instance & inst, session & s) :
-        utils::handle<XrPassthroughFB, destroy_passthrough_fb>(create_passthrough_fb(inst, s)),
+        handle(create_passthrough_fb(inst, s), inst.get_proc<PFN_xrDestroyPassthroughFB>("xrDestroyPassthroughFB")),
         passthrough_layer(inst, s, XrPassthroughLayerCreateInfoFB{
                                            .type = XR_TYPE_PASSTHROUGH_LAYER_CREATE_INFO_FB,
                                            .passthrough = id,
@@ -98,10 +79,10 @@ void xr::passthrough_fb::pause()
 	CHECK_XR(xrPassthroughPauseFB(id));
 }
 
-xr::passthrough_htc::passthrough_htc(instance & inst, session & s)
+xr::passthrough_htc::passthrough_htc(instance & inst, session & s) :
+        handle(inst.get_proc<PFN_xrDestroyPassthroughHTC>("xrDestroyPassthroughHTC"))
 {
 	PFN_xrCreatePassthroughHTC xrCreatePassthroughHTC = inst.get_proc<PFN_xrCreatePassthroughHTC>("xrCreatePassthroughHTC");
-	xrDestroyPassthroughHTC = inst.get_proc<PFN_xrDestroyPassthroughHTC>("xrDestroyPassthroughHTC");
 
 	XrPassthroughCreateInfoHTC info{
 	        .type = XR_TYPE_PASSTHROUGH_CREATE_INFO_HTC,

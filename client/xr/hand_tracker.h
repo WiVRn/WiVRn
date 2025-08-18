@@ -28,14 +28,12 @@ namespace xr
 {
 class instance;
 class session;
-XrResult destroy_hand_tracker(XrHandTrackerEXT);
 
-class hand_tracker : public utils::handle<XrHandTrackerEXT, destroy_hand_tracker>
+class hand_tracker : public utils::handle<XrHandTrackerEXT>
 {
 	PFN_xrLocateHandJointsEXT xrLocateHandJointsEXT{};
 
 public:
-	hand_tracker() = default;
 	hand_tracker(instance & inst, session & session, const XrHandTrackerCreateInfoEXT & info);
 
 	using joint = std::pair<XrHandJointLocationEXT, XrHandJointVelocityEXT>;

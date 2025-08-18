@@ -27,16 +27,12 @@ namespace xr
 class instance;
 class session;
 
-XrResult destroy_fb_face_tracker2(XrFaceTracker2FB);
-
-class fb_face_tracker2 : public utils::handle<XrFaceTracker2FB, destroy_fb_face_tracker2>
+class fb_face_tracker2 : public utils::handle<XrFaceTracker2FB>
 {
 	PFN_xrGetFaceExpressionWeights2FB xrGetFaceExpressionWeights2FB{};
-	PFN_xrDestroyFaceTracker2FB xrDestroyFaceTracker2FB{};
 
 public:
 	using packet_type = wivrn::from_headset::tracking::fb_face2;
-	fb_face_tracker2() = default;
 	fb_face_tracker2(instance & inst, session & s);
 
 	void get_weights(XrTime time, packet_type & out_expressions);
