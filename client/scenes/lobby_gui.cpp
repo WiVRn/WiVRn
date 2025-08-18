@@ -1804,7 +1804,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 			if (*status.charge > 0.995)
 				icon_nr = 5;
 			else
-				icon_nr = application::now() / 500'000'000 % 5;
+				icon_nr = instance.now() / 500'000'000 % 5;
 		}
 		else
 			icon_nr = std::round((*status.charge) * 4);

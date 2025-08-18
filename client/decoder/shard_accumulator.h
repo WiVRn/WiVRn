@@ -34,6 +34,11 @@ using decoder_impl = ::wivrn::ffmpeg::decoder;
 #include <optional>
 #include <vector>
 
+namespace xr
+{
+class instance;
+}
+
 namespace wivrn
 {
 
@@ -50,7 +55,7 @@ public:
 		void reset(uint64_t frame_index);
 		bool empty() const;
 
-		std::optional<uint16_t> insert(data_shard &&);
+		std::optional<uint16_t> insert(data_shard &&, xr::instance & instance);
 
 		wivrn::from_headset::feedback feedback{};
 
@@ -70,11 +75,13 @@ private:
 	shard_set current;
 	shard_set next;
 	std::weak_ptr<scenes::stream> weak_scene;
+	xr::instance & instance;
 
 public:
 	explicit shard_accumulator(
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
+	        xr::instance & instance,
 	        const wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        std::weak_ptr<scenes::stream> scene,
@@ -82,7 +89,8 @@ public:
 	        decoder(std::make_shared<decoder_impl>(device, physical_device, description, fps, stream_index, scene, this)),
 	        current(stream_index),
 	        next(stream_index),
-	        weak_scene(scene)
+	        weak_scene(scene),
+	        instance(instance)
 	{
 		next.reset(1);
 	}

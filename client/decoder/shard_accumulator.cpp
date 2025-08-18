@@ -18,9 +18,9 @@
  */
 
 #include "shard_accumulator.h"
-#include "application.h"
-#include "scenes/stream.h"
+#include "scenes/stream.h" // IWYU pragma: keep
 #include "spdlog/spdlog.h"
+#include "xr/instance.h"
 
 namespace wivrn
 {
@@ -63,10 +63,10 @@ static bool is_complete(const shard_set & shards)
 	return true;
 }
 
-std::optional<uint16_t> shard_set::insert(data_shard && shard)
+std::optional<uint16_t> shard_set::insert(data_shard && shard, xr::instance & instance)
 {
 	if (empty())
-		feedback.received_first_packet = application::now();
+		feedback.received_first_packet = instance.now();
 
 	auto idx = shard.shard_idx;
 	if (idx >= data.size())
@@ -121,12 +121,12 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 	}
 	else if (frame_diff == 0)
 	{
-		auto shard_idx = current.insert(std::move(shard));
+		auto shard_idx = current.insert(std::move(shard), instance);
 		try_submit_frame(shard_idx);
 	}
 	else if (frame_diff == 1)
 	{
-		next.insert(std::move(shard));
+		next.insert(std::move(shard), instance);
 		if (is_complete(next))
 		{
 			debug_why_not_sent(current);
@@ -191,7 +191,7 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	if (not frame_complete)
 		return;
 
-	current.feedback.received_last_packet = application::now();
+	current.feedback.received_last_packet = instance.now();
 	current.feedback.sent_to_decoder = current.feedback.received_last_packet;
 	data_shard::timing_info_t timing_info = data_shards.back()->timing_info.value_or(data_shard::timing_info_t{});
 	current.feedback.encode_begin = timing_info.encode_begin;
@@ -216,7 +216,7 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 void shard_accumulator::send_feedback(wivrn::from_headset::feedback & feedback)
 {
 	if (not feedback.received_last_packet)
-		feedback.received_first_packet = application::now();
+		feedback.received_first_packet = instance.now();
 	auto scene = weak_scene.lock();
 	if (scene)
 		scene->send_feedback(feedback);

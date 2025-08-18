@@ -343,11 +343,6 @@ public:
 		// #endif
 	}
 
-	static XrTime now()
-	{
-		return instance().xr_instance.now();
-	}
-
 	static thread_safe<vk::raii::Queue> & get_queue()
 	{
 		return instance().vk_queue;

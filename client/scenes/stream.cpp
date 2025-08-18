@@ -391,7 +391,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 void scenes::stream::on_focused()
 {
-	gui_status_last_change = application::now();
+	gui_status_last_change = instance.now();
 
 	auto views = system.view_configuration_views(viewconfig);
 	// stream_view = override_view(views[0], guess_model());
@@ -526,7 +526,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		{
 			if (decoder != decoders[stream].decoder.get())
 				return;
-			handle->feedback.received_from_decoder = application::now();
+			handle->feedback.received_from_decoder = instance.now();
 			std::swap(handle, decoders[stream].latest_frames[handle->feedback.frame_index % decoders[stream].latest_frames.size()]);
 		}
 
@@ -535,7 +535,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		    }))
 		{
 			state_ = state::streaming;
-			spdlog::info("Stream scene ready at t={}", application::now());
+			spdlog::info("Stream scene ready at t={}", instance.now());
 		}
 	}
 
@@ -930,7 +930,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		if (not blit_handle or not *i.blit_pipeline)
 			continue;
 
-		blit_handle->feedback.blitted = application::now();
+		blit_handle->feedback.blitted = instance.now();
 		if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
 			state_ = stream::state::stalled;
 		++blit_handle->feedback.times_displayed;
@@ -1365,7 +1365,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		spdlog::info("Creating decoder size {}x{} offset {},{}", item.width, item.height, item.offset_x, item.offset_y);
 
 		decoders.push_back(accumulator_images{
-		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, item, description.fps, shared_from_this(), stream_index),
+		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, item, description.fps, shared_from_this(), stream_index),
 		});
 	}
 }
