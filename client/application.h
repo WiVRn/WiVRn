@@ -358,11 +358,6 @@ public:
 		return intent;
 	}
 
-	static vk::raii::PhysicalDevice & get_physical_device()
-	{
-		return instance().vk_physical_device;
-	}
-
 	static const vk::PhysicalDeviceProperties & get_physical_device_properties()
 	{
 		return instance().physical_device_properties;
