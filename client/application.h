@@ -28,11 +28,11 @@
 #include "utils/thread_safe.h"
 #include "vk/vk_allocator.h"
 #include "wifi_lock.h"
-#include "xr/fb_body_tracker.h"
-#include "xr/hand_tracker.h"
-#include "xr/htc_body_tracker.h"
-#include "xr/pico_body_tracker.h"
-#include "xr/xr.h"
+#include "xr/actionset.h"
+#include "xr/instance.h"
+#include "xr/session.h"
+#include "xr/swapchain.h"
+#include "xr/system.h"
 #include <atomic>
 #include <boost/locale/generator.hpp>
 #include <boost/locale/gnu_gettext.hpp>

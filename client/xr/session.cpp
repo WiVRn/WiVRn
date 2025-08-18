@@ -25,6 +25,7 @@
 #include "utils/contains.h"
 #include "xr/instance.h"
 #include "xr/system.h"
+#include "xr/to_string.h"
 #include <ranges>
 #include <vulkan/vulkan.h>
 #include <openxr/openxr_platform.h>

@@ -24,6 +24,7 @@
 #include "xr/body_tracker.h"
 #include "xr/face_tracker.h"
 #include "xr/fb_body_tracker.h"
+#include "xr/to_string.h"
 #include <magic_enum.hpp>
 #include <ranges>
 #include <spdlog/spdlog.h>
