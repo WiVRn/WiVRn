@@ -90,6 +90,8 @@ public:
 	XrPath string_to_path(const std::string & path);
 	std::string path_to_string(XrPath path);
 
+	std::vector<XrPath> enumerate_paths_for_interaction_profile(XrPath interaction_profile, XrPath user_path = XR_NULL_PATH);
+
 	void suggest_bindings(const std::string & interaction_profile,
 	                      std::vector<XrActionSuggestedBinding> & bindings);
 

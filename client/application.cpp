@@ -30,8 +30,8 @@
 #include "wifi_lock.h"
 #include "xr/actionset.h"
 #include "xr/check.h"
+#include "xr/htc_exts.h"
 #include "xr/meta_body_tracking_fidelity.h"
-#include "xr/xr.h"
 #include <algorithm>
 #include <boost/locale.hpp>
 #include <boost/url/parse.hpp>
@@ -961,8 +961,6 @@ void application::initialize_actions()
 {
 	spdlog::debug("Initializing actions");
 
-	auto * htc_body = std::get_if<xr::htc_body_tracker>(&body_tracker);
-
 	// Build an action set with all possible input sources
 	std::vector<XrActionSet> action_sets;
 	xr_actionset = xr::actionset(xr_instance, "all_actions", "All actions");
@@ -1036,14 +1034,15 @@ void application::initialize_actions()
 		}
 
 		// Dynamically add VIVE XR Trackers to the profile if available
-		if (htc_body && utils::contains(profile.required_extensions, XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME))
+		if (utils::contains(profile.required_extensions, XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME) and
+		    xr_instance.has_extension(XR_HTC_PATH_ENUMERATION_EXTENSION_NAME))
 		{
-			for (const auto & user_path: htc_body->get_paths())
+			XrPath tracker_profile = xr_instance.string_to_path("/interaction_profiles/htc/vive_xr_tracker");
+			for (const auto & user_path: xr_instance.enumerate_paths_for_interaction_profile(tracker_profile))
 			{
-				for (const auto & input_path: htc_body->get_paths(user_path))
-				{
-					profile.input_sources.push_back(path_to_string(user_path) + path_to_string(input_path));
-				}
+				generic_trackers.emplace_back(user_path, nullptr);
+				for (const auto & input_path: xr_instance.enumerate_paths_for_interaction_profile(tracker_profile, user_path))
+					profile.input_sources.push_back(xr_instance.path_to_string(user_path) + xr_instance.path_to_string(input_path));
 			}
 		}
 
@@ -1091,8 +1090,14 @@ void application::initialize_actions()
 			spaces[size_t(xr::spaces::poke_right)] = xr_session.create_action_space(a);
 		else if (name == "/user/eyes_ext/input/gaze_ext/pose")
 			spaces[size_t(xr::spaces::eye_gaze)] = xr_session.create_action_space(a);
-		else if (name.contains("/input/entity_htc/pose") && htc_body)
-			htc_body->add(xr_session.create_action_space(a));
+		else if (name.contains("/input/entity_htc/pose"))
+		{
+			for (auto & [path, action]: generic_trackers)
+			{
+				if (name.starts_with(path_to_string(path)))
+					action = xr_session.create_action_space(a);
+			}
+		}
 	}
 
 	// Build an action set for each scene
@@ -1285,28 +1290,6 @@ void application::initialize()
 	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
 	config.emplace(xr_system_id);
-
-	if (utils::contains_all(xr_extensions, std::array{XR_FB_BODY_TRACKING_EXTENSION_NAME, XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME, XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME}))
-	{
-		XrSystemBodyTrackingPropertiesFB fb_body_properties = xr_system_id.fb_body_tracking_properties();
-		spdlog::info("    FB body tracking support: {}", (bool)fb_body_properties.supportsBodyTracking);
-		if (fb_body_properties.supportsBodyTracking)
-			body_tracker.emplace<xr::fb_body_tracker>(xr_instance, xr_session);
-	}
-
-	if (std::holds_alternative<std::monostate>(body_tracker) && utils::contains_all(xr_extensions, std::array{XR_HTC_PATH_ENUMERATION_EXTENSION_NAME, XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME}))
-	{
-		spdlog::info("    HTC body tracking support: true");
-		body_tracker.emplace<xr::htc_body_tracker>(xr_instance, xr_session);
-	}
-
-	if (std::holds_alternative<std::monostate>(body_tracker) && utils::contains(xr_extensions, XR_BD_BODY_TRACKING_EXTENSION_NAME))
-	{
-		XrSystemBodyTrackingPropertiesBD bd_body_properties = xr_system_id.bd_body_tracking_properties();
-		spdlog::info("    PICO body tracking support: {}", (bool)bd_body_properties.supportsBodyTracking);
-		if (bd_body_properties.supportsBodyTracking)
-			body_tracker.emplace<xr::pico_body_tracker>(xr_instance, xr_session);
-	}
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;
 	cmdpool_create_info.queueFamilyIndex = vk_queue_family_index;
@@ -1840,13 +1823,6 @@ void application::poll_events()
 		{
 			case XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING: {
 				exit_requested = true;
-			}
-			break;
-			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED: {
-				if (auto * htc_body = std::get_if<xr::htc_body_tracker>(&body_tracker))
-				{
-					htc_body->update_active();
-				}
 			}
 			break;
 			case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:

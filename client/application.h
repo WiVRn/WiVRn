@@ -123,7 +123,7 @@ class application : public singleton<application>
 	xr::actionset xr_actionset;
 	std::vector<std::tuple<XrAction, XrActionType, std::string>> actions;
 
-	std::variant<std::monostate, xr::fb_body_tracker, xr::htc_body_tracker, xr::pico_body_tracker> body_tracker;
+	std::vector<std::pair<XrPath, xr::space>> generic_trackers;
 
 	bool eye_gaze_supported = false;
 
@@ -423,11 +423,6 @@ public:
 		return instance().last_scene_cpu_time;
 	}
 
-	static bool get_body_tracking_supported()
-	{
-		return !std::holds_alternative<std::monostate>(instance().body_tracker);
-	}
-
 	static bool get_eye_gaze_supported()
 	{
 		return instance().eye_gaze_supported;
@@ -438,9 +433,9 @@ public:
 		return instance().openxr_post_processing_supported;
 	}
 
-	static auto & get_body_tracker()
+	static auto & get_generic_trackers()
 	{
-		return instance().body_tracker;
+		return instance().generic_trackers;
 	}
 
 	static const std::vector<std::string> & get_xr_extensions()

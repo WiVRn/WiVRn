@@ -1,7 +1,5 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2025  Awzri <awzri@awzricat.com>
- * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
  * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,38 +18,32 @@
 
 #pragma once
 
-#include "wivrn_packets.h"
-#include "xr/space.h"
+#include "fb_body_tracker.h"
+#include "htc_body_tracker.h"
+#include "pico_body_tracker.h"
+
+#include <utility>
+#include <variant>
 #include <vector>
-#include <openxr/openxr.h>
 
 namespace xr
 {
+
 class instance;
-class session;
+class system;
 
-class vive_xr_tracker
+enum class body_tracker_type
 {
-	bool is_active = false;
-	XrPath path;
-	xr::space & space;
-
-public:
-	vive_xr_tracker(XrPath path, xr::space & s, XrSession session);
-	void update_active(XrSession session);
-	bool get_active() const;
-	XrSpace get_space() const;
+	none,
+	fb,
+	htc,
+	pico,
 };
 
-class htc_body_tracker
-{
-	XrSession s;
-	std::vector<vive_xr_tracker> trackers;
+using body_tracker = std::variant<std::monostate, xr::fb_body_tracker, xr::htc_body_tracker, xr::pico_body_tracker>;
 
-public:
-	htc_body_tracker(session & s, std::vector<std::pair<XrPath, xr::space>> & trackers);
+body_tracker_type body_tracker_supported(xr::instance &, xr::system &);
 
-	void update_active();
-	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> locate_spaces(XrTime time, XrSpace reference);
-};
+body_tracker make_body_tracker(xr::instance &, xr::system &, xr::session &, std::vector<std::pair<XrPath, xr::space>> & generic_trackers, bool full_body, bool hips);
+
 } // namespace xr

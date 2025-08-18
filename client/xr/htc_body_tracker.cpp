@@ -2,6 +2,7 @@
  * WiVRn VR streaming
  * Copyright (C) 2025  Awzri <awzri@awzricat.com>
  * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
+ * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +20,7 @@
 
 #include "htc_body_tracker.h"
 #include "xr/details/enumerate.h"
-#include "xr/htc_exts.h"
-#include "xr/xr.h"
+#include "xr/session.h"
 #include <openxr/openxr.h>
 
 // Note: This utilizes extensions not present in the OpenXR spec!
@@ -28,11 +28,25 @@
 // https://hub.vive.com/apidoc/api/VIVE.OpenXR.Tracker.ViveXRTracker.html
 // https://hub.vive.com/apidoc/api/VIVE.OpenXR.VivePathEnumerationHelper.xrEnumeratePathsForInteractionProfileHTCDelegate.html
 
-xr::vive_xr_tracker::vive_xr_tracker(xr::space && space) :
-        space(std::move(space)) {}
-void xr::vive_xr_tracker::set_active(bool active)
+xr::vive_xr_tracker::vive_xr_tracker(XrPath path, xr::space & space, XrSession session) :
+        path(path),
+        space(space)
 {
-	is_active = active;
+	update_active(session);
+}
+
+void xr::vive_xr_tracker::update_active(XrSession session)
+{
+	XrInputSourceLocalizedNameGetInfo get_info{
+	        .type = XR_TYPE_INPUT_SOURCE_LOCALIZED_NAME_GET_INFO,
+	        .next = nullptr,
+	        .sourcePath = path,
+	        .whichComponents = XR_INPUT_SOURCE_LOCALIZED_NAME_USER_PATH_BIT,
+	};
+
+	auto role = xr::details::enumerate<char>(xrGetInputSourceLocalizedName, session, &get_info);
+
+	is_active = not role.contains("_");
 }
 bool xr::vive_xr_tracker::get_active() const
 {
@@ -76,63 +90,18 @@ static wivrn::from_headset::body_tracking::pose locate_space(XrSpace space, XrSp
 	return res;
 }
 
-std::vector<std::string> xr::htc_body_tracker::get_roles()
-{
-	auto paths = get_paths();
-	std::vector<std::string> roles{};
-	roles.reserve(paths.size());
-
-	for (auto & path: paths)
-	{
-		XrInputSourceLocalizedNameGetInfo get_info{
-		        .type = XR_TYPE_INPUT_SOURCE_LOCALIZED_NAME_GET_INFO,
-		        .next = nullptr,
-		        .sourcePath = path,
-		        .whichComponents = XR_INPUT_SOURCE_LOCALIZED_NAME_USER_PATH_BIT,
-		};
-
-		roles.emplace_back(xr::details::enumerate<char>(xrGetInputSourceLocalizedName, s, &get_info));
-	}
-
-	return roles;
-}
-
-xr::htc_body_tracker::htc_body_tracker(instance & inst, session & s) :
-        inst(&inst),
+xr::htc_body_tracker::htc_body_tracker(session & s, std::vector<std::pair<XrPath, xr::space>> & trackers) :
         s(s)
 {
-	xrEnumeratePathsForInteractionProfileHTC = inst.get_proc<PFN_xrEnumeratePathsForInteractionProfileHTC>("xrEnumeratePathsForInteractionProfileHTC");
-}
-
-std::vector<XrPath> xr::htc_body_tracker::get_paths(XrPath user_path)
-{
-	assert(xrEnumeratePathsForInteractionProfileHTC);
-	XrPath tracker_profile = inst->string_to_path("/interaction_profiles/htc/vive_xr_tracker");
-
-	XrPathsForInteractionProfileEnumerateInfoHTC profile_info{
-	        .type = XR_TYPE_UNKNOWN,
-	        .next = nullptr,
-	        .interactionProfile = tracker_profile,
-	        .userPath = user_path,
-	};
-	return xr::details::enumerate<XrPath>(xrEnumeratePathsForInteractionProfileHTC, *inst, profile_info);
-}
-
-void xr::htc_body_tracker::add(xr::space && space)
-{
-	trackers.emplace_back(std::move(space));
-}
-size_t xr::htc_body_tracker::count() const
-{
-	return trackers.size();
+	this->trackers.reserve(trackers.size());
+	for (auto & [path, space]: trackers)
+		this->trackers.emplace_back(path, space, s);
 }
 
 void xr::htc_body_tracker::update_active()
 {
-	auto roles = get_roles();
-	assert(roles.size() >= trackers.size());
-	for (int i = 0; i < trackers.size(); i++)
-		trackers[i].set_active(!roles[i].contains('_'));
+	for (auto & tracker: trackers)
+		tracker.update_active(s);
 }
 
 std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> xr::htc_body_tracker::locate_spaces(XrTime time, XrSpace reference)
@@ -141,7 +110,7 @@ std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_t
 
 	for (int i = 0; i < trackers.size(); i++)
 	{
-		auto & tracker = trackers.at(i);
+		auto & tracker = trackers[i];
 		wivrn::from_headset::body_tracking::pose pose{
 		        .pose = {},
 		        .flags = 0,

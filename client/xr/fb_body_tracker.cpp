@@ -17,14 +17,22 @@
  */
 
 #include "fb_body_tracker.h"
-#include "application.h"
 #include "spdlog/spdlog.h"
+#include "xr/instance.h"
 #include "xr/meta_body_tracking_fidelity.h"
-#include "xr/xr.h"
+#include "xr/session.h"
+#include "xr/to_string.h"
 #include <ranges>
 #include <openxr/openxr.h>
 
 static_assert(xr::fb_body_tracker::joint_whitelist.size() <= wivrn::from_headset::body_tracking::max_tracked_poses);
+
+static PFN_xrDestroyBodyTrackerFB xrDestroyBodyTrackerFB{};
+
+XrResult xr::destroy_fb_body_tracker(XrBodyTrackerFB id)
+{
+	return xrDestroyBodyTrackerFB(id);
+}
 
 std::vector<XrFullBodyJointMETA> xr::fb_body_tracker::get_whitelisted_joints(bool full_body, bool hip)
 {
@@ -39,59 +47,33 @@ std::vector<XrFullBodyJointMETA> xr::fb_body_tracker::get_whitelisted_joints(boo
 	return {whitelisted_joints.begin(), whitelisted_joints.end()};
 }
 
-xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s) :
-        s(s)
+xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s, bool full_body, bool hip) :
+        xrRequestBodyTrackingFidelityMETA(inst.get_proc<PFN_xrRequestBodyTrackingFidelityMETA>("xrRequestBodyTrackingFidelityMETA")),
+        xrLocateBodyJointsFB(inst.get_proc<PFN_xrLocateBodyJointsFB>("xrLocateBodyJointsFB")),
+        full_body(full_body),
+        hip(hip)
 {
-	xrCreateBodyTrackerFB = inst.get_proc<PFN_xrCreateBodyTrackerFB>("xrCreateBodyTrackerFB");
-	xrRequestBodyTrackingFidelityMETA = inst.get_proc<PFN_xrRequestBodyTrackingFidelityMETA>("xrRequestBodyTrackingFidelityMETA");
-	xrLocateBodyJointsFB = inst.get_proc<PFN_xrLocateBodyJointsFB>("xrLocateBodyJointsFB");
+	auto xrCreateBodyTrackerFB = inst.get_proc<PFN_xrCreateBodyTrackerFB>("xrCreateBodyTrackerFB");
 	xrDestroyBodyTrackerFB = inst.get_proc<PFN_xrDestroyBodyTrackerFB>("xrDestroyBodyTrackerFB");
-}
-xr::fb_body_tracker::~fb_body_tracker()
-{
-	stop();
-}
-
-void xr::fb_body_tracker::start(bool full_body, bool hip)
-{
-	assert(xrCreateBodyTrackerFB);
-	this->full_body = full_body;
-	this->hip = hip;
 
 	XrBodyTrackerCreateInfoFB create_info{
 	        .type = XR_TYPE_BODY_TRACKER_CREATE_INFO_FB,
-	        .next = nullptr,
+	        .bodyJointSet = full_body
+	                                ? XR_BODY_JOINT_SET_FULL_BODY_META
+	                                : XR_BODY_JOINT_SET_DEFAULT_FB,
 	};
-	create_info.bodyJointSet = full_body
-	                                   ? XR_BODY_JOINT_SET_FULL_BODY_META
-	                                   : XR_BODY_JOINT_SET_DEFAULT_FB;
 
-	CHECK_XR(xrCreateBodyTrackerFB(s, &create_info, &handle));
+	CHECK_XR(xrCreateBodyTrackerFB(s, &create_info, &id));
 
 	// Enable IOBT.
-	CHECK_XR(xrRequestBodyTrackingFidelityMETA(handle, XR_BODY_TRACKING_FIDELITY_HIGH_META));
+	CHECK_XR(xrRequestBodyTrackingFidelityMETA(id, XR_BODY_TRACKING_FIDELITY_HIGH_META));
 
 	whitelisted_joints = get_whitelisted_joints(full_body, hip);
-}
-void xr::fb_body_tracker::stop()
-{
-	full_body = false;
-	hip = false;
-	if (handle)
-	{
-		assert(xrDestroyBodyTrackerFB);
-		CHECK_XR(xrDestroyBodyTrackerFB(std::exchange(handle, nullptr)));
-	}
-}
-size_t xr::fb_body_tracker::count() const
-{
-	const auto & config = application::get_config();
-	return get_whitelisted_joints(config.fb_lower_body, config.fb_hip).size();
 }
 
 std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> xr::fb_body_tracker::locate_spaces(XrTime time, XrSpace reference)
 {
-	if (!handle)
+	if (!id)
 		return std::nullopt;
 
 	assert(xrLocateBodyJointsFB);
@@ -111,7 +93,7 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 	        .jointLocations = joints.data(),
 	};
 
-	if (auto res = xrLocateBodyJointsFB(handle, &locate_info, &joint_locations); !XR_SUCCEEDED(res))
+	if (auto res = xrLocateBodyJointsFB(id, &locate_info, &joint_locations); !XR_SUCCEEDED(res))
 	{
 		spdlog::warn("xrLocateBodyJointsFB returned {}", xr::to_string(res));
 		return std::nullopt;

@@ -19,8 +19,9 @@
 
 #include "instance.h"
 
-#include "xr.h"
 #include "xr/details/enumerate.h"
+#include "xr/htc_exts.h"
+#include "xr/to_string.h"
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -210,6 +211,20 @@ XrPath xr::instance::string_to_path(const std::string & path)
 	CHECK_XR(xrStringToPath(id, path.c_str(), &p));
 
 	return p;
+}
+
+std::vector<XrPath> xr::instance::enumerate_paths_for_interaction_profile(XrPath interaction_profile, XrPath user_path)
+{
+	assert(has_extension(XR_HTC_PATH_ENUMERATION_EXTENSION_NAME));
+	static auto xrEnumeratePathsForInteractionProfileHTC = get_proc<PFN_xrEnumeratePathsForInteractionProfileHTC>("xrEnumeratePathsForInteractionProfileHTC");
+
+	XrPathsForInteractionProfileEnumerateInfoHTC profile_info{
+	        .type = XR_TYPE_UNKNOWN,
+	        .next = nullptr,
+	        .interactionProfile = interaction_profile,
+	        .userPath = user_path,
+	};
+	return xr::details::enumerate<XrPath>(xrEnumeratePathsForInteractionProfileHTC, id, profile_info);
 }
 
 bool xr::instance::poll_event(xr::event & buffer)

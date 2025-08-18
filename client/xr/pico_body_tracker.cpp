@@ -45,10 +45,6 @@ xr::pico_body_tracker::pico_body_tracker(instance & inst, session & s)
 	CHECK_XR(xrCreateBodyTrackerBD(s, &create_info, &id));
 }
 
-size_t xr::pico_body_tracker::count() const
-{
-	return joint_whitelist.size();
-}
 std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> xr::pico_body_tracker::locate_spaces(XrTime time, XrSpace reference)
 {
 	if (!xrLocateBodyJointsBD)

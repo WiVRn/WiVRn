@@ -17,12 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "constants.h"
-#include "utils/overloaded.h"
+#include "xr/body_tracker.h"
 #include "xr/face_tracker.h"
-#include "xr/fb_body_tracker.h"
 #include "xr/fb_face_tracker2.h"
-#include "xr/htc_body_tracker.h"
-#include "xr/pico_body_tracker.h"
 #include "xr/space.h"
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -275,15 +272,20 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		info.num_generic_trackers = 0;
 		if (config.check_feature(feature::body_tracking))
 		{
-			info.num_generic_trackers = std::visit(utils::overloaded{
-			                                               [&](std::monostate &) {
-				                                               return size_t(0);
-			                                               },
-			                                               [&](auto & b) {
-				                                               return b.count();
-			                                               },
-			                                       },
-			                                       application::get_body_tracker());
+			switch (xr::body_tracker_supported(self->instance, self->system))
+			{
+				case xr::body_tracker_type::none:
+					break;
+				case xr::body_tracker_type::fb:
+					info.num_generic_trackers = xr::fb_body_tracker::get_whitelisted_joints(config.fb_lower_body, config.fb_hip).size();
+					break;
+				case xr::body_tracker_type::htc:
+					info.num_generic_trackers = application::get_generic_trackers().size();
+					break;
+				case xr::body_tracker_type::pico:
+					info.num_generic_trackers = xr::pico_body_tracker::joint_whitelist.size();
+					break;
+			}
 		}
 
 		info.palm_pose = application::space(xr::spaces::palm_left) or application::space(xr::spaces::palm_right);

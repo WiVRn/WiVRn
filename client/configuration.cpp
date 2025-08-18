@@ -20,6 +20,7 @@
 #include "configuration.h"
 #include "application.h"
 
+#include "xr/body_tracker.h"
 #include "xr/face_tracker.h"
 #include <fstream>
 #include <magic_enum.hpp>
@@ -111,30 +112,8 @@ bool configuration::check_feature(feature f) const
 					return false;
 				break;
 			case feature::body_tracking:
-				switch (guess_model())
-				{
-					case model::meta_quest_3:
-					case model::meta_quest_3s:
-						if (not std::holds_alternative<xr::fb_body_tracker>(application::get_body_tracker()))
-							return false;
-						break;
-					case model::htc_vive_focus_3:
-					case model::htc_vive_xr_elite:
-					case model::htc_vive_focus_vision:
-						if (not std::holds_alternative<xr::htc_body_tracker>(application::get_body_tracker()))
-							return false;
-						break;
-					case model::pico_neo_3:
-					case model::pico_4:
-					case model::pico_4s:
-					case model::pico_4_pro:
-					case model::pico_4_enterprise:
-						if (not std::holds_alternative<xr::pico_body_tracker>(application::get_body_tracker()))
-							return false;
-						break;
-					default:
-						break;
-				}
+				if (xr::body_tracker_supported(instance, system) == xr::body_tracker_type::none)
+					return false;
 				break;
 		}
 	}

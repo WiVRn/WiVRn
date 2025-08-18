@@ -34,6 +34,7 @@
 #include "utils/overloaded.h"
 #include "utils/ranges.h"
 #include "version.h"
+#include "xr/body_tracker.h"
 #include <algorithm>
 #include <cassert>
 #include <chrono>
@@ -925,8 +926,9 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 	}
 
+	auto body_tracker = xr::body_tracker_supported(instance, system);
 	{
-		ImGui::BeginDisabled(not application::get_body_tracking_supported());
+		ImGui::BeginDisabled(body_tracker == xr::body_tracker_type::none);
 		bool enabled = config.check_feature(feature::body_tracking);
 		if (ImGui::Checkbox(_S("Enable body tracking"), &enabled))
 		{
@@ -941,19 +943,14 @@ void scenes::lobby::gui_settings()
 			}
 			else
 			{
-				std::visit(utils::overloaded{
-				                   [](auto &) {},
-				                   [this](xr::fb_body_tracker &) {
-					                   imgui_ctx->tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
-				                   },
-				           },
-				           application::get_body_tracker());
+				if (body_tracker == xr::body_tracker_type::fb)
+					imgui_ctx->tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
 			}
 		}
 
 		imgui_ctx->vibrate_on_hover();
 	}
-	if (std::holds_alternative<xr::fb_body_tracker>(application::get_body_tracker()))
+	if (body_tracker == xr::body_tracker_type::fb)
 	{
 		ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
 		ImGui::Indent();
@@ -1313,7 +1310,7 @@ void scenes::lobby::gui_first_run()
 	        item{
 	                .f = feature::body_tracking,
 	                .text = _S("Enable body tracking?"),
-	                .supported = application::get_body_tracking_supported(),
+	                .supported = xr::body_tracker_supported(instance, system) != xr::body_tracker_type::none,
 	        },
 	};
 
@@ -1733,7 +1730,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (application::get_body_tracking_supported())
+	if (xr::body_tracker_supported(instance, system) != xr::body_tracker_type::none)
 	{
 		items.push_back({
 		        .f = feature::body_tracking,

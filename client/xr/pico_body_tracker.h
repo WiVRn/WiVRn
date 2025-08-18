@@ -51,7 +51,6 @@ public:
 	pico_body_tracker() = default;
 	pico_body_tracker(instance & inst, session & s);
 
-	size_t count() const;
 	std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> locate_spaces(XrTime time, XrSpace reference);
 };
 } // namespace xr

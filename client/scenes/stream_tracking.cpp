@@ -21,6 +21,7 @@
 #include "stream.h"
 #include "utils/overloaded.h"
 #include "wivrn_packets.h"
+#include "xr/body_tracker.h"
 #include "xr/face_tracker.h"
 #include "xr/fb_body_tracker.h"
 #include <magic_enum.hpp>
@@ -393,18 +394,7 @@ void scenes::stream::tracking()
 	xr::face_tracker face_tracker;
 
 	const bool body_tracking = config.check_feature(feature::body_tracking);
-	auto & body_tracker = application::get_body_tracker();
-	if (body_tracking)
-	{
-		if (auto * body_fb = std::get_if<xr::fb_body_tracker>(&body_tracker))
-		{
-			// TODO maybe handle reconnection better, if the settings are changed since
-			// last connection to running server, the tracker count will mismatch and
-			// stuff might break
-			body_fb->stop();
-			body_fb->start(config.fb_lower_body, config.fb_hip);
-		}
-	}
+	xr::body_tracker body_tracker;
 
 	locate_spaces_functor locate_spaces{instance, world_space};
 
@@ -429,6 +419,7 @@ void scenes::stream::tracking()
 			int samples = 0;
 
 			auto control = *tracking_control.lock();
+			bool interaction_profile_changed = this->interaction_profile_changed.exchange(false);
 
 			if (control.enabled[size_t(tid::left_hand)])
 			{
@@ -453,6 +444,24 @@ void scenes::stream::tracking()
 			}
 			else
 				face_tracker.emplace<std::monostate>();
+
+			if (body_tracking and control.enabled[size_t(tid::generic_tracker)])
+			{
+				if (std::holds_alternative<std::monostate>(body_tracker))
+					body_tracker = xr::make_body_tracker(
+					        instance,
+					        system,
+					        session,
+					        application::get_generic_trackers(),
+					        config.fb_lower_body,
+					        config.fb_hip);
+			}
+			else
+				body_tracker.emplace<std::monostate>();
+
+			if (interaction_profile_changed)
+				if (auto htc = std::get_if<xr::htc_body_tracker>(&body_tracker))
+					htc->update_active();
 
 			XrDuration prediction = std::clamp<XrDuration>(control.max_offset.count(), 0, 80'000'000);
 			auto period = std::max<XrDuration>(display_time_period.load(), 1'000'000);
@@ -513,26 +522,25 @@ void scenes::stream::tracking()
 					}
 					locate_spaces.resolve(session, t0 + Δt, packet.device_poses);
 
-					if (body_tracking)
-						std::visit(utils::overloaded{
-						                   [](std::monostate &) {},
-						                   [&](auto & b) {
-							                   if (t0 >= last_body_sample + period and
-							                       (Δt == 0 or Δt >= prediction - 2 * period))
+					std::visit(utils::overloaded{
+					                   [](std::monostate &) {},
+					                   [&](auto & b) {
+						                   if (t0 >= last_body_sample + period and
+						                       (Δt == 0 or Δt >= prediction - 2 * period))
+						                   {
+							                   last_body_sample = t0;
+							                   if (control.enabled[size_t(tid::generic_tracker)])
 							                   {
-								                   last_body_sample = t0;
-								                   if (control.enabled[size_t(tid::generic_tracker)])
-								                   {
-									                   body.push_back(from_headset::body_tracking{
-									                           .production_timestamp = t0,
-									                           .timestamp = t0 + Δt,
-									                           .poses = b.locate_spaces(t0 + Δt, world_space),
-									                   });
-								                   }
+								                   body.push_back(from_headset::body_tracking{
+								                           .production_timestamp = t0,
+								                           .timestamp = t0 + Δt,
+								                           .poses = b.locate_spaces(t0 + Δt, world_space),
+								                   });
 							                   }
-						                   },
-						           },
-						           body_tracker);
+						                   }
+					                   },
+					           },
+					           body_tracker);
 
 					std::visit(utils::overloaded{
 					                   [](std::monostate &) {},
@@ -672,6 +680,7 @@ static device_id derived_from(device_id target)
 
 void scenes::stream::on_interaction_profile_changed(const XrEventDataInteractionProfileChanged &)
 {
+	interaction_profile_changed = true;
 	std::array path = {
 	        "/user/hand/left",
 	        "/user/hand/right",
