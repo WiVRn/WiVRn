@@ -19,7 +19,6 @@
 
 #include "session.h"
 
-#include "application.h"
 #include "details/enumerate.h"
 #include "openxr/openxr.h"
 #include "utils/contains.h"
@@ -30,8 +29,9 @@
 #include <vulkan/vulkan.h>
 #include <openxr/openxr_platform.h>
 
-xr::session::session(xr::instance & inst, xr::system & sys, vk::raii::Instance & vk_inst, vk::raii::PhysicalDevice & pdev, vk::raii::Device & dev, int queue_family_index) :
-        inst(&inst)
+xr::session::session(xr::instance & inst, xr::system & sys, vk::raii::Instance & vk_inst, vk::raii::PhysicalDevice & pdev, vk::raii::Device & dev, thread_safe<vk::raii::Queue> & queue, int queue_family_index) :
+        inst(&inst),
+        queue(&queue)
 {
 	XrGraphicsBindingVulkan2KHR vulkan_binding{
 	        .type = XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR,
@@ -128,7 +128,7 @@ void xr::session::begin_frame()
 	        .type = XR_TYPE_FRAME_BEGIN_INFO,
 	};
 
-	auto lock = application::get_queue().lock();
+	auto lock = queue->lock();
 	CHECK_XR(xrBeginFrame(id, &begin_info));
 }
 
@@ -142,7 +142,7 @@ void xr::session::end_frame(XrTime display_time, const std::vector<XrComposition
 	        .layers = layers.data(),
 	};
 
-	auto lock = application::get_queue().lock();
+	auto lock = queue->lock();
 	CHECK_XR(xrEndFrame(id, &end_info));
 }
 
@@ -348,11 +348,11 @@ void xr::session::enable_passthrough(xr::system & system)
 	if (system.passthrough_supported() == xr::passthrough_type::none)
 		return;
 
-	if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))
+	if (inst->has_extension(XR_FB_PASSTHROUGH_EXTENSION_NAME))
 	{
 		passthrough.emplace<xr::passthrough_fb>(*inst, *this);
 	}
-	else if (utils::contains(application::get_xr_extensions(), XR_HTC_PASSTHROUGH_EXTENSION_NAME))
+	else if (inst->has_extension(XR_HTC_PASSTHROUGH_EXTENSION_NAME))
 	{
 		passthrough.emplace<xr::passthrough_htc>(*inst, *this);
 	}

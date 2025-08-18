@@ -1278,7 +1278,7 @@ void application::initialize()
 
 	initialize_vulkan();
 
-	xr_session = xr::session(xr_instance, xr_system_id, vk_instance, vk_physical_device, vk_device, vk_queue_family_index);
+	xr_session = xr::session(xr_instance, xr_system_id, vk_instance, vk_physical_device, vk_device, vk_queue, vk_queue_family_index);
 
 	{
 		auto spaces = xr_session.get_reference_spaces();
