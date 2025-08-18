@@ -363,11 +363,6 @@ public:
 		return instance().physical_device_properties;
 	}
 
-	static vk::raii::Device & get_device()
-	{
-		return instance().vk_device;
-	}
-
 	static vk::raii::Instance & get_vulkan_instance()
 	{
 		return instance().vk_instance;

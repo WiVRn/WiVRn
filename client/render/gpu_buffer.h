@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "application.h"
 #include "utils/alignment.h"
 #include "vk/allocation.h"
 #include <fastgltf/tools.hpp>
@@ -115,10 +114,10 @@ public:
 		}
 	}
 
-	buffer_allocation copy_to_gpu()
+	buffer_allocation copy_to_gpu(vk::raii::Device & device)
 	{
 		buffer_allocation gpu_buffer{
-		        application::get_device(),
+		        device,
 		        vk::BufferCreateInfo{
 		                .size = bytes.size(),
 		                .usage = usage},

@@ -785,7 +785,7 @@ entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
 
 	// Copy the staging buffer to the GPU
 	spdlog::debug("Uploading scene data ({} bytes) to GPU memory", staging_buffer.size());
-	auto buffer = std::make_shared<buffer_allocation>(staging_buffer.copy_to_gpu());
+	auto buffer = std::make_shared<buffer_allocation>(staging_buffer.copy_to_gpu(device));
 
 	for (auto & i: materials)
 		i->buffer = buffer;
