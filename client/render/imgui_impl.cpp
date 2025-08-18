@@ -345,9 +345,9 @@ imgui_context::imgui_context(
 
 	ImGui_ImplVulkan_InitInfo init_info = {
 	        .Instance = *application::get_vulkan_instance(),
-	        .PhysicalDevice = *application::get_physical_device(),
-	        .Device = *application::get_device(),
-	        .QueueFamily = application::queue_family_index(),
+	        .PhysicalDevice = *physical_device,
+	        .Device = *device,
+	        .QueueFamily = queue_family_index,
 	        .Queue = *queue.get_unsafe(),
 	        .RenderPass = *renderpass,
 	        .MinImageCount = 2,

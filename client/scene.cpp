@@ -441,7 +441,7 @@ std::pair<entt::entity, components::node &> scene::load_gltf(const std::filesyst
 	node.layer_mask = layer_mask;
 
 	assert(renderer);
-	scene_loader loader(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
+	scene_loader loader(device, physical_device, queue, queue_family_index, renderer->get_default_material());
 
 	loader.add_prefab(world, loader(path), entity);
 

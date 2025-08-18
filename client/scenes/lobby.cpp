@@ -798,7 +798,7 @@ void scenes::lobby::on_focused()
 	// assert(std::ranges::all_of(views, [height](const XrViewConfigurationView & view) { return view.recommendedImageRectHeight == height; }));
 
 	renderer.emplace(device, physical_device, queue, commandpool);
-	loader.emplace(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
+	loader.emplace(device, physical_device, queue, queue_family_index, renderer->get_default_material());
 
 	lobby_entity = load_gltf("ground.gltf", layer_lobby).first;
 

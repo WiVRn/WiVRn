@@ -348,11 +348,6 @@ public:
 		return instance().xr_instance.now();
 	}
 
-	static uint32_t queue_family_index()
-	{
-		return instance().vk_queue_family_index;
-	}
-
 	static thread_safe<vk::raii::Queue> & get_queue()
 	{
 		return instance().vk_queue;

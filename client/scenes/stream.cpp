@@ -399,7 +399,7 @@ void scenes::stream::on_focused()
 	height = views[0].recommendedImageRectHeight;
 
 	renderer.emplace(device, physical_device, queue, commandpool);
-	loader.emplace(device, physical_device, queue, application::queue_family_index(), renderer->get_default_material());
+	loader.emplace(device, physical_device, queue, queue_family_index, renderer->get_default_material());
 
 	std::string profile = controller_name();
 	input.emplace(
