@@ -408,11 +408,6 @@ public:
 		return instance().generic_trackers;
 	}
 
-	static const std::vector<std::string> & get_xr_extensions()
-	{
-		return instance().xr_extensions;
-	}
-
 	static const std::vector<const char *> & get_vk_device_extensions()
 	{
 		return instance().vk_device_extensions;

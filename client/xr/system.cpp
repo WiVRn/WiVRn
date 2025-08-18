@@ -19,7 +19,6 @@
 
 #include "system.h"
 
-#include "application.h"
 #include "body_tracker.h"
 #include "details/enumerate.h"
 #include "face_tracker.h"
@@ -27,6 +26,7 @@
 #include "utils/contains.h"
 #include "vk/check.h"
 #include "xr/check.h"
+#include "xr/instance.h"
 #include <cassert>
 #include <openxr/openxr_platform.h>
 
@@ -208,11 +208,10 @@ xr::passthrough_type xr::system::passthrough_supported() const
 	if (utils::contains(environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))
 		return passthrough_type::color;
 
-	const std::vector<std::string> & xr_extensions = application::get_xr_extensions();
-	if (utils::contains(xr_extensions, XR_HTC_PASSTHROUGH_EXTENSION_NAME))
+	if (inst->has_extension(XR_HTC_PASSTHROUGH_EXTENSION_NAME))
 		return passthrough_type::color;
 
-	if (utils::contains(xr_extensions, XR_FB_PASSTHROUGH_EXTENSION_NAME))
+	if (inst->has_extension(XR_FB_PASSTHROUGH_EXTENSION_NAME))
 	{
 		XrSystemPassthroughProperties2FB passthrough_prop2{
 		        .type = XR_TYPE_SYSTEM_PASSTHROUGH_PROPERTIES2_FB,
