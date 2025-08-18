@@ -972,7 +972,9 @@ void application::initialize_actions()
 	std::vector<std::string> sources;
 	for (auto & profile: interaction_profiles)
 	{
-		profile.available = utils::contains_all(xr_extensions, profile.required_extensions) and profile.min_version <= api_version and profile.max_version > api_version;
+		profile.available = std::ranges::all_of(profile.required_extensions, [&](auto & ext) { return xr_instance.has_extension(ext); }) and
+		                    profile.min_version <= api_version and
+		                    profile.max_version > api_version;
 
 		if (profile.profile_name.ends_with("khr/simple_controller"))
 		{
@@ -1013,15 +1015,15 @@ void application::initialize_actions()
 		}
 		if (add_palms)
 		{
-			if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or utils::contains(xr_extensions, XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
-			    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose")                                   //
+			if ((api_version >= XR_MAKE_VERSION(1, 1, 0) or xr_instance.has_extension(XR_KHR_MAINTENANCE1_EXTENSION_NAME)) //
+			    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose")                              //
 			    and not utils::contains(profile.input_sources, "/user/hand/left/input/grip_surface/pose"))
 			{
 				spdlog::info("Adding grip_surface/pose for interaction profile {}", profile.profile_name);
 				profile.input_sources.push_back("/user/hand/left/input/grip_surface/pose");
 				profile.input_sources.push_back("/user/hand/right/input/grip_surface/pose");
 			}
-			else if (utils::contains(xr_extensions, XR_EXT_PALM_POSE_EXTENSION_NAME)               //
+			else if (xr_instance.has_extension(XR_EXT_PALM_POSE_EXTENSION_NAME)                    //
 			         and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose") //
 			         and not utils::contains(profile.input_sources, "/user/hand/left/input/palm_ext/pose"))
 			{
@@ -1169,7 +1171,7 @@ void application::initialize()
 {
 	// LogLayersAndExtensions
 	assert(!xr_instance);
-	xr_extensions.clear();
+	std::vector<std::string> xr_extensions;
 
 	// Required extensions
 	xr_extensions.push_back(XR_KHR_CONVERT_TIMESPEC_TIME_EXTENSION_NAME);
@@ -1244,14 +1246,14 @@ void application::initialize()
 
 	spdlog::info("    Hand tracking support: {}", xr_system_id.hand_tracking_supported());
 
-	if (utils::contains(xr_extensions, XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME))
+	if (xr_instance.has_extension(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME))
 	{
 		XrSystemEyeGazeInteractionPropertiesEXT eye_gaze_properties = xr_system_id.eye_gaze_interaction_properties();
 		spdlog::info("    Eye gaze support: {}", (bool)eye_gaze_properties.supportsEyeGazeInteraction);
 		eye_gaze_supported = eye_gaze_properties.supportsEyeGazeInteraction;
 	}
 
-	if (utils::contains(xr_extensions, XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME))
+	if (xr_instance.has_extension(XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME))
 	{
 		spdlog::info("    OpenXR post-processing extension support: true");
 		openxr_post_processing_supported = true;
