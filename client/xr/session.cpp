@@ -344,7 +344,7 @@ void xr::session::enable_passthrough(xr::system & system)
 	if (not std::holds_alternative<std::monostate>(passthrough))
 		return;
 
-	if (system.passthrough_supported() == xr::system::passthrough_type::no_passthrough)
+	if (system.passthrough_supported() == xr::passthrough_type::none)
 		return;
 
 	if (utils::contains(application::get_xr_extensions(), XR_FB_PASSTHROUGH_EXTENSION_NAME))

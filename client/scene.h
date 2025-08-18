@@ -103,7 +103,6 @@ public:
 protected:
 	vk::Format swapchain_format;
 	vk::Format depth_format;
-	xr::system::passthrough_type passthrough_supported;
 	bool composition_layer_depth_test_supported;
 	bool composition_layer_color_scale_bias_supported;
 

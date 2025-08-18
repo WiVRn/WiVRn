@@ -32,20 +32,39 @@ namespace xr
 {
 class instance;
 
+enum class passthrough_type
+{
+	none,
+	bw,
+	color
+};
+
+enum class body_tracker_type
+{
+	none,
+	fb,
+	htc,
+	pico,
+};
+
+enum class face_tracker_type
+{
+	none,
+	fb,
+	htc,
+	pico,
+};
+
 class system
 {
 	instance * inst = nullptr;
 	XrSystemId id = XR_NULL_SYSTEM_ID;
 	bool hand_tracking_supported_ = false;
+	passthrough_type passthrough;
+	body_tracker_type body_tracker;
+	face_tracker_type face_tracker;
 
 public:
-	enum class passthrough_type
-	{
-		no_passthrough,
-		bw,
-		color
-	};
-
 	system() = default;
 	system(const system &) = default;
 	system & operator=(const system &) = default;
@@ -68,8 +87,11 @@ public:
 	XrSystemFacialTrackingPropertiesHTC htc_face_tracking_properties() const;
 	XrSystemBodyTrackingPropertiesFB fb_body_tracking_properties() const;
 	XrSystemBodyTrackingPropertiesBD bd_body_tracking_properties() const;
-	passthrough_type passthrough_supported() const;
+
 	bool hand_tracking_supported() const;
+	passthrough_type passthrough_supported() const;
+	face_tracker_type face_tracker_supported() const;
+	body_tracker_type body_tracker_supported() const;
 
 	XrGraphicsRequirementsVulkan2KHR graphics_requirements() const;
 	vk::raii::PhysicalDevice physical_device(vk::raii::Instance & vulkan) const;

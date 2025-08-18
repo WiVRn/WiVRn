@@ -38,6 +38,7 @@
 #include <chrono>
 #include <ctype.h>
 #include <exception>
+#include <magic_enum.hpp>
 #include <string>
 #include <thread>
 #include <vector>
@@ -1261,16 +1262,19 @@ void application::initialize()
 
 	switch (xr_system_id.passthrough_supported())
 	{
-		case xr::system::passthrough_type::no_passthrough:
+		case xr::passthrough_type::none:
 			spdlog::info("    Passthrough: not supported");
 			break;
-		case xr::system::passthrough_type::bw:
+		case xr::passthrough_type::bw:
 			spdlog::info("    Passthrough: black and white");
 			break;
-		case xr::system::passthrough_type::color:
+		case xr::passthrough_type::color:
 			spdlog::info("    Passthrough: color");
 			break;
 	}
+
+	spdlog::info("    Face tracker: {}", magic_enum::enum_name(xr_system_id.face_tracker_supported()));
+	spdlog::info("    Body tracker: {}", magic_enum::enum_name(xr_system_id.body_tracker_supported()));
 
 	// Log view configurations and blend modes
 	log_views();

@@ -926,7 +926,7 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 	}
 
-	auto body_tracker = xr::body_tracker_supported(instance, system);
+	auto body_tracker = system.body_tracker_supported();
 	{
 		ImGui::BeginDisabled(body_tracker == xr::body_tracker_type::none);
 		bool enabled = config.check_feature(feature::body_tracking);
@@ -976,7 +976,7 @@ void scenes::lobby::gui_settings()
 		ImGui::EndDisabled();
 	}
 
-	ImGui::BeginDisabled(passthrough_supported == xr::system::passthrough_type::no_passthrough);
+	ImGui::BeginDisabled(system.passthrough_supported() == xr::passthrough_type::none);
 	if (ImGui::Checkbox(_S("Enable video passthrough in lobby"), &config.passthrough_enabled))
 	{
 		setup_passthrough();
@@ -1310,7 +1310,7 @@ void scenes::lobby::gui_first_run()
 	        item{
 	                .f = feature::body_tracking,
 	                .text = _S("Enable body tracking?"),
-	                .supported = xr::body_tracker_supported(instance, system) != xr::body_tracker_type::none,
+	                .supported = system.body_tracker_supported() != xr::body_tracker_type::none,
 	        },
 	};
 
@@ -1730,7 +1730,7 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		});
 	}
 
-	if (xr::body_tracker_supported(instance, system) != xr::body_tracker_type::none)
+	if (system.body_tracker_supported() != xr::body_tracker_type::none)
 	{
 		items.push_back({
 		        .f = feature::body_tracking,

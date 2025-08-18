@@ -20,8 +20,6 @@
 #include "configuration.h"
 #include "application.h"
 
-#include "xr/body_tracker.h"
-#include "xr/face_tracker.h"
 #include <fstream>
 #include <magic_enum.hpp>
 
@@ -84,9 +82,7 @@ bool configuration::check_feature(feature f) const
 	{
 		std::lock_guard lock(mutex);
 
-		auto & instance = application::get_instance();
 		auto & system = application::get_system();
-		auto & session = application::get_session();
 
 		auto it = features.find(f);
 		if (it == features.end())
@@ -108,11 +104,11 @@ bool configuration::check_feature(feature f) const
 					return false;
 				break;
 			case feature::face_tracking:
-				if (xr::face_tracker_supported(instance, system) == xr::face_tracker_type::none)
+				if (system.face_tracker_supported() == xr::face_tracker_type::none)
 					return false;
 				break;
 			case feature::body_tracking:
-				if (xr::body_tracker_supported(instance, system) == xr::body_tracker_type::none)
+				if (system.body_tracker_supported() == xr::body_tracker_type::none)
 					return false;
 				break;
 		}
@@ -149,7 +145,7 @@ void configuration::set_feature(feature f, bool state)
 
 configuration::configuration(xr::system & system)
 {
-	passthrough_enabled = system.passthrough_supported() == xr::system::passthrough_type::color;
+	passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	features[feature::hand_tracking] = system.hand_tracking_supported();
 	try
 	{
@@ -211,7 +207,7 @@ configuration::configuration(xr::system & system)
 				features[i] = val.get_bool();
 		}
 
-		if (system.passthrough_supported() == xr::system::passthrough_type::no_passthrough)
+		if (system.passthrough_supported() == xr::passthrough_type::none)
 			passthrough_enabled = false;
 
 		if (auto val = root["override_foveation_enable"]; val.is_bool())
@@ -237,7 +233,7 @@ configuration::configuration(xr::system & system)
 		resolution_scale = 1.4;
 		sgsr = {};
 		openxr_post_processing = {};
-		passthrough_enabled = system.passthrough_supported() == xr::system::passthrough_type::color;
+		passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	}
 }
 

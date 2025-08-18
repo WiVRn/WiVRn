@@ -21,29 +21,23 @@
 #include "fb_body_tracker.h"
 #include "htc_body_tracker.h"
 #include "pico_body_tracker.h"
+#include "xr/system.h"
 
 #include <utility>
 #include <variant>
 #include <vector>
+#include <openxr/openxr.h>
 
 namespace xr
 {
 
 class instance;
-class system;
-
-enum class body_tracker_type
-{
-	none,
-	fb,
-	htc,
-	pico,
-};
+class session;
 
 using body_tracker = std::variant<std::monostate, xr::fb_body_tracker, xr::htc_body_tracker, xr::pico_body_tracker>;
 
-body_tracker_type body_tracker_supported(xr::instance &, xr::system &);
-
 body_tracker make_body_tracker(xr::instance &, xr::system &, xr::session &, std::vector<std::pair<XrPath, xr::space>> & generic_trackers, bool full_body, bool hips);
+
+body_tracker_type body_tracker_supported(xr::instance &, xr::system &);
 
 } // namespace xr

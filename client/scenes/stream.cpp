@@ -254,7 +254,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 		if (config.check_feature(feature::face_tracking))
 		{
-			switch (xr::face_tracker_supported(self->instance, self->system))
+			switch (self->system.face_tracker_supported())
 			{
 				case xr::face_tracker_type::none:
 					info.face_tracking = from_headset::face_type::none;
@@ -272,7 +272,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		info.num_generic_trackers = 0;
 		if (config.check_feature(feature::body_tracking))
 		{
-			switch (xr::body_tracker_supported(self->instance, self->system))
+			switch (self->system.body_tracker_supported())
 			{
 				case xr::body_tracker_type::none:
 					break;
@@ -289,7 +289,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		}
 
 		info.palm_pose = application::space(xr::spaces::palm_left) or application::space(xr::spaces::palm_right);
-		info.passthrough = self->system.passthrough_supported() != xr::system::passthrough_type::no_passthrough;
+		info.passthrough = self->system.passthrough_supported() != xr::passthrough_type::none;
 		info.system_name = std::string(self->system.properties().systemName);
 
 		audio::get_audio_description(info);

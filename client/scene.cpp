@@ -51,8 +51,6 @@ scene::scene(key, const meta & current_meta, std::span<const vk::Format> support
         queue_family_index(application::instance().vk_queue_family_index),
         current_meta(current_meta)
 {
-	passthrough_supported = system.passthrough_supported();
-
 	swapchain_format = vk::Format::eUndefined;
 	spdlog::info("Supported swapchain formats:");
 

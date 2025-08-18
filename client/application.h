@@ -388,19 +388,9 @@ public:
 		return instance().vk_instance;
 	}
 
-	static xr::instance & get_instance()
-	{
-		return instance().xr_instance;
-	}
-
 	static xr::system & get_system()
 	{
 		return instance().xr_system_id;
-	}
-
-	static xr::session & get_session()
-	{
-		return instance().xr_session;
 	}
 
 	static vk::raii::PipelineCache & get_pipeline_cache()

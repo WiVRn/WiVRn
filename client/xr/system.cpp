@@ -20,7 +20,9 @@
 #include "system.h"
 
 #include "application.h"
+#include "body_tracker.h"
 #include "details/enumerate.h"
+#include "face_tracker.h"
 #include "openxr/openxr.h"
 #include "utils/contains.h"
 #include "vk/check.h"
@@ -44,6 +46,9 @@ xr::system::system(xr::instance & inst, XrFormFactor formfactor)
 
 	if (inst.has_extension(XR_EXT_HAND_TRACKING_EXTENSION_NAME))
 		hand_tracking_supported_ = hand_tracking_properties().supportsHandTracking;
+
+	body_tracker = xr::body_tracker_supported(inst, *this);
+	face_tracker = xr::face_tracker_supported(inst, *this);
 }
 
 XrGraphicsRequirementsVulkan2KHR xr::system::graphics_requirements() const
@@ -198,7 +203,7 @@ XrSystemBodyTrackingPropertiesBD xr::system::bd_body_tracking_properties() const
 	return body_tracking_prop;
 }
 
-xr::system::passthrough_type xr::system::passthrough_supported() const
+xr::passthrough_type xr::system::passthrough_supported() const
 {
 	if (utils::contains(environment_blend_modes(XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO), XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND))
 		return passthrough_type::color;
@@ -227,7 +232,7 @@ xr::system::passthrough_type xr::system::passthrough_supported() const
 		if (passthrough_prop.supportsPassthrough)
 		{
 			if (!(passthrough_prop2.capabilities & XR_PASSTHROUGH_CAPABILITY_BIT_FB))
-				return passthrough_type::no_passthrough;
+				return passthrough_type::none;
 
 			if (passthrough_prop2.capabilities & XR_PASSTHROUGH_CAPABILITY_COLOR_BIT_FB)
 				return passthrough_type::color;
@@ -236,7 +241,16 @@ xr::system::passthrough_type xr::system::passthrough_supported() const
 		}
 	}
 
-	return passthrough_type::no_passthrough;
+	return passthrough_type::none;
+}
+xr::face_tracker_type xr::system::face_tracker_supported() const
+{
+	return face_tracker;
+}
+
+xr::body_tracker_type xr::system::body_tracker_supported() const
+{
+	return body_tracker;
 }
 
 bool xr::system::hand_tracking_supported() const
