@@ -1094,7 +1094,7 @@ void application::initialize_actions()
 		{
 			for (auto & [path, action]: generic_trackers)
 			{
-				if (name.starts_with(path_to_string(path)))
+				if (name.starts_with(xr_instance.path_to_string(path)))
 					action = xr_session.create_action_space(a);
 			}
 		}
@@ -1134,7 +1134,7 @@ void application::initialize_actions()
 
 					xr_bindings.push_back(XrActionSuggestedBinding{
 					        .action = a,
-					        .binding = string_to_path(k.input_source)});
+					        .binding = xr_instance.string_to_path(k.input_source)});
 				}
 			}
 		}
@@ -1151,7 +1151,7 @@ void application::initialize_actions()
 
 		for (const auto & name: profile.input_sources)
 		{
-			xr_bindings.push_back({actions_by_name[name], string_to_path(name)});
+			xr_bindings.push_back({actions_by_name[name], xr_instance.string_to_path(name)});
 		}
 
 		try

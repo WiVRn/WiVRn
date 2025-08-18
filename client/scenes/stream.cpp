@@ -360,7 +360,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		{
 			self->haptics_actions.emplace(id, haptics_action{
 			                                          .action = action.first,
-			                                          .path = application::string_to_path(path),
+			                                          .path = self->instance.string_to_path(path),
 			                                  });
 		}
 	}

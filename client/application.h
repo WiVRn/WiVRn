@@ -262,16 +262,6 @@ public:
 		return std::make_pair(position, orientation);
 	}
 
-	static XrPath string_to_path(const std::string & s)
-	{
-		return instance().xr_instance.string_to_path(s);
-	}
-
-	static std::string path_to_string(XrPath p)
-	{
-		return instance().xr_instance.path_to_string(p);
-	}
-
 	void run();
 
 	static void push_scene(std::shared_ptr<scene>);
