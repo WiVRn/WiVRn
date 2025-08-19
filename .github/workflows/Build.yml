@@ -186,7 +186,7 @@ jobs:
 
         wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.0/KTX-Software-4.4.0-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.4.0-Linux-x86_64.deb
-        npm install --global @gltf-transform/cli
+        npm install --global @gltf-transform/cli@4.1.1
 
     - name: install server dependencies
       run: >
