@@ -718,7 +718,7 @@ void imgui_context::new_frame(XrTime display_time)
 	ImPlot::SetCurrentContext(plot_context);
 
 	if (last_display_time)
-		io.DeltaTime = std::min((display_time - last_display_time) * 1e-9f, 0.0166f);
+		io.DeltaTime = std::clamp((display_time - last_display_time) * 1e-9f, 0.001f, 0.0166f);
 	last_display_time = display_time;
 
 	// Uses the window list from last frame
