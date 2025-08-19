@@ -173,7 +173,7 @@ struct json_visual_response
 };
 } // namespace
 
-input_profile::input_profile(scene & scene, const std::filesystem::path & json_profile, uint32_t layer_mask_controller, uint32_t layer_mask_ray)
+input_profile::input_profile(scene & scene, scene_loader & loader, const std::filesystem::path & json_profile, uint32_t layer_mask_controller, uint32_t layer_mask_ray)
 {
 	std::string json = asset(json_profile);
 
@@ -193,9 +193,7 @@ input_profile::input_profile(scene & scene, const std::filesystem::path & json_p
 		// std::string user_path = "/user/hand/" + std::string(layout.key);
 		std::filesystem::path asset_path = json_profile.parent_path() / std::string(layout.value["assetPath"]);
 
-		// scene.load_gltf(asset_path);
-
-		entt::registry & data = std::get<2>(models.emplace_back(layout.key, entt::null, (*scene.loader)(asset_path)));
+		entt::registry & data = std::get<2>(models.emplace_back(layout.key, entt::null, loader(asset_path)));
 
 		for (simdjson::dom::key_value_pair component: simdjson::dom::object(layout.value["components"]))
 		{
@@ -272,7 +270,7 @@ input_profile::input_profile(scene & scene, const std::filesystem::path & json_p
 		                                                      .layer_mask = layer_mask_controller,
 		                                              });
 
-		scene.loader->add_prefab(scene.world, std::move(model), entity);
+		loader.add_prefab(scene.world, std::move(model), entity);
 
 		spdlog::debug("Created entity {}", layout);
 	}
