@@ -190,7 +190,8 @@ imgui_textures::imgui_textures(
         vk::raii::PhysicalDevice physical_device,
         vk::raii::Device & device,
         uint32_t queue_family_index,
-        thread_safe<vk::raii::Queue> & queue) :
+        thread_safe<vk::raii::Queue> & queue,
+        std::shared_ptr<image_cache_type> image_cache) :
         physical_device(physical_device),
         device(device),
         queue(queue),
@@ -200,8 +201,12 @@ imgui_textures::imgui_textures(
                              .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
                              .queueFamilyIndex = queue_family_index,
                      }),
+        image_cache(image_cache),
         descriptor_pool(device, ds_layout, layout_bindings)
-{}
+{
+	if (not image_cache)
+		this->image_cache = std::make_shared<image_cache_type>(physical_device, device, queue, command_pool);
+}
 
 std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
@@ -320,20 +325,22 @@ imgui_context::imgui_context(
         uint32_t queue_family_index,
         thread_safe<vk::raii::Queue> & queue,
         std::span<controller> controllers_,
-        xr::swapchain & swapchain,
-        std::vector<viewport> layers) :
+        xr::swapchain && swapchain_,
+        std::vector<viewport> layers,
+        std::shared_ptr<image_cache_type> image_cache) :
         imgui_textures(
                 physical_device,
                 device,
                 queue_family_index,
-                queue),
+                queue,
+                image_cache),
         queue_family_index(queue_family_index),
-        renderpass(create_renderpass(device, swapchain.format(), true)),
-        command_buffers(swapchain.images().size()),
-        size(swapchain.extent().width, swapchain.extent().height),
-        format(swapchain.format()),
+        renderpass(create_renderpass(device, swapchain_.format(), true)),
+        command_buffers(swapchain_.images().size()),
+        size(swapchain_.extent().width, swapchain_.extent().height),
+        format(swapchain_.format()),
         layers_(std::move(layers)),
-        swapchain(swapchain),
+        swapchain(std::move(swapchain_)),
         context(ImGui::CreateContext()),
         plot_context(ImPlot::CreateContext()),
         io((ImGui::SetCurrentContext(context), ImGui::GetIO())),
@@ -1040,15 +1047,18 @@ ImTextureID imgui_textures::load_texture(const std::string & filename, vk::raii:
 ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name)
 {
 	bool srgb = true;
-	// TODO: reuse the image loader
-	image_loader loader(physical_device, device, queue, command_pool);
-	auto image = loader.load(bytes, srgb, name);
+
+	std::shared_ptr<loaded_image> image;
+	if (name == "")
+		image = image_cache->load_uncached(bytes, srgb, "", true /* premultiply alpha */);
+	else
+		image = image_cache->load(name, bytes, srgb, name, true /* premultiply alpha */);
 
 	std::shared_ptr<vk::raii::DescriptorSet> ds = descriptor_pool.allocate();
 
 	vk::DescriptorImageInfo image_info{
 	        .sampler = *sampler,
-	        .imageView = *image.image_view,
+	        .imageView = *image->image_view,
 	        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 	};
 
@@ -1066,7 +1076,7 @@ ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & byte
 	        id,
 	        texture_data{
 	                .sampler = std::move(sampler),
-	                .image = std::move(image),
+	                .image = image,
 	                .descriptor_set = std::move(ds),
 	        });
 

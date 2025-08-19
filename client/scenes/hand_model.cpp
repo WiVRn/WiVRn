@@ -67,7 +67,7 @@ void hand_model::add_hand(scene & scene,
                           const std::filesystem::path & gltf_path,
                           uint32_t layer_mask)
 {
-	auto && [entity, node] = scene.load_gltf(gltf_path, layer_mask);
+	auto && [entity, node] = scene.add_gltf(gltf_path, layer_mask);
 
 	node.name = gltf_path.stem();
 

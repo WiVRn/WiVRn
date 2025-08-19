@@ -26,6 +26,7 @@
 #include "imgui.h"
 #include "openxr/openxr.h"
 #include "protocol_version.h"
+#include "render/animation.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "wivrn_client.h"
@@ -571,7 +572,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		{
 			auto session = async_session.get();
 			if (session)
-				next_scene = stream::create(std::move(session), 1'000'000'000.f / frame_state.predictedDisplayPeriod, server_name);
+				next_scene = stream::create(std::move(session), 1'000'000'000.f / frame_state.predictedDisplayPeriod, server_name, *this);
 
 			async_session.reset();
 		}
@@ -724,6 +725,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	input->apply(world, world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller, ray_limits);
 
+	renderer::animate(world, frame_state.predictedDisplayPeriod * 1.0e-9);
+
 	assert(renderer);
 
 	world.get<components::node>(lobby_entity).visible = not application::get_config().passthrough_enabled;
@@ -796,10 +799,7 @@ void scenes::lobby::on_focused()
 	// assert(std::ranges::all_of(views, [width](const XrViewConfigurationView & view) { return view.recommendedImageRectWidth == width; }));
 	// assert(std::ranges::all_of(views, [height](const XrViewConfigurationView & view) { return view.recommendedImageRectHeight == height; }));
 
-	renderer.emplace(device, physical_device, queue, commandpool);
-	loader.emplace(device, physical_device, queue, queue_family_index, renderer->get_default_material());
-
-	lobby_entity = load_gltf("ground.glb", layer_lobby).first;
+	lobby_entity = add_gltf("ground.glb", layer_lobby).first;
 
 	std::string profile = controller_name();
 	input.emplace(
@@ -830,8 +830,8 @@ void scenes::lobby::on_focused()
 	offset_orientation = glm::degrees(glm::eulerAngles(input->offset[xr::spaces::grip_left].second));
 	ray_offset = input->offset[xr::spaces::aim_left].first.z;
 
-	xyz_axes_left_controller = load_gltf("xyz-arrows.glb", layer_controllers).first;
-	xyz_axes_right_controller = load_gltf("xyz-arrows.glb", layer_controllers).first;
+	xyz_axes_left_controller = add_gltf("xyz-arrows.glb", layer_controllers).first;
+	xyz_axes_right_controller = add_gltf("xyz-arrows.glb", layer_controllers).first;
 #endif
 
 	recenter_left_action = get_action("recenter_left").first;
@@ -906,9 +906,17 @@ void scenes::lobby::on_focused()
 	                .z_index = constants::lobby::zindex_recenter_tip,
 	        }};
 
-	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 3000, 1300);
+	xr::swapchain swapchain_imgui(session, device, swapchain_format, 3000, 1300);
 
-	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, imgui_inputs, swapchain_imgui, vps);
+	imgui_ctx.emplace(
+	        physical_device,
+	        device,
+	        queue_family_index,
+	        queue,
+	        imgui_inputs,
+	        std::move(swapchain_imgui),
+	        vps,
+	        image_cache);
 
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
@@ -937,17 +945,14 @@ void scenes::lobby::on_unfocused()
 
 	about_picture = 0;
 	imgui_ctx.reset();
-	world.clear(); // Must be cleared before the renderer so that the descriptor sets are freed before their pools
+	world.clear();
 
 	input.reset();
 	left_hand.reset();
 	right_hand.reset();
 	face_tracker.emplace<std::monostate>();
 
-	loader.reset();
-	renderer.reset();
 	clear_swapchains();
-	swapchain_imgui = xr::swapchain();
 	multicast.reset();
 }
 

@@ -140,58 +140,64 @@ static vk::FrontFace reverse(vk::FrontFace face)
 
 static std::array layout_bindings_0{
         vk::DescriptorSetLayoutBinding{
+                // scene_ubo: per-frame/view data
                 .binding = 0,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
         },
         vk::DescriptorSetLayoutBinding{
+                // mesh_ubo: per-instance data
                 .binding = 1,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
         },
         vk::DescriptorSetLayoutBinding{
+                // joints_ubo: skeletal animation
                 .binding = 2,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
         },
-};
-
-static std::array layout_bindings_1{
         vk::DescriptorSetLayoutBinding{
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-        },
-        vk::DescriptorSetLayoutBinding{
-                .binding = 1,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-        },
-        vk::DescriptorSetLayoutBinding{
-                .binding = 2,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-        },
-        vk::DescriptorSetLayoutBinding{
+                // base_color
                 .binding = 3,
                 .descriptorType = vk::DescriptorType::eCombinedImageSampler,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eFragment,
         },
         vk::DescriptorSetLayoutBinding{
+                // metallic_roughness
                 .binding = 4,
                 .descriptorType = vk::DescriptorType::eCombinedImageSampler,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eFragment,
         },
         vk::DescriptorSetLayoutBinding{
+                // occlusion
                 .binding = 5,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        },
+        vk::DescriptorSetLayoutBinding{
+                // emissive
+                .binding = 6,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        },
+        vk::DescriptorSetLayoutBinding{
+                // normal_map
+                .binding = 7,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        },
+        vk::DescriptorSetLayoutBinding{
+                // material_ubo
+                .binding = 8,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
                 .descriptorCount = 1,
                 .stageFlags = vk::ShaderStageFlagBits::eFragment,
@@ -208,9 +214,7 @@ scene_renderer::scene_renderer(
         device(device),
         physical_device_properties(physical_device.getProperties()),
         queue(queue),
-        layout_0(create_descriptor_set_layout(layout_bindings_0, vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR)),
-        layout_1(create_descriptor_set_layout(layout_bindings_1)),
-        ds_pool_material(device, layout_1, layout_bindings_1, 100) // TODO tunable
+        layout_0(create_descriptor_set_layout(layout_bindings_0, vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR))
 {
 	// Create the default material
 	default_material = create_default_material(cb_pool);
@@ -237,7 +241,7 @@ scene_renderer::scene_renderer(
 	                .queryCount = uint32_t(2 * frames_in_flight),
 	        });
 
-	std::array layouts{*layout_0, *layout_1};
+	std::array layouts{*layout_0};
 	pipeline_layout = create_pipeline_layout(layouts);
 }
 
@@ -588,7 +592,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                .ColorBlendState = {vk::PipelineColorBlendStateCreateInfo{}},
 	                .ColorBlendAttachments = {vk::PipelineColorBlendAttachmentState{
 	                        .blendEnable = info.blend_enable,
-	                        .srcColorBlendFactor = vk::BlendFactor::eOne,
+	                        .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
 	                        .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
 	                        .colorBlendOp = vk::BlendOp::eAdd,
 	                        .srcAlphaBlendFactor = vk::BlendFactor::eOne,
@@ -621,6 +625,8 @@ vk::Sampler scene_renderer::get_sampler(const renderer::sampler_info & info)
 	                .addressModeV = info.wrapT,
 	                // .anisotropyEnable = true,
 	                // .maxAnisotropy = 4,
+	                .minLod = 0,
+	                .maxLod = vk::LodClampNone,
 	        });
 
 	samplers.emplace(info, out);
@@ -693,84 +699,6 @@ void scene_renderer::end_frame()
 scene_renderer::per_frame_resources & scene_renderer::current_frame()
 {
 	return frame_resources[current_frame_index];
-}
-
-void scene_renderer::update_material_descriptor_set(renderer::material & material)
-{
-	if (!material.ds || material.ds.use_count() != 1)
-		material.ds = ds_pool_material.allocate();
-
-	vk::DescriptorSet ds = **material.ds;
-
-	auto f = [&](std::shared_ptr<renderer::texture> & texture) {
-		return vk::DescriptorImageInfo{
-		        .sampler = get_sampler(texture->sampler),
-		        .imageView = **texture->image_view,
-		        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-		};
-	};
-
-	std::array write_ds_image{
-	        f(material.base_color_texture),
-	        f(material.metallic_roughness_texture),
-	        f(material.occlusion_texture),
-	        f(material.emissive_texture),
-	        f(material.normal_texture),
-	};
-
-	vk::DescriptorBufferInfo write_ds_buffer{
-	        .buffer = *material.buffer,
-	        .offset = material.offset,
-	        .range = sizeof(renderer::material::gpu_data),
-	};
-
-	// Write each descriptor separately because the HTC XR Elite needs it for some reason
-	std::array write_ds{
-	        vk::WriteDescriptorSet{
-	                .dstSet = ds,
-	                .dstBinding = 0,
-	                .descriptorCount = 1,
-	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	                .pImageInfo = write_ds_image.data(),
-	        },
-	        vk::WriteDescriptorSet{
-	                .dstSet = ds,
-	                .dstBinding = 1,
-	                .descriptorCount = 1,
-	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	                .pImageInfo = write_ds_image.data() + 1,
-	        },
-	        vk::WriteDescriptorSet{
-	                .dstSet = ds,
-	                .dstBinding = 2,
-	                .descriptorCount = 1,
-	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	                .pImageInfo = write_ds_image.data() + 2,
-	        },
-	        vk::WriteDescriptorSet{
-	                .dstSet = ds,
-	                .dstBinding = 3,
-	                .descriptorCount = 1,
-	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	                .pImageInfo = write_ds_image.data() + 3,
-	        },
-	        vk::WriteDescriptorSet{
-	                .dstSet = ds,
-	                .dstBinding = 4,
-	                .descriptorCount = 1,
-	                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-	                .pImageInfo = write_ds_image.data() + 4,
-	        },
-	        vk::WriteDescriptorSet{
-	                .dstSet = ds,
-	                .dstBinding = (uint32_t)write_ds_image.size(),
-	                .descriptorCount = 1,
-	                .descriptorType = vk::DescriptorType::eUniformBuffer,
-	                .pBufferInfo = &write_ds_buffer,
-	        },
-	};
-
-	device.updateDescriptorSets(write_ds, {});
 }
 
 [[maybe_unused]] static void print_scene_hierarchy(const entt::registry & scene, entt::entity root = entt::null, int level = 0)
@@ -949,7 +877,7 @@ void scene_renderer::render(
 			for (renderer::primitive & primitive: node.mesh->primitives)
 			{
 				renderer::material & material = primitive.material_ ? *primitive.material_ : *default_material;
-				primitives.emplace_back(material.blend_enable, position.z, &node, &primitive);
+				primitives.emplace_back(material.alpha_mode == renderer::material::alpha_mode_t::blend or material.alpha_mode == renderer::material::alpha_mode_t::mask, position.z, &node, &primitive);
 			}
 		}
 
@@ -1003,9 +931,6 @@ void scene_renderer::render(
 			// Get the material
 			std::shared_ptr<renderer::material> material = primitive.material_ ? primitive.material_ : default_material;
 
-			if (material->ds_dirty || !material->ds)
-				update_material_descriptor_set(*material);
-
 			// Get the pipeline
 			pipeline_info info{
 			        .renderpass = {
@@ -1016,9 +941,10 @@ void scene_renderer::render(
 			        .cull_mode = primitive.cull_mode,
 			        .front_face = primitive.front_face,
 			        .topology = primitive.topology,
-			        .blend_enable = material->blend_enable,
+			        .blend_enable = material->alpha_mode == renderer::material::alpha_mode_t::blend or material->alpha_mode == renderer::material::alpha_mode_t::mask,
 
 			        .nb_texcoords = 2, // TODO
+			        .alpha_cutout = material->alpha_mode == renderer::material::alpha_mode_t::mask,
 			        .skinning = !node.joints.empty(),
 			};
 
@@ -1052,18 +978,39 @@ void scene_renderer::render(
 			vk::DescriptorBufferInfo buffer_info_1{
 			        .buffer = resources.uniform_buffer,
 			        .offset = frame_ubo_offset,
-			        .range = sizeof(frame_gpu_data)
-
+			        .range = sizeof(frame_gpu_data),
 			};
 			vk::DescriptorBufferInfo buffer_info_2{
 			        .buffer = resources.uniform_buffer,
 			        .offset = instance_ubo_offset,
-			        .range = sizeof(instance_gpu_data)};
+			        .range = sizeof(instance_gpu_data),
+			};
 			vk::DescriptorBufferInfo buffer_info_3{
 			        .buffer = resources.uniform_buffer,
 			        .offset = joints_ubo_offset,
-			        .range = sizeof(glm::mat4) * 32};
+			        .range = sizeof(glm::mat4) * 32,
+			};
+			vk::DescriptorBufferInfo buffer_info_4{
+			        .buffer = *material->buffer,
+			        .offset = material->offset,
+			        .range = sizeof(renderer::material::gpu_data),
+			};
 
+			auto f = [&](renderer::texture & texture) {
+				return vk::DescriptorImageInfo{
+				        .sampler = get_sampler(texture.sampler),
+				        .imageView = **(texture.image_view),
+				        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+				};
+			};
+
+			std::array write_ds_image{
+			        f(*material->base_color_texture),
+			        f(*material->metallic_roughness_texture),
+			        f(*material->occlusion_texture),
+			        f(*material->emissive_texture),
+			        f(*material->normal_texture),
+			};
 			std::array descriptors{
 			        vk::WriteDescriptorSet{
 			                .dstBinding = 0,
@@ -1083,19 +1030,50 @@ void scene_renderer::render(
 			                .descriptorType = vk::DescriptorType::eUniformBuffer,
 			                .pBufferInfo = &buffer_info_3,
 			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 3,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data(),
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 4,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data() + 1,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 5,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data() + 2,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 6,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data() + 3,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 7,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data() + 4,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 8,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eUniformBuffer,
+			                .pBufferInfo = &buffer_info_4,
+			        },
 			};
 
 			cb.pushDescriptorSetKHR(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptors);
-
-			// Set 1: material
-			cb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 1, **material->ds, {});
 
 			if (primitive.indexed)
 				cb.drawIndexed(primitive.index_count, 1, 0, 0, 0);
 			else
 				cb.draw(primitive.vertex_count, 1, 0, 0);
-
-			resources.resources.push_back(material->ds);
 		}
 		cb.endRenderPass();
 	}

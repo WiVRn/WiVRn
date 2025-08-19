@@ -151,8 +151,8 @@ static const std::array supported_depth_formats{
         vk::Format::eX8D24UnormPack32,
 };
 
-scenes::stream::stream(std::string server_name) :
-        scene_impl<stream>(supported_color_formats, supported_depth_formats),
+scenes::stream::stream(std::string server_name, scene & parent_scene) :
+        scene_impl<stream>(supported_color_formats, supported_depth_formats, parent_scene),
         apps{*this, std::move(server_name)},
         blitters{blitter(device, 0), blitter(device, 1)}
 {
@@ -186,9 +186,9 @@ static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::inst
 	return res;
 }
 
-std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps, std::string server_name)
+std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps, std::string server_name, scene & parent_scene)
 {
-	std::shared_ptr<stream> self{new stream{std::move(server_name)}};
+	std::shared_ptr<stream> self{new stream{std::move(server_name), parent_scene}};
 	self->network_session = std::move(network_session);
 
 	self->network_session->send_control([&]() {
@@ -390,6 +390,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	        });
 
 	self->wifi = application::get_wifi_lock().get_wifi_lock();
+
 	return self;
 }
 
@@ -401,9 +402,6 @@ void scenes::stream::on_focused()
 	// stream_view = override_view(views[0], guess_model());
 	width = views[0].recommendedImageRectWidth;
 	height = views[0].recommendedImageRectHeight;
-
-	renderer.emplace(device, physical_device, queue, commandpool);
-	loader.emplace(device, physical_device, queue, queue_family_index, renderer->get_default_material());
 
 	std::string profile = controller_name();
 	input.emplace(
@@ -448,7 +446,7 @@ void scenes::stream::on_focused()
 	        },
 	};
 
-	swapchain_imgui = xr::swapchain(
+	xr::swapchain swapchain_imgui(
 	        session,
 	        device,
 	        swapchain_format,
@@ -468,8 +466,9 @@ void scenes::stream::on_focused()
 	                  queue_family_index,
 	                  queue,
 	                  imgui_inputs,
-	                  swapchain_imgui,
-	                  std::vector{vp});
+	                  std::move(swapchain_imgui),
+	                  std::vector{vp},
+	                  image_cache);
 
 	if (application::get_config().enable_stream_gui)
 	{
@@ -492,17 +491,14 @@ void scenes::stream::on_focused()
 
 void scenes::stream::on_unfocused()
 {
-	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
-	world.clear();         // Must be cleared before the renderer so that the descriptor sets are freed before their pools
+	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets;
+	world.clear();
 	input.reset();
-	loader.reset();
-	renderer.reset();
 	clear_swapchains();
 	left_hand.reset();
 	right_hand.reset();
 
 	imgui_ctx.reset();
-	swapchain_imgui = xr::swapchain();
 }
 
 scenes::stream::~stream()

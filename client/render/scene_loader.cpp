@@ -27,6 +27,7 @@
 #include <fastgltf/base64.hpp>
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
+#include <fastgltf/math.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/util.hpp>
@@ -173,6 +174,36 @@ glm::vec4 convert(const fastgltf::math::nvec4 & v)
 glm::vec3 convert(const fastgltf::math::nvec3 & v)
 {
 	return {v[0], v[1], v[2]};
+}
+
+renderer::material::alpha_mode_t convert(fastgltf::AlphaMode alpha_mode)
+{
+	switch (alpha_mode)
+	{
+		case fastgltf::AlphaMode::Opaque:
+			return renderer::material::alpha_mode_t::opaque;
+		case fastgltf::AlphaMode::Mask:
+			return renderer::material::alpha_mode_t::mask;
+		case fastgltf::AlphaMode::Blend:
+			return renderer::material::alpha_mode_t::blend;
+	}
+
+	throw std::invalid_argument("alpha_mode");
+}
+
+components::animation_track_base::interpolation_t convert(fastgltf::AnimationInterpolation interpolation)
+{
+	switch (interpolation)
+	{
+		case fastgltf::AnimationInterpolation::Linear:
+			return components::animation_track_base::interpolation_t::linear;
+		case fastgltf::AnimationInterpolation::Step:
+			return components::animation_track_base::interpolation_t::step;
+		case fastgltf::AnimationInterpolation::CubicSpline:
+			return components::animation_track_base::interpolation_t::cubic_spline;
+	}
+
+	throw std::invalid_argument("interpolation");
 }
 // END
 
@@ -548,54 +579,54 @@ public:
 		for (const fastgltf::Material & gltf_material: gltf.materials)
 		{
 			// Copy the default material, without references to its buffer or descriptor set
-			auto & material_ref = *materials.emplace_back(std::make_shared<renderer::material>(default_material));
-			material_ref.name = gltf_material.name;
-			material_ref.buffer.reset();
-			material_ref.ds.reset();
+			auto & material = *materials.emplace_back(std::make_shared<renderer::material>(default_material));
+			material.name = gltf_material.name;
+			material.buffer.reset();
 
-			material_ref.double_sided = gltf_material.doubleSided;
-			material_ref.blend_enable = gltf_material.alphaMode == fastgltf::AlphaMode::Blend; // TODO handle alpha cut off mode
+			material.double_sided = gltf_material.doubleSided;
+			material.alpha_mode = convert(gltf_material.alphaMode);
 
-			renderer::material::gpu_data & material_data = material_ref.staging;
+			renderer::material::gpu_data & material_data = material.staging;
 
 			material_data.base_color_factor = convert(gltf_material.pbrData.baseColorFactor);
 			material_data.base_emissive_factor = glm::vec4(convert(gltf_material.emissiveFactor), 0);
 			material_data.metallic_factor = gltf_material.pbrData.metallicFactor;
 			material_data.roughness_factor = gltf_material.pbrData.roughnessFactor;
+			material_data.alpha_cutoff = gltf_material.alphaCutoff;
 
 			if (gltf_material.pbrData.baseColorTexture)
 			{
-				material_ref.base_color_texture = textures.at(gltf_material.pbrData.baseColorTexture->textureIndex);
+				material.base_color_texture = textures.at(gltf_material.pbrData.baseColorTexture->textureIndex);
 				material_data.base_color_texcoord = gltf_material.pbrData.baseColorTexture->texCoordIndex;
 			}
 
 			if (gltf_material.pbrData.metallicRoughnessTexture)
 			{
-				material_ref.metallic_roughness_texture = textures.at(gltf_material.pbrData.metallicRoughnessTexture->textureIndex);
+				material.metallic_roughness_texture = textures.at(gltf_material.pbrData.metallicRoughnessTexture->textureIndex);
 				material_data.metallic_roughness_texcoord = gltf_material.pbrData.metallicRoughnessTexture->texCoordIndex;
 			}
 
 			if (gltf_material.occlusionTexture)
 			{
-				material_ref.occlusion_texture = textures.at(gltf_material.occlusionTexture->textureIndex);
+				material.occlusion_texture = textures.at(gltf_material.occlusionTexture->textureIndex);
 				material_data.occlusion_texcoord = gltf_material.occlusionTexture->texCoordIndex;
 				material_data.occlusion_strength = gltf_material.occlusionTexture->strength;
 			}
 
 			if (gltf_material.emissiveTexture)
 			{
-				material_ref.emissive_texture = textures.at(gltf_material.emissiveTexture->textureIndex);
+				material.emissive_texture = textures.at(gltf_material.emissiveTexture->textureIndex);
 				material_data.emissive_texcoord = gltf_material.emissiveTexture->texCoordIndex;
 			}
 
 			if (gltf_material.normalTexture)
 			{
-				material_ref.normal_texture = textures.at(gltf_material.normalTexture->textureIndex);
+				material.normal_texture = textures.at(gltf_material.normalTexture->textureIndex);
 				material_data.normal_texcoord = gltf_material.normalTexture->texCoordIndex;
 				material_data.normal_scale = gltf_material.normalTexture->scale;
 			}
 
-			material_ref.offset = staging_buffer.add_uniform(material_data);
+			material.offset = staging_buffer.add_uniform(material_data);
 		}
 
 		return materials;
@@ -676,10 +707,8 @@ public:
 		return meshes;
 	}
 
-	entt::registry load_all_nodes(const std::vector<std::shared_ptr<renderer::mesh>> & meshes)
+	std::vector<entt::entity> load_all_nodes(entt::registry & registry, const std::vector<std::shared_ptr<renderer::mesh>> & meshes)
 	{
-		entt::registry registry;
-
 		std::vector<entt::entity> entities{gltf.nodes.size()};
 		registry.create(entities.begin(), entities.end());
 
@@ -727,7 +756,117 @@ public:
 			std::ranges::fill(node.clipping_planes, glm::vec4{0, 0, 0, 1});
 		}
 
-		return registry;
+		return entities;
+	}
+
+	void load_all_animations(entt::registry & registry, const std::vector<entt::entity> & node_entities)
+	{
+		std::vector<entt::entity> entities{gltf.animations.size()};
+		registry.create(entities.begin(), entities.end());
+
+		// Create all animation components first
+		registry.insert<components::animation>(entities.begin(), entities.end());
+
+		for (const auto & [entity, gltf_animation]: std::ranges::zip_view(entities, gltf.animations))
+		{
+			auto & animation = registry.get<components::animation>(entity);
+			animation.name = gltf_animation.name;
+			animation.tracks.reserve(gltf_animation.channels.size());
+
+			for (const auto & channel: gltf_animation.channels)
+			{
+				if (not channel.nodeIndex.has_value() or *channel.nodeIndex > node_entities.size())
+					// Ignore this channel
+					continue;
+
+				const auto & sampler = gltf_animation.samplers.at(channel.samplerIndex);
+				const auto & time = gltf.accessors.at(sampler.inputAccessor);
+				const auto & value = gltf.accessors.at(sampler.outputAccessor);
+				const auto interpolation = convert(sampler.interpolation);
+
+				switch (interpolation)
+				{
+					case components::animation_track_base::interpolation_t::step:
+					case components::animation_track_base::interpolation_t::linear:
+						if (time.count != value.count)
+							// There must be the same number of elements
+							continue;
+						break;
+
+					case components::animation_track_base::interpolation_t::cubic_spline:
+						// TODO: does not work for morph targets
+						if (3 * time.count != value.count or time.count < 2)
+							continue;
+						break;
+				}
+
+				size_t count = time.count;
+				switch (channel.path)
+				{
+					// TODO: templatize the switch
+					case fastgltf::AnimationPath::Translation: {
+						components::animation_track_position track;
+						track.target = node_entities.at(*channel.nodeIndex);
+						track.interpolation = interpolation;
+						track.timestamp.resize(time.count);
+						track.value.resize(value.count);
+
+						fastgltf::iterateAccessorWithIndex<float>(gltf, time, [&](float t, size_t index) {
+							track.timestamp[index] = t;
+							animation.duration = std::max(animation.duration, t);
+						});
+
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, value, [&](glm::vec3 value, size_t index) {
+							track.value[index] = value;
+						});
+
+						animation.tracks.emplace_back(std::move(track));
+						break;
+					}
+					case fastgltf::AnimationPath::Rotation: {
+						components::animation_track_orientation track;
+						track.target = node_entities.at(*channel.nodeIndex);
+						track.interpolation = interpolation;
+						track.timestamp.resize(time.count);
+						track.value.resize(value.count);
+
+						fastgltf::iterateAccessorWithIndex<float>(gltf, time, [&](float t, size_t index) {
+							track.timestamp[index] = t;
+							animation.duration = std::max(animation.duration, t);
+						});
+
+						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, value, [&](glm::vec4 value, size_t index) {
+							track.value[index] = glm::quat::wxyz(value.w, value.x, value.y, value.z);
+						});
+
+						animation.tracks.emplace_back(std::move(track));
+						break;
+					}
+					case fastgltf::AnimationPath::Scale: {
+						components::animation_track_scale track;
+						track.target = node_entities.at(*channel.nodeIndex);
+						track.interpolation = interpolation;
+						track.timestamp.resize(time.count);
+						track.value.resize(value.count);
+
+						fastgltf::iterateAccessorWithIndex<float>(gltf, time, [&](float t, size_t index) {
+							track.timestamp[index] = t;
+							animation.duration = std::max(animation.duration, t);
+						});
+
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, value, [&](glm::vec3 value, size_t index) {
+							track.value[index] = value;
+						});
+
+						animation.tracks.emplace_back(std::move(track));
+						break;
+					}
+					case fastgltf::AnimationPath::Weights:
+						// TODO morph weights
+						break;
+				}
+			}
+		}
 	}
 };
 
@@ -779,7 +918,7 @@ renderer::vertex::describe()
 	return desc;
 }
 
-entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
+std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::byte> data, const std::string & name, const std::filesystem::path & parent_path)
 {
 	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
 	vk::raii::CommandPool cb_pool{device, vk::CommandPoolCreateInfo{
@@ -787,16 +926,12 @@ entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
 	                                              .queueFamilyIndex = queue_family_index,
 	                                      }};
 
-	spdlog::debug("Loading {}", gltf_path.native());
-
-	asset asset_file(gltf_path);
-
-	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(asset_file.data(), asset_file.size());
+	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(data.data(), data.size());
 	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
 		throw std::system_error((int)error, fastgltf_error_category);
 
-	fastgltf::Asset asset = load_gltf_asset(data_buffer.get(), gltf_path.parent_path());
-	loader_context ctx(gltf_path.parent_path(), gltf_path, asset, physical_device, device, queue, cb_pool);
+	fastgltf::Asset asset = load_gltf_asset(data_buffer.get(), parent_path);
+	loader_context ctx(parent_path, name, asset, physical_device, device, queue, cb_pool);
 
 #ifndef NDEBUG
 	if (auto error = fastgltf::validate(asset); error != fastgltf::Error::None)
@@ -818,7 +953,11 @@ entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
 	auto meshes = ctx.load_all_meshes(materials, staging_buffer);
 
 	// Load all nodes
-	entt::registry loaded_scene = ctx.load_all_nodes(meshes);
+	auto loaded_scene = std::make_shared<entt::registry>();
+	auto node_entities = ctx.load_all_nodes(*loaded_scene, meshes);
+
+	// Load animations
+	ctx.load_all_animations(*loaded_scene, node_entities);
 
 	// Copy the staging buffer to the GPU
 	spdlog::debug("Uploading scene data ({} bytes) to GPU memory", staging_buffer.size());
@@ -833,45 +972,15 @@ entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
 	return loaded_scene;
 }
 
-template <typename T>
-void copy_components(entt::registry & scene, const entt::registry & prefab, const std::unordered_map<entt::entity, entt::entity> & entity_map)
+std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::path & gltf_path)
 {
-	for (const auto & [entity, component]: prefab.view<T>().each())
-	{
-		scene.emplace<T>(entity_map.at(entity), component);
-	}
-}
+	spdlog::debug("Loading {}", gltf_path.native());
 
-void scene_loader::add_prefab(entt::registry & scene, const entt::registry & prefab, entt::entity root)
-{
-	assert(scene.valid(root) or root == entt::null);
+	asset asset_file(gltf_path);
 
-	auto prefab_entities = prefab.view<entt::entity>();
+	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(asset_file.data(), asset_file.size());
+	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
+		throw std::system_error((int)error, fastgltf_error_category);
 
-	std::vector<entt::entity> scene_entities{prefab_entities.size()};
-	scene.create(scene_entities.begin(), scene_entities.end());
-
-	std::unordered_map<entt::entity, entt::entity> entity_map; // key: prefab entity, value: scene entity
-
-	entity_map.emplace(entt::null, root);
-	for (auto [prefab_entity, scene_entity]: std::ranges::zip_view(prefab_entities, scene_entities))
-		entity_map.emplace(prefab_entity, scene_entity);
-
-	copy_components<components::node>(scene, prefab, entity_map);
-
-	// update links
-	for (auto [prefab_entity, scene_entity]: entity_map)
-	{
-		if (prefab_entity == entt::null)
-			continue;
-
-		auto & node = scene.get<components::node>(scene_entity);
-
-		node.parent = entity_map.at(node.parent);
-
-		for (auto & joint: node.joints)
-		{
-			joint.first = entity_map.at(joint.first);
-		}
-	}
+	return (*this)(asset_file, gltf_path.filename(), gltf_path.parent_path());
 }

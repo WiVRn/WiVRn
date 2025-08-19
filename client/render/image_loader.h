@@ -28,6 +28,7 @@
 #include <glm/vec4.hpp>
 #include <ktxvulkan.h>
 #include <span>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
@@ -40,6 +41,7 @@ struct loaded_image
 	vk::Extent3D extent;
 	uint32_t num_mipmaps;
 	vk::ImageViewType image_view_type;
+	bool is_alpha_premultiplied;
 };
 
 struct image_loader
@@ -50,27 +52,34 @@ struct image_loader
 	~image_loader();
 
 	// Load a PNG/JPEG/KTX2 file
-	loaded_image load(std::span<const std::byte> bytes, bool srgb, const std::string & name = "");
+	loaded_image load(std::span<const std::byte> bytes, bool srgb, const std::string & name = "", bool premultiply = false);
 
 	// Load raw pixel data
-	loaded_image load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format, const std::string & name = "");
+	loaded_image load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format, const std::string & name = "", bool premultiply = false);
 
 	template <typename T>
-	loaded_image load(std::span<T> pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "")
+	loaded_image load(std::span<T> pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "", bool premultiply = false)
 	{
 		return load(pixels.data(), pixels.size() * sizeof(T), extent, format, name);
 	}
 
 	template <typename T, size_t N>
-	loaded_image load(const std::array<T, N> & pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "")
+	loaded_image load(const std::array<T, N> & pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "", bool premultiply = false)
 	{
 		return load(pixels.data(), pixels.size() * sizeof(T), extent, format, name);
 	}
 
 	template <typename T>
-	loaded_image load(const std::vector<T> & pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "")
+	loaded_image load(const std::vector<T> & pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "", bool premultiply = false)
 	{
 		return load(pixels.data(), pixels.size() * sizeof(T), extent, format, name);
+	}
+
+	template <typename... Args>
+	std::shared_ptr<loaded_image> operator()(Args &&... args)
+	{
+		auto result = std::make_shared<loaded_image>(load(std::forward<Args>(args)...));
+		return result;
 	}
 
 private:
@@ -84,8 +93,8 @@ private:
 
 	buffer_allocation staging_buffer;
 
-	loaded_image do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format, const std::string & name);
+	loaded_image do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format, const std::string & name, bool premultiply);
 
-	loaded_image do_load_image(std::span<const std::byte> bytes, bool srgb, const std::string & name);
+	loaded_image do_load_image(std::span<const std::byte> bytes, bool srgb, const std::string & name, bool premultiply);
 	loaded_image do_load_ktx(std::span<const std::byte> bytes, bool srgb, const std::string & name);
 };
