@@ -27,6 +27,7 @@
 #include "openxr/openxr.h"
 #include "protocol_version.h"
 #include "render/scene_data.h"
+#include "render/scene_loader.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "wivrn_client.h"
@@ -150,6 +151,9 @@ scenes::lobby::lobby() :
 		std::ofstream{keypair_path} << keypair.private_key();
 		spdlog::info("Generated X448 keypair");
 	}
+
+	renderer = std::make_shared<scene_renderer>(device, physical_device, queue, commandpool);
+	loader = std::make_shared<scene_loader>(device, physical_device, queue, queue_family_index, renderer->get_default_material());
 }
 
 static std::string ip_address_to_string(const in_addr & addr)
@@ -572,7 +576,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		{
 			auto session = async_session.get();
 			if (session)
-				next_scene = stream::create(std::move(session), 1'000'000'000.f / frame_state.predictedDisplayPeriod, server_name);
+				next_scene = stream::create(std::move(session), 1'000'000'000.f / frame_state.predictedDisplayPeriod, server_name, *this);
 
 			async_session.reset();
 		}
@@ -797,14 +801,12 @@ void scenes::lobby::on_focused()
 	// assert(std::ranges::all_of(views, [width](const XrViewConfigurationView & view) { return view.recommendedImageRectWidth == width; }));
 	// assert(std::ranges::all_of(views, [height](const XrViewConfigurationView & view) { return view.recommendedImageRectHeight == height; }));
 
-	renderer.emplace(device, physical_device, queue, commandpool);
-	loader.emplace(device, physical_device, queue, queue_family_index, renderer->get_default_material());
-
 	lobby_entity = load_gltf("ground.glb", layer_lobby).first;
 
 	std::string profile = controller_name();
 	input.emplace(
 	        *this,
+	        *loader,
 	        "controllers/" + profile + "/profile.json",
 	        layer_controllers,
 	        layer_rays);
@@ -934,6 +936,7 @@ void scenes::lobby::on_unfocused()
 {
 	discover.reset();
 
+	// TODO: rework descriptor sets
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 
 	about_picture = 0;
@@ -945,8 +948,6 @@ void scenes::lobby::on_unfocused()
 	right_hand.reset();
 	face_tracker.emplace<std::monostate>();
 
-	loader.reset();
-	renderer.reset();
 	clear_swapchains();
 	swapchain_imgui = xr::swapchain();
 	multicast.reset();

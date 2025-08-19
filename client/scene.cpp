@@ -25,6 +25,7 @@
 #include "utils/overloaded.h"
 #include "utils/ranges.h"
 #include <magic_enum.hpp>
+#include <spdlog/fmt/chrono.h>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
