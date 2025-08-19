@@ -40,6 +40,7 @@ public:
 	        queue_family_index(queue_family_index),
 	        default_material(default_material)
 	{}
+	scene_loader(const scene_loader &) = default;
 
 	entt::registry operator()(const std::filesystem::path & gltf_path);
 
