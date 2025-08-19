@@ -190,7 +190,7 @@ private:
 public:
 	~stream();
 
-	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session, float guessed_fps);
+	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session, float guessed_fps, scene & parent_scene);
 
 	void render(const XrFrameState &) override;
 	void on_focused() override;

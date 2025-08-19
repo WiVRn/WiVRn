@@ -182,7 +182,7 @@ static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::inst
 	return res;
 }
 
-std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps)
+std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps, scene & parent_scene)
 {
 	std::shared_ptr<stream> self{new stream};
 	self->network_session = std::move(network_session);
@@ -386,6 +386,10 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	        });
 
 	self->wifi = application::get_wifi_lock().get_wifi_lock();
+
+	self->renderer = parent_scene.renderer;
+	self->loader = parent_scene.loader;
+
 	return self;
 }
 
@@ -398,12 +402,10 @@ void scenes::stream::on_focused()
 	width = views[0].recommendedImageRectWidth;
 	height = views[0].recommendedImageRectHeight;
 
-	renderer.emplace(device, physical_device, queue, commandpool);
-	loader.emplace(device, physical_device, queue, queue_family_index, renderer->get_default_material());
-
 	std::string profile = controller_name();
 	input.emplace(
 	        *this,
+	        *loader,
 	        "controllers/" + profile + "/profile.json",
 	        layer_controllers,
 	        layer_rays);
@@ -488,11 +490,10 @@ void scenes::stream::on_focused()
 
 void scenes::stream::on_unfocused()
 {
+	// TODO rework descriptor sets
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 	world.clear();         // Must be cleared before the renderer so that the descriptor sets are freed before their pools
 	input.reset();
-	loader.reset();
-	renderer.reset();
 	clear_swapchains();
 	left_hand.reset();
 	right_hand.reset();

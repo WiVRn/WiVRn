@@ -95,10 +95,9 @@ protected:
 
 	const meta & current_meta;
 
-	std::optional<scene_renderer> renderer;
-
 public:
-	std::optional<scene_loader> loader;
+	std::shared_ptr<scene_renderer> renderer;
+	std::shared_ptr<scene_loader> loader;
 
 protected:
 	vk::Format swapchain_format;
