@@ -45,6 +45,7 @@ class wivrn_generic_tracker : public xrt_device
 {
 	tracker_pose_list poses;
 	xrt_input pose_input;
+	std::atomic_bool active = false;
 
 	wivrn_session & cnx;
 	int index;
@@ -57,5 +58,10 @@ public:
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 
 	void update_tracking(const from_headset::body_tracking & tracking, const from_headset::body_tracking::pose & pose, const clock_offset & offset);
+
+	bool is_active()
+	{
+		return active;
+	}
 };
 } // namespace wivrn
