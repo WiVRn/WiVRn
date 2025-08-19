@@ -79,8 +79,8 @@ private:
 	thread_safe<vk::raii::Queue> & queue;
 	vk::raii::CommandPool & cb_pool;
 
-	std::vector<std::pair<vk::Format, ktx_texture_transcode_fmt_e>> supported_srgb_formats;
-	std::vector<std::pair<vk::Format, ktx_texture_transcode_fmt_e>> supported_linear_formats;
+	std::vector<std::pair<vk::Format, ktx_transcode_fmt_e>> supported_srgb_formats;
+	std::vector<std::pair<vk::Format, ktx_transcode_fmt_e>> supported_linear_formats;
 
 	buffer_allocation staging_buffer;
 
