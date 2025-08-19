@@ -23,7 +23,6 @@
 #include <cairo.h>
 #include <fstream>
 #include <librsvg/rsvg.h>
-#include <limits>
 #include <png.h>
 #include <span>
 #include <unordered_map>
@@ -46,7 +45,7 @@ std::vector<std::byte> load_file(const std::filesystem::path & filename)
 
 template <typename T>
         requires std::is_integral_v<T>
-T read(std::span<std::byte> & buffer)
+T read(std::span<const std::byte> & buffer)
 {
 	if (sizeof(T) > buffer.size())
 		throw std::runtime_error{"File truncated"};
@@ -65,27 +64,22 @@ T read(std::span<std::byte> & buffer)
 
 template <typename T>
         requires std::is_integral_v<T>
-std::span<T> read(std::span<std::byte> & buffer, size_t count)
+std::span<const T> read(std::span<const std::byte> & buffer, size_t count)
 {
 	if (count * sizeof(T) > buffer.size())
 		throw std::runtime_error{"File truncated"};
 
-	std::span<T> value{reinterpret_cast<T *>(buffer.data()), count};
+	std::span<const T> value{reinterpret_cast<const T *>(buffer.data()), count};
 	buffer = buffer.subspan(count * sizeof(T));
 	return value;
 }
 
-std::vector<wivrn::icon> try_load_svg(const std::filesystem::path & filename, int size)
+std::vector<wivrn::icon> try_load_svg(const std::vector<std::byte> & data, int size)
 {
 	// TODO check if aspect ratio needs to be handled, dpi
 
 	struct deleter
 	{
-		void operator()(GFile * ptr)
-		{
-			g_object_unref(ptr);
-		}
-
 		void operator()(RsvgHandle * ptr)
 		{
 			g_object_unref(ptr);
@@ -102,15 +96,13 @@ std::vector<wivrn::icon> try_load_svg(const std::filesystem::path & filename, in
 		}
 	};
 
-	using GFile_ptr = std::unique_ptr<GFile, deleter>;
 	using RsvgHandle_ptr = std::unique_ptr<RsvgHandle, deleter>;
 	using cairo_surface_t_ptr = std::unique_ptr<cairo_surface_t, deleter>;
 	using cairo_t_ptr = std::unique_ptr<cairo_t, deleter>;
 
 	GError * error{};
-	GFile_ptr file{g_file_new_for_path(filename.c_str())};
 
-	RsvgHandle_ptr handle{rsvg_handle_new_from_gfile_sync(file.get(), RSVG_HANDLE_FLAGS_NONE, nullptr, &error)};
+	RsvgHandle_ptr handle{rsvg_handle_new_from_data((guint8 *)data.data(), data.size(), &error)};
 	if (!handle)
 		throw std::runtime_error{std::string{"Could not open: "} + error->message};
 
@@ -150,7 +142,7 @@ std::vector<wivrn::icon> try_load_svg(const std::filesystem::path & filename, in
 	return {{size, size, 32, std::move(png)}};
 }
 
-std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
+std::vector<wivrn::icon> try_load_ico(const std::vector<std::byte> & ico)
 {
 	const uint32_t ICO_PNG_MAGIC = 0x474e5089;
 
@@ -190,8 +182,6 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 	static_assert(rowstride(32, 32) == 128);
 	static_assert(rowstride(33, 32) == 132);
 
-	auto ico = load_file(filename);
-
 	std::span header{ico};
 
 	auto reserved = read<uint16_t>(header);
@@ -199,7 +189,7 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 	auto icon_count = read<uint16_t>(header);
 
 	if (reserved != 0 or resource_type != 1)
-		throw std::runtime_error{"Cannot read icon: " + filename.native()};
+		throw std::runtime_error{"Cannot read icon"};
 
 	std::vector<wivrn::icon> icons;
 
@@ -215,13 +205,13 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 		auto offset = read<uint32_t>(header);
 
 		if (offset + size > ico.size())
-			throw std::runtime_error{"Cannot read icon: " + filename.native()};
+			throw std::runtime_error{"Cannot read icon"};
 
 		auto data = std::span{ico}.subspan(offset, size);
 		if (reserved != 0)
-			throw std::runtime_error{"Cannot read icon: " + filename.native()};
+			throw std::runtime_error{"Cannot read icon"};
 		if (planes != 0 and planes != 1)
-			throw std::runtime_error{"Cannot read icon: " + filename.native()};
+			throw std::runtime_error{"Cannot read icon"};
 
 		auto magic = read<uint32_t>(data);
 
@@ -283,7 +273,7 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 			auto w = width;
 			auto h = height / 2;
 
-			std::span<uint8_t> palette; // BGRX
+			std::span<const uint8_t> palette; // BGRX
 
 			if (bpp <= 16)
 			{
@@ -298,8 +288,8 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 			size_t and_stride = rowstride(w, 1);
 			size_t dst_stride = 4 * w;
 
-			std::span<uint8_t> xor_map = read<uint8_t>(data, xor_stride * h);
-			std::span<uint8_t> and_map = read<uint8_t>(data, and_stride * h);
+			std::span xor_map = read<uint8_t>(data, xor_stride * h);
+			std::span and_map = read<uint8_t>(data, and_stride * h);
 
 			std::vector<uint8_t> dest_buffer;
 			dest_buffer.resize(h * dst_stride);
@@ -309,8 +299,8 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 				case 1:
 					for (int y = 0; y < h; y++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						const uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						const uint8_t * src_and_row = and_map.data() + and_stride * y;
 						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
 						for (int x = 0, i = 0; x < w; x++)
@@ -337,8 +327,8 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 				case 4:
 					for (int y = 0; y < h; y++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						const uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						const uint8_t * src_and_row = and_map.data() + and_stride * y;
 						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
 						for (int x = 0, i = 0; x < w; x++)
@@ -365,8 +355,8 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 				case 8:
 					for (int y = 0; y < h; y++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						const uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						const uint8_t * src_and_row = and_map.data() + and_stride * y;
 						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
 						for (int x = 0, i = 0; x < w; x++)
@@ -393,8 +383,8 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 				case 16:
 					for (int y = 0; y < h; y++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						const uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						const uint8_t * src_and_row = and_map.data() + and_stride * y;
 						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
 						for (int x = 0, i = 0; x < w; x++)
@@ -423,8 +413,8 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 				case 24:
 					for (int y = 0; y < h; y++)
 					{
-						uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
-						uint8_t * src_and_row = and_map.data() + and_stride * y;
+						const uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
+						const uint8_t * src_and_row = and_map.data() + and_stride * y;
 						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
 						for (int x = 0, i = 0; x < w; x++)
@@ -447,7 +437,7 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 				case 32:
 					for (int y = 0; y < h; y++)
 					{
-						uint8_t * src_xor_row = (uint8_t *)xor_map.data() + xor_stride * y;
+						const uint8_t * src_xor_row = xor_map.data() + xor_stride * y;
 						uint8_t * dst_row = dest_buffer.data() + dst_stride * (h - 1 - y);
 
 						memcpy(dst_row, src_xor_row, dst_stride);
@@ -481,15 +471,15 @@ std::vector<wivrn::icon> try_load_ico(const std::filesystem::path & filename)
 	return icons;
 }
 
-std::vector<wivrn::icon> try_load_zip(const std::filesystem::path & filename)
+std::vector<wivrn::icon> try_load_zip(const std::vector<std::byte> & data)
 {
 	std::unique_ptr<archive, decltype(&archive_read_free)> zip{archive_read_new(), &archive_read_free};
 
 	archive_read_support_filter_all(zip.get());
 	archive_read_support_format_all(zip.get());
 
-	if (auto rc = archive_read_open_filename(zip.get(), filename.c_str(), 1'000'000); rc != ARCHIVE_OK)
-		throw std::runtime_error{"Cannot open " + filename.native() + ": " + archive_error_string(zip.get())};
+	if (auto rc = archive_read_open_memory(zip.get(), data.data(), data.size()); rc != ARCHIVE_OK)
+		throw std::runtime_error{std::string("Cannot open ZIP: ") + archive_error_string(zip.get())};
 
 	archive_entry * entry;
 	std::vector<wivrn::icon> icons;
@@ -532,9 +522,8 @@ std::vector<wivrn::icon> try_load_zip(const std::filesystem::path & filename)
 	return icons;
 }
 
-std::vector<wivrn::icon> try_load_png(const std::filesystem::path & filename)
+std::vector<wivrn::icon> try_load_png(const std::vector<std::byte> & png_data)
 {
-	auto png_data = load_file(filename);
 	std::vector<wivrn::icon> icons;
 
 	// Try reading the PNG
@@ -576,30 +565,32 @@ const std::vector<wivrn::icon> & wivrn::load_icon(const std::filesystem::path & 
 	if (it != icon_cache.end() and not it->second.empty())
 		return it->second;
 
+	auto data = load_file(filename);
+
 	try
 	{
-		return icon_cache.emplace(filename, try_load_svg(filename, 256)).first->second;
+		return icon_cache.emplace(filename, try_load_svg(data, 256)).first->second;
 	}
 	catch (...)
 	{}
 
 	try
 	{
-		return icon_cache.emplace(filename, try_load_ico(filename)).first->second;
+		return icon_cache.emplace(filename, try_load_ico(data)).first->second;
 	}
 	catch (...)
 	{}
 
 	try
 	{
-		return icon_cache.emplace(filename, try_load_zip(filename)).first->second;
+		return icon_cache.emplace(filename, try_load_zip(data)).first->second;
 	}
 	catch (...)
 	{}
 
 	try
 	{
-		return icon_cache.emplace(filename, try_load_png(filename)).first->second;
+		return icon_cache.emplace(filename, try_load_png(data)).first->second;
 	}
 	catch (...)
 	{}
