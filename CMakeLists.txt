@@ -230,7 +230,7 @@ FetchContent_Declare(stb           EXCLUDE_FROM_ALL SYSTEM URL https://github.co
                                    URL_HASH SHA256=b7f476902bbef1b30f8ecc2d9d95c459c32302c8b559d09b589b5955463b7af8)
 FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM
                                    GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software
-                                   GIT_TAG 91ace88675ac59a97e55d0378a6602a9ae6b98bd)
+                                   GIT_TAG beef80159525d9fb7abb8645ea85f4c4f6842e8f)
 FetchContent_Declare(implot        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/epezent/implot/archive/3da8bd34299965d3b0ab124df743fe3e076fa222.zip
                                    URL_HASH SHA256=e9b439a94aa6f09fcf12ed9c2cd784efe5e99e96242122aa683e690b29f7a59f)
 file(GLOB IMGUI_PATCHES CONFIGURE_DEPENDS patches/imgui/*)
