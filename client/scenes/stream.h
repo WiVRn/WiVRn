@@ -110,7 +110,6 @@ private:
 	state state_ = state::initializing;
 
 	xr::swapchain swapchain;
-	xr::swapchain swapchain_imgui;
 
 	std::optional<audio> audio_handle;
 
@@ -172,7 +171,7 @@ private:
 	XrTime running_application_req = 0;
 	thread_safe<to_headset::running_applications> running_applications;
 
-	stream(std::string server_name);
+	stream(std::string server_name, scene & parent_scene);
 
 public:
 	~stream();
@@ -180,7 +179,8 @@ public:
 	static std::shared_ptr<stream> create(
 	        std::unique_ptr<wivrn_session> session,
 	        float guessed_fps,
-	        std::string server_name);
+	        std::string server_name,
+		scene & parent_scene);
 
 	void render(const XrFrameState &) override;
 	void on_focused() override;

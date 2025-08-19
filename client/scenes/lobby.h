@@ -80,7 +80,6 @@ class lobby : public scene_impl<lobby>
 
 	uint32_t width;
 	uint32_t height;
-	xr::swapchain swapchain_imgui;
 	XrViewConfigurationView stream_view;
 
 #if WIVRN_CLIENT_DEBUG_MENU
@@ -100,8 +99,7 @@ class lobby : public scene_impl<lobby>
 
 	XrAction recenter_left_action = XR_NULL_HANDLE;
 	XrAction recenter_right_action = XR_NULL_HANDLE;
-	// std::optional<glm::vec3> gui_recenter_position;
-	// std::optional<float> gui_recenter_distance;
+
 	// Which controller is used for recentering, position of the pointed point in the GUI, in GUI axes, and distance between the controller and the pointed point during recentering
 	std::optional<std::tuple<xr::spaces, glm::vec3, float>> recentering_context;
 	bool recenter_gui = true;
