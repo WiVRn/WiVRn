@@ -18,53 +18,43 @@
  */
 
 #include "htc_face_tracker.h"
-#include "wivrn_packets.h"
 #include "xr/instance.h"
 #include "xr/session.h"
 #include <openxr/openxr.h>
 
-xr::htc_face_tracker::htc_face_tracker(instance & inst, session & s, bool eye, bool lip) :
-        s(s)
+static XrFacialTrackerHTC make_tracker(xr::instance & inst, xr::session & s, XrFacialTrackingTypeHTC type)
 {
-	if (!eye && !lip)
-		return;
-
-	xrCreateFacialTrackerHTC = inst.get_proc<PFN_xrCreateFacialTrackerHTC>("xrCreateFacialTrackerHTC");
-	xrGetFacialExpressionsHTC = inst.get_proc<PFN_xrGetFacialExpressionsHTC>("xrGetFacialExpressionsHTC");
-	xrDestroyFacialTrackerHTC = inst.get_proc<PFN_xrDestroyFacialTrackerHTC>("xrDestroyFacialTrackerHTC");
-
 	XrFacialTrackerCreateInfoHTC create_info{
 	        .type = XR_TYPE_FACIAL_TRACKER_CREATE_INFO_HTC,
-	        .next = nullptr,
+	        .facialTrackingType = type,
 	};
-
-	if (eye)
-	{
-		create_info.facialTrackingType = XR_FACIAL_TRACKING_TYPE_EYE_DEFAULT_HTC;
-		xrCreateFacialTrackerHTC(s, &create_info, &this->eye);
-	}
-	if (lip)
-	{
-		create_info.facialTrackingType = XR_FACIAL_TRACKING_TYPE_LIP_DEFAULT_HTC;
-		xrCreateFacialTrackerHTC(s, &create_info, &this->lip);
-	}
+	auto xrCreateFacialTrackerHTC = inst.get_proc<PFN_xrCreateFacialTrackerHTC>("xrCreateFacialTrackerHTC");
+	XrFacialTrackerHTC id;
+	CHECK_XR(xrCreateFacialTrackerHTC(s, &create_info, &id));
+	return id;
 }
 
-xr::htc_face_tracker::~htc_face_tracker()
+static XrFacialTrackerHTC get_eye_tracker(xr::instance & inst, xr::session & s)
 {
-	if (!xrDestroyFacialTrackerHTC)
-		return;
+	static XrFacialTrackerHTC res = make_tracker(inst, s, XR_FACIAL_TRACKING_TYPE_EYE_DEFAULT_HTC);
+	return res;
+}
+static XrFacialTrackerHTC get_lip_tracker(xr::instance & inst, xr::session & s)
+{
+	static XrFacialTrackerHTC res = make_tracker(inst, s, XR_FACIAL_TRACKING_TYPE_LIP_DEFAULT_HTC);
+	return res;
+}
 
-	if (eye)
-		CHECK_XR(xrDestroyFacialTrackerHTC(std::exchange(eye, nullptr)));
-	if (lip)
-		CHECK_XR(xrDestroyFacialTrackerHTC(std::exchange(lip, nullptr)));
+xr::htc_face_tracker::htc_face_tracker(instance & inst, session & s, bool eye, bool lip) :
+        xrGetFacialExpressionsHTC(inst.get_proc<PFN_xrGetFacialExpressionsHTC>("xrGetFacialExpressionsHTC")),
+        eye(eye ? get_eye_tracker(inst, s) : XR_NULL_HANDLE),
+        lip(lip ? get_lip_tracker(inst, s) : XR_NULL_HANDLE)
+{
 }
 
 void xr::htc_face_tracker::get_weights(XrTime time, packet_type & out_expressions)
 {
-	if (!(eye || lip) || !xrGetFacialExpressionsHTC)
-		return;
+	assert(xrGetFacialExpressionsHTC);
 
 	XrFacialExpressionsHTC expressions{
 	        .type = XR_TYPE_FACIAL_EXPRESSIONS_HTC,

@@ -32,6 +32,7 @@
 #include "xr/actionset.h"
 #include "xr/check.h"
 #include "xr/htc_exts.h"
+#include "xr/htc_face_tracker.h"
 #include "xr/meta_body_tracking_fidelity.h"
 #include "xr/to_string.h"
 #include <algorithm>
@@ -1282,17 +1283,25 @@ void application::initialize()
 
 	xr_session = xr::session(xr_instance, xr_system_id, vk_instance, vk_physical_device, vk_device, vk_queue, vk_queue_family_index);
 
+	spaces[size_t(xr::spaces::view)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
+	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
+
+	config.emplace(xr_system_id);
+
+	// HTC face tracker fails if created later
+	// we can destroy it right away, it actually stores static handles
+	if (xr_system_id.face_tracker_supported() == xr::face_tracker_type::htc)
+	{
+		auto props = xr_system_id.htc_face_tracking_properties();
+		xr::htc_face_tracker(xr_instance, xr_session, props.supportEyeFacialTracking, props.supportLipFacialTracking);
+	}
+
 	{
 		auto spaces = xr_session.get_reference_spaces();
 		spdlog::info("{} reference spaces", spaces.size());
 		for (XrReferenceSpaceType i: spaces)
 			spdlog::info("    {}", xr::to_string(i));
 	}
-
-	spaces[size_t(xr::spaces::view)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
-	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
-
-	config.emplace(xr_system_id);
 
 	vk::CommandPoolCreateInfo cmdpool_create_info;
 	cmdpool_create_info.queueFamilyIndex = vk_queue_family_index;

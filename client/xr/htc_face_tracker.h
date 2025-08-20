@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "utils/handle.h"
 #include "wivrn_packets.h"
 #include <openxr/openxr.h>
 
@@ -30,18 +29,13 @@ class session;
 
 class htc_face_tracker
 {
-	XrSession s;
-	XrFacialTrackerHTC eye{};
-	XrFacialTrackerHTC lip{};
-	PFN_xrCreateFacialTrackerHTC xrCreateFacialTrackerHTC{};
-	PFN_xrGetFacialExpressionsHTC xrGetFacialExpressionsHTC{};
-	PFN_xrDestroyFacialTrackerHTC xrDestroyFacialTrackerHTC{};
+	PFN_xrGetFacialExpressionsHTC xrGetFacialExpressionsHTC;
+	XrFacialTrackerHTC eye;
+	XrFacialTrackerHTC lip;
 
 public:
 	using packet_type = wivrn::from_headset::tracking::htc_face;
-	htc_face_tracker() = default;
 	htc_face_tracker(instance & inst, session & s, bool eye, bool lip);
-	~htc_face_tracker();
 
 	void get_weights(XrTime time, packet_type & out_expressions);
 };
