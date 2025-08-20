@@ -302,7 +302,10 @@ struct : std::error_category
 
 fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::filesystem::path & directory)
 {
-	fastgltf::Parser parser(fastgltf::Extensions::KHR_texture_basisu);
+	fastgltf::Parser parser(
+	        fastgltf::Extensions::KHR_texture_basisu |
+	        fastgltf::Extensions::KHR_implicit_shapes |
+	        fastgltf::Extensions::KHR_physics_rigid_bodies);
 
 	auto gltf_options =
 	        fastgltf::Options::DontRequireValidAssetMember |
@@ -551,7 +554,6 @@ public:
 			auto & material_ref = *materials.emplace_back(std::make_shared<renderer::material>(default_material));
 			material_ref.name = gltf_material.name;
 			material_ref.buffer.reset();
-			material_ref.ds.reset();
 
 			material_ref.double_sided = gltf_material.doubleSided;
 			material_ref.blend_enable = gltf_material.alphaMode == fastgltf::AlphaMode::Blend; // TODO handle alpha cut off mode

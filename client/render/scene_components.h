@@ -88,14 +88,6 @@ struct material
 	std::shared_ptr<buffer_allocation> buffer;
 	size_t offset;
 
-	// The descriptor set is managed by the scene renderer, it is updated whenever ds_dirty is true
-	// Bindings 0-4: textures
-	// Binding 5: uniform buffer
-	std::shared_ptr<vk::raii::DescriptorSet> ds;
-
-	// Set to true to update the descriptor set at the next frame
-	bool ds_dirty;
-
 	std::string name;
 	std::string shader_name = "lit";
 	bool blend_enable = true;
