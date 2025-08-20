@@ -32,7 +32,6 @@
 
 #include "vk/allocation.h"
 
-#include "render/growable_descriptor_pool.h"
 #include "render/scene_components.h"
 #include "utils/thread_safe.h"
 
@@ -138,11 +137,7 @@ class scene_renderer
 	vk::raii::Pipeline & get_pipeline(const pipeline_info & info);
 	vk::raii::RenderPass & get_renderpass(const renderpass_info & info);
 
-	vk::raii::DescriptorSetLayout layout_0; // Descriptor set 0: per-frame/view data (UBO) and per-instance data (UBO + SSBO)
-	vk::raii::DescriptorSetLayout layout_1; // Descriptor set 1: per-material data (5 combined image samplers and 1 uniform buffer)
-
-	// Descriptor set 1: per-material data (5 combined image samplers and 1 uniform buffer)
-	growable_descriptor_pool ds_pool_material;
+	vk::raii::DescriptorSetLayout layout_0; // Descriptor set 0: per-frame/view data (UBO), per-instance data (UBO + SSBO), per-material data (5 combined image samplers and 1 uniform buffer)
 
 	vk::raii::PipelineLayout pipeline_layout = nullptr;
 

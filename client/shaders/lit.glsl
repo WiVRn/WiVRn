@@ -30,7 +30,7 @@ const float fog_min_dist = 20.0;
 const float fog_max_dist = 35.0;
 const vec4 fog_color = vec4(0.0, 0.25, 0.5, 1.0);
 
-layout(set = 0, binding = 0) uniform scene_ssbo
+layout(set = 0, binding = 0) uniform scene_ubo
 {
 	mat4 view;
 	mat4 proj;
@@ -39,7 +39,7 @@ layout(set = 0, binding = 0) uniform scene_ssbo
 	vec4 light_color;
 } scene;
 
-layout(set = 0, binding = 1) uniform mesh_ssbo
+layout(set = 0, binding = 1) uniform mesh_ubo
 {
 	mat4 model;
 	mat4 modelview;
@@ -47,18 +47,18 @@ layout(set = 0, binding = 1) uniform mesh_ssbo
 	vec4 clipping_plane[nb_clipping];
 } mesh;
 
-layout(set = 0, binding = 2) uniform joints_ssbo
+layout(set = 0, binding = 2) uniform joints_ubo
 {
 	mat4 joint_matrices[32];
 } joints;
 
 #ifdef FRAG_SHADER
-layout(set = 1, binding = 0) uniform sampler2D base_color;
-layout(set = 1, binding = 1) uniform sampler2D metallic_roughness;
-layout(set = 1, binding = 2) uniform sampler2D occlusion;
-layout(set = 1, binding = 3) uniform sampler2D emissive;
-layout(set = 1, binding = 4) uniform sampler2D normal_map;
-layout(set = 1, binding = 5) uniform material_ubo
+layout(set = 0, binding = 3) uniform sampler2D base_color;
+layout(set = 0, binding = 4) uniform sampler2D metallic_roughness;
+layout(set = 0, binding = 5) uniform sampler2D occlusion;
+layout(set = 0, binding = 6) uniform sampler2D emissive;
+layout(set = 0, binding = 7) uniform sampler2D normal_map;
+layout(set = 0, binding = 8) uniform material_ubo
 {
 	vec4 base_color_factor;
 	vec4 base_emissive_factor;
