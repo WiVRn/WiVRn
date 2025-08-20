@@ -114,7 +114,6 @@ private:
 	state state_ = state::initializing;
 
 	xr::swapchain swapchain;
-	xr::swapchain swapchain_imgui;
 
 	std::optional<audio> audio_handle;
 
