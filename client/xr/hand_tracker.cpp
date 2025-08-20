@@ -47,6 +47,14 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	std::array<XrHandJointLocationEXT, XR_HAND_JOINT_COUNT_EXT> joints_pos;
 	std::array<XrHandJointVelocityEXT, XR_HAND_JOINT_COUNT_EXT> joints_vel;
 
+#ifndef NDEBUG
+	// Silence the OpenXR validation layer by setting valid flags
+	for (auto & i: joints_pos)
+		i.locationFlags = XR_SPACE_LOCATION_POSITION_VALID_BIT;
+	for (auto & i: joints_vel)
+		i.velocityFlags = XR_SPACE_VELOCITY_LINEAR_VALID_BIT;
+#endif
+
 	XrHandJointVelocitiesEXT velocities{
 	        .type = XR_TYPE_HAND_JOINT_VELOCITIES_EXT,
 	        .next = nullptr,
