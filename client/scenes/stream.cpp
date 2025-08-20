@@ -450,7 +450,7 @@ void scenes::stream::on_focused()
 	        },
 	};
 
-	swapchain_imgui = xr::swapchain(
+	xr::swapchain swapchain_imgui(
 	        session,
 	        device,
 	        swapchain_format,
@@ -470,7 +470,7 @@ void scenes::stream::on_focused()
 	                  queue_family_index,
 	                  queue,
 	                  imgui_inputs,
-	                  swapchain_imgui,
+	                  std::move(swapchain_imgui),
 	                  std::vector{vp});
 
 	if (application::get_config().enable_stream_gui)
@@ -503,7 +503,6 @@ void scenes::stream::on_unfocused()
 	right_hand.reset();
 
 	imgui_ctx.reset();
-	swapchain_imgui = xr::swapchain();
 }
 
 scenes::stream::~stream()

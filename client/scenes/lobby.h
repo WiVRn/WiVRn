@@ -81,7 +81,6 @@ class lobby : public scene_impl<lobby>
 
 	uint32_t width;
 	uint32_t height;
-	xr::swapchain swapchain_imgui;
 	XrViewConfigurationView stream_view;
 
 #if WIVRN_CLIENT_DEBUG_MENU
