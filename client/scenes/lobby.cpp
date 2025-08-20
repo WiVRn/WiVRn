@@ -909,9 +909,16 @@ void scenes::lobby::on_focused()
 	                .z_index = constants::lobby::zindex_recenter_tip,
 	        }};
 
-	swapchain_imgui = xr::swapchain(session, device, swapchain_format, 3000, 1300);
+	xr::swapchain swapchain_imgui(session, device, swapchain_format, 3000, 1300);
 
-	imgui_ctx.emplace(physical_device, device, queue_family_index, queue, imgui_inputs, swapchain_imgui, vps);
+	imgui_ctx.emplace(
+	        physical_device,
+	        device,
+	        queue_family_index,
+	        queue,
+	        imgui_inputs,
+	        std::move(swapchain_imgui),
+	        vps);
 
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
@@ -952,7 +959,6 @@ void scenes::lobby::on_unfocused()
 	face_tracker.emplace<std::monostate>();
 
 	clear_swapchains();
-	swapchain_imgui = xr::swapchain();
 	multicast.reset();
 }
 

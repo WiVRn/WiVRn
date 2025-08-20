@@ -147,7 +147,7 @@ private:
 
 	std::vector<viewport> layers_;
 
-	xr::swapchain & swapchain;
+	xr::swapchain swapchain;
 	int image_index;
 
 	ImGuiContext * context;
@@ -182,7 +182,7 @@ public:
 	        uint32_t queue_family_index,
 	        thread_safe<vk::raii::Queue> & queue,
 	        std::span<controller> controllers,
-	        xr::swapchain & swapchain,
+	        xr::swapchain && swapchain,
 	        std::vector<viewport> layers);
 
 	~imgui_context();
