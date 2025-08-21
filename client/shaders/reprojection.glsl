@@ -19,10 +19,12 @@
 
 #version 450
 
+#extension GL_EXT_fragment_shading_rate: require
 #ifdef VERT_SHADER
 
 layout (location = 0) in vec2 vPosition;
 layout (location = 1) in vec2 vUV;
+layout (location = 2) in int vShadingRate;
 
 layout(location = 0) out vec2 outUV;
 
@@ -30,6 +32,7 @@ void main()
 {
 	gl_Position = vec4(vPosition, 0.0, 1.0);
 	outUV = vUV;
+	gl_PrimitiveShadingRateEXT = vShadingRate;
 }
 #endif
 

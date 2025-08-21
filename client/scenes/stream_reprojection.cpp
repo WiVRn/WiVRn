@@ -38,6 +38,7 @@ struct stream_reprojection::vertex
 	alignas(8) glm::vec2 position;
 	// input texture coordinates
 	alignas(8) glm::vec2 uv;
+	int32_t shading_rate;
 };
 
 void stream_reprojection::ensure_vertices(size_t num_vertices)
@@ -232,7 +233,7 @@ stream_reprojection::stream_reprojection(
 
 	layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
 
-	vk::pipeline_builder pipeline_info{
+	vk::pipeline_builder pipeline_info_builder{
 	        .flags = {},
 	        .Stages = {
 	                {
@@ -267,6 +268,12 @@ stream_reprojection::stream_reprojection(
 	                        .format = vk::Format::eR32G32Sfloat,
 	                        .offset = offsetof(vertex, uv),
 	                },
+	                {
+	                        .location = 2,
+	                        .binding = 0,
+	                        .format = vk::Format::eR32Sint,
+	                        .offset = offsetof(vertex, shading_rate),
+	                },
 	        },
 	        .InputAssemblyState = {{
 	                .topology = vk::PrimitiveTopology::eTriangleStrip,
@@ -298,6 +305,57 @@ stream_reprojection::stream_reprojection(
 	        .renderPass = *renderpass,
 	        .subpass = 0,
 	};
+
+	vk::GraphicsPipelineCreateInfo pipeline_info(pipeline_info_builder);
+
+	// Variable fragment shading
+	std::array combiner{
+	        vk::FragmentShadingRateCombinerOpKHR::eMax,
+	        vk::FragmentShadingRateCombinerOpKHR::eMax,
+	};
+	vk::PipelineFragmentShadingRateStateCreateInfoKHR shading{
+	        .fragmentSize = vk::Extent2D{1, 1},
+	        .combinerOps = combiner,
+	};
+	const auto & vk_device_extensions = application::get_vk_device_extensions();
+	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and
+	    utils::contains(vk_device_extensions, VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME))
+	{
+		const auto & [prop, rate_prop] = physical_device.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceFragmentShadingRatePropertiesKHR>();
+		const auto & [feat, fragment_feat] = physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
+		if (rate_prop.fragmentShadingRateNonTrivialCombinerOps and
+		    fragment_feat.primitiveFragmentShadingRate and
+		    fragment_feat.attachmentFragmentShadingRate)
+		{
+			pipeline_info.pNext = &shading;
+
+			spdlog::info("Available fragment shading rates:");
+			for (const auto rate: physical_device.getFragmentShadingRatesKHR())
+			{
+				if (rate.sampleCounts & vk::SampleCountFlagBits::e1)
+				{
+					spdlog::info("\tfragment size: {}x{}", rate.fragmentSize.width, rate.fragmentSize.height);
+					int flags = 0;
+					if (rate.fragmentSize.width == 4)
+						flags |= 8;
+					else if (rate.fragmentSize.width == 2)
+						flags |= 4;
+					if (rate.fragmentSize.height == 4)
+						flags |= 2;
+					else if (rate.fragmentSize.height == 2)
+						flags |= 1;
+					for (int y = std::bit_width(rate.fragmentSize.height) - 1; y < 3; ++y)
+					{
+						for (int x = std::bit_width(rate.fragmentSize.width) - 1; x < 3; ++x)
+						{
+							if (fragment_sizes[x][y] == 0)
+								fragment_sizes[x][y] = flags;
+						}
+					}
+				}
+			}
+		}
+	}
 
 	pipeline = vk::raii::Pipeline(device, application::get_pipeline_cache(), pipeline_info);
 
@@ -352,6 +410,21 @@ static size_t required_vertices(const wivrn::to_headset::foveation_parameter & p
 	return (2 * (p.x.size() + 1) + 1) * p.y.size();
 }
 
+int32_t stream_reprojection::shading_rate(int pixels_x, int pixels_y)
+{
+	int x = 0;
+	if (pixels_x >= 2)
+		x = 1;
+	if (pixels_x >= 4)
+		x = 2;
+	int y = 0;
+	if (pixels_y >= 2)
+		y = 1;
+	if (pixels_y >= 4)
+		y = 2;
+	return fragment_sizes[x][y];
+}
+
 void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer,
                                     const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
                                     int destination)
@@ -387,10 +460,12 @@ void stream_reprojection::reproject(vk::raii::CommandBuffer & command_buffer,
 				*vertices++ = {
 				        .position = out * out_pixel_size - glm::vec2(1),
 				        .uv = in * in_pixel_size,
+				        .shading_rate = shading_rate(ratio_x, ratio_y),
 				};
 				*vertices++ = {
 				        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size - glm::vec2(1),
 				        .uv = (in + glm::vec2(0, n_out_y)) * in_pixel_size,
+				        .shading_rate = shading_rate(ratio_x, ratio_y),
 				};
 				in.x += n_out_x;
 				out.x += n_out_x * ratio_x;

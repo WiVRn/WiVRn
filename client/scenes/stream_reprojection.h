@@ -41,6 +41,13 @@ class stream_reprojection
 	vk::raii::RenderPass renderpass = nullptr;
 	vk::raii::Pipeline pipeline = nullptr;
 
+	// Allowed sizes for variable shading rate
+	// indices are for x, y
+	// 0 is 1 pixel
+	// 1 is 2 or 3 pixels
+	// 2 is 4 pixels or more
+	int32_t fragment_sizes[3][3] = {};
+
 	// Source image
 	vk::raii::Sampler sampler = nullptr;
 	std::vector<vk::raii::ImageView> input_image_views;
@@ -55,6 +62,8 @@ class stream_reprojection
 
 	void ensure_vertices(size_t num_vertices);
 	vertex * get_vertices(size_t view);
+
+	int32_t shading_rate(int pixels_x, int pixels_y);
 
 public:
 	stream_reprojection(
