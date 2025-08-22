@@ -199,6 +199,7 @@ jobs:
         cmake -B ${{github.workspace}}/build
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         -DCMAKE_INSTALL_PREFIX=/usr
+        -DWIVRN_USE_SYSTEM_OPENXR=OFF
         --preset everything
         -DWIVRN_BUILD_DASHBOARD=OFF
         -DWIVRN_BUILD_DISSECTOR=OFF
@@ -307,6 +308,7 @@ jobs:
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         -DCMAKE_INSTALL_PREFIX=/usr
         --preset ${{ matrix.cmake_preset }}
+        -DWIVRN_USE_SYSTEM_OPENXR=OFF
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}

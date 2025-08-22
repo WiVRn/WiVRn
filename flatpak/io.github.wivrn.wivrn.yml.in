@@ -352,10 +352,6 @@ modules:
       - WIVRN_SRC1
         WIVRN_SRC2
         WIVRN_SRC3
-      - type: archive
-        url: BOOSTPFR_URL
-        dest: deps/boostpfr-src
-        sha256: BOOSTPFR_SHA256
       - type: git
         url: https://gitlab.freedesktop.org/monado/monado
         tag: MONADO_COMMIT
@@ -363,7 +359,6 @@ modules:
       - type: shell
         commands:
          - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado/*
-         - cd deps/boostpfr-src && ../../patches/apply.sh ../../flatpak/boostpfr-gcc-12-internal-compiler-error.patch
 
   - name: wivrn
     buildsystem: cmake-ninja
@@ -378,6 +373,8 @@ modules:
       - -DWIVRN_USE_NVENC=ON
       - -DWIVRN_USE_VULKAN_ENCODE=ON
       - -DWIVRN_USE_PULSEAUDIO=OFF
+      - -DWIVRN_USE_PIPEWIRE=ON
+      - -DWIVRN_USE_SYSTEM_BOOST=OFF
       - -DWIVRN_WERROR=ON
       - -DWIVRN_CHECK_CAPSYSNICE=OFF # Capabilities don't work inside flatpak
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON

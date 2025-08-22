@@ -13,7 +13,7 @@ if (WIVRN_USE_LIBKTX)
     FetchContent_MakeAvailable(libktx)
 endif()
 
-if (NOT BOOST_FOUND)
+if (NOT WIVRN_USE_SYSTEM_BOOST)
     FetchContent_MakeAvailable(boost)
 endif()
 
@@ -51,7 +51,7 @@ if(ANDROID)
 else()
     add_executable(wivrn)
 
-    if (OpenXR_FOUND)
+    if (WIVRN_USE_SYSTEM_OPENXR)
         target_link_libraries(wivrn OpenXR::openxr_loader OpenXR::headers)
     else()
         FetchContent_MakeAvailable(openxr_loader)

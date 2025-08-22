@@ -83,6 +83,7 @@ android {
                           '-DCMAKE_ANDROID_NDK_VERSION=' + ndkVersion,
                           '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON',
                           '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+                          '-DWIVRN_USE_SYSTEM_BOOST=OFF',
                           '-DWIVRN_USE_SYSTEM_FREETYPE=OFF',
                           '-DWIVRN_BUILD_CLIENT=ON',
                           '-DWIVRN_BUILD_SERVER=OFF',
