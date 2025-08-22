@@ -19,7 +19,11 @@
 
 #pragma once
 
+#include "render/image_loader.h"
+#include "render/imgui_impl.h"
 #include "render/scene_loader.h"
+#include "render/scene_renderer.h"
+#include "utils/cache.h"
 #include "xr/actionset.h"
 #include "xr/instance.h"
 #include "xr/session.h"
@@ -27,15 +31,12 @@
 #include "xr/system.h"
 
 #include <cstdint>
+#include <entt/entity/registry.hpp>
 #include <filesystem>
 #include <span>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "render/imgui_impl.h"
-#include "render/scene_renderer.h"
-#include <entt/entity/registry.hpp>
 #include <openxr/openxr.h>
 
 // See http://www.nirfriedman.com/2018/04/29/unforgettable-factory/
@@ -95,11 +96,14 @@ protected:
 
 	const meta & current_meta;
 
-public:
 	std::shared_ptr<scene_renderer> renderer;
-	std::shared_ptr<scene_loader> loader;
 
-protected:
+	using gltf_cache_type = utils::cache<std::string, entt::registry, scene_loader>;
+	std::shared_ptr<gltf_cache_type> gltf_cache;
+
+	using image_cache_type = utils::cache<std::string, loaded_image, image_loader>;
+	std::shared_ptr<image_cache_type> image_cache;
+
 	vk::Format swapchain_format;
 	vk::Format depth_format;
 	bool composition_layer_depth_test_supported;
@@ -192,7 +196,7 @@ protected:
 	virtual void on_focused();
 
 public:
-	scene(key, const meta &, std::span<const vk::Format> supported_color_formats, std::span<const vk::Format> supported_depth_formats);
+	scene(key, const meta &, std::span<const vk::Format> supported_color_formats, std::span<const vk::Format> supported_depth_formats, scene * parent_scene);
 
 	virtual ~scene();
 
@@ -201,7 +205,11 @@ public:
 	virtual void on_xr_event(const xr::event &);
 
 	entt::registry world;
-	std::pair<entt::entity, components::node &> load_gltf(const std::filesystem::path & path, uint32_t layer_mask = -1);
+
+	std::shared_ptr<entt::registry> load_gltf(const std::filesystem::path & path);
+	std::pair<entt::entity, components::node &> add_gltf(std::shared_ptr<entt::registry> gltf, uint32_t layer_mask = -1);
+	std::pair<entt::entity, components::node &> add_gltf(const std::filesystem::path & path, uint32_t layer_mask = -1);
+
 	void remove(entt::entity entity); // TODO
 };
 
@@ -220,8 +228,14 @@ class scene_impl : public scene
 
 	static inline bool registered = scene_impl<T>::register_scene();
 
-	scene_impl(std::span<const vk::Format> supported_color_formats, std::span<const vk::Format> supported_depth_formats = {}) :
-	        scene(key{}, T::get_meta_scene(), supported_color_formats, supported_depth_formats)
+	scene_impl(std::span<const vk::Format> supported_color_formats, std::span<const vk::Format> supported_depth_formats, scene & parent_scene) :
+	        scene(key{}, T::get_meta_scene(), supported_color_formats, supported_depth_formats, &parent_scene)
+	{
+		(void)registered;
+	}
+
+	scene_impl(std::span<const vk::Format> supported_color_formats, std::span<const vk::Format> supported_depth_formats) :
+	        scene(key{}, T::get_meta_scene(), supported_color_formats, supported_depth_formats, nullptr)
 	{
 		(void)registered;
 	}
