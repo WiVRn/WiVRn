@@ -302,10 +302,7 @@ struct : std::error_category
 
 fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::filesystem::path & directory)
 {
-	fastgltf::Parser parser(
-	        fastgltf::Extensions::KHR_texture_basisu |
-	        fastgltf::Extensions::KHR_implicit_shapes |
-	        fastgltf::Extensions::KHR_physics_rigid_bodies);
+	fastgltf::Parser parser(fastgltf::Extensions::KHR_texture_basisu);
 
 	auto gltf_options =
 	        fastgltf::Options::DontRequireValidAssetMember |
@@ -678,19 +675,19 @@ public:
 		return meshes;
 	}
 
-	entt::registry load_all_nodes(const std::vector<std::shared_ptr<renderer::mesh>> & meshes)
+	std::shared_ptr<entt::registry> load_all_nodes(const std::vector<std::shared_ptr<renderer::mesh>> & meshes)
 	{
-		entt::registry registry;
+		auto registry = std::make_shared<entt::registry>();
 
 		std::vector<entt::entity> entities{gltf.nodes.size()};
-		registry.create(entities.begin(), entities.end());
+		registry->create(entities.begin(), entities.end());
 
 		// Create all node components first
-		registry.insert<components::node>(entities.begin(), entities.end());
+		registry->insert<components::node>(entities.begin(), entities.end());
 
 		for (const auto & [entity, gltf_node]: std::ranges::zip_view(entities, gltf.nodes))
 		{
-			components::node & node = registry.get<components::node>(entity);
+			components::node & node = registry->get<components::node>(entity);
 			node.name = gltf_node.name;
 
 			if (gltf_node.meshIndex)
@@ -717,7 +714,7 @@ public:
 
 			for (size_t child: gltf_node.children)
 			{
-				registry.get<components::node>(entities[child]).parent = entity;
+				registry->get<components::node>(entities[child]).parent = entity;
 			}
 
 			auto TRS = std::get<fastgltf::TRS>(gltf_node.transform);
@@ -781,7 +778,7 @@ renderer::vertex::describe()
 	return desc;
 }
 
-entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
+std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::path & gltf_path)
 {
 	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
 	vk::raii::CommandPool cb_pool{device, vk::CommandPoolCreateInfo{
@@ -820,7 +817,7 @@ entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
 	auto meshes = ctx.load_all_meshes(materials, staging_buffer);
 
 	// Load all nodes
-	entt::registry loaded_scene = ctx.load_all_nodes(meshes);
+	auto loaded_scene = ctx.load_all_nodes(meshes);
 
 	// Copy the staging buffer to the GPU
 	spdlog::debug("Uploading scene data ({} bytes) to GPU memory", staging_buffer.size());
@@ -833,47 +830,4 @@ entt::registry scene_loader::operator()(const std::filesystem::path & gltf_path)
 		i->buffer = buffer;
 
 	return loaded_scene;
-}
-
-template <typename T>
-void copy_components(entt::registry & scene, const entt::registry & prefab, const std::unordered_map<entt::entity, entt::entity> & entity_map)
-{
-	for (const auto & [entity, component]: prefab.view<T>().each())
-	{
-		scene.emplace<T>(entity_map.at(entity), component);
-	}
-}
-
-void scene_loader::add_prefab(entt::registry & scene, const entt::registry & prefab, entt::entity root)
-{
-	assert(scene.valid(root) or root == entt::null);
-
-	auto prefab_entities = prefab.view<entt::entity>();
-
-	std::vector<entt::entity> scene_entities{prefab_entities.size()};
-	scene.create(scene_entities.begin(), scene_entities.end());
-
-	std::unordered_map<entt::entity, entt::entity> entity_map; // key: prefab entity, value: scene entity
-
-	entity_map.emplace(entt::null, root);
-	for (auto [prefab_entity, scene_entity]: std::ranges::zip_view(prefab_entities, scene_entities))
-		entity_map.emplace(prefab_entity, scene_entity);
-
-	copy_components<components::node>(scene, prefab, entity_map);
-
-	// update links
-	for (auto [prefab_entity, scene_entity]: entity_map)
-	{
-		if (prefab_entity == entt::null)
-			continue;
-
-		auto & node = scene.get<components::node>(scene_entity);
-
-		node.parent = entity_map.at(node.parent);
-
-		for (auto & joint: node.joints)
-		{
-			joint.first = entity_map.at(joint.first);
-		}
-	}
 }

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <entt/core/fwd.hpp>
 #include <filesystem>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -42,7 +43,5 @@ public:
 	{}
 	scene_loader(const scene_loader &) = default;
 
-	entt::registry operator()(const std::filesystem::path & gltf_path);
-
-	void add_prefab(entt::registry & scene, const entt::registry & prefab, entt::entity root = entt::null);
+	std::shared_ptr<entt::registry> operator()(const std::filesystem::path & gltf_path);
 };

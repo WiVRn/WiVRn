@@ -26,8 +26,6 @@
 #include "imgui.h"
 #include "openxr/openxr.h"
 #include "protocol_version.h"
-#include "render/scene_data.h"
-#include "render/scene_loader.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "wivrn_client.h"
@@ -151,9 +149,6 @@ scenes::lobby::lobby() :
 		std::ofstream{keypair_path} << keypair.private_key();
 		spdlog::info("Generated X448 keypair");
 	}
-
-	renderer = std::make_shared<scene_renderer>(device, physical_device, queue, commandpool);
-	loader = std::make_shared<scene_loader>(device, physical_device, queue, queue_family_index, renderer->get_default_material());
 }
 
 static std::string ip_address_to_string(const in_addr & addr)
@@ -801,12 +796,11 @@ void scenes::lobby::on_focused()
 	// assert(std::ranges::all_of(views, [width](const XrViewConfigurationView & view) { return view.recommendedImageRectWidth == width; }));
 	// assert(std::ranges::all_of(views, [height](const XrViewConfigurationView & view) { return view.recommendedImageRectHeight == height; }));
 
-	lobby_entity = load_gltf("ground.glb", layer_lobby).first;
+	lobby_entity = add_gltf("ground.glb", layer_lobby).first;
 
 	std::string profile = controller_name();
 	input.emplace(
 	        *this,
-	        *loader,
 	        "controllers/" + profile + "/profile.json",
 	        layer_controllers,
 	        layer_rays);
@@ -833,8 +827,8 @@ void scenes::lobby::on_focused()
 	offset_orientation = glm::degrees(glm::eulerAngles(input->offset[xr::spaces::grip_left].second));
 	ray_offset = input->offset[xr::spaces::aim_left].first.z;
 
-	xyz_axes_left_controller = load_gltf("xyz-arrows.glb", layer_controllers).first;
-	xyz_axes_right_controller = load_gltf("xyz-arrows.glb", layer_controllers).first;
+	xyz_axes_left_controller = add_gltf("xyz-arrows.glb", layer_controllers).first;
+	xyz_axes_right_controller = add_gltf("xyz-arrows.glb", layer_controllers).first;
 #endif
 
 	recenter_left_action = get_action("recenter_left").first;
@@ -918,7 +912,8 @@ void scenes::lobby::on_focused()
 	        queue,
 	        imgui_inputs,
 	        std::move(swapchain_imgui),
-	        vps);
+	        vps,
+	        image_cache);
 
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
@@ -943,12 +938,11 @@ void scenes::lobby::on_unfocused()
 {
 	discover.reset();
 
-	// TODO: rework descriptor sets
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 
 	about_picture = 0;
 	imgui_ctx.reset();
-	world.clear(); // Must be cleared before the renderer so that the descriptor sets are freed before their pools
+	world.clear();
 
 	input.reset();
 	left_hand.reset();

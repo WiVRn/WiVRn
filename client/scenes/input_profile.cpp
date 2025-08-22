@@ -173,7 +173,7 @@ struct json_visual_response
 };
 } // namespace
 
-input_profile::input_profile(scene & scene, scene_loader & loader, const std::filesystem::path & json_profile, uint32_t layer_mask_controller, uint32_t layer_mask_ray)
+input_profile::input_profile(scene & scene, const std::filesystem::path & json_profile, uint32_t layer_mask_controller, uint32_t layer_mask_ray)
 {
 	std::string json = asset(json_profile);
 
@@ -182,7 +182,7 @@ input_profile::input_profile(scene & scene, scene_loader & loader, const std::fi
 
 	id = std::string(root["profileId"]);
 
-	std::vector<std::tuple<std::string, entt::entity, entt::registry>> models;
+	std::vector<std::tuple<std::string, entt::entity, std::shared_ptr<entt::registry>>> models;
 	std::vector<json_visual_response> json_responses;
 
 	// Fill models with the different models to be loaded and their name ("left" or "right")
@@ -193,7 +193,7 @@ input_profile::input_profile(scene & scene, scene_loader & loader, const std::fi
 		// std::string user_path = "/user/hand/" + std::string(layout.key);
 		std::filesystem::path asset_path = json_profile.parent_path() / std::string(layout.value["assetPath"]);
 
-		entt::registry & data = std::get<2>(models.emplace_back(layout.key, entt::null, loader(asset_path)));
+		std::shared_ptr<entt::registry> data = std::get<2>(models.emplace_back(layout.key, entt::null, scene.load_gltf(asset_path)));
 
 		for (simdjson::dom::key_value_pair component: simdjson::dom::object(layout.value["components"]))
 		{
@@ -219,14 +219,14 @@ input_profile::input_profile(scene & scene, scene_loader & loader, const std::fi
 				vr.component_subpath = component_subpath;
 
 				// Check if the node exists
-				find_node_by_name(data, vr.target_node);
+				find_node_by_name(*data, vr.target_node);
 
 				auto node_property = parse_value_node_property(response.value["valueNodeProperty"]);
 				switch (node_property)
 				{
 					case value_node_property::transform: {
-						auto min_node = data.get<components::node>(find_node_by_name(data, std::string(response.value["minNodeName"])));
-						auto max_node = data.get<components::node>(find_node_by_name(data, std::string(response.value["maxNodeName"])));
+						auto min_node = data->get<components::node>(find_node_by_name(*data, std::string(response.value["minNodeName"])));
+						auto max_node = data->get<components::node>(find_node_by_name(*data, std::string(response.value["maxNodeName"])));
 
 						components::details::node_state_transform min{
 						        min_node.position,
@@ -263,14 +263,10 @@ input_profile::input_profile(scene & scene, scene_loader & loader, const std::fi
 		else
 			continue;
 
-		entity = scene.world.create();
-		scene.world.emplace<bound_space>(entity, space);
-		scene.world.emplace<components::node>(entity, components::node{
-		                                                      .name = layout,
-		                                                      .layer_mask = layer_mask_controller,
-		                                              });
-
-		loader.add_prefab(scene.world, std::move(model), entity);
+		auto [e, node] = scene.add_gltf(model, layer_mask_controller);
+		node.name = layout;
+		entity = e;
+		scene.world.emplace<bound_space>(e, space);
 
 		spdlog::debug("Created entity {}", layout);
 	}
@@ -285,7 +281,7 @@ input_profile::input_profile(scene & scene, scene_loader & loader, const std::fi
 		else
 			continue;
 
-		auto && [entity, node] = scene.load_gltf(controller_ray_model_name(), layer_mask_ray);
+		auto && [entity, node] = scene.add_gltf(controller_ray_model_name(), layer_mask_ray);
 		node.name = (std::string)layout.key + "_ray";
 		spdlog::debug("Created entity {}", node.name);
 

@@ -321,7 +321,8 @@ imgui_context::imgui_context(
         thread_safe<vk::raii::Queue> & queue,
         std::span<controller> controllers_,
         xr::swapchain && swapchain_,
-        std::vector<viewport> layers) :
+        std::vector<viewport> layers,
+        std::shared_ptr<image_cache_type> image_cache) :
         imgui_textures(
                 physical_device,
                 device,
@@ -337,7 +338,8 @@ imgui_context::imgui_context(
         context(ImGui::CreateContext()),
         plot_context(ImPlot::CreateContext()),
         io((ImGui::SetCurrentContext(context), ImGui::GetIO())),
-        world(application::space(xr::spaces::world))
+        world(application::space(xr::spaces::world)),
+        image_cache(image_cache)
 {
 	controllers.reserve(controllers_.size());
 	for (const auto & i: controllers_)
@@ -1040,15 +1042,18 @@ ImTextureID imgui_textures::load_texture(const std::string & filename, vk::raii:
 ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name)
 {
 	bool srgb = true;
-	// TODO: reuse the image loader
-	image_loader loader(physical_device, device, queue, command_pool);
-	auto image = loader.load(bytes, srgb, name);
+
+	std::shared_ptr<loaded_image> image;
+	if (name == "")
+		image = image_cache->load_uncached(bytes, srgb);
+	else
+		image = image_cache->load(name, bytes, srgb, name);
 
 	std::shared_ptr<vk::raii::DescriptorSet> ds = descriptor_pool.allocate();
 
 	vk::DescriptorImageInfo image_info{
 	        .sampler = *sampler,
-	        .imageView = *image.image_view,
+	        .imageView = *image->image_view,
 	        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 	};
 
@@ -1066,7 +1071,7 @@ ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & byte
 	        id,
 	        texture_data{
 	                .sampler = std::move(sampler),
-	                .image = std::move(image),
+	                .image = image,
 	                .descriptor_set = std::move(ds),
 	        });
 

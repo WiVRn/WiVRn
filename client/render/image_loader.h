@@ -28,6 +28,7 @@
 #include <glm/vec4.hpp>
 #include <ktxvulkan.h>
 #include <span>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
@@ -71,6 +72,13 @@ struct image_loader
 	loaded_image load(const std::vector<T> & pixels, vk::Extent3D extent, vk::Format format, const std::string & name = "")
 	{
 		return load(pixels.data(), pixels.size() * sizeof(T), extent, format, name);
+	}
+
+	template <typename... Args>
+	std::shared_ptr<loaded_image> operator()(Args &&... args)
+	{
+		auto result = std::make_shared<loaded_image>(load(std::forward<Args>(args)...));
+		return result;
 	}
 
 private:

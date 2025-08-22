@@ -171,7 +171,7 @@ private:
 	XrTime running_application_req = 0;
 	thread_safe<to_headset::running_applications> running_applications;
 
-	stream(std::string server_name);
+	stream(std::string server_name, scene & parent_scene);
 
 public:
 	~stream();
