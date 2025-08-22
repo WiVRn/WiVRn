@@ -184,7 +184,7 @@ private:
 	// Last application list received from server
 	thread_safe<std::vector<app>> applications;
 
-	stream();
+	stream(scene & parent_scene);
 
 public:
 	~stream();

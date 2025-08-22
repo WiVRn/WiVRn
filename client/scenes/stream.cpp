@@ -149,8 +149,8 @@ static const std::array supported_depth_formats{
         vk::Format::eX8D24UnormPack32,
 };
 
-scenes::stream::stream() :
-        scene_impl<stream>(supported_color_formats, supported_depth_formats)
+scenes::stream::stream(scene & parent_scene) :
+        scene_impl<stream>(supported_color_formats, supported_depth_formats, parent_scene)
 {
 }
 
@@ -184,7 +184,7 @@ static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::inst
 
 std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps, scene & parent_scene)
 {
-	std::shared_ptr<stream> self{new stream};
+	std::shared_ptr<stream> self{new stream(parent_scene)};
 	self->network_session = std::move(network_session);
 
 	self->network_session->send_control([&]() {
@@ -387,9 +387,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 
 	self->wifi = application::get_wifi_lock().get_wifi_lock();
 
-	self->renderer = parent_scene.renderer;
-	self->loader = parent_scene.loader;
-
 	return self;
 }
 
@@ -405,7 +402,6 @@ void scenes::stream::on_focused()
 	std::string profile = controller_name();
 	input.emplace(
 	        *this,
-	        *loader,
 	        "controllers/" + profile + "/profile.json",
 	        layer_controllers,
 	        layer_rays);
@@ -467,7 +463,8 @@ void scenes::stream::on_focused()
 	                  queue,
 	                  imgui_inputs,
 	                  std::move(swapchain_imgui),
-	                  std::vector{vp});
+	                  std::vector{vp},
+	                  image_cache);
 
 	if (application::get_config().enable_stream_gui)
 	{
@@ -490,9 +487,8 @@ void scenes::stream::on_focused()
 
 void scenes::stream::on_unfocused()
 {
-	// TODO rework descriptor sets
-	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
-	world.clear();         // Must be cleared before the renderer so that the descriptor sets are freed before their pools
+	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets;
+	world.clear();
 	input.reset();
 	clear_swapchains();
 	left_hand.reset();

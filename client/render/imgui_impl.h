@@ -20,6 +20,7 @@
 
 #include "image_loader.h"
 #include "render/growable_descriptor_pool.h"
+#include "utils/cache.h"
 #include "utils/thread_safe.h"
 #include "wivrn_config.h"
 #include "xr/hand_tracker.h"
@@ -48,7 +49,7 @@ class imgui_context
 	struct texture_data
 	{
 		vk::raii::Sampler sampler;
-		loaded_image image;
+		std::shared_ptr<loaded_image> image;
 		std::shared_ptr<vk::raii::DescriptorSet> descriptor_set;
 	};
 
@@ -166,6 +167,9 @@ private:
 	ImGuiID hovered_item = 0;      // Hovered item in the current frame, reset at the beginning of the frame
 	ImGuiID hovered_item_prev = 0; // Hovered item at the previous frame
 
+	using image_cache_type = utils::cache<std::string, loaded_image, image_loader>;
+	std::shared_ptr<image_cache_type> image_cache;
+
 #if WIVRN_SHOW_IMGUI_DEMO_WINDOW
 	bool show_demo_window = true;
 #endif
@@ -183,7 +187,8 @@ public:
 	        thread_safe<vk::raii::Queue> & queue,
 	        std::span<controller> controllers,
 	        xr::swapchain && swapchain,
-	        std::vector<viewport> layers);
+	        std::vector<viewport> layers,
+	        std::shared_ptr<image_cache_type> image_cache);
 
 	~imgui_context();
 

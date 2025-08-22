@@ -19,16 +19,16 @@
 
 #include "scene.h"
 #include "application.h"
-#include "render/scene_loader.h"
 #include "utils/contains.h"
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
 #include "utils/ranges.h"
+#include <chrono>
+#include <entt/core/fwd.hpp>
 #include <magic_enum.hpp>
 #include <spdlog/fmt/chrono.h>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_raii.hpp>
-#include <vulkan/vulkan_structs.hpp>
 #include <openxr/openxr.h>
 
 // TODO remove constants
@@ -38,7 +38,7 @@ std::vector<scene::meta *> scene::scene_registry;
 
 scene::~scene() {}
 
-scene::scene(key, const meta & current_meta, std::span<const vk::Format> supported_color_formats, std::span<const vk::Format> supported_depth_formats) :
+scene::scene(key, const meta & current_meta, std::span<const vk::Format> supported_color_formats, std::span<const vk::Format> supported_depth_formats, scene * parent_scene) :
         instance(application::instance().xr_instance),
         system(application::instance().xr_system_id),
         session(application::instance().xr_session),
@@ -88,6 +88,20 @@ scene::scene(key, const meta & current_meta, std::span<const vk::Format> support
 	        instance.has_extension(XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME);
 
 	composition_layer_color_scale_bias_supported = instance.has_extension(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
+
+	if (parent_scene)
+	{
+		renderer = parent_scene->renderer;
+		gltf_cache = parent_scene->gltf_cache;
+		image_cache = parent_scene->image_cache;
+	}
+	else
+	{
+		// TODO: make argument order more consistent
+		renderer = std::make_shared<scene_renderer>(device, physical_device, queue, commandpool);
+		gltf_cache = std::make_shared<gltf_cache_type>(device, physical_device, queue, queue_family_index, renderer->get_default_material());
+		image_cache = std::make_shared<image_cache_type>(physical_device, device, queue, commandpool);
+	}
 }
 
 void scene::set_focused(bool status)
@@ -255,17 +269,18 @@ xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t h
 	}
 
 	spdlog::info("Creating new swapchain: {}, {}x{}, {} sample(s), {} level(s)", magic_enum::enum_name(format), width, height, sample_count, array_size);
+	swapchain_entry new_swapchain{
+	        .format = format,
+	        .width = width,
+	        .height = height,
+	        .sample_count = sample_count,
+	        .array_size = array_size,
+	        .used = true,
+	        .swapchain = xr::swapchain(session, device, format, width, height, sample_count, array_size),
+	};
+	spdlog::info("Created swapchain");
 
-	return swapchains.emplace_back(swapchain_entry{
-	                                       .format = format,
-	                                       .width = width,
-	                                       .height = height,
-	                                       .sample_count = sample_count,
-	                                       .array_size = array_size,
-	                                       .used = true,
-	                                       .swapchain = xr::swapchain(session, device, format, width, height, sample_count, array_size),
-	                               })
-	        .swapchain;
+	return swapchains.emplace_back(std::move(new_swapchain)).swapchain;
 }
 
 void scene::clear_swapchains()
@@ -435,18 +450,61 @@ void scene::render_end()
 	session.end_frame(predicted_display_time, openxr_layers, blend_mode);
 }
 
-std::pair<entt::entity, components::node &> scene::load_gltf(const std::filesystem::path & path, uint32_t layer_mask)
+template <typename T>
+void copy_components(entt::registry & scene, const entt::registry & prefab, const std::unordered_map<entt::entity, entt::entity> & entity_map)
 {
-	auto entity = world.create();
-	auto & node = world.emplace<components::node>(entity);
+	for (const auto & [entity, component]: prefab.view<T>().each())
+	{
+		scene.emplace<T>(entity_map.at(entity), component);
+	}
+}
+
+std::pair<entt::entity, components::node &> scene::add_gltf(std::shared_ptr<entt::registry> gltf, uint32_t layer_mask)
+{
+	auto root = world.create();
+	auto & node = world.emplace<components::node>(root);
 	node.layer_mask = layer_mask;
 
-	assert(renderer);
-	scene_loader loader(device, physical_device, queue, queue_family_index, renderer->get_default_material());
+	auto prefab_entities = gltf->view<entt::entity>();
 
-	loader.add_prefab(world, loader(path), entity);
+	std::vector<entt::entity> scene_entities{prefab_entities.size()};
+	world.create(scene_entities.begin(), scene_entities.end());
 
-	return {entity, node};
+	std::unordered_map<entt::entity, entt::entity> entity_map; // key: prefab entity, value: scene entity
+
+	entity_map.emplace(entt::null, root);
+	for (auto [prefab_entity, scene_entity]: std::ranges::zip_view(prefab_entities, scene_entities))
+		entity_map.emplace(prefab_entity, scene_entity);
+
+	copy_components<components::node>(world, *gltf, entity_map);
+
+	// update links
+	for (auto [prefab_entity, scene_entity]: entity_map)
+	{
+		if (prefab_entity == entt::null)
+			continue;
+
+		auto & node = world.get<components::node>(scene_entity);
+
+		node.parent = entity_map.at(node.parent);
+
+		for (auto & joint: node.joints)
+		{
+			joint.first = entity_map.at(joint.first);
+		}
+	}
+
+	return {root, node};
+}
+
+std::shared_ptr<entt::registry> scene::load_gltf(const std::filesystem::path & path)
+{
+	return gltf_cache->load(path.native(), path);
+}
+
+std::pair<entt::entity, components::node &> scene::add_gltf(const std::filesystem::path & path, uint32_t layer_mask)
+{
+	return add_gltf(load_gltf(path), layer_mask);
 }
 
 void scene::on_unfocused() {}
