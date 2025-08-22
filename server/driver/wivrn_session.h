@@ -105,6 +105,8 @@ class wivrn_session : public xrt_system_devices
 	        .gamepad = -1,
 	};
 
+	tracking_control_t tracking_control;
+
 	wivrn_hmd hmd;
 	wivrn_controller left_controller;
 	int32_t left_controller_index;
@@ -123,10 +125,6 @@ class wivrn_session : public xrt_system_devices
 	wivrn_comp_target * comp_target;
 
 	clock_offset_estimator offset_est;
-
-	// prediction offset and enabled tracking to configure client
-	tracking_control_t tracking_control;
-	std::mutex tracking_control_mutex;
 
 	std::mutex csv_mutex;
 	std::ofstream feedback_csv;
