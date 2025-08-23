@@ -50,19 +50,18 @@ std::filesystem::path home()
 
 std::pair<std::string, std::optional<std::filesystem::path>> find_steam()
 {
+	auto h = home();
+	// Flatpak Steam
+	if (std::filesystem::exists(h / ".var/app/com.valvesoftware.Steam/.steam/steam"))
+		return {"flatpak run com.valvesoftware.Steam", h / ".var/app/com.valvesoftware.Steam/.steam/steam"};
+
 	// system Steam
 	if (std::filesystem::exists(xdg_data_home() / "Steam"))
 		return {"steam", xdg_data_home() / "Steam"};
 
-	auto h = home();
-
 	// system Steam (accessed from flatpak)
 	if (std::filesystem::exists(h / ".local/share/Steam"))
 		return {"steam", h / ".local/share/Steam"};
-
-	// Flatpak Steam
-	if (std::filesystem::exists(h / ".var/app/com.valvesoftware.Steam/.steam/steam"))
-		return {"flatpak run com.valvesoftware.Steam", h / ".var/app/com.valvesoftware.Steam/.steam/steam"};
 
 	return {};
 }
