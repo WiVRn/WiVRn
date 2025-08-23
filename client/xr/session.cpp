@@ -177,7 +177,7 @@ XrViewStateFlags xr::session::locate_views(XrViewConfigurationType view_config_t
 	        .type = XR_TYPE_VIEW_STATE,
 	};
 
-	details::enumerate<XrView>(xrLocateViews, views, id, &view_locate_info, &view_state);
+	details::enumerate(xrLocateViews, views, id, &view_locate_info, &view_state);
 
 	return view_state.viewStateFlags;
 }
