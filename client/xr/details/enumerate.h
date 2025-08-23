@@ -30,70 +30,60 @@
 #include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
+#include <openxr/openxr_reflection.h>
 
 namespace xr::details
 {
 
 template <typename T>
-struct structure_traits_base
+struct base_struct
 {
-	static constexpr inline XrStructureType type = XR_TYPE_UNKNOWN;
-	using base = T;
+	using type = T;
+};
+template <typename T>
+using base_struct_t = base_struct<T>::type;
+
+template <>
+struct base_struct<XrSwapchainImageVulkanKHR>
+{
+	using type = XrSwapchainImageBaseHeader;
 };
 
 template <typename T>
-struct structure_traits : structure_traits_base<T>
-{};
-
-template <>
-struct structure_traits<XrViewConfigurationView> : structure_traits_base<XrViewConfigurationView>
+struct structure_traits
 {
-	static constexpr inline XrStructureType type = XR_TYPE_VIEW_CONFIGURATION_VIEW;
+	static constexpr inline XrStructureType type = XR_TYPE_UNKNOWN;
 };
 
-template <>
-struct structure_traits<XrView> : structure_traits_base<XrView>
-{
-	static constexpr inline XrStructureType type = XR_TYPE_VIEW;
-};
+#define TRAIT(S, T)                                               \
+	template <>                                               \
+	struct structure_traits<S>                                \
+	{                                                         \
+		static constexpr inline XrStructureType type = T; \
+	};
 
-template <>
-struct structure_traits<XrApiLayerProperties> : structure_traits_base<XrApiLayerProperties>
-{
-	static constexpr inline XrStructureType type = XR_TYPE_API_LAYER_PROPERTIES;
-};
-
-template <>
-struct structure_traits<XrExtensionProperties> : structure_traits_base<XrExtensionProperties>
-{
-	static constexpr inline XrStructureType type = XR_TYPE_EXTENSION_PROPERTIES;
-};
-
-template <>
-struct structure_traits<XrSwapchainImageVulkanKHR> : structure_traits_base<XrSwapchainImageVulkanKHR>
-{
-	static constexpr inline XrStructureType type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
-	using base = XrSwapchainImageBaseHeader;
-};
+XR_LIST_STRUCTURE_TYPES(TRAIT)
+#undef TRAIT
 
 template <typename T>
 constexpr inline XrStructureType structure_type = structure_traits<T>::type;
 
 template <typename T, typename F, typename... Args>
-void enumerate(F f, std::conditional_t<std::is_same_v<T, char>, std::string, std::vector<T>> & data, Args &&... args)
+void enumerate(F f, T & data, Args &&... args)
 {
+	using V = T::value_type;
 	uint32_t count;
 	uint32_t capacity = data.size();
 	// For strings, add the null byte as capacity
-	if (std::is_same_v<T, char> and capacity)
+	if (std::is_same_v<T, std::string> and capacity)
 		capacity++;
-	XrResult result = f(std::forward<Args>(args)..., capacity, &count, reinterpret_cast<typename structure_traits<T>::base *>(data.data()));
+	XrResult result = f(std::forward<Args>(args)..., capacity, &count, reinterpret_cast<base_struct_t<V> *>(data.data()));
 
-	if (result == XR_ERROR_SIZE_INSUFFICIENT or (data.empty() and XR_SUCCEEDED(result)))
+	if (result == XR_ERROR_SIZE_INSUFFICIENT or (data.empty() and XR_SUCCEEDED(result) and count > 0))
 	{
-		if constexpr (structure_type<T> != XR_TYPE_UNKNOWN)
-			data.resize(count, T{.type = structure_type<T>});
-		else if constexpr (std::is_same_v<T, char>)
+		if constexpr (structure_type<V> != XR_TYPE_UNKNOWN)
+			data.resize(count, V{.type = structure_type<V>});
+		else if constexpr (std::is_same_v<T, std::string>)
 			data.resize(count - 1); // count includes the null terminator
 		else
 			data.resize(count);
@@ -103,7 +93,7 @@ void enumerate(F f, std::conditional_t<std::is_same_v<T, char>, std::string, std
 	if (not XR_SUCCEEDED(result))
 		throw std::system_error(result, xr::error_category(), "enumerating " + type_name<T>());
 
-	data.resize(count - std::is_same_v<T, char>);
+	data.resize(count - std::is_same_v<T, std::string>);
 }
 
 template <typename T, typename F, typename... Args>
@@ -111,35 +101,68 @@ auto enumerate(F f, Args &&... args) -> auto
 {
 	using array_type = std::conditional_t<std::is_same_v<T, char>, std::string, std::vector<T>>;
 	array_type array;
+	enumerate(f, array, std::forward<Args>(args)...);
+	return array;
+}
+
+template <size_t i, typename... T>
+void resize_and_link(std::tuple<std::vector<T>...> & tup, size_t size)
+{
+	auto & vec = std::get<i>(tup);
+	vec.resize(size);
+	for (size_t j = 0; j < size; ++j)
+	{
+		auto & item = vec[j];
+		item.type = structure_type<std::tuple_element_t<i, std::tuple<T...>>>;
+		if constexpr (i < sizeof...(T) - 1)
+		{
+			item.next = &std::get<i + 1>(tup)[j];
+		}
+	}
+	if constexpr (i > 0)
+	{
+		resize_and_link<i - 1>(tup, size);
+	}
+}
+
+template <size_t i = 0, typename... T>
+void resize(std::tuple<std::vector<T>...> & tup, size_t size)
+{
+	if constexpr (i < sizeof...(T))
+	{
+		auto & vec = std::get<i>(tup);
+		vec.resize(size);
+		resize<i + 1>(tup, size);
+	}
+}
+
+template <typename... T, typename F, typename... Args>
+void enumerate2(F f, std::tuple<std::vector<T>...> & data, Args &&... args)
+{
+	using T0 = std::tuple_element_t<0, std::tuple<T...>>;
 	uint32_t count;
-	XrResult result;
+	auto & data0 = std::get<0>(data);
+	uint32_t capacity = data0.size();
+	XrResult result = f(std::forward<Args>(args)..., capacity, &count, reinterpret_cast<base_struct_t<T0> *>(data0.data()));
 
-	result = f(std::forward<Args>(args)..., 0, &count, nullptr);
-
-	if (XR_SUCCEEDED(result))
+	if (result == XR_ERROR_SIZE_INSUFFICIENT or (capacity == 0 and XR_SUCCEEDED(result) and count > 0))
 	{
-		if constexpr (std::is_same_v<T, char>)
-		{
-			array.resize(count - 1); // count includes the null terminator
-		}
-		else if constexpr (structure_type<T> == XR_TYPE_UNKNOWN)
-		{
-			array.resize(count);
-		}
-		else
-		{
-			T default_value{};
-			default_value.type = structure_type<T>;
-			array.resize(count, default_value);
-		}
-		result = f(std::forward<Args>(args)..., count, &count, reinterpret_cast<typename structure_traits<T>::base *>(array.data()));
+		resize_and_link<sizeof...(T) - 1>(data, count);
+		return enumerate2<T...>(f, data, std::forward<Args>(args)...);
 	}
 
-	if (!XR_SUCCEEDED(result))
-	{
-		throw std::system_error(result, xr::error_category(), "enumerating " + type_name<T>());
-	}
+	if (not XR_SUCCEEDED(result))
+		throw std::system_error(result, xr::error_category(), "enumerating " + type_name<T0>());
 
+	resize(data, count);
+}
+
+template <typename... T, typename F, typename... Args>
+auto enumerate2(F f, Args &&... args) -> auto
+{
+	using array_type = std::tuple<std::vector<T>...>;
+	array_type array;
+	enumerate2(f, array, std::forward<Args>(args)...);
 	return array;
 }
 
