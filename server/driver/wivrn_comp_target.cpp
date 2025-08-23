@@ -483,20 +483,6 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 
 		auto res = vk.device.waitForFences(*cn->psc.fence, true, UINT64_MAX);
 
-		// Update encoder status, release image
-		if ((cn->psc.status &= ~status_bit) == 0)
-		{
-			cn->psc.status.notify_all();
-			for (auto & img: cn->psc.images)
-			{
-				if (img.status == pseudo_swapchain::status_t::encoding)
-				{
-					img.status = pseudo_swapchain::status_t::free;
-					break;
-				}
-			}
-		}
-
 		try
 		{
 			for (auto & encoder: encoders)
@@ -512,6 +498,20 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 		catch (...)
 		{
 			// Ignore errors
+		}
+
+		// Update encoder status, release image
+		if ((cn->psc.status &= ~status_bit) == 0)
+		{
+			cn->psc.status.notify_all();
+			for (auto & img: cn->psc.images)
+			{
+				if (img.status == pseudo_swapchain::status_t::encoding)
+				{
+					img.status = pseudo_swapchain::status_t::free;
+					break;
+				}
+			}
 		}
 	}
 }
