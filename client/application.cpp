@@ -656,6 +656,7 @@ VkBool32 application::vulkan_debug_report_callback(
 	}
 
 #ifndef NDEBUG
+	bool my_error = true;
 	if (level >= spdlog::level::warn)
 	{
 		bool validation_layer_found = false;
@@ -666,10 +667,13 @@ VkBool32 application::vulkan_debug_report_callback(
 
 			if (validation_layer_found && i.library != "libVkLayer_khronos_validation.so")
 				spdlog::log(level, "{:#016x}: {} + {:#x}", i.pc, i.library, i.pc - i.library_base);
+
+			if (i.library == "libopenxr_loader.so")
+				my_error = false;
 		}
 	}
 
-	if (level >= spdlog::level::err)
+	if (level >= spdlog::level::err and my_error)
 		abort();
 #endif
 
