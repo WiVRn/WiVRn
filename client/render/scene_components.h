@@ -59,6 +59,7 @@ struct material
 		float roughness_factor = 1;
 		float occlusion_strength = 0;
 		float normal_scale = 0;
+		float alpha_cutoff = 0.5;
 
 		uint32_t base_color_texcoord = 0;
 		uint32_t metallic_roughness_texcoord = 0;
@@ -67,6 +68,13 @@ struct material
 		uint32_t normal_texcoord = 0;
 
 		// TODO: add fastgltf::TextureTransform?
+	};
+
+	enum class alpha_mode_t
+	{
+		opaque,
+		mask,
+		blend
 	};
 
 	std::shared_ptr<texture> base_color_texture;
@@ -78,9 +86,7 @@ struct material
 	// Disable back face culling with this material
 	bool double_sided = true;
 
-	// TODO transparency
-	// fastgltf::AlphaMode alphaMode;
-	// float alpha_cutoff;
+	alpha_mode_t alpha_mode;
 
 	gpu_data staging;
 
@@ -90,7 +96,6 @@ struct material
 
 	std::string name;
 	std::string shader_name = "lit";
-	bool blend_enable = true;
 };
 
 struct primitive

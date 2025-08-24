@@ -592,7 +592,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                .ColorBlendState = {vk::PipelineColorBlendStateCreateInfo{}},
 	                .ColorBlendAttachments = {vk::PipelineColorBlendAttachmentState{
 	                        .blendEnable = info.blend_enable,
-	                        .srcColorBlendFactor = vk::BlendFactor::eOne,
+	                        .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
 	                        .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
 	                        .colorBlendOp = vk::BlendOp::eAdd,
 	                        .srcAlphaBlendFactor = vk::BlendFactor::eOne,
@@ -875,7 +875,7 @@ void scene_renderer::render(
 			for (renderer::primitive & primitive: node.mesh->primitives)
 			{
 				renderer::material & material = primitive.material_ ? *primitive.material_ : *default_material;
-				primitives.emplace_back(material.blend_enable, position.z, &node, &primitive);
+				primitives.emplace_back(material.alpha_mode == renderer::material::alpha_mode_t::blend, position.z, &node, &primitive);
 			}
 		}
 
@@ -939,9 +939,10 @@ void scene_renderer::render(
 			        .cull_mode = primitive.cull_mode,
 			        .front_face = primitive.front_face,
 			        .topology = primitive.topology,
-			        .blend_enable = material->blend_enable,
+			        .blend_enable = material->alpha_mode == renderer::material::alpha_mode_t::blend,
 
 			        .nb_texcoords = 2, // TODO
+			        .alpha_cutout = material->alpha_mode == renderer::material::alpha_mode_t::mask,
 			        .skinning = !node.joints.empty(),
 			};
 
