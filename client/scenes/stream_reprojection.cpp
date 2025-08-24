@@ -214,8 +214,20 @@ stream_reprojection::stream_reprojection(
 
 	renderpass = vk::raii::RenderPass(device, renderpass_info.get());
 
+	const auto & vk_device_extensions = application::get_vk_device_extensions();
+	bool fragment_shading_rate = false;
+	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and
+	    utils::contains(vk_device_extensions, VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME))
+	{
+		const auto & [prop, rate_prop] = physical_device.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceFragmentShadingRatePropertiesKHR>();
+		const auto & [feat, fragment_feat] = physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
+		fragment_shading_rate = rate_prop.fragmentShadingRateNonTrivialCombinerOps and
+		                        fragment_feat.primitiveFragmentShadingRate and
+		                        fragment_feat.attachmentFragmentShadingRate;
+	}
+
 	// Vertex shader
-	vk::raii::ShaderModule vertex_shader = load_shader(device, "reprojection.vert");
+	vk::raii::ShaderModule vertex_shader = load_shader(device, fragment_shading_rate ? "reprojection_vsr.vert" : "reprojection.vert");
 
 	// Fragment shader
 
@@ -317,40 +329,31 @@ stream_reprojection::stream_reprojection(
 	        .fragmentSize = vk::Extent2D{1, 1},
 	        .combinerOps = combiner,
 	};
-	const auto & vk_device_extensions = application::get_vk_device_extensions();
-	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and
-	    utils::contains(vk_device_extensions, VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME))
+	if (fragment_shading_rate)
 	{
-		const auto & [prop, rate_prop] = physical_device.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceFragmentShadingRatePropertiesKHR>();
-		const auto & [feat, fragment_feat] = physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
-		if (rate_prop.fragmentShadingRateNonTrivialCombinerOps and
-		    fragment_feat.primitiveFragmentShadingRate and
-		    fragment_feat.attachmentFragmentShadingRate)
-		{
-			pipeline_info.pNext = &shading;
+		pipeline_info.pNext = &shading;
 
-			spdlog::info("Available fragment shading rates:");
-			for (const auto rate: physical_device.getFragmentShadingRatesKHR())
+		spdlog::info("Available fragment shading rates:");
+		for (const auto rate: physical_device.getFragmentShadingRatesKHR())
+		{
+			if (rate.sampleCounts & vk::SampleCountFlagBits::e1)
 			{
-				if (rate.sampleCounts & vk::SampleCountFlagBits::e1)
+				spdlog::info("\tfragment size: {}x{}", rate.fragmentSize.width, rate.fragmentSize.height);
+				int flags = 0;
+				if (rate.fragmentSize.width == 4)
+					flags |= 8;
+				else if (rate.fragmentSize.width == 2)
+					flags |= 4;
+				if (rate.fragmentSize.height == 4)
+					flags |= 2;
+				else if (rate.fragmentSize.height == 2)
+					flags |= 1;
+				for (int y = std::bit_width(rate.fragmentSize.height) - 1; y < 3; ++y)
 				{
-					spdlog::info("\tfragment size: {}x{}", rate.fragmentSize.width, rate.fragmentSize.height);
-					int flags = 0;
-					if (rate.fragmentSize.width == 4)
-						flags |= 8;
-					else if (rate.fragmentSize.width == 2)
-						flags |= 4;
-					if (rate.fragmentSize.height == 4)
-						flags |= 2;
-					else if (rate.fragmentSize.height == 2)
-						flags |= 1;
-					for (int y = std::bit_width(rate.fragmentSize.height) - 1; y < 3; ++y)
+					for (int x = std::bit_width(rate.fragmentSize.width) - 1; x < 3; ++x)
 					{
-						for (int x = std::bit_width(rate.fragmentSize.width) - 1; x < 3; ++x)
-						{
-							if (fragment_sizes[x][y] == 0)
-								fragment_sizes[x][y] = flags;
-						}
+						if (fragment_sizes[x][y] == 0)
+							fragment_sizes[x][y] = flags;
 					}
 				}
 			}
