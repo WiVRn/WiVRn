@@ -19,6 +19,7 @@
 
 #include "scene.h"
 #include "application.h"
+#include "render/scene_components.h"
 #include "utils/contains.h"
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
@@ -477,6 +478,7 @@ std::pair<entt::entity, components::node &> scene::add_gltf(std::shared_ptr<entt
 		entity_map.emplace(prefab_entity, scene_entity);
 
 	copy_components<components::node>(world, *gltf, entity_map);
+	copy_components<components::animation>(world, *gltf, entity_map);
 
 	// update links
 	for (auto [prefab_entity, scene_entity]: entity_map)
@@ -484,13 +486,25 @@ std::pair<entt::entity, components::node &> scene::add_gltf(std::shared_ptr<entt
 		if (prefab_entity == entt::null)
 			continue;
 
-		auto & node = world.get<components::node>(scene_entity);
+		auto * node = world.try_get<components::node>(scene_entity);
+		auto * anim = world.try_get<components::animation>(scene_entity);
 
-		node.parent = entity_map.at(node.parent);
-
-		for (auto & joint: node.joints)
+		if (node)
 		{
-			joint.first = entity_map.at(joint.first);
+			node->parent = entity_map.at(node->parent);
+
+			for (auto & joint: node->joints)
+			{
+				joint.first = entity_map.at(joint.first);
+			}
+		}
+
+		if (anim)
+		{
+			for (auto & track: anim->tracks)
+			{
+				std::visit(utils::overloaded{[&](auto & t) { t.target = entity_map.at(t.target); }}, track);
+			}
 		}
 	}
 

@@ -20,6 +20,9 @@
 
 #include <array>
 #include <memory>
+#include <type_traits>
+#include <utility>
+#include <variant>
 #include <vector>
 
 #include <entt/entity/entity.hpp>
@@ -115,6 +118,7 @@ struct primitive
 	std::shared_ptr<material> material_;
 };
 
+// TODO make sure the mesh cannot be changed while it is used
 struct mesh
 {
 	std::vector<primitive> primitives;
@@ -126,7 +130,7 @@ struct vertex
 {
 	glm::vec3 position;
 	glm::vec3 normal;
-	glm::vec3 tangent;
+	glm::vec4 tangent;
 	std::array<glm::vec2, 2> texcoord;
 	glm::vec4 color;
 	std::array<glm::vec4, 1> joints;
@@ -177,6 +181,55 @@ struct node
 	bool reverse_side;
 	uint32_t global_layer_mask;
 };
+
+struct animation_track_base
+{
+	enum class interpolation_t
+	{
+		step,
+		linear,
+		cubic_spline,
+	};
+
+	entt::entity target;
+	interpolation_t interpolation;
+};
+
+template <auto node::*Field>
+struct animation_track_impl : animation_track_base
+{
+	static const constexpr auto field = Field;
+	using type = std::remove_reference_t<decltype(std::declval<node>().*field)>;
+
+	std::vector<float> timestamp;
+	std::vector<type> value;
+};
+
+using animation_track_position = animation_track_impl<&node::position>;
+using animation_track_orientation = animation_track_impl<&node::orientation>;
+using animation_track_scale = animation_track_impl<&node::scale>;
+
+static_assert(std::is_same_v<animation_track_position::type, glm::vec3>);
+static_assert(std::is_same_v<animation_track_orientation::type, glm::quat>);
+static_assert(std::is_same_v<animation_track_scale::type, glm::vec3>);
+
+struct animation
+{
+	std::string name;
+	std::vector<
+	        std::variant<
+	                animation_track_position,
+	                animation_track_orientation,
+	                animation_track_scale>>
+	        tracks;
+
+	float duration = 0;
+
+	float current_time = 0;
+	bool playing = true;
+	bool looping = true;
+};
+
 } // namespace components
 
 entt::entity find_node_by_name(entt::registry & scene, std::string_view name);
