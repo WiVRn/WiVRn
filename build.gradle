@@ -208,4 +208,18 @@ android {
             }
         }
     }
+
+    buildTypes.all { variant ->
+        sourceSets {
+            "${variant.name}" {
+                jniLibs.srcDirs layout.buildDirectory.dir("libs${variant.name.capitalize()}")
+            }
+        }
+
+        externalNativeBuild{
+            cmake {
+                arguments '-DCMAKE_ANDROID_LIB_DIRECTORIES=' + layout.buildDirectory.dir("libs${variant.name.capitalize()}").get().asFile
+            }
+        }
+    }
 }
