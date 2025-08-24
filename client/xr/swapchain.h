@@ -38,7 +38,6 @@ public:
 	struct image
 	{
 		vk::Image image{};
-		vk::raii::ImageView view = nullptr;
 	};
 
 private:

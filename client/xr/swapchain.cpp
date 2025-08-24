@@ -68,24 +68,7 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 
 	images_.resize(array.size());
 	for (uint32_t i = 0; i < array.size(); i++)
-	{
 		images_[i].image = array[i].image;
-
-		vk::ImageViewCreateInfo iv_create_info{
-		        .image = array[i].image,
-		        .viewType = vk::ImageViewType::e2D,
-		        .format = format,
-		        .components = {},
-		        .subresourceRange = {
-		                .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                .baseMipLevel = 0,
-		                .levelCount = 1,
-		                .baseArrayLayer = 0,
-		                .layerCount = 1,
-		        }};
-
-		images_[i].view = vk::raii::ImageView(device, iv_create_info);
-	}
 }
 
 int xr::swapchain::acquire()
