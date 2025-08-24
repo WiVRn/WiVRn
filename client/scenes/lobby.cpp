@@ -26,6 +26,7 @@
 #include "imgui.h"
 #include "openxr/openxr.h"
 #include "protocol_version.h"
+#include "render/animation.h"
 #include "stream.h"
 #include "utils/i18n.h"
 #include "wivrn_client.h"
@@ -723,6 +724,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	}
 
 	input->apply(world, world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller, ray_limits);
+
+	renderer::animate(world, frame_state.predictedDisplayPeriod * 1.0e-9);
 
 	assert(renderer);
 
