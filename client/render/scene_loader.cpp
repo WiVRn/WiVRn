@@ -174,6 +174,21 @@ glm::vec3 convert(const fastgltf::math::nvec3 & v)
 {
 	return {v[0], v[1], v[2]};
 }
+
+renderer::material::alpha_mode_t convert(fastgltf::AlphaMode alpha_mode)
+{
+	switch (alpha_mode)
+	{
+		case fastgltf::AlphaMode::Opaque:
+			return renderer::material::alpha_mode_t::opaque;
+		case fastgltf::AlphaMode::Mask:
+			return renderer::material::alpha_mode_t::mask;
+		case fastgltf::AlphaMode::Blend:
+			return renderer::material::alpha_mode_t::blend;
+	}
+
+	throw std::invalid_argument("alpha_mode");
+}
 // END
 
 // BEGIN Vertex attributes loading
@@ -548,53 +563,54 @@ public:
 		for (const fastgltf::Material & gltf_material: gltf.materials)
 		{
 			// Copy the default material, without references to its buffer or descriptor set
-			auto & material_ref = *materials.emplace_back(std::make_shared<renderer::material>(default_material));
-			material_ref.name = gltf_material.name;
-			material_ref.buffer.reset();
+			auto & material = *materials.emplace_back(std::make_shared<renderer::material>(default_material));
+			material.name = gltf_material.name;
+			material.buffer.reset();
 
-			material_ref.double_sided = gltf_material.doubleSided;
-			material_ref.blend_enable = gltf_material.alphaMode == fastgltf::AlphaMode::Blend; // TODO handle alpha cut off mode
+			material.double_sided = gltf_material.doubleSided;
+			material.alpha_mode = convert(gltf_material.alphaMode);
 
-			renderer::material::gpu_data & material_data = material_ref.staging;
+			renderer::material::gpu_data & material_data = material.staging;
 
 			material_data.base_color_factor = convert(gltf_material.pbrData.baseColorFactor);
 			material_data.base_emissive_factor = glm::vec4(convert(gltf_material.emissiveFactor), 0);
 			material_data.metallic_factor = gltf_material.pbrData.metallicFactor;
 			material_data.roughness_factor = gltf_material.pbrData.roughnessFactor;
+			material_data.alpha_cutoff = gltf_material.alphaCutoff;
 
 			if (gltf_material.pbrData.baseColorTexture)
 			{
-				material_ref.base_color_texture = textures.at(gltf_material.pbrData.baseColorTexture->textureIndex);
+				material.base_color_texture = textures.at(gltf_material.pbrData.baseColorTexture->textureIndex);
 				material_data.base_color_texcoord = gltf_material.pbrData.baseColorTexture->texCoordIndex;
 			}
 
 			if (gltf_material.pbrData.metallicRoughnessTexture)
 			{
-				material_ref.metallic_roughness_texture = textures.at(gltf_material.pbrData.metallicRoughnessTexture->textureIndex);
+				material.metallic_roughness_texture = textures.at(gltf_material.pbrData.metallicRoughnessTexture->textureIndex);
 				material_data.metallic_roughness_texcoord = gltf_material.pbrData.metallicRoughnessTexture->texCoordIndex;
 			}
 
 			if (gltf_material.occlusionTexture)
 			{
-				material_ref.occlusion_texture = textures.at(gltf_material.occlusionTexture->textureIndex);
+				material.occlusion_texture = textures.at(gltf_material.occlusionTexture->textureIndex);
 				material_data.occlusion_texcoord = gltf_material.occlusionTexture->texCoordIndex;
 				material_data.occlusion_strength = gltf_material.occlusionTexture->strength;
 			}
 
 			if (gltf_material.emissiveTexture)
 			{
-				material_ref.emissive_texture = textures.at(gltf_material.emissiveTexture->textureIndex);
+				material.emissive_texture = textures.at(gltf_material.emissiveTexture->textureIndex);
 				material_data.emissive_texcoord = gltf_material.emissiveTexture->texCoordIndex;
 			}
 
 			if (gltf_material.normalTexture)
 			{
-				material_ref.normal_texture = textures.at(gltf_material.normalTexture->textureIndex);
+				material.normal_texture = textures.at(gltf_material.normalTexture->textureIndex);
 				material_data.normal_texcoord = gltf_material.normalTexture->texCoordIndex;
 				material_data.normal_scale = gltf_material.normalTexture->scale;
 			}
 
-			material_ref.offset = staging_buffer.add_uniform(material_data);
+			material.offset = staging_buffer.add_uniform(material_data);
 		}
 
 		return materials;
