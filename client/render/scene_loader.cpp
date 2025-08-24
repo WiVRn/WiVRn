@@ -27,6 +27,7 @@
 #include <fastgltf/base64.hpp>
 #include <fastgltf/core.hpp>
 #include <fastgltf/glm_element_traits.hpp>
+#include <fastgltf/math.hpp>
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/util.hpp>
@@ -188,6 +189,21 @@ renderer::material::alpha_mode_t convert(fastgltf::AlphaMode alpha_mode)
 	}
 
 	throw std::invalid_argument("alpha_mode");
+}
+
+components::animation_track_base::interpolation_t convert(fastgltf::AnimationInterpolation interpolation)
+{
+	switch (interpolation)
+	{
+		case fastgltf::AnimationInterpolation::Linear:
+			return components::animation_track_base::interpolation_t::linear;
+		case fastgltf::AnimationInterpolation::Step:
+			return components::animation_track_base::interpolation_t::step;
+		case fastgltf::AnimationInterpolation::CubicSpline:
+			return components::animation_track_base::interpolation_t::cubic_spline;
+	}
+
+	throw std::invalid_argument("interpolation");
 }
 // END
 
@@ -691,19 +707,17 @@ public:
 		return meshes;
 	}
 
-	std::shared_ptr<entt::registry> load_all_nodes(const std::vector<std::shared_ptr<renderer::mesh>> & meshes)
+	std::vector<entt::entity> load_all_nodes(entt::registry & registry, const std::vector<std::shared_ptr<renderer::mesh>> & meshes)
 	{
-		auto registry = std::make_shared<entt::registry>();
-
 		std::vector<entt::entity> entities{gltf.nodes.size()};
-		registry->create(entities.begin(), entities.end());
+		registry.create(entities.begin(), entities.end());
 
 		// Create all node components first
-		registry->insert<components::node>(entities.begin(), entities.end());
+		registry.insert<components::node>(entities.begin(), entities.end());
 
 		for (const auto & [entity, gltf_node]: std::ranges::zip_view(entities, gltf.nodes))
 		{
-			components::node & node = registry->get<components::node>(entity);
+			components::node & node = registry.get<components::node>(entity);
 			node.name = gltf_node.name;
 
 			if (gltf_node.meshIndex)
@@ -730,7 +744,7 @@ public:
 
 			for (size_t child: gltf_node.children)
 			{
-				registry->get<components::node>(entities[child]).parent = entity;
+				registry.get<components::node>(entities[child]).parent = entity;
 			}
 
 			auto TRS = std::get<fastgltf::TRS>(gltf_node.transform);
@@ -742,7 +756,117 @@ public:
 			std::ranges::fill(node.clipping_planes, glm::vec4{0, 0, 0, 1});
 		}
 
-		return registry;
+		return entities;
+	}
+
+	void load_all_animations(entt::registry & registry, const std::vector<entt::entity> & node_entities)
+	{
+		std::vector<entt::entity> entities{gltf.animations.size()};
+		registry.create(entities.begin(), entities.end());
+
+		// Create all animation components first
+		registry.insert<components::animation>(entities.begin(), entities.end());
+
+		for (const auto & [entity, gltf_animation]: std::ranges::zip_view(entities, gltf.animations))
+		{
+			auto & animation = registry.get<components::animation>(entity);
+			animation.name = gltf_animation.name;
+			animation.tracks.reserve(gltf_animation.channels.size());
+
+			for (const auto & channel: gltf_animation.channels)
+			{
+				if (not channel.nodeIndex.has_value() or *channel.nodeIndex > node_entities.size())
+					// Ignore this channel
+					continue;
+
+				const auto & sampler = gltf_animation.samplers.at(channel.samplerIndex);
+				const auto & time = gltf.accessors.at(sampler.inputAccessor);
+				const auto & value = gltf.accessors.at(sampler.outputAccessor);
+				const auto interpolation = convert(sampler.interpolation);
+
+				switch (interpolation)
+				{
+					case components::animation_track_base::interpolation_t::step:
+					case components::animation_track_base::interpolation_t::linear:
+						if (time.count != value.count)
+							// There must be the same number of elements
+							continue;
+						break;
+
+					case components::animation_track_base::interpolation_t::cubic_spline:
+						// TODO: does not work for morph targets
+						if (3 * time.count != value.count or time.count < 2)
+							continue;
+						break;
+				}
+
+				size_t count = time.count;
+				switch (channel.path)
+				{
+					// TODO: templatize the switch
+					case fastgltf::AnimationPath::Translation: {
+						components::animation_track_position track;
+						track.target = node_entities.at(*channel.nodeIndex);
+						track.interpolation = interpolation;
+						track.timestamp.resize(time.count);
+						track.value.resize(value.count);
+
+						fastgltf::iterateAccessorWithIndex<float>(gltf, time, [&](float t, size_t index) {
+							track.timestamp[index] = t;
+							animation.duration = std::max(animation.duration, t);
+						});
+
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, value, [&](glm::vec3 value, size_t index) {
+							track.value[index] = value;
+						});
+
+						animation.tracks.emplace_back(std::move(track));
+						break;
+					}
+					case fastgltf::AnimationPath::Rotation: {
+						components::animation_track_orientation track;
+						track.target = node_entities.at(*channel.nodeIndex);
+						track.interpolation = interpolation;
+						track.timestamp.resize(time.count);
+						track.value.resize(value.count);
+
+						fastgltf::iterateAccessorWithIndex<float>(gltf, time, [&](float t, size_t index) {
+							track.timestamp[index] = t;
+							animation.duration = std::max(animation.duration, t);
+						});
+
+						fastgltf::iterateAccessorWithIndex<glm::vec4>(gltf, value, [&](glm::vec4 value, size_t index) {
+							track.value[index] = glm::quat::wxyz(value.w, value.x, value.y, value.z);
+						});
+
+						animation.tracks.emplace_back(std::move(track));
+						break;
+					}
+					case fastgltf::AnimationPath::Scale: {
+						components::animation_track_scale track;
+						track.target = node_entities.at(*channel.nodeIndex);
+						track.interpolation = interpolation;
+						track.timestamp.resize(time.count);
+						track.value.resize(value.count);
+
+						fastgltf::iterateAccessorWithIndex<float>(gltf, time, [&](float t, size_t index) {
+							track.timestamp[index] = t;
+							animation.duration = std::max(animation.duration, t);
+						});
+
+						fastgltf::iterateAccessorWithIndex<glm::vec3>(gltf, value, [&](glm::vec3 value, size_t index) {
+							track.value[index] = value;
+						});
+
+						animation.tracks.emplace_back(std::move(track));
+						break;
+					}
+					case fastgltf::AnimationPath::Weights:
+						// TODO morph weights
+						break;
+				}
+			}
+		}
 	}
 };
 
@@ -833,7 +957,11 @@ std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::
 	auto meshes = ctx.load_all_meshes(materials, staging_buffer);
 
 	// Load all nodes
-	auto loaded_scene = ctx.load_all_nodes(meshes);
+	auto loaded_scene = std::make_shared<entt::registry>();
+	auto node_entities = ctx.load_all_nodes(*loaded_scene, meshes);
+
+	// Load animations
+	ctx.load_all_animations(*loaded_scene, node_entities);
 
 	// Copy the staging buffer to the GPU
 	spdlog::debug("Uploading scene data ({} bytes) to GPU memory", staging_buffer.size());
