@@ -80,7 +80,7 @@ layout(set = 0, binding = 8) uniform material_ubo
 #ifdef VERT_SHADER
 layout(location = 0) in vec3 in_position;
 layout(location = 1) in vec3 in_normal;
-layout(location = 2) in vec3 in_tangent;
+layout(location = 2) in vec4 in_tangent;
 layout(location = 3) in vec2 in_texcoord[2];
 layout(location = 5) in vec4 in_color;
 layout(location = 6) in vec4 in_joints;
