@@ -1033,9 +1033,9 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 
 	std::shared_ptr<loaded_image> image;
 	if (name == "")
-		image = image_cache->load_uncached(bytes, srgb);
+		image = image_cache->load_uncached(bytes, srgb, "", true /* premultiply alpha */);
 	else
-		image = image_cache->load(name, bytes, srgb, name);
+		image = image_cache->load(name, bytes, srgb, name, true /* premultiply alpha */);
 
 	std::shared_ptr<vk::raii::DescriptorSet> ds = descriptor_pool.allocate();
 
