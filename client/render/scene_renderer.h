@@ -159,6 +159,7 @@ class scene_renderer
 	//  roughness_factor     1.0
 	//  occlusion_strength   0.0
 	//  normal_scale         0.0
+	//  alpha_cutoff         0.5
 	std::shared_ptr<renderer::material> default_material;
 
 	struct frame_gpu_data

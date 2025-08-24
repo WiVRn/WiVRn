@@ -66,6 +66,7 @@ layout(set = 0, binding = 8) uniform material_ubo
 	float roughness_factor;
 	float occlusion_strength;
 	float normal_scale;
+	float alpha_cutoff;
 
 	int base_color_texcoord;
 	int metallic_roughness_texcoord;
@@ -212,9 +213,15 @@ void main()
 		ivec2 tmp = ivec2(gl_FragCoord.xy) % 4;
 		float dither_thd = 1.0f - dither_pattern[tmp.x][tmp.y];
 
-		out_color = bc + one_over_d_linear_to_srgb(bc) * vec4(dither_thd, dither_thd, dither_thd, dither_thd) / 255.0f;
+		out_color = bc + one_over_d_linear_to_srgb(bc) * vec4(dither_thd, dither_thd, dither_thd, 0) / 255.0f;
 	}
 	else
 		out_color = bc;
+
+	if (alpha_cutout)
+	{
+		if (out_color.a <= material.alpha_cutoff)
+			discard;
+	}
 }
 #endif
