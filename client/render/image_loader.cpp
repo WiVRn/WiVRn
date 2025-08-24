@@ -318,8 +318,54 @@ image_loader::~image_loader()
 	ktxVulkanDeviceInfo_Destruct(&vdi);
 }
 
-loaded_image image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format, const std::string & name)
+template <typename T>
+void premultiply_alpha_aux(const T * source, T * destination, float alpha_scale, int width, int height)
 {
+	for (int i = 0, n = width * height; i < n; i++)
+	{
+		float alpha = source[4 * i + 3] * alpha_scale;
+
+		destination[4 * i + 0] = source[4 * i + 0] * alpha;
+		destination[4 * i + 1] = source[4 * i + 1] * alpha;
+		destination[4 * i + 2] = source[4 * i + 2] * alpha;
+	}
+}
+
+static std::unique_ptr<char[]> premultiply_alpha(const void * pixels, vk::Extent3D extent, vk::Format format)
+{
+	std::unique_ptr<char[]> destination{new char[extent.width * extent.height * bytes_per_pixel(format)]};
+
+	switch (format)
+	{
+		case vk::Format::eR8G8B8A8Srgb: // TODO: sRGB
+		case vk::Format::eR8G8B8A8Unorm:
+			premultiply_alpha_aux<uint8_t>((const uint8_t *)pixels, (uint8_t *)destination.get(), 1. / 255., extent.width, extent.height);
+			break;
+
+		case vk::Format::eR16G16B16A16Unorm:
+			premultiply_alpha_aux<uint16_t>((const uint16_t *)pixels, (uint16_t *)destination.get(), 1. / 65535., extent.width, extent.height);
+			break;
+
+		case vk::Format::eR32G32B32A32Sfloat:
+			premultiply_alpha_aux<float>((const float *)pixels, (float *)destination.get(), 1, extent.width, extent.height);
+			break;
+
+		default:
+			break;
+	}
+
+	return destination;
+}
+
+loaded_image image_loader::do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format, const std::string & name, bool premultiply)
+{
+	std::unique_ptr<char[]> pixels2;
+	if (premultiply)
+	{
+		pixels2 = premultiply_alpha(pixels, extent, format);
+		pixels = pixels2.get();
+	}
+
 	auto cb = std::move(device.allocateCommandBuffers({
 	        .commandPool = *cb_pool,
 	        .level = vk::CommandBufferLevel::ePrimary,
@@ -544,6 +590,7 @@ loaded_image image_loader::do_load_raw(const void * pixels, vk::Extent3D extent,
 	        .extent = extent,
 	        .num_mipmaps = num_mipmaps,
 	        .image_view_type = image_view_type,
+	        .is_alpha_premultiplied = premultiply,
 	};
 }
 
@@ -609,6 +656,7 @@ loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool sr
 	        .extent{vk::Extent3D(texture->baseWidth, texture->baseHeight, texture->baseDepth)},
 	        .num_mipmaps = texture->numLevels,
 	        .image_view_type = vk::ImageViewType(vk_texture.viewType),
+	        .is_alpha_premultiplied = ktxTexture2_GetPremultipliedAlpha(texture),
 	};
 }
 
@@ -617,42 +665,7 @@ static constexpr bool starts_with(std::span<const std::byte> data, std::span<con
 	return data.size() >= prefix.size() && !memcmp(data.data(), prefix.data(), prefix.size());
 }
 
-template <typename T>
-void premultiply_alpha_aux(T * pixels, float alpha_scale, int width, int height)
-{
-	for (int i = 0, n = width * height; i < n; i++)
-	{
-		float alpha = pixels[4 * i + 3] * alpha_scale;
-
-		pixels[4 * i + 0] = pixels[4 * i + 0] * alpha;
-		pixels[4 * i + 1] = pixels[4 * i + 1] * alpha;
-		pixels[4 * i + 2] = pixels[4 * i + 2] * alpha;
-	}
-}
-
-static void premultiply_alpha(void * pixels, vk::Extent3D extent, vk::Format format)
-{
-	switch (format)
-	{
-		case vk::Format::eR8G8B8A8Srgb: // TODO: sRGB
-		case vk::Format::eR8G8B8A8Unorm:
-			premultiply_alpha_aux<uint8_t>((uint8_t *)pixels, 1. / 255., extent.width, extent.height);
-			break;
-
-		case vk::Format::eR16G16B16A16Unorm:
-			premultiply_alpha_aux<uint16_t>((uint16_t *)pixels, 1. / 65535., extent.width, extent.height);
-			break;
-
-		case vk::Format::eR32G32B32A32Sfloat:
-			premultiply_alpha_aux<float>((float *)pixels, 1, extent.width, extent.height);
-			break;
-
-		default:
-			break;
-	}
-}
-
-loaded_image image_loader::do_load_image(std::span<const std::byte> bytes, bool srgb, const std::string & name)
+loaded_image image_loader::do_load_image(std::span<const std::byte> bytes, bool srgb, const std::string & name, bool premultiply)
 {
 	const stbi_uc * image_data = (const stbi_uc *)bytes.data();
 	size_t image_size = bytes.size();
@@ -691,13 +704,11 @@ loaded_image image_loader::do_load_image(std::span<const std::byte> bytes, bool 
 	        .depth = 1,
 	};
 
-	premultiply_alpha(pixels.get(), extent, format);
-
-	return do_load_raw(pixels.get(), extent, format, name);
+	return do_load_raw(pixels.get(), extent, format, name, premultiply);
 }
 
 // Load a PNG/JPEG/KTX2 file
-loaded_image image_loader::load(std::span<const std::byte> bytes, bool srgb, const std::string & name)
+loaded_image image_loader::load(std::span<const std::byte> bytes, bool srgb, const std::string & name, bool premultiply)
 {
 	const uint8_t ktx1_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 	const uint8_t ktx2_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
@@ -705,14 +716,14 @@ loaded_image image_loader::load(std::span<const std::byte> bytes, bool srgb, con
 	if (starts_with(bytes, ktx1_magic) || starts_with(bytes, ktx2_magic))
 		return do_load_ktx(bytes, srgb, name);
 	else
-		return do_load_image(bytes, srgb, name);
+		return do_load_image(bytes, srgb, name, premultiply);
 }
 
 // Load raw pixel data
-loaded_image image_loader::load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format, const std::string & name)
+loaded_image image_loader::load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format, const std::string & name, bool premultiply)
 {
 	if (size < extent.width * extent.height * extent.depth * bytes_per_pixel(format))
 		throw std::invalid_argument("size");
 
-	return do_load_raw(pixels, extent, format, name);
+	return do_load_raw(pixels, extent, format, name, premultiply);
 }
