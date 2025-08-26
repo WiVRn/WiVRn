@@ -17,45 +17,86 @@ allprojects {
 
 apply plugin: 'com.android.application'
 
-task "generatePngs"() {
-    group = 'Custom'
 
-    mkdir layout.buildDirectory.dir('generated_resources')
-    ["mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi", "mipmap-xxhdpi", "mipmap-xxxhdpi", ].each {
-        mkdir layout.buildDirectory.dir("generated_resources/${it}")
-    }
+import javax.inject.Inject
+import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.*
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.process.ExecOperations
 
-    def css = project.hasProperty('wivrn_css') ? project.wivrn_css: "images/wivrn-local.css"
+abstract class GeneratePngsTask extends DefaultTask {
+    @Inject
+    abstract ExecOperations getExecOps()
 
-    exec {
-        executable = 'rsvg-convert'
-        args = [ "images/wivrn.svg", "-w", "48", "-h", "48", "-o", layout.buildDirectory.file('generated_resources/mipmap-mdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
-    }
+    @InputFile
+    abstract RegularFileProperty getSvg()
 
-    exec {
-        executable = 'rsvg-convert'
-        args = [ "images/wivrn.svg", "-w", "72", "-h", "72", "-o", layout.buildDirectory.file('generated_resources/mipmap-hdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
-    }
+    @InputFile
+    @Optional
+    abstract RegularFileProperty getCss()
 
-    exec {
-        executable = 'rsvg-convert'
-        args = [ "images/wivrn.svg", "-w", "96", "-h", "96", "-o", layout.buildDirectory.file('generated_resources/mipmap-xhdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
-    }
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDir()
 
-    exec {
-        executable = 'rsvg-convert'
-        args = [ "images/wivrn.svg", "-w", "144", "-h", "144", "-o", layout.buildDirectory.file('generated_resources/mipmap-xxhdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
-    }
+    @TaskAction
+    void generate() {
+        def outDir = getOutputDir().get().asFile
+        outDir.mkdirs()
 
-    exec {
-        executable = 'rsvg-convert'
-        args = [ "images/wivrn.svg", "-w", "192", "-h", "192", "-o", layout.buildDirectory.file('generated_resources/mipmap-xxxhdpi/ic_wivrn_launcher.png').get().asFile, '--stylesheet=' + css ]
+        // Map of density → size
+        def dpiConfigs = [
+            "mipmap-mdpi"   : 48,
+            "mipmap-hdpi"   : 72,
+            "mipmap-xhdpi"  : 96,
+            "mipmap-xxhdpi" : 144,
+            "mipmap-xxxhdpi": 192
+        ]
+
+        def cssFile = getCss().isPresent() ? getCss().get().asFile : null
+
+        dpiConfigs.each { dpi, size ->
+            def dpiDir = new File(outDir, dpi)
+            dpiDir.mkdirs()
+
+            def outputFile = new File(dpiDir, "ic_wivrn_launcher.png")
+
+            def argsList = [
+                getSvg().get().asFile.absolutePath,
+                "-w", size.toString(),
+                "-h", size.toString(),
+                "-o", outputFile.absolutePath
+            ]
+            if (cssFile != null) {
+                argsList.add("--stylesheet=${cssFile.absolutePath}")
+            }
+
+            execOps.exec {
+                executable = "rsvg-convert"
+                args = argsList
+            }
+        }
     }
 }
 
+tasks.register("generatePngs", GeneratePngsTask) {
+    group = "Custom"
+
+    // configure defaults
+    svg.set(layout.projectDirectory.file("images/wivrn.svg"))
+    outputDir.set(layout.buildDirectory.dir("generated_resources"))
+
+    if (project.hasProperty("wivrn_css")) {
+        css.set(layout.projectDirectory.file(project.wivrn_css))
+    } else {
+        css.set(layout.projectDirectory.file("images/wivrn-local.css"))
+    }
+}
+
+
+
 android {
-    namespace "org.meumeu.wivrn"
-    ndkVersion "28.1.13356709"
+    namespace = "org.meumeu.wivrn"
+    ndkVersion = "28.1.13356709"
 
     lint {
         disable += "ExpiredTargetSdkVersion"
@@ -106,7 +147,7 @@ android {
                 keyAlias "default_key"
                 storePassword signingKeyPassword // Set in gradle.properties
                 keyPassword signingKeyPassword
-                enableV2Signing true
+                enableV2Signing = true
             }
         }
     }
@@ -114,7 +155,7 @@ android {
     buildTypes {
         if (project.hasProperty("signingKeyPassword")) {
             release {
-                signingConfig signingConfigs.release
+                signingConfig = signingConfigs.release
             }
         }
 
@@ -183,7 +224,7 @@ android {
 
     externalNativeBuild {
         cmake {
-            version '3.30.3'
+            version = '3.30.3'
             path    'CMakeLists.txt'
         }
     }
