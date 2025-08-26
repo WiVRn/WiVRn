@@ -425,6 +425,9 @@ static xrt_device_name get_name(interaction_profile profile)
 			return XRT_DEVICE_SAMSUNG_ODYSSEY_CONTROLLER;
 		case interaction_profile::valve_index_controller:
 			return XRT_DEVICE_INDEX_CONTROLLER;
+		case wivrn::interaction_profile::touch_controller_yvr:
+			// FIXME: not implemented in Monado
+			return XRT_DEVICE_TOUCH_CONTROLLER;
 	}
 	throw std::runtime_error("invalid interaction profile id " + std::to_string(int(profile)));
 }
