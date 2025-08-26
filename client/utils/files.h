@@ -1,6 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2023-2024 Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2023-2025 Guillaume Meunier <guillaume.meunier@centraliens.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <span>
 #include <vector>
 
 namespace utils
@@ -53,4 +54,29 @@ static void write_whole_file(std::filesystem::path filename, T bytes)
 
 	file.write(reinterpret_cast<const char *>(bytes.data()), bytes.size() * sizeof(typename T::value_type));
 }
+
+class mapped_file
+{
+	int fd = -1;
+	std::span<std::byte> data{};
+
+	void map();
+
+public:
+	mapped_file() = default;
+	mapped_file(const mapped_file &) = delete;
+	mapped_file(mapped_file &&);
+	mapped_file & operator=(const mapped_file &) = delete;
+	mapped_file & operator=(mapped_file &&);
+	~mapped_file();
+
+	mapped_file(int fd);
+	mapped_file(const std::filesystem::path & path);
+
+	operator std::span<const std::byte>() const
+	{
+		return data;
+	}
+};
+
 } // namespace utils
