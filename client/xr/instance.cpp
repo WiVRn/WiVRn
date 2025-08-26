@@ -25,6 +25,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <map>
+#include <set>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
@@ -42,7 +44,37 @@ static XrBool32 debug_callback(
 	return XR_FALSE;
 }
 
-static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & info)
+static const std::map<XrVersion, std::set<std::string_view, std::less<>>> promoted_extensions = {
+        {
+                XR_MAKE_VERSION(1, 1, 0),
+                {
+                        XR_KHR_LOCATE_SPACES_EXTENSION_NAME,
+                        XR_KHR_MAINTENANCE1_EXTENSION_NAME,
+                        XR_EXT_HP_MIXED_REALITY_CONTROLLER_EXTENSION_NAME,
+                        XR_EXT_LOCAL_FLOOR_EXTENSION_NAME,
+                        XR_EXT_PALM_POSE_EXTENSION_NAME,
+                        XR_EXT_SAMSUNG_ODYSSEY_CONTROLLER_EXTENSION_NAME,
+                        XR_EXT_UUID_EXTENSION_NAME,
+                        XR_BD_CONTROLLER_INTERACTION_EXTENSION_NAME,
+                        XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME,
+                        XR_HTC_VIVE_COSMOS_CONTROLLER_INTERACTION_EXTENSION_NAME,
+                        XR_HTC_VIVE_FOCUS3_CONTROLLER_INTERACTION_EXTENSION_NAME,
+                        XR_META_TOUCH_CONTROLLER_PLUS_EXTENSION_NAME,
+                        XR_ML_ML2_CONTROLLER_INTERACTION_EXTENSION_NAME,
+                        XR_VARJO_QUAD_VIEWS_EXTENSION_NAME,
+                },
+        },
+};
+
+static bool is_promoted(XrVersion version, const char * extension)
+{
+	auto it = promoted_extensions.find(XR_MAKE_VERSION(XR_VERSION_MAJOR(version), XR_VERSION_MINOR(version), 0));
+	if (it == promoted_extensions.end())
+		return false;
+	return it->second.contains(extension);
+}
+
+static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & info, std::vector<const char *> & in_extensions)
 {
 	XrResult res;
 	for (XrVersion version: {
@@ -50,11 +82,21 @@ static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & i
 	             XR_API_VERSION_1_0,
 	     })
 	{
+		std::vector<const char *> extensions;
+		std::ranges::copy_if(
+		        in_extensions,
+		        std::back_inserter(extensions),
+		        [version](const char * ext) { return not is_promoted(version, ext); });
 		info.applicationInfo.apiVersion = version;
+		info.enabledExtensionNames = extensions.data();
+		info.enabledExtensionCount = extensions.size();
 		XrInstance inst;
 		res = xrCreateInstance(&info, &inst);
 		if (XR_SUCCEEDED(res))
+		{
+			std::swap(in_extensions, extensions);
 			return {version, inst};
+		}
 		spdlog::info("Failed to create OpenXR instance version {}: {}",
 		             xr::to_string(version),
 		             xr::to_string(res));
@@ -129,20 +171,6 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 #endif
 	}
 
-	spdlog::info("Using OpenXR extensions:");
-	for (auto & i: extensions)
-	{
-		uint32_t version = 0;
-		for (auto & j: all_extensions)
-		{
-			if (!strcmp(j.extensionName, i))
-				version = j.extensionVersion;
-		}
-
-		loaded_extensions.emplace(i, version);
-		spdlog::info("    {}", i);
-	}
-
 	XrInstanceCreateInfo create_info{
 	        .type = XR_TYPE_INSTANCE_CREATE_INFO,
 	        .enabledApiLayerCount = (uint32_t)layers.size(),
@@ -161,7 +189,21 @@ xr::instance::instance(std::string_view application_name, std::vector<const char
 	create_info.next = &instanceCreateInfoAndroid;
 #endif
 
-	std::tie(api_version, id) = create_instance(create_info);
+	std::tie(api_version, id) = create_instance(create_info, extensions);
+
+	spdlog::info("Using OpenXR extensions:");
+	for (auto i: extensions)
+	{
+		uint32_t version = 0;
+		for (auto & j: all_extensions)
+		{
+			if (!strcmp(j.extensionName, i))
+				version = j.extensionVersion;
+		}
+
+		loaded_extensions.emplace(i, version);
+		spdlog::info("    {}", i);
+	}
 
 	if (debug_utils_found)
 	{

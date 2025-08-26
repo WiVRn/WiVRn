@@ -71,7 +71,6 @@ struct interaction_profile
 	std::string profile_name;
 	std::vector<std::string> required_extensions;
 	XrVersion min_version = XR_MAKE_VERSION(1, 0, 0);
-	XrVersion max_version = XR_MAKE_VERSION(2, 0, 0); // exclusive
 	std::vector<std::string> input_sources;
 	bool available;
 };
@@ -139,7 +138,6 @@ static std::vector<interaction_profile> interaction_profiles{
         interaction_profile{
                 .profile_name = "/interaction_profiles/facebook/touch_controller_pro",
                 .required_extensions = {XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME},
-                .max_version = XR_MAKE_VERSION(1, 1, 0),
                 .input_sources = {
                         "/user/hand/left/output/haptic",
                         "/user/hand/left/output/haptic_trigger_fb",
@@ -252,7 +250,6 @@ static std::vector<interaction_profile> interaction_profiles{
         interaction_profile{
                 .profile_name = "/interaction_profiles/meta/touch_controller_plus",
                 .required_extensions = {XR_META_TOUCH_CONTROLLER_PLUS_EXTENSION_NAME},
-                .max_version = XR_MAKE_VERSION(1, 1, 0),
                 .input_sources = {
                         "/user/hand/left/output/haptic",
                         "/user/hand/right/output/haptic",
@@ -997,8 +994,7 @@ void application::initialize_actions()
 	for (auto & profile: interaction_profiles)
 	{
 		profile.available = std::ranges::all_of(profile.required_extensions, [&](auto & ext) { return xr_instance.has_extension(ext); }) and
-		                    profile.min_version <= api_version and
-		                    profile.max_version > api_version;
+		                    profile.min_version <= api_version;
 
 		if (profile.profile_name.ends_with("khr/simple_controller"))
 		{
