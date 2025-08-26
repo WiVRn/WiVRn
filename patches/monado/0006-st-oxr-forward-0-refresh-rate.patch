@@ -1,7 +1,7 @@
-From 1a9b288475830fc1caf9bbf340ea370677b239a5 Mon Sep 17 00:00:00 2001
+From bbf1e184d62cfb0dbafe5cfa1c1851baebf6be58 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
-Subject: [PATCH 09/13] st/oxr: forward 0 refresh rate
+Subject: [PATCH 6/7] st/oxr: forward 0 refresh rate
 
 ---
  src/xrt/state_trackers/oxr/oxr_api_session.c | 6 +-----
@@ -29,5 +29,5 @@ index 9c5889f12..c4cdaf8c3 100644
  		if ((int)(displayRefreshRate * 100.0f) == (int)(sess->sys->xsysc->info.refresh_rates_hz[i] * 100.0f)) {
  			found = true;
 -- 
-2.50.1
+2.51.0
 
