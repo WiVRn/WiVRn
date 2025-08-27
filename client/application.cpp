@@ -1919,6 +1919,17 @@ void application::poll_events()
 					spdlog::info("    XR_PASSTHROUGH_STATE_CHANGED_RESTORED_ERROR_BIT_FB");
 			}
 			break;
+			case XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED: {
+				for (auto & path: {
+				             "/user/hand/left",
+				             "/user/hand/right",
+				     })
+				{
+					auto profile = xr_session.get_current_interaction_profile(path);
+					spdlog::info("interaction profile for {}: {}", path, profile);
+				}
+			}
+			break;
 			default:
 				spdlog::info("Received event type {}", xr::to_string(e.header.type));
 				break;
