@@ -78,7 +78,7 @@ static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & i
 {
 	XrResult res;
 	for (XrVersion version: {
-	             XR_API_VERSION_1_1,
+	             // XR_API_VERSION_1_1,
 	             XR_API_VERSION_1_0,
 	     })
 	{
