@@ -39,7 +39,8 @@ asset::asset(const std::filesystem::path & path)
 }
 
 asset::asset(asset && other) :
-        android_asset(other.android_asset)
+        android_asset(other.android_asset),
+        bytes(other.bytes)
 {
 	other.android_asset = nullptr;
 }
@@ -47,6 +48,7 @@ asset::asset(asset && other) :
 asset & asset::operator=(asset && other)
 {
 	std::swap(android_asset, other.android_asset);
+	std::swap(bytes, other.bytes);
 	return *this;
 }
 
