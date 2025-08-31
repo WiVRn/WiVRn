@@ -9,10 +9,6 @@ set(FASTGLTF_COMPILE_AS_CPP20 ON)
 
 FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt libktx)
 
-if (NOT WIVRN_USE_SYSTEM_BOOST)
-    FetchContent_MakeAvailable(boost)
-endif()
-
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
 include(GenerateAssets)
@@ -34,6 +30,16 @@ if(ANDROID)
     FetchContent_MakeAvailable(openxr_loader)
     target_link_libraries(wivrn openxr_loader)
 
+    # libcurl
+    set(BUILD_CURL_EXE OFF)
+    set(BUILD_TESTING OFF)
+    set(CURL_DISABLE_INSTALL ON)
+    set(CURL_USE_LIBPSL OFF)
+    set(CURL_USE_LIBSSH2 OFF)
+    set(BUILD_EXAMPLES OFF)
+
+    FetchContent_MakeAvailable(curl)
+    target_link_libraries(wivrn libcurl_static)
 
     target_link_libraries(wivrn native_app_glue)
     target_compile_definitions(wivrn PRIVATE -DXR_USE_PLATFORM_ANDROID -DVK_USE_PLATFORM_ANDROID_KHR)
@@ -55,8 +61,7 @@ else()
         target_link_libraries(wivrn openxr_loader)
     endif()
 
-    target_link_libraries(wivrn PkgConfig::LIBAV Fontconfig::Fontconfig)
-
+    target_link_libraries(wivrn PkgConfig::LIBAV Fontconfig::Fontconfig CURL::libcurl)
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")
@@ -193,6 +198,24 @@ else()
     set(ASSETS_DIR ${CMAKE_CURRENT_BINARY_DIR}/share/wivrn/assets)
     file(MAKE_DIRECTORY ${ASSETS_DIR})
     install(DIRECTORY "${ASSETS_DIR}" DESTINATION "${CMAKE_INSTALL_DATADIR}/wivrn")
+endif()
+
+
+##############################################################################
+# CA bundle for Android
+#
+if(ANDROID)
+    # Download the CA store from Mozilla, libcurl cannot access the certificates
+    # from Android.
+    # See https://curl.se/docs/caextract.html
+    FetchContent_GetProperties(curl SOURCE_DIR CURL_SRC_DIR)
+
+    add_custom_command(
+        OUTPUT ${ASSETS_DIR}/ca-bundle.crt
+        COMMAND  ${CURL_SRC_DIR}/scripts/mk-ca-bundle.pl -u ${ASSETS_DIR}/ca-bundle.crt
+    )
+    add_custom_target(wivrn-ca-bundle DEPENDS ${ASSETS_DIR}/ca-bundle.crt)
+    add_dependencies(wivrn wivrn-ca-bundle)
 endif()
 
 
