@@ -175,14 +175,8 @@ Encoder::Encoder(vk::raii::PhysicalDevice & phys_dev, vk::raii::Device & device,
 
 	auto [feat, feat12, feat13] = phys_dev.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan12Features, vk::PhysicalDeviceVulkan13Features>();
 
-	if (not feat12.subgroupBroadcastDynamicId)
-		throw std::runtime_error("Missing subgroupBroadcastDynamicId feature");
-
 	if (not feat12.storageBuffer8BitAccess)
 		throw std::runtime_error("Missing storageBuffer8BitAccess feature");
-
-	if (not feat12.shaderFloat16)
-		throw std::runtime_error("Missing shaderFloat16 feature");
 
 	if (not feat.features.shaderInt16)
 		throw std::runtime_error("Missing shaderInt16 feature");
@@ -721,7 +715,8 @@ Encoder::Encoder(vk::raii::PhysicalDevice & phys_dev, vk::raii::Device & device,
 		        .dataSize = sizeof(dc_shift),
 		        .pData = &dc_shift,
 		};
-		auto shader = load_shader(device, "dwt_" XSTR(PYROWAVE_PRECISION));
+
+		auto shader = load_shader(device, std::string("dwt_" XSTR(PYROWAVE_PRECISION)) + (feat12.shaderFloat16 ? "_fp16" : ""));
 		vk::ComputePipelineCreateInfo info{
 		        .stage = {
 		                .flags = vk::PipelineShaderStageCreateFlagBits::eRequireFullSubgroups,

@@ -1,9 +1,10 @@
 #version 450
 // Copyright (c) 2025 Hans-Kristian Arntzen
 // SPDX-License-Identifier: MIT
-#extension GL_KHR_shader_subgroup_basic : require
+
 #extension GL_ARB_shading_language_include : require
 
-#define PRECISION 2
+#define OUTPUT_PLANES 2
+#define INPUT_PLANES 3
 
-#include "dwt.h"
+#include "idwt.frag.h"

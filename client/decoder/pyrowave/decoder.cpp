@@ -56,7 +56,7 @@ decoder::decoder(
         description(description),
         weak_scene(scene),
         accumulator(accumulator),
-        dec(physical_device, device, description.width, description.height, PyroWave::ChromaSubsampling::Chroma420)
+        dec(physical_device, device, description.width, description.height, PyroWave::ChromaSubsampling::Chroma420, true)
 {
 	std::array formats = {
 	        vk::Format::eR8Unorm,
@@ -84,7 +84,7 @@ decoder::decoder(
 		                .mipLevels = 1,
 		                .arrayLayers = 1,
 		                .tiling = vk::ImageTiling::eOptimal,
-		                .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage,
+		                .usage = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eColorAttachment,
 		        },
 		        {
 		                .usage = VMA_MEMORY_USAGE_AUTO,
@@ -112,7 +112,7 @@ decoder::decoder(
 		item.view_full = vk::raii::ImageView(device, view_info);
 
 		usage.pNext = nullptr;
-		usage.usage |= vk::ImageUsageFlagBits::eStorage;
+		usage.usage |= vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eColorAttachment;
 		view_info.format = formats[0];
 		view_info.subresourceRange.aspectMask = vk::ImageAspectFlagBits::ePlane0;
 		item.view_y = vk::raii::ImageView(device, view_info);
@@ -137,7 +137,7 @@ decoder::decoder(
 	pending.lock()->input = std::make_unique<PyroWave::DecoderInput>(dec);
 	input_acc = std::make_unique<PyroWave::DecoderInput>(dec);
 
-	worker = std::thread([&] { worker_function(vk_queue_family_index); });
+	worker = std::thread([&, vk_queue_family_index] { worker_function(vk_queue_family_index); });
 }
 
 decoder::~decoder()
@@ -212,114 +212,112 @@ void decoder::worker_function(uint32_t queue_family_index)
 
 	while (not exiting)
 	{
-		{
-			auto locked = pending.lock();
-			locked.wait([&]() { return exiting or locked->ready; });
-			if (exiting)
-				return;
-
-			feedback = locked->feedback;
-			view_info = locked->view_info;
-
-			std::swap(locked->input, input);
-			locked->input->clear();
-			locked->ready = false;
-		}
-		feedback.received_from_decoder = feedback.sent_to_decoder + last_encode;
-
-		auto item = get_free();
-		if (not item)
-		{
-			spdlog::warn("No image available in pool, discard frame");
-			continue;
-		}
-		std::array views{*item->view_y, *item->view_cb, *item->view_cr};
-
-		dec.device.resetFences(*fence);
-		cmd_buf.reset();
-		cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-		cmd_buf.resetQueryPool(*qp, 0, 2);
-		cmd_buf.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 0);
-
-		if (item->current_layout != vk::ImageLayout::eGeneral)
-		{
-			item->current_layout = vk::ImageLayout::eGeneral;
-			vk::ImageMemoryBarrier barrier{
-			        .srcAccessMask = vk::AccessFlagBits::eNone,
-			        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
-			        .oldLayout = vk::ImageLayout::eUndefined,
-			        .newLayout = vk::ImageLayout::eGeneral,
-			        .image = item->image,
-			        .subresourceRange = {
-			                .aspectMask = vk::ImageAspectFlagBits::eColor,
-			                .levelCount = 1,
-			                .layerCount = 1,
-			        },
-			};
-			cmd_buf.pipelineBarrier(
-			        vk::PipelineStageFlagBits::eAllCommands,
-			        vk::PipelineStageFlagBits::eTransfer,
-			        {},
-			        {},
-			        {},
-			        barrier);
-		}
-		dec.decode(cmd_buf, *input, views);
-		{
-			vk::ImageMemoryBarrier barrier{
-			        .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
-			        .dstAccessMask = vk::AccessFlagBits::eMemoryRead,
-			        .oldLayout = vk::ImageLayout::eGeneral,
-			        .newLayout = vk::ImageLayout::eGeneral,
-			        .image = item->image,
-			        .subresourceRange = {
-			                .aspectMask = vk::ImageAspectFlagBits::eColor,
-			                .levelCount = 1,
-			                .layerCount = 1,
-			        },
-			};
-			cmd_buf.pipelineBarrier(
-			        vk::PipelineStageFlagBits::eComputeShader,
-			        vk::PipelineStageFlagBits::eFragmentShader,
-			        {},
-			        {},
-			        {},
-			        barrier);
-		}
-		cmd_buf.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 1);
-		cmd_buf.end();
-
-		application::get_queue().lock()->submit(
-		        vk::StructureChain{
-		                vk::SubmitInfo{
-		                        .commandBufferCount = 1,
-		                        .pCommandBuffers = &*cmd_buf,
-		                        .signalSemaphoreCount = 1,
-		                        .pSignalSemaphores = &*item->semaphore,
-		                },
-		                vk::TimelineSemaphoreSubmitInfo{
-		                        .signalSemaphoreValueCount = 1,
-		                        .pSignalSemaphoreValues = &++item->semaphore_val,
-		                },
-		        }
-		                .get(),
-		        *fence);
-
-		if (auto scene = weak_scene.lock())
-			scene->push_blit_handle(
-			        accumulator,
-			        std::make_shared<blit_handle>(
-			                feedback,
-			                view_info,
-			                item->view_full,
-			                item->image,
-			                &item->current_layout,
-			                *item->semaphore,
-			                item->semaphore_val,
-			                item->free));
-
 		try
 		{
+			{
+				auto locked = pending.lock();
+				locked.wait([&]() { return exiting or locked->ready; });
+				if (exiting)
+					return;
+
+				feedback = locked->feedback;
+				view_info = locked->view_info;
+
+				std::swap(locked->input, input);
+				locked->input->clear();
+				locked->ready = false;
+			}
+			feedback.received_from_decoder = feedback.sent_to_decoder + last_encode;
+
+			auto item = get_free();
+			if (not item)
+			{
+				spdlog::warn("No image available in pool, discard frame");
+				continue;
+			}
+			std::array views{*item->view_y, *item->view_cb, *item->view_cr};
+			auto handle = std::make_shared<blit_handle>(
+			        feedback,
+			        view_info,
+			        item->view_full,
+			        item->image,
+			        &item->current_layout,
+			        *item->semaphore,
+			        item->semaphore_val,
+			        item->free);
+			dec.device.resetFences(*fence);
+			cmd_buf.reset();
+			cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+			cmd_buf.resetQueryPool(*qp, 0, 2);
+			cmd_buf.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 0);
+
+			if (item->current_layout != vk::ImageLayout::eGeneral)
+			{
+				item->current_layout = vk::ImageLayout::eGeneral;
+				vk::ImageMemoryBarrier barrier{
+				        .srcAccessMask = vk::AccessFlagBits::eNone,
+				        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+				        .oldLayout = vk::ImageLayout::eUndefined,
+				        .newLayout = vk::ImageLayout::eGeneral,
+				        .image = item->image,
+				        .subresourceRange = {
+				                .aspectMask = vk::ImageAspectFlagBits::eColor,
+				                .levelCount = 1,
+				                .layerCount = 1,
+				        },
+				};
+				cmd_buf.pipelineBarrier(
+				        vk::PipelineStageFlagBits::eAllCommands,
+				        vk::PipelineStageFlagBits::eTransfer,
+				        {},
+				        {},
+				        {},
+				        barrier);
+			}
+			dec.decode(cmd_buf, *input, views);
+			{
+				vk::ImageMemoryBarrier barrier{
+				        .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
+				        .dstAccessMask = vk::AccessFlagBits::eMemoryRead,
+				        .oldLayout = vk::ImageLayout::eGeneral,
+				        .newLayout = vk::ImageLayout::eGeneral,
+				        .image = item->image,
+				        .subresourceRange = {
+				                .aspectMask = vk::ImageAspectFlagBits::eColor,
+				                .levelCount = 1,
+				                .layerCount = 1,
+				        },
+				};
+				cmd_buf.pipelineBarrier(
+				        vk::PipelineStageFlagBits::eComputeShader,
+				        vk::PipelineStageFlagBits::eFragmentShader,
+				        {},
+				        {},
+				        {},
+				        barrier);
+			}
+			cmd_buf.writeTimestamp(vk::PipelineStageFlagBits::eComputeShader, *qp, 1);
+			cmd_buf.end();
+
+			application::get_queue().lock()->submit(
+			        vk::StructureChain{
+			                vk::SubmitInfo{
+			                        .commandBufferCount = 1,
+			                        .pCommandBuffers = &*cmd_buf,
+			                        .signalSemaphoreCount = 1,
+			                        .pSignalSemaphores = &*item->semaphore,
+			                },
+			                vk::TimelineSemaphoreSubmitInfo{
+			                        .signalSemaphoreValueCount = 1,
+			                        .pSignalSemaphoreValues = &++item->semaphore_val,
+			                },
+			        }
+			                .get(),
+			        *fence);
+
+			if (auto scene = weak_scene.lock())
+				scene->push_blit_handle(accumulator, std::move(handle));
+
 			auto res = dec.device.waitForFences(*fence, true, UINT64_MAX);
 			if (res != vk::Result::eSuccess)
 				spdlog::warn("waitForFences failed");
@@ -330,8 +328,10 @@ void decoder::worker_function(uint32_t queue_family_index)
 			if (res == vk::Result::eSuccess)
 				last_encode = (times[1] - times[0]) * timestamp_period;
 		}
-		catch (...)
-		{}
+		catch (std::exception & e)
+		{
+			spdlog::warn("pyrowave exception: {}", e.what());
+		}
 	}
 }
 

@@ -5,6 +5,7 @@
 #extension GL_KHR_shader_subgroup_ballot : require
 #extension GL_KHR_shader_subgroup_arithmetic : require
 #extension GL_KHR_shader_subgroup_shuffle_relative : require
+#extension GL_KHR_shader_subgroup_shuffle : require
 
 layout(local_size_x_id = 0) in;
 
@@ -74,7 +75,7 @@ void main()
         if (should_apply_quant && saving != 0)
             atomicMax(quant_data.data[block_offset], op.quant);
 
-        total_saved += subgroupBroadcast(scan_saving, gl_SubgroupSize - 1);
+        total_saved += subgroupShuffle(scan_saving, gl_SubgroupSize - 1);
     }
 }
 

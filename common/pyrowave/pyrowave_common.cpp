@@ -140,6 +140,9 @@ WaveletBuffers::WaveletBuffers(vk::raii::Device & device, int width, int height,
         mirror_repeat_sampler(
                 device,
                 vk::SamplerCreateInfo{
+                        .magFilter = vk::Filter::eNearest,
+                        .minFilter = vk::Filter::eNearest,
+                        .mipmapMode = vk::SamplerMipmapMode::eNearest,
                         .addressModeU = vk::SamplerAddressMode::eMirroredRepeat,
                         .addressModeV = vk::SamplerAddressMode::eMirroredRepeat,
                         .addressModeW = vk::SamplerAddressMode::eMirroredRepeat,
@@ -148,6 +151,9 @@ WaveletBuffers::WaveletBuffers(vk::raii::Device & device, int width, int height,
         border_sampler(
                 device,
                 vk::SamplerCreateInfo{
+                        .magFilter = vk::Filter::eNearest,
+                        .minFilter = vk::Filter::eNearest,
+                        .mipmapMode = vk::SamplerMipmapMode::eNearest,
                         .addressModeU = vk::SamplerAddressMode::eClampToBorder,
                         .addressModeV = vk::SamplerAddressMode::eClampToBorder,
                         .addressModeW = vk::SamplerAddressMode::eClampToBorder,
@@ -234,6 +240,7 @@ WaveletBuffers::WaveletBuffers(vk::raii::Device & device, int width, int height,
 			view_info.viewType = vk::ImageViewType::e2DArray;
 			view_info.subresourceRange.layerCount = 4;
 			component_layer_views[component][level] = device.createImageView(view_info);
+			component_layer_views_info[component][level] = view_info;
 
 			view_info.viewType = vk::ImageViewType::e2D;
 			view_info.subresourceRange.layerCount = 1;

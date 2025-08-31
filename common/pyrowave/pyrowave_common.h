@@ -222,6 +222,7 @@ struct WaveletBuffers
 	vk::raii::Sampler mirror_repeat_sampler;
 	vk::raii::Sampler border_sampler;
 	vk::raii::ImageView component_layer_views[NumComponents][DecompositionLevels];
+	vk::ImageViewCreateInfo component_layer_views_info[NumComponents][DecompositionLevels];
 	vk::raii::ImageView component_ll_views[NumComponents][DecompositionLevels];
 	vk::Extent2D component_ll_dim[NumComponents][DecompositionLevels];
 
@@ -252,7 +253,6 @@ struct WaveletBuffers
 	uint32_t aligned_height = 0;
 
 protected:
-	bool has_debug_ext = false;
 	void init_block_meta();
 	void begin_label(vk::raii::CommandBuffer &, const char * label);
 	void end_label(vk::raii::CommandBuffer &);
@@ -260,5 +260,8 @@ protected:
 
 private:
 	void accumulate_block_mapping(int blocks_x_8x8, int blocks_y_8x8);
+
+public:
+	bool has_debug_ext = false;
 };
 } // namespace PyroWave
