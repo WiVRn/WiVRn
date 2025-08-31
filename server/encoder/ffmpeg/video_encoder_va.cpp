@@ -452,7 +452,7 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 
 	cmd_buf.copyImage(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        *in[slot].luma,
 	        vk::ImageLayout::eTransferDstOptimal,
 	        vk::ImageCopy{
@@ -477,7 +477,7 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 
 	cmd_buf.copyImage(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        *in[slot].chroma,
 	        vk::ImageLayout::eTransferDstOptimal,
 	        vk::ImageCopy{

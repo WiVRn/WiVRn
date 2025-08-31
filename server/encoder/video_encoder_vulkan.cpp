@@ -491,7 +491,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
 		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
 		        .dstAccessMask = vk::AccessFlagBits2::eVideoEncodeReadKHR,
-		        .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+		        .oldLayout = vk::ImageLayout::eGeneral,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
 		        .srcQueueFamilyIndex = vk.queue_family_index,
 		        .dstQueueFamilyIndex = vk.encode_queue_family_index,
@@ -542,7 +542,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 
 		cmd_buf.copyImage(
 		        y_cbcr,
-		        vk::ImageLayout::eTransferSrcOptimal,
+		        vk::ImageLayout::eGeneral,
 		        slot_item.tmp_image,
 		        vk::ImageLayout::eTransferDstOptimal,
 		        {

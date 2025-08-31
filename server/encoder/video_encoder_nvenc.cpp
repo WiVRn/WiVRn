@@ -277,7 +277,7 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 {
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        *in[slot].yuv,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = rect.extent.width,
@@ -297,7 +297,7 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 	                }});
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        *in[slot].yuv,
 	        vk::BufferImageCopy{
 	                .bufferOffset = rect.extent.width * rect.extent.height,
