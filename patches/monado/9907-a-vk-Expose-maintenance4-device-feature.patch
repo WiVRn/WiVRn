@@ -1,7 +1,7 @@
-From c6bb866af34431bc0ae1f9ccbcc62145e4465738 Mon Sep 17 00:00:00 2001
+From 422d3295329339341d2a1742d8a3c46aeaa5d838 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 12:40:14 +0200
-Subject: [PATCH 7/9] a/vk: Expose maintenance4 device feature
+Subject: [PATCH 07/10] a/vk: Expose maintenance4 device feature
 
 ---
  src/xrt/auxiliary/vk/vk_bundle_init.c | 38 +++++++++++++++++++++++++--

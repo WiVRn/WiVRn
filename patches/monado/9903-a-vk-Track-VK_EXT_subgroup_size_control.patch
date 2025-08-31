@@ -1,7 +1,7 @@
-From aaf5b46fc70f31edc96b3c81d05c9e5e30e8aeef Mon Sep 17 00:00:00 2001
+From 643e3e117f6a50e69f69e09a56a3c7f4e4cb8279 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 11:08:05 +0200
-Subject: [PATCH 3/9] a/vk: Track VK_EXT_subgroup_size_control
+Subject: [PATCH 03/10] a/vk: Track VK_EXT_subgroup_size_control
 
 ---
  scripts/generate_vk_helpers.py        | 1 +

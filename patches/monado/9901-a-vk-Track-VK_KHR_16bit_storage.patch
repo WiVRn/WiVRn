@@ -1,7 +1,7 @@
-From a0e6e57ba5952fae505e2c0004110f797d9d8557 Mon Sep 17 00:00:00 2001
+From 039c8d582d6030e6ed2a3ca190f367d3edcf5ec6 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 11:06:28 +0200
-Subject: [PATCH 1/9] a/vk: Track VK_KHR_16bit_storage
+Subject: [PATCH 01/10] a/vk: Track VK_KHR_16bit_storage
 
 ---
  scripts/generate_vk_helpers.py        | 7 +++----

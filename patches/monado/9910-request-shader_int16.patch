@@ -1,0 +1,24 @@
+From f247d17f01813763f61f75025a852ab2273539bb Mon Sep 17 00:00:00 2001
+From: no name <git-am@invalid>
+Date: Sun, 31 Aug 2025 17:44:56 +0200
+Subject: [PATCH 10/10] request shader_int16
+
+---
+ src/xrt/compositor/main/comp_compositor.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/xrt/compositor/main/comp_compositor.c b/src/xrt/compositor/main/comp_compositor.c
+index a42d25869..f5bc94e80 100644
+--- a/src/xrt/compositor/main/comp_compositor.c
++++ b/src/xrt/compositor/main/comp_compositor.c
+@@ -688,6 +688,7 @@ compositor_init_vulkan(struct comp_compositor *c)
+ 	    .selected_gpu_index = c->settings.selected_gpu_index,
+ 	    .client_gpu_index = c->settings.client_gpu_index,
+ 	    .timeline_semaphore = true, // Flag is optional, not a hard requirement.
++	    .shader_int16 = true,
+ 	};
+ 
+ 	struct comp_vulkan_results vk_res = {0};
+-- 
+2.51.0
+

@@ -1,7 +1,7 @@
-From afb032d16e4be7a5152660e905c8da26c4db0d54 Mon Sep 17 00:00:00 2001
+From 2ee175d0e02bfda9e3ce5f19b0973cafd895f59b Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 11:07:14 +0200
-Subject: [PATCH 2/9] a/vk: Track VK_KHR_shader_float16_int8
+Subject: [PATCH 02/10] a/vk: Track VK_KHR_shader_float16_int8
 
 ---
  scripts/generate_vk_helpers.py        | 5 ++++-

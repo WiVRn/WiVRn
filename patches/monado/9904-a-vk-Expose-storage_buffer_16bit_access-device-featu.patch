@@ -1,7 +1,7 @@
-From 86810a1248c85a50b0735fa91703c1e182b226b1 Mon Sep 17 00:00:00 2001
+From f6c4a350ca21adca0f4ab0492d93579d6252d975 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 11:18:13 +0200
-Subject: [PATCH 4/9] a/vk: Expose storage_buffer_16bit_access device feature
+Subject: [PATCH 04/10] a/vk: Expose storage_buffer_16bit_access device feature
 
 ---
  src/xrt/auxiliary/vk/vk_bundle_init.c | 34 +++++++++++++++++++++++++++

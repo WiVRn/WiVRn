@@ -1,7 +1,7 @@
-From afe2f3302569d8bad3ab6b8cc568b497b4e86c58 Mon Sep 17 00:00:00 2001
+From fe58ce13661d02fd59aa1a6b40fa8a1bfd2c8295 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 11:35:05 +0200
-Subject: [PATCH 5/9] a/vk: Expose shader_float16_int8 device features
+Subject: [PATCH 05/10] a/vk: Expose shader_float16_int8 device features
 
 ---
  src/xrt/auxiliary/vk/vk_bundle_init.c | 38 +++++++++++++++++++++++++++

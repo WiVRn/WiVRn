@@ -1,7 +1,7 @@
-From c1b766eca08a55b484576c3984fb48b8b909e9c9 Mon Sep 17 00:00:00 2001
+From adb60064f47d981eb40a5378c6e7a26e8d77270b Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 11:53:24 +0200
-Subject: [PATCH 6/9] a/vk: Expose subgroup size control device features
+Subject: [PATCH 06/10] a/vk: Expose subgroup size control device features
 
 ---
  src/xrt/auxiliary/vk/vk_bundle_init.c | 42 +++++++++++++++++++++++++--

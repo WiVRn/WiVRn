@@ -1,7 +1,7 @@
-From 051c9fabca3958180af9a55ea29a76604001918b Mon Sep 17 00:00:00 2001
+From 64189aab42622b5727956d813b9b308dfeabe071 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 12:26:53 +0200
-Subject: [PATCH 8/9] c/util: Ask for extension-defined features
+Subject: [PATCH 08/10] c/util: Ask for extension-defined features
 
 ---
  src/xrt/compositor/util/comp_vulkan.c | 6 ++++++

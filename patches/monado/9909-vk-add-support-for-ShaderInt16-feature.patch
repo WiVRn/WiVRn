@@ -1,7 +1,7 @@
-From 7eb0aa21713c844a3170015bd960e3ef622fb3a0 Mon Sep 17 00:00:00 2001
+From 4cb62c247e9dd694d6245fbe374e8bdda2c0d63a Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 3 Aug 2025 13:21:38 +0200
-Subject: [PATCH 9/9] vk: add support for ShaderInt16 feature
+Subject: [PATCH 09/10] vk: add support for ShaderInt16 feature
 
 ---
  src/xrt/auxiliary/vk/vk_bundle_init.c | 4 ++++
