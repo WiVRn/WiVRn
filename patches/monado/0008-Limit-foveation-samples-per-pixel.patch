@@ -1,0 +1,46 @@
+From 4de55a9bc2ab7d3931d38b6697268af5421c0328 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Sun, 31 Aug 2025 17:05:49 +0200
+Subject: [PATCH 8/8] Limit foveation samples per pixel
+
+---
+ src/xrt/compositor/shaders/distortion.comp | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/src/xrt/compositor/shaders/distortion.comp b/src/xrt/compositor/shaders/distortion.comp
+index cd1828ac9..41de849e6 100644
+--- a/src/xrt/compositor/shaders/distortion.comp
++++ b/src/xrt/compositor/shaders/distortion.comp
+@@ -12,6 +12,7 @@
+ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+ 
+ #define MAX_DIM 4097
++#define MAX_SAMPLES 4
+ 
+ layout(set = 0, binding = 0) uniform sampler2D source[2];
+ layout(set = 0, binding = 1, std430) buffer restrict Foveation
+@@ -67,13 +68,18 @@ void main()
+ 	if (xmin == xmax)
+ 		return;
+ 
++	uint xstep = (xmax - xmin + MAX_SAMPLES - 1) / MAX_SAMPLES;
++	uint ystep = (ymax - ymin + MAX_SAMPLES - 1) / MAX_SAMPLES;
++
+ 	vec4 colour = vec4(0);
+-	for (uint y = ymin ; y < ymax; y += 1) {
+-		for (uint x = xmin ; x < xmax; x += 1) {
++	uint count = 0;
++	for (uint y = ymin ; y < ymax; y += ystep) {
++		for (uint x = xmin ; x < xmax; x += xstep) {
+ 			colour += texelFetch(source[iz], ivec2(x, y), 0);
++			++count;
+ 		}
+ 	}
+-	colour /= (xmax - xmin) * (ymax - ymin);
++	colour /= count;
+ 	colour.xyz = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
+ 
+ 	imageStore(luma, ivec3(offset.x + ix, offset.y + iy, 0), vec4(colour.x));
+-- 
+2.51.0
+
