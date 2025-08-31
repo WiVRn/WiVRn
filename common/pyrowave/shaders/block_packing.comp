@@ -13,7 +13,7 @@
 #extension GL_EXT_shader_8bit_storage : require
 #extension GL_ARB_shading_language_include : require
 
-#include "constants.h"
+#include "constants.inc"
 
 layout(local_size_x = 64) in;
 

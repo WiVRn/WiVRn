@@ -6,4 +6,4 @@
 
 #define PRECISION 1
 
-#include "idwt.h"
+#include "idwt.inc"

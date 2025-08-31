@@ -5,4 +5,4 @@
 #define STORAGE_8BIT 0
 
 #extension GL_ARB_shading_language_include : require
-#include "wavelet_dequant.h"
+#include "wavelet_dequant.inc"

@@ -55,6 +55,6 @@ bvec2 band(bvec2 a, bvec2 b)
 	return bvec2(a.x && b.x, a.y && b.y);
 }
 
-#include "dwt_swizzle.h"
+#include "dwt_swizzle.inc"
 
 #endif

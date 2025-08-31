@@ -13,8 +13,8 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_ARB_shading_language_include : require
 
-#include "dwt_quant_scale.h"
-#include "constants.h"
+#include "dwt_quant_scale.inc"
+#include "constants.inc"
 
 layout(local_size_x = 128) in;
 layout(constant_id = 1) const bool SkipQuantScale = false;
@@ -56,7 +56,7 @@ layout(set = 0, binding = 3) buffer Payloads
     layout(offset = 8) uint8_t data[];
 } payload_data;
 
-#include "dwt_swizzle.h"
+#include "dwt_swizzle.inc"
 
 layout(push_constant) uniform Registers
 {

@@ -3,7 +3,7 @@ layout(constant_id = 0) const bool DCShift = false;
 
 uint local_index;
 
-#include "dwt_common.h"
+#include "dwt_common.inc"
 
 layout(set = 0, binding = 0) uniform mediump sampler2DArray uTexture;
 layout(set = 0, binding = 1) writeonly mediump uniform image2D uOutput;

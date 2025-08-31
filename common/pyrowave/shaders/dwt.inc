@@ -14,7 +14,7 @@ layout(push_constant) uniform Registers
 
 uint local_index;
 
-#include "dwt_common.h"
+#include "dwt_common.inc"
 
 vec2 generate_mirror_uv(ivec2 coord)
 {

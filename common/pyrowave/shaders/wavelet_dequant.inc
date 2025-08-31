@@ -41,9 +41,9 @@ layout(set = 0, binding = 3) uniform mediump usamplerBuffer PayloadU16;
 layout(set = 0, binding = 4) uniform mediump usamplerBuffer PayloadU8;
 #endif
 
-#include "dwt_swizzle.h"
-#include "dwt_quant_scale.h"
-#include "constants.h"
+#include "dwt_swizzle.inc"
+#include "dwt_quant_scale.inc"
+#include "constants.inc"
 
 layout(push_constant) uniform Registers
 {

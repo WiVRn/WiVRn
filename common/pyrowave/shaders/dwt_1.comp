@@ -6,4 +6,4 @@
 
 #define PRECISION 1
 
-#include "dwt.h"
+#include "dwt.inc"

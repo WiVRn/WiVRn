@@ -7,4 +7,4 @@
 #define OUTPUT_PLANES 2
 #define INPUT_PLANES 3
 
-#include "idwt.frag.h"
+#include "idwt.frag.inc"
