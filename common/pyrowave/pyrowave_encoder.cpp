@@ -6,8 +6,11 @@
 #include <cmath>
 #include <iostream>
 
-#include <glm/glm.hpp>
 #include <vulkan/vulkan_raii.hpp>
+
+using ivec2 = std::array<int32_t, 2>;
+using uvec2 = std::array<uint32_t, 2>;
+using vec2 = std::array<float, 2>;
 
 #define XSTR(s) STR(s)
 #define STR(s) #s
@@ -70,9 +73,9 @@ static int compute_block_count_per_subdivision(int num_blocks)
 
 struct QuantizerPushData
 {
-	glm::ivec2 resolution;
-	glm::ivec2 resolution_8x8_blocks;
-	glm::vec2 inv_resolution;
+	ivec2 resolution;
+	ivec2 resolution_8x8_blocks;
+	vec2 inv_resolution;
 	float input_layer;
 	float quant_resolution;
 	int32_t block_offset;
@@ -82,9 +85,9 @@ struct QuantizerPushData
 
 struct BlockPackingPushData
 {
-	glm::ivec2 resolution;
-	glm::ivec2 resolution_32x32_blocks;
-	glm::ivec2 resolution_8x8_blocks;
+	ivec2 resolution;
+	ivec2 resolution_32x32_blocks;
+	ivec2 resolution_8x8_blocks;
 	uint32_t quant_resolution_code;
 	uint32_t sequence_count;
 	uint32_t block_offset_32x32;
@@ -95,8 +98,8 @@ struct BlockPackingPushData
 
 struct AnalyzeRateControlPushData
 {
-	glm::ivec2 resolution;
-	glm::ivec2 resolution_8x8_blocks;
+	ivec2 resolution;
+	ivec2 resolution_8x8_blocks;
 	int32_t block_offset_8x8;
 	int32_t block_stride_8x8;
 	int32_t block_offset_32x32;
@@ -107,9 +110,9 @@ struct AnalyzeRateControlPushData
 };
 struct DwtPushData
 {
-	glm::uvec2 resolution;
-	glm::vec2 inv_resolution;
-	glm::uvec2 aligned_resolution;
+	uvec2 resolution;
+	vec2 inv_resolution;
+	uvec2 aligned_resolution;
 };
 
 struct RDOperation
@@ -913,9 +916,9 @@ bool Encoder::block_packing(vk::raii::CommandBuffer & cmd, const BitstreamBuffer
 			for (int band = (level == DecompositionLevels - 1 ? 0 : 1); band < 4; band++)
 			{
 				BlockPackingPushData packing_push = {};
-				packing_push.resolution = glm::ivec2(level_width, level_height);
-				packing_push.resolution_32x32_blocks = glm::ivec2((level_width + 31) / 32, (level_height + 31) / 32);
-				packing_push.resolution_8x8_blocks = glm::ivec2((level_width + 7) / 8, (level_height + 7) / 8);
+				packing_push.resolution = ivec2{int32_t(level_width), int32_t(level_height)};
+				packing_push.resolution_32x32_blocks = ivec2{int32_t(level_width + 31) / 32, int32_t(level_height + 31) / 32};
+				packing_push.resolution_8x8_blocks = ivec2{int32_t(level_width + 7) / 8, int32_t(level_height + 7) / 8};
 
 				auto quant_res = quant_scale < 0.0f ? get_quant_resolution(level, component, band) : quant_scale;
 				packing_push.quant_resolution_code = encode_quant(1.0f / quant_res);
@@ -929,8 +932,8 @@ bool Encoder::block_packing(vk::raii::CommandBuffer & cmd, const BitstreamBuffer
 				packing_push.block_stride_8x8 = meta.block_stride_8x8;
 				cmd.pushConstants<BlockPackingPushData>(*block_packing_.layout, vk::ShaderStageFlagBits::eCompute, 0, packing_push);
 
-				cmd.dispatch((packing_push.resolution_32x32_blocks.x + 1) / 2,
-				             (packing_push.resolution_32x32_blocks.y + 1) / 2,
+				cmd.dispatch((packing_push.resolution_32x32_blocks[0] + 1) / 2,
+				             (packing_push.resolution_32x32_blocks[1] + 1) / 2,
 				             1);
 			}
 
@@ -1025,10 +1028,10 @@ bool Encoder::analyze_rdo(vk::raii::CommandBuffer & cmd)
 				auto level_width = get_width(wavelet_img_high_res, level);
 				auto level_height = get_height(wavelet_img_high_res, level);
 
-				push.resolution.x = level_width;
-				push.resolution.y = level_height;
-				push.resolution_8x8_blocks.x = (level_width + 7) / 8;
-				push.resolution_8x8_blocks.y = (level_height + 7) / 8;
+				push.resolution[0] = level_width;
+				push.resolution[1] = level_height;
+				push.resolution_8x8_blocks[0] = (level_width + 7) / 8;
+				push.resolution_8x8_blocks[1] = (level_height + 7) / 8;
 				push.block_offset_8x8 = block_meta[component][level][band].block_offset_8x8;
 				push.block_stride_8x8 = block_meta[component][level][band].block_stride_8x8;
 				push.block_offset_32x32 = block_meta[component][level][band].block_offset_32x32;
@@ -1100,18 +1103,18 @@ bool Encoder::quant(vk::raii::CommandBuffer & cmd, float quant_scale)
 			{
 				float quant_res = quant_scale < 0.0f ? get_quant_resolution(level, component, band) : quant_scale;
 
-				push.resolution.x = get_width(wavelet_img_high_res, level);
-				push.resolution.y = get_height(wavelet_img_high_res, level);
-				push.resolution_8x8_blocks.x = (push.resolution.x + 7) / 8;
-				push.resolution_8x8_blocks.y = (push.resolution.y + 7) / 8;
-				push.inv_resolution.x = 1.0f / float(push.resolution.x);
-				push.inv_resolution.y = 1.0f / float(push.resolution.y);
+				push.resolution[0] = get_width(wavelet_img_high_res, level);
+				push.resolution[1] = get_height(wavelet_img_high_res, level);
+				push.resolution_8x8_blocks[0] = (push.resolution[0] + 7) / 8;
+				push.resolution_8x8_blocks[1] = (push.resolution[1] + 7) / 8;
+				push.inv_resolution[0] = 1.0f / float(push.resolution[0]);
+				push.inv_resolution[1] = 1.0f / float(push.resolution[1]);
 				push.input_layer = float(band);
 				push.quant_resolution = 1.0f / decode_quant(encode_quant(1.0f / quant_res));
 				push.rdo_distortion_scale = get_quant_rdo_distortion_scale(level, component, band) * (1.0f / 256.0f);
 
-				int blocks_x = (push.resolution.x + 31) / 32;
-				int blocks_y = (push.resolution.y + 31) / 32;
+				int blocks_x = (push.resolution[0] + 31) / 32;
+				int blocks_y = (push.resolution[1] + 31) / 32;
 
 				push.block_offset = block_meta[component][level][band].block_offset_8x8;
 				push.block_stride = block_meta[component][level][band].block_stride_8x8;
@@ -1157,20 +1160,21 @@ bool Encoder::dwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 	{
 		if (output_level > 0)
 		{
-			push.resolution = glm::uvec2(component_ll_dim[0][output_level - 1].width,
-			                             component_ll_dim[0][output_level - 1].height);
+			push.resolution = uvec2{component_ll_dim[0][output_level - 1].width,
+			                        component_ll_dim[0][output_level - 1].height};
 			push.aligned_resolution = push.resolution;
 		}
 		else
 		{
 			// FIXME: correct dimensions? original code uses views information
-			push.resolution = glm::uvec2(width, height);
-			push.aligned_resolution.x = aligned_width;
-			push.aligned_resolution.y = aligned_height;
+			push.resolution[0] = width;
+			push.resolution[1] = height;
+			push.aligned_resolution[0] = aligned_width;
+			push.aligned_resolution[1] = aligned_height;
 		}
 
-		push.inv_resolution.x = 1.0f / float(push.resolution.x);
-		push.inv_resolution.y = 1.0f / float(push.resolution.y);
+		push.inv_resolution[0] = 1.0f / float(push.resolution[0]);
+		push.inv_resolution[1] = 1.0f / float(push.resolution[1]);
 		cmd.pushConstants<DwtPushData>(*dwt_.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
 
 		if (output_level == 0)
@@ -1196,7 +1200,7 @@ bool Encoder::dwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 					device.updateDescriptorSets(descriptor_write, {});
 					cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *dwt_.layout, 0, dwt_ds[c][0], {});
 					begin_label(cmd, std::format("DWT level 0, component {}", c).c_str());
-					cmd.dispatch((push.aligned_resolution.x + 31) / 32, (push.aligned_resolution.y + 31) / 32, 1);
+					cmd.dispatch((push.aligned_resolution[0] + 31) / 32, (push.aligned_resolution[1] + 31) / 32, 1);
 					end_label(cmd);
 				}
 			}
@@ -1217,7 +1221,7 @@ bool Encoder::dwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 				};
 				device.updateDescriptorSets(descriptor_write, {});
 				cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *dwt_.layout, 0, dwt_ds[0][0], {});
-				cmd.dispatch((push.aligned_resolution.x + 31) / 32, (push.aligned_resolution.y + 31) / 32, 1);
+				cmd.dispatch((push.aligned_resolution[0] + 31) / 32, (push.aligned_resolution[1] + 31) / 32, 1);
 				end_label(cmd);
 			}
 		}
@@ -1245,12 +1249,13 @@ bool Encoder::dwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 					cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *dwt_dcshift);
 
 					// FIXME: correct dimensions? original code uses views information
-					push.resolution = glm::uvec2(width / 2, height / 2);
+					push.resolution[0] = width / 2;
+					push.resolution[1] = height / 2;
 
-					push.aligned_resolution.x = aligned_width >> output_level;
-					push.aligned_resolution.y = aligned_height >> output_level;
-					push.inv_resolution.x = 1.0f / float(push.resolution.x);
-					push.inv_resolution.y = 1.0f / float(push.resolution.y);
+					push.aligned_resolution[0] = aligned_width >> output_level;
+					push.aligned_resolution[1] = aligned_height >> output_level;
+					push.inv_resolution[0] = 1.0f / float(push.resolution[0]);
+					push.inv_resolution[1] = 1.0f / float(push.resolution[1]);
 					cmd.pushConstants<DwtPushData>(*dwt_.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
 				}
 				else
@@ -1258,7 +1263,7 @@ bool Encoder::dwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 					cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *dwt_.layout, 0, dwt_ds[c][output_level], {});
 					cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *dwt_.pipeline);
 				}
-				cmd.dispatch((push.aligned_resolution.x + 31) / 32, (push.aligned_resolution.y + 31) / 32, 1);
+				cmd.dispatch((push.aligned_resolution[0] + 31) / 32, (push.aligned_resolution[1] + 31) / 32, 1);
 				end_label(cmd);
 			}
 		}

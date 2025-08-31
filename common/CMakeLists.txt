@@ -126,9 +126,6 @@ if(ANDROID)
     add_library(OpenSSL::Crypto STATIC IMPORTED)
     set_property(TARGET OpenSSL::Crypto PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/openssl/lib/libcrypto.so)
     target_include_directories(OpenSSL::Crypto INTERFACE ${CMAKE_BINARY_DIR}/openssl/include)
-
-    FetchContent_MakeAvailable(glm)
-    target_link_libraries(wivrn-common PUBLIC glm::glm)
 else()
     target_link_libraries(wivrn-common PUBLIC Vulkan::Headers)
 endif()
@@ -137,4 +134,6 @@ target_include_directories(wivrn-common-base PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} 
 target_link_libraries(wivrn-common PUBLIC Boost::pfr OpenSSL::Crypto wivrn-external wivrn-common-base)
 target_compile_definitions(wivrn-common PUBLIC VULKAN_HPP_NO_STRUCT_CONSTRUCTORS)
 
-add_subdirectory(pyrowave)
+if (WIVRN_BUILD_SERVER OR WIVRN_BUILD_CLIENT)
+    add_subdirectory(pyrowave)
+endif()

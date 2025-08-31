@@ -4,9 +4,11 @@
 
 #include <algorithm>
 #include <format>
-#include <glm/glm.hpp>
 #include <iostream>
 #include <ranges>
+
+using ivec2 = std::array<int32_t, 2>;
+using vec2 = std::array<float, 2>;
 
 #define XSTR(s) STR(s)
 #define STR(s) #s
@@ -16,20 +18,20 @@ namespace PyroWave
 
 struct DequantizerPushData
 {
-	glm::ivec2 resolution;
+	ivec2 resolution;
 	int32_t output_layer;
 	int32_t block_offset_32x32;
 	int32_t block_stride_32x32;
 };
 struct IDwtPushData
 {
-	glm::ivec2 resolution;
-	glm::vec2 inv_resolution;
+	ivec2 resolution;
+	vec2 inv_resolution;
 };
 struct IDwtFragmentPushData
 {
-	glm::vec2 uv_offset;
-	glm::vec2 half_texel_offset;
+	vec2 uv_offset;
+	vec2 half_texel_offset;
 	float vp_scale;
 	uint32_t pivot_size;
 };
@@ -1320,15 +1322,15 @@ bool Decoder::dequant(vk::raii::CommandBuffer & cmd)
 
 			for (int band = (level == DecompositionLevels - 1 ? 0 : 1); band < 4; band++)
 			{
-				push.resolution.x = get_width(wavelet_img_high_res, level);
-				push.resolution.y = get_height(wavelet_img_high_res, level);
+				push.resolution[0] = get_width(wavelet_img_high_res, level);
+				push.resolution[1] = get_height(wavelet_img_high_res, level);
 				push.output_layer = band;
 				push.block_offset_32x32 = block_meta[component][level][band].block_offset_32x32;
 				push.block_stride_32x32 = block_meta[component][level][band].block_stride_32x32;
 				cmd.pushConstants<DequantizerPushData>(*dequant_.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
 
 				cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *dequant_.layout, 0, dequant_.ds[component][level], {});
-				cmd.dispatch((push.resolution.x + 31) / 32, (push.resolution.y + 31) / 32, 1);
+				cmd.dispatch((push.resolution[0] + 31) / 32, (push.resolution[1] + 31) / 32, 1);
 			}
 
 			end_label(cmd);
@@ -1396,10 +1398,10 @@ bool Decoder::idwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 	for (int input_level = DecompositionLevels - 1; input_level >= 0; input_level--)
 	{
 		// Transposed.
-		push.resolution.x = component_ll_dim[0][input_level].height;
-		push.resolution.y = component_ll_dim[0][input_level].width;
-		push.inv_resolution.x = 1.0f / float(push.resolution.x);
-		push.inv_resolution.y = 1.0f / float(push.resolution.y);
+		push.resolution[0] = component_ll_dim[0][input_level].height;
+		push.resolution[1] = component_ll_dim[0][input_level].width;
+		push.inv_resolution[0] = 1.0f / float(push.resolution[0]);
+		push.inv_resolution[1] = 1.0f / float(push.resolution[1]);
 		cmd.pushConstants<IDwtPushData>(*idwt_.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
 
 		if (input_level == 0)
@@ -1423,7 +1425,7 @@ bool Decoder::idwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 					};
 					device.updateDescriptorSets(descriptor_write, {});
 					cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *idwt_.layout, 0, idwt_.ds[c][input_level], {});
-					cmd.dispatch((push.resolution.x + 15) / 16, (push.resolution.y + 15) / 16, 1);
+					cmd.dispatch((push.resolution[0] + 15) / 16, (push.resolution[1] + 15) / 16, 1);
 					end_label(cmd);
 				}
 			}
@@ -1443,7 +1445,7 @@ bool Decoder::idwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 				};
 				device.updateDescriptorSets(descriptor_write, {});
 				cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *idwt_.layout, 0, idwt_.ds[0][input_level], {});
-				cmd.dispatch((push.resolution.x + 15) / 16, (push.resolution.y + 15) / 16, 1);
+				cmd.dispatch((push.resolution[0] + 15) / 16, (push.resolution[1] + 15) / 16, 1);
 				end_label(cmd);
 			}
 		}
@@ -1475,7 +1477,7 @@ bool Decoder::idwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views)
 				}
 
 				cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *idwt_.layout, 0, idwt_.ds[c][input_level], {});
-				cmd.dispatch((push.resolution.x + 15) / 16, (push.resolution.y + 15) / 16, 1);
+				cmd.dispatch((push.resolution[0] + 15) / 16, (push.resolution[1] + 15) / 16, 1);
 				end_label(cmd);
 			}
 		}
@@ -1588,8 +1590,8 @@ bool Decoder::idwt_fragment(vk::raii::CommandBuffer & cmd, const ViewBuffers & v
 			// If it sees negative texture offsets it breaks the output for whatever reason (!?!?!?!).
 			const auto & input_dim = fragment.levels[input_level].decoded_dim;
 			IDwtFragmentPushData push{
-			        .uv_offset = glm::vec2(0, -2.f / input_dim.height),
-			        .half_texel_offset = 0.5f / glm::vec2(input_dim.width, input_dim.height),
+			        .uv_offset = {0, -2.f / input_dim.height},
+			        .half_texel_offset = {0.5f / input_dim.width, 0.5f / input_dim.height},
 			        .vp_scale = float(pipeline.fb_extent.height),
 			        .pivot_size = pipeline.fb_extent.height,
 			};
@@ -1715,8 +1717,8 @@ bool Decoder::idwt_fragment(vk::raii::CommandBuffer & cmd, const ViewBuffers & v
 		// Set mirror point.
 		auto & input_extent = fragment.levels[input_level].vert[0][0].info().extent;
 		IDwtFragmentPushData push{
-		        .uv_offset = glm::vec2(-2.f / input_extent.width, 0),
-		        .half_texel_offset = 0.5f / glm::vec2(input_extent.width, input_extent.height),
+		        .uv_offset = {-2.f / input_extent.width, 0},
+		        .half_texel_offset = {0.5f / input_extent.width, 0.5f / input_extent.height},
 		        .vp_scale = float(begin_info.renderArea.extent.width),
 		        .pivot_size = aligned_render_width,
 		};
