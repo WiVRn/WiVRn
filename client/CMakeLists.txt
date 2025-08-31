@@ -199,6 +199,21 @@ endif()
 
 
 ##############################################################################
+# CA bundle for Android
+#
+if(ANDROID)
+    # See https://curl.se/docs/caextract.html
+    FetchContent_GetProperties(curl SOURCE_DIR CURL_SRC_DIR)
+    execute_process(
+            COMMAND ${CURL_SRC_DIR}/scripts/mk-ca-bundle.pl -u ${ASSETS_DIR}/ca-bundle.crt
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            OUTPUT_FILE ${CMAKE_BINARY_DIR}/mk-ca-bundle-out
+            ERROR_FILE ${CMAKE_BINARY_DIR}/mk-ca-bundle-err
+        )
+endif()
+
+
+##############################################################################
 # Internationalization
 #
 create_mo_files(wivrn wivrn "${CMAKE_CURRENT_SOURCE_DIR}/../locale")

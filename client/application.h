@@ -24,6 +24,7 @@
 #endif
 
 #include "configuration.h"
+#include "file_downloader.h"
 #include "utils/singleton.h"
 #include "utils/thread_safe.h"
 #include "vk/vk_allocator.h"
@@ -154,6 +155,8 @@ class application : public singleton<application>
 
 	boost::locale::generator gen;
 	boost::locale::gnu_gettext::messages_info messages_info;
+
+	file_downloader downloader;
 
 private:
 	void loop();
@@ -423,5 +426,10 @@ public:
 	static boost::locale::gnu_gettext::messages_info & get_messages_info()
 	{
 		return instance().messages_info;
+	}
+
+	static void download(const std::string & url, std::function<void(std::span<const std::byte>)> write, std::function<void(CURLcode)> done)
+	{
+		return instance().downloader.download(url, std::move(write), std::move(done));
 	}
 };
