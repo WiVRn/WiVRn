@@ -9,10 +9,6 @@ set(FASTGLTF_COMPILE_AS_CPP20 ON)
 
 FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt libktx)
 
-if (NOT WIVRN_USE_SYSTEM_BOOST)
-    FetchContent_MakeAvailable(boost)
-endif()
-
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
 include(GenerateAssets)
@@ -34,6 +30,16 @@ if(ANDROID)
     FetchContent_MakeAvailable(openxr_loader)
     target_link_libraries(wivrn openxr_loader)
 
+    # libcurl
+    set(BUILD_CURL_EXE OFF)
+    set(BUILD_TESTING OFF)
+    set(CURL_DISABLE_INSTALL ON)
+    set(CURL_USE_LIBPSL OFF)
+    set(CURL_USE_LIBSSH2 OFF)
+    set(BUILD_EXAMPLES OFF)
+
+    FetchContent_MakeAvailable(curl)
+    target_link_libraries(wivrn libcurl_static)
 
     target_link_libraries(wivrn native_app_glue)
     target_compile_definitions(wivrn PRIVATE -DXR_USE_PLATFORM_ANDROID -DVK_USE_PLATFORM_ANDROID_KHR)
@@ -55,8 +61,7 @@ else()
         target_link_libraries(wivrn openxr_loader)
     endif()
 
-    target_link_libraries(wivrn PkgConfig::LIBAV Fontconfig::Fontconfig)
-
+    target_link_libraries(wivrn PkgConfig::LIBAV Fontconfig::Fontconfig CURL::libcurl)
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")

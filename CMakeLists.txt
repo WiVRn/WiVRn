@@ -10,6 +10,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+if(ANDROID)
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/android)
+endif()
+
 # Default to PIC code
 include(CheckPIESupported)
 check_pie_supported()
@@ -82,7 +86,7 @@ endif()
 find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(Git)
-if (NEED_COMMON AND NOT ANDROID)
+if (NEED_COMMON)
     find_package(OpenSSL REQUIRED)
 endif()
 include(VulkanVersion)
@@ -180,6 +184,10 @@ if (WIVRN_BUILD_CLIENT)
     if (WIVRN_COMPRESS_GLB)
         find_program(GLTF_TRANSFORM gltf-transform REQUIRED)
     endif()
+
+    if(NOT ANDROID)
+        find_package(CURL REQUIRED COMPONENTS HTTP HTTPS)
+    endif()
 endif()
 
 if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
@@ -243,6 +251,8 @@ FetchContent_Declare(uni-algo      EXCLUDE_FROM_ALL SYSTEM URL https://github.co
                                    URL_HASH SHA256=f2a1539cd8635bc6088d05144a73ecfe7b4d74ee0361fabed6f87f9f19e74ca9)
 FetchContent_Declare(entt          EXCLUDE_FROM_ALL SYSTEM URL https://github.com/skypjack/entt/archive/refs/tags/v3.15.0.tar.gz
                                    URL_HASH SHA256=01466fcbf77618a79b62891510c0bbf25ac2804af5751c84982b413852234d66)
+FetchContent_Declare(curl          EXCLUDE_FROM_ALL SYSTEM URL https://github.com/curl/curl/releases/download/curl-8_15_0/curl-8.15.0.tar.xz
+                                   URL_HASH SHA256=6cd0a8a5b126ddfda61c94dc2c3fc53481ba7a35461cf7c5ab66aa9d6775b609)
 
 file(GLOB MONADO_PATCHES CONFIGURE_DEPENDS patches/monado/*)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS monado-rev)
