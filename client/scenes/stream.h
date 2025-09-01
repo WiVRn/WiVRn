@@ -23,8 +23,9 @@
 #include "decoder/shard_accumulator.h"
 #include "render/imgui_impl.h"
 #include "scene.h"
+#include "scenes/blitter.h"
 #include "scenes/input_profile.h"
-#include "stream_reprojection.h"
+#include "stream_defoveator.h"
 #include "utils/thread_safe.h"
 #include "wifi_lock.h"
 #include "wivrn_client.h"
@@ -63,10 +64,6 @@ private:
 	struct accumulator_images
 	{
 		std::unique_ptr<wivrn::shard_accumulator> decoder;
-		vk::raii::DescriptorSetLayout descriptor_set_layout = nullptr;
-		vk::DescriptorSet descriptor_set = nullptr;
-		vk::raii::PipelineLayout blit_pipeline_layout = nullptr;
-		vk::raii::Pipeline blit_pipeline = nullptr;
 		// latest frames, rolling buffer
 		std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, image_buffer_size> latest_frames;
 
@@ -97,19 +94,10 @@ private:
 	std::shared_mutex decoder_mutex;
 	std::optional<to_headset::video_stream_description> video_stream_description;
 	std::vector<accumulator_images> decoders; // Locked by decoder_mutex
-	vk::raii::DescriptorPool blit_descriptor_pool = nullptr;
-	vk::raii::RenderPass blit_render_pass = nullptr;
 
-	image_allocation decoder_out_image;
+	std::array<blitter, view_count> blitters;
 
-	struct renderpass_output
-	{
-		vk::raii::ImageView image_view = nullptr;
-		vk::raii::Framebuffer frame_buffer = nullptr;
-	};
-	std::array<renderpass_output, view_count> decoder_output;
-
-	std::optional<stream_reprojection> reprojector;
+	std::optional<stream_defoveator> defoveator;
 
 	vk::raii::Fence fence = nullptr;
 	vk::raii::CommandBuffer command_buffer = nullptr;

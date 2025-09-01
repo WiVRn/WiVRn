@@ -28,12 +28,19 @@ layout (location = 0) in vec2 vPosition;
 layout (location = 1) in vec2 vUV;
 layout (location = 2) in int vShadingRate;
 
-layout(location = 0) out vec2 outUV;
+layout(location = 0) out vec4 outUV;
+
+layout(push_constant) uniform pc
+{
+	ivec4 rgb_rect;
+	ivec4 a_rect;
+};
 
 void main()
 {
 	gl_Position = vec4(vPosition, 0.0, 1.0);
-	outUV = vUV;
+	outUV.xy = (vUV + rgb_rect.xy) / rgb_rect.zw;
+	outUV.zw = (vUV + a_rect.xy) / a_rect.zw;
 #if VSR
 	gl_PrimitiveShadingRateEXT = vShadingRate;
 #endif
@@ -42,15 +49,42 @@ void main()
 
 #ifdef FRAG_SHADER
 
-layout(set = 0, binding = 0) uniform sampler2D texSampler;
+layout(constant_id = 0) const int alpha = 1;
+layout(constant_id = 1) const bool do_srgb = false;
 
-layout(location = 0) in vec2 inUV;
+layout(set = 0, binding = 0) uniform sampler2D rgb[alpha + 1];
+
+layout(location = 0) in vec4 inUV;
 
 layout(location = 0) out vec4 outColor;
 
+float sRGB_to_linear(float x)
+{
+	if (x <= 0.04045)
+		return x / 12.92;
+	return pow((x + 0.055) / 1.055, 2.4);
+}
+
+vec4 sRGB_to_linear_rgba(vec4 x)
+{
+	return vec4(
+	        sRGB_to_linear(x.r),
+	        sRGB_to_linear(x.g),
+	        sRGB_to_linear(x.b),
+	        x.a);
+}
+
 void main()
 {
-    outColor = texture(texSampler, inUV).rgba;
+	if (alpha == 1)
+		outColor = vec4(texture(rgb[0], inUV.xy).rgb, texture(rgb[1], inUV.zw).r);
+	else
+		outColor = texture(rgb[0], inUV.xy).rgba;
+
+	if (do_srgb)
+	{
+		outColor = sRGB_to_linear_rgba(outColor);
+	}
 }
 
 #endif
