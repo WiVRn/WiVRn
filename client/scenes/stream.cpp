@@ -48,6 +48,11 @@
 #include <thread>
 #include <vulkan/vulkan_raii.hpp>
 
+#include "wivrn_config.h"
+#if WIVRN_FEATURE_RENDERDOC
+#include "vk/renderdoc.h"
+#endif
+
 using namespace wivrn;
 
 // clang-format off
@@ -905,11 +910,13 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	std::array<int, view_count> image_indices;
 
+#if WIVRN_FEATURE_RENDERDOC
+	renderdoc_begin(*vk_instance);
+#endif
 	command_buffer.reset();
-
-	vk::CommandBufferBeginInfo begin_info;
-	begin_info.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-	command_buffer.begin(begin_info);
+	command_buffer.begin(vk::CommandBufferBeginInfo{
+	        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+	});
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 
@@ -1090,6 +1097,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	vk::SubmitInfo submit_info;
 	submit_info.setCommandBuffers(*command_buffer);
 	queue.lock()->submit(submit_info, *fence);
+#if WIVRN_FEATURE_RENDERDOC
+	renderdoc_end(*vk_instance);
+#endif
 	swapchain.release();
 
 	std::vector<XrCompositionLayerProjectionView> layer_view(view_count);
