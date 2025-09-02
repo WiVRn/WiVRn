@@ -139,6 +139,11 @@ public:
 			});
 	}
 
+	basic_allocation(RaiiType && handle, const CreateInfo & create_info, VmaAllocation allocation) :
+	        resource(std::move(handle)), allocation(allocation), create_info(create_info)
+	{
+	}
+
 	basic_allocation(const basic_allocation &) = delete;
 	basic_allocation(basic_allocation && other) :
 	        allocation(other.allocation),

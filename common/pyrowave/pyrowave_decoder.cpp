@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #include "pyrowave_decoder.h"
 
+#include "vk/check.h"
 #include <algorithm>
 #include <format>
 #include <iostream>
@@ -43,8 +44,7 @@ static vk::raii::DescriptorPool make_descriptor_pool(vk::raii::Device & device, 
 	std::array pool_sizes{
 	        vk::DescriptorPoolSize{
 	                .type = vk::DescriptorType::eStorageBuffer,
-	                .descriptorCount =
-	                        dequant * (readonly_texel_buffer ? 1 : 2), // dequant
+	                .descriptorCount = dequant * 2, // dequant
 	        },
 	        vk::DescriptorPoolSize{
 	                .type = vk::DescriptorType::eCombinedImageSampler,
@@ -52,7 +52,7 @@ static vk::raii::DescriptorPool make_descriptor_pool(vk::raii::Device & device, 
 	        },
 	        vk::DescriptorPoolSize{
 	                .type = vk::DescriptorType::eStorageImage,
-	                .descriptorCount = dequant + idwt,
+	                .descriptorCount = dequant * (1 + readonly_texel_buffer) + idwt,
 	        },
 	        vk::DescriptorPoolSize{
 	                .type = vk::DescriptorType::eUniformTexelBuffer,
@@ -65,13 +65,15 @@ static vk::raii::DescriptorPool make_descriptor_pool(vk::raii::Device & device, 
 	        },
 	        vk::DescriptorPoolSize{
 	                .type = vk::DescriptorType::eSampledImage,
-	                .descriptorCount = f_idwt * 6, // idwt
+	                .descriptorCount =
+	                        f_idwt * 6 +                         // idwt
+	                        3 * dequant * readonly_texel_buffer, // dequant
 	        },
 	};
 	auto range = std::ranges::remove_if(pool_sizes, [](auto & s) { return s.descriptorCount == 0; });
 	return {device,
 	        vk::DescriptorPoolCreateInfo{
-	                .maxSets = dequant + idwt + f_idwt,
+	                .maxSets = dequant * (1 + readonly_texel_buffer) + idwt + f_idwt,
 	                .poolSizeCount = uint32_t(std::distance(pool_sizes.begin(), range.begin())),
 	                .pPoolSizes = pool_sizes.data(),
 	        }};
@@ -111,6 +113,21 @@ DecoderInput::DecoderInput(const Decoder & decoder) :
 		dequant_data = std::span((uint32_t *)dequant_staging.map(), decoder.block_count_32x32);
 	}
 
+	try
+	{
+		check_linear_texture_support();
+	}
+	catch (std::exception & e)
+	{
+		std::cerr << "failed to map linear texture: " << e.what() << std::endl;
+		r8_imageview = nullptr;
+		r16_imageview = nullptr;
+		r32_imageview = nullptr;
+		r8_image = nullptr;
+		r16_image = nullptr;
+		r32_image = nullptr;
+	}
+
 	clear();
 }
 
@@ -146,6 +163,14 @@ void DecoderInput::push_raw(const void * data, size_t size)
 			u16_view = device.createBufferView(info);
 			info.format = vk::Format::eR8Uint;
 			u8_view = device.createBufferView(info);
+
+			// This shouldn't happen to demote to texel buffers if we need to deal with massive gigantic payloads.
+			r8_imageview = nullptr;
+			r16_imageview = nullptr;
+			r32_imageview = nullptr;
+			r8_image = nullptr;
+			r16_image = nullptr;
+			r32_image = nullptr;
 		}
 		if (buf.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
 		{
@@ -154,6 +179,7 @@ void DecoderInput::push_raw(const void * data, size_t size)
 		}
 		else
 		{
+			info.usage |= vk::BufferUsageFlagBits::eTransferSrc;
 			buffer_allocation staging(
 			        decoder.device,
 			        info,
@@ -169,6 +195,105 @@ void DecoderInput::push_raw(const void * data, size_t size)
 	}
 	memcpy(payload + this->payload_size, data, size);
 	this->payload_size += size;
+}
+
+void DecoderInput::check_linear_texture_support()
+{
+	if (!decoder.use_readonly_texel_buffer)
+		return;
+
+	// Texel buffers hit LS path on at least Mali, and most likely they hit slow paths on most mobile IHVs.
+	// Try to promote to linear 2D images instead if we can get away with it.
+	// Texture sampling performance is what mobile IHVs tend to optimize for.
+	const struct
+	{
+		vk::Format fmt;
+		uint32_t width;
+		vk::raii::Image & out_handle;
+		vk::raii::ImageView & out_view;
+	} reqs[] = {
+	        {vk::Format::eR8Uint, 4096, r8_image, r8_imageview},
+	        {vk::Format::eR16Uint, 2048, r16_image, r16_imageview},
+	        {vk::Format::eR32Uint, 1024, r32_image, r32_imageview}};
+
+	// Just assume this works. Can't imagine any GPU where this wouldn't work tightly packed.
+
+	vk::BufferCreateInfo buffer_info{
+	        .size = 4 * 1024 * 1024,
+	        .usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageTexelBuffer | vk::BufferUsageFlagBits::eUniformTexelBuffer,
+	};
+	vk::raii::Buffer buffer(decoder.device, buffer_info);
+	VkMemoryRequirements req = buffer.getMemoryRequirements();
+	req.alignment = 64 * 1024;
+	req.size = 4 * 1024 * 1024;
+	VmaAllocation allocation;
+	VmaAllocationCreateInfo alloc_info{
+	        .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+	        .preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+	};
+	CHECK_VK(vmaAllocateMemory(
+	        vk_allocator::instance(),
+	        &req,
+	        &alloc_info,
+	        &allocation,
+	        nullptr));
+	if (auto res = vmaBindBufferMemory(vk_allocator::instance(), allocation, *buffer); res != VK_SUCCESS)
+	{
+		vmaFreeMemory(vk_allocator::instance(), allocation);
+		throw std::system_error(res, vk::error_category(), "vmaBindBufferMemory failed");
+	}
+
+	payload_data = buffer_allocation(std::move(buffer), buffer_info, allocation);
+
+	if (payload_data.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+	{
+		payload = (uint8_t *)payload_data.map();
+	}
+	else
+	{
+		buffer_info.usage |= vk::BufferUsageFlagBits::eTransferSrc;
+		payload_staging = buffer_allocation(
+		        decoder.device,
+		        buffer_info,
+		        {
+		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		                .usage = VMA_MEMORY_USAGE_AUTO,
+		        });
+		payload = (uint8_t *)payload_staging.map();
+	}
+
+	// Try to force all linear images to alias each other.
+	for (auto & req: reqs)
+	{
+		auto props = decoder.phys_dev.getImageFormatProperties(req.fmt, vk::ImageType::e2D, vk::ImageTiling::eLinear, vk::ImageUsageFlagBits::eSampled);
+		if (props.maxExtent.width >= req.width &&
+		    props.maxExtent.height >= 1024)
+		{
+			VkImage image;
+			VkImageCreateInfo create_info = vk::ImageCreateInfo{
+			        .imageType = vk::ImageType::e2D,
+			        .format = req.fmt,
+			        .extent = {req.width, 1024, 1},
+			        .mipLevels = 1,
+			        .arrayLayers = 1,
+			        .tiling = vk::ImageTiling::eLinear,
+			        .usage = vk::ImageUsageFlagBits::eSampled,
+			        .initialLayout = vk::ImageLayout::ePreinitialized,
+			};
+			CHECK_VK(vmaCreateAliasingImage(vk_allocator::instance(), allocation, &create_info, &image));
+			req.out_handle = vk::raii::Image(decoder.device, image);
+			req.out_view = decoder.device.createImageView(vk::ImageViewCreateInfo{
+			        .image = image,
+			        .viewType = vk::ImageViewType::e2D,
+			        .format = req.fmt,
+			        .subresourceRange = {
+			                .aspectMask = vk::ImageAspectFlagBits::eColor,
+			                .levelCount = 1,
+			                .layerCount = 1,
+			        },
+			});
+		}
+	}
 }
 
 void DecoderInput::clear()
@@ -309,6 +434,7 @@ Decoder::Decoder(
         bool fragment_path) :
         WaveletBuffers(device, width, height, chroma),
         fragment_path(fragment_path),
+        phys_dev(phys_dev),
         ds_pool(nullptr)
 {
 	auto [prop, prop11, prop13] = phys_dev.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceVulkan11Properties, vk::PhysicalDeviceVulkan13Properties>();
@@ -468,8 +594,15 @@ Decoder::Decoder(
 	init_block_meta();
 
 	// dequant pipeline
+	for (size_t i = 0; i < std::size(dequant_); ++i)
 	{
-		if (use_readonly_texel_buffer)
+		if (i > 0 and not use_readonly_texel_buffer)
+			break;
+		if (i == 0 and use_readonly_texel_buffer)
+			continue;
+
+		auto & p = dequant_[i];
+		if (i == 0)
 		{
 			std::array bindings{
 			        vk::DescriptorSetLayoutBinding{
@@ -486,30 +619,19 @@ Decoder::Decoder(
 			        },
 			        vk::DescriptorSetLayoutBinding{
 			                .binding = 2,
-			                .descriptorType = vk::DescriptorType::eUniformTexelBuffer,
-			                .descriptorCount = 1,
-			                .stageFlags = vk::ShaderStageFlagBits::eCompute,
-			        },
-			        vk::DescriptorSetLayoutBinding{
-			                .binding = 3,
-			                .descriptorType = vk::DescriptorType::eUniformTexelBuffer,
-			                .descriptorCount = 1,
-			                .stageFlags = vk::ShaderStageFlagBits::eCompute,
-			        },
-			        vk::DescriptorSetLayoutBinding{
-			                .binding = 4,
-			                .descriptorType = vk::DescriptorType::eUniformTexelBuffer,
+			                .descriptorType = vk::DescriptorType::eStorageBuffer,
 			                .descriptorCount = 1,
 			                .stageFlags = vk::ShaderStageFlagBits::eCompute,
 			        },
 			};
-			dequant_.ds_layout = device.createDescriptorSetLayout({
+			p.ds_layout = device.createDescriptorSetLayout({
 			        .bindingCount = bindings.size(),
 			        .pBindings = bindings.data(),
 			});
 		}
 		else
 		{
+			auto type = i == 1 ? vk::DescriptorType::eUniformTexelBuffer : vk::DescriptorType::eSampledImage;
 			std::array bindings{
 			        vk::DescriptorSetLayoutBinding{
 			                .binding = 0,
@@ -525,12 +647,24 @@ Decoder::Decoder(
 			        },
 			        vk::DescriptorSetLayoutBinding{
 			                .binding = 2,
-			                .descriptorType = vk::DescriptorType::eStorageBuffer,
+			                .descriptorType = type,
+			                .descriptorCount = 1,
+			                .stageFlags = vk::ShaderStageFlagBits::eCompute,
+			        },
+			        vk::DescriptorSetLayoutBinding{
+			                .binding = 3,
+			                .descriptorType = type,
+			                .descriptorCount = 1,
+			                .stageFlags = vk::ShaderStageFlagBits::eCompute,
+			        },
+			        vk::DescriptorSetLayoutBinding{
+			                .binding = 4,
+			                .descriptorType = type,
 			                .descriptorCount = 1,
 			                .stageFlags = vk::ShaderStageFlagBits::eCompute,
 			        },
 			};
-			dequant_.ds_layout = device.createDescriptorSetLayout({
+			p.ds_layout = device.createDescriptorSetLayout({
 			        .bindingCount = bindings.size(),
 			        .pBindings = bindings.data(),
 			});
@@ -541,15 +675,15 @@ Decoder::Decoder(
 		        .size = sizeof(DequantizerPushData),
 		};
 
-		dequant_.layout = device.createPipelineLayout({
+		p.layout = device.createPipelineLayout({
 		        .setLayoutCount = 1,
-		        .pSetLayouts = &*dequant_.ds_layout,
+		        .pSetLayouts = &*p.ds_layout,
 		        .pushConstantRangeCount = 1,
 		        .pPushConstantRanges = &pc,
 		});
 
 		vk::PipelineShaderStageRequiredSubgroupSizeCreateInfoEXT subgroup_size{};
-		auto shader = load_shader(device, use_readonly_texel_buffer ? "wavelet_dequant" : "wavelet_dequant_8b");
+		auto shader = load_shader(device, std::format("wavelet_dequant_{}", i));
 		vk::ComputePipelineCreateInfo info{
 		        .stage = {
 		                .flags = vk::PipelineShaderStageCreateFlagBits::eRequireFullSubgroups,
@@ -557,14 +691,14 @@ Decoder::Decoder(
 		                .module = *shader,
 		                .pName = "main",
 		        },
-		        .layout = *dequant_.layout,
+		        .layout = *p.layout,
 		};
 		pipeline_subgroup_info psi;
 		if (supports_subgroup_size_log2(prop13, true, 4, 7))
 			psi.set_subgroup_size(prop13, info, 4, 7);
 		else
 			psi.set_subgroup_size(prop13, info, 2, 7);
-		dequant_.pipeline = device.createComputePipeline(
+		p.pipeline = device.createComputePipeline(
 		        nullptr, // FIXME: cache
 		        info);
 
@@ -572,7 +706,7 @@ Decoder::Decoder(
 		{
 			for (int component = 0; component < NumComponents; component++)
 			{
-				dequant_.ds[component][level] = allocate_descriptor_set(*dequant_.ds_layout);
+				p.ds[component][level] = allocate_descriptor_set(*p.ds_layout);
 				vk::DescriptorImageInfo image_info{
 				        .sampler = *border_sampler,
 				        .imageView = *component_layer_views[component][level],
@@ -580,7 +714,7 @@ Decoder::Decoder(
 				};
 
 				device.updateDescriptorSets(vk::WriteDescriptorSet{
-				                                    .dstSet = dequant_.ds[component][level],
+				                                    .dstSet = p.ds[component][level],
 				                                    .dstBinding = 0,
 				                                    .descriptorCount = 1,
 				                                    .descriptorType = vk::DescriptorType::eStorageImage,
@@ -1253,11 +1387,12 @@ Decoder::~Decoder()
 {
 }
 
-bool Decoder::dequant(vk::raii::CommandBuffer & cmd)
+bool Decoder::dequant(vk::raii::CommandBuffer & cmd, size_t storage_mode)
 {
 	DequantizerPushData push = {};
 
-	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *dequant_.pipeline);
+	auto & p = dequant_[storage_mode];
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *p.pipeline);
 	begin_label(cmd, "DWT dequant");
 	// auto start_dequant = cmd.write_timestamp(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
@@ -1327,9 +1462,9 @@ bool Decoder::dequant(vk::raii::CommandBuffer & cmd)
 				push.output_layer = band;
 				push.block_offset_32x32 = block_meta[component][level][band].block_offset_32x32;
 				push.block_stride_32x32 = block_meta[component][level][band].block_stride_32x32;
-				cmd.pushConstants<DequantizerPushData>(*dequant_.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
+				cmd.pushConstants<DequantizerPushData>(*p.layout, vk::ShaderStageFlagBits::eCompute, 0, push);
 
-				cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *dequant_.layout, 0, dequant_.ds[component][level], {});
+				cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *p.layout, 0, p.ds[component][level], {});
 				cmd.dispatch((push.resolution[0] + 31) / 32, (push.resolution[1] + 31) / 32, 1);
 			}
 
@@ -1876,53 +2011,17 @@ bool Decoder::idwt_fragment(vk::raii::CommandBuffer & cmd, const ViewBuffers & v
 
 bool Decoder::decode(vk::raii::CommandBuffer & cmd, DecoderInput & input, const ViewBuffers & views)
 {
+	size_t storage_mode = 0;
+	if (*input.r8_image and *input.r16_image and *input.r32_image)
+		storage_mode = 2;
+	else if (use_readonly_texel_buffer)
+		storage_mode = 1;
+	auto & deq = dequant_[storage_mode];
 	for (int level = 0; level < DecompositionLevels; level++)
 	{
 		for (int component = 0; component < NumComponents; component++)
 		{
-			if (use_readonly_texel_buffer)
-			{
-				std::array buffer_info{
-				        vk::DescriptorBufferInfo{
-				                .buffer = input.dequant_offset_buffer,
-				                .range = vk::WholeSize,
-				        },
-				};
-
-				device.updateDescriptorSets(
-				        std::array{
-				                vk::WriteDescriptorSet{
-				                        .dstSet = dequant_.ds[component][level],
-				                        .dstBinding = 1,
-				                        .descriptorCount = buffer_info.size(),
-				                        .descriptorType = vk::DescriptorType::eStorageBuffer,
-				                        .pBufferInfo = buffer_info.data(),
-				                },
-				                vk::WriteDescriptorSet{
-				                        .dstSet = dequant_.ds[component][level],
-				                        .dstBinding = 2,
-				                        .descriptorCount = 1,
-				                        .descriptorType = vk::DescriptorType::eUniformTexelBuffer,
-				                        .pTexelBufferView = &*input.u32_view,
-				                },
-				                vk::WriteDescriptorSet{
-				                        .dstSet = dequant_.ds[component][level],
-				                        .dstBinding = 3,
-				                        .descriptorCount = 1,
-				                        .descriptorType = vk::DescriptorType::eUniformTexelBuffer,
-				                        .pTexelBufferView = &*input.u16_view,
-				                },
-				                vk::WriteDescriptorSet{
-				                        .dstSet = dequant_.ds[component][level],
-				                        .dstBinding = 4,
-				                        .descriptorCount = 1,
-				                        .descriptorType = vk::DescriptorType::eUniformTexelBuffer,
-				                        .pTexelBufferView = &*input.u8_view,
-				                },
-				        },
-				        {});
-			}
-			else
+			if (storage_mode == 0)
 			{
 				std::array buffer_info{
 				        vk::DescriptorBufferInfo{
@@ -1937,11 +2036,72 @@ bool Decoder::decode(vk::raii::CommandBuffer & cmd, DecoderInput & input, const 
 
 				device.updateDescriptorSets(
 				        vk::WriteDescriptorSet{
-				                .dstSet = dequant_.ds[component][level],
+				                .dstSet = deq.ds[component][level],
 				                .dstBinding = 1,
 				                .descriptorCount = buffer_info.size(),
 				                .descriptorType = vk::DescriptorType::eStorageBuffer,
 				                .pBufferInfo = buffer_info.data(),
+				        },
+				        {});
+			}
+			else
+			{
+				std::array buffer_info{
+				        vk::DescriptorBufferInfo{
+				                .buffer = input.dequant_offset_buffer,
+				                .range = vk::WholeSize,
+				        },
+				};
+
+				std::array image_info{
+				        vk::DescriptorImageInfo{
+				                .imageView = *input.r32_imageview,
+				                .imageLayout = vk::ImageLayout::eGeneral,
+				        },
+				        vk::DescriptorImageInfo{
+				                .imageView = *input.r16_imageview,
+				                .imageLayout = vk::ImageLayout::eGeneral,
+				        },
+				        vk::DescriptorImageInfo{
+				                .imageView = *input.r8_imageview,
+				                .imageLayout = vk::ImageLayout::eGeneral,
+				        },
+				};
+
+				auto type = storage_mode == 1 ? vk::DescriptorType::eUniformTexelBuffer : vk::DescriptorType::eSampledImage;
+				device.updateDescriptorSets(
+				        std::array{
+				                vk::WriteDescriptorSet{
+				                        .dstSet = deq.ds[component][level],
+				                        .dstBinding = 1,
+				                        .descriptorCount = buffer_info.size(),
+				                        .descriptorType = vk::DescriptorType::eStorageBuffer,
+				                        .pBufferInfo = buffer_info.data(),
+				                },
+				                vk::WriteDescriptorSet{
+				                        .dstSet = deq.ds[component][level],
+				                        .dstBinding = 2,
+				                        .descriptorCount = 1,
+				                        .descriptorType = type,
+				                        .pImageInfo = &image_info[0],
+				                        .pTexelBufferView = &*input.u32_view,
+				                },
+				                vk::WriteDescriptorSet{
+				                        .dstSet = deq.ds[component][level],
+				                        .dstBinding = 3,
+				                        .descriptorCount = 1,
+				                        .descriptorType = type,
+				                        .pImageInfo = &image_info[1],
+				                        .pTexelBufferView = &*input.u16_view,
+				                },
+				                vk::WriteDescriptorSet{
+				                        .dstSet = deq.ds[component][level],
+				                        .dstBinding = 4,
+				                        .descriptorCount = 1,
+				                        .descriptorType = type,
+				                        .pImageInfo = &image_info[2],
+				                        .pTexelBufferView = &*input.u8_view,
+				                },
 				        },
 				        {});
 			}
@@ -1962,6 +2122,27 @@ bool Decoder::decode(vk::raii::CommandBuffer & cmd, DecoderInput & input, const 
 			        vk::BufferCopy{
 			                .size = vk::WholeSize,
 			        });
+		std::vector<vk::ImageMemoryBarrier> image_barriers;
+		if (input.need_image_transition)
+		{
+			for (auto img: {*input.r8_image, *input.r16_image, *input.r32_image})
+			{
+				if (img)
+					image_barriers.push_back(
+					        vk::ImageMemoryBarrier{
+					                .srcAccessMask = vk::AccessFlagBits::eMemoryRead,
+					                .dstAccessMask = vk::AccessFlagBits::eMemoryRead,
+					                .oldLayout = vk::ImageLayout::ePreinitialized,
+					                .newLayout = vk::ImageLayout::eGeneral,
+					                .image = img,
+					                .subresourceRange = {
+					                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+					                        .levelCount = vk::RemainingMipLevels,
+					                        .layerCount = vk::RemainingArrayLayers},
+					        });
+			}
+			input.need_image_transition = false;
+		}
 
 		vk::MemoryBarrier barrier{
 		        .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
@@ -1973,11 +2154,11 @@ bool Decoder::decode(vk::raii::CommandBuffer & cmd, DecoderInput & input, const 
 		        {},
 		        barrier,
 		        {},
-		        {});
+		        image_barriers);
 	}
 	end_label(cmd);
 
-	if (!dequant(cmd))
+	if (!dequant(cmd, storage_mode))
 		return false;
 
 	vk::MemoryBarrier barrier{

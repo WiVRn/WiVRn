@@ -34,6 +34,14 @@ class DecoderInput
 	vk::raii::BufferView u16_view = nullptr;
 	vk::raii::BufferView u8_view = nullptr;
 
+	vk::raii::Image r32_image = nullptr;
+	vk::raii::Image r16_image = nullptr;
+	vk::raii::Image r8_image = nullptr;
+	vk::raii::ImageView r32_imageview = nullptr;
+	vk::raii::ImageView r16_imageview = nullptr;
+	vk::raii::ImageView r8_imageview = nullptr;
+	bool need_image_transition = true;
+
 	BitstreamHeader header{};
 	size_t header_size = 0;
 	size_t packet_size = 0;
@@ -49,6 +57,7 @@ public:
 
 private:
 	void push_raw(const void * data, size_t size);
+	void check_linear_texture_support();
 };
 
 class Decoder : public WaveletBuffers
@@ -57,6 +66,7 @@ class Decoder : public WaveletBuffers
 
 	bool use_readonly_texel_buffer = false;
 	bool fragment_path;
+	vk::raii::PhysicalDevice & phys_dev;
 	vk::raii::DescriptorPool ds_pool;
 
 	using key_render_pass = std::tuple<std::array<vk::Format, 3>, std::array<vk::ImageLayout, 3>>;
@@ -114,7 +124,7 @@ class Decoder : public WaveletBuffers
 		vk::raii::Pipeline pipeline = nullptr;
 	};
 
-	pipeline dequant_;
+	pipeline dequant_[3];
 	pipeline idwt_;
 	vk::raii::Pipeline idwt_dcshift = nullptr;
 
@@ -127,7 +137,7 @@ public:
 	bool decode(vk::raii::CommandBuffer & cmd, DecoderInput & input, const ViewBuffers & views);
 
 private:
-	bool dequant(vk::raii::CommandBuffer & cmd);
+	bool dequant(vk::raii::CommandBuffer & cmd, size_t storage_mode);
 	bool idwt(vk::raii::CommandBuffer & cmd, const ViewBuffers & views);
 	bool idwt_fragment(vk::raii::CommandBuffer & cmd, const ViewBuffers & views);
 	vk::DescriptorSet allocate_descriptor_set(vk::DescriptorSetLayout);

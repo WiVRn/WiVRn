@@ -1,0 +1,9 @@
+#version 450
+// Copyright (c) 2025 Hans-Kristian Arntzen
+// SPDX-License-Identifier: MIT
+
+#define STORAGE_MODE 2
+
+#extension GL_ARB_shading_language_include : require
+#include "wavelet_dequant.inc"
+
