@@ -61,6 +61,7 @@ const char * mime(wivrn::video_codec codec)
 			return "video/av01";
 	}
 	assert(false);
+	__builtin_unreachable();
 }
 
 void check(media_status_t status, const char * msg)
@@ -71,6 +72,26 @@ void check(media_status_t status, const char * msg)
 		throw std::runtime_error("MediaCodec error");
 	}
 }
+
+struct android_blit_handle : public decoder::blit_handle
+{
+	std::shared_ptr<wivrn::android::decoder::mapped_hardware_buffer> vk_data;
+	std::shared_ptr<AImageReader> image_reader;
+	AImage_ptr aimage;
+	android_blit_handle(
+	        const wivrn::from_headset::feedback & feedback,
+	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info,
+	        vk::ImageView image_view,
+	        vk::Image image,
+	        vk::ImageLayout & current_layout,
+	        decltype(vk_data) vk_data,
+	        decltype(image_reader) image_reader,
+	        decltype(aimage) aimage) :
+	        decoder::blit_handle(feedback, view_info, image_view, image, current_layout),
+	        vk_data(vk_data),
+	        image_reader(image_reader),
+	        aimage(std::move(aimage)) {}
+};
 
 } // namespace
 
@@ -85,7 +106,7 @@ decoder::decoder(
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> weak_scene,
         shard_accumulator * accumulator) :
-        description(description), stream_index(stream_index), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
+        wivrn::decoder(description), stream_index(stream_index), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
 {
 	spdlog::info("hbm_mutex.native_handle() = {}", (void *)hbm_mutex.native_handle());
 
@@ -222,7 +243,7 @@ void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame
 	current_input_buffer = input_buffer{};
 }
 
-void decoder::frame_completed(wivrn::from_headset::feedback & feedback, const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
+void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info)
 {
 	if (not media_codec)
 	{
@@ -255,7 +276,7 @@ void decoder::on_image_available(AImageReader * reader)
 	assert(reader == image_reader.get());
 	// Executed on image reader thread
 
-	decltype(blit_handle::aimage) image;
+	decltype(android_blit_handle::aimage) image;
 	try
 	{
 		AImage * tmp;
@@ -280,13 +301,13 @@ void decoder::on_image_available(AImageReader * reader)
 
 		auto vk_data = map_hardware_buffer(image.get());
 
-		auto handle = std::make_shared<decoder::blit_handle>(
+		auto handle = std::make_shared<android_blit_handle>(
 		        info->feedback,
 		        info->view_info,
-		        vk_data->image_view,
+		        *vk_data->image_view,
 		        *vk_data->vimage,
-		        &vk_data->layout,
-		        vk_data,
+		        vk_data->layout,
+		        std::move(vk_data),
 		        image_reader,
 		        std::move(image));
 
@@ -514,11 +535,6 @@ void decoder::on_media_output_available(AMediaCodec * media_codec, void * userda
 	});
 }
 
-void decoder::blit_handle::deleter::operator()(AImage * aimage)
-{
-	AImage_delete(aimage);
-}
-
 static bool hardware_accelerated(AMediaCodec * media_codec)
 {
 	// MediaCodecInfo has isHardwareAccelerated, but this does not exist in NDK.
@@ -542,9 +558,8 @@ static bool hardware_accelerated(AMediaCodec * media_codec)
 	return true;
 }
 
-std::vector<wivrn::video_codec> decoder::supported_codecs()
+void decoder::supported_codecs(std::vector<wivrn::video_codec> & result)
 {
-	std::vector<wivrn::video_codec> result;
 	// Make sure we update this code when codecs are changed
 	static_assert(magic_enum::enum_count<wivrn::video_codec>() == 3);
 
@@ -563,8 +578,6 @@ std::vector<wivrn::video_codec> decoder::supported_codecs()
 
 		spdlog::info("video codec {}: {}supported", magic_enum::enum_name(codec), supported ? "" : "NOT ");
 	}
-
-	return result;
 }
 
 } // namespace wivrn::android

@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "decoder/decoder.h"
 #include "vk/allocation.h"
 #include "wivrn_packets.h"
 #include <memory>
@@ -46,24 +47,10 @@ class stream;
 
 namespace wivrn::ffmpeg
 {
-class decoder
+class decoder : public wivrn::decoder
 {
-public:
-	struct blit_handle
-	{
-		wivrn::from_headset::feedback feedback;
-		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
-		vk::raii::ImageView & image_view;
-		vk::Image image = nullptr;
-		vk::ImageLayout * current_layout = nullptr;
-
-		int image_index;
-		decoder * self;
-
-		~blit_handle();
-	};
-
 private:
+	struct ffmpeg_blit_handle;
 	static const int image_count = 12;
 	struct image
 	{
@@ -81,8 +68,6 @@ private:
 	vk::Extent2D extent{};
 	std::vector<int> free_images;
 
-	wivrn::to_headset::video_stream_description::item description;
-
 	std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> codec;
 	std::unique_ptr<SwsContext, void (*)(SwsContext *)> sws;
 	std::vector<uint8_t> packet;
@@ -96,26 +81,17 @@ public:
 	decoder(vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
 	        const wivrn::to_headset::video_stream_description::item & description,
-	        float fps,
 	        uint8_t stream_index,
 	        std::weak_ptr<scenes::stream> scene,
 	        shard_accumulator * accumulator);
 
-	decoder(const decoder &) = delete;
-	decoder(decoder &&) = delete;
-
-	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
+	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial) override;
 
 	void frame_completed(
 	        const wivrn::from_headset::feedback & feedback,
-	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
+	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info) override;
 
-	const auto & desc() const
-	{
-		return description;
-	}
-
-	vk::Sampler sampler()
+	vk::Sampler sampler() override
 	{
 		return *rgb_sampler;
 	}
@@ -125,6 +101,6 @@ public:
 		return extent;
 	}
 
-	static std::vector<wivrn::video_codec> supported_codecs();
+	static void supported_codecs(std::vector<wivrn::video_codec> &);
 };
 } // namespace wivrn::ffmpeg

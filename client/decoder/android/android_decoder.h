@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "decoder/decoder.h"
 #include "utils/sync_queue.h"
 #include "wivrn_packets.h"
 #include <functional>
@@ -59,31 +60,12 @@ class stream;
 
 namespace wivrn::android
 {
-class decoder
+class decoder : public wivrn::decoder
 {
 public:
 	struct mapped_hardware_buffer;
 
-	struct blit_handle
-	{
-		struct deleter
-		{
-			void operator()(AImage *);
-		};
-		wivrn::from_headset::feedback feedback;
-		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
-		vk::raii::ImageView & image_view;
-		vk::Image image = nullptr;
-		vk::ImageLayout * current_layout = nullptr;
-
-		std::shared_ptr<mapped_hardware_buffer> vk_data;
-
-		std::shared_ptr<AImageReader> image_reader;
-		AImage_ptr aimage;
-	};
-
 private:
-	wivrn::to_headset::video_stream_description::item description;
 	uint8_t stream_index;
 	float fps;
 
@@ -146,33 +128,20 @@ public:
 	        uint8_t stream_index,
 	        std::weak_ptr<scenes::stream> scene,
 	        shard_accumulator * accumulator);
-
-	decoder(const decoder &) = delete;
-	decoder(decoder &&) = delete;
 	~decoder();
 
-	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial);
+	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial) override;
 
 	void frame_completed(
-	        wivrn::from_headset::feedback & feedback,
-	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info);
+	        const wivrn::from_headset::feedback & feedback,
+	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info) override;
 
-	const auto & desc() const
-	{
-		return description;
-	}
-
-	vk::Sampler sampler()
+	vk::Sampler sampler() override
 	{
 		return *ycbcr_sampler;
 	}
 
-	vk::Extent2D image_size()
-	{
-		return extent;
-	}
-
-	static std::vector<wivrn::video_codec> supported_codecs();
+	static void supported_codecs(std::vector<wivrn::video_codec> &);
 };
 
 } // namespace wivrn::android

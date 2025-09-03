@@ -61,24 +61,53 @@ static AVCodecID codec_id(wivrn::video_codec codec)
 	__builtin_unreachable();
 }
 
-decoder::blit_handle::~blit_handle()
+struct decoder::ffmpeg_blit_handle : public wivrn::decoder::blit_handle
 {
-	std::unique_lock lock(self->mutex);
-	if (image_index < 0)
-		return;
+	int image_index;
+	wivrn::ffmpeg::decoder * self;
 
-	self->free_images.push_back(image_index);
-}
+	ffmpeg_blit_handle(
+	        const wivrn::from_headset::feedback & feedback,
+	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info,
+	        vk::ImageView image_view,
+	        vk::Image image,
+	        vk::ImageLayout & current_layout,
+	        int image_index,
+	        wivrn::ffmpeg::decoder * self) :
+	        wivrn::decoder::blit_handle{
+	                feedback,
+	                view_info,
+	                image_view,
+	                image,
+	                current_layout,
+	        },
+	        image_index(image_index),
+	        self(self)
+	{}
+
+	~ffmpeg_blit_handle()
+	{
+		std::unique_lock lock(self->mutex);
+		if (image_index < 0)
+			return;
+
+		self->free_images.push_back(image_index);
+	}
+};
 
 decoder::decoder(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
         const wivrn::to_headset::video_stream_description::item & description,
-        float fps,
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> scene,
         shard_accumulator * accumulator) :
-        device(device), description(description), codec(nullptr, free_codec_context), sws(nullptr, sws_freeContext), weak_scene(scene), accumulator(accumulator)
+        wivrn::decoder(description),
+        device(device),
+        codec(nullptr, free_codec_context),
+        sws(nullptr, sws_freeContext),
+        weak_scene(scene),
+        accumulator(accumulator)
 {
 	free_images.resize(image_count);
 
@@ -221,12 +250,12 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 	if (res == 0)
 		throw std::runtime_error{"sws_scale failed"};
 
-	auto handle = std::make_shared<decoder::blit_handle>(
+	auto handle = std::make_shared<ffmpeg_blit_handle>(
 	        feedback,
 	        view_info,
-	        decoded_images[index].image_view,
-	        (vk::Image)decoded_images[index].image,
-	        &decoded_images[index].current_layout,
+	        *decoded_images[index].image_view,
+	        decoded_images[index].image,
+	        decoded_images[index].current_layout,
 	        index,
 	        this);
 
@@ -234,13 +263,11 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 		scene->push_blit_handle(accumulator, std::move(handle));
 }
 
-std::vector<wivrn::video_codec> decoder::supported_codecs()
+void decoder::supported_codecs(std::vector<wivrn::video_codec> & res)
 {
-	return {
-	        wivrn::video_codec::h264,
-	        wivrn::video_codec::h265,
-	        wivrn::video_codec::av1,
-	};
+	res.push_back(wivrn::video_codec::h264);
+	res.push_back(wivrn::video_codec::h265);
+	res.push_back(wivrn::video_codec::av1);
 }
 
 } // namespace wivrn::ffmpeg

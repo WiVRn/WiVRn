@@ -19,24 +19,22 @@
 
 #pragma once
 
-#include <memory>
-#include <vulkan/vulkan.hpp>
-
-#ifdef __ANDROID__
-#include "decoder/android/android_decoder.h"
-using decoder_impl = ::wivrn::android::decoder;
-#else
-#include "decoder/ffmpeg/ffmpeg_decoder.h"
-using decoder_impl = ::wivrn::ffmpeg::decoder;
-#endif
-
+#include "decoder.h"
 #include "wivrn_packets.h"
+
+#include <memory>
 #include <optional>
 #include <vector>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace xr
 {
 class instance;
+}
+
+namespace scenes
+{
+class stream;
 }
 
 namespace wivrn
@@ -44,7 +42,7 @@ namespace wivrn
 
 class shard_accumulator
 {
-	std::shared_ptr<decoder_impl> decoder;
+	std::shared_ptr<decoder> decoder_;
 
 public:
 	using data_shard = wivrn::to_headset::video_stream_data_shard;
@@ -86,7 +84,7 @@ public:
 	        float fps,
 	        std::weak_ptr<scenes::stream> scene,
 	        uint8_t stream_index) :
-	        decoder(std::make_shared<decoder_impl>(device, physical_device, description, fps, stream_index, scene, this)),
+	        decoder_(decoder::make(device, physical_device, description, fps, stream_index, scene, this)),
 	        current(stream_index),
 	        next(stream_index),
 	        weak_scene(scene),
@@ -99,20 +97,15 @@ public:
 
 	auto & desc() const
 	{
-		return decoder->desc();
+		return decoder_->description;
 	}
 
 	vk::Sampler sampler()
 	{
-		return decoder->sampler();
+		return decoder_->sampler();
 	}
 
-	vk::Extent2D image_size()
-	{
-		return decoder->image_size();
-	}
-
-	using blit_handle = decoder_impl::blit_handle;
+	using blit_handle = decoder::blit_handle;
 
 private:
 	void try_submit_frame(std::optional<uint16_t> shard_idx);
