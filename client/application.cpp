@@ -758,18 +758,16 @@ void application::initialize_vulkan()
 		spdlog::info("    {} (version {})", extension_name, spec_version);
 
 	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
-	vk_device_extensions.push_back(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
-	vk_device_extensions.push_back(VK_KHR_16BIT_STORAGE_EXTENSION_NAME);
-	vk_device_extensions.push_back(VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME);
-	vk_device_extensions.push_back(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
-	vk_device_extensions.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_KHR_8BIT_STORAGE_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
 
 #ifdef __ANDROID__
 	vk_device_extensions.push_back(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME);
-	vk_device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
@@ -885,15 +883,10 @@ void application::initialize_vulkan()
 	                .ppEnabledExtensionNames = vk_device_extensions.data(),
 	                .pEnabledFeatures = &device_features,
 	        },
+	        vk::PhysicalDeviceVulkan11Features{},
 	        vk::PhysicalDeviceFragmentShadingRateFeaturesKHR{},
-	        vk::PhysicalDeviceSamplerYcbcrConversionFeaturesKHR{
-	                .samplerYcbcrConversion = VK_TRUE,
-	        },
 	        vk::PhysicalDevice8BitStorageFeatures{
 	                .storageBuffer8BitAccess = true,
-	        },
-	        vk::PhysicalDevice16BitStorageFeatures{
-	                .storageBuffer16BitAccess = true,
 	        },
 	        vk::PhysicalDeviceSubgroupSizeControlFeaturesEXT{
 	                .subgroupSizeControl = true,
@@ -906,6 +899,18 @@ void application::initialize_vulkan()
 	                .timelineSemaphore = true,
 	        },
 	};
+	device_create_info.unlink<vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
+	device_create_info.unlink<vk::PhysicalDevice8BitStorageFeatures>();
+	device_create_info.unlink<vk::PhysicalDeviceSubgroupSizeControlFeaturesEXT>();
+	device_create_info.unlink<vk::PhysicalDeviceFloat16Int8FeaturesKHR>();
+	device_create_info.unlink<vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR>();
+
+	{
+		auto [_, feat] = vk_physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features>();
+		auto & create_feat = device_create_info.get<vk::PhysicalDeviceVulkan11Features>();
+		create_feat.samplerYcbcrConversion = feat.samplerYcbcrConversion;
+		create_feat.storageBuffer16BitAccess = feat.storageBuffer16BitAccess;
+	}
 
 	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and
 	    utils::contains(vk_device_extensions, VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME))
@@ -917,10 +922,36 @@ void application::initialize_vulkan()
 		spdlog::info("Fragment shading rate features: primitive={} attachment={}",
 		             create_feat.primitiveFragmentShadingRate,
 		             create_feat.attachmentFragmentShadingRate);
+		device_create_info.relink<vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
 	}
-	else
+
+	if (utils::contains(vk_device_extensions, VK_KHR_8BIT_STORAGE_EXTENSION_NAME))
 	{
-		device_create_info.unlink<vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
+		auto [_, feat] = vk_physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDevice8BitStorageFeatures>();
+
+		if (feat.storageBuffer8BitAccess)
+			device_create_info.relink<vk::PhysicalDevice8BitStorageFeatures>();
+	}
+	if (utils::contains(vk_device_extensions, VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME))
+	{
+		auto [_, feat] = vk_physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceSubgroupSizeControlFeatures>();
+
+		if (feat.subgroupSizeControl and feat.computeFullSubgroups)
+			device_create_info.relink<vk::PhysicalDeviceSubgroupSizeControlFeatures>();
+	}
+	if (utils::contains(vk_device_extensions, VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME))
+	{
+		auto [_, feat] = vk_physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceShaderFloat16Int8Features>();
+
+		if (feat.shaderFloat16)
+			device_create_info.relink<vk::PhysicalDeviceShaderFloat16Int8Features>();
+	}
+	if (utils::contains(vk_device_extensions, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME))
+	{
+		auto [_, feat] = vk_physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceTimelineSemaphoreFeatures>();
+
+		if (feat.timelineSemaphore)
+			device_create_info.relink<vk::PhysicalDeviceTimelineSemaphoreFeatures>();
 	}
 
 	vk_device = xr_system_id.create_device(vk_physical_device, device_create_info.get());
