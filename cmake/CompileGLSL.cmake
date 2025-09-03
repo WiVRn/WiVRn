@@ -1,3 +1,6 @@
+set(_THIS_MODULE_BASE_DIR "${CMAKE_CURRENT_LIST_DIR}")
+
+find_program(HEXDUMP hexdump REQUIRED)
 
 function(compile_glsl_aux shader_stage shader_name glsl_filename output target_env)
 
@@ -11,9 +14,27 @@ function(compile_glsl_aux shader_stage shader_name glsl_filename output target_e
 ")
 
     add_custom_command(
-        OUTPUT "${SPV_FILE}"
-        COMMAND Vulkan::glslangValidator -V --target-env ${target_env} -S ${shader_stage} -D${shader_stage_upper}_SHADER ${in_file} -x -o "${SPV_FILE}"
+        OUTPUT "${SPV_FILE}-nopt"
+        COMMAND Vulkan::glslangValidator -V --target-env ${target_env} -S ${shader_stage} -D${shader_stage_upper}_SHADER ${in_file} -o "${SPV_FILE}-nopt"
         DEPENDS "${glsl_filename}"
+        VERBATIM
+    )
+    if (WIVRN_OPTIMIZE_SHADERS)
+        add_custom_command(
+            OUTPUT "${SPV_FILE}-opt"
+            COMMAND spirv-opt --target-env=${target_env} -O "${SPV_FILE}-nopt" -o "${SPV_FILE}-opt"
+            DEPENDS "${SPV_FILE}-nopt"
+            VERBATIM
+        )
+        set(_spv "${SPV_FILE}-opt")
+    else()
+        set(_spv "${SPV_FILE}-nopt")
+    endif()
+    set(_format "/4 \"0x%02X, \"")
+    add_custom_command(
+        OUTPUT "${SPV_FILE}"
+        COMMAND "${HEXDUMP}" -ve "${_format}" ${_spv} > "${SPV_FILE}"
+        DEPENDS "${_spv}"
         VERBATIM
     )
 
@@ -46,6 +67,15 @@ function(wivrn_compile_glsl target)
 
     cmake_path(APPEND OUTPUT "${CMAKE_CURRENT_BINARY_DIR}" "${target}_shaders.cpp")
 
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${target}_shaders.h" "\
+#include <cstdint>
+#include <map>
+#include <vector>
+#include <string>
+${_namespace_begin}
+extern const std::map<std::string, std::vector<uint32_t>> shaders;
+${_namespace_end}")
+
     file(WRITE ${OUTPUT} "\
 #include <cstdint>
 #include <map>
@@ -72,5 +102,6 @@ extern const std::map<std::string, std::vector<uint32_t>> shaders = {
     file(APPEND ${OUTPUT} "};${_namespace_end}")
 
     target_sources(${target} PRIVATE ${OUTPUT})
+    target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 
 endfunction()

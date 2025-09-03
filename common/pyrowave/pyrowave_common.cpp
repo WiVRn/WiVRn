@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Hans-Kristian Arntzen
 // SPDX-License-Identifier: MIT
 #include "pyrowave_common.h"
+#include "pyrowave_shaders.h"
 #include <map>
 
 #if PYROWAVE_PRECISION < 0 || PYROWAVE_PRECISION > 2
@@ -8,11 +9,6 @@
 #endif
 
 constexpr int WaveletFP16Levels = 2;
-
-namespace pyrowave
-{
-extern const std::map<std::string, std::vector<uint32_t>> shaders;
-}
 
 namespace PyroWave
 {
@@ -22,7 +18,7 @@ vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::string 
 	const auto & spirv = pyrowave::shaders.at(name);
 	vk::ShaderModuleCreateInfo create_info{
 	        .codeSize = spirv.size() * sizeof(uint32_t),
-	        .pCode = data(spirv),
+	        .pCode = spirv.data(),
 	};
 
 	return vk::raii::ShaderModule{device, create_info};

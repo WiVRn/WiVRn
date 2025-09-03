@@ -18,12 +18,13 @@
  */
 
 #include "shader.h"
+#include "wivrn_shaders.h"
 
 vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::vector<uint32_t> & spirv)
 {
 	vk::ShaderModuleCreateInfo create_info{
 	        .codeSize = spirv.size() * sizeof(uint32_t),
-	        .pCode = data(spirv),
+	        .pCode = spirv.data(),
 	};
 
 	return vk::raii::ShaderModule{device, create_info};

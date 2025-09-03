@@ -386,6 +386,7 @@ modules:
       - -DWIVRN_USE_PIPEWIRE=ON
       - -DWIVRN_USE_SYSTEM_BOOST=OFF
       - -DWIVRN_WERROR=ON
+      - -DWIVRN_OPTIMIZE_SHADERS=OFF # we would have to build spirv-opt
       - -DWIVRN_CHECK_CAPSYSNICE=OFF # Capabilities don't work inside flatpak
       - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
       - -DFETCHCONTENT_BASE_DIR=deps
