@@ -268,6 +268,9 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 		}
 	}
 
+	if (config.name == encoder_pyrowave)
+		config.codec = pyrowave;
+
 #if WIVRN_USE_VAAPI
 	if (config.name == encoder_vaapi and not config.codec)
 	{
@@ -354,6 +357,15 @@ static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk
 	return {base};
 }
 
+static void check_offsets(const configuration::encoder & c)
+{
+	if (c.name == encoder_pyrowave)
+	{
+		if (c.offset_x != 0 or c.offset_y != 0 or c.width != 1 or c.height != 1)
+			U_LOG_E("Pyrowave does not support multi-encoder layout");
+	}
+}
+
 static uint16_t align(uint16_t value, uint16_t alignment)
 {
 	return ((value + alignment - 1) / alignment) * alignment;
@@ -376,21 +388,8 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	config.encoder_passthrough->offset_x = 0;
 	config.encoder_passthrough->offset_y = 0;
 	fill_defaults(bundle, info.supported_codecs, *config.encoder_passthrough, config.bit_depth);
-
-	config.encoder_passthrough = {
-	        .name = encoder_pyrowave,
-	        .width = 1,
-	        .height = 1,
-	        .codec = video_codec::pyrowave,
-	};
-	config.encoders = {
-	        {
-	                .name = encoder_pyrowave,
-	                .width = 1,
-	                .height = 1,
-	                .codec = video_codec::pyrowave,
-	        },
-	};
+	if (config.encoder_passthrough->name == encoder_pyrowave)
+		U_LOG_E("Pyrowave is not supported for alpha channel");
 
 	uint64_t bitrate = config.bitrate.value_or(default_bitrate);
 	std::array<double, 2> default_scale;
@@ -413,6 +412,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		            std::ceil(encoder.width.value_or(1) * width),
 		            std::ceil(encoder.height.value_or(1) * height),
 		            scale);
+		check_offsets(encoder);
 	}
 
 	width = align(width * scale[0], 64);

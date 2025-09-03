@@ -299,7 +299,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		if (not(config.check_feature(feature::microphone)))
 			info.microphone = {};
 
-		info.supported_codecs = decoder_impl::supported_codecs();
+		info.supported_codecs = decoder::supported_codecs();
 		return info;
 	}());
 
@@ -849,7 +849,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		foveation = blit_handle->view_info.foveation;
 		use_alpha = blit_handle->view_info.alpha;
 
-		if (*blit_handle->current_layout == vk::ImageLayout::eUndefined)
+		if (blit_handle->current_layout == vk::ImageLayout::eUndefined)
 		{
 			vk::ImageMemoryBarrier barrier{
 			        .srcAccessMask = vk::AccessFlagBits::eNone,
@@ -865,7 +865,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			};
 
 			command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {}, barrier);
-			*blit_handle->current_layout = vk::ImageLayout::eGeneral;
+			blit_handle->current_layout = vk::ImageLayout::eGeneral;
 		}
 	}
 
@@ -878,7 +878,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		{
 			if (not blit_handle)
 				continue;
-			b.push_image(command_buffer, j, decoders[j].decoder->sampler(), *blit_handle->image_view, *blit_handle->current_layout);
+			b.push_image(command_buffer, j, decoders[j].decoder->sampler(), blit_handle->image_view, blit_handle->current_layout);
 		}
 		blitted[i] = b.end(command_buffer);
 	}
@@ -935,8 +935,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	{
 		if (b and b->semaphore)
 		{
+			assert(b->semaphore_val);
 			semaphores.push_back(b->semaphore);
-			semaphore_vals.push_back(b->semaphore_val);
+			semaphore_vals.push_back(*b->semaphore_val);
 			wait_stages.push_back(vk::PipelineStageFlagBits::eFragmentShader);
 		}
 	}

@@ -21,9 +21,33 @@
 #include "application.h"
 #include "scenes/stream.h"
 
+namespace
+{
+struct pyrowave_blit_handle : public decoder::blit_handle
+{
+	std::atomic_bool & free;
+
+	pyrowave_blit_handle(
+	        const wivrn::from_headset::feedback & feedback,
+	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info,
+	        vk::ImageView image_view,
+	        vk::Image image,
+	        vk::ImageLayout & current_layout,
+	        vk::Semaphore semaphore,
+	        uint64_t & semaphore_val,
+	        std::atomic_bool & free) :
+	        decoder::blit_handle{feedback, view_info, image_view, image, current_layout, semaphore, &semaphore_val},
+	        free(free) {}
+	~pyrowave_blit_handle()
+	{
+		free = true;
+	};
+};
+} // namespace
+
 namespace wivrn
 {
-decoder::decoder(
+pyrowave_decoder::pyrowave_decoder(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
         uint32_t vk_queue_family_index,
@@ -32,6 +56,7 @@ decoder::decoder(
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> scene,
         shard_accumulator * accumulator) :
+        decoder(description),
         ycbcr_conversion(device, {
                                          .format = vk::Format::eG8B8R83Plane420Unorm,
                                          .ycbcrModel = vk::SamplerYcbcrModelConversion(description.color_model.value_or(VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709)),
@@ -53,7 +78,6 @@ decoder::decoder(
                                  },
                          }
                                  .get()),
-        description(description),
         weak_scene(scene),
         accumulator(accumulator),
         dec(physical_device, device, description.width, description.height, PyroWave::ChromaSubsampling::Chroma420, true)
@@ -140,7 +164,7 @@ decoder::decoder(
 	worker = std::thread([&, vk_queue_family_index] { worker_function(vk_queue_family_index); });
 }
 
-decoder::~decoder()
+pyrowave_decoder::~pyrowave_decoder()
 {
 	exiting = true;
 	pending.lock().notify_all();
@@ -148,13 +172,13 @@ decoder::~decoder()
 		worker.join();
 }
 
-void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
+void pyrowave_decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
 	for (auto & item: data)
 		input_acc->push_data(item);
 }
 
-void decoder::frame_completed(
+void pyrowave_decoder::frame_completed(
         const from_headset::feedback & feedback,
         const to_headset::video_stream_data_shard::view_info_t & view_info)
 {
@@ -169,7 +193,7 @@ void decoder::frame_completed(
 	input_acc->clear();
 }
 
-decoder::image * decoder::get_free()
+pyrowave_decoder::image * pyrowave_decoder::get_free()
 {
 	for (auto & item: image_pool)
 	{
@@ -179,7 +203,7 @@ decoder::image * decoder::get_free()
 	return nullptr;
 }
 
-void decoder::worker_function(uint32_t queue_family_index)
+void pyrowave_decoder::worker_function(uint32_t queue_family_index)
 {
 	auto & device = dec.device;
 	vk::raii::CommandPool command_pool(
@@ -236,12 +260,12 @@ void decoder::worker_function(uint32_t queue_family_index)
 				continue;
 			}
 			std::array views{*item->view_y, *item->view_cb, *item->view_cr};
-			auto handle = std::make_shared<blit_handle>(
+			auto handle = std::make_shared<pyrowave_blit_handle>(
 			        feedback,
 			        view_info,
-			        item->view_full,
+			        *item->view_full,
 			        item->image,
-			        &item->current_layout,
+			        item->current_layout,
 			        *item->semaphore,
 			        item->semaphore_val,
 			        item->free);
@@ -335,13 +359,8 @@ void decoder::worker_function(uint32_t queue_family_index)
 	}
 }
 
-std::vector<wivrn::video_codec> decoder::supported_codecs()
+std::vector<wivrn::video_codec> pyrowave_decoder::supported_codecs()
 {
 	return {video_codec::pyrowave};
-}
-
-decoder::blit_handle::~blit_handle()
-{
-	free = true;
 }
 } // namespace wivrn

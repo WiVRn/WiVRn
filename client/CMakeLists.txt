@@ -45,7 +45,7 @@ if(ANDROID)
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "android/*.cpp"
         "audio/android/*.cpp"
-        #"decoder/android/*.cpp"
+        "decoder/android/*.cpp"
         )
     target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 else()
@@ -63,7 +63,7 @@ else()
 
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "decoder/ffmpeg/*.cpp")
-    #target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
+    target_sources(wivrn PRIVATE ${PLATFORM_SOURCE})
 
     file(CREATE_LINK ${CMAKE_CURRENT_BINARY_DIR}/share ${CMAKE_BINARY_DIR}/share SYMBOLIC)
 endif()

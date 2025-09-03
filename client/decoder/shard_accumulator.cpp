@@ -186,7 +186,7 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 		payload.emplace_back(data_shards[idx]->payload);
 
 	bool frame_complete = last_idx == data_shards.size() and data_shards.back()->flags & video_stream_data_shard::end_of_frame;
-	decoder->push_data(payload, data_shards[shard_idx]->frame_idx, not frame_complete);
+	decoder_->push_data(payload, data_shards[shard_idx]->frame_idx, not frame_complete);
 
 	if (not frame_complete)
 		return;
@@ -206,7 +206,7 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	}
 
 	// Try to extract a frame
-	decoder->frame_completed(current.feedback, *data_shards.front()->view_info);
+	decoder_->frame_completed(current.feedback, *data_shards.front()->view_info);
 
 	send_feedback(current.feedback);
 
