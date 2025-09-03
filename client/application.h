@@ -62,7 +62,7 @@ struct application_info
 	int version = VK_MAKE_VERSION(1, 0, 0);
 	XrFormFactor formfactor = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
 	XrViewConfigurationType viewconfig = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-	XrVersion min_vulkan_version = XR_MAKE_VERSION(1, 3, 0);
+	XrVersion min_vulkan_version = XR_MAKE_VERSION(1, 1, 0);
 
 #ifdef __ANDROID__
 	android_app * native_app;

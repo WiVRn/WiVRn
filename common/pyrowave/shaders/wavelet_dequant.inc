@@ -5,11 +5,12 @@
 #extension GL_KHR_shader_subgroup_vote : require
 #extension GL_KHR_shader_subgroup_arithmetic : require
 #extension GL_KHR_shader_subgroup_shuffle_relative : require
-#extension GL_EXT_samplerless_texture_functions : require
 
 #if STORAGE_MODE == 0
 #extension GL_EXT_shader_8bit_storage : require
 #extension GL_EXT_shader_16bit_storage : require
+#else
+#extension GL_EXT_samplerless_texture_functions : require
 #endif
 
 layout(local_size_x = 128) in;
