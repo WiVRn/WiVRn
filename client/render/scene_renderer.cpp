@@ -35,15 +35,12 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <map>
 #include <memory>
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_enums.hpp>
 #include <vulkan/vulkan_structs.hpp>
-
-extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
 // TODO move in lobby?
 vk::Format scene_renderer::find_usable_image_format(

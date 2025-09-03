@@ -89,7 +89,7 @@ file(GLOB LOCAL_SOURCE CONFIGURE_DEPENDS
 
 file(GLOB_RECURSE VULKAN_SHADERS CONFIGURE_DEPENDS "*.glsl")
 target_sources(wivrn PRIVATE ${LOCAL_SOURCE} ${VULKAN_SHADERS})
-wivrn_compile_glsl(wivrn ${VULKAN_SHADERS})
+wivrn_compile_glsl(wivrn SHADERS ${VULKAN_SHADERS})
 
 target_link_libraries(wivrn
     Boost::locale

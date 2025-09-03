@@ -21,6 +21,9 @@
           pkgs.libpng
           pkgs.libarchive
         ];
+        extraNativeBuildInputs = [
+          pkgs.util-linux
+        ];
 
         package = pkgs.enableDebugging (pkgs.wivrn.overrideAttrs (finalAttrs: oldAttrs: {
           src = ./.;
@@ -46,6 +49,7 @@
           };
 
           buildInputs = oldAttrs.buildInputs ++ extraBuildInputs;
+          nativeBuildInputs = oldAttrs.nativeBuildInputs ++ extraNativeBuildInputs;
 
           dontWrapQtApps = true;
 

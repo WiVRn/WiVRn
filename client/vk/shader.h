@@ -19,12 +19,9 @@
 
 #pragma once
 
-#include <map>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
-
-extern const std::map<std::string, std::vector<uint32_t>> shaders;
 
 vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::vector<uint32_t> & spirv);
 vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::string & name);
