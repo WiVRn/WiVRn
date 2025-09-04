@@ -307,7 +307,7 @@ stream_defoveator::stream_defoveator(
 
 	vk::DescriptorPoolSize pool_size{
 	        .type = vk::DescriptorType::eCombinedImageSampler,
-	        .descriptorCount = view_count * 2,
+	        .descriptorCount = view_count * 4,
 	};
 
 	ds_pool = device.createDescriptorPool(vk::DescriptorPoolCreateInfo{
