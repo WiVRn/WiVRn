@@ -25,8 +25,7 @@
 
 
 layout (location = 0) in vec2 vPosition;
-layout (location = 1) in vec2 vUV;
-layout (location = 2) in int vShadingRate;
+layout (location = 1) in uvec2 vUV;
 
 layout(location = 0) out vec4 outUV;
 
@@ -39,11 +38,14 @@ layout(push_constant) uniform pc
 void main()
 {
 	gl_Position = vec4(vPosition, 0.0, 1.0);
-	outUV.xy = (vUV + rgb_rect.xy) / rgb_rect.zw;
-	outUV.zw = (vUV + a_rect.xy) / a_rect.zw;
 #if VSR
-	gl_PrimitiveShadingRateEXT = vShadingRate;
+	gl_PrimitiveShadingRateEXT = int(bitfieldExtract(vUV.x, 28, 4));
+	vec2 uv = bitfieldInsert(vUV, uvec2(0), 28, 4);
+#else
+	vec2 uv = vUV;
 #endif
+	outUV.xy = (uv + rgb_rect.xy) / rgb_rect.zw;
+	outUV.zw = (uv + a_rect.xy) / a_rect.zw;
 }
 #endif
 

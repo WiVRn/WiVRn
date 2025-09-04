@@ -36,9 +36,8 @@ struct stream_defoveator::vertex
 {
 	// output image position
 	alignas(8) glm::vec2 position;
-	// input texture coordinates
-	alignas(8) glm::vec2 uv;
-	int32_t shading_rate;
+	// input texture coordinates + shading rate in the first 4 bits of x
+	alignas(8) glm::uvec2 uv;
 };
 
 struct vert_pc
@@ -184,14 +183,8 @@ FIXME: SGSR
 	                {
 	                        .location = 1,
 	                        .binding = 0,
-	                        .format = vk::Format::eR32G32Sfloat,
+	                        .format = vk::Format::eR32G32Uint,
 	                        .offset = offsetof(vertex, uv),
-	                },
-	                {
-	                        .location = 2,
-	                        .binding = 0,
-	                        .format = vk::Format::eR32Sint,
-	                        .offset = offsetof(vertex, shading_rate),
 	                },
 	        },
 	        .InputAssemblyState = {{
@@ -260,7 +253,7 @@ FIXME: SGSR
 					for (int x = std::bit_width(rate.fragmentSize.width) - 1; x < 3; ++x)
 					{
 						if (fragment_sizes[x][y] == 0)
-							fragment_sizes[x][y] = flags;
+							fragment_sizes[x][y] = flags << 28;
 					}
 				}
 			}
@@ -374,7 +367,7 @@ static size_t required_vertices(const wivrn::to_headset::foveation_parameter & p
 	return (2 * (p.x.size() + 1) + 1) * p.y.size();
 }
 
-int32_t stream_defoveator::shading_rate(int pixels_x, int pixels_y)
+uint32_t stream_defoveator::shading_rate(int pixels_x, int pixels_y)
 {
 	int x = 0;
 	if (pixels_x >= 2)
@@ -408,7 +401,8 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 		const int n_ratio_y = (py.size() - 1) / 2;
 		const int n_ratio_x = (px.size() - 1) / 2;
 
-		glm::vec2 in(0), out(0); // pixel coordinates
+		glm::uvec2 in(0);
+		glm::vec2 out(0); // pixel coordinates
 		glm::vec2 out_pixel_size(2. / output_extent.width,
 		                         2. / output_extent.height);
 		for (auto [iy, n_out_y]: utils::enumerate_range(py))
@@ -420,15 +414,14 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 			for (auto [ix, n_out_x]: utils::enumerate_range(px))
 			{
 				const int ratio_x = std::abs(n_ratio_x - int(ix)) + 1;
+				glm::uvec2 rate = glm::uvec2(shading_rate(ratio_x, ratio_y), 0);
 				*vertices++ = {
 				        .position = out * out_pixel_size - glm::vec2(1),
-				        .uv = in,
-				        .shading_rate = shading_rate(ratio_x, ratio_y),
+				        .uv = in | rate,
 				};
 				*vertices++ = {
 				        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size - glm::vec2(1),
-				        .uv = (in + glm::vec2(0, n_out_y)),
-				        .shading_rate = shading_rate(ratio_x, ratio_y),
+				        .uv = (in + glm::uvec2(0, n_out_y)) | rate,
 				};
 				in.x += n_out_x;
 				out.x += n_out_x * ratio_x;
