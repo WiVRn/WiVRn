@@ -307,34 +307,22 @@ static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk
 #ifdef WIVRN_SPLIT_ENCODERS
 	if (base.name != encoder_x264)
 	{
-		/* Split in 3 parts:
+		/* Split in 2 parts:
 		 *  +--------+--------+
 		 *  |        |        |
-		 *  |        |        |
-		 *  +--------+        |
-		 *  |        |        |
-		 *  |        |        |
-		 *  |        |        |
-		 *  |        |        |
+		 *  |  left  | right  |
+		 *  |  eye   |  eye   |
 		 *  |        |        |
 		 *  +--------+--------+
-		 * All 3 are encoded sequentially, so that the smallest is ready earlier.
+		 * Encoded sequentially, so the first eye is ready and transmitted earlier.
 		 * Decoder can start work as fast as possible, reducing idle time.
+		 * Splitting on eye boundaries allows for fast-path on headset.
 		 *
 		 */
 		return {
 		        {
 		                .name = base.name,
 		                .width = 0.5,
-		                .height = 0.25,
-		                .group = 0,
-		                .codec = base.codec,
-		        },
-		        {
-		                .name = base.name,
-		                .width = 0.5,
-		                .height = 0.75,
-		                .offset_y = 0.25,
 		                .group = 0,
 		                .codec = base.codec,
 		        },

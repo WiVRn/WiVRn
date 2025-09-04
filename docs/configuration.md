@@ -44,7 +44,7 @@ Bit depth of the video. 8-bit is supported by all encoders. 10-bit is supported 
 ## `encoders`
 A list of encoders to use.
 
-Default value: 3 encoders in order 1/8th, 3/8th and 4/8th of the image.
+Default value: one encoder per eye
 
 WiVRn has the ability to split the video in blocks that are processed independently, this may use resources more effectively and reduce latency.
 All the provided encoders are put into groups, groups are executed concurrently and items within a group are processed sequentially.
