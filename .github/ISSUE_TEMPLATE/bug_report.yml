@@ -49,7 +49,6 @@ body:
         Provide the content of `config.json` for the server.
         Located in `${XDG_CONFIG_HOME-${HOME}/.config}/wivrn/config.json`
         or `~/.var/app/io.github.wivrn.wivrn/config/wivrn/config.json` for the flatpak version
-      render: plain
       placeholder: |
         {
           "encoders": [
@@ -61,7 +60,6 @@ body:
     attributes:
       label: Server Logs
       description: Provide the `wivrn-server` output.
-      render: plain
       placeholder: |
         Add the output of the wivrn-server here.
         If more than a few lines, prefer file attachment.
@@ -82,7 +80,7 @@ body:
     attributes:
       label: Vulkan Info
       description: Provide the output of `vulkaninfo --summary` command.
-      render: plain
+      render: text
       placeholder: Attach the output as a file here.
 
   - type: dropdown
