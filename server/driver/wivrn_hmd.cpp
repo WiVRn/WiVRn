@@ -41,14 +41,13 @@ xrt_result_t wivrn_hmd::get_visibility_mask(xrt_visibility_mask_type type, uint3
 {
 	static_assert(sizeof(uint32_t) == sizeof(decltype(from_headset::visibility_mask_changed::mask::indices)::value_type));
 	static_assert(sizeof(xrt_vec2) == sizeof(decltype(from_headset::visibility_mask_changed::mask::vertices)::value_type));
-	type = xrt_visibility_mask_type((unsigned int)type - 1); // enum values start at 1
 	const auto visibility_mask = this->visibility_mask.lock();
-	if (type >= from_headset::visibility_mask_changed::num_types or view_index >= 2 or not(*visibility_mask)[view_index])
+	if (type > from_headset::visibility_mask_changed::num_types or view_index >= 2 or not(*visibility_mask)[view_index])
 	{
 		*mask = (xrt_visibility_mask *)calloc(1, sizeof(xrt_visibility_mask));
 		return XRT_SUCCESS;
 	}
-	const auto & in_mask = (*(*visibility_mask)[view_index])[int(type)];
+	const auto & in_mask = (*(*visibility_mask)[view_index])[int(type - 1)];
 	size_t index_size = in_mask.indices.size() * sizeof(uint32_t);
 	size_t vertex_size = in_mask.vertices.size() * sizeof(xrt_vec2);
 	*mask = (xrt_visibility_mask *)calloc(1, sizeof(xrt_visibility_mask) + index_size + vertex_size);
