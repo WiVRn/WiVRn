@@ -76,10 +76,7 @@ void blitter::reset(const to_headset::video_stream_description & desc)
 			                .x = int32_t(view * w) - item.offset_x,
 			                .y = 0,
 			        },
-			        .extent = {
-			                .width = uint32_t(item.video_width * item.subsampling),
-			                .height = uint32_t(item.video_height * item.subsampling),
-			        }};
+			};
 		}
 	}
 
@@ -201,13 +198,14 @@ void blitter::begin(vk::raii::CommandBuffer & cmd)
 	        vk::SubpassContents::eInline);
 }
 
-void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Sampler sampler, vk::ImageView image, vk::ImageLayout layout)
+void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Sampler sampler, const vk::Extent2D & extent_, vk::ImageView image, vk::ImageLayout layout)
 {
 	if (stream == passthrough_rgb)
 	{
 		current.rgb = image;
 		current.sampler_rgb = sampler;
 		current.layout_rgb = layout;
+		current.rect_rgb.extent = extent_;
 		return;
 	}
 	if (stream == passthrough_a)
@@ -215,6 +213,7 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 		current.a = image;
 		current.sampler_a = sampler;
 		current.layout_a = layout;
+		current.rect_a.extent = extent_;
 		return;
 	}
 	if (pipelines.empty())
@@ -245,8 +244,8 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 		});
 
 		auto vert_constants = make_specialization_constants(
-		        float(description.width) / description.video_width,
-		        float(description.height) / description.video_height);
+		        float(description.width) / extent_.width,
+		        float(description.height) / extent_.height);
 
 		auto frag_constants = make_specialization_constants(
 		        VkBool32(alpha));

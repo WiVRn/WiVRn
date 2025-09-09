@@ -50,6 +50,7 @@ public:
 protected:
 	decoder(const wivrn::to_headset::video_stream_description::item & description) :
 	        description(description) {}
+	vk::Extent2D extent_; // Must be populated when sampler is set
 
 public:
 	static std::shared_ptr<decoder> make(
@@ -68,6 +69,10 @@ public:
 	        const to_headset::video_stream_data_shard::view_info_t & view_info) = 0;
 
 	virtual vk::Sampler sampler() = 0;
+	const vk::Extent2D extent()
+	{
+		return extent_;
+	}
 
 	static std::vector<wivrn::video_codec> supported_codecs();
 };

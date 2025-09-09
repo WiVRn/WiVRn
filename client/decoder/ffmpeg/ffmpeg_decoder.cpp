@@ -137,7 +137,7 @@ decoder::decoder(
 		decoded_images[i].image = image_allocation(device, image_info, alloc_info);
 
 		decoded_images[i].image.map();
-		extent = vk::Extent2D{description.width, description.height};
+		extent_ = vk::Extent2D{description.width, description.height};
 
 		vk::ImageSubresource resource;
 		resource.aspectMask = vk::ImageAspectFlagBits::eColor;

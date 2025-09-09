@@ -409,7 +409,8 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 	if (!*ycbcr_sampler || memcmp(&ahb_format, &format_properties, sizeof(format_properties)))
 	{
 		memcpy(&ahb_format, &format_properties, sizeof(format_properties));
-		extent = {buffer_desc.width, buffer_desc.height};
+		extent_ = {buffer_desc.width, buffer_desc.height};
+		spdlog::info("decoded image size: {}x{}", buffer_desc.width, buffer_desc.height);
 		create_sampler(buffer_desc, ahb_format);
 		hardware_buffer_map.clear();
 		// TODO tell the reprojector to recreate the pipeline

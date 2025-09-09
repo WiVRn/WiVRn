@@ -74,7 +74,6 @@ private:
 	vk::AndroidHardwareBufferFormatPropertiesANDROID ahb_format;
 	vk::raii::SamplerYcbcrConversion ycbcr_conversion = nullptr;
 	vk::raii::Sampler ycbcr_sampler = nullptr;
-	vk::Extent2D extent{};
 
 	std::mutex hbm_mutex;
 	std::shared_ptr<AImageReader> image_reader;

@@ -877,7 +877,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		{
 			if (not blit_handle)
 				continue;
-			b.push_image(command_buffer, j, decoders[j].decoder->sampler(), blit_handle->image_view, blit_handle->current_layout);
+			b.push_image(command_buffer, j, decoders[j].decoder->sampler(), decoders[j].decoder->extent(), blit_handle->image_view, blit_handle->current_layout);
 		}
 		blitted[i] = b.end(command_buffer);
 	}

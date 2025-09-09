@@ -105,6 +105,11 @@ public:
 		return decoder_->sampler();
 	}
 
+	const vk::Extent2D extent()
+	{
+		return decoder_->extent();
+	}
+
 	using blit_handle = decoder::blit_handle;
 
 private:

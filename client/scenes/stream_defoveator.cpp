@@ -394,6 +394,7 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 
 	for (size_t view = 0; view < view_count; ++view)
 	{
+		const auto out_size = defoveated_size(foveation[view]);
 		auto vertices = get_vertices(view);
 		const auto & [px, py] = foveation[view];
 		assert(px.size() % 2 == 1);
@@ -402,42 +403,42 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 		const int n_ratio_x = (px.size() - 1) / 2;
 
 		glm::uvec2 in(0);
-		glm::vec2 out(0); // pixel coordinates
-		glm::vec2 out_pixel_size(2. / output_extent.width,
-		                         2. / output_extent.height);
+		glm::vec2 out(-0.5 * out_size.width, -0.5 * out_size.height); // pixel coordinates
+		glm::vec2 out_pixel_size(2. / out_size.width,
+		                         2. / out_size.height);
 		for (auto [iy, n_out_y]: utils::enumerate_range(py))
 		{
 			// number of output pixels per source pixels
 			const int ratio_y = std::abs(n_ratio_y - int(iy)) + 1;
 			in.x = 0;
-			out.x = 0;
+			out.x = -0.5 * out_size.width;
 			for (auto [ix, n_out_x]: utils::enumerate_range(px))
 			{
 				const int ratio_x = std::abs(n_ratio_x - int(ix)) + 1;
 				glm::uvec2 rate = glm::uvec2(shading_rate(ratio_x, ratio_y), 0);
 				*vertices++ = {
-				        .position = out * out_pixel_size - glm::vec2(1),
+				        .position = out * out_pixel_size,
 				        .uv = in | rate,
 				};
 				*vertices++ = {
-				        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size - glm::vec2(1),
+				        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size,
 				        .uv = (in + glm::uvec2(0, n_out_y)) | rate,
 				};
 				in.x += n_out_x;
 				out.x += n_out_x * ratio_x;
 			}
 			*vertices++ = {
-			        .position = out * out_pixel_size - glm::vec2(1),
+			        .position = out * out_pixel_size,
 			        .uv = in,
 			};
 			in.y += n_out_y;
 			out.y += n_out_y * ratio_y;
 			*vertices++ = {
-			        .position = out * out_pixel_size - glm::vec2(1),
+			        .position = out * out_pixel_size,
 			        .uv = in,
 			};
 			*vertices++ = {
-			        .position = out * out_pixel_size - glm::vec2(1),
+			        .position = out * out_pixel_size,
 			        .uv = in,
 			};
 		}

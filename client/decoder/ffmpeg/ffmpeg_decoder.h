@@ -65,7 +65,6 @@ private:
 	vk::raii::Sampler rgb_sampler = nullptr;
 
 	std::array<image, image_count> decoded_images;
-	vk::Extent2D extent{};
 	std::vector<int> free_images;
 
 	std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> codec;
@@ -94,11 +93,6 @@ public:
 	vk::Sampler sampler() override
 	{
 		return *rgb_sampler;
-	}
-
-	vk::Extent2D image_size()
-	{
-		return extent;
 	}
 
 	static void supported_codecs(std::vector<wivrn::video_codec> &);
