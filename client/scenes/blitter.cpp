@@ -77,8 +77,8 @@ void blitter::reset(const to_headset::video_stream_description & desc)
 			                .y = 0,
 			        },
 			        .extent = {
-			                .width = uint32_t(item.width * item.subsampling),
-			                .height = uint32_t(item.height * item.subsampling),
+			                .width = uint32_t(item.video_width * item.subsampling),
+			                .height = uint32_t(item.video_height * item.subsampling),
 			        }};
 		}
 	}
