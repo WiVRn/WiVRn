@@ -1060,89 +1060,6 @@ void scenes::lobby::gui_post_processing()
 		ImGui::Unindent();
 	}
 
-	{
-		// SGSR
-		{
-			if (ImGui::Checkbox(_S("Enable Snapdragon Game Super Resolution"), &config.sgsr.enabled))
-			{
-				config.save();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				if (application::get_openxr_post_processing_supported())
-					imgui_ctx->tooltip(_("On this headset, this setting has been fully superseded by the native Sharpening setting above.\nOnly enable if you know what you're doing."));
-				else
-					imgui_ctx->tooltip(_("Client-side upscaling and sharpening, adds a performance cost on the headset"));
-			}
-			if (application::get_openxr_post_processing_supported())
-			{
-				ImGui::SameLine();
-				ImGui::TextColored(ImColor(0xf9, 0x73, 0x06) /*orange*/, ICON_FA_TRIANGLE_EXCLAMATION);
-			}
-		}
-
-		{
-			ImGui::BeginDisabled(not config.sgsr.enabled);
-			ImGui::Indent();
-			{
-				const auto current = config.sgsr.upscaling_factor;
-				const auto width = stream_view.recommendedImageRectWidth * config.resolution_scale;
-				const auto height = stream_view.recommendedImageRectHeight * config.resolution_scale;
-				auto intScale = int(current * 100);
-				const auto slider = ImGui::SliderInt(
-				        _("Upscaling factor").append("##upscaling_factor").c_str(),
-				        &intScale,
-				        100,
-				        200,
-				        fmt::format(_F("%d%% - {}x{} per eye"), int(width * current), int(height * current)).c_str());
-				if (slider)
-				{
-					config.sgsr.upscaling_factor = intScale * 0.01;
-					config.save();
-				}
-				imgui_ctx->vibrate_on_hover();
-				if (width * current > stream_view.maxImageRectWidth or height * current > stream_view.maxImageRectHeight)
-				{
-					ImGui::TextColored(ImColor(0xf9, 0x73, 0x06) /*orange*/, ICON_FA_TRIANGLE_EXCLAMATION);
-					ImGui::SameLine();
-					ImGui::Text("%s", fmt::format(_F("Resolution larger than {}x{} may not be supported by the headset"), stream_view.maxImageRectWidth, stream_view.maxImageRectHeight).c_str());
-				}
-			}
-			{
-				if (ImGui::Checkbox(_S("Use edge direction"), &config.sgsr.use_edge_direction))
-				{
-					config.save();
-				}
-				imgui_ctx->vibrate_on_hover();
-				if (ImGui::IsItemHovered())
-					imgui_ctx->tooltip(_("Adds an additional performance cost"));
-			}
-			{
-				const float current = config.sgsr.edge_threshold;
-				int intScale = int(current);
-				if (ImGui::SliderInt(_S("Edge threshold"), &intScale, 1, 16, "%d.0"))
-				{
-					config.sgsr.edge_threshold = float(intScale);
-					config.save();
-				}
-				imgui_ctx->vibrate_on_hover();
-				if (ImGui::IsItemHovered())
-					imgui_ctx->tooltip(fmt::format(_F("Recommended: {:.1f}"), 4.0));
-			}
-			{
-				if (ImGui::SliderFloat(_S("Edge sharpness"), &config.sgsr.edge_sharpness, 1.0, 2.0, "%.2f"))
-				{
-					config.save();
-				}
-				imgui_ctx->vibrate_on_hover();
-				if (ImGui::IsItemHovered())
-					imgui_ctx->tooltip(fmt::format(_F("Recommended: {:.1f}"), 2.0));
-			}
-			ImGui::Unindent();
-			ImGui::EndDisabled();
-		}
-	}
 	ImGui::PopStyleVar();
 }
 
@@ -1370,7 +1287,7 @@ void scenes::lobby::gui_licenses()
 	ImGui::Text("%s", _("Licenses").c_str());
 	ImGui::PopFont();
 
-	const auto components = {"WiVRn", "FontAwesome", "openxr-loader", "simdjson", "SGSR"};
+	const auto components = {"WiVRn", "FontAwesome", "openxr-loader", "simdjson"};
 	if (not license)
 	{
 		selected_item = *components.begin();

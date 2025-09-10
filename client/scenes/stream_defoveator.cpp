@@ -134,22 +134,10 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 	vk::raii::ShaderModule vertex_shader = load_shader(device, fragment_shading_rate ? "reprojection_vsr.vert" : "reprojection.vert");
 
 	// Fragment shader
-
-#if 0
-FIXME: SGSR
-	const configuration::sgsr_settings & sgsr = application::get_config().sgsr;
-	auto sgsr_specialization = make_specialization_constants(
-	        VkBool32(sgsr.use_edge_direction),
-	        float(sgsr.edge_threshold / 255.f),
-	        float(sgsr.edge_sharpness));
-
-	vk::raii::ShaderModule fragment_shader = load_shader(device, sgsr.enabled ? "reprojection_sgsr.frag" : "reprojection.frag");
-#else
 	auto specialization = make_specialization_constants(
 	        int32_t(alpha),
 	        VkBool32(need_srgb_conversion(guess_model())));
 	vk::raii::ShaderModule fragment_shader = load_shader(device, "reprojection.frag");
-#endif
 
 	vk::pipeline_builder pipeline_info_builder{
 	        .flags = {},
