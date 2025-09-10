@@ -30,6 +30,7 @@
 
 namespace xr
 {
+class instance;
 class session;
 
 class swapchain : public utils::handle<XrSwapchain, xrDestroySwapchain>
@@ -38,9 +39,11 @@ public:
 	struct image
 	{
 		vk::Image image{};
+		vk::Image foveation{};
 	};
 
 private:
+	PFN_xrUpdateSwapchainFB update;
 	int32_t width_;
 	int32_t height_;
 	int sample_count_;
@@ -50,7 +53,16 @@ private:
 
 public:
 	swapchain() = default;
-	swapchain(session &, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count = 1, uint32_t array_size = 1);
+	swapchain(
+	        instance &,
+	        session &,
+	        vk::raii::Device & device,
+	        vk::Format format,
+	        int32_t width,
+	        int32_t height,
+	        int sample_count = 1,
+	        uint32_t array_size = 1,
+	        XrFoveationProfileFB foveation = XR_NULL_HANDLE);
 
 	int32_t width() const
 	{
@@ -84,5 +96,7 @@ public:
 	int acquire();
 	bool wait(XrDuration timeout = XR_INFINITE_DURATION);
 	void release();
+
+	void update_foveation(XrFoveationProfileFB foveation);
 };
 } // namespace xr

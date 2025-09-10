@@ -906,7 +906,7 @@ void scenes::lobby::on_focused()
 	                .z_index = constants::lobby::zindex_recenter_tip,
 	        }};
 
-	xr::swapchain swapchain_imgui(session, device, swapchain_format, 3000, 1300);
+	xr::swapchain swapchain_imgui(instance, session, device, swapchain_format, 3000, 1300);
 
 	imgui_ctx.emplace(
 	        physical_device,

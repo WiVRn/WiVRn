@@ -761,6 +761,7 @@ void application::initialize_vulkan()
 	vk_device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
 
 #ifdef __ANDROID__
 	vk_device_extensions.push_back(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME);
@@ -1215,6 +1216,10 @@ void application::initialize()
 	opt_extensions.push_back(XR_EXT_USER_PRESENCE_EXTENSION_NAME);
 	opt_extensions.push_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
 	opt_extensions.push_back(XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME);
+	opt_extensions.push_back(XR_FB_SWAPCHAIN_UPDATE_STATE_EXTENSION_NAME);
+	opt_extensions.push_back(XR_FB_FOVEATION_EXTENSION_NAME);
+	opt_extensions.push_back(XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME);
+	opt_extensions.push_back(XR_FB_FOVEATION_VULKAN_EXTENSION_NAME);
 
 	for (const auto & i: interaction_profiles)
 		opt_extensions.insert(opt_extensions.end(), i.required_extensions.begin(), i.required_extensions.end());
