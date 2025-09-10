@@ -205,7 +205,10 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 		current.rgb = image;
 		current.sampler_rgb = sampler;
 		current.layout_rgb = layout;
-		current.rect_rgb.extent = extent_;
+		current.rect_rgb.extent = vk::Extent2D{
+		        extent_.width * desc.items[stream].subsampling,
+		        extent_.height * desc.items[stream].subsampling,
+		};
 		return;
 	}
 	if (stream == passthrough_a)
@@ -213,7 +216,10 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 		current.a = image;
 		current.sampler_a = sampler;
 		current.layout_a = layout;
-		current.rect_a.extent = extent_;
+		current.rect_a.extent = vk::Extent2D{
+		        extent_.width * desc.items[stream].subsampling,
+		        extent_.height * desc.items[stream].subsampling,
+		};
 		return;
 	}
 	if (pipelines.empty())
