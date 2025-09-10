@@ -221,7 +221,9 @@ void main()
 	if (alpha_cutout)
 	{
 		if (out_color.a <= material.alpha_cutoff)
-			discard;
+			out_color.a = 0.0;
+		else
+			out_color.a = 1.0;
 	}
 }
 #endif
