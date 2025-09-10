@@ -625,6 +625,8 @@ vk::Sampler scene_renderer::get_sampler(const renderer::sampler_info & info)
 	                .addressModeV = info.wrapT,
 	                // .anisotropyEnable = true,
 	                // .maxAnisotropy = 4,
+	                .minLod = 0,
+	                .maxLod = vk::LodClampNone,
 	        });
 
 	samplers.emplace(info, out);
