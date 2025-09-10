@@ -277,7 +277,7 @@ xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t h
 	        .sample_count = sample_count,
 	        .array_size = array_size,
 	        .used = true,
-	        .swapchain = xr::swapchain(session, device, format, width, height, sample_count, array_size),
+	        .swapchain = xr::swapchain(instance, session, device, format, width, height, sample_count, array_size),
 	};
 	spdlog::info("Created swapchain");
 
