@@ -22,9 +22,24 @@
 #include "details/enumerate.h"
 #include "session.h"
 
-xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size)
+xr::swapchain::swapchain(
+        xr::instance & inst,
+        xr::session & s,
+        vk::raii::Device & device,
+        vk::Format format,
+        int32_t width,
+        int32_t height,
+        int sample_count,
+        uint32_t array_size,
+        XrFoveationProfileFB foveated) :
+        width_(width),
+        height_(height),
+        sample_count_(sample_count),
+        format_(format)
 {
 	assert(sample_count == 1);
+	if (foveated)
+		update = inst.get_proc<PFN_xrUpdateSwapchainFB>("xrUpdateSwapchainFB");
 
 	XrSwapchainUsageFlags usage_flags;
 
@@ -43,8 +58,14 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 			break;
 	}
 
+	XrSwapchainCreateInfoFoveationFB foveation_info{
+	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO_FOVEATION_FB,
+	        .flags = XR_SWAPCHAIN_CREATE_FOVEATION_FRAGMENT_DENSITY_MAP_BIT_FB,
+	};
+
 	XrSwapchainCreateInfo create_info{
 	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
+	        .next = foveated ? &foveation_info : nullptr,
 	        .createFlags = 0,
 	        .usageFlags = usage_flags,
 	        .format = static_cast<VkFormat>(format),
@@ -56,19 +77,31 @@ xr::swapchain::swapchain(xr::session & s, vk::raii::Device & device, vk::Format 
 	        .mipCount = 1,
 	};
 
-	width_ = width;
-	height_ = height;
-	sample_count_ = sample_count;
-	format_ = format;
-
 	CHECK_XR(xrCreateSwapchain(s, &create_info, &id));
 
-	std::vector<XrSwapchainImageVulkanKHR> array =
-	        details::enumerate<XrSwapchainImageVulkanKHR>(xrEnumerateSwapchainImages, id);
+	std::tuple<std::vector<XrSwapchainImageVulkanKHR>, std::vector<XrSwapchainImageFoveationVulkanFB>> array;
+	auto & images = std::get<0>(array);
+	auto & foveation = std::get<1>(array);
+	if (foveated)
+	{
+		update_foveation(foveated);
+		details::enumerate2(xrEnumerateSwapchainImages, array, id);
+		assert(images.size() == foveation.size());
+	}
+	else
+	{
+		details::enumerate(xrEnumerateSwapchainImages, images, id);
+	}
 
-	images_.resize(array.size());
-	for (uint32_t i = 0; i < array.size(); i++)
-		images_[i].image = array[i].image;
+	images_.resize(images.size());
+	for (uint32_t i = 0; i < images.size(); i++)
+	{
+		images_[i].image = images[i].image;
+		if (foveated)
+		{
+			images_[i].foveation = foveation[i].image;
+		}
+	}
 }
 
 int xr::swapchain::acquire()
@@ -105,4 +138,13 @@ void xr::swapchain::release()
 
 	auto lock = application::get_queue().lock();
 	CHECK_XR(xrReleaseSwapchainImage(id, &release_info));
+}
+
+void xr::swapchain::update_foveation(XrFoveationProfileFB foveation)
+{
+	XrSwapchainStateFoveationFB update_info{
+	        .type = XR_TYPE_SWAPCHAIN_STATE_FOVEATION_FB,
+	        .profile = foveation,
+	};
+	CHECK_XR(update(id, (XrSwapchainStateBaseHeaderFB *)&update_info));
 }

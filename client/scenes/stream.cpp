@@ -447,6 +447,7 @@ void scenes::stream::on_focused()
 	};
 
 	xr::swapchain swapchain_imgui(
+	        instance,
 	        session,
 	        device,
 	        swapchain_format,
@@ -1146,7 +1147,7 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 
 	auto views = system.view_configuration_views(viewconfig);
 
-	swapchain = xr::swapchain(session, device, swapchain_format, swapchain_width, swapchain_height, 1, views.size());
+	swapchain = xr::swapchain(instance, session, device, swapchain_format, swapchain_width, swapchain_height, 1, views.size());
 	spdlog::info("Created stream swapchain: {}x{}", swapchain.width(), swapchain.height());
 	for (auto view: views)
 	{
