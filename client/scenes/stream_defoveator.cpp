@@ -178,18 +178,8 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 	        .InputAssemblyState = {{
 	                .topology = vk::PrimitiveTopology::eTriangleStrip,
 	        }},
-	        .Viewports = {{
-	                .x = 0,
-	                .y = 0,
-	                .width = (float)output_extent.width,
-	                .height = (float)output_extent.height,
-	                .minDepth = 0,
-	                .maxDepth = 1,
-	        }},
-	        .Scissors = {{
-	                .offset = {.x = 0, .y = 0},
-	                .extent = output_extent,
-	        }},
+	        .Viewports = {{}},
+	        .Scissors = {{}},
 	        .RasterizationState = {{
 	                .polygonMode = vk::PolygonMode::eFill,
 	                .lineWidth = 1,
@@ -201,6 +191,7 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 	        .ColorBlendAttachments = {{
 	                .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
 	        }},
+	        .DynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor},
 	        .layout = *target.layout,
 	        .renderPass = *renderpass,
 	        .subpass = 0,
@@ -389,6 +380,22 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 		assert(py.size() % 2 == 1);
 		const int n_ratio_y = (py.size() - 1) / 2;
 		const int n_ratio_x = (px.size() - 1) / 2;
+
+		command_buffer.setScissor(
+		        0,
+		        vk::Rect2D{
+		                .extent = {.width = uint32_t(out_size.width), .height = uint32_t(out_size.height)},
+		        });
+		command_buffer.setViewport(
+		        0,
+		        vk::Viewport{
+		                .x = 0,
+		                .y = 0,
+		                .width = float(out_size.width),
+		                .height = float(out_size.height),
+		                .minDepth = 0,
+		                .maxDepth = 1,
+		        });
 
 		glm::uvec2 in(0);
 		glm::vec2 out(-0.5 * out_size.width, -0.5 * out_size.height); // pixel coordinates
