@@ -29,6 +29,7 @@
 #include "wivrn_config.h"
 #include "wivrn_discover.h"
 #include "xr/face_tracker.h"
+#include "xr/foveation_profile.h"
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 
@@ -70,6 +71,8 @@ class lobby : public scene_impl<lobby>
 	std::optional<xr::hand_tracker> right_hand;
 
 	xr::face_tracker face_tracker;
+
+	std::optional<xr::foveation_profile> foveation;
 
 	std::string selected_item;
 	std::unique_ptr<asset> license;

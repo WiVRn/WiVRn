@@ -20,14 +20,17 @@
 #include "xr/instance.h"
 #include "xr/session.h"
 
-xr::foveation_profile::foveation_profile(instance & inst, session & s, XrFoveationLevelFB level, float verticalOffsetDegrees, bool dynamic) :
-        handle(inst.get_proc<PFN_xrDestroyFoveationProfileFB>("xrDestroyFoveationProfileFB"))
+xr::foveation_profile::foveation_profile(instance & inst, session & s, XrFoveationLevelFB level, float vertical_offset_degrees, bool dynamic) :
+        handle(inst.get_proc<PFN_xrDestroyFoveationProfileFB>("xrDestroyFoveationProfileFB")),
+        level_(level),
+        vertical_offset_degrees_(vertical_offset_degrees),
+        dynamic_(dynamic)
 {
 	auto create = inst.get_proc<PFN_xrCreateFoveationProfileFB>("xrCreateFoveationProfileFB");
 	XrFoveationLevelProfileCreateInfoFB level_info{
 	        .type = XR_TYPE_FOVEATION_LEVEL_PROFILE_CREATE_INFO_FB,
 	        .level = level,
-	        .verticalOffset = verticalOffsetDegrees,
+	        .verticalOffset = vertical_offset_degrees,
 	        .dynamic = dynamic ? XR_FOVEATION_DYNAMIC_LEVEL_ENABLED_FB : XR_FOVEATION_DYNAMIC_DISABLED_FB,
 	};
 	XrFoveationProfileCreateInfoFB info{

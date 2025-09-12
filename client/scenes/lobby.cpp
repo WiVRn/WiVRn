@@ -28,6 +28,7 @@
 #include "protocol_version.h"
 #include "render/animation.h"
 #include "stream.h"
+#include "utils/contains.h"
 #include "utils/i18n.h"
 #include "wivrn_client.h"
 #include "wivrn_discover.h"
@@ -110,7 +111,7 @@ scenes::lobby::lobby() :
         scene_impl<lobby>(supported_color_formats, supported_depth_formats)
 {
 	spdlog::info("Using formats {} and {}", vk::to_string(swapchain_format), vk::to_string(depth_format));
-	// composition_layer_depth_test_supported = false;
+
 	if (composition_layer_depth_test_supported)
 		spdlog::info("Composition layer depth test supported");
 	else
@@ -120,6 +121,15 @@ scenes::lobby::lobby() :
 		spdlog::info("Composition layer color scale/bias supported");
 	else
 		spdlog::info("Composition layer color scale/bias NOT supported");
+
+	if (instance.has_extension(XR_FB_FOVEATION_VULKAN_EXTENSION_NAME) and
+	    instance.has_extension(XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME))
+	{
+		spdlog::info("Foveation image supported");
+		foveation = xr::foveation_profile(instance, session, XR_FOVEATION_LEVEL_NONE_FB, -10, false);
+	}
+	else
+		spdlog::info("Foveation image NOT supported");
 
 	if (std::getenv("WIVRN_AUTOCONNECT"))
 		force_autoconnect = true;
@@ -742,7 +752,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	        height,
 	        composition_layer_depth_test_supported,
 	        composition_layer_depth_test_supported ? layer_lobby | layer_controllers : layer_lobby,
-	        clear_color);
+	        clear_color,
+	        foveation);
 
 	if (composition_layer_depth_test_supported)
 		set_depth_test(true, XR_COMPARE_OP_ALWAYS_FB);
@@ -772,7 +783,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	        height,
 	        composition_layer_depth_test_supported,
 	        composition_layer_depth_test_supported ? layer_rays : layer_rays | layer_controllers,
-	        {0, 0, 0, 0});
+	        {0, 0, 0, 0},
+	        foveation);
 
 	if (composition_layer_depth_test_supported)
 		set_depth_test(true, XR_COMPARE_OP_LESS_OR_EQUAL_FB);

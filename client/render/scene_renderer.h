@@ -41,6 +41,7 @@ struct renderpass_info
 	vk::Format depth_format;
 	bool keep_depth_buffer;
 	vk::SampleCountFlagBits msaa_samples = vk::SampleCountFlagBits::e1;
+	bool fragment_density_map;
 
 	bool operator==(const renderpass_info & other) const noexcept = default;
 };
@@ -74,6 +75,7 @@ struct output_image_info
 	vk::Extent2D output_size;
 	VkImage color;
 	VkImage depth;
+	VkImage foveation;
 	uint32_t base_array_layer;
 
 	bool operator==(const output_image_info & other) const noexcept = default;
@@ -116,11 +118,23 @@ class scene_renderer
 
 		image_allocation multisample_image;
 		vk::raii::ImageView multisample_view = nullptr;
+
+		vk::raii::ImageView foveation_view = nullptr;
+	};
+
+	struct renderpass
+	{
+		vk::raii::RenderPass renderpass = nullptr;
+		vk::AttachmentReference color_attachment;
+		vk::AttachmentReference depth_attachment;
+		std::optional<vk::AttachmentReference> resolve_attachment;          // Only used if MSAA is enabled
+		std::optional<vk::AttachmentReference> fragment_density_attachment; // Only used if fragment density map is enabled
+		int attachment_count;
 	};
 
 	// Initialization functions
 	output_image create_output_image_data(const output_image_info & info);
-	vk::raii::RenderPass create_renderpass(const renderpass_info & info);
+	renderpass create_renderpass(const renderpass_info & info);
 	vk::raii::PipelineLayout create_pipeline_layout(std::span<vk::DescriptorSetLayout> layouts);
 	vk::raii::Pipeline create_pipeline(const pipeline_info & info);
 
@@ -129,13 +143,13 @@ class scene_renderer
 	vk::raii::DescriptorSetLayout create_descriptor_set_layout(std::span<vk::DescriptorSetLayoutBinding> bindings, vk::DescriptorSetLayoutCreateFlags flags = {});
 
 	// Caches
-	std::unordered_map<renderpass_info, vk::raii::RenderPass> renderpasses;
+	std::unordered_map<renderpass_info, renderpass> renderpasses;
 	std::unordered_map<output_image_info, output_image> output_images;
 	std::unordered_map<pipeline_info, vk::raii::Pipeline> pipelines;
 
 	output_image & get_output_image_data(const output_image_info & info);
 	vk::raii::Pipeline & get_pipeline(const pipeline_info & info);
-	vk::raii::RenderPass & get_renderpass(const renderpass_info & info);
+	renderpass & get_renderpass(const renderpass_info & info);
 
 	vk::raii::DescriptorSetLayout layout_0; // Descriptor set 0: per-frame/view data (UBO), per-instance data (UBO + SSBO), per-material data (5 combined image samplers and 1 uniform buffer)
 
@@ -234,6 +248,7 @@ public:
 	        vk::Format depth_format,
 	        vk::Image color_buffer,
 	        vk::Image depth_buffer,
+	        vk::Image foveation_image,
 	        std::span<frame_info> info);
 	void end_frame();
 
