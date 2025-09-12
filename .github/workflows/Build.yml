@@ -78,7 +78,7 @@ jobs:
   build-dashboard:
     name: Linux dashboard
     runs-on: ubuntu-24.04
-    container: ubuntu:oracular
+    container: ubuntu:plucky
     if: ${{ vars.APK_ONLY == '' }}
     steps:
     - uses: actions/checkout@v4
@@ -462,7 +462,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distro: ['oracular', 'plucky']
+        distro: ['plucky']
     runs-on: ubuntu-24.04
     container: ubuntu:${{ matrix.distro }}
     steps:
