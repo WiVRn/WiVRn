@@ -27,7 +27,31 @@ class instance;
 class session;
 class foveation_profile : public utils::handle<XrFoveationProfileFB>
 {
+	XrFoveationLevelFB level_;
+	float vertical_offset_degrees_;
+	bool dynamic_;
+
 public:
-	foveation_profile(instance & inst, session & s, XrFoveationLevelFB, float verticalOffsetDegrees, bool dynamic);
+	foveation_profile(instance & inst, session & s, XrFoveationLevelFB level, float vertical_offset_degrees, bool dynamic);
+
+	bool operator==(const foveation_profile & other) const
+	{
+		return level_ == other.level_ and vertical_offset_degrees_ == other.vertical_offset_degrees_ and dynamic_ == other.dynamic_;
+	}
+
+	XrFoveationLevelFB level() const
+	{
+		return level_;
+	}
+
+	float vertical_offset_degrees() const
+	{
+		return vertical_offset_degrees_;
+	}
+
+	bool dynamic() const
+	{
+		return dynamic_;
+	}
 };
 } // namespace xr
