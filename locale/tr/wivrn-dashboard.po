@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-04 10:40+0300\n"
+"POT-Creation-Date: 2025-09-12 15:54+0300\n"
 "PO-Revision-Date: 2025-08-08 17:09+0300\n"
 "Last-Translator: Hüseyin Fahri Uzun <fahri@uzun.pro>\n"
 "Language-Team: \n"
@@ -86,7 +86,7 @@ msgid "No precompiled APK is available for this version."
 msgstr "Bu sürüm için önceden derlenmiş APK yok."
 
 #: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:259
-#: dashboard/qml/Main.qml:341
+#: dashboard/qml/Main.qml:342
 #, kde-format
 msgid "ADB is not installed."
 msgstr "ADB yüklü değil."
@@ -135,7 +135,7 @@ msgstr "WiVRn'i yeniden yükle"
 msgid "Install WiVRn"
 msgstr "WiVRn'i yükle"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:354
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:355
 #, kde-format
 msgid "Headsets"
 msgstr "Gözlükler"
@@ -180,7 +180,7 @@ msgstr "Yeniden Adlandır"
 
 #: dashboard/qml/HeadsetsPage.qml:55 dashboard/qml/WizardPage.qml:38
 #: dashboard/qml/WizardPage.qml:88 dashboard/qml/WizardPage.qml:263
-#: dashboard/qml/WizardPage.qml:326 dashboard/qml/WizardPage.qml:410
+#: dashboard/qml/WizardPage.qml:327 dashboard/qml/WizardPage.qml:411
 #, kde-format
 msgid "Cancel"
 msgstr "İptal"
@@ -310,7 +310,7 @@ msgstr "Eşleştirme"
 msgid "PIN: %1"
 msgstr "PIN: %1"
 
-#: dashboard/qml/Main.qml:250 dashboard/qml/WizardPage.qml:373
+#: dashboard/qml/Main.qml:250 dashboard/qml/WizardPage.qml:374
 #, kde-format
 msgid "Connect by USB"
 msgstr "USB ile bağlan"
@@ -336,22 +336,22 @@ msgstr "Uygulama"
 msgid "Steam information"
 msgstr "Steam bilgisi"
 
-#: dashboard/qml/Main.qml:325
+#: dashboard/qml/Main.qml:326
 #, kde-format
 msgid "Wizard"
 msgstr "Sihirbaz"
 
-#: dashboard/qml/Main.qml:332
+#: dashboard/qml/Main.qml:333
 #, kde-format
 msgid "Install the app"
 msgstr "Uygulamayı yükle"
 
-#: dashboard/qml/Main.qml:361 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:362 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "Ayarlar"
 
-#: dashboard/qml/Main.qml:368 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:369 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "Sorun giderme"
@@ -457,19 +457,19 @@ msgctxt "encoder preset"
 msgid "Default preset"
 msgstr "Varsayılan ön ayar"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:139
 #, kde-format
 msgctxt "encoder preset"
 msgid "Low latency preset"
 msgstr "Düşük gecikmeli ön ayar"
 
-#: dashboard/qml/SettingsPage.qml:170
+#: dashboard/qml/SettingsPage.qml:158
 #, kde-format
 msgctxt "encoder preset"
 msgid "Safe preset"
 msgstr "Güvenli ön ayar"
 
-#: dashboard/qml/SettingsPage.qml:193
+#: dashboard/qml/SettingsPage.qml:181
 #, kde-format
 msgid ""
 "To add a new encoder, split an existing encoder by clicking near an edge.\n"
@@ -480,84 +480,84 @@ msgstr ""
 "Kodlayıcıları yeniden boyutlandırmak veya kaldırmak için bir kenarı "
 "sürükleyin."
 
-#: dashboard/qml/SettingsPage.qml:220
+#: dashboard/qml/SettingsPage.qml:208
 #, kde-format
 msgid "Encoder:"
 msgstr "Kodlayıcı:"
 
-#: dashboard/qml/SettingsPage.qml:229
+#: dashboard/qml/SettingsPage.qml:217
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "Otomatik"
 
-#: dashboard/qml/SettingsPage.qml:234
+#: dashboard/qml/SettingsPage.qml:222
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (NVIDIA GPU'ları)"
 
-#: dashboard/qml/SettingsPage.qml:239
+#: dashboard/qml/SettingsPage.qml:227
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (AMD ve Intel GPU'ları)"
 
-#: dashboard/qml/SettingsPage.qml:244
+#: dashboard/qml/SettingsPage.qml:232
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (yazılım kodlaması)"
 
-#: dashboard/qml/SettingsPage.qml:249
+#: dashboard/qml/SettingsPage.qml:237
 #, kde-format
 msgid "Vulkan (Vulkan Video)"
 msgstr "Vulkan (Vulkan Video)"
 
-#: dashboard/qml/SettingsPage.qml:272
+#: dashboard/qml/SettingsPage.qml:260
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "\"Otomatik\", mevcutsa donanım hızlandırmayı kullanacaktır"
 
-#: dashboard/qml/SettingsPage.qml:278
+#: dashboard/qml/SettingsPage.qml:266
 #, kde-format
 msgid "Codec:"
 msgstr "Codec:"
 
-#: dashboard/qml/SettingsPage.qml:285
+#: dashboard/qml/SettingsPage.qml:273
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "Otomatik"
 
-#: dashboard/qml/SettingsPage.qml:289
+#: dashboard/qml/SettingsPage.qml:277
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:293
+#: dashboard/qml/SettingsPage.qml:281
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:297
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:319
+#: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgid "Advanced options"
 msgstr "Gelişmiş seçenekler"
 
-#: dashboard/qml/SettingsPage.qml:325
+#: dashboard/qml/SettingsPage.qml:313
 #, kde-format
 msgid "Enable debug window"
 msgstr "Hata ayıklama penceresini etkinleştir"
 
-#: dashboard/qml/SettingsPage.qml:332
+#: dashboard/qml/SettingsPage.qml:320
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "SteamVR izlenen aygıt desteğini etkinleştir"
 
-#: dashboard/qml/SettingsPage.qml:335
+#: dashboard/qml/SettingsPage.qml:323
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -571,44 +571,44 @@ msgstr ""
 "Aygıtlar WiVRn'e bağlanmadan önce açık olmalıdır.\n"
 "Kalibrasyon için motoc gibi harici bir araç gereklidir."
 
-#: dashboard/qml/SettingsPage.qml:343
+#: dashboard/qml/SettingsPage.qml:331
 #, kde-format
 msgid "Custom adb location"
 msgstr "Özel adb konumu"
 
-#: dashboard/qml/SettingsPage.qml:354
+#: dashboard/qml/SettingsPage.qml:342
 #, kde-format
 msgid "Adb location:"
 msgstr "Adb konumu:"
 
-#: dashboard/qml/SettingsPage.qml:363
+#: dashboard/qml/SettingsPage.qml:351
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Gözat"
 
-#: dashboard/qml/SettingsPage.qml:373
+#: dashboard/qml/SettingsPage.qml:361
 #, kde-format
 msgid "Default"
 msgstr "Varsayılan"
 
-#: dashboard/qml/SettingsPage.qml:387
+#: dashboard/qml/SettingsPage.qml:375
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Özel"
 
-#: dashboard/qml/SettingsPage.qml:392
+#: dashboard/qml/SettingsPage.qml:380
 #, kde-format
 msgid "Disabled"
 msgstr "Devre dışı"
 
-#: dashboard/qml/SettingsPage.qml:400
+#: dashboard/qml/SettingsPage.qml:388
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR uyumluluk kitaplığı:"
 
-#: dashboard/qml/SettingsPage.qml:426
+#: dashboard/qml/SettingsPage.qml:414
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Yol: bin/linux64/vrclient.so hariç, kitaplık yolu"
@@ -645,7 +645,7 @@ msgstr "Steam başlatma komutu kopyalandı"
 msgid "I cannot find the WiVRn app on my headset"
 msgstr "Gözlüğümde WiVRn uygulamasını bulamıyorum"
 
-#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:387
+#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:388
 #, kde-format
 msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
@@ -659,7 +659,7 @@ msgstr ""
 msgid "I cannot see my computer in the WiVRn app"
 msgstr "WiVRn uygulamasında bilgisayarımı göremiyorum"
 
-#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:392
+#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:393
 #, kde-format
 msgid ""
 "If the server is not visible or the connection fails, check that port 5353 "
@@ -714,7 +714,7 @@ msgstr "Eşleştirme şu anda devre dışı."
 msgid "I have no sound on my headset"
 msgstr "Gözlüğümde ses yok"
 
-#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:440
+#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:441
 #, kde-format
 msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
@@ -739,9 +739,9 @@ msgid "Getting started"
 msgstr "Başlangıç"
 
 #: dashboard/qml/WizardPage.qml:29 dashboard/qml/WizardPage.qml:78
-#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:316
-#: dashboard/qml/WizardPage.qml:400 dashboard/qml/WizardPage.qml:447
-#: dashboard/qml/WizardPage.qml:484
+#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:317
+#: dashboard/qml/WizardPage.qml:401 dashboard/qml/WizardPage.qml:448
+#: dashboard/qml/WizardPage.qml:485
 #, kde-format
 msgid "Back"
 msgstr "Geri"
@@ -761,8 +761,8 @@ msgstr ""
 "yardımcı olacaktır."
 
 #: dashboard/qml/WizardPage.qml:83 dashboard/qml/WizardPage.qml:258
-#: dashboard/qml/WizardPage.qml:321 dashboard/qml/WizardPage.qml:452
-#: dashboard/qml/WizardPage.qml:489
+#: dashboard/qml/WizardPage.qml:322 dashboard/qml/WizardPage.qml:453
+#: dashboard/qml/WizardPage.qml:490
 #, kde-format
 msgid "Next"
 msgstr "İleri"
@@ -860,12 +860,12 @@ msgstr ""
 "Seçtiğiniz uygulama, gözlüğünüzü bağladığınızda otomatik olarak "
 "başlayacaktır."
 
-#: dashboard/qml/WizardPage.qml:300
+#: dashboard/qml/WizardPage.qml:301
 #, kde-format
 msgid "Important information"
 msgstr "Önemli bilgi"
 
-#: dashboard/qml/WizardPage.qml:307
+#: dashboard/qml/WizardPage.qml:308
 #, kde-format
 msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
@@ -874,12 +874,12 @@ msgstr ""
 "WiVRn, SteamVR'nin yerini tamamen alır, WiVRn çalışırken SteamVR'yi "
 "başlatmamalısınız."
 
-#: dashboard/qml/WizardPage.qml:358
+#: dashboard/qml/WizardPage.qml:359
 #, kde-format
 msgid "Start the WiVRn app on your headset"
 msgstr "Gözlüğünüzde WiVRn uygulamasını başlatın"
 
-#: dashboard/qml/WizardPage.qml:363
+#: dashboard/qml/WizardPage.qml:364
 #, kde-format
 msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
@@ -888,32 +888,32 @@ msgstr ""
 "WiFi üzerinden bağlanmak için, gözlüğünüzde WiVRn uygulamasını başlatın, "
 "\"%1\"e bağlanın ve \"%2\" PIN'ini girin."
 
-#: dashboard/qml/WizardPage.qml:370
+#: dashboard/qml/WizardPage.qml:371
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
 msgstr "USB üzerinden bağlanmak için \"USB ile bağlan\"a tıklayın."
 
-#: dashboard/qml/WizardPage.qml:383
+#: dashboard/qml/WizardPage.qml:384
 #, kde-format
 msgid "Troubleshooting"
 msgstr "Sorun giderme"
 
-#: dashboard/qml/WizardPage.qml:405
+#: dashboard/qml/WizardPage.qml:406
 #, kde-format
 msgid "Skip"
 msgstr "Atla"
 
-#: dashboard/qml/WizardPage.qml:425
+#: dashboard/qml/WizardPage.qml:426
 #, kde-format
 msgid "Connection established"
 msgstr "Bağlantı kuruldu"
 
-#: dashboard/qml/WizardPage.qml:430
+#: dashboard/qml/WizardPage.qml:431
 #, kde-format
 msgid "Your headset is now connected."
 msgstr "Gözlüğünüz şimdi bağlı."
 
-#: dashboard/qml/WizardPage.qml:435 dashboard/qml/WizardPage.qml:477
+#: dashboard/qml/WizardPage.qml:436 dashboard/qml/WizardPage.qml:478
 #, kde-format
 msgid ""
 "To connect another headset, make sure pairing is enabled in the dashboard "
@@ -922,22 +922,22 @@ msgstr ""
 "Başka bir gözlük bağlamak için, bağlanmadan önce kontrol panelinde "
 "eşleştirmenin etkinleştirildiğinden emin olun."
 
-#: dashboard/qml/WizardPage.qml:457 dashboard/qml/WizardPage.qml:494
+#: dashboard/qml/WizardPage.qml:458 dashboard/qml/WizardPage.qml:495
 #, kde-format
 msgid "Finish"
 msgstr "Bitir"
 
-#: dashboard/qml/WizardPage.qml:472
+#: dashboard/qml/WizardPage.qml:473
 #, kde-format
 msgid "Finished"
 msgstr "Bitti"
 
-#: dashboard/wivrn_server.cpp:584
+#: dashboard/wivrn_server.cpp:592
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:585
+#: dashboard/wivrn_server.cpp:593
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
