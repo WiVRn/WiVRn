@@ -25,6 +25,7 @@
 #include "render/scene_renderer.h"
 #include "utils/cache.h"
 #include "xr/actionset.h"
+#include "xr/foveation_profile.h"
 #include "xr/instance.h"
 #include "xr/session.h"
 #include "xr/swapchain.h"
@@ -154,13 +155,17 @@ protected:
 		int sample_count;
 		uint32_t array_size;
 
+		XrFoveationLevelFB foveation_level;
+		float foveation_vertical_offset_degrees;
+		bool foveation_dynamic;
+
 		bool used;
 		xr::swapchain swapchain;
 	};
 	std::vector<swapchain_entry> swapchains;
 
 	// The returned reference is valid until the next call to get_swapchain
-	xr::swapchain & get_swapchain(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size);
+	xr::swapchain & get_swapchain(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size, const std::optional<xr::foveation_profile> & foveation = std::nullopt);
 	void clear_swapchains();
 
 	void render_start(bool passthrough, XrTime predicted_display_time);
@@ -187,7 +192,8 @@ protected:
 	        uint32_t height,
 	        bool keep_depth_buffer,
 	        uint32_t layer_mask,
-	        XrColor4f clear_color);
+	        XrColor4f clear_color,
+	        const std::optional<xr::foveation_profile> & foveation = std::nullopt);
 
 	void set_color_scale_bias(XrColor4f scale, XrColor4f bias);
 	void set_depth_test(bool write, XrCompareOpFB op);
