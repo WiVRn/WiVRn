@@ -184,6 +184,9 @@ if(USE_ANDROID_VALIDATION_LAYER)
     file(COPY
         ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayer/android-binaries-${VVL_VERSION}/${CMAKE_ANDROID_ARCH_ABI}
         DESTINATION ${CMAKE_ANDROID_LIB_DIRECTORIES})
+else()
+    # silence "Manually-specified variables were not used by the project" warning
+    set(_unused ${CMAKE_ANDROID_LIB_DIRECTORIES})
 endif()
 
 
