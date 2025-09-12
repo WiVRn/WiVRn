@@ -129,15 +129,9 @@ Kirigami.ScrollablePage {
                             },
                             {
                                 width: 0.5,
-                                height: 0.75,
+                                height: 1,
                                 offset_x: 0.5,
                                 offset_y: 0
-                            },
-                            {
-                                width: 0.5,
-                                height: 0.25,
-                                offset_x: 0.5,
-                                offset_y: 0.75
                             }
                         ]
                     },
@@ -154,15 +148,9 @@ Kirigami.ScrollablePage {
                             },
                             {
                                 width: 0.5,
-                                height: 0.75,
+                                height: 1,
                                 offset_x: 0,
                                 offset_y: 0
-                            },
-                            {
-                                width: 0.5,
-                                height: 0.25,
-                                offset_x: 0,
-                                offset_y: 0.75
                             }
                         ]
                     },
