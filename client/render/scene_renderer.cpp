@@ -19,7 +19,6 @@
 #include "render/scene_renderer.h"
 
 #include "application.h"
-#include "render/growable_descriptor_pool.h"
 #include "render/image_loader.h"
 #include "render/scene_components.h"
 #include "utils/alignment.h"
@@ -39,7 +38,9 @@
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_enums.hpp>
+#include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
 // TODO move in lobby?
@@ -260,7 +261,7 @@ void scene_renderer::wait_idle()
 		throw std::runtime_error("vkWaitForfences: " + vk::to_string(result));
 }
 
-vk::raii::RenderPass & scene_renderer::get_renderpass(const renderpass_info & info)
+scene_renderer::renderpass & scene_renderer::get_renderpass(const renderpass_info & info)
 {
 	auto it = renderpasses.find(info);
 	if (it != renderpasses.end())
@@ -269,78 +270,96 @@ vk::raii::RenderPass & scene_renderer::get_renderpass(const renderpass_info & in
 	return renderpasses.emplace(info, create_renderpass(info)).first->second;
 }
 
-vk::raii::RenderPass scene_renderer::create_renderpass(const renderpass_info & info_)
+scene_renderer::renderpass scene_renderer::create_renderpass(const renderpass_info & info_)
 {
-	vk::RenderPassCreateInfo info;
+	vk::StructureChain<vk::RenderPassCreateInfo, vk::RenderPassFragmentDensityMapCreateInfoEXT> info;
+	scene_renderer::renderpass rp;
 
-	std::array attachments = {
-	        vk::AttachmentDescription{
-	                .format = info_.color_format,
-	                .samples = info_.msaa_samples,
-	                .loadOp = vk::AttachmentLoadOp::eClear,
-	                .storeOp = vk::AttachmentStoreOp::eStore,
-	                .initialLayout = vk::ImageLayout::eUndefined,
-	                .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
-	        },
-	        vk::AttachmentDescription{
-	                .format = info_.depth_format,
-	                .samples = info_.msaa_samples,
-	                .loadOp = vk::AttachmentLoadOp::eClear,
-	                .storeOp = info_.keep_depth_buffer ? vk::AttachmentStoreOp::eStore : vk::AttachmentStoreOp::eDontCare,
-	                .stencilLoadOp = vk::AttachmentLoadOp::eClear,
-	                .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
-	                .initialLayout = vk::ImageLayout::eUndefined,
-	                .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-	        },
-	        vk::AttachmentDescription{
-	                .format = info_.color_format,
-	                .samples = vk::SampleCountFlagBits::e1,
-	                .loadOp = vk::AttachmentLoadOp::eDontCare,
-	                .storeOp = vk::AttachmentStoreOp::eStore,
-	                .stencilLoadOp = vk::AttachmentLoadOp::eClear,
-	                .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
-	                .initialLayout = vk::ImageLayout::eUndefined,
-	                .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
+	std::vector<vk::AttachmentDescription> attachments;
 
-	        }};
-
-	if (info_.msaa_samples != vk::SampleCountFlagBits::e1)
-	{
-		info.setAttachments(attachments);
-	}
-	else
-	{
-		info.setPAttachments(attachments.data());
-		info.setAttachmentCount(2);
-	}
-
-	vk::AttachmentReference color_attachment{
-	        .attachment = 0,
+	rp.color_attachment = {
+	        .attachment = (uint32_t)attachments.size(),
 	        .layout = vk::ImageLayout::eColorAttachmentOptimal,
 	};
+	attachments.push_back(vk::AttachmentDescription{
+	        .format = info_.color_format,
+	        .samples = info_.msaa_samples,
+	        .loadOp = vk::AttachmentLoadOp::eClear,
+	        .storeOp = vk::AttachmentStoreOp::eStore,
+	        .initialLayout = vk::ImageLayout::eUndefined,
+	        .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
+	});
 
-	vk::AttachmentReference depth_attachment{
-	        .attachment = 1,
+	rp.depth_attachment = {
+	        .attachment = (uint32_t)attachments.size(),
 	        .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
 	};
+	attachments.push_back(vk::AttachmentDescription{
+	        .format = info_.depth_format,
+	        .samples = info_.msaa_samples,
+	        .loadOp = vk::AttachmentLoadOp::eClear,
+	        .storeOp = info_.keep_depth_buffer ? vk::AttachmentStoreOp::eStore : vk::AttachmentStoreOp::eDontCare,
+	        .stencilLoadOp = vk::AttachmentLoadOp::eClear,
+	        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+	        .initialLayout = vk::ImageLayout::eUndefined,
+	        .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+	});
 
 	// Only used if MSAA is enabled
-	vk::AttachmentReference resolve_attachment{
-	        .attachment = 2,
-	        .layout = vk::ImageLayout::eColorAttachmentOptimal,
-	};
+	if (info_.msaa_samples != vk::SampleCountFlagBits::e1)
+	{
+		rp.resolve_attachment = {
+		        .attachment = (uint32_t)attachments.size(),
+		        .layout = vk::ImageLayout::eColorAttachmentOptimal,
+		};
+		attachments.push_back(vk::AttachmentDescription{
+		        .format = info_.color_format,
+		        .samples = vk::SampleCountFlagBits::e1,
+		        .loadOp = vk::AttachmentLoadOp::eDontCare,
+		        .storeOp = vk::AttachmentStoreOp::eStore,
+		        .stencilLoadOp = vk::AttachmentLoadOp::eClear,
+		        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+		        .initialLayout = vk::ImageLayout::eUndefined,
+		        .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
+		});
+	}
+
+	if (info_.fragment_density_map)
+	{
+		vk::RenderPassFragmentDensityMapCreateInfoEXT & fragment_density_info = info.get<vk::RenderPassFragmentDensityMapCreateInfoEXT>();
+		rp.fragment_density_attachment = {
+		        .attachment = (uint32_t)attachments.size(),
+		        .layout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
+		};
+		fragment_density_info.fragmentDensityMapAttachment = {
+		        .attachment = (uint32_t)attachments.size(),
+		        .layout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
+		};
+		attachments.push_back(vk::AttachmentDescription{
+		        .format = vk::Format::eR8G8Unorm,
+		        .samples = vk::SampleCountFlagBits::e1,
+		        .loadOp = vk::AttachmentLoadOp::eLoad,
+		        .storeOp = vk::AttachmentStoreOp::eDontCare,
+		        .initialLayout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
+		        .finalLayout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
+		});
+	}
+	else
+		info.unlink<vk::RenderPassFragmentDensityMapCreateInfoEXT>();
+
+	info.get().setAttachments(attachments);
 
 	vk::SubpassDescription subpasses{
 	        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
 	        .colorAttachmentCount = 1,
-	        .pColorAttachments = &color_attachment,
-	        .pDepthStencilAttachment = &depth_attachment,
+	        .pColorAttachments = &rp.color_attachment,
+	        .pDepthStencilAttachment = &rp.depth_attachment,
 	};
 
 	if (info_.msaa_samples != vk::SampleCountFlagBits::e1)
-		subpasses.pResolveAttachments = &resolve_attachment;
+		subpasses.pResolveAttachments = &*rp.resolve_attachment;
 
-	info.setSubpasses(subpasses);
+	info.get().setSubpasses(subpasses);
 
 	std::array dependencies{
 	        vk::SubpassDependency{
@@ -359,9 +378,11 @@ vk::raii::RenderPass scene_renderer::create_renderpass(const renderpass_info & i
 	                .srcAccessMask{},
 	                .dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite,
 	        }};
-	info.setDependencies(dependencies);
+	info.get().setDependencies(dependencies);
 
-	return vk::raii::RenderPass(device, info);
+	rp.attachment_count = (uint32_t)attachments.size();
+	rp.renderpass = vk::raii::RenderPass(device, info.get());
+	return rp;
 }
 
 scene_renderer::output_image & scene_renderer::get_output_image_data(const output_image_info & info)
@@ -475,12 +496,57 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 		        });
 	}
 
+	if (info.renderpass.fragment_density_map)
+	{
+		assert(info.foveation != VK_NULL_HANDLE);
+
+		out.foveation_view = vk::raii::ImageView(
+		        device,
+		        vk::ImageViewCreateInfo{
+		                .image = info.foveation,
+		                .viewType = vk::ImageViewType::e2D,
+		                .format = vk::Format::eR8G8Unorm,
+		                .components{},
+		                .subresourceRange = {
+		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                        .baseMipLevel = 0,
+		                        .levelCount = 1,
+		                        .baseArrayLayer = info.base_array_layer,
+		                        .layerCount = 1,
+		                },
+		        });
+	}
+
 	vk::FramebufferCreateInfo fb_info{
-	        .renderPass = *get_renderpass(info.renderpass),
+	        .renderPass = *get_renderpass(info.renderpass).renderpass,
 	        .width = info.output_size.width,
 	        .height = info.output_size.height,
 	        .layers = 1,
 	};
+
+	std::vector<vk::ImageView> attachments;
+
+	auto & rp = get_renderpass(info.renderpass);
+	attachments.resize(rp.attachment_count);
+
+	if (rp.resolve_attachment)
+	{
+		attachments[rp.color_attachment.attachment] = vk::ImageView{*out.multisample_view};
+		attachments[rp.resolve_attachment->attachment] = vk::ImageView{*out.image_view};
+	}
+	else
+	{
+		attachments[rp.color_attachment.attachment] = vk::ImageView{*out.image_view};
+	}
+
+	attachments[rp.depth_attachment.attachment] = vk::ImageView{*out.depth_view};
+
+	if (rp.fragment_density_attachment)
+		attachments[rp.fragment_density_attachment->attachment] = vk::ImageView{*out.foveation_view};
+
+	fb_info.setAttachments(attachments);
+	out.framebuffer = vk::raii::Framebuffer(device, fb_info);
+	return out;
 
 	if (info.renderpass.msaa_samples != vk::SampleCountFlagBits::e1)
 	{
@@ -604,7 +670,7 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 	                        vk::DynamicState::eScissor,
 	                },
 	                .layout = *pipeline_layout,
-	                .renderPass = *get_renderpass(info.renderpass),
+	                .renderPass = *get_renderpass(info.renderpass).renderpass,
 	                .subpass = 0,
 	        }};
 }
@@ -768,6 +834,7 @@ void scene_renderer::render(
         vk::Format depth_format,
         vk::Image color_buffer,
         vk::Image depth_buffer,
+        vk::Image foveation_image,
         std::span<frame_info> frames)
 {
 	per_frame_resources & resources = current_frame();
@@ -811,19 +878,24 @@ void scene_renderer::render(
 
 	// print_scene_hierarchy(scene);
 
+	renderpass_info rp_info{
+	        .color_format = color_format,
+	        .depth_format = depth_format,
+	        .keep_depth_buffer = depth_buffer != vk::Image{},
+	        .msaa_samples = vk::SampleCountFlagBits::e1,
+	        // .msaa_samples = vk::SampleCountFlagBits::e4, // FIXME: MSAA does not work
+	        .fragment_density_map = foveation_image != vk::Image{},
+	};
+	vk::raii::RenderPass & renderpass = get_renderpass(rp_info).renderpass;
+
 	for (const auto && [frame_index, frame]: utils::enumerate(frames))
 	{
 		scene_renderer::output_image & output = get_output_image_data(output_image_info{
-		        .renderpass = {
-		                .color_format = color_format,
-		                .depth_format = depth_format,
-		                .keep_depth_buffer = depth_buffer != vk::Image{},
-		                .msaa_samples = vk::SampleCountFlagBits::e1,
-		                // .msaa_samples = vk::SampleCountFlagBits::e4, // FIXME: MSAA does not work
-		        },
+		        .renderpass = rp_info,
 		        .output_size = output_size,
 		        .color = color_buffer,
 		        .depth = depth_buffer,
+		        .foveation = foveation_image,
 		        .base_array_layer = (uint32_t)frame_index,
 		});
 		glm::mat4 viewproj = frame.projection * frame.view;
@@ -844,12 +916,6 @@ void scene_renderer::render(
 		frame_ubo.light_position = glm::vec4(1, 1, 1, 0); // TODO
 		frame_ubo.proj = frame.projection;
 		frame_ubo.view = frame.view;
-
-		vk::raii::RenderPass & renderpass = get_renderpass(renderpass_info{
-		        .color_format = color_format,
-		        .depth_format = depth_format,
-		        .keep_depth_buffer = depth_buffer != vk::Image{},
-		});
 
 		cb.beginRenderPass(
 		        vk::RenderPassBeginInfo{
@@ -933,10 +999,7 @@ void scene_renderer::render(
 
 			// Get the pipeline
 			pipeline_info info{
-			        .renderpass = {
-			                .color_format = color_format,
-			                .depth_format = depth_format,
-			                .keep_depth_buffer = depth_buffer != vk::Image{}},
+			        .renderpass = rp_info,
 			        .shader_name = material->shader_name,
 			        .cull_mode = primitive.cull_mode,
 			        .front_face = primitive.front_face,
