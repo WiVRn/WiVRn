@@ -24,10 +24,8 @@
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
 #include "utils/ranges.h"
-#include <chrono>
 #include <entt/core/fwd.hpp>
 #include <magic_enum.hpp>
-#include <spdlog/fmt/chrono.h>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
@@ -156,7 +154,8 @@ void scene::render_world(
         uint32_t height,
         bool keep_depth_buffer,
         uint32_t layer_mask,
-        XrColor4f clear_color)
+        XrColor4f clear_color,
+        const std::optional<xr::foveation_profile> & foveation)
 {
 	std::vector<scene_renderer::frame_info> frames;
 	frames.reserve(views.size());
@@ -169,13 +168,14 @@ void scene::render_world(
 	if (keep_depth_buffer)
 		composition_layer_depth.reserve(views.size());
 
-	auto [color_swapchain, color_image] = [&]() -> std::pair<XrSwapchain, vk::Image> {
-		xr::swapchain & color_swapchain = get_swapchain(swapchain_format, width, height, 1, views.size());
+	auto [color_swapchain, color_image, foveation_image] = [&]() -> std::tuple<XrSwapchain, vk::Image, vk::Image> {
+		xr::swapchain & color_swapchain = get_swapchain(swapchain_format, width, height, 1, views.size(), foveation);
 
 		int color_image_index = color_swapchain.acquire();
 		vk::Image color_image = color_swapchain.images()[color_image_index].image;
+		vk::Image foveation_image = color_swapchain.images()[color_image_index].foveation;
 		color_swapchain.wait();
-		return {color_swapchain, color_image};
+		return {color_swapchain, color_image, foveation_image};
 	}();
 
 	auto [depth_swapchain, depth_image] = [&]() -> std::pair<XrSwapchain, vk::Image> {
@@ -244,6 +244,7 @@ void scene::render_world(
 	        depth_format,
 	        color_image,
 	        depth_image,
+	        foveation_image,
 	        frames);
 
 	add_projection_layer(
@@ -253,8 +254,10 @@ void scene::render_world(
 	        std::move(composition_layer_depth));
 }
 
-xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size)
+xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t height, int sample_count, uint32_t array_size, const std::optional<xr::foveation_profile> & foveation)
 {
+	auto foveation_profile = foveation.transform([](const xr::foveation_profile & foveation) -> XrFoveationProfileFB { return foveation; }).value_or(XR_NULL_HANDLE);
+
 	for (swapchain_entry & entry: swapchains)
 	{
 		if (not entry.used and
@@ -262,7 +265,8 @@ xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t h
 		    entry.width == width and
 		    entry.height == height and
 		    entry.sample_count == sample_count and
-		    entry.array_size == array_size)
+		    entry.array_size == array_size and
+		    entry.foveation_profile == foveation_profile)
 		{
 			entry.used = true;
 			return entry.swapchain;
@@ -276,9 +280,18 @@ xr::swapchain & scene::get_swapchain(vk::Format format, int32_t width, int32_t h
 	        .height = height,
 	        .sample_count = sample_count,
 	        .array_size = array_size,
+	        .foveation_profile = foveation_profile,
 	        .used = true,
-	        .swapchain = xr::swapchain(instance, session, device, format, width, height, sample_count, array_size),
-	};
+	        .swapchain = xr::swapchain(
+	                instance,
+	                session,
+	                device,
+	                format,
+	                width,
+	                height,
+	                sample_count,
+	                array_size,
+	                foveation_profile)};
 	spdlog::info("Created swapchain");
 
 	return swapchains.emplace_back(std::move(new_swapchain)).swapchain;
