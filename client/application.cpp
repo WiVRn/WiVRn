@@ -759,6 +759,7 @@ void application::initialize_vulkan()
 		spdlog::info("    {} (version {})", extension_name, spec_version);
 
 	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
@@ -887,6 +888,9 @@ void application::initialize_vulkan()
 	                .samplerYcbcrConversion = VK_TRUE,
 	        },
 #endif
+			vk::PhysicalDeviceMultiviewFeaturesKHR{
+				.multiview = VK_TRUE,
+			},
 	};
 
 	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and

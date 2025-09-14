@@ -35,6 +35,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <memory>
+#include <numeric>
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <vk_mem_alloc.h>
@@ -272,7 +273,7 @@ scene_renderer::renderpass & scene_renderer::get_renderpass(const renderpass_inf
 
 scene_renderer::renderpass scene_renderer::create_renderpass(const renderpass_info & info_)
 {
-	vk::StructureChain<vk::RenderPassCreateInfo, vk::RenderPassFragmentDensityMapCreateInfoEXT> info;
+	vk::StructureChain<vk::RenderPassCreateInfo, vk::RenderPassFragmentDensityMapCreateInfoEXT, vk::RenderPassMultiviewCreateInfo> info;
 	scene_renderer::renderpass rp;
 
 	std::vector<vk::AttachmentDescription> attachments;
@@ -380,6 +381,15 @@ scene_renderer::renderpass scene_renderer::create_renderpass(const renderpass_in
 	        }};
 	info.get().setDependencies(dependencies);
 
+	auto & multiview = info.get<vk::RenderPassMultiviewCreateInfo>();
+	multiview.subpassCount = 1;
+
+	std::array view_mask{uint32_t((1 << info_.multiview_count) - 1)};
+	multiview.setViewMasks(view_mask);
+
+	std::array correlation_mask{uint32_t((1 << info_.multiview_count) - 1)};
+	multiview.setCorrelationMasks(correlation_mask);
+
 	rp.attachment_count = (uint32_t)attachments.size();
 	rp.renderpass = vk::raii::RenderPass(device, info.get());
 	return rp;
@@ -402,15 +412,15 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 	out.image_view = vk::raii::ImageView(
 	        device, vk::ImageViewCreateInfo{
 	                        .image = info.color,
-	                        .viewType = vk::ImageViewType::e2D,
+	                        .viewType = vk::ImageViewType::e2DArray,
 	                        .format = info.renderpass.color_format,
 	                        .components{},
 	                        .subresourceRange = {
 	                                .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                                .baseMipLevel = 0,
 	                                .levelCount = 1,
-	                                .baseArrayLayer = info.base_array_layer,
-	                                .layerCount = 1,
+	                                .baseArrayLayer = 0,
+	                                .layerCount = info.renderpass.multiview_count,
 	                        },
 	                });
 
@@ -427,7 +437,7 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 		                        .depth = 1,
 		                },
 		                .mipLevels = 1,
-		                .arrayLayers = 1,
+		                .arrayLayers = info.renderpass.multiview_count,
 		                .samples = info.renderpass.msaa_samples,
 		                .tiling = vk::ImageTiling::eOptimal,
 		                .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
@@ -442,15 +452,15 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 	        device,
 	        vk::ImageViewCreateInfo{
 	                .image = info.depth ? info.depth : out.depth_buffer,
-	                .viewType = vk::ImageViewType::e2D,
+	                .viewType = vk::ImageViewType::e2DArray,
 	                .format = info.renderpass.depth_format,
 	                .components{},
 	                .subresourceRange = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eDepth,
 	                        .baseMipLevel = 0,
 	                        .levelCount = 1,
-	                        .baseArrayLayer = info.depth ? info.base_array_layer : 0,
-	                        .layerCount = 1,
+	                        .baseArrayLayer = 0,
+	                        .layerCount = info.renderpass.multiview_count,
 	                },
 	        });
 
@@ -467,7 +477,7 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 		                        .depth = 1,
 		                },
 		                .mipLevels = 1,
-		                .arrayLayers = 1,
+		                .arrayLayers = info.renderpass.multiview_count,
 		                .samples = info.renderpass.msaa_samples,
 		                .tiling = vk::ImageTiling::eOptimal,
 		                .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransientAttachment,
@@ -483,7 +493,7 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 		        device,
 		        vk::ImageViewCreateInfo{
 		                .image = out.multisample_image,
-		                .viewType = vk::ImageViewType::e2D,
+		                .viewType = vk::ImageViewType::e2DArray,
 		                .format = info.renderpass.color_format,
 		                .components{},
 		                .subresourceRange = {
@@ -491,7 +501,7 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 		                        .baseMipLevel = 0,
 		                        .levelCount = 1,
 		                        .baseArrayLayer = 0,
-		                        .layerCount = 1,
+		                        .layerCount = info.renderpass.multiview_count,
 		                },
 		        });
 	}
@@ -504,15 +514,15 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 		        device,
 		        vk::ImageViewCreateInfo{
 		                .image = info.foveation,
-		                .viewType = vk::ImageViewType::e2D,
+		                .viewType = vk::ImageViewType::e2DArray,
 		                .format = vk::Format::eR8G8Unorm,
 		                .components{},
 		                .subresourceRange = {
 		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                        .baseMipLevel = 0,
 		                        .levelCount = 1,
-		                        .baseArrayLayer = info.base_array_layer,
-		                        .layerCount = 1,
+		                        .baseArrayLayer = 0,
+		                        .layerCount = info.renderpass.multiview_count,
 		                },
 		        });
 	}
@@ -837,6 +847,8 @@ void scene_renderer::render(
         vk::Image foveation_image,
         std::span<frame_info> frames)
 {
+	assert(frames.size() <= instance_gpu_data{}.modelview.size());
+
 	per_frame_resources & resources = current_frame();
 
 	size_t buffer_alignment = std::max<size_t>(sizeof(glm::mat4), physical_device_properties.limits.minUniformBufferOffsetAlignment);
@@ -885,259 +897,271 @@ void scene_renderer::render(
 	        .msaa_samples = vk::SampleCountFlagBits::e1,
 	        // .msaa_samples = vk::SampleCountFlagBits::e4, // FIXME: MSAA does not work
 	        .fragment_density_map = foveation_image != vk::Image{},
+	        .multiview_count = (uint32_t)frames.size(),
 	};
 	vk::raii::RenderPass & renderpass = get_renderpass(rp_info).renderpass;
 
+	// Get the average view position/direction for sorting:
+	// The distance from a given view is (view * xform_to_root * vec4(0,0,0,1)).z
+	// =>   dot(view * xform_to_root * vec4(0,0,0,1), vec4(0,0,1,0))
+	// =>   transpose(vec4(0,0,1,0)) * view * xform_to_root * vec(0,0,0,1)
+	// =>   dot(row(view, 2), xform_to_root * vec(0,0,0,1))
+	auto avg_view = 1.f / frames.size() * std::accumulate(frames.begin(), frames.end(), glm::vec4(0, 0, 0, 0), [](const glm::vec4 sum_view, const frame_info & frame) { return sum_view + glm::row(frame.view, 2); });
+
+	// Accumulate all visible primitives
+	std::vector<std::tuple<bool, float, components::node *, renderer::primitive *>> primitives; // TODO keep it between frames
+	for (auto && [entity, node]: scene.view<components::node>().each())
+	{
+		if (not node.global_visible or not node.mesh or (node.global_layer_mask & layer_mask) == 0)
+			continue;
+
+
+		for (renderer::primitive & primitive: node.mesh->primitives)
+		{
+			// Position relative to the camera
+			float position = glm::dot(avg_view, node.transform_to_root * glm::vec4(0, 0, 0, 1));
+
+			renderer::material & material = primitive.material_ ? *primitive.material_ : *default_material;
+			primitives.emplace_back(material.alpha_mode == renderer::material::alpha_mode_t::blend or material.alpha_mode == renderer::material::alpha_mode_t::mask, position, &node, &primitive);
+		}
+	}
+
+	// Sort by blending / distance
+	// TODO add frustum culling
+	std::ranges::stable_sort(primitives, [](const auto & a, const auto & b) -> bool {
+		// Put the opaque objects first
+		if (std::get<0>(a) < std::get<0>(b))
+			return true;
+		if (std::get<0>(a) > std::get<0>(b))
+			return false;
+
+		// If blending is disabled (std::get<0> == false), put the closest objects first
+		// If blending is enabled (std::get<0> == true), put the farthest objeccts first
+		return std::get<0>(a) ^ (std::get<1>(a) > std::get<1>(b));
+	});
+
+	scene_renderer::output_image & output = get_output_image_data(output_image_info{
+			.renderpass = rp_info,
+			.output_size = output_size,
+			.color = color_buffer,
+			.depth = depth_buffer,
+			.foveation = foveation_image,
+	});
+
+	vk::DeviceSize frame_ubo_offset = resources.uniform_buffer_offset;
+	frame_gpu_data & frame_ubo = *reinterpret_cast<frame_gpu_data *>(ubo + resources.uniform_buffer_offset);
+	resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(frame_gpu_data));
+
+	// frame_ubo.ambient_color = glm::vec4(0.5,0.5,0.5,0); // TODO
+	// frame_ubo.light_color = glm::vec4(0.5,0.5,0.5,0); // TODO
+
+	// frame_ubo.ambient_color = glm::vec4(0.2,0.2,0.2,0); // TODO
+	// frame_ubo.light_color = glm::vec4(0.8,0.8,0.8,0); // TODO
+
+	frame_ubo.ambient_color = glm::vec4(0.1, 0.1, 0.1, 0); // TODO
+	frame_ubo.light_color = glm::vec4(0.8, 0.8, 0.8, 0);   // TODO
+
+	frame_ubo.light_position = glm::vec4(1, 1, 1, 0); // TODO
+
+	std::array<glm::mat4, 2> viewproj;
 	for (const auto && [frame_index, frame]: utils::enumerate(frames))
 	{
-		scene_renderer::output_image & output = get_output_image_data(output_image_info{
-		        .renderpass = rp_info,
-		        .output_size = output_size,
-		        .color = color_buffer,
-		        .depth = depth_buffer,
-		        .foveation = foveation_image,
-		        .base_array_layer = (uint32_t)frame_index,
-		});
-		glm::mat4 viewproj = frame.projection * frame.view;
-
-		vk::DeviceSize frame_ubo_offset = resources.uniform_buffer_offset;
-		frame_gpu_data & frame_ubo = *reinterpret_cast<frame_gpu_data *>(ubo + resources.uniform_buffer_offset);
-		resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(frame_gpu_data));
-
-		// frame_ubo.ambient_color = glm::vec4(0.5,0.5,0.5,0); // TODO
-		// frame_ubo.light_color = glm::vec4(0.5,0.5,0.5,0); // TODO
-
-		// frame_ubo.ambient_color = glm::vec4(0.2,0.2,0.2,0); // TODO
-		// frame_ubo.light_color = glm::vec4(0.8,0.8,0.8,0); // TODO
-
-		frame_ubo.ambient_color = glm::vec4(0.1, 0.1, 0.1, 0); // TODO
-		frame_ubo.light_color = glm::vec4(0.8, 0.8, 0.8, 0);   // TODO
-
-		frame_ubo.light_position = glm::vec4(1, 1, 1, 0); // TODO
-		frame_ubo.proj = frame.projection;
-		frame_ubo.view = frame.view;
-
-		cb.beginRenderPass(
-		        vk::RenderPassBeginInfo{
-		                .renderPass = *renderpass,
-		                .framebuffer = *output.framebuffer,
-		                .renderArea = {
-		                        .offset = {0, 0},
-		                        .extent = output_size,
-		                },
-		                .clearValueCount = clear_values.size(),
-		                .pClearValues = clear_values.data(),
-		        },
-		        vk::SubpassContents::eInline);
-
-		// Accumulate all visible primitives
-		std::vector<std::tuple<bool, float, components::node *, renderer::primitive *>> primitives; // TODO keep it between frames
-		for (auto && [entity, node]: scene.view<components::node>().each())
-		{
-			if (not node.global_visible or not node.mesh or (node.global_layer_mask & layer_mask) == 0)
-				continue;
-
-			// Position relative to the camera
-			glm::vec4 position = frame.view * node.transform_to_root * glm::vec4(0, 0, 0, 1);
-
-			for (renderer::primitive & primitive: node.mesh->primitives)
-			{
-				renderer::material & material = primitive.material_ ? *primitive.material_ : *default_material;
-				primitives.emplace_back(material.alpha_mode == renderer::material::alpha_mode_t::blend or material.alpha_mode == renderer::material::alpha_mode_t::mask, position.z, &node, &primitive);
-			}
-		}
-
-		// Sort by blending / distance
-		// TODO add frustum culling
-		std::ranges::stable_sort(primitives, [](const auto & a, const auto & b) -> bool {
-			// Put the opaque objects first
-			if (std::get<0>(a) < std::get<0>(b))
-				return true;
-			if (std::get<0>(a) > std::get<0>(b))
-				return false;
-
-			// If blending is disabled (std::get<0> == false), put the closest objects first
-			// If blending is enabled (std::get<0> == true), put the farthest objeccts first
-			return std::get<0>(a) ^ (std::get<1>(a) > std::get<1>(b));
-		});
-
-		// TODO try to add a depth pre-pass
-		for (auto & [blend_enable, distance, node_ptr, primitive_ptr]: primitives)
-		{
-			components::node & node = *node_ptr;
-			renderer::primitive & primitive = *primitive_ptr;
-
-			glm::mat4 & transform = node.transform_to_root;
-
-			// TODO: reuse the UBO if another primitive of the same mesh has already been drawn
-			vk::DeviceSize instance_ubo_offset = resources.uniform_buffer_offset;
-			instance_gpu_data & object_ubo = *reinterpret_cast<instance_gpu_data *>(ubo + resources.uniform_buffer_offset);
-			resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data));
-
-			vk::DeviceSize joints_ubo_offset = 0;
-			if (!node.joints.empty())
-			{
-				joints_ubo_offset = resources.uniform_buffer_offset;
-				glm::mat4 * joint_matrices = reinterpret_cast<glm::mat4 *>(ubo + resources.uniform_buffer_offset);
-				resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(glm::mat4) * 32);
-				assert(node.joints.size() <= 32);
-
-				for (auto && [idx, joint]: utils::enumerate(node.joints))
-				{
-					glm::mat4 & joint_transform = scene.get<components::node>(joint.first).transform_to_root;
-					joint_matrices[idx] = glm::inverse(transform) * joint_transform * joint.second;
-				}
-			}
-
-			object_ubo.model = transform;
-			object_ubo.modelview = frame.view * transform;
-			object_ubo.modelviewproj = viewproj * transform;
-			object_ubo.clipping_planes = node.clipping_planes;
-
-			// Get the material
-			std::shared_ptr<renderer::material> material = primitive.material_ ? primitive.material_ : default_material;
-
-			// Get the pipeline
-			pipeline_info info{
-			        .renderpass = rp_info,
-			        .shader_name = material->shader_name,
-			        .cull_mode = primitive.cull_mode,
-			        .front_face = primitive.front_face,
-			        .topology = primitive.topology,
-			        .blend_enable = material->alpha_mode == renderer::material::alpha_mode_t::blend or material->alpha_mode == renderer::material::alpha_mode_t::mask,
-
-			        .nb_texcoords = 2, // TODO
-			        .alpha_cutout = material->alpha_mode == renderer::material::alpha_mode_t::mask,
-			        .skinning = !node.joints.empty(),
-			};
-
-			if (material->double_sided)
-				info.cull_mode = vk::CullModeFlagBits::eNone;
-
-			if (node.reverse_side)
-				info.front_face = reverse(info.front_face);
-
-			cb.bindPipeline(vk::PipelineBindPoint::eGraphics, *get_pipeline(info));
-
-			cb.setViewport(0, vk::Viewport{
-			                          .x = 0,
-			                          .y = 0,
-			                          .width = (float)output_size.width,
-			                          .height = (float)output_size.height,
-			                          .minDepth = 0,
-			                          .maxDepth = 1,
-			                  });
-
-			cb.setScissor(0, vk::Rect2D{
-			                         .offset = {0, 0},
-			                         .extent = output_size,
-			                 });
-
-			if (primitive.indexed)
-				cb.bindIndexBuffer(*node.mesh->buffer, primitive.index_offset, primitive.index_type);
-
-			cb.bindVertexBuffers(0, (vk::Buffer)*node.mesh->buffer, primitive.vertex_offset);
-
-			vk::DescriptorBufferInfo buffer_info_1{
-			        .buffer = resources.uniform_buffer,
-			        .offset = frame_ubo_offset,
-			        .range = sizeof(frame_gpu_data),
-			};
-			vk::DescriptorBufferInfo buffer_info_2{
-			        .buffer = resources.uniform_buffer,
-			        .offset = instance_ubo_offset,
-			        .range = sizeof(instance_gpu_data),
-			};
-			vk::DescriptorBufferInfo buffer_info_3{
-			        .buffer = resources.uniform_buffer,
-			        .offset = joints_ubo_offset,
-			        .range = sizeof(glm::mat4) * 32,
-			};
-			vk::DescriptorBufferInfo buffer_info_4{
-			        .buffer = *material->buffer,
-			        .offset = material->offset,
-			        .range = sizeof(renderer::material::gpu_data),
-			};
-
-			auto f = [&](renderer::texture & texture) {
-				return vk::DescriptorImageInfo{
-				        .sampler = get_sampler(texture.sampler),
-				        .imageView = **(texture.image_view),
-				        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
-				};
-			};
-
-			std::array write_ds_image{
-			        f(*material->base_color_texture),
-			        f(*material->metallic_roughness_texture),
-			        f(*material->occlusion_texture),
-			        f(*material->emissive_texture),
-			        f(*material->normal_texture),
-			};
-			std::array descriptors{
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 0,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eUniformBuffer,
-			                .pBufferInfo = &buffer_info_1,
-			        },
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 1,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eUniformBuffer,
-			                .pBufferInfo = &buffer_info_2,
-			        },
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 2,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eUniformBuffer,
-			                .pBufferInfo = &buffer_info_3,
-			        },
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 3,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-			                .pImageInfo = write_ds_image.data(),
-			        },
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 4,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-			                .pImageInfo = write_ds_image.data() + 1,
-			        },
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 5,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-			                .pImageInfo = write_ds_image.data() + 2,
-			        },
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 6,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-			                .pImageInfo = write_ds_image.data() + 3,
-			        },
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 7,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-			                .pImageInfo = write_ds_image.data() + 4,
-			        },
-			        vk::WriteDescriptorSet{
-			                .dstBinding = 8,
-			                .descriptorCount = 1,
-			                .descriptorType = vk::DescriptorType::eUniformBuffer,
-			                .pBufferInfo = &buffer_info_4,
-			        },
-			};
-
-			cb.pushDescriptorSetKHR(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptors);
-
-			if (primitive.indexed)
-				cb.drawIndexed(primitive.index_count, 1, 0, 0, 0);
-			else
-				cb.draw(primitive.vertex_count, 1, 0, 0);
-		}
-		cb.endRenderPass();
+		viewproj[frame_index] = frame.projection * frame.view;
+		frame_ubo.view[frame_index] = frame.view;
 	}
+
+	cb.beginRenderPass(
+			vk::RenderPassBeginInfo{
+					.renderPass = *renderpass,
+					.framebuffer = *output.framebuffer,
+					.renderArea = {
+							.offset = {0, 0},
+							.extent = output_size,
+					},
+					.clearValueCount = clear_values.size(),
+					.pClearValues = clear_values.data(),
+			},
+			vk::SubpassContents::eInline);
+
+	// TODO try to add a depth pre-pass
+	for (auto & [blend_enable, distance, node_ptr, primitive_ptr]: primitives)
+	{
+		components::node & node = *node_ptr;
+		renderer::primitive & primitive = *primitive_ptr;
+
+		glm::mat4 & transform = node.transform_to_root;
+
+		// TODO: reuse the UBO if another primitive of the same mesh has already been drawn
+		vk::DeviceSize instance_ubo_offset = resources.uniform_buffer_offset;
+		instance_gpu_data & object_ubo = *reinterpret_cast<instance_gpu_data *>(ubo + resources.uniform_buffer_offset);
+		resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data));
+
+		vk::DeviceSize joints_ubo_offset = 0;
+		if (!node.joints.empty())
+		{
+			joints_ubo_offset = resources.uniform_buffer_offset;
+			glm::mat4 * joint_matrices = reinterpret_cast<glm::mat4 *>(ubo + resources.uniform_buffer_offset);
+			resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(glm::mat4) * 32);
+			assert(node.joints.size() <= 32);
+
+			for (auto && [idx, joint]: utils::enumerate(node.joints))
+			{
+				glm::mat4 & joint_transform = scene.get<components::node>(joint.first).transform_to_root;
+				joint_matrices[idx] = glm::inverse(transform) * joint_transform * joint.second;
+			}
+		}
+
+		object_ubo.model = transform;
+		for (const auto && [frame_index, frame]: utils::enumerate(frames))
+		{
+			object_ubo.modelview[frame_index] = frame.view * transform;
+			object_ubo.modelviewproj[frame_index] = viewproj[frame_index] * transform;
+		}
+		object_ubo.clipping_planes = node.clipping_planes;
+
+		// Get the material
+		std::shared_ptr<renderer::material> material = primitive.material_ ? primitive.material_ : default_material;
+
+		// Get the pipeline
+		pipeline_info info{
+				.renderpass = rp_info,
+				.shader_name = material->shader_name,
+				.cull_mode = primitive.cull_mode,
+				.front_face = primitive.front_face,
+				.topology = primitive.topology,
+				.blend_enable = material->alpha_mode == renderer::material::alpha_mode_t::blend or material->alpha_mode == renderer::material::alpha_mode_t::mask,
+
+				.nb_texcoords = 2, // TODO
+				.alpha_cutout = material->alpha_mode == renderer::material::alpha_mode_t::mask,
+				.skinning = !node.joints.empty(),
+		};
+
+		if (material->double_sided)
+			info.cull_mode = vk::CullModeFlagBits::eNone;
+
+		if (node.reverse_side)
+			info.front_face = reverse(info.front_face);
+
+		cb.bindPipeline(vk::PipelineBindPoint::eGraphics, *get_pipeline(info));
+
+		cb.setViewport(0, vk::Viewport{
+									.x = 0,
+									.y = 0,
+									.width = (float)output_size.width,
+									.height = (float)output_size.height,
+									.minDepth = 0,
+									.maxDepth = 1,
+							});
+
+		cb.setScissor(0, vk::Rect2D{
+									.offset = {0, 0},
+									.extent = output_size,
+							});
+
+		if (primitive.indexed)
+			cb.bindIndexBuffer(*node.mesh->buffer, primitive.index_offset, primitive.index_type);
+
+		cb.bindVertexBuffers(0, (vk::Buffer)*node.mesh->buffer, primitive.vertex_offset);
+
+		vk::DescriptorBufferInfo buffer_info_1{
+				.buffer = resources.uniform_buffer,
+				.offset = frame_ubo_offset,
+				.range = sizeof(frame_gpu_data),
+		};
+		vk::DescriptorBufferInfo buffer_info_2{
+				.buffer = resources.uniform_buffer,
+				.offset = instance_ubo_offset,
+				.range = sizeof(instance_gpu_data),
+		};
+		vk::DescriptorBufferInfo buffer_info_3{
+				.buffer = resources.uniform_buffer,
+				.offset = joints_ubo_offset,
+				.range = sizeof(glm::mat4) * 32,
+		};
+		vk::DescriptorBufferInfo buffer_info_4{
+				.buffer = *material->buffer,
+				.offset = material->offset,
+				.range = sizeof(renderer::material::gpu_data),
+		};
+
+		auto f = [&](renderer::texture & texture) {
+			return vk::DescriptorImageInfo{
+					.sampler = get_sampler(texture.sampler),
+					.imageView = **(texture.image_view),
+					.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			};
+		};
+
+		std::array write_ds_image{
+				f(*material->base_color_texture),
+				f(*material->metallic_roughness_texture),
+				f(*material->occlusion_texture),
+				f(*material->emissive_texture),
+				f(*material->normal_texture),
+		};
+		std::array descriptors{
+				vk::WriteDescriptorSet{
+						.dstBinding = 0,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eUniformBuffer,
+						.pBufferInfo = &buffer_info_1,
+				},
+				vk::WriteDescriptorSet{
+						.dstBinding = 1,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eUniformBuffer,
+						.pBufferInfo = &buffer_info_2,
+				},
+				vk::WriteDescriptorSet{
+						.dstBinding = 2,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eUniformBuffer,
+						.pBufferInfo = &buffer_info_3,
+				},
+				vk::WriteDescriptorSet{
+						.dstBinding = 3,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+						.pImageInfo = write_ds_image.data(),
+				},
+				vk::WriteDescriptorSet{
+						.dstBinding = 4,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+						.pImageInfo = write_ds_image.data() + 1,
+				},
+				vk::WriteDescriptorSet{
+						.dstBinding = 5,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+						.pImageInfo = write_ds_image.data() + 2,
+				},
+				vk::WriteDescriptorSet{
+						.dstBinding = 6,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+						.pImageInfo = write_ds_image.data() + 3,
+				},
+				vk::WriteDescriptorSet{
+						.dstBinding = 7,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+						.pImageInfo = write_ds_image.data() + 4,
+				},
+				vk::WriteDescriptorSet{
+						.dstBinding = 8,
+						.descriptorCount = 1,
+						.descriptorType = vk::DescriptorType::eUniformBuffer,
+						.pBufferInfo = &buffer_info_4,
+				},
+		};
+
+		cb.pushDescriptorSetKHR(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptors);
+
+		if (primitive.indexed)
+			cb.drawIndexed(primitive.index_count, 1, 0, 0, 0);
+		else
+			cb.draw(primitive.vertex_count, 1, 0, 0);
+	}
+	cb.endRenderPass();
 }

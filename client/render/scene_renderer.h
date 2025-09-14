@@ -42,6 +42,7 @@ struct renderpass_info
 	bool keep_depth_buffer;
 	vk::SampleCountFlagBits msaa_samples = vk::SampleCountFlagBits::e1;
 	bool fragment_density_map;
+	uint32_t multiview_count;
 
 	bool operator==(const renderpass_info & other) const noexcept = default;
 };
@@ -76,7 +77,6 @@ struct output_image_info
 	VkImage color;
 	VkImage depth;
 	VkImage foveation;
-	uint32_t base_array_layer;
 
 	bool operator==(const output_image_info & other) const noexcept = default;
 };
@@ -178,8 +178,7 @@ class scene_renderer
 
 	struct frame_gpu_data
 	{
-		glm::mat4 view;
-		glm::mat4 proj;
+		std::array<glm::mat4, 2> view;
 		glm::vec4 light_position;
 		glm::vec4 ambient_color;
 		glm::vec4 light_color;
@@ -188,8 +187,8 @@ class scene_renderer
 	struct instance_gpu_data
 	{
 		glm::mat4 model;
-		glm::mat4 modelview;
-		glm::mat4 modelviewproj;
+		std::array<glm::mat4, 2> modelview;
+		std::array<glm::mat4, 2> modelviewproj;
 		std::array<glm::vec4, 4> clipping_planes;
 	};
 
