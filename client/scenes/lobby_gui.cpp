@@ -134,14 +134,14 @@ static void InputText(const char * label, std::string & text, const ImVec2 & siz
 		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
 		{
 			assert(text.data() == data->Buf);
-			text.resize(data->BufTextLen);
+			text.resize(data->BufTextLen + 1);
 			data->Buf = text.data();
 		}
 
 		return 0;
 	};
 
-	ImGui::InputTextEx(label, nullptr, text.data(), text.size(), size, flags | ImGuiInputTextFlags_CallbackResize, callback, &text);
+	ImGui::InputTextEx(label, nullptr, text.data(), text.size() + 1, size, flags | ImGuiInputTextFlags_CallbackResize, callback, &text);
 }
 
 static void display_recentering_tip(imgui_context & ctx, const std::string & tip)
