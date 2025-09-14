@@ -44,6 +44,38 @@
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
+namespace
+{
+struct frustum
+{
+	// Only 5 planes because the far plane is infinitely far
+	std::array<glm::vec4, 5> planes;
+
+	frustum() = default;
+	frustum(const frustum &) = default;
+	frustum(const glm::mat4 & proj)
+	{
+		/* Let [x',y',z',w'] = proj * [x,y,z,1]
+		 * Extract the planes from the projection matrix s.t.
+		 *
+		 * (dot(planes[0], [x,y,z,1]) > 0 <=> x' < w'  <=> w' - x' > 0) <=> planes[0] = row3-row0
+		 * (dot(planes[1], [x,y,z,1]) > 0 <=> x' > -w' <=> x' + w' > 0) <=> planes[1] = row0+row3
+		 * (dot(planes[2], [x,y,z,1]) > 0 <=> y' < w'  <=> w' - y' > 0) <=> planes[2] = row3-row1
+		 * (dot(planes[3], [x,y,z,1]) > 0 <=> y' > -w' <=> y' + w' > 0) <=> planes[3] = row1+row3
+		 * (dot(planes[4], [x,y,z,1]) > 0 <=> z' < w'  <=> w' - z' > 0) <=> planes[4] = row3-row2
+		 *
+		 * See Gribb & Hartmann
+		 */
+
+		planes[0] = glm::row(proj, 3) - glm::row(proj, 0);
+		planes[1] = glm::row(proj, 0) + glm::row(proj, 3);
+		planes[2] = glm::row(proj, 3) - glm::row(proj, 1);
+		planes[3] = glm::row(proj, 1) + glm::row(proj, 3);
+		planes[4] = glm::row(proj, 3) - glm::row(proj, 2);
+	}
+};
+} // namespace
+
 // TODO move in lobby?
 vk::Format scene_renderer::find_usable_image_format(
         vk::raii::PhysicalDevice physical_device,
@@ -138,6 +170,32 @@ static vk::FrontFace reverse(vk::FrontFace face)
 		return vk::FrontFace::eClockwise;
 	else
 		return vk::FrontFace::eCounterClockwise;
+}
+
+// Return true if the OBB is outside the frustum
+static bool frustum_cull(
+        const frustum & fru,
+        const glm::mat4 & model,
+        const glm::vec3 & obb_min,
+        const glm::vec3 & obb_max)
+{
+	for (const glm::vec4 & plane: fru.planes)
+	{
+		int out = 0;
+		out += glm::dot(plane, model * glm::vec4(obb_min.x, obb_min.y, obb_min.z, 1)) < 0;
+		out += glm::dot(plane, model * glm::vec4(obb_min.x, obb_min.y, obb_max.z, 1)) < 0;
+		out += glm::dot(plane, model * glm::vec4(obb_min.x, obb_max.y, obb_min.z, 1)) < 0;
+		out += glm::dot(plane, model * glm::vec4(obb_min.x, obb_max.y, obb_max.z, 1)) < 0;
+		out += glm::dot(plane, model * glm::vec4(obb_max.x, obb_min.y, obb_min.z, 1)) < 0;
+		out += glm::dot(plane, model * glm::vec4(obb_max.x, obb_min.y, obb_max.z, 1)) < 0;
+		out += glm::dot(plane, model * glm::vec4(obb_max.x, obb_max.y, obb_min.z, 1)) < 0;
+		out += glm::dot(plane, model * glm::vec4(obb_max.x, obb_max.y, obb_max.z, 1)) < 0;
+
+		if (out == 8)
+			return true;
+	}
+
+	return false;
 }
 
 static std::array layout_bindings_0{
@@ -908,13 +966,19 @@ void scene_renderer::render(
 	// =>   dot(row(view, 2), xform_to_root * vec(0,0,0,1))
 	auto avg_view = 1.f / frames.size() * std::accumulate(frames.begin(), frames.end(), glm::vec4(0, 0, 0, 0), [](const glm::vec4 sum_view, const frame_info & frame) { return sum_view + glm::row(frame.view, 2); });
 
+	// Compute the views frustum
+	std::vector<frustum> frusta;
+	for (const auto & frame: frames)
+	{
+		frusta.push_back(frustum{frame.projection * frame.view});
+	}
+
 	// Accumulate all visible primitives
 	std::vector<std::tuple<bool, float, components::node *, renderer::primitive *>> primitives; // TODO keep it between frames
 	for (auto && [entity, node]: scene.view<components::node>().each())
 	{
 		if (not node.global_visible or not node.mesh or (node.global_layer_mask & layer_mask) == 0)
 			continue;
-
 
 		for (renderer::primitive & primitive: node.mesh->primitives)
 		{
@@ -925,12 +989,24 @@ void scene_renderer::render(
 			float position = glm::dot(avg_view, node.transform_to_root * glm::vec4(center, 1));
 
 			renderer::material & material = primitive.material_ ? *primitive.material_ : *default_material;
-			primitives.emplace_back(material.alpha_mode == renderer::material::alpha_mode_t::blend or material.alpha_mode == renderer::material::alpha_mode_t::mask, position, &node, &primitive);
+			bool alpha_blend = material.alpha_mode == renderer::material::alpha_mode_t::blend or material.alpha_mode == renderer::material::alpha_mode_t::mask;
+
+			if (node.joints.empty())
+			{
+				bool visible = false;
+
+				for (const auto & fru: frusta)
+					visible = visible or not frustum_cull(fru, node.transform_to_root, primitive.obb_min, primitive.obb_max);
+
+				if (visible)
+					primitives.emplace_back(alpha_blend, position, &node, &primitive);
+			}
+			else
+				primitives.emplace_back(alpha_blend, position, &node, &primitive);
 		}
 	}
 
 	// Sort by blending / distance
-	// TODO add frustum culling
 	std::ranges::stable_sort(primitives, [](const auto & a, const auto & b) -> bool {
 		// Put the opaque objects first
 		if (std::get<0>(a) < std::get<0>(b))
@@ -944,11 +1020,11 @@ void scene_renderer::render(
 	});
 
 	scene_renderer::output_image & output = get_output_image_data(output_image_info{
-			.renderpass = rp_info,
-			.output_size = output_size,
-			.color = color_buffer,
-			.depth = depth_buffer,
-			.foveation = foveation_image,
+	        .renderpass = rp_info,
+	        .output_size = output_size,
+	        .color = color_buffer,
+	        .depth = depth_buffer,
+	        .foveation = foveation_image,
 	});
 
 	vk::DeviceSize frame_ubo_offset = resources.uniform_buffer_offset;
