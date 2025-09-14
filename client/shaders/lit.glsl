@@ -19,21 +19,19 @@
 
 #version 450
 
+#extension GL_EXT_multiview : enable
+
 layout (constant_id = 0) const int nb_texcoords = 2;
 layout (constant_id = 1) const bool dithering = true;
 layout (constant_id = 2) const bool alpha_cutout = false;
 layout (constant_id = 3) const bool skinning = false;
 
+const int nb_views = 2;
 const int nb_clipping = 4;
-
-const float fog_min_dist = 20.0;
-const float fog_max_dist = 35.0;
-const vec4 fog_color = vec4(0.0, 0.25, 0.5, 1.0);
 
 layout(set = 0, binding = 0) uniform scene_ubo
 {
-	mat4 view;
-	mat4 proj;
+	mat4 view[nb_views];
 	vec4 light_position;
 	vec4 ambient_color;
 	vec4 light_color;
@@ -42,8 +40,8 @@ layout(set = 0, binding = 0) uniform scene_ubo
 layout(set = 0, binding = 1) uniform mesh_ubo
 {
 	mat4 model;
-	mat4 modelview;
-	mat4 modelviewproj;
+	mat4 modelview[nb_views];
+	mat4 modelviewproj[nb_views];
 	vec4 clipping_plane[nb_clipping];
 } mesh;
 
@@ -127,16 +125,16 @@ void main()
 			in_weights.z * joints.joint_matrices[int(in_joints.z)] +
 			in_weights.w * joints.joint_matrices[int(in_joints.w)];
 
-		normal = vec3(mesh.modelview * skinMatrix * vec4(in_normal, 0.0));
-		gl_Position = mesh.modelviewproj * skinMatrix * vec4(in_position, 1.0);
+		normal = vec3(mesh.modelview[gl_ViewIndex] * skinMatrix * vec4(in_normal, 0.0));
+		gl_Position = mesh.modelviewproj[gl_ViewIndex] * skinMatrix * vec4(in_position, 1.0);
 	}
 	else
 	{
-		normal = vec3(mesh.modelview * vec4(in_normal, 0.0));
-		gl_Position = mesh.modelviewproj * vec4(in_position, 1.0);
+		normal = vec3(mesh.modelview[gl_ViewIndex] * vec4(in_normal, 0.0));
+		gl_Position = mesh.modelviewproj[gl_ViewIndex] * vec4(in_position, 1.0);
 	}
-	frag_pos = mesh.modelview * vec4(in_position, 1.0);
-	light_pos = scene.view * scene.light_position;
+	frag_pos = mesh.modelview[gl_ViewIndex] * vec4(in_position, 1.0);
+	light_pos = scene.view[gl_ViewIndex] * scene.light_position;
 
 	for(int i = 0; i < nb_clipping; i++)
 	{
@@ -200,13 +198,12 @@ void main()
 
 	vec3 light = ambient + diffuse /*+ specular*/;
 
-	vec4 bc = material.base_color_factor * texture(base_color, fract(texcoord[0])) * vec4(light, 1.0);
+	vec4 bc = material.base_color_factor * texture(base_color, texcoord[0]) * vec4(light, 1.0);
+	vec4 ec = material.base_emissive_factor * texture(emissive, texcoord[0]);
+// 	vec4 bc = vec4(light, 1.0);
+// 	vec4 ec = vec4(0, 0, 0, 0);
 
-	vec4 ec = material.base_emissive_factor * texture(emissive, fract(texcoord[0]));
-
-	float fog = clamp((length(frag_pos) - fog_min_dist) / (fog_max_dist - fog_min_dist), 0.0, 1.0);
-
-	bc = mix(bc + ec, fog_color, fog);
+	bc = bc + ec;
 
 	if (dithering)
 	{
