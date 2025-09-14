@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-07 23:22+0800\n"
+"POT-Creation-Date: 2025-09-14 10:48+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Jayden Ha <jayden@jaydenha.uk>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -84,7 +84,7 @@ msgid "No precompiled APK is available for this version."
 msgstr "此版本沒有預編譯 APK 可用"
 
 #: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:259
-#: dashboard/qml/Main.qml:341
+#: dashboard/qml/Main.qml:342
 #, kde-format
 msgid "ADB is not installed."
 msgstr "未安裝 ADB"
@@ -131,7 +131,7 @@ msgstr "重新安裝 WiVRn"
 msgid "Install WiVRn"
 msgstr "安裝 WiVRn"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:354
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:355
 #, kde-format
 msgid "Headsets"
 msgstr "頭戴式裝置"
@@ -176,7 +176,7 @@ msgstr "重新命名"
 
 #: dashboard/qml/HeadsetsPage.qml:55 dashboard/qml/WizardPage.qml:38
 #: dashboard/qml/WizardPage.qml:88 dashboard/qml/WizardPage.qml:263
-#: dashboard/qml/WizardPage.qml:326 dashboard/qml/WizardPage.qml:410
+#: dashboard/qml/WizardPage.qml:327 dashboard/qml/WizardPage.qml:411
 #, kde-format
 msgid "Cancel"
 msgstr "取消"
@@ -272,7 +272,8 @@ msgstr ""
 msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
 "Install xrizer or OpenComposite."
-msgstr "未偵測到 OpenVR 相容性，Steam 遊戲將無法載入 VR。\n"
+msgstr ""
+"未偵測到 OpenVR 相容性，Steam 遊戲將無法載入 VR。\n"
 "請安裝 xrizer 或 OpenComposite"
 
 #: dashboard/qml/Main.qml:171
@@ -302,7 +303,7 @@ msgstr "配對中"
 msgid "PIN: %1"
 msgstr "PIN: %1"
 
-#: dashboard/qml/Main.qml:250 dashboard/qml/WizardPage.qml:373
+#: dashboard/qml/Main.qml:250 dashboard/qml/WizardPage.qml:374
 #, kde-format
 msgid "Connect by USB"
 msgstr "透過 USB 連線"
@@ -328,22 +329,22 @@ msgstr "應用程式"
 msgid "Steam information"
 msgstr "Steam 資訊"
 
-#: dashboard/qml/Main.qml:325
+#: dashboard/qml/Main.qml:326
 #, kde-format
 msgid "Wizard"
 msgstr "精靈"
 
-#: dashboard/qml/Main.qml:332
+#: dashboard/qml/Main.qml:333
 #, kde-format
 msgid "Install the app"
 msgstr "安裝應用程式"
 
-#: dashboard/qml/Main.qml:361 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:362 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "設定"
 
-#: dashboard/qml/Main.qml:368 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:369 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "疑難排解"
@@ -448,19 +449,19 @@ msgctxt "encoder preset"
 msgid "Default preset"
 msgstr "預設"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:139
 #, kde-format
 msgctxt "encoder preset"
 msgid "Low latency preset"
 msgstr "低延遲預設"
 
-#: dashboard/qml/SettingsPage.qml:170
+#: dashboard/qml/SettingsPage.qml:158
 #, kde-format
 msgctxt "encoder preset"
 msgid "Safe preset"
 msgstr "安全預設"
 
-#: dashboard/qml/SettingsPage.qml:193
+#: dashboard/qml/SettingsPage.qml:181
 #, kde-format
 msgid ""
 "To add a new encoder, split an existing encoder by clicking near an edge.\n"
@@ -469,84 +470,84 @@ msgstr ""
 "要新增編碼器，請點擊邊緣附近以分割現有編碼器。\n"
 "拖曳邊緣以調整大小或移除編碼器。"
 
-#: dashboard/qml/SettingsPage.qml:220
+#: dashboard/qml/SettingsPage.qml:208
 #, kde-format
 msgid "Encoder:"
 msgstr "編碼器:"
 
-#: dashboard/qml/SettingsPage.qml:229
+#: dashboard/qml/SettingsPage.qml:217
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "自動"
 
-#: dashboard/qml/SettingsPage.qml:234
+#: dashboard/qml/SettingsPage.qml:222
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (NVIDIA GPUs)"
 
-#: dashboard/qml/SettingsPage.qml:239
+#: dashboard/qml/SettingsPage.qml:227
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (AMD 和 Intel GPUs)"
 
-#: dashboard/qml/SettingsPage.qml:244
+#: dashboard/qml/SettingsPage.qml:232
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (軟體編碼)"
 
-#: dashboard/qml/SettingsPage.qml:249
+#: dashboard/qml/SettingsPage.qml:237
 #, kde-format
 msgid "Vulkan (Vulkan Video)"
 msgstr "Vulkan (Vulkan Video)"
 
-#: dashboard/qml/SettingsPage.qml:272
+#: dashboard/qml/SettingsPage.qml:260
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "\"自動\" 將在可用時使用硬體加速"
 
-#: dashboard/qml/SettingsPage.qml:278
+#: dashboard/qml/SettingsPage.qml:266
 #, kde-format
 msgid "Codec:"
 msgstr "編碼器:"
 
-#: dashboard/qml/SettingsPage.qml:285
+#: dashboard/qml/SettingsPage.qml:273
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "自動"
 
-#: dashboard/qml/SettingsPage.qml:289
+#: dashboard/qml/SettingsPage.qml:277
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:293
+#: dashboard/qml/SettingsPage.qml:281
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:297
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:319
+#: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgid "Advanced options"
 msgstr "進階選項"
 
-#: dashboard/qml/SettingsPage.qml:325
+#: dashboard/qml/SettingsPage.qml:313
 #, kde-format
 msgid "Enable debug window"
 msgstr "啟用偵錯視窗"
 
-#: dashboard/qml/SettingsPage.qml:332
+#: dashboard/qml/SettingsPage.qml:320
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "啟用 SteamVR 追蹤裝置支援"
 
-#: dashboard/qml/SettingsPage.qml:335
+#: dashboard/qml/SettingsPage.qml:323
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -559,44 +560,44 @@ msgstr ""
 "裝置必須在連線到 WiVRn 之前開啟電源。\n"
 "校準需要額外工具，例如 motoc。"
 
-#: dashboard/qml/SettingsPage.qml:343
+#: dashboard/qml/SettingsPage.qml:331
 #, kde-format
 msgid "Custom adb location"
 msgstr "自訂 adb 位置"
 
-#: dashboard/qml/SettingsPage.qml:354
+#: dashboard/qml/SettingsPage.qml:342
 #, kde-format
 msgid "Adb location:"
 msgstr "adb 位置："
 
-#: dashboard/qml/SettingsPage.qml:363
+#: dashboard/qml/SettingsPage.qml:351
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "瀏覽"
 
-#: dashboard/qml/SettingsPage.qml:373
+#: dashboard/qml/SettingsPage.qml:361
 #, kde-format
 msgid "Default"
 msgstr "預設"
 
-#: dashboard/qml/SettingsPage.qml:387
+#: dashboard/qml/SettingsPage.qml:375
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "自訂"
 
-#: dashboard/qml/SettingsPage.qml:392
+#: dashboard/qml/SettingsPage.qml:380
 #, kde-format
 msgid "Disabled"
 msgstr "已停用"
 
-#: dashboard/qml/SettingsPage.qml:400
+#: dashboard/qml/SettingsPage.qml:388
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR 相容性函式庫："
 
-#: dashboard/qml/SettingsPage.qml:426
+#: dashboard/qml/SettingsPage.qml:414
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "函式庫路徑，不包含 bin/linux64/vrclient.so"
@@ -631,7 +632,7 @@ msgstr "已複製 Steam 啟動命令"
 msgid "I cannot find the WiVRn app on my headset"
 msgstr "我在我的頭顯上找不到 WiVRn 應用程式。"
 
-#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:387
+#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:388
 #, kde-format
 msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
@@ -645,7 +646,7 @@ msgstr ""
 msgid "I cannot see my computer in the WiVRn app"
 msgstr "我在 WiVRn 應用程式中看不到我的電腦。"
 
-#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:392
+#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:393
 #, kde-format
 msgid ""
 "If the server is not visible or the connection fails, check that port 5353 "
@@ -698,7 +699,7 @@ msgstr "目前已停用配對"
 msgid "I have no sound on my headset"
 msgstr "我的頭戴式裝置沒有聲音"
 
-#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:440
+#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:441
 #, kde-format
 msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
@@ -721,9 +722,9 @@ msgid "Getting started"
 msgstr "入門指南"
 
 #: dashboard/qml/WizardPage.qml:29 dashboard/qml/WizardPage.qml:78
-#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:316
-#: dashboard/qml/WizardPage.qml:400 dashboard/qml/WizardPage.qml:447
-#: dashboard/qml/WizardPage.qml:484
+#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:317
+#: dashboard/qml/WizardPage.qml:401 dashboard/qml/WizardPage.qml:448
+#: dashboard/qml/WizardPage.qml:485
 #, kde-format
 msgid "Back"
 msgstr "返回"
@@ -741,8 +742,8 @@ msgid ""
 msgstr "此精靈將幫助您在頭戴式裝置上設定 WiVRn，並將其連接到您的電腦。"
 
 #: dashboard/qml/WizardPage.qml:83 dashboard/qml/WizardPage.qml:258
-#: dashboard/qml/WizardPage.qml:321 dashboard/qml/WizardPage.qml:452
-#: dashboard/qml/WizardPage.qml:489
+#: dashboard/qml/WizardPage.qml:322 dashboard/qml/WizardPage.qml:453
+#: dashboard/qml/WizardPage.qml:490
 #, kde-format
 msgid "Next"
 msgstr "下一步"
@@ -834,24 +835,24 @@ msgid ""
 "your headset."
 msgstr "當您連接頭戴式裝置時，您選擇的應用程式將會自動啟動。"
 
-#: dashboard/qml/WizardPage.qml:300
+#: dashboard/qml/WizardPage.qml:301
 #, kde-format
 msgid "Important information"
 msgstr "重要訊息"
 
-#: dashboard/qml/WizardPage.qml:307
+#: dashboard/qml/WizardPage.qml:308
 #, kde-format
 msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
 "running."
 msgstr "WiVRn完全取代了SteamVR，在WiVRn運行時，請勿啟動SteamVR"
 
-#: dashboard/qml/WizardPage.qml:358
+#: dashboard/qml/WizardPage.qml:359
 #, kde-format
 msgid "Start the WiVRn app on your headset"
 msgstr "在您的頭戴式裝置上啟動 WiVRn 應用程式"
 
-#: dashboard/qml/WizardPage.qml:363
+#: dashboard/qml/WizardPage.qml:364
 #, kde-format
 msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
@@ -860,54 +861,54 @@ msgstr ""
 "要通過 WiFi 連線，請在您的頭戴式裝置上啟動 WiVRn 應用程式，連線至 \"%1\" 並輸"
 "入 PIN 碼 \"%2\"。"
 
-#: dashboard/qml/WizardPage.qml:370
+#: dashboard/qml/WizardPage.qml:371
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
 msgstr "要透過 USB 連線，請點擊 \"透過 USB 連線\"。"
 
-#: dashboard/qml/WizardPage.qml:383
+#: dashboard/qml/WizardPage.qml:384
 #, kde-format
 msgid "Troubleshooting"
 msgstr "疑難排解"
 
-#: dashboard/qml/WizardPage.qml:405
+#: dashboard/qml/WizardPage.qml:406
 #, kde-format
 msgid "Skip"
 msgstr "跳過"
 
-#: dashboard/qml/WizardPage.qml:425
+#: dashboard/qml/WizardPage.qml:426
 #, kde-format
 msgid "Connection established"
 msgstr "連線已建立"
 
-#: dashboard/qml/WizardPage.qml:430
+#: dashboard/qml/WizardPage.qml:431
 #, kde-format
 msgid "Your headset is now connected."
 msgstr "您的頭戴式裝置現在已連線。"
 
-#: dashboard/qml/WizardPage.qml:435 dashboard/qml/WizardPage.qml:477
+#: dashboard/qml/WizardPage.qml:436 dashboard/qml/WizardPage.qml:478
 #, kde-format
 msgid ""
 "To connect another headset, make sure pairing is enabled in the dashboard "
 "before connecting."
 msgstr "如要連接其他頭戴式裝置，請確保在連線之前在儀表板中啟用配對。"
 
-#: dashboard/qml/WizardPage.qml:457 dashboard/qml/WizardPage.qml:494
+#: dashboard/qml/WizardPage.qml:458 dashboard/qml/WizardPage.qml:495
 #, kde-format
 msgid "Finish"
 msgstr "完成"
 
-#: dashboard/qml/WizardPage.qml:472
+#: dashboard/qml/WizardPage.qml:473
 #, kde-format
 msgid "Finished"
 msgstr "已完成"
 
-#: dashboard/wivrn_server.cpp:584
+#: dashboard/wivrn_server.cpp:592
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:585
+#: dashboard/wivrn_server.cpp:593
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
