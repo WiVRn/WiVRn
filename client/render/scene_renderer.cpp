@@ -21,6 +21,7 @@
 #include "application.h"
 #include "render/image_loader.h"
 #include "render/scene_components.h"
+#include "render/vertex_layout.h"
 #include "utils/alignment.h"
 #include "utils/fmt_glm.h"
 #include "utils/ranges.h"
@@ -665,8 +666,6 @@ vk::raii::PipelineLayout scene_renderer::create_pipeline_layout(std::span<vk::De
 
 vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 {
-	auto vertex_description = renderer::vertex::describe();
-
 	spdlog::debug("Creating pipeline");
 
 	auto vertex_shader = load_shader(device, info.shader_name + ".vert");
@@ -698,8 +697,8 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 
 	                        },
 	                },
-	                .VertexBindingDescriptions = {vertex_description.binding},
-	                .VertexAttributeDescriptions = vertex_description.attributes,
+	                .VertexBindingDescriptions = info.vertex_layout.bindings,
+	                .VertexAttributeDescriptions = info.vertex_layout.attributes,
 	                .InputAssemblyState = {{
 	                        .topology = info.topology,
 	                        .primitiveRestartEnable = false,
@@ -1105,6 +1104,7 @@ void scene_renderer::render(
 		pipeline_info info{
 				.renderpass = rp_info,
 				.shader_name = material->shader_name,
+				.vertex_layout = primitive.layout,
 				.cull_mode = primitive.cull_mode,
 				.front_face = primitive.front_face,
 				.topology = primitive.topology,
@@ -1140,7 +1140,9 @@ void scene_renderer::render(
 		if (primitive.indexed)
 			cb.bindIndexBuffer(*node.mesh->buffer, primitive.index_offset, primitive.index_type);
 
-		cb.bindVertexBuffers(0, (vk::Buffer)*node.mesh->buffer, primitive.vertex_offset);
+		std::vector<vk::Buffer> buffers;
+		buffers.resize(primitive.vertex_offset.size(), (vk::Buffer)*node.mesh->buffer);
+		cb.bindVertexBuffers(0, buffers, primitive.vertex_offset);
 
 		vk::DescriptorBufferInfo buffer_info_1{
 				.buffer = resources.uniform_buffer,

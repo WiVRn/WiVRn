@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "render/vertex_layout.h"
 #include <array>
 #include <cstdint>
 #include <glm/mat4x4.hpp>
@@ -52,6 +53,7 @@ struct pipeline_info
 	renderpass_info renderpass;
 
 	std::string shader_name;
+	renderer::vertex_layout vertex_layout;
 
 	vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eNone;
 	vk::FrontFace front_face = vk::FrontFace::eClockwise;
