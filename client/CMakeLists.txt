@@ -7,7 +7,11 @@ set(KTX_FEATURE_LOADTEST_APPS OFF)
 
 set(FASTGLTF_COMPILE_AS_CPP20 ON)
 
-FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt libktx)
+set(SPIRV_REFLECT_EXECUTABLE OFF)
+set(SPIRV_REFLECT_STATIC_LIB ON)
+set(SPIRV_REFLECT_INSTALL OFF)
+
+FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt libktx spirv-reflect)
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)
@@ -104,6 +108,7 @@ target_link_libraries(wivrn
     ktx_read
     simdjson
     spdlog::spdlog
+    spirv-reflect-static
     stb
     uni-algo
     Vulkan::Vulkan

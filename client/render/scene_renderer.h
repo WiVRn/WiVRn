@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "render/vertex_layout.h"
 #include <array>
 #include <cstdint>
 #include <glm/mat4x4.hpp>
@@ -42,6 +43,7 @@ struct renderpass_info
 	bool keep_depth_buffer;
 	vk::SampleCountFlagBits msaa_samples = vk::SampleCountFlagBits::e1;
 	bool fragment_density_map;
+	uint32_t multiview_count;
 
 	bool operator==(const renderpass_info & other) const noexcept = default;
 };
@@ -50,7 +52,9 @@ struct pipeline_info
 {
 	renderpass_info renderpass;
 
-	std::string shader_name;
+	std::string vertex_shader_name;
+	std::string fragment_shader_name;
+	renderer::vertex_layout vertex_layout;
 
 	vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eNone;
 	vk::FrontFace front_face = vk::FrontFace::eClockwise;
@@ -76,7 +80,6 @@ struct output_image_info
 	VkImage color;
 	VkImage depth;
 	VkImage foveation;
-	uint32_t base_array_layer;
 
 	bool operator==(const output_image_info & other) const noexcept = default;
 };
@@ -178,8 +181,7 @@ class scene_renderer
 
 	struct frame_gpu_data
 	{
-		glm::mat4 view;
-		glm::mat4 proj;
+		std::array<glm::mat4, 2> view;
 		glm::vec4 light_position;
 		glm::vec4 ambient_color;
 		glm::vec4 light_color;
@@ -188,11 +190,29 @@ class scene_renderer
 	struct instance_gpu_data
 	{
 		glm::mat4 model;
-		glm::mat4 modelview;
-		glm::mat4 modelviewproj;
+		std::array<glm::mat4, 2> modelview;
+		std::array<glm::mat4, 2> modelviewproj;
 		std::array<glm::vec4, 4> clipping_planes;
 	};
 
+	struct debug_draw_vertex
+	{
+		glm::vec4 position;
+		glm::vec4 colour;
+	};
+
+	std::vector<debug_draw_vertex> debug_draw_vertices;
+
+public:
+	struct stats
+	{
+		size_t count_primitives;
+		size_t count_culled_primitives;
+		size_t count_triangles;
+		size_t count_culled_triangles;
+	};
+
+private:
 	struct per_frame_resources
 	{
 		vk::raii::Fence fence = nullptr;
@@ -204,6 +224,11 @@ class scene_renderer
 		// device local, host visible, host coherent
 		size_t uniform_buffer_offset;
 		buffer_allocation uniform_buffer;
+
+		buffer_allocation debug_draw;
+
+		// Statistics
+		stats frame_stats;
 	};
 
 	std::vector<per_frame_resources> frame_resources;
@@ -249,8 +274,18 @@ public:
 	        vk::Image color_buffer,
 	        vk::Image depth_buffer,
 	        vk::Image foveation_image,
-	        std::span<frame_info> info);
+	        std::span<frame_info> info,
+	        bool render_debug_draws = false);
 	void end_frame();
+
+	void debug_draw_clear();
+	// void debug_draw(std::span<glm::vec3> line, glm::vec4 color);
+	void debug_draw_box(const glm::mat4 & model, glm::vec3 min, glm::vec3 max, glm::vec4 color);
+
+	const stats & last_frame_stats() const
+	{
+		return frame_resources[current_frame_index].frame_stats;
+	}
 
 	double get_gpu_time() const
 	{

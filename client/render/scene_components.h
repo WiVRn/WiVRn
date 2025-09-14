@@ -31,6 +31,7 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "utils/magic_hash.h"
+#include "vertex_layout.h"
 #include "vk/allocation.h"
 
 namespace renderer
@@ -61,7 +62,7 @@ struct material
 		float metallic_factor = 1;
 		float roughness_factor = 1;
 		float occlusion_strength = 0;
-		float normal_scale = 0;
+		float normal_scale = 1;
 		float alpha_cutoff = 0.5;
 
 		uint32_t base_color_texcoord = 0;
@@ -73,13 +74,6 @@ struct material
 		// TODO: add fastgltf::TextureTransform?
 	};
 
-	enum class alpha_mode_t
-	{
-		opaque,
-		mask,
-		blend
-	};
-
 	std::shared_ptr<texture> base_color_texture;
 	std::shared_ptr<texture> metallic_roughness_texture;
 	std::shared_ptr<texture> occlusion_texture;
@@ -89,7 +83,9 @@ struct material
 	// Disable back face culling with this material
 	bool double_sided = true;
 
-	alpha_mode_t alpha_mode;
+	bool blend_enable = false;
+	bool depth_test_enable = true;
+	bool depth_write_enable = true;
 
 	gpu_data staging;
 
@@ -98,7 +94,7 @@ struct material
 	size_t offset;
 
 	std::string name;
-	std::string shader_name = "lit";
+	std::string fragment_shader_name = "lit.frag";
 };
 
 struct primitive
@@ -108,7 +104,13 @@ struct primitive
 	uint32_t vertex_count;
 	vk::IndexType index_type;
 	vk::DeviceSize index_offset;
-	vk::DeviceSize vertex_offset;
+	std::vector<vk::DeviceSize> vertex_offset; // TODO: inplace_vector
+	vertex_layout layout;
+
+	glm::vec3 obb_min;
+	glm::vec3 obb_max;
+
+	std::string vertex_shader;
 
 	// See also material::double_sided
 	vk::CullModeFlagBits cull_mode = vk::CullModeFlagBits::eNone;
@@ -123,29 +125,6 @@ struct mesh
 {
 	std::vector<primitive> primitives;
 	std::shared_ptr<buffer_allocation> buffer;
-};
-
-// TODO move vertex class in .cpp, put vertex description in the primitive
-struct vertex
-{
-	glm::vec3 position;
-	glm::vec3 normal;
-	glm::vec4 tangent;
-	std::array<glm::vec2, 2> texcoord;
-	glm::vec4 color;
-	std::array<glm::vec4, 1> joints;
-	std::array<glm::vec4, 1> weights;
-
-	struct description
-	{
-		vk::VertexInputBindingDescription binding;
-		std::vector<vk::VertexInputAttributeDescription> attributes;
-		std::vector<std::string> attribute_names;
-
-		vk::PipelineVertexInputStateCreateFlags flags{};
-	};
-
-	static description describe();
 };
 } // namespace renderer
 

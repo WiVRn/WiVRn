@@ -26,13 +26,20 @@
 
 namespace utils
 {
-
 template <typename T>
 struct is_vk_flags : std::false_type
 {};
 
 template <typename T>
 struct is_vk_flags<vk::Flags<T>> : std::true_type
+{};
+
+template <typename T>
+struct is_std_vector : std::false_type
+{};
+
+template <typename T, typename Allocator>
+struct is_std_vector<std::vector<T, Allocator>> : std::true_type
 {};
 
 template <typename T>
@@ -50,6 +57,12 @@ struct magic_hash
 				using V = U::MaskType;
 				std::hash<V> hasher;
 				h = std::rotl(h, 5) ^ hasher(static_cast<V>(member));
+			}
+			else if constexpr (is_std_vector<U>::value)
+			{
+				std::hash<typename U::value_type> hasher;
+				for (const auto & i: member)
+					h = std::rotl(h, 5) ^ hasher(i);
 			}
 			else
 			{

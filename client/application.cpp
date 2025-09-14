@@ -759,6 +759,7 @@ void application::initialize_vulkan()
 
 	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
@@ -884,6 +885,9 @@ void application::initialize_vulkan()
 	        },
 	        vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR{
 	                .timelineSemaphore = true,
+	        },
+	        vk::PhysicalDeviceMultiviewFeaturesKHR{
+	                .multiview = true,
 	        },
 	};
 
