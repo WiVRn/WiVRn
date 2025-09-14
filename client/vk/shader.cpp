@@ -18,19 +18,69 @@
  */
 
 #include "shader.h"
+#include "utils/cache.h"
 #include "wivrn_shaders.h"
+#include <magic_enum.hpp>
+#include <spdlog/spdlog.h>
+#include <spirv_reflect.h>
+#include <vulkan/vulkan_to_string.hpp>
 
-vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::vector<uint32_t> & spirv)
+template <typename T, typename F>
+std::vector<T *> enumerate(F && f, SpvReflectShaderModule & reflected_shader_module)
+{
+	uint32_t count;
+	[[maybe_unused]] SpvReflectResult result = f(&reflected_shader_module, &count, nullptr);
+	assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+	std::vector<T *> data(count);
+	result = f(&reflected_shader_module, &count, data.data());
+	assert(result == SPV_REFLECT_RESULT_SUCCESS);
+
+	return data;
+}
+
+std::shared_ptr<shader> load_shader(vk::raii::Device & device, std::span<const uint32_t> spirv)
 {
 	vk::ShaderModuleCreateInfo create_info{
-	        .codeSize = spirv.size() * sizeof(uint32_t),
+	        .codeSize = spirv.size_bytes(),
 	        .pCode = spirv.data(),
 	};
 
-	return vk::raii::ShaderModule{device, create_info};
+	std::vector<shader::input> inputs;
+	std::vector<shader::specialization_constant> specialization_constants;
+
+	SpvReflectShaderModule reflect;
+	if (auto result = spvReflectCreateShaderModule2(SPV_REFLECT_MODULE_FLAG_NONE, spirv.size_bytes(), spirv.data(), &reflect); result == SPV_REFLECT_RESULT_SUCCESS)
+	{
+		for (SpvReflectInterfaceVariable * variable: enumerate<SpvReflectInterfaceVariable>(spvReflectEnumerateInputVariables, reflect))
+		{
+			int array_size = 1;
+			for (int i = 0; i < variable->array.dims_count; i++)
+				array_size *= variable->array.dims[i];
+
+			if (variable->built_in == -1)
+				inputs.emplace_back(
+				        variable->location,
+				        variable->name,
+				        (vk::Format)variable->format,
+				        array_size);
+		}
+
+		for (SpvReflectSpecializationConstant * variable: enumerate<SpvReflectSpecializationConstant>(spvReflectEnumerateSpecializationConstants, reflect))
+			specialization_constants.emplace_back(variable->constant_id, variable->name);
+
+		spvReflectDestroyShaderModule(&reflect);
+	}
+	else
+		spdlog::error("Cannot reflect shader: {}", magic_enum::enum_name(result));
+
+	return std::make_shared<shader>(vk::raii::ShaderModule{device, create_info}, inputs, specialization_constants);
 }
 
-vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::string & name)
+std::shared_ptr<shader> load_shader(vk::raii::Device & device, const std::string & name)
 {
-	return load_shader(device, shaders.at(name));
+	using loader_type = std::shared_ptr<shader>(vk::raii::Device &, std::span<const uint32_t>);
+	static utils::cache<std::string, shader, loader_type *> shader_cache{(loader_type *)load_shader};
+
+	return shader_cache.load(name, device, shaders.at(name));
 }

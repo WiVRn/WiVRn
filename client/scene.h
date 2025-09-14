@@ -193,7 +193,8 @@ protected:
 	        bool keep_depth_buffer,
 	        uint32_t layer_mask,
 	        XrColor4f clear_color,
-	        const std::optional<xr::foveation_profile> & foveation = std::nullopt);
+	        const std::optional<xr::foveation_profile> & foveation = std::nullopt,
+	        bool render_debug_draws = false);
 
 	void set_color_scale_bias(XrColor4f scale, XrColor4f bias);
 	void set_depth_test(bool write, XrCompareOpFB op);

@@ -253,6 +253,8 @@ FetchContent_Declare(entt          EXCLUDE_FROM_ALL SYSTEM URL https://github.co
                                    URL_HASH SHA256=01466fcbf77618a79b62891510c0bbf25ac2804af5751c84982b413852234d66)
 FetchContent_Declare(curl          EXCLUDE_FROM_ALL SYSTEM URL https://github.com/curl/curl/releases/download/curl-8_15_0/curl-8.15.0.tar.xz
                                    URL_HASH SHA256=6cd0a8a5b126ddfda61c94dc2c3fc53481ba7a35461cf7c5ab66aa9d6775b609)
+FetchContent_Declare(spirv-reflect EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/SPIRV-Reflect/archive/refs/tags/vulkan-sdk-1.4.321.0.tar.gz
+                                   URL_HASH SHA256=254ed36128e7abe8fb12ef804319d0790e059093c116e9fe55d4003880515f85)
 
 file(GLOB MONADO_PATCHES CONFIGURE_DEPENDS patches/monado/*)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS monado-rev)

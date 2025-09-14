@@ -155,7 +155,8 @@ void scene::render_world(
         bool keep_depth_buffer,
         uint32_t layer_mask,
         XrColor4f clear_color,
-        const std::optional<xr::foveation_profile> & foveation)
+        const std::optional<xr::foveation_profile> & foveation,
+        bool render_debug_draws)
 {
 	std::vector<scene_renderer::frame_info> frames;
 	frames.reserve(views.size());
@@ -245,7 +246,8 @@ void scene::render_world(
 	        color_image,
 	        depth_image,
 	        foveation_image,
-	        frames);
+	        frames,
+	        render_debug_draws);
 
 	add_projection_layer(
 	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
