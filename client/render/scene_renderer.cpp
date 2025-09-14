@@ -918,8 +918,11 @@ void scene_renderer::render(
 
 		for (renderer::primitive & primitive: node.mesh->primitives)
 		{
+			// Compute the primitive center
+			glm::vec3 center = 0.5f * (primitive.obb_min + primitive.obb_max);
+
 			// Position relative to the camera
-			float position = glm::dot(avg_view, node.transform_to_root * glm::vec4(0, 0, 0, 1));
+			float position = glm::dot(avg_view, node.transform_to_root * glm::vec4(center, 1));
 
 			renderer::material & material = primitive.material_ ? *primitive.material_ : *default_material;
 			primitives.emplace_back(material.alpha_mode == renderer::material::alpha_mode_t::blend or material.alpha_mode == renderer::material::alpha_mode_t::mask, position, &node, &primitive);

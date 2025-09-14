@@ -32,6 +32,7 @@
 #include <fastgltf/types.hpp>
 #include <fastgltf/util.hpp>
 #include <glm/ext.hpp>
+#include <limits>
 #include <ranges>
 #include <spdlog/spdlog.h>
 
@@ -691,6 +692,20 @@ public:
 				copy_vertex_attributes(gltf, gltf_primitive, "COLOR", vertices, &renderer::vertex::color);
 				copy_vertex_attributes(gltf, gltf_primitive, "JOINTS_", vertices, &renderer::vertex::joints);
 				copy_vertex_attributes(gltf, gltf_primitive, "WEIGHTS_", vertices, &renderer::vertex::weights);
+
+				// Compute the OBB
+				glm::vec3 obb_min{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+				glm::vec3 obb_max = -obb_min;
+				fastgltf::iterateAccessor<glm::vec3>(gltf, gltf.accessors.at(gltf_primitive.findAttribute("POSITION")->accessorIndex), [&](glm::vec3 position) {
+					obb_min.x = std::min(obb_min.x, position.x);
+					obb_min.y = std::min(obb_min.y, position.y);
+					obb_min.z = std::min(obb_min.z, position.z);
+					obb_max.x = std::max(obb_max.x, position.x);
+					obb_max.y = std::max(obb_max.y, position.y);
+					obb_max.z = std::max(obb_max.z, position.z);
+				});
+				primitive_ref.obb_min = obb_min;
+				primitive_ref.obb_max = obb_max;
 
 				primitive_ref.vertex_offset = staging_buffer.add_vertices(vertices);
 				primitive_ref.vertex_count = vertices.size();
