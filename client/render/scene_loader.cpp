@@ -22,6 +22,7 @@
 #include "gpu_buffer.h"
 #include "image_loader.h"
 #include "render/scene_components.h"
+#include "render/vertex_layout.h"
 #include "utils/ranges.h"
 #include <entt/entt.hpp>
 #include <fastgltf/base64.hpp>
@@ -38,62 +39,20 @@
 
 namespace
 {
-// BEGIN Utility functions
-template <class T>
-constexpr vk::Format vk_attribute_format = vk::Format::eUndefined;
-template <>
-constexpr vk::Format vk_attribute_format<float> = vk::Format::eR32Sfloat;
-template <>
-constexpr vk::Format vk_attribute_format<glm::vec2> = vk::Format::eR32G32Sfloat;
-template <>
-constexpr vk::Format vk_attribute_format<glm::vec3> = vk::Format::eR32G32B32Sfloat;
-template <>
-constexpr vk::Format vk_attribute_format<glm::vec4> = vk::Format::eR32G32B32A32Sfloat;
-template <typename T, size_t N>
-constexpr vk::Format vk_attribute_format<std::array<T, N>> = vk_attribute_format<T>;
-
-template <class T>
-constexpr size_t nb_attributes = 1;
-template <typename T, size_t N>
-constexpr size_t nb_attributes<std::array<T, N>> = N;
-
-template <class T>
-struct remove_array
-{
-	using type = T;
-};
-template <class T, size_t N>
-struct remove_array<std::array<T, N>>
-{
-	using type = T;
-};
-template <class T>
-using remove_array_t = remove_array<T>::type;
-
-template <class T>
-struct is_array : std::false_type
-{
-};
-
-template <class T, size_t N>
-struct is_array<std::array<T, N>> : std::true_type
-{
-};
-
-template <class T>
-constexpr bool is_array_v = is_array<T>::value;
-// END
-
 // BEGIN GLTF -> Vulkan conversion functions
 std::pair<vk::Filter, vk::SamplerMipmapMode> convert(fastgltf::Filter filter)
 {
 	switch (filter)
 	{
 		case fastgltf::Filter::Nearest:
+			return {vk::Filter::eNearest, {}};
+
+		case fastgltf::Filter::Linear:
+			return {vk::Filter::eLinear, {}};
+
 		case fastgltf::Filter::NearestMipMapNearest:
 			return {vk::Filter::eNearest, vk::SamplerMipmapMode::eNearest};
 
-		case fastgltf::Filter::Linear:
 		case fastgltf::Filter::LinearMipMapNearest:
 			return {vk::Filter::eLinear, vk::SamplerMipmapMode::eNearest};
 
@@ -210,57 +169,87 @@ components::animation_track_base::interpolation_t convert(fastgltf::AnimationInt
 
 // BEGIN Vertex attributes loading
 template <typename T>
-        requires is_array_v<T>
 void copy_vertex_attributes(
         const fastgltf::Asset & asset,
-        const fastgltf::Primitive & primitive,
-        std::string attribute_name,
-        std::vector<renderer::vertex> & vertices,
-        T renderer::vertex::*attribute)
+        const fastgltf::Accessor & accessor,
+        std::vector<std::byte> & buffer,
+        const vk::VertexInputBindingDescription & binding,
+        const vk::VertexInputAttributeDescription & attribute)
 {
-	using U = T::value_type;
-	constexpr size_t N = std::tuple_size_v<T>;
+	assert(buffer.size() >= accessor.count * binding.stride);
 
-	for (size_t i = 0; i < N; i++)
-	{
-		auto it = primitive.findAttribute(attribute_name + std::to_string(i));
-
-		if (it == primitive.attributes.end())
-			continue;
-
-		const fastgltf::Accessor & accessor = asset.accessors.at(it->accessorIndex);
-
-		if (vertices.size() < accessor.count)
-			vertices.resize(accessor.count, {});
-
-		fastgltf::iterateAccessorWithIndex<U>(asset, accessor, [&](U value, std::size_t idx) {
-			(vertices[idx].*attribute)[i] = value;
-		});
-	}
+	fastgltf::iterateAccessorWithIndex<T>(asset, accessor, [&](const T & value, size_t index) {
+		*reinterpret_cast<T *>(buffer.data() + attribute.offset + index * binding.stride) = value;
+	});
 }
 
-template <typename T>
-        requires(!is_array_v<T>)
-void copy_vertex_attributes(
+std::pair<size_t, std::vector<std::vector<std::byte>>> create_vertex_buffers(
+        const renderer::vertex_layout & layout,
         const fastgltf::Asset & asset,
-        const fastgltf::Primitive & primitive,
-        std::string attribute_name,
-        std::vector<renderer::vertex> & vertices,
-        T renderer::vertex::*attribute)
+        const fastgltf::Primitive & primitive)
 {
-	auto it = primitive.findAttribute(attribute_name);
+	std::pair<size_t, std::vector<std::vector<std::byte>>> size_buffers;
+	auto & [vertex_count, buffers] = size_buffers;
 
-	if (it == primitive.attributes.end())
-		return;
+	// Count the vertices
+	vertex_count = 0;
+	for (const auto & name: layout.attribute_names)
+	{
+		if (auto attribute = primitive.findAttribute(name); attribute != primitive.attributes.cend())
+			vertex_count = std::max(vertex_count, asset.accessors.at(attribute->accessorIndex).count);
+	}
 
-	const fastgltf::Accessor & accessor = asset.accessors.at(it->accessorIndex);
+	// Allocate buffers
+	buffers.resize(layout.bindings.size());
+	for (auto && [buffer, binding]: std::views::zip(buffers, layout.bindings))
+	{
+		switch (binding.inputRate)
+		{
+			case vk::VertexInputRate::eVertex:
+				buffer.resize(binding.stride * vertex_count);
+				break;
+			case vk::VertexInputRate::eInstance:
+				buffer.resize(binding.stride);
+				break;
+		}
+	}
 
-	if (vertices.size() < accessor.count)
-		vertices.resize(accessor.count, {});
+	// Copy attributes
+	for (auto && [name, attribute]: std::views::zip(layout.attribute_names, layout.attributes))
+	{
+		const fastgltf::Attribute * gltf_attribute = primitive.findAttribute(name);
+		if (gltf_attribute == primitive.attributes.cend())
+			continue;
 
-	fastgltf::iterateAccessorWithIndex<T>(asset, accessor, [&](T value, std::size_t idx) {
-		vertices[idx].*attribute = value;
-	});
+		const fastgltf::Accessor & accessor = asset.accessors.at(gltf_attribute->accessorIndex);
+
+		const vk::VertexInputBindingDescription & binding = layout.bindings.at(attribute.binding);
+		std::vector<std::byte> & buffer = buffers.at(binding.binding);
+
+		switch (attribute.format)
+		{
+			case vk::Format::eR32Sfloat:
+				copy_vertex_attributes<float>(asset, accessor, buffer, binding, attribute);
+				break;
+
+			case vk::Format::eR32G32Sfloat:
+				copy_vertex_attributes<glm::vec2>(asset, accessor, buffer, binding, attribute);
+				break;
+
+			case vk::Format::eR32G32B32Sfloat:
+				copy_vertex_attributes<glm::vec3>(asset, accessor, buffer, binding, attribute);
+				break;
+
+			case vk::Format::eR32G32B32A32Sfloat:
+				copy_vertex_attributes<glm::vec4>(asset, accessor, buffer, binding, attribute);
+				break;
+
+			default:
+				abort();
+		}
+	}
+
+	return size_buffers;
 }
 // END
 
@@ -679,19 +668,35 @@ public:
 					}
 				}
 				else
-				{
 					primitive_ref.indexed = false;
-				}
 
-				std::vector<renderer::vertex> vertices;
+				renderer::vertex_layout & layout = primitive_ref.layout;
+				// For attributes types, see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes-overview
+				layout.add_vertex_attribute<glm::vec3>("POSITION", 0, 0);
 
-				copy_vertex_attributes(gltf, gltf_primitive, "POSITION", vertices, &renderer::vertex::position);
-				copy_vertex_attributes(gltf, gltf_primitive, "NORMAL", vertices, &renderer::vertex::normal);
-				copy_vertex_attributes(gltf, gltf_primitive, "TANGENT", vertices, &renderer::vertex::tangent);
-				copy_vertex_attributes(gltf, gltf_primitive, "TEXCOORD_", vertices, &renderer::vertex::texcoord);
-				copy_vertex_attributes(gltf, gltf_primitive, "COLOR", vertices, &renderer::vertex::color);
-				copy_vertex_attributes(gltf, gltf_primitive, "JOINTS_", vertices, &renderer::vertex::joints);
-				copy_vertex_attributes(gltf, gltf_primitive, "WEIGHTS_", vertices, &renderer::vertex::weights);
+				// FIXME: have a default value if the attribute is not defined
+				// if (gltf_primitive.findAttribute("JOINTS_0") != gltf_primitive.attributes.cend())
+				// {
+					layout.add_vertex_attribute<glm::vec4>("JOINTS_0", 0, 6); // FIXME can be float / ushort / ubyte
+					layout.add_vertex_attribute<glm::vec4>("WEIGHTS_0", 0, 7); // FIXME can be float / ushort / ubyte
+				// }
+				// else
+				// {
+					// layout.add_vertex_attribute<glm::vec4>("JOINTS_0", 0, 6);
+					// layout.add_vertex_attribute<glm::vec4>("WEIGHTS_0", 0, 7);
+				// }
+
+				layout.add_vertex_attribute<glm::vec3>("NORMAL", 1, 1);
+				layout.add_vertex_attribute<glm::vec4>("TANGENT", 1, 2);
+				layout.add_vertex_attribute<glm::vec2>("TEXCOORD", 1, 3, 2); // FIXME can be float / ushort / ubyte
+				layout.add_vertex_attribute<glm::vec3>("COLOR", 1, 5); // FIXME can be vec3 or vec4, float/ushort/ubyte
+				// layout.add_vertex_attribute<glm::vec4>("COLOR", 1, 5); // FIXME can be vec3 or vec4
+
+				auto [vertex_count, buffers] = create_vertex_buffers(layout, gltf, gltf_primitive);
+				primitive_ref.vertex_count = vertex_count;
+
+				for (auto & buffer: buffers)
+					primitive_ref.vertex_offset.push_back(staging_buffer.add_vertices(buffer));
 
 				// Compute the OBB
 				glm::vec3 obb_min{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
@@ -706,9 +711,6 @@ public:
 				});
 				primitive_ref.obb_min = obb_min;
 				primitive_ref.obb_max = obb_max;
-
-				primitive_ref.vertex_offset = staging_buffer.add_vertices(vertices);
-				primitive_ref.vertex_count = vertices.size();
 
 				primitive_ref.cull_mode = vk::CullModeFlagBits::eBack;       // TBC
 				primitive_ref.front_face = vk::FrontFace::eCounterClockwise; // TBC
@@ -886,52 +888,6 @@ public:
 };
 
 } // namespace
-
-renderer::vertex::description
-renderer::vertex::describe()
-{
-	renderer::vertex::description desc;
-
-	desc.binding = vk::VertexInputBindingDescription{
-	        .binding = 0,
-	        .stride = sizeof(vertex),
-	        .inputRate = vk::VertexInputRate::eVertex,
-	};
-
-	vk::VertexInputAttributeDescription attribute{
-	        .location = 0,
-	        .binding = 0,
-	};
-
-#define VERTEX_ATTR(member)                                                                                         \
-	attribute.format = vk_attribute_format<decltype(vertex::member)>;                                           \
-	for (size_t i = 0; i < nb_attributes<decltype(vertex::member)>; i++)                                        \
-	{                                                                                                           \
-		attribute.offset = offsetof(vertex, member) + i * sizeof(remove_array_t<decltype(vertex::member)>); \
-		desc.attributes.push_back(attribute);                                                               \
-		attribute.location++;                                                                               \
-		if (is_array_v<decltype(vertex::member)>)                                                           \
-		{                                                                                                   \
-			desc.attribute_names.push_back(#member "_" + std::to_string(i));                            \
-		}                                                                                                   \
-		else                                                                                                \
-		{                                                                                                   \
-			desc.attribute_names.push_back(#member);                                                    \
-		}                                                                                                   \
-	}
-
-	VERTEX_ATTR(position);
-	VERTEX_ATTR(normal);
-	VERTEX_ATTR(tangent);
-	VERTEX_ATTR(texcoord);
-	VERTEX_ATTR(color);
-	VERTEX_ATTR(joints);
-	VERTEX_ATTR(weights);
-
-	static_assert(vertex{}.joints.size() == vertex{}.weights.size());
-
-	return desc;
-}
 
 std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::byte> data, const std::string & name, const std::filesystem::path & parent_path)
 {

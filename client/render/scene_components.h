@@ -32,6 +32,7 @@
 
 #include "utils/magic_hash.h"
 #include "vk/allocation.h"
+#include "vertex_layout.h"
 
 namespace renderer
 {
@@ -108,7 +109,8 @@ struct primitive
 	uint32_t vertex_count;
 	vk::IndexType index_type;
 	vk::DeviceSize index_offset;
-	vk::DeviceSize vertex_offset;
+	std::vector<vk::DeviceSize> vertex_offset; // TODO: inplace_vector
+	vertex_layout layout;
 
 	glm::vec3 obb_min;
 	glm::vec3 obb_max;
@@ -126,29 +128,6 @@ struct mesh
 {
 	std::vector<primitive> primitives;
 	std::shared_ptr<buffer_allocation> buffer;
-};
-
-// TODO move vertex class in .cpp, put vertex description in the primitive
-struct vertex
-{
-	glm::vec3 position;
-	glm::vec3 normal;
-	glm::vec4 tangent;
-	std::array<glm::vec2, 2> texcoord;
-	glm::vec4 color;
-	std::array<glm::vec4, 1> joints;
-	std::array<glm::vec4, 1> weights;
-
-	struct description
-	{
-		vk::VertexInputBindingDescription binding;
-		std::vector<vk::VertexInputAttributeDescription> attributes;
-		std::vector<std::string> attribute_names;
-
-		vk::PipelineVertexInputStateCreateFlags flags{};
-	};
-
-	static description describe();
 };
 } // namespace renderer
 
