@@ -194,6 +194,24 @@ class scene_renderer
 		std::array<glm::vec4, 4> clipping_planes;
 	};
 
+	struct debug_draw_vertex
+	{
+		glm::vec4 position;
+		glm::vec4 colour;
+	};
+
+	std::vector<debug_draw_vertex> debug_draw_vertices;
+
+public:
+	struct stats
+	{
+		size_t count_primitives;
+		size_t count_culled_primitives;
+		size_t count_triangles;
+		size_t count_culled_triangles;
+	};
+
+private:
 	struct per_frame_resources
 	{
 		vk::raii::Fence fence = nullptr;
@@ -205,6 +223,11 @@ class scene_renderer
 		// device local, host visible, host coherent
 		size_t uniform_buffer_offset;
 		buffer_allocation uniform_buffer;
+
+		buffer_allocation debug_draw;
+
+		// Statistics
+		stats frame_stats;
 	};
 
 	std::vector<per_frame_resources> frame_resources;
@@ -250,8 +273,18 @@ public:
 	        vk::Image color_buffer,
 	        vk::Image depth_buffer,
 	        vk::Image foveation_image,
-	        std::span<frame_info> info);
+	        std::span<frame_info> info,
+	        bool render_debug_draws = false);
 	void end_frame();
+
+	void debug_draw_clear();
+	// void debug_draw(std::span<glm::vec3> line, glm::vec4 color);
+	void debug_draw_box(const glm::mat4 & model, glm::vec3 min, glm::vec3 max, glm::vec4 color);
+
+	const stats & last_frame_stats() const
+	{
+		return frame_resources[current_frame_index].frame_stats;
+	}
 
 	double get_gpu_time() const
 	{
