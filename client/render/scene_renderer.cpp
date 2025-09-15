@@ -32,6 +32,7 @@
 #include <boost/pfr/core.hpp>
 #include <entt/entity/entity.hpp>
 #include <entt/entt.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -812,6 +813,8 @@ void scene_renderer::start_frame()
 		        },
 		        "scene_renderer::render (UBO)"};
 	}
+
+	f.frame_stats = stats{};
 }
 
 void scene_renderer::end_frame()
@@ -902,7 +905,8 @@ void scene_renderer::render(
         vk::Image color_buffer,
         vk::Image depth_buffer,
         vk::Image foveation_image,
-        std::span<frame_info> frames)
+        std::span<frame_info> frames,
+        bool render_debug_draws)
 {
 	assert(frames.size() <= instance_gpu_data{}.modelview.size());
 
@@ -981,6 +985,28 @@ void scene_renderer::render(
 
 		for (renderer::primitive & primitive: node.mesh->primitives)
 		{
+			size_t nb_triangles;
+			size_t nb_vertices = primitive.indexed ? primitive.index_count : primitive.vertex_count;
+			switch (primitive.topology)
+			{
+				case vk::PrimitiveTopology::eTriangleList:
+					nb_triangles = nb_vertices / 3;
+					break;
+				case vk::PrimitiveTopology::eTriangleFan:
+					nb_triangles = nb_vertices - 2;
+					break;
+
+				case vk::PrimitiveTopology::eTriangleStrip:
+					nb_triangles = nb_vertices - 2;
+					break;
+
+				default:
+					nb_triangles = 0;
+					break;
+			}
+			resources.frame_stats.count_primitives++;
+			resources.frame_stats.count_triangles += nb_triangles;
+
 			// Compute the primitive center
 			glm::vec3 center = 0.5f * (primitive.obb_min + primitive.obb_max);
 
@@ -999,6 +1025,11 @@ void scene_renderer::render(
 
 				if (visible)
 					primitives.emplace_back(alpha_blend, position, &node, &primitive);
+				else
+				{
+					resources.frame_stats.count_culled_primitives++;
+					resources.frame_stats.count_culled_triangles += nb_triangles;
+				}
 			}
 			else
 				primitives.emplace_back(alpha_blend, position, &node, &primitive);
@@ -1048,18 +1079,17 @@ void scene_renderer::render(
 		frame_ubo.view[frame_index] = frame.view;
 	}
 
-	cb.beginRenderPass(
-			vk::RenderPassBeginInfo{
-					.renderPass = *renderpass,
-					.framebuffer = *output.framebuffer,
-					.renderArea = {
-							.offset = {0, 0},
-							.extent = output_size,
-					},
-					.clearValueCount = clear_values.size(),
-					.pClearValues = clear_values.data(),
-			},
-			vk::SubpassContents::eInline);
+	cb.beginRenderPass(vk::RenderPassBeginInfo{
+	                           .renderPass = *renderpass,
+	                           .framebuffer = *output.framebuffer,
+	                           .renderArea = {
+	                                   .offset = {0, 0},
+	                                   .extent = output_size,
+	                           },
+	                           .clearValueCount = clear_values.size(),
+	                           .pClearValues = clear_values.data(),
+	                   },
+	                   vk::SubpassContents::eInline);
 
 	// TODO try to add a depth pre-pass
 	for (auto & [blend_enable, distance, node_ptr, primitive_ptr]: primitives)
@@ -1102,17 +1132,17 @@ void scene_renderer::render(
 
 		// Get the pipeline
 		pipeline_info info{
-				.renderpass = rp_info,
-				.shader_name = material->shader_name,
-				.vertex_layout = primitive.layout,
-				.cull_mode = primitive.cull_mode,
-				.front_face = primitive.front_face,
-				.topology = primitive.topology,
-				.blend_enable = material->alpha_mode == renderer::material::alpha_mode_t::blend or material->alpha_mode == renderer::material::alpha_mode_t::mask,
+		        .renderpass = rp_info,
+		        .shader_name = material->shader_name,
+		        .vertex_layout = primitive.layout,
+		        .cull_mode = primitive.cull_mode,
+		        .front_face = primitive.front_face,
+		        .topology = primitive.topology,
+		        .blend_enable = material->alpha_mode == renderer::material::alpha_mode_t::blend or material->alpha_mode == renderer::material::alpha_mode_t::mask,
 
-				.nb_texcoords = 2, // TODO
-				.alpha_cutout = material->alpha_mode == renderer::material::alpha_mode_t::mask,
-				.skinning = !node.joints.empty(),
+		        .nb_texcoords = 2, // TODO
+		        .alpha_cutout = material->alpha_mode == renderer::material::alpha_mode_t::mask,
+		        .skinning = !node.joints.empty(),
 		};
 
 		if (material->double_sided)
@@ -1124,18 +1154,18 @@ void scene_renderer::render(
 		cb.bindPipeline(vk::PipelineBindPoint::eGraphics, *get_pipeline(info));
 
 		cb.setViewport(0, vk::Viewport{
-									.x = 0,
-									.y = 0,
-									.width = (float)output_size.width,
-									.height = (float)output_size.height,
-									.minDepth = 0,
-									.maxDepth = 1,
-							});
+		                          .x = 0,
+		                          .y = 0,
+		                          .width = (float)output_size.width,
+		                          .height = (float)output_size.height,
+		                          .minDepth = 0,
+		                          .maxDepth = 1,
+		                  });
 
 		cb.setScissor(0, vk::Rect2D{
-									.offset = {0, 0},
-									.extent = output_size,
-							});
+		                         .offset = {0, 0},
+		                         .extent = output_size,
+		                 });
 
 		if (primitive.indexed)
 			cb.bindIndexBuffer(*node.mesh->buffer, primitive.index_offset, primitive.index_type);
@@ -1145,96 +1175,96 @@ void scene_renderer::render(
 		cb.bindVertexBuffers(0, buffers, primitive.vertex_offset);
 
 		vk::DescriptorBufferInfo buffer_info_1{
-				.buffer = resources.uniform_buffer,
-				.offset = frame_ubo_offset,
-				.range = sizeof(frame_gpu_data),
+		        .buffer = resources.uniform_buffer,
+		        .offset = frame_ubo_offset,
+		        .range = sizeof(frame_gpu_data),
 		};
 		vk::DescriptorBufferInfo buffer_info_2{
-				.buffer = resources.uniform_buffer,
-				.offset = instance_ubo_offset,
-				.range = sizeof(instance_gpu_data),
+		        .buffer = resources.uniform_buffer,
+		        .offset = instance_ubo_offset,
+		        .range = sizeof(instance_gpu_data),
 		};
 		vk::DescriptorBufferInfo buffer_info_3{
-				.buffer = resources.uniform_buffer,
-				.offset = joints_ubo_offset,
-				.range = sizeof(glm::mat4) * 32,
+		        .buffer = resources.uniform_buffer,
+		        .offset = joints_ubo_offset,
+		        .range = sizeof(glm::mat4) * 32,
 		};
 		vk::DescriptorBufferInfo buffer_info_4{
-				.buffer = *material->buffer,
-				.offset = material->offset,
-				.range = sizeof(renderer::material::gpu_data),
+		        .buffer = *material->buffer,
+		        .offset = material->offset,
+		        .range = sizeof(renderer::material::gpu_data),
 		};
 
 		auto f = [&](renderer::texture & texture) {
 			return vk::DescriptorImageInfo{
-					.sampler = get_sampler(texture.sampler),
-					.imageView = **(texture.image_view),
-					.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+			        .sampler = get_sampler(texture.sampler),
+			        .imageView = **(texture.image_view),
+			        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 			};
 		};
 
 		std::array write_ds_image{
-				f(*material->base_color_texture),
-				f(*material->metallic_roughness_texture),
-				f(*material->occlusion_texture),
-				f(*material->emissive_texture),
-				f(*material->normal_texture),
+		        f(*material->base_color_texture),
+		        f(*material->metallic_roughness_texture),
+		        f(*material->occlusion_texture),
+		        f(*material->emissive_texture),
+		        f(*material->normal_texture),
 		};
 		std::array descriptors{
-				vk::WriteDescriptorSet{
-						.dstBinding = 0,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eUniformBuffer,
-						.pBufferInfo = &buffer_info_1,
-				},
-				vk::WriteDescriptorSet{
-						.dstBinding = 1,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eUniformBuffer,
-						.pBufferInfo = &buffer_info_2,
-				},
-				vk::WriteDescriptorSet{
-						.dstBinding = 2,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eUniformBuffer,
-						.pBufferInfo = &buffer_info_3,
-				},
-				vk::WriteDescriptorSet{
-						.dstBinding = 3,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
-						.pImageInfo = write_ds_image.data(),
-				},
-				vk::WriteDescriptorSet{
-						.dstBinding = 4,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
-						.pImageInfo = write_ds_image.data() + 1,
-				},
-				vk::WriteDescriptorSet{
-						.dstBinding = 5,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
-						.pImageInfo = write_ds_image.data() + 2,
-				},
-				vk::WriteDescriptorSet{
-						.dstBinding = 6,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
-						.pImageInfo = write_ds_image.data() + 3,
-				},
-				vk::WriteDescriptorSet{
-						.dstBinding = 7,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eCombinedImageSampler,
-						.pImageInfo = write_ds_image.data() + 4,
-				},
-				vk::WriteDescriptorSet{
-						.dstBinding = 8,
-						.descriptorCount = 1,
-						.descriptorType = vk::DescriptorType::eUniformBuffer,
-						.pBufferInfo = &buffer_info_4,
-				},
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 0,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eUniformBuffer,
+		                .pBufferInfo = &buffer_info_1,
+		        },
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 1,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eUniformBuffer,
+		                .pBufferInfo = &buffer_info_2,
+		        },
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 2,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eUniformBuffer,
+		                .pBufferInfo = &buffer_info_3,
+		        },
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 3,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		                .pImageInfo = write_ds_image.data(),
+		        },
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 4,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		                .pImageInfo = write_ds_image.data() + 1,
+		        },
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 5,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		                .pImageInfo = write_ds_image.data() + 2,
+		        },
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 6,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		                .pImageInfo = write_ds_image.data() + 3,
+		        },
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 7,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+		                .pImageInfo = write_ds_image.data() + 4,
+		        },
+		        vk::WriteDescriptorSet{
+		                .dstBinding = 8,
+		                .descriptorCount = 1,
+		                .descriptorType = vk::DescriptorType::eUniformBuffer,
+		                .pBufferInfo = &buffer_info_4,
+		        },
 		};
 
 		cb.pushDescriptorSetKHR(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptors);
@@ -1244,5 +1274,218 @@ void scene_renderer::render(
 		else
 			cb.draw(primitive.vertex_count, 1, 0, 0);
 	}
+
+	if (render_debug_draws and not debug_draw_vertices.empty())
+	{
+		size_t size_bytes = std::span{debug_draw_vertices}.size_bytes();
+		if (not resources.debug_draw or resources.debug_draw.info().size < size_bytes)
+		{
+			resources.debug_draw = buffer_allocation{
+			        device,
+			        vk::BufferCreateInfo{
+			                .size = size_bytes,
+			                .usage = vk::BufferUsageFlagBits::eVertexBuffer,
+			        },
+			        VmaAllocationCreateInfo{
+			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+			                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
+			        },
+			        "scene_renderer::render (debug draw)",
+			};
+		}
+
+		memcpy(resources.debug_draw.map(), debug_draw_vertices.data(), size_bytes);
+
+		renderer::vertex_layout vertex_layout;
+		vertex_layout.add_vertex_attribute<glm::vec4>("Position", 0, 0);
+		vertex_layout.add_vertex_attribute<glm::vec4>("Color", 0, 1);
+
+		pipeline_info info{
+		        .renderpass = rp_info,
+		        .shader_name = "debug_draw",
+		        .vertex_layout = vertex_layout,
+		        .cull_mode = vk::CullModeFlagBits::eFrontAndBack,
+		        .front_face = vk::FrontFace::eClockwise,
+		        .topology = vk::PrimitiveTopology::eLineList,
+		        .blend_enable = true,
+
+		        .depth_test_enable = false,
+		        .depth_write_enable = false,
+		};
+
+		cb.bindPipeline(vk::PipelineBindPoint::eGraphics, *get_pipeline(info));
+
+		cb.setViewport(0, vk::Viewport{
+		                          .x = 0,
+		                          .y = 0,
+		                          .width = (float)output_size.width,
+		                          .height = (float)output_size.height,
+		                          .minDepth = 0,
+		                          .maxDepth = 1,
+		                  });
+
+		cb.setScissor(0, vk::Rect2D{
+		                         .offset = {0, 0},
+		                         .extent = output_size,
+		                 });
+
+		{
+			vk::DeviceSize instance_ubo_offset = resources.uniform_buffer_offset;
+			instance_gpu_data & object_ubo = *reinterpret_cast<instance_gpu_data *>(ubo + resources.uniform_buffer_offset);
+			resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data));
+
+			object_ubo.model = glm::identity<glm::mat4>();
+			for (const auto && [frame_index, frame]: utils::enumerate(frames))
+			{
+				object_ubo.modelview[frame_index] = frame.view;
+				object_ubo.modelviewproj[frame_index] = viewproj[frame_index];
+			}
+
+			vk::DescriptorBufferInfo buffer_info_1{
+			        .buffer = resources.uniform_buffer,
+			        .offset = frame_ubo_offset,
+			        .range = sizeof(frame_gpu_data),
+			};
+			vk::DescriptorBufferInfo buffer_info_2{
+			        .buffer = resources.uniform_buffer,
+			        .offset = instance_ubo_offset,
+			        .range = sizeof(instance_gpu_data),
+			};
+			vk::DescriptorBufferInfo buffer_info_3{
+			        .buffer = resources.uniform_buffer,
+			        .offset = 0,
+			        .range = sizeof(glm::mat4) * 32,
+			};
+			vk::DescriptorBufferInfo buffer_info_4{
+			        .buffer = *default_material->buffer,
+			        .offset = default_material->offset,
+			        .range = sizeof(renderer::material::gpu_data),
+			};
+
+			auto f = [&](renderer::texture & texture) {
+				return vk::DescriptorImageInfo{
+				        .sampler = get_sampler(texture.sampler),
+				        .imageView = **(texture.image_view),
+				        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+				};
+			};
+
+			std::array write_ds_image{
+			        f(*default_material->base_color_texture),
+			        f(*default_material->metallic_roughness_texture),
+			        f(*default_material->occlusion_texture),
+			        f(*default_material->emissive_texture),
+			        f(*default_material->normal_texture),
+			};
+			std::array descriptors{
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 0,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eUniformBuffer,
+			                .pBufferInfo = &buffer_info_1,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 1,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eUniformBuffer,
+			                .pBufferInfo = &buffer_info_2,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 2,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eUniformBuffer,
+			                .pBufferInfo = &buffer_info_3,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 3,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data(),
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 4,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data() + 1,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 5,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data() + 2,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 6,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data() + 3,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 7,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+			                .pImageInfo = write_ds_image.data() + 4,
+			        },
+			        vk::WriteDescriptorSet{
+			                .dstBinding = 8,
+			                .descriptorCount = 1,
+			                .descriptorType = vk::DescriptorType::eUniformBuffer,
+			                .pBufferInfo = &buffer_info_4,
+			        },
+			};
+
+			cb.pushDescriptorSetKHR(vk::PipelineBindPoint::eGraphics, *pipeline_layout, 0, descriptors);
+		}
+
+		cb.bindVertexBuffers(0, (vk::Buffer)resources.debug_draw, (vk::DeviceSize)0);
+		cb.draw(debug_draw_vertices.size(), 1, 0, 0);
+	}
+
 	cb.endRenderPass();
+}
+
+void scene_renderer::debug_draw_clear()
+{
+	debug_draw_vertices.clear();
+}
+
+void scene_renderer::debug_draw_box(const glm::mat4 & model, glm::vec3 min, glm::vec3 max, glm::vec4 color)
+{
+	std::array<glm::vec4, 8> v{
+	        model * glm::vec4{min.x, min.y, min.z, 1}, //        2-------6              ^
+	        model * glm::vec4{min.x, min.y, max.z, 1}, //       /|      /|              | +Y
+	        model * glm::vec4{min.x, max.y, min.z, 1}, //      3-------7 |              |
+	        model * glm::vec4{min.x, max.y, max.z, 1}, //      | |     | |              O--> +X
+	        model * glm::vec4{max.x, min.y, min.z, 1}, //      | 0-----|-4             /
+	        model * glm::vec4{max.x, min.y, max.z, 1}, //      |/      |/             v
+	        model * glm::vec4{max.x, max.y, min.z, 1}, //      1-------5            +Z
+	        model * glm::vec4{max.x, max.y, max.z, 1}, //
+	};
+
+	debug_draw_vertices.emplace_back(v[0], color);
+	debug_draw_vertices.emplace_back(v[1], color);
+	debug_draw_vertices.emplace_back(v[1], color);
+	debug_draw_vertices.emplace_back(v[3], color);
+	debug_draw_vertices.emplace_back(v[3], color);
+	debug_draw_vertices.emplace_back(v[2], color);
+	debug_draw_vertices.emplace_back(v[2], color);
+	debug_draw_vertices.emplace_back(v[0], color);
+
+	debug_draw_vertices.emplace_back(v[4], color);
+	debug_draw_vertices.emplace_back(v[5], color);
+	debug_draw_vertices.emplace_back(v[5], color);
+	debug_draw_vertices.emplace_back(v[7], color);
+	debug_draw_vertices.emplace_back(v[7], color);
+	debug_draw_vertices.emplace_back(v[6], color);
+	debug_draw_vertices.emplace_back(v[6], color);
+	debug_draw_vertices.emplace_back(v[4], color);
+
+	debug_draw_vertices.emplace_back(v[0], color);
+	debug_draw_vertices.emplace_back(v[4], color);
+	debug_draw_vertices.emplace_back(v[1], color);
+	debug_draw_vertices.emplace_back(v[5], color);
+	debug_draw_vertices.emplace_back(v[2], color);
+	debug_draw_vertices.emplace_back(v[6], color);
+	debug_draw_vertices.emplace_back(v[3], color);
+	debug_draw_vertices.emplace_back(v[7], color);
 }
