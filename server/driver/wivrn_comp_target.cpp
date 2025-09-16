@@ -516,6 +516,19 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 	}
 }
 
+bool wivrn_comp_target::should_skip_present()
+{
+	assert(c->base.layer_accum.layer_count > 0);
+	const auto & layer = c->base.layer_accum.layers[0];
+	// If no squashing is done and the layer was already sent, skip it
+	if (c->base.layer_accum.layer_count == 1 and
+	    layer.data.type == XRT_LAYER_PROJECTION and
+	    layer.data.timestamp == last_present_timestamp)
+		return true;
+	last_present_timestamp = layer.data.timestamp;
+	return false;
+}
+
 static VkResult comp_wivrn_present(struct comp_target * ct,
                                    VkQueue queue_,
                                    uint32_t index,
@@ -539,7 +552,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	        .pWaitDstStageMask = &wait_stage,
 	};
 
-	if (cn->c->base.layer_accum.layer_count == 0 or not cn->cnx.get_offset())
+	if (cn->c->base.layer_accum.layer_count == 0 or not cn->cnx.get_offset() or cn->should_skip_present())
 	{
 		scoped_lock lock(vk->queue_mutex);
 		cn->wivrn_bundle->queue.submit(submit_info);
@@ -561,7 +574,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 
 	cn->wivrn_bundle->device.resetFences(*cn->psc.fence);
 	psc_image.status = pseudo_swapchain::status_t::encoding;
-	auto info = cn->pacer.present_to_info(desired_present_time_ns);
+	auto info = cn->pacer.present_to_info(desired_present_time_ns, cn->video_frame_index++);
 	const bool do_alpha = cn->c->base.layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND;
 
 	bool need_queue_transfer = false;
@@ -570,7 +583,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	{
 		if (encoder->channels == to_headset::video_stream_description::channels_t::alpha and not do_alpha)
 			continue;
-		auto [transfer, sem] = encoder->present_image(psc_image.image, command_buffer, info.frame_id);
+		auto [transfer, sem] = encoder->present_image(psc_image.image, command_buffer, info.video_frame_id);
 		need_queue_transfer |= transfer;
 		if (sem)
 			present_done_sem.push_back(sem);
@@ -650,7 +663,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	}
 	// set bits to 1 for index 1..num encoder threads + 1
 	cn->psc.status = (1 << (cn->encoder_threads.size() + 1)) - 2;
-	cn->psc.frame_index = info.frame_id;
+	cn->psc.frame_index = info.video_frame_id;
 	cn->psc.status.notify_all();
 
 	return VK_SUCCESS;

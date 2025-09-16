@@ -122,15 +122,15 @@ void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, co
 		return;
 
 	std::lock_guard lock(mutex);
-	auto & when = in_flight_frames[feedback.frame_index % in_flight_frames.size()];
-	if (when.frame_id != feedback.frame_index)
+	auto when = std::ranges::find(in_flight_frames, feedback.frame_index, &frame_info::video_frame_id);
+	if (when == in_flight_frames.end())
 		return;
 
 	auto & times = frame_times[feedback.frame_index % frame_times.size()];
 	if (times.frame_id != feedback.frame_index)
 	{
 		times.frame_id = feedback.frame_index;
-		times.present = when.present_ns;
+		times.present = when->present_ns;
 		times.decoded = 0;
 	}
 	times.decoded = std::max(times.decoded, offset.from_headset(feedback.received_from_decoder));
@@ -179,13 +179,16 @@ void wivrn_pacer::mark_timing_point(
 	}
 }
 
-wivrn_pacer::frame_info wivrn_pacer::present_to_info(int64_t present)
+wivrn_pacer::frame_info wivrn_pacer::present_to_info(int64_t present, int64_t video_frame_id)
 {
 	std::lock_guard lock(mutex);
-	for (const auto & info: in_flight_frames)
+	for (auto & info: in_flight_frames)
 	{
 		if (info.present_ns == present)
+		{
+			info.video_frame_id = video_frame_id;
 			return info;
+		}
 	}
 	assert(false);
 	return {};

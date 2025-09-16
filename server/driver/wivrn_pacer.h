@@ -39,6 +39,7 @@ public:
 	struct frame_info
 	{
 		int64_t frame_id;
+		int64_t video_frame_id;
 		int64_t present_ns;
 		int64_t predicted_display_time;
 	};
@@ -92,7 +93,7 @@ public:
 	        int64_t frame_id,
 	        int64_t when_ns);
 
-	frame_info present_to_info(int64_t present);
+	frame_info present_to_info(int64_t present, int64_t video_frame_id);
 
 	void reset();
 };

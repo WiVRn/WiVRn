@@ -84,7 +84,9 @@ struct wivrn_comp_target : public comp_target
 	std::optional<wivrn_vk_bundle> wivrn_bundle;
 	vk::raii::CommandPool command_pool = nullptr;
 
-	int64_t current_frame_id = 0;
+	// May be out of sync with pacer's indices with skipped frames
+	int64_t video_frame_index = 0;
+	int64_t last_present_timestamp = 0;
 
 	pseudo_swapchain psc;
 
@@ -105,6 +107,7 @@ struct wivrn_comp_target : public comp_target
 	wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c);
 	~wivrn_comp_target();
 
+	bool should_skip_present();
 	void on_feedback(const from_headset::feedback &, const clock_offset &);
 	void reset_encoders();
 	void set_bitrate(int bitrate_bps);
