@@ -23,5 +23,36 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
-vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::vector<uint32_t> & spirv);
-vk::raii::ShaderModule load_shader(vk::raii::Device & device, const std::string & name);
+struct shader
+{
+	struct input
+	{
+		int location;
+		std::string name;
+		vk::Format format;
+		int array_size;
+	};
+
+	struct specialization_constant
+	{
+		int id;
+		std::string name;
+	};
+
+	vk::raii::ShaderModule shader_module;
+	std::vector<input> inputs;
+	std::vector<specialization_constant> specialization_constants;
+
+	vk::ShaderModule operator*() const
+	{
+		return *shader_module;
+	}
+
+	operator vk::ShaderModule() const
+	{
+		return *shader_module;
+	}
+};
+
+std::shared_ptr<shader> load_shader(vk::raii::Device & device, std::span<const uint32_t> spirv);
+std::shared_ptr<shader> load_shader(vk::raii::Device & device, const std::string & name);
