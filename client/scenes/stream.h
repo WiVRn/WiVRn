@@ -63,7 +63,7 @@ private:
 		// latest frames, rolling buffer
 		std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, image_buffer_size> latest_frames;
 
-		std::shared_ptr<wivrn::shard_accumulator::blit_handle> frame(uint64_t id) const;
+		std::shared_ptr<wivrn::shard_accumulator::blit_handle> & frame(uint64_t id);
 		bool alpha() const;
 		bool empty() const;
 	};
@@ -72,7 +72,8 @@ private:
 
 	// for frames inside accumulator images
 	std::mutex frames_mutex;
-	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> common_frame(XrTime display_time);
+	std::condition_variable frames_cv;
+	void common_frame(XrTime display_time, XrDuration display_period, std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> & result);
 
 	std::unique_ptr<wivrn_session> network_session;
 	std::atomic<bool> exiting = false;

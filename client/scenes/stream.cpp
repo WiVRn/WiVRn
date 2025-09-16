@@ -531,7 +531,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 			if (decoder != decoders[stream].decoder.get())
 				return;
 			handle->feedback.received_from_decoder = instance.now();
-			std::swap(handle, decoders[stream].latest_frames[handle->feedback.frame_index % decoders[stream].latest_frames.size()]);
+			std::swap(handle, decoders[stream].frame(handle->feedback.frame_index));
 		}
 
 		if (state_ != state::streaming and std::ranges::all_of(decoders, [](accumulator_images & i) {
@@ -547,6 +547,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 	{
 		send_feedback(handle->feedback);
 	}
+	frames_cv.notify_all();
 }
 
 bool scenes::stream::accumulator_images::alpha() const
@@ -564,111 +565,114 @@ bool scenes::stream::accumulator_images::empty() const
 	return true;
 }
 
-std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::common_frame(XrTime display_time)
+void scenes::stream::common_frame(XrTime display_time, XrDuration display_period, std::vector<std::shared_ptr<shard_accumulator::blit_handle>> & result)
 {
 	if (decoders.empty())
-		return {};
+		return;
+
+	const size_t num_streams = decoders.size();
+	const size_t num_opaque_streams = std::ranges::count_if(decoders, [](auto & d) { return not d.alpha(); });
+
 	std::unique_lock lock(frames_mutex);
-	thread_local std::vector<shard_accumulator::blit_handle *> common_frames;
-	common_frames.clear();
-	const bool alpha = decoders[0].latest_frames[0] and decoders[0].latest_frames[0]->view_info.alpha;
-	for (size_t i = 0; i < decoders.size(); ++i)
+	std::vector<shard_accumulator::blit_handle *> common_frames;
+	auto deadline = std::chrono::steady_clock::now() + std::chrono::nanoseconds((3 * display_period) / 2);
+
+	while (true)
 	{
-		if (decoders[i].alpha() and not alpha)
-			continue;
-		if (i == 0)
+		common_frames.clear();
+		for (size_t i = 0; i < decoders.size(); ++i)
 		{
-			for (const auto & h: decoders[i].latest_frames)
-				if (h)
-					common_frames.push_back(h.get());
+			if (i == 0)
+			{
+				for (const auto & h: decoders[i].latest_frames)
+					if (h)
+						common_frames.push_back(h.get());
+			}
+			else
+			{
+				std::erase_if(common_frames,
+				              [this, i](auto & left) {
+					              if ((not left->view_info.alpha) and decoders[i].alpha())
+						              return false;
+					              auto & right = decoders[i].frame(left->feedback.frame_index);
+					              return not(right and left->feedback.frame_index == right->feedback.frame_index);
+				              });
+			}
+		}
+		result.clear();
+		if (not common_frames.empty())
+		{
+			// Try to find a frame for the requested display time
+			auto it = std::ranges::find_if(common_frames, [&](auto frame) { return std::abs(frame->view_info.display_time - display_time) < display_period / 2; });
+			// If we have a future one, return that instead (server may have skipped frames)
+			if (it == common_frames.end())
+				it = std::ranges::find_if(common_frames, [&](auto frame) { return frame->view_info.display_time > display_time; });
+
+			if (it == common_frames.end() and std::chrono::steady_clock::now() > deadline)
+			{
+				spdlog::warn("deadline reached when waiting for frame");
+				// just return anything
+				it = std::ranges::max_element(common_frames, {}, [&](auto frame) { return frame->view_info.display_time; });
+			}
+
+			if (it != common_frames.end())
+			{
+				auto frame_index = (*it)->feedback.frame_index;
+				for (auto & decoder: decoders)
+				{
+					if ((*it)->view_info.alpha or not decoder.alpha())
+						result.emplace_back(decoder.frame(frame_index));
+					else
+						result.emplace_back(nullptr);
+				}
+				return;
+			}
 		}
 		else
 		{
-			// clang-format off
-			std::erase_if(common_frames,
-				[this, i](auto & left)
+			spdlog::warn("Failed to find a common frame for all decoders, dumping available frames per decoder");
+			for (const auto & decoder: decoders)
+			{
+				std::string frames;
+				for (const auto & frame: decoder.latest_frames)
 				{
-					return std::ranges::none_of(
-						decoders[i].latest_frames,
-						[&left](auto & right)
-						{
-							return right and left->feedback.frame_index == right->feedback.frame_index;
-						});
-				});
-			// clang-format on
-		}
-	}
-	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> result;
-	result.reserve(decoders.size());
-	if (not common_frames.empty())
-	{
-		auto min = std::ranges::min_element(common_frames,
-		                                    std::ranges::less{},
-		                                    [display_time](auto frame) {
-			                                    if (not frame)
-				                                    return std::numeric_limits<XrTime>::max();
-			                                    return std::abs(frame->view_info.display_time - display_time);
-		                                    });
-
-		assert(*min);
-		auto frame_index = (*min)->feedback.frame_index;
-		for (const auto & decoder: decoders)
-		{
-			if (alpha or not decoder.alpha())
-				result.emplace_back(decoder.frame(frame_index));
-			else
-				result.emplace_back(nullptr);
-		}
-	}
-	else
-	{
-		spdlog::warn("Failed to find a common frame for all decoders, dumping available frames per decoder");
-		for (const auto & decoder: decoders)
-		{
-			std::string frames;
-			for (const auto & frame: decoder.latest_frames)
-			{
-				if (frame)
-					frames += " " + std::to_string(frame->feedback.frame_index);
-				else
-					frames += " -";
+					if (frame)
+						frames += " " + std::to_string(frame->feedback.frame_index);
+					else
+						frames += " -";
+				}
+				spdlog::warn(frames);
 			}
-			spdlog::warn(frames);
-		}
 
-		for (const auto & decoder: decoders)
-		{
-			if (alpha or not decoder.alpha())
+			if (std::chrono::steady_clock::now() > deadline)
 			{
-				auto min = std::ranges::min_element(decoder.latest_frames,
-				                                    std::ranges::less{},
-				                                    [display_time](auto frame) {
-					                                    if (not frame)
-						                                    return std::numeric_limits<XrTime>::max();
-					                                    return std::abs(frame->view_info.display_time - display_time);
-				                                    });
-				result.emplace_back(*min);
+				bool alpha = std::ranges::any_of(decoders[0].latest_frames, [](auto & f) { return f and f->view_info.alpha; });
+				for (const auto & decoder: decoders)
+				{
+					if (alpha or not decoder.alpha())
+					{
+						auto min = std::ranges::min_element(decoder.latest_frames,
+						                                    std::ranges::less{},
+						                                    [display_time](auto frame) {
+							                                    if (not frame)
+								                                    return std::numeric_limits<XrTime>::max();
+							                                    return std::abs(frame->view_info.display_time - display_time);
+						                                    });
+						result.emplace_back(*min);
+					}
+					else
+						result.emplace_back(nullptr);
+				}
+				return;
 			}
-			else
-				result.emplace_back(nullptr);
 		}
+		frames_cv.wait_until(lock, deadline);
 	}
-	return result;
 }
 
-std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_images::frame(uint64_t id) const
+std::shared_ptr<shard_accumulator::blit_handle> & scenes::stream::accumulator_images::frame(uint64_t id)
 {
-	for (auto it = latest_frames.rbegin(); it != latest_frames.rend(); ++it)
-	{
-		if (not *it)
-			continue;
-
-		if ((*it)->feedback.frame_index != id)
-			continue;
-
-		return *it;
-	}
-	return nullptr;
+	return latest_frames[id % latest_frames.size()];
 }
 
 void scenes::stream::update_gui_position(xr::spaces controller)
@@ -830,11 +834,12 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 	// Search for frame with desired display time on all decoders
 	// If no such frame exists, use the latest frame for each decoder
-	current_blit_handles = common_frame(frame_state.predictedDisplayTime);
+	common_frame(frame_state.predictedDisplayTime, frame_state.predictedDisplayPeriod, current_blit_handles);
 	std::array<XrPosef, 2> pose{};
 	std::array<XrFovf, 2> fov{};
 	std::array<wivrn::to_headset::foveation_parameter, 2> foveation{};
 	bool use_alpha = false;
+	XrTime display_time = frame_state.predictedDisplayTime;
 
 	for (auto & blit_handle: current_blit_handles)
 	{
@@ -846,6 +851,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			state_ = stream::state::stalled;
 		++blit_handle->feedback.times_displayed;
 		blit_handle->feedback.displayed = frame_state.predictedDisplayTime;
+		display_time = blit_handle->view_info.display_time;
 
 		pose = blit_handle->view_info.pose;
 		fov = blit_handle->view_info.fov;
@@ -966,7 +972,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	else
 		session.disable_passthrough();
 
-	render_start(use_alpha, frame_state.predictedDisplayTime);
+	render_start(use_alpha, display_time);
 
 	// Add the layer with the streamed content
 	for (uint32_t view = 0; view < view_count; view++)
