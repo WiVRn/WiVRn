@@ -490,22 +490,22 @@ static std::vector<std::string> find_font(std::u16string sample_text, const std:
 
 void imgui_context::initialize_fonts()
 {
-	std::u16string sample_text = u"Hello world";
-
-	const auto & locale = application::get_messages_info();
-	auto it = glyph_set_per_language.find(locale.language + "_" + locale.country);
-	if (it == glyph_set_per_language.end())
-		it = glyph_set_per_language.find(locale.language);
-
-	if (it != glyph_set_per_language.end())
-		for (char16_t c: it->second)
-			sample_text += c;
-
-	// Load Fonts
-	auto fonts = find_font(sample_text, application::get_messages_info().language);
-	for (auto & i: fonts)
+	std::vector<std::string> fonts;
+	for (auto & [code, glyphs]: glyph_set_per_language)
 	{
-		spdlog::info("Font {}", i);
+		std::u16string sample_text = u"Hello world";
+
+		for (char16_t c: glyphs)
+			sample_text += c;
+		auto language = code.substr(0, code.find("_"));
+
+		// Load Fonts
+		for (auto && i: find_font(sample_text, language))
+		{
+			spdlog::info("Font for {} {}", code, i);
+			if (not std::ranges::contains(fonts, i))
+				fonts.push_back(std::move(i));
+		}
 	}
 
 	asset font_awesome_regular("Font Awesome 6 Free-Regular-400.otf");

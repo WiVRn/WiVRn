@@ -417,4 +417,6 @@ public:
 	{
 		return instance().messages_info;
 	}
+
+	void load_locale();
 };

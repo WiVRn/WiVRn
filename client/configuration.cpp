@@ -218,6 +218,9 @@ configuration::configuration(xr::system & system)
 
 		if (auto val = root["first_run"]; val.is_bool())
 			first_run = val.get_bool();
+
+		if (auto val = root["locale"]; val.is_string())
+			locale = val.get_string().value();
 	}
 	catch (std::exception & e)
 	{
@@ -304,5 +307,6 @@ void configuration::save()
 	json << ",\"override_foveation_pitch\":" << override_foveation_pitch;
 	json << ",\"override_foveation_distance\":" << override_foveation_distance;
 	json << ",\"first_run\":" << std::boolalpha << first_run;
+	json << ",\"locale\":" << json_string(locale);
 	json << "}";
 }

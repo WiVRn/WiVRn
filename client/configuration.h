@@ -74,6 +74,8 @@ public:
 
 	bool first_run = true;
 
+	std::string locale;
+
 	bool check_feature(feature f) const;
 	void set_feature(feature f, bool state);
 

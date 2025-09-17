@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <uni_algo/case.h>
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #ifdef __ANDROID__
@@ -793,6 +794,43 @@ void scenes::lobby::gui_settings()
 	ImGuiStyle & style = ImGui::GetStyle();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
+
+	{
+		auto language_name = [&](const std::locale & loc = std::locale()) {
+			return boost::locale::pgettext("language selection, replace with the name of the language", "English", loc);
+		};
+		std::vector<std::tuple<std::string, std::locale, std::string>> languages;
+		for (const auto & msg_info: get_locales())
+		{
+			std::string code = msg_info.language;
+			if (not msg_info.country.empty())
+				code += "_" + msg_info.country;
+			std::locale loc(std::locale(), boost::locale::gnu_gettext::create_messages_facet<char>(msg_info));
+			languages.emplace_back(language_name(loc), loc, std::move(code));
+		}
+		std::ranges::sort(languages, [](auto & l, auto & r) {
+			return una::casesens::collate_utf8(std::get<0>(l), std::get<0>(r)) < 0;
+		});
+		if (ImGui::BeginCombo(_S("Language"), config.locale.empty() ? _S("System language") : language_name().c_str()))
+		{
+			if (ImGui::Selectable(_S("System language"), config.locale.empty(), ImGuiSelectableFlags_SelectOnRelease))
+			{
+				config.locale.clear();
+				config.save();
+				application::instance().load_locale();
+			}
+			for (const auto & [lang, locale, code]: languages)
+			{
+				if (ImGui::Selectable(lang.c_str(), code == config.locale, ImGuiSelectableFlags_SelectOnRelease))
+				{
+					config.locale = code;
+					config.save();
+					application::instance().load_locale();
+				}
+			}
+			ImGui::EndCombo();
+		}
+	}
 
 	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 	{
