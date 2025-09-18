@@ -12,14 +12,14 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-18 13:35+0200\n"
-"PO-Revision-Date: 2025-08-17 20:58+0200\n"
-"Last-Translator: Claudio Sampaio <patola@gmail.com>\n"
-"Language-Team: Brazilian Portuguese\n"
+"PO-Revision-Date: 2025-09-18 16:52+0200\n"
+"Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
+"Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Gtranslator 48.0\n"
+"X-Generator: Lokalize 25.08.1\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #: client/scene.cpp:72
@@ -169,11 +169,11 @@ msgstr "Português (Brasil)"
 
 #: client/scenes/lobby_gui.cpp:814
 msgid "Language"
-msgstr ""
+msgstr "Linguagem"
 
 #: client/scenes/lobby_gui.cpp:814 client/scenes/lobby_gui.cpp:816
 msgid "System language"
-msgstr ""
+msgstr "Linguagem do Sistema"
 
 #: client/scenes/lobby_gui.cpp:841
 msgid "Refresh rate"
