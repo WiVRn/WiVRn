@@ -6,7 +6,7 @@ msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-18 13:35+0200\n"
-"PO-Revision-Date: 2025-09-12 17:21+0200\n"
+"PO-Revision-Date: 2025-09-18 17:35+0200\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -164,11 +164,11 @@ msgstr "Español"
 
 #: client/scenes/lobby_gui.cpp:814
 msgid "Language"
-msgstr ""
+msgstr "Idioma"
 
 #: client/scenes/lobby_gui.cpp:814 client/scenes/lobby_gui.cpp:816
 msgid "System language"
-msgstr ""
+msgstr "Idioma del sistema"
 
 #: client/scenes/lobby_gui.cpp:841
 msgid "Refresh rate"
