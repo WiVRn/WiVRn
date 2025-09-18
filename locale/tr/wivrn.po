@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-10 23:23+0300\n"
+"POT-Creation-Date: 2025-09-18 13:35+0200\n"
 "PO-Revision-Date: 2025-09-12 17:35+0300\n"
 "Last-Translator: Hüseyin Fahri Uzun <mail@fahriuzun.com>\n"
 "Language-Team: \n"
@@ -45,97 +45,97 @@ msgstr "Bağlanılamıyor {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Bağlantı için bekleniyor"
 
-#: client/scenes/lobby_gui.cpp:231
+#: client/scenes/lobby_gui.cpp:232
 msgctxt "openxr_post_processing"
 msgid "Normal"
 msgstr "Normal"
 
-#: client/scenes/lobby_gui.cpp:234
+#: client/scenes/lobby_gui.cpp:235
 msgctxt "openxr_post_processing"
 msgid "Quality"
 msgstr "Kalite"
 
-#: client/scenes/lobby_gui.cpp:236
+#: client/scenes/lobby_gui.cpp:237
 msgctxt "openxr_post_processing"
 msgid "Disabled"
 msgstr "Devre dışı"
 
-#: client/scenes/lobby_gui.cpp:244 client/scenes/lobby_gui.cpp:401
+#: client/scenes/lobby_gui.cpp:245 client/scenes/lobby_gui.cpp:402
 #: client/scenes/stream_gui.cpp:838
 msgid "Disconnect"
 msgstr "Bağlantıyı Kes"
 
-#: client/scenes/lobby_gui.cpp:265 client/scenes/stream_gui.cpp:834
+#: client/scenes/lobby_gui.cpp:266 client/scenes/stream_gui.cpp:834
 msgid "Close"
 msgstr "Kapat"
 
-#: client/scenes/lobby_gui.cpp:271
+#: client/scenes/lobby_gui.cpp:272
 msgid "Connection"
 msgstr "Bağlantı"
 
-#: client/scenes/lobby_gui.cpp:273
+#: client/scenes/lobby_gui.cpp:274
 #, c++-format
 msgid "Connection to {}"
 msgstr "{} Bağlan"
 
-#: client/scenes/lobby_gui.cpp:303
+#: client/scenes/lobby_gui.cpp:304
 msgid "PIN"
 msgstr "PIN"
 
-#: client/scenes/lobby_gui.cpp:325
+#: client/scenes/lobby_gui.cpp:326
 msgid "Input the PIN displayed on the dashboard"
 msgstr "Gösterilen PIN'i gösterge paneline giriniz"
 
-#: client/scenes/lobby_gui.cpp:396
+#: client/scenes/lobby_gui.cpp:397
 msgid "Connected to WiVRn server"
 msgstr "WiVRn sunucusuna bağlanıldı"
 
-#: client/scenes/lobby_gui.cpp:398
+#: client/scenes/lobby_gui.cpp:399
 #, c++-format
 msgid "Connected to {}"
 msgstr "{} bağlanıldı"
 
-#: client/scenes/lobby_gui.cpp:408
+#: client/scenes/lobby_gui.cpp:409
 msgid "Start an application on the server to start streaming."
 msgstr "Sunucuda bir uygulama başlatarak akışa başlayın."
 
-#: client/scenes/lobby_gui.cpp:420
+#: client/scenes/lobby_gui.cpp:421
 msgid "Start an application on your computer or select one to start streaming."
 msgstr ""
 "Bilgisayarınızda bir uygulama başlatın veya akış başlatmak için bir uygulama "
 "seçin."
 
-#: client/scenes/lobby_gui.cpp:422
+#: client/scenes/lobby_gui.cpp:423
 #, c++-format
 msgid "Start an application on {} or select one to start streaming."
 msgstr ""
 "{} üzerinde bir uygulama başlatın veya akış başlatmak için bir tane seçin."
 
-#: client/scenes/lobby_gui.cpp:545
+#: client/scenes/lobby_gui.cpp:546
 msgid "Name"
 msgstr "Ad"
 
-#: client/scenes/lobby_gui.cpp:556
+#: client/scenes/lobby_gui.cpp:557
 msgid "Address"
 msgstr "Adres"
 
-#: client/scenes/lobby_gui.cpp:565
+#: client/scenes/lobby_gui.cpp:566
 msgid "Port"
 msgstr "Port"
 
-#: client/scenes/lobby_gui.cpp:573
+#: client/scenes/lobby_gui.cpp:574
 msgid "TCP only"
 msgstr "Sadece TCP"
 
-#: client/scenes/lobby_gui.cpp:580
+#: client/scenes/lobby_gui.cpp:581
 msgid "Cancel"
 msgstr "İptal"
 
-#: client/scenes/lobby_gui.cpp:594
+#: client/scenes/lobby_gui.cpp:595
 msgid "Save"
 msgstr "Kaydet"
 
-#: client/scenes/lobby_gui.cpp:647
+#: client/scenes/lobby_gui.cpp:648
 msgid ""
 "Start a WiVRn server on your\n"
 "local network"
@@ -143,32 +143,45 @@ msgstr ""
 "Yerel ağınızda\n"
 "bir WiVRn sunucusu başlatın"
 
-#: client/scenes/lobby_gui.cpp:679
+#: client/scenes/lobby_gui.cpp:680
 msgid "Autoconnect"
 msgstr "Oto Bağlan"
 
-#: client/scenes/lobby_gui.cpp:705
+#: client/scenes/lobby_gui.cpp:706
 msgid "Connect"
 msgstr "Bağlan"
 
-#: client/scenes/lobby_gui.cpp:715 client/wivrn_client.cpp:186
+#: client/scenes/lobby_gui.cpp:716 client/wivrn_client.cpp:186
 msgid "Incompatible server version"
 msgstr "Uyumsuz sunucu versiyonu"
 
-#: client/scenes/lobby_gui.cpp:717
+#: client/scenes/lobby_gui.cpp:718
 msgid "Server not available"
 msgstr "Sunucu mevcut değil"
 
-#: client/scenes/lobby_gui.cpp:803
+#: client/scenes/lobby_gui.cpp:800
+msgctxt "language selection, replace with the name of the language"
+msgid "English"
+msgstr "Türkçe"
+
+#: client/scenes/lobby_gui.cpp:814
+msgid "Language"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:814 client/scenes/lobby_gui.cpp:816
+msgid "System language"
+msgstr ""
+
+#: client/scenes/lobby_gui.cpp:841
 msgid "Refresh rate"
 msgstr "Tazeleme oranı"
 
-#: client/scenes/lobby_gui.cpp:803 client/scenes/lobby_gui.cpp:805
+#: client/scenes/lobby_gui.cpp:841 client/scenes/lobby_gui.cpp:843
 msgctxt "automatic refresh rate"
 msgid "Automatic"
 msgstr "Otomatik"
 
-#: client/scenes/lobby_gui.cpp:812
+#: client/scenes/lobby_gui.cpp:850
 msgid ""
 "Select refresh rate based on measured application performance.\n"
 "May cause flicker when a change happens."
@@ -176,60 +189,60 @@ msgstr ""
 "Ölçülen uygulama performansına göre yenileme hızını seçin.\n"
 "Değişiklik olduğunda titremeye neden olabilir."
 
-#: client/scenes/lobby_gui.cpp:829
+#: client/scenes/lobby_gui.cpp:867
 msgid "Minimum refresh rate"
 msgstr "Minimum tazeleme oranı"
 
-#: client/scenes/lobby_gui.cpp:852
+#: client/scenes/lobby_gui.cpp:890
 msgid "Resolution scale"
 msgstr "Çözünürlük ölçeği"
 
-#: client/scenes/lobby_gui.cpp:856
+#: client/scenes/lobby_gui.cpp:894
 #, c-format, c++-format
 msgid "%d%% - {}x{} per eye"
 msgstr "göz başına %d%% - {}x{}"
 
-#: client/scenes/lobby_gui.cpp:867
+#: client/scenes/lobby_gui.cpp:905
 #, c++-format
 msgid "Resolution larger than {}x{} may not be supported by the headset"
 msgstr ""
 "{}x{} 'den daha büyük çözünürlükler gözlük tarafından desteklenmeyebilir"
 
-#: client/scenes/lobby_gui.cpp:873
+#: client/scenes/lobby_gui.cpp:911
 msgid "Enable microphone"
 msgstr "Mikrofonu aktif et"
 
-#: client/scenes/lobby_gui.cpp:882
+#: client/scenes/lobby_gui.cpp:920
 msgid "Unprocessed Microphone Audio"
 msgstr "İşlenmemiş Mikrofon Sesi"
 
-#: client/scenes/lobby_gui.cpp:888
+#: client/scenes/lobby_gui.cpp:926
 msgid "Force disable audio filters, such as noise cancellation"
 msgstr "Gürültü engelleme gibi ses filtrelerini zorla devre dışı bırak"
 
-#: client/scenes/lobby_gui.cpp:895
+#: client/scenes/lobby_gui.cpp:933
 msgid "Enable hand tracking"
 msgstr "El izlemeyi etkinleştir"
 
-#: client/scenes/lobby_gui.cpp:901 client/scenes/lobby_gui.cpp:913
-#: client/scenes/lobby_gui.cpp:925 client/scenes/lobby_gui.cpp:942
-#: client/scenes/lobby_gui.cpp:987
+#: client/scenes/lobby_gui.cpp:939 client/scenes/lobby_gui.cpp:951
+#: client/scenes/lobby_gui.cpp:963 client/scenes/lobby_gui.cpp:980
+#: client/scenes/lobby_gui.cpp:1025
 msgid "This feature is not supported by your headset"
 msgstr "Bu özellik gözlüğünüz tarafından desteklenmemektedir"
 
-#: client/scenes/lobby_gui.cpp:907
+#: client/scenes/lobby_gui.cpp:945
 msgid "Enable eye tracking"
 msgstr "Göz takibi aktif et"
 
-#: client/scenes/lobby_gui.cpp:919
+#: client/scenes/lobby_gui.cpp:957
 msgid "Enable face tracking"
 msgstr "Yüz takibi aktif et"
 
-#: client/scenes/lobby_gui.cpp:933
+#: client/scenes/lobby_gui.cpp:971
 msgid "Enable body tracking"
 msgstr "Vücut takibi aktif et"
 
-#: client/scenes/lobby_gui.cpp:947
+#: client/scenes/lobby_gui.cpp:985
 msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings,\n"
@@ -240,11 +253,11 @@ msgstr ""
 "aksi takdirde vücut verileri kontrol cihazı ve başlık konumlarından tahmin "
 "edilecektir"
 
-#: client/scenes/lobby_gui.cpp:957
+#: client/scenes/lobby_gui.cpp:995
 msgid "Enable lower body tracking"
 msgstr "Alt vücut izlemeyi etkinleştir"
 
-#: client/scenes/lobby_gui.cpp:963
+#: client/scenes/lobby_gui.cpp:1001
 msgid ""
 "Estimate lower body joint positions using Generative Legs\n"
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
@@ -254,11 +267,11 @@ msgstr ""
 "Quest hareket izleme ayarlarında 'El ve vücut izleme' özelliğinin "
 "etkinleştirilmesi gerekir"
 
-#: client/scenes/lobby_gui.cpp:966
+#: client/scenes/lobby_gui.cpp:1004
 msgid "Enable hip tracking"
 msgstr "Kalça izlemeyi etkinleştir"
 
-#: client/scenes/lobby_gui.cpp:972
+#: client/scenes/lobby_gui.cpp:1010
 msgid ""
 "Only takes affect with lower body tracking enabled\n"
 "May be desired when using another source of hip tracking"
@@ -266,15 +279,15 @@ msgstr ""
 "Sadece alt vücut izleme etkinleştirildiğinde geçerlidir\n"
 "Başka bir kalça izleme kaynağı kullanıldığında tercih edilebilir"
 
-#: client/scenes/lobby_gui.cpp:980
+#: client/scenes/lobby_gui.cpp:1018
 msgid "Enable video passthrough in lobby"
 msgstr "Lobide video geçişini etkinleştir"
 
-#: client/scenes/lobby_gui.cpp:991
+#: client/scenes/lobby_gui.cpp:1029
 msgid "Enable in-stream window"
 msgstr "Akış penceresinde aktif et"
 
-#: client/scenes/lobby_gui.cpp:994
+#: client/scenes/lobby_gui.cpp:1032
 msgid ""
 "Enables the configuration window to be shown while the game is streaming.\n"
 "If enabled, the window is activated by pressing both thumbsticks."
@@ -282,15 +295,15 @@ msgstr ""
 "Oyun akışı yapılırken ayar penceresini aktif eder.\n"
 "Aktif iken, pencere her iki başparmak tuşlarına basılınca açılır."
 
-#: client/scenes/lobby_gui.cpp:1008 client/scenes/stream_gui.cpp:445
+#: client/scenes/lobby_gui.cpp:1046 client/scenes/stream_gui.cpp:445
 msgid "OpenXR post-processing"
 msgstr "OpenXR işlem sonrası"
 
-#: client/scenes/lobby_gui.cpp:1012 client/scenes/stream_gui.cpp:449
+#: client/scenes/lobby_gui.cpp:1050 client/scenes/stream_gui.cpp:449
 msgid "Supersampling"
 msgstr "Süper örnekleme"
 
-#: client/scenes/lobby_gui.cpp:1032 client/scenes/stream_gui.cpp:470
+#: client/scenes/lobby_gui.cpp:1070 client/scenes/stream_gui.cpp:470
 msgid ""
 "Reduce flicker for high contrast edges.\n"
 "Useful when the input resolution is high compared to the headset display"
@@ -298,11 +311,11 @@ msgstr ""
 "Yüksek kontrastlı kenarlarda titremeyi azaltın.\n"
 "Giriş çözünürlüğü kulaklık ekranına kıyasla yüksek olduğunda kullanışlıdır"
 
-#: client/scenes/lobby_gui.cpp:1037 client/scenes/stream_gui.cpp:475
+#: client/scenes/lobby_gui.cpp:1075 client/scenes/stream_gui.cpp:475
 msgid "Sharpening"
 msgstr "Keskinleştirme"
 
-#: client/scenes/lobby_gui.cpp:1057 client/scenes/stream_gui.cpp:496
+#: client/scenes/lobby_gui.cpp:1095 client/scenes/stream_gui.cpp:496
 msgid ""
 "Improve clarity of high contrast edges and counteract blur.\n"
 "Useful when the input resolution is low compared to the headset display"
@@ -310,125 +323,125 @@ msgstr ""
 "Yüksek kontrastlı kenarların netliğini artırın ve bulanıklığı giderin.\n"
 "Giriş çözünürlüğü kulaklık ekranına kıyasla düşük olduğunda kullanışlıdır"
 
-#: client/scenes/lobby_gui.cpp:1153 client/scenes/lobby_gui.cpp:1161
+#: client/scenes/lobby_gui.cpp:1191 client/scenes/lobby_gui.cpp:1199
 #: client/scenes/stream_gui.cpp:222 client/scenes/stream_gui.cpp:424
 msgid "CPU time"
 msgstr "CPU zamanı"
 
-#: client/scenes/lobby_gui.cpp:1157
+#: client/scenes/lobby_gui.cpp:1195
 msgid "CPU time [ms]"
 msgstr "CPU zamanı [ms]"
 
-#: client/scenes/lobby_gui.cpp:1167 client/scenes/lobby_gui.cpp:1175
+#: client/scenes/lobby_gui.cpp:1205 client/scenes/lobby_gui.cpp:1213
 #: client/scenes/stream_gui.cpp:224 client/scenes/stream_gui.cpp:425
 msgid "GPU time"
 msgstr "GPU zamanı"
 
-#: client/scenes/lobby_gui.cpp:1171
+#: client/scenes/lobby_gui.cpp:1209
 msgid "GPU time [ms]"
 msgstr "GPU zamanı [ms]"
 
-#: client/scenes/lobby_gui.cpp:1214
+#: client/scenes/lobby_gui.cpp:1252
 msgid "Enable the microphone?"
 msgstr "Mikrofonu aktif et?"
 
-#: client/scenes/lobby_gui.cpp:1219
+#: client/scenes/lobby_gui.cpp:1257
 msgid "Enable eye tracking?"
 msgstr "Göz takibi aktif et?"
 
-#: client/scenes/lobby_gui.cpp:1224
+#: client/scenes/lobby_gui.cpp:1262
 msgid "Enable face tracking?"
 msgstr "Yüz takibi aktif et?"
 
-#: client/scenes/lobby_gui.cpp:1229
+#: client/scenes/lobby_gui.cpp:1267
 msgid "Enable body tracking?"
 msgstr "Vücut takibi aktif et?"
 
-#: client/scenes/lobby_gui.cpp:1237
+#: client/scenes/lobby_gui.cpp:1275
 msgid "Welcome to WiVRn"
 msgstr "WiVRn'e hoş geldiniz"
 
-#: client/scenes/lobby_gui.cpp:1261
+#: client/scenes/lobby_gui.cpp:1299
 msgid "Yes"
 msgstr "Evet"
 
-#: client/scenes/lobby_gui.cpp:1268
+#: client/scenes/lobby_gui.cpp:1306
 msgid "No"
 msgstr "Hayır"
 
-#: client/scenes/lobby_gui.cpp:1287 client/scenes/lobby_gui.cpp:1934
+#: client/scenes/lobby_gui.cpp:1325 client/scenes/lobby_gui.cpp:1972
 msgid "Licenses"
 msgstr "Lisanslar"
 
-#: client/scenes/lobby_gui.cpp:1612
+#: client/scenes/lobby_gui.cpp:1650
 msgid "Microphone is enabled"
 msgstr "Mikrofon aktif"
 
-#: client/scenes/lobby_gui.cpp:1613
+#: client/scenes/lobby_gui.cpp:1651
 msgid "Microphone is disabled"
 msgstr "Mikrofon devre dışı"
 
-#: client/scenes/lobby_gui.cpp:1622
+#: client/scenes/lobby_gui.cpp:1660
 msgid "Hand tracking is enabled"
 msgstr "El takibi aktif"
 
-#: client/scenes/lobby_gui.cpp:1623
+#: client/scenes/lobby_gui.cpp:1661
 msgid "Hand tracking is disabled"
 msgstr "El takibi devre dışı"
 
-#: client/scenes/lobby_gui.cpp:1632
+#: client/scenes/lobby_gui.cpp:1670
 msgid "Eye tracking is enabled"
 msgstr "Göz takibi aktif"
 
-#: client/scenes/lobby_gui.cpp:1633
+#: client/scenes/lobby_gui.cpp:1671
 msgid "Eye tracking is disabled"
 msgstr "Göz takibi devre dışı"
 
-#: client/scenes/lobby_gui.cpp:1643
+#: client/scenes/lobby_gui.cpp:1681
 msgid "Face tracking is enabled"
 msgstr "Yüz takibi aktif"
 
-#: client/scenes/lobby_gui.cpp:1644
+#: client/scenes/lobby_gui.cpp:1682
 msgid "Face tracking is disabled"
 msgstr "Yüz takibi devre dışı"
 
-#: client/scenes/lobby_gui.cpp:1654
+#: client/scenes/lobby_gui.cpp:1692
 msgid "Body tracking is enabled"
 msgstr "Vücut takibi aktif"
 
-#: client/scenes/lobby_gui.cpp:1655
+#: client/scenes/lobby_gui.cpp:1693
 msgid "Body tracking is disabled"
 msgstr "Vücut takibi devre dışı"
 
-#: client/scenes/lobby_gui.cpp:1671
+#: client/scenes/lobby_gui.cpp:1709
 msgid "Add server"
 msgstr "Sunucu ekle"
 
-#: client/scenes/lobby_gui.cpp:1916
+#: client/scenes/lobby_gui.cpp:1954
 msgid "Server list"
 msgstr "Sunucu listesi"
 
-#: client/scenes/lobby_gui.cpp:1919 client/scenes/stream_gui.cpp:822
+#: client/scenes/lobby_gui.cpp:1957 client/scenes/stream_gui.cpp:822
 msgid "Settings"
 msgstr "Ayarlar"
 
-#: client/scenes/lobby_gui.cpp:1922
+#: client/scenes/lobby_gui.cpp:1960
 msgid "Post-processing"
 msgstr "İşlem sonrası"
 
-#: client/scenes/lobby_gui.cpp:1926
+#: client/scenes/lobby_gui.cpp:1964
 msgid "Debug"
 msgstr "Hata ayıklama"
 
-#: client/scenes/lobby_gui.cpp:1931
+#: client/scenes/lobby_gui.cpp:1969
 msgid "About"
 msgstr "Hakkında"
 
-#: client/scenes/lobby_gui.cpp:1937
+#: client/scenes/lobby_gui.cpp:1975
 msgid "Exit"
 msgstr "Çıkış"
 
-#: client/scenes/lobby_gui.cpp:1954
+#: client/scenes/lobby_gui.cpp:1992
 msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
@@ -436,7 +449,7 @@ msgstr ""
 "Ana pencereyi hareket ettirmek için tutma düğmesine basın\n"
 "veya avucunuzu yukarı kaldırın"
 
-#: client/scenes/lobby_gui.cpp:1956
+#: client/scenes/lobby_gui.cpp:1994
 msgid "Press the grip button to move the main window"
 msgstr "Ana pencereyi hareket ettirmek için tutma düğmesine basın"
 
