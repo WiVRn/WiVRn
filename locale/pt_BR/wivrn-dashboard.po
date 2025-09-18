@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-09 22:47+0200\n"
+"POT-Creation-Date: 2025-09-12 14:54+0200\n"
 "PO-Revision-Date: 2025-08-08 11:56-0300\n"
 "Last-Translator: myghi63 <myghi63@disroot.org>\n"
 "Language: pt_BR\n"
@@ -459,19 +459,19 @@ msgctxt "encoder preset"
 msgid "Default preset"
 msgstr "Predefinição padrão"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:139
 #, kde-format
 msgctxt "encoder preset"
 msgid "Low latency preset"
 msgstr "Predefinição de baixa latência"
 
-#: dashboard/qml/SettingsPage.qml:170
+#: dashboard/qml/SettingsPage.qml:158
 #, kde-format
 msgctxt "encoder preset"
 msgid "Safe preset"
 msgstr "Predefinição segura"
 
-#: dashboard/qml/SettingsPage.qml:193
+#: dashboard/qml/SettingsPage.qml:181
 #, kde-format
 msgid ""
 "To add a new encoder, split an existing encoder by clicking near an edge.\n"
@@ -481,84 +481,84 @@ msgstr ""
 "perto de uma aresta.\n"
 "Arraste a aresta para redimensionar ou remover codificadores."
 
-#: dashboard/qml/SettingsPage.qml:220
+#: dashboard/qml/SettingsPage.qml:208
 #, kde-format
 msgid "Encoder:"
 msgstr "Codificador:"
 
-#: dashboard/qml/SettingsPage.qml:229
+#: dashboard/qml/SettingsPage.qml:217
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "Auto"
 
-#: dashboard/qml/SettingsPage.qml:234
+#: dashboard/qml/SettingsPage.qml:222
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (GPUs NVIDIA)"
 
-#: dashboard/qml/SettingsPage.qml:239
+#: dashboard/qml/SettingsPage.qml:227
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (GPUs AMD e Intel)"
 
-#: dashboard/qml/SettingsPage.qml:244
+#: dashboard/qml/SettingsPage.qml:232
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (codificação por software)"
 
-#: dashboard/qml/SettingsPage.qml:249
+#: dashboard/qml/SettingsPage.qml:237
 #, kde-format
 msgid "Vulkan (Vulkan Video)"
 msgstr "Vulkan (Vídeo Vulkan)"
 
-#: dashboard/qml/SettingsPage.qml:272
+#: dashboard/qml/SettingsPage.qml:260
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "\"Auto\" usará aceleração de hardware se disponível"
 
-#: dashboard/qml/SettingsPage.qml:278
+#: dashboard/qml/SettingsPage.qml:266
 #, kde-format
 msgid "Codec:"
 msgstr "Codec:"
 
-#: dashboard/qml/SettingsPage.qml:285
+#: dashboard/qml/SettingsPage.qml:273
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "Auto"
 
-#: dashboard/qml/SettingsPage.qml:289
+#: dashboard/qml/SettingsPage.qml:277
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:293
+#: dashboard/qml/SettingsPage.qml:281
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:297
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:319
+#: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgid "Advanced options"
 msgstr "Opções avançadas"
 
-#: dashboard/qml/SettingsPage.qml:325
+#: dashboard/qml/SettingsPage.qml:313
 #, kde-format
 msgid "Enable debug window"
 msgstr "Ativar janela de depuração"
 
-#: dashboard/qml/SettingsPage.qml:332
+#: dashboard/qml/SettingsPage.qml:320
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Ativar suporte a dispositivos rastreados pelo SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:335
+#: dashboard/qml/SettingsPage.qml:323
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -571,44 +571,44 @@ msgstr ""
 "Os dispositivos precisam estar ligados antes de se conectar ao WiVRn.\n"
 "Uma ferramenta externa como o motoc é necessária para calibração."
 
-#: dashboard/qml/SettingsPage.qml:343
+#: dashboard/qml/SettingsPage.qml:331
 #, kde-format
 msgid "Custom adb location"
 msgstr "Caminho personalizado do adb"
 
-#: dashboard/qml/SettingsPage.qml:354
+#: dashboard/qml/SettingsPage.qml:342
 #, kde-format
 msgid "Adb location:"
 msgstr "Caminho do adb:"
 
-#: dashboard/qml/SettingsPage.qml:363
+#: dashboard/qml/SettingsPage.qml:351
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Navegar"
 
-#: dashboard/qml/SettingsPage.qml:373
+#: dashboard/qml/SettingsPage.qml:361
 #, kde-format
 msgid "Default"
 msgstr "Default"
 
-#: dashboard/qml/SettingsPage.qml:387
+#: dashboard/qml/SettingsPage.qml:375
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SettingsPage.qml:392
+#: dashboard/qml/SettingsPage.qml:380
 #, kde-format
 msgid "Disabled"
 msgstr "Desativado"
 
-#: dashboard/qml/SettingsPage.qml:400
+#: dashboard/qml/SettingsPage.qml:388
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Biblioteca de compatibilidade OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:426
+#: dashboard/qml/SettingsPage.qml:414
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Caminho da biblioteca, excluindo bin/linux64/vrclient.so"
