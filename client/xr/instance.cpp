@@ -44,10 +44,30 @@ static XrBool32 debug_callback(
 	return XR_FALSE;
 }
 
-static const std::map<XrVersion, std::set<std::string_view, std::less<>>> promoted_extensions = {
+namespace
+{
+struct version_info
+{
+	std::set<const char *, std::less<>> promoted_extensions;
+	std::set<const char *, std::less<>> removed_extensions;
+	bool shall_request(std::string_view extension) const
+	{
+		return not(promoted_extensions.contains(extension) or removed_extensions.contains(extension));
+	}
+	static const std::map<XrVersion, version_info> versions;
+
+	static const version_info * get(XrVersion version)
+	{
+		auto it = versions.find(XR_MAKE_VERSION(XR_VERSION_MAJOR(version), XR_VERSION_MINOR(version), 0));
+		if (it == versions.end())
+			return nullptr;
+		return &it->second;
+	}
+};
+const std::map<XrVersion, version_info> version_info::versions = {{
+        XR_MAKE_VERSION(1, 1, 0),
         {
-                XR_MAKE_VERSION(1, 1, 0),
-                {
+                .promoted_extensions = {
                         XR_KHR_LOCATE_SPACES_EXTENSION_NAME,
                         XR_KHR_MAINTENANCE1_EXTENSION_NAME,
                         XR_EXT_HP_MIXED_REALITY_CONTROLLER_EXTENSION_NAME,
@@ -56,44 +76,55 @@ static const std::map<XrVersion, std::set<std::string_view, std::less<>>> promot
                         XR_EXT_SAMSUNG_ODYSSEY_CONTROLLER_EXTENSION_NAME,
                         XR_EXT_UUID_EXTENSION_NAME,
                         XR_BD_CONTROLLER_INTERACTION_EXTENSION_NAME,
-                        XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME,
                         XR_HTC_VIVE_COSMOS_CONTROLLER_INTERACTION_EXTENSION_NAME,
                         XR_HTC_VIVE_FOCUS3_CONTROLLER_INTERACTION_EXTENSION_NAME,
-                        XR_META_TOUCH_CONTROLLER_PLUS_EXTENSION_NAME,
                         XR_ML_ML2_CONTROLLER_INTERACTION_EXTENSION_NAME,
                         XR_VARJO_QUAD_VIEWS_EXTENSION_NAME,
                 },
+                .removed_extensions = {
+                        // Extensions that are included, but actually different
+                        XR_FB_TOUCH_CONTROLLER_PRO_EXTENSION_NAME,
+                        XR_META_TOUCH_CONTROLLER_PLUS_EXTENSION_NAME,
+                },
         },
-};
+}};
 
-static bool is_promoted(XrVersion version, const char * extension)
-{
-	auto it = promoted_extensions.find(XR_MAKE_VERSION(XR_VERSION_MAJOR(version), XR_VERSION_MINOR(version), 0));
-	if (it == promoted_extensions.end())
-		return false;
-	return it->second.contains(extension);
-}
+} // namespace
 
 static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & info, std::vector<const char *> & in_extensions)
 {
 	XrResult res;
 	for (XrVersion version: {
+	             XR_API_VERSION_1_1,
 	             XR_API_VERSION_1_0,
 	     })
 	{
 		std::vector<const char *> extensions;
-		std::ranges::copy_if(
-		        in_extensions,
-		        std::back_inserter(extensions),
-		        [version](const char * ext) { return not is_promoted(version, ext); });
 		info.applicationInfo.apiVersion = version;
-		info.enabledExtensionNames = extensions.data();
-		info.enabledExtensionCount = extensions.size();
+		auto v_info = version_info::get(version);
+		if (v_info)
+		{
+			std::ranges::copy_if(
+			        in_extensions,
+			        std::back_inserter(extensions),
+			        [v_info](const char * ext) { return v_info->shall_request(ext); });
+			info.enabledExtensionNames = extensions.data();
+			info.enabledExtensionCount = extensions.size();
+		}
+		else
+		{
+			info.enabledExtensionNames = in_extensions.data();
+			info.enabledExtensionCount = in_extensions.size();
+		}
 		XrInstance inst;
 		res = xrCreateInstance(&info, &inst);
 		if (XR_SUCCEEDED(res))
 		{
-			std::swap(in_extensions, extensions);
+			if (v_info)
+			{
+				extensions.insert(extensions.end(), v_info->promoted_extensions.begin(), v_info->promoted_extensions.end());
+				std::swap(in_extensions, extensions);
+			}
 			return {version, inst};
 		}
 		spdlog::info("Failed to create OpenXR instance version {}: {}",
