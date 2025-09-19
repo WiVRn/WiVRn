@@ -784,12 +784,10 @@ void wivrn_session::operator()(const from_headset::start_app & request)
 void wivrn_session::operator()(const from_headset::get_running_applications &)
 {
 	scoped_lock lock(monado_server->global_state.lock);
-	to_headset::running_applications msg{
-	        .active_id = int8_t(monado_server->global_state.active_client_index),
-	};
+	to_headset::running_applications msg{};
 	for (auto & t: monado_server->threads)
 	{
-		if (t.ics.server_thread_index < 0)
+		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr)
 			continue;
 		// nasty volatile
 		std::array<char, sizeof(t.ics.client_state.info.application_name)> tmp;
@@ -799,10 +797,20 @@ void wivrn_session::operator()(const from_headset::get_running_applications &)
 		msg.applications.push_back(
 		        {
 		                .name = std::string(tmp.data()),
-		                .id = int8_t(t.ics.server_thread_index),
+		                .id = t.ics.client_state.id,
+		                .overlay = t.ics.client_state.session_overlay,
+		                .active = t.ics.server_thread_index == monado_server->global_state.active_client_index,
 		        });
 	}
 	connection->send_control(std::move(msg));
+}
+
+void wivrn_session::operator()(const from_headset::set_active_application & req)
+{
+	ipc_server_set_active_client(monado_server, req.id);
+	ipc_server_update_state(monado_server);
+	// Send a refreshed application list
+	(*this)(from_headset::get_running_applications{});
 }
 
 void wivrn_session::operator()(audio_data && data)

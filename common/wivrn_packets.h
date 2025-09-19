@@ -464,6 +464,11 @@ struct start_app
 struct get_running_applications
 {};
 
+struct set_active_application
+{
+	uint32_t id;
+};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_1,
@@ -487,7 +492,8 @@ using packets = std::variant<
         override_foveation_center,
         get_application_list,
         start_app,
-        get_running_applications>;
+        get_running_applications,
+        set_active_application>;
 } // namespace from_headset
 
 namespace to_headset
@@ -700,10 +706,11 @@ struct running_applications
 	struct application
 	{
 		std::string name;
-		int8_t id;
+		uint32_t id;
+		bool overlay;
+		bool active;
 	};
 	std::vector<application> applications;
-	int8_t active_id;
 };
 
 using packets = std::variant<

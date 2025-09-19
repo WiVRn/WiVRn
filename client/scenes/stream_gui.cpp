@@ -83,6 +83,15 @@ ImPlotPoint getter(int index, void * data_)
 
 	return ImPlotPoint(index, *(float *)(data.data + index * data.stride) * data.multiplier);
 }
+
+void CenterTextH(const std::string & text)
+{
+	float win_width = ImGui::GetWindowSize().x;
+	float text_width = ImGui::CalcTextSize(text.c_str()).x;
+	ImGui::SetCursorPosX((win_width - text_width) / 2);
+
+	ImGui::Text("%s", text.c_str());
+}
 } // namespace
 
 void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps)
@@ -605,17 +614,33 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 
 void scenes::stream::gui_applications()
 {
-	ImGui::Text("%s", _S("Running XR applications:"));
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
+	CenterTextH(_("Running XR applications:"));
+	ImGui::PopFont();
 	auto apps = running_applications.lock();
+	ImVec2 button_size(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0);
+	ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32_BLACK_TRANS);
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
 	for (const auto & app: apps->applications)
 	{
-		ImGui::Text("%s", app.name.c_str());
-		if (app.id == apps->active_id)
+		if (app.active or app.overlay)
 		{
-			ImGui::SameLine();
-			ImGui::Text("%s", _S("(focused)"));
+			ImGui::Text("%s", app.name.c_str());
+			if (app.active)
+			{
+				ImGui::SameLine();
+				ImGui::Text("%s", _S("(focused)"));
+			}
+		}
+		else
+		{
+			if (RadioButtonWithoutCheckBox(app.name, false, button_size))
+				network_session->send_control(from_headset::set_active_application{.id = app.id});
 		}
 	}
+	ImGui::PopStyleVar(2);
+	ImGui::PopStyleColor();
 }
 
 // Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
