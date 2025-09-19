@@ -32,6 +32,10 @@ struct method_trait<Method, Result (Class::*)(Args...)>
 	{
 		return std::invoke(Method, static_cast<Class *>(arg), args...);
 	}
+	static Result magic2(Args... args, Class::base * arg)
+	{
+		return std::invoke(Method, static_cast<Class *>(arg), args...);
+	}
 };
 } // namespace details
 
@@ -54,4 +58,8 @@ namespace wivrn
 // }
 template <auto Method>
 auto method_pointer = ::details::method_trait<Method>::magic;
+
+// same, but "this" argument is last
+template <auto Method>
+auto method_pointer2 = ::details::method_trait<Method>::magic2;
 } // namespace wivrn

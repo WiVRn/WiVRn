@@ -75,7 +75,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
                 .supported = {
                         .orientation_tracking = true,
                         .position_tracking = true,
-                        .presence = true,
+                        .presence = info.user_presence,
                         .battery_status = true,
                 },
                 .update_inputs = [](xrt_device *) { return XRT_SUCCESS; },
@@ -231,28 +231,13 @@ void wivrn_hmd::update_visibility_mask(const from_headset::visibility_mask_chang
 	m->at(mask.view_index) = mask.data;
 }
 
-bool wivrn_hmd::update_presence(bool new_presence, bool real)
+bool wivrn_hmd::update_presence(bool new_presence)
 {
-	// if this presence change comes from headset, always honor it,
-	// otherwise try to keep it in sync with the real presence,
-	// while still changing presence to false when session is not
-	// visible
-	if (real || new_presence == this->real_presence || !new_presence)
+	if (this->presence.exchange(new_presence) != new_presence)
 	{
-		if (real && this->real_presence != new_presence)
-		{
-			U_LOG_I("Updating real user presence: %s -> %s", real_presence ? "true" : "false", new_presence ? "true" : "false");
-			this->real_presence = new_presence;
-		}
-
-		if (this->presence == new_presence)
-			return false;
-
-		U_LOG_I("Updating user presence: %s -> %s", this->presence ? "true" : "false", new_presence ? "true" : "false");
-		this->presence = new_presence;
+		U_LOG_I("user presence changed to %s", new_presence ? "true" : "false");
 		return true;
 	}
-
 	return false;
 }
 } // namespace wivrn

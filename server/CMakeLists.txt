@@ -79,6 +79,7 @@ if (WIVRN_BUILD_SERVER)
 			main.cpp
 			sleep_inhibitor.cpp
 			start_application.cpp
+			ipc_server_cb.cpp
 			target_instance_wivrn.cpp
 			wivrn_ipc.cpp
 

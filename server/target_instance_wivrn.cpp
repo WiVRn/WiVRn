@@ -1,15 +1,27 @@
-// Copyright 2020-2022, Collabora, Ltd.
-// SPDX-License-Identifier: BSL-1.0
-/*!
- * @file
- * @brief  Shared default implementation of the instance with compositor.
- * @author Jakob Bornecrantz <jakob@collabora.com>
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+#include "target_instance_wivrn.h"
+
+#include "utils/method.h"
 
 #include "xrt/xrt_instance.h"
 #include "xrt/xrt_system.h"
-
-#include "os/os_time.h"
 
 #include "util/u_system.h"
 #include "util/u_trace_marker.h"
@@ -19,18 +31,13 @@
 #include "driver/wivrn_session.h"
 #include "wivrn_ipc.h"
 
-/*
- *
- * Internal functions.
- *
- */
-
-static xrt_result_t
-wivrn_instance_create_system(struct xrt_instance * xinst,
-                             struct xrt_system ** out_xsys,
-                             struct xrt_system_devices ** out_xsysd,
-                             struct xrt_space_overseer ** out_xspovrs,
-                             struct xrt_system_compositor ** out_xsysc)
+namespace wivrn
+{
+xrt_result_t instance::create_system(
+        struct xrt_system ** out_xsys,
+        struct xrt_system_devices ** out_xsysd,
+        struct xrt_space_overseer ** out_xspovrs,
+        struct xrt_system_compositor ** out_xsysc)
 {
 	assert(out_xsysd != NULL);
 	assert(*out_xsysd == NULL);
@@ -41,6 +48,7 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	struct xrt_system_compositor * xsysc = NULL;
 	auto res = wivrn::wivrn_session::create_session(
 	        std::move(connection),
+	        *this,
 	        *u_sys,
 	        out_xsysd,
 	        out_xspovrs,
@@ -49,36 +57,29 @@ wivrn_instance_create_system(struct xrt_instance * xinst,
 	return res;
 }
 
-static void
-wivrn_instance_destroy(struct xrt_instance * xinst)
-{
-	delete xinst;
-}
-
-static xrt_result_t
-wivrn_instance_get_prober(struct xrt_instance * xinst, struct xrt_prober ** out_xp)
+xrt_result_t instance::get_prober(struct xrt_prober ** out_xp)
 {
 	*out_xp = nullptr;
 	return XRT_ERROR_PROBER_NOT_SUPPORTED;
 }
 
-/*
- *
- * Exported function(s).
- *
- */
+instance::instance() :
+        xrt_instance{
+                .create_system = method_pointer<&instance::create_system>,
+                .get_prober = method_pointer<&instance::get_prober>,
+                .destroy = [](xrt_instance * ptr) { delete (instance *)ptr; },
+                .startup_timestamp = os_monotonic_get_ns(),
+        }
+{
+}
 
+} // namespace wivrn
 xrt_result_t
 xrt_instance_create(struct xrt_instance_info * ii, struct xrt_instance ** out_xinst)
 {
 	u_trace_marker_init();
 
-	*out_xinst = new xrt_instance{
-	        .create_system = wivrn_instance_create_system,
-	        .get_prober = wivrn_instance_get_prober,
-	        .destroy = wivrn_instance_destroy,
-	        .startup_timestamp = os_monotonic_get_ns(),
-	};
+	*out_xinst = new wivrn::instance();
 
 	return XRT_SUCCESS;
 }

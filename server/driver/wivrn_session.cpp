@@ -25,6 +25,8 @@
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
 #include "main/comp_target.h"
+#include "server/ipc_server.h"
+#include "target_instance_wivrn.h"
 #include "util/u_builders.h"
 #include "util/u_logging.h"
 #include "util/u_system.h"
@@ -139,7 +141,7 @@ bool wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id,
 	return changed;
 }
 
-wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system & system) :
+wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, instance & inst, u_system & system) :
         xrt_system_devices{
                 .get_roles = [](xrt_system_devices * self, xrt_system_roles * out_roles) { return ((wivrn_session *)self)->get_roles(out_roles); },
                 .feature_inc = [](xrt_system_devices * self, xrt_device_feature_type f) { return ((wivrn_session *)self)->feature_inc(f); },
@@ -147,6 +149,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
                 .destroy = [](xrt_system_devices * self) { delete ((wivrn_session *)self); },
         },
         connection(std::move(connection)),
+        inst(inst),
         xrt_system(system),
         hmd(this, get_info()),
         left_controller(0, &hmd, this),
@@ -305,6 +308,7 @@ wivrn_session::~wivrn_session()
 }
 
 xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connection> connection,
+                                                  instance & inst,
                                                   u_system & system,
                                                   xrt_system_devices ** out_xsysd,
                                                   xrt_space_overseer ** out_xspovrs,
@@ -313,7 +317,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	std::unique_ptr<wivrn_session> self;
 	try
 	{
-		self.reset(new wivrn_session(std::move(connection), system));
+		self.reset(new wivrn_session(std::move(connection), inst, system));
 	}
 	catch (std::exception & e)
 	{
@@ -330,6 +334,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 		U_LOG_E("Failed to create system compositor");
 		return xret;
 	}
+	self->system_compositor = *out_xsysc;
 
 	u_builder_create_space_overseer_legacy(
 	        &self->xrt_system.broadcast,
@@ -668,49 +673,34 @@ void wivrn_session::operator()(from_headset::session_state_changed && event)
 {
 	U_LOG_I("Session state changed: %s", xr::to_string(event.state));
 	bool visible, focused;
-	bool changed = false;
 	switch (event.state)
 	{
-		case XR_SESSION_STATE_SYNCHRONIZED:
-			visible = false;
-			focused = false;
-			changed = hmd.update_presence(false, false);
-			break;
 		case XR_SESSION_STATE_VISIBLE:
 			visible = true;
 			focused = false;
-			changed = hmd.update_presence(true, false);
 			break;
 		case XR_SESSION_STATE_FOCUSED:
 			visible = true;
 			focused = true;
-			changed = hmd.update_presence(true, false);
 			break;
 		default:
-			return;
+			visible = false;
+			focused = false;
+			break;
 	}
-
-	if (changed)
+	scoped_lock lock(inst.server->global_state.lock);
+	for (auto & t: inst.server->threads)
 	{
-		xrt_session_event_user_presence_change event = {
-		        .type = XRT_SESSION_EVENT_USER_PRESENCE_CHANGE,
-		};
-		hmd.get_presence(&event.is_user_present);
-		push_event({.presence_change = event});
+		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr)
+			continue;
+		bool current = t.ics.client_state.session_overlay or
+		               inst.server->global_state.active_client_index == t.ics.server_thread_index;
+		xrt_syscomp_set_state(system_compositor, t.ics.xc, visible and current, focused and current);
 	}
-
-	push_event(
-	        {
-	                .state = {
-	                        .type = XRT_SESSION_EVENT_STATE_CHANGE,
-	                        .visible = visible,
-	                        .focused = focused,
-	                },
-	        });
 }
 void wivrn_session::operator()(from_headset::user_presence_changed && event)
 {
-	if (hmd.update_presence(event.present, true))
+	if (hmd.update_presence(event.present))
 		push_event(
 		        {
 		                .presence_change = {

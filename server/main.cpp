@@ -16,6 +16,7 @@
 #include "driver/wivrn_connection.h"
 #include "exit_codes.h"
 #include "hostname.h"
+#include "ipc_server_cb.h"
 #include "protocol_version.h"
 #include "start_application.h"
 #include "utils/overloaded.h"
@@ -48,7 +49,6 @@
 #include <glib.h>
 #include <libnotify/notify.h>
 
-#include <server/ipc_server_interface.h>
 #include <shared/ipc_protocol.h>
 #include <util/u_file.h>
 
@@ -249,10 +249,11 @@ void start_server(configuration config)
 		// foveation code does not allow oversampling
 		setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", true);
 
-		// FIXME: synchronization fails on gfx pipeline
 		setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
 
 		setenv("AMD_DEBUG", "lowlatencyenc", false);
+
+		wivrn::ipc_server_cb server_cb;
 
 		ipc_server_main_info server_info{
 		        .udgci = {
@@ -267,7 +268,7 @@ void start_server(configuration config)
 
 		try
 		{
-			exit(ipc_server_main(0, 0, &server_info /*argc, argv, ismi*/));
+			exit(ipc_server_main_common(&server_info, &server_cb, nullptr));
 		}
 		catch (std::exception & e)
 		{

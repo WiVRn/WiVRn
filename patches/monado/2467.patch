@@ -1,0 +1,312 @@
+From 36c63e58e4d54c31872b95fdc7fb431c8cfc57ab Mon Sep 17 00:00:00 2001
+From: Jakob Bornecrantz <tbornecrantz@nvidia.com>
+Date: Fri, 15 Nov 2024 22:51:32 +0000
+Subject: [PATCH] ipc: Add callbacks and unify main functions
+
+---
+ src/xrt/ipc/server/ipc_server_interface.h     | 58 +++++++++----
+ src/xrt/ipc/server/ipc_server_process.c       | 84 ++++++++++---------
+ .../targets/service-lib/service_target.cpp    | 38 +++++++--
+ 3 files changed, 118 insertions(+), 62 deletions(-)
+
+diff --git a/src/xrt/ipc/server/ipc_server_interface.h b/src/xrt/ipc/server/ipc_server_interface.h
+index b870a52c8c..1b44af8a82 100644
+--- a/src/xrt/ipc/server/ipc_server_interface.h
++++ b/src/xrt/ipc/server/ipc_server_interface.h
+@@ -10,12 +10,10 @@
+  * @ingroup ipc_server
+  */
+ 
+-#include "xrt/xrt_compiler.h"
+ #include "xrt/xrt_config_os.h"
++#include "xrt/xrt_results.h"
+ 
+-#ifndef XRT_OS_ANDROID
+ #include "util/u_debug_gui.h"
+-#endif
+ 
+ 
+ #ifdef __cplusplus
+@@ -23,7 +21,7 @@ extern "C" {
+ #endif
+ 
+ 
+-#ifndef XRT_OS_ANDROID
++struct ipc_server;
+ 
+ /*!
+  * Information passed into the IPC server main function, used for customization
+@@ -38,31 +36,57 @@ struct ipc_server_main_info
+ };
+ 
+ /*!
+- * Main entrypoint to the compositor process.
+  *
+  * @ingroup ipc_server
+  */
+-int
+-ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi);
+-
+-#endif
++struct ipc_server_callbacks
++{
++	/*!
++	 * The IPC server failed to init.
++	 *
++	 * @param[in] xret The error code generated during init.
++	 * @param[in] data User data given passed into the main function.
++	 */
++	void (*init_failed)(xrt_result_t xret, void *data);
+ 
++	/*!
++	 * The service has completed init and is entering its mainloop.
++	 *
++	 * @param[in] s     The IPC server.
++	 * @param[in] xinst Instance that was created by the IPC server.
++	 * @param[in] data  User data given passed into the main function.
++	 */
++	void (*mainloop_entering)(struct ipc_server *s, struct xrt_instance *xinst, void *data);
+ 
+-#ifdef XRT_OS_ANDROID
++	/*!
++	 * The service is leaving the mainloop, after this callback returns the
++	 * IPC server will destroy all resources created.
++	 *
++	 * @param[in] s     The IPC server.
++	 * @param[in] xinst Instance that was created by the IPC server.
++	 * @param[in] data  User data given passed into the main function.
++	 */
++	void (*mainloop_leaving)(struct ipc_server *s, struct xrt_instance *xinst, void *data);
++};
+ 
+ /*!
+- * Main entrypoint to the server process.
++ * Common main function for starting the IPC service.
+  *
+- * @param ps Pointer to populate with the server struct.
+- * @param startup_complete_callback Function to call upon completing startup
+- *                                  and populating *ps, but before entering
+- *                                  the mainloop.
+- * @param data user data to pass to your callback.
++ * @ingroup ipc_server
++ */
++int
++ipc_server_main_common(const struct ipc_server_main_info *ismi, const struct ipc_server_callbacks *iscb, void *data);
++
++
++#ifndef XRT_OS_ANDROID
++
++/*!
++ * Main entrypoint to the compositor process.
+  *
+  * @ingroup ipc_server
+  */
+ int
+-ipc_server_main_android(struct ipc_server **ps, void (*startup_complete_callback)(void *data), void *data);
++ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi);
+ 
+ #endif
+ 
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index f972d6835a..32bad0ec56 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -972,9 +972,10 @@ ipc_server_get_system_properties(struct ipc_server *vs, struct xrt_system_proper
+ 	return XRT_SUCCESS;
+ }
+ 
+-#ifndef XRT_OS_ANDROID
+ int
+-ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
++ipc_server_main_common(const struct ipc_server_main_info *ismi,
++                       const struct ipc_server_callbacks *callbacks,
++                       void *data)
+ {
+ 	xrt_result_t xret = XRT_SUCCESS;
+ 	int ret = -1;
+@@ -1002,11 +1003,8 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+ 	xret = init_all(s, log_level);
+ 	U_LOG_CHK_ONLY_PRINT(log_level, xret, "init_all");
+ 	if (xret != XRT_SUCCESS) {
+-#ifdef XRT_OS_LINUX
+-		// Print information how to debug issues.
+-		print_linux_end_user_failed_information(log_level);
+-#endif
+-
++		// Propegate the failure.
++		callbacks->init_failed(xret, data);
+ 		u_debug_gui_stop(&s->debug_gui);
+ 		free(s);
+ 		return -1;
+@@ -1015,13 +1013,15 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+ 	// Start the debug UI now (if enabled).
+ 	u_debug_gui_start(s->debug_gui, s->xinst, s->xsysd);
+ 
+-#ifdef XRT_OS_LINUX
+-	// Print a very clear service started message.
+-	print_linux_end_user_started_information(log_level);
+-#endif
++	// Tell the callbacks we are entering the main-loop.
++	callbacks->mainloop_entering(s, s->xinst, data);
++
+ 	// Main loop.
+ 	ret = main_loop(s);
+ 
++	// Tell the callbacks we are leaving the main-loop.
++	callbacks->mainloop_leaving(s, s->xinst, data);
++
+ 	// Stop the UI before tearing everything down.
+ 	u_debug_gui_stop(&s->debug_gui);
+ 
+@@ -1038,39 +1038,43 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+ 	return ret;
+ }
+ 
+-#endif // !XRT_OS_ANDROID
+-
+-#ifdef XRT_OS_ANDROID
+-int
+-ipc_server_main_android(struct ipc_server **ps, void (*startup_complete_callback)(void *data), void *data)
+-{
+-	xrt_result_t xret = XRT_SUCCESS;
+-	int ret = -1;
+-
+-	// Get log level first.
+-	enum u_logging_level log_level = debug_get_log_option_ipc_log();
+ 
+-	struct ipc_server *s = U_TYPED_CALLOC(struct ipc_server);
+-	U_LOG_D("Created IPC server!");
+-
+-	xret = init_all(s, log_level);
+-	U_LOG_CHK_ONLY_PRINT(log_level, xret, "init_all");
+-	if (xret != XRT_SUCCESS) {
+-		free(s);
+-		startup_complete_callback(data);
+-		return -1;
+-	}
++#ifndef XRT_OS_ANDROID
+ 
+-	*ps = s;
+-	startup_complete_callback(data);
++static void
++init_failed(xrt_result_t xret, void *data)
++{
++#ifdef XRT_OS_LINUX
++	// Print information how to debug issues.
++	print_linux_end_user_failed_information(debug_get_log_option_ipc_log());
++#endif
++}
+ 
+-	ret = main_loop(s);
++static void
++mainloop_entering(struct ipc_server *s, struct xrt_instance *xinst, void *data)
++{
++#ifdef XRT_OS_LINUX
++	// Print a very clear service started message.
++	print_linux_end_user_started_information(s->log_level);
++#endif
++}
+ 
+-	teardown_all(s);
+-	free(s);
++static void
++mainloop_leaving(struct ipc_server *s, struct xrt_instance *xinst, void *data)
++{
++	// No-op
++}
+ 
+-	U_LOG_I("Server exiting '%i'!", ret);
++int
++ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
++{
++	const struct ipc_server_callbacks callbacks = {
++	    .init_failed = init_failed,
++	    .mainloop_entering = mainloop_entering,
++	    .mainloop_leaving = mainloop_leaving,
++	};
+ 
+-	return ret;
++	return ipc_server_main_common(ismi, &callbacks, NULL);
+ }
+-#endif // XRT_OS_ANDROID
++
++#endif // !XRT_OS_ANDROID
+diff --git a/src/xrt/targets/service-lib/service_target.cpp b/src/xrt/targets/service-lib/service_target.cpp
+index 45877803d3..71c581da6b 100644
+--- a/src/xrt/targets/service-lib/service_target.cpp
++++ b/src/xrt/targets/service-lib/service_target.cpp
+@@ -1,4 +1,5 @@
+ // Copyright 2020, Collabora, Ltd.
++// Copyright 2024, Collabora, Ltd.
+ // SPDX-License-Identifier: BSL-1.0
+ /*!
+  * @file
+@@ -41,10 +42,11 @@ public:
+ 	}
+ 
+ 	void
+-	signalStartupComplete()
++	signalStartupComplete(ipc_server *s)
+ 	{
+ 		std::unique_lock<std::mutex> lock{server_mutex};
+ 		startup_complete = true;
++		server = s;
+ 		startup_cond.notify_all();
+ 	}
+ 
+@@ -53,15 +55,27 @@ public:
+ 	{
+ 		std::unique_lock lock(server_mutex);
+ 		if (!server && !server_thread) {
+-			server_thread = std::make_unique<std::thread>(
+-			    [&]() { ipc_server_main_android(&server, signalStartupCompleteTrampoline, this); });
++			server_thread =
++			    std::make_unique<std::thread>([&]() { ipc_server_main_common(&ismi, &callbacks, this); });
+ 		}
+ 	}
+ 
+ 	static void
+-	signalStartupCompleteTrampoline(void *data)
++	signalInitFailed(xrt_result_t xret, void *data)
+ 	{
+-		static_cast<IpcServerHelper *>(data)->signalStartupComplete();
++		static_cast<IpcServerHelper *>(data)->signalStartupComplete(nullptr);
++	}
++
++	static void
++	signalStartupCompleteTrampoline(ipc_server *s, xrt_instance *xsint, void *data)
++	{
++		static_cast<IpcServerHelper *>(data)->signalStartupComplete(s);
++	}
++
++	static void
++	signalShuttingDownTrampoline(ipc_server *s, xrt_instance *xsint, void *data)
++	{
++		// No-op
+ 	}
+ 
+ 	int32_t
+@@ -114,6 +128,20 @@ private:
+ 		return server && completed;
+ 	}
+ 
++	const struct ipc_server_main_info ismi = {
++	    .udgci =
++	        {
++	            .window_title = "Monado Android Service",
++	            .open = U_DEBUG_GUI_OPEN_NEVER,
++	        },
++	};
++
++	const struct ipc_server_callbacks callbacks = {
++	    .init_failed = signalInitFailed,
++	    .mainloop_entering = signalStartupCompleteTrampoline,
++	    .mainloop_leaving = signalShuttingDownTrampoline,
++	};
++
+ 	//! Reference to the ipc_server, managed by ipc_server_process
+ 	struct ipc_server *server = NULL;
+ 
+-- 
+GitLab
+

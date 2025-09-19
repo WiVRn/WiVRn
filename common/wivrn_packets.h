@@ -235,6 +235,7 @@ struct headset_info_packet
 	bool hand_tracking;
 	bool eye_gaze;
 	bool palm_pose;
+	bool user_presence;
 	bool passthrough;
 	face_type face_tracking;
 	uint32_t num_generic_trackers;
