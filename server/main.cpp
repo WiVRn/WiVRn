@@ -63,6 +63,7 @@ extern "C"
 {
 	int listen_socket = -1;
 }
+ipc_server * monado_server;
 
 using namespace wivrn;
 using namespace std::chrono_literals;
@@ -253,7 +254,8 @@ void start_server(configuration config)
 
 		try
 		{
-			exit(ipc_server_main(0, 0, &server_info /*argc, argv, ismi*/));
+			monado_server = ipc_server_create(0, 0, &server_info /*argc, argv, ismi*/);
+			exit(ipc_server_run(monado_server));
 		}
 		catch (std::exception & e)
 		{

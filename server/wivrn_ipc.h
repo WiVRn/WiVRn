@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "server/ipc_server.h"
 #include "wivrn_packets.h"
 #include "wivrn_sockets.h"
 
@@ -26,6 +27,8 @@
 #include <optional>
 #include <stdint.h>
 #include <variant>
+
+extern ipc_server * monado_server;
 
 namespace wivrn
 {

@@ -54,10 +54,6 @@ class wivrn_hmd : public xrt_device
 	from_headset::battery battery{};
 
 	std::atomic<bool> presence{true};
-	// last XR_EVENT_DATA_USER_PRESENCE_CHANGED_EXT from headset
-	// we must keep track of this to not go out of sync with headset when
-	// a session state change also triggers presence change
-	std::atomic<bool> real_presence{true};
 	thread_safe<std::array<std::optional<from_headset::visibility_mask_changed::masks>, 2>> visibility_mask;
 
 	wivrn::wivrn_session * cnx;
@@ -86,7 +82,6 @@ public:
 	void update_battery(const from_headset::battery &);
 	void update_tracking(const from_headset::tracking &, const clock_offset &);
 	void update_visibility_mask(const from_headset::visibility_mask_changed &);
-	// real if this update comes from a presence changed event
-	bool update_presence(bool new_presence, bool real);
+	bool update_presence(bool);
 };
 } // namespace wivrn

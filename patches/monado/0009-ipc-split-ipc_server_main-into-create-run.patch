@@ -1,0 +1,92 @@
+From 82ba61401ac2c395870398b31a455e11a84139a5 Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Thu, 18 Sep 2025 18:49:26 +0200
+Subject: [PATCH] ipc: split ipc_server_main into create/run
+
+This allows the caller to get the struct ipc_server object
+---
+ src/xrt/ipc/server/ipc_server_interface.h | 18 ++++++++++++++++++
+ src/xrt/ipc/server/ipc_server_process.c   | 21 +++++++++++++++++----
+ 2 files changed, 35 insertions(+), 4 deletions(-)
+
+diff --git a/src/xrt/ipc/server/ipc_server_interface.h b/src/xrt/ipc/server/ipc_server_interface.h
+index b870a52c8..6976befcb 100644
+--- a/src/xrt/ipc/server/ipc_server_interface.h
++++ b/src/xrt/ipc/server/ipc_server_interface.h
+@@ -45,6 +45,24 @@ struct ipc_server_main_info
+ int
+ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi);
+ 
++/*!
++ * Create an ipc_server, to be used for ipc_server_run
++ *
++ * @ingroup ipc_server
++ */
++struct ipc_server *
++ipc_server_create(int argc, char **argv, const struct ipc_server_main_info *ismi);
++
++/*!
++ * Main entrypoint to the compositor process.
++ *
++ * @param s an ipc_server object, take ownership
++ *
++ * @ingroup ipc_server
++ */
++int
++ipc_server_run(struct ipc_server* s);
++
+ #endif
+ 
+ 
+diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
+index f972d6835..ff8ff47e0 100644
+--- a/src/xrt/ipc/server/ipc_server_process.c
++++ b/src/xrt/ipc/server/ipc_server_process.c
+@@ -976,9 +976,16 @@ ipc_server_get_system_properties(struct ipc_server *vs, struct xrt_system_proper
+ int
+ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+ {
+-	xrt_result_t xret = XRT_SUCCESS;
+-	int ret = -1;
++	struct ipc_server *s = ipc_server_create(argc, argv, ismi);
++	if (s == NULL)
++		return -1;
++	return ipc_server_run(s);
++}
+ 
++struct ipc_server *
++ipc_server_create(int argc, char **argv, const struct ipc_server_main_info *ismi)
++{
++	xrt_result_t xret = XRT_SUCCESS;
+ 	// Get log level first.
+ 	enum u_logging_level log_level = debug_get_log_option_ipc_log();
+ 
+@@ -1009,9 +1016,15 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+ 
+ 		u_debug_gui_stop(&s->debug_gui);
+ 		free(s);
+-		return -1;
++		return NULL;
+ 	}
++	return s;
++}
+ 
++int
++ipc_server_run(struct ipc_server *s)
++{
++	enum u_logging_level log_level = debug_get_log_option_ipc_log();
+ 	// Start the debug UI now (if enabled).
+ 	u_debug_gui_start(s->debug_gui, s->xinst, s->xsysd);
+ 
+@@ -1020,7 +1033,7 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+ 	print_linux_end_user_started_information(log_level);
+ #endif
+ 	// Main loop.
+-	ret = main_loop(s);
++	int ret = main_loop(s);
+ 
+ 	// Stop the UI before tearing everything down.
+ 	u_debug_gui_stop(&s->debug_gui);
+-- 
+2.51.0
+

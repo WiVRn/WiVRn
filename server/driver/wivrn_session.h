@@ -96,6 +96,7 @@ class wivrn_session : public xrt_system_devices
 
 	u_system & xrt_system;
 	xrt_space_overseer * space_overseer;
+	xrt_system_compositor * system_compositor;
 
 	std::mutex roles_mutex;
 	xrt_system_roles roles{

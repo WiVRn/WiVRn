@@ -330,6 +330,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 		U_LOG_E("Failed to create system compositor");
 		return xret;
 	}
+	self->system_compositor = *out_xsysc;
 
 	u_builder_create_space_overseer_legacy(
 	        &self->xrt_system.broadcast,
@@ -668,49 +669,36 @@ void wivrn_session::operator()(from_headset::session_state_changed && event)
 {
 	U_LOG_I("Session state changed: %s", xr::to_string(event.state));
 	bool visible, focused;
-	bool changed = false;
 	switch (event.state)
 	{
-		case XR_SESSION_STATE_SYNCHRONIZED:
-			visible = false;
-			focused = false;
-			changed = hmd.update_presence(false, false);
-			break;
 		case XR_SESSION_STATE_VISIBLE:
 			visible = true;
 			focused = false;
-			changed = hmd.update_presence(true, false);
 			break;
 		case XR_SESSION_STATE_FOCUSED:
 			visible = true;
 			focused = true;
-			changed = hmd.update_presence(true, false);
 			break;
 		default:
-			return;
+			visible = false;
+			focused = false;
+			break;
 	}
-
-	if (changed)
 	{
-		xrt_session_event_user_presence_change event = {
-		        .type = XRT_SESSION_EVENT_USER_PRESENCE_CHANGE,
-		};
-		hmd.get_presence(&event.is_user_present);
-		push_event({.presence_change = event});
+		scoped_lock lock(monado_server->global_state.lock);
+		for (auto & t: monado_server->threads)
+		{
+			if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr)
+				continue;
+			bool current = t.ics.client_state.session_overlay or
+			               monado_server->global_state.active_client_index == t.ics.server_thread_index;
+			xrt_syscomp_set_state(system_compositor, t.ics.xc, visible and current, focused and current);
+		}
 	}
-
-	push_event(
-	        {
-	                .state = {
-	                        .type = XRT_SESSION_EVENT_STATE_CHANGE,
-	                        .visible = visible,
-	                        .focused = focused,
-	                },
-	        });
 }
 void wivrn_session::operator()(from_headset::user_presence_changed && event)
 {
-	if (hmd.update_presence(event.present, true))
+	if (hmd.update_presence(event.present))
 		push_event(
 		        {
 		                .presence_change = {
