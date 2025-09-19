@@ -192,6 +192,7 @@ public:
 	void operator()(from_headset::override_foveation_center &&);
 	void operator()(from_headset::get_application_list &&);
 	void operator()(const from_headset::start_app &);
+	void operator()(const from_headset::get_running_applications &);
 	void operator()(audio_data &&);
 
 	void operator()(to_monado::disconnect &&);

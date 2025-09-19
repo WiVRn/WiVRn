@@ -603,6 +603,21 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 	});
 }
 
+void scenes::stream::gui_applications()
+{
+	ImGui::Text("%s", _S("Running XR applications:"));
+	auto apps = running_applications.lock();
+	for (const auto & app: apps->applications)
+	{
+		ImGui::Text("%s", app.name.c_str());
+		if (app.id == apps->active_id)
+		{
+			ImGui::SameLine();
+			ImGui::Text("%s", _S("(focused)"));
+		}
+	}
+}
+
 // Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
 static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
 {
@@ -642,6 +657,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			break;
 		case gui_status::stats:
 		case gui_status::settings:
+		case gui_status::applications:
 			break;
 	}
 	imgui_ctx->set_controllers_enabled(interactable);
@@ -708,6 +724,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			case gui_status::compact:
 			case gui_status::stats:
 			case gui_status::settings:
+			case gui_status::applications:
 				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
 				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
 				break;
@@ -748,6 +765,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 		case gui_status::stats:
 		case gui_status::settings:
+		case gui_status::applications:
 			ImGui::SetNextWindowPos(margin_around_window);
 			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - margin_around_window * 2);
 			always_auto_resize = false;
@@ -804,6 +822,13 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		case gui_status::foveation_settings:
 			gui_foveation_settings(predicted_display_period * 1.e-9f);
 			break;
+
+		case gui_status::applications:
+			ImGui::SetCursorPos({tab_width + 20, 20});
+			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
+			gui_applications();
+			ImGui::EndChild();
+			break;
 	}
 
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding
@@ -820,6 +845,10 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			imgui_ctx->vibrate_on_hover();
 
 			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), gui_status, gui_status::settings, {tab_width, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			if (RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), gui_status, gui_status::applications, {tab_width, 0}))
+				network_session->send_control(from_headset::get_running_applications{});
 			imgui_ctx->vibrate_on_hover();
 
 			int n_items_at_end = 4;

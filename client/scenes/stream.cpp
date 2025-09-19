@@ -730,6 +730,7 @@ bool scenes::stream::is_gui_interactable() const
 		case gui_status::stats:
 		case gui_status::settings:
 		case gui_status::foveation_settings:
+		case gui_status::applications:
 			return true;
 
 		case gui_status::hidden:
@@ -1000,6 +1001,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 				break;
 			case gui_status::stats:
 			case gui_status::settings:
+			case gui_status::applications:
 				dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
 				break;
 		}
@@ -1091,6 +1093,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 				case gui_status::stats:
 				case gui_status::settings:
 				case gui_status::foveation_settings:
+				case gui_status::applications:
 					gui_status = gui_status::hidden;
 					break;
 			}
