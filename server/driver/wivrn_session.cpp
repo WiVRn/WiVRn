@@ -789,7 +789,7 @@ void wivrn_session::operator()(const from_headset::get_running_applications &)
 	to_headset::running_applications msg{};
 	for (auto & t: inst.server->threads)
 	{
-		if (t.ics.server_thread_index < 0)
+		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr)
 			continue;
 		// nasty volatile
 		std::array<char, sizeof(t.ics.client_state.info.application_name)> tmp;
@@ -805,6 +805,14 @@ void wivrn_session::operator()(const from_headset::get_running_applications &)
 		        });
 	}
 	connection->send_control(std::move(msg));
+}
+
+void wivrn_session::operator()(const from_headset::set_active_application & req)
+{
+	ipc_server_set_active_client(inst.server, req.id);
+	ipc_server_update_state(inst.server);
+	// Send a refreshed application list
+	(*this)(from_headset::get_running_applications{});
 }
 
 void wivrn_session::operator()(audio_data && data)
