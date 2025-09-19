@@ -461,6 +461,9 @@ struct start_app
 	std::string app_id;
 };
 
+struct get_running_applications
+{};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_1,
@@ -483,7 +486,8 @@ using packets = std::variant<
         user_presence_changed,
         override_foveation_center,
         get_application_list,
-        start_app>;
+        start_app,
+        get_running_applications>;
 } // namespace from_headset
 
 namespace to_headset
@@ -691,6 +695,17 @@ struct application_icon
 	std::vector<std::byte> image; // In PNG
 };
 
+struct running_applications
+{
+	struct application
+	{
+		std::string name;
+		int8_t id;
+	};
+	std::vector<application> applications;
+	int8_t active_id;
+};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_2,
@@ -705,6 +720,7 @@ using packets = std::variant<
         tracking_control,
         refresh_rate_change,
         application_list,
-        application_icon>;
+        application_icon,
+        running_applications>;
 } // namespace to_headset
 } // namespace wivrn

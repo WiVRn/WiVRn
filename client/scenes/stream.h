@@ -136,7 +136,8 @@ private:
 		compact,
 		stats,
 		settings,
-		foveation_settings
+		foveation_settings,
+		applications,
 	};
 
 	bool is_gui_interactable() const;
@@ -173,6 +174,8 @@ private:
 	// Last application list received from server
 	thread_safe<std::vector<app>> applications;
 
+	thread_safe<to_headset::running_applications> running_applications;
+
 	stream();
 
 public:
@@ -198,6 +201,7 @@ public:
 	void operator()(to_headset::refresh_rate_change &&);
 	void operator()(to_headset::application_list &&);
 	void operator()(to_headset::application_icon &&);
+	void operator()(to_headset::running_applications &&);
 	void operator()(audio_data &&);
 
 	void push_blit_handle(wivrn::shard_accumulator * decoder, std::shared_ptr<wivrn::shard_accumulator::blit_handle> handle);
@@ -305,6 +309,7 @@ private:
 	void gui_compact_view();
 	void gui_settings();
 	void gui_foveation_settings(float predicted_display_period);
+	void gui_applications();
 	void draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);
 };
 } // namespace scenes

@@ -781,6 +781,30 @@ void wivrn_session::operator()(const from_headset::start_app & request)
 	send_to_main(request);
 }
 
+void wivrn_session::operator()(const from_headset::get_running_applications &)
+{
+	scoped_lock lock(monado_server->global_state.lock);
+	to_headset::running_applications msg{
+	        .active_id = int8_t(monado_server->global_state.active_client_index),
+	};
+	for (auto & t: monado_server->threads)
+	{
+		if (t.ics.server_thread_index < 0)
+			continue;
+		// nasty volatile
+		std::array<char, sizeof(t.ics.client_state.info.application_name)> tmp;
+		for (size_t i = 0; i + 1 < tmp.size(); ++i)
+			tmp[i] = t.ics.client_state.info.application_name[i];
+		tmp.back() = 0;
+		msg.applications.push_back(
+		        {
+		                .name = std::string(tmp.data()),
+		                .id = int8_t(t.ics.server_thread_index),
+		        });
+	}
+	connection->send_control(std::move(msg));
+}
+
 void wivrn_session::operator()(audio_data && data)
 {
 	if (audio_handle)
