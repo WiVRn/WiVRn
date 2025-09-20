@@ -24,6 +24,10 @@
 #include "render/scene_components.h"
 #include "render/vertex_layout.h"
 #include "utils/ranges.h"
+#include "vk/shader.h"
+#include <algorithm>
+#include <cctype>
+#include <cstdint>
 #include <entt/entt.hpp>
 #include <fastgltf/base64.hpp>
 #include <fastgltf/core.hpp>
@@ -33,9 +37,30 @@
 #include <fastgltf/types.hpp>
 #include <fastgltf/util.hpp>
 #include <glm/ext.hpp>
+#include <glm/fwd.hpp>
 #include <limits>
 #include <ranges>
 #include <spdlog/spdlog.h>
+#include <string>
+#include <vulkan/vulkan_format_traits.hpp>
+
+namespace fastgltf
+{
+// glm_element_traits.hpp is missing all the glm::vec<1, T> and glm:::vec<n, int32_t> specializations
+// clang-format off
+template <> struct ElementTraits<glm::u8vec1>  : ElementTraitsBase<glm::u8vec1,  AccessorType::Scalar, std::uint8_t>  {};
+template <> struct ElementTraits<glm::i8vec1>  : ElementTraitsBase<glm::i8vec1,  AccessorType::Scalar, std::int8_t>   {};
+template <> struct ElementTraits<glm::u16vec1> : ElementTraitsBase<glm::u16vec1, AccessorType::Scalar, std::uint16_t> {};
+template <> struct ElementTraits<glm::i16vec1> : ElementTraitsBase<glm::i16vec1, AccessorType::Scalar, std::int16_t>  {};
+template <> struct ElementTraits<glm::u32vec1> : ElementTraitsBase<glm::u32vec1, AccessorType::Scalar, std::uint32_t> {};
+template <> struct ElementTraits<glm::i32vec1> : ElementTraitsBase<glm::i32vec1, AccessorType::Scalar, std::int32_t>  {};
+template <> struct ElementTraits<glm::i32vec2> : ElementTraitsBase<glm::i32vec2, AccessorType::Vec2,   std::int32_t>  {};
+template <> struct ElementTraits<glm::i32vec3> : ElementTraitsBase<glm::i32vec3, AccessorType::Vec3,   std::int32_t>  {};
+template <> struct ElementTraits<glm::i32vec4> : ElementTraitsBase<glm::i32vec4, AccessorType::Vec4,   std::int32_t>  {};
+template <> struct ElementTraits<glm::fvec1>   : ElementTraitsBase<glm::fvec1,   AccessorType::Scalar, float>         {};
+template <> struct ElementTraits<glm::dvec1>   : ElementTraitsBase<glm::dvec1,   AccessorType::Scalar, float>         {};
+// clang-format on
+} // namespace fastgltf
 
 namespace
 {
@@ -136,21 +161,6 @@ glm::vec3 convert(const fastgltf::math::nvec3 & v)
 	return {v[0], v[1], v[2]};
 }
 
-renderer::material::alpha_mode_t convert(fastgltf::AlphaMode alpha_mode)
-{
-	switch (alpha_mode)
-	{
-		case fastgltf::AlphaMode::Opaque:
-			return renderer::material::alpha_mode_t::opaque;
-		case fastgltf::AlphaMode::Mask:
-			return renderer::material::alpha_mode_t::mask;
-		case fastgltf::AlphaMode::Blend:
-			return renderer::material::alpha_mode_t::blend;
-	}
-
-	throw std::invalid_argument("alpha_mode");
-}
-
 components::animation_track_base::interpolation_t convert(fastgltf::AnimationInterpolation interpolation)
 {
 	switch (interpolation)
@@ -169,6 +179,125 @@ components::animation_track_base::interpolation_t convert(fastgltf::AnimationInt
 
 // BEGIN Vertex attributes loading
 template <typename T>
+std::vector<glm::dvec4> read_vertex_attribute_aux2(const fastgltf::Asset & asset, const fastgltf::Accessor & accessor)
+{
+	std::vector<glm::dvec4> output;
+	output.resize(accessor.count);
+
+	size_t index = 0;
+	switch (fastgltf::getNumComponents(accessor.type))
+	{
+		case 1:
+			fastgltf::iterateAccessorWithIndex<T>(asset, accessor, [&](const T & value, size_t index) {
+				output[index] = glm::dvec4(value[0], 0, 0, 1);
+			});
+			break;
+		case 2:
+			fastgltf::iterateAccessorWithIndex<T>(asset, accessor, [&](const T & value, size_t index) {
+				output[index] = glm::dvec4(value[0], value[1], 0, 1);
+			});
+			break;
+		case 3:
+			fastgltf::iterateAccessorWithIndex<T>(asset, accessor, [&](const T & value, size_t index) {
+				output[index] = glm::dvec4(value[0], value[1], value[2], 1);
+			});
+			break;
+		case 4:
+			fastgltf::iterateAccessorWithIndex<T>(asset, accessor, [&](const T & value, size_t index) {
+				output[index] = glm::dvec4(value[0], value[1], value[2], value[3]);
+			});
+			break;
+		default:
+			abort();
+	}
+
+	return output;
+}
+
+template <typename T>
+std::vector<glm::dvec4> read_vertex_attribute_aux(const fastgltf::Asset & asset, const fastgltf::Accessor & accessor)
+{
+	switch (fastgltf::getNumComponents(accessor.type))
+	{
+			// clang-format off
+		case 1: return read_vertex_attribute_aux2<glm::vec<1, T>>(asset, accessor);
+		case 2: return read_vertex_attribute_aux2<glm::vec<2, T>>(asset, accessor);
+		case 3: return read_vertex_attribute_aux2<glm::vec<3, T>>(asset, accessor);
+		case 4: return read_vertex_attribute_aux2<glm::vec<4, T>>(asset, accessor);
+		//clang-format on
+	}
+	return {};
+}
+
+std::vector<glm::dvec4> read_vertex_attribute(const fastgltf::Asset & asset, const fastgltf::Accessor & accessor)
+{
+	switch (accessor.componentType)
+	{
+		// clang-format off
+		case fastgltf::ComponentType::Byte:          return read_vertex_attribute_aux<int8_t>(asset, accessor);
+		case fastgltf::ComponentType::UnsignedByte:  return read_vertex_attribute_aux<uint8_t>(asset, accessor);
+		case fastgltf::ComponentType::Short:         return read_vertex_attribute_aux<int16_t>(asset, accessor);
+		case fastgltf::ComponentType::UnsignedShort: return read_vertex_attribute_aux<uint16_t>(asset, accessor);
+		case fastgltf::ComponentType::Int:           return read_vertex_attribute_aux<int32_t>(asset, accessor);
+		case fastgltf::ComponentType::UnsignedInt:   return read_vertex_attribute_aux<uint32_t>(asset, accessor);
+		case fastgltf::ComponentType::Float:         return read_vertex_attribute_aux<float>(asset, accessor);
+		//clang-format on
+		case fastgltf::ComponentType::Double: // TODO
+			abort();
+			break;
+
+		case fastgltf::ComponentType::Invalid:
+			abort();
+			break;
+	}
+
+	return {};
+}
+
+template <typename T>
+void write_vertex_attribute_aux(std::byte * output, size_t stride, int components, const std::vector<glm::dvec4> & input)
+{
+	switch (components)
+	{
+		case 1:
+			for (size_t i = 0, n = input.size(); i < n; i++, output += stride)
+				*reinterpret_cast<glm::vec<1, T> *>(output) = glm::vec<1, T>(input[i].x);
+			break;
+		case 2:
+			for (size_t i = 0, n = input.size(); i < n; i++, output += stride)
+				*reinterpret_cast<glm::vec<2, T> *>(output) = glm::vec<2, T>(input[i].x, input[i].y);
+			break;
+		case 3:
+			for (size_t i = 0, n = input.size(); i < n; i++, output += stride)
+				*reinterpret_cast<glm::vec<3, T> *>(output) = glm::vec<3, T>(input[i].x, input[i].y, input[i].z);
+			break;
+		case 4:
+			for (size_t i = 0, n = input.size(); i < n; i++, output += stride)
+				*reinterpret_cast<glm::vec<3, T> *>(output) = glm::vec<4, T>(input[i].x, input[i].y, input[i].z, input[i].w);
+			break;
+		default:
+			abort();
+	}
+}
+
+void write_vertex_attribute(std::vector<std::byte> & output, size_t offset, size_t stride, vk::Format format, std::vector<glm::dvec4> input)
+{
+	assert(output.size() >= input.size() * stride);
+
+	switch (format)
+	{
+		case vk::Format::eR32Sfloat:
+		case vk::Format::eR32G32Sfloat:
+		case vk::Format::eR32G32B32Sfloat:
+		case vk::Format::eR32G32B32A32Sfloat:
+			write_vertex_attribute_aux<float>(output.data() + offset, stride, vk::componentCount(format), input);
+			return;
+
+		default:
+			return;
+	}
+}
+
 void copy_vertex_attributes(
         const fastgltf::Asset & asset,
         const fastgltf::Accessor & accessor,
@@ -178,9 +307,7 @@ void copy_vertex_attributes(
 {
 	assert(buffer.size() >= accessor.count * binding.stride);
 
-	fastgltf::iterateAccessorWithIndex<T>(asset, accessor, [&](const T & value, size_t index) {
-		*reinterpret_cast<T *>(buffer.data() + attribute.offset + index * binding.stride) = value;
-	});
+	write_vertex_attribute(buffer, attribute.offset, binding.stride, attribute.format, read_vertex_attribute(asset, accessor));
 }
 
 std::pair<size_t, std::vector<std::vector<std::byte>>> create_vertex_buffers(
@@ -200,16 +327,17 @@ std::pair<size_t, std::vector<std::vector<std::byte>>> create_vertex_buffers(
 	}
 
 	// Allocate buffers
-	buffers.resize(layout.bindings.size());
-	for (auto && [buffer, binding]: std::views::zip(buffers, layout.bindings))
+	int max_binding = std::ranges::max(layout.bindings, {}, &vk::VertexInputBindingDescription::binding).binding;
+	buffers.resize(max_binding + 1);
+	for (const vk::VertexInputBindingDescription & binding: layout.bindings)
 	{
 		switch (binding.inputRate)
 		{
 			case vk::VertexInputRate::eVertex:
-				buffer.resize(binding.stride * vertex_count);
+				buffers[binding.binding].resize(binding.stride * vertex_count);
 				break;
 			case vk::VertexInputRate::eInstance:
-				buffer.resize(binding.stride);
+				buffers[binding.binding].resize(binding.stride);
 				break;
 		}
 	}
@@ -217,36 +345,25 @@ std::pair<size_t, std::vector<std::vector<std::byte>>> create_vertex_buffers(
 	// Copy attributes
 	for (auto && [name, attribute]: std::views::zip(layout.attribute_names, layout.attributes))
 	{
+		auto binding_iter = std::ranges::find(layout.bindings, attribute.binding, &vk::VertexInputBindingDescription::binding);
+		assert(binding_iter != layout.bindings.end());
+
+		const vk::VertexInputBindingDescription & binding = *binding_iter;
+		std::vector<std::byte> & buffer = buffers.at(binding.binding);
+
 		const fastgltf::Attribute * gltf_attribute = primitive.findAttribute(name);
 		if (gltf_attribute == primitive.attributes.cend())
-			continue;
+		{
+			// Also check if it's an array of size 1
+			gltf_attribute = primitive.findAttribute(name + "_0");
+
+			if (gltf_attribute == primitive.attributes.cend())
+				continue;
+		}
 
 		const fastgltf::Accessor & accessor = asset.accessors.at(gltf_attribute->accessorIndex);
 
-		const vk::VertexInputBindingDescription & binding = layout.bindings.at(attribute.binding);
-		std::vector<std::byte> & buffer = buffers.at(binding.binding);
-
-		switch (attribute.format)
-		{
-			case vk::Format::eR32Sfloat:
-				copy_vertex_attributes<float>(asset, accessor, buffer, binding, attribute);
-				break;
-
-			case vk::Format::eR32G32Sfloat:
-				copy_vertex_attributes<glm::vec2>(asset, accessor, buffer, binding, attribute);
-				break;
-
-			case vk::Format::eR32G32B32Sfloat:
-				copy_vertex_attributes<glm::vec3>(asset, accessor, buffer, binding, attribute);
-				break;
-
-			case vk::Format::eR32G32B32A32Sfloat:
-				copy_vertex_attributes<glm::vec4>(asset, accessor, buffer, binding, attribute);
-				break;
-
-			default:
-				abort();
-		}
+		copy_vertex_attributes(asset, accessor, buffer, binding, attribute);
 	}
 
 	return size_buffers;
@@ -574,7 +691,24 @@ public:
 			material.buffer.reset();
 
 			material.double_sided = gltf_material.doubleSided;
-			material.alpha_mode = convert(gltf_material.alphaMode);
+
+			switch (gltf_material.alphaMode)
+			{
+				case fastgltf::AlphaMode::Opaque:
+					material.fragment_shader_name = "lit.frag";
+					material.blend_enable = false;
+					break;
+
+				case fastgltf::AlphaMode::Mask:
+					material.fragment_shader_name = "lit_mask.frag";
+					material.blend_enable = false;
+					break;
+
+				case fastgltf::AlphaMode::Blend:
+					material.fragment_shader_name = "lit.frag";
+					material.blend_enable = true;
+					break;
+			}
 
 			renderer::material::gpu_data & material_data = material.staging;
 
@@ -671,26 +805,34 @@ public:
 					primitive_ref.indexed = false;
 
 				renderer::vertex_layout & layout = primitive_ref.layout;
-				// For attributes types, see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes-overview
-				layout.add_vertex_attribute<glm::vec3>("POSITION", 0, 0);
 
-				// FIXME: have a default value if the attribute is not defined
-				// if (gltf_primitive.findAttribute("JOINTS_0") != gltf_primitive.attributes.cend())
-				// {
-					layout.add_vertex_attribute<glm::vec4>("JOINTS_0", 0, 6); // FIXME can be float / ushort / ubyte
-					layout.add_vertex_attribute<glm::vec4>("WEIGHTS_0", 0, 7); // FIXME can be float / ushort / ubyte
-				// }
-				// else
-				// {
-					// layout.add_vertex_attribute<glm::vec4>("JOINTS_0", 0, 6);
-					// layout.add_vertex_attribute<glm::vec4>("WEIGHTS_0", 0, 7);
-				// }
+				if (gltf_primitive.findAttribute("JOINTS_0") == gltf_primitive.attributes.cend())
+					primitive_ref.vertex_shader = "lit.vert";
+				else
+					primitive_ref.vertex_shader = "lit_skinned.vert";
 
-				layout.add_vertex_attribute<glm::vec3>("NORMAL", 1, 1);
-				layout.add_vertex_attribute<glm::vec4>("TANGENT", 1, 2);
-				layout.add_vertex_attribute<glm::vec2>("TEXCOORD", 1, 3, 2); // FIXME can be float / ushort / ubyte
-				layout.add_vertex_attribute<glm::vec3>("COLOR", 1, 5); // FIXME can be vec3 or vec4, float/ushort/ubyte
-				// layout.add_vertex_attribute<glm::vec4>("COLOR", 1, 5); // FIXME can be vec3 or vec4
+				// For attributes types, see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes-overview (§ 3.7.2.1)
+				const std::vector<shader::input> & shader_inputs = load_shader(device, primitive_ref.vertex_shader)->inputs;
+
+				for (const auto & input: shader_inputs)
+				{
+					std::string semantic = input.name;
+					std::transform(semantic.begin(), semantic.end(), semantic.begin(), [](auto c) { return std::toupper(c); });
+
+					if (semantic.starts_with("IN_"))
+						semantic = semantic.substr(3);
+
+					int binding;
+
+					if (semantic == "POSITION" or
+					    semantic == "JOINTS" or
+					    semantic == "WEIGHTS")
+						binding = 0;
+					else
+						binding = 1;
+
+					layout.add_vertex_attribute(semantic, input.format, binding, input.location, input.array_size);
+				}
 
 				auto [vertex_count, buffers] = create_vertex_buffers(layout, gltf, gltf_primitive);
 				primitive_ref.vertex_count = vertex_count;
@@ -712,12 +854,21 @@ public:
 				primitive_ref.obb_min = obb_min;
 				primitive_ref.obb_max = obb_max;
 
-				primitive_ref.cull_mode = vk::CullModeFlagBits::eBack;       // TBC
-				primitive_ref.front_face = vk::FrontFace::eCounterClockwise; // TBC
-				primitive_ref.topology = convert(gltf_primitive.type);
-
 				if (gltf_primitive.materialIndex)
 					primitive_ref.material_ = materials.at(*gltf_primitive.materialIndex);
+
+				if (primitive_ref.material_ and primitive_ref.material_->double_sided)
+				{
+					primitive_ref.cull_mode = vk::CullModeFlagBits::eFrontAndBack;
+					primitive_ref.front_face = vk::FrontFace::eCounterClockwise;
+				}
+				else
+				{
+					primitive_ref.cull_mode = vk::CullModeFlagBits::eBack;
+					primitive_ref.front_face = vk::FrontFace::eCounterClockwise;
+				}
+
+				primitive_ref.topology = convert(gltf_primitive.type);
 			}
 		}
 

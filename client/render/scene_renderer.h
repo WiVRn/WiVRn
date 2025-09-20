@@ -52,7 +52,8 @@ struct pipeline_info
 {
 	renderpass_info renderpass;
 
-	std::string shader_name;
+	std::string vertex_shader_name;
+	std::string fragment_shader_name;
 	renderer::vertex_layout vertex_layout;
 
 	vk::CullModeFlags cull_mode = vk::CullModeFlagBits::eNone;

@@ -669,8 +669,8 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 {
 	spdlog::debug("Creating pipeline");
 
-	auto vertex_shader = load_shader(device, info.shader_name + ".vert");
-	auto fragment_shader = load_shader(device, info.shader_name + ".frag");
+	auto vertex_shader = load_shader(device, info.vertex_shader_name);
+	auto fragment_shader = load_shader(device, info.fragment_shader_name);
 
 	auto specialization = make_specialization_constants(
 	        int32_t(info.nb_texcoords),
@@ -1014,7 +1014,6 @@ void scene_renderer::render(
 			float position = glm::dot(avg_view, node.transform_to_root * glm::vec4(center, 1));
 
 			renderer::material & material = primitive.material_ ? *primitive.material_ : *default_material;
-			bool alpha_blend = material.alpha_mode == renderer::material::alpha_mode_t::blend or material.alpha_mode == renderer::material::alpha_mode_t::mask;
 
 			if (node.joints.empty())
 			{
@@ -1024,7 +1023,7 @@ void scene_renderer::render(
 					visible = visible or not frustum_cull(fru, node.transform_to_root, primitive.obb_min, primitive.obb_max);
 
 				if (visible)
-					primitives.emplace_back(alpha_blend, position, &node, &primitive);
+					primitives.emplace_back(material.blend_enable, position, &node, &primitive);
 				else
 				{
 					resources.frame_stats.count_culled_primitives++;
@@ -1032,7 +1031,7 @@ void scene_renderer::render(
 				}
 			}
 			else
-				primitives.emplace_back(alpha_blend, position, &node, &primitive);
+				primitives.emplace_back(material.blend_enable, position, &node, &primitive);
 		}
 	}
 
@@ -1133,15 +1132,15 @@ void scene_renderer::render(
 		// Get the pipeline
 		pipeline_info info{
 		        .renderpass = rp_info,
-		        .shader_name = material->shader_name,
+		        .vertex_shader_name = primitive.vertex_shader,
+		        .fragment_shader_name = material->fragment_shader_name,
 		        .vertex_layout = primitive.layout,
 		        .cull_mode = primitive.cull_mode,
 		        .front_face = primitive.front_face,
 		        .topology = primitive.topology,
-		        .blend_enable = material->alpha_mode == renderer::material::alpha_mode_t::blend or material->alpha_mode == renderer::material::alpha_mode_t::mask,
+		        .blend_enable = material->blend_enable,
 
 		        .nb_texcoords = 2, // TODO
-		        .alpha_cutout = material->alpha_mode == renderer::material::alpha_mode_t::mask,
 		        .skinning = !node.joints.empty(),
 		};
 
@@ -1297,12 +1296,13 @@ void scene_renderer::render(
 		memcpy(resources.debug_draw.map(), debug_draw_vertices.data(), size_bytes);
 
 		renderer::vertex_layout vertex_layout;
-		vertex_layout.add_vertex_attribute<glm::vec4>("Position", 0, 0);
-		vertex_layout.add_vertex_attribute<glm::vec4>("Color", 0, 1);
+		vertex_layout.add_vertex_attribute("Position", vk::Format::eR32G32B32A32Sfloat, 0, 0);
+		vertex_layout.add_vertex_attribute("Color", vk::Format::eR32G32B32A32Sfloat, 0, 1);
 
 		pipeline_info info{
 		        .renderpass = rp_info,
-		        .shader_name = "debug_draw",
+		        .vertex_shader_name = "debug_draw.vert",
+		        .fragment_shader_name = "debug_draw.frag",
 		        .vertex_layout = vertex_layout,
 		        .cull_mode = vk::CullModeFlagBits::eFrontAndBack,
 		        .front_face = vk::FrontFace::eClockwise,

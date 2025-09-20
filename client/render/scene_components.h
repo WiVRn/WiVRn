@@ -62,7 +62,7 @@ struct material
 		float metallic_factor = 1;
 		float roughness_factor = 1;
 		float occlusion_strength = 0;
-		float normal_scale = 0;
+		float normal_scale = 1;
 		float alpha_cutoff = 0.5;
 
 		uint32_t base_color_texcoord = 0;
@@ -74,13 +74,6 @@ struct material
 		// TODO: add fastgltf::TextureTransform?
 	};
 
-	enum class alpha_mode_t
-	{
-		opaque,
-		mask,
-		blend
-	};
-
 	std::shared_ptr<texture> base_color_texture;
 	std::shared_ptr<texture> metallic_roughness_texture;
 	std::shared_ptr<texture> occlusion_texture;
@@ -90,7 +83,9 @@ struct material
 	// Disable back face culling with this material
 	bool double_sided = true;
 
-	alpha_mode_t alpha_mode;
+	bool blend_enable = false;
+	bool depth_test_enable = true;
+	bool depth_write_enable = true;
 
 	gpu_data staging;
 
@@ -99,7 +94,7 @@ struct material
 	size_t offset;
 
 	std::string name;
-	std::string shader_name = "lit";
+	std::string fragment_shader_name = "lit.frag";
 };
 
 struct primitive
@@ -114,6 +109,8 @@ struct primitive
 
 	glm::vec3 obb_min;
 	glm::vec3 obb_max;
+
+	std::string vertex_shader;
 
 	// See also material::double_sided
 	vk::CullModeFlagBits cull_mode = vk::CullModeFlagBits::eNone;
