@@ -31,8 +31,8 @@
 #include <vulkan/vulkan_raii.hpp>
 
 #include "utils/magic_hash.h"
-#include "vk/allocation.h"
 #include "vertex_layout.h"
+#include "vk/allocation.h"
 
 namespace renderer
 {

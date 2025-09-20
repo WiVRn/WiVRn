@@ -58,10 +58,10 @@ struct magic_hash
 				std::hash<V> hasher;
 				h = std::rotl(h, 5) ^ hasher(static_cast<V>(member));
 			}
-			else if constexpr(is_std_vector<U>::value)
+			else if constexpr (is_std_vector<U>::value)
 			{
 				std::hash<typename U::value_type> hasher;
-				for(const auto& i: member)
+				for (const auto & i: member)
 					h = std::rotl(h, 5) ^ hasher(i);
 			}
 			else

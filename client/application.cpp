@@ -888,9 +888,9 @@ void application::initialize_vulkan()
 	                .samplerYcbcrConversion = VK_TRUE,
 	        },
 #endif
-			vk::PhysicalDeviceMultiviewFeaturesKHR{
-				.multiview = VK_TRUE,
-			},
+	        vk::PhysicalDeviceMultiviewFeaturesKHR{
+	                .multiview = VK_TRUE,
+	        },
 	};
 
 	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and
