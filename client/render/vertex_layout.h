@@ -20,53 +20,38 @@
 
 #include "utils/magic_hash.h"
 #include <cstddef>
-#include <fastgltf/types.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_format_traits.hpp>
 
 namespace renderer
 {
-namespace details
-{
-template <class T>
-inline constexpr vk::Format vk_attribute_format = vk::Format::eUndefined;
-template <>
-inline constexpr vk::Format vk_attribute_format<float> = vk::Format::eR32Sfloat;
-template <>
-inline constexpr vk::Format vk_attribute_format<glm::vec2> = vk::Format::eR32G32Sfloat;
-template <>
-inline constexpr vk::Format vk_attribute_format<glm::vec3> = vk::Format::eR32G32B32Sfloat;
-template <>
-inline constexpr vk::Format vk_attribute_format<glm::vec4> = vk::Format::eR32G32B32A32Sfloat;
-} // namespace details
-
 struct vertex_layout
 {
 	std::vector<vk::VertexInputBindingDescription> bindings;
 	std::vector<vk::VertexInputAttributeDescription> attributes;
 	std::vector<std::string> attribute_names;
 
-	template <typename T>
-	void add_attribute(std::string name, uint32_t binding, uint32_t location, vk::VertexInputRate input_rate, int array_size = 1)
+	void add_attribute(std::string name, vk::Format format, uint32_t binding, uint32_t location, vk::VertexInputRate input_rate, int array_size = 1)
 	{
-		static_assert(details::vk_attribute_format<T> != vk::Format::eUndefined);
+		size_t texel_size = vk::blockSize(format);
 
 		uint32_t offset = 0;
 
 		if (auto iter = std::ranges::find(bindings, binding, &vk::VertexInputBindingDescription::binding); iter == bindings.end())
 			bindings.push_back(vk::VertexInputBindingDescription{
 			        .binding = binding,
-			        .stride = (uint32_t)(sizeof(T) * array_size),
+			        .stride = (uint32_t)(texel_size * array_size),
 			        .inputRate = input_rate,
 			});
 		else
 		{
 			offset = iter->stride;
-			iter->stride += sizeof(T) * array_size;
+			iter->stride += texel_size * array_size;
 		}
 
 		for (int index = 0; index < array_size; index++)
@@ -74,8 +59,8 @@ struct vertex_layout
 			attributes.push_back(vk::VertexInputAttributeDescription{
 			        .location = location + index,
 			        .binding = binding,
-			        .format = details::vk_attribute_format<T>,
-			        .offset = (uint32_t)(offset + index * sizeof(T)),
+			        .format = format,
+			        .offset = (uint32_t)(offset + index * texel_size),
 			});
 
 			if (array_size == 1)
@@ -85,10 +70,9 @@ struct vertex_layout
 		}
 	}
 
-	template <typename T>
-	void add_vertex_attribute(std::string name, uint32_t binding, uint32_t location, int array_size = 1)
+	void add_vertex_attribute(std::string name, vk::Format format, uint32_t binding, uint32_t location, int array_size = 1)
 	{
-		add_attribute<T>(std::move(name), binding, location, vk::VertexInputRate::eVertex, array_size);
+		add_attribute(std::move(name), format, binding, location, vk::VertexInputRate::eVertex, array_size);
 	}
 
 	bool operator==(const vertex_layout & other) const noexcept = default;
