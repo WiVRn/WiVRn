@@ -34,6 +34,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan/vulkan_structs.hpp>
 #include <openxr/openxr.h>
+#include <charconv>
 
 extern const std::map<std::string, std::vector<uint32_t>> shaders;
 

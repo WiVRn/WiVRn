@@ -28,6 +28,7 @@
 #include <magic_enum.hpp>
 #include <string>
 #include <vulkan/vulkan.h>
+#include <charconv>
 
 #include "wivrn_config.h"
 

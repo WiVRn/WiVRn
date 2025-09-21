@@ -26,6 +26,7 @@
 #include <png.h>
 #include <span>
 #include <unordered_map>
+#include <bit>
 
 namespace
 {

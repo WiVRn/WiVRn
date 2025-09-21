@@ -26,6 +26,7 @@
 
 #include "utils/singleton.h"
 #include <vulkan/vulkan_raii.hpp>
+#include <mutex>
 
 struct render_resources;
 
