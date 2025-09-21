@@ -155,11 +155,11 @@ msgstr "日本語"
 
 #: client/scenes/lobby_gui.cpp:814
 msgid "Language"
-msgstr ""
+msgstr "言語"
 
 #: client/scenes/lobby_gui.cpp:814 client/scenes/lobby_gui.cpp:816
 msgid "System language"
-msgstr ""
+msgstr "デバイス言語"
 
 #: client/scenes/lobby_gui.cpp:841
 msgid "Refresh rate"
