@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-12 21:34+0900\n"
+"POT-Creation-Date: 2025-09-21 10:05+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -442,19 +442,19 @@ msgctxt "encoder preset"
 msgid "Default preset"
 msgstr "デフォルト・プリセット"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:139
 #, kde-format
 msgctxt "encoder preset"
 msgid "Low latency preset"
 msgstr "低遅延プリセット"
 
-#: dashboard/qml/SettingsPage.qml:170
+#: dashboard/qml/SettingsPage.qml:158
 #, kde-format
 msgctxt "encoder preset"
 msgid "Safe preset"
 msgstr "安定プリセット"
 
-#: dashboard/qml/SettingsPage.qml:193
+#: dashboard/qml/SettingsPage.qml:181
 #, kde-format
 msgid ""
 "To add a new encoder, split an existing encoder by clicking near an edge.\n"
@@ -464,84 +464,84 @@ msgstr ""
 "う。\n"
 "角を引っ張って大きさの調整をできます。大きさゼロで削除となります。"
 
-#: dashboard/qml/SettingsPage.qml:220
+#: dashboard/qml/SettingsPage.qml:208
 #, kde-format
 msgid "Encoder:"
 msgstr "エンコーダー"
 
-#: dashboard/qml/SettingsPage.qml:229
+#: dashboard/qml/SettingsPage.qml:217
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "自動"
 
-#: dashboard/qml/SettingsPage.qml:234
+#: dashboard/qml/SettingsPage.qml:222
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (NVIDIA GPU)"
 
-#: dashboard/qml/SettingsPage.qml:239
+#: dashboard/qml/SettingsPage.qml:227
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (AMDやIntel GPU)"
 
-#: dashboard/qml/SettingsPage.qml:244
+#: dashboard/qml/SettingsPage.qml:232
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (ソフトエンコード)"
 
-#: dashboard/qml/SettingsPage.qml:249
+#: dashboard/qml/SettingsPage.qml:237
 #, kde-format
 msgid "Vulkan (Vulkan Video)"
 msgstr "Vulkan (Vulkan Video)"
 
-#: dashboard/qml/SettingsPage.qml:272
+#: dashboard/qml/SettingsPage.qml:260
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "「自動」で当システムにとって最も安定した設定を使用します。"
 
-#: dashboard/qml/SettingsPage.qml:278
+#: dashboard/qml/SettingsPage.qml:266
 #, kde-format
 msgid "Codec:"
 msgstr "コーデック"
 
-#: dashboard/qml/SettingsPage.qml:285
+#: dashboard/qml/SettingsPage.qml:273
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "自動"
 
-#: dashboard/qml/SettingsPage.qml:289
+#: dashboard/qml/SettingsPage.qml:277
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:293
+#: dashboard/qml/SettingsPage.qml:281
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:297
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:319
+#: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgid "Advanced options"
 msgstr "詳細設定"
 
-#: dashboard/qml/SettingsPage.qml:325
+#: dashboard/qml/SettingsPage.qml:313
 #, kde-format
 msgid "Enable debug window"
 msgstr "デバッグ・ウィンドウを表示する"
 
-#: dashboard/qml/SettingsPage.qml:332
+#: dashboard/qml/SettingsPage.qml:320
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "SteamVR・ライトハウス・トラッキング"
 
-#: dashboard/qml/SettingsPage.qml:335
+#: dashboard/qml/SettingsPage.qml:323
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -554,44 +554,44 @@ msgstr ""
 "すべてのデバイスの電源が入ってからHMDを接続しましょう。\n"
 "キャリブレーションはmotocなどのソフトウェアで行います。"
 
-#: dashboard/qml/SettingsPage.qml:343
+#: dashboard/qml/SettingsPage.qml:331
 #, kde-format
 msgid "Custom adb location"
 msgstr "特定なADBの場所"
 
-#: dashboard/qml/SettingsPage.qml:354
+#: dashboard/qml/SettingsPage.qml:342
 #, kde-format
 msgid "Adb location:"
 msgstr "ADBの場所："
 
-#: dashboard/qml/SettingsPage.qml:363
+#: dashboard/qml/SettingsPage.qml:351
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "検索する"
 
-#: dashboard/qml/SettingsPage.qml:373
+#: dashboard/qml/SettingsPage.qml:361
 #, kde-format
 msgid "Default"
 msgstr "デフォルト"
 
-#: dashboard/qml/SettingsPage.qml:387
+#: dashboard/qml/SettingsPage.qml:375
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "カスタム"
 
-#: dashboard/qml/SettingsPage.qml:392
+#: dashboard/qml/SettingsPage.qml:380
 #, kde-format
 msgid "Disabled"
 msgstr "無し"
 
-#: dashboard/qml/SettingsPage.qml:400
+#: dashboard/qml/SettingsPage.qml:388
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR実装ライブラリー"
 
-#: dashboard/qml/SettingsPage.qml:426
+#: dashboard/qml/SettingsPage.qml:414
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "ライブラリーの場所（bin/linux64/vrclient.so 無し）"
