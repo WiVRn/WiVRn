@@ -75,11 +75,9 @@ struct image_loader
 		return load(pixels.data(), pixels.size() * sizeof(T), extent, format, name);
 	}
 
-	template <typename... Args>
-	std::shared_ptr<loaded_image> operator()(Args &&... args)
+	std::shared_ptr<loaded_image> operator()(std::span<const std::byte> bytes, bool srgb, const std::string & name = "", bool premultiply = false)
 	{
-		auto result = std::make_shared<loaded_image>(load(std::forward<Args>(args)...));
-		return result;
+		return std::make_shared<loaded_image>(load(bytes, srgb, name, premultiply));
 	}
 
 private:

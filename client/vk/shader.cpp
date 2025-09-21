@@ -39,7 +39,11 @@ std::vector<T *> enumerate(F && f, SpvReflectShaderModule & reflected_shader_mod
 	return data;
 }
 
-std::shared_ptr<shader> load_shader(vk::raii::Device & device, std::span<const uint32_t> spirv)
+shader_loader::shader_loader(vk::raii::Device & device) :
+        device(device)
+{}
+
+std::shared_ptr<shader> shader_loader::operator()(std::span<const uint32_t> spirv)
 {
 	vk::ShaderModuleCreateInfo create_info{
 	        .codeSize = spirv.size_bytes(),
@@ -69,6 +73,14 @@ std::shared_ptr<shader> load_shader(vk::raii::Device & device, std::span<const u
 		for (SpvReflectSpecializationConstant * variable: enumerate<SpvReflectSpecializationConstant>(spvReflectEnumerateSpecializationConstants, reflect))
 			specialization_constants.emplace_back(variable->constant_id, variable->name);
 
+		for (SpvReflectDescriptorSet * variable: enumerate<SpvReflectDescriptorSet>(spvReflectEnumerateDescriptorSets, reflect))
+		{
+		}
+
+		for (SpvReflectDescriptorBinding * variable: enumerate<SpvReflectDescriptorBinding>(spvReflectEnumerateDescriptorBindings, reflect))
+		{
+		}
+
 		spvReflectDestroyShaderModule(&reflect);
 	}
 	else
@@ -77,10 +89,23 @@ std::shared_ptr<shader> load_shader(vk::raii::Device & device, std::span<const u
 	return std::make_shared<shader>(vk::raii::ShaderModule{device, create_info}, inputs, specialization_constants);
 }
 
+std::shared_ptr<shader> shader_loader::operator()(const std::string & name)
+{
+	std::span<const uint32_t> spirv;
+	try
+	{
+		spirv = shaders.at(name);
+	}
+	catch (std::exception & e)
+	{
+		spdlog::error("Cannot load shader {}: {}", name, e.what());
+		throw;
+	}
+
+	return (*this)(shaders.at(name));
+}
+
 std::shared_ptr<shader> load_shader(vk::raii::Device & device, const std::string & name)
 {
-	using loader_type = std::shared_ptr<shader>(vk::raii::Device &, std::span<const uint32_t>);
-	static utils::cache<std::string, shader, loader_type *> shader_cache{(loader_type *)load_shader};
-
-	return shader_cache.load(name, device, shaders.at(name));
+	return shader_loader{device}(name);
 }

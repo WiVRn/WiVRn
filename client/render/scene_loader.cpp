@@ -812,9 +812,8 @@ public:
 					primitive_ref.vertex_shader = "lit_skinned.vert";
 
 				// For attributes types, see https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes-overview (§ 3.7.2.1)
-				const std::vector<shader::input> & shader_inputs = load_shader(device, primitive_ref.vertex_shader)->inputs;
-
-				for (const auto & input: shader_inputs)
+				auto shader = shader_loader{device}(primitive_ref.vertex_shader);
+				for (const auto & input: shader->inputs)
 				{
 					std::string semantic = input.name;
 					std::transform(semantic.begin(), semantic.end(), semantic.begin(), [](auto c) { return std::toupper(c); });

@@ -276,6 +276,7 @@ scene_renderer::scene_renderer(
         device(device),
         physical_device_properties(physical_device.getProperties()),
         queue(queue),
+        shader_cache(device),
         layout_0(create_descriptor_set_layout(layout_bindings_0, vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR))
 {
 	// Create the default material
@@ -669,8 +670,8 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 {
 	spdlog::debug("Creating pipeline");
 
-	auto vertex_shader = load_shader(device, info.vertex_shader_name);
-	auto fragment_shader = load_shader(device, info.fragment_shader_name);
+	auto vertex_shader = shader_loader{device}(info.vertex_shader_name);
+	auto fragment_shader = shader_loader{device}(info.fragment_shader_name);
 
 	auto specialization = make_specialization_constants(
 	        int32_t(info.nb_texcoords),
