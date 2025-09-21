@@ -28,6 +28,7 @@
 #include "utils/files.h"
 #include "utils/i18n.h"
 #include "vk/check.h"
+#include "vk/shader.h"
 #include "wifi_lock.h"
 #include "wivrn_packets.h"
 #include "xr/actionset.h"
