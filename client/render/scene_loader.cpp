@@ -594,7 +594,7 @@ public:
 		return std::shared_ptr<vk::raii::ImageView>(image_ptr, &image_ptr->image_view);
 	}
 
-	std::vector<std::shared_ptr<renderer::texture>> load_all_textures()
+	std::vector<std::shared_ptr<renderer::texture>> load_all_textures(std::function<void(float)> progress_cb)
 	{
 		// Determine which texture is sRGB
 		std::vector<uint8_t> srgb_array;
@@ -610,6 +610,9 @@ public:
 
 		std::vector<std::shared_ptr<renderer::texture>> textures;
 		textures.reserve(gltf.textures.size());
+
+		int loaded_textures = 0;
+		int total_textures = gltf.textures.size();
 		for (auto && [srgb, gltf_texture]: std::views::zip(srgb_array, gltf.textures))
 		{
 			auto & texture_ref = *textures.emplace_back(std::make_shared<renderer::texture>());
@@ -624,6 +627,9 @@ public:
 				try
 				{
 					texture_ref.image_view = load_image(*gltf_texture.basisuImageIndex, srgb);
+					loaded_textures++;
+					if (progress_cb)
+						progress_cb((float)loaded_textures / total_textures);
 					continue;
 				}
 				catch (std::exception & e)
@@ -647,6 +653,9 @@ public:
 				try
 				{
 					texture_ref.image_view = load_image(*gltf_texture.imageIndex, srgb);
+					loaded_textures++;
+					if (progress_cb)
+						progress_cb((float)loaded_textures / total_textures);
 					continue;
 				}
 				catch (std::exception & e)
@@ -1039,7 +1048,7 @@ public:
 
 } // namespace
 
-std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::byte> data, const std::string & name, const std::filesystem::path & parent_path)
+std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::byte> data, const std::string & name, const std::filesystem::path & parent_path, std::function<void(float)> progress_cb)
 {
 	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
 	vk::raii::CommandPool cb_pool{device, vk::CommandPoolCreateInfo{
@@ -1065,7 +1074,7 @@ std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::by
 	gpu_buffer staging_buffer(physical_device_properties, asset);
 
 	// Load all textures
-	auto textures = ctx.load_all_textures();
+	auto textures = ctx.load_all_textures(progress_cb);
 
 	// Load all materials
 	auto materials = ctx.load_all_materials(textures, staging_buffer, *default_material);
@@ -1093,7 +1102,7 @@ std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::by
 	return loaded_scene;
 }
 
-std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::path & gltf_path)
+std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::path & gltf_path, std::function<void(float)> progress_cb)
 {
 	spdlog::debug("Loading {}", gltf_path.native());
 
@@ -1103,5 +1112,5 @@ std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::
 	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
 		throw std::system_error((int)error, fastgltf_error_category);
 
-	return (*this)(asset_file, gltf_path.filename(), gltf_path.parent_path());
+	return (*this)(asset_file, gltf_path.filename(), gltf_path.parent_path(), progress_cb);
 }
