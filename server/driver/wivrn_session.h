@@ -21,6 +21,7 @@
 
 #include "clock_offset.h"
 #include "driver/app_pacer.h"
+#include "utils/thread_safe.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
 #include "wivrn_hand_interaction.h"
@@ -31,6 +32,7 @@
 #include "xrt/xrt_system.h"
 #include <atomic>
 #include <fstream>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
@@ -134,6 +136,9 @@ class wivrn_session : public xrt_system_devices
 
 	std::shared_ptr<audio_device> audio_handle;
 
+	// when sessions shall be destroyed, key is timestap, value is client id
+	thread_safe<std::map<int64_t, int32_t>> session_loss;
+
 	std::jthread thread;
 
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, instance &, u_system &);
@@ -194,6 +199,7 @@ public:
 	void operator()(const from_headset::start_app &);
 	void operator()(const from_headset::get_running_applications &);
 	void operator()(const from_headset::set_active_application &);
+	void operator()(const from_headset::stop_application &);
 	void operator()(audio_data &&);
 
 	void operator()(to_monado::disconnect &&);
@@ -224,6 +230,8 @@ public:
 private:
 	void run(std::stop_token stop);
 	void reconnect();
+
+	void poll_session_loss();
 
 	// xrt_system implementation
 	xrt_result_t get_roles(xrt_system_roles * out_roles);

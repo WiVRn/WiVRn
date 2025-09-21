@@ -815,6 +815,22 @@ void wivrn_session::operator()(const from_headset::set_active_application & req)
 	(*this)(from_headset::get_running_applications{});
 }
 
+void wivrn_session::operator()(const from_headset::stop_application & req)
+{
+	scoped_lock lock(inst.server->global_state.lock);
+	for (auto & t: inst.server->threads)
+	{
+		if (t.ics.client_state.id == req.id)
+		{
+			U_LOG_I("Notify session loss pending for %s", t.ics.client_state.info.application_name);
+			auto when = os_monotonic_get_ns() + 200 * U_TIME_1MS_IN_NS;
+			xrt_syscomp_notify_loss_pending(system_compositor, t.ics.xc, when);
+			session_loss.lock()->emplace(when, req.id);
+			break;
+		}
+	}
+}
+
 void wivrn_session::operator()(audio_data && data)
 {
 	if (audio_handle)
@@ -899,6 +915,7 @@ void wivrn_session::run(std::stop_token stop)
 						refresh.adjust(*connection);
 				}
 			}
+			poll_session_loss();
 			connection->poll(*this, 20);
 		}
 		catch (const std::exception & e)
@@ -999,6 +1016,29 @@ void wivrn_session::reconnect()
 	catch (const std::exception & e)
 	{
 		U_LOG_E("Reconnection failed: %s", e.what());
+	}
+}
+
+void wivrn_session::poll_session_loss()
+{
+	auto locked = session_loss.lock();
+	auto now = os_monotonic_get_ns();
+	if (locked->empty())
+		return;
+	auto it = locked->begin();
+	scoped_lock lock(inst.server->global_state.lock);
+	while (it != locked->end() and it->first <= now)
+	{
+		for (auto & t: inst.server->threads)
+		{
+			if (t.ics.client_state.id == it->second)
+			{
+				U_LOG_I("Terminating %s", t.ics.client_state.info.application_name);
+				xrt_syscomp_notify_lost(system_compositor, t.ics.xc);
+				break;
+			}
+		}
+		it = locked->erase(it);
 	}
 }
 

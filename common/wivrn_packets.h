@@ -470,6 +470,11 @@ struct set_active_application
 	uint32_t id;
 };
 
+struct stop_application
+{
+	uint32_t id;
+};
+
 using packets = std::variant<
         crypto_handshake,
         pin_check_1,
@@ -494,7 +499,8 @@ using packets = std::variant<
         get_application_list,
         start_app,
         get_running_applications,
-        set_active_application>;
+        set_active_application,
+        stop_application>;
 } // namespace from_headset
 
 namespace to_headset

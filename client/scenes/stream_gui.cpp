@@ -614,33 +614,73 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 
 void scenes::stream::gui_applications()
 {
+	auto now = instance.now();
+	if (now - running_application_req > 1'000'000'000)
+	{
+		running_application_req = now;
+		network_session->send_control(from_headset::get_running_applications{});
+	}
+
 	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 	CenterTextH(_("Running XR applications:"));
 	ImGui::PopFont();
 	auto apps = running_applications.lock();
-	ImVec2 button_size(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0);
-	ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32_BLACK_TRANS);
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
+	ImVec2 button_size(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 20, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, 20));
+	ImGui::Spacing();
+	std::ranges::sort(apps->applications, [](auto & l, auto & r) {
+		if (l.overlay == r.overlay)
+			return false;
+		return r.overlay;
+	});
+	bool overlay = false;
 	for (const auto & app: apps->applications)
 	{
+		if (app.overlay and not overlay)
+		{
+			ImGui::Separator();
+			CenterTextH(_S("Overlays"));
+			overlay = true;
+		}
+		int colors = 1;
+		ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32_BLACK_TRANS);
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 20));
 		if (app.active or app.overlay)
 		{
-			ImGui::Text("%s", app.name.c_str());
-			if (app.active)
-			{
-				ImGui::SameLine();
-				ImGui::Text("%s", _S("(focused)"));
-			}
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32_BLACK_TRANS);
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32_BLACK_TRANS);
+			colors += 2;
 		}
-		else
+		ImGui::SetNextItemAllowOverlap();
+		const bool clicked = RadioButtonWithoutCheckBox(
+		        std::format("{}{}", app.active ? ICON_FA_CHEVRON_RIGHT " " : "  ", app.name).c_str(),
+		        app.active,
+		        button_size);
+		if (clicked and not(app.active or app.overlay))
 		{
-			if (RadioButtonWithoutCheckBox(app.name, false, button_size))
-				network_session->send_control(from_headset::set_active_application{.id = app.id});
+			network_session->send_control(from_headset::set_active_application{.id = app.id});
+			imgui_ctx->vibrate_on_hover();
 		}
+		ImGui::PopStyleColor(colors);
+		ImGui::PopStyleVar(2);
+
+		ImGui::SameLine();
+		auto right = ImGui::GetWindowSize().x;
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 20);
+		ImGui::SetCursorPosX(right - ImGui::CalcTextSize(ICON_FA_XMARK).x - ImGui::GetStyle().FramePadding.x - 40);
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
+		if (ImGui::Button(std::format(ICON_FA_XMARK "##{}", app.id).c_str()))
+			network_session->send_control(from_headset::stop_application{.id = app.id});
+		imgui_ctx->vibrate_on_hover();
+		ImGui::PopStyleColor(3);
+
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_S("Request to quit, may be ignored by the application"));
 	}
-	ImGui::PopStyleVar(2);
-	ImGui::PopStyleColor();
+	ImGui::PopStyleVar();
 }
 
 // Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
@@ -872,8 +912,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), gui_status, gui_status::settings, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			if (RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), gui_status, gui_status::applications, {tab_width, 0}))
-				network_session->send_control(from_headset::get_running_applications{});
+			RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), gui_status, gui_status::applications, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			int n_items_at_end = 4;

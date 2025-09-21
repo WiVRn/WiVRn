@@ -174,6 +174,7 @@ private:
 	// Last application list received from server
 	thread_safe<std::vector<app>> applications;
 
+	XrTime running_application_req = 0;
 	thread_safe<to_headset::running_applications> running_applications;
 
 	stream();
