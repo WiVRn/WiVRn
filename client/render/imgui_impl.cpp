@@ -361,13 +361,13 @@ imgui_context::imgui_context(
 	        .Device = *device,
 	        .QueueFamily = queue_family_index,
 	        .Queue = *queue.get_unsafe(),
-	        .RenderPass = *renderpass,
+	        .DescriptorPoolSize = 100,
 	        .MinImageCount = 2,
 	        .ImageCount = (uint32_t)swapchain.images().size(), // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
-	        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 	        .PipelineCache = *application::get_pipeline_cache(),
+	        .RenderPass = *renderpass,
 	        .Subpass = 0,
-	        .DescriptorPoolSize = 100,
+	        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
 	        .Allocator = nullptr,
 	        .CheckVkResultFn = check_vk_result,
 	};
