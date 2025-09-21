@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "utils/thread_safe.h"
 #include <memory>
 #include <unordered_map>
 
@@ -27,7 +28,8 @@ template <typename Key, typename Asset, typename Loader>
 class cache
 {
 	Loader loader;
-	std::unordered_map<Key, std::shared_ptr<Asset>> entries;
+
+	thread_safe<std::unordered_map<Key, std::shared_ptr<Asset>>> entries;
 
 public:
 	template <typename... Args>
@@ -38,17 +40,25 @@ public:
 	template <typename... Args>
 	std::shared_ptr<Asset> load(const Key & key, Args &&... args)
 	{
-		auto iter = entries.find(key);
-		if (iter != entries.end())
+		auto _ = entries.lock();
+
+		auto iter = _->find(key);
+		if (iter != _->end())
 			return iter->second;
 
-		return entries.emplace(key, loader(std::forward<Args>(args)...)).first->second;
+		return _->emplace(key, loader(std::forward<Args>(args)...)).first->second;
 	}
 
 	template <typename... Args>
 	std::shared_ptr<Asset> load_uncached(Args &&... args)
 	{
 		return loader(std::forward<Args>(args)...);
+	}
+
+	void clear()
+	{
+		auto _ = entries.lock();
+		_->clear();
 	}
 };
 } // namespace utils
