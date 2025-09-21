@@ -19,6 +19,8 @@
 #pragma once
 
 #include "render/vertex_layout.h"
+#include "utils/cache.h"
+#include "vk/shader.h"
 #include <array>
 #include <cstdint>
 #include <glm/mat4x4.hpp>
@@ -149,6 +151,7 @@ class scene_renderer
 	std::unordered_map<renderpass_info, renderpass> renderpasses;
 	std::unordered_map<output_image_info, output_image> output_images;
 	std::unordered_map<pipeline_info, vk::raii::Pipeline> pipelines;
+	utils::cache<std::string, shader, shader_loader> shader_cache;
 
 	output_image & get_output_image_data(const output_image_info & info);
 	vk::raii::Pipeline & get_pipeline(const pipeline_info & info);

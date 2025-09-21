@@ -19,6 +19,7 @@
 #pragma once
 
 #include "utils/thread_safe.h"
+#include <concepts>
 #include <memory>
 #include <unordered_map>
 
@@ -38,6 +39,7 @@ public:
 	{}
 
 	template <typename... Args>
+	        requires std::invocable<Loader, Args...>
 	std::shared_ptr<Asset> load(const Key & key, Args &&... args)
 	{
 		auto _ = entries.lock();

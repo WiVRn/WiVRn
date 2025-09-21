@@ -54,5 +54,14 @@ struct shader
 	}
 };
 
-std::shared_ptr<shader> load_shader(vk::raii::Device & device, std::span<const uint32_t> spirv);
+struct shader_loader
+{
+	vk::raii::Device & device;
+
+	shader_loader(vk::raii::Device & device);
+
+	std::shared_ptr<shader> operator()(std::span<const uint32_t> spirv);
+	std::shared_ptr<shader> operator()(const std::string & name);
+};
+
 std::shared_ptr<shader> load_shader(vk::raii::Device & device, const std::string & name);
