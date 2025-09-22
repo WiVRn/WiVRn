@@ -29,6 +29,7 @@
 #include <cassert>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <unistd.h>
 
 #if WIVRN_CHECK_CAPSYSNICE
 #include <sys/capability.h>

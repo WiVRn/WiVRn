@@ -24,6 +24,7 @@
 #include "video_encoder.h"
 
 #include "wivrn_packets.h"
+#include <charconv>
 #include <cmath>
 #include <magic_enum.hpp>
 #include <string>

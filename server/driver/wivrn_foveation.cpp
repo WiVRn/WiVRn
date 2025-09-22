@@ -28,6 +28,7 @@
 #include "xrt/xrt_defines.h"
 
 #include <array>
+#include <charconv>
 #include <cmath>
 #include <map>
 #include <ranges>

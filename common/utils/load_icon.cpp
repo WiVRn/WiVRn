@@ -20,6 +20,7 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <bit>
 #include <cairo.h>
 #include <fstream>
 #include <librsvg/rsvg.h>

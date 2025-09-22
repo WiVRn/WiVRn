@@ -25,6 +25,7 @@
 #include "xrt/xrt_device.h"
 
 #include "utils/singleton.h"
+#include <mutex>
 #include <vulkan/vulkan_raii.hpp>
 
 struct render_resources;
