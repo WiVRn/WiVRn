@@ -24,11 +24,11 @@
 #include "video_encoder.h"
 
 #include "wivrn_packets.h"
+#include <charconv>
 #include <cmath>
 #include <magic_enum.hpp>
 #include <string>
 #include <vulkan/vulkan.h>
-#include <charconv>
 
 #include "wivrn_config.h"
 

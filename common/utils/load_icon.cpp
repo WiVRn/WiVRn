@@ -20,13 +20,13 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <bit>
 #include <cairo.h>
 #include <fstream>
 #include <librsvg/rsvg.h>
 #include <png.h>
 #include <span>
 #include <unordered_map>
-#include <bit>
 
 namespace
 {
