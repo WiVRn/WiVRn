@@ -281,7 +281,7 @@ modules:
     sources:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
-        tag: 538639b86c5c71223f11040b09479e5c0a83078c
+        tag: cff07db75c4823afe93ed7027b03d5f7bc86f164
 
   - name: xrizer
     buildsystem: simple
