@@ -1,7 +1,7 @@
-From 3172d537740d2a334dbb009f63c6e6f039554181 Mon Sep 17 00:00:00 2001
+From 240edeee8136b72b0c108b39f9eb032138683a46 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 7/8] Replace distortion with foveation
+Subject: [PATCH 6/7] Replace distortion with foveation
 
 ---
  src/xrt/compositor/CMakeLists.txt             |   4 +-
