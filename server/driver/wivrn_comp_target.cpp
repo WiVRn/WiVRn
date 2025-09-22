@@ -305,7 +305,7 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		        cn->wivrn_bundle->device,
 		        {
 		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-		                .queueFamilyIndex = vk->queue_family_index,
+		                .queueFamilyIndex = vk->main_queue.family_index,
 		        });
 		cn->wivrn_bundle->name(cn->command_pool, "comp target command pool");
 	}
@@ -584,8 +584,8 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
 		        .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
-		        .srcQueueFamilyIndex = vk->queue_family_index,
-		        .dstQueueFamilyIndex = vk->encode_queue_family_index,
+		        .srcQueueFamilyIndex = vk->main_queue.family_index,
+		        .dstQueueFamilyIndex = vk->encode_queue.family_index,
 		        .image = psc_image.image,
 		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
 		                             .baseMipLevel = 0,

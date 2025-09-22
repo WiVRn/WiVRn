@@ -1,0 +1,24 @@
+From a17589c9f77a5e5c3a56685017115fe07f9fd9cc Mon Sep 17 00:00:00 2001
+From: Patrick Nicolas <patricknicolas@laposte.net>
+Date: Mon, 22 Sep 2025 23:33:31 +0200
+Subject: [PATCH] vk: fix video encode queue index
+
+---
+ src/xrt/auxiliary/vk/vk_bundle_init.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/xrt/auxiliary/vk/vk_bundle_init.c b/src/xrt/auxiliary/vk/vk_bundle_init.c
+index 01ce0c2f1..c4c63b608 100644
+--- a/src/xrt/auxiliary/vk/vk_bundle_init.c
++++ b/src/xrt/auxiliary/vk/vk_bundle_init.c
+@@ -1513,6 +1513,7 @@ vk_create_device(struct vk_bundle *vk,
+ 	vk->vkGetDeviceQueue(vk->device, vk->main_queue.family_index, 0, &vk->main_queue.queue);
+ #if defined(VK_KHR_video_encode_queue)
+ 	if (vk->encode_queue.family_index != VK_QUEUE_FAMILY_IGNORED) {
++		vk->encode_queue.index = 0;
+ 		vk->vkGetDeviceQueue(vk->device, vk->encode_queue.family_index, 0, &vk->encode_queue.queue);
+ 	}
+ #endif
+-- 
+2.51.0
+
