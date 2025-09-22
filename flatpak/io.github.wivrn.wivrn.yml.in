@@ -26,8 +26,9 @@ finish-args:
   # List applications from $XDG_DATA_DIRS
   - --filesystem=host-os:ro
   - --filesystem=xdg-data/applications:ro
+  # List Steam games
   - --filesystem=xdg-data/Steam:ro
-  # List flatpak Steam games
+  - --filesystem=~/.steam:ro
   - --filesystem=~/.var/app/com.valvesoftware.Steam:ro
   # Pipewire
   - --filesystem=xdg-run/pipewire-0
