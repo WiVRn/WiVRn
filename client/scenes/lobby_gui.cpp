@@ -135,7 +135,7 @@ static void InputText(const char * label, std::string & text, const ImVec2 & siz
 		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
 		{
 			assert(text.data() == data->Buf);
-			text.resize(data->BufTextLen + 1);
+			text.resize(data->BufTextLen);
 			data->Buf = text.data();
 		}
 
