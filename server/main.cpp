@@ -140,6 +140,20 @@ static void append_delim(std::string & to, std::string_view what, char delim)
 	to += what;
 }
 
+// search for the directory in path named needle
+// with d = /a/b/c/d/e and needle = c
+// return /a/b/c
+// if it can't be found, return the full path
+static std::filesystem::path find_dir(const std::filesystem::path & d, const std::filesystem::path & needle)
+{
+	for (auto copy = d; not copy.empty(); copy = copy.parent_path())
+	{
+		if (copy.filename() == needle)
+			return copy;
+	}
+	return d;
+}
+
 static std::string steam_command()
 {
 	std::string command;
@@ -153,7 +167,7 @@ static std::string steam_command()
 		if (p.starts_with("/usr"))
 			append_delim(command, " VR_OVERRIDE=/run/host" + p, ' ');
 		else if (p.starts_with("/var"))
-			append_delim(command, "PRESSURE_VESSEL_FILESYSTEMS_RW=" + p, ' ');
+			append_delim(command, "PRESSURE_VESSEL_FILESYSTEMS_RW=" + find_dir(p, "io.github.wivrn.wivrn").string(), ' ');
 	}
 
 	if (not command.empty())
