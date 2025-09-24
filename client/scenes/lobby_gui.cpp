@@ -278,43 +278,43 @@ void scenes::lobby::gui_new_server()
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 	ImGui::Dummy({1000, 1});
 
-	ImGui::BeginTable("table", 2);
+	if (ImGui::BeginTable("table", 2))
+	{
+		ImGui::TableSetupColumn("Field name", ImGuiTableColumnFlags_WidthFixed);
+		ImGui::TableSetupColumn("Field value", ImGuiTableColumnFlags_WidthStretch);
 
-	ImGui::TableSetupColumn("Field name", ImGuiTableColumnFlags_WidthFixed);
-	ImGui::TableSetupColumn("Field value", ImGuiTableColumnFlags_WidthStretch);
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		// Make sure the label is vertically centered wrt the text input
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
+		ImGui::Text("%s", _S("Name"));
 
-	ImGui::TableNextRow();
-	ImGui::TableNextColumn();
-	// Make sure the label is vertically centered wrt the text input
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-	ImGui::Text("%s", _S("Name"));
+		ImGui::TableNextColumn();
+		if (ImGui::IsWindowAppearing())
+			ImGui::SetKeyboardFocusHere();
+		InputText("##Name", add_server_window_prettyname, {ImGui::GetContentRegionAvail().x, 0}, 0);
+		imgui_ctx->vibrate_on_hover();
 
-	ImGui::TableNextColumn();
-	if (ImGui::IsWindowAppearing())
-		ImGui::SetKeyboardFocusHere();
-	InputText("##Name", add_server_window_prettyname, {ImGui::GetContentRegionAvail().x, 0}, 0);
-	imgui_ctx->vibrate_on_hover();
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
+		ImGui::Text("%s", _S("Address"));
 
-	ImGui::TableNextRow();
-	ImGui::TableNextColumn();
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-	ImGui::Text("%s", _S("Address"));
+		ImGui::TableNextColumn();
+		InputText("##Hostname", add_server_window_hostname, {ImGui::GetContentRegionAvail().x, 0}, 0);
+		imgui_ctx->vibrate_on_hover();
 
-	ImGui::TableNextColumn();
-	InputText("##Hostname", add_server_window_hostname, {ImGui::GetContentRegionAvail().x, 0}, 0);
-	imgui_ctx->vibrate_on_hover();
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
+		ImGui::Text("%s", _S("Port"));
 
-	ImGui::TableNextRow();
-	ImGui::TableNextColumn();
-	ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-	ImGui::Text("%s", _S("Port"));
+		ImGui::TableNextColumn();
+		ImGui::InputInt("##Port", &add_server_window_port, 1, 1, ImGuiInputTextFlags_CharsDecimal);
+		imgui_ctx->vibrate_on_hover();
 
-	ImGui::TableNextColumn();
-	ImGui::InputInt("##Port", &add_server_window_port, 1, 1, ImGuiInputTextFlags_CharsDecimal);
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::EndTable();
-
+		ImGui::EndTable();
+	}
 	ImGui::Checkbox(_S("TCP only"), &add_server_tcp_only);
 	imgui_ctx->vibrate_on_hover();
 
