@@ -811,12 +811,12 @@ void scenes::lobby::on_focused()
 	// assert(std::ranges::all_of(views, [width](const XrViewConfigurationView & view) { return view.recommendedImageRectWidth == width; }));
 	// assert(std::ranges::all_of(views, [height](const XrViewConfigurationView & view) { return view.recommendedImageRectHeight == height; }));
 
-	lobby_entity = add_gltf("ground.glb", layer_lobby).first;
+	lobby_entity = add_gltf("assets://ground.glb", layer_lobby).first;
 
 	std::string profile = controller_name();
 	input.emplace(
 	        *this,
-	        "controllers/" + profile + "/profile.json",
+	        "assets://controllers/" + profile + "/profile.json",
 	        layer_controllers,
 	        layer_rays);
 
@@ -842,8 +842,8 @@ void scenes::lobby::on_focused()
 	offset_orientation = glm::degrees(glm::eulerAngles(input->offset[xr::spaces::grip_left].second));
 	ray_offset = input->offset[xr::spaces::aim_left].first.z;
 
-	xyz_axes_left_controller = add_gltf("xyz-arrows.glb", layer_controllers).first;
-	xyz_axes_right_controller = add_gltf("xyz-arrows.glb", layer_controllers).first;
+	xyz_axes_left_controller = add_gltf("assets://xyz-arrows.glb", layer_controllers).first;
+	xyz_axes_right_controller = add_gltf("assets://xyz-arrows.glb", layer_controllers).first;
 #endif
 
 	recenter_left_action = get_action("recenter_left").first;
@@ -872,8 +872,8 @@ void scenes::lobby::on_focused()
 	{
 		left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
 		right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
-		hand_model::add_hand(*this, XR_HAND_LEFT_EXT, "left-hand.glb", layer_controllers);
-		hand_model::add_hand(*this, XR_HAND_RIGHT_EXT, "right-hand.glb", layer_controllers);
+		hand_model::add_hand(*this, XR_HAND_LEFT_EXT, "assets://left-hand.glb", layer_controllers);
+		hand_model::add_hand(*this, XR_HAND_RIGHT_EXT, "assets://right-hand.glb", layer_controllers);
 		imgui_inputs.push_back({.hand = &*left_hand});
 		imgui_inputs.push_back({.hand = &*right_hand});
 	}
@@ -934,7 +934,7 @@ void scenes::lobby::on_focused()
 	auto tm = std::localtime(&t);
 	std::string image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";
 
-	about_picture = imgui_ctx->load_texture(image + ".ktx2");
+	about_picture = imgui_ctx->load_texture("assets://" + image + ".ktx2");
 
 	setup_passthrough();
 	session.set_refresh_rate(application::get_config().preferred_refresh_rate.value_or(0));

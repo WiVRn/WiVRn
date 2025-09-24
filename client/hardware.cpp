@@ -403,9 +403,9 @@ std::string controller_ray_model_name()
 		case model::htc_vive_xr_elite:
 			// XR Elite's runtime always assume alpha is unpremultiplied in the composition layers
 			// Assume it's the same for all HTC headsets
-			return "ray-htc.glb";
+			return "assets://ray-htc.glb";
 
 		default:
-			return "ray.glb";
+			return "assets://ray.glb";
 	}
 }

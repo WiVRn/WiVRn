@@ -100,7 +100,7 @@ app_launcher::app_launcher(
                 stream.queue_family_index,
                 stream.queue)
 {
-	default_icon = textures.load_texture("default_icon.ktx2");
+	default_icon = textures.load_texture("assets://default_icon.ktx2");
 }
 
 app_launcher::~app_launcher()

@@ -18,11 +18,11 @@
 
 #include "scene_loader.h"
 
-#include "asset.h"
 #include "gpu_buffer.h"
 #include "image_loader.h"
 #include "render/scene_components.h"
 #include "render/vertex_layout.h"
+#include "utils/mapped_file.h"
 #include "utils/ranges.h"
 #include "vk/shader.h"
 #include <algorithm>
@@ -465,8 +465,8 @@ class loader_context
 	thread_safe<vk::raii::Queue> & queue;
 	vk::raii::CommandPool & cb_pool;
 
-	std::vector<asset> loaded_assets;
-	asset & load_from_asset(const std::filesystem::path & path)
+	std::vector<utils::mapped_file> loaded_assets;
+	utils::mapped_file & load_from_asset(const std::filesystem::path & path)
 	{
 		try
 		{
@@ -1098,7 +1098,7 @@ std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::
 {
 	spdlog::debug("Loading {}", gltf_path.native());
 
-	asset asset_file(gltf_path);
+	utils::mapped_file asset_file(gltf_path);
 
 	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(asset_file.data(), asset_file.size());
 	if (auto error = data_buffer.error(); error != fastgltf::Error::None)

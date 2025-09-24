@@ -19,7 +19,7 @@
 
 #include "i18n.h"
 
-#include "asset.h"
+#include "utils/mapped_file.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -58,7 +58,7 @@ std::vector<char> open_locale_file(const std::string & file_name, const std::str
 	std::vector<char> buffer;
 	try
 	{
-		asset file(file_name);
+		utils::mapped_file file("assets://" + file_name);
 		buffer.resize(file.size());
 		memcpy(buffer.data(), file.data(), file.size());
 	}

@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "asset.h"
 #include "configuration.h"
 #include "crypto.h"
 #include "scene.h"
 #include "scenes/lobby_keyboard.h"
+#include "utils/mapped_file.h"
 #include "utils/thread_safe.h"
 #include "wifi_lock.h"
 #include "wivrn_config.h"
@@ -75,7 +75,7 @@ class lobby : public scene_impl<lobby>
 	std::optional<xr::foveation_profile> foveation;
 
 	std::string selected_item;
-	std::unique_ptr<asset> license;
+	std::unique_ptr<utils::mapped_file> license;
 
 	static inline const uint32_t layer_lobby = 1 << 0;
 	static inline const uint32_t layer_controllers = 1 << 1;

@@ -24,7 +24,6 @@
 #include "android/battery.h"
 #endif
 #include "application.h"
-#include "asset.h"
 #include "configuration.h"
 #include "constants.h"
 #include "imgui.h"
@@ -32,6 +31,7 @@
 #include "lobby.h"
 #include "scenes/stream.h"
 #include "utils/i18n.h"
+#include "utils/mapped_file.h"
 #include "utils/overloaded.h"
 #include "version.h"
 #include "xr/body_tracker.h"
@@ -1100,7 +1100,7 @@ void scenes::lobby::gui_licenses()
 		selected_item = *components.begin();
 		try
 		{
-			license = std::make_unique<asset>(std::filesystem::path("licenses") / selected_item);
+			license = std::make_unique<utils::mapped_file>(std::filesystem::path("assets://licenses") / selected_item);
 		}
 		catch (...)
 		{
@@ -1113,7 +1113,7 @@ void scenes::lobby::gui_licenses()
 		{
 			try
 			{
-				auto current = std::make_unique<asset>(std::filesystem::path("licenses") / component);
+				auto current = std::make_unique<utils::mapped_file>(std::filesystem::path("assets://licenses") / component);
 				if (ImGui::Selectable(component, component == selected_item, ImGuiSelectableFlags_SelectOnRelease))
 				{
 					selected_item = component;

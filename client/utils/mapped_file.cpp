@@ -17,6 +17,7 @@
  */
 
 #include "mapped_file.h"
+#include "application.h"
 #include <asm-generic/mman-common.h>
 #include <fcntl.h>
 #include <string>
@@ -24,38 +25,82 @@
 #include <system_error>
 #include <unistd.h>
 
+#ifdef __ANDROID__
+#include <android/asset_manager.h>
+#endif
+
+namespace
+{
+#ifndef __ANDROID__
+std::filesystem::path get_exe_path()
+{
+	// Linux only: see https://stackoverflow.com/a/1024937
+	return std::filesystem::read_symlink("/proc/self/exe");
+}
+
+std::filesystem::path asset_root()
+{
+	static std::filesystem::path root = []() -> std::filesystem::path {
+		const char * path = std::getenv("WIVRN_ASSET_ROOT");
+		if (path && strcmp(path, ""))
+			return path;
+
+		return get_exe_path().parent_path().parent_path() / "share" / "wivrn" / "assets";
+	}();
+
+	return root;
+}
+
+std::filesystem::path locale_root()
+{
+	static std::filesystem::path root = []() -> std::filesystem::path {
+		const char * path = std::getenv("WIVRN_LOCALE_ROOT");
+		if (path && strcmp(path, ""))
+			return path;
+
+		return get_exe_path().parent_path().parent_path() / "share" / "locale";
+	}();
+
+	return root;
+}
+#endif
+} // namespace
+
 utils::mapped_file::~mapped_file()
 {
-	if (fd >= 0)
-	{
-		::munmap(bytes.data(), bytes.size());
-		::close(fd);
-	}
+#ifdef __ANDROID__
+	if (android_asset)
+		AAsset_close(android_asset);
+	else
+		::munmap(const_cast<std::byte *>(bytes.data()), bytes.size());
+#else
+	::munmap(const_cast<std::byte *>(bytes.data()), bytes.size());
+#endif
 }
 
 utils::mapped_file::mapped_file(mapped_file && other) :
-        fd(other.fd),
+#ifdef __ANDROID__
+        android_asset(other.android_asset),
+#endif
         bytes(other.bytes)
 {
-	other.fd = -1;
+#ifdef __ANDROID__
+	other.android_asset = nullptr;
+#endif
 	other.bytes = {};
 }
 
 utils::mapped_file & utils::mapped_file::operator=(mapped_file && other)
 {
-	std::swap(fd, other.fd);
+#ifdef __ANDROID__
+	std::swap(android_asset, other.android_asset);
+#endif
 	std::swap(bytes, other.bytes);
 
 	return *this;
 }
 
-utils::mapped_file::mapped_file(const std::filesystem::path & path) :
-        mapped_file(::open(path.c_str(), O_RDONLY))
-{
-}
-
-utils::mapped_file::mapped_file(int fd) :
-        fd(fd)
+void utils::mapped_file::map(int fd)
 {
 	off_t size = lseek(fd, 0, SEEK_END);
 	void * addr = ::mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0 /* offset */);
@@ -69,4 +114,44 @@ utils::mapped_file::mapped_file(int fd) :
 	}
 
 	bytes = {reinterpret_cast<std::byte *>(addr), (size_t)size};
+}
+
+void utils::mapped_file::open(const std::filesystem::path & path)
+{
+	int fd = ::open(path.native().c_str(), O_RDONLY);
+
+	if (fd < 0)
+		throw std::system_error(errno, std::system_category(), "open " + std::string{path});
+
+	map(fd);
+	::close(fd);
+}
+
+utils::mapped_file::mapped_file(const std::filesystem::path & path)
+{
+	if (path.native().starts_with("assets://"))
+	{
+		std::filesystem::path asset_path = path.native().substr(9);
+
+#ifdef __ANDROID__
+		android_asset = AAssetManager_open(application::asset_manager(), asset_path.c_str(), AASSET_MODE_BUFFER);
+
+		if (!android_asset)
+			throw std::runtime_error("Cannot open Android asset " + path.string());
+
+		bytes = {reinterpret_cast<const std::byte *>(AAsset_getBuffer(android_asset)), (size_t)AAsset_getLength64(android_asset)};
+#else
+		if (asset_path.native().starts_with("locale/"))
+			open(locale_root() / asset_path.native().substr(7));
+		else
+			open(asset_root() / asset_path.native());
+#endif
+	}
+	else
+		open(path);
+}
+
+utils::mapped_file::mapped_file(int fd)
+{
+	map(fd);
 }
