@@ -98,7 +98,7 @@ scene::scene(key, const meta & current_meta, std::span<const vk::Format> support
 	{
 		// TODO: make argument order more consistent
 		renderer = std::make_shared<scene_renderer>(device, physical_device, queue, commandpool);
-		gltf_cache = std::make_shared<gltf_cache_type>(device, physical_device, queue, queue_family_index, renderer->get_default_material());
+		gltf_cache = std::make_shared<gltf_cache_type>(device, physical_device, queue, queue_family_index, renderer->get_default_material(), application::get_cache_path() / "textures");
 		image_cache = std::make_shared<image_cache_type>(physical_device, device, queue, commandpool);
 	}
 }
@@ -563,14 +563,14 @@ std::pair<entt::entity, components::node &> scene::add_gltf(std::shared_ptr<entt
 	return {root, node};
 }
 
-std::shared_ptr<entt::registry> scene::load_gltf(const std::filesystem::path & path)
+std::shared_ptr<entt::registry> scene::load_gltf(const std::filesystem::path & path, std::function<void(float)> progress_cb)
 {
-	return gltf_cache->load(path.native(), path);
+	return gltf_cache->load(path, path, progress_cb);
 }
 
-std::shared_ptr<entt::registry> scene::load_gltf(std::span<const std::byte> data)
+void scene::unload_gltf(const std::filesystem::path & path)
 {
-	return gltf_cache->load_uncached(data);
+	gltf_cache->remove(path);
 }
 
 std::pair<entt::entity, components::node &> scene::add_gltf(const std::filesystem::path & path, uint32_t layer_mask)
@@ -578,10 +578,6 @@ std::pair<entt::entity, components::node &> scene::add_gltf(const std::filesyste
 	return add_gltf(load_gltf(path), layer_mask);
 }
 
-std::pair<entt::entity, components::node &> scene::add_gltf(std::span<const std::byte> data, uint32_t layer_mask)
-{
-	return add_gltf(load_gltf(data), layer_mask);
-}
 
 void scene::remove(entt::entity entity)
 {
@@ -591,7 +587,6 @@ void scene::remove(entt::entity entity)
 	{
 		entt::entity parent = to_be_removed.back();
 		to_be_removed.pop_back();
-		spdlog::info("Destroying entity {}", (int)parent);
 		world.destroy(parent);
 
 		for (auto [e, node]: world.view<components::node>().each())

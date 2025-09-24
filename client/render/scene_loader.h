@@ -33,17 +33,29 @@ class scene_loader
 	thread_safe<vk::raii::Queue> & queue;
 	uint32_t queue_family_index;
 	std::shared_ptr<renderer::material> default_material;
+	std::filesystem::path texture_cache;
+
+	std::shared_ptr<entt::registry> operator()(
+	        std::span<const std::byte> data,
+	        const std::string & name = "",
+	        const std::filesystem::path & parent_path = "",
+	        const std::filesystem::path & gltf_texture_cache = "",
+	        std::function<void(float)> progress_cb = {});
 
 public:
-	scene_loader(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, thread_safe<vk::raii::Queue> & queue, uint32_t queue_family_index, std::shared_ptr<renderer::material> default_material) :
-	        device(device),
-	        physical_device(physical_device),
-	        queue(queue),
-	        queue_family_index(queue_family_index),
-	        default_material(default_material)
-	{}
+	scene_loader(
+	        vk::raii::Device & device,
+	        vk::raii::PhysicalDevice physical_device,
+	        thread_safe<vk::raii::Queue> & queue,
+	        uint32_t queue_family_index,
+	        std::shared_ptr<renderer::material> default_material,
+	        std::filesystem::path texture_cache);
+
 	scene_loader(const scene_loader &) = default;
 
-	std::shared_ptr<entt::registry> operator()(const std::filesystem::path & gltf_path, std::function<void(float)> progress_cb = {});
-	std::shared_ptr<entt::registry> operator()(std::span<const std::byte> data, const std::string & name = "", const std::filesystem::path & parent_path = "", std::function<void(float)> progress_cb = {});
+	std::shared_ptr<entt::registry> operator()(
+	        const std::filesystem::path & gltf_path,
+	        std::function<void(float)> progress_cb = {});
+
+	void clear_texture_cache();
 };
