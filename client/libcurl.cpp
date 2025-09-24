@@ -18,7 +18,7 @@
 
 #include "libcurl.h"
 
-#include "asset.h"
+#include "utils/mapped_file.h"
 #include "utils/named_thread.h"
 #include "version.h"
 #include <algorithm>
@@ -64,9 +64,9 @@ libcurl::libcurl()
 void libcurl::curl_thread_fn()
 {
 #ifdef __ANDROID__
-	asset ca_bundle{"ca-bundle.crt"};
+	utils::mapped_file ca_bundle{"assets://ca-bundle.crt"};
 	curl_blob ca_bundle_info{
-	        .data = (void *)ca_bundle.data(),
+	        .data = const_cast<std::byte *>(ca_bundle.data()),
 	        .len = ca_bundle.size(),
 	        .flags = CURL_BLOB_NOCOPY,
 	};

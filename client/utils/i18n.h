@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include <boost/locale/gnu_gettext.hpp>
 
 #define _(x) boost::locale::gettext(x)
