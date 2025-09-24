@@ -23,6 +23,7 @@
 #include "vk/allocation.h"
 #include "vk/fwd.h"
 #include <cstddef>
+#include <filesystem>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
@@ -52,7 +53,7 @@ struct image_loader
 	~image_loader();
 
 	// Load a PNG/JPEG/KTX2 file
-	loaded_image load(std::span<const std::byte> bytes, bool srgb, const std::string & name = "", bool premultiply = false);
+	loaded_image load(std::span<const std::byte> bytes, bool srgb, const std::string & name = "", bool premultiply = false, const std::filesystem::path & output_file = "");
 
 	// Load raw pixel data
 	loaded_image load(const void * pixels, size_t size, vk::Extent3D extent, vk::Format format, const std::string & name = "", bool premultiply = false);
@@ -94,5 +95,5 @@ private:
 	loaded_image do_load_raw(const void * pixels, vk::Extent3D extent, vk::Format format, const std::string & name, bool premultiply);
 
 	loaded_image do_load_image(std::span<const std::byte> bytes, bool srgb, const std::string & name, bool premultiply);
-	loaded_image do_load_ktx(std::span<const std::byte> bytes, bool srgb, const std::string & name);
+	loaded_image do_load_ktx(std::span<const std::byte> bytes, bool srgb, const std::string & name, const std::filesystem::path & output_file = "");
 };

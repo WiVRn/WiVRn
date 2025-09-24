@@ -62,5 +62,11 @@ public:
 		auto _ = entries.lock();
 		_->clear();
 	}
+
+	void remove(const Key & key)
+	{
+		auto _ = entries.lock();
+		_->erase(key);
+	}
 };
 } // namespace utils
