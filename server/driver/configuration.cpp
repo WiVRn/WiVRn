@@ -293,9 +293,6 @@ std::optional<std::chrono::system_clock::time_point> from_iso8601(const std::str
 	if (strptime(timestamp.c_str(), "%FT%H:%M:%S%z", &t) == nullptr)
 		return std::nullopt;
 
-	// Convert from local time to UTC
-	t.tm_sec += t.tm_gmtoff;
-
 	return std::chrono::system_clock::from_time_t(mktime(&t));
 }
 
