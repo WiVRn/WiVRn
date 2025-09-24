@@ -597,7 +597,7 @@ loaded_image image_loader::do_load_raw(const void * pixels, vk::Extent3D extent,
 	};
 }
 
-loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool srgb, const std::string & name)
+loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool srgb, const std::string & name, const std::filesystem::path & output_file)
 {
 	KTXTexture2 texture{};
 	// KTX_TEXTURE_CREATE_CHECK_GLTF_BASISU_BIT checks that the file is compatible with the KHR_texture_basisu glTF extension
@@ -615,14 +615,25 @@ loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool sr
 	{
 		auto format = srgb ? supported_srgb_formats.front() : supported_linear_formats.front();
 
-		auto t0 = std::chrono::steady_clock::now();
 		if (ktxTexture2_TranscodeBasis(texture, format.second, 0) != KTX_SUCCESS)
 		{
 			spdlog::warn("ktxTexture2_TranscodeBasis: error {}", ktxErrorString(err));
 			throw std::runtime_error("ktxTexture2_TranscodeBasis");
 		}
-		auto dt = std::chrono::steady_clock::now() - t0;
-		spdlog::debug("{}: transcoded to {} in {}", name, vk::to_string(format.first), std::chrono::duration_cast<std::chrono::microseconds>(dt));
+
+		if (output_file != "")
+		{
+			spdlog::debug("Saving transcoded texture to {}", output_file.native());
+			std::string writer = "WiVRn";
+			ktxHashList_DeleteKVPair(&texture->kvDataHead, KTX_WRITER_KEY);
+			ktxHashList_AddKVPair(&texture->kvDataHead, KTX_WRITER_KEY, (ktx_uint32_t)writer.length() + 1, writer.c_str());
+
+			err = ktxTexture2_WriteToNamedFile(texture, output_file.c_str());
+			if (err != KTX_SUCCESS)
+			{
+				spdlog::warn("ktxTexture2_WriteToNamedFile: error {}", ktxErrorString(err));
+			}
+		}
 	}
 
 	ktxVulkanTexture vk_texture;
@@ -711,13 +722,13 @@ loaded_image image_loader::do_load_image(std::span<const std::byte> bytes, bool 
 }
 
 // Load a PNG/JPEG/KTX2 file
-loaded_image image_loader::load(std::span<const std::byte> bytes, bool srgb, const std::string & name, bool premultiply)
+loaded_image image_loader::load(std::span<const std::byte> bytes, bool srgb, const std::string & name, bool premultiply, const std::filesystem::path & output_file)
 {
 	const uint8_t ktx1_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 	const uint8_t ktx2_magic[] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
 
 	if (starts_with(bytes, ktx1_magic) || starts_with(bytes, ktx2_magic))
-		return do_load_ktx(bytes, srgb, name);
+		return do_load_ktx(bytes, srgb, name, output_file);
 	else
 		return do_load_image(bytes, srgb, name, premultiply);
 }

@@ -22,6 +22,8 @@
 #include "image_loader.h"
 #include "render/scene_components.h"
 #include "render/vertex_layout.h"
+#include "utils/files.h"
+#include "utils/json_string.h"
 #include "utils/mapped_file.h"
 #include "utils/ranges.h"
 #include "vk/shader.h"
@@ -36,10 +38,13 @@
 #include <fastgltf/tools.hpp>
 #include <fastgltf/types.hpp>
 #include <fastgltf/util.hpp>
+#include <filesystem>
+#include <fstream>
 #include <glm/ext.hpp>
 #include <glm/fwd.hpp>
 #include <limits>
 #include <ranges>
+#include <simdjson/dom.h>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vulkan/vulkan_format_traits.hpp>
@@ -224,7 +229,7 @@ std::vector<glm::dvec4> read_vertex_attribute_aux(const fastgltf::Asset & asset,
 		case 2: return read_vertex_attribute_aux2<glm::vec<2, T>>(asset, accessor);
 		case 3: return read_vertex_attribute_aux2<glm::vec<3, T>>(asset, accessor);
 		case 4: return read_vertex_attribute_aux2<glm::vec<4, T>>(asset, accessor);
-		//clang-format on
+			// clang-format on
 	}
 	return {};
 }
@@ -233,7 +238,7 @@ std::vector<glm::dvec4> read_vertex_attribute(const fastgltf::Asset & asset, con
 {
 	switch (accessor.componentType)
 	{
-		// clang-format off
+			// clang-format off
 		case fastgltf::ComponentType::Byte:          return read_vertex_attribute_aux<int8_t>(asset, accessor);
 		case fastgltf::ComponentType::UnsignedByte:  return read_vertex_attribute_aux<uint8_t>(asset, accessor);
 		case fastgltf::ComponentType::Short:         return read_vertex_attribute_aux<int16_t>(asset, accessor);
@@ -241,7 +246,7 @@ std::vector<glm::dvec4> read_vertex_attribute(const fastgltf::Asset & asset, con
 		case fastgltf::ComponentType::Int:           return read_vertex_attribute_aux<int32_t>(asset, accessor);
 		case fastgltf::ComponentType::UnsignedInt:   return read_vertex_attribute_aux<uint32_t>(asset, accessor);
 		case fastgltf::ComponentType::Float:         return read_vertex_attribute_aux<float>(asset, accessor);
-		//clang-format on
+		// clang-format on
 		case fastgltf::ComponentType::Double: // TODO
 			abort();
 			break;
@@ -402,7 +407,8 @@ loaded_image do_load_image(
         vk::raii::CommandPool & cb_pool,
         std::span<const std::byte> image_data,
         bool srgb,
-        const std::pmr::string & name)
+        const std::pmr::string & name,
+        const std::filesystem::path & output_path)
 {
 	switch (guess_mime_type(image_data))
 	{
@@ -411,7 +417,7 @@ loaded_image do_load_image(
 		case fastgltf::MimeType::KTX2: {
 			// TODO reuse image loader
 			image_loader loader(physical_device, device, queue, cb_pool);
-			auto image = loader.load(image_data, srgb, name.c_str());
+			auto image = loader.load(image_data, srgb, name.c_str(), false /*premultiply*/, output_path);
 
 			spdlog::debug("{}: {}x{}, format {}, {} mipmaps, {} bytes", name, image.extent.width, image.extent.height, vk::to_string(image.format), image.num_mipmaps, image.image.size());
 			return image;
@@ -572,7 +578,7 @@ public:
 	}
 
 	std::unordered_map<int, std::shared_ptr<vk::raii::ImageView>> images;
-	std::shared_ptr<vk::raii::ImageView> load_image(int index, bool srgb)
+	std::shared_ptr<vk::raii::ImageView> load_image(int index, const std::filesystem::path & texture_cache, bool srgb)
 	{
 		auto it = images.find(index);
 		if (it != images.end())
@@ -581,20 +587,42 @@ public:
 		if (index > gltf.images.size())
 			throw std::runtime_error(std::format("Image index {} out of range", index));
 
-		auto [image_data, mime_type] = visit_source(gltf.images[index].data);
-
 		std::pmr::string image_name;
 		if (gltf.images[index].name == "")
 			image_name = std::format("{}(image {})", name, index);
 		else
 			image_name = std::format("{}({})", name, gltf.images[index].name);
 
-		auto image_ptr = std::make_shared<loaded_image>(do_load_image(physical_device, device, queue, cb_pool, image_data, srgb, image_name));
+		std::filesystem::path cached_texture;
+
+		if (texture_cache != "")
+		{
+			cached_texture = texture_cache / (std::to_string(index) + ".ktx");
+
+			if (std::filesystem::exists(cached_texture))
+			{
+				try
+				{
+					utils::mapped_file image_data{cached_texture};
+					auto image_ptr = std::make_shared<loaded_image>(do_load_image(physical_device, device, queue, cb_pool, image_data, srgb, image_name, ""));
+					return std::shared_ptr<vk::raii::ImageView>(image_ptr, &image_ptr->image_view);
+				}
+				catch (std::exception & e)
+				{
+					spdlog::warn("Cannot load cached image {}: {}, deleting it", cached_texture.native(), e.what());
+					std::error_code ec;
+					std::filesystem::remove(cached_texture);
+				}
+			}
+		}
+
+		auto [image_data, mime_type] = visit_source(gltf.images[index].data);
+		auto image_ptr = std::make_shared<loaded_image>(do_load_image(physical_device, device, queue, cb_pool, image_data, srgb, image_name, cached_texture));
 
 		return std::shared_ptr<vk::raii::ImageView>(image_ptr, &image_ptr->image_view);
 	}
 
-	std::vector<std::shared_ptr<renderer::texture>> load_all_textures(std::function<void(float)> progress_cb)
+	std::vector<std::shared_ptr<renderer::texture>> load_all_textures(const std::filesystem::path & texture_cache, std::function<void(float)> progress_cb)
 	{
 		// Determine which texture is sRGB
 		std::vector<uint8_t> srgb_array;
@@ -626,7 +654,7 @@ public:
 			{
 				try
 				{
-					texture_ref.image_view = load_image(*gltf_texture.basisuImageIndex, srgb);
+					texture_ref.image_view = load_image(*gltf_texture.basisuImageIndex, texture_cache, srgb);
 					loaded_textures++;
 					if (progress_cb)
 						progress_cb((float)loaded_textures / total_textures);
@@ -652,7 +680,7 @@ public:
 			{
 				try
 				{
-					texture_ref.image_view = load_image(*gltf_texture.imageIndex, srgb);
+					texture_ref.image_view = load_image(*gltf_texture.imageIndex, texture_cache, srgb);
 					loaded_textures++;
 					if (progress_cb)
 						progress_cb((float)loaded_textures / total_textures);
@@ -1048,7 +1076,23 @@ public:
 
 } // namespace
 
-std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::byte> data, const std::string & name, const std::filesystem::path & parent_path, std::function<void(float)> progress_cb)
+scene_loader::scene_loader(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, thread_safe<vk::raii::Queue> & queue, uint32_t queue_family_index, std::shared_ptr<renderer::material> default_material, std::filesystem::path texture_cache_) :
+        device(device),
+        physical_device(physical_device),
+        queue(queue),
+        queue_family_index(queue_family_index),
+        default_material(default_material),
+        texture_cache(std::move(texture_cache_))
+{
+	clear_texture_cache();
+}
+
+std::shared_ptr<entt::registry> scene_loader::operator()(
+        std::span<const std::byte> data,
+        const std::string & name,
+        const std::filesystem::path & parent_path,
+        const std::filesystem::path & gltf_texture_cache,
+        std::function<void(float)> progress_cb)
 {
 	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
 	vk::raii::CommandPool cb_pool{device, vk::CommandPoolCreateInfo{
@@ -1074,7 +1118,7 @@ std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::by
 	gpu_buffer staging_buffer(physical_device_properties, asset);
 
 	// Load all textures
-	auto textures = ctx.load_all_textures(progress_cb);
+	auto textures = ctx.load_all_textures(gltf_texture_cache, progress_cb);
 
 	// Load all materials
 	auto materials = ctx.load_all_materials(textures, staging_buffer, *default_material);
@@ -1102,15 +1146,150 @@ std::shared_ptr<entt::registry> scene_loader::operator()(std::span<const std::by
 	return loaded_scene;
 }
 
-std::shared_ptr<entt::registry> scene_loader::operator()(const std::filesystem::path & gltf_path, std::function<void(float)> progress_cb)
+std::shared_ptr<entt::registry> scene_loader::operator()(
+        const std::filesystem::path & gltf_path,
+        std::function<void(float)> progress_cb)
 {
-	spdlog::debug("Loading {}", gltf_path.native());
+	utils::mapped_file gltf_file(gltf_path);
+	std::filesystem::path gltf_texture_cache;
 
-	utils::mapped_file asset_file(gltf_path);
+	if (texture_cache != "")
+	{
+		// FNV1a hash
+		static const uint64_t fnv_prime = 0x100000001b3;
+		static const uint64_t fnv_offset_basis = 0xcbf29ce484222325;
+		uint64_t hash = fnv_offset_basis;
+		for (char c: gltf_path.native())
+			hash = (hash ^ c) * fnv_prime;
 
-	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(asset_file.data(), asset_file.size());
-	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
-		throw std::system_error((int)error, fastgltf_error_category);
+		gltf_texture_cache = texture_cache / fmt::format("{:016x}", hash);
 
-	return (*this)(asset_file, gltf_path.filename(), gltf_path.parent_path(), progress_cb);
+		bool create_cache = false;
+		try
+		{
+			if (std::filesystem::exists(gltf_texture_cache))
+			{
+				if (not std::filesystem::is_directory(gltf_texture_cache))
+				{
+					std::filesystem::remove(gltf_texture_cache);
+					std::filesystem::create_directories(gltf_texture_cache);
+					spdlog::debug("\"{}\" is not a directory: creating cache", gltf_texture_cache.native());
+					create_cache = true;
+				}
+			}
+			else
+			{
+				std::filesystem::create_directories(gltf_texture_cache);
+				spdlog::debug("\"{}\" does not exist: creating cache", gltf_texture_cache.native());
+				create_cache = true;
+			}
+		}
+		catch (std::exception & e)
+		{
+			spdlog::warn("Cannot create texture cache directory {}: {}", gltf_texture_cache.native(), e.what());
+			gltf_texture_cache = "";
+			create_cache = false;
+		}
+
+		if (create_cache)
+		{
+			std::ofstream json{gltf_texture_cache / "index.json"};
+			json << "{\"filename\":" << json_string(gltf_path.native());
+			json << ",\"size\":" << gltf_file.size();
+
+			// TODO get a timestamp for assets
+			if (not gltf_path.native().starts_with("assets://"))
+			{
+				auto mtime = std::chrono::file_clock::to_sys(std::filesystem::last_write_time(gltf_path));
+				auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
+				auto size = gltf_file.size();
+
+				json << ",\"timestamp\":" << timestamp;
+			}
+			json << "}";
+		}
+	}
+
+	return (*this)(gltf_file, gltf_path.filename(), gltf_path.parent_path(), gltf_texture_cache, progress_cb);
+}
+
+void scene_loader::clear_texture_cache()
+{
+	try
+	{
+		for (const std::filesystem::directory_entry & entry: std::filesystem::directory_iterator{texture_cache})
+		{
+			if (not entry.is_directory())
+				continue;
+
+			std::string saved_filename;
+			int64_t saved_timestamp = 0;
+			int64_t saved_size = 0;
+
+			try
+			{
+				std::string json = utils::read_whole_file<std::string>(entry.path() / "index.json");
+				simdjson::dom::parser parser;
+				simdjson::dom::element root = parser.parse(json);
+
+				if (auto val = root["filename"]; val.is_string())
+					saved_filename = val.get_string().value();
+
+				if (auto val = root["size"]; val.is_int64())
+					saved_size = val.get_int64();
+
+				if (auto val = root["timestamp"]; val.is_int64())
+					saved_timestamp = val.get_int64();
+			}
+			catch (std::exception & e)
+			{
+				// If the index file is not found, remove the cache
+				spdlog::info("{}: cannot open index.json ({}), removing cache directory", entry.path().native(), e.what());
+				std::error_code ec;
+				std::filesystem::remove_all(entry.path(), ec);
+				continue;
+			}
+
+			int64_t real_size = 0;
+			try
+			{
+				utils::mapped_file file{saved_filename};
+				real_size = file.size();
+			}
+			catch (std::exception & e)
+			{
+				spdlog::info("{}: cannot open {} ({}), removing cache directory", entry.path().native(), saved_filename, e.what());
+				std::error_code ec;
+				std::filesystem::remove_all(entry.path(), ec);
+				continue;
+			}
+
+			if (real_size != saved_size)
+			{
+				spdlog::info("{}: wrong size for {} (cache: {}, current: {}), removing cache directory", entry.path().native(), saved_filename, saved_size, real_size);
+				std::error_code ec;
+				std::filesystem::remove_all(entry.path(), ec);
+				continue;
+			}
+
+			// TODO get a timestamp for assets
+			if (not saved_filename.starts_with("assets://"))
+			{
+				auto mtime = std::chrono::file_clock::to_sys(std::filesystem::last_write_time(saved_filename));
+				auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
+
+				if (timestamp != saved_timestamp)
+				{
+					spdlog::info("{}: wrong timestamp for {} (cache: {}, current: {}), removing cache directory", entry.path().native(), saved_filename, saved_timestamp, timestamp);
+					std::error_code ec;
+					std::filesystem::remove_all(entry.path(), ec);
+					continue;
+				}
+			}
+		}
+	}
+	catch (...)
+	{
+		// Ignore errors if the texture cache directory does not exist
+	}
 }

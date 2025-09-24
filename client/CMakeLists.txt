@@ -105,7 +105,7 @@ target_link_libraries(wivrn
     FreetypeHarfbuzz
     glm::glm
     imspinner
-    ktx_read
+    ktx
     simdjson
     spdlog::spdlog
     spirv-reflect-static
