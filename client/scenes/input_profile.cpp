@@ -19,9 +19,9 @@
 #include "input_profile.h"
 
 #include "application.h"
-#include "asset.h"
 #include "hardware.h"
 #include "render/scene_components.h"
+#include "utils/mapped_file.h"
 #include "xr/space.h"
 #include <entt/entt.hpp>
 #include <glm/gtc/matrix_access.hpp>
@@ -175,10 +175,10 @@ struct json_visual_response
 
 input_profile::input_profile(scene & scene, const std::filesystem::path & json_profile, uint32_t layer_mask_controller, uint32_t layer_mask_ray)
 {
-	std::string json = asset(json_profile);
+	utils::mapped_file json{json_profile};
 
 	simdjson::dom::parser parser;
-	simdjson::dom::element root = parser.parse(json);
+	simdjson::dom::element root = parser.parse(reinterpret_cast<const char *>(json.data()), json.size());
 
 	id = std::string(root["profileId"]);
 

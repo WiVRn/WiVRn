@@ -21,10 +21,10 @@
 #include "implot.h"
 
 #include "application.h"
-#include "asset.h"
 #include "constants.h"
 #include "image_loader.h"
 #include "openxr/openxr.h"
+#include "utils/mapped_file.h"
 #include "utils/ranges.h"
 #include "utils/strings.h"
 #include "vulkan/vulkan_enums.hpp"
@@ -527,8 +527,8 @@ void imgui_context::initialize_fonts()
 		}
 	}
 
-	asset font_awesome_regular("Font Awesome 6 Free-Regular-400.otf");
-	asset font_awesome_solid("Font Awesome 6 Free-Solid-900.otf");
+	utils::mapped_file font_awesome_regular("assets://Font Awesome 6 Free-Regular-400.otf");
+	utils::mapped_file font_awesome_solid("assets://Font Awesome 6 Free-Solid-900.otf");
 
 	ImFontConfig config;
 	config.FontDataOwnedByAtlas = false;
@@ -1041,7 +1041,7 @@ imgui_context::~imgui_context()
 
 ImTextureID imgui_textures::load_texture(const std::string & filename, vk::raii::Sampler && sampler)
 {
-	return load_texture(std::span<const std::byte>{asset{filename}}, std::move(sampler), filename);
+	return load_texture(utils::mapped_file{filename}, std::move(sampler), filename);
 }
 
 ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name)

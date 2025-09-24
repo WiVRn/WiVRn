@@ -22,12 +22,22 @@
 #include <filesystem>
 #include <span>
 
+#ifdef __ANDROID__
+struct AAsset;
+#endif
+
 namespace utils
 {
 class mapped_file
 {
-	int fd = -1;
-	std::span<std::byte> data{};
+#ifdef __ANDROID__
+	AAsset * android_asset = nullptr;
+#endif
+
+	std::span<const std::byte> bytes{};
+
+	void map(int fd);
+	void open(const std::filesystem::path & path);
 
 public:
 	mapped_file() = default;
@@ -37,12 +47,22 @@ public:
 	mapped_file & operator=(mapped_file &&);
 	~mapped_file();
 
-	mapped_file(int fd); // Takes ownership of the file descriptor
+	mapped_file(int fd); // Does not take ownership of the file descriptor
 	mapped_file(const std::filesystem::path & path);
 
 	operator std::span<const std::byte>() const
 	{
-		return data;
+		return bytes;
+	}
+
+	const std::byte * data() const
+	{
+		return bytes.data();
+	}
+
+	size_t size() const
+	{
+		return bytes.size();
 	}
 };
 } // namespace utils
