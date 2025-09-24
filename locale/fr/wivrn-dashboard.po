@@ -141,29 +141,29 @@ msgstr "Casques"
 #, kde-format
 msgid "Last connection: %1 second ago"
 msgid_plural "Last connection: %1 seconds ago"
-msgstr[0] "Dernière connexion : il a y %1 seconde"
-msgstr[1] "Dernière connexion : il a y %1 secondes"
+msgstr[0] "Dernière connexion : il y a %1 seconde"
+msgstr[1] "Dernière connexion : il y a %1 secondes"
 
 #: dashboard/qml/HeadsetsPage.qml:31
 #, kde-format
 msgid "Last connection: %1 minute ago"
 msgid_plural "Last connection: %1 minutes ago"
-msgstr[0] "Dernière connexion : il a y %1 minute"
-msgstr[1] "Dernière connexion : il a y %1 minutes"
+msgstr[0] "Dernière connexion : il y a %1 minute"
+msgstr[1] "Dernière connexion : il y a %1 minutes"
 
 #: dashboard/qml/HeadsetsPage.qml:33
 #, kde-format
 msgid "Last connection: %1 hour ago"
 msgid_plural "Last connection: %1 hours ago"
-msgstr[0] "Dernière connexion : il a y %1 heure"
-msgstr[1] "Dernière connexion : il a y %1 heures"
+msgstr[0] "Dernière connexion : il y a %1 heure"
+msgstr[1] "Dernière connexion : il y a %1 heures"
 
 #: dashboard/qml/HeadsetsPage.qml:35
 #, kde-format
 msgid "Last connection: %1 day ago"
 msgid_plural "Last connection: %1 days ago"
-msgstr[0] "Dernière connexion : il a y %1 jour"
-msgstr[1] "Dernière connexion : il a y %1 jours"
+msgstr[0] "Dernière connexion : il y a %1 jour"
+msgstr[1] "Dernière connexion : il y a %1 jours"
 
 #: dashboard/qml/HeadsetsPage.qml:40
 #, kde-format
