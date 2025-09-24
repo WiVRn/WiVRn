@@ -54,6 +54,11 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include "wivrn_config.h"
+#if WIVRN_FEATURE_RENDERDOC
+#include "vk/renderdoc.h"
+#endif
+
 using namespace std::chrono_literals;
 
 static bool force_autoconnect = false;
@@ -641,6 +646,9 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	}
 
 	session.begin_frame();
+#if WIVRN_FEATURE_RENDERDOC
+	renderdoc_begin(*vk_instance);
+#endif
 
 	XrSpace world_space = application::space(xr::spaces::world);
 	auto [flags, views] = session.locate_views(viewconfig, frame_state.predictedDisplayTime, world_space);
@@ -796,6 +804,10 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	}
 
 	render_end();
+
+#if WIVRN_FEATURE_RENDERDOC
+	renderdoc_end(*vk_instance);
+#endif
 }
 
 void scenes::lobby::on_focused()
