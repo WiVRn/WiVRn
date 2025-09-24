@@ -13,7 +13,6 @@ execute_process(
 
 if (GIT_DESC)
 	string(STRIP ${GIT_DESC} GIT_DESC)
-	string(REGEX REPLACE "^v([0-9])" "\\1" GIT_DESC ${GIT_DESC})
 	message(STATUS "Setting version to ${GIT_DESC} from git")
 else()
 	set(GIT_DESC v${CMAKE_PROJECT_VERSION})

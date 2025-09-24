@@ -42,9 +42,7 @@ bool apk_installer::isTagged() const
 
 QString apk_installer::currentVersion() const
 {
-	if (wivrn::git_version[0] == 'v')
-		return &wivrn::git_version[1];
-	return wivrn::git_version;
+	return wivrn::display_version();
 }
 
 QCoro::Task<> apk_installer::doRefreshLatestVersion()

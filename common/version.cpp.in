@@ -17,6 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <cctype>
+#include <iterator>
+
 namespace wivrn
 {
 	extern const char git_version[];
@@ -24,4 +27,12 @@ namespace wivrn
 
 	extern const char git_commit[];
 	const char git_commit[] = "@GIT_COMMIT@";
+
+const char* display_version()
+{
+	if (std::size(git_version) > 2 and git_version[0] == 'v' and isdigit(git_version[1]))
+		return git_version + 1;
+	else
+		return git_version;
+}
 }

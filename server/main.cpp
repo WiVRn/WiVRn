@@ -354,7 +354,7 @@ void start_publishing()
 			sprintf(protocol_string, "%016" PRIx64, wivrn::protocol_version);
 			std::map<std::string, std::string> TXT = {
 			        {"protocol", protocol_string},
-			        {"version", wivrn::git_version},
+			        {"version", wivrn::display_version()},
 			        {"cookie", server_cookie()},
 			};
 			publisher.emplace(poll_api, hostname(), "_wivrn._tcp", wivrn::default_port, TXT);
@@ -889,7 +889,7 @@ auto create_dbus_connection()
 
 int inner_main(int argc, char * argv[], bool show_instructions)
 {
-	std::cerr << "WiVRn " << wivrn::git_version << " starting" << std::endl;
+	std::cerr << "WiVRn " << wivrn::display_version() << " starting" << std::endl;
 	if (show_instructions)
 	{
 		if (auto command = steam_command(); not command.empty())
@@ -998,7 +998,7 @@ int main(int argc, char * argv[])
 
 	if (*version_flag)
 	{
-		std::cout << "WiVRn version " << wivrn::git_version << std::endl;
+		std::cout << "WiVRn version " << wivrn::display_version() << std::endl;
 		return 0;
 	}
 
