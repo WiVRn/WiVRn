@@ -116,7 +116,7 @@ scenes::lobby::lobby() :
         scene_impl<lobby>(supported_color_formats, supported_depth_formats)
 {
 	spdlog::info("Using formats {} and {}", vk::to_string(swapchain_format), vk::to_string(depth_format));
-	// composition_layer_depth_test_supported = false;
+
 	if (composition_layer_depth_test_supported)
 		spdlog::info("Composition layer depth test supported");
 	else
@@ -131,7 +131,7 @@ scenes::lobby::lobby() :
 	    instance.has_extension(XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME))
 	{
 		spdlog::info("Foveation image supported");
-		foveation = xr::foveation_profile(instance, session, XR_FOVEATION_LEVEL_HIGH_FB, -10, false);
+		foveation = xr::foveation_profile(instance, session, XR_FOVEATION_LEVEL_NONE_FB, -10, false);
 	}
 	else
 		spdlog::info("Foveation image NOT supported");
