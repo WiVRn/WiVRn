@@ -305,13 +305,15 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 		timing_info.send_begin = clock.to_headset(os_monotonic_get_ns());
 	}
 
+	ssize_t max_payload_size = cnx->has_stream() ? to_headset::video_stream_data_shard::max_payload_size : std::numeric_limits<uint32_t>::max();
+
 	shard.flags = to_headset::video_stream_data_shard::start_of_slice;
 	auto begin = data.begin();
 	auto end = data.end();
 	while (begin != end)
 	{
-		const size_t max_payload_size = std::max(0z, ssize_t(to_headset::video_stream_data_shard::max_payload_size) - ssize_t(serialized_size(shard.view_info)));
-		auto next = std::min(end, begin + max_payload_size);
+		const size_t payload_size = std::max(0z, max_payload_size - ssize_t(serialized_size(shard.view_info)));
+		auto next = std::min(end, begin + payload_size);
 		if (next == end)
 		{
 			shard.flags |= to_headset::video_stream_data_shard::end_of_slice;

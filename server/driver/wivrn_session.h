@@ -193,6 +193,10 @@ public:
 	void operator()(to_monado::disconnect &&);
 	void operator()(to_monado::set_bitrate &&);
 
+	bool has_stream()
+	{
+		return connection->has_stream();
+	}
 	template <typename T>
 	void send_stream(T && packet)
 	{

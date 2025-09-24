@@ -64,6 +64,11 @@ public:
 	wivrn_connection(const wivrn_connection &) = delete;
 	wivrn_connection & operator=(const wivrn_connection &) = delete;
 
+	bool has_stream() const
+	{
+		return stream;
+	}
+
 	bool is_active()
 	{
 		return active;
