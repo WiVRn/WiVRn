@@ -41,7 +41,7 @@ namespace wivrn
 // Default port for server to listen, both TCP and UDP
 static const int default_port = 9757;
 
-static constexpr int protocol_revision = 1;
+static constexpr int protocol_revision = 2;
 
 enum class device_id : uint8_t
 {
@@ -168,6 +168,7 @@ enum video_codec
 	h265,
 	hevc = h265,
 	av1,
+	raw,
 };
 
 struct audio_data

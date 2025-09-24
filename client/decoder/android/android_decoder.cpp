@@ -59,6 +59,8 @@ const char * mime(wivrn::video_codec codec)
 			return "video/hevc";
 		case c::av1:
 			return "video/av01";
+		case c::raw:
+			break;
 	}
 	assert(false);
 	__builtin_unreachable();
@@ -562,7 +564,7 @@ static bool hardware_accelerated(AMediaCodec * media_codec)
 void decoder::supported_codecs(std::vector<wivrn::video_codec> & result)
 {
 	// Make sure we update this code when codecs are changed
-	static_assert(magic_enum::enum_count<wivrn::video_codec>() == 3);
+	static_assert(magic_enum::enum_count<wivrn::video_codec>() == 4);
 
 	// In order or preference, from preferred to least preferred
 	for (auto codec: {

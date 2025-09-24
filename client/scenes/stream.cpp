@@ -927,6 +927,28 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	command_buffer.end();
 	vk::SubmitInfo submit_info;
 	submit_info.setCommandBuffers(*command_buffer);
+
+	std::vector<vk::Semaphore> semaphores;
+	std::vector<uint64_t> semaphore_vals;
+	std::vector<vk::PipelineStageFlags> wait_stages;
+	for (auto b: current_blit_handles)
+	{
+		if (b and b->semaphore)
+		{
+			assert(b->semaphore_val);
+			semaphores.push_back(b->semaphore);
+			semaphore_vals.push_back(*b->semaphore_val);
+			wait_stages.push_back(vk::PipelineStageFlagBits::eFragmentShader);
+		}
+	}
+	submit_info.setWaitDstStageMask(wait_stages);
+	submit_info.setWaitSemaphores(semaphores);
+	vk::TimelineSemaphoreSubmitInfo sem_info{
+	        .waitSemaphoreValueCount = uint32_t(semaphore_vals.size()),
+	        .pWaitSemaphoreValues = semaphore_vals.data(),
+	};
+	submit_info.pNext = &sem_info;
+
 	queue.lock()->submit(submit_info, *fence);
 #if WIVRN_FEATURE_RENDERDOC
 	renderdoc_end(*vk_instance);
@@ -1105,7 +1127,7 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		spdlog::info("Creating decoder size {}x{} offset {},{}", item.width, item.height, item.offset_x, item.offset_y);
 
 		decoders.push_back(accumulator_images{
-		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, item, description.fps, shared_from_this(), stream_index),
+		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, item, description.fps, shared_from_this(), stream_index),
 		});
 	}
 }

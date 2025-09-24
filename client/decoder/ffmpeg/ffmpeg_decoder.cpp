@@ -56,6 +56,8 @@ static AVCodecID codec_id(wivrn::video_codec codec)
 			return AV_CODEC_ID_HEVC;
 		case c::av1:
 			return AV_CODEC_ID_AV1;
+		case c::raw:
+			break;
 	}
 	assert(false);
 	__builtin_unreachable();

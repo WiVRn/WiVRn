@@ -74,6 +74,8 @@ static auto encode_guid(video_codec codec)
 			return NV_ENC_CODEC_HEVC_GUID;
 		case av1:
 			return NV_ENC_CODEC_AV1_GUID;
+		case raw:
+			break;
 	}
 	throw std::out_of_range("Invalid codec " + std::to_string(codec));
 }
@@ -164,6 +166,8 @@ video_encoder_nvenc::video_encoder_nvenc(
 			params.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
 			params.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			break;
+		case video_codec::raw:
+			throw std::runtime_error("raw codec not supported for nvenc");
 	}
 
 	NV_ENC_INITIALIZE_PARAMS params2{

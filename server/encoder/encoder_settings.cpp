@@ -70,6 +70,7 @@ static void split_bitrate(std::vector<wivrn::encoder_settings> & encoders, uint6
 				break;
 			case wivrn::h265:
 			case wivrn::av1:
+			case wivrn::raw:
 				break;
 		}
 		encoder.bitrate = w;
@@ -295,6 +296,9 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 	if (config.name == encoder_x264)
 		config.codec = h264; // this will fail if 10-bit is enabled
 #endif
+
+	if (config.name == encoder_raw)
+		config.codec = raw;
 
 	if (not config.codec)
 		config.codec = bit_depth == 10 ? h265 : h264;

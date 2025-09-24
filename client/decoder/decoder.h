@@ -43,6 +43,8 @@ public:
 		vk::ImageView image_view = nullptr;
 		vk::Image image = nullptr;
 		vk::ImageLayout & current_layout;
+		vk::Semaphore semaphore = nullptr;
+		uint64_t * semaphore_val = nullptr;
 	};
 
 	const wivrn::to_headset::video_stream_description::item description;
@@ -56,6 +58,7 @@ public:
 	static std::shared_ptr<decoder> make(
 	        vk::raii::Device &,
 	        vk::raii::PhysicalDevice &,
+	        uint32_t vk_queue_family_index,
 	        const wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,

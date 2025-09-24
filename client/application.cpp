@@ -759,13 +759,14 @@ void application::initialize_vulkan()
 		spdlog::info("    {} (version {})", extension_name, spec_version);
 
 	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+	vk_device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
+	optional_device_extensions.emplace(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 
 #ifdef __ANDROID__
 	vk_device_extensions.push_back(VK_ANDROID_EXTERNAL_MEMORY_ANDROID_HARDWARE_BUFFER_EXTENSION_NAME);
-	vk_device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
@@ -881,11 +882,12 @@ void application::initialize_vulkan()
 	                .pEnabledFeatures = &device_features,
 	        },
 	        vk::PhysicalDeviceFragmentShadingRateFeaturesKHR{},
-#ifdef __ANDROID__
 	        vk::PhysicalDeviceSamplerYcbcrConversionFeaturesKHR{
-	                .samplerYcbcrConversion = VK_TRUE,
+	                .samplerYcbcrConversion = true,
 	        },
-#endif
+	        vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR{
+	                .timelineSemaphore = true,
+	        },
 	};
 
 	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and
@@ -902,6 +904,17 @@ void application::initialize_vulkan()
 	else
 	{
 		device_create_info.unlink<vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
+	}
+
+	if (utils::contains(vk_device_extensions, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME))
+	{
+		auto [_, feat] = vk_physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR>();
+		auto & create_feat = device_create_info.get<vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR>();
+		create_feat.timelineSemaphore = feat.timelineSemaphore;
+	}
+	else
+	{
+		device_create_info.unlink<vk::PhysicalDeviceTimelineSemaphoreFeaturesKHR>();
 	}
 
 	vk_device = xr_system_id.create_device(vk_physical_device, device_create_info.get());
