@@ -19,7 +19,6 @@
 
 #include "stream_defoveator.h"
 #include "application.h"
-#include "utils/contains.h"
 #include "utils/ranges.h"
 #include "vk/allocation.h"
 #include "vk/pipeline.h"
@@ -36,7 +35,7 @@ struct stream_defoveator::vertex
 {
 	// output image position
 	alignas(8) glm::vec2 position;
-	// input texture coordinates + shading rate in the first 4 bits of x
+	// input texture coordinates
 	alignas(8) glm::uvec2 uv;
 };
 
@@ -119,19 +118,9 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 	target.layout = vk::raii::PipelineLayout(device, pipeline_layout_info);
 
 	const auto & vk_device_extensions = application::get_vk_device_extensions();
-	bool fragment_shading_rate = false;
-	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and
-	    utils::contains(vk_device_extensions, VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME))
-	{
-		const auto & [prop, rate_prop] = physical_device.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceFragmentShadingRatePropertiesKHR>();
-		const auto & [feat, fragment_feat] = physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
-		fragment_shading_rate = rate_prop.fragmentShadingRateNonTrivialCombinerOps and
-		                        fragment_feat.primitiveFragmentShadingRate and
-		                        fragment_feat.attachmentFragmentShadingRate;
-	}
 
 	// Vertex shader
-	vk::raii::ShaderModule vertex_shader = load_shader(device, fragment_shading_rate ? "reprojection_vsr.vert" : "reprojection.vert");
+	vk::raii::ShaderModule vertex_shader = load_shader(device, "reprojection.vert");
 
 	// Fragment shader
 	auto specialization = make_specialization_constants(
@@ -139,7 +128,7 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 	        VkBool32(need_srgb_conversion(guess_model())));
 	vk::raii::ShaderModule fragment_shader = load_shader(device, "reprojection.frag");
 
-	vk::pipeline_builder pipeline_info_builder{
+	vk::pipeline_builder pipeline_info{
 	        .flags = {},
 	        .Stages = {
 	                {
@@ -196,48 +185,6 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 	        .renderPass = *renderpass,
 	        .subpass = 0,
 	};
-
-	vk::GraphicsPipelineCreateInfo pipeline_info(pipeline_info_builder);
-
-	// Variable fragment shading
-	std::array combiner{
-	        vk::FragmentShadingRateCombinerOpKHR::eMax,
-	        vk::FragmentShadingRateCombinerOpKHR::eMax,
-	};
-	vk::PipelineFragmentShadingRateStateCreateInfoKHR shading{
-	        .fragmentSize = vk::Extent2D{1, 1},
-	        .combinerOps = combiner,
-	};
-	if (fragment_shading_rate)
-	{
-		pipeline_info.pNext = &shading;
-
-		spdlog::info("Available fragment shading rates:");
-		for (const auto rate: physical_device.getFragmentShadingRatesKHR())
-		{
-			if (rate.sampleCounts & vk::SampleCountFlagBits::e1)
-			{
-				spdlog::info("\tfragment size: {}x{}", rate.fragmentSize.width, rate.fragmentSize.height);
-				int flags = 0;
-				if (rate.fragmentSize.width == 4)
-					flags |= 8;
-				else if (rate.fragmentSize.width == 2)
-					flags |= 4;
-				if (rate.fragmentSize.height == 4)
-					flags |= 2;
-				else if (rate.fragmentSize.height == 2)
-					flags |= 1;
-				for (int y = std::bit_width(rate.fragmentSize.height) - 1; y < 3; ++y)
-				{
-					for (int x = std::bit_width(rate.fragmentSize.width) - 1; x < 3; ++x)
-					{
-						if (fragment_sizes[x][y] == 0)
-							fragment_sizes[x][y] = flags << 28;
-					}
-				}
-			}
-		}
-	}
 
 	target.pipeline = device.createGraphicsPipeline(application::get_pipeline_cache(), pipeline_info);
 	return target;
@@ -346,21 +293,6 @@ static size_t required_vertices(const wivrn::to_headset::foveation_parameter & p
 	return (2 * (p.x.size() + 1) + 1) * p.y.size();
 }
 
-uint32_t stream_defoveator::shading_rate(int pixels_x, int pixels_y)
-{
-	int x = 0;
-	if (pixels_x >= 2)
-		x = 1;
-	if (pixels_x >= 4)
-		x = 2;
-	int y = 0;
-	if (pixels_y >= 2)
-		y = 1;
-	if (pixels_y >= 4)
-		y = 2;
-	return fragment_sizes[x][y];
-}
-
 void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
                                   const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
                                   std::span<wivrn::blitter::output> inputs,
@@ -410,14 +342,13 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 			for (auto [ix, n_out_x]: utils::enumerate_range(px))
 			{
 				const int ratio_x = std::abs(n_ratio_x - int(ix)) + 1;
-				glm::uvec2 rate = glm::uvec2(shading_rate(ratio_x, ratio_y), 0);
 				*vertices++ = {
 				        .position = out * out_pixel_size,
-				        .uv = in | rate,
+				        .uv = in,
 				};
 				*vertices++ = {
 				        .position = (out + glm::vec2(0, n_out_y * ratio_y)) * out_pixel_size,
-				        .uv = (in + glm::uvec2(0, n_out_y)) | rate,
+				        .uv = (in + glm::uvec2(0, n_out_y)),
 				};
 				in.x += n_out_x;
 				out.x += n_out_x * ratio_x;

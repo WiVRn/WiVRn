@@ -761,8 +761,6 @@ void application::initialize_vulkan()
 	vk_device_extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 	vk_device_extensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_IMG_FILTER_CUBIC_EXTENSION_NAME);
-	optional_device_extensions.emplace(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
-	optional_device_extensions.emplace(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
 	optional_device_extensions.emplace(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
 
 #ifdef __ANDROID__
@@ -881,7 +879,6 @@ void application::initialize_vulkan()
 	                .ppEnabledExtensionNames = vk_device_extensions.data(),
 	                .pEnabledFeatures = &device_features,
 	        },
-	        vk::PhysicalDeviceFragmentShadingRateFeaturesKHR{},
 	        vk::PhysicalDeviceSamplerYcbcrConversionFeaturesKHR{
 	                .samplerYcbcrConversion = true,
 	        },
@@ -889,22 +886,6 @@ void application::initialize_vulkan()
 	                .timelineSemaphore = true,
 	        },
 	};
-
-	if (utils::contains(vk_device_extensions, VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME) and
-	    utils::contains(vk_device_extensions, VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME))
-	{
-		auto [feat, fragment_feat] = vk_physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
-		auto & create_feat = device_create_info.get<vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
-		create_feat.primitiveFragmentShadingRate = fragment_feat.primitiveFragmentShadingRate;
-		create_feat.attachmentFragmentShadingRate = fragment_feat.attachmentFragmentShadingRate;
-		spdlog::info("Fragment shading rate features: primitive={} attachment={}",
-		             create_feat.primitiveFragmentShadingRate,
-		             create_feat.attachmentFragmentShadingRate);
-	}
-	else
-	{
-		device_create_info.unlink<vk::PhysicalDeviceFragmentShadingRateFeaturesKHR>();
-	}
 
 	if (utils::contains(vk_device_extensions, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME))
 	{

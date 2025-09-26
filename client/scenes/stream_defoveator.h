@@ -49,13 +49,6 @@ class stream_defoveator
 	pipeline_t pipeline_rgb[view_count];
 	pipeline_t pipeline_a[view_count];
 
-	// Allowed sizes for variable shading rate
-	// indices are for x, y
-	// 0 is 1 pixel
-	// 1 is 2 or 3 pixels
-	// 2 is 4 pixels or more
-	uint32_t fragment_sizes[3][3] = {};
-
 	// Destination images
 	std::vector<vk::Image> output_images;
 	std::vector<vk::raii::ImageView> output_image_views;
@@ -65,7 +58,6 @@ class stream_defoveator
 	void ensure_vertices(size_t num_vertices);
 	vertex * get_vertices(size_t view);
 
-	uint32_t shading_rate(int pixels_x, int pixels_y);
 	pipeline_t & ensure_pipeline(size_t view, vk::Sampler rgb, vk::Sampler a);
 
 public:
