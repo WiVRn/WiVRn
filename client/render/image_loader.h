@@ -47,7 +47,7 @@ struct loaded_image
 
 struct image_loader
 {
-	image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, thread_safe<vk::raii::Queue> & queue, vk::raii::CommandPool & cb_pool);
+	image_loader(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, thread_safe<vk::raii::Queue> & queue, uint32_t queue_family_index);
 	image_loader(const image_loader &) = delete;
 	image_loader & operator=(const image_loader &) = delete;
 	~image_loader();
@@ -85,7 +85,7 @@ private:
 	ktxVulkanDeviceInfo vdi;
 	vk::raii::Device & device;
 	thread_safe<vk::raii::Queue> & queue;
-	vk::raii::CommandPool & cb_pool;
+	vk::raii::CommandPool cb_pool;
 
 	std::vector<std::pair<vk::Format, ktx_transcode_fmt_e>> supported_srgb_formats;
 	std::vector<std::pair<vk::Format, ktx_transcode_fmt_e>> supported_linear_formats;

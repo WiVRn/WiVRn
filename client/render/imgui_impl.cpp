@@ -205,7 +205,7 @@ imgui_textures::imgui_textures(
         descriptor_pool(device, ds_layout, layout_bindings)
 {
 	if (not image_cache)
-		this->image_cache = std::make_shared<image_cache_type>(physical_device, device, queue, command_pool);
+		this->image_cache = std::make_shared<image_cache_type>(device, physical_device, queue, queue_family_index);
 }
 
 std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
