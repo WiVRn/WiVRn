@@ -176,8 +176,12 @@ ktxVulkanTexture_subAllocatorCallbacks suballocator_callbacks{
 
 	        return add(allocation);
         },
-        .bindBufferFuncPtr = [](VkBuffer buffer, uint64_t allocation_id) -> VkResult { return vmaBindBufferMemory(vk_allocator::instance(), find(allocation_id), buffer); },
-        .bindImageFuncPtr = [](VkImage image, uint64_t allocation_id) -> VkResult { return vmaBindImageMemory(vk_allocator::instance(), find(allocation_id), image); },
+        .bindBufferFuncPtr = [](VkBuffer buffer, uint64_t allocation_id) -> VkResult {
+	        return vmaBindBufferMemory(vk_allocator::instance(), find(allocation_id), buffer);
+        },
+        .bindImageFuncPtr = [](VkImage image, uint64_t allocation_id) -> VkResult {
+	        return vmaBindImageMemory(vk_allocator::instance(), find(allocation_id), image);
+        },
         .memoryMapFuncPtr = [](uint64_t allocation_id, uint64_t, VkDeviceSize * map_length, void ** data) -> VkResult {
 	        auto allocation = find(allocation_id);
 
@@ -283,12 +287,45 @@ int bytes_per_pixel(vk::Format format)
 }
 } // namespace
 
-image_loader::image_loader(vk::raii::PhysicalDevice physical_device, vk::raii::Device & device, thread_safe<vk::raii::Queue> & queue, vk::raii::CommandPool & cb_pool) :
+image_loader::image_loader(vk::raii::Device & device, vk::raii::PhysicalDevice physical_device, thread_safe<vk::raii::Queue> & queue, uint32_t queue_family_index) :
         device(device),
         queue(queue),
-        cb_pool(cb_pool)
+        cb_pool(device,
+                vk::CommandPoolCreateInfo{
+                        .flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+                        .queueFamilyIndex = queue_family_index,
+                })
 {
-	ktxVulkanDeviceInfo_Construct(&vdi, *physical_device, *device, *queue.get_unsafe(), *cb_pool, nullptr);
+	// Assume we will always use the same queue
+	static thread_safe<vk::raii::Queue> * q = &queue;
+
+	ktxVulkanFunctions vulkan_functions{
+	        .vkGetInstanceProcAddr = &vkGetInstanceProcAddr,
+	        .vkGetDeviceProcAddr = &vkGetDeviceProcAddr,
+	        .vkQueueSubmit = [](VkQueue queue,
+	                            uint32_t submitCount,
+	                            const VkSubmitInfo * pSubmits,
+	                            VkFence fence) -> VkResult {
+		        assert(q and (VkQueue) * q->get_unsafe() == queue);
+		        auto _ = q->lock();
+
+		        return vkQueueSubmit(queue, submitCount, pSubmits, fence);
+	        },
+	        .vkQueueWaitIdle = [](VkQueue queue) -> VkResult {
+		        // libktx only uses vkQueueWaitIdle when the tiling is not VK_IMAGE_TILING_OPTIMAL
+		        abort();
+	        },
+	};
+
+	ktxVulkanDeviceInfo_ConstructEx(
+	        &vdi,
+	        *application::get_vulkan_instance(),
+	        *physical_device,
+	        *device,
+	        *queue.get_unsafe(),
+	        *cb_pool,
+	        nullptr, // Allocation callbacks
+	        &vulkan_functions);
 
 	std::array<std::tuple<vk::Format, ktx_transcode_fmt_e, bool>, 6> formats{{
 	        {vk::Format::eAstc4x4SrgbBlock, KTX_TTF_ASTC_4x4_RGBA, true},
@@ -624,9 +661,9 @@ loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool sr
 		if (output_file != "")
 		{
 			spdlog::debug("Saving transcoded texture to {}", output_file.native());
-			std::string writer = "WiVRn";
+			const char writer[] = "WiVRn";
 			ktxHashList_DeleteKVPair(&texture->kvDataHead, KTX_WRITER_KEY);
-			ktxHashList_AddKVPair(&texture->kvDataHead, KTX_WRITER_KEY, (ktx_uint32_t)writer.length() + 1, writer.c_str());
+			ktxHashList_AddKVPair(&texture->kvDataHead, KTX_WRITER_KEY, sizeof(writer), writer);
 
 			err = ktxTexture2_WriteToNamedFile(texture, output_file.c_str());
 			if (err != KTX_SUCCESS)
@@ -638,9 +675,6 @@ loaded_image image_loader::do_load_ktx(std::span<const std::byte> bytes, bool sr
 
 	ktxVulkanTexture vk_texture;
 	{
-		auto _ = queue.lock(); // ktxTexture2_VkUploadEx uses the queue internally (in ktxTexture_VkUploadEx_WithSuballocator)
-
-		// TODO: patch vkloader.c to accept a mutex
 		err = ktxTexture2_VkUploadEx_WithSuballocator(texture, &vdi, &vk_texture, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &libktx_vma_glue::suballocator_callbacks);
 	}
 
