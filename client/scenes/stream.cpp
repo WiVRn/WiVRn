@@ -778,6 +778,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		        .variant = application::get_messages_info().variant,
 		});
 
+		gui_status = stream::gui_status::hidden;
 		application::pop_scene();
 	}
 
@@ -1087,7 +1088,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 				case gui_status::hidden:
 				case gui_status::compact:
 				case gui_status::overlay_only:
-					gui_status = gui_status::stats;
+					gui_status = next_gui_status;
 					break;
 
 				case gui_status::stats:

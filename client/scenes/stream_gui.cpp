@@ -743,6 +743,8 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	if (gui_status != last_gui_status)
 	{
 		last_gui_status = gui_status;
+		if (is_gui_interactable())
+			next_gui_status = gui_status;
 		gui_status_last_change = predicted_display_time;
 
 		// Override session state if the GUI is interactable
