@@ -401,10 +401,7 @@ fastgltf::MimeType guess_mime_type(std::span<const std::byte> image_data)
 }
 
 loaded_image do_load_image(
-        vk::raii::PhysicalDevice & physical_device,
-        vk::raii::Device & device,
-        thread_safe<vk::raii::Queue> & queue,
-        vk::raii::CommandPool & cb_pool,
+        image_loader & loader,
         std::span<const std::byte> image_data,
         bool srgb,
         const std::pmr::string & name,
@@ -415,8 +412,6 @@ loaded_image do_load_image(
 		case fastgltf::MimeType::JPEG:
 		case fastgltf::MimeType::PNG:
 		case fastgltf::MimeType::KTX2: {
-			// TODO reuse image loader
-			image_loader loader(physical_device, device, queue, cb_pool);
 			auto image = loader.load(image_data, srgb, name.c_str(), false /*premultiply*/, output_path);
 
 			spdlog::debug("{}: {}x{}, format {}, {} mipmaps, {} bytes", name, image.extent.width, image.extent.height, vk::to_string(image.format), image.num_mipmaps, image.image.size());
@@ -469,7 +464,7 @@ class loader_context
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
 	thread_safe<vk::raii::Queue> & queue;
-	vk::raii::CommandPool & cb_pool;
+	image_loader & loader;
 
 	std::vector<utils::mapped_file> loaded_assets;
 	utils::mapped_file & load_from_asset(const std::filesystem::path & path)
@@ -492,14 +487,14 @@ public:
 	               vk::raii::PhysicalDevice physical_device,
 	               vk::raii::Device & device,
 	               thread_safe<vk::raii::Queue> & queue,
-	               vk::raii::CommandPool & cb_pool) :
+	               image_loader & loader) :
 	        base_directory(std::move(base_directory)),
 	        name(std::move(name)),
 	        gltf(gltf),
 	        physical_device(physical_device),
 	        device(device),
 	        queue(queue),
-	        cb_pool(cb_pool)
+	        loader(loader)
 	{
 	}
 
@@ -604,7 +599,7 @@ public:
 				try
 				{
 					utils::mapped_file image_data{cached_texture};
-					auto image_ptr = std::make_shared<loaded_image>(do_load_image(physical_device, device, queue, cb_pool, image_data, srgb, image_name, ""));
+					auto image_ptr = std::make_shared<loaded_image>(do_load_image(loader, image_data, srgb, image_name, ""));
 					return std::shared_ptr<vk::raii::ImageView>(image_ptr, &image_ptr->image_view);
 				}
 				catch (std::exception & e)
@@ -617,7 +612,7 @@ public:
 		}
 
 		auto [image_data, mime_type] = visit_source(gltf.images[index].data);
-		auto image_ptr = std::make_shared<loaded_image>(do_load_image(physical_device, device, queue, cb_pool, image_data, srgb, image_name, cached_texture));
+		auto image_ptr = std::make_shared<loaded_image>(do_load_image(loader, image_data, srgb, image_name, cached_texture));
 
 		return std::shared_ptr<vk::raii::ImageView>(image_ptr, &image_ptr->image_view);
 	}
@@ -1095,17 +1090,15 @@ std::shared_ptr<entt::registry> scene_loader::operator()(
         std::function<void(float)> progress_cb)
 {
 	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
-	vk::raii::CommandPool cb_pool{device, vk::CommandPoolCreateInfo{
-	                                              .flags = vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-	                                              .queueFamilyIndex = queue_family_index,
-	                                      }};
 
 	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(data.data(), data.size());
 	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
 		throw std::system_error((int)error, fastgltf_error_category);
 
 	fastgltf::Asset asset = load_gltf_asset(data_buffer.get(), parent_path);
-	loader_context ctx(parent_path, name, asset, physical_device, device, queue, cb_pool);
+
+	image_loader loader{device, physical_device, queue, queue_family_index};
+	loader_context ctx{parent_path, name, asset, physical_device, device, queue, loader};
 
 #ifndef NDEBUG
 	if (auto error = fastgltf::validate(asset); error != fastgltf::Error::None)

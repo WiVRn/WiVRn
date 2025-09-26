@@ -96,10 +96,9 @@ scene::scene(key, const meta & current_meta, std::span<const vk::Format> support
 	}
 	else
 	{
-		// TODO: make argument order more consistent
-		renderer = std::make_shared<scene_renderer>(device, physical_device, queue, commandpool);
+		renderer = std::make_shared<scene_renderer>(device, physical_device, queue, queue_family_index);
 		gltf_cache = std::make_shared<gltf_cache_type>(device, physical_device, queue, queue_family_index, renderer->get_default_material(), application::get_cache_path() / "textures");
-		image_cache = std::make_shared<image_cache_type>(physical_device, device, queue, commandpool);
+		image_cache = std::make_shared<image_cache_type>(device, physical_device, queue, queue_family_index);
 	}
 }
 

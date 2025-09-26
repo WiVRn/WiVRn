@@ -105,12 +105,16 @@ struct hash<output_image_info> : utils::magic_hash<output_image_info>
 {};
 } // namespace std
 
+struct image_loader;
+
 class scene_renderer
 {
 	vk::raii::PhysicalDevice physical_device;
 	vk::raii::Device & device;
 	vk::PhysicalDeviceProperties physical_device_properties;
 	thread_safe<vk::raii::Queue> & queue;
+	uint32_t queue_family_index;
+	vk::raii::CommandPool cb_pool;
 
 	// Destination images
 	struct output_image
@@ -143,7 +147,7 @@ class scene_renderer
 	vk::raii::PipelineLayout create_pipeline_layout(std::span<vk::DescriptorSetLayout> layouts);
 	vk::raii::Pipeline create_pipeline(const pipeline_info & info);
 
-	std::shared_ptr<renderer::texture> create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel, const std::string & name);
+	std::shared_ptr<renderer::texture> create_default_texture(image_loader & loader, std::vector<uint8_t> pixel, const std::string & name);
 	std::shared_ptr<renderer::material> create_default_material(vk::raii::CommandPool & cb_pool);
 	vk::raii::DescriptorSetLayout create_descriptor_set_layout(std::span<vk::DescriptorSetLayoutBinding> bindings, vk::DescriptorSetLayoutCreateFlags flags = {});
 
@@ -255,7 +259,7 @@ public:
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice physical_device,
 	        thread_safe<vk::raii::Queue> & queue,
-	        vk::raii::CommandPool & cb_pool,
+	        uint32_t queue_family_index,
 	        int frames_in_flight = 2);
 
 	~scene_renderer();

@@ -112,7 +112,7 @@ vk::Format scene_renderer::find_usable_image_format(
 	return vk::Format::eUndefined;
 }
 
-std::shared_ptr<renderer::texture> scene_renderer::create_default_texture(vk::raii::CommandPool & cb_pool, std::vector<uint8_t> pixel, const std::string & name)
+std::shared_ptr<renderer::texture> scene_renderer::create_default_texture(image_loader & loader, std::vector<uint8_t> pixel, const std::string & name)
 {
 	vk::Format format;
 
@@ -132,10 +132,7 @@ std::shared_ptr<renderer::texture> scene_renderer::create_default_texture(vk::ra
 			__builtin_unreachable();
 	}
 
-	// TODO reuse image loader
-	image_loader loader(physical_device, device, queue, cb_pool);
 	auto image = std::make_shared<loaded_image>(loader.load(pixel, vk::Extent3D{1, 1, 1}, format, name));
-
 	std::shared_ptr<vk::raii::ImageView> image_view{image, &image->image_view};
 
 	return std::make_shared<renderer::texture>(image_view, renderer::sampler_info{});
@@ -143,14 +140,16 @@ std::shared_ptr<renderer::texture> scene_renderer::create_default_texture(vk::ra
 
 std::shared_ptr<renderer::material> scene_renderer::create_default_material(vk::raii::CommandPool & cb_pool)
 {
+	image_loader loader(device, physical_device, queue, queue_family_index);
+
 	auto default_material = std::make_shared<renderer::material>();
 	default_material->name = "default";
 
-	default_material->base_color_texture = create_default_texture(cb_pool, {255, 255, 255, 255}, "Default base color");
-	default_material->metallic_roughness_texture = create_default_texture(cb_pool, {255, 255}, "Default metallic roughness map");
-	default_material->occlusion_texture = create_default_texture(cb_pool, {255}, "Default occlusion map");
-	default_material->emissive_texture = create_default_texture(cb_pool, {0, 0, 0, 0}, "Default emissive color");
-	default_material->normal_texture = create_default_texture(cb_pool, {128, 128, 255, 255}, "Default normal map");
+	default_material->base_color_texture = create_default_texture(loader, {255, 255, 255, 255}, "Default base color");
+	default_material->metallic_roughness_texture = create_default_texture(loader, {255, 255}, "Default metallic roughness map");
+	default_material->occlusion_texture = create_default_texture(loader, {255}, "Default occlusion map");
+	default_material->emissive_texture = create_default_texture(loader, {0, 0, 0, 0}, "Default emissive color");
+	default_material->normal_texture = create_default_texture(loader, {128, 128, 255, 255}, "Default normal map");
 
 	default_material->buffer = std::make_shared<buffer_allocation>(
 	        device,
@@ -270,12 +269,18 @@ scene_renderer::scene_renderer(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice physical_device,
         thread_safe<vk::raii::Queue> & queue,
-        vk::raii::CommandPool & cb_pool,
+        uint32_t queue_family_index,
         int frames_in_flight) :
         physical_device(physical_device),
         device(device),
         physical_device_properties(physical_device.getProperties()),
         queue(queue),
+        queue_family_index(queue_family_index),
+        cb_pool(device,
+                vk::CommandPoolCreateInfo{
+                        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+                        .queueFamilyIndex = queue_family_index,
+                }),
         shader_cache(device),
         layout_0(create_descriptor_set_layout(layout_bindings_0, vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR))
 {
