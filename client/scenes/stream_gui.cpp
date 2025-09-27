@@ -647,7 +647,7 @@ void scenes::stream::gui_applications()
 		}
 		ImGui::SetNextItemAllowOverlap();
 		const bool clicked = RadioButtonWithoutCheckBox(
-		        std::format("{}{}", app.active ? ICON_FA_CHEVRON_RIGHT " " : "  ", app.name).c_str(),
+		        std::format("{}{}##{}", app.active ? ICON_FA_CHEVRON_RIGHT " " : "  ", app.name, app.id).c_str(),
 		        app.active,
 		        button_size);
 		if (clicked and not(app.active or app.overlay))
