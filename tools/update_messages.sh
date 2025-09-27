@@ -11,6 +11,7 @@ xgettext \
 	--keyword=_S:1,1t                    \
 	--keyword=_cS:1c,2,2t                \
 	--keyword=_F:1,1t                    \
+	--keyword=gettext_noop:1,1t          \
 	--output=$WIVRN_CLIENT_POT           \
 	--package-name=WiVRn                 \
 	$(find client/ -name "*.cpp" | sort)

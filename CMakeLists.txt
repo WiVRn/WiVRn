@@ -69,6 +69,8 @@ endif()
 
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
 
+set(WIVRN_ENVIRONMENTS_URL "https://wivrn.github.io/environments/index.json" CACHE STRING "URL hosting the custom environments json file")
+
 if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_SERVER OR WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_DISSECTOR)
     set(NEED_COMMON TRUE)
 else()

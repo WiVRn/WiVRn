@@ -28,14 +28,14 @@ namespace utils
 template <typename Key, typename Asset, typename Loader>
 class cache
 {
-	Loader loader;
+	Loader loader_;
 
 	thread_safe<std::unordered_map<Key, std::shared_ptr<Asset>>> entries;
 
 public:
 	template <typename... Args>
 	cache(Args &&... args) :
-	        loader(std::forward<Args>(args)...)
+	        loader_(std::forward<Args>(args)...)
 	{}
 
 	template <typename... Args>
@@ -48,13 +48,13 @@ public:
 		if (iter != _->end())
 			return iter->second;
 
-		return _->emplace(key, loader(std::forward<Args>(args)...)).first->second;
+		return _->emplace(key, loader_(std::forward<Args>(args)...)).first->second;
 	}
 
 	template <typename... Args>
 	std::shared_ptr<Asset> load_uncached(Args &&... args)
 	{
-		return loader(std::forward<Args>(args)...);
+		return loader_(std::forward<Args>(args)...);
 	}
 
 	void clear()
@@ -67,6 +67,16 @@ public:
 	{
 		auto _ = entries.lock();
 		_->erase(key);
+	}
+
+	Loader & loader()
+	{
+		return loader_;
+	}
+
+	const Loader & loader() const
+	{
+		return loader_;
 	}
 };
 } // namespace utils

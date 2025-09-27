@@ -19,6 +19,7 @@
 
 #include "lobby.h"
 #include "application.h"
+#include "configuration.h"
 #include "constants.h"
 #include "glm/geometric.hpp"
 #include "hand_model.h"
@@ -27,18 +28,22 @@
 #include "openxr/openxr.h"
 #include "protocol_version.h"
 #include "render/animation.h"
+#include "render/scene_components.h"
 #include "stream.h"
-#include "utils/contains.h"
+#include "utils/files.h"
 #include "utils/i18n.h"
 #include "wivrn_client.h"
 #include "wivrn_discover.h"
 #include "wivrn_sockets.h"
 #include "xr/passthrough.h"
 #include "xr/space.h"
-#include <glm/gtc/matrix_access.hpp>
 
-#include <chrono> // IWYU pragma: keep
+#include <chrono>
+#include <filesystem>
 #include <fstream>
+#include <glm/ext.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/matrix.hpp>
 #include <magic_enum.hpp>
@@ -731,7 +736,20 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	}
 #endif
 
+	renderer->debug_draw_clear();
 	std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_layers = draw_gui(frame_state.predictedDisplayTime);
+
+#if WIVRN_CLIENT_DEBUG_MENU
+	if (auto * node = world.try_get<components::node>(debug_primitive_to_highlight.first);
+	    node and
+	    node->mesh and
+	    debug_primitive_to_highlight.second < node->mesh->primitives.size())
+	{
+		const auto & primitive = node->mesh->primitives[debug_primitive_to_highlight.second];
+		// FIXME: transform_to_root is 1 frame late
+		renderer->debug_draw_box(node->transform_to_root, primitive.obb_min, primitive.obb_max, glm::vec4(1, 1, 1, 1));
+	}
+#endif
 
 	// Get the planes that limit the ray size from the composition layers
 	std::vector<glm::vec4> ray_limits;
@@ -761,7 +779,8 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	        composition_layer_depth_test_supported,
 	        composition_layer_depth_test_supported ? layer_lobby | layer_controllers : layer_lobby,
 	        clear_color,
-	        foveation);
+	        foveation,
+	        true);
 
 	if (composition_layer_depth_test_supported)
 		set_depth_test(true, XR_COMPARE_OP_ALWAYS_FB);
@@ -823,7 +842,19 @@ void scenes::lobby::on_focused()
 	// assert(std::ranges::all_of(views, [width](const XrViewConfigurationView & view) { return view.recommendedImageRectWidth == width; }));
 	// assert(std::ranges::all_of(views, [height](const XrViewConfigurationView & view) { return view.recommendedImageRectHeight == height; }));
 
-	lobby_entity = add_gltf("assets://ground.glb", layer_lobby).first;
+	auto & config = application::get_config();
+
+	try
+	{
+		lobby_entity = add_gltf(config.environment_model, layer_lobby).first;
+	}
+	catch (std::exception & e)
+	{
+		spdlog::warn("Cannot load environment from {}: {}, reverting to default", config.environment_model, e.what());
+		config.environment_model = configuration{}.environment_model;
+		lobby_entity = add_gltf(config.environment_model, layer_lobby).first;
+		config.save();
+	}
 
 	std::string profile = controller_name();
 	input.emplace(
@@ -905,16 +936,16 @@ void scenes::lobby::on_focused()
 	        {
 	                // Pop up window
 	                .space = xr::spaces::world,
-	                .size = {0.6, 0.28},
+	                .size = {0.6, 0.4},
 	                .vp_origin = {1500, 0},
-	                .vp_size = {1500, 700},
+	                .vp_size = {1500, 1000},
 	                .z_index = constants::lobby::zindex_gui,
 	        },
 	        {
 	                // Virtual keyboard
 	                .space = xr::spaces::world,
 	                .size = {0.6, 0.2},
-	                .vp_origin = {1500, 700},
+	                .vp_origin = {1500, 1000},
 	                .vp_size = {1500, 500},
 	                .always_show_cursor = true,
 	                .z_index = constants::lobby::zindex_gui,
@@ -930,7 +961,7 @@ void scenes::lobby::on_focused()
 	                .z_index = constants::lobby::zindex_recenter_tip,
 	        }};
 
-	xr::swapchain swapchain_imgui(instance, session, device, swapchain_format, 3000, 1300);
+	xr::swapchain swapchain_imgui(instance, session, device, swapchain_format, 3000, 1500);
 
 	imgui_ctx.emplace(
 	        physical_device,
@@ -947,6 +978,46 @@ void scenes::lobby::on_focused()
 	std::string image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";
 
 	about_picture = imgui_ctx->load_texture("assets://" + image + ".ktx2");
+
+	try
+	{
+		local_environments = load_environment_json(utils::read_whole_file<std::string>(application::get_config_path() / "environments.json"));
+
+		// Remove environments if the model file is deleted
+		std::erase_if(local_environments, [&](const environment_model & model) {
+			std::filesystem::path path = model.local_gltf_path;
+			return not std::filesystem::exists(path);
+		});
+	}
+	catch (...)
+	{
+	}
+
+	local_environments.push_back(
+	        environment_model{
+	                .name = gettext_noop("Passthrough"),
+	                .author = "",
+	                .description = "",
+	                .screenshot_url = "",
+	                .gltf_url = "passthrough", // This needs to be unique because it is used as a key, even if there is no actual URL
+	                .builtin = true,
+	                .override_order = -2,
+	                .local_gltf_path = "",
+	                .screenshot = imgui_ctx->load_texture("assets://passthrough.ktx2")});
+
+	local_environments.push_back(
+	        environment_model{
+	                .name = gettext_noop("Default environment"),
+	                .author = "",
+	                .description = "",
+	                .screenshot_url = "",
+	                .gltf_url = "default",
+	                .builtin = true,
+	                .override_order = -1,
+	                .local_gltf_path = configuration{}.environment_model,
+	                .screenshot = imgui_ctx->load_texture("assets://default-environment.ktx2")});
+
+	std::ranges::sort(local_environments, std::less{});
 
 	setup_passthrough();
 	session.set_refresh_rate(application::get_config().preferred_refresh_rate.value_or(0));
@@ -968,6 +1039,8 @@ void scenes::lobby::on_unfocused()
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 
 	about_picture = 0;
+	local_environments.clear();
+
 	imgui_ctx.reset();
 	world = entt::registry{};
 

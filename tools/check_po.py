@@ -56,6 +56,7 @@ if __name__ == "__main__":
 				"--keyword=_S:1,1t",
 				"--keyword=_cS:1c,2,2t",
 				"--keyword=_F:1,1t",
+				"--keyword=gettext_noop:1,1t",
 				"--output", client_pot,
 				"--package-name=WiVRn",
 				] + sorted(list_files(os.path.join(root, "client"), ".cpp"))

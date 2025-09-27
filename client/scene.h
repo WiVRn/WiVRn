@@ -20,7 +20,6 @@
 #pragma once
 
 #include "render/image_loader.h"
-#include "render/imgui_impl.h"
 #include "render/scene_loader.h"
 #include "render/scene_renderer.h"
 #include "utils/cache.h"
@@ -220,6 +219,15 @@ public:
 	void unload_gltf(const std::filesystem::path & path);
 	std::pair<entt::entity, components::node &> add_gltf(std::shared_ptr<entt::registry> gltf, uint32_t layer_mask = -1);
 	std::pair<entt::entity, components::node &> add_gltf(const std::filesystem::path & path, uint32_t layer_mask = -1);
+	void clear_texture_cache()
+	{
+		gltf_cache->loader().clear_texture_cache();
+	}
+
+	void clear_gltf_cache()
+	{
+		gltf_cache->clear();
+	}
 
 	void remove(entt::entity entity);
 };

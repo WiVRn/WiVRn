@@ -243,5 +243,20 @@ public:
 };
 
 void ScrollWhenDragging();
+
 void CenterTextH(const std::string & text);
+
 void CenterTextHV(const std::string & text);
+
+void InputText(const char * label, std::string & text, const ImVec2 & size, ImGuiInputTextFlags flags);
+
+bool RadioButtonWithoutCheckBox(const std::string & label, bool active, ImVec2 size_arg);
+
+template <typename T, typename U>
+static bool RadioButtonWithoutCheckBox(const std::string & label, T & v, U v_button, ImVec2 size_arg)
+{
+	const bool pressed = RadioButtonWithoutCheckBox(label, v == v_button, size_arg);
+	if (pressed)
+		v = v_button;
+	return pressed;
+}

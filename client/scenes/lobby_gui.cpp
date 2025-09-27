@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <uni_algo/case.h>
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #ifdef __ANDROID__
@@ -27,46 +26,39 @@
 #include "configuration.h"
 #include "constants.h"
 #include "imgui.h"
-#include "imgui_internal.h"
 #include "lobby.h"
-#include "scenes/stream.h"
+#include "scenes/stream.h" // IWYU pragma: keep
+#include "utils/async.h"
 #include "utils/i18n.h"
 #include "utils/mapped_file.h"
 #include "utils/overloaded.h"
+#include "utils/ranges.h"
 #include "version.h"
 #include "xr/body_tracker.h"
 #include <algorithm>
 #include <cassert>
+#include <chrono>
+#include <entt/entity/fwd.hpp>
+#include <fastgltf/math.hpp>
+#include <fastgltf/types.hpp>
 #include <filesystem>
+#include <glm/geometric.hpp>
+#include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <imspinner.h>
+#include <magic_enum.hpp>
+#include <memory>
 #include <ranges>
 #include <spdlog/fmt/fmt.h>
 #include <string>
+#include <uni_algo/case.h>
 #include <utility>
 #include <utils/strings.h>
+#include <vulkan/vulkan_to_string.hpp>
 
 #include "IconsFontAwesome6.h"
 
 using namespace std::chrono_literals;
-
-static void InputText(const char * label, std::string & text, const ImVec2 & size, ImGuiInputTextFlags flags)
-{
-	auto callback = [](ImGuiInputTextCallbackData * data) -> int {
-		std::string & text = *reinterpret_cast<std::string *>(data->UserData);
-
-		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-		{
-			assert(text.data() == data->Buf);
-			text.resize(data->BufTextLen);
-			data->Buf = text.data();
-		}
-
-		return 0;
-	};
-
-	ImGui::InputTextEx(label, nullptr, text.data(), text.size() + 1, size, flags | ImGuiInputTextFlags_CallbackResize, callback, &text);
-}
 
 static void display_recentering_tip(imgui_context & ctx, const std::string & tip)
 {
@@ -783,17 +775,6 @@ void scenes::lobby::gui_settings()
 		ImGui::EndDisabled();
 	}
 
-	ImGui::BeginDisabled(system.passthrough_supported() == xr::passthrough_type::none);
-	if (ImGui::Checkbox(_S("Enable video passthrough in lobby"), &config.passthrough_enabled))
-	{
-		setup_passthrough();
-		config.save();
-	}
-	imgui_ctx->vibrate_on_hover();
-	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
-		imgui_ctx->tooltip(_("This feature is not supported by your headset"));
-	ImGui::EndDisabled();
-
 	{
 		ImGui::Checkbox(_S("Enable in-stream window"), &config.enable_stream_gui);
 		imgui_ctx->vibrate_on_hover();
@@ -871,120 +852,229 @@ void scenes::lobby::gui_post_processing()
 }
 
 #if WIVRN_CLIENT_DEBUG_MENU
+void scenes::lobby::gui_debug_node_hierarchy(entt::entity root)
+{
+	for (auto && [entity, node]: world.view<components::node>().each())
+	{
+		if (node.parent != root)
+			continue;
+
+		std::string id = "entity-" + std::to_string((int)entity);
+		const std::string & name = node.name == "" ? id : node.name;
+
+		// See ImGui::StyleColorsDark
+		if (node.global_visible)
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
+		else
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.50f, 0.50f, 0.50f, 1.00f));
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		if (ImGui::TreeNodeEx(id.c_str(), ImGuiTreeNodeFlags_None, "%s", name.c_str()))
+		{
+			glm::vec3 scale{
+			        glm::length(glm::column(node.transform_to_root, 0)),
+			        glm::length(glm::column(node.transform_to_root, 1)),
+			        glm::length(glm::column(node.transform_to_root, 2)),
+			};
+
+			gui_debug_node_hierarchy(entity);
+
+			if (node.mesh)
+				for (auto [index, primitive]: utils::enumerate(node.mesh->primitives))
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					std::string name = "Primitive " + std::to_string(index + 1);
+
+					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+					if (debug_primitive_to_highlight == std::pair{entity, index})
+						flags |= ImGuiTreeNodeFlags_Selected;
+
+					if (ImGui::TreeNodeEx(name.c_str(), flags))
+					{
+						if (ImGui::IsItemClicked())
+							debug_primitive_to_highlight = {entity, index};
+
+						if (ImGui::IsItemHovered())
+						{
+							std::string tooltip = fmt::format(
+							        "Name: {}\n"
+							        "Topology: {}\n"
+							        "Vertices: {}\n"
+							        "Material: {}\n"
+							        "vertex shader: {}\n"
+							        "Fragment shader: {}\n",
+							        name,
+							        vk::to_string(primitive.topology),
+							        primitive.vertex_count,
+							        primitive.material_->name,
+							        primitive.vertex_shader,
+							        primitive.material_->fragment_shader_name);
+
+							imgui_ctx->tooltip(tooltip);
+						}
+
+						ImGui::TreePop();
+					}
+
+					ImGui::TableNextColumn();
+
+					glm::vec3 size = scale * (primitive.obb_max - primitive.obb_min);
+					ImGui::Text("%s", fmt::format("{} vertices, {:.3f} x {:.3f} x {:.3f} m", primitive.vertex_count, size.x, size.y, size.z).c_str());
+				}
+
+			ImGui::TreePop();
+		}
+		ImGui::TableNextRow();
+		ImGui::PopStyleColor(); // ImGuiCol_Text
+	}
+}
+
 void scenes::lobby::gui_debug()
 {
 	ImGui::GetIO().ConfigDragClickToInputText = true;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
 
-	ImGui::Checkbox("Display debug axes", &display_debug_axes);
-	imgui_ctx->vibrate_on_hover();
-
-	if (display_debug_axes)
+	if (ImGui::CollapsingHeader("Tune controller offset"))
 	{
-		ImGui::Checkbox("Display grip instead of aim", &display_grip_instead_of_aim);
+		imgui_ctx->vibrate_on_hover();
+		ImGui::Checkbox("Display debug axes", &display_debug_axes);
+		imgui_ctx->vibrate_on_hover();
+
+		if (display_debug_axes)
+		{
+			ImGui::Checkbox("Display grip instead of aim", &display_grip_instead_of_aim);
+			imgui_ctx->vibrate_on_hover();
+		}
+
+		ImGui::SetNextItemWidth(140);
+		ImGui::DragFloat("##offset x", &offset_position.x, 0.0001);
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(140);
+		ImGui::DragFloat("##offset y", &offset_position.y, 0.0001);
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(140);
+		ImGui::DragFloat("Position", &offset_position.z, 0.0001);
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##position"))
+			offset_position = {0, 0, 0};
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::SetNextItemWidth(140);
+		ImGui::DragFloat("##offset roll", &offset_orientation.x, 0.01);
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(140);
+		ImGui::DragFloat("##offset pitch", &offset_orientation.y, 0.01);
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(140);
+		ImGui::DragFloat("Rotation", &offset_orientation.z, 0.01);
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##orientation"))
+			offset_orientation = {0, 0, 0};
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::SetNextItemWidth(140);
+		ImGui::DragFloat("Ray offset", &ray_offset, 0.0001);
 		imgui_ctx->vibrate_on_hover();
 	}
-
-	ImGui::SetNextItemWidth(140);
-	ImGui::DragFloat("##offset x", &offset_position.x, 0.0001);
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(140);
-	ImGui::DragFloat("##offset y", &offset_position.y, 0.0001);
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(140);
-	ImGui::DragFloat("Position", &offset_position.z, 0.0001);
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SameLine();
-	if (ImGui::Button("Reset##position"))
-		offset_position = {0, 0, 0};
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SetNextItemWidth(140);
-	ImGui::DragFloat("##offset roll", &offset_orientation.x, 0.01);
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(140);
-	ImGui::DragFloat("##offset pitch", &offset_orientation.y, 0.01);
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(140);
-	ImGui::DragFloat("Rotation", &offset_orientation.z, 0.01);
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SameLine();
-	if (ImGui::Button("Reset##orientation"))
-		offset_orientation = {0, 0, 0};
-	imgui_ctx->vibrate_on_hover();
-
-	ImGui::SetNextItemWidth(140);
-	ImGui::DragFloat("Ray offset", &ray_offset, 0.0001);
-	imgui_ctx->vibrate_on_hover();
+	else
+		imgui_ctx->vibrate_on_hover();
 
 	if (ImGui::Button("Delete configuration file"))
 		std::filesystem::remove(application::get_config_path() / "client.json");
 	imgui_ctx->vibrate_on_hover();
 
-	float win_width = ImGui::GetWindowSize().x;
-	float win_height = ImGui::GetWindowSize().y;
-
-	ImGuiStyle & style = ImGui::GetStyle();
-	ImVec2 plot_size{
-	        win_width / 2 - style.ItemSpacing.x / 2,
-	        win_height / 2};
-
-	static std::array<float, 300> cpu_time;
-	static std::array<float, 300> gpu_time;
-	static int offset = 0;
-
-	float min_v = 0;
-	float max_v = 20;
-
-	cpu_time[offset] = application::get_cpu_time().count() * 1.0e-6;
-	gpu_time[offset] = renderer->get_gpu_time() * 1'000;
-	offset = (offset + 1) % cpu_time.size();
-
-	ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
-	ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
-	ImPlot::PushStyleColor(ImPlotCol_AxisBg, IM_COL32(0, 0, 0, 0));
-	ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
-	ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
-
-	if (ImPlot::BeginPlot(_S("CPU time"), plot_size, ImPlotFlags_CanvasOnly))
+	if (ImGui::CollapsingHeader("CPU / GPU stats"))
 	{
-		auto col = ImPlot::GetColormapColor(0);
+		imgui_ctx->vibrate_on_hover();
+		float win_width = ImGui::GetWindowSize().x;
+		float win_height = ImGui::GetWindowSize().y;
 
-		ImPlot::SetupAxes(nullptr, _S("CPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
-		ImPlot::SetupAxesLimits(0, cpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
-		ImPlot::SetNextLineStyle(col);
-		ImPlot::SetNextFillStyle(col, 0.25);
-		ImPlot::PlotLine(_S("CPU time"), cpu_time.data(), cpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
-		ImPlot::EndPlot();
+		ImGuiStyle & style = ImGui::GetStyle();
+		ImVec2 plot_size{
+		        win_width / 2 - style.ItemSpacing.x / 2,
+		        win_height / 2};
+
+		static std::array<float, 300> cpu_time;
+		static std::array<float, 300> gpu_time;
+		static int offset = 0;
+
+		float min_v = 0;
+		float max_v = 20;
+
+		cpu_time[offset] = application::get_cpu_time().count() * 1.0e-6;
+		gpu_time[offset] = renderer->get_gpu_time() * 1'000;
+		offset = (offset + 1) % cpu_time.size();
+
+		ImPlot::PushStyleColor(ImPlotCol_PlotBg, IM_COL32(32, 32, 32, 64));
+		ImPlot::PushStyleColor(ImPlotCol_FrameBg, IM_COL32(0, 0, 0, 0));
+		ImPlot::PushStyleColor(ImPlotCol_AxisBg, IM_COL32(0, 0, 0, 0));
+		ImPlot::PushStyleColor(ImPlotCol_AxisBgActive, IM_COL32(0, 0, 0, 0));
+		ImPlot::PushStyleColor(ImPlotCol_AxisBgHovered, IM_COL32(0, 0, 0, 0));
+
+		if (ImPlot::BeginPlot(_S("CPU time"), plot_size, ImPlotFlags_CanvasOnly))
+		{
+			auto col = ImPlot::GetColormapColor(0);
+
+			ImPlot::SetupAxes(nullptr, _S("CPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
+			ImPlot::SetupAxesLimits(0, cpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
+			ImPlot::SetNextLineStyle(col);
+			ImPlot::SetNextFillStyle(col, 0.25);
+			ImPlot::PlotLine(_S("CPU time"), cpu_time.data(), cpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+			ImPlot::EndPlot();
+		}
+
+		ImGui::SameLine();
+
+		if (ImPlot::BeginPlot(_S("GPU time"), plot_size, ImPlotFlags_CanvasOnly))
+		{
+			auto col = ImPlot::GetColormapColor(1);
+
+			ImPlot::SetupAxes(nullptr, _S("GPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
+			ImPlot::SetupAxesLimits(0, gpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
+			ImPlot::SetNextLineStyle(col);
+			ImPlot::SetNextFillStyle(col, 0.25);
+			ImPlot::PlotLine(_S("GPU time"), gpu_time.data(), gpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
+			ImPlot::EndPlot();
+		}
+		ImPlot::PopStyleColor(5);
 	}
+	else
+		imgui_ctx->vibrate_on_hover();
 
-	ImGui::SameLine();
-
-	if (ImPlot::BeginPlot(_S("GPU time"), plot_size, ImPlotFlags_CanvasOnly))
+	if (ImGui::CollapsingHeader("Renderer stats"))
 	{
-		auto col = ImPlot::GetColormapColor(1);
+		imgui_ctx->vibrate_on_hover();
 
-		ImPlot::SetupAxes(nullptr, _S("GPU time [ms]"), ImPlotAxisFlags_NoDecorations, 0);
-		ImPlot::SetupAxesLimits(0, gpu_time.size() - 1, min_v, max_v, ImGuiCond_Always);
-		ImPlot::SetNextLineStyle(col);
-		ImPlot::SetNextFillStyle(col, 0.25);
-		ImPlot::PlotLine(_S("GPU time"), gpu_time.data(), gpu_time.size(), 1, 0, ImPlotLineFlags_Shaded, offset);
-		ImPlot::EndPlot();
+		const auto & stats = renderer->last_frame_stats();
+
+		ImGui::Text("Primitives: %zd total, %zd culled", stats.count_primitives, stats.count_culled_primitives);
+		ImGui::Text("Triangles: %zd total, %zd culled", stats.count_triangles, stats.count_culled_triangles);
+
+		if (ImGui::BeginTable("Node hierarchy", 2, ImGuiTableFlags_None))
+		{
+			gui_debug_node_hierarchy();
+			ImGui::EndTable();
+		}
 	}
-	ImPlot::PopStyleColor(5);
+	else
+		imgui_ctx->vibrate_on_hover();
 
-	ImGui::PopStyleVar();
+	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
 }
 #endif
 
@@ -1130,56 +1220,6 @@ void scenes::lobby::gui_licenses()
 	imgui_ctx->vibrate_on_hover();
 	if (license)
 		ImGui::TextUnformatted((const char *)license->data(), (const char *)license->data() + license->size());
-}
-
-static bool RadioButtonWithoutCheckBox(const std::string & label, bool active, ImVec2 size_arg)
-{
-	ImGuiWindow * window = ImGui::GetCurrentWindow();
-	if (window->SkipItems)
-		return false;
-
-	ImGuiContext & g = *GImGui;
-	const ImGuiStyle & style = g.Style;
-	const ImGuiID id = window->GetID(label.c_str());
-	const ImVec2 label_size = ImGui::CalcTextSize(label.c_str(), NULL, true);
-
-	const ImVec2 pos = window->DC.CursorPos;
-
-	ImVec2 size = ImGui::CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
-
-	const ImRect bb(pos, pos + size);
-	ImGui::ItemSize(bb, style.FramePadding.y);
-	if (!ImGui::ItemAdd(bb, id))
-		return false;
-
-	bool hovered, held;
-	bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
-
-	ImGuiCol_ col;
-	if ((held && hovered) || active)
-		col = ImGuiCol_ButtonActive;
-	else if (hovered)
-		col = ImGuiCol_ButtonHovered;
-	else
-		col = ImGuiCol_Button;
-
-	ImGui::RenderNavHighlight(bb, id);
-	ImGui::RenderFrame(bb.Min, bb.Max, ImGui::GetColorU32(col), true, style.FrameRounding);
-
-	ImVec2 TextAlign{0, 0.5f};
-	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label.c_str(), NULL, &label_size, TextAlign, &bb);
-
-	IMGUI_TEST_ENGINE_ITEM_INFO(id, label.c_str(), g.LastItemData.StatusFlags);
-	return pressed;
-}
-
-template <typename T>
-static bool RadioButtonWithoutCheckBox(const std::string & label, T * v, T v_button, ImVec2 size_arg)
-{
-	const bool pressed = RadioButtonWithoutCheckBox(label, *v == v_button, size_arg);
-	if (pressed)
-		*v = v_button;
-	return pressed;
 }
 
 static auto face_weights()
@@ -1609,9 +1649,46 @@ static bool is_gui_visible(imgui_context & ctx, XrTime predicted_display_time)
 	return true;
 }
 
+void scenes::lobby::update_transfers()
+{
+	for (auto & [name, transfer]: current_transfers)
+	{
+		transfer.first.sync();
+		if (transfer.first.get_state() == libcurl::state::done and transfer.second)
+			transfer.second(transfer.first);
+	}
+
+	std::erase_if(current_transfers, [](auto & x) {
+		auto state = x.second.first.get_state();
+		return state == libcurl::state::done or state == libcurl::state::reset;
+	});
+}
+
+void scenes::lobby::download(const std::string & url, const std::filesystem::path & path, std::function<void(libcurl::curl_handle & handle)> callback)
+{
+	current_transfers.emplace(url, std::make_pair(curl.download(url, path), std::move(callback)));
+}
+
+void scenes::lobby::download(const std::string & url, std::function<void(libcurl::curl_handle & handle)> callback)
+{
+	current_transfers.emplace(url, std::make_pair(curl.download(url), std::move(callback)));
+}
+
+libcurl::curl_handle * scenes::lobby::try_get_download_handle(const std::string & url)
+{
+	auto iter = current_transfers.find(url);
+	if (iter == current_transfers.end())
+		return nullptr;
+	else
+		return &iter->second.first;
+}
+
 std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTime predicted_display_time)
 {
 	imgui_ctx->new_frame(predicted_display_time);
+	update_transfers();
+	update_file_picker();
+
 	ImGuiStyle & style = ImGui::GetStyle();
 
 	const float TabWidth = 300;
@@ -1683,6 +1760,10 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				gui_post_processing();
 				break;
 
+			case tab::customize:
+				gui_customize();
+				break;
+
 #if WIVRN_CLIENT_DEBUG_MENU
 			case tab::debug:
 				gui_debug();
@@ -1720,28 +1801,31 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 			ImGui::BeginChild("Tabs", {TabWidth, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list"), &current_tab, tab::server_list, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Server list"), current_tab, tab::server_list, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), &current_tab, tab::settings, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), current_tab, tab::settings, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_WAND_MAGIC_SPARKLES "  " + _("Post-processing"), &current_tab, tab::post_processing, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_WAND_MAGIC_SPARKLES "  " + _("Post-processing"), current_tab, tab::post_processing, {TabWidth, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			RadioButtonWithoutCheckBox(ICON_FA_PANORAMA "  " + _("Customize"), current_tab, tab::customize, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
 #if WIVRN_CLIENT_DEBUG_MENU
-			RadioButtonWithoutCheckBox(ICON_FA_BUG_SLASH "  " + _("Debug"), &current_tab, tab::debug, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_BUG_SLASH "  " + _("Debug"), current_tab, tab::debug, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 #endif
 
 			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - 3 * ImGui::GetCurrentContext()->FontSize - 6 * style.FramePadding.y - 2 * style.ItemSpacing.y - style.WindowPadding.y);
-			RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About"), &current_tab, tab::about, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_CIRCLE_INFO "  " + _("About"), current_tab, tab::about, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_SCALE_BALANCED "  " + _("Licenses"), &current_tab, tab::licenses, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_SCALE_BALANCED "  " + _("Licenses"), current_tab, tab::licenses, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Exit"), &current_tab, tab::exit, {TabWidth, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_DOOR_OPEN "  " + _("Exit"), current_tab, tab::exit, {TabWidth, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding

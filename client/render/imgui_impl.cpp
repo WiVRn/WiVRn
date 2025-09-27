@@ -1246,10 +1246,18 @@ void ScrollWhenDragging()
 void CenterTextH(const std::string & text)
 {
 	float win_width = ImGui::GetWindowSize().x;
-	float text_width = ImGui::CalcTextSize(text.c_str()).x;
-	ImGui::SetCursorPosX((win_width - text_width) / 2);
 
-	ImGui::Text("%s", text.c_str());
+	std::vector<std::string> lines = utils::split(text);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
+	for (const auto & i: lines)
+	{
+		float text_width = ImGui::CalcTextSize(i.c_str()).x;
+		ImGui::SetCursorPosX((win_width - text_width) / 2);
+		ImGui::Text("%s", i.c_str());
+	}
+	ImGui::PopStyleVar();
+	ImGui::Dummy({}); // Make sure the original vertical ItemSpacing is respected
 }
 
 void CenterTextHV(const std::string & text)
@@ -1272,4 +1280,63 @@ void CenterTextHV(const std::string & text)
 		ImGui::Text("%s", i.c_str());
 	}
 	ImGui::PopStyleVar();
+}
+
+void InputText(const char * label, std::string & text, const ImVec2 & size, ImGuiInputTextFlags flags)
+{
+	auto callback = [](ImGuiInputTextCallbackData * data) -> int {
+		std::string & text = *reinterpret_cast<std::string *>(data->UserData);
+
+		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+		{
+			assert(text.data() == data->Buf);
+			text.resize(data->BufTextLen);
+			data->Buf = text.data();
+		}
+
+		return 0;
+	};
+
+	ImGui::InputTextEx(label, nullptr, text.data(), text.size() + 1, size, flags | ImGuiInputTextFlags_CallbackResize, callback, &text);
+}
+
+bool RadioButtonWithoutCheckBox(const std::string & label, bool active, ImVec2 size_arg)
+{
+	ImGuiWindow * window = ImGui::GetCurrentWindow();
+	if (window->SkipItems)
+		return false;
+
+	ImGuiContext & g = *GImGui;
+	const ImGuiStyle & style = g.Style;
+	const ImGuiID id = window->GetID(label.c_str());
+	const ImVec2 label_size = ImGui::CalcTextSize(label.c_str(), NULL, true);
+
+	const ImVec2 pos = window->DC.CursorPos;
+
+	ImVec2 size = ImGui::CalcItemSize(size_arg, label_size.x + style.FramePadding.x * 2.0f, label_size.y + style.FramePadding.y * 2.0f);
+
+	const ImRect bb(pos, pos + size);
+	ImGui::ItemSize(bb, style.FramePadding.y);
+	if (!ImGui::ItemAdd(bb, id))
+		return false;
+
+	bool hovered, held;
+	bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+
+	ImGuiCol_ col;
+	if ((held && hovered) || active)
+		col = ImGuiCol_ButtonActive;
+	else if (hovered)
+		col = ImGuiCol_ButtonHovered;
+	else
+		col = ImGuiCol_Button;
+
+	ImGui::RenderNavHighlight(bb, id);
+	ImGui::RenderFrame(bb.Min, bb.Max, ImGui::GetColorU32(col), true, style.FrameRounding);
+
+	ImVec2 TextAlign{0, 0.5f};
+	ImGui::RenderTextClipped(bb.Min + style.FramePadding, bb.Max - style.FramePadding, label.c_str(), NULL, &label_size, TextAlign, &bb);
+
+	IMGUI_TEST_ENGINE_ITEM_INFO(id, label.c_str(), g.LastItemData.StatusFlags);
+	return pressed;
 }

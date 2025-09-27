@@ -1139,6 +1139,81 @@ std::shared_ptr<entt::registry> scene_loader::operator()(
 	return loaded_scene;
 }
 
+struct cache_entry
+{
+	std::string filename;
+	int64_t timestamp = 0;
+	int64_t size = 0;
+};
+
+static cache_entry read_cache_entry(const std::filesystem::path & path)
+{
+	cache_entry entry;
+	std::string json = utils::read_whole_file<std::string>(path / "index.json");
+	simdjson::dom::parser parser;
+	simdjson::dom::element root = parser.parse(json);
+
+	if (auto val = root["filename"]; val.is_string())
+		entry.filename = val.get_string().value();
+
+	if (auto val = root["size"]; val.is_int64())
+		entry.size = val.get_int64();
+
+	if (auto val = root["timestamp"]; val.is_int64())
+		entry.timestamp = val.get_int64();
+
+	return entry;
+}
+
+static void write_cache_entry(const std::filesystem::path & path, const cache_entry & entry)
+{
+	std::ofstream json{path / "index.json"};
+	json << "{\"filename\":" << json_string(entry.filename);
+	json << ",\"size\":" << entry.size;
+
+	// TODO get a timestamp for assets
+	if (not entry.filename.starts_with("assets://"))
+	{
+		auto mtime = std::chrono::file_clock::to_sys(std::filesystem::last_write_time(entry.filename));
+		auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
+		auto size = entry.size;
+
+		json << ",\"timestamp\":" << timestamp;
+	}
+	json << "}";
+}
+
+// Returns false if the cache is out of date and must be deleted
+static bool check_cache_entry(const std::filesystem::path & path)
+{
+	try
+	{
+		cache_entry entry = read_cache_entry(path);
+
+		utils::mapped_file file{entry.filename};
+		int64_t real_size = file.size();
+
+		if (real_size != entry.size)
+			return false;
+
+		// TODO get a timestamp for assets
+		if (not entry.filename.starts_with("assets://"))
+		{
+			auto mtime = std::chrono::file_clock::to_sys(std::filesystem::last_write_time(entry.filename));
+			auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
+
+			if (timestamp != entry.timestamp)
+				return false;
+		}
+	}
+	catch (...)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 std::shared_ptr<entt::registry> scene_loader::operator()(
         const std::filesystem::path & gltf_path,
         std::function<void(float)> progress_cb)
@@ -1169,6 +1244,14 @@ std::shared_ptr<entt::registry> scene_loader::operator()(
 					spdlog::debug("\"{}\" is not a directory: creating cache", gltf_texture_cache.native());
 					create_cache = true;
 				}
+				else if (not check_cache_entry(gltf_texture_cache))
+				{
+					std::error_code ec;
+					std::filesystem::remove_all(gltf_texture_cache, ec);
+					std::filesystem::create_directories(gltf_texture_cache);
+					spdlog::debug("\"{}\" is out of date: recreating cache", gltf_texture_cache.native());
+					create_cache = true;
+				}
 			}
 			else
 			{
@@ -1186,20 +1269,12 @@ std::shared_ptr<entt::registry> scene_loader::operator()(
 
 		if (create_cache)
 		{
-			std::ofstream json{gltf_texture_cache / "index.json"};
-			json << "{\"filename\":" << json_string(gltf_path.native());
-			json << ",\"size\":" << gltf_file.size();
-
-			// TODO get a timestamp for assets
-			if (not gltf_path.native().starts_with("assets://"))
-			{
-				auto mtime = std::chrono::file_clock::to_sys(std::filesystem::last_write_time(gltf_path));
-				auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
-				auto size = gltf_file.size();
-
-				json << ",\"timestamp\":" << timestamp;
-			}
-			json << "}";
+			write_cache_entry(
+			        gltf_texture_cache,
+			        cache_entry{
+			                .filename = gltf_path.native(),
+			                .size = (int64_t)gltf_file.size(),
+			        });
 		}
 	}
 
@@ -1215,69 +1290,11 @@ void scene_loader::clear_texture_cache()
 			if (not entry.is_directory())
 				continue;
 
-			std::string saved_filename;
-			int64_t saved_timestamp = 0;
-			int64_t saved_size = 0;
-
-			try
+			if (not check_cache_entry(entry))
 			{
-				std::string json = utils::read_whole_file<std::string>(entry.path() / "index.json");
-				simdjson::dom::parser parser;
-				simdjson::dom::element root = parser.parse(json);
-
-				if (auto val = root["filename"]; val.is_string())
-					saved_filename = val.get_string().value();
-
-				if (auto val = root["size"]; val.is_int64())
-					saved_size = val.get_int64();
-
-				if (auto val = root["timestamp"]; val.is_int64())
-					saved_timestamp = val.get_int64();
-			}
-			catch (std::exception & e)
-			{
-				// If the index file is not found, remove the cache
-				spdlog::info("{}: cannot open index.json ({}), removing cache directory", entry.path().native(), e.what());
+				spdlog::info("{}: removing cache directory", entry.path().native());
 				std::error_code ec;
 				std::filesystem::remove_all(entry.path(), ec);
-				continue;
-			}
-
-			int64_t real_size = 0;
-			try
-			{
-				utils::mapped_file file{saved_filename};
-				real_size = file.size();
-			}
-			catch (std::exception & e)
-			{
-				spdlog::info("{}: cannot open {} ({}), removing cache directory", entry.path().native(), saved_filename, e.what());
-				std::error_code ec;
-				std::filesystem::remove_all(entry.path(), ec);
-				continue;
-			}
-
-			if (real_size != saved_size)
-			{
-				spdlog::info("{}: wrong size for {} (cache: {}, current: {}), removing cache directory", entry.path().native(), saved_filename, saved_size, real_size);
-				std::error_code ec;
-				std::filesystem::remove_all(entry.path(), ec);
-				continue;
-			}
-
-			// TODO get a timestamp for assets
-			if (not saved_filename.starts_with("assets://"))
-			{
-				auto mtime = std::chrono::file_clock::to_sys(std::filesystem::last_write_time(saved_filename));
-				auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(mtime.time_since_epoch()).count();
-
-				if (timestamp != saved_timestamp)
-				{
-					spdlog::info("{}: wrong timestamp for {} (cache: {}, current: {}), removing cache directory", entry.path().native(), saved_filename, saved_timestamp, timestamp);
-					std::error_code ec;
-					std::filesystem::remove_all(entry.path(), ec);
-					continue;
-				}
 			}
 		}
 	}

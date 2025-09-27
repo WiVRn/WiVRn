@@ -36,7 +36,7 @@ layout(location = 7) in vec4 in_weights;
 out gl_PerVertex
 {
     vec4 gl_Position;
-    // 	float gl_ClipDistance[nb_clipping];
+    	float gl_ClipDistance[nb_clipping];
 };
 
 void main()
@@ -65,4 +65,9 @@ void main()
 
     frag_pos = mesh.modelview[gl_ViewIndex] * vec4(in_position, 1.0);
     light_pos = scene.view[gl_ViewIndex] * scene.light_position;
+
+    for(int i = 0; i < nb_clipping; i++)
+    {
+            gl_ClipDistance[i] = dot(mesh.clipping_plane[i], mesh.model * vec4(in_position, 1.0));
+    }
 }
