@@ -25,6 +25,7 @@
 #include "imgui_internal.h"
 #include "scenes/stream.h"
 #include "utils/i18n.h"
+#include "utils/imgui_utils.h"
 #include "utils/ranges.h"
 
 #include <imspinner.h>

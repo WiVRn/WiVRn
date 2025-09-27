@@ -19,6 +19,7 @@
 #pragma once
 
 #include <atomic>
+#include <cassert>
 #include <condition_variable>
 #include <exception>
 #include <functional>
@@ -177,7 +178,7 @@ struct async_token
 	async_token & operator=(const async_token &) = default;
 	async_token & operator=(async_token &&) = default;
 
-	void set_result(Result && r)
+	void set_result(Result r)
 	{
 		assert(shared_state);
 		std::unique_lock _{shared_state->lock};
@@ -185,7 +186,7 @@ struct async_token
 		shared_state->cv.notify_all();
 	}
 
-	void set_exception(std::exception_ptr && e)
+	void set_exception(std::exception_ptr e)
 	{
 		assert(shared_state);
 		std::unique_lock _{shared_state->lock};
@@ -194,7 +195,7 @@ struct async_token
 	}
 
 public:
-	void set_progress(Progress && p)
+	void set_progress(Progress p)
 	{
 		assert(shared_state);
 		std::unique_lock _{shared_state->lock};

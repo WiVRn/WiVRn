@@ -190,7 +190,8 @@ imgui_textures::imgui_textures(
         vk::raii::PhysicalDevice physical_device,
         vk::raii::Device & device,
         uint32_t queue_family_index,
-        thread_safe<vk::raii::Queue> & queue) :
+        thread_safe<vk::raii::Queue> & queue,
+        std::shared_ptr<image_cache_type> image_cache) :
         physical_device(physical_device),
         device(device),
         queue(queue),
@@ -200,8 +201,12 @@ imgui_textures::imgui_textures(
                              .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
                              .queueFamilyIndex = queue_family_index,
                      }),
+        image_cache(image_cache),
         descriptor_pool(device, ds_layout, layout_bindings)
-{}
+{
+	if (not image_cache)
+		this->image_cache = std::make_shared<image_cache_type>(device, physical_device, queue, queue_family_index);
+}
 
 std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
@@ -327,7 +332,8 @@ imgui_context::imgui_context(
                 physical_device,
                 device,
                 queue_family_index,
-                queue),
+                queue,
+                image_cache),
         queue_family_index(queue_family_index),
         renderpass(create_renderpass(device, swapchain_.format(), true)),
         command_buffers(swapchain_.images().size()),
@@ -338,8 +344,7 @@ imgui_context::imgui_context(
         context(ImGui::CreateContext()),
         plot_context(ImPlot::CreateContext()),
         io((ImGui::SetCurrentContext(context), ImGui::GetIO())),
-        world(application::space(xr::spaces::world)),
-        image_cache(image_cache)
+        world(application::space(xr::spaces::world))
 {
 	controllers.reserve(controllers_.size());
 	for (const auto & i: controllers_)
@@ -1192,79 +1197,4 @@ void imgui_context::tooltip(std::string_view text)
 
 	viewport->Pos = pos_backup;
 	viewport->Size = size_backup;
-}
-
-// https://github.com/ocornut/imgui/issues/3379#issuecomment-2943903877
-void ScrollWhenDragging()
-{
-	ImVec2 delta{0.0f, -ImGui::GetIO().MouseDelta.y};
-	const ImGuiMouseButton mouse_button = ImGuiMouseButton_Left;
-
-	ImGuiContext & g = *ImGui::GetCurrentContext();
-	ImGuiWindow * window = g.CurrentWindow;
-	ImGuiID id = window->GetID("##scrolldraggingoverlay");
-	ImGui::KeepAliveID(id);
-
-	static int active_id;
-	static ImVec2 cumulated_delta;
-
-	bool HoveredIdAllowOverlap_backup = std::exchange(g.HoveredIdAllowOverlap, true);
-	bool ActiveIdAllowOverlap_backup = std::exchange(g.ActiveIdAllowOverlap, true);
-	if (active_id == 0 and ImGui::ItemHoverable(window->Rect(), 0, g.CurrentItemFlags) and ImGui::IsMouseClicked(mouse_button, ImGuiInputFlags_None, /*id*/ ImGuiKeyOwner_Any))
-	{
-		active_id = id;
-
-		// Don't scroll on the first step, in case the active controller just changed
-		delta = {};
-		cumulated_delta = {};
-	}
-
-	if (not g.IO.MouseDown[mouse_button])
-		active_id = 0;
-
-	if (active_id == id)
-	{
-		if (delta.x != 0.0f)
-			ImGui::SetScrollX(window, window->Scroll.x + delta.x);
-		if (delta.y != 0.0f)
-			ImGui::SetScrollY(window, window->Scroll.y + delta.y);
-
-		cumulated_delta += delta;
-		if (std::max(std::abs(cumulated_delta.x), std::abs(cumulated_delta.y)) > 50)
-			ImGui::ClearActiveID();
-	}
-
-	g.HoveredIdAllowOverlap = HoveredIdAllowOverlap_backup;
-	g.ActiveIdAllowOverlap = ActiveIdAllowOverlap_backup;
-}
-
-void CenterTextH(const std::string & text)
-{
-	float win_width = ImGui::GetWindowSize().x;
-	float text_width = ImGui::CalcTextSize(text.c_str()).x;
-	ImGui::SetCursorPosX((win_width - text_width) / 2);
-
-	ImGui::Text("%s", text.c_str());
-}
-
-void CenterTextHV(const std::string & text)
-{
-	ImVec2 size = ImGui::GetWindowSize();
-
-	std::vector<std::string> lines = utils::split(text);
-
-	float text_height = 0;
-	for (const auto & i: lines)
-		text_height += ImGui::CalcTextSize(i.c_str()).y;
-
-	ImGui::SetCursorPosY((size.y - text_height) / 2);
-
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
-	for (const auto & i: lines)
-	{
-		float text_width = ImGui::CalcTextSize(i.c_str()).x;
-		ImGui::SetCursorPosX((size.x - text_width) / 2);
-		ImGui::Text("%s", i.c_str());
-	}
-	ImGui::PopStyleVar();
 }

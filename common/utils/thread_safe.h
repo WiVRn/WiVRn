@@ -72,7 +72,7 @@ public:
 	        value(std::forward<Args>(args)...)
 	{}
 
-	locked<T, Mutex> lock()
+	[[nodiscard]] locked<T, Mutex> lock()
 	{
 		return locked<T, Mutex>(value, mutex);
 	}

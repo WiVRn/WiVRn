@@ -54,6 +54,9 @@ protected:
 	vk::raii::DescriptorSetLayout ds_layout;
 	vk::raii::CommandPool command_pool;
 
+	using image_cache_type = utils::cache<std::string, loaded_image, image_loader>;
+	std::shared_ptr<image_cache_type> image_cache;
+
 private:
 	growable_descriptor_pool descriptor_pool;
 	std::unordered_map<ImTextureID, texture_data> textures;
@@ -63,7 +66,8 @@ public:
 	        vk::raii::PhysicalDevice physical_device,
 	        vk::raii::Device & device,
 	        uint32_t queue_family_index,
-	        thread_safe<vk::raii::Queue> & queue);
+	        thread_safe<vk::raii::Queue> & queue,
+	        std::shared_ptr<image_cache_type> image_cache = {});
 	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
 	ImTextureID load_texture(const std::string & filename);
 	ImTextureID load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name = "");
@@ -185,9 +189,6 @@ private:
 	ImGuiID hovered_item = 0;      // Hovered item in the current frame, reset at the beginning of the frame
 	ImGuiID hovered_item_prev = 0; // Hovered item at the previous frame
 
-	using image_cache_type = utils::cache<std::string, loaded_image, image_loader>;
-	std::shared_ptr<image_cache_type> image_cache;
-
 #if WIVRN_SHOW_IMGUI_DEMO_WINDOW
 	bool show_demo_window = true;
 #endif
@@ -206,7 +207,7 @@ public:
 	        std::span<controller> controllers,
 	        xr::swapchain && swapchain,
 	        std::vector<viewport> layers,
-	        std::shared_ptr<image_cache_type> image_cache);
+	        std::shared_ptr<imgui_textures::image_cache_type> image_cache);
 
 	~imgui_context();
 
@@ -240,7 +241,3 @@ public:
 	void set_controllers_enabled(bool value);
 	void tooltip(std::string_view text);
 };
-
-void ScrollWhenDragging();
-void CenterTextH(const std::string & text);
-void CenterTextHV(const std::string & text);

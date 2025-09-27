@@ -891,9 +891,6 @@ void application::initialize_vulkan()
 	        vk::PhysicalDeviceMultiviewFeaturesKHR{
 	                .multiview = true,
 	        },
-	        vk::PhysicalDeviceMultiviewFeaturesKHR{
-	                .multiview = true,
-	        },
 	};
 
 	if (utils::contains(vk_device_extensions, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME))
