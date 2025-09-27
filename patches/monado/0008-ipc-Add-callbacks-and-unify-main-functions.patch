@@ -1,7 +1,7 @@
-From 36c63e58e4d54c31872b95fdc7fb431c8cfc57ab Mon Sep 17 00:00:00 2001
+From bfda435bdd7e1916bbeda31594b1e6fdca0caf5a Mon Sep 17 00:00:00 2001
 From: Jakob Bornecrantz <tbornecrantz@nvidia.com>
 Date: Fri, 15 Nov 2024 22:51:32 +0000
-Subject: [PATCH] ipc: Add callbacks and unify main functions
+Subject: [PATCH 8/8] ipc: Add callbacks and unify main functions
 
 ---
  src/xrt/ipc/server/ipc_server_interface.h     | 58 +++++++++----
@@ -10,7 +10,7 @@ Subject: [PATCH] ipc: Add callbacks and unify main functions
  3 files changed, 118 insertions(+), 62 deletions(-)
 
 diff --git a/src/xrt/ipc/server/ipc_server_interface.h b/src/xrt/ipc/server/ipc_server_interface.h
-index b870a52c8c..1b44af8a82 100644
+index b870a52c8..1b44af8a8 100644
 --- a/src/xrt/ipc/server/ipc_server_interface.h
 +++ b/src/xrt/ipc/server/ipc_server_interface.h
 @@ -10,12 +10,10 @@
@@ -108,10 +108,10 @@ index b870a52c8c..1b44af8a82 100644
  #endif
  
 diff --git a/src/xrt/ipc/server/ipc_server_process.c b/src/xrt/ipc/server/ipc_server_process.c
-index f972d6835a..32bad0ec56 100644
+index 791a655d6..554de713b 100644
 --- a/src/xrt/ipc/server/ipc_server_process.c
 +++ b/src/xrt/ipc/server/ipc_server_process.c
-@@ -972,9 +972,10 @@ ipc_server_get_system_properties(struct ipc_server *vs, struct xrt_system_proper
+@@ -978,9 +978,10 @@ ipc_server_get_system_properties(struct ipc_server *vs, struct xrt_system_proper
  	return XRT_SUCCESS;
  }
  
@@ -124,7 +124,7 @@ index f972d6835a..32bad0ec56 100644
  {
  	xrt_result_t xret = XRT_SUCCESS;
  	int ret = -1;
-@@ -1002,11 +1003,8 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+@@ -1008,11 +1009,8 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
  	xret = init_all(s, log_level);
  	U_LOG_CHK_ONLY_PRINT(log_level, xret, "init_all");
  	if (xret != XRT_SUCCESS) {
@@ -138,7 +138,7 @@ index f972d6835a..32bad0ec56 100644
  		u_debug_gui_stop(&s->debug_gui);
  		free(s);
  		return -1;
-@@ -1015,13 +1013,15 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+@@ -1021,13 +1019,15 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
  	// Start the debug UI now (if enabled).
  	u_debug_gui_start(s->debug_gui, s->xinst, s->xsysd);
  
@@ -158,7 +158,7 @@ index f972d6835a..32bad0ec56 100644
  	// Stop the UI before tearing everything down.
  	u_debug_gui_stop(&s->debug_gui);
  
-@@ -1038,39 +1038,43 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
+@@ -1044,39 +1044,43 @@ ipc_server_main(int argc, char **argv, const struct ipc_server_main_info *ismi)
  	return ret;
  }
  
@@ -232,7 +232,7 @@ index f972d6835a..32bad0ec56 100644
 +
 +#endif // !XRT_OS_ANDROID
 diff --git a/src/xrt/targets/service-lib/service_target.cpp b/src/xrt/targets/service-lib/service_target.cpp
-index 45877803d3..71c581da6b 100644
+index 45877803d..71c581da6 100644
 --- a/src/xrt/targets/service-lib/service_target.cpp
 +++ b/src/xrt/targets/service-lib/service_target.cpp
 @@ -1,4 +1,5 @@
@@ -308,5 +308,5 @@ index 45877803d3..71c581da6b 100644
  	struct ipc_server *server = NULL;
  
 -- 
-GitLab
+2.51.0
 

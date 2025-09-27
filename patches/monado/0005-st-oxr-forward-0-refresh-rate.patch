@@ -1,7 +1,7 @@
-From 7c01c47b2a1c4da040e0d25f4b9cb760ae88aa25 Mon Sep 17 00:00:00 2001
+From 7793b48c6aa745309d9f0de02966a9f560787fdc Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
-Subject: [PATCH 5/7] st/oxr: forward 0 refresh rate
+Subject: [PATCH 5/8] st/oxr: forward 0 refresh rate
 
 ---
  src/xrt/state_trackers/oxr/oxr_api_session.c | 6 +-----

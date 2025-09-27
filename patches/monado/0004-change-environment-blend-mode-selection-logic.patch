@@ -1,14 +1,14 @@
-From f472a02f86bd98e0cb88847fd8c9104bbd5c74f5 Mon Sep 17 00:00:00 2001
+From 5a9d5a831c7f8fb2b195221357c081e8fbbe4f9a Mon Sep 17 00:00:00 2001
 From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
 Date: Sat, 23 Nov 2024 02:42:12 +0900
-Subject: [PATCH 4/7] change environment blend mode selection logic
+Subject: [PATCH 4/8] change environment blend mode selection logic
 
 ---
  src/xrt/compositor/multi/comp_multi_system.c | 26 +++++++++++++-------
  1 file changed, 17 insertions(+), 9 deletions(-)
 
 diff --git a/src/xrt/compositor/multi/comp_multi_system.c b/src/xrt/compositor/multi/comp_multi_system.c
-index 22c801f65..1155bc67e 100644
+index 94413b090..0d958c3af 100644
 --- a/src/xrt/compositor/multi/comp_multi_system.c
 +++ b/src/xrt/compositor/multi/comp_multi_system.c
 @@ -232,23 +232,31 @@ find_active_blend_mode(struct multi_compositor **overlay_sorted_clients, size_t
