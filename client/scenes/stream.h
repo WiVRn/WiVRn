@@ -134,6 +134,7 @@ private:
 		settings,
 		foveation_settings,
 		applications,
+		application_launcher,
 	};
 
 	bool is_gui_interactable() const;

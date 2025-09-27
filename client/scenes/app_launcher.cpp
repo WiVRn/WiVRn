@@ -122,7 +122,9 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 {
 	auto res = clicked::None;
 	auto t0 = std::chrono::steady_clock::now();
-	bool app_starting = start_time != std::chrono::steady_clock::time_point{} and t0 - start_time < 10s;
+	bool app_starting = start_time != std::chrono::steady_clock::time_point{} and
+	                    t0 - start_time < 10s and
+	                    stream.current_state() != scenes::stream::state::streaming;
 
 	auto cancel_size = ImGui::CalcTextSize(cancel.c_str());
 
@@ -242,6 +244,8 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 
 	ImGui::SetCursorPos(ImGui::GetWindowSize() - cancel_size - ImVec2{50, 50});
 
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
@@ -249,6 +253,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 		res = clicked::Cancel;
 	imgui_ctx.vibrate_on_hover();
 	ImGui::PopStyleColor(3); // ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive
+	ImGui::PopStyleVar(2);
 	return res;
 }
 

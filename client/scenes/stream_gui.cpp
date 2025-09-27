@@ -612,6 +612,8 @@ void scenes::stream::gui_applications()
 		network_session->send_control(from_headset::get_running_applications{});
 	}
 
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10, 10});
 	ImGui::PushFont(nullptr, constants::gui::font_size_large);
 	CenterTextH(_("Running XR applications:"));
 	ImGui::PopFont();
@@ -658,7 +660,7 @@ void scenes::stream::gui_applications()
 
 		ImGui::SameLine();
 		auto right = ImGui::GetWindowSize().x;
-		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 20);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 10);
 		ImGui::SetCursorPosX(right - ImGui::CalcTextSize(ICON_FA_XMARK).x - ImGui::GetStyle().FramePadding.x - 40);
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
@@ -671,7 +673,13 @@ void scenes::stream::gui_applications()
 		if (ImGui::IsItemHovered())
 			imgui_ctx->tooltip(_S("Request to quit, may be ignored by the application"));
 	}
-	ImGui::PopStyleVar();
+
+	auto btn = _("Start");
+	ImGui::SetCursorPos(ImGui::GetWindowSize() - ImGui::CalcTextSize(btn.c_str()) - ImVec2(50, 50));
+	if (ImGui::Button(btn.c_str()))
+		gui_status = gui_status::application_launcher;
+	imgui_ctx->vibrate_on_hover();
+	ImGui::PopStyleVar(3);
 }
 
 // Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
@@ -714,6 +722,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		case gui_status::stats:
 		case gui_status::settings:
 		case gui_status::applications:
+		case gui_status::application_launcher:
 			break;
 	}
 	imgui_ctx->set_controllers_enabled(interactable);
@@ -783,6 +792,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			case gui_status::stats:
 			case gui_status::settings:
 			case gui_status::applications:
+			case gui_status::application_launcher:
 				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
 				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
 				break;
@@ -828,6 +838,12 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - margin_around_window * 2);
 			always_auto_resize = false;
 			display_tabs = true;
+			break;
+		case gui_status::application_launcher:
+			ImGui::SetNextWindowPos(margin_around_window);
+			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - margin_around_window * 2);
+			always_auto_resize = false;
+			display_tabs = false;
 			break;
 	}
 
@@ -887,6 +903,10 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			gui_applications();
 			ImGui::EndChild();
 			break;
+
+		case gui_status::application_launcher:
+			if (apps.draw_gui(*imgui_ctx, _("Cancel")) != app_launcher::None)
+				gui_status = gui_status::applications;
 	}
 
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding
