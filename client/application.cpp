@@ -28,8 +28,8 @@
 #include "utils/files.h"
 #include "utils/i18n.h"
 #include "vk/check.h"
-#include "vk/shader.h"
 #include "wifi_lock.h"
+#include "wivrn_config.h"
 #include "xr/actionset.h"
 #include "xr/check.h"
 #include "xr/htc_exts.h"
@@ -1614,6 +1614,7 @@ void application::loop()
 		}
 		else
 		{
+			spdlog::info("Last scene was popped");
 			exit_requested = true;
 		}
 	}
@@ -1642,6 +1643,7 @@ void application::run()
 				exit_requested = true;
 			}
 		}
+		spdlog::info("Exiting application_thread");
 	});
 
 	// Read all pending events.
@@ -1660,9 +1662,12 @@ void application::run()
 
 		if (app_info.native_app->destroyRequested)
 		{
+			spdlog::info("app_info.native_app->destroyRequested is true");
 			exit_requested = true;
 		}
 	}
+
+	spdlog::info("Exiting normally");
 
 	application_thread.join();
 }
@@ -1860,6 +1865,7 @@ void application::poll_events()
 		switch (e.header.type)
 		{
 			case XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING: {
+				spdlog::info("Received XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING");
 				exit_requested = true;
 			}
 			break;

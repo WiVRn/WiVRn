@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   fill="#000000"
+   height="800px"
+   width="800px"
+   version="1.1"
+   id="Layer_1"
+   viewBox="0 0 512 512"
+   xml:space="preserve"
+   sodipodi:docname="default-environment.svg"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs2" /><sodipodi:namedview
+   id="namedview2"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="2.235"
+   inkscape:cx="400"
+   inkscape:cy="400"
+   inkscape:window-width="3840"
+   inkscape:window-height="2058"
+   inkscape:window-x="0"
+   inkscape:window-y="0"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="g1" />
+<g
+   id="g2">
+	<g
+   id="g1">
+		<path
+   d="M0,0v512h512V0H0z M460.075,30.417l-43.548,43.547L372.98,30.417H460.075z M481.583,51.925v117.512L336.264,314.755    l-58.756-58.756L481.583,51.925z M395.02,95.472L95.472,395.019l-58.756-58.756L336.264,36.717L395.02,95.472z M299.547,30.417    L175.736,154.228L116.98,95.472l65.055-65.055H299.547z M30.417,30.417H139.02L30.417,139.02V30.417z M30.417,182.036    l65.055-65.055l58.756,58.756L30.417,299.546V182.036z M30.417,372.979l43.547,43.547l-43.547,43.547V372.979z M51.925,481.583    L256,277.508l58.756,58.756L169.437,481.583H51.925z M212.453,481.583l269.13-269.129v117.51L329.964,481.583H212.453z     M372.981,481.583l43.546-43.547l43.547,43.547H372.981z M481.583,460.075l-43.547-43.547l43.547-43.547V460.075z"
+   id="path1"
+   inkscape:label="path1"
+   style="fill:#ffffff;fill-opacity:1" />
+	</g>
+</g>
+</svg>

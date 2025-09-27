@@ -577,7 +577,6 @@ std::pair<entt::entity, components::node &> scene::add_gltf(const std::filesyste
 	return add_gltf(load_gltf(path), layer_mask);
 }
 
-
 void scene::remove(entt::entity entity)
 {
 	std::vector to_be_removed{entity};

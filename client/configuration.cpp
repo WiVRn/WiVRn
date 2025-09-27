@@ -19,6 +19,7 @@
 
 #include "configuration.h"
 #include "application.h"
+#include "utils/json_string.h"
 
 #include <fstream>
 #include <magic_enum.hpp>
@@ -26,56 +27,6 @@
 #ifdef __ANDROID__
 #include "android/permissions.h"
 #endif
-
-static std::string json_string(const std::string & in)
-{
-	std::string out;
-	out.reserve(in.size() + 2);
-
-	out += '"';
-
-	for (char c: in)
-	{
-		switch (c)
-		{
-			case '\b':
-				out += "\\b";
-				break;
-
-			case '\f':
-				out += "\\f";
-				break;
-
-			case '\n':
-				out += "\\n";
-				break;
-
-			case '\r':
-				out += "\\r";
-				break;
-
-			case '\t':
-				out += "\\t";
-				break;
-
-			case '"':
-				out += "\\\"";
-				break;
-
-			case '\\':
-				out += "\\\\";
-				break;
-
-			default:
-				out += c;
-				break;
-		}
-	}
-
-	out += '"';
-
-	return out;
-}
 
 bool configuration::check_feature(feature f) const
 {
@@ -221,6 +172,9 @@ configuration::configuration(xr::system & system)
 
 		if (auto val = root["locale"]; val.is_string())
 			locale = val.get_string().value();
+
+		if (auto val = root["environment_model"]; val.is_string())
+			environment_model = (std::string_view)val.get_string();
 	}
 	catch (std::exception & e)
 	{
@@ -308,5 +262,6 @@ void configuration::save()
 	json << ",\"override_foveation_distance\":" << override_foveation_distance;
 	json << ",\"first_run\":" << std::boolalpha << first_run;
 	json << ",\"locale\":" << json_string(locale);
+	json << ",\"environment_model\":" << json_string(environment_model);
 	json << "}";
 }

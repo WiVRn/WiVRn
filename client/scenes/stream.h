@@ -180,7 +180,7 @@ public:
 	        std::unique_ptr<wivrn_session> session,
 	        float guessed_fps,
 	        std::string server_name,
-		scene & parent_scene);
+	        scene & parent_scene);
 
 	void render(const XrFrameState &) override;
 	void on_focused() override;
