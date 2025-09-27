@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-27 17:11+0200\n"
-"PO-Revision-Date: 2025-09-27 22:12+0200\n"
+"PO-Revision-Date: 2025-09-27 22:14+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -569,7 +569,7 @@ msgstr "Pressione A para salvar ou B para cancelar"
 
 #: client/scenes/stream_gui.cpp:618
 msgid "Running XR applications:"
-msgstr "Aplicações XR rodando:"
+msgstr "Aplicativos XR rodando:"
 
 #: client/scenes/stream_gui.cpp:635
 msgid "Overlays"
@@ -577,7 +577,7 @@ msgstr "Overlays"
 
 #: client/scenes/stream_gui.cpp:674
 msgid "Request to quit, may be ignored by the application"
-msgstr "Requisição para sair, pode ser ignorada pela aplicação"
+msgstr "Requisição para sair, pode ser ignorada pelo aplicativo"
 
 #: client/scenes/stream_gui.cpp:677
 msgid "Start"
