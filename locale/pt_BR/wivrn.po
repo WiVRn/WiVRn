@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-27 17:11+0200\n"
-"PO-Revision-Date: 2025-09-27 22:08+0200\n"
+"PO-Revision-Date: 2025-09-27 22:12+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -589,7 +589,7 @@ msgstr "Estatísticas"
 
 #: client/scenes/stream_gui.cpp:928
 msgid "Applications"
-msgstr "Aplicações"
+msgstr "Aplicativos"
 
 #: client/scenes/stream_gui.cpp:934
 msgid "Statistics overlay"
