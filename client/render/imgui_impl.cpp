@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_impl.h"
 #include "implot.h"
 
@@ -25,6 +26,7 @@
 #include "image_loader.h"
 #include "openxr/openxr.h"
 #include "utils/ranges.h"
+#include "utils/strings.h"
 #include "vulkan/vulkan_enums.hpp"
 #include "vulkan/vulkan_handles.hpp"
 #include "vulkan/vulkan_to_string.hpp"
@@ -42,8 +44,6 @@
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <string_view>
-
-#include "IconsFontAwesome6.h"
 
 #ifdef __ANDROID__
 #include <android/font.h>
@@ -178,6 +178,31 @@ static float distance_to_window(ImGuiWindow * window, ImVec2 position)
 	return std::hypot(dx, dy);
 }
 
+static const std::array layout_bindings = {
+        vk::DescriptorSetLayoutBinding{
+                .binding = 0,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        }};
+
+imgui_textures::imgui_textures(
+        vk::raii::PhysicalDevice physical_device,
+        vk::raii::Device & device,
+        uint32_t queue_family_index,
+        thread_safe<vk::raii::Queue> & queue) :
+        physical_device(physical_device),
+        device(device),
+        queue(queue),
+        ds_layout(device, vk::DescriptorSetLayoutCreateInfo{.bindingCount = layout_bindings.size(), .pBindings = layout_bindings.data()}),
+        command_pool(device,
+                     vk::CommandPoolCreateInfo{
+                             .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
+                             .queueFamilyIndex = queue_family_index,
+                     }),
+        descriptor_pool(device, ds_layout, layout_bindings)
+{}
+
 std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
 	if (!in.active)
@@ -289,14 +314,6 @@ imgui_context::imgui_frame & imgui_context::get_frame(vk::Image destination)
 	return frame;
 }
 
-static const std::array layout_bindings = {
-        vk::DescriptorSetLayoutBinding{
-                .binding = 0,
-                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
-        }};
-
 imgui_context::imgui_context(
         vk::raii::PhysicalDevice physical_device,
         vk::raii::Device & device,
@@ -305,18 +322,13 @@ imgui_context::imgui_context(
         std::span<controller> controllers_,
         xr::swapchain & swapchain,
         std::vector<viewport> layers) :
-        physical_device(physical_device),
-        device(device),
+        imgui_textures(
+                physical_device,
+                device,
+                queue_family_index,
+                queue),
         queue_family_index(queue_family_index),
-        queue(queue),
-        ds_layout(device, vk::DescriptorSetLayoutCreateInfo{.bindingCount = layout_bindings.size(), .pBindings = layout_bindings.data()}),
-        descriptor_pool(device, ds_layout, layout_bindings),
         renderpass(create_renderpass(device, swapchain.format(), true)),
-        command_pool(device,
-                     vk::CommandPoolCreateInfo{
-                             .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
-                             .queueFamilyIndex = queue_family_index,
-                     }),
         command_buffers(swapchain.images().size()),
         size(swapchain.extent().width, swapchain.extent().height),
         format(swapchain.format()),
@@ -1020,12 +1032,12 @@ imgui_context::~imgui_context()
 	ImGui::DestroyContext(context);
 }
 
-ImTextureID imgui_context::load_texture(const std::string & filename, vk::raii::Sampler && sampler)
+ImTextureID imgui_textures::load_texture(const std::string & filename, vk::raii::Sampler && sampler)
 {
 	return load_texture(std::span<const std::byte>{asset{filename}}, std::move(sampler));
 }
 
-ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler)
+ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler)
 {
 	bool srgb = true;
 	image_loader loader(physical_device, device, queue, command_pool);
@@ -1061,7 +1073,7 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 	return id;
 }
 
-ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes)
+ImTextureID imgui_textures::load_texture(const std::span<const std::byte> & bytes)
 {
 	return load_texture(
 	        bytes,
@@ -1079,7 +1091,7 @@ ImTextureID imgui_context::load_texture(const std::span<const std::byte> & bytes
 	        });
 }
 
-ImTextureID imgui_context::load_texture(const std::string & filename)
+ImTextureID imgui_textures::load_texture(const std::string & filename)
 {
 	return load_texture(
 	        filename,
@@ -1097,15 +1109,8 @@ ImTextureID imgui_context::load_texture(const std::string & filename)
 	        });
 }
 
-void imgui_context::free_texture(ImTextureID texture)
+void imgui_textures::free_texture(ImTextureID texture)
 {
-	// Make sure we are done using the texture
-	std::vector<vk::Fence> fences;
-	for (auto & f: command_buffers)
-		fences.push_back(*f.fence);
-	if (auto result = device.waitForFences(fences, true, 1'000'000'000); result != vk::Result::eSuccess)
-		spdlog::error("vkWaitForfences: {}", vk::to_string(result));
-
 	textures.erase(texture);
 }
 
@@ -1181,4 +1186,79 @@ void imgui_context::tooltip(std::string_view text)
 
 	viewport->Pos = pos_backup;
 	viewport->Size = size_backup;
+}
+
+// https://github.com/ocornut/imgui/issues/3379#issuecomment-2943903877
+void ScrollWhenDragging()
+{
+	ImVec2 delta{0.0f, -ImGui::GetIO().MouseDelta.y};
+	const ImGuiMouseButton mouse_button = ImGuiMouseButton_Left;
+
+	ImGuiContext & g = *ImGui::GetCurrentContext();
+	ImGuiWindow * window = g.CurrentWindow;
+	ImGuiID id = window->GetID("##scrolldraggingoverlay");
+	ImGui::KeepAliveID(id);
+
+	static int active_id;
+	static ImVec2 cumulated_delta;
+
+	bool HoveredIdAllowOverlap_backup = std::exchange(g.HoveredIdAllowOverlap, true);
+	bool ActiveIdAllowOverlap_backup = std::exchange(g.ActiveIdAllowOverlap, true);
+	if (active_id == 0 and ImGui::ItemHoverable(window->Rect(), 0, g.CurrentItemFlags) and ImGui::IsMouseClicked(mouse_button, ImGuiInputFlags_None, /*id*/ ImGuiKeyOwner_Any))
+	{
+		active_id = id;
+
+		// Don't scroll on the first step, in case the active controller just changed
+		delta = {};
+		cumulated_delta = {};
+	}
+
+	if (not g.IO.MouseDown[mouse_button])
+		active_id = 0;
+
+	if (active_id == id)
+	{
+		if (delta.x != 0.0f)
+			ImGui::SetScrollX(window, window->Scroll.x + delta.x);
+		if (delta.y != 0.0f)
+			ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+
+		cumulated_delta += delta;
+		if (std::max(std::abs(cumulated_delta.x), std::abs(cumulated_delta.y)) > 50)
+			ImGui::ClearActiveID();
+	}
+
+	g.HoveredIdAllowOverlap = HoveredIdAllowOverlap_backup;
+	g.ActiveIdAllowOverlap = ActiveIdAllowOverlap_backup;
+}
+
+void CenterTextH(const std::string & text)
+{
+	float win_width = ImGui::GetWindowSize().x;
+	float text_width = ImGui::CalcTextSize(text.c_str()).x;
+	ImGui::SetCursorPosX((win_width - text_width) / 2);
+
+	ImGui::Text("%s", text.c_str());
+}
+
+void CenterTextHV(const std::string & text)
+{
+	ImVec2 size = ImGui::GetWindowSize();
+
+	std::vector<std::string> lines = utils::split(text);
+
+	float text_height = 0;
+	for (const auto & i: lines)
+		text_height += ImGui::CalcTextSize(i.c_str()).y;
+
+	ImGui::SetCursorPosY((size.y - text_height) / 2);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
+	for (const auto & i: lines)
+	{
+		float text_width = ImGui::CalcTextSize(i.c_str()).x;
+		ImGui::SetCursorPosX((size.x - text_width) / 2);
+		ImGui::Text("%s", i.c_str());
+	}
+	ImGui::PopStyleVar();
 }

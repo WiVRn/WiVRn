@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "app_launcher.h"
 #include "audio/audio.h"
 #include "decoder/shard_accumulator.h"
 #include "render/imgui_impl.h"
@@ -49,12 +50,7 @@ public:
 	};
 	static const size_t image_buffer_size = 3;
 
-	struct app
-	{
-		std::string id;
-		std::string name;
-		std::vector<std::byte> image;
-	};
+	app_launcher apps;
 
 private:
 	static const size_t view_count = 2;
@@ -172,18 +168,18 @@ private:
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 	std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> current_blit_handles;
 
-	// Last application list received from server
-	thread_safe<std::vector<app>> applications;
-
 	XrTime running_application_req = 0;
 	thread_safe<to_headset::running_applications> running_applications;
 
-	stream();
+	stream(std::string server_name);
 
 public:
 	~stream();
 
-	static std::shared_ptr<stream> create(std::unique_ptr<wivrn_session> session, float guessed_fps);
+	static std::shared_ptr<stream> create(
+	        std::unique_ptr<wivrn_session> session,
+	        float guessed_fps,
+	        std::string server_name);
 
 	void render(const XrFrameState &) override;
 	void on_focused() override;
@@ -218,11 +214,6 @@ public:
 	bool alive() const
 	{
 		return !exiting;
-	}
-
-	auto get_applications()
-	{
-		return applications.lock();
 	}
 
 	void start_application(std::string appid);

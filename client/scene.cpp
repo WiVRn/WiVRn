@@ -47,8 +47,8 @@ scene::scene(key, const meta & current_meta, std::span<const vk::Format> support
         device(application::instance().vk_device),
         physical_device(application::instance().vk_physical_device),
         queue(application::instance().vk_queue),
-        commandpool(application::instance().vk_cmdpool),
         queue_family_index(application::instance().vk_queue_family_index),
+        commandpool(application::instance().vk_cmdpool),
         current_meta(current_meta)
 {
 	swapchain_format = vk::Format::eUndefined;

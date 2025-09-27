@@ -30,15 +30,13 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "lobby.h"
-#include "stream.h"
+#include "scenes/stream.h"
 #include "utils/i18n.h"
 #include "utils/overloaded.h"
-#include "utils/ranges.h"
 #include "version.h"
 #include "xr/body_tracker.h"
 #include <algorithm>
 #include <cassert>
-#include <chrono>
 #include <filesystem>
 #include <glm/gtc/quaternion.hpp>
 #include <imspinner.h>
@@ -51,81 +49,6 @@
 #include "IconsFontAwesome6.h"
 
 using namespace std::chrono_literals;
-
-// https://github.com/ocornut/imgui/issues/3379#issuecomment-2943903877
-static void ScrollWhenDragging()
-{
-	ImVec2 delta{0.0f, -ImGui::GetIO().MouseDelta.y};
-	const ImGuiMouseButton mouse_button = ImGuiMouseButton_Left;
-
-	ImGuiContext & g = *ImGui::GetCurrentContext();
-	ImGuiWindow * window = g.CurrentWindow;
-	ImGuiID id = window->GetID("##scrolldraggingoverlay");
-	ImGui::KeepAliveID(id);
-
-	static int active_id;
-	static ImVec2 cumulated_delta;
-
-	bool HoveredIdAllowOverlap_backup = std::exchange(g.HoveredIdAllowOverlap, true);
-	bool ActiveIdAllowOverlap_backup = std::exchange(g.ActiveIdAllowOverlap, true);
-	if (active_id == 0 and ImGui::ItemHoverable(window->Rect(), 0, g.CurrentItemFlags) and ImGui::IsMouseClicked(mouse_button, ImGuiInputFlags_None, /*id*/ ImGuiKeyOwner_Any))
-	{
-		active_id = id;
-
-		// Don't scroll on the first step, in case the active controller just changed
-		delta = {};
-		cumulated_delta = {};
-	}
-
-	if (not g.IO.MouseDown[mouse_button])
-		active_id = 0;
-
-	if (active_id == id)
-	{
-		if (delta.x != 0.0f)
-			ImGui::SetScrollX(window, window->Scroll.x + delta.x);
-		if (delta.y != 0.0f)
-			ImGui::SetScrollY(window, window->Scroll.y + delta.y);
-
-		cumulated_delta += delta;
-		if (std::max(std::abs(cumulated_delta.x), std::abs(cumulated_delta.y)) > 50)
-			ImGui::ClearActiveID();
-	}
-
-	g.HoveredIdAllowOverlap = HoveredIdAllowOverlap_backup;
-	g.ActiveIdAllowOverlap = ActiveIdAllowOverlap_backup;
-}
-
-static void CenterTextH(const std::string & text)
-{
-	float win_width = ImGui::GetWindowSize().x;
-	float text_width = ImGui::CalcTextSize(text.c_str()).x;
-	ImGui::SetCursorPosX((win_width - text_width) / 2);
-
-	ImGui::Text("%s", text.c_str());
-}
-
-static void CenterTextHV(const std::string & text)
-{
-	ImVec2 size = ImGui::GetWindowSize();
-
-	std::vector<std::string> lines = utils::split(text);
-
-	float text_height = 0;
-	for (const auto & i: lines)
-		text_height += ImGui::CalcTextSize(i.c_str()).y;
-
-	ImGui::SetCursorPosY((size.y - text_height) / 2);
-
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
-	for (const auto & i: lines)
-	{
-		float text_width = ImGui::CalcTextSize(i.c_str()).x;
-		ImGui::SetCursorPosX((size.x - text_width) / 2);
-		ImGui::Text("%s", i.c_str());
-	}
-	ImGui::PopStyleVar();
-}
 
 static void InputText(const char * label, std::string & text, const ImVec2 & size, ImGuiInputTextFlags flags)
 {
@@ -175,54 +98,6 @@ static void display_recentering_tip(imgui_context & ctx, const std::string & tip
 	ImGui::PopFont();
 }
 
-// Display a button with an image and a text centred horizontally
-static bool icon(const std::string & text, ImTextureRef tex_ref, const ImVec2 & image_size, ImGuiButtonFlags flags = 0, const ImVec2 & size_arg = ImVec2(0, 0), const ImVec2 & uv0 = ImVec2(0, 0), const ImVec2 & uv1 = ImVec2(1, 1), const ImVec4 & tint_col = ImVec4(1, 1, 1, 1))
-{
-	// Based on ImGui::ButtonEx and ImGui::ImageButtonEx
-	ImGuiWindow * window = ImGui::GetCurrentWindow();
-	const ImGuiStyle & style = ImGui::GetStyle();
-
-	if (window->SkipItems)
-		return false;
-
-	const ImVec2 label_size = ImGui::CalcTextSize(text.c_str(), nullptr, true);
-
-	ImVec2 size = ImGui::CalcItemSize(
-	        size_arg,
-	        std::max(image_size.x, label_size.x) + style.FramePadding.x * 2.0f,
-	        image_size.y + style.ItemInnerSpacing.y + label_size.y + style.FramePadding.y * 2.0f);
-
-	const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size);
-
-	ImRect image_pos(
-	        {(bb.Min.x + bb.Max.x - image_size.x) / 2, bb.Min.y + style.FramePadding.y},
-	        {(bb.Min.x + bb.Max.x + image_size.x) / 2, bb.Min.y + style.FramePadding.y + image_size.y});
-
-	ImRect label_pos(
-	        {bb.Min.x + style.FramePadding.x, image_pos.Max.y + style.ItemInnerSpacing.y},
-	        {bb.Max.x - style.FramePadding.x, bb.Max.y - style.FramePadding.y});
-
-	ImGui::ItemSize(bb);
-
-	ImGuiID id = window->GetID(text.c_str());
-	if (!ImGui::ItemAdd(bb, id))
-		return false;
-
-	bool hovered, held;
-	bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
-
-	// Render
-	const ImU32 col = ImGui::GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered
-	                                                                                         : ImGuiCol_Button);
-	ImGui::RenderNavCursor(bb, id);
-	ImGui::RenderFrame(bb.Min, bb.Max, col, true, style.FrameRounding);
-
-	window->DrawList->AddImage(tex_ref, image_pos.Min, image_pos.Max, uv0, uv1, ImGui::GetColorU32(tint_col));
-	ImGui::RenderTextClipped(label_pos.Min, label_pos.Max, text.c_str(), NULL, &label_size, style.ButtonTextAlign, &bb);
-
-	return pressed;
-}
-
 std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag)
 {
 	switch (flag)
@@ -248,7 +123,6 @@ void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_req
 	if (next_scene)
 	{
 		current_tab = tab::connected;
-		timestamp_start_application.reset();
 		ImGui::CloseCurrentPopup();
 		return;
 	}
@@ -384,144 +258,14 @@ void scenes::lobby::gui_connected(XrTime predicted_display_time)
 	if (not next_scene)
 	{
 		current_tab = tab::server_list;
-
-		for (const auto & [app_id, app_icon]: app_icons)
-			imgui_ctx->free_texture(app_icon);
-		app_icons.clear();
-
 		return;
 	}
 
-	ImGui::PushFont(nullptr, constants::gui::font_size_large);
-	if (server_name.empty())
-		CenterTextH(_("Connected to WiVRn server"));
-	else
-		CenterTextH(fmt::format(_F("Connected to {}"), server_name));
-	ImGui::PopFont();
-
-	auto disconnect = _("Disconnect");
-	auto disconnect_size = ImGui::CalcTextSize(disconnect.c_str());
-
-	auto apps = next_scene->get_applications();
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {20, 20});
-	if (apps->empty())
-	{
-		CenterTextHV(_("Start an application on the server to start streaming."));
-	}
-	else
-	{
-		bool app_starting = timestamp_start_application and (predicted_display_time - *timestamp_start_application < 10'000'000'000);
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {20, 0});
-		ImGui::BeginDisabled(app_starting);
-		ImGui::BeginChild("Main", ImGui::GetWindowSize() - ImGui::GetCursorPos() - ImVec2(0, disconnect_size.y + 80), 0, app_starting ? ImGuiWindowFlags_NoScrollWithMouse : 0);
-
-		ImGui::Indent(20);
-		if (server_name.empty())
-			ImGui::Text("%s", _S("Start an application on your computer or select one to start streaming."));
-		else
-			ImGui::Text("%s", fmt::format(_F("Start an application on {} or select one to start streaming."), server_name).c_str());
-		ImGui::Unindent();
-
-		float icon_width = 400;
-		float icon_spacing = ImGui::GetStyle().ItemSpacing.x;
-		float usable_window_width = ImGui::GetWindowSize().x - ImGui::GetCurrentWindow()->ScrollbarSizes.x;
-
-		int icons_per_line = (usable_window_width + icon_spacing) / (icon_width + icon_spacing);
-		float icon_line_width = icons_per_line * icon_width + (icons_per_line - 1) * icon_spacing;
-
-		ImGui::Indent((usable_window_width - icon_line_width) / 2);
-
-		auto t0 = std::chrono::steady_clock::now();
-		for (const auto [index, app]: utils::enumerate(*apps))
-		{
-			ImTextureID texture = [&]() -> ImTextureID {
-				if (app.image.empty())
-					return default_icon;
-				else
-				{
-					auto it = app_icons.find(app.id);
-					if (it == app_icons.end())
-					{
-						// Don't load too many textures at the same time to keep the GUI responsive
-						if (std::chrono::steady_clock::now() - t0 > 10ms)
-							return default_icon;
-
-						try
-						{
-							it = app_icons.emplace(app.id, imgui_ctx->load_texture(app.image)).first;
-						}
-						catch (std::exception & e)
-						{
-							spdlog::warn("Unable to load icon for \"{}\": {}", app.id, e.what());
-
-							app.image.clear();
-							return default_icon;
-						}
-					}
-					return it->second;
-				}
-			}();
-
-			ImGui::PushStyleColor(ImGuiCol_Button, 0);
-			if (icon(app.name + "##" + app.id, texture, {256, 256}, ImGuiButtonFlags_PressedOnClickRelease, {icon_width, 0}))
-			{
-				timestamp_start_application = predicted_display_time;
-				next_scene->start_application(app.id);
-			}
-			imgui_ctx->vibrate_on_hover();
-			ImGui::PopStyleColor(); // ImGuiCol_Button
-
-			if (index % 3 != 2)
-				ImGui::SameLine();
-		}
-		ImGui::Unindent();
-
-		std::vector<std::pair<std::string, ImTextureID>> to_be_removed;
-		for (const auto & [app_id, app_icon]: app_icons)
-		{
-			if (not std::ranges::contains(*apps, app_id, &scenes::stream::app::id))
-				to_be_removed.emplace_back(app_id, app_icon);
-		}
-		for (const auto & [app_id, app_icon]: to_be_removed)
-		{
-			imgui_ctx->free_texture(app_icon);
-			app_icons.erase(app_id);
-		}
-
-		ScrollWhenDragging();
-		ImGui::EndChild();
-		ImGui::EndDisabled();
-
-		if (app_starting)
-		{
-			ImGui::SetCursorPos(ImGui::GetWindowSize() / 2 - ImVec2{200, 200} - ImGui::GetStyle().FramePadding);
-			ImSpinner::SpinnerAng("App starting spinner",
-			                      200,                         // Radius
-			                      40,                          // Thickness
-			                      ImColor{1.f, 1.f, 1.f, 1.f}, // Colour
-			                      ImColor{1.f, 1.f, 1.f, 0.f}, // Background
-			                      6,                           // Velocity
-			                      0.75f * 2 * M_PI             // Angle
-			);
-		}
-
-		ImGui::PopStyleVar(); // ImGuiStyleVar_WindowPadding
-	}
-	ImGui::PopStyleVar();
-
-	ImGui::SetCursorPos(ImGui::GetWindowSize() - disconnect_size - ImVec2{50, 50});
-
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.40f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.2f, 0.2f, 1.00f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.1f, 0.1f, 1.00f));
-	if (ImGui::Button(disconnect.c_str()))
+	if (next_scene->apps.draw_gui(*imgui_ctx, _("Disconnect")) == app_launcher::Cancel)
 	{
 		next_scene.reset();
 		current_tab = tab::server_list;
 	}
-	imgui_ctx->vibrate_on_hover();
-	ImGui::PopStyleColor(3); // ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive
 }
 
 void scenes::lobby::gui_new_server()

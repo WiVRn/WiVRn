@@ -86,12 +86,15 @@ protected:
 	XrViewConfigurationType viewconfig;
 	bool focused = false;
 
+public:
 	vk::raii::Instance & vk_instance;
 	vk::raii::Device & device;
 	vk::raii::PhysicalDevice & physical_device;
 	thread_safe<vk::raii::Queue> & queue;
-	vk::raii::CommandPool & commandpool;
 	uint32_t queue_family_index;
+
+protected:
+	vk::raii::CommandPool & commandpool;
 
 	const meta & current_meta;
 

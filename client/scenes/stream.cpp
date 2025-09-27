@@ -151,8 +151,9 @@ static const std::array supported_depth_formats{
         vk::Format::eX8D24UnormPack32,
 };
 
-scenes::stream::stream() :
+scenes::stream::stream(std::string server_name) :
         scene_impl<stream>(supported_color_formats, supported_depth_formats),
+        apps{*this, std::move(server_name)},
         blitters{blitter(device, 0), blitter(device, 1)}
 {
 }
@@ -185,9 +186,9 @@ static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::inst
 	return res;
 }
 
-std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps)
+std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_session> network_session, float guessed_fps, std::string server_name)
 {
-	std::shared_ptr<stream> self{new stream};
+	std::shared_ptr<stream> self{new stream{std::move(server_name)}};
 	self->network_session = std::move(network_session);
 
 	self->network_session->send_control([&]() {

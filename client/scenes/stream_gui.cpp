@@ -83,15 +83,6 @@ ImPlotPoint getter(int index, void * data_)
 
 	return ImPlotPoint(index, *(float *)(data.data + index * data.stride) * data.multiplier);
 }
-
-void CenterTextH(const std::string & text)
-{
-	float win_width = ImGui::GetWindowSize().x;
-	float text_width = ImGui::CalcTextSize(text.c_str()).x;
-	ImGui::SetCursorPosX((win_width - text_width) / 2);
-
-	ImGui::Text("%s", text.c_str());
-}
 } // namespace
 
 void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps)

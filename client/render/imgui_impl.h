@@ -36,19 +36,45 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 
-class imgui_context
+class imgui_textures
 {
-	struct command_buffer
-	{
-		vk::raii::CommandBuffer command_buffer = nullptr;
-		vk::raii::Fence fence = nullptr;
-	};
-
 	struct texture_data
 	{
 		vk::raii::Sampler sampler;
 		std::shared_ptr<vk::raii::ImageView> image_view;
 		std::shared_ptr<vk::raii::DescriptorSet> descriptor_set;
+	};
+
+protected:
+	vk::raii::PhysicalDevice physical_device;
+	vk::raii::Device & device;
+	thread_safe<vk::raii::Queue> & queue;
+	vk::raii::DescriptorSetLayout ds_layout;
+	vk::raii::CommandPool command_pool;
+
+private:
+	growable_descriptor_pool descriptor_pool;
+	std::unordered_map<ImTextureID, texture_data> textures;
+
+public:
+	imgui_textures(
+	        vk::raii::PhysicalDevice physical_device,
+	        vk::raii::Device & device,
+	        uint32_t queue_family_index,
+	        thread_safe<vk::raii::Queue> & queue);
+	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
+	ImTextureID load_texture(const std::string & filename);
+	ImTextureID load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler);
+	ImTextureID load_texture(const std::span<const std::byte> & bytes);
+	void free_texture(ImTextureID);
+};
+
+class imgui_context : public imgui_textures
+{
+	struct command_buffer
+	{
+		vk::raii::CommandBuffer command_buffer = nullptr;
+		vk::raii::Fence fence = nullptr;
 	};
 
 public:
@@ -117,18 +143,10 @@ public:
 	};
 
 private:
-	vk::raii::PhysicalDevice physical_device;
-	vk::raii::Device & device;
 	uint32_t queue_family_index;
-	thread_safe<vk::raii::Queue> & queue;
 
 	vk::raii::Pipeline pipeline = nullptr;
-	vk::raii::DescriptorSetLayout ds_layout;
-	growable_descriptor_pool descriptor_pool;
 	vk::raii::RenderPass renderpass;
-	vk::raii::CommandPool command_pool;
-
-	std::unordered_map<ImTextureID, texture_data> textures;
 
 	std::vector<imgui_frame> frames;
 	imgui_frame & get_frame(vk::Image destination);
@@ -207,11 +225,6 @@ public:
 	// Convert position from viewport coordinates to real-world
 	glm::vec3 rw_from_vp(const ImVec2 & position);
 
-	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
-	ImTextureID load_texture(const std::string & filename);
-	ImTextureID load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler);
-	ImTextureID load_texture(const std::span<const std::byte> & bytes);
-	void free_texture(ImTextureID);
 	void set_current();
 
 	bool is_modal_popup_shown() const;
@@ -221,3 +234,7 @@ public:
 	void set_controllers_enabled(bool value);
 	void tooltip(std::string_view text);
 };
+
+void ScrollWhenDragging();
+void CenterTextH(const std::string & text);
+void CenterTextHV(const std::string & text);
