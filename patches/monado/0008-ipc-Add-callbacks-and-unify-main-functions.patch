@@ -1,4 +1,4 @@
-From bfda435bdd7e1916bbeda31594b1e6fdca0caf5a Mon Sep 17 00:00:00 2001
+From e6a73b6e07465ea7efc9d7c39ed7e817a4de4242 Mon Sep 17 00:00:00 2001
 From: Jakob Bornecrantz <tbornecrantz@nvidia.com>
 Date: Fri, 15 Nov 2024 22:51:32 +0000
 Subject: [PATCH 8/8] ipc: Add callbacks and unify main functions

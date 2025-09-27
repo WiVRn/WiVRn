@@ -1,11 +1,11 @@
-From 95028abb771e09f7325b27a217e3bb66cf8f88e5 Mon Sep 17 00:00:00 2001
+From e22cf0edf3abedc59e98416ac4d62e9253d6ddd8 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 6/8] Replace distortion with foveation
 
 ---
  src/xrt/compositor/CMakeLists.txt             |   4 +-
- src/xrt/compositor/main/comp_renderer.c       |  17 +-
+ src/xrt/compositor/main/comp_renderer.c       |   6 +-
  src/xrt/compositor/main/comp_target.h         |   3 +-
  src/xrt/compositor/render/render_compute.c    | 267 +++++-------------
  src/xrt/compositor/render/render_interface.h  |  48 ++--
@@ -16,7 +16,7 @@ Subject: [PATCH 6/8] Replace distortion with foveation
  .../compositor/util/comp_high_level_render.h  |   9 +-
  src/xrt/compositor/util/comp_render.h         |  11 +-
  src/xrt/compositor/util/comp_render_cs.c      |  44 ++-
- 12 files changed, 247 insertions(+), 441 deletions(-)
+ 12 files changed, 245 insertions(+), 432 deletions(-)
 
 diff --git a/src/xrt/compositor/CMakeLists.txt b/src/xrt/compositor/CMakeLists.txt
 index 1ba5ec438..eb068f5fc 100644
@@ -41,25 +41,10 @@ index 1ba5ec438..eb068f5fc 100644
  		render/render_interface.h
  		render/render_resources.c
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index e05e2d263..755e39d8c 100644
+index c5ec9e7de..fecc368a8 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -275,14 +275,6 @@ calc_pose_data(struct comp_renderer *r,
- 		return false;
- 	}
- 
--	// Check if pose is valid (has valid position and orientation)
--	bool pose_valid = (head_relation.relation_flags & XRT_SPACE_RELATION_POSITION_VALID_BIT) &&
--	                  (head_relation.relation_flags & XRT_SPACE_RELATION_ORIENTATION_VALID_BIT);
--
--	if (!pose_valid) {
--		return false;
--	}
--
- 	struct xrt_fov dist_fov[XRT_MAX_VIEWS] = XRT_STRUCT_INIT;
- 	for (uint32_t i = 0; i < view_count; i++) {
- 		dist_fov[i] = r->c->xdev->hmd->distortion.fov[i];
-@@ -952,7 +944,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -936,7 +936,8 @@ dispatch_compute(struct comp_renderer *r,
  
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
@@ -69,26 +54,16 @@ index e05e2d263..755e39d8c 100644
  
  	// Target view information.
  	struct render_viewport_data target_viewport_datas[XRT_MAX_VIEWS];
-@@ -960,7 +953,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -952,7 +953,8 @@ dispatch_compute(struct comp_renderer *r,
+ 	    eye_poses,                       //
+ 	    fovs,                            //
+ 	    target_image,                    //
+-	    target_storage_view,             //
++	    target_storage_view_y,           //
++	    target_storage_view_cbcr,        //
+ 	    target_viewport_datas);          //
  
- 	// Show clear shader when pose is invalid, otherwise normal rendering
- 	if (!pose_valid) {
--		render_compute_clear(render, target_image, target_storage_view, target_viewport_datas);
-+		render_compute_clear(render, target_image, target_storage_view_y, target_storage_view_cbcr,
-+		                     target_viewport_datas);
- 	} else {
- 		chl_frame_state_cs_default_pipeline( //
- 		    frame_state,                     //
-@@ -971,7 +965,8 @@ dispatch_compute(struct comp_renderer *r,
- 		    eye_poses,                       //
- 		    fovs,                            //
- 		    target_image,                    //
--		    target_storage_view,             //
-+		    target_storage_view_y,           //
-+		    target_storage_view_cbcr,        //
- 		    target_viewport_datas);          //
- 	}
- 
+ 	// Everything is ready, submit to the queue.
 diff --git a/src/xrt/compositor/main/comp_target.h b/src/xrt/compositor/main/comp_target.h
 index 2122f46e7..53dcd631b 100644
 --- a/src/xrt/compositor/main/comp_target.h

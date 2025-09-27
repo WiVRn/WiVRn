@@ -1,0 +1,25 @@
+From 9c8627778ec263f6443fe726de88ca84bace3b00 Mon Sep 17 00:00:00 2001
+From: no name <git-am@invalid>
+Date: Sun, 28 Sep 2025 11:33:10 +0200
+Subject: [PATCH 9/9] d/steamvr_lh: prevent crash on vive pro2/WiVRn
+
+---
+ src/xrt/drivers/steamvr_lh/steamvr_lh.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+index 8a4c55ed4..723cbb196 100644
+--- a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
++++ b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+@@ -862,7 +862,7 @@ steamvr_lh_create_devices(struct xrt_prober *xp, struct xrt_system_devices **out
+ 
+ 	// Include the HMD
+ 	if (svrs->ctx->hmd) {
+-		if (svrs->ctx->hmd->variant == VIVE_VARIANT_PRO2 && !svrs->ctx->hmd->init_vive_pro_2(xp)) {
++		if (xp && svrs->ctx->hmd->variant == VIVE_VARIANT_PRO2 && !svrs->ctx->hmd->init_vive_pro_2(xp)) {
+ 			U_LOG_IFL_W(level, "Found Vive Pro 2, but failed to initialize.");
+ 		}
+ 
+-- 
+2.51.0
+

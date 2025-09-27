@@ -198,7 +198,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	auto use_steamvr_lh = configuration().use_steamvr_lh || std::getenv("WIVRN_USE_STEAMVR_LH");
 	xrt_system_devices * lhdevs = NULL;
 
-	if (use_steamvr_lh && steamvr_lh_create_devices(&lhdevs) == XRT_SUCCESS)
+	if (use_steamvr_lh && steamvr_lh_create_devices(nullptr, &lhdevs) == XRT_SUCCESS)
 	{
 		for (int i = 0; i < lhdevs->xdev_count; i++)
 		{
