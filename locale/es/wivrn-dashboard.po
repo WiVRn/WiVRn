@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-12 14:54+0200\n"
+"POT-Creation-Date: 2025-09-24 07:53+0200\n"
 "PO-Revision-Date: 2025-08-06 19:20+0200\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish\n"
@@ -19,47 +19,47 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Gtranslator 48.0\n"
 
-#: dashboard/apk_installer.cpp:167
+#: dashboard/apk_installer.cpp:165
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "Descargando APK: %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:169
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "Descargando APK: %1 MB"
 
-#: dashboard/apk_installer.cpp:178
+#: dashboard/apk_installer.cpp:176
 #, kde-format
 msgid "Download cancelled"
 msgstr "Descarga cancelada"
 
-#: dashboard/apk_installer.cpp:194
+#: dashboard/apk_installer.cpp:192
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "No se puede descargar el APK: %1"
 
-#: dashboard/apk_installer.cpp:217
+#: dashboard/apk_installer.cpp:215
 #, kde-format
 msgid "Installing APK"
 msgstr "Instalando APK"
 
-#: dashboard/apk_installer.cpp:221
+#: dashboard/apk_installer.cpp:219
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "Error al iniciar adb: %1"
 
-#: dashboard/apk_installer.cpp:231
+#: dashboard/apk_installer.cpp:229
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb salió anormalmente: %1"
 
-#: dashboard/apk_installer.cpp:239
+#: dashboard/apk_installer.cpp:237
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "El comando 'adb install' falló: código de salida %1"
 
-#: dashboard/apk_installer.cpp:244
+#: dashboard/apk_installer.cpp:242
 #, kde-format
 msgid "Installation successful"
 msgstr "Instalación completada con éxito"
@@ -933,12 +933,12 @@ msgstr "Finalizar"
 msgid "Finished"
 msgstr "Terminado"
 
-#: dashboard/wivrn_server.cpp:592
+#: dashboard/wivrn_server.cpp:593
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:593
+#: dashboard/wivrn_server.cpp:594
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
