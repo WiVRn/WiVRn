@@ -26,7 +26,21 @@
         ];
 
         package = pkgs.enableDebugging (pkgs.wivrn.overrideAttrs (finalAttrs: oldAttrs: {
-          src = ./.;
+          # Filter the directories and files we don't need to keep to avoid needless rebuilds
+          src = lib.cleanSourceWith {
+            filter = name: type: let
+              baseName = baseNameOf (toString name);
+            in
+            (lib.cleanSourceFilter name type) &&
+            !(
+              (type == "directory" && (
+                baseName == ".direnv"
+                || baseName == ".cxx"
+                || lib.hasPrefix "build" baseName))
+              || baseName == ".envrc"
+            );
+            src = ./.;
+          };
           version = "next";
 
           # Because src is just a folder path and not a set from a fetcher, it doesn't need to be unpacked, so having a postUnpack throws an error.
