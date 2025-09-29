@@ -156,7 +156,7 @@ jobs:
 
     - uses: cachix/install-nix-action@v31
     - run: nix flake check
-    - run: nix build
+    - run: nix build --print-build-logs
 
   build-test-client:
     name: Linux client
