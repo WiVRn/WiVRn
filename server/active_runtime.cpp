@@ -93,17 +93,32 @@ static void move_file(const std::filesystem::path & from, const std::filesystem:
 	std::filesystem::rename(from, to);
 }
 
+static const std::filesystem::path & backup_and_symlink(
+        const std::filesystem::path & location,
+        const std::filesystem::path & dst)
+{
+	std::filesystem::create_directories(location.parent_path());
+	std::error_code ec;
+	if (std::filesystem::equivalent(location, dst, ec))
+		return location;
+	// The file may be a dead symlink
+	if (ec)
+		std::filesystem::remove(location);
+
+	move_file(location, backup_name(location));
+
+	std::filesystem::create_symlink(dst, location);
+	return location;
+}
+
 active_runtime::active_runtime() :
         pid(getpid())
 {
 	try
 	{
-		std::filesystem::path active_runtime_json = xdg_config_home() / "openxr/1/active_runtime.json";
-		std::filesystem::create_directories(active_runtime_json.parent_path());
-		move_file(active_runtime_json, backup_name(active_runtime_json));
-
-		std::filesystem::create_symlink(manifest_path(), active_runtime_json);
-		this->active_runtime_json = active_runtime_json;
+		this->active_runtime_json = backup_and_symlink(
+		        xdg_config_home() / "openxr/1/active_runtime.json",
+		        manifest_path());
 	}
 	catch (std::exception & e)
 	{
