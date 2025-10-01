@@ -260,7 +260,29 @@ xrt_binding_output_pair simple_output_binding[] = {
         {XRT_OUTPUT_NAME_SIMPLE_VIBRATION, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
-xrt_binding_input_pair index_input_binding[] = {
+xrt_binding_input_pair index_input_binding_left[] = {
+        {XRT_INPUT_INDEX_SYSTEM_CLICK, XRT_INPUT_TOUCH_MENU_CLICK},
+        {XRT_INPUT_INDEX_SYSTEM_TOUCH, XRT_INPUT_INDEX_SYSTEM_TOUCH},
+        {XRT_INPUT_INDEX_A_CLICK, XRT_INPUT_TOUCH_X_CLICK},
+        {XRT_INPUT_INDEX_A_TOUCH, XRT_INPUT_TOUCH_X_TOUCH},
+        {XRT_INPUT_INDEX_B_CLICK, XRT_INPUT_TOUCH_Y_CLICK},
+        {XRT_INPUT_INDEX_B_TOUCH, XRT_INPUT_TOUCH_Y_TOUCH},
+        {XRT_INPUT_INDEX_SQUEEZE_VALUE, XRT_INPUT_TOUCH_SQUEEZE_VALUE},
+        {XRT_INPUT_INDEX_SQUEEZE_FORCE, XRT_INPUT_INDEX_SQUEEZE_FORCE},
+        {XRT_INPUT_INDEX_TRIGGER_CLICK, XRT_INPUT_INDEX_TRIGGER_CLICK},
+        {XRT_INPUT_INDEX_TRIGGER_VALUE, XRT_INPUT_TOUCH_TRIGGER_VALUE},
+        {XRT_INPUT_INDEX_TRIGGER_TOUCH, XRT_INPUT_TOUCH_TRIGGER_TOUCH},
+        {XRT_INPUT_INDEX_THUMBSTICK, XRT_INPUT_TOUCH_THUMBSTICK},
+        {XRT_INPUT_INDEX_THUMBSTICK_CLICK, XRT_INPUT_TOUCH_THUMBSTICK_CLICK},
+        {XRT_INPUT_INDEX_THUMBSTICK_TOUCH, XRT_INPUT_TOUCH_THUMBSTICK_TOUCH},
+        {XRT_INPUT_INDEX_TRACKPAD, XRT_INPUT_INDEX_TRACKPAD},
+        {XRT_INPUT_INDEX_TRACKPAD_FORCE, XRT_INPUT_INDEX_TRACKPAD_FORCE},
+        {XRT_INPUT_INDEX_TRACKPAD_TOUCH, XRT_INPUT_INDEX_TRACKPAD_TOUCH},
+        {XRT_INPUT_INDEX_GRIP_POSE, XRT_INPUT_TOUCH_GRIP_POSE},
+        {XRT_INPUT_INDEX_AIM_POSE, XRT_INPUT_TOUCH_AIM_POSE},
+};
+
+xrt_binding_input_pair index_input_binding_right[] = {
         {XRT_INPUT_INDEX_SYSTEM_CLICK, XRT_INPUT_TOUCH_SYSTEM_CLICK},
         {XRT_INPUT_INDEX_SYSTEM_TOUCH, XRT_INPUT_INDEX_SYSTEM_TOUCH},
         {XRT_INPUT_INDEX_A_CLICK, XRT_INPUT_TOUCH_A_CLICK},
@@ -430,57 +452,67 @@ xrt_binding_output_pair pico4_output_binding[] = {
         {XRT_OUTPUT_NAME_PICO4_HAPTIC, XRT_OUTPUT_NAME_TOUCH_HAPTIC},
 };
 
-xrt_binding_profile wivrn_binding_profiles[] = {
-        {
-                .name = XRT_DEVICE_SIMPLE_CONTROLLER,
-                .inputs = simple_input_binding,
-                .input_count = std::size(simple_input_binding),
-                .outputs = simple_output_binding,
-                .output_count = std::size(simple_output_binding),
-        },
-        {
-                .name = XRT_DEVICE_INDEX_CONTROLLER,
-                .inputs = index_input_binding,
-                .input_count = std::size(index_input_binding),
-                .outputs = index_output_binding,
-                .output_count = std::size(index_output_binding),
-        },
-        {
-                .name = XRT_DEVICE_VIVE_FOCUS3_CONTROLLER,
-                .inputs = focus3_input_binding,
-                .input_count = std::size(focus3_input_binding),
-                .outputs = focus3_output_binding,
-                .output_count = std::size(focus3_output_binding),
-        },
-        {
-                .name = XRT_DEVICE_TOUCH_PRO_CONTROLLER,
-                .inputs = touch_pro_input_binding,
-                .input_count = std::size(touch_pro_input_binding),
-                .outputs = touch_pro_output_binding,
-                .output_count = std::size(touch_pro_output_binding),
-        },
-        {
-                .name = XRT_DEVICE_TOUCH_PLUS_CONTROLLER,
-                .inputs = touch_plus_input_binding,
-                .input_count = std::size(touch_plus_input_binding),
-                .outputs = touch_plus_output_binding,
-                .output_count = std::size(touch_plus_output_binding),
-        },
-        {
-                .name = XRT_DEVICE_PICO_NEO3_CONTROLLER,
-                .inputs = pico_neo3_input_binding,
-                .input_count = std::size(pico_neo3_input_binding),
-                .outputs = pico_neo3_output_binding,
-                .output_count = std::size(pico_neo3_output_binding),
-        },
-        {
-                .name = XRT_DEVICE_PICO4_CONTROLLER,
-                .inputs = pico4_input_binding,
-                .input_count = std::size(pico4_input_binding),
-                .outputs = pico4_output_binding,
-                .output_count = std::size(pico4_output_binding),
-        },
-};
+template <int HandId>
+constexpr auto
+make_binding_profiles()
+{
+	constexpr auto & index_input_binding =
+	        HandId == 0 ? index_input_binding_left : index_input_binding_right;
+	return std::to_array<xrt_binding_profile>({
+	        {
+	                .name = XRT_DEVICE_SIMPLE_CONTROLLER,
+	                .inputs = simple_input_binding,
+	                .input_count = std::size(simple_input_binding),
+	                .outputs = simple_output_binding,
+	                .output_count = std::size(simple_output_binding),
+	        },
+	        {
+	                .name = XRT_DEVICE_INDEX_CONTROLLER,
+	                .inputs = index_input_binding,
+	                .input_count = std::size(index_input_binding),
+	                .outputs = index_output_binding,
+	                .output_count = std::size(index_output_binding),
+	        },
+	        {
+	                .name = XRT_DEVICE_VIVE_FOCUS3_CONTROLLER,
+	                .inputs = focus3_input_binding,
+	                .input_count = std::size(focus3_input_binding),
+	                .outputs = focus3_output_binding,
+	                .output_count = std::size(focus3_output_binding),
+	        },
+	        {
+	                .name = XRT_DEVICE_TOUCH_PRO_CONTROLLER,
+	                .inputs = touch_pro_input_binding,
+	                .input_count = std::size(touch_pro_input_binding),
+	                .outputs = touch_pro_output_binding,
+	                .output_count = std::size(touch_pro_output_binding),
+	        },
+	        {
+	                .name = XRT_DEVICE_TOUCH_PLUS_CONTROLLER,
+	                .inputs = touch_plus_input_binding,
+	                .input_count = std::size(touch_plus_input_binding),
+	                .outputs = touch_plus_output_binding,
+	                .output_count = std::size(touch_plus_output_binding),
+	        },
+	        {
+	                .name = XRT_DEVICE_PICO_NEO3_CONTROLLER,
+	                .inputs = pico_neo3_input_binding,
+	                .input_count = std::size(pico_neo3_input_binding),
+	                .outputs = pico_neo3_output_binding,
+	                .output_count = std::size(pico_neo3_output_binding),
+	        },
+	        {
+	                .name = XRT_DEVICE_PICO4_CONTROLLER,
+	                .inputs = pico4_input_binding,
+	                .input_count = std::size(pico4_input_binding),
+	                .outputs = pico4_output_binding,
+	                .output_count = std::size(pico4_output_binding),
+	        },
+	});
+}
+
+constexpr auto wivrn_per_hand_binding_profiles = std::to_array({make_binding_profiles<0>(),
+                                                                make_binding_profiles<1>()});
 
 struct xrt_space_relation_csv_header
 {};
@@ -512,8 +544,8 @@ wivrn_controller::wivrn_controller(int hand_id,
                 .device_type = hand_id == 0 ? XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER : XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER,
                 .hmd = nullptr,
                 .tracking_origin = hmd->tracking_origin,
-                .binding_profile_count = std::size(wivrn_binding_profiles),
-                .binding_profiles = wivrn_binding_profiles,
+                .binding_profile_count = wivrn_per_hand_binding_profiles[hand_id].size(),
+                .binding_profiles = (struct xrt_binding_profile *)wivrn_per_hand_binding_profiles[hand_id].data(),
                 .input_count = WIVRN_CONTROLLER_INPUT_COUNT,
                 .supported = {
                         .orientation_tracking = true,
