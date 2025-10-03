@@ -223,7 +223,7 @@ void scenes::stream::gui_performance_metrics()
 			for (const auto & [subtitle, data]: subplots)
 			{
 				getter_data gdata{
-				        .data = (uintptr_t) & (global_metrics.data()->*data),
+				        .data = (uintptr_t)&(global_metrics.data()->*data),
 				        .stride = sizeof(global_metric),
 				        .multiplier = multiplier,
 				};
@@ -260,57 +260,57 @@ void scenes::stream::gui_performance_metrics()
 			ImPlot::SetupAxesLimits(0, metrics.size() - 1, min_v * 1e3f, axis_scale[n] * 1e3f, ImGuiCond_Always);
 
 			getter_data getter_encode_begin{
-			        .data = (uintptr_t) & (metrics.data()->encode_begin),
+			        .data = (uintptr_t)&(metrics.data()->encode_begin),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_encode_end{
-			        .data = (uintptr_t) & (metrics.data()->encode_end),
+			        .data = (uintptr_t)&(metrics.data()->encode_end),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_send_begin{
-			        .data = (uintptr_t) & (metrics.data()->send_begin),
+			        .data = (uintptr_t)&(metrics.data()->send_begin),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_send_end{
-			        .data = (uintptr_t) & (metrics.data()->send_end),
+			        .data = (uintptr_t)&(metrics.data()->send_end),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_received_first_packet{
-			        .data = (uintptr_t) & (metrics.data()->received_first_packet),
+			        .data = (uintptr_t)&(metrics.data()->received_first_packet),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_received_last_packet{
-			        .data = (uintptr_t) & (metrics.data()->received_last_packet),
+			        .data = (uintptr_t)&(metrics.data()->received_last_packet),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_sent_to_decoder{
-			        .data = (uintptr_t) & (metrics.data()->sent_to_decoder),
+			        .data = (uintptr_t)&(metrics.data()->sent_to_decoder),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_received_from_decoder{
-			        .data = (uintptr_t) & (metrics.data()->received_from_decoder),
+			        .data = (uintptr_t)&(metrics.data()->received_from_decoder),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_blitted{
-			        .data = (uintptr_t) & (metrics.data()->blitted),
+			        .data = (uintptr_t)&(metrics.data()->blitted),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_displayed{
-			        .data = (uintptr_t) & (metrics.data()->displayed),
+			        .data = (uintptr_t)&(metrics.data()->displayed),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 
 			getter_data getter_predicted{
-			        .data = (uintptr_t) & (metrics.data()->predicted_display),
+			        .data = (uintptr_t)&(metrics.data()->predicted_display),
 			        .stride = sizeof(decoder_metric),
 			        .multiplier = 1e3f};
 

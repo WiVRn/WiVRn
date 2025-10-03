@@ -74,7 +74,7 @@ glm::quat cubic_spline(const glm::quat & a, const glm::quat & vb, const glm::qua
 	                      td * (t3 - t2) * va);
 }
 
-template <auto components::node::*Field>
+template <auto components::node::* Field>
 void apply_track(entt::registry & scene, const components::animation_track_impl<Field> & track, float current_time)
 {
 	entt::entity target = track.target;

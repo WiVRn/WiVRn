@@ -262,7 +262,7 @@ private:
 		struct subplot
 		{
 			std::string title;
-			float scenes::stream::global_metric::*data;
+			float scenes::stream::global_metric::* data;
 		};
 		std::vector<subplot> subplots;
 		const char * unit;

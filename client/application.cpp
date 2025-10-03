@@ -1674,8 +1674,7 @@ void application::run()
 #else
 void application::run()
 {
-	struct sigaction act
-	{};
+	struct sigaction act{};
 	act.sa_handler = [](int) {
 		instance().exit_requested = true;
 	};

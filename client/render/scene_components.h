@@ -174,7 +174,7 @@ struct animation_track_base
 	interpolation_t interpolation;
 };
 
-template <auto node::*Field>
+template <auto node::* Field>
 struct animation_track_impl : animation_track_base
 {
 	static const constexpr auto field = Field;
