@@ -43,6 +43,14 @@ extern "C"
 #include <libavutil/pixdesc.h>
 }
 
+// Added in ffmpeg 6
+#ifndef AV_PROFILE_H264_CONSTRAINED_BASELINE
+#define AV_PROFILE_H264_CONSTRAINED_BASELINE FF_PROFILE_H264_CONSTRAINED_BASELINE
+#define AV_PROFILE_HEVC_MAIN_10 FF_PROFILE_HEVC_MAIN_10
+#define AV_PROFILE_HEVC_MAIN FF_PROFILE_HEVC_MAIN
+#define AV_PROFILE_AV1_MAIN FF_ROFILE_AV1_MAIN
+#endif
+
 namespace wivrn
 {
 
@@ -230,16 +238,16 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 	switch (settings.codec)
 	{
 		case video_codec::h264:
-			encoder_ctx->profile = FF_PROFILE_H264_CONSTRAINED_BASELINE;
+			encoder_ctx->profile = AV_PROFILE_H264_CONSTRAINED_BASELINE;
 			av_dict_set(&opts, "coder", "cavlc", 0);
 			av_dict_set(&opts, "rc_mode", "CBR", 0);
 			break;
 		case video_codec::h265:
 			// bit_depth is either 8 or 10 here
-			encoder_ctx->profile = settings.bit_depth == 10 ? FF_PROFILE_HEVC_MAIN_10 : FF_PROFILE_HEVC_MAIN;
+			encoder_ctx->profile = settings.bit_depth == 10 ? AV_PROFILE_HEVC_MAIN_10 : AV_PROFILE_HEVC_MAIN;
 			break;
 		case video_codec::av1:
-			encoder_ctx->profile = FF_PROFILE_AV1_MAIN;
+			encoder_ctx->profile = AV_PROFILE_AV1_MAIN;
 			break;
 		case video_codec::raw:
 			throw std::runtime_error("raw codec not supported");
