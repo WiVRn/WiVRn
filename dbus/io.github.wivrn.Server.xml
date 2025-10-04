@@ -73,5 +73,10 @@
 		</property>
 		<property name="PairingEnabled"        type="b" access="read"/>
 		<property name="EncryptionEnabled"     type="b" access="read"/>
+
+		<signal name="ServerError">
+			<arg type="s" name="where"/>
+			<arg type="s" name="message"/>
+		</signal>
 	</interface>
 </node>

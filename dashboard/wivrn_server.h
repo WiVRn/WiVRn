@@ -122,6 +122,23 @@ public:
 	}
 };
 
+class serverErrorData
+{
+	Q_GADGET
+	QML_VALUE_TYPE(serverError)
+
+	Q_PROPERTY(QString where MEMBER m_where CONSTANT)
+	Q_PROPERTY(QString message MEMBER m_message CONSTANT)
+
+	QString m_where;
+	QString m_message;
+
+public:
+	serverErrorData() = default;
+	serverErrorData(QString where, QString message) :
+	        m_where(where), m_message(message) {}
+};
+
 class wivrn_server : public QObject
 {
 	Q_OBJECT
@@ -380,4 +397,5 @@ Q_SIGNALS:
 	void supportedCodecsChanged(QStringList);
 	void steamCommandChanged(QString);
 	void serverLogsChanged(QString);
+	void serverError(serverErrorData);
 };

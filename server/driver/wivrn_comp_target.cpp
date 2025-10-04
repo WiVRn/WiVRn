@@ -326,6 +326,10 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 	}
 	catch (const std::exception & e)
 	{
+		wivrn_ipc_socket_monado->send(from_monado::server_error{
+		        .where = "Error creating encoder",
+		        .message = e.what(),
+		});
 		U_LOG_E("Failed to create video encoder: %s", e.what());
 		return false;
 	}
