@@ -22,7 +22,15 @@ Kirigami.ScrollablePage {
         }
         TroubleshootCard {
             title: i18n("I cannot see my computer in the WiVRn app")
-            details: i18n("If the server is not visible or the connection fails, check that port 5353 (UDP) and 9757 (TCP and UDP) are open in your firewall.")
+            details: i18n("If you have a firewall, make sure that port 5353/UDP is open.")
+        }
+        TroubleshootCard {
+            title: i18n("Connecting remains stuck on \"Connection to ...\"")
+            details: i18n("If you have a firewall, make sure that port 9757 is open both for TCP and UDP.")
+        }
+        TroubleshootCard {
+            title: i18n("Connection fails with \"no route to host\"")
+            details: i18n("If you have a firewall, make sure that port 9757 is open both for TCP and UDP.")
         }
         TroubleshootCard {
             title: i18n("I have an \"Incompatible WiVRn server\" error on my headset")
