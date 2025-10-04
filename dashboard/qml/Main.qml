@@ -118,6 +118,20 @@ Kirigami.ApplicationWindow {
             }
 
             Kirigami.InlineMessage {
+                Layout.fillWidth: true
+                text: i18n("Firewall may not allow port 9757.")
+                type: Kirigami.MessageType.Warning
+                showCloseButton: true
+                visible: Firewall.needSetup
+                actions: [
+                    Kirigami.Action {
+                        text: i18n("Fix it")
+                        onTriggered: Firewall.doSetup()
+                    }
+                ]
+            }
+
+            Kirigami.InlineMessage {
                 id: restart_capsysnice
                 Layout.fillWidth: true
                 text: i18n("The CAP_SYS_NICE capability will be used when the server is restarted.")
