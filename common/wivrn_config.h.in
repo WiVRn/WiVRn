@@ -19,6 +19,12 @@
 
 #pragma once
 
+namespace wivrn
+{
+// Default port for server to listen, both TCP and UDP
+static const int default_port = 9757;
+} // namespace wivrn
+
 #cmakedefine01 WIVRN_USE_NVENC
 #cmakedefine01 WIVRN_USE_VAAPI
 #cmakedefine01 WIVRN_USE_VULKAN_ENCODE

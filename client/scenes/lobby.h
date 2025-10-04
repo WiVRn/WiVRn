@@ -28,7 +28,6 @@
 #include "wifi_lock.h"
 #include "wivrn_config.h"
 #include "wivrn_discover.h"
-#include "wivrn_packets.h"
 #include "xr/face_tracker.h"
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>

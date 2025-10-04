@@ -19,8 +19,8 @@
 
 #include "accept_connection.h"
 
+#include "wivrn_config.h"
 #include "wivrn_ipc.h"
-#include "wivrn_packets.h"
 #include "wivrn_sockets.h"
 
 #include <sys/poll.h>

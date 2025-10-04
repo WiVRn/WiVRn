@@ -29,7 +29,6 @@
 #include "utils/i18n.h"
 #include "vk/check.h"
 #include "wifi_lock.h"
-#include "wivrn_packets.h"
 #include "xr/actionset.h"
 #include "xr/check.h"
 #include "xr/htc_exts.h"
