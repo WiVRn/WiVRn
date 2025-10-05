@@ -24,25 +24,20 @@
 
 class firewall : public QObject
 {
+public:
+	class Impl;
 	Q_OBJECT
 	QML_NAMED_ELEMENT(Firewall)
 	QML_SINGLETON
 
 	Q_PROPERTY(bool needSetup READ needSetup NOTIFY needSetupChanged)
 
-	enum class type_t
-	{
-		none,
-		ufw,
-	};
-
-	type_t type;
-	std::unique_ptr<QProcess> pkexec;
-
-	static type_t detect_type();
+private:
+	std::unique_ptr<Impl> impl;
 
 public:
 	firewall();
+	~firewall();
 	bool needSetup();
 	Q_INVOKABLE void doSetup();
 

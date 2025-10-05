@@ -22,77 +22,188 @@
 #include "utils/flatpak.h"
 #include "wivrn_config.h"
 
+#include <QDBusInterface>
+#include <QDBusMetaType>
+#include <QDBusReply>
 #include <QDebug>
 #include <QStandardPaths>
 #include <filesystem>
 #include <string>
 
-firewall::type_t firewall::detect_type()
+class firewall::Impl : public QObject
 {
+	Q_OBJECT
+public:
+	virtual bool need_setup()
+	{
+		return false;
+	}
+	virtual void do_setup() {}
+Q_SIGNALS:
+	void needSetupChanged(bool);
+};
+
+class ufw : public firewall::Impl
+{
+	std::unique_ptr<QProcess> pkexec;
+	static const std::filesystem::path conf;
+
+public:
+	bool need_setup() override
+	{
+		return not std::filesystem::exists(
+		        (wivrn::is_flatpak() ? "/run/host" : "/") / conf);
+	}
+
+	void do_setup() override
+	{
+		pkexec = escape_sandbox("pkexec",
+		                        "sh",
+		                        "-c",
+		                        "printf '[WiVRn]\\ntitle=WiVRn server\ndescription=WiVRn OpenXR streaming server\nports=" + std::to_string(wivrn::default_port) + "' > /" + conf.string() + " && ufw allow wivrn");
+		pkexec->setProcessChannelMode(QProcess::MergedChannels);
+		pkexec->start();
+
+		QObject::connect(pkexec.get(), &QProcess::finished, this, [this](int exit_code, QProcess::ExitStatus exit_status) {
+			if (exit_status != QProcess::NormalExit or exit_code)
+				qWarning() << "ufw configuration exitec with status" << exit_status << "and code" << exit_code;
+			needSetupChanged(need_setup());
+			pkexec.release()->deleteLater();
+		});
+	}
+};
+
+const std::filesystem::path ufw::conf = "etc/ufw/applications.d/wivrn";
+
+class firewalld : public firewall::Impl
+{
+	QDBusInterface fw = QDBusInterface("org.fedoraproject.FirewallD1", "/org/fedoraproject/FirewallD1", "org.fedoraproject.FirewallD1", QDBusConnection::systemBus());
+	QDBusInterface zone = QDBusInterface("org.fedoraproject.FirewallD1", "/org/fedoraproject/FirewallD1", "org.fedoraproject.FirewallD1.zone", QDBusConnection::systemBus());
+	QDBusInterface conf = QDBusInterface("org.fedoraproject.FirewallD1", "/org/fedoraproject/FirewallD1/config", "org.fedoraproject.FirewallD1.config", QDBusConnection::systemBus());
+
+public:
+	bool enabled()
+	{
+		return fw.isValid();
+	}
+
+	bool need_setup() override
+	{
+		QDBusReply<QStringList> res = zone.call("getServices", "");
+		if (not res.isValid())
+		{
+			qWarning() << "Failed to list enabled firewalld services" << res.error();
+			return false;
+		}
+		return not res.value().contains("wivrn");
+	}
+
+	void do_setup() override
+	{
+		if (QDBusReply<void> res = fw.call("authorizeAll"); not res.isValid())
+		{
+			qWarning() << "Failed to get firewalld authorization: " << res.error();
+			return;
+		}
+		// Check if configuration needs to be created
+		QDBusReply<QStringList> res = conf.call("getServiceNames");
+		if (not res.isValid())
+		{
+			qWarning() << "Failed to list firewalld services: " << res.error();
+			return;
+		}
+		if (not res.value().contains("wivrn"))
+		{
+			qInfo() << "Creating firewalld wivrn service";
+			QMap<QString, QVariant> map;
+
+			map["short"] = QString("WiVRn");
+			map["description"] = QString("OpenXR streaming service");
+			{
+				QList<QVariant> ports;
+				for (auto proto: {"tcp", "udp"})
+				{
+					QDBusArgument port;
+					port.beginStructure();
+					port << QString::number(wivrn::default_port) << QString(proto);
+					port.endStructure();
+					ports.push_back(QVariant::fromValue(port));
+				}
+				map["ports"] = ports;
+			}
+			if (QDBusReply<void> res = conf.call("addService2", "wivrn", map);
+			    not res.isValid())
+			{
+				qWarning() << "Failed to create firewalld wivrn service: " << res.error();
+				return;
+			}
+		}
+		QDBusReply<QString> default_zone = fw.call("getDefaultZone");
+		if (not default_zone.isValid())
+		{
+			qWarning() << "Failed to get firewalld default zone: " << default_zone.error();
+			return;
+		}
+
+		QDBusReply<QDBusObjectPath> zone_path = conf.call("getZoneByName", default_zone.value());
+		if (not zone_path.isValid())
+		{
+			qWarning() << "Failed to get firewalld zone " << default_zone.value() << " configuration: " << default_zone.error();
+			return;
+		}
+
+		QDBusInterface zone_conf = QDBusInterface("org.fedoraproject.FirewallD1", zone_path.value().path(), "org.fedoraproject.FirewallD1.config.zone", QDBusConnection::systemBus());
+
+		if (QDBusReply<void> res = zone_conf.call("addService", "wivrn"); not res.isValid())
+		{
+			qWarning() << "Failed to enable firewalld wivrn service: " << res.error();
+			return;
+		}
+
+		if (QDBusReply<void> res = fw.call("reload"); not res.isValid())
+			qWarning() << "Failed to reload firewalld configuration: " << res.error();
+		needSetupChanged(false);
+	}
+};
+
+std::unique_ptr<firewall::Impl> make_impl()
+{
+	if (auto fwd = std::make_unique<firewalld>(); fwd->enabled())
+		return fwd;
+
 	if (wivrn::is_flatpak())
 	{
 		if (not QStandardPaths::findExecutable(
 		                "ufw",
 		                QStringList({"/run/host/usr/sbin", "/run/host/usr/bin"}))
 		                .isEmpty())
-			return type_t::ufw;
+			return std::make_unique<ufw>();
 	}
 	else
 	{
 		if (not QStandardPaths::findExecutable("ufw").isEmpty())
-			return type_t::ufw;
+			return std::make_unique<ufw>();
 	}
 
-	return type_t::none;
+	return std::make_unique<firewall::Impl>();
 }
 
 firewall::firewall() :
-        type(detect_type())
+        impl(make_impl())
 {
+	connect(impl.get(), &firewall::Impl::needSetupChanged, this, &firewall::needSetupChanged);
 }
 
-const std::filesystem::path ufw_conf = "etc/ufw/applications.d/wivrn";
-
-static bool need_setup_ufw()
-{
-	return not std::filesystem::exists(
-	        (wivrn::is_flatpak() ? "/run/host" : "/") / ufw_conf);
-}
+firewall::~firewall() = default;
 
 bool firewall::needSetup()
 {
-	switch (type)
-	{
-		case type_t::none:
-			return false;
-		case type_t::ufw:
-			return need_setup_ufw();
-	}
-	assert(false);
-	__builtin_unreachable();
+	return impl->need_setup();
 }
 
 void firewall::doSetup()
 {
-	switch (type)
-	{
-		case type_t::none:
-			return;
-		case type_t::ufw: {
-			pkexec = escape_sandbox("pkexec",
-			                        "sh",
-			                        "-c",
-			                        "printf '[WiVRn]\\ntitle=WiVRn server\ndescription=WiVRn OpenXR streaming server\nports=" + std::to_string(wivrn::default_port) + "' > /" + ufw_conf.string() + " && ufw allow wivrn");
-			pkexec->setProcessChannelMode(QProcess::MergedChannels);
-			pkexec->start();
-
-			QObject::connect(pkexec.get(), &QProcess::finished, this, [this](int exit_code, QProcess::ExitStatus exit_status) {
-				if (exit_status != QProcess::NormalExit or exit_code)
-					qWarning() << "ufw configuration exitec with status" << exit_status << "and code" << exit_code;
-				needSetupChanged(needSetup());
-				pkexec.release()->deleteLater();
-			});
-			return;
-		}
-	}
+	return impl->do_setup();
 }
+
+#include "firewall.moc"
