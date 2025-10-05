@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-04 09:40+0200\n"
-"PO-Revision-Date: 2025-08-04 09:41+0200\n"
+"POT-Creation-Date: 2025-10-05 12:07+0200\n"
+"PO-Revision-Date: 2025-10-05 12:10+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
 "Language: French\n"
@@ -16,47 +16,47 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Gtranslator 48.0\n"
 
-#: dashboard/apk_installer.cpp:167
+#: dashboard/apk_installer.cpp:165
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "Téléchargement de l'APK : %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:169
+#: dashboard/apk_installer.cpp:167
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "Téléchargement de l'APK : %1 MB"
 
-#: dashboard/apk_installer.cpp:178
+#: dashboard/apk_installer.cpp:176
 #, kde-format
 msgid "Download cancelled"
 msgstr "Téléchargement annulé"
 
-#: dashboard/apk_installer.cpp:194
+#: dashboard/apk_installer.cpp:192
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "Impossible de télécharger l'APK : %1"
 
-#: dashboard/apk_installer.cpp:217
+#: dashboard/apk_installer.cpp:215
 #, kde-format
 msgid "Installing APK"
 msgstr "Installation de l'APK"
 
-#: dashboard/apk_installer.cpp:221
+#: dashboard/apk_installer.cpp:219
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "adb n'a pas pu démarrer : %1"
 
-#: dashboard/apk_installer.cpp:231
+#: dashboard/apk_installer.cpp:229
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb a quitté de façon anormale : %1"
 
-#: dashboard/apk_installer.cpp:239
+#: dashboard/apk_installer.cpp:237
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "La commande 'adb install' a échoué : code de retour %1"
 
-#: dashboard/apk_installer.cpp:244
+#: dashboard/apk_installer.cpp:242
 #, kde-format
 msgid "Installation successful"
 msgstr "Installation réussie"
@@ -82,8 +82,8 @@ msgstr "Vérification de la dernière version..."
 msgid "No precompiled APK is available for this version."
 msgstr "Aucun APK précompilé n'est disponible pour cette version."
 
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:259
-#: dashboard/qml/Main.qml:341
+#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:284
+#: dashboard/qml/Main.qml:367
 #, kde-format
 msgid "ADB is not installed."
 msgstr "ADB n'est pas installé."
@@ -106,7 +106,7 @@ msgstr ""
 "construire votre propre client."
 
 #: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetsPage.qml:183
-#: dashboard/qml/HeadsetStatsPage.qml:36 dashboard/qml/TroubleshootPage.qml:59
+#: dashboard/qml/HeadsetStatsPage.qml:36 dashboard/qml/TroubleshootPage.qml:67
 #, kde-format
 msgctxt "go back to the home page"
 msgid "Back"
@@ -132,7 +132,7 @@ msgstr "Réinstaller WiVRn"
 msgid "Install WiVRn"
 msgstr "Installer WiVRn"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:354
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:380
 #, kde-format
 msgid "Headsets"
 msgstr "Casques"
@@ -177,7 +177,7 @@ msgstr "Renommer"
 
 #: dashboard/qml/HeadsetsPage.qml:55 dashboard/qml/WizardPage.qml:38
 #: dashboard/qml/WizardPage.qml:88 dashboard/qml/WizardPage.qml:263
-#: dashboard/qml/WizardPage.qml:326 dashboard/qml/WizardPage.qml:410
+#: dashboard/qml/WizardPage.qml:327 dashboard/qml/WizardPage.qml:411
 #, kde-format
 msgid "Cancel"
 msgstr "Annuler"
@@ -197,7 +197,7 @@ msgstr "Enlever"
 msgid "Pairing enabled, PIN: %1"
 msgstr "Appairage activé, PIN : %1 "
 
-#: dashboard/qml/HeadsetsPage.qml:148 dashboard/qml/TroubleshootPage.qml:42
+#: dashboard/qml/HeadsetsPage.qml:148 dashboard/qml/TroubleshootPage.qml:50
 #, kde-format
 msgid "Disable pairing"
 msgstr "Désactiver l'appairage"
@@ -214,7 +214,7 @@ msgstr ""
 "Activez l'appairage pour autoriser votre casque à se connecter à cet "
 "ordinateur"
 
-#: dashboard/qml/HeadsetsPage.qml:171 dashboard/qml/TroubleshootPage.qml:37
+#: dashboard/qml/HeadsetsPage.qml:171 dashboard/qml/TroubleshootPage.qml:45
 #, kde-format
 msgid "Enable pairing"
 msgstr "Activer l'appairage"
@@ -229,29 +229,34 @@ msgstr "Appairer un nouveau casque"
 msgid "Headset statistics"
 msgstr "Statistiques"
 
-#: dashboard/qml/Main.qml:107
+#: dashboard/qml/Main.qml:127
 #, kde-format
 msgid "The server does not have CAP_SYS_NICE capabilities."
 msgstr "Le serveur n'a pas la capacité CAP_SYS_NICE"
 
-#: dashboard/qml/Main.qml:114
+#: dashboard/qml/Main.qml:134 dashboard/qml/Main.qml:148
 #, kde-format
 msgid "Fix it"
 msgstr "Corriger"
 
-#: dashboard/qml/Main.qml:123
+#: dashboard/qml/Main.qml:142
+#, kde-format
+msgid "Firewall may not allow port 9757."
+msgstr "Le pare-feu pourrait ne pas autoriser le port 9757."
+
+#: dashboard/qml/Main.qml:157
 #, kde-format
 msgid "The CAP_SYS_NICE capability will be used when the server is restarted."
 msgstr ""
 "La capacité CAP_SYS_NICE sera utilisée quand le serveur sera redémarré."
 
-#: dashboard/qml/Main.qml:129
+#: dashboard/qml/Main.qml:163
 #, kde-format
 msgctxt "restart the server"
 msgid "Restart now"
 msgstr "Redémarrer"
 
-#: dashboard/qml/Main.qml:140
+#: dashboard/qml/Main.qml:174
 #, kde-format
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
@@ -259,12 +264,12 @@ msgstr ""
 "Les GPUs NVIDIA nécessitent au moins le driver 565.77, la version actuelle "
 "est %1."
 
-#: dashboard/qml/Main.qml:146
+#: dashboard/qml/Main.qml:180
 #, kde-format
 msgid "More info"
 msgstr "Plus d'infos"
 
-#: dashboard/qml/Main.qml:154
+#: dashboard/qml/Main.qml:188
 #, kde-format
 msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
@@ -273,7 +278,7 @@ msgstr ""
 "Utilisez le driver Mesa (redv) pour les GPUs AMD\n"
 "L'encodage matériel avec vaapi ne fonctionne pas avec AMDVLK et AMDGPU-PRO"
 
-#: dashboard/qml/Main.qml:162
+#: dashboard/qml/Main.qml:196
 #, kde-format
 msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
@@ -283,75 +288,75 @@ msgstr ""
 "pourront pas charger le mode VR.\n"
 "Veuillez installer xrizer ou OpenComposite."
 
-#: dashboard/qml/Main.qml:171
+#: dashboard/qml/Main.qml:205
 #, kde-format
 msgid "Server failed to start"
 msgstr "Le serveur n'a pas pu démarrer"
 
-#: dashboard/qml/Main.qml:177 dashboard/qml/TroubleshootPage.qml:77
+#: dashboard/qml/Main.qml:211 dashboard/qml/TroubleshootPage.qml:85
 #, kde-format
 msgid "Open server logs"
 msgstr "Ouvrir les logs du serveur"
 
-#: dashboard/qml/Main.qml:214
+#: dashboard/qml/Main.qml:239
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
 msgstr "Démarré"
 
-#: dashboard/qml/Main.qml:229
+#: dashboard/qml/Main.qml:254
 #, kde-format
 msgctxt "whether pairing is enabled, displayed in front of a checkbox"
 msgid "Pairing"
 msgstr "Appairage"
 
-#: dashboard/qml/Main.qml:242
+#: dashboard/qml/Main.qml:267
 #, kde-format
 msgid "PIN: %1"
 msgstr "PIN : %1"
 
-#: dashboard/qml/Main.qml:250 dashboard/qml/WizardPage.qml:373
+#: dashboard/qml/Main.qml:275 dashboard/qml/WizardPage.qml:374
 #, kde-format
 msgid "Connect by USB"
 msgstr "Connexion par USB"
 
-#: dashboard/qml/Main.qml:261
+#: dashboard/qml/Main.qml:286
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode."
 msgstr "Le casque n'est pas connecté ou n'est pas en mode développeur."
 
-#: dashboard/qml/Main.qml:269
+#: dashboard/qml/Main.qml:294
 #, kde-format
 msgid "Disconnect"
 msgstr "Déconnecter"
 
-#: dashboard/qml/Main.qml:286
+#: dashboard/qml/Main.qml:311
 #, kde-format
 msgctxt "automatically started application"
 msgid "Application"
 msgstr "Application"
 
-#: dashboard/qml/Main.qml:307
+#: dashboard/qml/Main.qml:332
 #, kde-format
 msgid "Steam information"
 msgstr "Informations pour Steam"
 
-#: dashboard/qml/Main.qml:325
+#: dashboard/qml/Main.qml:351
 #, kde-format
 msgid "Wizard"
 msgstr "Assistant"
 
-#: dashboard/qml/Main.qml:332
+#: dashboard/qml/Main.qml:358
 #, kde-format
 msgid "Install the app"
 msgstr "Installer l'appli"
 
-#: dashboard/qml/Main.qml:361 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:387 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "Paramètres"
 
-#: dashboard/qml/Main.qml:368 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:394 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "Dépannage"
@@ -455,19 +460,19 @@ msgctxt "encoder preset"
 msgid "Default preset"
 msgstr "Configuration prédéfinie : par défaut"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:139
 #, kde-format
 msgctxt "encoder preset"
 msgid "Low latency preset"
 msgstr "Configuration prédéfinie : basse latence"
 
-#: dashboard/qml/SettingsPage.qml:170
+#: dashboard/qml/SettingsPage.qml:158
 #, kde-format
 msgctxt "encoder preset"
 msgid "Safe preset"
 msgstr "Configuration prédéfinie : sure"
 
-#: dashboard/qml/SettingsPage.qml:193
+#: dashboard/qml/SettingsPage.qml:181
 #, kde-format
 msgid ""
 "To add a new encoder, split an existing encoder by clicking near an edge.\n"
@@ -477,85 +482,85 @@ msgstr ""
 "d'un bord.\n"
 "Déplacez un bord pour redimensionner ou supprimer un encodeur."
 
-#: dashboard/qml/SettingsPage.qml:220
+#: dashboard/qml/SettingsPage.qml:208
 #, kde-format
 msgid "Encoder:"
 msgstr "Encodeur :"
 
-#: dashboard/qml/SettingsPage.qml:229
+#: dashboard/qml/SettingsPage.qml:217
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:234
+#: dashboard/qml/SettingsPage.qml:222
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (GPUs NVIDIA)"
 
-#: dashboard/qml/SettingsPage.qml:239
+#: dashboard/qml/SettingsPage.qml:227
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (GPUs AMD et Intel)"
 
-#: dashboard/qml/SettingsPage.qml:244
+#: dashboard/qml/SettingsPage.qml:232
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (encodage logiciel)"
 
-#: dashboard/qml/SettingsPage.qml:249
+#: dashboard/qml/SettingsPage.qml:237
 #, kde-format
 msgid "Vulkan (Vulkan Video)"
 msgstr "Vulkan (Vulkan Vidéo)"
 
-#: dashboard/qml/SettingsPage.qml:272
+#: dashboard/qml/SettingsPage.qml:260
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr ""
 "\"Automatique\" utilisera l'accélération matérielle si elle est disponible"
 
-#: dashboard/qml/SettingsPage.qml:278
+#: dashboard/qml/SettingsPage.qml:266
 #, kde-format
 msgid "Codec:"
 msgstr "Codec :"
 
-#: dashboard/qml/SettingsPage.qml:285
+#: dashboard/qml/SettingsPage.qml:273
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:289
+#: dashboard/qml/SettingsPage.qml:277
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:293
+#: dashboard/qml/SettingsPage.qml:281
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:297
+#: dashboard/qml/SettingsPage.qml:285
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:319
+#: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgid "Advanced options"
 msgstr "Paramètres avancés"
 
-#: dashboard/qml/SettingsPage.qml:325
+#: dashboard/qml/SettingsPage.qml:313
 #, kde-format
 msgid "Enable debug window"
 msgstr "Activer la fenêtre de débogage"
 
-#: dashboard/qml/SettingsPage.qml:332
+#: dashboard/qml/SettingsPage.qml:320
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Activer le support des manettes SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:335
+#: dashboard/qml/SettingsPage.qml:323
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -569,44 +574,44 @@ msgstr ""
 "WiVRn.\n"
 "Un utilitaire tiers tel que motoc est nécessaire pour la calibration."
 
-#: dashboard/qml/SettingsPage.qml:343
+#: dashboard/qml/SettingsPage.qml:331
 #, kde-format
 msgid "Custom adb location"
 msgstr "Spécifier l'emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:354
+#: dashboard/qml/SettingsPage.qml:342
 #, kde-format
 msgid "Adb location:"
 msgstr "Emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:363
+#: dashboard/qml/SettingsPage.qml:351
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Parcourir"
 
-#: dashboard/qml/SettingsPage.qml:373
+#: dashboard/qml/SettingsPage.qml:361
 #, kde-format
 msgid "Default"
 msgstr "Par défaut"
 
-#: dashboard/qml/SettingsPage.qml:387
+#: dashboard/qml/SettingsPage.qml:375
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: dashboard/qml/SettingsPage.qml:392
+#: dashboard/qml/SettingsPage.qml:380
 #, kde-format
 msgid "Disabled"
 msgstr "Désactivé"
 
-#: dashboard/qml/SettingsPage.qml:400
+#: dashboard/qml/SettingsPage.qml:388
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Compatibilité OpenVR :"
 
-#: dashboard/qml/SettingsPage.qml:426
+#: dashboard/qml/SettingsPage.qml:414
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Chemin de la bibliothèque, en enlevant bin/linux64/vrclient.so"
@@ -643,7 +648,7 @@ msgstr "Commande de lancement Steam copiée"
 msgid "I cannot find the WiVRn app on my headset"
 msgstr "Je ne trouve pas l'application WiVRn sur mon casque"
 
-#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:387
+#: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:388
 #, kde-format
 msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
@@ -657,21 +662,37 @@ msgstr ""
 msgid "I cannot see my computer in the WiVRn app"
 msgstr "Je ne vois pas mon ordinateur dans l'application WiVRn"
 
-#: dashboard/qml/TroubleshootPage.qml:25 dashboard/qml/WizardPage.qml:392
+#: dashboard/qml/TroubleshootPage.qml:25
 #, kde-format
-msgid ""
-"If the server is not visible or the connection fails, check that port 5353 "
-"(UDP) and 9757 (TCP and UDP) are open in your firewall."
+msgid "If you have a firewall, make sure that port 5353/UDP is open."
 msgstr ""
-"Si le serveur n'est pas visible ou que la connexion échoue, vérifiez que les "
-"ports 5353 (UDP) et 9757 (TCP et UDP) sont ouverts dans le pare-feu."
+"Si vous avez un pare-feu, assurez-vous d'avoir autorisé le port 5353/UDP."
 
 #: dashboard/qml/TroubleshootPage.qml:28
+#, kde-format
+msgid "Connecting remains stuck on \"Connection to ...\""
+msgstr "La connexion est bloquée à \"Connexion à ...\""
+
+#: dashboard/qml/TroubleshootPage.qml:29 dashboard/qml/TroubleshootPage.qml:33
+#, kde-format
+msgid ""
+"If you have a firewall, make sure that port 9757 is open both for TCP and "
+"UDP."
+msgstr ""
+"Si vous avez un pare-feu, assurez vous que le port 9757 soit ouvert en TCP "
+"et UDP."
+
+#: dashboard/qml/TroubleshootPage.qml:32
+#, kde-format
+msgid "Connection fails with \"no route to host\""
+msgstr "La connexion échoue avec \"no route to host\""
+
+#: dashboard/qml/TroubleshootPage.qml:36
 #, kde-format
 msgid "I have an \"Incompatible WiVRn server\" error on my headset"
 msgstr "J'ai une erreur « Serveur WiVRn incompatible »"
 
-#: dashboard/qml/TroubleshootPage.qml:29
+#: dashboard/qml/TroubleshootPage.qml:37
 #, kde-format
 msgid ""
 "<p>The version of the headset app and the server on your computer must match."
@@ -682,12 +703,12 @@ msgstr ""
 "correspondre.</p><ul><li>La version de l'application sur le casque est dans "
 "la page « À propos »</li><li>La version du serveur est <b>%1</b></li></ul>"
 
-#: dashboard/qml/TroubleshootPage.qml:32
+#: dashboard/qml/TroubleshootPage.qml:40
 #, kde-format
 msgid "I have a \"Pairing is disabled\" error"
 msgstr "J'ai une erreur « L'appairage est désactivé »"
 
-#: dashboard/qml/TroubleshootPage.qml:33
+#: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
 msgid ""
 "If you have reinstalled the server or the client or if you want to connect "
@@ -696,22 +717,22 @@ msgstr ""
 "Si vous avez réinstallé le serveur ou le client ou que vous voulez connecter "
 "un autre casque, activez l'appairage avant la connexion."
 
-#: dashboard/qml/TroubleshootPage.qml:33
+#: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
 msgid "Pairing is currently enabled with PIN %1."
 msgstr "L'appairage est activé avec le PIN %1."
 
-#: dashboard/qml/TroubleshootPage.qml:33
+#: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
 msgid "Pairing is currently disabled."
 msgstr "L'appairage est désactivé."
 
-#: dashboard/qml/TroubleshootPage.qml:49
+#: dashboard/qml/TroubleshootPage.qml:57
 #, kde-format
 msgid "I have no sound on my headset"
 msgstr "Je n'ai pas de son sur mon casque"
 
-#: dashboard/qml/TroubleshootPage.qml:50 dashboard/qml/WizardPage.qml:440
+#: dashboard/qml/TroubleshootPage.qml:58 dashboard/qml/WizardPage.qml:441
 #, kde-format
 msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
@@ -720,12 +741,12 @@ msgstr ""
 "Quand le casque est connecté, sélectionnez \"WiVRn\" comme sortie audio par "
 "défaut pour que les applications l'utilisent."
 
-#: dashboard/qml/TroubleshootPage.qml:67
+#: dashboard/qml/TroubleshootPage.qml:75
 #, kde-format
 msgid "Report an issue"
 msgstr "Signaler un problème"
 
-#: dashboard/qml/TroubleshootPage.qml:72
+#: dashboard/qml/TroubleshootPage.qml:80
 #, kde-format
 msgid "Ask on Discord"
 msgstr "Demander sur Discord"
@@ -736,9 +757,9 @@ msgid "Getting started"
 msgstr "Commencer"
 
 #: dashboard/qml/WizardPage.qml:29 dashboard/qml/WizardPage.qml:78
-#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:316
-#: dashboard/qml/WizardPage.qml:400 dashboard/qml/WizardPage.qml:447
-#: dashboard/qml/WizardPage.qml:484
+#: dashboard/qml/WizardPage.qml:253 dashboard/qml/WizardPage.qml:317
+#: dashboard/qml/WizardPage.qml:401 dashboard/qml/WizardPage.qml:448
+#: dashboard/qml/WizardPage.qml:485
 #, kde-format
 msgid "Back"
 msgstr "Retour"
@@ -758,8 +779,8 @@ msgstr ""
 "connecter à votre ordinateur."
 
 #: dashboard/qml/WizardPage.qml:83 dashboard/qml/WizardPage.qml:258
-#: dashboard/qml/WizardPage.qml:321 dashboard/qml/WizardPage.qml:452
-#: dashboard/qml/WizardPage.qml:489
+#: dashboard/qml/WizardPage.qml:322 dashboard/qml/WizardPage.qml:453
+#: dashboard/qml/WizardPage.qml:490
 #, kde-format
 msgid "Next"
 msgstr "Suivant"
@@ -859,12 +880,12 @@ msgstr ""
 "L'application que vous choisissez sera démarrée automatiquement quand vous "
 "connectez votre casque."
 
-#: dashboard/qml/WizardPage.qml:300
+#: dashboard/qml/WizardPage.qml:301
 #, kde-format
 msgid "Important information"
 msgstr "Informations importantes"
 
-#: dashboard/qml/WizardPage.qml:307
+#: dashboard/qml/WizardPage.qml:308
 #, kde-format
 msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
@@ -873,12 +894,12 @@ msgstr ""
 "WiVRn remplace entièrement SteamVR, il ne faut pas lancer SteamVR lorsque "
 "WiVRn est démarré."
 
-#: dashboard/qml/WizardPage.qml:358
+#: dashboard/qml/WizardPage.qml:359
 #, kde-format
 msgid "Start the WiVRn app on your headset"
 msgstr "Démarrez l'application WiVRn sur votre casque"
 
-#: dashboard/qml/WizardPage.qml:363
+#: dashboard/qml/WizardPage.qml:364
 #, kde-format
 msgid ""
 "To connect over WiFi, start the WiVRn app on your headset, connect to \"%1\" "
@@ -887,32 +908,41 @@ msgstr ""
 "Pour vous connecter en WiFi, démarrez l'application WiVRn sur votre casque, "
 "connectez-vous à « %1 » et entrez le PIN « %2 »."
 
-#: dashboard/qml/WizardPage.qml:370
+#: dashboard/qml/WizardPage.qml:371
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
 msgstr "Pour vous connecter en USB, cliquez sur « Connexion par USB »"
 
-#: dashboard/qml/WizardPage.qml:383
+#: dashboard/qml/WizardPage.qml:384
 #, kde-format
 msgid "Troubleshooting"
 msgstr "Dépannage"
 
-#: dashboard/qml/WizardPage.qml:405
+#: dashboard/qml/WizardPage.qml:393
+#, kde-format
+msgid ""
+"If the server is not visible or the connection fails, check that port 5353 "
+"(UDP) and 9757 (TCP and UDP) are open in your firewall."
+msgstr ""
+"Si le serveur n'est pas visible ou que la connexion échoue, vérifiez que les "
+"ports 5353 (UDP) et 9757 (TCP et UDP) sont ouverts dans le pare-feu."
+
+#: dashboard/qml/WizardPage.qml:406
 #, kde-format
 msgid "Skip"
 msgstr "Passer"
 
-#: dashboard/qml/WizardPage.qml:425
+#: dashboard/qml/WizardPage.qml:426
 #, kde-format
 msgid "Connection established"
 msgstr "Connexion établie"
 
-#: dashboard/qml/WizardPage.qml:430
+#: dashboard/qml/WizardPage.qml:431
 #, kde-format
 msgid "Your headset is now connected."
 msgstr "Votre casque est maintenant connecté."
 
-#: dashboard/qml/WizardPage.qml:435 dashboard/qml/WizardPage.qml:477
+#: dashboard/qml/WizardPage.qml:436 dashboard/qml/WizardPage.qml:478
 #, kde-format
 msgid ""
 "To connect another headset, make sure pairing is enabled in the dashboard "
@@ -921,22 +951,22 @@ msgstr ""
 "Pour connecter un autre casque, assurez-vous que l'appairage est activé dans "
 "le tableau de bord avant de vous connecter."
 
-#: dashboard/qml/WizardPage.qml:457 dashboard/qml/WizardPage.qml:494
+#: dashboard/qml/WizardPage.qml:458 dashboard/qml/WizardPage.qml:495
 #, kde-format
 msgid "Finish"
 msgstr "Finir"
 
-#: dashboard/qml/WizardPage.qml:472
+#: dashboard/qml/WizardPage.qml:473
 #, kde-format
 msgid "Finished"
 msgstr "Terminé"
 
-#: dashboard/wivrn_server.cpp:584
+#: dashboard/wivrn_server.cpp:594
 #, kde-format
 msgid "xrizer"
 msgstr "xrizer"
 
-#: dashboard/wivrn_server.cpp:585
+#: dashboard/wivrn_server.cpp:595
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
