@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-10-05 20:26+0200\n"
-"PO-Revision-Date: 2025-10-05 21:13+0200\n"
+"PO-Revision-Date: 2025-10-05 21:37+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
@@ -689,7 +689,7 @@ msgstr ""
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
 msgid "Connection fails with \"no route to host\""
-msgstr "Conexão falha com \"sem rota para o host\""
+msgstr "Conexão falha com \"no route to host\""
 
 #: dashboard/qml/TroubleshootPage.qml:36
 #, kde-format
