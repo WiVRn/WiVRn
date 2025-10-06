@@ -8,6 +8,8 @@ Files are read from
 
 Files later in the list replace top-level values from previous ones.
 
+If you installed WiVRn from a flatpack, the config is in `$HOME/.var/app/io.github.wivrn.wivrn/config/wivrn/config.json`.
+
 All elements are optional and have default values.
 
 ## `scale`

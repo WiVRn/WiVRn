@@ -6,7 +6,7 @@
 
 WiVRn wirelessly connects a standalone VR headset to a Linux computer. You can then play PCVR games on the headset while processing is done on the computer.
 
-It supports a wide range of headsets such as Quest 1 / 2 / Pro / 3 / 3S, Pico Neo 4, HTC Vive Focus 3, HTC Vive XR elite and most other Android based headsets.
+It supports a wide range of headsets such as Quest 1 / 2 / Pro / 3 / 3S, Pico Neo 3, Pico 4, HTC Vive Focus 3, HTC Vive XR elite and most other Android based headsets.
 
 # Getting started
 
@@ -105,11 +105,11 @@ See [configuration](docs/configuration.md) for editing the configuration manuall
 If the server list is empty in the headset app:
 - Make sure your computer is connected on the same network as your headset
 - Check that avahi is running with `systemctl status avahi-daemon`, if it is not, enable it with `systemctl enable --now avahi-daemon`
-- If you have a firewall, check that port 5353 (UDP) is open
+- If you have a firewall, check that port 5353 (UDP) is open (for ufw, use `ufw allow 5353/udp`)
 
 ## My headset does not connect to my computer
-- If you have a firewall, check that port 9757 (UDP and TCP) is open
-- The server and client must be compatible:
+- If you have a firewall, check that port 9757 (UDP and TCP) is open (for ufw, use `ufw allow 9757`)
+- The server and client must be compatible.
 
 ## How do I use a wired connection?
 
@@ -129,9 +129,7 @@ If the server list is empty in the headset app:
 
 ## How do I see server logs when using the dashboard?
 
-```
-journalctl -f --no-hostname -u io.github.wivrn.wivrn.desktop
-```
+Click Troubleshoot > Open server logs, or navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, or for flatpak `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.
 
 # Contributing
 
