@@ -4,10 +4,11 @@ Configuration is done on server side.
 Files are read from
 - `/usr/share/wivrn/config.json` (where `/usr` is selected at configure time with `CMAKE_INSTALL_PREFIX`)
 - `/etc/wivrn/config.json`
-- `$HOME/.var/app/io.github.wivrn.wivrn/config/wivrn/config.json` if you're using flatpack
 - `$XDG_CONFIG_HOME/wivrn/config.json` or if `$XDG_CONFIG_HOME` is not set, `$HOME/.config/wivrn/config.json`.
 
 Files later in the list replace top-level values from previous ones.
+
+If you installed WiVRn from a flatpack, the config is in `$HOME/.var/app/io.github.wivrn.wivrn/config/wivrn/config.json`.
 
 All elements are optional and have default values.
 
