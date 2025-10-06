@@ -139,10 +139,14 @@ If the server list is empty in the headset app:
 
 ## I have high motion latency. There's a black border following the image when I turn my head
 
-- Reset the settings with the button at the bottom of the dashboard.
-- Try different encoders
+- When connecting through USB, make sure the headset isn't connected through WiFi (switch off WiFi)
+- Reset the settings using the button at the bottom of the settings tab
+- Try using different encoders
 - Decrease the resolution in the WiVRn app
-- Use a different GPU. NVIDIA GPUs have higher encoding latency on WiVRn (even three times worse when using resolutions significantly higher than default).
+- Decrease the bitrate
+- Connect through USB or use a better WiFi router.
+
+Note: WiVRn isn't properly optimized for NVIDIA GPUs due to the lack of developers with NVIDIA hardware. Motion latency can be two or three times worse when rendering resolutions higher than default. NVIDIA GPU users must choose between low latency and high resolution.
 
 # Contributing
 
