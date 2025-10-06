@@ -142,7 +142,7 @@ If the server list is empty in the headset app:
 - Decrease the resolution in the WiVRn app
 - Connect through USB or use a better WiFi router.
 
-Note: WiVRn isn't properly optimized for NVIDIA GPUs due to the lack of developers with NVIDIA hardware. Motion latency can be two or three times worse when rendering resolutions higher than default. NVIDIA GPU users must choose between low latency and high resolution.
+Note: WiVRn isn't properly optimized for NVIDIA GPUs due to the lack of developers with NVIDIA hardware. Motion latency may be significantly worse at rendering resolutions higher than default.
 
 # Contributing
 
