@@ -359,7 +359,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	if (config.encoders.empty())
 		config.encoders = get_encoder_default_settings(bundle, info.supported_codecs, config.bit_depth);
 	if (not config.encoder_passthrough)
-		config.encoder_passthrough.emplace();
+		config.encoder_passthrough = config.encoders.front();
 
 	config.encoder_passthrough->width = 1;
 	config.encoder_passthrough->height = 1;
