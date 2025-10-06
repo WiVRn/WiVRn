@@ -42,7 +42,8 @@ systemctl enable --now avahi-daemon
 ```
 
 If a firewall is installed, open port 5353/UDP for avahi.
-Open ports 9757/UDP+TCP for WiVRn itself.
+Open ports 9757/UDP+TCP for WiVRn itself. 
+If you have ufw, use `ufw allow 5353/udp` and `ufw alow 9757`.
 
 ### Running
 - On your computer, run "WiVRn server" application, or `wivrn-dashboard`  from the command line, it will show the connection wizard the first time you launch it.
@@ -105,10 +106,10 @@ See [configuration](docs/configuration.md) for editing the configuration manuall
 If the server list is empty in the headset app:
 - Make sure your computer is connected on the same network as your headset
 - Check that avahi is running with `systemctl status avahi-daemon`, if it is not, enable it with `systemctl enable --now avahi-daemon`
-- If you have a firewall, check that port 5353 (UDP) is open (for ufw, use `ufw allow 5353/udp`)
+- If you have a firewall, check that port 5353 (UDP) is open
 
 ## My headset does not connect to my computer
-- If you have a firewall, check that port 9757 (UDP and TCP) is open (for ufw, use `ufw allow 9757`)
+- If you have a firewall, check that port 9757 (UDP and TCP) is open
 - The server and client must be compatible.
 
 ## How do I use a wired connection?
