@@ -6,7 +6,7 @@
 
 WiVRn wirelessly connects a standalone VR headset to a Linux computer. You can then play PCVR games on the headset while processing is done on the computer.
 
-It supports a wide range of headsets such as Quest 1 / 2 / Pro / 3 / 3S, Pico Neo 4, HTC Vive Focus 3, HTC Vive XR elite and most other Android based headsets.
+It supports a wide range of headsets such as Quest 1 / 2 / Pro / 3 / 3S, Pico Neo 3, Pico 4, HTC Vive Focus 3, HTC Vive XR elite and most other Android based headsets.
 
 # Getting started
 
