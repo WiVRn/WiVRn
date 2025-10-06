@@ -31,6 +31,7 @@
 #include <magic_enum.hpp>
 
 #include "smp.h"
+#include "wivrn_config.h"
 #include "wivrn_packets.h"
 
 #if WIRESHARK_VERSION_MAJOR > 4 || (WIRESHARK_VERSION_MAJOR == 4 && WIRESHARK_VERSION_MINOR >= 4)

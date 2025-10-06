@@ -257,6 +257,7 @@ void wivrn_server::on_server_dbus_registered()
 	server_properties_interface = std::make_unique<OrgFreedesktopDBusPropertiesInterface>("io.github.wivrn.Server", "/io/github/wivrn/Server", QDBusConnection::sessionBus(), this);
 
 	connect(server_properties_interface.get(), &OrgFreedesktopDBusPropertiesInterface::PropertiesChanged, this, &wivrn_server::on_server_properties_changed);
+	connect(server_interface.get(), &IoGithubWivrnServerInterface::ServerError, [this](const QString & w, const QString & m) { serverError(serverErrorData(w, m)); });
 
 	serverStatusChanged(m_serverStatus = Status::Started);
 	refresh_server_properties();

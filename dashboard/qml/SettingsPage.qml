@@ -472,6 +472,7 @@ Kirigami.ScrollablePage {
             scale_slider.value = Math.round(100 - config.scale * 100);
             manual_foveation.checked = true;
         } else {
+            scale_slider.value = 50;
             manual_foveation.checked = false;
         }
 

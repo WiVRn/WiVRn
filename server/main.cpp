@@ -534,6 +534,9 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 		                   [&](const from_monado::bitrate_changed & value) {
 			                   wivrn_server_set_bitrate(dbus_server, value.bitrate_bps);
 		                   },
+		                   [&](const from_monado::server_error & e) {
+			                   wivrn_server_emit_server_error(dbus_server, e.where.c_str(), e.message.c_str());
+		                   },
 		           },
 		           *packet);
 	}

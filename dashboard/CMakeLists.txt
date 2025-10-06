@@ -16,6 +16,7 @@ add_executable(wivrn-dashboard
     rectangle_partitionner.cpp
     adb.cpp
     apk_installer.cpp
+    firewall.cpp
     vulkan_info.cpp
 )
 

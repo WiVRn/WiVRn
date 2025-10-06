@@ -87,24 +87,23 @@ static void split_bitrate(std::vector<wivrn::encoder_settings> & encoders, uint6
 void print_encoders(const std::vector<wivrn::encoder_settings> & encoders)
 {
 	int group = -1;
+	std::stringstream str;
+	str << "Encoder configuration:";
 	for (auto & encoder: encoders)
 	{
 		if (encoder.group != group)
 		{
 			group = encoder.group;
-			U_LOG_I("Group %d", group);
+			str << "\n\t* Group " << group << ":";
 		}
-
-		std::string codec(magic_enum::enum_name(encoder.codec));
-		U_LOG_I("\t%s (%s %d-bit)", encoder.encoder_name.c_str(), codec.c_str(), encoder.bit_depth);
-		U_LOG_I("\tchannels: %s", std::string(magic_enum::enum_name(encoder.channels)).c_str());
-		U_LOG_I("\tsize:%" PRIu16 "x%" PRIu16 " offset:%" PRIu16 "x%" PRIu16,
-		        encoder.width,
-		        encoder.height,
-		        encoder.offset_x,
-		        encoder.offset_y);
-		U_LOG_I("\tbitrate: %" PRIu64 "Mbit/s", encoder.bitrate / 1'000'000);
+		else
+			str << "\n";
+		str << "\n\t\t" << encoder.encoder_name << " (" << magic_enum::enum_name(encoder.codec) << " " << encoder.bit_depth << "-bit)"
+		    << "\n\t\tchannels: " << magic_enum::enum_name(encoder.channels)
+		    << "\n\t\tsize: " << encoder.width << "x" << encoder.height << " offset: " << encoder.offset_x << "x" << encoder.offset_y
+		    << "\n\t\tbitrate: " << encoder.bitrate / 1'000'000 << "Mbit/s";
 	}
+	U_LOG_I("%s", str.str().c_str());
 }
 
 static void check_scale(std::string_view encoder_name, video_codec codec, uint16_t width, uint16_t height, std::array<double, 2> & scale)
@@ -359,7 +358,7 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 	if (config.encoders.empty())
 		config.encoders = get_encoder_default_settings(bundle, info.supported_codecs, config.bit_depth);
 	if (not config.encoder_passthrough)
-		config.encoder_passthrough.emplace();
+		config.encoder_passthrough = config.encoders.front();
 
 	config.encoder_passthrough->width = 1;
 	config.encoder_passthrough->height = 1;

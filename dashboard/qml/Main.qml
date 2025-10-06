@@ -25,6 +25,21 @@ Kirigami.ApplicationWindow {
         icon.source: Qt.resolvedUrl("wivrn.svg")
         onActivated: root.visible = !root.visible
     }
+
+    Component{
+        id: error_template
+        Kirigami.InlineMessage{
+            visible: true
+            property string where
+            property string message
+
+            Layout.fillWidth: true
+            text: where + (where ? "\n" : "") + message
+            type: Kirigami.MessageType.Error
+            showCloseButton: true
+        }
+    }
+
     onClosing: Qt.quit()
 
     Core.Settings {
@@ -62,7 +77,7 @@ Kirigami.ApplicationWindow {
 
             if (root.first_run && started) {
                 console.log("First run");
-                root.pageStack.push(Qt.resolvedUrl("WizardPage.qml"));
+                root.pageStack.push(Qt.createComponent("WizardPage.qml").createObject());
                 root.first_run = false;
             }
         }
@@ -72,17 +87,20 @@ Kirigami.ApplicationWindow {
                 switch_pairing.checked = WivrnServer.pairingEnabled;
         }
 
-        // function onHeadsetConnectedChanged(value) {
-        //     if (value != root.prev_headset_connected) {
-        //         root.prev_headset_connected = value;
-        //
-        //         if (value && root.pageStack.depth == 1)
-        //             root.pageStack.push(Qt.resolvedUrl("HeadsetStatsPage.qml"));
-        //     }
-        // }
-
         function onJsonConfigurationChanged() {
             config.load(WivrnServer);
+        }
+
+        function onServerError(info) {
+            console.log(info.where);
+            console.log(info.message);
+            messages.append(error_template.createObject(
+                null,
+                {
+                    where: info.where,
+                    message: info.message
+                }
+            ));
         }
     }
 
@@ -102,93 +120,102 @@ Kirigami.ApplicationWindow {
     pageStack.initialPage: Kirigami.ScrollablePage {
         ColumnLayout {
             anchors.fill: parent
-            Kirigami.InlineMessage {
-                Layout.fillWidth: true
-                text: i18n("The server does not have CAP_SYS_NICE capabilities.")
-                // type: Kirigami.MessageType.Warning
-                type: Kirigami.MessageType.Information
-                showCloseButton: true
-                visible: !WivrnServer.capSysNice
-                actions: [
-                    Kirigami.Action {
-                        text: i18n("Fix it")
-                        onTriggered: WivrnServer.grant_cap_sys_nice()
+            Repeater{
+                model: ObjectModel {
+                    id: messages
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("The server does not have CAP_SYS_NICE capabilities.")
+                        // type: Kirigami.MessageType.Warning
+                        type: Kirigami.MessageType.Information
+                        showCloseButton: true
+                        visible: !WivrnServer.capSysNice
+                        actions: [
+                            Kirigami.Action {
+                                text: i18n("Fix it")
+                                onTriggered: WivrnServer.grant_cap_sys_nice()
+                            }
+                        ]
                     }
-                ]
-            }
 
-            Kirigami.InlineMessage {
-                id: restart_capsysnice
-                Layout.fillWidth: true
-                text: i18n("The CAP_SYS_NICE capability will be used when the server is restarted.")
-                type: Kirigami.MessageType.Information
-                showCloseButton: true
-                visible: false
-                actions: [
-                    Kirigami.Action {
-                        text: i18nc("restart the server", "Restart now")
-                        onTriggered: {
-                            WivrnServer.restart_server();
-                            restart_capsysnice.visible = false;
-                        }
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("Firewall may not allow port 9757.")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: Firewall.needSetup
+                        actions: [
+                            Kirigami.Action {
+                                text: i18n("Fix it")
+                                onTriggered: Firewall.doSetup()
+                            }
+                        ]
                     }
-                ]
-            }
 
-            Kirigami.InlineMessage {
-                Layout.fillWidth: true
-                text: i18n("NVIDIA GPUs require at least driver version 565.77, current version is %1", VulkanInfo.driverVersion)
-                type: Kirigami.MessageType.Error
-                showCloseButton: true
-                visible: VulkanInfo.driverId == "NvidiaProprietary" && VulkanInfo.driverVersionCode < 2371043328 /* Version 565.77 */
-                actions: [
-                    Kirigami.Action {
-                        text: i18n("More info")
-                        onTriggered: Qt.openUrlExternally("https://github.com/WiVRn/WiVRn/issues/180")
+                    Kirigami.InlineMessage {
+                        id: restart_capsysnice
+                        Layout.fillWidth: true
+                        text: i18n("The CAP_SYS_NICE capability will be used when the server is restarted.")
+                        type: Kirigami.MessageType.Information
+                        showCloseButton: true
+                        visible: false
+                        actions: [
+                            Kirigami.Action {
+                                text: i18nc("restart the server", "Restart now")
+                                onTriggered: {
+                                    WivrnServer.restart_server();
+                                    restart_capsysnice.visible = false;
+                                }
+                            }
+                        ]
                     }
-                ]
-            }
 
-            Kirigami.InlineMessage {
-                Layout.fillWidth: true
-                text: i18n("Use the Mesa (radv) driver for AMD GPUs\nHardware encoding with vaapi does not work with AMDVLK and AMDGPU-PRO")
-                type: Kirigami.MessageType.Warning
-                showCloseButton: true
-                visible: VulkanInfo.driverId == "AmdProprietary" || VulkanInfo.driverId == "AmdOpenSource"
-            }
-
-            Kirigami.InlineMessage {
-                Layout.fillWidth: true
-                text: i18n("No OpenVR compatibility detected, Steam games won't be able to load VR.\nInstall xrizer or OpenComposite.")
-                type: Kirigami.MessageType.Warning
-                showCloseButton: true
-                visible: WivrnServer.openVRCompat.length == 0 && config.openvr == ""
-            }
-
-            Kirigami.InlineMessage {
-                id: message_failed_to_start
-                Layout.fillWidth: true
-                text: i18n("Server failed to start")
-                type: Kirigami.MessageType.Error
-                showCloseButton: true
-                // visible: WivrnServer.serverStatus == WivrnServer.FailedToStart
-                actions: [
-                    Kirigami.Action {
-                        text: i18n("Open server logs")
-                        onTriggered: WivrnServer.open_server_logs()
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("NVIDIA GPUs require at least driver version 565.77, current version is %1", VulkanInfo.driverVersion)
+                        type: Kirigami.MessageType.Error
+                        showCloseButton: true
+                        visible: VulkanInfo.driverId == "NvidiaProprietary" && VulkanInfo.driverVersionCode < 2371043328 /* Version 565.77 */
+                        actions: [
+                            Kirigami.Action {
+                                text: i18n("More info")
+                                onTriggered: Qt.openUrlExternally("https://github.com/WiVRn/WiVRn/issues/180")
+                            }
+                        ]
                     }
-                ]
-            }
 
-            // RowLayout {
-            //     Controls.Button {
-            //         text: "refresh latest version"
-            //         onClicked: ApkInstaller.refreshLatestVersion()
-            //     }
-            //     Controls.Label {
-            //         text: "current version " + ApkInstaller.currentVersion + "\nlatest version " + ApkInstaller.latestVersion
-            //     }
-            // }
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("Use the Mesa (radv) driver for AMD GPUs\nHardware encoding with vaapi does not work with AMDVLK and AMDGPU-PRO")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: VulkanInfo.driverId == "AmdProprietary" || VulkanInfo.driverId == "AmdOpenSource"
+                    }
+
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("No OpenVR compatibility detected, Steam games won't be able to load VR.\nInstall xrizer or OpenComposite.")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: WivrnServer.openVRCompat.length == 0 && config.openvr == ""
+                    }
+
+                    Kirigami.InlineMessage {
+                        id: message_failed_to_start
+                        Layout.fillWidth: true
+                        text: i18n("Server failed to start")
+                        type: Kirigami.MessageType.Error
+                        showCloseButton: true
+                        // visible: WivrnServer.serverStatus == WivrnServer.FailedToStart
+                        actions: [
+                            Kirigami.Action {
+                                text: i18n("Open server logs")
+                                onTriggered: WivrnServer.open_server_logs()
+                            }
+                        ]
+                    }
+                }
+            }
 
             GridLayout {
                 columns: 2
@@ -325,14 +352,14 @@ Kirigami.ApplicationWindow {
             Kirigami.Action {
                 text: i18n("Wizard")
                 icon.name: "tools-wizard-symbolic"
-                onTriggered: root.pageStack.push(Qt.resolvedUrl("WizardPage.qml"))
+                onTriggered: root.pageStack.push(Qt.createComponent("WizardPage.qml").createObject())
                 visible: root.pageStack.depth == 1
                 enabled: root.server_started
             },
             Kirigami.Action {
                 text: i18n("Install the app")
                 icon.name: "install-symbolic"
-                onTriggered: root.pageStack.push(Qt.resolvedUrl("ApkInstallPage.qml"))
+                onTriggered: root.pageStack.push(Qt.createComponent("ApkInstallPage.qml").createObject())
                 visible: root.pageStack.depth == 1
                 enabled: root.server_started && Adb.adbInstalled
                 tooltip: {
@@ -343,32 +370,24 @@ Kirigami.ApplicationWindow {
                     return "";
                 }
             },
-            // Kirigami.Action {
-            //     text: i18n("Statistics")
-            //     icon.name: "office-chart-line-symbolic"
-            //     onTriggered: root.pageStack.push(Qt.resolvedUrl("HeadsetStatsPage.qml"))
-            //     visible: root.pageStack.depth == 1
-            //     enabled: root.server_started && Adb.adbInstalled && WivrnServer.headsetConnected
-            // },
-
             Kirigami.Action {
                 text: i18n("Headsets")
                 icon.name: "item-symbolic"
-                onTriggered: root.pageStack.push(Qt.resolvedUrl("HeadsetsPage.qml"))
+                onTriggered: root.pageStack.push(Qt.createComponent("HeadsetsPage.qml").createObject())
                 visible: root.pageStack.depth == 1
                 enabled: root.server_started
             },
             Kirigami.Action {
                 text: i18n("Settings")
                 icon.name: "settings-configure-symbolic"
-                onTriggered: root.pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
+                onTriggered: root.pageStack.push(Qt.createComponent("SettingsPage.qml").createObject())
                 visible: root.pageStack.depth == 1
                 enabled: root.server_started
             },
             Kirigami.Action {
                 text: i18n("Troubleshoot")
                 icon.name: "help-contents-symbolic"
-                onTriggered: root.pageStack.push(Qt.resolvedUrl("TroubleshootPage.qml"))
+                onTriggered: root.pageStack.push(Qt.createComponent("TroubleshootPage.qml").createObject())
                 enabled: root.pageStack.depth == 1
             }
         ]

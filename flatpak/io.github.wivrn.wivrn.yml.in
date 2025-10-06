@@ -38,6 +38,10 @@ finish-args:
   # Let outside application access the WiVRn socket
   - --filesystem=xdg-run/wivrn:create
   - --own-name=io.github.wivrn.Server
+  # Check firewall configuration
+  - --filesystem=host-etc
+  - --system-talk-name=org.fedoraproject.FirewallD1
+  - --system-talk-name=org.fedoraproject.FirewallD1.config
   # QSystemTrayIcon
   - --talk-name=org.kde.StatusNotifierWatcher
   # Run processes outside of sandbox
