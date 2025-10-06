@@ -59,7 +59,7 @@ if __name__ == "__main__":
 				args.lang.append(d)
 
 	if args.manage_issues:
-		from github import Github, Auth
+		from github import Auth, Github, GithubException
 		gh = Github(auth=Auth.Token(args.github_token))
 		repo = gh.get_repo(args.github_repository)
 
@@ -123,10 +123,15 @@ if __name__ == "__main__":
 							if issue.state != "open":
 								issue.edit(state="open")
 					else:
-						issue = repo.create_issue(
-								title=ISSUE_TITLE.format(lang=lang),
-								labels=[ISSUE_LABEL]
-								)
+						try:
+							repo.create_issue(
+									title=ISSUE_TITLE.format(lang=lang),
+									labels=[ISSUE_LABEL]
+									)
+						except GithubException as e:
+							# Ignore error when issues are disabled on repository
+							if e.status != 410:
+								raise
 				else:
 					for issue in issues:
 						issue.edit(state="closed")
