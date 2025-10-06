@@ -133,17 +133,13 @@ If the server list is empty in the headset app:
 - Navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, or
 - For flatpak, navigate to `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.
 
-## I hear crackling audio or see corrupted video signal
-
-- Switching to software encoding in the dashboard.
-
-## I have high motion latency. There's a black border following the image when I turn my head
+## I have high motion latency, black borders following my view, hear corrupted audio or see a corrupted, pixelated image
 
 - When connecting through USB, make sure the headset isn't connected through WiFi (switch off WiFi)
 - Reset the settings using the button at the bottom of the settings tab
-- Try using different encoders
-- Decrease the resolution in the WiVRn app
+- Try switching to software encoding
 - Decrease the bitrate
+- Decrease the resolution in the WiVRn app
 - Connect through USB or use a better WiFi router.
 
 Note: WiVRn isn't properly optimized for NVIDIA GPUs due to the lack of developers with NVIDIA hardware. Motion latency can be two or three times worse when rendering resolutions higher than default. NVIDIA GPU users must choose between low latency and high resolution.
