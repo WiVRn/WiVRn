@@ -41,8 +41,8 @@ Avahi must be running:
 systemctl enable --now avahi-daemon
 ```
 
-If a firewall is installed, open port 5353/UDP for avahi.
-Open ports 9757/UDP+TCP for WiVRn itself.
+- If a firewall is installed, open port 5353/UDP for avahi and ports 9757/UDP+TCP for WiVRn itself.
+- In the case of ufw, use `ufw allow 5353/udp` and `ufw alow 9757`.
 
 ### Running
 - On your computer, run "WiVRn server" application, or `wivrn-dashboard`  from the command line, it will show the connection wizard the first time you launch it.
@@ -105,10 +105,10 @@ See [configuration](docs/configuration.md) for editing the configuration manuall
 If the server list is empty in the headset app:
 - Make sure your computer is connected on the same network as your headset
 - Check that avahi is running with `systemctl status avahi-daemon`, if it is not, enable it with `systemctl enable --now avahi-daemon`
-- If you have a firewall, check that port 5353 (UDP) is open (for ufw, use `ufw allow 5353/udp`)
+- If you have a firewall, check that port 5353 (UDP) is open
 
 ## My headset does not connect to my computer
-- If you have a firewall, check that port 9757 (UDP and TCP) is open (for ufw, use `ufw allow 9757`)
+- If you have a firewall, check that port 9757 (UDP and TCP) is open
 - The server and client must be compatible.
 
 ## How do I use a wired connection?
@@ -129,7 +129,20 @@ If the server list is empty in the headset app:
 
 ## How do I see server logs when using the dashboard?
 
-Click Troubleshoot > Open server logs, or navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, or for flatpak `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.
+- Click Troubleshoot > Open server logs, or
+- Navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, or
+- For flatpak, navigate to `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.
+
+## I have high motion latency, black borders following my view, hear corrupted audio or see a corrupted, pixelated image
+
+- When connecting through USB, make sure the headset isn't connected through WiFi (switch off WiFi)
+- Reset the settings using the button at the bottom of the settings tab
+- Try switching to software encoding
+- Decrease the bitrate
+- Decrease the resolution in the WiVRn app
+- Connect through USB or use a better WiFi router.
+
+Note: WiVRn isn't properly optimized for NVIDIA GPUs due to the lack of developers with NVIDIA hardware. Motion latency may be significantly worse at rendering resolutions higher than default.
 
 # Contributing
 
@@ -153,7 +166,7 @@ WiVRn uses the following software:
 - [HarfBuzz](https://harfbuzz.github.io/)
 - [librsvg](https://wiki.gnome.org/Projects/LibRsvg)
 - [Monado](https://monado.freedesktop.org/)
-- [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on Nvidia
+- [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on NVIDIA
 - [qCoro](https://qcoro.dev/)
 - [Qt 6](https://www.qt.io/) optional, for the dashboard
 - [spdlog](https://github.com/gabime/spdlog)
