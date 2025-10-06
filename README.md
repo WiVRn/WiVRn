@@ -128,9 +128,7 @@ If the server list is empty in the headset app:
 - You can now continue the pairing process as documented in the running section.
 
 ## How do I see server logs when using the dashboard?
-
-```
-journalctl -f --no-hostname -u io.github.wivrn.wivrn.desktop
+Click Troubleshoot > Open server logs or navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, and for flatpak `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.
 ```
 
 # Contributing
