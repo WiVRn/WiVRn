@@ -135,8 +135,8 @@ If the server list is empty in the headset app:
 
 ## I hear crackling audio or see corrupted video signal with an Nvidia GPU
 
-- Switch to NVENC or x264 encoding in Settings, as Vulkan and VAAPI might (will) not work on Nvidia GPUs
-- Try using x264 H.264 instead of NVENC H.264.
+- Switch to NVENC encoding in dashboard settings, as Vulkan and VAAPI currently don't work on Nvidia GPUs
+- If using NVENC H.264, try switching to software H.264.
 
 ## I can see high motion latency. There's a black border following the image when I turn my head
 
