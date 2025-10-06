@@ -142,7 +142,7 @@ If the server list is empty in the headset app:
 - Reset the settings with the button at the bottom of the dashboard.
 - Try different encoders
 - Decrease the resolution in the WiVRn app
-- Use a different GPU. Nvidia GPUs have higher encoding latency on WiVRn (even three times worse when using resolutions significantly higher than default).
+- Use a different GPU. NVIDIA GPUs have higher encoding latency on WiVRn (even three times worse when using resolutions significantly higher than default).
 
 # Contributing
 
@@ -166,7 +166,7 @@ WiVRn uses the following software:
 - [HarfBuzz](https://harfbuzz.github.io/)
 - [librsvg](https://wiki.gnome.org/Projects/LibRsvg)
 - [Monado](https://monado.freedesktop.org/)
-- [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on Nvidia
+- [nvenc](https://developer.nvidia.com/nvidia-video-codec-sdk) optional, for hardware encoding on NVIDIA
 - [qCoro](https://qcoro.dev/)
 - [Qt 6](https://www.qt.io/) optional, for the dashboard
 - [spdlog](https://github.com/gabime/spdlog)
