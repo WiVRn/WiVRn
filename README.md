@@ -105,11 +105,11 @@ See [configuration](docs/configuration.md) for editing the configuration manuall
 If the server list is empty in the headset app:
 - Make sure your computer is connected on the same network as your headset
 - Check that avahi is running with `systemctl status avahi-daemon`, if it is not, enable it with `systemctl enable --now avahi-daemon`
-- If you have a firewall, check that port 5353 (UDP) is open
+- If you have a firewall, check that port 5353 (UDP) is open (for ufw, use `ufw allow 5353/udp`)
 
 ## My headset does not connect to my computer
-- If you have a firewall, check that port 9757 (UDP and TCP) is open
-- The server and client must be compatible:
+- If you have a firewall, check that port 9757 (UDP and TCP) is open (for ufw, use `ufw allow 9757`)
+- The server and client must be compatible.
 
 ## How do I use a wired connection?
 
