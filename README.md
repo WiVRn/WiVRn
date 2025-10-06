@@ -129,17 +129,19 @@ If the server list is empty in the headset app:
 
 ## How do I see server logs when using the dashboard?
 
-Click Troubleshoot > Open server logs, or navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, or for flatpak `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.
+- Click Troubleshoot > Open server logs, or
+- Navigate to `${XDG_STATE_HOME}/wivrn/wivrn-dashboard` (with fallback to `${HOME}/.local/state` for `${XDG_STATE_HOME}`, or
+- For flatpak, navigate to `${HOME}/.var/app/io.github.wivrn.wivrn/.local/state/wivrn/wivrn-dashboard`.
 
-## I hear crackling audio or corrupted video signal with an Nvidia GPU
+## I hear crackling audio or see corrupted video signal with an Nvidia GPU
 
-- Switch to NVENC encoding in Settings, as Vulkan and VAAPI might (will) not work on Nvidia GPUs.
-- Try using h.265 instead of h.264 encoding.
+- Switch to NVENC or x264 encoding in Settings, as Vulkan and VAAPI might (will) not work on Nvidia GPUs
+- Try using x264 H.264 instead of NVENC H.264.
 
-## I can see high motion latency. There's a black border following the image when I turn my head.
+## I can see high motion latency. There's a black border following the image when I turn my head
 
 - Try different encoders in the dashboard
-- If you're using manual foveation, make sure it's not set to 0% (the default is 50%)
+- If you're using manual foveation, make sure it's **not** set to 0% (the default is 50%)
 - Decrease the resolution in the WiVRn app
 - Use a different GPU. Nvidia GPUs have higher encoding latency on WiVRn (even three times worse when using resolutions much higher than default).
 
