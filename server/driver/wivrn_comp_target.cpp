@@ -305,7 +305,7 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 		        cn->wivrn_bundle->device,
 		        {
 		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-		                .queueFamilyIndex = vk->main_queue.family_index,
+		                .queueFamilyIndex = vk->main_queue->family_index,
 		        });
 		cn->wivrn_bundle->name(cn->command_pool, "comp target command pool");
 	}
@@ -545,7 +545,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 
 	if (cn->c->base.layer_accum.layer_count == 0 or not cn->cnx.get_offset())
 	{
-		scoped_lock lock(vk->queue_mutex);
+		scoped_lock lock(vk->main_queue->mutex);
 		cn->wivrn_bundle->queue.submit(submit_info);
 		cn->psc.images[index].status = pseudo_swapchain::status_t::free;
 		return VK_SUCCESS;
@@ -588,8 +588,8 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
 		        .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
-		        .srcQueueFamilyIndex = vk->main_queue.family_index,
-		        .dstQueueFamilyIndex = vk->encode_queue.family_index,
+		        .srcQueueFamilyIndex = vk->main_queue->family_index,
+		        .dstQueueFamilyIndex = vk->encode_queue->family_index,
 		        .image = psc_image.image,
 		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
 		                             .baseMipLevel = 0,
@@ -611,7 +611,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	submit_info.setCommandBuffers(*command_buffer);
 
 	{
-		scoped_lock lock(vk->queue_mutex);
+		scoped_lock lock(vk->main_queue->mutex);
 		cn->wivrn_bundle->queue.submit(submit_info, *cn->psc.fence);
 		for (auto & encoder: cn->encoders)
 		{
@@ -715,7 +715,7 @@ static void comp_wivrn_flush(struct comp_target * ct)
 	};
 
 	{
-		scoped_lock lock(vk->queue_mutex);
+		scoped_lock lock(vk->main_queue->mutex);
 		cn->wivrn_bundle->queue.submit(submit_info);
 	}
 }

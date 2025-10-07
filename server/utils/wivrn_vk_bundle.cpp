@@ -89,11 +89,11 @@ wivrn::wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> 
                           .vulkanApiVersion = VK_MAKE_VERSION(1, 3, 0), // FIXME: sync with wivrn_session.cpp
                   },
                   vk.has_EXT_debug_utils),
-        queue(device, vk.main_queue.family_index, vk.main_queue.index),
-        queue_family_index(vk.main_queue.family_index),
+        queue(device, vk.main_queue->family_index, vk.main_queue->index),
+        queue_family_index(vk.main_queue->family_index),
 #ifdef VK_KHR_video_encode_queue
-        encode_queue(make_queue(device, vk.encode_queue.queue, vk.encode_queue.family_index, vk.encode_queue.index)),
-        encode_queue_family_index(vk.encode_queue.family_index),
+        encode_queue(make_queue(device, vk.encode_queue->queue, vk.encode_queue->family_index, vk.encode_queue->index)),
+        encode_queue_family_index(vk.encode_queue->family_index),
 #else
         encode_queue(nullptr),
         encode_queue_family_index(vk::QueueFamilyIgnored),
