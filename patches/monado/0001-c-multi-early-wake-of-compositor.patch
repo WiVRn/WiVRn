@@ -1,7 +1,7 @@
-From 104babdb5929b053824a0ac4436a4a1a25d99259 Mon Sep 17 00:00:00 2001
+From 3939fa120128ded9ff85fe23c7f5a2694a016fbe Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
-Subject: [PATCH 1/8] c/multi: early wake of compositor
+Subject: [PATCH 1/9] c/multi: early wake of compositor
 
 ---
  .../compositor/multi/comp_multi_compositor.c  | 14 +++++++++
@@ -128,5 +128,5 @@ index cf8e2e525..94413b090 100644
  	//! @todo Make the clients not go from IDLE to READY before we have completed a first frame.
  	// Make sure there is at least some sort of valid frame data here.
 -- 
-2.51.0
+2.49.1
 

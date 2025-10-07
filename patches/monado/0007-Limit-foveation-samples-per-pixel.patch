@@ -1,7 +1,7 @@
-From 6d3a2857d6495e89b4e85adc752f31c4d1ef9665 Mon Sep 17 00:00:00 2001
+From 295a815dfd6654db06f17f41ef1d0068ea88c439 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 31 Aug 2025 17:05:49 +0200
-Subject: [PATCH 7/8] Limit foveation samples per pixel
+Subject: [PATCH 7/9] Limit foveation samples per pixel
 
 ---
  src/xrt/compositor/shaders/distortion.comp | 12 +++++++++---
@@ -42,5 +42,5 @@ index cd1828ac9..41de849e6 100644
  
  	imageStore(luma, ivec3(offset.x + ix, offset.y + iy, 0), vec4(colour.x));
 -- 
-2.51.0
+2.49.1
 

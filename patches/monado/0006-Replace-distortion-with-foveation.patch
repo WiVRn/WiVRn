@@ -1,7 +1,7 @@
-From e22cf0edf3abedc59e98416ac4d62e9253d6ddd8 Mon Sep 17 00:00:00 2001
+From 97400e9b24957b88a75a1e79b59bcbba0e22fc7f Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 6/8] Replace distortion with foveation
+Subject: [PATCH 6/9] Replace distortion with foveation
 
 ---
  src/xrt/compositor/CMakeLists.txt             |   4 +-
@@ -41,7 +41,7 @@ index 1ba5ec438..eb068f5fc 100644
  		render/render_interface.h
  		render/render_resources.c
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index c5ec9e7de..fecc368a8 100644
+index 9cc7b63cc..6d08db7da 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
 @@ -936,7 +936,8 @@ dispatch_compute(struct comp_renderer *r,
@@ -623,7 +623,7 @@ index d5d2bc4cb..d74ec78dd 100644
  
  
 diff --git a/src/xrt/compositor/render/render_resources.c b/src/xrt/compositor/render/render_resources.c
-index 6e8cece0d..95cd86b37 100644
+index fba654902..c0824108e 100644
 --- a/src/xrt/compositor/render/render_resources.c
 +++ b/src/xrt/compositor/render/render_resources.c
 @@ -184,14 +184,15 @@ init_mesh_ubo_buffers(struct vk_bundle *vk, struct render_buffer ubo[XRT_MAX_VIE
@@ -1288,5 +1288,5 @@ index 4e20b32f0..69429dc97 100644
  		    d->do_timewarp);              //
  	}
 -- 
-2.51.0
+2.49.1
 

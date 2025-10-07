@@ -1,7 +1,7 @@
-From 9a4aee03233c05306e252c6cf33543d3a64fff6d Mon Sep 17 00:00:00 2001
+From e399684882d5c76e71a11d3ea4075f89457a0e57 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 8 Oct 2024 22:13:15 +0200
-Subject: [PATCH 3/8] Use extern socket fd
+Subject: [PATCH 3/9] Use extern socket fd
 
 ---
  src/xrt/ipc/server/ipc_server_mainloop_linux.c | 8 ++++++++
@@ -34,5 +34,5 @@ index ad6b473b7..ea6fad65b 100644
  	// We may have been launched with socket activation
  	int num_fds = sd_listen_fds(0);
 -- 
-2.51.0
+2.49.1
 
