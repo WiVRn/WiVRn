@@ -19,6 +19,7 @@
 
 #include "instance.h"
 
+#include "hardware.h"
 #include "xr/details/enumerate.h"
 #include "xr/htc_exts.h"
 #include "xr/to_string.h"
@@ -99,6 +100,19 @@ static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & i
 	             XR_API_VERSION_1_0,
 	     })
 	{
+		switch (guess_model())
+		{
+			case model::htc_vive_focus_3:
+			case model::htc_vive_xr_elite:
+			case model::htc_vive_focus_vision:
+				if (version > XR_API_VERSION_1_0)
+				{
+					spdlog::info("skip OpenXR 1.1 for HTC");
+					continue;
+				}
+			default:
+				break;
+		}
 		std::vector<const char *> extensions;
 		info.applicationInfo.apiVersion = version;
 		auto v_info = version_info::get(version);
