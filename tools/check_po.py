@@ -24,7 +24,8 @@ def flag(lang: str):
 		'it': 'it',
 		'ja': 'jp',
 		'zh_TW': 'tw',
-		'pt_BR': 'br'
+		'pt_BR': 'br',
+		'ru': 'ru'
 	}
 
 	country = countries.get(lang, lang)
