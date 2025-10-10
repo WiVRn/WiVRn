@@ -320,20 +320,20 @@ msgstr ""
 #: client/scenes/lobby_gui.cpp:935 client/scenes/lobby_gui.cpp:943
 #: client/scenes/stream_gui.cpp:222 client/scenes/stream_gui.cpp:424
 msgid "CPU time"
-msgstr "Процессорное время"
+msgstr "Время ЦПУ"
 
 #: client/scenes/lobby_gui.cpp:939
 msgid "CPU time [ms]"
-msgstr "Процессорное время [мс]"
+msgstr "Время ЦПУ [мс]"
 
 #: client/scenes/lobby_gui.cpp:949 client/scenes/lobby_gui.cpp:957
 #: client/scenes/stream_gui.cpp:224 client/scenes/stream_gui.cpp:425
 msgid "GPU time"
-msgstr "Время видеокарты"
+msgstr "Время ГПУ"
 
 #: client/scenes/lobby_gui.cpp:953
 msgid "GPU time [ms]"
-msgstr "Время видеокарты [мс]"
+msgstr "Время ГПУ [мс]"
 
 #: client/scenes/lobby_gui.cpp:996
 msgid "Enable the microphone?"
