@@ -101,11 +101,11 @@ msgstr "Подключение к {}"
 
 #: client/scenes/lobby_gui.cpp:178
 msgid "PIN"
-msgstr "PIN"
+msgstr "ПИН"
 
 #: client/scenes/lobby_gui.cpp:200
 msgid "Input the PIN displayed on the dashboard"
-msgstr "Введите PIN отображенный в панеле управления"
+msgstr "Введите ПИН отображенный в панеле управления"
 
 #: client/scenes/lobby_gui.cpp:290
 msgid "Name"
@@ -573,7 +573,7 @@ msgstr "Начать"
 
 #: client/scenes/stream_gui.cpp:922
 msgid "Stats"
-msgstr "Статистика"
+msgstr "Метрики"
 
 #: client/scenes/stream_gui.cpp:928
 msgid "Applications"
@@ -581,7 +581,7 @@ msgstr "Приложения"
 
 #: client/scenes/stream_gui.cpp:934
 msgid "Statistics overlay"
-msgstr "Оверлей статистики"
+msgstr "Оверлей метрик"
 
 #: client/scenes/stream_gui.cpp:937
 msgid "Compact view"
@@ -593,11 +593,11 @@ msgstr "Истекло время ожидания"
 
 #: client/wivrn_client.cpp:149
 msgid "Incorrect PIN"
-msgstr "Неверный PIN"
+msgstr "Неверный ПИН"
 
 #: client/wivrn_client.cpp:153
 msgid "Unable to check PIN"
-msgstr "Невозможно проверить PIN"
+msgstr "Невозможно проверить ПИН"
 
 #: client/wivrn_client.cpp:182
 msgid "Pairing is disabled on server"
