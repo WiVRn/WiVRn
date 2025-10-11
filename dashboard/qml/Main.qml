@@ -46,6 +46,7 @@ Kirigami.ApplicationWindow {
         id: settings
         property alias first_run: root.first_run
         property alias last_run_version: root.last_run_version
+        property bool show_system_checks: true
     }
     property bool first_run: true
     property string last_run_version
@@ -129,7 +130,7 @@ Kirigami.ApplicationWindow {
                         // type: Kirigami.MessageType.Warning
                         type: Kirigami.MessageType.Information
                         showCloseButton: true
-                        visible: !WivrnServer.capSysNice
+                        visible: settings.show_system_checks && !WivrnServer.capSysNice
                         actions: [
                             Kirigami.Action {
                                 text: i18n("Fix it")
@@ -143,7 +144,7 @@ Kirigami.ApplicationWindow {
                         text: i18n("Firewall may not allow port 9757.")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: Firewall.needSetup
+                        visible: settings.show_system_checks && Firewall.needSetup
                         actions: [
                             Kirigami.Action {
                                 text: i18n("Fix it")
