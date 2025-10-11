@@ -82,7 +82,7 @@ msgstr "Проверяю новейшую версию..."
 #: dashboard/qml/ApkInstallPage.qml:43 dashboard/qml/WizardPage.qml:198
 #, kde-format
 msgid "No precompiled APK is available for this version."
-msgstr "Нет прекомпилированного APK-файла для этой версии"
+msgstr "Нет прекомпилированного APK-файла для этой версии."
 
 #: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:286
 #: dashboard/qml/Main.qml:369
@@ -111,7 +111,7 @@ msgstr ""
 #, kde-format
 msgctxt "go back to the home page"
 msgid "Back"
-msgstr "Вернуться"
+msgstr "Назад"
 
 #: dashboard/qml/ConnectUsbDialog.qml:11
 #, kde-format
@@ -205,7 +205,7 @@ msgstr "Удалить"
 #: dashboard/qml/HeadsetsPage.qml:143
 #, kde-format
 msgid "Pairing enabled, PIN: %1"
-msgstr "Сопряжение включено, PIN: %1"
+msgstr "Сопряжение включено, ПИН: %1"
 
 #: dashboard/qml/HeadsetsPage.qml:148 dashboard/qml/TroubleshootPage.qml:50
 #, kde-format
@@ -215,7 +215,7 @@ msgstr "Выключить сопряжение"
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
 msgid "Start the WiVRn app on your headset and use the PIN: %1"
-msgstr "Запустите приложение WiVRn на вашем шлеме и используйте PIN: %1"
+msgstr "Запустите приложение WiVRn на вашем шлеме и используйте ПИН: %1"
 
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
@@ -240,7 +240,7 @@ msgstr "Сервер не имеет CAP_SYS_NICE возможностей"
 #: dashboard/qml/Main.qml:135 dashboard/qml/Main.qml:149
 #, kde-format
 msgid "Fix it"
-msgstr "Исправить это"
+msgstr "Исправить"
 
 #: dashboard/qml/Main.qml:143
 #, kde-format
@@ -301,7 +301,7 @@ msgstr "Открыть логи сервера"
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
-msgstr "Работает"
+msgstr "Запущено"
 
 #: dashboard/qml/Main.qml:256
 #, kde-format
@@ -312,7 +312,7 @@ msgstr "Сопряжение"
 #: dashboard/qml/Main.qml:269
 #, kde-format
 msgid "PIN: %1"
-msgstr "PIN: %1"
+msgstr "ПИН: %1"
 
 #: dashboard/qml/Main.qml:277 dashboard/qml/WizardPage.qml:374
 #, kde-format
@@ -364,13 +364,13 @@ msgstr "Устранение неполадок"
 #, kde-format
 msgctxt "don't start an application automatically"
 msgid "None"
-msgstr "Ничего"
+msgstr "Никакого"
 
 #: dashboard/qml/SelectGame.qml:20
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
-msgstr "Индивидуальное"
+msgstr "Пользовательское"
 
 #: dashboard/qml/SelectGame.qml:76
 #, kde-format
@@ -406,11 +406,10 @@ msgid ""
 "The recommended values are between 20% and 50% for headsets without eye "
 "tracking and between 50% and 70% for headsets with eye tracking."
 msgstr ""
-"Более сильная фовеация делает изображение более резким в центре чем в "
-"боковом зрении и делает декодирование быстрее. Это лучше для игр "
-"с быстрым темпом.\n"
+"Более сильная фовеация делает изображение четче в центре чем в "
+"периферийном зрении и ускоряет декодирование. Это лучше для динамичных игр.\n"
 "\n"
-"Более слабая фовеации дает равномерную резкость на всем изображении.\n"
+"Более слабая фовеации дает равномерную четкость на всем изображении.\n"
 "\n"
 "Рекомендуемые значения между 20% и 50% для шлемов без отслеживания "
 "движения глаз и между 50% и 70% для шлемов с отслеживанием движения глаз."
@@ -447,13 +446,13 @@ msgstr "Разметка кодировки:"
 #, kde-format
 msgctxt "encoder preset"
 msgid "Automatic"
-msgstr "Автоматический"
+msgstr "Автоматическая"
 
 #: dashboard/qml/SettingsPage.qml:118
 #, kde-format
 msgctxt "encoder preset"
 msgid "Manual"
-msgstr "Ручной"
+msgstr "Ручная"
 
 #: dashboard/qml/SettingsPage.qml:122
 #, kde-format
@@ -607,7 +606,7 @@ msgstr "Выключено"
 #: dashboard/qml/SettingsPage.qml:388
 #, kde-format
 msgid "OpenVR compatibility library:"
-msgstr "Библиотека для SteamVR совместимости"
+msgstr "Библиотека для совместимости со SteamVR"
 
 #: dashboard/qml/SettingsPage.qml:414
 #, kde-format
@@ -666,7 +665,7 @@ msgstr "Если у вас есть брандмауэр, убедитесь ч�
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
 msgid "Connecting remains stuck on \"Connection to ...\""
-msgstr "Соединение зависло на \"Соединение к ...\""
+msgstr "Подключение зависло на \"Соединение с ...\""
 
 #: dashboard/qml/TroubleshootPage.qml:29 dashboard/qml/TroubleshootPage.qml:33
 #, kde-format
@@ -695,7 +694,7 @@ msgid ""
 "server version is <b>%1</b></li></ul>"
 msgstr ""
 "<p>Версии приложения для шлема и сервера на вашем компьютере должны совпадать."
-"</p><ul><li>Версия приложения для шлема находится на странице \"О приложении\"</li><li> "
+"</p><ul><li>Версия приложения для шлема находится на странице \"О приложении\"</li><li>"
 "Версия сервера: <b>%1</b></li></ul>"
 
 #: dashboard/qml/TroubleshootPage.qml:40
@@ -715,7 +714,7 @@ msgstr ""
 #: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
 msgid "Pairing is currently enabled with PIN %1."
-msgstr "Сопряжение в данный момент включено и PIN: %1."
+msgstr "Сопряжение в данный момент включено и ПИН: %1."
 
 #: dashboard/qml/TroubleshootPage.qml:41
 #, kde-format
@@ -734,7 +733,7 @@ msgid ""
 "device for applications to use it."
 msgstr ""
 "Когда шлем подключен, выберите \"WiVRn\" как устройство "
-"вывода звука по умолчания, чтобы приложения использовали его."
+"вывода звука по умолчанию, чтобы приложения использовали его."
 
 #: dashboard/qml/TroubleshootPage.qml:75
 #, kde-format
@@ -744,7 +743,7 @@ msgstr "Сообщить о проблеме"
 #: dashboard/qml/TroubleshootPage.qml:80
 #, kde-format
 msgid "Ask on Discord"
-msgstr "Спросить в Дискорде"
+msgstr "Задать вопрос в Discord"
 
 #: dashboard/qml/WizardPage.qml:14
 #, kde-format
@@ -884,7 +883,7 @@ msgstr "Важная информация"
 msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
 "running."
-msgstr "WiVRn полностью заменяет SteamVR, вы не должны запускать SteamVR пока WiVRn"
+msgstr "WiVRn полностью заменяет SteamVR, вы не должны запускать SteamVR пока WiVRn "
 "работает."
 
 #: dashboard/qml/WizardPage.qml:359
@@ -899,7 +898,7 @@ msgid ""
 "and enter PIN \"%2\"."
 msgstr ""
 "Чтобы подключиться по WiFi, запустите приложение WiVRn на вашем шлеме, подключитесь к \"%1\" "
-"и введите PIN \"%2\"."
+"и введите ПИН \"%2\"."
 
 #: dashboard/qml/WizardPage.qml:371
 #, kde-format
