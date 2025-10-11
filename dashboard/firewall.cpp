@@ -60,13 +60,13 @@ public:
 		pkexec = escape_sandbox("pkexec",
 		                        "sh",
 		                        "-c",
-		                        "printf '[WiVRn]\\ntitle=WiVRn server\ndescription=WiVRn OpenXR streaming server\nports=" + std::to_string(wivrn::default_port) + "' > /" + conf.string() + " && ufw allow wivrn");
+		                        "printf '[WiVRn]\\ntitle=WiVRn server\ndescription=WiVRn OpenXR streaming server\nports=" + std::to_string(wivrn::default_port) + "\n' > /" + conf.string() + " && ufw allow wivrn");
 		pkexec->setProcessChannelMode(QProcess::MergedChannels);
 		pkexec->start();
 
 		QObject::connect(pkexec.get(), &QProcess::finished, this, [this](int exit_code, QProcess::ExitStatus exit_status) {
 			if (exit_status != QProcess::NormalExit or exit_code)
-				qWarning() << "ufw configuration exitec with status" << exit_status << "and code" << exit_code;
+				qWarning() << "ufw configuration exited with status" << exit_status << "and code" << exit_code;
 			needSetupChanged(need_setup());
 			pkexec.release()->deleteLater();
 		});
