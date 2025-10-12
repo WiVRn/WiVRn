@@ -241,7 +241,8 @@ FetchContent_Declare(spdlog        EXCLUDE_FROM_ALL SYSTEM URL https://github.co
 FetchContent_Declare(stb           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.zip
                                    URL_HASH SHA256=b7f476902bbef1b30f8ecc2d9d95c459c32302c8b559d09b589b5955463b7af8)
 file(GLOB LIBKTX_PATCHES CONFIGURE_DEPENDS patches/libktx/*)
-FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/v4.4.0.tar.gz
+set(KTX_GIT_VERSION_FULL "v4.4.0")
+FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/${KTX_GIT_VERSION_FULL}.tar.gz
                                    URL_HASH SHA256=3585d76edcdcbe3a671479686f8c81c1c10339f419e4b02a9a6f19cc6e4e0612
                                    PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${LIBKTX_PATCHES}
                                    )
