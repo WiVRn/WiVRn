@@ -1761,7 +1761,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> scenes::lobby::draw_gui(XrTi
 				break;
 
 			case tab::customize:
-				gui_customize();
+				gui_customize(predicted_display_time);
 				break;
 
 #if WIVRN_CLIENT_DEBUG_MENU

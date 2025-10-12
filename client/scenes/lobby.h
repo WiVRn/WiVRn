@@ -204,7 +204,8 @@ class lobby : public scene_impl<lobby>
 	environment_item_action environment_item(environment_model & model, bool download_screenshot);
 	void environment_list(std::vector<environment_model> & model, bool download_screenshot);
 	void use_environment(const environment_model & model);
-	void popup_load_environment();
+	XrTime popup_load_environment_display_time = 0;
+	void popup_load_environment(XrTime predicted_display_time);
 	utils::future<std::pair<std::string, std::shared_ptr<entt::registry>>, float> future_environment;
 	std::string load_environment_status;
 
@@ -223,7 +224,7 @@ class lobby : public scene_impl<lobby>
 	void gui_new_server();
 	void gui_settings();
 	void gui_post_processing();
-	void gui_customize();
+	void gui_customize(XrTime predicted_display_time);
 	void gui_debug_node_hierarchy(entt::entity root = entt::null);
 	void gui_debug();
 	void gui_about();
