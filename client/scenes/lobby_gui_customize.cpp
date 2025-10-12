@@ -548,12 +548,17 @@ void scenes::lobby::environment_list(std::vector<environment_model> & models, bo
 	ImGui::PopStyleVar(3); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize
 }
 
-void scenes::lobby::popup_load_environment()
+void scenes::lobby::popup_load_environment(XrTime predicted_display_time)
 {
 	if (future_environment.valid() or load_environment_status != "")
 	{
 		if (not ImGui::IsPopupOpen("loading environment model"))
-			ImGui::OpenPopup("loading environment model");
+		{
+			if (popup_load_environment_display_time == 0)
+				popup_load_environment_display_time = predicted_display_time + 50'000'000;
+			else if (predicted_display_time > popup_load_environment_display_time)
+				ImGui::OpenPopup("loading environment model");
+		}
 
 		const auto & popup_layer = imgui_ctx->layers()[1];
 		const glm::vec2 popup_layer_center = popup_layer.vp_origin + popup_layer.vp_size / 2;
@@ -572,6 +577,7 @@ void scenes::lobby::popup_load_environment()
 						load_environment_status = "";
 						auto [gltf_path, env] = future_environment.get();
 						ImGui::CloseCurrentPopup();
+						popup_load_environment_display_time = 0;
 
 						// Keep the current lobby position / orientation
 						auto & old_lobby_node = world.get<components::node>(lobby_entity);
@@ -613,6 +619,7 @@ void scenes::lobby::popup_load_environment()
 				{
 					load_environment_status = "";
 					ImGui::CloseCurrentPopup();
+					popup_load_environment_display_time = 0;
 				}
 				imgui_ctx->vibrate_on_hover();
 			}
@@ -663,7 +670,7 @@ libcurl::curl_handle * scenes::lobby::parse_environment_list()
 	return index_transfer;
 }
 
-void scenes::lobby::gui_customize()
+void scenes::lobby::gui_customize(XrTime predicted_display_time)
 {
 	auto & config = application::get_config();
 
@@ -758,13 +765,13 @@ void scenes::lobby::gui_customize()
 		imgui_ctx->vibrate_on_hover();
 		ImGui::PopStyleColor(3); // ImGuiCol_Button, ImGuiCol_ButtonHovered, ImGuiCol_ButtonActive
 
-		popup_load_environment();
+		popup_load_environment(predicted_display_time);
 
 		ImGui::EndPopup();
 	}
 	else
 	{
-		popup_load_environment();
+		popup_load_environment(predicted_display_time);
 	}
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize
 
