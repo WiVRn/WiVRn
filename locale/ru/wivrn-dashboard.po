@@ -94,7 +94,7 @@ msgstr "ADB не установлен."
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
 msgid "Connect a headset and make sure developer mode is enabled."
-msgstr "Подключите шлем и удостоверьтесь что режим разработчика включен"
+msgstr "Подключите шлем и удостоверьтесь что режим разработчика включен."
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -238,7 +238,7 @@ msgstr "Статистика шлема"
 #: dashboard/qml/Main.qml:129
 #, kde-format
 msgid "The server does not have CAP_SYS_NICE capabilities."
-msgstr "Сервер не имеет CAP_SYS_NICE возможностей"
+msgstr "Сервер не имеет CAP_SYS_NICE возможностей."
 
 #: dashboard/qml/Main.qml:136 dashboard/qml/Main.qml:150
 #, kde-format
@@ -321,7 +321,7 @@ msgstr "ПИН: %1"
 #: dashboard/qml/Main.qml:278 dashboard/qml/WizardPage.qml:374
 #, kde-format
 msgid "Connect by USB"
-msgstr "Подключиться через USB"
+msgstr "Подключиться по USB"
 
 #: dashboard/qml/Main.qml:289
 #, kde-format
@@ -661,7 +661,7 @@ msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Если вы установили WiVRn через USB на шлеме Meta, приложение находится в "
+"Если вы установили WiVRn по USB на шлем Meta, приложение находится в "
 "секции \"неизвестные источники\"."
 
 #: dashboard/qml/TroubleshootPage.qml:24
@@ -810,7 +810,7 @@ msgid ""
 msgstr ""
 "Для того чтобы использовать WiVRn, вы должны будете установить приложение "
 "клиента на вашем шлеме.\n"
-"Вы можете либо установить его из Meta store, либо напрямую через USB."
+"Вы можете либо установить его из Meta store, либо напрямую по USB."
 
 #: dashboard/qml/WizardPage.qml:148
 #, kde-format
@@ -841,7 +841,7 @@ msgid ""
 "This is a nightly build, the client app on the Meta store may not be "
 "compatible."
 msgstr ""
-"Это nightly сборка, приложение клиента в Meta store может быть несовместимым."
+"Это ночная сборка, приложение клиента в Meta store может быть несовместимым."
 
 #: dashboard/qml/WizardPage.qml:181
 #, kde-format
@@ -852,7 +852,7 @@ msgstr "Или"
 #: dashboard/qml/WizardPage.qml:187
 #, kde-format
 msgid "Install over USB"
-msgstr "Установить через USB"
+msgstr "Установить по USB"
 
 #: dashboard/qml/WizardPage.qml:211
 #, kde-format
@@ -915,7 +915,7 @@ msgstr ""
 #: dashboard/qml/WizardPage.qml:371
 #, kde-format
 msgid "To connect over USB, click on \"Connect by USB\"."
-msgstr "Чтобы подключиться через USB, нажмите на \"Подключиться через USB\""
+msgstr "Чтобы подключиться через USB, нажмите на \"Подключиться по USB\"."
 
 #: dashboard/qml/WizardPage.qml:384
 #, kde-format
@@ -929,7 +929,7 @@ msgid ""
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
 "Если сервер не виден или не удается установить соединение, проверьте что "
-"порт 5353 (UDP) и 9757 (TCP и UDP) открыты в вашем брандмауэре."
+"порты 5353 (UDP) и 9757 (TCP и UDP) открыты в вашем брандмауэре."
 
 #: dashboard/qml/WizardPage.qml:406
 #, kde-format
@@ -944,7 +944,7 @@ msgstr "Соединение установлено"
 #: dashboard/qml/WizardPage.qml:431
 #, kde-format
 msgid "Your headset is now connected."
-msgstr "Ваш шлем теперь подключен"
+msgstr "Ваш шлем теперь подключен."
 
 #: dashboard/qml/WizardPage.qml:436 dashboard/qml/WizardPage.qml:478
 #, kde-format
