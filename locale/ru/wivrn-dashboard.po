@@ -368,7 +368,7 @@ msgstr "Устранение неполадок"
 #, kde-format
 msgctxt "don't start an application automatically"
 msgid "None"
-msgstr "Никакое"
+msgstr "Отсутствует"
 
 #: dashboard/qml/SelectGame.qml:20
 #, kde-format

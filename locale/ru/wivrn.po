@@ -453,7 +453,7 @@ msgstr "Репроектирование"
 
 #: client/scenes/stream_gui.cpp:225
 msgid "Blit"
-msgstr "Blit"
+msgstr "Блит"
 
 #: client/scenes/stream_gui.cpp:227
 msgid "Network"
@@ -494,15 +494,15 @@ msgstr "Декодирование"
 
 #: client/scenes/stream_gui.cpp:373
 msgid "Blitted"
-msgstr "Блиттированные"
+msgstr "Блиттированное"
 
 #: client/scenes/stream_gui.cpp:374
 msgid "Displayed"
-msgstr "Отображенные"
+msgstr "Отображенное"
 
 #: client/scenes/stream_gui.cpp:375
 msgid "Predicted"
-msgstr "Прогнозируемые"
+msgstr "Прогнозируемое"
 
 #: client/scenes/stream_gui.cpp:395
 #, c++-format
@@ -557,7 +557,7 @@ msgstr "Нажмите A чтобы сохранить или B чтобы от�
 
 #: client/scenes/stream_gui.cpp:618
 msgid "Running XR applications:"
-msgstr "Запущенное XR приложение:"
+msgstr "Запущенные XR приложения:"
 
 #: client/scenes/stream_gui.cpp:635
 msgid "Overlays"
@@ -569,7 +569,7 @@ msgstr "Запрос на выход, может быть проигнориро
 
 #: client/scenes/stream_gui.cpp:677
 msgid "Start"
-msgstr "Начать"
+msgstr "Запустить"
 
 #: client/scenes/stream_gui.cpp:922
 msgid "Stats"
