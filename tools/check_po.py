@@ -16,25 +16,6 @@ def list_files(base: str, exts: str|list[str]):
 				if f.endswith(ext):
 					yield os.path.join(root, f)
 
-def flag(lang: str):
-	# Map language code to a country flag
-	countries = {
-		'es': 'es',
-		'fr': 'fr',
-		'it': 'it',
-		'ja': 'jp',
-		'zh_TW': 'tw',
-		'pt_BR': 'br',
-		'ru': 'ru'
-	}
-
-	country = countries.get(lang, lang)
-
-	res = ''
-	for i in country.upper():
-		res += chr(ord(i) + ord('🇦') - ord('A'))
-	return res
-
 ISSUE_LABEL="localisation"
 ISSUE_TITLE="[{lang}] Missing translations"
 
@@ -110,11 +91,11 @@ if __name__ == "__main__":
 					if not i.obsolete:
 						if not i.msgid in entries:
 							missing = missing + 1
-							print(f"::notice file={po}::{flag(lang)} Translation for {repr(i.msgid)} is missing")
+							print(f"::notice file={po}::{lang} translation for {repr(i.msgid)} is missing")
 				lang_issues += missing
 
 				if missing > 0:
-					print(f"::warning file={po}::{flag(lang)} {missing} translations missing")
+					print(f"::warning file={po}::{lang} {missing} translations missing")
 
 			if args.manage_issues:
 				issues = [i for i in repo.get_issues(state="all", labels = [ISSUE_LABEL]) if i.title == ISSUE_TITLE.format(lang=lang)]
