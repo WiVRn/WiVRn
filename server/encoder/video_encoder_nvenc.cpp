@@ -80,6 +80,30 @@ static auto encode_guid(video_codec codec)
 	throw std::out_of_range("Invalid codec " + std::to_string(codec));
 }
 
+static void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encodeGUID)
+{
+	uint32_t count;
+	std::vector<GUID> encodeGUIDs;
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDCount(session_handle, &count));
+	encodeGUIDs.resize(count);
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDs(session_handle, encodeGUIDs.data(), count, &count));
+
+	for (GUID guid: encodeGUIDs)
+	{
+		if (guid.Data1 == encodeGUID.Data1 &&
+		    guid.Data2 == encodeGUID.Data2 &&
+		    guid.Data3 == encodeGUID.Data3)
+		{
+			if (std::equal(std::begin(guid.Data4), std::end(guid.Data4), std::begin(encodeGUID.Data4)))
+			{
+				return;
+			}
+		}
+	}
+
+	throw std::runtime_error("nvenc: GPU doesn't support selected codec.");
+}
+
 video_encoder_nvenc::video_encoder_nvenc(
         wivrn_vk_bundle & vk,
         encoder_settings & settings,
@@ -107,7 +131,6 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        },
 	};
 
-	auto encodeGUID = encode_guid(settings.codec);
 	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params_ex = {
 	        .version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
 	        .deviceType = NV_ENC_DEVICE_TYPE_CUDA,
@@ -115,6 +138,9 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .apiVersion = NVENCAPI_VERSION,
 	};
 	NVENC_CHECK_NOENCODER(shared_state->fn.nvEncOpenEncodeSessionEx(&params_ex, &session_handle));
+
+	auto encodeGUID = encode_guid(settings.codec);
+	check_encode_guid_supported(shared_state, session_handle, encodeGUID);
 
 	uint32_t count;
 	std::vector<GUID> presets;
@@ -404,15 +430,15 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 
 std::array<int, 2> video_encoder_nvenc::get_max_size(video_codec codec)
 {
-	video_encoder_nvenc_shared_state state;
+	std::shared_ptr<video_encoder_nvenc_shared_state> state = video_encoder_nvenc_shared_state::get();
 	void * session_handle = nullptr;
 	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params_ex = {
 	        .version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
 	        .deviceType = NV_ENC_DEVICE_TYPE_CUDA,
-	        .device = state.cuda,
+	        .device = state->cuda,
 	        .apiVersion = NVENCAPI_VERSION,
 	};
-	if (state.fn.nvEncOpenEncodeSessionEx(&params_ex, &session_handle) != NV_ENC_SUCCESS)
+	if (state->fn.nvEncOpenEncodeSessionEx(&params_ex, &session_handle) != NV_ENC_SUCCESS)
 	{
 		throw std::runtime_error("nvenc get_max_size: Failed to open session");
 	}
@@ -430,7 +456,10 @@ std::array<int, 2> video_encoder_nvenc::get_max_size(video_codec codec)
 			        .version = NV_ENC_CAPS_PARAM_VER,
 			        .capsToQuery = NV_ENC_CAPS_WIDTH_MAX,
 			};
-			NVENCSTATUS status = state.fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_param, res);
+
+			check_encode_guid_supported(state, session_handle, encodeGUID);
+
+			NVENCSTATUS status = state->fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_param, res);
 			if (status != NV_ENC_SUCCESS)
 			{
 				throw std::runtime_error("nvenc get_max_size: failed to get caps");
@@ -443,7 +472,7 @@ std::array<int, 2> video_encoder_nvenc::get_max_size(video_codec codec)
 	}
 	if (session_handle)
 	{
-		state.fn.nvEncDestroyEncoder(session_handle);
+		state->fn.nvEncDestroyEncoder(session_handle);
 	}
 	if (ex)
 		std::rethrow_exception(ex);
