@@ -52,6 +52,7 @@ private:
 
 	float fps;
 	int bitrate;
+	int bytesPerPixel = 1;
 
 public:
 	video_encoder_nvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);

@@ -166,6 +166,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 		if (res == 1)
 		{
 			bitDepth = NV_ENC_BIT_DEPTH_10;
+			bytesPerPixel = 2;
 		}
 		else
 		{
@@ -236,7 +237,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	NVENC_CHECK(shared_state->fn.nvEncCreateBitstreamBuffer(session_handle, &params3));
 	bitstreamBuffer = params3.bitstreamBuffer;
 
-	vk::DeviceSize buffer_size = rect.extent.width * settings.video_height * (bitDepth == NV_ENC_BIT_DEPTH_10 ? 2 : 1) * 3 / 2;
+	vk::DeviceSize buffer_size = rect.extent.width * settings.video_height * bytesPerPixel * 3 / 2;
 
 	vk::StructureChain buffer_create_info{
 	        vk::BufferCreateInfo{
@@ -300,7 +301,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 		        .resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR,
 		        .width = settings.video_width,
 		        .height = settings.video_height,
-		        .pitch = rect.extent.width * (bitDepth == NV_ENC_BIT_DEPTH_10 ? 2 : 1),
+		        .pitch = rect.extent.width * bytesPerPixel,
 		        .resourceToRegister = (void *)frame,
 		        .bufferFormat = (bitDepth == NV_ENC_BIT_DEPTH_10 ? NV_ENC_BUFFER_FORMAT_YUV420_10BIT : NV_ENC_BUFFER_FORMAT_NV12),
 		        .bufferUsage = NV_ENC_INPUT_IMAGE,
@@ -340,11 +341,11 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 	                                .height = rect.extent.height,
 	                                .depth = 1,
 	                        }},
-	                vk::BufferImageCopy{.bufferOffset = rect.extent.width * rect.extent.height * 2, .bufferRowLength = uint32_t(rect.extent.width / 2), .imageSubresource = {
-	                                                                                                                                                            .aspectMask = vk::ImageAspectFlagBits::ePlane1,
-	                                                                                                                                                            .baseArrayLayer = uint32_t(channels),
-	                                                                                                                                                            .layerCount = 1,
-	                                                                                                                                                    },
+	                vk::BufferImageCopy{.bufferOffset = rect.extent.width * rect.extent.height * bytesPerPixel, .bufferRowLength = uint32_t(rect.extent.width / 2), .imageSubresource = {
+	                                                                                                                                                                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
+	                                                                                                                                                                        .baseArrayLayer = uint32_t(channels),
+	                                                                                                                                                                        .layerCount = 1,
+	                                                                                                                                                                },
 	                                    .imageOffset = {
 	                                            .x = rect.offset.x / 2,
 	                                            .y = rect.offset.y / 2,
