@@ -294,7 +294,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 		        .height = settings.video_height,
 		        .pitch = rect.extent.width * (bitDepth == NV_ENC_BIT_DEPTH_10 ? 2 : 1),
 		        .resourceToRegister = (void *)frame,
-		        .bufferFormat = NV_ENC_BUFFER_FORMAT_YUV420_10BIT,
+		        .bufferFormat = (bitDepth == NV_ENC_BIT_DEPTH_10 ? NV_ENC_BUFFER_FORMAT_YUV420_10BIT : NV_ENC_BUFFER_FORMAT_NV12),
 		        .bufferUsage = NV_ENC_INPUT_IMAGE,
 		};
 		NVENC_CHECK(shared_state->fn.nvEncRegisterResource(session_handle, &param3));
@@ -315,43 +315,38 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 	        y_cbcr,
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        *in[slot].yuv,
-	        vk::BufferImageCopy{
-	                .bufferRowLength = rect.extent.width,
-	                .imageSubresource = {
-	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
-	                        .baseArrayLayer = uint32_t(channels),
-	                        .layerCount = 1,
-	                },
-	                .imageOffset = {
-	                        .x = rect.offset.x,
-	                        .y = rect.offset.y,
-	                },
-	                .imageExtent = {
-	                        .width = rect.extent.width,
-	                        .height = rect.extent.height,
-	                        .depth = 1,
-	                }});
-	cmd_buf.copyImageToBuffer(
-	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
-	        *in[slot].yuv,
-	        vk::BufferImageCopy{
-	                .bufferOffset = rect.extent.width * rect.extent.height * 2,
-	                .bufferRowLength = uint32_t(rect.extent.width / 2),
-	                .imageSubresource = {
-	                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
-	                        .baseArrayLayer = uint32_t(channels),
-	                        .layerCount = 1,
-	                },
-	                .imageOffset = {
-	                        .x = rect.offset.x / 2,
-	                        .y = rect.offset.y / 2,
-	                },
-	                .imageExtent = {
-	                        .width = rect.extent.width / 2,
-	                        .height = rect.extent.height / 2,
-	                        .depth = 1,
-	                }});
+	        std::array{
+	                vk::BufferImageCopy{
+	                        .bufferRowLength = rect.extent.width,
+	                        .imageSubresource = {
+	                                .aspectMask = vk::ImageAspectFlagBits::ePlane0,
+	                                .baseArrayLayer = uint32_t(channels),
+	                                .layerCount = 1,
+	                        },
+	                        .imageOffset = {
+	                                .x = rect.offset.x,
+	                                .y = rect.offset.y,
+	                        },
+	                        .imageExtent = {
+	                                .width = rect.extent.width,
+	                                .height = rect.extent.height,
+	                                .depth = 1,
+	                        }},
+	                vk::BufferImageCopy{.bufferOffset = rect.extent.width * rect.extent.height * 2, .bufferRowLength = uint32_t(rect.extent.width / 2), .imageSubresource = {
+	                                                                                                                                                            .aspectMask = vk::ImageAspectFlagBits::ePlane1,
+	                                                                                                                                                            .baseArrayLayer = uint32_t(channels),
+	                                                                                                                                                            .layerCount = 1,
+	                                                                                                                                                    },
+	                                    .imageOffset = {
+	                                            .x = rect.offset.x / 2,
+	                                            .y = rect.offset.y / 2,
+	                                    },
+	                                    .imageExtent = {
+	                                            .width = rect.extent.width / 2,
+	                                            .height = rect.extent.height / 2,
+	                                            .depth = 1,
+	                                    }}});
+
 	return {false, nullptr};
 }
 
