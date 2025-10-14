@@ -156,8 +156,8 @@ video_encoder_nvenc::video_encoder_nvenc(
 	if (settings.bit_depth == 10)
 	{
 		NV_ENC_CAPS_PARAM cap_param{
-			.version = NV_ENC_CAPS_PARAM_VER,
-			.capsToQuery = NV_ENC_CAPS_SUPPORT_10BIT_ENCODE,
+		        .version = NV_ENC_CAPS_PARAM_VER,
+		        .capsToQuery = NV_ENC_CAPS_SUPPORT_10BIT_ENCODE,
 		};
 
 		int res = 0;
