@@ -176,31 +176,39 @@ video_encoder_nvenc::video_encoder_nvenc(
 	switch (settings.codec)
 	{
 		case video_codec::h264:
+			if (bitDepth != NV_ENC_BIT_DEPTH_8)
+				throw std::runtime_error("selected codec only supports 8-bit encoding");
+
 			params.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
 			params.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
 			params.encodeCodecConfig.h264Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			params.encodeCodecConfig.h264Config.h264VUIParameters.videoFullRangeFlag = 1;
 
-			if (settings.bit_depth != 8)
-				throw std::runtime_error("selected codec only supports 8-bit encoding");
-
 			break;
 		case video_codec::h265:
-			params.profileGUID = NV_ENC_HEVC_PROFILE_MAIN10_GUID;
+			if (bitDepth == NV_ENC_BIT_DEPTH_10)
+				params.profileGUID = NV_ENC_HEVC_PROFILE_MAIN10_GUID;
+
+			params.encodeCodecConfig.hevcConfig.inputBitDepth = bitDepth;
+			params.encodeCodecConfig.hevcConfig.outputBitDepth = bitDepth;
+
 			params.encodeCodecConfig.hevcConfig.repeatSPSPPS = 1;
 			params.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
 			params.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			params.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
-			params.encodeCodecConfig.hevcConfig.inputBitDepth = bitDepth;
-			params.encodeCodecConfig.hevcConfig.outputBitDepth = bitDepth;
+
 			break;
 		case video_codec::av1:
-			params.profileGUID = NV_ENC_AV1_PROFILE_MAIN_GUID;
+			if (bitDepth == NV_ENC_BIT_DEPTH_10)
+				params.profileGUID = NV_ENC_AV1_PROFILE_MAIN_GUID;
+
+			params.encodeCodecConfig.av1Config.inputBitDepth = bitDepth;
+			params.encodeCodecConfig.av1Config.outputBitDepth = bitDepth;
+
 			params.encodeCodecConfig.av1Config.repeatSeqHdr = 1;
 			params.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
 			params.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
-			params.encodeCodecConfig.av1Config.inputBitDepth = bitDepth;
-			params.encodeCodecConfig.av1Config.outputBitDepth = bitDepth;
+
 			break;
 		case video_codec::raw:
 			throw std::runtime_error("raw codec not supported for nvenc");
