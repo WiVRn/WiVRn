@@ -191,7 +191,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 			params.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
 			params.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			params.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
-			params.encodeCodecConfig.hevcConfig.inputBitDepth = NV_ENC_BIT_DEPTH_8;
+			params.encodeCodecConfig.hevcConfig.inputBitDepth = bitDepth;
 			params.encodeCodecConfig.hevcConfig.outputBitDepth = bitDepth;
 			break;
 		case video_codec::av1:
@@ -199,7 +199,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 			params.encodeCodecConfig.av1Config.repeatSeqHdr = 1;
 			params.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
 			params.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
-			params.encodeCodecConfig.av1Config.inputBitDepth = NV_ENC_BIT_DEPTH_8;
+			params.encodeCodecConfig.av1Config.inputBitDepth = bitDepth;
 			params.encodeCodecConfig.av1Config.outputBitDepth = bitDepth;
 			break;
 		case video_codec::raw:
