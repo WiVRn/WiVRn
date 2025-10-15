@@ -55,6 +55,11 @@ public:
 		return bytes;
 	}
 
+	operator std::string_view() const
+	{
+		return {reinterpret_cast<const char *>(bytes.data()), bytes.size_bytes()};
+	}
+
 	const std::byte * data() const
 	{
 		return bytes.data();
