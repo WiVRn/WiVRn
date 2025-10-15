@@ -18,12 +18,20 @@
  */
 
 #include "video_encoder_nvenc.h"
-
 #include "encoder_settings.h"
 
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 
+bool operator==(const GUID & l, const GUID & r)
+{
+	return l.Data1 == r.Data1 and
+	       l.Data2 == r.Data2 and
+	       l.Data3 == r.Data3 and
+	       std::ranges::equal(l.Data4, r.Data4);
+}
+
+#include <algorithm>
 #include <stdexcept>
 
 #define NVENC_CHECK_NOENCODER(x)                                          \
@@ -83,25 +91,15 @@ static auto encode_guid(video_codec codec)
 static void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encodeGUID)
 {
 	uint32_t count;
-	std::vector<GUID> encodeGUIDs;
 	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDCount(session_handle, &count));
-	encodeGUIDs.resize(count);
+
+	std::vector<GUID> encodeGUIDs(count);
 	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDs(session_handle, encodeGUIDs.data(), count, &count));
 
-	for (GUID guid: encodeGUIDs)
+	if (std::ranges::contains(encodeGUIDs, encodeGUID))
 	{
-		if (guid.Data1 == encodeGUID.Data1 &&
-		    guid.Data2 == encodeGUID.Data2 &&
-		    guid.Data3 == encodeGUID.Data3)
-		{
-			if (std::equal(std::begin(guid.Data4), std::end(guid.Data4), std::begin(encodeGUID.Data4)))
-			{
-				return;
-			}
-		}
+		throw std::runtime_error("nvenc: GPU doesn't support selected codec.");
 	}
-
-	throw std::runtime_error("nvenc: GPU doesn't support selected codec.");
 }
 
 video_encoder_nvenc::video_encoder_nvenc(
