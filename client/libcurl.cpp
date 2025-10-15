@@ -64,9 +64,32 @@ libcurl::libcurl()
 void libcurl::curl_thread_fn()
 {
 #ifdef __ANDROID__
-	utils::mapped_file ca_bundle{"assets://ca-bundle.crt"};
+	// For Android, read all the certificates at start-up, the file names are not
+	// in the correct format for the current verion of OpenSSL.
+	// See https://stackoverflow.com/questions/25253823/how-to-make-ssl-peer-verify-work-on-android
+	std::string ca_bundle;
+	for (const std::filesystem::directory_entry & entry: std::filesystem::directory_iterator{"/system/etc/security/cacerts"})
+	{
+		if (not entry.is_regular_file())
+			continue;
+
+		try
+		{
+			utils::mapped_file cert{entry.path()};
+			ca_bundle += cert;
+
+			// Make sure there is a newline before the next certificate
+			if (ca_bundle != "" and ca_bundle.back() != '\n')
+				ca_bundle += '\n';
+		}
+		catch (...)
+		{
+			// Ignore errors
+		}
+	}
+
 	curl_blob ca_bundle_info{
-	        .data = const_cast<std::byte *>(ca_bundle.data()),
+	        .data = ca_bundle.data(),
 	        .len = ca_bundle.size(),
 	        .flags = CURL_BLOB_NOCOPY,
 	};

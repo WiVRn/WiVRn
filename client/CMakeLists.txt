@@ -207,24 +207,6 @@ endif()
 
 
 ##############################################################################
-# CA bundle for Android
-#
-if(ANDROID)
-    # Download the CA store from Mozilla, libcurl cannot access the certificates
-    # from Android.
-    # See https://curl.se/docs/caextract.html
-    FetchContent_GetProperties(curl SOURCE_DIR CURL_SRC_DIR)
-
-    add_custom_command(
-        OUTPUT ${ASSETS_DIR}/ca-bundle.crt
-        COMMAND  ${CURL_SRC_DIR}/scripts/mk-ca-bundle.pl -u ${ASSETS_DIR}/ca-bundle.crt
-    )
-    add_custom_target(wivrn-ca-bundle DEPENDS ${ASSETS_DIR}/ca-bundle.crt)
-    add_dependencies(wivrn wivrn-ca-bundle)
-endif()
-
-
-##############################################################################
 # Internationalization
 #
 create_mo_files(wivrn wivrn "${CMAKE_CURRENT_SOURCE_DIR}/../locale")
