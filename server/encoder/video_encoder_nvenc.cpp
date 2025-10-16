@@ -85,7 +85,7 @@ video_encoder_nvenc::video_encoder_nvenc(
         encoder_settings & settings,
         float fps,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true),
+        video_encoder(stream_idx, settings.channels, std::make_unique<default_idr_handler>(), settings.bitrate_multiplier, true),
         vk(vk),
         shared_state(video_encoder_nvenc_shared_state::get()),
         fps(fps),
@@ -319,7 +319,7 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 	return {false, nullptr};
 }
 
-std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
+std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uint64_t frame_index)
 {
 	CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
 
@@ -333,7 +333,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 	        .inputWidth = rect.extent.width,
 	        .inputHeight = rect.extent.height,
 	        .inputPitch = rect.extent.width,
-	        .encodePicFlags = uint32_t(idr ? NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS : 0),
+	        .encodePicFlags = 0,
 	        .frameIdx = 0,
 	        .inputTimeStamp = 0,
 	        .inputBuffer = param4.mappedResource,
@@ -341,6 +341,16 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 	        .bufferFmt = param4.mappedBufferFmt,
 	        .pictureStruct = NV_ENC_PIC_STRUCT_FRAME,
 	};
+
+	auto frame_type = ((default_idr_handler &)*idr).get_type(frame_index);
+	switch (frame_type)
+	{
+		case default_idr_handler::frame_type::i:
+			param.encodePicFlags |= NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
+			break;
+		case default_idr_handler::frame_type::p:
+			break;
+	}
 	NVENC_CHECK(shared_state->fn.nvEncEncodePicture(session_handle, &param));
 
 	NV_ENC_LOCK_BITSTREAM param2{
@@ -359,6 +369,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 		        if (status != NV_ENC_SUCCESS)
 			        U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle));
 	        }),
+	        .prefer_control = frame_type == default_idr_handler::frame_type::i,
 	};
 }
 

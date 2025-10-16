@@ -21,7 +21,6 @@
 
 #include "encoder/video_encoder.h"
 #include "ffmpeg_helper.h"
-#include <chrono>
 
 namespace wivrn
 {
@@ -29,7 +28,7 @@ namespace wivrn
 class video_encoder_ffmpeg : public wivrn::video_encoder
 {
 public:
-	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
+	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
 
 	struct mute_logs
 	{
@@ -39,9 +38,9 @@ public:
 
 protected:
 	video_encoder_ffmpeg(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, double bitrate_multiplier) :
-	        wivrn::video_encoder(stream_idx, channels, bitrate_multiplier, true) {}
+	        wivrn::video_encoder(stream_idx, channels, std::make_unique<default_idr_handler>(), bitrate_multiplier, true) {}
 
-	virtual void push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) = 0;
+	virtual void push_frame(bool idr, uint8_t slot) = 0;
 
 	av_codec_context_ptr encoder_ctx;
 

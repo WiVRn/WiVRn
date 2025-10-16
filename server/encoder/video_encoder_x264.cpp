@@ -39,7 +39,7 @@ void video_encoder_x264::ProcessCb(x264_t * h, x264_nal_t * nal, void * opaque)
 	{
 		case NAL_SPS:
 		case NAL_PPS: {
-			self->SendData(data, false);
+			self->SendData(data, false, self->control);
 			break;
 		}
 		case NAL_SLICE:
@@ -57,7 +57,7 @@ void video_encoder_x264::ProcessNal(pending_nal && nal)
 	if (nal.first_mb == next_mb)
 	{
 		next_mb = nal.last_mb + 1;
-		SendData(nal.data, next_mb == num_mb);
+		SendData(nal.data, next_mb == num_mb, control);
 	}
 	else
 	{
@@ -91,7 +91,7 @@ video_encoder_x264::video_encoder_x264(
         encoder_settings & settings,
         float fps,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, false)
+        video_encoder(stream_idx, settings.channels, std::make_unique<default_idr_handler>(), settings.bitrate_multiplier, false)
 {
 	if (settings.bit_depth != 8)
 		throw std::runtime_error("x264 encoder only supports 8-bit encoding");
@@ -239,7 +239,7 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 	return {false, nullptr};
 }
 
-std::optional<video_encoder::data> video_encoder_x264::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
+std::optional<video_encoder::data> video_encoder_x264::encode(uint8_t slot, uint64_t frame_index)
 {
 	bool reconfigure = false;
 	if (auto framerate = pending_framerate.exchange(0))
@@ -256,16 +256,27 @@ std::optional<video_encoder::data> video_encoder_x264::encode(bool idr, std::chr
 		param.rc.i_vbv_buffer_size = param.rc.i_bitrate / fps_mul * 1.1;
 		param.rc.i_vbv_max_bitrate = param.rc.i_bitrate;
 	}
+	auto & idr_handler = ((default_idr_handler &)*idr);
 	if (reconfigure)
 	{
 		x264_encoder_reconfig(enc, &param);
-		idr = true;
+		idr->reset();
 	}
+	auto frame_type = idr_handler.get_type(frame_index);
 	int num_nal;
 	x264_nal_t * nal;
 	auto & pic = in[slot].pic;
-	pic.i_type = idr ? X264_TYPE_IDR : X264_TYPE_P;
-	pic.i_pts = pts.time_since_epoch().count();
+	switch (frame_type)
+	{
+		case default_idr_handler::frame_type::i:
+			control = true;
+			pic.i_type = X264_TYPE_IDR;
+			break;
+		case default_idr_handler::frame_type::p:
+			control = false;
+			pic.i_type = X264_TYPE_P;
+			break;
+	}
 	next_mb = 0;
 	assert(pending_nals.empty());
 	int size = x264_encoder_encode(enc, &nal, &num_nal, &pic, &pic_out);

@@ -23,7 +23,6 @@
 #include "video_encoder_ffmpeg.h"
 
 #include <array>
-#include <chrono>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -53,6 +52,6 @@ public:
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 
 protected:
-	void push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;
+	void push_frame(bool idr, uint8_t slot) override;
 };
 } // namespace wivrn

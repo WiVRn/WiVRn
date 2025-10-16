@@ -819,14 +819,14 @@ static void comp_wivrn_info_gpu(struct comp_target * ct, int64_t frame_id, int64
 
 void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, const clock_offset & o)
 {
-	if (not o)
-		return;
 	uint8_t stream = feedback.stream_index;
 	if (psc.status & 1)
 		return;
 	if (encoders.size() <= stream)
 		return;
 	encoders[stream]->on_feedback(feedback);
+	if (not o)
+		return;
 	pacer.on_feedback(feedback, o);
 }
 

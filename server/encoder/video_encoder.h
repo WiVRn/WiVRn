@@ -20,10 +20,10 @@
 #pragma once
 
 #include "driver/clock_offset.h"
+#include "idr_handler.h"
 #include "wivrn_packets.h"
 
 #include <atomic>
-#include <chrono>
 #include <condition_variable>
 #include <deque>
 #include <fstream>
@@ -80,10 +80,15 @@ public:
 	const double bitrate_multiplier;
 
 private:
-	std::mutex mutex;
-	std::array<std::atomic<bool>, num_slots> busy = {false, false};
+	using state_t = std::atomic_unsigned_lock_free::value_type;
+	static const state_t idle = 0;
+	static const state_t busy = 1;
+	static const state_t skip = 2;
+	std::array<std::atomic_unsigned_lock_free, num_slots> state = {idle, idle};
 	uint8_t present_slot = 0;
 	uint8_t encode_slot = 0;
+
+	std::mutex mutex;
 
 	// temporary data
 	wivrn_session * cnx;
@@ -94,9 +99,6 @@ private:
 	to_headset::video_stream_data_shard::timing_info_t timing_info;
 	clock_offset clock;
 
-	std::atomic_bool sync_needed = true;
-	uint64_t last_idr_frame;
-
 	std::ofstream video_dump;
 
 	std::shared_ptr<sender> shared_sender;
@@ -104,6 +106,7 @@ private:
 protected:
 	std::atomic_int pending_bitrate;
 	std::atomic<float> pending_framerate;
+	std::unique_ptr<idr_handler> idr;
 
 public:
 	static std::unique_ptr<video_encoder> create(
@@ -114,7 +117,7 @@ public:
 	        int input_height,
 	        float fps);
 
-	video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, double bitrate_multiplier, bool async_send);
+	video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, std::unique_ptr<idr_handler>, double bitrate_multiplier, bool async_send);
 	virtual ~video_encoder();
 
 	// return value: true if image should be transitioned to queue and layout for vulkan video encode
@@ -122,8 +125,9 @@ public:
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index);
 	void post_submit();
 
-	virtual void on_feedback(const from_headset::feedback &);
-	virtual void reset();
+	void on_feedback(const from_headset::feedback &);
+	void reset();
+
 	void set_bitrate(int bitrate_bps);
 	void set_framerate(float framerate);
 
@@ -136,7 +140,7 @@ public:
 	// called after command buffer passed in present_image was submitted
 	virtual void post_submit(uint8_t slot) {}
 	// called when command buffer finished executing
-	virtual std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) = 0;
+	virtual std::optional<data> encode(uint8_t slot, uint64_t frame_index) = 0;
 
 	void SendData(std::span<uint8_t> data, bool end_of_frame, bool control = false);
 };

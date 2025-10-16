@@ -66,21 +66,24 @@ namespace wivrn
 
 bool video_encoder_ffmpeg::once = set_log_level();
 
-std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot)
+std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(uint8_t slot, uint64_t frame_index)
 {
+	auto & idr_handler = (default_idr_handler &)*idr;
 	if (auto bitrate = pending_bitrate.exchange(0))
 	{
-		idr = true;
+		idr_handler.reset();
 		encoder_ctx->bit_rate = bitrate;
 		encoder_ctx->rc_max_rate = bitrate;
 	}
 	if (auto framerate = pending_framerate.exchange(0))
 	{
-		idr = true;
+		idr_handler.reset();
 		encoder_ctx->framerate = AVRational{.num = int(framerate * 1000), .den = 1000};
 	}
 
-	push_frame(idr, target_timestamp, slot);
+	bool is_idr = idr_handler.get_type(frame_index) == default_idr_handler::frame_type::i;
+
+	push_frame(is_idr, slot);
 	std::shared_ptr<AVPacket> enc_pkt(av_packet_alloc(), [](AVPacket * d) { av_packet_free(&d); });
 	int err = avcodec_receive_packet(encoder_ctx.get(), enc_pkt.get());
 	if (err == 0)
@@ -89,6 +92,7 @@ std::optional<wivrn::video_encoder::data> video_encoder_ffmpeg::encode(bool idr,
 		        .encoder = this,
 		        .span = std::span(enc_pkt->data, enc_pkt->size),
 		        .mem = std::move(enc_pkt), // elements are evaluated in order
+		        .prefer_control = is_idr,
 		};
 	}
 	if (err == AVERROR(EAGAIN))

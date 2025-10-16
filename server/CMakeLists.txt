@@ -87,6 +87,7 @@ if (WIVRN_BUILD_SERVER)
 			audio/audio_setup.cpp
 
 			encoder/encoder_settings.cpp
+			encoder/idr_handler.cpp
 			encoder/video_encoder.cpp
 			encoder/video_encoder_raw.cpp
 
