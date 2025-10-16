@@ -626,7 +626,14 @@ void scenes::stream::gui_applications()
 	auto btn = _("Start");
 	ImGui::SetCursorPos(ImGui::GetWindowSize() - ImGui::CalcTextSize(btn.c_str()) - ImVec2(50, 50));
 	if (ImGui::Button(btn.c_str()))
+	{
+		network_session->send_control(from_headset::get_application_list{
+		        .language = application::get_messages_info().language,
+		        .country = application::get_messages_info().country,
+		        .variant = application::get_messages_info().variant,
+		});
 		gui_status = gui_status::application_launcher;
+	}
 	imgui_ctx->vibrate_on_hover();
 	ImGui::PopStyleVar(3);
 }
