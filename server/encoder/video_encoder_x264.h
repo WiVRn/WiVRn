@@ -34,6 +34,7 @@ class video_encoder_x264 : public video_encoder
 {
 	x264_param_t param = {};
 	x264_t * enc;
+	bool control;
 
 	x264_picture_t pic_out = {};
 
@@ -65,7 +66,7 @@ public:
 
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 
-	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot) override;
+	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
 
 	~video_encoder_x264();
 

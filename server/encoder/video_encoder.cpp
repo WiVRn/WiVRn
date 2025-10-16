@@ -24,7 +24,6 @@
 
 #include "encoder_settings.h"
 #include "os/os_time.h"
-#include "util/u_logging.h"
 #include "wivrn_config.h"
 
 #include <string>
@@ -191,15 +190,15 @@ std::unique_ptr<video_encoder> video_encoder::create(
 	return res;
 }
 
-static const uint64_t idr_throttle = 100;
-
-video_encoder::video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, double bitrate_multiplier, bool async_send) :
+video_encoder::video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, std::unique_ptr<idr_handler> idr, double bitrate_multiplier, bool async_send) :
         stream_idx(stream_idx),
         channels(channels),
         bitrate_multiplier(bitrate_multiplier),
-        last_idr_frame(-idr_throttle),
-        shared_sender(async_send ? sender::get() : nullptr)
-{}
+        shared_sender(async_send ? sender::get() : nullptr),
+        idr(std::move(idr))
+{
+	assert(idr);
+}
 
 video_encoder::~video_encoder()
 {
@@ -209,13 +208,13 @@ video_encoder::~video_encoder()
 
 void video_encoder::on_feedback(const from_headset::feedback & feedback)
 {
-	if (not feedback.sent_to_decoder)
-		sync_needed = true;
+	assert(feedback.stream_index == stream_idx);
+	idr->on_feedback(feedback);
 }
 
 void video_encoder::reset()
 {
-	sync_needed = true;
+	idr->reset();
 }
 
 void video_encoder::set_bitrate(int bitrate_bps)
@@ -232,13 +231,20 @@ std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, vk
 {
 	// Wait for encoder to be done
 	present_slot = (present_slot + 1) % num_slots;
-	busy[present_slot].wait(true);
-	busy[present_slot] = true;
+	state[present_slot].wait(busy);
+	if (idr->should_skip(frame_index))
+	{
+		state[present_slot] = skip;
+		return {false, nullptr};
+	}
+	state[present_slot] = busy;
 	return present_image(y_cbcr, cmd_buf, present_slot, frame_index);
 }
 
 void video_encoder::post_submit()
 {
+	if (state[present_slot] == skip)
+		return;
 	post_submit(present_slot);
 }
 
@@ -247,28 +253,30 @@ void video_encoder::encode(wivrn_session & cnx,
                            uint64_t frame_index)
 {
 	encode_slot = (encode_slot + 1) % num_slots;
-	assert(busy[encode_slot].load());
+
+	struct idle_setter
+	{
+		std::atomic_unsigned_lock_free & state;
+		~idle_setter()
+		{
+			state = idle;
+			state.notify_all();
+		}
+	};
+	idle_setter i{state[encode_slot]};
+
+	if (state[encode_slot] == skip)
+		return;
+
 	if (shared_sender)
 		shared_sender->wait_idle(this);
 	this->cnx = &cnx;
-	auto target_timestamp = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(view_info.display_time));
-	bool idr = sync_needed.exchange(false);
-	// Throttle idr to prevent overloading the decoder
-	if (idr and frame_index < last_idr_frame + idr_throttle)
-	{
-		U_LOG_D("Throttle IDR: stream %" PRIu8 " frame %" PRIu64, stream_idx, frame_index);
-		sync_needed = true;
-		idr = false;
-	}
-	if (idr)
-		last_idr_frame = frame_index;
-	const char * extra = idr ? ",idr" : ",p";
 	clock = cnx.get_offset();
 
+	auto encode_begin = os_monotonic_get_ns();
 	timing_info = {
-	        .encode_begin = clock.to_headset(os_monotonic_get_ns()),
+	        .encode_begin = clock.to_headset(encode_begin),
 	};
-	cnx.dump_time("encode_begin", frame_index, os_monotonic_get_ns(), stream_idx, extra);
 
 	// Prepare the video shard template
 	shard.stream_item_idx = stream_idx;
@@ -277,26 +285,15 @@ void video_encoder::encode(wivrn_session & cnx,
 	shard.view_info = view_info;
 	shard.timing_info.reset();
 
-	std::exception_ptr ex;
-	try
+	auto data = encode(encode_slot, frame_index);
+	cnx.dump_time("encode_begin", frame_index, encode_begin, stream_idx);
+	cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx);
+	if (data)
 	{
-		auto data = encode(idr, target_timestamp, encode_slot);
-		cnx.dump_time("encode_end", frame_index, os_monotonic_get_ns(), stream_idx, extra);
-		if (data)
-		{
-			timing_info.encode_end = clock.to_headset(os_monotonic_get_ns());
-			assert(shared_sender);
-			shared_sender->push(std::move(*data));
-		}
+		timing_info.encode_end = clock.to_headset(os_monotonic_get_ns());
+		assert(shared_sender);
+		shared_sender->push(std::move(*data));
 	}
-	catch (...)
-	{
-		ex = std::current_exception();
-	}
-	busy[encode_slot] = false;
-	busy[encode_slot].notify_all();
-	if (ex)
-		std::rethrow_exception(ex);
 }
 
 void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool control)

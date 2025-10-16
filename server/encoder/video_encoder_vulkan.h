@@ -59,25 +59,12 @@ class video_encoder_vulkan : public video_encoder
 
 	image_allocation dpb_image;
 
-	struct dpb_item
-	{
-		vk::raii::ImageView image_view;
-		vk::VideoPictureResourceInfoKHR resource;
-		vk::VideoReferenceSlotInfoKHR & info;
-		uint64_t frame_index = -1;
-	};
-
-	std::vector<dpb_item> dpb;
-	std::vector<vk::VideoReferenceSlotInfoKHR> dpb_info;
-
 	std::vector<vk::raii::DeviceMemory> mem;
 
 	vk::VideoFormatPropertiesKHR select_video_format(
 	        vk::raii::PhysicalDevice & physical_device,
 	        const vk::PhysicalDeviceVideoFormatInfoKHR &);
 
-	uint32_t frame_num = 0;
-	std::atomic<uint64_t> last_ack = 0;
 	bool session_initialized = false;
 	const vk::Rect2D rect;
 
@@ -111,9 +98,8 @@ protected:
 	virtual vk::ExtensionProperties std_header_version() = 0;
 
 public:
-	std::optional<data> encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t slot) override;
+	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 	void post_submit(uint8_t slot) override;
-	void on_feedback(const from_headset::feedback &) override;
 };
 } // namespace wivrn

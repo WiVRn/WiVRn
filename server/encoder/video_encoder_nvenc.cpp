@@ -151,7 +151,7 @@ video_encoder_nvenc::video_encoder_nvenc(
         encoder_settings & settings,
         float fps,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true),
+        video_encoder(stream_idx, settings.channels, std::make_unique<default_idr_handler>(), settings.bitrate_multiplier, true),
         vk(vk),
         shared_state(video_encoder_nvenc_shared_state::get()),
         fps(fps),
@@ -420,9 +420,10 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 	return {false, nullptr};
 }
 
-std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
+std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uint64_t frame_index)
 {
 	CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
+	auto & idr_handler = ((default_idr_handler &)*idr);
 
 	auto new_bitrate = pending_bitrate.exchange(0);
 	auto new_framerate = pending_framerate.exchange(0);
@@ -453,7 +454,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 			NVENC_CHECK(shared_state->fn.nvEncReconfigureEncoder(session_handle, &reconfig_params));
 			fps = new_framerate;
 			bitrate = new_bitrate;
-			idr = true;
+			idr_handler.reset();
 
 			U_LOG_I("nvenc: reconfiguring succeeded.");
 		}
@@ -476,7 +477,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 	        .inputWidth = rect.extent.width,
 	        .inputHeight = rect.extent.height,
 	        .inputPitch = rect.extent.width,
-	        .encodePicFlags = uint32_t(idr ? NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS : 0),
+	        .encodePicFlags = 0,
 	        .frameIdx = 0,
 	        .inputTimeStamp = 0,
 	        .inputBuffer = inp_resource_params.mappedResource,
@@ -484,6 +485,16 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 	        .bufferFmt = inp_resource_params.mappedBufferFmt,
 	        .pictureStruct = NV_ENC_PIC_STRUCT_FRAME,
 	};
+
+	auto frame_type = idr_handler.get_type(frame_index);
+	switch (frame_type)
+	{
+		case default_idr_handler::frame_type::i:
+			frame_params.encodePicFlags |= NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
+			break;
+		case default_idr_handler::frame_type::p:
+			break;
+	}
 	NVENC_CHECK(shared_state->fn.nvEncEncodePicture(session_handle, &frame_params));
 
 	NV_ENC_LOCK_BITSTREAM buf_lock_params{
@@ -502,6 +513,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 		        if (status != NV_ENC_SUCCESS)
 			        U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle));
 	        }),
+	        .prefer_control = frame_type == default_idr_handler::frame_type::i,
 	};
 }
 

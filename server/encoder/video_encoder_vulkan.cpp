@@ -25,7 +25,107 @@
 #include <iostream>
 #include <stdexcept>
 
-// TODO: verify
+namespace
+{
+class dpb_state : public wivrn::idr_handler
+{
+public:
+	struct dpb_item
+	{
+		vk::raii::ImageView image_view;
+		vk::VideoPictureResourceInfoKHR resource;
+		vk::VideoReferenceSlotInfoKHR & info;
+		uint64_t frame_index = -1;
+		bool acked = false;
+	};
+
+	std::vector<dpb_item> items;
+	std::vector<vk::VideoReferenceSlotInfoKHR> infos;
+	uint32_t frame_num = 0;
+	std::mutex mutex;
+
+	void on_feedback(const wivrn::from_headset::feedback & feedback) override
+	{
+		if (feedback.sent_to_decoder)
+		{
+			std::unique_lock lock(mutex);
+			for (auto & item: items)
+			{
+				if (item.frame_index == feedback.frame_index)
+				{
+					item.acked = true;
+					return;
+				}
+			}
+		}
+	}
+
+	void reset() override
+	{
+		std::unique_lock lock(mutex);
+		for (auto & item: items)
+		{
+			item.frame_index = -1;
+			item.info.pPictureResource = nullptr;
+			item.info.slotIndex = -1;
+			item.acked = false;
+		}
+	}
+
+	bool should_skip(uint64_t frame_id) override
+	{
+		std::unique_lock lock(mutex);
+		bool pending = false; // has any data been sent?
+		for (auto & i: items)
+		{
+			if (i.acked)
+				return false;
+			if (i.info.slotIndex != -1)
+				pending = true;
+		}
+		return pending;
+	}
+
+	std::pair<dpb_item *, dpb_item *> get_ref(uint64_t frame_index)
+	{
+		// must hold the lock
+		auto slot = std::ranges::min_element(
+		        items,
+		        [](const auto & a, const auto & b) {
+			        return a.frame_index + 1 < b.frame_index + 1;
+		        });
+		slot->info.slotIndex = -1;
+
+		dpb_item * ref_slot = nullptr;
+		for (auto & i: items)
+		{
+			if (i.info.slotIndex == -1 or not i.acked)
+				continue;
+			if (ref_slot and ref_slot->frame_index > i.frame_index)
+				continue;
+			ref_slot = &i;
+		}
+
+		if (not ref_slot)
+		{
+			frame_num = 0;
+			for (auto & slot: items)
+			{
+				slot.info.slotIndex = -1;
+				slot.info.pPictureResource = nullptr;
+				slot.frame_index = -1;
+				slot.acked = false;
+			}
+		}
+		slot->acked = false;
+		slot->frame_index = frame_index;
+		slot->info.pPictureResource = &slot->resource;
+
+		return {ref_slot, &*slot};
+	}
+};
+} // namespace
+
 static uint32_t align(uint32_t value, uint32_t alignment)
 {
 	if (alignment == 0)
@@ -63,7 +163,7 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
         float fps,
         uint8_t stream_idx,
         const encoder_settings & settings) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true),
+        video_encoder(stream_idx, settings.channels, std::make_unique<dpb_state>(), settings.bitrate_multiplier, true),
         vk(vk),
         encode_caps(patch_capabilities(in_encode_caps)),
         rect(rect),
@@ -307,13 +407,15 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		}
 	}
 
+	auto & dpb = (dpb_state &)*idr;
+
 	// DPB slot info
 	{
 		auto std_slots = setup_slot_info(num_dpb_slots);
 		assert(std_slots.size() == num_dpb_slots);
 		for (size_t i = 0; i < num_dpb_slots; ++i)
 		{
-			dpb_info.push_back({
+			dpb.infos.push_back({
 			        .pNext = std_slots[i],
 			        .slotIndex = -1,
 			        .pPictureResource = nullptr,
@@ -336,24 +438,17 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		for (size_t i = 0; i < num_dpb_slots; ++i)
 		{
 			img_view_create_info.subresourceRange.baseArrayLayer = i;
-			dpb.push_back(
-			        {
-			                .image_view = vk.device.createImageView(img_view_create_info),
-			                .info = dpb_info[i],
-			        });
-			vk.name(dpb.back().image_view, "vulkan encoder dpb view");
-		}
-	}
-
-	// DPB video picture resource info
-	{
-		for (auto & item: dpb)
-		{
-			item.resource = vk::VideoPictureResourceInfoKHR{
-			        .codedOffset = {0, 0},
-			        .codedExtent = {aligned_extent.width, aligned_extent.height},
-			        .imageViewBinding = *item.image_view,
-			};
+			vk::raii::ImageView v(vk.device, img_view_create_info);
+			vk::ImageView v1(*v);
+			vk.name(v, "vulkan encoder dpb view");
+			dpb.items.push_back({
+			        .image_view = std::move(v),
+			        .resource = {
+			                .codedExtent = rect.extent,
+			                .imageViewBinding = v1,
+			        },
+			        .info = dpb.infos[i],
+			});
 		}
 	}
 
@@ -450,10 +545,8 @@ std::vector<uint8_t> wivrn::video_encoder_vulkan::get_encoded_parameters(void * 
 	return encoded;
 }
 
-std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(bool idr, std::chrono::steady_clock::time_point target_timestamp, uint8_t encode_slot)
+std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(uint8_t encode_slot, uint64_t frame_index)
 {
-	// we manage idrs ourselves
-	(void)idr;
 	auto & slot_item = slot_data[encode_slot];
 	if (slot_item.idr)
 		send_idr_data();
@@ -640,64 +733,21 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 
 	video_cmd_buf.resetQueryPool(*query_pool, encode_slot, 1);
 
-	auto slot = std::ranges::min_element(
-	        dpb,
-	        [](const auto & a, const auto & b) {
-		        return a.frame_index + 1 < b.frame_index + 1;
-	        });
-	size_t slot_index = std::distance(dpb.begin(), slot);
-	slot->info.slotIndex = -1;
-
-	auto last_ack = this->last_ack.load();
-	dpb_item * ref_slot = nullptr;
-	for (auto & i: dpb)
-	{
-		if (i.frame_index == last_ack and i.info.slotIndex != -1 and i.info.slotIndex != (int32_t)slot_index)
-		{
-			ref_slot = &i;
-			break;
-		}
-	}
-
-	if (not ref_slot)
-	{
-		frame_num = 0;
-		for (auto & slot: dpb)
-		{
-			slot.info.slotIndex = -1;
-			slot.info.pPictureResource = nullptr;
-			slot.frame_index = -1;
-		}
-		slot_item.idr = true;
-		last_ack = frame_index;
-	}
-	else
-	{
-		slot_item.idr = false;
-	}
-
-	slot->frame_index = frame_index;
-	slot->info.pPictureResource = &slot->resource;
+	auto & dpb = (dpb_state &)*idr;
+	std::unique_lock lock(dpb.mutex);
+	auto [ref_slot, slot] = dpb.get_ref(frame_index);
+	slot_item.idr = ref_slot == nullptr;
 
 	vk::VideoReferenceSlotInfoKHR init_refs[2] = {};
-	init_refs[0] = dpb_info[slot_index];
+	init_refs[0] = slot->info;
 	init_refs[0].slotIndex = -1;
-	init_refs[0].pPictureResource = &dpb[slot_index].resource;
+	init_refs[0].pPictureResource = &slot->resource;
 
 	if (ref_slot)
 	{
-		const int32_t ref_idx = ref_slot->info.slotIndex;
-		if (ref_idx >= 0 && ref_idx < dpb.size())
-		{
-			init_refs[1] = dpb[size_t(ref_idx)].info;
-			init_refs[1].slotIndex = ref_idx;
-			init_refs[1].pPictureResource = &dpb[size_t(ref_idx)].resource;
-		}
-		else
-		{
-			U_LOG_I("ref_idx out of range: %d", ref_idx);
-			ref_slot = nullptr;
-		}
+		init_refs[1] = ref_slot->info;
+		init_refs[1].slotIndex = ref_slot->info.slotIndex;
+		init_refs[1].pPictureResource = &ref_slot->resource;
 	}
 
 	video_cmd_buf.beginVideoCodingKHR({
@@ -708,6 +758,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	        .pReferenceSlots = init_refs,
 	});
 
+	size_t slot_index = std::distance(dpb.items.data(), slot);
 	slot->info.slotIndex = slot_index;
 
 	if (not session_initialized)
@@ -736,7 +787,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		                             .baseMipLevel = 0,
 		                             .levelCount = 1,
 		                             .baseArrayLayer = 0,
-		                             .layerCount = uint32_t(dpb.size())},
+		                             .layerCount = vk::RemainingArrayLayers},
 		};
 		video_cmd_buf.pipelineBarrier2({
 		        .imageMemoryBarrierCount = 1,
@@ -776,7 +827,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        });
 
 	vk::VideoEncodeInfoKHR encode_info{
-	        .pNext = encode_info_next(frame_num, slot_index, ref_slot ? std::make_optional(ref_slot->info.slotIndex) : std::nullopt),
+	        .pNext = encode_info_next(dpb.frame_num, slot_index, ref_slot ? std::make_optional(ref_slot->info.slotIndex) : std::nullopt),
 	        .dstBuffer = slot_item.output_buffer,
 	        .dstBufferOffset = 0,
 	        .dstBufferRange = slot_item.output_buffer.info().size,
@@ -864,7 +915,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 
 	video_cmd_buf.end();
 
-	++frame_num;
+	++dpb.frame_num;
 
 	// If we encode directly from the source, request a transition to video queue
 	return {encode_direct, slot_item.wait_sem};
@@ -909,16 +960,5 @@ void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 		                         .pCommandBufferInfos = &cmd_info,
 		                 },
 		                 *slot_item.fence);
-	}
-}
-
-void wivrn::video_encoder_vulkan::on_feedback(const from_headset::feedback & feedback)
-{
-	if (feedback.sent_to_decoder)
-	{
-		auto prev = last_ack.load();
-		while (prev < feedback.frame_index and last_ack.compare_exchange_weak(prev, feedback.frame_index))
-		{
-		}
 	}
 }

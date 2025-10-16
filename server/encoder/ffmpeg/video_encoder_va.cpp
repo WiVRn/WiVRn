@@ -526,11 +526,10 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 	return {false, nullptr};
 }
 
-void video_encoder_va::push_frame(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
+void video_encoder_va::push_frame(bool idr, uint8_t slot)
 {
 	auto & va_frame = in[slot].va_frame;
 	va_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_P;
-	va_frame->pts = pts.time_since_epoch().count();
 	int err = avcodec_send_frame(encoder_ctx.get(), va_frame.get());
 	if (err)
 	{

@@ -21,12 +21,26 @@
 #include "encoder/encoder_settings.h"
 #include "utils/wivrn_vk_bundle.h"
 
+namespace
+{
+class dummy_idr_handler : public wivrn::idr_handler
+{
+public:
+	void on_feedback(const wivrn::from_headset::feedback &) override {};
+	void reset() override {};
+	bool should_skip(uint64_t frame_id) override
+	{
+		return false;
+	};
+};
+} // namespace
+
 wivrn::video_encoder_raw::video_encoder_raw(
         wivrn_vk_bundle & vk,
         encoder_settings & settings,
         float fps,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true)
+        video_encoder(stream_idx, settings.channels, std::make_unique<dummy_idr_handler>(), settings.bitrate_multiplier, true)
 {
 	if (settings.bit_depth != 8)
 		throw std::runtime_error("Raw encoding is only supported for 8 bit");
@@ -112,7 +126,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_raw::present_image(vk::Image
 	return {false, nullptr};
 }
 
-std::optional<wivrn::video_encoder::data> wivrn::video_encoder_raw::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
+std::optional<wivrn::video_encoder::data> wivrn::video_encoder_raw::encode(uint8_t slot, uint64_t frame_id)
 {
 	return wivrn::video_encoder::data{
 	        .encoder = this,
