@@ -42,7 +42,7 @@ systemctl enable --now avahi-daemon
 ```
 
 - If a firewall is installed, open port 5353/UDP for avahi and ports 9757/UDP+TCP for WiVRn itself.
-- In the case of ufw, use `ufw allow 5353/udp` and `ufw alow 9757`.
+- In the case of ufw, use `ufw allow 5353/udp` and `ufw allow 9757`.
 
 ### Running
 - On your computer, run "WiVRn server" application, or `wivrn-dashboard`  from the command line, it will show the connection wizard the first time you launch it.
