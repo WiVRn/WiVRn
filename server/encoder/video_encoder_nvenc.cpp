@@ -96,9 +96,37 @@ static void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shar
 	std::vector<GUID> encodeGUIDs(count);
 	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDs(session_handle, encodeGUIDs.data(), count, &count));
 
-	if (std::ranges::contains(encodeGUIDs, encodeGUID))
+	if (!std::ranges::contains(encodeGUIDs, encodeGUID))
 	{
 		throw std::runtime_error("nvenc: GPU doesn't support selected codec.");
+	}
+}
+
+static void check_preset_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encodeGUID, GUID presetGUID)
+{
+	uint32_t count;
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetCount(session_handle, encodeGUID, &count));
+
+	std::vector<GUID> presetGUIDs(count);
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetGUIDs(session_handle, encodeGUID, presetGUIDs.data(), count, &count));
+
+	if (!std::ranges::contains(presetGUIDs, presetGUID))
+	{
+		throw std::runtime_error("nvenc: Internal error. GPU doesn't support selected encoder preset.");
+	}
+}
+
+static void check_profile_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encodeGUID, GUID profileGUID, std::string err_msg = "GPU doesn't support selected encoding profile.")
+{
+	uint32_t count;
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodeProfileGUIDCount(session_handle, encodeGUID, &count));
+
+	std::vector<GUID> profileGUIDs(count);
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodeProfileGUIDs(session_handle, encodeGUID, profileGUIDs.data(), count, &count));
+
+	if (!std::ranges::contains(profileGUIDs, profileGUID))
+	{
+		throw std::runtime_error("nvenc: " + err_msg);
 	}
 }
 
@@ -140,20 +168,11 @@ video_encoder_nvenc::video_encoder_nvenc(
 	auto encodeGUID = encode_guid(settings.codec);
 	check_encode_guid_supported(shared_state, session_handle, encodeGUID);
 
-	uint32_t count;
-	std::vector<GUID> presets;
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetCount(session_handle, encodeGUID, &count));
-	presets.resize(count);
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetGUIDs(session_handle, encodeGUID, presets.data(), count, &count));
-
-	std::vector<GUID> profiles;
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodeProfileGUIDCount(session_handle, encodeGUID, &count));
-	profiles.resize(count);
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodeProfileGUIDs(session_handle, encodeGUID, profiles.data(), count, &count));
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-	auto presetGUID = NV_ENC_PRESET_P4_GUID;
+	GUID presetGUID = NV_ENC_PRESET_P4_GUID;
+	check_preset_guid_supported(shared_state, session_handle, encodeGUID, presetGUID);
+
 	NV_ENC_TUNING_INFO tuningInfo = NV_ENC_TUNING_INFO_ULTRA_LOW_LATENCY;
 #pragma GCC diagnostic pop
 	NV_ENC_PRESET_CONFIG preset_config{
@@ -194,7 +213,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 		}
 		else
 		{
-			throw std::runtime_error("nvenc: 10 bit encoding requested, but GPU doesn't support it");
+			throw std::runtime_error("nvenc: 10-bit encoding requested, but GPU doesn't support it");
 		}
 	}
 
@@ -202,7 +221,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	{
 		case video_codec::h264:
 			if (bitDepth != NV_ENC_BIT_DEPTH_8)
-				throw std::runtime_error("selected codec only supports 8-bit encoding");
+				throw std::runtime_error("nvenc: selected codec only supports 8-bit encoding");
 
 			params.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
 			params.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
@@ -212,7 +231,10 @@ video_encoder_nvenc::video_encoder_nvenc(
 			break;
 		case video_codec::h265:
 			if (bitDepth == NV_ENC_BIT_DEPTH_10)
+			{
 				params.profileGUID = NV_ENC_HEVC_PROFILE_MAIN10_GUID;
+				check_profile_guid_supported(shared_state, session_handle, encodeGUID, params.profileGUID, "GPU doesn't support 10-bit depth with H.265 codec.");
+			}
 
 			params.encodeCodecConfig.hevcConfig.inputBitDepth = bitDepth;
 			params.encodeCodecConfig.hevcConfig.outputBitDepth = bitDepth;
@@ -225,7 +247,10 @@ video_encoder_nvenc::video_encoder_nvenc(
 			break;
 		case video_codec::av1:
 			if (bitDepth == NV_ENC_BIT_DEPTH_10)
+			{
 				params.profileGUID = NV_ENC_AV1_PROFILE_MAIN_GUID;
+				check_profile_guid_supported(shared_state, session_handle, encodeGUID, params.profileGUID, "GPU doesn't support 10-bit depth with AV1 codec.");
+			}
 
 			params.encodeCodecConfig.av1Config.inputBitDepth = bitDepth;
 			params.encodeCodecConfig.av1Config.outputBitDepth = bitDepth;
