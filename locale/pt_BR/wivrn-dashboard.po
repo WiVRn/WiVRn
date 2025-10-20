@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-11 19:53+0200\n"
-"PO-Revision-Date: 2025-10-11 20:25+0200\n"
+"POT-Creation-Date: 2025-10-20 20:55+0200\n"
+"PO-Revision-Date: 2025-10-20 21:18+0200\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -928,11 +928,12 @@ msgstr "Resolver problemas"
 #: dashboard/qml/WizardPage.qml:393
 #, kde-format
 msgid ""
-"If the server is not visible or the connection fails, check that port 5353 "
+"If the server is not visible or the connection fails, check that ports 5353 "
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
-"Se o servidor não estiver visível ou a conexão falhar, verifique se a porta "
-"5353 (UDP) e 9757 (TCP e UDP) estão abertas no seu firewall."
+"Se o servidor não estiver visível ou a conexão falhar, verifique se as portas "
+"5353 "
+"(UDP) e 9757 (TCP e UDP) estão abertas no seu firewall."
 
 #: dashboard/qml/WizardPage.qml:406
 #, kde-format
@@ -977,3 +978,11 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid ""
+#~ "If the server is not visible or the connection fails, check that port "
+#~ "5353 (UDP) and 9757 (TCP and UDP) are open in your firewall."
+#~ msgstr ""
+#~ "Se o servidor não estiver visível ou a conexão falhar, verifique se a "
+#~ "porta 5353 (UDP) e 9757 (TCP e UDP) estão abertas no seu firewall."
