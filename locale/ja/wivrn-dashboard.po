@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-12 09:30+0900\n"
+"POT-Creation-Date: 2025-10-21 11:44+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -900,11 +900,11 @@ msgstr "問題解決"
 #: dashboard/qml/WizardPage.qml:393
 #, kde-format
 msgid ""
-"If the server is not visible or the connection fails, check that port 5353 "
+"If the server is not visible or the connection fails, check that ports 5353 "
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
-"サーバーが見えない・サーバーに接続できない場合、ファイアウォールのポート5353"
-"（UDP）と9757（TCPとUDPの両方）が開いていることを確認しましょう。"
+"サーバーが見えない・サーバーに接続できない場合、ファイアウォールのポート"
+"5353（UDP）と9757（TCPとUDPの両方）が開いていることを確認しましょう。"
 
 #: dashboard/qml/WizardPage.qml:406
 #, kde-format
