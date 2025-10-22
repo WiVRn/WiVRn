@@ -88,7 +88,7 @@ static auto encode_guid(video_codec codec)
 	throw std::out_of_range("Invalid codec " + std::to_string(codec));
 }
 
-static void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encodeGUID)
+static void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid)
 {
 	uint32_t count;
 	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDCount(session_handle, &count));
@@ -96,21 +96,21 @@ static void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shar
 	std::vector<GUID> encodeGUIDs(count);
 	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDs(session_handle, encodeGUIDs.data(), count, &count));
 
-	if (!std::ranges::contains(encodeGUIDs, encodeGUID))
+	if (!std::ranges::contains(encodeGUIDs, encode_guid))
 	{
 		throw std::runtime_error("nvenc: GPU doesn't support selected codec.");
 	}
 }
 
-static void check_preset_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encodeGUID, GUID presetGUID)
+static void check_preset_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid, GUID preset_guid)
 {
 	uint32_t count;
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetCount(session_handle, encodeGUID, &count));
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetCount(session_handle, encode_guid, &count));
 
 	std::vector<GUID> presetGUIDs(count);
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetGUIDs(session_handle, encodeGUID, presetGUIDs.data(), count, &count));
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetGUIDs(session_handle, encode_guid, presetGUIDs.data(), count, &count));
 
-	if (!std::ranges::contains(presetGUIDs, presetGUID))
+	if (!std::ranges::contains(presetGUIDs, preset_guid))
 	{
 		throw std::runtime_error("nvenc: Internal error. GPU doesn't support selected encoder preset.");
 	}
