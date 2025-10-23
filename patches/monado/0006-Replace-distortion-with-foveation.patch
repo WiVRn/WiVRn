@@ -1,4 +1,4 @@
-From 97400e9b24957b88a75a1e79b59bcbba0e22fc7f Mon Sep 17 00:00:00 2001
+From f5fabedd2fb6fc8b064ef5d9ca5569ac00713b6b Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 6/9] Replace distortion with foveation
@@ -1288,5 +1288,5 @@ index 4e20b32f0..69429dc97 100644
  		    d->do_timewarp);              //
  	}
 -- 
-2.49.1
+2.51.1
 

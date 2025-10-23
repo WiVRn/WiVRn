@@ -1,12 +1,26 @@
-From 2d431f95802fad68a2fb38ddcae91766751a63a8 Mon Sep 17 00:00:00 2001
+From f3d43c212df9c88472c79f98e1e7b5b2772e61a7 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
 Subject: [PATCH 5/9] st/oxr: forward 0 refresh rate
 
 ---
+ src/xrt/compositor/main/comp_compositor.c    | 2 +-
  src/xrt/state_trackers/oxr/oxr_api_session.c | 6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
+ 2 files changed, 2 insertions(+), 6 deletions(-)
 
+diff --git a/src/xrt/compositor/main/comp_compositor.c b/src/xrt/compositor/main/comp_compositor.c
+index 5feccdd33..b5e0d6711 100644
+--- a/src/xrt/compositor/main/comp_compositor.c
++++ b/src/xrt/compositor/main/comp_compositor.c
+@@ -368,7 +368,7 @@ compositor_request_display_refresh_rate(struct xrt_compositor *xc, float display
+ 	if (c->target && c->target->request_refresh_rate) {
+ 		xrt_result_t result = comp_target_request_refresh_rate(c->target, display_refresh_rate_hz);
+ 		// Assume refresh rate change is immediate
+-		if (result == XRT_SUCCESS)
++		if (result == XRT_SUCCESS && display_refresh_rate_hz > 0)
+ 			c->frame_interval_ns = U_TIME_1S_IN_NS / display_refresh_rate_hz;
+ 		return result;
+ 	}
 diff --git a/src/xrt/state_trackers/oxr/oxr_api_session.c b/src/xrt/state_trackers/oxr/oxr_api_session.c
 index 9c5889f12..c4cdaf8c3 100644
 --- a/src/xrt/state_trackers/oxr/oxr_api_session.c
@@ -29,5 +43,5 @@ index 9c5889f12..c4cdaf8c3 100644
  		if ((int)(displayRefreshRate * 100.0f) == (int)(sess->sys->xsysc->info.refresh_rates_hz[i] * 100.0f)) {
  			found = true;
 -- 
-2.49.1
+2.51.1
 

@@ -1,4 +1,4 @@
-From aeae876d61ac0883f974d9cee6a6f54b14536ec3 Mon Sep 17 00:00:00 2001
+From 495681b6f4ceb94e7b26f53d3f8704a45b74003d Mon Sep 17 00:00:00 2001
 From: Jakob Bornecrantz <tbornecrantz@nvidia.com>
 Date: Fri, 15 Nov 2024 22:51:32 +0000
 Subject: [PATCH 8/9] ipc: Add callbacks and unify main functions
@@ -308,5 +308,5 @@ index 45877803d..71c581da6 100644
  	struct ipc_server *server = NULL;
  
 -- 
-2.49.1
+2.51.1
 
