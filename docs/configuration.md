@@ -41,7 +41,7 @@ Bitrate of the video, in bit/s. Split among decoders based on size and codecs.
 ## `bit-depth`
 Default value: `8` (bits)
 
-Bit depth of the video. 8-bit is supported by all encoders. 10-bit is supported by `vaapi` encoders using `h265` or `av1`.
+Bit depth of the video. 8-bit is supported by all encoders. 10-bit is supported by `vaapi` and `nvenc` encoders using `h265` or `av1`.
 
 ## `encoders`
 A list of encoders to use.
