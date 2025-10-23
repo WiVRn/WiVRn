@@ -41,7 +41,7 @@ Bitrate of the video, in bit/s. Split among decoders based on size and codecs.
 ## `bit-depth`
 Default value: `8` (bits)
 
-Bit depth of the video. 8-bit is supported by all encoders. 10-bit is supported by `vaapi` encoders using `h265` or `av1`.
+Bit depth of the video. 8-bit is supported by all encoders. 10-bit is supported by `vaapi` and `nvenc` encoders using `h265` or `av1`.
 
 ## `encoders`
 A list of encoders to use.
@@ -65,6 +65,8 @@ Default value: first supported by both headset and encoder of `av1`, `h264`, `h2
 
 One of `h264`, `h265`, `av1`, `raw`.
 Not all encoders support every codec, `x264` and `vulkan` only support `h264`. For `raw` codec, only `raw` encoder can be used.
+
+If `nvenc` encoder is in use, you can refer to [nvidia website](https://developer.nvidia.com/video-encode-decode-support-matrix) to make sure that your GPU supports encoding with the desired codec.
 
 ### `width`, `height`, `offset_x`, `offset_y` (advanced)
 Default values: full image (`width` = 1, `height` = 1, `offset_x` = 0, `offset_y` = 0)
