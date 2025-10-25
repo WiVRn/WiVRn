@@ -42,9 +42,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin gettext
-        wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.3.2/KTX-Software-4.3.2-Linux-x86_64.deb
-        sudo dpkg --install KTX-Software-4.3.2-Linux-x86_64.deb
+        sudo apt-get update && sudo apt-get install glslang-tools librsvg2-bin gettext npm
+        wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.0/KTX-Software-4.4.0-Linux-x86_64.deb
+        sudo dpkg --install KTX-Software-4.4.0-Linux-x86_64.deb
+        npm install --global @gltf-transform/cli@4.1.1
 
     - name: Check for Secret availability
       id: secret-check
