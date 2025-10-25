@@ -71,7 +71,7 @@ jobs:
         sudo rm /usr/local/bin/cmake
         "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.30.3"
         chmod +x gradlew
-        ./gradlew -Psuffix=".github.nightly" -Pwivrn_css=images/wivrn-nightly.css -Pwivrn_app_name="WiVRn Nightly" assemble${{ matrix.hmd }}${{ matrix.buildtype }}
+        ./gradlew -Psuffix=".github.nightly" -Pwivrn_css=images/wivrn-nightly.css -Pwivrn_app_name="WiVRn Nightly" -Pwivrn_compress_glb=ON assemble${{ matrix.hmd }}${{ matrix.buildtype }}
 
     - name: Prepare before archiving artifacts
       run: |

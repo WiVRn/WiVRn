@@ -407,7 +407,7 @@ jobs:
         echo Using stylesheet $CSS and name $APPNAME
 
         chmod +x gradlew
-        ./gradlew -Pwivrn_version=$VERSION -Pwivrn_versionCode=$VERSION_CODE -Psuffix=$SUFFIX -Pwivrn_css=$CSS -Pwivrn_app_name="$APPNAME" assemble${{ matrix.hmd }}${{ matrix.buildtype }}
+        ./gradlew -Pwivrn_version=$VERSION -Pwivrn_versionCode=$VERSION_CODE -Psuffix=$SUFFIX -Pwivrn_css=$CSS -Pwivrn_app_name="$APPNAME" -Pwivrn_compress_glb=ON assemble${{ matrix.hmd }}${{ matrix.buildtype }}
 
     - name: Upload build dir
       uses: actions/upload-artifact@v4
