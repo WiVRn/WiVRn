@@ -53,10 +53,9 @@ private:
 	std::array<in_t, num_slots> in;
 
 	float fps;
-	int bitrate;
 	int bytesPerPixel = 1;
 
-	NV_ENC_RC_PARAMS get_rc_params();
+	NV_ENC_RC_PARAMS get_rc_params(int bitrate);
 
 public:
 	video_encoder_nvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);
