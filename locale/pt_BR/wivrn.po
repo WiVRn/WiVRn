@@ -540,7 +540,7 @@ msgstr "Baixar mais ambientes"
 
 #: client/scenes/lobby_gui_customize.cpp:695
 msgid "Open local glTF model"
-msgstr "Abrir modelo local gITF"
+msgstr "Abrir modelo local glTF"
 
 #: client/scenes/stream_gui.cpp:173
 msgid "Reproject"
