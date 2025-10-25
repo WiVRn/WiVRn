@@ -168,13 +168,13 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        },
 	};
 
-	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS params_ex = {
+	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS session_params = {
 	        .version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
 	        .deviceType = NV_ENC_DEVICE_TYPE_CUDA,
 	        .device = shared_state->cuda,
 	        .apiVersion = NVENCAPI_VERSION,
 	};
-	NVENC_CHECK_NOENCODER(shared_state->fn.nvEncOpenEncodeSessionEx(&params_ex, &session_handle));
+	NVENC_CHECK_NOENCODER(shared_state->fn.nvEncOpenEncodeSessionEx(&session_params, &session_handle));
 
 	auto encodeGUID = encode_guid(settings.codec);
 	check_encode_guid_supported(shared_state, session_handle, encodeGUID);
@@ -286,11 +286,11 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .tuningInfo = tuningInfo};
 	NVENC_CHECK(shared_state->fn.nvEncInitializeEncoder(session_handle, &init_params));
 
-	NV_ENC_CREATE_BITSTREAM_BUFFER params3{
+	NV_ENC_CREATE_BITSTREAM_BUFFER out_buf_params{
 	        .version = NV_ENC_CREATE_BITSTREAM_BUFFER_VER,
 	};
-	NVENC_CHECK(shared_state->fn.nvEncCreateBitstreamBuffer(session_handle, &params3));
-	bitstreamBuffer = params3.bitstreamBuffer;
+	NVENC_CHECK(shared_state->fn.nvEncCreateBitstreamBuffer(session_handle, &out_buf_params));
+	outputBuffer = out_buf_params.bitstreamBuffer;
 
 	vk::DeviceSize buffer_size = rect.extent.width * settings.video_height * bytesPerPixel * 3 / 2;
 
@@ -335,23 +335,23 @@ video_encoder_nvenc::video_encoder_nvenc(
 		CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
 		{
 			CUexternalMemory extmem;
-			CUDA_EXTERNAL_MEMORY_HANDLE_DESC param{
+			CUDA_EXTERNAL_MEMORY_HANDLE_DESC mem_handle_params{
 			        .type = CU_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD,
 			        .handle = {.fd = fd},
 			        .size = memory_req.size,
 			        .flags = 0,
 			};
-			CU_CHECK(shared_state->cuda_fn->cuImportExternalMemory(&extmem, &param));
+			CU_CHECK(shared_state->cuda_fn->cuImportExternalMemory(&extmem, &mem_handle_params));
 
-			CUDA_EXTERNAL_MEMORY_BUFFER_DESC map_param{
+			CUDA_EXTERNAL_MEMORY_BUFFER_DESC ext_map_params{
 			        .offset = 0,
 			        .size = buffer_size,
 			        .flags = 0,
 			};
-			CU_CHECK(shared_state->cuda_fn->cuExternalMemoryGetMappedBuffer(&frame, extmem, &map_param));
+			CU_CHECK(shared_state->cuda_fn->cuExternalMemoryGetMappedBuffer(&frame, extmem, &ext_map_params));
 		}
 
-		NV_ENC_REGISTER_RESOURCE param3{
+		NV_ENC_REGISTER_RESOURCE resource_params{
 		        .version = NV_ENC_REGISTER_RESOURCE_VER,
 		        .resourceType = NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR,
 		        .width = settings.video_width,
@@ -361,8 +361,8 @@ video_encoder_nvenc::video_encoder_nvenc(
 		        .bufferFormat = (bitDepth == NV_ENC_BIT_DEPTH_10 ? NV_ENC_BUFFER_FORMAT_YUV420_10BIT : NV_ENC_BUFFER_FORMAT_NV12),
 		        .bufferUsage = NV_ENC_INPUT_IMAGE,
 		};
-		NVENC_CHECK(shared_state->fn.nvEncRegisterResource(session_handle, &param3));
-		i.nvenc_resource = param3.registeredResource;
+		NVENC_CHECK(shared_state->fn.nvEncRegisterResource(session_handle, &resource_params));
+		i.nvenc_resource = resource_params.registeredResource;
 	}
 	CU_CHECK(shared_state->cuda_fn->cuCtxPopCurrent(NULL));
 }
@@ -440,12 +440,13 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 		}
 	}
 
-	NV_ENC_MAP_INPUT_RESOURCE param4{};
-	param4.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
-	param4.registeredResource = in[slot].nvenc_resource;
-	NVENC_CHECK(shared_state->fn.nvEncMapInputResource(session_handle, &param4));
+	NV_ENC_MAP_INPUT_RESOURCE inp_resource_params{
+	        .version = NV_ENC_MAP_INPUT_RESOURCE_VER,
+	        .registeredResource = in[slot].nvenc_resource};
 
-	NV_ENC_PIC_PARAMS param{
+	NVENC_CHECK(shared_state->fn.nvEncMapInputResource(session_handle, &inp_resource_params));
+
+	NV_ENC_PIC_PARAMS frame_params{
 	        .version = NV_ENC_PIC_PARAMS_VER,
 	        .inputWidth = rect.extent.width,
 	        .inputHeight = rect.extent.height,
@@ -453,26 +454,26 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 	        .encodePicFlags = uint32_t(idr ? NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS : 0),
 	        .frameIdx = 0,
 	        .inputTimeStamp = 0,
-	        .inputBuffer = param4.mappedResource,
-	        .outputBitstream = bitstreamBuffer,
-	        .bufferFmt = param4.mappedBufferFmt,
+	        .inputBuffer = inp_resource_params.mappedResource,
+	        .outputBitstream = outputBuffer,
+	        .bufferFmt = inp_resource_params.mappedBufferFmt,
 	        .pictureStruct = NV_ENC_PIC_STRUCT_FRAME,
 	};
-	NVENC_CHECK(shared_state->fn.nvEncEncodePicture(session_handle, &param));
+	NVENC_CHECK(shared_state->fn.nvEncEncodePicture(session_handle, &frame_params));
 
-	NV_ENC_LOCK_BITSTREAM param2{
+	NV_ENC_LOCK_BITSTREAM buf_lock_params{
 	        .version = NV_ENC_LOCK_BITSTREAM_VER,
 	        .doNotWait = 0,
-	        .outputBitstream = bitstreamBuffer,
+	        .outputBitstream = outputBuffer,
 	};
-	NVENC_CHECK(shared_state->fn.nvEncLockBitstream(session_handle, &param2));
+	NVENC_CHECK(shared_state->fn.nvEncLockBitstream(session_handle, &buf_lock_params));
 
 	CU_CHECK(shared_state->cuda_fn->cuCtxPopCurrent(NULL));
 	return data{
 	        .encoder = this,
-	        .span = std::span((uint8_t *)param2.bitstreamBufferPtr, param2.bitstreamSizeInBytes),
-	        .mem = std::shared_ptr<void>(param2.bitstreamBufferPtr, [this](void *) {
-		        NVENCSTATUS status = shared_state->fn.nvEncUnlockBitstream(session_handle, bitstreamBuffer);
+	        .span = std::span((uint8_t *)buf_lock_params.bitstreamBufferPtr, buf_lock_params.bitstreamSizeInBytes),
+	        .mem = std::shared_ptr<void>(buf_lock_params.bitstreamBufferPtr, [this](void *) {
+		        NVENCSTATUS status = shared_state->fn.nvEncUnlockBitstream(session_handle, outputBuffer);
 		        if (status != NV_ENC_SUCCESS)
 			        U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle));
 	        }),
@@ -503,14 +504,14 @@ std::array<int, 2> video_encoder_nvenc::get_max_size(video_codec codec)
 		             {NV_ENC_CAPS_WIDTH_MAX, &result[1]},
 		     })
 		{
-			NV_ENC_CAPS_PARAM cap_param{
+			NV_ENC_CAPS_PARAM cap_params{
 			        .version = NV_ENC_CAPS_PARAM_VER,
 			        .capsToQuery = NV_ENC_CAPS_WIDTH_MAX,
 			};
 
 			check_encode_guid_supported(state, session_handle, encodeGUID);
 
-			NVENCSTATUS status = state->fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_param, res);
+			NVENCSTATUS status = state->fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_params, res);
 			if (status != NV_ENC_SUCCESS)
 			{
 				throw std::runtime_error("nvenc get_max_size: failed to get caps");
