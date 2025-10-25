@@ -132,13 +132,12 @@ static void check_profile_guid_supported(std::shared_ptr<video_encoder_nvenc_sha
 
 NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(int bitrate)
 {
-	NV_ENC_RC_PARAMS rc_params {
-		.rateControlMode = NV_ENC_PARAMS_RC_CBR,
-		.averageBitRate = bitrate,
-		.vbvBufferSize = bitrate / fps,
-		.vbvInitialDelay = bitrate / fps,
-		.multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION
-	};
+	NV_ENC_RC_PARAMS rc_params{
+	        .rateControlMode = NV_ENC_PARAMS_RC_CBR,
+	        .averageBitRate = bitrate,
+	        .vbvBufferSize = bitrate / fps,
+	        .vbvInitialDelay = bitrate / fps,
+	        .multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION};
 
 	return rc_params;
 }
@@ -418,24 +417,23 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
 	CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
-	
+
 	if (auto bitrate = pending_bitrate.exchange(0))
 	{
 		NV_ENC_RC_PARAMS old_rc = config.rcParams;
 		config.rcParams = get_rc_params(bitrate);
 
-		NV_ENC_RECONFIGURE_PARAMS reconfig_params {
-			.version = NV_ENC_RECONFIGURE_PARAMS_VER,
-			.reInitEncodeParams = init_params,
-			.forceIDR = 1
-		};
+		NV_ENC_RECONFIGURE_PARAMS reconfig_params{
+		        .version = NV_ENC_RECONFIGURE_PARAMS_VER,
+		        .reInitEncodeParams = init_params,
+		        .forceIDR = 1};
 
 		try
 		{
 			NVENC_CHECK(shared_state->fn.nvEncReconfigureEncoder(session_handle, &reconfig_params));
 			U_LOG_I("nvenc: reconfiguring bitrate succeeded, new value: %d", bitrate);
 		}
-		catch(const std::exception& e)
+		catch (const std::exception & e)
 		{
 			U_LOG_E("nvenc: failed to reconfigure bitrate to %d", bitrate);
 			config.rcParams = old_rc;
