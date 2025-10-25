@@ -406,7 +406,7 @@ void scenes::stream::on_focused()
 	std::string profile = controller_name();
 	input.emplace(
 	        *this,
-	        "controllers/" + profile + "/profile.json",
+	        "assets://controllers/" + profile + "/profile.json",
 	        layer_controllers,
 	        layer_rays);
 

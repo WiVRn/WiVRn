@@ -257,8 +257,8 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 		        VkBool32(alpha));
 
 		// Create graphics pipeline
-		vk::ShaderModule vertex_shader = *load_shader(device, "stream.vert");
-		vk::ShaderModule fragment_shader = *load_shader(device, "stream.frag");
+		auto vertex_shader = load_shader(device, "stream.vert");
+		auto fragment_shader = load_shader(device, "stream.frag");
 
 		p.layout = device.createPipelineLayout(vk::PipelineLayoutCreateInfo{
 		        .setLayoutCount = 1,
@@ -268,13 +268,13 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 		vk::pipeline_builder pipeline_info{
 		        .Stages = {{
 		                           .stage = vk::ShaderStageFlagBits::eVertex,
-		                           .module = vertex_shader,
+		                           .module = *vertex_shader,
 		                           .pName = "main",
 		                           .pSpecializationInfo = vert_constants,
 		                   },
 		                   {
 		                           .stage = vk::ShaderStageFlagBits::eFragment,
-		                           .module = fragment_shader,
+		                           .module = *fragment_shader,
 		                           .pName = "main",
 		                           .pSpecializationInfo = frag_constants,
 		                   }},
