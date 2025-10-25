@@ -130,6 +130,20 @@ static void check_profile_guid_supported(std::shared_ptr<video_encoder_nvenc_sha
 	}
 }
 
+NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params()
+{
+	NV_ENC_RC_PARAMS rc_params {
+		.rateControlMode = NV_ENC_PARAMS_RC_CBR,
+		.averageBitRate = bitrate,
+		.maxBitRate = bitrate,
+		.vbvBufferSize = bitrate / fps,
+		.vbvInitialDelay = bitrate / fps,
+		.multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION
+	};
+
+	return rc_params;
+}
+
 video_encoder_nvenc::video_encoder_nvenc(
         wivrn_vk_bundle & vk,
         encoder_settings & settings,
@@ -182,18 +196,13 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        }};
 	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetConfigEx(session_handle, encodeGUID, presetGUID, tuningInfo, &preset_config));
 
-	NV_ENC_CONFIG params = preset_config.presetCfg;
+	config = preset_config.presetCfg;
 
 	// Bitrate control
-	params.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR;
-	params.rcParams.averageBitRate = bitrate;
-	params.rcParams.maxBitRate = bitrate;
-	params.rcParams.vbvBufferSize = bitrate / fps;
-	params.rcParams.vbvInitialDelay = bitrate / fps;
-	params.rcParams.multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION;
+	config.rcParams = get_rc_params();
 
-	params.gopLength = NVENC_INFINITE_GOPLENGTH;
-	params.frameIntervalP = 1;
+	config.gopLength = NVENC_INFINITE_GOPLENGTH;
+	config.frameIntervalP = 1;
 
 	NV_ENC_BIT_DEPTH bitDepth = NV_ENC_BIT_DEPTH_8;
 	if (settings.bit_depth == 10)
@@ -223,48 +232,48 @@ video_encoder_nvenc::video_encoder_nvenc(
 			if (bitDepth != NV_ENC_BIT_DEPTH_8)
 				throw std::runtime_error("nvenc: selected codec only supports 8-bit encoding");
 
-			params.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
-			params.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
-			params.encodeCodecConfig.h264Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
-			params.encodeCodecConfig.h264Config.h264VUIParameters.videoFullRangeFlag = 1;
+			config.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
+			config.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
+			config.encodeCodecConfig.h264Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+			config.encodeCodecConfig.h264Config.h264VUIParameters.videoFullRangeFlag = 1;
 
 			break;
 		case video_codec::h265:
 			if (bitDepth == NV_ENC_BIT_DEPTH_10)
 			{
-				params.profileGUID = NV_ENC_HEVC_PROFILE_MAIN10_GUID;
-				check_profile_guid_supported(shared_state, session_handle, encodeGUID, params.profileGUID, "GPU doesn't support 10-bit depth with H.265 codec.");
+				config.profileGUID = NV_ENC_HEVC_PROFILE_MAIN10_GUID;
+				check_profile_guid_supported(shared_state, session_handle, encodeGUID, config.profileGUID, "GPU doesn't support 10-bit depth with H.265 codec.");
 			}
 
-			params.encodeCodecConfig.hevcConfig.inputBitDepth = bitDepth;
-			params.encodeCodecConfig.hevcConfig.outputBitDepth = bitDepth;
+			config.encodeCodecConfig.hevcConfig.inputBitDepth = bitDepth;
+			config.encodeCodecConfig.hevcConfig.outputBitDepth = bitDepth;
 
-			params.encodeCodecConfig.hevcConfig.repeatSPSPPS = 1;
-			params.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
-			params.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
-			params.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
+			config.encodeCodecConfig.hevcConfig.repeatSPSPPS = 1;
+			config.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
+			config.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+			config.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
 
 			break;
 		case video_codec::av1:
 			if (bitDepth == NV_ENC_BIT_DEPTH_10)
 			{
-				params.profileGUID = NV_ENC_AV1_PROFILE_MAIN_GUID;
-				check_profile_guid_supported(shared_state, session_handle, encodeGUID, params.profileGUID, "GPU doesn't support 10-bit depth with AV1 codec.");
+				config.profileGUID = NV_ENC_AV1_PROFILE_MAIN_GUID;
+				check_profile_guid_supported(shared_state, session_handle, encodeGUID, config.profileGUID, "GPU doesn't support 10-bit depth with AV1 codec.");
 			}
 
-			params.encodeCodecConfig.av1Config.inputBitDepth = bitDepth;
-			params.encodeCodecConfig.av1Config.outputBitDepth = bitDepth;
+			config.encodeCodecConfig.av1Config.inputBitDepth = bitDepth;
+			config.encodeCodecConfig.av1Config.outputBitDepth = bitDepth;
 
-			params.encodeCodecConfig.av1Config.repeatSeqHdr = 1;
-			params.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
-			params.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+			config.encodeCodecConfig.av1Config.repeatSeqHdr = 1;
+			config.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
+			config.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 
 			break;
 		case video_codec::raw:
 			throw std::runtime_error("raw codec not supported for nvenc");
 	}
 
-	NV_ENC_INITIALIZE_PARAMS params2{
+	init_params = {
 	        .version = NV_ENC_INITIALIZE_PARAMS_VER,
 	        .encodeGUID = encodeGUID,
 	        .presetGUID = presetGUID,
@@ -276,9 +285,9 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .frameRateDen = 1,
 	        .enableEncodeAsync = 0,
 	        .enablePTD = 1,
-	        .encodeConfig = &params,
+	        .encodeConfig = &config,
 	        .tuningInfo = tuningInfo};
-	NVENC_CHECK(shared_state->fn.nvEncInitializeEncoder(session_handle, &params2));
+	NVENC_CHECK(shared_state->fn.nvEncInitializeEncoder(session_handle, &init_params));
 
 	NV_ENC_CREATE_BITSTREAM_BUFFER params3{
 	        .version = NV_ENC_CREATE_BITSTREAM_BUFFER_VER,
@@ -411,6 +420,32 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::chrono::steady_clock::time_point pts, uint8_t slot)
 {
 	CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
+	
+	if (auto bitrate2 = pending_bitrate.exchange(0))
+	{
+		U_LOG_W("reconfiguring bitrate, new value: %d", bitrate2);
+
+		std::swap(bitrate, bitrate2);
+
+		config.rcParams = get_rc_params();
+
+		NV_ENC_RECONFIGURE_PARAMS reconfig_params {
+			.version = NV_ENC_RECONFIGURE_PARAMS_VER,
+			.reInitEncodeParams = init_params,
+			.forceIDR = 1
+		};
+
+		try
+		{
+			NVENC_CHECK(shared_state->fn.nvEncReconfigureEncoder(session_handle, &reconfig_params));
+			U_LOG_W("reconfiguring succeeded, new bitrate: %d", bitrate);
+		}
+		catch(const std::exception& e)
+		{
+			U_LOG_E("nvenc: failed to reconfigure bitrate - from  %d to %d", bitrate2, bitrate);
+			std::swap(bitrate, bitrate2);
+		}
+	}
 
 	NV_ENC_MAP_INPUT_RESOURCE param4{};
 	param4.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
