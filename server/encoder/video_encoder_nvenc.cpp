@@ -130,12 +130,11 @@ static void check_profile_guid_supported(std::shared_ptr<video_encoder_nvenc_sha
 	}
 }
 
-NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params()
+NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(int bitrate)
 {
 	NV_ENC_RC_PARAMS rc_params {
 		.rateControlMode = NV_ENC_PARAMS_RC_CBR,
 		.averageBitRate = bitrate,
-		.maxBitRate = bitrate,
 		.vbvBufferSize = bitrate / fps,
 		.vbvInitialDelay = bitrate / fps,
 		.multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION
@@ -152,8 +151,7 @@ video_encoder_nvenc::video_encoder_nvenc(
         video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true),
         vk(vk),
         shared_state(video_encoder_nvenc_shared_state::get()),
-        fps(fps),
-        bitrate(settings.bitrate)
+        fps(fps)
 {
 	if (settings.bit_depth != 8 && settings.bit_depth != 10)
 		throw std::runtime_error("nvenc encoder only supports 8-bit and 10-bit encoding");
@@ -199,7 +197,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	config = preset_config.presetCfg;
 
 	// Bitrate control
-	config.rcParams = get_rc_params();
+	config.rcParams = get_rc_params(settings.bitrate);
 
 	config.gopLength = NVENC_INFINITE_GOPLENGTH;
 	config.frameIntervalP = 1;
@@ -421,13 +419,10 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 {
 	CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
 	
-	if (auto bitrate2 = pending_bitrate.exchange(0))
+	if (auto bitrate = pending_bitrate.exchange(0))
 	{
-		U_LOG_W("reconfiguring bitrate, new value: %d", bitrate2);
-
-		std::swap(bitrate, bitrate2);
-
-		config.rcParams = get_rc_params();
+		NV_ENC_RC_PARAMS old_rc = config.rcParams;
+		config.rcParams = get_rc_params(bitrate);
 
 		NV_ENC_RECONFIGURE_PARAMS reconfig_params {
 			.version = NV_ENC_RECONFIGURE_PARAMS_VER,
@@ -438,12 +433,12 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 		try
 		{
 			NVENC_CHECK(shared_state->fn.nvEncReconfigureEncoder(session_handle, &reconfig_params));
-			U_LOG_W("reconfiguring succeeded, new bitrate: %d", bitrate);
+			U_LOG_I("nvenc: reconfiguring bitrate succeeded, new value: %d", bitrate);
 		}
 		catch(const std::exception& e)
 		{
-			U_LOG_E("nvenc: failed to reconfigure bitrate - from  %d to %d", bitrate2, bitrate);
-			std::swap(bitrate, bitrate2);
+			U_LOG_E("nvenc: failed to reconfigure bitrate to %d", bitrate);
+			config.rcParams = old_rc;
 		}
 	}
 
