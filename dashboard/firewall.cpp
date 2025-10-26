@@ -18,6 +18,7 @@
 
 #include "firewall.h"
 
+#include "dashboard_utils.h"
 #include "escape_sandbox.h"
 #include "utils/flatpak.h"
 #include "wivrn_config.h"
@@ -26,7 +27,6 @@
 #include <QDBusMetaType>
 #include <QDBusReply>
 #include <QDebug>
-#include <QStandardPaths>
 #include <filesystem>
 #include <string>
 
@@ -171,19 +171,8 @@ std::unique_ptr<firewall::Impl> make_impl()
 	if (auto fwd = std::make_unique<firewalld>(); fwd->enabled())
 		return fwd;
 
-	if (wivrn::is_flatpak())
-	{
-		if (not QStandardPaths::findExecutable(
-		                "ufw",
-		                QStringList({"/run/host/usr/sbin", "/run/host/usr/bin"}))
-		                .isEmpty())
-			return std::make_unique<ufw>();
-	}
-	else
-	{
-		if (not QStandardPaths::findExecutable("ufw").isEmpty())
-			return std::make_unique<ufw>();
-	}
+	if (not find_executable("ufw").isEmpty())
+		return std::make_unique<ufw>();
 
 	return std::make_unique<firewall::Impl>();
 }

@@ -11,6 +11,7 @@ add_executable(wivrn-dashboard
     wivrn_server.cpp
     wivrn_qdbus_types.cpp
     apps.cpp
+    dashboard_utils.cpp
     escape_string.cpp
     settings.cpp
     rectangle_partitionner.cpp
