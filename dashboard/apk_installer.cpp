@@ -131,7 +131,13 @@ QCoro::Task<> apk_installer::doInstallApk(QString serial)
 
 		auto apk_dir = std::filesystem::path(m_apkFile.fileName().toStdString()).parent_path();
 		std::filesystem::create_directories(apk_dir);
-		m_apkFile.open(QIODeviceBase::WriteOnly | QIODeviceBase::Truncate);
+		if (not m_apkFile.open(QIODeviceBase::WriteOnly | QIODeviceBase::Truncate))
+		{
+			qDebug() << "Cannot save APK file " << m_apkFile.fileName() << ": " << m_apkFile.errorString();
+			installStatusChanged(m_installStatus = i18n("Cannot save APK file: %1", m_apkFile.errorString()));
+			busyChanged(m_busy = false);
+			co_return;
+		}
 
 		qDebug() << "Downloading from" << m_apkUrl.toString() << "to" << m_apkFile.fileName();
 
