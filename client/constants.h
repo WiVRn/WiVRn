@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <imgui.h>
@@ -67,7 +68,15 @@ constexpr uint32_t pointer_color_border = 0xff000000;
 namespace constants::lobby
 {
 // Position and orientation of the GUI layers
-constexpr float gui_pitch = -0.2;
+// constexpr float gui_pitch = -0.2;
+constexpr auto gui_pitches = std::to_array<std::pair<float, float>>({
+        {-90, -90},
+        {-50, -90},
+        {-30, -12},
+        {30, -12},
+        {50, 90},
+        {90, 90},
+});
 constexpr float keyboard_pitch = -0.6;
 constexpr glm::vec3 popup_position = {0, 0, 0.05};
 constexpr glm::vec3 keyboard_position = {0, -0.3, 0.1};
