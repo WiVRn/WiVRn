@@ -686,14 +686,16 @@ libcurl::curl_handle * scenes::lobby::parse_environment_list()
 				{
 					spdlog::error("HTTP error {} when downloading index.json", index_transfer->get_response_code());
 					downloadable_environment_list_status = fmt::format(
-					        _F("HTTP error {} when downloading index.json"),
-					        index_transfer->get_response_code());
+					        _F("HTTP error {} when downloading {}"),
+					        index_transfer->get_response_code(),
+					        "index.json");
 				}
 				else
 				{
 					spdlog::error("Curl error when downloading index.json: {}", curl_easy_strerror(index_transfer->get_curl_code()));
 					downloadable_environment_list_status = fmt::format(
-					        _F("Curl error {} when downloading index.json\n{}"),
+					        _F("Curl error when downloading {}\n{}: {}"),
+					        "index.json",
 					        magic_enum::enum_name(index_transfer->get_curl_code()),
 					        curl_easy_strerror(index_transfer->get_curl_code()));
 				}
