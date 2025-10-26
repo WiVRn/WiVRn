@@ -206,8 +206,6 @@ configuration::configuration()
 
 		if (auto it = json.find("tcp-only"); it != json.end())
 			tcp_only = *it;
-		else if (auto it = json.find("tcp_only"); it != json.end())
-			tcp_only = *it;
 
 		if (auto it = json.find("publish-service"); it != json.end())
 		{

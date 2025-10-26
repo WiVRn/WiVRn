@@ -15,7 +15,6 @@ add_executable(wivrn-dashboard
     dashboard_utils.cpp
     escape_string.cpp
     settings.cpp
-    rectangle_partitionner.cpp
     adb.cpp
     apk_installer.cpp
     firewall.cpp
