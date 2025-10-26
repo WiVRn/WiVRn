@@ -175,12 +175,13 @@ class lobby : public scene_impl<lobby>
 		}
 	};
 
+	ImTextureID default_environment_screenshot;
 	std::vector<environment_model> downloadable_environments;
 	std::vector<environment_model> local_environments;
 	environment_model * environment_to_be_deleted = nullptr;
 
+	libcurl curl; // needs to be before current_transfers
 	std::map<std::string, std::pair<libcurl::curl_handle, std::function<void(libcurl::curl_handle & handle)>>> current_transfers;
-	libcurl curl; // needs to be after current_transfers
 
 	void update_file_picker();
 	void update_transfers();
@@ -190,7 +191,7 @@ class lobby : public scene_impl<lobby>
 
 	std::string downloadable_environment_list_status;
 
-	std::vector<environment_model> load_environment_json(const std::string & json);
+	std::vector<environment_model> load_environment_json(const std::string & json, std::string_view base_url = "");
 	void save_environment_json();
 	void download_environment(const environment_model & model, bool use_after_downloading);
 	void delete_environment(const environment_model & model);

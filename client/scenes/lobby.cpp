@@ -979,6 +979,8 @@ void scenes::lobby::on_focused()
 
 	about_picture = imgui_ctx->load_texture("assets://" + image + ".ktx2");
 
+	default_environment_screenshot = imgui_ctx->load_texture("assets://default-environment.ktx2");
+
 	try
 	{
 		local_environments = load_environment_json(utils::read_whole_file<std::string>(application::get_config_path() / "environments.json"));
@@ -1039,6 +1041,7 @@ void scenes::lobby::on_unfocused()
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets
 
 	about_picture = 0;
+	default_environment_screenshot = 0;
 	local_environments.clear();
 
 	imgui_ctx.reset();

@@ -30,6 +30,8 @@
 #include "utils/i18n.h"
 #include "utils/json_string.h"
 #include <algorithm>
+#include <boost/url/url.hpp>
+#include <boost/url/url_view.hpp>
 
 #include "IconsFontAwesome6.h"
 
@@ -61,7 +63,24 @@ void scenes::lobby::save_environment_json()
 	utils::write_whole_file(application::get_config_path() / "environments.json", ss.str());
 }
 
-std::vector<scenes::lobby::environment_model> scenes::lobby::load_environment_json(const std::string & json)
+static std::string join_url(std::string_view base, std::string_view ref)
+{
+	if (base == "")
+		return (std::string)ref;
+
+	boost::urls::url base_url(base);
+	boost::urls::url ref_url(ref);
+
+	if (auto res = base_url.resolve(boost::urls::url_view{ref}); res.has_error())
+	{
+		// The only possible error is if base is not a base url
+		return (std::string)ref;
+	}
+
+	return base_url.buffer();
+}
+
+std::vector<scenes::lobby::environment_model> scenes::lobby::load_environment_json(const std::string & json, std::string_view base_url)
 {
 	std::vector<scenes::lobby::environment_model> models;
 
@@ -83,11 +102,11 @@ std::vector<scenes::lobby::environment_model> scenes::lobby::load_environment_js
 		if (auto val = i["description"]; val.is_string())
 			model.description = val.get_string().value();
 
-		if (auto val = i["screenshot"]; val.is_string())
-			model.screenshot_url = val.get_string().value();
+		if (auto val = i["screenshot"]; val.is_string() and val.get_string().value() != "")
+			model.screenshot_url = join_url(base_url, val.get_string().value());
 
 		if (auto val = i["url"]; val.is_string())
-			model.gltf_url = val.get_string().value();
+			model.gltf_url = join_url(base_url, val.get_string().value());
 
 		if (auto val = i["size"]; val.is_number())
 			model.size = val.get_int64();
@@ -206,7 +225,7 @@ void scenes::lobby::download_environment_list()
 			try
 			{
 				// TODO cache in filesystem?
-				downloadable_environments = load_environment_json(handle.get_response());
+				downloadable_environments = load_environment_json(handle.get_response(), WIVRN_ENVIRONMENTS_URL);
 			}
 			catch (std::exception & e)
 			{
@@ -256,15 +275,30 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 
 					download(model.screenshot_url,
 					         [this, url = model.screenshot_url](libcurl::curl_handle & handle) {
-						         auto png = handle.get_response_bytes();
-						         auto screenshot = imgui_ctx->load_texture(png);
-
-						         for (auto & model: downloadable_environments)
+						         try
 						         {
-							         if (model.screenshot_url == url)
+							         auto png = handle.get_response_bytes();
+							         auto screenshot = imgui_ctx->load_texture(png);
+
+							         for (auto & model: downloadable_environments)
 							         {
-								         model.screenshot = screenshot;
-								         model.screenshot_png = std::vector<std::byte>{png.begin(), png.end()};
+								         if (model.screenshot_url == url)
+								         {
+									         model.screenshot = screenshot;
+									         model.screenshot_png = std::vector<std::byte>{png.begin(), png.end()};
+								         }
+							         }
+						         }
+						         catch (std::exception & e)
+						         {
+							         spdlog::warn("Cannot load image from {}: {}", handle.get_url(), e.what());
+							         for (auto & model: downloadable_environments)
+							         {
+								         if (model.screenshot_url == url)
+								         {
+									         model.screenshot_url = "";
+									         model.screenshot = default_environment_screenshot;
+								         }
 							         }
 						         }
 					         });
@@ -283,6 +317,7 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 					std::error_code ec;
 					std::filesystem::remove(model.local_screenshot_path, ec); // Ignore errors
 					model.local_screenshot_path = "";                         // Avoid subsequent loading errors
+					model.screenshot = default_environment_screenshot;
 				}
 			}
 		}
@@ -312,7 +347,7 @@ scenes::lobby::environment_item_action scenes::lobby::environment_item(environme
 
 	// Display the screenshot
 	ImGui::SetCursorScreenPos(backup_cursor + ImVec2(style.FramePadding.x, 0));
-	ImGui::Image(screenshot, screenshot_size);
+	ImGui::Image(screenshot ? screenshot : default_environment_screenshot, screenshot_size);
 
 	ImGui::PushClipRect(backup_cursor, backup_cursor + ImVec2(selectable_size.x, text_clip_height), true);
 	float indent = screenshot_size.x + style.FramePadding.x + 2 * style.ImageBorderSize + style.ItemSpacing.x;
