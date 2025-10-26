@@ -334,11 +334,13 @@ Kirigami.ApplicationWindow {
                     wrapMode: Text.WordWrap
                     text: i18n("Steam information")
                     opacity: steam_info.opacity
+                    visible: steam_info.visible
                     Layout.maximumHeight: root.server_started ? -1 : 0
                 }
                 SteamLaunchOptions {
                     id: steam_info
-                    opacity: root.server_started && WivrnServer.steamCommand != ""
+                    visible: WivrnServer.steamCommand != ""
+                    opacity: root.server_started
                     Layout.maximumHeight: root.server_started ? -1 : 0
                 }
 
