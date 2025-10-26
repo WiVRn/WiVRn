@@ -157,6 +157,11 @@ endif()
 if (WIVRN_BUILD_DASHBOARD)
     find_package(Qt6 REQUIRED COMPONENTS Core Quick Test Gui QuickControls2 Widgets Network)
 
+    if(Qt6_VERSION VERSION_GREATER_EQUAL 6.10.0)
+        # QtCoro needs this for Qt 6.10 and (currently) doesn't do this by itself
+        find_package(Qt6 REQUIRED COMPONENTS QmlPrivate)
+    endif()
+
     find_package(ECM 5.115 REQUIRED NO_MODULE)
     list(APPEND CMAKE_MODULE_PATH "${ECM_MODULE_PATH}")
 
