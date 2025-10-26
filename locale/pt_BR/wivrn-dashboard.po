@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-20 20:55+0200\n"
-"PO-Revision-Date: 2025-10-20 21:18+0200\n"
+"POT-Creation-Date: 2025-10-26 12:25+0100\n"
+"PO-Revision-Date: 2025-10-26 13:45+0100\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -21,47 +21,52 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Lokalize 25.08.2\n"
 
-#: dashboard/apk_installer.cpp:165
+#: dashboard/apk_installer.cpp:137
+#, kde-format
+msgid "Cannot save APK file: %1"
+msgstr "Não foi possível salvar arquivo APK: %1"
+
+#: dashboard/apk_installer.cpp:171
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "Baixando APK: %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:167
+#: dashboard/apk_installer.cpp:173
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "Baixando APK: %1 MB"
 
-#: dashboard/apk_installer.cpp:176
+#: dashboard/apk_installer.cpp:182
 #, kde-format
 msgid "Download cancelled"
 msgstr "Download cancelado"
 
-#: dashboard/apk_installer.cpp:192
+#: dashboard/apk_installer.cpp:198
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "Não é possível baixar o APK: %1"
 
-#: dashboard/apk_installer.cpp:215
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "Installing APK"
 msgstr "Instalando APK"
 
-#: dashboard/apk_installer.cpp:219
+#: dashboard/apk_installer.cpp:225
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "O adb não conseguiu iniciar: %1"
 
-#: dashboard/apk_installer.cpp:229
+#: dashboard/apk_installer.cpp:235
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb saiu anormalmente: %1"
 
-#: dashboard/apk_installer.cpp:237
+#: dashboard/apk_installer.cpp:243
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "O comando 'adb install' falhou: código de saída %1"
 
-#: dashboard/apk_installer.cpp:242
+#: dashboard/apk_installer.cpp:248
 #, kde-format
 msgid "Installation successful"
 msgstr "Instalação bem-sucedida"
@@ -931,9 +936,8 @@ msgid ""
 "If the server is not visible or the connection fails, check that ports 5353 "
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
-"Se o servidor não estiver visível ou a conexão falhar, verifique se as portas "
-"5353 "
-"(UDP) e 9757 (TCP e UDP) estão abertas no seu firewall."
+"Se o servidor não estiver visível ou a conexão falhar, verifique se as "
+"portas 5353 (UDP) e 9757 (TCP e UDP) estão abertas no seu firewall."
 
 #: dashboard/qml/WizardPage.qml:406
 #, kde-format
