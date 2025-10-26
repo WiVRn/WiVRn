@@ -84,13 +84,37 @@ static const std::array supported_depth_formats{
         vk::Format::eX8D24UnormPack32,
 };
 
+static float interpolate(float x, std::span<const std::pair<float, float>> arr)
+{
+	assert(arr.size() >= 1);
+
+	if (x <= arr[0].first)
+		return arr[0].second;
+
+	if (x >= arr.back().first)
+		return arr.back().second;
+
+	for (size_t i = 0; i + 1 < arr.size(); i++)
+	{
+		assert(arr[i].first <= arr[i + 1].first);
+		if (arr[i].first <= x and x < arr[i + 1].first)
+		{
+			auto t = (x - arr[i].first) / (arr[i + 1].first - arr[i].first);
+			return std::lerp(arr[i].second, arr[i + 1].second, t);
+		}
+	}
+
+	return arr[0].second; // Should never happen
+}
+
 static glm::quat compute_gui_orientation(glm::vec3 head_position, glm::vec3 new_gui_position)
 {
-	using constants::lobby::gui_pitch;
-
 	glm::vec3 gui_direction = new_gui_position - head_position;
 
 	float gui_yaw = atan2(gui_direction.x, gui_direction.z) + M_PI;
+
+	float eye_gaze_elevation = atan2(gui_direction.y, glm::length(glm::vec2(gui_direction.x, gui_direction.z)));
+	float gui_pitch = interpolate(eye_gaze_elevation * 180 / M_PI, constants::lobby::gui_pitches) * M_PI / 180;
 
 	return glm::quat(cos(gui_yaw / 2), 0, sin(gui_yaw / 2), 0) * glm::quat(cos(gui_pitch / 2), sin(gui_pitch / 2), 0, 0);
 }
@@ -535,14 +559,21 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 		// One step is usually enough, the solution will continuously improve in the next frames
 		glm::vec3 gui_position = imgui_ctx->layers()[0].position;
 		float eps = 0.01;
-		glm::vec3 obj = f(gui_position);
-		glm::vec3 obj_dx = (f(gui_position + glm::vec3(eps, 0, 0)) - obj) / eps;
-		glm::vec3 obj_dy = (f(gui_position + glm::vec3(0, eps, 0)) - obj) / eps;
-		glm::vec3 obj_dz = (f(gui_position + glm::vec3(0, 0, eps)) - obj) / eps;
 
-		glm::mat3 jacobian{obj_dx, obj_dy, obj_dz};
+		glm::vec3 obj;
+		int n_iter = 0;
+		do
+		{
+			obj = f(gui_position);
+			glm::vec3 obj_dx = (f(gui_position + glm::vec3(eps, 0, 0)) - obj) / eps;
+			glm::vec3 obj_dy = (f(gui_position + glm::vec3(0, eps, 0)) - obj) / eps;
+			glm::vec3 obj_dz = (f(gui_position + glm::vec3(0, 0, eps)) - obj) / eps;
 
-		gui_position -= glm::inverse(jacobian) * obj;
+			glm::mat3 jacobian{obj_dx, obj_dy, obj_dz};
+
+			gui_position -= 0.01 * glm::inverse(jacobian) * obj;
+			n_iter++;
+		} while (glm::length(obj) > 0.0001 and n_iter < 1000);
 
 		return gui_position;
 	}
