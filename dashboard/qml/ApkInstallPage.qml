@@ -40,7 +40,7 @@ Kirigami.ScrollablePage {
                 if (ApkInstaller.busy && !ApkInstaller.apkAvailable)
                     return i18n("Checking latest release...");
                 else if (!ApkInstaller.apkAvailable)
-                    return i18n("No precompiled APK is available for this version");
+                    return i18n("No APK is available for this version");
                 else if (!Adb.adbInstalled)
                     return i18n("ADB is not installed");
                 else

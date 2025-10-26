@@ -107,7 +107,7 @@ QCoro::Task<> apk_installer::doRefreshLatestVersion()
 	else
 	{
 		apkAvailableChanged(false);
-		qDebug() << "No precompiled APK is available for this version";
+		qDebug() << "No APK is available for this version";
 	}
 
 	busyChanged(m_busy = false);

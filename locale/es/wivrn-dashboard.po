@@ -82,8 +82,8 @@ msgstr "Comprobando la última versión..."
 
 #: dashboard/qml/ApkInstallPage.qml:43 dashboard/qml/WizardPage.qml:198
 #, kde-format
-msgid "No precompiled APK is available for this version"
-msgstr "No hay ningún APK precompilado disponible para esta versión"
+msgid "No APK is available for this version"
+msgstr "No hay ningún APK disponible para esta versión"
 
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
