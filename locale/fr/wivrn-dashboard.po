@@ -79,20 +79,14 @@ msgstr "Vérification de la dernière version..."
 
 #: dashboard/qml/ApkInstallPage.qml:43 dashboard/qml/WizardPage.qml:198
 #, kde-format
-msgid "No precompiled APK is available for this version."
-msgstr "Aucun APK précompilé n'est disponible pour cette version."
-
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:287
-#: dashboard/qml/Main.qml:370
-#, kde-format
-msgid "ADB is not installed."
-msgstr "ADB n'est pas installé."
+msgid "No precompiled APK is available for this version"
+msgstr "Aucun APK précompilé n'est disponible pour cette version"
 
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
-msgid "Connect a headset and make sure developer mode is enabled."
+msgid "Connect a headset and make sure developer mode is enabled"
 msgstr ""
-"Connecter un casque et assurez-vous que le mode développeur est activé."
+"Connecter un casque et assurez-vous que le mode développeur est activé"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -231,7 +225,7 @@ msgstr "Statistiques"
 
 #: dashboard/qml/Main.qml:129
 #, kde-format
-msgid "The server does not have CAP_SYS_NICE capabilities."
+msgid "The server does not have CAP_SYS_NICE capabilities"
 msgstr "Le serveur n'a pas la capacité CAP_SYS_NICE"
 
 #: dashboard/qml/Main.qml:136 dashboard/qml/Main.qml:150
@@ -241,14 +235,14 @@ msgstr "Corriger"
 
 #: dashboard/qml/Main.qml:144
 #, kde-format
-msgid "Firewall may not allow port 9757."
-msgstr "Le pare-feu pourrait ne pas autoriser le port 9757."
+msgid "Firewall may not allow port 9757"
+msgstr "Le pare-feu pourrait ne pas autoriser le port 9757"
 
 #: dashboard/qml/Main.qml:159
 #, kde-format
-msgid "The CAP_SYS_NICE capability will be used when the server is restarted."
+msgid "The CAP_SYS_NICE capability will be used when the server is restarted"
 msgstr ""
-"La capacité CAP_SYS_NICE sera utilisée quand le serveur sera redémarré."
+"La capacité CAP_SYS_NICE sera utilisée quand le serveur sera redémarré"
 
 #: dashboard/qml/Main.qml:165
 #, kde-format
@@ -322,8 +316,8 @@ msgstr "Connexion par USB"
 
 #: dashboard/qml/Main.qml:289
 #, kde-format
-msgid "No headset is connected or your headset is not in developer mode."
-msgstr "Le casque n'est pas connecté ou n'est pas en mode développeur."
+msgid "No headset is connected or your headset is not in developer mode"
+msgstr "Le casque n'est pas connecté ou n'est pas en mode développeur"
 
 #: dashboard/qml/Main.qml:297
 #, kde-format
@@ -926,7 +920,7 @@ msgstr "Dépannage"
 #: dashboard/qml/WizardPage.qml:393
 #, kde-format
 msgid ""
-"If the server is not visible or the connection fails, check that port 5353 "
+"If the server is not visible or the connection fails, check that ports 5353 "
 "(UDP) and 9757 (TCP and UDP) are open in your firewall."
 msgstr ""
 "Si le serveur n'est pas visible ou que la connexion échoue, vérifiez que les "

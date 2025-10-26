@@ -81,19 +81,13 @@ msgstr "Kontroluje sa najnovšia verzia…"
 
 #: dashboard/qml/ApkInstallPage.qml:43 dashboard/qml/WizardPage.qml:198
 #, kde-format
-msgid "No precompiled APK is available for this version."
-msgstr "Pre túto verziu nie je dostupné predkompilované APK."
-
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:259
-#: dashboard/qml/Main.qml:341
-#, kde-format
-msgid "ADB is not installed."
-msgstr "ADB nie je nainštalované."
+msgid "No precompiled APK is available for this version"
+msgstr "Pre túto verziu nie je dostupné predkompilované APK"
 
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
-msgid "Connect a headset and make sure developer mode is enabled."
-msgstr "Pripojte headset a uistite sa, že je zapnutý vývojársky režim."
+msgid "Connect a headset and make sure developer mode is enabled"
+msgstr "Pripojte headset a uistite sa, že je zapnutý vývojársky režim"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -234,8 +228,8 @@ msgstr "Spárovať nový headset"
 
 #: dashboard/qml/Main.qml:107
 #, kde-format
-msgid "The server does not have CAP_SYS_NICE capabilities."
-msgstr "Server nemá oprávnenia CAP_SYS_NICE."
+msgid "The server does not have CAP_SYS_NICE capabilities"
+msgstr "Server nemá oprávnenia CAP_SYS_NICE"
 
 #: dashboard/qml/Main.qml:114
 #, kde-format
@@ -244,8 +238,8 @@ msgstr "Opraviť"
 
 #: dashboard/qml/Main.qml:123
 #, kde-format
-msgid "The CAP_SYS_NICE capability will be used when the server is restarted."
-msgstr "CAP_SYS_NICE bude použité po reštarte servera."
+msgid "The CAP_SYS_NICE capability will be used when the server is restarted"
+msgstr "CAP_SYS_NICE bude použité po reštarte servera"
 
 #: dashboard/qml/Main.qml:129
 #, kde-format
@@ -319,8 +313,8 @@ msgstr "Pripojiť cez USB"
 
 #: dashboard/qml/Main.qml:261
 #, kde-format
-msgid "No headset is connected or your headset is not in developer mode."
-msgstr "Žiadny headset nie je pripojený alebo nemá zapnutý vývojársky režim."
+msgid "No headset is connected or your headset is not in developer mode"
+msgstr "Žiadny headset nie je pripojený alebo nemá zapnutý vývojársky režim"
 
 #: dashboard/qml/Main.qml:269
 #, kde-format

@@ -40,11 +40,11 @@ Kirigami.ScrollablePage {
                 if (ApkInstaller.busy && !ApkInstaller.apkAvailable)
                     return i18n("Checking latest release...");
                 else if (!ApkInstaller.apkAvailable)
-                    return i18n("No precompiled APK is available for this version.");
+                    return i18n("No precompiled APK is available for this version");
                 else if (!Adb.adbInstalled)
-                    return i18n("ADB is not installed.");
+                    return i18n("ADB is not installed");
                 else
-                    return i18n("Connect a headset and make sure developer mode is enabled.");
+                    return i18n("Connect a headset and make sure developer mode is enabled");
             }
             explanation: {
                 if (!ApkInstaller.busy && !ApkInstaller.apkAvailable)

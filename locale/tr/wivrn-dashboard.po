@@ -82,20 +82,14 @@ msgstr "En son sürüm kontrol ediliyor..."
 
 #: dashboard/qml/ApkInstallPage.qml:43 dashboard/qml/WizardPage.qml:198
 #, kde-format
-msgid "No precompiled APK is available for this version."
-msgstr "Bu sürüm için önceden derlenmiş APK yok."
-
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:259
-#: dashboard/qml/Main.qml:342
-#, kde-format
-msgid "ADB is not installed."
-msgstr "ADB yüklü değil."
+msgid "No precompiled APK is available for this version"
+msgstr "Bu sürüm için önceden derlenmiş APK yok"
 
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
-msgid "Connect a headset and make sure developer mode is enabled."
+msgid "Connect a headset and make sure developer mode is enabled"
 msgstr ""
-"Bir gözlük bağlayın ve geliştirici modunun etkinleştirildiğinden emin olun."
+"Bir gözlük bağlayın ve geliştirici modunun etkinleştirildiğinden emin olun"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -234,8 +228,8 @@ msgstr "Gözlük istatistikleri"
 
 #: dashboard/qml/Main.qml:107
 #, kde-format
-msgid "The server does not have CAP_SYS_NICE capabilities."
-msgstr "Sunucunun CAP_SYS_NICE yetenekleri yok."
+msgid "The server does not have CAP_SYS_NICE capabilities"
+msgstr "Sunucunun CAP_SYS_NICE yetenekleri yok"
 
 #: dashboard/qml/Main.qml:114
 #, kde-format
@@ -244,8 +238,8 @@ msgstr "Onar"
 
 #: dashboard/qml/Main.qml:123
 #, kde-format
-msgid "The CAP_SYS_NICE capability will be used when the server is restarted."
-msgstr "Sunucu yeniden başlatıldığında CAP_SYS_NICE yeteneği kullanılacak."
+msgid "The CAP_SYS_NICE capability will be used when the server is restarted"
+msgstr "Sunucu yeniden başlatıldığında CAP_SYS_NICE yeteneği kullanılacak"
 
 #: dashboard/qml/Main.qml:129
 #, kde-format
@@ -317,8 +311,8 @@ msgstr "USB ile bağlan"
 
 #: dashboard/qml/Main.qml:261
 #, kde-format
-msgid "No headset is connected or your headset is not in developer mode."
-msgstr "Gözlük bağlı değil veya gözlüğünüz geliştirici modunda değil."
+msgid "No headset is connected or your headset is not in developer mode"
+msgstr "Gözlük bağlı değil veya gözlüğünüz geliştirici modunda değil"
 
 #: dashboard/qml/Main.qml:269
 #, kde-format

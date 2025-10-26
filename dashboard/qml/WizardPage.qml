@@ -195,7 +195,7 @@ Kirigami.ScrollablePage {
 
             BetterLabel {
                 Layout.fillWidth: true
-                text: i18n("No precompiled APK is available for this version.")
+                text: i18n("No precompiled APK is available for this version")
                 visible: !ApkInstaller.busy && !ApkInstaller.apkAvailable
             }
 

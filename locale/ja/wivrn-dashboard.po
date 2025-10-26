@@ -75,19 +75,13 @@ msgstr "最新リリースを確認中"
 
 #: dashboard/qml/ApkInstallPage.qml:43 dashboard/qml/WizardPage.qml:198
 #, kde-format
-msgid "No precompiled APK is available for this version."
-msgstr "現バージョンに対応したAPKはダウンロード不可です。"
-
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:287
-#: dashboard/qml/Main.qml:370
-#, kde-format
-msgid "ADB is not installed."
-msgstr "ADBはインストールされていません。"
+msgid "No precompiled APK is available for this version"
+msgstr "現バージョンに対応したAPKはダウンロード不可です"
 
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
-msgid "Connect a headset and make sure developer mode is enabled."
-msgstr "HMDを接続し、開発モードを確認しましょう。"
+msgid "Connect a headset and make sure developer mode is enabled"
+msgstr "HMDを接続し、開発モードを確認しましょう"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -219,8 +213,8 @@ msgstr "新しいHMDをペアリングする"
 
 #: dashboard/qml/Main.qml:129
 #, kde-format
-msgid "The server does not have CAP_SYS_NICE capabilities."
-msgstr "サーバーはCAP_SYS_NICE権限がありません。"
+msgid "The server does not have CAP_SYS_NICE capabilities"
+msgstr "サーバーはCAP_SYS_NICE権限がありません"
 
 #: dashboard/qml/Main.qml:136 dashboard/qml/Main.qml:150
 #, kde-format
@@ -229,13 +223,13 @@ msgstr "直す"
 
 #: dashboard/qml/Main.qml:144
 #, kde-format
-msgid "Firewall may not allow port 9757."
-msgstr "ファイヤーウォールでポート9757が開いていないようです。"
+msgid "Firewall may not allow port 9757"
+msgstr "ファイヤーウォールでポート9757が開いていないようです"
 
 #: dashboard/qml/Main.qml:159
 #, kde-format
-msgid "The CAP_SYS_NICE capability will be used when the server is restarted."
-msgstr "CAP_SYS_NICE権限を使うため、サーバーの再起動が必要です。"
+msgid "The CAP_SYS_NICE capability will be used when the server is restarted"
+msgstr "CAP_SYS_NICE権限を使うため、サーバーの再起動が必要です"
 
 #: dashboard/qml/Main.qml:165
 #, kde-format
@@ -308,8 +302,8 @@ msgstr "USBで接続する"
 
 #: dashboard/qml/Main.qml:289
 #, kde-format
-msgid "No headset is connected or your headset is not in developer mode."
-msgstr "HMDが接続されていないか、HMDが開発者モードになっていません。"
+msgid "No headset is connected or your headset is not in developer mode"
+msgstr "HMDが接続されていないか、HMDが開発者モードになっていません"
 
 #: dashboard/qml/Main.qml:297
 #, kde-format
