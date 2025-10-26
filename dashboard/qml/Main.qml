@@ -124,6 +124,30 @@ Kirigami.ApplicationWindow {
             Repeater{
                 model: ObjectModel {
                     id: messages
+
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("Avahi daemon is not installed")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: settings.show_system_checks && !Avahi.installed
+                    }
+
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("Avahi daemon is not started")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: settings.show_system_checks && Avahi.installed && !Avahi.running
+                        actions: [
+                            Kirigami.Action {
+                                visible: Avahi.canStart
+                                text: i18n("Fix it")
+                                onTriggered: Avahi.start()
+                            }
+                        ]
+                    }
+
                     Kirigami.InlineMessage {
                         Layout.fillWidth: true
                         text: i18n("The server does not have CAP_SYS_NICE capabilities")
