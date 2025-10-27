@@ -426,6 +426,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 		NV_ENC_RECONFIGURE_PARAMS reconfig_params{
 		        .version = NV_ENC_RECONFIGURE_PARAMS_VER,
 		        .reInitEncodeParams = init_params,
+		        .resetEncoder = 1,
 		        .forceIDR = 1};
 
 		try
