@@ -130,16 +130,14 @@ static void check_profile_guid_supported(std::shared_ptr<video_encoder_nvenc_sha
 	}
 }
 
-NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(int bitrate)
+NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(uint64_t bitrate)
 {
-	NV_ENC_RC_PARAMS rc_params{
+	return {
 	        .rateControlMode = NV_ENC_PARAMS_RC_CBR,
-	        .averageBitRate = bitrate,
-	        .vbvBufferSize = bitrate / fps,
-	        .vbvInitialDelay = bitrate / fps,
+	        .averageBitRate = static_cast<uint32_t>(bitrate),
+	        .vbvBufferSize = static_cast<uint32_t>(bitrate / fps),
+	        .vbvInitialDelay = static_cast<uint32_t>(bitrate / fps),
 	        .multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION};
-
-	return rc_params;
 }
 
 video_encoder_nvenc::video_encoder_nvenc(
@@ -432,6 +430,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 		try
 		{
 			NVENC_CHECK(shared_state->fn.nvEncReconfigureEncoder(session_handle, &reconfig_params));
+			idr = true;
 			U_LOG_I("nvenc: reconfiguring bitrate succeeded, new value: %d", bitrate);
 		}
 		catch (const std::exception & e)
