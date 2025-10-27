@@ -55,7 +55,7 @@ private:
 	float fps;
 	int bytesPerPixel = 1;
 
-	NV_ENC_RC_PARAMS get_rc_params(int bitrate);
+	NV_ENC_RC_PARAMS get_rc_params(uint64_t bitrate);
 
 public:
 	video_encoder_nvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);
