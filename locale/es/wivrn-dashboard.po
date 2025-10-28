@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-10-26 13:46+0100\n"
-"PO-Revision-Date: 2025-10-28 20:19+0100\n"
+"PO-Revision-Date: 2025-10-29 00:22+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -240,12 +240,12 @@ msgstr "Estadísticas del visor"
 #: dashboard/qml/Main.qml:130
 #, kde-format
 msgid "Avahi daemon is not installed"
-msgstr "Avahi daemon no está instalado"
+msgstr "El servicio Avahi no está instalado"
 
 #: dashboard/qml/Main.qml:138
 #, kde-format
 msgid "Avahi daemon is not started"
-msgstr "Avahi daemon no está iniciado"
+msgstr "El servicio Avahi no está iniciado"
 
 #: dashboard/qml/Main.qml:145 dashboard/qml/Main.qml:160
 #: dashboard/qml/Main.qml:174
