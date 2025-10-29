@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-20 20:55+0200\n"
-"PO-Revision-Date: 2025-10-21 01:28+0200\n"
+"POT-Creation-Date: 2025-10-26 13:46+0100\n"
+"PO-Revision-Date: 2025-10-29 00:22+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -19,47 +19,52 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Gtranslator 49.0\n"
 
-#: dashboard/apk_installer.cpp:165
+#: dashboard/apk_installer.cpp:137
+#, kde-format
+msgid "Cannot save APK file: %1"
+msgstr "No se ha podido guardar el APK: %1"
+
+#: dashboard/apk_installer.cpp:171
 #, kde-format
 msgid "Downloading APK: %1 MB / %2 MB"
 msgstr "Descargando APK: %1 MB / %2 MB"
 
-#: dashboard/apk_installer.cpp:167
+#: dashboard/apk_installer.cpp:173
 #, kde-format
 msgid "Downloading APK: %1 MB"
 msgstr "Descargando APK: %1 MB"
 
-#: dashboard/apk_installer.cpp:176
+#: dashboard/apk_installer.cpp:182
 #, kde-format
 msgid "Download cancelled"
 msgstr "Descarga cancelada"
 
-#: dashboard/apk_installer.cpp:192
+#: dashboard/apk_installer.cpp:198
 #, kde-format
 msgid "Cannot download APK: %1"
 msgstr "No se puede descargar el APK: %1"
 
-#: dashboard/apk_installer.cpp:215
+#: dashboard/apk_installer.cpp:221
 #, kde-format
 msgid "Installing APK"
 msgstr "Instalando APK"
 
-#: dashboard/apk_installer.cpp:219
+#: dashboard/apk_installer.cpp:225
 #, kde-format
 msgid "adb failed to start: %1"
 msgstr "Error al iniciar adb: %1"
 
-#: dashboard/apk_installer.cpp:229
+#: dashboard/apk_installer.cpp:235
 #, kde-format
 msgid "adb exited abnormally: %1"
 msgstr "adb salió anormalmente: %1"
 
-#: dashboard/apk_installer.cpp:237
+#: dashboard/apk_installer.cpp:243
 #, kde-format
 msgid "The 'adb install' command failed: exit code %1"
 msgstr "El comando 'adb install' falló: código de salida %1"
 
-#: dashboard/apk_installer.cpp:242
+#: dashboard/apk_installer.cpp:248
 #, kde-format
 msgid "Installation successful"
 msgstr "Instalación completada con éxito"
@@ -84,6 +89,12 @@ msgstr "Comprobando la última versión..."
 #, kde-format
 msgid "No APK is available for this version"
 msgstr "No hay ningún APK disponible para esta versión"
+
+#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:311
+#: dashboard/qml/Main.qml:396 dashboard/qml/WizardPage.qml:211
+#, kde-format
+msgid "ADB is not installed"
+msgstr "ADB no está instalado"
 
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
@@ -129,7 +140,7 @@ msgstr "Reinstalar WiVRn"
 msgid "Install WiVRn"
 msgstr "Instalar WiVRn"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:375
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:401
 #, kde-format
 msgid "Headsets"
 msgstr "Visores"
@@ -226,33 +237,44 @@ msgstr "Emparejar un nuevo visor"
 msgid "Headset statistics"
 msgstr "Estadísticas del visor"
 
-#: dashboard/qml/Main.qml:129
+#: dashboard/qml/Main.qml:130
 #, kde-format
-msgid "The server does not have CAP_SYS_NICE capabilities"
-msgstr "El servidor no tiene capacidades CAP_SYS_NICE"
+msgid "Avahi daemon is not installed"
+msgstr "El servicio Avahi no está instalado"
 
-#: dashboard/qml/Main.qml:136 dashboard/qml/Main.qml:150
+#: dashboard/qml/Main.qml:138
+#, kde-format
+msgid "Avahi daemon is not started"
+msgstr "El servicio Avahi no está iniciado"
+
+#: dashboard/qml/Main.qml:145 dashboard/qml/Main.qml:160
+#: dashboard/qml/Main.qml:174
 #, kde-format
 msgid "Fix it"
 msgstr "Arreglarlo"
 
-#: dashboard/qml/Main.qml:144
+#: dashboard/qml/Main.qml:153
+#, kde-format
+msgid "The server does not have CAP_SYS_NICE capabilities"
+msgstr "El servidor no tiene capacidades CAP_SYS_NICE"
+
+#: dashboard/qml/Main.qml:168
 #, kde-format
 msgid "Firewall may not allow port 9757"
 msgstr "El firewall podría no permitir el puerto 9757"
 
-#: dashboard/qml/Main.qml:159
+#: dashboard/qml/Main.qml:183
 #, kde-format
 msgid "The CAP_SYS_NICE capability will be used when the server is restarted"
 msgstr "La capacidad CAP_SYS_NICE se utilizará cuando el servidor se reinicie"
 
-#: dashboard/qml/Main.qml:165
+#: dashboard/qml/Main.qml:189
 #, kde-format
 msgctxt "restart the server"
 msgid "Restart now"
 msgstr "Reiniciar ahora"
 
-#: dashboard/qml/Main.qml:176
+#: dashboard/qml/Main.qml:200
 #, kde-format
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
@@ -260,12 +282,12 @@ msgstr ""
 "Las GPU NVIDIA requieren al menos la versión 565.77 del controlador, la "
 "versión actual es %1"
 
-#: dashboard/qml/Main.qml:182
+#: dashboard/qml/Main.qml:206
 #, kde-format
 msgid "More info"
 msgstr "Más información"
 
-#: dashboard/qml/Main.qml:190
+#: dashboard/qml/Main.qml:214
 #, kde-format
 msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
@@ -274,7 +296,7 @@ msgstr ""
 "Usa el controlador Mesa (radv) para las GPU AMD\n"
 "La codificación por hardware con vaapi no funciona con AMDVLK y AMDGPU-PRO"
 
-#: dashboard/qml/Main.qml:198
+#: dashboard/qml/Main.qml:222
 #, kde-format
 msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
@@ -284,76 +306,75 @@ msgstr ""
 "en VR.\n"
 "Instala xrizer o OpenComposite."
 
-#: dashboard/qml/Main.qml:207
+#: dashboard/qml/Main.qml:231
 #, kde-format
 msgid "Server failed to start"
 msgstr "El servidor no pudo iniciar"
 
-#: dashboard/qml/Main.qml:213 dashboard/qml/TroubleshootPage.qml:85
+#: dashboard/qml/Main.qml:237 dashboard/qml/TroubleshootPage.qml:85
 #, kde-format
 msgid "Open server logs"
 msgstr "Abrir registros del servidor"
 
-#: dashboard/qml/Main.qml:242
+#: dashboard/qml/Main.qml:266
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
 msgstr "En ejecución"
 
-#: dashboard/qml/Main.qml:257
+#: dashboard/qml/Main.qml:281
 #, kde-format
 msgctxt "whether pairing is enabled, displayed in front of a checkbox"
 msgid "Pairing"
 msgstr "Emparejando"
 
-#: dashboard/qml/Main.qml:270
+#: dashboard/qml/Main.qml:294
 #, kde-format
 msgid "PIN: %1"
 msgstr "PIN: %1"
 
-#: dashboard/qml/Main.qml:278 dashboard/qml/WizardPage.qml:374
+#: dashboard/qml/Main.qml:302 dashboard/qml/WizardPage.qml:374
 #, kde-format
 msgid "Connect by USB"
 msgstr "Conectar por USB"
 
-#: dashboard/qml/Main.qml:289
+#: dashboard/qml/Main.qml:313
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
-msgstr ""
-"No hay ningún visor conectado o tu visor no está en modo desarrollador"
+msgstr "No hay ningún visor conectado o tu visor no está en modo desarrollador"
 
-#: dashboard/qml/Main.qml:297
+#: dashboard/qml/Main.qml:321
 #, kde-format
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#: dashboard/qml/Main.qml:314
+#: dashboard/qml/Main.qml:338
 #, kde-format
 msgctxt "automatically started application"
 msgid "Application"
 msgstr "Aplicación"
 
-#: dashboard/qml/Main.qml:335
+#: dashboard/qml/Main.qml:359
 #, kde-format
 msgid "Steam information"
 msgstr "Información de Steam"
 
-#: dashboard/qml/Main.qml:354
+#: dashboard/qml/Main.qml:380
 #, kde-format
 msgid "Wizard"
 msgstr "Asistente"
 
-#: dashboard/qml/Main.qml:361
+#: dashboard/qml/Main.qml:387
 #, kde-format
 msgid "Install the app"
 msgstr "Instalar aplicación"
 
-#: dashboard/qml/Main.qml:382 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:408 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "Ajustes"
 
-#: dashboard/qml/Main.qml:389 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:415 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "Solucionar problemas"
@@ -849,11 +870,6 @@ msgstr "O"
 #, kde-format
 msgid "Install over USB"
 msgstr "Instalar por USB"
-
-#: dashboard/qml/WizardPage.qml:211
-#, kde-format
-msgid "ADB is not installed"
-msgstr "ADB no está instalado"
 
 #: dashboard/qml/WizardPage.qml:219
 #, kde-format
