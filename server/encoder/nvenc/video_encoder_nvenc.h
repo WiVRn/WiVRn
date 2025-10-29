@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "video_encoder.h"
+#include "encoder/video_encoder.h"
 #include "video_encoder_nvenc_shared_state.h"
 #include <array>
 #include <ffnvcodec/dynlink_cuda.h>

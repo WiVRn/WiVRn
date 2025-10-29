@@ -134,8 +134,9 @@ if (WIVRN_BUILD_SERVER)
 	if(WIVRN_USE_NVENC)
 		target_sources(
 			wivrn-server
-			PRIVATE encoder/video_encoder_nvenc.cpp
-				encoder/video_encoder_nvenc_shared_state.cpp
+			PRIVATE encoder/nvenc/video_encoder_nvenc.cpp
+				encoder/nvenc/video_encoder_nvenc_shared_state.cpp
+				encoder/nvenc/nvenc_helper.cpp
 			)
 	endif()
 

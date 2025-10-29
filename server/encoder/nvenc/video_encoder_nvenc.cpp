@@ -18,117 +18,16 @@
  */
 
 #include "video_encoder_nvenc.h"
-#include "encoder_settings.h"
+#include "encoder/encoder_settings.h"
 
+#include "nvenc_helper.h"
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
-
-bool operator==(const GUID & l, const GUID & r)
-{
-	return l.Data1 == r.Data1 and
-	       l.Data2 == r.Data2 and
-	       l.Data3 == r.Data3 and
-	       std::ranges::equal(l.Data4, r.Data4);
-}
-
 #include <algorithm>
 #include <stdexcept>
 
-#define NVENC_CHECK_NOENCODER(x)                                          \
-	do                                                                \
-	{                                                                 \
-		NVENCSTATUS status = x;                                   \
-		if (status != NV_ENC_SUCCESS)                             \
-		{                                                         \
-			U_LOG_E("%s:%d: %d", __FILE__, __LINE__, status); \
-			throw std::runtime_error("nvenc error");          \
-		}                                                         \
-	} while (0)
-
-#define NVENC_CHECK(x)                                                                                                                  \
-	do                                                                                                                              \
-	{                                                                                                                               \
-		NVENCSTATUS status = x;                                                                                                 \
-		if (status != NV_ENC_SUCCESS)                                                                                           \
-		{                                                                                                                       \
-			U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle)); \
-			throw std::runtime_error("nvenc error");                                                                        \
-		}                                                                                                                       \
-	} while (0)
-
-#define CU_CHECK(x)                                                                               \
-	do                                                                                        \
-	{                                                                                         \
-		CUresult status = x;                                                              \
-		if (status != CUDA_SUCCESS)                                                       \
-		{                                                                                 \
-			const char * error_string;                                                \
-			shared_state->cuda_fn->cuGetErrorString(status, &error_string);           \
-			U_LOG_E("%s:%d: %s (%d)", __FILE__, __LINE__, error_string, (int)status); \
-			throw std::runtime_error(std::string("CUDA error: ") + error_string);     \
-		}                                                                                 \
-	} while (0)
-
 namespace wivrn
 {
-
-static auto encode_guid(video_codec codec)
-{
-	switch (codec)
-	{
-		case h264:
-			return NV_ENC_CODEC_H264_GUID;
-		case h265:
-			return NV_ENC_CODEC_HEVC_GUID;
-		case av1:
-			return NV_ENC_CODEC_AV1_GUID;
-		case raw:
-			break;
-	}
-	throw std::out_of_range("Invalid codec " + std::to_string(codec));
-}
-
-static void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid)
-{
-	uint32_t count;
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDCount(session_handle, &count));
-
-	std::vector<GUID> encodeGUIDs(count);
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodeGUIDs(session_handle, encodeGUIDs.data(), count, &count));
-
-	if (!std::ranges::contains(encodeGUIDs, encode_guid))
-	{
-		throw std::runtime_error("nvenc: GPU doesn't support selected codec.");
-	}
-}
-
-static void check_preset_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid, GUID preset_guid)
-{
-	uint32_t count;
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetCount(session_handle, encode_guid, &count));
-
-	std::vector<GUID> presetGUIDs(count);
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodePresetGUIDs(session_handle, encode_guid, presetGUIDs.data(), count, &count));
-
-	if (!std::ranges::contains(presetGUIDs, preset_guid))
-	{
-		throw std::runtime_error("nvenc: Internal error. GPU doesn't support selected encoder preset.");
-	}
-}
-
-static void check_profile_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encodeGUID, GUID profileGUID, std::string err_msg = "GPU doesn't support selected encoding profile.")
-{
-	uint32_t count;
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodeProfileGUIDCount(session_handle, encodeGUID, &count));
-
-	std::vector<GUID> profileGUIDs(count);
-	NVENC_CHECK(shared_state->fn.nvEncGetEncodeProfileGUIDs(session_handle, encodeGUID, profileGUIDs.data(), count, &count));
-
-	if (!std::ranges::contains(profileGUIDs, profileGUID))
-	{
-		throw std::runtime_error("nvenc: " + err_msg);
-	}
-}
 
 NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(uint64_t bitrate, float framerate)
 {

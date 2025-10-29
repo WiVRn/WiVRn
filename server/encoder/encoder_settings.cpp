@@ -33,7 +33,7 @@
 #include "wivrn_config.h"
 
 #if WIVRN_USE_NVENC
-#include "video_encoder_nvenc.h"
+#include "nvenc/video_encoder_nvenc.h"
 #endif
 #if WIVRN_USE_VAAPI
 #include "ffmpeg/video_encoder_va.h"

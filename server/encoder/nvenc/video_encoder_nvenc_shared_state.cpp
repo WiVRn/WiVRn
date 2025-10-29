@@ -20,6 +20,7 @@
 #include "video_encoder_nvenc_shared_state.h"
 #include "util/u_logging.h"
 
+#include "nvenc_helper.h"
 #include <bits/unique_lock.h>
 
 void video_encoder_nvenc_shared_state::deleter::operator()(CudaFunctions * fn)
@@ -31,18 +32,7 @@ void video_encoder_nvenc_shared_state::deleter::operator()(NvencFunctions * fn)
 	nvenc_free_functions(&fn);
 }
 
-#define NVENC_CHECK_NOENCODER(x)                                                            \
-	do                                                                                  \
-	{                                                                                   \
-		NVENCSTATUS status = x;                                                     \
-		if (status != NV_ENC_SUCCESS)                                               \
-		{                                                                           \
-			U_LOG_E("NVENC Init Error: %s:%d: %d", __FILE__, __LINE__, status); \
-			throw std::runtime_error("nvenc init error");                       \
-		}                                                                           \
-	} while (0)
-
-#define CU_CHECK(x)                                                                                                \
+#define CU_CHECK_SHARED(x)                                                                                         \
 	do                                                                                                         \
 	{                                                                                                          \
 		CUresult status = x;                                                                               \
@@ -84,8 +74,8 @@ video_encoder_nvenc_shared_state::video_encoder_nvenc_shared_state()
 	}
 	nvenc_fn.reset(tmp_nvenc_fn);
 
-	CU_CHECK(cuda_fn->cuInit(0));
-	CU_CHECK(cuda_fn->cuCtxCreate(&cuda, 0, 0));
+	CU_CHECK_SHARED(cuda_fn->cuInit(0));
+	CU_CHECK_SHARED(cuda_fn->cuCtxCreate(&cuda, 0, 0));
 
 	fn.version = NV_ENCODE_API_FUNCTION_LIST_VER;
 	NVENC_CHECK_NOENCODER(nvenc_fn->NvEncodeAPICreateInstance(&fn));
