@@ -130,14 +130,20 @@ static void check_profile_guid_supported(std::shared_ptr<video_encoder_nvenc_sha
 	}
 }
 
-NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(uint64_t bitrate)
+NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(uint64_t bitrate, float framerate)
 {
 	return {
 	        .rateControlMode = NV_ENC_PARAMS_RC_CBR,
 	        .averageBitRate = static_cast<uint32_t>(bitrate),
-	        .vbvBufferSize = static_cast<uint32_t>(bitrate / fps),
-	        .vbvInitialDelay = static_cast<uint32_t>(bitrate / fps),
+	        .vbvBufferSize = static_cast<uint32_t>(bitrate / framerate),
+	        .vbvInitialDelay = static_cast<uint32_t>(bitrate / framerate),
 	        .multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION};
+}
+
+void video_encoder_nvenc::set_init_params_fps(float framerate)
+{
+	init_params.frameRateNum = framerate;
+	init_params.frameRateDen = 1;
 }
 
 video_encoder_nvenc::video_encoder_nvenc(
@@ -148,7 +154,8 @@ video_encoder_nvenc::video_encoder_nvenc(
         video_encoder(stream_idx, settings.channels, settings.bitrate_multiplier, true),
         vk(vk),
         shared_state(video_encoder_nvenc_shared_state::get()),
-        fps(fps)
+        fps(fps),
+        bitrate(settings.bitrate)
 {
 	if (settings.bit_depth != 8 && settings.bit_depth != 10)
 		throw std::runtime_error("nvenc encoder only supports 8-bit and 10-bit encoding");
@@ -194,7 +201,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	config = preset_config.presetCfg;
 
 	// Bitrate control
-	config.rcParams = get_rc_params(settings.bitrate);
+	config.rcParams = get_rc_params(bitrate, fps);
 
 	config.gopLength = NVENC_INFINITE_GOPLENGTH;
 	config.frameIntervalP = 1;
@@ -276,12 +283,13 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .encodeHeight = settings.video_height,
 	        .darWidth = settings.video_width,
 	        .darHeight = settings.video_height,
-	        .frameRateNum = (uint32_t)fps,
-	        .frameRateDen = 1,
 	        .enableEncodeAsync = 0,
 	        .enablePTD = 1,
 	        .encodeConfig = &config,
 	        .tuningInfo = tuningInfo};
+
+	set_init_params_fps(fps);
+
 	NVENC_CHECK(shared_state->fn.nvEncInitializeEncoder(session_handle, &init_params));
 
 	NV_ENC_CREATE_BITSTREAM_BUFFER out_buf_params{
@@ -416,10 +424,23 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 {
 	CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
 
-	if (auto bitrate = pending_bitrate.exchange(0))
+	auto new_bitrate = pending_bitrate.exchange(0);
+	auto new_framerate = pending_framerate.exchange(0);
+
+	if (new_bitrate || new_framerate)
 	{
-		NV_ENC_RC_PARAMS old_rc = config.rcParams;
-		config.rcParams = get_rc_params(bitrate);
+		if (new_framerate)
+			U_LOG_I("nvenc: reconfiguring framerate, new value: %f", new_framerate);
+		else
+			new_framerate = fps;
+
+		if (new_bitrate)
+			U_LOG_I("nvenc: reconfiguring bitrate, new value: %d", new_bitrate);
+		else
+			new_bitrate = bitrate;
+
+		config.rcParams = get_rc_params(new_bitrate, new_framerate);
+		set_init_params_fps(new_framerate);
 
 		NV_ENC_RECONFIGURE_PARAMS reconfig_params{
 		        .version = NV_ENC_RECONFIGURE_PARAMS_VER,
@@ -430,13 +451,17 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(bool idr, std::ch
 		try
 		{
 			NVENC_CHECK(shared_state->fn.nvEncReconfigureEncoder(session_handle, &reconfig_params));
+			fps = new_framerate;
+			bitrate = new_bitrate;
 			idr = true;
-			U_LOG_I("nvenc: reconfiguring bitrate succeeded, new value: %d", bitrate);
+
+			U_LOG_I("nvenc: reconfiguring succeeded.");
 		}
 		catch (const std::exception & e)
 		{
-			U_LOG_E("nvenc: failed to reconfigure bitrate to %d", bitrate);
-			config.rcParams = old_rc;
+			U_LOG_E("nvenc: reconfiguring failed.");
+			config.rcParams = get_rc_params(bitrate, fps);
+			set_init_params_fps(fps);
 		}
 	}
 
