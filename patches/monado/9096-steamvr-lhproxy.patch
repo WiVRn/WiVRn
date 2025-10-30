@@ -1,0 +1,765 @@
+From 43841108a9154c5ca8185f78aa964ff3cea3087d Mon Sep 17 00:00:00 2001
+From: Bones <babblebones@protonmail.com>
+Date: Wed, 6 Aug 2025 01:20:39 -0400
+Subject: [PATCH 1/1] d/steamvr_lh: Support lhproxy internally
+
+---
+ src/xrt/drivers/CMakeLists.txt                |  27 +-
+ src/xrt/drivers/steamvr_lh/lhproxy/common.c   |  27 ++
+ src/xrt/drivers/steamvr_lh/lhproxy/common.h   |  11 +
+ .../drivers/steamvr_lh/lhproxy/lh_hidapi.cpp  | 260 ++++++++++++++++++
+ .../drivers/steamvr_lh/lhproxy/lh_hidapi.h    |  35 +++
+ .../steamvr_lh/lhproxy/lh_hidapi_priv.h       |  31 +++
+ .../drivers/steamvr_lh/lhproxy/redirect.cpp   | 163 +++++++++++
+ src/xrt/drivers/steamvr_lh/lhproxy/redirect.h |  23 ++
+ src/xrt/drivers/steamvr_lh/steamvr_lh.cpp     |  45 ++-
+ 9 files changed, 616 insertions(+), 6 deletions(-)
+ create mode 100644 src/xrt/drivers/steamvr_lh/lhproxy/common.c
+ create mode 100644 src/xrt/drivers/steamvr_lh/lhproxy/common.h
+ create mode 100644 src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi.cpp
+ create mode 100644 src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi.h
+ create mode 100644 src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi_priv.h
+ create mode 100644 src/xrt/drivers/steamvr_lh/lhproxy/redirect.cpp
+ create mode 100644 src/xrt/drivers/steamvr_lh/lhproxy/redirect.h
+
+diff --git a/src/xrt/drivers/CMakeLists.txt b/src/xrt/drivers/CMakeLists.txt
+index 98a8fc432..69814c67c 100644
+--- a/src/xrt/drivers/CMakeLists.txt
++++ b/src/xrt/drivers/CMakeLists.txt
+@@ -494,11 +494,8 @@ endif()
+ if(XRT_BUILD_DRIVER_STEAMVR_LIGHTHOUSE)
+ 	add_library(drv_vp2 STATIC vp2/vp2_hid.c vp2/vp2_hid.h)
+ 	target_link_libraries(drv_vp2 PRIVATE aux_os aux_util aux_math aux_vive)
+-endif()
+ 
+-if(XRT_BUILD_DRIVER_STEAMVR_LIGHTHOUSE)
+-	add_library(
+-		drv_steamvr_lh STATIC
++	set(STEAMVR_LH_SOURCE_FILES
+ 		steamvr_lh/steamvr_lh.cpp
+ 		steamvr_lh/device.cpp
+ 		steamvr_lh/interfaces/driver_manager.cpp
+@@ -508,6 +505,18 @@ if(XRT_BUILD_DRIVER_STEAMVR_LIGHTHOUSE)
+ 		steamvr_lh/interfaces/blockqueue.cpp
+ 		steamvr_lh/interfaces/paths.cpp
+ 		)
++
++	# Add lhproxy integration for x86_64 Linux only
++	if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64"))
++		list(APPEND STEAMVR_LH_SOURCE_FILES
++			steamvr_lh/lhproxy/redirect.cpp
++			steamvr_lh/lhproxy/lh_hidapi.cpp
++			steamvr_lh/lhproxy/common.c
++			)
++		set(STEAMVR_LH_USE_LHPROXY ON)
++	endif()
++
++	add_library(drv_steamvr_lh STATIC ${STEAMVR_LH_SOURCE_FILES})
+ 	target_link_libraries(
+ 		drv_steamvr_lh
+ 		PRIVATE
+@@ -522,6 +531,16 @@ if(XRT_BUILD_DRIVER_STEAMVR_LIGHTHOUSE)
+ 			xrt-external-vdf
+ 			${CMAKE_DL_LIBS}
+ 		)
++
++	# Add lhproxy dependencies for x86_64
++	if(STEAMVR_LH_USE_LHPROXY)
++		target_compile_definitions(drv_steamvr_lh PRIVATE XRT_HAVE_LHPROXY)
++		find_package(PkgConfig REQUIRED)
++		pkg_check_modules(LIBELF REQUIRED libelf)
++		pkg_check_modules(HIDAPI REQUIRED hidapi-hidraw hidapi-libusb)
++		target_link_libraries(drv_steamvr_lh PRIVATE ${LIBELF_LIBRARIES} ${HIDAPI_LIBRARIES})
++		target_include_directories(drv_steamvr_lh PRIVATE ${LIBELF_INCLUDE_DIRS} ${HIDAPI_INCLUDE_DIRS})
++	endif()
+ 	list(APPEND ENABLED_HEADSET_DRIVERS steamvr_lh)
+ endif()
+ 
+diff --git a/src/xrt/drivers/steamvr_lh/lhproxy/common.c b/src/xrt/drivers/steamvr_lh/lhproxy/common.c
+new file mode 100644
+index 000000000..c66e9164a
+--- /dev/null
++++ b/src/xrt/drivers/steamvr_lh/lhproxy/common.c
+@@ -0,0 +1,27 @@
++#include "common.h"
++
++#include "lh_hidapi.h"
++
++void setup_hooks(lib_context* ctx){
++    redirect_named_function(ctx, "hid_init", lh_hid_init);
++    redirect_named_function(ctx, "hid_exit", lh_hid_exit);
++    redirect_named_function(ctx, "hid_enumerate", lh_hid_enumerate);
++    redirect_named_function(ctx, "hid_free_enumeration", lh_hid_free_enumeration);
++    redirect_named_function(ctx, "hid_open", lh_hid_open);
++    redirect_named_function(ctx, "hid_open_path", lh_hid_open_path);
++    redirect_named_function(ctx, "hid_write", lh_hid_write);
++    redirect_named_function(ctx, "hid_read", lh_hid_read);
++    redirect_named_function(ctx, "hid_read_timeout", lh_hid_read_timeout);
++    //redirect_named_function(ctx, "hid_read_error", lh_hid_read_error);
++    redirect_named_function(ctx, "hid_set_nonblocking", lh_hid_set_nonblocking);
++    redirect_named_function(ctx, "hid_send_feature_report", lh_hid_send_feature_report);
++    redirect_named_function(ctx, "hid_get_feature_report", lh_hid_get_feature_report);
++    redirect_named_function(ctx, "hid_close", lh_hid_close);
++
++    redirect_named_function(ctx, "hid_get_manufacturer_string", lh_hid_get_manufacturer_string);
++    redirect_named_function(ctx, "hid_get_product_string", lh_hid_get_product_string);
++    redirect_named_function(ctx, "hid_get_serial_number_string", lh_hid_get_serial_number_string);
++    redirect_named_function(ctx, "hid_get_indexed_string", lh_hid_get_indexed_string);
++    redirect_named_function(ctx, "hid_error", lh_hid_error);
++
++}
+\ No newline at end of file
+diff --git a/src/xrt/drivers/steamvr_lh/lhproxy/common.h b/src/xrt/drivers/steamvr_lh/lhproxy/common.h
+new file mode 100644
+index 000000000..9a4add318
+--- /dev/null
++++ b/src/xrt/drivers/steamvr_lh/lhproxy/common.h
+@@ -0,0 +1,11 @@
++#pragma once
++#include "redirect.h"
++
++#ifdef __cplusplus
++extern "C"{
++#endif
++void setup_hooks(lib_context* ctx);
++
++#ifdef __cplusplus
++}
++#endif
+\ No newline at end of file
+diff --git a/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi.cpp b/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi.cpp
+new file mode 100644
+index 000000000..c2dc01159
+--- /dev/null
++++ b/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi.cpp
+@@ -0,0 +1,260 @@
++#include "lh_hidapi.h"
++#include "lh_hidapi_priv.h"
++
++#include <stdio.h>
++#include <iostream>
++
++#include "util/u_logging.h"
++
++#define LH_TRACE(...) U_LOG_IFL_T(log_level, __VA_ARGS__)
++#define LH_DEBUG(...) U_LOG_IFL_D(log_level, __VA_ARGS__)
++#define LH_INFO(...) U_LOG_IFL_I(log_level, __VA_ARGS__)
++#define LH_WARN(...) U_LOG_IFL_W(log_level, __VA_ARGS__)
++#define LH_ERROR(...) U_LOG_IFL_E(log_level, __VA_ARGS__)
++
++static enum u_logging_level log_level = U_LOGGING_INFO;
++
++void lh_hidapi_set_log_level(enum u_logging_level level){
++    log_level = level;
++}
++
++
++// essentially wrapper functions arounf hidapi again (with some extra stuff)
++
++HidDeviceWrapper::HidDeviceWrapper(uint16_t vendor, uint16_t product, const wchar_t* serial){
++    dev = hid_open(vendor, product, serial);
++    if(dev){
++        auto devinfo = hid_get_device_info(dev);
++        vendor = devinfo->vendor_id;
++        product = devinfo->product_id;
++        this->serial = devinfo->serial_number;
++        interface_number = devinfo->interface_number;
++    }
++}
++
++HidDeviceWrapper::HidDeviceWrapper(const char* path){
++    dev = hid_open_path(path);
++    if(dev){
++        auto devinfo = hid_get_device_info(dev);
++        vendor = devinfo->vendor_id;
++        product = devinfo->product_id;
++        this->serial = devinfo->serial_number;
++        interface_number = devinfo->interface_number;
++    }
++}
++
++HidDeviceWrapper::~HidDeviceWrapper(){
++    if(dev){
++        hid_close(dev);
++        dev = nullptr;
++    }
++}
++
++int HidDeviceWrapper::write(const unsigned char* data, size_t length){
++    int ret = hid_write(dev, data, length);
++    if(ret == -1){
++        LH_ERROR("hid_write failed");
++    }
++    return ret;
++}
++
++int HidDeviceWrapper::read(unsigned char* data, size_t length, int milliseconds){
++    int ret;
++    if(milliseconds == -1){
++        ret = hid_read(dev, data, length);
++    } else {
++        ret = hid_read_timeout(dev, data, length, milliseconds);
++    }
++    if(ret == -1){
++        //std::cerr << "hid_read failed" << std::endl;
++        try_reopen();
++        return 0;
++    }
++    /*if(ret > 0){
++        std::cout << "hid_read: " << std::hex << (int)data[0] << std::endl;
++    }*/
++    return ret;
++}
++
++int HidDeviceWrapper::set_nonblocking(int nonblock){
++    return hid_set_nonblocking(dev, nonblock);
++}
++
++int HidDeviceWrapper::send_feature_report(const unsigned char* data, size_t length){
++    int ret = hid_send_feature_report(dev, data, length);
++    if(ret == -1){
++        //std::cerr << "hid_send_feature_report failed" << std::endl;
++    }
++    return ret;
++}
++
++int HidDeviceWrapper::get_feature_report(unsigned char* data, size_t length){
++    int ret = hid_get_feature_report(dev, data, length);
++    if(ret == -1){
++        //std::cerr << "hid_get_feature_report failed" << std::endl;
++    }
++    return ret;
++}
++
++// wired lighthouse devices apparently don't just output lightcap data on their own again
++void restartLighthouseCapture(hid_device* dev){
++    const unsigned char syncMode[] =  {0x04, 0x00, 0x00, 0x00, 0x00};
++    const unsigned char lcVerbosity[] =  {0x07, 0x03, 0x00, 0x00, 0x00};
++
++    if(hid_send_feature_report(dev, syncMode, sizeof(syncMode)) == -1){
++        LH_ERROR("Failed to set sync mode");
++    }
++    if(hid_send_feature_report(dev, lcVerbosity, sizeof(lcVerbosity)) == -1){
++        LH_ERROR("Failed to set lightcap verbosity");
++    }
++}
++
++// utility
++void HidDeviceWrapper::try_reopen(){
++    hid_device_info* devinfo = hid_enumerate(vendor, product);
++    hid_device_info* first = devinfo;
++    while(devinfo){
++        if(devinfo->serial_number && devinfo->serial_number == serial && devinfo->interface_number == interface_number){
++            LH_INFO("Found disconnected device for reconnection");
++            break;
++        }
++        devinfo = devinfo->next;
++    }
++    if(devinfo){
++        hid_device* newdev = hid_open_path(devinfo->path);
++        if(newdev){
++            LH_INFO("Successfully reopened device");
++            hid_close(dev);
++            dev = newdev;
++            restartLighthouseCapture(dev);
++        }
++    }
++    if(first){
++        hid_free_enumeration(first);
++    }
++}
++
++
++// shim functions to call the member functions
++
++int lh_hid_init(){
++    LH_DEBUG("lhproxy: hid_init");
++    return hid_init();
++}
++
++int lh_hid_exit(){
++    LH_DEBUG("lhproxy: hid_exit");
++    return hid_exit();
++}
++
++struct hid_device_info* lh_hid_enumerate(unsigned short vendor_id, unsigned short product_id){
++    LH_DEBUG("lhproxy: hid_enumerate %04x:%04x", vendor_id, product_id);
++    return hid_enumerate(vendor_id, product_id);
++}
++
++void lh_hid_free_enumeration(struct hid_device_info* devs){
++    LH_DEBUG("lhproxy: hid_free_enumeration");
++    hid_free_enumeration(devs);
++}
++
++hid_device* lh_hid_open(unsigned short vendor_id, unsigned short product_id, const wchar_t* serial_number){
++    LH_DEBUG("lhproxy: hid_open %04x:%04x", vendor_id, product_id);
++    HidDeviceWrapper* wrap = new HidDeviceWrapper(vendor_id, product_id, serial_number);
++    if(!wrap->dev){
++        delete wrap;
++        return nullptr;
++    }
++    return (hid_device*)wrap;
++    //return hid_open(vendor_id, product_id, serial_number);
++}
++
++hid_device* lh_hid_open_path(const char* path){
++    LH_DEBUG("lhproxy: hid_open_path %s", path);
++    HidDeviceWrapper* wrap = new HidDeviceWrapper(path);
++    if(!wrap->dev){
++        delete wrap;
++        return nullptr;
++    }
++    return (hid_device*)wrap;
++    //return hid_open_path(path);
++}
++
++
++
++int lh_hid_write(hid_device* dev, const unsigned char* data, size_t length){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    return wrap->write(data, length);
++    //return hid_write(dev, data, length);
++}
++
++int lh_hid_read_timeout(hid_device* dev, unsigned char* data, size_t length, int milliseconds){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    return wrap->read(data, length, milliseconds);
++    //return hid_read_timeout(dev, data, length, milliseconds);
++}
++
++int lh_hid_read(hid_device* dev, unsigned char* data, size_t length){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    return wrap->read(data, length);
++    //return hid_read(dev, data, length);
++}
++
++/*const wchar_t* lh_hid_read_error(hid_device* dev){
++    return hid_read_error(dev);
++}*/
++
++// doesn't seem to be used by lighthouse_console
++int lh_hid_set_nonblocking(hid_device* dev, int nonblock){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    LH_DEBUG("lhproxy: hid_set_nonblocking %d", nonblock);
++    return wrap->set_nonblocking(nonblock);
++    //return hid_set_nonblocking(dev, nonblock);
++}
++
++int lh_hid_send_feature_report(hid_device* dev, const unsigned char* data, size_t length){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    //printf("my_hid_send_feature_report\n");
++    return wrap->send_feature_report(data, length);
++    //return hid_send_feature_report(dev, data, length);
++}
++
++int lh_hid_get_feature_report(hid_device* dev, unsigned char* data, size_t length){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    //printf("my_hid_get_feature_report\n");
++    return wrap->get_feature_report(data, length);
++    //return hid_get_feature_report(dev, data, length);
++}
++
++void lh_hid_close(hid_device* dev){
++    LH_DEBUG("lhproxy: hid_close");
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    delete wrap;
++    //hid_close(dev);
++}
++
++// these aren't really used as much
++
++int lh_hid_get_manufacturer_string(hid_device* dev, wchar_t* string, size_t maxlen){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    return hid_get_manufacturer_string(wrap->dev, string, maxlen);
++}
++
++int lh_hid_get_product_string(hid_device* dev, wchar_t* string, size_t maxlen){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    return hid_get_product_string(wrap->dev, string, maxlen);
++}
++
++int lh_hid_get_serial_number_string(hid_device* dev, wchar_t* string, size_t maxlen){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    return hid_get_serial_number_string(wrap->dev, string, maxlen);
++}
++
++int lh_hid_get_indexed_string(hid_device* dev, int string_index, wchar_t* string, size_t maxlen){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    return hid_get_indexed_string(wrap->dev, string_index, string, maxlen);
++}
++
++const wchar_t* lh_hid_error(hid_device* dev){
++    HidDeviceWrapper* wrap = (HidDeviceWrapper*)dev;
++    return hid_error(wrap->dev);
++}
+\ No newline at end of file
+diff --git a/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi.h b/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi.h
+new file mode 100644
+index 000000000..0efb71afe
+--- /dev/null
++++ b/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi.h
+@@ -0,0 +1,35 @@
++#pragma once
++#include <hidapi.h>
++#include "util/u_logging.h"
++
++#ifdef __cplusplus
++extern "C"{
++#endif
++
++void lh_hidapi_set_log_level(enum u_logging_level level);
++
++int lh_hid_init();
++int lh_hid_exit();
++struct hid_device_info* lh_hid_enumerate(unsigned short vendor_id, unsigned short product_id);
++void lh_hid_free_enumeration(struct hid_device_info* devs);
++hid_device* lh_hid_open(unsigned short vendor_id, unsigned short product_id, const wchar_t* serial_number);
++hid_device* lh_hid_open_path(const char* path);
++int lh_hid_write(hid_device* dev, const unsigned char* data, size_t length);
++int lh_hid_read_timeout(hid_device* dev, unsigned char* data, size_t length, int milliseconds);
++int lh_hid_read(hid_device* dev, unsigned char* data, size_t length);
++//const wchar_t* lh_hid_read_error(hid_device* dev);
++int lh_hid_set_nonblocking(hid_device* dev, int nonblock);
++
++int lh_hid_send_feature_report(hid_device* dev, const unsigned char* data, size_t length);
++int lh_hid_get_feature_report(hid_device* dev, unsigned char* data, size_t length);
++void lh_hid_close(hid_device* dev);
++
++int lh_hid_get_manufacturer_string(hid_device* dev, wchar_t* string, size_t maxlen);
++int lh_hid_get_product_string(hid_device* dev, wchar_t* string, size_t maxlen);
++int lh_hid_get_serial_number_string(hid_device* dev, wchar_t* string, size_t maxlen);
++int lh_hid_get_indexed_string(hid_device* dev, int string_index, wchar_t* string, size_t maxlen);
++const wchar_t* lh_hid_error(hid_device* dev);
++
++#ifdef __cplusplus
++}
++#endif
+\ No newline at end of file
+diff --git a/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi_priv.h b/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi_priv.h
+new file mode 100644
+index 000000000..12431dbc4
+--- /dev/null
++++ b/src/xrt/drivers/steamvr_lh/lhproxy/lh_hidapi_priv.h
+@@ -0,0 +1,31 @@
++#pragma once
++
++#include <stdint.h>
++#include <hidapi.h>
++
++#include <string>
++
++#define SERIAL_MAX_LEN 256
++
++class HidDeviceWrapper{
++public:
++    HidDeviceWrapper(uint16_t vendor, uint16_t product, const wchar_t* serial);
++    HidDeviceWrapper(const char* path);
++
++    ~HidDeviceWrapper();
++
++    int write(const unsigned char* data, size_t length);
++    int read(unsigned char* data, size_t length, int milliseconds = -1);
++    int set_nonblocking(int nonblock);
++    int send_feature_report(const unsigned char* data, size_t length);
++    int get_feature_report(unsigned char* data, size_t length);
++    hid_device* dev;
++
++private:
++    std::wstring serial;
++    uint16_t vendor;
++    uint16_t product;
++    int interface_number;
++
++    void try_reopen();
++};
+\ No newline at end of file
+diff --git a/src/xrt/drivers/steamvr_lh/lhproxy/redirect.cpp b/src/xrt/drivers/steamvr_lh/lhproxy/redirect.cpp
+new file mode 100644
+index 000000000..d7ae62bb4
+--- /dev/null
++++ b/src/xrt/drivers/steamvr_lh/lhproxy/redirect.cpp
+@@ -0,0 +1,163 @@
++#include <stdint.h>
++#include <unistd.h>
++#include <sys/mman.h>
++#include <stdio.h>
++#include <memory.h>
++#include "util/u_logging.h"
++#include <libelf.h>
++#include <fcntl.h>
++#include <stdlib.h>
++
++#include <vector>
++#include <string>
++#include <unordered_map>
++
++#include <elf.h>
++
++#include "redirect.h"
++
++// Logging support
++static enum u_logging_level log_level = U_LOGGING_INFO;
++#define LH_TRACE(...) U_LOG_IFL_T(log_level, __VA_ARGS__)
++#define LH_DEBUG(...) U_LOG_IFL_D(log_level, __VA_ARGS__)
++#define LH_INFO(...) U_LOG_IFL_I(log_level, __VA_ARGS__)
++#define LH_WARN(...) U_LOG_IFL_W(log_level, __VA_ARGS__)
++#define LH_ERROR(...) U_LOG_IFL_E(log_level, __VA_ARGS__)
++
++extern "C" {
++
++void redirect_set_log_level(enum u_logging_level level){
++    log_level = level;
++}
++
++int redirect_function(void* orig, void* target){
++    // the redirect needs 14 bytes. 6 bytes for the jump instruction, and 8 for the address (using a relative near jump would only take 5 bytes, but limits the jump distance)
++    size_t patchsize = 14;
++    size_t pagesize = getpagesize();
++    void* addr = (void*)((size_t)orig - ((size_t)orig%pagesize));
++    size_t len = (size_t)orig + patchsize - (size_t)addr;
++    int ret = mprotect(addr, len, PROT_READ | PROT_WRITE);
++    if(ret){
++        LH_ERROR("redirect: failed to make code writable");
++        return -1;
++    }
++
++    // actually patch now
++    // this is a "jmp qword ptr [rip+0]"
++    uint8_t instr[] = { 0xFF, 0x25, 0x00, 0x00, 0x00, 0x00 };
++    memcpy(orig, instr, sizeof(instr));
++    *(void**)((size_t)orig+sizeof(instr)) = target; // where to jump to is stored right after the instruction
++    ret = mprotect(addr, len, PROT_READ | PROT_EXEC);
++    if(ret){
++        LH_ERROR("redirect: failed to make code executable again");
++        return -1;
++    }
++    return 0;
++}
++
++
++typedef struct lib_context {
++    int fd;
++    Elf* elf;
++    std::unordered_map<std::string, size_t> section_indices;
++    std::unordered_map<std::string, size_t> func_addresses;
++
++    void* text_base;    // base address of the text segment. Not automatically set!
++} lib_context;
++
++void set_text_base(lib_context* ctx, void* base){
++    ctx->text_base = base;
++}
++
++size_t get_function_offset(lib_context* ctx, const char* name){
++    if(ctx->func_addresses.count(name) == 0){
++        LH_WARN("Can't find function %s", name);
++        return 0;
++    }
++    return ctx->func_addresses[name];
++}
++
++int redirect_named_function(lib_context* ctx, const char* name, void* target){
++    if(!ctx->text_base){
++        LH_ERROR("Can't redirect named function: .text base address not set!");
++        return 1;
++    }
++    size_t offset = get_function_offset(ctx, name);
++    if(!offset){
++        return 1;
++    }
++    redirect_function((void*)((size_t)ctx->text_base + offset), target);
++    return 0;
++}
++
++lib_context* open_library(const char* path){
++    lib_context* ctx = new lib_context();
++    ctx->text_base = NULL;
++    if(!ctx){
++        return NULL;
++    }
++    ctx->fd = open(path, O_RDONLY);
++    if(ctx->fd == -1){
++        perror("Failed to open file\n");
++        delete ctx;
++        return NULL;
++    }
++    elf_version(EV_CURRENT);
++
++    ctx->elf = elf_begin(ctx->fd, ELF_C_READ, NULL);
++    if(!ctx->elf){
++        LH_ERROR("Failed to read elf: %s", elf_errmsg(elf_errno()));
++        delete ctx;
++        return NULL;
++    }
++
++    size_t section_name_section_index;
++    elf_getshdrstrndx(ctx->elf, &section_name_section_index);
++    Elf_Scn* section_string_table = elf_getscn(ctx->elf, section_name_section_index);
++    Elf_Data* section_names_data = elf_getdata(section_string_table, NULL);
++
++    Elf_Scn* current_scn = NULL;
++    do{
++        current_scn = elf_nextscn(ctx->elf, current_scn);
++        if(!current_scn)
++            break;
++        Elf64_Shdr* header = elf64_getshdr(current_scn);
++        ctx->section_indices[(char*)section_names_data->d_buf + header->sh_name] = elf_ndxscn(current_scn);
++        //printf("Section %d has name %d (%s)\n", elf_ndxscn(current_scn), header->sh_name, (char*)section_names_data->d_buf + header->sh_name);
++    } while(current_scn);
++    //printf("symtab: %d strtab: %d\n", ctx->section_indices[".symtab"], ctx->section_indices[".strtab"]);
++
++    if(ctx->section_indices.count(".symtab") == 0 || ctx->section_indices.count(".strtab") == 0 || ctx->section_indices.count(".text") == 0){
++        LH_ERROR("missing either the .symtab, .text or .strtab section!");
++        delete ctx;
++        return NULL;
++    }
++
++    Elf_Scn* strtab = elf_getscn(ctx->elf, ctx->section_indices[".strtab"]);
++    Elf_Data* strtab_data = elf_getdata(strtab, NULL);
++
++    Elf_Scn* symtab = elf_getscn(ctx->elf, ctx->section_indices[".symtab"]);
++    Elf_Data* symtab_data = elf_getdata(symtab, NULL);
++    size_t text_idx = ctx->section_indices[".text"];
++
++    for(size_t i = 0; i < symtab_data->d_size / sizeof(Elf64_Sym); i++){
++        Elf64_Sym* sym = &((Elf64_Sym*)symtab_data->d_buf)[i];
++        // I only need functions, other stuff doesn't matter;
++        if(ELF64_ST_TYPE(sym->st_info) == STT_FUNC){
++            if(sym->st_shndx == text_idx){
++                char* name_ptr = (char*)strtab_data->d_buf + sym->st_name;
++                ctx->func_addresses[std::string(name_ptr)] = sym->st_value;
++                //printf("Symbol %s at 0x%lx\n", name_ptr, sym->st_value);
++            }
++
++        }
++    }
++    
++    //printf("hid_init at 0x%x\n", ctx->func_addresses["hid_init"]);
++
++    //printf("section names: %d\n", section_name_section_index);
++
++    return ctx;
++}
++
++} // extern "C"
+\ No newline at end of file
+diff --git a/src/xrt/drivers/steamvr_lh/lhproxy/redirect.h b/src/xrt/drivers/steamvr_lh/lhproxy/redirect.h
+new file mode 100644
+index 000000000..9ebb2c0fb
+--- /dev/null
++++ b/src/xrt/drivers/steamvr_lh/lhproxy/redirect.h
+@@ -0,0 +1,23 @@
++#pragma once
++
++#include <libelf.h>
++#include <elfutils/libdw.h>
++#include "util/u_logging.h"
++
++#ifdef __cplusplus
++extern "C"{
++#endif
++
++typedef struct lib_context lib_context;
++
++void redirect_set_log_level(enum u_logging_level level);
++
++int redirect_function(void* orig, void* target);
++lib_context* open_library(const char* path);
++void set_text_base(lib_context* ctx, void* base);   // get this by reading /proc or by using the offset of another symbol and an address from dlsym
++size_t get_function_offset(lib_context* ctx, const char* name);
++int redirect_named_function(lib_context* ctx, const char* name, void* target);  // needs text_base to be set!
++
++#ifdef __cplusplus
++}
++#endif
+\ No newline at end of file
+diff --git a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+index 3aa65c1ad..67654b690 100644
+--- a/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
++++ b/src/xrt/drivers/steamvr_lh/steamvr_lh.cpp
+@@ -31,12 +31,21 @@
+ 
+ #include "math/m_api.h"
+ 
++#ifdef XRT_HAVE_LHPROXY
++extern "C" {
++#include "lhproxy/redirect.h"
++#include "lhproxy/common.h"
++}
++#include "lhproxy/lh_hidapi.h"
++#endif
++
+ namespace {
+ 
+ DEBUG_GET_ONCE_LOG_OPTION(lh_log, "LIGHTHOUSE_LOG", U_LOGGING_INFO)
+ DEBUG_GET_ONCE_BOOL_OPTION(lh_load_slimevr, "LH_LOAD_SLIMEVR", false)
+ DEBUG_GET_ONCE_NUM_OPTION(lh_discover_wait_ms, "LH_DISCOVER_WAIT_MS", 3000)
+ DEBUG_GET_ONCE_FLOAT_OPTION(lh_stick_deadzone, "LH_STICK_DEADZONE", 0)
++DEBUG_GET_ONCE_BOOL_OPTION(lh_enable_usb_reconnect, "LH_ENABLE_USB_RECONNECT", true)
+ 
+ static constexpr size_t MAX_CONTROLLERS = 16;
+ 
+@@ -891,9 +900,10 @@ steamvr_lh_create_devices(struct xrt_prober *xp, struct xrt_system_devices **out
+ 	U_LOG_IFL_I(level, "Found SteamVR install: %s", steamvr.c_str());
+ 
+ 	std::vector<vr::IServerTrackedDeviceProvider *> drivers = {};
+-	const auto loadDriver = [&](std::string soPath, bool require) {
++	const auto loadDriver = [&](std::string soPath, bool require, bool use_lhproxy = false) {
+ 		// TODO: support windows?
+-		void *driver_lib = dlopen((steamvr + soPath).c_str(), RTLD_LAZY);
++		std::string full_path = steamvr + soPath;
++		void *driver_lib = dlopen(full_path.c_str(), RTLD_LAZY);
+ 		if (!driver_lib) {
+ 			U_LOG_IFL_E(level, "Couldn't open driver lib: %s", dlerror());
+ 			return !require;
+@@ -904,6 +914,31 @@ steamvr_lh_create_devices(struct xrt_prober *xp, struct xrt_system_devices **out
+ 			U_LOG_IFL_E(level, "Couldn't find HmdDriverFactory in driver lib: %s", dlerror());
+ 			return false;
+ 		}
++
++#ifdef XRT_HAVE_LHPROXY
++		// Apply lhproxy hooks for lighthouse driver on x86_64
++		if (use_lhproxy) {
++			U_LOG_IFL_I(level, "Applying lhproxy USB reconnection hooks to lighthouse driver");
++			lh_hidapi_set_log_level(level);
++			redirect_set_log_level(level);
++			lib_context *ctx = open_library(full_path.c_str());
++			if (ctx) {
++				// Calculate text base from HmdDriverFactory symbol
++				size_t factory_offset = get_function_offset(ctx, "HmdDriverFactory");
++				if (factory_offset) {
++					void *text_base = (void *)((size_t)sym - factory_offset);
++					set_text_base(ctx, text_base);
++					setup_hooks(ctx);
++					U_LOG_IFL_I(level, "Successfully applied lhproxy hooks");
++				} else {
++					U_LOG_IFL_W(level, "Failed to get HmdDriverFactory offset for lhproxy");
++				}
++			} else {
++				U_LOG_IFL_W(level, "Failed to open library context for lhproxy");
++			}
++		}
++#endif
++
+ 		using HmdDriverFactory_t = void *(*)(const char *, int *);
+ 		auto factory = reinterpret_cast<HmdDriverFactory_t>(sym);
+ 
+@@ -916,8 +951,14 @@ steamvr_lh_create_devices(struct xrt_prober *xp, struct xrt_system_devices **out
+ 		}
+ 		return true;
+ 	};
++#ifdef XRT_HAVE_LHPROXY
++	bool enable_lhproxy = debug_get_bool_option_lh_enable_usb_reconnect();
++	if (!loadDriver("/drivers/lighthouse/bin/linux64/driver_lighthouse.so", true, enable_lhproxy))
++		return xrt_result::XRT_ERROR_DEVICE_CREATION_FAILED;
++#else
+ 	if (!loadDriver("/drivers/lighthouse/bin/linux64/driver_lighthouse.so", true))
+ 		return xrt_result::XRT_ERROR_DEVICE_CREATION_FAILED;
++#endif
+ 	if (debug_get_bool_option_lh_load_slimevr() &&
+ 	    !loadDriver("/drivers/slimevr/bin/linux64/driver_slimevr.so", false))
+ 		return xrt_result::XRT_ERROR_DEVICE_CREATION_FAILED;
+-- 
+2.49.1
+
