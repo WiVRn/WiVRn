@@ -15,9 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "video_encoder_vulkan_h264.h"
 #include "encoder/encoder_settings.h"
 #include "utils/wivrn_vk_bundle.h"
+#include "video_encoder_vulkan_h264.h"
 
 static StdVideoH264LevelIdc compute_level(const StdVideoH264SequenceParameterSet & sps, float fps, uint32_t num_dpb_frames, size_t bitrate)
 {
@@ -337,7 +337,7 @@ void * wivrn::video_encoder_vulkan_h264::encode_info_next(uint32_t frame_num, si
 	std_picture_info = {
 	        .flags =
 	                {
-	                        .IdrPicFlag = uint32_t(ref_slot ? 0 : 1),
+	                        .IdrPicFlag = ref_slot ? 0u : 1u,
 	                        .is_reference = 1,
 	                        .no_output_of_prior_pics_flag = 0,
 	                        .long_term_reference_flag = 0,
