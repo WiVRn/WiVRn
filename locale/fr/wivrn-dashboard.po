@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-26 13:46+0100\n"
-"PO-Revision-Date: 2025-10-26 13:47+0100\n"
+"POT-Creation-Date: 2025-10-30 09:53+0100\n"
+"PO-Revision-Date: 2025-10-30 09:55+0100\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
 "Language: French\n"
@@ -445,141 +445,120 @@ msgstr "Fort"
 msgid "Bitrate:"
 msgstr "Débit :"
 
-#: dashboard/qml/SettingsPage.qml:100 dashboard/qml/SettingsPage.qml:102
+#: dashboard/qml/SettingsPage.qml:101 dashboard/qml/SettingsPage.qml:103
 #, kde-format
 msgctxt "bitrate"
 msgid "%1 Mbit/s"
 msgstr "%1 Mbit/s"
 
-#: dashboard/qml/SettingsPage.qml:112
-#, kde-format
-msgid "Encoder layout:"
-msgstr "Disposition :"
-
 #: dashboard/qml/SettingsPage.qml:115
 #, kde-format
-msgctxt "encoder preset"
-msgid "Automatic"
-msgstr "Automatique"
+msgid "The current encoder configuration is not supported"
+msgstr "La configuration actuelle des encodeurs n'est pas prise en charge"
 
-#: dashboard/qml/SettingsPage.qml:119
+#: dashboard/qml/SettingsPage.qml:120
 #, kde-format
-msgctxt "encoder preset"
-msgid "Manual"
-msgstr "Manuelle"
+msgid "Reset"
+msgstr "Réinitialiser"
 
-#: dashboard/qml/SettingsPage.qml:123
-#, kde-format
-msgctxt "encoder preset"
-msgid "Default preset"
-msgstr "Configuration prédéfinie : par défaut"
-
-#: dashboard/qml/SettingsPage.qml:140
-#, kde-format
-msgctxt "encoder preset"
-msgid "Low latency preset"
-msgstr "Configuration prédéfinie : basse latence"
-
-#: dashboard/qml/SettingsPage.qml:159
-#, kde-format
-msgctxt "encoder preset"
-msgid "Safe preset"
-msgstr "Configuration prédéfinie : sure"
-
-#: dashboard/qml/SettingsPage.qml:182
-#, kde-format
-msgid ""
-"To add a new encoder, split an existing encoder by clicking near an edge.\n"
-"Drag an edge to resize or remove encoders."
-msgstr ""
-"Pour ajouter un encodeur, découpez un encodeur existant en cliquant près "
-"d'un bord.\n"
-"Déplacez un bord pour redimensionner ou supprimer un encodeur."
-
-#: dashboard/qml/SettingsPage.qml:209
+#: dashboard/qml/SettingsPage.qml:127
 #, kde-format
 msgid "Encoder:"
 msgstr "Encodeur :"
 
-#: dashboard/qml/SettingsPage.qml:218
+#: dashboard/qml/SettingsPage.qml:133
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:223
+#: dashboard/qml/SettingsPage.qml:137
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (GPUs NVIDIA)"
 
-#: dashboard/qml/SettingsPage.qml:228
+#: dashboard/qml/SettingsPage.qml:141
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (GPUs AMD et Intel)"
 
-#: dashboard/qml/SettingsPage.qml:233
-#, kde-format
-msgid "x264 (software encoding)"
-msgstr "x264 (encodage logiciel)"
-
-#: dashboard/qml/SettingsPage.qml:238
+#: dashboard/qml/SettingsPage.qml:145
 #, kde-format
 msgid "Vulkan (Vulkan Video)"
 msgstr "Vulkan (Vulkan Vidéo)"
 
-#: dashboard/qml/SettingsPage.qml:261
+#: dashboard/qml/SettingsPage.qml:149
+#, kde-format
+msgid "x264 (software encoding)"
+msgstr "x264 (encodage logiciel)"
+
+#: dashboard/qml/SettingsPage.qml:166
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr ""
 "« Automatique » utilisera l'accélération matérielle si elle est disponible"
 
-#: dashboard/qml/SettingsPage.qml:267
+#: dashboard/qml/SettingsPage.qml:171
 #, kde-format
 msgid "Codec:"
 msgstr "Codec :"
 
-#: dashboard/qml/SettingsPage.qml:274
+#: dashboard/qml/SettingsPage.qml:177
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:278
+#: dashboard/qml/SettingsPage.qml:181
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:282
+#: dashboard/qml/SettingsPage.qml:185
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:286
+#: dashboard/qml/SettingsPage.qml:189
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:308
+#: dashboard/qml/SettingsPage.qml:217
+#, kde-format
+msgid "10-bits"
+msgstr "10 bits"
+
+#: dashboard/qml/SettingsPage.qml:221
+#, kde-format
+msgid ""
+"10-bit encoding improves image quality but is not supported by all codecs "
+"and hardware"
+msgstr ""
+"L'encodage 10 bits améliore la qualité d'image mais n'est pas pris en charge "
+"part tous les codecs et matériel"
+
+#: dashboard/qml/SettingsPage.qml:231
 #, kde-format
 msgid "Advanced options"
 msgstr "Paramètres avancés"
 
-#: dashboard/qml/SettingsPage.qml:314
+#: dashboard/qml/SettingsPage.qml:237
 #, kde-format
 msgid "Check system configuration on start"
 msgstr "Vérifier les paramètres système au démarrage"
 
-#: dashboard/qml/SettingsPage.qml:318
+#: dashboard/qml/SettingsPage.qml:241
 #, kde-format
 msgid "Enable debug window"
 msgstr "Activer la fenêtre de débogage"
 
-#: dashboard/qml/SettingsPage.qml:325
+#: dashboard/qml/SettingsPage.qml:248
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Activer le support des manettes SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:328
+#: dashboard/qml/SettingsPage.qml:251
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -593,44 +572,44 @@ msgstr ""
 "WiVRn.\n"
 "Un utilitaire tiers tel que motoc est nécessaire pour la calibration."
 
-#: dashboard/qml/SettingsPage.qml:336
+#: dashboard/qml/SettingsPage.qml:259
 #, kde-format
 msgid "Custom adb location"
 msgstr "Spécifier l'emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:347
+#: dashboard/qml/SettingsPage.qml:270
 #, kde-format
 msgid "Adb location:"
 msgstr "Emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:356
+#: dashboard/qml/SettingsPage.qml:279
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Parcourir"
 
-#: dashboard/qml/SettingsPage.qml:366
+#: dashboard/qml/SettingsPage.qml:289
 #, kde-format
 msgid "Default"
 msgstr "Par défaut"
 
-#: dashboard/qml/SettingsPage.qml:380
+#: dashboard/qml/SettingsPage.qml:303
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: dashboard/qml/SettingsPage.qml:385
+#: dashboard/qml/SettingsPage.qml:308
 #, kde-format
 msgid "Disabled"
 msgstr "Désactivé"
 
-#: dashboard/qml/SettingsPage.qml:393
+#: dashboard/qml/SettingsPage.qml:316
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Compatibilité OpenVR :"
 
-#: dashboard/qml/SettingsPage.qml:419
+#: dashboard/qml/SettingsPage.qml:342
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Chemin de la bibliothèque, en enlevant bin/linux64/vrclient.so"
@@ -984,3 +963,42 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid "Encoder layout:"
+#~ msgstr "Disposition :"
+
+#, kde-format
+#~ msgctxt "encoder preset"
+#~ msgid "Automatic"
+#~ msgstr "Automatique"
+
+#, kde-format
+#~ msgctxt "encoder preset"
+#~ msgid "Manual"
+#~ msgstr "Manuelle"
+
+#, kde-format
+#~ msgctxt "encoder preset"
+#~ msgid "Default preset"
+#~ msgstr "Configuration prédéfinie : par défaut"
+
+#, kde-format
+#~ msgctxt "encoder preset"
+#~ msgid "Low latency preset"
+#~ msgstr "Configuration prédéfinie : basse latence"
+
+#, kde-format
+#~ msgctxt "encoder preset"
+#~ msgid "Safe preset"
+#~ msgstr "Configuration prédéfinie : sure"
+
+#, kde-format
+#~ msgid ""
+#~ "To add a new encoder, split an existing encoder by clicking near an "
+#~ "edge.\n"
+#~ "Drag an edge to resize or remove encoders."
+#~ msgstr ""
+#~ "Pour ajouter un encodeur, découpez un encodeur existant en cliquant près "
+#~ "d'un bord.\n"
+#~ "Déplacez un bord pour redimensionner ou supprimer un encodeur."
