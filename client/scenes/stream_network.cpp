@@ -25,7 +25,6 @@
 
 #include "utils/named_thread.h"
 
-#include <algorithm>
 #include <spdlog/spdlog.h>
 #include <uni_algo/case.h>
 
@@ -78,6 +77,9 @@ void scenes::stream::operator()(to_headset::video_stream_description && desc)
 void scenes::stream::operator()(to_headset::refresh_rate_change && rate)
 {
 	session.set_refresh_rate(rate.fps);
+	std::shared_lock lock(decoder_mutex);
+	if (video_stream_description)
+		video_stream_description->fps = rate.fps;
 }
 
 void scenes::stream::operator()(to_headset::timesync_query && query)
