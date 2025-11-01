@@ -25,11 +25,11 @@
 
 namespace
 {
-[[maybe_unused]] vk::raii::Queue make_queue(vk::raii::Device & device, VkQueue queue, uint32_t family_index, uint32_t index)
+[[maybe_unused]] vk::raii::Queue make_queue(vk::raii::Device & device, vk_bundle_queue * queue)
 {
-	if (queue == VK_NULL_HANDLE)
+	if (queue == nullptr or queue->queue == VK_NULL_HANDLE)
 		return nullptr;
-	return vk::raii::Queue(device, family_index, index);
+	return vk::raii::Queue(device, queue->family_index, queue->index);
 }
 
 VkBool32 message_callback(
@@ -92,7 +92,7 @@ wivrn::wivrn_vk_bundle::wivrn_vk_bundle(vk_bundle & vk, std::span<const char *> 
         queue(device, vk.main_queue->family_index, vk.main_queue->index),
         queue_family_index(vk.main_queue->family_index),
 #ifdef VK_KHR_video_encode_queue
-        encode_queue(make_queue(device, vk.encode_queue->queue, vk.encode_queue->family_index, vk.encode_queue->index)),
+        encode_queue(make_queue(device, vk.encode_queue)),
         encode_queue_family_index(vk.encode_queue ? vk.encode_queue->family_index : vk::QueueFamilyIgnored),
 #else
         encode_queue(nullptr),
