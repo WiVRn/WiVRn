@@ -370,49 +370,103 @@ static inline void log_h265_rps_debug(
         const std::vector<StdVideoEncodeH265ReferenceInfo> & dpb)
 {
 	const uint32_t pocMask = (1u << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1u;
-	const uint32_t currPOC = uint32_t(pic.PicOrderCntVal) & pocMask;
+	const int32_t currPOC = static_cast<int32_t>(pic.PicOrderCntVal);
+	const uint32_t currPOCL = static_cast<uint32_t>(currPOC) & pocMask;
 
 	const int refIdx = ref_slot.value_or(-1);
-	int refPoc = -1;
-	if (refIdx >= 0 && (size_t)refIdx < dpb.size())
-		refPoc = int(uint32_t(dpb[size_t(refIdx)].PicOrderCntVal) & pocMask);
+	int32_t refPOC = -1;
+	uint32_t refPOCL = 0;
+	if (refIdx >= 0 && static_cast<size_t>(refIdx) < dpb.size())
+	{
+		refPOC = static_cast<int32_t>(dpb[static_cast<size_t>(refIdx)].PicOrderCntVal);
+		refPOCL = static_cast<uint32_t>(refPOC) & pocMask;
+	}
 
 	int D = -1;
-	if (refPoc >= 0)
-		D = int((currPOC - uint32_t(refPoc)) & pocMask);
+	if (refPOC >= 0)
+		D = currPOC - refPOC;
 
-	if (rps)
+	if (!rps)
 	{
-		const uint32_t hasNeg = rps->num_negative_pics ? 1u : 0u;
-		const uint32_t deltaS0 = rps->num_negative_pics ? uint32_t(rps->delta_poc_s0_minus1[0]) : 0u;
-		const uint32_t rpsNegDist = hasNeg ? (deltaS0 + 1u) : 0u;
-
-		std::printf("[H265] frame=%u type=%c  currPOC=%u  ref_slot=%d  refPOC=%d  D=%d  | "
-		            "RPS: neg_pics=%u deltaS0=%u (=>%u) usedS0=%u used=%u\n",
+		std::printf("[H265] frame=%u type=%c  currPOC=%d (lsb=%u)  (IDR / no RPS)\n",
 		            frame_num,
 		            pic.pic_type == STD_VIDEO_H265_PICTURE_TYPE_IDR ? 'I' : 'P',
 		            currPOC,
-		            refIdx,
-		            refPoc,
-		            D,
-		            rps->num_negative_pics,
-		            deltaS0,
-		            rpsNegDist,
-		            rps->used_by_curr_pic_s0_flag,
-		            rps->used_by_curr_pic_flag);
+		            currPOCL);
+		return;
+	}
 
-		if (refIdx >= 0)
-			std::printf("        check: (currPOC - refPOC)%%POC == %u  => %s\n",
-			            rpsNegDist,
-			            (D == (int)rpsNegDist) ? "OK" : "MISMATCH");
-	}
-	else
+	const uint32_t negN = rps->num_negative_pics;
+	const uint32_t usedBm = static_cast<uint32_t>(rps->used_by_curr_pic_s0_flag);
+
+	std::printf("[H265] frame=%u type=%c  currPOC=%d (lsb=%u)  ref_slot=%d  refPOC=%d (lsb=%u)  D=%d  | "
+	            "RPS: neg=%u used_mask=0x%X\n",
+	            frame_num,
+	            pic.pic_type == STD_VIDEO_H265_PICTURE_TYPE_IDR ? 'I' : 'P',
+	            currPOC,
+	            currPOCL,
+	            refIdx,
+	            refPOC,
+	            refPOCL,
+	            D,
+	            negN,
+	            usedBm);
+
+	auto find_slot_by_poc = [&](int32_t pocFull) -> int {
+		for (size_t s = 0; s < dpb.size(); ++s)
+			if (static_cast<int32_t>(dpb[s].PicOrderCntVal) == pocFull)
+				return static_cast<int>(s);
+		// fallback by lsb
+		const uint32_t lsb = static_cast<uint32_t>(pocFull) & pocMask;
+		for (size_t s = 0; s < dpb.size(); ++s)
+			if ((static_cast<uint32_t>(dpb[s].PicOrderCntVal) & pocMask) == lsb)
+				return static_cast<int>(s);
+		return -1;
+	};
+
+	bool deltasStrictInc = true;
+	uint32_t prevDelta = 0;
+	int usedIdxFound = -1;
+	int usedIdxMatchesD = -1;
+
+	for (uint32_t i = 0; i < negN; ++i)
 	{
-		std::printf("[H265] frame=%u type=%c  currPOC=%u  (IDR / no RPS)\n",
-		            frame_num,
-		            pic.pic_type == STD_VIDEO_H265_PICTURE_TYPE_IDR ? 'I' : 'P',
-		            currPOC);
+		const uint32_t delta = static_cast<uint32_t>(rps->delta_poc_s0_minus1[i]) + 1u; // 1..N
+		if (i && !(delta > prevDelta))
+			deltasStrictInc = false;
+		prevDelta = delta;
+
+		const int32_t targetPOC = currPOC - static_cast<int32_t>(delta);
+		const uint32_t targetPOCL = static_cast<uint32_t>(targetPOC) & pocMask;
+		const int slot = find_slot_by_poc(targetPOC);
+
+		const bool used = ((usedBm >> i) & 1u) != 0;
+		if (used)
+			usedIdxFound = static_cast<int>(i);
+		if (used && D >= 1 && static_cast<uint32_t>(D) == delta)
+			usedIdxMatchesD = static_cast<int>(i);
+
+		std::printf("        S0[%02u]: delta=%u -> POC=%d (lsb=%u)  used=%u  slot=%d%s%s\n",
+		            i,
+		            delta,
+		            targetPOC,
+		            targetPOCL,
+		            used ? 1 : 0,
+		            slot,
+		            (slot == refIdx) ? "  [maps-to-ref_slot]" : "",
+		            (used && slot == refIdx) ? "  <-- L0[0]" : "");
 	}
+
+	if (!deltasStrictInc)
+		std::printf("        WARN: S0 deltas not strictly increasing (spec requires closest-first).\n");
+	if (refIdx >= 0 && D >= 1 && usedIdxMatchesD < 0)
+		std::printf("        MISMATCH: ref D=%d not present as a 'used' S0 entry. (Check used_by_curr_pic_s0_flag / deltas)\n", D);
+	if (refIdx >= 0 && usedIdxFound >= 0)
+		std::printf("        check: (currPOC - refPOC) == delta[%d] ? %s\n",
+		            usedIdxFound,
+		            (D >= 1 && static_cast<uint32_t>(D) == (static_cast<uint32_t>(rps->delta_poc_s0_minus1[usedIdxFound]) + 1u))
+		                    ? "OK"
+		                    : "MISMATCH");
 }
 
 void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> ref_slot)
@@ -444,26 +498,34 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 	std::ranges::fill(reference_lists_info.RefPicList0, STD_VIDEO_H265_NO_REFERENCE_PICTURE);
 	std::ranges::fill(reference_lists_info.RefPicList1, STD_VIDEO_H265_NO_REFERENCE_PICTURE);
 
-	const uint32_t pocMask = (1u << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1u;
-	const uint32_t poc = (frame_num & pocMask);
+	const int32_t poc = int32_t(frame_num);
 
 	if (ref_slot)
 	{
-		const uint32_t refPoc = uint32_t(dpb_std_info[*ref_slot].PicOrderCntVal) & pocMask;
-		uint32_t D = (poc - refPoc) & pocMask;
-
-		if (D == 0)
-			D = 1;
+		const int32_t refPoc = dpb_std_info[*ref_slot].PicOrderCntVal;
 
 		st_rps = {};
-		st_rps.use_delta_flag = 1;
-		st_rps.num_negative_pics = 1;
-		st_rps.delta_poc_s0_minus1[0] = uint16_t(D - 1);
-		st_rps.used_by_curr_pic_s0_flag = 1;
-		st_rps.used_by_curr_pic_flag = 1;
+
+		for (uint32_t i = 0; i < poc_history.size(); ++i)
+		{
+			const uint32_t delta = uint32_t(poc - poc_history[i]);
+			st_rps.delta_poc_s0_minus1[i] = uint16_t(delta - 1);
+			if (poc_history[i] == refPoc)
+			{
+				st_rps.used_by_curr_pic_s0_flag |= (1u << i);
+				st_rps.num_negative_pics = uint8_t(i + 1);
+				break;
+			}
+		}
+		st_rps.num_positive_pics = 0;
+		st_rps.used_by_curr_pic_flag = 0;
 
 		reference_lists_info.num_ref_idx_l0_active_minus1 = 0;
 		reference_lists_info.RefPicList0[0] = static_cast<uint8_t>(*ref_slot);
+	}
+	else
+	{
+		poc_history.clear();
 	}
 
 	std_picture_info = {
@@ -474,7 +536,7 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 	                .discardable_flag = 0,
 	                .cross_layer_bla_flag = 0,
 	                .pic_output_flag = 1,
-	                .no_output_of_prior_pics_flag = 0,
+	                .no_output_of_prior_pics_flag = ref_slot ? 0u : 1u,
 	                .short_term_ref_pic_set_sps_flag = 0u,
 	                .slice_temporal_mvp_enabled_flag = 1,
 	        },
@@ -502,6 +564,13 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 	i.pic_type = std_picture_info.pic_type;
 	i.PicOrderCntVal = std_picture_info.PicOrderCntVal;
 	i.TemporalId = std_picture_info.TemporalId;
+
+	const uint32_t history_limit = std::min<uint32_t>(16u, dpb.max_dec_pic_buffering_minus1[0]);
+
+	if (poc_history.size() < 1 || poc_history.front() != poc)
+		poc_history.push_front(poc);
+	if (poc_history.size() > history_limit)
+		poc_history.pop_back();
 
 	log_h265_rps_debug(frame_num, sps, std_picture_info, ref_slot ? &st_rps : nullptr, ref_slot, dpb_std_info);
 
