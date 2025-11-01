@@ -216,6 +216,8 @@ public:
 		return layers_;
 	}
 
+	std::vector<viewport> windows();
+
 	viewport & layer(ImVec2 position);
 
 	void new_frame(XrTime display_time);

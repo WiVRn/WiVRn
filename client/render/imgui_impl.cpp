@@ -146,7 +146,7 @@ static bool in_viewport(const imgui_context::viewport & viewport, ImVec2 positio
 	return true;
 }
 
-static bool window_intersects_viewport(ImGuiWindow * window, imgui_context::viewport & viewport)
+static bool window_intersects_viewport(ImGuiWindow * window, const imgui_context::viewport & viewport)
 {
 	ImRect w{window->Pos.x, window->Pos.y, window->Pos.x + window->Size.x, window->Pos.y + window->Size.y};
 	ImRect v(viewport.vp_origin.x, viewport.vp_origin.y, viewport.vp_origin.x + viewport.vp_size.x, viewport.vp_origin.y + viewport.vp_size.y);
@@ -1003,6 +1003,58 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 	}
 
 	return quads;
+}
+
+std::vector<imgui_context::viewport> imgui_context::windows()
+{
+	std::vector<imgui_context::viewport> w;
+
+	ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal();
+
+	for (const imgui_context::viewport & layer: layers_)
+	{
+		if (layer.space != xr::spaces::world)
+			continue;
+
+		ImRect v(layer.vp_origin.x, layer.vp_origin.y, layer.vp_origin.x + layer.vp_size.x, layer.vp_origin.y + layer.vp_size.y);
+
+		for (ImGuiWindow * window: context->Windows)
+		{
+			if (not window->Active or window->Hidden /*or window->ParentWindowInBeginStack != nullptr*/)
+				continue;
+
+			if (modal_popup != nullptr and window != modal_popup and not layer.always_show_cursor)
+				continue;
+
+			if (not window_intersects_viewport(window, layer))
+				continue;
+
+			// The window intersects the viewport: compute the window position in the real world
+			ImVec2 max = ImMin(v.Max, window->Pos + window->Size);
+			ImVec2 min = ImMax(v.Min, window->Pos);
+			ImVec2 center = (min + max) / 2;
+
+			w.push_back(viewport{
+			        .space = layer.space,
+			        .position = layer.position +
+			                    glm::mat3_cast(layer.orientation) *
+			                            glm::vec3(
+			                                    ((center.x - layer.vp_origin.x) / layer.vp_size.x - 0.5) * layer.size.x,
+			                                    (-(center.y - layer.vp_origin.y) / layer.vp_size.y + 0.5) * layer.size.y,
+			                                    0),
+			        .orientation = layer.orientation,
+			        .size = {
+			                (max.x - min.x) * layer.size.x / layer.vp_size.x,
+			                (max.y - min.y) * layer.size.y / layer.vp_size.y,
+			        },
+			        .vp_origin = {min.x, min.y},
+			        .vp_size = {max.x - min.x, max.y - min.y},
+			        .always_show_cursor = layer.always_show_cursor,
+			});
+		}
+	}
+
+	return w;
 }
 
 void imgui_context::vibrate_on_hover()
