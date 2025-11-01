@@ -152,7 +152,7 @@ if (WIVRN_BUILD_SERVER)
 		target_sources(wivrn-server PRIVATE
 			encoder/video_encoder_vulkan.cpp
 			encoder/video_encoder_vulkan_h264.cpp
-			#encoder/video_encoder_vulkan_h265.cpp
+			encoder/video_encoder_vulkan_h265.cpp
 			)
 	endif()
 
