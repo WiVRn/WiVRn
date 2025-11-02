@@ -49,7 +49,7 @@ systemctl enable --now avahi-daemon
 - On your headset, run WiVRn from the App Library. If you are using a Quest and you have installed it from an APK instead of the Meta Store, it will be in the "unknown sources" section.
 - You should now see your computer in the list: click connect, the screen will show "Connection ready. Start a VR application on **your computer's name**".
 
-You can now start an OpenXR application on your computer. For Steam games, you will also need to set the launch options to be able to use WiVRn:
+You can now start an OpenXR application on your computer. For Steam games, you may also need to set the launch options to be able to use WiVRn. If nothing related to Steam is displayed in the dashboard or wivrn-server output, then your system does not require it.
 - Right-click on the game you want to play in VR in Steam and click "Properties".
 - In the "General" tab, set the launch options to the value given in the dashboard.
 
