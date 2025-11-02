@@ -25,6 +25,7 @@
 #include <iostream>
 #include <stdexcept>
 
+// TODO: verify
 static uint32_t align(uint32_t value, uint32_t alignment)
 {
 	if (alignment == 0)
@@ -115,6 +116,18 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
 		U_LOG_W("No suitable rate control available, reverting to default");
 		rate_control.reset();
 	}
+
+	constexpr uint32_t cb_min_size = 8;
+	uint32_t granWidth =
+	        std::max(video_caps.pictureAccessGranularity.width, encode_caps.encodeInputPictureGranularity.width);
+	uint32_t granHeight =
+	        std::max(video_caps.pictureAccessGranularity.height, encode_caps.encodeInputPictureGranularity.height);
+
+	aligned_extent = vk::Extent3D{
+	        .width = align(rect.extent.width, std::max(cb_min_size, granWidth)),
+	        .height = align(rect.extent.height, std::max(cb_min_size, granHeight)),
+	        .depth = 1,
+	};
 }
 
 void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_caps,
@@ -135,7 +148,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	                .imageUsage = vk::ImageUsageFlagBits::eVideoEncodeSrcKHR,
 	        });
 
-	if (picture_format.format != vk::Format::eG8B8R82Plane420Unorm)
+	if (picture_format.format != vk::Format::eG8B8R82Plane420Unorm && picture_format.format != vk::Format::eG10X6B10X6R10X62Plane420Unorm3Pack16)
 		throw std::runtime_error("Unsupported format " +
 		                         vk::to_string(picture_format.format) +
 		                         " for encoder input image");
@@ -150,12 +163,6 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	{
 		// TODO: check format capabilities
 		// TODO: use multiple images if array levels are not supported
-
-		vk::Extent3D aligned_extent{
-		        .width = align(rect.extent.width, video_caps.pictureAccessGranularity.width),
-		        .height = align(rect.extent.height, video_caps.pictureAccessGranularity.height),
-		        .depth = 1,
-		};
 
 		vk::ImageCreateInfo img_create_info{
 		        .pNext = &video_profile_list,
@@ -224,10 +231,10 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		                //.flags = vk::VideoSessionCreateFlagBitsKHR::eAllowEncodeParameterOptimizations,
 		                .pVideoProfile = &video_profile,
 		                .pictureFormat = picture_format.format,
-		                .maxCodedExtent = rect.extent,
+		                .maxCodedExtent = {aligned_extent.width, aligned_extent.height},
 		                .referencePictureFormat = reference_picture_format.format,
 		                .maxDpbSlots = num_dpb_slots,
-		                .maxActiveReferencePictures = 2,
+		                .maxActiveReferencePictures = 1, // h265 code assumes only 1 reference
 		                .pStdHeaderVersion = &std_header_version,
 		        });
 
@@ -343,7 +350,8 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		for (auto & item: dpb)
 		{
 			item.resource = vk::VideoPictureResourceInfoKHR{
-			        .codedExtent = rect.extent,
+			        .codedOffset = {0, 0},
+			        .codedExtent = {aligned_extent.width, aligned_extent.height},
 			        .imageViewBinding = *item.image_view,
 			};
 		}
@@ -644,7 +652,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	dpb_item * ref_slot = nullptr;
 	for (auto & i: dpb)
 	{
-		if (i.frame_index == last_ack and i.info.slotIndex != -1)
+		if (i.frame_index == last_ack and i.info.slotIndex != -1 and i.info.slotIndex != (int32_t)slot_index)
 		{
 			ref_slot = &i;
 			break;
@@ -667,15 +675,37 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	{
 		slot_item.idr = false;
 	}
+
 	slot->frame_index = frame_index;
 	slot->info.pPictureResource = &slot->resource;
+
+	vk::VideoReferenceSlotInfoKHR init_refs[2] = {};
+	init_refs[0] = dpb_info[slot_index];
+	init_refs[0].slotIndex = -1;
+	init_refs[0].pPictureResource = &dpb[slot_index].resource;
+
+	if (ref_slot)
+	{
+		const int32_t ref_idx = ref_slot->info.slotIndex;
+		if (ref_idx >= 0 && ref_idx < dpb.size())
+		{
+			init_refs[1] = dpb[size_t(ref_idx)].info;
+			init_refs[1].slotIndex = ref_idx;
+			init_refs[1].pPictureResource = &dpb[size_t(ref_idx)].resource;
+		}
+		else
+		{
+			U_LOG_I("ref_idx out of range: %d", ref_idx);
+			ref_slot = nullptr;
+		}
+	}
 
 	video_cmd_buf.beginVideoCodingKHR({
 	        .pNext = (session_initialized and rate_control) ? &rate_control.value() : nullptr,
 	        .videoSession = *video_session,
 	        .videoSessionParameters = *video_session_parameters,
-	        .referenceSlotCount = uint32_t(dpb_info.size()),
-	        .pReferenceSlots = dpb_info.data(),
+	        .referenceSlotCount = ref_slot ? 2u : 1u,
+	        .pReferenceSlots = init_refs,
 	});
 
 	slot->info.slotIndex = slot_index;
@@ -751,12 +781,14 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	        .dstBufferOffset = 0,
 	        .dstBufferRange = slot_item.output_buffer.info().size,
 	        .srcPictureResource = {
-	                .codedExtent = rect.extent,
+	                .codedOffset = {0, 0},
+	                .codedExtent = {aligned_extent.width, aligned_extent.height},
 	                .baseArrayLayer = 0,
 	                .imageViewBinding = image_view,
 	        },
 	        .pSetupReferenceSlot = &slot->info,
 	};
+
 	if (ref_slot)
 		encode_info.setReferenceSlots(ref_slot->info);
 

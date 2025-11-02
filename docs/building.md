@@ -10,6 +10,7 @@ It also requires at least one encoder:
 
  * For nvenc (Nvidia), it requires cuda and nvidia driver
  * For vaapi (AMD/Intel), it requires ffmpeg with vaapi and libdrm support, as well as vaapi drivers for the GPU
+ * For vulkan (Any modern GPU), it requires vulkan headers of 1.3.283 or later, as well as vulkan drivers for the GPU
  * For x264 (software encoding), it requires libx264
 
 Some distributions such as Fedora don't ship h264 and h265 encoders and need specific repositories.

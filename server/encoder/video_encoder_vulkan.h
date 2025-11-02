@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_structs.hpp>
 
 #include "video_encoder.h"
 #include "vk/allocation.h"
@@ -82,6 +83,7 @@ class video_encoder_vulkan : public video_encoder
 
 protected:
 	const uint8_t num_dpb_slots;
+	vk::Extent3D aligned_extent;
 	vk::VideoEncodeRateControlLayerInfoKHR rate_control_layer;
 	std::optional<vk::VideoEncodeRateControlInfoKHR> rate_control;
 

@@ -19,6 +19,7 @@
 
 #include "video_encoder_vulkan.h"
 
+#include <deque>
 #include <memory>
 #include <vector>
 
@@ -26,33 +27,50 @@
 
 namespace wivrn
 {
+
 class video_encoder_vulkan_h265 : public video_encoder_vulkan
 {
-	uint16_t idr_id = 0;
-	StdVideoH265VideoParameterSet vps;
-	StdVideoH265SequenceParameterSet sps;
-	StdVideoH265PictureParameterSet pps;
+	std::deque<int32_t> poc_history;
+	bool sample_adaptive_offset_enabled = false;
 
-	StdVideoEncodeH265SliceSegmentHeader slice_header;
-	vk::VideoEncodeH265NaluSliceSegmentInfoKHR nalu_slice_info;
+	StdVideoH265SequenceParameterSetVui vui{};
+	StdVideoH265DecPicBufMgr dpb{};
 
-	StdVideoEncodeH265PictureInfo std_picture_info;
-	vk::VideoEncodeH265PictureInfoKHR picture_info;
+	StdVideoH265ProfileTierLevel ptl{};
+	StdVideoH265VideoParameterSet vps{};
 
-	StdVideoEncodeH265ReferenceListsInfo reference_lists_info;
+	StdVideoH265SequenceParameterSet sps{};
+
+	StdVideoH265PictureParameterSet pps{};
+
+	StdVideoH265ShortTermRefPicSet st_rps{};
+
+	StdVideoEncodeH265SliceSegmentHeader slice_header{};
+	vk::VideoEncodeH265NaluSliceSegmentInfoKHR nalu_slice_info{};
+
+	StdVideoEncodeH265ReferenceListsInfo reference_lists_info{};
+	StdVideoEncodeH265PictureInfo std_picture_info{};
+	vk::VideoEncodeH265PictureInfoKHR picture_info{};
 
 	std::vector<StdVideoEncodeH265ReferenceInfo> dpb_std_info;
 	std::vector<vk::VideoEncodeH265DpbSlotInfoKHR> dpb_std_slots;
 
-	vk::VideoEncodeH265GopRemainingFrameInfoKHR gop_info;
-	vk::VideoEncodeH265RateControlInfoKHR rate_control_h265;
+	vk::VideoEncodeH265GopRemainingFrameInfoKHR gop_info{};
+	vk::VideoEncodeH265RateControlInfoKHR rc_h265{};
+	vk::VideoEncodeH265RateControlLayerInfoKHR rc_layer_h265{};
 
-	video_encoder_vulkan_h265(wivrn_vk_bundle & vk, vk::Rect2D rect, vk::VideoEncodeCapabilitiesKHR encode_caps, float fps, uint64_t bitrate);
+	video_encoder_vulkan_h265(wivrn_vk_bundle & vk,
+	                          vk::Rect2D rect,
+	                          const vk::VideoCapabilitiesKHR & video_caps,
+	                          const vk::VideoEncodeCapabilitiesKHR & encode_caps,
+	                          float fps,
+	                          uint8_t stream_idx,
+	                          const encoder_settings & settings);
 
 protected:
 	std::vector<void *> setup_slot_info(size_t dpb_size) override;
 
-	void * encode_info_next(uint32_t frame_num, size_t slot, std::optional<size_t> ref) override;
+	void * encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> ref_slot) override;
 	virtual vk::ExtensionProperties std_header_version() override;
 
 	void send_idr_data() override;
@@ -60,7 +78,8 @@ protected:
 public:
 	static std::unique_ptr<video_encoder_vulkan_h265> create(wivrn_vk_bundle & vk,
 	                                                         encoder_settings & settings,
-	                                                         float fps);
+	                                                         float fps,
+	                                                         uint8_t stream_idx);
 
 	std::vector<uint8_t> get_vps_sps_pps();
 

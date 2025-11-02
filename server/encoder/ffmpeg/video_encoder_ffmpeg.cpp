@@ -18,8 +18,8 @@
  */
 
 #include "video_encoder_ffmpeg.h"
+
 #include "util/u_logging.h"
-#include <stdexcept>
 
 extern "C"
 {
