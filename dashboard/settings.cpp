@@ -470,7 +470,11 @@ QList<Settings::video_codec> Settings::allowedCodecs() const
 			};
 		case encoder_name::X264:
 		case encoder_name::Vulkan:
-			return {video_codec::H264};
+			return {
+			        video_codec::CodecAuto,
+			        video_codec::H264,
+			        video_codec::H265,
+			};
 	}
 	return {video_codec::CodecAuto};
 }

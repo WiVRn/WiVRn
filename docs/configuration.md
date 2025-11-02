@@ -64,7 +64,12 @@ Identifier of the encoder, one of
 Default value: first supported by both headset and encoder of `av1`, `h264`, `h265`.
 
 One of `h264`, `h265`, `av1`, `raw`.
-Not all encoders support every codec, `x264` and `vulkan` only support `h264`. For `raw` codec, only `raw` encoder can be used.
+
+Not all encoders support every codec:
+- `x264` encoder only supports `h264` codec
+- `vulkan` encoder supports `h264` and `h265` codecs
+- `raw` encoder only supports `raw` codec
+- `nvenc` and `vaapi` support all codecs, except `raw`
 
 If `nvenc` encoder is in use, you can refer to [nvidia website](https://developer.nvidia.com/video-encode-decode-support-matrix) to make sure that your GPU supports encoding with the desired codec.
 

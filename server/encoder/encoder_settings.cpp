@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #include "encoder_settings.h"
+
 #include "driver/configuration.h"
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
@@ -289,7 +289,12 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 #endif
 
 	if (config.name == encoder_vulkan and not config.codec)
-		config.codec = h264; // this will fail if 10-bit is enabled
+	{
+		if (bit_depth == 10)
+			config.codec = h265;
+		else
+			config.codec = h264;
+	}
 
 #if WIVRN_USE_X264
 	if (config.name == encoder_x264)
