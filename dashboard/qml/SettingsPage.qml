@@ -90,7 +90,6 @@ Kirigami.ScrollablePage {
                 Kirigami.FormData.label: i18n("Bitrate:")
                 from: 1
                 to: 200
-                value: config.bitrate
 
                 textFromValue: (value, locale) => i18nc("bitrate", "%1 Mbit/s", value)
                 valueFromText: function (text, locale) {
@@ -366,6 +365,9 @@ Kirigami.ScrollablePage {
     Component.onCompleted: {
         openvr_libs.init()
         config.load(WivrnServer);
+        // If bitrate was manually set higher, keep the limit
+        bitrate.to = Math.max(bitrate.to, config.bitrate)
+        bitrate.value = config.bitrate
         settings.allowUpdates = true;
         settings.load();
     }
