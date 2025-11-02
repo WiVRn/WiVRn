@@ -209,6 +209,7 @@ Kirigami.ScrollablePage {
                     enabled: config.can10bit
                     text: i18n("10-bits")
                     checked: config.tenbit
+                    onCheckedChanged: config.tenbit = checked
                 }
                 Kirigami.ContextualHelpButton {
                     toolTipText: i18n("10-bit encoding improves image quality but is not supported by all codecs and hardware")
