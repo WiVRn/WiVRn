@@ -85,7 +85,8 @@ constexpr glm::vec3 keyboard_position = {0, -0.3, 0.1};
 constexpr float near_plane = 0.02;
 
 // Recenter gesture thresholds
-constexpr float recenter_cosangle_min = 0.8;
+constexpr float recenter_cos_palm_angle_min = 0.7;
+constexpr float recenter_cos_fingertip_angle_max = 0.3;
 constexpr float recenter_distance_up = 0.3;
 constexpr float recenter_distance_front = 0.2;
 
