@@ -18,6 +18,7 @@
  */
 
 #include "nvenc_helper.h"
+#include <algorithm>
 
 bool operator==(const GUID & l, const GUID & r)
 {

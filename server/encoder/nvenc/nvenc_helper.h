@@ -21,7 +21,6 @@
 #include "util/u_logging.h"
 #include "video_encoder_nvenc_shared_state.h"
 #include "wivrn_packets.h"
-#include <algorithm>
 #include <ffnvcodec/nvEncodeAPI.h>
 #include <memory>
 
