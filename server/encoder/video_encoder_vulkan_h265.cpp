@@ -16,14 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "video_encoder_vulkan_h265.h"
+
 #include "encoder/encoder_settings.h"
 #include "utils/wivrn_vk_bundle.h"
-#include "video_encoder_vulkan_h265.h"
 #include <cstdint>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_enums.hpp>
 
-// TODO: verify
 static StdVideoH265LevelIdc choose_level(uint32_t w, uint32_t h, float fps)
 {
 	const uint64_t pixrate = uint64_t(w) * uint64_t(h) * uint64_t(fps + 0.5f);
@@ -72,10 +72,12 @@ wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
                 .flags = {
                         .aspect_ratio_info_present_flag = 1,
                         .video_signal_type_present_flag = 1,
-                        .video_full_range_flag = 1, // TODO: verify
+                        .video_full_range_flag = 1,
                         .colour_description_present_flag = 1,
                         .chroma_loc_info_present_flag = 1,
-                        .vui_timing_info_present_flag = 0, // no fixed framerate
+                        .vui_timing_info_present_flag = 0,            // no fixed framerate
+                        .motion_vectors_over_pic_boundaries_flag = 1, // allow motion vectors that exceed picture boundaries
+                        .restricted_ref_pic_lists_flag = 1,           // all slices in a single picture use the same referene
                 },
                 .aspect_ratio_idc = STD_VIDEO_H265_ASPECT_RATIO_IDC_SQUARE, // _pixels_ are square
                 .video_format = 5,                                          // unspecified video format
@@ -90,6 +92,8 @@ wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
         ptl{.flags = {
                     .general_tier_flag = 1, // 1 if >=STD_VIDEO_H265_LEVEL_IDC_5_0 and we only do 5 and above
                     .general_progressive_source_flag = 1,
+                    .general_interlaced_source_flag = 0,
+                    .general_non_packed_constraint_flag = 0,
                     .general_frame_only_constraint_flag = 1,
             },
             .general_profile_idc = (settings.bit_depth == 10) ? STD_VIDEO_H265_PROFILE_IDC_MAIN_10 : STD_VIDEO_H265_PROFILE_IDC_MAIN,
@@ -121,7 +125,7 @@ wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
                         .sample_adaptive_offset_enabled_flag = 0, // off for (ultra) low-latency
                         .strong_intra_smoothing_enabled_flag = 1, // confirmed ok
                         .vui_parameters_present_flag = 1,
-                        .sps_range_extension_flag = (settings.bit_depth == 10) ? 1u : 0u, // TODO: verify
+                        .sps_range_extension_flag = (settings.bit_depth == 10) ? 1u : 0u,
                 },
                 .chroma_format_idc = STD_VIDEO_H265_CHROMA_FORMAT_IDC_420,
                 .pic_width_in_luma_samples = aligned_extent.width,   // confirmed
@@ -361,114 +365,6 @@ void wivrn::video_encoder_vulkan_h265::send_idr_data()
 	SendData(data, false, true);
 }
 
-static inline void log_h265_rps_debug(
-        uint32_t frame_num,
-        const StdVideoH265SequenceParameterSet & sps,
-        const StdVideoEncodeH265PictureInfo & pic,
-        const StdVideoH265ShortTermRefPicSet * rps,
-        std::optional<int32_t> ref_slot,
-        const std::vector<StdVideoEncodeH265ReferenceInfo> & dpb)
-{
-	const uint32_t pocMask = (1u << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1u;
-	const int32_t currPOC = static_cast<int32_t>(pic.PicOrderCntVal);
-	const uint32_t currPOCL = static_cast<uint32_t>(currPOC) & pocMask;
-
-	const int refIdx = ref_slot.value_or(-1);
-	int32_t refPOC = -1;
-	uint32_t refPOCL = 0;
-	if (refIdx >= 0 && static_cast<size_t>(refIdx) < dpb.size())
-	{
-		refPOC = static_cast<int32_t>(dpb[static_cast<size_t>(refIdx)].PicOrderCntVal);
-		refPOCL = static_cast<uint32_t>(refPOC) & pocMask;
-	}
-
-	int D = -1;
-	if (refPOC >= 0)
-		D = currPOC - refPOC;
-
-	if (!rps)
-	{
-		std::printf("[H265] frame=%u type=%c  currPOC=%d (lsb=%u)  (IDR / no RPS)\n",
-		            frame_num,
-		            pic.pic_type == STD_VIDEO_H265_PICTURE_TYPE_IDR ? 'I' : 'P',
-		            currPOC,
-		            currPOCL);
-		return;
-	}
-
-	const uint32_t negN = rps->num_negative_pics;
-	const uint32_t usedBm = static_cast<uint32_t>(rps->used_by_curr_pic_s0_flag);
-
-	std::printf("[H265] frame=%u type=%c  currPOC=%d (lsb=%u)  ref_slot=%d  refPOC=%d (lsb=%u)  D=%d  | "
-	            "RPS: neg=%u used_mask=0x%X\n",
-	            frame_num,
-	            pic.pic_type == STD_VIDEO_H265_PICTURE_TYPE_IDR ? 'I' : 'P',
-	            currPOC,
-	            currPOCL,
-	            refIdx,
-	            refPOC,
-	            refPOCL,
-	            D,
-	            negN,
-	            usedBm);
-
-	auto find_slot_by_poc = [&](int32_t pocFull) -> int {
-		for (size_t s = 0; s < dpb.size(); ++s)
-			if (static_cast<int32_t>(dpb[s].PicOrderCntVal) == pocFull)
-				return static_cast<int>(s);
-		// fallback by lsb
-		const uint32_t lsb = static_cast<uint32_t>(pocFull) & pocMask;
-		for (size_t s = 0; s < dpb.size(); ++s)
-			if ((static_cast<uint32_t>(dpb[s].PicOrderCntVal) & pocMask) == lsb)
-				return static_cast<int>(s);
-		return -1;
-	};
-
-	bool deltasStrictInc = true;
-	uint32_t prevDelta = 0;
-	int usedIdxFound = -1;
-	int usedIdxMatchesD = -1;
-
-	for (uint32_t i = 0; i < negN; ++i)
-	{
-		const uint32_t delta = static_cast<uint32_t>(rps->delta_poc_s0_minus1[i]) + 1u; // 1..N
-		if (i && !(delta > prevDelta))
-			deltasStrictInc = false;
-		prevDelta = delta;
-
-		const int32_t targetPOC = currPOC - static_cast<int32_t>(delta);
-		const uint32_t targetPOCL = static_cast<uint32_t>(targetPOC) & pocMask;
-		const int slot = find_slot_by_poc(targetPOC);
-
-		const bool used = ((usedBm >> i) & 1u) != 0;
-		if (used)
-			usedIdxFound = static_cast<int>(i);
-		if (used && D >= 1 && static_cast<uint32_t>(D) == delta)
-			usedIdxMatchesD = static_cast<int>(i);
-
-		std::printf("        S0[%02u]: delta=%u -> POC=%d (lsb=%u)  used=%u  slot=%d%s%s\n",
-		            i,
-		            delta,
-		            targetPOC,
-		            targetPOCL,
-		            used ? 1 : 0,
-		            slot,
-		            (slot == refIdx) ? "  [maps-to-ref_slot]" : "",
-		            (used && slot == refIdx) ? "  <-- L0[0]" : "");
-	}
-
-	if (!deltasStrictInc)
-		std::printf("        WARN: S0 deltas not strictly increasing (spec requires closest-first).\n");
-	if (refIdx >= 0 && D >= 1 && usedIdxMatchesD < 0)
-		std::printf("        MISMATCH: ref D=%d not present as a 'used' S0 entry. (Check used_by_curr_pic_s0_flag / deltas)\n", D);
-	if (refIdx >= 0 && usedIdxFound >= 0)
-		std::printf("        check: (currPOC - refPOC) == delta[%d] ? %s\n",
-		            usedIdxFound,
-		            (D >= 1 && static_cast<uint32_t>(D) == (static_cast<uint32_t>(rps->delta_poc_s0_minus1[usedIdxFound]) + 1u))
-		                    ? "OK"
-		                    : "MISMATCH");
-}
-
 void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> ref_slot)
 {
 	slice_header = {
@@ -508,7 +404,7 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 
 		for (uint32_t i = 0; i < poc_history.size(); ++i)
 		{
-			const uint32_t delta = uint32_t(poc - poc_history[i]);
+			const uint32_t delta = uint32_t(poc - poc_history[i]) - i; // deltas are accumulative!
 			st_rps.delta_poc_s0_minus1[i] = uint16_t(delta - 1);
 			if (poc_history[i] == refPoc)
 			{
@@ -542,8 +438,8 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 	        },
 	        .pic_type = ref_slot ? STD_VIDEO_H265_PICTURE_TYPE_P : STD_VIDEO_H265_PICTURE_TYPE_IDR,
 	        .sps_video_parameter_set_id = 0,
-	        .pps_seq_parameter_set_id = 0,
-	        .pps_pic_parameter_set_id = 0,
+	        .pps_seq_parameter_set_id = sps.sps_seq_parameter_set_id,
+	        .pps_pic_parameter_set_id = pps.pps_pic_parameter_set_id,
 	        .short_term_ref_pic_set_idx = 0,
 	        .PicOrderCntVal = int32_t(poc),
 	        .TemporalId = 0,
@@ -571,8 +467,6 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 		poc_history.push_front(poc);
 	if (poc_history.size() > history_limit)
 		poc_history.pop_back();
-
-	log_h265_rps_debug(frame_num, sps, std_picture_info, ref_slot ? &st_rps : nullptr, ref_slot, dpb_std_info);
 
 	return &picture_info;
 }
