@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "util/u_logging.h"
 #include "video_encoder_ffmpeg.h"
-#include <stdexcept>
+
+#include "util/u_logging.h"
 
 extern "C"
 {

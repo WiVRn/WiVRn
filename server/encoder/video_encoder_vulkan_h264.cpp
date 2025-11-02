@@ -15,9 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "video_encoder_vulkan_h264.h"
+
 #include "encoder/encoder_settings.h"
 #include "utils/wivrn_vk_bundle.h"
-#include "video_encoder_vulkan_h264.h"
 
 static StdVideoH264LevelIdc compute_level(const StdVideoH264SequenceParameterSet & sps, float fps, uint32_t num_dpb_frames, size_t bitrate)
 {
