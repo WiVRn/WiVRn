@@ -66,6 +66,7 @@ namespace wivrn
 {
 GUID encode_guid(wivrn::video_codec codec);
 
+int get_caps(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid, NV_ENC_CAPS caps);
 void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid);
 void check_preset_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid, GUID preset_guid);
 void check_profile_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encodeGUID, GUID profileGUID, std::string err_msg = "GPU doesn't support selected encoding profile.");

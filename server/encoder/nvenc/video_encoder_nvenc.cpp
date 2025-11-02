@@ -83,13 +83,10 @@ video_encoder_nvenc::video_encoder_nvenc(
 	auto encodeGUID = encode_guid(settings.codec);
 	check_encode_guid_supported(shared_state, session_handle, encodeGUID);
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	GUID presetGUID = NV_ENC_PRESET_P4_GUID;
 	check_preset_guid_supported(shared_state, session_handle, encodeGUID, presetGUID);
 
 	NV_ENC_TUNING_INFO tuningInfo = NV_ENC_TUNING_INFO_ULTRA_LOW_LATENCY;
-#pragma GCC diagnostic pop
 	NV_ENC_PRESET_CONFIG preset_config{
 	        .version = NV_ENC_PRESET_CONFIG_VER,
 	        .presetCfg = {
@@ -108,22 +105,15 @@ video_encoder_nvenc::video_encoder_nvenc(
 	NV_ENC_BIT_DEPTH bitDepth = NV_ENC_BIT_DEPTH_8;
 	if (settings.bit_depth == 10)
 	{
-		NV_ENC_CAPS_PARAM cap_param{
-		        .version = NV_ENC_CAPS_PARAM_VER,
-		        .capsToQuery = NV_ENC_CAPS_SUPPORT_10BIT_ENCODE,
-		};
-
-		int res = 0;
-		NVENC_CHECK(shared_state->fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_param, &res));
-
-		if (res == 1)
+		// check if 10-bit is supported with selected encode guid
+		if (get_caps(shared_state, session_handle, encodeGUID, NV_ENC_CAPS_SUPPORT_10BIT_ENCODE))
 		{
 			bitDepth = NV_ENC_BIT_DEPTH_10;
 			bytesPerPixel = 2;
 		}
 		else
 		{
-			throw std::runtime_error("nvenc: 10-bit encoding requested, but GPU doesn't support it");
+			throw std::runtime_error("nvenc: 10-bit encoding requested, but GPU doesn't support it for selected codec");
 		}
 	}
 
@@ -143,7 +133,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 			if (bitDepth == NV_ENC_BIT_DEPTH_10)
 			{
 				config.profileGUID = NV_ENC_HEVC_PROFILE_MAIN10_GUID;
-				check_profile_guid_supported(shared_state, session_handle, encodeGUID, config.profileGUID, "GPU doesn't support 10-bit depth with H.265 codec.");
+				check_profile_guid_supported(shared_state, session_handle, encodeGUID, config.profileGUID);
 			}
 
 			config.encodeCodecConfig.hevcConfig.inputBitDepth = bitDepth;
@@ -159,7 +149,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 			if (bitDepth == NV_ENC_BIT_DEPTH_10)
 			{
 				config.profileGUID = NV_ENC_AV1_PROFILE_MAIN_GUID;
-				check_profile_guid_supported(shared_state, session_handle, encodeGUID, config.profileGUID, "GPU doesn't support 10-bit depth with AV1 codec.");
+				check_profile_guid_supported(shared_state, session_handle, encodeGUID, config.profileGUID);
 			}
 
 			config.encodeCodecConfig.av1Config.inputBitDepth = bitDepth;
@@ -435,23 +425,14 @@ std::array<int, 2> video_encoder_nvenc::get_max_size(video_codec codec)
 	try
 	{
 		auto encodeGUID = encode_guid(codec);
+		check_encode_guid_supported(state, session_handle, encodeGUID);
+
 		for (auto [cap, res]: {
 		             std::pair{NV_ENC_CAPS_WIDTH_MAX, &result[0]},
 		             {NV_ENC_CAPS_WIDTH_MAX, &result[1]},
 		     })
 		{
-			NV_ENC_CAPS_PARAM cap_params{
-			        .version = NV_ENC_CAPS_PARAM_VER,
-			        .capsToQuery = NV_ENC_CAPS_WIDTH_MAX,
-			};
-
-			check_encode_guid_supported(state, session_handle, encodeGUID);
-
-			NVENCSTATUS status = state->fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_params, res);
-			if (status != NV_ENC_SUCCESS)
-			{
-				throw std::runtime_error("nvenc get_max_size: failed to get caps");
-			}
+			*res = get_caps(state, session_handle, encodeGUID, NV_ENC_CAPS_WIDTH_MAX);
 		}
 	}
 	catch (...)

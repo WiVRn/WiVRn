@@ -45,6 +45,18 @@ GUID encode_guid(wivrn::video_codec codec)
 	throw std::out_of_range("Invalid codec " + std::to_string(codec));
 }
 
+int get_caps(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid, NV_ENC_CAPS caps)
+{
+	NV_ENC_CAPS_PARAM cap_param{
+	        .version = NV_ENC_CAPS_PARAM_VER,
+	        .capsToQuery = caps,
+	};
+
+	int res = 0;
+	NVENC_CHECK(shared_state->fn.nvEncGetEncodeCaps(session_handle, encode_guid, &cap_param, &res));
+	return res;
+}
+
 void check_encode_guid_supported(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid)
 {
 	uint32_t count;
