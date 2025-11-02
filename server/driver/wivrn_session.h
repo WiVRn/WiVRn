@@ -159,7 +159,7 @@ public:
 
 	clock_offset get_offset();
 	bool connected();
-	const from_headset::headset_info_packet & get_info()
+	const from_headset::headset_info_packet & get_info() const
 	{
 		return connection->info();
 	};
@@ -184,6 +184,7 @@ public:
 	void operator()(from_headset::pin_check_1 &&) {}
 	void operator()(from_headset::pin_check_3 &&) {}
 	void operator()(from_headset::headset_info_packet &&);
+	void operator()(from_headset::settings_changed &&);
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::trackings &&);
 	void operator()(const from_headset::tracking &);

@@ -512,9 +512,12 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 	{
 		std::visit(utils::overloaded{
 		                   [&](const wivrn::from_headset::headset_info_packet & info) {
-			                   on_headset_info_packet(std::get<wivrn::from_headset::headset_info_packet>(*packet));
+			                   on_headset_info_packet(info);
 			                   inhibitor.emplace();
 			                   wivrn_server_set_headset_connected(dbus_server, true);
+		                   },
+		                   [&](const wivrn::from_headset::settings_changed & settings) {
+			                   wivrn_server_set_preferred_refresh_rate(dbus_server, settings.preferred_refresh_rate);
 		                   },
 		                   [&](const wivrn::from_headset::start_app & request) {
 			                   const auto & apps = list_applications();

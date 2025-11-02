@@ -311,7 +311,7 @@ private:
 	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
 	void gui_performance_metrics();
 	void gui_compact_view();
-	void gui_settings();
+	void gui_settings(float predicted_display_period);
 	void gui_foveation_settings(float predicted_display_period);
 	void gui_applications();
 	void draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);
