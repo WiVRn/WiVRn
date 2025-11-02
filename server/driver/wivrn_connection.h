@@ -113,7 +113,7 @@ public:
 
 	std::optional<from_headset::packets> poll_control(int timeout);
 
-	const wivrn::from_headset::headset_info_packet & info() const
+	wivrn::from_headset::headset_info_packet & info()
 	{
 		return info_packet;
 	}

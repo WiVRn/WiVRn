@@ -221,6 +221,8 @@ struct headset_info_packet
 	uint32_t recommended_eye_height;
 	std::vector<float> available_refresh_rates;
 	float preferred_refresh_rate;
+	// for automatic
+	float minimum_refresh_rate;
 	struct audio_description
 	{
 		uint8_t num_channels;
@@ -243,6 +245,13 @@ struct headset_info_packet
 	std::string language;
 	std::string country;
 	std::string variant;
+};
+
+struct settings_changed
+{
+	float preferred_refresh_rate;
+	// for automatic
+	float minimum_refresh_rate;
 };
 
 struct handshake
@@ -477,6 +486,7 @@ using packets = std::variant<
         pin_check_1,
         pin_check_3,
         headset_info_packet,
+        settings_changed,
         feedback,
         audio_data,
         handshake,

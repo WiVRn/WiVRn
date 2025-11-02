@@ -381,6 +381,12 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 	U_LOG_W("unexpected headset info packet, ignoring");
 }
 
+void wivrn_session::operator()(from_headset::settings_changed && settings)
+{
+	connection->info().preferred_refresh_rate = settings.preferred_refresh_rate;
+	connection->info().minimum_refresh_rate = settings.minimum_refresh_rate;
+}
+
 static xrt_device_name get_name(interaction_profile profile)
 {
 	switch (profile)
@@ -854,23 +860,17 @@ struct refresh_rate_adjuster
 {
 	std::chrono::seconds period{10};
 	std::chrono::steady_clock::time_point next = std::chrono::steady_clock::now() + period;
-	bool enabled;
 	pacing_app_factory & pacers;
-	const from_headset::headset_info_packet & info;
+	from_headset::headset_info_packet & info;
 	float last = 0;
 
-	refresh_rate_adjuster(const from_headset::headset_info_packet & info, pacing_app_factory & pacers) :
-	        enabled(info.preferred_refresh_rate == 0 and info.available_refresh_rates.size() > 1),
+	refresh_rate_adjuster(from_headset::headset_info_packet & info, pacing_app_factory & pacers) :
 	        pacers(pacers),
-	        info(info)
-	{
-		if (enabled)
-			U_LOG_I("Automatic refresh rate adjustment enabled");
-	}
+	        info(info) {}
 
 	void adjust(wivrn_connection & cnx)
 	{
-		if (not enabled or std::chrono::steady_clock::now() < next)
+		if (info.preferred_refresh_rate != 0 or info.available_refresh_rates.size() < 2 or std::chrono::steady_clock::now() < next)
 			return;
 
 		// Maximum refresh rate the application can reach
@@ -880,7 +880,7 @@ struct refresh_rate_adjuster
 		auto requested = info.available_refresh_rates.back();
 		for (auto rate: info.available_refresh_rates)
 		{
-			if (rate < app_rate * (rate == last ? 1. : 0.9))
+			if (rate > info.minimum_refresh_rate and rate < app_rate * (rate == last ? 1. : 0.9))
 				requested = rate;
 		}
 		if (requested != last)
@@ -900,7 +900,7 @@ struct refresh_rate_adjuster
 
 void wivrn_session::run(std::stop_token stop)
 {
-	refresh_rate_adjuster refresh(get_info(), app_pacers);
+	refresh_rate_adjuster refresh(connection->info(), app_pacers);
 	while (not stop.stop_requested())
 	{
 		try

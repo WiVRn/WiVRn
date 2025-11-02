@@ -232,11 +232,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 				if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(info.available_refresh_rates, *config.preferred_refresh_rate)))
 				{
 					info.preferred_refresh_rate = *config.preferred_refresh_rate;
-					if (info.preferred_refresh_rate == 0)
-						info.available_refresh_rates = {
-						        std::ranges::lower_bound(info.available_refresh_rates, config.minimum_refresh_rate),
-						        info.available_refresh_rates.end(),
-						};
+					info.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
 				}
 				else
 				{
