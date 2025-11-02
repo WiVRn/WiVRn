@@ -234,7 +234,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		                .maxCodedExtent = {aligned_extent.width, aligned_extent.height},
 		                .referencePictureFormat = reference_picture_format.format,
 		                .maxDpbSlots = num_dpb_slots,
-		                .maxActiveReferencePictures = 2,
+		                .maxActiveReferencePictures = 1, // h265 code assumes only 1 reference
 		                .pStdHeaderVersion = &std_header_version,
 		        });
 

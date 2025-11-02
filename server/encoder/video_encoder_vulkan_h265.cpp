@@ -47,7 +47,7 @@ static uint32_t find_lsb(uint32_t v)
 		if (v & (1u << i))
 			return i;
 
-	return UINT32_MAX;
+	throw std::runtime_error(std::string("invalid value in encode capabilities reported by gpu driver"));
 }
 
 static uint32_t find_msb(uint32_t v)
@@ -56,7 +56,7 @@ static uint32_t find_msb(uint32_t v)
 		if (v & (1u << i))
 			return i;
 
-	return UINT32_MAX;
+	throw std::runtime_error(std::string("invalid value in encode capabilities reported by gpu driver"));
 }
 
 wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
