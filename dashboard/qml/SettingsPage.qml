@@ -19,14 +19,6 @@ Kirigami.ScrollablePage {
         id: config
     }
 
-    Core.Settings {
-        property alias adb_custom: settings.adb_custom
-        property alias adb_location: settings.adb_location
-        property alias show_system_checks: show_system_checks.checked
-    }
-    property bool adb_custom
-    property string adb_location
-
     ColumnLayout {
         id: column
         anchors.fill: parent
@@ -272,7 +264,7 @@ Kirigami.ScrollablePage {
                 enabled: adb_custom.checked
                 Controls.TextField {
                     id: adb_location
-                    placeholderText: settings.adb_location
+                    placeholderText: DashboardSettings.adb_location
                     Layout.fillWidth: true
                 }
                 Controls.Button {
@@ -383,9 +375,11 @@ Kirigami.ScrollablePage {
         } else {
             config.openvr = openvr.value
         }
-        settings.adb_custom = adb_custom.checked;
-        settings.adb_location = adb_location.text;
-        Adb.setPath(adb_custom.checked ? adb_location.text : "adb");
+        DashboardSettings.adb_custom = adb_custom.checked;
+        DashboardSettings.adb_location = adb_location.text;
+        Adb.setPath(DashboardSettings.adb_custom.checked ? adb_location.text : "adb");
+
+        DashboardSettings.show_system_checks = show_system_checks.checked;
 
         config.debugGui = debug_gui.checked;
         config.steamVrLh = steamvr_lh.checked;
@@ -403,8 +397,10 @@ Kirigami.ScrollablePage {
 
         openvr_combobox.load()
 
-        adb_custom.checked = settings.adb_custom;
-        adb_location.text = settings.adb_location;
+        adb_custom.checked = DashboardSettings.adb_custom;
+        adb_location.text = DashboardSettings.adb_location;
+
+        show_system_checks.checked = DashboardSettings.show_system_checks;
     }
 
     Shortcut {

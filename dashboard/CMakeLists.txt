@@ -27,11 +27,16 @@ target_sources(wivrn-dashboard PRIVATE ${DBUS_INTERFACE_SRC})
 
 set_source_files_properties(../images/wivrn.svg PROPERTIES QT_RESOURCE_ALIAS qml/wivrn.svg)
 
+set_source_files_properties(qml/DashboardSettings.qml PROPERTIES
+    QT_QML_SINGLETON_TYPE TRUE
+)
+
 qt_add_qml_module(wivrn-dashboard
     URI io.github.wivrn.wivrn
     QML_FILES
         qml/Main.qml
         qml/ApkInstallPage.qml
+        qml/DashboardSettings.qml
         qml/SettingsPage.qml
         qml/HeadsetsPage.qml
         qml/HeadsetStatsPage.qml
@@ -49,7 +54,6 @@ qt_add_qml_module(wivrn-dashboard
         qml/Discord.svg
         qml/Github.svg
 )
-
 
 configure_file(gui_config.h.in gui_config.h)
 configure_file(io.github.wivrn.wivrn.desktop.in io.github.wivrn.wivrn.desktop)

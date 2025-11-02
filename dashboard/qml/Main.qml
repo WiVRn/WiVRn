@@ -42,15 +42,6 @@ Kirigami.ApplicationWindow {
 
     onClosing: Qt.quit()
 
-    Core.Settings {
-        id: settings
-        property alias first_run: root.first_run
-        property alias last_run_version: root.last_run_version
-        property bool show_system_checks: true
-    }
-    property bool first_run: true
-    property string last_run_version
-
     width: 900
     height: 800
 
@@ -76,10 +67,10 @@ Kirigami.ApplicationWindow {
             if (value == WivrnServer.FailedToStart)
                 message_failed_to_start.visible = true;
 
-            if (root.first_run && started) {
+            if (DashboardSettings.first_run && started) {
                 console.log("First run");
                 root.pageStack.push(Qt.createComponent("WizardPage.qml").createObject());
-                root.first_run = false;
+                DashboardSettings.first_run = false;
             }
         }
 
@@ -109,8 +100,8 @@ Kirigami.ApplicationWindow {
         if (WivrnServer.serverStatus == WivrnServer.Stopped)
             WivrnServer.start_server();
 
-        if (root.last_run_version != ApkInstaller.currentVersion) {
-            root.last_run_version = ApkInstaller.currentVersion;
+        if (DashboardSettings.last_run_version != ApkInstaller.currentVersion) {
+            DashboardSettings.last_run_version = ApkInstaller.currentVersion;
         }
     }
 
@@ -130,7 +121,7 @@ Kirigami.ApplicationWindow {
                         text: i18n("Avahi daemon is not installed")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: settings.show_system_checks && !Avahi.installed
+                        visible: DashboardSettings.show_system_checks && !Avahi.installed
                     }
 
                     Kirigami.InlineMessage {
@@ -138,7 +129,7 @@ Kirigami.ApplicationWindow {
                         text: i18n("Avahi daemon is not started")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: settings.show_system_checks && Avahi.installed && !Avahi.running
+                        visible: DashboardSettings.show_system_checks && Avahi.installed && !Avahi.running
                         actions: [
                             Kirigami.Action {
                                 visible: Avahi.canStart
@@ -154,7 +145,7 @@ Kirigami.ApplicationWindow {
                         // type: Kirigami.MessageType.Warning
                         type: Kirigami.MessageType.Information
                         showCloseButton: true
-                        visible: settings.show_system_checks && !WivrnServer.capSysNice
+                        visible: DashboardSettings.show_system_checks && !WivrnServer.capSysNice
                         actions: [
                             Kirigami.Action {
                                 text: i18n("Fix it")
@@ -168,7 +159,7 @@ Kirigami.ApplicationWindow {
                         text: i18n("Firewall may not allow port 9757")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: settings.show_system_checks && Firewall.needSetup
+                        visible: DashboardSettings.show_system_checks && Firewall.needSetup
                         actions: [
                             Kirigami.Action {
                                 text: i18n("Fix it")
