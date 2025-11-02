@@ -15,6 +15,8 @@ Kirigami.ScrollablePage {
 
     flickable.interactive: false // Make sure the Kirigami.ScrollablePage does not eat the vertical mouse dragging events
 
+    property bool allowUpdates: false // ignore onXXX events until document is loaded
+
     Settings {
         id: config
     }
@@ -142,7 +144,7 @@ Kirigami.ScrollablePage {
                             encoder: Settings.X264
                         }
                     ]
-                    onCurrentIndexChanged: config.encoder = model[currentIndex].encoder
+                    onCurrentIndexChanged: if (settings.allowUpdates) {config.encoder = model[currentIndex].encoder}
                     textRole: "label"
                     Connections {
                         target: config
@@ -182,7 +184,7 @@ Kirigami.ScrollablePage {
                             codec: Settings.Av1
                         }
                     ]
-                    onCurrentIndexChanged: config.codec = model[currentIndex].codec
+                    onCurrentIndexChanged: if (settings.allowUpdates) {config.codec = model[currentIndex].codec}
                     textRole: "label"
 
                     delegate: Controls.ItemDelegate {
@@ -364,6 +366,7 @@ Kirigami.ScrollablePage {
     Component.onCompleted: {
         openvr_libs.init()
         config.load(WivrnServer);
+        settings.allowUpdates = true;
         settings.load();
     }
 

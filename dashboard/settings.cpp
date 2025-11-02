@@ -206,6 +206,7 @@ Settings::encoder_name Settings::encoder() const
 void Settings::set_encoder(const encoder_name & value)
 {
 	auto old = encoder();
+	auto old_codec = codec();
 	switch (value)
 	{
 		case EncoderAuto:
@@ -237,10 +238,11 @@ void Settings::set_encoder(const encoder_name & value)
 	if (value != old)
 	{
 		encoderChanged();
-		codecChanged();
 		if (not can10bit())
 			set_tenbit(false);
 	}
+	if (old_codec != codec())
+		codecChanged();
 	simpleConfigChanged();
 }
 
