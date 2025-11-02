@@ -28,7 +28,7 @@ static StdVideoH265LevelIdc choose_level(uint32_t w, uint32_t h, float fps)
 {
 	const uint64_t pixrate = uint64_t(w) * uint64_t(h) * uint64_t(fps + 0.5f);
 
-	// only consider >=5_0 due to general_level_idc flag
+	// only consider >=5_0 due to general_tier_flag on ptl
 
 	if (pixrate < 267'386'880)
 		return STD_VIDEO_H265_LEVEL_IDC_5_0;
@@ -418,6 +418,13 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 
 		reference_lists_info.num_ref_idx_l0_active_minus1 = 0;
 		reference_lists_info.RefPicList0[0] = static_cast<uint8_t>(*ref_slot);
+
+		if (st_rps.used_by_curr_pic_s0_flag == 0)
+		{
+			// ref_slot is too old → encode an IDR instead
+			ref_slot.reset();
+			poc_history.clear();
+		}
 	}
 	else
 	{

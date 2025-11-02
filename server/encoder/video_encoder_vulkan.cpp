@@ -652,7 +652,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	dpb_item * ref_slot = nullptr;
 	for (auto & i: dpb)
 	{
-		if (i.frame_index == last_ack and i.info.slotIndex != -1)
+		if (i.frame_index == last_ack and i.info.slotIndex != -1 and i.info.slotIndex != (int32_t)slot_index)
 		{
 			ref_slot = &i;
 			break;
@@ -676,9 +676,6 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		slot_item.idr = false;
 	}
 
-	// avoid self-reference when the DPB ring wraps (cannot reference the slot we're writing).
-	bool use_ref = (ref_slot && ref_slot->info.slotIndex != static_cast<int32_t>(slot_index));
-
 	slot->frame_index = frame_index;
 	slot->info.pPictureResource = &slot->resource;
 
@@ -687,7 +684,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	init_refs[0].slotIndex = -1;
 	init_refs[0].pPictureResource = &dpb[slot_index].resource;
 
-	if (use_ref)
+	if (ref_slot)
 	{
 		const int32_t ref_idx = ref_slot->info.slotIndex;
 		if (ref_idx >= 0 && ref_idx < dpb.size())
@@ -699,7 +696,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		else
 		{
 			U_LOG_I("ref_idx out of range: %d", ref_idx);
-			use_ref = false;
+			ref_slot = nullptr;
 		}
 	}
 
@@ -707,7 +704,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	        .pNext = (session_initialized and rate_control) ? &rate_control.value() : nullptr,
 	        .videoSession = *video_session,
 	        .videoSessionParameters = *video_session_parameters,
-	        .referenceSlotCount = use_ref ? 2u : 1u,
+	        .referenceSlotCount = ref_slot ? 2u : 1u,
 	        .pReferenceSlots = init_refs,
 	});
 
@@ -779,7 +776,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        });
 
 	vk::VideoEncodeInfoKHR encode_info{
-	        .pNext = encode_info_next(frame_num, slot_index, use_ref ? std::make_optional(ref_slot->info.slotIndex) : std::nullopt),
+	        .pNext = encode_info_next(frame_num, slot_index, ref_slot ? std::make_optional(ref_slot->info.slotIndex) : std::nullopt),
 	        .dstBuffer = slot_item.output_buffer,
 	        .dstBufferOffset = 0,
 	        .dstBufferRange = slot_item.output_buffer.info().size,
@@ -792,7 +789,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	        .pSetupReferenceSlot = &slot->info,
 	};
 
-	if (use_ref)
+	if (ref_slot)
 		encode_info.setReferenceSlots(ref_slot->info);
 
 	video_cmd_buf.beginQuery(*query_pool, encode_slot, {});
