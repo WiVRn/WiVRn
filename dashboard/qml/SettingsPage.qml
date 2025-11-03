@@ -135,7 +135,7 @@ Kirigami.ScrollablePage {
                             encoder: Settings.Vaapi
                         },
                         {
-                            label: i18n("Vulkan (Vulkan Video)"),
+                            label: i18n("Vulkan (Any modern GPU)"),
                             encoder: Settings.Vulkan
                         },
                         {
