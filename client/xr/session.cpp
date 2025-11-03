@@ -57,6 +57,9 @@ xr::session::session(xr::instance & inst, xr::system & sys, vk::raii::Instance &
 		xrEnumerateDisplayRefreshRatesFB = inst.get_proc<PFN_xrEnumerateDisplayRefreshRatesFB>("xrEnumerateDisplayRefreshRatesFB");
 		xrRequestDisplayRefreshRateFB = inst.get_proc<PFN_xrRequestDisplayRefreshRateFB>("xrRequestDisplayRefreshRateFB");
 	}
+
+	if (inst.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))
+		xrPerfSettingsSetPerformanceLevelEXT = inst.get_proc<PFN_xrPerfSettingsSetPerformanceLevelEXT>("xrPerfSettingsSetPerformanceLevelEXT");
 }
 
 std::vector<XrReferenceSpaceType> xr::session::get_reference_spaces() const
@@ -366,4 +369,10 @@ void xr::session::disable_passthrough()
 	if (std::holds_alternative<std::monostate>(passthrough))
 		return;
 	passthrough.emplace<std::monostate>();
+}
+
+void xr::session::set_performance_level(XrPerfSettingsDomainEXT domain, XrPerfSettingsLevelEXT level)
+{
+	if (xrPerfSettingsSetPerformanceLevelEXT)
+		xrPerfSettingsSetPerformanceLevelEXT(*this, domain, level);
 }
