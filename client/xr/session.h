@@ -42,6 +42,10 @@ class session : public utils::handle<XrSession, xrDestroySession>
 	xr::passthrough passthrough;
 	thread_safe<vk::raii::Queue> * queue = nullptr;
 
+	PFN_xrGetDisplayRefreshRateFB xrGetDisplayRefreshRateFB = nullptr;
+	PFN_xrEnumerateDisplayRefreshRatesFB xrEnumerateDisplayRefreshRatesFB = nullptr;
+	PFN_xrRequestDisplayRefreshRateFB xrRequestDisplayRefreshRateFB = nullptr;
+
 public:
 	session() = default;
 	session(instance &, system &, vk::raii::Instance &, vk::raii::PhysicalDevice &, vk::raii::Device &, thread_safe<vk::raii::Queue> & queue, int queue_family_index);
