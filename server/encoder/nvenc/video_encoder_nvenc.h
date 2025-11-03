@@ -25,6 +25,7 @@
 #include <ffnvcodec/dynlink_cuda.h>
 #include <ffnvcodec/dynlink_loader.h>
 #include <ffnvcodec/nvEncodeAPI.h>
+#include <source_location>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace wivrn
@@ -38,8 +39,8 @@ private:
 	vk::Rect2D rect;
 
 	std::shared_ptr<video_encoder_nvenc_shared_state> shared_state;
-
 	void * session_handle = nullptr;
+
 	NV_ENC_OUTPUT_PTR outputBuffer;
 	NV_ENC_CONFIG config;
 	NV_ENC_INITIALIZE_PARAMS init_params;
@@ -56,6 +57,7 @@ private:
 	uint64_t bitrate;
 	int bytesPerPixel = 1;
 
+	void check(NVENCSTATUS status, std::source_location location = std::source_location::current());
 	NV_ENC_RC_PARAMS get_rc_params(uint64_t bitrate, float framerate);
 	void set_init_params_fps(float framerate);
 

@@ -23,6 +23,7 @@
 #include "wivrn_packets.h"
 #include <ffnvcodec/nvEncodeAPI.h>
 #include <memory>
+#include <system_error>
 
 #define NVENC_CHECK_NOENCODER(x)                                          \
 	do                                                                \
@@ -33,17 +34,6 @@
 			U_LOG_E("%s:%d: %d", __FILE__, __LINE__, status); \
 			throw std::runtime_error("nvenc error");          \
 		}                                                         \
-	} while (0)
-
-#define NVENC_CHECK(x)                                                                                                                  \
-	do                                                                                                                              \
-	{                                                                                                                               \
-		NVENCSTATUS status = x;                                                                                                 \
-		if (status != NV_ENC_SUCCESS)                                                                                           \
-		{                                                                                                                       \
-			U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle)); \
-			throw std::runtime_error("nvenc error");                                                                        \
-		}                                                                                                                       \
 	} while (0)
 
 #define CU_CHECK(x)                                                                               \
@@ -63,6 +53,32 @@ bool operator==(const GUID & l, const GUID & r);
 
 namespace wivrn
 {
+
+class nvenc_error_category : public std::error_category
+{
+protected:
+	std::shared_ptr<video_encoder_nvenc_shared_state> shared_state;
+	void * session_handle;
+
+public:
+	nvenc_error_category(std::shared_ptr<video_encoder_nvenc_shared_state> sharedState) : shared_state(sharedState), session_handle(nullptr)
+	{
+	}
+
+	nvenc_error_category(std::shared_ptr<video_encoder_nvenc_shared_state> sharedState, void * sessionHandle) : shared_state(sharedState), session_handle(sessionHandle)
+	{
+	}
+
+	const char *
+	name() const noexcept override
+	{
+		return "nvenc";
+	}
+
+	std::string
+	message(int nvenc_err) const override;
+};
+
 GUID encode_guid(wivrn::video_codec codec);
 
 int get_caps(std::shared_ptr<video_encoder_nvenc_shared_state> shared_state, void * session_handle, GUID encode_guid, NV_ENC_CAPS caps);

@@ -28,8 +28,35 @@ bool operator==(const GUID & l, const GUID & r)
 	       std::ranges::equal(l.Data4, r.Data4);
 }
 
+#define NVENC_CHECK(x)                                                                                              \
+	do                                                                                                          \
+	{                                                                                                           \
+		NVENCSTATUS status = x;                                                                             \
+		if (status != NV_ENC_SUCCESS)                                                                       \
+		{                                                                                                   \
+			throw std::system_error(status, wivrn::nvenc_error_category(shared_state, session_handle)); \
+		}                                                                                                   \
+	} while (0)
+
 namespace wivrn
 {
+
+std::string nvenc_error_category::message(int nvenc_err) const
+{
+	std::string errMsg = "Error before encoder opened.";
+
+	if (session_handle)
+	{
+		errMsg = "Encoder error.";
+
+		std::string nvErrMsg = std::string(shared_state->fn.nvEncGetLastErrorString(session_handle));
+		if (!nvErrMsg.empty())
+			errMsg = errMsg + ' ' + nvErrMsg;
+	}
+
+	return errMsg + " (NVENCSTATUS " + std::to_string(nvenc_err) + ')';
+}
+
 GUID encode_guid(wivrn::video_codec codec)
 {
 	switch (codec)

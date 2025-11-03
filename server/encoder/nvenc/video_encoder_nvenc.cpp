@@ -29,6 +29,17 @@
 namespace wivrn
 {
 
+void video_encoder_nvenc::check(NVENCSTATUS status, std::source_location location)
+{
+	if (status != NV_ENC_SUCCESS)
+	{
+		U_LOG_E("NVENC error: %s:%d: (%d)", location.file_name(), location.line(), (int)status);
+		throw std::system_error(status, nvenc_error_category(shared_state, session_handle));
+	}
+}
+
+#define NVENC_CHECK(x) check(x)
+
 NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(uint64_t bitrate, float framerate)
 {
 	return {
@@ -82,7 +93,6 @@ video_encoder_nvenc::video_encoder_nvenc(
 
 	auto encodeGUID = encode_guid(settings.codec);
 	check_encode_guid_supported(shared_state, session_handle, encodeGUID);
-
 	GUID presetGUID = NV_ENC_PRESET_P4_GUID;
 	check_preset_guid_supported(shared_state, session_handle, encodeGUID, presetGUID);
 
