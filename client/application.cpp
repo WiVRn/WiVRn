@@ -70,7 +70,7 @@ using namespace std::chrono_literals;
 struct interaction_profile
 {
 	std::string profile_name;
-	std::vector<std::string> required_extensions;
+	std::vector<const char *> required_extensions;
 	XrVersion min_version = XR_MAKE_VERSION(1, 0, 0);
 	std::vector<std::string> input_sources;
 	bool available;
@@ -1191,61 +1191,64 @@ void application::initialize()
 {
 	// LogLayersAndExtensions
 	assert(!xr_instance);
-	std::vector<std::string> xr_extensions;
-
-	// Required extensions
-	xr_extensions.push_back(XR_KHR_CONVERT_TIMESPEC_TIME_EXTENSION_NAME);
+	std::vector<const char *> xr_extensions{
+	        // Required extensions
+	        XR_KHR_CONVERT_TIMESPEC_TIME_EXTENSION_NAME,
+	};
 
 	// Optional extensions
-	std::vector<std::string> opt_extensions;
-	opt_extensions.push_back(XR_KHR_LOCATE_SPACES_EXTENSION_NAME);
-	opt_extensions.push_back(XR_KHR_MAINTENANCE1_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME);
-	opt_extensions.push_back(XR_EXT_HAND_TRACKING_EXTENSION_NAME);
-	opt_extensions.push_back(XR_EXT_HAND_INTERACTION_EXTENSION_NAME);
-	opt_extensions.push_back(XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
-	opt_extensions.push_back(XR_HTC_PASSTHROUGH_EXTENSION_NAME);
-	opt_extensions.push_back(XR_HTC_FACIAL_TRACKING_EXTENSION_NAME);
-	opt_extensions.push_back(XR_HTC_PATH_ENUMERATION_EXTENSION_NAME);
-	opt_extensions.push_back(XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_FACE_TRACKING2_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_BODY_TRACKING_EXTENSION_NAME);
-	opt_extensions.push_back(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME);
-	opt_extensions.push_back(XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME);
-	opt_extensions.push_back(XR_BD_BODY_TRACKING_EXTENSION_NAME);
-	opt_extensions.push_back(XR_EXT_PALM_POSE_EXTENSION_NAME);
-	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME);
-	opt_extensions.push_back(XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME);
-	opt_extensions.push_back(XR_EXT_USER_PRESENCE_EXTENSION_NAME);
-	opt_extensions.push_back(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_SWAPCHAIN_UPDATE_STATE_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_FOVEATION_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME);
-	opt_extensions.push_back(XR_FB_FOVEATION_VULKAN_EXTENSION_NAME);
+	std::vector<const char *> opt_extensions{
+	        XR_KHR_COMPOSITION_LAYER_COLOR_SCALE_BIAS_EXTENSION_NAME,
+	        XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME,
+	        XR_KHR_LOCATE_SPACES_EXTENSION_NAME,
+	        XR_KHR_MAINTENANCE1_EXTENSION_NAME,
+	        XR_KHR_VISIBILITY_MASK_EXTENSION_NAME,
+
+	        XR_EXT_EYE_GAZE_INTERACTION_EXTENSION_NAME,
+	        XR_EXT_HAND_INTERACTION_EXTENSION_NAME,
+	        XR_EXT_HAND_TRACKING_EXTENSION_NAME,
+	        XR_EXT_PALM_POSE_EXTENSION_NAME,
+	        XR_EXT_USER_PRESENCE_EXTENSION_NAME,
+
+	        XR_BD_BODY_TRACKING_EXTENSION_NAME,
+
+	        XR_FB_BODY_TRACKING_EXTENSION_NAME,
+	        XR_FB_COMPOSITION_LAYER_DEPTH_TEST_EXTENSION_NAME,
+	        XR_FB_COMPOSITION_LAYER_SETTINGS_EXTENSION_NAME,
+	        XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME,
+	        XR_FB_FACE_TRACKING2_EXTENSION_NAME,
+	        XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME,
+	        XR_FB_FOVEATION_EXTENSION_NAME,
+	        XR_FB_FOVEATION_VULKAN_EXTENSION_NAME,
+	        XR_FB_PASSTHROUGH_EXTENSION_NAME,
+	        XR_FB_SWAPCHAIN_UPDATE_STATE_EXTENSION_NAME,
+
+	        XR_HTC_PASSTHROUGH_EXTENSION_NAME,
+	        XR_HTC_PATH_ENUMERATION_EXTENSION_NAME,
+	        XR_HTC_FACIAL_TRACKING_EXTENSION_NAME,
+	        XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME,
+
+	        XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME,
+	        XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME,
+	};
 
 	for (const auto & i: interaction_profiles)
 		opt_extensions.insert(opt_extensions.end(), i.required_extensions.begin(), i.required_extensions.end());
 
-	for (const auto & i: xr::instance::extensions())
+	for (const auto & ext: xr::instance::extensions())
 	{
-		if (utils::contains(opt_extensions, i.extensionName))
-			xr_extensions.push_back(i.extensionName);
-	}
-
-	std::vector<const char *> extensions;
-	for (const auto & i: xr_extensions)
-	{
-		extensions.push_back(i.c_str());
+		auto it = std::find_if(opt_extensions.begin(),
+		                       opt_extensions.end(),
+		                       [&ext](const char * i) { return strcmp(i, ext.extensionName) == 0; });
+		if (it != opt_extensions.end())
+			xr_extensions.push_back(*it);
 	}
 
 #ifdef __ANDROID__
 	xr_instance =
-	        xr::instance(app_info.name, app_info.native_app->activity->vm, app_info.native_app->activity->clazz, extensions);
+	        xr::instance(app_info.name, app_info.native_app->activity->vm, app_info.native_app->activity->clazz, xr_extensions);
 #else
-	xr_instance = xr::instance(app_info.name, extensions);
+	xr_instance = xr::instance(app_info.name, xr_extensions);
 #endif
 
 	spdlog::info("Created OpenXR instance, runtime {}, version {}, API version {}",
