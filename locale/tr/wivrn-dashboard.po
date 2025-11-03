@@ -685,7 +685,7 @@ msgstr ""
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
 msgid "Connection fails with \"no route to host\""
-msgstr "Bağlantı başarısız oldu, \"ana bilgisayara bağlantı yok\""
+msgstr "Bağlantı başarısız oldu, \"no route to host\""
 
 #: dashboard/qml/TroubleshootPage.qml:36
 #, kde-format
