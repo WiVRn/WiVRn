@@ -104,6 +104,7 @@ if (WIVRN_BUILD_SERVER)
 			driver/wivrn_htc_face_tracker.cpp
 			driver/wivrn_generic_tracker.cpp
 			driver/wivrn_foveation.cpp
+			driver/wivrn_uinput.cpp
 			driver/pose_list.cpp
 			driver/view_list.cpp
 			driver/hand_joints_list.cpp

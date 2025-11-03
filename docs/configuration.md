@@ -212,6 +212,13 @@ If unset, WiVRn will autodetect the path of such a tool as usual (see [the Steam
 
 If set to an null, WiVRn will not manage the OpenVR configuration.
 
+## `hid-forwarding`
+Default value: `false`
+
+Only available when the `uinput` kernel module is loaded and the user has write access.
+
+Enables the forwarding of keyboard and mouse input from the client to the server.
+
 ## `debug-gui`
 Default value: `false`
 

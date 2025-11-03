@@ -28,6 +28,7 @@
 #include "wivrn_hmd.h"
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
+#include "wivrn_uinput.h"
 #include "xrt/xrt_results.h"
 #include "xrt/xrt_system.h"
 #include <atomic>
@@ -125,6 +126,7 @@ class wivrn_session : public xrt_system_devices
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::unique_ptr<wivrn_htc_face_tracker> htc_face_tracker;
 	std::vector<std::unique_ptr<wivrn_generic_tracker>> generic_trackers;
+	std::optional<wivrn_uinput> uinput_handler;
 
 	std::shared_mutex comp_target_mutex;
 	wivrn_comp_target * comp_target;
@@ -189,6 +191,7 @@ public:
 	void operator()(from_headset::hand_tracking &&);
 	void operator()(from_headset::body_tracking &&);
 	void operator()(from_headset::inputs &&);
+	void operator()(from_headset::hid::input && e);
 	void operator()(from_headset::timesync_response &&);
 	void operator()(from_headset::feedback &&);
 	void operator()(from_headset::battery &&);

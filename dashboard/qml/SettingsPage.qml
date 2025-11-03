@@ -230,6 +230,16 @@ Kirigami.ScrollablePage {
                 id: show_system_checks
                 text: i18n("Check system configuration on start")
             }
+            RowLayout {
+                visible: config.hid_forwarding_supported
+                Controls.CheckBox {
+                    id: hid_forwarding
+                    text: i18n("Forward keyboard & mouse from headset")
+                }
+                Kirigami.ContextualHelpButton {
+                    toolTipText: i18n("Keyboard and mouse connected to the client will act as if connected to the server. Client OS may reserve specific keys and combinations, which cannot be forwarded.")
+                }
+            }
             Controls.CheckBox {
                 id: debug_gui
                 text: i18n("Enable debug window")
@@ -389,6 +399,7 @@ Kirigami.ScrollablePage {
 
         config.debugGui = debug_gui.checked;
         config.steamVrLh = steamvr_lh.checked;
+        config.hidForwarding = hid_forwarding.checked;
     }
 
     function load() {
@@ -400,6 +411,7 @@ Kirigami.ScrollablePage {
 
         debug_gui.checked = config.debugGui;
         steamvr_lh.checked = config.steamVrLh;
+        hid_forwarding.checked = config.hidForwarding;
 
         openvr_combobox.load()
 

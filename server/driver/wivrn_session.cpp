@@ -21,6 +21,7 @@
 
 #include "accept_connection.h"
 #include "application.h"
+#include "configuration.h"
 #include "driver/app_pacer.h"
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
@@ -54,7 +55,6 @@
 #include <vulkan/vulkan.h>
 
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
-#include "configuration.h"
 #include "steamvr_lh_interface.h"
 #endif
 
@@ -292,6 +292,24 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	{
 		system_name += " on WiVRn";
 		strlcpy(xrt_system.base.properties.name, system_name.c_str(), std::size(xrt_system.base.properties.name));
+	}
+
+	if (configuration().hid_forwarding)
+	{
+		try
+		{
+			uinput_handler.emplace();
+			tracking_control.set_enabled(to_headset::tracking_control::id::hid_input, true);
+		}
+		catch (...)
+		{
+			U_LOG_W("Could not initialize keyboard & mouse forwarding");
+			U_LOG_W("Ensure that the uinput kernel module is loaded and your user is in the input group.");
+			wivrn_ipc_socket_monado->send(from_monado::server_error{
+			        .where = "Could not initialize keyboard & mouse forwarding",
+			        .message = "Ensure that the uinput kernel module is loaded and your user is in the input group.",
+			});
+		}
 	}
 }
 
@@ -580,6 +598,24 @@ void wivrn_session::operator()(from_headset::inputs && inputs)
 		right_hand_interaction.set_inputs(inputs, offset);
 	else if (roles.right == right_controller_index)
 		right_controller.set_inputs(inputs, offset);
+}
+
+void wivrn_session::operator()(from_headset::hid::input && e)
+{
+	try
+	{
+		if (uinput_handler)
+			uinput_handler->handle_input(e);
+	}
+	catch (const std::exception & e)
+	{
+		wivrn_ipc_socket_monado->send(from_monado::server_error{
+		        .where = "HID forwarding error",
+		        .message = e.what(),
+		});
+		U_LOG_E("HID forwarding error: %s", e.what());
+		uinput_handler.reset();
+	}
 }
 
 void wivrn_session::operator()(from_headset::timesync_response && timesync)

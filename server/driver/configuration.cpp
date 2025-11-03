@@ -195,6 +195,9 @@ configuration::configuration()
 			}
 		}
 
+		if (auto it = json.find("hid-forwarding"); it != json.end())
+			hid_forwarding = *it;
+
 		if (auto it = json.find("debug-gui"); it != json.end())
 			debug_gui = *it;
 

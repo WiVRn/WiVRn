@@ -86,6 +86,11 @@ public:
 	{
 		return fd != -1;
 	}
+
+	operator int() const
+	{
+		return fd;
+	}
 };
 
 class UDP : public fd_base

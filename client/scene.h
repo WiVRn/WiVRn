@@ -213,6 +213,13 @@ public:
 	virtual void render(const XrFrameState &) = 0;
 	virtual void on_xr_event(const xr::event &);
 
+	virtual bool on_input_key_down(uint8_t key_code);
+	virtual bool on_input_key_up(uint8_t key_code);
+	virtual bool on_input_mouse_move(float x, float y);
+	virtual bool on_input_button_down(uint8_t button);
+	virtual bool on_input_button_up(uint8_t button);
+	virtual bool on_input_scroll(float h, float v);
+
 	entt::registry world;
 
 	std::shared_ptr<entt::registry> load_gltf(const std::filesystem::path & path, std::function<void(float)> progress_cb = {});
