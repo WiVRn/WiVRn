@@ -1095,9 +1095,9 @@ void wivrn_session::run_worker(std::stop_token stop)
 						{
 							scoped_lock lock(xrt_system.sessions.mutex);
 							if (xrt_system.sessions.count == 0)
-								comp_target->requested_refresh_rate = 0;
+								comp_target->reset_requested_refresh_rate();
 						}
-						if (comp_target->requested_refresh_rate == 0)
+						if (comp_target->get_requested_refresh_rate() == 0)
 							refresh.adjust(*connection);
 					}
 					if (do_control)
