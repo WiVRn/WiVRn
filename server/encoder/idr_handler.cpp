@@ -18,6 +18,7 @@
 
 #include "idr_handler.h"
 
+#include "util/u_logging.h"
 #include "utils/overloaded.h"
 
 namespace wivrn
@@ -32,7 +33,10 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 	                   [](idr_received) {},
 	                   [this, &f](wait_idr_feedback s) {
 		                   if (f.sent_to_decoder and f.frame_index == s.idr_id)
+		                   {
+			                   U_LOG_D("IDR frame received");
 			                   state = idr_received{};
+		                   }
 	                   },
 	                   [this, &f](running r) {
 		                   if (not f.sent_to_decoder and f.frame_index >= r.first_p)
@@ -45,6 +49,7 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 void default_idr_handler::reset()
 {
 	std::unique_lock lock(mutex);
+	U_LOG_D("IDR handler reset");
 	state = need_idr{};
 }
 
@@ -71,7 +76,9 @@ default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_ind
 {
 	std::unique_lock lock(mutex);
 	return std::visit(utils::overloaded{
-	                          [](need_idr) {
+	                          [this, frame_index](need_idr) {
+		                          U_LOG_D("IDR frame needed");
+		                          state = wait_idr_feedback{frame_index};
 		                          return frame_type::i;
 	                          },
 	                          [this, frame_index](idr_received) {
