@@ -24,6 +24,7 @@
 #endif
 
 #include "utils/handle.h"
+#include "utils/strings.h"
 #include "xr/check.h"
 #include <string>
 #include <string_view>
@@ -49,7 +50,7 @@ class instance : public utils::handle<XrInstance, xrDestroyInstance>
 {
 	std::string runtime_version;
 	std::string runtime_name;
-	std::unordered_map<std::string, uint32_t> loaded_extensions;
+	std::unordered_map<std::string, uint32_t, utils::string_hash, std::equal_to<>> loaded_extensions;
 	XrVersion api_version;
 
 public:
@@ -99,12 +100,12 @@ public:
 
 	static std::vector<XrExtensionProperties> extensions(const char * layer_name = nullptr);
 
-	bool has_extension(const std::string & extension_name)
+	bool has_extension(const char * extension_name)
 	{
 		return loaded_extensions.find(extension_name) != loaded_extensions.end();
 	}
 
-	uint32_t extension_version(const std::string & extension_name)
+	uint32_t extension_version(const char * extension_name)
 	{
 		auto it = loaded_extensions.find(extension_name);
 		if (it != loaded_extensions.end())

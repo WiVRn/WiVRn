@@ -304,7 +304,7 @@ void scenes::stream::tracking()
 		        device_id::RIGHT_GRIP,
 		        device_id::RIGHT_PALM,
 		};
-		if (instance.has_extension("XR_EXT_hand_interaction"))
+		if (instance.has_extension(XR_EXT_HAND_INTERACTION_EXTENSION_NAME))
 		{
 			spdlog::info("Adding hand_interaction poses to device list");
 			ids.insert(ids.end(), {device_id::LEFT_PINCH_POSE, device_id::LEFT_POKE, device_id::RIGHT_PINCH_POSE, device_id::RIGHT_POKE});
