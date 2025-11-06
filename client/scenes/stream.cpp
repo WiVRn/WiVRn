@@ -493,8 +493,16 @@ void scenes::stream::on_focused()
 	        video_stream_description->defoveated_width / view_count,
 	        video_stream_description->defoveated_height);
 
-	session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_CPU_EXT, XR_PERF_SETTINGS_LEVEL_POWER_SAVINGS_EXT);
-	session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_GPU_EXT, XR_PERF_SETTINGS_LEVEL_POWER_SAVINGS_EXT);
+	if (application::get_config().high_power_mode)
+	{
+		session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_CPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
+		session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_GPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
+	}
+	else
+	{
+		session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_CPU_EXT, XR_PERF_SETTINGS_LEVEL_POWER_SAVINGS_EXT);
+		session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_GPU_EXT, XR_PERF_SETTINGS_LEVEL_POWER_SAVINGS_EXT);
+	}
 }
 
 void scenes::stream::on_unfocused()

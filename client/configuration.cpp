@@ -175,6 +175,9 @@ configuration::configuration(xr::system & system)
 
 		if (auto val = root["environment_model"]; val.is_string())
 			environment_model = (std::string_view)val.get_string();
+
+		if (auto val = root["high_power_mode"]; val.is_bool())
+			high_power_mode = val.get_bool();
 	}
 	catch (std::exception & e)
 	{
@@ -263,5 +266,6 @@ void configuration::save()
 	json << ",\"first_run\":" << std::boolalpha << first_run;
 	json << ",\"locale\":" << json_string(locale);
 	json << ",\"environment_model\":" << json_string(environment_model);
+	json << ",\"high_power_mode\":" << std::boolalpha << high_power_mode;
 	json << "}";
 }

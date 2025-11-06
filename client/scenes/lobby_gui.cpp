@@ -667,6 +667,15 @@ void scenes::lobby::gui_settings()
 		}
 	}
 
+	if (instance.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))
+	{
+		if (ImGui::Checkbox(_S("High power mode"), &config.high_power_mode))
+			config.save();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Increase power usage to allow higher resolution and refresh rate"));
+		imgui_ctx->vibrate_on_hover();
+	}
+
 	{
 		bool enabled = config.check_feature(feature::microphone);
 		if (ImGui::Checkbox(_S("Enable microphone"), &enabled))
