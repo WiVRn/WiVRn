@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-04 09:43+0900\n"
+"POT-Creation-Date: 2025-11-07 00:36+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -473,8 +473,8 @@ msgstr "vaapi (AMDやIntel GPU)"
 
 #: dashboard/qml/SettingsPage.qml:138
 #, kde-format
-msgid "Vulkan (Vulkan Video)"
-msgstr "Vulkan (Vulkan Video)"
+msgid "Vulkan (Any modern GPU)"
+msgstr "Vulkan（あらゆるGPU）"
 
 #: dashboard/qml/SettingsPage.qml:142
 #, kde-format
