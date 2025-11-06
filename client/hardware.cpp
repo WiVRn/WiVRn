@@ -103,6 +103,11 @@ static model guess_model_()
 		if (model == "VIVE XR Series")
 			return model::htc_vive_xr_elite;
 	}
+	if (manufacturer == "samsung")
+	{
+		if (model == "SM-I610")
+			return model::galaxy_xr;
+	}
 
 	spdlog::info("Unknown model, manufacturer={}, model={}, device={}", manufacturer, model, device);
 #endif
@@ -166,6 +171,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 		case model::htc_vive_xr_elite:
 			return scale_view(view, 1920);
 		case model::lynx_r1:
+		case model::galaxy_xr:
 		case model::unknown:
 			return view;
 	}
@@ -191,6 +197,7 @@ bool need_srgb_conversion(model m)
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
+		case model::galaxy_xr:
 		case model::unknown:
 			return true;
 	}
@@ -204,7 +211,27 @@ const char * permission_name(feature f)
 		case feature::microphone:
 			return "android.permission.RECORD_AUDIO";
 		case feature::hand_tracking:
-			return nullptr;
+			switch (guess_model())
+			{
+				case model::galaxy_xr:
+					return "android.permission.HAND_TRACKING";
+				case model::oculus_quest:
+				case model::oculus_quest_2:
+				case model::meta_quest_pro:
+				case model::meta_quest_3:
+				case model::meta_quest_3s:
+				case model::pico_neo_3:
+				case model::pico_4:
+				case model::pico_4s:
+				case model::pico_4_pro:
+				case model::pico_4_enterprise:
+				case model::htc_vive_focus_3:
+				case model::htc_vive_focus_vision:
+				case model::htc_vive_xr_elite:
+				case model::lynx_r1:
+				case model::unknown:
+					return nullptr;
+			}
 		case feature::eye_gaze:
 			switch (guess_model())
 			{
@@ -220,6 +247,8 @@ const char * permission_name(feature f)
 				case model::pico_4_pro:
 				case model::pico_4_enterprise:
 					return "com.picovr.permission.EYE_TRACKING";
+				case model::galaxy_xr:
+					return "android.permission.EYE_TRACKING_FINE";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
 				case model::htc_vive_xr_elite:
@@ -243,6 +272,8 @@ const char * permission_name(feature f)
 				case model::pico_4_pro:
 				case model::pico_4_enterprise:
 					return "com.picovr.permission.FACE_TRACKING";
+				case model::galaxy_xr:
+					return "android.permission.FACE_TRACKING";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
 				case model::htc_vive_xr_elite:
@@ -294,6 +325,7 @@ std::string controller_name()
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
 			return "htc-vive-focus-3";
+		case model::galaxy_xr:
 		case model::lynx_r1:
 		case model::unknown:
 			return "generic-trigger-squeeze";
