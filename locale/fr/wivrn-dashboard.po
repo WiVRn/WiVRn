@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-30 09:53+0100\n"
-"PO-Revision-Date: 2025-10-30 09:55+0100\n"
+"POT-Creation-Date: 2025-11-06 12:45+0100\n"
+"PO-Revision-Date: 2025-11-06 12:46+0100\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
 "Language: French\n"
@@ -87,8 +87,8 @@ msgstr "Vérification de la dernière version..."
 msgid "No APK is available for this version"
 msgstr "Aucun APK n'est disponible pour cette version"
 
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:311
-#: dashboard/qml/Main.qml:396 dashboard/qml/WizardPage.qml:211
+#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:302
+#: dashboard/qml/Main.qml:387 dashboard/qml/WizardPage.qml:211
 #, kde-format
 msgid "ADB is not installed"
 msgstr "ADB n'est pas installé"
@@ -136,7 +136,7 @@ msgstr "Réinstaller WiVRn"
 msgid "Install WiVRn"
 msgstr "Installer WiVRn"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:401
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:392
 #, kde-format
 msgid "Headsets"
 msgstr "Casques"
@@ -233,44 +233,44 @@ msgstr "Appairer un nouveau casque"
 msgid "Headset statistics"
 msgstr "Statistiques"
 
-#: dashboard/qml/Main.qml:130
+#: dashboard/qml/Main.qml:121
 #, kde-format
 msgid "Avahi daemon is not installed"
 msgstr "Avahi daemon n'est pas installé"
 
-#: dashboard/qml/Main.qml:138
+#: dashboard/qml/Main.qml:129
 #, kde-format
 msgid "Avahi daemon is not started"
 msgstr "Avahi daemon n'est pas démarré"
 
-#: dashboard/qml/Main.qml:145 dashboard/qml/Main.qml:160
-#: dashboard/qml/Main.qml:174
+#: dashboard/qml/Main.qml:136 dashboard/qml/Main.qml:151
+#: dashboard/qml/Main.qml:165
 #, kde-format
 msgid "Fix it"
 msgstr "Corriger"
 
-#: dashboard/qml/Main.qml:153
+#: dashboard/qml/Main.qml:144
 #, kde-format
 msgid "The server does not have CAP_SYS_NICE capabilities"
 msgstr "Le serveur n'a pas la capacité CAP_SYS_NICE"
 
-#: dashboard/qml/Main.qml:168
+#: dashboard/qml/Main.qml:159
 #, kde-format
 msgid "Firewall may not allow port 9757"
 msgstr "Le pare-feu pourrait ne pas autoriser le port 9757"
 
-#: dashboard/qml/Main.qml:183
+#: dashboard/qml/Main.qml:174
 #, kde-format
 msgid "The CAP_SYS_NICE capability will be used when the server is restarted"
 msgstr "La capacité CAP_SYS_NICE sera utilisée quand le serveur sera redémarré"
 
-#: dashboard/qml/Main.qml:189
+#: dashboard/qml/Main.qml:180
 #, kde-format
 msgctxt "restart the server"
 msgid "Restart now"
 msgstr "Redémarrer"
 
-#: dashboard/qml/Main.qml:200
+#: dashboard/qml/Main.qml:191
 #, kde-format
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
@@ -278,12 +278,12 @@ msgstr ""
 "Les GPUs NVIDIA nécessitent au moins le driver 565.77, la version actuelle "
 "est %1."
 
-#: dashboard/qml/Main.qml:206
+#: dashboard/qml/Main.qml:197
 #, kde-format
 msgid "More info"
 msgstr "Plus d'infos"
 
-#: dashboard/qml/Main.qml:214
+#: dashboard/qml/Main.qml:205
 #, kde-format
 msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
@@ -292,7 +292,7 @@ msgstr ""
 "Utilisez le driver Mesa (redv) pour les GPUs AMD\n"
 "L'encodage matériel avec vaapi ne fonctionne pas avec AMDVLK et AMDGPU-PRO"
 
-#: dashboard/qml/Main.qml:222
+#: dashboard/qml/Main.qml:213
 #, kde-format
 msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
@@ -302,75 +302,75 @@ msgstr ""
 "pourront pas charger le mode VR.\n"
 "Veuillez installer xrizer ou OpenComposite."
 
-#: dashboard/qml/Main.qml:231
+#: dashboard/qml/Main.qml:222
 #, kde-format
 msgid "Server failed to start"
 msgstr "Le serveur n'a pas pu démarrer"
 
-#: dashboard/qml/Main.qml:237 dashboard/qml/TroubleshootPage.qml:85
+#: dashboard/qml/Main.qml:228 dashboard/qml/TroubleshootPage.qml:85
 #, kde-format
 msgid "Open server logs"
 msgstr "Ouvrir les logs du serveur"
 
-#: dashboard/qml/Main.qml:266
+#: dashboard/qml/Main.qml:257
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
 msgstr "Démarré"
 
-#: dashboard/qml/Main.qml:281
+#: dashboard/qml/Main.qml:272
 #, kde-format
 msgctxt "whether pairing is enabled, displayed in front of a checkbox"
 msgid "Pairing"
 msgstr "Appairage"
 
-#: dashboard/qml/Main.qml:294
+#: dashboard/qml/Main.qml:285
 #, kde-format
 msgid "PIN: %1"
 msgstr "PIN : %1"
 
-#: dashboard/qml/Main.qml:302 dashboard/qml/WizardPage.qml:374
+#: dashboard/qml/Main.qml:293 dashboard/qml/WizardPage.qml:374
 #, kde-format
 msgid "Connect by USB"
 msgstr "Connexion par USB"
 
-#: dashboard/qml/Main.qml:313
+#: dashboard/qml/Main.qml:304
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
 msgstr "Le casque n'est pas connecté ou n'est pas en mode développeur"
 
-#: dashboard/qml/Main.qml:321
+#: dashboard/qml/Main.qml:312
 #, kde-format
 msgid "Disconnect"
 msgstr "Déconnecter"
 
-#: dashboard/qml/Main.qml:338
+#: dashboard/qml/Main.qml:329
 #, kde-format
 msgctxt "automatically started application"
 msgid "Application"
 msgstr "Application"
 
-#: dashboard/qml/Main.qml:359
+#: dashboard/qml/Main.qml:350
 #, kde-format
 msgid "Steam information"
 msgstr "Informations pour Steam"
 
-#: dashboard/qml/Main.qml:380
+#: dashboard/qml/Main.qml:371
 #, kde-format
 msgid "Wizard"
 msgstr "Assistant"
 
-#: dashboard/qml/Main.qml:387
+#: dashboard/qml/Main.qml:378
 #, kde-format
 msgid "Install the app"
 msgstr "Installer l'appli"
 
-#: dashboard/qml/Main.qml:408 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:399 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "Paramètres"
 
-#: dashboard/qml/Main.qml:415 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:406 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "Dépannage"
@@ -393,23 +393,23 @@ msgctxt "browse a file to choose the application to start"
 msgid "Browse"
 msgstr "Parcourir"
 
-#: dashboard/qml/SettingsPage.qml:41
+#: dashboard/qml/SettingsPage.qml:35
 #, kde-format
 msgctxt "automatic foveation setup"
 msgid "Manual foveation"
 msgstr "Fovéation manuelle"
 
-#: dashboard/qml/SettingsPage.qml:47
+#: dashboard/qml/SettingsPage.qml:41
 #, kde-format
 msgid "Foveation strength:"
 msgstr "Intensité de fovéation :"
 
-#: dashboard/qml/SettingsPage.qml:63
+#: dashboard/qml/SettingsPage.qml:57
 #, kde-format
 msgid "%1 %"
 msgstr "%1 %"
 
-#: dashboard/qml/SettingsPage.qml:69
+#: dashboard/qml/SettingsPage.qml:63
 #, kde-format
 msgid ""
 "A stronger foveation makes the image sharper in the center than in the "
@@ -428,108 +428,108 @@ msgstr ""
 "Les valeurs recommandées sont entre 20% et 50% pour les casques sans suivi "
 "des yeux et entre 50% et 70% pour les casques avec suivi des yeux."
 
-#: dashboard/qml/SettingsPage.qml:75
+#: dashboard/qml/SettingsPage.qml:69
 #, kde-format
 msgctxt "weaker foveation"
 msgid "Weaker"
 msgstr "Faible"
 
-#: dashboard/qml/SettingsPage.qml:86
+#: dashboard/qml/SettingsPage.qml:80
 #, kde-format
 msgctxt "stronger foveation"
 msgid "Stronger"
 msgstr "Fort"
 
-#: dashboard/qml/SettingsPage.qml:96
+#: dashboard/qml/SettingsPage.qml:90
 #, kde-format
 msgid "Bitrate:"
 msgstr "Débit :"
 
-#: dashboard/qml/SettingsPage.qml:101 dashboard/qml/SettingsPage.qml:103
+#: dashboard/qml/SettingsPage.qml:94 dashboard/qml/SettingsPage.qml:96
 #, kde-format
 msgctxt "bitrate"
 msgid "%1 Mbit/s"
 msgstr "%1 Mbit/s"
 
-#: dashboard/qml/SettingsPage.qml:115
+#: dashboard/qml/SettingsPage.qml:108
 #, kde-format
 msgid "The current encoder configuration is not supported"
 msgstr "La configuration actuelle des encodeurs n'est pas prise en charge"
 
-#: dashboard/qml/SettingsPage.qml:120
+#: dashboard/qml/SettingsPage.qml:113
 #, kde-format
 msgid "Reset"
 msgstr "Réinitialiser"
 
-#: dashboard/qml/SettingsPage.qml:127
+#: dashboard/qml/SettingsPage.qml:120
 #, kde-format
 msgid "Encoder:"
 msgstr "Encodeur :"
 
-#: dashboard/qml/SettingsPage.qml:133
+#: dashboard/qml/SettingsPage.qml:126
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:137
+#: dashboard/qml/SettingsPage.qml:130
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (GPUs NVIDIA)"
 
-#: dashboard/qml/SettingsPage.qml:141
+#: dashboard/qml/SettingsPage.qml:134
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (GPUs AMD et Intel)"
 
-#: dashboard/qml/SettingsPage.qml:145
+#: dashboard/qml/SettingsPage.qml:138
 #, kde-format
-msgid "Vulkan (Vulkan Video)"
-msgstr "Vulkan (Vulkan Vidéo)"
+msgid "Vulkan (Any modern GPU)"
+msgstr "Vulkan (Tout GPU récent)"
 
-#: dashboard/qml/SettingsPage.qml:149
+#: dashboard/qml/SettingsPage.qml:142
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (encodage logiciel)"
 
-#: dashboard/qml/SettingsPage.qml:166
+#: dashboard/qml/SettingsPage.qml:159
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr ""
 "« Automatique » utilisera l'accélération matérielle si elle est disponible"
 
-#: dashboard/qml/SettingsPage.qml:171
+#: dashboard/qml/SettingsPage.qml:164
 #, kde-format
 msgid "Codec:"
 msgstr "Codec :"
 
-#: dashboard/qml/SettingsPage.qml:177
+#: dashboard/qml/SettingsPage.qml:170
 #, kde-format
 msgctxt "automatic codec setup"
 msgid "Auto"
 msgstr "Automatique"
 
-#: dashboard/qml/SettingsPage.qml:181
+#: dashboard/qml/SettingsPage.qml:174
 #, kde-format
 msgid "H.264"
 msgstr "H.264"
 
-#: dashboard/qml/SettingsPage.qml:185
+#: dashboard/qml/SettingsPage.qml:178
 #, kde-format
 msgid "H.265"
 msgstr "H.265"
 
-#: dashboard/qml/SettingsPage.qml:189
+#: dashboard/qml/SettingsPage.qml:182
 #, kde-format
 msgid "AV1"
 msgstr "AV1"
 
-#: dashboard/qml/SettingsPage.qml:217
+#: dashboard/qml/SettingsPage.qml:210
 #, kde-format
 msgid "10-bits"
 msgstr "10 bits"
 
-#: dashboard/qml/SettingsPage.qml:221
+#: dashboard/qml/SettingsPage.qml:215
 #, kde-format
 msgid ""
 "10-bit encoding improves image quality but is not supported by all codecs "
@@ -538,27 +538,27 @@ msgstr ""
 "L'encodage 10 bits améliore la qualité d'image mais n'est pas pris en charge "
 "part tous les codecs et matériel"
 
-#: dashboard/qml/SettingsPage.qml:231
+#: dashboard/qml/SettingsPage.qml:225
 #, kde-format
 msgid "Advanced options"
 msgstr "Paramètres avancés"
 
-#: dashboard/qml/SettingsPage.qml:237
+#: dashboard/qml/SettingsPage.qml:231
 #, kde-format
 msgid "Check system configuration on start"
 msgstr "Vérifier les paramètres système au démarrage"
 
-#: dashboard/qml/SettingsPage.qml:241
+#: dashboard/qml/SettingsPage.qml:235
 #, kde-format
 msgid "Enable debug window"
 msgstr "Activer la fenêtre de débogage"
 
-#: dashboard/qml/SettingsPage.qml:248
+#: dashboard/qml/SettingsPage.qml:242
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Activer le support des manettes SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:251
+#: dashboard/qml/SettingsPage.qml:245
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -572,44 +572,44 @@ msgstr ""
 "WiVRn.\n"
 "Un utilitaire tiers tel que motoc est nécessaire pour la calibration."
 
-#: dashboard/qml/SettingsPage.qml:259
+#: dashboard/qml/SettingsPage.qml:253
 #, kde-format
 msgid "Custom adb location"
 msgstr "Spécifier l'emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:270
+#: dashboard/qml/SettingsPage.qml:264
 #, kde-format
 msgid "Adb location:"
 msgstr "Emplacement d'adb"
 
-#: dashboard/qml/SettingsPage.qml:279
+#: dashboard/qml/SettingsPage.qml:273
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Parcourir"
 
-#: dashboard/qml/SettingsPage.qml:289
+#: dashboard/qml/SettingsPage.qml:283
 #, kde-format
 msgid "Default"
 msgstr "Par défaut"
 
-#: dashboard/qml/SettingsPage.qml:303
+#: dashboard/qml/SettingsPage.qml:297
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: dashboard/qml/SettingsPage.qml:308
+#: dashboard/qml/SettingsPage.qml:302
 #, kde-format
 msgid "Disabled"
 msgstr "Désactivé"
 
-#: dashboard/qml/SettingsPage.qml:316
+#: dashboard/qml/SettingsPage.qml:310
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Compatibilité OpenVR :"
 
-#: dashboard/qml/SettingsPage.qml:342
+#: dashboard/qml/SettingsPage.qml:336
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Chemin de la bibliothèque, en enlevant bin/linux64/vrclient.so"
@@ -963,6 +963,10 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgid "Vulkan (Vulkan Video)"
+#~ msgstr "Vulkan (Vulkan Vidéo)"
 
 #, kde-format
 #~ msgid "Encoder layout:"
