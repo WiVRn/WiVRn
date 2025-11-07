@@ -475,8 +475,8 @@ static xrt_device_name get_name(interaction_profile profile)
 }
 void wivrn_session::operator()(from_headset::trackings && tracking)
 {
-	auto left = (roles.left == left_controller_index || roles.left == left_hand_interaction_index) ? get_name(tracking.interaction_profiles[0]) : XRT_DEVICE_INVALID;
-	auto right = (roles.right == right_controller_index || roles.right == right_hand_interaction_index) ? get_name(tracking.interaction_profiles[1]) : XRT_DEVICE_INVALID;
+	auto left = (roles.left == -1 || roles.left == left_controller_index || roles.left == left_hand_interaction_index) ? get_name(tracking.interaction_profiles[0]) : XRT_DEVICE_INVALID;
+	auto right = (roles.right == -1 || roles.right == right_controller_index || roles.right == right_hand_interaction_index) ? get_name(tracking.interaction_profiles[1]) : XRT_DEVICE_INVALID;
 	if (left != roles.left_profile or right != roles.right_profile)
 	{
 		U_LOG_I("Updating interaction profiles: from \n"
@@ -489,36 +489,44 @@ void wivrn_session::operator()(from_headset::trackings && tracking)
 		std::lock_guard lock(roles_mutex);
 
 		// don't change role when hand from other driver is used
-		if (roles.left == left_hand_interaction_index || roles.left == left_controller_index)
+		if (roles.left == -1 || roles.left == left_hand_interaction_index || roles.left == left_controller_index)
 		{
 			if (left == XRT_DEVICE_EXT_HAND_INTERACTION)
 			{
 				left_hand_interaction.reset_history();
 				roles.left = left_hand_interaction_index;
 			}
-			else
+			else if (left != XRT_DEVICE_INVALID)
 			{
 				left_controller.reset_history();
 				roles.left = left_controller_index;
 				set_enabled(device_id::LEFT_PINCH_POSE, false);
 				set_enabled(device_id::LEFT_POKE, false);
 			}
+			else
+			{
+				roles.left = -1;
+			}
 		}
 		roles.left_profile = left;
 
-		if (roles.right == right_hand_interaction_index || roles.right == right_controller_index)
+		if (roles.right == -1 || roles.right == right_hand_interaction_index || roles.right == right_controller_index)
 		{
 			if (right == XRT_DEVICE_EXT_HAND_INTERACTION)
 			{
 				right_hand_interaction.reset_history();
 				roles.right = right_hand_interaction_index;
 			}
-			else
+			else if (right != XRT_DEVICE_INVALID)
 			{
 				right_controller.reset_history();
 				roles.right = right_controller_index;
 				set_enabled(device_id::RIGHT_PINCH_POSE, false);
 				set_enabled(device_id::RIGHT_POKE, false);
+			}
+			else
+			{
+				roles.right = -1;
 			}
 		}
 		roles.right_profile = right;
