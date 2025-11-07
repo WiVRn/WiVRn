@@ -27,7 +27,7 @@
 			<li>Controller tracking, hand tracking, eye gaze tracking (if supported by the headset)</li>
 			<li>Audio streaming and microphone</li>
 			<li>Video streaming with H264 / HEVC / AV1 compression</li>
-			<li>Hardware accelerated compression with VAAPI or NVENC</li>
+			<li>Hardware accelerated compression with Vulkan video encode, VAAPI or NVENC</li>
 			<li>Software compression with x264</li>
 		</ul>
 	</description>
@@ -69,6 +69,19 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="25.11" date="2025-11-08">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.11</url>
+			<description>
+				<ul>
+					<li>10-bit encoding support for AV1 and h.265</li>
+					<li>H.265 encoding on Vulkan video backend</li>
+					<li>Firewall configuration for ufw and firewalld</li>
+					<li>Customizable lobby environment</li>
+					<li>Running application management during stream</li>
+					<li>Default to lower power states on headset</li>
+				</ul>
+			</description>
+		</release>
 		<release version="25.9" date="2025-09-17">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.9</url>
 			<description>
