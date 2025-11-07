@@ -25,7 +25,14 @@
 #include <magic_enum.hpp>
 #include <memory>
 #include <pipewire/pipewire.h>
+#include <pipewire/core.h>
+#include <pipewire/context.h>
+#include <pipewire/registry.h>
 #include <spa/param/audio/format-utils.h>
+#include <spa/utils/result.h>
+#include <unistd.h>
+#include <cstring>
+#include <thread>
 
 namespace wivrn
 {
@@ -42,7 +49,123 @@ struct deleter
 	{
 		pw_stream_destroy(stream);
 	}
+	void operator()(pw_context * ctx)
+	{
+		pw_context_destroy(ctx);
+	}
+	void operator()(pw_core * core)
+	{
+		pw_core_disconnect(core);
+	}
+	void operator()(pw_registry * registry)
+	{
+		pw_proxy_destroy((pw_proxy *)registry);
+	}
 };
+
+// Helper structure for registry callback
+struct sink_find_state
+{
+	uint32_t node_id = PW_ID_ANY;
+	bool found = false;
+	const char * sink_name = nullptr;
+};
+
+// Helper function to set the default sink in PipeWire
+void set_default_sink_pipewire(const std::string & sink_name)
+{
+	pw_context * ctx = pw_context_new(nullptr, nullptr, 0);
+	if (!ctx)
+	{
+		U_LOG_W("Failed to create PipeWire context for setting default sink");
+		return;
+	}
+
+	pw_main_loop * loop = pw_main_loop_new(nullptr);
+	if (!loop)
+	{
+		pw_context_destroy(ctx);
+		U_LOG_W("Failed to create PipeWire main loop for setting default sink");
+		return;
+	}
+
+	pw_core * core = pw_context_connect(ctx, nullptr, 0);
+	if (!core)
+	{
+		pw_main_loop_destroy(loop);
+		pw_context_destroy(ctx);
+		U_LOG_W("Failed to connect to PipeWire daemon for setting default sink");
+		return;
+	}
+
+	pw_registry * registry = pw_core_get_registry(core, PW_VERSION_REGISTRY, 0);
+	if (!registry)
+	{
+		pw_core_disconnect(core);
+		pw_main_loop_destroy(loop);
+		pw_context_destroy(ctx);
+		U_LOG_W("Failed to get PipeWire registry for setting default sink");
+		return;
+	}
+
+	sink_find_state state;
+	state.sink_name = sink_name.c_str();
+
+	// Registry event callback to find our sink node
+	pw_registry_listener registry_listener{};
+	registry_listener.global = [](void * data, uint32_t id, uint32_t permissions, const char * type, uint32_t version, const struct spa_dict * props) {
+		auto * state = static_cast<sink_find_state *>(data);
+		if (state->found)
+			return;
+
+		const char * node_name = props ? spa_dict_lookup(props, PW_KEY_NODE_NAME) : nullptr;
+		const char * media_class = props ? spa_dict_lookup(props, PW_KEY_MEDIA_CLASS) : nullptr;
+
+		// Look for Audio/Sink nodes with our name
+		if (node_name && media_class && strcmp(media_class, "Audio/Sink") == 0)
+		{
+			if (strcmp(node_name, state->sink_name) == 0)
+			{
+				state->node_id = id;
+				state->found = true;
+			}
+		}
+	};
+
+	pw_registry_add_listener(registry, &registry_listener, &state);
+
+	// Sync to get initial registry state
+	pw_core_sync(core, PW_ID_CORE, 0);
+
+	// Wait a bit for the registry to populate and find our node
+	for (int i = 0; i < 50 && !state.found; i++)
+	{
+		pw_main_loop_iterate(loop, 0);
+		usleep(10000); // 10ms
+	}
+
+	if (state.found && state.node_id != PW_ID_ANY)
+	{
+		int res = pw_core_set_default_node(core, state.node_id);
+		if (res == 0)
+		{
+			U_LOG_I("Set WiVRn sink '%s' (node %u) as default PipeWire sink", sink_name.c_str(), state.node_id);
+		}
+		else
+		{
+			U_LOG_W("Failed to set default PipeWire sink: %s", spa_strerror(res));
+		}
+	}
+	else
+	{
+		U_LOG_W("Could not find WiVRn sink '%s' in PipeWire registry to set as default", sink_name.c_str());
+	}
+
+	pw_proxy_destroy((pw_proxy *)registry);
+	pw_core_disconnect(core);
+	pw_main_loop_destroy(loop);
+	pw_context_destroy(ctx);
+}
 
 struct pipewire_device : public audio_device
 {
@@ -143,6 +266,14 @@ struct pipewire_device : public audio_device
 			            1) < 0)
 				throw std::runtime_error("failed to connect speaker stream");
 			U_LOG_I("pipewire speaker stream created");
+			
+			// Set this sink as the default output device
+			// Do this in a separate thread to avoid blocking
+			std::thread([sink_name]() {
+				// Wait a bit for the node to be registered
+				usleep(100000); // 100ms
+				set_default_sink_pipewire(sink_name);
+			}).detach();
 		}
 
 		if (info.microphone)

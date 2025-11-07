@@ -441,6 +441,31 @@ struct pulse_device : public audio_device
 				throw std::system_error(errno, std::system_category(), "failed to open speaker pipe " + speaker->socket.string());
 
 			speaker_thread = std::thread([this]() { run_speaker(); });
+			
+			// Set this sink as the default output device
+			std::promise<void> p;
+			std::string sink_name_copy = sink_name;
+			wrap_lambda cb = [&p, sink_name_copy](pa_context * ctx, int success) {
+				if (success)
+				{
+					U_LOG_I("Set WiVRn sink '%s' as default PulseAudio sink", sink_name_copy.c_str());
+				}
+				else
+				{
+					U_LOG_W("Failed to set WiVRn sink '%s' as default PulseAudio sink", sink_name_copy.c_str());
+				}
+				p.set_value();
+			};
+			auto op = pa_context_set_default_sink(cnx, sink_name.c_str(), cb, cb);
+			if (op)
+			{
+				pa_operation_unref(op);
+				p.get_future().wait();
+			}
+			else
+			{
+				U_LOG_W("Failed to create operation to set default PulseAudio sink");
+			}
 		}
 	}
 };
