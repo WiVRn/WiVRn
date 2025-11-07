@@ -106,7 +106,7 @@ static model guess_model_()
 	if (manufacturer == "samsung")
 	{
 		if (model == "SM-I610")
-			return model::galaxy_xr;
+			return model::samsung_galaxy_xr;
 	}
 
 	spdlog::info("Unknown model, manufacturer={}, model={}, device={}", manufacturer, model, device);
@@ -170,7 +170,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 			return scale_view(view, 2448);
 		case model::htc_vive_xr_elite:
 			return scale_view(view, 1920);
-		case model::galaxy_xr:
+		case model::samsung_galaxy_xr:
 		    return scale_view(view, 3552);
 		case model::lynx_r1:
 		case model::unknown:
@@ -198,7 +198,7 @@ bool need_srgb_conversion(model m)
 		case model::htc_vive_focus_3:
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
-		case model::galaxy_xr:
+		case model::samsung_galaxy_xr:
 		case model::unknown:
 			return true;
 	}
@@ -214,7 +214,7 @@ const char * permission_name(feature f)
 		case feature::hand_tracking:
 			switch (guess_model())
 			{
-				case model::galaxy_xr:
+				case model::samsung_galaxy_xr:
 					return "android.permission.HAND_TRACKING";
 				case model::oculus_quest:
 				case model::oculus_quest_2:
@@ -248,7 +248,7 @@ const char * permission_name(feature f)
 				case model::pico_4_pro:
 				case model::pico_4_enterprise:
 					return "com.picovr.permission.EYE_TRACKING";
-				case model::galaxy_xr:
+				case model::samsung_galaxy_xr:
 					return "android.permission.EYE_TRACKING_FINE";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
@@ -273,7 +273,7 @@ const char * permission_name(feature f)
 				case model::pico_4_pro:
 				case model::pico_4_enterprise:
 					return "com.picovr.permission.FACE_TRACKING";
-				case model::galaxy_xr:
+				case model::samsung_galaxy_xr:
 					return "android.permission.FACE_TRACKING";
 				case model::htc_vive_focus_3:
 				case model::htc_vive_focus_vision:
@@ -326,7 +326,7 @@ std::string controller_name()
 		case model::htc_vive_focus_vision:
 		case model::htc_vive_xr_elite:
 			return "htc-vive-focus-3";
-		case model::galaxy_xr:
+		case model::samsung_galaxy_xr:
 		case model::lynx_r1:
 		case model::unknown:
 			return "generic-trigger-squeeze";
