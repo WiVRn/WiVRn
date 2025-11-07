@@ -292,14 +292,6 @@ const char * permission_name(feature f)
 				default:
 					return nullptr;
 			}
-		case feature::head_tracking:
-			switch (guess_model())
-			{
-				case model::samsung_galaxy_xr:
-					return "android.permission.HEAD_TRACKING";
-				default:
-					return nullptr;
-			}
 	}
 	__builtin_unreachable();
 }

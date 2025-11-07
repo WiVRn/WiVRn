@@ -1144,7 +1144,6 @@ void scenes::lobby::gui_first_run()
 	ImGui::PopFont();
 
 	config.set_feature(feature::hand_tracking, true);
-	config.set_feature(feature::head_tracking, true);
 
 	while (optional_feature_index < optional_features.size() and
 	       (not optional_features[optional_feature_index].supported or

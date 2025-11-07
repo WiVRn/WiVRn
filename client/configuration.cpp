@@ -62,9 +62,6 @@ bool configuration::check_feature(feature f) const
 				if (system.body_tracker_supported() == xr::body_tracker_type::none)
 					return false;
 				break;
-			case feature::head_tracking:
-				// Do nothing.
-				break;
 		}
 	}
 #ifdef __ANDROID__

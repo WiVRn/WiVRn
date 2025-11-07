@@ -52,7 +52,6 @@ enum class feature
 	eye_gaze,
 	face_tracking,
 	body_tracking,
-	head_tracking,
 };
 
 model guess_model();

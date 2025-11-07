@@ -51,7 +51,6 @@
     <uses-permission android:name="android.permission.EYE_TRACKING_FINE" />
     <uses-permission android:name="android.permission.FACE_TRACKING" />
     <uses-permission android:name="android.permission.HAND_TRACKING" />
-    <uses-permission android:name="android.permission.HEAD_TRACKING" />
 
     <!-- Required for XR_FB_render_model -->
     <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="false" />
