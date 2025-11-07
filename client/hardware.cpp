@@ -170,8 +170,9 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 			return scale_view(view, 2448);
 		case model::htc_vive_xr_elite:
 			return scale_view(view, 1920);
-		case model::lynx_r1:
 		case model::galaxy_xr:
+		    return scale_view(view, 3552);
+		case model::lynx_r1:
 		case model::unknown:
 			return view;
 	}
