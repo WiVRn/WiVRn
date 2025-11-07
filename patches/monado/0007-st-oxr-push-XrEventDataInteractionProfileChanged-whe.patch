@@ -1,0 +1,44 @@
+From 6f7304dee78dcbf0b485177465d10b4878668ede Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Fri, 7 Nov 2025 20:41:16 -0600
+Subject: [PATCH] st/oxr: push XrEventDataInteractionProfileChanged when
+ profile changes to NULL
+
+---
+ src/xrt/state_trackers/oxr/oxr_input.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/src/xrt/state_trackers/oxr/oxr_input.c b/src/xrt/state_trackers/oxr/oxr_input.c
+index a319e044d..cd1cd4bd9 100644
+--- a/src/xrt/state_trackers/oxr/oxr_input.c
++++ b/src/xrt/state_trackers/oxr/oxr_input.c
+@@ -1882,15 +1882,22 @@ oxr_session_update_action_bindings(struct oxr_logger *log, struct oxr_session *s
+ 		}
+ 	}
+ 
++	bool any_profile_changed = false;
++
+ #define POPULATE_PROFILE(X)                                                                                            \
+-	sess->X = XR_NULL_PATH;                                                                                        \
+-	if (profiles.X != NULL) {                                                                                      \
+-		sess->X = profiles.X->path;                                                                            \
+-		oxr_event_push_XrEventDataInteractionProfileChanged(log, sess);                                        \
++	{                                                                                                              \
++		const XrPath new_path = profiles.X ? profiles.X->path : XR_NULL_PATH;                                  \
++		if (sess->X != new_path) {                                                                             \
++			sess->X = new_path;                                                                            \
++			any_profile_changed = true;                                                                    \
++		}                                                                                                      \
+ 	}
+ 	OXR_FOR_EACH_VALID_SUBACTION_PATH(POPULATE_PROFILE)
+ #undef POPULATE_PROFILE
+ 
++	if (any_profile_changed) {
++		oxr_event_push_XrEventDataInteractionProfileChanged(log, sess);
++	}
+ 	return oxr_session_success_result(sess);
+ }
+ 
+-- 
+2.52.0
+
