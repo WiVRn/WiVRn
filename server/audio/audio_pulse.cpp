@@ -258,6 +258,8 @@ struct pulse_device : public audio_device
 	wivrn::fd_base mic_pipe;
 
 	wivrn::wivrn_session & session;
+	
+	std::string previous_default_sink; // Store the previous default sink to restore on disconnect
 
 	~pulse_device()
 	{
@@ -267,6 +269,65 @@ struct pulse_device : public audio_device
 			mic_thread.join();
 		if (speaker_thread.joinable())
 			speaker_thread.join();
+		
+		// Restore previous default sink if we changed it
+		if (!previous_default_sink.empty() && speaker)
+		{
+			try
+			{
+				pa_connection cnx("WiVRn");
+				
+				// Check if the previous sink still exists before restoring
+				std::promise<bool> sink_exists;
+				wrap_lambda cb = [&sink_exists](pa_context *, const pa_sink_info * i, int eol) {
+					if (eol)
+					{
+						sink_exists.set_value(false);
+						return;
+					}
+					sink_exists.set_value(true);
+				};
+				auto op = pa_context_get_sink_info_by_name(cnx, previous_default_sink.c_str(), cb, cb);
+				if (op)
+				{
+					pa_operation_unref(op);
+					bool exists = sink_exists.get_future().get();
+					
+					if (exists)
+					{
+						// Restore the previous default sink
+						std::promise<void> p;
+						std::string prev_sink = previous_default_sink;
+						wrap_lambda restore_cb = [&p, prev_sink](pa_context * ctx, int success) {
+							if (success)
+							{
+								U_LOG_I("Restored previous default PulseAudio sink: '%s'", prev_sink.c_str());
+							}
+							else
+							{
+								U_LOG_W("Failed to restore previous default PulseAudio sink: '%s'", prev_sink.c_str());
+							}
+							p.set_value();
+						};
+						auto restore_op = pa_context_set_default_sink(cnx, previous_default_sink.c_str(), restore_cb, restore_cb);
+						if (restore_op)
+						{
+							pa_operation_unref(restore_op);
+							p.get_future().wait();
+						}
+					}
+					else
+					{
+						U_LOG_D("Previous default PulseAudio sink '%s' no longer exists, not restoring", previous_default_sink.c_str());
+					}
+				}
+			}
+			catch (const std::exception & e)
+			{
+				U_LOG_W("Failed to restore previous default PulseAudio sink: %s", e.what());
+			}
+		}
+		
 		if (speaker or microphone)
 		{
 			try
@@ -441,6 +502,29 @@ struct pulse_device : public audio_device
 				throw std::system_error(errno, std::system_category(), "failed to open speaker pipe " + speaker->socket.string());
 
 			speaker_thread = std::thread([this]() { run_speaker(); });
+			
+			// Get the current default sink before changing it
+			std::promise<std::string> current_default;
+			wrap_lambda get_default_cb = [&current_default](pa_context *, const pa_server_info * i) {
+				if (i && i->default_sink_name)
+				{
+					current_default.set_value(std::string(i->default_sink_name));
+				}
+				else
+				{
+					current_default.set_value("");
+				}
+			};
+			auto get_op = pa_context_get_server_info(cnx, get_default_cb, get_default_cb);
+			if (get_op)
+			{
+				pa_operation_unref(get_op);
+				previous_default_sink = current_default.get_future().get();
+				if (!previous_default_sink.empty() && previous_default_sink != sink_name)
+				{
+					U_LOG_D("Saving previous default PulseAudio sink: '%s'", previous_default_sink.c_str());
+				}
+			}
 			
 			// Set this sink as the default output device
 			std::promise<void> p;

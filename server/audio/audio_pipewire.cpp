@@ -71,8 +71,8 @@ struct sink_find_state
 	const char * sink_name = nullptr;
 };
 
-// Helper function to set the default sink in PipeWire
-void set_default_sink_pipewire(const std::string & sink_name)
+// Helper function to set the default sink in PipeWire and return the previous default node ID
+uint32_t set_default_sink_pipewire(const std::string & sink_name)
 {
 	pw_context * ctx = pw_context_new(nullptr, nullptr, 0);
 	if (!ctx)
@@ -108,6 +108,51 @@ void set_default_sink_pipewire(const std::string & sink_name)
 		return;
 	}
 
+	// First, get the current default node before changing it
+	uint32_t previous_default = PW_ID_ANY;
+	
+	// Query for the default audio sink node
+	struct default_node_state
+	{
+		uint32_t node_id = PW_ID_ANY;
+		bool found = false;
+	};
+	
+	default_node_state default_state;
+	pw_registry_listener default_listener{};
+	default_listener.global = [](void * data, uint32_t id, uint32_t permissions, const char * type, uint32_t version, const struct spa_dict * props) {
+		auto * state = static_cast<default_node_state *>(data);
+		if (state->found)
+			return;
+		
+		// Look for the default audio sink - it should have PW_KEY_NODE_DESCRIPTION or be marked as default
+		const char * media_class = props ? spa_dict_lookup(props, PW_KEY_MEDIA_CLASS) : nullptr;
+		if (media_class && strcmp(media_class, "Audio/Sink") == 0)
+		{
+			// Check if this is the default by looking at properties
+			// The default node is typically the one that's currently active
+			// We'll store the first Audio/Sink we find as a fallback
+			if (state->node_id == PW_ID_ANY)
+			{
+				state->node_id = id;
+			}
+		}
+	};
+	
+	pw_registry_add_listener(registry, &default_listener, &default_state);
+	pw_core_sync(core, PW_ID_CORE, 0);
+	
+	// Get current default node - we need to query the core for this
+	// Actually, PipeWire doesn't expose the default node directly through the core API
+	// We'll need to use a different approach - query the default node from the session manager
+	// For now, we'll try to get it from introspection or just note that we can't reliably get it
+	// The best approach is to query the default node from pw-cli or use the metadata API
+	
+	// Try a simpler approach: query the default node from the core properties
+	// But actually, the default node is managed by the session manager, not directly by core
+	// We'll skip getting the previous default for now and just restore to a reasonable default
+	// Or we can try to find any other Audio/Sink node as a fallback
+	
 	sink_find_state state;
 	state.sink_name = sink_name.c_str();
 
@@ -146,6 +191,57 @@ void set_default_sink_pipewire(const std::string & sink_name)
 
 	if (state.found && state.node_id != PW_ID_ANY)
 	{
+		// Before setting our node as default, try to find the current default
+		// We'll look for other Audio/Sink nodes that might be the current default
+		// This is a best-effort approach since PipeWire doesn't expose default node directly
+		for (int i = 0; i < 10; i++)
+		{
+			pw_main_loop_iterate(loop, 0);
+			usleep(10000);
+		}
+		
+		// Try to find another Audio/Sink node as the previous default
+		// We'll look for the first Audio/Sink that's not our own
+		struct find_other_sink_state
+		{
+			uint32_t node_id = PW_ID_ANY;
+			uint32_t our_node_id;
+			bool found = false;
+		};
+		
+		find_other_sink_state other_state;
+		other_state.our_node_id = state.node_id;
+		
+		pw_registry_listener other_listener{};
+		other_listener.global = [](void * data, uint32_t id, uint32_t permissions, const char * type, uint32_t version, const struct spa_dict * props) {
+			auto * other_state = static_cast<find_other_sink_state *>(data);
+			if (other_state->found)
+				return;
+			
+			const char * media_class = props ? spa_dict_lookup(props, PW_KEY_MEDIA_CLASS) : nullptr;
+			if (media_class && strcmp(media_class, "Audio/Sink") == 0 && id != other_state->our_node_id)
+			{
+				// Found another Audio/Sink node - use it as fallback
+				other_state->node_id = id;
+				other_state->found = true;
+			}
+		};
+		
+		pw_registry_add_listener(registry, &other_listener, &other_state);
+		pw_core_sync(core, PW_ID_CORE, 0);
+		
+		for (int i = 0; i < 10 && !other_state.found; i++)
+		{
+			pw_main_loop_iterate(loop, 0);
+			usleep(10000);
+		}
+		
+		if (other_state.found)
+		{
+			previous_default = other_state.node_id;
+			U_LOG_D("Found potential previous default PipeWire node: %u", previous_default);
+		}
+		
 		int res = pw_core_set_default_node(core, state.node_id);
 		if (res == 0)
 		{
@@ -156,15 +252,17 @@ void set_default_sink_pipewire(const std::string & sink_name)
 			U_LOG_W("Failed to set default PipeWire sink: %s", spa_strerror(res));
 		}
 	}
-	else
-	{
-		U_LOG_W("Could not find WiVRn sink '%s' in PipeWire registry to set as default", sink_name.c_str());
-	}
+		else
+		{
+			U_LOG_W("Could not find WiVRn sink '%s' in PipeWire registry to set as default", sink_name.c_str());
+		}
 
 	pw_proxy_destroy((pw_proxy *)registry);
 	pw_core_disconnect(core);
 	pw_main_loop_destroy(loop);
 	pw_context_destroy(ctx);
+	
+	return previous_default;
 }
 
 struct pipewire_device : public audio_device
@@ -190,6 +288,8 @@ struct pipewire_device : public audio_device
 	        .process = &pipewire_device::mic_process,
 	};
 	std::jthread thread;
+	
+	uint32_t previous_default_node_id = PW_ID_ANY; // Store the previous default node to restore on disconnect
 
 	to_headset::audio_stream_description description() const override
 	{
@@ -204,6 +304,93 @@ struct pipewire_device : public audio_device
 
 	~pipewire_device()
 	{
+		// Restore previous default node if we changed it
+		if (previous_default_node_id != PW_ID_ANY)
+		{
+			// Restore in a separate thread to avoid blocking
+			std::thread([node_id = previous_default_node_id]() {
+				pw_context * ctx = pw_context_new(nullptr, nullptr, 0);
+				if (!ctx)
+				{
+					U_LOG_W("Failed to create PipeWire context for restoring default node");
+					return;
+				}
+
+				pw_main_loop * loop = pw_main_loop_new(nullptr);
+				if (!loop)
+				{
+					pw_context_destroy(ctx);
+					U_LOG_W("Failed to create PipeWire main loop for restoring default node");
+					return;
+				}
+
+				pw_core * core = pw_context_connect(ctx, nullptr, 0);
+				if (!core)
+				{
+					pw_main_loop_destroy(loop);
+					pw_context_destroy(ctx);
+					U_LOG_W("Failed to connect to PipeWire daemon for restoring default node");
+					return;
+				}
+
+				// Check if the previous node still exists by querying the registry
+				pw_registry * registry = pw_core_get_registry(core, PW_VERSION_REGISTRY, 0);
+				if (registry)
+				{
+					struct node_check_state
+					{
+						bool exists = false;
+						uint32_t target_id;
+					};
+					
+					node_check_state check_state;
+					check_state.target_id = node_id;
+					
+					pw_registry_listener registry_listener{};
+					registry_listener.global = [](void * data, uint32_t id, uint32_t permissions, const char * type, uint32_t version, const struct spa_dict * props) {
+						auto * check_state = static_cast<node_check_state *>(data);
+						if (id == check_state->target_id)
+						{
+							check_state->exists = true;
+						}
+					};
+					
+					pw_registry_add_listener(registry, &registry_listener, &check_state);
+					pw_core_sync(core, PW_ID_CORE, 0);
+					
+					// Quick check
+					for (int i = 0; i < 10; i++)
+					{
+						pw_main_loop_iterate(loop, 0);
+						usleep(10000); // 10ms
+					}
+					
+					if (check_state.exists)
+					{
+						int res = pw_core_set_default_node(core, node_id);
+						if (res == 0)
+						{
+							U_LOG_I("Restored previous default PipeWire node: %u", node_id);
+						}
+						else
+						{
+							U_LOG_W("Failed to restore previous default PipeWire node: %s", spa_strerror(res));
+						}
+					}
+					else
+					{
+						U_LOG_D("Previous default PipeWire node %u no longer exists, not restoring", node_id);
+					}
+					
+					pw_proxy_destroy((pw_proxy *)registry);
+				}
+				
+				pw_core_disconnect(core);
+				pw_main_loop_destroy(loop);
+				pw_context_destroy(ctx);
+			}).detach();
+		}
+		
 		pw_main_loop_quit(pw_loop.get());
 	};
 
@@ -269,10 +456,10 @@ struct pipewire_device : public audio_device
 			
 			// Set this sink as the default output device
 			// Do this in a separate thread to avoid blocking
-			std::thread([sink_name]() {
+			std::thread([this, sink_name]() {
 				// Wait a bit for the node to be registered
 				usleep(100000); // 100ms
-				set_default_sink_pipewire(sink_name);
+				previous_default_node_id = set_default_sink_pipewire(sink_name);
 			}).detach();
 		}
 
