@@ -8,28 +8,26 @@
 	<description>
 		<p>WiVRn allows you to run your VR games from your PC and play them from a standalone headset.</p>
 
-		<p>You will need to install the WiVRn client on your headset from the Meta Store or by following the wizard in the application.</p>
+		<p>Works with the WiVRn client app on standalone headsets, available as an APK and on the Meta Store.</p>
 
-		<p>Supported headsets:</p>
-		<ul>
-			<li>Meta Quest 1</li>
-			<li>Meta Quest 2</li>
-			<li>Meta Quest 3</li>
-			<li>Meta Quest 3S</li>
-			<li>Meta Quest Pro</li>
-			<li>Pico Neo 4</li>
-			<li>HTC Vive Focus 3</li>
-			<li>HTC Vive XR Elite</li>
-		</ul>
 		<p>Features:</p>
 		<ul>
-			<li>Supports OpenXR and OpenVR applications</li>
-			<li>Controller tracking, hand tracking, eye gaze tracking (if supported by the headset)</li>
+			<li>Supports OpenXR and OpenVR applications through xrizer or OpenComposite</li>
+			<li>Controller tracking, hand tracking, eye gaze tracking, body tracking as supported by the headset</li>
 			<li>Audio streaming and microphone</li>
-			<li>Video streaming with H264 / HEVC / AV1 compression</li>
+			<li>Low latency video streaming with H264 / HEVC / AV1 compression</li>
 			<li>Hardware accelerated compression with Vulkan video encode, VAAPI or NVENC</li>
 			<li>Software compression with x264</li>
 		</ul>
+
+		<p>Supported headsets:</p>
+		<ul>
+			<li>Meta Quest 1, 2, 3, 3S, pro</li>
+			<li>Pico Neo 4</li>
+			<li>HTC Vive Focus 3, XR Elite</li>
+		</ul>
+
+		<p>For desktop streaming, check out wlx-overlay-s.</p>
 	</description>
 	<developer id="io.github.wivrn.wivrn">
 		<name>Guillaume Meunier, Patrick Nicolas et al</name>
