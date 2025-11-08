@@ -672,6 +672,9 @@ void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
 void wivrn_session::operator()(from_headset::session_state_changed && event)
 {
 	U_LOG_I("Session state changed: %s", xr::to_string(event.state));
+	if (!inst.server)
+		return;
+
 	bool visible, focused;
 	switch (event.state)
 	{
@@ -785,6 +788,8 @@ void wivrn_session::operator()(const from_headset::start_app & request)
 
 void wivrn_session::operator()(const from_headset::get_running_applications &)
 {
+	if (!inst.server)
+		return;
 	scoped_lock lock(inst.server->global_state.lock);
 	to_headset::running_applications msg{};
 	for (auto & t: inst.server->threads)
@@ -809,6 +814,8 @@ void wivrn_session::operator()(const from_headset::get_running_applications &)
 
 void wivrn_session::operator()(const from_headset::set_active_application & req)
 {
+	if (!inst.server)
+		return;
 	ipc_server_set_active_client(inst.server, req.id);
 	ipc_server_update_state(inst.server);
 	// Send a refreshed application list
@@ -817,6 +824,8 @@ void wivrn_session::operator()(const from_headset::set_active_application & req)
 
 void wivrn_session::operator()(const from_headset::stop_application & req)
 {
+	if (!inst.server)
+		return;
 	scoped_lock lock(inst.server->global_state.lock);
 	for (auto & t: inst.server->threads)
 	{
@@ -1021,6 +1030,8 @@ void wivrn_session::reconnect()
 
 void wivrn_session::poll_session_loss()
 {
+	if (!inst.server)
+		return;
 	auto locked = session_loss.lock();
 	auto now = os_monotonic_get_ns();
 	if (locked->empty())
