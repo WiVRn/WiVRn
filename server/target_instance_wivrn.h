@@ -23,6 +23,7 @@
 
 namespace wivrn
 {
+class wivrn_session;
 class instance : public xrt_instance
 {
 	xrt_result_t create_system(
@@ -33,9 +34,11 @@ class instance : public xrt_instance
 
 	xrt_result_t get_prober(xrt_prober **);
 
+	wivrn_session * session = nullptr;
+
 public:
-	ipc_server * server = nullptr;
 	using base = xrt_instance;
 	instance();
+	void set_ipc_server(ipc_server *);
 };
 } // namespace wivrn

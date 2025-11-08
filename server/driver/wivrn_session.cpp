@@ -26,7 +26,6 @@
 #include "main/comp_main_interface.h"
 #include "main/comp_target.h"
 #include "server/ipc_server.h"
-#include "target_instance_wivrn.h"
 #include "util/u_builders.h"
 #include "util/u_logging.h"
 #include "util/u_system.h"
@@ -141,7 +140,7 @@ bool wivrn::tracking_control_t::set_enabled(to_headset::tracking_control::id id,
 	return changed;
 }
 
-wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, instance & inst, u_system & system) :
+wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system & system) :
         xrt_system_devices{
                 .get_roles = [](xrt_system_devices * self, xrt_system_roles * out_roles) { return ((wivrn_session *)self)->get_roles(out_roles); },
                 .feature_inc = [](xrt_system_devices * self, xrt_device_feature_type f) { return ((wivrn_session *)self)->feature_inc(f); },
@@ -149,7 +148,6 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
                 .destroy = [](xrt_system_devices * self) { delete ((wivrn_session *)self); },
         },
         connection(std::move(connection)),
-        inst(inst),
         xrt_system(system),
         hmd(this, get_info()),
         left_controller(0, &hmd, this),
@@ -308,7 +306,6 @@ wivrn_session::~wivrn_session()
 }
 
 xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connection> connection,
-                                                  instance & inst,
                                                   u_system & system,
                                                   xrt_system_devices ** out_xsysd,
                                                   xrt_space_overseer ** out_xspovrs,
@@ -317,7 +314,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	std::unique_ptr<wivrn_session> self;
 	try
 	{
-		self.reset(new wivrn_session(std::move(connection), inst, system));
+		self.reset(new wivrn_session(std::move(connection), system));
 	}
 	catch (std::exception & e)
 	{
@@ -355,9 +352,20 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 		self->feedback_csv.open(dump_file);
 	}
 
-	self->thread = std::jthread([s = self.get()](auto stop_token) { return s->run(stop_token); });
 	*out_xsysd = self.release();
 	return XRT_SUCCESS;
+}
+
+void wivrn_session::start(ipc_server * server)
+{
+	assert(not thread);
+	mnd_ipc_server = server;
+	thread = std::jthread([this](auto stop_token) { return run(stop_token); });
+}
+
+void wivrn_session::stop()
+{
+	thread = std::jthread();
 }
 
 clock_offset wivrn_session::get_offset()
@@ -671,6 +679,7 @@ void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
 
 void wivrn_session::operator()(from_headset::session_state_changed && event)
 {
+	assert(server);
 	U_LOG_I("Session state changed: %s", xr::to_string(event.state));
 	bool visible, focused;
 	switch (event.state)
@@ -688,13 +697,13 @@ void wivrn_session::operator()(from_headset::session_state_changed && event)
 			focused = false;
 			break;
 	}
-	scoped_lock lock(inst.server->global_state.lock);
-	for (auto & t: inst.server->threads)
+	scoped_lock lock(mnd_ipc_server->global_state.lock);
+	for (auto & t: mnd_ipc_server->threads)
 	{
 		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr)
 			continue;
 		bool current = t.ics.client_state.session_overlay or
-		               inst.server->global_state.active_client_index == t.ics.server_thread_index;
+		               mnd_ipc_server->global_state.active_client_index == t.ics.server_thread_index;
 		xrt_syscomp_set_state(system_compositor, t.ics.xc, visible and current, focused and current);
 	}
 }
@@ -785,9 +794,10 @@ void wivrn_session::operator()(const from_headset::start_app & request)
 
 void wivrn_session::operator()(const from_headset::get_running_applications &)
 {
-	scoped_lock lock(inst.server->global_state.lock);
+	assert(server);
+	scoped_lock lock(mnd_ipc_server->global_state.lock);
 	to_headset::running_applications msg{};
-	for (auto & t: inst.server->threads)
+	for (auto & t: mnd_ipc_server->threads)
 	{
 		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr)
 			continue;
@@ -801,7 +811,7 @@ void wivrn_session::operator()(const from_headset::get_running_applications &)
 		                .name = std::string(tmp.data()),
 		                .id = t.ics.client_state.id,
 		                .overlay = t.ics.client_state.session_overlay,
-		                .active = t.ics.server_thread_index == inst.server->global_state.active_client_index,
+		                .active = t.ics.server_thread_index == mnd_ipc_server->global_state.active_client_index,
 		        });
 	}
 	connection->send_control(std::move(msg));
@@ -809,16 +819,18 @@ void wivrn_session::operator()(const from_headset::get_running_applications &)
 
 void wivrn_session::operator()(const from_headset::set_active_application & req)
 {
-	ipc_server_set_active_client(inst.server, req.id);
-	ipc_server_update_state(inst.server);
+	assert(server);
+	ipc_server_set_active_client(mnd_ipc_server, req.id);
+	ipc_server_update_state(mnd_ipc_server);
 	// Send a refreshed application list
 	(*this)(from_headset::get_running_applications{});
 }
 
 void wivrn_session::operator()(const from_headset::stop_application & req)
 {
-	scoped_lock lock(inst.server->global_state.lock);
-	for (auto & t: inst.server->threads)
+	assert(server);
+	scoped_lock lock(mnd_ipc_server->global_state.lock);
+	for (auto & t: mnd_ipc_server->threads)
 	{
 		if (t.ics.client_state.id == req.id)
 		{
@@ -1021,15 +1033,16 @@ void wivrn_session::reconnect()
 
 void wivrn_session::poll_session_loss()
 {
+	assert(server);
 	auto locked = session_loss.lock();
 	auto now = os_monotonic_get_ns();
 	if (locked->empty())
 		return;
 	auto it = locked->begin();
-	scoped_lock lock(inst.server->global_state.lock);
+	scoped_lock lock(mnd_ipc_server->global_state.lock);
 	while (it != locked->end() and it->first <= now)
 	{
-		for (auto & t: inst.server->threads)
+		for (auto & t: mnd_ipc_server->threads)
 		{
 			if (t.ics.client_state.id == it->second)
 			{

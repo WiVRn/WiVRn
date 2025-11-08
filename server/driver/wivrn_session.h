@@ -38,6 +38,7 @@
 #include <shared_mutex>
 #include <thread>
 
+struct ipc_server;
 struct u_system;
 struct xrt_space_overseer;
 struct xrt_system_compositor;
@@ -45,7 +46,6 @@ union xrt_session_event;
 
 namespace wivrn
 {
-class instance;
 class wivrn_eye_tracker;
 class wivrn_fb_face2_tracker;
 class wivrn_htc_face_tracker;
@@ -95,10 +95,10 @@ class wivrn_session : public xrt_system_devices
 {
 	friend wivrn_comp_target_factory;
 	std::unique_ptr<wivrn_connection> connection;
-	instance & inst;
 	pacing_app_factory app_pacers;
 
 	u_system & xrt_system;
+	ipc_server * mnd_ipc_server;
 	xrt_space_overseer * space_overseer;
 	xrt_system_compositor * system_compositor;
 
@@ -141,17 +141,19 @@ class wivrn_session : public xrt_system_devices
 
 	std::jthread thread;
 
-	wivrn_session(std::unique_ptr<wivrn_connection> connection, instance &, u_system &);
+	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
 
 public:
 	~wivrn_session();
 
 	static xrt_result_t create_session(std::unique_ptr<wivrn_connection> connection,
-	                                   instance & instance,
 	                                   u_system & system,
 	                                   xrt_system_devices ** out_xsysd,
 	                                   xrt_space_overseer ** out_xspovrs,
 	                                   xrt_system_compositor ** out_xsysc);
+
+	void start(ipc_server *);
+	void stop();
 
 	clock_offset get_offset();
 	bool connected();

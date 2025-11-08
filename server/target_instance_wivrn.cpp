@@ -48,11 +48,13 @@ xrt_result_t instance::create_system(
 	struct xrt_system_compositor * xsysc = NULL;
 	auto res = wivrn::wivrn_session::create_session(
 	        std::move(connection),
-	        *this,
 	        *u_sys,
 	        out_xsysd,
 	        out_xspovrs,
 	        out_xsysc);
+	if (res != XRT_SUCCESS)
+		return res;
+	session = (wivrn_session *)*out_xsysd;
 	u_system_set_system_compositor(u_sys, *out_xsysc);
 	return res;
 }
@@ -71,6 +73,15 @@ instance::instance() :
                 .startup_timestamp = os_monotonic_get_ns(),
         }
 {
+}
+
+void instance::set_ipc_server(ipc_server * server)
+{
+	assert(session);
+	if (server)
+		session->start(server);
+	else
+		session->stop();
 }
 
 } // namespace wivrn
