@@ -47,7 +47,6 @@
     <uses-permission android:name="com.oculus.permission.FACE_TRACKING" />
     <uses-permission android:name="com.picovr.permission.FACE_TRACKING" />
     <uses-permission android:name="com.oculus.permission.BODY_TRACKING" />
-    <uses-permission android:name="android.permission.EYE_TRACKING_COARSE" />
     <uses-permission android:name="android.permission.EYE_TRACKING_FINE" />
     <uses-permission android:name="android.permission.FACE_TRACKING" />
     <uses-permission android:name="android.permission.HAND_TRACKING" />
