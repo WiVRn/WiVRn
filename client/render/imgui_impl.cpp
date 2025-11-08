@@ -237,7 +237,10 @@ std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(cons
 			// => ray_start.z + distance × ray_dir.z = 0
 			float distance = -ray_start.z / ray_dir.z;
 
-			if (distance < constants::gui::min_pointer_distance)
+			if (distance < constants::gui::min_controller_distance and in.source == ImGuiMouseSource_VRController)
+				continue;
+
+			if (distance < constants::gui::fingertip_distance_touching_thd_lo and in.source == ImGuiMouseSource_VRHandTracking)
 				continue;
 
 			coord.x = ray_start.x + distance * ray_dir.x;
@@ -625,7 +628,7 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 			if (state.hover_distance < constants::gui::fingertip_distance_hovering_thd)
 				state.fingertip_hovering = true;
 
-			if (state.hover_distance < constants::gui::fingertip_distance_touching_thd)
+			if (state.hover_distance < constants::gui::fingertip_distance_touching_thd_hi and state.hover_distance > constants::gui::fingertip_distance_touching_thd_lo)
 				state.fingertip_touching = true;
 		}
 	}

@@ -27,7 +27,7 @@
 namespace constants::gui
 {
 // Minimum distance between a GUI layer and a fingertip/controller to register a click
-constexpr float min_pointer_distance = -0.02;
+constexpr float min_controller_distance = -0.02;
 
 // Font to use (desktop only)
 constexpr const char font_name[] = "Noto Sans";
@@ -43,9 +43,10 @@ constexpr float scroll_ratio = 10;
 constexpr float trigger_click_thd = 0.8;
 
 // Thresholds on the distance between the fingertip and GUI layers (positive: in front of the GUI, negative: behind the GUI)
-constexpr float fingertip_distance_hovering_thd = 0.15;  // Max distance to have the cursor hovering
-constexpr float fingertip_distance_touching_thd = -0.01; // Max distance to register a click
-constexpr float fingertip_distance_stick_thd = -0.02;    // Max distance where the fingertip is moved to be on the GUI
+constexpr float fingertip_distance_hovering_thd = 0.15;     // Max distance to have the cursor hovering
+constexpr float fingertip_distance_touching_thd_hi = -0.01; // Distance to register a click
+constexpr float fingertip_distance_touching_thd_lo = -0.15; // Distance to register a click
+constexpr float fingertip_distance_stick_thd = -0.02;       // Max distance where the fingertip is moved to be on the GUI
 
 // Minimum scroll value to enable a controller
 constexpr float scroll_value_thd = 0.01;
