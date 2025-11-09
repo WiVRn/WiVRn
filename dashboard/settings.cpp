@@ -129,12 +129,15 @@ void Settings::load(const wivrn_server * server)
 	{
 		auto conf = server->jsonConfiguration();
 		m_jsonSettings = nlohmann::json::parse(conf.toUtf8());
+		if (not m_jsonSettings.is_object())
+			m_jsonSettings = nlohmann::json::object();
 		emitAllChanged();
 	}
 	catch (std::exception & e)
 	{
 		qWarning() << "Cannot read configuration: " << e.what();
-		restore_defaults();
+		m_jsonSettings = nlohmann::json::object();
+		emitAllChanged();
 		return;
 	}
 }
