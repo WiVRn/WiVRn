@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-06 10:54+0100\n"
-"PO-Revision-Date: 2025-11-09 02:57+0100\n"
+"PO-Revision-Date: 2025-11-09 03:04+0100\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -232,8 +232,7 @@ msgstr "Modo de alta potência"
 #: client/scenes/lobby_gui.cpp:675
 msgid "Increase power usage to allow higher resolution and refresh rate"
 msgstr ""
-"Aumenta o uso de energia para permitir resolução e taxa de atualização mais al"
-"tas"
+"Aumenta a potência para permitir resolução e taxa de atualização mais altas"
 
 #: client/scenes/lobby_gui.cpp:681
 msgid "Enable microphone"
