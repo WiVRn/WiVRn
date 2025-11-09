@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-06 19:45+0800\n"
-"PO-Revision-Date: 2025-11-09 19:18+0800\n"
+"PO-Revision-Date: 2025-11-09 23:01+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Gtranslator 49.0\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 
 #: dashboard/apk_installer.cpp:137
 #, kde-format
@@ -148,28 +148,24 @@ msgstr "头显"
 msgid "Last connection: %1 second ago"
 msgid_plural "Last connection: %1 seconds ago"
 msgstr[0] "上次连接时间：%1 秒前"
-msgstr[1] "上次連線時間：%1 秒前"
 
 #: dashboard/qml/HeadsetsPage.qml:31
 #, kde-format
 msgid "Last connection: %1 minute ago"
 msgid_plural "Last connection: %1 minutes ago"
 msgstr[0] "上次连接时间：%1 分鐘前"
-msgstr[1] "上次連線時間：%1 分鐘前"
 
 #: dashboard/qml/HeadsetsPage.qml:33
 #, kde-format
 msgid "Last connection: %1 hour ago"
 msgid_plural "Last connection: %1 hours ago"
 msgstr[0] "上次连接时间：%1 小時前"
-msgstr[1] "上次連線時間：%1 小時前"
 
 #: dashboard/qml/HeadsetsPage.qml:35
 #, kde-format
 msgid "Last connection: %1 day ago"
 msgid_plural "Last connection: %1 days ago"
 msgstr[0] "上次连接时间：%1 天前"
-msgstr[1] "上次連線時間：%1 天前"
 
 #: dashboard/qml/HeadsetsPage.qml:40
 #, kde-format
