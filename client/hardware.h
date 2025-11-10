@@ -41,6 +41,7 @@ enum class model
 	htc_vive_xr_elite,
 	htc_vive_focus_vision,
 	lynx_r1,
+	samsung_galaxy_xr,
 	unknown
 };
 
