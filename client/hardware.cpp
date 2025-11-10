@@ -171,7 +171,7 @@ XrViewConfigurationView override_view(XrViewConfigurationView view, model m)
 		case model::htc_vive_xr_elite:
 			return scale_view(view, 1920);
 		case model::samsung_galaxy_xr:
-		    return scale_view(view, 3552);
+			return scale_view(view, 3552);
 		case model::lynx_r1:
 		case model::unknown:
 			return view;
