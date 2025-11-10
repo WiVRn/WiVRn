@@ -288,6 +288,11 @@ public:
 		return size;
 	}
 
+	size_t wire_size()
+	{
+		return initial_buffer.size_bytes();
+	}
+
 	template <typename T>
 	void deserialize(T & v)
 	{
