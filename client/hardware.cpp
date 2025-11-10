@@ -231,8 +231,9 @@ const char * permission_name(feature f)
 				case model::htc_vive_xr_elite:
 				case model::lynx_r1:
 				case model::unknown:
-					return nullptr;
+					break;
 			}
+			return nullptr;
 		case feature::eye_gaze:
 			switch (guess_model())
 			{
