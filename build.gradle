@@ -127,6 +127,7 @@ android {
                           '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
                           '-DWIVRN_USE_SYSTEM_BOOST=OFF',
                           '-DWIVRN_USE_SYSTEM_FREETYPE=OFF',
+                          '-DWIVRN_USE_ANDROID_BIN_LIBKTX=ON',
                           '-DWIVRN_BUILD_CLIENT=ON',
                           '-DWIVRN_BUILD_SERVER=OFF',
                           '-DWIVRN_BUILD_SERVER_LIBRARY=OFF',
