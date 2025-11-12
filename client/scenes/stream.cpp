@@ -429,6 +429,7 @@ void scenes::stream::on_focused()
 
 	std::array imgui_inputs{
 	        imgui_context::controller{
+	                .index = 0,
 	                .aim = get_action_space("left_aim"),
 	                .offset = input->offset[xr::spaces::aim_left],
 	                .trigger = get_action("left_trigger").first,
@@ -437,6 +438,7 @@ void scenes::stream::on_focused()
 	                .haptic_output = get_action("left_haptic").first,
 	        },
 	        imgui_context::controller{
+	                .index = 1,
 	                .aim = get_action_space("right_aim"),
 	                .offset = input->offset[xr::spaces::aim_right],
 	                .trigger = get_action("right_trigger").first,

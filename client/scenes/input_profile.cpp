@@ -397,15 +397,22 @@ static void set_clipping_planes(entt::registry & scene, entt::entity entity, std
 	}
 }
 
-void input_profile::apply(entt::registry & scene, XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits)
+void input_profile::apply(
+        entt::registry & scene,
+        XrSpace world_space,
+        XrTime predicted_display_time,
+        bool hide_left_controller,
+        bool hide_left_ray,
+        bool hide_right_controller,
+        bool hide_right_ray,
+        std::span<glm::vec4> pointer_limits)
 {
 	for (auto && [entity, node, space]: scene.view<components::node, bound_space>().each())
 	{
-		if ((space.space == xr::spaces::grip_left or space.space == xr::spaces::aim_left) and hide_left)
-		{
-			node.visible = false;
-		}
-		else if ((space.space == xr::spaces::grip_right or space.space == xr::spaces::aim_right) and hide_right)
+		if ((space.space == xr::spaces::grip_left and hide_left_controller) or
+		    (space.space == xr::spaces::aim_left and hide_left_ray) or
+		    (space.space == xr::spaces::grip_right and hide_right_controller) or
+		    (space.space == xr::spaces::aim_right and hide_right_ray))
 		{
 			node.visible = false;
 		}

@@ -1032,7 +1032,14 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 				hide_right_controller = true;
 		}
 
-		input->apply(world, world_space, predicted_display_time, hide_left_controller, hide_right_controller, ray_limits);
+		input->apply(world,
+		             world_space,
+		             predicted_display_time,
+		             hide_left_controller,
+		             hide_left_controller,
+		             hide_right_controller,
+		             hide_right_controller,
+		             ray_limits);
 
 		// Add the layer with the controllers
 		if (composition_layer_depth_test_supported)

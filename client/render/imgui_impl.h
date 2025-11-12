@@ -93,6 +93,7 @@ public:
 
 	struct controller
 	{
+		uint8_t index; // left = 0, right = 1
 		XrSpace aim;
 		std::pair<glm::vec3, glm::quat> offset;
 
@@ -186,6 +187,8 @@ private:
 	bool button_pressed = false;
 	bool fingertip_touching = false;
 
+	std::array<bool, 2> aim_interaction = {true, true}; // left, right
+
 	ImGuiID hovered_item = 0;      // Hovered item in the current frame, reset at the beginning of the frame
 	ImGuiID hovered_item_prev = 0; // Hovered item at the previous frame
 
@@ -242,6 +245,10 @@ public:
 	void set_hovered_item();
 	void set_controllers_enabled(bool value);
 	void tooltip(std::string_view text);
+	std::array<bool, 2> is_aim_interaction() const
+	{
+		return aim_interaction;
+	}
 };
 
 void ScrollWhenDragging();

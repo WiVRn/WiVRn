@@ -40,5 +40,13 @@ struct input_profile
 	input_profile(scene & scene, const std::filesystem::path & json_profile, uint32_t layer_mask_controller, uint32_t layer_mask_ray);
 
 	// application::poll_actions() must have been called before
-	void apply(entt::registry & scene, XrSpace world_space, XrTime predicted_display_time, bool hide_left, bool hide_right, std::span<glm::vec4> pointer_limits);
+	void apply(
+	        entt::registry & scene,
+	        XrSpace world_space,
+	        XrTime predicted_display_time,
+	        bool hide_left_controller,
+	        bool hide_left_ray,
+	        bool hide_right_controller,
+	        bool hide_right_ray,
+	        std::span<glm::vec4> pointer_limits);
 };

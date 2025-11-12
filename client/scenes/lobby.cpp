@@ -1065,7 +1065,14 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 			ray_limits.push_back(compute_ray_limits(layer.pose));
 	}
 
-	input->apply(world, world_space, frame_state.predictedDisplayTime, hide_left_controller, hide_right_controller, ray_limits);
+	input->apply(world,
+	             world_space,
+	             frame_state.predictedDisplayTime,
+	             hide_left_controller,
+	             not imgui_ctx->is_aim_interaction()[0],
+	             hide_right_controller,
+	             not imgui_ctx->is_aim_interaction()[1],
+	             ray_limits);
 
 	renderer::animate(world, frame_state.predictedDisplayPeriod * 1.0e-9);
 
@@ -1198,6 +1205,7 @@ void scenes::lobby::on_focused()
 
 	std::vector imgui_inputs{
 	        imgui_context::controller{
+	                .index = 0,
 	                .aim = get_action_space("left_aim"),
 	                .offset = input->offset[xr::spaces::aim_left],
 	                .trigger = get_action("left_trigger").first,
@@ -1206,6 +1214,7 @@ void scenes::lobby::on_focused()
 	                .haptic_output = get_action("left_haptic").first,
 	        },
 	        imgui_context::controller{
+	                .index = 1,
 	                .aim = get_action_space("right_aim"),
 	                .offset = input->offset[xr::spaces::aim_right],
 	                .trigger = get_action("right_trigger").first,
@@ -1221,8 +1230,8 @@ void scenes::lobby::on_focused()
 		right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
 		hand_model::add_hand(*this, XR_HAND_LEFT_EXT, "assets://left-hand.glb", layer_controllers);
 		hand_model::add_hand(*this, XR_HAND_RIGHT_EXT, "assets://right-hand.glb", layer_controllers);
-		imgui_inputs.push_back({.hand = &*left_hand});
-		imgui_inputs.push_back({.hand = &*right_hand});
+		imgui_inputs.push_back({.index = 0, .hand = &*left_hand});
+		imgui_inputs.push_back({.index = 1, .hand = &*right_hand});
 	}
 
 	face_tracker = xr::make_face_tracker(instance, system, session);
@@ -1441,6 +1450,17 @@ scene::meta & scenes::lobby::get_meta_scene()
 	                                {"right_aim", "/user/hand/right/input/aim/pose"},
 	                                {"right_trigger", "/user/hand/right/input/select/click"},
 	                                {"right_squeeze", "/user/hand/right/input/menu/click"},
+	                        },
+	                },
+	                suggested_binding{
+	                        {
+	                                "/interaction_profiles/ext/hand_interaction_ext",
+	                        },
+	                        {
+	                                {"left_aim", "/user/hand/left/input/aim/pose"},
+	                                {"left_trigger", "/user/hand/left/input/aim_activate_ext"},
+	                                {"right_aim", "/user/hand/right/input/aim/pose"},
+	                                {"right_trigger", "/user/hand/right/input/aim_activate_ext"},
 	                        },
 	                },
 	        }};
