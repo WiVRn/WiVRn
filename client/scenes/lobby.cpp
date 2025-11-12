@@ -542,7 +542,6 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 	{
 		// First frame of recentering
 		imgui_context::controller_state state{
-		        .active = true,
 		        .aim_position = aim->first,
 		        .aim_orientation = aim->second,
 		};

@@ -210,9 +210,6 @@ imgui_textures::imgui_textures(
 
 std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
-	if (!in.active)
-		return {};
-
 	std::vector<std::pair<ImVec2, float>> intersections;
 
 	for (const auto & i: layers_)
@@ -581,20 +578,13 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 				        index_tip.pose.position.y,
 				        index_tip.pose.position.z};
 				// aim_orientation is ignored by ray_plane_intersection() for hands
-
-				state.active = true;
 			}
 			compute_pointer_position(state);
 
-			if (state.hover_distance < constants::gui::fingertip_distance_hovering_thd)
-			{
-				state.fingertip_hovering = true;
+			if (state.hover_distance < constants::gui::fingertip_distance_close_thd)
 				aim_interaction[ctrl.index] = false;
-			}
 			else
-			{
 				state.pointer_position.reset();
-			}
 
 			if (state.hover_distance < constants::gui::fingertip_distance_touching_thd_hi and state.hover_distance > constants::gui::fingertip_distance_touching_thd_lo)
 				state.fingertip_touching = true;
@@ -614,7 +604,6 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 
 		if (auto location = application::locate_controller(ctrl.aim, world, display_time))
 		{
-			state.active = true;
 			state.aim_position = location->first + glm::mat3_cast(location->second * ctrl.offset.second) * ctrl.offset.first;
 			state.aim_orientation = location->second * ctrl.offset.second;
 			compute_pointer_position(state);
@@ -645,7 +634,7 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 	return new_states;
 }
 
-void imgui_context::compute_pointer_position(imgui_context::controller_state & state)
+void imgui_context::compute_pointer_position(imgui_context::controller_state & state) const
 {
 	auto intersections = ray_plane_intersection(state);
 

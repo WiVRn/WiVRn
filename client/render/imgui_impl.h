@@ -109,8 +109,6 @@ public:
 
 	struct controller_state
 	{
-		bool active = false;
-
 		glm::vec3 aim_position = {0, 0, 0};
 		glm::quat aim_orientation = {1, 0, 0, 0};
 
@@ -122,7 +120,6 @@ public:
 
 		bool squeeze_clicked = false;
 		bool trigger_clicked = false;
-		bool fingertip_hovering = false;
 		bool fingertip_touching = false;
 		ImGuiMouseSource source = ImGuiMouseSource_Mouse;
 	};
@@ -232,7 +229,7 @@ public:
 	}
 
 	std::vector<std::pair<ImVec2, float>> ray_plane_intersection(const controller_state & in) const;
-	void compute_pointer_position(controller_state & state);
+	void compute_pointer_position(controller_state & state) const;
 
 	// Convert position from viewport coordinates to real-world
 	glm::vec3 rw_from_vp(const ImVec2 & position);
