@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-06 19:45+0800\n"
-"PO-Revision-Date: 2025-11-09 23:01+0800\n"
+"POT-Creation-Date: 2025-11-12 04:12+0800\n"
+"PO-Revision-Date: 2025-11-12 09:18+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -539,17 +539,32 @@ msgstr "进阶选项"
 msgid "Check system configuration on start"
 msgstr "在启动时检查系统设置"
 
-#: dashboard/qml/SettingsPage.qml:235
+#: dashboard/qml/SettingsPage.qml:237
+#, kde-format
+msgid "Forward keyboard & mouse from headset"
+msgstr "从头显转发键盘和鼠标输入"
+
+#: dashboard/qml/SettingsPage.qml:240
+#, kde-format
+msgid ""
+"Keyboard and mouse connected to the client will act as if connected to the "
+"server. Client OS may reserve specific keys and combinations, which cannot "
+"be forwarded."
+msgstr ""
+"连接到客户端的键盘和鼠标将表现得如同直接连接到服务器。客户端操作系统可能会保"
+"留特定的键映射和快捷键组合，这些无法被转发。"
+
+#: dashboard/qml/SettingsPage.qml:245
 #, kde-format
 msgid "Enable debug window"
 msgstr "启用 Debug 窗口"
 
-#: dashboard/qml/SettingsPage.qml:242
+#: dashboard/qml/SettingsPage.qml:252
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "启用 SteamVR 追踪设备支持"
 
-#: dashboard/qml/SettingsPage.qml:245
+#: dashboard/qml/SettingsPage.qml:255
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -562,44 +577,44 @@ msgstr ""
 "设备必须在连接到 WiVRn 之前开启电源。\n"
 "校准需要额外工具，例如 motoc。"
 
-#: dashboard/qml/SettingsPage.qml:253
+#: dashboard/qml/SettingsPage.qml:263
 #, kde-format
 msgid "Custom adb location"
 msgstr "自定义 adb 位置"
 
-#: dashboard/qml/SettingsPage.qml:264
+#: dashboard/qml/SettingsPage.qml:274
 #, kde-format
 msgid "Adb location:"
 msgstr "adb 位置："
 
-#: dashboard/qml/SettingsPage.qml:273
+#: dashboard/qml/SettingsPage.qml:283
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "浏览"
 
-#: dashboard/qml/SettingsPage.qml:283
+#: dashboard/qml/SettingsPage.qml:293
 #, kde-format
 msgid "Default"
 msgstr "默认"
 
-#: dashboard/qml/SettingsPage.qml:297
+#: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "自定义"
 
-#: dashboard/qml/SettingsPage.qml:302
+#: dashboard/qml/SettingsPage.qml:312
 #, kde-format
 msgid "Disabled"
 msgstr "已停用"
 
-#: dashboard/qml/SettingsPage.qml:310
+#: dashboard/qml/SettingsPage.qml:320
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR 兼容层："
 
-#: dashboard/qml/SettingsPage.qml:336
+#: dashboard/qml/SettingsPage.qml:346
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "兼容层路径，不包含 bin/linux64/vrclient.so"
