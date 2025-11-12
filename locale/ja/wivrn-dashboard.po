@@ -860,7 +860,7 @@ msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
 "running."
 msgstr ""
-"WiVRnはSteamVRの変わりに使うものです。両方を同時に走らせないように気をつけま"
+"WiVRnはSteamVRの代わりに使うものです。両方を同時に走らせないように気をつけま"
 "しょう。"
 
 #: dashboard/qml/WizardPage.qml:359
