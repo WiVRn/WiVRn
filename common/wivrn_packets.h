@@ -221,6 +221,8 @@ struct headset_info_packet
 	uint32_t recommended_eye_height;
 	std::vector<float> available_refresh_rates;
 	float preferred_refresh_rate;
+	// for automatic
+	float minimum_refresh_rate;
 	struct audio_description
 	{
 		uint8_t num_channels;
@@ -243,6 +245,13 @@ struct headset_info_packet
 	std::string language;
 	std::string country;
 	std::string variant;
+};
+
+struct settings_changed
+{
+	float preferred_refresh_rate;
+	// for automatic
+	float minimum_refresh_rate;
 };
 
 struct handshake
@@ -391,6 +400,47 @@ struct inputs
 	std::vector<input_value> values;
 };
 
+struct hid
+{
+	struct button_down
+	{
+		uint8_t button;
+	};
+
+	struct button_up
+	{
+		uint8_t button;
+	};
+
+	struct mouse_move
+	{
+		float x;
+		float y;
+	};
+
+	struct mouse_scroll
+	{
+		float h;
+		float v;
+	};
+
+	struct key_down
+	{
+		uint8_t key;
+	};
+
+	struct key_up
+	{
+		uint8_t key;
+	};
+
+	using input_t = std::variant<button_down, button_up, mouse_move, mouse_scroll, key_down, key_up>;
+	struct input
+	{
+		input_t input_data;
+	};
+};
+
 struct timesync_response
 {
 	XrTime query;
@@ -472,11 +522,13 @@ struct stop_application
 	uint32_t id;
 };
 
+// when changing this, also make sure there are handlers in wivrn_session, etc. or compilation will fail
 using packets = std::variant<
         crypto_handshake,
         pin_check_1,
         pin_check_3,
         headset_info_packet,
+        settings_changed,
         feedback,
         audio_data,
         handshake,
@@ -497,6 +549,7 @@ using packets = std::variant<
         start_app,
         get_running_applications,
         set_active_application,
+        hid::input,
         stop_application>;
 } // namespace from_headset
 
@@ -671,6 +724,7 @@ struct tracking_control
 		right_hand,
 		face,
 		generic_tracker,
+		hid_input,
 		battery,
 		microphone,
 

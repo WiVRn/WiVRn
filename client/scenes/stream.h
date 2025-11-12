@@ -81,6 +81,7 @@ private:
 	std::array<std::atomic<interaction_profile>, 2> interaction_profiles; // left and right hand
 	std::atomic<bool> interaction_profile_changed = false;
 	std::atomic<bool> recenter_requested = false;
+	std::atomic<bool> hid_forwarding = false;
 	std::atomic<XrDuration> display_time_phase = 0;
 	std::atomic<XrDuration> display_time_period = 0;
 	XrTime last_display_time = 0;
@@ -173,6 +174,8 @@ private:
 
 	stream(std::string server_name, scene & parent_scene);
 
+	bool forward_hid_input(from_headset::hid::input_t);
+
 public:
 	~stream();
 
@@ -186,6 +189,13 @@ public:
 	void on_focused() override;
 	void on_unfocused() override;
 	void on_xr_event(const xr::event &) override;
+
+	bool on_input_key_down(uint8_t key_code) override;
+	bool on_input_key_up(uint8_t key_code) override;
+	bool on_input_mouse_move(float x, float y) override;
+	bool on_input_button_down(uint8_t button) override;
+	bool on_input_button_up(uint8_t button) override;
+	bool on_input_scroll(float h, float v) override;
 
 	void operator()(to_headset::crypto_handshake &&) {};
 	void operator()(to_headset::pin_check_2 &&) {};
@@ -301,7 +311,7 @@ private:
 	void accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<wivrn::shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps);
 	void gui_performance_metrics();
 	void gui_compact_view();
-	void gui_settings();
+	void gui_settings(float predicted_display_period);
 	void gui_foveation_settings(float predicted_display_period);
 	void gui_applications();
 	void draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);

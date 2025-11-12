@@ -232,11 +232,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 				if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(info.available_refresh_rates, *config.preferred_refresh_rate)))
 				{
 					info.preferred_refresh_rate = *config.preferred_refresh_rate;
-					if (info.preferred_refresh_rate == 0)
-						info.available_refresh_rates = {
-						        std::ranges::lower_bound(info.available_refresh_rates, config.minimum_refresh_rate),
-						        info.available_refresh_rates.end(),
-						};
+					info.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
 				}
 				else
 				{
@@ -1301,4 +1297,37 @@ void scenes::stream::on_xr_event(const xr::event & event)
 		default:
 			break;
 	}
+}
+
+bool scenes::stream::forward_hid_input(from_headset::hid::input_t packet)
+{
+	if (not hid_forwarding)
+		return false;
+	network_session->send_control(from_headset::hid::input{packet});
+	return true;
+}
+
+bool scenes::stream::on_input_key_down(uint8_t key_code)
+{
+	return forward_hid_input(from_headset::hid::key_down{key_code});
+}
+bool scenes::stream::on_input_key_up(uint8_t key_code)
+{
+	return forward_hid_input(from_headset::hid::key_up{key_code});
+}
+bool scenes::stream::on_input_mouse_move(float x, float y)
+{
+	return forward_hid_input(from_headset::hid::mouse_move{x, y});
+}
+bool scenes::stream::on_input_button_down(uint8_t button)
+{
+	return forward_hid_input(from_headset::hid::button_down{button});
+}
+bool scenes::stream::on_input_button_up(uint8_t button)
+{
+	return forward_hid_input(from_headset::hid::button_up{button});
+}
+bool scenes::stream::on_input_scroll(float h, float v)
+{
+	return forward_hid_input(from_headset::hid::mouse_scroll{h, v});
 }

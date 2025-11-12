@@ -556,7 +556,7 @@ void scenes::stream::tracking()
 					    e.code().value() != XR_ERROR_TIME_INVALID)
 						throw;
 				}
-			}
+			} // end prediction loop
 
 			XrDuration busy_time = t.count();
 			// Target: polling between 1 and 5ms, with 20% busy time
@@ -657,6 +657,9 @@ void scenes::stream::operator()(to_headset::tracking_control && packet)
 	auto m = size_t(to_headset::tracking_control::id::microphone);
 	if (audio_handle)
 		audio_handle->set_mic_state(packet.enabled[m]);
+
+	auto n = size_t(wivrn::to_headset::tracking_control::id::hid_input);
+	hid_forwarding = packet.enabled[n];
 
 	*locked = packet;
 	locked->min_offset = std::min(locked->min_offset, locked->max_offset);

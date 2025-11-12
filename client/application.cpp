@@ -1504,6 +1504,26 @@ application::application(application_info info) :
 		}
 	};
 
+	// capture pointer to receive relative mouse events
+	app_info.native_app->activity->callbacks->onWindowFocusChanged = [](ANativeActivity * activity, int has_focus) {
+		if (has_focus)
+			android_hid::request_pointer_capture(activity);
+		else
+			android_hid::release_pointer_capture(activity);
+	};
+
+	app_info.native_app->onInputEvent = [](android_app * app, AInputEvent * event) {
+		auto app_instance = static_cast<application *>(app->userData);
+
+		std::unique_lock _{app_instance->scene_stack_lock};
+		if (!app_instance->scene_stack.empty())
+		{
+			auto scene = app_instance->scene_stack.back();
+			return app_instance->input_handler.handle_input(scene.get(), event) ? 1 : 0;
+		}
+		return 0;
+	};
+
 	wifi = wifi_lock::make_wifi_lock(app_info.native_app->activity->clazz);
 
 	// Initialize the loader for this platform

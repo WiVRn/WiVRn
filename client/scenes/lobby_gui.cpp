@@ -1143,6 +1143,8 @@ void scenes::lobby::gui_first_run()
 	CenterTextH(_("Welcome to WiVRn"));
 	ImGui::PopFont();
 
+	config.set_feature(feature::hand_tracking, true);
+
 	while (optional_feature_index < optional_features.size() and
 	       (not optional_features[optional_feature_index].supported or
 	        config.check_feature(optional_features[optional_feature_index].f)))

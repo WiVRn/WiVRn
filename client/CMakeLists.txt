@@ -11,7 +11,21 @@ set(SPIRV_REFLECT_EXECUTABLE OFF)
 set(SPIRV_REFLECT_STATIC_LIB ON)
 set(SPIRV_REFLECT_INSTALL OFF)
 
-FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt libktx spirv-reflect)
+FetchContent_MakeAvailable(simdjson spdlog glm fastgltf imgui stb implot uni-algo entt spirv-reflect)
+if(ANDROID AND WIVRN_USE_ANDROID_BIN_LIBKTX)
+    file(DOWNLOAD
+        https://github.com/KhronosGroup/KTX-Software/releases/download/${KTX_VERSION_FULL}/KTX-Software-${KTX_VERSION}-Android.zip
+        ${CMAKE_BINARY_DIR}/KTX-Software-${KTX_VERSION}-Android.zip
+        EXPECTED_HASH SHA256=9f84a395f37a185e2e21e77cfd3893e67271b616edf5feb39125f09ab4c06b29
+        )
+    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/KTX-Software-${KTX_VERSION}-Android.zip DESTINATION ${CMAKE_BINARY_DIR})
+    add_library(ktx INTERFACE)
+    target_link_libraries(ktx INTERFACE ${CMAKE_BINARY_DIR}/KTX-Software-${KTX_VERSION}-Android/${ANDROID_ABI}/lib/libktx.so)
+    target_include_directories(ktx INTERFACE ${CMAKE_BINARY_DIR}/KTX-Software-${KTX_VERSION}-Android/${ANDROID_ABI}/include)
+elseif(WIVRN_USE_SYSTEM_LIBKTX AND NOT ANDROID)
+else()
+    FetchContent_MakeAvailable(libktx)
+endif()
 
 include(FreetypeHarfbuzz)
 include(CompileGLSL)

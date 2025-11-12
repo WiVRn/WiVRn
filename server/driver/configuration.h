@@ -63,6 +63,7 @@ struct configuration
 	std::vector<std::string> application;
 	bool debug_gui = false;
 	bool use_steamvr_lh = false;
+	bool hid_forwarding = false;
 	bool tcp_only = false;
 	service_publication publication = service_publication::avahi;
 

@@ -182,15 +182,15 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev libxcb-glx0-dev gettext libfontconfig-dev libboost-all-dev librsvg2-bin libssl-dev sway grim mesa-vulkan-drivers wayland-protocols fonts-noto-cjk fonts-roboto libcurl4-openssl-dev
+        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev libxcb-glx0-dev gettext libfontconfig-dev libboost-all-dev librsvg2-bin libssl-dev sway grim mesa-vulkan-drivers wayland-protocols fonts-noto-cjk fonts-roboto libcurl4-openssl-dev libharfbuzz-dev libfreetype-dev
 
-        wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.0/KTX-Software-4.4.0-Linux-x86_64.deb
-        sudo dpkg --install KTX-Software-4.4.0-Linux-x86_64.deb
+        wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb
+        sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
         npm install --global @gltf-transform/cli@4.1.1
 
     - name: install server dependencies
       run: >
-        sudo apt-get update && sudo apt-get install libavahi-glib-dev nlohmann-json3-dev libpulse-dev xz-utils libpipewire-0.3-dev libcli11-dev qt6-base-dev qt6-tools-dev libcap-dev pkexec libnotify-dev librsvg2-dev libarchive-dev
+        sudo apt-get update && sudo apt-get install libavahi-glib-dev nlohmann-json3-dev xz-utils libpipewire-0.3-dev libcli11-dev libcap-dev pkexec libnotify-dev librsvg2-dev libarchive-dev
 
     - name: Configure CMake
       run: >
@@ -199,6 +199,7 @@ jobs:
         -DCMAKE_INSTALL_PREFIX=/usr
         -DWIVRN_USE_SYSTEM_OPENXR=OFF
         --preset everything
+        -DWIVRN_USE_PULSEAUDIO=OFF
         -DWIVRN_BUILD_DASHBOARD=OFF
         -DWIVRN_BUILD_DISSECTOR=OFF
 

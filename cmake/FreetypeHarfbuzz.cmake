@@ -1,5 +1,5 @@
 
-if (USE_SYSTEM_FREETYPE)
+if (WIVRN_USE_SYSTEM_FREETYPE)
     find_package(Freetype REQUIRED)
     find_package(harfbuzz REQUIRED)
 

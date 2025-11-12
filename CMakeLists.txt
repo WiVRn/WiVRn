@@ -26,9 +26,11 @@ include(GNUInstallDirs)
 option(WIVRN_USE_SYSTEM_FREETYPE "Use system FreeType" ON)
 option(WIVRN_USE_SYSTEM_BOOST "Use system Boost headers" ON)
 option(WIVRN_USE_SYSTEM_OPENXR "Use system OpenXR headers" ON)
+option(WIVRN_USE_SYSTEM_LIBKTX "Use system KTX-Software library" ON)
 option(WIVRN_USE_SYSTEMD "Use libsystemd" ON)
 option(WIVRN_COMPRESS_GLB "Compress textures in GLB files with gltf-transform" OFF)
 option(WIVRN_USE_ANDROID_VALIDATION_LAYER "Download the android version of the Vulkan validation layer" OFF)
+option(WIVRN_USE_ANDROID_BIN_LIBKTX "Download the prebuilt libktx for android" OFF)
 option(WIVRN_BUILD_CLIENT "Build WiVRn client" OFF)
 option(WIVRN_BUILD_SERVER "Build WiVRn server" ON)
 option(WIVRN_BUILD_SERVER_LIBRARY "Build OpenXR library for WiVRn server" ${WIVRN_BUILD_SERVER})
@@ -205,6 +207,9 @@ if (WIVRN_BUILD_CLIENT AND NOT ANDROID)
         find_package(OpenXR 1.1.48 REQUIRED)
     endif()
 
+    if (WIVRN_USE_SYSTEM_LIBKTX)
+        find_package(Ktx REQUIRED)
+    endif()
 endif()
 
 if(ANDROID)
@@ -245,11 +250,10 @@ FetchContent_Declare(spdlog        EXCLUDE_FROM_ALL SYSTEM URL https://github.co
                                    URL_HASH SHA256=15a04e69c222eb6c01094b5c7ff8a249b36bb22788d72519646fb85feb267e67)
 FetchContent_Declare(stb           EXCLUDE_FROM_ALL SYSTEM URL https://github.com/nothings/stb/archive/013ac3beddff3dbffafd5177e7972067cd2b5083.zip
                                    URL_HASH SHA256=b7f476902bbef1b30f8ecc2d9d95c459c32302c8b559d09b589b5955463b7af8)
-file(GLOB LIBKTX_PATCHES CONFIGURE_DEPENDS patches/libktx/*)
-set(KTX_GIT_VERSION_FULL "v4.4.0")
-FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/${KTX_GIT_VERSION_FULL}.tar.gz
-                                   URL_HASH SHA256=3585d76edcdcbe3a671479686f8c81c1c10339f419e4b02a9a6f19cc6e4e0612
-                                   PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${LIBKTX_PATCHES}
+set(KTX_VERSION "4.4.2")
+set(KTX_VERSION_FULL "v${KTX_VERSION}")
+FetchContent_Declare(libktx        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/KhronosGroup/KTX-Software/archive/refs/tags/${KTX_VERSION_FULL}.tar.gz
+                                   URL_HASH SHA256=9412cb45045a503005acd47d98f9e8b47154634a50b4df21e17a1dfa8971d323
                                    )
 FetchContent_Declare(implot        EXCLUDE_FROM_ALL SYSTEM URL https://github.com/epezent/implot/archive/3da8bd34299965d3b0ab124df743fe3e076fa222.zip
                                    URL_HASH SHA256=e9b439a94aa6f09fcf12ed9c2cd784efe5e99e96242122aa683e690b29f7a59f)

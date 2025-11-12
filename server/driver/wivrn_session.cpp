@@ -21,6 +21,7 @@
 
 #include "accept_connection.h"
 #include "application.h"
+#include "configuration.h"
 #include "driver/app_pacer.h"
 #include "main/comp_compositor.h"
 #include "main/comp_main_interface.h"
@@ -54,7 +55,6 @@
 #include <vulkan/vulkan.h>
 
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
-#include "configuration.h"
 #include "steamvr_lh_interface.h"
 #endif
 
@@ -293,6 +293,24 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		system_name += " on WiVRn";
 		strlcpy(xrt_system.base.properties.name, system_name.c_str(), std::size(xrt_system.base.properties.name));
 	}
+
+	if (configuration().hid_forwarding)
+	{
+		try
+		{
+			uinput_handler.emplace();
+			tracking_control.set_enabled(to_headset::tracking_control::id::hid_input, true);
+		}
+		catch (...)
+		{
+			U_LOG_W("Could not initialize keyboard & mouse forwarding");
+			U_LOG_W("Ensure that the uinput kernel module is loaded and your user is in the input group.");
+			wivrn_ipc_socket_monado->send(from_monado::server_error{
+			        .where = "Could not initialize keyboard & mouse forwarding",
+			        .message = "Ensure that the uinput kernel module is loaded and your user is in the input group.",
+			});
+		}
+	}
 }
 
 wivrn_session::~wivrn_session()
@@ -387,6 +405,12 @@ void wivrn_session::unset_comp_target()
 void wivrn_session::operator()(from_headset::headset_info_packet &&)
 {
 	U_LOG_W("unexpected headset info packet, ignoring");
+}
+
+void wivrn_session::operator()(from_headset::settings_changed && settings)
+{
+	connection->info().preferred_refresh_rate = settings.preferred_refresh_rate;
+	connection->info().minimum_refresh_rate = settings.minimum_refresh_rate;
 }
 
 static xrt_device_name get_name(interaction_profile profile)
@@ -580,6 +604,24 @@ void wivrn_session::operator()(from_headset::inputs && inputs)
 		right_hand_interaction.set_inputs(inputs, offset);
 	else if (roles.right == right_controller_index)
 		right_controller.set_inputs(inputs, offset);
+}
+
+void wivrn_session::operator()(from_headset::hid::input && e)
+{
+	try
+	{
+		if (uinput_handler)
+			uinput_handler->handle_input(e);
+	}
+	catch (const std::exception & e)
+	{
+		wivrn_ipc_socket_monado->send(from_monado::server_error{
+		        .where = "HID forwarding error",
+		        .message = e.what(),
+		});
+		U_LOG_E("HID forwarding error: %s", e.what());
+		uinput_handler.reset();
+	}
 }
 
 void wivrn_session::operator()(from_headset::timesync_response && timesync)
@@ -866,23 +908,17 @@ struct refresh_rate_adjuster
 {
 	std::chrono::seconds period{10};
 	std::chrono::steady_clock::time_point next = std::chrono::steady_clock::now() + period;
-	bool enabled;
 	pacing_app_factory & pacers;
-	const from_headset::headset_info_packet & info;
+	from_headset::headset_info_packet & info;
 	float last = 0;
 
-	refresh_rate_adjuster(const from_headset::headset_info_packet & info, pacing_app_factory & pacers) :
-	        enabled(info.preferred_refresh_rate == 0 and info.available_refresh_rates.size() > 1),
+	refresh_rate_adjuster(from_headset::headset_info_packet & info, pacing_app_factory & pacers) :
 	        pacers(pacers),
-	        info(info)
-	{
-		if (enabled)
-			U_LOG_I("Automatic refresh rate adjustment enabled");
-	}
+	        info(info) {}
 
 	void adjust(wivrn_connection & cnx)
 	{
-		if (not enabled or std::chrono::steady_clock::now() < next)
+		if (info.preferred_refresh_rate != 0 or info.available_refresh_rates.size() < 2 or std::chrono::steady_clock::now() < next)
 			return;
 
 		// Maximum refresh rate the application can reach
@@ -892,7 +928,7 @@ struct refresh_rate_adjuster
 		auto requested = info.available_refresh_rates.back();
 		for (auto rate: info.available_refresh_rates)
 		{
-			if (rate < app_rate * (rate == last ? 1. : 0.9))
+			if (rate > info.minimum_refresh_rate and rate < app_rate * (rate == last ? 1. : 0.9))
 				requested = rate;
 		}
 		if (requested != last)
@@ -912,7 +948,7 @@ struct refresh_rate_adjuster
 
 void wivrn_session::run(std::stop_token stop)
 {
-	refresh_rate_adjuster refresh(get_info(), app_pacers);
+	refresh_rate_adjuster refresh(connection->info(), app_pacers);
 	while (not stop.stop_requested())
 	{
 		try

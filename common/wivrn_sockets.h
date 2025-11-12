@@ -68,8 +68,6 @@ protected:
 	int fd = -1;
 
 	fd_base(const fd_base &) = delete;
-	std::atomic<uint64_t> bytes_sent_ = 0;
-	std::atomic<uint64_t> bytes_received_ = 0;
 
 public:
 	fd_base() = default;
@@ -89,14 +87,9 @@ public:
 		return fd != -1;
 	}
 
-	uint64_t bytes_sent() const
+	operator int() const
 	{
-		return bytes_sent_;
-	}
-
-	uint64_t bytes_received() const
-	{
-		return bytes_received_;
+		return fd;
 	}
 };
 
@@ -122,8 +115,8 @@ public:
 	deserialization_packet receive_raw();
 	deserialization_packet receive_pending();
 	std::pair<wivrn::deserialization_packet, sockaddr_in6> receive_from_raw();
-	void send_raw(serialization_packet && packet);
-	void send_many_raw(std::span<serialization_packet> packets);
+	size_t send_raw(serialization_packet && packet);
+	size_t send_many_raw(std::span<serialization_packet> packets);
 
 	void connect(in6_addr address, int port);
 	void connect(in_addr address, int port);
@@ -157,8 +150,8 @@ public:
 
 	deserialization_packet receive_raw();
 	deserialization_packet receive_pending();
-	void send_raw(serialization_packet && packet);
-	void send_many_raw(std::span<serialization_packet> packets);
+	size_t send_raw(serialization_packet && packet);
+	size_t send_many_raw(std::span<serialization_packet> packets);
 
 	void set_aes_key_and_ivs(std::span<std::uint8_t, 16> key, std::span<std::uint8_t, 16> recv_iv, std::span<std::uint8_t, 16> send_iv);
 };
@@ -220,20 +213,24 @@ public:
 	        Socket(std::forward<Args>(args)...)
 	{}
 
-	std::optional<ReceivedType> receive_pending()
+	std::optional<ReceivedType> receive_pending(std::atomic<uint64_t> * size = nullptr)
 	{
 		deserialization_packet packet = ((Socket *)this)->receive_pending();
 		if (packet.empty())
 			return {};
+		if (size)
+			size->fetch_add(packet.wire_size());
 
 		return packet.deserialize<ReceivedType>();
 	}
 
-	std::optional<ReceivedType> receive()
+	std::optional<ReceivedType> receive(std::atomic<uint64_t> * size = nullptr)
 	{
 		deserialization_packet packet = this->receive_raw();
 		if (packet.empty())
 			return {};
+		if (size)
+			size->fetch_add(packet.wire_size());
 
 		return packet.deserialize<ReceivedType>();
 	}
@@ -249,16 +246,16 @@ public:
 	}
 
 	template <details::not_lvalue_reference T>
-	void send(T && data)
+	size_t send(T && data)
 	{
 		thread_local serialization_packet p;
 		serialize(p, data);
-		this->send_raw(std::move(p));
+		return this->send_raw(std::move(p));
 	}
 
-	void send(std::span<serialization_packet> packets)
+	size_t send(std::span<serialization_packet> packets)
 	{
-		this->send_many_raw(packets);
+		return this->send_many_raw(packets);
 	}
 };
 

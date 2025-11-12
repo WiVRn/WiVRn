@@ -67,6 +67,14 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="25.11.1" date="2025-11-10">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.11.1</url>
+			<description>
+				<ul>
+					<li>Fixed a dashboard crash when configuration is empty</li>
+				</ul>
+			</description>
+		</release>
 		<release version="25.11" date="2025-11-08">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.11</url>
 			<description>

@@ -26,6 +26,7 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "implot.h"
+#include "utils/contains.h"
 #include "utils/i18n.h"
 #include "utils/ranges.h"
 #include <IconsFontAwesome6.h>
@@ -382,12 +383,80 @@ void scenes::stream::gui_compact_view()
 	}
 }
 
+static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config, float predicted_display_period)
+{
+	const auto & refresh_rates = session.get_refresh_rates();
+	from_headset::settings_changed packet{};
+	if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(refresh_rates, *config.preferred_refresh_rate)))
+	{
+		packet.preferred_refresh_rate = *config.preferred_refresh_rate;
+		packet.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
+	}
+	else
+	{
+		packet.preferred_refresh_rate = predicted_display_period;
+	}
+	network->send_control(std::move(packet));
+}
+
 std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag); // TODO declaration in a .h file
-void scenes::stream::gui_settings()
+void scenes::stream::gui_settings(float predicted_display_period)
 {
 	auto & config = application::get_config();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
+
+	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
+	{
+		const auto & refresh_rates = session.get_refresh_rates();
+		if (not refresh_rates.empty())
+		{
+			float active_rate = config.preferred_refresh_rate.value_or(refresh_rates.back());
+			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? fmt::format("{}", active_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
+			{
+				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
+				{
+					session.set_refresh_rate(0);
+					config.preferred_refresh_rate = 0;
+					send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+					config.save();
+				}
+				if (ImGui::IsItemHovered())
+					imgui_ctx->tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
+				for (float rate: refresh_rates)
+				{
+					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.preferred_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
+					{
+						session.set_refresh_rate(rate);
+						config.preferred_refresh_rate = rate;
+						send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+						config.save();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			imgui_ctx->vibrate_on_hover();
+
+			if (config.preferred_refresh_rate == 0 and refresh_rates.size() > 2)
+			{
+				float min_rate = config.minimum_refresh_rate.value_or(refresh_rates.front());
+				if (ImGui::BeginCombo(_S("Minimum refresh rate"), fmt::format("{}", min_rate).c_str()))
+				{
+					for (float rate: refresh_rates | std::views::take(refresh_rates.size() - 1))
+					{
+						if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.minimum_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
+						{
+							config.minimum_refresh_rate = rate;
+							send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+							config.save();
+						}
+					}
+					ImGui::EndCombo();
+				}
+				imgui_ctx->vibrate_on_hover();
+			}
+		}
+	}
 
 	if (application::get_openxr_post_processing_supported())
 	{
@@ -845,7 +914,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		case gui_status::settings:
 			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
-			gui_settings();
+			gui_settings(predicted_display_period * 1.e-9f);
 			ImGui::EndChild();
 			break;
 
