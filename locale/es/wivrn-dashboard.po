@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-06 12:45+0100\n"
-"PO-Revision-Date: 2025-11-06 19:22+0100\n"
+"POT-Creation-Date: 2025-11-11 21:12+0100\n"
+"PO-Revision-Date: 2025-11-12 04:37+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish\n"
 "Language: es\n"
@@ -553,17 +553,33 @@ msgstr "Opciones avanzadas"
 msgid "Check system configuration on start"
 msgstr "Comprobar configuración del sistema al iniciar"
 
-#: dashboard/qml/SettingsPage.qml:235
+#: dashboard/qml/SettingsPage.qml:237
+#, kde-format
+msgid "Forward keyboard & mouse from headset"
+msgstr "Pasar el teclado y raton del visor"
+
+#: dashboard/qml/SettingsPage.qml:240
+#, kde-format
+msgid ""
+"Keyboard and mouse connected to the client will act as if connected to the "
+"server. Client OS may reserve specific keys and combinations, which cannot "
+"be forwarded."
+msgstr ""
+"El teclado y ratón conectados al cliente actuarán como si se hubiesen "
+"conectado al servidor. El SO del cliente podria reservarse ciertas teclas y "
+"combinaciones, los cuales no podrán ser enviados"
+
+#: dashboard/qml/SettingsPage.qml:245
 #, kde-format
 msgid "Enable debug window"
 msgstr "Habilitar ventana de depuración"
 
-#: dashboard/qml/SettingsPage.qml:242
+#: dashboard/qml/SettingsPage.qml:252
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Habilitar soporte para dispositivos de seguimiento a través de SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:245
+#: dashboard/qml/SettingsPage.qml:255
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -577,44 +593,44 @@ msgstr ""
 "Los dispositivos deben de estar encendidos antes de conectarte a WiVRn.\n"
 "Una herramienta externa como motoc será necesaria para la calibración."
 
-#: dashboard/qml/SettingsPage.qml:253
+#: dashboard/qml/SettingsPage.qml:263
 #, kde-format
 msgid "Custom adb location"
 msgstr "Ruta de adb personalizada"
 
-#: dashboard/qml/SettingsPage.qml:264
+#: dashboard/qml/SettingsPage.qml:274
 #, kde-format
 msgid "Adb location:"
 msgstr "Ruta de adb:"
 
-#: dashboard/qml/SettingsPage.qml:273
+#: dashboard/qml/SettingsPage.qml:283
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Explorar"
 
-#: dashboard/qml/SettingsPage.qml:283
+#: dashboard/qml/SettingsPage.qml:293
 #, kde-format
 msgid "Default"
 msgstr "Por defecto"
 
-#: dashboard/qml/SettingsPage.qml:297
+#: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SettingsPage.qml:302
+#: dashboard/qml/SettingsPage.qml:312
 #, kde-format
 msgid "Disabled"
 msgstr "Deshabilitado"
 
-#: dashboard/qml/SettingsPage.qml:310
+#: dashboard/qml/SettingsPage.qml:320
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Librería de compatibilidad para OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:336
+#: dashboard/qml/SettingsPage.qml:346
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Ruta de librería, excluyendo bin/linux64/vrclient.so"
