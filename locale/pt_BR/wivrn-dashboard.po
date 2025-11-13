@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-06 12:45+0100\n"
-"PO-Revision-Date: 2025-11-06 13:14+0100\n"
+"POT-Creation-Date: 2025-11-11 21:12+0100\n"
+"PO-Revision-Date: 2025-11-13 00:55+0100\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -19,7 +19,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Lokalize 25.08.2\n"
+"X-Generator: Lokalize 25.08.3\n"
 
 #: dashboard/apk_installer.cpp:137
 #, kde-format
@@ -554,17 +554,33 @@ msgstr "Opções avançadas"
 msgid "Check system configuration on start"
 msgstr "Verificar configuração do sistema ao iniciar"
 
-#: dashboard/qml/SettingsPage.qml:235
+#: dashboard/qml/SettingsPage.qml:237
+#, kde-format
+msgid "Forward keyboard & mouse from headset"
+msgstr "Repassar teclado & mouse do headset"
+
+#: dashboard/qml/SettingsPage.qml:240
+#, kde-format
+msgid ""
+"Keyboard and mouse connected to the client will act as if connected to the "
+"server. Client OS may reserve specific keys and combinations, which cannot "
+"be forwarded."
+msgstr ""
+"Teclado e mouse conectados ao cliente agirão como se conectados ao "
+"servidor. O OS cliente pode reservar teclas e combinações específicas, as "
+"quais podem não ser repassadas."
+
+#: dashboard/qml/SettingsPage.qml:245
 #, kde-format
 msgid "Enable debug window"
 msgstr "Ativar janela de depuração"
 
-#: dashboard/qml/SettingsPage.qml:242
+#: dashboard/qml/SettingsPage.qml:252
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "Ativar suporte a dispositivos rastreados pelo SteamVR"
 
-#: dashboard/qml/SettingsPage.qml:245
+#: dashboard/qml/SettingsPage.qml:255
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -577,44 +593,44 @@ msgstr ""
 "Os dispositivos precisam estar ligados antes de se conectar ao WiVRn.\n"
 "Uma ferramenta externa como o motoc é necessária para calibração."
 
-#: dashboard/qml/SettingsPage.qml:253
+#: dashboard/qml/SettingsPage.qml:263
 #, kde-format
 msgid "Custom adb location"
 msgstr "Caminho personalizado do adb"
 
-#: dashboard/qml/SettingsPage.qml:264
+#: dashboard/qml/SettingsPage.qml:274
 #, kde-format
 msgid "Adb location:"
 msgstr "Caminho do adb:"
 
-#: dashboard/qml/SettingsPage.qml:273
+#: dashboard/qml/SettingsPage.qml:283
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "Navegar"
 
-#: dashboard/qml/SettingsPage.qml:283
+#: dashboard/qml/SettingsPage.qml:293
 #, kde-format
 msgid "Default"
 msgstr "Default"
 
-#: dashboard/qml/SettingsPage.qml:297
+#: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "Personalizado"
 
-#: dashboard/qml/SettingsPage.qml:302
+#: dashboard/qml/SettingsPage.qml:312
 #, kde-format
 msgid "Disabled"
 msgstr "Desativado"
 
-#: dashboard/qml/SettingsPage.qml:310
+#: dashboard/qml/SettingsPage.qml:320
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Biblioteca de compatibilidade OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:336
+#: dashboard/qml/SettingsPage.qml:346
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Caminho da biblioteca, excluindo bin/linux64/vrclient.so"
