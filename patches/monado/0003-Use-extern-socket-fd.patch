@@ -1,4 +1,4 @@
-From fdb9b8a8762d08100dcd85060491565f59e12c4b Mon Sep 17 00:00:00 2001
+From 376b32bb2f6ad1476647f8f1c26e55f6d1c31464 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 8 Oct 2024 22:13:15 +0200
 Subject: [PATCH 3/9] Use extern socket fd
@@ -34,5 +34,5 @@ index ad6b473b7..ea6fad65b 100644
  	// We may have been launched with socket activation
  	int num_fds = sd_listen_fds(0);
 -- 
-2.51.1
+2.51.2
 
