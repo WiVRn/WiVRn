@@ -38,7 +38,7 @@
 namespace wivrn
 {
 
-static constexpr int protocol_revision = 2;
+static constexpr int protocol_revision = 0;
 
 enum class device_id : uint8_t
 {
@@ -256,7 +256,7 @@ struct settings_changed
 
 struct handshake
 {
-	// Sending this on TCP means connection will be TCP only
+	uint8_t num_udp_streams;
 };
 
 struct tracking

@@ -44,6 +44,8 @@
 
 using namespace std::chrono_literals;
 
+const size_t num_streams = 5;
+
 const char * handshake_error::what() const noexcept
 {
 	return message.c_str();
@@ -69,14 +71,13 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 	// then send ours on stream or control socket,
 	// finally wait for second server handshake
 
-	pollfd fds{};
-	fds.events = POLLIN;
-	fds.fd = control.get_fd();
+	auto receive = [](auto & socket, std::chrono::milliseconds timeout) {
+		auto timeout_abs = std::chrono::steady_clock::now() + timeout;
 
-	auto receive = [&](std::optional<std::chrono::seconds> timeout = std::nullopt) {
-		std::chrono::steady_clock::time_point timeout_abs{};
-		if (timeout)
-			timeout_abs = std::chrono::steady_clock::now() + *timeout;
+		pollfd fds{
+		        .fd = socket.get_fd(),
+		        .events = POLLIN,
+		};
 
 		while (true)
 		{
@@ -87,7 +88,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 
 			if (r > 0 && (fds.revents & POLLIN))
 			{
-				auto packet = control.receive();
+				auto packet = socket.receive();
 				if (not packet)
 					continue;
 
@@ -105,7 +106,7 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 	        .name = model_name(),
 	});
 
-	to_headset::crypto_handshake crypto_handshake = std::get<to_headset::crypto_handshake>(receive(10s));
+	to_headset::crypto_handshake crypto_handshake = std::get<to_headset::crypto_handshake>(receive(control, 10s));
 
 	std::string pin = "000000";
 	switch (crypto_handshake.state)
@@ -115,13 +116,15 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 
 			send_control(from_headset::crypto_handshake{});
 
-			to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
+			to_headset::handshake h{std::get<to_headset::handshake>(receive(control, 10s))};
 			if (h.stream_port > 0 && !tcp_only)
 			{
-				stream = decltype(stream)();
-
-				stream.connect(address, h.stream_port);
-				init_stream(stream);
+				for (size_t i = 0; i < num_streams; ++i)
+				{
+					auto & s = streams.emplace_back();
+					s.connect(address, h.stream_port);
+					init_stream(s);
+				}
 			}
 			break;
 		}
@@ -137,12 +140,12 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 				auto msg1 = pin_check.step1(pin);
 				send_control(from_headset::pin_check_1{msg1});
 
-				auto msg2 = std::get<to_headset::pin_check_2>(receive(10s)).message;
+				auto msg2 = std::get<to_headset::pin_check_2>(receive(control, 10s)).message;
 
 				auto msg3 = pin_check.step3(msg2);
 				send_control(from_headset::pin_check_3{msg3});
 
-				auto msg4 = std::get<to_headset::pin_check_4>(receive(10s)).message;
+				auto msg4 = std::get<to_headset::pin_check_4>(receive(control, 10s)).message;
 				bool pin_match = pin_check.step5(msg4);
 
 				if (not pin_match)
@@ -165,14 +168,16 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 			// Confirm that encryption is set up
 			send_control(from_headset::crypto_handshake{});
 
-			to_headset::handshake h{std::get<to_headset::handshake>(receive(10s))};
+			to_headset::handshake h{std::get<to_headset::handshake>(receive(control, 10s))};
 			if (h.stream_port > 0 && !tcp_only)
 			{
-				stream = decltype(stream)();
-
-				stream.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_to_headset, s.stream_iv_header_from_headset);
-				stream.connect(address, h.stream_port);
-				init_stream(stream);
+				for (size_t i = 0; i < num_streams; ++i)
+				{
+					auto & st = streams.emplace_back();
+					st.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_to_headset, s.stream_iv_header_from_headset);
+					st.connect(address, h.stream_port);
+					init_stream(st);
+				}
 			}
 			break;
 		}
@@ -186,31 +191,35 @@ void wivrn_session::handshake(T address, bool tcp_only, crypto::key & headset_ke
 			throw std::runtime_error(_("Incompatible server version"));
 	}
 
-	// may be on control socket if forced TCP
-	send_stream(from_headset::handshake{});
+	// Send the desired number of UDP streams
+	control.send(from_headset::handshake{.num_udp_streams = uint8_t(streams.size())});
+	std::get<to_headset::handshake>(receive(control, 2s));
 
-	// Wait for second handshake
-	auto timeout = std::chrono::steady_clock::now() + 10s;
-	while (true)
+	// Initialize UDP streams
+	auto timeout = std::chrono::steady_clock::now() + 8s;
+	for (auto & s: streams)
 	{
-		if (poll([](const auto && packet) { return std::is_same_v<std::remove_cvref_t<decltype(packet)>, to_headset::handshake>; }, 100ms))
+		while (true)
 		{
-			return;
-		}
+			try
+			{
+				s.send(from_headset::handshake{});
+				auto p = receive(s, 100ms);
+				break;
+			}
+			catch (std::runtime_error & e)
+			{
+				// timeout, send a new packet and continue as packets may be lost
+			}
 
-		if (std::chrono::steady_clock::now() >= timeout)
-			throw std::runtime_error(_("Timeout"));
-
-		// If using stream socket, the handshake might be lost
-		if (stream)
-		{
-			stream.send(from_headset::handshake{});
+			if (std::chrono::steady_clock::now() >= timeout)
+				throw std::runtime_error(_("Timeout"));
 		}
 	}
 }
 
 wivrn_session::wivrn_session(in6_addr address, int port, bool tcp_only, crypto::key & headset_keypair, std::function<std::string(int fd)> pin_enter) :
-        control(address, port), stream(-1), address(address)
+        control(address, port), streams(-1), address(address)
 {
 	try
 	{
@@ -223,7 +232,7 @@ wivrn_session::wivrn_session(in6_addr address, int port, bool tcp_only, crypto::
 }
 
 wivrn_session::wivrn_session(in_addr address, int port, bool tcp_only, crypto::key & headset_keypair, std::function<std::string(int fd)> pin_enter) :
-        control(address, port), stream(-1), address(address)
+        control(address, port), address(address)
 {
 	try
 	{

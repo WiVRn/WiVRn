@@ -72,6 +72,12 @@ wivrn::UDP::UDP()
 	if (fd < 0)
 		throw std::system_error{errno, std::generic_category()};
 	fcntl(fd, F_SETFD, FD_CLOEXEC);
+
+	int reuse_addr = 1;
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr)) < 0)
+	{
+		throw std::system_error{errno, std::generic_category()};
+	}
 }
 
 wivrn::UDP::UDP(int fd)
