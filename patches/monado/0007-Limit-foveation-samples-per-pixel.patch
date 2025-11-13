@@ -1,7 +1,7 @@
-From c4b5651515dde6859821bda2b4cb9ced2260ddc6 Mon Sep 17 00:00:00 2001
+From 8d5c814af6d9bbc7977fa36f1ca258c161dfbbcb Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sun, 31 Aug 2025 17:05:49 +0200
-Subject: [PATCH 7/9] Limit foveation samples per pixel
+Subject: [PATCH 7/8] Limit foveation samples per pixel
 
 ---
  src/xrt/compositor/shaders/distortion.comp | 12 +++++++++---
