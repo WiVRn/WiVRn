@@ -44,7 +44,8 @@ public:
 
 private:
 	control_socket_t control;
-	stream_socket_t stream;
+	std::vector<stream_socket_t> streams;
+	std::atomic_uint_fast8_t stream_counter;
 
 	std::atomic<uint64_t> bytes_sent_ = 0;
 	std::atomic<uint64_t> bytes_received_ = 0;
@@ -69,8 +70,8 @@ public:
 	template <typename T>
 	void send_stream(T && packet)
 	{
-		if (stream)
-			bytes_sent_ += stream.send(std::forward<T>(packet));
+		if (not streams.empty())
+			bytes_sent_ += streams[stream_counter.fetch_add(1) % streams.size()].send(std::forward<T>(packet));
 		else
 			bytes_sent_ += control.send(std::forward<T>(packet));
 	}
@@ -78,41 +79,47 @@ public:
 	template <typename T>
 	int poll(T && visitor, std::chrono::milliseconds timeout)
 	{
-		pollfd fds[2] = {};
-		fds[0].events = POLLIN;
-		fds[0].fd = stream.get_fd();
-		fds[1].events = POLLIN;
-		fds[1].fd = control.get_fd();
+		std::vector<pollfd> fds;
+		fds.reserve(1 + streams.size());
+		fds.push_back({.fd = control.get_fd(), .events = POLLIN});
+		for (auto & s: streams)
+			fds.push_back({.fd = s.get_fd(), .events = POLLIN});
 
-		while (auto packet = stream.receive_pending(&bytes_received_))
-			std::visit(std::forward<T>(visitor), std::move(*packet));
+		for (auto & s: streams)
+		{
+			while (auto packet = s.receive_pending(&bytes_received_))
+				std::visit(std::forward<T>(visitor), std::move(*packet));
+		}
 		while (auto packet = control.receive_pending(&bytes_received_))
 			std::visit(std::forward<T>(visitor), std::move(*packet));
 
-		int r = ::poll(fds, std::size(fds), timeout.count());
+		int r = ::poll(fds.data(), std::size(fds), timeout.count());
 		if (r < 0)
 			throw std::system_error(errno, std::system_category());
 
 		if (fds[0].revents & (POLLHUP | POLLERR))
-			throw std::runtime_error("Error on stream socket");
-
-		if (fds[1].revents & (POLLHUP | POLLERR))
 			throw std::runtime_error("Error on control socket");
 
 		if (fds[0].revents & POLLIN)
 		{
-			auto packet = stream.receive(&bytes_received_);
+			auto packet = control.receive(&bytes_received_);
 			if (packet)
 			{
 				std::visit(std::forward<T>(visitor), std::move(*packet));
 			}
 		}
 
-		if (fds[1].revents & POLLIN)
+		for (size_t i = 1; i < fds.size(); ++i)
 		{
-			auto packet = control.receive(&bytes_received_);
-			if (packet)
-				std::visit(std::forward<T>(visitor), std::move(*packet));
+			if (fds[i].revents & (POLLHUP | POLLERR))
+				throw std::runtime_error("Error on stream socket");
+
+			if (fds[i].revents & POLLIN)
+			{
+				auto packet = streams[i - 1].receive(&bytes_received_);
+				if (packet)
+					std::visit(std::forward<T>(visitor), std::move(*packet));
+			}
 		}
 
 		return r;

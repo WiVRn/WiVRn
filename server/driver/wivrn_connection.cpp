@@ -30,6 +30,7 @@
 #include <poll.h>
 #include <regex>
 #include <sys/socket.h>
+#include <unordered_set>
 #include <variant>
 
 using namespace std::chrono_literals;
@@ -67,7 +68,6 @@ wivrn::incorrect_pin::incorrect_pin() :
 
 wivrn::wivrn_connection::wivrn_connection(std::stop_token stop_token, encryption_state state, std::string pin, TCP && tcp) :
         control(std::move(tcp)),
-        stream(-1),
         pin(pin),
         state(state)
 {
@@ -94,21 +94,12 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 	}
 
 	if (configuration().tcp_only)
-	{
 		port = -1;
-	}
-	else
-	{
-		stream = decltype(stream)();
-		stream.bind(server_address);
-	}
 
-	auto receive = [&](std::optional<std::chrono::seconds> timeout = std::nullopt, bool allow_stream_socket = false) {
+	auto receive = [&](auto && socket, std::chrono::milliseconds timeout) {
 		// Returns the packet and the port (on the stream socket) or -1 (on the control socket)
 
-		std::chrono::steady_clock::time_point timeout_abs{};
-		if (timeout)
-			timeout_abs = std::chrono::steady_clock::now() + *timeout;
+		auto timeout_abs = std::chrono::steady_clock::now() + timeout;
 
 		while (true)
 		{
@@ -117,55 +108,54 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 
 			tick();
 
-			pollfd fds[3] = {};
-			if (allow_stream_socket)
-			{
-				fds[0].events = POLLIN;
-				fds[0].fd = stream.get_fd();
-			}
-			fds[1].events = POLLIN;
-			fds[1].fd = control.get_fd();
-			fds[2].events = POLLIN;
-			fds[2].fd = wivrn_ipc_socket_monado->get_fd();
+			std::array fds = {
+			        pollfd{
+			                .fd = socket.get_fd(),
+			                .events = POLLIN,
+			        },
+			        pollfd{
+			                .fd = wivrn_ipc_socket_monado->get_fd(),
+			                .events = POLLIN,
+			        },
+			};
 
 			// Make sure tick() is called at least every 100ms
-			int r = ::poll(fds, std::size(fds), 100);
+			int r = ::poll(fds.data(), std::size(fds), 100);
 			if (r < 0)
 				throw std::system_error(errno, std::system_category());
 
-			if (allow_stream_socket and (fds[0].revents & (POLLHUP | POLLERR)))
-				throw std::runtime_error("Error on stream socket");
+			if (fds[0].revents & (POLLHUP | POLLERR))
+				throw std::runtime_error("Error on socket");
 
 			if (fds[1].revents & (POLLHUP | POLLERR))
-				throw std::runtime_error("Error on control socket");
-
-			if (fds[2].revents & (POLLHUP | POLLERR))
 				throw std::runtime_error("Error on IPC socket");
 
-			if (allow_stream_socket and (fds[0].revents & POLLIN))
+			if (fds[0].revents & POLLIN)
 			{
-				auto [raw_packet, peer_addr] = stream.receive_from_raw();
+				if constexpr (std::is_base_of_v<UDP, std::remove_cvref_t<decltype(socket)>>)
+				{
+					auto [raw_packet, peer_addr] = socket.receive_from_raw();
 
-				// Ignore packets sent from the wrong address
-				if (memcmp(&peer_addr.sin6_addr, &client_address.sin6_addr, sizeof(peer_addr.sin6_addr)) == 0)
-					return std::make_pair(raw_packet.deserialize<from_headset::packets>(), (int)htons(peer_addr.sin6_port));
+					// Ignore packets sent from the wrong address
+					if (memcmp(&peer_addr.sin6_addr, &client_address.sin6_addr, sizeof(peer_addr.sin6_addr)) == 0)
+						return std::make_pair(raw_packet.template deserialize<from_headset::packets>(), (int)htons(peer_addr.sin6_port));
+				}
+				else
+				{
+					std::optional<from_headset::packets> packet = socket.receive();
+					if (packet)
+						return std::move(*packet);
+				}
 			}
 
 			if (fds[1].revents & POLLIN)
-			{
-				std::optional<from_headset::packets> packet = control.receive();
-				if (packet)
-					return std::make_pair(std::move(*packet), -1);
-			}
-
-			if (fds[2].revents & POLLIN)
 			{
 				auto packet = receive_from_main();
 				if (packet)
 					std::visit([](auto && x) { handle_event_from_main_loop(x); }, *packet);
 			}
 
-			if (timeout and std::chrono::steady_clock::now() > timeout_abs)
+			if (std::chrono::steady_clock::now() > timeout_abs)
 			{
 				throw std::runtime_error("No handshake received from client");
 			}
@@ -173,7 +163,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 	};
 
 	// Wait for client to send handshake packet
-	auto crypto_handshake = std::get<from_headset::crypto_handshake>(receive(10s).first);
+	auto crypto_handshake = std::get<from_headset::crypto_handshake>(receive(control, 10s));
 
 	if (crypto_handshake.protocol_version != wivrn::protocol_version)
 	{
@@ -189,6 +179,8 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 	        [key = clean_key(crypto_handshake.public_key)](const wivrn::headset_key & k) {
 		        return k.public_key == key;
 	        });
+
+	std::optional<secrets> s;
 
 	switch (state)
 	{
@@ -228,12 +220,12 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 					// Check the PIN
 					crypto::smp pin_check;
 
-					auto msg1 = std::get<from_headset::pin_check_1>(receive(2min).first).message;
+					auto msg1 = std::get<from_headset::pin_check_1>(receive(control, 2min)).message;
 
 					auto msg2 = pin_check.step2(msg1, pin);
 					control.send(to_headset::pin_check_2{msg2});
 
-					auto msg3 = std::get<from_headset::pin_check_3>(receive(10s).first).message;
+					auto msg3 = std::get<from_headset::pin_check_3>(receive(control, 10s)).message;
 
 					auto [msg4, pin_match] = pin_check.step4(msg3);
 					control.send(to_headset::pin_check_4{msg4});
@@ -247,19 +239,18 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 				}
 			}
 
-			secrets s{server_key, headset_key, is_public_key_known ? "000000" : pin};
-			control.set_aes_key_and_ivs(s.control_key, s.control_iv_from_headset, s.control_iv_to_headset);
-			stream.set_aes_key_and_ivs(s.stream_key, s.stream_iv_header_from_headset, s.stream_iv_header_to_headset);
+			s.emplace(server_key, headset_key, is_public_key_known ? "000000" : pin);
+			control.set_aes_key_and_ivs(s->control_key, s->control_iv_from_headset, s->control_iv_to_headset);
 			break;
 	}
 
 	// Wait for confirmation that the client has set up encryption
-	if (not std::holds_alternative<from_headset::crypto_handshake>(receive().first))
+	if (not std::holds_alternative<from_headset::crypto_handshake>(receive(control, 10s)))
 		throw std::runtime_error("No handshake received from client");
 
 	control.send(to_headset::handshake{.stream_port = port});
 
-	auto [stream_handshake, client_port] = receive(10s, true);
+	auto stream_handshake = receive(control, 10s);
 
 	// Check the packet type
 	if (not std::holds_alternative<from_headset::handshake>(stream_handshake))
@@ -267,20 +258,20 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 		throw std::runtime_error("No handshake received from client");
 	}
 
-	if (client_port >= 0)
-	{
-		stream.connect(client_address.sin6_addr, client_port);
-		stream.set_send_buffer_size(1024 * 1024 * 5);
-	}
-	else
-	{
-		// No stream socket
-		stream = decltype(stream)(-1);
-	}
-
+	streams.resize(std::get<from_headset::handshake>(stream_handshake).num_udp_streams);
 	control.send(to_headset::handshake{.stream_port = port});
+	for (auto & stream: streams)
+	{
+		if (s)
+			stream.set_aes_key_and_ivs(s->stream_key, s->stream_iv_header_from_headset, s->stream_iv_header_to_headset);
+		stream.bind(server_address);
+		stream.set_send_buffer_size(1024 * 1024 * 5);
+		auto [packet, port] = receive(stream, 1s);
+		stream.connect(client_address.sin6_addr, port);
+		stream.send(to_headset::handshake{});
+	}
 
-	info_packet = std::get<from_headset::headset_info_packet>(receive(10s).first);
+	info_packet = std::get<from_headset::headset_info_packet>(receive(control, 10s));
 
 	active = true;
 
@@ -295,8 +286,7 @@ void wivrn::wivrn_connection::init(std::stop_token stop_token, std::function<voi
 
 void wivrn::wivrn_connection::reset(TCP && tcp, std::function<void()> tick)
 {
-	if (stream)
-		stream = decltype(stream)();
+	streams.clear();
 
 	control = std::move(tcp);
 	init({}, tick);
@@ -304,26 +294,8 @@ void wivrn::wivrn_connection::reset(TCP && tcp, std::function<void()> tick)
 
 void wivrn::wivrn_connection::shutdown()
 {
-	if (stream)
+	for (auto & stream: streams)
 		::shutdown(stream.get_fd(), SHUT_RDWR);
 	if (control)
 		::shutdown(control.get_fd(), SHUT_RDWR);
-}
-
-std::optional<wivrn::from_headset::packets> wivrn::wivrn_connection::poll_control(int timeout)
-{
-	pollfd fds{};
-	fds.events = POLLIN;
-	fds.fd = control.get_fd();
-
-	int r = ::poll(&fds, 1, timeout);
-	if (r < 0)
-		throw std::system_error(errno, std::system_category());
-
-	if (r > 0 && (fds.revents & POLLIN))
-	{
-		return control.receive();
-	}
-
-	return {};
 }

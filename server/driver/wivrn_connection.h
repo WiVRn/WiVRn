@@ -50,7 +50,8 @@ public:
 
 private:
 	typed_socket<TCP, from_headset::packets, to_headset::packets> control;
-	typed_socket<UDP, from_headset::packets, to_headset::packets> stream;
+	std::vector<typed_socket<UDP, from_headset::packets, to_headset::packets>> streams;
+	std::atomic_uint_fast8_t stream_counter;
 	std::atomic<bool> active = false;
 	std::string pin;
 	encryption_state state;
@@ -66,7 +67,7 @@ public:
 
 	bool has_stream() const
 	{
-		return stream;
+		return not streams.empty();
 	}
 
 	bool is_active()
@@ -98,8 +99,8 @@ public:
 		{
 			if (active)
 			{
-				if (stream)
-					stream.send(std::forward<T>(packet));
+				if (has_stream())
+					streams[stream_counter.fetch_add(1) % streams.size()].send(std::forward<T>(packet));
 				else
 					control.send(std::forward<T>(packet));
 			}
@@ -111,8 +112,6 @@ public:
 		}
 	}
 
-	std::optional<from_headset::packets> poll_control(int timeout);
-
 	wivrn::from_headset::headset_info_packet & info()
 	{
 		return info_packet;
@@ -121,35 +120,34 @@ public:
 	template <typename T>
 	int poll(T && visitor, int timeout)
 	{
-		pollfd fds[3] = {};
-		fds[0].events = POLLIN;
-		fds[0].fd = stream.get_fd();
-		fds[1].events = POLLIN;
-		fds[1].fd = control.get_fd();
-		fds[2].fd = wivrn_ipc_socket_monado->get_fd();
-		fds[2].events = POLLIN;
+		std::vector<pollfd> fds;
+		fds.reserve(2 + streams.size());
+		fds.push_back({.fd = wivrn_ipc_socket_monado->get_fd(), .events = POLLIN});
+		fds.push_back({.fd = control.get_fd(), .events = POLLIN});
+		for (auto & s: streams)
+			fds.push_back({.fd = s.get_fd(), .events = POLLIN});
 
-		while (auto packet = stream.receive_pending())
-			std::visit(std::forward<T>(visitor), std::move(*packet));
+		for (auto & stream: streams)
+		{
+			while (auto packet = stream.receive_pending())
+				std::visit(std::forward<T>(visitor), std::move(*packet));
+		}
 		while (auto packet = control.receive_pending())
 			std::visit(std::forward<T>(visitor), std::move(*packet));
 
-		int r = ::poll(fds, std::size(fds), timeout);
+		int r = ::poll(fds.data(), std::size(fds), timeout);
 		if (r < 0)
 			throw std::system_error(errno, std::system_category());
 
 		if (fds[0].revents & (POLLHUP | POLLERR))
-			throw std::runtime_error("Error on stream socket");
+			throw std::runtime_error("Error on IPC socket");
 
 		if (fds[1].revents & (POLLHUP | POLLERR))
 			throw std::runtime_error("Error on control socket");
 
-		if (fds[2].revents & (POLLHUP | POLLERR))
-			throw std::runtime_error("Error on IPC socket");
-
 		if (fds[0].revents & POLLIN)
 		{
-			auto packet = stream.receive();
+			auto packet = receive_from_main();
 			if (packet)
 				std::visit(std::forward<T>(visitor), std::move(*packet));
 		}
@@ -161,12 +159,16 @@ public:
 				std::visit(std::forward<T>(visitor), std::move(*packet));
 		}
 
-		if (fds[2].revents & POLLIN)
+		for (size_t i = 2; i < fds.size(); ++i)
 		{
-			auto packet = receive_from_main();
-			if (packet)
-				std::visit(std::forward<T>(visitor), std::move(*packet));
+			if (fds[i].revents & POLLIN)
+			{
+				auto packet = streams[i - 2].receive();
+				if (packet)
+					std::visit(std::forward<T>(visitor), std::move(*packet));
+			}
 		}
+
 		return r;
 	}
 };
