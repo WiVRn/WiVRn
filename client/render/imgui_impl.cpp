@@ -581,10 +581,23 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 			}
 			compute_pointer_position(state);
 
-			if (state.hover_distance < constants::gui::fingertip_distance_close_thd)
-				aim_interaction[ctrl.index] = false;
-			else
-				state.pointer_position.reset();
+			XrHandJointLocationEXT & palm = (*joints)[XR_HAND_JOINT_PALM_EXT].first;
+			if (palm.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+			{
+				controller_state palm_state{
+				        .aim_position = {
+				                palm.pose.position.x,
+				                palm.pose.position.y,
+				                palm.pose.position.z,
+				        },
+				        .source = ImGuiMouseSource_VRHandTracking,
+				};
+				compute_pointer_position(palm_state);
+				if (palm_state.hover_distance < constants::gui::palm_distance_close_thd)
+					aim_interaction[ctrl.index] = false;
+				else
+					state.pointer_position.reset();
+			}
 
 			if (state.hover_distance < constants::gui::fingertip_distance_touching_thd_hi and state.hover_distance > constants::gui::fingertip_distance_touching_thd_lo)
 				state.fingertip_touching = true;
