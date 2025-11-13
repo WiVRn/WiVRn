@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-11 21:12+0100\n"
-"PO-Revision-Date: 2025-11-12 22:46+0100\n"
+"PO-Revision-Date: 2025-11-13 23:58+0100\n"
 "Last-Translator: polyborea <patryklimerick@gmail.com>\n"
 "Language-Team: Polish <kde-i18n-doc@kde.org>\n"
 "Language: pl\n"
@@ -153,28 +153,28 @@ msgstr "Gogle"
 msgid "Last connection: %1 second ago"
 msgid_plural "Last connection: %1 seconds ago"
 msgstr[0] "Ostatnie połączenie: %1 sekuda temu"
-msgstr[1] ""
+msgstr[1] "Ostatnie połączenie: %1 sekudy temu"
 
 #: dashboard/qml/HeadsetsPage.qml:31
 #, kde-format
 msgid "Last connection: %1 minute ago"
 msgid_plural "Last connection: %1 minutes ago"
 msgstr[0] "Ostatnie połączenie: %1 minuta temu"
-msgstr[1] ""
+msgstr[1] "Ostatnie połączenie: %1 minuty temu"
 
 #: dashboard/qml/HeadsetsPage.qml:33
 #, kde-format
 msgid "Last connection: %1 hour ago"
 msgid_plural "Last connection: %1 hours ago"
 msgstr[0] "Ostatnie połączenie: %1 godzina temu"
-msgstr[1] ""
+msgstr[1] "Ostatnie połączenie: %1 godziny temu"
 
 #: dashboard/qml/HeadsetsPage.qml:35
 #, kde-format
 msgid "Last connection: %1 day ago"
 msgid_plural "Last connection: %1 days ago"
 msgstr[0] "Ostatnie połączenie: %1 dzień temu"
-msgstr[1] ""
+msgstr[1] "Ostatnie połączenie: %1 dni temu"
 
 #: dashboard/qml/HeadsetsPage.qml:40
 #, kde-format
@@ -314,7 +314,7 @@ msgstr "Zobacz dziennik serwera"
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
-msgstr "Działa"
+msgstr "Włączone"
 
 #: dashboard/qml/Main.qml:272
 #, kde-format
@@ -681,7 +681,7 @@ msgstr "Jeśli masz zaporę sieciową, upewnij się że port 5353/UDP jest otwa
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
 msgid "Connecting remains stuck on \"Connection to ...\""
-msgstr "Połączenie utkneło na etapie \"Łączenie ...\""
+msgstr "Połączenie utkneło na etapie \"Connection to ...\""
 
 #: dashboard/qml/TroubleshootPage.qml:29 dashboard/qml/TroubleshootPage.qml:33
 #, kde-format
@@ -695,7 +695,7 @@ msgstr ""
 #: dashboard/qml/TroubleshootPage.qml:32
 #, kde-format
 msgid "Connection fails with \"no route to host\""
-msgstr "Połączenie nie powiodło się, \"brak trasy do hosta\""
+msgstr "Połączenie nie powiodło się, \"no route to host\""
 
 #: dashboard/qml/TroubleshootPage.qml:36
 #, kde-format
