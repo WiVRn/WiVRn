@@ -1,4 +1,4 @@
-From f5fabedd2fb6fc8b064ef5d9ca5569ac00713b6b Mon Sep 17 00:00:00 2001
+From f893f548c075183711f347d831dfc9f82a369ad8 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 6/9] Replace distortion with foveation
@@ -872,7 +872,7 @@ index fba654902..c0824108e 100644
  
  	D(Pipeline, r->compute.clear.pipeline);
 diff --git a/src/xrt/compositor/shaders/clear.comp b/src/xrt/compositor/shaders/clear.comp
-index 036da401a..db8e5178e 100644
+index 1f0e732b8..e02307415 100644
 --- a/src/xrt/compositor/shaders/clear.comp
 +++ b/src/xrt/compositor/shaders/clear.comp
 @@ -10,7 +10,7 @@
@@ -886,7 +886,7 @@ index 036da401a..db8e5178e 100644
  	ivec4 views[2];
 @@ -35,5 +35,5 @@ void main()
  
- 	vec4 colour = vec4(from_linear_to_srgb(vec3(0.1)), 1.0);
+ 	vec4 colour = vec4(0, 0, 0, 1.0);
  
 -	imageStore(target, ivec2(offset.x + ix, offset.y + iy), colour);
 +	imageStore(target, ivec3(offset.x + ix, offset.y + iy, 0), colour);
@@ -1288,5 +1288,5 @@ index 4e20b32f0..69429dc97 100644
  		    d->do_timewarp);              //
  	}
 -- 
-2.51.1
+2.51.2
 
