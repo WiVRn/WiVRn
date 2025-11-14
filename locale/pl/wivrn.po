@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-11 22:09+0100\n"
-"PO-Revision-Date: 2025-11-13 23:09+0100\n"
+"PO-Revision-Date: 2025-11-14 09:32+0100\n"
 "Last-Translator: polyborea <patryklimerick@gmail.com>\n"
 "Language-Team: Polish <kde-i18n-doc@kde.org>\n"
 "Language: pl\n"
@@ -32,17 +32,17 @@ msgstr "Połączono z {}"
 
 #: client/scenes/app_launcher.cpp:136
 msgid "Start an application on the server to start streaming."
-msgstr "Włącz aplikacje na serwerze aby rozpocząć przesyłanie."
+msgstr "Włącz aplikację na serwerze aby rozpocząć przesyłanie."
 
 #: client/scenes/app_launcher.cpp:146
 msgid "Start an application on your computer or select one to start streaming."
 msgstr ""
-"Włącz aplikacje na komputerze, lub wybierz jakąś aby rozpocząć przesyłanie."
+"Włącz aplikację na komputerze, lub wybierz jakąś aby rozpocząć przesyłanie."
 
 #: client/scenes/app_launcher.cpp:148
 #, c++-format
 msgid "Start an application on {} or select one to start streaming."
-msgstr "Włącz aplikacje na {}, lub wybierz jakąś aby rozpocząć przesyłanie."
+msgstr "Włącz aplikację na {}, lub wybierz jakąś aby rozpocząć przesyłanie."
 
 #: client/scenes/lobby.cpp:230
 msgid "Incompatible WiVRn server: no protocol field in TXT"
@@ -116,11 +116,11 @@ msgstr "PIN"
 
 #: client/scenes/lobby_gui.cpp:192
 msgid "Input the PIN displayed on the dashboard"
-msgstr "Wprowadz PIN wyświetlony na desce rozdzielczej"
+msgstr "Wprowadź PIN wyświetlony na desce rozdzielczej"
 
 #: client/scenes/lobby_gui.cpp:282
 msgid "Name"
-msgstr "Imie"
+msgstr "Imię"
 
 #: client/scenes/lobby_gui.cpp:293
 msgid "Address"
@@ -200,7 +200,7 @@ msgstr ""
 
 #: client/scenes/lobby_gui.cpp:603 client/scenes/stream_gui.cpp:443
 msgid "Minimum refresh rate"
-msgstr "Minimala częstotliwość odświeżania"
+msgstr "Minimalna częstotliwość odświeżania"
 
 #: client/scenes/lobby_gui.cpp:629
 msgid "Foveation level"
@@ -218,7 +218,7 @@ msgstr "%d%% - {}x{} na oko"
 #: client/scenes/lobby_gui.cpp:666
 #, c++-format
 msgid "Resolution larger than {}x{} may not be supported by the headset"
-msgstr "Rozdzielczość więkrza niż {}x{} może nie być wspierana przez gogle."
+msgstr "Rozdzielczość większa niż {}x{} może nie być wspierana przez gogle."
 
 #: client/scenes/lobby_gui.cpp:672
 msgid "High power mode"
@@ -227,7 +227,7 @@ msgstr "Tryb wysokiej wydajności"
 #: client/scenes/lobby_gui.cpp:675
 msgid "Increase power usage to allow higher resolution and refresh rate"
 msgstr ""
-"Zwiękrz użycie mocy aby umożliwić wyższe rozdzielczości I szybsze odświeżanie"
+"Zwiększ użycie mocy aby umożliwić wyższe rozdzielczości I szybsze odświeżanie"
 
 #: client/scenes/lobby_gui.cpp:681
 msgid "Enable microphone"
@@ -235,7 +235,7 @@ msgstr "Włącz mikrofon"
 
 #: client/scenes/lobby_gui.cpp:690
 msgid "Unprocessed Microphone Audio"
-msgstr "Nieprzetważany dzwięk z mikrofonu"
+msgstr "Nieprzetwarzany dźwięk z mikrofonu"
 
 #: client/scenes/lobby_gui.cpp:696
 msgid "Force disable audio filters, such as noise cancellation"
@@ -295,7 +295,7 @@ msgid ""
 "May be desired when using another source of hip tracking"
 msgstr ""
 "Ma efekt wyłącznie z włączonym śledzeniem kończyn dolnych\n"
-"Może być rządane gdy jest inne żródło śledzenia bioder."
+"Może być żądane gdy jest inne źródło śledzenia bioder."
 
 #: client/scenes/lobby_gui.cpp:788
 msgid "Enable in-stream window"
@@ -315,7 +315,7 @@ msgstr "Przetwarzanie końcowe OpenXR"
 
 #: client/scenes/lobby_gui.cpp:809 client/scenes/stream_gui.cpp:467
 msgid "Supersampling"
-msgstr "Nadpróbkowanie"
+msgstr "Nad-próbkowanie"
 
 #: client/scenes/lobby_gui.cpp:829 client/scenes/stream_gui.cpp:488
 msgid ""
@@ -323,7 +323,7 @@ msgid ""
 "Useful when the input resolution is high compared to the headset display"
 msgstr ""
 "Zmniejsza migotanie na krawędziach z dużym kontrastem.\n"
-"Użyteczne gdy rozdzielczość wejściowa jest więkrza niż rozdzielczość gogli"
+"Użyteczne gdy rozdzielczość wejściowa jest większa niż rozdzielczość gogli"
 
 #: client/scenes/lobby_gui.cpp:834 client/scenes/stream_gui.cpp:493
 msgid "Sharpening"
@@ -334,7 +334,8 @@ msgid ""
 "Improve clarity of high contrast edges and counteract blur.\n"
 "Useful when the input resolution is low compared to the headset display"
 msgstr ""
-"Zwiękrza klarowność krawędzi z dużym kontrastem, I kontrdziała rozmazywanie ob"
+"Zwiększa klarowność krawędzi z dużym kontrastem, I przeciwdziała rozmazywaniu "
+"ob"
 "razu.\n"
 "Użyteczne gdy rozdzielczość wejściowa jest mniejsza niż rozdzielczość gogli"
 
@@ -458,7 +459,7 @@ msgstr "Informacje"
 
 #: client/scenes/lobby_gui.cpp:1839
 msgid "Exit"
-msgstr "Wyjdż"
+msgstr "Wyjdź"
 
 #: client/scenes/lobby_gui.cpp:1856
 msgid ""
@@ -490,7 +491,7 @@ msgstr "Usuń ten model"
 #: client/scenes/lobby_gui_customize.cpp:689
 #, c++-format
 msgid "HTTP error {} when downloading {}"
-msgstr "błąd HTTPS {} podczas pobierania {}"
+msgstr "Błąd HTTPS {} podczas pobierania {}"
 
 #: client/scenes/lobby_gui_customize.cpp:491
 #: client/scenes/lobby_gui_customize.cpp:697
@@ -530,7 +531,7 @@ msgstr "Otwórz lokalny model glTF"
 
 #: client/scenes/stream_gui.cpp:174
 msgid "Reproject"
-msgstr "Reprojektowanie"
+msgstr "Re-projektowanie"
 
 #: client/scenes/stream_gui.cpp:175
 msgid "Blit"
@@ -588,7 +589,7 @@ msgstr "Przewidziane"
 #: client/scenes/stream_gui.cpp:345
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
-msgstr "Przewidziane opóżnienie od ruchu do fotonu: {}ms"
+msgstr "Przewidziane opóźnienie od ruchu do fotonu: {}ms"
 
 #: client/scenes/stream_gui.cpp:352
 msgid "Press the grip button to move the window"
@@ -596,11 +597,11 @@ msgstr "Użyj gripa aby ruszyć oknem"
 
 #: client/scenes/stream_gui.cpp:354 client/scenes/stream_gui.cpp:893
 msgid "Press both thumbsticks to display the WiVRn window"
-msgstr "Przyćiśnij oba analogi aby włączyć okno WiVRn"
+msgstr "Przyciśnij oba analogi aby włączyć okno WiVRn"
 
 #: client/scenes/stream_gui.cpp:376
 msgid "Motion to photon latency"
-msgstr "Opóżnienie od ruchu do fotonu"
+msgstr "Opóźnienie od ruchu do fotonu"
 
 #: client/scenes/stream_gui.cpp:521
 msgid "Foveation center override"
@@ -646,7 +647,7 @@ msgstr "Nakładki"
 
 #: client/scenes/stream_gui.cpp:692
 msgid "Request to quit, may be ignored by the application"
-msgstr "Prożba o wyjście, aplikacja może je zignorować"
+msgstr "Prośba o wyjście, aplikacja może je zignorować"
 
 #: client/scenes/stream_gui.cpp:695
 msgid "Start"
@@ -662,7 +663,7 @@ msgstr "Aplikacje"
 
 #: client/scenes/stream_gui.cpp:959
 msgid "Statistics overlay"
-msgstr "Nakładka z statyskykami"
+msgstr "Nakładka ze statystykami"
 
 #: client/scenes/stream_gui.cpp:962
 msgid "Compact view"
@@ -670,7 +671,7 @@ msgstr "Widok kompaktowy"
 
 #: client/wivrn_client.cpp:98 client/wivrn_client.cpp:202
 msgid "Timeout"
-msgstr "Czas wygasł"
+msgstr "Czas upłynął"
 
 #: client/wivrn_client.cpp:149
 msgid "Incorrect PIN"
@@ -678,7 +679,7 @@ msgstr "Nieprawidłowy PIN"
 
 #: client/wivrn_client.cpp:153
 msgid "Unable to check PIN"
-msgstr "Nie udało się zmienić pinu"
+msgstr "Nie udało się zmienić PINu"
 
 #: client/wivrn_client.cpp:182
 msgid "Pairing is disabled on server"

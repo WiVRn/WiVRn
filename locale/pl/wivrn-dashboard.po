@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-11 21:12+0100\n"
-"PO-Revision-Date: 2025-11-13 23:58+0100\n"
+"PO-Revision-Date: 2025-11-14 09:22+0100\n"
 "Last-Translator: polyborea <patryklimerick@gmail.com>\n"
 "Language-Team: Polish <kde-i18n-doc@kde.org>\n"
 "Language: pl\n"
@@ -152,8 +152,8 @@ msgstr "Gogle"
 #, kde-format
 msgid "Last connection: %1 second ago"
 msgid_plural "Last connection: %1 seconds ago"
-msgstr[0] "Ostatnie połączenie: %1 sekuda temu"
-msgstr[1] "Ostatnie połączenie: %1 sekudy temu"
+msgstr[0] "Ostatnie połączenie: %1 sekunda temu"
+msgstr[1] "Ostatnie połączenie: %1 sekundy temu"
 
 #: dashboard/qml/HeadsetsPage.qml:31
 #, kde-format
@@ -289,7 +289,7 @@ msgid ""
 "Hardware encoding with vaapi does not work with AMDVLK and AMDGPU-PRO"
 msgstr ""
 "Używaj sterownika Mesa (radv) z kartamu AMD\n"
-"Kodowanie hardwareowe z vaapi nie działa ani AMDVLK ani z AMDGPU-PRO"
+"Kodowanie hardware-owe z vaapi nie działa ani z AMDVLK ani z AMDGPU-PRO"
 
 #: dashboard/qml/Main.qml:213
 #, kde-format
@@ -419,10 +419,10 @@ msgid ""
 "The recommended values are between 20% and 50% for headsets without eye "
 "tracking and between 50% and 70% for headsets with eye tracking."
 msgstr ""
-"Z śilniejszą foveacją obraz jest ostrzejszy w środku niż na brzegach "
-"co zwiękrza prędkość kodowania video. Jest to idealne dla szybszych gier.\n"
+"Z silniejsza foveacją obraz jest ostrzejszy w środku niż na brzegach "
+"co zwiększa prędkość kodowania video. Jest to idealne dla szybszych gier.\n"
 "\n"
-"Słabsza foveacja daje równomierą ostrość na całęj szerokości obrazu.\n"
+"Słabsza foveacja daje równomierną ostrość na całej szerokości obrazu.\n"
 "\n"
 "Zalecane wartości to między 20% a 50% dla gogli bez śledzenia wzroku, "
 "a między 50% i 70% dla gogli z śledzeniem wzroku."
@@ -437,12 +437,12 @@ msgstr "Słabiej"
 #, kde-format
 msgctxt "stronger foveation"
 msgid "Stronger"
-msgstr "Śilniej"
+msgstr "Silniej"
 
 #: dashboard/qml/SettingsPage.qml:90
 #, kde-format
 msgid "Bitrate:"
-msgstr "Przepływowość:"
+msgstr "Przepływność:"
 
 #: dashboard/qml/SettingsPage.qml:94 dashboard/qml/SettingsPage.qml:96
 #, kde-format
@@ -489,12 +489,12 @@ msgstr "Vulkan (Dowolne współczesne GPU)"
 #: dashboard/qml/SettingsPage.qml:142
 #, kde-format
 msgid "x264 (software encoding)"
-msgstr "x264 (kodowanie sofwareowe)"
+msgstr "x264 (kodowanie sofware-owe)"
 
 #: dashboard/qml/SettingsPage.qml:159
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
-msgstr "\"Auto\" wykorzysta kodowanie hardwareowe jeślie jest dostępne"
+msgstr "\"Auto\" wykorzysta kodowanie hardware-owe jeśli jest dostępne"
 
 #: dashboard/qml/SettingsPage.qml:164
 #, kde-format
@@ -533,7 +533,7 @@ msgid ""
 "10-bit encoding improves image quality but is not supported by all codecs "
 "and hardware"
 msgstr ""
-"10-bitowe kodowanie zwiękrza jakość obrazu, ale nie jest wspierane przez każdy"
+"10-bitowe kodowanie zwiększa jakość obrazu, ale nie jest wspierane przez każdy"
 " sprzęt lub kodek"
 
 #: dashboard/qml/SettingsPage.qml:225
@@ -544,7 +544,7 @@ msgstr "Opcje zaawansowane"
 #: dashboard/qml/SettingsPage.qml:231
 #, kde-format
 msgid "Check system configuration on start"
-msgstr "Sprawdz konfiguracje systemu przy starcie"
+msgstr "Sprawdź konfiguracje systemu przy starcie"
 
 #: dashboard/qml/SettingsPage.qml:237
 #, kde-format
@@ -634,7 +634,7 @@ msgid ""
 "For Steam games, right click on the game in Steam, go in Properties > "
 "General and paste this in \"Launch options\":"
 msgstr ""
-"Dla gier Steam, Kliknij prawym przycieskiem myszy na grze w Steamie, "
+"Dla gier Steam, Kliknij prawym przyciskiem myszy na grze w Steamie, "
 "Właściwości > Ogólne i wklej to do \"Opcji uruchamiania\":"
 
 #: dashboard/qml/SteamLaunchOptions.qml:20
@@ -652,12 +652,12 @@ msgstr "Kopiuj"
 #: dashboard/qml/SteamLaunchOptions.qml:30
 #, kde-format
 msgid "Copied Steam launch command"
-msgstr "Skopiowano komende rozruchu Steam"
+msgstr "Skopiowano komendę rozruchu Steam"
 
 #: dashboard/qml/TroubleshootPage.qml:20
 #, kde-format
 msgid "I cannot find the WiVRn app on my headset"
-msgstr "Nie mogę znaleść aplikacji WiVRn na moich goglach"
+msgstr "Nie mogę znaleźć aplikacji WiVRn na moich goglach"
 
 #: dashboard/qml/TroubleshootPage.qml:21 dashboard/qml/WizardPage.qml:388
 #, kde-format
@@ -666,7 +666,7 @@ msgid ""
 "\"unknown sources\" section."
 msgstr ""
 "Jeśli zainstalowałeś/aś WiVRn przez USB na goglach Meta, aplikacja "
-"jest w sekcji \"Nieznane żródło\"."
+"jest w sekcji \"Nieznane źródło\"."
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
@@ -681,7 +681,7 @@ msgstr "Jeśli masz zaporę sieciową, upewnij się że port 5353/UDP jest otwa
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
 msgid "Connecting remains stuck on \"Connection to ...\""
-msgstr "Połączenie utkneło na etapie \"Connection to ...\""
+msgstr "Połączenie utknęło na etapie \"Połączenie z ...\""
 
 #: dashboard/qml/TroubleshootPage.qml:29 dashboard/qml/TroubleshootPage.qml:33
 #, kde-format
@@ -689,7 +689,7 @@ msgid ""
 "If you have a firewall, make sure that port 9757 is open both for TCP and "
 "UDP."
 msgstr ""
-"Jeśli masz zaporę sieciową, upewnij się że port 9757 jest otwary dla "
+"Jeśli masz zaporę sieciową, upewnij się że port 9757 jest otwarty dla "
 "TCP i UDP."
 
 #: dashboard/qml/TroubleshootPage.qml:32
@@ -724,7 +724,7 @@ msgid ""
 "If you have reinstalled the server or the client or if you want to connect "
 "another headset, you must enable pairing before connecting."
 msgstr ""
-"Jeśli przeinstalowałeś/aś serwer lub klient, lub jeśli chcecz połączyć "
+"Jeśli przeinstalowałeś/aś serwer lub klient, lub jeśli chcesz połączyć "
 "nowe gogle, musisz włączyć tryb parowania przed połączeniem."
 
 #: dashboard/qml/TroubleshootPage.qml:41
@@ -740,7 +740,7 @@ msgstr "Parowanie jest wyłączone."
 #: dashboard/qml/TroubleshootPage.qml:57
 #, kde-format
 msgid "I have no sound on my headset"
-msgstr "Nie mam dzwięku w goglach"
+msgstr "Nie mam dźwięku w goglach"
 
 #: dashboard/qml/TroubleshootPage.qml:58 dashboard/qml/WizardPage.qml:441
 #, kde-format
@@ -843,7 +843,7 @@ msgid ""
 "This is a nightly build, the client app on the Meta store may not be "
 "compatible."
 msgstr ""
-"To jest nocna kompilcja, klient ze sklepu Meta może nie być kompatybilny."
+"To jest nocna kompilacja, klient ze sklepu Meta może nie być kompatybilny."
 
 #: dashboard/qml/WizardPage.qml:181
 #, kde-format
