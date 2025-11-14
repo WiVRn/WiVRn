@@ -1,7 +1,7 @@
 # kate: syntax yaml
 id: io.github.wivrn.wivrn
 runtime: org.kde.Platform
-runtime-version: '6.8'
+runtime-version: '6.9'
 sdk: org.kde.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
@@ -249,9 +249,13 @@ modules:
       - -Dgtk_doc=false
       - -Ddocbook_docs=disabled
     sources:
-    - type: git
-      url: https://github.com/GNOME/libnotify.git
-      tag: 131aad01ff5f563b4863becbb6ed84dac6e75d5a
+      - type: archive
+        url: https://download.gnome.org/sources/libnotify/0.8/libnotify-0.8.7.tar.xz
+        sha256: 4be15202ec4184fce1ac15997ece5530d2be32fe9573875aeb10e3b573858748
+        x-checker-data:
+          type: gnome
+          name: libnotify
+          stable-only: true
 
   - name: qcoro
     buildsystem: cmake-ninja
