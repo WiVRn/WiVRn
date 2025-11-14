@@ -32,7 +32,6 @@ class stream;
 
 namespace wivrn
 {
-class shard_accumulator;
 class decoder
 {
 public:
@@ -62,8 +61,7 @@ public:
 	        const wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,
-	        std::weak_ptr<scenes::stream>,
-	        shard_accumulator *);
+	        std::weak_ptr<scenes::stream>);
 	virtual ~decoder();
 	virtual void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial) = 0;
 

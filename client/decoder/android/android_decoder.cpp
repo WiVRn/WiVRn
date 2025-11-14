@@ -106,9 +106,8 @@ decoder::decoder(
         const wivrn::to_headset::video_stream_description::item & description,
         float fps,
         uint8_t stream_index,
-        std::weak_ptr<scenes::stream> weak_scene,
-        shard_accumulator * accumulator) :
-        wivrn::decoder(description), stream_index(stream_index), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
+        std::weak_ptr<scenes::stream> weak_scene) :
+        wivrn::decoder(description), stream_index(stream_index), fps(fps), device(device), weak_scene(weak_scene)
 {
 	spdlog::info("hbm_mutex.native_handle() = {}", (void *)hbm_mutex.native_handle());
 
@@ -314,7 +313,7 @@ void decoder::on_image_available(AImageReader * reader)
 		        std::move(image));
 
 		if (auto scene = weak_scene.lock())
-			scene->push_blit_handle(accumulator, std::move(handle));
+			scene->push_blit_handle(std::move(handle));
 	}
 	catch (...)
 	{

@@ -34,8 +34,7 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
         const wivrn::to_headset::video_stream_description::item & description,
         float fps,
         uint8_t stream_index,
-        std::weak_ptr<scenes::stream> scene,
-        shard_accumulator * acc)
+        std::weak_ptr<scenes::stream> scene)
 {
 	switch (description.codec)
 	{
@@ -49,16 +48,14 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
 			        description,
 			        fps,
 			        stream_index,
-			        scene,
-			        acc);
+			        scene);
 #else
 			return std::make_shared<wivrn::ffmpeg::decoder>(
 			        device,
 			        phys_dev,
 			        description,
 			        stream_index,
-			        scene,
-			        acc);
+			        scene);
 #endif
 		case raw:
 			return std::make_shared<wivrn::raw_decoder>(
@@ -67,8 +64,7 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
 			        vk_queue_family_index,
 			        description,
 			        stream_index,
-			        scene,
-			        acc);
+			        scene);
 	}
 	__builtin_unreachable();
 }

@@ -51,7 +51,6 @@ private:
 	std::array<image, image_count> image_pool;
 
 	std::weak_ptr<scenes::stream> weak_scene;
-	shard_accumulator * accumulator;
 
 	uint64_t current_frame = 0;
 	std::array<buffer_allocation, 2> input;
@@ -65,8 +64,7 @@ public:
 	            uint32_t vk_queue_family_index,
 	            const wivrn::to_headset::video_stream_description::item & description,
 	            uint8_t stream_index,
-	            std::weak_ptr<scenes::stream> scene,
-	            shard_accumulator * accumulator);
+	            std::weak_ptr<scenes::stream> scene);
 
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial) override;
 
