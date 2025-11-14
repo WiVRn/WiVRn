@@ -70,12 +70,12 @@ msgstr "Instalacja udana"
 #: dashboard/main.cpp:27 dashboard/qml/Main.qml:12
 #, kde-format
 msgid "WiVRn dashboard"
-msgstr "Deska rozdzielcza WiVRn"
+msgstr "Pulpit WiVRn"
 
 #: dashboard/qml/ApkInstallPage.qml:12 dashboard/qml/WizardPage.qml:137
 #, kde-format
 msgid "Install the WiVRn app on your headset"
-msgstr "Zainstaluj aplikacje WiVRn na swoich goglach"
+msgstr "Zainstaluj aplikację WiVRn na swoich goglach"
 
 #: dashboard/qml/ApkInstallPage.qml:41 dashboard/qml/WizardPage.qml:157
 #: dashboard/qml/WizardPage.qml:192
@@ -97,7 +97,7 @@ msgstr "ABD nie jest zainstalowany"
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
 msgid "Connect a headset and make sure developer mode is enabled"
-msgstr "Połącz gogle I upewnij się że tryb dewelopera jest włączony"
+msgstr "Podłącz gogle i upewnij się że tryb dewelopera jest włączony"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -216,7 +216,7 @@ msgstr "Wyłącz parowanie"
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
 msgid "Start the WiVRn app on your headset and use the PIN: %1"
-msgstr "Włącz aplikacje WiVRn na goglach, I użyj PINu: %1"
+msgstr "Włącz aplikację WiVRn na goglach i użyj PINu: %1"
 
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
