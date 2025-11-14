@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-11 22:09+0100\n"
-"PO-Revision-Date: 2025-11-14 09:32+0100\n"
+"PO-Revision-Date: 2025-11-14 09:36+0100\n"
 "Last-Translator: polyborea <patryklimerick@gmail.com>\n"
 "Language-Team: Polish <kde-i18n-doc@kde.org>\n"
 "Language: pl\n"
@@ -589,7 +589,7 @@ msgstr "Przewidziane"
 #: client/scenes/stream_gui.cpp:345
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
-msgstr "Przewidziane opóźnienie od ruchu do fotonu: {}ms"
+msgstr "Przewidziane opóźnienie \"motion-to-photon\": {}ms"
 
 #: client/scenes/stream_gui.cpp:352
 msgid "Press the grip button to move the window"
@@ -601,7 +601,7 @@ msgstr "Przyciśnij oba analogi aby włączyć okno WiVRn"
 
 #: client/scenes/stream_gui.cpp:376
 msgid "Motion to photon latency"
-msgstr "Opóźnienie od ruchu do fotonu"
+msgstr "Opóźnienie \"motion-to-photon\""
 
 #: client/scenes/stream_gui.cpp:521
 msgid "Foveation center override"
