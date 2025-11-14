@@ -69,6 +69,10 @@ modules:
     - type: git
       url: https://github.com/crosstool-ng/crosstool-ng.git
       tag: 70c2b00ad79a0a21a48e5a0eedc9f91c374af21d
+    - type: shell
+      commands:
+       - sed -i 's/-O2 -g/-O2/' scripts/crosstool-NG.sh
+       - sed -i 's/-g -O2/-O2/' scripts/build/cc/gcc.sh
     cleanup:
       - '*'
 
