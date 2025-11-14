@@ -82,7 +82,7 @@ static void debug_why_not_sent(const shard_set & shards)
 	const auto & frame = shards.data;
 	if (frame.empty())
 	{
-		spdlog::info("frame {} was not sent because no shard was received", shards.frame_index());
+		spdlog::info("frame {} on stream {} was not sent because no shard was received", shards.frame_index(), shards.feedback.stream_index);
 		return;
 	}
 	int frame_idx = -1;
@@ -100,7 +100,7 @@ static void debug_why_not_sent(const shard_set & shards)
 	}
 
 	bool end = frame.back() and frame.back()->flags & video_stream_data_shard::end_of_frame;
-	spdlog::info("frame {} was not sent with {} data shards, {}{} missing", frame_idx, data, end ? "" : "at least ", missing);
+	spdlog::info("frame {} on stream {} was not sent with {} data shards, {}{} missing", frame_idx, shards.feedback.stream_index, data, end ? "" : "at least ", missing);
 }
 
 void shard_accumulator::advance()
@@ -117,7 +117,7 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 	if (shard.frame_idx < current.frame_index())
 	{
 		// frame is in the past, drop it
-		spdlog::info("Drop shard for old frame {} (current {})", shard.frame_idx, current.frame_index());
+		spdlog::info("Drop shard for old frame {} on stream {} (current {})", shard.frame_idx, current.feedback.stream_index, current.frame_index());
 	}
 	else if (frame_diff == 0)
 	{
