@@ -102,14 +102,12 @@ decoder::decoder(
         vk::raii::PhysicalDevice & physical_device,
         const wivrn::to_headset::video_stream_description::item & description,
         uint8_t stream_index,
-        std::weak_ptr<scenes::stream> scene,
-        shard_accumulator * accumulator) :
+        std::weak_ptr<scenes::stream> scene) :
         wivrn::decoder(description),
         device(device),
         codec(nullptr, free_codec_context),
         sws(nullptr, sws_freeContext),
-        weak_scene(scene),
-        accumulator(accumulator)
+        weak_scene(scene)
 {
 	free_images.resize(image_count);
 
@@ -264,7 +262,7 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 	        this);
 
 	if (auto scene = weak_scene.lock())
-		scene->push_blit_handle(accumulator, std::move(handle));
+		scene->push_blit_handle(std::move(handle));
 }
 
 void decoder::supported_codecs(std::vector<wivrn::video_codec> & res)

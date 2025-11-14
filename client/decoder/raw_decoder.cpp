@@ -83,8 +83,7 @@ raw_decoder::raw_decoder(
         uint32_t vk_queue_family_index,
         const wivrn::to_headset::video_stream_description::item & description,
         uint8_t stream_index,
-        std::weak_ptr<scenes::stream> scene,
-        shard_accumulator * accumulator) :
+        std::weak_ptr<scenes::stream> scene) :
         decoder(description),
         device(device),
         ycbcr_conversion(device,
@@ -105,8 +104,7 @@ raw_decoder::raw_decoder(
         })[0]
                     .release()),
         fence(device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled}),
-        weak_scene(scene),
-        accumulator(accumulator)
+        weak_scene(scene)
 {
 	extent_ = vk::Extent2D{
 	        .width = description.width,
@@ -330,7 +328,7 @@ void raw_decoder::frame_completed(
 	        *fence);
 
 	if (auto scene = weak_scene.lock())
-		scene->push_blit_handle(accumulator, std::move(handle));
+		scene->push_blit_handle(std::move(handle));
 
 	std::swap(input[0], input[1]);
 	input_pos = (uint8_t *)input[0].map();

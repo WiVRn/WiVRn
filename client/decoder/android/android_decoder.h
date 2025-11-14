@@ -48,11 +48,6 @@ DEUGLIFY(AImage)
 DEUGLIFY(AImageReader)
 DEUGLIFY(AMediaCodec)
 
-namespace wivrn
-{
-class shard_accumulator;
-}
-
 namespace scenes
 {
 class stream;
@@ -80,7 +75,6 @@ private:
 
 	AMediaCodec_ptr media_codec;
 	std::weak_ptr<scenes::stream> weak_scene;
-	shard_accumulator * accumulator;
 
 	PFN_vkGetAndroidHardwareBufferPropertiesANDROID vkGetAndroidHardwareBufferPropertiesANDROID;
 
@@ -125,8 +119,7 @@ public:
 	        const wivrn::to_headset::video_stream_description::item & description,
 	        float fps,
 	        uint8_t stream_index,
-	        std::weak_ptr<scenes::stream> scene,
-	        shard_accumulator * accumulator);
+	        std::weak_ptr<scenes::stream> scene);
 	~decoder();
 
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial) override;

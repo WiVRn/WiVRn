@@ -28,11 +28,6 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
-namespace wivrn
-{
-class shard_accumulator;
-}
-
 extern "C"
 {
 	struct AVBufferRef;
@@ -72,7 +67,6 @@ private:
 	std::vector<uint8_t> packet;
 	uint64_t frame_index;
 	std::weak_ptr<scenes::stream> weak_scene;
-	shard_accumulator * accumulator;
 
 	std::mutex mutex;
 
@@ -81,8 +75,7 @@ public:
 	        vk::raii::PhysicalDevice & physical_device,
 	        const wivrn::to_headset::video_stream_description::item & description,
 	        uint8_t stream_index,
-	        std::weak_ptr<scenes::stream> scene,
-	        shard_accumulator * accumulator);
+	        std::weak_ptr<scenes::stream> scene);
 
 	void push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial) override;
 

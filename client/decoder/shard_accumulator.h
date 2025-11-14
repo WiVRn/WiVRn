@@ -25,7 +25,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
-#include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan.hpp>
 
 namespace xr
 {
@@ -77,15 +77,11 @@ private:
 
 public:
 	explicit shard_accumulator(
-	        vk::raii::Device & device,
-	        vk::raii::PhysicalDevice & physical_device,
+	        std::shared_ptr<decoder> decoder_,
 	        xr::instance & instance,
-	        uint32_t vk_queue_family_index,
-	        const wivrn::to_headset::video_stream_description::item & description,
-	        float fps,
 	        std::weak_ptr<scenes::stream> scene,
 	        uint8_t stream_index) :
-	        decoder_(decoder::make(device, physical_device, vk_queue_family_index, description, fps, stream_index, scene, this)),
+	        decoder_(std::move(decoder_)),
 	        current(stream_index),
 	        next(stream_index),
 	        weak_scene(scene),

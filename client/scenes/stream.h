@@ -213,7 +213,7 @@ public:
 	void operator()(to_headset::running_applications &&);
 	void operator()(audio_data &&);
 
-	void push_blit_handle(wivrn::shard_accumulator * decoder, std::shared_ptr<wivrn::shard_accumulator::blit_handle> handle);
+	void push_blit_handle(std::shared_ptr<wivrn::shard_accumulator::blit_handle> handle);
 
 	void send_feedback(const wivrn::from_headset::feedback & feedback);
 

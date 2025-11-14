@@ -524,7 +524,7 @@ scenes::stream::~stream()
 		network_thread.join();
 }
 
-void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_ptr<shard_accumulator::blit_handle> handle)
+void scenes::stream::push_blit_handle(std::shared_ptr<shard_accumulator::blit_handle> handle)
 {
 	assert(handle);
 	if (!application::is_visible())
@@ -536,8 +536,6 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 		auto stream = handle->feedback.stream_index;
 		if (stream < decoders.size())
 		{
-			if (decoder != decoders[stream].decoder.get())
-				return;
 			handle->feedback.received_from_decoder = instance.now();
 			std::swap(handle, decoders[stream].latest_frames[handle->feedback.frame_index % decoders[stream].latest_frames.size()]);
 		}
@@ -1145,7 +1143,11 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		spdlog::info("Creating decoder size {}x{} offset {},{}", item.width, item.height, item.offset_x, item.offset_y);
 
 		decoders.push_back(accumulator_images{
-		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, item, description.fps, shared_from_this(), stream_index),
+		        .decoder = std::make_unique<shard_accumulator>(
+		                decoder::make(device, physical_device, queue_family_index, item, description.fps, stream_index, shared_from_this()),
+		                instance,
+		                shared_from_this(),
+		                stream_index),
 		});
 	}
 }
