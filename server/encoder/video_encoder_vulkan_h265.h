@@ -19,7 +19,6 @@
 
 #include "video_encoder_vulkan.h"
 
-#include <deque>
 #include <memory>
 #include <vector>
 
@@ -30,7 +29,6 @@ namespace wivrn
 
 class video_encoder_vulkan_h265 : public video_encoder_vulkan
 {
-	std::deque<int32_t> poc_history;
 	bool sample_adaptive_offset_enabled = false;
 
 	StdVideoH265SequenceParameterSetVui vui{};
@@ -44,6 +42,7 @@ class video_encoder_vulkan_h265 : public video_encoder_vulkan
 	StdVideoH265PictureParameterSet pps{};
 
 	StdVideoH265ShortTermRefPicSet st_rps{};
+	StdVideoEncodeH265LongTermRefPics lt_rp{};
 
 	StdVideoEncodeH265SliceSegmentHeader slice_header{};
 	vk::VideoEncodeH265NaluSliceSegmentInfoKHR nalu_slice_info{};
@@ -54,6 +53,7 @@ class video_encoder_vulkan_h265 : public video_encoder_vulkan
 
 	std::vector<StdVideoEncodeH265ReferenceInfo> dpb_std_info;
 	std::vector<vk::VideoEncodeH265DpbSlotInfoKHR> dpb_std_slots;
+	std::vector<uint8_t> dpb_lt_indicies;
 
 	vk::VideoEncodeH265GopRemainingFrameInfoKHR gop_info{};
 	vk::VideoEncodeH265RateControlInfoKHR rc_h265{};

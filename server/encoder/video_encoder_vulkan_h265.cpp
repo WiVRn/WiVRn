@@ -123,6 +123,7 @@ wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
                         .conformance_window_flag = 1,             // conf_win_* are set
                         .amp_enabled_flag = 1,                    // confirmed ok
                         .sample_adaptive_offset_enabled_flag = 0, // off for (ultra) low-latency
+                        .long_term_ref_pics_present_flag = 1,
                         .strong_intra_smoothing_enabled_flag = 1, // confirmed ok
                         .vui_parameters_present_flag = 1,
                         .sps_range_extension_flag = (settings.bit_depth == 10) ? 1u : 0u,
@@ -372,7 +373,7 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 	                .first_slice_segment_in_pic_flag = 1,
 	                .slice_sao_luma_flag = sample_adaptive_offset_enabled,
 	                .slice_sao_chroma_flag = sample_adaptive_offset_enabled,
-	                .num_ref_idx_active_override_flag = ref_slot ? 1u : 0u,
+	                .num_ref_idx_active_override_flag = 0,
 	                .collocated_from_l0_flag = 1,
 	        },
 	        .slice_type = ref_slot ? STD_VIDEO_H265_SLICE_TYPE_P : STD_VIDEO_H265_SLICE_TYPE_I,
@@ -398,49 +399,27 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 
 	if (ref_slot)
 	{
-		const int32_t refPoc = dpb_std_info[*ref_slot].PicOrderCntVal;
+		const uint32_t poc_mask = ((1 << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1);
 
-		st_rps = {};
-
-		for (uint32_t i = 0; i < poc_history.size(); ++i)
-		{
-			const uint32_t delta = uint32_t(poc - poc_history[i]) - i; // deltas are accumulative!
-			st_rps.delta_poc_s0_minus1[i] = uint16_t(delta - 1);
-			if (poc_history[i] == refPoc)
-			{
-				st_rps.used_by_curr_pic_s0_flag |= (1u << i);
-				st_rps.num_negative_pics = uint8_t(i + 1);
-				break;
-			}
-		}
-		st_rps.num_positive_pics = 0;
-		st_rps.used_by_curr_pic_flag = 0;
-
-		reference_lists_info.num_ref_idx_l0_active_minus1 = 0;
-		reference_lists_info.RefPicList0[0] = static_cast<uint8_t>(*ref_slot);
-
-		if (st_rps.used_by_curr_pic_s0_flag == 0)
-		{
-			// ref_slot is too old → encode an IDR instead
-			ref_slot.reset();
-			poc_history.clear();
-		}
-	}
-	else
-	{
-		poc_history.clear();
+		lt_rp = {
+		        .num_long_term_sps = 0,
+		        .num_long_term_pics = 1,
+		        .used_by_curr_pic_lt_flag = 1,
+		};
+		lt_rp.poc_lsb_lt[0] = dpb_std_info[*ref_slot].PicOrderCntVal & poc_mask;
+		reference_lists_info.RefPicList0[0] = *ref_slot;
 	}
 
 	std_picture_info = {
 	        .flags = {
 	                .is_reference = 1,
 	                .IrapPicFlag = ref_slot ? 0u : 1u,
-	                .used_for_long_term_reference = 0,
+	                .used_for_long_term_reference = 1,
 	                .discardable_flag = 0,
 	                .cross_layer_bla_flag = 0,
 	                .pic_output_flag = 1,
 	                .no_output_of_prior_pics_flag = ref_slot ? 0u : 1u,
-	                .short_term_ref_pic_set_sps_flag = 0u,
+	                .short_term_ref_pic_set_sps_flag = 0,
 	                .slice_temporal_mvp_enabled_flag = 1,
 	        },
 	        .pic_type = ref_slot ? STD_VIDEO_H265_PICTURE_TYPE_P : STD_VIDEO_H265_PICTURE_TYPE_IDR,
@@ -453,7 +432,7 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 	        .reserved1 = {},
 	        .pRefLists = ref_slot ? &reference_lists_info : nullptr,
 	        .pShortTermRefPicSet = ref_slot ? &st_rps : nullptr,
-	        .pLongTermRefPics = nullptr,
+	        .pLongTermRefPics = ref_slot ? &lt_rp : nullptr,
 	};
 
 	picture_info = vk::VideoEncodeH265PictureInfoKHR{
@@ -467,13 +446,6 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 	i.pic_type = std_picture_info.pic_type;
 	i.PicOrderCntVal = std_picture_info.PicOrderCntVal;
 	i.TemporalId = std_picture_info.TemporalId;
-
-	const uint32_t history_limit = std::min<uint32_t>(16u, dpb.max_dec_pic_buffering_minus1[0]);
-
-	if (poc_history.size() < 1 || poc_history.front() != poc)
-		poc_history.push_front(poc);
-	if (poc_history.size() > history_limit)
-		poc_history.pop_back();
 
 	return &picture_info;
 }
