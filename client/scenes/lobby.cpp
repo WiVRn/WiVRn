@@ -546,7 +546,7 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_action(XrTime predicted_d
 		        .aim_orientation = aim->second,
 		};
 
-		imgui_ctx->compute_pointer_position(state);
+		state.pointer_position = imgui_ctx->compute_pointer_position(state).first;
 
 		if (state.pointer_position) // TODO: check that the pointer is inside an imgui window
 		{
@@ -1202,36 +1202,34 @@ void scenes::lobby::on_focused()
 	recenter_left_action = get_action("recenter_left").first;
 	recenter_right_action = get_action("recenter_right").first;
 
-	std::vector imgui_inputs{
-	        imgui_context::controller{
-	                .index = 0,
-	                .aim = get_action_space("left_aim"),
-	                .offset = input->offset[xr::spaces::aim_left],
-	                .trigger = get_action("left_trigger").first,
-	                .squeeze = get_action("left_squeeze").first,
-	                .scroll = get_action("left_scroll").first,
-	                .haptic_output = get_action("left_haptic").first,
-	        },
-	        imgui_context::controller{
-	                .index = 1,
-	                .aim = get_action_space("right_aim"),
-	                .offset = input->offset[xr::spaces::aim_right],
-	                .trigger = get_action("right_trigger").first,
-	                .squeeze = get_action("right_squeeze").first,
-	                .scroll = get_action("right_scroll").first,
-	                .haptic_output = get_action("right_haptic").first,
-	        },
-	};
-
 	if (system.hand_tracking_supported())
 	{
 		left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
 		right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
 		hand_model::add_hand(*this, XR_HAND_LEFT_EXT, "assets://left-hand.glb", layer_controllers);
 		hand_model::add_hand(*this, XR_HAND_RIGHT_EXT, "assets://right-hand.glb", layer_controllers);
-		imgui_inputs.push_back({.index = 0, .hand = &*left_hand});
-		imgui_inputs.push_back({.index = 1, .hand = &*right_hand});
 	}
+
+	std::vector imgui_inputs{
+	        imgui_context::controller{
+	                .aim = get_action_space("left_aim"),
+	                .offset = input->offset[xr::spaces::aim_left],
+	                .trigger = get_action("left_trigger").first,
+	                .squeeze = get_action("left_squeeze").first,
+	                .scroll = get_action("left_scroll").first,
+	                .haptic_output = get_action("left_haptic").first,
+	                .hand = left_hand ? &*left_hand : nullptr,
+	        },
+	        imgui_context::controller{
+	                .aim = get_action_space("right_aim"),
+	                .offset = input->offset[xr::spaces::aim_right],
+	                .trigger = get_action("right_trigger").first,
+	                .squeeze = get_action("right_squeeze").first,
+	                .scroll = get_action("right_scroll").first,
+	                .haptic_output = get_action("right_haptic").first,
+	                .hand = right_hand ? &*right_hand : nullptr,
+	        },
+	};
 
 	face_tracker = xr::make_face_tracker(instance, system, session);
 

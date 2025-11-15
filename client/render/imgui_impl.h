@@ -93,7 +93,6 @@ public:
 
 	struct controller
 	{
-		uint8_t index; // left = 0, right = 1
 		XrSpace aim;
 		std::pair<glm::vec3, glm::quat> offset;
 
@@ -116,7 +115,7 @@ public:
 		glm::vec2 scroll_value = {0, 0};
 
 		std::optional<ImVec2> pointer_position;
-		float hover_distance = 1e10;
+		// float hover_distance = 1e10;
 
 		bool squeeze_clicked = false;
 		bool trigger_clicked = false;
@@ -184,7 +183,7 @@ private:
 	bool button_pressed = false;
 	bool fingertip_touching = false;
 
-	std::array<bool, 2> aim_interaction = {true, true}; // left, right
+	std::array<float, 2> aim_interaction = {1, 1}; // left, right, floating point to fade the cursor position between poking and hand interaction
 
 	ImGuiID hovered_item = 0;      // Hovered item in the current frame, reset at the beginning of the frame
 	ImGuiID hovered_item_prev = 0; // Hovered item at the previous frame
@@ -229,7 +228,7 @@ public:
 	}
 
 	std::vector<std::pair<ImVec2, float>> ray_plane_intersection(const controller_state & in) const;
-	void compute_pointer_position(controller_state & state) const;
+	[[nodiscard]] std::pair<std::optional<ImVec2>, float> compute_pointer_position(const controller_state & state) const;
 
 	// Convert position from viewport coordinates to real-world
 	glm::vec3 rw_from_vp(const ImVec2 & position);
@@ -244,7 +243,7 @@ public:
 	void tooltip(std::string_view text);
 	std::array<bool, 2> is_aim_interaction() const
 	{
-		return aim_interaction;
+		return {aim_interaction[0] == 1, aim_interaction[1] == 1};
 	}
 };
 
