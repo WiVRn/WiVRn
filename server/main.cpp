@@ -178,7 +178,6 @@ static std::string steam_command()
 
 namespace
 {
-int stdin_pipe_fds[2];
 int control_pipe_fds[2];
 
 GMainLoop * main_loop;
@@ -238,13 +237,7 @@ void start_server(configuration config)
 	}
 	else if (server_pid == 0)
 	{
-		if (do_fork)
-		{
-			// Redirect stdin
-			dup2(stdin_pipe_fds[0], 0);
-			close(stdin_pipe_fds[0]);
-			close(stdin_pipe_fds[1]);
-		}
+		setenv("XRT_NO_STDIN", "1", true);
 
 		// foveation code does not allow oversampling
 		setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", true);
@@ -302,10 +295,7 @@ void start_server(configuration config)
 
 void kill_server()
 {
-	// Write to the server's stdin to make it quit
-	char buffer[] = "\n";
-	if (write(stdin_pipe_fds[1], &buffer, strlen(buffer)) < 0)
-		std::cerr << "Cannot stop monado properly." << std::endl;
+	wivrn_ipc_socket_main_loop->send(to_monado::stop{});
 
 	// Send SIGTERM after 1s if it is still running
 	server_kill_watch = g_timeout_add(1000, [](void *) {
@@ -916,15 +906,6 @@ int inner_main(int argc, char * argv[], bool show_instructions)
 	// avahi glib integration
 	AvahiGLibPoll * glib_poll = avahi_glib_poll_new(main_context, G_PRIORITY_DEFAULT);
 	poll_api = avahi_glib_poll_get(glib_poll);
-
-	// Create a pipe to quit monado properly
-	if (pipe(stdin_pipe_fds) < 0)
-	{
-		perror("pipe");
-		return wivrn_exit_code::cannot_create_pipe;
-	}
-	fcntl(stdin_pipe_fds[0], F_SETFD, FD_CLOEXEC);
-	fcntl(stdin_pipe_fds[1], F_SETFD, FD_CLOEXEC);
 
 	// Create a socket to report monado status to the main loop
 	if (socketpair(AF_UNIX, SOCK_DGRAM, 0, control_pipe_fds) < 0)

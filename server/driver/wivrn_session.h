@@ -208,6 +208,7 @@ public:
 	void operator()(const from_headset::stop_application &);
 	void operator()(audio_data &&);
 
+	void operator()(to_monado::stop &&);
 	void operator()(to_monado::disconnect &&);
 	void operator()(to_monado::set_bitrate &&);
 

@@ -891,6 +891,12 @@ void wivrn_session::operator()(audio_data && data)
 		audio_handle->process_mic_data(std::move(data));
 }
 
+void wivrn_session::operator()(to_monado::stop &&)
+{
+	assert(mnd_ipc_server);
+	ipc_server_stop(mnd_ipc_server);
+}
+
 void wivrn_session::operator()(to_monado::disconnect &&)
 {
 	connection->shutdown();
@@ -1007,6 +1013,7 @@ static bool quit_if_no_client(u_system & xrt_system)
 
 void wivrn_session::reconnect()
 {
+	assert(mnd_ipc_server);
 	// Notify clients about disconnected status
 	xrt_session_event event{
 	        .state = {
@@ -1022,7 +1029,7 @@ void wivrn_session::reconnect()
 	}
 
 	U_LOG_I("Waiting for new connection");
-	auto tcp = accept_connection(0 /*stdin*/, [this]() { return quit_if_no_client(xrt_system); });
+	auto tcp = accept_connection(mnd_ipc_server, 0 /*stdin*/, [this]() { return quit_if_no_client(xrt_system); });
 	if (not tcp)
 		exit(0);
 

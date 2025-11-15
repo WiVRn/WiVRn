@@ -34,6 +34,11 @@
 
 using namespace std::chrono_literals;
 
+static void handle_event_from_main_loop(to_monado::stop)
+{
+	// Ignore stop request when no headset is connected
+}
+
 static void handle_event_from_main_loop(to_monado::disconnect)
 {
 	// Ignore disconnect request when no headset is connected

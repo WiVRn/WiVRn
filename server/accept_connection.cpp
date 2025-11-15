@@ -19,23 +19,17 @@
 
 #include "accept_connection.h"
 
+#include "server/ipc_server_interface.h"
+
+#include "utils/overloaded.h"
+
 #include "wivrn_config.h"
 #include "wivrn_ipc.h"
 #include "wivrn_sockets.h"
 
 #include <sys/poll.h>
 
-static void handle_event_from_main_loop(to_monado::disconnect)
-{
-	// Ignore disconnect request when no headset is connected
-}
-
-static void handle_event_from_main_loop(to_monado::set_bitrate)
-{
-	// Ignore bitrate request when no headset is connected
-}
-
-std::unique_ptr<wivrn::TCP> wivrn::accept_connection(int watch_fd, std::function<bool()> quit)
+std::unique_ptr<wivrn::TCP> wivrn::accept_connection(ipc_server * server, int watch_fd, std::function<bool()> quit)
 {
 	wivrn_ipc_socket_monado->send(from_monado::headset_disconnected{});
 
@@ -68,7 +62,15 @@ std::unique_ptr<wivrn::TCP> wivrn::accept_connection(int watch_fd, std::function
 		{
 			auto packet = receive_from_main();
 			if (packet)
-				std::visit([](auto && x) { handle_event_from_main_loop(x); }, *packet);
+				std::visit(utils::overloaded{
+				                   [server](to_monado::stop) {
+					                   ipc_server_stop(server);
+				                   },
+				                   [](auto &&) {
+					                   // Ignore request when no headset is connected
+				                   },
+				           },
+				           *packet);
 		}
 	}
 
