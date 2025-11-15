@@ -115,12 +115,13 @@ android {
         def showImguiDemo = project.hasProperty('wivrn_show_imgui_demo') ? wivrn_show_imgui_demo : 'OFF'
         def showDebugMenu = project.hasProperty('wivrn_show_debug_menu') ? wivrn_show_debug_menu : 'OFF'
         def compressGlb = project.hasProperty('wivrn_compress_glb') ? wivrn_compress_glb : 'OFF'
+        def fetchcontentBaseDir = project.hasProperty('fetchcontent_base_dir') ? ['-DFETCHCONTENT_BASE_DIR=' + fetchcontent_base_dir] : []
 
         externalNativeBuild {
             def css = project.hasProperty('wivrn_css') ? project.wivrn_css: "images/wivrn-local.css"
 
             cmake {
-                arguments '-DANDROID_TOOLCHAIN=clang',
+                arguments  = ['-DANDROID_TOOLCHAIN=clang',
                           '-DANDROID_STL=c++_static',
                           '-DCMAKE_ANDROID_NDK_VERSION=' + ndkVersion,
                           '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON',
@@ -137,7 +138,8 @@ android {
                           '-DWIVRN_SHOW_IMGUI_DEMO_WINDOW=' + showImguiDemo,
                           '-DWIVRN_CLIENT_DEBUG_MENU=' + showDebugMenu,
                           '-DWIVRN_CSS=' + css,
-                          '-DWIVRN_COMPRESS_GLB=' + compressGlb
+                          '-DWIVRN_COMPRESS_GLB=' + compressGlb] +
+                          fetchcontentBaseDir
                 resValue "string", "app_name", project.hasProperty('wivrn_app_name') ? project.wivrn_app_name : "WiVRn Local"
             }
         }
