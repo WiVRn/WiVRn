@@ -141,7 +141,7 @@ private:
 
 	std::atomic<gui_status> gui_status = gui_status::hidden;
 	enum gui_status last_gui_status = gui_status::hidden;
-	enum gui_status next_gui_status = gui_status::stats;
+	enum gui_status next_gui_status = gui_status::applications;
 	XrTime gui_status_last_change;
 	float dimming = 0;
 
