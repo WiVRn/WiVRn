@@ -19,6 +19,7 @@
 
 #include "video_encoder_vulkan.h"
 
+#include <deque>
 #include <memory>
 #include <vector>
 
@@ -29,6 +30,7 @@ namespace wivrn
 
 class video_encoder_vulkan_h265 : public video_encoder_vulkan
 {
+	std::deque<int32_t> poc_history;
 	bool sample_adaptive_offset_enabled = false;
 
 	StdVideoH265SequenceParameterSetVui vui{};

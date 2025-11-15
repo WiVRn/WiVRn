@@ -399,15 +399,47 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 
 	if (ref_slot)
 	{
-		const uint32_t poc_mask = ((1 << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4)) - 1);
+		const uint32_t max_poc_lsb = 1u << (sps.log2_max_pic_order_cnt_lsb_minus4 + 4);
+		const uint32_t poc_mask = max_poc_lsb - 1;
+		const uint32_t curr_msb = frame_num / max_poc_lsb;
+		const int32_t ref_poc = dpb_std_info[*ref_slot].PicOrderCntVal;
 
 		lt_rp = {
 		        .num_long_term_sps = 0,
-		        .num_long_term_pics = 1,
-		        .used_by_curr_pic_lt_flag = 1,
+		        .num_long_term_pics = 0,
+		        .used_by_curr_pic_lt_flag = 0,
 		};
-		lt_rp.poc_lsb_lt[0] = dpb_std_info[*ref_slot].PicOrderCntVal & poc_mask;
+
+		for (uint32_t i = 0; i < poc_history.size(); ++i)
+		{
+			const uint32_t lt_poc = poc_history[i];
+			const uint32_t lt_msb = lt_poc / max_poc_lsb;
+			const uint32_t delta_cycle = curr_msb - lt_msb;
+
+			lt_rp.delta_poc_msb_present_flag[i] = 1;
+			lt_rp.delta_poc_msb_cycle_lt[i] = delta_cycle,
+			lt_rp.poc_lsb_lt[i] = lt_poc & poc_mask;
+
+			if (lt_poc == ref_poc)
+			{
+				lt_rp.used_by_curr_pic_lt_flag = (1u << i);
+				lt_rp.num_long_term_pics = uint8_t(i + 1);
+				break;
+			}
+		}
+
 		reference_lists_info.RefPicList0[0] = *ref_slot;
+
+		if (lt_rp.num_long_term_pics == 0)
+		{
+			// ref_slot is too old → encode an IDR instead
+			ref_slot.reset();
+			poc_history.clear();
+		}
+	}
+	else
+	{
+		poc_history.clear();
 	}
 
 	std_picture_info = {
@@ -446,6 +478,13 @@ void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, si
 	i.pic_type = std_picture_info.pic_type;
 	i.PicOrderCntVal = std_picture_info.PicOrderCntVal;
 	i.TemporalId = std_picture_info.TemporalId;
+
+	const uint32_t history_limit = std::min<uint32_t>(16u, dpb.max_dec_pic_buffering_minus1[0]);
+
+	if (poc_history.size() < 1 || poc_history.front() != poc)
+		poc_history.push_front(poc);
+	if (poc_history.size() > history_limit)
+		poc_history.pop_back();
 
 	return &picture_info;
 }
