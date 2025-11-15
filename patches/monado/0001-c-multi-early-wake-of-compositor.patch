@@ -1,4 +1,4 @@
-From 2c8815be65917e342c040629d3a5f846bc4417bb Mon Sep 17 00:00:00 2001
+From a618d3b2625205cea5500f55a7638555e0e90afd Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
 Subject: [PATCH 1/6] c/multi: early wake of compositor

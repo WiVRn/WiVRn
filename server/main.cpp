@@ -237,8 +237,6 @@ void start_server(configuration config)
 	}
 	else if (server_pid == 0)
 	{
-		setenv("XRT_NO_STDIN", "1", true);
-
 		// foveation code does not allow oversampling
 		setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", true);
 
@@ -257,6 +255,7 @@ void start_server(configuration config)
 		                .open = U_DEBUG_GUI_OPEN_NEVER,
 #endif
 		        },
+		        .no_stdin = true,
 		};
 
 		try
