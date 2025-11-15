@@ -118,8 +118,8 @@ constexpr float fade_delay = 3;
 constexpr float fade_duration = 0.25;
 
 // Dimming for the streamed video when the GUI is interactable
-constexpr float dimming_scale = 0.7;
-constexpr float dimming_bias = 0.15;
+constexpr float dimming_scale = 0.4;
+constexpr float dimming_bias = 0.01;
 } // namespace constants::stream
 
 namespace constants::style
