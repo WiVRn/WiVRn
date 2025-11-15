@@ -19,11 +19,13 @@
 
 #pragma once
 
+#include "server/ipc_server.h"
+
 #include <functional>
 #include <memory>
 
 namespace wivrn
 {
 class TCP;
-std::unique_ptr<wivrn::TCP> accept_connection(int watch_fd, std::function<bool()> quit = std::function<bool()>());
+std::unique_ptr<wivrn::TCP> accept_connection(ipc_server * server, int watch_fd, std::function<bool()> quit = std::function<bool()>());
 } // namespace wivrn
