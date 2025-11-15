@@ -197,7 +197,7 @@ video_encoder::video_encoder(uint8_t stream_idx, to_headset::video_stream_descri
         shared_sender(async_send ? sender::get() : nullptr),
         idr(std::move(idr))
 {
-	assert(idr);
+	assert(this->idr);
 }
 
 video_encoder::~video_encoder()
