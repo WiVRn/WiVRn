@@ -20,6 +20,7 @@
 #pragma once
 
 #include "utils/thread_safe.h"
+#include "xrt/xrt_compositor.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_tracking.h"
 
@@ -71,6 +72,7 @@ public:
 	xrt_result_t get_presence(bool * out_presence);
 	xrt_result_t get_view_poses(const xrt_vec3 * default_eye_relation,
 	                            int64_t at_timestamp_ns,
+	                            xrt_view_type view_type,
 	                            uint32_t view_count,
 	                            xrt_space_relation * out_head_relation,
 	                            xrt_fov * out_fovs,
