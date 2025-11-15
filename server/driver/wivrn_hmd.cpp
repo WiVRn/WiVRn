@@ -157,6 +157,7 @@ xrt_result_t wivrn_hmd::get_presence(bool * out_presence)
 
 xrt_result_t wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
                                        int64_t at_timestamp_ns,
+                                       xrt_view_type view_type,
                                        uint32_t view_count,
                                        xrt_space_relation * out_head_relation,
                                        xrt_fov * out_fovs,
