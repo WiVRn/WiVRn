@@ -33,6 +33,13 @@
 
 namespace wivrn
 {
+xrt_result_t instance::is_system_available(bool * out_available)
+{
+	assert(out_available != NULL);
+	*out_available = true;
+	return XRT_SUCCESS;
+}
+
 xrt_result_t instance::create_system(
         struct xrt_system ** out_xsys,
         struct xrt_system_devices ** out_xsysd,
@@ -42,6 +49,7 @@ xrt_result_t instance::create_system(
 	assert(out_xsysd != NULL);
 	assert(*out_xsysd == NULL);
 	assert(out_xsysc == NULL || *out_xsysc == NULL);
+	assert(server);
 	auto u_sys = u_system_create();
 	*out_xsys = &u_sys->base;
 
@@ -55,6 +63,7 @@ xrt_result_t instance::create_system(
 	if (res != XRT_SUCCESS)
 		return res;
 	session = (wivrn_session *)*out_xsysd;
+	session->start(server);
 	u_system_set_system_compositor(u_sys, *out_xsysc);
 	return res;
 }
@@ -67,6 +76,7 @@ xrt_result_t instance::get_prober(struct xrt_prober ** out_xp)
 
 instance::instance() :
         xrt_instance{
+                .is_system_available = method_pointer<&instance::is_system_available>,
                 .create_system = method_pointer<&instance::create_system>,
                 .get_prober = method_pointer<&instance::get_prober>,
                 .destroy = [](xrt_instance * ptr) { delete (instance *)ptr; },
@@ -77,11 +87,12 @@ instance::instance() :
 
 void instance::set_ipc_server(ipc_server * server)
 {
-	assert(session);
-	if (server)
-		session->start(server);
-	else
+	this->server = server;
+	if (!server)
+	{
+		assert(session);
 		session->stop();
+	}
 }
 
 } // namespace wivrn
