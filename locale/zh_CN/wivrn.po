@@ -503,8 +503,8 @@ msgstr ""
 
 #: client/scenes/lobby_gui_customize.cpp:552
 #, c-format
-msgid "Really delete %s?"
-msgstr "真的要删除 %s 吗?"
+msgid "Really delete {}?"
+msgstr "真的要删除 {} 吗?"
 
 #: client/scenes/lobby_gui_customize.cpp:556
 msgid "Delete"

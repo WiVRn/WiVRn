@@ -516,8 +516,8 @@ msgstr ""
 
 #: client/scenes/lobby_gui_customize.cpp:552
 #, c-format
-msgid "Really delete %s?"
-msgstr "Realmente remover %s?"
+msgid "Really delete {}?"
+msgstr "Realmente remover {}?"
 
 #: client/scenes/lobby_gui_customize.cpp:556
 msgid "Delete"

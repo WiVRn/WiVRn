@@ -229,8 +229,8 @@ void scenes::lobby::download_environment_list()
 			}
 			catch (std::exception & e)
 			{
-				spdlog::error("Cannot load custom environments: {}", e.what());
-				downloadable_environment_list_status = fmt::format("Cannot load custom environments: {}", e.what());
+				spdlog::error("Cannot load environment list: {}", e.what());
+				downloadable_environment_list_status = fmt::format(_F("Cannot load environment list: {}"), e.what());
 			}
 		});
 	}
@@ -549,7 +549,7 @@ void scenes::lobby::environment_list(std::vector<environment_model> & models, bo
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, constants::style::window_border_size);
 	if (ImGui::BeginPopupModal("confirm delete model", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
 	{
-		ImGui::Text(_S("Really delete %s?"), environment_to_be_deleted->name.c_str());
+		ImGui::Text("%s", fmt::format(_F("Really delete {}?"), environment_to_be_deleted->name).c_str());
 
 		const auto & style = ImGui::GetStyle();
 		auto cancel_text = _("Cancel");
