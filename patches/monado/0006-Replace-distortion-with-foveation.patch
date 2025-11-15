@@ -1,7 +1,7 @@
-From f5fabedd2fb6fc8b064ef5d9ca5569ac00713b6b Mon Sep 17 00:00:00 2001
+From 763f6a07f926461d70a59ece3e87a5d4b621e01a Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 6/9] Replace distortion with foveation
+Subject: [PATCH 06/10] Replace distortion with foveation
 
 ---
  src/xrt/compositor/CMakeLists.txt             |   4 +-
@@ -1288,5 +1288,5 @@ index 4e20b32f0..69429dc97 100644
  		    d->do_timewarp);              //
  	}
 -- 
-2.51.1
+2.51.2
 
