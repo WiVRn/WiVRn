@@ -39,11 +39,22 @@ void ipc_server_cb::mainloop_leaving(ipc_server * server, xrt_instance * xrt_ins
 	inst->set_ipc_server(nullptr);
 }
 
+void ipc_server_cb::client_connected(ipc_server * server, uint32_t client_id)
+{
+	IPC_INFO(server, "Client %u connected", client_id);
+}
+void ipc_server_cb::client_disconnected(ipc_server * server, uint32_t client_id)
+{
+	IPC_INFO(server, "Client %u disconnected", client_id);
+}
+
 ipc_server_cb::ipc_server_cb() :
         ipc_server_callbacks{
                 .init_failed = method_pointer2<&ipc_server_cb::init_failed>,
                 .mainloop_entering = method_pointer2<&ipc_server_cb::mainloop_entering>,
                 .mainloop_leaving = method_pointer2<&ipc_server_cb::mainloop_leaving>,
+                .client_connected = method_pointer2<&ipc_server_cb::client_connected>,
+                .client_disconnected = method_pointer2<&ipc_server_cb::client_disconnected>,
         }
 {}
 } // namespace wivrn
