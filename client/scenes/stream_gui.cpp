@@ -691,19 +691,6 @@ void scenes::stream::gui_applications()
 		if (ImGui::IsItemHovered())
 			imgui_ctx->tooltip(_S("Request to quit, may be ignored by the application"));
 	}
-
-	auto btn = _("Start");
-	ImGui::SetCursorPos(ImGui::GetWindowSize() - ImGui::CalcTextSize(btn.c_str()) - ImVec2(50, 50));
-	if (ImGui::Button(btn.c_str()))
-	{
-		network_session->send_control(from_headset::get_application_list{
-		        .language = application::get_messages_info().language,
-		        .country = application::get_messages_info().country,
-		        .variant = application::get_messages_info().variant,
-		});
-		gui_status = gui_status::application_launcher;
-	}
-	imgui_ctx->vibrate_on_hover();
 	ImGui::PopStyleVar(3);
 }
 
@@ -944,13 +931,24 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			ImGui::BeginChild("Tabs", {tab_width, ImGui::GetContentRegionMax().y - ImGui::GetWindowContentRegionMin().y});
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), gui_status, gui_status::stats, {tab_width, 0});
+
+			RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), gui_status, gui_status::applications, {tab_width, 0});
+			imgui_ctx->vibrate_on_hover();
+
+			if (RadioButtonWithoutCheckBox(ICON_FA_ROCKET "  " + _("Start"), gui_status, gui_status::application_launcher, {tab_width, 0}))
+			{
+				network_session->send_control(from_headset::get_application_list{
+				        .language = application::get_messages_info().language,
+				        .country = application::get_messages_info().country,
+				        .variant = application::get_messages_info().variant,
+				});
+			}
 			imgui_ctx->vibrate_on_hover();
 
 			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), gui_status, gui_status::settings, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), gui_status, gui_status::applications, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), gui_status, gui_status::stats, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			int n_items_at_end = 4;
