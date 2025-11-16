@@ -188,21 +188,22 @@ endif()
 if(USE_ANDROID_VALIDATION_LAYER)
     set(VVL_VERSION "1.4.321.0")
 
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
+    if(NOT EXISTS ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
         if (EXISTS ${CMAKE_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
-            file(CREATE_LINK ${CMAKE_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip SYMBOLIC)
+            file(CREATE_LINK ${CMAKE_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip SYMBOLIC)
         else()
-            file(DOWNLOAD https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases/download/vulkan-sdk-${VVL_VERSION}/android-binaries-${VVL_VERSION}.zip ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip
-                EXPECTED_HASH SHA256=75f2881ba7af0507c8cec13b4bf6c95556c6333485cdb8be41f608fccf762128)
+            file(DOWNLOAD https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases/download/vulkan-sdk-${VVL_VERSION}/android-binaries-${VVL_VERSION}.zip
+                 ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip
+                 EXPECTED_HASH SHA256=75f2881ba7af0507c8cec13b4bf6c95556c6333485cdb8be41f608fccf762128)
         endif()
     endif()
 
     set(VVL_ZIPFILE ${CMAKE_CURRENT_SOURCE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip)
 
-    file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip DESTINATION ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayer)
+    file(ARCHIVE_EXTRACT INPUT ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayers-${VVL_VERSION}.zip DESTINATION ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayer)
 
     file(COPY
-        ${CMAKE_BINARY_DIR}/Vulkan-ValidationLayer/android-binaries-${VVL_VERSION}/${CMAKE_ANDROID_ARCH_ABI}
+        ${FETCHCONTENT_BASE_DIR}/Vulkan-ValidationLayer/android-binaries-${VVL_VERSION}/${CMAKE_ANDROID_ARCH_ABI}
         DESTINATION ${CMAKE_ANDROID_LIB_DIRECTORIES})
 else()
     # silence "Manually-specified variables were not used by the project" warning
