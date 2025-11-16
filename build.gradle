@@ -107,7 +107,7 @@ android {
         // for Vulkan, need at least 24
         // for AImage_getHardwareBuffer, API 26
         minSdkVersion 29
-        compileSdkVersion 32
+        compileSdkVersion 34
         targetSdkVersion 32 // for Oculus Store
 
         versionName = project.hasProperty('wivrn_version') ? wivrn_version : "1.0"
@@ -229,7 +229,7 @@ android {
 
     externalNativeBuild {
         cmake {
-            version = '3.30.3'
+            version = '3.31.5'
             path    'CMakeLists.txt'
         }
     }

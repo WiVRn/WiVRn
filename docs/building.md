@@ -76,7 +76,7 @@ sdkmanager --sdk_root="${HOME}/Android" --licenses
 
 Install the correct cmake version with
 ```bash
-sdkmanager --install "cmake;3.30.3"
+sdkmanager --install "cmake;3.31.5"
 ```
 
 #### Apk signing

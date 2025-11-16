@@ -352,9 +352,6 @@ jobs:
           fi
         fi
 
-        sudo rm /usr/local/bin/cmake
-        "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --install "cmake;3.30.3"
-
         echo Setting version $VERSION and version code $VERSION_CODE in manifest
         echo Using stylesheet $CSS and name $APPNAME
 
