@@ -182,7 +182,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev libxcb-glx0-dev gettext libfontconfig-dev libboost-all-dev librsvg2-bin libssl-dev sway grim mesa-vulkan-drivers wayland-protocols fonts-noto-cjk fonts-roboto libcurl4-openssl-dev libharfbuzz-dev libfreetype-dev
+        sudo apt-get update && sudo apt-get install libvulkan-dev libcjson-dev libx264-dev libavcodec-dev libavutil-dev libswscale-dev libavfilter-dev libbsd-dev libavahi-client-dev libeigen3-dev glslang-tools libudev-dev libwayland-dev libx11-xcb-dev libxrandr-dev libxcb-randr0-dev libgl-dev libglx-dev mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev libsystemd-dev libva-dev libxcb-glx0-dev gettext libfontconfig-dev libboost-all-dev librsvg2-bin libssl-dev sway grim libcurl4-openssl-dev libharfbuzz-dev libfreetype-dev
 
         wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb
         sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
@@ -205,74 +205,6 @@ jobs:
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    - name: Build Monado
-      # Disable XRT_FEATURE_OPENXR_VISIBILITY_MASK because of https://gitlab.freedesktop.org/monado/monado/-/issues/480
-      run: |
-        mkdir monado
-        curl https://gitlab.freedesktop.org/Meumeu/monado/-/archive/5bdb51697685320e3f5d494210f25fb2967c9fc3/monado-main.tar.gz | tar -xz -C monado --strip-components=1
-        patch --directory=${{github.workspace}}/monado --strip=1 < ${{github.workspace}}/patches/monado-ci/0001-remote-resolution.patch
-
-        DRIVERS=$(grep -oE "XRT_BUILD_DRIVER_[A-Z0-9_]*" monado/CMakeLists.txt | sort -u  | grep -v XRT_BUILD_DRIVER_REMOTE | sed 's/\(.*\)/-D\1=OFF/')
-        cmake monado -B ${{github.workspace}}/build-monado -DCMAKE_BUILD_TYPE=Release -DXRT_FEATURE_SERVICE_SYSTEMD=OFF -DXRT_FEATURE_SERVICE=OFF -DXRT_BUILD_DRIVER_REMOTE=ON -DXRT_MODULE_COMPOSITOR_MAIN=ON -DXRT_HAVE_WAYLAND=ON $DRIVERS -DXRT_MODULE_MONADO_REMOTECTL=ON -DBUILD_TESTING=OFF -DXRT_FEATURE_OPENXR_VISIBILITY_MASK=OFF
-
-        cmake --build ${{github.workspace}}/build-monado
-
-    - name: Take screenshots
-      continue-on-error: true
-      env:
-        WLR_BACKENDS: headless
-        WLR_RENDERER: pixman
-        WLR_LIBINPUT_NO_DEVICES: 1
-        XR_RUNTIME_JSON: ${{github.workspace}}/build-monado/openxr_monado-dev.json
-        P_OVERRIDE_ACTIVE_CONFIG: remote
-        WIVRN_CONTROLLER: meta-quest-touch-plus
-        WIVRN_GRIP_LEFT_OFFSET: '0 0 0 0 45 0'
-        WIVRN_GRIP_RIGHT_OFFSET: '0 0 0 0 45 0'
-        XRT_COMPOSITOR_SCALE_PERCENTAGE: '100'
-      run: |
-        echo "xwayland disable" > sway-config
-        echo -e "output HEADLESS-1 {\n mode 2560x1440@60Hz\n}" >> sway-config
-        sway -c sway-config &
-        sleep 10
-        export WAYLAND_DISPLAY=$(cd "${XDG_RUNTIME_DIR}" && ls -tr wayland* | tail -1)
-
-        mkdir -p ~/.config/fontconfig
-        cp ${{github.workspace}}/.github/fonts.conf ~/.config/fontconfig/fonts.conf
-
-        ${{github.workspace}}/build/server/wivrn-server --no-encrypt --no-publish-service &
-        WIVRN_SERVER_PID=$!
-
-        mkdir -p ~/.config/wivrn
-        echo '{"servers": [{"autoconnect": false, "manual": true, "pretty_name": "Deep Thought", "hostname": "localhost", "port": 9757, "tcp_only": false, "cookie": ""}], "first_run": false}' > ~/.config/wivrn/client.json.in
-
-        for LANG in en $(basename -a ${{github.workspace}}/locale/*)
-        do
-          mkdir ${LANG}
-
-          if [ ${LANG} = fr ]
-          then
-                cat ~/.config/wivrn/client.json.in | jq .virtual_keyboard_layout=\"AZERTY\" > ~/.config/wivrn/client.json
-          else
-                cat ~/.config/wivrn/client.json.in | jq .virtual_keyboard_layout=\"QWERTY\" > ~/.config/wivrn/client.json
-          fi
-
-          ${{github.workspace}}/build/bin/wivrn &
-          WIVRN_PID=$!
-          sleep 10
-          ${{github.workspace}}/build-monado/src/xrt/targets/remotectl/monado-remotectl 127.0.0.1 4242 < ${{github.workspace}}/.github/screenshot-script.txt
-          killall wivrn
-          wait $WIVRN_PID || true
-        done
-
-        killall wivrn-server
-        wait $WIVRN_SERVER_PID || true
-
-    - name: Upload screenshots
-      uses: actions/upload-artifact@v4
-      with:
-        name: Screenshots
-        path: "*/screenshot-*.png"
 
   build-dissector:
     name: Wireshark dissector
