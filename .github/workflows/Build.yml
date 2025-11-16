@@ -29,6 +29,9 @@ jobs:
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
+        key: server-${{matrix.cmake_preset}}
+        restore-keys: server-
+        append-timestamp: false
         create-symlink: true
 
     - uses: actions/cache@v4
@@ -181,6 +184,9 @@ jobs:
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
+        key: client
+        restore-keys: server-
+        append-timestamp: false
         create-symlink: true
 
     - name: Prepare Vulkan SDK
