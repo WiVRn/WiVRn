@@ -7,8 +7,10 @@ if (WIVRN_USE_SYSTEM_FREETYPE)
     target_link_libraries(FreetypeHarfbuzz INTERFACE Freetype::Freetype harfbuzz::harfbuzz)
 
 else()
-    set(HARFBUZZ_VERSION 10.0.1)
-    set(FREETYPE_VERSION 2.13.3)
+    set(HARFBUZZ_VERSION 12.2.0)
+    set(HARFBUZZ_SHA256 ecb603aa426a8b24665718667bda64a84c1504db7454ee4cadbd362eea64e545)
+    set(FREETYPE_VERSION 2.14.1)
+    set(FREETYPE_SHA256 32427e8c471ac095853212a37aef816c60b42052d4d9e48230bab3bdf2936ccc)
 
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/freetype-${FREETYPE_VERSION}.tar.xz)
         if (EXISTS ${CMAKE_SOURCE_DIR}/freetype-${FREETYPE_VERSION}.tar.xz)
@@ -16,7 +18,7 @@ else()
         else()
             file(DOWNLOAD https://downloads.sourceforge.net/project/freetype/freetype2/${FREETYPE_VERSION}/freetype-${FREETYPE_VERSION}.tar.xz
                 "${CMAKE_BINARY_DIR}/freetype-${FREETYPE_VERSION}.tar.xz"
-                EXPECTED_HASH SHA256=0550350666d427c74daeb85d5ac7bb353acba5f76956395995311a9c6f063289)
+                EXPECTED_HASH SHA256=${FREETYPE_SHA256})
         endif()
     endif()
 
@@ -25,7 +27,7 @@ else()
             file(CREATE_LINK ${CMAKE_SOURCE_DIR}/harfbuzz-${HARFBUZZ_VERSION}.tar.xz ${CMAKE_BINARY_DIR}/harfbuzz-${HARFBUZZ_VERSION}.tar.xz SYMBOLIC)
         else()
             file(DOWNLOAD https://github.com/harfbuzz/harfbuzz/releases/download/${HARFBUZZ_VERSION}/harfbuzz-${HARFBUZZ_VERSION}.tar.xz ${CMAKE_BINARY_DIR}/harfbuzz-${HARFBUZZ_VERSION}.tar.xz
-                EXPECTED_HASH SHA256=b2cb13bd351904cb9038f907dc0dee0ae07127061242fe3556b2795c4e9748fc)
+                EXPECTED_HASH SHA256=${HARFBUZZ_SHA256})
         endif()
     endif()
 

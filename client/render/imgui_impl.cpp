@@ -372,9 +372,11 @@ imgui_context::imgui_context(
 	        .MinImageCount = 2,
 	        .ImageCount = (uint32_t)swapchain.images().size(), // used to cycle between VkBuffers in ImGui_ImplVulkan_RenderDrawData
 	        .PipelineCache = *application::get_pipeline_cache(),
-	        .RenderPass = *renderpass,
-	        .Subpass = 0,
-	        .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+	        .PipelineInfoMain = {
+	                .RenderPass = *renderpass,
+	                .Subpass = 0,
+	                .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+	        },
 	        .Allocator = nullptr,
 	        .CheckVkResultFn = check_vk_result,
 	};

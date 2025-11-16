@@ -1,18 +1,21 @@
 if (NOT TARGET OpenSSL::Crypto)
     # The NDK does not include OpenSSL, download it
-    set(OPENSSL_VERSION "3.4.0")
+    set(OPENSSL_VERSION "3.6.0")
+    set(OPENSSL_SHA256 b6a5f44b7eb69e3fa35dbf15524405b44837a481d43d81daddde3ff21fcbb8e9)
+
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/openssl-src)
         if(NOT EXISTS ${CMAKE_BINARY_DIR}/openssl-${OPENSSL_VERSION}.tar.gz)
             if (EXISTS ${CMAKE_SOURCE_DIR}/openssl-${OPENSSL_VERSION}.tar.gz)
                 file(CREATE_LINK ${CMAKE_SOURCE_DIR}/openssl-${OPENSSL_VERSION}.tar.gz ${CMAKE_BINARY_DIR}/openssl-${OPENSSL_VERSION}.tar.gz SYMBOLIC)
             else()
-                file(DOWNLOAD https://github.com/openssl/openssl/archive/refs/tags/openssl-${OPENSSL_VERSION}.tar.gz ${CMAKE_BINARY_DIR}/openssl-${OPENSSL_VERSION}.tar.gz
-                    EXPECTED_HASH SHA256=1ca043a26fbea74cdf7faf623a6f14032a01117d141c4a5208ccac819ccc896b)
+                file(DOWNLOAD https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz
+                     ${CMAKE_BINARY_DIR}/openssl-${OPENSSL_VERSION}.tar.gz
+                     EXPECTED_HASH SHA256=${OPENSSL_SHA256})
             endif()
         endif()
 
         file(ARCHIVE_EXTRACT INPUT ${CMAKE_BINARY_DIR}/openssl-${OPENSSL_VERSION}.tar.gz DESTINATION ${CMAKE_BINARY_DIR})
-        file(RENAME ${CMAKE_BINARY_DIR}/openssl-openssl-${OPENSSL_VERSION} ${CMAKE_BINARY_DIR}/openssl-src)
+        file(RENAME ${CMAKE_BINARY_DIR}/openssl-${OPENSSL_VERSION} ${CMAKE_BINARY_DIR}/openssl-src)
     endif()
 
     execute_process(

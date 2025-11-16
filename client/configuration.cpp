@@ -101,7 +101,7 @@ configuration::configuration(xr::system & system)
 	try
 	{
 		simdjson::dom::parser parser;
-		simdjson::dom::element root = parser.load(application::get_config_path() / "client.json");
+		simdjson::dom::element root = parser.load((application::get_config_path() / "client.json").native());
 		for (simdjson::dom::object i: simdjson::dom::array(root["servers"]))
 		{
 			server_data data{
