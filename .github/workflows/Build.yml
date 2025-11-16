@@ -37,6 +37,7 @@ jobs:
         path: |
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.tar.*
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
+          ${{github.workspace}}/cmake-fetch/*.tar.*
         restore-keys: cmake-server-
 
     - name: Install dependencies
@@ -288,6 +289,7 @@ jobs:
         path: |
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.tar.*
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
+          ${{github.workspace}}/cmake-fetch/*.tar.*
         restore-keys: cmake-android-
 
     - name: Install dependencies
