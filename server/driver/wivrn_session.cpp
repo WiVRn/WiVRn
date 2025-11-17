@@ -877,7 +877,7 @@ void wivrn_session::operator()(const from_headset::stop_application & req)
 		if (t.ics.client_state.id == req.id)
 		{
 			U_LOG_I("Notify session loss pending for %s", t.ics.client_state.info.application_name);
-			auto when = os_monotonic_get_ns() + 200 * U_TIME_1MS_IN_NS;
+			auto when = os_monotonic_get_ns() + 10l * U_TIME_1S_IN_NS;
 			xrt_syscomp_notify_loss_pending(system_compositor, t.ics.xc, when);
 			session_loss.lock()->emplace(when, req.id);
 			break;
