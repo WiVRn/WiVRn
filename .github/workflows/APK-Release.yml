@@ -15,7 +15,6 @@ jobs:
 
     strategy:
       matrix:
-        hmd: ['Standard']
         buildtype: ['Release', 'Debug', 'DebugWithValidationLayer']
 
     steps:
@@ -62,7 +61,7 @@ jobs:
     - name: Build
       run: |
         chmod +x gradlew
-        ./gradlew -Psuffix=".github.nightly" -Pwivrn_css=images/wivrn-nightly.css -Pwivrn_app_name="WiVRn Nightly" -Pwivrn_compress_glb=ON assemble${{ matrix.hmd }}${{ matrix.buildtype }}
+        ./gradlew -Psuffix=".github.nightly" -Pwivrn_css=images/wivrn-nightly.css -Pwivrn_app_name="WiVRn Nightly" -Pwivrn_compress_glb=ON assemble${{ matrix.buildtype }}
 
     - name: Prepare before archiving artifacts
       run: |
@@ -75,7 +74,7 @@ jobs:
     - name: Archive APK
       uses: actions/upload-artifact@v4
       with:
-        name: apk-${{ matrix.hmd }}-${{ (github.event_name == 'pull_request' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
+        name: apk-${{ (github.event_name == 'pull_request' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
         path: apk/*.apk
         retention-days: 7
 
@@ -83,7 +82,7 @@ jobs:
       if: ${{ matrix.buildtype != 'Release' }}
       uses: actions/upload-artifact@v4
       with:
-        name: symbols-${{ matrix.hmd }}-${{ matrix.buildtype }}
+        name: symbols-${{ matrix.buildtype }}
         path: debug/**/*.so
         retention-days: 7
 

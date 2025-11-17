@@ -126,6 +126,8 @@ android {
                           '-DCMAKE_ANDROID_NDK_VERSION=' + ndkVersion,
                           '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON',
                           '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+                          '-DCMAKE_ANDROID_ASSETS_DIRECTORIES=' + layout.buildDirectory.dir("assets").get().asFile,
+                          '-DCMAKE_ANDROID_LIB_DIRECTORIES=' + layout.buildDirectory.dir("libs").get().asFile,
                           '-DWIVRN_USE_SYSTEM_BOOST=OFF',
                           '-DWIVRN_USE_SYSTEM_FREETYPE=OFF',
                           '-DWIVRN_USE_ANDROID_BIN_LIBKTX=ON',
@@ -141,7 +143,9 @@ android {
                           '-DWIVRN_COMPRESS_GLB=' + compressGlb] +
                           fetchcontentBaseDir
                 resValue "string", "app_name", project.hasProperty('wivrn_app_name') ? project.wivrn_app_name : "WiVRn Local"
+                abiFilters 'arm64-v8a'//, 'x86_64'
             }
+
         }
     }
 
@@ -204,26 +208,13 @@ android {
         }
     }
 
-    flavorDimensions "device"
-
-    productFlavors {
-        standard {
-            dimension "device"
-            externalNativeBuild {
-                cmake {
-                    abiFilters 'arm64-v8a'//, 'x86_64'
-                }
-            }
-        }
-    }
-
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             java.srcDirs = ['client/java']
             res.srcDirs = [ 'resources', layout.buildDirectory.dir('generated_resources') ]
 
-            assets.srcDirs 'assets'
+            assets.srcDirs = ['assets', layout.buildDirectory.dir("assets")]
         }
     }
 
@@ -239,33 +230,5 @@ android {
     applicationVariants.all { variant ->
         // It probably works with merge${variant.name.capitalize()}Assets too
         tasks["generate${variant.name.capitalize()}Assets"].dependsOn "externalNativeBuild${variant.name.capitalize()}"
-    }
-
-    productFlavors.all { variant ->
-        sourceSets {
-            "${variant.name}" {
-                assets.srcDirs layout.buildDirectory.dir("assets${variant.name.capitalize()}")
-            }
-        }
-
-        externalNativeBuild{
-            cmake {
-                arguments '-DCMAKE_ANDROID_ASSETS_DIRECTORIES=' + layout.buildDirectory.dir("assets${variant.name.capitalize()}").get().asFile
-            }
-        }
-    }
-
-    buildTypes.all { variant ->
-        sourceSets {
-            "${variant.name}" {
-                jniLibs.srcDirs layout.buildDirectory.dir("libs${variant.name.capitalize()}")
-            }
-        }
-
-        externalNativeBuild{
-            cmake {
-                arguments '-DCMAKE_ANDROID_LIB_DIRECTORIES=' + layout.buildDirectory.dir("libs${variant.name.capitalize()}").get().asFile
-            }
-        }
     }
 }

@@ -1090,7 +1090,7 @@ void scenes::lobby::gui_debug()
 void scenes::lobby::gui_about()
 {
 	ImGui::PushFont(nullptr, constants::gui::font_size_large);
-	CenterTextH(std::string("WiVRn ") + wivrn::git_version);
+	CenterTextH(std::string("WiVRn ") + wivrn::display_version());
 	ImGui::PopFont();
 
 	ImGui::Dummy(ImVec2(0, 60));

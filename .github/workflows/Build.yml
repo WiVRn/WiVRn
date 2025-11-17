@@ -208,7 +208,6 @@ jobs:
 
     strategy:
       matrix:
-        hmd: ['Standard']
         buildtype: ['Release', 'Debug', 'DebugWithValidationLayer', 'Oculus']
 
     steps:
@@ -266,7 +265,7 @@ jobs:
 
     - name: Build
       run: |
-        VERSION=$(git describe --tags --always)
+        VERSION=$(git describe --tags --always | sed "s/^v\([0-9]\)/\1/")
         if [ ${{ matrix.buildtype }} = 'Oculus' ]
         then
           SUFFIX=""
@@ -305,7 +304,7 @@ jobs:
           -Pwivrn_app_name="$APPNAME" \
           -Pwivrn_compress_glb=ON \
           -Pfetchcontent_base_dir=${{github.workspace}}/cmake-fetch \
-          assemble${{ matrix.hmd }}${{ matrix.buildtype }}
+          assemble${{ matrix.buildtype }}
 
     - name: Upload build dir
       uses: actions/upload-artifact@v4
@@ -328,7 +327,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: ${{ matrix.buildtype != 'Oculus' }}
       with:
-        name: apk-${{ matrix.hmd }}-${{ (steps.secret-check.outputs.available == 'false' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
+        name: apk-${{ (steps.secret-check.outputs.available == 'false' && matrix.buildtype == 'Release') && 'Release-unsigned' || matrix.buildtype }}
         path: apk/*.apk
         retention-days: 30
 
@@ -336,7 +335,7 @@ jobs:
       if: ${{ matrix.buildtype != 'Release' && matrix.buildtype != 'Oculus' }}
       uses: actions/upload-artifact@v4
       with:
-        name: symbols-${{ matrix.hmd }}-${{ matrix.buildtype }}
+        name: symbols-${{ matrix.buildtype }}
         path: debug/**/*.so
         retention-days: 30
 
@@ -357,7 +356,7 @@ jobs:
               IS_DRAFT=
         fi
 
-        ./ovr-platform-util upload-quest-build --app-id 7959676140827574 --token $OCULUS_TOKEN --apk apk/WiVRn-standard-oculus.apk --channel $CHANNEL --age-group TEENS_AND_ADULTS $IS_DRAFT --debug_symbols_dir debug/ --debug-symbols-pattern '*.so'
+        ./ovr-platform-util upload-quest-build --app-id 7959676140827574 --token $OCULUS_TOKEN --apk apk/WiVRn-oculus.apk --channel $CHANNEL --age-group TEENS_AND_ADULTS $IS_DRAFT --debug_symbols_dir debug/ --debug-symbols-pattern '*.so'
 
   build-ubuntu:
     name: Build Ubuntu package

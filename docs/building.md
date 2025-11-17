@@ -96,10 +96,10 @@ From the main directory.
 export ANDROID_HOME=~/Android
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk/
 
-./gradlew assembleStandardRelease
+./gradlew assembleRelease
 ```
 
-Outputs will be in `build/outputs/apk/standard/release/WiVRn-standard-release.apk`
+Outputs will be in `build/outputs/apk/release/WiVRn-release.apk`
 
 #### Install apk with adb
 Before using adb you must enable usb debugging on your device:
@@ -117,7 +117,7 @@ adb start-server
 adb devices
 
 # Install apk
-adb install build/outputs/apk/standard/release/WiVRn-standard-release.apk
+adb install build/outputs/apk/release/WiVRn-release.apk
 
 # When you're done, you can stop the adb server
 adb kill-server
