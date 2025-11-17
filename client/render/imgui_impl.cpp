@@ -752,6 +752,13 @@ size_t imgui_context::choose_focused_controller(const std::vector<controller_sta
 			return index;
 	}
 
+	// scrolling?
+	for (auto && [index, state]: utils::enumerate(new_states))
+	{
+		if (glm::length(state.scroll_value) > constants::gui::scroll_value_thd)
+			return index;
+	}
+
 	// Else, keep the last controller active
 	return focused_controller;
 }
