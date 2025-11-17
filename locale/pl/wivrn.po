@@ -9,7 +9,7 @@ msgstr ""
 "POT-Creation-Date: 2025-11-11 22:09+0100\n"
 "PO-Revision-Date: 2025-11-14 09:36+0100\n"
 "Last-Translator: polyborea <patryklimerick@gmail.com>\n"
-"Language-Team: Polish <kde-i18n-doc@kde.org>\n"
+"Language-Team: Polish <>\n"
 "Language: pl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -342,20 +342,20 @@ msgstr ""
 #: client/scenes/lobby_gui.cpp:1038 client/scenes/lobby_gui.cpp:1046
 #: client/scenes/stream_gui.cpp:172 client/scenes/stream_gui.cpp:374
 msgid "CPU time"
-msgstr "czas CPU"
+msgstr "Czas CPU"
 
 #: client/scenes/lobby_gui.cpp:1042
 msgid "CPU time [ms]"
-msgstr "czas CPU [ms]"
+msgstr "Czas CPU [ms]"
 
 #: client/scenes/lobby_gui.cpp:1052 client/scenes/lobby_gui.cpp:1060
 #: client/scenes/stream_gui.cpp:174 client/scenes/stream_gui.cpp:375
 msgid "GPU time"
-msgstr "czas GPU"
+msgstr "Czas GPU"
 
 #: client/scenes/lobby_gui.cpp:1056
 msgid "GPU time [ms]"
-msgstr "czas GPU [ms]"
+msgstr "Czas GPU [ms]"
 
 #: client/scenes/lobby_gui.cpp:1120
 msgid "Enable the microphone?"

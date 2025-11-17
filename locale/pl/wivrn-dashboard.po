@@ -97,7 +97,7 @@ msgstr "ABD nie jest zainstalowany"
 #: dashboard/qml/ApkInstallPage.qml:47
 #, kde-format
 msgid "Connect a headset and make sure developer mode is enabled"
-msgstr "Podłącz gogle i upewnij się że tryb dewelopera jest włączony"
+msgstr "Podłącz gogle i upewnij się że tryb programisty jest włączony"
 
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
@@ -107,9 +107,8 @@ msgid ""
 "client."
 msgstr ""
 "Postępuj zgodnie z instrukcjami w <a href=\"https://github.com/WiVRn/WiVRn/bl"
-"ob/ "
-"master/docs/building.md#client-headset\">dokumentacji</a> aby skompilować wła"
-"sny klient."
+"ob/master/docs/building.md#client-headset\">dokumentacji</a> by skompilować "
+"własnego klienta."
 
 #: dashboard/qml/ApkInstallPage.qml:65 dashboard/qml/HeadsetStatsPage.qml:36
 #: dashboard/qml/HeadsetsPage.qml:183 dashboard/qml/TroubleshootPage.qml:67
@@ -126,7 +125,7 @@ msgstr "Wybierz swoje gogle"
 #: dashboard/qml/DeviceCard.qml:46
 #, kde-format
 msgid "WiVRn is already installed on this device"
-msgstr "WiVRn już jest zainstalowany na urządzeniu"
+msgstr "WiVRn jest już zainstalowany na tym urządzeniu"
 
 #: dashboard/qml/DeviceCard.qml:54
 #, kde-format
@@ -200,7 +199,7 @@ msgstr "Anuluj"
 #: dashboard/qml/HeadsetsPage.qml:64
 #, kde-format
 msgid "Headset name…"
-msgstr "Nazwa gogli..."
+msgstr "Nazwa gogli…"
 
 #: dashboard/qml/HeadsetsPage.qml:128
 #, kde-format
@@ -225,7 +224,7 @@ msgstr "Włącz aplikację WiVRn na goglach i użyj PINu: %1"
 #: dashboard/qml/HeadsetsPage.qml:166
 #, kde-format
 msgid "Enable pairing to allow your headset to connect to this computer"
-msgstr "Włącz parowanie aby zezwolić goglom na połączenie się z komputerem"
+msgstr "Włącz parowanie aby zezwolić goglom na połączenie się z tym komputerem"
 
 #: dashboard/qml/HeadsetsPage.qml:171 dashboard/qml/TroubleshootPage.qml:45
 #, kde-format
@@ -245,7 +244,7 @@ msgstr "Daemon Avahi nie jest zainstalowany"
 #: dashboard/qml/Main.qml:129
 #, kde-format
 msgid "Avahi daemon is not started"
-msgstr "Daemon Avahi nie jest włączony"
+msgstr "Daemon Avahi nie jest uruchomiony"
 
 #: dashboard/qml/Main.qml:136 dashboard/qml/Main.qml:151
 #: dashboard/qml/Main.qml:165
@@ -256,7 +255,7 @@ msgstr "Napraw to"
 #: dashboard/qml/Main.qml:144
 #, kde-format
 msgid "The server does not have CAP_SYS_NICE capabilities"
-msgstr "Serwer nie ma możliwości CAP_SYS_NICE"
+msgstr "Serwer nie ma przywileju CAP_SYS_NICE"
 
 #: dashboard/qml/Main.qml:159
 #, kde-format
@@ -266,7 +265,7 @@ msgstr "Zapora sieciowa nie przepuszcza portu 9757"
 #: dashboard/qml/Main.qml:174
 #, kde-format
 msgid "The CAP_SYS_NICE capability will be used when the server is restarted"
-msgstr "Możliwość CAP_SYS_NICE zostanie użyta po restarcie serwera"
+msgstr "Przywilej CAP_SYS_NICE zostanie użyty podczas restartu serwera"
 
 #: dashboard/qml/Main.qml:180
 #, kde-format
@@ -279,7 +278,7 @@ msgstr "Zrestartuj serwer teraz"
 msgid ""
 "NVIDIA GPUs require at least driver version 565.77, current version is %1"
 msgstr ""
-"Karty graficzne NVIDIA wymagają sterownika 565.77, a aktualna wersja to %1"
+"Karty graficzne NVIDIA wymagają sterownika co najmniej 565.77, a aktualna wersja to %1"
 
 #: dashboard/qml/Main.qml:197
 #, kde-format
@@ -292,8 +291,8 @@ msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
 "Hardware encoding with vaapi does not work with AMDVLK and AMDGPU-PRO"
 msgstr ""
-"Używaj sterownika Mesa (radv) z kartamu AMD\n"
-"Kodowanie hardware-owe z vaapi nie działa ani z AMDVLK ani z AMDGPU-PRO"
+"Używaj sterownika Mesa (radv) z kartami AMD\n"
+"Enkodowanie sprzętowe VA-API nie działa ani z AMDVLK ani z AMDGPU-PRO"
 
 #: dashboard/qml/Main.qml:213
 #, kde-format
@@ -318,7 +317,7 @@ msgstr "Zobacz dziennik serwera"
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
-msgstr "Włączone"
+msgstr "Uruchomiony"
 
 #: dashboard/qml/Main.qml:272
 #, kde-format
@@ -339,7 +338,7 @@ msgstr "Połącz przez USB"
 #: dashboard/qml/Main.qml:304
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
-msgstr "Gogle niepodłączone lub nie są w trybie deweloperskim"
+msgstr "Gogle są niepodłączone lub nie są w trybie programisty"
 
 #: dashboard/qml/Main.qml:312
 #, kde-format
@@ -365,7 +364,7 @@ msgstr "Pomocnik"
 #: dashboard/qml/Main.qml:378
 #, kde-format
 msgid "Install the app"
-msgstr "Zainstaluj aplikacje"
+msgstr "Zainstaluj aplikację"
 
 #: dashboard/qml/Main.qml:399 dashboard/qml/SettingsPage.qml:14
 #, kde-format
@@ -387,13 +386,13 @@ msgstr "Brak"
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
-msgstr "Niestandardowe"
+msgstr "Niestandardowa"
 
 #: dashboard/qml/SelectGame.qml:76
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
-msgstr "Nawiguj"
+msgstr "Przeglądaj"
 
 #: dashboard/qml/SettingsPage.qml:35
 #, kde-format
@@ -423,25 +422,25 @@ msgid ""
 "The recommended values are between 20% and 50% for headsets without eye "
 "tracking and between 50% and 70% for headsets with eye tracking."
 msgstr ""
-"Z silniejsza foveacją obraz jest ostrzejszy w środku niż na brzegach "
-"co zwiększa prędkość kodowania video. Jest to idealne dla szybszych gier.\n"
+"Z silniejszą foveacją obraz jest ostrzejszy w środku niż na brzegach "
+"co przyspiesza dekodowanie obrazu. Odpowiednie dla dynamicznych gier.\n"
 "\n"
-"Słabsza foveacja daje równomierną ostrość na całej szerokości obrazu.\n"
+"Słabsza foveacja daje równomierną ostrość na całym obrazie.\n"
 "\n"
 "Zalecane wartości to między 20% a 50% dla gogli bez śledzenia wzroku, "
-"a między 50% i 70% dla gogli z śledzeniem wzroku."
+"a między 50% i 70% dla gogli ze śledzeniem wzroku."
 
 #: dashboard/qml/SettingsPage.qml:69
 #, kde-format
 msgctxt "weaker foveation"
 msgid "Weaker"
-msgstr "Słabiej"
+msgstr "Słabsza"
 
 #: dashboard/qml/SettingsPage.qml:80
 #, kde-format
 msgctxt "stronger foveation"
 msgid "Stronger"
-msgstr "Silniej"
+msgstr "Silniejsza"
 
 #: dashboard/qml/SettingsPage.qml:90
 #, kde-format
@@ -457,7 +456,7 @@ msgstr "%1 Mbit/s"
 #: dashboard/qml/SettingsPage.qml:108
 #, kde-format
 msgid "The current encoder configuration is not supported"
-msgstr "Obecny układ kodowania nie jest wspierany"
+msgstr "Wybrana obecnie konfiguracja endkodera nie jest wspierana"
 
 #: dashboard/qml/SettingsPage.qml:113
 #, kde-format
@@ -467,7 +466,7 @@ msgstr "Resetuj"
 #: dashboard/qml/SettingsPage.qml:120
 #, kde-format
 msgid "Encoder:"
-msgstr "Koder:"
+msgstr "Enkoder:"
 
 #: dashboard/qml/SettingsPage.qml:126
 #, kde-format
@@ -493,12 +492,12 @@ msgstr "Vulkan (Dowolne współczesne GPU)"
 #: dashboard/qml/SettingsPage.qml:142
 #, kde-format
 msgid "x264 (software encoding)"
-msgstr "x264 (kodowanie sofware-owe)"
+msgstr "x264 (enkodowanie softwarowe)"
 
 #: dashboard/qml/SettingsPage.qml:159
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
-msgstr "\"Auto\" wykorzysta kodowanie hardware-owe jeśli jest dostępne"
+msgstr "\"Auto\" wykorzysta przyspieszenie sprzętowe jeśli jest dostępne"
 
 #: dashboard/qml/SettingsPage.qml:164
 #, kde-format
@@ -537,8 +536,8 @@ msgid ""
 "10-bit encoding improves image quality but is not supported by all codecs "
 "and hardware"
 msgstr ""
-"10-bitowe kodowanie zwiększa jakość obrazu, ale nie jest wspierane przez każdy"
-" sprzęt lub kodek"
+"Enkodowanie 10-bitowe poprawia jakość obrazu, ale nie jest wspierane przez każdy"
+" sprzęt i kodek"
 
 #: dashboard/qml/SettingsPage.qml:225
 #, kde-format
@@ -548,7 +547,7 @@ msgstr "Opcje zaawansowane"
 #: dashboard/qml/SettingsPage.qml:231
 #, kde-format
 msgid "Check system configuration on start"
-msgstr "Sprawdź konfiguracje systemu przy starcie"
+msgstr "Sprawdź konfigurację systemu przy starcie"
 
 #: dashboard/qml/SettingsPage.qml:237
 #, kde-format
@@ -562,9 +561,9 @@ msgid ""
 "server. Client OS may reserve specific keys and combinations, which cannot "
 "be forwarded."
 msgstr ""
-"Klawiatura i mysz połączona z klientem będzie się zachowywać jak "
-"gdyby była połączona z serwerem. System operacyjny klienta może mieć "
-"niektóre połączenia klawiszy zarezerwowane, one nie zostaną przekazane "
+"Klawiatura i mysz podłączona do klienta będzie się zachowywać jak "
+"gdyby była podłączona do serwera. System operacyjny klienta może mieć "
+"niektóre kombinacje klawiszy zarezerwowane, bez możliwości przekazania ich "
 "dalej."
 
 #: dashboard/qml/SettingsPage.qml:245
@@ -575,7 +574,7 @@ msgstr "Włącz okno debugowania"
 #: dashboard/qml/SettingsPage.qml:252
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
-msgstr "Włącz wspieranie urządzeń śledzonych przez SteamVR"
+msgstr "Włącz wsparcie dla urządzeń śledzonych przez SteamVR"
 
 #: dashboard/qml/SettingsPage.qml:255
 #, kde-format
@@ -604,23 +603,23 @@ msgstr "Lokalizacja ADB:"
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
-msgstr "Nawiguj"
+msgstr "Przeglądaj"
 
 #: dashboard/qml/SettingsPage.qml:293
 #, kde-format
 msgid "Default"
-msgstr "Domyślne"
+msgstr "Domyślna"
 
 #: dashboard/qml/SettingsPage.qml:307
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
-msgstr "Niestandardowe"
+msgstr "Niestandardowa"
 
 #: dashboard/qml/SettingsPage.qml:312
 #, kde-format
 msgid "Disabled"
-msgstr "Wyłączone"
+msgstr "Wyłączona"
 
 #: dashboard/qml/SettingsPage.qml:320
 #, kde-format
@@ -638,7 +637,7 @@ msgid ""
 "For Steam games, right click on the game in Steam, go in Properties > "
 "General and paste this in \"Launch options\":"
 msgstr ""
-"Dla gier Steam, Kliknij prawym przyciskiem myszy na grze w Steamie, "
+"Dla gier Steam, kliknij prawym przyciskiem myszy na grze w Steamie, "
 "Właściwości > Ogólne i wklej to do \"Opcji uruchamiania\":"
 
 #: dashboard/qml/SteamLaunchOptions.qml:20
@@ -656,7 +655,7 @@ msgstr "Kopiuj"
 #: dashboard/qml/SteamLaunchOptions.qml:30
 #, kde-format
 msgid "Copied Steam launch command"
-msgstr "Skopiowano komendę rozruchu Steam"
+msgstr "Skopiowano opcje uruchamiania Steam"
 
 #: dashboard/qml/TroubleshootPage.qml:20
 #, kde-format
@@ -669,13 +668,13 @@ msgid ""
 "If you installed WiVRn over USB on a Meta headset, the app is in the "
 "\"unknown sources\" section."
 msgstr ""
-"Jeśli zainstalowałeś/aś WiVRn przez USB na goglach Meta, aplikacja "
-"jest w sekcji \"Nieznane źródło\"."
+"Jeśli zainstalowano WiVRn przez USB na goglach Meta, aplikacja "
+"jest w sekcji \"nieznanych źródeł\"."
 
 #: dashboard/qml/TroubleshootPage.qml:24
 #, kde-format
 msgid "I cannot see my computer in the WiVRn app"
-msgstr "Nie widzę komputera w aplikacji WiVRn"
+msgstr "Nie widzę swojego komputera w aplikacji WiVRn"
 
 #: dashboard/qml/TroubleshootPage.qml:25
 #, kde-format
@@ -685,7 +684,7 @@ msgstr "Jeśli masz zaporę sieciową, upewnij się że port 5353/UDP jest otwa
 #: dashboard/qml/TroubleshootPage.qml:28
 #, kde-format
 msgid "Connecting remains stuck on \"Connection to ...\""
-msgstr "Połączenie utknęło na etapie \"Połączenie z ...\""
+msgstr "Łączenie utknęło na etapie \"Połączenie z ...\""
 
 #: dashboard/qml/TroubleshootPage.qml:29 dashboard/qml/TroubleshootPage.qml:33
 #, kde-format
@@ -693,7 +692,7 @@ msgid ""
 "If you have a firewall, make sure that port 9757 is open both for TCP and "
 "UDP."
 msgstr ""
-"Jeśli masz zaporę sieciową, upewnij się że port 9757 jest otwarty dla "
+"Jeśli masz zaporę sieciową, upewnij się że port 9757 jest otwarty zarówno dla "
 "TCP i UDP."
 
 #: dashboard/qml/TroubleshootPage.qml:32
@@ -752,13 +751,13 @@ msgid ""
 "When the headset is connected, select \"WiVRn\" as the default audio output "
 "device for applications to use it."
 msgstr ""
-"Kiedy gogle są połączone, wybierz \"WiVRn\" jako domyślne wyjście audio "
-"dla aplikacji które pytają."
+"Kiedy gogle są połączone, wybierz \"WiVRn\" jako domyślne wyjście dźwięku "
+"dla aplikacji."
 
 #: dashboard/qml/TroubleshootPage.qml:75
 #, kde-format
 msgid "Report an issue"
-msgstr "Zamelduj problem"
+msgstr "Zgłoś problem"
 
 #: dashboard/qml/TroubleshootPage.qml:80
 #, kde-format
@@ -801,7 +800,7 @@ msgstr "Następne"
 #: dashboard/qml/WizardPage.qml:112
 #, kde-format
 msgid "How to enable developer mode"
-msgstr "Jak włączyć tryb dewelopera"
+msgstr "Jak włączyć tryb programisty"
 
 #: dashboard/qml/WizardPage.qml:119
 #, kde-format
@@ -815,8 +814,8 @@ msgid ""
 "headset.\n"
 "You can either install it from the Meta store or directly over USB."
 msgstr ""
-"Aby użyć WiVRn, musisz pobrać aplikacje klienta na goglach. "
-"Możesz pobrać przez sklep Meta, lub USB."
+"Aby używać WiVRn, musisz zainstalować aplikację kliencką na goglach.\n"
+"Możesz zainstalować ją ze sklepu Meta, albo przez USB."
 
 #: dashboard/qml/WizardPage.qml:148
 #, kde-format
@@ -829,7 +828,7 @@ msgid ""
 "For the Quest 2, 3, 3S, and Pro, you can get the app from the <a "
 "href=\"https://www.meta.com/experiences/7959676140827574/\">Meta store</a>."
 msgstr ""
-"Na Quest 2, 3, 3S, i Pro, Możesz pobrać aplikacje ze <a "
+"Na gogle Quest 2, 3, 3S, i Pro, możesz pobrać aplikację ze <a "
 "href=\"https://www.meta.com/experiences/7959676140827574/\">sklepu Meta</a>."
 
 #: dashboard/qml/WizardPage.qml:164
@@ -838,8 +837,8 @@ msgid ""
 "A newer release is available: %1 → %2, the client app on the Meta store may "
 "not be compatible."
 msgstr ""
-"Nowsza wersja jest dostępna: %1 → %2, klient na sklepie Meta "
-"może nie być kompatybilny."
+"Nowsza wersja jest dostępna: %1 → %2, klient w sklepie Meta "
+"może nie być jeszcze kompatybilny."
 
 #: dashboard/qml/WizardPage.qml:171
 #, kde-format
@@ -847,7 +846,7 @@ msgid ""
 "This is a nightly build, the client app on the Meta store may not be "
 "compatible."
 msgstr ""
-"To jest nocna kompilacja, klient ze sklepu Meta może nie być kompatybilny."
+"To jest wydanie „nightly”, klient ze sklepu Meta może nie być kompatybilny."
 
 #: dashboard/qml/WizardPage.qml:181
 #, kde-format
@@ -869,19 +868,19 @@ msgid ""
 msgstr ""
 "<p>Nie wykryto gogli. Upewnij się że:\n"
 "<ul><li>Reguły udev z ADB są zainstalowane</li><li>Że gogle są "
-"<a href=\\"#\\">w trybie dewelopera</a></li></ul></p>"
+"<a href=\"#\">w trybie programisty</a></li></ul></p>"
 
 #: dashboard/qml/WizardPage.qml:280
 #, kde-format
 msgid "Select the application you want to start"
-msgstr "Wybierz aplikacje którą chcesz włączyć"
+msgstr "Wybierz aplikację którą chcesz uruchomić"
 
 #: dashboard/qml/WizardPage.qml:286
 #, kde-format
 msgid ""
 "The application you choose will be started automatically when you connect "
 "your headset."
-msgstr "Aplikacja zostanie automatycznie uruchomiona po połączeniu gogli."
+msgstr "Wybrana aplikacja zostanie automatycznie uruchomiona po połączeniu z goglami."
 
 #: dashboard/qml/WizardPage.qml:301
 #, kde-format
@@ -894,13 +893,13 @@ msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
 "running."
 msgstr ""
-"WiVRn kompletnie zastępuje SteamVR, nie powinieneś włączać SteamVR podczas"
-"kiedy WiVRn pracuje."
+"WiVRn kompletnie zastępuje SteamVR, nie powinieneś uruchamiać SteamVR podczas"
+"kiedy WiVRn jest uruchomiona."
 
 #: dashboard/qml/WizardPage.qml:359
 #, kde-format
 msgid "Start the WiVRn app on your headset"
-msgstr "Włącz WiVRn na goglach"
+msgstr "Uruchom aplikację WiVRn na goglach"
 
 #: dashboard/qml/WizardPage.qml:364
 #, kde-format
