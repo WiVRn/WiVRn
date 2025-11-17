@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-11 22:09+0100\n"
-"PO-Revision-Date: 2025-11-13 01:02+0100\n"
+"POT-Creation-Date: 2025-11-17 21:03+0100\n"
+"PO-Revision-Date: 2025-11-17 22:21+0100\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -73,11 +73,11 @@ msgstr "Incapaz de conectar a {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Aguardando conexão"
 
-#: client/scenes/lobby.cpp:1304
+#: client/scenes/lobby.cpp:1310
 msgid "Passthrough"
 msgstr "Passthrough"
 
-#: client/scenes/lobby.cpp:1316
+#: client/scenes/lobby.cpp:1322
 msgid "Default environment"
 msgstr "Ambiente default"
 
@@ -97,13 +97,13 @@ msgid "Disabled"
 msgstr "Desabilitado"
 
 #: client/scenes/lobby_gui.cpp:112 client/scenes/lobby_gui.cpp:256
-#: client/scenes/stream_gui.cpp:969
+#: client/scenes/stream_gui.cpp:967
 msgid "Disconnect"
 msgstr "Desconectar"
 
 #: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:653
 #: client/scenes/lobby_gui_customize.cpp:744
-#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:965
+#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:963
 msgid "Close"
 msgstr "Fechar"
 
@@ -141,7 +141,7 @@ msgid "TCP only"
 msgstr "TCP somente"
 
 #: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:555
-#: client/scenes/stream_gui.cpp:933
+#: client/scenes/stream_gui.cpp:920
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -448,7 +448,7 @@ msgstr "Adicionar servidor"
 msgid "Server list"
 msgstr "Lista de servidores"
 
-#: client/scenes/lobby_gui.cpp:1818 client/scenes/stream_gui.cpp:950
+#: client/scenes/lobby_gui.cpp:1818 client/scenes/stream_gui.cpp:948
 msgid "Settings"
 msgstr "Ajustes"
 
@@ -484,6 +484,11 @@ msgstr ""
 msgid "Press the grip button to move the main window"
 msgstr "Pressione o botão de aderência para mover a janela principal"
 
+#: client/scenes/lobby_gui_customize.cpp:233
+#, c++-format
+msgid "Cannot load environment list: {}"
+msgstr "Não foi possível carregar lista de ambientes: {}"
+
 #: client/scenes/lobby_gui_customize.cpp:363
 #, c++-format
 msgid "Author: {}"
@@ -515,7 +520,7 @@ msgstr ""
 "{}: {}"
 
 #: client/scenes/lobby_gui_customize.cpp:552
-#, c-format
+#, c++-format
 msgid "Really delete {}?"
 msgstr "Realmente remover {}?"
 
@@ -606,7 +611,7 @@ msgstr "Movimento estimado para a latência de fótons: {}ms"
 msgid "Press the grip button to move the window"
 msgstr "Pressione o botão de aderência para mover a janela"
 
-#: client/scenes/stream_gui.cpp:354 client/scenes/stream_gui.cpp:893
+#: client/scenes/stream_gui.cpp:354 client/scenes/stream_gui.cpp:880
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "Pressione ambos os thumbsticks para mostrar a janela do WiVRn"
 
@@ -660,23 +665,23 @@ msgstr "Overlays"
 msgid "Request to quit, may be ignored by the application"
 msgstr "Requisição para sair, pode ser ignorada pelo aplicativo"
 
-#: client/scenes/stream_gui.cpp:695
-msgid "Start"
-msgstr "Iniciar"
-
-#: client/scenes/stream_gui.cpp:947
-msgid "Stats"
-msgstr "Estatísticas"
-
-#: client/scenes/stream_gui.cpp:953
+#: client/scenes/stream_gui.cpp:935
 msgid "Applications"
 msgstr "Aplicativos"
 
-#: client/scenes/stream_gui.cpp:959
+#: client/scenes/stream_gui.cpp:938
+msgid "Start"
+msgstr "Iniciar"
+
+#: client/scenes/stream_gui.cpp:951
+msgid "Stats"
+msgstr "Estatísticas"
+
+#: client/scenes/stream_gui.cpp:957
 msgid "Statistics overlay"
 msgstr "Overlay de estatísticas"
 
-#: client/scenes/stream_gui.cpp:962
+#: client/scenes/stream_gui.cpp:960
 msgid "Compact view"
 msgstr "Visualização compacta"
 
