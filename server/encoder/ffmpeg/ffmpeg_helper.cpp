@@ -24,7 +24,6 @@
 extern "C"
 {
 #include <libavcodec/avcodec.h>
-#include <libavfilter/avfilter.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/opt.h>
 }
