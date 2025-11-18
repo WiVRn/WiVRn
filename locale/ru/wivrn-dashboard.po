@@ -531,7 +531,7 @@ msgstr "AV1"
 
 #: dashboard/qml/SettingsPage.qml:217
 #, kde-format
-msgid "10-bits"
+msgid "10 bits"
 msgstr "10-бит"
 
 #: dashboard/qml/SettingsPage.qml:221

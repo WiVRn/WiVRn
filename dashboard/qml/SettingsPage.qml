@@ -207,7 +207,7 @@ Kirigami.ScrollablePage {
                 }
                 Controls.CheckBox {
                     enabled: config.can10bit
-                    text: i18n("10-bits")
+                    text: i18n("10 bits")
                     checked: config.tenbit
                     onCheckedChanged: config.tenbit = checked
                 }
