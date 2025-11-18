@@ -166,7 +166,7 @@ target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE)
 # target_compile_definitions(wivrn-imgui PUBLIC IMGUI_DISABLE_OBSOLETE_FUNCTIONS) # incompatible with implot
 # target_compile_definitions(wivrn-imgui PUBLIC IMGUI_ENABLE_FREETYPE_LUNASVG)
 target_compile_features(wivrn-imgui PRIVATE cxx_std_23)
-target_link_libraries(wivrn-imgui FreetypeHarfbuzz)
+target_link_libraries(wivrn-imgui FreetypeHarfbuzz Vulkan::Vulkan)
 
 target_link_libraries(wivrn wivrn-imgui)
 
