@@ -217,6 +217,28 @@ Kirigami.ApplicationWindow {
                     }
 
                     Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("Steam is installed as a snap. Snaps are not compatible with WiVRn.")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: DashboardSettings.show_system_checks && Steam.snap
+                    }
+
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
+                        text: i18n("Steam is installed as a flatpak but does not have sufficient permissions.")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: DashboardSettings.show_system_checks && Steam.flatpakNeedPerm
+                        actions: [
+                            Kirigami.Action {
+                                text: i18n("Fix it")
+                                onTriggered: Steam.fixFlatpakPerm()
+                            }
+                        ]
+                    }
+
+                    Kirigami.InlineMessage {
                         id: message_failed_to_start
                         Layout.fillWidth: true
                         text: i18n("Server failed to start")

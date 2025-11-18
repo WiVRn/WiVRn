@@ -21,25 +21,22 @@
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 
-class firewall : public QObject
+class steam : public QObject
 {
 public:
-	class Impl;
 	Q_OBJECT
-	QML_NAMED_ELEMENT(Firewall)
+	QML_NAMED_ELEMENT(Steam)
 	QML_SINGLETON
 
-	Q_PROPERTY(bool needSetup READ needSetup NOTIFY needSetupChanged)
-
-private:
-	std::unique_ptr<Impl> impl;
+	Q_PROPERTY(bool snap READ snap CONSTANT)
+	Q_PROPERTY(bool flatpakNeedPerm READ flatpakNeedPerm NOTIFY flatpakNeedPermChanged)
 
 public:
-	firewall();
-	~firewall();
-	bool needSetup();
-	Q_INVOKABLE void doSetup();
+	bool snap() const;
+	bool flatpakNeedPerm() const;
+
+	Q_INVOKABLE void fixFlatpakPerm();
 
 Q_SIGNALS:
-	void needSetupChanged(bool);
+	void flatpakNeedPermChanged();
 };

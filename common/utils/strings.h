@@ -25,7 +25,7 @@
 
 namespace utils
 {
-std::vector<std::string> split(const std::string & s, const std::string & sep = "\n");
+std::vector<std::string> split(std::string_view s, std::string_view = "\n");
 
 // https://www.cppstories.com/2021/heterogeneous-access-cpp20/
 struct string_hash

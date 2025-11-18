@@ -19,21 +19,21 @@
 
 #include "strings.h"
 
-std::vector<std::string> utils::split(const std::string & s, const std::string & sep)
+std::vector<std::string> utils::split(std::string_view s, std::string_view sep)
 {
 	std::string::size_type i = 0;
 	std::vector<std::string> v;
 
 	while (true)
 	{
-		std::string::size_type j = s.find_first_of(sep, i);
-		if (j == std::string::npos)
+		auto j = s.find_first_of(sep, i);
+		if (j == std::string_view::npos)
 		{
-			v.push_back(s.substr(i));
+			v.emplace_back(s.substr(i));
 			return v;
 		}
 
-		v.push_back(s.substr(i, j - i));
+		v.emplace_back(s.substr(i, j - i));
 		i = j + 1;
 	}
 }
