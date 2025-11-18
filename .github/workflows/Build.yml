@@ -6,6 +6,7 @@ on:
 
 env:
   BUILD_TYPE: Release
+  SERVER_DEPS: libx264-dev libavcodec-dev libavutil-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev nlohmann-json3-dev librsvg2-dev libdrm-dev libglib2.0-dev-bin libpipewire-0.3-dev libpulse-dev libcli11-dev libnotify-dev libarchive-dev libudev-dev
 
 jobs:
   build-linux:
@@ -16,22 +17,37 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        config:
+          - preset: 'client'
+            packages: libboost-all-dev libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
         # dashboard requires a more recent Ubuntu, have it out of this job
-        cmake_preset: ['client', 'dissector-no-system-boost', 'server', 'server-no-systemd', 'server-no-system-boost']
+          - preset: 'dissector-no-system-boost'
+            packages: libboost-all-dev wireshark-dev
+          - preset: 'server'
+            packages: libboost-all-dev libsystemd-dev
+          - preset: 'server-no-systemd'
+            packages: libboost-all-dev
+          - preset: 'server-no-system-boost'
+            packages: libsystemd-dev
 
     steps:
     - uses: actions/checkout@v4
 
+    - name: Apt dependencies
+      uses: awalsh128/cache-apt-pkgs-action@v1.6.0
+      with:
+        packages: ccache ${{matrix.config.packages}} ${{ startsWith(matrix.config.preset, 'server') && env.SERVER_DEPS || ''}}
+
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
-        key: server-${{matrix.cmake_preset}}
-        restore-keys: server-
+        key: linux-${{matrix.config.preset}}
+        restore-keys: linux-
         append-timestamp: false
 
     - uses: actions/cache@v4
       with:
-        key: cmake-linux-${{matrix.cmake_preset}}
+        key: cmake-linux-${{matrix.config.preset}}
         path: |
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.tar.*
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
@@ -39,25 +55,11 @@ jobs:
         restore-keys: cmake-linux-
 
     - name: Install dependencies
+      if: ${{ matrix.config.preset == 'client' }}
       run: |
-        sudo apt-get update
-        # Common dependencies
-        sudo apt-get install libboost-all-dev
-        if [ "${{matrix.cmake_preset}}" == "client" ] ; then
-          sudo apt-get install libharfbuzz-dev libfreetype-dev libavcodec-dev libavutil-dev libswscale-dev librsvg2-bin gettext libcurl4-openssl-dev libfontconfig-dev
-          wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb
-          sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
-          npm install --global @gltf-transform/cli@4.1.1
-        fi
-        if [[ "${{matrix.cmake_preset}}" == dissector* ]] ; then
-          sudo apt-get install wireshark-dev
-        fi
-        if [[ "${{matrix.cmake_preset}}" == server* ]] ; then
-          sudo apt-get install libx264-dev libavcodec-dev libavutil-dev libbsd-dev libavahi-client-dev libavahi-glib-dev libeigen3-dev nlohmann-json3-dev librsvg2-dev libdrm-dev libglib2.0-dev-bin libpipewire-0.3-dev libpulse-dev libcli11-dev libnotify-dev libarchive-dev libudev-dev
-          if [[ "${{matrix.cmake_preset}}" != "server-no-systemd" ]] ; then
-            sudo apt-get install libsystemd-dev
-          fi
-        fi
+        wget https://github.com/KhronosGroup/KTX-Software/releases/download/v4.4.2/KTX-Software-4.4.2-Linux-x86_64.deb
+        sudo dpkg --install KTX-Software-4.4.2-Linux-x86_64.deb
+        npm install --global @gltf-transform/cli@4.1.1
 
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.1
@@ -75,11 +77,11 @@ jobs:
         -DFETCHCONTENT_BASE_DIR=${{github.workspace}}/cmake-fetch
         -DCMAKE_C_COMPILER_LAUNCHER=ccache
         -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        --preset ${{ matrix.cmake_preset }}
+        --preset ${{ matrix.config.preset }}
         -DWIVRN_USE_SYSTEM_OPENXR=OFF
 
     - name: Package build dependencies
-      if: ${{ matrix.cmake_preset == 'server' }}
+      if: ${{ matrix.config.preset == 'server' }}
       # For easier packaging, build dependencies are made available as a separate archive
       run: (cd ${{github.workspace}}/cmake-fetch ; tar --create --xz *-src) > ${{github.workspace}}/server-build-deps.tar.xz
 
@@ -88,7 +90,7 @@ jobs:
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
     - name: Publish build dependencies
-      if: ${{ matrix.cmake_preset == 'server' }}
+      if: ${{ matrix.config.preset == 'server' }}
       uses: actions/upload-artifact@v4
       with:
         name: server-build-deps
@@ -96,7 +98,7 @@ jobs:
 
     - name: Release build dependencies
       uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/') && matrix.cmake_preset == 'server'
+      if: startsWith(github.ref, 'refs/tags/') && matrix.config.preset == 'server'
       with:
         tag_name: ${{ inputs.ref }}
         generate_release_notes: true
@@ -113,6 +115,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Prepare
+      run: |
+        apt update
+        apt install --yes curl wget sudo
+
+    - name: Apt dependencies
+      uses: awalsh128/cache-apt-pkgs-action@v1.6.0
+      with:
+        packages: sudo jq cmake gcc g++ git pkgconf libboost-all-dev libkirigami-dev gettext libarchive-dev nlohmann-json3-dev qcoro-qt6-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev libvulkan-dev libssl-dev librsvg2-dev extra-cmake-modules libcap-dev
+
     - uses: actions/cache@v4
       with:
         key: cmake-linux-dashboard
@@ -122,21 +134,10 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*.tar.*
         restore-keys: cmake-linux-
 
-    - name: Install dependencies
-      run: |
-        apt-get update
-        # To be removed when using normal Ubuntu runner
-        apt-get install --yes sudo jq cmake gcc g++ git pkgconf
-        # Common dependencies
-        sudo apt-get install --yes libboost-all-dev
-        # Dashboard dependencies
-        sudo apt-get install --yes libkirigami-dev gettext libarchive-dev nlohmann-json3-dev qcoro-qt6-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev libvulkan-dev libssl-dev librsvg2-dev extra-cmake-modules libcap-dev
-
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
-        key: server-${{matrix.cmake_preset}}
-        restore-keys: server-
+        key: dashboard-${{matrix.cmake_preset}}
         append-timestamp: false
 
     - name: Configure CMake
