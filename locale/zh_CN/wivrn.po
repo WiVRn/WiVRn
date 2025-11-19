@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-12 05:09+0800\n"
-"PO-Revision-Date: 2025-11-09 23:02+0800\n"
+"POT-Creation-Date: 2025-11-18 04:03+0800\n"
+"PO-Revision-Date: 2025-11-19 14:17+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -68,11 +68,11 @@ msgstr "无法连接至 {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "等待连接"
 
-#: client/scenes/lobby.cpp:1304
+#: client/scenes/lobby.cpp:1310
 msgid "Passthrough"
 msgstr "透视"
 
-#: client/scenes/lobby.cpp:1316
+#: client/scenes/lobby.cpp:1322
 msgid "Default environment"
 msgstr "默认环境"
 
@@ -92,13 +92,13 @@ msgid "Disabled"
 msgstr "已停用"
 
 #: client/scenes/lobby_gui.cpp:112 client/scenes/lobby_gui.cpp:256
-#: client/scenes/stream_gui.cpp:969
+#: client/scenes/stream_gui.cpp:967
 msgid "Disconnect"
 msgstr "终止连接"
 
 #: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:653
 #: client/scenes/lobby_gui_customize.cpp:744
-#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:965
+#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:963
 msgid "Close"
 msgstr "关闭"
 
@@ -136,7 +136,7 @@ msgid "TCP only"
 msgstr "仅限 TCP"
 
 #: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:555
-#: client/scenes/stream_gui.cpp:933
+#: client/scenes/stream_gui.cpp:920
 msgid "Cancel"
 msgstr "取消"
 
@@ -435,7 +435,7 @@ msgstr "新增服务器"
 msgid "Server list"
 msgstr "服务器列表"
 
-#: client/scenes/lobby_gui.cpp:1818 client/scenes/stream_gui.cpp:950
+#: client/scenes/lobby_gui.cpp:1818 client/scenes/stream_gui.cpp:948
 msgid "Settings"
 msgstr "设置"
 
@@ -471,6 +471,11 @@ msgstr ""
 msgid "Press the grip button to move the main window"
 msgstr "按下抓握键以移动主窗口"
 
+#: client/scenes/lobby_gui_customize.cpp:233
+#, c++-format
+msgid "Cannot load environment list: {}"
+msgstr "无法加载环境列表：{}"
+
 #: client/scenes/lobby_gui_customize.cpp:363
 #, c++-format
 msgid "Author: {}"
@@ -502,7 +507,7 @@ msgstr ""
 "{}：{}"
 
 #: client/scenes/lobby_gui_customize.cpp:552
-#, c-format
+#, c++-format
 msgid "Really delete {}?"
 msgstr "真的要删除 {} 吗?"
 
@@ -593,7 +598,7 @@ msgstr "预计运动到光子延迟: {}毫秒"
 msgid "Press the grip button to move the window"
 msgstr "按下抓握键来移动窗口"
 
-#: client/scenes/stream_gui.cpp:354 client/scenes/stream_gui.cpp:893
+#: client/scenes/stream_gui.cpp:354 client/scenes/stream_gui.cpp:880
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "同时按下两侧摇杆以显示 WiVRn 窗口"
 
@@ -647,23 +652,23 @@ msgstr "叠加层"
 msgid "Request to quit, may be ignored by the application"
 msgstr "退出请求可能会被应用程序忽略"
 
-#: client/scenes/stream_gui.cpp:695
-msgid "Start"
-msgstr "启动"
-
-#: client/scenes/stream_gui.cpp:947
-msgid "Stats"
-msgstr "统计"
-
-#: client/scenes/stream_gui.cpp:953
+#: client/scenes/stream_gui.cpp:935
 msgid "Applications"
 msgstr "应用程序"
 
-#: client/scenes/stream_gui.cpp:959
+#: client/scenes/stream_gui.cpp:938
+msgid "Start"
+msgstr "启动"
+
+#: client/scenes/stream_gui.cpp:951
+msgid "Stats"
+msgstr "统计"
+
+#: client/scenes/stream_gui.cpp:957
 msgid "Statistics overlay"
 msgstr "统计数据叠加"
 
-#: client/scenes/stream_gui.cpp:962
+#: client/scenes/stream_gui.cpp:960
 msgid "Compact view"
 msgstr "概览"
 
