@@ -42,6 +42,7 @@ jobs:
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         key: linux-${{matrix.config.preset}}
+        job-summary: ""
         restore-keys: linux-
         append-timestamp: false
 
@@ -117,13 +118,8 @@ jobs:
 
     - name: Prepare
       run: |
-        apt update
-        apt install --yes curl wget sudo
-
-    - name: Apt dependencies
-      uses: awalsh128/cache-apt-pkgs-action@v1.6.0
-      with:
-        packages: sudo jq cmake gcc g++ git pkgconf libboost-all-dev libkirigami-dev gettext libarchive-dev nlohmann-json3-dev qcoro-qt6-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev libvulkan-dev libssl-dev librsvg2-dev extra-cmake-modules libcap-dev
+        apt-get update
+        apt-get install --yes curl wget sudo jq cmake gcc g++ git pkgconf libboost-all-dev libkirigami-dev gettext libarchive-dev nlohmann-json3-dev qcoro-qt6-dev libkf6i18n-dev libkf6coreaddons-dev libkf6qqc2desktopstyle-dev libkf6iconthemes-dev libvulkan-dev libssl-dev librsvg2-dev extra-cmake-modules libcap-dev
 
     - uses: actions/cache@v4
       with:
@@ -134,12 +130,6 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*.tar.*
         restore-keys: cmake-linux-
 
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2
-      with:
-        key: dashboard-${{matrix.cmake_preset}}
-        append-timestamp: false
-
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
@@ -147,8 +137,6 @@ jobs:
         cmake -B ${{github.workspace}}/build
         -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
         -DFETCHCONTENT_BASE_DIR=${{github.workspace}}/cmake-fetch
-        -DCMAKE_C_COMPILER_LAUNCHER=ccache
-        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         --preset dashboard
         -DWIVRN_USE_SYSTEM_OPENXR=OFF
 
