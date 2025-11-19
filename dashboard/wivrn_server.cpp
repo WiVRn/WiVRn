@@ -31,10 +31,6 @@
 #include <nlohmann/json.hpp>
 #include <unistd.h>
 
-#if WIVRN_CHECK_CAPSYSNICE
-#include <sys/capability.h>
-#endif
-
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -44,24 +40,6 @@ static QString server_path()
 {
 	return QCoreApplication::applicationDirPath() + "/wivrn-server";
 }
-
-#if WIVRN_CHECK_CAPSYSNICE
-static bool has_cap_sys_nice()
-{
-	auto caps = cap_get_file(server_path().toStdString().c_str());
-
-	if (not caps)
-		return false;
-
-	cap_flag_value_t value{};
-	if (cap_get_flag(caps, CAP_SYS_NICE, CAP_EFFECTIVE, &value) < 0)
-		return false;
-
-	cap_free(caps);
-
-	return value == CAP_SET;
-}
-#endif
 
 wivrn_server::wivrn_server(QObject * parent) :
         QObject(parent)
@@ -75,12 +53,6 @@ wivrn_server::wivrn_server(QObject * parent) :
 	const QStringList services = QDBusConnection::sessionBus().interface()->registeredServiceNames();
 	if (services.contains("io.github.wivrn.Server"))
 		on_server_dbus_registered();
-
-#if WIVRN_CHECK_CAPSYSNICE
-	m_capSysNice = has_cap_sys_nice();
-#else
-	m_capSysNice = true;
-#endif
 }
 
 wivrn_server::~wivrn_server()
@@ -288,47 +260,6 @@ void wivrn_server::on_server_dbus_unregistered()
 
 	if (serverStatus() == Status::Restarting)
 		start_server();
-}
-
-void wivrn_server::grant_cap_sys_nice()
-{
-#if WIVRN_CHECK_CAPSYSNICE
-	if (not setcap_process)
-	{
-		setcap_process = std::make_unique<QProcess>();
-		setcap_process->setProgram("pkexec");
-		setcap_process->setArguments({"setcap", "CAP_SYS_NICE=+ep", server_path()});
-		setcap_process->setProcessChannelMode(QProcess::MergedChannels);
-		setcap_process->start();
-
-		QObject::connect(setcap_process.get(), &QProcess::finished, this, [this](int exit_code, QProcess::ExitStatus exit_status) {
-			// Exit codes:
-			// 0: setcap successful
-			// 1: setcap failed
-			// 126: pkexec: not authorized or authentication error
-			// 127: pkexec: dismissed by user
-
-			if (exit_status == QProcess::NormalExit and exit_code == 0)
-			{
-				if (not has_cap_sys_nice())
-				{
-					qDebug() << "pkexec setcap returned successfully but the server does not have the CAP_SYS_NICE capability";
-				}
-				else
-				{
-					qDebug() << "setcap sucessful";
-					capSysNiceChanged(m_capSysNice = true);
-				}
-			}
-			else
-			{
-				qWarning() << "setcap exited with status" << exit_status << "and code" << exit_code;
-			}
-
-			setcap_process.release()->deleteLater();
-		});
-	}
-#endif
 }
 
 void wivrn_server::open_server_logs()

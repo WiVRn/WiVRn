@@ -128,21 +128,6 @@ Kirigami.ApplicationWindow {
 
                     Kirigami.InlineMessage {
                         Layout.fillWidth: true
-                        text: i18n("The server does not have CAP_SYS_NICE capabilities")
-                        // type: Kirigami.MessageType.Warning
-                        type: Kirigami.MessageType.Information
-                        showCloseButton: true
-                        visible: DashboardSettings.show_system_checks && !WivrnServer.capSysNice
-                        actions: [
-                            Kirigami.Action {
-                                text: i18n("Fix it")
-                                onTriggered: WivrnServer.grant_cap_sys_nice()
-                            }
-                        ]
-                    }
-
-                    Kirigami.InlineMessage {
-                        Layout.fillWidth: true
                         text: i18n("Firewall may not allow port 9757")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
@@ -153,34 +138,6 @@ Kirigami.ApplicationWindow {
                                 onTriggered: Firewall.doSetup()
                             }
                         ]
-                    }
-
-                    Kirigami.InlineMessage {
-                        id: restart_capsysnice
-                        Layout.fillWidth: true
-                        text: i18n("The CAP_SYS_NICE capability will be used when the server is restarted")
-                        type: Kirigami.MessageType.Information
-                        showCloseButton: true
-                        visible: false
-                        actions: [
-                            Kirigami.Action {
-                                text: i18nc("restart the server", "Restart now")
-                                onTriggered: {
-                                    WivrnServer.restart_server();
-                                    restart_capsysnice.visible = false;
-                                }
-                            }
-                        ]
-                        Connections {
-                            target: WivrnServer
-                            function onCapSysNiceChanged(value) {
-                                if (WivrnServer.serverStatus != WivrnServer.Stopped)
-                                restart_capsysnice.visible = true;
-                            }
-                            function onServerStatusChanged(value) {
-                                restart_capsysnice.visible = false;
-                            }
-                        }
                     }
 
                     Kirigami.InlineMessage {

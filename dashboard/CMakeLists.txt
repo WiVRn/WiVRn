@@ -79,10 +79,6 @@ target_link_libraries(wivrn-dashboard
     wivrn-external
 )
 
-if (WIVRN_CHECK_CAPSYSNICE)
-    target_link_libraries(wivrn-dashboard PRIVATE PkgConfig::libcap)
-endif()
-
 install(TARGETS wivrn-dashboard ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 
 install(FILES io.github.wivrn.wivrn.metainfo.xml

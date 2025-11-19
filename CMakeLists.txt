@@ -57,7 +57,6 @@ option(WIVRN_FEATURE_RENDERDOC "Support renderdoc" OFF)
 set(WIVRN_FEATURE_SOLARXR OFF) # Will be added back when merged in upstream Monado
 option(WIVRN_FEATURE_STEAMVR_LIGHTHOUSE "Enable SteamVR Lighthouse driver" OFF)
 
-option(WIVRN_CHECK_CAPSYSNICE "Check if CAP_SYS_NICE is available at startup" ON)
 set(WIVRN_CSS "${CMAKE_SOURCE_DIR}/images/wivrn-local.css" CACHE STRING "Stylesheet to use to render SVGs" )
 
 option(WIVRN_SHOW_IMGUI_DEMO_WINDOW "Show the Dear ImGui demo window in the client" OFF)
@@ -172,10 +171,6 @@ if (WIVRN_BUILD_DASHBOARD)
     find_package(nlohmann_json REQUIRED)
     find_package(QCoro6 REQUIRED COMPONENTS Core Network Qml)
     qcoro_enable_coroutines()
-
-    if (WIVRN_CHECK_CAPSYSNICE)
-        pkg_check_modules(libcap REQUIRED IMPORTED_TARGET libcap)
-    endif()
 
     set(CMAKE_AUTOMOC ON)
     set(CMAKE_AUTORCC ON)
