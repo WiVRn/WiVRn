@@ -1,20 +1,20 @@
 #
-# Álvaro De Quinta <blackcherry@danwin1210.de>, 2025.
+# SPDX-FileCopyrightText: 2025 Álvaro De Quinta <blackcherry@danwin1210.de>
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-11 22:09+0100\n"
-"PO-Revision-Date: 2025-11-12 04:59+0100\n"
+"POT-Creation-Date: 2025-11-17 21:03+0100\n"
+"PO-Revision-Date: 2025-11-19 20:23+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
-"Language-Team: Spanish\n"
+"Language-Team: Spanish <>\n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Gtranslator 49.0\n"
+"X-Generator: Lokalize 25.08.3\n"
 
 #: client/scene.cpp:73
 msgid "No supported swapchain format"
@@ -68,11 +68,11 @@ msgstr "No se puede conectar a {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Esperando conexión"
 
-#: client/scenes/lobby.cpp:1304
+#: client/scenes/lobby.cpp:1310
 msgid "Passthrough"
 msgstr "Exterior"
 
-#: client/scenes/lobby.cpp:1316
+#: client/scenes/lobby.cpp:1322
 msgid "Default environment"
 msgstr "Entorno por defecto"
 
@@ -92,13 +92,13 @@ msgid "Disabled"
 msgstr "Deshabilitado"
 
 #: client/scenes/lobby_gui.cpp:112 client/scenes/lobby_gui.cpp:256
-#: client/scenes/stream_gui.cpp:969
+#: client/scenes/stream_gui.cpp:967
 msgid "Disconnect"
 msgstr "Desconectar"
 
 #: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:653
 #: client/scenes/lobby_gui_customize.cpp:744
-#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:965
+#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:963
 msgid "Close"
 msgstr "Cerrar"
 
@@ -136,7 +136,7 @@ msgid "TCP only"
 msgstr "Solo TCP"
 
 #: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:555
-#: client/scenes/stream_gui.cpp:933
+#: client/scenes/stream_gui.cpp:920
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -446,7 +446,7 @@ msgstr "Agregar servidor"
 msgid "Server list"
 msgstr "Lista de servidores"
 
-#: client/scenes/lobby_gui.cpp:1818 client/scenes/stream_gui.cpp:950
+#: client/scenes/lobby_gui.cpp:1818 client/scenes/stream_gui.cpp:948
 msgid "Settings"
 msgstr "Configuración"
 
@@ -482,6 +482,11 @@ msgstr ""
 msgid "Press the grip button to move the main window"
 msgstr "Pulsa el botón de agarre para mover la ventana principal"
 
+#: client/scenes/lobby_gui_customize.cpp:233
+#, c++-format
+msgid "Cannot load environment list: {}"
+msgstr "No se ha podido cargar la lista del entorno: {}"
+
 #: client/scenes/lobby_gui_customize.cpp:363
 #, c++-format
 msgid "Author: {}"
@@ -513,7 +518,7 @@ msgstr ""
 "{}: {}"
 
 #: client/scenes/lobby_gui_customize.cpp:552
-#, c-format
+#, c++-format
 msgid "Really delete {}?"
 msgstr "Seguro que quiere borrar {}?"
 
@@ -604,7 +609,7 @@ msgstr "Latencia estimada de movimiento a fotones: {}ms"
 msgid "Press the grip button to move the window"
 msgstr "Pulsa el botón de agarre para mover la ventana"
 
-#: client/scenes/stream_gui.cpp:354 client/scenes/stream_gui.cpp:893
+#: client/scenes/stream_gui.cpp:354 client/scenes/stream_gui.cpp:880
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "Pulsa ambos joysticks para mostrar la ventana de WiVRn"
 
@@ -658,23 +663,23 @@ msgstr "Superposiciones"
 msgid "Request to quit, may be ignored by the application"
 msgstr "Pedir salir, puede ser ignorado por la aplicación"
 
-#: client/scenes/stream_gui.cpp:695
-msgid "Start"
-msgstr "Iniciar"
-
-#: client/scenes/stream_gui.cpp:947
-msgid "Stats"
-msgstr "Estadísticas"
-
-#: client/scenes/stream_gui.cpp:953
+#: client/scenes/stream_gui.cpp:935
 msgid "Applications"
 msgstr "Aplicaciones"
 
-#: client/scenes/stream_gui.cpp:959
+#: client/scenes/stream_gui.cpp:938
+msgid "Start"
+msgstr "Iniciar"
+
+#: client/scenes/stream_gui.cpp:951
+msgid "Stats"
+msgstr "Estadísticas"
+
+#: client/scenes/stream_gui.cpp:957
 msgid "Statistics overlay"
 msgstr "Superponer stats"
 
-#: client/scenes/stream_gui.cpp:962
+#: client/scenes/stream_gui.cpp:960
 msgid "Compact view"
 msgstr "Vista compacta"
 
