@@ -280,6 +280,9 @@ void wivrn_server::on_server_dbus_unregistered()
 	if (isHeadsetConnected())
 		headsetConnectedChanged(m_headsetConnected = false);
 
+	if (isSessionRunning())
+		sessionRunningChanged(m_sessionRunning = false);
+
 	if (isPairingEnabled())
 		pairingEnabledChanged(m_isPairingEnabled = false);
 
@@ -359,6 +362,11 @@ void wivrn_server::on_server_properties_changed(const QString & interface_name, 
 	if (changed_properties.contains("HeadsetConnected"))
 	{
 		headsetConnectedChanged(m_headsetConnected = changed_properties["HeadsetConnected"].toBool());
+	}
+
+	if (changed_properties.contains("SessionRunning"))
+	{
+		sessionRunningChanged(m_sessionRunning = changed_properties["SessionRunning"].toBool());
 	}
 
 	if (changed_properties.contains("JsonConfiguration"))

@@ -175,6 +175,7 @@ public:
 	Q_PROPERTY(Status serverStatus READ serverStatus NOTIFY serverStatusChanged)
 	Q_PROPERTY(bool capSysNice READ capSysNice NOTIFY capSysNiceChanged)
 	Q_PROPERTY(bool headsetConnected READ isHeadsetConnected NOTIFY headsetConnectedChanged)
+	Q_PROPERTY(bool sessionRunning READ isSessionRunning NOTIFY sessionRunningChanged)
 	Q_PROPERTY(QString jsonConfiguration READ jsonConfiguration WRITE setJsonConfiguration NOTIFY jsonConfigurationChanged)
 	Q_PROPERTY(QString serverLogs READ serverLogs NOTIFY serverLogsChanged)
 	Q_INVOKABLE void start_server();
@@ -230,6 +231,11 @@ public:
 	bool isHeadsetConnected() const
 	{
 		return m_headsetConnected;
+	}
+
+	bool isSessionRunning() const
+	{
+		return m_sessionRunning;
 	}
 
 	QString jsonConfiguration() const
@@ -351,6 +357,7 @@ private:
 	Status m_serverStatus{Status::Stopped};
 	bool m_capSysNice{};
 	bool m_headsetConnected{};
+	bool m_sessionRunning{};
 	QString m_jsonConfiguration{};
 
 	QString m_pin{};
@@ -376,6 +383,7 @@ Q_SIGNALS:
 	void serverStatusChanged(Status);
 	void capSysNiceChanged(bool);
 	void headsetConnectedChanged(bool);
+	void sessionRunningChanged(bool);
 	void jsonConfigurationChanged(QString);
 	void needMonadoVulkanLayerChanged(bool);
 	void pinChanged(QString);

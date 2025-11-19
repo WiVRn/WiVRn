@@ -276,7 +276,9 @@ void start_server(configuration config)
 
 		assert(server_watch == 0);
 		assert(server_kill_watch == 0);
+		wivrn_server_set_session_running(dbus_server, true);
 		server_watch = g_child_watch_add(server_pid, [](pid_t, int status, void *) {
+			wivrn_server_set_session_running(dbus_server, false);
 			display_child_status(status, "Server");
 			g_source_remove(server_watch);
 			if (server_kill_watch)

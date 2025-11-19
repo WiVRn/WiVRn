@@ -17,10 +17,6 @@ Kirigami.ScrollablePage {
 
     property bool allowUpdates: false // ignore onXXX events until document is loaded
 
-    Settings {
-        id: config
-    }
-
     ColumnLayout {
         id: column
         anchors.fill: parent
@@ -29,7 +25,7 @@ Kirigami.ScrollablePage {
 
             Controls.CheckBox {
                 id: manual_foveation
-                checked: config.scale != -1
+                checked: Settings.scale != -1
                 Layout.row: 0
                 Layout.column: 0
                 text: i18nc("automatic foveation setup", "Manual foveation")
@@ -100,25 +96,25 @@ Kirigami.ScrollablePage {
                     return Number.fromLocaleString(text);
                 }
 
-                onValueModified: config.bitrate = value
+                onValueModified: Settings.bitrate = value
             }
 
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
                 text: i18n("The current encoder configuration is not supported")
                 type: Kirigami.MessageType.Information
-                visible: !config.simpleConfig
+                visible: !Settings.simpleConfig
                 actions: [
                     Kirigami.Action {
                         text: i18n("Reset")
-                        onTriggered: config.encoder = Settings.EncoderAuto
+                        onTriggered: Settings.encoder = Settings.EncoderAuto
                     }
                 ]
             }
 
             RowLayout {
                 Kirigami.FormData.label: i18n("Encoder:")
-                enabled: config.simpleConfig
+                enabled: Settings.simpleConfig
                 Controls.ComboBox {
                     id: encoder_combo
                     model: [
@@ -143,12 +139,12 @@ Kirigami.ScrollablePage {
                             encoder: Settings.X264
                         }
                     ]
-                    onCurrentIndexChanged: if (settings.allowUpdates) {config.encoder = model[currentIndex].encoder}
+                    onCurrentIndexChanged: if (settings.allowUpdates) {Settings.encoder = model[currentIndex].encoder}
                     textRole: "label"
                     Connections {
-                        target: config
+                        target: Settings
                         function onEncoderChanged() {
-                            var encoder = config.encoder;
+                            var encoder = Settings.encoder;
                             var i = encoder_combo.model.findIndex( item => item.encoder == encoder)
                             if (i > -1)
                                 encoder_combo.currentIndex = i
@@ -164,7 +160,7 @@ Kirigami.ScrollablePage {
                 Kirigami.FormData.label: i18n("Codec:")
                 Controls.ComboBox {
                     id: codec_combo
-                    enabled: config.simpleConfig && config.encoder != Settings.EncoderAuto
+                    enabled: Settings.simpleConfig && Settings.encoder != Settings.EncoderAuto
                     model: [
                         {
                             label: i18nc("automatic codec setup", "Auto"),
@@ -183,7 +179,7 @@ Kirigami.ScrollablePage {
                             codec: Settings.Av1
                         }
                     ]
-                    onCurrentIndexChanged: if (settings.allowUpdates) {config.codec = model[currentIndex].codec}
+                    onCurrentIndexChanged: if (settings.allowUpdates) {Settings.codec = model[currentIndex].codec}
                     textRole: "label"
 
                     delegate: Controls.ItemDelegate {
@@ -193,12 +189,12 @@ Kirigami.ScrollablePage {
                         width: codec_combo.width
                         text: i18n(label)
                         highlighted: ListView.isCurrentItem
-                        enabled: config.allowedCodecs.includes(codec)
+                        enabled: Settings.allowedCodecs.includes(codec)
                     }
                     Connections {
-                        target: config
+                        target: Settings
                         function onCodecChanged() {
-                            var codec = config.codec;
+                            var codec = Settings.codec;
                             var i = codec_combo.model.findIndex( item => item.codec == codec)
                             if (i > -1)
                                 codec_combo.currentIndex = i
@@ -206,10 +202,10 @@ Kirigami.ScrollablePage {
                     }
                 }
                 Controls.CheckBox {
-                    enabled: config.can10bit
+                    enabled: Settings.can10bit
                     text: i18n("10 bits")
-                    checked: config.tenbit
-                    onCheckedChanged: config.tenbit = checked
+                    checked: Settings.tenbit
+                    onCheckedChanged: Settings.tenbit = checked
                 }
                 Kirigami.ContextualHelpButton {
                     toolTipText: i18n("10-bit encoding improves image quality but is not supported by all codecs and hardware")
@@ -231,7 +227,7 @@ Kirigami.ScrollablePage {
                 text: i18n("Check system configuration on start")
             }
             RowLayout {
-                visible: config.hid_forwarding_supported
+                visible: Settings.hid_forwarding_supported
                 Controls.CheckBox {
                     id: hid_forwarding
                     text: i18n("Forward keyboard & mouse from headset")
@@ -243,10 +239,10 @@ Kirigami.ScrollablePage {
             Controls.CheckBox {
                 id: debug_gui
                 text: i18n("Enable debug window")
-                visible: config.debug_gui_supported
+                visible: Settings.debug_gui_supported
             }
             RowLayout {
-                visible: config.steamvr_lh_supported
+                visible: Settings.steamvr_lh_supported
                 Controls.CheckBox {
                     id: steamvr_lh
                     text: i18n("Enable SteamVR tracked devices support")
@@ -327,14 +323,14 @@ Kirigami.ScrollablePage {
 
                     function load() {
                         for(let i=0 ; i < openvr_libs.count; i++) {
-                            if (openvr_libs.get(i).value == config.openvr) {
+                            if (openvr_libs.get(i).value == Settings.openvr) {
                                 openvr_combobox.currentIndex = i;
                                 return;
                             }
                         }
                         for(let i=0 ; i < openvr_libs.count; i++) {
                             if (openvr_libs.get(i).is_custom) {
-                                openvr_text.text = config.openvr
+                                openvr_text.text = Settings.openvr
                                 openvr_combobox.currentIndex = i;
                                 return;
                             }
@@ -343,7 +339,7 @@ Kirigami.ScrollablePage {
                 }
                 Controls.TextField {
                     id: openvr_text
-                    placeholderText: i18n("Library path, excluding bin/linux64/vrclient.so") 
+                    placeholderText: i18n("Library path, excluding bin/linux64/vrclient.so")
                     visible: !!openvr_combobox.model.get(openvr_combobox.currentIndex)?.is_custom
                     Layout.fillWidth: true
                 }
@@ -362,12 +358,12 @@ Kirigami.ScrollablePage {
 
         onAccepted: {
             settings.save();
-            config.save(WivrnServer);
+            Settings.save(WivrnServer);
 
             applicationWindow().pageStack.pop();
         }
         onReset: {
-            config.restore_defaults();
+            Settings.restore_defaults();
             settings.load();
         }
         onRejected: applicationWindow().pageStack.pop()
@@ -375,21 +371,21 @@ Kirigami.ScrollablePage {
 
     Component.onCompleted: {
         openvr_libs.init()
-        config.load(WivrnServer);
+        Settings.load(WivrnServer);
         // If bitrate was manually set higher, keep the limit
-        bitrate.to = Math.max(bitrate.to, config.bitrate)
-        bitrate.value = config.bitrate
+        bitrate.to = Math.max(bitrate.to, Settings.bitrate)
+        bitrate.value = Settings.bitrate
         settings.allowUpdates = true;
         settings.load();
     }
 
     function save() {
-        config.scale = manual_foveation.checked ? 1 - scale_slider.value / 100.0 : -1;
+        Settings.scale = manual_foveation.checked ? 1 - scale_slider.value / 100.0 : -1;
         let openvr = openvr_combobox.model.get(openvr_combobox.currentIndex)
         if (openvr.is_custom) {
-            config.openvr = openvr_text.text;
+            Settings.openvr = openvr_text.text;
         } else {
-            config.openvr = openvr.value
+            Settings.openvr = openvr.value
         }
         DashboardSettings.adb_custom = adb_custom.checked;
         DashboardSettings.adb_location = adb_location.text;
@@ -397,21 +393,21 @@ Kirigami.ScrollablePage {
 
         DashboardSettings.show_system_checks = show_system_checks.checked;
 
-        config.debugGui = debug_gui.checked;
-        config.steamVrLh = steamvr_lh.checked;
-        config.hidForwarding = hid_forwarding.checked;
+        Settings.debugGui = debug_gui.checked;
+        Settings.steamVrLh = steamvr_lh.checked;
+        Settings.hidForwarding = hid_forwarding.checked;
     }
 
     function load() {
-        if (config.scale > 0) {
-            scale_slider.value = Math.round(100 - config.scale * 100);
+        if (Settings.scale > 0) {
+            scale_slider.value = Math.round(100 - Settings.scale * 100);
         } else {
             scale_slider.value = 50;
         }
 
-        debug_gui.checked = config.debugGui;
-        steamvr_lh.checked = config.steamVrLh;
-        hid_forwarding.checked = config.hidForwarding;
+        debug_gui.checked = Settings.debugGui;
+        steamvr_lh.checked = Settings.steamVrLh;
+        hid_forwarding.checked = Settings.hidForwarding;
 
         openvr_combobox.load()
 

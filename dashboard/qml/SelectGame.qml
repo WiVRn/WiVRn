@@ -38,10 +38,6 @@ ColumnLayout {
         id: apps
     }
 
-    Settings {
-        id: config
-    }
-
     Connections {
         target: WivrnServer
         function onJsonConfigurationChanged() {
@@ -88,7 +84,7 @@ ColumnLayout {
         if (select_game.json_loaded || WivrnServer.serverStatus != WivrnServer.Started || WivrnServer.jsonConfiguration == "")
             return;
 
-        config.load(WivrnServer);
+        Settings.load(WivrnServer);
 
         var found = false;
         var custom_idx = -1;
@@ -96,7 +92,7 @@ ColumnLayout {
             var app = apps.get(i);
             if (app.is_custom)
                 custom_idx = i;
-            else if (app.command == config.application) {
+            else if (app.command == Settings.application) {
                 app_combobox.currentIndex = i;
                 found = true;
                 break;
@@ -104,7 +100,7 @@ ColumnLayout {
         }
 
         if (!found) {
-            app_text.text = config.application;
+            app_text.text = Settings.application;
             app_combobox.currentIndex = custom_idx;
         }
 
@@ -119,10 +115,10 @@ ColumnLayout {
         else
             new_application = apps.get(app_combobox.currentIndex).command;
 
-        config.load(WivrnServer);
-        if (config.application != new_application) {
-            config.application = new_application;
-            config.save(WivrnServer);
+        Settings.load(WivrnServer);
+        if (Settings.application != new_application) {
+            Settings.application = new_application;
+            Settings.save(WivrnServer);
         }
     }
 }

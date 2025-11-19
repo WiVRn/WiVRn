@@ -42,6 +42,7 @@
 		<method name="DisablePairing"/>
 
 		<property name="HeadsetConnected"      type="b" access="read"/>
+		<property name="SessionRunning"        type="b" access="read"/>
 		<property name="SteamCommand"          type="s" access="read"/>
 		<property name="JsonConfiguration"     type="s" access="readwrite"/>
 		<property name="Bitrate"               type="u" access="readwrite"/>

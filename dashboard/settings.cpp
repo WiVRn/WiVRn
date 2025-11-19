@@ -131,6 +131,7 @@ void Settings::load(const wivrn_server * server)
 	{
 		auto conf = server->jsonConfiguration();
 		m_jsonSettings = nlohmann::json::parse(conf.toUtf8());
+		m_originalSettings = m_jsonSettings;
 		if (not m_jsonSettings.is_object())
 			m_jsonSettings = nlohmann::json::object();
 		emitAllChanged();
@@ -513,6 +514,8 @@ bool Settings::can10bit() const
 void Settings::save(wivrn_server * server)
 {
 	server->setJsonConfiguration(QString::fromStdString(m_jsonSettings.dump(2)));
+	if (m_jsonSettings != m_originalSettings)
+		settingsChanged();
 }
 
 void Settings::restore_defaults()

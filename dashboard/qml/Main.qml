@@ -11,10 +11,6 @@ Kirigami.ApplicationWindow {
     id: root
     title: i18n("WiVRn dashboard")
 
-    Settings {
-        id: config
-    }
-
     ConnectUsbDialog {
         id: select_usb_device
     }
@@ -51,11 +47,6 @@ Kirigami.ApplicationWindow {
 
     Connections {
         target: WivrnServer
-        function onCapSysNiceChanged(value) {
-            if (WivrnServer.serverStatus != WivrnServer.Stopped)
-                restart_capsysnice.visible = true;
-        }
-
         function onServerStatusChanged(value) {
             var started = value == WivrnServer.Started;
 
@@ -77,10 +68,6 @@ Kirigami.ApplicationWindow {
         function onPairingEnabledChanged(value) {
             if (switch_pairing.checked != WivrnServer.pairingEnabled)
                 switch_pairing.checked = WivrnServer.pairingEnabled;
-        }
-
-        function onJsonConfigurationChanged() {
-            config.load(WivrnServer);
         }
 
         function onServerError(info) {
@@ -184,6 +171,16 @@ Kirigami.ApplicationWindow {
                                 }
                             }
                         ]
+                        Connections {
+                            target: WivrnServer
+                            function onCapSysNiceChanged(value) {
+                                if (WivrnServer.serverStatus != WivrnServer.Stopped)
+                                restart_capsysnice.visible = true;
+                            }
+                            function onServerStatusChanged(value) {
+                                restart_capsysnice.visible = false;
+                            }
+                        }
                     }
 
                     Kirigami.InlineMessage {
@@ -213,7 +210,7 @@ Kirigami.ApplicationWindow {
                         text: i18n("No OpenVR compatibility detected, Steam games won't be able to load VR.\nInstall xrizer or OpenComposite.")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: WivrnServer.openVRCompat.length == 0 && config.openvr == ""
+                        visible: WivrnServer.openVRCompat.length == 0 && Settings.openvr == ""
                     }
 
                     Kirigami.InlineMessage {
@@ -236,6 +233,37 @@ Kirigami.ApplicationWindow {
                                 onTriggered: Steam.fixFlatpakPerm()
                             }
                         ]
+                    }
+
+                    Kirigami.InlineMessage {
+                        id: config_restart
+                        Layout.fillWidth: true
+                        text: i18n("Restart the server for configuration changes to take effect")
+                        type: Kirigami.MessageType.Information
+                        showCloseButton: true
+                        visible: false
+                        actions: [
+                            Kirigami.Action {
+                                text: i18nc("restart the server", "Restart now")
+                                onTriggered: {
+                                    WivrnServer.restart_server();
+                                    config_restart.visible = false;
+                                }
+                            }
+                        ]
+                        Connections {
+                            target: Settings
+                            function onSettingsChanged() {
+                                if (WivrnServer.sessionRunning)
+                                    config_restart.visible = true;
+                            }
+                        }
+                        Connections {
+                            target: WivrnServer
+                            function onServerStatusChanged(value) {
+                                config_restart.visible = false;
+                            }
+                        }
                     }
 
                     Kirigami.InlineMessage {

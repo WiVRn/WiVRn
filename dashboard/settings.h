@@ -38,7 +38,8 @@ class wivrn_server;
 class Settings : public QObject
 {
 	Q_OBJECT
-	QML_ELEMENT
+	QML_NAMED_ELEMENT(Settings)
+	QML_SINGLETON
 public:
 	enum encoder_name
 	{
@@ -95,6 +96,7 @@ public:
 	SETTER_GETTER_NOTIFY(QString, openvr)
 private:
 	nlohmann::json m_jsonSettings = nlohmann::json::object();
+	nlohmann::json m_originalSettings;
 	void emitAllChanged();
 
 public:
@@ -117,6 +119,9 @@ public:
 	static video_codec codec_id_from_string(std::string_view s);
 	static const std::string & encoder_from_id(encoder_name id);
 	static const std::string & codec_from_id(video_codec id);
+
+Q_SIGNALS:
+	void settingsChanged();
 };
 
 #undef SETTER_GETTER_NOTIFY
