@@ -522,7 +522,7 @@ jobs:
     name: Sync fork downstream
     runs-on: ubuntu-24.04
     needs: [build-linux, build-android]
-    if: ${{ vars.APK_ONLY == '' && github.branch == 'master' }}
+    if: ${{ vars.APK_ONLY == '' && github.ref == 'refs/heads/master' }}
     steps:
       - name: Check for DOWNSTREAM_GITHUB_TOKEN
         id: downstream-secret-check
