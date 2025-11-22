@@ -78,6 +78,8 @@ public:
 
 	void set_frame_duration(uint64_t frame_duration);
 
+	std::pair<int64_t, int64_t> get_display_time_duration();
+
 	void predict(
 	        int64_t & out_frame_id,
 	        int64_t & out_wake_up_time_ns,

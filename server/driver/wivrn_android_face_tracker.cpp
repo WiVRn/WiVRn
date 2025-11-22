@@ -31,9 +31,7 @@
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_results.h"
 
-#include <cmath>
 #include <cstdint>
-#include <cstring>
 
 namespace wivrn
 {
@@ -84,16 +82,15 @@ void wivrn_android_face_tracker::update_tracking(const from_headset::tracking & 
 	        .is_valid = face->is_valid,
 	};
 
-	if (not face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset))
-		cnx.set_enabled(to_headset::tracking_control::id::face, false);
+	face_list.update_tracking(face->sample_time, tracking.timestamp, data, offset);
 }
 
 xrt_result_t wivrn_android_face_tracker::get_face_tracking(enum xrt_input_name facial_expression_type, int64_t at_timestamp_ns, struct xrt_facial_expression_set * inout_value)
 {
 	if (facial_expression_type == XRT_INPUT_ANDROID_FACE_TRACKING)
 	{
-		cnx.set_enabled(to_headset::tracking_control::id::face, true);
-		auto [_, data] = face_list.get_at(at_timestamp_ns);
+		auto [production_timestamp, data] = face_list.get_at(at_timestamp_ns);
+		cnx.add_tracking_request(device_id::FACE, at_timestamp_ns, production_timestamp);
 
 		inout_value->face_expression_set_android.state = data.state;
 		inout_value->face_expression_set_android.is_valid = data.is_valid;

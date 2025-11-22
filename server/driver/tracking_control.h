@@ -1,8 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2024  Guillaume Meunier <guillaume.meunier@centraliens.net>
- * Copyright (C) 2024  Patrick Nicolas <patricknicolas@laposte.net>
- * Copyright (C) 2024  galister <galister@librevr.org>
+ * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,32 +18,33 @@
 
 #pragma once
 
-#include "pose_list.h"
 #include "wivrn_packets.h"
-#include "xrt/xrt_defines.h"
-#include "xrt/xrt_device.h"
-
-#include <cstdint>
 #include <mutex>
 
 namespace wivrn
 {
-class wivrn_session;
-
-class wivrn_eye_tracker : public xrt_device
+class wivrn_connection;
+class tracking_control
 {
+	struct sample
+	{
+		device_id device;
+		XrTime request_time;
+		XrDuration prediction;
+		XrDuration motion_to_photons;
+	};
+
 	std::mutex mutex;
-	xrt_input gaze_input;
-	pose_list gaze;
-	wivrn_session & cnx;
+	std::vector<sample> samples;
+	std::vector<sample> spare;
+	to_headset::tracking_control last_control;
+
+	wivrn_connection & cnx;
 
 public:
-	using base = xrt_device;
-	wivrn_eye_tracker(xrt_device * hmd, wivrn_session &);
+	tracking_control(wivrn_connection & cnx) : cnx(cnx) {}
+	void add_request(device_id device, int64_t now, int64_t at_ns, int64_t produced_ns);
 
-	xrt_result_t update_inputs();
-	void update_tracking(const from_headset::tracking &, const clock_offset &);
-
-	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
+	void resolve(XrTime display_time, XrDuration frame_time, XrDuration latency);
 };
 } // namespace wivrn

@@ -82,6 +82,15 @@ void wivrn_pacer::set_frame_duration(uint64_t frame_duration_ns)
 	this->frame_duration_ns = frame_duration_ns;
 }
 
+std::pair<int64_t, int64_t> wivrn_pacer::get_display_time_duration()
+{
+	std::lock_guard lock(mutex);
+	return {
+	        in_flight_frames[0].predicted_display_time,
+	        frame_duration_ns,
+	};
+}
+
 void wivrn_pacer::predict(
         int64_t & frame_id,
         int64_t & out_wake_up_time_ns,

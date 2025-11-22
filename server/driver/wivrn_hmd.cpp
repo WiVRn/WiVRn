@@ -131,7 +131,7 @@ xrt_result_t wivrn_hmd::get_tracked_pose(xrt_input_name name, int64_t at_timesta
 
 	auto [production_timestamp, view] = views.get_at(at_timestamp_ns);
 	*res = view.relation;
-	cnx->add_predict_offset(std::chrono::nanoseconds(at_timestamp_ns - production_timestamp));
+	cnx->add_tracking_request(device_id::HEAD, at_timestamp_ns, production_timestamp);
 	return XRT_SUCCESS;
 }
 
@@ -143,7 +143,6 @@ void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const c
 void wivrn_hmd::update_battery(const from_headset::battery & new_battery)
 {
 	// We will only request a new sample if the current one is consumed
-	cnx->set_enabled(to_headset::tracking_control::id::battery, false);
 	std::lock_guard lock(mutex);
 	battery = new_battery;
 }
@@ -164,7 +163,7 @@ xrt_result_t wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
                                        xrt_pose * out_poses)
 {
 	auto [production_timestamp, view] = views.get_at(at_timestamp_ns);
-	cnx->add_predict_offset(std::chrono::nanoseconds(at_timestamp_ns - production_timestamp));
+	cnx->add_tracking_request(device_id::HEAD, at_timestamp_ns, production_timestamp);
 
 	int flags = view.relation.relation_flags;
 
@@ -196,8 +195,6 @@ xrt_result_t wivrn_hmd::get_battery_status(bool * out_present,
                                            bool * out_charging,
                                            float * out_charge)
 {
-	cnx->set_enabled(to_headset::tracking_control::id::battery, true);
-
 	std::lock_guard lock(mutex);
 	*out_present = battery.present;
 	*out_charging = battery.charging;

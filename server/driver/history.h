@@ -79,7 +79,7 @@ protected:
 	}
 
 public:
-	std::pair<std::chrono::nanoseconds, Data> get_at(XrTime at_timestamp_ns)
+	std::pair<XrTime, Data> get_at(XrTime at_timestamp_ns)
 	{
 		std::lock_guard lock(mutex);
 
@@ -110,24 +110,22 @@ public:
 		if (before)
 			produced = std::max(produced, before->produced_timestamp);
 
-		std::chrono::nanoseconds ex(std::max<XrDuration>(0, at_timestamp_ns - produced));
-
 		if (before and after)
 		{
 			float t = float(after->at_timestamp_ns - at_timestamp_ns) /
 			          (after->at_timestamp_ns - before->at_timestamp_ns);
-			return {ex, Derived::interpolate(*before, *after, t)};
+			return {produced, Derived::interpolate(*before, *after, t)};
 		}
 
 		if (before)
 		{
 			if (at_timestamp_ns > before->at_timestamp_ns + U_TIME_1S_IN_NS)
 				return {};
-			return {ex, *before};
+			return {produced, *before};
 		}
 
 		if (after)
-			return {ex, *after};
+			return {produced, *after};
 
 		return {};
 	}

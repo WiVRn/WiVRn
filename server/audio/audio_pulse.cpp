@@ -426,7 +426,7 @@ struct pulse_device : public audio_device
 			if (not mic_pipe)
 				throw std::system_error(errno, std::system_category(), "failed to open mic pipe " + microphone->socket.string());
 			mic_thread = std::thread([this]() { run_mic(); });
-			session.set_enabled(to_headset::tracking_control::id::microphone, true);
+			session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, true});
 		}
 
 		if (info.speaker)
