@@ -76,6 +76,7 @@ public:
 	wivrn_pacer(uint64_t frame_duration);
 	~wivrn_pacer();
 
+	uint64_t get_frame_duration();
 	void set_frame_duration(uint64_t frame_duration);
 
 	void predict(

@@ -30,16 +30,18 @@
 
 namespace wivrn
 {
+class wivrn_session;
 
 class wivrn_eye_tracker : public xrt_device
 {
 	std::mutex mutex;
 	xrt_input gaze_input;
 	pose_list gaze;
+	wivrn_session & cnx;
 
 public:
 	using base = xrt_device;
-	wivrn_eye_tracker(xrt_device * hmd);
+	wivrn_eye_tracker(xrt_device * hmd, wivrn_session &);
 
 	xrt_result_t update_inputs();
 	void update_tracking(const from_headset::tracking &, const clock_offset &);

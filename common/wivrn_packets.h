@@ -129,6 +129,10 @@ enum class device_id : uint8_t
 	RIGHT_GRASP_VALUE,        // /user/hand/right/input/grasp_ext/value
 	RIGHT_GRASP_READY,        // /user/hand/right/input/grasp_ext/ready_ext
 	EYE_GAZE,                 // /user/eyes_ext/input/gaze_ext/pose
+	LEFT_HAND,                // identify hand tracking
+	RIGHT_HAND,               // identify hand tracking
+	BODY,                     // identify body tracking
+	FACE,                     // identify face tracking
 };
 
 enum class interaction_profile : uint8_t
@@ -300,6 +304,9 @@ struct tracking
 		XrFovf fov;
 	};
 
+	// /user/hand/left and /user/hand/right
+	std::array<interaction_profile, 2> interaction_profiles;
+
 	XrTime production_timestamp;
 	XrTime timestamp;
 	XrViewStateFlags view_flags;
@@ -321,6 +328,7 @@ struct tracking
 
 	struct fb_face2
 	{
+		XrTime timestamp;
 		std::array<float, XR_FACE_EXPRESSION2_COUNT_FB> weights;
 		std::array<float, XR_FACE_CONFIDENCE2_COUNT_FB> confidences;
 		bool is_valid;
@@ -330,6 +338,7 @@ struct tracking
 
 	struct htc_face
 	{
+		XrTime timestamp;
 		XrTime eye_sample_time;
 		XrTime lip_sample_time;
 		std::array<float, XR_FACIAL_EXPRESSION_EYE_COUNT_HTC> eye;
@@ -339,13 +348,6 @@ struct tracking
 	};
 
 	std::variant<std::monostate, android_face, fb_face2, htc_face> face;
-};
-
-struct trackings
-{
-	// /user/hand/left and /user/hand/right
-	std::array<interaction_profile, 2> interaction_profiles;
-	std::vector<tracking> items;
 };
 
 struct derived_pose
@@ -555,7 +557,6 @@ using packets = std::variant<
         audio_data,
         handshake,
         tracking,
-        trackings,
         derived_pose,
         hand_tracking,
         body_tracking,
@@ -705,31 +706,25 @@ struct timesync_query
 
 struct tracking_control
 {
-	enum class id
+	struct sample
 	{
-		left_aim,
-		left_grip,
-		left_palm,
-		left_pinch,
-		left_poke,
-		right_aim,
-		right_grip,
-		right_palm,
-		right_pinch,
-		right_poke,
-		left_hand,
-		right_hand,
-		face,
-		generic_tracker,
-		hid_input,
-		battery,
-		microphone,
-
-		last = microphone,
+		device_id device;
+		XrDuration prediction_ns;
 	};
-	std::chrono::nanoseconds min_offset;
-	std::chrono::nanoseconds max_offset;
-	std::array<bool, size_t(id::last) + 1> enabled;
+
+	std::vector<sample> pattern;
+	XrDuration motions_to_photons;
+};
+
+struct feature_control
+{
+	enum feature
+	{
+		hid_input,
+		microphone,
+	};
+	feature f;
+	bool state;
 };
 
 struct refresh_rate_change
@@ -780,6 +775,7 @@ using packets = std::variant<
         haptics,
         timesync_query,
         tracking_control,
+        feature_control,
         refresh_rate_change,
         application_list,
         application_icon,
