@@ -59,6 +59,19 @@ void scenes::stream::operator()(to_headset::video_stream_data_shard && shard)
 	decoders[idx].decoder->push_shard(std::move(shard));
 }
 
+void scenes::stream::operator()(to_headset::feature_control && control)
+{
+	switch (control.f)
+	{
+		case wivrn::to_headset::feature_control::hid_input:
+			hid_forwarding = control.state;
+			return;
+		case wivrn::to_headset::feature_control::microphone:
+			if (audio_handle)
+				audio_handle->set_mic_state(control.state);
+			return;
+	}
+}
 void scenes::stream::operator()(to_headset::audio_stream_description && desc)
 {
 	audio_handle.emplace(desc, *network_session, instance);

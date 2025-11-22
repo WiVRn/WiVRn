@@ -338,13 +338,10 @@ void scenes::stream::gui_performance_metrics()
 
 	ImPlot::PopStyleColor(5);
 	{
-		ImGui::Text(
-		        "%s",
+		ImGui::TextUnformatted(
 		        fmt::format(
 		                _F("Estimated motion to photons latency: {}ms"),
-		                std::chrono::duration_cast<std::chrono::milliseconds>(
-		                        tracking_control.lock()->max_offset)
-		                        .count())
+		                tracking_control.lock()->motions_to_photons / 1'000'000)
 		                .c_str());
 
 		if (is_gui_interactable())
@@ -373,10 +370,7 @@ void scenes::stream::gui_compact_view()
 		f(_S("CPU time"), compact_cpu_time * 1000, "ms");
 		f(_S("GPU time"), compact_gpu_time * 1000, "ms");
 		f(_S("Motion to photon latency"),
-		  std::chrono::duration_cast<std::chrono::microseconds>(
-		          tracking_control.lock()->max_offset)
-		                  .count() *
-		          1e-3f,
+		  tracking_control.lock()->motions_to_photons / 1'000'000.f,
 		  "ms");
 		ImGui::EndTable();
 	}

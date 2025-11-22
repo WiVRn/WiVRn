@@ -21,21 +21,20 @@
 #include "wivrn_eye_tracker.h"
 
 #include "wivrn_packets.h"
+#include "wivrn_session.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
 
 #include "util/u_logging.h"
 #include "utils/method.h"
 
-#include <cmath>
 #include <cstdint>
-#include <cstring>
 #include <openxr/openxr.h>
 
 namespace wivrn
 {
 
-wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd) :
+wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd, wivrn_session & cnx) :
         xrt_device{
                 .name = XRT_DEVICE_EYE_GAZE_INTERACTION,
                 .device_type = XRT_DEVICE_TYPE_EYE_TRACKER,
@@ -55,7 +54,8 @@ wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd) :
                 .active = true,
                 .name = XRT_INPUT_GENERIC_EYE_GAZE_POSE,
         },
-        gaze(device_id::EYE_GAZE)
+        gaze(device_id::EYE_GAZE),
+        cnx(cnx)
 {
 }
 
@@ -68,8 +68,9 @@ xrt_result_t wivrn_eye_tracker::get_tracked_pose(xrt_input_name name, int64_t at
 {
 	if (name == XRT_INPUT_GENERIC_EYE_GAZE_POSE)
 	{
-		auto [_, relation] = gaze.get_at(at_timestamp_ns);
+		auto [production_timestamp, relation] = gaze.get_at(at_timestamp_ns);
 		*out_relation = relation;
+		cnx.add_tracking_request(device_id::EYE_GAZE, at_timestamp_ns, production_timestamp);
 		return XRT_SUCCESS;
 	}
 

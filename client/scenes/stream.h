@@ -200,6 +200,7 @@ public:
 	void operator()(to_headset::haptics &&);
 	void operator()(to_headset::timesync_query &&);
 	void operator()(to_headset::tracking_control &&);
+	void operator()(to_headset::feature_control &&);
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(to_headset::refresh_rate_change &&);

@@ -354,10 +354,10 @@ void pipewire_device::mic_state_changed(void * self_v, pw_stream_state old, pw_s
 		case PW_STREAM_STATE_UNCONNECTED:
 		case PW_STREAM_STATE_CONNECTING:
 		case PW_STREAM_STATE_PAUSED:
-			self->session.set_enabled(to_headset::tracking_control::id::microphone, false);
+			self->session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, false});
 			return;
 		case PW_STREAM_STATE_STREAMING:
-			self->session.set_enabled(to_headset::tracking_control::id::microphone, true);
+			self->session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, true});
 			return;
 	}
 }

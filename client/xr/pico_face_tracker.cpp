@@ -56,6 +56,7 @@ struct xr::pico_face_tracker::impl
 
 	void get_weights(XrTime time, wivrn::from_headset::tracking::fb_face2 & out_expressions)
 	{
+		out_expressions.timestamp = time;
 		out_expressions.is_valid = false;
 		out_expressions.is_eye_following_blendshapes_valid = false;
 
