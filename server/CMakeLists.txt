@@ -1,5 +1,6 @@
 
 set(XRT_BUILD_DRIVER_ARDUINO            OFF)
+set(XRT_BUILD_DRIVER_BLUBUR_S1          OFF)
 set(XRT_BUILD_DRIVER_DAYDREAM           OFF)
 set(XRT_BUILD_DRIVER_EUROC              OFF)
 set(XRT_BUILD_DRIVER_HDK                OFF)
