@@ -187,7 +187,7 @@ configuration::configuration(xr::system & system)
 		servers.clear();
 		preferred_refresh_rate.reset();
 		minimum_refresh_rate.reset();
-		resolution_scale = 1.4;
+		resolution_scale = 1.0;
 		openxr_post_processing = {};
 		passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	}

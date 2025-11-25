@@ -49,7 +49,7 @@ public:
 	std::map<std::string, server_data> servers;
 	std::optional<float> preferred_refresh_rate;
 	std::optional<float> minimum_refresh_rate;
-	float resolution_scale = 1.4;
+	float resolution_scale = 1.0;
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
 
