@@ -205,6 +205,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	config.rcParams = get_rc_params(bitrate, fps);
 	config.rcParams.enableAQ = 1;
 	config.rcParams.zeroReorderDelay = 1;
+	config.rcParams.enableNonRefP = 1;
 
 	config.gopLength = NVENC_INFINITE_GOPLENGTH;
 	config.frameIntervalP = 1;
