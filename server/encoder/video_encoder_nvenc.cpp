@@ -289,7 +289,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .darWidth = settings.video_width,
 	        .darHeight = settings.video_height,
 	        .enableEncodeAsync = 0,
-	        .enablePTD = 1,
+	        .enablePTD = 0,
 	        .encodeConfig = &config,
 	        .tuningInfo = tuningInfo};
 
@@ -499,6 +499,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 			frame_params.pictureType = NV_ENC_PIC_TYPE_IDR;
 			break;
 		case default_idr_handler::frame_type::p:
+			frame_params.pictureType = NV_ENC_PIC_TYPE_P;
 			break;
 		case default_idr_handler::frame_type::non_ref_p:
 			frame_params.pictureType = NV_ENC_PIC_TYPE_NONREF_P;
