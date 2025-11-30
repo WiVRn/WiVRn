@@ -30,14 +30,14 @@ layout(location = 0) out vec4 out_color;
 
 void main()
 {
-    vec4 albedo = material.base_color_factor * texture(base_color_texture, texcoord[0]);
-    vec3 emissive_color = (material.base_emissive_factor * texture(emissive_texture, texcoord[0])).rgb;
+    vec4 albedo = material.base_color_factor * texture(base_color_texture, texcoord_base_color);
+    vec3 emissive_color = (material.base_emissive_factor * texture(emissive_texture, texcoord_emissive)).rgb;
 
     vec3 normal_unit;
 
     if (use_normal_maps)
     {
-        vec3 sampled_normal = normalize(vec3(material.normal_scale, material.normal_scale, 1) * (texture(normal_map_texture, texcoord[0]).xyz * 2 - 1));
+        vec3 sampled_normal = normalize(vec3(material.normal_scale, material.normal_scale, 1) * (texture(normal_map_texture, texcoord_normal).xyz * 2 - 1));
 
         // glTF spec §3.7.2.1
         vec3 bitangent = cross(normal, tangent.xyz) * tangent.w;
@@ -54,8 +54,8 @@ void main()
 
     if (use_pbr)
     {
-        float ao = 1 + material.occlusion_strength * (texture(occlusion_texture, texcoord[0]).r - 1);
-        vec4 mr = texture(metallic_roughness_texture, texcoord[0]);
+        float ao = 1 + material.occlusion_strength * (texture(occlusion_texture, texcoord_occlusion).r - 1);
+        vec4 mr = texture(metallic_roughness_texture, texcoord_metallic_roughness);
 
         vec3 half_vec = normalize(light_dir + view_dir);
 
@@ -65,8 +65,8 @@ void main()
         vec3 light_colour = scene.light_color.rgb;
         float attenuation = 1;
         vec3 radiance =
-            per_light_radiance(albedo.rgb, metallic, roughness, light_colour, light_dir, normal_unit, view_dir, half_vec, attenuation) +
-                vec3(scene.ambient_color) * albedo.rgb * ao;
+        per_light_radiance(albedo.rgb, metallic, roughness, light_colour, light_dir, normal_unit, view_dir, half_vec, attenuation) +
+        vec3(scene.ambient_color) * albedo.rgb * ao;
 
         vec3 tmp = radiance + emissive_color;
 

@@ -41,9 +41,11 @@ out gl_PerVertex
 
 void main()
 {
-    // TODO use base_color_texcoord et al instead of always using texcoord 0
-    // TODO use the correct transform
-    texcoord[0] = compute_texcoord(material.base_color, in_texcoord[material.base_color.texcoord]);
+    texcoord_base_color = compute_texcoord(material.base_color, in_texcoord[material.base_color.texcoord]);
+    texcoord_metallic_roughness = compute_texcoord(material.metallic_roughness, in_texcoord[material.metallic_roughness.texcoord]);
+    texcoord_occlusion = compute_texcoord(material.occlusion, in_texcoord[material.occlusion.texcoord]);
+    texcoord_emissive = compute_texcoord(material.emissive, in_texcoord[material.emissive.texcoord]);
+    texcoord_normal = compute_texcoord(material.normal, in_texcoord[material.normal.texcoord]);
 
     mat4 skinMatrix =
         in_weights.x * joints.joint_matrices[int(in_joints.x)] +
