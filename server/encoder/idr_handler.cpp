@@ -21,7 +21,6 @@
 #include "util/u_logging.h"
 #include "utils/overloaded.h"
 
-
 namespace wivrn
 {
 idr_handler::~idr_handler() = default;
