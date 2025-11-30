@@ -21,6 +21,7 @@
 #include "util/u_logging.h"
 #include "utils/overloaded.h"
 
+
 namespace wivrn
 {
 idr_handler::~idr_handler() = default;
@@ -53,12 +54,30 @@ void default_idr_handler::reset()
 	state = need_idr{};
 }
 
+void default_idr_handler::set_framerate(float new_framerate)
+{
+	std::unique_lock lock(mutex);
+	if (new_framerate > 0.f)
+		framerate = new_framerate;
+	wait_window = static_cast<uint64_t>(framerate * 2);
+	if (wait_window == 0)
+		wait_window = 1;
+}
+
+void default_idr_handler::set_allow_non_ref_p(bool allow)
+{
+	std::unique_lock lock(mutex);
+	allow_non_ref_p = allow;
+}
+
 bool default_idr_handler::should_skip(uint64_t frame_id)
 {
 	std::unique_lock lock(mutex);
 	return std::visit(utils::overloaded{
 	                          [this, frame_id](wait_idr_feedback w) {
-		                          if (frame_id > w.idr_id + 100)
+		                          if (allow_non_ref_p)
+			                          return false;
+		                          if (frame_id > w.idr_id + wait_window)
 		                          {
 			                          state = need_idr{};
 			                          return false;
@@ -83,6 +102,11 @@ default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_ind
 	                          },
 	                          [this, frame_index](idr_received) {
 		                          state = running{frame_index};
+		                          return frame_type::p;
+	                          },
+	                          [this](wait_idr_feedback) {
+		                          if (allow_non_ref_p)
+			                          return frame_type::non_ref_p;
 		                          return frame_type::p;
 	                          },
 	                          [](auto) {

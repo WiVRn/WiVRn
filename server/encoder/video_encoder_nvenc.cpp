@@ -157,6 +157,8 @@ video_encoder_nvenc::video_encoder_nvenc(
         fps(fps),
         bitrate(settings.bitrate)
 {
+	idr->set_framerate(fps);
+	((default_idr_handler &)*idr).set_allow_non_ref_p(true);
 	if (settings.bit_depth != 8 && settings.bit_depth != 10)
 		throw std::runtime_error("nvenc encoder only supports 8-bit and 10-bit encoding");
 
@@ -496,6 +498,9 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 			frame_params.encodePicFlags |= NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
 			break;
 		case default_idr_handler::frame_type::p:
+			break;
+		case default_idr_handler::frame_type::non_ref_p:
+			frame_params.pictureType = NV_ENC_PIC_TYPE_NONREF_P;
 			break;
 	}
 	NVENC_CHECK(shared_state->fn.nvEncEncodePicture(session_handle, &frame_params));

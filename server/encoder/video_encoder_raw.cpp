@@ -28,6 +28,7 @@ class dummy_idr_handler : public wivrn::idr_handler
 public:
 	void on_feedback(const wivrn::from_headset::feedback &) override {};
 	void reset() override {};
+	void set_framerate(float) override {};
 	bool should_skip(uint64_t frame_id) override
 	{
 		return false;
