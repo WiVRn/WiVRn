@@ -138,7 +138,7 @@ NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(uint64_t bitrate, float fram
 	        .maxBitRate = static_cast<uint32_t>(bitrate),
 	        .vbvBufferSize = static_cast<uint32_t>(bitrate),
 	        .vbvInitialDelay = static_cast<uint32_t>(bitrate / 2),
-	        .multiPass = NV_ENC_MULTI_PASS_DISABLED};
+	        .multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION};
 }
 
 void video_encoder_nvenc::set_init_params_fps(float framerate)
