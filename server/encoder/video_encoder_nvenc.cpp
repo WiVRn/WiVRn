@@ -521,7 +521,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 		        if (status != NV_ENC_SUCCESS)
 			        U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle));
 	        }),
-	        .prefer_control = frame_type == default_idr_handler::frame_type::i,
+	        .prefer_control = frame_type == default_idr_handler::frame_type::i || frame_type == default_idr_handler::frame_type::non_ref_p,
 	};
 }
 
