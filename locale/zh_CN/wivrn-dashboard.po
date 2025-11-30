@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-21 05:41+0800\n"
-"PO-Revision-Date: 2025-11-29 23:03+0800\n"
+"PO-Revision-Date: 2025-11-30 17:31+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -315,13 +315,13 @@ msgstr "开启服务器日志"
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
-msgstr "运行中"
+msgstr "运行"
 
 #: dashboard/qml/Main.qml:279
 #, kde-format
 msgctxt "whether pairing is enabled, displayed in front of a checkbox"
 msgid "Pairing"
-msgstr "配对中"
+msgstr "配对"
 
 #: dashboard/qml/Main.qml:292
 #, kde-format
@@ -586,12 +586,12 @@ msgstr ""
 #: dashboard/qml/SettingsPage.qml:259
 #, kde-format
 msgid "Custom adb location"
-msgstr "自定义 adb 位置"
+msgstr "自定义 adb 路径"
 
 #: dashboard/qml/SettingsPage.qml:270
 #, kde-format
 msgid "Adb location:"
-msgstr "adb 位置："
+msgstr "adb 路径："
 
 #: dashboard/qml/SettingsPage.qml:279
 #, kde-format
@@ -875,7 +875,7 @@ msgstr "重要信息"
 msgid ""
 "WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is "
 "running."
-msgstr "WiVRn 完全取代了 SteamVR，在 WiVRn 运行时，請勿啟動 SteamVR"
+msgstr "WiVRn 完全取代了 SteamVR，在 WiVRn 运行时，请勿启动 SteamVR"
 
 #: dashboard/qml/WizardPage.qml:359
 #, kde-format
