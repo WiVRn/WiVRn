@@ -34,14 +34,15 @@ layout(location = 5) in vec4 in_color;
 out gl_PerVertex
 {
     vec4 gl_Position;
-    	float gl_ClipDistance[nb_clipping];
+    float gl_ClipDistance[nb_clipping];
 };
 
 void main()
 {
-    // TODO: use base_color_texcoord et al instead of always using texcoord 0
-    for (int i = 0; i < nb_texcoords; i++)
-        texcoord[i] = in_texcoord[i];
+    // TODO use base_color_texcoord et al instead of always using texcoord 0
+    // TODO use the correct transform
+    texcoord[0] = compute_texcoord(material.base_color, in_texcoord[material.base_color.texcoord]);
+
 
     // TODO on CPU?
     mat3 mv = inverse(transpose(mat3(mesh.modelview[gl_ViewIndex])));
@@ -57,8 +58,8 @@ void main()
     frag_pos = mesh.modelview[gl_ViewIndex] * vec4(in_position, 1.0);
     light_pos = scene.view[gl_ViewIndex] * scene.light_position;
 
-    for(int i = 0; i < nb_clipping; i++)
+    for (int i = 0; i < nb_clipping; i++)
     {
-            gl_ClipDistance[i] = dot(mesh.clipping_plane[i], mesh.model * vec4(in_position, 1.0));
+        gl_ClipDistance[i] = dot(mesh.clipping_plane[i], mesh.model * vec4(in_position, 1.0));
     }
 }

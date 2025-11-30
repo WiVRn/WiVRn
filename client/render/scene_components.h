@@ -55,6 +55,14 @@ struct texture
 
 struct material
 {
+	struct alignas(16) texture_info
+	{
+		alignas(4) uint32_t texcoord = 0;
+		alignas(4) float rotation = 0;
+		alignas(8) glm::vec2 offset = {0, 0};
+		alignas(8) glm::vec2 scale = {1, 1};
+	};
+
 	struct gpu_data
 	{
 		glm::vec4 base_color_factor = glm::vec4(1, 1, 1, 1);
@@ -65,13 +73,11 @@ struct material
 		float normal_scale = 1;
 		float alpha_cutoff = 0.5;
 
-		uint32_t base_color_texcoord = 0;
-		uint32_t metallic_roughness_texcoord = 0;
-		uint32_t occlusion_texcoord = 0;
-		uint32_t emissive_texcoord = 0;
-		uint32_t normal_texcoord = 0;
-
-		// TODO: add fastgltf::TextureTransform?
+		texture_info base_color;
+		texture_info metallic_roughness;
+		texture_info occlusion;
+		texture_info emissive;
+		texture_info normal;
 	};
 
 	std::shared_ptr<texture> base_color_texture;

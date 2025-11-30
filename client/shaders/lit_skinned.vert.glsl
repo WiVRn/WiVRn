@@ -36,14 +36,14 @@ layout(location = 7) in vec4 in_weights;
 out gl_PerVertex
 {
     vec4 gl_Position;
-    	float gl_ClipDistance[nb_clipping];
+    float gl_ClipDistance[nb_clipping];
 };
 
 void main()
 {
-    // TODO: use base_color_texcoord et al instead of always using texcoord 0
-    for (int i = 0; i < nb_texcoords; i++)
-        texcoord[i] = in_texcoord[i];
+    // TODO use base_color_texcoord et al instead of always using texcoord 0
+    // TODO use the correct transform
+    texcoord[0] = compute_texcoord(material.base_color, in_texcoord[material.base_color.texcoord]);
 
     mat4 skinMatrix =
         in_weights.x * joints.joint_matrices[int(in_joints.x)] +

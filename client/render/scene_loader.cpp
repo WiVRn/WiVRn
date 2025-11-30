@@ -168,6 +168,11 @@ glm::vec3 convert(const fastgltf::math::nvec3 & v)
 	return {v[0], v[1], v[2]};
 }
 
+glm::vec2 convert(const fastgltf::math::nvec2 & v)
+{
+	return {v[0], v[1]};
+}
+
 components::animation_track_base::interpolation_t convert(fastgltf::AnimationInterpolation interpolation)
 {
 	switch (interpolation)
@@ -443,7 +448,9 @@ struct : std::error_category
 
 fastgltf::Asset load_gltf_asset(fastgltf::GltfDataBuffer & buffer, const std::filesystem::path & directory)
 {
-	fastgltf::Parser parser(fastgltf::Extensions::KHR_texture_basisu);
+	fastgltf::Parser parser(
+	        fastgltf::Extensions::KHR_texture_basisu |
+	        fastgltf::Extensions::KHR_texture_transform);
 
 	auto gltf_options =
 	        fastgltf::Options::DontRequireValidAssetMember |
@@ -752,37 +759,37 @@ public:
 			material_data.roughness_factor = gltf_material.pbrData.roughnessFactor;
 			material_data.alpha_cutoff = gltf_material.alphaCutoff;
 
-			if (gltf_material.pbrData.baseColorTexture)
-			{
-				material.base_color_texture = textures.at(gltf_material.pbrData.baseColorTexture->textureIndex);
-				material_data.base_color_texcoord = gltf_material.pbrData.baseColorTexture->texCoordIndex;
-			}
+			auto f = [&](const auto & texture_info,
+			             std::shared_ptr<renderer::texture> & texture,
+			             renderer::material::texture_info & info) {
+				if (not texture_info)
+					return;
 
-			if (gltf_material.pbrData.metallicRoughnessTexture)
-			{
-				material.metallic_roughness_texture = textures.at(gltf_material.pbrData.metallicRoughnessTexture->textureIndex);
-				material_data.metallic_roughness_texcoord = gltf_material.pbrData.metallicRoughnessTexture->texCoordIndex;
-			}
+				texture = textures.at(texture_info->textureIndex);
+				info.texcoord = texture_info->texCoordIndex;
+
+				if (auto & xform = texture_info->transform)
+				{
+					if (xform->texCoordIndex)
+						info.texcoord = *xform->texCoordIndex;
+
+					info.rotation = xform->rotation;
+					info.offset = convert(xform->uvOffset);
+					info.scale = convert(xform->uvScale);
+				}
+			};
+
+			f(gltf_material.pbrData.baseColorTexture, material.base_color_texture, material_data.base_color);
+			f(gltf_material.pbrData.metallicRoughnessTexture, material.metallic_roughness_texture, material_data.metallic_roughness);
+			f(gltf_material.occlusionTexture, material.occlusion_texture, material_data.occlusion);
+			f(gltf_material.emissiveTexture, material.emissive_texture, material_data.emissive);
+			f(gltf_material.normalTexture, material.normal_texture, material_data.normal);
 
 			if (gltf_material.occlusionTexture)
-			{
-				material.occlusion_texture = textures.at(gltf_material.occlusionTexture->textureIndex);
-				material_data.occlusion_texcoord = gltf_material.occlusionTexture->texCoordIndex;
 				material_data.occlusion_strength = gltf_material.occlusionTexture->strength;
-			}
-
-			if (gltf_material.emissiveTexture)
-			{
-				material.emissive_texture = textures.at(gltf_material.emissiveTexture->textureIndex);
-				material_data.emissive_texcoord = gltf_material.emissiveTexture->texCoordIndex;
-			}
 
 			if (gltf_material.normalTexture)
-			{
-				material.normal_texture = textures.at(gltf_material.normalTexture->textureIndex);
-				material_data.normal_texcoord = gltf_material.normalTexture->texCoordIndex;
 				material_data.normal_scale = gltf_material.normalTexture->scale;
-			}
 
 			material.offset = staging_buffer.add_uniform(material_data);
 		}

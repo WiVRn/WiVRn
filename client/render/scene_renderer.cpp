@@ -261,7 +261,7 @@ static std::array layout_bindings_0{
                 .binding = 8,
                 .descriptorType = vk::DescriptorType::eUniformBuffer,
                 .descriptorCount = 1,
-                .stageFlags = vk::ShaderStageFlagBits::eFragment,
+                .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
         },
 };
 
