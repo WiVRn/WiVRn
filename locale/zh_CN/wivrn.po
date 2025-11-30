@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-18 04:03+0800\n"
-"PO-Revision-Date: 2025-11-19 14:17+0800\n"
+"PO-Revision-Date: 2025-11-30 17:24+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -79,17 +79,17 @@ msgstr "默认环境"
 #: client/scenes/lobby_gui.cpp:99
 msgctxt "openxr_post_processing"
 msgid "Normal"
-msgstr "正常"
+msgstr "常规"
 
 #: client/scenes/lobby_gui.cpp:102
 msgctxt "openxr_post_processing"
 msgid "Quality"
-msgstr "画质"
+msgstr "高画质"
 
 #: client/scenes/lobby_gui.cpp:104
 msgctxt "openxr_post_processing"
 msgid "Disabled"
-msgstr "已停用"
+msgstr "停用"
 
 #: client/scenes/lobby_gui.cpp:112 client/scenes/lobby_gui.cpp:256
 #: client/scenes/stream_gui.cpp:967
@@ -117,7 +117,7 @@ msgstr "身份识别码"
 
 #: client/scenes/lobby_gui.cpp:192
 msgid "Input the PIN displayed on the dashboard"
-msgstr "请输入控制面板上显示的身份识别码"
+msgstr "请输入显示在控制面板上的身份识别码"
 
 #: client/scenes/lobby_gui.cpp:282
 msgid "Name"
@@ -323,7 +323,7 @@ msgid ""
 "Useful when the input resolution is high compared to the headset display"
 msgstr ""
 "减少高对比度边缘的闪烁。\n"
-"当输入分辨率高于头显原生分辨率时很有用"
+"当串流分辨率高于头显原生分辨率时很有用"
 
 #: client/scenes/lobby_gui.cpp:834 client/scenes/stream_gui.cpp:493
 msgid "Sharpening"
@@ -335,7 +335,7 @@ msgid ""
 "Useful when the input resolution is low compared to the headset display"
 msgstr ""
 "改善高对比边缘的清晰度并抵消模糊。\n"
-"当输入分辨率低于头显原生分辨率时很有用"
+"当串流分辨率低于头显原生分辨率时很有用"
 
 #: client/scenes/lobby_gui.cpp:1038 client/scenes/lobby_gui.cpp:1046
 #: client/scenes/stream_gui.cpp:172 client/scenes/stream_gui.cpp:374
@@ -503,7 +503,7 @@ msgid ""
 "Curl error when downloading {}\n"
 "{}: {}"
 msgstr ""
-"Curl 下载时发生错误 {}\n"
+"通过 Curl 下载时发生了错误 {}\n"
 "{}：{}"
 
 #: client/scenes/lobby_gui_customize.cpp:552
@@ -546,7 +546,7 @@ msgstr "网络"
 
 #: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:372
 msgid "Download"
-msgstr "下載"
+msgstr "下载"
 
 #: client/scenes/stream_gui.cpp:178 client/scenes/stream_gui.cpp:373
 msgid "Upload"
@@ -592,7 +592,7 @@ msgstr "已预测"
 #: client/scenes/stream_gui.cpp:345
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
-msgstr "预计运动到光子延迟: {}毫秒"
+msgstr "估计从运动到显示延迟: {}ms"
 
 #: client/scenes/stream_gui.cpp:352
 msgid "Press the grip button to move the window"
@@ -617,12 +617,12 @@ msgstr "启用"
 #: client/scenes/stream_gui.cpp:532 client/scenes/stream_gui.cpp:579
 #, c++-format
 msgid "Height {:.1f} deg"
-msgstr "高度 {:.1f} 度"
+msgstr "俯仰 {:.1f}°"
 
 #: client/scenes/stream_gui.cpp:533 client/scenes/stream_gui.cpp:580
 #, c++-format
 msgid "Distance {:.2f} m"
-msgstr "距离 {:.2f} 米"
+msgstr "距离 {:.2f}m"
 
 #: client/scenes/stream_gui.cpp:534
 msgid "Default"
