@@ -18,10 +18,12 @@
 
 #include "scene_loader.h"
 
+#include "application.h"
 #include "gpu_buffer.h"
 #include "image_loader.h"
 #include "render/scene_components.h"
 #include "render/vertex_layout.h"
+#include "utils/contains.h"
 #include "utils/files.h"
 #include "utils/json_string.h"
 #include "utils/mapped_file.h"
@@ -808,30 +810,8 @@ public:
 					fastgltf::Accessor & indices_accessor = gltf.accessors.at(*gltf_primitive.indicesAccessor);
 
 					primitive_ref.indexed = true;
-					primitive_ref.index_offset = staging_buffer.add_indices(indices_accessor);
+					std::tie(primitive_ref.index_offset, primitive_ref.index_type) = staging_buffer.add_indices(indices_accessor);
 					primitive_ref.index_count = indices_accessor.count;
-
-					switch (indices_accessor.componentType)
-					{
-						case fastgltf::ComponentType::Byte:
-						case fastgltf::ComponentType::UnsignedByte:
-							primitive_ref.index_type = vk::IndexType::eUint8EXT;
-							break;
-
-						case fastgltf::ComponentType::Short:
-						case fastgltf::ComponentType::UnsignedShort:
-							primitive_ref.index_type = vk::IndexType::eUint16;
-							break;
-
-						case fastgltf::ComponentType::Int:
-						case fastgltf::ComponentType::UnsignedInt:
-							primitive_ref.index_type = vk::IndexType::eUint32;
-							break;
-
-						default:
-							throw std::runtime_error("Invalid index type");
-							break;
-					}
 				}
 				else
 					primitive_ref.indexed = false;
@@ -1089,8 +1069,6 @@ std::shared_ptr<entt::registry> scene_loader::operator()(
         const std::filesystem::path & gltf_texture_cache,
         std::function<void(float)> progress_cb)
 {
-	vk::PhysicalDeviceProperties physical_device_properties = physical_device.getProperties();
-
 	auto data_buffer = fastgltf::GltfDataBuffer::FromBytes(data.data(), data.size());
 	if (auto error = data_buffer.error(); error != fastgltf::Error::None)
 		throw std::system_error((int)error, fastgltf_error_category);
@@ -1108,7 +1086,7 @@ std::shared_ptr<entt::registry> scene_loader::operator()(
 	// Load all buffers from URIs
 	ctx.load_all_buffers();
 
-	gpu_buffer staging_buffer(physical_device_properties, asset);
+	gpu_buffer staging_buffer(physical_device, asset);
 
 	// Load all textures
 	auto textures = ctx.load_all_textures(gltf_texture_cache, progress_cb);
