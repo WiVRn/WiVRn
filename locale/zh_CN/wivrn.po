@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-18 04:03+0800\n"
-"PO-Revision-Date: 2025-11-19 14:17+0800\n"
+"PO-Revision-Date: 2025-11-30 17:13+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -79,17 +79,17 @@ msgstr "默认环境"
 #: client/scenes/lobby_gui.cpp:99
 msgctxt "openxr_post_processing"
 msgid "Normal"
-msgstr "正常"
+msgstr "常规"
 
 #: client/scenes/lobby_gui.cpp:102
 msgctxt "openxr_post_processing"
 msgid "Quality"
-msgstr "画质"
+msgstr "高画质"
 
 #: client/scenes/lobby_gui.cpp:104
 msgctxt "openxr_post_processing"
 msgid "Disabled"
-msgstr "已停用"
+msgstr "停用"
 
 #: client/scenes/lobby_gui.cpp:112 client/scenes/lobby_gui.cpp:256
 #: client/scenes/stream_gui.cpp:967
@@ -503,7 +503,8 @@ msgid ""
 "Curl error when downloading {}\n"
 "{}: {}"
 msgstr ""
-"Curl 下载时发生错误 {}\n"
+"Curl \n"
+"时发生错误 {}\n"
 "{}：{}"
 
 #: client/scenes/lobby_gui_customize.cpp:552
@@ -546,7 +547,7 @@ msgstr "网络"
 
 #: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:372
 msgid "Download"
-msgstr "下載"
+msgstr "下载"
 
 #: client/scenes/stream_gui.cpp:178 client/scenes/stream_gui.cpp:373
 msgid "Upload"
@@ -592,7 +593,7 @@ msgstr "已预测"
 #: client/scenes/stream_gui.cpp:345
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
-msgstr "预计运动到光子延迟: {}毫秒"
+msgstr "估计从运动到显示延迟: {}毫秒"
 
 #: client/scenes/stream_gui.cpp:352
 msgid "Press the grip button to move the window"
