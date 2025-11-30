@@ -30,12 +30,22 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 	std::unique_lock lock(mutex);
 	std::visit(utils::overloaded{
 	                   [](need_idr) {},
-	                   [](idr_received) {},
+	                   [this, &f](idr_received s) {
+		                   if (not f.sent_to_decoder and f.frame_index > s.idr_id)
+			                   state = need_idr{};
+	                   },
 	                   [this, &f](wait_idr_feedback s) {
-		                   if (f.sent_to_decoder and f.frame_index == s.idr_id)
+		                   if (f.frame_index == s.idr_id)
 		                   {
-			                   U_LOG_D("IDR frame received");
-			                   state = idr_received{};
+			                   if (f.sent_to_decoder)
+			                   {
+				                   U_LOG_D("IDR frame received");
+				                   state = idr_received{s.idr_id};
+			                   }
+			                   else
+			                   {
+				                   state = need_idr{};
+			                   }
 		                   }
 	                   },
 	                   [this, &f](running r) {
@@ -99,8 +109,8 @@ default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_ind
 		                          state = wait_idr_feedback{frame_index};
 		                          return frame_type::i;
 	                          },
-	                          [this, frame_index](idr_received) {
-		                          state = running{frame_index};
+	                          [this](idr_received s) {
+		                          state = running{s.idr_id + 1};
 		                          return frame_type::p;
 	                          },
 	                          [this](wait_idr_feedback) {

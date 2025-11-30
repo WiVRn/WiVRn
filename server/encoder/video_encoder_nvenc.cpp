@@ -496,6 +496,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 	{
 		case default_idr_handler::frame_type::i:
 			frame_params.encodePicFlags |= NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
+			frame_params.pictureType = NV_ENC_PIC_TYPE_IDR;
 			break;
 		case default_idr_handler::frame_type::p:
 			break;
