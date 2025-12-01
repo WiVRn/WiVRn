@@ -28,19 +28,20 @@ idr_handler::~idr_handler() = default;
 void default_idr_handler::on_feedback(const from_headset::feedback & f)
 {
 	std::unique_lock lock(mutex);
+	bool is_non_ref = non_ref_frames.erase(f.frame_index);
+	if (not non_ref_frames.empty() and f.frame_index > 500 and *non_ref_frames.begin() < f.frame_index - 500)
+		non_ref_frames.erase(non_ref_frames.begin(), non_ref_frames.lower_bound(f.frame_index - 500));
+
 	std::visit(utils::overloaded{
 	                   [](need_idr) {},
-	                   [this, &f](idr_received s) {
-		                   if (not f.sent_to_decoder and f.frame_index > s.idr_id)
-			                   state = need_idr{};
-	                   },
+	                   [](idr_received) {},
 	                   [this, &f](wait_idr_feedback s) {
 		                   if (f.frame_index == s.idr_id)
 		                   {
 			                   if (f.sent_to_decoder)
 			                   {
 				                   U_LOG_D("IDR frame received");
-				                   state = idr_received{s.idr_id};
+				                   state = idr_received{};
 			                   }
 			                   else
 			                   {
@@ -48,8 +49,8 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 			                   }
 		                   }
 	                   },
-	                   [this, &f](running r) {
-		                   if (not f.sent_to_decoder and f.frame_index >= r.first_p)
+	                   [this, &f, is_non_ref](running r) {
+		                   if (not f.sent_to_decoder and f.frame_index >= r.first_p and not is_non_ref)
 			                   state = need_idr{};
 	                   },
 	           },
@@ -61,6 +62,7 @@ void default_idr_handler::reset()
 	std::unique_lock lock(mutex);
 	U_LOG_D("IDR handler reset");
 	state = need_idr{};
+	non_ref_frames.clear();
 }
 
 bool default_idr_handler::should_skip(uint64_t frame_id)
@@ -82,6 +84,12 @@ bool default_idr_handler::should_skip(uint64_t frame_id)
 	                  state);
 }
 
+void default_idr_handler::set_non_ref(uint64_t frame_index)
+{
+	std::unique_lock lock(mutex);
+	non_ref_frames.insert(frame_index);
+}
+
 default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_index)
 {
 	std::unique_lock lock(mutex);
@@ -91,8 +99,8 @@ default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_ind
 		                          state = wait_idr_feedback{frame_index};
 		                          return frame_type::i;
 	                          },
-	                          [this](idr_received s) {
-		                          state = running{s.idr_id + 1};
+	                          [this, frame_index](idr_received s) {
+		                          state = running{frame_index};
 		                          return frame_type::p;
 	                          },
 	                          [](auto) {

@@ -509,6 +509,9 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 	};
 	NVENC_CHECK(shared_state->fn.nvEncLockBitstream(session_handle, &buf_lock_params));
 
+	if (buf_lock_params.pictureType == NV_ENC_PIC_TYPE_NONREF_P)
+		idr_handler.set_non_ref(frame_index);
+
 	CU_CHECK(shared_state->cuda_fn->cuCtxPopCurrent(NULL));
 	return data{
 	        .encoder = this,

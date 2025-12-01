@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <mutex>
+#include <set>
 #include <variant>
 
 namespace wivrn
@@ -42,6 +43,7 @@ public:
 class default_idr_handler : public idr_handler
 {
 	std::mutex mutex;
+	std::set<uint64_t> non_ref_frames;
 	struct need_idr
 	{};
 	struct wait_idr_feedback
@@ -50,7 +52,6 @@ class default_idr_handler : public idr_handler
 	};
 	struct idr_received
 	{
-		uint64_t idr_id;
 	};
 	struct running
 	{
@@ -68,6 +69,7 @@ public:
 	void on_feedback(const from_headset::feedback &) override;
 	void reset() override;
 	bool should_skip(uint64_t frame_id) override;
+	void set_non_ref(uint64_t frame_index);
 	frame_type get_type(uint64_t frame_index);
 };
 } // namespace wivrn
