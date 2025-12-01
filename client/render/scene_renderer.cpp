@@ -138,7 +138,7 @@ std::shared_ptr<renderer::texture> scene_renderer::create_default_texture(image_
 	return std::make_shared<renderer::texture>(image_view, renderer::sampler_info{});
 }
 
-std::shared_ptr<renderer::material> scene_renderer::create_default_material(vk::raii::CommandPool & cb_pool)
+std::shared_ptr<renderer::material> scene_renderer::create_default_material()
 {
 	image_loader loader(device, physical_device, queue, queue_family_index);
 
@@ -285,7 +285,7 @@ scene_renderer::scene_renderer(
         layout_0(create_descriptor_set_layout(layout_bindings_0, vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR))
 {
 	// Create the default material
-	default_material = create_default_material(cb_pool);
+	default_material = create_default_material();
 
 	// Create Vulkan resources
 	frame_resources.resize(frames_in_flight);
