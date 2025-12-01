@@ -51,8 +51,7 @@ class default_idr_handler : public idr_handler
 		uint64_t idr_id;
 	};
 	struct idr_received
-	{
-	};
+	{};
 	struct running
 	{
 		uint64_t first_p;

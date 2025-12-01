@@ -70,7 +70,7 @@ bool default_idr_handler::should_skip(uint64_t frame_id)
 	std::unique_lock lock(mutex);
 	return std::visit(utils::overloaded{
 	                          [this, frame_id](wait_idr_feedback w) {
-		                          if (frame_id > w.idr_id + 90)
+		                          if (frame_id > w.idr_id + 100)
 		                          {
 			                          state = need_idr{};
 			                          return false;
@@ -99,7 +99,7 @@ default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_ind
 		                          state = wait_idr_feedback{frame_index};
 		                          return frame_type::i;
 	                          },
-	                          [this, frame_index](idr_received s) {
+	                          [this, frame_index](idr_received) {
 		                          state = running{frame_index};
 		                          return frame_type::p;
 	                          },
