@@ -33,7 +33,6 @@ public:
 	virtual ~idr_handler();
 	virtual void on_feedback(const from_headset::feedback &) = 0;
 	virtual void reset() = 0;
-	virtual void set_framerate(float framerate) = 0;
 	virtual bool should_skip(uint64_t frame_id) = 0;
 };
 
@@ -58,22 +57,16 @@ class default_idr_handler : public idr_handler
 		uint64_t first_p;
 	};
 	std::variant<need_idr, wait_idr_feedback, idr_received, running> state;
-	float framerate = 120.f;
-	uint64_t wait_window = 240;
-	bool allow_non_ref_p = false;
 
 public:
 	enum class frame_type
 	{
 		i,
 		p,
-		non_ref_p,
 	};
 
 	void on_feedback(const from_headset::feedback &) override;
 	void reset() override;
-	void set_framerate(float framerate) override;
-	void set_allow_non_ref_p(bool allow);
 	bool should_skip(uint64_t frame_id) override;
 	frame_type get_type(uint64_t frame_index);
 };

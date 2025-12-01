@@ -72,10 +72,6 @@ public:
 		}
 	}
 
-	void set_framerate(float) override
-	{
-	}
-
 	bool should_skip(uint64_t frame_id) override
 	{
 		std::unique_lock lock(mutex);

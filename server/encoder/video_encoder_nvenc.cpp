@@ -157,8 +157,6 @@ video_encoder_nvenc::video_encoder_nvenc(
         fps(fps),
         bitrate(settings.bitrate)
 {
-	idr->set_framerate(fps);
-	((default_idr_handler &)*idr).set_allow_non_ref_p(true);
 	if (settings.bit_depth != 8 && settings.bit_depth != 10)
 		throw std::runtime_error("nvenc encoder only supports 8-bit and 10-bit encoding");
 
@@ -289,7 +287,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 	        .darWidth = settings.video_width,
 	        .darHeight = settings.video_height,
 	        .enableEncodeAsync = 0,
-	        .enablePTD = 0,
+	        .enablePTD = 1,
 	        .encodeConfig = &config,
 	        .tuningInfo = tuningInfo};
 
@@ -501,9 +499,6 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 		case default_idr_handler::frame_type::p:
 			frame_params.pictureType = NV_ENC_PIC_TYPE_P;
 			break;
-		case default_idr_handler::frame_type::non_ref_p:
-			frame_params.pictureType = NV_ENC_PIC_TYPE_NONREF_P;
-			break;
 	}
 	NVENC_CHECK(shared_state->fn.nvEncEncodePicture(session_handle, &frame_params));
 
@@ -523,7 +518,7 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 		        if (status != NV_ENC_SUCCESS)
 			        U_LOG_E("%s:%d: %d, %s", __FILE__, __LINE__, status, shared_state->fn.nvEncGetLastErrorString(session_handle));
 	        }),
-	        .prefer_control = frame_type == default_idr_handler::frame_type::i || frame_type == default_idr_handler::frame_type::non_ref_p,
+	        .prefer_control = frame_type == default_idr_handler::frame_type::i,
 	};
 }
 

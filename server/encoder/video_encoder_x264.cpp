@@ -93,7 +93,6 @@ video_encoder_x264::video_encoder_x264(
         uint8_t stream_idx) :
         video_encoder(stream_idx, settings.channels, std::make_unique<default_idr_handler>(), settings.bitrate_multiplier, false)
 {
-	idr->set_framerate(fps);
 	if (settings.bit_depth != 8)
 		throw std::runtime_error("x264 encoder only supports 8-bit encoding");
 
@@ -274,7 +273,6 @@ std::optional<video_encoder::data> video_encoder_x264::encode(uint8_t slot, uint
 			pic.i_type = X264_TYPE_IDR;
 			break;
 		case default_idr_handler::frame_type::p:
-		case default_idr_handler::frame_type::non_ref_p:
 			control = false;
 			pic.i_type = X264_TYPE_P;
 			break;
