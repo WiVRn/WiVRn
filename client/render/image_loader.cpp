@@ -23,13 +23,11 @@
 #include "utils/thread_safe.h"
 #include "vk/allocation.h"
 #include "vk/vk_allocator.h"
-#include <chrono>
 #include <cstdint>
 #include <ktx.h>
 #include <ktxvulkan.h>
 #include <memory>
 #include <span>
-#include <spdlog/fmt/chrono.h>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <tuple>
