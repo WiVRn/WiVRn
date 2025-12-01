@@ -293,6 +293,7 @@ void scenes::lobby::update_file_picker()
 	catch (std::exception & e)
 	{
 		spdlog::warn("Cannot load local environment: {}", e.what());
+		load_environment_status = fmt::format(_F("Cannot load local environment: {}"), e.what());
 	}
 }
 
