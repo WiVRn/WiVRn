@@ -26,12 +26,18 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imspinner.h"
+#include "render/image_writer.h"
+#include "render/scene_renderer.h"
 #include "utils/files.h"
 #include "utils/i18n.h"
 #include "utils/json_string.h"
+#include "vk/allocation.h"
 #include <algorithm>
 #include <boost/url/url.hpp>
 #include <boost/url/url_view.hpp>
+#include <chrono>
+#include <spdlog/fmt/chrono.h>
+#include <spdlog/spdlog.h>
 
 #include "IconsFontAwesome6.h"
 
@@ -53,8 +59,12 @@ void scenes::lobby::save_environment_json()
 		   << ",\"description\":" << json_string(model.description)
 		   << ",\"screenshot\":" << json_string(model.screenshot_url)
 		   << ",\"url\":" << json_string(model.gltf_url)
-		   << ",\"size\":" << model.size
-		   << "},";
+		   << ",\"size\":" << model.size;
+
+		// TODO only if not the default value
+		ss << ",\"local_screenshot\":" << json_string(model.local_screenshot_path);
+		ss << ",\"local_path\":" << json_string(model.local_gltf_path);
+		ss << "},";
 	}
 	if (not empty)
 		ss.seekp(-1, ss.cur);
@@ -112,8 +122,16 @@ std::vector<scenes::lobby::environment_model> scenes::lobby::load_environment_js
 			model.size = val.get_int64();
 
 		model.builtin = false;
-		model.local_screenshot_path = application::get_config_path() / "environments" / (model.name + ".png");
-		model.local_gltf_path = application::get_config_path() / "environments" / (model.name + ".glb");
+
+		if (auto val = i["local_screenshot"]; val.is_string())
+			model.local_screenshot_path = val.get_string().value();
+		else
+			model.local_screenshot_path = application::get_config_path() / "environments" / (model.name + ".png");
+
+		if (auto val = i["local_path"]; val.is_string())
+			model.local_gltf_path = val.get_string().value();
+		else
+			model.local_gltf_path = application::get_config_path() / "environments" / (model.name + ".glb");
 
 		models.push_back(std::move(model));
 	}
@@ -180,18 +198,95 @@ void scenes::lobby::update_file_picker()
 		load_environment_status = "";
 		future_environment = utils::async<std::pair<std::string, std::shared_ptr<entt::registry>>, float>(
 		        [this](auto token, file_picker_result environment) {
-			        auto local_path = application::get_cache_path() / "local.glb";
+			        auto t = std::chrono::system_clock::now();
+			        auto local_path = application::get_cache_path() / fmt::format("local-{:%F-%T}.glb", t);
+			        auto local_screenshot_path = application::get_cache_path() / fmt::format("local-{:%F-%T}.png", t);
 
 			        utils::write_whole_file(local_path, (std::span<const std::byte>)environment.file);
 
-			        // TODO remove only local.glb from cache
-			        clear_gltf_cache();
+			        environment_model model{
+			                .name = _S("Locally loaded environment"),
+			                .author = "",
+			                .description = "",
+			                .screenshot_url = "",
+			                .gltf_url = fmt::format("local-{:%F-%T}", t), // Used as key
+			                .size = environment.file.size(),
+			                .local_screenshot_path = local_screenshot_path,
+			                .local_gltf_path = local_path,
+			        };
 
-			        return std::make_pair(
-			                local_path,
-			                load_gltf(local_path, [&](float progress) {
-				                token.set_progress(progress);
-			                }));
+			        int n = 2;
+			        while (std::ranges::find(local_environments, model.name, &environment_model::name) != local_environments.end())
+			        {
+				        model.name = fmt::format(_F("Locally loaded environment ({})"), n++);
+			        }
+
+			        local_environments.push_back(model);
+			        std::ranges::sort(local_environments, std::less{});
+			        save_environment_json();
+
+			        std::shared_ptr<entt::registry> env = load_gltf(local_path, [&](float progress) { token.set_progress(progress); });
+
+			        // Create a screenshot of the loaded environment
+			        scene_renderer::frame_info frame{
+			                .projection = projection_matrix(
+			                        XrFovf{
+			                                .angleLeft = -0.7,
+			                                .angleRight = 0.7,
+			                                .angleUp = 0.7,
+			                                .angleDown = -0.7,
+			                        },
+			                        constants::lobby::near_plane),
+			                .view = view_matrix(XrPosef{
+			                        .orientation = {0, 0, 0, 1},
+			                        .position = {0, 1.6, 0},
+			                })};
+
+			        image_allocation output{
+			                device,
+			                vk::ImageCreateInfo{
+			                        .imageType = vk::ImageType::e2D,
+			                        .format = vk::Format::eR8G8B8A8Srgb,
+			                        .extent = {512, 512, 1},
+			                        .mipLevels = 1,
+			                        .arrayLayers = 1,
+			                        .usage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc,
+			                },
+			                VmaAllocationCreateInfo{
+			                        .usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO,
+			                },
+			                "Screenshot image",
+			        };
+
+			        scene_renderer local_renderer{device, physical_device, queue, queue_family_index};
+			        local_renderer.start_frame();
+			        local_renderer.render(
+			                *env,
+			                {
+			                        constants::lobby::sky_color.r,
+			                        constants::lobby::sky_color.g,
+			                        constants::lobby::sky_color.b,
+			                        constants::lobby::sky_color.a,
+			                },
+			                layer_lobby,
+			                vk::Extent2D{
+			                        output.info().extent.width,
+			                        output.info().extent.height,
+
+			                },                      // Output size
+			                output.info().format,   // Output format
+			                vk::Format::eD32Sfloat, // Depth format
+			                output,                 // Output image
+			                vk::Image{},            // Depth image
+			                vk::Image{},            // Foveation image
+			                {&frame, 1},            // View info
+			                false);
+			        local_renderer.end_frame();
+			        local_renderer.wait_idle(); // TODO get a semaphore from end_frame instead
+
+			        write_image(device, queue, queue_family_index, local_screenshot_path, output);
+
+			        return std::make_pair(local_path, env);
 		        },
 		        lobby_file_picker_future.get());
 	}

@@ -93,7 +93,17 @@ public:
 		return *resource;
 	}
 
+	operator const T() const
+	{
+		return *resource;
+	}
+
 	operator CType()
+	{
+		return CType(*resource);
+	}
+
+	operator const CType() const
 	{
 		return CType(*resource);
 	}
