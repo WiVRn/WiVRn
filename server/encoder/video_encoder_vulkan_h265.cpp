@@ -166,7 +166,7 @@ wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
                         .cu_qp_delta_enabled_flag = 1,       // must be 1 or nvidia breaks
                         .transquant_bypass_enabled_flag = 0, // only 1 when tuned for lossless
                         .deblocking_filter_control_present_flag = 1,
-                        .pps_range_extension_flag = (settings.bit_depth == 10) ? 1u : 0u,
+                        .pps_range_extension_flag = 0u,
                 },
 
                 .pps_pic_parameter_set_id = 0,
