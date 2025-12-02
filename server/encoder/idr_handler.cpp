@@ -45,8 +45,8 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 			                   }
 			                   else
 			                   {
-				                   state = need_idr{};
 				                   U_LOG_W("IDR frame dropped");
+				                   state = need_idr{};
 			                   }
 		                   }
 	                   },
