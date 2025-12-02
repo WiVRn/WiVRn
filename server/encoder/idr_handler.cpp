@@ -46,6 +46,7 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 			                   else
 			                   {
 				                   state = need_idr{};
+				                   U_LOG_W("IDR frame dropped");
 			                   }
 		                   }
 	                   },
@@ -72,6 +73,7 @@ bool default_idr_handler::should_skip(uint64_t frame_id)
 	                          [this, frame_id](wait_idr_feedback w) {
 		                          if (frame_id > w.idr_id + 100)
 		                          {
+			                          U_LOG_W("IDR frame timeout");
 			                          state = need_idr{};
 			                          return false;
 		                          }
