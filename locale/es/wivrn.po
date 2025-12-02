@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.15\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 21:03+0100\n"
+"POT-Creation-Date: 2025-12-02 19:57+0100\n"
 "PO-Revision-Date: 2025-11-19 20:23+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish <>\n"
@@ -15,6 +15,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: Lokalize 25.08.3\n"
+"X-Language: es\n"
+"X-Source-Language: en\n"
 
 #: client/scene.cpp:73
 msgid "No supported swapchain format"
@@ -31,19 +33,19 @@ msgstr "Connectado a {}"
 
 #: client/scenes/app_launcher.cpp:136
 msgid "Start an application on the server to start streaming."
-msgstr "Inicia una aplicación en el servidor para empezar la retransmisión"
+msgstr "Inicia una aplicación en el servidor para empezar la retransmisión."
 
 #: client/scenes/app_launcher.cpp:146
 msgid "Start an application on your computer or select one to start streaming."
 msgstr ""
 "Inicia una aplicación en tu ordenador o selecciona una para empezar la "
-"retransmisión"
+"retransmisión."
 
 #: client/scenes/app_launcher.cpp:148
 #, c++-format
 msgid "Start an application on {} or select one to start streaming."
 msgstr ""
-"Inicia una aplicación en {} o selecciona una para empezar la retransmisión"
+"Inicia una aplicación en {} o selecciona una para empezar la retransmisión."
 
 #: client/scenes/lobby.cpp:230
 msgid "Incompatible WiVRn server: no protocol field in TXT"
@@ -96,9 +98,9 @@ msgstr "Deshabilitado"
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:653
-#: client/scenes/lobby_gui_customize.cpp:744
-#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:963
+#: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:749
+#: client/scenes/lobby_gui_customize.cpp:840
+#: client/scenes/lobby_gui_customize.cpp:896 client/scenes/stream_gui.cpp:963
 msgid "Close"
 msgstr "Cerrar"
 
@@ -135,7 +137,7 @@ msgstr "Puerto"
 msgid "TCP only"
 msgstr "Solo TCP"
 
-#: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:555
+#: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:651
 #: client/scenes/stream_gui.cpp:920
 msgid "Cancel"
 msgstr "Cancelar"
@@ -252,7 +254,7 @@ msgstr "Activar seguimiento de manos"
 
 #: client/scenes/lobby_gui.cpp:709 client/scenes/lobby_gui.cpp:721
 #: client/scenes/lobby_gui.cpp:733 client/scenes/lobby_gui.cpp:750
-#: client/scenes/lobby_gui_customize.cpp:540
+#: client/scenes/lobby_gui_customize.cpp:636
 msgid "This feature is not supported by your headset"
 msgstr "Esta función no es compatible con tu visor"
 
@@ -482,33 +484,47 @@ msgstr ""
 msgid "Press the grip button to move the main window"
 msgstr "Pulsa el botón de agarre para mover la ventana principal"
 
-#: client/scenes/lobby_gui_customize.cpp:233
+#: client/scenes/lobby_gui_customize.cpp:208
+msgid "Locally loaded environment"
+msgstr "Entorno local cargado"
+
+#: client/scenes/lobby_gui_customize.cpp:221
+#, c++-format
+msgid "Locally loaded environment ({})"
+msgstr "Entorno local ({}) cargado"
+
+#: client/scenes/lobby_gui_customize.cpp:296
+#, c++-format
+msgid "Cannot load local environment: {}"
+msgstr "No se ha podido cargar el entorno local: {}"
+
+#: client/scenes/lobby_gui_customize.cpp:329
 #, c++-format
 msgid "Cannot load environment list: {}"
 msgstr "No se ha podido cargar la lista del entorno: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:363
+#: client/scenes/lobby_gui_customize.cpp:459
 #, c++-format
 msgid "Author: {}"
 msgstr "Autor: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:367
+#: client/scenes/lobby_gui_customize.cpp:463
 #, c++-format
 msgid "Size: {:.1f} MB"
 msgstr "Tamaño: {:.1f} MB"
 
-#: client/scenes/lobby_gui_customize.cpp:447
+#: client/scenes/lobby_gui_customize.cpp:543
 msgid "Delete this model"
 msgstr "Borrar este modelo"
 
-#: client/scenes/lobby_gui_customize.cpp:483
-#: client/scenes/lobby_gui_customize.cpp:689
+#: client/scenes/lobby_gui_customize.cpp:579
+#: client/scenes/lobby_gui_customize.cpp:785
 #, c++-format
 msgid "HTTP error {} when downloading {}"
 msgstr "Error HTTP {} mientras se descargaba {}"
 
-#: client/scenes/lobby_gui_customize.cpp:491
-#: client/scenes/lobby_gui_customize.cpp:697
+#: client/scenes/lobby_gui_customize.cpp:587
+#: client/scenes/lobby_gui_customize.cpp:793
 #, c++-format
 msgid ""
 "Curl error when downloading {}\n"
@@ -517,29 +533,29 @@ msgstr ""
 "Error de Curl mientras se descargaba {}\n"
 "{}: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:552
+#: client/scenes/lobby_gui_customize.cpp:648
 #, c++-format
 msgid "Really delete {}?"
 msgstr "Seguro que quiere borrar {}?"
 
-#: client/scenes/lobby_gui_customize.cpp:556
+#: client/scenes/lobby_gui_customize.cpp:652
 msgid "Delete"
 msgstr "Borrar"
 
-#: client/scenes/lobby_gui_customize.cpp:637
+#: client/scenes/lobby_gui_customize.cpp:733
 #, c++-format
 msgid "Cannot load environment: {}"
 msgstr "No se puede cargar el entorno: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:645
+#: client/scenes/lobby_gui_customize.cpp:741
 msgid "Loading environment"
 msgstr "Cargando entorno"
 
-#: client/scenes/lobby_gui_customize.cpp:724
+#: client/scenes/lobby_gui_customize.cpp:820
 msgid "Download more environments"
 msgstr "Descargar más entornos"
 
-#: client/scenes/lobby_gui_customize.cpp:732
+#: client/scenes/lobby_gui_customize.cpp:828
 msgid "Open local glTF model"
 msgstr "Abrir modelo glTF local"
 
@@ -697,7 +713,7 @@ msgstr "No se puede verificar el PIN"
 
 #: client/wivrn_client.cpp:182
 msgid "Pairing is disabled on server"
-msgstr "El emparejamiento está deshabilitado en el servidor."
+msgstr "El emparejamiento está deshabilitado en el servidor"
 
 #, c++-format
 #~ msgid "HTTP error {} when downloading index.json"
