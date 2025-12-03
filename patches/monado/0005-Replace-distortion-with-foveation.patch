@@ -1,4 +1,4 @@
-From 3a23603487421de157c491dec5fe1e6dfbbd55c2 Mon Sep 17 00:00:00 2001
+From ddae46a3ef27f71172be70de4bdf99be7d65ee36 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 5/6] Replace distortion with foveation
@@ -655,7 +655,7 @@ index 62d7138b9..44c3f0aee 100644
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
 diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
-index 976fe857a..a74750c61 100644
+index 9b9c8efa8..1aeab7693 100644
 --- a/src/xrt/compositor/render/render_interface.h
 +++ b/src/xrt/compositor/render/render_interface.h
 @@ -80,12 +80,8 @@ extern "C" {
@@ -673,9 +673,9 @@ index 976fe857a..a74750c61 100644
  
  //! The binding that the layer projection and quad shader have their UBO on.
  #define RENDER_BINDING_LAYER_SHARED_UBO 0
-@@ -100,12 +96,6 @@ extern "C" {
-  *
-  */
+@@ -118,12 +114,6 @@ extern "C" {
+ uint32_t
+ render_max_layers_capable(const struct vk_bundle *vk, bool use_compute, uint32_t desired_max_layers);
  
 -/*!
 - * Create a simplified projection matrix for timewarp.
@@ -686,7 +686,7 @@ index 976fe857a..a74750c61 100644
  /*!
   * Calculates a timewarp matrix which takes in NDC coords and gives out results
   * in [-1, 1] space that needs a perspective divide.
-@@ -493,7 +483,8 @@ struct render_resources
+@@ -511,7 +501,8 @@ struct render_resources
  		uint32_t distortion_binding;
  
  		//! Writing the image out too.
@@ -696,7 +696,7 @@ index 976fe857a..a74750c61 100644
  
  		//! Uniform data binding.
  		uint32_t ubo_binding;
-@@ -530,9 +521,6 @@ struct render_resources
+@@ -548,9 +539,6 @@ struct render_resources
  			//! Doesn't depend on target so is static.
  			VkPipeline pipeline;
  
@@ -706,7 +706,7 @@ index 976fe857a..a74750c61 100644
  			//! Target info.
  			struct render_buffer ubo;
  		} distortion;
-@@ -554,17 +542,11 @@ struct render_resources
+@@ -572,17 +560,11 @@ struct render_resources
  		//! Transform to go from UV to tangle angles.
  		struct xrt_normalized_rect uv_to_tanangle[XRT_MAX_VIEWS];
  
@@ -728,7 +728,7 @@ index 976fe857a..a74750c61 100644
  	} distortion;
  };
  
-@@ -1282,6 +1264,7 @@ struct render_compute_layer_ubo_data
+@@ -1300,6 +1282,7 @@ struct render_compute_layer_ubo_data
  	//! Timewarp matrices
  	struct xrt_matrix_4x4 transforms_timewarp[RENDER_MAX_LAYERS];
  
@@ -736,7 +736,7 @@ index 976fe857a..a74750c61 100644
  	/*!
  	 * For quad layers
  	 */
-@@ -1321,6 +1304,14 @@ struct render_compute_distortion_ubo_data
+@@ -1339,6 +1322,14 @@ struct render_compute_distortion_ubo_data
  	struct xrt_matrix_4x4 transform_timewarp_scanout_end[XRT_MAX_VIEWS];
  };
  
@@ -751,7 +751,7 @@ index 976fe857a..a74750c61 100644
  /*!
   * Init struct and create resources needed for compute rendering.
   *
-@@ -1374,7 +1365,8 @@ render_compute_layers(struct render_compute *render,
+@@ -1392,7 +1383,8 @@ render_compute_layers(struct render_compute *render,
                        VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],
                        VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE],
                        uint32_t num_srcs,
@@ -761,7 +761,7 @@ index 976fe857a..a74750c61 100644
                        const struct render_viewport_data *view,
                        bool timewarp);
  
-@@ -1382,44 +1374,14 @@ render_compute_layers(struct render_compute *render,
+@@ -1400,44 +1392,14 @@ render_compute_layers(struct render_compute *render,
   * @public @memberof render_compute
   */
  void
@@ -814,7 +814,7 @@ index 976fe857a..a74750c61 100644
  
  /*!
   * @public @memberof render_compute
-@@ -1427,7 +1389,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
+@@ -1445,7 +1407,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
  void
  render_compute_clear(struct render_compute *render,
                       VkImage target_image,
