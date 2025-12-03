@@ -1,4 +1,4 @@
-From 543a5e8aad919ff885f8b4be68812b6890a82cb0 Mon Sep 17 00:00:00 2001
+From 58d2c3f51a6c1b4fcad4c5e23c267931e0ef5580 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
 Subject: [PATCH 4/6] st/oxr: forward 0 refresh rate
@@ -9,7 +9,7 @@ Subject: [PATCH 4/6] st/oxr: forward 0 refresh rate
  2 files changed, 2 insertions(+), 6 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_compositor.c b/src/xrt/compositor/main/comp_compositor.c
-index 085d1296d..50579865d 100644
+index 41dfe48bc..e29795e42 100644
 --- a/src/xrt/compositor/main/comp_compositor.c
 +++ b/src/xrt/compositor/main/comp_compositor.c
 @@ -368,7 +368,7 @@ compositor_request_display_refresh_rate(struct xrt_compositor *xc, float display
