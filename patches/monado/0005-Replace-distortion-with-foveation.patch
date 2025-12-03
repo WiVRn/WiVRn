@@ -1,4 +1,4 @@
-From 51e89f32624c1058f0f27197f56956eadcf4efff Mon Sep 17 00:00:00 2001
+From 3a23603487421de157c491dec5fe1e6dfbbd55c2 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 5/6] Replace distortion with foveation
@@ -825,7 +825,7 @@ index 976fe857a..a74750c61 100644
  
  
 diff --git a/src/xrt/compositor/render/render_resources.c b/src/xrt/compositor/render/render_resources.c
-index dad419006..d2bc5541e 100644
+index d28caaed8..5232a774d 100644
 --- a/src/xrt/compositor/render/render_resources.c
 +++ b/src/xrt/compositor/render/render_resources.c
 @@ -184,14 +184,15 @@ init_mesh_ubo_buffers(struct vk_bundle *vk, struct render_buffer ubo[XRT_MAX_VIE
@@ -974,7 +974,7 @@ index dad419006..d2bc5541e 100644
 +	r->compute.target_binding_cbcr = 4;
  
  	r->compute.layer.image_array_size =
- 	    MIN(vk->features.max_per_stage_descriptor_sampled_images, RENDER_MAX_IMAGES_SIZE);
+ 	    MIN(vk->limits.max_per_stage_descriptor_sampled_images, RENDER_MAX_IMAGES_SIZE);
 @@ -834,9 +823,9 @@ render_resources_init(struct render_resources *r,
  	struct vk_descriptor_pool_info compute_pool_info = {
  	    .uniform_per_descriptor_count = 1,
