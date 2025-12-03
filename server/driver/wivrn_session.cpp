@@ -1105,6 +1105,7 @@ xrt_result_t wivrn_session::get_roles(xrt_system_roles * out_roles)
 	return XRT_SUCCESS;
 }
 
+// FIXME: use feature_inc and feature_dec to toggle trackings
 xrt_result_t wivrn_session::feature_inc(xrt_device_feature_type type)
 {
 	switch (type)
@@ -1112,6 +1113,7 @@ xrt_result_t wivrn_session::feature_inc(xrt_device_feature_type type)
 		case XRT_DEVICE_FEATURE_HAND_TRACKING_LEFT:
 		case XRT_DEVICE_FEATURE_HAND_TRACKING_RIGHT:
 		case XRT_DEVICE_FEATURE_EYE_TRACKING:
+		case XRT_DEVICE_FEATURE_FACE_TRACKING:
 			return XRT_SUCCESS;
 		default:
 			return XRT_ERROR_FEATURE_NOT_SUPPORTED;
@@ -1125,6 +1127,7 @@ xrt_result_t wivrn_session::feature_dec(xrt_device_feature_type type)
 		case XRT_DEVICE_FEATURE_HAND_TRACKING_LEFT:
 		case XRT_DEVICE_FEATURE_HAND_TRACKING_RIGHT:
 		case XRT_DEVICE_FEATURE_EYE_TRACKING:
+		case XRT_DEVICE_FEATURE_FACE_TRACKING:
 			return XRT_SUCCESS;
 		default:
 			return XRT_ERROR_FEATURE_NOT_SUPPORTED;
