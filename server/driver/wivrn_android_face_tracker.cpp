@@ -106,6 +106,7 @@ xrt_result_t wivrn_android_face_tracker::get_face_tracking(enum xrt_input_name f
 		return XRT_SUCCESS;
 	}
 
+	U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), facial_expression_type);
 	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
