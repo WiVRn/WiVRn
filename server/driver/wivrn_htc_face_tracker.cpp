@@ -106,7 +106,7 @@ xrt_result_t wivrn_htc_face_tracker::get_face_tracking(enum xrt_input_name facia
 		if (not data.eye_active)
 			return XRT_SUCCESS;
 
-		memcpy(&inout_value->eye_expression_set_htc.expression_weights, data.eye.data(), sizeof(float) * data.eye.size());
+		std::ranges::copy(data.eye, inout_value->eye_expression_set_htc.expression_weights);
 
 		return XRT_SUCCESS;
 	}
@@ -121,7 +121,7 @@ xrt_result_t wivrn_htc_face_tracker::get_face_tracking(enum xrt_input_name facia
 		if (not data.lip_active)
 			return XRT_SUCCESS;
 
-		memcpy(&inout_value->lip_expression_set_htc.expression_weights, data.lip.data(), sizeof(float) * data.lip.size());
+		std::ranges::copy(data.lip, inout_value->lip_expression_set_htc.expression_weights);
 
 		return XRT_SUCCESS;
 	}

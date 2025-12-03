@@ -100,8 +100,8 @@ xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facia
 
 		inout_value->face_expression_set2_fb.is_eye_following_blendshapes_valid = data.is_eye_following_blendshapes_valid;
 
-		memcpy(&inout_value->face_expression_set2_fb.weights, data.weights.data(), sizeof(float) * data.weights.size());
-		memcpy(&inout_value->face_expression_set2_fb.confidences, data.confidences.data(), sizeof(float) * data.confidences.size());
+		std::ranges::copy(data.weights, inout_value->face_expression_set2_fb.weights);
+		std::ranges::copy(data.confidences, inout_value->face_expression_set2_fb.confidences);
 
 		inout_value->face_expression_set2_fb.data_source = XRT_FACE_TRACKING_DATA_SOURCE2_VISUAL_FB;
 
