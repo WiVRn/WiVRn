@@ -1,4 +1,4 @@
-From a51f268bd8d3bdc04b811127db7d38f9afd3171c Mon Sep 17 00:00:00 2001
+From 51e89f32624c1058f0f27197f56956eadcf4efff Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 5/6] Replace distortion with foveation
@@ -41,10 +41,10 @@ index 1ba5ec438..eb068f5fc 100644
  		render/render_interface.h
  		render/render_resources.c
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 6cbb17813..d9460aa52 100644
+index 51a14e9fc..2cbdc5e68 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -986,7 +986,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -991,7 +991,8 @@ dispatch_compute(struct comp_renderer *r,
  
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
@@ -54,7 +54,7 @@ index 6cbb17813..d9460aa52 100644
  
  	// Target view information.
  	struct render_viewport_data target_viewport_datas[XRT_MAX_VIEWS];
-@@ -1003,7 +1004,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1008,7 +1009,8 @@ dispatch_compute(struct comp_renderer *r,
  	    eye_poses,                       //
  	    fovs,                            //
  	    target_image,                    //
@@ -655,10 +655,10 @@ index 62d7138b9..44c3f0aee 100644
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
 diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
-index 5db279a21..0df8fa58d 100644
+index 976fe857a..a74750c61 100644
 --- a/src/xrt/compositor/render/render_interface.h
 +++ b/src/xrt/compositor/render/render_interface.h
-@@ -75,12 +75,8 @@ extern "C" {
+@@ -80,12 +80,8 @@ extern "C" {
  #define RENDER_MAX_LAYER_RUNS_SIZE (XRT_MAX_VIEWS)
  #define RENDER_MAX_LAYER_RUNS_COUNT(RENDER_RESOURCES) (RENDER_RESOURCES->view_count)
  
@@ -673,7 +673,7 @@ index 5db279a21..0df8fa58d 100644
  
  //! The binding that the layer projection and quad shader have their UBO on.
  #define RENDER_BINDING_LAYER_SHARED_UBO 0
-@@ -95,12 +91,6 @@ extern "C" {
+@@ -100,12 +96,6 @@ extern "C" {
   *
   */
  
@@ -686,7 +686,7 @@ index 5db279a21..0df8fa58d 100644
  /*!
   * Calculates a timewarp matrix which takes in NDC coords and gives out results
   * in [-1, 1] space that needs a perspective divide.
-@@ -488,7 +478,8 @@ struct render_resources
+@@ -493,7 +483,8 @@ struct render_resources
  		uint32_t distortion_binding;
  
  		//! Writing the image out too.
@@ -696,7 +696,7 @@ index 5db279a21..0df8fa58d 100644
  
  		//! Uniform data binding.
  		uint32_t ubo_binding;
-@@ -525,9 +516,6 @@ struct render_resources
+@@ -530,9 +521,6 @@ struct render_resources
  			//! Doesn't depend on target so is static.
  			VkPipeline pipeline;
  
@@ -706,7 +706,7 @@ index 5db279a21..0df8fa58d 100644
  			//! Target info.
  			struct render_buffer ubo;
  		} distortion;
-@@ -549,17 +537,11 @@ struct render_resources
+@@ -554,17 +542,11 @@ struct render_resources
  		//! Transform to go from UV to tangle angles.
  		struct xrt_normalized_rect uv_to_tanangle[XRT_MAX_VIEWS];
  
@@ -728,7 +728,7 @@ index 5db279a21..0df8fa58d 100644
  	} distortion;
  };
  
-@@ -1277,6 +1259,7 @@ struct render_compute_layer_ubo_data
+@@ -1282,6 +1264,7 @@ struct render_compute_layer_ubo_data
  	//! Timewarp matrices
  	struct xrt_matrix_4x4 transforms_timewarp[RENDER_MAX_LAYERS];
  
@@ -736,7 +736,7 @@ index 5db279a21..0df8fa58d 100644
  	/*!
  	 * For quad layers
  	 */
-@@ -1316,6 +1299,14 @@ struct render_compute_distortion_ubo_data
+@@ -1321,6 +1304,14 @@ struct render_compute_distortion_ubo_data
  	struct xrt_matrix_4x4 transform_timewarp_scanout_end[XRT_MAX_VIEWS];
  };
  
@@ -751,7 +751,7 @@ index 5db279a21..0df8fa58d 100644
  /*!
   * Init struct and create resources needed for compute rendering.
   *
-@@ -1369,7 +1360,8 @@ render_compute_layers(struct render_compute *render,
+@@ -1374,7 +1365,8 @@ render_compute_layers(struct render_compute *render,
                        VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],
                        VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE],
                        uint32_t num_srcs,
@@ -761,7 +761,7 @@ index 5db279a21..0df8fa58d 100644
                        const struct render_viewport_data *view,
                        bool timewarp);
  
-@@ -1377,44 +1369,14 @@ render_compute_layers(struct render_compute *render,
+@@ -1382,44 +1374,14 @@ render_compute_layers(struct render_compute *render,
   * @public @memberof render_compute
   */
  void
@@ -814,7 +814,7 @@ index 5db279a21..0df8fa58d 100644
  
  /*!
   * @public @memberof render_compute
-@@ -1422,7 +1384,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
+@@ -1427,7 +1389,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
  void
  render_compute_clear(struct render_compute *render,
                       VkImage target_image,
@@ -825,7 +825,7 @@ index 5db279a21..0df8fa58d 100644
  
  
 diff --git a/src/xrt/compositor/render/render_resources.c b/src/xrt/compositor/render/render_resources.c
-index fba654902..c0824108e 100644
+index dad419006..d2bc5541e 100644
 --- a/src/xrt/compositor/render/render_resources.c
 +++ b/src/xrt/compositor/render/render_resources.c
 @@ -184,14 +184,15 @@ init_mesh_ubo_buffers(struct vk_bundle *vk, struct render_buffer ubo[XRT_MAX_VIE
@@ -974,7 +974,7 @@ index fba654902..c0824108e 100644
 +	r->compute.target_binding_cbcr = 4;
  
  	r->compute.layer.image_array_size =
- 	    MIN(vk->features.max_per_stage_descriptor_sampled_images, RENDER_MAX_IMAGES_COUNT(r));
+ 	    MIN(vk->features.max_per_stage_descriptor_sampled_images, RENDER_MAX_IMAGES_SIZE);
 @@ -834,9 +823,9 @@ render_resources_init(struct render_resources *r,
  	struct vk_descriptor_pool_info compute_pool_info = {
  	    .uniform_per_descriptor_count = 1,
@@ -1633,5 +1633,5 @@ index a0cc735a1..f75efddf4 100644
  		    d->do_timewarp);                 //
  	}
 -- 
-2.51.2
+2.52.0
 
