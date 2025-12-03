@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-18 04:03+0800\n"
-"PO-Revision-Date: 2025-11-30 17:24+0800\n"
+"POT-Creation-Date: 2025-12-03 02:57+0800\n"
+"PO-Revision-Date: 2025-12-03 21:11+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -96,9 +96,9 @@ msgstr "停用"
 msgid "Disconnect"
 msgstr "终止连接"
 
-#: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:653
-#: client/scenes/lobby_gui_customize.cpp:744
-#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:963
+#: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:749
+#: client/scenes/lobby_gui_customize.cpp:840
+#: client/scenes/lobby_gui_customize.cpp:896 client/scenes/stream_gui.cpp:963
 msgid "Close"
 msgstr "关闭"
 
@@ -135,7 +135,7 @@ msgstr "端口"
 msgid "TCP only"
 msgstr "仅限 TCP"
 
-#: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:555
+#: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:651
 #: client/scenes/stream_gui.cpp:920
 msgid "Cancel"
 msgstr "取消"
@@ -247,7 +247,7 @@ msgstr "启用手部追踪"
 
 #: client/scenes/lobby_gui.cpp:709 client/scenes/lobby_gui.cpp:721
 #: client/scenes/lobby_gui.cpp:733 client/scenes/lobby_gui.cpp:750
-#: client/scenes/lobby_gui_customize.cpp:540
+#: client/scenes/lobby_gui_customize.cpp:636
 msgid "This feature is not supported by your headset"
 msgstr "您的头显不支持此功能"
 
@@ -471,33 +471,47 @@ msgstr ""
 msgid "Press the grip button to move the main window"
 msgstr "按下抓握键以移动主窗口"
 
-#: client/scenes/lobby_gui_customize.cpp:233
+#: client/scenes/lobby_gui_customize.cpp:208
+msgid "Locally loaded environment"
+msgstr "从本地加载了环境"
+
+#: client/scenes/lobby_gui_customize.cpp:221
+#, c++-format
+msgid "Locally loaded environment ({})"
+msgstr "从本地加载了环境 ({})"
+
+#: client/scenes/lobby_gui_customize.cpp:296
+#, c++-format
+msgid "Cannot load local environment: {}"
+msgstr "无法加载本地环境：{}"
+
+#: client/scenes/lobby_gui_customize.cpp:329
 #, c++-format
 msgid "Cannot load environment list: {}"
 msgstr "无法加载环境列表：{}"
 
-#: client/scenes/lobby_gui_customize.cpp:363
+#: client/scenes/lobby_gui_customize.cpp:459
 #, c++-format
 msgid "Author: {}"
 msgstr "作者: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:367
+#: client/scenes/lobby_gui_customize.cpp:463
 #, c++-format
 msgid "Size: {:.1f} MB"
 msgstr "大小: {:.1f} MB"
 
-#: client/scenes/lobby_gui_customize.cpp:447
+#: client/scenes/lobby_gui_customize.cpp:543
 msgid "Delete this model"
 msgstr "删除此模型"
 
-#: client/scenes/lobby_gui_customize.cpp:483
-#: client/scenes/lobby_gui_customize.cpp:689
+#: client/scenes/lobby_gui_customize.cpp:579
+#: client/scenes/lobby_gui_customize.cpp:785
 #, c++-format
 msgid "HTTP error {} when downloading {}"
 msgstr "发生了 HTTP 错误 {} 于下载 {} 时"
 
-#: client/scenes/lobby_gui_customize.cpp:491
-#: client/scenes/lobby_gui_customize.cpp:697
+#: client/scenes/lobby_gui_customize.cpp:587
+#: client/scenes/lobby_gui_customize.cpp:793
 #, c++-format
 msgid ""
 "Curl error when downloading {}\n"
@@ -506,29 +520,29 @@ msgstr ""
 "通过 Curl 下载时发生了错误 {}\n"
 "{}：{}"
 
-#: client/scenes/lobby_gui_customize.cpp:552
+#: client/scenes/lobby_gui_customize.cpp:648
 #, c++-format
 msgid "Really delete {}?"
 msgstr "真的要删除 {} 吗?"
 
-#: client/scenes/lobby_gui_customize.cpp:556
+#: client/scenes/lobby_gui_customize.cpp:652
 msgid "Delete"
 msgstr "删除"
 
-#: client/scenes/lobby_gui_customize.cpp:637
+#: client/scenes/lobby_gui_customize.cpp:733
 #, c++-format
 msgid "Cannot load environment: {}"
 msgstr "无法加载环境: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:645
+#: client/scenes/lobby_gui_customize.cpp:741
 msgid "Loading environment"
 msgstr "环境加载中"
 
-#: client/scenes/lobby_gui_customize.cpp:724
+#: client/scenes/lobby_gui_customize.cpp:820
 msgid "Download more environments"
 msgstr "下载更多环境"
 
-#: client/scenes/lobby_gui_customize.cpp:732
+#: client/scenes/lobby_gui_customize.cpp:828
 msgid "Open local glTF model"
 msgstr "打开本地 glTF 模型"
 
