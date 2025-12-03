@@ -746,7 +746,7 @@ void wivrn_session::operator()(from_headset::session_state_changed && event)
 			continue;
 		bool current = t.ics.client_state.session_overlay or
 		               mnd_ipc_server->global_state.active_client_index == t.ics.server_thread_index;
-		xrt_syscomp_set_state(system_compositor, t.ics.xc, visible and current, focused and current);
+		xrt_syscomp_set_state(system_compositor, t.ics.xc, visible and current, focused and current, os_monotonic_get_ns());
 	}
 }
 void wivrn_session::operator()(from_headset::user_presence_changed && event)
