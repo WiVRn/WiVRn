@@ -271,7 +271,9 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS monado-rev)
 file(STRINGS monado-rev MONADO_REV)
 # Server dependencies
 FetchContent_Declare(monado
-    URL https://gitlab.freedesktop.org/monado/monado/-/archive/${MONADO_REV}/monado-${MONADO_REV}.tar.gz
+    GIT_REPOSITORY   https://gitlab.freedesktop.org/monado/monado.git
+    # The flatpak manifest is updated automatically
+    GIT_TAG          ${MONADO_REV}
     PATCH_COMMAND    ${CMAKE_CURRENT_LIST_DIR}/patches/apply.sh ${MONADO_PATCHES}
     EXCLUDE_FROM_ALL
 )
