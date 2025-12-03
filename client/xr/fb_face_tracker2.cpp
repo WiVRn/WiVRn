@@ -68,10 +68,12 @@ void xr::fb_face_tracker2::get_weights(XrTime time, wivrn::from_headset::trackin
 	{
 		out_expressions.is_valid = expression_weights.isValid;
 		out_expressions.is_eye_following_blendshapes_valid = expression_weights.isEyeFollowingBlendshapesValid;
+		out_expressions.time = expression_weights.time;
 	}
 	else
 	{
 		out_expressions.is_valid = false;
 		out_expressions.is_eye_following_blendshapes_valid = false;
+		out_expressions.time = 0;
 	}
 }

@@ -67,5 +67,6 @@ void xr::android_face_tracker::get_weights(XrTime time, wivrn::from_headset::tra
 
 	CHECK_XR(xrGetFaceStateANDROID(id, &info, &state));
 	out_expressions.state = state.faceTrackingState;
+	out_expressions.sample_time = state.sampleTime;
 	out_expressions.is_valid = state.isValid;
 }
