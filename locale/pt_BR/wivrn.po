@@ -11,8 +11,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-17 21:03+0100\n"
-"PO-Revision-Date: 2025-11-17 22:21+0100\n"
+"POT-Creation-Date: 2025-12-02 19:57+0100\n"
+"PO-Revision-Date: 2025-12-03 19:23+0100\n"
 "Last-Translator: Claudio Sampaio (Patola) <patola@gmail.com>\n"
 "Language-Team: Portuguese <>\n"
 "Language: pt_BR\n"
@@ -101,9 +101,9 @@ msgstr "Desabilitado"
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:653
-#: client/scenes/lobby_gui_customize.cpp:744
-#: client/scenes/lobby_gui_customize.cpp:800 client/scenes/stream_gui.cpp:963
+#: client/scenes/lobby_gui.cpp:132 client/scenes/lobby_gui_customize.cpp:749
+#: client/scenes/lobby_gui_customize.cpp:840
+#: client/scenes/lobby_gui_customize.cpp:896 client/scenes/stream_gui.cpp:963
 msgid "Close"
 msgstr "Fechar"
 
@@ -140,7 +140,7 @@ msgstr "Porta"
 msgid "TCP only"
 msgstr "TCP somente"
 
-#: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:555
+#: client/scenes/lobby_gui.cpp:317 client/scenes/lobby_gui_customize.cpp:651
 #: client/scenes/stream_gui.cpp:920
 msgid "Cancel"
 msgstr "Cancelar"
@@ -254,7 +254,7 @@ msgstr "Ativar rastreamento de mãos"
 
 #: client/scenes/lobby_gui.cpp:709 client/scenes/lobby_gui.cpp:721
 #: client/scenes/lobby_gui.cpp:733 client/scenes/lobby_gui.cpp:750
-#: client/scenes/lobby_gui_customize.cpp:540
+#: client/scenes/lobby_gui_customize.cpp:636
 msgid "This feature is not supported by your headset"
 msgstr "Este recurso não é suportado pelo seu headset"
 
@@ -484,33 +484,47 @@ msgstr ""
 msgid "Press the grip button to move the main window"
 msgstr "Pressione o botão de aderência para mover a janela principal"
 
-#: client/scenes/lobby_gui_customize.cpp:233
+#: client/scenes/lobby_gui_customize.cpp:208
+msgid "Locally loaded environment"
+msgstr "Ambiente localmente carregado"
+
+#: client/scenes/lobby_gui_customize.cpp:221
+#, c++-format
+msgid "Locally loaded environment ({})"
+msgstr "Ambiente localmente carregado ({})"
+
+#: client/scenes/lobby_gui_customize.cpp:296
+#, c++-format
+msgid "Cannot load local environment: {}"
+msgstr "Incapaz de carregar ambiente local: {}"
+
+#: client/scenes/lobby_gui_customize.cpp:329
 #, c++-format
 msgid "Cannot load environment list: {}"
 msgstr "Não foi possível carregar lista de ambientes: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:363
+#: client/scenes/lobby_gui_customize.cpp:459
 #, c++-format
 msgid "Author: {}"
 msgstr "Autor: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:367
+#: client/scenes/lobby_gui_customize.cpp:463
 #, c++-format
 msgid "Size: {:.1f} MB"
 msgstr "Tamanho: {:.1f} MB"
 
-#: client/scenes/lobby_gui_customize.cpp:447
+#: client/scenes/lobby_gui_customize.cpp:543
 msgid "Delete this model"
 msgstr "Remover este modelo"
 
-#: client/scenes/lobby_gui_customize.cpp:483
-#: client/scenes/lobby_gui_customize.cpp:689
+#: client/scenes/lobby_gui_customize.cpp:579
+#: client/scenes/lobby_gui_customize.cpp:785
 #, c++-format
 msgid "HTTP error {} when downloading {}"
 msgstr "Erro de HTTP {} ao baixar {}"
 
-#: client/scenes/lobby_gui_customize.cpp:491
-#: client/scenes/lobby_gui_customize.cpp:697
+#: client/scenes/lobby_gui_customize.cpp:587
+#: client/scenes/lobby_gui_customize.cpp:793
 #, c++-format
 msgid ""
 "Curl error when downloading {}\n"
@@ -519,29 +533,29 @@ msgstr ""
 "Erro do curl ao baixar {}\n"
 "{}: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:552
+#: client/scenes/lobby_gui_customize.cpp:648
 #, c++-format
 msgid "Really delete {}?"
 msgstr "Realmente remover {}?"
 
-#: client/scenes/lobby_gui_customize.cpp:556
+#: client/scenes/lobby_gui_customize.cpp:652
 msgid "Delete"
 msgstr "Remover"
 
-#: client/scenes/lobby_gui_customize.cpp:637
+#: client/scenes/lobby_gui_customize.cpp:733
 #, c++-format
 msgid "Cannot load environment: {}"
 msgstr "Não foi possível baixar ambiente: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:645
+#: client/scenes/lobby_gui_customize.cpp:741
 msgid "Loading environment"
 msgstr "Baixando ambiente"
 
-#: client/scenes/lobby_gui_customize.cpp:724
+#: client/scenes/lobby_gui_customize.cpp:820
 msgid "Download more environments"
 msgstr "Baixar mais ambientes"
 
-#: client/scenes/lobby_gui_customize.cpp:732
+#: client/scenes/lobby_gui_customize.cpp:828
 msgid "Open local glTF model"
 msgstr "Abrir modelo local glTF"
 
