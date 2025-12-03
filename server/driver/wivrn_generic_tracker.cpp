@@ -155,7 +155,7 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 	}
 
 	U_LOG_XDEV_UNSUPPORTED_INPUT(this, u_log_get_global_level(), name);
-	return XRT_ERROR_NOT_IMPLEMENTED;
+	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
 void wivrn_generic_tracker::update_tracking(const from_headset::body_tracking & tracking, const from_headset::body_tracking::pose & pose, const clock_offset & offset)
