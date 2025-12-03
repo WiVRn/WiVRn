@@ -107,6 +107,7 @@ void shard_accumulator::advance()
 {
 	std::swap(current, next);
 	next.reset(current.frame_index() + 1);
+	position = 0;
 }
 
 void shard_accumulator::push_shard(video_stream_data_shard && shard)
@@ -121,8 +122,7 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 	}
 	else if (frame_diff == 0)
 	{
-		auto shard_idx = current.insert(std::move(shard), instance);
-		try_submit_frame(shard_idx);
+		current.insert(std::move(shard), instance);
 	}
 	else if (frame_diff == 1)
 	{
@@ -152,6 +152,7 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 
 void shard_accumulator::end_batch()
 {
+	try_submit_frame();
 	if (is_complete(next))
 	{
 		debug_why_not_sent(current);
@@ -159,38 +160,25 @@ void shard_accumulator::end_batch()
 
 		advance();
 
-		try_submit_frame(0);
+		try_submit_frame();
 	}
 }
 
-void shard_accumulator::try_submit_frame(std::optional<uint16_t> shard_idx)
-{
-	if (shard_idx)
-		try_submit_frame(*shard_idx);
-}
-
-void shard_accumulator::try_submit_frame(uint16_t shard_idx)
+void shard_accumulator::try_submit_frame()
 {
 	auto & data_shards = current.data;
 
-	for (size_t idx = 0; idx < shard_idx; ++idx)
-		if (not data_shards[idx])
-			return;
+	const size_t size = data_shards.size();
+	if (position >= size or not data_shards[position])
+		return;
 
-	uint16_t last_idx = shard_idx + 1;
-	for (size_t size = data_shards.size();
-	     last_idx < size and data_shards[last_idx];
-	     ++last_idx)
-	{
-	}
+	// collect shards from current position to the first hole
+	tmp.clear();
+	for (; position < size and data_shards[position]; ++position)
+		tmp.emplace_back(data_shards[position]->payload);
 
-	std::vector<std::span<const uint8_t>> payload;
-	payload.reserve(last_idx - shard_idx);
-	for (size_t idx = shard_idx; idx < last_idx; ++idx)
-		payload.emplace_back(data_shards[idx]->payload);
-
-	bool frame_complete = last_idx == data_shards.size() and data_shards.back()->flags & video_stream_data_shard::end_of_frame;
-	decoder_->push_data(payload, data_shards[shard_idx]->frame_idx, not frame_complete);
+	const bool frame_complete = position == size and data_shards.back()->flags & video_stream_data_shard::end_of_frame;
+	decoder_->push_data(tmp, data_shards.front()->frame_idx, not frame_complete);
 
 	if (not frame_complete)
 		return;

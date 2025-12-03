@@ -70,10 +70,15 @@ public:
 	};
 
 private:
+	// Index of the first shard that shall be sent
+	uint16_t position = 0;
 	shard_set current;
 	shard_set next;
 	std::weak_ptr<scenes::stream> weak_scene;
 	xr::instance & instance;
+
+	// keep around to avoid allocations
+	std::vector<std::span<const uint8_t>> tmp;
 
 public:
 	explicit shard_accumulator(
@@ -112,8 +117,7 @@ public:
 	using blit_handle = decoder::blit_handle;
 
 private:
-	void try_submit_frame(std::optional<uint16_t> shard_idx);
-	void try_submit_frame(uint16_t shard_idx);
+	void try_submit_frame();
 	void send_feedback(wivrn::from_headset::feedback & feedback);
 	void advance();
 };
