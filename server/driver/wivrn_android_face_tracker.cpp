@@ -102,8 +102,8 @@ xrt_result_t wivrn_android_face_tracker::get_face_tracking(enum xrt_input_name f
 		if (not data.is_valid)
 			return XRT_SUCCESS;
 
-		memcpy(&inout_value->face_expression_set_android.parameters, data.parameters.data(), sizeof(float) * data.parameters.size());
-		memcpy(&inout_value->face_expression_set_android.region_confidences, data.confidences.data(), sizeof(float) * data.confidences.size());
+		std::ranges::copy(data.parameters, inout_value->face_expression_set_android.parameters);
+		std::ranges::copy(data.confidences, inout_value->face_expression_set_android.region_confidences);
 
 		return XRT_SUCCESS;
 	}
