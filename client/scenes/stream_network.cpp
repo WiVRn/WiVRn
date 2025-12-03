@@ -38,6 +38,9 @@ void scenes::stream::process_packets()
 		try
 		{
 			network_session->poll(*this, std::chrono::milliseconds(500));
+			std::shared_lock lock(decoder_mutex);
+			for (auto & decoder: decoders)
+				decoder.decoder->end_batch();
 		}
 		catch (std::exception & e)
 		{

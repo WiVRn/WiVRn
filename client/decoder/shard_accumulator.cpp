@@ -127,15 +127,6 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 	else if (frame_diff == 1)
 	{
 		next.insert(std::move(shard), instance);
-		if (is_complete(next))
-		{
-			debug_why_not_sent(current);
-			send_feedback(current.feedback);
-
-			advance();
-
-			try_submit_frame(0);
-		}
 	}
 	else if (frame_diff == 2)
 	{
@@ -156,6 +147,19 @@ void shard_accumulator::push_shard(video_stream_data_shard && shard)
 		next.reset(shard.frame_idx + 1);
 
 		push_shard(std::move(shard));
+	}
+}
+
+void shard_accumulator::end_batch()
+{
+	if (is_complete(next))
+	{
+		debug_why_not_sent(current);
+		send_feedback(current.feedback);
+
+		advance();
+
+		try_submit_frame(0);
 	}
 }
 

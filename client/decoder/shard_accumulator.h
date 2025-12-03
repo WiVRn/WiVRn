@@ -92,6 +92,8 @@ public:
 
 	void push_shard(wivrn::to_headset::video_stream_data_shard &&);
 
+	void end_batch();
+
 	auto & desc() const
 	{
 		return decoder_->description;
