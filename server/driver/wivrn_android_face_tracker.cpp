@@ -79,6 +79,7 @@ void wivrn_android_face_tracker::update_tracking(const from_headset::tracking & 
 	        .parameters = face->parameters,
 	        .confidences = face->confidences,
 	        .state = (xrt_face_tracking_state_android)face->state,
+	        .sample_time = offset.from_headset(face->sample_time),
 	        .is_calibrated = face->is_calibrated,
 	        .is_valid = face->is_valid,
 	};
@@ -96,6 +97,7 @@ xrt_result_t wivrn_android_face_tracker::get_face_tracking(enum xrt_input_name f
 
 		inout_value->face_expression_set_android.state = data.state;
 		inout_value->face_expression_set_android.is_valid = data.is_valid;
+		inout_value->face_expression_set_android.sample_time_ns = data.sample_time;
 
 		if (not data.is_valid)
 			return XRT_SUCCESS;

@@ -82,6 +82,8 @@ void wivrn_htc_face_tracker::update_tracking(const from_headset::tracking & trac
 		return;
 
 	wivrn_htc_face_data data{
+	        .eye_sample_time = offset.from_headset(face->eye_sample_time),
+	        .lip_sample_time = offset.from_headset(face->lip_sample_time),
 	        .eye = face->eye,
 	        .lip = face->lip,
 	        .eye_active = face->eye_active,
@@ -99,7 +101,7 @@ xrt_result_t wivrn_htc_face_tracker::get_face_tracking(enum xrt_input_name facia
 		auto [_, data] = face_list.get_at(at_timestamp_ns);
 
 		inout_value->base_expression_set_htc.is_active = data.eye_active;
-		inout_value->base_expression_set_htc.sample_time_ns = at_timestamp_ns;
+		inout_value->base_expression_set_htc.sample_time_ns = data.eye_sample_time;
 
 		if (not data.eye_active)
 			return XRT_SUCCESS;
@@ -114,7 +116,7 @@ xrt_result_t wivrn_htc_face_tracker::get_face_tracking(enum xrt_input_name facia
 		auto [_, data] = face_list.get_at(at_timestamp_ns);
 
 		inout_value->base_expression_set_htc.is_active = data.lip_active;
-		inout_value->base_expression_set_htc.sample_time_ns = at_timestamp_ns;
+		inout_value->base_expression_set_htc.sample_time_ns = data.lip_sample_time;
 
 		if (not data.lip_active)
 			return XRT_SUCCESS;

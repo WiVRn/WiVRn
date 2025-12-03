@@ -78,6 +78,7 @@ void wivrn_fb_face2_tracker::update_tracking(const from_headset::tracking & trac
 	        .confidences = face->confidences,
 	        .is_valid = face->is_valid,
 	        .is_eye_following_blendshapes_valid = face->is_eye_following_blendshapes_valid,
+	        .time = offset.from_headset(face->time),
 	};
 
 	if (not face_list.update_tracking(tracking.production_timestamp, tracking.timestamp, data, offset))
@@ -92,6 +93,7 @@ xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facia
 		auto [_, data] = face_list.get_at(at_timestamp_ns);
 
 		inout_value->face_expression_set2_fb.is_valid = data.is_valid;
+		inout_value->face_expression_set2_fb.sample_time_ns = data.time;
 
 		if (not data.is_valid)
 			return XRT_SUCCESS;

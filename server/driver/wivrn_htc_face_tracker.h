@@ -38,6 +38,8 @@ class wivrn_session;
 
 struct wivrn_htc_face_data
 {
+	int64_t eye_sample_time;
+	int64_t lip_sample_time;
 	std::array<float, XRT_FACIAL_EXPRESSION_EYE_COUNT_HTC> eye;
 	std::array<float, XRT_FACIAL_EXPRESSION_LIP_COUNT_HTC> lip;
 	bool eye_active;

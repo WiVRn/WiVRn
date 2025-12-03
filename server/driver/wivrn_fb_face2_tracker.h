@@ -47,6 +47,8 @@ struct wivrn_fb_face2_data
 	// the old sample from before opening the Quest menu
 	// would be too old to be considered for interpolation
 	bool is_eye_following_blendshapes_valid;
+
+	int64_t time;
 };
 
 class fb_face2_list : public history<fb_face2_list, wivrn_fb_face2_data>

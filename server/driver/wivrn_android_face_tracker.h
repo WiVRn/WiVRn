@@ -41,6 +41,7 @@ struct wivrn_android_face_data
 	std::array<float, XRT_FACE_PARAMETER_COUNT_ANDROID> parameters;
 	std::array<float, XRT_FACE_REGION_CONFIDENCE_COUNT_ANDROID> confidences;
 	xrt_face_tracking_state_android state;
+	int64_t sample_time;
 	bool is_calibrated;
 	bool is_valid;
 };

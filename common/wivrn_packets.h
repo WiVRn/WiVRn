@@ -307,6 +307,7 @@ struct tracking
 		std::array<float, XR_FACE_PARAMETER_COUNT_ANDROID> parameters;
 		std::array<float, XR_FACE_REGION_CONFIDENCE_COUNT_ANDROID> confidences;
 		XrFaceTrackingStateANDROID state;
+		XrTime sample_time;
 		bool is_calibrated;
 		bool is_valid;
 	};
@@ -317,10 +318,13 @@ struct tracking
 		std::array<float, XR_FACE_CONFIDENCE2_COUNT_FB> confidences;
 		bool is_valid;
 		bool is_eye_following_blendshapes_valid;
+		XrTime time;
 	};
 
 	struct htc_face
 	{
+		XrTime eye_sample_time;
+		XrTime lip_sample_time;
 		std::array<float, XR_FACIAL_EXPRESSION_EYE_COUNT_HTC> eye;
 		std::array<float, XR_FACIAL_EXPRESSION_LIP_COUNT_HTC> lip;
 		bool eye_active;

@@ -67,6 +67,7 @@ void xr::htc_face_tracker::get_weights(XrTime time, packet_type & out_expression
 		expressions.expressionCount = out_expressions.eye.size();
 		expressions.expressionWeightings = out_expressions.eye.data();
 		CHECK_XR(xrGetFacialExpressionsHTC(eye, &expressions));
+		out_expressions.eye_sample_time = expressions.sampleTime;
 		out_expressions.eye_active = expressions.isActive;
 	}
 	if (lip)
@@ -74,6 +75,7 @@ void xr::htc_face_tracker::get_weights(XrTime time, packet_type & out_expression
 		expressions.expressionCount = out_expressions.lip.size();
 		expressions.expressionWeightings = out_expressions.lip.data();
 		CHECK_XR(xrGetFacialExpressionsHTC(lip, &expressions));
+		out_expressions.lip_sample_time = expressions.sampleTime;
 		out_expressions.lip_active = expressions.isActive;
 	}
 }
