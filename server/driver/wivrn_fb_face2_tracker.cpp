@@ -106,6 +106,6 @@ xrt_result_t wivrn_fb_face2_tracker::get_face_tracking(enum xrt_input_name facia
 		return XRT_SUCCESS;
 	}
 
-	return XRT_ERROR_NOT_IMPLEMENTED;
+	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 } // namespace wivrn

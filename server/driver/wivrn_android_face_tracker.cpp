@@ -106,7 +106,7 @@ xrt_result_t wivrn_android_face_tracker::get_face_tracking(enum xrt_input_name f
 		return XRT_SUCCESS;
 	}
 
-	return XRT_ERROR_NOT_IMPLEMENTED;
+	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
 xrt_result_t wivrn_android_face_tracker::get_face_calibration_state_android(bool * out_face_is_calibrated)
