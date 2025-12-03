@@ -354,6 +354,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	u_builder_create_space_overseer_legacy(
 	        &self->xrt_system.broadcast,
 	        &self->hmd,
+	        self->eye_tracker.get(),
 	        &self->left_controller,
 	        &self->right_controller,
 	        nullptr,
