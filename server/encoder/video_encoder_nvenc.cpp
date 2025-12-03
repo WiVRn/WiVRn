@@ -135,8 +135,10 @@ NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(uint64_t bitrate, float fram
 	return {
 	        .rateControlMode = NV_ENC_PARAMS_RC_CBR,
 	        .averageBitRate = static_cast<uint32_t>(bitrate),
-	        .vbvBufferSize = static_cast<uint32_t>(bitrate),
-	        .vbvInitialDelay = static_cast<uint32_t>(bitrate / 2),
+	        .vbvBufferSize = static_cast<uint32_t>(bitrate / framerate * 2.0f),
+	        .vbvInitialDelay = static_cast<uint32_t>(bitrate / framerate),
+	        .enableLookahead = 0,
+	        .lowDelayKeyFrameScale = 1,
 	        .multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION};
 }
 
@@ -202,6 +204,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 
 	// Bitrate control
 	config.rcParams = get_rc_params(bitrate, fps);
+	config.rcParams.enableTemporalAQ = 0;
 	config.rcParams.enableAQ = 1;
 	config.rcParams.enableNonRefP = 1;
 
