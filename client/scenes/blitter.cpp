@@ -24,7 +24,6 @@
 #include "vk/shader.h"
 #include "vk/specialization_constants.h"
 #include <format>
-#include <ranges>
 #include <spdlog/spdlog.h>
 
 namespace wivrn
@@ -198,7 +197,7 @@ void blitter::begin(vk::raii::CommandBuffer & cmd)
 	        vk::SubpassContents::eInline);
 }
 
-void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Sampler sampler, const vk::Extent2D & extent_, vk::ImageView image, vk::ImageLayout layout)
+bool blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Sampler sampler, const vk::Extent2D & extent_, vk::ImageView image, vk::ImageLayout layout)
 {
 	if (stream == passthrough_rgb)
 	{
@@ -209,7 +208,7 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 		        extent_.width * desc.items[stream].subsampling,
 		        extent_.height * desc.items[stream].subsampling,
 		};
-		return;
+		return true;
 	}
 	if (stream == passthrough_a)
 	{
@@ -220,15 +219,15 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 		        extent_.width * desc.items[stream].subsampling,
 		        extent_.height * desc.items[stream].subsampling,
 		};
-		return;
+		return false;
 	}
 	if (pipelines.empty())
-		return;
+		return false;
 
 	assert(stream < pipelines.size());
 	auto & p = pipelines[stream];
 	if (not p.used)
-		return;
+		return false;
 
 	const auto & extent = target.info().extent;
 	const auto & description = desc.items[stream];
@@ -352,6 +351,7 @@ void blitter::push_image(vk::raii::CommandBuffer & cmd, uint8_t stream, vk::Samp
 	                .extent = {.width = uint32_t(x1 - x0), .height = uint32_t(y1 - y0)},
 	        });
 	cmd.draw(3, 1, 0, 0);
+	return true;
 }
 
 blitter::output blitter::end(vk::raii::CommandBuffer & cmd)

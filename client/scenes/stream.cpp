@@ -839,9 +839,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	// Search for frame with desired display time on all decoders
 	// If no such frame exists, use the latest frame for each decoder
 	current_blit_handles = common_frame(frame_state.predictedDisplayTime);
-	std::array<XrPosef, 2> pose{};
-	std::array<XrFovf, 2> fov{};
-	std::array<wivrn::to_headset::foveation_parameter, 2> foveation{};
+	std::array<XrPosef, view_count> pose{};
+	std::array<XrFovf, view_count> fov{};
+	std::array<wivrn::to_headset::foveation_parameter, view_count> foveation{};
 	bool use_alpha = false;
 
 	for (auto & blit_handle: current_blit_handles)
@@ -855,9 +855,6 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		++blit_handle->feedback.times_displayed;
 		blit_handle->feedback.displayed = frame_state.predictedDisplayTime;
 
-		pose = blit_handle->view_info.pose;
-		fov = blit_handle->view_info.fov;
-		foveation = blit_handle->view_info.foveation;
 		use_alpha = blit_handle->view_info.alpha;
 
 		if (blit_handle->current_layout == vk::ImageLayout::eUndefined)
@@ -889,7 +886,12 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		{
 			if (not blit_handle)
 				continue;
-			b.push_image(command_buffer, j, decoders[j].decoder->sampler(), decoders[j].decoder->extent(), blit_handle->image_view, blit_handle->current_layout);
+			if (b.push_image(command_buffer, j, decoders[j].decoder->sampler(), decoders[j].decoder->extent(), blit_handle->image_view, blit_handle->current_layout))
+			{
+				pose[i] = blit_handle->view_info.pose[i];
+				fov[i] = blit_handle->view_info.fov[i];
+				foveation[i] = blit_handle->view_info.foveation[i];
+			}
 		}
 		blitted[i] = b.end(command_buffer);
 	}

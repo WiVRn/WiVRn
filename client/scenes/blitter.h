@@ -66,7 +66,8 @@ public:
 
 	void reset(const to_headset::video_stream_description & desc);
 	void begin(vk::raii::CommandBuffer &);
-	void push_image(vk::raii::CommandBuffer & buf, uint8_t stream, vk::Sampler sampler, const vk::Extent2D &, vk::ImageView image, vk::ImageLayout);
+	// Return true if the image is used for this blitter's rgb
+	bool push_image(vk::raii::CommandBuffer & buf, uint8_t stream, vk::Sampler sampler, const vk::Extent2D &, vk::ImageView image, vk::ImageLayout);
 	output end(vk::raii::CommandBuffer &);
 };
 } // namespace wivrn
