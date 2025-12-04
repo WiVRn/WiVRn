@@ -22,7 +22,6 @@
 
 #include <cstdint>
 #include <mutex>
-#include <set>
 #include <variant>
 
 namespace wivrn
@@ -43,7 +42,6 @@ public:
 class default_idr_handler : public idr_handler
 {
 	std::mutex mutex;
-	std::set<uint64_t> non_ref_frames;
 	struct need_idr
 	{};
 	struct wait_idr_feedback
@@ -57,6 +55,7 @@ class default_idr_handler : public idr_handler
 		uint64_t first_p;
 	};
 	std::variant<need_idr, wait_idr_feedback, idr_received, running> state;
+	std::vector<uint64_t> non_ref_frames{512, uint64_t(-1)};
 
 public:
 	enum class frame_type
@@ -69,6 +68,7 @@ public:
 	void reset() override;
 	bool should_skip(uint64_t frame_id) override;
 	void set_non_ref(uint64_t frame_index);
+	bool is_non_ref_frame(uint64_t frame_index);
 	frame_type get_type(uint64_t frame_index);
 };
 } // namespace wivrn

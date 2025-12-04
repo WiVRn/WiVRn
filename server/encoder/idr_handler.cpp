@@ -28,10 +28,6 @@ idr_handler::~idr_handler() = default;
 void default_idr_handler::on_feedback(const from_headset::feedback & f)
 {
 	std::unique_lock lock(mutex);
-	bool is_non_ref = non_ref_frames.erase(f.frame_index);
-	if (not non_ref_frames.empty() and f.frame_index > 500 and *non_ref_frames.begin() < f.frame_index - 500)
-		non_ref_frames.erase(non_ref_frames.begin(), non_ref_frames.lower_bound(f.frame_index - 500));
-
 	std::visit(utils::overloaded{
 	                   [](need_idr) {},
 	                   [](idr_received) {},
@@ -50,8 +46,8 @@ void default_idr_handler::on_feedback(const from_headset::feedback & f)
 			                   }
 		                   }
 	                   },
-	                   [this, &f, is_non_ref](running r) {
-		                   if (not f.sent_to_decoder and f.frame_index >= r.first_p and not is_non_ref)
+	                   [this, &f](running r) {
+		                   if (not f.sent_to_decoder and f.frame_index >= r.first_p and not is_non_ref_frame(f.frame_index))
 			                   state = need_idr{};
 	                   },
 	           },
@@ -89,7 +85,12 @@ bool default_idr_handler::should_skip(uint64_t frame_id)
 void default_idr_handler::set_non_ref(uint64_t frame_index)
 {
 	std::unique_lock lock(mutex);
-	non_ref_frames.insert(frame_index);
+	non_ref_frames[frame_index % non_ref_frames.size()] = frame_index;
+}
+
+bool default_idr_handler::is_non_ref_frame(uint64_t frame_index)
+{
+	return non_ref_frames[frame_index % non_ref_frames.size()] == frame_index;
 }
 
 default_idr_handler::frame_type default_idr_handler::get_type(uint64_t frame_index)
