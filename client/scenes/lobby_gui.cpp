@@ -1156,6 +1156,8 @@ void scenes::lobby::gui_first_run()
 		current_tab = tab::server_list;
 		config.first_run = false;
 		config.save();
+		ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing
+		return;
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
