@@ -127,12 +127,28 @@ function(wivrn_copy_file)
     endif()
 endfunction()
 
+function(wivrn_webxr_download)
+    if(NOT EXISTS ${FETCHCONTENT_BASE_DIR}/@webxr-input-profiles-1.0.20.tgz)
+        if (EXISTS ${CMAKE_SOURCE_DIR}/@webxr-input-profiles-1.0.20.tgz)
+            file(CREATE_LINK ${CMAKE_SOURCE_DIR}/@webxr-input-profiles-1.0.20.tgz ${FETCHCONTENT_BASE_DIR}/@webxr-input-profiles-1.0.20.tgz SYMBOLIC)
+        else()
+            file(DOWNLOAD https://registry.npmjs.com/@webxr-input-profiles/assets/-/assets-1.0.20.tgz
+                 ${FETCHCONTENT_BASE_DIR}/@webxr-input-profiles-1.0.20.tgz
+                 EXPECTED_HASH SHA256=30df2a2268220fc0d0e034bed1550aabdd7a2500573c5216f64fc70d59c3d91e)
+        endif()
+    endif()
+
+    file(ARCHIVE_EXTRACT INPUT ${FETCHCONTENT_BASE_DIR}/@webxr-input-profiles-1.0.20.tgz DESTINATION ${FETCHCONTENT_BASE_DIR}/@webxr-input-profiles)
+endfunction()
+
 function(wivrn_webxr_controller)
     set(options)
-    set(oneValueArgs SOURCE DESTINATION TARGET)
+    set(oneValueArgs PROFILE DESTINATION TARGET)
     set(multiValueArgs)
 
     cmake_parse_arguments(PARSE_ARGV 0 arg "${options}" "${oneValueArgs}" "${multiValueArgs}")
+
+    set(arg_SOURCE ${FETCHCONTENT_BASE_DIR}/@webxr-input-profiles/package/dist/profiles/${arg_PROFILE})
 
     file(READ ${arg_SOURCE}/profile.json PROFILE_JSON)
 
@@ -149,11 +165,11 @@ function(wivrn_webxr_controller)
             set(TEMPFILE ${PROFILE_ID}-${LAYOUT_NAME}.glb)
 
             wivrn_gltf_transform_resize(SOURCE ${arg_SOURCE}/${ASSET_PATH} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/${TEMPFILE} WIDTH 512 HEIGHT 512)
-            wivrn_gltf_transform_uastc(SOURCE ${CMAKE_CURRENT_BINARY_DIR}/${TEMPFILE} DESTINATION ${arg_DESTINATION}/${ASSET_PATH} ZSTD 20 TARGET ${arg_TARGET})
+            wivrn_gltf_transform_uastc(SOURCE ${CMAKE_CURRENT_BINARY_DIR}/${TEMPFILE} DESTINATION ${arg_DESTINATION}/${arg_PROFILE}/${ASSET_PATH} ZSTD 20 TARGET ${arg_TARGET})
         else()
-            wivrn_copy_file(SOURCE ${arg_SOURCE}/${ASSET_PATH} DESTINATION ${arg_DESTINATION}/${ASSET_PATH} TARGET ${arg_TARGET})
+            wivrn_copy_file(SOURCE ${arg_SOURCE}/${ASSET_PATH} DESTINATION ${arg_DESTINATION}/${arg_PROFILE}/${ASSET_PATH} TARGET ${arg_TARGET})
         endif()
     endforeach()
 
-    wivrn_copy_file(SOURCE ${arg_SOURCE}/profile.json DESTINATION ${arg_DESTINATION}/profile.json TARGET ${arg_TARGET})
+    wivrn_copy_file(SOURCE ${arg_SOURCE}/profile.json DESTINATION ${arg_DESTINATION}/${arg_PROFILE}/profile.json TARGET ${arg_TARGET})
 endfunction()

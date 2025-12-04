@@ -328,6 +328,7 @@ std::string controller_name()
 		case model::htc_vive_xr_elite:
 			return "htc-vive-focus-3";
 		case model::samsung_galaxy_xr:
+			return "samsung-galaxyxr";
 		case model::lynx_r1:
 		case model::unknown:
 			return "generic-trigger-squeeze";
