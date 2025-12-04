@@ -65,6 +65,15 @@ if(ANDROID)
     target_compile_definitions(wivrn PRIVATE -DXR_USE_PLATFORM_ANDROID -DVK_USE_PLATFORM_ANDROID_KHR)
     target_link_options(wivrn PRIVATE -Wl,--undefined=ANativeActivity_onCreate)
 
+    target_link_options(wivrn
+        PRIVATE
+        -Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/android/exported_symbols.txt
+        # This causes the linker to emit an error when a version script names a
+        # symbol that is not found, rather than silently ignoring that line.
+        -Wl,--no-undefined-version
+    )
+    set_target_properties(wivrn PROPERTIES LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/android/exported_symbols.txt)
+
     file(GLOB PLATFORM_SOURCE CONFIGURE_DEPENDS
         "android/*.cpp"
         "audio/android/*.cpp"
