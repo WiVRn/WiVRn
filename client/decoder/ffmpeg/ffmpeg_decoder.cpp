@@ -192,6 +192,8 @@ decoder::decoder(
 
 void decoder::push_data(std::span<std::span<const uint8_t>> data, uint64_t frame_index, bool partial)
 {
+	if (frame_index != this->frame_index)
+		packet.clear();
 	for (const auto & d: data)
 		packet.insert(packet.end(), d.begin(), d.end());
 	this->frame_index = frame_index;
