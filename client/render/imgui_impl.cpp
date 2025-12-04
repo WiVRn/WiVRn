@@ -651,9 +651,9 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 			}
 		}
 
-		if (current_aim_interaction == 0)
+		if (current_aim_interaction == 0 or not controller_position.first)
 			state.pointer_position = index_tip_position.first;
-		else if (current_aim_interaction == 1)
+		else if (current_aim_interaction == 1 or not index_tip_position.first)
 			state.pointer_position = controller_position.first;
 		else
 		{
