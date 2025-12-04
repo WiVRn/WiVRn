@@ -1,6 +1,7 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2025  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2024  galister <galister@librevr.org>
+ * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,24 +19,24 @@
 
 #pragma once
 
-#include "android_face_tracker.h"
-#include "fb_face_tracker2.h"
-#include "htc_face_tracker.h"
-#include "pico_face_tracker.h"
-#include "xr/system.h"
-
-#include <variant>
+#include "utils/handle.h"
+#include "wivrn_packets.h"
+#include <openxr/openxr.h>
 
 namespace xr
 {
-
 class instance;
 class session;
 
-using face_tracker = std::variant<std::monostate, xr::android_face_tracker, xr::fb_face_tracker2, xr::htc_face_tracker, xr::pico_face_tracker>;
+class android_face_tracker : public utils::handle<XrFaceTrackerANDROID>
+{
+	PFN_xrGetFaceCalibrationStateANDROID xrGetFaceCalibrationStateANDROID{};
+	PFN_xrGetFaceStateANDROID xrGetFaceStateANDROID{};
 
-face_tracker make_face_tracker(xr::instance &, xr::system &, xr::session &);
+public:
+	using packet_type = wivrn::from_headset::tracking::android_face;
+	android_face_tracker(instance & inst, session & s);
 
-face_tracker_type face_tracker_supported(xr::instance &, xr::system &);
-
+	void get_weights(XrTime, packet_type & out_expressions);
+};
 } // namespace xr

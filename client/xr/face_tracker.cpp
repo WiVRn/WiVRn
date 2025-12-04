@@ -24,6 +24,13 @@
 
 xr::face_tracker_type xr::face_tracker_supported(xr::instance & instance, xr::system & system)
 {
+	if (instance.has_extension(XR_ANDROID_FACE_TRACKING_EXTENSION_NAME))
+	{
+		auto properties = system.android_face_tracking_properties();
+		if (properties.supportsFaceTracking)
+			return xr::face_tracker_type::android;
+	}
+
 	if (instance.has_extension(XR_FB_FACE_TRACKING2_EXTENSION_NAME))
 	{
 		auto properties = system.fb_face_tracking2_properties();
@@ -57,6 +64,13 @@ xr::face_tracker_type xr::face_tracker_supported(xr::instance & instance, xr::sy
 
 xr::face_tracker xr::make_face_tracker(xr::instance & instance, xr::system & system, xr::session & session)
 {
+	if (instance.has_extension(XR_ANDROID_FACE_TRACKING_EXTENSION_NAME))
+	{
+		auto properties = system.android_face_tracking_properties();
+		if (properties.supportsFaceTracking)
+			return xr::face_tracker(std::in_place_type_t<xr::android_face_tracker>(), instance, session);
+	}
+
 	if (instance.has_extension(XR_FB_FACE_TRACKING2_EXTENSION_NAME))
 	{
 		auto properties = system.fb_face_tracking2_properties();

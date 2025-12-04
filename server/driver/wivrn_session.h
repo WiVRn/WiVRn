@@ -48,6 +48,7 @@ union xrt_session_event;
 namespace wivrn
 {
 class wivrn_eye_tracker;
+class wivrn_android_face_tracker;
 class wivrn_fb_face2_tracker;
 class wivrn_htc_face_tracker;
 class wivrn_generic_tracker;
@@ -123,6 +124,7 @@ class wivrn_session : public xrt_system_devices
 	wivrn_hand_interaction right_hand_interaction;
 	int32_t right_hand_interaction_index;
 	std::unique_ptr<wivrn_eye_tracker> eye_tracker;
+	std::unique_ptr<wivrn_android_face_tracker> android_face_tracker;
 	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::unique_ptr<wivrn_htc_face_tracker> htc_face_tracker;
 	std::vector<std::unique_ptr<wivrn_generic_tracker>> generic_trackers;

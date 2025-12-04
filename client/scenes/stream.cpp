@@ -259,6 +259,9 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 				case xr::face_tracker_type::none:
 					info.face_tracking = from_headset::face_type::none;
 					break;
+				case xr::face_tracker_type::android:
+					info.face_tracking = from_headset::face_type::android;
+					break;
 				case xr::face_tracker_type::fb:
 				case xr::face_tracker_type::pico:
 					info.face_tracking = from_headset::face_type::fb2;
