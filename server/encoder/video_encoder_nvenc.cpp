@@ -135,8 +135,10 @@ NV_ENC_RC_PARAMS video_encoder_nvenc::get_rc_params(uint64_t bitrate, float fram
 	return {
 	        .rateControlMode = NV_ENC_PARAMS_RC_CBR,
 	        .averageBitRate = static_cast<uint32_t>(bitrate),
-	        .vbvBufferSize = static_cast<uint32_t>(bitrate / framerate),
+	        .vbvBufferSize = static_cast<uint32_t>(bitrate / framerate * 2.0f),
 	        .vbvInitialDelay = static_cast<uint32_t>(bitrate / framerate),
+	        .enableLookahead = 0,
+	        .lowDelayKeyFrameScale = 1,
 	        .multiPass = NV_ENC_TWO_PASS_QUARTER_RESOLUTION};
 }
 
@@ -202,6 +204,9 @@ video_encoder_nvenc::video_encoder_nvenc(
 
 	// Bitrate control
 	config.rcParams = get_rc_params(bitrate, fps);
+	config.rcParams.enableTemporalAQ = 0;
+	config.rcParams.enableAQ = 1;
+	config.rcParams.enableNonRefP = 1;
 
 	config.gopLength = NVENC_INFINITE_GOPLENGTH;
 	config.frameIntervalP = 1;
@@ -491,8 +496,10 @@ std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uin
 	{
 		case default_idr_handler::frame_type::i:
 			frame_params.encodePicFlags |= NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
+			frame_params.pictureType = NV_ENC_PIC_TYPE_IDR;
 			break;
 		case default_idr_handler::frame_type::p:
+			frame_params.pictureType = NV_ENC_PIC_TYPE_UNKNOWN;
 			break;
 	}
 	NVENC_CHECK(shared_state->fn.nvEncEncodePicture(session_handle, &frame_params));
