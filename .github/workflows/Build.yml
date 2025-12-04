@@ -53,6 +53,7 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.tar.*
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
           ${{github.workspace}}/cmake-fetch/*.tar.*
+          ${{github.workspace}}/cmake-fetch/*.tgz
         restore-keys: cmake-linux-
 
     - name: Install dependencies
@@ -128,6 +129,7 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.tar.*
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
           ${{github.workspace}}/cmake-fetch/*.tar.*
+          ${{github.workspace}}/cmake-fetch/*.tgz
         restore-keys: cmake-linux-
 
     - name: Configure CMake
@@ -230,6 +232,7 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
           ${{github.workspace}}/cmake-fetch/*.tar.*
           ${{github.workspace}}/cmake-fetch/*.zip
+          ${{github.workspace}}/cmake-fetch/*.tgz
         restore-keys: cmake-android-
 
     - name: Install dependencies
