@@ -1,0 +1,10 @@
+LIBAPP {
+	global:
+		ANativeActivity_onCreate;
+		android_main;
+		Java_org_meumeu_wivrn_BroadcastReceiver_onReceive;
+		Java_org_meumeu_wivrn_MainActivity_onRequestPermissionsResult;
+		Java_org_meumeu_wivrn_MainActivity_onActivityResult;
+	local:
+		*;
+};
