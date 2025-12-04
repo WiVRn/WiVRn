@@ -35,6 +35,7 @@ set(XRT_FEATURE_WINDOW_PEEK                       OFF)
 set(XRT_FEATURE_OPENXR_ACTIVE_ACTION_SET_PRIORITY ON)
 set(XRT_FEATURE_RENDERDOC                         ${WIVRN_FEATURE_RENDERDOC})
 
+set(XRT_FEATURE_OPENXR_FACE_TRACKING_ANDROID     ON)
 set(XRT_FEATURE_OPENXR_FACE_TRACKING2_FB         ON)
 set(XRT_FEATURE_OPENXR_FACIAL_TRACKING_HTC       ON)
 set(XRT_FEATURE_OPENXR_HAND_TRACKING_EXT         ON)
@@ -101,6 +102,7 @@ if (WIVRN_BUILD_SERVER)
 			driver/wivrn_controller.cpp
 			driver/wivrn_hand_interaction.cpp
 			driver/wivrn_eye_tracker.cpp
+			driver/wivrn_android_face_tracker.cpp
 			driver/wivrn_fb_face2_tracker.cpp
 			driver/wivrn_htc_face_tracker.cpp
 			driver/wivrn_generic_tracker.cpp

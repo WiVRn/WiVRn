@@ -1231,8 +1231,6 @@ void scenes::lobby::on_focused()
 	        },
 	};
 
-	face_tracker = xr::make_face_tracker(instance, system, session);
-
 	// 0.4mm / pixel
 	std::vector<imgui_context::viewport> vps{
 	        {

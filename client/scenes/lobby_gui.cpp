@@ -722,7 +722,7 @@ void scenes::lobby::gui_settings()
 		ImGui::EndDisabled();
 	}
 	{
-		ImGui::BeginDisabled(std::holds_alternative<std::monostate>(face_tracker));
+		ImGui::BeginDisabled(system.face_tracker_supported() == xr::face_tracker_type::none);
 		bool enabled = config.check_feature(feature::face_tracking);
 		if (ImGui::Checkbox(_S("Enable face tracking"), &enabled))
 		{
@@ -1422,6 +1422,7 @@ static const char * get_face_icon(XrTime predicted_display_time, xr::face_tracke
 	const char * result = nullptr;
 	std::visit(utils::overloaded{
 	                   [](std::monostate &) {},
+	                   [&](xr::android_face_tracker &) { result = ICON_FA_FACE_SMILE_WINK; },
 	                   [&](xr::htc_face_tracker &) { result = ICON_FA_FACE_SMILE_WINK; },
 	                   [&](auto & ft) {
 		                   ft.get_weights(predicted_display_time, expression);
@@ -1503,6 +1504,10 @@ void scenes::lobby::draw_features_status(XrTime predicted_display_time)
 		        .icon_enabled = get_face_icon(predicted_display_time, face_tracker),
 		        .icon_disabled = ICON_FA_FACE_MEH_BLANK,
 		});
+	}
+	else if (system.face_tracker_supported() != xr::face_tracker_type::none and config.check_feature(feature::face_tracking))
+	{
+		face_tracker = xr::make_face_tracker(instance, system, session);
 	}
 
 	if (system.body_tracker_supported() != xr::body_tracker_type::none)

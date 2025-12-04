@@ -131,6 +131,24 @@ XrSystemUserPresencePropertiesEXT xr::system::user_presence_properties() const
 	return presence_prop;
 }
 
+XrSystemFaceTrackingPropertiesANDROID xr::system::android_face_tracking_properties() const
+{
+	if (!id)
+		throw std::invalid_argument("this");
+
+	XrSystemFaceTrackingPropertiesANDROID face_tracking_prop{
+	        .type = XR_TYPE_SYSTEM_FACE_TRACKING_PROPERTIES_ANDROID,
+	};
+
+	XrSystemProperties prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &face_tracking_prop,
+	};
+	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+	return face_tracking_prop;
+}
+
 XrSystemFaceTrackingProperties2FB xr::system::fb_face_tracking2_properties() const
 {
 	if (!id)
