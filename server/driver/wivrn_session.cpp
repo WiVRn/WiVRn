@@ -214,6 +214,20 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 					static_roles.hand_tracking.unobstructed.right = nullptr;
 					static_roles.hand_tracking.conforming.right = lhdev;
 					break;
+				case XRT_DEVICE_TYPE_ANY_HAND_CONTROLLER:
+					if (roles.left == left_controller_index)
+					{
+						roles.left = xdev_count;
+						static_roles.hand_tracking.unobstructed.left = nullptr;
+						static_roles.hand_tracking.conforming.left = lhdev;
+					}
+					else if (roles.right == right_controller_index)
+					{
+						roles.right = xdev_count;
+						static_roles.hand_tracking.unobstructed.right = nullptr;
+						static_roles.hand_tracking.conforming.right = lhdev;
+					}
+					break;
 				default:
 					break;
 			}
