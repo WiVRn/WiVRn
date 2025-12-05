@@ -2,9 +2,9 @@
 
 WiVRn only provides an OpenXR runtime. For games that use OpenVR, [xrizer](https://github.com/Supreeeme/xrizer) or [OpenComposite](https://gitlab.com/znixian/OpenOVR/) should be used to translate the APIs.
 
-If using Steam, games will be sandboxed by pressure vessel, which is not OpenXR aware yet.
-- Files under `/usr` are mapped into `/run/host/usr`, if xrizer/OpenComposite or WiVRn are installed there, make sure that `XR_RUNTIME_JSON` uses `/run/host/usr` prefix and that `VR_OVERRIDE` or `~/.config/openvr/openvrpaths.vrpath` also uses this configuration.
-- WiVRn uses a socket to communicate between the application and the server process, this socket needs to be whitelisted as `PRESSURE_VESSEL_FILESYSTEMS_RW=$XDG_RUNTIME_DIR/wivrn/comp_ipc`.
+If using Steam, games will be sandboxed by pressure vessel, which does not passthrough OpenXR by default.
+- Files under `/usr` are mapped into `/run/host/usr`. If xrizer/OpenComposite is installed there, make sure `VR_OVERRIDE` or `~/.config/openvr/openvrpaths.vrpath` uses `/run/host/usr` prefix.
+- `PRESSURE_VESSEL_IMPORT_OPENXR_1_RUNTIMES=1` must be set to passthrough the WiVRn OpenXR manifest, library locations, and socket location.
 
 By default, WiVRn attempts to automatically find xrizer and OpenComposite in a number of places:
 - When WiVRn is shipped as a flatpak, it uses a provided copy of xrizer by default.
