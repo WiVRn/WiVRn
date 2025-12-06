@@ -217,8 +217,8 @@ msgstr "Échelle"
 
 #: client/scenes/lobby_gui.cpp:655
 #, c-format, c++-format
-msgid "%d%% - {}x{} per eye"
-msgstr "%d%% - {}x{} par œil"
+msgid "{}%% - {}x{} per eye"
+msgstr "{}%% - {}x{} par œil"
 
 #: client/scenes/lobby_gui.cpp:666
 #, c++-format

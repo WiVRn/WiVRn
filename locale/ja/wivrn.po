@@ -204,8 +204,8 @@ msgstr "解像度"
 
 #: client/scenes/lobby_gui.cpp:655
 #, c-format, c++-format
-msgid "%d%% - {}x{} per eye"
-msgstr "%d%% - 目あたり{}x{}"
+msgid "{}%% - {}x{} per eye"
+msgstr "{}%% - 目あたり{}x{}"
 
 #: client/scenes/lobby_gui.cpp:666
 #, c++-format

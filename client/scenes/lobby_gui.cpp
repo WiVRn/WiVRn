@@ -646,16 +646,16 @@ void scenes::lobby::gui_settings()
 		const auto current = config.resolution_scale;
 		const auto width = stream_view.recommendedImageRectWidth;
 		const auto height = stream_view.recommendedImageRectHeight;
-		auto intScale = int(current * 100);
+		auto intScale = int(current * 10);
 		const auto slider = ImGui::SliderInt(
 		        _("Resolution scale").append("##resolution_scale").c_str(),
 		        &intScale,
-		        50,
-		        350,
-		        fmt::format(_F("%d%% - {}x{} per eye"), int(width * current), int(height * current)).c_str());
+		        5,
+		        35,
+		        fmt::format(_F("{}%% - {}x{} per eye"), intScale * 10, int(width * current), int(height * current)).c_str());
 		if (slider)
 		{
-			config.resolution_scale = intScale * 0.01;
+			config.resolution_scale = intScale * 0.1;
 			config.save();
 		}
 		imgui_ctx->vibrate_on_hover();
