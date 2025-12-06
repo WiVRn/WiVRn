@@ -195,8 +195,8 @@ msgstr "解析度縮放比例"
 
 #: client/scenes/lobby_gui.cpp:638
 #, c-format, c++-format
-msgid "%d%% - {}x{} per eye"
-msgstr "%d%% - 單眼 {}x{}"
+msgid "{}%% - {}x{} per eye"
+msgstr "{}%% - 單眼 {}x{}"
 
 #: client/scenes/lobby_gui.cpp:649
 #, c++-format

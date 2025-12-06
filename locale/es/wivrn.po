@@ -216,8 +216,8 @@ msgstr "Escala de resolución"
 
 #: client/scenes/lobby_gui.cpp:655
 #, c-format, c++-format
-msgid "%d%% - {}x{} per eye"
-msgstr "%d%% - {}x{} por ojo"
+msgid "{}%% - {}x{} per eye"
+msgstr "{}%% - {}x{} por ojo"
 
 #: client/scenes/lobby_gui.cpp:666
 #, c++-format

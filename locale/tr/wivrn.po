@@ -214,8 +214,8 @@ msgstr "Çözünürlük ölçeği"
 
 #: client/scenes/lobby_gui.cpp:655
 #, c-format, c++-format
-msgid "%d%% - {}x{} per eye"
-msgstr "göz başına %d%% - {}x{}"
+msgid "{}%% - {}x{} per eye"
+msgstr "göz başına {}%% - {}x{}"
 
 #: client/scenes/lobby_gui.cpp:666
 #, c++-format

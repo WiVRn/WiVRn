@@ -213,8 +213,8 @@ msgstr "Масштаб разрешения"
 
 #: client/scenes/lobby_gui.cpp:655
 #, c-format, c++-format
-msgid "%d%% - {}x{} per eye"
-msgstr "%d%% - {}x{} на каждый глаз"
+msgid "{}%% - {}x{} per eye"
+msgstr "{}%% - {}x{} на каждый глаз"
 
 #: client/scenes/lobby_gui.cpp:666
 #, c++-format

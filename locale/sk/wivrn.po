@@ -199,8 +199,8 @@ msgstr "Rozlíšenie"
 
 #: client/scenes/lobby_gui.cpp:894
 #, c-format, c++-format
-msgid "%d%% - {}x{} per eye"
-msgstr "%d%% - {}x{} na oko"
+msgid "{}%% - {}x{} per eye"
+msgstr "{}%% - {}x{} na oko"
 
 #: client/scenes/lobby_gui.cpp:905
 #, c++-format
