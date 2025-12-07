@@ -49,10 +49,8 @@ class video_encoder_vulkan_h264 : public video_encoder_vulkan
 	vk::VideoEncodeH264RateControlLayerInfoKHR rate_control_layer_h264;
 
 	video_encoder_vulkan_h264(wivrn_vk_bundle & vk,
-	                          vk::Rect2D rect,
 	                          const vk::VideoCapabilitiesKHR & video_caps,
 	                          const vk::VideoEncodeCapabilitiesKHR & encode_caps,
-	                          float fps,
 	                          uint8_t stream_idx,
 	                          const encoder_settings & settings);
 
@@ -66,8 +64,7 @@ protected:
 
 public:
 	static std::unique_ptr<video_encoder_vulkan_h264> create(wivrn_vk_bundle & vk,
-	                                                         encoder_settings & settings,
-	                                                         float fps,
+	                                                         const encoder_settings & settings,
 	                                                         uint8_t stream_idx);
 
 	std::vector<uint8_t> get_sps_pps();

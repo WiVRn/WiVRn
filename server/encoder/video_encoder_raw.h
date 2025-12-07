@@ -29,10 +29,9 @@ namespace wivrn
 class video_encoder_raw : public video_encoder
 {
 	std::array<buffer_allocation, num_slots> buffers;
-	vk::Rect2D rect;
 
 public:
-	video_encoder_raw(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);
+	video_encoder_raw(wivrn_vk_bundle & vk, const encoder_settings & settings, uint8_t stream_idx);
 
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 

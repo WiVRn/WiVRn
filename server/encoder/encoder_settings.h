@@ -24,14 +24,17 @@
 #include <map>
 #include <optional>
 #include <string>
-#include <vector>
 
 namespace wivrn
 {
 struct wivrn_vk_bundle;
 
-struct encoder_settings : public to_headset::video_stream_description::item
+struct encoder_settings
 {
+	uint16_t width;
+	uint16_t height;
+	video_codec codec; // left, right, alpha
+	float fps;
 	// encoder identifier, such as nvenc, vaapi or x264
 	std::string encoder_name;
 	uint64_t bitrate;                           // bit/s
@@ -43,8 +46,8 @@ struct encoder_settings : public to_headset::video_stream_description::item
 	std::optional<std::string> device;
 };
 
-std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle &, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info);
+std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle &, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info);
 
-void print_encoders(const std::vector<wivrn::encoder_settings> & encoders);
+void print_encoders(const std::array<wivrn::encoder_settings, 3> & encoders);
 
 } // namespace wivrn

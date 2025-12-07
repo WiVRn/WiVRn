@@ -302,7 +302,7 @@ void wivrn_foveation::compute_params(
 }
 
 wivrn_foveation::wivrn_foveation(wivrn_vk_bundle & bundle, const xrt_hmd_parts & hmd) :
-        foveated_width(hmd.screens[0].w_pixels / 2),
+        foveated_width(hmd.screens[0].w_pixels),
         foveated_height(hmd.screens[0].h_pixels),
         angle_offset(get_angle_offset()),
         convergence_distance(get_convergence_distance()),

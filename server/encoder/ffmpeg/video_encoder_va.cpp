@@ -157,10 +157,9 @@ vk::Format drm_to_vulkan_fmt(uint32_t drm_fourcc, int bit_depth)
 } // namespace
 
 video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
-                                   wivrn::encoder_settings & settings,
-                                   float fps,
+                                   const wivrn::encoder_settings & settings,
                                    uint8_t stream_idx) :
-        video_encoder_ffmpeg(stream_idx, settings.channels, settings.bitrate_multiplier),
+        video_encoder_ffmpeg(stream_idx, settings),
         synchronization2(vk.vk.features.synchronization_2)
 {
 	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device, settings.device);
@@ -172,9 +171,6 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 	if (err)
 		throw std::system_error(err, av_error_category(), "FFMPEG vaapi hardware context creation failed");
 	av_buffer_ptr vaapi_hw_ctx(tmp);
-
-	settings.video_width += settings.video_width % 2;
-	settings.video_height += settings.video_height % 2;
 
 	AVPixelFormat sw_format;
 
@@ -196,18 +192,8 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 			break;
 	}
 
-	auto vaapi_frame_ctx = make_hwframe_ctx(vaapi_hw_ctx.get(), AV_PIX_FMT_VAAPI, sw_format, settings.video_width, settings.video_height);
+	auto vaapi_frame_ctx = make_hwframe_ctx(vaapi_hw_ctx.get(), AV_PIX_FMT_VAAPI, sw_format, extent.width, extent.height);
 	assert(av_pix_fmt_count_planes(sw_format) == 2);
-
-	rect = vk::Rect2D{
-	        .offset = {
-	                .x = settings.offset_x,
-	                .y = settings.offset_y,
-	        },
-	        .extent = {
-	                .width = settings.width,
-	                .height = settings.height,
-	        }};
 
 	err = av_hwframe_ctx_create_derived(&tmp,
 	                                    AV_PIX_FMT_DRM_PRIME,
@@ -257,11 +243,11 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 		av_dict_set(&opts, option.first.c_str(), option.second.c_str(), 0);
 	}
 
-	encoder_ctx->width = settings.video_width;
-	encoder_ctx->height = settings.video_height;
+	encoder_ctx->width = extent.width;
+	encoder_ctx->height = extent.height;
 	encoder_ctx->time_base = {std::chrono::steady_clock::duration::period::num,
 	                          std::chrono::steady_clock::duration::period::den};
-	encoder_ctx->framerate = AVRational{(int)fps, 1};
+	encoder_ctx->framerate = AVRational{(int)settings.fps * 1000, 1000};
 	encoder_ctx->sample_aspect_ratio = AVRational{1, 1};
 	encoder_ctx->pix_fmt = AV_PIX_FMT_VAAPI;
 	encoder_ctx->color_range = AVCOL_RANGE_JPEG;
@@ -466,20 +452,16 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 	        vk::ImageCopy{
 	                .srcSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
-	                        .baseArrayLayer = uint32_t(channels),
+	                        .baseArrayLayer = stream_idx,
 	                        .layerCount = 1,
-	                },
-	                .srcOffset = {
-	                        .x = rect.offset.x,
-	                        .y = rect.offset.y,
 	                },
 	                .dstSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .layerCount = 1,
 	                },
 	                .extent = {
-	                        .width = rect.extent.width,
-	                        .height = rect.extent.height,
+	                        .width = extent.width,
+	                        .height = extent.height,
 	                        .depth = 1,
 	                }});
 
@@ -491,20 +473,16 @@ std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr,
 	        vk::ImageCopy{
 	                .srcSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
-	                        .baseArrayLayer = uint32_t(channels),
+	                        .baseArrayLayer = stream_idx,
 	                        .layerCount = 1,
-	                },
-	                .srcOffset = {
-	                        .x = rect.offset.x / 2,
-	                        .y = rect.offset.y / 2,
 	                },
 	                .dstSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .layerCount = 1,
 	                },
 	                .extent = {
-	                        .width = rect.extent.width / 2,
-	                        .height = rect.extent.height / 2,
+	                        .width = extent.width / 2,
+	                        .height = extent.height / 2,
 	                        .depth = 1,
 	                }});
 

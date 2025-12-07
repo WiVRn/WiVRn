@@ -94,7 +94,7 @@ struct wivrn_comp_target : public comp_target
 	static std::vector<const char *> wanted_device_extensions;
 
 	uint32_t bitrate = 0;
-	std::vector<encoder_settings> settings;
+	std::array<encoder_settings, 3> settings;
 	std::list<std::jthread> encoder_threads;
 	std::vector<std::shared_ptr<video_encoder>> encoders;
 

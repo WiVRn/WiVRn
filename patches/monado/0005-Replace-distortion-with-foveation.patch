@@ -1,7 +1,7 @@
-From ddae46a3ef27f71172be70de4bdf99be7d65ee36 Mon Sep 17 00:00:00 2001
+From 8d3fb92d6436b0111185682d7e99b7d2ec040724 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 5/6] Replace distortion with foveation
+Subject: [PATCH 5/7] Replace distortion with foveation
 
 ---
  src/xrt/compositor/CMakeLists.txt             |   4 +-
@@ -11,15 +11,15 @@ Subject: [PATCH 5/6] Replace distortion with foveation
  src/xrt/compositor/render/render_interface.h  |  95 ++--
  src/xrt/compositor/render/render_resources.c  | 106 ++---
  src/xrt/compositor/shaders/clear.comp         |   4 +-
- src/xrt/compositor/shaders/distortion.comp    | 180 ++++----
+ src/xrt/compositor/shaders/distortion.comp    | 182 ++++----
  .../compositor/util/comp_high_level_render.c  |   6 +-
  .../compositor/util/comp_high_level_render.h  |   9 +-
  src/xrt/compositor/util/comp_render.h         |  11 +-
  src/xrt/compositor/util/comp_render_cs.c      | 112 ++---
- 12 files changed, 354 insertions(+), 592 deletions(-)
+ 12 files changed, 356 insertions(+), 592 deletions(-)
 
 diff --git a/src/xrt/compositor/CMakeLists.txt b/src/xrt/compositor/CMakeLists.txt
-index 1ba5ec438..eb068f5fc 100644
+index 1ba5ec438..7435a9ce3 100644
 --- a/src/xrt/compositor/CMakeLists.txt
 +++ b/src/xrt/compositor/CMakeLists.txt
 @@ -105,7 +105,7 @@ if(XRT_HAVE_VULKAN)
@@ -41,10 +41,10 @@ index 1ba5ec438..eb068f5fc 100644
  		render/render_interface.h
  		render/render_resources.c
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 51a14e9fc..2cbdc5e68 100644
+index 16c16fd7a..40b219cef 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -991,7 +991,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1005,7 +1005,8 @@ dispatch_compute(struct comp_renderer *r,
  
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
@@ -54,7 +54,7 @@ index 51a14e9fc..2cbdc5e68 100644
  
  	// Target view information.
  	struct render_viewport_data target_viewport_datas[XRT_MAX_VIEWS];
-@@ -1008,7 +1009,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1022,7 +1023,8 @@ dispatch_compute(struct comp_renderer *r,
  	    eye_poses,                       //
  	    fovs,                            //
  	    target_image,                    //
@@ -1094,10 +1094,10 @@ index 1f0e732b8..e02307415 100644
 +	imageStore(target, ivec3(offset.x + ix, offset.y + iy, 0), colour);
  }
 diff --git a/src/xrt/compositor/shaders/distortion.comp b/src/xrt/compositor/shaders/distortion.comp
-index 0b28d8bf3..41de849e6 100644
+index 0b28d8bf3..df2b612b0 100644
 --- a/src/xrt/compositor/shaders/distortion.comp
 +++ b/src/xrt/compositor/shaders/distortion.comp
-@@ -4,136 +4,104 @@
+@@ -4,136 +4,106 @@
  
  #version 460
  #extension GL_GOOGLE_include_directive : require
@@ -1171,17 +1171,6 @@ index 0b28d8bf3..41de849e6 100644
 -}
 -
 -vec2 transform_uv_subimage(vec2 uv, uint iz)
--{
--	vec2 values = uv;
--
--	// To deal with OpenGL flip and sub image view.
--	values.xy = values.xy * ubo.post_transform[iz].zw + ubo.post_transform[iz].xy;
--
--	// Ready to be used.
--	return values.xy;
--}
--
--vec2 transform_uv_timewarp(vec2 uv, uint iz)
 +	mat4 transform[2];
 +} ubo;
 +layout(set = 0, binding = 4) uniform writeonly restrict image2DArray chroma;
@@ -1196,6 +1185,17 @@ index 0b28d8bf3..41de849e6 100644
 +
 +vec3 rgb_to_ycbcr(vec3 color)
  {
+-	vec2 values = uv;
+-
+-	// To deal with OpenGL flip and sub image view.
+-	values.xy = values.xy * ubo.post_transform[iz].zw + ubo.post_transform[iz].xy;
+-
+-	// Ready to be used.
+-	return values.xy;
+-}
+-
+-vec2 transform_uv_timewarp(vec2 uv, uint iz)
+-{
 -	vec4 values = vec4(uv, -1, 1);
 -
 -	// From uv to tan angle (tangent space).
@@ -1231,7 +1231,7 @@ index 0b28d8bf3..41de849e6 100644
  	uint iz = gl_GlobalInvocationID.z;
  
  	ivec2 offset = ivec2(ubo.views[iz].xy);
- 	ivec2 extent = ivec2(ubo.views[iz].zw);
+-	ivec2 extent = ivec2(ubo.views[iz].zw);
 -
 -	if (ix >= extent.x || iy >= extent.y) {
 +	uint iy = gl_GlobalInvocationID.y;
@@ -1252,15 +1252,17 @@ index 0b28d8bf3..41de849e6 100644
 -	vec2 r_uv = texture(distortion[iz + 0], dist_uv).xy;
 -	vec2 g_uv = texture(distortion[iz + 2], dist_uv).xy;
 -	vec2 b_uv = texture(distortion[iz + 4], dist_uv).xy;
--
--	// Do any transformation needed.
--	r_uv = transform_uv(r_uv, iz);
--	g_uv = transform_uv(g_uv, iz);
--	b_uv = transform_uv(b_uv, iz);
 +	uint xmin = foveation.x[MAX_DIM * iz + ix];
 +	uint xmax = foveation.x[MAX_DIM * iz + ix + 1];
 +	if (xmin == xmax)
 +		return;
+ 
+-	// Do any transformation needed.
+-	r_uv = transform_uv(r_uv, iz);
+-	g_uv = transform_uv(g_uv, iz);
+-	b_uv = transform_uv(b_uv, iz);
++	uint xstep = (xmax - xmin + MAX_SAMPLES - 1) / MAX_SAMPLES;
++	uint ystep = (ymax - ymin + MAX_SAMPLES - 1) / MAX_SAMPLES;
  
 -	// Sample the source with distorted and chromatic-aberration corrected samples.
 -	vec4 colour = vec4(              //
@@ -1268,11 +1270,6 @@ index 0b28d8bf3..41de849e6 100644
 -	    texture(source[iz], g_uv).g, //
 -	    texture(source[iz], b_uv).b, //
 -	    1);                          //
-+	uint xstep = (xmax - xmin + MAX_SAMPLES - 1) / MAX_SAMPLES;
-+	uint ystep = (ymax - ymin + MAX_SAMPLES - 1) / MAX_SAMPLES;
- 
--	// Do colour correction here since there are no automatic conversion in hardware available.
--	colour = vec4(from_linear_to_srgb(colour.rgb), 1);
 +	vec4 colour = vec4(0);
 +	uint count = 0;
 +	for (uint y = ymin ; y < ymax; y += ystep) {
@@ -1284,7 +1281,7 @@ index 0b28d8bf3..41de849e6 100644
 +	colour /= count;
 +	colour.xyz = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
 +
-+	imageStore(luma, ivec3(offset.x + ix, offset.y + iy, 0), vec4(colour.x));
++	imageStore(luma, ivec3(ix, iy, iz), vec4(colour.x));
 +
 +	vec4 sum = colour;
 +	for (uint i = 0 ; i < gl_SubgroupSize; ++i)
@@ -1300,12 +1297,17 @@ index 0b28d8bf3..41de849e6 100644
 +		}
 +	}
  
--	imageStore(target, ivec2(offset.x + ix, offset.y + iy), colour);
+-	// Do colour correction here since there are no automatic conversion in hardware available.
+-	colour = vec4(from_linear_to_srgb(colour.rgb), 1);
 +	if (ix %2 == 0 && iy %2 == 0)
 +	{
-+		imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy/2, 0), vec4(sum.y, sum.z, 0, 0) / 4);
-+		imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy/2, 1), vec4(sum.w, 0, 0, 0) / 4);
-+		imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy/2, 1), vec4(0.5, 0.5, 0, 0));
++		// actual chroma
++		imageStore(chroma, ivec3(gl_GlobalInvocationID.xy/2, iz), vec4(sum.y, sum.z, 0, 0) / 4);
+ 
+-	imageStore(target, ivec2(offset.x + ix, offset.y + iy), colour);
++		// alpha in luma
++		imageStore(luma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy/2, 2), vec4(sum.w, 0, 0, 0) / 4);
++		imageStore(chroma, ivec3(offset.xy/2 + gl_GlobalInvocationID.xy/2, 2), vec4(0.5, 0.5, 0, 0));
 +	}
  }
 diff --git a/src/xrt/compositor/util/comp_high_level_render.c b/src/xrt/compositor/util/comp_high_level_render.c

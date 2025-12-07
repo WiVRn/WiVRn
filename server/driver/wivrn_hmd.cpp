@@ -103,7 +103,7 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 
 	hmd->distortion.models = XRT_DISTORTION_MODEL_NONE;
 	hmd->distortion.preferred = XRT_DISTORTION_MODEL_NONE;
-	hmd->screens[0].w_pixels = eye_width * 2;
+	hmd->screens[0].w_pixels = eye_width;
 	hmd->screens[0].h_pixels = eye_height;
 
 	// Left
@@ -208,19 +208,17 @@ xrt_result_t wivrn_hmd::get_battery_status(bool * out_present,
 
 void wivrn_hmd::set_foveated_size(uint32_t width, uint32_t height)
 {
-	assert(width % 2 == 0);
-	uint32_t eye_width = width / 2;
-
 	hmd->screens[0].w_pixels = width;
 	hmd->screens[0].h_pixels = height;
 
 	for (int i = 0; i < 2; ++i)
 	{
 		auto & view = hmd->views[i];
-		view.viewport.x_pixels = i * eye_width;
+		// offset is only applicable for alpha channel
+		view.viewport.x_pixels = i * width;
 		view.viewport.y_pixels = 0;
 
-		view.viewport.w_pixels = eye_width;
+		view.viewport.w_pixels = width;
 		view.viewport.h_pixels = height;
 	}
 }

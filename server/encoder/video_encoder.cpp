@@ -102,26 +102,21 @@ std::shared_ptr<video_encoder::sender> video_encoder::sender::get()
 
 std::unique_ptr<video_encoder> video_encoder::create(
         wivrn_vk_bundle & wivrn_vk,
-        encoder_settings & settings,
-        uint8_t stream_idx,
-        int input_width,
-        int input_height,
-        float fps)
+        const encoder_settings & settings,
+        uint8_t stream_idx)
 {
 	using namespace std::string_literals;
 	std::unique_ptr<video_encoder> res;
-	settings.range = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
-	settings.color_model = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
 	if (settings.encoder_name == encoder_vulkan)
 	{
 #if WIVRN_USE_VULKAN_ENCODE
 		switch (settings.codec)
 		{
 			case video_codec::h264:
-				res = video_encoder_vulkan_h264::create(wivrn_vk, settings, fps, stream_idx);
+				res = video_encoder_vulkan_h264::create(wivrn_vk, settings, stream_idx);
 				break;
 			case video_codec::h265:
-				res = video_encoder_vulkan_h265::create(wivrn_vk, settings, fps, stream_idx);
+				res = video_encoder_vulkan_h265::create(wivrn_vk, settings, stream_idx);
 				break;
 			case video_codec::av1:
 				throw std::runtime_error("av1 not supported for vulkan video encode");
@@ -135,7 +130,7 @@ std::unique_ptr<video_encoder> video_encoder::create(
 	if (settings.encoder_name == encoder_x264)
 	{
 #if WIVRN_USE_X264
-		res = std::make_unique<video_encoder_x264>(wivrn_vk, settings, fps, stream_idx);
+		res = std::make_unique<video_encoder_x264>(wivrn_vk, settings, stream_idx);
 #else
 		throw std::runtime_error("x264 encoder not enabled");
 #endif
@@ -143,7 +138,7 @@ std::unique_ptr<video_encoder> video_encoder::create(
 	if (settings.encoder_name == encoder_nvenc)
 	{
 #if WIVRN_USE_NVENC
-		res = std::make_unique<video_encoder_nvenc>(wivrn_vk, settings, fps, stream_idx);
+		res = std::make_unique<video_encoder_nvenc>(wivrn_vk, settings, stream_idx);
 #else
 		throw std::runtime_error("nvenc support not enabled");
 #endif
@@ -151,7 +146,7 @@ std::unique_ptr<video_encoder> video_encoder::create(
 	if (settings.encoder_name == encoder_vaapi)
 	{
 #if WIVRN_USE_VAAPI
-		res = std::make_unique<video_encoder_va>(wivrn_vk, settings, fps, stream_idx);
+		res = std::make_unique<video_encoder_va>(wivrn_vk, settings, stream_idx);
 #else
 		throw std::runtime_error("vaapi support not enabled");
 #endif
@@ -159,7 +154,7 @@ std::unique_ptr<video_encoder> video_encoder::create(
 
 	if (settings.encoder_name == encoder_raw)
 	{
-		res = std::make_unique<video_encoder_raw>(wivrn_vk, settings, fps, stream_idx);
+		res = std::make_unique<video_encoder_raw>(wivrn_vk, settings, stream_idx);
 	}
 
 	if (not res)
@@ -190,12 +185,18 @@ std::unique_ptr<video_encoder> video_encoder::create(
 	return res;
 }
 
-video_encoder::video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, std::unique_ptr<idr_handler> idr, double bitrate_multiplier, bool async_send) :
+video_encoder::video_encoder(uint8_t stream_idx,
+                             const encoder_settings & settings,
+                             std::unique_ptr<idr_handler> idr,
+                             bool async_send) :
         stream_idx(stream_idx),
-        channels(channels),
-        bitrate_multiplier(bitrate_multiplier),
+        bitrate_multiplier(settings.bitrate_multiplier),
         shared_sender(async_send ? sender::get() : nullptr),
-        idr(std::move(idr))
+        idr(std::move(idr)),
+        extent{
+                .width = settings.width,
+                .height = settings.height,
+        }
 {
 	assert(this->idr);
 }
@@ -315,7 +316,6 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 
 	ssize_t max_payload_size = cnx->has_stream() ? to_headset::video_stream_data_shard::max_payload_size : std::numeric_limits<uint32_t>::max();
 
-	shard.flags = to_headset::video_stream_data_shard::start_of_slice;
 	auto begin = data.begin();
 	auto end = data.end();
 	while (begin != end)
@@ -324,12 +324,8 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 		auto next = std::min(end, begin + payload_size);
 		if (next == end)
 		{
-			shard.flags |= to_headset::video_stream_data_shard::end_of_slice;
 			if (end_of_frame)
-			{
-				shard.flags |= to_headset::video_stream_data_shard::end_of_frame;
 				shard.timing_info = timing_info;
-			}
 		}
 		shard.payload = {begin, next};
 		try
@@ -344,7 +340,6 @@ void video_encoder::SendData(std::span<uint8_t> data, bool end_of_frame, bool co
 			// Ignore network errors
 		}
 		++shard.shard_idx;
-		shard.flags = 0;
 		shard.view_info.reset();
 		begin = next;
 	}

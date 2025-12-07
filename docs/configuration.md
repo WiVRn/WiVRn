@@ -43,12 +43,10 @@ Default value: `8` (bits)
 
 Bit depth of the video. 8-bit is supported by all encoders. 10-bit is supported by `vaapi` and `nvenc` encoders using `h265` or `av1`.
 
-## `encoders`
-A list of encoders to use.
+## `encoder`
+The encoder to use, either a single object applied to all streams, or a list of objects with values for left, right and alpha.
 
-Default value: one encoder per eye
-
-WiVRn has the ability to split the video in blocks that are processed independently, this may use resources more effectively and reduce latency.
+WiVRn encodes each eye separately, and the alpha channel as one for both eyes. Each stream is processed independently, this may use resources more effectively and reduce latency.
 All the provided encoders are put into groups, groups are executed concurrently and items within a group are processed sequentially.
 
 ### `encoder`
@@ -73,31 +71,24 @@ Not all encoders support every codec:
 
 If `nvenc` encoder is in use, you can refer to [nvidia website](https://developer.nvidia.com/video-encode-decode-support-matrix) to make sure that your GPU supports encoding with the desired codec.
 
-### `width`, `height`, `offset_x`, `offset_y` (advanced)
-Default values: full image (`width` = 1, `height` = 1, `offset_x` = 0, `offset_y` = 0)
-
-Specifies the portion of the video to encode: all values are in 0, 1 range. Left eye image ranges from x 0 to x 0.5 and y 0 to 1, Rigth eye is x from 0.5 to 1 and y 0 to 1.
-
-### `group` (very advanced)
+### `group` (advanced)
 Default value: One value for each encoder type (nvenc, vaapi, vulkan, x264).
 
 Identifier (number) of the encoder group. Encoders with the same identifier are executed sequentially, in the order they are defined in the configuration. Encoders with different identifiers are executed concurrently.
 Default setting will have all encoders of a given type execute sequentially, and different types in parallel.
 
 ### Examples
-1. Simple encoder
+1. Simple configuration
 ```json
 {
 	"bitrate": 50000000,
-	"encoders": [
-		{
-			"encoder": "vaapi",
-			"codec": "h265"
-		}
-	]
+	"encoder": {
+		"encoder": "vaapi",
+		"codec": "h265"
+	}
 }
 ```
-Creates a single encoder, using vaapi hardware encoding, h265 video codec (HEVC) and 50Mb/s bitrate.
+Use vaapi hardware encoding, h265 video codec (HEVC) and 50Mb/s bitrate.
 
 2. Hardware + software encoder
 ```json
@@ -107,52 +98,19 @@ Creates a single encoder, using vaapi hardware encoding, h265 video codec (HEVC)
 		{
 			"encoder": "vaapi",
 			"codec": "h265",
-			"width": 0.5,
-			"height": 1,
-			"offset_x": 0,
-			"offset_y": 0
 		},
 		{
 			"encoder": "x264",
 			"codec": "h264",
-			"width": 0.5,
-			"height": 1,
-			"offset_x": 0.5,
-			"offset_y": 0
-		}
-	]
-}
-```
-Creates a hardware encoder for left eye, and a software encoder for right eye.
-
-3. 2 Hardware encoders
-```json
-{
-	"bitrate": 50000000,
-	"encoders": [
-		{
-			"encoder": "vaapi",
-			"codec": "h265",
-			"width": 0.5,
-			"height": 1,
-			"offset_x": 0,
-			"offset_y": 0,
-			"group": 0
 		},
 		{
 			"encoder": "vaapi",
-			"codec": "h264",
-			"width": 0.5,
-			"height": 1,
-			"offset_x": 0.5,
-			"offset_y": 0,
-			"group": 0
-		}
+			"codec": "h265",
+		},
 	]
 }
 ```
-Creates two hardware encoders, one for left eye and one for right eye, executed sequentially as they have the same `group`.
-This allows the left eye image to be encoded faster than the full image would be, so network transfer starts earlier, and decoding starts earlier. While the total encoding, transfer and decoding time remain the same or are longer, this can reduce the latency.
+Creates a hardware encoder for left eye and transparency, and a software encoder for right eye.
 
 ### `device`, only for vaapi
 Default value: unset
@@ -164,11 +122,6 @@ Manually specify the device for encoding, can be used to offload encode to an iG
 Default value: unset
 
 Json object of additional options to pass directly to ffmpeg `avcodec_open2`'s `option` parameter.
-
-## `encoder-passthrough`
-
-The single encoder used for passthrough (transparency), contains the same elements as the other encoders, except for width/height and offsets which are ignored.
-Default values are those computed for the first encoder.
 
 ## `application`
 Default value: unset

@@ -43,11 +43,10 @@ class video_encoder_va : public video_encoder_ffmpeg
 	};
 	av_buffer_ptr drm_frame_ctx;
 	std::array<in_t, num_slots> in;
-	vk::Rect2D rect;
 	bool synchronization2 = false;
 
 public:
-	video_encoder_va(wivrn_vk_bundle &, wivrn::encoder_settings & settings, float fps, uint8_t stream_index);
+	video_encoder_va(wivrn_vk_bundle &, const wivrn::encoder_settings & settings, uint8_t stream_index);
 
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 

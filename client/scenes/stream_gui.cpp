@@ -86,7 +86,7 @@ ImPlotPoint getter(int index, void * data_)
 }
 } // namespace
 
-void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std::vector<std::shared_ptr<shard_accumulator::blit_handle>> & blit_handles, const gpu_timestamps & timestamps)
+void scenes::stream::accumulate_metrics(XrTime predicted_display_time, const std::array<std::shared_ptr<shard_accumulator::blit_handle>, view_count + 1> & blit_handles, const gpu_timestamps & timestamps)
 {
 	uint64_t rx = network_session->bytes_received();
 	uint64_t tx = network_session->bytes_sent();
@@ -171,8 +171,7 @@ void scenes::stream::gui_performance_metrics()
 	        // clang-format off
 	        plot(_("CPU time"), {{"",          &global_metric::cpu_time}},     "s"),
 
-	        plot(_("GPU time"), {{_("Reproject"), &global_metric::gpu_time},
-		                     {_("Blit"),      &global_metric::gpu_barrier}},  "s"),
+	        plot(_("GPU time"), {{_("Defoveate"), &global_metric::gpu_time}},  "s"),
 
 	        plot(_("Network"), {{_("Download"),  &global_metric::bandwidth_rx},
 	                            {_("Upload"),    &global_metric::bandwidth_tx}}, "bit/s"),

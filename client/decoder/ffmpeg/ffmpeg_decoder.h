@@ -73,13 +73,14 @@ private:
 	uint64_t frame_index;
 	std::weak_ptr<scenes::stream> weak_scene;
 	shard_accumulator * accumulator;
+	const vk::Extent2D extent;
 
 	std::mutex mutex;
 
 public:
 	decoder(vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
-	        const wivrn::to_headset::video_stream_description::item & description,
+	        const wivrn::to_headset::video_stream_description & description,
 	        uint8_t stream_index,
 	        std::weak_ptr<scenes::stream> scene,
 	        shard_accumulator * accumulator);

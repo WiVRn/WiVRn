@@ -88,47 +88,29 @@ void video_encoder_x264::InsertInPendingNal(pending_nal && nal)
 
 video_encoder_x264::video_encoder_x264(
         wivrn_vk_bundle & vk,
-        encoder_settings & settings,
-        float fps,
+        const encoder_settings & settings,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings.channels, std::make_unique<default_idr_handler>(), settings.bitrate_multiplier, false)
+        video_encoder(stream_idx, settings, std::make_unique<default_idr_handler>(), false)
 {
 	if (settings.bit_depth != 8)
 		throw std::runtime_error("x264 encoder only supports 8-bit encoding");
 
 	if (settings.codec != h264)
-	{
 		U_LOG_W("requested x264 encoder with codec != h264");
-		settings.codec = h264;
-	}
 
 	// encoder requires width and height to be even
-	settings.video_width += settings.video_width % 2;
-	settings.video_height += settings.video_height % 2;
-	chroma_width = settings.video_width / 2;
+	chroma_width = extent.width / 2;
 
-	// FIXME: enforce even values
-	rect = vk::Rect2D{
-	        .offset = {
-	                .x = settings.offset_x,
-	                .y = settings.offset_y,
-	        },
-	        .extent = {
-	                .width = settings.width,
-	                .height = settings.height,
-	        },
-	};
-
-	num_mb = ((settings.video_width + 15) / 16) * ((settings.video_height + 15) / 16);
+	num_mb = ((extent.width + 15) / 16) * ((extent.height + 15) / 16);
 
 	x264_param_default_preset(&param, "ultrafast", "zerolatency");
 	param.nalu_process = &ProcessCb;
 	// param.i_slice_max_size = 1300;
 	param.i_slice_count = 32;
-	param.i_width = settings.video_width;
-	param.i_height = settings.video_height;
+	param.i_width = extent.width;
+	param.i_height = extent.height;
 	param.i_log_level = X264_LOG_WARNING;
-	param.i_fps_num = fps * 1'000'000;
+	param.i_fps_num = settings.fps * 1'000'000;
 	param.i_fps_den = 1'000'000;
 	param.b_repeat_headers = 1;
 	param.b_aud = 0;
@@ -140,12 +122,12 @@ video_encoder_x264::video_encoder_x264(
 	param.vui.i_colmatrix = 1; // BT.709
 	param.vui.i_transfer = 13; // sRGB
 
-	param.vui.i_sar_width = settings.width;
-	param.vui.i_sar_height = settings.height;
+	param.vui.i_sar_width = extent.width;
+	param.vui.i_sar_height = extent.height;
 	param.rc.i_rc_method = X264_RC_ABR;
 	param.rc.i_bitrate = settings.bitrate / 1000; // x264 uses kbit/s
 	param.rc.i_vbv_max_bitrate = param.rc.i_bitrate;
-	param.rc.i_vbv_buffer_size = param.rc.i_bitrate / fps * 1.1;
+	param.rc.i_vbv_buffer_size = param.rc.i_bitrate / settings.fps * 1.1;
 
 	x264_param_apply_profile(&param, "main");
 
@@ -162,7 +144,7 @@ video_encoder_x264::video_encoder_x264(
 		i.luma = buffer_allocation(
 		        vk.device,
 		        {
-		                .size = vk::DeviceSize(settings.video_width * settings.video_height),
+		                .size = vk::DeviceSize(extent.width * extent.height),
 		                .usage = vk::BufferUsageFlagBits::eTransferDst,
 		        },
 		        {
@@ -172,7 +154,7 @@ video_encoder_x264::video_encoder_x264(
 		        "x264 luma buffer");
 		i.chroma = buffer_allocation(
 		        vk.device, {
-		                           .size = vk::DeviceSize(settings.video_width * settings.video_height / 2),
+		                           .size = vk::DeviceSize(extent.width * extent.height / 2),
 		                           .usage = vk::BufferUsageFlagBits::eTransferDst,
 		                   },
 		        {
@@ -187,9 +169,9 @@ video_encoder_x264::video_encoder_x264(
 		pic.img.i_csp = X264_CSP_NV12;
 		pic.img.i_plane = 2;
 
-		pic.img.i_stride[0] = settings.video_width;
+		pic.img.i_stride[0] = extent.width;
 		pic.img.plane[0] = (uint8_t *)i.luma.map();
-		pic.img.i_stride[1] = settings.video_width;
+		pic.img.i_stride[1] = extent.width;
 		pic.img.plane[1] = (uint8_t *)i.chroma.map();
 	}
 }
@@ -204,16 +186,12 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 	                .bufferRowLength = chroma_width * 2,
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
-	                        .baseArrayLayer = uint32_t(channels),
+	                        .baseArrayLayer = stream_idx,
 	                        .layerCount = 1,
 	                },
-	                .imageOffset = {
-	                        .x = rect.offset.x,
-	                        .y = rect.offset.y,
-	                },
 	                .imageExtent = {
-	                        .width = rect.extent.width,
-	                        .height = rect.extent.height,
+	                        .width = extent.width,
+	                        .height = extent.height,
 	                        .depth = 1,
 	                }});
 	cmd_buf.copyImageToBuffer(
@@ -224,16 +202,12 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 	                .bufferRowLength = chroma_width,
 	                .imageSubresource = {
 	                        .aspectMask = vk::ImageAspectFlagBits::ePlane1,
-	                        .baseArrayLayer = uint32_t(channels),
+	                        .baseArrayLayer = stream_idx,
 	                        .layerCount = 1,
 	                },
-	                .imageOffset = {
-	                        .x = rect.offset.x / 2,
-	                        .y = rect.offset.y / 2,
-	                },
 	                .imageExtent = {
-	                        .width = rect.extent.width / 2,
-	                        .height = rect.extent.height / 2,
+	                        .width = extent.width / 2,
+	                        .height = extent.height / 2,
 	                        .depth = 1,
 	                }});
 	return {false, nullptr};

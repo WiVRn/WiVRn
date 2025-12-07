@@ -48,6 +48,9 @@ private:
 	vk::CommandBuffer cmd;
 	vk::raii::Fence fence;
 
+	uint8_t stream_index;
+	const vk::Extent2D extent;
+
 	std::array<image, image_count> image_pool;
 
 	std::weak_ptr<scenes::stream> weak_scene;
@@ -57,13 +60,12 @@ private:
 	std::array<buffer_allocation, 2> input;
 	uint8_t * input_pos;
 	from_headset::feedback feedback;
-	to_headset::video_stream_data_shard::view_info_t view_info;
 
 public:
 	raw_decoder(vk::raii::Device & device,
 	            vk::raii::PhysicalDevice & physical_device,
 	            uint32_t vk_queue_family_index,
-	            const wivrn::to_headset::video_stream_description::item & description,
+	            const wivrn::to_headset::video_stream_description & description,
 	            uint8_t stream_index,
 	            std::weak_ptr<scenes::stream> scene,
 	            shard_accumulator * accumulator);
@@ -77,14 +79,6 @@ public:
 	vk::Sampler sampler() override
 	{
 		return *sampler_;
-	}
-
-	vk::Extent2D image_size()
-	{
-		return {
-		        description.width,
-		        description.height,
-		};
 	}
 
 	static std::vector<wivrn::video_codec> supported_codecs();

@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "blitter.h"
 #include "vk/allocation.h"
 #include "wivrn_packets.h"
 #include <vulkan/vulkan_raii.hpp>
@@ -61,6 +60,18 @@ class stream_defoveator
 	pipeline_t & ensure_pipeline(size_t view, vk::Sampler rgb, vk::Sampler a);
 
 public:
+	struct input
+	{
+		vk::ImageView rgb;
+		vk::Sampler sampler_rgb;
+		vk::Rect2D rect_rgb;
+		vk::ImageLayout layout_rgb;
+		vk::ImageView a;
+		vk::Sampler sampler_a;
+		vk::Rect2D rect_a;
+		vk::ImageLayout layout_a;
+	};
+
 	stream_defoveator(
 	        vk::raii::Device & device,
 	        vk::raii::PhysicalDevice & physical_device,
@@ -73,7 +84,7 @@ public:
 	void defoveate(
 	        vk::raii::CommandBuffer & command_buffer,
 	        const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
-	        std::span<wivrn::blitter::output> inputs,
+	        const std::array<input, 2> & inputs,
 	        int destination);
 
 	XrExtent2Di defoveated_size(const wivrn::to_headset::foveation_parameter &) const;

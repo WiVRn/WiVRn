@@ -45,11 +45,7 @@ namespace wivrn
 // TODO: size independent bitrate
 static const uint64_t default_bitrate = 50'000'000;
 
-// subsampling is also in monado's distortion shader
-static const uint8_t passthrough_subsampling = 2;
 static const double passthrough_bitrate_factor = 0.05;
-
-#define WIVRN_SPLIT_ENCODERS 1
 
 static bool is_nvidia(vk::PhysicalDevice physical_device)
 {
@@ -57,12 +53,14 @@ static bool is_nvidia(vk::PhysicalDevice physical_device)
 	return props.vendorID == 0x10DE;
 }
 
-static void split_bitrate(std::vector<wivrn::encoder_settings> & encoders, uint64_t bitrate)
+static void split_bitrate(std::array<wivrn::encoder_settings, 3> & encoders, uint64_t bitrate)
 {
 	double total_weight = 0;
-	for (auto & encoder: encoders)
+	for (auto [i, encoder]: std::ranges::enumerate_view(encoders))
 	{
 		double w = encoder.width * encoder.height;
+		if (i == 2)
+			w *= passthrough_bitrate_factor;
 		switch (encoder.codec)
 		{
 			case wivrn::h264:
@@ -84,7 +82,7 @@ static void split_bitrate(std::vector<wivrn::encoder_settings> & encoders, uint6
 	}
 }
 
-void print_encoders(const std::vector<wivrn::encoder_settings> & encoders)
+void print_encoders(const std::array<wivrn::encoder_settings, 3> & encoders)
 {
 	int group = -1;
 	std::stringstream str;
@@ -99,8 +97,7 @@ void print_encoders(const std::vector<wivrn::encoder_settings> & encoders)
 		else
 			str << "\n";
 		str << "\n\t\t" << encoder.encoder_name << " (" << magic_enum::enum_name(encoder.codec) << " " << encoder.bit_depth << "-bit)"
-		    << "\n\t\tchannels: " << magic_enum::enum_name(encoder.channels)
-		    << "\n\t\tsize: " << encoder.width << "x" << encoder.height << " offset: " << encoder.offset_x << "x" << encoder.offset_y
+		    << "\n\t\tsize: " << encoder.width << "x" << encoder.height
 		    << "\n\t\tbitrate: " << encoder.bitrate / 1'000'000 << "Mbit/s";
 	}
 	U_LOG_I("%s", str.str().c_str());
@@ -148,16 +145,13 @@ static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & b
 {
 	video_encoder_ffmpeg::mute_logs mute;
 	encoder_settings s{
-	        {
-	                .width = 800,
-	                .height = 600,
-	                .video_width = 800,
-	                .video_height = 600,
-	        },
-	        "vaapi",
-	        default_bitrate,
+	        .width = 800,
+	        .height = 600,
+	        .fps = 60,
+	        .encoder_name = "vaapi",
+	        .bitrate = default_bitrate,
+	        .bit_depth = bit_depth,
 	};
-	s.bit_depth = bit_depth;
 
 	for (auto codec: codecs)
 	{
@@ -177,7 +171,7 @@ static std::optional<wivrn::video_codec> filter_codecs_vaapi(wivrn_vk_bundle & b
 		try
 		{
 			s.codec = codec;
-			video_encoder_va test(bundle, s, 60, 0);
+			video_encoder_va test(bundle, s, 0);
 			return codec;
 		}
 		catch (...)
@@ -195,20 +189,17 @@ static bool probe_nvenc(wivrn_vk_bundle & bundle, int bit_depth)
 {
 	static bool res = [&]() {
 	encoder_settings s{
-	        {
-	                .width = 800,
-	                .height = 608,
-	                .video_width = 800,
-	                .video_height = 608,
-	                .codec = h264,
-	        },
-	        encoder_nvenc,
-	        default_bitrate,
+		.width = 800,
+			.height = 608,
+			.codec = h264,
+			.fps = 60,
+			.encoder_name = encoder_nvenc,
+			.bitrate = default_bitrate,
+			.bit_depth = bit_depth,
 	};
-	s.bit_depth = bit_depth;
 	try
 	{
-		video_encoder_nvenc test(bundle, s, 60, 0);
+		video_encoder_nvenc test(bundle, s, 0);
 		return true;
 	}
 	catch (std::exception & e)
@@ -308,44 +299,11 @@ static void fill_defaults(wivrn_vk_bundle & bundle, const std::vector<wivrn::vid
 		config.codec = bit_depth == 10 ? h265 : h264;
 }
 
-static std::vector<configuration::encoder> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs, int bit_depth)
+static std::array<configuration::encoder, 3> get_encoder_default_settings(wivrn_vk_bundle & bundle, const std::vector<wivrn::video_codec> & headset_codecs, int bit_depth)
 {
 	configuration::encoder base;
 	fill_defaults(bundle, headset_codecs, base, bit_depth);
-
-#ifdef WIVRN_SPLIT_ENCODERS
-	if (base.name != encoder_x264)
-	{
-		/* Split in 2 parts:
-		 *  +--------+--------+
-		 *  |        |        |
-		 *  |  left  | right  |
-		 *  |  eye   |  eye   |
-		 *  |        |        |
-		 *  +--------+--------+
-		 * Encoded sequentially, so the first eye is ready and transmitted earlier.
-		 * Decoder can start work as fast as possible, reducing idle time.
-		 * Splitting on eye boundaries allows for fast-path on headset.
-		 *
-		 */
-		return {
-		        {
-		                .name = base.name,
-		                .width = 0.5,
-		                .group = 0,
-		                .codec = base.codec,
-		        },
-		        {
-		                .name = base.name,
-		                .width = 0.5,
-		                .offset_x = 0.5,
-		                .group = 0,
-		                .codec = base.codec,
-		        },
-		};
-	}
-#endif
-	return {base};
+	return {base, base, base};
 }
 
 static uint16_t align(uint16_t value, uint16_t alignment)
@@ -353,7 +311,7 @@ static uint16_t align(uint16_t value, uint16_t alignment)
 	return ((value + alignment - 1) / alignment) * alignment;
 }
 
-std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
+std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, uint32_t & width, uint32_t & height, const from_headset::headset_info_packet & info)
 {
 	configuration config;
 
@@ -362,26 +320,11 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 
 	if (config.encoders.empty())
 		config.encoders = get_encoder_default_settings(bundle, info.supported_codecs, config.bit_depth);
-	if (not config.encoder_passthrough)
-		config.encoder_passthrough = config.encoders.front();
-
-	config.encoder_passthrough->width = 1;
-	config.encoder_passthrough->height = 1;
-	config.encoder_passthrough->offset_x = 0;
-	config.encoder_passthrough->offset_y = 0;
-	fill_defaults(bundle, info.supported_codecs, *config.encoder_passthrough, config.bit_depth);
 
 	uint64_t bitrate = config.bitrate.value_or(default_bitrate);
 	std::array<double, 2> default_scale;
 	default_scale.fill(info.eye_gaze ? 0.35 : 0.5);
 	auto scale = config.scale.value_or(default_scale);
-
-	check_scale(config.encoder_passthrough->name,
-	            *config.encoder_passthrough->codec,
-	            // passthrough stream is subsampled
-	            width / passthrough_subsampling,
-	            height / passthrough_subsampling,
-	            scale);
 
 	for (auto & encoder: config.encoders)
 	{
@@ -389,15 +332,15 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		assert(encoder.codec);
 		check_scale(encoder.name,
 		            *encoder.codec,
-		            std::ceil(encoder.width.value_or(1) * width),
-		            std::ceil(encoder.height.value_or(1) * height),
+		            std::ceil(width),
+		            std::ceil(height),
 		            scale);
 	}
 
 	width = align(width * scale[0], 64);
 	height = align(height * scale[1], 64);
 
-	std::vector<wivrn::encoder_settings> res;
+	std::array<wivrn::encoder_settings, 3> res;
 	std::unordered_map<std::string, int> groups;
 	int next_group = 0;
 	for (const auto & encoder: config.encoders)
@@ -409,20 +352,15 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		}
 	}
 
-	for (const auto & encoder: config.encoders)
+	for (const auto & [i, encoder]: std::ranges::enumerate_view(config.encoders))
 	{
 		wivrn::encoder_settings settings{};
-		settings.channels = to_headset::video_stream_description::channels_t::colour;
-		settings.subsampling = 1;
 		settings.encoder_name = encoder.name;
-		settings.offset_x = align(std::ceil(encoder.offset_x.value_or(0) * width), 32);
-		settings.offset_y = align(std::ceil(encoder.offset_y.value_or(0) * height), 32);
-		settings.width = align(std::ceil(encoder.width.value_or(1) * width), 32);
-		settings.height = align(std::ceil(encoder.height.value_or(1) * height), 32);
-		settings.width = std::min<uint16_t>(settings.width, width - settings.offset_x);
-		settings.height = std::min<uint16_t>(settings.height, height - settings.offset_y);
-		settings.video_width = settings.width;
-		settings.video_height = settings.height;
+		settings.width = align(std::ceil(width), 32);
+		settings.height = align(std::ceil(height), 32);
+		// alpha is half resolution, but left and right side by side
+		if (i == 2)
+			settings.height /= 2;
 		settings.codec = *encoder.codec;
 		settings.bit_depth = config.bit_depth;
 		if (encoder.group)
@@ -436,40 +374,11 @@ std::vector<encoder_settings> get_encoder_settings(wivrn_vk_bundle & bundle, uin
 		}
 		settings.options = encoder.options;
 		settings.device = encoder.device;
+		settings.fps = info.preferred_refresh_rate;
 
-		res.push_back(settings);
+		res[i] = settings;
 	}
 	split_bitrate(res, bitrate);
-
-	// passthrough encoder
-	{
-		const auto & encoder = *config.encoder_passthrough;
-		wivrn::encoder_settings settings{};
-		settings.channels = to_headset::video_stream_description::channels_t::alpha;
-		settings.subsampling = passthrough_subsampling;
-		settings.encoder_name = encoder.name;
-		settings.width = width / settings.subsampling;
-		settings.height = height / settings.subsampling;
-		assert(settings.width % 32 == 0);
-		assert(settings.height % 32 == 0);
-		settings.video_width = settings.width;
-		settings.video_height = settings.height;
-		settings.codec = *encoder.codec;
-		settings.bit_depth = config.bit_depth;
-		if (encoder.group)
-			settings.group = *encoder.group;
-		else
-		{
-			auto [it, inserted] = groups.emplace(encoder.name, next_group);
-			settings.group = it->second;
-			if (inserted)
-				++next_group;
-		}
-		settings.options = encoder.options;
-		settings.device = encoder.device;
-		settings.bitrate = bitrate * passthrough_bitrate_factor;
-		res.push_back(settings);
-	}
 	return res;
 }
 } // namespace wivrn

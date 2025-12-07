@@ -73,6 +73,7 @@ struct decoder::ffmpeg_blit_handle : public wivrn::decoder::blit_handle
 	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info,
 	        vk::ImageView image_view,
 	        vk::Image image,
+	        vk::Extent2D extent,
 	        vk::ImageLayout & current_layout,
 	        int image_index,
 	        wivrn::ffmpeg::decoder * self) :
@@ -81,6 +82,7 @@ struct decoder::ffmpeg_blit_handle : public wivrn::decoder::blit_handle
 	                view_info,
 	                image_view,
 	                image,
+	                extent,
 	                current_layout,
 	        },
 	        image_index(image_index),
@@ -100,16 +102,19 @@ struct decoder::ffmpeg_blit_handle : public wivrn::decoder::blit_handle
 decoder::decoder(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
-        const wivrn::to_headset::video_stream_description::item & description,
+        const wivrn::to_headset::video_stream_description & description,
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> scene,
         shard_accumulator * accumulator) :
-        wivrn::decoder(description),
         device(device),
         codec(nullptr, free_codec_context),
         sws(nullptr, sws_freeContext),
         weak_scene(scene),
-        accumulator(accumulator)
+        accumulator(accumulator),
+        extent{
+                .width = description.width,
+                .height = description.height / (stream_index == 2 ? 2u : 1u),
+        }
 {
 	free_images.resize(image_count);
 
@@ -121,8 +126,8 @@ decoder::decoder(
 		        .imageType = vk::ImageType::e2D,
 		        .format = vk::Format::eA8B8G8R8SrgbPack32,
 		        .extent = {
-		                .width = description.width,
-		                .height = description.height,
+		                .width = extent.width,
+		                .height = extent.height,
 		                .depth = 1,
 		        },
 		        .mipLevels = 1,
@@ -139,7 +144,6 @@ decoder::decoder(
 		decoded_images[i].image = image_allocation(device, image_info, alloc_info);
 
 		decoded_images[i].image.map();
-		extent_ = vk::Extent2D{description.width, description.height};
 
 		vk::ImageSubresource resource;
 		resource.aspectMask = vk::ImageAspectFlagBits::eColor;
@@ -164,7 +168,7 @@ decoder::decoder(
 		decoded_images[i].current_layout = vk::ImageLayout::eUndefined;
 	}
 
-	auto avcodec = avcodec_find_decoder(codec_id(description.codec));
+	auto avcodec = avcodec_find_decoder(codec_id(description.codec[stream_index]));
 	if (avcodec == nullptr)
 	{
 		throw std::runtime_error{"avcodec_find_decoder failed"};
@@ -233,7 +237,7 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 
 	if (!sws)
 	{
-		sws.reset(sws_getContext(frame->width, frame->height, (AVPixelFormat)frame->format, description.width, description.height, AV_PIX_FMT_RGB0, SWS_BILINEAR, nullptr, nullptr, nullptr));
+		sws.reset(sws_getContext(frame->width, frame->height, (AVPixelFormat)frame->format, extent.width, extent.height, AV_PIX_FMT_RGB0, SWS_BILINEAR, nullptr, nullptr, nullptr));
 	}
 
 	std::unique_lock lock(mutex);
@@ -259,6 +263,7 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 	        view_info,
 	        *decoded_images[index].image_view,
 	        decoded_images[index].image,
+	        extent,
 	        decoded_images[index].current_layout,
 	        index,
 	        this);

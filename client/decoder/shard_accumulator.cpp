@@ -55,7 +55,7 @@ static bool is_complete(const shard_set & shards)
 	const auto & frame = shards.data;
 	if (frame.empty())
 		return false;
-	if (not(frame.back() and frame.back()->flags & video_stream_data_shard::end_of_frame))
+	if (not(frame.back() and frame.back()->timing_info))
 		return false;
 	for (const auto & shard: frame)
 		if (not shard)
@@ -99,7 +99,7 @@ static void debug_why_not_sent(const shard_set & shards)
 			++missing;
 	}
 
-	bool end = frame.back() and frame.back()->flags & video_stream_data_shard::end_of_frame;
+	bool end = frame.back() and frame.back()->timing_info;
 	spdlog::info("frame {} was not sent with {} data shards, {}{} missing", frame_idx, data, end ? "" : "at least ", missing);
 }
 
@@ -185,7 +185,7 @@ void shard_accumulator::try_submit_frame(uint16_t shard_idx)
 	for (size_t idx = shard_idx; idx < last_idx; ++idx)
 		payload.emplace_back(data_shards[idx]->payload);
 
-	bool frame_complete = last_idx == data_shards.size() and data_shards.back()->flags & video_stream_data_shard::end_of_frame;
+	bool frame_complete = last_idx == data_shards.size() and data_shards.back()->timing_info;
 	decoder_->push_data(payload, data_shards[shard_idx]->frame_idx, not frame_complete);
 
 	if (not frame_complete)

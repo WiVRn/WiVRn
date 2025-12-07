@@ -44,18 +44,13 @@ struct configuration
 	struct encoder
 	{
 		std::string name;
-		std::optional<double> width;
-		std::optional<double> height;
-		std::optional<double> offset_x;
-		std::optional<double> offset_y;
 		std::optional<int> group;
 		std::optional<wivrn::video_codec> codec;
 		std::map<std::string, std::string> options;
 		std::optional<std::string> device;
 	};
 
-	std::vector<encoder> encoders;
-	std::optional<encoder> encoder_passthrough;
+	std::array<encoder, 3> encoders; // left, right, alpha
 	std::optional<int> bitrate;
 	int bit_depth = 8;
 	std::optional<std::array<double, 2>> scale;

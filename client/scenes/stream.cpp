@@ -153,8 +153,7 @@ static const std::array supported_depth_formats{
 
 scenes::stream::stream(std::string server_name, scene & parent_scene) :
         scene_impl<stream>(supported_color_formats, supported_depth_formats, parent_scene),
-        apps{*this, std::move(server_name)},
-        blitters{blitter(device, 0), blitter(device, 1)}
+        apps{*this, std::move(server_name)}
 {
 }
 
@@ -488,9 +487,6 @@ void scenes::stream::on_focused()
 
 	assert(video_stream_description);
 	std::unique_lock lock(decoder_mutex);
-	setup_reprojection_swapchain(
-	        video_stream_description->defoveated_width / view_count,
-	        video_stream_description->defoveated_height);
 
 	if (application::get_config().high_power_mode)
 	{
@@ -545,9 +541,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 			std::swap(handle, decoders[stream].latest_frames[handle->feedback.frame_index % decoders[stream].latest_frames.size()]);
 		}
 
-		if (state_ != state::streaming and std::ranges::all_of(decoders, [](accumulator_images & i) {
-			    return i.alpha() or not i.empty();
-		    }))
+		if (state_ != state::streaming and not(decoders[0].empty() and decoders[1].empty()))
 		{
 			state_ = state::streaming;
 			spdlog::info("Stream scene ready at t={}", instance.now());
@@ -560,11 +554,6 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 	}
 }
 
-bool scenes::stream::accumulator_images::alpha() const
-{
-	return decoder->desc().channels == wivrn::to_headset::video_stream_description::channels_t::alpha;
-}
-
 bool scenes::stream::accumulator_images::empty() const
 {
 	for (const auto & frame: latest_frames)
@@ -575,7 +564,7 @@ bool scenes::stream::accumulator_images::empty() const
 	return true;
 }
 
-std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::common_frame(XrTime display_time)
+std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::common_frame(XrTime display_time)
 {
 	if (decoders.empty())
 		return {};
@@ -583,10 +572,8 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 	thread_local std::vector<shard_accumulator::blit_handle *> common_frames;
 	common_frames.clear();
 	const bool alpha = decoders[0].latest_frames[0] and decoders[0].latest_frames[0]->view_info.alpha;
-	for (size_t i = 0; i < decoders.size(); ++i)
+	for (size_t i = 0; i < view_count + alpha; ++i)
 	{
-		if (decoders[i].alpha() and not alpha)
-			continue;
 		if (i == 0)
 		{
 			for (const auto & h: decoders[i].latest_frames)
@@ -609,8 +596,7 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 			// clang-format on
 		}
 	}
-	std::vector<std::shared_ptr<shard_accumulator::blit_handle>> result;
-	result.reserve(decoders.size());
+	std::array<std::shared_ptr<shard_accumulator::blit_handle>, view_count + 1> result;
 	if (not common_frames.empty())
 	{
 		auto min = std::ranges::min_element(common_frames,
@@ -623,12 +609,10 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 
 		assert(*min);
 		auto frame_index = (*min)->feedback.frame_index;
-		for (const auto & decoder: decoders)
+		for (auto [i, decoder]: utils::enumerate(decoders))
 		{
-			if (alpha or not decoder.alpha())
-				result.emplace_back(decoder.frame(frame_index));
-			else
-				result.emplace_back(nullptr);
+			if (alpha or i < view_count)
+				result[i] = decoder.frame(frame_index);
 		}
 	}
 	else
@@ -647,9 +631,9 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 			spdlog::warn(frames);
 		}
 
-		for (const auto & decoder: decoders)
+		for (auto [i, decoder]: utils::enumerate(decoders))
 		{
-			if (alpha or not decoder.alpha())
+			if (alpha or i < view_count)
 			{
 				auto min = std::ranges::min_element(decoder.latest_frames,
 				                                    std::ranges::less{},
@@ -658,10 +642,8 @@ std::vector<std::shared_ptr<shard_accumulator::blit_handle>> scenes::stream::com
 						                                    return std::numeric_limits<XrTime>::max();
 					                                    return std::abs(frame->view_info.display_time - display_time);
 				                                    });
-				result.emplace_back(*min);
+				result[i] = *min;
 			}
-			else
-				result.emplace_back(nullptr);
 		}
 	}
 	return result;
@@ -768,19 +750,11 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	last_display_time = frame_state.predictedDisplayTime;
 
 	std::shared_lock lock(decoder_mutex);
-	if (decoders.empty() or not frame_state.shouldRender)
+	if (not frame_state.shouldRender or (decoders[0].empty() and decoders[1].empty()))
 	{
 		// TODO: stop/restart video stream
 		session.begin_frame();
 		session.end_frame(frame_state.predictedDisplayTime, {});
-
-		std::unique_lock lock(frames_mutex);
-		for (auto & i: decoders)
-		{
-			for (auto & frame: i.latest_frames)
-				frame.reset();
-		}
-
 		return;
 	}
 
@@ -796,14 +770,13 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		application::pop_scene();
 	}
 
-	assert(swapchain);
 	if (device.waitForFences(*fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
 		throw std::runtime_error("Vulkan fence timeout");
 
 	device.resetFences(*fence);
 
 	// We don't need those after vkWaitForFences
-	current_blit_handles.clear();
+	current_blit_handles.fill(nullptr);
 
 	gpu_timestamps timestamps;
 	if (query_pool_filled)
@@ -843,13 +816,15 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	// Search for frame with desired display time on all decoders
 	// If no such frame exists, use the latest frame for each decoder
 	current_blit_handles = common_frame(frame_state.predictedDisplayTime);
-	std::array<XrPosef, view_count> pose{};
-	std::array<XrFovf, view_count> fov{};
-	std::array<wivrn::to_headset::foveation_parameter, view_count> foveation{};
+	std::array<XrPosef, view_count> pose;
+	std::array<XrFovf, view_count> fov;
+	std::array<wivrn::to_headset::foveation_parameter, view_count> foveation;
 	bool use_alpha = false;
 
-	for (auto & blit_handle: current_blit_handles)
+	std::array<stream_defoveator::input, view_count> images;
+	for (size_t i = 0; i < view_count + use_alpha; ++i)
 	{
+		auto & blit_handle = current_blit_handles[i];
 		if (not blit_handle)
 			continue;
 
@@ -879,28 +854,43 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			command_buffer.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, {}, {}, {}, barrier);
 			blit_handle->current_layout = vk::ImageLayout::eGeneral;
 		}
-	}
 
-	// Blit images from the decoders
-	std::array<blitter::output, view_count> blitted;
-	for (auto [i, b]: utils::enumerate(blitters))
-	{
-		b.begin(command_buffer);
-		for (auto [j, blit_handle]: utils::enumerate(current_blit_handles))
+		if (i < view_count)
 		{
-			if (not blit_handle)
-				continue;
-			if (b.push_image(command_buffer, j, decoders[j].decoder->sampler(), decoders[j].decoder->extent(), blit_handle->image_view, blit_handle->current_layout))
+			foveation[i] = blit_handle->view_info.foveation[i];
+			pose[i] = blit_handle->view_info.pose[i];
+			fov[i] = blit_handle->view_info.fov[i];
+			// colour image
+			images[i] = {
+			        .rgb = blit_handle->image_view,
+			        .sampler_rgb = decoders[i].decoder->sampler(),
+			        .rect_rgb = {
+			                .extent = blit_handle->extent,
+			        },
+			        .layout_rgb = blit_handle->current_layout,
+			};
+		}
+		else
+		{
+			// alpha image, must set for each view
+			for (int j = 0; j < view_count; ++j)
 			{
-				pose[i] = blit_handle->view_info.pose[i];
-				fov[i] = blit_handle->view_info.fov[i];
-				foveation[i] = blit_handle->view_info.foveation[i];
+				images[j].a = blit_handle->image_view;
+				images[j].sampler_a = decoders[i].decoder->sampler();
+				images[j].rect_a = vk::Rect2D{
+				        // in full size pixels
+				        .offset = {
+				                .x = j * video_stream_description->width,
+				        },
+				        .extent = {
+				                .width = blit_handle->extent.width * 2,
+				                .height = blit_handle->extent.height * 2,
+				        },
+				};
+				images[j].layout_a = blit_handle->current_layout;
 			}
 		}
-		blitted[i] = b.end(command_buffer);
 	}
-
-	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
 	XrExtent2Di extents[view_count];
 	{
@@ -912,9 +902,11 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			max_width = std::max(max_width, extents[i].width);
 			max_height = std::max(max_height, extents[i].height);
 		}
-		// If the defoveated image is larger than the swapchain, try to reallocate one
-		if (swapchain.width() < max_width or swapchain.height() < max_height)
+		if (not swapchain)
+			setup_reprojection_swapchain(max_width, max_height);
+		else if (swapchain.width() < max_width or swapchain.height() < max_height)
 		{
+			// If the defoveated image is larger than the swapchain, try to reallocate one
 			try
 			{
 				spdlog::info("Recreating swapchain, from {}x{} to {}x{}",
@@ -935,12 +927,13 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			}
 		}
 	}
+	assert(swapchain);
 	// defoveate the image
 	int image_index = swapchain.acquire();
 	swapchain.wait();
-	defoveator->defoveate(command_buffer, foveation, blitted, image_index);
+	defoveator->defoveate(command_buffer, foveation, images, image_index);
 
-	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 2);
+	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
 	command_buffer.end();
 	vk::SubmitInfo submit_info;
@@ -1133,36 +1126,24 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 {
 	session.set_refresh_rate(description.fps);
 
+	spdlog::info("Creating decoders, size {}x{}", description.width, description.height);
 	std::unique_lock lock(decoder_mutex);
-	decoders.clear();
-
-	if (description.items.empty())
-	{
-		spdlog::info("Stopping video stream");
-		return;
-	}
-
 	video_stream_description = description;
-	for (auto & b: blitters)
-		b.reset(description);
 
-	for (const auto & [stream_index, item]: utils::enumerate(description.items))
+	for (const auto & [stream_index, item]: utils::enumerate(decoders))
 	{
-		spdlog::info("Creating decoder size {}x{} offset {},{}", item.width, item.height, item.offset_x, item.offset_y);
-
-		decoders.push_back(accumulator_images{
-		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, item, description.fps, shared_from_this(), stream_index),
-		});
+		item = accumulator_images{
+		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, description, shared_from_this(), stream_index),
+		};
 	}
 }
 
 void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint32_t swapchain_height)
 {
+	assert(swapchain_width);
+	assert(swapchain_height);
 	device.waitIdle();
 	session.set_refresh_rate(video_stream_description->fps);
-
-	const uint32_t video_width = video_stream_description->width / view_count;
-	const uint32_t video_height = video_stream_description->height;
 
 	auto views = system.view_configuration_views(viewconfig);
 

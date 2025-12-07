@@ -636,52 +636,27 @@ struct audio_stream_description
 
 struct video_stream_description
 {
-	enum class channels_t
-	{
-		colour,
-		alpha,
-	};
-	struct item
-	{
-		// useful dimensions of the video stream
-		uint16_t width;
-		uint16_t height;
-		// dimensions of the video, may include padding at the end
-		uint16_t video_width;
-		uint16_t video_height;
-		uint16_t offset_x;
-		uint16_t offset_y;
-		video_codec codec;
-		channels_t channels;
-		uint8_t subsampling; // applies to width/height only, offsets are in full size pixels
-		std::optional<VkSamplerYcbcrRange> range;
-		std::optional<VkSamplerYcbcrModelConversion> color_model;
-	};
+	// dimensions of the video stream per eye
+	// alpha is half resolution
 	uint16_t width;
 	uint16_t height;
+	std::array<video_codec, 3> codec; // left, right, alpha
 	float fps;
-	uint16_t defoveated_width;
-	uint16_t defoveated_height;
-	std::vector<item> items;
 };
 
 class video_stream_data_shard
 {
 public:
 	inline static const size_t max_payload_size = 1400;
-	enum flags : uint8_t
-	{
-		start_of_slice = 1,
-		end_of_slice = 1 << 1,
-		end_of_frame = 1 << 2,
-	};
-	// Identifier of stream in video_stream_description
+	// Identifier of stream:
+	// 0 left
+	// 1 right
+	// 2 alpha
 	uint8_t stream_item_idx;
 	// Counter increased for each frame
 	uint64_t frame_idx;
 	// Identifier of the shard within the frame
 	uint16_t shard_idx;
-	uint8_t flags;
 
 	// Position information, must be present on first video shard
 	struct view_info_t

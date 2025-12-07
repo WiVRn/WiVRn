@@ -31,6 +31,7 @@
 #include "xrt_cast.h"
 
 #include <algorithm>
+#include <ranges>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_core.h>
@@ -143,21 +144,17 @@ static void create_encoders(wivrn_comp_target * cn)
 	to_headset::video_stream_description & desc = cn->desc;
 	desc.width = cn->width;
 	desc.height = cn->height;
-	const auto & hmd = cn->cnx.get_hmd().hmd;
-	desc.defoveated_width = hmd->views[0].display.w_pixels * 2;
-	desc.defoveated_height = hmd->views[0].display.h_pixels;
 
 	std::map<int, std::vector<std::shared_ptr<video_encoder>>> thread_params;
 
 	uint32_t bitrate = 0;
 
-	for (auto & settings: cn->settings)
+	for (auto [i, settings]: std::ranges::enumerate_view(cn->settings))
 	{
 		bitrate += settings.bitrate;
-		uint8_t stream_index = cn->encoders.size();
 		auto & encoder = cn->encoders.emplace_back(
-		        video_encoder::create(*cn->wivrn_bundle, settings, stream_index, desc.width, desc.height, desc.fps));
-		desc.items.push_back(settings);
+		        video_encoder::create(*cn->wivrn_bundle, settings, i));
+		desc.codec[i] = settings.codec;
 
 		thread_params[settings.group].emplace_back(encoder);
 	}
@@ -204,7 +201,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 	                        .depth = 1,
 	                },
 	                .mipLevels = 1,
-	                .arrayLayers = 2, // colour then alpha
+	                .arrayLayers = 3, // left, right then alpha
 	                .samples = vk::SampleCountFlagBits::e1,
 	                .tiling = vk::ImageTiling::eOptimal,
 	                .usage = flags | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
@@ -218,10 +215,10 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 #if WIVRN_USE_VULKAN_ENCODE
 	if (
 	        vk->features.video_maintenance_1 and
-	        std::ranges::any_of(
+	        std::ranges::contains(
 	                cn->settings,
-	                [](const auto & item) { return item.encoder_name == encoder_vulkan //
-		                                       and item.offset_x == 0 and item.offset_y == 0; }))
+	                encoder_vulkan,
+	                &encoder_settings::encoder_name))
 	{
 		image_info.get().flags |= vk::ImageCreateFlagBits::eVideoProfileIndependentKHR;
 		image_info.get().usage |= vk::ImageUsageFlagBits::eVideoEncodeSrcKHR;
@@ -255,7 +252,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                                .subresourceRange = {
 		                                                        .aspectMask = vk::ImageAspectFlagBits::ePlane0,
 		                                                        .levelCount = 1,
-		                                                        .layerCount = 2,
+		                                                        .layerCount = vk::RemainingArrayLayers,
 		                                                },
 		                                        });
 		item.image_view_cbcr = vk::raii::ImageView(device,
@@ -267,7 +264,7 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 		                                                   .subresourceRange = {
 		                                                           .aspectMask = vk::ImageAspectFlagBits::ePlane1,
 		                                                           .levelCount = 1,
-		                                                           .layerCount = 2,
+		                                                           .layerCount = vk::RemainingArrayLayers,
 		                                                   },
 		                                           });
 		cn->images[i].view = VkImageView(*item.image_view_y);
@@ -491,7 +488,7 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 		{
 			for (auto & encoder: encoders)
 			{
-				if (encoder->channels == to_headset::video_stream_description::channels_t::colour or view_info.alpha)
+				if (encoder->stream_idx < 2 or view_info.alpha)
 					encoder->encode(cn->cnx, view_info, frame_index);
 			}
 		}
@@ -572,7 +569,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	std::vector<vk::Semaphore> present_done_sem;
 	for (auto & encoder: cn->encoders)
 	{
-		if (encoder->channels == to_headset::video_stream_description::channels_t::alpha and not do_alpha)
+		if (encoder->stream_idx == 2 and not do_alpha)
 			continue;
 		auto [transfer, sem] = encoder->present_image(psc_image.image, command_buffer, info.frame_id);
 		need_queue_transfer |= transfer;
@@ -595,7 +592,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		                             .baseMipLevel = 0,
 		                             .levelCount = 1,
 		                             .baseArrayLayer = 0,
-		                             .layerCount = 2},
+		                             .layerCount = vk::RemainingArrayLayers},
 		};
 		command_buffer.pipelineBarrier(
 		        vk::PipelineStageFlagBits::eTransfer,
@@ -615,7 +612,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		cn->wivrn_bundle->queue.submit(submit_info, *cn->psc.fence);
 		for (auto & encoder: cn->encoders)
 		{
-			if (encoder->channels == to_headset::video_stream_description::channels_t::alpha and not do_alpha)
+			if (encoder->stream_idx == 2 and not do_alpha)
 				continue;
 			encoder->post_submit();
 		}

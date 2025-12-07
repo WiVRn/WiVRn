@@ -76,7 +76,6 @@ private:
 
 public:
 	const uint8_t stream_idx;
-	const to_headset::video_stream_description::channels_t channels;
 	static const uint8_t num_slots = 2;
 	const double bitrate_multiplier;
 
@@ -108,17 +107,15 @@ protected:
 	std::atomic_uint32_t pending_bitrate;
 	std::atomic<float> pending_framerate;
 	std::unique_ptr<idr_handler> idr;
+	const vk::Extent2D extent;
 
 public:
 	static std::unique_ptr<video_encoder> create(
 	        wivrn_vk_bundle &,
-	        encoder_settings & settings,
-	        uint8_t stream_idx,
-	        int input_width,
-	        int input_height,
-	        float fps);
+	        const encoder_settings & settings,
+	        uint8_t stream_idx);
 
-	video_encoder(uint8_t stream_idx, to_headset::video_stream_description::channels_t channels, std::unique_ptr<idr_handler>, double bitrate_multiplier, bool async_send);
+	video_encoder(uint8_t stream_idx, const encoder_settings & settings, std::unique_ptr<idr_handler>, bool async_send);
 	virtual ~video_encoder();
 
 	// return value: true if image should be transitioned to queue and layout for vulkan video encode

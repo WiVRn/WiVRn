@@ -42,6 +42,7 @@ struct wivrn::android::decoder::mapped_hardware_buffer
 {
 	vk::raii::DeviceMemory memory = nullptr;
 	vk::raii::Image vimage = nullptr;
+	vk::Extent2D extent{};
 	vk::raii::ImageView image_view = nullptr;
 	vk::ImageLayout layout = vk::ImageLayout::eUndefined;
 };
@@ -85,11 +86,12 @@ struct android_blit_handle : public decoder::blit_handle
 	        const wivrn::to_headset::video_stream_data_shard::view_info_t & view_info,
 	        vk::ImageView image_view,
 	        vk::Image image,
+	        vk::Extent2D extent,
 	        vk::ImageLayout & current_layout,
 	        decltype(vk_data) vk_data,
 	        decltype(image_reader) image_reader,
 	        decltype(aimage) aimage) :
-	        decoder::blit_handle(feedback, view_info, image_view, image, current_layout),
+	        decoder::blit_handle(feedback, view_info, image_view, image, extent, current_layout),
 	        vk_data(vk_data),
 	        image_reader(image_reader),
 	        aimage(std::move(aimage)) {}
@@ -103,19 +105,21 @@ namespace wivrn::android
 decoder::decoder(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & physical_device,
-        const wivrn::to_headset::video_stream_description::item & description,
-        float fps,
+        const wivrn::to_headset::video_stream_description & description,
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> weak_scene,
         shard_accumulator * accumulator) :
-        wivrn::decoder(description), stream_index(stream_index), fps(fps), device(device), weak_scene(weak_scene), accumulator(accumulator)
+        stream_index(stream_index), device(device), weak_scene(weak_scene), accumulator(accumulator)
 {
 	spdlog::info("hbm_mutex.native_handle() = {}", (void *)hbm_mutex.native_handle());
 
+	auto width = description.width;
+	auto height = description.height / (stream_index == 2 ? 2 : 1);
+
 	AImageReader * ir;
 	check(AImageReader_newWithUsage(
-	              description.video_width,
-	              description.video_height,
+	              width,
+	              height,
 	              AIMAGE_FORMAT_PRIVATE,
 	              AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_CPU_WRITE_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE,
 	              scenes::stream::image_buffer_size + 4 /* maxImages */,
@@ -131,18 +135,18 @@ decoder::decoder(
 	                "vkGetAndroidHardwareBufferPropertiesANDROID");
 	{
 		AMediaFormat_ptr format(AMediaFormat_new());
-		AMediaFormat_setString(format.get(), AMEDIAFORMAT_KEY_MIME, mime(description.codec));
+		AMediaFormat_setString(format.get(), AMEDIAFORMAT_KEY_MIME, mime(description.codec[stream_index]));
 		// AMediaFormat_setInt32(format.get(), "vendor.qti-ext-dec-low-latency.enable", 1); // Qualcomm low
 		// latency mode
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_WIDTH, description.video_width);
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, description.video_height);
-		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(fps));
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_WIDTH, width);
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_HEIGHT, height);
+		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_OPERATING_RATE, std::ceil(description.fps));
 		AMediaFormat_setInt32(format.get(), AMEDIAFORMAT_KEY_PRIORITY, 0);
 
-		media_codec.reset(AMediaCodec_createDecoderByType(mime(description.codec)));
+		media_codec.reset(AMediaCodec_createDecoderByType(mime(description.codec[stream_index])));
 
 		if (not media_codec)
-			throw std::runtime_error(std::string("Cannot create decoder for MIME type ") + mime(description.codec));
+			throw std::runtime_error(std::string("Cannot create decoder for MIME type ") + mime(description.codec[stream_index]));
 
 		char * codec_name;
 		check(AMediaCodec_getName(media_codec.get(), &codec_name), "AMediaCodec_getName");
@@ -308,6 +312,7 @@ void decoder::on_image_available(AImageReader * reader)
 		        info->view_info,
 		        *vk_data->image_view,
 		        *vk_data->vimage,
+		        vk_data->extent,
 		        vk_data->layout,
 		        std::move(vk_data),
 		        image_reader,
@@ -361,11 +366,8 @@ void decoder::create_sampler(const AHardwareBuffer_Desc & buffer_desc, vk::Andro
 	};
 
 	// suggested values from decoder don't actually read the metadata, so it's garbage
-	if (description.range)
-		ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrRange = vk::SamplerYcbcrRange(*description.range);
-
-	if (description.color_model)
-		ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrModel = vk::SamplerYcbcrModelConversion(*description.color_model);
+	ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrRange = vk::SamplerYcbcrRange::eItuFull;
+	ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>().ycbcrModel = vk::SamplerYcbcrModelConversion::eYcbcr709;
 
 	ycbcr_conversion = vk::raii::SamplerYcbcrConversion(device, ycbcr_create_info.get<vk::SamplerYcbcrConversionCreateInfo>());
 
@@ -411,7 +413,6 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 	if (!*ycbcr_sampler || memcmp(&ahb_format, &format_properties, sizeof(format_properties)))
 	{
 		memcpy(&ahb_format, &format_properties, sizeof(format_properties));
-		extent_ = {buffer_desc.width, buffer_desc.height};
 		spdlog::info("decoded image size: {}x{}", buffer_desc.width, buffer_desc.height);
 		create_sampler(buffer_desc, ahb_format);
 		hardware_buffer_map.clear();
@@ -490,6 +491,10 @@ std::shared_ptr<decoder::mapped_hardware_buffer> decoder::map_hardware_buffer(AI
 	handle->vimage = std::move(vimage);
 	handle->image_view = std::move(image_view);
 	handle->memory = std::move(memory);
+	handle->extent = vk::Extent2D{
+	        .width = buffer_desc.width,
+	        .height = buffer_desc.height,
+	};
 
 	hardware_buffer_map[hardware_buffer] = handle;
 	return handle;

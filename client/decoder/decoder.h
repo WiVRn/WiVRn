@@ -42,25 +42,18 @@ public:
 		wivrn::to_headset::video_stream_data_shard::view_info_t view_info;
 		vk::ImageView image_view = nullptr;
 		vk::Image image = nullptr;
+		vk::Extent2D extent{};
 		vk::ImageLayout & current_layout;
 		vk::Semaphore semaphore = nullptr;
 		uint64_t * semaphore_val = nullptr;
 	};
-
-	const wivrn::to_headset::video_stream_description::item description;
-
-protected:
-	decoder(const wivrn::to_headset::video_stream_description::item & description) :
-	        description(description) {}
-	vk::Extent2D extent_; // Must be populated when sampler is set
 
 public:
 	static std::shared_ptr<decoder> make(
 	        vk::raii::Device &,
 	        vk::raii::PhysicalDevice &,
 	        uint32_t vk_queue_family_index,
-	        const wivrn::to_headset::video_stream_description::item & description,
-	        float fps,
+	        const wivrn::to_headset::video_stream_description & description,
 	        uint8_t stream_index,
 	        std::weak_ptr<scenes::stream>,
 	        shard_accumulator *);
@@ -72,10 +65,6 @@ public:
 	        const to_headset::video_stream_data_shard::view_info_t & view_info) = 0;
 
 	virtual vk::Sampler sampler() = 0;
-	const vk::Extent2D extent()
-	{
-		return extent_;
-	}
 
 	static std::vector<wivrn::video_codec> supported_codecs();
 };

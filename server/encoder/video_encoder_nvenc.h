@@ -34,8 +34,6 @@ class video_encoder_nvenc : public video_encoder
 {
 private:
 	wivrn_vk_bundle & vk;
-	// relevant part of the input image to encode
-	vk::Rect2D rect;
 
 	std::shared_ptr<video_encoder_nvenc_shared_state> shared_state;
 
@@ -60,7 +58,7 @@ private:
 	void set_init_params_fps(float framerate);
 
 public:
-	video_encoder_nvenc(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);
+	video_encoder_nvenc(wivrn_vk_bundle & vk, const encoder_settings & settings, uint8_t stream_idx);
 	~video_encoder_nvenc();
 
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;

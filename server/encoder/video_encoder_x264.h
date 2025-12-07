@@ -47,8 +47,6 @@ class video_encoder_x264 : public video_encoder
 	std::array<in_t, num_slots> in;
 	uint32_t chroma_width;
 
-	vk::Rect2D rect;
-
 	struct pending_nal
 	{
 		int first_mb;
@@ -62,7 +60,7 @@ class video_encoder_x264 : public video_encoder
 	std::list<pending_nal> pending_nals;
 
 public:
-	video_encoder_x264(wivrn_vk_bundle & vk, encoder_settings & settings, float fps, uint8_t stream_idx);
+	video_encoder_x264(wivrn_vk_bundle & vk, const encoder_settings & settings, uint8_t stream_idx);
 
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 

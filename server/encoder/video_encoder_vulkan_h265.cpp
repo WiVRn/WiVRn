@@ -61,13 +61,11 @@ static uint32_t find_msb(uint32_t v)
 
 wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
         wivrn_vk_bundle & vk,
-        vk::Rect2D rect,
         const vk::VideoCapabilitiesKHR & video_caps,
         const vk::VideoEncodeCapabilitiesKHR & encode_caps,
-        float fps,
         uint8_t stream_idx,
         const encoder_settings & settings) :
-        video_encoder_vulkan(vk, rect, video_caps, encode_caps, fps, stream_idx, settings),
+        video_encoder_vulkan(vk, video_caps, encode_caps, stream_idx, settings),
         vui{
                 .flags = {
                         .aspect_ratio_info_present_flag = 1,
@@ -97,7 +95,7 @@ wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
                     .general_frame_only_constraint_flag = 1,
             },
             .general_profile_idc = (settings.bit_depth == 10) ? STD_VIDEO_H265_PROFILE_IDC_MAIN_10 : STD_VIDEO_H265_PROFILE_IDC_MAIN,
-            .general_level_idc = choose_level(rect.extent.width, rect.extent.height, fps)},
+            .general_level_idc = choose_level(extent.width, extent.height, settings.fps)},
         vps{
                 .flags = {
                         .vps_temporal_id_nesting_flag = 1, // radv breaks without
@@ -150,9 +148,9 @@ wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
                 .motion_vector_resolution_control_idc = 0,
                 .sps_num_palette_predictor_initializers_minus1 = 0,
                 .conf_win_left_offset = 0u,
-                .conf_win_right_offset = (aligned_extent.width - rect.extent.width) >> 1, // 4:2:0
+                .conf_win_right_offset = (aligned_extent.width - extent.width) >> 1, // 4:2:0
                 .conf_win_top_offset = 0u,
-                .conf_win_bottom_offset = (aligned_extent.height - rect.extent.height) >> 1, // 4:2:0
+                .conf_win_bottom_offset = (aligned_extent.height - extent.height) >> 1, // 4:2:0
                 .pProfileTierLevel = &ptl,
                 .pDecPicBufMgr = &dpb,
                 .pScalingLists = nullptr,
@@ -272,19 +270,13 @@ static auto get_video_caps(vk::raii::PhysicalDevice & phys_dev, int bit_depth)
 
 std::unique_ptr<wivrn::video_encoder_vulkan_h265> wivrn::video_encoder_vulkan_h265::create(
         wivrn_vk_bundle & vk,
-        encoder_settings & settings,
-        float fps,
+        const encoder_settings & settings,
         uint8_t stream_idx)
 {
-	vk::Rect2D rect{
-	        .offset = {.x = settings.offset_x, .y = settings.offset_y},
-	        .extent = {.width = settings.width, .height = settings.height},
-	};
-
 	auto [video_caps, encode_caps, encode_h265_caps, video_profile_info] = get_video_caps(vk.physical_device, settings.bit_depth);
 
 	std::unique_ptr<video_encoder_vulkan_h265> self(
-	        new video_encoder_vulkan_h265(vk, rect, video_caps, encode_caps, fps, stream_idx, settings));
+	        new video_encoder_vulkan_h265(vk, video_caps, encode_caps, stream_idx, settings));
 
 	vk::VideoEncodeH265SessionParametersAddInfoKHR add_info{};
 	add_info.setStdVPSs(self->vps);

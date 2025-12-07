@@ -31,13 +31,12 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
         vk::raii::Device & device,
         vk::raii::PhysicalDevice & phys_dev,
         uint32_t vk_queue_family_index,
-        const wivrn::to_headset::video_stream_description::item & description,
-        float fps,
+        const wivrn::to_headset::video_stream_description & description,
         uint8_t stream_index,
         std::weak_ptr<scenes::stream> scene,
         shard_accumulator * acc)
 {
-	switch (description.codec)
+	switch (description.codec[stream_index])
 	{
 		case h264:
 		case h265:
@@ -47,7 +46,6 @@ std::shared_ptr<wivrn::decoder> wivrn::decoder::make(
 			        device,
 			        phys_dev,
 			        description,
-			        fps,
 			        stream_index,
 			        scene,
 			        acc);
