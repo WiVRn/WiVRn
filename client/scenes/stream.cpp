@@ -481,7 +481,7 @@ void scenes::stream::on_focused()
 	}
 	recenter_left = get_action("recenter_left").first;
 	recenter_right = get_action("recenter_right").first;
-	foveation_pitch = get_action("foveation_pitch").first;
+	settings_adjust = get_action("settings_adjust").first;
 	foveation_distance = get_action("foveation_distance").first;
 	foveation_ok = get_action("foveation_ok").first;
 	foveation_cancel = get_action("foveation_cancel").first;
@@ -741,6 +741,7 @@ bool scenes::stream::is_gui_interactable() const
 	{
 		case gui_status::stats:
 		case gui_status::settings:
+		case gui_status::bitrate_settings:
 		case gui_status::foveation_settings:
 		case gui_status::applications:
 		case gui_status::application_launcher:
@@ -1010,6 +1011,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		switch (gui_status)
 		{
 			case gui_status::hidden:
+			case gui_status::bitrate_settings:
 			case gui_status::foveation_settings:
 			case gui_status::compact:
 			case gui_status::overlay_only:
@@ -1109,6 +1111,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 				case gui_status::stats:
 				case gui_status::settings:
+				case gui_status::bitrate_settings:
 				case gui_status::foveation_settings:
 				case gui_status::applications:
 				case gui_status::application_launcher:
@@ -1207,7 +1210,7 @@ scene::meta & scenes::stream::get_meta_scene()
 	                {"recenter_left", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	                {"recenter_right", XR_ACTION_TYPE_BOOLEAN_INPUT},
 
-	                {"foveation_pitch", XR_ACTION_TYPE_FLOAT_INPUT},
+	                {"settings_adjust", XR_ACTION_TYPE_FLOAT_INPUT},
 	                {"foveation_distance", XR_ACTION_TYPE_FLOAT_INPUT},
 	                {"foveation_ok", XR_ACTION_TYPE_BOOLEAN_INPUT},
 	                {"foveation_cancel", XR_ACTION_TYPE_BOOLEAN_INPUT},
@@ -1239,7 +1242,7 @@ scene::meta & scenes::stream::get_meta_scene()
 
 	                                {"recenter_left", "/user/hand/left/input/squeeze/value"},
 	                                {"recenter_right", "/user/hand/right/input/squeeze/value"},
-	                                {"foveation_pitch", "/user/hand/right/input/thumbstick/y"},
+	                                {"settings_adjust", "/user/hand/right/input/thumbstick/y"},
 	                                {"foveation_distance", "/user/hand/left/input/thumbstick/y"},
 	                                {"foveation_ok", "/user/hand/right/input/a/click"},
 	                                {"foveation_cancel", "/user/hand/right/input/b/click"},

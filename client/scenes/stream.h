@@ -132,6 +132,7 @@ private:
 		compact,
 		stats,
 		settings,
+		bitrate_settings,
 		foveation_settings,
 		applications,
 		application_launcher,
@@ -149,7 +150,7 @@ private:
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
 	XrAction recenter_left = XR_NULL_HANDLE;
 	XrAction recenter_right = XR_NULL_HANDLE;
-	XrAction foveation_pitch = XR_NULL_HANDLE;
+	XrAction settings_adjust = XR_NULL_HANDLE;
 	XrAction foveation_distance = XR_NULL_HANDLE;
 	XrAction foveation_ok = XR_NULL_HANDLE;
 	XrAction foveation_cancel = XR_NULL_HANDLE;
@@ -315,6 +316,7 @@ private:
 	void gui_performance_metrics();
 	void gui_compact_view();
 	void gui_settings(float predicted_display_period);
+	void gui_bitrate_settings(float predicted_display_period);
 	void gui_foveation_settings(float predicted_display_period);
 	void gui_applications();
 	void draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);
