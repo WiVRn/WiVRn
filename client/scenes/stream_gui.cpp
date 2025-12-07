@@ -460,11 +460,11 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		}
 	}
 
-	int bitrate_ = bitrate.load() / 1'000'000;
-	if (ImGui::SliderInt(_S("Bitrate (Mbps)"), &bitrate_, 1, 200))
+	int bitrate_ = bitrate.load() / 10'000'000;
+	if (ImGui::SliderInt(_S("Bitrate (Mbps)"), &bitrate_, 1, 20, "%d0"))
 	{
-		bitrate.store(bitrate_ * 1'000'000);
-		send_settings_changed_packet(session, network_session.get(), config, bitrate_ * 1'000'000, predicted_display_period);
+		bitrate.store(bitrate_ * 10'000'000);
+		send_settings_changed_packet(session, network_session.get(), config, bitrate_ * 10'000'000, predicted_display_period);
 	}
 
 	if (application::get_openxr_post_processing_supported())
