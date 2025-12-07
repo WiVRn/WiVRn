@@ -1061,6 +1061,17 @@ void application::initialize_actions()
 			}
 		}
 
+		// Patch profile to add pinch_ext/pose and poke_ext/pose
+		if (!profile.profile_name.ends_with("ext/hand_interaction_ext") && xr_instance.has_extension(XR_EXT_HAND_INTERACTION_EXTENSION_NAME))
+		{
+			spdlog::info("Adding pinch_ext/pose for interaction profile {}", profile.profile_name);
+			profile.input_sources.push_back("/user/hand/left/input/pinch_ext/pose");
+			profile.input_sources.push_back("/user/hand/right/input/pinch_ext/pose");
+			spdlog::info("Adding poke_ext/pose for interaction profile {}", profile.profile_name);
+			profile.input_sources.push_back("/user/hand/left/input/poke_ext/pose");
+			profile.input_sources.push_back("/user/hand/right/input/poke_ext/pose");
+		}
+
 		// Dynamically add VIVE XR Trackers to the profile if available
 		if (utils::contains(profile.required_extensions, XR_HTC_VIVE_XR_TRACKER_INTERACTION_EXTENSION_NAME) and
 		    xr_instance.has_extension(XR_HTC_PATH_ENUMERATION_EXTENSION_NAME))
