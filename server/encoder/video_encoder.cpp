@@ -217,7 +217,7 @@ void video_encoder::reset()
 	idr->reset();
 }
 
-void video_encoder::set_bitrate(int bitrate_bps)
+void video_encoder::set_bitrate(uint32_t bitrate_bps)
 {
 	pending_bitrate = bitrate_bps;
 }

@@ -186,6 +186,7 @@ public:
 	void operator()(from_headset::pin_check_1 &&) {}
 	void operator()(from_headset::pin_check_3 &&) {}
 	void operator()(from_headset::headset_info_packet &&);
+	void operator()(from_headset::settings_request &&);
 	void operator()(from_headset::settings_changed &&);
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::trackings &&);

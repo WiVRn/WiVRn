@@ -248,11 +248,16 @@ struct headset_info_packet
 	std::string variant;
 };
 
+struct settings_request
+{};
+
 struct settings_changed
 {
 	float preferred_refresh_rate;
 	// for automatic
 	float minimum_refresh_rate;
+
+	uint32_t bitrate_bps;
 };
 
 struct handshake
@@ -542,6 +547,7 @@ using packets = std::variant<
         pin_check_1,
         pin_check_3,
         headset_info_packet,
+        settings_request,
         settings_changed,
         feedback,
         audio_data,
@@ -749,6 +755,11 @@ struct tracking_control
 	std::array<bool, size_t(id::last) + 1> enabled;
 };
 
+struct settings
+{
+	uint32_t bitrate_bps;
+};
+
 struct refresh_rate_change
 {
 	float fps;
@@ -797,6 +808,7 @@ using packets = std::variant<
         haptics,
         timesync_query,
         tracking_control,
+        settings,
         refresh_rate_change,
         application_list,
         application_icon,

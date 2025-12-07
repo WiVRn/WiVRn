@@ -383,10 +383,12 @@ void scenes::stream::gui_compact_view()
 	}
 }
 
-static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config, float predicted_display_period)
+static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config, uint32_t bitrate, float predicted_display_period)
 {
 	const auto & refresh_rates = session.get_refresh_rates();
-	from_headset::settings_changed packet{};
+	from_headset::settings_changed packet{
+	        .bitrate_bps = bitrate,
+	};
 	if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(refresh_rates, *config.preferred_refresh_rate)))
 	{
 		packet.preferred_refresh_rate = *config.preferred_refresh_rate;
@@ -418,7 +420,7 @@ void scenes::stream::gui_settings(float predicted_display_period)
 				{
 					session.set_refresh_rate(0);
 					config.preferred_refresh_rate = 0;
-					send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+					send_settings_changed_packet(session, network_session.get(), config, bitrate, predicted_display_period);
 					config.save();
 				}
 				if (ImGui::IsItemHovered())
@@ -429,7 +431,7 @@ void scenes::stream::gui_settings(float predicted_display_period)
 					{
 						session.set_refresh_rate(rate);
 						config.preferred_refresh_rate = rate;
-						send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+						send_settings_changed_packet(session, network_session.get(), config, bitrate, predicted_display_period);
 						config.save();
 					}
 				}
@@ -447,7 +449,7 @@ void scenes::stream::gui_settings(float predicted_display_period)
 						if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.minimum_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
 						{
 							config.minimum_refresh_rate = rate;
-							send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+							send_settings_changed_packet(session, network_session.get(), config, bitrate, predicted_display_period);
 							config.save();
 						}
 					}
@@ -456,6 +458,13 @@ void scenes::stream::gui_settings(float predicted_display_period)
 				imgui_ctx->vibrate_on_hover();
 			}
 		}
+	}
+
+	int bitrate_ = bitrate.load() / 1'000'000;
+	if (ImGui::SliderInt(_S("Bitrate (Mbps)"), &bitrate_, 1, 200))
+	{
+		bitrate.store(bitrate_ * 1'000'000);
+		send_settings_changed_packet(session, network_session.get(), config, bitrate_ * 1'000'000, predicted_display_period);
 	}
 
 	if (application::get_openxr_post_processing_supported())
