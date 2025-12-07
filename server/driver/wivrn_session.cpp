@@ -429,10 +429,29 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 	U_LOG_W("unexpected headset info packet, ignoring");
 }
 
+void wivrn_session::operator()(from_headset::settings_request &&)
+{
+	to_headset::settings settings{};
+	{
+		std::lock_guard lock(comp_target_mutex);
+		if (comp_target)
+			settings.bitrate_bps = comp_target->bitrate;
+	}
+
+	send_control(std::move(settings));
+}
+
 void wivrn_session::operator()(from_headset::settings_changed && settings)
 {
 	connection->info().preferred_refresh_rate = settings.preferred_refresh_rate;
 	connection->info().minimum_refresh_rate = settings.minimum_refresh_rate;
+
+	if (settings.bitrate_bps != 0)
+	{
+		std::lock_guard lock(comp_target_mutex);
+		if (comp_target)
+			comp_target->set_bitrate(settings.bitrate_bps);
+	}
 }
 
 static xrt_device_name get_name(interaction_profile profile)
@@ -937,9 +956,18 @@ void wivrn_session::operator()(to_monado::disconnect &&)
 
 void wivrn_session::operator()(to_monado::set_bitrate && data)
 {
-	std::shared_lock lock(comp_target_mutex);
-	if (comp_target)
-		comp_target->set_bitrate(data.bitrate_bps);
+	bool send_settings = false;
+	{
+		std::shared_lock lock(comp_target_mutex);
+		if (comp_target)
+		{
+			comp_target->set_bitrate(data.bitrate_bps);
+			send_settings = true;
+		}
+	}
+
+	if (send_settings)
+		(*this)(from_headset::settings_request{});
 }
 
 struct refresh_rate_adjuster
@@ -1087,6 +1115,7 @@ void wivrn_session::reconnect()
 		if (audio_handle)
 			send_control(audio_handle->description());
 
+		(*this)(from_headset::settings_request{});
 		event.state.visible = true;
 		event.state.focused = true;
 		result = push_event(event);

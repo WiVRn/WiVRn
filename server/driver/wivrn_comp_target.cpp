@@ -838,14 +838,16 @@ void wivrn_comp_target::reset_encoders()
 	cnx.send_control(to_headset::video_stream_description{desc});
 }
 
-void wivrn_comp_target::set_bitrate(int bitrate_bps)
+void wivrn_comp_target::set_bitrate(uint32_t bitrate_bps)
 {
+	bitrate = 0;
 	for (auto & encoder: encoders)
 	{
 		// Alpha will have multiplier of 0 and will be left unchanged.
-		auto encoder_bps = (int)(bitrate_bps * encoder->bitrate_multiplier);
+		auto encoder_bps = (uint32_t)(bitrate_bps * encoder->bitrate_multiplier);
 		U_LOG_D("Encoder %d bitrate: %d", encoder->stream_idx, encoder_bps);
 		encoder->set_bitrate(encoder_bps);
+		bitrate += encoder_bps;
 	}
 }
 

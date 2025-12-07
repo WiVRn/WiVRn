@@ -172,6 +172,8 @@ private:
 	XrTime running_application_req = 0;
 	thread_safe<to_headset::running_applications> running_applications;
 
+	std::atomic_uint32_t bitrate = 0;
+
 	stream(std::string server_name, scene & parent_scene);
 
 	bool forward_hid_input(from_headset::hid::input_t);
@@ -207,6 +209,7 @@ public:
 	void operator()(to_headset::tracking_control &&);
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
+	void operator()(to_headset::settings &&);
 	void operator()(to_headset::refresh_rate_change &&);
 	void operator()(to_headset::application_list &&);
 	void operator()(to_headset::application_icon &&);

@@ -25,6 +25,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <deque>
 #include <fstream>
 #include <memory>
@@ -104,7 +105,7 @@ private:
 	std::shared_ptr<sender> shared_sender;
 
 protected:
-	std::atomic_int pending_bitrate;
+	std::atomic_uint32_t pending_bitrate;
 	std::atomic<float> pending_framerate;
 	std::unique_ptr<idr_handler> idr;
 
@@ -128,7 +129,7 @@ public:
 	void on_feedback(const from_headset::feedback &);
 	void reset();
 
-	void set_bitrate(int bitrate_bps);
+	void set_bitrate(uint32_t bitrate_bps);
 	void set_framerate(float framerate);
 
 	void encode(wivrn_session & cnx,
