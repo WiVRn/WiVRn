@@ -140,7 +140,6 @@ configuration::encoder parse_encoder(const nlohmann::json & item)
 	if (item.contains(#property)) \
 		e.property = item[#property];
 
-	SET_IF(group);
 	SET_IF(codec);
 	if (e.codec == wivrn::video_codec(-1))
 		throw std::runtime_error("invalid codec value " + item["codec"].get<std::string>());
@@ -155,14 +154,6 @@ configuration::configuration()
 	{
 		auto json = read_configuration();
 
-		if (auto it = json.find("scale"); it != json.end())
-		{
-			if (it->is_number())
-				scale = std::array<double, 2>{*it, *it};
-			else
-				scale = *it;
-		}
-
 		if (auto it = json.find("grip-surface"); it != json.end())
 		{
 			grip_surface = *it;
@@ -173,16 +164,16 @@ configuration::configuration()
 
 		if (auto it = json.find("encoder"); it != json.end())
 		{
-			if (it->is_object())
-			{
-				std::ranges::fill(encoders, parse_encoder(*it));
-			}
-			else if (it->is_array())
+			if (it->is_array())
 			{
 				for (size_t i = 0; i < std::min(encoders.size(), it->size()); ++i)
 				{
 					encoders[i] = parse_encoder(it->at(i));
 				}
+			}
+			else
+			{
+				std::ranges::fill(encoders, parse_encoder(*it));
 			}
 		}
 

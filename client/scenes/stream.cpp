@@ -205,8 +205,12 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		view.recommendedImageRectWidth *= resolution_scale;
 		view.recommendedImageRectHeight *= resolution_scale;
 
-		info.recommended_eye_width = view.recommendedImageRectWidth;
-		info.recommended_eye_height = view.recommendedImageRectHeight;
+		info.render_eye_width = view.recommendedImageRectWidth;
+		info.render_eye_height = view.recommendedImageRectHeight;
+
+		// FIXME: make this configurable
+		info.stream_eye_width = info.render_eye_width / 2;
+		info.stream_eye_height = info.render_eye_height / 2;
 
 		auto [flags, views] = self->session.locate_views(
 		        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,

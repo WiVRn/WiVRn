@@ -23,64 +23,6 @@ Kirigami.ScrollablePage {
 
         Kirigami.FormLayout {
 
-            Controls.CheckBox {
-                id: manual_foveation
-                checked: Settings.scale != -1
-                Layout.row: 0
-                Layout.column: 0
-                text: i18nc("automatic foveation setup", "Manual foveation")
-            }
-
-            GridLayout {
-                columns: 5
-                enabled: manual_foveation.checked
-                Kirigami.FormData.label: i18n("Foveation strength:")
-
-                Controls.Slider {
-                    id: scale_slider
-                    Layout.row: 0
-                    Layout.column: 0
-                    Layout.columnSpan: 3
-                    implicitWidth: 20 * Kirigami.Units.gridUnit
-                    from: 0
-                    to: 80
-                    stepSize: 1
-                }
-
-                Controls.Label {
-                    Layout.row: 0
-                    Layout.column: 3
-                    text: i18n("%1 %", scale_slider.value)
-                }
-
-                Kirigami.ContextualHelpButton {
-                    Layout.row: 0
-                    Layout.column: 4
-                    toolTipText: i18n("A stronger foveation makes the image sharper in the center than in the periphery and makes the decoding faster. This is better for fast paced games.\n\nA weaker foveation gives a uniform sharpness in the whole image.\n\nThe recommended values are between 20% and 50% for headsets without eye tracking and between 50% and 70% for headsets with eye tracking.")
-                }
-
-                Controls.Label {
-                    Layout.row: 1
-                    Layout.column: 0
-                    text: i18nc("weaker foveation", "Weaker")
-                }
-                Item {
-                    Layout.row: 1
-                    Layout.column: 1
-                    // spacer item
-                    Layout.fillWidth: true
-                }
-                Controls.Label {
-                    Layout.row: 1
-                    Layout.column: 2
-                    text: i18nc("stronger foveation", "Stronger")
-                }
-            }
-
-            Kirigami.Separator {
-                Kirigami.FormData.isSection: true
-            }
-
             Controls.SpinBox {
                 id: bitrate
                 Kirigami.FormData.label: i18n("Bitrate:")
@@ -380,7 +322,6 @@ Kirigami.ScrollablePage {
     }
 
     function save() {
-        Settings.scale = manual_foveation.checked ? 1 - scale_slider.value / 100.0 : -1;
         let openvr = openvr_combobox.model.get(openvr_combobox.currentIndex)
         if (openvr.is_custom) {
             Settings.openvr = openvr_text.text;
@@ -399,12 +340,6 @@ Kirigami.ScrollablePage {
     }
 
     function load() {
-        if (Settings.scale > 0) {
-            scale_slider.value = Math.round(100 - Settings.scale * 100);
-        } else {
-            scale_slider.value = 50;
-        }
-
         debug_gui.checked = Settings.debugGui;
         steamvr_lh.checked = Settings.steamVrLh;
         hid_forwarding.checked = Settings.hidForwarding;

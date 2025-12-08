@@ -90,9 +90,9 @@ wivrn_hmd::wivrn_hmd(wivrn::wivrn_session * cnx,
 {
 	const auto config = configuration();
 
-	auto eye_width = info.recommended_eye_width;
+	auto eye_width = info.render_eye_width;
 	eye_width = ((eye_width + 3) / 4) * 4;
-	auto eye_height = info.recommended_eye_height;
+	auto eye_height = info.render_eye_height;
 	eye_height = ((eye_height + 3) / 4) * 4;
 
 	// Setup info.

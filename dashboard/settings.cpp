@@ -115,7 +115,6 @@ void Settings::emitAllChanged()
 	codecChanged();
 	tenbitChanged();
 	bitrateChanged();
-	scaleChanged();
 	tcpOnlyChanged();
 	applicationChanged();
 	openvrChanged();
@@ -334,26 +333,6 @@ void Settings::set_bitrate(const int & value)
 		bitrateChanged();
 }
 
-float Settings::scale() const
-{
-	// Foveation
-	auto it = m_jsonSettings.find("scale");
-	if (it != m_jsonSettings.end() and it->is_number())
-		return *it;
-	return -1;
-}
-
-void Settings::set_scale(const float & value)
-{
-	auto old = scale();
-	if (value == -1)
-		m_jsonSettings.erase("scale");
-	else
-		m_jsonSettings["scale"] = value;
-	if (old != value)
-		scaleChanged();
-}
-
 QString Settings::application() const
 {
 	// Automatically started application
@@ -521,7 +500,6 @@ void Settings::save(wivrn_server * server)
 void Settings::restore_defaults()
 {
 	m_jsonSettings.erase("encoder");
-	m_jsonSettings.erase("scale");
 	m_jsonSettings.erase("bitrate");
 	m_jsonSettings.erase("application");
 	m_jsonSettings.erase("hid-forwarding");

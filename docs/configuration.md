@@ -12,27 +12,6 @@ If you installed WiVRn from a flatpack, the config is in `$HOME/.var/app/io.gith
 
 All elements are optional and have default values.
 
-## `scale`
-Default value: `0.5`, `0.35` if headset supports eye tracking
-
-Controls the size of the video stream, either a number between 0 and 1 or a pair of numbers between 0 and 1. If two numbers are provided the first one is horizontal scale and the second vertical.
-Scaling is applied in a foveated fashion: the center has a 1:1 ratio and the rest is scaled so that the total number of pixels matches the desired scale.
-
-### Examples:
-```json
-{
-	"scale": 0.5
-}
-```
-The x and y resolution of the streamed video are half the size on the headset, reduces the required bandwidth and encoding/decoding time by about 4.
-
-```json
-{
-	"scale": [0.75, 0.5]
-}
-```
-Scales x by a 0.75 factor, and y by a 0.5 factor.
-
 ## `bitrate`
 Default value: `50000000` (50Mb/s)
 

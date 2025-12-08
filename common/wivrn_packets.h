@@ -218,8 +218,10 @@ enum face_type : uint8_t
 
 struct headset_info_packet
 {
-	uint32_t recommended_eye_width;
-	uint32_t recommended_eye_height;
+	uint16_t render_eye_width;
+	uint16_t render_eye_height;
+	uint16_t stream_eye_width;
+	uint16_t stream_eye_height;
 	std::vector<float> available_refresh_rates;
 	float preferred_refresh_rate;
 	// for automatic
@@ -240,6 +242,7 @@ struct headset_info_packet
 	face_type face_tracking;
 	uint32_t num_generic_trackers;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
+	std::optional<uint8_t> bit_depth;
 	std::string system_name;
 
 	// Used for the application list

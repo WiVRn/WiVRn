@@ -44,7 +44,6 @@ struct configuration
 	struct encoder
 	{
 		std::string name;
-		std::optional<int> group;
 		std::optional<wivrn::video_codec> codec;
 		std::map<std::string, std::string> options;
 		std::optional<std::string> device;
@@ -52,8 +51,7 @@ struct configuration
 
 	std::array<encoder, 3> encoders; // left, right, alpha
 	std::optional<int> bitrate;
-	int bit_depth = 8;
-	std::optional<std::array<double, 2>> scale;
+	std::optional<int> bit_depth;
 	std::optional<std::array<float, 3>> grip_surface;
 	std::vector<std::string> application;
 	bool debug_gui = false;

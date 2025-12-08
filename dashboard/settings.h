@@ -67,7 +67,6 @@ public:
 	Q_PROPERTY(bool can10bit READ can10bit NOTIFY codecChanged)
 	Q_PROPERTY(bool tenbit READ tenbit WRITE set_tenbit NOTIFY tenbitChanged)
 	Q_PROPERTY(int bitrate READ bitrate WRITE set_bitrate NOTIFY bitrateChanged)
-	Q_PROPERTY(float scale READ scale WRITE set_scale NOTIFY scaleChanged)
 
 	Q_PROPERTY(bool tcpOnly READ tcpOnly WRITE set_tcpOnly NOTIFY tcpOnlyChanged)
 	Q_PROPERTY(QString application READ application WRITE set_application NOTIFY applicationChanged)
@@ -87,7 +86,6 @@ public:
 	SETTER_GETTER_NOTIFY(video_codec, codec)
 	SETTER_GETTER_NOTIFY(bool, tenbit)
 	SETTER_GETTER_NOTIFY(int, bitrate)
-	SETTER_GETTER_NOTIFY(float, scale)
 	SETTER_GETTER_NOTIFY(QString, application)
 	SETTER_GETTER_NOTIFY(bool, hidForwarding)
 	SETTER_GETTER_NOTIFY(bool, debugGui)

@@ -724,9 +724,6 @@ void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & inf
 {
 	GVariantBuilder * builder;
 
-	GVariant * value_eye_size = g_variant_new("(uu)", info.recommended_eye_width, info.recommended_eye_height);
-	wivrn_server_set_recommended_eye_size(dbus_server, value_eye_size);
-
 	builder = g_variant_builder_new(G_VARIANT_TYPE("ad"));
 	for (double rate: info.available_refresh_rates)
 	{

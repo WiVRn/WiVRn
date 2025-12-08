@@ -316,10 +316,11 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 	{
 		cn->settings = get_encoder_settings(
 		        *cn->wivrn_bundle,
-		        cn->c->settings.preferred.width,
-		        cn->c->settings.preferred.height,
 		        cn->cnx.get_info());
 		print_encoders(cn->settings);
+
+		cn->c->settings.preferred.width = cn->settings[0].width;
+		cn->c->settings.preferred.height = cn->settings[0].height;
 	}
 	catch (const std::exception & e)
 	{

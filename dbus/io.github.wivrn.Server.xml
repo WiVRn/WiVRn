@@ -48,9 +48,6 @@
 		<property name="Bitrate"               type="u" access="readwrite"/>
 
 		<!-- Data from the headset info packet -->
-		<property name="RecommendedEyeSize"    type="(uu)" access="read">
-			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QSize"/>
-		</property>
 		<property name="AvailableRefreshRates" type="ad" access="read">
 			<annotation name="org.qtproject.QtDBus.QtTypeName" value="QList&lt;double&gt;"/>
 		</property>
