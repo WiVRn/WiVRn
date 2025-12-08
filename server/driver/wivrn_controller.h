@@ -2,6 +2,7 @@
  * WiVRn VR streaming
  * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
  * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +53,7 @@ class wivrn_controller : public xrt_device
 
 public:
 	using base = xrt_device;
-	wivrn_controller(int hand_id, xrt_device * hmd, wivrn::wivrn_session * cnx);
+	wivrn_controller(xrt_device_name name, int hand_id, xrt_device * hmd, wivrn::wivrn_session * cnx);
 
 	xrt_result_t update_inputs();
 

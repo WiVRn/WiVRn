@@ -24,7 +24,6 @@
 #include "utils/thread_safe.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
-#include "wivrn_hand_interaction.h"
 #include "wivrn_hmd.h"
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
@@ -117,11 +116,11 @@ class wivrn_session : public xrt_system_devices
 	wivrn_hmd hmd;
 	wivrn_controller left_controller;
 	int32_t left_controller_index;
-	wivrn_hand_interaction left_hand_interaction;
-	int32_t left_hand_interaction_index;
 	wivrn_controller right_controller;
 	int32_t right_controller_index;
-	wivrn_hand_interaction right_hand_interaction;
+	wivrn_controller left_hand_interaction;
+	int32_t left_hand_interaction_index;
+	wivrn_controller right_hand_interaction;
 	int32_t right_hand_interaction_index;
 	std::unique_ptr<wivrn_eye_tracker> eye_tracker;
 	std::unique_ptr<wivrn_android_face_tracker> android_face_tracker;
