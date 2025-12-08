@@ -46,6 +46,7 @@
 
 #include "wivrn_packets.h"
 #include "xr/to_string.h"
+#include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
 #include <algorithm>
@@ -151,10 +152,10 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
         connection(std::move(connection)),
         xrt_system(system),
         hmd(this, get_info()),
-        left_controller(0, &hmd, this),
-        left_hand_interaction(0, &hmd, this),
-        right_controller(1, &hmd, this),
-        right_hand_interaction(1, &hmd, this)
+        left_controller(XRT_DEVICE_TOUCH_CONTROLLER, 0, &hmd, this),
+        right_controller(XRT_DEVICE_TOUCH_CONTROLLER, 1, &hmd, this),
+        left_hand_interaction(XRT_DEVICE_EXT_HAND_INTERACTION, 0, &hmd, this),
+        right_hand_interaction(XRT_DEVICE_EXT_HAND_INTERACTION, 1, &hmd, this)
 {
 	try
 	{

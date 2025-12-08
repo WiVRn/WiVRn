@@ -100,7 +100,6 @@ if (WIVRN_BUILD_SERVER)
 			driver/wivrn_pacer.cpp
 			driver/wivrn_comp_target.cpp
 			driver/wivrn_controller.cpp
-			driver/wivrn_hand_interaction.cpp
 			driver/wivrn_eye_tracker.cpp
 			driver/wivrn_android_face_tracker.cpp
 			driver/wivrn_fb_face2_tracker.cpp
