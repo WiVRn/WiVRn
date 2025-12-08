@@ -574,8 +574,8 @@ void decoder::supported_codecs(std::vector<wivrn::video_codec> & result)
 	// In order or preference, from preferred to least preferred
 	for (auto codec: {
 	             wivrn::video_codec::av1,
-	             wivrn::video_codec::h264,
 	             wivrn::video_codec::h265,
+	             wivrn::video_codec::h264,
 	     })
 	{
 		AMediaCodec_ptr media_codec(AMediaCodec_createDecoderByType(mime(codec)));
