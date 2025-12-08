@@ -1,7 +1,7 @@
-From 604495bce0665ba1050574582809c67bf6751c7b Mon Sep 17 00:00:00 2001
+From 66333f4ed485b7135c45a095193bd4202351052a Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 8 Dec 2025 19:29:28 +0000
-Subject: [PATCH 08/10] d/solarxr: Fix flatpak socket path
+Subject: [PATCH 09/11] d/solarxr: Fix flatpak socket path
 
 ---
  src/xrt/drivers/solarxr/solarxr_ipc_socket.c | 2 +-
