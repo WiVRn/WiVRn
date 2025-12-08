@@ -161,6 +161,8 @@ public:
 	void start(ipc_server *);
 	void stop();
 
+	bool request_stop();
+
 	clock_offset get_offset();
 	bool connected();
 	const from_headset::headset_info_packet & get_info() const

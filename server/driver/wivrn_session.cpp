@@ -419,6 +419,14 @@ void wivrn_session::stop()
 	thread = std::jthread();
 }
 
+bool wivrn_session::request_stop()
+{
+	assert(mnd_ipc_server);
+	bool b = thread.request_stop();
+	ipc_server_stop(mnd_ipc_server);
+	return b;
+}
+
 clock_offset wivrn_session::get_offset()
 {
 	return offset_est.get_offset();
@@ -959,8 +967,7 @@ void wivrn_session::operator()(audio_data && data)
 
 void wivrn_session::operator()(to_monado::stop &&)
 {
-	assert(mnd_ipc_server);
-	ipc_server_stop(mnd_ipc_server);
+	request_stop();
 }
 
 void wivrn_session::operator()(to_monado::disconnect &&)
@@ -1078,7 +1085,7 @@ static bool quit_if_no_client(u_system & xrt_system)
 			return false;
 	}
 	U_LOG_I("No OpenXR client connected, exiting");
-	exit(0);
+	return true;
 }
 
 void wivrn_session::reconnect()
@@ -1099,9 +1106,12 @@ void wivrn_session::reconnect()
 	}
 
 	U_LOG_I("Waiting for new connection");
-	auto tcp = accept_connection(mnd_ipc_server, 0 /*stdin*/, [this]() { return quit_if_no_client(xrt_system); });
+	auto tcp = accept_connection(0 /*stdin*/, [this]() { return quit_if_no_client(xrt_system); });
 	if (not tcp)
-		exit(0);
+	{
+		request_stop();
+		return;
+	}
 
 	struct no_client_connected
 	{};
@@ -1136,7 +1146,7 @@ void wivrn_session::reconnect()
 	catch (no_client_connected)
 	{
 		U_LOG_I("No OpenXR application connected");
-		exit(0);
+		request_stop();
 	}
 	catch (const std::exception & e)
 	{
