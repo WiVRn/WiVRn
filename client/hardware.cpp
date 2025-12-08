@@ -424,6 +424,16 @@ std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::
 			default:
 				break;
 		}
+	else if (profile == "samsung-galaxyxr")
+		switch (space)
+		{
+			case xr::spaces::grip_left:
+				return {{-0.005, 0.000, 0.035}, {1, 0, 0, 0}};
+			case xr::spaces::grip_right:
+				return {{0.005, 0.000, 0.035}, {1, 0, 0, 0}};
+			default:
+				break;
+		}
 
 	return {{0, 0, 0}, {1, 0, 0, 0}};
 }
