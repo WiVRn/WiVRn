@@ -671,9 +671,13 @@ static device_id derived_from(device_id target)
 	{
 		case device_id::LEFT_AIM:
 		case device_id::LEFT_PALM:
+		case device_id::LEFT_PINCH_POSE:
+		case device_id::LEFT_POKE:
 			return device_id::LEFT_GRIP;
 		case device_id::RIGHT_AIM:
 		case device_id::RIGHT_PALM:
+		case device_id::RIGHT_PINCH_POSE:
+		case device_id::RIGHT_POKE:
 			return device_id::RIGHT_GRIP;
 		default:
 			assert(false);
@@ -737,12 +741,16 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 	for (device_id target: {
 	             device_id::LEFT_AIM,
 	             device_id::LEFT_PALM,
+	             device_id::LEFT_PINCH_POSE,
+	             device_id::LEFT_POKE,
 	             device_id::RIGHT_AIM,
 	             device_id::RIGHT_PALM,
+	             device_id::RIGHT_PINCH_POSE,
+	             device_id::RIGHT_POKE,
 	     })
 	{
 		// don't do derived poses for hand interaction
-		const bool right = target >= device_id::RIGHT_GRIP && target <= device_id::RIGHT_PALM;
+		const bool right = (target >= device_id::RIGHT_GRIP && target <= device_id::RIGHT_PALM) || target == device_id::RIGHT_PINCH_POSE || target == device_id::RIGHT_POKE;
 		if (interaction_profiles[right].load() == interaction_profile::ext_hand_interaction_ext)
 		{
 			network_session->send_control(from_headset::derived_pose{
