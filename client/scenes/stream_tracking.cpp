@@ -729,6 +729,19 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 			DO_PROFILE(meta, touch_controller_quest_2)
 			DO_PROFILE(samsung, odyssey_controller)
 			DO_PROFILE(valve, index_controller)
+
+			// FIXME: remove once support for pre-1.1 profiles is dropped
+			if (profile == "/interaction_profiles/facebook/touch_controller_pro")
+			{
+				interaction_profiles[i] = interaction_profile::meta_touch_pro_controller;
+				continue;
+			}
+			if (profile == "/interaction_profiles/meta/touch_controller_plus")
+			{
+				interaction_profiles[i] = interaction_profile::meta_touch_plus_controller;
+				continue;
+			}
+			spdlog::warn("unknown interaction profile {}", profile);
 		}
 		catch (std::exception & e)
 		{
