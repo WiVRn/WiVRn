@@ -129,6 +129,9 @@ configuration::configuration(xr::system & system)
 		if (auto val = root["resolution_scale"]; val.is_double())
 			resolution_scale = val.get_double();
 
+		if (auto val = root["stream_scale"]; val.is_double())
+			stream_scale = val.get_double();
+
 		if (auto val = root["enable_stream_gui"]; val.is_bool())
 			enable_stream_gui = val.get_bool();
 
@@ -188,6 +191,7 @@ configuration::configuration(xr::system & system)
 		preferred_refresh_rate.reset();
 		minimum_refresh_rate.reset();
 		resolution_scale = 1.0;
+		stream_scale = 0.5;
 		openxr_post_processing = {};
 		passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	}
@@ -250,6 +254,7 @@ void configuration::save()
 	if (minimum_refresh_rate)
 		json << ",\"minimum_refresh_rate\":" << *minimum_refresh_rate;
 	json << ",\"resolution_scale\":" << resolution_scale;
+	json << ",\"stream_scale\":" << stream_scale;
 	json << ",\"openxr_post_processing\":";
 	write_openxr_post_processing(json, openxr_post_processing);
 	json << ",\"passthrough_enabled\":" << std::boolalpha << passthrough_enabled;

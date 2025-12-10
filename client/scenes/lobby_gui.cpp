@@ -642,13 +642,14 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 	}
 
+	// Render resolution
 	{
 		const auto current = config.resolution_scale;
 		const auto width = stream_view.recommendedImageRectWidth;
 		const auto height = stream_view.recommendedImageRectHeight;
 		auto intScale = int(current * 10);
 		const auto slider = ImGui::SliderInt(
-		        _("Resolution scale").append("##resolution_scale").c_str(),
+		        _("Render resolution").append("##resolution_scale").c_str(),
 		        &intScale,
 		        5,
 		        35,
@@ -665,6 +666,27 @@ void scenes::lobby::gui_settings()
 			ImGui::SameLine();
 			ImGui::Text("%s", fmt::format(_F("Resolution larger than {}x{} may not be supported by the headset"), stream_view.maxImageRectWidth, stream_view.maxImageRectHeight).c_str());
 		}
+	}
+
+	// Stream resolution
+	{
+		const int step = 10;
+		const auto current = config.stream_scale;
+		auto intval = int(current * 100 / step);
+		const auto slider = ImGui::SliderInt(
+		        _("Stream resolution").append("##stream_scale").c_str(),
+		        &intval,
+		        0,
+		        100 / step,
+		        fmt::format(_F("{}%%"), intval * step).c_str());
+		if (slider)
+		{
+			// clamp out of the slider to have the 50% value centered
+			intval = std::clamp(intval, 20 / step, 100 / step);
+			config.stream_scale = intval * step * 0.01;
+			config.save();
+		}
+		imgui_ctx->vibrate_on_hover();
 	}
 
 	if (instance.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))

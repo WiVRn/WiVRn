@@ -155,6 +155,9 @@ scenes::stream::stream(std::string server_name, scene & parent_scene) :
         scene_impl<stream>(supported_color_formats, supported_depth_formats, parent_scene),
         apps{*this, std::move(server_name)}
 {
+	auto views = system.view_configuration_views(viewconfig);
+	width = views[0].recommendedImageRectWidth;
+	height = views[0].recommendedImageRectHeight;
 }
 
 static from_headset::visibility_mask_changed::masks get_visibility_mask(xr::instance & inst, xr::session & session, int view)
@@ -197,34 +200,30 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		        .variant = application::get_messages_info().variant,
 		};
 
-		auto view = self->system.view_configuration_views(self->viewconfig)[0];
-		view = override_view(view, guess_model());
-
-		auto resolution_scale = application::get_config().resolution_scale;
-
-		view.recommendedImageRectWidth *= resolution_scale;
-		view.recommendedImageRectHeight *= resolution_scale;
-
-		info.render_eye_width = view.recommendedImageRectWidth;
-		info.render_eye_height = view.recommendedImageRectHeight;
-
-		// FIXME: make this configurable
-		info.stream_eye_width = info.render_eye_width / 2;
-		info.stream_eye_height = info.render_eye_height / 2;
-
-		auto [flags, views] = self->session.locate_views(
-		        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-		        self->instance.now(),
-		        application::space(xr::spaces::view));
-
-		assert(views.size() == info.fov.size());
-
-		for (auto [i, j]: std::views::zip(views, info.fov))
 		{
-			j = i.fov;
+			auto [flags, views] = self->session.locate_views(
+			        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
+			        self->instance.now(),
+			        application::space(xr::spaces::view));
+
+			assert(views.size() == info.fov.size());
+
+			for (auto [i, j]: std::views::zip(views, info.fov))
+				j = i.fov;
 		}
 
 		const auto & config = application::get_config();
+
+		{
+			auto view = self->system.view_configuration_views(self->viewconfig)[0];
+			view = override_view(view, guess_model());
+
+			info.render_eye_width = view.recommendedImageRectWidth * config.resolution_scale;
+			info.render_eye_height = view.recommendedImageRectHeight * config.resolution_scale;
+		}
+
+		info.stream_eye_width = info.render_eye_width * config.stream_scale;
+		info.stream_eye_height = info.render_eye_height * config.stream_scale;
 
 		if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 		{
@@ -403,11 +402,6 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 void scenes::stream::on_focused()
 {
 	gui_status_last_change = instance.now();
-
-	auto views = system.view_configuration_views(viewconfig);
-	// stream_view = override_view(views[0], guess_model());
-	width = views[0].recommendedImageRectWidth;
-	height = views[0].recommendedImageRectHeight;
 
 	std::string profile = controller_name();
 	input.emplace(
