@@ -307,7 +307,10 @@ bool Settings::tenbit() const
 void Settings::set_tenbit(const bool & value)
 {
 	auto old = tenbit();
-	m_jsonSettings["bit-depth"] = value ? 10 : 8;
+	if (codec() == CodecAuto)
+		m_jsonSettings.erase("bit-depth");
+	else
+		m_jsonSettings["bit-depth"] = value ? 10 : 8;
 	if (value != old)
 		tenbitChanged();
 }
