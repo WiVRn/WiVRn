@@ -74,11 +74,6 @@ void scenes::stream::operator()(to_headset::video_stream_description && desc)
 	}
 }
 
-void scenes::stream::operator()(to_headset::settings && settings)
-{
-	bitrate = settings.bitrate_bps;
-}
-
 void scenes::stream::operator()(to_headset::refresh_rate_change && rate)
 {
 	session.set_refresh_rate(rate.fps);

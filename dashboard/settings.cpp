@@ -114,7 +114,6 @@ void Settings::emitAllChanged()
 	encoderChanged();
 	codecChanged();
 	tenbitChanged();
-	bitrateChanged();
 	tcpOnlyChanged();
 	applicationChanged();
 	openvrChanged();
@@ -313,26 +312,6 @@ void Settings::set_tenbit(const bool & value)
 		tenbitChanged();
 }
 
-int Settings::bitrate() const
-{
-	try
-	{
-		return m_jsonSettings.value("bitrate", 50'000'000) / 1'000'000;
-	}
-	catch (...)
-	{
-		return 50;
-	}
-}
-
-void Settings::set_bitrate(const int & value)
-{
-	auto old = bitrate();
-	m_jsonSettings["bitrate"] = value * 1'000'000;
-	if (old != value)
-		bitrateChanged();
-}
-
 QString Settings::application() const
 {
 	// Automatically started application
@@ -500,7 +479,6 @@ void Settings::save(wivrn_server * server)
 void Settings::restore_defaults()
 {
 	m_jsonSettings.erase("encoder");
-	m_jsonSettings.erase("bitrate");
 	m_jsonSettings.erase("application");
 	m_jsonSettings.erase("hid-forwarding");
 	m_jsonSettings.erase("debug-gui");

@@ -81,10 +81,10 @@ static inline struct vk_bundle * get_vk(struct wivrn_comp_target * cn)
 	return &cn->c->base.vk;
 }
 
-static float get_default_rate(const from_headset::headset_info_packet & info)
+static float get_default_rate(const from_headset::headset_info_packet & info, const from_headset::settings_changed & settings)
 {
-	if (info.preferred_refresh_rate)
-		return info.preferred_refresh_rate;
+	if (settings.preferred_refresh_rate)
+		return settings.preferred_refresh_rate;
 	return info.available_refresh_rates.back();
 }
 
@@ -147,18 +147,14 @@ static void create_encoders(wivrn_comp_target * cn)
 
 	std::map<int, std::vector<std::shared_ptr<video_encoder>>> thread_params;
 
-	uint32_t bitrate = 0;
-
 	for (auto [i, settings]: std::ranges::enumerate_view(cn->settings))
 	{
-		bitrate += settings.bitrate;
 		auto & encoder = cn->encoders.emplace_back(
 		        video_encoder::create(*cn->wivrn_bundle, settings, i));
 		desc.codec[i] = settings.codec;
 
 		thread_params[settings.group].emplace_back(encoder);
 	}
-	wivrn_ipc_socket_monado->send(from_monado::bitrate_changed{bitrate});
 
 	for (auto & [group, params]: thread_params)
 	{
@@ -316,7 +312,8 @@ static bool comp_wivrn_init_post_vulkan(struct comp_target * ct, uint32_t prefer
 	{
 		cn->settings = get_encoder_settings(
 		        *cn->wivrn_bundle,
-		        cn->cnx.get_info());
+		        cn->cnx.get_info(),
+		        *cn->cnx.get_settings());
 		print_encoders(cn->settings);
 
 		cn->c->settings.preferred.width = cn->settings[0].width;
@@ -792,7 +789,7 @@ static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, flo
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 	cn->requested_refresh_rate = refresh_rate_hz;
 	if (refresh_rate_hz == 0.0f)
-		refresh_rate_hz = get_default_rate(cn->cnx.get_info());
+		refresh_rate_hz = get_default_rate(cn->cnx.get_info(), *cn->cnx.get_settings());
 
 	cn->cnx.send_control(to_headset::refresh_rate_change{.fps = refresh_rate_hz});
 	return XRT_SUCCESS;
@@ -838,14 +835,11 @@ void wivrn_comp_target::reset_encoders()
 
 void wivrn_comp_target::set_bitrate(uint32_t bitrate_bps)
 {
-	bitrate = 0;
 	for (auto & encoder: encoders)
 	{
-		// Alpha will have multiplier of 0 and will be left unchanged.
 		auto encoder_bps = (uint32_t)(bitrate_bps * encoder->bitrate_multiplier);
 		U_LOG_D("Encoder %d bitrate: %d", encoder->stream_idx, encoder_bps);
 		encoder->set_bitrate(encoder_bps);
-		bitrate += encoder_bps;
 	}
 }
 
@@ -880,7 +874,7 @@ wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_com
                 .request_refresh_rate = comp_wivrn_request_refresh_rate,
                 .destroy = comp_wivrn_destroy,
         },
-        desc{.fps = get_default_rate(cnx.get_info())},
+        desc{.fps = get_default_rate(cnx.get_info(), *cnx.get_settings())},
         pacer(U_TIME_1S_IN_NS / desc.fps),
         cnx(cnx)
 {

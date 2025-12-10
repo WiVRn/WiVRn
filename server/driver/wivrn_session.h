@@ -139,6 +139,9 @@ class wivrn_session : public xrt_system_devices
 
 	std::shared_ptr<audio_device> audio_handle;
 
+	// run-time editable settings
+	thread_safe<from_headset::settings_changed> settings;
+
 	// when sessions shall be destroyed, key is timestap, value is client id
 	thread_safe<std::map<int64_t, int32_t>> session_loss;
 
@@ -165,6 +168,11 @@ public:
 		return connection->info();
 	};
 
+	locked<from_headset::settings_changed> get_settings()
+	{
+		return settings.lock();
+	}
+
 	void unset_comp_target();
 
 	wivrn_hmd & get_hmd()
@@ -185,7 +193,6 @@ public:
 	void operator()(from_headset::pin_check_1 &&) {}
 	void operator()(from_headset::pin_check_3 &&) {}
 	void operator()(from_headset::headset_info_packet &&);
-	void operator()(from_headset::settings_request &&);
 	void operator()(from_headset::settings_changed &&);
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::trackings &&);

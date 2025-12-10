@@ -40,8 +40,6 @@
 
 namespace wivrn
 {
-// TODO: size independent bitrate
-static const uint64_t default_bitrate = 50'000'000;
 
 static const double passthrough_bitrate_factor = 0.05;
 
@@ -132,7 +130,7 @@ class prober
 			                .height = 600,
 			                .codec = codec,
 			                .fps = 60,
-			                .bitrate = default_bitrate,
+			                .bitrate = 50'000'000,
 			                .bit_depth = 8,
 			        },
 			        0);
@@ -164,7 +162,7 @@ class prober
 			                .height = 600,
 			                .codec = codec,
 			                .fps = 60,
-			                .bitrate = default_bitrate,
+			                .bitrate = 50'000'000,
 			                .bit_depth = 8,
 			        },
 			        0);
@@ -281,7 +279,7 @@ static uint16_t align(uint16_t value, uint16_t alignment)
 	return ((value + alignment - 1) / alignment) * alignment;
 }
 
-std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, const from_headset::headset_info_packet & info)
+std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, const from_headset::headset_info_packet & info, const from_headset::settings_changed & settings)
 {
 	configuration config;
 
@@ -293,7 +291,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 
 	for (auto [src, dst]: std::ranges::zip_view(config.encoders, res))
 	{
-		dst.fps = info.preferred_refresh_rate;
+		dst.fps = settings.preferred_refresh_rate;
 		dst.options = src.options;
 		dst.device = src.device;
 
@@ -329,7 +327,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 	for (auto & i: res)
 		i.bit_depth = config.bit_depth.value_or(10);
 
-	split_bitrate(res, config.bitrate.value_or(default_bitrate));
+	split_bitrate(res, settings.bitrate_bps);
 	return res;
 }
 } // namespace wivrn

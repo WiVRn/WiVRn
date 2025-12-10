@@ -509,6 +509,7 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 		                   },
 		                   [&](const wivrn::from_headset::settings_changed & settings) {
 			                   wivrn_server_set_preferred_refresh_rate(dbus_server, settings.preferred_refresh_rate);
+			                   wivrn_server_set_bitrate(dbus_server, settings.bitrate_bps);
 		                   },
 		                   [&](const wivrn::from_headset::start_app & request) {
 			                   const auto & apps = list_applications();
@@ -524,9 +525,6 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 			                   start_publishing();
 			                   inhibitor.reset();
 			                   wivrn_server_set_headset_connected(dbus_server, false);
-		                   },
-		                   [&](const from_monado::bitrate_changed & value) {
-			                   wivrn_server_set_bitrate(dbus_server, value.bitrate_bps);
 		                   },
 		                   [&](const from_monado::server_error & e) {
 			                   wivrn_server_emit_server_error(dbus_server, e.where.c_str(), e.message.c_str());
@@ -733,7 +731,9 @@ void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & inf
 	g_variant_builder_unref(builder);
 	wivrn_server_set_available_refresh_rates(dbus_server, value_refresh_rates);
 
-	wivrn_server_set_preferred_refresh_rate(dbus_server, info.preferred_refresh_rate);
+	wivrn_server_set_preferred_refresh_rate(dbus_server, info.settings.preferred_refresh_rate);
+
+	wivrn_server_set_bitrate(dbus_server, info.settings.bitrate_bps);
 
 	auto speaker = info.speaker.value_or(wivrn::from_headset::headset_info_packet::audio_description{});
 	wivrn_server_set_speaker_channels(dbus_server, speaker.num_channels);

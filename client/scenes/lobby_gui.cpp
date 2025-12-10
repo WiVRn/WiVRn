@@ -32,12 +32,14 @@
 #include "utils/i18n.h"
 #include "utils/mapped_file.h"
 #include "utils/overloaded.h"
+#if WIVRN_CLIENT_DEBUG_MENU
 #include "utils/ranges.h"
+#endif
 #include "version.h"
 #include "xr/body_tracker.h"
 #include <algorithm>
 #include <cassert>
-#include <chrono>
+#include <chrono> // IWYU pragma: keep
 #include <entt/entity/fwd.hpp>
 #include <fastgltf/math.hpp>
 #include <fastgltf/types.hpp>
@@ -684,6 +686,25 @@ void scenes::lobby::gui_settings()
 			// clamp out of the slider to have the 50% value centered
 			intval = std::clamp(intval, 20 / step, 100 / step);
 			config.stream_scale = intval * step * 0.01;
+			config.save();
+		}
+		imgui_ctx->vibrate_on_hover();
+	}
+
+	// Bitrate
+	{
+		const int mb = 1'000'000;
+		const auto current = config.bitrate_bps;
+		auto val = int(current / mb);
+		const auto slider = ImGui::SliderInt(
+		        _("Bitrate").append("##bitrate").c_str(),
+		        &val,
+		        1,
+		        200,
+		        fmt::format(_F("{}Mbit/s"), val).c_str());
+		if (slider)
+		{
+			config.bitrate_bps = val * mb;
 			config.save();
 		}
 		imgui_ctx->vibrate_on_hover();

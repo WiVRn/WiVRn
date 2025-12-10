@@ -23,24 +23,6 @@ Kirigami.ScrollablePage {
 
         Kirigami.FormLayout {
 
-            Controls.SpinBox {
-                id: bitrate
-                Kirigami.FormData.label: i18n("Bitrate:")
-                from: 1
-                to: 200
-
-                textFromValue: (value, locale) => i18nc("bitrate", "%1 Mbit/s", value)
-                valueFromText: function (text, locale) {
-                    var prefix_suffix = i18nc("bitrate", "%1 Mbit/s", "%1").split('%1');
-                    for (var i of prefix_suffix) {
-                        text = text.replace(i, "");
-                    }
-                    return Number.fromLocaleString(text);
-                }
-
-                onValueModified: Settings.bitrate = value
-            }
-
             Kirigami.InlineMessage {
                 Layout.fillWidth: true
                 text: i18n("The current encoder configuration is not supported")
@@ -314,9 +296,6 @@ Kirigami.ScrollablePage {
     Component.onCompleted: {
         openvr_libs.init()
         Settings.load(WivrnServer);
-        // If bitrate was manually set higher, keep the limit
-        bitrate.to = Math.max(bitrate.to, Settings.bitrate)
-        bitrate.value = Settings.bitrate
         settings.allowUpdates = true;
         settings.load();
     }

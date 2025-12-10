@@ -286,47 +286,6 @@ void disconnect()
 	call_method(get_user_bus(), "Disconnect", "");
 }
 
-void set_bitrate(std::string bitrate_str)
-{
-	auto suffix = bitrate_str.back();
-
-	uint32_t bitrate = 0;
-	size_t str_len = bitrate_str.size();
-
-	switch (std::tolower(suffix))
-	{
-		case 'm':
-			bitrate = 1'000'000;
-			str_len = bitrate_str.size() - 1;
-			break;
-		case 'k':
-			bitrate = 1'000;
-			str_len = bitrate_str.size() - 1;
-			break;
-		default:
-			if (std::isdigit(suffix))
-				bitrate = 1;
-			break;
-	}
-
-	try
-	{
-		bitrate = bitrate * std::stoi(bitrate_str.substr(0, str_len));
-	}
-	catch (std::exception & e)
-	{
-		bitrate = 0;
-	}
-
-	if (bitrate == 0)
-	{
-		std::cerr << "Invalid bitrate value. Valid examples: 50M, 50000K, 50000000" << std::endl;
-		return;
-	}
-
-	set_property(get_user_bus(), "Bitrate", "u", bitrate);
-}
-
 int main(int argc, char ** argv)
 {
 	CLI::App app;
@@ -373,14 +332,6 @@ int main(int argc, char ** argv)
 
 	app.add_subcommand("disconnect", "Disconnect headset")
 	        ->callback(disconnect);
-
-	std::string bitrate_str;
-	auto bitrate_command = app.add_subcommand("set-bitrate", "Set encoding bitrate");
-	bitrate_command->add_option("BITRATE", bitrate_str, "Desired total bitrate, e.g. 100M")->required();
-
-	bitrate_command->callback([&]() {
-		return set_bitrate(bitrate_str);
-	});
 
 	try
 	{

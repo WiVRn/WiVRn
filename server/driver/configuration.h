@@ -50,7 +50,6 @@ struct configuration
 	};
 
 	std::array<encoder, 3> encoders; // left, right, alpha
-	std::optional<int> bitrate;
 	std::optional<int> bit_depth;
 	std::optional<std::array<float, 3>> grip_surface;
 	std::vector<std::string> application;

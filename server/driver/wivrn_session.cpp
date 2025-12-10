@@ -155,7 +155,8 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
         left_controller(XRT_DEVICE_TOUCH_CONTROLLER, 0, &hmd, this),
         right_controller(XRT_DEVICE_TOUCH_CONTROLLER, 1, &hmd, this),
         left_hand_interaction(XRT_DEVICE_EXT_HAND_INTERACTION, 0, &hmd, this),
-        right_hand_interaction(XRT_DEVICE_EXT_HAND_INTERACTION, 1, &hmd, this)
+        right_hand_interaction(XRT_DEVICE_EXT_HAND_INTERACTION, 1, &hmd, this),
+        settings(get_info().settings)
 {
 	try
 	{
@@ -430,22 +431,9 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 	U_LOG_W("unexpected headset info packet, ignoring");
 }
 
-void wivrn_session::operator()(from_headset::settings_request &&)
-{
-	to_headset::settings settings{};
-	{
-		std::lock_guard lock(comp_target_mutex);
-		if (comp_target)
-			settings.bitrate_bps = comp_target->bitrate;
-	}
-
-	send_control(std::move(settings));
-}
-
 void wivrn_session::operator()(from_headset::settings_changed && settings)
 {
-	connection->info().preferred_refresh_rate = settings.preferred_refresh_rate;
-	connection->info().minimum_refresh_rate = settings.minimum_refresh_rate;
+	*this->settings.lock() = settings;
 
 	if (settings.bitrate_bps != 0)
 	{
@@ -453,6 +441,8 @@ void wivrn_session::operator()(from_headset::settings_changed && settings)
 		if (comp_target)
 			comp_target->set_bitrate(settings.bitrate_bps);
 	}
+
+	wivrn_ipc_socket_monado->send(std::move(settings));
 }
 
 static xrt_device_name get_name(interaction_profile profile)
@@ -957,18 +947,9 @@ void wivrn_session::operator()(to_monado::disconnect &&)
 
 void wivrn_session::operator()(to_monado::set_bitrate && data)
 {
-	bool send_settings = false;
-	{
-		std::shared_lock lock(comp_target_mutex);
-		if (comp_target)
-		{
-			comp_target->set_bitrate(data.bitrate_bps);
-			send_settings = true;
-		}
-	}
-
-	if (send_settings)
-		(*this)(from_headset::settings_request{});
+	std::shared_lock lock(comp_target_mutex);
+	if (comp_target)
+		comp_target->set_bitrate(data.bitrate_bps);
 }
 
 struct refresh_rate_adjuster
@@ -976,16 +957,20 @@ struct refresh_rate_adjuster
 	std::chrono::seconds period{10};
 	std::chrono::steady_clock::time_point next = std::chrono::steady_clock::now() + period;
 	pacing_app_factory & pacers;
-	from_headset::headset_info_packet & info;
+	const from_headset::headset_info_packet & info;
+	thread_safe<from_headset::settings_changed> & settings;
 	float last = 0;
 
-	refresh_rate_adjuster(from_headset::headset_info_packet & info, pacing_app_factory & pacers) :
+	refresh_rate_adjuster(const from_headset::headset_info_packet & info, thread_safe<from_headset::settings_changed> & settings, pacing_app_factory & pacers) :
 	        pacers(pacers),
-	        info(info) {}
+	        info(info),
+	        settings(settings)
+	{}
 
 	void adjust(wivrn_connection & cnx)
 	{
-		if (info.preferred_refresh_rate != 0 or info.available_refresh_rates.size() < 2 or std::chrono::steady_clock::now() < next)
+		auto locked = settings.lock();
+		if (locked->preferred_refresh_rate != 0 or info.available_refresh_rates.size() < 2 or std::chrono::steady_clock::now() < next)
 			return;
 
 		// Maximum refresh rate the application can reach
@@ -995,7 +980,7 @@ struct refresh_rate_adjuster
 		auto requested = info.available_refresh_rates.back();
 		for (auto rate: info.available_refresh_rates)
 		{
-			if (rate > info.minimum_refresh_rate and rate < app_rate * (rate == last ? 1. : 0.9))
+			if (rate > locked->minimum_refresh_rate and rate < app_rate * (rate == last ? 1. : 0.9))
 				requested = rate;
 		}
 		if (requested != last)
@@ -1015,7 +1000,7 @@ struct refresh_rate_adjuster
 
 void wivrn_session::run(std::stop_token stop)
 {
-	refresh_rate_adjuster refresh(connection->info(), app_pacers);
+	refresh_rate_adjuster refresh(connection->info(), settings, app_pacers);
 	while (not stop.stop_requested())
 	{
 		try
@@ -1116,7 +1101,6 @@ void wivrn_session::reconnect()
 		if (audio_handle)
 			send_control(audio_handle->description());
 
-		(*this)(from_headset::settings_request{});
 		event.state.visible = true;
 		event.state.focused = true;
 		result = push_event(event);

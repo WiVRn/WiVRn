@@ -51,6 +51,7 @@ public:
 	std::optional<float> minimum_refresh_rate;
 	float resolution_scale = 1.0;
 	float stream_scale = 0.5;
+	uint32_t bitrate_bps = 50'000'000;
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
 

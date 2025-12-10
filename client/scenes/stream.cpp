@@ -233,13 +233,13 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 			{
 				if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(info.available_refresh_rates, *config.preferred_refresh_rate)))
 				{
-					info.preferred_refresh_rate = *config.preferred_refresh_rate;
-					info.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
+					info.settings.preferred_refresh_rate = *config.preferred_refresh_rate;
+					info.settings.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
 				}
 				else
 				{
 					// Default to highest refresh rate
-					info.preferred_refresh_rate = info.available_refresh_rates.back();
+					info.settings.preferred_refresh_rate = info.available_refresh_rates.back();
 				}
 			}
 		}
@@ -248,8 +248,10 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		{
 			spdlog::warn("Unable to detect refresh rates");
 			info.available_refresh_rates = {guessed_fps};
-			info.preferred_refresh_rate = guessed_fps;
+			info.settings.preferred_refresh_rate = guessed_fps;
 		}
+
+		info.settings.bitrate_bps = config.bitrate_bps;
 
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);

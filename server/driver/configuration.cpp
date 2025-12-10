@@ -159,9 +159,6 @@ configuration::configuration()
 			grip_surface = *it;
 		}
 
-		if (auto it = json.find("bitrate"); it != json.end())
-			bitrate = *it;
-
 		if (auto it = json.find("encoder"); it != json.end())
 		{
 			if (it->is_array())

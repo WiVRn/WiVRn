@@ -42,11 +42,6 @@ struct headset_connected
 struct headset_disconnected
 {};
 
-struct bitrate_changed
-{
-	uint32_t bitrate_bps;
-};
-
 struct server_error
 {
 	std::string where;
@@ -55,10 +50,10 @@ struct server_error
 
 using packets = std::variant<
         wivrn::from_headset::headset_info_packet,
+        wivrn::from_headset::settings_changed,
         wivrn::from_headset::start_app,
         headset_connected,
         headset_disconnected,
-        bitrate_changed,
         server_error>;
 } // namespace from_monado
 

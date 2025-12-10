@@ -45,7 +45,7 @@
 		<property name="SessionRunning"        type="b" access="read"/>
 		<property name="SteamCommand"          type="s" access="read"/>
 		<property name="JsonConfiguration"     type="s" access="readwrite"/>
-		<property name="Bitrate"               type="u" access="readwrite"/>
+		<property name="Bitrate"               type="u" access="read"/>
 
 		<!-- Data from the headset info packet -->
 		<property name="AvailableRefreshRates" type="ad" access="read">

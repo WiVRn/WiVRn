@@ -55,7 +55,7 @@ private:
 	std::string pin;
 	encryption_state state;
 
-	wivrn::from_headset::headset_info_packet info_packet;
+	from_headset::headset_info_packet info_packet;
 
 	void init(std::stop_token stop_token, std::function<void()> tick = []() {});
 
@@ -113,7 +113,7 @@ public:
 
 	std::optional<from_headset::packets> poll_control(int timeout);
 
-	wivrn::from_headset::headset_info_packet & info()
+	const from_headset::headset_info_packet & info()
 	{
 		return info_packet;
 	}

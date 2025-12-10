@@ -12,11 +12,6 @@ If you installed WiVRn from a flatpack, the config is in `$HOME/.var/app/io.gith
 
 All elements are optional and have default values.
 
-## `bitrate`
-Default value: `50000000` (50Mb/s)
-
-Bitrate of the video, in bit/s. Split among decoders based on size and codecs.
-
 ## `bit-depth`
 Default value: `8` (bits)
 
