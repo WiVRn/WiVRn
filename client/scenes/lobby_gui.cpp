@@ -673,7 +673,7 @@ void scenes::lobby::gui_settings()
 	// Stream resolution
 	{
 		const int step = 10;
-		const auto current = config.stream_scale;
+		const auto current = config.get_stream_scale();
 		auto intval = int(current * 100 / step);
 		const auto slider = ImGui::SliderInt(
 		        _("Stream resolution").append("##stream_scale").c_str(),
@@ -685,7 +685,7 @@ void scenes::lobby::gui_settings()
 		{
 			// clamp out of the slider to have the 50% value centered
 			intval = std::clamp(intval, 20 / step, 100 / step);
-			config.stream_scale = intval * step * 0.01;
+			config.set_stream_scale(intval * step * 0.01);
 			config.save();
 		}
 		imgui_ctx->vibrate_on_hover();

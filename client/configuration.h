@@ -50,7 +50,6 @@ public:
 	std::optional<float> preferred_refresh_rate;
 	std::optional<float> minimum_refresh_rate;
 	float resolution_scale = 1.0;
-	float stream_scale = 0.5;
 	uint32_t bitrate_bps = 50'000'000;
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
@@ -88,6 +87,7 @@ public:
 private:
 	mutable std::mutex mutex;
 	std::map<feature, bool> features;
+	std::optional<float> stream_scale;
 
 	void parse_openxr_post_processing_options(simdjson::simdjson_result<simdjson::dom::object> root);
 
@@ -96,4 +96,7 @@ public:
 	configuration() = default;
 
 	void save();
+
+	void set_stream_scale(float);
+	float get_stream_scale() const;
 };

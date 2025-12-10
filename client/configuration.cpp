@@ -194,10 +194,10 @@ configuration::configuration(xr::system & system)
 		preferred_refresh_rate.reset();
 		minimum_refresh_rate.reset();
 		resolution_scale = 1.0;
-		stream_scale = 0.5;
 		bitrate_bps = 50'000'000;
 		openxr_post_processing = {};
 		passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
+		stream_scale.reset();
 	}
 }
 
@@ -258,7 +258,8 @@ void configuration::save()
 	if (minimum_refresh_rate)
 		json << ",\"minimum_refresh_rate\":" << *minimum_refresh_rate;
 	json << ",\"resolution_scale\":" << resolution_scale;
-	json << ",\"stream_scale\":" << stream_scale;
+	if (stream_scale)
+		json << ",\"stream_scale\":" << *stream_scale;
 	json << ",\"bitrate_bps\":" << bitrate_bps;
 	json << ",\"openxr_post_processing\":";
 	write_openxr_post_processing(json, openxr_post_processing);
@@ -278,4 +279,18 @@ void configuration::save()
 	json << ",\"environment_model\":" << json_string(environment_model);
 	json << ",\"high_power_mode\":" << std::boolalpha << high_power_mode;
 	json << "}";
+}
+
+void configuration::set_stream_scale(float val)
+{
+	stream_scale = val;
+}
+
+float configuration::get_stream_scale() const
+{
+	if (stream_scale)
+		return *stream_scale;
+	if (check_feature(feature::eye_gaze))
+		return 0.3;
+	return 0.5;
 }

@@ -222,8 +222,11 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 			info.render_eye_height = view.recommendedImageRectHeight * config.resolution_scale;
 		}
 
-		info.stream_eye_width = info.render_eye_width * config.stream_scale;
-		info.stream_eye_height = info.render_eye_height * config.stream_scale;
+		{
+			auto scale = config.get_stream_scale();
+			info.stream_eye_width = info.render_eye_width * scale;
+			info.stream_eye_height = info.render_eye_height * scale;
+		}
 
 		if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 		{
