@@ -9,6 +9,7 @@ xgettext \
 	--c++ --from-code=UTF-8              \
 	--keyword=_:1,1t                     \
 	--keyword=_S:1,1t                    \
+	--keyword=_C:1c,2,2t                 \
 	--keyword=_cS:1c,2,2t                \
 	--keyword=_F:1,1t                    \
 	--keyword=gettext_noop:1,1t          \

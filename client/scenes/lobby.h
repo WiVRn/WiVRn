@@ -134,6 +134,9 @@ class lobby : public scene_impl<lobby>
 	tab current_tab = tab::server_list;
 	tab last_current_tab = tab::server_list;
 	int optional_feature_index = 0; // Which step of the first run screen are we in
+
+	std::vector<wivrn::video_codec> supported_codecs;
+
 	ImTextureID about_picture;
 
 	virtual_keyboard keyboard;

@@ -306,7 +306,22 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		if (not(config.check_feature(feature::microphone)))
 			info.microphone = {};
 
-		info.supported_codecs = decoder::supported_codecs();
+		if (config.codec)
+		{
+			info.supported_codecs = {*config.codec};
+			switch (*config.codec)
+			{
+				case h264:
+				case raw:
+					break;
+				case h265:
+				case av1:
+					info.bit_depth = config.bit_depth;
+			}
+		}
+		else
+			info.supported_codecs = decoder::supported_codecs();
+
 		return info;
 	}());
 

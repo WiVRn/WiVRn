@@ -21,6 +21,7 @@
 
 #include "hardware.h"
 #include "wivrn_discover.h"
+#include "wivrn_packets.h"
 
 #include <map>
 #include <mutex>
@@ -50,7 +51,10 @@ public:
 	std::optional<float> preferred_refresh_rate;
 	std::optional<float> minimum_refresh_rate;
 	float resolution_scale = 1.0;
+	std::optional<wivrn::video_codec> codec;
 	uint32_t bitrate_bps = 50'000'000;
+	uint8_t bit_depth = 10;
+
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
 

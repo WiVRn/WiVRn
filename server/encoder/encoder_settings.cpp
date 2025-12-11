@@ -263,7 +263,7 @@ public:
 				return {encoder_vaapi, codec};
 		}
 #endif
-		U_LOG_W("No suitable harware accelerated codec found");
+		U_LOG_W("No suitable hardware accelerated codec found");
 #if WIVRN_USE_X264
 		if (config.name.empty() or config.name == encoder_x264)
 			return {encoder_x264, video_codec::h264};
@@ -317,15 +317,17 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 			dst.height /= 2;
 	}
 
-	if (config.bit_depth and config.bit_depth != 8 and config.bit_depth != 10)
+	auto bit_depth = config.bit_depth ? config.bit_depth : info.bit_depth;
+
+	if (bit_depth and bit_depth != 8 and bit_depth != 10)
 		throw std::runtime_error("invalid bit-depth setting. supported values: 8, 10");
 
 	if (std::ranges::contains(res, video_codec::h264, &encoder_settings::codec) or
 	    std::ranges::contains(res, video_codec::raw, &encoder_settings::codec))
-		config.bit_depth = 8;
+		bit_depth = 8;
 
 	for (auto & i: res)
-		i.bit_depth = config.bit_depth.value_or(10);
+		i.bit_depth = bit_depth.value_or(10);
 
 	split_bitrate(res, settings.bitrate_bps);
 	return res;

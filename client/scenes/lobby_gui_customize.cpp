@@ -62,8 +62,8 @@ void scenes::lobby::save_environment_json()
 		   << ",\"size\":" << model.size;
 
 		// TODO only if not the default value
-		ss << ",\"local_screenshot\":" << json_string(model.local_screenshot_path);
-		ss << ",\"local_path\":" << json_string(model.local_gltf_path);
+		ss << ",\"local_screenshot\":" << json_string(model.local_screenshot_path.string());
+		ss << ",\"local_path\":" << json_string(model.local_gltf_path.string());
 		ss << "},";
 	}
 	if (not empty)

@@ -274,6 +274,7 @@ void decoder::frame_completed(const wivrn::from_headset::feedback & feedback, co
 
 void decoder::supported_codecs(std::vector<wivrn::video_codec> & res)
 {
+	// As long as we do software decoding, prefer faster ones
 	res.push_back(wivrn::video_codec::h264);
 	res.push_back(wivrn::video_codec::h265);
 	res.push_back(wivrn::video_codec::av1);

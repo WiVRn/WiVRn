@@ -1281,6 +1281,8 @@ void scenes::lobby::on_focused()
 	        vps,
 	        image_cache);
 
+	supported_codecs = wivrn::decoder::supported_codecs();
+
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
 	std::string image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";

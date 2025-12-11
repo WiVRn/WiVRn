@@ -19,7 +19,7 @@
 
 #include "json_string.h"
 
-std::string json_string(const std::string & in)
+std::string json_string(const std::string_view & in)
 {
 	std::string out;
 	out.reserve(in.size() + 2);

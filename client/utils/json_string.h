@@ -21,4 +21,4 @@
 
 #include <string>
 
-std::string json_string(const std::string & in);
+std::string json_string(const std::string_view & in);

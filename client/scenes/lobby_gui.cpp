@@ -691,6 +691,62 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 	}
 
+	{
+		auto codec_name = [](const std::optional<wivrn::video_codec> codec) {
+			if (not codec)
+				return _C("Codec", "Automatic");
+			switch (*codec)
+			{
+				case wivrn::h264:
+					return _C("Codec", "H.264");
+				case wivrn::h265:
+					return _C("Codec", "H.265");
+				case wivrn::av1:
+					return _C("Codec", "AV1");
+				case wivrn::raw:
+					break;
+			}
+			assert(false);
+			__builtin_unreachable();
+		};
+
+		if (ImGui::BeginCombo(_S("Codec"), codec_name(config.codec).c_str()))
+		{
+			if (ImGui::Selectable(codec_name({}).c_str(), not config.codec))
+			{
+				config.codec = std::nullopt;
+				config.save();
+			}
+			for (auto codec: supported_codecs)
+			{
+				// don't show raw in GUI
+				if (codec == wivrn::raw)
+					continue;
+
+				if (ImGui::Selectable(codec_name(codec).c_str(), config.codec == codec))
+				{
+					config.codec = codec;
+					config.save();
+				}
+			}
+
+			ImGui::EndCombo();
+			imgui_ctx->vibrate_on_hover();
+		}
+
+		if (config.codec == wivrn::video_codec::av1 or config.codec == wivrn::video_codec::h265)
+		{
+			ImGui::SameLine(0.f, 10.f);
+			bool ten_bit = config.bit_depth == 10;
+			if (ImGui::Checkbox(_S("10-bit"), &ten_bit))
+			{
+				config.bit_depth = ten_bit ? 10 : 8;
+				config.save();
+			}
+			imgui_ctx->vibrate_on_hover();
+		}
+	}
+
 	// Bitrate
 	{
 		const int mb = 1'000'000;
