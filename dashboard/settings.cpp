@@ -143,41 +143,49 @@ void Settings::load(const wivrn_server * server)
 	}
 }
 
+static Settings::encoder_name encoder_for_item(const nlohmann::json & item)
+{
+	if (item.is_string())
+		return Settings::encoder_id_from_string(std::string(item));
+	if (item.is_object())
+	{
+		if (auto i = item.find("encoder"); i != item.end())
+			return Settings::encoder_id_from_string(std::string(*i));
+	}
+	return Settings::encoder_name::EncoderAuto;
+}
+
+static Settings::video_codec codec_for_item(const nlohmann::json & item)
+{
+	if (item.is_object())
+	{
+		if (auto i = item.find("codec"); i != item.end())
+			return Settings::codec_id_from_string(std::string(*i));
+	}
+	return Settings::video_codec::CodecAuto;
+}
+
 bool Settings::simpleConfig() const
 {
 	// Simple configuration: either unset, single encoder or all encoders + codecs are the same
 	try
 	{
 		auto it = m_jsonSettings.find("encoder");
-		if (it == m_jsonSettings.end() or it->is_object())
+		if (it == m_jsonSettings.end() or it->is_object() or it->is_string())
 			return true;
 		std::optional<encoder_name> encoder;
 		std::optional<video_codec> codec;
 		for (const auto & item: *it)
 		{
-			if (auto it = item.find("encoder"); it != item.end())
-			{
-				auto e = encoder_id_from_string(std::string(*it));
-				if (encoder and e != encoder)
-					return false;
-				encoder = e;
-			}
-			else
-			{
-				encoder = encoder_name::EncoderAuto;
-			}
+			auto e = encoder_for_item(item);
+			if (encoder and e != encoder)
+				return false;
+			encoder = e;
 
-			if (auto it = item.find("codec"); it != item.end())
-			{
-				auto e = codec_id_from_string(std::string(*it));
-				if (codec and e != codec)
-					return false;
-				codec = e;
-			}
-			else
-			{
-				codec = video_codec::CodecAuto;
-			}
+			auto c = codec_for_item(item);
+			if (codec and c != codec)
+				return false;
+			codec = c;
 		}
 		return true;
 	}
@@ -196,12 +204,7 @@ Settings::encoder_name Settings::encoder() const
 			return encoder_name::EncoderAuto;
 		if (it->is_array() and it->size())
 			it = it->begin();
-		if (it->is_object())
-		{
-			if (auto e = it->find("encoder"); e != it->end())
-				return encoder_id_from_string(std::string(*e));
-			return encoder_name::EncoderAuto;
-		}
+		return encoder_for_item(*it);
 	}
 	catch (...)
 	{
@@ -211,7 +214,8 @@ Settings::encoder_name Settings::encoder() const
 
 void Settings::set_encoder(const encoder_name & value)
 {
-	auto old = encoder();
+	if (value == encoder())
+		return;
 	auto old_codec = codec();
 	switch (value)
 	{
@@ -222,16 +226,11 @@ void Settings::set_encoder(const encoder_name & value)
 		case Vaapi:
 		case X264:
 		case Vulkan:
-			m_jsonSettings["encoder"] = nlohmann::json::object({
-			        {"encoder", encoder_from_id(value)},
-			});
+			m_jsonSettings["encoder"] = encoder_from_id(value);
 	}
-	if (value != old)
-	{
-		encoderChanged();
-		if (not can10bit())
-			set_tenbit(false);
-	}
+	encoderChanged();
+	if (not can10bit())
+		set_tenbit(false);
 	if (old_codec != codec())
 		codecChanged();
 	simpleConfigChanged();
@@ -246,12 +245,7 @@ Settings::video_codec Settings::codec() const
 			return video_codec::CodecAuto;
 		if (it->is_array() and it->size())
 			it = it->begin();
-		if (it->is_object())
-		{
-			if (auto c = it->find("codec"); c != it->end())
-				return codec_id_from_string(std::string(*c));
-			return video_codec::CodecAuto;
-		}
+		return codec_for_item(*it);
 	}
 	catch (...)
 	{
@@ -266,10 +260,23 @@ void Settings::set_codec(const video_codec & value)
 	if (it == m_jsonSettings.end())
 		return;
 
+	if (it->is_string())
+	{
+		m_jsonSettings["encoder"] = nlohmann::json::object({
+		        {"encoder", *it},
+		        {"codec", codec_from_id(value)},
+		});
+	}
+
 	if (it->is_object())
 	{
 		if (value == CodecAuto)
-			it->erase("codec");
+		{
+			if (auto encoder = it->find("encoder"); encoder != it->end())
+				*it = *encoder;
+			else
+				m_jsonSettings.erase("encoder");
+		}
 		else
 			(*it)["codec"] = codec_from_id(value);
 	}
@@ -277,6 +284,14 @@ void Settings::set_codec(const video_codec & value)
 	{
 		for (auto & item: *it)
 		{
+			if (it->is_string())
+			{
+				item = nlohmann::json::object({
+				        {"encoder", item},
+				        {"codec", codec_from_id(value)},
+				});
+				continue;
+			}
 			if (not item.is_object())
 				continue;
 			if (value == CodecAuto)

@@ -18,7 +18,8 @@ Default value: `8` (bits)
 Bit depth of the video. 8-bit is supported by all encoders. 10-bit is supported by `vaapi` and `nvenc` encoders using `h265` or `av1`.
 
 ## `encoder`
-The encoder to use, either a single object applied to all streams, or a list of objects with values for left, right and alpha.
+The encoder to use, either a single string or object applied to all streams, or a list of string or objects with values for left, right and alpha.
+When a string it is used, it is equivalent to the `encoder` item of the object.
 
 WiVRn encodes each eye separately, and the alpha channel as one for both eyes. Each stream is processed independently, this may use resources more effectively and reduce latency.
 All the provided encoders are put into groups, groups are executed concurrently and items within a group are processed sequentially.
@@ -33,7 +34,7 @@ Identifier of the encoder, one of
 * `vulkan`: experimental, for any GPU that supports vulkan video encode
 
 ### `codec`
-Default value: first supported by both headset and encoder of `av1`, `h264`, `h265`.
+Default value: best supported by both headset and encoder of `av1`, `h264`, `h265`.
 
 One of `h264`, `h265`, `av1`, `raw`.
 

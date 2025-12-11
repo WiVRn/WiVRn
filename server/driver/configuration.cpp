@@ -168,6 +168,10 @@ configuration::configuration()
 					encoders[i] = parse_encoder(it->at(i));
 				}
 			}
+			else if (it->is_string())
+			{
+				std::ranges::fill(encoders, encoder{.name = *it});
+			}
 			else
 			{
 				std::ranges::fill(encoders, parse_encoder(*it));
