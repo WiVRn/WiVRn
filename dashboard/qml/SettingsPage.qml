@@ -80,63 +80,6 @@ Kirigami.ScrollablePage {
                 }
             }
 
-            RowLayout {
-                Kirigami.FormData.label: i18n("Codec:")
-                Controls.ComboBox {
-                    id: codec_combo
-                    enabled: Settings.simpleConfig && Settings.encoder != Settings.EncoderAuto
-                    model: [
-                        {
-                            label: i18nc("automatic codec setup", "Auto"),
-                            codec: Settings.CodecAuto
-                        },
-                        {
-                            label: i18n("H.264"),
-                            codec: Settings.H264
-                        },
-                        {
-                            label: i18n("H.265"),
-                            codec: Settings.H265
-                        },
-                        {
-                            label: i18n("AV1"),
-                            codec: Settings.Av1
-                        }
-                    ]
-                    onCurrentIndexChanged: if (settings.allowUpdates) {Settings.codec = model[currentIndex].codec}
-                    textRole: "label"
-
-                    delegate: Controls.ItemDelegate {
-                        required property string label
-                        required property var codec
-
-                        width: codec_combo.width
-                        text: i18n(label)
-                        highlighted: ListView.isCurrentItem
-                        enabled: Settings.allowedCodecs.includes(codec)
-                    }
-                    Connections {
-                        target: Settings
-                        function onCodecChanged() {
-                            var codec = Settings.codec;
-                            var i = codec_combo.model.findIndex( item => item.codec == codec)
-                            if (i > -1)
-                                codec_combo.currentIndex = i
-                        }
-                    }
-                }
-                Controls.CheckBox {
-                    enabled: Settings.can10bit
-                    text: i18n("10 bits")
-                    checked: Settings.tenbit
-                    onCheckedChanged: Settings.tenbit = checked
-                }
-                Kirigami.ContextualHelpButton {
-                    toolTipText: i18n("10-bit encoding improves image quality but is not supported by all codecs and hardware")
-                }
-            }
-
-
             Kirigami.Separator {
                 Kirigami.FormData.isSection: true
             }
