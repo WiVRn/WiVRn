@@ -1062,7 +1062,9 @@ void application::initialize_actions()
 		}
 
 		// Patch profile to add pinch_ext/pose and poke_ext/pose
-		if (!profile.profile_name.ends_with("ext/hand_interaction_ext") && xr_instance.has_extension(XR_EXT_HAND_INTERACTION_EXTENSION_NAME))
+		if (xr_instance.has_extension(XR_EXT_HAND_INTERACTION_EXTENSION_NAME)             //
+		    and utils::contains(profile.input_sources, "/user/hand/left/input/grip/pose") //
+		    and not utils::contains(profile.input_sources, "/user/hand/left/input/pinch_ext/pose"))
 		{
 			spdlog::info("Adding pinch_ext/pose for interaction profile {}", profile.profile_name);
 			profile.input_sources.push_back("/user/hand/left/input/pinch_ext/pose");
