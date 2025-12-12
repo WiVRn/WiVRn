@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-21 05:41+0800\n"
+"POT-Creation-Date: 2025-12-11 20:42+0800\n"
 "PO-Revision-Date: 2025-11-30 17:31+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
@@ -392,165 +392,68 @@ msgctxt "browse a file to choose the application to start"
 msgid "Browse"
 msgstr "浏览"
 
-#: dashboard/qml/SettingsPage.qml:31
-#, kde-format
-msgctxt "automatic foveation setup"
-msgid "Manual foveation"
-msgstr "手动注视点渲染"
-
-#: dashboard/qml/SettingsPage.qml:37
-#, kde-format
-msgid "Foveation strength:"
-msgstr "注视点渲染强度:"
-
-#: dashboard/qml/SettingsPage.qml:53
-#, kde-format
-msgid "%1 %"
-msgstr "%1 %"
-
-#: dashboard/qml/SettingsPage.qml:59
-#, kde-format
-msgid ""
-"A stronger foveation makes the image sharper in the center than in the "
-"periphery and makes the decoding faster. This is better for fast paced "
-"games.\n"
-"\n"
-"A weaker foveation gives a uniform sharpness in the whole image.\n"
-"\n"
-"The recommended values are between 20% and 50% for headsets without eye "
-"tracking and between 50% and 70% for headsets with eye tracking."
-msgstr ""
-"更强的注视点渲染会使画面中心比周边更清晰，并加快解码速度。这更适合快节奏的游"
-"戏。\n"
-"\n"
-"较弱的注视点渲染可在整个画面中提供一致的清晰度。\n"
-"\n"
-"对于没有眼动追踪的头显，建议值在 20% 到 50% 之间，对于有眼动追踪的头显，建议"
-"值在 50% 到 70% 之间。"
-
-#: dashboard/qml/SettingsPage.qml:65
-#, kde-format
-msgctxt "weaker foveation"
-msgid "Weaker"
-msgstr "较弱"
-
-#: dashboard/qml/SettingsPage.qml:76
-#, kde-format
-msgctxt "stronger foveation"
-msgid "Stronger"
-msgstr "较强"
-
-#: dashboard/qml/SettingsPage.qml:86
-#, kde-format
-msgid "Bitrate:"
-msgstr "码率:"
-
-#: dashboard/qml/SettingsPage.qml:90 dashboard/qml/SettingsPage.qml:92
-#, kde-format
-msgctxt "bitrate"
-msgid "%1 Mbit/s"
-msgstr "%1 Mbit/s"
-
-#: dashboard/qml/SettingsPage.qml:104
+#: dashboard/qml/SettingsPage.qml:28
 #, kde-format
 msgid "The current encoder configuration is not supported"
 msgstr "不支持当前编码配置"
 
-#: dashboard/qml/SettingsPage.qml:109
+#: dashboard/qml/SettingsPage.qml:33
 #, kde-format
 msgid "Reset"
 msgstr "重置"
 
-#: dashboard/qml/SettingsPage.qml:116
+#: dashboard/qml/SettingsPage.qml:40
 #, kde-format
 msgid "Encoder:"
 msgstr "编码:"
 
-#: dashboard/qml/SettingsPage.qml:122
+#: dashboard/qml/SettingsPage.qml:46
 #, kde-format
 msgctxt "automatic encoder setup"
 msgid "Auto"
 msgstr "自动"
 
-#: dashboard/qml/SettingsPage.qml:126
+#: dashboard/qml/SettingsPage.qml:50
 #, kde-format
 msgid "nvenc (NVIDIA GPUs)"
 msgstr "nvenc (NVIDIA GPUs)"
 
-#: dashboard/qml/SettingsPage.qml:130
+#: dashboard/qml/SettingsPage.qml:54
 #, kde-format
 msgid "vaapi (AMD and Intel GPUs)"
 msgstr "vaapi (AMD 和 Intel GPUs)"
 
-#: dashboard/qml/SettingsPage.qml:134
+#: dashboard/qml/SettingsPage.qml:58
 #, kde-format
 msgid "Vulkan (Any modern GPU)"
 msgstr "Vulkan (任何现代 GPU)"
 
-#: dashboard/qml/SettingsPage.qml:138
+#: dashboard/qml/SettingsPage.qml:62
 #, kde-format
 msgid "x264 (software encoding)"
 msgstr "x264 (软件编码器)"
 
-#: dashboard/qml/SettingsPage.qml:155
+#: dashboard/qml/SettingsPage.qml:79
 #, kde-format
 msgid "\"Auto\" will use hardware acceleration if it is available"
 msgstr "\"自动\" 将在可用时优先使用硬件编码"
 
-#: dashboard/qml/SettingsPage.qml:160
-#, kde-format
-msgid "Codec:"
-msgstr "编码器:"
-
-#: dashboard/qml/SettingsPage.qml:166
-#, kde-format
-msgctxt "automatic codec setup"
-msgid "Auto"
-msgstr "自动"
-
-#: dashboard/qml/SettingsPage.qml:170
-#, kde-format
-msgid "H.264"
-msgstr "H.264"
-
-#: dashboard/qml/SettingsPage.qml:174
-#, kde-format
-msgid "H.265"
-msgstr "H.265"
-
-#: dashboard/qml/SettingsPage.qml:178
-#, kde-format
-msgid "AV1"
-msgstr "AV1"
-
-#: dashboard/qml/SettingsPage.qml:206
-#, kde-format
-msgid "10 bits"
-msgstr "10 位编码"
-
-#: dashboard/qml/SettingsPage.qml:211
-#, kde-format
-msgid ""
-"10-bit encoding improves image quality but is not supported by all codecs "
-"and hardware"
-msgstr "10 位编码可以提升图像质量，但并非所有编解码器和硬件都支持"
-
-#: dashboard/qml/SettingsPage.qml:221
+#: dashboard/qml/SettingsPage.qml:88
 #, kde-format
 msgid "Advanced options"
 msgstr "进阶选项"
 
-#: dashboard/qml/SettingsPage.qml:227
+#: dashboard/qml/SettingsPage.qml:94
 #, kde-format
 msgid "Check system configuration on start"
 msgstr "在启动时检查系统设置"
 
-#: dashboard/qml/SettingsPage.qml:233
+#: dashboard/qml/SettingsPage.qml:100
 #, kde-format
 msgid "Forward keyboard & mouse from headset"
 msgstr "从头显转发键盘和鼠标输入"
 
-#: dashboard/qml/SettingsPage.qml:236
+#: dashboard/qml/SettingsPage.qml:103
 #, kde-format
 msgid ""
 "Keyboard and mouse connected to the client will act as if connected to the "
@@ -560,17 +463,17 @@ msgstr ""
 "连接到客户端的键盘和鼠标将表现得如同直接连接到服务器。客户端操作系统可能会保"
 "留特定的键映射和快捷键组合，这些无法被转发。"
 
-#: dashboard/qml/SettingsPage.qml:241
+#: dashboard/qml/SettingsPage.qml:108
 #, kde-format
 msgid "Enable debug window"
 msgstr "启用 Debug 窗口"
 
-#: dashboard/qml/SettingsPage.qml:248
+#: dashboard/qml/SettingsPage.qml:115
 #, kde-format
 msgid "Enable SteamVR tracked devices support"
 msgstr "启用 SteamVR 追踪设备支持"
 
-#: dashboard/qml/SettingsPage.qml:251
+#: dashboard/qml/SettingsPage.qml:118
 #, kde-format
 msgid ""
 "Allows the use of lighthouse-based controllers and trackers.\n"
@@ -583,44 +486,44 @@ msgstr ""
 "设备必须在连接到 WiVRn 之前开启电源。\n"
 "校准需要额外工具，例如 motoc。"
 
-#: dashboard/qml/SettingsPage.qml:259
+#: dashboard/qml/SettingsPage.qml:126
 #, kde-format
 msgid "Custom adb location"
 msgstr "自定义 adb 路径"
 
-#: dashboard/qml/SettingsPage.qml:270
+#: dashboard/qml/SettingsPage.qml:137
 #, kde-format
 msgid "Adb location:"
 msgstr "adb 路径："
 
-#: dashboard/qml/SettingsPage.qml:279
+#: dashboard/qml/SettingsPage.qml:146
 #, kde-format
 msgctxt "browse a file to choose the adb binary"
 msgid "Browse"
 msgstr "浏览"
 
-#: dashboard/qml/SettingsPage.qml:289
+#: dashboard/qml/SettingsPage.qml:156
 #, kde-format
 msgid "Default"
 msgstr "默认"
 
-#: dashboard/qml/SettingsPage.qml:303
+#: dashboard/qml/SettingsPage.qml:170
 #, kde-format
 msgctxt "set a custom OpenVR compatibility library"
 msgid "Custom"
 msgstr "自定义"
 
-#: dashboard/qml/SettingsPage.qml:308
+#: dashboard/qml/SettingsPage.qml:175
 #, kde-format
 msgid "Disabled"
 msgstr "已停用"
 
-#: dashboard/qml/SettingsPage.qml:316
+#: dashboard/qml/SettingsPage.qml:183
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR 兼容层："
 
-#: dashboard/qml/SettingsPage.qml:342
+#: dashboard/qml/SettingsPage.qml:209
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "兼容层路径，不包含 bin/linux64/vrclient.so"
@@ -951,6 +854,88 @@ msgstr "xrizer"
 #, kde-format
 msgid "Open Composite"
 msgstr "Open Composite"
+
+#, kde-format
+#~ msgctxt "automatic foveation setup"
+#~ msgid "Manual foveation"
+#~ msgstr "手动注视点渲染"
+
+#, kde-format
+#~ msgid "Foveation strength:"
+#~ msgstr "注视点渲染强度:"
+
+#, kde-format
+#~ msgid "%1 %"
+#~ msgstr "%1 %"
+
+#, kde-format
+#~ msgid ""
+#~ "A stronger foveation makes the image sharper in the center than in the "
+#~ "periphery and makes the decoding faster. This is better for fast paced "
+#~ "games.\n"
+#~ "\n"
+#~ "A weaker foveation gives a uniform sharpness in the whole image.\n"
+#~ "\n"
+#~ "The recommended values are between 20% and 50% for headsets without eye "
+#~ "tracking and between 50% and 70% for headsets with eye tracking."
+#~ msgstr ""
+#~ "更强的注视点渲染会使画面中心比周边更清晰，并加快解码速度。这更适合快节奏的"
+#~ "游戏。\n"
+#~ "\n"
+#~ "较弱的注视点渲染可在整个画面中提供一致的清晰度。\n"
+#~ "\n"
+#~ "对于没有眼动追踪的头显，建议值在 20% 到 50% 之间，对于有眼动追踪的头显，建"
+#~ "议值在 50% 到 70% 之间。"
+
+#, kde-format
+#~ msgctxt "weaker foveation"
+#~ msgid "Weaker"
+#~ msgstr "较弱"
+
+#, kde-format
+#~ msgctxt "stronger foveation"
+#~ msgid "Stronger"
+#~ msgstr "较强"
+
+#, kde-format
+#~ msgid "Bitrate:"
+#~ msgstr "码率:"
+
+#, kde-format
+#~ msgctxt "bitrate"
+#~ msgid "%1 Mbit/s"
+#~ msgstr "%1 Mbit/s"
+
+#, kde-format
+#~ msgid "Codec:"
+#~ msgstr "编码器:"
+
+#, kde-format
+#~ msgctxt "automatic codec setup"
+#~ msgid "Auto"
+#~ msgstr "自动"
+
+#, kde-format
+#~ msgid "H.264"
+#~ msgstr "H.264"
+
+#, kde-format
+#~ msgid "H.265"
+#~ msgstr "H.265"
+
+#, kde-format
+#~ msgid "AV1"
+#~ msgstr "AV1"
+
+#, kde-format
+#~ msgid "10 bits"
+#~ msgstr "10 位编码"
+
+#, kde-format
+#~ msgid ""
+#~ "10-bit encoding improves image quality but is not supported by all codecs "
+#~ "and hardware"
+#~ msgstr "10 位编码可以提升图像质量，但并非所有编解码器和硬件都支持"
 
 #, kde-format
 #~ msgid "The server does not have CAP_SYS_NICE capabilities"
