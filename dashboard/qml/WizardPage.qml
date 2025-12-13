@@ -257,70 +257,6 @@ Kirigami.ScrollablePage {
                 Kirigami.Action {
                     text: i18n("Next")
                     icon.name: "go-next"
-                    onTriggered: pageStack.push(page_selectgame_component.createObject(pageStack))
-                },
-                Kirigami.Action {
-                    text: i18n("Cancel")
-                    onTriggered: wizard.cancel()
-                }
-            ]
-        }
-    }
-
-    Component {
-        id: page_selectgame_component
-
-        WizardStep {
-            id: page_selectgame
-
-            Controls.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.35
-                text: i18n("Select the application you want to start")
-            }
-
-            Controls.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text: i18n("The application you choose will be started automatically when you connect your headset.")
-                Layout.topMargin: 2 * Kirigami.Units.largeSpacing
-            }
-
-            SelectGame {}
-
-            SteamLaunchOptions {
-                visible: WivrnServer.steamCommand != ""
-                Layout.topMargin: 2 * Kirigami.Units.largeSpacing
-            }
-
-            Controls.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.35
-                text: i18n("Important information")
-                Layout.topMargin: 2 * Kirigami.Units.largeSpacing
-            }
-
-            Controls.Label {
-                Layout.fillWidth: true
-                wrapMode: Text.WordWrap
-                text: i18n("WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is running.")
-            }
-
-            Item {
-                Layout.fillHeight: true
-            }
-
-            actions: [
-                Kirigami.Action {
-                    text: i18n("Back")
-                    icon.name: "go-previous"
-                    onTriggered: pageStack.goBack()
-                },
-                Kirigami.Action {
-                    text: i18n("Next")
-                    icon.name: "go-next"
                     onTriggered: pageStack.push(page_startwivrn_component.createObject(pageStack))
                 },
                 Kirigami.Action {
@@ -356,7 +292,26 @@ Kirigami.ScrollablePage {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
                 font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.35
+                text: i18n("Important information")
+            }
+
+            Controls.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                text: i18n("WiVRn entirely replaces SteamVR, you should not start SteamVR while WiVRn is running.")
+            }
+
+            SteamLaunchOptions {
+                visible: WivrnServer.steamCommand != ""
+                Layout.topMargin: 2 * Kirigami.Units.largeSpacing
+            }
+
+            Controls.Label {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font.pointSize: Kirigami.Theme.defaultFont.pointSize * 1.35
                 text: i18n("Start the WiVRn app on your headset")
+                Layout.topMargin: 2 * Kirigami.Units.largeSpacing
             }
             Controls.Label {
                 Layout.fillWidth: true
