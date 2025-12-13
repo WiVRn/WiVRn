@@ -1,0 +1,177 @@
+From 2431c684156e6b44b4556b61822a412eb4f57e62 Mon Sep 17 00:00:00 2001
+From: Sapphire <imsapphire0@gmail.com>
+Date: Sun, 7 Dec 2025 23:54:14 -0600
+Subject: [PATCH] xrt: add request_exit function to xrt_session
+
+---
+ src/xrt/auxiliary/util/u_session.c       | 14 +++++++++
+ src/xrt/include/xrt/xrt_session.h        | 36 ++++++++++++++++++++++++
+ src/xrt/ipc/server/ipc_server_handler.c  | 11 ++++++++
+ src/xrt/ipc/shared/proto/50-session.json |  2 ++
+ src/xrt/state_trackers/oxr/oxr_session.c |  1 +
+ 5 files changed, 64 insertions(+)
+
+diff --git a/src/xrt/auxiliary/util/u_session.c b/src/xrt/auxiliary/util/u_session.c
+index 6c44116a3..300dcb959 100644
+--- a/src/xrt/auxiliary/util/u_session.c
++++ b/src/xrt/auxiliary/util/u_session.c
+@@ -50,6 +50,19 @@ poll_events(struct xrt_session *xs, union xrt_session_event *out_xse)
+ 	return XRT_SUCCESS;
+ }
+ 
++static xrt_result_t
++request_exit(struct xrt_session *xs)
++{
++	struct u_session *us = u_session(xs);
++
++	union xrt_session_event xse = XRT_STRUCT_INIT;
++	xse.type = XRT_SESSION_EVENT_REQUEST_EXIT;
++
++	u_session_event_push(us, &xse);
++
++	return XRT_SUCCESS;
++}
++
+ static void
+ destroy(struct xrt_session *xs)
+ {
+@@ -85,6 +98,7 @@ u_session_create(struct u_system *usys)
+ 
+ 	// xrt_session fields.
+ 	us->base.poll_events = poll_events;
++	us->base.request_exit = request_exit;
+ 	us->base.destroy = destroy;
+ 
+ 	// xrt_session_event_sink fields.
+diff --git a/src/xrt/include/xrt/xrt_session.h b/src/xrt/include/xrt/xrt_session.h
+index 684aa6c2b..96f7f8b11 100644
+--- a/src/xrt/include/xrt/xrt_session.h
++++ b/src/xrt/include/xrt/xrt_session.h
+@@ -11,6 +11,7 @@
+ 
+ #include "xrt/xrt_compiler.h"
+ #include "xrt/xrt_defines.h"
++#include "xrt/xrt_results.h"
+ #include "xrt/xrt_space.h"
+ 
+ 
+@@ -67,6 +68,9 @@ enum xrt_session_event_type
+ 
+ 	//! User presence has changed (hmd may have been put on or removed)
+ 	XRT_SESSION_EVENT_USER_PRESENCE_CHANGE = 10,
++
++	//! Request the session to quit.
++	XRT_SESSION_EVENT_REQUEST_EXIT = 11,
+ };
+ 
+ /*!
+@@ -189,6 +193,17 @@ struct xrt_session_event_user_presence_change
+ 	bool is_user_present;
+ };
+ 
++/*!
++ * Session stop event, type @ref XRT_SESSION_EVENT_REQUEST_EXIT.
++ *
++ * @see xrt_session_event
++ * @ingroup xrt_iface
++ */
++struct xrt_session_event_request_exit
++{
++	enum xrt_session_event_type type;
++};
++
+ /*!
+  * Union of all session events, used to return multiple events through one call.
+  * Each event struct must start with a @ref xrt_session_event_type field.
+@@ -208,6 +223,7 @@ union xrt_session_event {
+ 	struct xrt_session_event_passthrough_state_change passthru;
+ 	struct xrt_session_event_visibility_mask_change mask_change;
+ 	struct xrt_session_event_user_presence_change presence_change;
++	struct xrt_session_event_request_exit request_exit;
+ };
+ 
+ /*!
+@@ -267,6 +283,13 @@ struct xrt_session
+ 	 */
+ 	xrt_result_t (*poll_events)(struct xrt_session *xs, union xrt_session_event *out_xse);
+ 
++	/*!
++	 * Request this session to exit.
++	 *
++	 * @param xs Pointer to self
++	 */
++	xrt_result_t (*request_exit)(struct xrt_session *xs);
++
+ 	/*!
+ 	 * Destroy the session, must be destroyed after the native compositor.
+ 	 *
+@@ -290,6 +313,19 @@ xrt_session_poll_events(struct xrt_session *xs, union xrt_session_event *out_xse
+ 	return xs->poll_events(xs, out_xse);
+ }
+ 
++/*!
++ * @copydoc xrt_session::request_exit
++ *
++ * Helper for calling through the function pointer.
++ *
++ * @public @memberof xrt_session
++ */
++XRT_CHECK_RESULT static inline xrt_result_t
++xrt_session_request_exit(struct xrt_session *xs)
++{
++	return xs->request_exit(xs);
++}
++
+ /*!
+  * Destroy an xrt_session - helper function.
+  *
+diff --git a/src/xrt/ipc/server/ipc_server_handler.c b/src/xrt/ipc/server/ipc_server_handler.c
+index 31608969a..2fe1ba3b4 100644
+--- a/src/xrt/ipc/server/ipc_server_handler.c
++++ b/src/xrt/ipc/server/ipc_server_handler.c
+@@ -478,6 +478,17 @@ ipc_handle_session_poll_events(volatile struct ipc_client_state *ics, union xrt_
+ 	return xrt_session_poll_events(ics->xs, out_xse);
+ }
+ 
++xrt_result_t
++ipc_handle_session_request_exit(volatile struct ipc_client_state *ics)
++{
++	// Have we created the session?
++	if (ics->xs == NULL) {
++		return XRT_ERROR_IPC_SESSION_NOT_CREATED;
++	}
++
++	return xrt_session_request_exit(ics->xs);
++}
++
+ xrt_result_t
+ ipc_handle_session_begin(volatile struct ipc_client_state *ics)
+ {
+diff --git a/src/xrt/ipc/shared/proto/50-session.json b/src/xrt/ipc/shared/proto/50-session.json
+index 4b1b6e221..819354cbf 100644
+--- a/src/xrt/ipc/shared/proto/50-session.json
++++ b/src/xrt/ipc/shared/proto/50-session.json
+@@ -14,6 +14,8 @@
+ 		]
+ 	},
+ 
++	"session_request_exit": {},
++
+ 	"session_begin": {},
+ 
+ 	"session_end": {},
+diff --git a/src/xrt/state_trackers/oxr/oxr_session.c b/src/xrt/state_trackers/oxr/oxr_session.c
+index 1d3193a8c..3da802bda 100644
+--- a/src/xrt/state_trackers/oxr/oxr_session.c
++++ b/src/xrt/state_trackers/oxr/oxr_session.c
+@@ -586,6 +586,7 @@ oxr_session_poll(struct oxr_logger *log, struct oxr_session *sess)
+ 			    time_state_monotonic_to_ts_ns(sess->sys->inst->timekeeping, xse.loss_pending.loss_time_ns));
+ 			break;
+ 		case XRT_SESSION_EVENT_LOST: sess->has_lost = true; break;
++		case XRT_SESSION_EVENT_REQUEST_EXIT: oxr_session_request_exit(log, sess); break;
+ 		case XRT_SESSION_EVENT_DISPLAY_REFRESH_RATE_CHANGE:
+ #ifdef OXR_HAVE_FB_display_refresh_rate
+ 			oxr_event_push_XrEventDataDisplayRefreshRateChangedFB( //
+-- 
+2.52.0
+
