@@ -84,6 +84,14 @@ Kirigami.ScrollablePage {
                 Kirigami.FormData.isSection: true
             }
 
+            SelectGame {
+                Kirigami.FormData.label: i18n("Autostart application:")
+            }
+
+            Kirigami.Separator {
+                Kirigami.FormData.isSection: true
+            }
+
             Kirigami.Heading {
                 text: i18n("Advanced options")
                 level: 1

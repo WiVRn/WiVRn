@@ -338,28 +338,8 @@ Kirigami.ApplicationWindow {
                 Kirigami.Separator {
                     Layout.columnSpan: 2
                     Layout.fillWidth: true
-                    opacity: root.server_started
-                    Layout.maximumHeight: root.server_started ? -1 : 0
-                }
-
-                Kirigami.Heading {
-                    level: 1
-                    wrapMode: Text.WordWrap
-                    text: i18nc("automatically started application", "Application")
-                    opacity: root.server_started
-                    Layout.maximumHeight: root.server_started ? -1 : 0
-                }
-
-                SelectGame {
-                    id: select_game
-                    opacity: root.server_started
-                    Layout.maximumHeight: root.server_started ? -1 : 0
-                }
-
-                Kirigami.Separator {
-                    Layout.columnSpan: 2
-                    Layout.fillWidth: true
-                    opacity: root.server_started
+                    opacity: steam_info.opacity
+                    visible: steam_info.visible
                     Layout.maximumHeight: root.server_started ? -1 : 0
                 }
 
@@ -429,6 +409,4 @@ Kirigami.ApplicationWindow {
             }
         ]
     }
-
-    pageStack.onCurrentItemChanged: select_game.reload()
 }
