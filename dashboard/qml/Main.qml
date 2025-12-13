@@ -83,6 +83,18 @@ Kirigami.ApplicationWindow {
         }
     }
 
+    Connections {
+        target: Avahi
+        function onRunningChanged(value) {
+            if (value) {
+                if (WivrnServer.serverStatus != WivrnServer.Started) {
+                    WivrnServer.start_server();
+                    message_failed_to_start.visible = false;
+                }
+            }
+        }
+    }
+
     Component.onCompleted: {
         if (WivrnServer.serverStatus == WivrnServer.Stopped)
             WivrnServer.start_server();
