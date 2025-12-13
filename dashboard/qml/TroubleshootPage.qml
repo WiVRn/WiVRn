@@ -57,6 +57,10 @@ Kirigami.ScrollablePage {
             title: i18n("I have no sound on my headset")
             details: i18n("When the headset is connected, select \"WiVRn\" as the default audio output device for applications to use it.")
         }
+        TroubleshootCard {
+            title: i18n("Some games fail to start or have input issues")
+            details: i18n("For game specific issues, check on <a href=\"https://db.vronlinux.org/\">vronlinux DB</a> if there are known bugs or workarounds.")
+        }
     }
 
     footer: Controls.DialogButtonBox {
