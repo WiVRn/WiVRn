@@ -374,6 +374,16 @@ Kirigami.ScrollablePage {
                     text: i18n("Connect by USB")
                     onClicked: select_usb_device.connect()
                     enabled: select_usb_device.connected_headset_count > 0
+
+                    Controls.ToolTip.visible: WivrnServer.serverStatus == WivrnServer.Started&& hovered
+                    Controls.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    Controls.ToolTip.text: {
+                        if (!Adb.adbInstalled)
+                            return i18n("ADB is not installed");
+                        if (select_usb_device.connected_headset_count == 0)
+                            return i18n("No headset is connected or your headset is not in developer mode");
+                        return "";
+                    }
                 }
             }
             Controls.Label {
