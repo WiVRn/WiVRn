@@ -67,6 +67,7 @@ void main()
 
     frag_pos = mesh.modelview[gl_ViewIndex] * vec4(in_position, 1.0);
     light_pos = scene.view[gl_ViewIndex] * scene.light_position;
+    vertex_color = in_color;
 
     for(int i = 0; i < nb_clipping; i++)
     {

@@ -5,7 +5,7 @@ const int nb_clipping = 4;
 const int nb_texcoords = 2;
 
 const bool use_pbr = false;
-const bool use_normal_maps = false;
+const bool use_normal_maps = true;
 
 layout(set = 0, binding = 0) uniform scene_ubo
 {
@@ -136,3 +136,4 @@ layout(location = 5) VS_TO_FS vec2 texcoord_metallic_roughness;
 layout(location = 6) VS_TO_FS vec2 texcoord_occlusion;
 layout(location = 7) VS_TO_FS vec2 texcoord_emissive;
 layout(location = 8) VS_TO_FS vec2 texcoord_normal;
+layout(location = 9) VS_TO_FS vec4 vertex_color;

@@ -30,7 +30,7 @@ layout(early_fragment_tests) in;
 
 void main()
 {
-    vec4 albedo = material.base_color_factor * texture(base_color_texture, texcoord_base_color);
+    vec4 albedo = vertex_color * material.base_color_factor * texture(base_color_texture, texcoord_base_color);
     vec3 emissive_color = (material.base_emissive_factor * texture(emissive_texture, texcoord_emissive)).rgb;
 
     vec3 normal_unit;
@@ -41,10 +41,10 @@ void main()
 
         // glTF spec §3.7.2.1
         vec3 bitangent = cross(normal, tangent.xyz) * tangent.w;
-        mat3 TBN = mat3(tangent.xyz, bitangent, normal); // View space to tangent space?
+        mat3 TBN = mat3(tangent.xyz, bitangent, normal);
 
         // Normal in view space
-        normal_unit = TBN * sampled_normal;
+        normal_unit = normalize(TBN * sampled_normal);
     }
     else
         normal_unit = normalize(normal);

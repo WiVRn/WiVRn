@@ -18,12 +18,10 @@
 
 #include "scene_loader.h"
 
-#include "application.h"
 #include "gpu_buffer.h"
 #include "image_loader.h"
 #include "render/scene_components.h"
 #include "render/vertex_layout.h"
-#include "utils/contains.h"
 #include "utils/files.h"
 #include "utils/json_string.h"
 #include "utils/mapped_file.h"
@@ -273,19 +271,45 @@ void write_vertex_attribute_aux(std::byte * output, size_t stride, int component
 	{
 		case 1:
 			for (size_t i = 0, n = input.size(); i < n; i++, output += stride)
-				*reinterpret_cast<glm::vec<1, T> *>(output) = glm::vec<1, T>(input[i].x);
+				*reinterpret_cast<glm::vec<1, T> *>(output) = input[i];
 			break;
 		case 2:
 			for (size_t i = 0, n = input.size(); i < n; i++, output += stride)
-				*reinterpret_cast<glm::vec<2, T> *>(output) = glm::vec<2, T>(input[i].x, input[i].y);
+				*reinterpret_cast<glm::vec<2, T> *>(output) = input[i];
 			break;
 		case 3:
 			for (size_t i = 0, n = input.size(); i < n; i++, output += stride)
-				*reinterpret_cast<glm::vec<3, T> *>(output) = glm::vec<3, T>(input[i].x, input[i].y, input[i].z);
+				*reinterpret_cast<glm::vec<3, T> *>(output) = input[i];
 			break;
 		case 4:
 			for (size_t i = 0, n = input.size(); i < n; i++, output += stride)
-				*reinterpret_cast<glm::vec<3, T> *>(output) = glm::vec<4, T>(input[i].x, input[i].y, input[i].z, input[i].w);
+				*reinterpret_cast<glm::vec<4, T> *>(output) = input[i];
+			break;
+		default:
+			abort();
+	}
+}
+
+template <typename T>
+void write_vertex_attribute_aux(std::byte * output, size_t stride, int components, glm::vec4 value, size_t size)
+{
+	switch (components)
+	{
+		case 1:
+			for (size_t i = 0, n = size; i < n; i++, output += stride)
+				*reinterpret_cast<glm::vec<1, T> *>(output) = value;
+			break;
+		case 2:
+			for (size_t i = 0, n = size; i < n; i++, output += stride)
+				*reinterpret_cast<glm::vec<2, T> *>(output) = value;
+			break;
+		case 3:
+			for (size_t i = 0, n = size; i < n; i++, output += stride)
+				*reinterpret_cast<glm::vec<3, T> *>(output) = value;
+			break;
+		case 4:
+			for (size_t i = 0, n = size; i < n; i++, output += stride)
+				*reinterpret_cast<glm::vec<4, T> *>(output) = value;
 			break;
 		default:
 			abort();
@@ -310,6 +334,24 @@ void write_vertex_attribute(std::vector<std::byte> & output, size_t offset, size
 	}
 }
 
+void write_vertex_attribute(std::vector<std::byte> & output, size_t offset, size_t stride, vk::Format format, glm::vec4 value, size_t size)
+{
+	assert(output.size() >= size * stride);
+
+	switch (format)
+	{
+		case vk::Format::eR32Sfloat:
+		case vk::Format::eR32G32Sfloat:
+		case vk::Format::eR32G32B32Sfloat:
+		case vk::Format::eR32G32B32A32Sfloat:
+			write_vertex_attribute_aux<float>(output.data() + offset, stride, vk::componentCount(format), value, size);
+			return;
+
+		default:
+			return;
+	}
+}
+
 void copy_vertex_attributes(
         const fastgltf::Asset & asset,
         const fastgltf::Accessor & accessor,
@@ -320,6 +362,18 @@ void copy_vertex_attributes(
 	assert(buffer.size() >= accessor.count * binding.stride);
 
 	write_vertex_attribute(buffer, attribute.offset, binding.stride, attribute.format, read_vertex_attribute(asset, accessor));
+}
+
+void fill_vertex_attributes(
+        glm::vec4 value,
+        size_t size,
+        std::vector<std::byte> & buffer,
+        const vk::VertexInputBindingDescription & binding,
+        const vk::VertexInputAttributeDescription & attribute)
+{
+	assert(buffer.size() >= size * binding.stride);
+
+	write_vertex_attribute(buffer, attribute.offset, binding.stride, attribute.format, value, size);
 }
 
 std::pair<size_t, std::vector<std::vector<std::byte>>> create_vertex_buffers(
@@ -370,7 +424,20 @@ std::pair<size_t, std::vector<std::vector<std::byte>>> create_vertex_buffers(
 			gltf_attribute = primitive.findAttribute(name + "_0");
 
 			if (gltf_attribute == primitive.attributes.cend())
+			{
+				// If the attribute is not specified in the glTF, use the default value or 0 if none is found
+				static const std::unordered_map<std::string_view, glm::vec4> default_values = {
+				        std::pair{"COLOR", glm::vec4{1, 1, 1, 1}}};
+
+				if (auto iter = default_values.find(name); iter != default_values.end())
+					fill_vertex_attributes(iter->second, vertex_count, buffer, binding, attribute);
+				else
+				{
+					// The buffer is already initialized at 0
+				}
+
 				continue;
+			}
 		}
 
 		const fastgltf::Accessor & accessor = asset.accessors.at(gltf_attribute->accessorIndex);
@@ -842,6 +909,7 @@ public:
 
 					int binding;
 
+					// Attributes that affect the vertices position go in a different buffer
 					if (semantic == "POSITION" or
 					    semantic == "JOINTS" or
 					    semantic == "WEIGHTS")
