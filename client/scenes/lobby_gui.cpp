@@ -568,6 +568,7 @@ void scenes::lobby::gui_settings()
 			}
 			ImGui::EndCombo();
 		}
+		imgui_ctx->vibrate_on_hover();
 	}
 
 	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
@@ -731,8 +732,8 @@ void scenes::lobby::gui_settings()
 			}
 
 			ImGui::EndCombo();
-			imgui_ctx->vibrate_on_hover();
 		}
+		imgui_ctx->vibrate_on_hover();
 
 		if (config.codec == wivrn::video_codec::av1 or config.codec == wivrn::video_codec::h265)
 		{
