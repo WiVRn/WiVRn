@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-12-12 12:59+0800\n"
-"PO-Revision-Date: 2025-12-13 01:00+0800\n"
+"PO-Revision-Date: 2025-12-14 20:11+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -593,7 +593,6 @@ msgid "Open local glTF model"
 msgstr "打开本地 glTF 模型"
 
 #: client/scenes/stream_gui.cpp:174
-#, fuzzy
 msgid "Defoveate"
 msgstr "去凹形畸变"
 
