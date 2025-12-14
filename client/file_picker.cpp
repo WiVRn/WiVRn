@@ -43,26 +43,31 @@ std::future<file_picker_result> file_picker::open()
 	open_doc.start([promise](int result_code, intent && data) mutable {
 		try
 		{
-			if (result_code != -1 /* Activity.RESULT_OK */)
-				return;
+			if (result_code == -1 /* Activity.RESULT_OK */)
+			{
+				auto uri = data.get_uri();
+				auto uri_string = (std::string)uri.call<jni::string>("toString");
 
-			auto uri = data.get_uri();
-			auto uri_string = (std::string)uri.call<jni::string>("toString");
+				jni::object<""> activity(application::native_app()->activity->clazz);
+				auto content_resolver = activity.call<jni::object<"android/content/ContentResolver">>("getContentResolver");
 
-			jni::object<""> activity(application::native_app()->activity->clazz);
-			auto content_resolver = activity.call<jni::object<"android/content/ContentResolver">>("getContentResolver");
+				content_resolver.call<void>("takePersistableUriPermission", uri, jni::Int{1} /* Intent.FLAG_GRANT_READ_URI_PERMISSION */);
 
-			content_resolver.call<void>("takePersistableUriPermission", uri, jni::Int{1} /* Intent.FLAG_GRANT_READ_URI_PERMISSION */);
+				auto pfd = content_resolver.call<jni::object<"android/os/ParcelFileDescriptor">>("openFileDescriptor", uri, jni::string{"r"});
+				int fd = pfd.call<int>("getFd");
 
-			auto pfd = content_resolver.call<jni::object<"android/os/ParcelFileDescriptor">>("openFileDescriptor", uri, jni::string{"r"});
-			int fd = pfd.call<int>("getFd");
-
-			// The file descriptor is owned by the ParcelFileDescriptor, dup it before
-			// passing it to mapped_file to ensure the original fd is not closed
-			promise->set_value(file_picker_result{
-			        .path = uri_string,
-			        .file = utils::mapped_file{fd},
-			});
+				// The file descriptor is owned by the ParcelFileDescriptor, dup it before
+				// passing it to mapped_file to ensure the original fd is not closed
+				promise->set_value({
+				        .accepted = true,
+				        .path = uri_string,
+				        .file = utils::mapped_file{fd},
+				});
+			}
+			else
+			{
+				promise->set_value({.accepted = false});
+			}
 		}
 		catch (...)
 		{

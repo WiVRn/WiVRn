@@ -196,13 +196,18 @@ void scenes::lobby::update_file_picker()
 	try
 	{
 		load_environment_status = "";
+		file_picker_result picked_file = lobby_file_picker_future.get();
+
+		if (not picked_file)
+			return;
+
 		future_environment = utils::async<std::pair<std::string, std::shared_ptr<entt::registry>>, float>(
-		        [this](auto token, file_picker_result environment) {
+		        [this, picked_file = std::move(picked_file)](auto token) {
 			        auto t = std::chrono::system_clock::now();
 			        auto local_path = application::get_cache_path() / fmt::format("local-{:%F-%T}.glb", t);
 			        auto local_screenshot_path = application::get_cache_path() / fmt::format("local-{:%F-%T}.png", t);
 
-			        utils::write_whole_file(local_path, (std::span<const std::byte>)environment.file);
+			        utils::write_whole_file(local_path, (std::span<const std::byte>)picked_file.file);
 
 			        environment_model model{
 			                .name = _S("Locally loaded environment"),
@@ -210,7 +215,7 @@ void scenes::lobby::update_file_picker()
 			                .description = "",
 			                .screenshot_url = "",
 			                .gltf_url = fmt::format("local-{:%F-%T}", t), // Used as key
-			                .size = environment.file.size(),
+			                .size = picked_file.file.size(),
 			                .local_screenshot_path = local_screenshot_path,
 			                .local_gltf_path = local_path,
 			        };
@@ -287,8 +292,7 @@ void scenes::lobby::update_file_picker()
 			        write_image(device, queue, queue_family_index, local_screenshot_path, output);
 
 			        return std::make_pair(local_path, env);
-		        },
-		        lobby_file_picker_future.get());
+		        });
 	}
 	catch (std::exception & e)
 	{

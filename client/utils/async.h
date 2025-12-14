@@ -217,7 +217,7 @@ future<Result, Progress> async(F && f, Args &&... args)
 	fut.shared_state = std::make_shared<typename future<Result, Progress>::state>();
 
 	fut.shared_state->thread = std::thread(
-	        [f](async_token<Result, Progress> token, Args &&... args) {
+	        [f = std::move(f)](async_token<Result, Progress> token, Args &&... args) {
 		        try
 		        {
 			        token.set_result(std::invoke(f, token, std::forward<Args>(args)...));
