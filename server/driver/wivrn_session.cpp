@@ -199,41 +199,48 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	auto use_steamvr_lh = configuration().use_steamvr_lh || std::getenv("WIVRN_USE_STEAMVR_LH");
 	xrt_system_devices * lhdevs = NULL;
 
-	if (use_steamvr_lh && steamvr_lh_create_devices(nullptr, &lhdevs) == XRT_SUCCESS)
+	if (use_steamvr_lh)
 	{
-		for (int i = 0; i < lhdevs->xdev_count; i++)
+		U_LOG_W("=====================");
+		U_LOG_W("Disregard lighthousedb / chaperone related error messages from the lighthouse driver. These are irrelevant in case of WiVRn.");
+		U_LOG_W("If getting a SIGSEGV right after this, you are likely using an unsupported SteamVR version!");
+		U_LOG_W("=====================");
+		if (steamvr_lh_create_devices(nullptr, &lhdevs) == XRT_SUCCESS)
 		{
-			auto lhdev = lhdevs->xdevs[i];
-			switch (lhdev->device_type)
+			for (int i = 0; i < lhdevs->xdev_count; i++)
 			{
-				case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
-					roles.left = xdev_count;
-					static_roles.hand_tracking.unobstructed.left = nullptr;
-					static_roles.hand_tracking.conforming.left = lhdev;
-					break;
-				case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER:
-					roles.right = xdev_count;
-					static_roles.hand_tracking.unobstructed.right = nullptr;
-					static_roles.hand_tracking.conforming.right = lhdev;
-					break;
-				case XRT_DEVICE_TYPE_ANY_HAND_CONTROLLER:
-					if (roles.left == left_controller_index)
-					{
+				auto lhdev = lhdevs->xdevs[i];
+				switch (lhdev->device_type)
+				{
+					case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
 						roles.left = xdev_count;
 						static_roles.hand_tracking.unobstructed.left = nullptr;
 						static_roles.hand_tracking.conforming.left = lhdev;
-					}
-					else if (roles.right == right_controller_index)
-					{
+						break;
+					case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER:
 						roles.right = xdev_count;
 						static_roles.hand_tracking.unobstructed.right = nullptr;
 						static_roles.hand_tracking.conforming.right = lhdev;
-					}
-					break;
-				default:
-					break;
+						break;
+					case XRT_DEVICE_TYPE_ANY_HAND_CONTROLLER:
+						if (roles.left == left_controller_index)
+						{
+							roles.left = xdev_count;
+							static_roles.hand_tracking.unobstructed.left = nullptr;
+							static_roles.hand_tracking.conforming.left = lhdev;
+						}
+						else if (roles.right == right_controller_index)
+						{
+							roles.right = xdev_count;
+							static_roles.hand_tracking.unobstructed.right = nullptr;
+							static_roles.hand_tracking.conforming.right = lhdev;
+						}
+						break;
+					default:
+						break;
+				}
+				xdevs[xdev_count++] = lhdev;
 			}
-			xdevs[xdev_count++] = lhdev;
 		}
 	}
 #endif
