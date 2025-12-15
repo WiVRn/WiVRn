@@ -1285,9 +1285,18 @@ void scenes::lobby::on_focused()
 
 	auto t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	auto tm = std::localtime(&t);
-	std::string image = tm->tm_mon == 5 ? "wivrn-pride" : "wivrn";
-
-	about_picture = imgui_ctx->load_texture("assets://" + image + ".ktx2");
+	switch (tm->tm_mon)
+	{
+		case 5:
+			about_picture = imgui_ctx->load_texture("assets://wivrn-pride.ktx2");
+			break;
+		case 11:
+			about_picture = imgui_ctx->load_texture("assets://wivrn-christmas.ktx2");
+			break;
+		default:
+			about_picture = imgui_ctx->load_texture("assets://wivrn.ktx2");
+			break;
+	}
 
 	default_environment_screenshot = imgui_ctx->load_texture("assets://default-environment.ktx2");
 

@@ -263,11 +263,13 @@ set(ASSETS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../assets-source)
 
 wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn.svg               DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png               WIDTH 540 HEIGHT 540 CSS ${WIVRN_CSS_ABS})
 wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn-pride.svg         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/wivrn-pride.png         WIDTH 540 HEIGHT 540 CSS ${WIVRN_CSS_ABS})
+wivrn_rasterize_svg(SOURCE ${IMAGES_SRC_DIR}/wivrn-christmas.svg     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/wivrn-christmas.png     WIDTH 540 HEIGHT 540 CSS ${WIVRN_CSS_ABS})
 wivrn_rasterize_svg(SOURCE ${ASSETS_SRC_DIR}/passthrough.svg         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/passthrough.png         WIDTH 256 HEIGHT 256)
 wivrn_rasterize_svg(SOURCE ${ASSETS_SRC_DIR}/default-environment.svg DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/default-environment.png WIDTH 256 HEIGHT 256)
 
 wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/wivrn.png                 DESTINATION ${ASSETS_DIR}/wivrn.ktx2                          TARGET wivrn)
 wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/wivrn-pride.png           DESTINATION ${ASSETS_DIR}/wivrn-pride.ktx2                    TARGET wivrn)
+wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/wivrn-christmas.png       DESTINATION ${ASSETS_DIR}/wivrn-christmas.ktx2                TARGET wivrn)
 wivrn_generate_ktx(        SOURCE ${ASSETS_SRC_DIR}/default_icon.png                    DESTINATION ${ASSETS_DIR}/default_icon.ktx2                   TARGET wivrn)
 wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/passthrough.png           DESTINATION ${ASSETS_DIR}/passthrough.ktx2                    TARGET wivrn)
 wivrn_generate_ktx(        SOURCE ${CMAKE_CURRENT_BINARY_DIR}/default-environment.png   DESTINATION ${ASSETS_DIR}/default-environment.ktx2            TARGET wivrn)
