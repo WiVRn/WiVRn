@@ -127,7 +127,7 @@ class prober
 			        vk,
 			        encoder_settings{
 			                .width = 800,
-			                .height = 600,
+			                .height = 800,
 			                .codec = codec,
 			                .fps = 60,
 			                .bitrate = 50'000'000,
@@ -159,7 +159,7 @@ class prober
 			        vk,
 			        encoder_settings{
 			                .width = 800,
-			                .height = 600,
+			                .height = 800,
 			                .codec = codec,
 			                .fps = 60,
 			                .bitrate = 50'000'000,
