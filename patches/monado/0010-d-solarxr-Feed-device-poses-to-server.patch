@@ -1,0 +1,866 @@
+From 9041dad492652ed1173cb381ee4da9b16b1a96f8 Mon Sep 17 00:00:00 2001
+From: rcelyte <rcelyte@battletrains.org>
+Date: Mon, 15 Sep 2025 22:46:15 +0000
+Subject: [PATCH 10/10] d/solarxr: Feed device poses to server
+
+---
+ src/xrt/drivers/CMakeLists.txt              |   2 +
+ src/xrt/drivers/solarxr/feeder.c            | 331 ++++++++++++++++++++
+ src/xrt/drivers/solarxr/feeder.h            |  85 +++++
+ src/xrt/drivers/solarxr/protocol.h          |  30 +-
+ src/xrt/drivers/solarxr/solarxr_device.c    | 161 ++++++----
+ src/xrt/drivers/solarxr/solarxr_interface.h |  20 ++
+ 6 files changed, 565 insertions(+), 64 deletions(-)
+ create mode 100644 src/xrt/drivers/solarxr/feeder.c
+ create mode 100644 src/xrt/drivers/solarxr/feeder.h
+
+diff --git a/src/xrt/drivers/CMakeLists.txt b/src/xrt/drivers/CMakeLists.txt
+index bd31b3374..f8406e0f3 100644
+--- a/src/xrt/drivers/CMakeLists.txt
++++ b/src/xrt/drivers/CMakeLists.txt
+@@ -529,6 +529,8 @@ endif()
+ if(XRT_BUILD_DRIVER_SOLARXR)
+ 	add_library(
+ 		drv_solarxr STATIC
++		solarxr/feeder.c
++		solarxr/feeder.h
+ 		solarxr/protocol.c
+ 		solarxr/protocol.h
+ 		solarxr/solarxr_device.c
+diff --git a/src/xrt/drivers/solarxr/feeder.c b/src/xrt/drivers/solarxr/feeder.c
+new file mode 100644
+index 000000000..596a61008
+--- /dev/null
++++ b/src/xrt/drivers/solarxr/feeder.c
+@@ -0,0 +1,331 @@
++// Copyright 2025, rcelyte
++// SPDX-License-Identifier: BSL-1.0
++/*!
++ * @file
++ * @brief  SolarXR pose feeder
++ * @ingroup drv_solarxr
++ */
++
++#include "feeder.h"
++#include "solarxr_ipc_message.h"
++
++#include "util/u_hashmap.h"
++#include "xrt/xrt_device.h"
++
++#include <math.h>
++
++#define PROTOBUF_FLOAT(v_) ((uint8_t *)&(v_))[0], ((uint8_t *)&(v_))[1], ((uint8_t *)&(v_))[2], ((uint8_t *)&(v_))[3]
++#define PROTOBUF_INT32(v_)                                                                                             \
++	(uint8_t)(0x80 | (uint32_t)(v_)), (uint8_t)(0x80 | (uint32_t)(v_) >> 7),                                       \
++	    (uint8_t)(0x80 | (uint32_t)(v_) >> 14), (uint8_t)(0x80 | (uint32_t)(v_) >> 21), (uint32_t)(v_) >> 28
++
++struct feeder_device
++{
++	struct feeder_device *next_to_erase;
++	struct xrt_device *xdev;
++	enum xrt_input_name input_name;
++	uint32_t id;
++	bool destroyed;
++	uint8_t last_status;
++	bool battery_charging;
++	float battery_charge;
++};
++
++bool
++feeder_add_device(struct feeder *const feeder, struct xrt_device *const xdev)
++{
++	if (xdev == NULL || !xdev->supported.orientation_tracking) {
++		return false;
++	}
++	os_mutex_lock(&feeder->mutex);
++
++	bool result = false;
++	if (!solarxr_ipc_socket_is_connected(&feeder->socket) &&
++	    !solarxr_ipc_socket_connect(&feeder->socket,
++	                                solarxr_ipc_socket_find(feeder->socket.log_level, "SlimeVRInput"))) {
++		goto unlock;
++	}
++
++	// find a suitable pose input to report
++	enum xrt_input_name input_name = XRT_INPUT_GENERIC_TRACKER_POSE;
++	for (size_t input = 0, input_count = xdev->input_count; input < input_count; ++input) {
++		if (XRT_GET_INPUT_TYPE(xdev->inputs[input].name) == XRT_INPUT_TYPE_POSE) {
++			input_name = xdev->inputs[input].name;
++			break;
++		}
++	}
++
++	uint8_t role = 0;
++	const char *role_name = "NONE";
++	switch (xdev->device_type) {
++	case XRT_DEVICE_TYPE_HMD: {
++		role = 19;
++		role_name = "HMD";
++	} break;
++	case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER: {
++		role = 14;
++		role_name = "RIGHT_CONTROLLER";
++	} break;
++	case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER: {
++		role = 13;
++		role_name = "LEFT_CONTROLLER";
++	} break;
++	case XRT_DEVICE_TYPE_ANY_HAND_CONTROLLER: {
++		role = 21;
++		role_name = "GENERIC_CONTROLLER";
++	} break;
++	default:;
++	}
++
++	// serialize announcement packet
++	const uint32_t serial_len = strlen(xdev->serial), name_len = strlen(xdev->str);
++	const uint8_t message_1[] = {
++	    (3 << 3) | 2, PROTOBUF_INT32(0),               // ProtobufMessage::tracker_added
++	    (1 << 3) | 0, PROTOBUF_INT32(feeder->next_id), // TrackerAdded::tracker_id
++	    (4 << 3) | 0, role,                            // TrackerAdded::tracker_role
++	    (2 << 3) | 2, PROTOBUF_INT32(serial_len),
++	};
++	const uint8_t message_2[] = {
++	    (3 << 3) | 2,
++	    PROTOBUF_INT32(name_len),
++	};
++	uint8_t packet[sizeof(struct solarxr_ipc_message) + sizeof(message_1) + sizeof(xdev->serial) +
++	               sizeof(message_2) + sizeof(xdev->str)];
++	struct solarxr_ipc_message *const message = solarxr_ipc_message_start(packet, &packet[ARRAY_SIZE(packet)]);
++	solarxr_ipc_message_write(message, &packet[ARRAY_SIZE(packet)], message_1, sizeof(message_1));
++	solarxr_ipc_message_write(message, &packet[ARRAY_SIZE(packet)], (const uint8_t *)xdev->serial,
++	                          serial_len); // TrackerAdded::tracker_serial
++	solarxr_ipc_message_write(message, &packet[ARRAY_SIZE(packet)], message_2, sizeof(message_2));
++	solarxr_ipc_message_write(message, &packet[ARRAY_SIZE(packet)], (const uint8_t *)xdev->str,
++	                          name_len); // TrackerAdded::tracker_name
++	const uint32_t packet_len = solarxr_ipc_message_end(message, &(uint8_t *){packet});
++	if (packet_len == 0) {
++		U_LOG_IFL_E(feeder->socket.log_level, "solarxr_ipc_message_end() failed");
++		assert(false);
++		goto unlock;
++	}
++
++	// initialize tracked state for the device
++	struct feeder_device *const device = malloc(sizeof(*device));
++	if (device == NULL) {
++		U_LOG_IFL_E(feeder->socket.log_level, "malloc() failed");
++		goto unlock;
++	}
++	*device = (struct feeder_device){
++	    .xdev = xdev,
++	    .input_name = input_name,
++	    .id = feeder->next_id++,
++	    .last_status = UINT8_MAX,
++	};
++	u_hashmap_int_insert(feeder->devices, (uint64_t)(uintptr_t)xdev, device);
++
++	// send the announcement
++	const uint8_t tracker_added[] = {
++	    PROTOBUF_INT32(packet_len - sizeof(*message) - sizeof((uint8_t[]){0, PROTOBUF_INT32(0)})),
++	};
++	memcpy(&message->body[1], tracker_added, sizeof(tracker_added));
++	solarxr_ipc_socket_send_raw(&feeder->socket, packet, packet_len);
++	U_LOG_IFL_D(feeder->socket.log_level, "    \"%s\" [id=%" PRIu32 " serial=\"%s\" role=TrackerRole::%s]",
++	            xdev->str, device->id, xdev->serial, role_name);
++	result = true;
++
++unlock:
++	os_mutex_unlock(&feeder->mutex);
++	return result;
++}
++
++static void
++feeder_device_unlink(struct feeder_device *const device,
++                     struct xrt_device *const xdev,
++                     const enum u_logging_level log_level)
++{
++	if (device != NULL) {
++		device->destroyed = true;
++		U_LOG_IFL_D(log_level, "device \"%.*s\" removed", (unsigned)ARRAY_SIZE(xdev->str), xdev->str);
++	}
++}
++
++void
++feeder_remove_device(struct feeder *const feeder, struct xrt_device *const xdev)
++{
++	os_mutex_lock(&feeder->mutex);
++
++	struct feeder_device *device = NULL;
++	u_hashmap_int_find(feeder->devices, (uint64_t)(uintptr_t)xdev, (void **)&device);
++	feeder_device_unlink(device, xdev, feeder->socket.log_level);
++
++	os_mutex_unlock(&feeder->mutex);
++}
++
++static void
++feeder_device_remove_cb(const uint64_t key, const void *const value, void *const userptr)
++{
++	struct feeder_device *const device = (struct feeder_device *)value;
++	if (!device->destroyed) { // xdev pointer may be dangling if destroyed
++		feeder_device_unlink(device, (struct xrt_device *)(uintptr_t)key,
++		                     ((struct feeder *)userptr)->socket.log_level);
++	}
++}
++
++void
++feeder_clear_devices(struct feeder *const feeder)
++{
++	os_mutex_lock(&feeder->mutex);
++	u_hashmap_int_for_each(feeder->devices, feeder_device_remove_cb, feeder);
++	os_mutex_unlock(&feeder->mutex);
++}
++
++struct send_feedback_userdata
++{
++	struct feeder_device *to_erase;
++	timepoint_ns time;
++	uint8_t *packet_end, packet[0x10000];
++};
++
++static void
++feeder_device_send_feedback_cb(const uint64_t key, const void *const value, void *const userptr)
++{
++	struct feeder_device *const device = (struct feeder_device *)value;
++	struct xrt_device *const xdev = device->destroyed ? NULL : (struct xrt_device *)(uintptr_t)key;
++	struct send_feedback_userdata *const data = (struct send_feedback_userdata *)userptr;
++	uint8_t status = 0; // Status::DISCONNECTED
++	if (xdev == NULL) {
++		device->next_to_erase = data->to_erase;
++		data->to_erase = device;
++	} else {
++		// report meaningful changes in battery level
++		bool present = false, charging = false;
++		float charge = 0;
++		if (xdev->supported.battery_status &&
++		    xrt_device_get_battery_status(xdev, &present, &charging, &charge) == XRT_SUCCESS &&
++		    (charging != device->battery_charging || fabsf(charge - device->battery_charge) >= 1e-05)) {
++			device->battery_charging = charging;
++			device->battery_charge = charge;
++			uint8_t message[] = {
++			    (5 << 3) | 2, 0,                          // ProtobufMessage::battery
++			    (1 << 3) | 0, PROTOBUF_INT32(device->id), // Battery::tracker_id
++			    (2 << 3) | 5, PROTOBUF_FLOAT(charge),     // Battery::battery_level
++			    (3 << 3) | 0, charging,                   // Battery::is_charging
++			};
++			message[1] = sizeof(message) - 2;
++			solarxr_ipc_message_write_single(&data->packet_end, &data->packet[ARRAY_SIZE(data->packet)],
++			                                 message, sizeof(message));
++		}
++
++		// report pose
++		struct xrt_space_relation relation = {0};
++		assert(xdev->get_tracked_pose != NULL);
++		if (xrt_device_get_tracked_pose(xdev, device->input_name, data->time, &relation) == XRT_SUCCESS &&
++		    (relation.relation_flags & XRT_SPACE_RELATION_ORIENTATION_VALID_BIT) != 0) {
++			uint8_t message[30 + 15] = {
++			    (1 << 3) | 2, 0,                                           // ProtobufMessage::position
++			    (1 << 3) | 0, PROTOBUF_INT32(device->id),                  // Position::tracker_id
++			    (5 << 3) | 5, PROTOBUF_FLOAT(relation.pose.orientation.x), // Position::qx
++			    (6 << 3) | 5, PROTOBUF_FLOAT(relation.pose.orientation.y), // Position::qy
++			    (7 << 3) | 5, PROTOBUF_FLOAT(relation.pose.orientation.z), // Position::qz
++			    (8 << 3) | 5, PROTOBUF_FLOAT(relation.pose.orientation.w), // Position::qw
++			    (9 << 3) | 0, 3, // Position::data_source = DataSource::FULL
++			};
++			uint32_t message_len = sizeof(message);
++			if ((relation.relation_flags & XRT_SPACE_RELATION_POSITION_VALID_BIT) != 0) {
++				const uint8_t position[15] = {
++				    (2 << 3) | 5, PROTOBUF_FLOAT(relation.pose.position.x), // Position::x
++				    (3 << 3) | 5, PROTOBUF_FLOAT(relation.pose.position.y), // Position::y
++				    (4 << 3) | 5, PROTOBUF_FLOAT(relation.pose.position.z), // Position::z
++				};
++				memcpy(&message[sizeof(message) - sizeof(position)], position, sizeof(position));
++			} else {
++				message_len -= 15;
++			}
++			message[1] = message_len - 2;
++			solarxr_ipc_message_write_single(&data->packet_end, &data->packet[ARRAY_SIZE(data->packet)],
++			                                 message, message_len);
++			if ((relation.relation_flags & XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT) != 0) {
++				status = 1; // Status::OK
++			}
++		}
++	}
++
++	// report tracking status
++	if (status != device->last_status) {
++		device->last_status = status;
++		uint8_t message[] = {
++		    (4 << 3) | 2, 0,                          // ProtobufMessage::tracker_status
++		    (1 << 3) | 0, PROTOBUF_INT32(device->id), // TrackerStatus::tracker_id
++		    (2 << 3) | 0, status,                     // TrackerStatus::status
++		};
++		message[1] = sizeof(message) - 2;
++		solarxr_ipc_message_write_single(&data->packet_end, &data->packet[ARRAY_SIZE(data->packet)], message,
++		                                 sizeof(message));
++	}
++}
++
++void
++feeder_send_feedback(struct feeder *const feeder)
++{
++	if (!solarxr_ipc_socket_is_connected(&feeder->socket)) {
++		return;
++	}
++
++	// check for errors on the socket
++	if (!solarxr_ipc_socket_wait_timeout(&feeder->socket, 0)) {
++		U_LOG_IFL_E(feeder->socket.log_level, "connection lost");
++		solarxr_ipc_socket_destroy(&feeder->socket);
++		return;
++	}
++
++	os_mutex_lock(&feeder->mutex);
++
++	struct send_feedback_userdata data;
++	data.to_erase = NULL;
++	data.time = os_monotonic_get_ns();
++	data.packet_end = data.packet;
++	u_hashmap_int_for_each(feeder->devices, feeder_device_send_feedback_cb, &data);
++
++	// flush queued messages to socket
++	if (data.packet_end != data.packet) {
++		solarxr_ipc_socket_send_raw(&feeder->socket, data.packet, data.packet_end - data.packet);
++	}
++
++	while (data.to_erase != NULL) {
++		struct feeder_device *const entry = data.to_erase;
++		data.to_erase = entry->next_to_erase;
++		u_hashmap_int_erase(feeder->devices, (uint64_t)(uintptr_t)entry->xdev);
++		free(entry);
++	}
++
++	os_mutex_unlock(&feeder->mutex);
++}
++
++bool
++feeder_init(struct feeder *const feeder, const enum u_logging_level log_level)
++{
++	feeder->devices = NULL;
++	solarxr_ipc_socket_init(&feeder->socket, log_level);
++	if (os_mutex_init(&feeder->mutex) != 0) {
++		return false;
++	}
++	u_hashmap_int_create(&feeder->devices);
++	return true;
++}
++
++static void
++feeder_device_free_cb(const uint64_t key, const void *const value, void *const userptr)
++{
++	(void)key;
++	(void)userptr;
++	free((void *)value);
++}
++
++void
++feeder_fini(struct feeder *const feeder)
++{
++	if (feeder->devices != NULL) {
++		feeder_clear_devices(feeder);
++		feeder_send_feedback(feeder);
++		u_hashmap_int_for_each(feeder->devices, feeder_device_free_cb, NULL);
++		u_hashmap_int_destroy(&feeder->devices);
++	}
++	os_mutex_destroy(&feeder->mutex);
++	solarxr_ipc_socket_destroy(&feeder->socket);
++}
+diff --git a/src/xrt/drivers/solarxr/feeder.h b/src/xrt/drivers/solarxr/feeder.h
+new file mode 100644
+index 000000000..cb8de6d06
+--- /dev/null
++++ b/src/xrt/drivers/solarxr/feeder.h
+@@ -0,0 +1,85 @@
++// Copyright 2025, rcelyte
++// SPDX-License-Identifier: BSL-1.0
++/*!
++ * @file
++ * @brief  SolarXR pose feeder
++ * @ingroup drv_solarxr
++ */
++
++#pragma once
++#include "solarxr_ipc_socket.h"
++
++#include "os/os_threading.h"
++
++/*!
++ * Object that observes a collection of @ref xrt_device objects,
++ * reporting their poses and status to a SolarXR server over IPC
++ * @ingroup drv_solarxr
++ */
++struct u_hashmap_int;
++struct feeder
++{
++	struct os_mutex mutex;
++	struct solarxr_ipc_socket socket;
++	uint32_t next_id;
++	struct u_hashmap_int *devices;
++};
++
++bool
++feeder_init(struct feeder *feeder, enum u_logging_level log_level);
++
++void
++feeder_fini(struct feeder *feeder);
++
++/*!
++ * Register a device to observe and announce it to the server
++ *
++ * Holds the mutex during most of the operation.
++ *
++ * @param feeder self
++ * @param device device to register
++ *
++ * @return true on success.
++ *
++ * @public @memberof feeder
++ */
++bool
++feeder_add_device(struct feeder *feeder, struct xrt_device *xdev); // thread safe
++
++/*!
++ * Unregister a previously added device
++ *
++ * Holds the mutex during most of the operation.
++ *
++ * @param feeder self
++ * @param device device to unregister
++ *
++ * @public @memberof feeder
++ */
++void
++feeder_remove_device(struct feeder *feeder, struct xrt_device *xdev); // thread safe
++
++/*!
++ * Unregister all observed devices
++ *
++ * Holds the mutex during most of the operation.
++ *
++ * @param feeder self
++ *
++ * @public @memberof feeder
++ */
++void
++feeder_clear_devices(struct feeder *feeder); // thread safe
++
++/*!
++ * Poll all observed xdevs and
++ *
++ * Holds the mutex during most of the operation.
++ *
++ * @param feeder self
++ * @param time Timestamp used to query device poses
++ *
++ * @public @memberof feeder
++ */
++void
++feeder_send_feedback(struct feeder *feeder); // thread safe
+diff --git a/src/xrt/drivers/solarxr/protocol.h b/src/xrt/drivers/solarxr/protocol.h
+index 35c1dd917..b397dff41 100644
+--- a/src/xrt/drivers/solarxr/protocol.h
++++ b/src/xrt/drivers/solarxr/protocol.h
+@@ -89,10 +89,12 @@ struct solarxr_tracker_id
+ 	uint8_t tracker_num;
+ };
+ 
++typedef FLATBUFFERS_VECTOR(char) flatbuffers_vector_char_t;
++
+ struct solarxr_tracker_info
+ { // table solarxr_protocol.data_feed.tracker.TrackerInfo
+ 	enum solarxr_body_part body_part;
+-	FLATBUFFERS_VECTOR(char) display_name;
++	flatbuffers_vector_char_t display_name;
+ };
+ 
+ typedef struct
+@@ -120,10 +122,12 @@ typedef struct
+ 	flatbuffers_uoffset_t offset;
+ } solarxr_device_data_t;
+ 
++typedef FLATBUFFERS_VECTOR(solarxr_tracker_data_t) flatbuffers_vector_solarxr_tracker_data_t;
++
+ struct solarxr_device_data
+ { // table solarxr_protocol.data_feed.device_data.DeviceData
+ 	uint8_t id;
+-	FLATBUFFERS_VECTOR(solarxr_tracker_data_t) trackers; // solarxr_protocol.data_feed.tracker.TrackerData[]
++	flatbuffers_vector_solarxr_tracker_data_t trackers; // solarxr_protocol.data_feed.tracker.TrackerData[]
+ };
+ 
+ typedef struct
+@@ -139,12 +143,15 @@ struct solarxr_bone
+ 	struct xrt_vec3 head_position_g;
+ };
+ 
++typedef FLATBUFFERS_VECTOR(solarxr_device_data_t) flatbuffers_vector_solarxr_device_data_t;
++typedef FLATBUFFERS_VECTOR(solarxr_bone_t) flatbuffers_vector_solarxr_bone_t;
++
+ struct solarxr_data_feed_update
+-{                                                          // table solarxr_protocol.data_feed.DataFeedUpdate
+-	FLATBUFFERS_VECTOR(solarxr_device_data_t) devices; // solarxr_protocol.data_feed.device_data.DeviceData[]
+-	FLATBUFFERS_VECTOR(solarxr_tracker_data_t)
+-	synthetic_trackers;                       // solarxr_protocol.data_feed.tracker.TrackerData[]
+-	FLATBUFFERS_VECTOR(solarxr_bone_t) bones; // solarxr_protocol.data_feed.Bone[]
++{                                                         // table solarxr_protocol.data_feed.DataFeedUpdate
++	flatbuffers_vector_solarxr_device_data_t devices; // solarxr_protocol.data_feed.device_data.DeviceData[]
++	flatbuffers_vector_solarxr_tracker_data_t
++	    synthetic_trackers;                  // solarxr_protocol.data_feed.tracker.TrackerData[]
++	flatbuffers_vector_solarxr_bone_t bones; // solarxr_protocol.data_feed.Bone[]
+ };
+ 
+ enum solarxr_data_feed_message_type
+@@ -214,11 +221,14 @@ typedef struct
+ 	flatbuffers_uoffset_t offset;
+ } solarxr_message_bundle_t;
+ 
++typedef FLATBUFFERS_VECTOR(solarxr_data_feed_message_header_t) flatbuffers_vector_solarxr_data_feed_message_header_t;
++typedef FLATBUFFERS_VECTOR(solarxr_rpc_message_header_t) flatbuffers_vector_solarxr_rpc_message_header_t;
++
+ struct solarxr_message_bundle
+ { // table solarxr_protocol.MessageBundle
+-	FLATBUFFERS_VECTOR(solarxr_data_feed_message_header_t)
+-	data_feed_msgs;                                            // solarxr_protocol.data_feed.DataFeedMessageHeader[]
+-	FLATBUFFERS_VECTOR(solarxr_rpc_message_header_t) rpc_msgs; // solarxr_protocol.rpc.RpcMessageHeader[]
++	flatbuffers_vector_solarxr_data_feed_message_header_t
++	    data_feed_msgs;                                       // solarxr_protocol.data_feed.DataFeedMessageHeader[]
++	flatbuffers_vector_solarxr_rpc_message_header_t rpc_msgs; // solarxr_protocol.rpc.RpcMessageHeader[]
+ };
+ 
+ bool
+diff --git a/src/xrt/drivers/solarxr/solarxr_device.c b/src/xrt/drivers/solarxr/solarxr_device.c
+index 29c0f9716..4a65a7494 100644
+--- a/src/xrt/drivers/solarxr/solarxr_device.c
++++ b/src/xrt/drivers/solarxr/solarxr_device.c
+@@ -2,6 +2,7 @@
+ // SPDX-License-Identifier: BSL-1.0
+ 
+ #include "solarxr_interface.h"
++#include "feeder.h"
+ #include "protocol.h"
+ #include "solarxr_ipc_message.h"
+ #include "solarxr_ipc_socket.h"
+@@ -41,6 +42,7 @@ struct solarxr_generic_tracker
+ struct solarxr_device
+ {
+ 	struct xrt_device base;
++	struct feeder feeder;
+ 	struct os_thread thread;
+ 	struct solarxr_ipc_socket socket;
+ 	struct os_mutex mutex;
+@@ -305,7 +307,7 @@ solarxr_device_handle_trackers(struct solarxr_device *const device,
+ 	for (uint32_t i = 0; i < trackers_len; ++i) {
+ 		struct solarxr_tracker_data data;
+ 		if (!read_solarxr_tracker_data(&data, buffer.data, buffer.length, &trackers[i])) {
+-			U_LOG_IFL_W(debug_get_log_option_solarxr_log(), "read_solarxr_device_data() failed");
++			U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "read_solarxr_device_data() failed");
+ 			continue;
+ 		}
+ 
+@@ -557,7 +559,7 @@ solarxr_network_thread(void *const ptr)
+ 		struct solarxr_message_bundle bundle;
+ 		if (!read_solarxr_message_bundle(&bundle, buffer.data, buffer.length,
+ 		                                 (const solarxr_message_bundle_t *)buffer.data)) {
+-			U_LOG_IFL_W(debug_get_log_option_solarxr_log(), "read_solarxr_message_bundle() failed");
++			U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "read_solarxr_message_bundle() failed");
+ 			continue;
+ 		}
+ 
+@@ -568,7 +570,7 @@ solarxr_network_thread(void *const ptr)
+ 			struct solarxr_rpc_message_header header;
+ 			if (!read_solarxr_rpc_message_header(&header, buffer.data, buffer.length,
+ 			                                     &bundle.rpc_msgs.data[i])) {
+-				U_LOG_IFL_W(debug_get_log_option_solarxr_log(),
++				U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+ 				            "read_solarxr_rpc_message_header() failed");
+ 				continue;
+ 			}
+@@ -624,6 +626,8 @@ solarxr_network_thread(void *const ptr)
+ 			continue;
+ 		}
+ 
++		feeder_send_feedback(&device->feeder);
++
+ 		os_mutex_lock(&device->mutex);
+ 
+ 		FLATBUFFERS_VECTOR(solarxr_bone_t) bones = {0};
+@@ -631,7 +635,7 @@ solarxr_network_thread(void *const ptr)
+ 			struct solarxr_data_feed_message_header header;
+ 			if (!read_solarxr_data_feed_message_header(&header, buffer.data, buffer.length,
+ 			                                           &bundle.data_feed_msgs.data[0])) {
+-				U_LOG_IFL_W(debug_get_log_option_solarxr_log(),
++				U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+ 				            "read_solarxr_data_feed_message_header() failed");
+ 				continue;
+ 			}
+@@ -646,7 +650,7 @@ solarxr_network_thread(void *const ptr)
+ 					if (!read_solarxr_device_data(
+ 					        &device_data, buffer.data, buffer.length,
+ 					        &header.message.data_feed_update.devices.data[j])) {
+-						U_LOG_IFL_W(debug_get_log_option_solarxr_log(),
++						U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+ 						            "read_solarxr_device_data() failed");
+ 						continue;
+ 					}
+@@ -672,7 +676,7 @@ solarxr_network_thread(void *const ptr)
+ 			for (size_t i = 0; i < bones.length; ++i) {
+ 				struct solarxr_bone bone;
+ 				if (!read_solarxr_bone(&bone, buffer.data, buffer.length, &bones.data[i])) {
+-					U_LOG_IFL_W(debug_get_log_option_solarxr_log(), "read_solarxr_bone() failed");
++					U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "read_solarxr_bone() failed");
+ 					continue;
+ 				}
+ 
+@@ -760,6 +764,8 @@ solarxr_device_destroy(struct xrt_device *xdev)
+ 		os_thread_destroy(&device->thread);
+ 	}
+ 
++	feeder_fini(&device->feeder);
++
+ 	for (size_t i = 0; i < ARRAY_SIZE(device->trackers); ++i) {
+ 		m_relation_history_destroy(&device->trackers[i]);
+ 	}
+@@ -826,11 +832,12 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 		return 0;
+ 	}
+ 
+-	if (out_xdevs_cap > 1 + MAX_GENERIC_TRACKERS) {
+-		out_xdevs_cap = 1 + MAX_GENERIC_TRACKERS;
++	struct solarxr_device *device;
++	if (out_xdevs_cap > 1 + ARRAY_SIZE(device->trackers)) {
++		out_xdevs_cap = 1 + ARRAY_SIZE(device->trackers);
+ 	}
+ 
+-	struct solarxr_device *const device = U_DEVICE_ALLOCATE(struct solarxr_device, U_DEVICE_ALLOC_NO_FLAGS, 2, 0);
++	device = U_DEVICE_ALLOCATE(struct solarxr_device, U_DEVICE_ALLOC_NO_FLAGS, 2, 0);
+ 	device->base.name = XRT_DEVICE_FB_BODY_TRACKING;
+ 	device->base.device_type = XRT_DEVICE_TYPE_BODY_TRACKER;
+ 	strncpy(device->base.str, "SolarXR IPC Connection", sizeof(device->base.str) - 1);
+@@ -861,10 +868,11 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 	memset(device->tracker_ids, 0xff, sizeof(device->tracker_ids));
+ 
+ 	uint32_t trackers_len = 0;
+-	struct solarxr_generic_tracker *trackers[MAX_GENERIC_TRACKERS];
++	struct solarxr_generic_tracker *trackers[ARRAY_SIZE(device->trackers)];
+ 
+ 	// `solarxr_device_destroy()` asserts unless both have attempted initialization
+-	if (os_mutex_init(&device->mutex) != 0) {
++	if (((int)!feeder_init(&device->feeder, debug_get_log_option_solarxr_log()) | os_mutex_init(&device->mutex)) !=
++	    0) {
+ 		goto fail;
+ 	}
+ 
+@@ -1150,54 +1158,71 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 			goto fail;
+ 		}
+ 
+-		uint32_t tracker_descs_len = 0;
+-		const solarxr_tracker_data_t *tracker_descs[ARRAY_SIZE(device->trackers)];
++		uint32_t tracker_datas_len = 0;
++		struct solarxr_tracker_data tracker_datas[ARRAY_SIZE(device->trackers)];
+ 		if (debug_get_bool_option_solarxr_raw_trackers()) {
+-			for (uint32_t i = 0; i < header.message.data_feed_update.devices.length; ++i) {
++			const flatbuffers_vector_solarxr_device_data_t devices =
++			    header.message.data_feed_update.devices;
++			for (const solarxr_device_data_t *device = devices.data, *const devices_end =
++			                                                             &device[devices.length];
++			     device < devices_end; ++device) {
+ 				struct solarxr_device_data device_data;
+-				if (!read_solarxr_device_data(&device_data, buffer.data, buffer.length,
+-				                              &header.message.data_feed_update.devices.data[i])) {
+-					U_LOG_IFL_W(debug_get_log_option_solarxr_log(),
++				if (!read_solarxr_device_data(&device_data, buffer.data, buffer.length, device)) {
++					U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+ 					            "read_solarxr_device_data() failed");
+ 					continue;
+ 				}
+-
+-				uint32_t length = device_data.trackers.length;
+-				if (length >= ARRAY_SIZE(tracker_descs) - tracker_descs_len) {
+-					length = ARRAY_SIZE(tracker_descs) - tracker_descs_len;
+-					header.message.data_feed_update.devices.length = i; // early exit
+-				}
+-
+-				for (uint32_t j = 0; j < length; ++j) {
+-					tracker_descs[tracker_descs_len++] = &device_data.trackers.data[j];
++				for (const solarxr_tracker_data_t *tracker = device_data.trackers.data,
++				                                  *const end = &tracker[device_data.trackers.length];
++				     tracker < end; ++tracker) {
++					if (tracker_datas_len >= ARRAY_SIZE(tracker_datas)) {
++						device = devices_end - 1; // break outer
++						break;
++					}
++					if (!read_solarxr_tracker_data(&tracker_datas[tracker_datas_len], buffer.data,
++					                               buffer.length, tracker)) {
++						U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
++						            "read_solarxr_tracker_data() failed");
++						continue;
++					}
++					++tracker_datas_len;
+ 				}
+ 			}
+ 		} else {
+-			tracker_descs_len =
+-			    MIN(header.message.data_feed_update.synthetic_trackers.length, ARRAY_SIZE(tracker_descs));
+-			for (uint32_t i = 0; i < tracker_descs_len; ++i) {
+-				tracker_descs[i] = &header.message.data_feed_update.synthetic_trackers.data[i];
++			const flatbuffers_vector_solarxr_tracker_data_t synthetic_trackers =
++			    header.message.data_feed_update.synthetic_trackers;
++			for (const solarxr_tracker_data_t *tracker = synthetic_trackers.data,
++			                                  *const end = &tracker[synthetic_trackers.length];
++			     tracker < end; ++tracker) {
++				if (tracker_datas_len >= ARRAY_SIZE(tracker_datas)) {
++					break;
++				}
++				if (!read_solarxr_tracker_data(&tracker_datas[tracker_datas_len], buffer.data,
++				                               buffer.length, tracker)) {
++					U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
++					            "read_solarxr_tracker_data() failed");
++					continue;
++				}
++				if (tracker_datas[tracker_datas_len].tracker_id.has_device_id) {
++					continue; // filter out loopback feeder devices
++				}
++				++tracker_datas_len;
+ 			}
+ 		}
+ 
+ 		U_LOG_IFL_I(debug_get_log_option_solarxr_log(), "Enumerated %" PRIu32 " SolarXR %s trackers",
+-		            tracker_descs_len, debug_get_bool_option_solarxr_raw_trackers() ? "physical" : "synthetic");
++		            tracker_datas_len, debug_get_bool_option_solarxr_raw_trackers() ? "physical" : "synthetic");
+ 
+-		if (tracker_descs_len > out_xdevs_cap - 1) {
+-			U_LOG_IFL_W(debug_get_log_option_solarxr_log(),
++		if (tracker_datas_len > out_xdevs_cap - 1) {
++			U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
+ 			            "Not enough xdev slots! Omitting %" PRIu32 " trackers",
+-			            tracker_descs_len - (out_xdevs_cap - 1));
+-			tracker_descs_len = out_xdevs_cap - 1;
++			            tracker_datas_len - (out_xdevs_cap - 1));
++			tracker_datas_len = out_xdevs_cap - 1;
+ 		}
+ 
+-		for (uint32_t i = 0; i < tracker_descs_len; ++i) {
+-			struct solarxr_tracker_data data;
+-			if (!read_solarxr_tracker_data(&data, buffer.data, buffer.length, tracker_descs[i])) {
+-				U_LOG_IFL_W(debug_get_log_option_solarxr_log(), "read_solarxr_device_data() failed");
+-				continue;
+-			}
+-
+-			const wchar_t id = solarxr_tracker_id_to_wchar(data.tracker_id);
++		for (const struct solarxr_tracker_data *data = tracker_datas, *const end = &data[tracker_datas_len];
++		     data < end; ++data) {
++			const wchar_t id = solarxr_tracker_id_to_wchar(data->tracker_id);
+ 
+ 			struct solarxr_generic_tracker *const tracker =
+ 			    U_DEVICE_ALLOCATE(struct solarxr_generic_tracker, U_DEVICE_ALLOC_NO_FLAGS, 1, 0);
+@@ -1219,27 +1244,27 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 			tracker->base.inputs[0].name = XRT_INPUT_GENERIC_TRACKER_POSE;
+ 			tracker->role = SOLARXR_BODY_PART_NONE;
+ 
+-			device->tracker_ids[i] = id;
+-			m_relation_history_create(&device->trackers[i]);
++			assert(trackers_len < ARRAY_SIZE(trackers));
++			device->tracker_ids[trackers_len] = id;
++			m_relation_history_create(&device->trackers[trackers_len]);
+ 			tracker->parent = device;
+-			tracker->index = i;
+-			tracker->history = device->trackers[i];
+-			device->tracker_refs[i] = tracker;
++			tracker->index = trackers_len;
++			tracker->history = device->trackers[trackers_len];
++			device->tracker_refs[trackers_len] = tracker;
+ 
+-			assert(trackers_len < ARRAY_SIZE(trackers));
+ 			trackers[trackers_len++] = tracker;
+ 
+-			if (!data.has_info) {
++			if (!data->has_info) {
+ 				continue;
+ 			}
+ 
+-			if (data.info.body_part < ARRAY_SIZE(device->bones)) {
+-				tracker->role = data.info.body_part;
++			if (data->info.body_part < ARRAY_SIZE(device->bones)) {
++				tracker->role = data->info.body_part;
+ 			}
+ 
+-			if (data.info.display_name.length != 0) {
++			if (data->info.display_name.length != 0) {
+ 				snprintf(tracker->base.str, sizeof(tracker->base.str), "SolarXR Tracker \"%.*s\"",
+-				         (unsigned)data.info.display_name.length, data.info.display_name.data);
++				         (unsigned)data->info.display_name.length, data->info.display_name.data);
+ 			}
+ 		}
+ 	}
+@@ -1264,3 +1289,31 @@ fail:
+ 	solarxr_device_destroy(&device->base);
+ 	return 0;
+ }
++
++bool
++solarxr_device_add_feeder_device(struct xrt_device *const device, struct xrt_device *const xdev)
++{
++	struct solarxr_device *const solarxr = solarxr_device(device);
++	if (solarxr == NULL || solarxr_device(xdev) != NULL || solarxr_generic_tracker(xdev) != NULL) {
++		return false;
++	}
++	return feeder_add_device(&solarxr->feeder, xdev);
++}
++
++void
++solarxr_device_remove_feeder_device(struct xrt_device *const device, struct xrt_device *const xdev)
++{
++	struct solarxr_device *const solarxr = solarxr_device(device);
++	if (solarxr != NULL) {
++		feeder_remove_device(&solarxr->feeder, xdev);
++	}
++}
++
++void
++solarxr_device_clear_feeder_devices(struct xrt_device *const device)
++{
++	struct solarxr_device *const solarxr = solarxr_device(device);
++	if (solarxr != NULL) {
++		feeder_clear_devices(&solarxr->feeder);
++	}
++}
+diff --git a/src/xrt/drivers/solarxr/solarxr_interface.h b/src/xrt/drivers/solarxr/solarxr_interface.h
+index c56bb15b1..209345f79 100644
+--- a/src/xrt/drivers/solarxr/solarxr_interface.h
++++ b/src/xrt/drivers/solarxr/solarxr_interface.h
+@@ -23,6 +23,15 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *tracking_origin,
+                             struct xrt_device *out_xdevs[],
+                             uint32_t out_xdevs_cap);
+ 
++bool
++solarxr_device_add_feeder_device(struct xrt_device *solarxr, struct xrt_device *xdev);
++
++void
++solarxr_device_remove_feeder_device(struct xrt_device *solarxr, struct xrt_device *xdev);
++
++void
++solarxr_device_clear_feeder_devices(struct xrt_device *solarxr);
++
+ static inline struct xrt_device *
+ solarxr_device_create(struct xrt_tracking_origin *const tracking_origin)
+ {
+@@ -31,6 +40,17 @@ solarxr_device_create(struct xrt_tracking_origin *const tracking_origin)
+ 	return out;
+ }
+ 
++static inline void
++solarxr_device_set_feeder_devices(struct xrt_device *const solarxr,
++                                  struct xrt_device *const xdevs[],
++                                  const uint32_t xdev_count)
++{
++	solarxr_device_clear_feeder_devices(solarxr);
++	for (uint32_t i = 0; i < xdev_count; ++i) {
++		solarxr_device_add_feeder_device(solarxr, xdevs[i]);
++	}
++}
++
+ 
+ #ifdef __cplusplus
+ }
+-- 
+2.52.0
+

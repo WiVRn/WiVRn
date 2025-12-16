@@ -1,7 +1,7 @@
-From 0bce153782cc0fedcdbf997afa2da81b4efe92e8 Mon Sep 17 00:00:00 2001
+From 7e8179f0d0347518804df1931b066981f3c0a90d Mon Sep 17 00:00:00 2001
 From: Sapphire <imsapphire0@gmail.com>
 Date: Fri, 7 Nov 2025 20:41:16 -0600
-Subject: [PATCH 7/7] st/oxr: push XrEventDataInteractionProfileChanged when
+Subject: [PATCH 07/10] st/oxr: push XrEventDataInteractionProfileChanged when
  profile changes to NULL
 
 ---

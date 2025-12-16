@@ -61,7 +61,7 @@
 #endif
 
 #if WIVRN_FEATURE_SOLARXR
-#include "solarxr_device.h"
+#include "solarxr_interface.h"
 #endif
 
 namespace wivrn
@@ -300,15 +300,13 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	}
 
 #if WIVRN_FEATURE_SOLARXR
-	xrt_device * solar_devs[XRT_SYSTEM_MAX_DEVICES];
-	uint32_t solar_devs_cap = XRT_SYSTEM_MAX_DEVICES - xdev_count;
-	uint32_t num_devs = solarxr_device_create_xdevs(&hmd, solar_devs, XRT_SYSTEM_MAX_DEVICES - xdev_count);
-	for (int i = 0; i < num_devs; i++)
+	uint32_t num_devs = solarxr_device_create_xdevs(static_cast<xrt_device>(hmd).tracking_origin, &xdevs[xdev_count], ARRAY_SIZE(xdevs) - xdev_count);
+	if (num_devs != 0)
 	{
-		xdevs[xdev_count++] = solar_devs[i];
-		if (i == 0)
-			static_roles.body = solar_devs[i];
+		static_roles.body = xdevs[xdev_count];
+		solarxr_device_set_feeder_devices(static_roles.body, xdevs, xdev_count);
 	}
+	xdev_count += num_devs;
 #endif
 
 	if (roles.left >= 0)
@@ -345,6 +343,10 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 
 wivrn_session::~wivrn_session()
 {
+#if WIVRN_FEATURE_SOLARXR
+	solarxr_device_clear_feeder_devices(static_roles.body);
+#endif
+
 	for (size_t i = 0; i < ARRAY_SIZE(xdevs); i++)
 	{
 		xrt_device_destroy(&xdevs[i]);
