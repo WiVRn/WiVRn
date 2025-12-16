@@ -54,7 +54,7 @@ set(OVR_COMPAT_SEARCH_PATH "/opt/xrizer:/usr/local/lib/OpenComposite:/usr/lib/Op
 
 option(WIVRN_FEATURE_DEBUG_GUI "Enable Monado debug GUI" OFF)
 option(WIVRN_FEATURE_RENDERDOC "Support renderdoc" OFF)
-set(WIVRN_FEATURE_SOLARXR OFF) # Will be added back when merged in upstream Monado
+option(WIVRN_FEATURE_SOLARXR "Enable SolarXR driver" ON)
 option(WIVRN_FEATURE_STEAMVR_LIGHTHOUSE "Enable SteamVR Lighthouse driver" ON)
 
 set(WIVRN_CSS "${CMAKE_SOURCE_DIR}/images/wivrn-local.css" CACHE STRING "Stylesheet to use to render SVGs" )

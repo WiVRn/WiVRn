@@ -1,0 +1,526 @@
+From c6f7cb6a737c849aa2b33c40b5f5380794578db4 Mon Sep 17 00:00:00 2001
+From: rcelyte <rcelyte@battletrains.org>
+Date: Fri, 14 Nov 2025 19:48:59 +0000
+Subject: [PATCH 09/10] d/solarxr: Sync at fixed rate This improves tracking
+ latency by allowing SlimeVR to synchronize updates with its processing loop.
+
+---
+ src/xrt/drivers/solarxr/protocol.h       |   1 +
+ src/xrt/drivers/solarxr/solarxr_device.c | 429 ++++++++++++-----------
+ 2 files changed, 223 insertions(+), 207 deletions(-)
+
+diff --git a/src/xrt/drivers/solarxr/protocol.h b/src/xrt/drivers/solarxr/protocol.h
+index fbdc36081..35c1dd917 100644
+--- a/src/xrt/drivers/solarxr/protocol.h
++++ b/src/xrt/drivers/solarxr/protocol.h
+@@ -150,6 +150,7 @@ struct solarxr_data_feed_update
+ enum solarxr_data_feed_message_type
+ {
+ 	SOLARXR_DATA_FEED_MESSAGE_POLL_DATA_FEED = 1,
++	SOLARXR_DATA_FEED_MESSAGE_START_DATA_FEED = 2,
+ 	SOLARXR_DATA_FEED_MESSAGE_DATA_FEED_UPDATE = 3,
+ };
+ 
+diff --git a/src/xrt/drivers/solarxr/solarxr_device.c b/src/xrt/drivers/solarxr/solarxr_device.c
+index ec5444b2a..29c0f9716 100644
+--- a/src/xrt/drivers/solarxr/solarxr_device.c
++++ b/src/xrt/drivers/solarxr/solarxr_device.c
+@@ -24,8 +24,8 @@
+ 
+ DEBUG_GET_ONCE_LOG_OPTION(solarxr_log, "SOLARXR_LOG", U_LOGGING_INFO)
+ DEBUG_GET_ONCE_BOOL_OPTION(solarxr_raw_trackers, "SOLARXR_RAW_TRACKERS", false)
+-DEBUG_GET_ONCE_NUM_OPTION(solarxr_sync_delay_ms, "SOLARXR_SYNC_DELAY_MS", 4)
+-DEBUG_GET_ONCE_NUM_OPTION(solarxr_sync_timeout_ms, "SOLARXR_SYNC_TIMEOUT_MS", 50)
++DEBUG_GET_ONCE_NUM_OPTION(solarxr_startup_timeout_ms, "SOLARXR_STARTUP_TIMEOUT_MS", 4000)
++DEBUG_GET_ONCE_NUM_OPTION(solarxr_sync_period_ms, "SOLARXR_SYNC_PERIOD_MS", 1)
+ 
+ struct solarxr_device;
+ struct solarxr_generic_tracker
+@@ -43,7 +43,6 @@ struct solarxr_device
+ 	struct xrt_device base;
+ 	struct os_thread thread;
+ 	struct solarxr_ipc_socket socket;
+-	_Atomic(timepoint_ns) next_sync;
+ 	struct os_mutex mutex;
+ 	_Atomic(timepoint_ns) timestamp;
+ 	_Atomic(uint64_t) enabled_bones;
+@@ -104,183 +103,6 @@ solarxr_tracker_id_to_wchar(struct solarxr_tracker_id id)
+ 	return le32toh(out);
+ }
+ 
+-static void
+-solarxr_device_sync(struct solarxr_device *const device)
+-{
+-	const timepoint_ns time = os_monotonic_get_ns(), next_sync = atomic_exchange(&device->next_sync, INT64_MAX);
+-	if (time <= next_sync) {
+-		atomic_store(&device->next_sync, next_sync);
+-		return;
+-	}
+-
+-	struct
+-	{
+-		uint8_t head[sizeof(struct solarxr_ipc_message)];
+-		struct poll_packet
+-		{
+-			uint32_t _root;
+-			uint16_t _table_shared[3];
+-			struct
+-			{ // table MessageBundle
+-				int32_t _table;
+-				uint32_t data_feed_msgs; // vector*
+-			} bundle;
+-			struct
+-			{ // vector<table DataFeedMessageHeader>
+-				uint32_t length;
+-				uint32_t values[1]; // table*
+-			} data_feed_msgs;
+-			uint16_t _table_data_feed_msgs_0[4];
+-			struct
+-			{ // table DataFeedMessageHeader
+-				int32_t _table;
+-				uint32_t message;     // table*
+-				uint8_t message_type; // enum DataFeedMessage
+-				uint8_t _pad[3];
+-			} data_feed_msgs_0;
+-			struct
+-			{ // table PollDataFeed
+-				int32_t _table;
+-				uint32_t config; // table*
+-			} message;
+-			uint16_t _table_config[6];
+-			struct
+-			{ // table DataFeedConfig
+-				int32_t _table;
+-				uint32_t trackers_mask; // table*
+-				bool bone_mask;
+-				uint8_t _pad[3];
+-			} config;
+-			struct
+-			{ // table DeviceDataMask
+-				int32_t _table;
+-				uint32_t tracker_data; // table*
+-			} data_mask;
+-			uint16_t _table_synthetic_trackers_mask[10];
+-			struct
+-			{ // table TrackerDataMask
+-				int32_t _table;
+-				bool rotation, position, raw_angular_velocity, linear_acceleration;
+-			} synthetic_trackers_mask;
+-		} body;
+-	} const poll_packet =
+-	    {
+-	        .body =
+-	            {
+-	                ._root = htole32(offsetof(struct poll_packet, bundle)),
+-	                ._table_shared =
+-	                    {
+-	                        htole16(sizeof(poll_packet.body._table_shared)),
+-	                        htole16(8),
+-	                        htole16(4),
+-	                    },
+-	                .bundle =
+-	                    {
+-	                        ._table = htole32(offsetof(struct poll_packet, bundle) -
+-	                                          offsetof(struct poll_packet, _table_shared)),
+-	                        .data_feed_msgs = htole32(offsetof(struct poll_packet, data_feed_msgs) -
+-	                                                  offsetof(struct poll_packet, bundle.data_feed_msgs)),
+-	                    },
+-	                .data_feed_msgs =
+-	                    {
+-	                        .length = htole32(ARRAY_SIZE(poll_packet.body.data_feed_msgs.values)),
+-	                        .values = {htole32(offsetof(struct poll_packet, data_feed_msgs_0) -
+-	                                           offsetof(struct poll_packet, data_feed_msgs.values[0]))},
+-	                    },
+-	                ._table_data_feed_msgs_0 =
+-	                    {
+-	                        htole16(sizeof(poll_packet.body._table_data_feed_msgs_0)),
+-	                        htole16(sizeof(poll_packet.body.data_feed_msgs_0) -
+-	                                sizeof(poll_packet.body.data_feed_msgs_0._pad)),
+-	                        htole16(offsetof(struct poll_packet, data_feed_msgs_0.message_type) -
+-	                                offsetof(struct poll_packet, data_feed_msgs_0)),
+-	                        htole16(offsetof(struct poll_packet, data_feed_msgs_0.message) -
+-	                                offsetof(struct poll_packet, data_feed_msgs_0)),
+-	                    },
+-	                .data_feed_msgs_0 =
+-	                    {
+-	                        ._table = htole32(offsetof(struct poll_packet, data_feed_msgs_0) -
+-	                                          offsetof(struct poll_packet, _table_data_feed_msgs_0)),
+-	                        .message = htole32(offsetof(struct poll_packet, message) -
+-	                                           offsetof(struct poll_packet, data_feed_msgs_0.message)),
+-	                        .message_type = 1, // DataFeedMessage::PollDataFeed
+-	                    },
+-	                .message =
+-	                    {
+-	                        ._table = htole32(offsetof(struct poll_packet, message) -
+-	                                          offsetof(struct poll_packet, _table_shared)),
+-	                        .config = htole32(offsetof(struct poll_packet, config) -
+-	                                          offsetof(struct poll_packet, message.config)),
+-	                    },
+-	                ._table_config =
+-	                    {
+-	                        htole16(sizeof(poll_packet.body._table_config)),
+-	                        htole16(sizeof(poll_packet.body.config) - sizeof(poll_packet.body.config._pad)),
+-	                        0,
+-	                        htole16((device->use_trackers && debug_get_bool_option_solarxr_raw_trackers()) *
+-	                                (offsetof(struct poll_packet, config.trackers_mask) -
+-	                                 offsetof(struct poll_packet, config))),
+-	                        htole16((device->use_trackers && !debug_get_bool_option_solarxr_raw_trackers()) *
+-	                                (offsetof(struct poll_packet, config.trackers_mask) -
+-	                                 offsetof(struct poll_packet, config))),
+-	                        htole16(offsetof(struct poll_packet, config.bone_mask) -
+-	                                offsetof(struct poll_packet, config)),
+-	                    },
+-	                .config =
+-	                    {
+-	                        ._table = htole32(offsetof(struct poll_packet, config) -
+-	                                          offsetof(struct poll_packet, _table_config)),
+-	                        .trackers_mask = htole32((debug_get_bool_option_solarxr_raw_trackers()
+-	                                                      ? offsetof(struct poll_packet, data_mask)
+-	                                                      : offsetof(struct poll_packet, synthetic_trackers_mask)) -
+-	                                                 offsetof(struct poll_packet, config.trackers_mask)),
+-	                        .bone_mask = true,
+-	                    },
+-	                .data_mask =
+-	                    {
+-	                        ._table = htole32(offsetof(struct poll_packet, data_mask) -
+-	                                          offsetof(struct poll_packet, _table_shared)),
+-	                        .tracker_data = htole32(offsetof(struct poll_packet, synthetic_trackers_mask) -
+-	                                                offsetof(struct poll_packet, data_mask.tracker_data)),
+-	                    },
+-	                ._table_synthetic_trackers_mask =
+-	                    {
+-	                        htole16(sizeof(poll_packet.body._table_synthetic_trackers_mask)),
+-	                        htole16(sizeof(poll_packet.body.synthetic_trackers_mask)),
+-	                        0,
+-	                        0,
+-	                        htole16(offsetof(struct poll_packet, synthetic_trackers_mask.rotation) -
+-	                                offsetof(struct poll_packet, synthetic_trackers_mask)),
+-	                        htole16(offsetof(struct poll_packet, synthetic_trackers_mask.position) -
+-	                                offsetof(struct poll_packet, synthetic_trackers_mask)),
+-	                        htole16(offsetof(struct poll_packet, synthetic_trackers_mask.raw_angular_velocity) -
+-	                                offsetof(struct poll_packet, synthetic_trackers_mask)),
+-	                        0,
+-	                        0,
+-	                        htole16(offsetof(struct poll_packet, synthetic_trackers_mask.linear_acceleration) -
+-	                                offsetof(struct poll_packet, synthetic_trackers_mask)),
+-	                    },
+-	                .synthetic_trackers_mask =
+-	                    {
+-	                        ._table = htole32(offsetof(struct poll_packet, synthetic_trackers_mask) -
+-	                                          offsetof(struct poll_packet, _table_synthetic_trackers_mask)),
+-	                        .rotation = true,
+-	                        .position = true,
+-	                        .raw_angular_velocity = true,
+-	                        .linear_acceleration = true,
+-	                    },
+-	            },
+-	    };
+-
+-	solarxr_ipc_socket_send_raw(
+-	    &device->socket, (const uint8_t *)&poll_packet,
+-	    solarxr_ipc_message_inline((uint8_t *)&poll_packet,
+-	                               device->use_trackers
+-	                                   ? sizeof(poll_packet)
+-	                                   : sizeof(poll_packet.head) + offsetof(struct poll_packet, data_mask)));
+-	atomic_store(&device->next_sync, time + debug_get_num_option_solarxr_sync_timeout_ms() * U_TIME_1MS_IN_NS);
+-}
+-
+ static xrt_result_t
+ solarxr_device_update_inputs(struct xrt_device *const xdev)
+ {
+@@ -435,7 +257,6 @@ solarxr_device_get_body_joints(struct xrt_device *const xdev,
+ 
+ 	struct solarxr_device *const device = solarxr_device(xdev);
+ 	assert(device != NULL);
+-	solarxr_device_sync(device);
+ 
+ 	os_mutex_lock(&device->mutex);
+ 
+@@ -530,23 +351,208 @@ solarxr_device_handle_trackers(struct solarxr_device *const device,
+ 	}
+ }
+ 
+-static struct span
+-solarxr_device_receive_blocking(struct solarxr_device *const device)
+-{
+-	do {
+-		const uint32_t buffer_len = solarxr_ipc_socket_receive(&device->socket);
+-		if (buffer_len != 0) {
+-			return (struct span){buffer_len, device->socket.buffer};
+-		}
+-	} while (solarxr_ipc_socket_wait_timeout(&device->socket, -1));
+-	return (struct span){0};
+-}
+-
+ static void *
+ solarxr_network_thread(void *const ptr)
+ {
+ 	struct solarxr_device *const device = (struct solarxr_device *)ptr;
+-	for (struct span buffer; (buffer = solarxr_device_receive_blocking(device)).length != 0;) {
++
++	{
++		struct
++		{
++			uint8_t head[sizeof(struct solarxr_ipc_message)];
++			struct start_packet
++			{
++				uint32_t _root;
++				uint16_t _table_shared[3];
++				struct
++				{ // table MessageBundle
++					int32_t _table;
++					uint32_t data_feed_msgs; // vector*
++				} bundle;
++				struct
++				{ // vector<table DataFeedMessageHeader>
++					uint32_t length;
++					uint32_t values[1]; // table*
++				} data_feed_msgs;
++				uint16_t _table_data_feed_msgs_0[4];
++				struct
++				{ // table DataFeedMessageHeader
++					int32_t _table;
++					uint32_t message;     // table*
++					uint8_t message_type; // enum DataFeedMessage
++					uint8_t _pad[3];
++				} data_feed_msgs_0;
++				struct
++				{ // table StartDataFeed
++					int32_t _table;
++					uint32_t configs; // vector*
++				} message;
++				struct
++				{ // vector<table DataFeedConfig>
++					uint32_t length;
++					uint32_t values[1]; // table*
++				} configs;
++				uint16_t _table_configs_0[6];
++				struct
++				{ // table DataFeedConfig
++					int32_t _table;
++					uint32_t trackers_mask; // table*
++					uint16_t minimum_time_since_last;
++					bool bone_mask;
++					uint8_t _pad;
++				} configs_0;
++				struct
++				{ // table DeviceDataMask
++					int32_t _table;
++					uint32_t tracker_data; // table*
++				} data_mask;
++				uint16_t _table_synthetic_trackers_mask[10];
++				struct
++				{ // table TrackerDataMask
++					int32_t _table;
++					bool rotation, position, raw_angular_velocity, linear_acceleration;
++				} synthetic_trackers_mask;
++			} body;
++		} const start_packet =
++		    {
++		        .body =
++		            {
++		                ._root = htole32(offsetof(struct start_packet, bundle)),
++		                ._table_shared =
++		                    {
++		                        htole16(sizeof(start_packet.body._table_shared)),
++		                        htole16(8),
++		                        htole16(4),
++		                    },
++		                .bundle =
++		                    {
++		                        ._table = htole32(offsetof(struct start_packet, bundle) -
++		                                          offsetof(struct start_packet, _table_shared)),
++		                        .data_feed_msgs = htole32(offsetof(struct start_packet, data_feed_msgs) -
++		                                                  offsetof(struct start_packet, bundle.data_feed_msgs)),
++		                    },
++		                .data_feed_msgs =
++		                    {
++		                        .length = htole32(ARRAY_SIZE(start_packet.body.data_feed_msgs.values)),
++		                        .values = {htole32(offsetof(struct start_packet, data_feed_msgs_0) -
++		                                           offsetof(struct start_packet, data_feed_msgs.values[0]))},
++		                    },
++		                ._table_data_feed_msgs_0 =
++		                    {
++		                        htole16(sizeof(start_packet.body._table_data_feed_msgs_0)),
++		                        htole16(sizeof(start_packet.body.data_feed_msgs_0) -
++		                                sizeof(start_packet.body.data_feed_msgs_0._pad)),
++		                        htole16(offsetof(struct start_packet, data_feed_msgs_0.message_type) -
++		                                offsetof(struct start_packet, data_feed_msgs_0)),
++		                        htole16(offsetof(struct start_packet, data_feed_msgs_0.message) -
++		                                offsetof(struct start_packet, data_feed_msgs_0)),
++		                    },
++		                .data_feed_msgs_0 =
++		                    {
++		                        ._table = htole32(offsetof(struct start_packet, data_feed_msgs_0) -
++		                                          offsetof(struct start_packet, _table_data_feed_msgs_0)),
++		                        .message = htole32(offsetof(struct start_packet, message) -
++		                                           offsetof(struct start_packet, data_feed_msgs_0.message)),
++		                        .message_type = SOLARXR_DATA_FEED_MESSAGE_START_DATA_FEED,
++		                    },
++		                .message =
++		                    {
++		                        ._table = htole32(offsetof(struct start_packet, message) -
++		                                          offsetof(struct start_packet, _table_shared)),
++		                        .configs = htole32(offsetof(struct start_packet, configs) -
++		                                           offsetof(struct start_packet, message.configs)),
++		                    },
++		                .configs =
++		                    {
++		                        .length = htole32(ARRAY_SIZE(start_packet.body.configs.values)),
++		                        .values = {htole32(offsetof(struct start_packet, configs_0) -
++		                                           offsetof(struct start_packet, configs.values[0]))},
++		                    },
++		                ._table_configs_0 =
++		                    {
++		                        htole16(sizeof(start_packet.body._table_configs_0)),
++		                        htole16(sizeof(start_packet.body.configs_0) -
++		                                sizeof(start_packet.body.configs_0._pad)),
++		                        htole16(offsetof(struct start_packet, configs_0.minimum_time_since_last) -
++		                                offsetof(struct start_packet, configs_0)),
++		                        htole16((device->use_trackers && debug_get_bool_option_solarxr_raw_trackers()) *
++		                                (offsetof(struct start_packet, configs_0.trackers_mask) -
++		                                 offsetof(struct start_packet, configs_0))),
++		                        htole16((device->use_trackers &&
++		                                 !debug_get_bool_option_solarxr_raw_trackers()) *
++		                                (offsetof(struct start_packet, configs_0.trackers_mask) -
++		                                 offsetof(struct start_packet, configs_0))),
++		                        htole16(offsetof(struct start_packet, configs_0.bone_mask) -
++		                                offsetof(struct start_packet, configs_0)),
++		                    },
++		                .configs_0 =
++		                    {
++		                        ._table = htole32(offsetof(struct start_packet, configs_0) -
++		                                          offsetof(struct start_packet, _table_configs_0)),
++		                        .trackers_mask =
++		                            htole32((debug_get_bool_option_solarxr_raw_trackers()
++		                                         ? offsetof(struct start_packet, data_mask)
++		                                         : offsetof(struct start_packet, synthetic_trackers_mask)) -
++		                                    offsetof(struct start_packet, configs_0.trackers_mask)),
++		                        .minimum_time_since_last =
++		                            htole16(
++		                                CLAMP(debug_get_num_option_solarxr_sync_period_ms(), 0, UINT16_MAX)),
++		                        .bone_mask = true,
++		                    },
++		                .data_mask =
++		                    {
++		                        ._table = htole32(offsetof(struct start_packet, data_mask) -
++		                                          offsetof(struct start_packet, _table_shared)),
++		                        .tracker_data = htole32(offsetof(struct start_packet, synthetic_trackers_mask) -
++		                                                offsetof(struct start_packet, data_mask.tracker_data)),
++		                    },
++		                ._table_synthetic_trackers_mask =
++		                    {
++		                        htole16(sizeof(start_packet.body._table_synthetic_trackers_mask)),
++		                        htole16(sizeof(start_packet.body.synthetic_trackers_mask)),
++		                        0,
++		                        0,
++		                        htole16(offsetof(struct start_packet, synthetic_trackers_mask.rotation) -
++		                                offsetof(struct start_packet, synthetic_trackers_mask)),
++		                        htole16(offsetof(struct start_packet, synthetic_trackers_mask.position) -
++		                                offsetof(struct start_packet, synthetic_trackers_mask)),
++		                        htole16(offsetof(struct start_packet,
++		                                         synthetic_trackers_mask.raw_angular_velocity) -
++		                                offsetof(struct start_packet, synthetic_trackers_mask)),
++		                        0,
++		                        0,
++		                        htole16(offsetof(struct start_packet,
++		                                         synthetic_trackers_mask.linear_acceleration) -
++		                                offsetof(struct start_packet, synthetic_trackers_mask)),
++		                    },
++		                .synthetic_trackers_mask =
++		                    {
++		                        ._table =
++		                            htole32(offsetof(struct start_packet, synthetic_trackers_mask) -
++		                                    offsetof(struct start_packet, _table_synthetic_trackers_mask)),
++		                        .rotation = true,
++		                        .position = true,
++		                        .raw_angular_velocity = true,
++		                        .linear_acceleration = true,
++		                    },
++		            },
++		    };
++
++		// start streaming
++		solarxr_ipc_socket_send_raw(
++		    &device->socket, (const uint8_t *)&start_packet,
++		    solarxr_ipc_message_inline((uint8_t *)&start_packet,
++		                               device->use_trackers ? sizeof(start_packet)
++		                                                    : sizeof(start_packet.head) +
++		                                                          offsetof(struct start_packet, data_mask)));
++	}
++
++	while (solarxr_ipc_socket_wait_timeout(&device->socket, -1)) {
++		const struct span buffer = {solarxr_ipc_socket_receive(&device->socket), device->socket.buffer};
++
++		if (buffer.length == 0) {
++			continue;
++		}
+ 
+ 		struct solarxr_message_bundle bundle;
+ 		if (!read_solarxr_message_bundle(&bundle, buffer.data, buffer.length,
+@@ -617,11 +623,6 @@ solarxr_network_thread(void *const ptr)
+ 		if (bundle.data_feed_msgs.length == 0) {
+ 			continue;
+ 		}
+-#if 0 // for latency testing
+-		U_LOG_IFL_W(debug_get_log_option_solarxr_log(), "%.3fus", (os_monotonic_get_ns() - (atomic_load(&device->next_sync) - debug_get_num_option_solarxr_sync_timeout_ms() * U_TIME_1MS_IN_NS)) / 1000.);
+-#endif
+-		atomic_store(&device->next_sync,
+-		             device->timestamp + debug_get_num_option_solarxr_sync_delay_ms() * U_TIME_1MS_IN_NS);
+ 
+ 		os_mutex_lock(&device->mutex);
+ 
+@@ -783,7 +784,6 @@ solarxr_generic_tracker_get_tracked_pose(struct xrt_device *const xdev,
+ 	struct solarxr_device *const parent = device->parent;
+ 
+ 	if (parent != NULL && (atomic_load(&parent->enabled_bones) & (1llu << device->role)) != 0) {
+-		solarxr_device_sync(parent);
+ 		assert(device->history != NULL);
+ 		m_relation_history_get(device->history, at_timestamp_ns, out_relation);
+ 		result = XRT_SUCCESS;
+@@ -1101,10 +1101,28 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 	}
+ 
+ 	if (use_trackers) {
+-		const struct span buffer = solarxr_device_receive_blocking(device);
+-		if (buffer.length == 0) {
+-			U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "solarxr_ipc_socket_receive() failed");
+-			goto fail;
++		struct span buffer;
++		const timepoint_ns startTime = os_monotonic_get_ns();
++		for (time_duration_ns waited = 0, timeout = CLAMP(debug_get_num_option_solarxr_startup_timeout_ms(), 0,
++		                                                  INT64_MAX / U_TIME_1MS_IN_NS) *
++		                                            U_TIME_1MS_IN_NS;
++		     true;) {
++			if (!solarxr_ipc_socket_wait_timeout(&device->socket, timeout - waited)) {
++				U_LOG_IFL_E(debug_get_log_option_solarxr_log(),
++				            "solarxr_ipc_socket_wait_timeout() failed");
++				goto fail;
++			}
++
++			buffer = (struct span){solarxr_ipc_socket_receive(&device->socket), device->socket.buffer};
++			if (buffer.length != 0) {
++				break;
++			}
++
++			waited = os_monotonic_get_ns() - startTime;
++			if (waited >= timeout) {
++				U_LOG_IFL_E(debug_get_log_option_solarxr_log(), "receive timeout");
++				goto fail;
++			}
+ 		}
+ 
+ 		struct solarxr_message_bundle bundle;
+@@ -1231,9 +1249,6 @@ solarxr_device_create_xdevs(struct xrt_tracking_origin *const tracking_origin,
+ 		goto fail;
+ 	}
+ 
+-	// early sync to initialize bone lengths needed by `solarxr_device_get_body_skeleton()`
+-	solarxr_device_sync(device);
+-
+ 	assert(1 + trackers_len <= out_xdevs_cap);
+ 	out_xdevs[0] = &device->base;
+ 	for (uint32_t i = 0; i < trackers_len; ++i) {
+-- 
+2.52.0
+
