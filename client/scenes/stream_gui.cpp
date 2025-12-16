@@ -167,7 +167,7 @@ void scenes::stream::gui_performance_metrics()
 
 	ImVec2 window_size = ImGui::GetWindowSize() - ImVec2(2, 2) * style.WindowPadding;
 
-	static const std::array plots = {
+	const std::array plots = {
 	        // clang-format off
 	        plot(_("CPU time"), {{"",          &global_metric::cpu_time}},     "s"),
 
