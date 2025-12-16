@@ -120,7 +120,7 @@ Kirigami.ApplicationWindow {
                         text: i18n("Avahi daemon is not installed")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: DashboardSettings.show_system_checks && !Avahi.installed
+                        visible: DashboardSettings.show_system_checks && !Avahi.installed && !Avahi.running
                     }
 
                     Kirigami.InlineMessage {
