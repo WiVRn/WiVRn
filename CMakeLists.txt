@@ -67,6 +67,7 @@ set(WIVRN_OPENXR_MANIFEST_TYPE "relative" CACHE STRING "How to reference librari
 if (NOT WIVRN_OPENXR_MANIFEST_TYPE IN_LIST WIVRN_OPENXR_MANIFEST_TYPE_VALUES)
     message(FATAL_ERROR "WIVRN_OPENXR_MANIFEST_TYPE must be one of ${WIVRN_OPENXR_MANIFEST_TYPE_VALUES}")
 endif()
+option(WIVRN_OPENXR_MANIFEST_ABI "Generate an ABI specific OpenXR manifest")
 
 option(ENABLE_COLOURED_OUTPUT "Always produce ANSI-coloured output (GNU/Clang only)." ON)
 

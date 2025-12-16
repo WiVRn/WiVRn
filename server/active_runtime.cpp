@@ -23,29 +23,42 @@
 #include "utils/overloaded.h"
 #include "utils/xdg_base_directory.h"
 #include "wivrn_config.h"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
 
+static std::vector<std::filesystem::path> filter_files(const std::filesystem::path & directory, const std::string prefix)
+{
+	std::vector<std::filesystem::path> result;
+	for (const auto & file: std::filesystem::directory_iterator{directory})
+	{
+		if (file.path().filename().native().starts_with(prefix))
+			result.push_back(file.path());
+	}
+	return result;
+}
+
 namespace wivrn
 {
 
-std::filesystem::path active_runtime::manifest_path()
+std::vector<std::filesystem::path> active_runtime::manifest_path()
 {
-	const std::filesystem::path install_location = "share/openxr/1/openxr_wivrn.json";
+	const std::filesystem::path location = "share/openxr/1";
+	const std::filesystem::path prefix = "openxr_wivrn";
 	// Check if in a flatpak
 	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
-		return *path / install_location.relative_path();
+		return filter_files(*path / location, prefix);
 
 	// Check if running from build directory
 	auto exe = std::filesystem::read_symlink("/proc/self/exe");
 	auto dev_manifest = exe.parent_path().parent_path() / "openxr_wivrn-dev.json";
 	if (std::filesystem::exists(dev_manifest))
-		return dev_manifest;
+		return {dev_manifest};
 
 	// Assume we are installed
-	return std::filesystem::path(WIVRN_INSTALL_PREFIX) / install_location;
+	return filter_files(WIVRN_INSTALL_PREFIX / location, prefix);
 }
 
 std::filesystem::path active_runtime::openvr_compat_path()
@@ -111,18 +124,51 @@ static const std::filesystem::path & backup_and_symlink(
 	return location;
 }
 
+static std::string get_abi(const std::filesystem::path & filename)
+{
+	std::string abi = filename.stem().extension();
+	// https://registry.khronos.org/OpenXR/specs/1.0/loader.html#architecture-identifiers
+	if (not abi.empty() and
+	    std::ranges::contains(std::array{
+	                                  "x32",
+	                                  "x86_64",
+	                                  "i686",
+	                                  "aarch64",
+	                                  "armv7a-vfp",
+	                                  "armv5te",
+	                                  "mips64",
+	                                  "mips",
+	                                  "ppc64",
+	                                  "ppc64el",
+	                                  "s390x",
+	                                  "hppa",
+	                                  "alpha",
+	                                  "ia64",
+	                                  "m68k",
+	                                  "m68k",
+	                                  "riscv64",
+	                                  "sparc64",
+	                          },
+	                          abi.substr(1)))
+		return abi;
+	return "";
+}
+
 active_runtime::active_runtime() :
         pid(getpid())
 {
-	try
+	for (const auto & manifest: manifest_path())
 	{
-		this->active_runtime_json = backup_and_symlink(
-		        xdg_config_home() / "openxr/1/active_runtime.json",
-		        manifest_path());
-	}
-	catch (std::exception & e)
-	{
-		std::cerr << "Cannot set active OpenXR runtime: " << e.what() << std::endl;
+		try
+		{
+			active_runtime_json.push_back(backup_and_symlink(
+			        xdg_config_home() / ("openxr/1/active_runtime" + get_abi(manifest) + ".json"),
+			        manifest));
+		}
+		catch (std::exception & e)
+		{
+			std::cerr << "Cannot set active OpenXR runtime: " << e.what() << std::endl;
+		}
 	}
 
 	try
@@ -153,17 +199,17 @@ active_runtime::~active_runtime()
 {
 	if (pid != getpid())
 		return;
-	try
+	for (const auto & manifest: active_runtime_json)
 	{
-		if (not active_runtime_json.empty())
+		try
 		{
-			std::filesystem::remove(active_runtime_json);
-			move_file(backup_name(active_runtime_json), active_runtime_json);
+			std::filesystem::remove(manifest);
+			move_file(backup_name(manifest), manifest);
 		}
-	}
-	catch (std::exception & e)
-	{
-		std::cerr << "Cannot unset active OpenXR runtime: " << e.what() << std::endl;
+		catch (std::exception & e)
+		{
+			std::cerr << "Cannot unset active OpenXR runtime " << manifest << ": " << e.what() << std::endl;
+		}
 	}
 
 	try

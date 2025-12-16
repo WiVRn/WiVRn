@@ -263,12 +263,23 @@ if (WIVRN_BUILD_SERVER_LIBRARY)
 	# Workaround as generate_openxr_runtime_manifest_at_install uses target name as library path
 	add_library(monado_wivrn ALIAS monado)
 
+	if (WIVRN_OPENXR_MANIFEST_ABI)
+		if (CMAKE_C_COMPILER_ARCHITECTURE_ID MATCHES "i.86")
+			set(_filename openxr_wivrn.i686.json)
+		else()
+			set(_filename openxr_wivrn.${CMAKE_C_COMPILER_ARCHITECTURE_ID}.json)
+		endif()
+	else()
+		set(_filename openxr_wivrn.json)
+	endif()
+
 	generate_openxr_runtime_manifest_at_install(
 		${_extra_args}
 		RUNTIME_TARGET ${RUNTIME_TARGET}
 		DESTINATION share/openxr/1
 		RELATIVE_RUNTIME_DIR ${CMAKE_INSTALL_LIBDIR}/wivrn
 		LIBMONADO monado_wivrn
+		OUT_FILENAME ${_filename}
 		)
 
 	install(TARGETS ${RUNTIME_TARGET} monado
