@@ -57,30 +57,27 @@ You can set an application to be started automatically when you connect your hea
 
 ### OpenVR and Steam games
 
-The flatpak also includes [OpenComposite](https://gitlab.com/znixian/OpenOVR/), used to translate the OpenVR API used by SteamVR to OpenXR used by WiVRn, see [SteamVR](docs/steamvr.md) for details.
+The flatpak also includes [OpenComposite](https://gitlab.com/znixian/OpenOVR/) and [xrizer](https://github.com/Supreeeme/xrizer/), used to translate the OpenVR API used by SteamVR to OpenXR used by WiVRn, see [SteamVR](docs/steamvr.md) for details.
 
-If using Wine/Proton, it will probe for OpenVR at startup, so even for OpenXR applications, OpenComposite is required.
+If using Wine/Proton, it will probe for OpenVR at startup, so even for OpenXR applications, OpenComposite or xrizer is required.
 
-When you start the server through flatpak, it will automatically configure the current OpenVR to use OpenComposite.
+When you start the server through flatpak, it will automatically configure the current OpenVR to use xrizer.
 
 ### Steam Flatpak
 
 If you're using the Steam Flatpak, you'll need to grant read only access to the following paths:
 
 ```bash
-flatpak override --user \
+flatpak override \
   --filesystem=xdg-run/wivrn:ro \
   --filesystem=xdg-data/flatpak/app/io.github.wivrn.wivrn:ro \
+  --filesystem=/var/lib/flatpak/app/io.github.wivrn.wivrn:ro \
   --filesystem=xdg-config/openxr:ro \
   --filesystem=xdg-config/openvr:ro \
   com.valvesoftware.Steam
 ```
 
-Then create a symlink for the OpenXR configuration file (the directory `~/.var/app/com.valvesoftware.Steam/.config/openxr` will need to be created if it doesn't already exist):
-
-```bash
-ln -s ~/.config/openxr/1 ~/.var/app/com.valvesoftware.Steam/.config/openxr/1
-```
+When using a user installation of flatpak Steam, user `override --user` instead of `override`.
 
 ### Audio
 When the headset is connected, WiVRn will create a virtual output device named WiVRn. It is not selected as default and you should either assign the application to the device when it is running, or mark it as default. To do so you can use `pavucontrol` or your desktop environment's configuration panel. Please note that in `pavucontrol` it will appear as a virtual device.
