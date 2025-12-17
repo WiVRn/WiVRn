@@ -352,19 +352,39 @@ void pipewire_device::speaker_process(void * self_v)
 		U_LOG_W("Out of buffers: %s", strerror(errno));
 		return;
 	}
+	const size_t frame_size = self->desc.speaker->num_channels * sizeof(int16_t);
+	std::vector<uint8_t> merged;
 
-	const auto & data = buffer->buffer->datas[0];
-	if (not data.data)
-		return;
+	audio_data out{
+	        .timestamp = self->session.get_offset().to_headset(os_monotonic_get_ns()),
+	};
 
+	if (buffer->buffer->n_datas == 1 and buffer->buffer->datas[0].chunk->stride == frame_size)
+	{
+		const auto & data = buffer->buffer->datas[0];
+		// fast-path, no need to copy
+		out.payload = std::span((uint8_t *)data.data + data.chunk->offset, data.chunk->size);
+	}
+	else
+	{
+		for (const auto & data: std::span(buffer->buffer->datas, buffer->buffer->n_datas))
+		{
+			if (not data.data)
+				continue;
+
+			for (auto loc = 0;
+			     loc < data.chunk->size;
+			     loc += data.chunk->stride)
+			{
+				std::span range((uint8_t *)data.data + data.chunk->offset + loc, frame_size);
+				merged.insert(merged.end(), range.begin(), range.end());
+			}
+		}
+		out.payload = merged;
+	}
 	try
 	{
-		self->session.send_control(audio_data{
-		        .timestamp = self->session.get_offset().to_headset(os_monotonic_get_ns()),
-		        .payload = std::span(
-		                (uint8_t *)data.data + data.chunk->offset,
-		                data.chunk->size),
-		});
+		self->session.send_control(std::move(out));
 	}
 	catch (std::exception & e)
 	{
