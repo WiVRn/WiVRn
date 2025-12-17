@@ -79,7 +79,7 @@ public:
 	float override_foveation_pitch = 10 * M_PI / 180;
 	float override_foveation_distance = 3;
 
-	bool high_power_mode = false;
+	bool high_power_mode;
 
 	bool first_run = true;
 

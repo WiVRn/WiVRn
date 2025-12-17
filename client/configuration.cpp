@@ -99,6 +99,29 @@ configuration::configuration(xr::system & system)
 {
 	passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
 	features[feature::hand_tracking] = system.hand_tracking_supported();
+	switch (guess_model())
+	{
+		case model::oculus_quest:
+		case model::oculus_quest_2:
+		case model::meta_quest_pro:
+		case model::meta_quest_3:
+		case model::meta_quest_3s:
+			high_power_mode = false;
+			break;
+		case model::pico_neo_3:
+		case model::pico_4:
+		case model::pico_4s:
+		case model::pico_4_pro:
+		case model::pico_4_enterprise:
+		case model::htc_vive_focus_3:
+		case model::htc_vive_xr_elite:
+		case model::htc_vive_focus_vision:
+		case model::lynx_r1:
+		case model::samsung_galaxy_xr:
+		case model::unknown:
+			high_power_mode = true;
+			break;
+	}
 	try
 	{
 		simdjson::dom::parser parser;
