@@ -25,6 +25,7 @@
 			<li>Meta Quest 1, 2, 3, 3S, pro</li>
 			<li>Pico Neo 4</li>
 			<li>HTC Vive Focus 3, XR Elite</li>
+			<li>Samsung Galaxy XR</li>
 		</ul>
 
 		<p>For desktop streaming, check out wlx-overlay-s.</p>
@@ -46,15 +47,15 @@
 
 	<screenshots>
 		<screenshot type="default">
-			<image type="source">https://wivrn.github.io/screenshots/dashboard-2-orig.png</image>
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-2.png</image>
 			<caption>Dashboard</caption>
 		</screenshot>
 		<screenshot>
-			<image type="source">https://wivrn.github.io/screenshots/dashboard-1-orig.png</image>
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-1.png</image>
 			<caption>Wizard</caption>
 		</screenshot>
 		<screenshot>
-			<image type="source">https://wivrn.github.io/screenshots/dashboard-3-orig.png</image>
+			<image type="source">https://wivrn.github.io/screenshots/dashboard-3.png</image>
 			<caption>Settings</caption>
 		</screenshot>
 	</screenshots>
@@ -67,6 +68,18 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="25.12" date="2025-12-19">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.12</url>
+			<description>
+				<ul>
+					<li>Samsung Galaxy XR support</li>
+					<li>Mouse and keyboard forwarding from headset to PC</li>
+					<li>Refresh rate and bitrate can be adjusted while streaming</li>
+					<li>Moved video settings from dashboard to headset</li>
+					<li>Update default encoder and codecs, will be Vulkan/H.265 on AMD or Intel, nvenc/AV1 or H.265 on NVIDIA</li>
+				</ul>
+			</description>
+		</release>
 		<release version="25.11.1" date="2025-11-10">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.11.1</url>
 			<description>
