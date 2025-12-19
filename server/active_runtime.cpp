@@ -49,7 +49,7 @@ std::vector<std::filesystem::path> active_runtime::manifest_path()
 	const std::filesystem::path prefix = "openxr_wivrn";
 	// Check if in a flatpak
 	if (auto path = flatpak_key(flatpak::section::instance, "app-path"))
-		return filter_files(*path / location, prefix);
+		return {*path / location / "openxr_wivrn.json"};
 
 	// Check if running from build directory
 	auto exe = std::filesystem::read_symlink("/proc/self/exe");
