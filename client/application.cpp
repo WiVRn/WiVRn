@@ -1255,6 +1255,7 @@ void application::initialize()
 
 	        XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME,
 	        XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME,
+	        XR_META_LOCAL_DIMMING_EXTENSION_NAME,
 	};
 
 	for (const auto & i: interaction_profiles)

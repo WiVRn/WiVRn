@@ -144,8 +144,14 @@ void xr::session::begin_frame()
 
 void xr::session::end_frame(XrTime display_time, const std::vector<XrCompositionLayerBaseHeader *> & layers, XrEnvironmentBlendMode blend_mode)
 {
-	XrFrameEndInfo end_info{
+	const XrLocalDimmingFrameEndInfoMETA local_dimming_info{
+	        .type = XR_TYPE_LOCAL_DIMMING_FRAME_END_INFO_META,
+	        .localDimmingMode = XR_LOCAL_DIMMING_MODE_ON_META,
+	};
+
+	const XrFrameEndInfo end_info{
 	        .type = XR_TYPE_FRAME_END_INFO,
+	        .next = inst->has_extension(XR_META_LOCAL_DIMMING_EXTENSION_NAME) ? &local_dimming_info : nullptr,
 	        .displayTime = display_time,
 	        .environmentBlendMode = blend_mode,
 	        .layerCount = (uint32_t)layers.size(),
