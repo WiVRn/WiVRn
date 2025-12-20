@@ -320,12 +320,11 @@ foreach(TARGET_NAME wivrn wivrn-server wivrn-dashboard wivrn-common wivrn-dissec
             -fdiagnostics-color -Wall -Wextra -pedantic
             -Wundef
             -Wno-missing-field-initializers
-            -Wno-maybe-uninitialized
             -Wno-unused-parameter
             -Wno-comment
             -Wno-unused-variable
             -Wno-sign-compare
-            $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-volatile -Wno-array-bounds>
+            $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-Wno-volatile -Wno-array-bounds -Wno-maybe-uninitialized>
             $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-Wno-deprecated-volatile -Wno-unneeded-internal-declaration -Wno-c99-extensions -Wno-unused-private-field>
         )
 
