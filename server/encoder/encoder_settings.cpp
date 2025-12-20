@@ -211,7 +211,7 @@ class prober
 
 public:
 	prober(wivrn_vk_bundle & vk, const from_headset::headset_info_packet & info) :
-	        vk(vk), info(info), nvidia(is_nvidia(vk.physical_device)) {}
+	        vk(vk), info(info), nvidia(is_nvidia(*vk.physical_device)) {}
 
 	std::pair<std::string, video_codec> select_encoder(const configuration::encoder & config)
 	{
