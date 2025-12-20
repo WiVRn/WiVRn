@@ -1,16 +1,12 @@
 # kate: syntax yaml
 id: io.github.wivrn.wivrn
 runtime: org.kde.Platform
-runtime-version: '6.9'
+runtime-version: '6.10'
 sdk: org.kde.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.rust-stable
-  - org.freedesktop.Sdk.Extension.llvm18
-add-build-extensions:
-    org.freedesktop.Sdk.Compat.i386:
-      directory: lib/i386-linux-gnu
-      version: '24.08'
-      remove-after-build: true
+  - org.freedesktop.Sdk.Extension.llvm20
+  - org.freedesktop.Sdk.Compat.i386
 command: wivrn-dashboard
 separate-locales: false
 
@@ -73,7 +69,7 @@ modules:
     sources:
     - type: git
       url: https://github.com/crosstool-ng/crosstool-ng.git
-      tag: 1e9bf8151513b054f60f34bc89507c31dc242cf0
+      tag: a3fef85781d3cda0b27388916f3287826aeec177
     - type: shell
       commands:
        - sed -i 's/-O2 -g/-O2/' scripts/crosstool-NG.sh
@@ -126,14 +122,14 @@ modules:
       url: https://ftpmirror.gnu.org/gnu/gettext/gettext-0.23.1.tar.xz
       sha256: c1f97a72a7385b7e71dd07b5fea6cdaf12c9b88b564976b23bd8c11857af2970
     - type: file
-      url: https://ftpmirror.gnu.org/gnu/binutils/binutils-2.43.1.tar.xz
-      sha256: 13f74202a3c4c51118b797a39ea4200d3f6cfbe224da6d1d95bb938480132dfd
+      url: https://ftpmirror.gnu.org/gnu/binutils/binutils-2.45.tar.xz
+      sha256: c50c0e7f9cb188980e2cc97e4537626b1672441815587f1eab69d2a1bfbef5d2
     - type: file
-      url: https://ftpmirror.gnu.org/gnu/gcc/gcc-11.5.0/gcc-11.5.0.tar.xz
-      sha256: a6e21868ead545cf87f0c01f84276e4b5281d672098591c1c896241f09363478
+      url: https://ftpmirror.gnu.org/gnu/gcc/gcc-13.4.0/gcc-13.4.0.tar.xz
+      sha256: 9c4ce6dbb040568fdc545588ac03c5cbc95a8dbf0c7aa490170843afb59ca8f5
     - type: file
-      url: https://ftpmirror.gnu.org/gnu/glibc/glibc-2.35.tar.xz
-      sha256: 5123732f6b67ccd319305efd399971d58592122bcc2a6518a1bd2510dd0cf52e
+      url: https://ftpmirror.gnu.org/gnu/glibc/glibc-2.39.tar.xz
+      sha256: f77bd47cf8170c57365ae7bf86696c118adb3b120d3259c64c502d3dc1e2d926
     - type: file
       path: ct-ng-x86_64.config
       dest-filename: .config
@@ -274,7 +270,7 @@ modules:
     sources:
     - type: git
       url: https://github.com/qcoro/qcoro.git
-      tag: v0.11.0
+      tag: v0.12.0
 
   - name: opencomposite
     buildsystem: cmake-ninja
@@ -283,12 +279,12 @@ modules:
       cxxflags: -idirafter/usr/include
       arch:
         aarch64:
-          ldflags: -L/usr/lib/aarch64-linux-gnu -Wl,--warn-unresolved-symbols
+          ldflags: -L/usr/lib/aarch64-linux-gnu
           env:
             CC: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc
             CXX: /app/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++
         x86_64:
-          ldflags: -L/usr/lib/x86_64-linux-gnu -Wl,--warn-unresolved-symbols
+          ldflags: -L/usr/lib/x86_64-linux-gnu
           env:
             CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
             CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
@@ -304,18 +300,19 @@ modules:
     only-arches: x86_64
     buildsystem: cmake-ninja
     build-options:
-      prepend-pkg-config-path: /app/lib/i386-linux-gnu/pkgconfig
+      prepend-pkg-config-path: /usr/lib/i386-linux-gnu/pkgconfig
       cflags: -m32 -idirafter/usr/include
       cxxflags: -m32 -idirafter/usr/include
-      ldflags: -L/app/lib/i386-linux-gnu
+      ldflags: -L/usr/lib/i386-linux-gnu
       env:
         CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
         CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
     config-opts:
       - -DUSE_SYSTEM_OPENXR=OFF
       - -DUSE_SYSTEM_GLM=OFF
+      - -DCMAKE_ASM_FLAGS=-m32
       - -DCMAKE_LIBRARY_ARCHITECTURE=i386-linux-gnu
-      - -DCMAKE_SYSTEM_LIBRARY_PATH=/app/lib/i386-linux-gnu
+      - -DCMAKE_SYSTEM_LIBRARY_PATH=/usr/lib/i386-linux-gnu
     sources:
       - type: git
         url: https://gitlab.com/znixian/OpenOVR.git
@@ -324,7 +321,7 @@ modules:
   - name: xrizer
     buildsystem: simple
     build-options:
-      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm18/bin
+      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm20/bin
       cflags: -idirafter/usr/include
       cxxflags: -idirafter/usr/include
       env:
@@ -353,74 +350,33 @@ modules:
         tag: 76e01ac8ad79fed226a883985daa3cbe61271ca7
       - xrizer-gen-src.json
 
-  - name: xrizer32
-    only-arches: x86_64
-    buildsystem: simple
-    build-options:
-      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm18/bin
-      cflags: -idirafter/usr/include
-      cxxflags: -idirafter/usr/include
-      ldflags: -L/app/lib/i386-linux-gnu -Wl,--warn-unresolved-symbols
-      env:
-        CARGO_HOME: /run/build/xrizer/cargo
-        CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
-        CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
-        RUSTFLAGS: -C linker=/app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
-    build-commands:
-      - cargo --offline fetch --manifest-path Cargo.toml --verbose
-      - cargo xbuild --release --target=i686-unknown-linux-gnu
-      - mkdir /app/xrizer
-      - cp -rL target/i686-unknown-linux-gnu/release/bin/ /app/xrizer/
-    sources:
-      - type: git
-        url: https://github.com/Supreeeme/xrizer.git
-        tag: 76e01ac8ad79fed226a883985daa3cbe61271ca7
-      - xrizer-gen-src.json
-
-  - name: wivrn-library32
-    buildsystem: cmake-ninja
-    only-arches: x86_64
-    build-options:
-      prepend-pkg-config-path: /app/lib/i386-linux-gnu/pkgconfig
-      # org.kde.Platform//6.8 sets _FORTIFY_SOURCE=3 but gcc 11 only supports _FORTIFY_SOURCE=2
-      ldflags: -L/app/lib/386-linux-gnu -Wl,--warn-unresolved-symbols
-      cflags: -Wp,-U_FORTIFY_SOURCE -Wp,-D_FORTIFY_SOURCE=2 -m32 -idirafter/usr/include -idirafter/usr/lib/x86_64-linux-gnu/include/
-      cxxflags: -Wp,-U_FORTIFY_SOURCE -Wp,-D_FORTIFY_SOURCE=2 -m32 -idirafter/usr/include -idirafter/usr/lib/x86_64-linux-gnu/include/
-      env:
-        CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
-        CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
-    config-opts:
-      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
-      - -DWIVRN_BUILD_CLIENT=OFF
-      - -DWIVRN_BUILD_SERVER=OFF
-      - -DWIVRN_BUILD_SERVER_LIBRARY=ON
-      - -DWIVRN_BUILD_DASHBOARD=OFF
-      - -DWIVRN_BUILD_WIVRNCTL=OFF
-      - -DWIVRN_WERROR=ON
-      - -DWIVRN_OPENXR_MANIFEST_ABI=i686
-      - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
-      - -DFETCHCONTENT_BASE_DIR=deps
-      - -DGIT_DESC=WIVRN_GIT_DESC
-      - -DGIT_COMMIT=WIVRN_GIT_COMMIT
-      - -Wno-dev
-    sources:
-      - WIVRN_SRC1
-        WIVRN_SRC2
-        WIVRN_SRC3
-      - type: git
-        url: https://gitlab.freedesktop.org/monado/monado
-        tag: MONADO_COMMIT
-        dest: deps/monado-src
-      - type: shell
-        commands:
-         - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado/*
+#  - name: xrizer32
+#    only-arches: x86_64
+#    buildsystem: simple
+#    build-options:
+#      append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm20/bin
+#      cflags: -idirafter/usr/include
+#      cxxflags: -idirafter/usr/include
+#      ldflags: -L/app/lib/i386-linux-gnu -Wl,--warn-unresolved-symbols
+#      env:
+#        CARGO_HOME: /run/build/xrizer32/cargo
+#        CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
+#        CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
+#        RUSTFLAGS: -C linker=/app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
+#    build-commands:
+#      - cargo --offline fetch --manifest-path Cargo.toml --verbose --target=i686-unknown-linux-gnu
+#      - cargo xbuild --release --target=i686-unknown-linux-gnu
+#      - mkdir /app/xrizer
+#      - cp -rL target/i686-unknown-linux-gnu/release/bin/ /app/xrizer/
+#    sources:
+#      - type: git
+#        url: https://github.com/Supreeeme/xrizer.git
+#        tag: 76e01ac8ad79fed226a883985daa3cbe61271ca7
+#      - xrizer-gen-src.json
 
   - name: wivrn-library
     buildsystem: cmake-ninja
     build-options:
-      # org.kde.Platform//6.8 sets _FORTIFY_SOURCE=3 but gcc 11 only supports _FORTIFY_SOURCE=2
-      cflags: -Wp,-U_FORTIFY_SOURCE -Wp,-D_FORTIFY_SOURCE=2
-      cxxflags: -Wp,-U_FORTIFY_SOURCE -Wp,-D_FORTIFY_SOURCE=2
       arch:
         aarch64:
           ldflags: -L/usr/lib/aarch64-linux-gnu -Wl,--warn-unresolved-symbols
@@ -460,6 +416,47 @@ modules:
       - type: shell
         commands:
          - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado/*
+
+  - name: wivrn-library32
+    buildsystem: cmake-ninja
+    only-arches: x86_64
+    build-options:
+      prepend-pkg-config-path: /usr/lib/i386-linux-gnu/pkgconfig
+      ldflags: -L/usr/lib/i386-linux-gnu
+      cflags: -m32 -idirafter/usr/include -idirafter/usr/lib/x86_64-linux-gnu/include/
+      cxxflags: -m32 -idirafter/usr/include -idirafter/usr/lib/x86_64-linux-gnu/include/
+      env:
+        CC: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-gcc
+        CXX: /app/x86_64-unknown-linux-gnu/bin/x86_64-unknown-linux-gnu-g++
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - -DWIVRN_BUILD_CLIENT=OFF
+      - -DWIVRN_BUILD_SERVER=OFF
+      - -DWIVRN_BUILD_SERVER_LIBRARY=ON
+      - -DWIVRN_BUILD_DASHBOARD=OFF
+      - -DWIVRN_BUILD_WIVRNCTL=OFF
+      - -DWIVRN_WERROR=ON
+      - -DFETCHCONTENT_FULLY_DISCONNECTED=ON
+      - -DFETCHCONTENT_BASE_DIR=deps
+      - -DGIT_DESC=WIVRN_GIT_DESC
+      - -DGIT_COMMIT=WIVRN_GIT_COMMIT
+      - -Wno-dev
+      - -DWIVRN_OPENXR_MANIFEST_ABI=i686
+      - -DCMAKE_LIBRARY_ARCHITECTURE=i386-linux-gnu
+      - -DCMAKE_SYSTEM_LIBRARY_PATH=/usr/lib/i386-linux-gnu
+      - -DCMAKE_INSTALL_LIBDIR=lib32
+    sources:
+      - WIVRN_SRC1
+        WIVRN_SRC2
+        WIVRN_SRC3
+      - type: git
+        url: https://gitlab.freedesktop.org/monado/monado
+        tag: MONADO_COMMIT
+        dest: deps/monado-src
+      - type: shell
+        commands:
+         - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado/*
+         - sed -i '/eglDestroyContext(dpy, ctx);/d' deps/monado-src/cmake/FindEGL.cmake
 
   - name: wivrn
     buildsystem: cmake-ninja

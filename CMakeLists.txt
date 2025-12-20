@@ -320,6 +320,7 @@ foreach(TARGET_NAME wivrn wivrn-server wivrn-dashboard wivrn-common wivrn-dissec
             -fdiagnostics-color -Wall -Wextra -pedantic
             -Wundef
             -Wno-missing-field-initializers
+            -Wno-maybe-uninitialized
             -Wno-unused-parameter
             -Wno-comment
             -Wno-unused-variable
