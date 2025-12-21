@@ -56,19 +56,17 @@ Default setting will have all encoders of a given type execute sequentially, and
 1. Simple configuration
 ```json
 {
-	"bitrate": 50000000,
 	"encoder": {
 		"encoder": "vaapi",
 		"codec": "h265"
 	}
 }
 ```
-Use vaapi hardware encoding, h265 video codec (HEVC) and 50Mb/s bitrate.
+Use vaapi hardware encoding, h265 video codec (HEVC).
 
 2. Hardware + software encoder
 ```json
 {
-	"bitrate": 50000000,
 	"encoders": [
 		{
 			"encoder": "vaapi",
