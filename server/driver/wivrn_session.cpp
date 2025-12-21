@@ -448,7 +448,7 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 	U_LOG_W("unexpected headset info packet, ignoring");
 }
 
-void wivrn_session::operator()(from_headset::settings_changed && settings)
+void wivrn_session::operator()(const from_headset::settings_changed & settings)
 {
 	*this->settings.lock() = settings;
 
@@ -1124,8 +1124,8 @@ void wivrn_session::reconnect()
 				throw no_client_connected{};
 		});
 
-		// const auto & info = connection->info();
-		// FIXME: ensure new client is compatible
+		const auto & info = connection->info();
+		(*this)(info.settings);
 
 		{
 			std::shared_lock lock(comp_target_mutex);
