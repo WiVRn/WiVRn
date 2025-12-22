@@ -693,7 +693,7 @@ msgstr "編集"
 
 #: client/scenes/stream_gui.cpp:594
 msgid "Use the right thumbstick to adjust the bitrate"
-msgstr "右スチックでビットレートを調整しましょう"
+msgstr "右スティックでビットレートを調整しましょう"
 
 #: client/scenes/stream_gui.cpp:595
 msgid "Press A to go back"
