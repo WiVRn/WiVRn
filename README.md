@@ -55,6 +55,11 @@ You can now start an OpenXR application on your computer. For Steam games, you m
 
 You can set an application to be started automatically when you connect your headset in the dashboard settings or [manually](docs/configuration.md#application)
 
+### Application list
+When the headset is connected and no XR application is running, it will show an application launcher. Applications in that list are sourced from:
+- Steam games that are flagged as VR. Steam may need to be restarted for the list to be updated when new games are installed.
+- .desktop files that contain `X-WiVRn-VR` in the `Categories` section. Files are searched in [standard locations](https://specifications.freedesktop.org/desktop-entry/latest/file-naming.html#desktop-file-id) which usually include `~/.local/share/applications` and `/usr/share/applications/`.
+
 ### OpenVR and Steam games
 
 The flatpak also includes [OpenComposite](https://gitlab.com/znixian/OpenOVR/) and [xrizer](https://github.com/Supreeeme/xrizer/), used to translate the OpenVR API used by SteamVR to OpenXR used by WiVRn, see [SteamVR](docs/steamvr.md) for details.
