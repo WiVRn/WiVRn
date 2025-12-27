@@ -151,7 +151,7 @@ class prober
 
 	bool check_nvenc(video_codec codec)
 	{
-		if (auto it = vaapi_support.find(codec); it != vaapi_support.end())
+		if (auto it = nvenc_support.find(codec); it != nvenc_support.end())
 			return it->second;
 		try
 		{
