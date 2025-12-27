@@ -142,8 +142,8 @@ class wivrn_session : public xrt_system_devices
 	// run-time editable settings
 	thread_safe<from_headset::settings_changed> settings;
 
-	// when sessions shall be destroyed, key is timestap, value is client id
-	thread_safe<std::map<int64_t, int32_t>> session_loss;
+	// when sessions shall be destroyed, key is client id, value is timestamp
+	thread_safe<std::map<uint32_t, int64_t>> session_loss;
 
 	std::jthread thread;
 

@@ -1,7 +1,7 @@
-From 9041dad492652ed1173cb381ee4da9b16b1a96f8 Mon Sep 17 00:00:00 2001
+From ade4c6c0524861bdb63d6b3a75ed8a8eb4177c37 Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 15 Sep 2025 22:46:15 +0000
-Subject: [PATCH 10/10] d/solarxr: Feed device poses to server
+Subject: [PATCH 11/11] d/solarxr: Feed device poses to server
 
 ---
  src/xrt/drivers/CMakeLists.txt              |   2 +

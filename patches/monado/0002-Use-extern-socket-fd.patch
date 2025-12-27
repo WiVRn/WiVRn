@@ -1,7 +1,7 @@
-From 094859d490114d28dbe0f8d2665617b942275ccb Mon Sep 17 00:00:00 2001
+From 4019dbc8ccd8e7ed3431c1b5b476c98730621519 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 8 Oct 2024 22:13:15 +0200
-Subject: [PATCH 02/10] Use extern socket fd
+Subject: [PATCH 02/11] Use extern socket fd
 
 ---
  src/xrt/ipc/server/ipc_server_mainloop_linux.c | 8 ++++++++
