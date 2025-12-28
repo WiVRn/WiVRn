@@ -328,7 +328,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/Supreeeme/xrizer.git
-        tag: 76e01ac8ad79fed226a883985daa3cbe61271ca7
+        tag: 01ab72809f2bd5c6494fa77fb08e4229c886da7a
       - xrizer-gen-src.json
 
   - name: wivrn-library
