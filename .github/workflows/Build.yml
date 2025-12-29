@@ -54,6 +54,7 @@ jobs:
           ${{github.workspace}}/cmake-fetch/*-subbuild/*-populate-prefix/src/*.zip
           ${{github.workspace}}/cmake-fetch/*.tar.*
           ${{github.workspace}}/cmake-fetch/*.tgz
+          ${{github.workspace}}/cmake-fetch/*-src/.git
         restore-keys: cmake-linux-
 
     - name: Install dependencies
