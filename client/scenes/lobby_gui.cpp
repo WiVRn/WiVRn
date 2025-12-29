@@ -806,8 +806,8 @@ void scenes::lobby::gui_settings()
 		ImGui::Unindent();
 		ImGui::EndDisabled();
 	}
+	if (system.hand_tracking_supported())
 	{
-		ImGui::BeginDisabled(not system.hand_tracking_supported());
 		bool enabled = config.check_feature(feature::hand_tracking);
 		if (ImGui::Checkbox(_S("Enable hand tracking"), &enabled))
 		{
@@ -816,10 +816,9 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
 			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
-		ImGui::EndDisabled();
 	}
+	if (application::get_eye_gaze_supported())
 	{
-		ImGui::BeginDisabled(not application::get_eye_gaze_supported());
 		bool enabled = config.check_feature(feature::eye_gaze);
 		if (ImGui::Checkbox(_S("Enable eye tracking"), &enabled))
 		{
@@ -828,30 +827,26 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
 			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
-		ImGui::EndDisabled();
 	}
+	if (system.face_tracker_supported() != xr::face_tracker_type::none)
 	{
-		ImGui::BeginDisabled(system.face_tracker_supported() == xr::face_tracker_type::none);
 		bool enabled = config.check_feature(feature::face_tracking);
 		if (ImGui::Checkbox(_S("Enable face tracking"), &enabled))
 		{
 			config.set_feature(feature::face_tracking, enabled);
 		}
-		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) and (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
 			imgui_ctx->tooltip(_("This feature is not supported by your headset"));
 		imgui_ctx->vibrate_on_hover();
 	}
 
-	auto body_tracker = system.body_tracker_supported();
+	if (auto body_tracker = system.body_tracker_supported(); body_tracker != xr::body_tracker_type::none)
 	{
-		ImGui::BeginDisabled(body_tracker == xr::body_tracker_type::none);
 		bool enabled = config.check_feature(feature::body_tracking);
 		if (ImGui::Checkbox(_S("Enable body tracking"), &enabled))
 		{
 			config.set_feature(feature::body_tracking, enabled);
 		}
-		ImGui::EndDisabled();
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
 		{
 			if (ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)
@@ -866,31 +861,32 @@ void scenes::lobby::gui_settings()
 		}
 
 		imgui_ctx->vibrate_on_hover();
-	}
-	if (body_tracker == xr::body_tracker_type::fb)
-	{
-		ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
-		ImGui::Indent();
-		if (ImGui::Checkbox(_S("Enable lower body tracking"), &config.fb_lower_body))
-		{
-			config.save();
-		}
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
 
-		ImGui::BeginDisabled(not config.fb_lower_body);
-		if (ImGui::Checkbox(_S("Enable hip tracking"), &config.fb_hip))
+		if (body_tracker == xr::body_tracker_type::fb)
 		{
-			config.save();
-		}
-		imgui_ctx->vibrate_on_hover();
-		if (ImGui::IsItemHovered())
-			imgui_ctx->tooltip(_("Only takes affect with lower body tracking enabled\nMay be desired when using another source of hip tracking"));
-		ImGui::EndDisabled();
+			ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
+			ImGui::Indent();
+			if (ImGui::Checkbox(_S("Enable lower body tracking"), &config.fb_lower_body))
+			{
+				config.save();
+			}
+			imgui_ctx->vibrate_on_hover();
+			if (ImGui::IsItemHovered())
+				imgui_ctx->tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
 
-		ImGui::Unindent();
-		ImGui::EndDisabled();
+			ImGui::BeginDisabled(not config.fb_lower_body);
+			if (ImGui::Checkbox(_S("Enable hip tracking"), &config.fb_hip))
+			{
+				config.save();
+			}
+			imgui_ctx->vibrate_on_hover();
+			if (ImGui::IsItemHovered())
+				imgui_ctx->tooltip(_("Only takes affect with lower body tracking enabled\nMay be desired when using another source of hip tracking"));
+			ImGui::EndDisabled();
+
+			ImGui::Unindent();
+			ImGui::EndDisabled();
+		}
 	}
 
 	{
