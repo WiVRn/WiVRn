@@ -257,10 +257,13 @@ public:
 #endif
 
 #if WIVRN_USE_VAAPI
-		for (auto codec: config.codec ? std::vector{*config.codec} : info.supported_codecs)
+		if (config.name.empty() or config.name == encoder_vaapi)
 		{
-			if (check_vaapi(codec))
-				return {encoder_vaapi, codec};
+			for (auto codec: config.codec ? std::vector{*config.codec} : info.supported_codecs)
+			{
+				if (check_vaapi(codec))
+					return {encoder_vaapi, codec};
+			}
 		}
 #endif
 		U_LOG_W("No suitable hardware accelerated codec found");
