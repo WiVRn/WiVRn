@@ -671,13 +671,13 @@ void scenes::lobby::gui_settings()
 		}
 	}
 
-	// Stream resolution
+	// foveation
 	{
 		const int step = 10;
 		const auto current = config.get_stream_scale();
-		auto intval = int(current * 100 / step);
+		int intval = round((1 - current) * 100 / step);
 		const auto slider = ImGui::SliderInt(
-		        _("Stream resolution").append("##stream_scale").c_str(),
+		        _("Foveated encoding").append("##stream_scale").c_str(),
 		        &intval,
 		        0,
 		        100 / step,
@@ -685,9 +685,18 @@ void scenes::lobby::gui_settings()
 		if (slider)
 		{
 			// clamp out of the slider to have the 50% value centered
-			intval = std::clamp(intval, 20 / step, 100 / step);
-			config.set_stream_scale(intval * step * 0.01);
+			intval = std::clamp(intval, 0, 80 / step);
+			config.set_stream_scale(1 - intval * step * 0.01);
 			config.save();
+		}
+		if (ImGui::IsItemHovered())
+		{
+			if (config.check_feature(feature::eye_gaze))
+				imgui_ctx->tooltip(_("Higher values focus image quality where you look at,\n"
+				                     "improving latency, power efficiency and quality."));
+			else
+				imgui_ctx->tooltip(_("Higher values focus image quality at the center,\n"
+				                     "improving latency, power efficiency and quality."));
 		}
 		imgui_ctx->vibrate_on_hover();
 	}
