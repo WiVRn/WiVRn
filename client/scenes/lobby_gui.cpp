@@ -655,7 +655,7 @@ void scenes::lobby::gui_settings()
 		        _("Render resolution").append("##resolution_scale").c_str(),
 		        &intScale,
 		        5,
-		        35,
+		        config.extended_config ? 35 : 15,
 		        fmt::format(_F("{}%% - {}x{} per eye"), intScale * 10, int(width * current), int(height * current)).c_str());
 		if (slider)
 		{
@@ -685,7 +685,9 @@ void scenes::lobby::gui_settings()
 		if (slider)
 		{
 			// clamp out of the slider to have the 50% value centered
-			intval = std::clamp(intval, 0, 80 / step);
+			intval = std::clamp(intval,
+			                    config.extended_config ? 0 : 30 / step,
+			                    80 / step);
 			config.set_stream_scale(1 - intval * step * 0.01);
 			config.save();
 		}
@@ -766,7 +768,7 @@ void scenes::lobby::gui_settings()
 		        _("Bitrate").append("##bitrate").c_str(),
 		        &val,
 		        1,
-		        200,
+		        config.max_bitrate() / mb,
 		        fmt::format(_F("{}Mbit/s"), val).c_str());
 		if (slider)
 		{
@@ -894,6 +896,13 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			imgui_ctx->tooltip(_("Enables the configuration window to be shown while the game is streaming.\nIf enabled, the window is activated by pressing both thumbsticks."));
+	}
+
+	{
+		ImGui::Checkbox(_S("Extended configuration values"), &config.extended_config);
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Allows unsafe configuration values, use at your own risk."));
 	}
 
 	ImGui::PopStyleVar(); // ImGuiStyleVar_ItemSpacing

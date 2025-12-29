@@ -223,22 +223,13 @@ configuration::configuration(xr::system & system)
 
 		if (auto val = root["high_power_mode"]; val.is_bool())
 			high_power_mode = val.get_bool();
+
+		if (auto val = root["extended_config"]; val.is_bool())
+			extended_config = val.get_bool();
 	}
 	catch (std::exception & e)
 	{
 		spdlog::warn("Cannot read configuration: {}", e.what());
-
-		// Restore default configuration
-		servers.clear();
-		preferred_refresh_rate.reset();
-		minimum_refresh_rate.reset();
-		resolution_scale = 1.0;
-		codec.reset();
-		bit_depth = 10;
-		bitrate_bps = 50'000'000;
-		openxr_post_processing = {};
-		passthrough_enabled = system.passthrough_supported() == xr::passthrough_type::color;
-		stream_scale.reset();
 	}
 }
 
@@ -322,6 +313,7 @@ void configuration::save()
 	json << ",\"locale\":" << json_string(locale);
 	json << ",\"environment_model\":" << json_string(environment_model);
 	json << ",\"high_power_mode\":" << std::boolalpha << high_power_mode;
+	json << ",\"extended_config\":" << std::boolalpha << extended_config;
 	json << "}";
 }
 

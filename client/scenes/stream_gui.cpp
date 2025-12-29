@@ -599,7 +599,7 @@ void scenes::stream::gui_bitrate_settings(float predicted_display_period)
 	// Maximum speed of 20Mbit/s
 	float delta = application::read_action_float(settings_adjust).value_or(std::pair{0, 0}).second * 20'000'000.f * predicted_display_period;
 
-	config.bitrate_bps = std::clamp(config.bitrate_bps + static_cast<int32_t>(delta), 1'000'000u, 200'000'000u);
+	config.bitrate_bps = std::clamp(config.bitrate_bps + static_cast<int32_t>(delta), 1'000'000u, config.max_bitrate());
 
 	bool ok = application::read_action_bool(foveation_ok).value_or(std::pair{0, false}).second;
 

@@ -81,6 +81,9 @@ public:
 
 	bool high_power_mode;
 
+	// Allow unsafe config values
+	bool extended_config = false;
+
 	bool first_run = true;
 
 	std::string locale;
@@ -103,4 +106,9 @@ public:
 
 	void set_stream_scale(float);
 	float get_stream_scale() const;
+
+	uint32_t max_bitrate() const
+	{
+		return extended_config ? 800'000'000u : 200'000'000u;
+	}
 };
