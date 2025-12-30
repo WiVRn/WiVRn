@@ -1,4 +1,4 @@
-From f6c8ee1b54abf672d0229d7f415a00f652154b0b Mon Sep 17 00:00:00 2001
+From 1fed94d509b7e0b7c6ef89118e646338d88f5a9c Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
 Subject: [PATCH 04/10] st/oxr: forward 0 refresh rate
