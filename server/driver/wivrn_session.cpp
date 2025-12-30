@@ -2,6 +2,7 @@
  * WiVRn VR streaming
  * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
  * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1052,7 +1053,7 @@ void wivrn_session::run(std::stop_token stop)
 		catch (const std::exception & e)
 		{
 			U_LOG_E("Exception in network thread: %s", e.what());
-			reconnect();
+			reconnect(stop);
 			refresh.reset();
 		}
 	}
@@ -1077,18 +1078,17 @@ void wivrn_session::dump_time(const std::string & event, uint64_t frame, int64_t
 	}
 }
 
-static bool quit_if_no_client(u_system & xrt_system)
+void wivrn_session::quit_if_no_client()
 {
+	scoped_lock lock(xrt_system.sessions.mutex);
+	if (xrt_system.sessions.count == 0)
 	{
-		scoped_lock lock(xrt_system.sessions.mutex);
-		if (xrt_system.sessions.count)
-			return false;
+		U_LOG_I("No OpenXR client connected, exiting");
+		request_stop();
 	}
-	U_LOG_I("No OpenXR client connected, exiting");
-	return true;
 }
 
-void wivrn_session::reconnect()
+void wivrn_session::reconnect(std::stop_token stop)
 {
 	assert(mnd_ipc_server);
 	// Notify clients about disconnected status
@@ -1106,23 +1106,18 @@ void wivrn_session::reconnect()
 	}
 
 	U_LOG_I("Waiting for new connection");
-	auto tcp = accept_connection([this]() { return quit_if_no_client(xrt_system); });
+	auto tcp = accept_connection(*this, stop, &wivrn_session::quit_if_no_client);
+	if (stop.stop_requested())
+		return;
 	if (not tcp)
 	{
 		request_stop();
 		return;
 	}
-
-	struct no_client_connected
-	{};
-
 	try
 	{
 		offset_est.reset();
-		connection->reset(std::move(*tcp), [this]() {
-			if (quit_if_no_client(xrt_system))
-				throw no_client_connected{};
-		});
+		connection->reset(stop, std::move(*tcp), [this]() { quit_if_no_client(); });
 
 		const auto & info = connection->info();
 		(*this)(info.settings);
@@ -1142,11 +1137,6 @@ void wivrn_session::reconnect()
 		{
 			U_LOG_W("Failed to notify session state change");
 		}
-	}
-	catch (no_client_connected)
-	{
-		U_LOG_I("No OpenXR application connected");
-		request_stop();
 	}
 	catch (const std::exception & e)
 	{

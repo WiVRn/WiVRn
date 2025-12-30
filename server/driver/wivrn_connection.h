@@ -73,7 +73,7 @@ public:
 	{
 		return active;
 	}
-	void reset(TCP && tcp, std::function<void()> tick = []() {});
+	void reset(std::stop_token stop, TCP && tcp, std::function<void()> tick = {});
 	void shutdown();
 
 	template <typename T>

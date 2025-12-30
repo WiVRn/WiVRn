@@ -162,6 +162,7 @@ public:
 	void stop();
 
 	bool request_stop();
+	void quit_if_no_client();
 
 	clock_offset get_offset();
 	bool connected();
@@ -247,7 +248,7 @@ public:
 
 private:
 	void run(std::stop_token stop);
-	void reconnect();
+	void reconnect(std::stop_token stop);
 
 	void poll_session_loss();
 

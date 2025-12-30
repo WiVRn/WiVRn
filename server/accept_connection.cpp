@@ -22,13 +22,14 @@
 #include "util/u_logging.h"
 #include "utils/overloaded.h"
 
+#include "driver/wivrn_session.h"
 #include "wivrn_config.h"
 #include "wivrn_ipc.h"
 #include "wivrn_sockets.h"
 
 #include <sys/poll.h>
 
-std::unique_ptr<wivrn::TCP> wivrn::accept_connection(std::function<bool()> quit)
+std::unique_ptr<wivrn::TCP> wivrn::accept_connection(wivrn_session & cnx, std::stop_token stop, std::function<void(wivrn_session &)> tick)
 {
 	wivrn_ipc_socket_monado->send(from_monado::headset_disconnected{});
 
@@ -39,7 +40,7 @@ std::unique_ptr<wivrn::TCP> wivrn::accept_connection(std::function<bool()> quit)
 	        {.fd = wivrn_ipc_socket_monado->get_fd(), .events = POLLIN},
 	};
 
-	while (not(quit and quit()))
+	while (not stop.stop_requested())
 	{
 		if (poll(fds, std::size(fds), 100) < 0)
 		{
@@ -58,9 +59,10 @@ std::unique_ptr<wivrn::TCP> wivrn::accept_connection(std::function<bool()> quit)
 			auto packet = receive_from_main();
 			if (packet)
 				std::visit(utils::overloaded{
-				                   [](to_monado::stop) {
+				                   [&cnx](to_monado::stop) {
 					                   // gets handled in wivrn_session::reconnect since we return nullptr
 					                   U_LOG_I("Received stop packet during reconnect, stopping");
+					                   cnx.request_stop();
 				                   },
 				                   [](auto &&) {
 					                   // Ignore request when no headset is connected
@@ -68,6 +70,9 @@ std::unique_ptr<wivrn::TCP> wivrn::accept_connection(std::function<bool()> quit)
 				           },
 				           *packet);
 		}
+
+		if (tick)
+			tick(cnx);
 	}
 
 	return {};

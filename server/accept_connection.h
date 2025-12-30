@@ -21,9 +21,11 @@
 
 #include <functional>
 #include <memory>
+#include <stop_token>
 
 namespace wivrn
 {
 class TCP;
-std::unique_ptr<wivrn::TCP> accept_connection(std::function<bool()> quit = std::function<bool()>());
+class wivrn_session;
+std::unique_ptr<wivrn::TCP> accept_connection(wivrn_session & cnx, std::stop_token stop, std::function<void(wivrn_session &)> tick = {});
 } // namespace wivrn
