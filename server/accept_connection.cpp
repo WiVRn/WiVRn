@@ -19,6 +19,7 @@
 
 #include "accept_connection.h"
 
+#include "util/u_logging.h"
 #include "utils/overloaded.h"
 
 #include "wivrn_config.h"
@@ -27,14 +28,13 @@
 
 #include <sys/poll.h>
 
-std::unique_ptr<wivrn::TCP> wivrn::accept_connection(int watch_fd, std::function<bool()> quit)
+std::unique_ptr<wivrn::TCP> wivrn::accept_connection(std::function<bool()> quit)
 {
 	wivrn_ipc_socket_monado->send(from_monado::headset_disconnected{});
 
 	wivrn::TCPListener listener(wivrn::default_port);
 
-	pollfd fds[3]{
-	        {.fd = watch_fd, .events = POLLIN},
+	pollfd fds[2]{
 	        {.fd = listener.get_fd(), .events = POLLIN},
 	        {.fd = wivrn_ipc_socket_monado->get_fd(), .events = POLLIN},
 	};
@@ -48,21 +48,19 @@ std::unique_ptr<wivrn::TCP> wivrn::accept_connection(int watch_fd, std::function
 		}
 
 		if (fds[0].revents & POLLIN)
-			return {};
-
-		if (fds[1].revents & POLLIN)
 		{
 			wivrn_ipc_socket_monado->send(from_monado::headset_connected{});
 			return std::make_unique<wivrn::TCP>(listener.accept().first);
 		}
 
-		if (fds[2].revents & POLLIN)
+		if (fds[1].revents & POLLIN)
 		{
 			auto packet = receive_from_main();
 			if (packet)
 				std::visit(utils::overloaded{
 				                   [](to_monado::stop) {
 					                   // gets handled in wivrn_session::reconnect since we return nullptr
+					                   U_LOG_I("Received stop packet during reconnect, stopping");
 				                   },
 				                   [](auto &&) {
 					                   // Ignore request when no headset is connected

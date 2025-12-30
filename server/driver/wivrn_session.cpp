@@ -1106,7 +1106,7 @@ void wivrn_session::reconnect()
 	}
 
 	U_LOG_I("Waiting for new connection");
-	auto tcp = accept_connection(0 /*stdin*/, [this]() { return quit_if_no_client(xrt_system); });
+	auto tcp = accept_connection([this]() { return quit_if_no_client(xrt_system); });
 	if (not tcp)
 	{
 		request_stop();
