@@ -1,12 +1,12 @@
-From 5a073a6ce945f6076d7b7fdcc1460519e6b454f6 Mon Sep 17 00:00:00 2001
+From 405df0e880a8fff52a01992eb96fa634cc795ba6 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 05/10] Replace distortion with foveation
 
 ---
- src/xrt/compositor/CMakeLists.txt             |   2 +-
  src/xrt/compositor/main/comp_renderer.c       |   6 +-
  src/xrt/compositor/main/comp_target.h         |   3 +-
+ src/xrt/compositor/render/CMakeLists.txt      |   2 +-
  src/xrt/compositor/render/render_compute.c    | 410 +++++++-----------
  src/xrt/compositor/render/render_interface.h  |  95 ++--
  src/xrt/compositor/render/render_resources.c  | 106 ++---
@@ -19,19 +19,6 @@ Subject: [PATCH 05/10] Replace distortion with foveation
  src/xrt/compositor/util/comp_render_cs.c      | 112 ++---
  13 files changed, 356 insertions(+), 592 deletions(-)
 
-diff --git a/src/xrt/compositor/CMakeLists.txt b/src/xrt/compositor/CMakeLists.txt
-index c09a0ec84..7be732f5f 100644
---- a/src/xrt/compositor/CMakeLists.txt
-+++ b/src/xrt/compositor/CMakeLists.txt
-@@ -105,7 +105,7 @@ if(XRT_HAVE_VULKAN)
- 		comp_render STATIC
- 		render/render_buffer.c
- 		render/render_compute.c
--		render/render_distortion.c
-+		# render/render_distortion.c implemented in wivrn
- 		render/render_gfx.c
- 		render/render_interface.h
- 		render/render_resources.c
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
 index 16c16fd7a..40b219cef 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
@@ -70,6 +57,19 @@ index 2122f46e7..53dcd631b 100644
  };
  
  /*!
+diff --git a/src/xrt/compositor/render/CMakeLists.txt b/src/xrt/compositor/render/CMakeLists.txt
+index 8b0014d39..60afb0ce2 100644
+--- a/src/xrt/compositor/render/CMakeLists.txt
++++ b/src/xrt/compositor/render/CMakeLists.txt
+@@ -10,7 +10,7 @@ add_library(
+ 	comp_render STATIC
+ 	render_buffer.c
+ 	render_compute.c
+-	render_distortion.c
++	# render/render_distortion.c implemented in wivrn
+ 	render_gfx.c
+ 	render_interface.h
+ 	render_resources.c
 diff --git a/src/xrt/compositor/render/render_compute.c b/src/xrt/compositor/render/render_compute.c
 index 62d7138b9..44c3f0aee 100644
 --- a/src/xrt/compositor/render/render_compute.c
