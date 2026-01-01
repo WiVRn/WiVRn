@@ -104,6 +104,8 @@ struct pipewire_device : public audio_device
 			        .sample_rate = info.speaker->sample_rate,
 			};
 
+			// Calculate quantum size: 5ms buffer for low latency while maintaining stability
+			// Smaller buffers (<5ms) risk underruns, larger ones (>10ms) add perceptible latency
 			uint32_t quantum_size = (desc.speaker->sample_rate * 5) / 1000;
 			uint32_t frame_size = desc.speaker->num_channels * sizeof(int16_t);
 			
@@ -126,10 +128,15 @@ struct pipewire_device : public audio_device
 			                "Audio/Sink",
 			                PW_KEY_MEDIA_ROLE,
 			                "Game",
+			                // Set stream rate to match client, preventing PipeWire from doing
+			                // unnecessary resampling which degrades audio quality
 			                PW_KEY_NODE_RATE,
 			                rate_str,
+			                // Declare target latency to help PipeWire optimize buffering
 			                PW_KEY_NODE_LATENCY,
 			                latency_str,
+			                // Force constant quantum size to prevent dynamic buffer size changes
+			                // Variable buffer sizes cause crackling in effect processors (EasyEffects)
 			                PW_KEY_NODE_FORCE_QUANTUM,
 			                latency_str,
 			                NULL),
@@ -148,6 +155,8 @@ struct pipewire_device : public audio_device
 			const spa_pod *params[1];
 			params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &audio_info);
 
+			// Stream flags:
+			// - DRIVER: makes this node the graph clock master, preventing sync drift in the audio chain
 			if (pw_stream_connect(
 			            speaker.get(),
 			            PW_DIRECTION_INPUT,
@@ -166,13 +175,13 @@ struct pipewire_device : public audio_device
 			        .sample_rate = info.microphone->sample_rate,
 			};
 
+			// Calculate quantum size: 5ms buffer for low latency while maintaining stability
+			// Smaller buffers (<5ms) risk underruns, larger ones (>10ms) add perceptible latency
 			uint32_t quantum_size = (desc.microphone->sample_rate * 5) / 1000;
 			uint32_t frame_size = desc.microphone->num_channels * sizeof(int16_t);
 			
-			char rate_str[32];
-			snprintf(rate_str, sizeof(rate_str), "1/%u", desc.microphone->sample_rate);
-			char latency_str[32];
-			snprintf(latency_str, sizeof(latency_str), "%u/%u", quantum_size, desc.microphone->sample_rate);
+			std::string rate_str = std::format("1/{}", desc.microphone->sample_rate);
+			std::string latency_str = std::format("{}/{}", quantum_size, desc.microphone->sample_rate);
 
 			microphone.reset(pw_stream_new_simple(
 			        pw_main_loop_get_loop(pw_loop.get()),
@@ -190,10 +199,14 @@ struct pipewire_device : public audio_device
 			                "Audio/Source",
 			                PW_KEY_MEDIA_ROLE,
 			                "Game",
+			                // Set stream rate to match client, preventing PipeWire from doing
+			                // unnecessary resampling which degrades audio quality
 			                PW_KEY_NODE_RATE,
 			                rate_str,
+			                // Declare target latency to help PipeWire optimize buffering
 			                PW_KEY_NODE_LATENCY,
 			                latency_str,
+			                // Force constant quantum size to prevent dynamic buffer size changes
 			                PW_KEY_NODE_FORCE_QUANTUM,
 			                latency_str,
 			                NULL),
