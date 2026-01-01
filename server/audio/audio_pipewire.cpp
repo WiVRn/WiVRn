@@ -108,7 +108,7 @@ struct pipewire_device : public audio_device
 			// Smaller buffers (<5ms) risk underruns, larger ones (>10ms) add perceptible latency
 			uint32_t quantum_size = (desc.speaker->sample_rate * 5) / 1000;
 			uint32_t frame_size = desc.speaker->num_channels * sizeof(int16_t);
-			
+
 			std::string rate_str = std::format("1/{}", desc.speaker->sample_rate);
 			std::string latency_str = std::format("{}/{}", quantum_size, desc.speaker->sample_rate);
 
@@ -151,8 +151,8 @@ struct pipewire_device : public audio_device
 			        .rate = desc.speaker->sample_rate,
 			        .channels = desc.speaker->num_channels,
 			};
-			
-			const spa_pod *params[1];
+
+			const spa_pod * params[1];
 			params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &audio_info);
 
 			// Stream flags:
@@ -179,7 +179,7 @@ struct pipewire_device : public audio_device
 			// Smaller buffers (<5ms) risk underruns, larger ones (>10ms) add perceptible latency
 			uint32_t quantum_size = (desc.microphone->sample_rate * 5) / 1000;
 			uint32_t frame_size = desc.microphone->num_channels * sizeof(int16_t);
-			
+
 			std::string rate_str = std::format("1/{}", desc.microphone->sample_rate);
 			std::string latency_str = std::format("{}/{}", quantum_size, desc.microphone->sample_rate);
 
@@ -220,8 +220,8 @@ struct pipewire_device : public audio_device
 			        .rate = desc.microphone->sample_rate,
 			        .channels = desc.microphone->num_channels,
 			};
-			
-			const spa_pod *params[1];
+
+			const spa_pod * params[1];
 			params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &audio_info);
 
 			if (pw_stream_connect(
