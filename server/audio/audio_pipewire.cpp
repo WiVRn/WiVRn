@@ -107,10 +107,8 @@ struct pipewire_device : public audio_device
 			uint32_t quantum_size = (desc.speaker->sample_rate * 5) / 1000;
 			uint32_t frame_size = desc.speaker->num_channels * sizeof(int16_t);
 			
-			char rate_str[32];
-			snprintf(rate_str, sizeof(rate_str), "1/%u", desc.speaker->sample_rate);
-			char latency_str[32];
-			snprintf(latency_str, sizeof(latency_str), "%u/%u", quantum_size, desc.speaker->sample_rate);
+			std::string rate_str = std::format("1/{}", desc.speaker->sample_rate);
+			std::string latency_str = std::format("{}/{}", quantum_size, desc.speaker->sample_rate);
 
 			speaker.reset(pw_stream_new_simple(
 			        pw_main_loop_get_loop(pw_loop.get()),
