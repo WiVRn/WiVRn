@@ -370,14 +370,12 @@ Kirigami.ApplicationWindow {
                 text: i18n("Wizard")
                 icon.name: "tools-wizard-symbolic"
                 onTriggered: root.pageStack.push(Qt.createComponent("WizardPage.qml").createObject())
-                visible: root.pageStack.depth == 1
                 enabled: root.server_started
             },
             Kirigami.Action {
                 text: i18n("Install the app")
                 icon.name: "install-symbolic"
                 onTriggered: root.pageStack.push(Qt.createComponent("ApkInstallPage.qml").createObject())
-                visible: root.pageStack.depth == 1
                 enabled: root.server_started && Adb.adbInstalled
                 tooltip: {
                     if (!root.server_started)
@@ -391,21 +389,18 @@ Kirigami.ApplicationWindow {
                 text: i18n("Headsets")
                 icon.name: "item-symbolic"
                 onTriggered: root.pageStack.push(Qt.createComponent("HeadsetsPage.qml").createObject())
-                visible: root.pageStack.depth == 1
                 enabled: root.server_started
             },
             Kirigami.Action {
                 text: i18n("Settings")
                 icon.name: "settings-configure-symbolic"
                 onTriggered: root.pageStack.push(Qt.createComponent("SettingsPage.qml").createObject())
-                visible: root.pageStack.depth == 1
                 enabled: root.server_started
             },
             Kirigami.Action {
                 text: i18n("Troubleshoot")
                 icon.name: "help-contents-symbolic"
                 onTriggered: root.pageStack.push(Qt.createComponent("TroubleshootPage.qml").createObject())
-                enabled: root.pageStack.depth == 1
             }
         ]
     }
