@@ -408,5 +408,12 @@ Kirigami.ApplicationWindow {
                 enabled: root.pageStack.depth == 1
             }
         ]
+
+        footer: Controls.Label {
+            text: i18n("Version %1", ApkInstaller.currentVersion)
+            horizontalAlignment: Text.AlignHCenter
+            opacity: 0.6
+            padding: Kirigami.Units.smallSpacing
+        }
     }
 }
