@@ -128,6 +128,8 @@ struct pipewire_device : public audio_device
 			                "Audio/Sink",
 			                PW_KEY_MEDIA_ROLE,
 			                "Game",
+							PW_KEY_NODE_VIRTUAL,
+							"true",
 			                // Set stream rate to match client, preventing PipeWire from doing
 			                // unnecessary resampling which degrades audio quality
 			                PW_KEY_NODE_RATE,
@@ -161,7 +163,7 @@ struct pipewire_device : public audio_device
 			            speaker.get(),
 			            PW_DIRECTION_INPUT,
 			            PW_ID_ANY,
-			            pw_stream_flags(PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_DRIVER),
+			            pw_stream_flags(PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_RT_PROCESS),
 			            params,
 			            1) < 0)
 				throw std::runtime_error("failed to connect speaker stream");
@@ -171,8 +173,8 @@ struct pipewire_device : public audio_device
 		if (info.microphone)
 		{
 			desc.microphone = {
-			        .num_channels = info.microphone->num_channels,
-			        .sample_rate = info.microphone->sample_rate,
+					.num_channels = info.microphone->num_channels,
+					.sample_rate = info.microphone->sample_rate,
 			};
 
 			// Calculate quantum size: 5ms buffer for low latency while maintaining stability
@@ -184,34 +186,36 @@ struct pipewire_device : public audio_device
 			std::string latency_str = std::format("{}/{}", quantum_size, desc.microphone->sample_rate);
 
 			microphone.reset(pw_stream_new_simple(
-			        pw_main_loop_get_loop(pw_loop.get()),
-			        source_name.c_str(),
-			        pw_properties_new(
-			                PW_KEY_NODE_NAME,
-			                source_name.c_str(),
-			                PW_KEY_NODE_DESCRIPTION,
-			                source_description.c_str(),
-			                PW_KEY_MEDIA_TYPE,
-			                "Audio",
-			                PW_KEY_MEDIA_CATEGORY,
-			                "Playback",
-			                PW_KEY_MEDIA_CLASS,
-			                "Audio/Source",
-			                PW_KEY_MEDIA_ROLE,
-			                "Game",
-			                // Set stream rate to match client, preventing PipeWire from doing
-			                // unnecessary resampling which degrades audio quality
-			                PW_KEY_NODE_RATE,
-			                rate_str.c_str(),
-			                // Declare target latency to help PipeWire optimize buffering
-			                PW_KEY_NODE_LATENCY,
+					pw_main_loop_get_loop(pw_loop.get()),
+					source_name.c_str(),
+					pw_properties_new(
+							PW_KEY_NODE_NAME,
+							source_name.c_str(),
+							PW_KEY_NODE_DESCRIPTION,
+							source_description.c_str(),
+							PW_KEY_MEDIA_TYPE,
+							"Audio",
+							PW_KEY_MEDIA_CATEGORY,
+							"Playback",
+							PW_KEY_MEDIA_CLASS,
+							"Audio/Source",
+							PW_KEY_MEDIA_ROLE,
+							"Game",
+							PW_KEY_NODE_VIRTUAL,
+							"true",
+							// Set stream rate to match client, preventing PipeWire from doing
+							// unnecessary resampling which degrades audio quality
+							PW_KEY_NODE_RATE,
+							rate_str.c_str(),
+							// Declare target latency to help PipeWire optimize buffering
+							PW_KEY_NODE_LATENCY,
+							latency_str.c_str(),
+							// Force constant quantum size to prevent dynamic buffer size changes
+							PW_KEY_NODE_FORCE_QUANTUM,
 			                latency_str.c_str(),
-			                // Force constant quantum size to prevent dynamic buffer size changes
-			                PW_KEY_NODE_FORCE_QUANTUM,
-			                latency_str.c_str(),
-			                NULL),
-			        &mic_events,
-			        this));
+							NULL),
+					&mic_events,
+					this));
 			std::vector<uint8_t> buffer(1024);
 			spa_pod_builder b = SPA_POD_BUILDER_INIT(buffer.data(), uint32_t(buffer.size()));
 
