@@ -131,14 +131,14 @@ struct pipewire_device : public audio_device
 			                // Set stream rate to match client, preventing PipeWire from doing
 			                // unnecessary resampling which degrades audio quality
 			                PW_KEY_NODE_RATE,
-			                rate_str,
+			                rate_str.c_str(),
 			                // Declare target latency to help PipeWire optimize buffering
 			                PW_KEY_NODE_LATENCY,
-			                latency_str,
+			                latency_str.c_str(),
 			                // Force constant quantum size to prevent dynamic buffer size changes
 			                // Variable buffer sizes cause crackling in effect processors (EasyEffects)
 			                PW_KEY_NODE_FORCE_QUANTUM,
-			                latency_str,
+			                latency_str.c_str(),
 			                NULL),
 			        &speaker_events,
 			        this));
@@ -202,13 +202,13 @@ struct pipewire_device : public audio_device
 			                // Set stream rate to match client, preventing PipeWire from doing
 			                // unnecessary resampling which degrades audio quality
 			                PW_KEY_NODE_RATE,
-			                rate_str,
+			                rate_str.c_str(),
 			                // Declare target latency to help PipeWire optimize buffering
 			                PW_KEY_NODE_LATENCY,
-			                latency_str,
+			                latency_str.c_str(),
 			                // Force constant quantum size to prevent dynamic buffer size changes
 			                PW_KEY_NODE_FORCE_QUANTUM,
-			                latency_str,
+			                latency_str.c_str(),
 			                NULL),
 			        &mic_events,
 			        this));
