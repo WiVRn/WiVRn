@@ -146,7 +146,7 @@ static void append_delim(std::string & to, std::string_view what, char delim)
 // if it can't be found, return the full path
 static std::filesystem::path find_dir(const std::filesystem::path & d, const std::filesystem::path & needle)
 {
-	for (auto copy = d; not copy.empty(); copy = copy.parent_path())
+	for (auto copy = d; copy != copy.parent_path(); copy = copy.parent_path())
 	{
 		if (copy.filename() == needle)
 			return copy;
