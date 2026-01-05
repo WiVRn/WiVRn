@@ -2,6 +2,7 @@
  * WiVRn VR streaming
  * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
  * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
+ * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -419,6 +420,14 @@ void wivrn_session::stop()
 	thread = std::jthread();
 }
 
+bool wivrn_session::request_stop()
+{
+	assert(mnd_ipc_server);
+	bool b = thread.request_stop();
+	ipc_server_stop(mnd_ipc_server);
+	return b;
+}
+
 clock_offset wivrn_session::get_offset()
 {
 	return offset_est.get_offset();
@@ -440,7 +449,7 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 	U_LOG_W("unexpected headset info packet, ignoring");
 }
 
-void wivrn_session::operator()(from_headset::settings_changed && settings)
+void wivrn_session::operator()(const from_headset::settings_changed & settings)
 {
 	*this->settings.lock() = settings;
 
@@ -791,12 +800,19 @@ void wivrn_session::operator()(from_headset::session_state_changed && event)
 			break;
 	}
 	scoped_lock lock(mnd_ipc_server->global_state.lock);
+	auto locked = session_loss.lock();
 	for (auto & t: mnd_ipc_server->threads)
 	{
-		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr)
+		auto id = t.ics.client_state.id;
+		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr or locked->contains(id))
 			continue;
 		bool current = t.ics.client_state.session_overlay or
 		               mnd_ipc_server->global_state.active_client_index == t.ics.server_thread_index;
+		U_LOG_D("Setting session state for app %s: visible=%s focused=%s current=%s",
+		        t.ics.client_state.info.application_name,
+		        visible ? "true" : "false",
+		        focused ? "true" : "false",
+		        current ? "true" : "false");
 		xrt_syscomp_set_state(system_compositor, t.ics.xc, visible and current, focused and current, os_monotonic_get_ns());
 	}
 }
@@ -927,10 +943,18 @@ void wivrn_session::operator()(const from_headset::stop_application & req)
 	{
 		if (t.ics.client_state.id == req.id)
 		{
-			U_LOG_I("Notify session loss pending for %s", t.ics.client_state.info.application_name);
+			if (!t.ics.xs)
+			{
+				U_LOG_W("Unable to stop app %s: no session!", t.ics.client_state.info.application_name);
+				break;
+			}
+
+			U_LOG_I("Request exit for application %s", t.ics.client_state.info.application_name);
+			if (xrt_session_request_exit(t.ics.xs) != XRT_SUCCESS)
+				U_LOG_W("Failed to request exit for application %s", t.ics.client_state.info.application_name);
+
 			auto when = os_monotonic_get_ns() + 10l * U_TIME_1S_IN_NS;
-			xrt_syscomp_notify_loss_pending(system_compositor, t.ics.xc, when);
-			session_loss.lock()->emplace(when, req.id);
+			session_loss.lock()->emplace(req.id, when);
 			break;
 		}
 	}
@@ -944,8 +968,7 @@ void wivrn_session::operator()(audio_data && data)
 
 void wivrn_session::operator()(to_monado::stop &&)
 {
-	assert(mnd_ipc_server);
-	ipc_server_stop(mnd_ipc_server);
+	request_stop();
 }
 
 void wivrn_session::operator()(to_monado::disconnect &&)
@@ -1030,7 +1053,7 @@ void wivrn_session::run(std::stop_token stop)
 		catch (const std::exception & e)
 		{
 			U_LOG_E("Exception in network thread: %s", e.what());
-			reconnect();
+			reconnect(stop);
 			refresh.reset();
 		}
 	}
@@ -1055,18 +1078,17 @@ void wivrn_session::dump_time(const std::string & event, uint64_t frame, int64_t
 	}
 }
 
-static bool quit_if_no_client(u_system & xrt_system)
+void wivrn_session::quit_if_no_client()
 {
+	scoped_lock lock(xrt_system.sessions.mutex);
+	if (xrt_system.sessions.count == 0)
 	{
-		scoped_lock lock(xrt_system.sessions.mutex);
-		if (xrt_system.sessions.count)
-			return false;
+		U_LOG_I("No OpenXR client connected, exiting");
+		request_stop();
 	}
-	U_LOG_I("No OpenXR client connected, exiting");
-	exit(0);
 }
 
-void wivrn_session::reconnect()
+void wivrn_session::reconnect(std::stop_token stop)
 {
 	assert(mnd_ipc_server);
 	// Notify clients about disconnected status
@@ -1084,23 +1106,21 @@ void wivrn_session::reconnect()
 	}
 
 	U_LOG_I("Waiting for new connection");
-	auto tcp = accept_connection(mnd_ipc_server, 0 /*stdin*/, [this]() { return quit_if_no_client(xrt_system); });
+	auto tcp = accept_connection(*this, stop, &wivrn_session::quit_if_no_client);
+	if (stop.stop_requested())
+		return;
 	if (not tcp)
-		exit(0);
-
-	struct no_client_connected
-	{};
-
+	{
+		request_stop();
+		return;
+	}
 	try
 	{
 		offset_est.reset();
-		connection->reset(std::move(*tcp), [this]() {
-			if (quit_if_no_client(xrt_system))
-				throw no_client_connected{};
-		});
+		connection->reset(stop, std::move(*tcp), [this]() { quit_if_no_client(); });
 
-		// const auto & info = connection->info();
-		// FIXME: ensure new client is compatible
+		const auto & info = connection->info();
+		(*this)(info.settings);
 
 		{
 			std::shared_lock lock(comp_target_mutex);
@@ -1118,11 +1138,6 @@ void wivrn_session::reconnect()
 			U_LOG_W("Failed to notify session state change");
 		}
 	}
-	catch (no_client_connected)
-	{
-		U_LOG_I("No OpenXR application connected");
-		exit(0);
-	}
 	catch (const std::exception & e)
 	{
 		U_LOG_E("Reconnection failed: %s", e.what());
@@ -1138,11 +1153,11 @@ void wivrn_session::poll_session_loss()
 		return;
 	auto it = locked->begin();
 	scoped_lock lock(mnd_ipc_server->global_state.lock);
-	while (it != locked->end() and it->first <= now)
+	while (it != locked->end() and it->second <= now)
 	{
 		for (auto & t: mnd_ipc_server->threads)
 		{
-			if (t.ics.client_state.id == it->second)
+			if (t.ics.client_state.id == it->first)
 			{
 				U_LOG_I("Terminating %s", t.ics.client_state.info.application_name);
 				xrt_syscomp_notify_lost(system_compositor, t.ics.xc);

@@ -1,4 +1,4 @@
-From 9041dad492652ed1173cb381ee4da9b16b1a96f8 Mon Sep 17 00:00:00 2001
+From 0d7ea2766bbb7d3c729e0e1af703a19b87bf6497 Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 15 Sep 2025 22:46:15 +0000
 Subject: [PATCH 10/10] d/solarxr: Feed device poses to server
