@@ -1,45 +1,24 @@
-From 92a26a8fcf88ec231a36ea16aaba51a94b4d134d Mon Sep 17 00:00:00 2001
+From 405df0e880a8fff52a01992eb96fa634cc795ba6 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
 Subject: [PATCH 05/10] Replace distortion with foveation
 
 ---
- src/xrt/compositor/CMakeLists.txt             |   4 +-
  src/xrt/compositor/main/comp_renderer.c       |   6 +-
  src/xrt/compositor/main/comp_target.h         |   3 +-
+ src/xrt/compositor/render/CMakeLists.txt      |   2 +-
  src/xrt/compositor/render/render_compute.c    | 410 +++++++-----------
  src/xrt/compositor/render/render_interface.h  |  95 ++--
  src/xrt/compositor/render/render_resources.c  | 106 ++---
+ src/xrt/compositor/shaders/CMakeLists.txt     |   2 +-
  src/xrt/compositor/shaders/clear.comp         |   4 +-
  src/xrt/compositor/shaders/distortion.comp    | 182 ++++----
  .../compositor/util/comp_high_level_render.c  |   6 +-
  .../compositor/util/comp_high_level_render.h  |   9 +-
  src/xrt/compositor/util/comp_render.h         |  11 +-
  src/xrt/compositor/util/comp_render_cs.c      | 112 ++---
- 12 files changed, 356 insertions(+), 592 deletions(-)
+ 13 files changed, 356 insertions(+), 592 deletions(-)
 
-diff --git a/src/xrt/compositor/CMakeLists.txt b/src/xrt/compositor/CMakeLists.txt
-index 1ba5ec438..7435a9ce3 100644
---- a/src/xrt/compositor/CMakeLists.txt
-+++ b/src/xrt/compositor/CMakeLists.txt
-@@ -105,7 +105,7 @@ if(XRT_HAVE_VULKAN)
- 	spirv_shaders(
- 		SHADER_HEADERS
- 		SPIRV_VERSION
--		1.0 # Currently targeting Vulkan 1.0
-+		1.6 # Currently targeting Vulkan 1.3
- 		SOURCES
- 		${SHADERS}
- 		)
-@@ -115,7 +115,7 @@ if(XRT_HAVE_VULKAN)
- 		${SHADER_HEADERS}
- 		render/render_buffer.c
- 		render/render_compute.c
--		render/render_distortion.c
-+		# render/render_distortion.c implemented in wivrn
- 		render/render_gfx.c
- 		render/render_interface.h
- 		render/render_resources.c
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
 index 16c16fd7a..40b219cef 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
@@ -78,6 +57,19 @@ index 2122f46e7..53dcd631b 100644
  };
  
  /*!
+diff --git a/src/xrt/compositor/render/CMakeLists.txt b/src/xrt/compositor/render/CMakeLists.txt
+index 8b0014d39..60afb0ce2 100644
+--- a/src/xrt/compositor/render/CMakeLists.txt
++++ b/src/xrt/compositor/render/CMakeLists.txt
+@@ -10,7 +10,7 @@ add_library(
+ 	comp_render STATIC
+ 	render_buffer.c
+ 	render_compute.c
+-	render_distortion.c
++	# render/render_distortion.c implemented in wivrn
+ 	render_gfx.c
+ 	render_interface.h
+ 	render_resources.c
 diff --git a/src/xrt/compositor/render/render_compute.c b/src/xrt/compositor/render/render_compute.c
 index 62d7138b9..44c3f0aee 100644
 --- a/src/xrt/compositor/render/render_compute.c
@@ -655,10 +647,10 @@ index 62d7138b9..44c3f0aee 100644
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
 diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
-index 9b9c8efa8..1aeab7693 100644
+index 8ca26704a..b7d1d96a8 100644
 --- a/src/xrt/compositor/render/render_interface.h
 +++ b/src/xrt/compositor/render/render_interface.h
-@@ -80,12 +80,8 @@ extern "C" {
+@@ -82,12 +82,8 @@ extern "C" {
  #define RENDER_MAX_LAYER_RUNS_SIZE (XRT_MAX_VIEWS)
  #define RENDER_MAX_LAYER_RUNS_COUNT(RENDER_RESOURCES) (RENDER_RESOURCES->view_count)
  
@@ -673,7 +665,7 @@ index 9b9c8efa8..1aeab7693 100644
  
  //! The binding that the layer projection and quad shader have their UBO on.
  #define RENDER_BINDING_LAYER_SHARED_UBO 0
-@@ -118,12 +114,6 @@ extern "C" {
+@@ -120,12 +116,6 @@ extern "C" {
  uint32_t
  render_max_layers_capable(const struct vk_bundle *vk, bool use_compute, uint32_t desired_max_layers);
  
@@ -686,7 +678,7 @@ index 9b9c8efa8..1aeab7693 100644
  /*!
   * Calculates a timewarp matrix which takes in NDC coords and gives out results
   * in [-1, 1] space that needs a perspective divide.
-@@ -511,7 +501,8 @@ struct render_resources
+@@ -465,7 +455,8 @@ struct render_resources
  		uint32_t distortion_binding;
  
  		//! Writing the image out too.
@@ -696,7 +688,7 @@ index 9b9c8efa8..1aeab7693 100644
  
  		//! Uniform data binding.
  		uint32_t ubo_binding;
-@@ -548,9 +539,6 @@ struct render_resources
+@@ -502,9 +493,6 @@ struct render_resources
  			//! Doesn't depend on target so is static.
  			VkPipeline pipeline;
  
@@ -706,7 +698,7 @@ index 9b9c8efa8..1aeab7693 100644
  			//! Target info.
  			struct render_buffer ubo;
  		} distortion;
-@@ -572,17 +560,11 @@ struct render_resources
+@@ -526,17 +514,11 @@ struct render_resources
  		//! Transform to go from UV to tangle angles.
  		struct xrt_normalized_rect uv_to_tanangle[XRT_MAX_VIEWS];
  
@@ -728,7 +720,7 @@ index 9b9c8efa8..1aeab7693 100644
  	} distortion;
  };
  
-@@ -1300,6 +1282,7 @@ struct render_compute_layer_ubo_data
+@@ -1254,6 +1236,7 @@ struct render_compute_layer_ubo_data
  	//! Timewarp matrices
  	struct xrt_matrix_4x4 transforms_timewarp[RENDER_MAX_LAYERS];
  
@@ -736,7 +728,7 @@ index 9b9c8efa8..1aeab7693 100644
  	/*!
  	 * For quad layers
  	 */
-@@ -1339,6 +1322,14 @@ struct render_compute_distortion_ubo_data
+@@ -1293,6 +1276,14 @@ struct render_compute_distortion_ubo_data
  	struct xrt_matrix_4x4 transform_timewarp_scanout_end[XRT_MAX_VIEWS];
  };
  
@@ -751,7 +743,7 @@ index 9b9c8efa8..1aeab7693 100644
  /*!
   * Init struct and create resources needed for compute rendering.
   *
-@@ -1392,7 +1383,8 @@ render_compute_layers(struct render_compute *render,
+@@ -1346,7 +1337,8 @@ render_compute_layers(struct render_compute *render,
                        VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],
                        VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE],
                        uint32_t num_srcs,
@@ -761,7 +753,7 @@ index 9b9c8efa8..1aeab7693 100644
                        const struct render_viewport_data *view,
                        bool timewarp);
  
-@@ -1400,44 +1392,14 @@ render_compute_layers(struct render_compute *render,
+@@ -1354,44 +1346,14 @@ render_compute_layers(struct render_compute *render,
   * @public @memberof render_compute
   */
  void
@@ -814,7 +806,7 @@ index 9b9c8efa8..1aeab7693 100644
  
  /*!
   * @public @memberof render_compute
-@@ -1445,7 +1407,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
+@@ -1399,7 +1361,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
  void
  render_compute_clear(struct render_compute *render,
                       VkImage target_image,
@@ -1073,6 +1065,19 @@ index d28caaed8..5232a774d 100644
  	D(PipelineLayout, r->compute.distortion.pipeline_layout);
  
  	D(Pipeline, r->compute.clear.pipeline);
+diff --git a/src/xrt/compositor/shaders/CMakeLists.txt b/src/xrt/compositor/shaders/CMakeLists.txt
+index d8aca97e2..ffc79ca6e 100644
+--- a/src/xrt/compositor/shaders/CMakeLists.txt
++++ b/src/xrt/compositor/shaders/CMakeLists.txt
+@@ -25,7 +25,7 @@ set(SHADERS
+ spirv_shaders(
+ 	SHADER_HEADERS
+ 	SPIRV_VERSION
+-	1.0 # Currently targeting Vulkan 1.0
++	1.6 # Currently targeting Vulkan 1.6
+ 	SOURCES
+ 	${SHADERS}
+ 	)
 diff --git a/src/xrt/compositor/shaders/clear.comp b/src/xrt/compositor/shaders/clear.comp
 index 1f0e732b8..e02307415 100644
 --- a/src/xrt/compositor/shaders/clear.comp

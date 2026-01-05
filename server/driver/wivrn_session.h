@@ -142,8 +142,8 @@ class wivrn_session : public xrt_system_devices
 	// run-time editable settings
 	thread_safe<from_headset::settings_changed> settings;
 
-	// when sessions shall be destroyed, key is timestap, value is client id
-	thread_safe<std::map<int64_t, int32_t>> session_loss;
+	// when sessions shall be destroyed, key is client id, value is timestamp
+	thread_safe<std::map<uint32_t, int64_t>> session_loss;
 
 	std::jthread thread;
 
@@ -160,6 +160,9 @@ public:
 
 	void start(ipc_server *);
 	void stop();
+
+	bool request_stop();
+	void quit_if_no_client();
 
 	clock_offset get_offset();
 	bool connected();
@@ -193,7 +196,7 @@ public:
 	void operator()(from_headset::pin_check_1 &&) {}
 	void operator()(from_headset::pin_check_3 &&) {}
 	void operator()(from_headset::headset_info_packet &&);
-	void operator()(from_headset::settings_changed &&);
+	void operator()(const from_headset::settings_changed &);
 	void operator()(from_headset::handshake &&) {}
 	void operator()(from_headset::trackings &&);
 	void operator()(const from_headset::tracking &);
@@ -245,7 +248,7 @@ public:
 
 private:
 	void run(std::stop_token stop);
-	void reconnect();
+	void reconnect(std::stop_token stop);
 
 	void poll_session_loss();
 

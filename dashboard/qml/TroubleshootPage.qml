@@ -94,6 +94,6 @@ Kirigami.ScrollablePage {
 
     Shortcut {
         sequences: [StandardKey.Cancel]
-        onActivated: applicationWindow().pageStack.pop()
+        onActivated: {if (isCurrentPage) applicationWindow().pageStack.pop();}
     }
 }

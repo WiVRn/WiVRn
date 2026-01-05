@@ -1,4 +1,4 @@
-From 107759c42b200fedba37418a1934f4093eec787d Mon Sep 17 00:00:00 2001
+From b75d0230a7f2380ed05ec87e24c61dcbbd66c1b5 Mon Sep 17 00:00:00 2001
 From: galister <85970-galister@users.noreply.gitlab.freedesktop.org>
 Date: Sat, 23 Nov 2024 02:42:12 +0900
 Subject: [PATCH 03/10] change environment blend mode selection logic
