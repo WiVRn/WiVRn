@@ -81,6 +81,10 @@ Kirigami.ApplicationWindow {
                 }
             ));
         }
+
+        function onJsonConfigurationChanged(value) {
+            Settings.load(WivrnServer);
+        }
     }
 
     Connections {
