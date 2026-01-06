@@ -257,19 +257,21 @@ Kirigami.ApplicationWindow {
             }
 
             GridLayout {
-                columns: 2
+                columns: 3
 
                 Layout.leftMargin: Kirigami.Units.largeSpacing
                 Layout.rightMargin: Kirigami.Units.largeSpacing
+                columnSpacing: 0
 
                 Image {
                     source: Qt.resolvedUrl("wivrn.svg")
-                    Layout.columnSpan: parent.width < implicitWidth + parent.columnSpacing + main_form.implicitWidth ? 2 : 1
+                    Layout.columnSpan: parent.width < implicitWidth + main_form.implicitWidth ? 3 : 1
                 }
 
                 Kirigami.FormLayout {
                     id: main_form
                     Layout.alignment: Qt.AlignTop
+                    Layout.horizontalStretchFactor: 0
 
                     Kirigami.Heading {
                         text: i18n("Server status")
@@ -356,6 +358,11 @@ Kirigami.ApplicationWindow {
                         Layout.fillWidth: true
                         wrapMode: Text.Wrap
                     }
+                }
+                Item {
+                    // spacer item
+                    Layout.fillWidth: true
+                    Layout.horizontalStretchFactor: 1
                 }
             }
 
