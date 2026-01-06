@@ -67,7 +67,7 @@ Use vaapi hardware encoding, h265 video codec (HEVC).
 2. Hardware + software encoder
 ```json
 {
-	"encoders": [
+	"encoder": [
 		{
 			"encoder": "vaapi",
 			"codec": "h265",
