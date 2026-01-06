@@ -63,6 +63,7 @@
 		<property name="EyeGaze"               type="b" access="read"/>
 		<property name="FaceTracking"          type="b" access="read"/>
 		<property name="SupportedCodecs"       type="as" access="read"/>
+		<property name="SystemName"            type="s" access="read"/>
 
 		<property name="Pin"                   type="s" access="read"/>
 		<property name="KnownKeys"             type="a(ssx)" access="read">

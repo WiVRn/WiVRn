@@ -769,6 +769,7 @@ void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & inf
 	}
 	codecs.push_back(nullptr);
 	wivrn_server_set_supported_codecs(dbus_server, codecs.data());
+	wivrn_server_set_system_name(dbus_server, info.system_name.c_str());
 }
 
 void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer user_data)

@@ -439,6 +439,11 @@ void wivrn_server::on_server_properties_changed(const QString & interface_name, 
 		supportedCodecsChanged(m_supportedCodecs = changed_properties["SupportedCodecs"].toStringList());
 	}
 
+	if (changed_properties.contains("SystemName"))
+	{
+		systemNameChanged(m_systemName = changed_properties["SystemName"].toString());
+	}
+
 	if (changed_properties.contains("SteamCommand"))
 	{
 		steamCommandChanged(m_steamCommand = changed_properties["SteamCommand"].toString());

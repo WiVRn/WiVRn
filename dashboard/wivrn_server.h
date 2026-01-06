@@ -204,6 +204,7 @@ public:
 	Q_PROPERTY(int speakerChannels READ speakerChannels NOTIFY speakerChannelsChanged)
 	Q_PROPERTY(int speakerSampleRate READ speakerSampleRate NOTIFY speakerSampleRateChanged)
 	Q_PROPERTY(QStringList supportedCodecs READ supportedCodecs NOTIFY supportedCodecsChanged)
+	Q_PROPERTY(QString systemName READ systemName NOTIFY systemNameChanged)
 	Q_PROPERTY(QString steamCommand READ steamCommand NOTIFY steamCommandChanged)
 
 	// hostnamed
@@ -317,6 +318,11 @@ public:
 		return m_supportedCodecs;
 	}
 
+	QString systemName() const
+	{
+		return m_systemName;
+	}
+
 	QString steamCommand() const
 	{
 		return m_steamCommand;
@@ -368,6 +374,7 @@ private:
 	int m_speakerChannels{};
 	int m_speakerSampleRate{};
 	QStringList m_supportedCodecs{};
+	QString m_systemName{};
 	QString m_steamCommand{};
 
 Q_SIGNALS:
@@ -394,6 +401,7 @@ Q_SIGNALS:
 	void speakerSampleRateChanged(int);
 	void supportedCodecsChanged(QStringList);
 	void steamCommandChanged(QString);
+	void systemNameChanged(QString);
 	void serverLogsChanged(QString);
 	void serverError(serverErrorData);
 };
