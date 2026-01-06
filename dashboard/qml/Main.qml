@@ -422,6 +422,11 @@ Kirigami.ApplicationWindow {
                 enabled: root.server_started
             },
             Kirigami.Action {
+                text: i18n("About")
+                icon.name: "help-about"
+                onTriggered: root.pageStack.push(Qt.createComponent("About.qml").createObject())
+            },
+            Kirigami.Action {
                 text: i18n("Troubleshoot")
                 icon.name: "help-contents-symbolic"
                 onTriggered: root.pageStack.push(Qt.createComponent("TroubleshootPage.qml").createObject())

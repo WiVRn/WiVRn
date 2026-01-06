@@ -1,4 +1,5 @@
 #include "version.h"
+#include <KAboutData>
 #include <KIconTheme>
 #include <KLocalizedContext>
 #include <KLocalizedString>
@@ -25,6 +26,28 @@ int main(int argc, char * argv[])
 	app.setApplicationVersion(QString(wivrn::git_version));
 
 	app.setApplicationDisplayName(i18n("WiVRn dashboard"));
+
+	KAboutData aboutData(
+	        QStringLiteral("wivrn-dashboard"),
+	        i18nc("@title", "WiVRn"),
+	        wivrn::display_version(),
+	        i18n("WiVRn server"),
+	        KAboutLicense::GPL_V3,
+	        i18n("(c) 2022-2026 WiVRn development team"));
+
+	aboutData.setHomepage("https://github.com/WiVRn/WiVRn");
+	aboutData.setBugAddress("https://github.com/WiVRn/WiVRn/issues");
+	aboutData.setProgramLogo(QIcon(":/qml/wivrn.svg"));
+
+	aboutData.addComponent(
+	        i18n("Monado"),
+	        i18n("OpenXR runtime"),
+	        "",
+	        "https://monado.dev/",
+	        KAboutLicense::BSL_V1);
+
+	// Set aboutData as information about the app
+	KAboutData::setApplicationData(aboutData);
 
 	QCoro::Qml::registerTypes();
 
