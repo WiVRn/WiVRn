@@ -20,12 +20,6 @@ int main(int argc, char * argv[])
 	QApplication app(argc, argv);
 	KLocalizedString::setApplicationDomain("wivrn-dashboard");
 	app.setOrganizationName(QStringLiteral("wivrn"));
-	app.setOrganizationDomain(QStringLiteral("wivrn.github.io"));
-	app.setApplicationName(QStringLiteral("wivrn-dashboard"));
-	app.setDesktopFileName(QStringLiteral("io.github.wivrn.wivrn"));
-	app.setApplicationVersion(QString(wivrn::git_version));
-
-	app.setApplicationDisplayName(i18n("WiVRn dashboard"));
 
 	KAboutData aboutData(
 	        QStringLiteral("wivrn-dashboard"),
@@ -34,6 +28,9 @@ int main(int argc, char * argv[])
 	        i18n("WiVRn server"),
 	        KAboutLicense::GPL_V3,
 	        i18n("(c) 2022-2026 WiVRn development team"));
+
+	aboutData.setDesktopFileName(QStringLiteral("io.github.wivrn.wivrn"));
+	aboutData.setOrganizationDomain("wivrn.github.io");
 
 	aboutData.setHomepage("https://github.com/WiVRn/WiVRn");
 	aboutData.setBugAddress("https://github.com/WiVRn/WiVRn/issues");
