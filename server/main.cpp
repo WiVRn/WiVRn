@@ -182,7 +182,6 @@ int control_pipe_fds[2];
 
 GMainLoop * main_loop;
 const AvahiPoll * poll_api;
-bool use_systemd;
 
 guint server_watch;
 guint server_kill_watch;
@@ -775,11 +774,11 @@ void on_headset_info_packet(const wivrn::from_headset::headset_info_packet & inf
 void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer user_data)
 {
 #if WIVRN_USE_SYSTEMD
-	if (use_systemd)
+	try
 	{
 		children = std::make_unique<systemd_units_manager>(connection, update_fsm);
 	}
-	else
+	catch (...)
 #endif
 	{
 		children = std::make_unique<forked_children>(update_fsm);
@@ -977,9 +976,6 @@ int main(int argc, char * argv[])
 	auto no_fork = app.add_flag("--no-fork")->description("disable fork to serve connection")->group("Debug");
 	auto no_publish = app.add_flag("--no-publish-service")->description("disable publishing the service through avahi");
 	auto no_encrypt = app.add_flag("--no-encrypt")->description("disable encryption")->group("Debug");
-#if WIVRN_USE_SYSTEMD
-	app.add_flag("--systemd", use_systemd, "use systemd to launch user-configured application");
-#endif
 
 	CLI11_PARSE(app, argc, argv);
 
