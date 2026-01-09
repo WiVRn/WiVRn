@@ -258,8 +258,8 @@ modules:
       - -Ddocbook_docs=disabled
     sources:
       - type: archive
-        url: https://download.gnome.org/sources/libnotify/0.8/libnotify-0.8.7.tar.xz
-        sha256: 4be15202ec4184fce1ac15997ece5530d2be32fe9573875aeb10e3b573858748
+        url: https://download.gnome.org/sources/libnotify/0.8/libnotify-0.8.8.tar.xz
+        sha256: 23420ef619dc2cb5aebad613f4823a2fa41c07e5a1d05628d40f6ec4b35bfddd
         x-checker-data:
           type: gnome
           name: libnotify
