@@ -87,5 +87,5 @@ public:
 	        const std::array<input, 2> & inputs,
 	        int destination);
 
-	XrExtent2Di defoveated_size(const wivrn::to_headset::foveation_parameter &) const;
+	static XrExtent2Di defoveated_size(const wivrn::to_headset::foveation_parameter &);
 };

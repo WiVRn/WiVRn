@@ -916,7 +916,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		int32_t max_height = 0;
 		for (size_t i = 0; i < view_count; ++i)
 		{
-			extents[i] = defoveator->defoveated_size(foveation[i]);
+			extents[i] = stream_defoveator::defoveated_size(foveation[i]);
 			max_width = std::max(max_width, extents[i].width);
 			max_height = std::max(max_height, extents[i].height);
 		}

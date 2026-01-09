@@ -443,7 +443,7 @@ static uint16_t count_pixels(const std::vector<uint16_t> & param)
 	return res;
 }
 
-XrExtent2Di stream_defoveator::defoveated_size(const wivrn::to_headset::foveation_parameter & view) const
+XrExtent2Di stream_defoveator::defoveated_size(const wivrn::to_headset::foveation_parameter & view)
 {
 	return {
 	        count_pixels(view.x),
