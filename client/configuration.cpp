@@ -212,6 +212,12 @@ configuration::configuration(xr::system & system)
 		if (auto val = root["override_foveation_distance"]; val.is_double())
 			override_foveation_distance = val.get_double();
 
+		if (auto val = root["lying_down_mode"]; val.is_bool())
+			lying_down_mode = val.get_bool();
+
+		if (auto val = root["lying_down_height"]; val.is_double())
+			lying_down_height = val.get_double();
+
 		if (auto val = root["first_run"]; val.is_bool())
 			first_run = val.get_bool();
 
@@ -309,6 +315,8 @@ void configuration::save()
 	json << ",\"override_foveation_enable\":" << std::boolalpha << override_foveation_enable;
 	json << ",\"override_foveation_pitch\":" << override_foveation_pitch;
 	json << ",\"override_foveation_distance\":" << override_foveation_distance;
+	json << ",\"lying_down_mode\":" << std::boolalpha << lying_down_mode;
+	json << ",\"lying_down_height\":" << lying_down_height;
 	json << ",\"first_run\":" << std::boolalpha << first_run;
 	json << ",\"locale\":" << json_string(locale);
 	json << ",\"environment_model\":" << json_string(environment_model);
