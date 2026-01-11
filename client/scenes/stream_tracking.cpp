@@ -197,45 +197,54 @@ public:
 
 } // namespace
 
-static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> locate_hands(xr::hand_tracker & hand, XrSpace space, XrTime time)
+struct hand_locate_result
 {
-	auto joints = hand.locate(space, time);
+	std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT>> joints;
+	std::optional<xr::hand_tracker::aim_state> aim;
+};
 
-	if (joints)
+static hand_locate_result locate_hands(xr::hand_tracker & hand, XrSpace space, XrTime time)
+{
+	auto result = hand.locate(space, time);
+
+	if (!result)
+		return {};
+
+	hand_locate_result out;
+
+	std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
+	for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 	{
-		std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
-		for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
-		{
-			poses[i] = {
-			        .pose = (*joints)[i].first.pose,
-			        .linear_velocity = (*joints)[i].second.linearVelocity,
-			        .angular_velocity = (*joints)[i].second.angularVelocity,
-			        .radius = uint16_t((*joints)[i].first.radius * 10'000),
-			};
+		poses[i] = {
+		        .pose = result->joints[i].first.pose,
+		        .linear_velocity = result->joints[i].second.linearVelocity,
+		        .angular_velocity = result->joints[i].second.angularVelocity,
+		        .radius = uint16_t(result->joints[i].first.radius * 10'000),
+		};
 
-			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-				poses[i].flags |= from_headset::hand_tracking::orientation_valid;
+		if (result->joints[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+			poses[i].flags |= from_headset::hand_tracking::orientation_valid;
 
-			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-				poses[i].flags |= from_headset::hand_tracking::position_valid;
+		if (result->joints[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+			poses[i].flags |= from_headset::hand_tracking::position_valid;
 
-			if ((*joints)[i].second.velocityFlags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
-				poses[i].flags |= from_headset::hand_tracking::linear_velocity_valid;
+		if (result->joints[i].second.velocityFlags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
+			poses[i].flags |= from_headset::hand_tracking::linear_velocity_valid;
 
-			if ((*joints)[i].second.velocityFlags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
-				poses[i].flags |= from_headset::hand_tracking::angular_velocity_valid;
+		if (result->joints[i].second.velocityFlags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
+			poses[i].flags |= from_headset::hand_tracking::angular_velocity_valid;
 
-			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-				poses[i].flags |= from_headset::hand_tracking::orientation_tracked;
+		if (result->joints[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+			poses[i].flags |= from_headset::hand_tracking::orientation_tracked;
 
-			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-				poses[i].flags |= from_headset::hand_tracking::position_tracked;
-		}
-
-		return poses;
+		if (result->joints[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+			poses[i].flags |= from_headset::hand_tracking::position_tracked;
 	}
-	else
-		return std::nullopt;
+
+	out.joints = poses;
+	out.aim = result->aim;
+
+	return out;
 }
 
 template <typename T>
@@ -495,22 +504,44 @@ void scenes::stream::tracking()
 						last_hand_sample = t0;
 						if (left_hand)
 						{
-							auto joints = locate_hands(*left_hand, world_space, t0 + Δt);
-							hands.emplace_back(
+							auto result = locate_hands(*left_hand, world_space, t0 + Δt);
+							auto & pkt = hands.emplace_back(
 							        t0,
 							        t0 + Δt,
 							        from_headset::hand_tracking::left,
-							        joints);
+							        result.joints);
+							if (result.aim)
+							{
+								pkt.aim = from_headset::hand_tracking::aim_data{
+								        .status = result.aim->status,
+								        .aim_pose = result.aim->aim_pose,
+								        .pinch_strength_index = result.aim->pinch_strength_index,
+								        .pinch_strength_middle = result.aim->pinch_strength_middle,
+								        .pinch_strength_ring = result.aim->pinch_strength_ring,
+								        .pinch_strength_little = result.aim->pinch_strength_little,
+								};
+							}
 						}
 
 						if (right_hand)
 						{
-							auto joints = locate_hands(*right_hand, world_space, t0 + Δt);
-							hands.emplace_back(
+							auto result = locate_hands(*right_hand, world_space, t0 + Δt);
+							auto & pkt = hands.emplace_back(
 							        t0,
 							        t0 + Δt,
 							        from_headset::hand_tracking::right,
-							        joints);
+							        result.joints);
+							if (result.aim)
+							{
+								pkt.aim = from_headset::hand_tracking::aim_data{
+								        .status = result.aim->status,
+								        .aim_pose = result.aim->aim_pose,
+								        .pinch_strength_index = result.aim->pinch_strength_index,
+								        .pinch_strength_middle = result.aim->pinch_strength_middle,
+								        .pinch_strength_ring = result.aim->pinch_strength_ring,
+								        .pinch_strength_little = result.aim->pinch_strength_little,
+								};
+							}
 						}
 					}
 
@@ -608,7 +639,7 @@ void scenes::stream::tracking()
 			}
 			for (const auto & i: hands)
 			{
-				if (i.joints)
+				if (i.joints or i.aim)
 				{
 					auto & packet = packets[packet_count++];
 					packet.clear();
