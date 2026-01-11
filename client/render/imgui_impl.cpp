@@ -572,10 +572,10 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 		current_aim_interaction = 1;
 		if (ctrl.hand)
 		{
-			if (auto joints = ctrl.hand->locate(world, display_time))
+			if (auto result = ctrl.hand->locate(world, display_time))
 			{
-				XrHandJointLocationEXT & index_tip = (*joints)[XR_HAND_JOINT_INDEX_TIP_EXT].first;
-				XrHandJointLocationEXT & palm = (*joints)[XR_HAND_JOINT_PALM_EXT].first;
+				XrHandJointLocationEXT & index_tip = result->joints[XR_HAND_JOINT_INDEX_TIP_EXT].first;
+				XrHandJointLocationEXT & palm = result->joints[XR_HAND_JOINT_PALM_EXT].first;
 
 				if (index_tip.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
 				{
