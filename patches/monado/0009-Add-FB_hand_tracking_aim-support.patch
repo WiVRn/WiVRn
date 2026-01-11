@@ -1,0 +1,89 @@
+From cb0b32349b8ecc061b3a461450a80470ec4cda8d Mon Sep 17 00:00:00 2001
+From: lightofmysoul <lightofmysoul@gmail.com>
+Date: Wed, 14 Jan 2026 09:41:14 +0000
+Subject: [PATCH] Add FB_hand_tracking_aim support
+
+Transform aim pose through device-to-base space relation chain.
+---
+ src/xrt/include/xrt/xrt_defines.h             | 10 +++++++
+ .../oxr_extension_support.py                  |  1 +
+ .../state_trackers/oxr/oxr_hand_tracking.c    | 30 +++++++++++++++++++
+ 3 files changed, 41 insertions(+)
+
+diff --git a/src/xrt/include/xrt/xrt_defines.h b/src/xrt/include/xrt/xrt_defines.h
+index 907558cee..df0def350 100644
+--- a/src/xrt/include/xrt/xrt_defines.h
++++ b/src/xrt/include/xrt/xrt_defines.h
+@@ -1496,6 +1496,16 @@ struct xrt_hand_joint_set
+ 	// in driver global space, without tracking_origin offset
+ 	struct xrt_space_relation hand_pose;
+ 	bool is_active;
++
++	/*!
++	 * FB_hand_tracking_aim extension data.
++	 */
++	struct {
++		bool has_aim;
++		uint64_t status;
++		struct xrt_pose aim_pose;
++		float pinch_strength[4]; // index, middle, ring, little
++	} aim;
+ };
+ 
+ /*!
+diff --git a/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py b/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
+index e2e9e462d..9b13c6e95 100644
+--- a/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
++++ b/src/xrt/state_trackers/oxr/extension_support/oxr_extension_support.py
+@@ -94,6 +94,7 @@ EXTENSIONS = (
+     ['XR_FB_composition_layer_settings', 'XRT_FEATURE_OPENXR_LAYER_FB_SETTINGS'],
+     ['XR_FB_display_refresh_rate', 'XRT_FEATURE_OPENXR_DISPLAY_REFRESH_RATE'],
+     ['XR_FB_face_tracking2', 'XRT_FEATURE_OPENXR_FACE_TRACKING2_FB'],
++    ['XR_FB_hand_tracking_aim', 'OXR_HAVE_EXT_hand_tracking'],
+     ['XR_FB_haptic_pcm', 'XRT_FEATURE_OPENXR_HAPTIC_PCM'],
+     ['XR_FB_passthrough', 'XRT_FEATURE_OPENXR_LAYER_FB_PASSTHROUGH'],
+     ['XR_FB_touch_controller_pro', 'XRT_FEATURE_OPENXR_INTERACTION_TOUCH_PRO'],
+diff --git a/src/xrt/state_trackers/oxr/oxr_hand_tracking.c b/src/xrt/state_trackers/oxr/oxr_hand_tracking.c
+index 58ea2dcb6..298974103 100644
+--- a/src/xrt/state_trackers/oxr/oxr_hand_tracking.c
++++ b/src/xrt/state_trackers/oxr/oxr_hand_tracking.c
+@@ -307,6 +307,36 @@ oxr_hand_tracker_joints(struct oxr_logger *log,
+ 		}
+ 	}
+ 
++#ifdef OXR_HAVE_FB_hand_tracking_aim
++	XrHandTrackingAimStateFB *aim_state = NULL;
++	if (hand_tracker->sess->sys->inst->extensions.FB_hand_tracking_aim) {
++		aim_state = OXR_GET_OUTPUT_FROM_CHAIN(locations, XR_TYPE_HAND_TRACKING_AIM_STATE_FB,
++						      XrHandTrackingAimStateFB);
++	}
++
++	if (aim_state != NULL && value.aim.has_aim) {
++		aim_state->status = (XrHandTrackingAimFlagsFB)value.aim.status;
++
++		// Transform aim pose from device global space to base space
++		struct xrt_space_relation aim_rel = {
++			.relation_flags = XRT_SPACE_RELATION_ORIENTATION_VALID_BIT |
++					  XRT_SPACE_RELATION_POSITION_VALID_BIT,
++			.pose = value.aim.aim_pose,
++		};
++		struct xrt_space_relation aim_in_base;
++		struct xrt_relation_chain aim_chain = {0};
++		m_relation_chain_push_relation(&aim_chain, &aim_rel);
++		m_relation_chain_push_relation(&aim_chain, &T_base_xdev);
++		m_relation_chain_resolve(&aim_chain, &aim_in_base);
++		xrt_to_xr_pose(&aim_in_base.pose, &aim_state->aimPose);
++
++		aim_state->pinchStrengthIndex = value.aim.pinch_strength[0];
++		aim_state->pinchStrengthMiddle = value.aim.pinch_strength[1];
++		aim_state->pinchStrengthRing = value.aim.pinch_strength[2];
++		aim_state->pinchStrengthLittle = value.aim.pinch_strength[3];
++	}
++#endif
++
+ 	return ret;
+ 
+ hand_tracking_inactive:
+-- 
+2.52.0
+

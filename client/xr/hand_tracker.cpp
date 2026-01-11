@@ -29,10 +29,11 @@ xr::hand_tracker::hand_tracker(instance & inst, session & session, const XrHandT
 	auto xrCreateHandTrackerEXT = inst.get_proc<PFN_xrCreateHandTrackerEXT>("xrCreateHandTrackerEXT");
 	assert(xrCreateHandTrackerEXT);
 	xrLocateHandJointsEXT = inst.get_proc<PFN_xrLocateHandJointsEXT>("xrLocateHandJointsEXT");
+	aim_supported = inst.has_extension(XR_FB_HAND_TRACKING_AIM_EXTENSION_NAME);
 	CHECK_XR(xrCreateHandTrackerEXT(session, &info, &id));
 }
 
-std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::hand_tracker::locate(XrSpace space, XrTime time)
+std::optional<xr::hand_tracker::locate_result> xr::hand_tracker::locate(XrSpace space, XrTime time)
 {
 	if (!id || !xrLocateHandJointsEXT)
 		return std::nullopt;
@@ -55,9 +56,14 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 		i.velocityFlags = XR_SPACE_VELOCITY_LINEAR_VALID_BIT;
 #endif
 
+	XrHandTrackingAimStateFB aim_state_fb{
+	        .type = XR_TYPE_HAND_TRACKING_AIM_STATE_FB,
+	        .next = nullptr,
+	};
+
 	XrHandJointVelocitiesEXT velocities{
 	        .type = XR_TYPE_HAND_JOINT_VELOCITIES_EXT,
-	        .next = nullptr,
+	        .next = aim_supported ? &aim_state_fb : nullptr,
 	        .jointCount = joints_vel.size(),
 	        .jointVelocities = joints_vel.data(),
 	};
@@ -78,13 +84,26 @@ std::optional<std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT>> xr::
 	if (std::ranges::any_of(joints_pos, [](const auto & loc) { return loc.locationFlags == 0; }))
 		return std::nullopt;
 
-	std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> joints;
+	locate_result result;
 	for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 	{
-		joints[i] = {joints_pos[i], joints_vel[i]};
+		result.joints[i] = {joints_pos[i], joints_vel[i]};
 	}
 
-	return joints;
+	// Extract aim state if available
+	if (aim_supported && (aim_state_fb.status & XR_HAND_TRACKING_AIM_VALID_BIT_FB))
+	{
+		result.aim = aim_state{
+		        .status = aim_state_fb.status,
+		        .aim_pose = aim_state_fb.aimPose,
+		        .pinch_strength_index = aim_state_fb.pinchStrengthIndex,
+		        .pinch_strength_middle = aim_state_fb.pinchStrengthMiddle,
+		        .pinch_strength_ring = aim_state_fb.pinchStrengthRing,
+		        .pinch_strength_little = aim_state_fb.pinchStrengthLittle,
+		};
+	}
+
+	return result;
 }
 
 bool xr::hand_tracker::check_flags(const std::array<joint, XR_HAND_JOINT_COUNT_EXT> & joints, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity)
@@ -92,4 +111,9 @@ bool xr::hand_tracker::check_flags(const std::array<joint, XR_HAND_JOINT_COUNT_E
 	return std::ranges::all_of(joints, [position, velocity](const auto & joint) {
 		return (joint.first.locationFlags & position) == position and (joint.second.velocityFlags & velocity) == velocity;
 	});
+}
+
+bool xr::hand_tracker::check_flags(const locate_result & result, XrSpaceLocationFlags position, XrSpaceVelocityFlags velocity)
+{
+	return check_flags(result.joints, position, velocity);
 }
