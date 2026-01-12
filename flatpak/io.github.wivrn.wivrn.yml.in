@@ -221,7 +221,7 @@ modules:
     sources:
     - type: git
       url: https://gitlab.com/libeigen/eigen.git
-      tag: 3.4.0
+      tag: 5.0.1
     cleanup:
       - '*'
 
