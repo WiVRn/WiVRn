@@ -72,7 +72,7 @@ modules:
     sources:
     - type: git
       url: https://github.com/crosstool-ng/crosstool-ng.git
-      tag: 70c2b00ad79a0a21a48e5a0eedc9f91c374af21d
+      tag: 620b909cd0713f68084378b63cf61b5232757b90
     - type: shell
       commands:
        - sed -i 's/-O2 -g/-O2/' scripts/crosstool-NG.sh
