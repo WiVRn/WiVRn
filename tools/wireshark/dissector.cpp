@@ -447,6 +447,11 @@ struct tree_traits<abbrev, std::vector<T>>
 
 		size_t count = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
+		if (count & 0x8000)
+		{
+			count = (count & 0x7fff) | (get_uint16(tvb, start, ENC_LITTLE_ENDIAN) << 15);
+			start += sizeof(uint16_t);
+		}
 
 		for (size_t i = 0; i < count; i++)
 		{
@@ -459,6 +464,13 @@ struct tree_traits<abbrev, std::vector<T>>
 		size_t count = get_uint16(tvb, start, ENC_LITTLE_ENDIAN);
 		start += sizeof(uint16_t);
 		size_t size = sizeof(uint16_t);
+
+		if (count & 0x8000)
+		{
+			count = (count & 0x7fff) | (get_uint16(tvb, start, ENC_LITTLE_ENDIAN) << 15);
+			start += sizeof(uint16_t);
+			size += sizeof(uint16_t);
+		}
 
 		for (size_t i = 0; i < count; i++)
 		{
