@@ -80,7 +80,10 @@ static xrt_space_relation to_relation(const from_headset::hand_tracking::pose & 
 {
 	return {
 	        .relation_flags = cast_flags(pose.flags),
-	        .pose = xrt_cast(pose.pose),
+	        .pose = xrt_cast(XrPosef{
+	                .orientation = pose.orientation,
+	                .position = pose.position,
+	        }),
 	        .linear_velocity = xrt_cast(pose.linear_velocity),
 	        .angular_velocity = xrt_cast(pose.angular_velocity),
 	};

@@ -32,6 +32,7 @@
 #include <vulkan/vulkan_core.h>
 #include <openxr/openxr.h>
 
+#include "packed_quaternion.h"
 #include "smp.h"
 #include "wivrn_serialization_types.h"
 
@@ -372,7 +373,8 @@ struct hand_tracking
 	};
 	struct pose
 	{
-		XrPosef pose;
+		XrVector3f position;
+		packed_quaternion orientation;
 		XrVector3f linear_velocity;
 		XrVector3f angular_velocity;
 		// In order to avoid packet fragmentation

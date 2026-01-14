@@ -34,7 +34,30 @@ xrt_space_relation pose_list::interpolate(const xrt_space_relation & a, const xr
 {
 	xrt_space_relation result;
 	xrt_space_relation_flags flags = xrt_space_relation_flags(a.relation_flags & b.relation_flags);
-	m_space_relation_interpolate(const_cast<xrt_space_relation *>(&a), const_cast<xrt_space_relation *>(&b), t, flags, &result);
+
+	if (math_quat_dot(&a.pose.orientation, &b.pose.orientation) > 0)
+	{
+		m_space_relation_interpolate(const_cast<xrt_space_relation *>(&a), const_cast<xrt_space_relation *>(&b), t, flags, &result);
+	}
+	else
+	{
+		xrt_space_relation b2{
+		        .relation_flags = b.relation_flags,
+		        .pose = {
+		                .orientation = {
+		                        .x = -b.pose.orientation.x,
+		                        .y = -b.pose.orientation.y,
+		                        .z = -b.pose.orientation.z,
+		                        .w = -b.pose.orientation.w,
+		                },
+		                .position = b.pose.position,
+		        },
+		        .linear_velocity = b.linear_velocity,
+		        .angular_velocity = b.angular_velocity,
+		};
+
+		m_space_relation_interpolate(const_cast<xrt_space_relation *>(&a), &b2, t, flags, &result);
+	}
 	return result;
 }
 

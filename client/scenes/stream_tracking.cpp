@@ -207,7 +207,8 @@ static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT
 		for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 		{
 			poses[i] = {
-			        .pose = (*joints)[i].first.pose,
+			        .position = (*joints)[i].first.pose.position,
+			        .orientation = pack((*joints)[i].first.pose.orientation),
 			        .linear_velocity = (*joints)[i].second.linearVelocity,
 			        .angular_velocity = (*joints)[i].second.angularVelocity,
 			        .radius = uint16_t((*joints)[i].first.radius * 10'000),
