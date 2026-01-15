@@ -380,11 +380,21 @@ struct hand_tracking
 		uint16_t radius; // 10th of mm
 		uint8_t flags;
 	};
+	struct aim_data
+	{
+		XrHandTrackingAimFlagsFB status;
+		XrPosef aim_pose;
+		float pinch_strength_index;
+		float pinch_strength_middle;
+		float pinch_strength_ring;
+		float pinch_strength_little;
+	};
 
 	XrTime production_timestamp;
 	XrTime timestamp;
 	hand_id hand;
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
+	std::optional<aim_data> aim;
 };
 
 struct body_tracking

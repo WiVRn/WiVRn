@@ -852,10 +852,22 @@ xrt_result_t wivrn_controller::get_hand_tracking(xrt_input_name name, int64_t de
 		case XRT_INPUT_HT_UNOBSTRUCTED_LEFT:
 		case XRT_INPUT_HT_UNOBSTRUCTED_RIGHT: {
 			*out_timestamp_ns = desired_timestamp_ns;
-			std::chrono::nanoseconds extrapolation_time;
-			std::tie(extrapolation_time, *out_value) = joints.get_at(desired_timestamp_ns);
+			auto [extrapolation_time, data] = joints.get_at(desired_timestamp_ns);
+			*out_value = data.joints;
 			cnx->add_predict_offset(extrapolation_time);
 			cnx->set_enabled(joints.hand_id == 0 ? to_headset::tracking_control::id::left_hand : to_headset::tracking_control::id::right_hand, true);
+
+			// Populate FB_hand_tracking_aim data
+			out_value->aim.has_aim = data.aim.valid;
+			if (data.aim.valid)
+			{
+				out_value->aim.status = data.aim.status;
+				out_value->aim.aim_pose = data.aim.aim_pose;
+				std::copy(std::begin(data.aim.pinch_strength),
+				          std::end(data.aim.pinch_strength),
+				          std::begin(out_value->aim.pinch_strength));
+			}
+
 			return XRT_SUCCESS;
 		}
 
@@ -961,6 +973,7 @@ void wivrn_controller::reset_history()
 	palm.reset();
 	pinch_ext.reset();
 	poke_ext.reset();
+	joints.reset();
 }
 
 thread_safe<std::ofstream> * wivrn_controller::tracking_dump()
