@@ -632,11 +632,18 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		const auto & frame_params = cn->c->base.frame_params;
 		view_info.fov[eye] = xrt_cast(frame_params.fovs[eye]);
 		view_info.pose[eye] = xrt_cast(frame_params.poses[eye]);
-		if (cn->c->debug.atw_off)
+		if (cn->c->base.frame_params.one_projection_layer_fast_path)
 		{
-			const auto & proj = cn->c->base.layer_accum.layers[0].data.proj;
-			view_info.pose[eye] = xrt_cast(proj.v[eye].pose);
-			view_info.fov[eye] = xrt_cast(proj.v[eye].fov);
+			for (const auto & layer: cn->c->base.layer_accum.layers)
+			{
+				if (layer.data.type == XRT_LAYER_PROJECTION)
+				{
+					const auto & proj = cn->c->base.layer_accum.layers[0].data.proj;
+					view_info.pose[eye] = xrt_cast(proj.v[eye].pose);
+					view_info.fov[eye] = xrt_cast(proj.v[eye].fov);
+					break;
+				}
+			}
 		}
 		else
 		{
