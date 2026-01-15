@@ -28,6 +28,11 @@ namespace wivrn
 
 static const size_t num_samples = 100;
 
+std::chrono::steady_clock::time_point clock_offset_estimator::next() const
+{
+	return next_sample;
+}
+
 void clock_offset_estimator::reset()
 {
 	std::lock_guard lock(mutex);
@@ -38,12 +43,12 @@ void clock_offset_estimator::reset()
 	sample_interval = std::chrono::milliseconds(10);
 }
 
-void clock_offset_estimator::request_sample(wivrn_connection & connection)
+void clock_offset_estimator::request_sample(std::chrono::steady_clock::time_point now, wivrn_connection & connection)
 {
-	if (std::chrono::steady_clock::now() < next_sample)
+	if (now < next_sample)
 		return;
 
-	next_sample = std::chrono::steady_clock::now() + sample_interval.load();
+	next_sample = now + sample_interval.load();
 	connection.send_stream(
 	        wivrn::to_headset::timesync_query{
 	                .query = XrTime(os_monotonic_get_ns()),

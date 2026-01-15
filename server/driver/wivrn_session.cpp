@@ -410,20 +410,23 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 
 void wivrn_session::start(ipc_server * server)
 {
-	assert(not thread.joinable());
+	assert(not net_thread.joinable());
 	mnd_ipc_server = server;
-	thread = std::jthread([this](auto stop_token) { return run(stop_token); });
+	net_thread = std::jthread([this](auto stop_token) { return run_net(stop_token); });
+	worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
 }
 
 void wivrn_session::stop()
 {
-	thread = std::jthread();
+	net_thread = std::jthread();
+	worker_thread = std::jthread();
 }
 
 bool wivrn_session::request_stop()
 {
 	assert(mnd_ipc_server);
-	bool b = thread.request_stop();
+	bool b = net_thread.request_stop();
+	worker_thread.request_stop();
 	ipc_server_stop(mnd_ipc_server);
 	return b;
 }
@@ -999,6 +1002,14 @@ struct refresh_rate_adjuster
 	        settings(settings)
 	{}
 
+	bool advance(std::chrono::steady_clock::time_point now)
+	{
+		if (next > now)
+			return false;
+		next += period;
+		return true;
+	}
+
 	void adjust(wivrn_connection & cnx)
 	{
 		auto locked = settings.lock();
@@ -1021,7 +1032,6 @@ struct refresh_rate_adjuster
 			cnx.send_control(to_headset::refresh_rate_change{.fps = requested});
 			last = requested;
 		}
-		next += period;
 	}
 
 	void reset()
@@ -1030,15 +1040,41 @@ struct refresh_rate_adjuster
 	}
 };
 
-void wivrn_session::run(std::stop_token stop)
+void wivrn_session::run_net(std::stop_token stop)
+{
+	while (not stop.stop_requested())
+	{
+		try
+		{
+			connection->poll(*this, 20);
+		}
+		catch (const std::exception & e)
+		{
+			U_LOG_E("Exception in network thread: %s", e.what());
+			worker_thread = std::jthread();
+			reconnect(stop);
+			worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
+		}
+	}
+}
+
+void wivrn_session::run_worker(std::stop_token stop)
 {
 	refresh_rate_adjuster refresh(connection->info(), settings, app_pacers);
 	while (not stop.stop_requested())
 	{
 		try
 		{
-			offset_est.request_sample(*connection);
+			std::this_thread::sleep_until(std::min(
+			        {
+			                refresh.next,
+			                tracking_control.next(),
+			                offset_est.next(),
+			        }));
+			auto now = std::chrono::steady_clock::now();
+			offset_est.request_sample(now, *connection);
 			tracking_control.send(*connection);
+			if (refresh.advance(now))
 			{
 				std::shared_lock lock(comp_target_mutex);
 				if (comp_target)
@@ -1048,13 +1084,10 @@ void wivrn_session::run(std::stop_token stop)
 				}
 			}
 			poll_session_loss();
-			connection->poll(*this, 20);
 		}
 		catch (const std::exception & e)
 		{
-			U_LOG_E("Exception in network thread: %s", e.what());
-			reconnect(stop);
-			refresh.reset();
+			U_LOG_E("Exception in worker thread: %s", e.what());
 		}
 	}
 }
@@ -1147,12 +1180,12 @@ void wivrn_session::reconnect(std::stop_token stop)
 void wivrn_session::poll_session_loss()
 {
 	assert(mnd_ipc_server);
+	scoped_lock lock(mnd_ipc_server->global_state.lock);
 	auto locked = session_loss.lock();
 	auto now = os_monotonic_get_ns();
 	if (locked->empty())
 		return;
 	auto it = locked->begin();
-	scoped_lock lock(mnd_ipc_server->global_state.lock);
 	while (it != locked->end() and it->second <= now)
 	{
 		for (auto & t: mnd_ipc_server->threads)
