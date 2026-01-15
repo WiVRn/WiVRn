@@ -90,6 +90,10 @@ public:
 	bool get_enabled(to_headset::tracking_control::id id);
 	// Return true if value changed
 	bool set_enabled(to_headset::tracking_control::id id, bool enabled);
+	std::chrono::steady_clock::time_point next() const
+	{
+		return next_sample;
+	}
 };
 
 class wivrn_session : public xrt_system_devices
@@ -145,7 +149,8 @@ class wivrn_session : public xrt_system_devices
 	// when sessions shall be destroyed, key is client id, value is timestamp
 	thread_safe<std::map<uint32_t, int64_t>> session_loss;
 
-	std::jthread thread;
+	std::jthread net_thread;
+	std::jthread worker_thread;
 
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
 
@@ -247,7 +252,8 @@ public:
 	void dump_time(const std::string & event, uint64_t frame, int64_t time, uint8_t stream = -1, const char * extra = "");
 
 private:
-	void run(std::stop_token stop);
+	void run_net(std::stop_token stop);
+	void run_worker(std::stop_token stop);
 	void reconnect(std::stop_token stop);
 
 	void poll_session_loss();

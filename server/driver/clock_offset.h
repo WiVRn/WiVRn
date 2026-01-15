@@ -65,6 +65,7 @@ class clock_offset_estimator
 	std::atomic<std::chrono::milliseconds> sample_interval = std::chrono::milliseconds(10);
 
 public:
+	std::chrono::steady_clock::time_point next() const;
 	void reset();
 	void request_sample(wivrn_connection & connection);
 	void add_sample(const wivrn::from_headset::timesync_response & sample);

@@ -28,6 +28,11 @@ namespace wivrn
 
 static const size_t num_samples = 100;
 
+std::chrono::steady_clock::time_point clock_offset_estimator::next() const
+{
+	return next_sample;
+}
+
 void clock_offset_estimator::reset()
 {
 	std::lock_guard lock(mutex);
