@@ -18,12 +18,17 @@
  */
 
 #include "pose_list.h"
+#include "driver/clock_offset.h"
+#include "driver/polynomial_interpolator.h"
 #include "math/m_api.h"
 #include "math/m_eigen_interop.hpp"
 #include "math/m_space.h"
 #include "math/m_vec3.h"
+#include "os/os_time.h"
 #include "xrt/xrt_defines.h"
-#include "xrt_cast.h"
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <magic_enum.hpp>
 
 using namespace xrt::auxiliary::math;
 
@@ -96,7 +101,7 @@ bool pose_list::update_tracking(const from_headset::tracking & tracking, const c
 		if (pose.device != device)
 			continue;
 
-		return add_sample(tracking.production_timestamp, tracking.timestamp, convert_pose(pose), offset);
+		return add_sample(tracking.production_timestamp, tracking.timestamp, pose, offset);
 	}
 	return true;
 }
@@ -121,7 +126,7 @@ void pose_list::set_derived(pose_list * source, xrt_pose offset, bool force)
 	}
 }
 
-std::tuple<std::chrono::nanoseconds, xrt_space_relation, device_id> pose_list::get_pose_at(XrTime at_timestamp_ns)
+std::tuple<XrTime, xrt_space_relation, device_id> pose_list::get_pose_at(XrTime at_timestamp_ns)
 {
 	if (auto source = this->source.load())
 	{
@@ -133,24 +138,132 @@ std::tuple<std::chrono::nanoseconds, xrt_space_relation, device_id> pose_list::g
 	return std::tuple_cat(get_at(at_timestamp_ns), std::make_tuple(device));
 }
 
-static xrt_space_relation_flags convert_flags(uint8_t flags)
+void pose_list::reset()
 {
-	static_assert(int(from_headset::tracking::position_valid) == XRT_SPACE_RELATION_POSITION_VALID_BIT);
-	static_assert(int(from_headset::tracking::orientation_valid) == XRT_SPACE_RELATION_ORIENTATION_VALID_BIT);
-	static_assert(int(from_headset::tracking::linear_velocity_valid) == XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT);
-	static_assert(int(from_headset::tracking::angular_velocity_valid) == XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT);
-	static_assert(int(from_headset::tracking::orientation_tracked) == XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
-	static_assert(int(from_headset::tracking::position_tracked) == XRT_SPACE_RELATION_POSITION_TRACKED_BIT);
-	return xrt_space_relation_flags(flags);
+	std::lock_guard lock(mutex);
+	positions.reset();
+	orientations.reset();
+	last_request = os_monotonic_get_ns();
 }
 
-xrt_space_relation pose_list::convert_pose(const from_headset::tracking::pose & pose)
+bool pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const from_headset::tracking::pose & pose, const clock_offset & offset)
 {
-	return xrt_space_relation{
-	        .relation_flags = convert_flags(pose.flags),
-	        .pose = xrt_cast(pose.pose),
-	        .linear_velocity = xrt_cast(pose.linear_velocity),
-	        .angular_velocity = xrt_cast(pose.angular_velocity),
-	};
+	production_timestamp = offset.from_headset(production_timestamp);
+	timestamp = offset.from_headset(timestamp);
+
+	// TODO keep the tracked flag
+
+	polynomial_interpolator<3>::sample position{production_timestamp, timestamp};
+	if (pose.flags & from_headset::tracking::position_valid)
+		position.y.emplace(
+		        pose.pose.position.x,
+		        pose.pose.position.y,
+		        pose.pose.position.z);
+	if (pose.flags & from_headset::tracking::linear_velocity_valid)
+		position.dy.emplace(
+		        pose.linear_velocity.x,
+		        pose.linear_velocity.y,
+		        pose.linear_velocity.z);
+
+	polynomial_interpolator<4, true>::sample orientation{production_timestamp, timestamp};
+	if (pose.flags & from_headset::tracking::orientation_valid)
+	{
+		orientation.y.emplace(
+		        pose.pose.orientation.w,
+		        pose.pose.orientation.x,
+		        pose.pose.orientation.y,
+		        pose.pose.orientation.z);
+
+		if (pose.flags & from_headset::tracking::angular_velocity_valid)
+		{
+			Eigen::Quaternionf q{
+			        pose.pose.orientation.w,
+			        pose.pose.orientation.x,
+			        pose.pose.orientation.y,
+			        pose.pose.orientation.z};
+
+			Eigen::Quaternionf ω{
+			        0,
+			        pose.angular_velocity.x,
+			        pose.angular_velocity.y,
+			        pose.angular_velocity.z};
+
+			orientation.dy.emplace(0.5 * (ω * q).coeffs());
+		}
+	}
+
+	std::lock_guard lock(mutex);
+	positions.add_sample(position);
+	orientations.add_sample(orientation);
+	return timestamp - last_request < 1'000'000'000;
 }
+
+std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
+{
+	std::lock_guard lock(mutex);
+
+	last_request = os_monotonic_get_ns();
+
+	xrt_space_relation ret{};
+	auto flags = [&](int f) {
+		ret.relation_flags = xrt_space_relation_flags(int(ret.relation_flags) | f);
+	};
+
+	auto position = positions.get_at(at_timestamp_ns);
+	auto orientation = orientations.get_at(at_timestamp_ns);
+
+	if (position.y)
+	{
+		flags(XRT_SPACE_RELATION_POSITION_VALID_BIT | XRT_SPACE_RELATION_POSITION_TRACKED_BIT);
+		ret.pose.position = {
+		        position.y->x(),
+		        position.y->y(),
+		        position.y->z()};
+	}
+
+	if (position.dy)
+	{
+		flags(XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT);
+		ret.linear_velocity = {
+		        position.dy->x(),
+		        position.dy->y(),
+		        position.dy->z()};
+	}
+
+	if (orientation.y)
+	{
+		flags(XRT_SPACE_RELATION_ORIENTATION_VALID_BIT | XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
+
+		ret.pose.orientation = {
+		        .x = (*orientation.y)[1],
+		        .y = (*orientation.y)[2],
+		        .z = (*orientation.y)[3],
+		        .w = (*orientation.y)[0]};
+
+		if (orientation.dy)
+		{
+			Eigen::Quaternionf q{
+			        (*orientation.y)[0],
+			        (*orientation.y)[1],
+			        (*orientation.y)[2],
+			        (*orientation.y)[3]};
+			Eigen::Quaternionf dq{
+			        (*orientation.dy)[0],
+			        (*orientation.dy)[1],
+			        (*orientation.dy)[2],
+			        (*orientation.dy)[3]};
+			Eigen::Quaternionf half_ω = dq * q;
+
+			flags(XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT);
+			ret.angular_velocity = {
+			        2 * half_ω.x(),
+			        2 * half_ω.y(),
+			        2 * half_ω.z(),
+			};
+		}
+	}
+
+	return {position.production_timestamp, ret};
+}
+
 } // namespace wivrn

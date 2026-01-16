@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "history.h"
+#include "polynomial_interpolator.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 
@@ -29,11 +29,16 @@ namespace wivrn
 {
 struct clock_offset;
 
-class pose_list : public history<pose_list, xrt_space_relation>
+class pose_list
 {
 	std::atomic<pose_list *> source = nullptr;
 	xrt_pose offset;
 	std::atomic_bool derive_forced = false;
+	std::mutex mutex;
+	XrTime last_request;
+
+	polynomial_interpolator<3> positions;
+	polynomial_interpolator<4, true> orientations;
 
 public:
 	const wivrn::device_id device;
@@ -47,8 +52,12 @@ public:
 	bool update_tracking(const wivrn::from_headset::tracking &, const clock_offset & offset);
 	void set_derived(pose_list * source, xrt_pose offset, bool force = false);
 
-	std::tuple<std::chrono::nanoseconds, xrt_space_relation, device_id> get_pose_at(XrTime at_timestamp_ns);
+	std::tuple<XrTime, xrt_space_relation, device_id> get_pose_at(XrTime at_timestamp_ns);
 
-	static xrt_space_relation convert_pose(const wivrn::from_headset::tracking::pose &);
+	void reset();
+	std::pair<XrTime, xrt_space_relation> get_at(XrTime at_timestamp_ns);
+
+private:
+	bool add_sample(XrTime production_timestamp, XrTime timestamp, const from_headset::tracking::pose & pose, const clock_offset & offset);
 };
 } // namespace wivrn
