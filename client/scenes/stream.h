@@ -161,6 +161,11 @@ private:
 	std::optional<std::tuple<xr::spaces, glm::vec3, glm::quat>> recentering_context;
 	void update_gui_position(xr::spaces controller);
 
+	// Lying down mode correction
+	bool lying_down_recentered = false;
+	glm::quat world_rotation_correction{1, 0, 0, 0};
+	glm::vec3 world_translation_correction{0, 0, 0};
+
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
 	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, view_count + 1> current_blit_handles;
 

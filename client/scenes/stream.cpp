@@ -878,6 +878,22 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			foveation[i] = blit_handle->view_info.foveation[i];
 			pose[i] = blit_handle->view_info.pose[i];
 			fov[i] = blit_handle->view_info.fov[i];
+
+			if (lying_down_recentered)
+			{
+				glm::vec3 offset(0, application::get_config().lying_down_height, 0);
+				glm::quat inv_rot = glm::inverse(world_rotation_correction);
+
+				glm::quat q(pose[i].orientation.w, pose[i].orientation.x, pose[i].orientation.y, pose[i].orientation.z);
+				glm::vec3 p(pose[i].position.x, pose[i].position.y, pose[i].position.z);
+
+				glm::quat new_q = inv_rot * q;
+				glm::vec3 new_p = inv_rot * (p - offset) + world_translation_correction;
+
+				pose[i].orientation = {new_q.x, new_q.y, new_q.z, new_q.w};
+				pose[i].position = {new_p.x, new_p.y, new_p.z};
+			}
+
 			// colour image
 			images[i] = {
 			        .rgb = blit_handle->image_view,

@@ -778,6 +778,23 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 	}
 
+	{
+		if (ImGui::Checkbox(_S("Lying Down Mode"), &config.lying_down_mode))
+			config.save();
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Adjusts the view for playing while lying down. Press Recenter after enabling."));
+
+		if (config.lying_down_mode)
+		{
+			ImGui::Indent();
+			if (ImGui::SliderFloat(_S("Height"), &config.lying_down_height, 0.0f, 2.5f, "%.2fm"))
+				config.save();
+			imgui_ctx->vibrate_on_hover();
+			ImGui::Unindent();
+		}
+	}
+
 	if (instance.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))
 	{
 		if (ImGui::Checkbox(_S("High power mode"), &config.high_power_mode))
