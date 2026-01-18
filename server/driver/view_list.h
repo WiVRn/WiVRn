@@ -44,7 +44,7 @@ class view_list
 	std::array<xrt_fov, 2> fovs;
 
 public:
-	bool update_tracking(const from_headset::tracking & tracking, const clock_offset & offset);
+	void update_tracking(const from_headset::tracking & tracking, const clock_offset & offset);
 	std::pair<XrTime, tracked_views> get_at(XrTime at_timestamp_ns);
 };
 } // namespace wivrn

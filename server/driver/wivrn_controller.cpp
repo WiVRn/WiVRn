@@ -26,6 +26,7 @@
 #include "wivrn_config.h"
 #include "wivrn_session.h"
 
+#include "os/os_time.h"
 #include "util/u_logging.h"
 #include <array>
 #include <format>

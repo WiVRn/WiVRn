@@ -35,7 +35,6 @@ class pose_list
 	xrt_pose offset;
 	std::atomic_bool derive_forced = false;
 	std::mutex mutex;
-	XrTime last_request;
 
 	polynomial_interpolator<3> positions;
 	polynomial_interpolator<4, true> orientations;
@@ -49,7 +48,7 @@ public:
 	pose_list(wivrn::device_id id) :
 	        device(id) {}
 
-	bool update_tracking(const wivrn::from_headset::tracking &, const clock_offset & offset);
+	void update_tracking(const wivrn::from_headset::tracking &, const clock_offset & offset);
 	void set_derived(pose_list * source, xrt_pose offset, bool force = false);
 
 	std::tuple<XrTime, xrt_space_relation, device_id> get_pose_at(XrTime at_timestamp_ns);
@@ -58,6 +57,6 @@ public:
 	std::pair<XrTime, xrt_space_relation> get_at(XrTime at_timestamp_ns);
 
 private:
-	bool add_sample(XrTime production_timestamp, XrTime timestamp, const from_headset::tracking::pose & pose, const clock_offset & offset);
+	void add_sample(XrTime production_timestamp, XrTime timestamp, const from_headset::tracking::pose & pose, const clock_offset & offset);
 };
 } // namespace wivrn

@@ -23,10 +23,10 @@
 namespace wivrn
 {
 
-bool view_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
+void view_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	if (not std::ranges::contains(tracking.device_poses, device_id::HEAD, &from_headset::tracking::pose::device))
-		return true;
+		return;
 
 	std::lock_guard lock(mutex);
 	flags = tracking.view_flags;
@@ -37,7 +37,7 @@ bool view_list::update_tracking(const from_headset::tracking & tracking, const c
 		fovs[eye] = xrt_cast(tracking.views[eye].fov);
 	}
 
-	return head_poses.update_tracking(tracking, offset);
+	head_poses.update_tracking(tracking, offset);
 }
 
 std::pair<XrTime, tracked_views> view_list::get_at(XrTime at_timestamp_ns)

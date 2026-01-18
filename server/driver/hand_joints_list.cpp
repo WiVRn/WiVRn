@@ -120,14 +120,13 @@ static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_hea
 	return output_joints;
 }
 
-bool hand_joints_list::update_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
+void hand_joints_list::update_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
 	if (tracking.hand == hand_id)
-		return add_sample(
+		add_sample(
 		        tracking.production_timestamp,
 		        tracking.timestamp,
 		        convert_joints(tracking.joints),
 		        offset);
-	return true;
 }
 } // namespace wivrn

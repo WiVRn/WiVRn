@@ -24,7 +24,6 @@
 #include "math/m_eigen_interop.hpp"
 #include "math/m_space.h"
 #include "math/m_vec3.h"
-#include "os/os_time.h"
 #include "xrt/xrt_defines.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -91,10 +90,10 @@ xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xr
 	return res;
 }
 
-bool pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
+void pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
 	if (source)
-		return false;
+		return;
 
 	for (const auto & pose: tracking.device_poses)
 	{
@@ -103,7 +102,6 @@ bool pose_list::update_tracking(const from_headset::tracking & tracking, const c
 
 		return add_sample(tracking.production_timestamp, tracking.timestamp, pose, offset);
 	}
-	return true;
 }
 
 void pose_list::set_derived(pose_list * source, xrt_pose offset, bool force)
@@ -143,10 +141,9 @@ void pose_list::reset()
 	std::lock_guard lock(mutex);
 	positions.reset();
 	orientations.reset();
-	last_request = os_monotonic_get_ns();
 }
 
-bool pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const from_headset::tracking::pose & pose, const clock_offset & offset)
+void pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const from_headset::tracking::pose & pose, const clock_offset & offset)
 {
 	production_timestamp = offset.from_headset(production_timestamp);
 	timestamp = offset.from_headset(timestamp);
@@ -195,14 +192,11 @@ bool pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const 
 	std::lock_guard lock(mutex);
 	positions.add_sample(position);
 	orientations.add_sample(orientation);
-	return timestamp - last_request < 1'000'000'000;
 }
 
 std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
 {
 	std::lock_guard lock(mutex);
-
-	last_request = os_monotonic_get_ns();
 
 	xrt_space_relation ret{};
 	auto flags = [&](int f) {

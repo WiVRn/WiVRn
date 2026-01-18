@@ -34,7 +34,7 @@ public:
 
 	tracker_pose_list() = default;
 
-	bool update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::body_tracking::pose & pose, const clock_offset & offset);
+	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::body_tracking::pose & pose, const clock_offset & offset);
 
 	static xrt_space_relation convert_pose(const wivrn::from_headset::body_tracking::pose &);
 };

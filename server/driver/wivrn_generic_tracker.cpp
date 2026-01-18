@@ -70,9 +70,9 @@ xrt_space_relation tracker_pose_list::extrapolate(const xrt_space_relation & a, 
 	return res;
 }
 
-bool tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::body_tracking::pose & pose, const clock_offset & offset)
+void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::body_tracking::pose & pose, const clock_offset & offset)
 {
-	return add_sample(produced_timestamp, timestamp, convert_pose(pose), offset);
+	add_sample(produced_timestamp, timestamp, convert_pose(pose), offset);
 }
 
 static xrt_space_relation_flags convert_flags(uint8_t flags)
