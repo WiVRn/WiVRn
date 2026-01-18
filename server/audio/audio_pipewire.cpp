@@ -354,10 +354,24 @@ void pipewire_device::mic_state_changed(void * self_v, pw_stream_state old, pw_s
 		case PW_STREAM_STATE_UNCONNECTED:
 		case PW_STREAM_STATE_CONNECTING:
 		case PW_STREAM_STATE_PAUSED:
-			self->session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, false});
+			try
+			{
+				self->session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, false});
+			}
+			catch (std::exception & e)
+			{
+				U_LOG_W("failed to update microphone state: %s", e.what());
+			}
 			return;
 		case PW_STREAM_STATE_STREAMING:
-			self->session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, true});
+			try
+			{
+				self->session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, true});
+			}
+			catch (std::exception & e)
+			{
+				U_LOG_W("failed to update microphone state: %s", e.what());
+			}
 			return;
 	}
 }
