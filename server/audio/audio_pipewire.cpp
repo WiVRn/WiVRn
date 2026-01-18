@@ -380,7 +380,7 @@ void pipewire_device::process_mic_data(wivrn::audio_data && sample)
 		mic_buffer_size_bytes += size;
 }
 
-std::shared_ptr<audio_device> create_pipewire_handle(
+std::unique_ptr<audio_device> create_pipewire_handle(
         const std::string & source_name,
         const std::string & source_description,
         const std::string & sink_name,
@@ -390,7 +390,7 @@ std::shared_ptr<audio_device> create_pipewire_handle(
 {
 	try
 	{
-		return std::make_shared<pipewire_device>(
+		return std::make_unique<pipewire_device>(
 		        source_name, source_description, sink_name, sink_description, info, session);
 	}
 	catch (std::exception & e)

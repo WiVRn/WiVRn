@@ -30,7 +30,7 @@
 #include "audio_pipewire.h"
 #endif
 
-std::shared_ptr<wivrn::audio_device> wivrn::audio_device::create(
+std::unique_ptr<wivrn::audio_device> wivrn::audio_device::create(
         const std::string & source_name,
         const std::string & source_description,
         const std::string & sink_name,

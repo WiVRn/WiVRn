@@ -137,7 +137,7 @@ class wivrn_session : public xrt_system_devices
 	std::mutex csv_mutex;
 	std::ofstream feedback_csv;
 
-	std::shared_ptr<audio_device> audio_handle;
+	std::unique_ptr<audio_device> audio_handle;
 
 	// run-time editable settings
 	thread_safe<from_headset::settings_changed> settings;
