@@ -38,6 +38,6 @@ public:
 	hand_joints_list(int hand_id) :
 	        hand_id(hand_id) {}
 
-	bool update_tracking(const wivrn::from_headset::hand_tracking & tracking, const clock_offset & offset);
+	void update_tracking(const wivrn::from_headset::hand_tracking & tracking, const clock_offset & offset);
 };
 } // namespace wivrn
