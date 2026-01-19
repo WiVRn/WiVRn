@@ -196,7 +196,7 @@ struct variant_builder
 
 }; // namespace
 
-void systemd_units_manager::start_application(const std::vector<std::string> & args)
+void systemd_units_manager::start_application(const std::vector<std::string> & args, const std::optional<std::string> & path)
 {
 	if (args.empty())
 		return;
@@ -223,6 +223,12 @@ void systemd_units_manager::start_application(const std::vector<std::string> & a
 	                              nullptr,
 	                              &exec_start,
 	                              1));
+
+	if (path)
+		g_variant_builder_add(&b,
+		                      "(sv)",
+		                      "WorkingDirectory",
+		                      g_variant_new("s", path->c_str()));
 
 	if (auto path = std::getenv("PATH"))
 	{
