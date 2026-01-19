@@ -308,11 +308,14 @@ wivrn::deserialization_packet wivrn::UDP::receive_raw()
 
 	static const size_t message_size = 2048;
 	static const size_t num_messages = 20;
+	if ((not buffer) or buffer.use_count() > 1)
+	{
 #if defined(__cpp_lib_smart_ptr_for_overwrite) && __cpp_lib_smart_ptr_for_overwrite >= 202002L
-	buffer = std::make_shared_for_overwrite<uint8_t[]>(message_size * num_messages);
+		buffer = std::make_shared_for_overwrite<uint8_t[]>(message_size * num_messages);
 #else
-	buffer.reset(new uint8_t[message_size * num_messages]);
+		buffer.reset(new uint8_t[message_size * num_messages]);
 #endif
+	}
 	std::array<iovec, num_messages> iovecs;
 	std::array<mmsghdr, num_messages> mmsgs;
 	for (size_t i = 0; i < num_messages; ++i)
