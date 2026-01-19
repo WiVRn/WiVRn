@@ -279,7 +279,6 @@ jobs:
                 VERSION_CODE=$(( $VERSION_CODE + 1 ))
           fi
 
-          CSS=images/wivrn-release.css
           APPNAME=WiVRn
         else
           VERSION_CODE=1
@@ -287,13 +286,18 @@ jobs:
           if [ ${{ github.ref_type }} = 'tag' ]
           then
                 SUFFIX=".github"
-                CSS=images/wivrn-release.css
                 APPNAME="WiVRn"
           else
                 SUFFIX=".github.testing"
-                CSS=images/wivrn-nightly.css
                 APPNAME="WiVRn Testing"
           fi
+        fi
+
+        if [ ${{ github.ref_type }} = 'tag' ]
+        then
+          CSS=images/wivrn-release.css
+        else
+          CSS=images/wivrn-nightly.css
         fi
 
         echo Setting version $VERSION and version code $VERSION_CODE in manifest
