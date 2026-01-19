@@ -313,24 +313,21 @@ wivrn::deserialization_packet wivrn::UDP::receive_raw()
 #else
 	buffer.reset(new uint8_t[message_size * num_messages]);
 #endif
-	std::vector<iovec> iovecs;
-	std::vector<mmsghdr> mmsgs;
-	iovecs.reserve(num_messages);
-	mmsgs.reserve(num_messages);
+	std::array<iovec, num_messages> iovecs;
+	std::array<mmsghdr, num_messages> mmsgs;
 	for (size_t i = 0; i < num_messages; ++i)
 	{
-		iovecs.push_back({
+		iovecs[i] = {
 		        .iov_base = buffer.get() + message_size * i,
 		        .iov_len = message_size,
-		});
+		};
 
-		mmsgs.push_back(
-		        {
-		                .msg_hdr = {
-		                        .msg_iov = &iovecs.back(),
-		                        .msg_iovlen = 1,
-		                },
-		        });
+		mmsgs[i] = {
+		        .msg_hdr = {
+		                .msg_iov = &iovecs[i],
+		                .msg_iovlen = 1,
+		        },
+		};
 	}
 
 	int received = recvmmsg(fd, mmsgs.data(), num_messages, MSG_DONTWAIT, nullptr);
