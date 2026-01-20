@@ -19,6 +19,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -48,4 +49,14 @@ public:
 		return app_data.at(appid);
 	}
 };
+
+struct steam_shortcut
+{
+	uint32_t appid;
+	std::string name;
+	std::optional<std::filesystem::path> icon;
+};
+
+std::vector<steam_shortcut> read_steam_shortcuts(std::filesystem::path path);
+
 } // namespace wivrn

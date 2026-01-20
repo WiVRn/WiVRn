@@ -184,3 +184,163 @@ wivrn::steam_app_info::steam_app_info(std::filesystem::path path)
 		}
 	}
 }
+
+namespace
+{
+
+class binary_reader
+{
+	std::ifstream in;
+
+public:
+	binary_reader(std::ifstream && in) : in{std::move(in)} {}
+
+	template <typename T>
+	T read();
+
+	template <typename T>
+	        requires std::is_integral_v<T>
+	T read()
+	{
+		T res;
+		in.read((char *)&res, sizeof(T));
+		if (not in)
+			throw std::runtime_error{"File truncated"};
+
+		static_assert(std::endian::native == std::endian::big or std::endian::native == std::endian::little);
+
+		if constexpr (std::endian::native == std::endian::big)
+			return std::byteswap(res);
+		else
+			return res;
+	}
+};
+
+template <>
+std::string binary_reader::read()
+{
+	std::string res;
+	std::getline(in, res, '\0');
+	if (not in)
+		throw std::runtime_error{"File truncated"};
+	return res;
+}
+
+template <typename T>
+void read_dict(binary_reader & in, T & visitor, const std::vector<std::string> * string_table = nullptr)
+{
+	while (true)
+	{
+		auto type = in.read<uint8_t>();
+		if (type == 8)
+		{
+			visitor.end_dict();
+			return;
+		}
+
+		// Key
+		const std::string & key = string_table ? string_table->at(in.read<uint32_t>()) : in.read<std::string>();
+
+		// Value
+		switch (type)
+		{
+			case 0: // Dictionary
+				visitor.begin_dict(key);
+				read_dict(in, visitor, string_table);
+				break;
+			case 1: // UTF-8 string
+				visitor.on_string(key, in.read<std::string>());
+				break;
+			case 2: // uint32_t
+				visitor.on_uint32_t(key, in.read<uint32_t>());
+				break;
+				// case 3: // float
+			default:
+				throw std::runtime_error{"Unknown object type " + std::to_string(type)};
+		}
+	}
+}
+
+template <typename T>
+void read_vdf(binary_reader & in, T & visitor, int version)
+{
+	if (version >= 41)
+	{
+		std::vector<std::string> string_table;
+		auto count = in.read<uint32_t>();
+		string_table.reserve(count);
+		for (size_t i = 0; i < count; ++i)
+			string_table.emplace_back(in.read<std::string>());
+
+		read_dict(in, visitor, &string_table);
+	}
+	else
+	{
+		read_dict(in, visitor);
+	}
+}
+
+} // namespace
+
+std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::path path)
+{
+	binary_reader in{std::ifstream{path}};
+	auto type = in.read<uint8_t>();
+	auto name = in.read<std::string>();
+
+	if (type != 0 or name != "shortcuts")
+		throw std::runtime_error{"Invalid type for shortcuts file"};
+
+	std::vector<wivrn::steam_shortcut> res;
+	struct V
+	{
+		std::vector<wivrn::steam_shortcut> & items;
+
+		int depth = 0;
+		wivrn::steam_shortcut current{};
+		bool VR = false;
+
+		void begin_dict(const std::string & key)
+		{
+			++depth;
+			if (depth == 1)
+			{
+				current = decltype(current){};
+				VR = false;
+			}
+		}
+		void end_dict()
+		{
+			--depth;
+			if (depth == 0)
+			{
+				if (VR)
+					items.push_back(std::move(current));
+			}
+		}
+		void on_string(const std::string & key, std::string && val)
+		{
+			if (depth == 1)
+			{
+				if (key == "AppName")
+					current.name = std::move(val);
+				else if (key == "icon")
+					current.icon = std::move(val);
+			}
+		}
+		void on_uint32_t(const std::string & key, uint32_t val)
+		{
+			if (depth == 1)
+			{
+				if (key == "appid")
+					current.appid = val;
+				if (key == "OpenVR")
+					VR = val;
+			}
+		}
+	} v{res};
+
+	read_vdf(in, v, 0);
+
+	return res;
+}
