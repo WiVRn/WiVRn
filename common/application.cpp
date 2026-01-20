@@ -75,11 +75,11 @@ std::string read_vr_manifest(const std::filesystem::path & root)
 	return read_file(root / "config/steamapps.vrmanifest");
 }
 
-steam_app_info read_steam_app_info(const std::filesystem::path & root)
+std::unordered_map<uint32_t, wivrn::steam_icon> safe_read_steam_icons(const std::filesystem::path & root)
 {
 	try
 	{
-		return steam_app_info{root / "appcache/appinfo.vdf"};
+		return read_steam_icons(root / "appcache/appinfo.vdf");
 	}
 	catch (...)
 	{}
@@ -87,14 +87,15 @@ steam_app_info read_steam_app_info(const std::filesystem::path & root)
 	return {};
 }
 
-std::optional<std::filesystem::path> find_steam_icon(const std::filesystem::path & root, int app_id, const steam_app_info & info)
+std::optional<std::filesystem::path> find_steam_icon(const std::filesystem::path & root, int app_id, const std::unordered_map<uint32_t, wivrn::steam_icon> & info)
 {
-	const auto & app_info = info.get(app_id);
+	auto icon = info.find(app_id);
+	if (icon == info.end())
+		return std::nullopt;
 
 	try
 	{
-		std::string icon{std::get<std::string_view>(app_info.at("common.clienticon"))};
-		auto icon_path = root / "steam/games" / (icon + ".ico");
+		auto icon_path = root / "steam/games" / (icon->second.clienticon + ".ico");
 
 		if (std::filesystem::exists(icon_path))
 			return icon_path;
@@ -105,10 +106,7 @@ std::optional<std::filesystem::path> find_steam_icon(const std::filesystem::path
 
 	try
 	{
-		std::string icon{std::get<std::string_view>(app_info.at("common.linuxclienticon"))};
-
-		auto icon_path = root / "steam/games" / (icon + ".zip");
-
+		auto icon_path = root / "steam/games" / (icon->second.linuxclienticon + ".zip");
 		if (std::filesystem::exists(icon_path))
 			return icon_path;
 	}
@@ -126,7 +124,7 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 		return;
 
 	auto manifest = read_vr_manifest(*root);
-	auto info = read_steam_app_info(*root);
+	auto info = safe_read_steam_icons(*root);
 
 	if (manifest.empty())
 		return;
