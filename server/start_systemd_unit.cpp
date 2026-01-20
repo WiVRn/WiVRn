@@ -201,6 +201,11 @@ void systemd_units_manager::start_application(const std::vector<std::string> & a
 	if (args.empty())
 		return;
 
+	std::cerr << "Launching";
+	for (const auto & i: args)
+		std::cerr << " " << std::quoted(i);
+	std::cerr << std::endl;
+
 	std::string service_name = std::format("wivrn-application-{}.service", std::chrono::steady_clock::now().time_since_epoch().count());
 
 	variant_builder b(G_VARIANT_TYPE("a(sv)"));
