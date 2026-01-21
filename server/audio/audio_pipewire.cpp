@@ -137,10 +137,6 @@ struct pipewire_device : public audio_device
 			                // Declare target latency to help PipeWire optimize buffering
 			                PW_KEY_NODE_LATENCY,
 			                latency_str.c_str(),
-			                // Force constant quantum size to prevent dynamic buffer size changes
-			                // Variable buffer sizes cause crackling in effect processors (EasyEffects)
-			                PW_KEY_NODE_FORCE_QUANTUM,
-			                latency_str.c_str(),
 			                NULL),
 			        &speaker_events,
 			        this));
