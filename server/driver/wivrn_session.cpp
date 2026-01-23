@@ -941,7 +941,7 @@ struct refresh_rate_adjuster
 	void adjust(wivrn_connection & cnx)
 	{
 		auto locked = settings.lock();
-		if (locked->preferred_refresh_rate != 0 or info.available_refresh_rates.size() < 2 or std::chrono::steady_clock::now() < next)
+		if (locked->preferred_refresh_rate != 0 or info.available_refresh_rates.size() < 2)
 			return;
 
 		// Maximum refresh rate the application can reach
@@ -1008,8 +1008,16 @@ void wivrn_session::run_worker(std::stop_token stop)
 				std::shared_lock lock(comp_target_mutex);
 				if (comp_target)
 				{
-					if (do_refresh and comp_target->requested_refresh_rate == 0)
-						refresh.adjust(*connection);
+					if (do_refresh)
+					{
+						{
+							scoped_lock lock(xrt_system.sessions.mutex);
+							if (xrt_system.sessions.count == 0)
+								comp_target->requested_refresh_rate = 0;
+						}
+						if (comp_target->requested_refresh_rate == 0)
+							refresh.adjust(*connection);
+					}
 					if (do_control)
 						control.resolve(comp_target->pacer.get_frame_duration(), tracking_latency);
 				}
