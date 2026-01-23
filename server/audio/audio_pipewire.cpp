@@ -150,6 +150,19 @@ struct pipewire_device : public audio_device
 			        .channels = desc.speaker->num_channels,
 			};
 
+			switch (audio_info.channels)
+			{
+				case 1:
+					audio_info.position[0] = SPA_AUDIO_CHANNEL_MONO;
+					break;
+				case 2:
+					audio_info.position[0] = SPA_AUDIO_CHANNEL_FL;
+					audio_info.position[1] = SPA_AUDIO_CHANNEL_FR;
+					break;
+				default:
+					U_LOG_W("No known audio mapping for %d channels speaker", audio_info.channels);
+			}
+
 			const spa_pod * params[1];
 			params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &audio_info);
 
@@ -217,6 +230,19 @@ struct pipewire_device : public audio_device
 			        .rate = desc.microphone->sample_rate,
 			        .channels = desc.microphone->num_channels,
 			};
+
+			switch (audio_info.channels)
+			{
+				case 1:
+					audio_info.position[0] = SPA_AUDIO_CHANNEL_MONO;
+					break;
+				case 2:
+					audio_info.position[0] = SPA_AUDIO_CHANNEL_FL;
+					audio_info.position[1] = SPA_AUDIO_CHANNEL_FR;
+					break;
+				default:
+					U_LOG_W("No known audio mapping for %d channels microphone", audio_info.channels);
+			}
 
 			const spa_pod * params[1];
 			params[0] = spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &audio_info);
