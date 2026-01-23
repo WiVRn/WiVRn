@@ -37,7 +37,10 @@ static xrt_hand_joint_value interpolate(const xrt_hand_joint_value & a, const xr
 
 xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t)
 {
-	xrt_hand_joint_set j = a;
+	xrt_hand_joint_set j = {
+	        .hand_pose = pose_list::interpolate(a.hand_pose, b.hand_pose, t),
+	        .is_active = a.is_active,
+	};
 	for (int i = 0; i < XRT_HAND_JOINT_COUNT; i++)
 	{
 		j.values.hand_joint_set_default[i] = ::wivrn::interpolate(a.values.hand_joint_set_default[i], b.values.hand_joint_set_default[i], t);
@@ -47,10 +50,7 @@ xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, c
 
 xrt_hand_joint_set hand_joints_list::extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, int64_t ta, int64_t tb, int64_t t)
 {
-	xrt_hand_joint_set j = t <= ta ? a : b;
-	// Only extrapolate the hand pose, individual joints are too noisy
-	j.hand_pose = pose_list::extrapolate(a.hand_pose, b.hand_pose, ta, tb, t);
-	return j;
+	return t <= ta ? a : b;
 }
 
 static xrt_space_relation_flags cast_flags(uint8_t in_flags)
