@@ -164,9 +164,9 @@ std::unordered_map<uint32_t, wivrn::steam_icon> wivrn::read_steam_icons(std::fil
 		}
 		void on_string(const std::string & key, std::string && val)
 		{
-			if (key == "clienticon")
+			if (strcasecmp(key.c_str(), "clienticon") == 0)
 				current.clienticon = std::move(val);
-			else if (key == "linuxclienticon")
+			else if (strcasecmp(key.c_str(), "linuxclienticon") == 0)
 				current.linuxclienticon = std::move(val);
 		}
 		void on_uint32_t(const std::string & key, uint32_t val)
@@ -250,9 +250,9 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 		{
 			if (depth == 1)
 			{
-				if (key == "AppName")
+				if (strcasecmp(key.c_str(), "AppName") == 0)
 					current.name = std::move(val);
-				else if (key == "icon")
+				else if (strcasecmp(key.c_str(), "icon") == 0)
 					current.icon = std::move(val);
 			}
 		}
@@ -260,9 +260,9 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 		{
 			if (depth == 1)
 			{
-				if (key == "appid")
+				if (strcasecmp(key.c_str(), "appid") == 0)
 					current.appid = val;
-				if (key == "OpenVR")
+				else if (strcasecmp(key.c_str(), "OpenVR") == 0)
 					VR = val;
 			}
 		}
