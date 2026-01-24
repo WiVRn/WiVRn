@@ -52,7 +52,10 @@ def main():
 
     if args.nightly:
         version = subprocess.check_output(["git", "describe", "--tags", "--always"]).decode().strip()
-        version = version[1:] # remove the initial "v"
+        if version[0] == 'v':
+            version = version[1:] # remove the initial "v"
+        else:
+            version = '0-' + version
         write_entry(
                 out=args.out,
                 version=version,
