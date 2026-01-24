@@ -1,10 +1,8 @@
 if (WIVRN_USE_SYSTEM_BOOST)
     add_library(Boost::pfr ALIAS Boost::headers)
-elseif (WIVRN_BUILD_CLIENT)
+else()
     set(BOOST_INCLUDE_LIBRARIES locale url pfr)
     FetchContent_MakeAvailable(boost)
-else()
-    FetchContent_MakeAvailable(boostpfr)
 endif()
 
 if (GIT_DESC)
