@@ -20,10 +20,12 @@
 #pragma once
 
 #include "polynomial_interpolator.h"
+#include "utils/csv_logger.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
 
 #include <atomic>
+#include <optional>
 
 namespace wivrn
 {
@@ -39,14 +41,27 @@ class pose_list
 	polynomial_interpolator<3> positions;
 	polynomial_interpolator<4, true> orientations;
 
+	struct debug_data
+	{
+		bool in; // true: received data, false: data request
+		XrTime production_timestamp;
+		XrTime timestamp;
+		XrTime now;
+		std::array<float, 3> position;
+		std::array<float, 3> dposition;
+		std::array<float, 4> orientation;
+		std::array<float, 4> dorientation;
+	};
+
+	std::optional<csv_logger<debug_data>> dumper;
+
 public:
 	const wivrn::device_id device;
 
 	static xrt_space_relation interpolate(const xrt_space_relation & a, const xrt_space_relation & b, float t);
 	static xrt_space_relation extrapolate(const xrt_space_relation & a, const xrt_space_relation & b, int64_t ta, int64_t tb, int64_t t);
 
-	pose_list(wivrn::device_id id) :
-	        device(id) {}
+	pose_list(wivrn::device_id id);
 
 	void update_tracking(const wivrn::from_headset::tracking &, const clock_offset & offset);
 	void set_derived(pose_list * source, xrt_pose offset, bool force = false);
