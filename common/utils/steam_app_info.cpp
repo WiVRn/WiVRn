@@ -252,7 +252,7 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 			{
 				if (strcasecmp(key.c_str(), "AppName") == 0)
 					current.name = std::move(val);
-				else if (strcasecmp(key.c_str(), "icon") == 0)
+				else if (strcasecmp(key.c_str(), "icon") == 0 and not val.empty())
 					current.icon = std::move(val);
 			}
 		}
