@@ -396,9 +396,9 @@ modules:
         WIVRN_SRC2
         WIVRN_SRC3
       - type: archive
-        url: BOOSTPFR_URL
-        dest: deps/boostpfr-src
-        sha256: BOOSTPFR_SHA256
+        url: BOOST_URL
+        dest: deps/boost-src
+        sha256: BOOST_SHA256
       - type: git
         url: https://gitlab.freedesktop.org/monado/monado
         tag: MONADO_COMMIT
@@ -406,4 +406,3 @@ modules:
       - type: shell
         commands:
          - cd deps/monado-src && ../../patches/apply.sh ../../patches/monado/*
-         - cd deps/boostpfr-src && ../../patches/apply.sh ../../flatpak/boostpfr-gcc-12-internal-compiler-error.patch

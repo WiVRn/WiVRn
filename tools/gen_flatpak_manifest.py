@@ -59,8 +59,8 @@ if __name__ == "__main__":
 
 
     monado_commit = open(os.path.join(root, "monado-rev")).read()
-    boostpfr_url = cmake.get("boostpfr", "URL")
-    boostpfr_sha256 = cmake.get("boostpfr", "URL_HASH").split("=")[-1]
+    boost_url = cmake.get("boost", "URL")
+    boost_sha256 = cmake.get("boost", "URL_HASH").split("=")[-1]
 
     try:
         git_commit = subprocess.check_output(
@@ -93,8 +93,8 @@ if __name__ == "__main__":
     template = template.replace("WIVRN_GIT_DESC", git_desc)
     template = template.replace("WIVRN_GIT_COMMIT", git_commit)
 
-    template = template.replace("BOOSTPFR_URL", boostpfr_url)
-    template = template.replace("BOOSTPFR_SHA256", boostpfr_sha256)
+    template = template.replace("BOOST_URL", boost_url)
+    template = template.replace("BOOST_SHA256", boost_sha256)
     template = template.replace("MONADO_COMMIT", monado_commit)
 
     with open(os.path.join(args.out, "io.github.wivrn.wivrn.yml"), "w") as f:
