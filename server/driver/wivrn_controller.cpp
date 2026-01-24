@@ -30,7 +30,6 @@
 #include "util/u_logging.h"
 #include <array>
 #include <format>
-#include <fstream>
 #include <magic_enum.hpp>
 #include <numbers>
 #include <optional>
@@ -572,26 +571,6 @@ make_binding_profiles()
 constexpr auto controller_per_hand_binding_profiles = std::to_array({make_binding_profiles<0>(),
                                                                      make_binding_profiles<1>()});
 
-struct xrt_space_relation_csv_header
-{};
-
-std::ostream & operator<<(std::ostream & out, const xrt_space_relation_csv_header &)
-{
-	for (auto [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
-	{
-		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
-		{
-			name = name.substr(strlen("XRT_SPACE_RELATION_"));
-			name = name.substr(0, name.size() - strlen("_BIT"));
-			out << name << ",";
-		}
-	}
-	out << "x,y,z,";
-	out << "qw,qx,qy,qz,";
-	out << "vx,vy,vz,";
-	out << "avx,avy,avz";
-	return out;
-}
 } // namespace
 
 wivrn_controller::wivrn_controller(xrt_device_name name,
@@ -821,28 +800,6 @@ xrt_result_t wivrn_controller::get_tracked_pose(xrt_input_name name, int64_t at_
 			return XRT_ERROR_INPUT_UNSUPPORTED;
 	}
 	cnx->add_tracking_request(device, at_timestamp_ns, production_timestamp, now);
-	if (auto out = tracking_dump())
-	{
-		auto device = [&] {
-		switch (name)
-		{
-			case XRT_INPUT_TOUCH_AIM_POSE: return aim.device;
-			case XRT_INPUT_TOUCH_GRIP_POSE: return grip.device;
-			case XRT_INPUT_GENERIC_PALM_POSE: return palm.device;
-			case XRT_INPUT_HAND_PINCH_POSE: return pinch_ext.device;
-			case XRT_INPUT_HAND_POKE_POSE: return poke_ext.device;
-			default:
-				assert(false);
-				__builtin_unreachable();
-		} }();
-		*out->lock() << magic_enum::enum_name(device) << ','
-		             << os_monotonic_get_ns() << ','
-		             << at_timestamp_ns << ','
-		             << production_timestamp << ','
-		             << "g,"
-		             << *res << std::endl;
-		;
-	}
 	return XRT_SUCCESS;
 }
 
@@ -888,20 +845,6 @@ void wivrn_controller::update_tracking(const from_headset::tracking & tracking, 
 	palm.update_tracking(tracking, offset);
 	pinch_ext.update_tracking(tracking, offset);
 	poke_ext.update_tracking(tracking, offset);
-	if (auto out = tracking_dump(); out and offset)
-	{
-		auto locked = out->lock();
-		auto now = os_monotonic_get_ns();
-		for (const auto & pose: tracking.device_poses)
-		{
-			if (pose.device == aim.device or pose.device == grip.device or pose.device == palm.device or pose.device == pinch_ext.device or pose.device == poke_ext.device)
-				*locked << magic_enum::enum_name(pose.device) << ','
-				        << now << ','
-				        << offset.from_headset(tracking.timestamp) << ','
-				        << "0,r,"
-				        << /*pose_list::convert_pose(pose) <<*/ std::endl;
-		}
-	}
 }
 
 void wivrn_controller::update_hand_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
@@ -952,43 +895,4 @@ void wivrn_controller::reset_history()
 	poke_ext.reset();
 }
 
-thread_safe<std::ofstream> * wivrn_controller::tracking_dump()
-{
-	static std::unique_ptr<thread_safe<std::ofstream>> res = [] {
-		if (auto wivrn_dump = std::getenv("WIVRN_DUMP_TRACKING"))
-		{
-			U_LOG_I("Controller tracking dump enabled: %s", wivrn_dump);
-			std::ofstream res;
-			res.open(wivrn_dump);
-			res << "device_id,"
-			       "now_ns,"
-			       "timestamp_ns,"
-			       "extrapolation_ns,"
-			       "receive/get,"
-			    << xrt_space_relation_csv_header{} << std::endl;
-
-			return std::make_unique<thread_safe<std::ofstream>>(std::move(res));
-		}
-		return std::unique_ptr<thread_safe<std::ofstream>>();
-	}();
-	return res.get();
-}
 } // namespace wivrn
-
-std::ostream & operator<<(std::ostream & out, const xrt_space_relation & rel)
-{
-	const auto & pos = rel.pose.position;
-	const auto & o = rel.pose.orientation;
-	const auto & v = rel.linear_velocity;
-	const auto & av = rel.angular_velocity;
-	for (const auto & [value, name]: magic_enum::enum_entries<xrt_space_relation_flags>())
-	{
-		if (value and value != XRT_SPACE_RELATION_BITMASK_ALL)
-			out << bool(rel.relation_flags & value) << ',';
-	}
-	out << pos.x << ',' << pos.y << ',' << pos.z << ',';
-	out << o.w << ',' << o.x << ',' << o.y << ',' << o.z << ',';
-	out << v.x << ',' << v.y << ',' << v.z << ',';
-	out << av.x << ',' << av.y << ',' << av.z;
-	return out;
-}
