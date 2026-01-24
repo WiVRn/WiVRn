@@ -24,9 +24,11 @@
 #include "math/m_eigen_interop.hpp"
 #include "math/m_space.h"
 #include "math/m_vec3.h"
+#include "os/os_time.h"
 #include "xrt/xrt_defines.h"
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <iostream>
 #include <magic_enum.hpp>
 
 using namespace xrt::auxiliary::math;
@@ -88,6 +90,14 @@ xrt_space_relation pose_list::extrapolate(const xrt_space_relation & a, const xr
 	}
 
 	return res;
+}
+
+pose_list::pose_list(wivrn::device_id id) : device(id)
+{
+	if (auto dump = std::getenv("WIVRN_DUMP"); dump and dump == std::string_view("list"))
+		std::cerr << "WIVRN_DUMP_" << magic_enum::enum_name(id) << std::endl;
+	if (auto dump = std::getenv(std::format("WIVRN_DUMP_{}", magic_enum::enum_name(id)).c_str()))
+		dumper.emplace(dump);
 }
 
 void pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
@@ -192,6 +202,25 @@ void pose_list::add_sample(XrTime production_timestamp, XrTime timestamp, const 
 	std::lock_guard lock(mutex);
 	positions.add_sample(position);
 	orientations.add_sample(orientation);
+
+	if (dumper)
+	{
+		debug_data item{
+		        .in = true,
+		        .production_timestamp = production_timestamp,
+		        .timestamp = timestamp,
+		        .now = os_monotonic_get_ns(),
+		};
+		if (position.y)
+			Eigen::Map<Eigen::Vector<float, 3>>(item.position.data()) = *position.y;
+		if (position.dy)
+			Eigen::Map<Eigen::Vector<float, 3>>(item.dposition.data()) = *position.dy;
+		if (orientation.y)
+			Eigen::Map<Eigen::Vector<float, 4>>(item.orientation.data()) = *orientation.y;
+		if (orientation.dy)
+			Eigen::Map<Eigen::Vector<float, 4>>(item.dorientation.data()) = *orientation.dy;
+		dumper->write(item);
+	}
 }
 
 std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
@@ -255,6 +284,25 @@ std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
 			        2 * half_ω.z(),
 			};
 		}
+	}
+
+	if (dumper)
+	{
+		debug_data item{
+		        .in = false,
+		        .production_timestamp = position.production_timestamp,
+		        .timestamp = at_timestamp_ns,
+		        .now = os_monotonic_get_ns(),
+		};
+		if (position.y)
+			Eigen::Map<Eigen::Vector<float, 3>>(item.position.data()) = *position.y;
+		if (position.dy)
+			Eigen::Map<Eigen::Vector<float, 3>>(item.dposition.data()) = *position.dy;
+		if (orientation.y)
+			Eigen::Map<Eigen::Vector<float, 4>>(item.orientation.data()) = *orientation.y;
+		if (orientation.dy)
+			Eigen::Map<Eigen::Vector<float, 4>>(item.dorientation.data()) = *orientation.dy;
+		dumper->write(item);
 	}
 
 	return {position.production_timestamp, ret};
