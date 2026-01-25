@@ -328,7 +328,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 	if (std::ranges::contains(res, video_codec::h264, &encoder_settings::codec) or
 	    std::ranges::contains(res, video_codec::raw, &encoder_settings::codec))
 		bit_depth = 8;
-	else
+	else if (not bit_depth)
 		bit_depth = 10;
 
 	auto check_format = [&](vk::Format format) {
