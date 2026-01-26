@@ -179,9 +179,9 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 		}
 	}
 
-	for (auto const & entry: std::filesystem::directory_iterator{*root / "userdata"})
-	{
-		auto shortcuts_vdf = entry.path() / "config/shortcuts.vdf";
+	auto userid = guess_steam_userid(*root);
+
+	auto do_shortcuts = [&](const std::filesystem::path & shortcuts_vdf) {
 		if (std::filesystem::exists(shortcuts_vdf))
 		{
 			try
@@ -201,6 +201,13 @@ void read_steam_vr_apps(std::unordered_map<std::string, application> & res)
 				std::cerr << "Failed to parse Steam shortcuts file " << shortcuts_vdf << ": " << e.what() << std::endl;
 			}
 		}
+	};
+	if (userid and std::filesystem::exists(*root / "userdata" / std::to_string(*userid)))
+		do_shortcuts(*root / "userdata" / std::to_string(*userid) / "config/shortcuts.vdf");
+	else
+	{
+		for (auto const & entry: std::filesystem::directory_iterator{*root / "userdata"})
+			do_shortcuts(entry.path() / "config/shortcuts.vdf");
 	}
 }
 
