@@ -42,4 +42,6 @@ struct steam_shortcut
 std::unordered_map<uint32_t, steam_icon> read_steam_icons(std::filesystem::path path);
 std::vector<steam_shortcut> read_steam_shortcuts(std::filesystem::path path);
 
+std::optional<uint32_t> guess_steam_userid(std::filesystem::path steam_root);
+
 } // namespace wivrn

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "steam_app_info.h"
+#include "steam_info.h"
 #include <bit>
 #include <cstring>
 #include <fstream>
@@ -271,4 +271,49 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 	read_dict(in, v);
 
 	return res;
+}
+
+std::optional<uint32_t> wivrn::guess_steam_userid(std::filesystem::path steam_root)
+{
+	auto localconfig = steam_root / "config/loginusers.vdf";
+	if (not std::filesystem::exists(localconfig))
+		return {};
+
+	try
+	{
+		std::optional<uint32_t> res;
+		std::ifstream in{localconfig};
+		std::string line;
+		std::getline(in, line);
+		if (strcasecmp(line.c_str(), "\"users\""))
+			return {};
+
+		uint64_t current = 0;
+
+		std::vector<char> key;
+		std::vector<char> value;
+		while (in)
+		{
+			std::getline(in, line);
+
+			key.resize(line.size());
+			value.resize(line.size());
+
+			if (sscanf(line.c_str(), "\t\"%ld\"", &current))
+			{
+			}
+			else if (sscanf(line.c_str(), "\t\t%s\t%s", key.data(), value.data()))
+			{
+				if (strncasecmp(key.data(), "\"MostRecent\"", key.size()) == 0 and strncasecmp(value.data(), "\"1\"", value.size()) == 0)
+					res = current; // truncate to 32 bits
+			}
+		}
+		if (current and not res)
+			res = current;
+		return res;
+	}
+	catch (std::exception & e)
+	{
+		return {};
+	}
 }

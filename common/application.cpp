@@ -20,7 +20,7 @@
 #include "application.h"
 
 #include "utils/flatpak.h"
-#include "utils/steam_app_info.h"
+#include "utils/steam_info.h"
 #include "utils/xdg_base_directory.h"
 #include "utils/xdg_icon_lookup.h"
 

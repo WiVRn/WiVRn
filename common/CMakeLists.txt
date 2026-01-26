@@ -42,7 +42,7 @@ if (WIVRN_BUILD_DASHBOARD OR WIVRN_BUILD_SERVER)
     add_library(wivrn-common-server STATIC EXCLUDE_FROM_ALL
         utils/flatpak.cpp
         utils/xdg_icon_lookup.cpp
-        utils/steam_app_info.cpp
+        utils/steam_info.cpp
         utils/load_icon.cpp
         utils/ini.cpp
         application.cpp
