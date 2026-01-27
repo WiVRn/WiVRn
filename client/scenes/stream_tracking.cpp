@@ -29,6 +29,8 @@
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <thread>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #ifdef __ANDROID__
 #include "android/battery.h"
@@ -486,8 +488,21 @@ void scenes::stream::tracking()
 					}
 
 					packet.state_flags = 0;
+					bool compute_lying_down = false;
 					if (recenter_requested.exchange(false))
+					{
 						packet.state_flags = wivrn::from_headset::tracking::recentered;
+						if (config.lying_down_mode)
+						{
+							compute_lying_down = true;
+						}
+						else
+						{
+							lying_down_recentered = false;
+							world_rotation_correction = {1, 0, 0, 0};
+							world_translation_correction = {0, 0, 0};
+						}
+					}
 
 					// Hand tracking data are very large, send fewer samples than other items
 					if (hand_tracking and t0 >= last_hand_sample + period and
@@ -542,6 +557,68 @@ void scenes::stream::tracking()
 					                   },
 					           },
 					           body_tracker);
+
+					if (compute_lying_down)
+					{
+						XrPosef head_pose = packet.views[0].pose;
+						for (const auto & p: packet.device_poses)
+						{
+							if (p.device == device_id::HEAD)
+							{
+								head_pose = p.pose;
+								break;
+							}
+						}
+						glm::quat head_q(head_pose.orientation.w, head_pose.orientation.x, head_pose.orientation.y, head_pose.orientation.z);
+						
+						// Calculate Yaw-only quaternion (q_yaw) to preserve compass heading
+						glm::vec3 right = head_q * glm::vec3(1, 0, 0);
+						glm::quat q_yaw;
+						if (std::abs(right.y) < 0.9)
+						{
+							// Lying on back/stomach: Right vector is stable horizontally
+							float yaw = atan2(right.z, right.x);
+							q_yaw = glm::angleAxis(yaw, glm::vec3(0, 1, 0));
+						}
+						else
+						{
+							// Lying on side: Forward vector is stable horizontally
+							glm::vec3 forward = head_q * glm::vec3(0, 0, -1);
+							glm::vec3 forward_flat = glm::normalize(glm::vec3(forward.x, 0, forward.z));
+							if (glm::length(forward_flat) > 0.001)
+								q_yaw = glm::rotation(glm::vec3(0, 0, -1), forward_flat);
+							else
+								q_yaw = glm::quat(1, 0, 0, 0); // Fallback
+						}
+
+						world_rotation_correction = q_yaw * glm::inverse(head_q);
+						world_translation_correction = {head_pose.position.x, head_pose.position.y, head_pose.position.z};
+						lying_down_recentered = true;
+					}
+
+					if (lying_down_recentered && config.lying_down_mode)
+					{
+						glm::vec3 offset(0, config.lying_down_height, 0);
+						auto transform_pose = [&](XrPosef & pose) {
+							glm::quat q(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
+							glm::vec3 p(pose.position.x, pose.position.y, pose.position.z);
+							glm::vec3 new_p = world_rotation_correction * (p - world_translation_correction) + offset;
+							glm::quat new_q = world_rotation_correction * q;
+							pose.orientation = {new_q.x, new_q.y, new_q.z, new_q.w};
+							pose.position = {new_p.x, new_p.y, new_p.z};
+						};
+
+						for (auto & p: packet.device_poses)
+							transform_pose(p.pose);
+						for (auto & h: hands)
+							if (h.joints)
+								for (auto & j: *h.joints)
+									transform_pose(j.pose);
+						for (auto & b: body)
+							if (b.poses)
+								for (auto & p: *b.poses)
+									transform_pose(p.pose);
+					}
 
 					std::visit(utils::overloaded{
 					                   [](std::monostate &) {},

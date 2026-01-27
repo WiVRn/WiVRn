@@ -474,6 +474,23 @@ void scenes::stream::gui_settings(float predicted_display_period)
 			imgui_ctx->tooltip(_("Click to adjust bitrate"));
 	}
 
+	{
+		if (ImGui::Checkbox(_S("Lying Down Mode"), &config.lying_down_mode))
+			config.save();
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Adjusts the view for playing while lying down. Press Recenter after enabling."));
+
+		if (config.lying_down_mode)
+		{
+			ImGui::Indent();
+			if (ImGui::SliderFloat(_S("Height"), &config.lying_down_height, 0.0f, 2.5f, "%.2fm"))
+				config.save();
+			imgui_ctx->vibrate_on_hover();
+			ImGui::Unindent();
+		}
+	}
+
 	if (application::get_openxr_post_processing_supported())
 	{
 		ImGui::Text("%s", _S("OpenXR post-processing"));

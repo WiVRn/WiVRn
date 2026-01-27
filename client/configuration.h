@@ -79,6 +79,9 @@ public:
 	float override_foveation_pitch = 10 * M_PI / 180;
 	float override_foveation_distance = 3;
 
+	bool lying_down_mode = false;
+	float lying_down_height = 1.7;
+
 	bool high_power_mode;
 
 	// Allow unsafe config values
