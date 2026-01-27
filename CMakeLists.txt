@@ -97,9 +97,9 @@ include(VulkanVersion)
 
 if (WIVRN_USE_SYSTEM_BOOST AND NEED_COMMON)
     if (WIVRN_BUILD_DISSECTOR)
-        find_package(Boost 1.84.0 REQUIRED COMPONENTS locale url)
+        find_package(Boost 1.84.0 REQUIRED COMPONENTS locale url iostreams)
     else()
-        find_package(Boost 1.75.0 REQUIRED COMPONENTS locale url)
+        find_package(Boost 1.75.0 REQUIRED COMPONENTS locale url iostreams)
     endif()
 endif()
 

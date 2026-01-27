@@ -1,6 +1,7 @@
 /*
  * WiVRn VR streaming
  * Copyright (C) 2025  Guillaume Meunier <guillaume.meunier@centraliens.net>
+ * Copyright (C) 2026  Patrick Nicolas <patricknicolas@laposte.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,10 +18,15 @@
  */
 
 #include "steam_info.h"
+#include "vdf.h"
+#include "xdg_base_directory.h"
 #include <bit>
+#include <charconv>
 #include <cstring>
+#include <format>
 #include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 
 namespace
 {
@@ -128,9 +134,49 @@ void read_dict(binary_reader & in, T & visitor, const std::vector<std::string> *
 		}
 	}
 }
+
+std::filesystem::path home()
+{
+	auto home = std::getenv("HOME");
+	return home ? home : "";
+}
+
+std::optional<uint32_t> guess_steam_userid(const std::filesystem::path & root)
+{
+	auto localconfig = root / "config/loginusers.vdf";
+	if (not std::filesystem::exists(localconfig))
+		return {};
+
+	try
+	{
+		wivrn::vdf::root loginusers(localconfig);
+		if (loginusers.key != "users")
+			return {};
+
+		std::optional<uint32_t> res;
+		for (const auto & [userid, entries]: std::get<std::vector<wivrn::vdf::keyvalue>>(loginusers.value))
+		{
+			uint64_t v;
+			if (std::from_chars(userid.data.begin(), userid.data.end(), v).ec != std::errc{})
+				continue;
+			res = v; // truncate to 32 bits
+			for (const auto & [key, value]: std::get<std::vector<wivrn::vdf::keyvalue>>(entries))
+			{
+				if (key == "MostRecent" and std::get<wivrn::vdf::string>(value) == "1")
+					return res;
+			}
+		}
+		return res;
+	}
+	catch (std::exception & e)
+	{
+		return {};
+	}
+}
+
 } // namespace
 
-std::unordered_map<uint32_t, wivrn::steam_icon> wivrn::read_steam_icons(std::filesystem::path path)
+void read_steam_icons(std::filesystem::path path, std::unordered_map<uint32_t, wivrn::steam::icon> & icons)
 {
 	binary_reader in{std::ifstream{path}};
 
@@ -150,11 +196,9 @@ std::unordered_map<uint32_t, wivrn::steam_icon> wivrn::read_steam_icons(std::fil
 		string_table_ptr = &string_table;
 	}
 
-	std::unordered_map<uint32_t, wivrn::steam_icon> res;
-
 	struct V
 	{
-		wivrn::steam_icon current{};
+		wivrn::steam::icon current{};
 
 		void begin_dict(const std::string & key)
 		{
@@ -198,7 +242,7 @@ std::unordered_map<uint32_t, wivrn::steam_icon> wivrn::read_steam_icons(std::fil
 			V v;
 			read_dict(in, v, string_table_ptr);
 			if (not(v.current.clienticon.empty() and v.current.linuxclienticon.empty()))
-				res.emplace(app_id, std::move(v.current));
+				icons.emplace(app_id, std::move(v.current));
 		}
 		catch (...)
 		{
@@ -206,12 +250,15 @@ std::unordered_map<uint32_t, wivrn::steam_icon> wivrn::read_steam_icons(std::fil
 		}
 		in.seekg(pos + size_data);
 	}
-
-	return res;
 }
 
-std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::path path)
+void read_steam_shortcuts(
+        const std::filesystem::path & path,
+        std::vector<wivrn::steam::application> & apps,
+        std::unordered_map<uint32_t, std::filesystem::path> & icons)
 {
+	if (not std::filesystem::exists(path))
+		return;
 	binary_reader in{std::ifstream{path}};
 	auto type = in.read<uint8_t>();
 	auto name = in.read<std::string>();
@@ -222,10 +269,12 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 	std::vector<wivrn::steam_shortcut> res;
 	struct V
 	{
-		std::vector<wivrn::steam_shortcut> & items;
+		std::vector<wivrn::steam::application> & apps;
+		std::unordered_map<uint32_t, std::filesystem::path> & icons;
 
 		int depth = 0;
-		wivrn::steam_shortcut current{};
+		wivrn::steam::application current{};
+		std::filesystem::path icon;
 		bool VR = false;
 
 		void begin_dict(const std::string & key)
@@ -234,6 +283,7 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 			if (depth == 1)
 			{
 				current = decltype(current){};
+				icon.clear();
 				VR = false;
 			}
 		}
@@ -243,7 +293,14 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 			if (depth == 0)
 			{
 				if (VR)
-					items.push_back(std::move(current));
+				{
+					if (not icon.empty())
+						icons[current.appid] = std::move(icon);
+					// ¯\_(ツ)_/¯
+					current.appid = (current.appid << 32) | 0x02000000;
+					current.url = std::format("steam://rungameid/{}", current.appid);
+					apps.push_back(std::move(current));
+				}
 			}
 		}
 		void on_string(const std::string & key, std::string && val)
@@ -251,9 +308,9 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 			if (depth == 1)
 			{
 				if (strcasecmp(key.c_str(), "AppName") == 0)
-					current.name = std::move(val);
+					current.name[""] = std::move(val);
 				else if (strcasecmp(key.c_str(), "icon") == 0 and not val.empty())
-					current.icon = std::move(val);
+					icon = std::move(val);
 			}
 		}
 		void on_uint32_t(const std::string & key, uint32_t val)
@@ -266,54 +323,169 @@ std::vector<wivrn::steam_shortcut> wivrn::read_steam_shortcuts(std::filesystem::
 					VR = val;
 			}
 		}
-	} v{res};
+	} v{apps, icons};
 
 	read_dict(in, v);
+}
+
+wivrn::steam::steam(std::filesystem::path root, bool flatpak) :
+        root(std::move(root)),
+        flatpak(flatpak),
+        default_userid(guess_steam_userid(this->root))
+{
+}
+
+std::vector<wivrn::steam> wivrn::steam::find_installations()
+{
+	std::vector<wivrn::steam> res;
+	auto h = home();
+
+	auto try_construct = [&res](std::filesystem::path root, bool flatpak = false) {
+		try
+		{
+			if (std::filesystem::exists(root))
+			{
+				res.push_back(wivrn::steam(std::move(root), flatpak));
+				return true;
+			}
+		}
+		catch (std::exception &)
+		{
+		}
+		return false;
+	};
+
+	// Flatpak Steam
+	try_construct(h / ".var/app/com.valvesoftware.Steam/.steam/steam", true);
+
+	// Debian Steam (accessed from flatpak)
+	try_construct(h / ".steam/debian-installation")
+	        // system Steam
+	        or try_construct(xdg_data_home() / "Steam")
+	        // system Steam (accessed from flatpak)
+	        or try_construct(h / ".local/share/Steam");
 
 	return res;
 }
 
-std::optional<uint32_t> wivrn::guess_steam_userid(std::filesystem::path steam_root)
+std::vector<wivrn::steam::application> wivrn::steam::list_applications()
 {
-	auto localconfig = steam_root / "config/loginusers.vdf";
-	if (not std::filesystem::exists(localconfig))
-		return {};
-
-	try
+	std::vector<wivrn::steam::application> res;
+	// Steam games, from VR manifest
 	{
-		std::optional<uint32_t> res;
-		std::ifstream in{localconfig};
-		std::string line;
-		std::getline(in, line);
-		if (strcasecmp(line.c_str(), "\"users\""))
-			return {};
-
-		uint64_t current = 0;
-
-		std::vector<char> key;
-		std::vector<char> value;
-		while (in)
+		std::ifstream manifest(root / "config/steamapps.vrmanifest");
+		nlohmann::json json = nlohmann::json::parse(manifest);
+		for (auto & i: json["applications"])
 		{
-			std::getline(in, line);
-
-			key.resize(line.size());
-			value.resize(line.size());
-
-			if (sscanf(line.c_str(), "\t\"%ld\"", &current))
+			try
 			{
+				// Steam games have an url launch
+				// shortcuts may be in this file, or may not...
+				if (i["launch_type"] != "url")
+					continue;
+
+				std::string app_key = i["app_key"];
+				const char prefix[] = "steam.app.";
+				if (not app_key.starts_with(prefix))
+					continue;
+
+				application app{
+				        .appid = stoul(app_key.substr(strlen(prefix))),
+				        .url = i["url"],
+				};
+
+				for (auto [locale, items]: i["strings"].items())
+				{
+					if (auto it = items.find("name"); it != items.end())
+						app.name[locale] = *it;
+				}
+
+				if (not app.name.contains(""))
+				{
+					auto it = app.name.find("en_us");
+					if (it == app.name.end())
+						it = app.name.begin();
+					if (it != app.name.end())
+						app.name[""] = it->second;
+					else
+						continue; // skip unnamed app
+				}
+				res.push_back(std::move(app));
 			}
-			else if (sscanf(line.c_str(), "\t\t%s\t%s", key.data(), value.data()))
+			catch (std::exception & e)
 			{
-				if (strncasecmp(key.data(), "\"MostRecent\"", key.size()) == 0 and strncasecmp(value.data(), "\"1\"", value.size()) == 0)
-					res = current; // truncate to 32 bits
+				std::cerr << "Failed to parse Steam VR manifest: " << e.what() << std::endl;
 			}
 		}
-		if (current and not res)
-			res = current;
-		return res;
 	}
-	catch (std::exception & e)
+
+	// Shortcuts
+	if (default_userid)
 	{
+		try
+		{
+			read_steam_shortcuts(root / "userdata" / std::to_string(*default_userid) / "config/shortcuts.vdf", res, shortcut_icons);
+		}
+		catch (std::exception & e)
+		{
+		}
+	}
+	else
+	{
+		// Is it a good idea to just iterate over all users?
+		for (auto const & entry: std::filesystem::directory_iterator{root / "userdata"})
+			try
+			{
+				read_steam_shortcuts(entry.path() / "config/shortcuts.vdf", res, shortcut_icons);
+			}
+			catch (std::exception & e)
+			{
+			}
+	}
+
+	return res;
+}
+
+std::optional<std::filesystem::path> wivrn::steam::get_icon(uint64_t appid)
+{
+	if (appid & 0x02000000)
+	{
+		// Shortcut
+		auto it = shortcut_icons.find(appid >> 32);
+		if (it != shortcut_icons.end())
+			return it->second;
 		return {};
 	}
+
+	if (not icons)
+	{
+		icons.emplace();
+		try
+		{
+			read_steam_icons(root / "appcache/appinfo.vdf", *icons);
+		}
+		catch (...)
+		{}
+	}
+	auto it = icons->find(appid);
+	if (it == icons->end())
+		return {};
+
+	auto icon_path = root / "steam/games" / (it->second.clienticon + ".ico");
+
+	if (std::filesystem::exists(icon_path))
+		return icon_path;
+
+	icon_path = root / "steam/games" / (it->second.linuxclienticon + ".zip");
+	if (std::filesystem::exists(icon_path))
+		return icon_path;
+
+	return {};
+}
+
+std::string wivrn::steam::get_steam_command() const
+{
+	if (flatpak)
+		return "flatpak run com.valvesoftware.Steam";
+	return "steam";
 }
