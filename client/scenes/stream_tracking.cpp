@@ -366,6 +366,21 @@ void scenes::stream::tracking()
 					if (not std::ranges::contains(pattern, device_id::HEAD, &to_headset::tracking_control::sample::device))
 						pattern.push_back({.device = device_id::HEAD});
 
+					// FIXME: eye tracking shouldn't had a special case
+					// eye-tracked foveation needs eye and head pose in the same tracking packet
+					if (spaces[device_id::EYE_GAZE])
+					{
+						size_t sz = pattern.size();
+						for (size_t i = 0; i < sz; ++i)
+						{
+							if (pattern[i].device == device_id::HEAD)
+								pattern.push_back({
+								        .device = device_id::EYE_GAZE,
+								        .prediction_ns = pattern[i].prediction_ns,
+								});
+						}
+					}
+
 					if (hand_tracking)
 					{
 						if (std::ranges::contains(pattern, device_id::LEFT_HAND, &to_headset::tracking_control::sample::device))
