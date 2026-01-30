@@ -379,7 +379,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 		return true;
 	};
 
-	if (bit_depth == 10 and not(check_format(vk::Format::eR10X6UnormPack16) and check_vaapi(*bit_depth)))
+	if (bit_depth == 10 and not(check_format(vk::Format::eR16Unorm) and check_vaapi(*bit_depth)))
 	{
 		U_LOG_W("GPU does not have sufficient support for 10-bit images, reverting to 8");
 		bit_depth = 8;

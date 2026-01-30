@@ -180,8 +180,8 @@ static VkResult create_images(struct wivrn_comp_target * cn, vk::ImageUsageFlags
 	bool is_10bit = format == vk::Format::eG10X6B10X6R10X62Plane420Unorm3Pack16;
 
 	std::array formats = {
-	        is_10bit ? vk::Format::eR10X6UnormPack16 : vk::Format::eR8Unorm,
-	        is_10bit ? vk::Format::eR10X6G10X6Unorm2Pack16 : vk::Format::eR8G8Unorm,
+	        is_10bit ? vk::Format::eR16Unorm : vk::Format::eR8Unorm,
+	        is_10bit ? vk::Format::eR16G16Unorm : vk::Format::eR8G8Unorm,
 	        format};
 
 	cn->images = U_TYPED_ARRAY_CALLOC(struct comp_target_image, cn->image_count);
