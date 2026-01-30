@@ -228,9 +228,10 @@ void scene::render_world(
 			        },
 			        .minDepth = 0,
 			        .maxDepth = 1,
-			        .nearZ = std::numeric_limits<float>::infinity(),
+			        .nearZ = std::bit_cast<float>(0x7f800000), // infinity
 			        .farZ = constants::lobby::near_plane,
 			});
+			static_assert(std::numeric_limits<float>::is_iec559);
 		}
 	}
 

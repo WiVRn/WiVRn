@@ -157,7 +157,7 @@ static bool window_intersects_viewport(ImGuiWindow * window, const imgui_context
 static float distance_to_window(ImGuiWindow * window, ImVec2 position)
 {
 	if (window->Hidden or not window->Active)
-		return std::numeric_limits<float>::infinity();
+		return std::numeric_limits<float>::max();
 
 	float dx;
 	if (position.x < window->Pos.x)
@@ -564,9 +564,9 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 	for (const auto & [controller, state, current_aim_interaction]: std::ranges::zip_view(controllers, new_states, aim_interaction))
 	{
 		const auto & ctrl = controller.first;
-		std::pair<std::optional<ImVec2>, float> index_tip_position{{}, std::numeric_limits<float>::infinity()};
-		std::pair<std::optional<ImVec2>, float> palm_position{{}, std::numeric_limits<float>::infinity()};
-		std::pair<std::optional<ImVec2>, float> controller_position{{}, std::numeric_limits<float>::infinity()};
+		std::pair<std::optional<ImVec2>, float> index_tip_position{{}, std::numeric_limits<float>::max()};
+		std::pair<std::optional<ImVec2>, float> palm_position{{}, std::numeric_limits<float>::max()};
+		std::pair<std::optional<ImVec2>, float> controller_position{{}, std::numeric_limits<float>::max()};
 
 		// First hands, so we can set aim_interaction
 		current_aim_interaction = 1;
@@ -676,7 +676,7 @@ std::pair<std::optional<ImVec2>, float> imgui_context::compute_pointer_position(
 	auto intersections = ray_plane_intersection(state);
 
 	if (intersections.empty())
-		return {std::nullopt, std::numeric_limits<float>::infinity()};
+		return {std::nullopt, std::numeric_limits<float>::max()};
 
 	if (ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal())
 	{
@@ -696,7 +696,7 @@ std::pair<std::optional<ImVec2>, float> imgui_context::compute_pointer_position(
 			}
 		}
 
-		return {std::nullopt, std::numeric_limits<float>::infinity()};
+		return {std::nullopt, std::numeric_limits<float>::max()};
 	}
 	else
 	{
@@ -907,7 +907,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 			}
 
 			// Compute the distance to the closest window
-			float distance = std::numeric_limits<float>::infinity();
+			float distance = std::numeric_limits<float>::max();
 			for (ImGuiWindow * window: context->Windows)
 			{
 				distance = std::min(distance, distance_to_window(window, *position));
