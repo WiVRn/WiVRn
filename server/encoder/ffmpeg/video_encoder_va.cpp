@@ -410,7 +410,7 @@ video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
 	}
 }
 
-std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index)
+std::pair<bool, vk::Semaphore> video_encoder_va::present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index)
 {
 	std::array im_barriers = {
 	        vk::ImageMemoryBarrier{

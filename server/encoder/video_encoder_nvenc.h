@@ -61,7 +61,7 @@ public:
 	video_encoder_nvenc(wivrn_vk_bundle & vk, const encoder_settings & settings, uint8_t stream_idx);
 	~video_encoder_nvenc();
 
-	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
+	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
 
 	static std::array<int, 2> get_max_size(video_codec);

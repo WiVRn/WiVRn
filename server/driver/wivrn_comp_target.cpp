@@ -562,7 +562,11 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	{
 		if (encoder->stream_idx == 2 and not do_alpha)
 			continue;
-		auto [transfer, sem] = encoder->present_image(psc_image.image, command_buffer, info.frame_id);
+		auto [transfer, sem] = encoder->present_image(
+		        psc_image.image,
+		        need_queue_transfer,
+		        command_buffer,
+		        info.frame_id);
 		need_queue_transfer |= transfer;
 		if (sem)
 			present_done_sem.push_back(sem);
@@ -571,9 +575,10 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 #if WIVRN_USE_VULKAN_ENCODE
 	if (need_queue_transfer)
 	{
-		vk::ImageMemoryBarrier barrier{
-		        .srcAccessMask = vk::AccessFlagBits::eMemoryRead,
-		        .dstAccessMask = vk::AccessFlagBits::eMemoryWrite,
+		vk::ImageMemoryBarrier2 video_barrier{
+		        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
+		        .srcAccessMask = vk::AccessFlagBits2::eMemoryRead,
+		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
 		        .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
 		        .srcQueueFamilyIndex = vk->main_queue->family_index,
@@ -585,13 +590,10 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		                             .baseArrayLayer = 0,
 		                             .layerCount = vk::RemainingArrayLayers},
 		};
-		command_buffer.pipelineBarrier(
-		        vk::PipelineStageFlagBits::eTransfer,
-		        vk::PipelineStageFlagBits::eNone,
-		        {},
-		        {},
-		        {},
-		        barrier);
+		command_buffer.pipelineBarrier2({
+		        .imageMemoryBarrierCount = 1,
+		        .pImageMemoryBarriers = &video_barrier,
+		});
 	}
 	submit_info.setSignalSemaphores(present_done_sem);
 #endif

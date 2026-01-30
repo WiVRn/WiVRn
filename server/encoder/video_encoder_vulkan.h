@@ -96,7 +96,7 @@ protected:
 
 public:
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
-	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
+	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 	void post_submit(uint8_t slot) override;
 };
 } // namespace wivrn

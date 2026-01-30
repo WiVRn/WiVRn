@@ -63,7 +63,7 @@ wivrn::video_encoder_raw::video_encoder_raw(
 	}
 }
 
-std::pair<bool, vk::Semaphore> wivrn::video_encoder_raw::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
+std::pair<bool, vk::Semaphore> wivrn::video_encoder_raw::present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
 {
 	std::array regions{
 	        vk::BufferImageCopy{

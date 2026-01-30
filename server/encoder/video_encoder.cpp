@@ -228,7 +228,7 @@ void video_encoder::set_framerate(float framerate)
 	pending_framerate = framerate;
 }
 
-std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index)
+std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index)
 {
 	// Wait for encoder to be done
 	present_slot = (present_slot + 1) % num_slots;
@@ -239,7 +239,7 @@ std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, vk
 		return {false, nullptr};
 	}
 	state[present_slot] = busy;
-	return present_image(y_cbcr, cmd_buf, present_slot, frame_index);
+	return present_image(y_cbcr, transferred, cmd_buf, present_slot, frame_index);
 }
 
 void video_encoder::post_submit()
