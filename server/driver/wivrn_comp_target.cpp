@@ -81,13 +81,6 @@ static inline struct vk_bundle * get_vk(struct wivrn_comp_target * cn)
 	return &cn->c->base.vk;
 }
 
-static float get_default_rate(const from_headset::headset_info_packet & info, const from_headset::settings_changed & settings)
-{
-	if (settings.preferred_refresh_rate)
-		return settings.preferred_refresh_rate;
-	return info.available_refresh_rates.back();
-}
-
 #ifdef XRT_FEATURE_RENDERDOC
 static auto renderdoc()
 {

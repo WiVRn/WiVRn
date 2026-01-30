@@ -19,6 +19,7 @@
 #include "encoder_settings.h"
 
 #include "driver/configuration.h"
+#include "driver/wivrn_comp_target.h"
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "video_encoder.h"
@@ -26,7 +27,7 @@
 #include "wivrn_packets.h"
 #include <magic_enum.hpp>
 #include <string>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #include "wivrn_config.h"
 
@@ -178,7 +179,7 @@ class prober
 	}
 #endif
 
-	static bool is_nvidia(vk::PhysicalDevice physical_device)
+	static bool is_nvidia(vk::raii::PhysicalDevice & physical_device)
 	{
 		auto props = physical_device.getProperties();
 		return props.vendorID == 0x10DE;
@@ -211,7 +212,7 @@ class prober
 
 public:
 	prober(wivrn_vk_bundle & vk, const from_headset::headset_info_packet & info) :
-	        vk(vk), info(info), nvidia(is_nvidia(*vk.physical_device)) {}
+	        vk(vk), info(info), nvidia(is_nvidia(vk.physical_device)) {}
 
 	std::pair<std::string, video_codec> select_encoder(const configuration::encoder & config)
 	{
@@ -294,7 +295,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 
 	for (auto [src, dst]: std::ranges::zip_view(config.encoders, res))
 	{
-		dst.fps = settings.preferred_refresh_rate;
+		dst.fps = get_default_rate(info, settings);
 		dst.options = src.options;
 		dst.device = src.device;
 
