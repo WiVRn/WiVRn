@@ -33,6 +33,7 @@
 #include <ranges>
 
 #include "openxr/openxr.h"
+#include "wivrn_config.h"
 
 template <int N, bool quaternion = false, int polynomial_order = 2, int stored_samples = 30>
 class polynomial_interpolator
@@ -104,7 +105,11 @@ public:
 		Eigen::Matrix<float, 2 * stored_samples, polynomial_order + 1> A;
 		Eigen::Matrix<float, 2 * stored_samples, N> b;
 
-		XrTime production_timestamp = std::numeric_limits<XrTime>::lowest();
+		const XrTime production_timestamp = std::ranges::max(data | std::ranges::views::transform(&sample::production_timestamp));
+		// Maximum is the minimum of now + max_extrapolation_ns (outside of this function)
+		// and production_ts + 1.1 * max_extrapolation_ns
+		// This allows a small buffer so that polynomial extrapolation fills the gap of networking hiccups
+		timestamp = std::min(timestamp, production_timestamp + (wivrn::max_extrapolation_ns * 11) / 10);
 
 		int row = 0;
 		for (const auto && [i, sample]: std::ranges::enumerate_view(data))
@@ -115,8 +120,6 @@ public:
 			int abs_Δt = std::abs(sample.timestamp - timestamp);
 
 			float weight = 1. / (1. + std::pow(abs_Δt / float(window), 3.));
-
-			production_timestamp = std::max(production_timestamp, sample.production_timestamp);
 
 			float Δt = (sample.timestamp - timestamp) * 1.e-9;
 			float Δtⁱ = 1;
