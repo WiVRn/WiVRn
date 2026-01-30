@@ -518,13 +518,6 @@ jobs:
 
         git show
 
-    - name: Update release branch
-      run: |
-        cd wivrn
-        if git fetch origin release; then
-          git push origin HEAD:release
-        fi
-
   sync_fork_downstream:
     name: Sync fork downstream
     runs-on: ubuntu-24.04
