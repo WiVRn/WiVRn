@@ -722,11 +722,13 @@ void application::initialize_vulkan()
 		}
 	}
 #ifndef NDEBUG
+#ifdef __ANDROID__
 	if (validation_layer_found)
 	{
 		spdlog::info("Using Vulkan validation layer");
 		layers.push_back("VK_LAYER_KHRONOS_validation");
 	}
+#endif
 	bool debug_report_found = false;
 	bool debug_utils_found = false;
 #endif
