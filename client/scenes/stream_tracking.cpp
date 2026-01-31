@@ -581,7 +581,7 @@ void scenes::stream::tracking()
 			packets.resize(std::max(packets.size(), 1 + hands.size() + body.size()));
 			size_t packet_count = 0;
 
-			if (not tracking.device_poses.empty())
+			if (not(tracking.device_poses.empty() and std::holds_alternative<std::monostate>(tracking.face)))
 			{
 				auto & packet = packets[packet_count++];
 				packet.clear();
