@@ -328,17 +328,15 @@ struct tracking
 
 	struct fb_face2
 	{
-		XrTime timestamp;
+		XrTime time;
 		std::array<float, XR_FACE_EXPRESSION2_COUNT_FB> weights;
 		std::array<float, XR_FACE_CONFIDENCE2_COUNT_FB> confidences;
 		bool is_valid;
 		bool is_eye_following_blendshapes_valid;
-		XrTime time;
 	};
 
 	struct htc_face
 	{
-		XrTime timestamp;
 		XrTime eye_sample_time;
 		XrTime lip_sample_time;
 		std::array<float, XR_FACIAL_EXPRESSION_EYE_COUNT_HTC> eye;

@@ -508,6 +508,17 @@ void scenes::stream::tracking()
 								goto subpattern_end;
 							locate_spaces.add_space(item.device, spaces[item.device], tracking.timestamp, tracking.device_poses);
 							break;
+						case wivrn::device_id::FACE:
+							if (std::abs(tracking.timestamp - at_time) > 1'000'000)
+								goto subpattern_end;
+							std::visit(utils::overloaded{
+							                   [](std::monostate &) {},
+							                   [&](auto & ft) {
+								                   ft.get_weights(at_time, tracking.face.emplace<typename std::remove_reference_t<decltype(ft)>::packet_type>());
+							                   },
+							           },
+							           face_tracker);
+							break;
 						case wivrn::device_id::LEFT_HAND:
 							if (left_hand)
 							{
@@ -541,14 +552,6 @@ void scenes::stream::tracking()
 							           },
 							           body_tracker);
 							break;
-						case wivrn::device_id::FACE:
-							std::visit(utils::overloaded{
-							                   [](std::monostate &) {},
-							                   [&](auto & ft) {
-								                   ft.get_weights(at_time, tracking.face.emplace<typename std::remove_reference_t<decltype(ft)>::packet_type>());
-							                   },
-							           },
-							           face_tracker);
 						default:
 							break;
 					}
