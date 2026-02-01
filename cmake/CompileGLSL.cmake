@@ -13,13 +13,20 @@ function(compile_glsl_aux shader_stage shader_name glsl_filename output target_e
 }},
 ")
 
+    if (WIVRN_DEBUG_SHADERS)
+        set(SHADER_FLAGS -gVS)
+    else()
+        set(SHADER_FLAGS )
+    endif()
+
     add_custom_command(
         OUTPUT "${SPV_FILE}-nopt"
-        COMMAND Vulkan::glslangValidator -V --target-env ${target_env} -S ${shader_stage} -D${shader_stage_upper}_SHADER ${in_file} -o "${SPV_FILE}-nopt" --depfile "${SPV_FILE}.d"
+        COMMAND Vulkan::glslangValidator -V --target-env ${target_env} -S ${shader_stage} -D${shader_stage_upper}_SHADER ${in_file} ${SHADER_FLAGS} -o "${SPV_FILE}-nopt" --depfile "${SPV_FILE}.d"
         DEPENDS "${glsl_filename}"
         DEPFILE "${SPV_FILE}.d"
         VERBATIM
     )
+
     if (WIVRN_OPTIMIZE_SHADERS)
         add_custom_command(
             OUTPUT "${SPV_FILE}-opt"
