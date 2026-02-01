@@ -376,10 +376,10 @@ std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::
 				return {{0, -0.006, -0.025}, glm::angleAxis(glm::radians(-15.f), glm::vec3{1, 0, 0})};
 
 			case xr::spaces::aim_left:
-				return {{-0.010, 0, 0.025}, {1, 0, 0, 0}};
+				return {{-0.010, 0, 0.02}, {1, 0, 0, 0}};
 
 			case xr::spaces::aim_right:
-				return {{0.010, 0, 0.025}, {1, 0, 0, 0}};
+				return {{0.010, 0, 0.02}, {1, 0, 0, 0}};
 
 			default:
 				break;
@@ -391,6 +391,10 @@ std::pair<glm::vec3, glm::quat> controller_offset(std::string_view profile, xr::
 			case xr::spaces::grip_left:
 			case xr::spaces::grip_right:
 				return {{0, -0.010, -0.025}, glm::angleAxis(glm::radians(-12.f), glm::vec3{1, 0, 0})};
+
+			case xr::spaces::aim_left:
+			case xr::spaces::aim_right:
+				return {{0, 0, -0.03}, {1, 0, 0, 0}};
 
 			default:
 				break;

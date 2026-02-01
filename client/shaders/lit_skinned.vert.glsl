@@ -65,12 +65,12 @@ void main()
     normal = vec3(mesh.modelview[gl_ViewIndex] * skinMatrix * vec4(in_normal, 0.0));
     gl_Position = mesh.modelviewproj[gl_ViewIndex] * skinMatrix * vec4(in_position, 1.0);
 
-    frag_pos = mesh.modelview[gl_ViewIndex] * vec4(in_position, 1.0);
+    frag_pos = mesh.modelview[gl_ViewIndex] * skinMatrix * vec4(in_position, 1.0);
     light_pos = scene.view[gl_ViewIndex] * scene.light_position;
     vertex_color = in_color;
 
     for(int i = 0; i < nb_clipping; i++)
     {
-            gl_ClipDistance[i] = dot(mesh.clipping_plane[i], mesh.model * vec4(in_position, 1.0));
+            gl_ClipDistance[i] = dot(mesh.clipping_plane[i], mesh.model * skinMatrix * vec4(in_position, 1.0));
     }
 }
