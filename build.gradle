@@ -127,7 +127,6 @@ android {
                           '-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON',
                           '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
                           '-DCMAKE_ANDROID_ASSETS_DIRECTORIES=' + layout.buildDirectory.dir("assets").get().asFile,
-                          '-DCMAKE_ANDROID_LIB_DIRECTORIES=' + layout.buildDirectory.dir("libs").get().asFile,
                           '-DWIVRN_USE_SYSTEM_BOOST=OFF',
                           '-DWIVRN_USE_SYSTEM_FREETYPE=OFF',
                           '-DWIVRN_USE_ANDROID_BIN_LIBKTX=ON',
@@ -202,8 +201,22 @@ android {
             initWith debug
             externalNativeBuild {
                 cmake {
-                    arguments '-DUSE_ANDROID_VALIDATION_LAYER=ON'
+                    arguments '-DWIVRN_USE_ANDROID_VALIDATION_LAYER=ON'
                 }
+            }
+        }
+    }
+
+    buildTypes.all { variant ->
+        sourceSets {
+            "${variant.name}" {
+                jniLibs.srcDirs layout.buildDirectory.dir("libs${variant.name.capitalize()}")
+            }
+        }
+
+        externalNativeBuild{
+            cmake {
+                arguments '-DANDROID_LIB_DIRECTORIES=' + layout.buildDirectory.dir("libs${variant.name.capitalize()}").get().asFile
             }
         }
     }
