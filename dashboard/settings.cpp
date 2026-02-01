@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <nlohmann/json.hpp>
 #include <qqmlintegration.h>
+#include <unistd.h>
 
 namespace
 {
