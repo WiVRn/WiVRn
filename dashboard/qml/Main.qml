@@ -363,14 +363,14 @@ Kirigami.ApplicationWindow {
 
                     Controls.Label {
                         Kirigami.FormData.label: i18nc("label for USB status or connect button", "USB")
-                        visible: !Adb.adbInstalled
+                        visible: !Adb.adbInstalled && !WivrnServer.headsetConnected
                         enabled: root.server_started
                         text: i18n("ADB is not installed")
                     }
 
                     Controls.Label {
                         Kirigami.FormData.label: i18nc("label for USB status or connect button", "USB")
-                        visible: Adb.adbInstalled && select_usb_device.connected_headset_count == 0
+                        visible: Adb.adbInstalled && select_usb_device.connected_headset_count == 0 && !WivrnServer.headsetConnected
                         enabled: root.server_started
                         text: i18n("No headset is connected or your headset is not in developer mode");
                         Layout.fillWidth: true
