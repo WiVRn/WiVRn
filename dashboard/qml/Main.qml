@@ -37,7 +37,7 @@ Kirigami.ApplicationWindow {
     }
 
     onClosing: (close) => {
-        if (WivrnServer.ownServer)
+        if (WivrnServer.ownServer && WivrnServer.sessionRunning)
         {
             close.accepted = false;
             confirm_close.open();
@@ -49,7 +49,7 @@ Kirigami.ApplicationWindow {
     Kirigami.PromptDialog {
         id: confirm_close
         title: i18n("Quit WiVRn")
-        subtitle: i18n("The WiVRn server is still running.\nClosing the window will terminate it.")
+        subtitle: i18n("The WiVRn server is active.\nClosing the window will terminate it.")
         iconName: "dialog-warning"
         popupType: Controls.Popup.Native
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
