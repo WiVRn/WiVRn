@@ -79,6 +79,14 @@ void wivrn::tracking_control::resolve(XrDuration frame_time, XrDuration latency)
 			case device_id::RIGHT_PINCH_POSE:
 			case device_id::EYE_GAZE:
 				step = 3'000'000;
+				break;
+			case device_id::FACE:
+				// Face tracking can't extrapolate
+				res.pattern.push_back({
+				        .device = device_id(device),
+				        .prediction_ns = 0,
+				});
+				break;
 			default:
 				break;
 		}
