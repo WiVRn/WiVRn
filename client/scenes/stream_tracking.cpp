@@ -463,9 +463,10 @@ void scenes::stream::tracking()
 			tracking.production_timestamp = t0;
 			tracking.timestamp = t0 + pattern[pattern_position].prediction_ns;
 			tracking.view_flags = {};
-			tracking.views = {};
 			tracking.state_flags = {};
+			tracking.views = {};
 			tracking.device_poses.clear();
+			tracking.face = {};
 
 			if (recenter_requested.exchange(false))
 				tracking.state_flags = wivrn::from_headset::tracking::recentered;
