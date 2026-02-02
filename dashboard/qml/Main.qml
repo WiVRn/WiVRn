@@ -36,7 +36,25 @@ Kirigami.ApplicationWindow {
         }
     }
 
-    onClosing: Qt.quit()
+    onClosing: (close) => {
+        if (WivrnServer.ownServer)
+        {
+            close.accepted = false;
+            confirm_close.open();
+        } else {
+            Qt.quit();
+        }
+    }
+
+    Kirigami.PromptDialog {
+        id: confirm_close
+        title: i18n("Quit WiVRn")
+        subtitle: i18n("The WiVRn server is still running.\nClosing the window will terminate it.")
+        iconName: "dialog-warning"
+        popupType: Controls.Popup.Native
+        standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+        onAccepted: Qt.quit()
+    }
 
     width: 900
     height: 800

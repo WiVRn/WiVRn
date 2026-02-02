@@ -137,10 +137,12 @@ void wivrn_server::start_server()
 						qDebug() << "Server finished before registering on dbus";
 						serverStatusChanged(m_serverStatus = Status::FailedToStart);
 					}
+					ownServerChanged();
 				}
 			});
 
 			server_process->start(server_path(), QApplication::arguments().mid(1));
+			ownServerChanged();
 		}
 
 		break;
