@@ -44,7 +44,6 @@ jobs:
         key: linux-${{matrix.config.preset}}
         job-summary: ""
         restore-keys: linux-
-        append-timestamp: false
 
     - uses: actions/cache@v4
       with:
