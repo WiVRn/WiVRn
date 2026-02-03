@@ -333,20 +333,6 @@ static bool comp_wivrn_check_ready(struct comp_target * ct)
 	if (not cn->cnx.connected())
 		return false;
 
-	// This function is called before on each frame before reprojection
-	// hijack it so that we can dynamically change ATW
-	cn->c->debug.atw_off = true;
-	for (int eye = 0; eye < 2; ++eye)
-	{
-		const auto & layer_accum = cn->c->base.layer_accum;
-		if (layer_accum.layer_count > 1 or
-		    layer_accum.layers[0].data.type != XRT_LAYER_PROJECTION)
-		{
-			// We are not in the trivial single stereo projection layer
-			// reprojection must be done
-			cn->c->debug.atw_off = false;
-		}
-	}
 	return true;
 }
 
@@ -635,16 +621,9 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 		view_info.pose[eye] = xrt_cast(frame_params.poses[eye]);
 		if (cn->c->base.frame_params.one_projection_layer_fast_path)
 		{
-			for (const auto & layer: cn->c->base.layer_accum.layers)
-			{
-				if (layer.data.type == XRT_LAYER_PROJECTION)
-				{
-					const auto & proj = layer.data.proj;
-					view_info.pose[eye] = xrt_cast(proj.v[eye].pose);
-					view_info.fov[eye] = xrt_cast(proj.v[eye].fov);
-					break;
-				}
-			}
+			const auto & proj = cn->c->base.layer_accum.layers[0].data.proj;
+			view_info.pose[eye] = xrt_cast(proj.v[eye].pose);
+			view_info.fov[eye] = xrt_cast(proj.v[eye].fov);
 		}
 		else
 		{
