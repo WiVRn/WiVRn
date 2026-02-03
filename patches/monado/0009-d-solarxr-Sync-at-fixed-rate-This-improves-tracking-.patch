@@ -1,7 +1,7 @@
-From 4c35c93877ba26f43190a80ec9d8f551ecd0b022 Mon Sep 17 00:00:00 2001
+From 677fcc118afabccb285c2b4f83c41ef7d3dbfa93 Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Fri, 14 Nov 2025 19:48:59 +0000
-Subject: [PATCH 09/10] d/solarxr: Sync at fixed rate This improves tracking
+Subject: [PATCH 09/11] d/solarxr: Sync at fixed rate This improves tracking
  latency by allowing SlimeVR to synchronize updates with its processing loop.
 
 ---
@@ -522,5 +522,5 @@ index ec5444b2a..29c0f9716 100644
  	out_xdevs[0] = &device->base;
  	for (uint32_t i = 0; i < trackers_len; ++i) {
 -- 
-2.52.0
+2.53.0
 

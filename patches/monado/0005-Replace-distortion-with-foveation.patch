@@ -1,7 +1,7 @@
-From 405df0e880a8fff52a01992eb96fa634cc795ba6 Mon Sep 17 00:00:00 2001
+From 9bc7706f3fcd7fdaf31da2f305d6939a49817797 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 05/10] Replace distortion with foveation
+Subject: [PATCH 05/11] Replace distortion with foveation
 
 ---
  src/xrt/compositor/main/comp_renderer.c       |   6 +-
@@ -20,10 +20,10 @@ Subject: [PATCH 05/10] Replace distortion with foveation
  13 files changed, 356 insertions(+), 592 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 16c16fd7a..40b219cef 100644
+index f6c403015..ff9728a59 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -1005,7 +1005,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -983,7 +983,8 @@ dispatch_compute(struct comp_renderer *r,
  
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
@@ -33,7 +33,7 @@ index 16c16fd7a..40b219cef 100644
  
  	// Target view information.
  	struct render_viewport_data target_viewport_datas[XRT_MAX_VIEWS];
-@@ -1022,7 +1023,8 @@ dispatch_compute(struct comp_renderer *r,
+@@ -1000,7 +1001,8 @@ dispatch_compute(struct comp_renderer *r,
  	    eye_poses,                       //
  	    fovs,                            //
  	    target_image,                    //
@@ -44,7 +44,7 @@ index 16c16fd7a..40b219cef 100644
  
  	// Everything is ready, submit to the queue.
 diff --git a/src/xrt/compositor/main/comp_target.h b/src/xrt/compositor/main/comp_target.h
-index 2122f46e7..53dcd631b 100644
+index 953052155..68ca15cb9 100644
 --- a/src/xrt/compositor/main/comp_target.h
 +++ b/src/xrt/compositor/main/comp_target.h
 @@ -62,7 +62,8 @@ enum comp_target_display_timing_usage
@@ -647,7 +647,7 @@ index 62d7138b9..44c3f0aee 100644
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
 diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
-index 8ca26704a..b7d1d96a8 100644
+index 2b7893881..3c59645dc 100644
 --- a/src/xrt/compositor/render/render_interface.h
 +++ b/src/xrt/compositor/render/render_interface.h
 @@ -82,12 +82,8 @@ extern "C" {
@@ -720,7 +720,7 @@ index 8ca26704a..b7d1d96a8 100644
  	} distortion;
  };
  
-@@ -1254,6 +1236,7 @@ struct render_compute_layer_ubo_data
+@@ -1262,6 +1244,7 @@ struct render_compute_layer_ubo_data
  	//! Timewarp matrices
  	struct xrt_matrix_4x4 transforms_timewarp[RENDER_MAX_LAYERS];
  
@@ -728,7 +728,7 @@ index 8ca26704a..b7d1d96a8 100644
  	/*!
  	 * For quad layers
  	 */
-@@ -1293,6 +1276,14 @@ struct render_compute_distortion_ubo_data
+@@ -1307,6 +1290,14 @@ struct render_compute_distortion_ubo_data
  	struct xrt_matrix_4x4 transform_timewarp_scanout_end[XRT_MAX_VIEWS];
  };
  
@@ -743,7 +743,7 @@ index 8ca26704a..b7d1d96a8 100644
  /*!
   * Init struct and create resources needed for compute rendering.
   *
-@@ -1346,7 +1337,8 @@ render_compute_layers(struct render_compute *render,
+@@ -1360,7 +1351,8 @@ render_compute_layers(struct render_compute *render,
                        VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],
                        VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE],
                        uint32_t num_srcs,
@@ -753,7 +753,7 @@ index 8ca26704a..b7d1d96a8 100644
                        const struct render_viewport_data *view,
                        bool timewarp);
  
-@@ -1354,44 +1346,14 @@ render_compute_layers(struct render_compute *render,
+@@ -1368,44 +1360,14 @@ render_compute_layers(struct render_compute *render,
   * @public @memberof render_compute
   */
  void
@@ -806,7 +806,7 @@ index 8ca26704a..b7d1d96a8 100644
  
  /*!
   * @public @memberof render_compute
-@@ -1399,7 +1361,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
+@@ -1413,7 +1375,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
  void
  render_compute_clear(struct render_compute *render,
                       VkImage target_image,
@@ -1415,7 +1415,7 @@ index bd7ab2957..c2b95d68d 100644
                       bool do_timewarp);
  
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index a0cc735a1..f75efddf4 100644
+index 6e93eabe8..4a304c6f7 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
 @@ -370,7 +370,8 @@ crc_clear_output(struct render_compute *render, const struct comp_render_dispatc
@@ -1621,7 +1621,7 @@ index a0cc735a1..f75efddf4 100644
  			    view_index,                    // view_index
  			    cur_layer,                     // cur_layer
  			    cur_image,                     // cur_image
-@@ -713,7 +663,8 @@ comp_render_cs_layer(struct render_compute *render,
+@@ -716,7 +666,8 @@ comp_render_cs_layer(struct render_compute *render,
  	    src_samplers,      //
  	    src_image_views,   //
  	    cur_image,         //
@@ -1631,7 +1631,7 @@ index a0cc735a1..f75efddf4 100644
  	    target_view,       //
  	    do_timewarp);      //
  }
-@@ -750,6 +701,7 @@ comp_render_cs_layers(struct render_compute *render,
+@@ -753,6 +704,7 @@ comp_render_cs_layers(struct render_compute *render,
  		    &view->eye_pose,                 //
  		    view->squash.image,              //
  		    view->squash.cs.storage_view,    //
@@ -1640,5 +1640,5 @@ index a0cc735a1..f75efddf4 100644
  		    d->do_timewarp);                 //
  	}
 -- 
-2.52.0
+2.53.0
 

@@ -392,8 +392,11 @@ static void target_init_semaphores(struct wivrn_comp_target * cn)
 	}
 }
 
-static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_target_create_images_info * create_info)
+static void comp_wivrn_create_images(struct comp_target * ct, const struct comp_target_create_images_info * create_info, struct vk_bundle_queue * present_queue)
 {
+	assert(present_queue != NULL);
+	(void)present_queue;
+
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
 	// Free old images.
@@ -509,12 +512,15 @@ static void comp_wivrn_present_thread(std::stop_token stop_token, wivrn_comp_tar
 }
 
 static VkResult comp_wivrn_present(struct comp_target * ct,
-                                   VkQueue queue_,
+                                   struct vk_bundle_queue * present_queue,
                                    uint32_t index,
                                    uint64_t timeline_semaphore_value,
                                    int64_t desired_present_time_ns,
                                    int64_t present_slop_ns)
 {
+	assert(present_queue != NULL);
+	(void)present_queue;
+
 	struct wivrn_comp_target * cn = (struct wivrn_comp_target *)ct;
 
 	assert(index < cn->image_count);

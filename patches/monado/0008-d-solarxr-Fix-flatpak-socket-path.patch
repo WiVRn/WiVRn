@@ -1,7 +1,7 @@
-From 8c1184b92396ea927f639b9a068307c81123fbf6 Mon Sep 17 00:00:00 2001
+From 8a05785464f1f8d1ba8f947b57ebf88d37177954 Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 8 Dec 2025 19:29:28 +0000
-Subject: [PATCH 08/10] d/solarxr: Fix flatpak socket path
+Subject: [PATCH 08/11] d/solarxr: Fix flatpak socket path
 
 ---
  src/xrt/drivers/solarxr/solarxr_ipc_socket.c | 2 +-
@@ -21,5 +21,5 @@ index d50d30310..8a958ad8c 100644
  		memcpy(&addr.sun_path[runtime_dir_len], flatpak_runtime_dir, sizeof(flatpak_runtime_dir) - 1);
  		memcpy(&addr.sun_path[runtime_dir_len + (sizeof(flatpak_runtime_dir) - 1)], filename, filename_len + 1);
 -- 
-2.52.0
+2.53.0
 

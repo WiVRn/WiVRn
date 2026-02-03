@@ -1,7 +1,7 @@
-From 0d7ea2766bbb7d3c729e0e1af703a19b87bf6497 Mon Sep 17 00:00:00 2001
+From 13b8bff84a6bddb7cbf961985575af5aaea09838 Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 15 Sep 2025 22:46:15 +0000
-Subject: [PATCH 10/10] d/solarxr: Feed device poses to server
+Subject: [PATCH 10/11] d/solarxr: Feed device poses to server
 
 ---
  src/xrt/drivers/CMakeLists.txt              |   2 +
@@ -15,10 +15,10 @@ Subject: [PATCH 10/10] d/solarxr: Feed device poses to server
  create mode 100644 src/xrt/drivers/solarxr/feeder.h
 
 diff --git a/src/xrt/drivers/CMakeLists.txt b/src/xrt/drivers/CMakeLists.txt
-index bd31b3374..f8406e0f3 100644
+index b44617e1a..040bd76b7 100644
 --- a/src/xrt/drivers/CMakeLists.txt
 +++ b/src/xrt/drivers/CMakeLists.txt
-@@ -529,6 +529,8 @@ endif()
+@@ -543,6 +543,8 @@ endif()
  if(XRT_BUILD_DRIVER_SOLARXR)
  	add_library(
  		drv_solarxr STATIC
@@ -862,5 +862,5 @@ index c56bb15b1..209345f79 100644
  #ifdef __cplusplus
  }
 -- 
-2.52.0
+2.53.0
 

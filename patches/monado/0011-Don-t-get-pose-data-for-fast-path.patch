@@ -1,17 +1,17 @@
-From 38b1b5dbeff17e65e136af337a1385e9e14f8723 Mon Sep 17 00:00:00 2001
+From fe9b669d6d023db39409fb60e66eb498d0610732 Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Thu, 15 Jan 2026 12:13:06 +0100
-Subject: [PATCH] Don't get pose data for fast path
+Subject: [PATCH 11/11] Don't get pose data for fast path
 
 ---
  src/xrt/compositor/main/comp_renderer.c | 17 +++++++++--------
  1 file changed, 9 insertions(+), 8 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index 40b219cef..febd35faa 100644
+index ff9728a59..08cdef540 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
-@@ -994,14 +994,15 @@ dispatch_compute(struct comp_renderer *r,
+@@ -972,14 +972,15 @@ dispatch_compute(struct comp_renderer *r,
  	struct xrt_pose world_poses_scanout_begin[XRT_MAX_VIEWS];
  	struct xrt_pose world_poses_scanout_end[XRT_MAX_VIEWS];
  	struct xrt_pose eye_poses[XRT_MAX_VIEWS];
@@ -36,5 +36,5 @@ index 40b219cef..febd35faa 100644
  	// Target Vulkan resources..
  	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
 -- 
-2.52.0
+2.53.0
 
