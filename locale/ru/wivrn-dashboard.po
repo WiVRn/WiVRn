@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-02 15:05+0200\n"
-"PO-Revision-Date: 2026-02-03 22:59+0200\n"
+"PO-Revision-Date: 2026-02-03 23:56+0200\n"
 "Last-Translator: 8osm3rka <admin@osm8.live>\n"
 "Language-Team: Russian\n"
 "Language: ru\n"
@@ -524,7 +524,7 @@ msgstr "\"Авто\" будет использовать аппаратное у
 #: dashboard/qml/SettingsPage.qml:88
 #, kde-format
 msgid "Autostart application:"
-msgstr "Приложения для автозапуска:"
+msgstr "Приложение для автозапуска:"
 
 #: dashboard/qml/SettingsPage.qml:96
 #, kde-format

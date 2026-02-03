@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-03 09:02+0200\n"
-"PO-Revision-Date: 2026-02-03 22:40+0200\n"
+"PO-Revision-Date: 2026-02-04 00:06+0200\n"
 "Last-Translator: 8osm3rka <admin@osm8.live>\n"
 "Language-Team: Russian\n"
 "Language: ru\n"
@@ -199,9 +199,9 @@ msgid ""
 "Select refresh rate based on measured application performance.\n"
 "May cause flicker when a change happens."
 msgstr ""
-"Выберите частоту обновления основанную на измеренной производительности "
+"Выбрать частоту обновления, основанную на измеренной производительности "
 "приложения.\n"
-"Может вызвать мерцание когда изменение произойдет."
+"Может вызывать мерцание когда происходит изменение."
 
 #: client/scenes/lobby_gui.cpp:606 client/scenes/stream_gui.cpp:439
 msgid "Minimum refresh rate"
@@ -612,7 +612,7 @@ msgstr "Удалить"
 #: client/scenes/lobby_gui_customize.cpp:737
 #, c++-format
 msgid "Cannot load environment: {}"
-msgstr "Невозможно загрузить окружение: {}"
+msgstr "Не удалось загрузить окружение: {}"
 
 #: client/scenes/lobby_gui_customize.cpp:745
 msgid "Loading environment"
