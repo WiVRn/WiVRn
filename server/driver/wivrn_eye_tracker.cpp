@@ -72,6 +72,8 @@ xrt_result_t wivrn_eye_tracker::get_tracked_pose(xrt_input_name name, int64_t at
 {
 	if (name == XRT_INPUT_GENERIC_EYE_GAZE_POSE)
 	{
+		if (auto [min, max] = gaze.get_bounds(); min <= max)
+			at_timestamp_ns = std::clamp(at_timestamp_ns, min, max);
 		auto [production_timestamp, relation] = gaze.get_at(at_timestamp_ns);
 		*out_relation = relation;
 		cnx.add_tracking_request(device_id::EYE_GAZE, at_timestamp_ns, production_timestamp);

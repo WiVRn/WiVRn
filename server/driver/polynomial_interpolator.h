@@ -100,7 +100,24 @@ public:
 		}
 	}
 
-	sample get_at(XrTime timestamp)
+	std::pair<XrTime, XrTime> get_bounds() const
+	{
+		std::pair<XrTime, XrTime> result{
+		        std::numeric_limits<XrTime>::max(),
+		        std::numeric_limits<XrTime>::lowest(),
+		};
+		for (const auto & sample: data)
+		{
+			if (sample.y)
+			{
+				result.first = std::min(result.first, sample.timestamp);
+				result.second = std::max(result.second, sample.timestamp);
+			}
+		}
+		return result;
+	}
+
+	sample get_at(XrTime timestamp) const
 	{
 		Eigen::Matrix<float, 2 * stored_samples, polynomial_order + 1> A;
 		Eigen::Matrix<float, 2 * stored_samples, N> b;

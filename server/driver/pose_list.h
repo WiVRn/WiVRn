@@ -63,6 +63,8 @@ public:
 
 	pose_list(wivrn::device_id id);
 
+	std::pair<XrTime, XrTime> get_bounds() const;
+
 	void update_tracking(const wivrn::from_headset::tracking &, const clock_offset & offset);
 	void set_derived(pose_list * source, xrt_pose offset, bool force = false);
 
