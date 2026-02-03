@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-03 09:02+0200\n"
-"PO-Revision-Date: 2026-02-04 00:06+0200\n"
+"PO-Revision-Date: 2026-02-04 00:16+0200\n"
 "Last-Translator: 8osm3rka <admin@osm8.live>\n"
 "Language-Team: Russian\n"
 "Language: ru\n"
@@ -276,7 +276,7 @@ msgstr "Кодек"
 
 #: client/scenes/lobby_gui.cpp:753
 msgid "10-bit"
-msgstr "10-битный"
+msgstr "10-бит"
 
 #: client/scenes/lobby_gui.cpp:768
 msgid "Bitrate"
