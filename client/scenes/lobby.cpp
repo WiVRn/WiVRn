@@ -906,10 +906,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 		if (!next_scene->alive())
 			next_scene.reset();
 		else if (next_scene->current_state() == scenes::stream::state::streaming)
-		{
-			autoconnect_enabled = true;
 			application::push_scene(next_scene);
-		}
 	}
 
 	update_server_list();
@@ -1385,6 +1382,8 @@ void scenes::lobby::on_xr_event(const xr::event & event)
 		case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED:
 			if (event.state_changed.state == XR_SESSION_STATE_STOPPING)
 				discover.reset();
+			else if (event.state_changed.state == XR_SESSION_STATE_FOCUSED)
+				autoconnect_enabled = true;
 			recenter_gui = true;
 			break;
 		case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
