@@ -67,6 +67,13 @@ void wivrn::tracking_control::resolve(XrDuration frame_time, XrDuration latency)
 		XrDuration step = frame_time;
 		switch (device_id(device))
 		{
+			// High frequency, but not extrapolation
+			case device_id::EYE_GAZE:
+				req.min_prediction = latency;
+				req.max_prediction = frame_time + latency;
+				step = 3'000'000;
+				break;
+
 			// High frequency polling for those
 			case device_id::HEAD:
 			case device_id::LEFT_GRIP:
@@ -77,11 +84,11 @@ void wivrn::tracking_control::resolve(XrDuration frame_time, XrDuration latency)
 			case device_id::RIGHT_PALM:
 			case device_id::LEFT_PINCH_POSE:
 			case device_id::RIGHT_PINCH_POSE:
-			case device_id::EYE_GAZE:
 				step = 3'000'000;
 				break;
+
+			// Face tracking can't extrapolate
 			case device_id::FACE:
-				// Face tracking can't extrapolate
 				res.pattern.push_back({
 				        .device = device_id(device),
 				        .prediction_ns = 0,

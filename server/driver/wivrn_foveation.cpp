@@ -22,7 +22,6 @@
 #include "wivrn_foveation.h"
 
 #include "driver/xrt_cast.h"
-#include "math/m_api.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "wivrn_packets.h"
 #include "xrt/xrt_defines.h"
@@ -347,25 +346,11 @@ void wivrn_foveation::update_tracking(const from_headset::tracking & tracking, c
 
 	const uint8_t orientation_ok = from_headset::tracking::orientation_valid | from_headset::tracking::orientation_tracked;
 
-	eye_x[0] = tracking.views[0].pose.position.x;
-	eye_x[1] = tracking.views[1].pose.position.x;
-
-	std::optional<xrt_quat> head;
-
-	for (const auto & pose: tracking.device_poses)
+	if (tracking.view_flags & XR_VIEW_STATE_POSITION_VALID_BIT)
 	{
-		if (pose.device != device_id::HEAD)
-			continue;
-
-		if ((pose.flags & orientation_ok) != orientation_ok)
-			return;
-
-		head = xrt_cast(pose.pose.orientation);
-		break;
+		eye_x[0] = tracking.views[0].pose.position.x;
+		eye_x[1] = tracking.views[1].pose.position.x;
 	}
-
-	if (!head.has_value())
-		return;
 
 	for (const auto & pose: tracking.device_poses)
 	{
@@ -375,9 +360,8 @@ void wivrn_foveation::update_tracking(const from_headset::tracking & tracking, c
 		if ((pose.flags & orientation_ok) != orientation_ok)
 			return;
 
-		xrt_quat qgaze = xrt_cast(pose.pose.orientation);
-		math_quat_unrotate(&qgaze, &head.value(), &gaze);
-		break;
+		gaze = xrt_cast(pose.pose.orientation);
+		return;
 	}
 }
 
@@ -399,7 +383,7 @@ static void fill_ubo(
         bool flip,
         size_t offset,
         size_t size,
-        int count)
+        [[maybe_unused]] int count)
 {
 	assert(params.size() % 2 == 1);
 	const int n_ratio = (params.size() - 1) / 2;

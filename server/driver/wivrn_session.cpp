@@ -216,7 +216,8 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 #endif
 	if (get_info().eye_gaze || is_forced_extension("EXT_eye_gaze_interaction"))
 	{
-		eye_tracker = std::make_unique<wivrn_eye_tracker>(&hmd, *this);
+		// The tracker space needs to be attached to the head pose once the space overseer is created
+		eye_tracker = std::make_unique<wivrn_eye_tracker>(*this);
 		static_roles.eyes = eye_tracker.get();
 		xdevs[xdev_count++] = eye_tracker.get();
 	}
@@ -366,6 +367,22 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	        false,
 	        out_xspovrs);
 	self->space_overseer = *out_xspovrs;
+
+	if (self->eye_tracker)
+	{
+		xrt_space * head_space;
+		auto res = xrt_space_overseer_create_pose_space(self->space_overseer, &self->hmd, XRT_INPUT_GENERIC_HEAD_POSE, &head_space);
+		if (res == XRT_SUCCESS)
+		{
+			res = xrt_space_overseer_attach_device(self->space_overseer, self->eye_tracker.get(), head_space);
+			xrt_space_reference(&head_space, NULL);
+		}
+		if (res != XRT_SUCCESS)
+		{
+			U_LOG_W("failed to initialize eye tracker");
+			self->eye_tracker = nullptr;
+		}
+	}
 
 	auto dump_file = std::getenv("WIVRN_DUMP_TIMINGS");
 	if (dump_file)

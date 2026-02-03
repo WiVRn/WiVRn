@@ -34,13 +34,13 @@
 namespace wivrn
 {
 
-wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd, wivrn_session & cnx) :
+wivrn_eye_tracker::wivrn_eye_tracker(wivrn_session & cnx) :
         xrt_device{
                 .name = XRT_DEVICE_EYE_GAZE_INTERACTION,
                 .device_type = XRT_DEVICE_TYPE_EYE_TRACKER,
                 .str = "WiVRn Eye Tracker",
                 .serial = "WiVRn Eye Tracker",
-                .tracking_origin = hmd->tracking_origin,
+                .tracking_origin = &origin,
                 .input_count = 1,
                 .inputs = &gaze_input,
                 .supported = {
@@ -49,6 +49,10 @@ wivrn_eye_tracker::wivrn_eye_tracker(xrt_device * hmd, wivrn_session & cnx) :
                 .update_inputs = method_pointer<&wivrn_eye_tracker::update_inputs>,
                 .get_tracked_pose = method_pointer<&wivrn_eye_tracker::get_tracked_pose>,
                 .destroy = [](xrt_device *) {},
+        },
+        origin{
+                .type = XRT_TRACKING_TYPE_ATTACHABLE,
+                .initial_offset = XRT_POSE_IDENTITY,
         },
         gaze_input{
                 .active = true,
