@@ -14,20 +14,21 @@ WiVRn is an application that wirelessly streams a virtual reality game to a stan
 
 WiVRn support a wide range of VR devices:
 
-| Headset | Supported | Reason |
+| Headset | Supported | Notes |
 |:--------:|:--------:|:--------:|
-| Quest 1 | ✓ | Android, tested |
-| Quest 2 | ✓ | Android, tested |
-| Quest 3 | ✓ | Android, tested |
-| Quest 3s | ✓ | Android, tested |
-| Quest Pro | ✓ | Android, tested |
-| Pico Neo 3 | ✓ | Android, tested |
-| Pico 4 | ✓ | Android, tested |
-| HTC Vive Focus 3 | ✓ | Android, tested |
-| HTC Vive XR Elite | ✓ | Android, tested |
+| Quest 1 | ✓ |
+| Quest 2 | ✓ |
+| Quest 3 | ✓ |
+| Quest 3s | ✓ |
+| Quest Pro | ✓ |
+| Pico Neo 3 | ✓ |
+| Pico 4 | ✓ |
+| HTC Vive Focus 3 | ✓ | Laggy | 
+| HTC Vive XR Elite | ✓ | Laggy |
 | Other Android VR | ? | Cannot know |
-| Any Non-Android VR | ✖ | Client is Android |
-| Any Non-VR Android | ✖ | VR required |
+| Play for Dream | ✖ | https://github.com/WiVRn/WiVRn/issues/465 |
+| Non-Android VR | ✖ | Not Android |
+| Non-VR Android | ✖ | VR required |
 
 # Getting started
 
@@ -87,7 +88,7 @@ When the headset is connected and no XR application is running, it will show an 
 - Steam games that are flagged as VR. Steam may need to be restarted for the list to be updated when new games are installed.
 - .desktop files that contain `X-WiVRn-VR` in the `Categories` section. Files are searched in [standard locations](https://specifications.freedesktop.org/desktop-entry/latest/file-naming.html#desktop-file-id) which usually include `~/.local/share/applications` and `/usr/share/applications/`.
 
-### OpenVR/Steam games
+### OpenVR and Steam games
 
 The flatpak includes [OpenComposite](https://gitlab.com/znixian/OpenOVR/) and [xrizer](https://github.com/Supreeeme/xrizer/), used to translate the OpenVR API to OpenXR. see [SteamVR](docs/steamvr.md) for details.
 
