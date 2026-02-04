@@ -44,7 +44,7 @@ public:
 	struct sample
 	{
 		XrTime production_timestamp = std::numeric_limits<XrTime>::lowest();
-		XrTime timestamp;
+		XrTime timestamp = std::numeric_limits<XrTime>::lowest();
 		std::optional<value_type> y;
 		std::optional<value_type> dy;
 	};
@@ -128,9 +128,14 @@ public:
 		// This allows a small buffer so that polynomial extrapolation fills the gap of networking hiccups
 		timestamp = std::min(timestamp, production_timestamp + (wivrn::max_extrapolation_ns * 11) / 10);
 
+		const sample * closest = data.data();
+
 		int row = 0;
 		for (const auto && [i, sample]: std::ranges::enumerate_view(data))
 		{
+			if (std::abs(closest->timestamp - timestamp) > std::abs(sample.timestamp - timestamp))
+				closest = &sample;
+
 			if (not sample.y)
 				continue;
 
@@ -163,14 +168,13 @@ public:
 			}
 		}
 
+		// Data turned invalid, return it
+		if (not closest->y)
+			return *closest;
+
 		// Not enough data to extrapolate
 		if (row < 2)
 		{
-			auto closest = std::ranges::min_element(data, std::less{}, [&](const auto & sample) {
-				if (not sample.y)
-					return std::numeric_limits<XrDuration>::max();
-				return std::abs(sample.timestamp - timestamp);
-			});
 			if (closest->y and std::abs(closest->production_timestamp - timestamp) < 1'000'000'000)
 				return *closest;
 			return {};
