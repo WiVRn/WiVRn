@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-03 09:02+0200\n"
-"PO-Revision-Date: 2026-02-04 00:16+0200\n"
+"POT-Creation-Date: 2026-02-03 21:56+0200\n"
+"PO-Revision-Date: 2026-02-04 09:22+0200\n"
 "Last-Translator: 8osm3rka <admin@osm8.live>\n"
 "Language-Team: Russian\n"
 "Language: ru\n"
@@ -71,11 +71,11 @@ msgstr "Невозможно подключиться к {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "Ожидание подключения"
 
-#: client/scenes/lobby.cpp:1319
+#: client/scenes/lobby.cpp:1316
 msgid "Passthrough"
 msgstr "Сквозная передача"
 
-#: client/scenes/lobby.cpp:1331
+#: client/scenes/lobby.cpp:1328
 msgid "Default environment"
 msgstr "Окружение по умолчанию"
 
@@ -239,7 +239,7 @@ msgid ""
 "Higher values focus image quality where you look at,\n"
 "improving latency, power efficiency and quality."
 msgstr ""
-"Значения выше фокусируют качество картинки там, где вы смотрите, что "
+"Значения выше концентрируют качество картинки там, где вы смотрите, что "
 "улучшает задержку, энергоэффективность и качество."
 
 #: client/scenes/lobby_gui.cpp:700
@@ -247,8 +247,8 @@ msgid ""
 "Higher values focus image quality at the center,\n"
 "improving latency, power efficiency and quality."
 msgstr ""
-"Значения выше фокусируют качество картинки в центре, что улучшает задержку, "
-"энергоэффективность и качество."
+"Значения выше концентрируют качество картинки в центре, что улучшает "
+"задержку, энергоэффективность и качество."
 
 #: client/scenes/lobby_gui.cpp:709
 msgctxt "Codec"
