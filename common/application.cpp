@@ -359,7 +359,7 @@ void do_data_dir(std::filesystem::path dir, std::unordered_map<std::string, appl
 		return;
 	try
 	{
-		for (const auto & entry: std::filesystem::recursive_directory_iterator(dir))
+		for (const auto & entry: std::filesystem::recursive_directory_iterator(dir, std::filesystem::directory_options::skip_permission_denied))
 		{
 			if (entry.is_directory())
 				continue;
