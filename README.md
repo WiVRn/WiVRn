@@ -16,15 +16,16 @@ WiVRn support a wide range of VR devices:
 
 | Headset | Supported | Notes |
 |:--------:|:--------:|:--------:|
-| Quest 1 | ✓ |
-| Quest 2 | ✓ |
-| Quest 3 | ✓ |
-| Quest 3s | ✓ |
-| Quest Pro | ✓ |
-| Pico Neo 3 | ✓ |
-| Pico 4 | ✓ |
+| Quest 1 | ✓ |  |
+| Quest 2 | ✓ |  |
+| Quest 3 | ✓ |  |
+| Quest 3s | ✓ |  |
+| Quest Pro | ✓ |  |
+| Pico Neo 3 | ✓ |  |
+| Pico 4 | ✓ |  |
 | HTC Vive Focus 3 | ✓ | Laggy | 
 | HTC Vive XR Elite | ✓ | Laggy |
+| Samsung Galaxy XR | ✓ |  |
 | Other Android VR | ? | Cannot know |
 | Play for Dream | ✖ | https://github.com/WiVRn/WiVRn/issues/465 |
 | Non-Android VR | ✖ | Not Android |
