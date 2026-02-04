@@ -339,12 +339,10 @@ jobs:
         retention-days: 30
 
     - name: Archive debug symbols
-      if: ${{ matrix.buildtype != 'Release' && matrix.buildtype != 'Oculus' }}
       uses: actions/upload-artifact@v4
       with:
         name: symbols-${{ matrix.buildtype }}
         path: debug/**/*.so
-        retention-days: 30
 
     - name: Push to Oculus store
       if: ${{ matrix.buildtype == 'Oculus' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master') && steps.secret-check.outputs.oculus-token == 'true' }}
@@ -472,8 +470,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: apk
-        pattern: '*-Release'
-        merge-multiple: true
+        pattern: 'apk-Release'
 
     - name: Download artifacts (flatpak)
       uses: actions/download-artifact@v4
