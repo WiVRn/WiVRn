@@ -673,7 +673,7 @@ void scenes::lobby::gui_settings()
 
 	// foveation
 	{
-		const int step = 10;
+		const int step = 5;
 		const auto current = config.get_stream_scale();
 		int intval = round((1 - current) * 100 / step);
 		const auto slider = ImGui::SliderInt(
