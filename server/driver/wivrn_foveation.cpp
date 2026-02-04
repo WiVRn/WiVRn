@@ -276,7 +276,7 @@ void wivrn_foveation::compute_params(
 		if (foveated_width < extent_w)
 		{
 			auto distance = manual_foveation.enabled ? manual_foveation.distance : convergence_distance;
-			auto angle_x = convergence_angle(distance, eye_x[i], e.x);
+			auto angle_x = convergence_angle(distance, eye_x[i], -e.x);
 			auto center = angles_to_center(angle_x, fov.angle_left, fov.angle_right);
 			fill_param_2d(center, foveated_width, extent_w, params[i].x);
 		}
@@ -286,7 +286,7 @@ void wivrn_foveation::compute_params(
 		size_t extent_h = std::abs(src[i].extent.h);
 		if (foveated_height < extent_h)
 		{
-			auto angle_y = e.y;
+			auto angle_y = -e.y;
 			if (is_zero_quat(gaze) and not manual_foveation.enabled)
 			{
 				// Natural gaze is not straight forward, adjust the angle
