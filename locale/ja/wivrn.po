@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn 0.16\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-12-15 12:22+0900\n"
+"POT-Creation-Date: 2026-02-04 17:02+0900\n"
 "PO-Revision-Date: 2024-06-20 10:33+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language: Japanese\n"
@@ -59,11 +59,11 @@ msgstr "{}に接続できませんでした：({}) {}"
 msgid "Waiting for connection"
 msgstr "接続を待っています"
 
-#: client/scenes/lobby.cpp:1310
+#: client/scenes/lobby.cpp:1316
 msgid "Passthrough"
 msgstr "パススルー"
 
-#: client/scenes/lobby.cpp:1322
+#: client/scenes/lobby.cpp:1328
 msgid "Default environment"
 msgstr "デフォルトのホーム環境"
 
@@ -83,13 +83,13 @@ msgid "Disabled"
 msgstr "無効"
 
 #: client/scenes/lobby_gui.cpp:114 client/scenes/lobby_gui.cpp:258
-#: client/scenes/stream_gui.cpp:1015
+#: client/scenes/stream_gui.cpp:1009
 msgid "Disconnect"
 msgstr "切断する"
 
-#: client/scenes/lobby_gui.cpp:134 client/scenes/lobby_gui_customize.cpp:749
-#: client/scenes/lobby_gui_customize.cpp:840
-#: client/scenes/lobby_gui_customize.cpp:896 client/scenes/stream_gui.cpp:1011
+#: client/scenes/lobby_gui.cpp:134 client/scenes/lobby_gui_customize.cpp:753
+#: client/scenes/lobby_gui_customize.cpp:844
+#: client/scenes/lobby_gui_customize.cpp:900 client/scenes/stream_gui.cpp:1005
 msgid "Close"
 msgstr "閉じる"
 
@@ -126,10 +126,10 @@ msgstr "ポート番号"
 msgid "TCP only"
 msgstr "TCPのみを使用"
 
-#: client/scenes/lobby_gui.cpp:319 client/scenes/lobby_gui_customize.cpp:651
-#: client/scenes/stream_gui.cpp:968
+#: client/scenes/lobby_gui.cpp:319 client/scenes/lobby_gui_customize.cpp:655
+#: client/scenes/stream_gui.cpp:962
 msgid "Cancel"
-msgstr "やめる"
+msgstr "キャンセル"
 
 #: client/scenes/lobby_gui.cpp:333
 msgid "Save"
@@ -172,17 +172,17 @@ msgstr "言語"
 msgid "System language"
 msgstr "デバイス言語"
 
-#: client/scenes/lobby_gui.cpp:579 client/scenes/stream_gui.cpp:417
+#: client/scenes/lobby_gui.cpp:580 client/scenes/stream_gui.cpp:411
 msgid "Refresh rate"
 msgstr "リフレッシュレート"
 
-#: client/scenes/lobby_gui.cpp:579 client/scenes/lobby_gui.cpp:581
-#: client/scenes/stream_gui.cpp:417 client/scenes/stream_gui.cpp:419
+#: client/scenes/lobby_gui.cpp:580 client/scenes/lobby_gui.cpp:582
+#: client/scenes/stream_gui.cpp:411 client/scenes/stream_gui.cpp:413
 msgctxt "automatic refresh rate"
 msgid "Automatic"
 msgstr "自動"
 
-#: client/scenes/lobby_gui.cpp:588 client/scenes/stream_gui.cpp:427
+#: client/scenes/lobby_gui.cpp:589 client/scenes/stream_gui.cpp:421
 msgid ""
 "Select refresh rate based on measured application performance.\n"
 "May cause flicker when a change happens."
@@ -190,118 +190,134 @@ msgstr ""
 "アプリケーションのパフォーマンスを基づいて自動的に設定します。\n"
 "変更時にチラツキが発生する可能性があります。"
 
-#: client/scenes/lobby_gui.cpp:605 client/scenes/stream_gui.cpp:445
+#: client/scenes/lobby_gui.cpp:606 client/scenes/stream_gui.cpp:439
 msgid "Minimum refresh rate"
 msgstr "最低リフレッシュレート"
 
-#: client/scenes/lobby_gui.cpp:631
+#: client/scenes/lobby_gui.cpp:632
 msgid "Foveation level"
 msgstr "フォビエーション・レベル"
 
-#: client/scenes/lobby_gui.cpp:654
+#: client/scenes/lobby_gui.cpp:655
 msgid "Render resolution"
 msgstr "レンダー解像度"
 
-#: client/scenes/lobby_gui.cpp:658
+#: client/scenes/lobby_gui.cpp:659
 #, c-format, c++-format
 msgid "{}%% - {}x{} per eye"
 msgstr "{}%% - 目あたり{}x{}"
 
-#: client/scenes/lobby_gui.cpp:669
+#: client/scenes/lobby_gui.cpp:670
 #, c++-format
 msgid "Resolution larger than {}x{} may not be supported by the headset"
 msgstr ""
 "{}x{}以上の解像度は、お使いのヘッドセットではサポートされない場合があります。"
 
-#: client/scenes/lobby_gui.cpp:679
-msgid "Stream resolution"
-msgstr "ストリーミング解像度"
+#: client/scenes/lobby_gui.cpp:680
+msgid "Foveated encoding"
+msgstr "エンコード・フォビエーション"
 
-#: client/scenes/lobby_gui.cpp:683
+#: client/scenes/lobby_gui.cpp:684
 #, c-format, c++-format
 msgid "{}%%"
 msgstr "{}%%"
 
 #: client/scenes/lobby_gui.cpp:697
+msgid ""
+"Higher values focus image quality where you look at,\n"
+"improving latency, power efficiency and quality."
+msgstr ""
+"高い方は、視線方向の画質を最適化し、\n"
+"応答速度、電力効率、画質を向上させます。"
+
+#: client/scenes/lobby_gui.cpp:700
+msgid ""
+"Higher values focus image quality at the center,\n"
+"improving latency, power efficiency and quality."
+msgstr ""
+"高い方は、画面の中央の画質を最適化し、\n"
+"応答速度、電力効率、画質を向上させます。"
+
+#: client/scenes/lobby_gui.cpp:709
 msgctxt "Codec"
 msgid "Automatic"
 msgstr "自動"
 
-#: client/scenes/lobby_gui.cpp:701
+#: client/scenes/lobby_gui.cpp:713
 msgctxt "Codec"
 msgid "H.264"
 msgstr "H.264"
 
-#: client/scenes/lobby_gui.cpp:703
+#: client/scenes/lobby_gui.cpp:715
 msgctxt "Codec"
 msgid "H.265"
 msgstr "H.265"
 
-#: client/scenes/lobby_gui.cpp:705
+#: client/scenes/lobby_gui.cpp:717
 msgctxt "Codec"
 msgid "AV1"
 msgstr "AV1"
 
-#: client/scenes/lobby_gui.cpp:713
+#: client/scenes/lobby_gui.cpp:725
 msgid "Codec"
 msgstr "コーデック"
 
-#: client/scenes/lobby_gui.cpp:741
+#: client/scenes/lobby_gui.cpp:753
 msgid "10-bit"
 msgstr "10ビット"
 
-#: client/scenes/lobby_gui.cpp:756
+#: client/scenes/lobby_gui.cpp:768
 msgid "Bitrate"
 msgstr "ビットレート"
 
-#: client/scenes/lobby_gui.cpp:760
+#: client/scenes/lobby_gui.cpp:772
 #, c++-format
 msgid "{}Mbit/s"
 msgstr "{}Mbps"
 
-#: client/scenes/lobby_gui.cpp:771
+#: client/scenes/lobby_gui.cpp:783
 msgid "High power mode"
 msgstr "高電力モード"
 
-#: client/scenes/lobby_gui.cpp:774
+#: client/scenes/lobby_gui.cpp:786
 msgid "Increase power usage to allow higher resolution and refresh rate"
 msgstr "HMDの性能問題を緩和するため、電力を増加させます。"
 
-#: client/scenes/lobby_gui.cpp:780
+#: client/scenes/lobby_gui.cpp:792
 msgid "Enable microphone"
 msgstr "マイクを有効する"
 
-#: client/scenes/lobby_gui.cpp:789
+#: client/scenes/lobby_gui.cpp:801
 msgid "Unprocessed Microphone Audio"
 msgstr "未処理のマイク音声"
 
-#: client/scenes/lobby_gui.cpp:795
+#: client/scenes/lobby_gui.cpp:807
 msgid "Force disable audio filters, such as noise cancellation"
 msgstr "ノイズ除去などのフィルターを無効化する"
 
-#: client/scenes/lobby_gui.cpp:802
+#: client/scenes/lobby_gui.cpp:814
 msgid "Enable hand tracking"
 msgstr "ハンドトラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:808 client/scenes/lobby_gui.cpp:820
-#: client/scenes/lobby_gui.cpp:832 client/scenes/lobby_gui.cpp:849
-#: client/scenes/lobby_gui_customize.cpp:636
+#: client/scenes/lobby_gui.cpp:820 client/scenes/lobby_gui.cpp:831
+#: client/scenes/lobby_gui.cpp:841 client/scenes/lobby_gui.cpp:856
+#: client/scenes/lobby_gui_customize.cpp:640
 msgid "This feature is not supported by your headset"
 msgstr "デバイスはこの機能をサポートしていません"
 
-#: client/scenes/lobby_gui.cpp:814
+#: client/scenes/lobby_gui.cpp:825
 msgid "Enable eye tracking"
 msgstr "アイトラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:826
+#: client/scenes/lobby_gui.cpp:836
 msgid "Enable face tracking"
 msgstr "顔トラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:840
+#: client/scenes/lobby_gui.cpp:848
 msgid "Enable body tracking"
 msgstr "ボディラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:854
+#: client/scenes/lobby_gui.cpp:861
 msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings,\n"
@@ -312,11 +328,11 @@ msgstr ""
 "そうでなければ、トラッキングデータはHMDとコントローラーの情報から推測されるこ"
 "とになる。"
 
-#: client/scenes/lobby_gui.cpp:864
+#: client/scenes/lobby_gui.cpp:871
 msgid "Enable lower body tracking"
 msgstr "下半身トラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:870
+#: client/scenes/lobby_gui.cpp:877
 msgid ""
 "Estimate lower body joint positions using Generative Legs\n"
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
@@ -326,11 +342,11 @@ msgstr ""
 "Quest設定・動きのトラッキング・ジェスチャーコントロールとボディトラッキングを"
 "有効する必要がある。"
 
-#: client/scenes/lobby_gui.cpp:873
+#: client/scenes/lobby_gui.cpp:880
 msgid "Enable hip tracking"
 msgstr "腰のトラッキングを有効する"
 
-#: client/scenes/lobby_gui.cpp:879
+#: client/scenes/lobby_gui.cpp:886
 msgid ""
 "Only takes affect with lower body tracking enabled\n"
 "May be desired when using another source of hip tracking"
@@ -338,11 +354,11 @@ msgstr ""
 "下半身トラッキングが有効な場合に使用可能。\n"
 "腰トラッカーを持ってる方は無効にしましょう。"
 
-#: client/scenes/lobby_gui.cpp:887
+#: client/scenes/lobby_gui.cpp:895
 msgid "Enable in-stream window"
 msgstr "ストリーミング中の設定パネル"
 
-#: client/scenes/lobby_gui.cpp:890
+#: client/scenes/lobby_gui.cpp:898
 msgid ""
 "Enables the configuration window to be shown while the game is streaming.\n"
 "If enabled, the window is activated by pressing both thumbsticks."
@@ -350,15 +366,23 @@ msgstr ""
 "ストリーミング中にも設定パネルを表示できるようにします。\n"
 "両方のサムスティックを同時に押して切り替えることができます。"
 
-#: client/scenes/lobby_gui.cpp:904 client/scenes/stream_gui.cpp:479
+#: client/scenes/lobby_gui.cpp:902
+msgid "Extended configuration values"
+msgstr "設定に対する制限の緩和"
+
+#: client/scenes/lobby_gui.cpp:905
+msgid "Allows unsafe configuration values, use at your own risk."
+msgstr "不安定な状態が発生しないよう、十分にご注意ください。"
+
+#: client/scenes/lobby_gui.cpp:919 client/scenes/stream_gui.cpp:473
 msgid "OpenXR post-processing"
 msgstr "OpenXRポストエフェクト"
 
-#: client/scenes/lobby_gui.cpp:908 client/scenes/stream_gui.cpp:483
+#: client/scenes/lobby_gui.cpp:923 client/scenes/stream_gui.cpp:477
 msgid "Supersampling"
 msgstr "スーパーサンプリング"
 
-#: client/scenes/lobby_gui.cpp:928 client/scenes/stream_gui.cpp:504
+#: client/scenes/lobby_gui.cpp:943 client/scenes/stream_gui.cpp:498
 msgid ""
 "Reduce flicker for high contrast edges.\n"
 "Useful when the input resolution is high compared to the headset display"
@@ -366,11 +390,11 @@ msgstr ""
 "コントラストが高い部分のギザギザを低減する。\n"
 "ストリームの解像度は、HMDの解像度より高い場合は有用です。"
 
-#: client/scenes/lobby_gui.cpp:933 client/scenes/stream_gui.cpp:509
+#: client/scenes/lobby_gui.cpp:948 client/scenes/stream_gui.cpp:503
 msgid "Sharpening"
 msgstr "シャープ"
 
-#: client/scenes/lobby_gui.cpp:953 client/scenes/stream_gui.cpp:530
+#: client/scenes/lobby_gui.cpp:968 client/scenes/stream_gui.cpp:524
 msgid ""
 "Improve clarity of high contrast edges and counteract blur.\n"
 "Useful when the input resolution is low compared to the headset display"
@@ -378,129 +402,129 @@ msgstr ""
 "ぼかしを低減し、コントラストが高い部分の鮮明度を向上する。\n"
 "ストリームの解像度は、HMDの解像度より低い場合に有用です。"
 
-#: client/scenes/lobby_gui.cpp:1137 client/scenes/lobby_gui.cpp:1145
-#: client/scenes/stream_gui.cpp:172 client/scenes/stream_gui.cpp:373
+#: client/scenes/lobby_gui.cpp:1152 client/scenes/lobby_gui.cpp:1160
+#: client/scenes/stream_gui.cpp:172 client/scenes/stream_gui.cpp:370
 msgid "CPU time"
 msgstr "CPU使用時間"
 
-#: client/scenes/lobby_gui.cpp:1141
+#: client/scenes/lobby_gui.cpp:1156
 msgid "CPU time [ms]"
 msgstr "CPU使用時間、ミリ秒"
 
-#: client/scenes/lobby_gui.cpp:1151 client/scenes/lobby_gui.cpp:1159
-#: client/scenes/stream_gui.cpp:174 client/scenes/stream_gui.cpp:374
+#: client/scenes/lobby_gui.cpp:1166 client/scenes/lobby_gui.cpp:1174
+#: client/scenes/stream_gui.cpp:174 client/scenes/stream_gui.cpp:371
 msgid "GPU time"
 msgstr "GPU使用時間"
 
-#: client/scenes/lobby_gui.cpp:1155
+#: client/scenes/lobby_gui.cpp:1170
 msgid "GPU time [ms]"
 msgstr "GPU使用時間、ミリ秒"
 
-#: client/scenes/lobby_gui.cpp:1219
+#: client/scenes/lobby_gui.cpp:1234
 msgid "Enable the microphone?"
 msgstr "マイクを有効にしますか？"
 
-#: client/scenes/lobby_gui.cpp:1224
+#: client/scenes/lobby_gui.cpp:1239
 msgid "Enable eye tracking?"
 msgstr "アイトラッキングを有効にしますか？"
 
-#: client/scenes/lobby_gui.cpp:1229
+#: client/scenes/lobby_gui.cpp:1244
 msgid "Enable face tracking?"
 msgstr "フェースラッキングを有効にしますか？"
 
-#: client/scenes/lobby_gui.cpp:1234
+#: client/scenes/lobby_gui.cpp:1249
 msgid "Enable body tracking?"
 msgstr "ボディトラッキングを有効にしますか？"
 
-#: client/scenes/lobby_gui.cpp:1242
+#: client/scenes/lobby_gui.cpp:1257
 msgid "Welcome to WiVRn"
 msgstr "WiVRnへようこそ！"
 
-#: client/scenes/lobby_gui.cpp:1270
+#: client/scenes/lobby_gui.cpp:1285
 msgid "Yes"
 msgstr "はい"
 
-#: client/scenes/lobby_gui.cpp:1277
+#: client/scenes/lobby_gui.cpp:1292
 msgid "No"
 msgstr "いいえ"
 
-#: client/scenes/lobby_gui.cpp:1296 client/scenes/lobby_gui.cpp:1942
+#: client/scenes/lobby_gui.cpp:1311 client/scenes/lobby_gui.cpp:1957
 msgid "Licenses"
 msgstr "ライセンス"
 
-#: client/scenes/lobby_gui.cpp:1572
+#: client/scenes/lobby_gui.cpp:1587
 msgid "Microphone is enabled"
 msgstr "マイクは有効です"
 
-#: client/scenes/lobby_gui.cpp:1573
+#: client/scenes/lobby_gui.cpp:1588
 msgid "Microphone is disabled"
 msgstr "マイクは無効です"
 
-#: client/scenes/lobby_gui.cpp:1582
+#: client/scenes/lobby_gui.cpp:1597
 msgid "Hand tracking is enabled"
 msgstr "ハンドトラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1583
+#: client/scenes/lobby_gui.cpp:1598
 msgid "Hand tracking is disabled"
 msgstr "ハンドラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1592
+#: client/scenes/lobby_gui.cpp:1607
 msgid "Eye tracking is enabled"
 msgstr "アイトラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1593
+#: client/scenes/lobby_gui.cpp:1608
 msgid "Eye tracking is disabled"
 msgstr "アイトラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1603
+#: client/scenes/lobby_gui.cpp:1618
 msgid "Face tracking is enabled"
 msgstr "フェーストラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1604
+#: client/scenes/lobby_gui.cpp:1619
 msgid "Face tracking is disabled"
 msgstr "フェーストラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1618
+#: client/scenes/lobby_gui.cpp:1633
 msgid "Body tracking is enabled"
 msgstr "ボディトラッキングは有効です"
 
-#: client/scenes/lobby_gui.cpp:1619
+#: client/scenes/lobby_gui.cpp:1634
 msgid "Body tracking is disabled"
 msgstr "ボディトラッキングは無効です"
 
-#: client/scenes/lobby_gui.cpp:1635
+#: client/scenes/lobby_gui.cpp:1650
 msgid "Add server"
 msgstr "サーバーを追加する"
 
-#: client/scenes/lobby_gui.cpp:1921
+#: client/scenes/lobby_gui.cpp:1936
 msgid "Server list"
 msgstr "サーバー"
 
-#: client/scenes/lobby_gui.cpp:1924 client/scenes/stream_gui.cpp:996
+#: client/scenes/lobby_gui.cpp:1939 client/scenes/stream_gui.cpp:990
 msgid "Settings"
 msgstr "設定"
 
-#: client/scenes/lobby_gui.cpp:1927
+#: client/scenes/lobby_gui.cpp:1942
 msgid "Post-processing"
 msgstr "ポストエフェクト"
 
-#: client/scenes/lobby_gui.cpp:1930
+#: client/scenes/lobby_gui.cpp:1945
 msgid "Customize"
 msgstr "カスタマイズ"
 
-#: client/scenes/lobby_gui.cpp:1934
+#: client/scenes/lobby_gui.cpp:1949
 msgid "Debug"
 msgstr "デバッグ"
 
-#: client/scenes/lobby_gui.cpp:1939
+#: client/scenes/lobby_gui.cpp:1954
 msgid "About"
 msgstr "WiVRnについて"
 
-#: client/scenes/lobby_gui.cpp:1945
+#: client/scenes/lobby_gui.cpp:1960
 msgid "Exit"
 msgstr "完了"
 
-#: client/scenes/lobby_gui.cpp:1962
+#: client/scenes/lobby_gui.cpp:1977
 msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
@@ -508,51 +532,51 @@ msgstr ""
 "メイン・パネルを動かすには、グリップを握るか、\n"
 "手のひらを上向きにしましょう。"
 
-#: client/scenes/lobby_gui.cpp:1964
+#: client/scenes/lobby_gui.cpp:1979
 msgid "Press the grip button to move the main window"
 msgstr "グリップを握ってパネルを動かしましょう。"
 
-#: client/scenes/lobby_gui_customize.cpp:208
+#: client/scenes/lobby_gui_customize.cpp:213
 msgid "Locally loaded environment"
 msgstr "ローカル環境"
 
-#: client/scenes/lobby_gui_customize.cpp:221
+#: client/scenes/lobby_gui_customize.cpp:226
 #, c++-format
 msgid "Locally loaded environment ({})"
 msgstr "ローカル環境（{}）"
 
-#: client/scenes/lobby_gui_customize.cpp:296
+#: client/scenes/lobby_gui_customize.cpp:300
 #, c++-format
 msgid "Cannot load local environment: {}"
 msgstr "ローカル環境ロードできません：{}"
 
-#: client/scenes/lobby_gui_customize.cpp:329
+#: client/scenes/lobby_gui_customize.cpp:333
 #, c++-format
 msgid "Cannot load environment list: {}"
 msgstr "環境リストをロードできませんでした：{}"
 
-#: client/scenes/lobby_gui_customize.cpp:459
+#: client/scenes/lobby_gui_customize.cpp:463
 #, c++-format
 msgid "Author: {}"
 msgstr "作者：{}"
 
-#: client/scenes/lobby_gui_customize.cpp:463
+#: client/scenes/lobby_gui_customize.cpp:467
 #, c++-format
 msgid "Size: {:.1f} MB"
 msgstr "サイズ：{:.1f} MB"
 
-#: client/scenes/lobby_gui_customize.cpp:543
+#: client/scenes/lobby_gui_customize.cpp:547
 msgid "Delete this model"
 msgstr "モデルを削除しますか？"
 
-#: client/scenes/lobby_gui_customize.cpp:579
-#: client/scenes/lobby_gui_customize.cpp:785
+#: client/scenes/lobby_gui_customize.cpp:583
+#: client/scenes/lobby_gui_customize.cpp:789
 #, c++-format
 msgid "HTTP error {} when downloading {}"
 msgstr "{}をダウンロード中にHTTP {}が発生しました。"
 
-#: client/scenes/lobby_gui_customize.cpp:587
-#: client/scenes/lobby_gui_customize.cpp:793
+#: client/scenes/lobby_gui_customize.cpp:591
+#: client/scenes/lobby_gui_customize.cpp:797
 #, c++-format
 msgid ""
 "Curl error when downloading {}\n"
@@ -561,29 +585,29 @@ msgstr ""
 "{}をダウンロード中にCurlエラーが発生しました。\n"
 "{}: {}"
 
-#: client/scenes/lobby_gui_customize.cpp:648
+#: client/scenes/lobby_gui_customize.cpp:652
 #, c++-format
 msgid "Really delete {}?"
 msgstr "{}を削除しますか？"
 
-#: client/scenes/lobby_gui_customize.cpp:652
+#: client/scenes/lobby_gui_customize.cpp:656
 msgid "Delete"
 msgstr "削除"
 
-#: client/scenes/lobby_gui_customize.cpp:733
+#: client/scenes/lobby_gui_customize.cpp:737
 #, c++-format
 msgid "Cannot load environment: {}"
 msgstr "環境をロードできませんでした：{}"
 
-#: client/scenes/lobby_gui_customize.cpp:741
+#: client/scenes/lobby_gui_customize.cpp:745
 msgid "Loading environment"
 msgstr "ホーム環境をロード中"
 
-#: client/scenes/lobby_gui_customize.cpp:820
+#: client/scenes/lobby_gui_customize.cpp:824
 msgid "Download more environments"
 msgstr "ホーム環境をダウンロード"
 
-#: client/scenes/lobby_gui_customize.cpp:828
+#: client/scenes/lobby_gui_customize.cpp:832
 msgid "Open local glTF model"
 msgstr "glTFファイルを開く"
 
@@ -595,11 +619,11 @@ msgstr "フォビエーション解除"
 msgid "Network"
 msgstr "ネットワーク"
 
-#: client/scenes/stream_gui.cpp:176 client/scenes/stream_gui.cpp:371
+#: client/scenes/stream_gui.cpp:176 client/scenes/stream_gui.cpp:368
 msgid "Download"
 msgstr "ダウンロード"
 
-#: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:372
+#: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:369
 msgid "Upload"
 msgstr "アップロード"
 
@@ -640,107 +664,107 @@ msgstr "表示"
 msgid "Predicted"
 msgstr "予測時間"
 
-#: client/scenes/stream_gui.cpp:344
+#: client/scenes/stream_gui.cpp:343
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "「Motion-to-photon」推定遅延 {}ミリ秒"
 
-#: client/scenes/stream_gui.cpp:351
+#: client/scenes/stream_gui.cpp:348
 msgid "Press the grip button to move the window"
 msgstr "グリップを握ってパネルを動かしましょう。"
 
-#: client/scenes/stream_gui.cpp:353 client/scenes/stream_gui.cpp:924
+#: client/scenes/stream_gui.cpp:350 client/scenes/stream_gui.cpp:918
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "両方のサムスティックを同時に押すことで設定表示"
 
-#: client/scenes/stream_gui.cpp:375
+#: client/scenes/stream_gui.cpp:372
 msgid "Motion to photon latency"
 msgstr "「Motion-to-photon」遅延"
 
-#: client/scenes/stream_gui.cpp:464
+#: client/scenes/stream_gui.cpp:458
 msgid "Bitrate:"
 msgstr "ビットレート："
 
-#: client/scenes/stream_gui.cpp:474
+#: client/scenes/stream_gui.cpp:468
 msgid "Click to adjust bitrate"
 msgstr "クリックしてビットレートを調整"
 
-#: client/scenes/stream_gui.cpp:537
+#: client/scenes/stream_gui.cpp:531
 msgid "Foveation center override"
 msgstr "光学中心の調整"
 
-#: client/scenes/stream_gui.cpp:540
+#: client/scenes/stream_gui.cpp:534
 msgid "Enable"
 msgstr "有効"
 
-#: client/scenes/stream_gui.cpp:548 client/scenes/stream_gui.cpp:620
+#: client/scenes/stream_gui.cpp:542 client/scenes/stream_gui.cpp:614
 #, c++-format
 msgid "Height {:.1f} deg"
 msgstr "仰角 {:.1f}°"
 
-#: client/scenes/stream_gui.cpp:549 client/scenes/stream_gui.cpp:621
+#: client/scenes/stream_gui.cpp:543 client/scenes/stream_gui.cpp:615
 #, c++-format
 msgid "Distance {:.2f} m"
 msgstr "距離 {:.2f}m"
 
-#: client/scenes/stream_gui.cpp:550
+#: client/scenes/stream_gui.cpp:544
 msgid "Default"
 msgstr "デフォルト"
 
-#: client/scenes/stream_gui.cpp:561
+#: client/scenes/stream_gui.cpp:555
 msgid "Change"
 msgstr "編集"
 
-#: client/scenes/stream_gui.cpp:594
+#: client/scenes/stream_gui.cpp:588
 msgid "Use the right thumbstick to adjust the bitrate"
 msgstr "右スティックでビットレートを調整しましょう"
 
-#: client/scenes/stream_gui.cpp:595
+#: client/scenes/stream_gui.cpp:589
 msgid "Press A to go back"
 msgstr "「A」を押して戻る"
 
-#: client/scenes/stream_gui.cpp:596
+#: client/scenes/stream_gui.cpp:590
 #, c++-format
 msgid "Bitrate: {}Mbit/s"
 msgstr "ビットレート：{}Mbps"
 
-#: client/scenes/stream_gui.cpp:618
+#: client/scenes/stream_gui.cpp:612
 msgid "Use the thumbsticks to move the foveation center"
 msgstr "ジョイスティックを使って中心点を調整しましょう。"
 
-#: client/scenes/stream_gui.cpp:619
+#: client/scenes/stream_gui.cpp:613
 msgid "Press A to save or B to cancel"
 msgstr "AかBを押してキャンセル。"
 
-#: client/scenes/stream_gui.cpp:677
+#: client/scenes/stream_gui.cpp:671
 msgid "Running XR applications:"
 msgstr "XRアプリの実行"
 
-#: client/scenes/stream_gui.cpp:694
+#: client/scenes/stream_gui.cpp:688
 msgid "Overlays"
 msgstr "オーバーレイ"
 
-#: client/scenes/stream_gui.cpp:733
+#: client/scenes/stream_gui.cpp:727
 msgid "Request to quit, may be ignored by the application"
 msgstr "終了シグナルを送信する"
 
-#: client/scenes/stream_gui.cpp:983
+#: client/scenes/stream_gui.cpp:977
 msgid "Applications"
 msgstr "アプリ"
 
-#: client/scenes/stream_gui.cpp:986
+#: client/scenes/stream_gui.cpp:980
 msgid "Start"
 msgstr "実行する"
 
-#: client/scenes/stream_gui.cpp:999
+#: client/scenes/stream_gui.cpp:993
 msgid "Stats"
 msgstr "統計情報"
 
-#: client/scenes/stream_gui.cpp:1005
+#: client/scenes/stream_gui.cpp:999
 msgid "Statistics overlay"
 msgstr "統計オーバーレイ"
 
-#: client/scenes/stream_gui.cpp:1008
+#: client/scenes/stream_gui.cpp:1002
 msgid "Compact view"
 msgstr "コンパクト・モード"
 
