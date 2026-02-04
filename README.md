@@ -31,6 +31,8 @@ WiVRn support a wide range of VR devices:
 | Non-Android VR | ✖ | Not Android |
 | Non-VR Android | ✖ | VR required |
 
+<sup>A Linux client does exist, only for debugging. It has no audio or hardware decoding.</sup>
+
 # Getting started
 
 
