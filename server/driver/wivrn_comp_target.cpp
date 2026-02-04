@@ -651,6 +651,13 @@ static void comp_wivrn_flush(struct comp_target * ct)
 		r->StartFrameCapture(NULL, NULL);
 #endif
 
+	if (cn->cnx.get_info().eye_gaze)
+	{
+		// FIXME: actually get the gaze data here
+		auto now = os_monotonic_get_ns();
+		cn->cnx.add_tracking_request(device_id::EYE_GAZE, cn->c->base.layer_accum.data.display_time_ns, now, now);
+	}
+
 	vk::CommandBuffer cmd;
 	// apply foveation for current frame
 	if (cn->c->base.frame_params.one_projection_layer_fast_path)

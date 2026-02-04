@@ -116,8 +116,7 @@ app_launcher::clicked app_launcher::draw_gui(imgui_context & imgui_ctx, const st
 	auto res = clicked::None;
 	auto t0 = std::chrono::steady_clock::now();
 	bool app_starting = start_time != std::chrono::steady_clock::time_point{} and
-	                    t0 - start_time < 10s and
-	                    stream.current_state() != scenes::stream::state::streaming;
+	                    t0 - start_time < 10s;
 
 	auto cancel_size = ImGui::CalcTextSize(cancel.c_str());
 

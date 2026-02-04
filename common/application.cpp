@@ -357,28 +357,33 @@ void do_data_dir(std::filesystem::path dir, std::unordered_map<std::string, appl
 	dir = dir / "applications";
 	if (not std::filesystem::is_directory(dir))
 		return;
-	for (const auto & entry: std::filesystem::recursive_directory_iterator(dir))
+	try
 	{
-		if (entry.is_directory())
-			continue;
+		for (const auto & entry: std::filesystem::recursive_directory_iterator(dir, std::filesystem::directory_options::skip_permission_denied))
+		{
+			if (entry.is_directory())
+				continue;
 
-		if (entry.path().extension() != ".desktop")
-			continue;
+			if (entry.path().extension() != ".desktop")
+				continue;
 
-		// https://specifications.freedesktop.org/desktop-entry-spec/latest/file-naming.html#desktop-file-id
-		auto file_id = entry.path()
-		                       .lexically_relative(dir)
-		                       .replace_extension("")
-		                       .string();
-		std::ranges::replace(file_id, '/', '-');
+			// https://specifications.freedesktop.org/desktop-entry-spec/latest/file-naming.html#desktop-file-id
+			auto file_id = entry.path()
+			                       .lexically_relative(dir)
+			                       .replace_extension("")
+			                       .string();
+			std::ranges::replace(file_id, '/', '-');
 
-		if (res.contains(file_id))
-			continue;
+			if (res.contains(file_id))
+				continue;
 
-		auto app = do_desktop_entry(entry.path());
-		if (app)
-			res.emplace(std::move(file_id), std::move(*app));
+			auto app = do_desktop_entry(entry.path());
+			if (app)
+				res.emplace(std::move(file_id), std::move(*app));
+		}
 	}
+	catch (std::exception & ex)
+	{}
 }
 } // namespace
 

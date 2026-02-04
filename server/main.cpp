@@ -513,7 +513,16 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 		                   [&](const wivrn::from_headset::start_app & request) {
 			                   const auto & apps = list_applications();
 			                   if (auto it = apps.find(request.app_id); it != apps.end())
-				                   children->start_application(it->second.exec, it->second.path);
+			                   {
+				                   try
+				                   {
+					                   children->start_application(it->second.exec, it->second.path);
+				                   }
+				                   catch (std::exception & e)
+				                   {
+					                   std::cerr << "Failed to launch application " << it->second.name.at("") << ": " << e.what() << std::endl;
+				                   }
+			                   }
 		                   },
 		                   [&](const from_monado::headset_connected &) {
 			                   stop_publishing();
