@@ -526,6 +526,7 @@ void scenes::stream::on_unfocused()
 	clear_swapchains();
 	left_hand.reset();
 	right_hand.reset();
+	apps.reset();
 
 	imgui_ctx.reset();
 }

@@ -979,6 +979,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 			if (RadioButtonWithoutCheckBox(ICON_FA_ROCKET "  " + _("Start"), gui_status, gui_status::application_launcher, {tab_width, 0}))
 			{
+				apps.reset();
 				network_session->send_control(from_headset::get_application_list{
 				        .language = application::get_messages_info().language,
 				        .country = application::get_messages_info().country,
