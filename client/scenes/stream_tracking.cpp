@@ -577,12 +577,9 @@ void scenes::stream::tracking()
 
 			for (const auto & i: hands)
 			{
-				if (i.joints)
-				{
-					auto & packet = packets[packet_count++];
-					packet.clear();
-					wivrn_session::stream_socket_t::serialize(packet, i);
-				}
+				auto & packet = packets[packet_count++];
+				packet.clear();
+				wivrn_session::stream_socket_t::serialize(packet, i);
 			}
 			for (const auto & i: body)
 			{
