@@ -1,4 +1,4 @@
-From 677fcc118afabccb285c2b4f83c41ef7d3dbfa93 Mon Sep 17 00:00:00 2001
+From b975312f8c05fc12cefe31af791d3db3bc34ac3c Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Fri, 14 Nov 2025 19:48:59 +0000
 Subject: [PATCH 09/11] d/solarxr: Sync at fixed rate This improves tracking

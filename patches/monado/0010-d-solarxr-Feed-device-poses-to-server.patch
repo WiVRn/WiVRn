@@ -1,16 +1,18 @@
-From 13b8bff84a6bddb7cbf961985575af5aaea09838 Mon Sep 17 00:00:00 2001
+From c39ea86d5312a3b0da0e376161df57a590a4a856 Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 15 Sep 2025 22:46:15 +0000
 Subject: [PATCH 10/11] d/solarxr: Feed device poses to server
 
+For now this utilizes SlimeVR's separate "SteamVR Feeder" API,
+waiting on https://github.com/SlimeVR/SlimeVR-Server/issues/895.
 ---
  src/xrt/drivers/CMakeLists.txt              |   2 +
- src/xrt/drivers/solarxr/feeder.c            | 331 ++++++++++++++++++++
+ src/xrt/drivers/solarxr/feeder.c            | 339 ++++++++++++++++++++
  src/xrt/drivers/solarxr/feeder.h            |  85 +++++
  src/xrt/drivers/solarxr/protocol.h          |  30 +-
  src/xrt/drivers/solarxr/solarxr_device.c    | 161 ++++++----
  src/xrt/drivers/solarxr/solarxr_interface.h |  20 ++
- 6 files changed, 565 insertions(+), 64 deletions(-)
+ 6 files changed, 573 insertions(+), 64 deletions(-)
  create mode 100644 src/xrt/drivers/solarxr/feeder.c
  create mode 100644 src/xrt/drivers/solarxr/feeder.h
 
@@ -29,10 +31,10 @@ index b44617e1a..040bd76b7 100644
  		solarxr/solarxr_device.c
 diff --git a/src/xrt/drivers/solarxr/feeder.c b/src/xrt/drivers/solarxr/feeder.c
 new file mode 100644
-index 000000000..596a61008
+index 000000000..3c79eef8b
 --- /dev/null
 +++ b/src/xrt/drivers/solarxr/feeder.c
-@@ -0,0 +1,331 @@
+@@ -0,0 +1,339 @@
 +// Copyright 2025, rcelyte
 +// SPDX-License-Identifier: BSL-1.0
 +/*!
@@ -48,6 +50,9 @@ index 000000000..596a61008
 +#include "xrt/xrt_device.h"
 +
 +#include <math.h>
++#include <pb.h>
++
++static const char manufacturer[] = "Monado";
 +
 +#define PROTOBUF_FLOAT(v_) ((uint8_t *)&(v_))[0], ((uint8_t *)&(v_))[1], ((uint8_t *)&(v_))[2], ((uint8_t *)&(v_))[3]
 +#define PROTOBUF_INT32(v_)                                                                                             \
@@ -115,15 +120,20 @@ index 000000000..596a61008
 +	// serialize announcement packet
 +	const uint32_t serial_len = strlen(xdev->serial), name_len = strlen(xdev->str);
 +	const uint8_t message_1[] = {
-+	    (3 << 3) | 2, PROTOBUF_INT32(0),               // ProtobufMessage::tracker_added
-+	    (1 << 3) | 0, PROTOBUF_INT32(feeder->next_id), // TrackerAdded::tracker_id
-+	    (4 << 3) | 0, role,                            // TrackerAdded::tracker_role
-+	    (2 << 3) | 2, PROTOBUF_INT32(serial_len),
++	    (3 << 3) | PB_WT_STRING, PROTOBUF_INT32(0),               // ProtobufMessage::tracker_added
++	    (1 << 3) | PB_WT_VARINT, PROTOBUF_INT32(feeder->next_id), // TrackerAdded::tracker_id
++	    (4 << 3) | PB_WT_VARINT, role,                            // TrackerAdded::tracker_role
++	    (2 << 3) | PB_WT_STRING, PROTOBUF_INT32(serial_len),
 +	};
-+	const uint8_t message_2[] = {
-+	    (3 << 3) | 2,
++	static_assert(sizeof(manufacturer) - 1 < 0x80, "");
++	uint8_t message_2[] = {
++	    (5 << 3) | PB_WT_STRING,
++	    sizeof(manufacturer) - 1,
++	    // TrackerAdded::manufacturer
++	    [2 + (sizeof(manufacturer) - 1)] = (3 << 3) | PB_WT_STRING,
 +	    PROTOBUF_INT32(name_len),
 +	};
++	memcpy(&message_2[2], manufacturer, sizeof(manufacturer) - 1);
 +	uint8_t packet[sizeof(struct solarxr_ipc_message) + sizeof(message_1) + sizeof(xdev->serial) +
 +	               sizeof(message_2) + sizeof(xdev->str)];
 +	struct solarxr_ipc_message *const message = solarxr_ipc_message_start(packet, &packet[ARRAY_SIZE(packet)]);
@@ -139,6 +149,10 @@ index 000000000..596a61008
 +		assert(false);
 +		goto unlock;
 +	}
++	const uint8_t tracker_added[] = {
++	    PROTOBUF_INT32(packet_len - sizeof(*message) - sizeof((uint8_t[]){0, PROTOBUF_INT32(0)})),
++	};
++	memcpy(&message->body[1], tracker_added, sizeof(tracker_added));
 +
 +	// initialize tracked state for the device
 +	struct feeder_device *const device = malloc(sizeof(*device));
@@ -155,10 +169,6 @@ index 000000000..596a61008
 +	u_hashmap_int_insert(feeder->devices, (uint64_t)(uintptr_t)xdev, device);
 +
 +	// send the announcement
-+	const uint8_t tracker_added[] = {
-+	    PROTOBUF_INT32(packet_len - sizeof(*message) - sizeof((uint8_t[]){0, PROTOBUF_INT32(0)})),
-+	};
-+	memcpy(&message->body[1], tracker_added, sizeof(tracker_added));
 +	solarxr_ipc_socket_send_raw(&feeder->socket, packet, packet_len);
 +	U_LOG_IFL_D(feeder->socket.log_level, "    \"%s\" [id=%" PRIu32 " serial=\"%s\" role=TrackerRole::%s]",
 +	            xdev->str, device->id, xdev->serial, role_name);
@@ -237,10 +247,10 @@ index 000000000..596a61008
 +			device->battery_charging = charging;
 +			device->battery_charge = charge;
 +			uint8_t message[] = {
-+			    (5 << 3) | 2, 0,                          // ProtobufMessage::battery
-+			    (1 << 3) | 0, PROTOBUF_INT32(device->id), // Battery::tracker_id
-+			    (2 << 3) | 5, PROTOBUF_FLOAT(charge),     // Battery::battery_level
-+			    (3 << 3) | 0, charging,                   // Battery::is_charging
++			    (5 << 3) | PB_WT_STRING, 0,                          // ProtobufMessage::battery
++			    (1 << 3) | PB_WT_VARINT, PROTOBUF_INT32(device->id), // Battery::tracker_id
++			    (2 << 3) | PB_WT_32BIT,  PROTOBUF_FLOAT(charge),     // Battery::battery_level
++			    (3 << 3) | PB_WT_VARINT, charging,                   // Battery::is_charging
 +			};
 +			message[1] = sizeof(message) - 2;
 +			solarxr_ipc_message_write_single(&data->packet_end, &data->packet[ARRAY_SIZE(data->packet)],
@@ -253,20 +263,20 @@ index 000000000..596a61008
 +		if (xrt_device_get_tracked_pose(xdev, device->input_name, data->time, &relation) == XRT_SUCCESS &&
 +		    (relation.relation_flags & XRT_SPACE_RELATION_ORIENTATION_VALID_BIT) != 0) {
 +			uint8_t message[30 + 15] = {
-+			    (1 << 3) | 2, 0,                                           // ProtobufMessage::position
-+			    (1 << 3) | 0, PROTOBUF_INT32(device->id),                  // Position::tracker_id
-+			    (5 << 3) | 5, PROTOBUF_FLOAT(relation.pose.orientation.x), // Position::qx
-+			    (6 << 3) | 5, PROTOBUF_FLOAT(relation.pose.orientation.y), // Position::qy
-+			    (7 << 3) | 5, PROTOBUF_FLOAT(relation.pose.orientation.z), // Position::qz
-+			    (8 << 3) | 5, PROTOBUF_FLOAT(relation.pose.orientation.w), // Position::qw
-+			    (9 << 3) | 0, 3, // Position::data_source = DataSource::FULL
++			    (1 << 3) | PB_WT_STRING, 0,                          // ProtobufMessage::position
++			    (1 << 3) | PB_WT_VARINT, PROTOBUF_INT32(device->id), // Position::tracker_id
++			    (5 << 3) | PB_WT_32BIT,  PROTOBUF_FLOAT(relation.pose.orientation.x), // Position::qx
++			    (6 << 3) | PB_WT_32BIT,  PROTOBUF_FLOAT(relation.pose.orientation.y), // Position::qy
++			    (7 << 3) | PB_WT_32BIT,  PROTOBUF_FLOAT(relation.pose.orientation.z), // Position::qz
++			    (8 << 3) | PB_WT_32BIT,  PROTOBUF_FLOAT(relation.pose.orientation.w), // Position::qw
++			    (9 << 3) | PB_WT_VARINT, 3, // Position::data_source = DataSource::FULL
 +			};
 +			uint32_t message_len = sizeof(message);
 +			if ((relation.relation_flags & XRT_SPACE_RELATION_POSITION_VALID_BIT) != 0) {
 +				const uint8_t position[15] = {
-+				    (2 << 3) | 5, PROTOBUF_FLOAT(relation.pose.position.x), // Position::x
-+				    (3 << 3) | 5, PROTOBUF_FLOAT(relation.pose.position.y), // Position::y
-+				    (4 << 3) | 5, PROTOBUF_FLOAT(relation.pose.position.z), // Position::z
++				    (2 << 3) | PB_WT_32BIT, PROTOBUF_FLOAT(relation.pose.position.x), // Position::x
++				    (3 << 3) | PB_WT_32BIT, PROTOBUF_FLOAT(relation.pose.position.y), // Position::y
++				    (4 << 3) | PB_WT_32BIT, PROTOBUF_FLOAT(relation.pose.position.z), // Position::z
 +				};
 +				memcpy(&message[sizeof(message) - sizeof(position)], position, sizeof(position));
 +			} else {
@@ -285,9 +295,9 @@ index 000000000..596a61008
 +	if (status != device->last_status) {
 +		device->last_status = status;
 +		uint8_t message[] = {
-+		    (4 << 3) | 2, 0,                          // ProtobufMessage::tracker_status
-+		    (1 << 3) | 0, PROTOBUF_INT32(device->id), // TrackerStatus::tracker_id
-+		    (2 << 3) | 0, status,                     // TrackerStatus::status
++		    (4 << 3) | PB_WT_STRING, 0,                          // ProtobufMessage::tracker_status
++		    (1 << 3) | PB_WT_VARINT, PROTOBUF_INT32(device->id), // TrackerStatus::tracker_id
++		    (2 << 3) | PB_WT_VARINT, status,                     // TrackerStatus::status
 +		};
 +		message[1] = sizeof(message) - 2;
 +		solarxr_ipc_message_write_single(&data->packet_end, &data->packet[ARRAY_SIZE(data->packet)], message,

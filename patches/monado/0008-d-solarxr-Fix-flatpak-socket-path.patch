@@ -1,4 +1,4 @@
-From 8a05785464f1f8d1ba8f947b57ebf88d37177954 Mon Sep 17 00:00:00 2001
+From b0e8426914c2b3bec366dbeaccce7db0260fa252 Mon Sep 17 00:00:00 2001
 From: rcelyte <rcelyte@battletrains.org>
 Date: Mon, 8 Dec 2025 19:29:28 +0000
 Subject: [PATCH 08/11] d/solarxr: Fix flatpak socket path
