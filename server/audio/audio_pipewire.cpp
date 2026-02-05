@@ -128,8 +128,6 @@ struct pipewire_device : public audio_device
 			                "Audio/Sink",
 			                PW_KEY_MEDIA_ROLE,
 			                "Game",
-			                PW_KEY_NODE_VIRTUAL,
-			                "true",
 			                // Set stream rate to match client, preventing PipeWire from doing
 			                // unnecessary resampling which degrades audio quality
 			                PW_KEY_NODE_RATE,
@@ -210,8 +208,6 @@ struct pipewire_device : public audio_device
 			                "Audio/Source",
 			                PW_KEY_MEDIA_ROLE,
 			                "Game",
-			                PW_KEY_NODE_VIRTUAL,
-			                "true",
 			                // Set stream rate to match client, preventing PipeWire from doing
 			                // unnecessary resampling which degrades audio quality
 			                PW_KEY_NODE_RATE,
