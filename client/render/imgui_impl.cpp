@@ -915,7 +915,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 
 			float alpha = std::clamp<float>(1 - distance / constants::gui::pointer_fading_distance, 0, 1);
 
-			if (&controller == &controllers[focused_controller])
+			if (focused_controller != (size_t)-1 and &controller == &controllers[focused_controller])
 				alpha *= constants::gui::pointer_alpha;
 			else
 				alpha *= constants::gui::pointer_alpha_disabled;
