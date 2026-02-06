@@ -65,6 +65,14 @@
 #include "solarxr_interface.h"
 #endif
 
+static std::string xrt_result_to_string(xrt_result_t xret)
+{
+	struct u_pp_sink_stack_only sink;
+	u_pp_delegate_t dg = u_pp_sink_stack_only_init(&sink);
+	u_pp_xrt_result(dg, xret);
+	return sink.buffer;
+}
+
 namespace wivrn
 {
 
@@ -349,7 +357,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	auto xret = comp_main_create_system_compositor(&self->hmd, &ctf, &self->app_pacers, out_xsysc);
 	if (xret != XRT_SUCCESS)
 	{
-		U_LOG_E("Failed to create system compositor");
+		U_LOG_E("Failed to create system compositor: %s", xrt_result_to_string(xret).c_str());
 		return xret;
 	}
 	self->system_compositor = *out_xsysc;
@@ -379,7 +387,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 		}
 		if (res != XRT_SUCCESS)
 		{
-			U_LOG_W("failed to initialize eye tracker");
+			U_LOG_W("failed to initialize eye tracker: %s", xrt_result_to_string(res).c_str());
 			self->eye_tracker = nullptr;
 		}
 	}
@@ -898,8 +906,11 @@ void wivrn_session::operator()(const from_headset::stop_application & req)
 			}
 
 			U_LOG_I("Request exit for application %s", t.ics.client_state.info.application_name);
-			if (xrt_session_request_exit(t.ics.xs) != XRT_SUCCESS)
-				U_LOG_W("Failed to request exit for application %s", t.ics.client_state.info.application_name);
+			xrt_result_t xret = xrt_session_request_exit(t.ics.xs);
+			if (xret != XRT_SUCCESS)
+			{
+				U_LOG_W("Failed to request exit for application %s: %s", t.ics.client_state.info.application_name, xrt_result_to_string(xret).c_str());
+			}
 
 			auto when = os_monotonic_get_ns() + 10l * U_TIME_1S_IN_NS;
 			session_loss.lock()->emplace(req.id, when);
@@ -1091,7 +1102,7 @@ void wivrn_session::reconnect(std::stop_token stop)
 	auto result = push_event(event);
 	if (result != XRT_SUCCESS)
 	{
-		U_LOG_W("Failed to notify session state change");
+		U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
 	}
 
 	U_LOG_I("Waiting for new connection");
@@ -1124,7 +1135,7 @@ void wivrn_session::reconnect(std::stop_token stop)
 		result = push_event(event);
 		if (result != XRT_SUCCESS)
 		{
-			U_LOG_W("Failed to notify session state change");
+			U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
 		}
 	}
 	catch (const std::exception & e)
