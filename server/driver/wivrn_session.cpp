@@ -370,7 +370,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 
 	if (self->eye_tracker)
 	{
-		xrt_space * head_space;
+		xrt_space * head_space = nullptr;
 		auto res = xrt_space_overseer_create_pose_space(self->space_overseer, &self->hmd, XRT_INPUT_GENERIC_HEAD_POSE, &head_space);
 		if (res == XRT_SUCCESS)
 		{
