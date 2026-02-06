@@ -97,7 +97,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_raw::present_image(vk::Image
 	        vk::ImageLayout::eTransferSrcOptimal,
 	        buffers[slot],
 	        std::span(regions.data(),
-	                  stream_idx == 2 ? 2 : 1));
+	                  stream_idx < 2 ? 2 : 1));
 	return {false, nullptr};
 }
 
