@@ -1135,7 +1135,6 @@ void scene_renderer::render(
 			object_ubo.modelview[frame_index] = frame.view * transform;
 			object_ubo.modelviewproj[frame_index] = viewproj[frame_index] * transform;
 		}
-		object_ubo.clipping_planes = node.clipping_planes;
 		std::ranges::copy(node.extra_shader_data, extra_shader_data.begin());
 
 		// Get the material

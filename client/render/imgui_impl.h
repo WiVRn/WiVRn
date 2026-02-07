@@ -145,6 +145,15 @@ public:
 		}
 	};
 
+	struct window_viewport
+	{
+		// Position of this window in the world
+		xr::spaces space;
+		glm::vec3 position;
+		glm::quat orientation;
+		glm::vec2 size;
+	};
+
 private:
 	uint32_t queue_family_index;
 
@@ -215,7 +224,7 @@ public:
 		return layers_;
 	}
 
-	std::vector<viewport> windows();
+	std::vector<window_viewport> windows();
 
 	viewport & layer(ImVec2 position);
 

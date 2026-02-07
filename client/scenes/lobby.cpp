@@ -626,28 +626,7 @@ std::optional<glm::vec3> scenes::lobby::check_recenter_gui(glm::vec3 head_positi
 	return std::nullopt;
 }
 
-// Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
-static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
-{
-	glm::quat q{
-	        pose.orientation.w,
-	        pose.orientation.x,
-	        pose.orientation.y,
-	        pose.orientation.z,
-	};
-
-	glm::vec3 p{
-	        pose.position.x,
-	        pose.position.y,
-	        pose.position.z,
-	};
-
-	glm::vec3 normal = glm::column(glm::mat3_cast(q), 2);
-
-	return glm::vec4(normal, -glm::dot(p, normal) - margin);
-}
-
-static void stick_finger_to_gui(std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & hand, const std::vector<imgui_context::viewport> & layers)
+static void stick_finger_to_gui(std::array<xr::hand_tracker::joint, XR_HAND_JOINT_COUNT_EXT> & hand, const std::vector<imgui_context::window_viewport> & layers)
 {
 	// Move XR_HAND_JOINT_INDEX_{TIP,DISTAL,INTERMEDIATE,PROXIMAL}_EXT so that:
 	// - Only the X rotation changes for distal and intermediate (relative to the parent bone)
@@ -667,7 +646,7 @@ static void stick_finger_to_gui(std::array<xr::hand_tracker::joint, XR_HAND_JOIN
 
 	// Compute the target position of the tip
 	std::vector<std::pair<glm::vec3, float>> intersections; // Target position of the finger tip, distance to the GUI plane
-	for (const imgui_context::viewport & layer: layers)
+	for (const imgui_context::window_viewport & layer: layers)
 	{
 		// Ignore layers that are not absolutely positionned
 		if (layer.space != xr::spaces::world)
@@ -1054,11 +1033,11 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 #endif
 
 	// Get the planes that limit the ray size from the composition layers
-	std::vector<glm::vec4> ray_limits;
-	for (auto & [z_index, layer]: imgui_layers)
+	std::vector<glm::mat4> world_to_window;
+	for (auto & window: imgui_ctx->windows())
 	{
-		if (z_index != constants::lobby::zindex_recenter_tip)
-			ray_limits.push_back(compute_ray_limits(layer.pose));
+		if (window.space == xr::spaces::world)
+			world_to_window.push_back(glm::inverse(glm::translate(window.position) * glm::mat4(glm::mat3_cast(window.orientation)) * glm::scale(glm::vec3(window.size, 1))));
 	}
 
 	input->apply(world,
@@ -1068,7 +1047,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	             not imgui_ctx->is_aim_interaction()[0],
 	             hide_right_controller,
 	             not imgui_ctx->is_aim_interaction()[1],
-	             ray_limits);
+	             world_to_window);
 
 	renderer::animate(world, frame_state.predictedDisplayPeriod * 1.0e-9);
 

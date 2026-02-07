@@ -156,8 +156,6 @@ struct node
 	bool visible = true;
 	uint32_t layer_mask = -1;
 
-	std::array<glm::vec4, 4> clipping_planes;
-
 	// TODO: separate component?
 	std::vector<std::pair<entt::entity, glm::mat4>> joints; // Node index, inverse bind matrix of each joint
 

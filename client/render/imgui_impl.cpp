@@ -1037,11 +1037,9 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 	return quads;
 }
 
-std::vector<imgui_context::viewport> imgui_context::windows()
+std::vector<imgui_context::window_viewport> imgui_context::windows()
 {
-	std::vector<imgui_context::viewport> w;
-
-	ImGuiWindow * modal_popup = ImGui::GetTopMostAndVisiblePopupModal();
+	std::vector<imgui_context::window_viewport> w;
 
 	for (const imgui_context::viewport & layer: layers_)
 	{
@@ -1052,10 +1050,7 @@ std::vector<imgui_context::viewport> imgui_context::windows()
 
 		for (ImGuiWindow * window: context->Windows)
 		{
-			if (not window->Active or window->Hidden /*or window->ParentWindowInBeginStack != nullptr*/)
-				continue;
-
-			if (modal_popup != nullptr and window != modal_popup and not layer.always_show_cursor)
+			if (not window->Active or window->Hidden or (window->Flags & ImGuiWindowFlags_ChildWindow))
 				continue;
 
 			if (not window_intersects_viewport(window, layer))
@@ -1066,7 +1061,7 @@ std::vector<imgui_context::viewport> imgui_context::windows()
 			ImVec2 min = ImMax(v.Min, window->Pos);
 			ImVec2 center = (min + max) / 2;
 
-			w.push_back(viewport{
+			w.push_back(window_viewport{
 			        .space = layer.space,
 			        .position = layer.position +
 			                    glm::mat3_cast(layer.orientation) *
@@ -1079,9 +1074,6 @@ std::vector<imgui_context::viewport> imgui_context::windows()
 			                (max.x - min.x) * layer.size.x / layer.vp_size.x,
 			                (max.y - min.y) * layer.size.y / layer.vp_size.y,
 			        },
-			        .vp_origin = {min.x, min.y},
-			        .vp_size = {max.x - min.x, max.y - min.y},
-			        .always_show_cursor = layer.always_show_cursor,
 			});
 		}
 	}

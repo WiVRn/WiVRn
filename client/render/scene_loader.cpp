@@ -1007,7 +1007,6 @@ public:
 			node.orientation = glm::make_quat(TRS.rotation.data());
 			node.scale = glm::make_vec3(TRS.scale.data());
 			node.visible = true;
-			std::ranges::fill(node.clipping_planes, glm::vec4{0, 0, 0, 1});
 		}
 
 		return entities;
