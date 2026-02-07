@@ -351,6 +351,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 		}
 	};
 
+#if WIVRN_USE_VAAPI
 	auto check_vaapi = [&](int bit_depth) {
 		for (const auto & encoder: res)
 		{
@@ -379,6 +380,11 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, c
 		}
 		return true;
 	};
+#else
+	auto check_vaapi = [&](int) {
+		return true;
+	};
+#endif
 
 	if (bit_depth == 10 and not(check_format(vk::Format::eR16Unorm) and check_vaapi(*bit_depth)))
 	{
