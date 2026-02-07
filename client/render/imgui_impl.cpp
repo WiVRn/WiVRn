@@ -633,10 +633,6 @@ std::vector<imgui_context::controller_state> imgui_context::read_controllers_sta
 					auto trigger = application::read_action_float(ctrl.trigger).value_or(std::pair{0, 0});
 					state.trigger_value = trigger.second;
 
-					// TODO tunable
-					/*if (new_state.trigger_value < 0.5)
-					        new_state.trigger_clicked = false;
-					else */
 					if (state.trigger_value > constants::gui::trigger_click_thd)
 						state.trigger_clicked = true;
 				}
@@ -920,15 +916,13 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 			else
 				alpha *= constants::gui::pointer_alpha_disabled;
 
-			ImU32 color_pressed = ImGui::GetColorU32(constants::gui::pointer_color_pressed, alpha);
-			ImU32 color_unpressed = ImGui::GetColorU32(constants::gui::pointer_color_unpressed, alpha);
-
-			bool pressed = controller.second.trigger_clicked || controller.second.fingertip_touching;
+			float radius_in = constants::gui::pointer_radius_in;
+			float radius_out = radius_in + constants::gui::pointer_thickness * 0.5;
 
 			ImDrawList * draw_list = ImGui::GetForegroundDrawList();
 			draw_list->PushClipRect(clip_rect_min, clip_rect_max);
-			draw_list->AddCircleFilled(*position, constants::gui::pointer_radius_in, pressed ? color_pressed : color_unpressed);
-			draw_list->AddCircle(*position, constants::gui::pointer_radius_out, ImGui::GetColorU32(constants::gui::pointer_color_border, alpha), 0, constants::gui::pointer_thickness);
+			draw_list->AddCircleFilled(*position, radius_in, ImGui::GetColorU32(constants::gui::pointer_color, alpha));
+			draw_list->AddCircle(*position, radius_out, ImGui::GetColorU32(constants::gui::pointer_color_border, alpha), 0, constants::gui::pointer_thickness);
 			draw_list->PopClipRect();
 		}
 	}

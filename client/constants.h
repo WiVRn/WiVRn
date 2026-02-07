@@ -53,9 +53,8 @@ constexpr float fingertip_distance_stick_thd = -0.02;       // Max distance wher
 constexpr float scroll_value_thd = 0.01;
 
 // Pointer radius
-constexpr float pointer_radius_in = 10;
-constexpr float pointer_radius_out = 12;
-constexpr float pointer_thickness = 4;
+constexpr float pointer_thickness = 2;
+constexpr float pointer_radius_in = 6;
 
 // Pointer transparency
 constexpr float pointer_alpha = 0.8;
@@ -63,8 +62,7 @@ constexpr float pointer_alpha_disabled = 0.25;
 constexpr float pointer_fading_distance = 40;
 
 // Pointer color
-constexpr uint32_t pointer_color_pressed = 0xffff3300;
-constexpr uint32_t pointer_color_unpressed = 0xffffffff;
+constexpr uint32_t pointer_color = 0x40ffffff;
 constexpr uint32_t pointer_color_border = 0xff000000;
 } // namespace constants::gui
 
