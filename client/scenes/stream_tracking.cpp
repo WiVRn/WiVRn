@@ -493,7 +493,36 @@ void scenes::stream::tracking()
 							break;
 						case wivrn::device_id::EYE_GAZE:
 							// Eye gaze uses view pose as the origin
-							tracking.device_poses.push_back(locate_space(item.device, spaces[item.device], spaces[wivrn::device_id::HEAD], tracking.timestamp));
+							switch (guess_model())
+							{
+								case model::pico_4_pro:
+								case model::pico_4_enterprise: {
+									// Pico headsets fail to locate gaze relative to view
+									auto gaze = locate_space(item.device, spaces[item.device], world_space, tracking.timestamp);
+									auto view_pose = locate_space(item.device, view_space, world_space, tracking.timestamp);
+									glm::quat gaze_quat(gaze.pose.orientation.w, gaze.pose.orientation.x, gaze.pose.orientation.y, gaze.pose.orientation.z);
+									glm::quat view_quat(view_pose.pose.orientation.w, view_pose.pose.orientation.x, view_pose.pose.orientation.y, view_pose.pose.orientation.z);
+									gaze_quat = glm::conjugate(view_quat) * gaze_quat;
+									using flags = from_headset::tracking::flags;
+									tracking.device_poses.push_back(
+									        from_headset::tracking::pose{
+									                // Zero position and velocities
+									                .pose = {
+									                        .orientation = {
+									                                .x = gaze_quat.x,
+									                                .y = gaze_quat.y,
+									                                .z = gaze_quat.z,
+									                                .w = gaze_quat.w,
+									                        },
+									                },
+									                .flags = uint8_t(gaze.flags & view_pose.flags & ~(flags::linear_velocity_valid | flags::angular_velocity_valid)),
+									        });
+								}
+								break;
+								default:
+									tracking.device_poses.push_back(locate_space(item.device, spaces[item.device], spaces[wivrn::device_id::HEAD], tracking.timestamp));
+									break;
+							}
 							break;
 						case wivrn::device_id::FACE:
 							std::visit(utils::overloaded{
