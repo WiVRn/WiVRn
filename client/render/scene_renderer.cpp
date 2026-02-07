@@ -29,6 +29,7 @@
 #include "vk/pipeline.h"
 #include "vk/shader.h"
 #include "vk/specialization_constants.h"
+#include <algorithm>
 #include <boost/pfr/core.hpp>
 #include <entt/entity/entity.hpp>
 #include <entt/entt.hpp>
@@ -1106,8 +1107,12 @@ void scene_renderer::render(
 
 		// TODO: reuse the UBO if another primitive of the same mesh has already been drawn
 		vk::DeviceSize instance_ubo_offset = resources.uniform_buffer_offset;
+		vk::DeviceSize instance_ubo_size = sizeof(instance_gpu_data) + node.extra_shader_data.size();
+
 		instance_gpu_data & object_ubo = *reinterpret_cast<instance_gpu_data *>(ubo + resources.uniform_buffer_offset);
-		resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data));
+		std::span<std::byte> extra_shader_data{reinterpret_cast<std::byte *>(ubo + resources.uniform_buffer_offset + sizeof(instance_gpu_data)), node.extra_shader_data.size()};
+
+		resources.uniform_buffer_offset += utils::align_up(buffer_alignment, sizeof(instance_gpu_data) + node.extra_shader_data.size());
 
 		vk::DeviceSize joints_ubo_offset = 0;
 		if (!node.joints.empty())
@@ -1131,6 +1136,7 @@ void scene_renderer::render(
 			object_ubo.modelviewproj[frame_index] = viewproj[frame_index] * transform;
 		}
 		object_ubo.clipping_planes = node.clipping_planes;
+		std::ranges::copy(node.extra_shader_data, extra_shader_data.begin());
 
 		// Get the material
 		std::shared_ptr<renderer::material> material = primitive.material_ ? primitive.material_ : default_material;
@@ -1187,7 +1193,7 @@ void scene_renderer::render(
 		vk::DescriptorBufferInfo buffer_info_2{
 		        .buffer = resources.uniform_buffer,
 		        .offset = instance_ubo_offset,
-		        .range = sizeof(instance_gpu_data),
+		        .range = instance_ubo_size,
 		};
 		vk::DescriptorBufferInfo buffer_info_3{
 		        .buffer = resources.uniform_buffer,

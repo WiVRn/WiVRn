@@ -161,6 +161,21 @@ struct node
 	// TODO: separate component?
 	std::vector<std::pair<entt::entity, glm::mat4>> joints; // Node index, inverse bind matrix of each joint
 
+	std::vector<std::byte> extra_shader_data;
+	template <typename T>
+	void set_extra_shader_data(const T & data)
+	{
+		extra_shader_data.resize(sizeof(std::decay_t<T>));
+		memcpy(extra_shader_data.data(), &data, sizeof(std::decay_t<T>));
+	}
+
+	template <typename T>
+	T & get_extra_shader_data()
+	{
+		assert(extra_shader_data.size() == sizeof(std::decay_t<T>));
+		return *reinterpret_cast<T *>(extra_shader_data.data());
+	}
+
 	// For internal use by the renderer
 	glm::mat4 transform_to_root;
 	bool global_visible;
