@@ -493,7 +493,34 @@ void scenes::stream::tracking()
 							break;
 						case wivrn::device_id::EYE_GAZE:
 							// Eye gaze uses view pose as the origin
-							tracking.device_poses.push_back(locate_space(item.device, spaces[item.device], spaces[wivrn::device_id::HEAD], tracking.timestamp));
+							switch (guess_model())
+							{
+								case model::pico_4_pro:
+								case model::pico_4_enterprise: {
+									auto gaze = locate_space(item.device, spaces[item.device], world_space, tracking.timestamp);
+									auto view_pose = locate_space(item.device, view_space, world_space, tracking.timestamp);
+									gaze.pose.position = view_pose.pose.position;
+									glm::quat gaze_quat(gaze.pose.orientation.w, gaze.pose.orientation.x, gaze.pose.orientation.y, gaze.pose.orientation.z);
+									glm::quat view_quat(view_pose.pose.orientation.w, view_pose.pose.orientation.x, view_pose.pose.orientation.y, view_pose.pose.orientation.z);
+									gaze_quat = glm::conjugate(view_quat) * gaze_quat;
+									gaze.pose.orientation = XrQuaternionf{
+									        .x = gaze_quat.x,
+									        .y = gaze_quat.y,
+									        .z = gaze_quat.z,
+									        .w = gaze_quat.w,
+									};
+									gaze.linear_velocity = {};
+									gaze.angular_velocity = {};
+									gaze.flags &= view_pose.flags;
+									gaze.flags &= ~from_headset::tracking::flags::linear_velocity_valid;
+									gaze.flags &= ~from_headset::tracking::flags::angular_velocity_valid;
+									tracking.device_poses.push_back(gaze);
+								}
+								break;
+								default:
+									tracking.device_poses.push_back(locate_space(item.device, spaces[item.device], spaces[wivrn::device_id::HEAD], tracking.timestamp));
+									break;
+							}
 							break;
 						case wivrn::device_id::FACE:
 							std::visit(utils::overloaded{
