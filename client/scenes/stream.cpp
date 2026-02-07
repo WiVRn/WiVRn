@@ -430,7 +430,9 @@ void scenes::stream::on_focused()
 	        *this,
 	        "assets://controllers/" + profile + "/profile.json",
 	        layer_controllers,
-	        layer_rays);
+	        layer_rays,
+	        get_action("left_trigger").first,
+	        get_action("right_trigger").first);
 
 	spdlog::info("Loaded input profile {}", input->id);
 
