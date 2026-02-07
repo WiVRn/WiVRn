@@ -48,5 +48,5 @@ struct input_profile
 	        bool hide_left_ray,
 	        bool hide_right_controller,
 	        bool hide_right_ray,
-	        std::span<glm::vec4> pointer_limits);
+	        std::span<glm::mat4> world_to_window);
 };

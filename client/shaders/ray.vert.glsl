@@ -17,7 +17,9 @@
  */
 
 #version 450
-
+#extension GL_EXT_multiview : require
 #extension GL_GOOGLE_include_directive : require
+
+#define SKINNED 0
 
 #include "ray_common.glsl.inc"

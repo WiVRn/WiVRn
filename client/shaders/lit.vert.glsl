@@ -34,7 +34,6 @@ layout(location = 5) in vec4 in_color;
 out gl_PerVertex
 {
     vec4 gl_Position;
-    float gl_ClipDistance[nb_clipping];
 };
 
 void main()
@@ -59,9 +58,4 @@ void main()
     frag_pos = mesh.modelview[gl_ViewIndex] * vec4(in_position, 1.0);
     light_pos = scene.view[gl_ViewIndex] * scene.light_position;
     vertex_color = in_color;
-
-    for (int i = 0; i < nb_clipping; i++)
-    {
-        gl_ClipDistance[i] = dot(mesh.clipping_plane[i], mesh.model * vec4(in_position, 1.0));
-    }
 }

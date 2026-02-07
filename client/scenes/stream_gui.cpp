@@ -32,6 +32,8 @@
 #include <IconsFontAwesome6.h>
 #include <chrono>
 #include <cmath>
+#include <glm/ext.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <limits>
 #include <ranges>
@@ -729,27 +731,6 @@ void scenes::stream::gui_applications()
 	ImGui::PopStyleVar(3);
 }
 
-// Return the vector v such that dot(v, x) > 0 iff x is on the side where the composition layer is visible
-static glm::vec4 compute_ray_limits(const XrPosef & pose, float margin = 0)
-{
-	glm::quat q{
-	        pose.orientation.w,
-	        pose.orientation.x,
-	        pose.orientation.y,
-	        pose.orientation.z,
-	};
-
-	glm::vec3 p{
-	        pose.position.x,
-	        pose.position.y,
-	        pose.position.z,
-	};
-
-	glm::vec3 normal = glm::column(glm::mat3_cast(q), 2);
-
-	return glm::vec4(normal, -glm::dot(p, normal) - margin);
-}
-
 void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
 {
 	if (not(plots_toggle_1 and plots_toggle_2))
@@ -1053,10 +1034,12 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		else
 			recentering_context.reset();
 
-		std::vector<glm::vec4> ray_limits;
-
-		for (auto [_, layer]: layers)
-			ray_limits.push_back(compute_ray_limits(layer.pose));
+		std::vector<glm::mat4> world_to_window;
+		for (auto & window: imgui_ctx->windows())
+		{
+			if (window.space == xr::spaces::world)
+				world_to_window.push_back(glm::inverse(glm::translate(window.position) * glm::mat4(glm::mat3_cast(window.orientation)) * glm::scale(glm::vec3(window.size, 1))));
+		}
 
 		bool hide_left_controller = false;
 		bool hide_right_controller = false;
@@ -1080,7 +1063,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		             hide_left_controller,
 		             hide_right_controller,
 		             hide_right_controller,
-		             ray_limits);
+		             world_to_window);
 
 		// Add the layer with the controllers
 		if (composition_layer_depth_test_supported)

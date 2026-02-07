@@ -199,7 +199,6 @@ class scene_renderer
 		glm::mat4 model;
 		std::array<glm::mat4, 2> modelview;
 		std::array<glm::mat4, 2> modelviewproj;
-		std::array<glm::vec4, 4> clipping_planes;
 	};
 
 	struct debug_draw_vertex

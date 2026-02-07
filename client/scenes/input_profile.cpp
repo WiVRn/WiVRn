@@ -23,6 +23,7 @@
 #include "render/scene_components.h"
 #include "utils/mapped_file.h"
 #include "xr/space.h"
+#include <array>
 #include <entt/entity/fwd.hpp>
 #include <entt/entt.hpp>
 #include <glm/gtc/matrix_access.hpp>
@@ -186,6 +187,7 @@ struct json_visual_response
 
 struct ray_extra_shader_data
 {
+	std::array<glm::mat4, 4> window_to_world;
 	float emissive_factor;
 };
 
@@ -194,7 +196,14 @@ void setup_ray_shader(entt::registry & scene, entt::entity entity, const ray_ext
 	auto & node = scene.get<components::node>(entity);
 
 	for (auto & primitive: node.mesh->primitives)
+	{
+		if (primitive.vertex_shader == "lit.vert")
+			primitive.vertex_shader = "ray.vert";
+		else if (primitive.vertex_shader == "lit_skinned.vert")
+			primitive.vertex_shader = "ray_skinned.vert";
+
 		primitive.material_->fragment_shader_name = "ray.frag";
+	}
 
 	node.set_extra_shader_data(initial_data);
 }
@@ -316,7 +325,7 @@ input_profile::input_profile(scene & scene, const std::filesystem::path & json_p
 		scene.world.emplace<components::bound_space>(find_node_by_name(scene.world, "Ray", ray_entity), space, 0);
 		scene.world.emplace<components::clipped_by_gui>(find_node_by_name(scene.world, "Ray", ray_entity));
 		scene.world.emplace<components::emissive_trigger>(find_node_by_name(scene.world, "Ray", ray_entity), layout.key == "left" ? left_trigger : right_trigger);
-		setup_ray_shader(scene.world, find_node_by_name(scene.world, "Ray", ray_entity), {0.1});
+		setup_ray_shader(scene.world, find_node_by_name(scene.world, "Ray", ray_entity));
 
 		try
 		{
@@ -329,7 +338,7 @@ input_profile::input_profile(scene & scene, const std::filesystem::path & json_p
 			scene.world.emplace<components::bound_space>(find_node_by_name(scene.world, "Trail -40ms", ray_entity), space, -40'000'000);
 			scene.world.emplace<components::clipped_by_gui>(find_node_by_name(scene.world, "Trail", ray_entity));
 			scene.world.emplace<components::emissive_trigger>(find_node_by_name(scene.world, "Trail", ray_entity), layout.key == "left" ? left_trigger : right_trigger);
-			setup_ray_shader(scene.world, find_node_by_name(scene.world, "Trail", ray_entity), {0.1});
+			setup_ray_shader(scene.world, find_node_by_name(scene.world, "Trail", ray_entity));
 		}
 		catch (...)
 		{
@@ -413,7 +422,7 @@ void input_profile::apply(
         bool hide_left_ray,
         bool hide_right_controller,
         bool hide_right_ray,
-        std::span<glm::vec4> pointer_limits)
+        std::span<glm::mat4> world_to_window)
 {
 	for (auto && [entity, node, space]: scene.view<components::node, components::bound_space>().each())
 	{
@@ -511,37 +520,24 @@ void input_profile::apply(
 		if (auto opt_value = application::read_action_float(response.action))
 		{
 			float value = opt_value->second * 0.9 + 0.1;
-			node.set_extra_shader_data(ray_extra_shader_data{value});
+			node.set_extra_shader_data(ray_extra_shader_data{{}, value});
 		}
 	}
 
 	for (auto && [entity, node]: scene.view<components::node, components::clipped_by_gui>().each())
 	{
-		// If the ray starts on the wrong side of the GUI, hide it entirely
-		// This assumes the node is a child of the root node
-		// if (node.joints.empty())
-		// {
-		// 	for (glm::vec4 & plane: pointer_limits)
-		// 	{
-		// 		if (glm::dot(plane, glm::vec4(node.position, 1)) < 0)
-		// 		{
-		// 			scene.get<components::node>(entity).visible = false;
-		// 			return;
-		// 		}
-		// 	}
-		// }
-
-		size_t nb_clipping_planes = std::min(node.clipping_planes.size(), pointer_limits.size());
+		auto & data = node.get_extra_shader_data<ray_extra_shader_data>();
+		size_t nb_windows = std::min(data.window_to_world.size(), world_to_window.size());
 
 		auto copy_results = std::ranges::copy_n(
-		        pointer_limits.begin(),
-		        nb_clipping_planes,
-		        node.clipping_planes.begin());
+		        world_to_window.begin(),
+		        nb_windows,
+		        data.window_to_world.begin());
 
 		// Disable the remaining clipping planes
 		std::ranges::fill_n(
 		        copy_results.out,
-		        node.clipping_planes.size() - nb_clipping_planes,
-		        glm::vec4(0, 0, 0, 1));
+		        data.window_to_world.size() - nb_windows,
+		        glm::mat4{/* TODO */});
 	}
 }
