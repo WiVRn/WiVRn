@@ -68,6 +68,16 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="26.2" date="2026-02-08">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.2</url>
+			<description>
+				<ul>
+					<li>Added support for SlimeVR trackers</li>
+					<li>Unsafe configuration values can now be used on headset</li>
+					<li>Improved head and controller tracking</li>
+				</ul>
+			</description>
+		</release>
 		<release version="25.12" date="2025-12-19">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v25.12</url>
 			<description>
