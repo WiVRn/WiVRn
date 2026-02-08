@@ -240,7 +240,6 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		xdevs[xdev_count++] = static_roles.face = &htc_face_tracker.emplace(&hmd, *this);
 
 	auto num_generic_trackers = get_info().num_generic_trackers;
-	generic_trackers.reserve(num_generic_trackers);
 	if (num_generic_trackers > 0)
 	{
 		if (num_generic_trackers > from_headset::body_tracking::max_tracked_poses)
@@ -260,11 +259,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		U_LOG_I("Creating %d generic trackers", num_generic_trackers);
 
 		for (int i = 0; i < num_generic_trackers; ++i)
-		{
-			auto dev = std::make_unique<wivrn_generic_tracker>(i, &hmd, *this);
-			xdevs[xdev_count++] = dev.get();
-			generic_trackers.push_back(std::move(dev));
-		}
+			xdevs[xdev_count++] = &generic_trackers.emplace_back(i, &hmd, *this);
 	}
 
 #if WIVRN_FEATURE_SOLARXR
@@ -638,12 +633,8 @@ void wivrn_session::operator()(from_headset::body_tracking && body_tracking)
 {
 	auto offset = offset_est.get_offset();
 
-	assert(generic_trackers.size() <= from_headset::body_tracking::max_tracked_poses);
-	for (int i = 0; i < generic_trackers.size(); i++)
-	{
-		auto pose = body_tracking.poses ? (*body_tracking.poses)[i] : from_headset::body_tracking::pose{};
-		generic_trackers[i]->update_tracking(body_tracking, pose, offset);
-	}
+	for (auto [tracker, pose]: std::ranges::zip_view(generic_trackers, *body_tracking.poses))
+		tracker.update_tracking(body_tracking, pose, offset);
 }
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {
