@@ -19,6 +19,7 @@
 #pragma once
 
 #include <array>
+#include <inplace_vector.hpp>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -110,7 +111,7 @@ struct primitive
 	uint32_t vertex_count;
 	vk::IndexType index_type;
 	vk::DeviceSize index_offset;
-	std::vector<vk::DeviceSize> vertex_offset; // TODO: inplace_vector
+	beman::inplace_vector::inplace_vector<vk::DeviceSize, 8> vertex_offset; // See VkPhysicalDeviceLimits::maxVertexInputBindings
 	vertex_layout layout;
 
 	glm::vec3 obb_min;

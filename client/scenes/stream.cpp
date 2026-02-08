@@ -986,8 +986,6 @@ void scenes::stream::render(const XrFrameState & frame_state)
 #endif
 	swapchain.release();
 
-	std::vector<XrCompositionLayerProjectionView> layer_view(view_count);
-
 	if (use_alpha)
 		session.enable_passthrough(system);
 	else
@@ -996,6 +994,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	render_start(use_alpha, frame_state.predictedDisplayTime);
 
 	// Add the layer with the streamed content
+	std::array<XrCompositionLayerProjectionView, view_count> layer_view;
 	for (uint32_t view = 0; view < view_count; view++)
 	{
 		layer_view[view] =
@@ -1017,7 +1016,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	add_projection_layer(
 	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
 	        application::space(xr::spaces::world),
-	        std::move(layer_view));
+	        layer_view);
 
 	if (composition_layer_color_scale_bias_supported)
 	{

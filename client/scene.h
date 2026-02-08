@@ -29,6 +29,7 @@
 #include "xr/session.h"
 #include "xr/swapchain.h"
 #include "xr/system.h"
+#include <inplace_vector.hpp>
 
 #include <cstdint>
 #include <entt/entity/registry.hpp>
@@ -132,11 +133,12 @@ protected:
 
 	struct layer
 	{
+		static const int max_views = 2;
+
 		std::variant<XrCompositionLayerProjection, XrCompositionLayerQuad, XrCompositionLayerBaseHeader *> composition_layer;
 
-		// TODO in place vectors
-		std::vector<XrCompositionLayerProjectionView> color_views; // Used by XrCompositionLayerProjection
-		std::vector<XrCompositionLayerDepthInfoKHR> depth_views;   // Used by XrCompositionLayerProjection
+		beman::inplace_vector::inplace_vector<XrCompositionLayerProjectionView, max_views> color_views; // Used by XrCompositionLayerProjection
+		beman::inplace_vector::inplace_vector<XrCompositionLayerDepthInfoKHR, max_views> depth_views;   // Used by XrCompositionLayerProjection
 
 		std::optional<XrCompositionLayerColorScaleBiasKHR> color_scale_bias;
 		std::optional<XrCompositionLayerDepthTestFB> depth_test;
@@ -172,8 +174,8 @@ protected:
 	void add_projection_layer(
 	        XrCompositionLayerFlags flags,
 	        XrSpace space,
-	        std::vector<XrCompositionLayerProjectionView> && color_views,
-	        std::vector<XrCompositionLayerDepthInfoKHR> && depth_views = {});
+	        std::span<XrCompositionLayerProjectionView> color_views,
+	        std::span<XrCompositionLayerDepthInfoKHR> depth_views = {});
 
 	void add_quad_layer(
 	        XrCompositionLayerFlags flags,
