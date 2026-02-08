@@ -39,7 +39,7 @@
 namespace wivrn
 {
 
-static constexpr int protocol_revision = 1;
+static constexpr int protocol_revision = 0;
 
 enum class device_id : uint8_t
 {
@@ -228,6 +228,9 @@ struct settings_changed
 	float minimum_refresh_rate;
 
 	uint32_t bitrate_bps;
+
+	// Margin for the pacer between image decoded and available
+	XrDuration decode_margin;
 };
 
 struct headset_info_packet

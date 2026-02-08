@@ -460,11 +460,13 @@ void wivrn_session::operator()(const from_headset::settings_changed & settings)
 {
 	*this->settings.lock() = settings;
 
-	if (settings.bitrate_bps != 0)
 	{
 		std::lock_guard lock(comp_target_mutex);
 		if (comp_target)
+		{
 			comp_target->set_bitrate(settings.bitrate_bps);
+			comp_target->pacer.set_present_to_decoded_margin_ns(settings.decode_margin);
+		}
 	}
 
 	wivrn_ipc_socket_monado->send(std::move(settings));

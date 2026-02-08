@@ -57,6 +57,8 @@ private:
 
 	int64_t last_wake_up_ns = 0;
 
+	int64_t present_to_decoded_margin_ns;
+
 	struct frame_time
 	{
 		int64_t frame_id = -1;
@@ -73,11 +75,13 @@ private:
 	std::array<frame_info, 8> in_flight_frames;
 
 public:
-	wivrn_pacer(uint64_t frame_duration);
+	wivrn_pacer(uint64_t frame_duration, int64_t present_to_decoded_margin_ns);
 	~wivrn_pacer();
 
 	uint64_t get_frame_duration();
 	void set_frame_duration(uint64_t frame_duration);
+
+	void set_present_to_decoded_margin_ns(int64_t margin);
 
 	void predict(
 	        int64_t & out_frame_id,

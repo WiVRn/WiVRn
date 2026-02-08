@@ -381,6 +381,7 @@ static void send_settings_changed_packet(xr::session & session, wivrn_session * 
 	const auto & refresh_rates = session.get_refresh_rates();
 	from_headset::settings_changed packet{
 	        .bitrate_bps = config.bitrate_bps,
+	        .decode_margin = config.present_to_decoded_margin_ns,
 	};
 	if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(refresh_rates, *config.preferred_refresh_rate)))
 	{
@@ -452,6 +453,30 @@ void scenes::stream::gui_settings(float predicted_display_period)
 				imgui_ctx->vibrate_on_hover();
 			}
 		}
+	}
+
+	// Time between decode and present
+	{
+		const int step = 500'000;
+		const auto current = config.present_to_decoded_margin_ns;
+		int intval = current / step;
+		const auto slider = ImGui::SliderInt(
+		        _("Decode margin").append("##margin_ns").c_str(),
+		        &intval,
+		        0,
+		        10'000'000 / step,
+		        fmt::format(_F("{}ms"), intval * step / 1'000'000.).c_str());
+		if (slider)
+		{
+			config.present_to_decoded_margin_ns = intval * step;
+			send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+			config.save();
+		}
+		if (ImGui::IsItemHovered())
+		{
+			imgui_ctx->tooltip(_("Additional buffering time, increases latency but reduces micro-stuttering"));
+		}
+		imgui_ctx->vibrate_on_hover();
 	}
 
 	{

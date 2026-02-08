@@ -41,8 +41,9 @@ static T lerp_mod(T a, T b, double t, T mod)
 	return T(std::lerp(a, b, t)) % mod;
 }
 
-wivrn_pacer::wivrn_pacer(uint64_t frame_duration) :
+wivrn_pacer::wivrn_pacer(uint64_t frame_duration, int64_t present_to_decoded_margin_ns) :
         frame_duration_ns(frame_duration),
+        present_to_decoded_margin_ns(present_to_decoded_margin_ns),
         frame_times(5000),
         frame_times_compute(frame_times),
         worker([this](std::stop_token t) {
@@ -65,7 +66,7 @@ wivrn_pacer::wivrn_pacer(uint64_t frame_duration) :
 		        std::ranges::nth_element(samples, it);
 
 		        std::unique_lock lock(mutex);
-		        safe_present_to_decoded_ns = *it + 1'000'000;
+		        safe_present_to_decoded_ns = *it + this->present_to_decoded_margin_ns;
 	        }
         })
 {}
@@ -86,6 +87,13 @@ void wivrn_pacer::set_frame_duration(uint64_t frame_duration_ns)
 {
 	std::lock_guard lock(mutex);
 	this->frame_duration_ns = frame_duration_ns;
+}
+
+void wivrn_pacer::set_present_to_decoded_margin_ns(int64_t margin)
+{
+	std::lock_guard lock(mutex);
+	safe_present_to_decoded_ns += margin - present_to_decoded_margin_ns;
+	present_to_decoded_margin_ns = margin;
 }
 
 void wivrn_pacer::predict(

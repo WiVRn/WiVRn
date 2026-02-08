@@ -869,7 +869,7 @@ wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_com
                 .destroy = comp_wivrn_destroy,
         },
         desc{.fps = get_default_rate(cnx.get_info(), *cnx.get_settings())},
-        pacer(U_TIME_1S_IN_NS / desc.fps),
+        pacer(U_TIME_1S_IN_NS / desc.fps, cnx.get_settings()->decode_margin),
         cnx(cnx)
 {
 	c->frame_interval_ns = U_TIME_1S_IN_NS / desc.fps;

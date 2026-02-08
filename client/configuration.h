@@ -54,6 +54,7 @@ public:
 	std::optional<wivrn::video_codec> codec;
 	uint32_t bitrate_bps = 50'000'000;
 	uint8_t bit_depth = 10;
+	int64_t present_to_decoded_margin_ns = 1'000'000;
 
 	bool passthrough_enabled = false;
 	bool mic_unprocessed_audio = false;
