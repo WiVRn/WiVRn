@@ -23,6 +23,9 @@
 #ifdef Success
 #undef Success
 #endif
+#ifdef Complex
+#undef Complex
+#endif
 
 #include <Eigen/Cholesky>
 #include <Eigen/Core>
