@@ -316,7 +316,7 @@ void scenes::stream::tracking()
 	XrTime t0 = instance.now();
 	from_headset::tracking tracking;
 	std::vector<from_headset::hand_tracking> hands;
-	std::vector<from_headset::body_tracking> body;
+	std::vector<std::variant<from_headset::meta_body, from_headset::bd_body, from_headset::htc_body>> body;
 	std::vector<XrView> views;
 
 	std::vector<serialization_packet> packets;
@@ -406,8 +406,7 @@ void scenes::stream::tracking()
 								        system,
 								        session,
 								        application::get_generic_trackers(),
-								        config.fb_lower_body,
-								        config.fb_hip);
+								        config.fb_lower_body);
 						}
 						else
 							body_tracker.emplace<std::monostate>();
@@ -558,11 +557,10 @@ void scenes::stream::tracking()
 							std::visit(utils::overloaded{
 							                   [](std::monostate &) {},
 							                   [&](auto & b) {
-								                   body.push_back(from_headset::body_tracking{
-								                           .production_timestamp = tracking.production_timestamp,
-								                           .timestamp = at_time,
-								                           .poses = b.locate_spaces(at_time, world_space),
-								                   });
+								                   auto packet = b.locate_spaces(at_time, world_space);
+								                   packet.timestamp = at_time;
+								                   packet.production_timestamp = tracking.production_timestamp;
+								                   body.push_back(packet);
 							                   },
 							           },
 							           body_tracker);
@@ -595,6 +593,18 @@ void scenes::stream::tracking()
 			}
 #endif
 
+			if (auto fb = std::get_if<xr::fb_body_tracker>(&body_tracker); fb and fb->should_send_skeleton())
+			{
+				try
+				{
+					network_session->send_control(fb->get_skeleton());
+				}
+				catch (std::exception & e)
+				{
+					spdlog::warn("Failed to send body skeleton: {}", e.what());
+				}
+			}
+
 			packets.resize(std::max(packets.size(), 1 + hands.size() + body.size()));
 			size_t packet_count = 0;
 
@@ -613,12 +623,14 @@ void scenes::stream::tracking()
 			}
 			for (const auto & i: body)
 			{
-				if (i.poses)
-				{
-					auto & packet = packets[packet_count++];
-					packet.clear();
-					wivrn_session::stream_socket_t::serialize(packet, i);
-				}
+				auto & packet = packets[packet_count++];
+				packet.clear();
+				std::visit(utils::overloaded{
+				                   [&](auto & p) {
+					                   wivrn_session::stream_socket_t::serialize(packet, p);
+				                   },
+				           },
+				           i);
 			}
 
 			network_session->send_stream(std::span(packets.data(), packet_count));

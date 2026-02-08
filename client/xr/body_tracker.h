@@ -36,7 +36,7 @@ class session;
 
 using body_tracker = std::variant<std::monostate, xr::fb_body_tracker, xr::htc_body_tracker, xr::pico_body_tracker>;
 
-body_tracker make_body_tracker(xr::instance &, xr::system &, xr::session &, std::vector<std::pair<XrPath, xr::space>> & generic_trackers, bool full_body, bool hips);
+body_tracker make_body_tracker(xr::instance &, xr::system &, xr::session &, std::vector<std::pair<XrPath, xr::space>> & generic_trackers, bool full_body);
 
 body_tracker_type body_tracker_supported(xr::instance &, xr::system &);
 
