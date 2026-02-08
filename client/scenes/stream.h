@@ -53,6 +53,7 @@ public:
 
 private:
 	static const size_t view_count = 2;
+	static const size_t decoder_count = view_count + 1;
 
 	struct accumulator_images
 	{
@@ -68,7 +69,7 @@ private:
 
 	// for frames inside accumulator images
 	std::mutex frames_mutex;
-	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, view_count + 1> common_frame(XrTime display_time);
+	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> common_frame(XrTime display_time);
 
 	std::unique_ptr<wivrn_session> network_session;
 	std::atomic<bool> exiting = false;
@@ -86,7 +87,7 @@ private:
 
 	std::shared_mutex decoder_mutex;
 	std::optional<to_headset::video_stream_description> video_stream_description;
-	std::array<accumulator_images, view_count + 1> decoders; // Locked by decoder_mutex
+	std::array<accumulator_images, decoder_count> decoders; // Locked by decoder_mutex
 
 	std::optional<stream_defoveator> defoveator;
 
@@ -162,7 +163,7 @@ private:
 	void update_gui_position(xr::spaces controller);
 
 	// Keep a reference to the resources needed to blit the images until vkWaitForFences
-	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, view_count + 1> current_blit_handles;
+	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> current_blit_handles;
 
 	XrTime running_application_req = 0;
 	thread_safe<to_headset::running_applications> running_applications;
@@ -302,7 +303,7 @@ private:
 	float compact_cpu_time = 0;
 	float compact_gpu_time = 0;
 
-	void accumulate_metrics(XrTime predicted_display_time, const std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, view_count + 1> & blit_handles, const gpu_timestamps & timestamps);
+	void accumulate_metrics(XrTime predicted_display_time, const std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> & blit_handles, const gpu_timestamps & timestamps);
 	void gui_performance_metrics();
 	void gui_compact_view();
 	void gui_settings(float predicted_display_period);

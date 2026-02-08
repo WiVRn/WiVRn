@@ -34,6 +34,7 @@
 #include "boost/pfr/core.hpp"
 #include "decoder/shard_accumulator.h"
 #include "hardware.h"
+#include "inplace_vector.hpp"
 #include "spdlog/spdlog.h"
 #include "utils/contains.h"
 #include "utils/named_thread.h"
@@ -51,6 +52,7 @@
 #endif
 
 using namespace wivrn;
+using namespace beman::inplace_vector;
 
 // clang-format off
 static const std::unordered_map<std::string, device_id> device_ids = {
@@ -588,8 +590,7 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 	if (decoders.empty())
 		return {};
 	std::unique_lock lock(frames_mutex);
-	thread_local std::vector<shard_accumulator::blit_handle *> common_frames;
-	common_frames.clear();
+	inplace_vector<shard_accumulator::blit_handle *, decoder_count> common_frames;
 	const bool alpha = decoders[0].latest_frames[0] and decoders[0].latest_frames[0]->view_info.alpha;
 	for (size_t i = 0; i < view_count + alpha; ++i)
 	{
@@ -602,7 +603,7 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 		else
 		{
 			// clang-format off
-			std::erase_if(common_frames,
+			erase_if(common_frames,
 				[this, i](auto & left)
 				{
 					return std::ranges::none_of(
@@ -615,7 +616,7 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 			// clang-format on
 		}
 	}
-	std::array<std::shared_ptr<shard_accumulator::blit_handle>, view_count + 1> result;
+	std::array<std::shared_ptr<shard_accumulator::blit_handle>, decoder_count> result;
 	if (not common_frames.empty())
 	{
 		auto min = std::ranges::min_element(common_frames,
@@ -958,9 +959,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	vk::SubmitInfo submit_info;
 	submit_info.setCommandBuffers(*command_buffer);
 
-	std::vector<vk::Semaphore> semaphores;
-	std::vector<uint64_t> semaphore_vals;
-	std::vector<vk::PipelineStageFlags> wait_stages;
+	inplace_vector<vk::Semaphore, decoder_count> semaphores;
+	inplace_vector<uint64_t, decoder_count> semaphore_vals;
+	inplace_vector<vk::PipelineStageFlags, decoder_count> wait_stages;
 	for (auto b: current_blit_handles)
 	{
 		if (b and b->semaphore)
@@ -1069,8 +1070,8 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	// Network operations may be blocking, do them once everything was submitted
 	{
 		// Keep a copy of the feedback packets as they can be modified if they're encrypted
-		std::vector<from_headset::feedback> feedbacks;
-		std::vector<serialization_packet> packets;
+		inplace_vector<from_headset::feedback, decoder_count> feedbacks;
+		inplace_vector<serialization_packet, decoder_count> packets;
 
 		feedbacks.reserve(current_blit_handles.size());
 		packets.reserve(current_blit_handles.size());
