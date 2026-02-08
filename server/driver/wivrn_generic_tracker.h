@@ -1,6 +1,6 @@
 /*
  * WiVRn VR streaming
- * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
+ * Copyright (C) 2026  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,10 @@
 
 #pragma once
 
-#include "history.h"
 #include "xrt/xrt_device.h"
+
+#include "history.h"
+#include "wivrn_packets.h"
 
 namespace wivrn
 {
@@ -34,9 +36,7 @@ public:
 
 	tracker_pose_list() = default;
 
-	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::body_tracking::pose & pose, const clock_offset & offset);
-
-	static xrt_space_relation convert_pose(const wivrn::from_headset::body_tracking::pose &);
+	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const wivrn::from_headset::htc_body::pose & pose, const clock_offset & offset);
 };
 
 class wivrn_generic_tracker : public xrt_device
@@ -53,6 +53,6 @@ public:
 	xrt_result_t update_inputs();
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 
-	void update_tracking(const from_headset::body_tracking & tracking, const from_headset::body_tracking::pose & pose, const clock_offset & offset);
+	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const wivrn::from_headset::htc_body::pose & pose, const clock_offset & offset);
 };
 } // namespace wivrn

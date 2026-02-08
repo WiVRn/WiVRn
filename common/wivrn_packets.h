@@ -213,11 +213,19 @@ struct visibility_mask_changed
 	uint8_t view_index;
 };
 
-enum face_type : uint8_t
+enum class face_type : uint8_t
 {
 	none,
 	android,
 	fb2,
+	htc,
+};
+
+enum class body_type : uint8_t
+{
+	none,
+	meta,
+	bd,
 	htc,
 };
 
@@ -255,6 +263,8 @@ struct headset_info_packet
 	bool user_presence;
 	bool passthrough;
 	face_type face_tracking;
+	body_type body_tracking;
+	// htc body only
 	uint32_t num_generic_trackers;
 	std::vector<video_codec> supported_codecs; // from preferred to least preferred
 	std::optional<uint8_t> bit_depth;
@@ -389,7 +399,66 @@ struct hand_tracking
 	std::optional<std::array<pose, XR_HAND_JOINT_COUNT_EXT>> joints;
 };
 
-struct body_tracking
+struct meta_body
+{
+	enum flags : uint8_t
+	{
+		orientation_valid = 1 << 0,
+		position_valid = 1 << 1,
+		orientation_tracked = 1 << 2,
+		position_tracked = 1 << 3,
+	};
+	struct pose
+	{
+		XrVector3f position;
+		packed_quaternion orientation;
+		uint8_t flags;
+	};
+	struct packed_pose
+	{
+		struct
+		{
+			int16_t x, y, z;
+		} position;
+		packed_quaternion orientation;
+		uint8_t flags;
+	};
+
+	XrTime production_timestamp;
+	XrTime timestamp;
+	float confidence;
+	std::optional<pose> base;
+	// excluding root
+	std::optional<std::array<packed_pose, XR_FULL_BODY_JOINT_COUNT_META - 1>> joints;
+};
+
+struct meta_body_skeleton
+{
+};
+
+struct bd_body
+{
+	enum flags : uint8_t
+	{
+		orientation_valid = 1 << 0,
+		position_valid = 1 << 1,
+		orientation_tracked = 1 << 2,
+		position_tracked = 1 << 3,
+	};
+	struct pose
+	{
+		XrVector3f position;
+		packed_quaternion orientation;
+		uint8_t flags;
+	};
+
+	bool all_tracked;
+	XrTime production_timestamp;
+	XrTime timestamp;
+	std::array<pose, XR_BODY_JOINT_COUNT_BD> joints;
+};
+
+struct htc_body
 {
 	inline static const size_t max_tracked_poses = 16;
 	enum flags : uint8_t
@@ -408,7 +477,7 @@ struct body_tracking
 
 	XrTime production_timestamp;
 	XrTime timestamp;
-	std::optional<std::array<pose, max_tracked_poses>> poses;
+	std::array<pose, max_tracked_poses> poses;
 };
 
 struct inputs
@@ -557,7 +626,10 @@ using packets = std::variant<
         tracking,
         derived_pose,
         hand_tracking,
-        body_tracking,
+        meta_body,
+        meta_body_skeleton,
+        bd_body,
+        htc_body,
         inputs,
         timesync_response,
         battery,
