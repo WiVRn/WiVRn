@@ -27,7 +27,6 @@
 #include "xrt/xrt_defines.h"
 
 #include <array>
-#include <charconv>
 #include <cmath>
 #include <map>
 #include <ranges>
@@ -218,44 +217,6 @@ static void fill_param_2d(
 	out.resize(count * 2 - 1);
 }
 
-static float get_angle_offset()
-{
-	if (const char * cvar = std::getenv("WIVRN_FOVEATION_OFFSET"))
-	{
-		std::string_view var(cvar);
-		float res;
-		auto e = std::from_chars(var.begin(), var.end(), res);
-		if (e.ec == std::errc())
-		{
-			// No clamping, we don’t know the range
-			// of actual values for all headsets for sure.
-			return -res * M_PI / 180;
-		}
-		else
-			U_LOG_W("Malformed WIVRN_FOVEATION_OFFSET, must be a number (angle in °)");
-	}
-	// normal sight line is between 10° and 15° below horizontal
-	// https://apps.dtic.mil/sti/tr/pdf/AD0758339.pdf pages 393-394
-	// testing shows 10° looks better
-	return 10 * M_PI / 180;
-}
-
-static float get_convergence_distance()
-{
-	if (const char * cvar = std::getenv("WIVRN_FOVEATION_DISTANCE"))
-	{
-		std::string_view var(cvar);
-		float res;
-		auto e = std::from_chars(var.begin(), var.end(), res);
-		if (e.ec == std::errc())
-			return std::max(res, 0.05f);
-		else
-			U_LOG_W("Malformed WIVRN_FOVEATION_DISTANCE, must be a number (distance in meters)");
-	}
-	// 1m by default
-	return 1;
-}
-
 namespace wivrn
 {
 
@@ -303,8 +264,11 @@ void wivrn_foveation::compute_params(
 wivrn_foveation::wivrn_foveation(wivrn_vk_bundle & bundle, const xrt_hmd_parts & hmd) :
         foveated_width(hmd.screens[0].w_pixels),
         foveated_height(hmd.screens[0].h_pixels),
-        angle_offset(get_angle_offset()),
-        convergence_distance(get_convergence_distance()),
+        // normal sight line is between 10° and 15° below horizontal
+        // https://apps.dtic.mil/sti/tr/pdf/AD0758339.pdf pages 393-394
+        // testing shows 10° looks better
+        angle_offset(10 * M_PI / 180),
+        convergence_distance(1 /* meter*/),
         command_pool(bundle.device, vk::CommandPoolCreateInfo{.queueFamilyIndex = bundle.queue_family_index}),
         cmd(std::move(bundle.device.allocateCommandBuffers({
                 .commandPool = *command_pool,
