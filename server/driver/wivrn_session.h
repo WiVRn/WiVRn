@@ -25,6 +25,7 @@
 #include "tracking_control.h"
 #include "utils/thread_safe.h"
 #include "wivrn_android_face_tracker.h"
+#include "wivrn_body_tracker.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
 #include "wivrn_eye_tracker.h"
@@ -57,6 +58,7 @@ class wivrn_eye_tracker;
 class wivrn_android_face_tracker;
 class wivrn_fb_face2_tracker;
 class wivrn_htc_face_tracker;
+class wivrn_body_tracker;
 class wivrn_generic_tracker;
 struct audio_device;
 struct wivrn_comp_target;
@@ -97,7 +99,8 @@ class wivrn_session : public xrt_system_devices
 	std::optional<wivrn_android_face_tracker> android_face_tracker;
 	std::optional<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::optional<wivrn_htc_face_tracker> htc_face_tracker;
-	beman::inplace_vector::inplace_vector<wivrn_generic_tracker, from_headset::body_tracking::max_tracked_poses> generic_trackers;
+	std::optional<wivrn_body_tracker> body_tracker;
+	beman::inplace_vector::inplace_vector<wivrn_generic_tracker, from_headset::htc_body::max_tracked_poses> generic_trackers;
 	std::optional<wivrn_uinput> uinput_handler;
 
 	std::shared_mutex comp_target_mutex;
@@ -168,7 +171,10 @@ public:
 	void operator()(const from_headset::tracking &);
 	void operator()(from_headset::derived_pose &&);
 	void operator()(from_headset::hand_tracking &&);
-	void operator()(from_headset::body_tracking &&);
+	void operator()(from_headset::meta_body &&);
+	void operator()(from_headset::meta_body_skeleton &&);
+	void operator()(from_headset::bd_body &&);
+	void operator()(from_headset::htc_body &&);
 	void operator()(from_headset::inputs &&);
 	void operator()(from_headset::hid::input && e);
 	void operator()(from_headset::timesync_response &&);

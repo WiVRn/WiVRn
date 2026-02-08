@@ -28,6 +28,7 @@
 #include "xr/check.h"
 #include "xr/instance.h"
 #include <cassert>
+#include <stdexcept>
 #include <openxr/openxr_platform.h>
 
 xr::system::system(xr::instance & inst, XrFormFactor formfactor)
@@ -192,6 +193,23 @@ XrSystemBodyTrackingPropertiesFB xr::system::fb_body_tracking_properties() const
 
 	XrSystemBodyTrackingPropertiesFB body_tracking_prop{
 	        .type = XR_TYPE_SYSTEM_BODY_TRACKING_PROPERTIES_FB,
+	};
+
+	XrSystemProperties prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES,
+	        .next = &body_tracking_prop,
+	};
+	CHECK_XR(xrGetSystemProperties(*inst, id, &prop));
+
+	return body_tracking_prop;
+}
+XrSystemPropertiesBodyTrackingFullBodyMETA xr::system::meta_body_tracking_properties() const
+{
+	if (!id)
+		throw std::invalid_argument("this");
+
+	XrSystemPropertiesBodyTrackingFullBodyMETA body_tracking_prop{
+	        .type = XR_TYPE_SYSTEM_PROPERTIES_BODY_TRACKING_FULL_BODY_META,
 	};
 
 	XrSystemProperties prop{

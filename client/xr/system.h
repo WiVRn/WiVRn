@@ -43,6 +43,7 @@ enum class body_tracker_type
 {
 	none,
 	fb,
+	meta,
 	htc,
 	pico,
 };
@@ -88,6 +89,7 @@ public:
 	XrSystemFaceTrackingProperties2FB fb_face_tracking2_properties() const;
 	XrSystemFacialTrackingPropertiesHTC htc_face_tracking_properties() const;
 	XrSystemBodyTrackingPropertiesFB fb_body_tracking_properties() const;
+	XrSystemPropertiesBodyTrackingFullBodyMETA meta_body_tracking_properties() const;
 	XrSystemBodyTrackingPropertiesBD bd_body_tracking_properties() const;
 
 	bool hand_tracking_supported() const;

@@ -109,6 +109,7 @@ if (WIVRN_BUILD_SERVER)
 			driver/wivrn_controller.cpp
 			driver/wivrn_eye_tracker.cpp
 			driver/wivrn_android_face_tracker.cpp
+			driver/wivrn_body_tracker.cpp
 			driver/wivrn_fb_face2_tracker.cpp
 			driver/wivrn_htc_face_tracker.cpp
 			driver/wivrn_generic_tracker.cpp
