@@ -830,14 +830,14 @@ void scenes::lobby::gui_settings()
 			}
 			else
 			{
-				if (body_tracker == xr::body_tracker_type::fb)
+				if (body_tracker == xr::body_tracker_type::fb or body_tracker == xr::body_tracker_type::meta)
 					imgui_ctx->tooltip(_("Requires 'Hand and body tracking' to be enabled in the Quest movement tracking settings,\notherwise body data will be guessed from controller and headset positions"));
 			}
 		}
 
 		imgui_ctx->vibrate_on_hover();
 
-		if (body_tracker == xr::body_tracker_type::fb)
+		if (body_tracker == xr::body_tracker_type::meta)
 		{
 			ImGui::BeginDisabled(not config.check_feature(feature::body_tracking));
 			ImGui::Indent();
@@ -848,16 +848,6 @@ void scenes::lobby::gui_settings()
 			imgui_ctx->vibrate_on_hover();
 			if (ImGui::IsItemHovered())
 				imgui_ctx->tooltip(_("Estimate lower body joint positions using Generative Legs\nRequires 'Hand and body tracking' to be enabled in the Quest movement tracking settings"));
-
-			ImGui::BeginDisabled(not config.fb_lower_body);
-			if (ImGui::Checkbox(_S("Enable hip tracking"), &config.fb_hip))
-			{
-				config.save();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-				imgui_ctx->tooltip(_("Only takes affect with lower body tracking enabled\nMay be desired when using another source of hip tracking"));
-			ImGui::EndDisabled();
 
 			ImGui::Unindent();
 			ImGui::EndDisabled();

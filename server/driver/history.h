@@ -105,7 +105,7 @@ public:
 		{
 			float t = float(after->at_timestamp_ns - at_timestamp_ns) /
 			          (after->at_timestamp_ns - before->at_timestamp_ns);
-			return {produced, Derived::interpolate(*before, *after, t)};
+			return {produced, static_cast<Derived *>(this)->interpolate(*before, *after, t)};
 		}
 
 		if (before)
