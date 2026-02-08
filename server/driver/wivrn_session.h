@@ -19,13 +19,17 @@
 
 #pragma once
 
+#include "app_pacer.h"
 #include "clock_offset.h"
-#include "driver/app_pacer.h"
 #include "tracking_control.h"
 #include "utils/thread_safe.h"
+#include "wivrn_android_face_tracker.h"
 #include "wivrn_connection.h"
 #include "wivrn_controller.h"
+#include "wivrn_eye_tracker.h"
+#include "wivrn_fb_face2_tracker.h"
 #include "wivrn_hmd.h"
+#include "wivrn_htc_face_tracker.h"
 #include "wivrn_ipc.h"
 #include "wivrn_packets.h"
 #include "wivrn_uinput.h"
@@ -35,6 +39,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <shared_mutex>
 #include <thread>
 
@@ -85,10 +90,10 @@ class wivrn_session : public xrt_system_devices
 	int32_t left_hand_interaction_index;
 	wivrn_controller right_hand_interaction;
 	int32_t right_hand_interaction_index;
-	std::unique_ptr<wivrn_eye_tracker> eye_tracker;
-	std::unique_ptr<wivrn_android_face_tracker> android_face_tracker;
-	std::unique_ptr<wivrn_fb_face2_tracker> fb_face2_tracker;
-	std::unique_ptr<wivrn_htc_face_tracker> htc_face_tracker;
+	std::optional<wivrn_eye_tracker> eye_tracker;
+	std::optional<wivrn_android_face_tracker> android_face_tracker;
+	std::optional<wivrn_fb_face2_tracker> fb_face2_tracker;
+	std::optional<wivrn_htc_face_tracker> htc_face_tracker;
 	std::vector<std::unique_ptr<wivrn_generic_tracker>> generic_trackers;
 	std::optional<wivrn_uinput> uinput_handler;
 

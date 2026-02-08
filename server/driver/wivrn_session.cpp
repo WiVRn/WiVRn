@@ -228,30 +228,16 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	if (get_info().eye_gaze || is_forced_extension("EXT_eye_gaze_interaction"))
 	{
 		// The tracker space needs to be attached to the head pose once the space overseer is created
-		eye_tracker = std::make_unique<wivrn_eye_tracker>(*this);
-		static_roles.eyes = eye_tracker.get();
-		xdevs[xdev_count++] = eye_tracker.get();
+		xdevs[xdev_count++] = static_roles.eyes = &eye_tracker.emplace(*this);
 	}
 
 	auto face = get_info().face_tracking;
 	if (face == from_headset::face_type::android || is_forced_extension("ANDROID_face_tracking"))
-	{
-		android_face_tracker = std::make_unique<wivrn_android_face_tracker>(&hmd, *this);
-		static_roles.face = android_face_tracker.get();
-		xdevs[xdev_count++] = android_face_tracker.get();
-	}
-	if (face == from_headset::face_type::fb2 || is_forced_extension("FB_face_tracking2"))
-	{
-		fb_face2_tracker = std::make_unique<wivrn_fb_face2_tracker>(&hmd, *this);
-		static_roles.face = fb_face2_tracker.get();
-		xdevs[xdev_count++] = fb_face2_tracker.get();
-	}
-	if (face == wivrn::from_headset::face_type::htc || is_forced_extension("HTC_facial_tracking"))
-	{
-		htc_face_tracker = std::make_unique<wivrn_htc_face_tracker>(&hmd, *this);
-		static_roles.face = htc_face_tracker.get();
-		xdevs[xdev_count++] = htc_face_tracker.get();
-	}
+		xdevs[xdev_count++] = static_roles.face = &android_face_tracker.emplace(&hmd, *this);
+	else if (face == from_headset::face_type::fb2 || is_forced_extension("FB_face_tracking2"))
+		xdevs[xdev_count++] = static_roles.face = &fb_face2_tracker.emplace(&hmd, *this);
+	else if (face == wivrn::from_headset::face_type::htc || is_forced_extension("HTC_facial_tracking"))
+		xdevs[xdev_count++] = static_roles.face = &htc_face_tracker.emplace(&hmd, *this);
 
 	auto num_generic_trackers = get_info().num_generic_trackers;
 	generic_trackers.reserve(num_generic_trackers);
@@ -368,7 +354,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	u_builder_create_space_overseer_legacy(
 	        &self->xrt_system.broadcast,
 	        &self->hmd,
-	        self->eye_tracker.get(),
+	        self->static_roles.eyes,
 	        &self->left_controller,
 	        &self->right_controller,
 	        nullptr,
@@ -385,13 +371,14 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 		auto res = xrt_space_overseer_create_pose_space(self->space_overseer, &self->hmd, XRT_INPUT_GENERIC_HEAD_POSE, &head_space);
 		if (res == XRT_SUCCESS)
 		{
-			res = xrt_space_overseer_attach_device(self->space_overseer, self->eye_tracker.get(), head_space);
+			res = xrt_space_overseer_attach_device(self->space_overseer, self->static_roles.eyes, head_space);
 			xrt_space_reference(&head_space, NULL);
 		}
 		if (res != XRT_SUCCESS)
 		{
 			U_LOG_W("failed to initialize eye tracker: %s", xrt_result_to_string(res).c_str());
-			self->eye_tracker = nullptr;
+			self->static_roles.eyes = nullptr;
+			self->eye_tracker.reset();
 		}
 	}
 
