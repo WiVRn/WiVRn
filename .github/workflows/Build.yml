@@ -469,8 +469,8 @@ jobs:
     - name: Download artifacts (APK)
       uses: actions/download-artifact@v4
       with:
+        name: apk-Release
         path: apk
-        pattern: 'apk-Release'
 
     - name: Download artifacts (flatpak)
       uses: actions/download-artifact@v4
