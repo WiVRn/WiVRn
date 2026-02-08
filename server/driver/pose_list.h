@@ -25,6 +25,7 @@
 #include "xrt/xrt_defines.h"
 
 #include <atomic>
+#include <mutex>
 #include <optional>
 
 namespace wivrn

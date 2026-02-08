@@ -22,6 +22,7 @@
 #include "pose_list.h"
 
 #include <array>
+#include <mutex>
 #include <openxr/openxr.h>
 
 namespace wivrn
