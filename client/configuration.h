@@ -74,7 +74,6 @@ public:
 	bool forward_gamepad = false;
 
 	bool fb_lower_body = false;
-	bool fb_hip = true;
 
 	bool enable_stream_gui = true;
 
