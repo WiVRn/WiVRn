@@ -32,8 +32,8 @@ class hand_joints_list : public history<hand_joints_list, xrt_hand_joint_set>
 public:
 	const int hand_id;
 
-	static xrt_hand_joint_set interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t);
-	static xrt_hand_joint_set extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, int64_t ta, int64_t tb, int64_t t);
+	xrt_hand_joint_set interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t);
+	xrt_hand_joint_set extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, int64_t ta, int64_t tb, int64_t t);
 
 	hand_joints_list(int hand_id) :
 	        hand_id(hand_id) {}

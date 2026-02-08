@@ -69,7 +69,6 @@ public:
 	bool mic_unprocessed_audio = false;
 
 	bool fb_lower_body = false;
-	bool fb_hip = true;
 
 	bool enable_stream_gui = true;
 
