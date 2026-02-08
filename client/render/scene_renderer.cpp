@@ -676,8 +676,8 @@ vk::raii::Pipeline scene_renderer::create_pipeline(const pipeline_info & info)
 {
 	spdlog::debug("Creating pipeline");
 
-	auto vertex_shader = shader_loader{device}(info.vertex_shader_name);
-	auto fragment_shader = shader_loader{device}(info.fragment_shader_name);
+	auto vertex_shader = load_shader(device, info.vertex_shader_name);
+	auto fragment_shader = load_shader(device, info.fragment_shader_name);
 
 	auto specialization = make_specialization_constants(
 	        int32_t(info.nb_texcoords),
@@ -1144,7 +1144,7 @@ void scene_renderer::render(
 		pipeline_info info{
 		        .renderpass = rp_info,
 		        .vertex_shader_name = primitive.vertex_shader,
-		        .fragment_shader_name = material->fragment_shader_name,
+		        .fragment_shader_name = material->fragment_shader,
 		        .vertex_layout = primitive.layout,
 		        .cull_mode = primitive.cull_mode,
 		        .front_face = primitive.front_face,

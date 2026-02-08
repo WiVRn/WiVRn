@@ -101,7 +101,7 @@ struct material
 	size_t offset;
 
 	std::string name;
-	std::string fragment_shader_name = "lit.frag";
+	std::string fragment_shader = "lit.frag";
 };
 
 struct primitive

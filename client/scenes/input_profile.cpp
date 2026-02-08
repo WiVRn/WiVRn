@@ -194,17 +194,6 @@ struct ray_extra_shader_data
 void setup_ray_shader(entt::registry & scene, entt::entity entity, const ray_extra_shader_data & initial_data = {})
 {
 	auto & node = scene.get<components::node>(entity);
-
-	for (auto & primitive: node.mesh->primitives)
-	{
-		if (primitive.vertex_shader == "lit.vert")
-			primitive.vertex_shader = "ray.vert";
-		else if (primitive.vertex_shader == "lit_skinned.vert")
-			primitive.vertex_shader = "ray_skinned.vert";
-
-		primitive.material_->fragment_shader_name = "ray.frag";
-	}
-
 	node.set_extra_shader_data(initial_data);
 }
 } // namespace

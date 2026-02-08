@@ -1034,7 +1034,7 @@ void scenes::lobby::gui_debug_node_hierarchy(entt::entity root)
 							        primitive.vertex_count,
 							        primitive.material_->name,
 							        primitive.vertex_shader,
-							        primitive.material_->fragment_shader_name);
+							        primitive.material_->fragment_shader);
 
 							imgui_ctx->tooltip(tooltip);
 						}
