@@ -22,52 +22,31 @@
 #include "xr/meta_body_tracking_fidelity.h"
 #include "xr/session.h"
 #include "xr/to_string.h"
-#include <ranges>
 #include <openxr/openxr.h>
 
-static_assert(xr::fb_body_tracker::joint_whitelist.size() <= wivrn::from_headset::body_tracking::max_tracked_poses);
-
-std::vector<XrFullBodyJointMETA> xr::fb_body_tracker::get_whitelisted_joints(bool full_body, bool hip)
-{
-	auto whitelisted_joints = std::ranges::filter_view(xr::fb_body_tracker::joint_whitelist, [=](auto joint) {
-		if (!full_body && (joint == XR_FULL_BODY_JOINT_HIPS_META || joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META))
-			return false;
-		if (!hip && joint == XR_FULL_BODY_JOINT_HIPS_META)
-			return false;
-
-		return true;
-	});
-	return {whitelisted_joints.begin(), whitelisted_joints.end()};
-}
-
-xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s, bool full_body, bool hip) :
+xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s) :
         handle(inst.get_proc<PFN_xrDestroyBodyTrackerFB>("xrDestroyBodyTrackerFB")),
         xrRequestBodyTrackingFidelityMETA(inst.get_proc<PFN_xrRequestBodyTrackingFidelityMETA>("xrRequestBodyTrackingFidelityMETA")),
-        xrLocateBodyJointsFB(inst.get_proc<PFN_xrLocateBodyJointsFB>("xrLocateBodyJointsFB")),
-        full_body(full_body),
-        hip(hip)
+        xrLocateBodyJointsFB(inst.get_proc<PFN_xrLocateBodyJointsFB>("xrLocateBodyJointsFB"))
 {
 	auto xrCreateBodyTrackerFB = inst.get_proc<PFN_xrCreateBodyTrackerFB>("xrCreateBodyTrackerFB");
 
 	XrBodyTrackerCreateInfoFB create_info{
 	        .type = XR_TYPE_BODY_TRACKER_CREATE_INFO_FB,
-	        .bodyJointSet = full_body
-	                                ? XR_BODY_JOINT_SET_FULL_BODY_META
-	                                : XR_BODY_JOINT_SET_DEFAULT_FB,
+	        .bodyJointSet = XR_BODY_JOINT_SET_FULL_BODY_META,
 	};
 
 	CHECK_XR(xrCreateBodyTrackerFB(s, &create_info, &id));
 
 	// Enable IOBT.
 	CHECK_XR(xrRequestBodyTrackingFidelityMETA(id, XR_BODY_TRACKING_FIDELITY_HIGH_META));
-
-	whitelisted_joints = get_whitelisted_joints(full_body, hip);
 }
 
-std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> xr::fb_body_tracker::locate_spaces(XrTime time, XrSpace reference)
+xr::fb_body_tracker::packet_type xr::fb_body_tracker::locate_spaces(XrTime time, XrSpace reference)
 {
+	xr::fb_body_tracker::packet_type ret{};
 	if (!id)
-		return std::nullopt;
+		return ret;
 
 	assert(xrLocateBodyJointsFB);
 
@@ -82,44 +61,48 @@ std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_h
 	XrBodyJointLocationsFB joint_locations{
 	        .type = XR_TYPE_BODY_JOINT_LOCATIONS_FB,
 	        .next = nullptr,
-	        .jointCount = (uint32_t)(full_body ? XR_FULL_BODY_JOINT_COUNT_META : (XrFullBodyJointMETA)XR_BODY_JOINT_COUNT_FB),
+	        .jointCount = XR_FULL_BODY_JOINT_COUNT_META,
 	        .jointLocations = joints.data(),
 	};
 
 	if (auto res = xrLocateBodyJointsFB(id, &locate_info, &joint_locations); !XR_SUCCEEDED(res))
 	{
 		spdlog::warn("xrLocateBodyJointsFB returned {}", xr::to_string(res));
-		return std::nullopt;
+		return ret;
 	}
 
 	if (!joint_locations.isActive)
 	{
 		spdlog::warn("Body tracker is not active.");
-		return std::nullopt;
+		return ret;
 	}
 
-	std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses> poses{};
-	int num_poses = 0;
-	for (auto joint: whitelisted_joints)
+	ret.confidence = joint_locations.confidence;
+	auto & out_joints = ret.joints.emplace();
+	for (size_t joint = 0; joint < XR_FULL_BODY_JOINT_COUNT_META; joint++)
 	{
+		// skip hands
+		if (joint >= XR_FULL_BODY_JOINT_LEFT_HAND_PALM_META and joint <= XR_FULL_BODY_JOINT_RIGHT_HAND_LITTLE_TIP_META)
+			continue;
+
 		const auto & joint_loc = joints[joint];
-		wivrn::from_headset::body_tracking::pose pose{
-		        .pose = joint_loc.pose,
-		        .flags = 0,
+		// offset the index into the packet's joints array, since we don't send hands
+		size_t index = joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META
+		                       ? (joint - (XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META - XR_FULL_BODY_JOINT_LEFT_HAND_PALM_META))
+		                       : joint;
+		out_joints[index] = {
+		        .position = joint_loc.pose.position,
+		        .orientation = pack(joint_loc.pose.orientation),
 		};
 
 		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-		{
-			pose.flags |= wivrn::from_headset::body_tracking::orientation_valid;
-			pose.flags |= wivrn::from_headset::body_tracking::orientation_tracked;
-		}
+			out_joints[index].flags |= wivrn::from_headset::meta_body::orientation_valid;
 		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-		{
-			pose.flags |= wivrn::from_headset::body_tracking::position_valid;
-			pose.flags |= wivrn::from_headset::body_tracking::position_tracked;
-		}
-
-		poses[num_poses++] = pose;
+			out_joints[index].flags |= wivrn::from_headset::meta_body::position_valid;
+		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+			out_joints[index].flags |= wivrn::from_headset::meta_body::orientation_tracked;
+		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+			out_joints[index].flags |= wivrn::from_headset::meta_body::position_tracked;
 	}
-	return poses;
+	return ret;
 }

@@ -21,8 +21,6 @@
 #include "utils/handle.h"
 #include "wivrn_packets.h"
 
-#include <array>
-#include <optional>
 #include <openxr/openxr.h>
 
 namespace xr
@@ -35,19 +33,9 @@ class pico_body_tracker : public utils::handle<XrBodyTrackerBD>
 	PFN_xrLocateBodyJointsBD xrLocateBodyJointsBD{};
 
 public:
-	static constexpr std::array joint_whitelist{
-	        XR_BODY_JOINT_PELVIS_BD,
-	        XR_BODY_JOINT_LEFT_ELBOW_BD,
-	        XR_BODY_JOINT_RIGHT_ELBOW_BD,
-
-	        XR_BODY_JOINT_LEFT_KNEE_BD,
-	        XR_BODY_JOINT_RIGHT_KNEE_BD,
-	        XR_BODY_JOINT_LEFT_FOOT_BD,
-	        XR_BODY_JOINT_RIGHT_FOOT_BD,
-	};
-
+	using packet_type = wivrn::from_headset::bd_body;
 	pico_body_tracker(instance & inst, session & s);
 
-	std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> locate_spaces(XrTime time, XrSpace reference);
+	packet_type locate_spaces(XrTime time, XrSpace reference);
 };
 } // namespace xr

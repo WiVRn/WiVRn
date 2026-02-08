@@ -57,9 +57,7 @@ xr::body_tracker xr::make_body_tracker(xr::instance & instance, xr::system & sys
 		if (fb_body_properties.supportsBodyTracking)
 			return xr::body_tracker(std::in_place_type_t<xr::fb_body_tracker>(),
 			                        instance,
-			                        session,
-			                        full_body,
-			                        hips);
+			                        session);
 	}
 
 	if (not generic_trackers.empty())

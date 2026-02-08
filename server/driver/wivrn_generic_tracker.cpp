@@ -2,7 +2,7 @@
  * WiVRn VR streaming
  * Copyright (C) 2022  Guillaume Meunier <guillaume.meunier@centraliens.net>
  * Copyright (C) 2022  Patrick Nicolas <patricknicolas@laposte.net>
- * Copyright (C) 2025  Sapphire <imsapphire0@gmail.com>
+ * Copyright (C) 2026  Sapphire <imsapphire0@gmail.com>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "util/u_logging.h"
 #include "utils/method.h"
 #include "wivrn_session.h"
+#include "xrt_cast.h"
 
 #include "math/m_api.h"
 #include "math/m_eigen_interop.hpp"
@@ -29,10 +30,26 @@
 #include "math/m_vec3.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_results.h"
-#include "xrt_cast.h"
 #include <format>
 
 using namespace xrt::auxiliary::math;
+
+static xrt_space_relation_flags cast_flags(uint8_t in_flags)
+{
+	std::underlying_type_t<xrt_space_relation_flags> flags{};
+	if (in_flags & wivrn::from_headset::htc_body::orientation_valid)
+		flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
+
+	if (in_flags & wivrn::from_headset::htc_body::position_valid)
+		flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
+
+	if (in_flags & wivrn::from_headset::htc_body::orientation_tracked)
+		flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
+
+	if (in_flags & wivrn::from_headset::htc_body::position_tracked)
+		flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
+	return xrt_space_relation_flags(flags);
+}
 
 namespace wivrn
 {
@@ -70,35 +87,13 @@ xrt_space_relation tracker_pose_list::extrapolate(const xrt_space_relation & a, 
 	return res;
 }
 
-void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::body_tracking::pose & pose, const clock_offset & offset)
+void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::htc_body::pose & pose, const clock_offset & offset)
 {
-	add_sample(produced_timestamp, timestamp, convert_pose(pose), offset);
-}
-
-static xrt_space_relation_flags convert_flags(uint8_t flags)
-{
-	std::underlying_type_t<xrt_space_relation_flags> out_flags = 0;
-	if (flags & from_headset::body_tracking::orientation_valid)
-		out_flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
-	if (flags & from_headset::body_tracking::position_valid)
-		out_flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
-
-	if (flags & from_headset::body_tracking::orientation_tracked)
-		out_flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
-	if (flags & from_headset::body_tracking::position_tracked)
-		out_flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
-
-	return xrt_space_relation_flags(out_flags);
-}
-
-xrt_space_relation tracker_pose_list::convert_pose(const from_headset::body_tracking::pose & pose)
-{
-	return xrt_space_relation{
-	        .relation_flags = convert_flags(pose.flags),
+	xrt_space_relation rel{
+	        .relation_flags = cast_flags(pose.flags),
 	        .pose = xrt_cast(pose.pose),
-	        .linear_velocity = {},
-	        .angular_velocity = {},
 	};
+	add_sample(produced_timestamp, timestamp, rel, offset);
 }
 
 wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_session & cnx) :
@@ -150,8 +145,8 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
-void wivrn_generic_tracker::update_tracking(const from_headset::body_tracking & tracking, const from_headset::body_tracking::pose & pose, const clock_offset & offset)
+void wivrn_generic_tracker::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::htc_body::pose & pose, const clock_offset & offset)
 {
-	poses.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
+	poses.update_tracking(produced_timestamp, timestamp, pose, offset);
 }
 } // namespace wivrn

@@ -22,8 +22,6 @@
 
 #include "utils/handle.h"
 #include "xr/meta_body_tracking_fidelity.h"
-#include <array>
-#include <optional>
 #include <openxr/openxr.h>
 
 namespace xr
@@ -36,27 +34,11 @@ class fb_body_tracker : public utils::handle<XrBodyTrackerFB>
 	PFN_xrRequestBodyTrackingFidelityMETA xrRequestBodyTrackingFidelityMETA{};
 	PFN_xrLocateBodyJointsFB xrLocateBodyJointsFB{};
 
-	bool full_body{};
-	bool hip{};
-	std::vector<XrFullBodyJointMETA> whitelisted_joints{};
-
 public:
-	static constexpr std::array joint_whitelist{
-	        XR_FULL_BODY_JOINT_HIPS_META,
-	        XR_FULL_BODY_JOINT_CHEST_META,
-	        XR_FULL_BODY_JOINT_LEFT_ARM_LOWER_META,
-	        XR_FULL_BODY_JOINT_RIGHT_ARM_LOWER_META,
+	using packet_type = wivrn::from_headset::meta_body;
 
-	        XR_FULL_BODY_JOINT_LEFT_LOWER_LEG_META,
-	        XR_FULL_BODY_JOINT_RIGHT_LOWER_LEG_META,
+	fb_body_tracker(instance & inst, session & s);
 
-	        XR_FULL_BODY_JOINT_LEFT_FOOT_TRANSVERSE_META,
-	        XR_FULL_BODY_JOINT_RIGHT_FOOT_TRANSVERSE_META,
-	};
-	static std::vector<XrFullBodyJointMETA> get_whitelisted_joints(bool full_body, bool hip);
-
-	fb_body_tracker(instance & inst, session & s, bool full_body, bool hip);
-
-	std::optional<std::array<wivrn::from_headset::body_tracking::pose, wivrn::from_headset::body_tracking::max_tracked_poses>> locate_spaces(XrTime time, XrSpace reference);
+	packet_type locate_spaces(XrTime time, XrSpace reference);
 };
 } // namespace xr
