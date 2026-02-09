@@ -515,6 +515,7 @@ void scenes::stream::tracking()
 									                                .w = gaze_quat.w,
 									                        },
 									                },
+									                .device = item.device,
 									                .flags = uint8_t(gaze.flags & view_pose.flags & ~(flags::linear_velocity_valid | flags::angular_velocity_valid)),
 									        });
 								}
