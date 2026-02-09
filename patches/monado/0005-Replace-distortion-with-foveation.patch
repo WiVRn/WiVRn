@@ -1,7 +1,7 @@
-From fb72a558ef3ccdcd9428345efcd2d2f15e474d27 Mon Sep 17 00:00:00 2001
+From 73f329eaba1e46bf62ff6579e27cd39f0d9e6730 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 05/11] Replace distortion with foveation
+Subject: [PATCH 5/8] Replace distortion with foveation
 
 ---
  src/xrt/compositor/main/comp_renderer.c       |   6 +-
