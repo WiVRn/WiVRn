@@ -54,6 +54,18 @@ static xrt_space_relation to_relation(const wivrn::from_headset::meta_body::pose
 	        }),
 	};
 }
+static xrt_space_relation to_relation(const wivrn::from_headset::meta_body::pose & base, const wivrn::from_headset::meta_body::packed_pose & pose)
+{
+	return {
+	        .relation_flags = cast_flags(pose.flags),
+	        .pose = xrt_cast(XrPosef{
+	                .orientation = pose.orientation,
+	                .position = {
+	                        .x = base.position.x + float(pose.position.x / 10'000.f),
+	                        .y = base.position.y + float(pose.position.y / 10'000.f),
+	                        .z = base.position.z + float(pose.position.z / 10'000.f),
+	                }})};
+}
 
 namespace wivrn
 {
@@ -112,15 +124,17 @@ void meta_body_joints_list::update_tracking(const wivrn::from_headset::meta_body
 	        .base = {
 	                .sample_time_ns = tracking.timestamp,
 	                .confidence = tracking.confidence,
-	                .is_active = tracking.joints.has_value(),
+	                .is_active = tracking.base.has_value(),
 	        },
 	};
 	if (s.base.is_active)
 	{
-		for (size_t joint = 0; joint < XRT_FULL_BODY_JOINT_COUNT_META; joint++)
+		const auto & base = tracking.base.value();
+		s.joint_locations[XRT_FULL_BODY_JOINT_ROOT_META].relation = to_relation(base);
+		const auto & joints = tracking.joints.value();
+		for (size_t joint = XRT_FULL_BODY_JOINT_HIPS_META; joint < XRT_FULL_BODY_JOINT_COUNT_META; joint++)
 		{
-			const auto & pose = (*tracking.joints)[joint];
-			s.joint_locations[joint].relation = to_relation(pose);
+			s.joint_locations[joint].relation = to_relation(base, joints[joint - 1]);
 		}
 	}
 	add_sample(tracking.production_timestamp, tracking.timestamp, s, offset);

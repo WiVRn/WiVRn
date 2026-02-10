@@ -24,6 +24,21 @@
 #include "xr/to_string.h"
 #include <openxr/openxr.h>
 
+static uint8_t convert_flags(XrSpaceLocationFlags in_flags)
+{
+	uint8_t flags{};
+	if (in_flags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+		flags |= wivrn::from_headset::meta_body::orientation_valid;
+	if (in_flags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+		flags |= wivrn::from_headset::meta_body::position_valid;
+	if (in_flags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+		flags |= wivrn::from_headset::meta_body::orientation_tracked;
+	if (in_flags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+		flags |= wivrn::from_headset::meta_body::position_tracked;
+
+	return flags;
+}
+
 xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s) :
         handle(inst.get_proc<PFN_xrDestroyBodyTrackerFB>("xrDestroyBodyTrackerFB")),
         xrRequestBodyTrackingFidelityMETA(inst.get_proc<PFN_xrRequestBodyTrackingFidelityMETA>("xrRequestBodyTrackingFidelityMETA")),
@@ -73,28 +88,24 @@ xr::fb_body_tracker::packet_type xr::fb_body_tracker::locate_spaces(XrTime time,
 
 	if (!joint_locations.isActive)
 	{
-		spdlog::warn("Body tracker is not active.");
 		return ret;
 	}
 
 	ret.confidence = joint_locations.confidence;
+	const auto & base = joints[XR_FULL_BODY_JOINT_ROOT_META];
+	ret.base.emplace(base.pose.position, pack(base.pose.orientation), convert_flags(base.locationFlags));
 	auto & out_joints = ret.joints.emplace();
-	for (size_t joint = 0; joint < XR_FULL_BODY_JOINT_COUNT_META; joint++)
+	for (size_t joint = XR_FULL_BODY_JOINT_HIPS_META; joint < XR_FULL_BODY_JOINT_COUNT_META; joint++)
 	{
-		const auto & joint_loc = joints[joint];
-		out_joints[joint] = {
-		        .position = joint_loc.pose.position,
-		        .orientation = pack(joint_loc.pose.orientation),
+		const auto & loc = joints[joint];
+		out_joints[joint - 1] = {
+		        .position = {
+		                .x = int16_t((loc.pose.position.x - base.pose.position.x) * 10'000.f),
+		                .y = int16_t((loc.pose.position.y - base.pose.position.y) * 10'000.f),
+		                .z = int16_t((loc.pose.position.z - base.pose.position.z) * 10'000.f)},
+		        .orientation = pack(loc.pose.orientation),
+		        .flags = convert_flags(loc.locationFlags),
 		};
-
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-			out_joints[joint].flags |= wivrn::from_headset::meta_body::orientation_valid;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-			out_joints[joint].flags |= wivrn::from_headset::meta_body::position_valid;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-			out_joints[joint].flags |= wivrn::from_headset::meta_body::orientation_tracked;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-			out_joints[joint].flags |= wivrn::from_headset::meta_body::position_tracked;
 	}
 	return ret;
 }

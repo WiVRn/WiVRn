@@ -414,11 +414,22 @@ struct meta_body
 		packed_quaternion orientation;
 		uint8_t flags;
 	};
+	struct packed_pose
+	{
+		struct
+		{
+			int16_t x, y, z;
+		} position;
+		packed_quaternion orientation;
+		uint8_t flags;
+	};
 
 	XrTime production_timestamp;
 	XrTime timestamp;
 	float confidence;
-	std::optional<std::array<pose, XR_FULL_BODY_JOINT_COUNT_META>> joints;
+	std::optional<pose> base;
+	// excluding root
+	std::optional<std::array<packed_pose, XR_FULL_BODY_JOINT_COUNT_META - 1>> joints;
 };
 
 struct meta_body_skeleton
