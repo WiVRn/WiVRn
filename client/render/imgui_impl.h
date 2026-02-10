@@ -136,6 +136,7 @@ public:
 		glm::ivec2 vp_size;
 
 		bool always_show_cursor = false; // Show the cursor in this viewport even if there is a modal popup elsewhere (eg. this is a virtual keyboard)
+		bool tooltip_viewport = false;   // Choose this viewport to display the tooltip, ignore mouse events
 
 		int z_index = 0;
 

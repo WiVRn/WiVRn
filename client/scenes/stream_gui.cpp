@@ -835,7 +835,8 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	const ImGuiStyle & style = ImGui::GetStyle();
 	imgui_ctx->new_frame(predicted_display_time);
 
-	ImVec2 content_size{ImGui::GetMainViewport()->Size - ImVec2{tab_width, 0} - margin_around_window * 2};
+	ImVec2 viewport_size(imgui_ctx->layers()[0].vp_size.x, imgui_ctx->layers()[0].vp_size.y);
+	ImVec2 content_size{viewport_size - ImVec2{tab_width, 0} - margin_around_window * 2};
 	ImVec2 content_center = margin_around_window + content_size / 2 + ImVec2{tab_width, 0};
 
 	bool display_tabs, always_auto_resize;
@@ -851,7 +852,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		case gui_status::hidden:
 		case gui_status::bitrate_settings:
 		case gui_status::foveation_settings:
-			ImGui::SetNextWindowPos(ImGui::GetMainViewport()->Size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			ImGui::SetNextWindowPos(viewport_size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			always_auto_resize = true;
 			display_tabs = false;
 			break;
@@ -866,13 +867,13 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		case gui_status::settings:
 		case gui_status::applications:
 			ImGui::SetNextWindowPos(margin_around_window);
-			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - margin_around_window * 2);
+			ImGui::SetNextWindowSize(viewport_size - margin_around_window * 2);
 			always_auto_resize = false;
 			display_tabs = true;
 			break;
 		case gui_status::application_launcher:
 			ImGui::SetNextWindowPos(margin_around_window);
-			ImGui::SetNextWindowSize(ImGui::GetMainViewport()->Size - margin_around_window * 2);
+			ImGui::SetNextWindowSize(viewport_size - margin_around_window * 2);
 			always_auto_resize = false;
 			display_tabs = false;
 			break;

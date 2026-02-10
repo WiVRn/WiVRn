@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstddef>
 #include <glm/gtc/matrix_access.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <limits>
@@ -214,7 +215,7 @@ std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(cons
 
 	for (const auto & i: layers_)
 	{
-		if (i.space != xr::spaces::world)
+		if (i.space != xr::spaces::world or i.tooltip_viewport)
 			continue;
 
 		auto M = glm::transpose(glm::mat3_cast(i.orientation)); // world-to-plane transform
@@ -1227,34 +1228,31 @@ void imgui_context::tooltip(std::string_view text)
 	// FIXME: this is incorrect if we use the docking branch of imgui
 	ImGuiViewport * viewport = ImGui::GetMainViewport();
 	auto & current_layer = layer(ImGui::GetMousePos());
-	auto pos_backup = viewport->Pos;
-	auto size_backup = viewport->Size;
-	viewport->Pos = ImVec2(current_layer.vp_origin.x, current_layer.vp_origin.y);
-	viewport->Size = ImVec2(current_layer.vp_size.x, current_layer.vp_size.y);
 
-	ImVec2 pos{
+	assert(std::ranges::contains(layers_, true, &viewport::tooltip_viewport));
+	auto & tooltip_layer = *std::ranges::find(layers_, true, &viewport::tooltip_viewport);
+
+	// Get the item position before drawing the tooltip (top center)
+	ImVec2 item_position{
 	        (ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
-	        ImGui::GetItemRectMin().y - constants::style::tooltip_distance,
+	        ImGui::GetItemRectMin().y,
 	};
 
+	auto pos_backup = viewport->Pos;
+	auto size_backup = viewport->Size;
+	viewport->Pos = ImVec2(tooltip_layer.vp_origin.x, tooltip_layer.vp_origin.y);
+	viewport->Size = ImVec2(tooltip_layer.vp_size.x, tooltip_layer.vp_size.y);
+
+	// Draw the tooltip in the tooltip layer
+	// Clamp position to avoid overflowing on the left or the right
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, constants::style::tooltip_padding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, constants::style::tooltip_rounding);
 
-	// Clamp position to avoid overflowing on the left or the right
 	auto & style = ImGui::GetStyle();
 	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
-	const ImVec2 size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
-	pos.x = std::clamp<float>(pos.x, viewport->Pos.x + size.x / 2, viewport->Pos.x + viewport->Size.x - size.x / 2);
-	ImVec2 pivot = {0.5, 1};
+	const ImVec2 tooltip_size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
 
-	// Move tooltip below the item if it overflows on the top
-	if (pos.y - size.y <= viewport->Pos.y)
-	{
-		pos.y = ImGui::GetItemRectMax().y + constants::style::tooltip_distance;
-		pivot.y = 0;
-	}
-
-	ImGui::SetNextWindowPos(pos, ImGuiCond_Always, pivot);
+	ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_Always);
 	if (ImGui::BeginTooltip())
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
@@ -1262,11 +1260,23 @@ void imgui_context::tooltip(std::string_view text)
 		ImGui::PopStyleColor();
 		ImGui::EndTooltip();
 	}
-
 	ImGui::PopStyleVar(2);
 
 	viewport->Pos = pos_backup;
 	viewport->Size = size_backup;
+
+	// Compute the tooltip position
+	glm::quat tooltip_orientation = current_layer.orientation;
+	auto M = glm::mat3_cast(tooltip_orientation);
+
+	float pixel_size = current_layer.size.y / current_layer.vp_size.y;
+	glm::vec3 tooltip_position_centre = rw_from_vp(item_position) + M * (glm::vec3(0, tooltip_size.y / 2, 0) * pixel_size + constants::style::tooltip_distance);
+
+	// Position the tooltip layer
+	tooltip_layer.position = tooltip_position_centre;
+	tooltip_layer.orientation = tooltip_orientation;
+	tooltip_layer.vp_size = {tooltip_size.x, tooltip_size.y};
+	tooltip_layer.size = {tooltip_size.x * pixel_size, tooltip_size.y * pixel_size};
 }
 
 // https://github.com/ocornut/imgui/issues/3379#issuecomment-2943903877

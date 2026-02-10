@@ -1245,7 +1245,17 @@ void scenes::lobby::on_focused()
 	                .vp_origin = {0, 1000},
 	                .vp_size = {1500, 300},
 	                .z_index = constants::lobby::zindex_recenter_tip,
-	        }};
+	        },
+	        {
+	                // Tooltip
+	                .space = xr::spaces::world,
+	                .size = {0.6, 0.08},
+	                .vp_origin = {0, 1300},
+	                .vp_size = {1500, 200},
+	                .tooltip_viewport = true,
+	                .z_index = constants::lobby::zindex_tooltip,
+	        },
+	};
 
 	xr::swapchain swapchain_imgui(instance, session, device, swapchain_format, 3000, 1500);
 

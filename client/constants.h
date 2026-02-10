@@ -108,7 +108,8 @@ constexpr int zindex_passthrough = -2;
 constexpr int zindex_lobby = -1;
 constexpr int zindex_gui = 0;
 constexpr int zindex_controllers = 1;
-constexpr int zindex_recenter_tip = 2;
+constexpr int zindex_tooltip = 2;
+constexpr int zindex_recenter_tip = 3;
 } // namespace constants::lobby
 
 namespace constants::stream
@@ -129,7 +130,7 @@ constexpr float window_rounding = 10;
 
 constexpr ImVec2 tooltip_padding = {5, 5};
 constexpr float tooltip_rounding = 0;
-constexpr float tooltip_distance = 10;
+constexpr glm::vec3 tooltip_distance = {0, 0.004, 0.005};
 
 constexpr ImVec2 button_size = {220, 80};
 constexpr ImVec2 icon_button_size = {80, 80};

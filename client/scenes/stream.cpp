@@ -476,14 +476,23 @@ void scenes::stream::on_focused()
 	        device,
 	        swapchain_format,
 	        1800,
-	        1000);
+	        1200);
 
-	imgui_context::viewport vp{
-	        .space = xr::spaces::world,
-	        // Position and orientation are set at each frame
-	        .size = {1.2, 0.6666},
-	        .vp_origin = {0, 0},
-	        .vp_size = {1800, 1000},
+	std::vector<imgui_context::viewport> vps{
+	        {
+	                .space = xr::spaces::world,
+	                // Position and orientation are set at each frame
+	                .size = {1.2, 0.6666},
+	                .vp_origin = {0, 0},
+	                .vp_size = {1800, 1000},
+	        },
+	        {
+	                .space = xr::spaces::world,
+	                .size = {1.2, 0.1333},
+	                .vp_origin = {0, 1000},
+	                .vp_size = {1800, 200},
+	                .tooltip_viewport = true,
+	        },
 	};
 
 	imgui_ctx.emplace(physical_device,
@@ -492,7 +501,7 @@ void scenes::stream::on_focused()
 	                  queue,
 	                  imgui_inputs,
 	                  std::move(swapchain_imgui),
-	                  std::vector{vp},
+	                  std::move(vps),
 	                  image_cache);
 
 	if (application::get_config().enable_stream_gui)
