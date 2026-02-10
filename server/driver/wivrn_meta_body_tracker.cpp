@@ -119,15 +119,7 @@ void meta_body_joints_list::update_tracking(const wivrn::from_headset::meta_body
 	{
 		for (size_t joint = 0; joint < XRT_FULL_BODY_JOINT_COUNT_META; joint++)
 		{
-			// skip hands
-			if (joint >= XRT_FULL_BODY_JOINT_LEFT_HAND_PALM_META and joint <= XRT_FULL_BODY_JOINT_RIGHT_HAND_LITTLE_TIP_META)
-				continue;
-
-			// offset the index into the packet's joints array, since we don't send hands
-			size_t index = joint >= XRT_FULL_BODY_JOINT_LEFT_UPPER_LEG_META
-			                       ? (joint - (XRT_FULL_BODY_JOINT_LEFT_UPPER_LEG_META - XRT_FULL_BODY_JOINT_LEFT_HAND_PALM_META))
-			                       : joint;
-			const auto & pose = (*tracking.joints)[index];
+			const auto & pose = (*tracking.joints)[joint];
 			s.joint_locations[joint].relation = to_relation(pose);
 		}
 	}

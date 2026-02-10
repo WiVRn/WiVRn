@@ -401,9 +401,6 @@ struct hand_tracking
 
 struct meta_body
 {
-	// We already have hand tracking data in a different packet,
-	// exclude it from this packet to save space
-	static constexpr auto num_joints = XR_FULL_BODY_JOINT_COUNT_META - (XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META - XR_FULL_BODY_JOINT_LEFT_HAND_PALM_META);
 	enum flags : uint8_t
 	{
 		orientation_valid = 1 << 0,
@@ -421,7 +418,7 @@ struct meta_body
 	XrTime production_timestamp;
 	XrTime timestamp;
 	float confidence;
-	std::optional<std::array<pose, num_joints>> joints;
+	std::optional<std::array<pose, XR_FULL_BODY_JOINT_COUNT_META>> joints;
 };
 
 struct meta_body_skeleton

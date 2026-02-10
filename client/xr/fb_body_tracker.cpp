@@ -81,28 +81,20 @@ xr::fb_body_tracker::packet_type xr::fb_body_tracker::locate_spaces(XrTime time,
 	auto & out_joints = ret.joints.emplace();
 	for (size_t joint = 0; joint < XR_FULL_BODY_JOINT_COUNT_META; joint++)
 	{
-		// skip hands
-		if (joint >= XR_FULL_BODY_JOINT_LEFT_HAND_PALM_META and joint <= XR_FULL_BODY_JOINT_RIGHT_HAND_LITTLE_TIP_META)
-			continue;
-
 		const auto & joint_loc = joints[joint];
-		// offset the index into the packet's joints array, since we don't send hands
-		size_t index = joint >= XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META
-		                       ? (joint - (XR_FULL_BODY_JOINT_LEFT_UPPER_LEG_META - XR_FULL_BODY_JOINT_LEFT_HAND_PALM_META))
-		                       : joint;
-		out_joints[index] = {
+		out_joints[joint] = {
 		        .position = joint_loc.pose.position,
 		        .orientation = pack(joint_loc.pose.orientation),
 		};
 
 		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-			out_joints[index].flags |= wivrn::from_headset::meta_body::orientation_valid;
+			out_joints[joint].flags |= wivrn::from_headset::meta_body::orientation_valid;
 		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-			out_joints[index].flags |= wivrn::from_headset::meta_body::position_valid;
+			out_joints[joint].flags |= wivrn::from_headset::meta_body::position_valid;
 		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-			out_joints[index].flags |= wivrn::from_headset::meta_body::orientation_tracked;
+			out_joints[joint].flags |= wivrn::from_headset::meta_body::orientation_tracked;
 		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-			out_joints[index].flags |= wivrn::from_headset::meta_body::position_tracked;
+			out_joints[joint].flags |= wivrn::from_headset::meta_body::position_tracked;
 	}
 	return ret;
 }
