@@ -243,7 +243,7 @@ msgid ""
 msgstr ""
 "Les valeurs élevées concentrent la qualité là où se\n"
 "porte le regard, ce qui diminue la latence, réduit la\n"
-"consommation d'énergé et améliore la qualité."
+"consommation d'énergie et améliore la qualité."
 
 #: client/scenes/lobby_gui.cpp:700
 msgid ""
@@ -252,7 +252,7 @@ msgid ""
 msgstr ""
 "Les valeurs élevées concentrent la qualité au centre\n"
 "de l'image, ce qui diminue la latence, réduit la\n"
-"consommation d'énergé et améliore la qualité."
+"consommation d'énergie et améliore la qualité."
 
 #: client/scenes/lobby_gui.cpp:709
 msgctxt "Codec"
