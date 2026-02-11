@@ -84,7 +84,7 @@ from_headset::tracking::pose locate_space(device_id device, XrSpace space, XrSpa
 		        .flags = cast_flags(location.locationFlags, velocity.velocityFlags),
 		};
 	spdlog::warn("xrLocateSpace failed for {}: {}", magic_enum::enum_name(device), xr::to_string(res));
-	return {};
+	return {.device = device};
 }
 
 class locate_spaces_functor
