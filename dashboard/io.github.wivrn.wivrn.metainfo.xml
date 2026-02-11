@@ -68,6 +68,17 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="26.2.1" date="2026-02-11">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.2.1</url>
+			<description>
+				<ul>
+					<li>Fixed crashes on Pico headsets with eye tracking</li>
+					<li>Fixed manual foveation center configuration</li>
+					<li>Fixed some performance issues on Vulkan video encoding</li>
+					<li>Fixed OpenXR cylinder layers aspect ratio</li>
+				</ul>
+			</description>
+		</release>
 		<release version="26.2" date="2026-02-08">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.2</url>
 			<description>
