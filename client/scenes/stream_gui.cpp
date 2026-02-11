@@ -827,7 +827,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			case gui_status::bitrate_settings:
 			case gui_status::foveation_settings:
 				imgui_ctx->layers()[0].orientation = head_position->second;
-				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, -override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
+				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
 				break;
 
 			case gui_status::hidden:
