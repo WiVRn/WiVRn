@@ -345,7 +345,10 @@ void pipewire_device::mic_state_changed(void * self_v, pw_stream_state old, pw_s
 {
 	auto self = (pipewire_device *)self_v;
 	self->mic_state = state;
-	U_LOG_I("Microphone state changed from %s to %s (error: %s)", magic_enum::enum_name(old).data(), magic_enum::enum_name(state).data(), error != nullptr ? error : "<unknown>");
+	if (error)
+		U_LOG_I("Microphone state changed from %s to %s (error: %s)", magic_enum::enum_name(old).data(), magic_enum::enum_name(state).data(), error);
+	else
+		U_LOG_I("Microphone state changed from %s to %s", magic_enum::enum_name(old).data(), magic_enum::enum_name(state).data());
 	switch (state)
 	{
 		case PW_STREAM_STATE_ERROR:
