@@ -978,14 +978,46 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 	for (auto & i: layers_)
 	{
 		bool visible = false;
+
+		ImRect layer_rect(
+		        i.vp_origin.x,
+		        i.vp_origin.y,
+		        i.vp_origin.x + i.vp_size.x,
+		        i.vp_origin.y + i.vp_size.y);
+
+		ImRect all_windows_rect{
+		        std::numeric_limits<float>::max(),
+		        std::numeric_limits<float>::max(),
+		        std::numeric_limits<float>::lowest(),
+		        std::numeric_limits<float>::lowest(),
+		};
+
 		for (ImGuiWindow * window: context->Windows)
 		{
-			if (window->Active and not window->Hidden and window_intersects_viewport(window, i))
+			ImRect window_rect{
+			        window->Pos.x,
+			        window->Pos.y,
+			        window->Pos.x + window->Size.x,
+			        window->Pos.y + window->Size.y};
+
+			if (window->Active and not window->Hidden and layer_rect.Overlaps(window_rect))
 			{
 				visible = true;
-				break;
+
+				// Take the union of all visible windows in this layer
+				all_windows_rect.Add(window_rect);
 			}
 		}
+
+		// Take the intersection with the layer
+		all_windows_rect.ClipWithFull(layer_rect);
+
+		glm::vec2 pixel_size = i.size / glm::vec2(i.vp_size);
+		glm::vec2 all_windows_center(all_windows_rect.GetCenter().x, all_windows_rect.GetCenter().y);
+		glm::vec2 layer_center(layer_rect.GetCenter().x, layer_rect.GetCenter().y);
+
+		glm::vec3 new_position = i.position + i.orientation * glm::vec3((all_windows_center - layer_center) * pixel_size, 0);
+		glm::vec2 new_size = glm::vec2(all_windows_rect.GetWidth(), all_windows_rect.GetHeight()) * pixel_size;
 
 		if (not visible)
 			continue;
@@ -1001,12 +1033,12 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 		                        .swapchain = swapchain,
 		                        .imageRect = {
 		                                .offset = {
-		                                        .x = i.vp_origin.x,
-		                                        .y = i.vp_origin.y,
+		                                        .x = int(all_windows_rect.Min.x),
+		                                        .y = int(all_windows_rect.Min.y),
 		                                },
 		                                .extent = {
-		                                        .width = i.vp_size.x,
-		                                        .height = i.vp_size.y,
+		                                        .width = int(all_windows_rect.Max.x - all_windows_rect.Min.x),
+		                                        .height = int(all_windows_rect.Max.y - all_windows_rect.Min.y),
 		                                }},
 		                },
 		                .pose = {
@@ -1017,14 +1049,14 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 		                                .w = i.orientation.w,
 		                        },
 		                        .position = {
-		                                .x = i.position.x,
-		                                .y = i.position.y,
-		                                .z = i.position.z,
+		                                .x = new_position.x,
+		                                .y = new_position.y,
+		                                .z = new_position.z,
 		                        },
 		                },
 		                .size = {
-		                        .width = i.size.x,
-		                        .height = i.size.y,
+		                        .width = new_size.x,
+		                        .height = new_size.y,
 		                },
 		        });
 	}
@@ -1252,7 +1284,8 @@ void imgui_context::tooltip(std::string_view text)
 	const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text.data() + text.size(), true);
 	const ImVec2 tooltip_size = {text_size.x + style.WindowPadding.x * 2.0f, text_size.y + style.WindowPadding.y * 2.0f};
 
-	ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_Always);
+	ImGui::SetNextWindowPos(viewport->Pos + viewport->Size * 0.5, ImGuiCond_Always, {0.5, 0.5});
+	ImGui::SetNextWindowSizeConstraints({0, 0}, viewport->Size);
 	if (ImGui::BeginTooltip())
 	{
 		ImGui::PushStyleColor(ImGuiCol_Text, 0xffffffff);
@@ -1275,8 +1308,6 @@ void imgui_context::tooltip(std::string_view text)
 	// Position the tooltip layer
 	tooltip_layer.position = tooltip_position_centre;
 	tooltip_layer.orientation = tooltip_orientation;
-	tooltip_layer.vp_size = {tooltip_size.x, tooltip_size.y};
-	tooltip_layer.size = {tooltip_size.x * pixel_size, tooltip_size.y * pixel_size};
 }
 
 // https://github.com/ocornut/imgui/issues/3379#issuecomment-2943903877
