@@ -146,7 +146,10 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		        get_info(),
 		        *this);
 		if (audio_handle)
+		{
 			send_control(audio_handle->description());
+			audio_handle->on_connect();
+		}
 	}
 	catch (const std::exception & e)
 	{
@@ -1128,7 +1131,10 @@ void wivrn_session::reconnect(std::stop_token stop)
 				comp_target->reset_encoders();
 		}
 		if (audio_handle)
+		{
 			send_control(audio_handle->description());
+			audio_handle->on_connect();
+		}
 
 		event.state.visible = true;
 		event.state.focused = true;

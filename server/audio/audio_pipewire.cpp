@@ -61,6 +61,7 @@ struct pipewire_device : public audio_device
 	std::atomic<size_t> mic_buffer_size_bytes;
 	audio_data mic_current;
 	std::unique_ptr<pw_stream, deleter> microphone;
+	std::atomic<std::underlying_type_t<pw_stream_state>> mic_state{PW_STREAM_STATE_UNCONNECTED};
 	pw_stream_events mic_events{
 	        .version = PW_VERSION_STREAM_EVENTS,
 	        .state_changed = &pipewire_device::mic_state_changed,
@@ -78,6 +79,7 @@ struct pipewire_device : public audio_device
 	static void mic_state_changed(void * self_v, pw_stream_state old, pw_stream_state state, const char * error);
 
 	void process_mic_data(wivrn::audio_data &&) override;
+	void on_connect() override;
 
 	~pipewire_device()
 	{
@@ -342,6 +344,8 @@ void pipewire_device::mic_process(void * self_v)
 void pipewire_device::mic_state_changed(void * self_v, pw_stream_state old, pw_stream_state state, const char * error)
 {
 	auto self = (pipewire_device *)self_v;
+	self->mic_state = state;
+	U_LOG_I("Microphone state changed from %s to %s (error: %s)", magic_enum::enum_name(old).data(), magic_enum::enum_name(state).data(), error != nullptr ? error : "<unknown>");
 	switch (state)
 	{
 		case PW_STREAM_STATE_ERROR:
@@ -407,6 +411,10 @@ void pipewire_device::process_mic_data(wivrn::audio_data && sample)
 	auto size = sample.payload.size_bytes();
 	if (mic_samples.write(std::move(sample)))
 		mic_buffer_size_bytes += size;
+}
+void pipewire_device::on_connect()
+{
+	session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, mic_state == PW_STREAM_STATE_STREAMING});
 }
 
 std::unique_ptr<audio_device> create_pipewire_handle(
