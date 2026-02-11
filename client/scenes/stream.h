@@ -218,6 +218,7 @@ public:
 		return state_;
 	}
 
+	void exit();
 	bool alive() const
 	{
 		return !exiting;
@@ -236,7 +237,6 @@ private:
 
 	void setup(const to_headset::video_stream_description &);
 	void setup_reprojection_swapchain(uint32_t width, uint32_t height);
-	void exit();
 
 	vk::raii::QueryPool query_pool = nullptr;
 	bool query_pool_filled = false;

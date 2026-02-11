@@ -257,7 +257,7 @@ void scenes::lobby::gui_connected(XrTime predicted_display_time)
 
 	if (next_scene->apps.draw_gui(*imgui_ctx, _("Disconnect")) == app_launcher::Cancel)
 	{
-		next_scene.reset();
+		next_scene->exit();
 		current_tab = tab::server_list;
 	}
 }
