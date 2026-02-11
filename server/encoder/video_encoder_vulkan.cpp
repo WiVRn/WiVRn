@@ -292,10 +292,12 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		output_buffer_size = align(output_buffer_size, video_caps.minBitstreamBufferSizeAlignment);
 		item.output_buffer = buffer_allocation(
 		        vk.device,
-		        {.pNext = &video_profile_list,
-		         .size = output_buffer_size,
-		         .usage = vk::BufferUsageFlagBits::eVideoEncodeDstKHR | vk::BufferUsageFlagBits::eTransferSrc,
-		         .sharingMode = vk::SharingMode::eExclusive},
+		        {
+		                .pNext = &video_profile_list,
+		                .size = output_buffer_size,
+		                .usage = vk::BufferUsageFlagBits::eVideoEncodeDstKHR | vk::BufferUsageFlagBits::eTransferSrc,
+		                .sharingMode = vk::SharingMode::eExclusive,
+		        },
 		        {
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
 		                .usage = VMA_MEMORY_USAGE_AUTO,
@@ -304,14 +306,17 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 
 		if (not(item.output_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 		{
+			U_LOG_D("Using staging buffer for vulkan encode output");
 			item.host_buffer = buffer_allocation(
 			        vk.device,
-			        {.size = output_buffer_size,
-			         .usage = vk::BufferUsageFlagBits::eTransferDst,
-			         .sharingMode = vk::SharingMode::eExclusive},
+			        {
+			                .size = output_buffer_size,
+			                .usage = vk::BufferUsageFlagBits::eTransferDst,
+			                .sharingMode = vk::SharingMode::eExclusive,
+			        },
 			        {
 			                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-			                .usage = VMA_MEMORY_USAGE_AUTO,
+			                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
 			        },
 			        "vulkan encode host buffer");
 		}
