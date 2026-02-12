@@ -525,58 +525,58 @@ void scenes::stream::gui_settings(float predicted_display_period)
 			}
 		}
 		ImGui::Unindent();
+	}
 
-		bool send_packet = false;
-		bool save_config = false;
-		ImGui::Text("%s", _S("Foveation center override"));
-		ImGui::Indent();
+	bool send_packet = false;
+	bool save_config = false;
+	ImGui::Text("%s", _S("Foveation center override"));
+	ImGui::Indent();
+	{
+		if (ImGui::Checkbox(_S("Enable"), &override_foveation_enable))
 		{
-			if (ImGui::Checkbox(_S("Enable"), &override_foveation_enable))
-			{
-				send_packet = true;
-				save_config = true;
-			}
-			imgui_ctx->vibrate_on_hover();
-
-			ImGui::BeginDisabled(!override_foveation_enable);
-			ImGui::Text("%s", fmt::format(_F("Height {:.1f} deg"), -override_foveation_pitch * 180 / M_PI).c_str());
-			ImGui::Text("%s", fmt::format(_F("Distance {:.2f} m"), override_foveation_distance).c_str());
-			if (ImGui::Button(_S("Default")))
-			{
-				override_foveation_distance = configuration{}.override_foveation_distance;
-				override_foveation_pitch = configuration{}.override_foveation_pitch;
-				send_packet = true;
-				save_config = true;
-			}
-			imgui_ctx->vibrate_on_hover();
-
-			ImGui::SameLine();
-
-			if (ImGui::Button(_S("Change")))
-				gui_status = gui_status::foveation_settings;
-			imgui_ctx->vibrate_on_hover();
-
-			ImGui::EndDisabled();
+			send_packet = true;
+			save_config = true;
 		}
-		ImGui::Unindent();
+		imgui_ctx->vibrate_on_hover();
 
-		if (send_packet)
+		ImGui::BeginDisabled(!override_foveation_enable);
+		ImGui::Text("%s", fmt::format(_F("Height {:.1f} deg"), -override_foveation_pitch * 180 / M_PI).c_str());
+		ImGui::Text("%s", fmt::format(_F("Distance {:.2f} m"), override_foveation_distance).c_str());
+		if (ImGui::Button(_S("Default")))
 		{
-			network_session->send_control(from_headset::override_foveation_center{
-			        .enabled = override_foveation_enable,
-			        .pitch = override_foveation_pitch,
-			        .distance = override_foveation_distance,
-			});
+			override_foveation_distance = configuration{}.override_foveation_distance;
+			override_foveation_pitch = configuration{}.override_foveation_pitch;
+			send_packet = true;
+			save_config = true;
 		}
+		imgui_ctx->vibrate_on_hover();
 
-		if (save_config)
-		{
-			auto & config = application::get_config();
-			config.override_foveation_enable = override_foveation_enable;
-			config.override_foveation_pitch = override_foveation_pitch;
-			config.override_foveation_distance = override_foveation_distance;
-			config.save();
-		}
+		ImGui::SameLine();
+
+		if (ImGui::Button(_S("Change")))
+			gui_status = gui_status::foveation_settings;
+		imgui_ctx->vibrate_on_hover();
+
+		ImGui::EndDisabled();
+	}
+	ImGui::Unindent();
+
+	if (send_packet)
+	{
+		network_session->send_control(from_headset::override_foveation_center{
+		        .enabled = override_foveation_enable,
+		        .pitch = override_foveation_pitch,
+		        .distance = override_foveation_distance,
+		});
+	}
+
+	if (save_config)
+	{
+		auto & config = application::get_config();
+		config.override_foveation_enable = override_foveation_enable;
+		config.override_foveation_pitch = override_foveation_pitch;
+		config.override_foveation_distance = override_foveation_distance;
+		config.save();
 	}
 	ImGui::PopStyleVar();
 }
