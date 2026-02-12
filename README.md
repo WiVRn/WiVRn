@@ -38,15 +38,19 @@ WiVRn support a wide range of VR devices:
 
 ## PC Server/Dashboard
 
-We recommend using the flatpak package from Flathub:
-
-[![Flathub](https://flathub.org/api/badge)](https://flathub.org/apps/io.github.wivrn.wivrn)
-
-Alternatively, packages are available from:
+We recommend using native packages if available for your distribution:
 - [Arch User Repositoy](https://aur.archlinux.org/packages/wivrn-dashboard)
 - [Fedora](https://packages.fedoraproject.org/pkgs/wivrn/wivrn/)
 - [Gentoo Guru](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn)
+- [NixOS](https://search.nixos.org/packages?channel=25.11&show=wivrn)
 
+For OpenVR and Steam compatibility, you also need a [compatibility library](#openvr-and-steam-games) such as xrizer or OpenComposite.
+
+A flatpak is available on Flathub for all distributions:
+
+[![Flathub](https://flathub.org/api/badge)](https://flathub.org/apps/io.github.wivrn.wivrn)
+
+Note that due to flatpak sandboxing some features may not be available such as Lighthouse tracked devices.
 
 ## Headset Client/App
 
@@ -97,7 +101,7 @@ The flatpak includes [OpenComposite](https://gitlab.com/znixian/OpenOVR/) and [x
 
 If using Wine/Proton, it will probe for OpenVR at startup, This means even for OpenXR applications, OpenComposite or xrizer is required.
 
-When you start the server through flatpak, it automatically configures the current OpenVR to use xrizer.
+When a headset connects, wivrn-server sets the OpenVR runtime to xrizer unless manually configured differently.
 
 ### Steam Flatpak
 If you're using the Steam Flatpak, you'll need to grant read only access to the following paths:
