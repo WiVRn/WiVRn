@@ -1,0 +1,33 @@
+From 6f17ee6c92b62a2418164f627775f267eb6d19fc Mon Sep 17 00:00:00 2001
+From: no name <git-am@invalid>
+Date: Sun, 25 Jan 2026 10:09:10 +0100
+Subject: [PATCH] don't verify GL stuff
+
+---
+ src/xrt/state_trackers/oxr/oxr_verify.c | 10 ----------
+ 1 file changed, 10 deletions(-)
+
+diff --git a/src/xrt/state_trackers/oxr/oxr_verify.c b/src/xrt/state_trackers/oxr/oxr_verify.c
+index e9197d501..71f81c954 100644
+--- a/src/xrt/state_trackers/oxr/oxr_verify.c
++++ b/src/xrt/state_trackers/oxr/oxr_verify.c
+@@ -608,16 +608,6 @@ oxr_verify_XrGraphicsBindingOpenGLXlibKHR(struct oxr_logger *log, const XrGraphi
+ 		                 "XrGraphicsBindingOpenGLXlibKHR::glxDrawable is NULL");
+ 	}
+ 
+-	if (next->glxFBConfig == NULL) {
+-		return oxr_error(log, XR_ERROR_GRAPHICS_DEVICE_INVALID,
+-		                 "XrGraphicsBindingOpenGLXlibKHR::glxFBConfig is NULL");
+-	}
+-
+-	if (next->visualid == 0) {
+-		return oxr_error(log, XR_ERROR_GRAPHICS_DEVICE_INVALID,
+-		                 "XrGraphicsBindingOpenGLXlibKHR::visualid is 0");
+-	}
+-
+ 	return XR_SUCCESS;
+ }
+ 
+-- 
+2.52.0
+
