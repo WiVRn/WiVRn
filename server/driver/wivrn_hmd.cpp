@@ -18,6 +18,7 @@
  */
 
 #include "wivrn_hmd.h"
+#include "math/m_api.h"
 #include "os/os_time.h"
 #include "wivrn_config.h"
 #include "wivrn_session.h"
@@ -187,6 +188,8 @@ xrt_result_t wivrn_hmd::get_view_poses(const xrt_vec3 * default_eye_relation,
 
 	view.relation.relation_flags = (xrt_space_relation_flags)flags;
 	*out_head_relation = view.relation;
+
+	assert((out_head_relation->relation_flags & XRT_SPACE_RELATION_ORIENTATION_VALID_BIT) == 0 or math_quat_ensure_normalized(&out_head_relation->pose.orientation));
 
 	assert(view_count == 2);
 	for (size_t eye = 0; eye < 2; ++eye)

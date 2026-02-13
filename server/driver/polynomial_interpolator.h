@@ -31,6 +31,7 @@
 #include <Eigen/Core>
 #include <Eigen/QR>
 #include <algorithm>
+#include <cassert>
 #include <limits>
 #include <optional>
 #include <ranges>
@@ -175,6 +176,10 @@ public:
 		if (not closest->y)
 			return *closest;
 
+		// Avoid returning obviously wrong data
+		if (std::abs(closest->timestamp - timestamp) > 1'000'000'000)
+			return {};
+
 		// Not enough data to extrapolate
 		if (row < 2)
 		{
@@ -193,6 +198,14 @@ public:
 			sol = Eigen::ColPivHouseholderQR<decltype(Aprime)>{Aprime}.solve(bprime).transpose();
 		else
 			sol = (Aprime.transpose() * Aprime).ldlt().solve(Aprime.transpose() * bprime).transpose();
+
+#ifndef NDEBUG
+		if constexpr (quaternion)
+		{
+			float norm = sol.template block<N, 1>(0, 0).norm();
+			assert(norm > 0.9);
+		}
+#endif
 
 		return sample{
 		        .production_timestamp = production_timestamp,
