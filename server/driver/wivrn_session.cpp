@@ -989,8 +989,7 @@ void wivrn_session::run_net(std::stop_token stop)
 		{
 			U_LOG_E("Exception in network thread: %s", e.what());
 			worker_thread = std::jthread();
-			reconnect(stop);
-			worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
+			break;
 		}
 	}
 }
@@ -1066,65 +1065,6 @@ void wivrn_session::quit_if_no_client()
 	{
 		U_LOG_I("No OpenXR client connected, exiting");
 		request_stop();
-	}
-}
-
-void wivrn_session::reconnect(std::stop_token stop)
-{
-	assert(mnd_ipc_server);
-	// Notify clients about disconnected status
-	xrt_session_event event{
-	        .state = {
-	                .type = XRT_SESSION_EVENT_STATE_CHANGE,
-	                .visible = false,
-	                .focused = false,
-	        },
-	};
-	auto result = push_event(event);
-	if (result != XRT_SUCCESS)
-	{
-		U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
-	}
-
-	U_LOG_I("Waiting for new connection");
-	auto tcp = accept_connection(*this, stop, &wivrn_session::quit_if_no_client);
-	if (stop.stop_requested())
-		return;
-	if (not tcp)
-	{
-		request_stop();
-		return;
-	}
-	try
-	{
-		offset_est.reset();
-		connection->reset(stop, std::move(*tcp), [this]() { quit_if_no_client(); });
-
-		const auto & info = connection->info();
-		(*this)(info.settings);
-
-		{
-			std::shared_lock lock(comp_target_mutex);
-			if (comp_target)
-				comp_target->reset_encoders();
-		}
-		if (audio_handle)
-		{
-			send_control(audio_handle->description());
-			audio_handle->on_connect();
-		}
-
-		event.state.visible = true;
-		event.state.focused = true;
-		result = push_event(event);
-		if (result != XRT_SUCCESS)
-		{
-			U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
-		}
-	}
-	catch (const std::exception & e)
-	{
-		U_LOG_E("Reconnection failed: %s", e.what());
 	}
 }
 
