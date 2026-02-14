@@ -107,7 +107,7 @@ std::pair<XrTime, XrTime> pose_list::get_bounds() const
 
 void pose_list::update_tracking(const from_headset::tracking & tracking, const clock_offset & offset)
 {
-	if (source)
+	if (source or not offset)
 		return;
 
 	for (const auto & pose: tracking.device_poses)
