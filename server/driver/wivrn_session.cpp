@@ -616,10 +616,7 @@ void wivrn_session::operator()(from_headset::override_foveation_center && foveat
 void wivrn_session::operator()(from_headset::derived_pose && derived)
 {
 	left_controller.set_derived_pose(derived);
-	left_hand_interaction.set_derived_pose(derived);
-
 	right_controller.set_derived_pose(derived);
-	right_hand_interaction.set_derived_pose(derived);
 }
 
 void wivrn_session::operator()(from_headset::hand_tracking && hand_tracking)

@@ -77,6 +77,7 @@ private:
 	thread_safe<to_headset::tracking_control> tracking_control{};
 	std::array<std::atomic<interaction_profile>, 2> interaction_profiles; // left and right hand
 	std::atomic<bool> interaction_profile_changed = false;
+	std::atomic<XrTime> scheduled_derived_pose = 0; // Tracking thread will compute derived pose when time is reached
 	std::atomic<bool> recenter_requested = false;
 	std::atomic<bool> hid_forwarding = false;
 	std::atomic<XrDuration> display_time_phase = 0;
@@ -235,6 +236,7 @@ private:
 	void read_actions();
 
 	void on_interaction_profile_changed(const XrEventDataInteractionProfileChanged &);
+	void send_derived_pose();
 
 	void setup(const to_headset::video_stream_description &);
 	void setup_reprojection_swapchain(uint32_t width, uint32_t height);
