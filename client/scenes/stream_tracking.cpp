@@ -622,6 +622,13 @@ void scenes::stream::tracking()
 			}
 
 			network_session->send_stream(std::span(packets.data(), packet_count));
+
+			XrTime old = scheduled_derived_pose;
+			if (old and now > old)
+			{
+				send_derived_pose();
+				scheduled_derived_pose.compare_exchange_strong(old, 0);
+			}
 		}
 		catch (std::exception & e)
 		{
@@ -721,6 +728,12 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 		interaction_profiles[i] = interaction_profile::none;
 	}
 
+	// Wait for runtime to know about the controllers before sending data
+	scheduled_derived_pose = instance.now() + 1'000'000'000;
+}
+
+void scenes::stream::send_derived_pose()
+{
 	auto now = instance.now();
 	for (device_id target: {
 	             device_id::LEFT_AIM,
@@ -735,14 +748,8 @@ void scenes::stream::on_interaction_profile_changed(const XrEventDataInteraction
 	{
 		// don't do derived poses for hand interaction
 		const bool right = (target >= device_id::RIGHT_GRIP && target <= device_id::RIGHT_PALM) || target == device_id::RIGHT_PINCH_POSE || target == device_id::RIGHT_POKE;
-		if (interaction_profiles[right].load() == interaction_profile::ext_hand_interaction_ext)
-		{
-			network_session->send_control(from_headset::derived_pose{
-			        .source = target,
-			        .target = target,
-			});
+		if (interaction_profiles[right] == interaction_profile::ext_hand_interaction_ext)
 			continue;
-		}
 
 		auto source = derived_from(target);
 		auto source_space = application::space(device_to_space(source));
