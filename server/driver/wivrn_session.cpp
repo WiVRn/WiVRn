@@ -145,23 +145,12 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		        "WiVRn",
 		        get_info(),
 		        *this);
-		if (audio_handle)
-		{
-			send_control(audio_handle->description());
-			audio_handle->on_connect();
-		}
 	}
 	catch (const std::exception & e)
 	{
 		U_LOG_E("Failed to register audio device: %s", e.what());
 		throw;
 	}
-
-	(*this)(from_headset::get_application_list{
-	        .language = get_info().language,
-	        .country = get_info().country,
-	        .variant = get_info().variant,
-	});
 
 	static_roles.head = xdevs[xdev_count++] = &hmd;
 
@@ -290,7 +279,6 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 		try
 		{
 			uinput_handler.emplace();
-			send_control(to_headset::feature_control{to_headset::feature_control::hid_input, true});
 		}
 		catch (...)
 		{
@@ -392,7 +380,7 @@ void wivrn_session::start(ipc_server * server)
 	assert(not net_thread.joinable());
 	mnd_ipc_server = server;
 	net_thread = std::jthread([this](auto stop_token) { return run_net(stop_token); });
-	worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
+	resume_session();
 }
 
 void wivrn_session::stop()
@@ -408,6 +396,77 @@ bool wivrn_session::request_stop()
 	worker_thread.request_stop();
 	ipc_server_stop(mnd_ipc_server);
 	return b;
+}
+
+void wivrn_session::pause_session()
+{
+	assert(mnd_ipc_server);
+
+	// notify clients about disconnected status
+	xrt_session_event event{
+	        .state = {
+	                .type = XRT_SESSION_EVENT_STATE_CHANGE,
+	                .visible = false,
+	                .focused = false,
+	        },
+	};
+	auto result = push_event(event);
+	if (result != XRT_SUCCESS)
+	{
+		U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
+	}
+
+	// pause session components
+
+	offset_est.reset();
+	worker_thread = std::jthread();
+}
+
+void wivrn_session::resume_session()
+{
+	// forward session config to headset
+
+	if (audio_handle)
+	{
+		send_control(audio_handle->description());
+		audio_handle->on_connect();
+	}
+
+	(*this)(from_headset::get_application_list{
+	        .language = get_info().language,
+	        .country = get_info().country,
+	        .variant = get_info().variant,
+	});
+
+	if (configuration().hid_forwarding)
+	{
+		// FIXME: wrong, probably should not fire when wivrn_uinput setup fails in ctor
+		send_control(to_headset::feature_control{to_headset::feature_control::hid_input, true});
+	}
+
+	// reset / resume session components
+
+	{
+		std::shared_lock lock(comp_target_mutex);
+		if (comp_target)
+			comp_target->reset_encoders();
+	}
+	worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
+
+	// notify clients about session resumed status
+
+	xrt_session_event event{
+	        .state = {
+	                .type = XRT_SESSION_EVENT_STATE_CHANGE,
+	                .visible = true,
+	                .focused = true,
+	        },
+	};
+	auto result = push_event(event); // FIXME: is this correct when multiple non-overlay clients are active?
+	if (result != XRT_SUCCESS)
+	{
+		U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
+	}
 }
 
 clock_offset wivrn_session::get_offset()
@@ -984,10 +1043,15 @@ void wivrn_session::run_net(std::stop_token stop)
 		}
 		catch (const std::exception & e)
 		{
-			U_LOG_E("Exception in network thread: %s", e.what());
-			worker_thread = std::jthread();
+			U_LOG_W("Exception in network thread: %s, Session paused.", e.what());
+			pause_session();
+
 			reconnect(stop);
-			worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
+			if (stop.stop_requested())
+				break;
+
+			resume_session();
+			U_LOG_I("Headset connected, Session resumed.");
 		}
 	}
 }
@@ -1069,59 +1133,33 @@ void wivrn_session::quit_if_no_client()
 void wivrn_session::reconnect(std::stop_token stop)
 {
 	assert(mnd_ipc_server);
-	// Notify clients about disconnected status
-	xrt_session_event event{
-	        .state = {
-	                .type = XRT_SESSION_EVENT_STATE_CHANGE,
-	                .visible = false,
-	                .focused = false,
-	        },
-	};
-	auto result = push_event(event);
-	if (result != XRT_SUCCESS)
-	{
-		U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
-	}
-
 	U_LOG_I("Waiting for new connection");
-	auto tcp = accept_connection(*this, stop, &wivrn_session::quit_if_no_client);
-	if (stop.stop_requested())
-		return;
-	if (not tcp)
-	{
-		request_stop();
-		return;
-	}
-	try
-	{
-		offset_est.reset();
-		connection->reset(stop, std::move(*tcp), [this]() { quit_if_no_client(); });
 
-		const auto & info = connection->info();
-		(*this)(info.settings);
-
-		{
-			std::shared_lock lock(comp_target_mutex);
-			if (comp_target)
-				comp_target->reset_encoders();
-		}
-		if (audio_handle)
-		{
-			send_control(audio_handle->description());
-			audio_handle->on_connect();
-		}
-
-		event.state.visible = true;
-		event.state.focused = true;
-		result = push_event(event);
-		if (result != XRT_SUCCESS)
-		{
-			U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
-		}
-	}
-	catch (const std::exception & e)
+	while (not stop.stop_requested())
 	{
-		U_LOG_E("Reconnection failed: %s", e.what());
+		try
+		{
+			auto tcp = accept_connection(*this, stop, &wivrn_session::quit_if_no_client);
+			if (stop.stop_requested())
+				return;
+			if (not tcp)
+			{
+				request_stop();
+				return;
+			}
+
+			connection->reset(stop, std::move(*tcp), [this]() { quit_if_no_client(); });
+
+			// FIXME: proper headset info validation
+			const auto & info = connection->info();
+			(*this)(info.settings);
+
+			break;
+		}
+		catch (std::exception & e)
+		{
+			U_LOG_W("Exception while connecting headset: %s", e.what());
+		}
 	}
 }
 
