@@ -55,6 +55,7 @@
 #include <magic_enum.hpp>
 #include <stdexcept>
 #include <string.h>
+#include <utility>
 #include <vulkan/vulkan.h>
 
 #if WIVRN_FEATURE_STEAMVR_LIGHTHOUSE
@@ -127,6 +128,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
                 .destroy = [](xrt_system_devices * self) { delete ((wivrn_session *)self); },
         },
         connection(std::move(connection)),
+        headset_info(this->connection->info()),
         xrt_system(system),
         control(*this->connection),
         hmd(this, get_info()),
@@ -443,9 +445,8 @@ void wivrn_session::resume_session()
 	        .variant = get_info().variant,
 	});
 
-	if (configuration().hid_forwarding)
+	if (uinput_handler)
 	{
-		// FIXME: wrong, probably should not fire when wivrn_uinput setup fails in ctor
 		send_control(to_headset::feature_control{to_headset::feature_control::hid_input, true});
 	}
 
@@ -467,7 +468,7 @@ void wivrn_session::resume_session()
 	                .focused = true,
 	        },
 	};
-	auto result = push_event(event); // FIXME: is this correct when multiple non-overlay clients are active?
+	auto result = push_event(event);
 	if (result != XRT_SUCCESS)
 	{
 		U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
@@ -1063,7 +1064,7 @@ void wivrn_session::run_net(std::stop_token stop)
 
 void wivrn_session::run_worker(std::stop_token stop)
 {
-	refresh_rate_adjuster refresh(connection->info(), settings, app_pacers);
+	refresh_rate_adjuster refresh(get_info(), settings, app_pacers);
 	while (not stop.stop_requested())
 	{
 		try
@@ -1135,6 +1136,63 @@ void wivrn_session::quit_if_no_client()
 	}
 }
 
+std::pair<bool, bool> wivrn_session::validate_headset_info(const from_headset::headset_info_packet & info)
+{
+	const auto & prev_info = get_info();
+
+	// FIXME: arbitrary warn / refuse selection
+
+	bool refuse = false; // refuse to connect headset outright
+	bool warn = false;   // allow headset but display a pop-up warning about outdated settings
+
+	warn |= prev_info.render_eye_width != info.render_eye_width;
+	warn |= prev_info.render_eye_height != info.render_eye_height;
+	warn |= prev_info.stream_eye_width != info.stream_eye_width;
+	warn |= prev_info.stream_eye_height != info.stream_eye_height;
+
+	if (prev_info.speaker and info.speaker)
+	{
+		refuse |= prev_info.speaker->num_channels != info.speaker->num_channels;
+		refuse |= prev_info.speaker->sample_rate != info.speaker->sample_rate;
+	}
+	warn |= (bool)prev_info.speaker != (bool)info.speaker;
+
+	if (prev_info.microphone and info.microphone)
+	{
+		refuse |= prev_info.microphone->num_channels != info.microphone->num_channels;
+		refuse |= prev_info.microphone->sample_rate != info.microphone->sample_rate;
+	}
+	warn |= (bool)prev_info.microphone != (bool)info.microphone;
+
+	for (uint32_t i = 0; i < 2; i++)
+	{
+		refuse |= prev_info.fov[i].angleDown != info.fov[i].angleDown;
+		refuse |= prev_info.fov[i].angleUp != info.fov[i].angleUp;
+		refuse |= prev_info.fov[i].angleRight != info.fov[i].angleRight;
+		refuse |= prev_info.fov[i].angleLeft != info.fov[i].angleLeft;
+	}
+
+	warn |= prev_info.hand_tracking != info.hand_tracking;
+	warn |= prev_info.eye_gaze != info.eye_gaze;
+	warn |= prev_info.palm_pose != info.palm_pose;
+	warn |= prev_info.user_presence != info.user_presence;
+	warn |= prev_info.passthrough != info.passthrough;
+
+	warn |= prev_info.face_tracking != info.face_tracking;
+	warn |= prev_info.num_generic_trackers != info.num_generic_trackers;
+
+	// do not allow changing stream settings
+	refuse |= prev_info.supported_codecs != info.supported_codecs;
+	refuse |= prev_info.bit_depth != info.bit_depth;
+
+	refuse |= prev_info.available_refresh_rates != info.available_refresh_rates;
+
+	// for the sake of sanity, only allow connecting from the "same" headset
+	refuse |= prev_info.system_name != info.system_name;
+
+	return std::make_pair(warn, refuse);
+}
+
 void wivrn_session::reconnect(std::stop_token stop)
 {
 	assert(mnd_ipc_server);
@@ -1144,6 +1202,8 @@ void wivrn_session::reconnect(std::stop_token stop)
 	{
 		try
 		{
+			// await a new headset connection
+
 			auto tcp = accept_connection(*this, stop, &wivrn_session::quit_if_no_client);
 			if (stop.stop_requested())
 				return;
@@ -1155,9 +1215,33 @@ void wivrn_session::reconnect(std::stop_token stop)
 
 			connection->reset(stop, std::move(*tcp), [this]() { quit_if_no_client(); });
 
-			// FIXME: proper headset info validation
+			// validate if headset is compatible with the current session
+
 			const auto & info = connection->info();
-			(*this)(info.settings);
+			const auto [warn_conn, refuse_conn] = validate_headset_info(info);
+
+			if (refuse_conn)
+			{
+				// FIXME: send a message to client and prompt the user to restart the server
+
+				connection->shutdown();
+				throw std::runtime_error("headset config incompatible with current session");
+			}
+
+			if (warn_conn)
+			{
+				// FIXME: show a warning pop-up on the client-side
+				U_LOG_W("Session resumed with outdated settings. Restart the server for settings to apply.");
+			}
+
+			// update headset info
+
+			headset_info.settings = info.settings;
+			(*this)(headset_info.settings);
+
+			headset_info.language = info.language;
+			headset_info.country = info.country;
+			headset_info.variant = info.variant;
 
 			break;
 		}

@@ -834,6 +834,9 @@ void wivrn_comp_target::pause()
 
 void wivrn_comp_target::resume()
 {
+	if (!skip_encoding)
+		return;
+
 	reset_encoders();
 	skip_encoding = false;
 }
