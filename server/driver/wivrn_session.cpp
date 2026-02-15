@@ -417,9 +417,14 @@ void wivrn_session::pause_session()
 	}
 
 	// pause session components
+	worker_thread = std::jthread();
 
 	offset_est.reset();
-	worker_thread = std::jthread();
+	{
+		std::shared_lock lock(comp_target_mutex);
+		if (comp_target)
+			comp_target->pause();
+	}
 }
 
 void wivrn_session::resume_session()
@@ -449,7 +454,7 @@ void wivrn_session::resume_session()
 	{
 		std::shared_lock lock(comp_target_mutex);
 		if (comp_target)
-			comp_target->reset_encoders();
+			comp_target->resume();
 	}
 	worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
 

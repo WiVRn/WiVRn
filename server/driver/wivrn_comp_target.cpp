@@ -523,7 +523,7 @@ static VkResult comp_wivrn_present(struct comp_target * ct,
 	        .pWaitDstStageMask = &wait_stage,
 	};
 
-	if (cn->c->base.layer_accum.layer_count == 0 or not cn->cnx.get_offset())
+	if (cn->c->base.layer_accum.layer_count == 0 or not cn->cnx.get_offset() or cn->skip_encoding)
 	{
 		scoped_lock lock(vk->main_queue->mutex);
 		cn->wivrn_bundle->queue.submit(submit_info);
@@ -825,6 +825,17 @@ void wivrn_comp_target::reset_encoders()
 	for (auto & encoder: encoders)
 		encoder->reset();
 	cnx.send_control(to_headset::video_stream_description{desc});
+}
+
+void wivrn_comp_target::pause()
+{
+	skip_encoding = true;
+}
+
+void wivrn_comp_target::resume()
+{
+	reset_encoders();
+	skip_encoding = false;
 }
 
 void wivrn_comp_target::set_bitrate(uint32_t bitrate_bps)

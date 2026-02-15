@@ -101,14 +101,18 @@ struct wivrn_comp_target : public comp_target
 	std::optional<wivrn_foveation> foveation;
 
 	std::atomic<float> requested_refresh_rate;
+	std::atomic<bool> skip_encoding;
 
 	wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c);
 	~wivrn_comp_target();
 
 	void on_feedback(const from_headset::feedback &, const clock_offset &);
 	void reset_encoders();
-	void set_bitrate(uint32_t bitrate_bps);
 
+	void pause();
+	void resume();
+
+	void set_bitrate(uint32_t bitrate_bps);
 	void set_refresh_rate(float);
 };
 
