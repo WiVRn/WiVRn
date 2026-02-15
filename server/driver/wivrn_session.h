@@ -216,6 +216,9 @@ private:
 	void run_worker(std::stop_token stop);
 	void reconnect(std::stop_token stop);
 
+	void pause_session();
+	void resume_session();
+
 	void poll_session_loss();
 
 	// xrt_system implementation
