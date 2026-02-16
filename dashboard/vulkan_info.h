@@ -41,6 +41,7 @@ public:
 		SoftGPU,
 		VirtGPU,
 		OtherGPU,
+		NoGPU,
 	};
 	Q_ENUM(gpu_type)
 
@@ -51,8 +52,8 @@ public:
 
 	QString m_driverId;
 	QString m_driverVersion;
-	uint32_t m_driverVersionCode;
-	gpu_type m_type;
+	uint32_t m_driverVersionCode{};
+	gpu_type m_type = NoGPU;
 
 	vk::raii::PhysicalDevice & choose_device(std::vector<vk::raii::PhysicalDevice> & devices);
 	void set_info(vk::raii::PhysicalDevice & device);

@@ -24,14 +24,21 @@
 
 vulkan_info::vulkan_info()
 {
-	vk::raii::Context context;
+	try
+	{
+		vk::raii::Context context;
 
-	vk::ApplicationInfo app_info{"WiVRn dashboard", 1, "No engine", 1, VK_API_VERSION_1_1};
-	vk::InstanceCreateInfo instance_info{vk::InstanceCreateFlags{0}, &app_info};
-	vk::raii::Instance vulkan{context, instance_info};
+		vk::ApplicationInfo app_info{"WiVRn dashboard", 1, "No engine", 1, VK_API_VERSION_1_1};
+		vk::InstanceCreateInfo instance_info{vk::InstanceCreateFlags{0}, &app_info};
+		vk::raii::Instance vulkan{context, instance_info};
 
-	auto devices = vulkan.enumeratePhysicalDevices();
-	set_info(choose_device(devices));
+		auto devices = vulkan.enumeratePhysicalDevices();
+		set_info(choose_device(devices));
+	}
+	catch (std::runtime_error & e)
+	{
+		qCritical() << "Failed to get vulkan info: " << e.what();
+	}
 }
 
 static vulkan_info::gpu_type cast_type(vk::PhysicalDeviceType type)

@@ -193,7 +193,7 @@ Kirigami.ApplicationWindow {
                         text: Settings.flatpak ? i18n("Vulkan drivers cannot be found, you may need to run \"flatpak update\"") : i18n("Vulkan drivers cannot be found")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: DashboardSettings.show_system_checks && VulkanInfo.type == VulkanInfo.SoftGPU
+                        visible: DashboardSettings.show_system_checks && (VulkanInfo.type == VulkanInfo.SoftGPU || VulkanInfo.type == VulkanInfo.NoGPU)
                     }
 
                     Kirigami.InlineMessage {
