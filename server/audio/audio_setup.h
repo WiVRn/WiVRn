@@ -34,9 +34,10 @@ struct audio_device
 	virtual ~audio_device() = default;
 
 	virtual wivrn::to_headset::audio_stream_description description() const = 0;
-
 	virtual void process_mic_data(wivrn::audio_data &&) = 0;
-	virtual void on_connect() = 0;
+
+	virtual void pause() = 0;
+	virtual void resume() = 0;
 
 	static std::unique_ptr<audio_device> create(
 	        const std::string & source_name,

@@ -404,24 +404,17 @@ void wivrn_session::pause_session()
 {
 	assert(mnd_ipc_server);
 
-	// notify clients about disconnected status
-	xrt_session_event event{
-	        .state = {
-	                .type = XRT_SESSION_EVENT_STATE_CHANGE,
-	                .visible = false,
-	                .focused = false,
-	        },
-	};
-	auto result = push_event(event);
-	if (result != XRT_SUCCESS)
-	{
-		U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
-	}
+	// notify clients about session pause
+	update_client_states(false, false);
 
 	// pause session components
-	worker_thread = std::jthread();
 
+	worker_thread = std::jthread();
 	offset_est.reset();
+
+	if (audio_handle)
+		audio_handle->pause();
+
 	{
 		std::shared_lock lock(comp_target_mutex);
 		if (comp_target)
@@ -431,12 +424,20 @@ void wivrn_session::pause_session()
 
 void wivrn_session::resume_session()
 {
-	// forward session config to headset
+	assert(mnd_ipc_server);
+
+	// reset session components and send descriptor packets to headset
 
 	if (audio_handle)
+		audio_handle->resume();
+
+	if (uinput_handler)
+		send_control(to_headset::feature_control{to_headset::feature_control::hid_input, true});
+
 	{
-		send_control(audio_handle->description());
-		audio_handle->on_connect();
+		std::shared_lock lock(comp_target_mutex);
+		if (comp_target)
+			comp_target->resume();
 	}
 
 	(*this)(from_headset::get_application_list{
@@ -445,34 +446,10 @@ void wivrn_session::resume_session()
 	        .variant = get_info().variant,
 	});
 
-	if (uinput_handler)
-	{
-		send_control(to_headset::feature_control{to_headset::feature_control::hid_input, true});
-	}
+	// resume session and notify clients
 
-	// reset / resume session components
-
-	{
-		std::shared_lock lock(comp_target_mutex);
-		if (comp_target)
-			comp_target->resume();
-	}
 	worker_thread = std::jthread([this](std::stop_token stop) { return run_worker(stop); });
-
-	// notify clients about session resumed status
-
-	xrt_session_event event{
-	        .state = {
-	                .type = XRT_SESSION_EVENT_STATE_CHANGE,
-	                .visible = true,
-	                .focused = true,
-	        },
-	};
-	auto result = push_event(event);
-	if (result != XRT_SUCCESS)
-	{
-		U_LOG_W("Failed to notify session state change: %s", xrt_result_to_string(result).c_str());
-	}
+	update_client_states(true, true);
 }
 
 clock_offset wivrn_session::get_offset()
@@ -780,7 +757,6 @@ void wivrn_session::operator()(from_headset::visibility_mask_changed && mask)
 
 void wivrn_session::operator()(from_headset::session_state_changed && event)
 {
-	assert(mnd_ipc_server);
 	U_LOG_I("Session state changed: %s", xr::to_string(event.state));
 	bool visible, focused;
 	switch (event.state)
@@ -798,22 +774,8 @@ void wivrn_session::operator()(from_headset::session_state_changed && event)
 			focused = false;
 			break;
 	}
-	scoped_lock lock(mnd_ipc_server->global_state.lock);
-	auto locked = session_loss.lock();
-	for (auto & t: mnd_ipc_server->threads)
-	{
-		auto id = t.ics.client_state.id;
-		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr or locked->contains(id))
-			continue;
-		bool current = t.ics.client_state.session_overlay or
-		               mnd_ipc_server->global_state.active_client_index == t.ics.server_thread_index;
-		U_LOG_D("Setting session state for app %s: visible=%s focused=%s current=%s",
-		        t.ics.client_state.info.application_name,
-		        visible ? "true" : "false",
-		        focused ? "true" : "false",
-		        current ? "true" : "false");
-		xrt_syscomp_set_state(system_compositor, t.ics.xc, visible and current, focused and current, os_monotonic_get_ns());
-	}
+
+	update_client_states(visible, focused);
 }
 void wivrn_session::operator()(from_headset::user_presence_changed && event)
 {
@@ -1249,6 +1211,27 @@ void wivrn_session::reconnect(std::stop_token stop)
 		{
 			U_LOG_W("Exception while connecting headset: %s", e.what());
 		}
+	}
+}
+
+void wivrn_session::update_client_states(bool visible, bool focused)
+{
+	assert(mnd_ipc_server);
+	scoped_lock lock(mnd_ipc_server->global_state.lock);
+	auto locked = session_loss.lock();
+	for (auto & t: mnd_ipc_server->threads)
+	{
+		auto id = t.ics.client_state.id;
+		if (t.ics.server_thread_index < 0 or t.ics.xc == nullptr or locked->contains(id))
+			continue;
+		bool current = t.ics.client_state.session_overlay or
+		               mnd_ipc_server->global_state.active_client_index == t.ics.server_thread_index;
+		U_LOG_D("Setting session state for app %s: visible=%s focused=%s current=%s",
+		        t.ics.client_state.info.application_name,
+		        visible ? "true" : "false",
+		        focused ? "true" : "false",
+		        current ? "true" : "false");
+		xrt_syscomp_set_state(system_compositor, t.ics.xc, visible and current, focused and current, os_monotonic_get_ns());
 	}
 }
 
