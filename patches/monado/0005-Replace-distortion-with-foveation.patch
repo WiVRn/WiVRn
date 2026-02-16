@@ -1,14 +1,14 @@
-From 73f329eaba1e46bf62ff6579e27cd39f0d9e6730 Mon Sep 17 00:00:00 2001
+From f35edfb058f2fa7e561d9f802427f6bdf6c650bd Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Wed, 11 Sep 2024 22:56:29 +0200
-Subject: [PATCH 5/8] Replace distortion with foveation
+Subject: [PATCH 5/9] Replace distortion with foveation
 
 ---
  src/xrt/compositor/main/comp_renderer.c       |   6 +-
  src/xrt/compositor/main/comp_target.h         |   3 +-
  src/xrt/compositor/render/CMakeLists.txt      |   2 +-
  src/xrt/compositor/render/render_compute.c    | 410 +++++++-----------
- src/xrt/compositor/render/render_interface.h  |  95 ++--
+ src/xrt/compositor/render/render_interface.h  |  94 ++--
  src/xrt/compositor/render/render_resources.c  | 106 ++---
  src/xrt/compositor/shaders/CMakeLists.txt     |   2 +-
  src/xrt/compositor/shaders/clear.comp         |   4 +-
@@ -17,7 +17,7 @@ Subject: [PATCH 5/8] Replace distortion with foveation
  .../compositor/util/comp_high_level_render.h  |   9 +-
  src/xrt/compositor/util/comp_render.h         |  11 +-
  src/xrt/compositor/util/comp_render_cs.c      | 112 ++---
- 13 files changed, 356 insertions(+), 592 deletions(-)
+ 13 files changed, 355 insertions(+), 592 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
 index f6c403015..ff9728a59 100644
@@ -647,10 +647,10 @@ index 62d7138b9..44c3f0aee 100644
  	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
  	    .image = target_image,
 diff --git a/src/xrt/compositor/render/render_interface.h b/src/xrt/compositor/render/render_interface.h
-index 2b7893881..3c59645dc 100644
+index 8a198707f..a4b5c53a2 100644
 --- a/src/xrt/compositor/render/render_interface.h
 +++ b/src/xrt/compositor/render/render_interface.h
-@@ -82,12 +82,8 @@ extern "C" {
+@@ -83,12 +83,8 @@ extern "C" {
  #define RENDER_MAX_LAYER_RUNS_SIZE (XRT_MAX_VIEWS)
  #define RENDER_MAX_LAYER_RUNS_COUNT(RENDER_RESOURCES) (RENDER_RESOURCES->view_count)
  
@@ -665,7 +665,7 @@ index 2b7893881..3c59645dc 100644
  
  //! The binding that the layer projection and quad shader have their UBO on.
  #define RENDER_BINDING_LAYER_SHARED_UBO 0
-@@ -120,12 +116,6 @@ extern "C" {
+@@ -121,12 +117,6 @@ extern "C" {
  uint32_t
  render_max_layers_capable(const struct vk_bundle *vk, bool use_compute, uint32_t desired_max_layers);
  
@@ -678,7 +678,7 @@ index 2b7893881..3c59645dc 100644
  /*!
   * Calculates a timewarp matrix which takes in NDC coords and gives out results
   * in [-1, 1] space that needs a perspective divide.
-@@ -465,7 +455,8 @@ struct render_resources
+@@ -466,7 +456,8 @@ struct render_resources
  		uint32_t distortion_binding;
  
  		//! Writing the image out too.
@@ -688,7 +688,7 @@ index 2b7893881..3c59645dc 100644
  
  		//! Uniform data binding.
  		uint32_t ubo_binding;
-@@ -502,9 +493,6 @@ struct render_resources
+@@ -503,9 +494,6 @@ struct render_resources
  			//! Doesn't depend on target so is static.
  			VkPipeline pipeline;
  
@@ -698,7 +698,7 @@ index 2b7893881..3c59645dc 100644
  			//! Target info.
  			struct render_buffer ubo;
  		} distortion;
-@@ -526,17 +514,11 @@ struct render_resources
+@@ -527,17 +515,11 @@ struct render_resources
  		//! Transform to go from UV to tangle angles.
  		struct xrt_normalized_rect uv_to_tanangle[XRT_MAX_VIEWS];
  
@@ -720,15 +720,7 @@ index 2b7893881..3c59645dc 100644
  	} distortion;
  };
  
-@@ -1262,6 +1244,7 @@ struct render_compute_layer_ubo_data
- 	//! Timewarp matrices
- 	struct xrt_matrix_4x4 transforms_timewarp[RENDER_MAX_LAYERS];
- 
-+
- 	/*!
- 	 * For quad layers
- 	 */
-@@ -1307,6 +1290,14 @@ struct render_compute_distortion_ubo_data
+@@ -1315,6 +1297,14 @@ struct render_compute_distortion_ubo_data
  	struct xrt_matrix_4x4 transform_timewarp_scanout_end[XRT_MAX_VIEWS];
  };
  
@@ -743,7 +735,7 @@ index 2b7893881..3c59645dc 100644
  /*!
   * Init struct and create resources needed for compute rendering.
   *
-@@ -1360,7 +1351,8 @@ render_compute_layers(struct render_compute *render,
+@@ -1368,7 +1358,8 @@ render_compute_layers(struct render_compute *render,
                        VkSampler src_samplers[RENDER_MAX_IMAGES_SIZE],
                        VkImageView src_image_views[RENDER_MAX_IMAGES_SIZE],
                        uint32_t num_srcs,
@@ -753,7 +745,7 @@ index 2b7893881..3c59645dc 100644
                        const struct render_viewport_data *view,
                        bool timewarp);
  
-@@ -1368,44 +1360,14 @@ render_compute_layers(struct render_compute *render,
+@@ -1376,44 +1367,14 @@ render_compute_layers(struct render_compute *render,
   * @public @memberof render_compute
   */
  void
@@ -806,7 +798,7 @@ index 2b7893881..3c59645dc 100644
  
  /*!
   * @public @memberof render_compute
-@@ -1413,7 +1375,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
+@@ -1421,7 +1382,8 @@ render_compute_projection_no_timewarp(struct render_compute *render,
  void
  render_compute_clear(struct render_compute *render,
                       VkImage target_image,
@@ -817,7 +809,7 @@ index 2b7893881..3c59645dc 100644
  
  
 diff --git a/src/xrt/compositor/render/render_resources.c b/src/xrt/compositor/render/render_resources.c
-index d28caaed8..5232a774d 100644
+index e1b4f0916..9a993dc81 100644
 --- a/src/xrt/compositor/render/render_resources.c
 +++ b/src/xrt/compositor/render/render_resources.c
 @@ -184,14 +184,15 @@ init_mesh_ubo_buffers(struct vk_bundle *vk, struct render_buffer ubo[XRT_MAX_VIE
@@ -906,7 +898,7 @@ index d28caaed8..5232a774d 100644
  	};
  
  	VkDescriptorSetLayoutCreateInfo set_layout_info = {
-@@ -295,12 +309,6 @@ struct compute_layer_params
+@@ -294,12 +308,6 @@ struct compute_layer_params
  	uint32_t image_array_size;
  };
  
@@ -919,7 +911,7 @@ index d28caaed8..5232a774d 100644
  XRT_CHECK_RESULT static VkResult
  create_compute_layer_pipeline(struct vk_bundle *vk,
                                VkPipelineCache pipeline_cache,
-@@ -345,35 +353,15 @@ create_compute_distortion_pipeline(struct vk_bundle *vk,
+@@ -343,35 +351,15 @@ create_compute_distortion_pipeline(struct vk_bundle *vk,
                                     VkPipelineCache pipeline_cache,
                                     VkShaderModule shader,
                                     VkPipelineLayout pipeline_layout,
@@ -956,7 +948,7 @@ index d28caaed8..5232a774d 100644
  	    out_compute_pipeline);         // out_compute_pipeline
  }
  
-@@ -539,8 +527,9 @@ render_resources_init(struct render_resources *r,
+@@ -537,8 +525,9 @@ render_resources_init(struct render_resources *r,
  	}
  	r->compute.src_binding = 0;
  	r->compute.distortion_binding = 1;
@@ -967,7 +959,7 @@ index d28caaed8..5232a774d 100644
  
  	r->compute.layer.image_array_size =
  	    MIN(vk->limits.max_per_stage_descriptor_sampled_images, RENDER_MAX_IMAGES_SIZE);
-@@ -834,9 +823,9 @@ render_resources_init(struct render_resources *r,
+@@ -832,9 +821,9 @@ render_resources_init(struct render_resources *r,
  	struct vk_descriptor_pool_info compute_pool_info = {
  	    .uniform_per_descriptor_count = 1,
  	    // layer images
@@ -979,7 +971,7 @@ index d28caaed8..5232a774d 100644
  	    .descriptor_count = compute_descriptor_count,
  	    .freeable = false,
  	};
-@@ -856,7 +845,8 @@ render_resources_init(struct render_resources *r,
+@@ -854,7 +843,8 @@ render_resources_init(struct render_resources *r,
  	ret = create_compute_layer_descriptor_set_layout( //
  	    vk,                                           // vk_bundle
  	    r->compute.src_binding,                       // src_binding,
@@ -989,7 +981,7 @@ index d28caaed8..5232a774d 100644
  	    r->compute.ubo_binding,                       // ubo_binding,
  	    r->compute.layer.image_array_size,            // source_images_count,
  	    &r->compute.layer.descriptor_set_layout);     // out_descriptor_set_layout
-@@ -937,7 +927,8 @@ render_resources_init(struct render_resources *r,
+@@ -933,7 +923,8 @@ render_resources_init(struct render_resources *r,
  	    vk,                                                // vk_bundle
  	    r->compute.src_binding,                            // src_binding,
  	    r->compute.distortion_binding,                     // distortion_binding,
@@ -999,7 +991,7 @@ index d28caaed8..5232a774d 100644
  	    r->compute.ubo_binding,                            // ubo_binding,
  	    &r->compute.distortion.descriptor_set_layout);     // out_descriptor_set_layout
  	VK_CHK_WITH_RET(ret, "create_compute_distortion_descriptor_set_layout", false);
-@@ -954,39 +945,16 @@ render_resources_init(struct render_resources *r,
+@@ -950,39 +941,16 @@ render_resources_init(struct render_resources *r,
  	VK_NAME_PIPELINE_LAYOUT(vk, r->compute.distortion.pipeline_layout,
  	                        "render_resources compute distortion pipeline layout");
  
@@ -1039,7 +1031,7 @@ index d28caaed8..5232a774d 100644
  	size_t distortion_ubo_size = sizeof(struct render_compute_distortion_ubo_data);
  
  	ret = render_buffer_init(       //
-@@ -1039,15 +1007,8 @@ render_resources_init(struct render_resources *r,
+@@ -1035,15 +1003,8 @@ render_resources_init(struct render_resources *r,
  	 * Compute distortion textures, not created until later.
  	 */
  
@@ -1057,7 +1049,7 @@ index d28caaed8..5232a774d 100644
  
  
  	/*
-@@ -1124,7 +1085,6 @@ render_resources_fini(struct render_resources *r)
+@@ -1120,7 +1081,6 @@ render_resources_fini(struct render_resources *r)
  
  	D(DescriptorSetLayout, r->compute.distortion.descriptor_set_layout);
  	D(Pipeline, r->compute.distortion.pipeline);
@@ -1066,10 +1058,10 @@ index d28caaed8..5232a774d 100644
  
  	D(Pipeline, r->compute.clear.pipeline);
 diff --git a/src/xrt/compositor/shaders/CMakeLists.txt b/src/xrt/compositor/shaders/CMakeLists.txt
-index d8aca97e2..ffc79ca6e 100644
+index c8c3ce3ab..b5d899cc9 100644
 --- a/src/xrt/compositor/shaders/CMakeLists.txt
 +++ b/src/xrt/compositor/shaders/CMakeLists.txt
-@@ -25,7 +25,7 @@ set(SHADERS
+@@ -26,7 +26,7 @@ set(SHADERS
  spirv_shaders(
  	SHADER_HEADERS
  	SPIRV_VERSION
@@ -1415,7 +1407,7 @@ index bd7ab2957..c2b95d68d 100644
                       bool do_timewarp);
  
 diff --git a/src/xrt/compositor/util/comp_render_cs.c b/src/xrt/compositor/util/comp_render_cs.c
-index 6e93eabe8..4a304c6f7 100644
+index a2b6e0d01..0868e515b 100644
 --- a/src/xrt/compositor/util/comp_render_cs.c
 +++ b/src/xrt/compositor/util/comp_render_cs.c
 @@ -370,7 +370,8 @@ crc_clear_output(struct render_compute *render, const struct comp_render_dispatc
