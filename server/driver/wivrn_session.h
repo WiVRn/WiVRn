@@ -220,6 +220,7 @@ private:
 	void pause_session();
 	void resume_session();
 
+	void update_client_states(bool visible, bool focused);
 	void poll_session_loss();
 
 	// checks if a headset is usable with this session

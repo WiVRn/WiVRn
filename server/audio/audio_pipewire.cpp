@@ -79,7 +79,8 @@ struct pipewire_device : public audio_device
 	static void mic_state_changed(void * self_v, pw_stream_state old, pw_stream_state state, const char * error);
 
 	void process_mic_data(wivrn::audio_data &&) override;
-	void on_connect() override;
+	void pause() override;
+	void resume() override;
 
 	~pipewire_device()
 	{
@@ -415,8 +416,14 @@ void pipewire_device::process_mic_data(wivrn::audio_data && sample)
 	if (mic_samples.write(std::move(sample)))
 		mic_buffer_size_bytes += size;
 }
-void pipewire_device::on_connect()
+
+void pipewire_device::pause()
 {
+}
+
+void pipewire_device::resume()
+{
+	session.send_control(description());
 	session.send_control(to_headset::feature_control{to_headset::feature_control::microphone, mic_state == PW_STREAM_STATE_STREAMING});
 }
 
