@@ -241,7 +241,6 @@ std::unordered_map<std::string, application> list_applications()
 			            });
 		}
 	}
-	do_data_dir(xdg_data_home(), res);
 
 	for (auto && dir: xdg_data_dirs())
 		do_data_dir(std::move(dir), res);
