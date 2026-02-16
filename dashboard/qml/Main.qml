@@ -190,6 +190,14 @@ Kirigami.ApplicationWindow {
 
                     Kirigami.InlineMessage {
                         Layout.fillWidth: true
+                        text: Settings.flatpak ? i18n("Vulkan drivers cannot be found, you may need to run \"flatpak update\"") : i18n("Vulkan drivers cannot be found")
+                        type: Kirigami.MessageType.Warning
+                        showCloseButton: true
+                        visible: DashboardSettings.show_system_checks && VulkanInfo.type == VulkanInfo.SoftGPU
+                    }
+
+                    Kirigami.InlineMessage {
+                        Layout.fillWidth: true
                         text: i18n("Use the Mesa (radv) driver for AMD GPUs\nHardware encoding with vaapi does not work with AMDVLK and AMDGPU-PRO")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true

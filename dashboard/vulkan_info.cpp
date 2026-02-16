@@ -34,6 +34,25 @@ vulkan_info::vulkan_info()
 	set_info(choose_device(devices));
 }
 
+static vulkan_info::gpu_type cast_type(vk::PhysicalDeviceType type)
+{
+	switch (type)
+	{
+		case vk::PhysicalDeviceType::eOther:
+			return vulkan_info::OtherGPU;
+		case vk::PhysicalDeviceType::eIntegratedGpu:
+			return vulkan_info::IGPU;
+		case vk::PhysicalDeviceType::eDiscreteGpu:
+			return vulkan_info::DGPU;
+		case vk::PhysicalDeviceType::eVirtualGpu:
+			return vulkan_info::VirtGPU;
+		case vk::PhysicalDeviceType::eCpu:
+			return vulkan_info::SoftGPU;
+	}
+	qCritical() << "invalid GPU type enum " << int(type);
+	return vulkan_info::OtherGPU;
+}
+
 vk::raii::PhysicalDevice & vulkan_info::choose_device(std::vector<vk::raii::PhysicalDevice> & devices)
 {
 	for (vk::raii::PhysicalDevice & device: devices)
@@ -69,6 +88,8 @@ void vulkan_info::set_info(vk::raii::PhysicalDevice & device)
 			                          .arg(VK_VERSION_PATCH(prop.properties.driverVersion));
 			break;
 	}
+
+	m_type = cast_type(prop.properties.deviceType);
 
 	qDebug() << "Driver" << m_driverId << m_driverVersion;
 }
