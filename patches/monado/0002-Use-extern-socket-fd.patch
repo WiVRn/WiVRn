@@ -1,17 +1,17 @@
-From 8d22720c9574146f7115f5ba7ac39f3c4e4f48ae Mon Sep 17 00:00:00 2001
+From be632358d5901d9acdbde4bdec2bb7d52fd0cc13 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 8 Oct 2024 22:13:15 +0200
-Subject: [PATCH 2/8] Use extern socket fd
+Subject: [PATCH 2/9] Use extern socket fd
 
 ---
  src/xrt/ipc/server/ipc_server_mainloop_linux.c | 8 ++++++++
  1 file changed, 8 insertions(+)
 
 diff --git a/src/xrt/ipc/server/ipc_server_mainloop_linux.c b/src/xrt/ipc/server/ipc_server_mainloop_linux.c
-index 36bf3e31d..e40447bb2 100644
+index 777a31e96..9235375e6 100644
 --- a/src/xrt/ipc/server/ipc_server_mainloop_linux.c
 +++ b/src/xrt/ipc/server/ipc_server_mainloop_linux.c
-@@ -48,6 +48,8 @@
+@@ -49,6 +49,8 @@
  #endif
  
  
@@ -20,7 +20,7 @@ index 36bf3e31d..e40447bb2 100644
  /*
   *
   * Static functions.
-@@ -56,6 +58,12 @@
+@@ -57,6 +59,12 @@
  static int
  get_systemd_socket(struct ipc_server_mainloop *ml, int *out_fd)
  {
