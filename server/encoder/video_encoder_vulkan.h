@@ -56,6 +56,7 @@ class video_encoder_vulkan : public video_encoder
 		buffer_allocation host_buffer;
 		vk::DeviceSize copy_size;
 		bool idr = false;
+		std::atomic_bool busy = false;
 	};
 	std::array<slot_item, num_slots> slot_data;
 
