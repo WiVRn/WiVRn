@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-04 17:02+0900\n"
+"POT-Creation-Date: 2026-02-17 12:42+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -112,8 +112,8 @@ msgstr "最新リリースを確認中"
 msgid "No APK is available for this version"
 msgstr "現在バージョン用の公式APKは提供されていません"
 
-#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:368
-#: dashboard/qml/Main.qml:426 dashboard/qml/WizardPage.qml:211
+#: dashboard/qml/ApkInstallPage.qml:45 dashboard/qml/Main.qml:376
+#: dashboard/qml/Main.qml:434 dashboard/qml/WizardPage.qml:211
 #: dashboard/qml/WizardPage.qml:337
 #, kde-format
 msgid "ADB is not installed"
@@ -159,7 +159,7 @@ msgstr "WiVRnをインストールする"
 msgid "Headset statistics"
 msgstr "HMDの統計情報"
 
-#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:431
+#: dashboard/qml/HeadsetsPage.qml:12 dashboard/qml/Main.qml:439
 #, kde-format
 msgid "Headsets"
 msgstr "HMD"
@@ -275,7 +275,7 @@ msgid "Avahi daemon is not started"
 msgstr "Avahiデーモンが起動していません"
 
 #: dashboard/qml/Main.qml:157 dashboard/qml/Main.qml:171
-#: dashboard/qml/Main.qml:223
+#: dashboard/qml/Main.qml:231
 #, kde-format
 msgid "Fix it"
 msgstr "直す"
@@ -300,6 +300,16 @@ msgstr "詳細情報"
 
 #: dashboard/qml/Main.qml:193
 #, kde-format
+msgid "Vulkan drivers cannot be found, you may need to run \"flatpak update\""
+msgstr "Vulkanドライバーが見つかりません。「flatpak update」を実行してみて下さい。"
+
+#: dashboard/qml/Main.qml:193
+#, kde-format
+msgid "Vulkan drivers cannot be found"
+msgstr "Vulkanドライバーが見つかりません"
+
+#: dashboard/qml/Main.qml:201
+#, kde-format
 msgid ""
 "Use the Mesa (radv) driver for AMD GPUs\n"
 "Hardware encoding with vaapi does not work with AMDVLK and AMDGPU-PRO"
@@ -307,7 +317,7 @@ msgstr ""
 "AMD GPUの場合は「Mesa (radv)」ドライバーを使ってください\n"
 "AMDVLKやAMDGPU-PROなどはvaapiエンコーダーに対応していません"
 
-#: dashboard/qml/Main.qml:201
+#: dashboard/qml/Main.qml:209
 #, kde-format
 msgid ""
 "No OpenVR compatibility detected, Steam games won't be able to load VR.\n"
@@ -316,13 +326,13 @@ msgstr ""
 "OpenVR実装ライブラリーは見つかりませんでした。SteamVRゲームを実行するには、\n"
 "xrizerかOpenCompositeをインストールしましょう。"
 
-#: dashboard/qml/Main.qml:209
+#: dashboard/qml/Main.qml:217
 #, kde-format
 msgid "Steam is installed as a snap. Snaps are not compatible with WiVRn."
 msgstr ""
 "SteamはSnapとしてインストールされていますが、Snapはサポートサれていません。"
 
-#: dashboard/qml/Main.qml:217
+#: dashboard/qml/Main.qml:225
 #, kde-format
 msgid ""
 "Steam is installed as a flatpak but does not have sufficient permissions."
@@ -330,114 +340,114 @@ msgstr ""
 "SteamはFlatpakとしてインストールされていますが、必要な権限が設定されていませ"
 "ん。"
 
-#: dashboard/qml/Main.qml:232
+#: dashboard/qml/Main.qml:240
 #, kde-format
 msgid "Restart the server for configuration changes to take effect"
 msgstr "設定変更を有効にするにはサーバーを再起動してください。"
 
-#: dashboard/qml/Main.qml:238
+#: dashboard/qml/Main.qml:246
 #, kde-format
 msgctxt "restart the server"
 msgid "Restart now"
 msgstr "今すぐ再起動する"
 
-#: dashboard/qml/Main.qml:263
+#: dashboard/qml/Main.qml:271
 #, kde-format
 msgid "Server failed to start"
 msgstr "サーバーは起動できませんでした"
 
-#: dashboard/qml/Main.qml:269 dashboard/qml/TroubleshootPage.qml:89
+#: dashboard/qml/Main.qml:277 dashboard/qml/TroubleshootPage.qml:89
 #, kde-format
 msgid "Open server logs"
 msgstr "ログを見る"
 
-#: dashboard/qml/Main.qml:295
+#: dashboard/qml/Main.qml:303
 #, kde-format
 msgid "Server status"
 msgstr "サーバーステータス"
 
-#: dashboard/qml/Main.qml:301
+#: dashboard/qml/Main.qml:309
 #, kde-format
 msgctxt "whether the server is running, displayed in front of a checkbox"
 msgid "Running"
 msgstr "作動中"
 
-#: dashboard/qml/Main.qml:314
+#: dashboard/qml/Main.qml:322
 #, kde-format
 msgctxt "whether pairing is enabled, displayed in front of a checkbox"
 msgid "Pairing"
 msgstr "ペアリング"
 
-#: dashboard/qml/Main.qml:334
+#: dashboard/qml/Main.qml:342
 #, kde-format
 msgid "Headset status"
 msgstr "HMDステータス"
 
-#: dashboard/qml/Main.qml:341
+#: dashboard/qml/Main.qml:349
 #, kde-format
 msgctxt "label for headset name/status under server running switch"
 msgid "Headset"
 msgstr "HMD"
 
-#: dashboard/qml/Main.qml:344
+#: dashboard/qml/Main.qml:352
 #, kde-format
 msgid "Not connected"
 msgstr "未接続"
 
-#: dashboard/qml/Main.qml:348
+#: dashboard/qml/Main.qml:356
 #, kde-format
 msgid "Disconnect"
 msgstr "切断する"
 
-#: dashboard/qml/Main.qml:357 dashboard/qml/Main.qml:365
-#: dashboard/qml/Main.qml:372
+#: dashboard/qml/Main.qml:365 dashboard/qml/Main.qml:373
+#: dashboard/qml/Main.qml:380
 #, kde-format
 msgctxt "label for USB status or connect button"
 msgid "USB"
 msgstr "USB"
 
-#: dashboard/qml/Main.qml:358
+#: dashboard/qml/Main.qml:366
 #, kde-format
 msgctxt "usb connect button"
 msgid "Connect (wired)"
 msgstr "有線で接続する"
 
-#: dashboard/qml/Main.qml:375 dashboard/qml/WizardPage.qml:339
+#: dashboard/qml/Main.qml:383 dashboard/qml/WizardPage.qml:339
 #, kde-format
 msgid "No headset is connected or your headset is not in developer mode"
 msgstr "HMDが接続されていないか、HMDが開発者モードになっていません"
 
-#: dashboard/qml/Main.qml:396
+#: dashboard/qml/Main.qml:404
 #, kde-format
 msgid "Steam information"
 msgstr "ストリーム情報"
 
-#: dashboard/qml/Main.qml:412
+#: dashboard/qml/Main.qml:420
 #, kde-format
 msgid "Wizard"
 msgstr "セットアップウィザード"
 
-#: dashboard/qml/Main.qml:418
+#: dashboard/qml/Main.qml:426
 #, kde-format
 msgid "Install the app"
 msgstr "アプリをインストール"
 
-#: dashboard/qml/Main.qml:437 dashboard/qml/SettingsPage.qml:14
+#: dashboard/qml/Main.qml:445 dashboard/qml/SettingsPage.qml:14
 #, kde-format
 msgid "Settings"
 msgstr "設定"
 
-#: dashboard/qml/Main.qml:443
+#: dashboard/qml/Main.qml:451
 #, kde-format
 msgid "About"
 msgstr "WiVRnについて"
 
-#: dashboard/qml/Main.qml:448 dashboard/qml/TroubleshootPage.qml:10
+#: dashboard/qml/Main.qml:456 dashboard/qml/TroubleshootPage.qml:10
 #, kde-format
 msgid "Troubleshoot"
 msgstr "問題解決"
 
-#: dashboard/qml/Main.qml:455
+#: dashboard/qml/Main.qml:463
 #, kde-format
 msgid "Version %1"
 msgstr "バージョン%1"
