@@ -54,6 +54,7 @@ class video_encoder_vulkan : public video_encoder
 		buffer_allocation output_buffer;
 		buffer_allocation host_buffer;
 		bool idr = false;
+		std::atomic_bool busy = false;
 	};
 	std::array<slot_item, num_slots> slot_data;
 

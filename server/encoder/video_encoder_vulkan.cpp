@@ -571,6 +571,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 	return data{
 	        .encoder = this,
 	        .span = std::span(((uint8_t *)mapped) + feedback[0], feedback[1]),
+	        .mem = std::shared_ptr<void>(&slot_item.busy, [](std::atomic_bool * busy) {*busy = false; busy->notify_all(); }),
 	        .prefer_control = slot_item.idr,
 	};
 }
@@ -918,6 +919,8 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 {
 	auto & slot_item = slot_data[slot];
+	slot_item.busy.wait(true);
+	slot_item.busy = true;
 	const bool need_transfer = *slot_item.transfer_cmd_buf and slot_item.host_buffer;
 	// Issue encode command, and if necessary transfer command
 	vk.device.resetFences(*slot_item.fence);
