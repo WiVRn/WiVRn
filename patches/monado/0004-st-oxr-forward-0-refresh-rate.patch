@@ -1,4 +1,4 @@
-From 9b2362d018674a38c9df4a3a521d75dbbd14b012 Mon Sep 17 00:00:00 2001
+From 085aa329b48a9f43d23c321b6d8badd4f5cc0346 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
 Subject: [PATCH 4/9] st/oxr: forward 0 refresh rate
@@ -22,7 +22,7 @@ index b6c4947bf..0e8ed02b7 100644
  		return result;
  	}
 diff --git a/src/xrt/state_trackers/oxr/oxr_api_session.c b/src/xrt/state_trackers/oxr/oxr_api_session.c
-index 587cdf28f..b1f96df54 100644
+index 09297f885..9f3a7ebc2 100644
 --- a/src/xrt/state_trackers/oxr/oxr_api_session.c
 +++ b/src/xrt/state_trackers/oxr/oxr_api_session.c
 @@ -455,15 +455,11 @@ oxr_xrRequestDisplayRefreshRateFB(XrSession session, float displayRefreshRate)

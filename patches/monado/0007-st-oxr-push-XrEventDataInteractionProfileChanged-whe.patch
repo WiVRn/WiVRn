@@ -1,18 +1,18 @@
-From 880d5c54dd024f5b448f21787c407e90f62981ba Mon Sep 17 00:00:00 2001
+From 78aa739c623f7c797f92f2905b59bc73446f3e32 Mon Sep 17 00:00:00 2001
 From: Sapphire <imsapphire0@gmail.com>
 Date: Fri, 7 Nov 2025 20:41:16 -0600
 Subject: [PATCH 7/9] st/oxr: push XrEventDataInteractionProfileChanged when
  profile changes to NULL
 
 ---
- src/xrt/state_trackers/oxr/oxr_input.c | 15 +++++----------
+ src/xrt/state_trackers/oxr/actions/oxr_input.c | 15 +++++----------
  1 file changed, 5 insertions(+), 10 deletions(-)
 
-diff --git a/src/xrt/state_trackers/oxr/oxr_input.c b/src/xrt/state_trackers/oxr/oxr_input.c
-index df2b479eb..c4b36ba81 100644
---- a/src/xrt/state_trackers/oxr/oxr_input.c
-+++ b/src/xrt/state_trackers/oxr/oxr_input.c
-@@ -1881,26 +1881,21 @@ oxr_session_update_action_bindings(struct oxr_logger *log, struct oxr_session *s
+diff --git a/src/xrt/state_trackers/oxr/actions/oxr_input.c b/src/xrt/state_trackers/oxr/actions/oxr_input.c
+index 95eef613a..c76dfcb0c 100644
+--- a/src/xrt/state_trackers/oxr/actions/oxr_input.c
++++ b/src/xrt/state_trackers/oxr/actions/oxr_input.c
+@@ -1885,26 +1885,21 @@ oxr_session_update_action_bindings(struct oxr_logger *log, struct oxr_session *s
  		}
  	}
  
