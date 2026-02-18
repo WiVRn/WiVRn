@@ -372,6 +372,7 @@ std::vector<wivrn::steam::application> wivrn::steam::list_applications()
 {
 	std::vector<wivrn::steam::application> res;
 	// Steam games, from VR manifest
+	try
 	{
 		std::ifstream manifest(root / "config/steamapps.vrmanifest");
 		nlohmann::json json = nlohmann::json::parse(manifest);
@@ -417,6 +418,9 @@ std::vector<wivrn::steam::application> wivrn::steam::list_applications()
 				std::cerr << "Failed to parse Steam VR manifest: " << e.what() << std::endl;
 			}
 		}
+	}
+	catch (std::exception & e)
+	{
 	}
 
 	// Shortcuts
