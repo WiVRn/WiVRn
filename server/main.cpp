@@ -243,6 +243,10 @@ void start_server(configuration config)
 
 		setenv("AMD_DEBUG", "lowlatencyenc", false);
 
+		// https://github.com/WiVRn/WiVRn/issues/695
+		// something is broken with Intel CCS under vaapi
+		setenv("INTEL_DEBUG", "noccs", false);
+
 		wivrn::ipc_server_cb server_cb;
 
 		ipc_server_main_info server_info{
