@@ -1,4 +1,4 @@
-From 5aef00befa65afa8b8ac949a80774d85055b0db5 Mon Sep 17 00:00:00 2001
+From 8f62c1a61729d0550280d0e4e02ffa7cc3f7fdae Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Thu, 15 Jan 2026 12:13:06 +0100
 Subject: [PATCH 8/9] Don't get pose data for fast path
