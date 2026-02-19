@@ -114,6 +114,7 @@ struct wivrn_comp_target : public comp_target
 
 	void set_bitrate(uint32_t bitrate_bps);
 	void set_refresh_rate(float);
+	float get_refresh_rate();
 };
 
 inline float get_default_rate(const from_headset::headset_info_packet & info, const from_headset::settings_changed & settings)

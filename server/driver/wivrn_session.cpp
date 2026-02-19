@@ -437,7 +437,17 @@ void wivrn_session::resume_session()
 	{
 		std::shared_lock lock(comp_target_mutex);
 		if (comp_target)
+		{
+			float target_fps = get_default_rate(get_info(), *get_settings());
+
+			if (target_fps != comp_target->get_refresh_rate())
+				(*this)(from_headset::refresh_rate_changed{
+				        .from = comp_target->get_refresh_rate(),
+				        .to = target_fps,
+				});
+
 			comp_target->resume();
+		}
 	}
 
 	(*this)(from_headset::get_application_list{

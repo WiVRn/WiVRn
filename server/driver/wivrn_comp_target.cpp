@@ -869,6 +869,11 @@ void wivrn_comp_target::set_refresh_rate(float refresh_rate_hz)
 		encoder->set_framerate(refresh_rate_hz);
 }
 
+float wivrn_comp_target::get_refresh_rate()
+{
+	return desc.fps;
+}
+
 wivrn_comp_target::wivrn_comp_target(wivrn::wivrn_session & cnx, struct comp_compositor * c) :
         comp_target{
                 .c = c,
