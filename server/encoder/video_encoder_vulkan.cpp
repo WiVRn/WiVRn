@@ -845,66 +845,48 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	// When output buffer is not visible, we have to issue a transfer operation
 	if (slot_item.host_buffer)
 	{
-		// encode queue may not allow transfer commands
+		vk::BufferMemoryBarrier2 barrier{
+		        .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+		        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
+		        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+		        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
+		        .srcQueueFamilyIndex = vk.encode_queue_family_index,
+		        .dstQueueFamilyIndex = vk.encode_queue_family_index,
+		        .buffer = slot_item.output_buffer,
+		        .size = vk::WholeSize,
+		};
+
+		vk::raii::CommandBuffer * transfer_cmd_buf;
 		if (*slot_item.transfer_cmd_buf)
 		{
-			vk::BufferMemoryBarrier2 barrier{
-			        .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-			        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
-			        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-			        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
-			        .srcQueueFamilyIndex = vk.encode_queue_family_index,
-			        .dstQueueFamilyIndex = vk.queue_family_index,
-			        .buffer = slot_item.output_buffer,
-			        .size = vk::WholeSize,
-			};
-			video_cmd_buf.pipelineBarrier2({
+			// We need to transfer the buffer on the main queue
+			barrier.dstQueueFamilyIndex = vk.queue_family_index;
+			transfer_cmd_buf = &slot_item.transfer_cmd_buf;
+
+			transfer_cmd_buf->reset();
+			transfer_cmd_buf->begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+			transfer_cmd_buf->pipelineBarrier2({
 			        .bufferMemoryBarrierCount = 1,
 			        .pBufferMemoryBarriers = &barrier,
 			});
-
-			auto & cmd_buf = slot_item.transfer_cmd_buf;
-
-			cmd_buf.reset();
-			cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-			cmd_buf.pipelineBarrier2({
-			        .bufferMemoryBarrierCount = 1,
-			        .pBufferMemoryBarriers = &barrier,
-			});
-
-			cmd_buf.copyBuffer(
-			        slot_item.output_buffer,
-			        slot_item.host_buffer,
-			        vk::BufferCopy{
-			                .size = slot_item.output_buffer.info().size,
-			        });
-
-			cmd_buf.end();
 		}
 		else
-		{
-			vk::BufferMemoryBarrier2 barrier{
-			        .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-			        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
-			        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-			        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
-			        .srcQueueFamilyIndex = vk.encode_queue_family_index,
-			        .dstQueueFamilyIndex = vk.encode_queue_family_index,
-			        .buffer = slot_item.output_buffer,
-			        .size = vk::WholeSize,
-			};
-			video_cmd_buf.pipelineBarrier2({
-			        .bufferMemoryBarrierCount = 1,
-			        .pBufferMemoryBarriers = &barrier,
-			});
+			transfer_cmd_buf = &video_cmd_buf;
 
-			video_cmd_buf.copyBuffer(
-			        slot_item.output_buffer,
-			        slot_item.host_buffer,
-			        vk::BufferCopy{
-			                .size = slot_item.output_buffer.info().size,
-			        });
-		}
+		video_cmd_buf.pipelineBarrier2({
+		        .bufferMemoryBarrierCount = 1,
+		        .pBufferMemoryBarriers = &barrier,
+		});
+
+		transfer_cmd_buf->copyBuffer(
+		        slot_item.output_buffer,
+		        slot_item.host_buffer,
+		        vk::BufferCopy{
+		                .size = slot_item.output_buffer.info().size,
+		        });
+
+		if (*slot_item.transfer_cmd_buf)
+			transfer_cmd_buf->end();
 	}
 
 	video_cmd_buf.end();
