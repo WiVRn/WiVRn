@@ -565,6 +565,47 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
 	}
 
+	// We don't copy the whole buffer, but an estimate of how much we'll need
+	// If that wasn't enough, we have to issue a second copy command for the rest
+	if (size > slot_item.copy_size)
+	{
+		U_LOG_D("additional copy needed: %ld", size - slot_item.copy_size);
+		const bool main_queue = *slot_item.transfer_cmd_buf;
+		// The encoded image is larger than expected, we need to copy some more data
+		vk::raii::CommandBuffer & cmd_buf = main_queue ? slot_item.transfer_cmd_buf : slot_item.video_cmd_buf;
+
+		cmd_buf.reset();
+		cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+		cmd_buf.copyBuffer(
+		        slot_item.output_buffer,
+		        slot_item.host_buffer,
+		        vk::BufferCopy{
+		                .srcOffset = slot_item.copy_size,
+		                .dstOffset = slot_item.copy_size,
+		                .size = size - slot_item.copy_size,
+		        });
+
+		cmd_buf.end();
+
+		vk.device.resetFences(*slot_item.fence);
+
+		{
+			wivrn::scoped_lock lock(main_queue ? vk.vk.main_queue->mutex : vk.vk.encode_queue->mutex);
+			auto & queue = main_queue ? vk.queue : vk.encode_queue;
+			queue.submit(vk::SubmitInfo{
+			                     .commandBufferCount = 1,
+			                     .pCommandBuffers = &*cmd_buf,
+			             },
+			             *slot_item.fence);
+		}
+		if (auto res = vk.device.waitForFences(*slot_item.fence, true, 1'000'000'000);
+		    res != vk::Result::eSuccess)
+		{
+			throw std::runtime_error("wait for fences: " + vk::to_string(res));
+		}
+	}
+
 	void * mapped = slot_item.host_buffer ? slot_item.host_buffer.map() : slot_item.output_buffer.map();
 
 	return data{
@@ -819,6 +860,11 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		                .flags = vk::VideoCodingControlFlagBitsKHR::eEncodeRateControl,
 		        });
 
+	if (rate_control)
+		slot_item.copy_size = (rate_control_layer.maxBitrate * rate_control_layer.frameRateDenominator) / rate_control_layer.frameRateNumerator;
+	else
+		slot_item.copy_size = slot_item.output_buffer.info().size;
+
 	vk::VideoEncodeInfoKHR encode_info{
 	        .pNext = encode_info_next(dpb.frame_num, slot_index, ref_slot ? std::make_optional(ref_slot->info.slotIndex) : std::nullopt),
 	        .dstBuffer = slot_item.output_buffer,
@@ -881,7 +927,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 		        slot_item.output_buffer,
 		        slot_item.host_buffer,
 		        vk::BufferCopy{
-		                .size = slot_item.output_buffer.info().size,
+		                .size = slot_item.copy_size,
 		        });
 
 		if (*slot_item.transfer_cmd_buf)
