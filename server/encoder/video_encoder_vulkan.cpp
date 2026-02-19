@@ -482,7 +482,6 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		        vk::QueryPoolVideoEncodeFeedbackCreateInfoKHR{
 		                .pNext = &video_profile,
 		                .encodeFeedbackFlags =
-		                        vk::VideoEncodeFeedbackFlagBitsKHR::eBitstreamBufferOffset |
 		                        vk::VideoEncodeFeedbackFlagBitsKHR::eBitstreamBytesWritten,
 		        },
 		};
@@ -559,8 +558,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		throw std::runtime_error("wait for fences: " + vk::to_string(res));
 	}
 
-	// Feedback = offset / size / has overrides
-	auto [res, feedback] = query_pool.getResults<uint32_t>(encode_slot, 1, 3 * sizeof(uint32_t), 0, vk::QueryResultFlagBits::eWait);
+	auto [res, size] = query_pool.getResult<uint32_t>(encode_slot, 1, 0, vk::QueryResultFlagBits::eWait);
 	if (res != vk::Result::eSuccess)
 	{
 		std::cerr << "device.getQueryPoolResults: " << vk::to_string(res) << std::endl;
@@ -570,7 +568,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 
 	return data{
 	        .encoder = this,
-	        .span = std::span(((uint8_t *)mapped) + feedback[0], feedback[1]),
+	        .span = std::span(((uint8_t *)mapped), size),
 	        .prefer_control = slot_item.idr,
 	};
 }
