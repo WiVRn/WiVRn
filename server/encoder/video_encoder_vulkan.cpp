@@ -21,6 +21,7 @@
 
 #include "encoder/encoder_settings.h"
 #include "util/u_logging.h"
+#include "utils/scoped_lock.h"
 #include "utils/wivrn_vk_bundle.h"
 #include <iostream>
 #include <stdexcept>
@@ -913,17 +914,21 @@ void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 	        .commandBuffer = slot_item.video_cmd_buf,
 	};
 
-	vk.encode_queue.submit2(vk::SubmitInfo2{
-	                                .waitSemaphoreInfoCount = 1,
-	                                .pWaitSemaphoreInfos = &wait_sem_info,
-	                                .commandBufferInfoCount = 1,
-	                                .pCommandBufferInfos = &cmd_info,
-	                                .signalSemaphoreInfoCount = need_transfer ? 1u : 0,
-	                                .pSignalSemaphoreInfos = &sem_info,
-	                        },
-	                        need_transfer ? nullptr : *slot_item.fence);
+	{
+		scoped_lock lock(vk.vk.encode_queue->mutex);
+		vk.encode_queue.submit2(vk::SubmitInfo2{
+		                                .waitSemaphoreInfoCount = 1,
+		                                .pWaitSemaphoreInfos = &wait_sem_info,
+		                                .commandBufferInfoCount = 1,
+		                                .pCommandBufferInfos = &cmd_info,
+		                                .signalSemaphoreInfoCount = need_transfer ? 1u : 0,
+		                                .pSignalSemaphoreInfos = &sem_info,
+		                        },
+		                        need_transfer ? nullptr : *slot_item.fence);
+	}
 	if (need_transfer)
 	{
+		// caller already holds the lock
 		vk::CommandBufferSubmitInfo cmd_info{
 		        .commandBuffer = slot_item.transfer_cmd_buf,
 		};
