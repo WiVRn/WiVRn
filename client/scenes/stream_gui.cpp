@@ -759,8 +759,10 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	{
 		if (system.hand_tracking_supported())
 		{
-			left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
-			right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
+			if (not left_hand)
+				left_hand = session.create_hand_tracker(XR_HAND_LEFT_EXT);
+			if (not right_hand)
+				right_hand = session.create_hand_tracker(XR_HAND_RIGHT_EXT);
 		}
 	}
 	else
