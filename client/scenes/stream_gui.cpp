@@ -729,6 +729,19 @@ void scenes::stream::gui_applications()
 	ImGui::PopStyleVar(3);
 }
 
+void scenes::stream::gui_toasts()
+{
+	auto toast = gui_toast.lock();
+
+	if (!toast->has_value())
+	{
+		ImGui::Text("%s", _S("Press both thumbsticks to display the WiVRn window"));
+		return;
+	}
+
+	ImGui::Text("%s", (*toast)->current_toast.c_str());
+}
+
 void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
 {
 	if (not(plots_toggle_1 and plots_toggle_2))
@@ -788,14 +801,23 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	}
 
 	float alpha = 1;
+	bool is_urgent = false;
 	if (gui_status == gui_status::hidden)
 	{
-		float t = (predicted_display_time - gui_status_last_change) * 1.e-9f;
+		auto toast = gui_toast.lock();
+		if (toast->has_value())
+			is_urgent = (*toast)->is_urgent;
 
-		alpha = std::clamp<float>(1 - (t - constants::stream::fade_delay) / constants::stream::fade_duration, 0, 1);
+		float t = (predicted_display_time - gui_status_last_change) * 1.e-9f;
+		float delay = is_urgent ? constants::stream::urgent_fade_delay : constants::stream::fade_delay;
+
+		alpha = std::clamp<float>(1 - (t - delay) / constants::stream::fade_duration, 0, 1);
 
 		if (alpha == 0)
+		{
+			toast->reset();
 			return;
+		}
 	}
 
 	// Lock the GUI position to the head, do it before displaying the GUI to avoid being off by one frame when gui_status changes
@@ -879,6 +901,12 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			break;
 	}
 
+	if (is_urgent)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Border, constants::stream::urgent_border_color);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 4);
+	}
+
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0);
 	if (always_auto_resize)
 	{
@@ -891,13 +919,19 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		ImGui::Begin("Stream settings", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 	}
 
+	if (is_urgent)
+	{
+		ImGui::PopStyleColor(1);
+		ImGui::PopStyleVar(1);
+	}
+
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {8, 8});
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
 
 	switch (gui_status)
 	{
 		case gui_status::hidden:
-			ImGui::Text("%s", _S("Press both thumbsticks to display the WiVRn window"));
+			gui_toasts();
 			break;
 
 		case gui_status::overlay_only:

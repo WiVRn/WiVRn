@@ -47,6 +47,20 @@ void scenes::stream::process_packets()
 	}
 }
 
+void scenes::stream::operator()(to_headset::server_message && message)
+{
+	switch (message.kind)
+	{
+		case to_headset::server_message::kind::stream_toast:
+		case to_headset::server_message::kind::stream_toast_urgent:
+			auto toast = gui_toast.lock();
+			toast->emplace(message.msg, message.kind == to_headset::server_message::kind::stream_toast_urgent);
+
+			gui_status_last_change = instance.now();
+			break;
+	}
+}
+
 void scenes::stream::operator()(to_headset::video_stream_data_shard && shard)
 {
 	std::shared_lock lock(decoder_mutex);

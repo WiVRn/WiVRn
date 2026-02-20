@@ -1192,8 +1192,13 @@ void wivrn_session::reconnect(std::stop_token stop)
 
 			if (warn_conn)
 			{
-				// FIXME: show a warning pop-up on the client-side
 				U_LOG_W("Session resumed with outdated settings. Restart the server for settings to apply.");
+
+				// TODO: add server-side localization
+				send_control(to_headset::server_message{
+				        .kind = to_headset::server_message::kind::stream_toast_urgent,
+				        .msg = "Stream resumed with outdated settings. Restart the server for settings to apply.",
+				});
 			}
 
 			// update headset info
