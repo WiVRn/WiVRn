@@ -134,13 +134,21 @@ private:
 		application_launcher,
 	};
 
+	struct gui_toast
+	{
+		std::string current_toast;
+		bool is_urgent = false;
+	};
+
 	bool is_gui_interactable() const;
 
 	std::atomic<gui_status> gui_status = gui_status::hidden;
 	enum gui_status last_gui_status = gui_status::hidden;
 	enum gui_status next_gui_status = gui_status::applications;
-	XrTime gui_status_last_change;
 	float dimming = 0;
+
+	thread_safe<std::optional<gui_toast>> gui_toast;
+	std::atomic<XrTime> gui_status_last_change;
 
 	XrAction plots_toggle_1 = XR_NULL_HANDLE;
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
@@ -198,6 +206,7 @@ public:
 	void operator()(to_headset::pin_check_2 &&) {};
 	void operator()(to_headset::pin_check_4 &&) {};
 	void operator()(to_headset::handshake &&) {};
+	void operator()(to_headset::server_message &&);
 	void operator()(to_headset::video_stream_data_shard &&);
 	void operator()(to_headset::haptics &&);
 	void operator()(to_headset::timesync_query &&);
@@ -312,6 +321,7 @@ private:
 	void gui_bitrate_settings(float predicted_display_period);
 	void gui_foveation_settings(float predicted_display_period);
 	void gui_applications();
+	void gui_toasts();
 	void draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period);
 };
 } // namespace scenes

@@ -117,6 +117,9 @@ namespace constants::stream
 constexpr float fade_delay = 3;
 constexpr float fade_duration = 0.25;
 
+constexpr float urgent_fade_delay = 5;
+constexpr ImVec4 urgent_border_color = {8.f, .6f, 0.f, .8f};
+
 // Dimming for the streamed video when the GUI is interactable
 constexpr float dimming_scale = 0.4;
 constexpr float dimming_bias = 0.01;
