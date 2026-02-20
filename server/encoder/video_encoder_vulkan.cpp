@@ -567,7 +567,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 
 	// We don't copy the whole buffer, but an estimate of how much we'll need
 	// If that wasn't enough, we have to issue a second copy command for the rest
-	if (size > slot_item.copy_size)
+	if (slot_item.host_buffer and size > slot_item.copy_size)
 	{
 		U_LOG_D("additional copy needed: %ld", size - slot_item.copy_size);
 		const bool main_queue = *slot_item.transfer_cmd_buf;
