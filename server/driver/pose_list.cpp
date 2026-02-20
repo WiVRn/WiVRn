@@ -260,8 +260,7 @@ std::pair<XrTime, xrt_space_relation> pose_list::get_at(XrTime at_timestamp_ns)
 
 	if (orientation.y)
 	{
-		if (auto norm2 = orientation.y->squaredNorm();
-		    norm2 > 0.9 and norm2 < 1.1)
+		if (auto norm2 = orientation.y->squaredNorm(); norm2 > 0.1)
 		{
 			flags(XRT_SPACE_RELATION_ORIENTATION_VALID_BIT | XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT);
 
