@@ -68,6 +68,17 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+		<release version="26.2.3" date="2026-02-21">
+			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.2.3</url>
+			<description>
+				<ul>
+					<li>Fixed controller/head tracking issues on connection and fast movements</li>
+					<li>Fixed controller positions when switching from hand tracking</li>
+					<li>Workaround encoder issues on Intel B580</li>
+					<li>Fixed configuration reset when changing autostart application</li>
+				</ul>
+			</description>
+		</release>
 		<release version="26.2.2" date="2026-02-14">
 			<url type="details">https://github.com/WiVRn/WiVRn/releases/tag/v26.2.2</url>
 			<description>
