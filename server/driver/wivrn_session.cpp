@@ -1018,8 +1018,15 @@ void wivrn_session::run_net(std::stop_token stop)
 			if (stop.stop_requested())
 				break;
 
-			resume_session();
-			U_LOG_I("Headset connected, Session resumed.");
+			try
+			{
+				resume_session();
+				U_LOG_I("Headset connected, Session resumed.");
+			}
+			catch (const std::exception & e)
+			{
+				U_LOG_E("Exception on session resume: %s", e.what());
+			}
 		}
 	}
 }
