@@ -224,7 +224,7 @@ private:
 	void poll_session_loss();
 
 	// checks if a headset is usable with this session
-	std::pair<bool, bool> validate_headset_info(const from_headset::headset_info_packet & info);
+	std::pair<bool, std::optional<std::string>> validate_headset_info(const from_headset::headset_info_packet & info);
 
 	// xrt_system implementation
 	xrt_result_t get_roles(xrt_system_roles * out_roles);
