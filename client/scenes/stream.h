@@ -32,6 +32,7 @@
 #include "wivrn_packets.h"
 #include "xr/space.h"
 #include <mutex>
+#include <queue>
 #include <shared_mutex>
 #include <thread>
 #include <vulkan/vulkan_core.h>
@@ -45,7 +46,8 @@ public:
 	{
 		initializing,
 		streaming,
-		stalled
+		stalled,
+		shutdown,
 	};
 	static const size_t image_buffer_size = 3;
 
@@ -72,7 +74,6 @@ private:
 	std::array<std::shared_ptr<wivrn::shard_accumulator::blit_handle>, decoder_count> common_frame(XrTime display_time);
 
 	std::unique_ptr<wivrn_session> network_session;
-	std::atomic<bool> exiting = false;
 	std::thread network_thread;
 	thread_safe<to_headset::tracking_control> tracking_control{};
 	std::array<std::atomic<interaction_profile>, 2> interaction_profiles; // left and right hand
@@ -104,7 +105,16 @@ private:
 	std::unordered_multimap<device_id, haptics_action> haptics_actions;
 	std::vector<std::tuple<device_id, XrAction, XrActionType>> input_actions;
 
-	state state_ = state::initializing;
+	std::atomic<state> state_ = state::initializing;
+
+	void set_state(state new_state)
+	{
+		state prev = state_;
+		if (prev == state::shutdown)
+			return;
+
+		state_.compare_exchange_strong(prev, new_state);
+	}
 
 	xr::swapchain swapchain;
 
@@ -136,7 +146,7 @@ private:
 
 	struct gui_toast
 	{
-		std::string current_toast;
+		std::string content;
 		bool is_urgent = false;
 	};
 
@@ -149,6 +159,8 @@ private:
 
 	thread_safe<std::optional<gui_toast>> gui_toast;
 	std::atomic<XrTime> gui_status_last_change;
+
+	thread_safe<std::queue<std::string>> stream_error_queue;
 
 	XrAction plots_toggle_1 = XR_NULL_HANDLE;
 	XrAction plots_toggle_2 = XR_NULL_HANDLE;
@@ -230,14 +242,10 @@ public:
 	}
 
 	void exit();
-	bool alive() const
-	{
-		return !exiting;
-	}
-
 	void start_application(std::string appid);
 
 	static meta & get_meta_scene();
+	std::optional<std::string> pop_stream_error();
 
 private:
 	void process_packets();

@@ -33,7 +33,7 @@ void scenes::stream::process_packets()
 #ifdef __ANDROID__
 	application::instance().setup_jni();
 #endif
-	while (not exiting)
+	while (state_ != state::shutdown)
 	{
 		try
 		{
@@ -51,13 +51,21 @@ void scenes::stream::operator()(to_headset::server_message && message)
 {
 	switch (message.kind)
 	{
-		case to_headset::server_message::kind::stream_toast:
-		case to_headset::server_message::kind::stream_toast_urgent:
+		case to_headset::server_message::kind::toast:
+		case to_headset::server_message::kind::toast_urgent: {
 			auto toast = gui_toast.lock();
-			toast->emplace(message.msg, message.kind == to_headset::server_message::kind::stream_toast_urgent);
+			toast->emplace(message.msg, message.kind == to_headset::server_message::kind::toast_urgent);
 
 			gui_status_last_change = instance.now();
 			break;
+		}
+
+		case to_headset::server_message::kind::error: {
+			auto queue = stream_error_queue.lock();
+			queue->emplace(std::move(message.msg));
+
+			break;
+		}
 	}
 }
 

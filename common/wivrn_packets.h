@@ -612,8 +612,12 @@ struct server_message
 {
 	enum class kind : uint8_t
 	{
-		stream_toast,
-		stream_toast_urgent,
+		// in-stream toasts (not buffered)
+		toast,
+		toast_urgent,
+
+		// displayed in lobby after disconnect (buffered)
+		error,
 	};
 
 	kind kind;

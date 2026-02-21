@@ -739,7 +739,7 @@ void scenes::stream::gui_toasts()
 		return;
 	}
 
-	ImGui::Text("%s", (*toast)->current_toast.c_str());
+	ImGui::Text("%s", (*toast)->content.c_str());
 }
 
 void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)

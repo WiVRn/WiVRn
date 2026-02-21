@@ -1182,9 +1182,14 @@ void wivrn_session::reconnect(std::stop_token stop)
 			const auto & info = connection->info();
 			const auto [warn_conn, refuse_conn] = validate_headset_info(info);
 
+			// TODO: add server-side localization
+
 			if (refuse_conn)
 			{
-				// FIXME: send a message to client and prompt the user to restart the server
+				send_control(to_headset::server_message{
+				        .kind = to_headset::server_message::kind::error,
+				        .msg = "Headset incompatible with session.",
+				});
 
 				connection->shutdown();
 				throw std::runtime_error("headset config incompatible with current session");
@@ -1192,13 +1197,12 @@ void wivrn_session::reconnect(std::stop_token stop)
 
 			if (warn_conn)
 			{
-				U_LOG_W("Session resumed with outdated settings. Restart the server for settings to apply.");
-
-				// TODO: add server-side localization
 				send_control(to_headset::server_message{
-				        .kind = to_headset::server_message::kind::stream_toast_urgent,
+				        .kind = to_headset::server_message::kind::toast_urgent,
 				        .msg = "Stream resumed with outdated settings. Restart the server for settings to apply.",
 				});
+
+				U_LOG_W("Session resumed with outdated settings. Restart the server for settings to apply.");
 			}
 
 			// update headset info

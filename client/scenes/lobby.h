@@ -224,6 +224,7 @@ class lobby : public scene_impl<lobby>
 	void gui_connecting(locked_notifiable<pin_request_data> & request);
 	void gui_enter_pin(locked_notifiable<pin_request_data> & request);
 	void gui_connected(XrTime predicted_display_time);
+	void gui_disconnected();
 	void gui_server_list();
 	void gui_new_server();
 	void gui_settings();
