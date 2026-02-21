@@ -1132,61 +1132,94 @@ void wivrn_session::quit_if_no_client()
 	}
 }
 
-std::pair<bool, bool> wivrn_session::validate_headset_info(const from_headset::headset_info_packet & info)
+static bool is_audio_changed(const from_headset::headset_info_packet & prev_info, const from_headset::headset_info_packet & info)
+{
+	bool changed = false;
+
+	if (prev_info.speaker and info.speaker)
+	{
+		changed |= prev_info.speaker->num_channels != info.speaker->num_channels;
+		changed |= prev_info.speaker->sample_rate != info.speaker->sample_rate;
+	}
+
+	if (prev_info.microphone and info.microphone)
+	{
+		changed |= prev_info.microphone->num_channels != info.microphone->num_channels;
+		changed |= prev_info.microphone->sample_rate != info.microphone->sample_rate;
+	}
+
+	return changed;
+}
+
+std::pair<bool, std::optional<std::string>> wivrn_session::validate_headset_info(const from_headset::headset_info_packet & info)
 {
 	const auto & prev_info = get_info();
-
-	// FIXME: arbitrary warn / refuse selection
 
 	bool refuse = false; // refuse to connect headset outright
 	bool warn = false;   // allow headset but display a pop-up warning about outdated settings
 
-	warn |= prev_info.render_eye_width != info.render_eye_width;
-	warn |= prev_info.render_eye_height != info.render_eye_height;
-	warn |= prev_info.stream_eye_width != info.stream_eye_width;
-	warn |= prev_info.stream_eye_height != info.stream_eye_height;
-
-	if (prev_info.speaker and info.speaker)
+	// stream settings
 	{
-		refuse |= prev_info.speaker->num_channels != info.speaker->num_channels;
-		refuse |= prev_info.speaker->sample_rate != info.speaker->sample_rate;
-	}
-	warn |= (bool)prev_info.speaker != (bool)info.speaker;
+		warn |= prev_info.render_eye_width != info.render_eye_width;
+		warn |= prev_info.render_eye_height != info.render_eye_height;
+		warn |= prev_info.stream_eye_width != info.stream_eye_width;
+		warn |= prev_info.stream_eye_height != info.stream_eye_height;
 
-	if (prev_info.microphone and info.microphone)
-	{
-		refuse |= prev_info.microphone->num_channels != info.microphone->num_channels;
-		refuse |= prev_info.microphone->sample_rate != info.microphone->sample_rate;
-	}
-	warn |= (bool)prev_info.microphone != (bool)info.microphone;
+		refuse |= prev_info.supported_codecs != info.supported_codecs;
+		refuse |= prev_info.bit_depth != info.bit_depth;
 
-	for (uint32_t i = 0; i < 2; i++)
-	{
-		refuse |= prev_info.fov[i].angleDown != info.fov[i].angleDown;
-		refuse |= prev_info.fov[i].angleUp != info.fov[i].angleUp;
-		refuse |= prev_info.fov[i].angleRight != info.fov[i].angleRight;
-		refuse |= prev_info.fov[i].angleLeft != info.fov[i].angleLeft;
+		if (refuse)
+		{
+			return std::make_pair(false, "video codec mismatch.");
+		}
 	}
 
-	warn |= prev_info.hand_tracking != info.hand_tracking;
-	warn |= prev_info.eye_gaze != info.eye_gaze;
-	warn |= prev_info.palm_pose != info.palm_pose;
-	warn |= prev_info.user_presence != info.user_presence;
-	warn |= prev_info.passthrough != info.passthrough;
+	// audio settings
+	{
+		refuse |= is_audio_changed(prev_info, info);
 
-	warn |= prev_info.face_tracking != info.face_tracking;
-	warn |= prev_info.num_generic_trackers != info.num_generic_trackers;
+		warn |= (bool)prev_info.speaker != (bool)info.speaker;
+		warn |= (bool)prev_info.microphone != (bool)info.microphone;
 
-	// do not allow changing stream settings
-	refuse |= prev_info.supported_codecs != info.supported_codecs;
-	refuse |= prev_info.bit_depth != info.bit_depth;
+		if (refuse)
+		{
+			return std::make_pair(false, "audio config changed.");
+		}
+	}
 
-	refuse |= prev_info.available_refresh_rates != info.available_refresh_rates;
+	// headset features
+	{
+		// allow toggling some features but changes won't be visible to applications
+		warn |= prev_info.hand_tracking != info.hand_tracking;
+		warn |= prev_info.face_tracking != info.face_tracking;
+		warn |= prev_info.eye_gaze != info.eye_gaze;
 
-	// for the sake of sanity, only allow connecting from the "same" headset
-	refuse |= prev_info.system_name != info.system_name;
+		warn |= prev_info.num_generic_trackers != info.num_generic_trackers;
 
-	return std::make_pair(warn, refuse);
+		// only allow connecting from the "same" headset
+		refuse |= prev_info.system_name != info.system_name;
+
+		for (uint32_t i = 0; i < 2; i++)
+		{
+			refuse |= prev_info.fov[i].angleDown != info.fov[i].angleDown;
+			refuse |= prev_info.fov[i].angleUp != info.fov[i].angleUp;
+			refuse |= prev_info.fov[i].angleRight != info.fov[i].angleRight;
+			refuse |= prev_info.fov[i].angleLeft != info.fov[i].angleLeft;
+		}
+
+		refuse |= prev_info.palm_pose != info.palm_pose;
+		refuse |= prev_info.user_presence != info.user_presence;
+		refuse |= prev_info.passthrough != info.passthrough;
+
+		refuse |= prev_info.available_refresh_rates != info.available_refresh_rates;
+
+		if (refuse)
+		{
+			std::make_pair(false, "headset features changed.");
+		}
+	}
+
+	return std::make_pair(warn, std::nullopt);
 }
 
 void wivrn_session::reconnect(std::stop_token stop)
@@ -1222,7 +1255,7 @@ void wivrn_session::reconnect(std::stop_token stop)
 			{
 				send_control(to_headset::server_message{
 				        .kind = to_headset::server_message::kind::error,
-				        .msg = "Headset incompatible with session.",
+				        .msg = std::format("Headset incompatible with session: {}", *refuse_conn),
 				});
 
 				connection->shutdown();
