@@ -785,7 +785,15 @@ static xrt_result_t comp_wivrn_request_refresh_rate(struct comp_target * ct, flo
 	if (refresh_rate_hz == 0.0f)
 		refresh_rate_hz = get_default_rate(cn->cnx.get_info(), *cn->cnx.get_settings());
 
-	cn->cnx.send_control(to_headset::refresh_rate_change{.fps = refresh_rate_hz});
+	try
+	{
+		cn->cnx.send_control(to_headset::refresh_rate_change{.fps = refresh_rate_hz});
+	}
+	catch (...)
+	{
+		// ignore network errors
+	}
+
 	return XRT_SUCCESS;
 }
 
