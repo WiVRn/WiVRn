@@ -248,6 +248,11 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		info.hand_tracking = config.check_feature(feature::hand_tracking);
 		info.eye_gaze = config.check_feature(feature::eye_gaze);
 
+		if (self->instance.has_extension(XR_EXT_USER_PRESENCE_EXTENSION_NAME))
+		{
+			info.user_presence = self->system.user_presence_properties().supportsUserPresence;
+		}
+
 		if (config.check_feature(feature::face_tracking))
 		{
 			switch (self->system.face_tracker_supported())

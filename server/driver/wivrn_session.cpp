@@ -405,7 +405,15 @@ void wivrn_session::pause_session()
 	assert(mnd_ipc_server);
 
 	// notify clients about session pause
+
 	update_client_states(false, false);
+
+	if (get_info().user_presence)
+	{
+		(*this)(from_headset::user_presence_changed{
+		        .present = false,
+		});
+	}
 
 	// pause session components
 
@@ -441,13 +449,22 @@ void wivrn_session::resume_session()
 			float target_fps = get_default_rate(get_info(), *get_settings());
 
 			if (target_fps != comp_target->get_refresh_rate())
+			{
 				(*this)(from_headset::refresh_rate_changed{
 				        .from = comp_target->get_refresh_rate(),
 				        .to = target_fps,
 				});
+			}
 
 			comp_target->resume();
 		}
+	}
+
+	if (get_info().user_presence)
+	{
+		(*this)(from_headset::user_presence_changed{
+		        .present = true,
+		});
 	}
 
 	(*this)(from_headset::get_application_list{
