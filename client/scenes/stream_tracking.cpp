@@ -341,7 +341,7 @@ void scenes::stream::tracking()
 	XrDuration frame_duration;
 	XrTime pattern_begin = instance.now();
 
-	while (not exiting)
+	while (state_ != state::shutdown)
 	{
 		try
 		{

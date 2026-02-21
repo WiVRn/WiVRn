@@ -249,17 +249,49 @@ void scenes::lobby::gui_enter_pin(locked_notifiable<pin_request_data> & pin_requ
 
 void scenes::lobby::gui_connected(XrTime predicted_display_time)
 {
-	if (not next_scene)
-	{
-		current_tab = tab::server_list;
-		return;
-	}
+	assert(next_scene);
 
 	if (next_scene->apps.draw_gui(*imgui_ctx, _("Disconnect")) == app_launcher::Cancel)
 	{
 		next_scene->exit();
 		current_tab = tab::server_list;
 	}
+}
+
+void scenes::lobby::gui_disconnected()
+{
+	using constants::style::button_size;
+	std::string close_button_label = _("Close");
+
+	if (!async_error)
+	{
+		async_error = next_scene->pop_stream_error();
+
+		if (!async_error)
+		{
+			next_scene.reset();
+			ImGui::CloseCurrentPopup();
+			return;
+		}
+	}
+
+	ImGui::Dummy({1000, 1});
+
+	ImGui::PushFont(nullptr, constants::gui::font_size_large);
+	if (server_name == "")
+		CenterTextH(fmt::format(_F("Disconnected")));
+	else
+		CenterTextH(fmt::format(_F("Disconnected from {}"), server_name));
+	ImGui::PopFont();
+
+	ImGui::Text("%s", async_error->c_str());
+	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - button_size.x - ImGui::GetStyle().WindowPadding.x);
+
+	if (ImGui::Button(close_button_label.c_str(), button_size))
+	{
+		async_error.reset();
+	}
+	imgui_ctx->vibrate_on_hover();
 }
 
 void scenes::lobby::gui_new_server()
@@ -496,8 +528,12 @@ void scenes::lobby::gui_server_list()
 		config.save();
 	}
 
+	// Check if we need to report errors after a disconnect
+	if (next_scene and next_scene->current_state() == scenes::stream::state::shutdown and not ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
+		ImGui::OpenPopup("disconnected");
+
 	// Check if an automatic connection has started
-	if ((async_session.valid() || next_scene) and not ImGui::IsPopupOpen("connecting"))
+	if ((async_session.valid() || next_scene) and not ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopup))
 		ImGui::OpenPopup("connecting");
 
 	const auto & popup_layer = imgui_ctx->layers()[1];
@@ -513,6 +549,13 @@ void scenes::lobby::gui_server_list()
 			gui_enter_pin(pin_request);
 		else
 			gui_connecting(pin_request);
+		ImGui::EndPopup();
+	}
+
+	ImGui::SetNextWindowPos({popup_layer_center.x, popup_layer_center.y}, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+	if (ImGui::BeginPopupModal("disconnected", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		gui_disconnected();
 		ImGui::EndPopup();
 	}
 

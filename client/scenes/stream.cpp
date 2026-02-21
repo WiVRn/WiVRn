@@ -562,7 +562,7 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 
 		if (state_ != state::streaming and not(decoders[0].empty() and decoders[1].empty()))
 		{
-			state_ = state::streaming;
+			set_state(state::streaming);
 			spdlog::info("Stream scene ready at t={}", instance.now());
 		}
 	}
@@ -759,7 +759,7 @@ bool scenes::stream::is_gui_interactable() const
 
 void scenes::stream::render(const XrFrameState & frame_state)
 {
-	if (exiting)
+	if (state_ == state::shutdown)
 		application::pop_scene();
 
 	display_time_phase = frame_state.predictedDisplayTime % frame_state.predictedDisplayPeriod;
@@ -768,7 +768,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	last_display_time = frame_state.predictedDisplayTime;
 
 	std::shared_lock lock(decoder_mutex);
-	if (not frame_state.shouldRender or (decoders[0].empty() and decoders[1].empty()) or exiting)
+	if (not frame_state.shouldRender or (decoders[0].empty() and decoders[1].empty()) or state_ == state::shutdown)
 	{
 		// TODO: stop/restart video stream
 		session.begin_frame();
@@ -848,7 +848,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		blit_handle->feedback.blitted = instance.now();
 		if (blit_handle->feedback.blitted - blit_handle->feedback.received_from_decoder > 1'000'000'000)
-			state_ = stream::state::stalled;
+			set_state(state::stalled);
 		++blit_handle->feedback.times_displayed;
 		blit_handle->feedback.displayed = frame_state.predictedDisplayTime;
 
@@ -1136,7 +1136,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 void scenes::stream::exit()
 {
-	exiting = true;
+	state_ = state::shutdown;
 }
 
 void scenes::stream::setup(const to_headset::video_stream_description & description)
@@ -1259,6 +1259,18 @@ scene::meta & scenes::stream::get_meta_scene()
 	};
 
 	return m;
+}
+
+std::optional<std::string> scenes::stream::pop_stream_error()
+{
+	auto queue = stream_error_queue.lock();
+	if (queue->empty())
+		return std::nullopt;
+
+	auto err = std::make_optional(queue->front());
+	queue->pop();
+
+	return err;
 }
 
 void scenes::stream::on_xr_event(const xr::event & event)

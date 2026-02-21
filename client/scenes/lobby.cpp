@@ -882,10 +882,19 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 
 	if (next_scene)
 	{
-		if (!next_scene->alive())
-			next_scene.reset();
-		else if (next_scene->current_state() == scenes::stream::state::streaming)
-			application::push_scene(next_scene);
+		switch (next_scene->current_state())
+		{
+			case scenes::stream::state::streaming:
+				application::push_scene(next_scene);
+				break;
+
+			case scenes::stream::state::shutdown:
+				current_tab = tab::server_list;
+				break;
+
+			default:
+				break;
+		}
 	}
 
 	update_server_list();
