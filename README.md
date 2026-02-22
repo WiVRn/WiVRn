@@ -39,7 +39,7 @@ WiVRn support a wide range of VR devices:
 ## PC Server/Dashboard
 
 We recommend using native packages if available for your distribution:
-- [Arch User Repositoy](https://aur.archlinux.org/packages/wivrn-dashboard)
+- [Arch User Repository](https://aur.archlinux.org/packages/wivrn-dashboard)
 - [Fedora](https://packages.fedoraproject.org/pkgs/wivrn/wivrn/)
 - [Gentoo Guru](https://gitweb.gentoo.org/repo/proj/guru.git/tree/media-libs/wivrn)
 - [NixOS](https://search.nixos.org/packages?channel=25.11&show=wivrn)
