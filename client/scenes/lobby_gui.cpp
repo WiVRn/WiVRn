@@ -576,10 +576,10 @@ void scenes::lobby::gui_settings()
 		const auto & refresh_rates = session.get_refresh_rates();
 		if (not refresh_rates.empty())
 		{
-			float active_rate = config.preferred_refresh_rate.value_or(refresh_rates.back());
+			float active_rate = config.preferred_refresh_rate;
 			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? fmt::format("{}", active_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
 			{
-				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), config.preferred_refresh_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
+				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), active_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
 				{
 					session.set_refresh_rate(0);
 					config.preferred_refresh_rate = 0;
@@ -589,7 +589,7 @@ void scenes::lobby::gui_settings()
 					imgui_ctx->tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
 				for (float rate: refresh_rates)
 				{
-					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.preferred_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
+					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == active_rate, ImGuiSelectableFlags_SelectOnRelease))
 					{
 						session.set_refresh_rate(rate);
 						config.preferred_refresh_rate = rate;
@@ -600,7 +600,7 @@ void scenes::lobby::gui_settings()
 			}
 			imgui_ctx->vibrate_on_hover();
 
-			if (config.preferred_refresh_rate == 0 and refresh_rates.size() > 2)
+			if (active_rate == 0 and refresh_rates.size() > 2)
 			{
 				float min_rate = config.minimum_refresh_rate.value_or(refresh_rates.front());
 				if (ImGui::BeginCombo(_S("Minimum refresh rate"), fmt::format("{}", min_rate).c_str()))

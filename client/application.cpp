@@ -1340,7 +1340,7 @@ void application::initialize()
 	spaces[size_t(xr::spaces::view)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_VIEW);
 	spaces[size_t(xr::spaces::world)] = xr_session.create_reference_space(XR_REFERENCE_SPACE_TYPE_STAGE);
 
-	config.emplace(xr_system_id);
+	config.emplace(xr_system_id, xr_session);
 
 	// HTC face tracker fails if created later
 	// we can destroy it right away, it actually stores static handles

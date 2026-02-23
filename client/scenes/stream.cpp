@@ -36,7 +36,6 @@
 #include "hardware.h"
 #include "inplace_vector.hpp"
 #include "spdlog/spdlog.h"
-#include "utils/contains.h"
 #include "utils/named_thread.h"
 #include "utils/ranges.h"
 #include "wivrn_packets.h"
@@ -233,20 +232,8 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		if (self->instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
 		{
 			info.available_refresh_rates = self->session.get_refresh_rates();
-			// I can't find anything in specification the ensures it won't be empty
-			if (not info.available_refresh_rates.empty())
-			{
-				if (config.preferred_refresh_rate and (config.preferred_refresh_rate == 0 or utils::contains(info.available_refresh_rates, *config.preferred_refresh_rate)))
-				{
-					info.settings.preferred_refresh_rate = *config.preferred_refresh_rate;
-					info.settings.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
-				}
-				else
-				{
-					// Default to highest refresh rate
-					info.settings.preferred_refresh_rate = info.available_refresh_rates.back();
-				}
-			}
+			info.settings.preferred_refresh_rate = config.preferred_refresh_rate;
+			info.settings.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
 		}
 
 		if (info.available_refresh_rates.empty())

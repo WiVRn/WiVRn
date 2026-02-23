@@ -1329,7 +1329,6 @@ void scenes::lobby::on_focused()
 	std::ranges::sort(local_environments, std::less{});
 
 	setup_passthrough();
-	session.set_refresh_rate(application::get_config().preferred_refresh_rate.value_or(0));
 	multicast = application::get_wifi_lock().get_multicast_lock();
 
 	session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_CPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
