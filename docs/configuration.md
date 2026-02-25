@@ -158,3 +158,13 @@ Default value: `false`
 Only available when built with `WIVRN_FEATURE_STEAMVR_LIGHTHOUSE`
 
 Enables the driver to load SteamVR Lighthouse devices.
+
+## `port`
+Default value: `9757`
+
+Change the TCP/UDP port used for the connection.
+
+## `hostname`
+Default value: unset
+
+If set, overrides the name displayed in the server list.

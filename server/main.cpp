@@ -15,7 +15,6 @@
 #include "driver/configuration.h"
 #include "driver/wivrn_connection.h"
 #include "exit_codes.h"
-#include "hostname.h"
 #include "ipc_server_cb.h"
 #include "protocol_version.h"
 #include "start_application.h"
@@ -315,7 +314,7 @@ void start_listening()
 
 	assert(listener_watch == 0);
 
-	listener = std::make_unique<TCPListener>(wivrn::default_port);
+	listener = std::make_unique<TCPListener>(configuration().port);
 	auto source_listener = g_unix_fd_source_new(listener->get_fd(), GIOCondition::G_IO_IN);
 	g_source_set_callback(source_listener, G_SOURCE_FUNC(&headset_connected), nullptr, nullptr);
 	listener_watch = g_source_attach(source_listener, nullptr);
@@ -352,7 +351,8 @@ void start_publishing()
 			        {"version", wivrn::display_version()},
 			        {"cookie", server_cookie()},
 			};
-			publisher.emplace(poll_api, hostname(), "_wivrn._tcp", wivrn::default_port, TXT);
+			auto configuration = wivrn::configuration();
+			publisher.emplace(poll_api, configuration.hostname, "_wivrn._tcp", configuration.port, TXT);
 		}
 	}
 }

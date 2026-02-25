@@ -22,8 +22,8 @@
 #include "util/u_logging.h"
 #include "utils/overloaded.h"
 
+#include "driver/configuration.h"
 #include "driver/wivrn_session.h"
-#include "wivrn_config.h"
 #include "wivrn_ipc.h"
 #include "wivrn_sockets.h"
 
@@ -33,7 +33,7 @@ std::unique_ptr<wivrn::TCP> wivrn::accept_connection(wivrn_session & cnx, std::s
 {
 	wivrn_ipc_socket_monado->send(from_monado::headset_disconnected{});
 
-	wivrn::TCPListener listener(wivrn::default_port);
+	wivrn::TCPListener listener(configuration().port);
 
 	pollfd fds[2]{
 	        {.fd = listener.get_fd(), .events = POLLIN},

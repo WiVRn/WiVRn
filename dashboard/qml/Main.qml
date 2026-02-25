@@ -165,7 +165,7 @@ Kirigami.ApplicationWindow {
                         text: i18n("Firewall may not allow port 9757")
                         type: Kirigami.MessageType.Warning
                         showCloseButton: true
-                        visible: DashboardSettings.show_system_checks && Firewall.needSetup
+                        visible: DashboardSettings.show_system_checks && Firewall.needSetup && Settings.port == Settings.default_port
                         actions: [
                             Kirigami.Action {
                                 text: i18n("Fix it")
