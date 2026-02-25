@@ -232,6 +232,9 @@ video_encoder_nvenc::video_encoder_nvenc(
 			config.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
 			config.encodeCodecConfig.h264Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			config.encodeCodecConfig.h264Config.h264VUIParameters.videoFullRangeFlag = 1;
+			config.encodeCodecConfig.h264Config.enableIntraRefresh = 1;
+			config.encodeCodecConfig.h264Config.intraRefreshPeriod = (uint32_t)fps;
+			config.encodeCodecConfig.h264Config.intraRefreshCnt = (uint32_t)(fps / 2);
 
 			break;
 		case video_codec::h265:
@@ -248,6 +251,9 @@ video_encoder_nvenc::video_encoder_nvenc(
 			config.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
 			config.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			config.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
+			config.encodeCodecConfig.hevcConfig.enableIntraRefresh = 1;
+			config.encodeCodecConfig.hevcConfig.intraRefreshPeriod = (uint32_t)fps;
+			config.encodeCodecConfig.hevcConfig.intraRefreshCnt = (uint32_t)(fps / 2);
 
 			break;
 		case video_codec::av1:
@@ -263,6 +269,9 @@ video_encoder_nvenc::video_encoder_nvenc(
 			config.encodeCodecConfig.av1Config.repeatSeqHdr = 1;
 			config.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
 			config.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+			config.encodeCodecConfig.av1Config.enableIntraRefresh = 1;
+			config.encodeCodecConfig.av1Config.intraRefreshPeriod = (uint32_t)fps;
+			config.encodeCodecConfig.av1Config.intraRefreshCnt = (uint32_t)(fps / 2);
 
 			break;
 		case video_codec::raw:
