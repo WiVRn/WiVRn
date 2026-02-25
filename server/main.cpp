@@ -657,6 +657,15 @@ gboolean on_handle_rename_key(WivrnServer * skeleton, GDBusMethodInvocation * in
 
 gboolean on_handle_enable_pairing(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
 {
+	bool server_running = server_watch != 0 or connection_thread;
+	if (server_running)
+	{
+		std::cerr << "Cannot enable pairing while session is active." << pin << std::endl;
+		g_dbus_method_invocation_return_value(invocation, g_variant_new("(s)", ""));
+
+		return G_SOURCE_CONTINUE;
+	}
+
 	set_encryption_state(wivrn_connection::encryption_state::pairing);
 
 	if (pairing_timeout)
