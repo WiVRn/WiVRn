@@ -68,6 +68,8 @@ public:
 	Q_PROPERTY(bool tenbit READ tenbit WRITE set_tenbit NOTIFY tenbitChanged)
 
 	Q_PROPERTY(bool tcpOnly READ tcpOnly WRITE set_tcpOnly NOTIFY tcpOnlyChanged)
+	Q_PROPERTY(int port READ port WRITE set_port NOTIFY portChanged)
+	Q_PROPERTY(QString hostname READ hostname WRITE set_hostname NOTIFY hostnameChanged)
 	Q_PROPERTY(QString application READ application WRITE set_application NOTIFY applicationChanged)
 	Q_PROPERTY(QString openvr READ openvr WRITE set_openvr NOTIFY openvrChanged)
 
@@ -76,6 +78,7 @@ public:
 	Q_PROPERTY(bool steamVrLh READ steamVrLh WRITE set_steamVrLh NOTIFY steamVrLhChanged)
 
 	Q_PROPERTY(bool flatpak READ flatpak CONSTANT)
+	Q_PROPERTY(int default_port READ default_port CONSTANT)
 	Q_PROPERTY(bool hid_forwarding_supported READ hid_forwarding CONSTANT)
 	Q_PROPERTY(bool debug_gui_supported READ debug_gui CONSTANT)
 	Q_PROPERTY(bool steamvr_lh_supported READ steamvr_lh CONSTANT)
@@ -89,6 +92,8 @@ public:
 	SETTER_GETTER_NOTIFY(bool, debugGui)
 	SETTER_GETTER_NOTIFY(bool, steamVrLh)
 	SETTER_GETTER_NOTIFY(bool, tcpOnly)
+	SETTER_GETTER_NOTIFY(int, port)
+	SETTER_GETTER_NOTIFY(QString, hostname)
 	SETTER_GETTER_NOTIFY(QString, openvr)
 private:
 	nlohmann::json m_jsonSettings = nlohmann::json::object();
@@ -107,6 +112,7 @@ public:
 	bool can10bit() const;
 
 	bool flatpak() const;
+	int default_port() const;
 	bool debug_gui() const;
 	bool steamvr_lh() const;
 	bool hid_forwarding() const;
