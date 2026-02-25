@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-07 17:21+0800\n"
+"POT-Creation-Date: 2026-02-24 02:14+0800\n"
 "PO-Revision-Date: 2025-12-31 18:23+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
@@ -68,11 +68,11 @@ msgstr "无法连接至 {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "等待连接"
 
-#: client/scenes/lobby.cpp:1316
+#: client/scenes/lobby.cpp:1307
 msgid "Passthrough"
 msgstr "透视"
 
-#: client/scenes/lobby.cpp:1328
+#: client/scenes/lobby.cpp:1319
 msgid "Default environment"
 msgstr "默认环境"
 
@@ -92,13 +92,13 @@ msgid "Disabled"
 msgstr "停用"
 
 #: client/scenes/lobby_gui.cpp:114 client/scenes/lobby_gui.cpp:258
-#: client/scenes/stream_gui.cpp:1010
+#: client/scenes/stream_gui.cpp:992
 msgid "Disconnect"
 msgstr "终止连接"
 
 #: client/scenes/lobby_gui.cpp:134 client/scenes/lobby_gui_customize.cpp:753
 #: client/scenes/lobby_gui_customize.cpp:844
-#: client/scenes/lobby_gui_customize.cpp:900 client/scenes/stream_gui.cpp:1006
+#: client/scenes/lobby_gui_customize.cpp:900 client/scenes/stream_gui.cpp:988
 msgid "Close"
 msgstr "关闭"
 
@@ -136,7 +136,7 @@ msgid "TCP only"
 msgstr "仅限 TCP"
 
 #: client/scenes/lobby_gui.cpp:319 client/scenes/lobby_gui_customize.cpp:655
-#: client/scenes/stream_gui.cpp:962
+#: client/scenes/stream_gui.cpp:944
 msgid "Cancel"
 msgstr "取消"
 
@@ -181,12 +181,12 @@ msgstr "语言"
 msgid "System language"
 msgstr "系统语言"
 
-#: client/scenes/lobby_gui.cpp:580 client/scenes/stream_gui.cpp:411
+#: client/scenes/lobby_gui.cpp:580 client/scenes/stream_gui.cpp:412
 msgid "Refresh rate"
 msgstr "刷新率"
 
 #: client/scenes/lobby_gui.cpp:580 client/scenes/lobby_gui.cpp:582
-#: client/scenes/stream_gui.cpp:411 client/scenes/stream_gui.cpp:413
+#: client/scenes/stream_gui.cpp:412 client/scenes/stream_gui.cpp:414
 msgctxt "automatic refresh rate"
 msgid "Automatic"
 msgstr "自动"
@@ -408,7 +408,7 @@ msgstr ""
 "当串流分辨率低于头显原生分辨率时很有用"
 
 #: client/scenes/lobby_gui.cpp:1153 client/scenes/lobby_gui.cpp:1161
-#: client/scenes/stream_gui.cpp:172 client/scenes/stream_gui.cpp:370
+#: client/scenes/stream_gui.cpp:173 client/scenes/stream_gui.cpp:371
 msgid "CPU time"
 msgstr "CPU 时间"
 
@@ -417,7 +417,7 @@ msgid "CPU time [ms]"
 msgstr "CPU 时间 [ms]"
 
 #: client/scenes/lobby_gui.cpp:1167 client/scenes/lobby_gui.cpp:1175
-#: client/scenes/stream_gui.cpp:174 client/scenes/stream_gui.cpp:371
+#: client/scenes/stream_gui.cpp:175 client/scenes/stream_gui.cpp:372
 msgid "GPU time"
 msgstr "GPU 时间"
 
@@ -505,7 +505,7 @@ msgstr "新增服务器"
 msgid "Server list"
 msgstr "服务器列表"
 
-#: client/scenes/lobby_gui.cpp:1940 client/scenes/stream_gui.cpp:991
+#: client/scenes/lobby_gui.cpp:1940 client/scenes/stream_gui.cpp:973
 msgid "Settings"
 msgstr "设置"
 
@@ -616,73 +616,73 @@ msgstr "下载更多环境"
 msgid "Open local glTF model"
 msgstr "打开本地 glTF 模型"
 
-#: client/scenes/stream_gui.cpp:174
+#: client/scenes/stream_gui.cpp:175
 msgid "Defoveate"
 msgstr "去凹形畸变"
 
-#: client/scenes/stream_gui.cpp:176
+#: client/scenes/stream_gui.cpp:177
 msgid "Network"
 msgstr "网络"
 
-#: client/scenes/stream_gui.cpp:176 client/scenes/stream_gui.cpp:368
+#: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:369
 msgid "Download"
 msgstr "下载"
 
-#: client/scenes/stream_gui.cpp:177 client/scenes/stream_gui.cpp:369
+#: client/scenes/stream_gui.cpp:178 client/scenes/stream_gui.cpp:370
 msgid "Upload"
 msgstr "上传"
 
-#: client/scenes/stream_gui.cpp:246
+#: client/scenes/stream_gui.cpp:247
 #, c++-format
 msgid "Decoder {}"
 msgstr "解码器 {}"
 
-#: client/scenes/stream_gui.cpp:258
+#: client/scenes/stream_gui.cpp:259
 msgid "Timings [ms]"
 msgstr "时间信息 [ms]"
 
-#: client/scenes/stream_gui.cpp:318
+#: client/scenes/stream_gui.cpp:319
 msgid "Encode"
 msgstr "编码"
 
-#: client/scenes/stream_gui.cpp:319
+#: client/scenes/stream_gui.cpp:320
 msgid "Send"
 msgstr "发送"
 
-#: client/scenes/stream_gui.cpp:320
+#: client/scenes/stream_gui.cpp:321
 msgid "Receive"
 msgstr "接收"
 
-#: client/scenes/stream_gui.cpp:321
+#: client/scenes/stream_gui.cpp:322
 msgid "Decode"
 msgstr "解码"
 
-#: client/scenes/stream_gui.cpp:322
+#: client/scenes/stream_gui.cpp:323
 msgid "Blitted"
 msgstr "已传输位块"
 
-#: client/scenes/stream_gui.cpp:323
+#: client/scenes/stream_gui.cpp:324
 msgid "Displayed"
 msgstr "已显示"
 
-#: client/scenes/stream_gui.cpp:324
+#: client/scenes/stream_gui.cpp:325
 msgid "Predicted"
 msgstr "已预测"
 
-#: client/scenes/stream_gui.cpp:343
+#: client/scenes/stream_gui.cpp:344
 #, c++-format
 msgid "Estimated motion to photons latency: {}ms"
 msgstr "估计从运动到显示延迟: {}ms"
 
-#: client/scenes/stream_gui.cpp:348
+#: client/scenes/stream_gui.cpp:349
 msgid "Press the grip button to move the window"
 msgstr "按下抓握键来移动窗口"
 
-#: client/scenes/stream_gui.cpp:350 client/scenes/stream_gui.cpp:918
+#: client/scenes/stream_gui.cpp:351 client/scenes/stream_gui.cpp:900
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "同时按下两侧摇杆以显示 WiVRn 窗口"
 
-#: client/scenes/stream_gui.cpp:372
+#: client/scenes/stream_gui.cpp:373
 msgid "Motion to photon latency"
 msgstr "从动作到显示的延迟"
 
@@ -694,29 +694,29 @@ msgstr "码率："
 msgid "Click to adjust bitrate"
 msgstr "点击以调整码率"
 
-#: client/scenes/stream_gui.cpp:531
+#: client/scenes/stream_gui.cpp:532
 msgid "Foveation center override"
 msgstr "注视点渲染位置覆盖"
 
-#: client/scenes/stream_gui.cpp:534
+#: client/scenes/stream_gui.cpp:535
 msgid "Enable"
 msgstr "启用"
 
-#: client/scenes/stream_gui.cpp:542 client/scenes/stream_gui.cpp:614
+#: client/scenes/stream_gui.cpp:543 client/scenes/stream_gui.cpp:614
 #, c++-format
 msgid "Height {:.1f} deg"
 msgstr "俯仰 {:.1f}°"
 
-#: client/scenes/stream_gui.cpp:543 client/scenes/stream_gui.cpp:615
+#: client/scenes/stream_gui.cpp:544 client/scenes/stream_gui.cpp:615
 #, c++-format
 msgid "Distance {:.2f} m"
 msgstr "距离 {:.2f}m"
 
-#: client/scenes/stream_gui.cpp:544
+#: client/scenes/stream_gui.cpp:545
 msgid "Default"
 msgstr "默认"
 
-#: client/scenes/stream_gui.cpp:555
+#: client/scenes/stream_gui.cpp:556
 msgid "Change"
 msgstr "变更"
 
@@ -753,23 +753,23 @@ msgstr "叠加层"
 msgid "Request to quit, may be ignored by the application"
 msgstr "退出请求可能会被应用程序忽略"
 
-#: client/scenes/stream_gui.cpp:977
+#: client/scenes/stream_gui.cpp:959
 msgid "Applications"
 msgstr "应用程序"
 
-#: client/scenes/stream_gui.cpp:980
+#: client/scenes/stream_gui.cpp:962
 msgid "Start"
 msgstr "启动"
 
-#: client/scenes/stream_gui.cpp:994
+#: client/scenes/stream_gui.cpp:976
 msgid "Stats"
 msgstr "统计"
 
-#: client/scenes/stream_gui.cpp:1000
+#: client/scenes/stream_gui.cpp:982
 msgid "Statistics overlay"
 msgstr "统计数据叠加"
 
-#: client/scenes/stream_gui.cpp:1003
+#: client/scenes/stream_gui.cpp:985
 msgid "Compact view"
 msgstr "概览"
 
