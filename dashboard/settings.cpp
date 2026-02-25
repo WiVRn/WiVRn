@@ -489,7 +489,7 @@ void Settings::set_openvr(const QString & value)
 	else
 		m_jsonSettings["openvr-compat-path"] = value.toStdString();
 	if (old != value)
-		tcpOnlyChanged();
+		openvrChanged();
 }
 
 QList<Settings::video_codec> Settings::allowedCodecs() const
