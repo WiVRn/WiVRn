@@ -40,7 +40,7 @@ constexpr int font_size_large = 75;
 constexpr float scroll_ratio = 10;
 
 // Threshold on the trigger value to register a click
-constexpr float trigger_click_thd = 0.8;
+constexpr float trigger_click_thd = 0.7;
 
 // Thresholds on the distance between the fingertip and GUI layers (positive: in front of the GUI, negative: behind the GUI)
 constexpr float palm_distance_close_thd_lo = 0.18;          // Distance to switch between touch and aim interaction
