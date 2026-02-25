@@ -20,6 +20,7 @@
 #include <chrono>
 #include <format>
 #include <ranges>
+#include <string_view>
 #include <systemd/sd-bus.h>
 #include <type_traits>
 
@@ -195,6 +196,12 @@ void pair(int duration)
 		int ret = sd_bus_message_read(pin_msg.get(), "s", &pin);
 		if (ret < 0)
 			throw std::system_error(-ret, std::system_category(), "Failed to read PIN");
+
+		if (std::string_view(pin) == "")
+		{
+			std::cout << "Cannot enable pairing while session is active." << pin << std::endl;
+			return;
+		}
 
 		std::cout << "PIN: " << pin << std::endl;
 	}
