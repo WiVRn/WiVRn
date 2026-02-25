@@ -1370,7 +1370,6 @@ void scenes::lobby::on_unfocused()
 	right_hand.reset();
 	face_tracker.emplace<std::monostate>();
 
-	clear_swapchains();
 	multicast.reset();
 }
 

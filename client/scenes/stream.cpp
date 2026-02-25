@@ -528,7 +528,6 @@ void scenes::stream::on_unfocused()
 	renderer->wait_idle(); // Must be before the scene data because the renderer uses its descriptor sets;
 	world.clear();
 	input.reset();
-	clear_swapchains();
 	left_hand.reset();
 	right_hand.reset();
 	apps.reset();
