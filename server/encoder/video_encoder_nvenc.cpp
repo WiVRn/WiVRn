@@ -221,10 +221,22 @@ video_encoder_nvenc::video_encoder_nvenc(
 			throw std::runtime_error("nvenc: 10-bit encoding requested, but GPU doesn't support it");
 		}
 	}
+
 	const uint32_t intra_refresh_period = 100;
 	const uint32_t intra_refresh_cnt = 50;
 	auto set_intra_refresh = [&](auto & codec_config) {
-		codec_config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
+		NV_ENC_CAPS_PARAM cap_param{
+		        .version = NV_ENC_CAPS_PARAM_VER,
+		        .capsToQuery = NV_ENC_CAPS_SUPPORT_INTRA_REFRESH,
+		};
+
+		int res = 0;
+		NVENC_CHECK(shared_state->fn.nvEncGetEncodeCaps(session_handle, encodeGUID, &cap_param, &res));
+		if (res != 1)
+		{
+			U_LOG_W("nvenc: intra refresh not supported, disabling feature");
+			return;
+		}
 		codec_config.enableIntraRefresh = 1;
 		codec_config.intraRefreshPeriod = intra_refresh_period;
 		codec_config.intraRefreshCnt = intra_refresh_cnt;
@@ -239,6 +251,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 			config.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
 			config.encodeCodecConfig.h264Config.maxNumRefFrames = 0;
 			config.encodeCodecConfig.h264Config.h264VUIParameters.videoFullRangeFlag = 1;
+			config.encodeCodecConfig.h264Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			set_intra_refresh(config.encodeCodecConfig.h264Config);
 
 			break;
@@ -255,6 +268,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 			config.encodeCodecConfig.hevcConfig.repeatSPSPPS = 1;
 			config.encodeCodecConfig.hevcConfig.maxNumRefFramesInDPB = 0;
 			config.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
+			config.encodeCodecConfig.hevcConfig.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			set_intra_refresh(config.encodeCodecConfig.hevcConfig);
 
 			break;
@@ -270,6 +284,7 @@ video_encoder_nvenc::video_encoder_nvenc(
 
 			config.encodeCodecConfig.av1Config.repeatSeqHdr = 1;
 			config.encodeCodecConfig.av1Config.maxNumRefFramesInDPB = 0;
+			config.encodeCodecConfig.av1Config.idrPeriod = NVENC_INFINITE_GOPLENGTH;
 			set_intra_refresh(config.encodeCodecConfig.av1Config);
 
 			break;
