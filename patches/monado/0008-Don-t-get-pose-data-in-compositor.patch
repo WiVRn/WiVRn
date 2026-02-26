@@ -1,0 +1,83 @@
+From 3ec6ede2610ebbaa4ac6e9a76b387a2867db13a2 Mon Sep 17 00:00:00 2001
+From: no name <git-am@invalid>
+Date: Thu, 15 Jan 2026 12:13:06 +0100
+Subject: [PATCH 8/9] Don't get pose data in compositor
+
+Reproject onto the first projection layer's pose, if there isn't any get
+it from device instead.
+---
+ src/xrt/compositor/main/comp_renderer.c | 51 +++++++++++++++++++++----
+ 1 file changed, 43 insertions(+), 8 deletions(-)
+
+diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
+index ff9728a59..1f01662b6 100644
+--- a/src/xrt/compositor/main/comp_renderer.c
++++ b/src/xrt/compositor/main/comp_renderer.c
+@@ -948,6 +948,24 @@ dispatch_graphics(struct comp_renderer *r,
+  *
+  */
+ 
++static struct comp_layer *
++get_projection_layer(struct comp_layer_accum *layers)
++{
++	for (uint32_t layer = 0; layer < layers->layer_count; ++layer) {
++		switch (layers->layers[layer].data.type) {
++		case XRT_LAYER_PROJECTION:
++		case XRT_LAYER_PROJECTION_DEPTH: return &layers->layers[layer];
++		case XRT_LAYER_QUAD:
++		case XRT_LAYER_CUBE:
++		case XRT_LAYER_CYLINDER:
++		case XRT_LAYER_EQUIRECT1:
++		case XRT_LAYER_EQUIRECT2:
++		case XRT_LAYER_PASSTHROUGH: break;
++		}
++	}
++	return NULL;
++}
++
+ /*!
+  * @pre render_compute_init(render, &c->nr)
+  */
+@@ -972,14 +990,31 @@ dispatch_compute(struct comp_renderer *r,
+ 	struct xrt_pose world_poses_scanout_begin[XRT_MAX_VIEWS];
+ 	struct xrt_pose world_poses_scanout_end[XRT_MAX_VIEWS];
+ 	struct xrt_pose eye_poses[XRT_MAX_VIEWS];
+-	calc_pose_data(                //
+-	    r,                         //
+-	    fov_source,                //
+-	    fovs,                      //
+-	    world_poses_scanout_begin, //
+-	    world_poses_scanout_end,   //
+-	    eye_poses,                 //
+-	    render->r->view_count);    //
++	if (!c->base.frame_params.one_projection_layer_fast_path) {
++		struct comp_layer *proj_layer = get_projection_layer(&c->base.layer_accum);
++		if (proj_layer) {
++			struct xrt_layer_projection_view_data *data = proj_layer->data.proj.v;
++			// depth has the same first member as proj
++			for (int view = 0; view < XRT_MAX_VIEWS; ++view) {
++				fovs[view] = data[view].fov;
++				world_poses_scanout_begin[view] = data[view].pose;
++				world_poses_scanout_end[view] = data[view].pose;
++				eye_poses[view] = data[view].pose;
++
++				r->c->base.frame_params.fovs[view] = data[view].fov;
++				r->c->base.frame_params.poses[view] = data[view].pose;
++			}
++		} else {
++			calc_pose_data(                //
++			    r,                         //
++			    fov_source,                //
++			    fovs,                      //
++			    world_poses_scanout_begin, //
++			    world_poses_scanout_end,   //
++			    eye_poses,                 //
++			    render->r->view_count);    //
++		}
++	}
+ 
+ 	// Target Vulkan resources..
+ 	VkImage target_image = r->c->target->images[r->acquired_buffer].handle;
+-- 
+2.53.0
+

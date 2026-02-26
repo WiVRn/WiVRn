@@ -1,4 +1,4 @@
-From e4e8c532a6f5e46e91b67641feeb09d3f4b52bc7 Mon Sep 17 00:00:00 2001
+From b9acd6d83db324c6f31572615fb6738a6f93d63c Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Sun, 28 Sep 2025 11:33:10 +0200
 Subject: [PATCH 6/9] d/steamvr_lh: prevent crash on vive pro2/WiVRn
