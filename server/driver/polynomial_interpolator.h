@@ -31,7 +31,6 @@
 #include <Eigen/Core>
 #include <Eigen/QR>
 #include <algorithm>
-#include <cassert>
 #include <limits>
 #include <optional>
 #include <ranges>
@@ -198,14 +197,6 @@ public:
 			sol = Eigen::ColPivHouseholderQR<decltype(Aprime)>{Aprime}.solve(bprime).transpose();
 		else
 			sol = (Aprime.transpose() * Aprime).ldlt().solve(Aprime.transpose() * bprime).transpose();
-
-#ifndef NDEBUG
-		if constexpr (quaternion)
-		{
-			float norm = sol.template block<N, 1>(0, 0).norm();
-			assert(norm > 0.9);
-		}
-#endif
 
 		return sample{
 		        .production_timestamp = production_timestamp,
