@@ -766,7 +766,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	if (state_ == state::shutdown)
 		application::pop_scene();
 
-	display_time_phase = frame_state.predictedDisplayTime % frame_state.predictedDisplayPeriod;
+	display_time_phase = frame_state.predictedDisplayPeriod ? frame_state.predictedDisplayTime % frame_state.predictedDisplayPeriod : 0;
 	display_time_period = frame_state.predictedDisplayPeriod;
 	real_display_period = last_display_time ? frame_state.predictedDisplayTime - last_display_time : frame_state.predictedDisplayPeriod;
 	last_display_time = frame_state.predictedDisplayTime;
