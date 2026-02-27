@@ -1,4 +1,4 @@
-From 3ec6ede2610ebbaa4ac6e9a76b387a2867db13a2 Mon Sep 17 00:00:00 2001
+From 959707499b31f8db80f28492d1bfc01e34b23368 Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Thu, 15 Jan 2026 12:13:06 +0100
 Subject: [PATCH 8/9] Don't get pose data in compositor
@@ -6,11 +6,11 @@ Subject: [PATCH 8/9] Don't get pose data in compositor
 Reproject onto the first projection layer's pose, if there isn't any get
 it from device instead.
 ---
- src/xrt/compositor/main/comp_renderer.c | 51 +++++++++++++++++++++----
- 1 file changed, 43 insertions(+), 8 deletions(-)
+ src/xrt/compositor/main/comp_renderer.c | 53 +++++++++++++++++++++----
+ 1 file changed, 45 insertions(+), 8 deletions(-)
 
 diff --git a/src/xrt/compositor/main/comp_renderer.c b/src/xrt/compositor/main/comp_renderer.c
-index ff9728a59..1f01662b6 100644
+index ff9728a59..4a91bbcd0 100644
 --- a/src/xrt/compositor/main/comp_renderer.c
 +++ b/src/xrt/compositor/main/comp_renderer.c
 @@ -948,6 +948,24 @@ dispatch_graphics(struct comp_renderer *r,
@@ -38,7 +38,7 @@ index ff9728a59..1f01662b6 100644
  /*!
   * @pre render_compute_init(render, &c->nr)
   */
-@@ -972,14 +990,31 @@ dispatch_compute(struct comp_renderer *r,
+@@ -972,14 +990,33 @@ dispatch_compute(struct comp_renderer *r,
  	struct xrt_pose world_poses_scanout_begin[XRT_MAX_VIEWS];
  	struct xrt_pose world_poses_scanout_end[XRT_MAX_VIEWS];
  	struct xrt_pose eye_poses[XRT_MAX_VIEWS];
@@ -52,7 +52,9 @@ index ff9728a59..1f01662b6 100644
 -	    render->r->view_count);    //
 +	if (!c->base.frame_params.one_projection_layer_fast_path) {
 +		struct comp_layer *proj_layer = get_projection_layer(&c->base.layer_accum);
-+		if (proj_layer) {
++		int64_t predicted_display_time_ns = c->frame.rendering.predicted_display_time_ns;
++		int64_t cutoff_ns = 3 * c->frame_interval_ns;
++		if (proj_layer && llabs(predicted_display_time_ns - proj_layer->data.timestamp) <= cutoff_ns) {
 +			struct xrt_layer_projection_view_data *data = proj_layer->data.proj.v;
 +			// depth has the same first member as proj
 +			for (int view = 0; view < XRT_MAX_VIEWS; ++view) {
