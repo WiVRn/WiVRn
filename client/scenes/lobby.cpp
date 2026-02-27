@@ -951,27 +951,31 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	{
 		auto windows = imgui_ctx->windows();
 
-		auto left = left_hand->locate(world_space, frame_state.predictedDisplayTime);
-		if (left)
+		auto left_result = left_hand->locate(world_space, frame_state.predictedDisplayTime);
+		if (left_result and xr::hand_tracker::check_flags(*left_result, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
 		{
-			stick_finger_to_gui(*left, windows);
+			stick_finger_to_gui(left_result->joints, windows);
 			hide_left_controller = true;
 		}
 
-		auto right = right_hand->locate(world_space, frame_state.predictedDisplayTime);
-		if (right)
+		auto right_result = right_hand->locate(world_space, frame_state.predictedDisplayTime);
+		if (right_result and xr::hand_tracker::check_flags(*right_result, XR_SPACE_LOCATION_POSITION_TRACKED_BIT | XR_SPACE_LOCATION_POSITION_VALID_BIT, 0))
 		{
-			stick_finger_to_gui(*right, windows);
+			stick_finger_to_gui(right_result->joints, windows);
 			hide_right_controller = true;
 		}
 
-		hand_model::apply(world, left, right);
+		// Extract just the joints for functions that don't need aim data
+		auto left_joints = left_result ? std::make_optional(left_result->joints) : std::nullopt;
+		auto right_joints = right_result ? std::make_optional(right_result->joints) : std::nullopt;
+
+		hand_model::apply(world, left_joints, right_joints);
 
 		if (not new_gui_position and head_position)
-			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, left, *head_position);
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_left, left_joints, *head_position);
 
 		if (not new_gui_position and head_position)
-			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, right, *head_position);
+			new_gui_position = check_recenter_gesture(xr::spaces::palm_right, right_joints, *head_position);
 	}
 
 	if (head_position and new_gui_position)
