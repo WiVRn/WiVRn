@@ -2,14 +2,14 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the WiVRn package.
 # Jayden Ha <jayden@jaydenha.uk>, 2025.
-# BERADQ <adqber123@outlook.com>, 2025.
+# BERADQ <adqber123@outlook.com>, 2025-2026.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-24 02:14+0800\n"
-"PO-Revision-Date: 2025-12-31 18:23+0800\n"
+"POT-Creation-Date: 2026-02-27 23:03+0800\n"
+"PO-Revision-Date: 2026-02-28 21:35+0800\n"
 "Last-Translator: BERADQ <adqber123@outlook.com>\n"
 "Language-Team: Chinese (China)\n"
 "Language: zh_CN\n"
@@ -68,11 +68,11 @@ msgstr "无法连接至 {} ({}): {}"
 msgid "Waiting for connection"
 msgstr "等待连接"
 
-#: client/scenes/lobby.cpp:1307
+#: client/scenes/lobby.cpp:1316
 msgid "Passthrough"
 msgstr "透视"
 
-#: client/scenes/lobby.cpp:1319
+#: client/scenes/lobby.cpp:1328
 msgid "Default environment"
 msgstr "默认环境"
 
@@ -91,14 +91,15 @@ msgctxt "openxr_post_processing"
 msgid "Disabled"
 msgstr "停用"
 
-#: client/scenes/lobby_gui.cpp:114 client/scenes/lobby_gui.cpp:258
-#: client/scenes/stream_gui.cpp:992
+#: client/scenes/lobby_gui.cpp:114 client/scenes/lobby_gui.cpp:254
+#: client/scenes/stream_gui.cpp:1026
 msgid "Disconnect"
 msgstr "终止连接"
 
-#: client/scenes/lobby_gui.cpp:134 client/scenes/lobby_gui_customize.cpp:753
+#: client/scenes/lobby_gui.cpp:134 client/scenes/lobby_gui.cpp:264
+#: client/scenes/lobby_gui_customize.cpp:753
 #: client/scenes/lobby_gui_customize.cpp:844
-#: client/scenes/lobby_gui_customize.cpp:900 client/scenes/stream_gui.cpp:988
+#: client/scenes/lobby_gui_customize.cpp:900 client/scenes/stream_gui.cpp:1022
 msgid "Close"
 msgstr "关闭"
 
@@ -119,32 +120,41 @@ msgstr "身份识别码"
 msgid "Input the PIN displayed on the dashboard"
 msgstr "请输入显示在控制面板上的身份识别码"
 
+#: client/scenes/lobby_gui.cpp:282
+msgid "Disconnected"
+msgstr "连接已断开"
+
 #: client/scenes/lobby_gui.cpp:284
+#, c++-format
+msgid "Disconnected from {}"
+msgstr "{} 连接已断开"
+
+#: client/scenes/lobby_gui.cpp:316
 msgid "Name"
 msgstr "名"
 
-#: client/scenes/lobby_gui.cpp:295
+#: client/scenes/lobby_gui.cpp:327
 msgid "Address"
 msgstr "服务器地址"
 
-#: client/scenes/lobby_gui.cpp:304
+#: client/scenes/lobby_gui.cpp:336
 msgid "Port"
 msgstr "端口"
 
-#: client/scenes/lobby_gui.cpp:312
+#: client/scenes/lobby_gui.cpp:344
 msgid "TCP only"
 msgstr "仅限 TCP"
 
-#: client/scenes/lobby_gui.cpp:319 client/scenes/lobby_gui_customize.cpp:655
-#: client/scenes/stream_gui.cpp:944
+#: client/scenes/lobby_gui.cpp:351 client/scenes/lobby_gui_customize.cpp:655
+#: client/scenes/stream_gui.cpp:978
 msgid "Cancel"
 msgstr "取消"
 
-#: client/scenes/lobby_gui.cpp:333
+#: client/scenes/lobby_gui.cpp:365
 msgid "Save"
 msgstr "保存"
 
-#: client/scenes/lobby_gui.cpp:386
+#: client/scenes/lobby_gui.cpp:418
 msgid ""
 "Start a WiVRn server on your\n"
 "local network"
@@ -152,46 +162,46 @@ msgstr ""
 "在您的局域网中启动\n"
 "WiVRn 服务器"
 
-#: client/scenes/lobby_gui.cpp:418
+#: client/scenes/lobby_gui.cpp:450
 msgid "Autoconnect"
 msgstr "自动连接"
 
-#: client/scenes/lobby_gui.cpp:444
+#: client/scenes/lobby_gui.cpp:476
 msgid "Connect"
 msgstr "连接"
 
-#: client/scenes/lobby_gui.cpp:454 client/wivrn_client.cpp:186
+#: client/scenes/lobby_gui.cpp:486 client/wivrn_client.cpp:186
 msgid "Incompatible server version"
 msgstr "服务器版本不兼容"
 
-#: client/scenes/lobby_gui.cpp:456
+#: client/scenes/lobby_gui.cpp:488
 msgid "Server not available"
 msgstr "服务器不可用"
 
-#: client/scenes/lobby_gui.cpp:538
+#: client/scenes/lobby_gui.cpp:581
 msgctxt "language selection, replace with the name of the language"
 msgid "English"
 msgstr "中文"
 
-#: client/scenes/lobby_gui.cpp:552
+#: client/scenes/lobby_gui.cpp:595
 msgid "Language"
 msgstr "语言"
 
-#: client/scenes/lobby_gui.cpp:552 client/scenes/lobby_gui.cpp:554
+#: client/scenes/lobby_gui.cpp:595 client/scenes/lobby_gui.cpp:597
 msgid "System language"
 msgstr "系统语言"
 
-#: client/scenes/lobby_gui.cpp:580 client/scenes/stream_gui.cpp:412
+#: client/scenes/lobby_gui.cpp:623 client/scenes/stream_gui.cpp:412
 msgid "Refresh rate"
 msgstr "刷新率"
 
-#: client/scenes/lobby_gui.cpp:580 client/scenes/lobby_gui.cpp:582
+#: client/scenes/lobby_gui.cpp:623 client/scenes/lobby_gui.cpp:625
 #: client/scenes/stream_gui.cpp:412 client/scenes/stream_gui.cpp:414
 msgctxt "automatic refresh rate"
 msgid "Automatic"
 msgstr "自动"
 
-#: client/scenes/lobby_gui.cpp:589 client/scenes/stream_gui.cpp:421
+#: client/scenes/lobby_gui.cpp:632 client/scenes/stream_gui.cpp:421
 msgid ""
 "Select refresh rate based on measured application performance.\n"
 "May cause flicker when a change happens."
@@ -199,38 +209,38 @@ msgstr ""
 "根据测量的应用程序性能选择刷新率。\n"
 "更改时可能会造成闪烁。"
 
-#: client/scenes/lobby_gui.cpp:606 client/scenes/stream_gui.cpp:439
+#: client/scenes/lobby_gui.cpp:649 client/scenes/stream_gui.cpp:439
 msgid "Minimum refresh rate"
 msgstr "最低刷新率"
 
-#: client/scenes/lobby_gui.cpp:632
+#: client/scenes/lobby_gui.cpp:675
 msgid "Foveation level"
 msgstr "注视点渲染等级"
 
-#: client/scenes/lobby_gui.cpp:655
+#: client/scenes/lobby_gui.cpp:698
 msgid "Render resolution"
 msgstr "渲染分辨率"
 
-#: client/scenes/lobby_gui.cpp:659
+#: client/scenes/lobby_gui.cpp:702
 #, c-format, c++-format
 msgid "{}%% - {}x{} per eye"
 msgstr "{}%% - 单眼 {}x{}"
 
-#: client/scenes/lobby_gui.cpp:670
+#: client/scenes/lobby_gui.cpp:713
 #, c++-format
 msgid "Resolution larger than {}x{} may not be supported by the headset"
 msgstr "分辨率高于 {}x{} 可能不被头显支持"
 
-#: client/scenes/lobby_gui.cpp:680
+#: client/scenes/lobby_gui.cpp:723
 msgid "Foveated encoding"
 msgstr "注视点编码"
 
-#: client/scenes/lobby_gui.cpp:684
+#: client/scenes/lobby_gui.cpp:727
 #, c-format, c++-format
 msgid "{}%%"
 msgstr "{}%%"
 
-#: client/scenes/lobby_gui.cpp:697
+#: client/scenes/lobby_gui.cpp:740
 msgid ""
 "Higher values focus image quality where you look at,\n"
 "improving latency, power efficiency and quality."
@@ -238,7 +248,7 @@ msgstr ""
 "更高的数值会降低注视点之外的画面质量，\n"
 "从而改善延迟、提升能效并优化整体画质。"
 
-#: client/scenes/lobby_gui.cpp:700
+#: client/scenes/lobby_gui.cpp:743
 msgid ""
 "Higher values focus image quality at the center,\n"
 "improving latency, power efficiency and quality."
@@ -246,86 +256,86 @@ msgstr ""
 "更高的数值会降低画面中心点之外的画面质量，\n"
 "从而改善延迟、提高能效并优化整体画质。"
 
-#: client/scenes/lobby_gui.cpp:709
+#: client/scenes/lobby_gui.cpp:752
 msgctxt "Codec"
 msgid "Automatic"
 msgstr "自动"
 
-#: client/scenes/lobby_gui.cpp:713
+#: client/scenes/lobby_gui.cpp:756
 msgctxt "Codec"
 msgid "H.264"
 msgstr "H.264"
 
-#: client/scenes/lobby_gui.cpp:715
+#: client/scenes/lobby_gui.cpp:758
 msgctxt "Codec"
 msgid "H.265"
 msgstr "H.265"
 
-#: client/scenes/lobby_gui.cpp:717
+#: client/scenes/lobby_gui.cpp:760
 msgctxt "Codec"
 msgid "AV1"
 msgstr "AV1"
 
-#: client/scenes/lobby_gui.cpp:725
+#: client/scenes/lobby_gui.cpp:768
 msgid "Codec"
 msgstr "编解码器"
 
-#: client/scenes/lobby_gui.cpp:753
+#: client/scenes/lobby_gui.cpp:796
 msgid "10-bit"
 msgstr "10-bit"
 
-#: client/scenes/lobby_gui.cpp:769
+#: client/scenes/lobby_gui.cpp:812
 msgid "Bitrate"
 msgstr "码率"
 
-#: client/scenes/lobby_gui.cpp:773
+#: client/scenes/lobby_gui.cpp:816
 #, c++-format
 msgid "{}Mbit/s"
 msgstr "{}Mbit/s"
 
-#: client/scenes/lobby_gui.cpp:784
+#: client/scenes/lobby_gui.cpp:827
 msgid "High power mode"
 msgstr "高耗电模式"
 
-#: client/scenes/lobby_gui.cpp:787
+#: client/scenes/lobby_gui.cpp:830
 msgid "Increase power usage to allow higher resolution and refresh rate"
 msgstr "增加功耗以支持更高的分辨率和刷新率"
 
-#: client/scenes/lobby_gui.cpp:793
+#: client/scenes/lobby_gui.cpp:836
 msgid "Enable microphone"
 msgstr "启用麦克风"
 
-#: client/scenes/lobby_gui.cpp:802
+#: client/scenes/lobby_gui.cpp:845
 msgid "Unprocessed Microphone Audio"
 msgstr "未处理的麦克风音频"
 
-#: client/scenes/lobby_gui.cpp:808
+#: client/scenes/lobby_gui.cpp:851
 msgid "Force disable audio filters, such as noise cancellation"
 msgstr "强制停用音频滤波器，如降噪"
 
-#: client/scenes/lobby_gui.cpp:815
+#: client/scenes/lobby_gui.cpp:858
 msgid "Enable hand tracking"
 msgstr "启用手部追踪"
 
-#: client/scenes/lobby_gui.cpp:821 client/scenes/lobby_gui.cpp:832
-#: client/scenes/lobby_gui.cpp:842 client/scenes/lobby_gui.cpp:857
+#: client/scenes/lobby_gui.cpp:864 client/scenes/lobby_gui.cpp:875
+#: client/scenes/lobby_gui.cpp:885 client/scenes/lobby_gui.cpp:900
 #: client/scenes/lobby_gui_customize.cpp:640
 msgid "This feature is not supported by your headset"
 msgstr "您的头显不支持此功能"
 
-#: client/scenes/lobby_gui.cpp:826
+#: client/scenes/lobby_gui.cpp:869
 msgid "Enable eye tracking"
 msgstr "启用眼动追踪"
 
-#: client/scenes/lobby_gui.cpp:837
+#: client/scenes/lobby_gui.cpp:880
 msgid "Enable face tracking"
 msgstr "启用面部追踪"
 
-#: client/scenes/lobby_gui.cpp:849
+#: client/scenes/lobby_gui.cpp:892
 msgid "Enable body tracking"
 msgstr "启用身体追踪"
 
-#: client/scenes/lobby_gui.cpp:862
+#: client/scenes/lobby_gui.cpp:905
 msgid ""
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
 "tracking settings,\n"
@@ -334,11 +344,11 @@ msgstr ""
 "需要在 Quest 运动追踪设置中启用「手部和身体追踪」，\n"
 "否则身体数据将根据手柄和头显的位置进行猜测"
 
-#: client/scenes/lobby_gui.cpp:872
+#: client/scenes/lobby_gui.cpp:915
 msgid "Enable lower body tracking"
 msgstr "启用下半身追踪"
 
-#: client/scenes/lobby_gui.cpp:878
+#: client/scenes/lobby_gui.cpp:921
 msgid ""
 "Estimate lower body joint positions using Generative Legs\n"
 "Requires 'Hand and body tracking' to be enabled in the Quest movement "
@@ -347,11 +357,11 @@ msgstr ""
 "使用 Generative Legs 猜测下半身关节位置\n"
 "需要在 Quest 运动追踪设置中启用「手部和身体追踪」"
 
-#: client/scenes/lobby_gui.cpp:881
+#: client/scenes/lobby_gui.cpp:924
 msgid "Enable hip tracking"
 msgstr "启用臀部(腰部)追踪"
 
-#: client/scenes/lobby_gui.cpp:887
+#: client/scenes/lobby_gui.cpp:930
 msgid ""
 "Only takes affect with lower body tracking enabled\n"
 "May be desired when using another source of hip tracking"
@@ -359,11 +369,11 @@ msgstr ""
 "仅在启用下半身追踪时生效\n"
 "在使用其他臀部追踪时可能需要此功能"
 
-#: client/scenes/lobby_gui.cpp:896
+#: client/scenes/lobby_gui.cpp:939
 msgid "Enable in-stream window"
 msgstr "启用串流中窗口"
 
-#: client/scenes/lobby_gui.cpp:899
+#: client/scenes/lobby_gui.cpp:942
 msgid ""
 "Enables the configuration window to be shown while the game is streaming.\n"
 "If enabled, the window is activated by pressing both thumbsticks."
@@ -371,23 +381,23 @@ msgstr ""
 "在游戏串流期间启用配置窗口显示\n"
 "若启用此功能，同时按下两只摇杆，将会显示该窗口。"
 
-#: client/scenes/lobby_gui.cpp:903
+#: client/scenes/lobby_gui.cpp:946
 msgid "Extended configuration values"
 msgstr "扩大配置值范围"
 
-#: client/scenes/lobby_gui.cpp:906
+#: client/scenes/lobby_gui.cpp:949
 msgid "Allows unsafe configuration values, use at your own risk."
 msgstr "允许使用不安全的配置值，风险自负。"
 
-#: client/scenes/lobby_gui.cpp:920 client/scenes/stream_gui.cpp:473
+#: client/scenes/lobby_gui.cpp:963 client/scenes/stream_gui.cpp:473
 msgid "OpenXR post-processing"
 msgstr "OpenXR 后处理"
 
-#: client/scenes/lobby_gui.cpp:924 client/scenes/stream_gui.cpp:477
+#: client/scenes/lobby_gui.cpp:967 client/scenes/stream_gui.cpp:477
 msgid "Supersampling"
 msgstr "超采样"
 
-#: client/scenes/lobby_gui.cpp:944 client/scenes/stream_gui.cpp:498
+#: client/scenes/lobby_gui.cpp:987 client/scenes/stream_gui.cpp:498
 msgid ""
 "Reduce flicker for high contrast edges.\n"
 "Useful when the input resolution is high compared to the headset display"
@@ -395,11 +405,11 @@ msgstr ""
 "减少高对比度边缘的闪烁。\n"
 "当串流分辨率高于头显原生分辨率时很有用"
 
-#: client/scenes/lobby_gui.cpp:949 client/scenes/stream_gui.cpp:503
+#: client/scenes/lobby_gui.cpp:992 client/scenes/stream_gui.cpp:503
 msgid "Sharpening"
 msgstr "锐化"
 
-#: client/scenes/lobby_gui.cpp:969 client/scenes/stream_gui.cpp:524
+#: client/scenes/lobby_gui.cpp:1012 client/scenes/stream_gui.cpp:524
 msgid ""
 "Improve clarity of high contrast edges and counteract blur.\n"
 "Useful when the input resolution is low compared to the headset display"
@@ -407,129 +417,129 @@ msgstr ""
 "改善高对比边缘的清晰度并抵消模糊。\n"
 "当串流分辨率低于头显原生分辨率时很有用"
 
-#: client/scenes/lobby_gui.cpp:1153 client/scenes/lobby_gui.cpp:1161
+#: client/scenes/lobby_gui.cpp:1196 client/scenes/lobby_gui.cpp:1204
 #: client/scenes/stream_gui.cpp:173 client/scenes/stream_gui.cpp:371
 msgid "CPU time"
 msgstr "CPU 时间"
 
-#: client/scenes/lobby_gui.cpp:1157
+#: client/scenes/lobby_gui.cpp:1200
 msgid "CPU time [ms]"
 msgstr "CPU 时间 [ms]"
 
-#: client/scenes/lobby_gui.cpp:1167 client/scenes/lobby_gui.cpp:1175
+#: client/scenes/lobby_gui.cpp:1210 client/scenes/lobby_gui.cpp:1218
 #: client/scenes/stream_gui.cpp:175 client/scenes/stream_gui.cpp:372
 msgid "GPU time"
 msgstr "GPU 时间"
 
-#: client/scenes/lobby_gui.cpp:1171
+#: client/scenes/lobby_gui.cpp:1214
 msgid "GPU time [ms]"
 msgstr "GPU 时间 [ms]"
 
-#: client/scenes/lobby_gui.cpp:1235
+#: client/scenes/lobby_gui.cpp:1278
 msgid "Enable the microphone?"
 msgstr "是否启用麦克风？"
 
-#: client/scenes/lobby_gui.cpp:1240
+#: client/scenes/lobby_gui.cpp:1283
 msgid "Enable eye tracking?"
 msgstr "是否启用眼动追踪？"
 
-#: client/scenes/lobby_gui.cpp:1245
+#: client/scenes/lobby_gui.cpp:1288
 msgid "Enable face tracking?"
 msgstr "是否启用面部追踪？"
 
-#: client/scenes/lobby_gui.cpp:1250
+#: client/scenes/lobby_gui.cpp:1293
 msgid "Enable body tracking?"
 msgstr "是否启用身体追踪？"
 
-#: client/scenes/lobby_gui.cpp:1258
+#: client/scenes/lobby_gui.cpp:1301
 msgid "Welcome to WiVRn"
 msgstr "欢迎使用 WiVRn"
 
-#: client/scenes/lobby_gui.cpp:1286
+#: client/scenes/lobby_gui.cpp:1329
 msgid "Yes"
 msgstr "是"
 
-#: client/scenes/lobby_gui.cpp:1293
+#: client/scenes/lobby_gui.cpp:1336
 msgid "No"
 msgstr "否"
 
-#: client/scenes/lobby_gui.cpp:1312 client/scenes/lobby_gui.cpp:1958
+#: client/scenes/lobby_gui.cpp:1355 client/scenes/lobby_gui.cpp:2001
 msgid "Licenses"
 msgstr "许可证"
 
-#: client/scenes/lobby_gui.cpp:1588
+#: client/scenes/lobby_gui.cpp:1631
 msgid "Microphone is enabled"
 msgstr "麦克风已启用"
 
-#: client/scenes/lobby_gui.cpp:1589
+#: client/scenes/lobby_gui.cpp:1632
 msgid "Microphone is disabled"
 msgstr "麦克风已停用"
 
-#: client/scenes/lobby_gui.cpp:1598
+#: client/scenes/lobby_gui.cpp:1641
 msgid "Hand tracking is enabled"
 msgstr "手部追踪已启用"
 
-#: client/scenes/lobby_gui.cpp:1599
+#: client/scenes/lobby_gui.cpp:1642
 msgid "Hand tracking is disabled"
 msgstr "手部追踪已停用"
 
-#: client/scenes/lobby_gui.cpp:1608
+#: client/scenes/lobby_gui.cpp:1651
 msgid "Eye tracking is enabled"
 msgstr "眼动追踪已启用"
 
-#: client/scenes/lobby_gui.cpp:1609
+#: client/scenes/lobby_gui.cpp:1652
 msgid "Eye tracking is disabled"
 msgstr "眼动追踪已停用"
 
-#: client/scenes/lobby_gui.cpp:1619
+#: client/scenes/lobby_gui.cpp:1662
 msgid "Face tracking is enabled"
 msgstr "面部追踪已启用"
 
-#: client/scenes/lobby_gui.cpp:1620
+#: client/scenes/lobby_gui.cpp:1663
 msgid "Face tracking is disabled"
 msgstr "面部追踪已停用"
 
-#: client/scenes/lobby_gui.cpp:1634
+#: client/scenes/lobby_gui.cpp:1677
 msgid "Body tracking is enabled"
 msgstr "身体追踪已启用"
 
-#: client/scenes/lobby_gui.cpp:1635
+#: client/scenes/lobby_gui.cpp:1678
 msgid "Body tracking is disabled"
 msgstr "身体追踪已停用"
 
-#: client/scenes/lobby_gui.cpp:1651
+#: client/scenes/lobby_gui.cpp:1694
 msgid "Add server"
 msgstr "新增服务器"
 
-#: client/scenes/lobby_gui.cpp:1937
+#: client/scenes/lobby_gui.cpp:1980
 msgid "Server list"
 msgstr "服务器列表"
 
-#: client/scenes/lobby_gui.cpp:1940 client/scenes/stream_gui.cpp:973
+#: client/scenes/lobby_gui.cpp:1983 client/scenes/stream_gui.cpp:1007
 msgid "Settings"
 msgstr "设置"
 
-#: client/scenes/lobby_gui.cpp:1943
+#: client/scenes/lobby_gui.cpp:1986
 msgid "Post-processing"
 msgstr "后处理"
 
-#: client/scenes/lobby_gui.cpp:1946
+#: client/scenes/lobby_gui.cpp:1989
 msgid "Customize"
 msgstr "自定义"
 
-#: client/scenes/lobby_gui.cpp:1950
+#: client/scenes/lobby_gui.cpp:1993
 msgid "Debug"
 msgstr "Debug"
 
-#: client/scenes/lobby_gui.cpp:1955
+#: client/scenes/lobby_gui.cpp:1998
 msgid "About"
 msgstr "关于"
 
-#: client/scenes/lobby_gui.cpp:1961
+#: client/scenes/lobby_gui.cpp:2004
 msgid "Exit"
 msgstr "退出"
 
-#: client/scenes/lobby_gui.cpp:1978
+#: client/scenes/lobby_gui.cpp:2021
 msgid ""
 "Press the grip button or put your palm up\n"
 "to move the main window"
@@ -537,7 +547,7 @@ msgstr ""
 "按下抓握键，或手掌向上\n"
 "以移动主窗口"
 
-#: client/scenes/lobby_gui.cpp:1980
+#: client/scenes/lobby_gui.cpp:2023
 msgid "Press the grip button to move the main window"
 msgstr "按下抓握键以移动主窗口"
 
@@ -678,7 +688,7 @@ msgstr "估计从运动到显示延迟: {}ms"
 msgid "Press the grip button to move the window"
 msgstr "按下抓握键来移动窗口"
 
-#: client/scenes/stream_gui.cpp:351 client/scenes/stream_gui.cpp:900
+#: client/scenes/stream_gui.cpp:351 client/scenes/stream_gui.cpp:738
 msgid "Press both thumbsticks to display the WiVRn window"
 msgstr "同时按下两侧摇杆以显示 WiVRn 窗口"
 
@@ -753,23 +763,23 @@ msgstr "叠加层"
 msgid "Request to quit, may be ignored by the application"
 msgstr "退出请求可能会被应用程序忽略"
 
-#: client/scenes/stream_gui.cpp:959
+#: client/scenes/stream_gui.cpp:993
 msgid "Applications"
 msgstr "应用程序"
 
-#: client/scenes/stream_gui.cpp:962
+#: client/scenes/stream_gui.cpp:996
 msgid "Start"
 msgstr "启动"
 
-#: client/scenes/stream_gui.cpp:976
+#: client/scenes/stream_gui.cpp:1010
 msgid "Stats"
 msgstr "统计"
 
-#: client/scenes/stream_gui.cpp:982
+#: client/scenes/stream_gui.cpp:1016
 msgid "Statistics overlay"
 msgstr "统计数据叠加"
 
-#: client/scenes/stream_gui.cpp:985
+#: client/scenes/stream_gui.cpp:1019
 msgid "Compact view"
 msgstr "概览"
 
