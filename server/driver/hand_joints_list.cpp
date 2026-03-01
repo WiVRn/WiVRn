@@ -18,6 +18,7 @@
  */
 
 #include "hand_joints_list.h"
+#include "math/m_api.h"
 #include "math/m_space.h"
 #include "pose_list.h"
 #include "xrt_cast.h"
@@ -27,7 +28,7 @@ static_assert(XRT_HAND_JOINT_COUNT == XR_HAND_JOINT_COUNT_EXT);
 namespace wivrn
 {
 
-static xrt_hand_joint_value interpolate(const xrt_hand_joint_value & a, const xrt_hand_joint_value & b, float t)
+static xrt_hand_joint_value interpolate_joint(const xrt_hand_joint_value & a, const xrt_hand_joint_value & b, float t)
 {
 	return {
 	        .relation = pose_list::interpolate(a.relation, b.relation, t),
@@ -35,7 +36,7 @@ static xrt_hand_joint_value interpolate(const xrt_hand_joint_value & a, const xr
 	};
 }
 
-xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t)
+static xrt_hand_joint_set interpolate_joints(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, float t)
 {
 	xrt_hand_joint_set j = {
 	        .hand_pose = pose_list::interpolate(a.hand_pose, b.hand_pose, t),
@@ -43,14 +44,64 @@ xrt_hand_joint_set hand_joints_list::interpolate(const xrt_hand_joint_set & a, c
 	};
 	for (int i = 0; i < XRT_HAND_JOINT_COUNT; i++)
 	{
-		j.values.hand_joint_set_default[i] = ::wivrn::interpolate(a.values.hand_joint_set_default[i], b.values.hand_joint_set_default[i], t);
+		j.values.hand_joint_set_default[i] = interpolate_joint(a.values.hand_joint_set_default[i], b.values.hand_joint_set_default[i], t);
 	}
 	return j;
 }
 
-xrt_hand_joint_set hand_joints_list::extrapolate(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, int64_t ta, int64_t tb, int64_t t)
+static xrt_hand_joint_set extrapolate_joints(const xrt_hand_joint_set & a, const xrt_hand_joint_set & b, int64_t ta, int64_t tb, int64_t t)
 {
 	return t <= ta ? a : b;
+}
+
+static hand_aim_data interpolate_aim(const hand_aim_data & a, const hand_aim_data & b, float t)
+{
+	if (!a.valid)
+		return b;
+	if (!b.valid)
+		return a;
+
+	hand_aim_data result;
+	result.valid = true;
+	// Use the status from the closer sample
+	result.status = t < 0.5f ? a.status : b.status;
+
+	// Interpolate pose using slerp for orientation and lerp for position
+	math_quat_slerp(&a.aim_pose.orientation, &b.aim_pose.orientation, t, &result.aim_pose.orientation);
+	result.aim_pose.position.x = a.aim_pose.position.x * (1 - t) + b.aim_pose.position.x * t;
+	result.aim_pose.position.y = a.aim_pose.position.y * (1 - t) + b.aim_pose.position.y * t;
+	result.aim_pose.position.z = a.aim_pose.position.z * (1 - t) + b.aim_pose.position.z * t;
+
+	// Interpolate pinch strengths
+	for (int i = 0; i < 4; i++)
+	{
+		result.pinch_strength[i] = a.pinch_strength[i] * (1 - t) + b.pinch_strength[i] * t;
+	}
+
+	return result;
+}
+
+static hand_aim_data extrapolate_aim(const hand_aim_data & a, const hand_aim_data & b, int64_t ta, int64_t tb, int64_t t)
+{
+	// For aim data, we don't extrapolate - just return the closest sample
+	// Aim pose without velocity data can't be meaningfully extrapolated
+	return t <= ta ? a : b;
+}
+
+hand_tracking_data hand_joints_list::interpolate(const hand_tracking_data & a, const hand_tracking_data & b, float t)
+{
+	return {
+	        .joints = interpolate_joints(a.joints, b.joints, t),
+	        .aim = interpolate_aim(a.aim, b.aim, t),
+	};
+}
+
+hand_tracking_data hand_joints_list::extrapolate(const hand_tracking_data & a, const hand_tracking_data & b, int64_t ta, int64_t tb, int64_t t)
+{
+	return {
+	        .joints = extrapolate_joints(a.joints, b.joints, ta, tb, t),
+	        .aim = extrapolate_aim(a.aim, b.aim, ta, tb, t),
+	};
 }
 
 static xrt_space_relation_flags cast_flags(uint8_t in_flags)
@@ -120,13 +171,42 @@ static xrt_hand_joint_set convert_joints(const std::optional<std::array<from_hea
 	return output_joints;
 }
 
+static hand_aim_data convert_aim(const std::optional<from_headset::hand_tracking::aim_data> & input_aim)
+{
+	if (!input_aim)
+		return {};
+
+	XrPosef pose{
+	        .orientation = input_aim->aim_pose.orientation,
+	        .position = input_aim->aim_pose.position,
+	};
+
+	return {
+	        .valid = true,
+	        .status = input_aim->status,
+	        .aim_pose = xrt_cast(pose),
+	        .pinch_strength = {
+	                input_aim->pinch_strength_index,
+	                input_aim->pinch_strength_middle,
+	                input_aim->pinch_strength_ring,
+	                input_aim->pinch_strength_little,
+	        },
+	};
+}
+
 void hand_joints_list::update_tracking(const from_headset::hand_tracking & tracking, const clock_offset & offset)
 {
 	if (tracking.hand == hand_id)
+	{
+		hand_tracking_data data{
+		        .joints = convert_joints(tracking.joints),
+		        .aim = convert_aim(tracking.aim),
+		};
 		add_sample(
 		        tracking.production_timestamp,
 		        tracking.timestamp,
-		        convert_joints(tracking.joints),
+		        data,
 		        offset);
+	}
 }
 } // namespace wivrn
