@@ -152,6 +152,13 @@ static const std::array supported_depth_formats{
         vk::Format::eX8D24UnormPack32,
 };
 
+static auto frame_index(const from_headset::feedback & feedback, const to_headset::video_stream_description & desc)
+{
+	if (desc.interleaved and feedback.stream_index < scenes::stream::view_count)
+		return feedback.frame_index / scenes::stream::view_count;
+	return feedback.frame_index;
+}
+
 scenes::stream::stream(std::string server_name, scene & parent_scene) :
         scene_impl<stream>(supported_color_formats, supported_depth_formats, parent_scene),
         apps{*this, std::move(server_name)}
@@ -561,7 +568,13 @@ void scenes::stream::push_blit_handle(shard_accumulator * decoder, std::shared_p
 			if (decoder != decoders[stream].decoder.get())
 				return;
 			handle->feedback.received_from_decoder = instance.now();
-			std::swap(handle, decoders[stream].latest_frames[handle->feedback.frame_index % decoders[stream].latest_frames.size()]);
+			auto frame = handle->feedback.frame_index;
+			if (video_stream_description->interleaved and stream < view_count)
+			{
+				stream += frame % view_count;
+				frame /= view_count;
+			}
+			std::swap(handle, decoders[stream].latest_frames[frame % decoders[stream].latest_frames.size()]);
 		}
 
 		if (state_ != state::streaming and not(decoders[0].empty() and decoders[1].empty()))
@@ -592,7 +605,7 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 	if (decoders.empty())
 		return {};
 	std::unique_lock lock(frames_mutex);
-	inplace_vector<shard_accumulator::blit_handle *, decoder_count> common_frames;
+	inplace_vector<shard_accumulator::blit_handle *, image_buffer_size> common_frames;
 	const bool alpha = decoders[0].latest_frames[0] and decoders[0].latest_frames[0]->view_info.alpha;
 	for (size_t i = 0; i < view_count + alpha; ++i)
 	{
@@ -604,18 +617,14 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 		}
 		else
 		{
-			// clang-format off
 			erase_if(common_frames,
-				[this, i](auto & left)
-				{
-					return std::ranges::none_of(
-						decoders[i].latest_frames,
-						[&left](auto & right)
-						{
-							return right and left->feedback.frame_index == right->feedback.frame_index;
-						});
-				});
-			// clang-format on
+			         [this, i](auto & left) {
+				         return std::ranges::none_of(
+				                 decoders[i].latest_frames,
+				                 [&left, this](auto & right) {
+					                 return right and frame_index(left->feedback, *video_stream_description) == frame_index(right->feedback, *video_stream_description);
+				                 });
+			         });
 		}
 	}
 	std::array<std::shared_ptr<shard_accumulator::blit_handle>, decoder_count> result;
@@ -630,11 +639,12 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 		                                    });
 
 		assert(*min);
-		auto frame_index = (*min)->feedback.frame_index;
+		auto frame = frame_index((*min)->feedback, *video_stream_description);
 		for (auto [i, decoder]: utils::enumerate(decoders))
 		{
+			auto idx = (video_stream_description->interleaved and i < view_count) ? frame * view_count + i : frame;
 			if (alpha or i < view_count)
-				result[i] = decoder.frame(frame_index);
+				result[i] = decoder.latest_frames[idx % decoder.latest_frames.size()];
 		}
 	}
 	else
@@ -669,21 +679,6 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 		}
 	}
 	return result;
-}
-
-std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_images::frame(uint64_t id) const
-{
-	for (auto it = latest_frames.rbegin(); it != latest_frames.rend(); ++it)
-	{
-		if (not *it)
-			continue;
-
-		if ((*it)->feedback.frame_index != id)
-			continue;
-
-		return *it;
-	}
-	return nullptr;
 }
 
 void scenes::stream::update_gui_position(xr::spaces controller)
@@ -1153,6 +1148,8 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 
 	for (const auto & [stream_index, item]: utils::enumerate(decoders))
 	{
+		if (description.interleaved and stream_index > 0 and stream_index < view_count)
+			continue;
 		item = accumulator_images{
 		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, description, shared_from_this(), stream_index),
 		};

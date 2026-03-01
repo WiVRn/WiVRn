@@ -52,9 +52,9 @@ public:
 	static const size_t image_buffer_size = 3;
 
 	app_launcher apps;
+	static const size_t view_count = 2;
 
 private:
-	static const size_t view_count = 2;
 	static const size_t decoder_count = view_count + 1;
 
 	struct accumulator_images
