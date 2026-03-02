@@ -157,15 +157,6 @@ scenes::lobby::lobby() :
 	else
 		spdlog::info("Composition layer color scale/bias NOT supported");
 
-	if (instance.has_extension(XR_FB_FOVEATION_VULKAN_EXTENSION_NAME) and
-	    instance.has_extension(XR_FB_FOVEATION_CONFIGURATION_EXTENSION_NAME))
-	{
-		spdlog::info("Foveation image supported");
-		foveation = xr::foveation_profile(instance, session, XR_FOVEATION_LEVEL_NONE_FB, -10, false);
-	}
-	else
-		spdlog::info("Foveation image NOT supported");
-
 	if (std::getenv("WIVRN_AUTOCONNECT"))
 		force_autoconnect = true;
 
@@ -1069,7 +1060,6 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	        composition_layer_depth_test_supported,
 	        composition_layer_depth_test_supported ? layer_lobby | layer_controllers : layer_lobby,
 	        clear_color,
-	        foveation,
 	        true);
 
 	if (composition_layer_depth_test_supported)
@@ -1100,8 +1090,7 @@ void scenes::lobby::render(const XrFrameState & frame_state)
 	        height,
 	        composition_layer_depth_test_supported,
 	        composition_layer_depth_test_supported ? layer_rays : layer_rays | layer_controllers,
-	        {0, 0, 0, 0},
-	        foveation);
+	        {0, 0, 0, 0});
 
 	if (composition_layer_depth_test_supported)
 		set_depth_test(true, XR_COMPARE_OP_LESS_OR_EQUAL_FB);

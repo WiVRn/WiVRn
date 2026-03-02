@@ -30,16 +30,13 @@ xr::swapchain::swapchain(
         int32_t width,
         int32_t height,
         int sample_count,
-        uint32_t array_size,
-        XrFoveationProfileFB foveated) :
+        uint32_t array_size) :
         width_(width),
         height_(height),
         sample_count_(sample_count),
         format_(format)
 {
 	assert(sample_count == 1);
-	if (foveated)
-		update = inst.get_proc<PFN_xrUpdateSwapchainFB>("xrUpdateSwapchainFB");
 
 	XrSwapchainUsageFlags usage_flags;
 
@@ -58,14 +55,8 @@ xr::swapchain::swapchain(
 			break;
 	}
 
-	XrSwapchainCreateInfoFoveationFB foveation_info{
-	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO_FOVEATION_FB,
-	        .flags = XR_SWAPCHAIN_CREATE_FOVEATION_FRAGMENT_DENSITY_MAP_BIT_FB,
-	};
-
 	XrSwapchainCreateInfo create_info{
 	        .type = XR_TYPE_SWAPCHAIN_CREATE_INFO,
-	        .next = foveated ? &foveation_info : nullptr,
 	        .createFlags = 0,
 	        .usageFlags = usage_flags,
 	        .format = static_cast<VkFormat>(format),
@@ -79,29 +70,11 @@ xr::swapchain::swapchain(
 
 	CHECK_XR(xrCreateSwapchain(s, &create_info, &id));
 
-	std::tuple<std::vector<XrSwapchainImageVulkanKHR>, std::vector<XrSwapchainImageFoveationVulkanFB>> array;
-	auto & images = std::get<0>(array);
-	auto & foveation = std::get<1>(array);
-	if (foveated)
-	{
-		update_foveation(foveated);
-		details::enumerate2(xrEnumerateSwapchainImages, array, id);
-		assert(images.size() == foveation.size());
-	}
-	else
-	{
-		details::enumerate(xrEnumerateSwapchainImages, images, id);
-	}
+	auto images = details::enumerate<XrSwapchainImageVulkanKHR>(xrEnumerateSwapchainImages, id);
 
-	images_.resize(images.size());
-	for (uint32_t i = 0; i < images.size(); i++)
-	{
-		images_[i].image = images[i].image;
-		if (foveated)
-		{
-			images_[i].foveation = foveation[i].image;
-		}
-	}
+	images_.reserve(images.size());
+	for (auto & image: images)
+		images_.push_back(image.image);
 }
 
 int xr::swapchain::acquire()
@@ -138,13 +111,4 @@ void xr::swapchain::release()
 
 	auto lock = application::get_queue().lock();
 	CHECK_XR(xrReleaseSwapchainImage(id, &release_info));
-}
-
-void xr::swapchain::update_foveation(XrFoveationProfileFB foveation)
-{
-	XrSwapchainStateFoveationFB update_info{
-	        .type = XR_TYPE_SWAPCHAIN_STATE_FOVEATION_FB,
-	        .profile = foveation,
-	};
-	CHECK_XR(update(id, (XrSwapchainStateBaseHeaderFB *)&update_info));
 }

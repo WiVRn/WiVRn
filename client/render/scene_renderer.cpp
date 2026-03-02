@@ -340,7 +340,7 @@ scene_renderer::renderpass & scene_renderer::get_renderpass(const renderpass_inf
 
 scene_renderer::renderpass scene_renderer::create_renderpass(const renderpass_info & info_)
 {
-	vk::StructureChain<vk::RenderPassCreateInfo, vk::RenderPassFragmentDensityMapCreateInfoEXT, vk::RenderPassMultiviewCreateInfo> info;
+	vk::StructureChain<vk::RenderPassCreateInfo, vk::RenderPassMultiviewCreateInfo> info;
 	scene_renderer::renderpass rp;
 
 	std::vector<vk::AttachmentDescription> attachments;
@@ -391,29 +391,6 @@ scene_renderer::renderpass scene_renderer::create_renderpass(const renderpass_in
 		        .finalLayout = vk::ImageLayout::eColorAttachmentOptimal,
 		});
 	}
-
-	if (info_.fragment_density_map)
-	{
-		vk::RenderPassFragmentDensityMapCreateInfoEXT & fragment_density_info = info.get<vk::RenderPassFragmentDensityMapCreateInfoEXT>();
-		rp.fragment_density_attachment = {
-		        .attachment = (uint32_t)attachments.size(),
-		        .layout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
-		};
-		fragment_density_info.fragmentDensityMapAttachment = {
-		        .attachment = (uint32_t)attachments.size(),
-		        .layout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
-		};
-		attachments.push_back(vk::AttachmentDescription{
-		        .format = vk::Format::eR8G8Unorm,
-		        .samples = vk::SampleCountFlagBits::e1,
-		        .loadOp = vk::AttachmentLoadOp::eLoad,
-		        .storeOp = vk::AttachmentStoreOp::eDontCare,
-		        .initialLayout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
-		        .finalLayout = vk::ImageLayout::eFragmentDensityMapOptimalEXT,
-		});
-	}
-	else
-		info.unlink<vk::RenderPassFragmentDensityMapCreateInfoEXT>();
 
 	info.get().setAttachments(attachments);
 
@@ -573,27 +550,6 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 		        });
 	}
 
-	if (info.renderpass.fragment_density_map)
-	{
-		assert(info.foveation != VK_NULL_HANDLE);
-
-		out.foveation_view = vk::raii::ImageView(
-		        device,
-		        vk::ImageViewCreateInfo{
-		                .image = info.foveation,
-		                .viewType = vk::ImageViewType::e2DArray,
-		                .format = vk::Format::eR8G8Unorm,
-		                .components{},
-		                .subresourceRange = {
-		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                        .baseMipLevel = 0,
-		                        .levelCount = 1,
-		                        .baseArrayLayer = 0,
-		                        .layerCount = info.renderpass.multiview_count,
-		                },
-		        });
-	}
-
 	vk::FramebufferCreateInfo fb_info{
 	        .renderPass = *get_renderpass(info.renderpass).renderpass,
 	        .width = info.output_size.width,
@@ -617,9 +573,6 @@ scene_renderer::output_image scene_renderer::create_output_image_data(const outp
 	}
 
 	attachments[rp.depth_attachment.attachment] = vk::ImageView{*out.depth_view};
-
-	if (rp.fragment_density_attachment)
-		attachments[rp.fragment_density_attachment->attachment] = vk::ImageView{*out.foveation_view};
 
 	fb_info.setAttachments(attachments);
 	out.framebuffer = vk::raii::Framebuffer(device, fb_info);
@@ -911,7 +864,6 @@ void scene_renderer::render(
         vk::Format depth_format,
         vk::Image color_buffer,
         vk::Image depth_buffer,
-        vk::Image foveation_image,
         std::span<frame_info> frames,
         bool render_debug_draws)
 {
@@ -964,7 +916,6 @@ void scene_renderer::render(
 	        .keep_depth_buffer = depth_buffer != vk::Image{},
 	        .msaa_samples = vk::SampleCountFlagBits::e1,
 	        // .msaa_samples = vk::SampleCountFlagBits::e4, // FIXME: MSAA does not work
-	        .fragment_density_map = foveation_image != vk::Image{},
 	        .multiview_count = (uint32_t)frames.size(),
 	};
 	vk::raii::RenderPass & renderpass = get_renderpass(rp_info).renderpass;
@@ -1060,7 +1011,6 @@ void scene_renderer::render(
 	        .output_size = output_size,
 	        .color = color_buffer,
 	        .depth = depth_buffer,
-	        .foveation = foveation_image,
 	});
 
 	vk::DeviceSize frame_ubo_offset = resources.uniform_buffer_offset;

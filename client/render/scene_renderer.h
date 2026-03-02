@@ -44,7 +44,6 @@ struct renderpass_info
 	vk::Format depth_format;
 	bool keep_depth_buffer;
 	vk::SampleCountFlagBits msaa_samples = vk::SampleCountFlagBits::e1;
-	bool fragment_density_map;
 	uint32_t multiview_count;
 
 	bool operator==(const renderpass_info & other) const noexcept = default;
@@ -81,7 +80,6 @@ struct output_image_info
 	vk::Extent2D output_size;
 	VkImage color;
 	VkImage depth;
-	VkImage foveation;
 
 	bool operator==(const output_image_info & other) const noexcept = default;
 };
@@ -127,8 +125,6 @@ class scene_renderer
 
 		image_allocation multisample_image;
 		vk::raii::ImageView multisample_view = nullptr;
-
-		vk::raii::ImageView foveation_view = nullptr;
 	};
 
 	struct renderpass
@@ -279,7 +275,6 @@ public:
 	        vk::Format depth_format,
 	        vk::Image color_buffer,
 	        vk::Image depth_buffer,
-	        vk::Image foveation_image,
 	        std::span<frame_info> info,
 	        bool render_debug_draws = false);
 	void end_frame();

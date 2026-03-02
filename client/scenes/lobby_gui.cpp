@@ -663,31 +663,6 @@ void scenes::lobby::gui_settings()
 		}
 	}
 
-	if (foveation)
-	{
-		std::array<const char *, 4> foveation_levels = {
-		        gettext_noop_context("Foveation level", "None"),
-		        gettext_noop_context("Foveation level", "Low"),
-		        gettext_noop_context("Foveation level", "Medium"),
-		        gettext_noop_context("Foveation level", "High"),
-		};
-
-		if (ImGui::BeginCombo(_S("Foveation level"), _cS("Foveation level", foveation_levels[(int)foveation->level()])))
-		{
-			for (int level = 0; level < foveation_levels.size(); level++)
-			{
-				if (ImGui::Selectable(_cS("Foveation level", foveation_levels[level]), (int)foveation->level() == level))
-				{
-					foveation = xr::foveation_profile{instance, session, (XrFoveationLevelFB)level, -10, false};
-					// TODO save in configuration
-				}
-			}
-
-			ImGui::EndCombo();
-		}
-		imgui_ctx->vibrate_on_hover();
-	}
-
 	// Render resolution
 	{
 		const auto current = config.resolution_scale;

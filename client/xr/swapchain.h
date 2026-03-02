@@ -35,21 +35,13 @@ class session;
 
 class swapchain : public utils::handle<XrSwapchain, xrDestroySwapchain>
 {
-public:
-	struct image
-	{
-		vk::Image image{};
-		vk::Image foveation{};
-	};
-
 private:
-	PFN_xrUpdateSwapchainFB update;
 	int32_t width_;
 	int32_t height_;
 	int sample_count_;
 	vk::Format format_;
 
-	std::vector<image> images_;
+	std::vector<vk::Image> images_;
 
 public:
 	swapchain() = default;
@@ -61,8 +53,7 @@ public:
 	        int32_t width,
 	        int32_t height,
 	        int sample_count = 1,
-	        uint32_t array_size = 1,
-	        XrFoveationProfileFB foveation = XR_NULL_HANDLE);
+	        uint32_t array_size = 1);
 
 	int32_t width() const
 	{
@@ -80,11 +71,7 @@ public:
 	{
 		return sample_count_;
 	}
-	const std::vector<image> & images() const
-	{
-		return images_;
-	}
-	std::vector<image> & images()
+	const std::vector<vk::Image> & images() const
 	{
 		return images_;
 	}
@@ -96,7 +83,5 @@ public:
 	int acquire();
 	bool wait(XrDuration timeout = XR_INFINITE_DURATION);
 	void release();
-
-	void update_foveation(XrFoveationProfileFB foveation);
 };
 } // namespace xr

@@ -1175,14 +1175,11 @@ void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint
 
 	spdlog::info("Initializing reprojector");
 	vk::Extent2D extent = {(uint32_t)swapchain.width(), (uint32_t)swapchain.height()};
-	std::vector<vk::Image> swapchain_images;
-	for (auto & image: swapchain.images())
-		swapchain_images.push_back(image.image);
 
 	defoveator.emplace(
 	        device,
 	        physical_device,
-	        swapchain_images,
+	        swapchain.images(),
 	        extent,
 	        swapchain.format());
 }
