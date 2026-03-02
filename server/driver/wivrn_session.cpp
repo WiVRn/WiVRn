@@ -1215,7 +1215,7 @@ std::pair<bool, std::optional<std::string>> wivrn_session::validate_headset_info
 
 		if (refuse)
 		{
-			std::make_pair(false, "headset features changed.");
+			return std::make_pair(false, "headset features changed.");
 		}
 	}
 
