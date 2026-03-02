@@ -209,6 +209,11 @@ imgui_textures::imgui_textures(
 		this->image_cache = std::make_shared<image_cache_type>(device, physical_device, queue, queue_family_index);
 }
 
+imgui_textures::~imgui_textures()
+{
+	device.waitIdle();
+}
+
 std::vector<std::pair<ImVec2, float>> imgui_context::ray_plane_intersection(const imgui_context::controller_state & in) const
 {
 	std::vector<std::pair<ImVec2, float>> intersections;

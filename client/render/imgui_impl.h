@@ -68,6 +68,7 @@ public:
 	        uint32_t queue_family_index,
 	        thread_safe<vk::raii::Queue> & queue,
 	        std::shared_ptr<image_cache_type> image_cache = {});
+	~imgui_textures();
 	ImTextureID load_texture(const std::string & filename, vk::raii::Sampler && sampler);
 	ImTextureID load_texture(const std::string & filename);
 	ImTextureID load_texture(const std::span<const std::byte> & bytes, vk::raii::Sampler && sampler, const std::string & name = "");

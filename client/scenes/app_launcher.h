@@ -50,7 +50,6 @@ class app_launcher
 
 public:
 	app_launcher(scenes::stream &, std::string server_name);
-	~app_launcher();
 	enum clicked
 	{
 		None,
