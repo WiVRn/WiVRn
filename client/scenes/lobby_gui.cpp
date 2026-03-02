@@ -747,7 +747,7 @@ void scenes::lobby::gui_settings()
 				config.codec = std::nullopt;
 				config.save();
 			}
-			for (auto codec: supported_codecs)
+			for (auto codec: decoder::supported_codecs())
 			{
 				// don't show raw in GUI
 				if (codec == wivrn::raw)
