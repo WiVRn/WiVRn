@@ -18,7 +18,6 @@
  */
 
 #include "wivrn_hmd.h"
-#include "math/m_api.h"
 #include "os/os_time.h"
 #include "wivrn_config.h"
 #include "wivrn_session.h"
@@ -148,8 +147,7 @@ void wivrn_hmd::update_tracking(const from_headset::tracking & tracking, const c
 void wivrn_hmd::update_battery(const from_headset::battery & new_battery)
 {
 	// We will only request a new sample if the current one is consumed
-	std::lock_guard lock(mutex);
-	battery = new_battery;
+	*battery.lock() = new_battery;
 }
 
 xrt_result_t wivrn_hmd::get_presence(bool * out_presence)
@@ -204,10 +202,10 @@ xrt_result_t wivrn_hmd::get_battery_status(bool * out_present,
                                            bool * out_charging,
                                            float * out_charge)
 {
-	std::lock_guard lock(mutex);
-	*out_present = battery.present;
-	*out_charging = battery.charging;
-	*out_charge = battery.charge;
+	auto bat = battery.lock();
+	*out_present = bat->present;
+	*out_charging = bat->charging;
+	*out_charge = bat->charge;
 
 	return XRT_SUCCESS;
 }
