@@ -670,17 +670,10 @@ std::array<std::shared_ptr<shard_accumulator::blit_handle>, 3> scenes::stream::c
 
 std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_images::frame(uint64_t id) const
 {
-	for (auto it = latest_frames.rbegin(); it != latest_frames.rend(); ++it)
-	{
-		if (not *it)
-			continue;
-
-		if ((*it)->feedback.frame_index != id)
-			continue;
-
-		return *it;
-	}
-	return nullptr;
+	auto & frame = latest_frames[id % latest_frames.size()];
+	if (frame and frame->feedback.frame_index != id)
+		return nullptr;
+	return frame;
 }
 
 void scenes::stream::update_gui_position(xr::spaces controller)
