@@ -350,12 +350,7 @@ std::unique_ptr<wivrn_session> scenes::lobby::connect_to_session(wivrn_discover:
 
 void scenes::lobby::update_server_list()
 {
-	if (application::is_focused() && !discover)
-		discover.emplace();
-	else if (!application::is_focused() && discover)
-		discover.reset();
-
-	if (!discover)
+	if (not discover)
 		return;
 
 	std::vector<wivrn_discover::service> discovered_services = discover->get_services();
@@ -1339,6 +1334,7 @@ void scenes::lobby::on_focused()
 
 	setup_passthrough();
 	multicast = application::get_wifi_lock().get_multicast_lock();
+	discover.emplace();
 
 	session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_CPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
 	session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_GPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
@@ -1378,9 +1374,7 @@ void scenes::lobby::on_xr_event(const xr::event & event)
 	switch (event.header.type)
 	{
 		case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED:
-			if (event.state_changed.state == XR_SESSION_STATE_STOPPING)
-				discover.reset();
-			else if (event.state_changed.state == XR_SESSION_STATE_FOCUSED)
+			if (event.state_changed.state == XR_SESSION_STATE_FOCUSED)
 				autoconnect_enabled = true;
 			recenter_gui = true;
 			break;
