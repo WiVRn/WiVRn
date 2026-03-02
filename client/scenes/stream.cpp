@@ -508,9 +508,6 @@ void scenes::stream::on_focused()
 	foveation_ok = get_action("foveation_ok").first;
 	foveation_cancel = get_action("foveation_cancel").first;
 
-	assert(video_stream_description);
-	std::unique_lock lock(decoder_mutex);
-
 	if (application::get_config().high_power_mode)
 	{
 		session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_CPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
