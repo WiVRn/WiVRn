@@ -75,6 +75,10 @@ public:
 	{
 		return images_;
 	}
+	vk::Image image(size_t i) const
+	{
+		return images_[i];
+	}
 	vk::Format format() const
 	{
 		return format_;

@@ -845,7 +845,7 @@ std::vector<std::pair<int, XrCompositionLayerQuad>> imgui_context::end_frame()
 			application::haptic_start(haptic_output, XR_NULL_PATH, 10'000'000, 1000, 1);
 	}
 
-	vk::Image destination = swapchain.images()[image_index];
+	vk::Image destination = swapchain.image(image_index);
 
 	ImGui::SetCurrentContext(context);
 	ImPlot::SetCurrentContext(plot_context);

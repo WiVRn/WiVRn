@@ -166,7 +166,7 @@ void scene::render_world(
 		xr::swapchain & color_swapchain = get_swapchain(swapchain_format, width, height, 1, views.size());
 
 		int color_image_index = color_swapchain.acquire();
-		vk::Image color_image = color_swapchain.images()[color_image_index];
+		vk::Image color_image = color_swapchain.image(color_image_index);
 		color_swapchain.wait();
 		return {color_swapchain, color_image};
 	}();
@@ -177,7 +177,7 @@ void scene::render_world(
 			xr::swapchain & depth_swapchain = get_swapchain(depth_format, width, height, 1, views.size());
 
 			int depth_image_index = depth_swapchain.acquire();
-			vk::Image depth_image = depth_swapchain.images()[depth_image_index];
+			vk::Image depth_image = depth_swapchain.image(depth_image_index);
 			depth_swapchain.wait();
 			return {depth_swapchain, depth_image};
 		}
