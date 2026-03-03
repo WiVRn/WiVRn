@@ -814,6 +814,13 @@ void wivrn_session::operator()(from_headset::user_presence_changed && event)
 		                        .is_user_present = event.present,
 		                },
 		        });
+
+	if (event.present)
+	{
+		std::shared_lock lock(comp_target_mutex);
+		if (comp_target)
+			comp_target->reset_encoders();
+	}
 }
 
 void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
