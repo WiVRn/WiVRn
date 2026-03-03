@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-17 12:42+0900\n"
+"POT-Creation-Date: 2026-03-03 13:37+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -301,7 +301,8 @@ msgstr "詳細情報"
 #: dashboard/qml/Main.qml:193
 #, kde-format
 msgid "Vulkan drivers cannot be found, you may need to run \"flatpak update\""
-msgstr "Vulkanドライバーが見つかりません。「flatpak update」を実行してみて下さい。"
+msgstr ""
+"Vulkanドライバーが見つかりません。「flatpak update」を実行してみて下さい。"
 
 #: dashboard/qml/Main.qml:193
 #, kde-format
@@ -452,19 +453,19 @@ msgstr "問題解決"
 msgid "Version %1"
 msgstr "バージョン%1"
 
-#: dashboard/qml/SelectGame.qml:14
+#: dashboard/qml/SelectGame.qml:12
 #, kde-format
 msgctxt "don't start an application automatically"
 msgid "None"
 msgstr "なし"
 
-#: dashboard/qml/SelectGame.qml:20
+#: dashboard/qml/SelectGame.qml:18
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "カスタム"
 
-#: dashboard/qml/SelectGame.qml:72
+#: dashboard/qml/SelectGame.qml:70
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
