@@ -659,6 +659,8 @@ struct video_stream_description
 	uint16_t height;
 	std::array<video_codec, 3> codec; // left, right, alpha
 	float fps;
+
+	bool operator==(const video_stream_description &) const = default;
 };
 
 class video_stream_data_shard

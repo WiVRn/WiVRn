@@ -1137,8 +1137,10 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 {
 	session.set_refresh_rate(description.fps);
 
-	spdlog::info("Creating decoders, size {}x{}", description.width, description.height);
 	std::unique_lock lock(decoder_mutex);
+	if (video_stream_description == description)
+		return;
+	spdlog::info("Creating decoders, size {}x{}", description.width, description.height);
 	video_stream_description = description;
 
 	for (const auto & [stream_index, item]: utils::enumerate(decoders))
