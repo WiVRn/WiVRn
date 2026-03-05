@@ -1147,6 +1147,9 @@ void scenes::stream::setup(const to_headset::video_stream_description & descript
 		        .decoder = std::make_unique<shard_accumulator>(device, physical_device, instance, queue_family_index, description, shared_from_this(), stream_index),
 		};
 	}
+
+	if (defoveator)
+		defoveator->reset_pipelines();
 }
 
 void scenes::stream::setup_reprojection_swapchain(uint32_t swapchain_width, uint32_t swapchain_height)

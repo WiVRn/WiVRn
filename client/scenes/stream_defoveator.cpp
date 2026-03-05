@@ -283,6 +283,14 @@ stream_defoveator::stream_defoveator(
 	}
 }
 
+void stream_defoveator::reset_pipelines()
+{
+	for (auto & p: pipeline_rgb)
+		p = {};
+	for (auto & p: pipeline_a)
+		p = {};
+}
+
 static size_t required_vertices(const wivrn::to_headset::foveation_parameter & p)
 {
 	// strips are constructed like this:

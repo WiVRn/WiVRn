@@ -81,6 +81,8 @@ public:
 
 	stream_defoveator(const stream_defoveator &) = delete;
 
+	void reset_pipelines();
+
 	void defoveate(
 	        vk::raii::CommandBuffer & command_buffer,
 	        const std::array<wivrn::to_headset::foveation_parameter, 2> & foveation,
