@@ -180,6 +180,15 @@ If the server list is empty in the headset app:
 
 Note: WiVRn isn't properly optimized for NVIDIA GPUs due to the lack of developers with NVIDIA hardware. Motion latency may be significantly worse at rendering resolutions higher than default.</details>
 
+# Community Support
+
+We are available on either **Discord** or **Matrix space**:
+
+[![LVRA Discord](https://img.shields.io/discord/1065291958328758352?style=for-the-badge&logo=discord)](https://discord.gg/EHAYe3tTYa) [![LVRA Matrix](https://img.shields.io/matrix/linux-vr-adventures:matrix.org?logo=matrix&style=for-the-badge)](https://matrix.to/#/#linux-vr-adventures:matrix.org)
+
+Please use the `wivrn` chat room for questions or issues specific to WiVRn.
+
+
 # Contributing
 
 ## Translations
