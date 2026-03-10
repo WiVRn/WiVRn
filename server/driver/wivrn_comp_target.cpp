@@ -138,10 +138,14 @@ static void create_encoders(wivrn_comp_target * cn)
 	desc.width = cn->width;
 	desc.height = cn->height;
 
+	desc.interleaved = true;
+
 	std::map<int, std::vector<std::shared_ptr<video_encoder>>> thread_params;
 
 	for (auto [i, settings]: std::ranges::enumerate_view(cn->settings))
 	{
+		if (i == 1)
+			continue;
 		auto & encoder = cn->encoders.emplace_back(
 		        video_encoder::create(*cn->wivrn_bundle, settings, i));
 		desc.codec[i] = settings.codec;
@@ -819,11 +823,11 @@ void wivrn_comp_target::on_feedback(const from_headset::feedback & feedback, con
 	uint8_t stream = feedback.stream_index;
 	if (psc.status & 1)
 		return;
-	if (encoders.size() <= stream)
-		return;
-	encoders[stream]->on_feedback(feedback);
-	if (not o)
-		return;
+	for (auto & encoder: encoders)
+	{
+		if (encoder->stream_idx == stream)
+			encoder->on_feedback(feedback);
+	}
 	pacer.on_feedback(feedback, o);
 }
 

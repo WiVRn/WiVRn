@@ -338,7 +338,7 @@ std::unique_ptr<wivrn::video_encoder_vulkan_h265> wivrn::video_encoder_vulkan_h2
 	return self;
 }
 
-std::vector<uint8_t> wivrn::video_encoder_vulkan_h265::get_vps_sps_pps()
+std::vector<uint8_t> wivrn::video_encoder_vulkan_h265::idr_data()
 {
 	vk::VideoEncodeH265SessionParametersGetInfoKHR next{
 	        .writeStdVPS = true,
@@ -349,12 +349,6 @@ std::vector<uint8_t> wivrn::video_encoder_vulkan_h265::get_vps_sps_pps()
 	        .stdPPSId = 0,
 	};
 	return get_encoded_parameters(&next);
-}
-
-void wivrn::video_encoder_vulkan_h265::send_idr_data()
-{
-	auto data = get_vps_sps_pps();
-	SendData(data, false, true);
 }
 
 void * wivrn::video_encoder_vulkan_h265::encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> ref_slot)

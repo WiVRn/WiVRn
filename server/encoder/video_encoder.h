@@ -93,17 +93,17 @@ private:
 	// temporary data
 	wivrn_session * cnx;
 
-	// shard to send
-	to_headset::video_stream_data_shard shard;
 
 	to_headset::video_stream_data_shard::timing_info_t timing_info;
 	clock_offset clock;
 
 	std::ofstream video_dump;
 
+protected:
+	// shard to send
+	to_headset::video_stream_data_shard shard;
 	std::shared_ptr<sender> shared_sender;
 
-protected:
 	std::atomic_uint32_t pending_bitrate;
 	std::atomic<float> pending_framerate;
 	std::unique_ptr<idr_handler> idr;

@@ -41,7 +41,7 @@ class video_encoder_vulkan : public video_encoder
 
 	vk::ImageViewUsageCreateInfo image_view_template_next;
 	vk::ImageViewCreateInfo image_view_template;
-	std::unordered_map<VkImage, vk::raii::ImageView> image_views; // for input images
+	std::unordered_map<VkImage, std::array<vk::raii::ImageView, 2>> image_views; // for input images
 	struct slot_item
 	{
 		image_allocation tmp_image; // Used if we have an offset in the image to encode
@@ -56,7 +56,7 @@ class video_encoder_vulkan : public video_encoder
 		vk::DeviceSize copy_size;
 		bool idr = false;
 	};
-	std::array<slot_item, num_slots> slot_data;
+	std::array<slot_item, num_slots * 2> slot_data;
 
 	image_allocation dpb_image;
 
@@ -89,11 +89,16 @@ protected:
 
 	std::vector<uint8_t> get_encoded_parameters(void * next);
 
-	virtual void send_idr_data() = 0;
+	virtual std::vector<uint8_t> idr_data() = 0;
 
 	virtual std::vector<void *> setup_slot_info(size_t dpb_size) = 0;
 	virtual void * encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t> reference_slot) = 0;
 	virtual vk::ExtensionProperties std_header_version() = 0;
+
+	bool interleaved() const
+	{
+		return stream_idx == 0;
+	}
 
 public:
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;

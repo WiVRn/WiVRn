@@ -880,7 +880,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 			// colour image
 			images[i] = {
 			        .rgb = blit_handle->image_view,
-			        .sampler_rgb = decoders[i].decoder->sampler(),
+			        .sampler_rgb = decoders[video_stream_description->interleaved ? 0 : i].decoder->sampler(),
 			        .rect_rgb = {
 			                .extent = blit_handle->extent,
 			        },

@@ -122,7 +122,7 @@ decoder::decoder(
 	              height,
 	              AIMAGE_FORMAT_PRIVATE,
 	              AHARDWAREBUFFER_USAGE_CPU_READ_NEVER | AHARDWAREBUFFER_USAGE_CPU_WRITE_NEVER | AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE,
-	              scenes::stream::image_buffer_size + 4 /* maxImages */,
+	              2 * (scenes::stream::image_buffer_size + 4) /* maxImages */,
 	              &ir),
 	      "AImageReader_newWithUsage");
 	image_reader.reset(ir, AImageReader_deleter{});
@@ -286,7 +286,7 @@ void decoder::on_image_available(AImageReader * reader)
 	try
 	{
 		AImage * tmp;
-		check(AImageReader_acquireLatestImage(image_reader.get(), &tmp), "AImageReader_acquireLatestImage");
+		check(AImageReader_acquireNextImage(image_reader.get(), &tmp), "AImageReader_acquireNextImage");
 		image.reset(tmp);
 
 		int64_t fake_timestamp_ns;

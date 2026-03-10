@@ -60,13 +60,11 @@ protected:
 	void * encode_info_next(uint32_t frame_num, size_t slot, std::optional<int32_t>) override;
 	virtual vk::ExtensionProperties std_header_version() override;
 
-	void send_idr_data() override;
+	std::vector<uint8_t> idr_data() override;
 
 public:
 	static std::unique_ptr<video_encoder_vulkan_h264> create(wivrn_vk_bundle & vk,
 	                                                         const encoder_settings & settings,
 	                                                         uint8_t stream_idx);
-
-	std::vector<uint8_t> get_sps_pps();
 };
 } // namespace wivrn
