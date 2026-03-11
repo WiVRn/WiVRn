@@ -498,7 +498,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 		                .queueFamilyIndex = vk.encode_queue_family_index,
 		        });
-		vk.name(query_pool, "vulkan encoder video command pool");
+		vk.name(video_command_pool, "vulkan encoder video command pool");
 
 		auto command_buffers = vk.device.allocateCommandBuffers(
 		        {.commandPool = *video_command_pool,
