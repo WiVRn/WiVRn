@@ -190,6 +190,7 @@ public:
 	void operator()(to_monado::stop &&);
 	void operator()(to_monado::disconnect &&);
 	void operator()(to_monado::set_bitrate &&);
+	void operator()(to_headset::stream_tab_change &&);
 
 	bool has_stream()
 	{

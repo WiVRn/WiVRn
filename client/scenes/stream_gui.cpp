@@ -746,6 +746,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 {
 	if (auto new_status = next_gui_status.load(); new_status != gui_status)
 	{
+		spdlog::info("Switch tab from {} to {}", magic_enum::enum_name(gui_status), magic_enum::enum_name(new_status));
 		stored_gui_status = gui_status;
 		gui_status = new_status;
 		gui_status_last_change = predicted_display_time;

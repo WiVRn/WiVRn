@@ -322,6 +322,9 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 	self->network_session->send_control(from_headset::session_state_changed{
 	        .state = application::get_session_state(),
 	});
+	self->network_session->send_control(from_headset::stream_tab_changed{
+	        .tab = self->gui_status,
+	});
 
 	if (self->instance.has_extension(XR_KHR_VISIBILITY_MASK_EXTENSION_NAME))
 	{

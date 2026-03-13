@@ -34,6 +34,7 @@
 #include <filesystem>
 #include <iostream>
 #include <libnotify/notification.h>
+#include <magic_enum.hpp>
 #include <memory>
 #include <poll.h>
 #include <random>
@@ -537,6 +538,10 @@ gboolean control_received(gint fd, GIOCondition condition, gpointer user_data)
 			                   start_publishing();
 			                   inhibitor.reset();
 			                   wivrn_server_set_headset_connected(dbus_server, false);
+			                   wivrn_server_set_client_tab(dbus_server, "");
+		                   },
+		                   [&](const wivrn::from_headset::stream_tab_changed & event) {
+			                   wivrn_server_set_client_tab(dbus_server, magic_enum::enum_name(event.tab).data());
 		                   },
 		                   [&](const from_monado::server_error & e) {
 			                   wivrn_server_emit_server_error(dbus_server, e.where.c_str(), e.message.c_str());
@@ -694,6 +699,29 @@ gboolean on_handle_disable_pairing(WivrnServer * skeleton, GDBusMethodInvocation
 	return G_SOURCE_CONTINUE;
 }
 
+gboolean on_handle_set_client_tab(WivrnServer * skeleton, GDBusMethodInvocation * invocation, gpointer user_data)
+{
+	GVariant * args = g_dbus_method_invocation_get_parameters(invocation);
+	char * c_tab;
+	g_variant_get_child(args, 0, "s", &c_tab);
+	std::string tab(c_tab);
+	g_free(c_tab);
+
+	for (auto [val, name]: magic_enum::enum_entries<stream_tab>())
+	{
+		if (tab == name)
+		{
+			wivrn_ipc_socket_main_loop->send(to_headset::stream_tab_change{.tab = val});
+			g_dbus_method_invocation_return_value(invocation, nullptr);
+			return G_SOURCE_CONTINUE;
+		}
+	}
+
+	std::cerr << "Invalid tab name " << tab << std::endl;
+	g_dbus_method_invocation_return_dbus_error(invocation, "io.github.wivrn.Server.InvalidTab", "invalid tab");
+	return G_SOURCE_CONTINUE;
+}
+
 void on_bitrate(WivrnServer * server, const GParamSpec * pspec, gpointer data)
 {
 	auto bitrate = wivrn_server_get_bitrate(server);
@@ -841,6 +869,8 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 		                 NULL);
 	}
 
+	g_signal_connect(dbus_server, "handle-set-client-tab", G_CALLBACK(on_handle_set_client_tab), NULL);
+
 	wivrn_server_set_steam_command(dbus_server, steam_command().c_str());
 
 	on_headset_info_packet({});
@@ -870,6 +900,8 @@ void on_name_acquired(GDBusConnection * connection, const gchar * name, gpointer
 		set_encryption_state(wivrn_connection::encryption_state::pairing);
 	else
 		set_encryption_state(enc_state);
+
+	wivrn_server_set_client_tab(dbus_server, "");
 }
 
 auto create_dbus_connection()

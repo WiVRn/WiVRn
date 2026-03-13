@@ -835,6 +835,7 @@ void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
 
 void wivrn_session::operator()(from_headset::stream_tab_changed && event)
 {
+	send_to_main(std::move(event));
 }
 
 void wivrn_session::operator()(from_headset::get_application_list && request)
@@ -977,6 +978,11 @@ void wivrn_session::operator()(to_monado::set_bitrate && data)
 	std::shared_lock lock(comp_target_mutex);
 	if (comp_target)
 		comp_target->set_bitrate(data.bitrate_bps);
+}
+
+void wivrn_session::operator()(to_headset::stream_tab_change && data)
+{
+	send_control(std::move(data));
 }
 
 struct refresh_rate_adjuster
