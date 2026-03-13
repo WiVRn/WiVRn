@@ -173,6 +173,19 @@ enum video_codec
 	raw,
 };
 
+enum class stream_tab : uint8_t
+{
+	hidden,
+	overlay_only,
+	compact,
+	stats,
+	settings,
+	bitrate_settings,
+	foveation_settings,
+	applications,
+	application_launcher,
+};
+
 struct audio_data
 {
 	XrTime timestamp;
@@ -512,6 +525,11 @@ struct user_presence_changed
 	bool present;
 };
 
+struct stream_tab_changed
+{
+	stream_tab tab;
+};
+
 struct override_foveation_center
 {
 	bool enabled;
@@ -565,6 +583,7 @@ using packets = std::variant<
         refresh_rate_changed,
         session_state_changed,
         user_presence_changed,
+        stream_tab_changed,
         override_foveation_center,
         get_application_list,
         start_app,
@@ -748,6 +767,11 @@ struct refresh_rate_change
 	float fps;
 };
 
+struct stream_tab_change
+{
+	stream_tab tab;
+};
+
 struct application_list
 {
 	std::string language;
@@ -794,6 +818,7 @@ using packets = std::variant<
         tracking_control,
         feature_control,
         refresh_rate_change,
+        stream_tab_change,
         application_list,
         application_icon,
         running_applications>;

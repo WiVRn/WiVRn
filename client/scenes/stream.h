@@ -131,30 +131,21 @@ private:
 	uint32_t height;
 
 	std::optional<imgui_context> imgui_ctx;
-	enum class gui_status
-	{
-		hidden,
-		overlay_only,
-		compact,
-		stats,
-		settings,
-		bitrate_settings,
-		foveation_settings,
-		applications,
-		application_launcher,
-	};
-
 	struct gui_toast
 	{
 		std::string content;
 		bool is_urgent = false;
 	};
 
+	static bool is_interactable(stream_tab);
 	bool is_gui_interactable() const;
 
-	std::atomic<gui_status> gui_status = gui_status::hidden;
-	enum gui_status last_gui_status = gui_status::hidden;
-	enum gui_status next_gui_status = gui_status::applications;
+	// Tab currently being displayed
+	stream_tab gui_status = stream_tab::hidden;
+	// Tab that we will switch to if button is pressed
+	stream_tab stored_gui_status = stream_tab::applications;
+	// Tab that will be displayed on next render()
+	std::atomic<stream_tab> next_gui_status = stream_tab::hidden;
 	float dimming = 0;
 
 	thread_safe<std::optional<gui_toast>> gui_toast;
@@ -227,6 +218,7 @@ public:
 	void operator()(to_headset::audio_stream_description &&);
 	void operator()(to_headset::video_stream_description &&);
 	void operator()(to_headset::refresh_rate_change &&);
+	void operator()(to_headset::stream_tab_change &&);
 	void operator()(to_headset::application_list &&);
 	void operator()(to_headset::application_icon &&);
 	void operator()(to_headset::running_applications &&);

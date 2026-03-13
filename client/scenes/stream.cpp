@@ -759,26 +759,30 @@ void scenes::stream::update_gui_position(xr::spaces controller)
 	}
 }
 
-bool scenes::stream::is_gui_interactable() const
+bool scenes::stream::is_interactable(stream_tab tab)
 {
-	switch (gui_status)
+	switch (tab)
 	{
-		case gui_status::stats:
-		case gui_status::settings:
-		case gui_status::bitrate_settings:
-		case gui_status::foveation_settings:
-		case gui_status::applications:
-		case gui_status::application_launcher:
+		case stream_tab::stats:
+		case stream_tab::settings:
+		case stream_tab::bitrate_settings:
+		case stream_tab::foveation_settings:
+		case stream_tab::applications:
+		case stream_tab::application_launcher:
 			return true;
 
-		case gui_status::hidden:
-		case gui_status::overlay_only:
-		case gui_status::compact:
+		case stream_tab::hidden:
+		case stream_tab::overlay_only:
+		case stream_tab::compact:
 			return false;
 	}
+	spdlog::warn("Invalid tab value {}", int(tab));
+	return false;
+}
 
-	assert(false);
-	__builtin_unreachable();
+bool scenes::stream::is_gui_interactable() const
+{
+	return is_interactable(gui_status);
 }
 
 void scenes::stream::render(const XrFrameState & frame_state)
@@ -808,7 +812,7 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		        .variant = application::get_messages_info().variant,
 		});
 
-		gui_status = stream::gui_status::hidden;
+		next_gui_status = stream_tab::hidden;
 		application::pop_scene();
 	}
 
@@ -1044,17 +1048,17 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	{
 		switch (gui_status)
 		{
-			case gui_status::hidden:
-			case gui_status::bitrate_settings:
-			case gui_status::foveation_settings:
-			case gui_status::compact:
-			case gui_status::overlay_only:
+			case stream_tab::hidden:
+			case stream_tab::bitrate_settings:
+			case stream_tab::foveation_settings:
+			case stream_tab::compact:
+			case stream_tab::overlay_only:
 				dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
 				break;
-			case gui_status::stats:
-			case gui_status::settings:
-			case gui_status::applications:
-			case gui_status::application_launcher:
+			case stream_tab::stats:
+			case stream_tab::settings:
+			case stream_tab::applications:
+			case stream_tab::application_launcher:
 				dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
 				break;
 		}
@@ -1135,23 +1139,14 @@ void scenes::stream::render(const XrFrameState & frame_state)
 
 		if (state_1.currentState and state_2.currentState and (state_1.changedSinceLastSync or state_2.changedSinceLastSync))
 		{
-			switch (gui_status)
-			{
-				case gui_status::hidden:
-				case gui_status::compact:
-				case gui_status::overlay_only:
-					gui_status = next_gui_status;
-					break;
-
-				case gui_status::stats:
-				case gui_status::settings:
-				case gui_status::bitrate_settings:
-				case gui_status::foveation_settings:
-				case gui_status::applications:
-				case gui_status::application_launcher:
-					gui_status = gui_status::hidden;
-					break;
-			}
+			// Arbitraty transitions can happen from network commands
+			// Ensure we can't have a set of 2 non interactable states
+			if (is_gui_interactable())
+				next_gui_status = stream_tab::hidden;
+			else if (is_interactable(stored_gui_status))
+				next_gui_status = stored_gui_status;
+			else
+				next_gui_status = stream_tab::applications;
 		}
 	}
 

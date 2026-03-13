@@ -117,6 +117,11 @@ void scenes::stream::operator()(to_headset::refresh_rate_change && rate)
 		video_stream_description->fps = rate.fps;
 }
 
+void scenes::stream::operator()(to_headset::stream_tab_change && tab)
+{
+	next_gui_status = tab.tab;
+}
+
 void scenes::stream::operator()(to_headset::timesync_query && query)
 {
 	network_session->send_stream(from_headset::timesync_response{

@@ -462,7 +462,7 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		ImGui::SameLine(0.f, 10.f);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (size.y / 4.f) - style.FramePadding.y * 3.f);
 		if (ImGui::Button(fmt::format("{}Mbit/s", config.bitrate_bps / 1'000'000).c_str()))
-			gui_status = gui_status::bitrate_settings;
+			next_gui_status = stream_tab::bitrate_settings;
 		imgui_ctx->vibrate_on_hover();
 		if (ImGui::IsItemHovered())
 			imgui_ctx->tooltip(_("Click to adjust bitrate"));
@@ -554,7 +554,7 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		ImGui::SameLine();
 
 		if (ImGui::Button(_S("Change")))
-			gui_status = gui_status::foveation_settings;
+			next_gui_status = stream_tab::foveation_settings;
 		imgui_ctx->vibrate_on_hover();
 
 		ImGui::EndDisabled();
@@ -600,7 +600,7 @@ void scenes::stream::gui_bitrate_settings(float predicted_display_period)
 	if (ok)
 	{
 		config.save();
-		gui_status = gui_status::settings;
+		next_gui_status = stream_tab::settings;
 	}
 
 	send_settings_changed_packet(session, network_session.get(), application::get_config(), predicted_display_period);
@@ -629,7 +629,7 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 
 	if (ok)
 	{
-		gui_status = gui_status::settings;
+		next_gui_status = stream_tab::settings;
 
 		// Save settings
 		auto & config = application::get_config();
@@ -640,7 +640,7 @@ void scenes::stream::gui_foveation_settings(float predicted_display_period)
 	}
 	else if (cancel)
 	{
-		gui_status = gui_status::settings;
+		next_gui_status = stream_tab::settings;
 
 		// Restore settings
 		const auto & config = application::get_config();
@@ -744,25 +744,42 @@ void scenes::stream::gui_toasts()
 
 void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicted_display_period)
 {
-	if (not(plots_toggle_1 and plots_toggle_2))
-		return;
+	if (auto new_status = next_gui_status.load(); new_status != gui_status)
+	{
+		stored_gui_status = gui_status;
+		gui_status = new_status;
+		gui_status_last_change = predicted_display_time;
+
+		// Override session state if the GUI is interactable
+		if (not is_gui_interactable())
+			network_session->send_control(from_headset::session_state_changed{
+			        .state = application::get_session_state(),
+			});
+		else if (application::get_session_state() == XR_SESSION_STATE_FOCUSED)
+			network_session->send_control(from_headset::session_state_changed{
+			        .state = XR_SESSION_STATE_VISIBLE,
+			});
+
+		network_session->send_control(from_headset::stream_tab_changed{.tab = new_status});
+	}
+
 	bool interactable = true;
 	XrSpace world_space = application::space(xr::spaces::world);
 	auto views = session.locate_views(viewconfig, predicted_display_time, world_space).second;
 
 	switch (gui_status)
 	{
-		case gui_status::hidden:
-		case gui_status::bitrate_settings:
-		case gui_status::foveation_settings:
-		case gui_status::overlay_only:
-		case gui_status::compact:
+		case stream_tab::hidden:
+		case stream_tab::bitrate_settings:
+		case stream_tab::foveation_settings:
+		case stream_tab::overlay_only:
+		case stream_tab::compact:
 			interactable = false;
 			break;
-		case gui_status::stats:
-		case gui_status::settings:
-		case gui_status::applications:
-		case gui_status::application_launcher:
+		case stream_tab::stats:
+		case stream_tab::settings:
+		case stream_tab::applications:
+		case stream_tab::application_launcher:
 			break;
 	}
 	imgui_ctx->set_controllers_enabled(interactable);
@@ -782,27 +799,9 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		right_hand.reset();
 	}
 
-	if (gui_status != last_gui_status)
-	{
-		last_gui_status = gui_status;
-		if (is_gui_interactable())
-			next_gui_status = gui_status;
-		gui_status_last_change = predicted_display_time;
-
-		// Override session state if the GUI is interactable
-		if (not is_gui_interactable())
-			network_session->send_control(from_headset::session_state_changed{
-			        .state = application::get_session_state(),
-			});
-		else if (application::get_session_state() == XR_SESSION_STATE_FOCUSED)
-			network_session->send_control(from_headset::session_state_changed{
-			        .state = XR_SESSION_STATE_VISIBLE,
-			});
-	}
-
 	float alpha = 1;
 	bool is_urgent = false;
-	if (gui_status == gui_status::hidden)
+	if (gui_status == stream_tab::hidden)
 	{
 		auto toast = gui_toast.lock();
 		if (toast->has_value())
@@ -827,24 +826,24 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 		glm::mat3 M = glm::mat3_cast(head_position->second);
 		switch (gui_status)
 		{
-			case gui_status::bitrate_settings:
-			case gui_status::foveation_settings:
+			case stream_tab::bitrate_settings:
+			case stream_tab::foveation_settings:
 				imgui_ctx->layers()[0].orientation = head_position->second;
 				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0, override_foveation_distance * sin(override_foveation_pitch), -override_foveation_distance};
 				break;
 
-			case gui_status::hidden:
+			case stream_tab::hidden:
 				// Always use the same position for the GUI shortcut tip
 				imgui_ctx->layers()[0].orientation = head_position->second;
 				imgui_ctx->layers()[0].position = head_position->first + M * glm::vec3{0.0, -0.4, -1.0};
 				break;
 
-			case gui_status::overlay_only:
-			case gui_status::compact:
-			case gui_status::stats:
-			case gui_status::settings:
-			case gui_status::applications:
-			case gui_status::application_launcher:
+			case stream_tab::overlay_only:
+			case stream_tab::compact:
+			case stream_tab::stats:
+			case stream_tab::settings:
+			case stream_tab::applications:
+			case stream_tab::application_launcher:
 				imgui_ctx->layers()[0].orientation = head_position->second * head_gui_orientation;
 				imgui_ctx->layers()[0].position = head_position->first + M * head_gui_position;
 				break;
@@ -864,36 +863,36 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 	bool display_tabs, always_auto_resize;
 	switch (gui_status)
 	{
-		case gui_status::overlay_only:
+		case stream_tab::overlay_only:
 			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			ImGui::SetNextWindowSize(content_size);
 			always_auto_resize = false;
 			display_tabs = false;
 			break;
 
-		case gui_status::hidden:
-		case gui_status::bitrate_settings:
-		case gui_status::foveation_settings:
+		case stream_tab::hidden:
+		case stream_tab::bitrate_settings:
+		case stream_tab::foveation_settings:
 			ImGui::SetNextWindowPos(viewport_size / 2, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			always_auto_resize = true;
 			display_tabs = false;
 			break;
 
-		case gui_status::compact:
+		case stream_tab::compact:
 			ImGui::SetNextWindowPos(content_center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 			always_auto_resize = true;
 			display_tabs = false;
 			break;
 
-		case gui_status::stats:
-		case gui_status::settings:
-		case gui_status::applications:
+		case stream_tab::stats:
+		case stream_tab::settings:
+		case stream_tab::applications:
 			ImGui::SetNextWindowPos(margin_around_window);
 			ImGui::SetNextWindowSize(viewport_size - margin_around_window * 2);
 			always_auto_resize = false;
 			display_tabs = true;
 			break;
-		case gui_status::application_launcher:
+		case stream_tab::application_launcher:
 			ImGui::SetNextWindowPos(margin_around_window);
 			ImGui::SetNextWindowSize(viewport_size - margin_around_window * 2);
 			always_auto_resize = false;
@@ -930,53 +929,53 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 	switch (gui_status)
 	{
-		case gui_status::hidden:
+		case stream_tab::hidden:
 			gui_toasts();
 			break;
 
-		case gui_status::overlay_only:
+		case stream_tab::overlay_only:
 			ImGui::SetCursorPos({20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_performance_metrics();
 			ImGui::EndChild();
 			break;
 
-		case gui_status::compact:
+		case stream_tab::compact:
 			gui_compact_view();
 			break;
 
-		case gui_status::stats:
+		case stream_tab::stats:
 			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_performance_metrics();
 			ImGui::EndChild();
 			break;
 
-		case gui_status::settings:
+		case stream_tab::settings:
 			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_settings(predicted_display_period * 1.e-9f);
 			ImGui::EndChild();
 			break;
 
-		case gui_status::bitrate_settings:
+		case stream_tab::bitrate_settings:
 			gui_bitrate_settings(predicted_display_period * 1.e-9f);
 			break;
 
-		case gui_status::foveation_settings:
+		case stream_tab::foveation_settings:
 			gui_foveation_settings(predicted_display_period * 1.e-9f);
 			break;
 
-		case gui_status::applications:
+		case stream_tab::applications:
 			ImGui::SetCursorPos({tab_width + 20, 20});
 			ImGui::BeginChild("Main", ImVec2(ImGui::GetWindowSize().x - ImGui::GetCursorPosX(), 0));
 			gui_applications();
 			ImGui::EndChild();
 			break;
 
-		case gui_status::application_launcher:
+		case stream_tab::application_launcher:
 			if (apps.draw_gui(*imgui_ctx, _("Cancel")) != app_launcher::None)
-				gui_status = gui_status::applications;
+				next_gui_status = stream_tab::applications;
 	}
 
 	ImGui::PopStyleVar(2); // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_FrameRounding
@@ -990,10 +989,11 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
 
-			RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), gui_status, gui_status::applications, {tab_width, 0});
+			auto target = gui_status;
+			RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), target, stream_tab::applications, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			if (RadioButtonWithoutCheckBox(ICON_FA_ROCKET "  " + _("Start"), gui_status, gui_status::application_launcher, {tab_width, 0}))
+			if (RadioButtonWithoutCheckBox(ICON_FA_ROCKET "  " + _("Start"), target, stream_tab::application_launcher, {tab_width, 0}))
 			{
 				apps.reset();
 				network_session->send_control(from_headset::get_application_list{
@@ -1004,22 +1004,22 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 			}
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), gui_status, gui_status::settings, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_GEARS "  " + _("Settings"), target, stream_tab::settings, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), gui_status, gui_status::stats, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_COMPUTER "  " + _("Stats"), target, stream_tab::stats, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			int n_items_at_end = 4;
 			ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - n_items_at_end * ImGui::GetCurrentContext()->FontSize - (n_items_at_end * 2) * style.FramePadding.y - (n_items_at_end - 1) * style.ItemSpacing.y - style.WindowPadding.y);
 
-			RadioButtonWithoutCheckBox(ICON_FA_CHART_LINE "  " + _("Statistics overlay"), gui_status, gui_status::overlay_only, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_CHART_LINE "  " + _("Statistics overlay"), target, stream_tab::overlay_only, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_MINIMIZE "  " + _("Compact view"), gui_status, gui_status::compact, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_MINIMIZE "  " + _("Compact view"), target, stream_tab::compact, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
-			RadioButtonWithoutCheckBox(ICON_FA_XMARK "  " + _("Close"), gui_status, gui_status::hidden, {tab_width, 0});
+			RadioButtonWithoutCheckBox(ICON_FA_XMARK "  " + _("Close"), target, stream_tab::hidden, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
 			bool dummy = false;
@@ -1029,6 +1029,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 			ImGui::PopStyleVar(); // ImGuiStyleVar_FramePadding
 			ImGui::EndChild();
+			next_gui_status = target;
 		}
 		ImGui::PopStyleColor(); // ImGuiCol_ChildBg
 	}

@@ -833,6 +833,10 @@ void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
 	        });
 }
 
+void wivrn_session::operator()(from_headset::stream_tab_changed && event)
+{
+}
+
 void wivrn_session::operator()(from_headset::get_application_list && request)
 {
 	to_headset::application_list response{

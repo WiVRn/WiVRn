@@ -178,6 +178,7 @@ public:
 	void operator()(from_headset::session_state_changed &&);
 	void operator()(from_headset::user_presence_changed &&);
 	void operator()(from_headset::refresh_rate_changed &&);
+	void operator()(from_headset::stream_tab_changed &&);
 	void operator()(from_headset::override_foveation_center &&);
 	void operator()(from_headset::get_application_list &&);
 	void operator()(const from_headset::start_app &);
