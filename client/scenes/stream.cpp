@@ -678,13 +678,43 @@ std::shared_ptr<shard_accumulator::blit_handle> scenes::stream::accumulator_imag
 
 void scenes::stream::update_gui_position(xr::spaces controller)
 {
-	auto aim = application::locate_controller(
-	        application::space(controller),
-	        application::space(xr::spaces::view),
-	        predicted_display_time);
+	std::optional<std::pair<glm::vec3, glm::quat>> aim;
 
-	if (not aim)
-		return;
+	switch (guess_model())
+	{
+		case model::pico_4:
+		case model::pico_4s:
+		case model::pico_4_pro:
+		case model::pico_4_enterprise: {
+			// Pico fails to find its controllers within view space, so use the head position in
+			// world space as a reference
+			aim = application::locate_controller(
+			        application::space(controller),
+			        application::space(xr::spaces::world),
+			        predicted_display_time);
+
+			auto head_position = application::locate_controller(application::space(xr::spaces::view),
+			                                                    application::space(xr::spaces::world),
+			                                                    predicted_display_time);
+			if (not aim || not head_position)
+				return;
+
+			aim->first = glm::conjugate(head_position->second) * (aim->first - head_position->first);
+			aim->second = glm::conjugate(head_position->second) * aim->second;
+
+			break;
+		}
+		default:
+			aim = application::locate_controller(
+			        application::space(controller),
+			        application::space(xr::spaces::view),
+			        predicted_display_time);
+
+			if (not aim)
+				return;
+
+			break;
+	}
 
 	auto [offset_position, offset_orientation] = input->offset[controller];
 
