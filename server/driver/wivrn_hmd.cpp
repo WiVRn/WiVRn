@@ -36,6 +36,10 @@
 
 #include "configuration.h"
 
+#ifndef NDEBUG
+#include "math/m_api.h"
+#endif
+
 namespace wivrn
 {
 
