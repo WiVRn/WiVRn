@@ -1285,6 +1285,10 @@ void scenes::stream::on_xr_event(const xr::event & event)
 			});
 			break;
 		case XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED:
+			// sync display refresh rate with video stream when regaining focus
+			if (event.state_changed.state == XR_SESSION_STATE_READY and video_stream_description)
+				session.set_refresh_rate(video_stream_description->fps);
+
 			// Override session state if the GUI is interactable
 			if (event.state_changed.state == XR_SESSION_STATE_FOCUSED and is_gui_interactable())
 				network_session->send_control(from_headset::session_state_changed{
