@@ -141,6 +141,8 @@ jobs:
         -DFETCHCONTENT_BASE_DIR=${{github.workspace}}/cmake-fetch
         --preset dashboard
         -DWIVRN_USE_SYSTEM_OPENXR=OFF
+        -DGIT_DESC=${{github.sha}}
+        -DGIT_COMMIT=${{github.sha}}
 
     - name: Build
       # Build your program with the given configuration

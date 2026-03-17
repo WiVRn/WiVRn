@@ -64,6 +64,10 @@
 
           buildInputs = oldAttrs.buildInputs ++ extraBuildInputs;
           nativeBuildInputs = oldAttrs.nativeBuildInputs ++ extraNativeBuildInputs;
+          cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [
+              (lib.cmakeFeature "GIT_DESC" "nightly")
+              (lib.cmakeFeature "GIT_COMMIT" "nightly")
+          ];
         }));
       in {
         packages = {

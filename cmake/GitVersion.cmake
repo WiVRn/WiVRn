@@ -20,15 +20,13 @@ if (NOT GIT_COMMIT)
 endif()
 
 if (NOT GIT_DESC)
-	set(GIT_DESC v${CMAKE_PROJECT_VERSION})
-	message(STATUS "Setting version to ${GIT_DESC} from CMakeLists")
+	message(FATAL_ERROR "GIT_DESC cannot be inferred from .git and was not provided at build time")
 endif()
 
 if (GIT_COMMIT)
 	message(STATUS "Setting commit to ${GIT_COMMIT}")
 else()
-	set(GIT_COMMIT "")
-	message(STATUS "Not setting commit")
+	message(FATAL_ERROR "GIT_COMMIT cannot be inferred from .git and was not provided at build time")
 endif()
 
 configure_file(${INPUT_FILE} ${OUTPUT_FILE})
