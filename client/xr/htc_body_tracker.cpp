@@ -22,6 +22,7 @@
 #include "wivrn_packets.h"
 #include "xr/details/enumerate.h"
 #include "xr/session.h"
+#include "xr/to_string.h"
 #include <openxr/openxr.h>
 
 // Note: This utilizes extensions not present in the OpenXR spec!
@@ -69,7 +70,11 @@ static wivrn::from_headset::htc_body::pose locate_space(XrSpace space, XrSpace r
 	        .next = &velocity,
 	};
 
-	xrLocateSpace(space, reference, time, &location);
+	if (auto res = xrLocateSpace(space, reference, time, &location); !XR_SUCCEEDED(res))
+	{
+		spdlog::warn("xrLocateSpace failed for HTC body tracker: {}", xr::to_string(res));
+		return {};
+	}
 
 	wivrn::from_headset::htc_body::pose res{
 	        .pose = location.pose,
