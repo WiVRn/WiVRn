@@ -20,6 +20,7 @@
 #include "hand_joints_list.h"
 #include "math/m_space.h"
 #include "pose_list.h"
+#include "wivrn_packets.h"
 #include "xrt_cast.h"
 
 static_assert(XRT_HAND_JOINT_COUNT == XR_HAND_JOINT_COUNT_EXT);
@@ -53,33 +54,10 @@ xrt_hand_joint_set hand_joints_list::extrapolate(const xrt_hand_joint_set & a, c
 	return t <= ta ? a : b;
 }
 
-static xrt_space_relation_flags cast_flags(uint8_t in_flags)
-{
-	std::underlying_type_t<xrt_space_relation_flags> flags = 0;
-	if (in_flags & from_headset::hand_tracking::position_valid)
-		flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
-
-	if (in_flags & from_headset::hand_tracking::orientation_valid)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
-
-	if (in_flags & from_headset::hand_tracking::linear_velocity_valid)
-		flags |= XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT;
-
-	if (in_flags & from_headset::hand_tracking::angular_velocity_valid)
-		flags |= XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT;
-
-	if (in_flags & from_headset::hand_tracking::position_tracked)
-		flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
-
-	if (in_flags & from_headset::hand_tracking::orientation_tracked)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
-	return xrt_space_relation_flags(flags);
-}
-
 static xrt_space_relation to_relation(const from_headset::hand_tracking::pose & pose)
 {
 	return {
-	        .relation_flags = cast_flags(pose.flags),
+	        .relation_flags = from_pose_flags(pose.flags),
 	        .pose = xrt_cast(XrPosef{
 	                .orientation = pose.orientation,
 	                .position = pose.position,

@@ -295,18 +295,37 @@ struct handshake
 	// Sending this on TCP means connection will be TCP only
 };
 
+enum pose_flags : uint8_t
+{
+	orientation_valid = 1 << 0,
+	position_valid = 1 << 1,
+	linear_velocity_valid = 1 << 2,
+	angular_velocity_valid = 1 << 3,
+	orientation_tracked = 1 << 4,
+	position_tracked = 1 << 5
+};
+
+inline uint8_t to_pose_flags(XrSpaceLocationFlags location_flags, XrSpaceVelocityFlags velocity_flags = 0)
+{
+	uint8_t flags{};
+	if (location_flags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
+		flags |= pose_flags::orientation_valid;
+	if (location_flags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
+		flags |= pose_flags::position_valid;
+	if (location_flags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
+		flags |= pose_flags::orientation_tracked;
+	if (location_flags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
+		flags |= pose_flags::position_tracked;
+
+	if (velocity_flags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
+		flags |= pose_flags::linear_velocity_valid;
+	if (velocity_flags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
+		flags |= pose_flags::angular_velocity_valid;
+	return flags;
+}
+
 struct tracking
 {
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		linear_velocity_valid = 1 << 2,
-		angular_velocity_valid = 1 << 3,
-		orientation_tracked = 1 << 4,
-		position_tracked = 1 << 5
-	};
-
 	enum state_flags : uint8_t
 	{
 		recentered = 1 << 0,
@@ -381,15 +400,6 @@ struct derived_pose
 
 struct hand_tracking
 {
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		linear_velocity_valid = 1 << 2,
-		angular_velocity_valid = 1 << 3,
-		orientation_tracked = 1 << 4,
-		position_tracked = 1 << 5
-	};
 	enum hand_id : uint8_t
 	{
 		left,
@@ -415,13 +425,6 @@ struct hand_tracking
 
 struct meta_body
 {
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		orientation_tracked = 1 << 2,
-		position_tracked = 1 << 3,
-	};
 	struct pose
 	{
 		XrVector3f position;
@@ -472,13 +475,6 @@ struct meta_body_skeleton
 
 struct bd_body
 {
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		orientation_tracked = 1 << 2,
-		position_tracked = 1 << 3,
-	};
 	struct pose
 	{
 		XrVector3f position;
@@ -495,13 +491,6 @@ struct bd_body
 struct htc_body
 {
 	inline static const size_t max_tracked_poses = 16;
-	enum flags : uint8_t
-	{
-		orientation_valid = 1 << 0,
-		position_valid = 1 << 1,
-		orientation_tracked = 1 << 2,
-		position_tracked = 1 << 3,
-	};
 	struct pose
 	{
 		XrPosef pose{};
