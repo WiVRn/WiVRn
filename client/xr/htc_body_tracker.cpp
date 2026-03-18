@@ -73,7 +73,9 @@ static wivrn::from_headset::htc_body::pose locate_space(XrSpace space, XrSpace r
 
 	wivrn::from_headset::htc_body::pose res{
 	        .pose = location.pose,
-	        .flags = wivrn::from_headset::to_pose_flags(location.locationFlags),
+	        .linear_velocity = velocity.linearVelocity,
+	        .angular_velocity = velocity.angularVelocity,
+	        .flags = wivrn::from_headset::to_pose_flags(location.locationFlags, velocity.velocityFlags),
 	};
 
 	return res;
@@ -100,10 +102,7 @@ xr::htc_body_tracker::packet_type xr::htc_body_tracker::locate_spaces(XrTime tim
 	for (size_t i = 0; i < trackers.size(); i++)
 	{
 		auto & tracker = trackers[i];
-		wivrn::from_headset::htc_body::pose pose{
-		        .pose = {},
-		        .flags = 0,
-		};
+		wivrn::from_headset::htc_body::pose pose{};
 		if (tracker.get_active())
 			pose = locate_space(tracker.get_space(), reference, time);
 
