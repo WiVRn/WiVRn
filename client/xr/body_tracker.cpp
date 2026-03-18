@@ -28,9 +28,7 @@ xr::body_tracker_type xr::body_tracker_supported(xr::instance & instance, xr::sy
 {
 	if (instance.has_extension(XR_FB_BODY_TRACKING_EXTENSION_NAME))
 	{
-		if (instance.has_extension(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME) and
-		    instance.has_extension(XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME) and
-		    system.meta_body_tracking_properties().supportsFullBodyTracking)
+		if (instance.has_extension(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME) and system.meta_body_tracking_properties().supportsFullBodyTracking)
 			return body_tracker_type::meta;
 		if (system.fb_body_tracking_properties().supportsBodyTracking)
 			return body_tracker_type::fb;
@@ -54,9 +52,7 @@ xr::body_tracker xr::make_body_tracker(xr::instance & instance, xr::system & sys
 {
 	if (instance.has_extension(XR_FB_BODY_TRACKING_EXTENSION_NAME))
 	{
-		if (instance.has_extension(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME) and
-		    instance.has_extension(XR_META_BODY_TRACKING_FIDELITY_EXTENSION_NAME) and
-		    system.meta_body_tracking_properties().supportsFullBodyTracking)
+		if (instance.has_extension(XR_META_BODY_TRACKING_FULL_BODY_EXTENSION_NAME) and system.meta_body_tracking_properties().supportsFullBodyTracking)
 			return xr::body_tracker(std::in_place_type_t<xr::fb_body_tracker>(),
 			                        instance,
 			                        session,
