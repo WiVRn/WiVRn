@@ -75,6 +75,8 @@ void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timest
 	xrt_space_relation rel{
 	        .relation_flags = from_pose_flags(pose.flags),
 	        .pose = xrt_cast(pose.pose),
+	        .linear_velocity = xrt_cast(pose.linear_velocity),
+	        .angular_velocity = xrt_cast(pose.angular_velocity),
 	};
 	add_sample(produced_timestamp, timestamp, rel, offset);
 }
