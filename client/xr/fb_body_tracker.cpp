@@ -19,6 +19,7 @@
 #include "fb_body_tracker.h"
 #include "spdlog/spdlog.h"
 #include "utils/overloaded.h"
+#include "wivrn_packets.h"
 #include "xr/instance.h"
 #include "xr/meta_body_tracking_fidelity.h"
 #include "xr/session.h"
@@ -26,21 +27,6 @@
 #include <stdexcept>
 #include <variant>
 #include <openxr/openxr.h>
-
-static uint8_t convert_flags(XrSpaceLocationFlags in_flags)
-{
-	uint8_t flags{};
-	if (in_flags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-		flags |= wivrn::from_headset::meta_body::orientation_valid;
-	if (in_flags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-		flags |= wivrn::from_headset::meta_body::position_valid;
-	if (in_flags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-		flags |= wivrn::from_headset::meta_body::orientation_tracked;
-	if (in_flags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-		flags |= wivrn::from_headset::meta_body::position_tracked;
-
-	return flags;
-}
 
 xr::fb_body_tracker::fb_body_tracker(instance & inst, session & s, bool lower_body) :
         handle(inst.get_proc<PFN_xrDestroyBodyTrackerFB>("xrDestroyBodyTrackerFB")),
@@ -111,7 +97,7 @@ xr::fb_body_tracker::packet_type xr::fb_body_tracker::locate_spaces(XrTime time,
 		                   o.root = {
 		                           .position = root.pose.position,
 		                           .orientation = pack(root.pose.orientation),
-		                           .flags = convert_flags(root.locationFlags),
+		                           .flags = wivrn::from_headset::to_pose_flags(root.locationFlags),
 		                   };
 		                   for (size_t joint = XR_BODY_JOINT_HIPS_FB; joint < std::size(o.joints) + 1; joint++)
 		                   {
@@ -122,7 +108,7 @@ xr::fb_body_tracker::packet_type xr::fb_body_tracker::locate_spaces(XrTime time,
 			                                   .y = int16_t((loc.pose.position.y - root.pose.position.y) * 10'000.f),
 			                                   .z = int16_t((loc.pose.position.z - root.pose.position.z) * 10'000.f)},
 			                           .orientation = pack(loc.pose.orientation),
-			                           .flags = convert_flags(loc.locationFlags),
+			                           .flags = wivrn::from_headset::to_pose_flags(loc.locationFlags),
 			                   };
 		                   }
 	                   },

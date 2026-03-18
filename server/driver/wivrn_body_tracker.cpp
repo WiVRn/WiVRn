@@ -34,44 +34,10 @@ static_assert(std::to_underlying(XR_BODY_JOINT_COUNT_FB) == std::to_underlying(X
 static_assert(std::to_underlying(XR_FULL_BODY_JOINT_COUNT_META) == std::to_underlying(XRT_FULL_BODY_JOINT_COUNT_META));
 static_assert(XR_BODY_JOINT_COUNT_BD == XRT_BODY_JOINT_COUNT_BD);
 
-static xrt_space_relation_flags cast_meta_flags(uint8_t in_flags)
-{
-	std::underlying_type_t<xrt_space_relation_flags> flags = 0;
-	if (in_flags & wivrn::from_headset::meta_body::position_valid)
-		flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
-
-	if (in_flags & wivrn::from_headset::meta_body::orientation_valid)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
-
-	if (in_flags & wivrn::from_headset::meta_body::position_tracked)
-		flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
-
-	if (in_flags & wivrn::from_headset::meta_body::orientation_tracked)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
-	return xrt_space_relation_flags(flags);
-}
-
-static xrt_space_relation_flags cast_bd_flags(uint8_t in_flags)
-{
-	std::underlying_type_t<xrt_space_relation_flags> flags = 0;
-	if (in_flags & wivrn::from_headset::bd_body::position_valid)
-		flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
-
-	if (in_flags & wivrn::from_headset::bd_body::orientation_valid)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
-
-	if (in_flags & wivrn::from_headset::bd_body::position_tracked)
-		flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
-
-	if (in_flags & wivrn::from_headset::bd_body::orientation_tracked)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
-	return xrt_space_relation_flags(flags);
-}
-
 static xrt_space_relation to_relation(const wivrn::from_headset::meta_body::pose & pose)
 {
 	return {
-	        .relation_flags = cast_meta_flags(pose.flags),
+	        .relation_flags = from_pose_flags(pose.flags),
 	        .pose = xrt_cast(XrPosef{
 	                .orientation = pose.orientation,
 	                .position = pose.position,
@@ -81,7 +47,7 @@ static xrt_space_relation to_relation(const wivrn::from_headset::meta_body::pose
 static xrt_space_relation to_relation(const wivrn::from_headset::bd_body::pose & pose)
 {
 	return {
-	        .relation_flags = cast_bd_flags(pose.flags),
+	        .relation_flags = from_pose_flags(pose.flags),
 	        .pose = xrt_cast(XrPosef{
 	                .orientation = pose.orientation,
 	                .position = pose.position,
@@ -91,7 +57,7 @@ static xrt_space_relation to_relation(const wivrn::from_headset::bd_body::pose &
 static xrt_space_relation to_relation(const wivrn::from_headset::meta_body::pose & base, const wivrn::from_headset::meta_body::packed_pose & pose)
 {
 	return {
-	        .relation_flags = cast_meta_flags(pose.flags),
+	        .relation_flags = from_pose_flags(pose.flags),
 	        .pose = xrt_cast(XrPosef{
 	                .orientation = pose.orientation,
 	                .position = {

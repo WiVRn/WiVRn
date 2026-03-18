@@ -408,7 +408,7 @@ void foveation::update_tracking(const from_headset::tracking & tracking)
 {
 	std::lock_guard lock(mutex);
 
-	const uint8_t orientation_ok = from_headset::tracking::orientation_valid | from_headset::tracking::orientation_tracked;
+	const uint8_t orientation_ok = from_headset::pose_flags::orientation_valid | from_headset::pose_flags::orientation_tracked;
 
 	if (tracking.view_flags & XR_VIEW_STATE_POSITION_VALID_BIT)
 	{

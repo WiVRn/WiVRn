@@ -34,23 +34,6 @@
 
 using namespace xrt::auxiliary::math;
 
-static xrt_space_relation_flags cast_flags(uint8_t in_flags)
-{
-	std::underlying_type_t<xrt_space_relation_flags> flags{};
-	if (in_flags & wivrn::from_headset::htc_body::orientation_valid)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
-
-	if (in_flags & wivrn::from_headset::htc_body::position_valid)
-		flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
-
-	if (in_flags & wivrn::from_headset::htc_body::orientation_tracked)
-		flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
-
-	if (in_flags & wivrn::from_headset::htc_body::position_tracked)
-		flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
-	return xrt_space_relation_flags(flags);
-}
-
 namespace wivrn
 {
 
@@ -90,7 +73,7 @@ xrt_space_relation tracker_pose_list::extrapolate(const xrt_space_relation & a, 
 void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::htc_body::pose & pose, const clock_offset & offset)
 {
 	xrt_space_relation rel{
-	        .relation_flags = cast_flags(pose.flags),
+	        .relation_flags = from_pose_flags(pose.flags),
 	        .pose = xrt_cast(pose.pose),
 	};
 	add_sample(produced_timestamp, timestamp, rel, offset);

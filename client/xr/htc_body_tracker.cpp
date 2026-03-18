@@ -19,6 +19,7 @@
  */
 
 #include "htc_body_tracker.h"
+#include "wivrn_packets.h"
 #include "xr/details/enumerate.h"
 #include "xr/session.h"
 #include <openxr/openxr.h>
@@ -72,20 +73,8 @@ static wivrn::from_headset::htc_body::pose locate_space(XrSpace space, XrSpace r
 
 	wivrn::from_headset::htc_body::pose res{
 	        .pose = location.pose,
-	        .flags = 0,
+	        .flags = wivrn::from_headset::to_pose_flags(location.locationFlags),
 	};
-
-	if (location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-		res.flags |= wivrn::from_headset::htc_body::orientation_valid;
-
-	if (location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-		res.flags |= wivrn::from_headset::htc_body::position_valid;
-
-	if (location.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-		res.flags |= wivrn::from_headset::htc_body::orientation_tracked;
-
-	if (location.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-		res.flags |= wivrn::from_headset::htc_body::position_tracked;
 
 	return res;
 }

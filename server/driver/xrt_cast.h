@@ -29,3 +29,5 @@ xrt_fov xrt_cast(const XrFovf &);
 
 XrPosef xrt_cast(const xrt_pose &);
 XrFovf xrt_cast(const xrt_fov &);
+
+xrt_space_relation_flags from_pose_flags(uint8_t in_flags);
