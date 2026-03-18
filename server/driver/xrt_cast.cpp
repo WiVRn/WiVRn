@@ -18,7 +18,9 @@
  */
 
 #include "xrt_cast.h"
+#include "wivrn_packets.h"
 #include <cstring>
+#include <type_traits>
 
 namespace
 {
@@ -45,3 +47,21 @@ XRT_CAST(XrFovf, xrt_fov)
 
 XRT_CAST(xrt_pose, XrPosef)
 XRT_CAST(xrt_fov, XrFovf)
+
+xrt_space_relation_flags from_pose_flags(uint8_t in_flags)
+{
+	std::underlying_type_t<xrt_space_relation_flags> flags{};
+	if (in_flags & wivrn::from_headset::pose_flags::orientation_valid)
+		flags |= XRT_SPACE_RELATION_ORIENTATION_VALID_BIT;
+	if (in_flags & wivrn::from_headset::pose_flags::position_valid)
+		flags |= XRT_SPACE_RELATION_POSITION_VALID_BIT;
+	if (in_flags & wivrn::from_headset::pose_flags::linear_velocity_valid)
+		flags |= XRT_SPACE_RELATION_LINEAR_VELOCITY_VALID_BIT;
+	if (in_flags & wivrn::from_headset::pose_flags::angular_velocity_valid)
+		flags |= XRT_SPACE_RELATION_ANGULAR_VELOCITY_VALID_BIT;
+	if (in_flags & wivrn::from_headset::pose_flags::orientation_tracked)
+		flags |= XRT_SPACE_RELATION_ORIENTATION_TRACKED_BIT;
+	if (in_flags & wivrn::from_headset::pose_flags::position_tracked)
+		flags |= XRT_SPACE_RELATION_POSITION_TRACKED_BIT;
+	return xrt_space_relation_flags(flags);
+}
