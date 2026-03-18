@@ -18,6 +18,7 @@
 
 #include "pico_body_tracker.h"
 #include "spdlog/spdlog.h"
+#include "wivrn_packets.h"
 #include "xr/instance.h"
 #include "xr/session.h"
 #include "xr/to_string.h"
@@ -73,15 +74,8 @@ xr::pico_body_tracker::packet_type xr::pico_body_tracker::locate_spaces(XrTime t
 		ret.joints[joint] = {
 		        .position = joint_loc.pose.position,
 		        .orientation = pack(joint_loc.pose.orientation),
+		        .flags = wivrn::from_headset::to_pose_flags(joint_loc.locationFlags),
 		};
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-			ret.joints[joint].flags |= wivrn::from_headset::bd_body::orientation_valid;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-			ret.joints[joint].flags |= wivrn::from_headset::bd_body::position_valid;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-			ret.joints[joint].flags |= wivrn::from_headset::bd_body::orientation_tracked;
-		if (joint_loc.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-			ret.joints[joint].flags |= wivrn::from_headset::bd_body::position_tracked;
 	}
 
 	return ret;
