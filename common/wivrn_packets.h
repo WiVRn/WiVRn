@@ -490,12 +490,13 @@ struct bd_body
 
 struct htc_body
 {
-	inline static const size_t max_tracked_poses = 16;
+	static constexpr size_t max_tracked_poses = 16;
 	struct pose
 	{
-		XrPosef pose{};
-		// maybe add velocity?
-		uint8_t flags{0};
+		XrPosef pose;
+		XrVector3f linear_velocity;
+		XrVector3f angular_velocity;
+		uint8_t flags;
 	};
 
 	XrTime production_timestamp;
