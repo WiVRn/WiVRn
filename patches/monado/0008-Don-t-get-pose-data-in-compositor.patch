@@ -1,4 +1,4 @@
-From 959707499b31f8db80f28492d1bfc01e34b23368 Mon Sep 17 00:00:00 2001
+From 025dcad51542cd6c23d9a6ad16cca982bf2fa5ca Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Thu, 15 Jan 2026 12:13:06 +0100
 Subject: [PATCH 8/9] Don't get pose data in compositor

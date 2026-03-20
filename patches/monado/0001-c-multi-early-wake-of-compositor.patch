@@ -1,4 +1,4 @@
-From 563f347bf4d59b4a82144e25c3be894a0cd17c8d Mon Sep 17 00:00:00 2001
+From 6317d6556f2510cc63aa5f71d86585830a38b2a1 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
 Subject: [PATCH 1/9] c/multi: early wake of compositor
@@ -10,7 +10,7 @@ Subject: [PATCH 1/9] c/multi: early wake of compositor
  3 files changed, 41 insertions(+), 7 deletions(-)
 
 diff --git a/src/xrt/compositor/multi/comp_multi_compositor.c b/src/xrt/compositor/multi/comp_multi_compositor.c
-index 94cea110e..88347a092 100644
+index 1fc135ce4..25b64aca8 100644
 --- a/src/xrt/compositor/multi/comp_multi_compositor.c
 +++ b/src/xrt/compositor/multi/comp_multi_compositor.c
 @@ -236,7 +236,21 @@ wait_for_scheduled_free(struct multi_compositor *mc)

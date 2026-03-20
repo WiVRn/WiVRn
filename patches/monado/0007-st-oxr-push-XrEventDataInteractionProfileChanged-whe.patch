@@ -1,49 +1,27 @@
-From 8c6580e84690ffe8f082cdff5ead8443d1f6bf23 Mon Sep 17 00:00:00 2001
+From 4fdc8798f4810145c446fe147ae94e4c717b6b28 Mon Sep 17 00:00:00 2001
 From: Sapphire <imsapphire0@gmail.com>
 Date: Fri, 7 Nov 2025 20:41:16 -0600
 Subject: [PATCH 7/9] st/oxr: push XrEventDataInteractionProfileChanged when
  profile changes to NULL
 
 ---
- src/xrt/state_trackers/oxr/actions/oxr_input.c | 15 +++++----------
- 1 file changed, 5 insertions(+), 10 deletions(-)
+ src/xrt/state_trackers/oxr/actions/oxr_input.c | 3 ---
+ 1 file changed, 3 deletions(-)
 
 diff --git a/src/xrt/state_trackers/oxr/actions/oxr_input.c b/src/xrt/state_trackers/oxr/actions/oxr_input.c
-index 349c9adcb..667163142 100644
+index 269c6ec62..05a747f74 100644
 --- a/src/xrt/state_trackers/oxr/actions/oxr_input.c
 +++ b/src/xrt/state_trackers/oxr/actions/oxr_input.c
-@@ -1945,26 +1945,21 @@ oxr_session_update_action_bindings(struct oxr_logger *log, struct oxr_session *s
- 		}
- 	}
- 
--	/*
--	 * This code will only send events (and update the bindings) if there
--	 * is a profile mapped to the subaction path. Meaning it won't update
--	 * the cache or generate events when a controller goes away, basically
--	 * latching the interaction profile to the last active device.
--	 */
-+	bool any_profile_changed = false;
+@@ -1947,9 +1947,6 @@ session_update_action_bindings(struct oxr_logger *log,
  #define POPULATE_PROFILE(X)                                                                                            \
  	do {                                                                                                           \
  		XrPath path = profiles.X != NULL ? profiles.X->path : XR_NULL_PATH;                                    \
 -		if (path == XR_NULL_PATH) {                                                                            \
 -			break; /* Only update on "active" interaction profiles per sub-action path. */                 \
 -		}                                                                                                      \
- 		if (sess->X != path) {                                                                                 \
- 			sess->X = path;                                                                                \
--			oxr_event_push_XrEventDataInteractionProfileChanged(log, sess);                                \
-+			any_profile_changed = true;                                                                    \
- 		}                                                                                                      \
- 	} while (false);
- 	OXR_FOR_EACH_VALID_SUBACTION_PATH(POPULATE_PROFILE)
- #undef POPULATE_PROFILE
- 
-+	if (any_profile_changed) {
-+		oxr_event_push_XrEventDataInteractionProfileChanged(log, sess);
-+	}
- 	return oxr_session_success_result(sess);
- }
- 
+ 		if (action_context->X != path) {                                                                       \
+ 			action_context->X = path;                                                                      \
+ 			interaction_profile_changed = true;                                                            \
 -- 
 2.53.0
 
