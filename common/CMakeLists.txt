@@ -5,25 +5,12 @@ else()
     FetchContent_MakeAvailable(boost)
 endif()
 
-add_custom_target(wivrn-version ALL
-    COMMAND ${CMAKE_COMMAND}
-        -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
-        -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
-        -D OUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/version.cpp
-        -D CMAKE_PROJECT_VERSION=${CMAKE_PROJECT_VERSION}
-        -D GIT_DESC="${GIT_DESC}"
-        -D GIT_COMMIT="${GIT_COMMIT}"
-        -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
-    BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
-    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/version.cpp.in
-    )
-
 configure_file(wivrn_config.h.in wivrn_config.h)
 
 add_library(wivrn-common-base STATIC EXCLUDE_FROM_ALL
     utils/strings.cpp
     utils/xdg_base_directory.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/version.cpp
+    ${CMAKE_BINARY_DIR}/version.cpp
 )
 
 add_library(wivrn-common STATIC EXCLUDE_FROM_ALL

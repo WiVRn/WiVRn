@@ -1,0 +1,37 @@
+From a9ac675eab72a6ce96adb38215e83f7b3e9b51e7 Mon Sep 17 00:00:00 2001
+From: no name <git-am@invalid>
+Date: Fri, 20 Mar 2026 16:51:18 +0100
+Subject: [PATCH] configure u_git_tag in WiVRn
+
+---
+ src/xrt/auxiliary/util/CMakeLists.txt | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/src/xrt/auxiliary/util/CMakeLists.txt b/src/xrt/auxiliary/util/CMakeLists.txt
+index d45cd60c9..ec0d45434 100644
+--- a/src/xrt/auxiliary/util/CMakeLists.txt
++++ b/src/xrt/auxiliary/util/CMakeLists.txt
+@@ -10,11 +10,6 @@
+ # by applications like the OpenXR runtime library.
+ #
+ 
+-configure_file(
+-	"${CMAKE_CURRENT_SOURCE_DIR}/u_git_tag.c.in" "${CMAKE_CURRENT_BINARY_DIR}/u_git_tag.c"
+-	@ONLY
+-	)
+-
+ add_library(
+ 	aux_util STATIC
+ 	u_autoexpgain.c
+@@ -118,7 +113,7 @@ add_library(
+ 	u_worker.cpp
+ 	u_worker.h
+ 	u_worker.hpp
+-	"${CMAKE_CURRENT_BINARY_DIR}/u_git_tag.c"
++	"${U_GIT_TAG_CPP}"
+ 	)
+ target_link_libraries(
+ 	aux_util
+-- 
+2.53.0
+

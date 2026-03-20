@@ -1,0 +1,36 @@
+#include <cctype>
+#include <charconv>
+#include <stdint.h>
+#include <string_view>
+
+namespace
+{
+uint16_t version(int digit)
+{
+	std::string_view tag = "@GIT_DESC@";
+	if (not tag.empty() and tag[0] == 'v')
+		tag = tag.substr(1);
+	for (; digit > 0; --digit)
+	{
+		while (not tag.empty() and std::isdigit(tag[0]))
+			tag = tag.substr(1);
+		if (not tag.empty() and tag[0] == '.')
+			tag = tag.substr(1);
+	}
+	tag = tag.substr(0, tag.find('.'));
+
+	uint16_t val = 0;
+	// We don't care if parsing fail, return 0
+	std::from_chars(tag.begin(), tag.end(), val);
+	return val;
+}
+} // namespace
+
+extern "C"
+{
+	extern const char u_git_tag[] = "@GIT_DESC@";
+	extern const uint16_t u_version_major = version(0);
+	extern const uint16_t u_version_minor = version(1);
+	extern const uint16_t u_version_patch = version(2);
+	extern const char u_runtime_description[] = "WiVRn";
+}

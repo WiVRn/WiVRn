@@ -282,6 +282,20 @@ FetchContent_Declare(monado
     EXCLUDE_FROM_ALL
 )
 
+add_custom_target(wivrn-version ALL
+    COMMAND ${CMAKE_COMMAND}
+        -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
+        -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/common/version.cpp.in
+        -D OUTPUT_FILE=${CMAKE_BINARY_DIR}/version.cpp
+        -D INPUT_FILE_1=${CMAKE_CURRENT_SOURCE_DIR}/server/u_git_tag.cpp.in
+        -D OUTPUT_FILE_1=${CMAKE_BINARY_DIR}/u_git_tag.cpp
+        -D GIT_DESC="${GIT_DESC}"
+        -D GIT_COMMIT="${GIT_COMMIT}"
+        -P ${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake
+        BYPRODUCTS ${CMAKE_BINARY_DIR}/version.cpp ${CMAKE_BINARY_DIR}/u_git_tag.cpp
+        SOURCES common/version.cpp.in server/u_git_tag.cpp.in
+    )
+
 add_subdirectory(external)
 if (NEED_COMMON)
     add_subdirectory(common)

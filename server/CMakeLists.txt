@@ -1,3 +1,4 @@
+set(U_GIT_TAG_CPP "${CMAKE_BINARY_DIR}/u_git_tag.cpp")
 
 set(XRT_BUILD_DRIVER_ARDUINO            OFF)
 set(XRT_BUILD_DRIVER_BLUBUR_S1          OFF)

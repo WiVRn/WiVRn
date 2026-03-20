@@ -30,3 +30,4 @@ else()
 endif()
 
 configure_file(${INPUT_FILE} ${OUTPUT_FILE})
+configure_file(${INPUT_FILE_1} ${OUTPUT_FILE_1})
