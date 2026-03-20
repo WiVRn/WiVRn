@@ -487,8 +487,8 @@ VkResult wivrn_comp_target::present(
 	assert(present_queue != nullptr);
 	(void)present_queue;
 
-	assert(index < cn->image_count);
-	assert(cn->psc.images[index].status == pseudo_swapchain::status_t::acquired);
+	assert(index < image_count);
+	assert(psc.images[index].status == pseudo_swapchain::status_t::acquired);
 
 	auto vk = get_vk();
 	auto res = wivrn_bundle->device.waitForFences(*psc.fence, true, UINT64_MAX);
