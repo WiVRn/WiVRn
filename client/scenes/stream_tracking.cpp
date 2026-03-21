@@ -35,30 +35,6 @@
 #include "android/battery.h"
 #endif
 
-static uint8_t cast_flags(XrSpaceLocationFlags location, XrSpaceVelocityFlags velocity)
-{
-	uint8_t flags = 0;
-	if (location & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-		flags |= from_headset::tracking::orientation_valid;
-
-	if (location & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-		flags |= from_headset::tracking::position_valid;
-
-	if (velocity & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
-		flags |= from_headset::tracking::linear_velocity_valid;
-
-	if (velocity & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
-		flags |= from_headset::tracking::angular_velocity_valid;
-
-	if (location & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-		flags |= from_headset::tracking::orientation_tracked;
-
-	if (location & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-		flags |= from_headset::tracking::position_tracked;
-
-	return flags;
-}
-
 namespace
 {
 
@@ -81,7 +57,7 @@ from_headset::tracking::pose locate_space(device_id device, XrSpace space, XrSpa
 		        .linear_velocity = velocity.linearVelocity,
 		        .angular_velocity = velocity.angularVelocity,
 		        .device = device,
-		        .flags = cast_flags(location.locationFlags, velocity.velocityFlags),
+		        .flags = from_headset::to_pose_flags(location.locationFlags, velocity.velocityFlags),
 		};
 	spdlog::warn("xrLocateSpace failed for {}: {}", magic_enum::enum_name(device), xr::to_string(res));
 	return {.device = device};
@@ -168,7 +144,7 @@ public:
 					        .linear_velocity = velocity.linearVelocity,
 					        .angular_velocity = velocity.angularVelocity,
 					        .device = devices[i],
-					        .flags = cast_flags(location.locationFlags, velocity.velocityFlags),
+					        .flags = from_headset::to_pose_flags(location.locationFlags, velocity.velocityFlags),
 					});
 				}
 			}
@@ -191,31 +167,15 @@ static std::optional<std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT
 		std::array<from_headset::hand_tracking::pose, XR_HAND_JOINT_COUNT_EXT> poses;
 		for (int i = 0; i < XR_HAND_JOINT_COUNT_EXT; i++)
 		{
+			const auto & joint = (*joints)[i];
 			poses[i] = {
-			        .position = (*joints)[i].first.pose.position,
-			        .orientation = pack((*joints)[i].first.pose.orientation),
-			        .linear_velocity = (*joints)[i].second.linearVelocity,
-			        .angular_velocity = (*joints)[i].second.angularVelocity,
-			        .radius = uint16_t((*joints)[i].first.radius * 10'000),
+			        .position = joint.first.pose.position,
+			        .orientation = pack(joint.first.pose.orientation),
+			        .linear_velocity = joint.second.linearVelocity,
+			        .angular_velocity = joint.second.angularVelocity,
+			        .radius = uint16_t(joint.first.radius * 10'000),
+			        .flags = from_headset::to_pose_flags(joint.first.locationFlags, joint.second.velocityFlags),
 			};
-
-			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT)
-				poses[i].flags |= from_headset::hand_tracking::orientation_valid;
-
-			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT)
-				poses[i].flags |= from_headset::hand_tracking::position_valid;
-
-			if ((*joints)[i].second.velocityFlags & XR_SPACE_VELOCITY_LINEAR_VALID_BIT)
-				poses[i].flags |= from_headset::hand_tracking::linear_velocity_valid;
-
-			if ((*joints)[i].second.velocityFlags & XR_SPACE_VELOCITY_ANGULAR_VALID_BIT)
-				poses[i].flags |= from_headset::hand_tracking::angular_velocity_valid;
-
-			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_ORIENTATION_TRACKED_BIT)
-				poses[i].flags |= from_headset::hand_tracking::orientation_tracked;
-
-			if ((*joints)[i].first.locationFlags & XR_SPACE_LOCATION_POSITION_TRACKED_BIT)
-				poses[i].flags |= from_headset::hand_tracking::position_tracked;
 		}
 
 		return poses;
@@ -316,7 +276,7 @@ void scenes::stream::tracking()
 	XrTime t0 = instance.now();
 	from_headset::tracking tracking;
 	std::vector<from_headset::hand_tracking> hands;
-	std::vector<from_headset::body_tracking> body;
+	std::vector<std::variant<from_headset::meta_body, from_headset::bd_body, from_headset::htc_body>> body;
 	std::vector<XrView> views;
 
 	std::vector<serialization_packet> packets;
@@ -406,8 +366,7 @@ void scenes::stream::tracking()
 								        system,
 								        session,
 								        application::get_generic_trackers(),
-								        config.fb_lower_body,
-								        config.fb_hip);
+								        config.fb_lower_body);
 						}
 						else
 							body_tracker.emplace<std::monostate>();
@@ -503,7 +462,7 @@ void scenes::stream::tracking()
 									glm::quat gaze_quat(gaze.pose.orientation.w, gaze.pose.orientation.x, gaze.pose.orientation.y, gaze.pose.orientation.z);
 									glm::quat view_quat(view_pose.pose.orientation.w, view_pose.pose.orientation.x, view_pose.pose.orientation.y, view_pose.pose.orientation.z);
 									gaze_quat = glm::conjugate(view_quat) * gaze_quat;
-									using flags = from_headset::tracking::flags;
+									using flags = from_headset::pose_flags;
 									tracking.device_poses.push_back(
 									        from_headset::tracking::pose{
 									                // Zero position and velocities
@@ -558,11 +517,10 @@ void scenes::stream::tracking()
 							std::visit(utils::overloaded{
 							                   [](std::monostate &) {},
 							                   [&](auto & b) {
-								                   body.push_back(from_headset::body_tracking{
-								                           .production_timestamp = tracking.production_timestamp,
-								                           .timestamp = at_time,
-								                           .poses = b.locate_spaces(at_time, world_space),
-								                   });
+								                   auto packet = b.locate_spaces(at_time, world_space);
+								                   packet.timestamp = at_time;
+								                   packet.production_timestamp = tracking.production_timestamp;
+								                   body.push_back(packet);
 							                   },
 							           },
 							           body_tracker);
@@ -595,6 +553,18 @@ void scenes::stream::tracking()
 			}
 #endif
 
+			if (auto fb = std::get_if<xr::fb_body_tracker>(&body_tracker); fb and fb->should_send_skeleton())
+			{
+				try
+				{
+					network_session->send_control(fb->get_skeleton());
+				}
+				catch (std::exception & e)
+				{
+					spdlog::warn("Failed to send body skeleton: {}", e.what());
+				}
+			}
+
 			packets.resize(std::max(packets.size(), 1 + hands.size() + body.size()));
 			size_t packet_count = 0;
 
@@ -613,12 +583,14 @@ void scenes::stream::tracking()
 			}
 			for (const auto & i: body)
 			{
-				if (i.poses)
-				{
-					auto & packet = packets[packet_count++];
-					packet.clear();
-					wivrn_session::stream_socket_t::serialize(packet, i);
-				}
+				auto & packet = packets[packet_count++];
+				packet.clear();
+				std::visit(utils::overloaded{
+				                   [&](auto & p) {
+					                   wivrn_session::stream_socket_t::serialize(packet, p);
+				                   },
+				           },
+				           i);
 			}
 
 			network_session->send_stream(std::span(packets.data(), packet_count));
@@ -795,7 +767,7 @@ void scenes::stream::send_derived_pose()
 		else
 		{
 			if (auto pose = locate_space(target, target_space, source_space, now);
-			    pose.flags & from_headset::tracking::position_valid and pose.flags & from_headset::tracking::orientation_valid)
+			    pose.flags & from_headset::pose_flags::position_valid and pose.flags & from_headset::pose_flags::orientation_valid)
 			{
 				network_session->send_control(from_headset::derived_pose{
 				        .source = source,
