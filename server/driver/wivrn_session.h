@@ -123,6 +123,7 @@ class wivrn_session : public xrt_system_devices
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
 
 public:
+	using base = xrt_system_devices;
 	~wivrn_session();
 
 	static xrt_result_t create_session(std::unique_ptr<wivrn_connection> connection,
@@ -232,6 +233,7 @@ private:
 	xrt_result_t get_roles(xrt_system_roles * out_roles);
 	xrt_result_t feature_inc(xrt_device_feature_type type);
 	xrt_result_t feature_dec(xrt_device_feature_type type);
+	void destroy();
 };
 
 } // namespace wivrn

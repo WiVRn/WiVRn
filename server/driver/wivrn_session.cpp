@@ -32,6 +32,7 @@
 #include "util/u_logging.h"
 #include "util/u_system.h"
 #include "utils/load_icon.h"
+#include "utils/method.h"
 #include "utils/scoped_lock.h"
 
 #include "audio/audio_setup.h"
@@ -114,10 +115,10 @@ bool is_forced_extension(const char * ext_name)
 
 wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system & system) :
         xrt_system_devices{
-                .get_roles = [](xrt_system_devices * self, xrt_system_roles * out_roles) { return ((wivrn_session *)self)->get_roles(out_roles); },
-                .feature_inc = [](xrt_system_devices * self, xrt_device_feature_type f) { return ((wivrn_session *)self)->feature_inc(f); },
-                .feature_dec = [](xrt_system_devices * self, xrt_device_feature_type f) { return ((wivrn_session *)self)->feature_dec(f); },
-                .destroy = [](xrt_system_devices * self) { delete ((wivrn_session *)self); },
+                .get_roles = method_pointer<&wivrn_session::get_roles>,
+                .feature_inc = method_pointer<&wivrn_session::feature_inc>,
+                .feature_dec = method_pointer<&wivrn_session::feature_dec>,
+                .destroy = method_pointer<&wivrn_session::destroy>,
         },
         connection(std::move(connection)),
         headset_info(this->connection->info()),
@@ -1370,5 +1371,10 @@ xrt_result_t wivrn_session::feature_dec(xrt_device_feature_type type)
 		default:
 			return XRT_ERROR_FEATURE_NOT_SUPPORTED;
 	}
+}
+
+void wivrn_session::destroy()
+{
+	delete this;
 }
 } // namespace wivrn
