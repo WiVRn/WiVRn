@@ -12,6 +12,7 @@ add_library(wivrn-common-base STATIC EXCLUDE_FROM_ALL
     utils/xdg_base_directory.cpp
     ${CMAKE_BINARY_DIR}/version.cpp
 )
+add_dependencies(wivrn-common-base wivrn-version)
 
 add_library(wivrn-common STATIC EXCLUDE_FROM_ALL
     crypto.cpp
