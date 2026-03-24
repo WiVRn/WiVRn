@@ -177,10 +177,6 @@ if (WIVRN_BUILD_DASHBOARD)
     find_package(nlohmann_json REQUIRED)
     find_package(QCoro6 REQUIRED COMPONENTS Core Network Qml)
     qcoro_enable_coroutines()
-
-    set(CMAKE_AUTOMOC ON)
-    set(CMAKE_AUTORCC ON)
-    set(CMAKE_AUTOUIC ON)
 endif()
 
 if (WIVRN_BUILD_CLIENT OR WIVRN_BUILD_DASHBOARD)
