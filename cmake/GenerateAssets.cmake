@@ -1,5 +1,6 @@
 function(add_file_to_target TARGET OUTPUT_FILE)
-    string(REPLACE "/" "_" TARGET_SUFFIX ${OUTPUT_FILE})
+    file(RELATIVE_PATH TARGET_SUFFIX "${CMAKE_SOURCE_DIR}" "${OUTPUT_FILE}")
+    string(REPLACE "/" "_" TARGET_SUFFIX "${TARGET_SUFFIX}")
 
     add_custom_target(${TARGET}-${TARGET_SUFFIX} ALL DEPENDS ${OUTPUT_FILE})
     add_dependencies(${TARGET} ${TARGET}-${TARGET_SUFFIX})
