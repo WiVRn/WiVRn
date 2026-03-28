@@ -21,7 +21,6 @@
 #include "xrt/xrt_device.h"
 
 #include "history.h"
-#include "wivrn_packets.h"
 
 namespace wivrn
 {
@@ -36,7 +35,7 @@ public:
 
 	tracker_pose_list() = default;
 
-	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const wivrn::from_headset::htc_body::pose & pose, const clock_offset & offset);
+	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const xrt_space_relation & pose, const clock_offset & offset);
 };
 
 class wivrn_generic_tracker : public xrt_device
@@ -48,11 +47,11 @@ class wivrn_generic_tracker : public xrt_device
 
 public:
 	using base_t = xrt_device;
-	wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_session & cnx);
+	wivrn_generic_tracker(std::string name, xrt_device * hmd, wivrn_session & cnx);
 
 	xrt_result_t update_inputs();
 	xrt_result_t get_tracked_pose(xrt_input_name name, int64_t at_timestamp_ns, xrt_space_relation * out_relation);
 
-	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const wivrn::from_headset::htc_body::pose & pose, const clock_offset & offset);
+	void update_tracking(XrTime produced_timestamp, XrTime timestamp, const xrt_space_relation & pose, const clock_offset & offset);
 };
 } // namespace wivrn
