@@ -24,6 +24,7 @@
 #include "application.h"
 #include "configuration.h"
 #include "driver/app_pacer.h"
+#include "driver/xrt_cast.h"
 #include "server/ipc_server.h"
 #include "utils/load_icon.h"
 #include "utils/method.h"
@@ -190,7 +191,9 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 	auto body = get_info().body_tracking;
 	if (body != from_headset::body_type::none && body != from_headset::body_type::htc)
 	{
-		static_xdevs[static_xdev_count++] = static_roles.body = &body_tracker.emplace(&hmd, *this);
+		static_xdevs[static_xdev_count++] = static_roles.body = &body_tracker.emplace(&hmd, *this, [this](xrt_device & xdev) {
+			static_xdevs[static_xdev_count++] = &xdev;
+		});
 	}
 	if (body == from_headset::body_type::htc)
 	{
@@ -216,7 +219,7 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 
 			for (int i = 0; i < num_generic_trackers; ++i)
 			{
-				static_xdevs[static_xdev_count++] = &generic_trackers.emplace_back(i, &hmd, *this);
+				static_xdevs[static_xdev_count++] = &generic_trackers.emplace_back(std::to_string(i), &hmd, *this);
 			}
 		}
 	}
@@ -679,7 +682,16 @@ void wivrn_session::operator()(from_headset::htc_body && body_tracking)
 	auto offset = offset_est.get_offset();
 
 	for (auto [tracker, pose]: std::ranges::zip_view(generic_trackers, body_tracking.poses))
-		tracker.update_tracking(body_tracking.production_timestamp, body_tracking.timestamp, pose, offset);
+		tracker.update_tracking(
+		        body_tracking.production_timestamp,
+		        body_tracking.timestamp,
+		        xrt_space_relation{
+		                .relation_flags = from_pose_flags(pose.flags),
+		                .pose = xrt_cast(pose.pose),
+		                .linear_velocity = xrt_cast(pose.linear_velocity),
+		                .angular_velocity = xrt_cast(pose.angular_velocity),
+		        },
+		        offset);
 }
 void wivrn_session::operator()(from_headset::inputs && inputs)
 {

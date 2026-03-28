@@ -20,6 +20,7 @@
 
 #include "wivrn_body_tracker.h"
 #include "driver/pose_list.h"
+#include "driver/wivrn_generic_tracker.h"
 #include "util/u_logging.h"
 #include "utils/method.h"
 #include "utils/overloaded.h"
@@ -175,23 +176,29 @@ void body_joints_list::update_tracking(const wivrn::from_headset::meta_body & tr
 	                .is_active = not std::holds_alternative<std::monostate>(tracking.joints),
 	        },
 	};
-	if (s.base_body_joint_set_meta.is_active)
-	{
-		std::visit(utils::overloaded{
-		                   [](std::monostate) {
-			                   __builtin_unreachable();
-		                   },
-		                   [&](auto & joints) {
-			                   s.body_joint_set_fb.joint_locations[XRT_BODY_JOINT_ROOT_FB].relation = to_relation(joints.root);
-			                   for (size_t joint = XRT_BODY_JOINT_HIPS_FB; joint < std::size(joints.joints) + 1; joint++)
+	std::visit(utils::overloaded{
+	                   [&](std::monostate) {
+		                   for (auto & [_, t]: parent.virtual_trackers)
+		                   {
+			                   t.update_tracking(tracking.production_timestamp, tracking.timestamp, {}, offset);
+		                   }
+	                   },
+	                   [&](auto & joints) {
+		                   s.body_joint_set_fb.joint_locations[XRT_BODY_JOINT_ROOT_FB].relation = to_relation(joints.root);
+		                   for (size_t joint = XRT_BODY_JOINT_HIPS_FB; joint < std::size(joints.joints) + 1; joint++)
+		                   {
+			                   const auto pose = to_relation(joints.root, joints.joints[joint - 1]);
+			                   static_assert(offsetof(xrt_full_body_joint_set_meta, joint_locations) == offsetof(xrt_body_joint_set_fb, joint_locations));
+			                   static_assert(sizeof(xrt_full_body_joint_set_meta::joint_locations[0]) == sizeof(xrt_body_joint_set_fb::joint_locations[0]));
+			                   s.full_body_joint_set_meta.joint_locations[joint].relation = pose;
+
+			                   if (auto it = parent.virtual_trackers.find(joint); it != parent.virtual_trackers.cend())
 			                   {
-				                   static_assert(offsetof(xrt_full_body_joint_set_meta, joint_locations) == offsetof(xrt_body_joint_set_fb, joint_locations));
-				                   static_assert(sizeof(xrt_full_body_joint_set_meta::joint_locations[0]) == sizeof(xrt_body_joint_set_fb::joint_locations[0]));
-				                   s.full_body_joint_set_meta.joint_locations[joint].relation = to_relation(joints.root, joints.joints[joint - 1]);
+				                   it->second.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
 			                   }
-		                   }},
-		           tracking.joints);
-	}
+		                   }
+	                   }},
+	           tracking.joints);
 
 	add_sample(tracking.production_timestamp, tracking.timestamp, s, offset);
 }
@@ -208,13 +215,19 @@ void body_joints_list::update_tracking(const wivrn::from_headset::bd_body & trac
 	};
 	for (size_t joint = XRT_BODY_JOINT_PELVIS_BD; joint < XRT_BODY_JOINT_COUNT_BD; joint++)
 	{
-		s.body_joint_set_bd.joint_locations[joint].relation = to_relation(tracking.joints[joint]);
+		const auto pose = to_relation(tracking.joints[joint]);
+		s.body_joint_set_bd.joint_locations[joint].relation = pose;
+
+		if (auto it = parent.virtual_trackers.find(joint); it != parent.virtual_trackers.cend())
+		{
+			it->second.update_tracking(tracking.production_timestamp, tracking.timestamp, pose, offset);
+		}
 	}
 
 	add_sample(tracking.production_timestamp, tracking.timestamp, s, offset);
 }
 
-wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & cnx) :
+wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & cnx, std::function<void(xrt_device &)> device_add_callback) :
         xrt_device{
                 .name = XRT_DEVICE_FB_BODY_TRACKING, // FIXME: replace with something more appropriate, when there is one
                 .device_type = XRT_DEVICE_TYPE_BODY_TRACKER,
@@ -227,9 +240,11 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
                 .get_body_joints = method_pointer<&wivrn_body_tracker::get_body_joints>,
                 .destroy = [](xrt_device *) {},
         },
-        joints_list(cnx.get_info().body_tracking),
+        joints_list(cnx.get_info().body_tracking, *this),
         cnx(cnx)
 {
+	// joint id, pretty name
+	std::map<uint32_t, std::string> virtual_joints{};
 	switch (cnx.get_info().body_tracking)
 	{
 		case from_headset::body_type::meta:
@@ -243,6 +258,15 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
 			        .active = true,
 			        .name = XRT_INPUT_META_FULL_BODY_TRACKING,
 			});
+
+			virtual_joints.emplace(XRT_FULL_BODY_JOINT_CHEST_META, "Chest");
+			virtual_joints.emplace(XRT_FULL_BODY_JOINT_LEFT_ARM_LOWER_META, "Left Elbow");
+			virtual_joints.emplace(XRT_FULL_BODY_JOINT_RIGHT_ARM_LOWER_META, "Right Elbow");
+			virtual_joints.emplace(XRT_FULL_BODY_JOINT_HIPS_META, "Hip");
+			virtual_joints.emplace(XRT_FULL_BODY_JOINT_LEFT_LOWER_LEG_META, "Left Knee");
+			virtual_joints.emplace(XRT_FULL_BODY_JOINT_RIGHT_LOWER_LEG_META, "Right Knee");
+			virtual_joints.emplace(XRT_FULL_BODY_JOINT_LEFT_FOOT_TRANSVERSE_META, "Left Foot");
+			virtual_joints.emplace(XRT_FULL_BODY_JOINT_RIGHT_FOOT_TRANSVERSE_META, "Right Foot");
 			break;
 		case from_headset::body_type::fb:
 			strcpy(str, "WiVRn FB body tracker");
@@ -251,21 +275,43 @@ wivrn_body_tracker::wivrn_body_tracker(xrt_device * hmd, wivrn::wivrn_session & 
 			        .active = true,
 			        .name = XRT_INPUT_FB_BODY_TRACKING,
 			});
+
+			virtual_joints.emplace(XRT_BODY_JOINT_CHEST_FB, "Chest");
+			virtual_joints.emplace(XRT_BODY_JOINT_LEFT_ARM_LOWER_FB, "Left Elbow");
+			virtual_joints.emplace(XRT_BODY_JOINT_RIGHT_ARM_LOWER_FB, "Right Elbow");
+			virtual_joints.emplace(XRT_BODY_JOINT_HIPS_FB, "Hip");
 			break;
 		case from_headset::body_type::bd:
-			strcpy(str, "WiVRn BD body Tracker");
+			strcpy(str, "WiVRn BD body tracker");
 			strcpy(serial, "WiVRn BD body tracker");
 			inputs_array.push_back({
 			        .active = true,
 			        .name = XRT_INPUT_BD_BODY_TRACKING,
 			});
+
+			virtual_joints.emplace(XRT_BODY_JOINT_SPINE3_BD, "Chest");
+			virtual_joints.emplace(XRT_BODY_JOINT_LEFT_ELBOW_BD, "Left Elbow");
+			virtual_joints.emplace(XRT_BODY_JOINT_RIGHT_ELBOW_BD, "Right Elbow");
+			virtual_joints.emplace(XRT_BODY_JOINT_PELVIS_BD, "Hip");
+			virtual_joints.emplace(XRT_BODY_JOINT_LEFT_KNEE_BD, "Left Knee");
+			virtual_joints.emplace(XRT_BODY_JOINT_RIGHT_KNEE_BD, "Right Knee");
+			virtual_joints.emplace(XRT_BODY_JOINT_LEFT_FOOT_BD, "Left Foot");
+			virtual_joints.emplace(XRT_BODY_JOINT_RIGHT_FOOT_BD, "Right Foot");
 			break;
 		default:
 			assert(false);
 			__builtin_unreachable();
 	}
+
 	inputs = inputs_array.data();
 	input_count = inputs_array.size();
+
+	for (auto & [joint, name]: virtual_joints)
+	{
+		auto [it, success] = virtual_trackers.try_emplace(joint, name, hmd, cnx);
+		assert(success);
+		device_add_callback(it->second);
+	}
 }
 
 xrt_result_t wivrn_body_tracker::update_inputs()
@@ -319,7 +365,7 @@ void wivrn_body_tracker::update_skeleton(const from_headset::meta_body_skeleton 
 {
 	assert(std::ranges::contains(inputs_array, XRT_INPUT_FB_BODY_TRACKING, &xrt_input::name));
 
-	auto s = this->meta_skeleton.lock();
+	auto s = meta_skeleton.lock();
 	std::visit(utils::overloaded{
 	                   [&s](auto & skeleton) {
 		                   for (size_t i = 0; i < skeleton.joints.size(); i++)
