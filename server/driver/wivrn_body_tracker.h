@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "driver/wivrn_generic_tracker.h"
 #include "utils/thread_safe.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
@@ -29,18 +30,21 @@
 #include "wivrn_packets.h"
 
 #include <atomic>
+#include <map>
 
 namespace wivrn
 {
 class wivrn_session;
+class wivrn_body_tracker;
 struct clock_offset;
 
 class body_joints_list : public history<body_joints_list, xrt_body_joint_set>
 {
 	wivrn::from_headset::body_type type;
+	wivrn_body_tracker & parent;
 
 public:
-	body_joints_list(wivrn::from_headset::body_type type) : type(type) {}
+	body_joints_list(wivrn::from_headset::body_type type, wivrn_body_tracker & parent) : type(type), parent(parent) {}
 	xrt_body_joint_set interpolate(const xrt_body_joint_set & a, const xrt_body_joint_set & b, float t);
 	xrt_body_joint_set extrapolate(const xrt_body_joint_set & a, const xrt_body_joint_set & b, int64_t ta, int64_t tb, int64_t t);
 
@@ -50,6 +54,8 @@ public:
 
 class wivrn_body_tracker : public xrt_device
 {
+	friend body_joints_list;
+
 	body_joints_list joints_list;
 	std::vector<xrt_input> inputs_array;
 
@@ -58,9 +64,12 @@ class wivrn_body_tracker : public xrt_device
 	thread_safe<xrt_body_skeleton> meta_skeleton;
 	std::atomic_uint32_t meta_skeleton_generation;
 
+protected:
+	std::map<uint32_t, wivrn_generic_tracker> virtual_trackers;
+
 public:
 	using base_t = xrt_device;
-	wivrn_body_tracker(xrt_device * hmd, wivrn_session & cnx);
+	wivrn_body_tracker(xrt_device * hmd, wivrn_session & cnx, std::function<void(xrt_device &)> device_add_callback);
 
 	xrt_result_t update_inputs();
 	xrt_result_t get_body_skeleton(xrt_input_name body_tracking_type, xrt_body_skeleton * out_value);
