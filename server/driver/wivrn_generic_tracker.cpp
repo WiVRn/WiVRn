@@ -22,7 +22,6 @@
 #include "util/u_logging.h"
 #include "utils/method.h"
 #include "wivrn_session.h"
-#include "xrt_cast.h"
 
 #include "math/m_api.h"
 #include "math/m_eigen_interop.hpp"
@@ -70,18 +69,12 @@ xrt_space_relation tracker_pose_list::extrapolate(const xrt_space_relation & a, 
 	return res;
 }
 
-void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::htc_body::pose & pose, const clock_offset & offset)
+void tracker_pose_list::update_tracking(XrTime produced_timestamp, XrTime timestamp, const xrt_space_relation & pose, const clock_offset & offset)
 {
-	xrt_space_relation rel{
-	        .relation_flags = from_pose_flags(pose.flags),
-	        .pose = xrt_cast(pose.pose),
-	        .linear_velocity = xrt_cast(pose.linear_velocity),
-	        .angular_velocity = xrt_cast(pose.angular_velocity),
-	};
-	add_sample(produced_timestamp, timestamp, rel, offset);
+	add_sample(produced_timestamp, timestamp, pose, offset);
 }
 
-wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_session & cnx) :
+wivrn_generic_tracker::wivrn_generic_tracker(std::string name, xrt_device * hmd, wivrn_session & cnx) :
         xrt_device{
                 .name = XRT_DEVICE_VIVE_TRACKER,
                 .device_type = XRT_DEVICE_TYPE_GENERIC_TRACKER,
@@ -97,10 +90,16 @@ wivrn_generic_tracker::wivrn_generic_tracker(int index, xrt_device * hmd, wivrn_
         },
         cnx(cnx)
 {
-	auto unique_name = std::format("WiVRn Generic Tracker #{}", index + 1);
+	auto unique_name = std::format("WiVRn generic tracker ({})", name);
 	strlcpy(str, unique_name.c_str(), std::size(str));
-	auto unique_serial = std::format("wivrn-{}", index + 1);
-	strlcpy(serial, unique_serial.c_str(), std::size(serial));
+	{
+		std::string serial{};
+		serial.reserve(name.size());
+		std::ranges::transform(name, std::back_inserter(serial), [](auto c) { return tolower(c); });
+		std::ranges::replace(serial, ' ', '-');
+		auto unique_serial = std::format("wivrn-{}", serial);
+		strlcpy(this->serial, unique_serial.c_str(), std::size(this->serial));
+	}
 
 	pose_input.name = XRT_INPUT_GENERIC_TRACKER_POSE;
 	pose_input.active = true;
@@ -130,7 +129,7 @@ xrt_result_t wivrn_generic_tracker::get_tracked_pose(xrt_input_name name, int64_
 	return XRT_ERROR_INPUT_UNSUPPORTED;
 }
 
-void wivrn_generic_tracker::update_tracking(XrTime produced_timestamp, XrTime timestamp, const from_headset::htc_body::pose & pose, const clock_offset & offset)
+void wivrn_generic_tracker::update_tracking(XrTime produced_timestamp, XrTime timestamp, const xrt_space_relation & pose, const clock_offset & offset)
 {
 	poses.update_tracking(produced_timestamp, timestamp, pose, offset);
 }
