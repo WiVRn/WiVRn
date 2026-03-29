@@ -22,7 +22,6 @@ The encoder to use, either a single string or object applied to all streams, or 
 When a string it is used, it is equivalent to the `encoder` item of the object.
 
 WiVRn encodes each eye separately, and the alpha channel as one for both eyes. Each stream is processed independently, this may use resources more effectively and reduce latency.
-All the provided encoders are put into groups, groups are executed concurrently and items within a group are processed sequentially.
 
 ### `encoder`
 Default value: `nvenc` if Nvidia GPU and compiled with nvenc, `vaapi` for all other GPU when compiled with ffmpeg, else `x264`.
@@ -45,12 +44,6 @@ Not all encoders support every codec:
 - `nvenc` and `vaapi` support all codecs, except `raw`
 
 If `nvenc` encoder is in use, you can refer to [nvidia website](https://developer.nvidia.com/video-encode-decode-support-matrix) to make sure that your GPU supports encoding with the desired codec.
-
-### `group` (advanced)
-Default value: One value for each encoder type (nvenc, vaapi, vulkan, x264).
-
-Identifier (number) of the encoder group. Encoders with the same identifier are executed sequentially, in the order they are defined in the configuration. Encoders with different identifiers are executed concurrently.
-Default setting will have all encoders of a given type execute sequentially, and different types in parallel.
 
 ### Examples
 1. Simple configuration

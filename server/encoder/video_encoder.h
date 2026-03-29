@@ -37,7 +37,7 @@ namespace wivrn
 {
 
 struct encoder_settings;
-struct wivrn_vk_bundle;
+struct vk_bundle;
 class wivrn_session;
 
 inline const char * encoder_nvenc = "nvenc";
@@ -111,7 +111,7 @@ protected:
 
 public:
 	static std::unique_ptr<video_encoder> create(
-	        wivrn_vk_bundle &,
+	        wivrn::vk_bundle &,
 	        const encoder_settings & settings,
 	        uint8_t stream_idx);
 

@@ -15,13 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include "vk/vk_helpers.h"
 
 #include "video_encoder_vulkan.h"
 
 #include "encoder/encoder_settings.h"
 #include "util/u_logging.h"
-#include "utils/scoped_lock.h"
 #include "utils/wivrn_vk_bundle.h"
 #include <iostream>
 #include <stdexcept>
@@ -157,7 +155,7 @@ vk::VideoFormatPropertiesKHR wivrn::video_encoder_vulkan::select_video_format(
 }
 
 wivrn::video_encoder_vulkan::video_encoder_vulkan(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const vk::VideoCapabilitiesKHR & video_caps,
         const vk::VideoEncodeCapabilitiesKHR & in_encode_caps,
         uint8_t stream_idx,
@@ -378,7 +376,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	                             .layerCount = 1},
 	};
 
-	if (not vk.vk.features.video_maintenance_1)
+	if (not std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(vk.feat).videoMaintenance1)
 	{
 		image_view_template.subresourceRange.baseArrayLayer = 0;
 		for (size_t i = 0; i < num_slots; ++i)
@@ -591,7 +589,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		vk.device.resetFences(*slot_item.fence);
 
 		{
-			wivrn::scoped_lock lock(main_queue ? vk.vk.main_queue->mutex : vk.vk.encode_queue->mutex);
+			std::unique_lock lock(main_queue ? vk.queue_mutex : vk.encode_queue_mutex);
 			auto & queue = main_queue ? vk.queue : vk.encode_queue;
 			queue.submit(vk::SubmitInfo{
 			                     .commandBufferCount = 1,
@@ -961,7 +959,7 @@ void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 	};
 
 	{
-		scoped_lock lock(vk.vk.encode_queue->mutex);
+		std::unique_lock lock(vk.encode_queue_mutex);
 		vk.encode_queue.submit2(vk::SubmitInfo2{
 		                                .waitSemaphoreInfoCount = 1,
 		                                .pWaitSemaphoreInfos = &wait_sem_info,

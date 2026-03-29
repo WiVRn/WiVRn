@@ -1,14 +1,14 @@
-From dfacf60061206ca6f41b8bc44e9cd7166230d77e Mon Sep 17 00:00:00 2001
+From 5dbb5983ab7f5ec1204ff8fe932519c0df7feeed Mon Sep 17 00:00:00 2001
 From: no name <git-am@invalid>
 Date: Sun, 25 Jan 2026 10:09:10 +0100
-Subject: [PATCH 9/9] don't verify GL stuff
+Subject: [PATCH 7/8] don't verify GL stuff
 
 ---
  src/xrt/state_trackers/oxr/oxr_verify.c | 10 ----------
  1 file changed, 10 deletions(-)
 
 diff --git a/src/xrt/state_trackers/oxr/oxr_verify.c b/src/xrt/state_trackers/oxr/oxr_verify.c
-index 68906d7de..239f87fba 100644
+index 8f35222cf..1418a8231 100644
 --- a/src/xrt/state_trackers/oxr/oxr_verify.c
 +++ b/src/xrt/state_trackers/oxr/oxr_verify.c
 @@ -610,16 +610,6 @@ oxr_verify_XrGraphicsBindingOpenGLXlibKHR(struct oxr_logger *log, const XrGraphi

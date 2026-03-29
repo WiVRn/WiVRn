@@ -42,7 +42,7 @@ class wivrn_eye_tracker : public xrt_device
 	wivrn_session & cnx;
 
 public:
-	using base = xrt_device;
+	using base_t = xrt_device;
 	wivrn_eye_tracker(wivrn_session &);
 
 	xrt_result_t update_inputs();

@@ -36,7 +36,7 @@ public:
 } // namespace
 
 wivrn::video_encoder_raw::video_encoder_raw(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx) :
         video_encoder(stream_idx, settings, std::make_unique<dummy_idr_handler>(), true)

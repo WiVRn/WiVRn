@@ -18,7 +18,6 @@
  */
 
 // must be included before vulkan_raii
-#include "vk/vk_helpers.h"
 
 #include "video_encoder_va.h"
 
@@ -156,11 +155,11 @@ vk::Format drm_to_vulkan_fmt(uint32_t drm_fourcc, int bit_depth)
 
 } // namespace
 
-video_encoder_va::video_encoder_va(wivrn_vk_bundle & vk,
+video_encoder_va::video_encoder_va(wivrn::vk_bundle & vk,
                                    const wivrn::encoder_settings & settings,
                                    uint8_t stream_idx) :
         video_encoder_ffmpeg(stream_idx, settings),
-        synchronization2(vk.vk.features.synchronization_2)
+        synchronization2(std::get<vk::PhysicalDeviceVulkan13Features>(vk.feat).synchronization2)
 {
 	auto drm_hw_ctx = make_drm_hw_ctx(vk.physical_device, settings.device);
 	AVBufferRef * tmp;

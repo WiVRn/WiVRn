@@ -1,7 +1,7 @@
-From 42e1e561a98f5c9fd6f757232bd4821124ae9bb3 Mon Sep 17 00:00:00 2001
+From c0d86e77f011f0d75f17e5c30fb20bbf166dfc08 Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Sat, 15 Mar 2025 22:19:48 +0100
-Subject: [PATCH 4/9] st/oxr: forward 0 refresh rate
+Subject: [PATCH 4/8] st/oxr: forward 0 refresh rate
 
 ---
  src/xrt/compositor/main/comp_compositor.c    | 2 +-

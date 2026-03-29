@@ -59,7 +59,7 @@ class wivrn_hmd : public xrt_device
 	xrt_result_t get_visibility_mask(xrt_visibility_mask_type, uint32_t view_index, xrt_visibility_mask **);
 
 public:
-	using base = xrt_device;
+	using base_t = xrt_device;
 	wivrn_hmd(wivrn::wivrn_session * cnx,
 	          const from_headset::headset_info_packet & info);
 

@@ -29,7 +29,7 @@ namespace wivrn
 {
 class video_encoder_vulkan : public video_encoder
 {
-	wivrn_vk_bundle & vk;
+	wivrn::vk_bundle & vk;
 	const vk::VideoEncodeCapabilitiesKHR encode_caps;
 
 	vk::raii::VideoSessionKHR video_session = nullptr;
@@ -74,7 +74,7 @@ protected:
 	vk::VideoEncodeRateControlLayerInfoKHR rate_control_layer;
 	std::optional<vk::VideoEncodeRateControlInfoKHR> rate_control;
 
-	video_encoder_vulkan(wivrn_vk_bundle & vk,
+	video_encoder_vulkan(wivrn::vk_bundle & vk,
 	                     const vk::VideoCapabilitiesKHR & video_caps,
 	                     const vk::VideoEncodeCapabilitiesKHR & encode_caps,
 	                     uint8_t stream_idx,

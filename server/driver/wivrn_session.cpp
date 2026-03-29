@@ -24,9 +24,6 @@
 #include "application.h"
 #include "configuration.h"
 #include "driver/app_pacer.h"
-#include "main/comp_compositor.h"
-#include "main/comp_main_interface.h"
-#include "main/comp_target.h"
 #include "server/ipc_server.h"
 #include "util/u_builders.h"
 #include "util/u_logging.h"
@@ -37,11 +34,9 @@
 
 #include "audio/audio_setup.h"
 #include "wivrn_android_face_tracker.h"
-#include "wivrn_comp_target.h"
 #include "wivrn_config.h"
 #include "wivrn_eye_tracker.h"
 #include "wivrn_fb_face2_tracker.h"
-#include "wivrn_foveation.h"
 #include "wivrn_generic_tracker.h"
 #include "wivrn_htc_face_tracker.h"
 #include "wivrn_ipc.h"
@@ -54,6 +49,7 @@
 #include <algorithm>
 #include <chrono>
 #include <magic_enum.hpp>
+#include <multi/comp_multi_interface.h>
 #include <stdexcept>
 #include <string.h>
 #include <utility>
@@ -69,41 +65,6 @@
 
 namespace wivrn
 {
-
-struct wivrn_comp_target_factory : public comp_target_factory
-{
-	wivrn_session & session;
-
-	wivrn_comp_target_factory(wivrn_session & session) :
-	        comp_target_factory{
-	                .name = "WiVRn",
-	                .identifier = "wivrn",
-	                .requires_vulkan_for_create = false,
-	                .is_deferred = false,
-	                .required_instance_version = VK_MAKE_VERSION(1, 3, 0),
-	                .required_instance_extensions = wivrn_comp_target::wanted_instance_extensions.data(),
-	                .required_instance_extension_count = wivrn_comp_target::wanted_instance_extensions.size(),
-	                .optional_device_extensions = wivrn_comp_target::wanted_device_extensions.data(),
-	                .optional_device_extension_count = wivrn_comp_target::wanted_device_extensions.size(),
-	                .detect = wivrn_comp_target_factory::detect,
-	                .create_target = wivrn_comp_target_factory::create_target},
-	        session(session)
-	{
-	}
-
-	static bool detect(const struct comp_target_factory * ctf, struct comp_compositor * c)
-	{
-		return true;
-	}
-
-	static bool create_target(const struct comp_target_factory * ctf, struct comp_compositor * c, struct comp_target ** out_ct)
-	{
-		auto self = (wivrn_comp_target_factory *)ctf;
-		self->session.comp_target = new wivrn_comp_target(self->session, c);
-		*out_ct = self->session.comp_target;
-		return true;
-	}
-};
 
 bool is_forced_extension(const char * ext_name)
 {
@@ -122,14 +83,15 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
         },
         connection(std::move(connection)),
         headset_info(this->connection->info()),
+        settings(get_info().settings),
+        compositor(*this),
         xrt_system(system),
         control(*this->connection),
         hmd(this, get_info()),
         left_controller(XRT_DEVICE_TOUCH_CONTROLLER, 0, &hmd, this),
         right_controller(XRT_DEVICE_TOUCH_CONTROLLER, 1, &hmd, this),
         left_hand_interaction(XRT_DEVICE_EXT_HAND_INTERACTION, 0, &hmd, this),
-        right_hand_interaction(XRT_DEVICE_EXT_HAND_INTERACTION, 1, &hmd, this),
-        settings(get_info().settings)
+        right_hand_interaction(XRT_DEVICE_EXT_HAND_INTERACTION, 1, &hmd, this)
 {
 	try
 	{
@@ -318,10 +280,11 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 		return XRT_ERROR_DEVICE_CREATION_FAILED;
 	}
 
-	send_to_main(self->get_info());
+	const auto & info = self->get_info();
+	send_to_main(info);
 
-	wivrn_comp_target_factory ctf(*self);
-	auto xret = comp_main_create_system_compositor(&self->hmd, &ctf, &self->app_pacers, out_xsysc);
+	auto sys_info{self->compositor.sys_info()};
+	auto xret = comp_multi_create_system_compositor(&self->compositor.base, &self->app_pacers, &sys_info, false, out_xsysc);
 	if (xret != XRT_SUCCESS)
 	{
 		U_LOG_E("Failed to create system compositor: %s", u_str_xrt_result(xret));
@@ -416,11 +379,7 @@ void wivrn_session::pause_session()
 	if (audio_handle)
 		audio_handle->pause();
 
-	{
-		std::shared_lock lock(comp_target_mutex);
-		if (comp_target)
-			comp_target->pause();
-	}
+	// FIXME: pause compositor
 }
 
 void wivrn_session::resume_session()
@@ -436,21 +395,18 @@ void wivrn_session::resume_session()
 		send_control(to_headset::feature_control{to_headset::feature_control::hid_input, true});
 
 	{
-		std::shared_lock lock(comp_target_mutex);
-		if (comp_target)
+		float target_fps = default_rate();
+		auto current_fps = compositor.get_refresh_rate();
+
+		if (target_fps != current_fps)
 		{
-			float target_fps = get_default_rate(get_info(), *get_settings());
-
-			if (target_fps != comp_target->get_refresh_rate())
-			{
-				(*this)(from_headset::refresh_rate_changed{
-				        .from = comp_target->get_refresh_rate(),
-				        .to = target_fps,
-				});
-			}
-
-			comp_target->resume();
+			(*this)(from_headset::refresh_rate_changed{
+			        .from = current_fps,
+			        .to = target_fps,
+			});
 		}
+
+		// FIXME: resume compositor
 	}
 
 	if (get_info().user_presence)
@@ -482,10 +438,12 @@ bool wivrn_session::connected()
 	return connection->is_active();
 }
 
-void wivrn_session::unset_comp_target()
+float wivrn_session::default_rate()
 {
-	std::lock_guard lock(comp_target_mutex);
-	comp_target = nullptr;
+	auto s = settings.lock();
+	if (s->preferred_refresh_rate)
+		return s->preferred_refresh_rate;
+	return headset_info.available_refresh_rates.back();
 }
 
 void wivrn_session::add_tracking_request(device_id device, int64_t at_ns, int64_t produced_ns, int64_t now)
@@ -508,11 +466,7 @@ void wivrn_session::operator()(const from_headset::settings_changed & settings)
 	*this->settings.lock() = settings;
 
 	if (settings.bitrate_bps != 0)
-	{
-		std::lock_guard lock(comp_target_mutex);
-		if (comp_target)
-			comp_target->set_bitrate(settings.bitrate_bps);
-	}
+		compositor.set_bitrate(settings.bitrate_bps);
 
 	wivrn_ipc_socket_monado->send(std::move(settings));
 }
@@ -654,11 +608,7 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 
 	if (eye_tracker)
 		eye_tracker->update_tracking(tracking, offset);
-	{
-		std::shared_lock lock(comp_target_mutex);
-		if (comp_target)
-			comp_target->foveation->update_tracking(tracking, offset);
-	}
+	compositor.update_tracking(tracking);
 
 	if (android_face_tracker)
 		android_face_tracker->update_tracking(tracking, offset);
@@ -670,9 +620,7 @@ void wivrn_session::operator()(const from_headset::tracking & tracking)
 
 void wivrn_session::operator()(from_headset::override_foveation_center && foveation_center)
 {
-	std::shared_lock lock(comp_target_mutex);
-	if (comp_target)
-		comp_target->foveation->update_foveation_center_override(foveation_center);
+	compositor.update_foveation_center_override(foveation_center);
 }
 
 void wivrn_session::operator()(from_headset::derived_pose && derived)
@@ -738,11 +686,7 @@ void wivrn_session::operator()(from_headset::feedback && feedback)
 	clock_offset o = offset_est.get_offset();
 	if (not o)
 		return;
-	{
-		std::shared_lock lock(comp_target_mutex);
-		if (comp_target)
-			comp_target->on_feedback(feedback, o);
-	}
+	compositor.on_feedback(feedback, o);
 
 	if (feedback.received_first_packet)
 		dump_time("receive_begin", feedback.frame_index, o.from_headset(feedback.received_first_packet), feedback.stream_index);
@@ -811,11 +755,7 @@ void wivrn_session::operator()(from_headset::user_presence_changed && event)
 
 void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
 {
-	{
-		std::shared_lock lock(comp_target_mutex);
-		if (comp_target)
-			comp_target->set_refresh_rate(event.to);
-	}
+	compositor.set_refresh_rate(event.to);
 	push_event(
 	        {
 	                .display = {
@@ -968,9 +908,7 @@ void wivrn_session::operator()(to_monado::disconnect &&)
 
 void wivrn_session::operator()(to_monado::set_bitrate && data)
 {
-	std::shared_lock lock(comp_target_mutex);
-	if (comp_target)
-		comp_target->set_bitrate(data.bitrate_bps);
+	compositor.set_bitrate(data.bitrate_bps);
 }
 
 void wivrn_session::operator()(to_headset::stream_tab_change && data)
@@ -1080,22 +1018,18 @@ void wivrn_session::run_worker(std::stop_token stop)
 			const bool do_control = control.advance(now);
 			if (do_refresh or do_control)
 			{
-				std::shared_lock lock(comp_target_mutex);
-				if (comp_target)
+				if (do_refresh)
 				{
-					if (do_refresh)
 					{
-						{
-							scoped_lock lock(xrt_system.sessions.mutex);
-							if (xrt_system.sessions.count == 0)
-								comp_target->reset_requested_refresh_rate();
-						}
-						if (comp_target->get_requested_refresh_rate() == 0)
-							refresh.adjust(*connection);
+						scoped_lock lock(xrt_system.sessions.mutex);
+						if (xrt_system.sessions.count == 0)
+							compositor.request_display_refresh_rate(0);
 					}
-					if (do_control)
-						control.resolve(comp_target->pacer.get_frame_duration(), tracking_latency);
+					if (compositor.get_requested_refresh_rate() == 0)
+						refresh.adjust(*connection);
 				}
+				if (do_control)
+					control.resolve(compositor.get_frame_duration(), tracking_latency);
 			}
 			poll_session_loss();
 		}

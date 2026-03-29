@@ -149,7 +149,7 @@ void video_encoder_nvenc::set_init_params_fps(float framerate)
 }
 
 video_encoder_nvenc::video_encoder_nvenc(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx) :
         video_encoder(stream_idx, settings, std::make_unique<default_idr_handler>(), true),

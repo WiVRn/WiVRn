@@ -87,7 +87,7 @@ void video_encoder_x264::InsertInPendingNal(pending_nal && nal)
 }
 
 video_encoder_x264::video_encoder_x264(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx) :
         video_encoder(stream_idx, settings, std::make_unique<default_idr_handler>(), false)

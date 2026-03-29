@@ -37,7 +37,7 @@ class pacing_app_factory : public u_pacing_app_factory
 	void remove_app(app_pacer *);
 
 public:
-	using base = u_pacing_app_factory;
+	using base_t = u_pacing_app_factory;
 
 	pacing_app_factory();
 	xrt_result_t create(struct u_pacing_app ** out_upa);

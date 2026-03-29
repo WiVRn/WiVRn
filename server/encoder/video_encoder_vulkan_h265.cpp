@@ -60,7 +60,7 @@ static uint32_t find_msb(uint32_t v)
 }
 
 wivrn::video_encoder_vulkan_h265::video_encoder_vulkan_h265(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const vk::VideoCapabilitiesKHR & video_caps,
         const vk::VideoEncodeCapabilitiesKHR & encode_caps,
         uint8_t stream_idx,
@@ -269,7 +269,7 @@ static auto get_video_caps(vk::raii::PhysicalDevice & phys_dev, int bit_depth)
 }
 
 std::unique_ptr<wivrn::video_encoder_vulkan_h265> wivrn::video_encoder_vulkan_h265::create(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx)
 {

@@ -91,6 +91,11 @@ if (WIVRN_BUILD_SERVER)
 
 			audio/audio_setup.cpp
 
+			compositor/compositor.cpp
+			compositor/layer_squasher.cpp
+			compositor/foveation.cpp
+			compositor/pacer.cpp
+
 			encoder/encoder_settings.cpp
 			encoder/idr_handler.cpp
 			encoder/video_encoder.cpp
@@ -104,15 +109,12 @@ if (WIVRN_BUILD_SERVER)
 			driver/tracking_control.cpp
 			driver/view_list.cpp
 			driver/wivrn_hmd.cpp
-			driver/wivrn_pacer.cpp
-			driver/wivrn_comp_target.cpp
 			driver/wivrn_controller.cpp
 			driver/wivrn_eye_tracker.cpp
 			driver/wivrn_android_face_tracker.cpp
 			driver/wivrn_fb_face2_tracker.cpp
 			driver/wivrn_htc_face_tracker.cpp
 			driver/wivrn_generic_tracker.cpp
-			driver/wivrn_foveation.cpp
 			driver/wivrn_uinput.cpp
 			driver/wivrn_session.cpp
 			driver/wivrn_connection.cpp
@@ -226,7 +228,9 @@ if (WIVRN_BUILD_SERVER)
 			aux_os
 			aux_util
 			aux_vk
-			comp_main
+			comp_multi
+			comp_render
+			comp_util
 			ipc_server
 			xrt-external-openxr
 			xrt-interfaces
@@ -237,6 +241,15 @@ if (WIVRN_BUILD_SERVER)
 			wivrn-common-server
 			wivrn-external
 			nlohmann_json::nlohmann_json
+		)
+
+	include(CompileGLSL)
+	FetchContent_GetProperties(monado SOURCE_DIR _monado_src)
+	wivrn_compile_glsl(wivrn-server
+		TARGET_ENV vulkan1.3
+		SHADERS
+			"${_monado_src}/src/xrt/compositor/shaders/layer.comp"
+			"${CMAKE_CURRENT_SOURCE_DIR}/compositor/shaders/foveation.comp"
 		)
 
 	target_compile_definitions(wivrn-server PRIVATE JSON_DIAGNOSTICS=1)

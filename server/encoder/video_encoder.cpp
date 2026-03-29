@@ -101,7 +101,7 @@ std::shared_ptr<video_encoder::sender> video_encoder::sender::get()
 }
 
 std::unique_ptr<video_encoder> video_encoder::create(
-        wivrn_vk_bundle & wivrn_vk,
+        wivrn::vk_bundle & wivrn_vk,
         const encoder_settings & settings,
         uint8_t stream_idx)
 {

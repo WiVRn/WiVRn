@@ -29,7 +29,6 @@
 namespace wivrn
 {
 struct encoder_settings;
-struct wivrn_vk_bundle;
 
 class video_encoder_va : public video_encoder_ffmpeg
 {
@@ -46,7 +45,7 @@ class video_encoder_va : public video_encoder_ffmpeg
 	bool synchronization2 = false;
 
 public:
-	video_encoder_va(wivrn_vk_bundle &, const wivrn::encoder_settings & settings, uint8_t stream_index);
+	video_encoder_va(wivrn::vk_bundle &, const wivrn::encoder_settings & settings, uint8_t stream_index);
 
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 

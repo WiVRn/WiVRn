@@ -1,0 +1,136 @@
+/*
+ * WiVRn VR streaming
+ * Copyright (C) 2026  Patrick Nicolas <patricknicolas@laposte.net>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+// Copyright 2021-2022, Collabora Ltd.
+// Author: Jakob Bornecrantz <jakob@collabora.com>
+// SPDX-License-Identifier: BSL-1.0
+
+#version 460
+#extension GL_KHR_shader_subgroup_basic: require
+#extension GL_KHR_shader_subgroup_shuffle: require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#define MAX_DIM 4097
+#define MAX_SAMPLES 4
+
+layout(set = 0, binding = 0) uniform sampler2D source[2];
+layout(set = 0, binding = 1, std430) buffer restrict Config
+{
+	// foveation parameters
+	uint x[2*MAX_DIM];
+	uint y[2*MAX_DIM];
+	// output parameters
+	uint alpha_width;
+} ubo;
+
+layout(set = 0, binding = 2) uniform writeonly restrict image2DArray luma;
+layout(set = 0, binding = 3) uniform writeonly restrict image2DArray chroma;
+
+const mat3 color_space = mat3(
+//         R        G        B
+/* Y */ 0.2126,  0.7152,  0.0722,
+/* Cb*/-0.1146, -0.3854,  0.5,
+/* Cr*/ 0.5   , -0.4542, -0.0458);
+
+vec3 rgb_to_ycbcr(vec3 color)
+{
+	return transpose(color_space) * color + vec3(0, 0.5, 0.5);
+}
+
+float from_linear_to_srgb_channel(float value)
+{
+	if (value < 0.0031308) {
+		return 12.92 * value;
+	} else {
+		return 1.055 * pow(value, 1.0 / 2.4) - 0.055;
+	}
+}
+
+vec3 from_linear_to_srgb(vec3 linear_rgb)
+{
+	return vec3(
+		from_linear_to_srgb_channel(linear_rgb.r),
+		from_linear_to_srgb_channel(linear_rgb.g),
+		from_linear_to_srgb_channel(linear_rgb.b)
+	);
+}
+
+void main()
+{
+	uint iz = gl_GlobalInvocationID.z;
+
+	uint iy = gl_GlobalInvocationID.y;
+	uint ymin = ubo.y[MAX_DIM * iz + iy];
+	uint ymax = ubo.y[MAX_DIM * iz + iy + 1];
+	if (ymin == ymax)
+		return;
+	if (ymin > ymax)
+	{
+		uint tmp = ymin;
+		ymin = ymax;
+		ymax = tmp;
+	}
+	uint ix = gl_GlobalInvocationID.x;
+
+	uint xmin = ubo.x[MAX_DIM * iz + ix];
+	uint xmax = ubo.x[MAX_DIM * iz + ix + 1];
+	if (xmin == xmax)
+		return;
+
+	uint xstep = (xmax - xmin + MAX_SAMPLES - 1) / MAX_SAMPLES;
+	uint ystep = (ymax - ymin + MAX_SAMPLES - 1) / MAX_SAMPLES;
+
+	vec4 colour = vec4(0);
+	uint count = 0;
+	for (uint y = ymin ; y < ymax; y += ystep) {
+		for (uint x = xmin ; x < xmax; x += xstep) {
+			colour += texelFetch(source[iz], ivec2(x, y), 0);
+			++count;
+		}
+	}
+	colour /= count;
+	colour.xyz = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
+
+	imageStore(luma, ivec3(ix, iy, iz), vec4(colour.x));
+
+	vec4 sum = colour;
+	for (uint i = 0 ; i < gl_SubgroupSize; ++i)
+	{
+		uvec3 other = subgroupShuffle(gl_GlobalInvocationID, i);
+		vec4 c = subgroupShuffle(colour, i);
+		if (
+			other == gl_GlobalInvocationID + uvec3(1, 0, 0)
+			|| other == gl_GlobalInvocationID + uvec3(0, 1, 0)
+			|| other == gl_GlobalInvocationID + uvec3(1, 1, 0))
+		{
+			sum += c;
+		}
+	}
+
+	if (ix %2 == 0 && iy %2 == 0)
+	{
+		// actual chroma
+		imageStore(chroma, ivec3(gl_GlobalInvocationID.xy/2, iz), vec4(sum.y, sum.z, 0, 0) / 4);
+
+		// alpha in luma
+		ivec2 offset = ivec2(ubo.alpha_width * iz, 0);
+		imageStore(luma, ivec3(offset.xy + gl_GlobalInvocationID.xy/2, 2), vec4(sum.w, 0, 0, 0) / 4);
+		imageStore(chroma, ivec3(offset.xy + gl_GlobalInvocationID.xy/2, 2), vec4(0.5, 0.5, 0, 0));
+	}
+}

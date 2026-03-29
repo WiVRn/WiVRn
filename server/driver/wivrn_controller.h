@@ -50,7 +50,7 @@ class wivrn_controller : public xrt_device
 	wivrn::wivrn_session * cnx;
 
 public:
-	using base = xrt_device;
+	using base_t = xrt_device;
 	wivrn_controller(xrt_device_name name, int hand_id, xrt_device * hmd, wivrn::wivrn_session * cnx);
 
 	xrt_result_t update_inputs();

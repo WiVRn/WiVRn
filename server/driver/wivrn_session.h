@@ -21,6 +21,7 @@
 
 #include "app_pacer.h"
 #include "clock_offset.h"
+#include "compositor/compositor.h"
 #include "inplace_vector.hpp"
 #include "tracking_control.h"
 #include "utils/thread_safe.h"
@@ -42,7 +43,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <shared_mutex>
 #include <thread>
 
 struct ipc_server;
@@ -59,14 +59,15 @@ class wivrn_fb_face2_tracker;
 class wivrn_htc_face_tracker;
 class wivrn_generic_tracker;
 struct audio_device;
-struct wivrn_comp_target;
-struct wivrn_comp_target_factory;
 
 class wivrn_session : public xrt_system_devices
 {
-	friend wivrn_comp_target_factory;
 	std::unique_ptr<wivrn_connection> connection;
 	from_headset::headset_info_packet headset_info;
+	// run-time editable settings
+	thread_safe<from_headset::settings_changed> settings;
+
+	wivrn::compositor compositor;
 	pacing_app_factory app_pacers;
 
 	u_system & xrt_system;
@@ -100,9 +101,6 @@ class wivrn_session : public xrt_system_devices
 	beman::inplace_vector::inplace_vector<wivrn_generic_tracker, from_headset::body_tracking::max_tracked_poses> generic_trackers;
 	std::optional<wivrn_uinput> uinput_handler;
 
-	std::shared_mutex comp_target_mutex;
-	wivrn_comp_target * comp_target;
-
 	clock_offset_estimator offset_est;
 	std::atomic<XrDuration> tracking_latency; // production to reception time
 
@@ -110,9 +108,6 @@ class wivrn_session : public xrt_system_devices
 	std::ofstream feedback_csv;
 
 	std::unique_ptr<audio_device> audio_handle;
-
-	// run-time editable settings
-	thread_safe<from_headset::settings_changed> settings;
 
 	// when sessions shall be destroyed, key is client id, value is timestamp
 	thread_safe<std::map<uint32_t, int64_t>> session_loss;
@@ -123,7 +118,7 @@ class wivrn_session : public xrt_system_devices
 	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
 
 public:
-	using base = xrt_system_devices;
+	using base_t = xrt_system_devices;
 	~wivrn_session();
 
 	static xrt_result_t create_session(std::unique_ptr<wivrn_connection> connection,
@@ -145,12 +140,12 @@ public:
 		return headset_info;
 	};
 
+	float default_rate();
+
 	locked<from_headset::settings_changed> get_settings()
 	{
 		return settings.lock();
 	}
-
-	void unset_comp_target();
 
 	wivrn_hmd & get_hmd()
 	{

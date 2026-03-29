@@ -70,7 +70,7 @@ static StdVideoH264LevelIdc compute_level(const StdVideoH264SequenceParameterSet
 }
 
 wivrn::video_encoder_vulkan_h264::video_encoder_vulkan_h264(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const vk::VideoCapabilitiesKHR & video_caps,
         const vk::VideoEncodeCapabilitiesKHR & encode_caps,
         uint8_t stream_idx,
@@ -210,7 +210,7 @@ auto get_video_caps(vk::raii::PhysicalDevice & phys_dev)
 }
 
 std::unique_ptr<wivrn::video_encoder_vulkan_h264> wivrn::video_encoder_vulkan_h264::create(
-        wivrn_vk_bundle & vk,
+        wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx)
 {

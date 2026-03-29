@@ -19,12 +19,12 @@
 #include "encoder_settings.h"
 
 #include "driver/configuration.h"
-#include "driver/wivrn_comp_target.h"
+#include "driver/wivrn_session.h"
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 #include "video_encoder.h"
-
 #include "wivrn_packets.h"
+
 #include <magic_enum.hpp>
 #include <string>
 #include <vulkan/vulkan.hpp>
@@ -46,6 +46,7 @@ static const double passthrough_bitrate_factor = 0.05;
 
 static void split_bitrate(std::array<wivrn::encoder_settings, 3> & encoders, uint64_t bitrate)
 {
+	assert(bitrate > 0);
 	double total_weight = 0;
 	for (auto [i, encoder]: std::ranges::enumerate_view(encoders))
 	{
@@ -75,22 +76,13 @@ static void split_bitrate(std::array<wivrn::encoder_settings, 3> & encoders, uin
 
 void print_encoders(const std::array<wivrn::encoder_settings, 3> & encoders)
 {
-	int group = -1;
 	std::stringstream str;
 	str << "Encoder configuration:";
 	for (auto & encoder: encoders)
 	{
-		if (encoder.group != group)
-		{
-			group = encoder.group;
-			str << "\n\t* Group " << group << ":";
-		}
-		else
-			str << "\n";
-
-		str << "\n\t\t" << encoder.encoder_name << " (" << magic_enum::enum_name(encoder.codec) << " " << encoder.bit_depth << "-bit)"
-		    << "\n\t\tsize: " << encoder.width << "x" << encoder.height
-		    << "\n\t\tbitrate: " << int(encoder.bitrate / 100'000) / 10. << "Mbit/s";
+		str << "\n\t* " << encoder.encoder_name << " (" << magic_enum::enum_name(encoder.codec) << " " << encoder.bit_depth << "-bit)"
+		    << "\n\t  size: " << encoder.width << "x" << encoder.height
+		    << "\n\t  bitrate: " << int(encoder.bitrate / 100'000) / 10. << "Mbit/s";
 	}
 	U_LOG_I("%s", str.str().c_str());
 }
@@ -111,7 +103,7 @@ namespace
 {
 class prober
 {
-	wivrn_vk_bundle & vk;
+	wivrn::vk_bundle & vk;
 	const from_headset::headset_info_packet & info;
 	const bool nvidia;
 
@@ -211,7 +203,7 @@ class prober
 #endif
 
 public:
-	prober(wivrn_vk_bundle & vk, const from_headset::headset_info_packet & info) :
+	prober(wivrn::vk_bundle & vk, const from_headset::headset_info_packet & info) :
 	        vk(vk), info(info), nvidia(is_nvidia(vk.physical_device)) {}
 
 	std::pair<std::string, video_codec> select_encoder(const configuration::encoder & config)
@@ -283,28 +275,23 @@ static uint16_t align(uint16_t value, uint16_t alignment)
 	return ((value + alignment - 1) / alignment) * alignment;
 }
 
-std::array<encoder_settings, 3> get_encoder_settings(wivrn_vk_bundle & bundle, const from_headset::headset_info_packet & info, const from_headset::settings_changed & settings)
+std::array<encoder_settings, 3> get_encoder_settings(wivrn::vk_bundle & bundle, wivrn_session & session)
 {
 	configuration config;
 
 	std::array<wivrn::encoder_settings, 3> res;
+	const auto & info = session.get_info();
+	const auto settings = *session.get_settings();
 
 	prober prober{bundle, info};
-	std::unordered_map<std::string, int> groups;
-	int next_group = 0;
 
 	for (auto [src, dst]: std::ranges::zip_view(config.encoders, res))
 	{
-		dst.fps = get_default_rate(info, settings);
+		dst.fps = session.default_rate();
 		dst.options = src.options;
 		dst.device = src.device;
 
 		std::tie(dst.encoder_name, dst.codec) = prober.select_encoder(src);
-
-		auto [it, inserted] = groups.emplace(dst.encoder_name, next_group);
-		dst.group = it->second;
-		if (inserted)
-			++next_group;
 	}
 
 	auto width = align(info.stream_eye_width, 64);

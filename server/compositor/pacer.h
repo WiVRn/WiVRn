@@ -33,7 +33,7 @@ namespace wivrn
 
 struct clock_offset;
 
-class wivrn_pacer
+class pacer
 {
 public:
 	struct frame_info
@@ -44,7 +44,7 @@ public:
 	};
 
 private:
-	std::mutex mutex;
+	mutable std::mutex mutex;
 	uint64_t frame_duration_ns;
 	int64_t last_ns = 0;
 	int64_t frame_id = 0;
@@ -73,10 +73,10 @@ private:
 	std::array<frame_info, 8> in_flight_frames;
 
 public:
-	wivrn_pacer(uint64_t frame_duration);
-	~wivrn_pacer();
+	pacer(uint64_t frame_duration);
+	~pacer();
 
-	uint64_t get_frame_duration();
+	uint64_t get_frame_duration() const;
 	void set_frame_duration(uint64_t frame_duration);
 
 	void predict(

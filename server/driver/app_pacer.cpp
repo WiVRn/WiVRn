@@ -56,7 +56,7 @@ class app_pacer : public u_pacing_app
 	}
 
 public:
-	using base = u_pacing_app;
+	using base_t = u_pacing_app;
 
 	app_pacer(pacing_app_factory & parent) :
 	        u_pacing_app{

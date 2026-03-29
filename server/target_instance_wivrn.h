@@ -39,7 +39,7 @@ class instance : public xrt_instance
 	ipc_server * server = nullptr;
 
 public:
-	using base = xrt_instance;
+	using base_t = xrt_instance;
 	instance();
 	void set_ipc_server(ipc_server *);
 };

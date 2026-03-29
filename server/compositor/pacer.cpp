@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "wivrn_pacer.h"
+#include "pacer.h"
 #include "driver/clock_offset.h"
 #include "os/os_time.h"
 #include <algorithm>
@@ -41,7 +41,7 @@ static T lerp_mod(T a, T b, double t, T mod)
 	return T(std::lerp(a, b, t)) % mod;
 }
 
-wivrn_pacer::wivrn_pacer(uint64_t frame_duration) :
+pacer::pacer(uint64_t frame_duration) :
         frame_duration_ns(frame_duration),
         frame_times(5000),
         frame_times_compute(frame_times),
@@ -70,25 +70,25 @@ wivrn_pacer::wivrn_pacer(uint64_t frame_duration) :
         })
 {}
 
-wivrn_pacer::~wivrn_pacer()
+pacer::~pacer()
 {
 	worker.request_stop();
 	compute_cv.notify_all();
 }
 
-uint64_t wivrn_pacer::get_frame_duration()
+uint64_t pacer::get_frame_duration() const
 {
 	std::lock_guard lock(mutex);
 	return frame_duration_ns;
 }
 
-void wivrn_pacer::set_frame_duration(uint64_t frame_duration_ns)
+void pacer::set_frame_duration(uint64_t frame_duration_ns)
 {
 	std::lock_guard lock(mutex);
 	this->frame_duration_ns = frame_duration_ns;
 }
 
-void wivrn_pacer::predict(
+void pacer::predict(
         int64_t & frame_id,
         int64_t & out_wake_up_time_ns,
         int64_t & out_desired_present_time_ns,
@@ -122,7 +122,7 @@ void wivrn_pacer::predict(
 	out_present_slop_ns = slop_ns;
 }
 
-void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, const clock_offset & offset)
+void pacer::on_feedback(const wivrn::from_headset::feedback & feedback, const clock_offset & offset)
 {
 	if (feedback.times_displayed > 1 or not feedback.blitted)
 		return;
@@ -156,7 +156,7 @@ void wivrn_pacer::on_feedback(const wivrn::from_headset::feedback & feedback, co
 	if (feedback.displayed and feedback.displayed > feedback.blitted and feedback.displayed < feedback.blitted + 100'000'000)
 		mean_render_to_display_ns = std::lerp(mean_render_to_display_ns, feedback.displayed - feedback.blitted, 0.1);
 }
-void wivrn_pacer::mark_timing_point(
+void pacer::mark_timing_point(
         comp_target_timing_point point,
         int64_t frame_id,
         int64_t when_ns)
@@ -185,7 +185,7 @@ void wivrn_pacer::mark_timing_point(
 	}
 }
 
-wivrn_pacer::frame_info wivrn_pacer::present_to_info(int64_t present)
+pacer::frame_info pacer::present_to_info(int64_t present)
 {
 	std::lock_guard lock(mutex);
 	for (const auto & info: in_flight_frames)
@@ -197,7 +197,7 @@ wivrn_pacer::frame_info wivrn_pacer::present_to_info(int64_t present)
 	return {};
 }
 
-void wivrn_pacer::reset()
+void pacer::reset()
 {
 	std::lock_guard lock(mutex);
 	std::ranges::fill(frame_times, frame_time{});
