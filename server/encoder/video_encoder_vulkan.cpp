@@ -633,7 +633,6 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 			        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
 			        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
 			        .dstAccessMask = vk::AccessFlagBits2::eVideoEncodeReadKHR,
-			        .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
 			        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
 			        .srcQueueFamilyIndex = vk.queue_family_index,
 			        .dstQueueFamilyIndex = vk.encode_queue_family_index,

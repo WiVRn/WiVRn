@@ -118,6 +118,13 @@ public:
 	video_encoder(uint8_t stream_idx, const encoder_settings & settings, std::unique_ptr<idr_handler>, bool async_send);
 	virtual ~video_encoder();
 
+	// true when present_image will perform a copy
+	// and requires the image to be in transfer src layout
+	virtual bool need_copy() const
+	{
+		return true;
+	}
+
 	// return value: true if image should be transitioned to queue and layout for vulkan video encode
 	// semaphore to be signaled by the compositor
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr,

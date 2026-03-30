@@ -382,18 +382,20 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        src_rect,
 	        src_fov);
 
-	// FIXME: skip transfer layout in vulkan encode case
-	target_barrier.srcAccessMask = target_barrier.dstAccessMask;
-	target_barrier.srcStageMask = target_barrier.dstStageMask;
-	target_barrier.oldLayout = target_barrier.newLayout;
-	target_barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
-	target_barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
-	target_barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
+	if (std::ranges::any_of(encoders, &video_encoder::need_copy))
+	{
+		target_barrier.srcAccessMask = target_barrier.dstAccessMask;
+		target_barrier.srcStageMask = target_barrier.dstStageMask;
+		target_barrier.oldLayout = target_barrier.newLayout;
+		target_barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
+		target_barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
+		target_barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
 
-	cmd.pipelineBarrier2({
-	        .imageMemoryBarrierCount = 1,
-	        .pImageMemoryBarriers = &target_barrier,
-	});
+		cmd.pipelineBarrier2({
+		        .imageMemoryBarrierCount = 1,
+		        .pImageMemoryBarriers = &target_barrier,
+		});
+	}
 	cmd.end();
 
 	{
@@ -443,7 +445,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
 		        .srcAccessMask = vk::AccessFlagBits2::eMemoryRead,
 		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
-		        .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+		        .oldLayout = target_barrier.newLayout,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
 		        .srcQueueFamilyIndex = vk.queue_family_index,
 		        .dstQueueFamilyIndex = vk.encode_queue_family_index,

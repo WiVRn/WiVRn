@@ -96,6 +96,10 @@ protected:
 	virtual vk::ExtensionProperties std_header_version() = 0;
 
 public:
+	bool need_copy() const override
+	{
+		return slot_data[0].tmp_image;
+	}
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
 	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
 	void post_submit(uint8_t slot) override;
