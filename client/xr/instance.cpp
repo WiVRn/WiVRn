@@ -105,9 +105,10 @@ static std::pair<XrVersion, XrInstance> create_instance(XrInstanceCreateInfo & i
 			case model::htc_vive_focus_3:
 			case model::htc_vive_xr_elite:
 			case model::htc_vive_focus_vision:
+			case model::lynx_r1:
 				if (version > XR_API_VERSION_1_0)
 				{
-					spdlog::info("skip OpenXR 1.1 for HTC");
+					spdlog::info("skip OpenXR 1.1 for HTC/Lynx");
 					continue;
 				}
 			default:
