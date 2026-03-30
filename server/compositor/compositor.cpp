@@ -506,13 +506,12 @@ xrt_result_t compositor::request_display_refresh_rate(float hz)
 	try
 	{
 		session.send_control(to_headset::refresh_rate_change{.fps = hz});
-		return XRT_SUCCESS;
 	}
 	catch (std::exception & e)
 	{
 		U_LOG_W("refresh rate change failed: %s", e.what());
-		return XRT_ERROR_IPC_FAILURE;
 	}
+	return XRT_SUCCESS;
 }
 
 int compositor::acquire_image()
