@@ -68,7 +68,7 @@ os_mutex copy_mutex(std::mutex & m)
 
 const comp_swapchain_image & get_layer_image(const comp_layer & layer, uint32_t swapchain_index, uint32_t image_index)
 {
-	return ((struct comp_swapchain *)(comp_layer_get_swapchain(&layer, swapchain_index)))->images[image_index];
+	return reinterpret_cast<struct comp_swapchain *>(comp_layer_get_swapchain(&layer, swapchain_index))->images[image_index];
 }
 
 std::array<vk::Format, 3> image_formats(int bit_depth)
