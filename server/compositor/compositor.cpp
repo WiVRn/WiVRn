@@ -664,6 +664,7 @@ compositor::~compositor()
 
 xrt_system_compositor_info compositor::sys_info() const
 {
+	const auto & info = session.get_info();
 	auto [prop, dev_id] = vk.physical_device.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceIDProperties>();
 	xrt_system_compositor_info res{
 	        .view_config_count = 1,
@@ -679,14 +680,16 @@ xrt_system_compositor_info compositor::sys_info() const
 	                XRT_BLEND_MODE_OPAQUE,
 	                XRT_BLEND_MODE_ALPHA_BLEND,
 	        },
-	        .supported_blend_mode_count = uint8_t(1 + session.get_info().passthrough),
+	        .supported_blend_mode_count = uint8_t(1 + info.passthrough),
+	        .refresh_rate_count = std::min<uint32_t>(info.available_refresh_rates.size(), std::size(res.refresh_rates_hz)),
 	        .supports_fov_mutable = true,
 	};
 
 	std::ranges::copy(dev_id.deviceUUID, res.compositor_vk_deviceUUID.data);
 	std::ranges::copy(dev_id.deviceUUID, res.client_vk_deviceUUID.data);
+	std::ranges::copy(std::span(info.available_refresh_rates).subspan(0, res.refresh_rate_count), res.refresh_rates_hz);
 
-	const auto extent = render_extent(session.get_info());
+	const auto extent = render_extent(info);
 	for (auto & view: std::span(res.view_configs[0].views, res.view_configs[0].view_count))
 	{
 		view = {
