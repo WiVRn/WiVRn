@@ -236,11 +236,6 @@ void start_server(configuration config)
 	}
 	else if (server_pid == 0)
 	{
-		// foveation code does not allow oversampling
-		setenv("XRT_COMPOSITOR_SCALE_PERCENTAGE", "100", true);
-
-		setenv("XRT_COMPOSITOR_COMPUTE", "1", true);
-
 		setenv("AMD_DEBUG", "lowlatencyenc", false);
 
 		// https://github.com/WiVRn/WiVRn/issues/695
