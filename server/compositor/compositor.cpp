@@ -489,6 +489,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	{
 		U_LOG_W("encoder skipped image %ld", images[j].frame_index);
 		auto _ = vk.device.waitForFences(*images[j].fence, true, UINT64_MAX);
+		vk.device.resetFences(*images[j].fence);
 		images[j].busy = false;
 	}
 
