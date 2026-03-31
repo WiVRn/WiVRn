@@ -730,6 +730,13 @@ void compositor::update_foveation_center_override(const from_headset::override_f
 	foveation.update_foveation_center_override(center);
 }
 
+void compositor::resume()
+{
+	for (auto & encoder: encoders)
+		encoder->reset();
+	send_video_stream_description();
+}
+
 void compositor::on_feedback(const from_headset::feedback & feedback, const clock_offset & o)
 {
 	uint8_t stream = feedback.stream_index;

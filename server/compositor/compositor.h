@@ -168,6 +168,8 @@ public:
 	void update_tracking(const from_headset::tracking &);
 	void update_foveation_center_override(const from_headset::override_foveation_center &);
 
+	void resume();
+
 	void on_feedback(const from_headset::feedback &, const clock_offset &);
 };
 

@@ -405,9 +405,9 @@ void wivrn_session::resume_session()
 			        .to = target_fps,
 			});
 		}
-
-		// FIXME: resume compositor
 	}
+
+	compositor.resume();
 
 	if (get_info().user_presence)
 	{
