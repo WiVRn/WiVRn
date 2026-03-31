@@ -220,7 +220,7 @@ void video_encoder::reset()
 
 void video_encoder::set_bitrate(uint32_t bitrate_bps)
 {
-	pending_bitrate = bitrate_bps;
+	pending_bitrate = bitrate_bps * bitrate_multiplier;
 }
 
 void video_encoder::set_framerate(float framerate)

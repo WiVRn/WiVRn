@@ -136,6 +136,8 @@ public:
 	void on_feedback(const from_headset::feedback &);
 	void reset();
 
+	// bitrate_bps is the bitrate for the whole stream
+	// the encoder bitrate will be scaled accordingly
 	void set_bitrate(uint32_t bitrate_bps);
 	void set_framerate(float framerate);
 
