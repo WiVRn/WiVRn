@@ -178,27 +178,35 @@ class prober
 	}
 
 #if WIVRN_USE_VULKAN_ENCODE
-	bool has_vk_h264()
+
+	bool has_vk(video_codec codec)
 	{
 		if (*vk.encode_queue == VK_NULL_HANDLE)
 			return false;
-		if (not std::ranges::contains(vk.device_extensions, std::string_view(VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME)))
-			return false;
-
 		auto prop = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyVideoPropertiesKHR>>();
 		assert(vk.encode_queue_family_index < prop.size());
-		return bool(prop.at(vk.encode_queue_family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations & vk::VideoCodecOperationFlagBitsKHR::eEncodeH264);
-	}
-	bool has_vk_h265()
-	{
-		if (*vk.encode_queue == VK_NULL_HANDLE)
-			return false;
-		if (not std::ranges::contains(vk.device_extensions, std::string_view(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME)))
-			return false;
-
-		auto prop = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyVideoPropertiesKHR>>();
-		assert(vk.encode_queue_family_index < prop.size());
-		return bool(prop.at(vk.encode_queue_family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations & vk::VideoCodecOperationFlagBitsKHR::eEncodeH265);
+		const auto flags = prop.at(vk.encode_queue_family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations;
+		switch (codec)
+		{
+			case h264: {
+				auto res = vk.has_device_ext(VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME) and flags & vk::VideoCodecOperationFlagBitsKHR::eEncodeH264;
+				if (not res)
+					U_LOG_I("GPU does not support H.264 Vulkan video encode");
+				return res;
+			}
+			case h265: {
+				auto res = vk.has_device_ext(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME) and flags & vk::VideoCodecOperationFlagBitsKHR::eEncodeH265;
+				if (not res)
+					U_LOG_I("GPU does not support H.265 Vulkan video encode");
+				return res;
+			}
+			case av1:
+				U_LOG_D("Vulkan video encode for AV1 is not implemented in WiVRn");
+			case raw:
+				return false;
+		}
+		U_LOG_E("Invalid codec %d", int(codec));
+		return false;
 	}
 #endif
 
@@ -227,24 +235,8 @@ public:
 		{
 			for (auto codec: config.codec ? std::vector{*config.codec} : info.supported_codecs)
 			{
-				switch (codec)
-				{
-					case h264:
-						if (has_vk_h264())
-							return {encoder_vulkan, video_codec::h264};
-						U_LOG_I("GPU does not support H.264 Vulkan video encode");
-						break;
-
-					case h265:
-						if (has_vk_h265())
-							return {encoder_vulkan, video_codec::h265};
-						U_LOG_I("GPU does not support H.265 Vulkan video encode");
-						break;
-					case av1:
-						U_LOG_D("Vulkan video encode for AV1 is not implemented in WiVRn");
-					case raw:
-						break;
-				}
+				if (has_vk(codec))
+					return {encoder_vulkan, codec};
 			}
 		}
 #endif
