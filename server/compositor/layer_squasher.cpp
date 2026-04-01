@@ -252,7 +252,11 @@ vk::raii::PipelineLayout make_layout(wivrn::vk_bundle & vk, vk::DescriptorSetLay
 
 vk::raii::Pipeline make_pipeline(wivrn::vk_bundle & vk, uint32_t image_array_size, vk::PipelineLayout layout)
 {
-	auto specialization = make_specialization_constants(int32_t(image_array_size));
+	auto specialization = make_specialization_constants(
+	        int32_t(0),     // unused
+	        VkBool32(true), // do_timewarp
+	        VkBool32(true), // do_color_correction
+	        int32_t(image_array_size));
 	vk::raii::Pipeline res(
 	        vk.device,
 	        nullptr,
