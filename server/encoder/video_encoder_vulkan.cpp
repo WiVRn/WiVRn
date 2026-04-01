@@ -22,6 +22,7 @@
 #include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 #include <iostream>
+#include <ranges>
 #include <stdexcept>
 
 namespace
@@ -462,12 +463,20 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	}
 
 	// fence, semaphore
-	for (auto & item: slot_data)
+	for (auto [i, item]: std::ranges::enumerate_view(slot_data))
 	{
 		item.fence = vk.device.createFence({.flags = vk::FenceCreateFlagBits::eSignaled});
 		item.wait_sem = vk.device.createSemaphore({});
+		item.sem = vk.device.createSemaphore(vk::StructureChain{
+		        vk::SemaphoreCreateInfo{},
+		        vk::SemaphoreTypeCreateInfo{
+		                .semaphoreType = vk::SemaphoreType::eTimeline,
+		        },
+		}
+		                                             .get());
 		vk.name(item.fence, "vulkan encoder fence");
-		vk.name(item.fence, "vulkan encoder semaphore");
+		vk.name(item.wait_sem, "vulkan encoder wait semaphore");
+		vk.name(item.sem, "vulkan encoder complete semaphore");
 	}
 
 	// query pool
@@ -523,9 +532,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			         .commandBufferCount = num_slots});
 			for (size_t i = 0; i < num_slots; ++i)
 			{
-				slot_data[i].sem = vk.device.createSemaphore({});
 				slot_data[i].transfer_cmd_buf = std::move(command_buffers[i]);
-				vk.name(slot_data[i].sem, "vulkan encoder transfer semaphore");
 				vk.name(slot_data[i].transfer_cmd_buf, "vulkan encoder transfer command buffer");
 			}
 		}
@@ -942,15 +949,24 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 {
 	auto & slot_item = slot_data[slot];
+	const auto & prev_slot = slot_data[(slot + num_slots - 1) % num_slots];
 	const bool need_transfer = *slot_item.transfer_cmd_buf and slot_item.host_buffer;
 	// Issue encode command, and if necessary transfer command
 	vk.device.resetFences(*slot_item.fence);
-	vk::SemaphoreSubmitInfo wait_sem_info{
-	        .semaphore = *slot_item.wait_sem,
-	        .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+	std::array wait_sem_info{
+	        vk::SemaphoreSubmitInfo{
+	                .semaphore = *prev_slot.sem,
+	                .value = prev_slot.sem_value,
+	                .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+	        },
+	        vk::SemaphoreSubmitInfo{
+	                .semaphore = *slot_item.wait_sem,
+	                .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
+	        },
 	};
 	vk::SemaphoreSubmitInfo sem_info{
 	        .semaphore = slot_item.sem,
+	        .value = ++slot_item.sem_value,
 	        .stageMask = vk::PipelineStageFlagBits2::eAllCommands,
 	};
 	vk::CommandBufferSubmitInfo cmd_info{
@@ -959,15 +975,16 @@ void wivrn::video_encoder_vulkan::post_submit(uint8_t slot)
 
 	{
 		std::unique_lock lock(vk.encode_queue_mutex);
-		vk.encode_queue.submit2(vk::SubmitInfo2{
-		                                .waitSemaphoreInfoCount = 1,
-		                                .pWaitSemaphoreInfos = &wait_sem_info,
-		                                .commandBufferInfoCount = 1,
-		                                .pCommandBufferInfos = &cmd_info,
-		                                .signalSemaphoreInfoCount = need_transfer ? 1u : 0,
-		                                .pSignalSemaphoreInfos = &sem_info,
-		                        },
-		                        need_transfer ? nullptr : *slot_item.fence);
+		vk.encode_queue.submit2(
+		        vk::SubmitInfo2{
+		                .waitSemaphoreInfoCount = wait_sem_info.size(),
+		                .pWaitSemaphoreInfos = wait_sem_info.data(),
+		                .commandBufferInfoCount = 1,
+		                .pCommandBufferInfos = &cmd_info,
+		                .signalSemaphoreInfoCount = 1,
+		                .pSignalSemaphoreInfos = &sem_info,
+		        },
+		        need_transfer ? nullptr : *slot_item.fence);
 	}
 	if (need_transfer)
 	{
