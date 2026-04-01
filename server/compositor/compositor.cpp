@@ -263,7 +263,10 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 
 	U_LOG_IFL_D(log_level, "frame %ld commit %d layers", frame.rendering.id, layer_accum.layer_count);
 
-	if (layer_accum.layer_count == 0 or not session.connected())
+	auto _ = vk.device.waitForFences(*fence, true, INT64_MAX);
+
+	if (encode_request >= 0 // encoders have not picked up the previous frame
+	    or layer_accum.layer_count == 0 or not session.connected())
 	{
 		comp_frame_clear_locked(&frame.rendering);
 		return XRT_SUCCESS;
@@ -275,16 +278,14 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		comp_frame_clear_locked(&frame.rendering);
 		return XRT_SUCCESS;
 	}
+	assert(images[i].fence.getStatus() == vk::Result::eNotReady);
+
 	auto & view_info = images[i].view_info;
 	images[i].frame_index = frame.rendering.id;
 	view_info = {
 	        .display_time = session.get_offset().to_headset(frame.rendering.predicted_display_time_ns),
 	        .alpha = layer_accum.data.env_blend_mode == XRT_BLEND_MODE_ALPHA_BLEND,
 	};
-
-	assert(images[i].fence.getStatus() == vk::Result::eNotReady);
-	auto _ = vk.device.waitForFences(*fence, true, INT64_MAX);
-	vk.device.resetFences(*fence);
 
 	session.dump_time("begin", frame.rendering.id, os_monotonic_get_ns());
 
@@ -398,6 +399,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	}
 	cmd.end();
 
+	vk.device.resetFences(*fence);
 	{
 		std::unique_lock lock{vk.queue_mutex};
 		vk.queue.submit(
@@ -481,17 +483,10 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 
 	auto j = encode_request.exchange(i);
 	encode_request.notify_all();
+	assert(j == -1);
 
 	// Now is a good point to garbage collect.
 	comp_swapchain_shared_garbage_collect(&cscs);
-
-	if (j >= 0)
-	{
-		U_LOG_W("encoder skipped image %ld", images[j].frame_index);
-		auto _ = vk.device.waitForFences(*images[j].fence, true, UINT64_MAX);
-		vk.device.resetFences(*images[j].fence);
-		images[j].busy = false;
-	}
 
 	return XRT_SUCCESS;
 }
