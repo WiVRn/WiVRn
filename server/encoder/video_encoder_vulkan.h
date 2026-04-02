@@ -31,6 +31,9 @@ class video_encoder_vulkan : public video_encoder
 {
 	wivrn::vk_bundle & vk;
 	const vk::VideoEncodeCapabilitiesKHR encode_caps;
+#ifdef VK_KHR_video_encode_intra_refresh
+	vk::VideoEncodeIntraRefreshInfoKHR intra_info{};
+#endif
 
 	vk::raii::VideoSessionKHR video_session = nullptr;
 	vk::raii::VideoSessionParametersKHR video_session_parameters = nullptr;
@@ -83,6 +86,9 @@ protected:
 	                     const encoder_settings & settings);
 
 	void init(const vk::VideoCapabilitiesKHR & video_caps,
+#ifdef VK_KHR_video_encode_intra_refresh
+	          vk::VideoEncodeIntraRefreshCapabilitiesKHR intra_caps,
+#endif
 	          const vk::VideoProfileInfoKHR & video_profile,
 	          void * video_session_create_next,
 	          void * session_params_next);

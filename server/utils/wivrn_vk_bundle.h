@@ -79,12 +79,14 @@ struct vk_bundle
 
 	vk::StructureChain<
 	        vk::PhysicalDeviceFeatures2,
-	        vk::PhysicalDeviceVulkan12Features,
-	        vk::PhysicalDeviceVulkan13Features,
 #ifdef VK_KHR_video_maintenance1
-	        vk::PhysicalDeviceVideoMaintenance1FeaturesKHR
+	        vk::PhysicalDeviceVideoMaintenance1FeaturesKHR,
 #endif
-	        >
+#ifdef VK_KHR_video_encode_intra_refresh
+	        vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR,
+#endif
+	        vk::PhysicalDeviceVulkan12Features,
+	        vk::PhysicalDeviceVulkan13Features>
 	        feat{};
 
 	std::vector<const char *> instance_extensions;

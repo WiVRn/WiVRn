@@ -228,6 +228,9 @@ wivrn::video_encoder_vulkan::video_encoder_vulkan(
 }
 
 void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_caps,
+#ifdef VK_KHR_video_encode_intra_refresh
+                                       vk::VideoEncodeIntraRefreshCapabilitiesKHR intra_caps,
+#endif
                                        const vk::VideoProfileInfoKHR & video_profile,
                                        void * video_session_create_next,
                                        void * session_params_next)
@@ -325,6 +328,27 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	// video session
 	{
 		vk::ExtensionProperties std_header_version = this->std_header_version();
+
+#ifdef VK_KHR_video_encode_intra_refresh
+		vk::VideoEncodeSessionIntraRefreshCreateInfoKHR session_intra_info{
+		        .pNext = video_session_create_next,
+		};
+		for (auto mode: {
+		             vk::VideoEncodeIntraRefreshModeFlagBitsKHR::eBlockBased,
+		             vk::VideoEncodeIntraRefreshModeFlagBitsKHR::eBlockColumnBased,
+		             vk::VideoEncodeIntraRefreshModeFlagBitsKHR::eBlockRowBased,
+		     })
+		{
+			if (intra_caps.intraRefreshModes & mode)
+			{
+				session_intra_info.intraRefreshMode = mode;
+				video_session_create_next = &session_intra_info;
+				intra_info.intraRefreshCycleDuration = std::min(intra_caps.maxIntraRefreshCycleDuration, 512u);
+				U_LOG_D("Using intra refresh mode %s, cycle %d", vk::to_string(mode).c_str(), intra_info.intraRefreshCycleDuration);
+				break;
+			}
+		}
+#endif
 
 		video_session =
 		        vk.device.createVideoSessionKHR(vk::VideoSessionCreateInfoKHR{
@@ -883,6 +907,15 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 	        },
 	        .pSetupReferenceSlot = &slot->info,
 	};
+
+#ifdef VK_KHR_video_encode_intra_refresh
+	if (intra_info.intraRefreshCycleDuration and ref_slot)
+	{
+		intra_info.pNext = encode_info.pNext;
+		intra_info.intraRefreshIndex = (intra_info.intraRefreshIndex + 1) % intra_info.intraRefreshCycleDuration;
+		encode_info.pNext = &intra_info;
+	}
+#endif
 
 	if (ref_slot)
 		encode_info.setReferenceSlots(ref_slot->info);

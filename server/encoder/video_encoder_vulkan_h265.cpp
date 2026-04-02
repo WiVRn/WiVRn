@@ -334,7 +334,19 @@ std::unique_ptr<wivrn::video_encoder_vulkan_h265> wivrn::video_encoder_vulkan_h2
 		self->sample_adaptive_offset_enabled = true;
 
 	self->rate_control_layer.pNext = &self->rc_layer_h265;
-	self->init(video_caps, video_profile_info.get(), &session_create_info, &session_params_info);
+#ifdef VK_KHR_video_encode_intra_refresh
+	vk::VideoEncodeIntraRefreshCapabilitiesKHR intra_caps{};
+	if (std::get<vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>(vk.feat).videoEncodeIntraRefresh)
+		intra_caps = std::get<vk::VideoEncodeIntraRefreshCapabilitiesKHR>(
+		        vk.physical_device.getVideoCapabilitiesKHR<vk::VideoCapabilitiesKHR, vk::VideoEncodeCapabilitiesKHR, vk::VideoEncodeH265CapabilitiesKHR, vk::VideoEncodeIntraRefreshCapabilitiesKHR>(video_profile_info.get()));
+#endif
+	self->init(video_caps,
+#ifdef VK_KHR_video_encode_intra_refresh
+	           intra_caps,
+#endif
+	           video_profile_info.get(),
+	           &session_create_info,
+	           &session_params_info);
 	return self;
 }
 

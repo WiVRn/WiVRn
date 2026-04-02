@@ -247,6 +247,9 @@ wivrn::vk_bundle::vk_bundle() :
 #ifdef VK_KHR_video_encode_h265
 		        VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME,
 #endif
+#ifdef VK_KHR_video_encode_intra_refresh
+		        VK_KHR_VIDEO_ENCODE_INTRA_REFRESH_EXTENSION_NAME,
+#endif
 		};
 		for (auto & ext: physical_device.enumerateDeviceExtensionProperties())
 		{
@@ -274,8 +277,9 @@ wivrn::vk_bundle::vk_bundle() :
 			        });
 
 #ifdef VK_KHR_video_maintenance1
-			auto [_, video_feat] = physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>();
-			std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(feat).videoMaintenance1 = video_feat.videoMaintenance1;
+			if (has_device_ext(VK_KHR_VIDEO_MAINTENANCE_1_EXTENSION_NAME))
+				std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(feat).videoMaintenance1 =
+				        std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>()).videoMaintenance1;
 #endif
 		}
 #endif
@@ -286,6 +290,11 @@ wivrn::vk_bundle::vk_bundle() :
 		std::get<vk::PhysicalDeviceVulkan12Features>(feat).descriptorBindingPartiallyBound = phys_feat12.descriptorBindingPartiallyBound;
 		std::get<vk::PhysicalDeviceVulkan12Features>(feat).timelineSemaphore = phys_feat12.timelineSemaphore;
 		std::get<vk::PhysicalDeviceVulkan13Features>(feat).synchronization2 = phys_feat13.synchronization2;
+
+#ifdef VK_KHR_video_encode_intra_refresh
+		if (has_device_ext(VK_KHR_VIDEO_ENCODE_INTRA_REFRESH_EXTENSION_NAME))
+			std::get<vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>(feat).videoEncodeIntraRefresh = std::get<vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>(physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR>()).videoEncodeIntraRefresh;
+#endif
 
 		device = vk::raii::Device(
 		        physical_device,
