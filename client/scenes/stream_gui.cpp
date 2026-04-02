@@ -990,7 +990,7 @@ void scenes::stream::draw_gui(XrTime predicted_display_time, XrDuration predicte
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
 
-			auto target = gui_status;
+			auto target = next_gui_status.load();
 			RadioButtonWithoutCheckBox(ICON_FA_LIST "  " + _("Applications"), target, stream_tab::applications, {tab_width, 0});
 			imgui_ctx->vibrate_on_hover();
 
