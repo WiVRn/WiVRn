@@ -373,6 +373,11 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        .pImageMemoryBarriers = &target_barrier,
 	});
 
+	if (session.get_info().eye_gaze)
+	{
+		auto now = os_monotonic_get_ns();
+		session.add_tracking_request(device_id::EYE_GAZE, frame.rendering.desired_present_time_ns, now, now);
+	}
 	view_info.foveation = foveation.foveate(
 	        vk.device,
 	        cmd,
