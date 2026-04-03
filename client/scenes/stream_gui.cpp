@@ -387,10 +387,12 @@ static void send_settings_changed_packet(xr::session & session, wivrn_session * 
 	{
 		packet.preferred_refresh_rate = config.preferred_refresh_rate;
 		packet.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
+		packet.fps_divider = config.fps_divider;
 	}
 	else
 	{
 		packet.preferred_refresh_rate = predicted_display_period;
+		packet.fps_divider = config.fps_divider;
 	}
 	network->send_control(std::move(packet));
 }
@@ -408,12 +410,13 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		const auto & refresh_rates = session.get_refresh_rates();
 		if (not refresh_rates.empty())
 		{
-			float active_rate = config.preferred_refresh_rate;
-			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? fmt::format("{}", active_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
+			float active_rate = config.preferred_refresh_rate / config.fps_divider;
+			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? config.fps_divider == 1 ? fmt::format("{} (Native)", active_rate).c_str() : fmt::format("{} ({} with space warp)", active_rate, config.preferred_refresh_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
 			{
 				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), active_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
 				{
 					config.preferred_refresh_rate = 0;
+					config.fps_divider = 1;
 					send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
 					config.save();
 				}
@@ -421,10 +424,23 @@ void scenes::stream::gui_settings(float predicted_display_period)
 					imgui_ctx->tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
 				for (float rate: refresh_rates)
 				{
-					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == active_rate, ImGuiSelectableFlags_SelectOnRelease))
+					if (ImGui::Selectable(fmt::format("{} (Native)", rate).c_str(), rate == active_rate, ImGuiSelectableFlags_SelectOnRelease))
 					{
 						session.set_refresh_rate(rate);
 						config.preferred_refresh_rate = rate;
+						config.fps_divider = 1;
+						send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+						config.save();
+					}
+				}
+				for (float rate: refresh_rates)
+				{
+					float effective_rate = rate / 2;
+					if (ImGui::Selectable(fmt::format("{} ({} with space warp)", effective_rate, rate).c_str(), effective_rate == active_rate, ImGuiSelectableFlags_SelectOnRelease))
+					{
+						session.set_refresh_rate(rate);
+						config.preferred_refresh_rate = rate;
+						config.fps_divider = 2;
 						send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
 						config.save();
 					}

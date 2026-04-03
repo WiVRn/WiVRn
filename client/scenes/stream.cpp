@@ -233,6 +233,7 @@ std::shared_ptr<scenes::stream> scenes::stream::create(std::unique_ptr<wivrn_ses
 		{
 			info.available_refresh_rates = self->session.get_refresh_rates();
 			info.settings.preferred_refresh_rate = config.preferred_refresh_rate;
+			info.settings.fps_divider = config.fps_divider;
 			info.settings.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
 		}
 
