@@ -64,14 +64,15 @@ public:
 	        wivrn_hmd &,
 	        uint64_t frame_interval_ns,
 	        const comp_frame &,
-	        const comp_layer_accum &);
+	        const comp_layer_accum &,
+	        const xrt_rect & min_size);
 
 	std::array<vk::ImageView, 2> get_views();
 
 	uint32_t max_layers(const vk::PhysicalDeviceProperties &) const;
 
 private:
-	void do_projection_layer(
+	xrt_fov do_projection_layer(
 	        const comp_layer & layer,
 	        const xrt_pose & world_pose,
 	        int view,
@@ -80,29 +81,29 @@ private:
 	        std::span<vk::DescriptorImageInfo> src_image_info,
 	        render_compute_layer_ubo_data & ubo);
 
-	void do_quad_layer(const comp_layer & layer,
-	                   const xrt_matrix_4x4 & eye_view_mat,
-	                   const xrt_matrix_4x4 & world_view_mat,
-	                   uint32_t view_index,
-	                   int cur_layer,
-	                   uint32_t & cur_image,
-	                   std::span<vk::DescriptorImageInfo> src_image_info,
-	                   render_compute_layer_ubo_data & ubo);
-	void do_cylinder_layer(const comp_layer & layer,
-	                       const xrt_matrix_4x4 & eye_view_mat,
-	                       const xrt_matrix_4x4 & world_view_mat,
-	                       uint32_t view_index,
-	                       int cur_layer,
-	                       uint32_t & cur_image,
-	                       std::span<vk::DescriptorImageInfo> src_image_info,
-	                       render_compute_layer_ubo_data & ubo);
-	void do_equirect2_layer(const comp_layer & layer,
-	                        const xrt_matrix_4x4 & eye_view_mat,
-	                        const xrt_matrix_4x4 & world_view_mat,
-	                        uint32_t view_index,
-	                        int cur_layer,
-	                        uint32_t & cur_image,
-	                        std::span<vk::DescriptorImageInfo> src_image_info,
-	                        render_compute_layer_ubo_data & ubo);
+	xrt_fov do_quad_layer(const comp_layer & layer,
+	                      const xrt_matrix_4x4 & eye_view_mat,
+	                      const xrt_matrix_4x4 & world_view_mat,
+	                      uint32_t view_index,
+	                      int cur_layer,
+	                      uint32_t & cur_image,
+	                      std::span<vk::DescriptorImageInfo> src_image_info,
+	                      render_compute_layer_ubo_data & ubo);
+	xrt_fov do_cylinder_layer(const comp_layer & layer,
+	                          const xrt_matrix_4x4 & eye_view_mat,
+	                          const xrt_matrix_4x4 & world_view_mat,
+	                          uint32_t view_index,
+	                          int cur_layer,
+	                          uint32_t & cur_image,
+	                          std::span<vk::DescriptorImageInfo> src_image_info,
+	                          render_compute_layer_ubo_data & ubo);
+	xrt_fov do_equirect2_layer(const comp_layer & layer,
+	                           const xrt_matrix_4x4 & eye_view_mat,
+	                           const xrt_matrix_4x4 & world_view_mat,
+	                           uint32_t view_index,
+	                           int cur_layer,
+	                           uint32_t & cur_image,
+	                           std::span<vk::DescriptorImageInfo> src_image_info,
+	                           render_compute_layer_ubo_data & ubo);
 };
 } // namespace wivrn

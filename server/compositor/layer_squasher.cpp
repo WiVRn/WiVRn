@@ -379,11 +379,13 @@ layer_squasher::do_layers(
         wivrn_hmd & hmd,
         uint64_t frame_interval_ns,
         const comp_frame & frame,
-        const comp_layer_accum & layers)
+        const comp_layer_accum & layers,
+        const xrt_rect & min_size)
 {
 	// get the head/pose to reproject to
 	const pose_data poses{hmd, frame_interval_ns, frame, layers};
 	const auto extent3D = render_target.info().extent;
+	auto fovs = poses.fovs;
 	std::array viewports{
 	        render_viewport_data{
 	                .w = extent3D.width,
@@ -421,9 +423,6 @@ layer_squasher::do_layers(
 		// TODO: staging buffer?
 		auto & ubo = *(render_compute_layer_ubo_data *)this->ubo[view].map();
 
-		ubo.view = viewports[view];
-		render_calc_uv_to_tangent_lengths_rect(&poses.fovs[view], &ubo.pre_transform);
-
 		// Not the transform of the views, but the inverse: actual view matrices.
 		xrt_matrix_4x4 world_view_mat, eye_view_mat;
 		math_matrix_4x4_view_from_pose(&poses.world_poses[view], &world_view_mat);
@@ -433,6 +432,10 @@ layer_squasher::do_layers(
 		for (auto & src: src_image_info)
 			src.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
+		xrt_fov all_layers_fov{.angle_left = M_PI,
+		                       .angle_right = -M_PI,
+		                       .angle_up = -M_PI,
+		                       .angle_down = M_PI};
 		uint32_t cur_image = 0;
 		int cur_layer = 0;
 		for (const auto & layer: std::span(layers.layers, layers.layer_count))
@@ -470,11 +473,12 @@ layer_squasher::do_layers(
 			if (cur_image + required_image_samplers > image_array_size)
 				break;
 
+			xrt_fov layer_fov;
 			switch (data.type)
 			{
 				case XRT_LAYER_PROJECTION:
 				case XRT_LAYER_PROJECTION_DEPTH:
-					do_projection_layer(
+					layer_fov = do_projection_layer(
 					        layer,
 					        poses.world_poses[view],
 					        view,
@@ -484,7 +488,7 @@ layer_squasher::do_layers(
 					        ubo);
 					break;
 				case XRT_LAYER_QUAD:
-					do_quad_layer(
+					layer_fov = do_quad_layer(
 					        layer,
 					        eye_view_mat,
 					        world_view_mat,
@@ -495,7 +499,7 @@ layer_squasher::do_layers(
 					        ubo);
 					break;
 				case XRT_LAYER_CYLINDER:
-					do_cylinder_layer(
+					layer_fov = do_cylinder_layer(
 					        layer,
 					        eye_view_mat,
 					        world_view_mat,
@@ -506,7 +510,7 @@ layer_squasher::do_layers(
 					        ubo);
 					break;
 				case XRT_LAYER_EQUIRECT2:
-					do_equirect2_layer(
+					layer_fov = do_equirect2_layer(
 					        layer,
 					        eye_view_mat,
 					        world_view_mat,
@@ -523,6 +527,17 @@ layer_squasher::do_layers(
 					assert(false);
 					continue;
 			}
+			// Add fov to all_layers_fov if there's an intersection
+			if (layer_fov.angle_left < fovs[view].angle_right and
+			    layer_fov.angle_right > fovs[view].angle_left and
+			    layer_fov.angle_up > fovs[view].angle_down and
+			    layer_fov.angle_down < fovs[view].angle_up)
+				all_layers_fov = {
+				        .angle_left = std::min(layer_fov.angle_left, all_layers_fov.angle_left),
+				        .angle_right = std::max(layer_fov.angle_right, all_layers_fov.angle_right),
+				        .angle_up = std::max(layer_fov.angle_up, all_layers_fov.angle_up),
+				        .angle_down = std::min(layer_fov.angle_down, all_layers_fov.angle_down),
+				};
 			ubo.layers[cur_layer].layer_data.unpremultiplied_alpha = is_layer_unpremultiplied(&layer.data);
 			apply_bias_and_scale_from_layer(
 			        &data,
@@ -530,6 +545,27 @@ layer_squasher::do_layers(
 			        &ubo.layers[cur_layer].color_bias);
 			cur_layer++;
 		}
+
+		all_layers_fov = {
+		        .angle_left = std::max(fovs[view].angle_left, all_layers_fov.angle_left),
+		        .angle_right = std::min(fovs[view].angle_right, all_layers_fov.angle_right),
+		        .angle_up = std::min(fovs[view].angle_up, all_layers_fov.angle_up),
+		        .angle_down = std::max(fovs[view].angle_down, all_layers_fov.angle_down),
+		};
+		if (all_layers_fov.angle_up > all_layers_fov.angle_down and
+		    all_layers_fov.angle_left < all_layers_fov.angle_right)
+		{
+			fovs[view] = all_layers_fov;
+			auto w1 = tan(all_layers_fov.angle_right) - tan(all_layers_fov.angle_left);
+			auto h1 = tan(all_layers_fov.angle_up) - tan(all_layers_fov.angle_down);
+			auto w2 = tan(fovs[view].angle_right) - tan(fovs[view].angle_left);
+			auto h2 = tan(fovs[view].angle_up) - tan(fovs[view].angle_down);
+			viewports[view].w = std::max<uint32_t>(min_size.extent.w, viewports[view].w * w1 / w2);
+			viewports[view].h = std::max<uint32_t>(min_size.extent.h, viewports[view].h * h1 / h2);
+		}
+
+		ubo.view = viewports[view];
+		render_calc_uv_to_tangent_lengths_rect(&fovs[view], &ubo.pre_transform);
 		ubo.layer_count.value = cur_layer;
 
 		for (auto & layer: std::span(ubo.layers).subspan(cur_layer))
@@ -599,7 +635,7 @@ layer_squasher::do_layers(
 	for (auto [v, r]: std::ranges::zip_view(viewports, rect))
 		r = {.extent = {.w = int(v.w), .h = int(v.h)}};
 
-	return {poses.world_poses, poses.fovs, rect};
+	return {poses.world_poses, fovs, rect};
 }
 
 std::array<vk::ImageView, 2> layer_squasher::get_views()
@@ -616,7 +652,7 @@ uint32_t layer_squasher::max_layers(const vk::PhysicalDeviceProperties & prop) c
 	       2u;
 }
 
-void layer_squasher::do_projection_layer(
+xrt_fov layer_squasher::do_projection_layer(
         const comp_layer & layer,
         const xrt_pose & world_pose,
         int view,
@@ -666,16 +702,18 @@ void layer_squasher::do_projection_layer(
 		        &vd.fov,
 		        &world_pose,
 		        &ubo.layers[cur_layer].transforms_timewarp);
+
+	return vd.fov;
 }
 
-void layer_squasher::do_quad_layer(const comp_layer & layer,
-                                   const xrt_matrix_4x4 & eye_view_mat,
-                                   const xrt_matrix_4x4 & world_view_mat,
-                                   uint32_t view_index,
-                                   int cur_layer,
-                                   uint32_t & cur_image,
-                                   std::span<vk::DescriptorImageInfo> src_image_info,
-                                   render_compute_layer_ubo_data & ubo)
+xrt_fov layer_squasher::do_quad_layer(const comp_layer & layer,
+                                      const xrt_matrix_4x4 & eye_view_mat,
+                                      const xrt_matrix_4x4 & world_view_mat,
+                                      uint32_t view_index,
+                                      int cur_layer,
+                                      uint32_t & cur_image,
+                                      std::span<vk::DescriptorImageInfo> src_image_info,
+                                      render_compute_layer_ubo_data & ubo)
 {
 	const xrt_layer_data & layer_data = layer.data;
 	const xrt_layer_quad_data & q = layer_data.quad;
@@ -744,16 +782,50 @@ void layer_squasher::do_quad_layer(const comp_layer & layer,
 	ubo.layers[cur_layer].inverse_quad_transform = inverse_quad_transform;
 	ubo.layers[cur_layer].image_info.color_image_index = cur_image;
 	cur_image++;
+
+	// Compute effective fov
+	struct xrt_matrix_4x4 quad_pose;
+	math_matrix_4x4_view_from_pose(&q.pose, &quad_pose);
+	math_matrix_4x4_inverse(&quad_pose, &quad_pose);
+	math_matrix_4x4_multiply(&view_mat, &quad_pose, &quad_pose);
+
+	std::array corners{
+	        xrt_vec3{-q.size.x / 2, -q.size.y / 2, 0},
+	        xrt_vec3{q.size.x / 2, -q.size.y / 2, 0},
+	        xrt_vec3{-q.size.x / 2, q.size.y / 2, 0},
+	        xrt_vec3{q.size.x / 2, q.size.y / 2, 0}};
+
+	xrt_fov layer_fov = {.angle_left = M_PI,
+	                     .angle_right = -M_PI,
+	                     .angle_up = -M_PI,
+	                     .angle_down = M_PI};
+	if (normal_view_space.z < 0)
+		return layer_fov; // back face is not visible
+	for (auto & c: corners)
+	{
+		math_matrix_4x4_transform_vec3(&quad_pose, &c, &c);
+
+		float x = atan2f(c.x, -c.z);
+		float y = atan2f(c.y, -c.z);
+
+		layer_fov = {
+		        .angle_left = std::min(layer_fov.angle_left, x),
+		        .angle_right = std::max(layer_fov.angle_right, x),
+		        .angle_up = std::max(layer_fov.angle_up, y),
+		        .angle_down = std::min(layer_fov.angle_down, y),
+		};
+	}
+	return layer_fov;
 }
 
-void layer_squasher::do_cylinder_layer(const comp_layer & layer,
-                                       const xrt_matrix_4x4 & eye_view_mat,
-                                       const xrt_matrix_4x4 & world_view_mat,
-                                       uint32_t view_index,
-                                       int cur_layer,
-                                       uint32_t & cur_image,
-                                       std::span<vk::DescriptorImageInfo> src_image_info,
-                                       render_compute_layer_ubo_data & ubo)
+xrt_fov layer_squasher::do_cylinder_layer(const comp_layer & layer,
+                                          const xrt_matrix_4x4 & eye_view_mat,
+                                          const xrt_matrix_4x4 & world_view_mat,
+                                          uint32_t view_index,
+                                          int cur_layer,
+                                          uint32_t & cur_image,
+                                          std::span<vk::DescriptorImageInfo> src_image_info,
+                                          render_compute_layer_ubo_data & ubo)
 {
 	const xrt_layer_data & layer_data = layer.data;
 	const xrt_layer_cylinder_data & c = layer_data.cylinder;
@@ -800,16 +872,56 @@ void layer_squasher::do_cylinder_layer(const comp_layer & layer,
 
 	ubo.layers[cur_layer].image_info.color_image_index = cur_image;
 	cur_image++;
+
+	// Compute effective FOV, simplify by projecting 2 quads instead
+	struct xrt_matrix_4x4 quad_pose;
+	math_matrix_4x4_view_from_pose(&c.pose, &quad_pose);
+	math_matrix_4x4_inverse(&quad_pose, &quad_pose);
+	math_matrix_4x4_multiply(&v, &quad_pose, &quad_pose);
+
+	const float w = sin(c.central_angle / 2) * c.radius;
+	const float h = c.radius * c.central_angle / 2 * c.aspect_ratio;
+	const float d = c.radius * cos(c.central_angle / 2);
+	std::array corners{
+	        xrt_vec3{-w, -h, -c.radius},
+	        xrt_vec3{w, -h, -c.radius},
+	        xrt_vec3{-w, h, -c.radius},
+	        xrt_vec3{w, h, -c.radius},
+	        xrt_vec3{-w, -h, -d},
+	        xrt_vec3{w, -h, -d},
+	        xrt_vec3{-w, h, -d},
+	        xrt_vec3{w, h, -d},
+	};
+
+	xrt_fov layer_fov = {.angle_left = M_PI,
+	                     .angle_right = -M_PI,
+	                     .angle_up = -M_PI,
+	                     .angle_down = M_PI};
+	for (auto & c: corners)
+	{
+		math_matrix_4x4_transform_vec3(&quad_pose, &c, &c);
+
+		float x = atan2f(c.x, -c.z);
+		float y = atan2f(c.y, -c.z);
+
+		layer_fov = {
+		        .angle_left = std::min(layer_fov.angle_left, x),
+		        .angle_right = std::max(layer_fov.angle_right, x),
+		        .angle_up = std::max(layer_fov.angle_up, y),
+		        .angle_down = std::min(layer_fov.angle_down, y),
+		};
+	}
+	return layer_fov;
 }
 
-void layer_squasher::do_equirect2_layer(const comp_layer & layer,
-                                        const xrt_matrix_4x4 & eye_view_mat,
-                                        const xrt_matrix_4x4 & world_view_mat,
-                                        uint32_t view_index,
-                                        int cur_layer,
-                                        uint32_t & cur_image,
-                                        std::span<vk::DescriptorImageInfo> src_image_info,
-                                        render_compute_layer_ubo_data & ubo)
+xrt_fov layer_squasher::do_equirect2_layer(const comp_layer & layer,
+                                           const xrt_matrix_4x4 & eye_view_mat,
+                                           const xrt_matrix_4x4 & world_view_mat,
+                                           uint32_t view_index,
+                                           int cur_layer,
+                                           uint32_t & cur_image,
+                                           std::span<vk::DescriptorImageInfo> src_image_info,
+                                           render_compute_layer_ubo_data & ubo)
 {
 	const xrt_layer_data & layer_data = layer.data;
 	const xrt_layer_equirect2_data & eq2 = layer_data.equirect2;
@@ -854,6 +966,12 @@ void layer_squasher::do_equirect2_layer(const comp_layer & layer,
 
 	ubo.layers[cur_layer].image_info.color_image_index = cur_image;
 	cur_image++;
+
+	// TODO: effective fov
+	return {.angle_left = -M_PI,
+	        .angle_right = M_PI,
+	        .angle_up = M_PI,
+	        .angle_down = -M_PI};
 }
 
 } // namespace wivrn

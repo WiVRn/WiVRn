@@ -321,13 +321,15 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	{
 		// no fast-path, squash layers
 		std::array<xrt_pose, 2> poses;
+		const auto extent = images[0].image.info().extent;
 		std::tie(poses, src_fov, src_rect) = squasher.do_layers(
 		        vk.device,
 		        cmd,
 		        session.get_hmd(),
 		        pacer.get_frame_duration(),
 		        frame.rendering,
-		        layer_accum);
+		        layer_accum,
+		        xrt_rect{.extent{.w = int(extent.width), .h = int(extent.height)}});
 
 		src = squasher.get_views();
 
