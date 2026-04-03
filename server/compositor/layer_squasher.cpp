@@ -414,6 +414,7 @@ layer_squasher::do_layers(
 	        {},
 	        {},
 	        im_barrier);
+	cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
 
 	for (int view = 0; view < view_count; ++view)
 	{
@@ -577,7 +578,6 @@ layer_squasher::do_layers(
 
 		device.updateDescriptorSets(writes, {});
 
-		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *layout, 0, descriptor_sets[view], {});
 		auto [w, h] = calc_dispatch_dims_1_view(viewports[view]);
 		cmd.dispatch(w, h, 1);
