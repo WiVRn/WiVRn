@@ -241,6 +241,9 @@ configuration::configuration(xr::system & system, xr::session & session)
 		if (auto val = root["high_power_mode"]; val.is_bool())
 			high_power_mode = val.get_bool();
 
+		if (auto val = root["fps_divider"]; val.is_uint64())
+			fps_divider = (uint32_t)val.get_uint64();
+
 		if (auto val = root["extended_config"]; val.is_bool())
 			extended_config = val.get_bool();
 	}
@@ -329,6 +332,7 @@ void configuration::save()
 	json << ",\"locale\":" << json_string(locale);
 	json << ",\"environment_model\":" << json_string(environment_model);
 	json << ",\"high_power_mode\":" << std::boolalpha << high_power_mode;
+	json << ",\"fps_divider\":" << fps_divider;
 	json << ",\"extended_config\":" << std::boolalpha << extended_config;
 	json << "}";
 }
