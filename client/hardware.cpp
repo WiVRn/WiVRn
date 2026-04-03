@@ -35,6 +35,8 @@ static std::string get_property(const char * property)
 {
 	auto info = __system_property_find(property);
 	std::string result;
+	if (not info)
+		return result;
 	wrap_lambda cb = [&result](const char * name, const char * value, uint32_t serial) {
 		result = value;
 	};
