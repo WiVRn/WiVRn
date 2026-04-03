@@ -442,7 +442,7 @@ float wivrn_session::default_rate()
 {
 	auto s = settings.lock();
 	if (s->preferred_refresh_rate)
-		return s->preferred_refresh_rate;
+		return s->preferred_refresh_rate / s->fps_divider;
 	return headset_info.available_refresh_rates.back();
 }
 
@@ -463,10 +463,20 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 
 void wivrn_session::operator()(const from_headset::settings_changed & settings)
 {
-	*this->settings.lock() = settings;
+	auto locked = this->settings.lock();
+	auto old = std::exchange(*locked, settings);
 
 	if (settings.bitrate_bps != 0)
 		compositor.set_bitrate(settings.bitrate_bps);
+
+	if (settings.preferred_refresh_rate != 0)
+	{
+		auto old_effective = old.preferred_refresh_rate / old.fps_divider;
+		auto new_effective = settings.preferred_refresh_rate / settings.fps_divider;
+
+		if (new_effective != old_effective)
+			compositor.set_refresh_rate(new_effective);
+	}
 
 	wivrn_ipc_socket_monado->send(std::move(settings));
 }
@@ -755,13 +765,16 @@ void wivrn_session::operator()(from_headset::user_presence_changed && event)
 
 void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
 {
-	compositor.set_refresh_rate(event.to);
+	auto locked = settings.lock();
+	auto old_effective = event.from / locked->fps_divider;
+	auto new_effective = event.to / locked->fps_divider;
+	compositor.set_refresh_rate(new_effective);
 	push_event(
 	        {
 	                .display = {
 	                        .type = XRT_SESSION_EVENT_DISPLAY_REFRESH_RATE_CHANGE,
-	                        .from_display_refresh_rate_hz = event.from,
-	                        .to_display_refresh_rate_hz = event.to,
+	                        .from_display_refresh_rate_hz = old_effective,
+	                        .to_display_refresh_rate_hz = new_effective,
 	                },
 	        });
 }

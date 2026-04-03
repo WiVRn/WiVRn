@@ -240,6 +240,7 @@ struct settings_changed
 	// for automatic
 	float minimum_refresh_rate;
 
+	uint32_t fps_divider = 1;
 	uint32_t bitrate_bps;
 };
 
