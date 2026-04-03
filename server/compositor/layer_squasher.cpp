@@ -371,7 +371,8 @@ layer_squasher::layer_squasher(vk_bundle & vk, vk::Extent3D target_size) :
 }
 
 std::tuple<std::array<xrt_pose, 2>,
-           std::array<xrt_fov, 2>>
+           std::array<xrt_fov, 2>,
+           std::array<xrt_rect, 2>>
 layer_squasher::do_layers(
         vk::raii::Device & device,
         vk::raii::CommandBuffer & cmd,
@@ -382,6 +383,17 @@ layer_squasher::do_layers(
 {
 	// get the head/pose to reproject to
 	const pose_data poses{hmd, frame_interval_ns, frame, layers};
+	const auto extent3D = render_target.info().extent;
+	std::array viewports{
+	        render_viewport_data{
+	                .w = extent3D.width,
+	                .h = extent3D.height,
+	        },
+	        render_viewport_data{
+	                .w = extent3D.width,
+	                .h = extent3D.height,
+	        },
+	};
 
 	vk::ImageMemoryBarrier im_barrier{
 	        .dstAccessMask = vk::AccessFlagBits::eShaderWrite,
@@ -408,14 +420,7 @@ layer_squasher::do_layers(
 		// TODO: staging buffer?
 		auto & ubo = *(render_compute_layer_ubo_data *)this->ubo[view].map();
 
-		const auto & extent = render_target.info().extent;
-
-		render_viewport_data viewport{
-		        .w = extent.width,
-		        .h = extent.height,
-		};
-
-		ubo.view = viewport;
+		ubo.view = viewports[view];
 		render_calc_uv_to_tangent_lengths_rect(&poses.fovs[view], &ubo.pre_transform);
 
 		// Not the transform of the views, but the inverse: actual view matrices.
@@ -574,7 +579,7 @@ layer_squasher::do_layers(
 
 		cmd.bindPipeline(vk::PipelineBindPoint::eCompute, *pipeline);
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, *layout, 0, descriptor_sets[view], {});
-		auto [w, h] = calc_dispatch_dims_1_view(viewport);
+		auto [w, h] = calc_dispatch_dims_1_view(viewports[view]);
 		cmd.dispatch(w, h, 1);
 	}
 
@@ -590,7 +595,11 @@ layer_squasher::do_layers(
 	        {},
 	        im_barrier);
 
-	return {poses.world_poses, poses.fovs};
+	std::array<xrt_rect, 2> rect;
+	for (auto [v, r]: std::ranges::zip_view(viewports, rect))
+		r = {.extent = {.w = int(v.w), .h = int(v.h)}};
+
+	return {poses.world_poses, poses.fovs, rect};
 }
 
 std::array<vk::ImageView, 2> layer_squasher::get_views()

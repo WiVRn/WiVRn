@@ -56,7 +56,8 @@ public:
 	layer_squasher(vk_bundle &, vk::Extent3D target_size);
 
 	std::tuple<std::array<xrt_pose, 2>,
-	           std::array<xrt_fov, 2>>
+	           std::array<xrt_fov, 2>,
+	           std::array<xrt_rect, 2>>
 	do_layers(
 	        vk::raii::Device &,
 	        vk::raii::CommandBuffer &,
@@ -66,10 +67,6 @@ public:
 	        const comp_layer_accum &);
 
 	std::array<vk::ImageView, 2> get_views();
-	vk::Extent3D extent() const
-	{
-		return render_target.info().extent;
-	}
 
 	uint32_t max_layers(const vk::PhysicalDeviceProperties &) const;
 

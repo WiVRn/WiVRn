@@ -321,7 +321,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	{
 		// no fast-path, squash layers
 		std::array<xrt_pose, 2> poses;
-		std::tie(poses, src_fov) = squasher.do_layers(
+		std::tie(poses, src_fov, src_rect) = squasher.do_layers(
 		        vk.device,
 		        cmd,
 		        session.get_hmd(),
@@ -329,21 +329,6 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		        frame.rendering,
 		        layer_accum);
 
-		auto extent = squasher.extent();
-		src_rect = {
-		        xrt_rect{
-		                .extent = {
-		                        .w = int(extent.width),
-		                        .h = int(extent.height),
-		                },
-		        },
-		        xrt_rect{
-		                .extent = {
-		                        .w = int(extent.width),
-		                        .h = int(extent.height),
-		                },
-		        },
-		};
 		src = squasher.get_views();
 
 		for (int view = 0; view < 2; ++view)
