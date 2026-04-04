@@ -846,9 +846,6 @@ xrt_fov layer_squasher::do_cylinder_layer(const comp_layer & layer,
 	        false,
 	        &ubo.layers[cur_layer].post_transforms);
 
-	ubo.layers[cur_layer].cylinder_data.central_angle = c.central_angle;
-	ubo.layers[cur_layer].cylinder_data.aspect_ratio = c.aspect_ratio;
-
 	xrt_vec3 scale{1.f, 1.f, 1.f};
 
 	xrt_matrix_4x4 model;
@@ -880,7 +877,7 @@ xrt_fov layer_squasher::do_cylinder_layer(const comp_layer & layer,
 	math_matrix_4x4_multiply(&v, &quad_pose, &quad_pose);
 
 	const float w = sin(c.central_angle / 2) * c.radius;
-	const float h = c.radius * c.central_angle / 2 * c.aspect_ratio;
+	const float h = c.radius * c.central_angle / (2 * c.aspect_ratio);
 	const float d = c.radius * cos(c.central_angle / 2);
 	std::array corners{
 	        xrt_vec3{-w, -h, -c.radius},
