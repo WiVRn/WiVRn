@@ -94,7 +94,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_raw::present_image(vk::Image
 	};
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        buffers[slot],
 	        std::span(regions.data(),
 	                  stream_idx < 2 ? 2 : 1));

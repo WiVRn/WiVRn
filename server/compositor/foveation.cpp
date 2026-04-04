@@ -591,12 +591,12 @@ std::array<to_headset::foveation_parameter, 2> foveation::foveate(
 	        vk::DescriptorImageInfo{
 	                .sampler = *sampler,
 	                .imageView = src[0],
-	                .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+	                .imageLayout = vk::ImageLayout::eGeneral,
 	        },
 	        vk::DescriptorImageInfo{
 	                .sampler = *sampler,
 	                .imageView = src[1],
-	                .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+	                .imageLayout = vk::ImageLayout::eGeneral,
 	        },
 	};
 
