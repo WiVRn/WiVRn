@@ -250,6 +250,9 @@ wivrn::vk_bundle::vk_bundle() :
 #ifdef VK_KHR_video_encode_intra_refresh
 		        VK_KHR_VIDEO_ENCODE_INTRA_REFRESH_EXTENSION_NAME,
 #endif
+#ifdef VK_KHR_maintenance9
+		        VK_KHR_MAINTENANCE_9_EXTENSION_NAME,
+#endif
 		};
 		for (auto & ext: physical_device.enumerateDeviceExtensionProperties())
 		{
@@ -281,6 +284,13 @@ wivrn::vk_bundle::vk_bundle() :
 				std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(feat).videoMaintenance1 =
 				        std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>()).videoMaintenance1;
 #endif
+		}
+#endif
+#ifdef VK_KHR_maintenance9
+		if (has_device_ext(VK_KHR_MAINTENANCE_9_EXTENSION_NAME))
+		{
+			std::get<vk::PhysicalDeviceMaintenance9FeaturesKHR>(feat).maintenance9 =
+			        std::get<vk::PhysicalDeviceMaintenance9FeaturesKHR>(physical_device.getFeatures2<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceMaintenance9FeaturesKHR>()).maintenance9;
 		}
 #endif
 

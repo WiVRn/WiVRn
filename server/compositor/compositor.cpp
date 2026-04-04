@@ -203,6 +203,22 @@ vk::Extent3D render_extent(const wivrn::from_headset::headset_info_packet & info
 	};
 }
 
+bool get_implicit_transfer(wivrn::vk_bundle & vk)
+{
+	if (*vk.encode_queue == VK_NULL_HANDLE)
+		return false;
+#ifdef VK_KHR_maintenance9
+	if (std::get<vk::PhysicalDeviceMaintenance9FeaturesKHR>(vk.feat).maintenance9)
+	{
+		auto props = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyOwnershipTransferPropertiesKHR>>();
+
+		auto to = std::get<1>(props[vk.queue_family_index]).optimalImageTransferToQueueFamilies;
+		return to & (1 << vk.encode_queue_family_index);
+	}
+#endif
+	return false;
+}
+
 } // namespace
 
 namespace wivrn
@@ -416,7 +432,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 			continue;
 		auto [transfer, sem] = encoder->present_image(
 		        images[i].image,
-		        need_queue_transfer,
+		        need_queue_transfer or implicit_transfer,
 		        images[i].cmd,
 		        info.frame_id);
 		need_queue_transfer |= transfer;
@@ -438,11 +454,12 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		vk::ImageMemoryBarrier2 video_barrier{
 		        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
 		        .srcAccessMask = vk::AccessFlagBits2::eMemoryRead,
-		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,
+		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eAllCommands,
+		        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
 		        .oldLayout = target_barrier.newLayout,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
-		        .srcQueueFamilyIndex = vk.queue_family_index,
-		        .dstQueueFamilyIndex = vk.encode_queue_family_index,
+		        .srcQueueFamilyIndex = implicit_transfer ? vk::QueueFamilyIgnored : vk.queue_family_index,
+		        .dstQueueFamilyIndex = implicit_transfer ? vk::QueueFamilyIgnored : vk.encode_queue_family_index,
 		        .image = images[i].image,
 		        .subresourceRange = {
 		                .aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -590,6 +607,7 @@ compositor::compositor(wivrn_session & session) :
         pacer(U_TIME_1S_IN_NS / refresh_rate),
         squasher(vk, render_extent(session.get_info())),
         foveation(vk, images[0].image.info().extent),
+        implicit_transfer(get_implicit_transfer(vk)),
         encoder_thread{[&](std::stop_token t) { encoder_work(t); }}
 {
 	comp_base * c_base = this;

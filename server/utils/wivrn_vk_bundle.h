@@ -82,6 +82,9 @@ struct vk_bundle
 #ifdef VK_KHR_video_maintenance1
 	        vk::PhysicalDeviceVideoMaintenance1FeaturesKHR,
 #endif
+#ifdef VK_KHR_maintenance9
+	        vk::PhysicalDeviceMaintenance9FeaturesKHR,
+#endif
 #ifdef VK_KHR_video_encode_intra_refresh
 	        vk::PhysicalDeviceVideoEncodeIntraRefreshFeaturesKHR,
 #endif

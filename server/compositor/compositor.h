@@ -79,6 +79,7 @@ private:
 	wivrn::foveation foveation;
 
 	std::array<std::unique_ptr<video_encoder>, 3> encoders;
+	const bool implicit_transfer;
 
 #ifdef __cpp_lib_atomic_lock_free_type_aliases
 	using status_type = std::atomic_signed_lock_free;
