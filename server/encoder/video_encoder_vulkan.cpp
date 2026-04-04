@@ -716,7 +716,7 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_vulkan::present_image(vk::Im
 
 		cmd_buf.copyImage(
 		        y_cbcr,
-		        vk::ImageLayout::eTransferSrcOptimal,
+		        vk::ImageLayout::eGeneral,
 		        slot_item.tmp_image,
 		        vk::ImageLayout::eTransferDstOptimal,
 		        {

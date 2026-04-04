@@ -180,7 +180,7 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 {
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        in[slot].luma,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = chroma_width * 2,
@@ -196,7 +196,7 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 	                }});
 	cmd_buf.copyImageToBuffer(
 	        y_cbcr,
-	        vk::ImageLayout::eTransferSrcOptimal,
+	        vk::ImageLayout::eGeneral,
 	        in[slot].chroma,
 	        vk::BufferImageCopy{
 	                .bufferRowLength = chroma_width,

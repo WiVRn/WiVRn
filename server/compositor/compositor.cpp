@@ -356,6 +356,12 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		}
 	}
 
+	vk::MemoryBarrier2 mem_barrier{
+	        .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+	        .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+	        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+	        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
+	};
 	vk::ImageMemoryBarrier2 target_barrier{
 	        .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
 	        .dstAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
@@ -372,6 +378,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	};
 
 	cmd.pipelineBarrier2({
+	        .memoryBarrierCount = 1,
+	        .pMemoryBarriers = &mem_barrier,
 	        .imageMemoryBarrierCount = 1,
 	        .pImageMemoryBarriers = &target_barrier,
 	});
@@ -392,19 +400,10 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        src_fov);
 
 	if (std::ranges::any_of(encoders, &video_encoder::need_copy))
-	{
-		target_barrier.srcAccessMask = target_barrier.dstAccessMask;
-		target_barrier.srcStageMask = target_barrier.dstStageMask;
-		target_barrier.oldLayout = target_barrier.newLayout;
-		target_barrier.dstAccessMask = vk::AccessFlagBits2::eTransferRead;
-		target_barrier.dstStageMask = vk::PipelineStageFlagBits2::eTransfer;
-		target_barrier.newLayout = vk::ImageLayout::eTransferSrcOptimal;
-
 		cmd.pipelineBarrier2({
-		        .imageMemoryBarrierCount = 1,
-		        .pImageMemoryBarriers = &target_barrier,
+		        .memoryBarrierCount = 1,
+		        .pMemoryBarriers = &mem_barrier,
 		});
-	}
 	cmd.end();
 
 	vk.device.resetFences(*fence);
@@ -449,7 +448,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	};
 
 #if WIVRN_USE_VULKAN_ENCODE
-	if (need_queue_transfer)
+	if (need_queue_transfer and not implicit_transfer)
 	{
 		vk::ImageMemoryBarrier2 video_barrier{
 		        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
@@ -458,8 +457,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
 		        .oldLayout = target_barrier.newLayout,
 		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
-		        .srcQueueFamilyIndex = implicit_transfer ? vk::QueueFamilyIgnored : vk.queue_family_index,
-		        .dstQueueFamilyIndex = implicit_transfer ? vk::QueueFamilyIgnored : vk.encode_queue_family_index,
+		        .srcQueueFamilyIndex = vk.queue_family_index,
+		        .dstQueueFamilyIndex = vk.encode_queue_family_index,
 		        .image = images[i].image,
 		        .subresourceRange = {
 		                .aspectMask = vk::ImageAspectFlagBits::eColor,
