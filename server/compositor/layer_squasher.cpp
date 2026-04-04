@@ -799,8 +799,6 @@ xrt_fov layer_squasher::do_quad_layer(const comp_layer & layer,
 	                     .angle_right = -M_PI,
 	                     .angle_up = -M_PI,
 	                     .angle_down = M_PI};
-	if (normal_view_space.z < 0)
-		return layer_fov; // back face is not visible
 	for (auto & c: corners)
 	{
 		math_matrix_4x4_transform_vec3(&quad_pose, &c, &c);
