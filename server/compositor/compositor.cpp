@@ -33,6 +33,7 @@
 
 #include "driver/wivrn_session.h"
 #include "encoder/video_encoder.h"
+#include "inplace_vector.hpp"
 #include "utils/method.h"
 
 DEBUG_GET_ONCE_LOG_OPTION(log, "XRT_COMPOSITOR_LOG", U_LOGGING_INFO)
@@ -128,11 +129,6 @@ std::array<wivrn::compositor::image, 2> make_images(wivrn::vk_bundle & vk, vk::C
 	}
 #endif
 
-	auto bufs = vk.device.allocateCommandBuffers({
-	        .commandPool = command_pool,
-	        .commandBufferCount = 2,
-	});
-
 	auto make_image = [&](int i) {
 		vk::ImageViewUsageCreateInfo usage{
 		        .usage = vk::ImageUsageFlagBits::eStorage,
@@ -145,9 +141,6 @@ std::array<wivrn::compositor::image, 2> make_images(wivrn::vk_bundle & vk, vk::C
 		};
 		vk::Image vk_image{image};
 		return wivrn::compositor::image{
-		        .sem{vk.device, vk::SemaphoreCreateInfo{}},
-		        .fence{vk.device, vk::FenceCreateInfo{}},
-		        .cmd{std::move(bufs[i])},
 		        .image{std::move(image)},
 		        .view_y{
 		                vk.device,
@@ -182,15 +175,19 @@ std::array<wivrn::compositor::image, 2> make_images(wivrn::vk_bundle & vk, vk::C
 	return {make_image(0), make_image(1)};
 }
 
-vk::raii::Fence make_fence(wivrn::vk_bundle & vk, const char * name)
+vk::raii::Semaphore make_semaphore(wivrn::vk_bundle & vk)
 {
-	vk::raii::Fence res{
+	vk::raii::Semaphore res{
 	        vk.device,
-	        vk::FenceCreateInfo{
-	                .flags = vk::FenceCreateFlagBits::eSignaled,
-	        },
+	        vk::StructureChain{
+	                vk::SemaphoreCreateInfo{},
+	                vk::SemaphoreTypeCreateInfo{
+	                        .semaphoreType = vk::SemaphoreType::eTimeline,
+	                },
+	        }
+	                .get(),
 	};
-	vk.name(res, name);
+	vk.name(res, "compositor semaphore");
 	return res;
 }
 
@@ -201,22 +198,6 @@ vk::Extent3D render_extent(const wivrn::from_headset::headset_info_packet & info
 	        .height = info.render_eye_height,
 	        .depth = 1,
 	};
-}
-
-bool get_implicit_transfer(wivrn::vk_bundle & vk)
-{
-	if (*vk.encode_queue == VK_NULL_HANDLE)
-		return false;
-#ifdef VK_KHR_maintenance9
-	if (std::get<vk::PhysicalDeviceMaintenance9FeaturesKHR>(vk.feat).maintenance9)
-	{
-		auto props = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyOwnershipTransferPropertiesKHR>>();
-
-		auto to = std::get<1>(props[vk.queue_family_index]).optimalImageTransferToQueueFamilies;
-		return to & (1 << vk.encode_queue_family_index);
-	}
-#endif
-	return false;
 }
 
 } // namespace
@@ -279,8 +260,6 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 
 	U_LOG_IFL_D(log_level, "frame %ld commit %d layers", frame.rendering.id, layer_accum.layer_count);
 
-	auto _ = vk.device.waitForFences(*fence, true, INT64_MAX);
-
 	if (encode_request >= 0 // encoders have not picked up the previous frame
 	    or layer_accum.layer_count == 0 or not session.connected() or not session.get_offset())
 	{
@@ -294,7 +273,6 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		comp_frame_clear_locked(&frame.rendering);
 		return XRT_SUCCESS;
 	}
-	assert(images[i].fence.getStatus() == vk::Result::eNotReady);
 
 	auto & view_info = images[i].view_info;
 	images[i].frame_index = frame.rendering.id;
@@ -312,6 +290,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	std::array<vk::ImageView, 2> src;
 	std::array<xrt_rect, 2> src_rect;
 	std::array<xrt_fov, 2> src_fov;
+
+	beman::inplace_vector::inplace_vector<vk::ImageMemoryBarrier2, 3> image_barriers;
 
 	// Check if we can pass a layer directly to foveation
 	if (layer_accum.layer_count == 1 and
@@ -354,35 +334,41 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 			view_info.pose[view] = xrt_cast(poses[view]);
 			view_info.fov[view] = xrt_cast(src_fov[view]);
 		}
+
+		image_barriers.push_back(
+		        vk::ImageMemoryBarrier2{
+		                .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+		                .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+		                .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+		                .dstAccessMask = vk::AccessFlagBits2::eShaderStorageRead,
+		                .image = squasher.get_image(),
+		                .subresourceRange = {
+		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                        .levelCount = 1,
+		                        .layerCount = vk::RemainingArrayLayers,
+		                },
+		        });
 	}
 
-	vk::MemoryBarrier2 mem_barrier{
-	        .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-	        .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
-	        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-	        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
-	};
-	vk::ImageMemoryBarrier2 target_barrier{
-	        .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-	        .dstAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
-	        .oldLayout = vk::ImageLayout::eUndefined,
-	        .newLayout = vk::ImageLayout::eGeneral,
-	        .image = images[i].image,
-	        .subresourceRange = {
-	                .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                .baseMipLevel = 0,
-	                .levelCount = 1,
-	                .baseArrayLayer = 0,
-	                .layerCount = vk::RemainingArrayLayers,
-	        },
-	};
+	image_barriers.push_back(
+	        vk::ImageMemoryBarrier2{
+	                .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+	                .dstAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+	                .oldLayout = vk::ImageLayout::eUndefined,
+	                .newLayout = vk::ImageLayout::eGeneral,
+	                .image = images[i].image,
+	                .subresourceRange = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .levelCount = 1,
+	                        .layerCount = vk::RemainingArrayLayers,
+	                },
+	        });
 
 	cmd.pipelineBarrier2({
-	        .memoryBarrierCount = 1,
-	        .pMemoryBarriers = &mem_barrier,
-	        .imageMemoryBarrierCount = 1,
-	        .pImageMemoryBarriers = &target_barrier,
+	        .imageMemoryBarrierCount = uint32_t(image_barriers.size()),
+	        .pImageMemoryBarriers = image_barriers.data(),
 	});
+	image_barriers.clear();
 
 	if (session.get_info().eye_gaze)
 	{
@@ -399,99 +385,82 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        src_rect,
 	        src_fov);
 
-	if (std::ranges::any_of(encoders, &video_encoder::need_copy))
-		cmd.pipelineBarrier2({
-		        .memoryBarrierCount = 1,
-		        .pMemoryBarriers = &mem_barrier,
-		});
-	cmd.end();
-
-	vk.device.resetFences(*fence);
-	{
-		std::unique_lock lock{vk.queue_mutex};
-		vk.queue.submit(
-		        vk::SubmitInfo{
-		                .commandBufferCount = 1,
-		                .pCommandBuffers = &*cmd,
-		                .signalSemaphoreCount = 1,
-		                .pSignalSemaphores = &*images[i].sem,
-		        },
-		        *fence);
-	}
-
-	images[i].cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-
-	auto info = pacer.present_to_info(frame.rendering.desired_present_time_ns);
-
-	bool need_queue_transfer = false;
-	std::vector<vk::Semaphore> present_done_sem;
 	for (auto & encoder: encoders)
 	{
 		if (encoder->stream_idx == 2 and not view_info.alpha)
 			continue;
-		auto [transfer, sem] = encoder->present_image(
-		        images[i].image,
-		        need_queue_transfer or implicit_transfer,
-		        images[i].cmd,
-		        info.frame_id);
-		need_queue_transfer |= transfer;
-		if (sem)
-			present_done_sem.push_back(sem);
+		else if (encoder->need_transfer or encoder->target_queue == vk.queue_family_index)
+		{
+			image_barriers.push_back(
+			        vk::ImageMemoryBarrier2{
+			                .srcStageMask = vk::PipelineStageFlagBits2KHR::eComputeShader,
+			                .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+			                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+			                .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
+			                .srcQueueFamilyIndex = vk.queue_family_index,
+			                .dstQueueFamilyIndex = encoder->target_queue,
+			                .image = images[i].image,
+			                .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+			                                     .baseMipLevel = 0,
+			                                     .levelCount = 1,
+			                                     .baseArrayLayer = encoder->stream_idx,
+			                                     .layerCount = 1},
+			        });
+		}
 	}
 
-	vk::PipelineStageFlags stages = vk::PipelineStageFlagBits::eAllCommands;
+	cmd.pipelineBarrier2({
+	        .imageMemoryBarrierCount = uint32_t(image_barriers.size()),
+	        .pImageMemoryBarriers = image_barriers.data(),
+	});
 
-	vk::SubmitInfo submit_info{
-	        .waitSemaphoreCount = 1,
-	        .pWaitSemaphores = &*images[i].sem,
-	        .pWaitDstStageMask = &stages,
+	cmd.end();
+
+	vk::SemaphoreSubmitInfo sem_info{
+	        .semaphore = *sem,
+	        .value = ++sem_value,
+	        .stageMask = vk::PipelineStageFlagBits2::eComputeShader,
 	};
+	images[i].sem_value = sem_value;
 
-#if WIVRN_USE_VULKAN_ENCODE
-	if (need_queue_transfer and not implicit_transfer)
 	{
-		vk::ImageMemoryBarrier2 video_barrier{
-		        .srcStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
-		        .srcAccessMask = vk::AccessFlagBits2::eMemoryRead,
-		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eAllCommands,
-		        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
-		        .oldLayout = target_barrier.newLayout,
-		        .newLayout = vk::ImageLayout::eVideoEncodeSrcKHR,
-		        .srcQueueFamilyIndex = vk.queue_family_index,
-		        .dstQueueFamilyIndex = vk.encode_queue_family_index,
-		        .image = images[i].image,
-		        .subresourceRange = {
-		                .aspectMask = vk::ImageAspectFlagBits::eColor,
-		                .baseMipLevel = 0,
-		                .levelCount = 1,
-		                .baseArrayLayer = 0,
-		                .layerCount = vk::RemainingArrayLayers,
-		        },
+		vk::CommandBufferSubmitInfo cmd_info{
+		        .commandBuffer = cmd,
 		};
-		images[i].cmd.pipelineBarrier2({
-		        .imageMemoryBarrierCount = 1,
-		        .pImageMemoryBarriers = &video_barrier,
+		std::unique_lock lock{vk.queue_mutex};
+		vk.queue.submit2(vk::SubmitInfo2{
+		        .commandBufferInfoCount = 1,
+		        .pCommandBufferInfos = &cmd_info,
+		        .signalSemaphoreInfoCount = 1,
+		        .pSignalSemaphoreInfos = &sem_info,
 		});
 	}
-	submit_info.setSignalSemaphores(present_done_sem);
-#endif
-	images[i].cmd.end();
-	submit_info.setCommandBuffers(*images[i].cmd);
 
+	auto info = pacer.present_to_info(frame.rendering.desired_present_time_ns);
+
+	for (auto & encoder: encoders)
 	{
-		std::unique_lock lock{vk.queue_mutex};
-		vk.queue.submit(submit_info, *images[i].fence);
-		for (auto & encoder: encoders)
-		{
-			if (encoder->stream_idx == 2 and not view_info.alpha)
-				continue;
-			encoder->post_submit();
-		}
+		if (encoder->stream_idx == 2 and not view_info.alpha)
+			continue;
+		encoder->present_image(
+		        images[i].image,
+		        sem_info,
+		        info.frame_id);
 	}
 
 	auto j = encode_request.exchange(i);
 	encode_request.notify_all();
 	assert(j == -1);
+
+	comp_frame_clear_locked(&frame.rendering);
+
+	if (vk.device.waitSemaphores(vk::SemaphoreWaitInfo{
+	                                     .semaphoreCount = 1,
+	                                     .pSemaphores = &*sem,
+	                                     .pValues = &sem_value,
+	                             },
+	                             U_TIME_1S_IN_NS) == vk::Result::eTimeout)
+		U_LOG_IFL_W(log_level, "compositor timeout");
 
 	// Now is a good point to garbage collect.
 	comp_swapchain_shared_garbage_collect(&cscs);
@@ -541,9 +510,6 @@ void compositor::encoder_work(std::stop_token tok)
 
 		assert(req < images.size());
 		auto & image = images[req];
-
-		auto _ = vk.device.waitForFences(*image.fence, true, UINT64_MAX);
-		vk.device.resetFences(*image.fence);
 
 		try
 		{
@@ -601,13 +567,11 @@ compositor::compositor(wivrn_session & session) :
         settings(get_encoder_settings(vk, session)),
         images{make_images(vk, cmd_pool, settings)},
         cmd{std::move(vk.device.allocateCommandBuffers({.commandPool = *cmd_pool, .commandBufferCount = 1})[0])},
-        fence{make_fence(vk, "compositor fence")},
+        sem{make_semaphore(vk)},
         refresh_rate(settings[0].fps),
         pacer(U_TIME_1S_IN_NS / refresh_rate),
         squasher(vk, render_extent(session.get_info())),
-        foveation(vk, images[0].image.info().extent),
-        implicit_transfer(get_implicit_transfer(vk)),
-        encoder_thread{[&](std::stop_token t) { encoder_work(t); }}
+        foveation(vk, images[0].image.info().extent)
 {
 	comp_base * c_base = this;
 	// Ensure we can safely cast pointers
@@ -654,6 +618,9 @@ compositor::compositor(wivrn_session & session) :
 	for (auto [i, settings]: std::ranges::enumerate_view(settings))
 		encoders[i] = video_encoder::create(vk, settings, i);
 	send_video_stream_description();
+
+	// Start the thread after everything is initialized
+	encoder_thread = std::jthread{[&](std::stop_token t) { encoder_work(t); }};
 }
 
 compositor::~compositor()

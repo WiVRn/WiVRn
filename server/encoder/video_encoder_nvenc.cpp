@@ -148,12 +148,24 @@ void video_encoder_nvenc::set_init_params_fps(float framerate)
 	init_params.frameRateDen = 1;
 }
 
+static vk::raii::CommandPool make_cmd_pool(wivrn::vk_bundle & vk, uint8_t stream_idx)
+{
+	auto res = vk.device.createCommandPool(vk::CommandPoolCreateInfo{
+
+	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+	        .queueFamilyIndex = vk.queue_family_index,
+	});
+	vk.name(res, std::format("nvenc encoder {} command pool", stream_idx));
+	return res;
+}
+
 video_encoder_nvenc::video_encoder_nvenc(
         wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings, std::make_unique<default_idr_handler>(), true),
+        video_encoder(vk, stream_idx, vk.queue_family_index, settings, std::make_unique<default_idr_handler>(), true),
         vk(vk),
+        cmd_pool{make_cmd_pool(vk, stream_idx)},
         shared_state(video_encoder_nvenc_shared_state::get()),
         fps(settings.fps),
         bitrate(settings.bitrate)
@@ -163,6 +175,16 @@ video_encoder_nvenc::video_encoder_nvenc(
 
 	assert(extent.width % 32 == 0);
 	assert(extent.height % 32 == 0);
+
+	auto command_buffers = vk.device.allocateCommandBuffers(
+	        {.commandPool = *cmd_pool,
+	         .commandBufferCount = num_slots});
+	for (size_t i = 0; i < num_slots; ++i)
+	{
+		in[i].cmd = std::move(command_buffers[i]);
+		in[i].fence = vk::raii::Fence(vk.device,
+		                              vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+	}
 
 	NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS session_params = {
 	        .version = NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
@@ -396,9 +418,18 @@ video_encoder_nvenc::~video_encoder_nvenc()
 		shared_state->fn.nvEncDestroyEncoder(session_handle);
 }
 
-std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
+void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo compositor_sem, uint8_t slot, uint64_t)
 {
-	cmd_buf.copyImageToBuffer(
+	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	{
+		U_LOG_E("Timeout on stream %d", stream_idx);
+		return;
+	}
+	auto & cmd = in[slot].cmd;
+	cmd.reset();
+	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+	cmd.copyImageToBuffer(
 	        y_cbcr,
 	        vk::ImageLayout::eGeneral,
 	        *in[slot].yuv,
@@ -429,12 +460,32 @@ std::pair<bool, vk::Semaphore> video_encoder_nvenc::present_image(vk::Image y_cb
 	                                .depth = 1,
 	                        },
 	                }});
+	cmd.end();
 
-	return {false, nullptr};
+	std::unique_lock lock(vk.queue_mutex);
+	vk::CommandBufferSubmitInfo cmd_info{
+	        .commandBuffer = *cmd,
+	};
+	compositor_sem.stageMask = vk::PipelineStageFlagBits2::eTransfer;
+
+	vk.device.resetFences(*in[slot].fence);
+	vk.queue.submit2(vk::SubmitInfo2{
+	                         .waitSemaphoreInfoCount = 1,
+	                         .pWaitSemaphoreInfos = &compositor_sem,
+	                         .commandBufferInfoCount = 1,
+	                         .pCommandBufferInfos = &cmd_info,
+	                 },
+	                 *in[slot].fence);
 }
 
 std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uint64_t frame_index)
 {
+	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	{
+		U_LOG_E("Timeout on stream %d", stream_idx);
+		return {};
+	}
+
 	CU_CHECK(shared_state->cuda_fn->cuCtxPushCurrent(shared_state->cuda));
 	auto & idr_handler = ((default_idr_handler &)*idr);
 

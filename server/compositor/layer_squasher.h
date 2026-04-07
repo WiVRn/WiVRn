@@ -68,6 +68,10 @@ public:
 	        const xrt_rect & min_size);
 
 	std::array<vk::ImageView, 2> get_views();
+	vk::Image get_image()
+	{
+		return render_target;
+	}
 
 	uint32_t max_layers(const vk::PhysicalDeviceProperties &) const;
 

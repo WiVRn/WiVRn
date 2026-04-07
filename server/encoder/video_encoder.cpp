@@ -185,11 +185,15 @@ std::unique_ptr<video_encoder> video_encoder::create(
 	return res;
 }
 
-video_encoder::video_encoder(uint8_t stream_idx,
+video_encoder::video_encoder(vk_bundle & vk,
+                             uint8_t stream_idx,
+                             uint32_t target_queue,
                              const encoder_settings & settings,
                              std::unique_ptr<idr_handler> idr,
                              bool async_send) :
         stream_idx(stream_idx),
+        target_queue(target_queue),
+        need_transfer(not vk.optimal_transfer(vk.queue_family_index, target_queue)),
         bitrate_multiplier(settings.bitrate_multiplier),
         shared_sender(async_send ? sender::get() : nullptr),
         idr(std::move(idr)),
@@ -228,7 +232,7 @@ void video_encoder::set_framerate(float framerate)
 	pending_framerate = framerate;
 }
 
-std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint64_t frame_index)
+void video_encoder::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo info, uint64_t frame_index)
 {
 	// Wait for encoder to be done
 	present_slot = (present_slot + 1) % num_slots;
@@ -236,17 +240,10 @@ std::pair<bool, vk::Semaphore> video_encoder::present_image(vk::Image y_cbcr, bo
 	if (idr->should_skip(frame_index))
 	{
 		state[present_slot] = skip;
-		return {false, nullptr};
+		return;
 	}
 	state[present_slot] = busy;
-	return present_image(y_cbcr, transferred, cmd_buf, present_slot, frame_index);
-}
-
-void video_encoder::post_submit()
-{
-	if (state[present_slot] == skip)
-		return;
-	post_submit(present_slot);
+	return present_image(y_cbcr, info, present_slot, frame_index);
 }
 
 void video_encoder::encode(wivrn_session & cnx,

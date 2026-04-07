@@ -38,8 +38,14 @@ class video_encoder_x264 : public video_encoder
 
 	x264_picture_t pic_out = {};
 
+	wivrn::vk_bundle & vk;
+	uint64_t sem_value = 0; // current value of the semaphore
+	vk::raii::CommandPool cmd_pool;
+
 	struct in_t
 	{
+		vk::raii::Fence fence = nullptr;
+		vk::raii::CommandBuffer cmd = nullptr;
 		x264_picture_t pic;
 		buffer_allocation luma;
 		buffer_allocation chroma;
@@ -62,7 +68,7 @@ class video_encoder_x264 : public video_encoder
 public:
 	video_encoder_x264(wivrn::vk_bundle & vk, const encoder_settings & settings, uint8_t stream_idx);
 
-	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
+	void present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, uint8_t slot, uint64_t frame_index) override;
 
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
 

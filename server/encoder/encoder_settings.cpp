@@ -183,8 +183,11 @@ class prober
 	{
 		if (*vk.encode_queue == VK_NULL_HANDLE)
 			return false;
-		if (not std::get<vk::PhysicalDeviceVulkan12Features>(vk.feat).timelineSemaphore)
+		if (not std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(vk.feat).videoMaintenance1)
+		{
+			U_LOG_I("Cannot use vulkan video encode without VideoMaintenance1 feature");
 			return false;
+		}
 		auto prop = vk.physical_device.getQueueFamilyProperties2<vk::StructureChain<vk::QueueFamilyProperties2, vk::QueueFamilyVideoPropertiesKHR>>();
 		assert(vk.encode_queue_family_index < prop.size());
 		const auto flags = prop.at(vk.encode_queue_family_index).get<vk::QueueFamilyVideoPropertiesKHR>().videoCodecOperations;
