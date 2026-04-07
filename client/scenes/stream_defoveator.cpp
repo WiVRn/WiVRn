@@ -104,7 +104,7 @@ stream_defoveator::pipeline_t & stream_defoveator::ensure_pipeline(size_t view, 
 
 	// pipeline layout
 	vk::PushConstantRange pc_range{
-	        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+	        .stageFlags = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment,
 	        .size = sizeof(vert_pc),
 	};
 
@@ -431,7 +431,7 @@ void stream_defoveator::defoveate(vk::raii::CommandBuffer & command_buffer,
 		command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline.pipeline);
 		command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline.layout, 0, pipeline.ds, {});
-		command_buffer.pushConstants<vert_pc>(*pipeline.layout, vk::ShaderStageFlagBits::eVertex, 0, pc);
+		command_buffer.pushConstants<vert_pc>(*pipeline.layout, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, pc);
 		command_buffer.bindVertexBuffers(0, vk::Buffer(buffer), vertices_size * view);
 		command_buffer.draw(required_vertices(foveation[view]), 1, 0, 0);
 		command_buffer.endRenderPass();

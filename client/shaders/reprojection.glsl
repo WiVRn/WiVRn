@@ -18,18 +18,18 @@
  */
 #version 450
 
+layout(push_constant) uniform pc
+{
+	ivec4 rgb_rect;
+	ivec4 a_rect;
+};
+
 #ifdef VERT_SHADER
 
 layout (location = 0) in vec2 vPosition;
 layout (location = 1) in uvec2 vUV;
 
 layout(location = 0) out vec4 outUV;
-
-layout(push_constant) uniform pc
-{
-	ivec4 rgb_rect;
-	ivec4 a_rect;
-};
 
 void main()
 {
@@ -70,7 +70,14 @@ vec4 sRGB_to_linear_rgba(vec4 x)
 void main()
 {
 	if (alpha == 1)
-		outColor = vec4(texture(rgb[0], inUV.xy).rgb, texture(rgb[1], inUV.zw).r);
+	{
+		// Avoid sampling between the eyes
+		vec2 a = inUV.zw;
+		float d = a.x - 0.5;
+		if (abs(d) *a_rect.z < 1)
+			a.x += (d > 0 ? 1 : -1)  / float(a_rect.z);
+		outColor = vec4(texture(rgb[0], inUV.xy).rgb, texture(rgb[1], a).r);
+	}
 	else
 		outColor = texture(rgb[0], inUV.xy).rgba;
 
