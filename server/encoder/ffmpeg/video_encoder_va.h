@@ -32,22 +32,25 @@ struct encoder_settings;
 
 class video_encoder_va : public video_encoder_ffmpeg
 {
+	vk_bundle & vk;
+	vk::raii::CommandPool cmd_pool;
 	struct in_t
 	{
 		av_frame_ptr va_frame;
 		av_frame_ptr drm_frame;
+		vk::raii::Fence fence = nullptr;
+		vk::raii::CommandBuffer cmd = nullptr;
 		vk::raii::Image luma = nullptr;
 		vk::raii::Image chroma = nullptr;
 		std::vector<vk::raii::DeviceMemory> mem;
 	};
 	av_buffer_ptr drm_frame_ctx;
 	std::array<in_t, num_slots> in;
-	bool synchronization2 = false;
 
 public:
 	video_encoder_va(wivrn::vk_bundle &, const wivrn::encoder_settings & settings, uint8_t stream_index);
 
-	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
+	void present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo info, uint8_t slot, uint64_t frame_index) override;
 
 protected:
 	void push_frame(bool idr, uint8_t slot) override;

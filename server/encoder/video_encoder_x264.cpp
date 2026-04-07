@@ -86,17 +86,49 @@ void video_encoder_x264::InsertInPendingNal(pending_nal && nal)
 	pending_nals.push_back(std::move(nal));
 }
 
+namespace
+{
+vk::raii::CommandPool make_cmd_pool(wivrn::vk_bundle & vk, uint8_t stream_idx)
+{
+	auto res = vk.device.createCommandPool(vk::CommandPoolCreateInfo{
+
+	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+	        .queueFamilyIndex = *vk.transfer_queue ? vk.transfer_queue_family_index : vk.queue_family_index,
+	});
+	vk.name(res, std::format("x264 encoder {} command pool", stream_idx));
+	return res;
+}
+} // namespace
+
 video_encoder_x264::video_encoder_x264(
         wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings, std::make_unique<default_idr_handler>(), false)
+        video_encoder(vk,
+                      stream_idx,
+                      *vk.transfer_queue ? vk.transfer_queue_family_index : vk.queue_family_index,
+                      settings,
+                      std::make_unique<default_idr_handler>(),
+                      false),
+        vk{vk},
+        cmd_pool{make_cmd_pool(vk, stream_idx)}
 {
 	if (settings.bit_depth != 8)
 		throw std::runtime_error("x264 encoder only supports 8-bit encoding");
 
 	if (settings.codec != h264)
 		U_LOG_W("requested x264 encoder with codec != h264");
+
+	auto command_buffers = vk.device.allocateCommandBuffers(
+	        {.commandPool = *cmd_pool,
+	         .commandBufferCount = num_slots});
+
+	for (size_t i = 0; i < num_slots; ++i)
+	{
+		in[i].cmd = std::move(command_buffers[i]);
+		vk.name(in[i].cmd, std::format("x264 {} transfer command buffer {}", stream_idx, i));
+		in[i].fence = vk::raii::Fence(vk.device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+	}
 
 	// encoder requires width and height to be even
 	chroma_width = extent.width / 2;
@@ -149,7 +181,7 @@ video_encoder_x264::video_encoder_x264(
 		        },
 		        {
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-		                .usage = VMA_MEMORY_USAGE_AUTO,
+		                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
 		        },
 		        "x264 luma buffer");
 		i.chroma = buffer_allocation(
@@ -159,7 +191,7 @@ video_encoder_x264::video_encoder_x264(
 		                   },
 		        {
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-		                .usage = VMA_MEMORY_USAGE_AUTO,
+		                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
 		        },
 		        "x264 chroma buffer");
 
@@ -176,9 +208,39 @@ video_encoder_x264::video_encoder_x264(
 	}
 }
 
-std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
+void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo compositor_sem, uint8_t slot, uint64_t)
 {
-	cmd_buf.copyImageToBuffer(
+	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	{
+		U_LOG_E("Timeout on stream %d", stream_idx);
+		return;
+	}
+
+	auto & cmd = in[slot].cmd;
+	cmd.reset();
+	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+	if (target_queue != vk.queue_family_index)
+	{
+		vk::ImageMemoryBarrier2 barrier{
+		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
+		        .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+		        .srcQueueFamilyIndex = vk.queue_family_index,
+		        .dstQueueFamilyIndex = target_queue,
+		        .image = y_cbcr,
+		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+		                             .baseMipLevel = 0,
+		                             .levelCount = 1,
+		                             .baseArrayLayer = stream_idx,
+		                             .layerCount = 1},
+		};
+		cmd.pipelineBarrier2({
+		        .imageMemoryBarrierCount = 1,
+		        .pImageMemoryBarriers = &barrier,
+		});
+	}
+
+	cmd.copyImageToBuffer(
 	        y_cbcr,
 	        vk::ImageLayout::eGeneral,
 	        in[slot].luma,
@@ -194,7 +256,7 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 	                        .height = extent.height,
 	                        .depth = 1,
 	                }});
-	cmd_buf.copyImageToBuffer(
+	cmd.copyImageToBuffer(
 	        y_cbcr,
 	        vk::ImageLayout::eGeneral,
 	        in[slot].chroma,
@@ -210,7 +272,24 @@ std::pair<bool, vk::Semaphore> video_encoder_x264::present_image(vk::Image y_cbc
 	                        .height = extent.height / 2,
 	                        .depth = 1,
 	                }});
-	return {false, nullptr};
+
+	cmd.end();
+
+	std::unique_lock lock(*vk.transfer_queue ? vk.transfer_queue_mutex : vk.queue_mutex);
+	vk::CommandBufferSubmitInfo cmd_info{
+	        .commandBuffer = *cmd,
+	};
+	compositor_sem.stageMask = vk::PipelineStageFlagBits2::eTransfer;
+
+	vk.device.resetFences(*in[slot].fence);
+	(*vk.transfer_queue ? vk.transfer_queue : vk.queue)
+	        .submit2(vk::SubmitInfo2{
+	                         .waitSemaphoreInfoCount = 1,
+	                         .pWaitSemaphoreInfos = &compositor_sem,
+	                         .commandBufferInfoCount = 1,
+	                         .pCommandBufferInfos = &cmd_info,
+	                 },
+	                 *in[slot].fence);
 }
 
 std::optional<video_encoder::data> video_encoder_x264::encode(uint8_t slot, uint64_t frame_index)
@@ -253,6 +332,11 @@ std::optional<video_encoder::data> video_encoder_x264::encode(uint8_t slot, uint
 	}
 	next_mb = 0;
 	assert(pending_nals.empty());
+	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	{
+		U_LOG_E("Timeout on stream %d", stream_idx);
+		return {};
+	}
 	int size = x264_encoder_encode(enc, &nal, &num_nal, &pic, &pic_out);
 	if (next_mb != num_mb)
 	{

@@ -61,7 +61,10 @@ xrt_result_t instance::create_system(
 	        out_xspovrs,
 	        out_xsysc);
 	if (res != XRT_SUCCESS)
+	{
+		ipc_server_stop(server);
 		return res;
+	}
 	session = (wivrn_session *)*out_xsysd;
 	session->start(server);
 	u_system_set_system_compositor(u_sys, *out_xsysc);
@@ -88,11 +91,8 @@ instance::instance() :
 void instance::set_ipc_server(ipc_server * server)
 {
 	this->server = server;
-	if (!server)
-	{
-		assert(session);
+	if (session and not server)
 		session->stop();
-	}
 }
 
 } // namespace wivrn

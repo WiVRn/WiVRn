@@ -38,6 +38,9 @@ class video_encoder_vulkan : public video_encoder
 	vk::raii::VideoSessionKHR video_session = nullptr;
 	vk::raii::VideoSessionParametersKHR video_session_parameters = nullptr;
 
+	vk::raii::Semaphore sem = nullptr;
+	uint64_t sem_value = 0;
+
 	vk::raii::QueryPool query_pool = nullptr;
 	vk::raii::CommandPool transfer_command_pool = nullptr;
 	vk::raii::CommandPool video_command_pool = nullptr;
@@ -47,19 +50,15 @@ class video_encoder_vulkan : public video_encoder
 	std::unordered_map<VkImage, vk::raii::ImageView> image_views; // for input images
 	struct slot_item
 	{
-		image_allocation tmp_image; // Used if we have an offset in the image to encode
+		vk::raii::Fence fence = nullptr;
 		vk::raii::CommandBuffer video_cmd_buf = nullptr;
 		vk::raii::CommandBuffer transfer_cmd_buf = nullptr;
-		vk::raii::Semaphore wait_sem = nullptr;
-		vk::raii::Semaphore sem = nullptr;
-		uint64_t sem_value = 0;
-		vk::raii::Fence fence = nullptr;
 		vk::raii::ImageView view = nullptr;
 		buffer_allocation output_buffer;
 		buffer_allocation host_buffer;
 		vk::DeviceSize copy_size;
 		bool idr = false;
-		std::atomic_bool busy = false;
+		std::atomic<bool> busy = false;
 	};
 	std::array<slot_item, num_slots> slot_data;
 
@@ -104,12 +103,7 @@ protected:
 	virtual vk::ExtensionProperties std_header_version() = 0;
 
 public:
-	bool need_copy() const override
-	{
-		return slot_data[0].tmp_image;
-	}
+	void present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, uint8_t slot, uint64_t frame_index) override;
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
-	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
-	void post_submit(uint8_t slot) override;
 };
 } // namespace wivrn

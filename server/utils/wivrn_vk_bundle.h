@@ -71,6 +71,10 @@ struct vk_bundle
 	vk::raii::Queue queue;
 	uint32_t queue_family_index;
 
+	std::mutex transfer_queue_mutex;
+	vk::raii::Queue transfer_queue;
+	uint32_t transfer_queue_family_index;
+
 	std::mutex encode_queue_mutex;
 	vk::raii::Queue encode_queue;
 	uint32_t encode_queue_family_index;
@@ -99,18 +103,26 @@ struct vk_bundle
 
 	uint32_t get_memory_type(uint32_t type_bits, vk::MemoryPropertyFlags memory_props);
 
-	template <typename T>
-	void name(const T & handle, const char * value)
+	template <typename T, typename U>
+	void name(const T & handle, U && value)
 	{
-		return name(T::objectType, vk_handle(handle), value);
+		return name(T::objectType, vk_handle(handle), std::forward<U>(value));
 	}
 
 	bool has_instance_ext(const char *) const;
 	bool has_device_ext(const char *) const;
 
+	// return true if optimal images do NOT require a transfer operation
+	// between those queues
+	bool optimal_transfer(uint32_t from_queue_family_index, uint32_t to_queue_family_index) const;
+
 	vk::raii::ShaderModule load_shader(const char * name);
 
 private:
 	void name(vk::ObjectType, uint64_t handle, const char * value);
+	void name(vk::ObjectType t, uint64_t handle, const std::string & value)
+	{
+		return name(t, handle, value.c_str());
+	}
 };
 } // namespace wivrn

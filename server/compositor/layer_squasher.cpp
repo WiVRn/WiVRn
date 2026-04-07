@@ -405,7 +405,7 @@ layer_squasher::do_layers(
 	        .subresourceRange = {
 	                .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                .levelCount = 1,
-	                .layerCount = vk::RemainingArrayLayers,
+	                .layerCount = view_count,
 	        },
 	};
 

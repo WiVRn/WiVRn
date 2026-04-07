@@ -19,6 +19,7 @@
 #include "video_encoder_raw.h"
 
 #include "encoder/encoder_settings.h"
+#include "util/u_logging.h"
 #include "utils/wivrn_vk_bundle.h"
 
 namespace
@@ -33,13 +34,30 @@ public:
 		return false;
 	};
 };
+vk::raii::CommandPool make_cmd_pool(wivrn::vk_bundle & vk, uint8_t stream_idx)
+{
+	auto res = vk.device.createCommandPool(vk::CommandPoolCreateInfo{
+
+	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+	        .queueFamilyIndex = *vk.transfer_queue ? vk.transfer_queue_family_index : vk.queue_family_index,
+	});
+	vk.name(res, std::format("raw encoder {} command pool", stream_idx));
+	return res;
+}
 } // namespace
 
 wivrn::video_encoder_raw::video_encoder_raw(
         wivrn::vk_bundle & vk,
         const encoder_settings & settings,
         uint8_t stream_idx) :
-        video_encoder(stream_idx, settings, std::make_unique<dummy_idr_handler>(), true)
+        video_encoder(vk,
+                      stream_idx,
+                      *vk.transfer_queue ? vk.transfer_queue_family_index : vk.queue_family_index,
+                      settings,
+                      std::make_unique<dummy_idr_handler>(),
+                      true),
+        vk{vk},
+        cmd_pool{make_cmd_pool(vk, stream_idx)}
 {
 	if (settings.bit_depth != 8)
 		throw std::runtime_error("Raw encoding is only supported for 8 bit");
@@ -47,9 +65,15 @@ wivrn::video_encoder_raw::video_encoder_raw(
 	vk::DeviceSize buffer_size = extent.width * extent.height;
 	if (stream_idx < 2)
 		buffer_size += buffer_size / 2;
-	for (auto & slot: buffers)
+
+	auto command_buffers = vk.device.allocateCommandBuffers(
+	        {.commandPool = *cmd_pool,
+	         .commandBufferCount = num_slots});
+
+	for (size_t i = 0; i < num_slots; ++i)
 	{
-		slot = buffer_allocation(
+		in[i].cmd = std::move(command_buffers[i]);
+		in[i].buffer = buffer_allocation(
 		        vk.device,
 		        {
 		                .size = buffer_size,
@@ -57,14 +81,46 @@ wivrn::video_encoder_raw::video_encoder_raw(
 		        },
 		        {
 		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-		                .usage = VMA_MEMORY_USAGE_AUTO,
+		                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
 		        },
 		        "raw stream buffer");
+		in[i].fence = vk::raii::Fence(vk.device,
+		                              vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
 	}
 }
 
-std::pair<bool, vk::Semaphore> wivrn::video_encoder_raw::present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t)
+void wivrn::video_encoder_raw::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo compositor_sem, uint8_t slot, uint64_t)
 {
+	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	{
+		U_LOG_E("Timeout on stream %d", stream_idx);
+		return;
+	}
+
+	auto & cmd = in[slot].cmd;
+	cmd.reset();
+	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+
+	if (target_queue != vk.queue_family_index)
+	{
+		vk::ImageMemoryBarrier2 barrier{
+		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,
+		        .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+		        .srcQueueFamilyIndex = vk.queue_family_index,
+		        .dstQueueFamilyIndex = target_queue,
+		        .image = y_cbcr,
+		        .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor,
+		                             .baseMipLevel = 0,
+		                             .levelCount = 1,
+		                             .baseArrayLayer = stream_idx,
+		                             .layerCount = 1},
+		};
+		cmd.pipelineBarrier2({
+		        .imageMemoryBarrierCount = 1,
+		        .pImageMemoryBarriers = &barrier,
+		});
+	}
+
 	std::array regions{
 	        vk::BufferImageCopy{
 	                .imageSubresource = {
@@ -92,19 +148,42 @@ std::pair<bool, vk::Semaphore> wivrn::video_encoder_raw::present_image(vk::Image
 	                },
 	        },
 	};
-	cmd_buf.copyImageToBuffer(
+	cmd.copyImageToBuffer(
 	        y_cbcr,
 	        vk::ImageLayout::eGeneral,
-	        buffers[slot],
+	        in[slot].buffer,
 	        std::span(regions.data(),
 	                  stream_idx < 2 ? 2 : 1));
-	return {false, nullptr};
+
+	cmd.end();
+
+	std::unique_lock lock(*vk.transfer_queue ? vk.transfer_queue_mutex : vk.queue_mutex);
+	vk::CommandBufferSubmitInfo cmd_info{
+	        .commandBuffer = *cmd,
+	};
+	compositor_sem.stageMask = vk::PipelineStageFlagBits2::eTransfer;
+
+	vk.device.resetFences(*in[slot].fence);
+	(*vk.transfer_queue ? vk.transfer_queue : vk.queue)
+	        .submit2(vk::SubmitInfo2{
+	                         .waitSemaphoreInfoCount = 1,
+	                         .pWaitSemaphoreInfos = &compositor_sem,
+	                         .commandBufferInfoCount = 1,
+	                         .pCommandBufferInfos = &cmd_info,
+	                 },
+	                 *in[slot].fence);
 }
 
 std::optional<wivrn::video_encoder::data> wivrn::video_encoder_raw::encode(uint8_t slot, uint64_t frame_id)
 {
+	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	{
+		U_LOG_W("Timeout on stream %d", stream_idx);
+		return {};
+	}
+
 	return wivrn::video_encoder::data{
 	        .encoder = this,
-	        .span = std::span<uint8_t>((uint8_t *)buffers[slot].map(), buffers[slot].info().size),
+	        .span = std::span<uint8_t>((uint8_t *)in[slot].buffer.map(), in[slot].buffer.info().size),
 	};
 }

@@ -49,14 +49,12 @@ public:
 	struct image
 	{
 		std::atomic<bool> busy = false;
-		vk::raii::Semaphore sem;
-		vk::raii::Fence fence;
-		vk::raii::CommandBuffer cmd;
 		image_allocation image;
 		vk::raii::ImageView view_y;
 		vk::raii::ImageView view_cbcr;
 		to_headset::video_stream_data_shard::view_info_t view_info{};
 		uint64_t frame_index;
+		uint64_t sem_value = 0;
 	};
 
 private:
@@ -69,7 +67,8 @@ private:
 
 	std::array<image, 2> images;
 	vk::raii::CommandBuffer cmd;
-	vk::raii::Fence fence;
+	vk::raii::Semaphore sem;
+	uint64_t sem_value = 0;
 
 	std::atomic<float> requested_refresh_rate;
 	std::atomic<float> refresh_rate;
@@ -79,7 +78,6 @@ private:
 	wivrn::foveation foveation;
 
 	std::array<std::unique_ptr<video_encoder>, 3> encoders;
-	const bool implicit_transfer;
 
 #ifdef __cpp_lib_atomic_lock_free_type_aliases
 	using status_type = std::atomic_signed_lock_free;

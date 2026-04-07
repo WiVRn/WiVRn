@@ -34,6 +34,7 @@ class video_encoder_nvenc : public video_encoder
 {
 private:
 	wivrn::vk_bundle & vk;
+	vk::raii::CommandPool cmd_pool;
 
 	std::shared_ptr<video_encoder_nvenc_shared_state> shared_state;
 
@@ -44,6 +45,8 @@ private:
 
 	struct in_t
 	{
+		vk::raii::Fence fence = nullptr;
+		vk::raii::CommandBuffer cmd = nullptr;
 		vk::raii::Buffer yuv = nullptr;
 		vk::raii::DeviceMemory mem = nullptr;
 		NV_ENC_REGISTERED_PTR nvenc_resource;
@@ -61,7 +64,7 @@ public:
 	video_encoder_nvenc(wivrn::vk_bundle & vk, const encoder_settings & settings, uint8_t stream_idx);
 	~video_encoder_nvenc();
 
-	std::pair<bool, vk::Semaphore> present_image(vk::Image y_cbcr, bool transferred, vk::raii::CommandBuffer & cmd_buf, uint8_t slot, uint64_t frame_index) override;
+	void present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo info, uint8_t slot, uint64_t frame_index) override;
 	std::optional<data> encode(uint8_t slot, uint64_t frame_index) override;
 
 	static std::array<int, 2> get_max_size(video_codec);
