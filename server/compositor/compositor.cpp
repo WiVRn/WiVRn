@@ -205,6 +205,13 @@ vk::Extent3D render_extent(const wivrn::from_headset::headset_info_packet & info
 namespace wivrn
 {
 
+void compositor::timings::add(float us)
+{
+	int index = this->index;
+	this->index = (this->index + 1) % values.size();
+	values[index] = us;
+}
+
 xrt_result_t compositor::predict_frame(int64_t * out_frame_id,
                                        int64_t * out_wake_time_ns,
                                        int64_t * out_predicted_gpu_time_ns,
@@ -286,6 +293,9 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	cmd.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
+	cmd.resetQueryPool(*query_pool, 0, 3);
+	cmd.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, 0);
+
 	bool flip_y = false;
 	std::array<vk::ImageView, 2> src;
 	std::array<xrt_rect, 2> src_rect;
@@ -340,7 +350,9 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		                .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
 		                .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
 		                .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-		                .dstAccessMask = vk::AccessFlagBits2::eShaderStorageRead,
+		                .dstAccessMask = vk::AccessFlagBits2::eShaderSampledRead,
+		                .oldLayout = vk::ImageLayout::eGeneral,
+		                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		                .image = squasher.get_image(),
 		                .subresourceRange = {
 		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
@@ -369,6 +381,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        .pImageMemoryBarriers = image_barriers.data(),
 	});
 	image_barriers.clear();
+
+	cmd.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
 	if (session.get_info().eye_gaze)
 	{
@@ -413,6 +427,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        .imageMemoryBarrierCount = uint32_t(image_barriers.size()),
 	        .pImageMemoryBarriers = image_barriers.data(),
 	});
+	cmd.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 2);
 
 	cmd.end();
 
@@ -460,7 +475,25 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	                                     .pValues = &sem_value,
 	                             },
 	                             U_TIME_1S_IN_NS) == vk::Result::eTimeout)
+	{
 		U_LOG_IFL_W(log_level, "compositor timeout");
+	}
+	else
+	{
+		auto [res, ts] = query_pool.getResults<uint64_t>(
+		        0,
+		        3,
+		        3 * sizeof(uint64_t),
+		        sizeof(uint64_t),
+		        vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
+
+		if (res == vk::Result::eSuccess)
+		{
+			static const auto period = vk.physical_device.getProperties().limits.timestampPeriod;
+			squasher_times.add((ts[1] - ts[0]) * period / 1e3);
+			foveation_times.add((ts[2] - ts[1]) * period / 1e3);
+		}
+	}
 
 	// Now is a good point to garbage collect.
 	comp_swapchain_shared_garbage_collect(&cscs);
@@ -564,6 +597,10 @@ compositor::compositor(wivrn_session & session) :
                                     .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
                                     .queueFamilyIndex = vk.queue_family_index,
                             }),
+        query_pool(vk.device, vk::QueryPoolCreateInfo{
+                                      .queryType = vk::QueryType::eTimestamp,
+                                      .queryCount = 3,
+                              }),
         settings(get_encoder_settings(vk, session)),
         images{make_images(vk, cmd_pool, settings)},
         cmd{std::move(vk.device.allocateCommandBuffers({.commandPool = *cmd_pool, .commandBufferCount = 1})[0])},
@@ -619,12 +656,17 @@ compositor::compositor(wivrn_session & session) :
 		encoders[i] = video_encoder::create(vk, settings, i);
 	send_video_stream_description();
 
+	u_var_add_root(this, "Compositor", false);
+	u_var_add_f32_timing(this, &squasher_times.var, "layers processing");
+	u_var_add_f32_timing(this, &foveation_times.var, "foveation");
+
 	// Start the thread after everything is initialized
 	encoder_thread = std::jthread{[&](std::stop_token t) { encoder_work(t); }};
 }
 
 compositor::~compositor()
 {
+	u_var_remove_root(this);
 	encoder_thread.request_stop();
 	encode_request = -2;
 	encode_request.notify_all();
