@@ -58,10 +58,31 @@ public:
 	};
 
 private:
+	struct timings
+	{
+		std::array<float, 50> values{};
+		int index = 0;
+		u_var_timing var{
+		        .values = {
+		                .data = values.data(),
+		                .index_ptr = &index,
+		                .length = int(values.size()),
+		        },
+		        .range = 1000,
+		        .dynamic_rescale = true,
+		        .unit = "µs",
+		};
+
+		void add(float us);
+	};
+
 	const u_logging_level log_level;
+	timings squasher_times;
+	timings foveation_times;
 	wivrn_session & session;
 	vk_bundle vk;
 	vk::raii::CommandPool cmd_pool;
+	vk::raii::QueryPool query_pool;
 
 	std::array<encoder_settings, 3> settings;
 
