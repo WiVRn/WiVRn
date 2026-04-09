@@ -619,19 +619,6 @@ layer_squasher::do_layers(
 		cmd.dispatch(w, h, 1);
 	}
 
-	vk::MemoryBarrier mem_barrier{
-	        .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
-	        .dstAccessMask = vk::AccessFlagBits::eShaderRead,
-	};
-
-	cmd.pipelineBarrier(
-	        vk::PipelineStageFlagBits::eComputeShader,
-	        vk::PipelineStageFlagBits::eComputeShader,
-	        {},
-	        mem_barrier,
-	        {},
-	        {});
-
 	std::array<xrt_rect, 2> rect;
 	for (auto [v, r]: std::ranges::zip_view(viewports, rect))
 		r = {.extent = {.w = int(v.w), .h = int(v.h)}};
