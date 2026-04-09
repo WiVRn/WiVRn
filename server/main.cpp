@@ -193,6 +193,9 @@ std::unique_ptr<children_manager> children;
 bool quitting_main_loop;
 bool do_fork;
 bool do_active_runtime;
+#if WIVRN_FEATURE_DEBUG_GUI
+bool show_debug_gui;
+#endif
 wivrn::service_publication publication;
 
 guint listener_watch;
@@ -248,7 +251,7 @@ void start_server(configuration config)
 		        .udgci = {
 		                .window_title = "WiVRn",
 #if WIVRN_FEATURE_DEBUG_GUI
-		                .open = config.debug_gui ? U_DEBUG_GUI_OPEN_ALWAYS : U_DEBUG_GUI_OPEN_AUTO,
+		                .open = (config.debug_gui or show_debug_gui) ? U_DEBUG_GUI_OPEN_ALWAYS : U_DEBUG_GUI_OPEN_AUTO,
 #else
 		                .open = U_DEBUG_GUI_OPEN_NEVER,
 #endif
@@ -1025,6 +1028,9 @@ int main(int argc, char * argv[])
 	auto no_fork = app.add_flag("--no-fork")->description("disable fork to serve connection")->group("Debug");
 	auto no_publish = app.add_flag("--no-publish-service")->description("disable publishing the service through avahi");
 	auto no_encrypt = app.add_flag("--no-encrypt")->description("disable encryption")->group("Debug");
+#if WIVRN_FEATURE_DEBUG_GUI
+	auto debug_gui = app.add_flag("--debug-gui")->description("show the debug GUI")->group("Debug");
+#endif
 
 	CLI11_PARSE(app, argc, argv);
 
@@ -1053,6 +1059,10 @@ int main(int argc, char * argv[])
 		publication = wivrn::service_publication::none;
 	else
 		publication = configuration().publication;
+
+#if WIVRN_FEATURE_DEBUG_GUI
+	show_debug_gui = bool(*debug_gui);
+#endif
 
 	try
 	{
