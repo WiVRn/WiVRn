@@ -27,7 +27,6 @@
 #include "scenes/lobby_keyboard.h"
 #include "utils/mapped_file.h"
 #include "utils/thread_safe.h"
-#include "wifi_lock.h"
 #include "wivrn_config.h"
 #include "wivrn_discover.h"
 #include "xr/face_tracker.h"
@@ -51,7 +50,6 @@ class stream;
 class lobby : public scene_impl<lobby>
 {
 	std::optional<wivrn_discover> discover;
-	wifi_lock::multicast multicast;
 
 	std::string add_server_window_prettyname;
 	std::string add_server_window_hostname;

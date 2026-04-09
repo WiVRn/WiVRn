@@ -1320,7 +1320,6 @@ void scenes::lobby::on_focused()
 	std::ranges::sort(local_environments, std::less{});
 
 	setup_passthrough();
-	multicast = application::get_wifi_lock().get_multicast_lock();
 	discover.emplace();
 
 	session.set_performance_level(XR_PERF_SETTINGS_DOMAIN_CPU_EXT, XR_PERF_SETTINGS_LEVEL_SUSTAINED_HIGH_EXT);
@@ -1352,8 +1351,6 @@ void scenes::lobby::on_unfocused()
 	left_hand.reset();
 	right_hand.reset();
 	face_tracker.emplace<std::monostate>();
-
-	multicast.reset();
 }
 
 void scenes::lobby::on_xr_event(const xr::event & event)

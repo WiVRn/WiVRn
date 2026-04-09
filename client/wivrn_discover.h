@@ -1,5 +1,7 @@
 #pragma once
 
+#include "wifi_lock.h"
+
 #include <chrono>
 #include <map>
 #include <memory>
@@ -32,6 +34,7 @@ public:
 	static inline const std::chrono::milliseconds discover_period{5000};
 
 private:
+	wifi_lock::multicast multicast;
 	std::unique_ptr<dnssd_cache> cache;
 
 	std::thread dnssd_thread;
