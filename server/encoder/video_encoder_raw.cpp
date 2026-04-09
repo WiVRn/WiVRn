@@ -101,7 +101,7 @@ void wivrn::video_encoder_raw::present_image(vk::Image y_cbcr, vk::SemaphoreSubm
 	cmd.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-	if (target_queue != vk.queue_family_index)
+	if (need_transfer)
 	{
 		vk::ImageMemoryBarrier2 barrier{
 		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eTransfer,

@@ -574,7 +574,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 
 	vk::ImageView image_view;
 
-	if (target_queue != vk.queue_family_index)
+	if (need_transfer)
 	{
 		vk::ImageMemoryBarrier2 video_barrier{
 		        .dstStageMask = vk::PipelineStageFlagBits2KHR::eVideoEncodeKHR,

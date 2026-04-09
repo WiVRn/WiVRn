@@ -326,6 +326,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	std::array<xrt_rect, 2> src_rect;
 	std::array<xrt_fov, 2> src_fov;
 
+	beman::inplace_vector::inplace_vector<vk::ImageMemoryBarrier2, 3> image_barriers;
+
 	// Check if we can pass a layer directly to foveation
 	if (layer_accum.layer_count == 1 and
 	    (layer_accum.layers[0].data.type == XRT_LAYER_PROJECTION or
@@ -367,33 +369,42 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 			view_info.pose[view] = xrt_cast(poses[view]);
 			view_info.fov[view] = xrt_cast(src_fov[view]);
 		}
+
+		image_barriers.push_back(
+		        vk::ImageMemoryBarrier2{
+		                .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+		                .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+		                .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+		                .dstAccessMask = vk::AccessFlagBits2::eShaderStorageRead,
+		                .image = squasher.get_image(),
+		                .subresourceRange = {
+		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+		                        .levelCount = 1,
+		                        .layerCount = vk::RemainingArrayLayers,
+		                },
+		        });
 	}
 
-	vk::MemoryBarrier2 mem_barrier{
-	        .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-	        .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
-	        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-	        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
-	};
-	vk::ImageMemoryBarrier2 target_barrier{
-	        .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-	        .dstAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
-	        .oldLayout = vk::ImageLayout::eUndefined,
-	        .newLayout = vk::ImageLayout::eGeneral,
-	        .image = images[i].image,
-	        .subresourceRange = {
-	                .aspectMask = vk::ImageAspectFlagBits::eColor,
-	                .levelCount = 1,
-	                .layerCount = vk::RemainingArrayLayers,
-	        },
-	};
+	image_barriers.push_back(
+	        vk::ImageMemoryBarrier2{
+	                .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+	                .dstAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+	                .oldLayout = vk::ImageLayout::eUndefined,
+	                .newLayout = vk::ImageLayout::eGeneral,
+	                .image = images[i].image,
+	                .subresourceRange = {
+	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
+	                        .levelCount = 1,
+	                        .layerCount = vk::RemainingArrayLayers,
+	                },
+	        });
 
 	cmd.pipelineBarrier2({
-	        .memoryBarrierCount = 1,
-	        .pMemoryBarriers = &mem_barrier,
-	        .imageMemoryBarrierCount = 1,
-	        .pImageMemoryBarriers = &target_barrier,
+	        .imageMemoryBarrierCount = uint32_t(image_barriers.size()),
+	        .pImageMemoryBarriers = image_barriers.data(),
 	});
+	image_barriers.clear();
+
 	cmd.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
 	if (session.get_info().eye_gaze)
@@ -411,17 +422,18 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        src_rect,
 	        src_fov);
 
-	beman::inplace_vector::inplace_vector<vk::ImageMemoryBarrier2, 3> transfer_barriers;
 	for (auto & encoder: encoders)
 	{
 		if (encoder->stream_idx == 2 and not view_info.alpha)
 			continue;
-		if (encoder->target_queue != vk.queue_family_index)
+		else if (encoder->need_transfer or encoder->target_queue == vk.queue_family_index)
 		{
-			transfer_barriers.push_back(
+			image_barriers.push_back(
 			        vk::ImageMemoryBarrier2{
 			                .srcStageMask = vk::PipelineStageFlagBits2KHR::eComputeShader,
 			                .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+			                .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+			                .dstAccessMask = vk::AccessFlagBits2::eMemoryRead,
 			                .srcQueueFamilyIndex = vk.queue_family_index,
 			                .dstQueueFamilyIndex = encoder->target_queue,
 			                .image = images[i].image,
@@ -435,10 +447,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	}
 
 	cmd.pipelineBarrier2({
-	        .memoryBarrierCount = 1,
-	        .pMemoryBarriers = &mem_barrier,
-	        .imageMemoryBarrierCount = uint32_t(transfer_barriers.size()),
-	        .pImageMemoryBarriers = transfer_barriers.data(),
+	        .imageMemoryBarrierCount = uint32_t(image_barriers.size()),
+	        .pImageMemoryBarriers = image_barriers.data(),
 	});
 	cmd.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 2);
 

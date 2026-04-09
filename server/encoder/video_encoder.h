@@ -77,6 +77,7 @@ private:
 public:
 	const uint8_t stream_idx;
 	const uint32_t target_queue;
+	const bool need_transfer;
 	static const uint8_t num_slots = 2;
 	const double bitrate_multiplier;
 
