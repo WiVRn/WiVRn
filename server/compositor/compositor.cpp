@@ -552,6 +552,42 @@ xrt_result_t compositor::request_display_refresh_rate(float hz)
 	return XRT_SUCCESS;
 }
 
+xrt_result_t compositor::get_view_config(
+        xrt_compositor_native * self,
+        xrt_view_type view_type,
+        xrt_view_config * out_view_config)
+{
+	const auto & session = reinterpret_cast<compositor *>(self)->session;
+	const auto extent = render_extent(session.get_info());
+	switch (view_type)
+	{
+		case XRT_VIEW_TYPE_MONO:
+			return XRT_ERROR_UNSUPPORTED_VIEW_TYPE;
+		case XRT_VIEW_TYPE_STEREO:
+			*out_view_config = {
+			        .view_type = XRT_VIEW_TYPE_STEREO,
+			        .view_count = 2,
+			        .views = {}};
+			for (auto & view: std::span(out_view_config->views, out_view_config->view_count))
+			{
+				view = {
+				        .recommended = {
+				                .width_pixels = extent.width,
+				                .height_pixels = extent.height,
+				                .sample_count = 1,
+				        },
+				        .max = {
+				                .width_pixels = extent.width * 2u,
+				                .height_pixels = extent.height * 2u,
+				                .sample_count = 1,
+				        },
+				};
+			}
+			return XRT_SUCCESS;
+	}
+	return XRT_ERROR_UNSUPPORTED_VIEW_TYPE;
+}
+
 int compositor::acquire_image()
 {
 	for (auto [i, image]: std::ranges::enumerate_view(images))
@@ -713,13 +749,9 @@ xrt_system_compositor_info compositor::sys_info() const
 	const auto & info = session.get_info();
 	auto [prop, dev_id] = vk.physical_device.getProperties2<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceIDProperties>();
 	xrt_system_compositor_info res{
-	        .view_config_count = 1,
-	        .view_configs = {
-	                {
-	                        .view_type = XRT_VIEW_TYPE_STEREO,
-	                        .view_count = 2,
-	                        .views = {},
-	                },
+	        .view_type_count = 1,
+	        .view_types = {
+	                XRT_VIEW_TYPE_STEREO,
 	        },
 	        .max_layers = squasher.max_layers(prop.properties),
 	        .supported_blend_modes = {
@@ -734,23 +766,6 @@ xrt_system_compositor_info compositor::sys_info() const
 	std::ranges::copy(dev_id.deviceUUID, res.compositor_vk_deviceUUID.data);
 	std::ranges::copy(dev_id.deviceUUID, res.client_vk_deviceUUID.data);
 	std::ranges::copy(std::span(info.available_refresh_rates).subspan(0, res.refresh_rate_count), res.refresh_rates_hz);
-
-	const auto extent = render_extent(info);
-	for (auto & view: std::span(res.view_configs[0].views, res.view_configs[0].view_count))
-	{
-		view = {
-		        .recommended = {
-		                .width_pixels = extent.width,
-		                .height_pixels = extent.height,
-		                .sample_count = 1,
-		        },
-		        .max = {
-		                .width_pixels = extent.width * 2u,
-		                .height_pixels = extent.height * 2u,
-		                .sample_count = 1,
-		        },
-		};
-	}
 	return res;
 }
 

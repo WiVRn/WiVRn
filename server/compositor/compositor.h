@@ -149,6 +149,10 @@ private:
 public:
 	xrt_result_t request_display_refresh_rate(float display_refresh_rate_hz);
 
+	static xrt_result_t get_view_config(xrt_compositor_native *,
+	                                    xrt_view_type view_type,
+	                                    xrt_view_config * out_view_config);
+
 private:
 	void destroy()
 	{

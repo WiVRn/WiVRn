@@ -1,4 +1,4 @@
-From 0fe5a8e72f2ba178e155d2ab87e79f34294248dd Mon Sep 17 00:00:00 2001
+From 56bc78165b70a84e40bfc22ca5c2b95b0612d0cd Mon Sep 17 00:00:00 2001
 From: Patrick Nicolas <patricknicolas@laposte.net>
 Date: Tue, 22 Oct 2024 15:23:19 +0200
 Subject: [PATCH 1/8] c/multi: early wake of compositor
@@ -36,10 +36,10 @@ index 1fc135ce4..25b64aca8 100644
  
  static void *
 diff --git a/src/xrt/compositor/multi/comp_multi_private.h b/src/xrt/compositor/multi/comp_multi_private.h
-index 3351defa4..e8f0c8295 100644
+index 0e777f442..d39b8d76d 100644
 --- a/src/xrt/compositor/multi/comp_multi_private.h
 +++ b/src/xrt/compositor/multi/comp_multi_private.h
-@@ -359,6 +359,10 @@ struct multi_system_compositor
+@@ -364,6 +364,10 @@ struct multi_system_compositor
  	 */
  	struct os_mutex list_and_timing_lock;
  
@@ -51,7 +51,7 @@ index 3351defa4..e8f0c8295 100644
  	{
  		int64_t predicted_display_time_ns;
 diff --git a/src/xrt/compositor/multi/comp_multi_system.c b/src/xrt/compositor/multi/comp_multi_system.c
-index 4db923457..80cbbbc26 100644
+index e673afcb0..cf07a2d1c 100644
 --- a/src/xrt/compositor/multi/comp_multi_system.c
 +++ b/src/xrt/compositor/multi/comp_multi_system.c
 @@ -24,6 +24,8 @@
@@ -109,7 +109,7 @@ index 4db923457..80cbbbc26 100644
  
  		// Now we know the diff, broadcast to pacers.
  		broadcast_timings_to_pacers(msc, predicted_display_time_ns, predicted_display_period_ns, diff_ns);
-@@ -721,6 +733,8 @@ system_compositor_destroy(struct xrt_system_compositor *xsc)
+@@ -731,6 +743,8 @@ system_compositor_destroy(struct xrt_system_compositor *xsc)
  	xrt_comp_native_destroy(&msc->xcn);
  
  	os_mutex_destroy(&msc->list_and_timing_lock);
@@ -118,8 +118,8 @@ index 4db923457..80cbbbc26 100644
  
  	free(msc);
  }
-@@ -775,6 +789,8 @@ comp_multi_create_system_compositor(struct xrt_compositor_native *xcn,
- 	msc->sessions.state = do_warm_start ? MULTI_SYSTEM_STATE_INIT_WARM_START : MULTI_SYSTEM_STATE_STOPPED;
+@@ -788,6 +802,8 @@ comp_multi_create_system_compositor(struct xrt_compositor_native *xcn,
+ 	msc->get_view_config_callback = get_view_config_callback;
  
  	os_mutex_init(&msc->list_and_timing_lock);
 +	os_mutex_init(&msc->wake_mutex);
