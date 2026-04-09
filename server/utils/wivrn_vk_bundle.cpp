@@ -293,9 +293,12 @@ wivrn::vk_bundle::vk_bundle() :
 
 		std::vector<vk::DeviceQueueCreateInfo> queues_info;
 		int queue_index = get_queue_index(queues, queues_info, queue_family_index);
+		U_LOG_D("queue index: %d", queue_index);
 		int transfer_queue_index = get_queue_index(queues, queues_info, transfer_queue_family_index);
+		U_LOG_D("transfer queue index: %d", transfer_queue_index);
 #if WIVRN_USE_VULKAN_ENCODE
 		int encode_queue_index = get_queue_index(queues, queues_info, encode_queue_family_index);
+		U_LOG_D("encode queue index: %d", encode_queue_index);
 #ifdef VK_KHR_video_maintenance1
 		if (has_device_ext(VK_KHR_VIDEO_MAINTENANCE_1_EXTENSION_NAME))
 			std::get<vk::PhysicalDeviceVideoMaintenance1FeaturesKHR>(feat).videoMaintenance1 =
@@ -360,6 +363,15 @@ wivrn::vk_bundle::vk_bundle() :
 	                          .vulkanApiVersion = app_info.apiVersion,
 	                  },
 	                  *debug != VK_NULL_HANDLE);
+
+	auto prop = physical_device.getProperties();
+	U_LOG_I("Vulkan instance created:\n"
+	        "\tGPU: %s\n"
+	        "\tqueue families: %d %d %d (main, encode, transfer)\n",
+	        prop.deviceName.data(),
+	        int32_t(queue_family_index),
+	        int32_t(encode_queue_family_index),
+	        int32_t(transfer_queue_family_index));
 }
 
 uint32_t wivrn::vk_bundle::get_memory_type(uint32_t type_bits, vk::MemoryPropertyFlags memory_props)
