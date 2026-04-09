@@ -22,7 +22,7 @@
 
 #version 460
 #extension GL_KHR_shader_subgroup_basic: require
-#extension GL_KHR_shader_subgroup_shuffle: require
+#extension GL_KHR_shader_subgroup_shuffle_relative: require
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
@@ -75,23 +75,32 @@ void main()
 {
 	uint iz = gl_GlobalInvocationID.z;
 
-	uint iy = gl_GlobalInvocationID.y;
+	// In order to know how subgroup are mapped, we have to do the swizzling ourselves
+	// in the work group, consider pixels in the following order:
+	//
+	//  0  1  4  5  8  9  12 13
+	//  2  3  6  7  10 11 14 15
+	//  16 17 20 21 24 25 28 29
+	//  18 19 22 23 26 27 30 31
+	// ...
+
+	uint id = gl_SubgroupID * gl_SubgroupSize + gl_SubgroupInvocationID;
+	uint quad = id / 4;
+	id -= 4 * quad;
+
+	uint iy = gl_WorkGroupID.y * gl_WorkGroupSize.y + 2 * uint(quad / (gl_WorkGroupSize.y / 2)) + id / 2;
 	uint ymin = ubo.y[MAX_DIM * iz + iy];
 	uint ymax = ubo.y[MAX_DIM * iz + iy + 1];
-	if (ymin == ymax)
-		return;
 	if (ymin > ymax)
 	{
 		uint tmp = ymin;
 		ymin = ymax;
 		ymax = tmp;
 	}
-	uint ix = gl_GlobalInvocationID.x;
+	uint ix = gl_WorkGroupID.x * gl_WorkGroupSize.x + 2 * (quad % (gl_WorkGroupSize.y / 2)) + (id % 2);
 
 	uint xmin = ubo.x[MAX_DIM * iz + ix];
 	uint xmax = ubo.x[MAX_DIM * iz + ix + 1];
-	if (xmin == xmax)
-		return;
 
 	uint xstep = (xmax - xmin + MAX_SAMPLES - 1) / MAX_SAMPLES;
 	uint ystep = (ymax - ymin + MAX_SAMPLES - 1) / MAX_SAMPLES;
@@ -104,33 +113,21 @@ void main()
 			++count;
 		}
 	}
-	colour /= count;
+	colour /= max(count, 1);
 	colour.xyz = rgb_to_ycbcr(from_linear_to_srgb(colour.rgb));
 
 	imageStore(luma, ivec3(ix, iy, iz), vec4(colour.x));
 
-	vec4 sum = colour;
-	for (uint i = 0 ; i < gl_SubgroupSize; ++i)
-	{
-		uvec3 other = subgroupShuffle(gl_GlobalInvocationID, i);
-		vec4 c = subgroupShuffle(colour, i);
-		if (
-			other == gl_GlobalInvocationID + uvec3(1, 0, 0)
-			|| other == gl_GlobalInvocationID + uvec3(0, 1, 0)
-			|| other == gl_GlobalInvocationID + uvec3(1, 1, 0))
-		{
-			sum += c;
-		}
-	}
+	vec4 sum = colour + subgroupShuffleDown(colour, 1) + subgroupShuffleDown(colour, 2) + subgroupShuffleDown(colour, 3);
 
-	if (ix %2 == 0 && iy %2 == 0)
+	if (id == 0)
 	{
 		// actual chroma
-		imageStore(chroma, ivec3(gl_GlobalInvocationID.xy/2, iz), vec4(sum.y, sum.z, 0, 0) / 4);
+		imageStore(chroma, ivec3(ix/2, iy/2, iz), vec4(sum.y, sum.z, 0, 0) / 4);
 
 		// alpha in luma
-		ivec2 offset = ivec2(ubo.alpha_width * iz, 0);
-		imageStore(luma, ivec3(offset.xy + gl_GlobalInvocationID.xy/2, 2), vec4(sum.w, 0, 0, 0) / 4);
-		imageStore(chroma, ivec3(offset.xy + gl_GlobalInvocationID.xy/2, 2), vec4(0.5, 0.5, 0, 0));
+		int offset = int(ubo.alpha_width * iz);
+		imageStore(luma, ivec3(offset + ix/2, iy/2, 2), vec4(sum.w, 0, 0, 0) / 4);
+		imageStore(chroma, ivec3(offset + ix/2, iy/2, 2), vec4(0.5, 0.5, 0, 0));
 	}
 }
