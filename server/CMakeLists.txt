@@ -232,6 +232,7 @@ if (WIVRN_BUILD_SERVER)
 			comp_render
 			comp_util
 			ipc_server
+			target_helpers
 			xrt-external-openxr
 			xrt-interfaces
 
