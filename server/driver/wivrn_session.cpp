@@ -285,7 +285,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	send_to_main(info);
 
 	auto sys_info{self->compositor.sys_info()};
-	auto xret = comp_multi_create_system_compositor(&self->compositor.base, &self->app_pacers, &sys_info, false, out_xsysc);
+	auto xret = comp_multi_create_system_compositor(&self->compositor.base, &self->app_pacers, &compositor::get_view_config, &sys_info, false, out_xsysc);
 	if (xret != XRT_SUCCESS)
 	{
 		U_LOG_E("Failed to create system compositor: %s", u_str_xrt_result(xret));
