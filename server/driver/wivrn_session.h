@@ -45,8 +45,8 @@
 #include <optional>
 #include <thread>
 
+struct b_system;
 struct ipc_server;
-struct u_system;
 struct xrt_space_overseer;
 struct xrt_system_compositor;
 union xrt_session_event;
@@ -70,7 +70,7 @@ class wivrn_session : public xrt_system_devices
 	wivrn::compositor compositor;
 	pacing_app_factory app_pacers;
 
-	u_system & xrt_system;
+	b_system & xrt_system;
 	ipc_server * mnd_ipc_server;
 	xrt_space_overseer * space_overseer;
 	xrt_system_compositor * system_compositor;
@@ -115,14 +115,14 @@ class wivrn_session : public xrt_system_devices
 	std::jthread net_thread;
 	std::jthread worker_thread;
 
-	wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system &);
+	wivrn_session(std::unique_ptr<wivrn_connection> connection, b_system &);
 
 public:
 	using base_t = xrt_system_devices;
 	~wivrn_session();
 
 	static xrt_result_t create_session(std::unique_ptr<wivrn_connection> connection,
-	                                   u_system & system,
+	                                   b_system & system,
 	                                   xrt_system_devices ** out_xsysd,
 	                                   xrt_space_overseer ** out_xspovrs,
 	                                   xrt_system_compositor ** out_xsysc);

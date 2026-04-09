@@ -40,9 +40,9 @@
 #include "wivrn_packets.h"
 #include "xr/to_string.h"
 
+#include "b_system.h"
 #include "target_builder_helpers.h"
 #include "util/u_logging.h"
-#include "util/u_system.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
@@ -75,7 +75,7 @@ bool is_forced_extension(const char * ext_name)
 	return strstr(val, ext_name);
 }
 
-wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, u_system & system) :
+wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection, b_system & system) :
         xrt_system_devices{
                 .get_roles = method_pointer<&wivrn_session::get_roles>,
                 .feature_inc = method_pointer<&wivrn_session::feature_inc>,
@@ -265,7 +265,7 @@ wivrn_session::~wivrn_session()
 }
 
 xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connection> connection,
-                                                  u_system & system,
+                                                  b_system & system,
                                                   xrt_system_devices ** out_xsysd,
                                                   xrt_space_overseer ** out_xspovrs,
                                                   xrt_system_compositor ** out_xsysc)
