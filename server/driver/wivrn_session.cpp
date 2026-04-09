@@ -25,9 +25,6 @@
 #include "configuration.h"
 #include "driver/app_pacer.h"
 #include "server/ipc_server.h"
-#include "util/u_builders.h"
-#include "util/u_logging.h"
-#include "util/u_system.h"
 #include "utils/load_icon.h"
 #include "utils/method.h"
 #include "utils/scoped_lock.h"
@@ -40,12 +37,16 @@
 #include "wivrn_generic_tracker.h"
 #include "wivrn_htc_face_tracker.h"
 #include "wivrn_ipc.h"
-
 #include "wivrn_packets.h"
 #include "xr/to_string.h"
+
+#include "target_builder_helpers.h"
+#include "util/u_logging.h"
+#include "util/u_system.h"
 #include "xrt/xrt_defines.h"
 #include "xrt/xrt_device.h"
 #include "xrt/xrt_session.h"
+
 #include <algorithm>
 #include <chrono>
 #include <magic_enum.hpp>
@@ -292,7 +293,7 @@ xrt_result_t wivrn::wivrn_session::create_session(std::unique_ptr<wivrn_connecti
 	}
 	self->system_compositor = *out_xsysc;
 
-	u_builder_create_space_overseer_legacy(
+	t_builder_create_space_overseer_legacy(
 	        &self->xrt_system.broadcast,
 	        &self->hmd,
 	        self->static_roles.eyes,
