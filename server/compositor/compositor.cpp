@@ -405,7 +405,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		                .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
 		                .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
 		                .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
-		                .dstAccessMask = vk::AccessFlagBits2::eShaderStorageRead,
+		                .dstAccessMask = vk::AccessFlagBits2::eShaderSampledRead,
 		                .oldLayout = vk::ImageLayout::eGeneral,
 		                .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
 		                .image = squasher.get_image(),
