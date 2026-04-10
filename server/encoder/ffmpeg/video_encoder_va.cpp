@@ -157,7 +157,7 @@ vk::raii::CommandPool make_cmd_pool(wivrn::vk_bundle & vk, uint8_t stream_idx)
 {
 	auto res = vk.device.createCommandPool(vk::CommandPoolCreateInfo{
 
-	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+	        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
 	        .queueFamilyIndex = vk.queue_family_index,
 	});
 	vk.name(res, std::format("vaapi encoder {} command pool", stream_idx));

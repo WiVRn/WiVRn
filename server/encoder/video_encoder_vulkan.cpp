@@ -499,7 +499,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 	{
 		video_command_pool = vk.device.createCommandPool(
 		        vk::CommandPoolCreateInfo{
-		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+		                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
 		                .queueFamilyIndex = vk.encode_queue_family_index,
 		        });
 		vk.name(video_command_pool, std::format("vulkan encoder {} video command pool", stream_idx));
@@ -520,7 +520,7 @@ void wivrn::video_encoder_vulkan::init(const vk::VideoCapabilitiesKHR & video_ca
 			{
 				transfer_command_pool = vk.device.createCommandPool(
 				        vk::CommandPoolCreateInfo{
-				                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+				                .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient,
 				                .queueFamilyIndex = vk.transfer_queue_family_index,
 				        });
 				vk.name(transfer_command_pool, std::format("vulkan encoder {} transfer command pool", stream_idx));

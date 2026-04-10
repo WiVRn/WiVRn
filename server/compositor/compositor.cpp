@@ -320,7 +320,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 
 	session.dump_time("begin", frame.rendering.id, os_monotonic_get_ns());
 
-	cmd.reset();
+	cmd_pool.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 	cmd.resetQueryPool(*query_pool, 0, 3);
@@ -629,7 +629,7 @@ compositor::compositor(wivrn_session & session) :
         log_level(debug_get_log_option_log()),
         session(session),
         cmd_pool(vk.device, vk::CommandPoolCreateInfo{
-                                    .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+                                    .flags = vk::CommandPoolCreateFlagBits::eTransient,
                                     .queueFamilyIndex = vk.queue_family_index,
                             }),
         query_pool(vk.device, vk::QueryPoolCreateInfo{
