@@ -36,6 +36,31 @@
 #include "inplace_vector.hpp"
 #include "utils/method.h"
 
+#include "xrt/xrt_config_build.h" // IWYU pragma: keep
+#ifdef XRT_FEATURE_RENDERDOC
+#include "renderdoc_app.h"
+
+static auto renderdoc()
+{
+	auto x = []() {
+		RENDERDOC_API_1_5_0 * rdoc_api = nullptr;
+		const char * env = std::getenv("ENABLE_VULKAN_RENDERDOC_CAPTURE");
+		if (not env or env != std::string_view("1"))
+			return rdoc_api;
+		void * mod = dlopen("librenderdoc.so", RTLD_NOW | RTLD_NOLOAD);
+		if (mod)
+		{
+			pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)dlsym(mod, "RENDERDOC_GetAPI");
+			XRT_MAYBE_UNUSED int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_5_0, (void **)&rdoc_api);
+			assert(ret == 1);
+		}
+		return rdoc_api;
+	};
+	static auto res = x();
+	return res;
+}
+#endif
+
 DEBUG_GET_ONCE_LOG_OPTION(log, "XRT_COMPOSITOR_LOG", U_LOGGING_INFO)
 
 namespace details
@@ -306,6 +331,11 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		return XRT_SUCCESS;
 	}
 
+#ifdef XRT_FEATURE_RENDERDOC
+	if (auto r = renderdoc())
+		r->StartFrameCapture(NULL, NULL);
+#endif
+
 	auto & view_info = images[i].view_info;
 	images[i].frame_index = frame.rendering.id;
 	view_info = {
@@ -489,6 +519,11 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	auto j = encode_request.exchange(i);
 	encode_request.notify_all();
 	assert(j == -1);
+
+#ifdef XRT_FEATURE_RENDERDOC
+	if (auto r = renderdoc())
+		r->EndFrameCapture(NULL, NULL);
+#endif
 
 	// Now is a good point to garbage collect.
 	comp_swapchain_shared_garbage_collect(&cscs);
