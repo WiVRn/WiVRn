@@ -71,7 +71,10 @@ struct set_bitrate
 	uint32_t bitrate_bps;
 };
 
-using packets = std::variant<stop, disconnect, set_bitrate, wivrn::to_headset::stream_tab_change>;
+struct switch_hand_source
+{};
+
+using packets = std::variant<stop, disconnect, set_bitrate, switch_hand_source, wivrn::to_headset::stream_tab_change>;
 } // namespace to_monado
 
 extern std::optional<wivrn::typed_socket<wivrn::UnixDatagram, to_monado::packets, from_monado::packets>> wivrn_ipc_socket_monado;

@@ -326,6 +326,11 @@ void disconnect()
 	call_method(get_user_bus(), "Disconnect", "");
 }
 
+void switch_hand_source()
+{
+	call_method(get_user_bus(), "SwitchHandSource", "");
+}
+
 int main(int argc, char ** argv)
 {
 	CLI::App app;
@@ -372,6 +377,9 @@ int main(int argc, char ** argv)
 
 	app.add_subcommand("disconnect", "Disconnect headset")
 	        ->callback(disconnect);
+
+	app.add_subcommand("switch-hand-source", "Switch between headset and external controller tracking sources")
+	        ->callback(switch_hand_source);
 
 	std::string tab_name;
 	app.add_subcommand("tab", "Show or set current tab on headset")

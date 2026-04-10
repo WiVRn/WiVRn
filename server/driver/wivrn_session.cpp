@@ -140,25 +140,25 @@ wivrn::wivrn_session::wivrn_session(std::unique_ptr<wivrn_connection> connection
 				switch (lhdev->device_type)
 				{
 					case XRT_DEVICE_TYPE_LEFT_HAND_CONTROLLER:
-						roles.left = xdev_count;
+						roles.left = left_external_controller_index = xdev_count;
 						static_roles.hand_tracking.unobstructed.left = nullptr;
 						static_roles.hand_tracking.conforming.left = lhdev;
 						break;
 					case XRT_DEVICE_TYPE_RIGHT_HAND_CONTROLLER:
-						roles.right = xdev_count;
+						roles.right = right_external_controller_index = xdev_count;
 						static_roles.hand_tracking.unobstructed.right = nullptr;
 						static_roles.hand_tracking.conforming.right = lhdev;
 						break;
 					case XRT_DEVICE_TYPE_ANY_HAND_CONTROLLER:
 						if (roles.left == left_controller_index)
 						{
-							roles.left = xdev_count;
+							roles.left = left_external_controller_index = xdev_count;
 							static_roles.hand_tracking.unobstructed.left = nullptr;
 							static_roles.hand_tracking.conforming.left = lhdev;
 						}
 						else if (roles.right == right_controller_index)
 						{
-							roles.right = xdev_count;
+							roles.right = right_hand_interaction_index = xdev_count;
 							static_roles.hand_tracking.unobstructed.right = nullptr;
 							static_roles.hand_tracking.conforming.right = lhdev;
 						}
@@ -909,6 +909,23 @@ void wivrn_session::operator()(to_monado::disconnect &&)
 void wivrn_session::operator()(to_monado::set_bitrate && data)
 {
 	compositor.set_bitrate(data.bitrate_bps);
+}
+
+void wivrn_session::operator()(to_monado::switch_hand_source &&)
+{
+	std::lock_guard lock(roles_mutex);
+
+	if (roles.left == -1 or roles.left == left_controller_index or roles.left == left_hand_interaction_index)
+		roles.left = left_external_controller_index;
+	else
+		roles.left = roles.left_profile == XRT_DEVICE_EXT_HAND_INTERACTION ? left_hand_interaction_index : left_controller_index;
+
+	if (roles.right == -1 or roles.right == right_controller_index or roles.right == right_hand_interaction_index)
+		roles.right = right_external_controller_index;
+	else
+		roles.right = roles.right_profile == XRT_DEVICE_EXT_HAND_INTERACTION ? right_hand_interaction_index : right_controller_index;
+
+	roles.generation_id++;
 }
 
 void wivrn_session::operator()(to_headset::stream_tab_change && data)

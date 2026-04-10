@@ -87,19 +87,23 @@ class wivrn_session : public xrt_system_devices
 
 	wivrn_hmd hmd;
 	wivrn_controller left_controller;
-	int32_t left_controller_index;
 	wivrn_controller right_controller;
-	int32_t right_controller_index;
 	wivrn_controller left_hand_interaction;
-	int32_t left_hand_interaction_index;
 	wivrn_controller right_hand_interaction;
-	int32_t right_hand_interaction_index;
 	std::optional<wivrn_eye_tracker> eye_tracker;
 	std::optional<wivrn_android_face_tracker> android_face_tracker;
 	std::optional<wivrn_fb_face2_tracker> fb_face2_tracker;
 	std::optional<wivrn_htc_face_tracker> htc_face_tracker;
 	beman::inplace_vector::inplace_vector<wivrn_generic_tracker, from_headset::body_tracking::max_tracked_poses> generic_trackers;
 	std::optional<wivrn_uinput> uinput_handler;
+
+	int32_t left_controller_index;
+	int32_t left_hand_interaction_index;
+	int32_t right_controller_index;
+	int32_t right_hand_interaction_index;
+
+	int32_t left_external_controller_index = -1;
+	int32_t right_external_controller_index = -1;
 
 	clock_offset_estimator offset_est;
 	std::atomic<XrDuration> tracking_latency; // production to reception time
@@ -186,6 +190,7 @@ public:
 	void operator()(to_monado::stop &&);
 	void operator()(to_monado::disconnect &&);
 	void operator()(to_monado::set_bitrate &&);
+	void operator()(to_monado::switch_hand_source &&);
 	void operator()(to_headset::stream_tab_change &&);
 
 	bool has_stream()

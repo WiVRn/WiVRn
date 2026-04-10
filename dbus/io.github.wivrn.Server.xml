@@ -40,6 +40,7 @@
 			<arg type="s" name="Pin" direction="out"/>
 		</method>
 		<method name="DisablePairing"/>
+		<method name="SwitchHandSource"/>
 
 		<property name="HeadsetConnected"      type="b" access="read"/>
 		<property name="SessionRunning"        type="b" access="read"/>
