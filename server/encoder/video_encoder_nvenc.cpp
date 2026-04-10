@@ -426,7 +426,6 @@ void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInf
 		return;
 	}
 	auto & cmd = in[slot].cmd;
-	cmd.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 	cmd.copyImageToBuffer(

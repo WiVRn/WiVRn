@@ -98,7 +98,6 @@ void wivrn::video_encoder_raw::present_image(vk::Image y_cbcr, vk::SemaphoreSubm
 	}
 
 	auto & cmd = in[slot].cmd;
-	cmd.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 	if (need_transfer)

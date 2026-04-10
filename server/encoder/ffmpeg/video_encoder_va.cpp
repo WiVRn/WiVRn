@@ -465,7 +465,6 @@ void video_encoder_va::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo c
 	};
 
 	auto & cmd = in[slot].cmd;
-	cmd.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 	cmd.pipelineBarrier(

@@ -569,7 +569,6 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 	slot_item.busy.wait(true);
 
 	auto & video_cmd_buf = slot_item.video_cmd_buf;
-	video_cmd_buf.reset();
 	video_cmd_buf.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 	vk::ImageView image_view;
@@ -740,7 +739,6 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 		{
 			auto & cmd = slot_item.transfer_cmd_buf;
 			// transfer on a dedicated queue
-			cmd.reset();
 			cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 			{
@@ -872,7 +870,6 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 		// The encoded image is larger than expected, we need to copy some more data
 		vk::raii::CommandBuffer & cmd = transfer_queue ? slot_item.transfer_cmd_buf : slot_item.video_cmd_buf;
 
-		cmd.reset();
 		cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 		cmd.copyBuffer(

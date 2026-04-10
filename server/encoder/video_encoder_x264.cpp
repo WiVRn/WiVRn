@@ -217,7 +217,6 @@ void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo
 	}
 
 	auto & cmd = in[slot].cmd;
-	cmd.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 	if (need_transfer)
