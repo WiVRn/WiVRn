@@ -679,6 +679,21 @@ xrt_fov layer_squasher::do_projection_layer(
 		ubo.layers[cur_layer].image_info.depth_image_index = cur_image++;
 	}
 
+	// Chroma key - per layer settings
+	const xrt_layer_chroma_key_data & ck = (layer_data.type == XRT_LAYER_PROJECTION_DEPTH)
+	                                               ? layer_data.depth.chroma_key
+	                                               : layer_data.proj.chroma_key;
+	ubo.layers[cur_layer].chroma_key = {
+	        .hsv_min_h = ck.hsv_min.h,
+	        .hsv_min_s = ck.hsv_min.s,
+	        .hsv_min_v = ck.hsv_min.v,
+	        .hsv_max_h = ck.hsv_max.h,
+	        .hsv_max_s = ck.hsv_max.s,
+	        .hsv_max_v = ck.hsv_max.v,
+	        .curve = ck.curve,
+	        .despill = ck.despill,
+	};
+
 	set_post_transform_rect(
 	        &layer_data,
 	        &vd.sub.norm_rect,
