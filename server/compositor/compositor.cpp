@@ -505,12 +505,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 
 	comp_frame_clear_locked(&frame.rendering);
 
-	if (vk.device.waitSemaphores(vk::SemaphoreWaitInfo{
-	                                     .semaphoreCount = 1,
-	                                     .pSemaphores = &*sem,
-	                                     .pValues = &sem_value,
-	                             },
-	                             U_TIME_1S_IN_NS) == vk::Result::eTimeout)
+	if (vk.waitSemaphore(sem, sem_value, U_TIME_1S_IN_NS) == vk::Result::eTimeout)
 	{
 		U_LOG_IFL_W(log_level, "compositor timeout");
 	}

@@ -67,6 +67,8 @@ struct vk_bundle
 	vk::raii::Device device;
 	std::optional<vk_allocator> allocator;
 
+	bool busy_wait;
+
 	std::mutex queue_mutex;
 	vk::raii::Queue queue;
 	uint32_t queue_family_index;
@@ -115,6 +117,10 @@ struct vk_bundle
 	// return true if optimal images do NOT require a transfer operation
 	// between those queues
 	bool optimal_transfer(uint32_t from_queue_family_index, uint32_t to_queue_family_index) const;
+
+	// Wrappers that do busy waiting on NVIDIA
+	vk::Result waitForFence(vk::raii::Fence &, uint64_t timeout_ns);
+	vk::Result waitSemaphore(vk::raii::Semaphore &, uint64_t value, uint64_t timeout_ns);
 
 	vk::raii::ShaderModule load_shader(const char * name);
 

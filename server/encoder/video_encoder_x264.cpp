@@ -22,6 +22,7 @@
 #include "encoder/video_encoder.h"
 #include "encoder_settings.h"
 #include "util/u_logging.h"
+#include "util/u_time.h"
 #include "utils/wivrn_vk_bundle.h"
 
 #include <stdexcept>
@@ -210,7 +211,7 @@ video_encoder_x264::video_encoder_x264(
 
 void video_encoder_x264::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo compositor_sem, uint8_t slot, uint64_t)
 {
-	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	if (vk.waitForFence(in[slot].fence, U_TIME_1S_IN_NS) == vk::Result::eTimeout)
 	{
 		U_LOG_E("Timeout on stream %d", stream_idx);
 		return;
@@ -331,7 +332,7 @@ std::optional<video_encoder::data> video_encoder_x264::encode(uint8_t slot, uint
 	}
 	next_mb = 0;
 	assert(pending_nals.empty());
-	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	if (vk.waitForFence(in[slot].fence, U_TIME_1S_IN_NS) == vk::Result::eTimeout)
 	{
 		U_LOG_E("Timeout on stream %d", stream_idx);
 		return {};

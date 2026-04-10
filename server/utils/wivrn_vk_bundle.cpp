@@ -28,6 +28,7 @@
 #include <set>
 
 DEBUG_GET_ONCE_NUM_OPTION(force_gpu_index, "XRT_COMPOSITOR_FORCE_GPU_INDEX", -1)
+DEBUG_GET_ONCE_TRISTATE_OPTION(busy_wait, "WIVRN_BUSY_WAIT");
 
 namespace
 {
@@ -134,6 +135,22 @@ int get_queue_index(const std::vector<vk::QueueFamilyProperties> & queues, std::
 	});
 	return 0;
 }
+
+bool get_busy_wait(const vk::PhysicalDeviceProperties & prop)
+{
+	switch (debug_get_tristate_option_busy_wait())
+	{
+		case DEBUG_TRISTATE_OFF:
+			return false;
+		case DEBUG_TRISTATE_AUTO:
+			return prop.vendorID == 0x10DE; // enable on NVIDIA
+		case DEBUG_TRISTATE_ON:
+			return true;
+	}
+	assert(false);
+	return false;
+}
+
 } // namespace
 
 wivrn::vk_bundle::vk_bundle() :
@@ -365,13 +382,18 @@ wivrn::vk_bundle::vk_bundle() :
 	                  *debug != VK_NULL_HANDLE);
 
 	auto prop = physical_device.getProperties();
+
+	busy_wait = get_busy_wait(prop);
+
 	U_LOG_I("Vulkan instance created:\n"
 	        "\tGPU: %s\n"
-	        "\tqueue families: %d %d %d (main, encode, transfer)\n",
+	        "\tqueue families: %d %d %d (main, encode, transfer)",
 	        prop.deviceName.data(),
 	        int32_t(queue_family_index),
 	        int32_t(encode_queue_family_index),
 	        int32_t(transfer_queue_family_index));
+	if (busy_wait)
+		U_LOG_I("Using fence/semaphore busy wait");
 }
 
 uint32_t wivrn::vk_bundle::get_memory_type(uint32_t type_bits, vk::MemoryPropertyFlags memory_props)
@@ -424,6 +446,42 @@ bool wivrn::vk_bundle::optimal_transfer(uint32_t from, uint32_t to) const
 	}
 #endif
 	return true;
+}
+
+vk::Result wivrn::vk_bundle::waitForFence(vk::raii::Fence & fence, uint64_t timeout_ns)
+{
+	if (busy_wait)
+	{
+		auto timeout = std::chrono::steady_clock::now() + std::chrono::nanoseconds(timeout_ns);
+		while (fence.getStatus() == vk::Result::eNotReady)
+		{
+			if (std::chrono::steady_clock::now() > timeout)
+				return vk::Result::eTimeout;
+		}
+		return vk::Result::eSuccess;
+	}
+
+	return device.waitForFences(*fence, true, timeout_ns);
+}
+vk::Result wivrn::vk_bundle::waitSemaphore(vk::raii::Semaphore & sem, uint64_t value, uint64_t timeout_ns)
+{
+	if (busy_wait)
+	{
+		auto timeout = std::chrono::steady_clock::now() + std::chrono::nanoseconds(timeout_ns);
+		while (sem.getCounterValue() < value)
+		{
+			if (std::chrono::steady_clock::now() > timeout)
+				return vk::Result::eTimeout;
+		}
+		return vk::Result::eSuccess;
+	}
+
+	return device.waitSemaphores(vk::SemaphoreWaitInfo{
+	                                     .semaphoreCount = 1,
+	                                     .pSemaphores = &*sem,
+	                                     .pValues = &value,
+	                             },
+	                             timeout_ns);
 }
 
 vk::raii::ShaderModule wivrn::vk_bundle::load_shader(const char * name)

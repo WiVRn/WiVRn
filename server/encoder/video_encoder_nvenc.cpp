@@ -21,6 +21,7 @@
 #include "encoder_settings.h"
 
 #include "util/u_logging.h"
+#include "util/u_time.h"
 #include "utils/wivrn_vk_bundle.h"
 
 bool operator==(const GUID & l, const GUID & r)
@@ -420,7 +421,7 @@ video_encoder_nvenc::~video_encoder_nvenc()
 
 void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo compositor_sem, uint8_t slot, uint64_t)
 {
-	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	if (vk.waitForFence(in[slot].fence, U_TIME_1S_IN_NS) == vk::Result::eTimeout)
 	{
 		U_LOG_E("Timeout on stream %d", stream_idx);
 		return;
@@ -479,7 +480,7 @@ void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInf
 
 std::optional<video_encoder::data> video_encoder_nvenc::encode(uint8_t slot, uint64_t frame_index)
 {
-	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	if (vk.waitForFence(in[slot].fence, U_TIME_1S_IN_NS) == vk::Result::eTimeout)
 	{
 		U_LOG_E("Timeout on stream %d", stream_idx);
 		return {};

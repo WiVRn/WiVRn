@@ -849,7 +849,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 	if (slot_item.idr)
 		send_idr_data();
 
-	if (vk.device.waitForFences(*slot_item.fence, true, 1'000'000'000) == vk::Result::eTimeout)
+	if (vk.waitForFence(slot_item.fence, 1'000'000'000) == vk::Result::eTimeout)
 	{
 		U_LOG_E("Timeout on stream %d", stream_idx);
 		return {};
@@ -899,7 +899,7 @@ std::optional<wivrn::video_encoder::data> wivrn::video_encoder_vulkan::encode(ui
 			              *slot_item.fence);
 		}
 
-		if (vk.device.waitForFences(*slot_item.fence, true, 1'000'000'000) == vk::Result::eTimeout)
+		if (vk.waitForFence(slot_item.fence, 1'000'000'000) == vk::Result::eTimeout)
 		{
 			U_LOG_E("Timeout on stream %d", stream_idx);
 			return {};
