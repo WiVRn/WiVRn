@@ -450,38 +450,58 @@ bool wivrn::vk_bundle::optimal_transfer(uint32_t from, uint32_t to) const
 
 vk::Result wivrn::vk_bundle::waitForFence(vk::raii::Fence & fence, uint64_t timeout_ns)
 {
+	vk::Result res;
+	auto begin = std::chrono::steady_clock::now();
 	if (busy_wait)
 	{
 		auto timeout = std::chrono::steady_clock::now() + std::chrono::nanoseconds(timeout_ns);
 		while (fence.getStatus() == vk::Result::eNotReady)
 		{
 			if (std::chrono::steady_clock::now() > timeout)
-				return vk::Result::eTimeout;
+			{
+				res = vk::Result::eTimeout;
+				break;
+			}
 		}
-		return vk::Result::eSuccess;
+		res = vk::Result::eSuccess;
 	}
+	else
+		res = device.waitForFences(*fence, true, timeout_ns);
 
-	return device.waitForFences(*fence, true, timeout_ns);
+	U_LOG_D("wait semaphore%s: %ld",
+	        busy_wait ? " (busy)" : "",
+	        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - begin).count());
+	return res;
 }
 vk::Result wivrn::vk_bundle::waitSemaphore(vk::raii::Semaphore & sem, uint64_t value, uint64_t timeout_ns)
 {
+	vk::Result res;
+	auto begin = std::chrono::steady_clock::now();
 	if (busy_wait)
 	{
-		auto timeout = std::chrono::steady_clock::now() + std::chrono::nanoseconds(timeout_ns);
+		auto timeout = begin + std::chrono::nanoseconds(timeout_ns);
 		while (sem.getCounterValue() < value)
 		{
 			if (std::chrono::steady_clock::now() > timeout)
-				return vk::Result::eTimeout;
+			{
+				res = vk::Result::eTimeout;
+				break;
+			}
 		}
-		return vk::Result::eSuccess;
+		res = vk::Result::eSuccess;
 	}
+	else
+		res = device.waitSemaphores(vk::SemaphoreWaitInfo{
+		                                    .semaphoreCount = 1,
+		                                    .pSemaphores = &*sem,
+		                                    .pValues = &value,
+		                            },
+		                            timeout_ns);
 
-	return device.waitSemaphores(vk::SemaphoreWaitInfo{
-	                                     .semaphoreCount = 1,
-	                                     .pSemaphores = &*sem,
-	                                     .pValues = &value,
-	                             },
-	                             timeout_ns);
+	U_LOG_D("wait semaphore%s: %ld",
+	        busy_wait ? " (busy)" : "",
+	        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - begin).count());
+	return res;
 }
 
 vk::raii::ShaderModule wivrn::vk_bundle::load_shader(const char * name)

@@ -505,12 +505,15 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 
 	comp_frame_clear_locked(&frame.rendering);
 
+	auto begin = os_monotonic_get_ns();
 	if (vk.waitSemaphore(sem, sem_value, U_TIME_1S_IN_NS) == vk::Result::eTimeout)
 	{
 		U_LOG_IFL_W(log_level, "compositor timeout");
 	}
 	else
 	{
+		auto elapsed = os_monotonic_get_ns() - begin;
+		U_LOG_D("compositor time: %ld", elapsed / U_TIME_1US_IN_NS);
 		auto [res, ts] = query_pool.getResults<uint64_t>(
 		        0,
 		        3,
