@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-16 18:43+0100\n"
-"PO-Revision-Date: 2026-02-16 21:47+0100\n"
+"POT-Creation-Date: 2026-04-11 08:04+0200\n"
+"PO-Revision-Date: 2026-04-11 08:04+0200\n"
 "Last-Translator: Guillaume Meunier <guillaume.meunier@centraliens.net>\n"
 "Language-Team: French <>\n"
 "Language: French\n"
@@ -468,19 +468,19 @@ msgstr "Dépannage"
 msgid "Version %1"
 msgstr "Version %1"
 
-#: dashboard/qml/SelectGame.qml:14
+#: dashboard/qml/SelectGame.qml:12
 #, kde-format
 msgctxt "don't start an application automatically"
 msgid "None"
 msgstr "Aucune"
 
-#: dashboard/qml/SelectGame.qml:20
+#: dashboard/qml/SelectGame.qml:18
 #, kde-format
 msgctxt "choose a custom application to start"
 msgid "Custom"
 msgstr "Personnalisé"
 
-#: dashboard/qml/SelectGame.qml:72
+#: dashboard/qml/SelectGame.qml:70
 #, kde-format
 msgctxt "browse a file to choose the application to start"
 msgid "Browse"
@@ -620,15 +620,21 @@ msgstr "Personnalisé"
 msgid "Disabled"
 msgstr "Désactivé"
 
-#: dashboard/qml/SettingsPage.qml:191
+#: dashboard/qml/SettingsPage.qml:199
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Compatibilité OpenVR :"
 
-#: dashboard/qml/SettingsPage.qml:217
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Chemin de la bibliothèque, en enlevant bin/linux64/vrclient.so"
+
+#: dashboard/qml/SettingsPage.qml:234
+#, kde-format
+msgctxt "browse to choose the OpenVR compatility to use"
+msgid "Browse"
+msgstr "Parcourir"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
