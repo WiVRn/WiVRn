@@ -96,6 +96,7 @@ public:
 	        bool flip_y,
 	        std::array<vk::ImageView, 2> src,
 	        std::array<xrt_rect, 2> src_rect,
-	        std::array<xrt_fov, 2> src_fov);
+	        std::array<xrt_fov, 2> src_fov,
+	        bool alpha);
 };
 } // namespace wivrn

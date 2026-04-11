@@ -37,6 +37,7 @@ layout(set = 0, binding = 1, std430) buffer restrict Config
 	uint y[2*MAX_DIM];
 	// output parameters
 	uint alpha_width;
+	bool alpha;
 } ubo;
 
 layout(set = 0, binding = 2) uniform writeonly restrict image2DArray luma;
@@ -125,9 +126,12 @@ void main()
 		// actual chroma
 		imageStore(chroma, ivec3(ix/2, iy/2, iz), vec4(sum.y, sum.z, 0, 0) / 4);
 
-		// alpha in luma
-		int offset = int(ubo.alpha_width * iz);
-		imageStore(luma, ivec3(offset + ix/2, iy/2, 2), vec4(sum.w, 0, 0, 0) / 4);
-		imageStore(chroma, ivec3(offset + ix/2, iy/2, 2), vec4(0.5, 0.5, 0, 0));
+		if (ubo.alpha)
+		{
+			// alpha in luma
+			int offset = int(ubo.alpha_width * iz);
+			imageStore(luma, ivec3(offset + ix/2, iy/2, 2), vec4(sum.w, 0, 0, 0) / 4);
+			imageStore(chroma, ivec3(offset + ix/2, iy/2, 2), vec4(0.5, 0.5, 0, 0));
+		}
 	}
 }

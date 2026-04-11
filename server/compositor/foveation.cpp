@@ -42,6 +42,7 @@ struct ubo_data
 	uint32_t x[XRT_MAX_VIEWS * RENDER_FOVEATION_BUFFER_DIMENSIONS];
 	uint32_t y[XRT_MAX_VIEWS * RENDER_FOVEATION_BUFFER_DIMENSIONS];
 	uint32_t alpha_width;
+	VkBool32 alpha;
 };
 
 vk::raii::Sampler make_sampler(wivrn::vk_bundle & vk)
@@ -512,7 +513,6 @@ void foveation::update_ubo(
 	compute_params();
 
 	auto ubo = gpu_buffer.data<ubo_data>();
-	ubo->alpha_width = foveated_size.width / 2;
 	for (size_t view = 0; view < 2; ++view)
 	{
 		bool flip = false;
@@ -565,9 +565,13 @@ std::array<to_headset::foveation_parameter, 2> foveation::foveate(
         bool flip_y,
         std::array<vk::ImageView, 2> src,
         std::array<xrt_rect, 2> src_rect,
-        std::array<xrt_fov, 2> src_fov)
+        std::array<xrt_fov, 2> src_fov,
+        bool alpha)
 {
 	update_ubo(cmd, flip_y, src_rect, src_fov);
+	auto ubo = gpu_buffer.data<ubo_data>();
+	ubo->alpha_width = foveated_size.width / 2;
+	ubo->alpha = alpha;
 
 	std::array src_image_info{
 	        vk::DescriptorImageInfo{

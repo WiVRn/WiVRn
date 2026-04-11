@@ -427,7 +427,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        flip_y,
 	        src,
 	        src_rect,
-	        src_fov);
+	        src_fov,
+	        view_info.alpha);
 
 	for (auto & encoder: encoders)
 	{
