@@ -51,7 +51,6 @@ class foveation
 	std::array<to_headset::foveation_parameter, 2> params;
 
 	buffer_allocation gpu_buffer;
-	buffer_allocation host_buffer;
 	vk::raii::Sampler sampler;
 
 	vk::raii::DescriptorSetLayout ds_layout;

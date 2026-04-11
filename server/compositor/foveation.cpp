@@ -384,8 +384,8 @@ foveation::foveation(wivrn::vk_bundle & bundle, vk::Extent3D foveated_size) :
                         .usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
                 },
                 VmaAllocationCreateInfo{
-                        .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_ALLOW_TRANSFER_INSTEAD_BIT,
-                        .usage = VMA_MEMORY_USAGE_AUTO,
+                        .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+                        .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
                 },
                 "foveation storage buffer"),
         sampler(make_sampler(bundle)),
@@ -400,21 +400,6 @@ foveation::foveation(wivrn::vk_bundle & bundle, vk::Extent3D foveated_size) :
         })[0]
                                .release())
 {
-	if (not(gpu_buffer.properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
-	{
-		host_buffer = buffer_allocation(
-		        bundle.device,
-		        {
-		                .size = gpu_buffer.info().size,
-		                .usage = vk::BufferUsageFlagBits::eTransferSrc,
-		        },
-		        {
-		                .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
-		                .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
-		        },
-		        "foveation staging buffer");
-	}
-
 	bundle.name(descriptor_set, "foveation descriptor set");
 }
 
@@ -515,9 +500,6 @@ void foveation::update_ubo(
 	    std::abs(last.manual_foveation.distance - manual_foveation.distance) < 0.0005)
 		return;
 
-	if (host_buffer)
-		cmd.copyBuffer(host_buffer, gpu_buffer, vk::BufferCopy{.size = sizeof(ubo_data)});
-
 	last = {
 	        .gaze = gaze,
 	        .flip_y = flip_y,
@@ -529,7 +511,7 @@ void foveation::update_ubo(
 
 	compute_params();
 
-	auto ubo = host_buffer ? host_buffer.data<ubo_data>() : gpu_buffer.data<ubo_data>();
+	auto ubo = gpu_buffer.data<ubo_data>();
 	ubo->alpha_width = foveated_size.width / 2;
 	for (size_t view = 0; view < 2; ++view)
 	{
