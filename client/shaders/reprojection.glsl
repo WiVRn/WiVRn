@@ -22,6 +22,8 @@ layout(push_constant) uniform pc
 {
 	ivec4 rgb_rect;
 	ivec4 a_rect;
+	vec4 scale;
+	vec4 bias;
 };
 
 #ifdef VERT_SHADER
@@ -84,6 +86,21 @@ void main()
 	if (do_srgb)
 	{
 		outColor = sRGB_to_linear_rgba(outColor);
+	}
+
+	if (alpha == 0)
+	{
+		outColor = outColor * scale + bias;
+	}
+	else if (outColor.a < 0.02)
+	{
+		outColor = vec4(0);
+	}
+	else
+	{
+		outColor.rgb /= outColor.a;
+		outColor = outColor * scale + bias;
+		outColor.rgb *= outColor.a;
 	}
 }
 

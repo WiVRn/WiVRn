@@ -977,10 +977,39 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		}
 	}
 	assert(swapchain);
-	// defoveate the image
+	// defoveate the image, apply scale/bias
 	int image_index = swapchain.acquire();
 	swapchain.wait();
-	defoveator->defoveate(command_buffer, foveation, images, image_index);
+
+	switch (gui_status)
+	{
+		case stream_tab::hidden:
+		case stream_tab::bitrate_settings:
+		case stream_tab::foveation_settings:
+		case stream_tab::compact:
+		case stream_tab::overlay_only:
+			dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
+			break;
+		case stream_tab::stats:
+		case stream_tab::settings:
+		case stream_tab::applications:
+		case stream_tab::application_launcher:
+			dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
+			break;
+	}
+
+	dimming = std::clamp<float>(dimming, 0, 1);
+	float x = dimming * dimming * (3 - 2 * dimming); // Easing function
+
+	const float scale = std::lerp(1, constants::stream::dimming_scale, x);
+	const float bias = std::lerp(0, constants::stream::dimming_bias, x);
+
+	defoveator->defoveate(command_buffer,
+	                      foveation,
+	                      images,
+	                      {scale, scale, scale, 1.},
+	                      {bias, bias, bias, 0.},
+	                      image_index);
 
 	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
 
@@ -1043,37 +1072,9 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		        };
 	}
 	add_projection_layer(
-	        XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT,
+	        use_alpha ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT : 0,
 	        application::space(xr::spaces::world),
 	        layer_view);
-
-	if (composition_layer_color_scale_bias_supported)
-	{
-		switch (gui_status)
-		{
-			case stream_tab::hidden:
-			case stream_tab::bitrate_settings:
-			case stream_tab::foveation_settings:
-			case stream_tab::compact:
-			case stream_tab::overlay_only:
-				dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
-				break;
-			case stream_tab::stats:
-			case stream_tab::settings:
-			case stream_tab::applications:
-			case stream_tab::application_launcher:
-				dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
-				break;
-		}
-
-		dimming = std::clamp<float>(dimming, 0, 1);
-		float x = dimming * dimming * (3 - 2 * dimming); // Easing function
-
-		float scale = std::lerp(1, constants::stream::dimming_scale, x);
-		float bias = std::lerp(0, constants::stream::dimming_bias, x);
-
-		set_color_scale_bias({scale, scale, scale, 1}, {bias, bias, bias, 0});
-	}
 
 	if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
 	    (openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
