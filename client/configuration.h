@@ -81,6 +81,7 @@ public:
 	float override_foveation_distance = 3;
 
 	bool high_power_mode;
+	uint32_t fps_divider = 1;
 
 	// Allow unsafe config values
 	bool extended_config = false;
