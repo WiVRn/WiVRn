@@ -412,7 +412,7 @@ bool wivrn::vk_bundle::has_device_ext(const char * ext) const
 
 bool wivrn::vk_bundle::optimal_transfer(uint32_t from, uint32_t to) const
 {
-	if (from == vk::QueueFamilyIgnored or to == vk::QueueFamilyIgnored)
+	if (from == vk::QueueFamilyIgnored or to == vk::QueueFamilyIgnored or from == to)
 		return false;
 #ifdef VK_KHR_maintenance9
 	if (std::get<vk::PhysicalDeviceMaintenance9FeaturesKHR>(feat).maintenance9)

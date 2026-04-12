@@ -45,6 +45,7 @@ class video_encoder_vulkan : public video_encoder
 	vk::raii::CommandPool transfer_command_pool = nullptr;
 	vk::raii::CommandPool video_command_pool = nullptr;
 
+	image_allocation tmp_image;
 	vk::ImageViewUsageCreateInfo image_view_template_next;
 	vk::ImageViewCreateInfo image_view_template;
 	std::unordered_map<VkImage, vk::raii::ImageView> image_views; // for input images
