@@ -380,21 +380,14 @@ void scenes::stream::gui_compact_view()
 
 static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config, float predicted_display_period)
 {
-	const auto & refresh_rates = session.get_refresh_rates();
 	from_headset::settings_changed packet{
 	        .bitrate_bps = config.bitrate_bps,
+	        .preferred_refresh_rate = config.preferred_refresh_rate,
+	        .minimum_refresh_rate = config.minimum_refresh_rate.value_or(0),
+	        .fps_divider = config.fps_divider,
 	};
-	if (not refresh_rates.empty())
-	{
-		packet.preferred_refresh_rate = config.preferred_refresh_rate;
-		packet.minimum_refresh_rate = config.minimum_refresh_rate.value_or(0);
-		packet.fps_divider = config.fps_divider;
-	}
-	else
-	{
-		packet.preferred_refresh_rate = predicted_display_period;
-		packet.fps_divider = config.fps_divider;
-	}
+	if (session.get_refresh_rates().empty())
+		packet.preferred_refresh_rate = 1 / predicted_display_period;
 	network->send_control(std::move(packet));
 }
 
