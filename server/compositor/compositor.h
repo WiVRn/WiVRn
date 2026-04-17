@@ -92,7 +92,7 @@ private:
 	uint64_t sem_value = 0;
 
 	std::atomic<float> requested_refresh_rate;
-	std::atomic<float> refresh_rate;
+	std::atomic<float> frame_rate;
 	wivrn::pacer pacer;
 
 	layer_squasher squasher;
@@ -178,11 +178,11 @@ public:
 		return requested_refresh_rate;
 	}
 
-	float get_refresh_rate() const
+	float get_framerate() const
 	{
-		return refresh_rate;
+		return frame_rate;
 	}
-	void set_refresh_rate(float hz);
+	void set_framerate(float hz);
 
 	void set_bitrate(uint32_t);
 	void update_tracking(const from_headset::tracking &);

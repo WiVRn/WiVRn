@@ -539,7 +539,10 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 
 xrt_result_t compositor::get_display_refresh_rate(float * hz)
 {
-	*hz = refresh_rate;
+	auto settings = session.get_settings();
+	// there should not be rounding errors, hz must be one of the available refresh rates
+	*hz = frame_rate * settings->fps_divider;
+	assert(std::ranges::contains(session.headset_info_packet.available_refresh_rates, *hz));
 	return XRT_SUCCESS;
 }
 
@@ -547,6 +550,7 @@ xrt_result_t compositor::request_display_refresh_rate(float hz)
 {
 	try
 	{
+		requested_refresh_rate = hz;
 		session.send_control(to_headset::refresh_rate_change{.fps = hz});
 	}
 	catch (std::exception & e)
@@ -641,8 +645,8 @@ compositor::compositor(wivrn_session & session) :
         images{make_images(vk, cmd_pool, settings)},
         cmd{std::move(vk.device.allocateCommandBuffers({.commandPool = *cmd_pool, .commandBufferCount = 1})[0])},
         sem{make_semaphore(vk)},
-        refresh_rate(settings[0].fps),
-        pacer(U_TIME_1S_IN_NS / refresh_rate),
+        frame_rate(settings[0].fps),
+        pacer(U_TIME_1S_IN_NS / frame_rate),
         squasher(vk, render_extent(session.get_info())),
         foveation(vk, images[0].image.info().extent)
 {
@@ -764,11 +768,11 @@ void compositor::set_bitrate(uint32_t bitrate)
 		encoder->set_bitrate(bitrate);
 }
 
-void compositor::set_refresh_rate(float hz)
+void compositor::set_framerate(float hz)
 {
-	if (refresh_rate.exchange(hz) == hz)
+	if (frame_rate.exchange(hz) == hz)
 		return;
-	U_LOG_IFL_D(log_level, "Refresh rate change from %.0f to %.0f", refresh_rate.load(), hz);
+	U_LOG_IFL_D(log_level, "Framerate change from %.0f to %.0f", frame_rate.load(), hz);
 	pacer.set_frame_duration(U_TIME_1S_IN_NS / hz);
 	for (auto & encoder: encoders)
 		encoder->set_framerate(hz);

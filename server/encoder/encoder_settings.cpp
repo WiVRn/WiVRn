@@ -284,7 +284,7 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn::vk_bundle & bundle, 
 
 	for (auto [src, dst]: std::ranges::zip_view(config.encoders, res))
 	{
-		dst.fps = session.default_rate();
+		dst.fps = session.default_fps();
 		dst.options = src.options;
 		dst.device = src.device;
 
