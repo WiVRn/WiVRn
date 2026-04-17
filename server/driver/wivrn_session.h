@@ -140,7 +140,7 @@ public:
 		return headset_info;
 	};
 
-	float default_rate();
+	float default_fps();
 
 	locked<from_headset::settings_changed> get_settings()
 	{
