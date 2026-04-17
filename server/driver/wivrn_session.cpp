@@ -465,19 +465,13 @@ void wivrn_session::operator()(from_headset::headset_info_packet &&)
 void wivrn_session::operator()(const from_headset::settings_changed & settings)
 {
 	auto locked = this->settings.lock();
-	auto old = std::exchange(*locked, settings);
+	*locked = settings;
 
 	if (settings.bitrate_bps != 0)
 		compositor.set_bitrate(settings.bitrate_bps);
 
 	if (settings.preferred_refresh_rate != 0)
-	{
-		auto old_effective = old.preferred_refresh_rate / old.fps_divider;
-		auto new_effective = settings.preferred_refresh_rate / settings.fps_divider;
-
-		if (new_effective != old_effective)
-			compositor.set_refresh_rate(new_effective);
-	}
+		compositor.set_refresh_rate(settings.preferred_refresh_rate / settings.fps_divider);
 
 	wivrn_ipc_socket_monado->send(std::move(settings));
 }
