@@ -766,8 +766,9 @@ void compositor::set_bitrate(uint32_t bitrate)
 
 void compositor::set_refresh_rate(float hz)
 {
+	if (refresh_rate.exchange(hz) == hz)
+		return;
 	U_LOG_IFL_D(log_level, "Refresh rate change from %.0f to %.0f", refresh_rate.load(), hz);
-	refresh_rate = hz;
 	pacer.set_frame_duration(U_TIME_1S_IN_NS / hz);
 	for (auto & encoder: encoders)
 		encoder->set_framerate(hz);

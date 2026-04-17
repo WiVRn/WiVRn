@@ -378,16 +378,14 @@ void scenes::stream::gui_compact_view()
 	}
 }
 
-static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config, float predicted_display_period)
+static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config)
 {
 	from_headset::settings_changed packet{
-	        .bitrate_bps = config.bitrate_bps,
 	        .preferred_refresh_rate = config.preferred_refresh_rate,
 	        .minimum_refresh_rate = config.minimum_refresh_rate.value_or(0),
 	        .fps_divider = config.fps_divider,
+	        .bitrate_bps = config.bitrate_bps,
 	};
-	if (session.get_refresh_rates().empty())
-		packet.preferred_refresh_rate = 1 / predicted_display_period;
 	network->send_control(std::move(packet));
 }
 
@@ -400,7 +398,7 @@ void scenes::stream::gui_settings(float predicted_display_period)
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
 
 	if (gui::refresh_rate(instance, session, *imgui_ctx, config))
-		send_settings_changed_packet(session, network_session.get(), config, predicted_display_period);
+		send_settings_changed_packet(session, network_session.get(), config);
 
 	{
 		const auto text = _("Bitrate:");
@@ -551,7 +549,7 @@ void scenes::stream::gui_bitrate_settings(float predicted_display_period)
 		next_gui_status = stream_tab::settings;
 	}
 
-	send_settings_changed_packet(session, network_session.get(), application::get_config(), predicted_display_period);
+	send_settings_changed_packet(session, network_session.get(), application::get_config());
 }
 
 void scenes::stream::gui_foveation_settings(float predicted_display_period)
