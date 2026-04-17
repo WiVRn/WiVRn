@@ -620,7 +620,7 @@ void scenes::lobby::gui_settings()
 		if (not refresh_rates.empty())
 		{
 			float active_rate = config.preferred_refresh_rate / config.fps_divider;
-			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? config.fps_divider == 1 ? fmt::format("{} (Native)", active_rate).c_str() : fmt::format("{} ({} with space warp)", active_rate, config.preferred_refresh_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
+			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? config.fps_divider == 1 ? fmt::format("{}", active_rate).c_str() : fmt::format("{} ({} with space warp)", active_rate, config.preferred_refresh_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
 			{
 				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), active_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
 				{
@@ -633,7 +633,7 @@ void scenes::lobby::gui_settings()
 					imgui_ctx->tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
 				for (float rate: refresh_rates)
 				{
-					if (ImGui::Selectable(fmt::format("{} (Native)", rate).c_str(), rate == active_rate, ImGuiSelectableFlags_SelectOnRelease))
+					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == active_rate, ImGuiSelectableFlags_SelectOnRelease))
 					{
 						session.set_refresh_rate(rate);
 						config.preferred_refresh_rate = rate;
