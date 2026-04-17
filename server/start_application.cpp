@@ -152,10 +152,10 @@ void forked_children::start_application(const std::vector<std::string> & args, c
 	{
 		tmp.push_back("flatpak-spawn");
 		tmp.push_back("--host");
-		if (path)
+		if (path.has_value())
 			tmp.push_back("--directory=" + *path);
 	}
-	else
+	else if (path.has_value())
 	{
 		try
 		{
