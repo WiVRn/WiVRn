@@ -25,6 +25,7 @@
 #include "application.h"
 #include "configuration.h"
 #include "constants.h"
+#include "gui_common.h"
 #include "imgui.h"
 #include "lobby.h"
 #include "scenes/stream.h" // IWYU pragma: keep
@@ -614,67 +615,7 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 	}
 
-	if (instance.has_extension(XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME))
-	{
-		const auto & refresh_rates = session.get_refresh_rates();
-		if (not refresh_rates.empty())
-		{
-			float active_rate = config.preferred_refresh_rate / config.fps_divider;
-			if (ImGui::BeginCombo(_S("Refresh rate"), active_rate ? config.fps_divider == 1 ? fmt::format("{}", active_rate).c_str() : fmt::format("{} ({} with space warp)", active_rate, config.preferred_refresh_rate).c_str() : _cS("automatic refresh rate", "Automatic")))
-			{
-				if (ImGui::Selectable(_cS("automatic refresh rate", "Automatic"), active_rate == 0, ImGuiSelectableFlags_SelectOnRelease))
-				{
-					session.set_refresh_rate(0);
-					config.preferred_refresh_rate = 0;
-					config.fps_divider = 1;
-					config.save();
-				}
-				if (ImGui::IsItemHovered())
-					imgui_ctx->tooltip(_("Select refresh rate based on measured application performance.\nMay cause flicker when a change happens."));
-				for (float rate: refresh_rates)
-				{
-					if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == active_rate, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						session.set_refresh_rate(rate);
-						config.preferred_refresh_rate = rate;
-						config.fps_divider = 1;
-						config.save();
-					}
-				}
-				for (float rate: refresh_rates)
-				{
-					float effective_rate = rate / 2;
-					if (ImGui::Selectable(fmt::format("{} ({} with space warp)", effective_rate, rate).c_str(), effective_rate == active_rate, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						session.set_refresh_rate(rate);
-						config.preferred_refresh_rate = rate;
-						config.fps_divider = 2;
-						config.save();
-					}
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-
-			if (active_rate == 0 and refresh_rates.size() > 2)
-			{
-				float min_rate = config.minimum_refresh_rate.value_or(refresh_rates.front());
-				if (ImGui::BeginCombo(_S("Minimum refresh rate"), fmt::format("{}", min_rate).c_str()))
-				{
-					for (float rate: refresh_rates | std::views::take(refresh_rates.size() - 1))
-					{
-						if (ImGui::Selectable(fmt::format("{}", rate).c_str(), rate == config.minimum_refresh_rate, ImGuiSelectableFlags_SelectOnRelease))
-						{
-							config.minimum_refresh_rate = rate;
-							config.save();
-						}
-					}
-					ImGui::EndCombo();
-				}
-				imgui_ctx->vibrate_on_hover();
-			}
-		}
-	}
+	gui::refresh_rate(instance, session, *imgui_ctx, config);
 
 	// Render resolution
 	{
