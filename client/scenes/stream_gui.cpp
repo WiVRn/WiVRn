@@ -475,6 +475,74 @@ void scenes::stream::gui_settings(float predicted_display_period)
 		config.override_foveation_distance = override_foveation_distance;
 		config.save();
 	}
+
+	// Chroma key passthrough (ALVR-style, client-side).
+	ImGui::Text("%s", _S("Chroma key passthrough"));
+	ImGui::Indent();
+	{
+		auto & ck = config.chroma_key;
+		const bool passthrough_supported = system.passthrough_supported() != xr::passthrough_type::none;
+		ImGui::BeginDisabled(!passthrough_supported);
+		bool ck_dirty = false;
+		if (ImGui::Checkbox(_S("Enable chroma key"), &ck.enabled))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Replace pixels inside the HSV range below with the passthrough view.\nApplies to any running application, even when it does not output alpha."));
+
+		ImGui::BeginDisabled(!ck.enabled);
+		if (ImGui::SliderFloat(_S("Hue min"), &ck.hsv_min[0], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::SliderFloat(_S("Hue max"), &ck.hsv_max[0], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Hue range. If min > max the range wraps around 0/1 (useful for reds)."));
+
+		if (ImGui::SliderFloat(_S("Saturation min"), &ck.hsv_min[1], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::SliderFloat(_S("Saturation max"), &ck.hsv_max[1], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+
+		if (ImGui::SliderFloat(_S("Value min"), &ck.hsv_min[2], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::SliderFloat(_S("Value max"), &ck.hsv_max[2], 0.f, 1.f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+
+		if (ImGui::SliderFloat(_S("Softness"), &ck.curve, 0.f, 0.5f, "%.3f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Feathering width around the HSV range. Larger values blend the edges more smoothly."));
+
+		if (ImGui::SliderFloat(_S("Despill"), &ck.despill, 0.f, 1.f, "%.2f"))
+			ck_dirty = true;
+		imgui_ctx->vibrate_on_hover();
+		if (ImGui::IsItemHovered())
+			imgui_ctx->tooltip(_("Reduce the key color tinting remaining pixels (useful for green screens)."));
+
+		if (ImGui::Button(_S("Reset chroma key")))
+		{
+			ck = configuration::chroma_key_settings{};
+			ck_dirty = true;
+		}
+		imgui_ctx->vibrate_on_hover();
+		ImGui::EndDisabled();
+
+		if (ck_dirty)
+			config.save();
+		ImGui::EndDisabled();
+
+		if (!passthrough_supported)
+			ImGui::TextDisabled("%s", _S("Passthrough not supported on this headset"));
+	}
+	ImGui::Unindent();
+
 	ImGui::PopStyleVar();
 }
 

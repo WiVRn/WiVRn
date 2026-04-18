@@ -21,11 +21,25 @@
 
 #include "vk/allocation.h"
 #include "wivrn_packets.h"
+#include <array>
 #include <vulkan/vulkan_raii.hpp>
 #include <openxr/openxr.h>
 
 class stream_defoveator
 {
+public:
+	// Parameters for the client-side chroma key. Mirrors configuration::chroma_key_settings
+	// but lives here so the defoveator stays decoupled from configuration.
+	struct chroma_key_params
+	{
+		bool enabled = false;
+		std::array<float, 3> hsv_min{0.f, 0.f, 0.f};
+		std::array<float, 3> hsv_max{1.f, 1.f, 1.f};
+		float curve = 0.f;
+		float despill = 0.f;
+	};
+
+private:
 	struct vertex;
 	static const uint32_t view_count = 2;
 	// Vertex buffer
@@ -89,6 +103,7 @@ public:
 	        const std::array<input, 2> & inputs,
 	        std::array<float, 4> scale,
 	        std::array<float, 4> bias,
+	        const chroma_key_params & chroma_key,
 	        int destination);
 
 	static XrExtent2Di defoveated_size(const wivrn::to_headset::foveation_parameter &);
