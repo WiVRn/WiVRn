@@ -56,7 +56,7 @@ msgstr "Automática"
 #, c++-format
 msgctxt "refresh rate selection, with reprojection"
 msgid "{} ({} with space warp)"
-msgstr ""
+msgstr "{} ({} con reproyección)"
 
 #: client/scenes/gui_common.cpp:60
 msgid "Refresh rate"
