@@ -761,7 +761,7 @@ void wivrn_session::operator()(from_headset::user_presence_changed && event)
 void wivrn_session::operator()(from_headset::refresh_rate_changed && event)
 {
 	auto locked = settings.lock();
-	compositor.set_framerate(event.from / locked->fps_divider);
+	compositor.set_framerate(event.to / locked->fps_divider);
 	push_event(
 	        {
 	                .display = {
