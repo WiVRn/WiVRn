@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-03 13:37+0900\n"
+"POT-Creation-Date: 2026-04-20 13:21+0900\n"
 "PO-Revision-Date: 2025-04-10 07:14+0900\n"
 "Last-Translator: Mitsuami Megane <hello@mitsua.me>\n"
 "Language-Team: Japanese <>\n"
@@ -603,15 +603,21 @@ msgstr "カスタム"
 msgid "Disabled"
 msgstr "無し"
 
-#: dashboard/qml/SettingsPage.qml:191
+#: dashboard/qml/SettingsPage.qml:199
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "OpenVR実装ライブラリー"
 
-#: dashboard/qml/SettingsPage.qml:217
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "ライブラリーの場所（bin/linux64/vrclient.so 無し）"
+
+#: dashboard/qml/SettingsPage.qml:234
+#, kde-format
+msgctxt "browse to choose the OpenVR compatility to use"
+msgid "Browse"
+msgstr "検索"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
