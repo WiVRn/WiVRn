@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WiVRn-dashboard\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-26 15:00+0100\n"
+"POT-Creation-Date: 2026-04-11 08:03+0200\n"
 "PO-Revision-Date: 2025-11-19 20:20+0100\n"
 "Last-Translator: Álvaro De Quinta <blackcherry@danwin1210.de>\n"
 "Language-Team: Spanish <>\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Qt Linguist 6.10.2\n"
+"X-Generator: Qt Linguist 6.11.0\n"
 "X-Language: es_ES\n"
 "X-Source-Language: en_US\n"
 
@@ -135,13 +135,13 @@ msgstr ""
 #: dashboard/qml/ApkInstallPage.qml:51 dashboard/qml/WizardPage.qml:204
 #, kde-format
 msgid ""
-"Follow the instructions in the <a href=\"https://github.com/WiVRn/WiVRn/blob/"
-"master/docs/building.md#client-headset\">documentation</a> to build your own "
-"client."
+"Follow the instructions in the <a "
+"href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset\">documentation</a> "
+"to build your own client."
 msgstr ""
-"Sigue las instrucciones en la <a href=\"https://github.com/WiVRn/WiVRn/blob/"
-"master/docs/building.md#client-headset\">documentación</a> para compilar tu "
-"propio cliente."
+"Sigue las instrucciones en la <a "
+"href=\"https://github.com/WiVRn/WiVRn/blob/master/docs/building.md#client-headset\">documentación</a> "
+"para compilar tu propio cliente."
 
 #: dashboard/qml/ConnectUsbDialog.qml:11
 #, kde-format
@@ -620,15 +620,21 @@ msgstr "Personalizado"
 msgid "Disabled"
 msgstr "Deshabilitado"
 
-#: dashboard/qml/SettingsPage.qml:191
+#: dashboard/qml/SettingsPage.qml:199
 #, kde-format
 msgid "OpenVR compatibility library:"
 msgstr "Librería de compatibilidad para OpenVR:"
 
-#: dashboard/qml/SettingsPage.qml:217
+#: dashboard/qml/SettingsPage.qml:229
 #, kde-format
 msgid "Library path, excluding bin/linux64/vrclient.so"
 msgstr "Ruta de librería, excluyendo bin/linux64/vrclient.so"
+
+#: dashboard/qml/SettingsPage.qml:234
+#, kde-format
+msgctxt "browse to choose the OpenVR compatility to use"
+msgid "Browse"
+msgstr "Explorar"
 
 #: dashboard/qml/SteamLaunchOptions.qml:8
 #, kde-format
@@ -708,9 +714,9 @@ msgstr "Tengo un error de \"Servidor WiVRn incompatible\" en mi visor"
 #: dashboard/qml/TroubleshootPage.qml:37
 #, kde-format
 msgid ""
-"<p>The version of the headset app and the server on your computer must match."
-"</p><ul><li>The headset app version is in the \"About\" page</li><li>The "
-"server version is <b>%1</b></li></ul>"
+"<p>The version of the headset app and the server on your computer must "
+"match.</p><ul><li>The headset app version is in the \"About\" "
+"page</li><li>The server version is <b>%1</b></li></ul>"
 msgstr ""
 "<p>La versión de la aplicación del visor y la del servidor en tu computadora "
 "deben coincidir.</p><ul><li>La versión de la aplicación del visor está en la "
@@ -762,12 +768,13 @@ msgstr "Algunos juegos fallan al abrirse o tienen problemas de input"
 #: dashboard/qml/TroubleshootPage.qml:62
 #, kde-format
 msgid ""
-"For game specific issues, check on <a href=\"https://db.vronlinux.org/"
-"\">vronlinux DB</a> if there are known bugs or workarounds."
+"For game specific issues, check on <a "
+"href=\"https://db.vronlinux.org/\">vronlinux DB</a> if there are known bugs "
+"or workarounds."
 msgstr ""
-"Para problemas específicos de un juego, mirar en <a href=\"https://"
-"db.vronlinux.org/\">vronlinux DB</a> por si hubiese algún problema conocido "
-"o por soluciones."
+"Para problemas específicos de un juego, mirar en <a "
+"href=\"https://db.vronlinux.org/\">vronlinux DB</a> por si hubiese algún "
+"problema conocido o por soluciones."
 
 #: dashboard/qml/TroubleshootPage.qml:79
 #, kde-format
