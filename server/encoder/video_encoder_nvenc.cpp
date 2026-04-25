@@ -418,7 +418,7 @@ video_encoder_nvenc::~video_encoder_nvenc()
 		shared_state->fn.nvEncDestroyEncoder(session_handle);
 }
 
-void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo compositor_sem, uint8_t slot, uint64_t)
+void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInfo, uint8_t slot, uint64_t)
 {
 	if (vk.device.waitForFences(*in[slot].fence, true, 1'000'000'000) == vk::Result::eTimeout)
 	{
@@ -465,12 +465,9 @@ void video_encoder_nvenc::present_image(vk::Image y_cbcr, vk::SemaphoreSubmitInf
 	vk::CommandBufferSubmitInfo cmd_info{
 	        .commandBuffer = *cmd,
 	};
-	compositor_sem.stageMask = vk::PipelineStageFlagBits2::eTransfer;
 
 	vk.device.resetFences(*in[slot].fence);
 	vk.queue.submit2(vk::SubmitInfo2{
-	                         .waitSemaphoreInfoCount = 1,
-	                         .pWaitSemaphoreInfos = &compositor_sem,
 	                         .commandBufferInfoCount = 1,
 	                         .pCommandBufferInfos = &cmd_info,
 	                 },
