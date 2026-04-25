@@ -462,12 +462,11 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 
 	cmd.end();
 
-	vk::SemaphoreSubmitInfo sem_info{
+	const vk::SemaphoreSubmitInfo sem_info{
 	        .semaphore = *sem,
 	        .value = ++sem_value,
 	        .stageMask = vk::PipelineStageFlagBits2::eComputeShader,
 	};
-	images[i].sem_value = sem_value;
 
 	{
 		vk::CommandBufferSubmitInfo cmd_info{
@@ -508,7 +507,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	if (vk.device.waitSemaphores(vk::SemaphoreWaitInfo{
 	                                     .semaphoreCount = 1,
 	                                     .pSemaphores = &*sem,
-	                                     .pValues = &sem_value,
+	                                     .pValues = &sem_info.value,
 	                             },
 	                             U_TIME_1S_IN_NS) == vk::Result::eTimeout)
 	{
