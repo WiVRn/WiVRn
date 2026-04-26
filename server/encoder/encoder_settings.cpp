@@ -293,15 +293,17 @@ std::array<encoder_settings, 3> get_encoder_settings(wivrn::vk_bundle & bundle, 
 
 	auto width = align(info.stream_eye_width, 64);
 	auto height = align(info.stream_eye_height, 64);
-	// Ensure we don't try to encode too large images (only for left/right, ignore alpha)
-	for (size_t i = 0; i < 2; ++i)
-		check_video_size(res[i].encoder_name, res[i].codec, width, height);
+	// Ensure we don't try to encode too large images
+	for (auto & encoder: res)
+		check_video_size(encoder.encoder_name, encoder.codec, width, height);
 
 	for (auto [i, dst]: std::ranges::enumerate_view(res))
 	{
 		dst.width = width;
 		dst.height = height;
-		if (i == 2) // alpha channel
+		// alpha channel: normally half-height, but nvenc has a driver bug
+		// that requires the passthrough encoder to match the eye encoders
+		if (i == 2 and dst.encoder_name != encoder_nvenc)
 			dst.height /= 2;
 	}
 
