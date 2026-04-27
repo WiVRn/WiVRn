@@ -380,16 +380,15 @@ void scenes::stream::gui_compact_view()
 
 static void send_settings_changed_packet(xr::session & session, wivrn_session * network, const configuration & config)
 {
-	from_headset::settings_changed packet{
-	        .preferred_refresh_rate = config.preferred_refresh_rate,
-	        .minimum_refresh_rate = config.minimum_refresh_rate.value_or(0),
-	        .fps_divider = config.fps_divider,
-	        .bitrate_bps = config.bitrate_bps,
-	};
-	network->send_control(std::move(packet));
+	network->send_control(
+	        from_headset::settings_changed{
+	                .preferred_refresh_rate = config.preferred_refresh_rate,
+	                .minimum_refresh_rate = config.minimum_refresh_rate.value_or(0),
+	                .fps_divider = config.fps_divider,
+	                .bitrate_bps = config.bitrate_bps,
+	        });
 }
 
-std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag); // TODO declaration in a .h file
 void scenes::stream::gui_settings(float predicted_display_period)
 {
 	const ImGuiStyle & style = ImGui::GetStyle();
@@ -414,64 +413,7 @@ void scenes::stream::gui_settings(float predicted_display_period)
 			imgui_ctx->tooltip(_("Click to adjust bitrate"));
 	}
 
-	if (application::get_openxr_post_processing_supported())
-	{
-		ImGui::Text("%s", _S("OpenXR post-processing"));
-		ImGui::Indent();
-		{
-			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.super_sampling;
-			if (ImGui::BeginCombo(_S("Supersampling"), openxr_post_processing_flag_name(current).c_str()))
-			{
-				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
-				        0,
-				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB,
-				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB};
-				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
-				{
-					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						spdlog::info("Setting OpenXR super sampling to {}", openxr_post_processing_flag_name(option));
-						config.openxr_post_processing.super_sampling = option;
-						config.save();
-					}
-					imgui_ctx->vibrate_on_hover();
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				imgui_ctx->tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
-			}
-		}
-		{
-			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.sharpening;
-			if (ImGui::BeginCombo(_S("Sharpening"), openxr_post_processing_flag_name(current).c_str()))
-			{
-				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
-				        0,
-				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB,
-				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB};
-				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
-				{
-					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						spdlog::info("Setting OpenXR sharpening to {}", openxr_post_processing_flag_name(option));
-						config.openxr_post_processing.sharpening = option;
-						config.save();
-					}
-					imgui_ctx->vibrate_on_hover();
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				imgui_ctx->tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
-			}
-		}
-		ImGui::Unindent();
-	}
+	gui::post_processing(*imgui_ctx, config);
 
 	bool send_packet = false;
 	bool save_config = false;

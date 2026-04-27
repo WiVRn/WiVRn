@@ -93,21 +93,6 @@ static void display_recentering_tip(imgui_context & ctx, const std::string & tip
 	ImGui::PopFont();
 }
 
-std::string openxr_post_processing_flag_name(XrCompositionLayerSettingsFlagsFB flag)
-{
-	switch (flag)
-	{
-		case XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB:
-		case XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB:
-			return _cS("openxr_post_processing", "Normal");
-		case XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB:
-		case XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB:
-			return _cS("openxr_post_processing", "Quality");
-		default:
-			return _cS("openxr_post_processing", "Disabled");
-	}
-}
-
 void scenes::lobby::gui_connecting(locked_notifiable<pin_request_data> & pin_request)
 {
 	using constants::style::button_size;
@@ -883,67 +868,8 @@ void scenes::lobby::gui_settings()
 
 void scenes::lobby::gui_post_processing()
 {
-	auto & config = application::get_config();
-
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20, 20));
-
-	if (application::get_openxr_post_processing_supported())
-	{
-		ImGui::Text("%s", _S("OpenXR post-processing"));
-		ImGui::Indent();
-		{
-			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.super_sampling;
-			if (ImGui::BeginCombo(_S("Supersampling"), openxr_post_processing_flag_name(current).c_str()))
-			{
-				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
-				        0,
-				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SUPER_SAMPLING_BIT_FB,
-				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SUPER_SAMPLING_BIT_FB};
-				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
-				{
-					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						config.openxr_post_processing.super_sampling = option;
-						config.save();
-					}
-					imgui_ctx->vibrate_on_hover();
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				imgui_ctx->tooltip(_("Reduce flicker for high contrast edges.\nUseful when the input resolution is high compared to the headset display"));
-			}
-		}
-		{
-			XrCompositionLayerSettingsFlagsFB current = config.openxr_post_processing.sharpening;
-			if (ImGui::BeginCombo(_S("Sharpening"), openxr_post_processing_flag_name(current).c_str()))
-			{
-				const XrCompositionLayerSettingsFlagsFB selectable_options[]{
-				        0,
-				        XR_COMPOSITION_LAYER_SETTINGS_NORMAL_SHARPENING_BIT_FB,
-				        XR_COMPOSITION_LAYER_SETTINGS_QUALITY_SHARPENING_BIT_FB};
-				for (XrCompositionLayerSettingsFlagsFB option: selectable_options)
-				{
-					if (ImGui::Selectable(openxr_post_processing_flag_name(option).c_str(), current == option, ImGuiSelectableFlags_SelectOnRelease))
-					{
-						config.openxr_post_processing.sharpening = option;
-						config.save();
-					}
-					imgui_ctx->vibrate_on_hover();
-				}
-				ImGui::EndCombo();
-			}
-			imgui_ctx->vibrate_on_hover();
-			if (ImGui::IsItemHovered())
-			{
-				imgui_ctx->tooltip(_("Improve clarity of high contrast edges and counteract blur.\nUseful when the input resolution is low compared to the headset display"));
-			}
-		}
-		ImGui::Unindent();
-	}
-
+	gui::post_processing(*imgui_ctx, application::get_config());
 	ImGui::PopStyleVar();
 }
 

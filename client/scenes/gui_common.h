@@ -40,5 +40,9 @@ bool refresh_rate(
         imgui_context & imgui_ctx,
         configuration & config);
 
-}
+bool post_processing(
+        imgui_context & imgui_ctx,
+        configuration & config);
+
+} // namespace gui
 } // namespace wivrn
