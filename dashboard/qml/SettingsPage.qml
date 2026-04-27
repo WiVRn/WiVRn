@@ -85,6 +85,7 @@ Kirigami.ScrollablePage {
             }
 
             SelectGame {
+                id: select_game
                 Kirigami.FormData.label: i18n("Autostart application:")
             }
 
@@ -287,6 +288,7 @@ Kirigami.ScrollablePage {
     }
 
     function load() {
+        select_game.load();
         debug_gui.checked = Settings.debugGui;
         steamvr_lh.checked = Settings.steamVrLh;
         hid_forwarding.checked = Settings.hidForwarding;

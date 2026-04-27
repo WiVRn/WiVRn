@@ -28,19 +28,10 @@ ColumnLayout {
                 "is_custom": false
             });
         }
-
-        select_game.load();
     }
 
     ListModel {
         id: apps
-    }
-
-    Connections {
-        target: WivrnServer
-        function onJsonConfigurationChanged() {
-            select_game.load();
-        }
     }
 
     Dialogs.FileDialog {
@@ -74,11 +65,6 @@ ColumnLayout {
     }
 
     function load() {
-        if (WivrnServer.jsonConfiguration == "")
-            return;
-
-        Settings.load(WivrnServer);
-
         var found = false;
         var custom_idx = -1;
         for (var i = 0; i < apps.count; i++) {
