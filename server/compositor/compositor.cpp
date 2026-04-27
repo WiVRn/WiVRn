@@ -550,7 +550,7 @@ xrt_result_t compositor::request_display_refresh_rate(float hz)
 	try
 	{
 		requested_refresh_rate = hz;
-		session.send_control(to_headset::refresh_rate_change{.fps = hz});
+		session.send_control(to_headset::refresh_rate_change{.hz = hz});
 	}
 	catch (std::exception & e)
 	{
@@ -641,8 +641,9 @@ void compositor::send_video_stream_description()
 	to_headset::video_stream_description desc{
 	        .width = uint16_t(images[0].image.info().extent.width),
 	        .height = uint16_t(images[0].image.info().extent.height),
-	        .fps = settings[0].fps,
+	        .frame_rate = settings[0].fps,
 	};
+	get_display_refresh_rate(&desc.refresh_rate);
 	static_assert(std::tuple_size_v<decltype(settings)> == std::tuple_size_v<decltype(desc.codec)>);
 	std::ranges::transform(settings, desc.codec.begin(), &encoder_settings::codec);
 	session.send_control(std::move(desc));

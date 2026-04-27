@@ -401,9 +401,10 @@ void wivrn_session::resume_session()
 
 		if (target_fps != current_fps)
 		{
+			auto s = settings.lock();
 			(*this)(from_headset::refresh_rate_changed{
-			        .from = current_fps,
-			        .to = target_fps,
+			        .from = current_fps * s->fps_divider,
+			        .to = target_fps * s->fps_divider,
 			});
 		}
 	}
@@ -964,7 +965,7 @@ struct refresh_rate_adjuster
 		if (requested != last)
 		{
 			U_LOG_I("requesting refresh rate: %.0f (app rate %.1f)", requested, app_rate);
-			cnx.send_control(to_headset::refresh_rate_change{.fps = requested});
+			cnx.send_control(to_headset::refresh_rate_change{.hz = requested});
 			last = requested;
 		}
 	}

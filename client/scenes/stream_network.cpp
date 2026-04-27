@@ -111,10 +111,10 @@ void scenes::stream::operator()(to_headset::video_stream_description && desc)
 
 void scenes::stream::operator()(to_headset::refresh_rate_change && rate)
 {
-	session.set_refresh_rate(rate.fps);
+	session.set_refresh_rate(rate.hz);
 	std::shared_lock lock(decoder_mutex);
 	if (video_stream_description)
-		video_stream_description->fps = rate.fps;
+		video_stream_description->refresh_rate = rate.hz;
 }
 
 void scenes::stream::operator()(to_headset::stream_tab_change && tab)

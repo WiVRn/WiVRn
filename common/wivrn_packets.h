@@ -678,7 +678,8 @@ struct video_stream_description
 	uint16_t width;
 	uint16_t height;
 	std::array<video_codec, 3> codec; // left, right, alpha
-	float fps;
+	float frame_rate;
+	float refresh_rate;
 
 	bool operator==(const video_stream_description &) const = default;
 };
@@ -765,7 +766,7 @@ struct feature_control
 
 struct refresh_rate_change
 {
-	float fps;
+	float hz;
 };
 
 struct stream_tab_change
