@@ -823,8 +823,6 @@ void scenes::stream::render(const XrFrameState & frame_state)
 	if (device.waitForFences(*fence, VK_TRUE, UINT64_MAX) == vk::Result::eTimeout)
 		throw std::runtime_error("Vulkan fence timeout");
 
-	device.resetFences(*fence);
-
 	// We don't need those after vkWaitForFences
 	current_blit_handles.fill(nullptr);
 
@@ -942,159 +940,165 @@ void scenes::stream::render(const XrFrameState & frame_state)
 		}
 	}
 
-	XrExtent2Di extents[view_count];
+	// Allow the headset to time warp if we are redisplaying a frame
+	if (std::ranges::any_of(current_blit_handles, [](const auto & h) { return h and h->feedback.times_displayed < 2; }) or
+	    is_gui_interactable())
 	{
-		int32_t max_width = 0;
-		int32_t max_height = 0;
-		for (size_t i = 0; i < view_count; ++i)
+		XrExtent2Di extents[view_count];
 		{
-			extents[i] = stream_defoveator::defoveated_size(foveation[i]);
-			max_width = std::max(max_width, extents[i].width);
-			max_height = std::max(max_height, extents[i].height);
-		}
-		if (not swapchain)
-			setup_reprojection_swapchain(max_width, max_height);
-		else if (swapchain.width() < max_width or swapchain.height() < max_height)
-		{
-			// If the defoveated image is larger than the swapchain, try to reallocate one
-			try
+			int32_t max_width = 0;
+			int32_t max_height = 0;
+			for (size_t i = 0; i < view_count; ++i)
 			{
-				spdlog::info("Recreating swapchain, from {}x{} to {}x{}",
-				             swapchain.width(),
-				             swapchain.height(),
-				             max_width,
-				             max_height);
-				setup_reprojection_swapchain(max_width, max_height);
+				extents[i] = stream_defoveator::defoveated_size(foveation[i]);
+				max_width = std::max(max_width, extents[i].width);
+				max_height = std::max(max_height, extents[i].height);
 			}
-			catch (std::exception & e)
+			if (not swapchain)
+				setup_reprojection_swapchain(max_width, max_height);
+			else if (swapchain.width() < max_width or swapchain.height() < max_height)
 			{
-				spdlog::warn("failed to increase swapchain size");
-				for (size_t i = 0; i < view_count; ++i)
+				// If the defoveated image is larger than the swapchain, try to reallocate one
+				try
 				{
-					extents[i].width = std::min(extents[i].width, swapchain.width());
-					extents[i].height = std::min(extents[i].height, swapchain.height());
+					spdlog::info("Recreating swapchain, from {}x{} to {}x{}",
+					             swapchain.width(),
+					             swapchain.height(),
+					             max_width,
+					             max_height);
+					setup_reprojection_swapchain(max_width, max_height);
+				}
+				catch (std::exception & e)
+				{
+					spdlog::warn("failed to increase swapchain size");
+					for (size_t i = 0; i < view_count; ++i)
+					{
+						extents[i].width = std::min(extents[i].width, swapchain.width());
+						extents[i].height = std::min(extents[i].height, swapchain.height());
+					}
 				}
 			}
 		}
-	}
-	assert(swapchain);
-	// defoveate the image, apply scale/bias
-	int image_index = swapchain.acquire();
-	swapchain.wait();
+		assert(swapchain);
+		// defoveate the image, apply scale/bias
+		int image_index = swapchain.acquire();
+		swapchain.wait();
 
-	switch (gui_status)
-	{
-		case stream_tab::hidden:
-		case stream_tab::bitrate_settings:
-		case stream_tab::foveation_settings:
-		case stream_tab::compact:
-		case stream_tab::overlay_only:
-			dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
-			break;
-		case stream_tab::stats:
-		case stream_tab::settings:
-		case stream_tab::applications:
-		case stream_tab::application_launcher:
-			dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
-			break;
-	}
-
-	dimming = std::clamp<float>(dimming, 0, 1);
-	float x = dimming * dimming * (3 - 2 * dimming); // Easing function
-
-	const float scale = std::lerp(1, constants::stream::dimming_scale, x);
-	const float bias = std::lerp(0, constants::stream::dimming_bias, x);
-
-	defoveator->defoveate(command_buffer,
-	                      foveation,
-	                      images,
-	                      {scale, scale, scale, 1.},
-	                      {bias, bias, bias, 0.},
-	                      image_index);
-
-	command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
-
-	command_buffer.end();
-	vk::SubmitInfo submit_info;
-	submit_info.setCommandBuffers(*command_buffer);
-
-	inplace_vector<vk::Semaphore, decoder_count> semaphores;
-	inplace_vector<uint64_t, decoder_count> semaphore_vals;
-	inplace_vector<vk::PipelineStageFlags, decoder_count> wait_stages;
-	for (auto b: current_blit_handles)
-	{
-		if (b and b->semaphore)
+		switch (gui_status)
 		{
-			assert(b->semaphore_val);
-			semaphores.push_back(b->semaphore);
-			semaphore_vals.push_back(*b->semaphore_val);
-			wait_stages.push_back(vk::PipelineStageFlagBits::eFragmentShader);
+			case stream_tab::hidden:
+			case stream_tab::bitrate_settings:
+			case stream_tab::foveation_settings:
+			case stream_tab::compact:
+			case stream_tab::overlay_only:
+				dimming = dimming - frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
+				break;
+			case stream_tab::stats:
+			case stream_tab::settings:
+			case stream_tab::applications:
+			case stream_tab::application_launcher:
+				dimming = dimming + frame_state.predictedDisplayPeriod / (1e9 * constants::stream::fade_duration);
+				break;
 		}
-	}
-	submit_info.setWaitDstStageMask(wait_stages);
-	submit_info.setWaitSemaphores(semaphores);
-	vk::TimelineSemaphoreSubmitInfo sem_info{
-	        .waitSemaphoreValueCount = uint32_t(semaphore_vals.size()),
-	        .pWaitSemaphoreValues = semaphore_vals.data(),
-	};
-	submit_info.pNext = &sem_info;
 
-	queue.lock()->submit(submit_info, *fence);
+		dimming = std::clamp<float>(dimming, 0, 1);
+		float x = dimming * dimming * (3 - 2 * dimming); // Easing function
+
+		const float scale = std::lerp(1, constants::stream::dimming_scale, x);
+		const float bias = std::lerp(0, constants::stream::dimming_bias, x);
+
+		defoveator->defoveate(command_buffer,
+		                      foveation,
+		                      images,
+		                      {scale, scale, scale, 1.},
+		                      {bias, bias, bias, 0.},
+		                      image_index);
+
+		command_buffer.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
+
+		command_buffer.end();
+		vk::SubmitInfo submit_info;
+		submit_info.setCommandBuffers(*command_buffer);
+
+		inplace_vector<vk::Semaphore, decoder_count> semaphores;
+		inplace_vector<uint64_t, decoder_count> semaphore_vals;
+		inplace_vector<vk::PipelineStageFlags, decoder_count> wait_stages;
+		for (auto b: current_blit_handles)
+		{
+			if (b and b->semaphore)
+			{
+				assert(b->semaphore_val);
+				semaphores.push_back(b->semaphore);
+				semaphore_vals.push_back(*b->semaphore_val);
+				wait_stages.push_back(vk::PipelineStageFlagBits::eFragmentShader);
+			}
+		}
+		submit_info.setWaitDstStageMask(wait_stages);
+		submit_info.setWaitSemaphores(semaphores);
+		vk::TimelineSemaphoreSubmitInfo sem_info{
+		        .waitSemaphoreValueCount = uint32_t(semaphore_vals.size()),
+		        .pWaitSemaphoreValues = semaphore_vals.data(),
+		};
+		submit_info.pNext = &sem_info;
+
+		device.resetFences(*fence);
+		queue.lock()->submit(submit_info, *fence);
 #if WIVRN_FEATURE_RENDERDOC
-	renderdoc_end(*vk_instance);
+		renderdoc_end(*vk_instance);
 #endif
-	swapchain.release();
+		swapchain.release();
 
-	if (use_alpha)
-		session.enable_passthrough(system);
-	else
-		session.disable_passthrough();
-
-	render_start(use_alpha, frame_state.predictedDisplayTime);
-
-	// Add the layer with the streamed content
-	std::array<XrCompositionLayerProjectionView, view_count> layer_view;
-	for (uint32_t view = 0; view < view_count; view++)
-	{
-		layer_view[view] =
-		        {
-		                .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
-		                .pose = pose[view],
-		                .fov = fov[view],
-
-		                .subImage = {
-		                        .swapchain = swapchain,
-		                        .imageRect = {
-		                                .offset = {0, 0},
-		                                .extent = extents[view],
-		                        },
-		                        .imageArrayIndex = view,
-		                },
-		        };
-	}
-	add_projection_layer(
-	        use_alpha ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT : 0,
-	        application::space(xr::spaces::world),
-	        layer_view);
-
-	if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
-	    (openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
-		set_layer_settings(openxr_post_processing.sharpening | openxr_post_processing.super_sampling);
-
-	accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
-
-	draw_gui(frame_state.predictedDisplayTime, frame_state.predictedDisplayPeriod);
-
-	try
-	{
-		render_end();
-	}
-	catch (std::system_error & e)
-	{
-		if (e.code().category() == xr::error_category() and e.code().value() == XR_ERROR_POSE_INVALID)
-			spdlog::info("Invalid pose submitted");
+		if (use_alpha)
+			session.enable_passthrough(system);
 		else
-			throw;
+			session.disable_passthrough();
+
+		render_start(use_alpha, frame_state.predictedDisplayTime);
+
+		// Add the layer with the streamed content
+		std::array<XrCompositionLayerProjectionView, view_count> layer_view;
+		for (uint32_t view = 0; view < view_count; view++)
+		{
+			layer_view[view] =
+			        {
+			                .type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW,
+			                .pose = pose[view],
+			                .fov = fov[view],
+
+			                .subImage = {
+			                        .swapchain = swapchain,
+			                        .imageRect = {
+			                                .offset = {0, 0},
+			                                .extent = extents[view],
+			                        },
+			                        .imageArrayIndex = view,
+			                },
+			        };
+		}
+		add_projection_layer(
+		        use_alpha ? XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT : 0,
+		        application::space(xr::spaces::world),
+		        layer_view);
+
+		if (const configuration::openxr_post_processing_settings openxr_post_processing = application::get_config().openxr_post_processing;
+		    (openxr_post_processing.sharpening | openxr_post_processing.super_sampling) > 0)
+			set_layer_settings(openxr_post_processing.sharpening | openxr_post_processing.super_sampling);
+
+		accumulate_metrics(frame_state.predictedDisplayTime, current_blit_handles, timestamps);
+
+		draw_gui(frame_state.predictedDisplayTime, frame_state.predictedDisplayPeriod);
+
+		try
+		{
+			render_end();
+		}
+		catch (std::system_error & e)
+		{
+			if (e.code().category() == xr::error_category() and e.code().value() == XR_ERROR_POSE_INVALID)
+				spdlog::info("Invalid pose submitted");
+			else
+				throw;
+		}
 	}
 
 	// Network operations may be blocking, do them once everything was submitted
