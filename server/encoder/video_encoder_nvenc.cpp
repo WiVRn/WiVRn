@@ -603,12 +603,12 @@ std::array<int, 2> video_encoder_nvenc::get_max_size(video_codec codec)
 		auto encodeGUID = encode_guid(codec);
 		for (auto [cap, res]: {
 		             std::pair{NV_ENC_CAPS_WIDTH_MAX, &result[0]},
-		             {NV_ENC_CAPS_WIDTH_MAX, &result[1]},
+		             {NV_ENC_CAPS_HEIGHT_MAX, &result[1]},
 		     })
 		{
 			NV_ENC_CAPS_PARAM cap_params{
 			        .version = NV_ENC_CAPS_PARAM_VER,
-			        .capsToQuery = NV_ENC_CAPS_WIDTH_MAX,
+			        .capsToQuery = cap,
 			};
 
 			check_encode_guid_supported(state, session_handle, encodeGUID);
