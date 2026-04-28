@@ -214,6 +214,35 @@ bool need_srgb_conversion(model m)
 	throw std::range_error("invalid model " + std::to_string((int)m));
 }
 
+bool need_bottom_left_subimage_origin_for_quad_layers(model m)
+{
+	switch (m)
+	{
+		// YVR compositor interprets imageRect.offset.y from bottom-left, even for Vulkan
+		// (spec violation)
+		case model::play_for_dream_mr:
+			return true;
+		case model::lynx_r1:
+		case model::oculus_quest:
+		case model::oculus_quest_2:
+		case model::meta_quest_pro:
+		case model::meta_quest_3:
+		case model::meta_quest_3s:
+		case model::pico_neo_3:
+		case model::pico_4:
+		case model::pico_4s:
+		case model::pico_4_pro:
+		case model::pico_4_enterprise:
+		case model::htc_vive_focus_3:
+		case model::htc_vive_focus_vision:
+		case model::htc_vive_xr_elite:
+		case model::samsung_galaxy_xr:
+		case model::unknown:
+			return false;
+	}
+	throw std::range_error("invalid model " + std::to_string((int)m));
+}
+
 const char * permission_name(feature f)
 {
 	switch (f)
