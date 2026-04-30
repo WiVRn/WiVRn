@@ -45,11 +45,9 @@ public:
 
 private:
 	mutable std::mutex mutex;
-	uint64_t frame_duration_ns;
+	int64_t frame_duration_ns;
 	int64_t last_ns = 0;
 	int64_t frame_id = 0;
-
-	int64_t client_render_phase_ns = 0;
 
 	int64_t mean_wake_up_to_present_ns = 1'000'000;
 	int64_t safe_present_to_decoded_ns = 0;

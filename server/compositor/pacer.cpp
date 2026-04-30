@@ -29,18 +29,6 @@ namespace wivrn
 static const int64_t margin_ns = 3'000'000;
 static const int64_t slop_ns = 500'000;
 
-template <typename T>
-static T lerp_mod(T a, T b, double t, T mod)
-{
-	if (2 * std::abs(a - b) < mod)
-		return std::lerp(a, b, t);
-	if (a < b)
-		a += mod;
-	else
-		b += mod;
-	return T(std::lerp(a, b, t)) % mod;
-}
-
 pacer::pacer(uint64_t frame_duration) :
         frame_duration_ns(frame_duration),
         frame_times(5000),
@@ -100,8 +88,6 @@ void pacer::predict(
 	auto now = os_monotonic_get_ns();
 
 	int64_t predicted_client_render = last_ns + frame_duration_ns;
-	// snap to phase
-	predicted_client_render = (predicted_client_render / frame_duration_ns) * frame_duration_ns + client_render_phase_ns;
 
 	if (now + mean_wake_up_to_present_ns + safe_present_to_decoded_ns > predicted_client_render)
 		predicted_client_render += frame_duration_ns * ((now + mean_wake_up_to_present_ns + safe_present_to_decoded_ns - predicted_client_render) / frame_duration_ns);
@@ -149,8 +135,13 @@ void pacer::on_feedback(const wivrn::from_headset::feedback & feedback, const cl
 			std::swap(frame_times, frame_times_compute);
 			compute_cv.notify_all();
 		}
-
-		client_render_phase_ns = lerp_mod<int64_t>(client_render_phase_ns, offset.from_headset(feedback.blitted) % frame_duration_ns, 0.1, frame_duration_ns);
+		// adjust phase
+		auto d = (frame_duration_ns / 2 + offset.from_headset(feedback.blitted) - last_ns) % frame_duration_ns;
+		if (d < 0)
+			d += frame_duration_ns;
+		d -= frame_duration_ns / 2;
+		auto l = last_ns;
+		last_ns += d / 10;
 	}
 
 	if (feedback.displayed and feedback.displayed > feedback.blitted and feedback.displayed < feedback.blitted + 100'000'000)
