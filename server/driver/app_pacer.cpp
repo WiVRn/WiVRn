@@ -18,12 +18,17 @@
 
 #include "app_pacer.h"
 
+#include "util/u_debug.h"
 #include "util/u_time.h"
+#include "util/u_var.h"
 #include "utils/method.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <ranges>
+
+// Default value is half the compositor margin
+DEBUG_GET_ONCE_FLOAT_OPTION(min_margin_ms, "U_PACING_APP_MIN_MARGIN_MS", 1.5f)
 
 namespace wivrn
 {
@@ -40,6 +45,8 @@ class app_pacer : public u_pacing_app
 	int64_t cpu_time = 0;
 	int64_t gpu_time = 0;
 	int64_t compositor_time = 0;
+
+	u_var_draggable_f32 min_margin_ms;
 
 	struct frame
 	{
@@ -70,8 +77,18 @@ public:
 	                .info = method_pointer<&app_pacer::info>,
 	                .destroy = method_pointer<&app_pacer::destroy>,
 	        },
-	        parent(parent)
-	{}
+	        parent(parent),
+	        min_margin_ms{
+	                .val = debug_get_float_option_min_margin_ms(),
+	                .step = 0.1,
+	                .min = 0.5,
+	                .max = 5.0,
+	        }
+	{
+		// U variable tracking.
+		u_var_add_root(this, "App timing info", true);
+		u_var_add_draggable_f32(this, &min_margin_ms, "Minimum margin(ms)");
+	}
 
 	void predict(int64_t now_ns,
 	             int64_t * out_frame_id,
@@ -134,7 +151,7 @@ void app_pacer::predict(int64_t now_ns,
 
 		*out_predicted_display_time = last_display_time;
 		*out_predicted_display_period = period;
-		*out_wake_up_time = last_display_time - (cpu_time + gpu_time + compositor_time + U_TIME_1MS_IN_NS);
+		*out_wake_up_time = last_display_time - (cpu_time + gpu_time + compositor_time + int64_t(U_TIME_1MS_IN_NS * min_margin_ms.val));
 	}
 }
 
