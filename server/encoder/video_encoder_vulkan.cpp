@@ -633,7 +633,7 @@ void wivrn::video_encoder_vulkan::present_image(vk::Image y_cbcr, vk::SemaphoreS
 
 	if (tmp_image)
 	{
-		assert(slot_item.view);
+		assert(*slot_item.view);
 		image_view = slot_item.view;
 		compositor_sem.stageMask = vk::PipelineStageFlagBits2::eCopy;
 

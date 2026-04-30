@@ -541,7 +541,7 @@ xrt_result_t compositor::get_display_refresh_rate(float * hz)
 	auto settings = session.get_settings();
 	// there should not be rounding errors, hz must be one of the available refresh rates
 	*hz = frame_rate * settings->fps_divider;
-	assert(std::ranges::contains(session.headset_info_packet.available_refresh_rates, *hz));
+	assert(std::ranges::contains(session.get_info().available_refresh_rates, *hz));
 	return XRT_SUCCESS;
 }
 
