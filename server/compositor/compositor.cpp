@@ -177,7 +177,7 @@ std::array<wivrn::compositor::image, 2> make_images(wivrn::vk_bundle & vk, vk::C
 		                        .subresourceRange = {
 		                                .aspectMask = vk::ImageAspectFlagBits::ePlane0,
 		                                .levelCount = 1,
-		                                .layerCount = vk::RemainingArrayLayers,
+		                                .layerCount = image_info.get().arrayLayers,
 		                        },
 		                },
 		        },
@@ -191,7 +191,7 @@ std::array<wivrn::compositor::image, 2> make_images(wivrn::vk_bundle & vk, vk::C
 		                        .subresourceRange = {
 		                                .aspectMask = vk::ImageAspectFlagBits::ePlane1,
 		                                .levelCount = 1,
-		                                .layerCount = vk::RemainingArrayLayers,
+		                                .layerCount = image_info.get().arrayLayers,
 		                        },
 		                },
 		        }};
@@ -387,7 +387,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		                .subresourceRange = {
 		                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 		                        .levelCount = 1,
-		                        .layerCount = vk::RemainingArrayLayers,
+		                        .layerCount = 2,
 		                },
 		        });
 	}
@@ -402,7 +402,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	                .subresourceRange = {
 	                        .aspectMask = vk::ImageAspectFlagBits::eColor,
 	                        .levelCount = 1,
-	                        .layerCount = vk::RemainingArrayLayers,
+	                        .layerCount = images[i].image.info().arrayLayers,
 	                },
 	        });
 
