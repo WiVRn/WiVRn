@@ -25,6 +25,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <mutex>
 #include <span>
 #include <string>
 #include <thread>

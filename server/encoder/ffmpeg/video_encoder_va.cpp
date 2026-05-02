@@ -31,6 +31,7 @@
 #include <filesystem>
 #include <libavutil/pixfmt.h>
 #include <optional>
+#include <unistd.h>
 #include <unordered_map>
 #include <vulkan/vulkan_raii.hpp>
 
