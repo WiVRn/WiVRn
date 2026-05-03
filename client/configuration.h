@@ -109,8 +109,13 @@ public:
 	void set_stream_scale(float);
 	float get_stream_scale() const;
 
+	uint32_t max_bitrate(bool extended) const
+	{
+		return extended ? 800'000'000u : 200'000'000u;
+	}
+
 	uint32_t max_bitrate() const
 	{
-		return extended_config ? 800'000'000u : 200'000'000u;
+		return max_bitrate(extended_config);
 	}
 };

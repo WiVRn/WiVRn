@@ -622,9 +622,15 @@ void scenes::lobby::gui_settings()
 		imgui_ctx->vibrate_on_hover();
 		if (width * config.resolution_scale > stream_view.maxImageRectWidth or height * config.resolution_scale > stream_view.maxImageRectHeight)
 		{
-			ImGui::TextColored(ImColor(0xf9, 0x73, 0x06) /*orange*/, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
 			ImGui::SameLine();
 			ImGui::Text("%s", fmt::format(_F("Resolution larger than {}x{} may not be supported by the headset"), stream_view.maxImageRectWidth, stream_view.maxImageRectHeight).c_str());
+		}
+		if (intScale > 15)
+		{
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::SameLine();
+			ImGui::Text("%s", fmt::format(_cF("resolution is higher than recommended", "Recommended maximum is {}%"), 150).c_str());
 		}
 	}
 
@@ -658,6 +664,12 @@ void scenes::lobby::gui_settings()
 				                     "improving latency, power efficiency and quality."));
 		}
 		imgui_ctx->vibrate_on_hover();
+		if (intval < 30 / step)
+		{
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::SameLine();
+			ImGui::Text("%s", fmt::format(_cF("foveation is lower than recommended", "Recommended minimum is {}%"), 30).c_str());
+		}
 	}
 
 	{
@@ -734,6 +746,12 @@ void scenes::lobby::gui_settings()
 			config.save();
 		}
 		imgui_ctx->vibrate_on_hover();
+		if (config.bitrate_bps > config.max_bitrate(false))
+		{
+			ImGui::TextColored(constants::style::warn, ICON_FA_TRIANGLE_EXCLAMATION);
+			ImGui::SameLine();
+			ImGui::Text("%s", fmt::format(_cF("bitrate value is higher than recommended", "Recommended maximum is {}Mbit/s"), config.max_bitrate(false) / mb).c_str());
+		}
 	}
 
 	if (instance.has_extension(XR_EXT_PERFORMANCE_SETTINGS_EXTENSION_NAME))

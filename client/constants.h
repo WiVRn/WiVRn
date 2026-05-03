@@ -143,4 +143,6 @@ constexpr ImVec2 pin_entry_key_size = {90, 70};
 constexpr ImVec2 pin_entry_item_spacing = {10, 10};
 constexpr float pin_entry_popup_width = 3 * pin_entry_key_size.x + 2 * pin_entry_item_spacing.x;
 
+constexpr ImColor warn(0xf9, 0x73, 0x06);
+
 } // namespace constants::style
