@@ -323,8 +323,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	cmd_pool.reset();
 	cmd.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-	cmd.resetQueryPool(*query_pool, 0, 3);
-	cmd.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, 0);
+	cmd.resetQueryPool(*query_pool, i * 3, 3);
+	cmd.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, *query_pool, i * 3 + 0);
 
 	bool flip_y = false;
 	std::array<vk::ImageView, 2> src;
@@ -412,7 +412,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	});
 	image_barriers.clear();
 
-	cmd.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 1);
+	cmd.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, i * 3 + 1);
 
 	if (session.get_info().eye_gaze)
 	{
@@ -458,7 +458,7 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 	        .imageMemoryBarrierCount = uint32_t(image_barriers.size()),
 	        .pImageMemoryBarriers = image_barriers.data(),
 	});
-	cmd.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, 2);
+	cmd.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, *query_pool, i * 3 + 2);
 
 	cmd.end();
 
@@ -481,6 +481,10 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		});
 	}
 
+	pacer.mark_timing_point(COMP_TARGET_TIMING_POINT_SUBMIT_END,
+	                        frame.rendering.id,
+	                        os_monotonic_get_ns());
+
 	auto info = pacer.present_to_info(frame.rendering.desired_present_time_ns);
 
 	for (auto & encoder: encoders)
@@ -493,6 +497,8 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 		        info.frame_id);
 	}
 
+	images[i].sem_value = sem_info.value;
+
 	auto j = encode_request.exchange(i);
 	encode_request.notify_all();
 	assert(j == -1);
@@ -503,35 +509,6 @@ xrt_result_t compositor::layer_commit(xrt_graphics_sync_handle_t sync_handle)
 #endif
 
 	comp_frame_clear_locked(&frame.rendering);
-
-	if (vk.device.waitSemaphores(vk::SemaphoreWaitInfo{
-	                                     .semaphoreCount = 1,
-	                                     .pSemaphores = &*sem,
-	                                     .pValues = &sem_info.value,
-	                             },
-	                             U_TIME_1S_IN_NS) == vk::Result::eTimeout)
-	{
-		U_LOG_IFL_W(log_level, "compositor timeout");
-	}
-	else
-	{
-		auto [res, ts] = query_pool.getResults<uint64_t>(
-		        0,
-		        3,
-		        3 * sizeof(uint64_t),
-		        sizeof(uint64_t),
-		        vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
-
-		if (res == vk::Result::eSuccess)
-		{
-			static const auto period = vk.physical_device.getProperties().limits.timestampPeriod;
-			squasher_times.add((ts[1] - ts[0]) * period / 1e3);
-			foveation_times.add((ts[2] - ts[1]) * period / 1e3);
-		}
-	}
-
-	// Now is a good point to garbage collect.
-	comp_swapchain_shared_garbage_collect(&cscs);
 
 	return XRT_SUCCESS;
 }
@@ -631,6 +608,36 @@ void compositor::encoder_work(std::stop_token tok)
 		{
 			U_LOG_W("encode error: %s", e.what());
 		}
+
+		if (vk.device.waitSemaphores(vk::SemaphoreWaitInfo{
+		                                     .semaphoreCount = 1,
+		                                     .pSemaphores = &*sem,
+		                                     .pValues = &image.sem_value,
+		                             },
+		                             U_TIME_1S_IN_NS) == vk::Result::eTimeout)
+		{
+			U_LOG_IFL_W(log_level, "compositor timeout");
+		}
+		else
+		{
+			auto [res, ts] = query_pool.getResults<uint64_t>(
+			        req * 3,
+			        3,
+			        3 * sizeof(uint64_t),
+			        sizeof(uint64_t),
+			        vk::QueryResultFlagBits::e64);
+
+			if (res == vk::Result::eSuccess)
+			{
+				static const auto period = vk.physical_device.getProperties().limits.timestampPeriod;
+				squasher_times.add((ts[1] - ts[0]) * period / 1e3);
+				foveation_times.add((ts[2] - ts[1]) * period / 1e3);
+			}
+		}
+
+		// Now is a good point to garbage collect.
+		comp_swapchain_shared_garbage_collect(&cscs);
+
 		image.busy = false;
 	}
 }
@@ -675,7 +682,7 @@ compositor::compositor(wivrn_session & session) :
                             }),
         query_pool(vk.device, vk::QueryPoolCreateInfo{
                                       .queryType = vk::QueryType::eTimestamp,
-                                      .queryCount = 3,
+                                      .queryCount = 6,
                               }),
         settings(get_encoder_settings(vk, session)),
         images{make_images(vk, cmd_pool, settings)},

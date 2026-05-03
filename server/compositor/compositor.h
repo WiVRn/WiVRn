@@ -54,6 +54,7 @@ public:
 		vk::raii::ImageView view_cbcr;
 		to_headset::video_stream_data_shard::view_info_t view_info{};
 		uint64_t frame_index;
+		uint64_t sem_value;
 	};
 
 private:
